@@ -95,19 +95,8 @@ func (ccc *clientConnCallbacks) OnBelowWriteBufferLowWatermark() {}
 
 func tcpProxyConfig() *v2.TcpProxy {
 	tcpProxyConfig := &v2.TcpProxy{}
-
-	var sourceAddrs []net.Addr
-	srouceAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:2048")
-	sourceAddrs = append(sourceAddrs, srouceAddr)
-
-	var destinationAddrs []net.Addr
-	destinationAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:8080")
-	destinationAddrs = append(destinationAddrs, destinationAddr)
-
 	tcpProxyConfig.Routes = append(tcpProxyConfig.Routes, &v2.TcpRoute{
-		Cluster:          "tstCluster",
-		SourceAddrs:      sourceAddrs,
-		DestinationAddrs: destinationAddrs,
+		Cluster: "tstCluster",
 	})
 
 	return tcpProxyConfig

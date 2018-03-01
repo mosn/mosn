@@ -5,6 +5,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"fmt"
+	"reflect"
 )
 
 // ReadFilter
@@ -67,15 +69,16 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	clusterName := p.getUpstreamCluster()
 
-	clusterInfo := p.clusterManager.Get(clusterName, nil).ClusterInfo()
+	clusterSnapshot := p.clusterManager.Get(clusterName, nil)
 
-	if clusterInfo == nil {
+	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		p.requestInfo.SetResponseFlag(types.NoRouteFound)
 		p.onInitFailure(NoRoute)
 
 		return types.StopIteration
 	}
 
+	clusterInfo := clusterSnapshot.ClusterInfo()
 	clusterConnectionResource := clusterInfo.ResourceManager().ConnectionResource()
 
 	if !clusterConnectionResource.CanCreate() {
@@ -210,11 +213,11 @@ func NewProxyConfig(config *v2.TcpProxy) ProxyConfig {
 
 func (pc *proxyConfig) GetRouteFromEntries(connection types.Connection) string {
 	for _, r := range pc.routes {
-		if !r.sourceAddrs.Contains(connection.RemoteAddr()) {
+		if len(r.sourceAddrs) != 0 && !r.sourceAddrs.Contains(connection.RemoteAddr()) {
 			continue
 		}
 
-		if !r.destinationAddrs.Contains(connection.LocalAddr()) {
+		if len(r.destinationAddrs) != 0 && r.destinationAddrs.Contains(connection.LocalAddr()) {
 			continue
 		}
 

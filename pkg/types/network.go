@@ -217,6 +217,7 @@ type Addresses []net.Addr
 
 func (as Addresses) Contains(addr net.Addr) bool {
 	for _, one := range as {
+		// TODO: support port wildcard
 		if one.String() == addr.String() {
 			return true
 		}

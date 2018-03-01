@@ -9,6 +9,7 @@ import (
 	"io"
 	"sync"
 	"crypto/tls"
+	"fmt"
 )
 
 type connection struct {
@@ -44,6 +45,8 @@ type connection struct {
 func NewServerConnection(rawc net.Conn, stopChan chan bool) types.Connection {
 	conn := &connection{
 		rawConnection: rawc,
+		localAddr:     rawc.LocalAddr(),
+		remoteAddr:    rawc.RemoteAddr(),
 		stopChan:      stopChan,
 		readBuffer:    &bytes.Buffer{},
 		readerPool:    buffer.NewReadBufferPool(128, 4*1024),
@@ -61,7 +64,15 @@ func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
 		// TODO: panic recover
 
-		go c.startReadLoop()
+		go func() {
+			defer func() {
+				if p := recover(); p != nil {
+					fmt.Printf("panic %v", p)
+				}
+			}()
+
+			c.startReadLoop()
+		}()
 	})
 }
 

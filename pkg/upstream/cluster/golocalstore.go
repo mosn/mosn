@@ -12,20 +12,19 @@ import (
 type Values map[interface{}]interface{}
 
 type golocalstore struct {
-	dataLock map[uint64]sync.RWMutex
+	dataLock sync.RWMutex
 	data     map[uint64]Values
 }
 
 func newgolocalstore() *golocalstore {
 	return &golocalstore{
-		dataLock: make(map[uint64]sync.RWMutex),
-		data: make(map[uint64]Values),
+		data:     make(map[uint64]Values),
 	}
 }
 
 func (g *golocalstore) SetValues(values Values) {
 	gid := curGoroutineID()
-	lock := g.dataLock[gid]
+	lock := g.dataLock
 
 	lock.Lock()
 	g.data[gid] = values
@@ -34,7 +33,7 @@ func (g *golocalstore) SetValues(values Values) {
 
 func (g *golocalstore) Set(key string, value interface{}) {
 	gid := curGoroutineID()
-	lock := g.dataLock[gid]
+	lock := g.dataLock
 
 	lock.Lock()
 
@@ -48,7 +47,7 @@ func (g *golocalstore) Set(key string, value interface{}) {
 
 func (g *golocalstore) Get(key string) interface{} {
 	gid := curGoroutineID()
-	lock := g.dataLock[gid]
+	lock := g.dataLock
 
 	lock.RLock()
 

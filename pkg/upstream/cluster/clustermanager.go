@@ -93,36 +93,17 @@ func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaApi bool
 }
 
 func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *clusterSnapshot {
-	var ok bool
-	var snapshotStore *golocalstore
-	var primaryCluster *primaryCluster
-
-	if snapshotStore, ok = cm.clusterSnapshots[clusterName]; ok {
-		if _, ok := cm.primaryClusters[clusterName]; !ok {
-			return nil
-		} else {
-			cm.clusterSnapshots[clusterName] = newgolocalstore()
-		}
-	}
-
-	snapshot := snapshotStore.Get(ClusterSnapshot)
-
-	if snapshot != nil {
-		// TODO: use prioritySet copy and clusterInfo copy
-		ps := primaryCluster.cluster.PrioritySet()
-		ci := primaryCluster.cluster.Info()
-
+	if v, ok := cm.primaryClusters[clusterName]; ok {
 		clusterSnapshot := &clusterSnapshot{
-			prioritySet:  ps,
-			clusterInfo:  ci,
-			loadbalancer: NewLoadBalancer(primaryCluster.cluster.Info().LbType(), ps),
+			prioritySet:  v.cluster.PrioritySet(),
+			clusterInfo:  v.cluster.Info(),
+			loadbalancer: NewLoadBalancer(v.cluster.Info().LbType(), v.cluster.PrioritySet()),
 		}
 
-		snapshot = clusterSnapshot
-		snapshotStore.Set(ClusterSnapshot, clusterSnapshot)
+		return clusterSnapshot
+	} else {
+		return nil
 	}
-
-	return snapshot.(*clusterSnapshot)
 }
 
 func (cm *clusterManager) updateClusterSnapshot(cluster types.Cluster, priority uint32,
