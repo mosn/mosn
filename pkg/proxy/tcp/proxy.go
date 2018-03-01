@@ -5,7 +5,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"fmt"
 	"reflect"
 )
 
@@ -43,7 +42,6 @@ func (p *proxy) OnData(buffer *bytes.Buffer) types.FilterStatus {
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
-	// TODO: handle write err
 	p.upstreamConnection.Write(buffer)
 
 	return types.StopIteration
@@ -101,11 +99,13 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	clusterConnectionResource.Increase()
 
 	upstreamConnection := connectionData.Connection
-	upstreamConnection.SetNoDelay(true)
 	upstreamConnection.AddConnectionCallbacks(p.upstreamCallbacks)
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
 	upstreamConnection.Connect()
+	upstreamConnection.SetNoDelay(true)
+	upstreamConnection.SetReadDisable(false)
 
+	p.upstreamConnection = upstreamConnection
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
 
 	// TODO: update upstream stats
@@ -132,7 +132,6 @@ func (p *proxy) onUpstreamData(buffer *bytes.Buffer) {
 	bytesSent := p.requestInfo.BytesSent() + uint64(buffer.Len())
 	p.requestInfo.SetBytesSent(bytesSent)
 
-	// TODO: handle write err
 	p.readCallbacks.Connection().Write(buffer)
 }
 
@@ -252,7 +251,7 @@ func (uc *upstreamCallbacks) OnData(buffer *bytes.Buffer) types.FilterStatus {
 }
 
 func (uc *upstreamCallbacks) OnNewConnection() types.FilterStatus {
-	return types.StopIteration
+	return types.Continue
 }
 
 func (uc *upstreamCallbacks) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}

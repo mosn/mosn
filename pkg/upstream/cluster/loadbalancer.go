@@ -25,16 +25,20 @@ type randomloadbalancer struct {
 }
 
 func newRandomLoadbalancer(prioritySet types.PrioritySet) types.LoadBalancer {
-	return &randomloadbalancer{}
+	return &randomloadbalancer{
+		loadbalaner: loadbalaner{
+			prioritySet: prioritySet,
+		},
+	}
 }
 
 func (l *randomloadbalancer) ChooseHost(context context.Context) types.Host {
-	// TODO: randomly select priority
-	hostset := l.prioritySet.HostSetsByPriority()[0]
-	hosts := hostset.HealthyHosts()
+	hostSets := l.prioritySet.HostSetsByPriority()
+	idx := rand.Intn(len(hostSets))
+	hostset := hostSets[idx]
 
-	random := rand.Rand{}
-	hostIdx := random.Int() % len(hosts)
+	hosts := hostset.HealthyHosts()
+	hostIdx := rand.Intn(len(hosts))
 
 	return hosts[hostIdx]
 }

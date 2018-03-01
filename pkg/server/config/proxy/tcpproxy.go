@@ -16,3 +16,4 @@ func (tpcf *TcpProxyFilterConfigFactory) CreateFilterFactory(clusterManager type
 		manager.AddReadFilter(tcp.NewProxy(tpcf.Proxy, clusterManager))
 	}
 }
+

@@ -6,6 +6,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"errors"
+	"fmt"
 )
 
 const (
@@ -80,7 +82,6 @@ func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaApi bool
 
 	cluster.Initialize(func() {
 		cluster.PrioritySet().AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
-			cm.updateClusterSnapshot(cluster, priority, hostsAdded, hostsRemoved)
 		})
 	})
 
@@ -134,6 +135,27 @@ func (cm *clusterManager) Clusters() map[string]types.Cluster {
 
 func (cm *clusterManager) Get(cluster string, context context.Context) types.ClusterSnapshot {
 	return cm.getOrCreateClusterSnapshot(cluster)
+}
+
+func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32, hostConfigs []v2.Host) error {
+	if pc, ok := cm.primaryClusters[clusterName]; ok {
+
+		// todo: hack
+		if concretedCluster, ok := pc.cluster.(*simpleInMemCluster); ok {
+			var hosts []types.Host
+
+			for _, hc := range hostConfigs {
+				hosts = append(hosts, newHost(hc, pc.cluster.Info()))
+			}
+
+			concretedCluster.UpdateHosts(hosts)
+			return nil
+		} else {
+			return errors.New(fmt.Sprintf("cluster's hostset %s can't be update", clusterName))
+		}
+	}
+
+	return errors.New(fmt.Sprintf("cluster %s not found", clusterName))
 }
 
 func (cm *clusterManager) HttpConnPoolForCluster(cluster string, priority pkg.Priority, protocol string, context context.Context) types.HttpConnectionPool {

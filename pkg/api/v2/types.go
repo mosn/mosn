@@ -8,15 +8,15 @@ type Metadata struct {
 type ClusterType string
 
 const (
-	STATIC ClusterType = "STATIC"
-	SIMPLE ClusterType = "SIMPLE"
+	STATIC_CLUSTER ClusterType = "STATIC"
+	SIMPLE_CLUSTER ClusterType = "SIMPLE"
 )
 
 type LbType string
 
 const (
-	RANDOM      LbType = "RANDOM"
-	ROUND_ROBIN LbType = "ROUND_ROBIN"
+	LB_RANDOM     LbType = "LB_RANDOM"
+	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
 )
 
 type Cluster struct {
@@ -25,6 +25,12 @@ type Cluster struct {
 	LbType               LbType
 	MaxRequestPerConn    uint64
 	ConnBufferLimitBytes int
+}
+
+type Host struct {
+	Address   string
+	Hostname  string
+	Weight uint32
 }
 
 type ListenerConfig struct {

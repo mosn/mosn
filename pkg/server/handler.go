@@ -8,8 +8,12 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
+// ConnectionHandler
+// ClusterConfigFactoryCb
+// ClusterHostFactoryCb
 type connHandler struct {
 	numConnections int64
 	listeners      []*activeListener
@@ -17,11 +21,7 @@ type connHandler struct {
 	filterFactory  NetworkFilterConfigFactory
 }
 
-func NewHandler(filterFactory NetworkFilterConfigFactory) types.ConnectionHandler {
-	return newConnHandler(filterFactory)
-}
-
-func newConnHandler(filterFactory NetworkFilterConfigFactory) *connHandler {
+func NewHandler(filterFactory NetworkFilterConfigFactory, clusterManagerFilter ClusterManagerFilter) types.ConnectionHandler {
 	ch := &connHandler{
 		numConnections: 0,
 		clusterManager: cluster.NewClusterManager(nil),
@@ -29,9 +29,29 @@ func newConnHandler(filterFactory NetworkFilterConfigFactory) *connHandler {
 		filterFactory:  filterFactory,
 	}
 
+	clusterManagerFilter.OnCreated(ch, ch)
+
 	return ch
 }
 
+// ClusterConfigFactoryCb
+func (ch *connHandler) UpdateClusterConfig(clusters []v2.Cluster) error {
+
+	for _, cluster := range clusters {
+		ch.clusterManager.AddOrUpdatePrimaryCluster(cluster)
+	}
+
+	// TODO: remove cluster
+
+	return nil
+}
+
+// ClusterHostFactoryCb
+func (ch *connHandler) UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error {
+	return ch.clusterManager.UpdateClusterHosts(cluster, priority, hosts)
+}
+
+// ConnectionHandler
 func (ch *connHandler) NumConnections() uint64 {
 	return uint64(atomic.LoadInt64(&ch.numConnections))
 }
@@ -123,6 +143,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 }
 
 func (al *activeListener) OnNewConnection(conn types.Connection) {
+	// start conn loops first
+	conn.Start(nil)
+
 	configFactory := al.handler.filterFactory.CreateFilterFactory(al.handler.clusterManager)
 	buildFilterChain(conn.FilterManager(), configFactory)
 
@@ -139,8 +162,6 @@ func (al *activeListener) OnNewConnection(conn types.Connection) {
 		ac.element = e
 
 		atomic.AddInt64(&al.handler.numConnections, 1)
-
-		ac.conn.Start(nil)
 	}
 }
 

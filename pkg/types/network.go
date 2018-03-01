@@ -122,12 +122,14 @@ type ClientConnection interface {
 type ConnectionEvent string
 
 const (
-	RemoteClose    ConnectionEvent = "RemoteClose"
-	LocalClose     ConnectionEvent = "LocalClose"
-	OnConnect      ConnectionEvent = "OnConnect"
-	Connected      ConnectionEvent = "Connected"
-	ConnectTimeout ConnectionEvent = "ConnectTimeout"
-	ConnectFailed  ConnectionEvent = "ConnectFailed"
+	RemoteClose     ConnectionEvent = "RemoteClose"
+	LocalClose      ConnectionEvent = "LocalClose"
+	OnReadErrClose  ConnectionEvent = "OnReadErrClose"
+	OnWriteErrClose ConnectionEvent = "OnWriteErrClose"
+	OnConnect       ConnectionEvent = "OnConnect"
+	Connected       ConnectionEvent = "Connected"
+	ConnectTimeout  ConnectionEvent = "ConnectTimeout"
+	ConnectFailed   ConnectionEvent = "ConnectFailed"
 )
 
 // Network level callbacks that happen on a connection.
@@ -225,4 +227,3 @@ func (as Addresses) Contains(addr net.Addr) bool {
 
 	return false
 }
-

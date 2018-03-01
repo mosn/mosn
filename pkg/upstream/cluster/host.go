@@ -60,12 +60,26 @@ type host struct {
 	used   bool
 }
 
+func newHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
+	addr, _ := net.ResolveTCPAddr("tcp", config.Address)
+
+	return &host{
+		hostInfo: hostInfo{
+			address:     addr,
+			hostname:    config.Hostname,
+			clusterInfo: clusterInfo,
+		},
+		weight: config.Weight,
+	}
+}
+
 func (h *host) CreateConnection() types.CreateConnectionData {
 	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), h.address, nil)
 	clientConn.SetBufferLimit(h.clusterInfo.ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
 		Connection: clientConn,
+		HostInfo: &h.hostInfo,
 	}
 }
 
@@ -112,11 +126,12 @@ func (h *host) SetUsed(used bool) {
 	h.used = used
 }
 
+// HostInfo
 type hostInfo struct {
 	hostname    string
 	address     net.Addr
 	canary      bool
-	clusterInfo *clusterInfo
+	clusterInfo types.ClusterInfo
 	// TODO: metadata, locality, stats, outlier, healthchecker
 }
 

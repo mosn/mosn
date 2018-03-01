@@ -30,6 +30,7 @@ func (p *ReaderBufferPool) Take(r io.Reader) (bpe *ReaderBufferPoolEntry) {
 		}
 		// swap out the underlying reader
 		bpe.source = r
+		bpe.Br.Reset(r)
 	default:
 		// none available.  create a new one
 		bpe = &ReaderBufferPoolEntry{nil, r}
@@ -71,6 +72,7 @@ func (p *WriteBufferPool) Take(r io.Writer) (bpe *WriteBufferPoolEntry) {
 	select {
 	case bpe = <-p.pool:
 		bpe.source = r
+		bpe.Br.Reset(r)
 	default:
 		// none available.  create a new one
 		bpe = &WriteBufferPoolEntry{nil, r}
@@ -80,12 +82,6 @@ func (p *WriteBufferPool) Take(r io.Writer) (bpe *WriteBufferPoolEntry) {
 }
 
 func (p *WriteBufferPool) Give(bpe *WriteBufferPoolEntry) {
-	if bpe.Br.Buffered() > 0 {
-		return
-	}
-	if err := bpe.Br.Flush(); err != nil {
-		return
-	}
 	select {
 	case p.pool <- bpe: // return to pool
 	default: // discard

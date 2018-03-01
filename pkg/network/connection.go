@@ -10,6 +10,7 @@ import (
 	"sync"
 	"crypto/tls"
 	"fmt"
+	"time"
 )
 
 type connection struct {
@@ -44,13 +45,15 @@ type connection struct {
 
 func NewServerConnection(rawc net.Conn, stopChan chan bool) types.Connection {
 	conn := &connection{
-		rawConnection: rawc,
-		localAddr:     rawc.LocalAddr(),
-		remoteAddr:    rawc.RemoteAddr(),
-		stopChan:      stopChan,
-		readBuffer:    &bytes.Buffer{},
-		readerPool:    buffer.NewReadBufferPool(128, 4*1024),
-		writerPool:    buffer.NewWriteBufferPool(128, 4*1024),
+		rawConnection:   rawc,
+		localAddr:       rawc.LocalAddr(),
+		remoteAddr:      rawc.RemoteAddr(),
+		stopChan:        stopChan,
+		readEnabled:     false,
+		readEnabledChan: make(chan bool),
+		readBuffer:      &bytes.Buffer{},
+		readerPool:      buffer.NewReadBufferPool(128, 4*1024),
+		writerPool:      buffer.NewWriteBufferPool(128, 4*1024),
 	}
 
 	conn.filterManager = newFilterManager(conn)
@@ -97,7 +100,29 @@ func (c *connection) Write(buf *bytes.Buffer) error {
 		c.writerPool.Give(wbe)
 	}()
 
-	n, err := buf.WriteTo(wbe.Br)
+	var bytesSent int64
+
+	for {
+		n, err := buf.WriteTo(wbe.Br)
+
+		if err == io.EOF {
+			// remote conn closed
+			c.closeConnection(types.RemoteClose)
+		}
+
+		if err != nil {
+			c.closeConnection(types.OnWriteErrClose)
+			return err
+		}
+
+		if n == 0 {
+			break
+		}
+
+		bytesSent += n
+	}
+
+	err := wbe.Br.Flush()
 
 	if err == io.EOF {
 		// remote conn closed
@@ -105,12 +130,13 @@ func (c *connection) Write(buf *bytes.Buffer) error {
 	}
 
 	if err != nil {
+		c.closeConnection(types.OnWriteErrClose)
 		return err
 	}
 
-	if n > 0 {
+	if bytesSent > 0 {
 		for _, cb := range c.bytesSendCallbacks {
-			cb(uint64(n))
+			cb(uint64(bytesSent))
 		}
 	}
 
@@ -183,8 +209,9 @@ func (c *connection) SetReadDisable(disable bool) {
 		c.readEnabled = false
 		c.readEnabledChan <- false
 	} else {
+		c.readDisableCount--
+
 		if c.readDisableCount > 0 {
-			c.readDisableCount--
 			return
 		}
 
@@ -240,33 +267,29 @@ func (c *connection) startReadLoop() {
 		select {
 		case <-c.stopChan:
 			return
+		case <-c.readEnabledChan:
 		default:
-			if !c.readEnabled {
-				// wait on read enable
-				for {
-					select {
-					case re := <-c.readEnabledChan:
-						if re == true {
-							break
-						}
-					}
+			if c.readEnabled {
+				err := c.onReadReady()
+
+				if err == io.EOF {
+					// remote conn closed
+					c.closeConnection(types.RemoteClose)
+					return
 				}
-			}
 
-			err := c.onReadReady()
+				if err, ok := err.(net.Error); ok && err.Timeout() {
+					continue
+				}
 
-			if err == io.EOF {
-				// remote conn closed
-				c.closeConnection(types.RemoteClose)
-				return
-			}
-
-			if err, ok := err.(net.Error); ok && err.Timeout() {
-				continue
-			}
-
-			if err != nil {
-				return
+				if err != nil {
+					c.closeConnection(types.OnReadErrClose)
+					return
+				}
+			} else {
+				select {
+				case <-c.readEnabledChan:
+				}
 			}
 		}
 	}
@@ -274,19 +297,26 @@ func (c *connection) startReadLoop() {
 
 func (c *connection) onReadReady() error {
 	bytesRead := 0
-	// TODO enhance: remove tmp buffer
-	buf := make([]byte, 16384)
+	// TODO: enhance: rewrite iobuf, reduce data copy
+	buf := make([]byte, 4*1024)
 
 	for {
+		t := time.Now()
+		// take a break to check channels
+		c.rawConnection.SetReadDeadline(t.Add(3 * time.Second))
+
 		rbe := c.readerPool.Take(c.rawConnection)
 		nr, err := rbe.Br.Read(buf)
+		c.readerPool.Give(rbe)
 
 		if err != nil {
-			c.readerPool.Give(rbe)
 			return err
 		}
 
-		c.readerPool.Give(rbe)
+		if nr == 0 {
+			break
+		}
+
 		bytesRead += nr
 		c.readBuffer.Write(buf[:nr])
 		buf = buf[:0]
@@ -337,12 +367,14 @@ type clientConnection struct {
 func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan bool) types.ClientConnection {
 	conn := &clientConnection{
 		connection: connection{
-			localAddr:  sourceAddr,
-			remoteAddr: remoteAddr,
-			stopChan:   stopChan,
-			readBuffer: &bytes.Buffer{},
-			readerPool: buffer.NewReadBufferPool(128, 4*1024),
-			writerPool: buffer.NewWriteBufferPool(128, 4*1024),
+			localAddr:       sourceAddr,
+			remoteAddr:      remoteAddr,
+			stopChan:        stopChan,
+			readEnabled:     false,
+			readEnabledChan: make(chan bool),
+			readBuffer:      &bytes.Buffer{},
+			readerPool:      buffer.NewReadBufferPool(128, 4*1024),
+			writerPool:      buffer.NewWriteBufferPool(128, 4*1024),
 		},
 	}
 	conn.filterManager = newFilterManager(conn)

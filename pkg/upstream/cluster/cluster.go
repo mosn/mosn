@@ -23,7 +23,7 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool)
 	var newCluster types.Cluster
 
 	switch clusterConfig.ClusterType {
-	case v2.SIMPLE:
+	case v2.SIMPLE_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaApi)
 	}
 
@@ -43,9 +43,9 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 	}
 
 	switch clusterConfig.LbType {
-	case v2.RANDOM:
+	case v2.LB_RANDOM:
 		cluster.info.lbType = types.Random
-	case v2.ROUND_ROBIN:
+	case v2.LB_ROUNDROBIN:
 		cluster.info.lbType = types.RoundRobin
 	}
 
@@ -158,7 +158,7 @@ func (ci *clusterInfo) Stats() types.ClusterStats {
 }
 
 func (ci *clusterInfo) ResourceManager() types.ResourceManager {
-	return nil
+	return ci.resourceManager
 }
 
 type prioritySet struct {
@@ -202,7 +202,7 @@ type dynamicClusterbase struct {
 
 func (dc *dynamicClusterbase) updateDynamicHostList(newHosts []types.Host, currentHosts []types.Host) (
 	changed bool, finalHosts []types.Host, hostsAdded []types.Host, hostsRemoved []types.Host) {
-	var hostAddrs map[string]bool
+	hostAddrs := make(map[string]bool)
 
 	// N^2 loop, works for small and steady hosts
 	for _, nh := range newHosts {
@@ -254,9 +254,11 @@ type simpleInMemCluster struct {
 }
 
 func newSimpleInMemCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool) *simpleInMemCluster {
+	cluster := newCluster(clusterConfig, sourceAddr, addedViaApi, nil)
+
 	return &simpleInMemCluster{
 		dynamicClusterbase: dynamicClusterbase{
-			cluster: newCluster(clusterConfig, sourceAddr, addedViaApi, nil),
+			cluster: cluster,
 		},
 	}
 }

@@ -12,9 +12,9 @@ type server struct {
 	handler        types.ConnectionHandler
 }
 
-func NewServer(filterFactory NetworkFilterConfigFactory) Server {
+func NewServer(filterFactory NetworkFilterConfigFactory, cmFilter ClusterManagerFilter) Server {
 	return &server{
-		handler: NewHandler(filterFactory),
+		handler: NewHandler(filterFactory, cmFilter),
 	}
 }
 
