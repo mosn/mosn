@@ -9,11 +9,27 @@ import (
 
 type Protocols struct{
 
-	protocols    map[byte]protocol.Protocol
+	protocols    		map[byte]protocol.Protocol
+	ProtocolsBolt		map[byte]bolt
 
 
 
 }
+
+
+
+func (p*Protocols)PutProtocolBolt(protocol_code byte,protocol bolt){
+
+	p.ProtocolsBolt[protocol_code] = protocol
+}
+
+//get protocol
+func (p*Protocols)GetProtocolBolt(protocol_code byte) bolt{
+
+	return p.ProtocolsBolt[protocol_code]
+}
+
+
 
 //put protocol
 func (p*Protocols)PutProtocol(protocol_code byte,protocol protocol.Protocol){
