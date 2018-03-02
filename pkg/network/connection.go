@@ -293,7 +293,7 @@ func (c *connection) startReadLoop() {
 				}
 
 				if err, ok := err.(net.Error); ok && err.Timeout() {
-					fmt.Println("read timeout")
+					//fmt.Println("read timeout")
 					continue
 				}
 
@@ -321,7 +321,7 @@ func (c *connection) onReadReady() error {
 	for {
 		t := time.Now()
 		// take a break to check channels
-		c.rawConnection.SetReadDeadline(t.Add(500 * time.Millisecond))
+		c.rawConnection.SetReadDeadline(t.Add(10 * time.Millisecond))
 
 		rbe := c.readerPool.Take(c.rawConnection)
 		nr, err := rbe.Br.Read(buf)
