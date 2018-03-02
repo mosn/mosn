@@ -1,7 +1,7 @@
 package codec
 
 import (
-"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 type Codec_imp struct {
@@ -23,5 +23,5 @@ func (code_ *Codec_imp) Decode(magic []byte) string {
 		}
 
 	}
-
+	return "Unknown"
 }
