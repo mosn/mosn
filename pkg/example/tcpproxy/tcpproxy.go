@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
@@ -14,12 +13,10 @@ import (
 
 const (
 	TestCluster    = "tstCluster"
-	TestListener   = "tstListener"
 	RealServerAddr = "127.0.0.1:8080"
-	MeshServerAddr = "127.0.0.1:2048"
 )
 
-func main() {
+func main2() {
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
 	meshReadyChan := make(chan bool)
@@ -85,9 +82,9 @@ func main() {
 			srv := server.NewServer(&proxy.TcpProxyFilterConfigFactory{
 				Proxy: tcpProxyConfig(),
 			}, cmf)
-			srv.AddListener(tcpProxyListener())
+			srv.AddListener(tcpListener())
 			cmf.cccb.UpdateClusterConfig(clusters())
-			cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts())
+			cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts(""))
 
 			meshReadyChan <- true
 
@@ -124,15 +121,6 @@ func main() {
 	case <-time.After(time.Second * 5):
 		stopChan <- true
 		fmt.Println("[MAIN]closing..")
-	}
-}
-
-func tcpProxyListener() v2.ListenerConfig {
-	return v2.ListenerConfig{
-		Name:                 TestListener,
-		Addr:                 MeshServerAddr,
-		BindToPort:           true,
-		ConnBufferLimitBytes: 1024 * 32,
 	}
 }
 
@@ -175,46 +163,3 @@ func (ccrf *clientConnReadFilter) OnNewConnection() types.FilterStatus {
 }
 
 func (ccrf *clientConnReadFilter) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
-
-func tcpProxyConfig() *v2.TcpProxy {
-	tcpProxyConfig := &v2.TcpProxy{}
-	tcpProxyConfig.Routes = append(tcpProxyConfig.Routes, &v2.TcpRoute{
-		Cluster: TestCluster,
-	})
-
-	return tcpProxyConfig
-}
-
-type clusterManagerFilter struct {
-	cccb server.ClusterConfigFactoryCb
-	chcb server.ClusterHostFactoryCb
-}
-
-func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
-	cmf.cccb = cccb
-	cmf.chcb = chcb
-}
-
-func clusters() []v2.Cluster {
-	var configs []v2.Cluster
-	configs = append(configs, v2.Cluster{
-		Name:                 TestCluster,
-		ClusterType:          v2.SIMPLE_CLUSTER,
-		LbType:               v2.LB_RANDOM,
-		MaxRequestPerConn:    1024,
-		ConnBufferLimitBytes: 16 * 1026,
-	})
-
-	return configs
-}
-
-func hosts() []v2.Host {
-	var hosts []v2.Host
-
-	hosts = append(hosts, v2.Host{
-		Address: RealServerAddr,
-		Weight:  100,
-	})
-
-	return hosts
-}

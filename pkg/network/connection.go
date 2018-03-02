@@ -14,10 +14,12 @@ import (
 )
 
 type connection struct {
+	id         uint64
 	localAddr  net.Addr
 	remoteAddr net.Addr
 
 	stopChan                         chan bool
+	readLoopStopChan                 chan bool
 	nextProtocol                     string
 	noDelay                          bool
 	readEnabled                      bool
@@ -43,17 +45,19 @@ type connection struct {
 	startOnce sync.Once
 }
 
-func NewServerConnection(rawc net.Conn, stopChan chan bool) types.Connection {
+func NewServerConnection(rawc net.Conn, id uint64, stopChan chan bool) types.Connection {
 	conn := &connection{
-		rawConnection:   rawc,
-		localAddr:       rawc.LocalAddr(),
-		remoteAddr:      rawc.RemoteAddr(),
-		stopChan:        stopChan,
-		readEnabled:     false,
-		readEnabledChan: make(chan bool),
-		readBuffer:      &bytes.Buffer{},
-		readerPool:      buffer.NewReadBufferPool(128, 4*1024),
-		writerPool:      buffer.NewWriteBufferPool(128, 4*1024),
+		id:               id,
+		rawConnection:    rawc,
+		localAddr:        rawc.LocalAddr(),
+		remoteAddr:       rawc.RemoteAddr(),
+		stopChan:         stopChan,
+		readLoopStopChan: make(chan bool, 1),
+		readEnabled:      false,
+		readEnabledChan:  make(chan bool),
+		readBuffer:       &bytes.Buffer{},
+		readerPool:       buffer.NewReadBufferPool(512, 4*1024),
+		writerPool:       buffer.NewWriteBufferPool(512, 4*1024),
 	}
 
 	conn.filterManager = newFilterManager(conn)
@@ -62,6 +66,10 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool) types.Connection {
 }
 
 // basic
+
+func (c *connection) Id() uint64 {
+	return c.id
+}
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
@@ -122,16 +130,18 @@ func (c *connection) Write(buf *bytes.Buffer) error {
 		bytesSent += n
 	}
 
-	err := wbe.Br.Flush()
+	if wbe.Br.Buffered() > 0 {
+		err := wbe.Br.Flush()
 
-	if err == io.EOF {
-		// remote conn closed
-		c.closeConnection(types.RemoteClose)
-	}
+		if err == io.EOF {
+			// remote conn closed
+			c.closeConnection(types.RemoteClose)
+		}
 
-	if err != nil {
-		c.closeConnection(types.OnWriteErrClose)
-		return err
+		if err != nil {
+			c.closeConnection(types.OnWriteErrClose)
+			return err
+		}
 	}
 
 	if bytesSent > 0 {
@@ -267,6 +277,10 @@ func (c *connection) startReadLoop() {
 		select {
 		case <-c.stopChan:
 			return
+		case <-c.readLoopStopChan:
+			fmt.Println("exit on read loop stop")
+			c.rawConnection.Close()
+			return
 		case <-c.readEnabledChan:
 		default:
 			if c.readEnabled {
@@ -279,10 +293,14 @@ func (c *connection) startReadLoop() {
 				}
 
 				if err, ok := err.(net.Error); ok && err.Timeout() {
+					fmt.Println("read timeout")
 					continue
 				}
 
 				if err != nil {
+					fmt.Printf("OnReadErrClose %v %s", c.id, err)
+					fmt.Println()
+
 					c.closeConnection(types.OnReadErrClose)
 					return
 				}
@@ -303,7 +321,7 @@ func (c *connection) onReadReady() error {
 	for {
 		t := time.Now()
 		// take a break to check channels
-		c.rawConnection.SetReadDeadline(t.Add(3 * time.Second))
+		c.rawConnection.SetReadDeadline(t.Add(500 * time.Millisecond))
 
 		rbe := c.readerPool.Take(c.rawConnection)
 		nr, err := rbe.Br.Read(buf)
@@ -348,7 +366,10 @@ func (c *connection) onRead(bytesRead int) {
 }
 
 func (c *connection) closeConnection(ccEvent types.ConnectionEvent) {
-	c.rawConnection.Close()
+	fmt.Printf("close local connection on event %s", ccEvent)
+	fmt.Println()
+
+	c.readLoopStopChan <- true
 
 	// TODO: clean up buffer
 	// TODO: clean up stats
@@ -367,14 +388,15 @@ type clientConnection struct {
 func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan bool) types.ClientConnection {
 	conn := &clientConnection{
 		connection: connection{
-			localAddr:       sourceAddr,
-			remoteAddr:      remoteAddr,
-			stopChan:        stopChan,
-			readEnabled:     false,
-			readEnabledChan: make(chan bool),
-			readBuffer:      &bytes.Buffer{},
-			readerPool:      buffer.NewReadBufferPool(128, 4*1024),
-			writerPool:      buffer.NewWriteBufferPool(128, 4*1024),
+			localAddr:        sourceAddr,
+			remoteAddr:       remoteAddr,
+			stopChan:         stopChan,
+			readLoopStopChan: make(chan bool, 1),
+			readEnabled:      false,
+			readEnabledChan:  make(chan bool),
+			readBuffer:       &bytes.Buffer{},
+			readerPool:       buffer.NewReadBufferPool(128, 4*1024),
+			writerPool:       buffer.NewWriteBufferPool(128, 4*1024),
 		},
 	}
 	conn.filterManager = newFilterManager(conn)
@@ -407,12 +429,12 @@ func (cc *clientConnection) Connect() {
 			}
 		} else {
 			event = types.Connected
+
+			cc.Start(nil)
 		}
 
 		for _, cccb := range cc.connCallbacks {
 			cccb.OnEvent(event)
 		}
-
-		cc.Start(nil)
 	})
 }

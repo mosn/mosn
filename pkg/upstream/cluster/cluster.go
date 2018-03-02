@@ -52,7 +52,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 	// TODO: init more props: maxrequestsperconn, connecttimeout, connectionbuflimit
 
 	// TODO: change hardcode to read from config
-	cluster.info.resourceManager = NewResourceManager(1024, 1024, 1024)
+	cluster.info.resourceManager = NewResourceManager(102400, 102400, 102400)
 
 	cluster.prioritySet.GetOrCreateHostSet(0)
 	cluster.prioritySet.AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {

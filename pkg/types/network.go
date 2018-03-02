@@ -70,6 +70,8 @@ const (
 )
 
 type Connection interface {
+	Id() uint64
+
 	Start(lctx context.Context)
 
 	// only called by other-stream connection's read loop notifying data buf

@@ -173,7 +173,9 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 }
 
 func (al *activeListener) newConnection(rawc net.Conn) {
-	conn := network.NewServerConnection(rawc, al.stopChan)
+	numConnections := atomic.LoadInt64(&al.handler.numConnections)
+
+	conn := network.NewServerConnection(rawc, uint64(numConnections), al.stopChan)
 
 	var limit uint32
 	// TODO: read from config.perConnectionBufferLimitBytes()

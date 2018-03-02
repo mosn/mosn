@@ -6,6 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"reflect"
+	"fmt"
 )
 
 // ReadFilter
@@ -101,11 +102,10 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	upstreamConnection := connectionData.Connection
 	upstreamConnection.AddConnectionCallbacks(p.upstreamCallbacks)
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
-	upstreamConnection.Connect()
-	upstreamConnection.SetNoDelay(true)
-	upstreamConnection.SetReadDisable(false)
-
 	p.upstreamConnection = upstreamConnection
+
+	upstreamConnection.Connect()
+
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
 
 	// TODO: update upstream stats
@@ -136,9 +136,13 @@ func (p *proxy) onUpstreamData(buffer *bytes.Buffer) {
 }
 
 func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
+	fmt.Printf("upstream event %s", event)
+	fmt.Println()
+
 	switch event {
 	case types.RemoteClose:
-		// TODO: inc remote failed stat
+		p.finalizeUpstreamConnectionStats()
+
 		if p.upstreamConnecting {
 			p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
 			p.closeUpstreamConnection()
@@ -147,7 +151,7 @@ func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
 			p.readCallbacks.Connection().Close(types.FlushWrite)
 		}
 	case types.LocalClose:
-		// TODO: inc local failed stat
+		p.finalizeUpstreamConnectionStats()
 	case types.OnConnect:
 		p.upstreamConnecting = true
 	case types.Connected:
@@ -156,15 +160,25 @@ func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
 
 		p.onConnectionSuccess()
 	case types.ConnectTimeout:
+		p.finalizeUpstreamConnectionStats()
+
 		p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
 		p.closeUpstreamConnection()
 		p.initializeUpstreamConnection()
 	}
 }
 
+func (p *proxy) finalizeUpstreamConnectionStats() {
+	upstreamClusterInfo := p.readCallbacks.UpstreamHost().ClusterInfo()
+	upstreamClusterInfo.ResourceManager().ConnectionResource().Decrease()
+}
+
 func (p *proxy) onConnectionSuccess() {}
 
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
+	fmt.Printf("downstream event conn %v %s", p.readCallbacks.Connection().Id(), event)
+	fmt.Println()
+
 	if p.upstreamConnecting {
 		if event == types.RemoteClose {
 			p.upstreamConnection.Close(types.FlushWrite)
@@ -233,6 +247,12 @@ type upstreamCallbacks struct {
 }
 
 func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
+	switch event {
+	case types.Connected:
+		uc.proxy.upstreamConnection.SetNoDelay(true)
+		uc.proxy.upstreamConnection.SetReadDisable(false)
+	}
+
 	uc.proxy.onUpstreamEvent(event)
 }
 
