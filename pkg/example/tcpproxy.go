@@ -106,7 +106,7 @@ func main() {
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
 			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
-			cc.AddConnectionCallbacks(&clientConnCallbacks{
+			cc.AddConnectionCallbacks(&clientConnCallbacks{      //ADD  connection callback
 				cc: cc,
 			})
 			cc.Connect()

@@ -52,3 +52,15 @@ type TcpRoute struct {
 type TcpProxy struct {
 	Routes []*TcpRoute
 }
+
+
+type RpcRoute struct {
+	Cluster          string
+	SourceAddrs      []net.Addr
+	DestinationAddrs []net.Addr
+}
+
+type RpcProxy struct {
+	Routes []*RpcRoute
+}
+
