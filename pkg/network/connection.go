@@ -5,12 +5,14 @@ import (
 	"context"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"bytes"
 	"io"
 	"sync"
 	"crypto/tls"
 	"fmt"
+	"bytes"
+	"runtime/debug"
 	"time"
+	"sync/atomic"
 )
 
 type connection struct {
@@ -18,46 +20,50 @@ type connection struct {
 	localAddr  net.Addr
 	remoteAddr net.Addr
 
-	stopChan                         chan bool
-	readLoopStopChan                 chan bool
-	nextProtocol                     string
-	noDelay                          bool
-	readEnabled                      bool
-	readEnabledChan                  chan bool
-	readDisableCount                 int
-	detectEarlyCloseWhenReadDisabled bool
-	localAddressRestored             bool
-	aboveHighWatermark               bool
-	bufferLimit                      uint32
-	rawConnection                    net.Conn
-	closeWithFlush                   bool
-	connCallbacks                    []types.ConnectionCallbacks
-	bytesSendCallbacks               []func(bytesSent uint64)
-	filterManager                    types.FilterManager
+	nextProtocol         string
+	noDelay              bool
+	readEnabled          bool
+	readEnabledChan      chan bool
+	readDisableCount     int
+	localAddressRestored bool
+	aboveHighWatermark   bool
+	bufferLimit          uint32
+	rawConnection        net.Conn
+	closeWithFlush       bool
+	connCallbacks        []types.ConnectionCallbacks
+	bytesSendCallbacks   []func(bytesSent uint64)
+	filterManager        types.FilterManager
 
-	readBuffer       *bytes.Buffer
-	writeMux         sync.Mutex
-	writeBufferEntry *buffer.WriteBufferPoolEntry
-	writeBuffer      *[]byte
-	readerPool       *buffer.ReaderBufferPool
-	writerPool       *buffer.WriteBufferPool
+	stopChan           chan bool
+	readLoopStopChan   chan bool
+	writeLoopStopChan  chan bool
+	curWriteBufferData *[]byte
+	readBuffer         *buffer.IoBuffer
+	readerBufferPool   *buffer.IoBufferPool
+	writeBuffer        *bytes.Buffer
+	// writebuffer mux
+	// TODO: change write buffer to lock-free. lock takes about 15% cpu time in performance test
+	writeMux        sync.Mutex
+	writeBufferChan chan bool
 
+	closed    uint32
 	startOnce sync.Once
 }
 
 func NewServerConnection(rawc net.Conn, id uint64, stopChan chan bool) types.Connection {
 	conn := &connection{
-		id:               id,
-		rawConnection:    rawc,
-		localAddr:        rawc.LocalAddr(),
-		remoteAddr:       rawc.RemoteAddr(),
-		stopChan:         stopChan,
-		readLoopStopChan: make(chan bool, 1),
-		readEnabled:      false,
-		readEnabledChan:  make(chan bool),
-		readBuffer:       &bytes.Buffer{},
-		readerPool:       buffer.NewReadBufferPool(512, 4*1024),
-		writerPool:       buffer.NewWriteBufferPool(512, 4*1024),
+		id:                id,
+		rawConnection:     rawc,
+		localAddr:         rawc.LocalAddr(),
+		remoteAddr:        rawc.RemoteAddr(),
+		stopChan:          stopChan,
+		readLoopStopChan:  make(chan bool, 1),
+		readEnabled:       false,
+		readEnabledChan:   make(chan bool, 1),
+		writeLoopStopChan: make(chan bool, 1),
+		writeBuffer:       bytes.NewBuffer(make([]byte, 0, 1024)),
+		writeBufferChan:   make(chan bool, 1),
+		readerBufferPool:  buffer.NewIoBufferPool(1, 1),
 	}
 
 	conn.filterManager = newFilterManager(conn)
@@ -79,100 +85,79 @@ func (c *connection) Start(lctx context.Context) {
 			defer func() {
 				if p := recover(); p != nil {
 					fmt.Printf("panic %v", p)
+					fmt.Println()
 				}
 			}()
 
 			c.startReadLoop()
 		}()
+
+		go func() {
+			defer func() {
+				if p := recover(); p != nil {
+					fmt.Printf("panic %v", p)
+					fmt.Println()
+
+					debug.PrintStack()
+				}
+			}()
+
+			c.startWriteLoop()
+		}()
 	})
 }
 
-// sync write buf to underlying conn io
-// TODO: write buf in a async way
-func (c *connection) Write(buf *bytes.Buffer) error {
-	c.writeMux.Lock()
-	defer c.writeMux.Unlock()
-
+func (c *connection) Write(buf types.IoBuffer) error {
 	bufBytes := buf.Bytes()
-	c.writeBuffer = &bufBytes
+	c.curWriteBufferData = &bufBytes
 	fs := c.filterManager.OnWrite()
-	c.writeBuffer = nil
+	c.curWriteBufferData = nil
 
 	if fs == types.StopIteration {
 		return nil
 	}
 
-	wbe := c.writerPool.Take(c.rawConnection)
-	c.writeBufferEntry = wbe
-	defer func() {
-		c.writerPool.Give(wbe)
-	}()
+	c.writeMux.Lock()
 
-	var bytesSent int64
+	// TODO: handle too large write buffer
+	if _, err := buf.WriteTo(c.writeBuffer); err != nil {
+		fmt.Printf("err %s", err)
+		fmt.Println()
+		c.writeMux.Unlock()
 
-	for {
-		n, err := buf.WriteTo(wbe.Br)
-
-		if err == io.EOF {
-			// remote conn closed
-			c.closeConnection(types.RemoteClose)
-		}
-
-		if err != nil {
-			c.closeConnection(types.OnWriteErrClose)
-			return err
-		}
-
-		if n == 0 {
-			break
-		}
-
-		bytesSent += n
+		return err
 	}
 
-	if wbe.Br.Buffered() > 0 {
-		err := wbe.Br.Flush()
+	c.writeMux.Unlock()
 
-		if err == io.EOF {
-			// remote conn closed
-			c.closeConnection(types.RemoteClose)
-		}
-
-		if err != nil {
-			c.closeConnection(types.OnWriteErrClose)
-			return err
-		}
-	}
-
-	if bytesSent > 0 {
-		for _, cb := range c.bytesSendCallbacks {
-			cb(uint64(bytesSent))
-		}
+	if len(c.writeBufferChan) == 0 {
+		c.writeBufferChan <- true
 	}
 
 	return nil
 }
 
 func (c *connection) Close(ccType types.ConnectionCloseType) error {
+	fmt.Println(ccType)
+
 	if ccType == types.FlushWrite {
-		if c.writeBufferEntry != nil {
-			if c.writeBufferEntry.Br.Buffered() > 0 {
-				c.closeWithFlush = true
-				c.readEnabled = false
-				c.readEnabledChan <- false
+		if c.writeBufLen() > 0 {
+			// disable read
+			c.readEnabled = false
+			c.readEnabledChan <- false
+			c.closeWithFlush = true
 
-				for {
-					if c.writeBufferEntry.Br.Buffered() > 0 {
-						if err := c.writeBufferEntry.Br.Flush(); err != nil {
-							if err == io.EOF {
-								break
-							}
+			for {
+				bytesSent, err := c.doWrite()
 
-							return err
-						}
-					} else {
+				if err != nil {
+					if te, ok := err.(net.Error); !(ok && te.Timeout()) {
 						break
 					}
+				}
+
+				if bytesSent == 0 {
+					break
 				}
 			}
 		}
@@ -181,6 +166,40 @@ func (c *connection) Close(ccType types.ConnectionCloseType) error {
 	c.closeConnection(types.LocalClose)
 
 	return nil
+}
+
+func (c *connection) closeConnection(ccEvent types.ConnectionEvent) {
+	if atomic.AddUint32(&c.closed, 1) > 1 {
+		return
+	}
+
+	if ccEvent == types.OnReadErrClose {
+		fmt.Println("aaa")
+	}
+
+	if len(c.readLoopStopChan) == 0 {
+		c.readLoopStopChan <- true
+	}
+
+	if len(c.writeLoopStopChan) == 0 {
+		c.writeLoopStopChan <- true
+	}
+
+	c.rawConnection.Close()
+
+	// TODO: clean up buffer
+	// TODO: clean up stats
+
+	for _, cb := range c.connCallbacks {
+		cb.OnEvent(ccEvent)
+	}
+}
+
+func (c *connection) writeBufLen() int {
+	c.writeMux.Lock()
+	defer c.writeMux.Unlock()
+
+	return c.writeBuffer.Len()
 }
 
 func (c *connection) LocalAddr() net.Addr {
@@ -257,10 +276,10 @@ func (c *connection) LocalAddressRestored() bool {
 
 // BufferSource
 func (c *connection) GetWriteBuffer() *[]byte {
-	return c.writeBuffer
+	return c.curWriteBufferData
 }
 
-func (c *connection) GetReadBuffer() *bytes.Buffer {
+func (c *connection) GetReadBuffer() types.IoBuffer {
 	return c.readBuffer
 }
 
@@ -276,10 +295,9 @@ func (c *connection) startReadLoop() {
 	for {
 		select {
 		case <-c.stopChan:
+			c.writeLoopStopChan <- true
 			return
 		case <-c.readLoopStopChan:
-			fmt.Println("exit on read loop stop")
-			c.rawConnection.Close()
 			return
 		case <-c.readEnabledChan:
 		default:
@@ -292,21 +310,14 @@ func (c *connection) startReadLoop() {
 					return
 				}
 
-				if err, ok := err.(net.Error); ok && err.Timeout() {
-					//fmt.Println("read timeout")
-					continue
-				}
-
 				if err != nil {
-					fmt.Printf("OnReadErrClose %v %s", c.id, err)
-					fmt.Println()
-
 					c.closeConnection(types.OnReadErrClose)
 					return
 				}
 			} else {
 				select {
 				case <-c.readEnabledChan:
+				case <-time.After(100 * time.Millisecond):
 				}
 			}
 		}
@@ -314,20 +325,24 @@ func (c *connection) startReadLoop() {
 }
 
 func (c *connection) onReadReady() error {
-	bytesRead := 0
-	// TODO: enhance: rewrite iobuf, reduce data copy
-	buf := make([]byte, 4*1024)
+	bytesRead := int64(0)
+
+	rbe := c.readerBufferPool.Take(c.rawConnection)
 
 	for {
-		t := time.Now()
-		// take a break to check channels
-		c.rawConnection.SetReadDeadline(t.Add(10 * time.Millisecond))
+		nr, err := rbe.Read()
+		bytesRead += nr
 
-		rbe := c.readerPool.Take(c.rawConnection)
-		nr, err := rbe.Br.Read(buf)
-		c.readerPool.Give(rbe)
+		if err == buffer.ErrBufFull {
+			break
+		}
 
 		if err != nil {
+			if te, ok := err.(net.Error); ok && te.Timeout() {
+				continue
+			}
+
+			c.readerBufferPool.Give(rbe)
 			return err
 		}
 
@@ -335,11 +350,7 @@ func (c *connection) onReadReady() error {
 			break
 		}
 
-		bytesRead += nr
-		c.readBuffer.Write(buf[:nr])
-		buf = buf[:0]
-
-		if c.readBuffer.Len() >= int(c.bufferLimit) {
+		if rbe.Br.Len() >= int(c.bufferLimit) {
 			break
 		}
 	}
@@ -347,13 +358,16 @@ func (c *connection) onReadReady() error {
 	// TODO: update stats
 
 	if bytesRead > 0 {
+		c.readBuffer = rbe.Br
 		c.onRead(bytesRead)
 	}
+
+	c.readerBufferPool.Give(rbe)
 
 	return nil
 }
 
-func (c *connection) onRead(bytesRead int) {
+func (c *connection) onRead(bytesRead int64) {
 	if !c.readEnabled {
 		return
 	}
@@ -365,18 +379,66 @@ func (c *connection) onRead(bytesRead int) {
 	c.filterManager.OnRead()
 }
 
-func (c *connection) closeConnection(ccEvent types.ConnectionEvent) {
-	fmt.Printf("close local connection on event %s", ccEvent)
-	fmt.Println()
+func (c *connection) startWriteLoop() {
+	for {
+		select {
+		case <-c.stopChan:
+			if len(c.readLoopStopChan) == 0 {
+				c.readLoopStopChan <- true
+			}
 
-	c.readLoopStopChan <- true
+			return
+		case <-c.writeLoopStopChan:
+			return
+		case <-c.writeBufferChan:
+			_, err := c.doWrite()
 
-	// TODO: clean up buffer
-	// TODO: clean up stats
+			if err != nil {
+				if te, ok := err.(net.Error); ok && te.Timeout() {
+					continue
+				}
 
-	for _, cb := range c.connCallbacks {
-		cb.OnEvent(ccEvent)
+				if err == io.EOF {
+					// remote conn closed
+					c.closeConnection(types.RemoteClose)
+				} else {
+					// on non-timeout error
+					c.closeConnection(types.OnWriteErrClose)
+				}
+
+				return
+			}
+		}
 	}
+}
+
+func (c *connection) doWrite() (int64, error) {
+	bytesSent, err := c.doWriteIo()
+
+	if bytesSent > 0 {
+		for _, cb := range c.bytesSendCallbacks {
+			cb(uint64(bytesSent))
+		}
+	}
+
+	return bytesSent, err
+}
+
+func (c *connection) doWriteIo() (int64, error) {
+	c.writeMux.Lock()
+
+	if c.writeBuffer.Len() <= 0 {
+		c.writeMux.Unlock()
+		return 0, nil
+	}
+
+	t := time.Now().Add(200 * time.Millisecond)
+	c.rawConnection.SetReadDeadline(t)
+	bytesSent, err := c.writeBuffer.WriteTo(c.rawConnection)
+
+	c.writeMux.Unlock()
+
+	return bytesSent, err
 }
 
 type clientConnection struct {
@@ -388,15 +450,16 @@ type clientConnection struct {
 func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan bool) types.ClientConnection {
 	conn := &clientConnection{
 		connection: connection{
-			localAddr:        sourceAddr,
-			remoteAddr:       remoteAddr,
-			stopChan:         stopChan,
-			readLoopStopChan: make(chan bool, 1),
-			readEnabled:      false,
-			readEnabledChan:  make(chan bool),
-			readBuffer:       &bytes.Buffer{},
-			readerPool:       buffer.NewReadBufferPool(128, 4*1024),
-			writerPool:       buffer.NewWriteBufferPool(128, 4*1024),
+			localAddr:         sourceAddr,
+			remoteAddr:        remoteAddr,
+			stopChan:          stopChan,
+			readLoopStopChan:  make(chan bool, 1),
+			readEnabled:       false,
+			readEnabledChan:   make(chan bool, 1),
+			writeLoopStopChan: make(chan bool, 1),
+			readerBufferPool:  buffer.NewIoBufferPool(1, 1),
+			writeBuffer:       bytes.NewBuffer(make([]byte, 0, 1024)),
+			writeBufferChan:   make(chan bool, 1),
 		},
 	}
 	conn.filterManager = newFilterManager(conn)

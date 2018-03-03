@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"bytes"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
@@ -18,8 +17,6 @@ type proxy struct {
 	requestInfo         types.RequestInfo
 	upstreamCallbacks   UpstreamCallbacks
 	downstreamCallbacks DownstreamCallbacks
-
-	upstreamConnecting bool
 }
 
 func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {
@@ -39,7 +36,7 @@ func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {
 	return proxy
 }
 
-func (p *proxy) OnData(buffer *bytes.Buffer) types.FilterStatus {
+func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
@@ -128,7 +125,7 @@ func (p *proxy) onInitFailure(reason UpstreamFailureReason) {
 	p.readCallbacks.Connection().Close(types.NoFlush)
 }
 
-func (p *proxy) onUpstreamData(buffer *bytes.Buffer) {
+func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
 	bytesSent := p.requestInfo.BytesSent() + uint64(buffer.Len())
 	p.requestInfo.SetBytesSent(bytesSent)
 
@@ -142,20 +139,12 @@ func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
 	switch event {
 	case types.RemoteClose:
 		p.finalizeUpstreamConnectionStats()
+		p.readCallbacks.Connection().Close(types.FlushWrite)
 
-		if p.upstreamConnecting {
-			p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
-			p.closeUpstreamConnection()
-			p.initializeUpstreamConnection()
-		} else {
-			p.readCallbacks.Connection().Close(types.FlushWrite)
-		}
 	case types.LocalClose:
 		p.finalizeUpstreamConnectionStats()
 	case types.OnConnect:
-		p.upstreamConnecting = true
 	case types.Connected:
-		p.upstreamConnecting = false
 		p.readCallbacks.Connection().SetReadDisable(false)
 
 		p.onConnectionSuccess()
@@ -179,7 +168,7 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 	fmt.Printf("downstream event conn %v %s", p.readCallbacks.Connection().Id(), event)
 	fmt.Println()
 
-	if p.upstreamConnecting {
+	if p.upstreamConnection != nil {
 		if event == types.RemoteClose {
 			p.upstreamConnection.Close(types.FlushWrite)
 		} else if event == types.LocalClose {
@@ -264,7 +253,7 @@ func (uc *upstreamCallbacks) OnBelowWriteBufferLowWatermark() {
 	// TODO
 }
 
-func (uc *upstreamCallbacks) OnData(buffer *bytes.Buffer) types.FilterStatus {
+func (uc *upstreamCallbacks) OnData(buffer types.IoBuffer) types.FilterStatus {
 	uc.proxy.onUpstreamData(buffer)
 
 	return types.StopIteration

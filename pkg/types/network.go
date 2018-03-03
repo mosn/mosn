@@ -2,7 +2,7 @@ package types
 
 import (
 	"net"
-	"bytes"
+	"io"
 	"crypto/tls"
 	"context"
 )
@@ -54,6 +54,20 @@ type ListenerFilterManager interface {
 	AddListenerFilter(lf *ListenerFilter)
 }
 
+type IoBuffer interface {
+	ReadFrom(r io.Reader) (n int64, err error)
+
+	WriteTo(w io.Writer) (n int64, err error)
+
+	Bytes() []byte
+
+	String() string
+
+	Len() int
+
+	Reset()
+}
+
 type ConnState string
 
 const (
@@ -75,7 +89,7 @@ type Connection interface {
 	Start(lctx context.Context)
 
 	// only called by other-stream connection's read loop notifying data buf
-	Write(buf *bytes.Buffer) error
+	Write(buf IoBuffer) error
 
 	Close(ccType ConnectionCloseType) error
 
@@ -107,7 +121,7 @@ type Connection interface {
 
 	GetWriteBuffer() *[]byte
 
-	GetReadBuffer() *bytes.Buffer
+	GetReadBuffer() IoBuffer
 
 	AboveHighWatermark() bool
 
@@ -135,7 +149,6 @@ const (
 )
 
 // Network level callbacks that happen on a connection.
-// thread-safe required
 type ConnectionCallbacks interface {
 	OnEvent(event ConnectionEvent)
 
@@ -160,7 +173,7 @@ type ConnectionHandler interface {
 
 // only called by conn read loop
 type ReadFilter interface {
-	OnData(buffer *bytes.Buffer) FilterStatus
+	OnData(buffer IoBuffer) FilterStatus
 
 	// example: tcp代理可通过此方法在收到downstream请求时生成upstream connection
 	OnNewConnection() FilterStatus

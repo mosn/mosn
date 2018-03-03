@@ -15,6 +15,7 @@ import (
 // ClusterConfigFactoryCb
 // ClusterHostFactoryCb
 type connHandler struct {
+	idCounter      uint64
 	numConnections int64
 	listeners      []*activeListener
 	clusterManager types.ClusterManager
@@ -173,9 +174,9 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 }
 
 func (al *activeListener) newConnection(rawc net.Conn) {
-	numConnections := atomic.LoadInt64(&al.handler.numConnections)
+	id := atomic.AddUint64(&al.handler.idCounter, 1)
 
-	conn := network.NewServerConnection(rawc, uint64(numConnections), al.stopChan)
+	conn := network.NewServerConnection(rawc, id, al.stopChan)
 
 	var limit uint32
 	// TODO: read from config.perConnectionBufferLimitBytes()

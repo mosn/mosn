@@ -150,7 +150,7 @@ func (ccc *clientConnCallbacks) OnBelowWriteBufferLowWatermark() {}
 type clientConnReadFilter struct {
 }
 
-func (ccrf *clientConnReadFilter) OnData(buffer *bytes.Buffer) types.FilterStatus {
+func (ccrf *clientConnReadFilter) OnData(buffer types.IoBuffer) types.FilterStatus {
 	fmt.Printf("[CLIENT]receive data '%s'", buffer.String())
 	fmt.Println()
 	buffer.Reset()

@@ -1,13 +1,20 @@
 package main
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	"net/http"
 	"time"
 	"fmt"
+	_ "net/http/pprof"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 )
 
 func main() {
+	go func() {
+		// pprof server
+		http.ListenAndServe("0.0.0.0:9090", nil)
+	}()
+
 	stopChan := make(chan bool)
 
 	go func() {
