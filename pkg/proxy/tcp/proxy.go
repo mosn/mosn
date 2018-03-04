@@ -5,7 +5,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"reflect"
-	"fmt"
 )
 
 // ReadFilter
@@ -133,9 +132,6 @@ func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
 }
 
 func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
-	fmt.Printf("upstream event %s", event)
-	fmt.Println()
-
 	switch event {
 	case types.RemoteClose:
 		p.finalizeUpstreamConnectionStats()
@@ -165,9 +161,6 @@ func (p *proxy) finalizeUpstreamConnectionStats() {
 func (p *proxy) onConnectionSuccess() {}
 
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
-	fmt.Printf("downstream event conn %v %s", p.readCallbacks.Connection().Id(), event)
-	fmt.Println()
-
 	if p.upstreamConnection != nil {
 		if event == types.RemoteClose {
 			p.upstreamConnection.Close(types.FlushWrite)

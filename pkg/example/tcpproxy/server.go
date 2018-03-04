@@ -7,9 +7,12 @@ import (
 	_ "net/http/pprof"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	"runtime"
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	go func() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9090", nil)

@@ -42,7 +42,7 @@ type connection struct {
 	readerBufferPool   *buffer.IoBufferPool
 	writeBuffer        *bytes.Buffer
 	// writebuffer mux
-	// TODO: change write buffer to lock-free. lock takes about 15% cpu time in performance test
+	// TODO: change write buffer to lock-free
 	writeMux        sync.Mutex
 	writeBufferChan chan bool
 
@@ -86,6 +86,8 @@ func (c *connection) Start(lctx context.Context) {
 				if p := recover(); p != nil {
 					fmt.Printf("panic %v", p)
 					fmt.Println()
+
+					debug.PrintStack()
 				}
 			}()
 
@@ -119,10 +121,7 @@ func (c *connection) Write(buf types.IoBuffer) error {
 
 	c.writeMux.Lock()
 
-	// TODO: handle too large write buffer
 	if _, err := buf.WriteTo(c.writeBuffer); err != nil {
-		fmt.Printf("err %s", err)
-		fmt.Println()
 		c.writeMux.Unlock()
 
 		return err
@@ -138,13 +137,13 @@ func (c *connection) Write(buf types.IoBuffer) error {
 }
 
 func (c *connection) Close(ccType types.ConnectionCloseType) error {
-	fmt.Println(ccType)
+	// disable read first
+	c.readEnabled = false
+	c.readEnabledChan <- false
+	c.rawConnection.(*net.TCPConn).CloseRead()
 
 	if ccType == types.FlushWrite {
 		if c.writeBufLen() > 0 {
-			// disable read
-			c.readEnabled = false
-			c.readEnabledChan <- false
 			c.closeWithFlush = true
 
 			for {
@@ -173,10 +172,6 @@ func (c *connection) closeConnection(ccEvent types.ConnectionEvent) {
 		return
 	}
 
-	if ccEvent == types.OnReadErrClose {
-		fmt.Println("aaa")
-	}
-
 	if len(c.readLoopStopChan) == 0 {
 		c.readLoopStopChan <- true
 	}
@@ -187,7 +182,6 @@ func (c *connection) closeConnection(ccEvent types.ConnectionEvent) {
 
 	c.rawConnection.Close()
 
-	// TODO: clean up buffer
 	// TODO: clean up stats
 
 	for _, cb := range c.connCallbacks {
@@ -197,9 +191,10 @@ func (c *connection) closeConnection(ccEvent types.ConnectionEvent) {
 
 func (c *connection) writeBufLen() int {
 	c.writeMux.Lock()
-	defer c.writeMux.Unlock()
+	len := c.writeBuffer.Len()
+	c.writeMux.Unlock()
 
-	return c.writeBuffer.Len()
+	return len
 }
 
 func (c *connection) LocalAddr() net.Addr {
@@ -326,7 +321,6 @@ func (c *connection) startReadLoop() {
 
 func (c *connection) onReadReady() error {
 	bytesRead := int64(0)
-
 	rbe := c.readerBufferPool.Take(c.rawConnection)
 
 	for {
@@ -339,6 +333,8 @@ func (c *connection) onReadReady() error {
 
 		if err != nil {
 			if te, ok := err.(net.Error); ok && te.Timeout() {
+				fmt.Println("read timeout")
+
 				continue
 			}
 
@@ -432,8 +428,8 @@ func (c *connection) doWriteIo() (int64, error) {
 		return 0, nil
 	}
 
-	t := time.Now().Add(200 * time.Millisecond)
-	c.rawConnection.SetReadDeadline(t)
+	//t := time.Now().Add(200 * time.Millisecond)
+	//c.rawConnection.SetWriteDeadline(t)
 	bytesSent, err := c.writeBuffer.WriteTo(c.rawConnection)
 
 	c.writeMux.Unlock()
