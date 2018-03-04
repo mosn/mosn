@@ -2,7 +2,6 @@ package network
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"reflect"
 )
 
 type filterManager struct {
@@ -78,7 +77,7 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 
 		buffer := fm.conn.GetReadBuffer()
 
-		if !reflect.ValueOf(buffer).IsNil() && buffer.Len() > 0 {
+		if buffer != nil && buffer.Len() > 0 {
 			status := uf.filter.OnData(buffer)
 
 			if status == types.StopIteration {

@@ -111,7 +111,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 
 func (p *proxy) closeUpstreamConnection() {
 	// TODO: finalize upstream connection stats
-	p.upstreamConnection.Close(types.NoFlush)
+	p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
 }
 
 func (p *proxy) getUpstreamCluster() string {
@@ -121,7 +121,7 @@ func (p *proxy) getUpstreamCluster() string {
 }
 
 func (p *proxy) onInitFailure(reason UpstreamFailureReason) {
-	p.readCallbacks.Connection().Close(types.NoFlush)
+	p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)
 }
 
 func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
@@ -135,7 +135,7 @@ func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
 	switch event {
 	case types.RemoteClose:
 		p.finalizeUpstreamConnectionStats()
-		p.readCallbacks.Connection().Close(types.FlushWrite)
+		p.readCallbacks.Connection().Close(types.FlushWrite, types.LocalClose)
 
 	case types.LocalClose:
 		p.finalizeUpstreamConnectionStats()
@@ -163,9 +163,9 @@ func (p *proxy) onConnectionSuccess() {}
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 	if p.upstreamConnection != nil {
 		if event == types.RemoteClose {
-			p.upstreamConnection.Close(types.FlushWrite)
+			p.upstreamConnection.Close(types.FlushWrite, types.LocalClose)
 		} else if event == types.LocalClose {
-			p.upstreamConnection.Close(types.NoFlush)
+			p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
 		}
 	}
 }

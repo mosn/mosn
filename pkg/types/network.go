@@ -59,6 +59,8 @@ type IoBuffer interface {
 
 	WriteTo(w io.Writer) (n int64, err error)
 
+	Append(data []byte) error
+
 	Bytes() []byte
 
 	String() string
@@ -91,7 +93,7 @@ type Connection interface {
 	// only called by other-stream connection's read loop notifying data buf
 	Write(buf IoBuffer) error
 
-	Close(ccType ConnectionCloseType) error
+	Close(ccType ConnectionCloseType, eventType ConnectionEvent) error
 
 	LocalAddr() net.Addr
 

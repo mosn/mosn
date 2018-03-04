@@ -11,18 +11,18 @@ type IoBufferPool struct {
 
 type IoBufferPoolEntry struct {
 	Br *IoBuffer
-	io io.Reader
+	Io io.Reader
 }
 
 func (bpe *IoBufferPoolEntry) Read() (n int64, err error) {
-	return bpe.Br.ReadFrom(bpe.io)
+	return bpe.Br.ReadFrom(bpe.Io)
 }
 
 func (p *IoBufferPool) Take(r io.Reader) (bpe *IoBufferPoolEntry) {
 	select {
 	case bpe = <-p.pool:
 		// swap out the underlying reader
-		bpe.io = r
+		bpe.Io = r
 	default:
 		// none available.  create a new one
 		bpe = &IoBufferPoolEntry{nil, r}

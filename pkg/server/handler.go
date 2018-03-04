@@ -154,7 +154,7 @@ func (al *activeListener) OnNewConnection(conn types.Connection) {
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
-		conn.Close(types.NoFlush)
+		conn.Close(types.NoFlush, types.LocalClose)
 	} else {
 		ac := newActiveConnection(al, conn)
 

@@ -3,12 +3,12 @@ package main
 import (
 	"time"
 	"net"
-	"bytes"
 	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 )
 
 const (
@@ -112,7 +112,7 @@ func main2() {
 
 			select {
 			case <-stopChan:
-				cc.Close(types.NoFlush)
+				cc.Close(types.NoFlush, types.LocalClose)
 			}
 		}
 	}()
@@ -138,7 +138,7 @@ func (ccc *clientConnCallbacks) OnEvent(event types.ConnectionEvent) {
 
 		fmt.Println("[CLIENT]write 'hello' to remote server")
 
-		buf := bytes.NewBufferString("hello")
+		buf := buffer.NewIoBufferString("hello")
 		ccc.cc.Write(buf)
 	}
 }
