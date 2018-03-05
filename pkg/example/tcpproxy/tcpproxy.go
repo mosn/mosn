@@ -24,6 +24,7 @@ func main2() {
 	go func() {
 		// upstream
 		l, _ := net.Listen("tcp", RealServerAddr)
+		fmt.Println("listen on ")
 		defer l.Close()
 
 		for {
@@ -103,7 +104,7 @@ func main2() {
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
 			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
-			cc.AddConnectionCallbacks(&clientConnCallbacks{
+			cc.AddConnectionCallbacks(&clientConnCallbacks{      //ADD  connection callback
 				cc: cc,
 			})
 			cc.Connect()

@@ -3,11 +3,13 @@ package types
 import "bytes"
 
 type Encoder interface {
-	Encode(value interface{}, data bytes.Buffer)
+	Encode(value interface{}, data *bytes.Buffer)
 }
 
 type Decoder interface {
-	Decode(data bytes.Buffer)
+	//TODO replace ctx type with defined connection request context
+	//TODO replace out type with defined pipeline output container
+	Decode(ctx interface{}, data *bytes.Buffer, out interface{})
 }
 
 type DecoderCallbacks interface {
@@ -17,6 +19,3 @@ type DecoderCallbacks interface {
 type DecoderFactory interface {
 	Create(cb DecoderCallbacks) Decoder
 }
-
-
-
