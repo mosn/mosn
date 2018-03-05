@@ -11,9 +11,10 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 
 
-	//"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	//"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"time"
 	"net"
 )
@@ -21,6 +22,8 @@ import (
 const (
 	RealRPCServerAddr = "127.0.0.1:8088"
 	MeshRPCServerAddr = "127.0.0.1:2044"
+	TestClusterRPC    = "tstCluster"
+	TestListenerRPC   = "tstListener"
 )
 
 
@@ -28,12 +31,12 @@ func main() {
 
 	//test_codec()
 	//initilize codec engine. TODO: config driven
-	codecImpl := codec.NewProtocols(map[byte]protocol.Protocol{
-		sofarpc.PROTOCOL_CODE_V1:sofarpc.BoltV1,
-		sofarpc.PROTOCOL_CODE_V2:sofarpc.BoltV2,
-		sofarpc.PROTOCOL_CODE:sofarpc.Tr,
-
-	})
+	//codecImpl := codec.NewProtocols(map[byte]protocol.Protocol{
+	//	sofarpc.PROTOCOL_CODE_V1:sofarpc.BoltV1,
+	//	sofarpc.PROTOCOL_CODE_V2:sofarpc.BoltV2,
+	//	sofarpc.PROTOCOL_CODE:sofarpc.Tr,
+	//
+	//})
 
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
@@ -43,6 +46,7 @@ func main() {
 	go func() {
 		// upstream
 		l, _ := net.Listen("tcp", RealRPCServerAddr)
+
 		defer l.Close()
 
 		for {
@@ -80,10 +84,10 @@ func main() {
 					}
 				}
 
-				fmt.Printf("[REALSERVER]write back data 'world'")
+				fmt.Printf("[REALSERVER]write back data 'Got Bolt Msg'")
 				fmt.Println()
 
-				conn.Write([]byte("world"))
+				conn.Write([]byte("Got Bolt"))
 
 				select {
 				case <-stopChan:
@@ -97,17 +101,21 @@ func main() {
 		select {
 		case <-upstreamReadyChan:
 			//  mesh
-			cmf := &clusterManagerFilter{}
+			cmf := &clusterManagerFilterRPC{}
 
 			//RPC
 			srv := server.NewServer(&proxy.RpcProxyFilterConfigFactory{
 				Proxy: rpcProxyConfig(),
 			}, cmf)
 
+	//		boltV1PostData := bytes.NewBuffer([]byte("\x01\x00BoltV1"))
+			//codecImpl.Decode(nil,boltV1PostData,nil)
+
+			//
 
 			srv.AddListener(rpcProxyListener())
-			cmf.cccb.UpdateClusterConfig(clusters())
-			cmf.chcb.UpdateClusterHost(TestCluster, 0, rpchosts())
+			cmf.cccb.UpdateClusterConfig(clustersrpc())
+			cmf.chcb.UpdateClusterHost(TestClusterRPC, 0, rpchosts())
 
 			meshReadyChan <- true
 
@@ -120,6 +128,31 @@ func main() {
 		}
 	}()
 
+	go func() {
+		select {
+		case <-meshReadyChan:
+			// client
+			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshRPCServerAddr)
+			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
+			cc.AddConnectionCallbacks(&rpclientConnCallbacks{      //ADD  connection callback
+				cc: cc,
+			})
+			cc.Connect()
+			cc.SetReadDisable(false)
+			cc.FilterManager().AddReadFilter(&rpcclientConnReadFilter{})
+
+			select {
+			case <-stopChan:
+				cc.Close(types.NoFlush,types.LocalClose)
+			}
+		}
+	}()
+
+	select {
+	case <-time.After(time.Second * 5):
+		stopChan <- true
+		fmt.Println("[MAIN]closing..")
+	}
 
 
 
@@ -128,8 +161,8 @@ func main() {
 }
 func rpcProxyConfig() *v2.RpcProxy {
 	rpcProxyConfig := &v2.RpcProxy{}
-	rpcProxyConfig.Routes = append(tcpProxyConfig.Routes, &v2.RpcRoute{
-		Cluster: TestCluster,
+	rpcProxyConfig.Routes = append(rpcProxyConfig.Routes, &v2.RpcRoute{
+		Cluster: TestClusterRPC,
 	})
 
 	return rpcProxyConfig
@@ -137,7 +170,7 @@ func rpcProxyConfig() *v2.RpcProxy {
 
 func rpcProxyListener() v2.ListenerConfig {
 	return v2.ListenerConfig{
-		Name:                 TestListener,
+		Name:                 TestListenerRPC,
 		Addr:                 MeshRPCServerAddr,
 		BindToPort:           true,
 		ConnBufferLimitBytes: 1024 * 32,
@@ -191,3 +224,79 @@ func test_codec(){
 	fmt.Println("<----------- boltv2 test end\n")
 }
 
+type clusterManagerFilterRPC struct {
+	cccb server.ClusterConfigFactoryCb
+	chcb server.ClusterHostFactoryCb
+}
+
+
+func (cmf *clusterManagerFilterRPC) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
+	cmf.cccb = cccb
+	cmf.chcb = chcb
+}
+
+
+func clustersrpc() []v2.Cluster {
+	var configs []v2.Cluster
+	configs = append(configs, v2.Cluster{
+		Name:                 TestClusterRPC,
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_RANDOM,
+		MaxRequestPerConn:    1024,
+		ConnBufferLimitBytes: 16 * 1026,
+	})
+
+	return configs
+}
+
+
+type rpclientConnCallbacks struct {
+	cc types.Connection
+}
+
+func (ccc *rpclientConnCallbacks) OnEvent(event types.ConnectionEvent) {
+	fmt.Printf("[CLIENT]connection event %s", string(event))
+	fmt.Println()
+
+	switch event {
+	case types.Connected:
+		time.Sleep(3 * time.Second)
+
+		fmt.Println("[CLIENT]write 'bolt test msg' to remote server")
+
+		//buf := bytes.NewBufferString("hello")
+	//	boltV1PostData := bytes.NewBuffer([]byte("\x01\x00BoltV1test"))
+
+
+
+
+		//t:=types.IoBuffer(boltV1PostData.Bytes())
+		//ccc.cc.Write(buf)
+		boltV1PostData := buffer.NewIoBufferString("\x01\x00BoltV1test")
+		//boltV1PostData := &buffer.IoBuffer{: []byte([]byte("\x01\x00BoltV1test"))}
+		ccc.cc.Write(boltV1PostData)
+
+	}
+}
+
+func (ccc *rpclientConnCallbacks) OnAboveWriteBufferHighWatermark() {}
+
+func (ccc *rpclientConnCallbacks) OnBelowWriteBufferLowWatermark() {}
+
+
+type rpcclientConnReadFilter struct {
+}
+
+func (ccrf *rpcclientConnReadFilter) OnData(buffer types.IoBuffer) types.FilterStatus {
+	fmt.Printf("[CLIENT]receive data '%s'", buffer.String())
+	fmt.Println()
+	buffer.Reset()
+
+	return types.Continue
+}
+
+func (ccrf *rpcclientConnReadFilter) OnNewConnection() types.FilterStatus {
+	return types.Continue
+}
+
+func (ccrf *rpcclientConnReadFilter) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
