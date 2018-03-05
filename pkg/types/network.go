@@ -66,6 +66,10 @@ type IoBuffer interface {
 
 	Bytes() []byte
 
+	Mark()
+
+	Restore()
+
 	String() string
 
 	Len() int

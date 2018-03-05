@@ -6,6 +6,7 @@ import (
 )
 
 const MinRead = 512
+const ResetOffMark = -1
 
 var (
 	ErrTooLarge          = errors.New("io buffer: too large")
@@ -15,8 +16,9 @@ var (
 
 // IoBuffer
 type IoBuffer struct {
-	buf []byte // contents: buf[off : len(buf)]
-	off int    // read from &buf[off], write to &buf[len(buf)]
+	buf     []byte // contents: buf[off : len(buf)]
+	off     int    // read from &buf[off], write to &buf[len(buf)]
+	offMark int
 }
 
 func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
@@ -99,6 +101,17 @@ func (b *IoBuffer) Peek(n int) []byte {
 	return b.buf[b.off:b.off+n]
 }
 
+func (b *IoBuffer) Mark() {
+	b.offMark = b.off
+}
+
+func (b *IoBuffer) Restore() {
+	if b.offMark != ResetOffMark {
+		b.off = b.offMark
+		b.offMark = ResetOffMark
+	}
+}
+
 func (b *IoBuffer) Bytes() []byte {
 	return b.buf[b.off:]
 }
@@ -114,6 +127,7 @@ func (b *IoBuffer) Len() int {
 func (b *IoBuffer) Reset() {
 	b.buf = b.buf[:0]
 	b.off = 0
+	b.offMark = ResetOffMark
 }
 
 func (b *IoBuffer) available() int {
@@ -133,9 +147,15 @@ func makeSlice(n int) []byte {
 func NewIoBuffer(bufSize int) *IoBuffer {
 	buf := make([]byte, 0, bufSize)
 
-	return &IoBuffer{buf: buf}
+	return &IoBuffer{
+		buf:     buf,
+		offMark: ResetOffMark,
+	}
 }
 
 func NewIoBufferString(s string) *IoBuffer {
-	return &IoBuffer{buf: []byte(s)}
+	return &IoBuffer{
+		buf:     []byte(s),
+		offMark: ResetOffMark,
+	}
 }
