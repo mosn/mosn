@@ -7,7 +7,11 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/codec"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"reflect"
+	"fmt"
 )
 
 
@@ -26,7 +30,7 @@ type rpcproxy struct {
 
 	upstreamConnecting bool
 
-	//Other
+	protocolSet		    codec.Protocols
 }
 
 
@@ -44,6 +48,13 @@ func NewRPCProxy(config *v2.RpcProxy, clusterManager types.ClusterManager) RpcPr
 		proxy: proxy,
 	}
 
+	proxy.protocolSet = codec.NewProtocols(map[byte]protocol.Protocol{
+		sofarpc.PROTOCOL_CODE_V1:sofarpc.BoltV1,
+		sofarpc.PROTOCOL_CODE_V2:sofarpc.BoltV2,
+		sofarpc.PROTOCOL_CODE:sofarpc.Tr,
+
+	})
+
 	return proxy
 }
 
@@ -52,11 +63,15 @@ type upstreamCallbacks struct {
 }
 
 
+//rpc onData，ADD Decode
 
-//rpc onData
 func (p *rpcproxy) OnData(buffer *bytes.Buffer) types.FilterStatus {
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
+
+	fmt.Println("RPC MESH Receive Lens:",buffer.Len())
+
+	p.protocolSet.Decode(nil,buffer,nil)
 
 	p.upstreamConnection.Write(buffer)
 
@@ -76,6 +91,13 @@ func (uc *upstreamCallbacks) OnAboveWriteBufferHighWatermark() {
 
 func (uc *upstreamCallbacks) OnBelowWriteBufferLowWatermark() {
 	// TODO
+}
+
+func (p *rpcproxy) onUpstreamData(buffer *bytes.Buffer) {
+	bytesSent := p.requestInfo.BytesSent() + uint64(buffer.Len())
+	p.requestInfo.SetBytesSent(bytesSent)
+
+	p.readCallbacks.Connection().Write(buffer)
 }
 
 func (uc *upstreamCallbacks) OnData(buffer *bytes.Buffer) types.FilterStatus {

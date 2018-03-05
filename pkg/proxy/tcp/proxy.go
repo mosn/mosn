@@ -18,7 +18,7 @@ type proxy struct {
 	upstreamCallbacks   UpstreamCallbacks
 	downstreamCallbacks DownstreamCallbacks
 
-	upstreamConnecting bool
+	upstreamConnecting  bool
 }
 
 func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {

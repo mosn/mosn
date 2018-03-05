@@ -22,6 +22,8 @@ func (p *Protocols) Encode(value interface{}, data bytes.Buffer) {
 
 //TODO move this to seperate type 'ProtocolDecoer' or 'CodecEngine'
 func (p *Protocols) Decode(ctx interface{}, data *bytes.Buffer, out interface{}) {
+
+	fmt.Println("Decoding...")
 	readableBytes := uint64(data.Len())
 	//at least 1 byte for protocol code recognize
 	if readableBytes > 1 {
