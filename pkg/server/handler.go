@@ -1,6 +1,7 @@
 package server
 
 import (
+	"sync"
 	"container/list"
 	"net"
 	"context"
@@ -9,25 +10,27 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // ConnectionHandler
 // ClusterConfigFactoryCb
 // ClusterHostFactoryCb
 type connHandler struct {
-	idCounter      uint64
 	numConnections int64
 	listeners      []*activeListener
 	clusterManager types.ClusterManager
 	filterFactory  NetworkFilterConfigFactory
+	logger         log.Logger
 }
 
-func NewHandler(filterFactory NetworkFilterConfigFactory, clusterManagerFilter ClusterManagerFilter) types.ConnectionHandler {
+func NewHandler(filterFactory NetworkFilterConfigFactory, clusterManagerFilter ClusterManagerFilter, logger log.Logger) types.ConnectionHandler {
 	ch := &connHandler{
 		numConnections: 0,
 		clusterManager: cluster.NewClusterManager(nil),
 		listeners:      make([]*activeListener, 0),
 		filterFactory:  filterFactory,
+		logger:         logger,
 	}
 
 	clusterManagerFilter.OnCreated(ch, ch)
@@ -120,6 +123,7 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 type activeListener struct {
 	listener types.Listener
 	conns    *list.List
+	connsMux sync.RWMutex
 	handler  *connHandler
 	stopChan chan bool
 }
@@ -144,6 +148,8 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 }
 
 func (al *activeListener) OnNewConnection(conn types.Connection) {
+	al.handler.logger.Debugf("New connection %d accepted", conn.Id())
+
 	// start conn loops first
 	conn.Start(nil)
 
@@ -151,6 +157,7 @@ func (al *activeListener) OnNewConnection(conn types.Connection) {
 	buildFilterChain(conn.FilterManager(), configFactory)
 
 	filterManager := conn.FilterManager()
+
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
@@ -159,7 +166,9 @@ func (al *activeListener) OnNewConnection(conn types.Connection) {
 		ac := newActiveConnection(al, conn)
 
 		conn.AddConnectionCallbacks(ac)
+		al.connsMux.Lock()
 		e := al.conns.PushBack(ac)
+		al.connsMux.Unlock()
 		ac.element = e
 
 		atomic.AddInt64(&al.handler.numConnections, 1)
@@ -169,14 +178,14 @@ func (al *activeListener) OnNewConnection(conn types.Connection) {
 func (al *activeListener) OnClose() {}
 
 func (al *activeListener) removeConnection(ac *activeConnection) {
+	al.connsMux.Lock()
 	al.conns.Remove(ac.element)
+	al.connsMux.Unlock()
 	atomic.AddInt64(&al.handler.numConnections, -1)
 }
 
 func (al *activeListener) newConnection(rawc net.Conn) {
-	id := atomic.AddUint64(&al.handler.idCounter, 1)
-
-	conn := network.NewServerConnection(rawc, id, al.stopChan)
+	conn := network.NewServerConnection(rawc, al.stopChan, al.handler.logger)
 
 	var limit uint32
 	// TODO: read from config.perConnectionBufferLimitBytes()
@@ -246,7 +255,8 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 
 // ConnectionCallbacks
 func (ac *activeConnection) OnEvent(event types.ConnectionEvent) {
-	if event == types.LocalClose || event == types.RemoteClose {
+	if event == types.LocalClose || event == types.RemoteClose ||
+		event == types.OnReadErrClose || event == types.OnWriteErrClose {
 		ac.listener.removeConnection(ac)
 	}
 }

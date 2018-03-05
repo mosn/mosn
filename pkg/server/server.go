@@ -4,17 +4,23 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type server struct {
+	logger         log.Logger
 	stopChan       chan bool
 	listenersConfs []v2.ListenerConfig
 	handler        types.ConnectionHandler
 }
 
 func NewServer(filterFactory NetworkFilterConfigFactory, cmFilter ClusterManagerFilter) Server {
+	// TODO: make logger configurable
+	log.InitDefaultLogger("", log.DEBUG)
+
 	return &server{
-		handler: NewHandler(filterFactory, cmFilter),
+		logger:  log.DefaultLogger,
+		handler: NewHandler(filterFactory, cmFilter, log.DefaultLogger),
 	}
 }
 

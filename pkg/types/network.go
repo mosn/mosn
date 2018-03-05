@@ -5,6 +5,7 @@ import (
 	"io"
 	"crypto/tls"
 	"context"
+	"github.com/rcrowley/go-metrics"
 )
 
 type Listener interface {
@@ -128,6 +129,13 @@ type Connection interface {
 	AboveHighWatermark() bool
 
 	FilterManager() FilterManager
+}
+
+type ConnectionStats struct {
+	ReadTotal metrics.Counter
+	ReadCurrent metrics.Gauge
+	WriteTotal metrics.Counter
+	WriteCurrent metrics.Gauge
 }
 
 type ClientConnection interface {

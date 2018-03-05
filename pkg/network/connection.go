@@ -14,7 +14,15 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"bytes"
 	"runtime"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/rcrowley/go-metrics"
 )
+
+const (
+	ConnectionCloseDebugMsg = "Close connection %d, event %s, type %s, data read %d, data write %d"
+)
+
+var idCounter uint64
 
 type connection struct {
 	id         uint64
@@ -44,11 +52,19 @@ type connection struct {
 	writeLoopStopChan  chan bool
 	readerBufferPool   *buffer.IoBufferPool
 
+	stats              *types.ConnectionStats
+	lastBytesSizeRead  int64
+	lastWriteSizeWrite int64
+
 	closed    uint32
 	startOnce sync.Once
+
+	logger log.Logger
 }
 
-func NewServerConnection(rawc net.Conn, id uint64, stopChan chan bool) types.Connection {
+func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) types.Connection {
+	id := atomic.AddUint64(&idCounter, 1)
+
 	conn := &connection{
 		id:                id,
 		rawConnection:     rawc,
@@ -62,6 +78,13 @@ func NewServerConnection(rawc net.Conn, id uint64, stopChan chan bool) types.Con
 		writeBuffer:       bytes.NewBuffer(make([]byte, 0, 4*1024)),
 		writeLoopStopChan: make(chan bool, 1),
 		readerBufferPool:  buffer.NewIoBufferPool(1, 1024),
+		stats: &types.ConnectionStats{
+			ReadTotal:    metrics.NewCounter(),
+			ReadCurrent:  metrics.NewGauge(),
+			WriteTotal:   metrics.NewCounter(),
+			WriteCurrent: metrics.NewGauge(),
+		},
+		logger: log.DefaultLogger,
 	}
 
 	conn.filterManager = newFilterManager(conn)
@@ -114,12 +137,12 @@ func (c *connection) startReadLoop() {
 			return
 		case <-c.readEnabledChan:
 		default:
-			if atomic.LoadUint32(&c.closed) > 0 {
-				return
-			}
-
 			if c.readEnabled {
 				err := c.doRead()
+
+				if atomic.LoadUint32(&c.closed) > 0 {
+					return
+				}
 
 				if err == io.EOF {
 					// remote conn closed
@@ -128,6 +151,7 @@ func (c *connection) startReadLoop() {
 				}
 
 				if err != nil {
+					c.logger.Errorf("Error on read. Connection %d, err %s", c.id, err)
 					c.Close(types.NoFlush, types.OnReadErrClose)
 					return
 				}
@@ -163,9 +187,8 @@ func (c *connection) doRead() (err error) {
 		}
 	}
 
-	// TODO: update stats
+	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Br.Len()))
 
-	//fmt.Printf("%s", string(c.readBuffer.Br.Bytes()))
 	c.onRead(bytesRead)
 
 	if c.readBuffer.Br.Len() == 0 {
@@ -173,6 +196,21 @@ func (c *connection) doRead() (err error) {
 	}
 
 	return nil
+}
+
+func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
+	if c.stats == nil {
+		return
+	}
+
+	if bytesRead > 0 {
+		c.stats.ReadTotal.Inc(bytesRead)
+	}
+
+	if bytesBufSize != c.lastBytesSizeRead {
+		c.stats.ReadCurrent.Update(bytesBufSize)
+		c.lastBytesSizeRead = bytesBufSize
+	}
 }
 
 func (c *connection) onRead(bytesRead int64) {
@@ -229,6 +267,7 @@ func (c *connection) startWriteLoop() {
 					// remote conn closed
 					c.Close(types.NoFlush, types.RemoteClose)
 				} else {
+					c.logger.Errorf("Error on write. Connection %d, err %s", c.id, err)
 					// on non-timeout error
 					c.Close(types.NoFlush, types.OnWriteErrClose)
 				}
@@ -241,6 +280,8 @@ func (c *connection) startWriteLoop() {
 
 func (c *connection) doWrite() (int64, error) {
 	bytesSent, err := c.doWriteIo()
+
+	c.updateWriteBuffStats(bytesSent, int64(c.writeBuffer.Len()))
 
 	if bytesSent > 0 {
 		for _, cb := range c.bytesSendCallbacks {
@@ -274,6 +315,21 @@ func (c *connection) doWriteIo() (int64, error) {
 	return bytesSent, err
 }
 
+func (c *connection) updateWriteBuffStats(bytesWrite int64, bytesBufSize int64) {
+	if c.stats == nil {
+		return
+	}
+
+	if bytesWrite > 0 {
+		c.stats.WriteTotal.Inc(bytesWrite)
+	}
+
+	if bytesBufSize != c.lastWriteSizeWrite {
+		c.stats.WriteCurrent.Update(bytesBufSize)
+		c.lastWriteSizeWrite = bytesBufSize
+	}
+}
+
 func (c *connection) writeBufLen() int {
 	c.writeBufferMux.RLock()
 	wbLen := c.writeBuffer.Len()
@@ -283,7 +339,7 @@ func (c *connection) writeBufLen() int {
 }
 
 func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.ConnectionEvent) error {
-	if atomic.AddUint32(&c.closed, 1) > 1 {
+	if !atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
 		return nil
 	}
 
@@ -313,7 +369,11 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	c.writeLoopStopChan <- true
 	c.rawConnection.Close()
 
-	// TODO: clean up stats
+	c.logger.Debugf(ConnectionCloseDebugMsg, c.id, eventType,
+		ccType, c.stats.ReadTotal.Count(), c.stats.WriteTotal.Count())
+
+	c.updateReadBufStats(0, 0)
+	c.updateWriteBuffStats(0, 0)
 
 	for _, cb := range c.connCallbacks {
 		cb.OnEvent(eventType)
@@ -424,8 +484,11 @@ type clientConnection struct {
 }
 
 func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan bool) types.ClientConnection {
+	id := atomic.AddUint64(&idCounter, 1)
+
 	conn := &clientConnection{
 		connection: connection{
+			id:                id,
 			localAddr:         sourceAddr,
 			remoteAddr:        remoteAddr,
 			stopChan:          stopChan,
@@ -436,6 +499,13 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 			writeBuffer:       bytes.NewBuffer(make([]byte, 0, 4*1024)),
 			writeLoopStopChan: make(chan bool, 1),
 			readerBufferPool:  buffer.NewIoBufferPool(1, 1024),
+			stats: &types.ConnectionStats{
+				ReadTotal:    metrics.NewCounter(),
+				ReadCurrent:  metrics.NewGauge(),
+				WriteTotal:   metrics.NewCounter(),
+				WriteCurrent: metrics.NewGauge(),
+			},
+			logger: log.DefaultLogger,
 		},
 	}
 	conn.filterManager = newFilterManager(conn)
