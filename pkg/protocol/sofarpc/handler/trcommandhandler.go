@@ -2,8 +2,8 @@ package handler
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/codec"
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 )
 
 type TrCommandHandler struct {

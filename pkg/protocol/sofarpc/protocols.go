@@ -1,9 +1,11 @@
-package codec
+package sofarpc
 
 import (
 	"bytes"
 	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 //All of the protocols
@@ -21,24 +23,17 @@ func (p *Protocols) Encode(value interface{}, data bytes.Buffer) {
 }
 
 //TODO move this to seperate type 'ProtocolDecoer' or 'CodecEngine'
-func (p *Protocols) Decode(ctx interface{}, data *bytes.Buffer, out interface{}) {
+func (p *Protocols) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
 
 	readableBytes := uint64(data.Len())
 	//at least 1 byte for protocol code recognize
 	if readableBytes > 1 {
 
-		//TODO mark pos and reset, otherwise protocl.decoder can only get the rest of the data without the 2 bytes at head
-		protocolCode, err := data.ReadByte()
-		if err != nil {
-			fmt.Println("decode protocol code error :", err)
-		}
-		/**
-		maybeProtocolVersion, err := data.ReadByte()
-		if err != nil {
-			fmt.Println("decode protocol version error :", err)
-		} else {
-			fmt.Println("2nd byte:", maybeProtocolVersion)
-		}**/
+		bytes := data.Bytes()
+		protocolCode := bytes[0]
+		maybeProtocolVersion := bytes[1]
+
+		log.DefaultLogger.Println("[Decoder]protocol code = ", protocolCode, ", maybeProtocolVersion = ", maybeProtocolVersion)
 
 		if proto, exists := p.protocols[protocolCode]; exists {
 			proto.GetDecoder().Decode(ctx, data, out)

@@ -2,9 +2,9 @@ package sofarpc
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/codec"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/handler"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/handler"
 )
 
 var Tr = &TrProtocol{

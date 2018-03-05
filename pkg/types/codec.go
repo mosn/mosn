@@ -1,15 +1,13 @@
 package types
 
-import "bytes"
-
 type Encoder interface {
-	Encode(value interface{}, data *bytes.Buffer)
+	Encode(value interface{}, data IoBuffer)
 }
 
 type Decoder interface {
 	//TODO replace ctx type with defined connection request context
 	//TODO replace out type with defined pipeline output container
-	Decode(ctx interface{}, data *bytes.Buffer, out interface{})
+	Decode(ctx interface{}, data IoBuffer, out interface{})
 }
 
 type DecoderCallbacks interface {

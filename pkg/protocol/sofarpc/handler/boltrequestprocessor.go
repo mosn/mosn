@@ -3,7 +3,7 @@ package handler
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/codec"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 )
 
 type BoltRequestProcessor struct {
