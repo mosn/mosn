@@ -5,19 +5,18 @@ import (
 	"bytes"
 	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	//"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/codec"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	//"gitlab.alipay-inc.com/afe/mosn/pkg/server"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 
 
-	//"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	//"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	//"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
-	//"time"
-	//"net"
-	//"time"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"time"
+	"net"
 )
 
 const (
@@ -30,8 +29,7 @@ const (
 
 func main() {
 
-	test_codec()
-	/**
+	//test_codec()
 	//initilize codec engine. TODO: config driven
 	//codecImpl := codec.NewProtocols(map[byte]protocol.Protocol{
 	//	sofarpc.PROTOCOL_CODE_V1:sofarpc.BoltV1,
@@ -130,7 +128,6 @@ func main() {
 		}
 	}()
 
-
 	go func() {
 		select {
 		case <-meshReadyChan:
@@ -146,7 +143,7 @@ func main() {
 
 			select {
 			case <-stopChan:
-				cc.Close(types.NoFlush)
+				cc.Close(types.NoFlush,types.LocalClose)
 			}
 		}
 	}()
@@ -157,7 +154,9 @@ func main() {
 		fmt.Println("[MAIN]closing..")
 	}
 
-**/
+
+
+
 
 }
 func rpcProxyConfig() *v2.RpcProxy {
@@ -231,3 +230,80 @@ func test_codec(){
 	msg := <-fakePipe
 	codecImpl.Handle(1, nil, msg)
 }
+
+type clusterManagerFilterRPC struct {
+	cccb server.ClusterConfigFactoryCb
+	chcb server.ClusterHostFactoryCb
+}
+
+
+func (cmf *clusterManagerFilterRPC) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
+	cmf.cccb = cccb
+	cmf.chcb = chcb
+}
+
+
+func clustersrpc() []v2.Cluster {
+	var configs []v2.Cluster
+	configs = append(configs, v2.Cluster{
+		Name:                 TestClusterRPC,
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_RANDOM,
+		MaxRequestPerConn:    1024,
+		ConnBufferLimitBytes: 16 * 1026,
+	})
+
+	return configs
+}
+
+
+type rpclientConnCallbacks struct {
+	cc types.Connection
+}
+
+func (ccc *rpclientConnCallbacks) OnEvent(event types.ConnectionEvent) {
+	fmt.Printf("[CLIENT]connection event %s", string(event))
+	fmt.Println()
+
+	switch event {
+	case types.Connected:
+		time.Sleep(3 * time.Second)
+
+		fmt.Println("[CLIENT]write 'bolt test msg' to remote server")
+
+		//buf := bytes.NewBufferString("hello")
+	//	boltV1PostData := bytes.NewBuffer([]byte("\x01\x00BoltV1test"))
+
+
+
+
+		//t:=types.IoBuffer(boltV1PostData.Bytes())
+		//ccc.cc.Write(buf)
+		boltV1PostData := buffer.NewIoBufferString("\x01\x00BoltV1test")
+		//boltV1PostData := &buffer.IoBuffer{: []byte([]byte("\x01\x00BoltV1test"))}
+		ccc.cc.Write(boltV1PostData)
+
+	}
+}
+
+func (ccc *rpclientConnCallbacks) OnAboveWriteBufferHighWatermark() {}
+
+func (ccc *rpclientConnCallbacks) OnBelowWriteBufferLowWatermark() {}
+
+
+type rpcclientConnReadFilter struct {
+}
+
+func (ccrf *rpcclientConnReadFilter) OnData(buffer types.IoBuffer) types.FilterStatus {
+	fmt.Printf("[CLIENT]receive data '%s'", buffer.String())
+	fmt.Println()
+	buffer.Reset()
+
+	return types.Continue
+}
+
+func (ccrf *rpcclientConnReadFilter) OnNewConnection() types.FilterStatus {
+	return types.Continue
+}
+
+func (ccrf *rpcclientConnReadFilter) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
