@@ -15,6 +15,7 @@ import (
 // ClusterConfigFactoryCb
 // ClusterHostFactoryCb
 type connHandler struct {
+	idCounter      uint64
 	numConnections int64
 	listeners      []*activeListener
 	clusterManager types.ClusterManager
@@ -153,7 +154,7 @@ func (al *activeListener) OnNewConnection(conn types.Connection) {
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
-		conn.Close(types.NoFlush)
+		conn.Close(types.NoFlush, types.LocalClose)
 	} else {
 		ac := newActiveConnection(al, conn)
 
@@ -173,7 +174,9 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 }
 
 func (al *activeListener) newConnection(rawc net.Conn) {
-	conn := network.NewServerConnection(rawc, al.stopChan)
+	id := atomic.AddUint64(&al.handler.idCounter, 1)
+
+	conn := network.NewServerConnection(rawc, id, al.stopChan)
 
 	var limit uint32
 	// TODO: read from config.perConnectionBufferLimitBytes()

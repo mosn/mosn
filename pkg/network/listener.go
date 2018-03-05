@@ -5,6 +5,8 @@ import (
 	"context"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"fmt"
+	"runtime/debug"
 )
 
 // listener impl based on golang net package
@@ -105,7 +107,18 @@ func (l *listener) accept(lctx context.Context) error {
 	}
 
 	// TODO: use thread pool
-	go l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections)
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				fmt.Printf("panic %v", p)
+				fmt.Println()
+
+				debug.PrintStack()
+			}
+		}()
+
+		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections)
+	}()
 
 	return nil
 }

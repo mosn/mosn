@@ -1,1 +1,1 @@
-MOSN is an modular observable smart netstub.
+MOSN is modular observable smart netstub.

@@ -77,7 +77,7 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 
 		buffer := fm.conn.GetReadBuffer()
 
-		if buffer.Len() > 0 {
+		if buffer != nil && buffer.Len() > 0 {
 			status := uf.filter.OnData(buffer)
 
 			if status == types.StopIteration {
