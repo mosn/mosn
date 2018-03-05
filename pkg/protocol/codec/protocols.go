@@ -31,12 +31,13 @@ func (p *Protocols) Decode(ctx interface{}, data *bytes.Buffer, out interface{})
 		if err != nil {
 			fmt.Println("decode protocol code error :", err)
 		}
+		/**
 		maybeProtocolVersion, err := data.ReadByte()
 		if err != nil {
 			fmt.Println("decode protocol version error :", err)
 		} else {
 			fmt.Println("2nd byte:", maybeProtocolVersion)
-		}
+		}**/
 
 		if proto, exists := p.protocols[protocolCode]; exists {
 			proto.GetDecoder().Decode(ctx, data, out)
@@ -44,6 +45,15 @@ func (p *Protocols) Decode(ctx interface{}, data *bytes.Buffer, out interface{})
 			fmt.Println("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
 		}
 	}
+}
+
+//TODO move this to seperate type 'ProtocolDecoer' or 'CodecEngine'
+func (p *Protocols) Handle(protocolCode byte, ctx interface{}, msg interface{}) {
+		if proto, exists := p.protocols[protocolCode]; exists {
+			proto.GetCommandHandler().HandleCommand(ctx, msg)
+		} else {
+			fmt.Println("Unknown protocol code: [", protocolCode, "] while handle in rpc handler.")
+		}
 }
 
 //put protocol

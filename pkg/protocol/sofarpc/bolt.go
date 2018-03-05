@@ -1,30 +1,10 @@
 package sofarpc
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/codec"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-)
-
-const (
-	PROTOCOL_CODE_V1 byte = 1
-	PROTOCOL_CODE_V2 byte = 2
-
-	PROTOCOL_VERSION_1 byte = 1
-	PROTOCOL_VERSION_2 byte = 2
-
-	REQUEST_HEADER_LEN_V1 int = 22
-	REQUEST_HEADER_LEN_V2 int = 24
-
-	RESPONSE_HEADER_LEN_V1 int = 20
-	RESPONSE_HEADER_LEN_V2 int = 22
-
-
-)
-
-//TODO move to const
-var (
-	LESS_LEN_V1 int =  GetLessLen(REQUEST_HEADER_LEN_V2, RESPONSE_HEADER_LEN_V2)
-	LESS_LEN_V2 int = GetLessLen(REQUEST_HEADER_LEN_V2, RESPONSE_HEADER_LEN_V2)
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/handler"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/codec"
 )
 
 /**
@@ -63,11 +43,12 @@ var (
  * respstatus: response status
  */
 var BoltV1 = &BoltProtocol{
-	PROTOCOL_CODE_V1,
-	REQUEST_HEADER_LEN_V1,
-	RESPONSE_HEADER_LEN_V1,
+	protocol.PROTOCOL_CODE_V1,
+	protocol.REQUEST_HEADER_LEN_V1,
+	protocol.RESPONSE_HEADER_LEN_V1,
 	&codec.BoltEncoderV1{},
 	&codec.BoltDecoderV1{},
+	handler.NewBoltCommandHandler(),
 }
 
 /**
@@ -109,11 +90,12 @@ var BoltV1 = &BoltProtocol{
  * respstatus: response status
  */
 var BoltV2 = &BoltProtocol{
-	PROTOCOL_CODE_V2,
-	REQUEST_HEADER_LEN_V2,
-	RESPONSE_HEADER_LEN_V2,
+	protocol.PROTOCOL_CODE_V2,
+	protocol.REQUEST_HEADER_LEN_V2,
+	protocol.RESPONSE_HEADER_LEN_V2,
 	&codec.BoltEncoderV2{},
 	&codec.BoltDecoderV2{},
+	handler.NewBoltCommandHandler(),
 }
 
 type BoltProtocol struct {
@@ -124,7 +106,7 @@ type BoltProtocol struct {
 	encoder types.Encoder
 	decoder types.Decoder
 	//heartbeatTrigger			protocol.HeartbeatTrigger todo
-	//commandHandler			protocol.CommandHandler todo
+	commandHandler			protocol.CommandHandler
 }
 
 func (b *BoltProtocol) GetRequestHeaderLength() int {
@@ -141,6 +123,10 @@ func (b *BoltProtocol) GetEncoder() types.Encoder {
 
 func (b *BoltProtocol) GetDecoder() types.Decoder {
 	return b.decoder
+}
+
+func (b *BoltProtocol) GetCommandHandler() protocol.CommandHandler {
+	return b.commandHandler
 }
 
 //TODO move this func to util
