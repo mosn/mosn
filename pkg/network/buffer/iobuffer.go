@@ -15,9 +15,8 @@ var (
 
 // IoBuffer
 type IoBuffer struct {
-	buf     []byte // contents: buf[off : len(buf)]
-	off     int    // read from &buf[off], write to &buf[len(buf)]
-	readBuf [1]byte
+	buf []byte // contents: buf[off : len(buf)]
+	off int    // read from &buf[off], write to &buf[len(buf)]
 }
 
 func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
@@ -90,6 +89,14 @@ func (b *IoBuffer) Append(data []byte) error {
 	b.buf = b.buf[0: len(b.buf)+m]
 
 	return nil
+}
+
+func (b *IoBuffer) Peek(n int) []byte {
+	if len(b.buf)-b.off < n {
+		return nil
+	}
+
+	return b.buf[b.off:b.off+n]
 }
 
 func (b *IoBuffer) Bytes() []byte {

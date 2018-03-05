@@ -62,6 +62,8 @@ type IoBuffer interface {
 
 	Append(data []byte) error
 
+	Peek(n int) []byte
+
 	Bytes() []byte
 
 	String() string
