@@ -44,12 +44,6 @@ type resource struct {
 	max     uint64
 }
 
-func NewResource(max uint64) types.Resource {
-	return &resource{
-		max: max,
-	}
-}
-
 func (r *resource) CanCreate() bool {
 	curValue := atomic.LoadInt64(&r.current)
 

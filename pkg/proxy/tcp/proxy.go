@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"bytes"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
@@ -17,8 +16,6 @@ type proxy struct {
 	requestInfo         types.RequestInfo
 	upstreamCallbacks   UpstreamCallbacks
 	downstreamCallbacks DownstreamCallbacks
-
-	upstreamConnecting bool
 }
 
 func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {
@@ -38,7 +35,7 @@ func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {
 	return proxy
 }
 
-func (p *proxy) OnData(buffer *bytes.Buffer) types.FilterStatus {
+func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
@@ -101,11 +98,10 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	upstreamConnection := connectionData.Connection
 	upstreamConnection.AddConnectionCallbacks(p.upstreamCallbacks)
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
-	upstreamConnection.Connect()
-	upstreamConnection.SetNoDelay(true)
-	upstreamConnection.SetReadDisable(false)
-
 	p.upstreamConnection = upstreamConnection
+
+	upstreamConnection.Connect()
+
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
 
 	// TODO: update upstream stats
@@ -115,7 +111,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 
 func (p *proxy) closeUpstreamConnection() {
 	// TODO: finalize upstream connection stats
-	p.upstreamConnection.Close(types.NoFlush)
+	p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
 }
 
 func (p *proxy) getUpstreamCluster() string {
@@ -125,10 +121,10 @@ func (p *proxy) getUpstreamCluster() string {
 }
 
 func (p *proxy) onInitFailure(reason UpstreamFailureReason) {
-	p.readCallbacks.Connection().Close(types.NoFlush)
+	p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)
 }
 
-func (p *proxy) onUpstreamData(buffer *bytes.Buffer) {
+func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
 	bytesSent := p.requestInfo.BytesSent() + uint64(buffer.Len())
 	p.requestInfo.SetBytesSent(bytesSent)
 
@@ -138,38 +134,38 @@ func (p *proxy) onUpstreamData(buffer *bytes.Buffer) {
 func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
 	switch event {
 	case types.RemoteClose:
-		// TODO: inc remote failed stat
-		if p.upstreamConnecting {
-			p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
-			p.closeUpstreamConnection()
-			p.initializeUpstreamConnection()
-		} else {
-			p.readCallbacks.Connection().Close(types.FlushWrite)
-		}
+		p.finalizeUpstreamConnectionStats()
+		p.readCallbacks.Connection().Close(types.FlushWrite, types.LocalClose)
+
 	case types.LocalClose:
-		// TODO: inc local failed stat
+		p.finalizeUpstreamConnectionStats()
 	case types.OnConnect:
-		p.upstreamConnecting = true
 	case types.Connected:
-		p.upstreamConnecting = false
 		p.readCallbacks.Connection().SetReadDisable(false)
 
 		p.onConnectionSuccess()
 	case types.ConnectTimeout:
+		p.finalizeUpstreamConnectionStats()
+
 		p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
 		p.closeUpstreamConnection()
 		p.initializeUpstreamConnection()
 	}
 }
 
+func (p *proxy) finalizeUpstreamConnectionStats() {
+	upstreamClusterInfo := p.readCallbacks.UpstreamHost().ClusterInfo()
+	upstreamClusterInfo.ResourceManager().ConnectionResource().Decrease()
+}
+
 func (p *proxy) onConnectionSuccess() {}
 
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
-	if p.upstreamConnecting {
+	if p.upstreamConnection != nil {
 		if event == types.RemoteClose {
-			p.upstreamConnection.Close(types.FlushWrite)
+			p.upstreamConnection.Close(types.FlushWrite, types.LocalClose)
 		} else if event == types.LocalClose {
-			p.upstreamConnection.Close(types.NoFlush)
+			p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
 		}
 	}
 }
@@ -233,6 +229,12 @@ type upstreamCallbacks struct {
 }
 
 func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
+	switch event {
+	case types.Connected:
+		uc.proxy.upstreamConnection.SetNoDelay(true)
+		uc.proxy.upstreamConnection.SetReadDisable(false)
+	}
+
 	uc.proxy.onUpstreamEvent(event)
 }
 
@@ -244,7 +246,7 @@ func (uc *upstreamCallbacks) OnBelowWriteBufferLowWatermark() {
 	// TODO
 }
 
-func (uc *upstreamCallbacks) OnData(buffer *bytes.Buffer) types.FilterStatus {
+func (uc *upstreamCallbacks) OnData(buffer types.IoBuffer) types.FilterStatus {
 	uc.proxy.onUpstreamData(buffer)
 
 	return types.StopIteration
