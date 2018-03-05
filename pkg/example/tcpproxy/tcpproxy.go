@@ -24,6 +24,7 @@ func main2() {
 	go func() {
 		// upstream
 		l, _ := net.Listen("tcp", RealServerAddr)
+		fmt.Println("listen on ")
 		defer l.Close()
 
 		for {

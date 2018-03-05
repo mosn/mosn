@@ -55,6 +55,16 @@ type RemotingProcessor interface {
 	Process(ctx interface{}, msg interface{}, executor interface{})
 }
 
+type RpcCommand interface {
+
+	GetProtocolCode() byte
+
+	GetCmdCode() int16
+
+	GetId() int
+
+}
+
 //bolt constants
 const (
 	PROTOCOL_CODE_V1 byte = 1

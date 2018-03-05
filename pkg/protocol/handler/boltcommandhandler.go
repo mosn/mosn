@@ -2,7 +2,6 @@ package handler
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/codec"
 	"fmt"
 )
 
@@ -21,9 +20,10 @@ func NewBoltCommandHandler() *BoltCommandHandler{
 }
 
 func (h *BoltCommandHandler) HandleCommand(ctx interface{}, msg interface{}){
-	if cmd, ok := msg.(*codec.BoltCommand); ok {
+	if cmd, ok := msg.(protocol.RpcCommand); ok {
 		cmdCode := cmd.GetCmdCode()
 		if processor, ok := h.processors[cmdCode]; ok{
+			fmt.Println("handle command")
 			processor.Process(ctx, cmd,nil)
 		}else{
 			fmt.Println("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")

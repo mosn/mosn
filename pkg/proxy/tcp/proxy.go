@@ -16,6 +16,8 @@ type proxy struct {
 	requestInfo         types.RequestInfo
 	upstreamCallbacks   UpstreamCallbacks
 	downstreamCallbacks DownstreamCallbacks
+
+	upstreamConnecting  bool
 }
 
 func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {

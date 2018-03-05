@@ -1,6 +1,9 @@
 package codec
 
-import "net"
+import (
+	"net"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+)
 
 //command defination
 type BoltCommand struct {
@@ -58,8 +61,16 @@ type BoltResponseCommand struct {
 	errorMsg string
 }
 
+func (b *BoltCommand) GetProtocolCode() byte{
+	return protocol.PROTOCOL_CODE_V1
+}
+
 func (b *BoltCommand) GetCmdCode() int16{
 	return b.cmdCode
+}
+
+func (b *BoltCommand) GetId() int{
+	return b.id
 }
 
 func (b *BoltCommand) GetClass() []byte{
@@ -74,6 +85,18 @@ func (b *BoltCommand) GetContent() []byte{
 	return b.content
 }
 
+func (b *BoltRequestCommand) GetProtocolCode() byte{
+	return protocol.PROTOCOL_CODE_V1
+}
+
+func (b *BoltRequestCommand) GetCmdCode() int16{
+	return b.cmdCode
+}
+
+func (b *BoltRequestCommand) GetId() int{
+	return b.id
+}
+
 func (b *BoltRequestCommand) SetTimeout(timeout int) {
 	b.timeout = timeout
 }
@@ -85,6 +108,19 @@ func (b *BoltRequestCommand) SetRequestHeader(headerMap map[string]string) {
 }
 func (b *BoltRequestCommand) GetRequestHeader(headerMap map[string]string) {
 	b.requestHeader = headerMap
+}
+
+
+func (b *BoltResponseCommand) GetProtocolCode() byte{
+	return protocol.PROTOCOL_CODE_V1
+}
+
+func (b *BoltResponseCommand) GetCmdCode() int16{
+	return b.cmdCode
+}
+
+func (b *BoltResponseCommand) GetId() int{
+	return b.id
 }
 
 func (b *BoltResponseCommand) SetResponseStatus(status int16) {

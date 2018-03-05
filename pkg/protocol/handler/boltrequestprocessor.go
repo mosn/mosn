@@ -30,7 +30,7 @@ func deserializeRequest(requestCommand *codec.BoltRequestCommand) (*codec.BoltRe
 	var headerMap map[string]string
 	serialize.DeSerialize(requestCommand.GetHeader(), &headerMap)
 
-	fmt.Println("deSerialize  headerMap: %+v", headerMap)
+	fmt.Println("deSerialize  headerMap:", headerMap)
 	requestCommand.SetRequestHeader(headerMap)
 
 	return requestCommand, nil

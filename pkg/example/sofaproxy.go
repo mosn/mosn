@@ -16,13 +16,15 @@ import (
 	//"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	//"time"
 	//"net"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
-	"time"
+	//"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
 const (
 	RealRPCServerAddr = "127.0.0.1:8088"
 	MeshRPCServerAddr = "127.0.0.1:2044"
+	TestClusterRPC    = "tstCluster"
+	TestListenerRPC   = "tstListener"
 )
 
 
@@ -31,12 +33,12 @@ func main() {
 	test_codec()
 	/**
 	//initilize codec engine. TODO: config driven
-	codecImpl := codec.NewProtocols(map[byte]protocol.Protocol{
-		sofarpc.PROTOCOL_CODE_V1:sofarpc.BoltV1,
-		sofarpc.PROTOCOL_CODE_V2:sofarpc.BoltV2,
-		sofarpc.PROTOCOL_CODE:sofarpc.Tr,
-
-	})
+	//codecImpl := codec.NewProtocols(map[byte]protocol.Protocol{
+	//	sofarpc.PROTOCOL_CODE_V1:sofarpc.BoltV1,
+	//	sofarpc.PROTOCOL_CODE_V2:sofarpc.BoltV2,
+	//	sofarpc.PROTOCOL_CODE:sofarpc.Tr,
+	//
+	//})
 
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
@@ -46,6 +48,7 @@ func main() {
 	go func() {
 		// upstream
 		l, _ := net.Listen("tcp", RealRPCServerAddr)
+
 		defer l.Close()
 
 		for {
@@ -83,10 +86,10 @@ func main() {
 					}
 				}
 
-				fmt.Printf("[REALSERVER]write back data 'world'")
+				fmt.Printf("[REALSERVER]write back data 'Got Bolt Msg'")
 				fmt.Println()
 
-				conn.Write([]byte("world"))
+				conn.Write([]byte("Got Bolt"))
 
 				select {
 				case <-stopChan:
@@ -100,17 +103,21 @@ func main() {
 		select {
 		case <-upstreamReadyChan:
 			//  mesh
-			cmf := &clusterManagerFilter{}
+			cmf := &clusterManagerFilterRPC{}
 
 			//RPC
 			srv := server.NewServer(&proxy.RpcProxyFilterConfigFactory{
 				Proxy: rpcProxyConfig(),
 			}, cmf)
 
+	//		boltV1PostData := bytes.NewBuffer([]byte("\x01\x00BoltV1"))
+			//codecImpl.Decode(nil,boltV1PostData,nil)
+
+			//
 
 			srv.AddListener(rpcProxyListener())
-			cmf.cccb.UpdateClusterConfig(clusters())
-			cmf.chcb.UpdateClusterHost(TestCluster, 0, rpchosts())
+			cmf.cccb.UpdateClusterConfig(clustersrpc())
+			cmf.chcb.UpdateClusterHost(TestClusterRPC, 0, rpchosts())
 
 			meshReadyChan <- true
 
@@ -122,11 +129,64 @@ func main() {
 			}
 		}
 	}()
+
+
+	go func() {
+		select {
+		case <-meshReadyChan:
+			// client
+			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshRPCServerAddr)
+			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
+			cc.AddConnectionCallbacks(&rpclientConnCallbacks{      //ADD  connection callback
+				cc: cc,
+			})
+			cc.Connect()
+			cc.SetReadDisable(false)
+			cc.FilterManager().AddReadFilter(&rpcclientConnReadFilter{})
+
+			select {
+			case <-stopChan:
+				cc.Close(types.NoFlush)
+			}
+		}
+	}()
+
+	select {
+	case <-time.After(time.Second * 5):
+		stopChan <- true
+		fmt.Println("[MAIN]closing..")
+	}
+
 **/
 
+}
+func rpcProxyConfig() *v2.RpcProxy {
+	rpcProxyConfig := &v2.RpcProxy{}
+	rpcProxyConfig.Routes = append(rpcProxyConfig.Routes, &v2.RpcRoute{
+		Cluster: TestClusterRPC,
+	})
 
+	return rpcProxyConfig
+}
 
+func rpcProxyListener() v2.ListenerConfig {
+	return v2.ListenerConfig{
+		Name:                 TestListenerRPC,
+		Addr:                 MeshRPCServerAddr,
+		BindToPort:           true,
+		ConnBufferLimitBytes: 1024 * 32,
+	}
+}
 
+func rpchosts() []v2.Host {
+	var hosts []v2.Host
+
+	hosts = append(hosts, v2.Host{
+		Address: RealRPCServerAddr,
+		Weight:  100,
+	})
+
+	return hosts
 }
 
 
@@ -141,7 +201,7 @@ func test_codec(){
 
 	})
 
-	fakePipe := make(chan interface{})
+	fakePipe := make(chan protocol.RpcCommand)
 
 	//plug-in tr codec
 	codecImpl.PutProtocol(protocol.PROTOCOL_CODE, sofarpc.Tr)
@@ -160,7 +220,7 @@ func test_codec(){
 
 	//test boltv1 decode branch
 	fmt.Println("-----------> boltv1 test begin")
-	codecImpl.Decode(nil, boltV1PostData, fakePipe)
+	go codecImpl.Decode(nil, boltV1PostData, fakePipe)
 	fmt.Println("<----------- boltv1 test end\n")
 
 	//test boltv2 decode branch
@@ -168,15 +228,6 @@ func test_codec(){
 	codecImpl.Decode(nil, boltV2PostData, nil)
 	fmt.Println("<----------- boltv2 test end\n")
 
-
-
-	go func() {
-		 msg := <-fakePipe
-		 if cmd, ok := msg.(codec.BoltRequestCommand); ok{
-			 codecImpl.Handle(1, nil, cmd)
-		 }
-	}()
-
-	time.Sleep(5000)
+	msg := <-fakePipe
+	codecImpl.Handle(1, nil, msg)
 }
-

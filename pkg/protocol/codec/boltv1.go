@@ -80,7 +80,9 @@ func (decoder *BoltDecoderV1) Decode(ctx interface{}, data *bytes.Buffer, out in
 				request.SetArriveTime(time.Now().UnixNano() / int64(time.Millisecond))
 
 				fmt.Println("bolt v1 decode request:", request)
-				//out <- request
+				if channel, ok := out.(chan protocol.RpcCommand); ok {
+					channel <- request
+				}
 
 				//head code test
 				//handler.NewBoltCommandHandler().HandleCommand(ctx, request)
