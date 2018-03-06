@@ -2,34 +2,30 @@ package codec
 
 import (
 	"encoding/binary"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"time"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
 
-type BoltEncoderV1 struct {
-}
+// types.Encoder & types.Decoder
+type boltV1Codec struct{}
 
-type BoltDecoderV1 struct {
-}
+func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {}
 
-func (encoder *BoltEncoderV1) Encode(value interface{}, data types.IoBuffer) {
-
-}
-
-func (decoder *BoltDecoderV1) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
+func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
 	readableBytes := data.Len()
 	read := 0
-	if readableBytes >= protocol.LESS_LEN_V1 {
+
+	if readableBytes >= sofarpc.LESS_LEN_V1 {
 		bytes := data.Bytes()
 
 		//protocolCode := bytes[0]
 		dataType := bytes[1]
 
 		//1. request
-		if dataType == protocol.REQUEST || dataType == protocol.REQUEST_ONEWAY {
-			if readableBytes >= protocol.REQUEST_HEADER_LEN_V1 {
+		if dataType == sofarpc.REQUEST || dataType == sofarpc.REQUEST_ONEWAY {
+			if readableBytes >= sofarpc.REQUEST_HEADER_LEN_V1 {
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 				ver2 := bytes[4]
@@ -40,21 +36,21 @@ func (decoder *BoltDecoderV1) Decode(ctx interface{}, data types.IoBuffer, out i
 				headerLen := binary.BigEndian.Uint16(bytes[16:18])
 				contentLen := binary.BigEndian.Uint32(bytes[18:22])
 
-				read = protocol.REQUEST_HEADER_LEN_V1
+				read = sofarpc.REQUEST_HEADER_LEN_V1
 				var class, header, content []byte
 
 				//TODO because of no "mark & reset", bytes.off is not recoverable
-				if readableBytes >= read + int(classLen) + int(headerLen) + int(contentLen) {
+				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read: read +int(classLen)]
+						class = bytes[read: read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read +int(headerLen)]
+						header = bytes[read: read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read: read +int(contentLen)]
+						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
 					//TODO mark buffer's off
@@ -63,8 +59,8 @@ func (decoder *BoltDecoderV1) Decode(ctx interface{}, data types.IoBuffer, out i
 					return
 				}
 
-				request := &BoltRequestCommand{
-					BoltCommand: BoltCommand{
+				request := &boltRequestCommand{
+					boltCommand: boltCommand{
 						int16(cmdCode),
 						ver2,
 						dataType,
@@ -86,13 +82,13 @@ func (decoder *BoltDecoderV1) Decode(ctx interface{}, data types.IoBuffer, out i
 				log.DefaultLogger.Printf("[Decoder]bolt v1 decode request:%+v\n", request)
 
 				//pass decode result to command handler
-				if list, ok := out.(*[]protocol.RpcCommand); ok {
+				if list, ok := out.(*[]sofarpc.RpcCommand); ok {
 					*list = append(*list, request)
 				}
 			}
 		} else {
 			//2. resposne
-			if readableBytes > protocol.RESPONSE_HEADER_LEN_V1 {
+			if readableBytes > sofarpc.RESPONSE_HEADER_LEN_V1 {
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 				ver2 := bytes[4]
@@ -103,20 +99,20 @@ func (decoder *BoltDecoderV1) Decode(ctx interface{}, data types.IoBuffer, out i
 				headerLen := binary.BigEndian.Uint16(bytes[14:16])
 				contentLen := binary.BigEndian.Uint32(bytes[16:20])
 
-				read = protocol.RESPONSE_HEADER_LEN_V1
+				read = sofarpc.RESPONSE_HEADER_LEN_V1
 				var class, header, content []byte
 
-				if readableBytes >= read + int(classLen)+int(headerLen)+int(contentLen) {
+				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read: read +int(classLen)]
+						class = bytes[read: read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytes[read: read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read:read+ int(contentLen)]
+						content = bytes[read:read+int(contentLen)]
 						read += int(contentLen)
 					}
 				} else { // not enough data
@@ -124,13 +120,12 @@ func (decoder *BoltDecoderV1) Decode(ctx interface{}, data types.IoBuffer, out i
 					return
 				}
 
-				response := &BoltResponseCommand{
-					BoltCommand: BoltCommand{
+				response := &boltResponseCommand{
+					boltCommand: boltCommand{
 						int16(cmdCode),
 						ver2,
 						dataType,
 						codec,
-
 						int(requestId),
 						int16(classLen),
 						int16(headerLen),
@@ -147,7 +142,7 @@ func (decoder *BoltDecoderV1) Decode(ctx interface{}, data types.IoBuffer, out i
 				log.DefaultLogger.Printf("[Decoder]bolt v1 decode response:%+v\n", response)
 
 				//pass decode result to command handler
-				if list, ok := out.(*[]protocol.RpcCommand); ok {
+				if list, ok := out.(*[]sofarpc.RpcCommand); ok {
 					*list = append(*list, response)
 				}
 			}

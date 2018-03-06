@@ -1,23 +1,16 @@
 package sofarpc
 
-
-
 import (
-
+	"fmt"
+	"reflect"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"reflect"
-	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-
 // 实现 sofa RPC 的 反向代理
-
 
 // ReadFilter
 type rpcproxy struct {
@@ -31,15 +24,15 @@ type rpcproxy struct {
 
 	upstreamConnecting bool
 
-	protocolSet		    sofarpc.Protocols
+	protocolSet sofarpc.Protocols
 }
-
 
 func NewRPCProxy(config *v2.RpcProxy, clusterManager types.ClusterManager) RpcProxy {
 	proxy := &rpcproxy{
 		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,
 		requestInfo:    network.NewRequestInfo(),
+		protocolSet:    sofarpc.DefaultProtocols(),
 	}
 
 	proxy.upstreamCallbacks = &upstreamCallbacks{
@@ -49,12 +42,6 @@ func NewRPCProxy(config *v2.RpcProxy, clusterManager types.ClusterManager) RpcPr
 		proxy: proxy,
 	}
 
-	proxy.protocolSet = sofarpc.NewProtocols(map[byte]protocol.Protocol{
-		protocol.PROTOCOL_CODE_V1:sofarpc.BoltV1,
-		protocol.PROTOCOL_CODE_V2:sofarpc.BoltV2,
-		protocol.PROTOCOL_CODE:sofarpc.Tr,
-	})
-
 	return proxy
 }
 
@@ -62,52 +49,43 @@ type upstreamCallbacks struct {
 	proxy *rpcproxy
 }
 
-
 ////rpc onData，ADD Decode
 //
 //var pipelineDataChan = make(chan interface{})
-
-
-
-
 
 func (p *rpcproxy) OnData(buf types.IoBuffer) types.FilterStatus {
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buf.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
-	fmt.Println("RPC MESH Receive Lens:",buf.Len())
+	fmt.Println("RPC MESH Receive Lens:", buf.Len())
 
-	var out = make([]protocol.RpcCommand, 0, 1)
+	var out = make([]sofarpc.RpcCommand, 0, 1)
 
-	p.protocolSet.Decode(nil,buf,&out)
+	p.protocolSet.Decode(nil, buf, &out)
 
-
-	if(len(out) > 0){
+	if (len(out) > 0) {
 		command := out[0]
-		p.protocolSet.Handle(command.GetProtocolCode(),func(requestCommand *codec.BoltRequestCommand){
+		p.protocolSet.Handle(command.GetProtocolCode(), func(requestCommand sofarpc.BoltRequestCommand) {
 			log.DefaultLogger.Println("enter in fake callback")
-			if serviceName, ok := requestCommand.GetRequestHeader()["service"];ok {
+
+			if serviceName, ok := requestCommand.GetRequestHeader()["service"]; ok {
 				log.DefaultLogger.Println("get service name :", serviceName)
 
 				//do some route by service name
-
 
 				//send data after decode finished
 				p.upstreamConnection.Write(buf)
 			}
 		}, command)
-
-
 	}
+
 	return types.StopIteration
 }
-
 
 //rpc upstream onEvent
 func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	uc.proxy.onUpstreamEvent(event)
 }
-
 
 func (uc *upstreamCallbacks) OnAboveWriteBufferHighWatermark() {
 	// TODO
@@ -136,9 +114,6 @@ func (uc *upstreamCallbacks) OnNewConnection() types.FilterStatus {
 
 func (uc *upstreamCallbacks) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
 
-
-
-
 //rpc realize upstream on event
 
 func (p *rpcproxy) onUpstreamEvent(event types.ConnectionEvent) {
@@ -150,7 +125,7 @@ func (p *rpcproxy) onUpstreamEvent(event types.ConnectionEvent) {
 			p.closeUpstreamConnection()
 			p.initializeUpstreamConnection()
 		} else {
-			p.readCallbacks.Connection().Close(types.FlushWrite,types.LocalClose)
+			p.readCallbacks.Connection().Close(types.FlushWrite, types.LocalClose)
 		}
 	case types.LocalClose:
 		// TODO: inc local failed stat
@@ -171,9 +146,9 @@ func (p *rpcproxy) onUpstreamEvent(event types.ConnectionEvent) {
 func (p *rpcproxy) onDownstreamEvent(event types.ConnectionEvent) {
 	if p.upstreamConnecting {
 		if event == types.RemoteClose {
-			p.upstreamConnection.Close(types.FlushWrite,types.LocalClose)
+			p.upstreamConnection.Close(types.FlushWrite, types.LocalClose)
 		} else if event == types.LocalClose {
-			p.upstreamConnection.Close(types.NoFlush,types.LocalClose)
+			p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
 		}
 	}
 }
@@ -186,12 +161,10 @@ func (p *rpcproxy) ReadDisableDownstream(disable bool) {
 	// TODO
 }
 
-
 func (p *rpcproxy) closeUpstreamConnection() {
 	// TODO: finalize upstream connection stats
-	p.upstreamConnection.Close(types.NoFlush,types.LocalClose)
+	p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
 }
-
 
 func (p *rpcproxy) initializeUpstreamConnection() types.FilterStatus {
 	clusterName := p.getUpstreamCluster()
@@ -242,18 +215,16 @@ func (p *rpcproxy) initializeUpstreamConnection() types.FilterStatus {
 	return types.Continue
 }
 
-
 func (p *rpcproxy) getUpstreamCluster() string {
 	downstreamConnection := p.readCallbacks.Connection()
 
 	return p.config.GetRouteFromEntries(downstreamConnection)
 }
 
-
 func (p *rpcproxy) onConnectionSuccess() {}
 
 func (p *rpcproxy) onInitFailure(reason UpstreamFailureReason) {
-	p.readCallbacks.Connection().Close(types.NoFlush,types.LocalClose)
+	p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)
 }
 
 func (p *rpcproxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
@@ -272,7 +243,6 @@ func (p *rpcproxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 func (p *rpcproxy) OnNewConnection() types.FilterStatus {
 	return p.initializeUpstreamConnection()
 }
-
 
 type proxyConfig struct {
 	routes []*route
@@ -295,6 +265,7 @@ func NewProxyConfig(config *v2.RpcProxy) ProxyConfig {
 		routes: routes,
 	}
 }
+
 type route struct {
 	sourceAddrs      types.Addresses
 	destinationAddrs types.Addresses
@@ -316,7 +287,6 @@ func (pc *proxyConfig) GetRouteFromEntries(connection types.Connection) string {
 
 	return ""
 }
-
 
 // ConnectionCallbacks
 type downstreamCallbacks struct {

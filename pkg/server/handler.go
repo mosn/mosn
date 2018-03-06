@@ -11,6 +11,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/rcrowley/go-metrics"
+	"fmt"
 )
 
 // ConnectionHandler
@@ -126,6 +128,17 @@ type activeListener struct {
 	connsMux sync.RWMutex
 	handler  *connHandler
 	stopChan chan bool
+	stats    *ListenerStats
+}
+
+type ListenerStats struct {
+	downstreamTotal             metrics.Counter
+	downstreamDestroy           metrics.Counter
+	downstreamActive            metrics.Gauge
+	downstreamBytesRead         metrics.Counter
+	downstreamBytesReadCurrent  metrics.Gauge
+	downstreamBytesWrite        metrics.Counter
+	downstreamBytesWriteCurrent metrics.Gauge
 }
 
 func newActiveListener(listener types.Listener, handler *connHandler, stopChan chan bool) *activeListener {
@@ -134,9 +147,28 @@ func newActiveListener(listener types.Listener, handler *connHandler, stopChan c
 		conns:    list.New(),
 		handler:  handler,
 		stopChan: stopChan,
+		stats:    newListenerStats(listener),
 	}
 
 	return al
+}
+
+func newListenerStats(listener types.Listener) *ListenerStats {
+	addr := listener.Addr().String()
+
+	return &ListenerStats{
+		downstreamTotal:             metrics.GetOrRegisterCounter(listenerStatsName("connection_total", addr), nil),
+		downstreamDestroy:           metrics.GetOrRegisterCounter(listenerStatsName("connection_destroy", addr), nil),
+		downstreamActive:            metrics.GetOrRegisterGauge(listenerStatsName("connection_active", addr), nil),
+		downstreamBytesRead:         metrics.GetOrRegisterCounter(listenerStatsName("bytes_read", addr), nil),
+		downstreamBytesReadCurrent:  metrics.GetOrRegisterGauge(listenerStatsName("bytes_read_current", addr), nil),
+		downstreamBytesWrite:        metrics.GetOrRegisterCounter(listenerStatsName("bytes_write", addr), nil),
+		downstreamBytesWriteCurrent: metrics.GetOrRegisterGauge(listenerStatsName("bytes_write_current", addr), nil),
+	}
+}
+
+func listenerStatsName(addr string, statName string) string {
+	return fmt.Sprintf("listener.%s.downstream_%s", addr, statName)
 }
 
 // ListenerCallbacks
@@ -181,7 +213,13 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.connsMux.Lock()
 	al.conns.Remove(ac.element)
 	al.connsMux.Unlock()
+
+	al.stats.downstreamActive.Update(al.stats.downstreamActive.Value() - 1)
+	al.stats.downstreamDestroy.Inc(1)
 	atomic.AddInt64(&al.handler.numConnections, -1)
+
+	al.handler.logger.Debugf("close downstream connection, total %d, active %d",
+		al.stats.downstreamTotal.Count(), al.stats.downstreamActive.Value())
 }
 
 func (al *activeListener) newConnection(rawc net.Conn) {
@@ -247,8 +285,23 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 
 	ac.conn.SetNoDelay(true)
 	ac.conn.AddConnectionCallbacks(ac)
+	ac.conn.AddBytesReadCallback(func(bytesRead uint64) {
+		listener.stats.downstreamBytesReadCurrent.Update(int64(bytesRead))
 
-	// TODO: downstream stats inc
+		if bytesRead > 0 {
+			listener.stats.downstreamBytesRead.Inc(int64(bytesRead))
+		}
+	})
+	ac.conn.AddBytesSentCallback(func(bytesSent uint64) {
+		listener.stats.downstreamBytesWriteCurrent.Update(int64(bytesSent))
+
+		if bytesSent > 0 {
+			listener.stats.downstreamBytesWrite.Inc(int64(bytesSent))
+		}
+	})
+
+	listener.stats.downstreamActive.Update(listener.stats.downstreamActive.Value() + 1)
+	listener.stats.downstreamTotal.Inc(1)
 
 	return ac
 }

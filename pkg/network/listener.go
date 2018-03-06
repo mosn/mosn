@@ -12,7 +12,7 @@ import (
 // listener impl based on golang net package
 type listener struct {
 	name                                  string
-	localAddress                          string
+	localAddress                          net.Addr
 	bindToPort                            bool
 	listenerTag                           uint64
 	connBufferLimitBytes                  uint32
@@ -22,9 +22,11 @@ type listener struct {
 }
 
 func NewListener(lc v2.ListenerConfig) types.Listener {
+	la, _ := net.ResolveTCPAddr("tcp", lc.Addr)
+
 	l := &listener{
 		name:                                  lc.Name,
-		localAddress:                          lc.Addr,
+		localAddress:                          la,
 		bindToPort:                            lc.BindToPort,
 		listenerTag:                           lc.ListenerTag,
 		connBufferLimitBytes:                  lc.ConnBufferLimitBytes,
@@ -39,7 +41,7 @@ func (l *listener) Name() string {
 }
 
 func (l *listener) Addr() net.Addr {
-	return l.rawl.Addr()
+	return l.localAddress
 }
 
 func (l *listener) Start(stopChan chan bool, lctx context.Context) {
@@ -83,14 +85,9 @@ func (l *listener) Close(lctx context.Context) error {
 
 func (l *listener) listen(lctx context.Context) error {
 	var err error
-	var la *net.TCPAddr
-
-	if la, err = net.ResolveTCPAddr("tcp", l.localAddress); err != nil {
-		return err
-	}
 
 	var rawl *net.TCPListener
-	if rawl, err = net.ListenTCP("tcp", la); err != nil {
+	if rawl, err = net.ListenTCP("tcp", l.localAddress.(*net.TCPAddr)); err != nil {
 		return err
 	}
 

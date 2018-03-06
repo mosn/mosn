@@ -2,11 +2,11 @@ package codec
 
 import (
 	"net"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
 
 //command defination
-type BoltCommand struct {
+type boltCommand struct {
 	cmdCode int16
 	version byte
 	cmdType byte
@@ -25,9 +25,10 @@ type BoltCommand struct {
 	invokeContext interface{}
 }
 
-type BoltRequestCommand struct {
+// bolt request command
+type boltRequestCommand struct {
 	//rpc command
-	BoltCommand
+	boltCommand
 
 	//request command
 	timeout int
@@ -41,9 +42,10 @@ type BoltRequestCommand struct {
 	arriveTime    int64
 }
 
-type BoltResponseCommand struct {
+// bolt response command
+type boltResponseCommand struct {
 	//rpc command
-	BoltCommand
+	boltCommand
 
 	//response command
 	responseStatus     int16
@@ -61,74 +63,78 @@ type BoltResponseCommand struct {
 	errorMsg string
 }
 
-func (b *BoltCommand) GetProtocolCode() byte{
-	return protocol.PROTOCOL_CODE_V1
+func (b *boltCommand) GetProtocolCode() byte {
+	return sofarpc.PROTOCOL_CODE_V1
 }
 
-func (b *BoltCommand) GetCmdCode() int16{
+func (b *boltCommand) GetCmdCode() int16 {
 	return b.cmdCode
 }
 
-func (b *BoltCommand) GetId() int{
+func (b *boltCommand) GetId() int {
 	return b.id
 }
 
-func (b *BoltCommand) GetClass() []byte{
+func (b *boltCommand) GetClass() []byte {
 	return b.class
 }
 
-func (b *BoltCommand) GetHeader() []byte{
+func (b *boltCommand) GetHeader() []byte {
 	return b.header
 }
 
-func (b *BoltCommand) GetContent() []byte{
+func (b *boltCommand) GetContent() []byte {
 	return b.content
 }
 
-func (b *BoltRequestCommand) GetProtocolCode() byte{
-	return protocol.PROTOCOL_CODE_V1
+func (b *boltRequestCommand) GetProtocolCode() byte {
+	return sofarpc.PROTOCOL_CODE_V1
 }
 
-func (b *BoltRequestCommand) GetCmdCode() int16{
+func (b *boltRequestCommand) GetCmdCode() int16 {
 	return b.cmdCode
 }
 
-func (b *BoltRequestCommand) GetId() int{
+func (b *boltRequestCommand) GetId() int {
 	return b.id
 }
 
-func (b *BoltRequestCommand) SetTimeout(timeout int) {
+func (b *boltRequestCommand) SetTimeout(timeout int) {
 	b.timeout = timeout
 }
-func (b *BoltRequestCommand) SetArriveTime(arriveTime int64) {
+
+func (b *boltRequestCommand) SetArriveTime(arriveTime int64) {
 	b.arriveTime = arriveTime
 }
-func (b *BoltRequestCommand) SetRequestHeader(headerMap map[string]string) {
+
+func (b *boltRequestCommand) SetRequestHeader(headerMap map[string]string) {
 	b.requestHeader = headerMap
 }
-func (b *BoltRequestCommand) GetRequestHeader()  map[string]string {
+
+func (b *boltRequestCommand) GetRequestHeader() map[string]string {
 	return b.requestHeader
 }
 
-
-func (b *BoltResponseCommand) GetProtocolCode() byte{
-	return protocol.PROTOCOL_CODE_V1
+func (b *boltResponseCommand) GetProtocolCode() byte {
+	return sofarpc.PROTOCOL_CODE_V1
 }
 
-func (b *BoltResponseCommand) GetCmdCode() int16{
+func (b *boltResponseCommand) GetCmdCode() int16 {
 	return b.cmdCode
 }
 
-func (b *BoltResponseCommand) GetId() int{
+func (b *boltResponseCommand) GetId() int {
 	return b.id
 }
 
-func (b *BoltResponseCommand) SetResponseStatus(status int16) {
+func (b *boltResponseCommand) SetResponseStatus(status int16) {
 	b.responseStatus = status
 }
-func (b *BoltResponseCommand) SetResponseTimeMillis(responseTime int64) {
+
+func (b *boltResponseCommand) SetResponseTimeMillis(responseTime int64) {
 	b.responseTimeMillis = responseTime
 }
-func (b *BoltResponseCommand) SetResponseHost(host net.Addr) {
+
+func (b *boltResponseCommand) SetResponseHost(host net.Addr) {
 	b.responseHost = host
 }

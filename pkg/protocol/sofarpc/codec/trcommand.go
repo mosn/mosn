@@ -1,7 +1,7 @@
 package codec
 
 //command defination
-type TrCommand struct {
+type trCommand struct {
 	id        int
 	protocol  byte
 	direction byte
@@ -16,18 +16,21 @@ type TrCommand struct {
 	invokeContext interface{}
 }
 
-type TrRequestCommand struct {
+// tr request cmd
+type trRequestCommand struct {
 	//rpc command
-	TrCommand
+	trCommand
 
 	//request command
 	request interface{} //TODO import ConnectionRequest
 }
 
-type TRResponseCommand struct {
+// tr resp cmd
+type trResponseCommand struct {
 	//rpc command
-	TrCommand
+	trCommand
 
 	//response command
 	response interface{} //TODO import ConnectionResponse
 }
+

@@ -1,16 +1,18 @@
-package sofarpc
+package codec
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/handler"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
+func init() {
+	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE, Tr)
+}
 
 var Tr = &TrProtocol{
-	protocol.PROTOCOL_CODE,
-	&codec.TrEncoder{},
-	&codec.TrDecoder{},
+	sofarpc.PROTOCOL_CODE,
+	&trCodec{},
+	&trCodec{},
 	handler.NewTrCommandHandler(),
 }
 
@@ -34,7 +36,7 @@ type TrProtocol struct {
 	encoder types.Encoder
 	decoder types.Decoder
 	//heartbeatTrigger			protocol.HeartbeatTrigger todo
-	commandHandler			protocol.CommandHandler
+	commandHandler sofarpc.CommandHandler
 }
 
 func (t *TrProtocol) GetEncoder() types.Encoder {
@@ -45,6 +47,6 @@ func (t *TrProtocol) GetDecoder() types.Decoder {
 	return t.decoder
 }
 
-func (t *TrProtocol) GetCommandHandler() protocol.CommandHandler {
+func (t *TrProtocol) GetCommandHandler() sofarpc.CommandHandler {
 	return t.commandHandler
 }

@@ -5,16 +5,12 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-type TrEncoder struct {
+// types.Encoder & types.Decoder
+type trCodec struct {
 }
 
-type TrDecoder struct {
-}
+func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) {}
 
-func (encoder *TrEncoder) Encode(value interface{}, data types.IoBuffer) {
-
-}
-
-func (decoder *TrDecoder) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
+func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
 	fmt.Println("tr decode:", data.Bytes())
 }

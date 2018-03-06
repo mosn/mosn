@@ -108,6 +108,8 @@ type Connection interface {
 
 	AddConnectionCallbacks(cb ConnectionCallbacks)
 
+	AddBytesReadCallback(cb func(bytesRead uint64))
+
 	AddBytesSentCallback(cb func(bytesSent uint64))
 
 	NextProtocol() string

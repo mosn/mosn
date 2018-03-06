@@ -40,6 +40,7 @@ type connection struct {
 	rawConnection        net.Conn
 	closeWithFlush       bool
 	connCallbacks        []types.ConnectionCallbacks
+	bytesReadCallbacks   []func(bytesRead uint64)
 	bytesSendCallbacks   []func(bytesSent uint64)
 	filterManager        types.FilterManager
 
@@ -189,6 +190,10 @@ func (c *connection) doRead() (err error) {
 
 	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Br.Len()))
 
+	for _, cb := range c.bytesReadCallbacks {
+		cb(uint64(bytesRead))
+	}
+
 	c.onRead(bytesRead)
 
 	if c.readBuffer.Br.Len() == 0 {
@@ -283,10 +288,8 @@ func (c *connection) doWrite() (int64, error) {
 
 	c.updateWriteBuffStats(bytesSent, int64(c.writeBuffer.Len()))
 
-	if bytesSent > 0 {
-		for _, cb := range c.bytesSendCallbacks {
-			cb(uint64(bytesSent))
-		}
+	for _, cb := range c.bytesSendCallbacks {
+		cb(uint64(bytesSent))
 	}
 
 	return bytesSent, err
@@ -392,6 +395,10 @@ func (c *connection) RemoteAddr() net.Addr {
 
 func (c *connection) AddConnectionCallbacks(cb types.ConnectionCallbacks) {
 	c.connCallbacks = append(c.connCallbacks, cb)
+}
+
+func (c *connection) AddBytesReadCallback(cb func(bytesRead uint64)) {
+
 }
 
 func (c *connection) AddBytesSentCallback(cb func(bytesSent uint64)) {

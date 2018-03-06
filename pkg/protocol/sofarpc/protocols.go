@@ -1,41 +1,46 @@
 package sofarpc
 
 import (
-	"bytes"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-//All of the protocols
+//All of the protocolMaps
 
-type Protocols struct {
-	protocols map[byte]protocol.Protocol
+var defaultProtocols = &protocols{
+	protocolMaps: make(map[byte]Protocol),
 }
 
-func NewProtocols(protocols map[byte]protocol.Protocol) Protocols{
-	return Protocols{protocols}
+type protocols struct {
+	protocolMaps map[byte]Protocol
 }
 
-func (p *Protocols) Encode(value interface{}, data bytes.Buffer) {
-
+func DefaultProtocols() Protocols {
+	return defaultProtocols
 }
+
+func NewProtocols(protocolMaps map[byte]Protocol) Protocols {
+	return &protocols{
+		protocolMaps: protocolMaps,
+	}
+}
+
+func (p *protocols) Encode(value interface{}, data types.IoBuffer) {}
 
 //TODO move this to seperate type 'ProtocolDecoer' or 'CodecEngine'
-func (p *Protocols) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
-
+func (p *protocols) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
 	readableBytes := uint64(data.Len())
+
 	//at least 1 byte for protocol code recognize
 	if readableBytes > 1 {
-
 		bytes := data.Bytes()
 		protocolCode := bytes[0]
 		maybeProtocolVersion := bytes[1]
 
 		log.DefaultLogger.Println("[Decoder]protocol code = ", protocolCode, ", maybeProtocolVersion = ", maybeProtocolVersion)
 
-		if proto, exists := p.protocols[protocolCode]; exists {
+		if proto, exists := p.protocolMaps[protocolCode]; exists {
 			proto.GetDecoder().Decode(ctx, data, out)
 		} else {
 			fmt.Println("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
@@ -44,22 +49,22 @@ func (p *Protocols) Decode(ctx interface{}, data types.IoBuffer, out interface{}
 }
 
 //TODO move this to seperate type 'ProtocolDecoer' or 'CodecEngine'
-func (p *Protocols) Handle(protocolCode byte, ctx interface{}, msg interface{}) {
-		if proto, exists := p.protocols[protocolCode]; exists {
-			proto.GetCommandHandler().HandleCommand(ctx, msg)
-		} else {
-			fmt.Println("Unknown protocol code: [", protocolCode, "] while handle in rpc handler.")
-		}
+func (p *protocols) Handle(protocolCode byte, ctx interface{}, msg interface{}) {
+	if proto, exists := p.protocolMaps[protocolCode]; exists {
+		proto.GetCommandHandler().HandleCommand(ctx, msg)
+	} else {
+		fmt.Println("Unknown protocol code: [", protocolCode, "] while handle in rpc handler.")
+	}
 }
 
 //put protocol
-func (p *Protocols) PutProtocol(protocolCode byte, protocol protocol.Protocol) {
-	p.protocols[protocolCode] = protocol
+func (p *protocols) PutProtocol(protocolCode byte, protocol Protocol) {
+	p.protocolMaps[protocolCode] = protocol
 }
 
 //get protocol
-func (p *Protocols) GetProtocol(protocolCode byte) protocol.Protocol {
-	return p.protocols[protocolCode]
+func (p *protocols) GetProtocol(protocolCode byte) Protocol {
+	return p.protocolMaps[protocolCode]
 }
 
 /**
@@ -68,11 +73,11 @@ func (p *Protocols) GetProtocol(protocolCode byte) protocol.Protocol {
  * @param protocolCode
  * @param protocol
  */
-func (p *Protocols) RegisterProtocol(protocolCode byte, protocol protocol.Protocol) {
-	if _, exists := p.protocols[protocolCode]; exists {
+func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
+	if _, exists := p.protocolMaps[protocolCode]; exists {
 		fmt.Println("Protocol alreay Exist:", protocolCode)
 	} else {
-		p.protocols[protocolCode] = protocol
+		p.protocolMaps[protocolCode] = protocol
 	}
 }
 
@@ -82,9 +87,17 @@ func (p *Protocols) RegisterProtocol(protocolCode byte, protocol protocol.Protoc
  * @param protocolCode
  * @return
  */
-func (p *Protocols) UnRegisterProtocol(protocolCode byte) {
-	if _, exists := p.protocols[protocolCode]; exists {
-		delete(p.protocols, protocolCode)
+func (p *protocols) UnRegisterProtocol(protocolCode byte) {
+	if _, exists := p.protocolMaps[protocolCode]; exists {
+		delete(p.protocolMaps, protocolCode)
 		fmt.Println("Delete Protocol:", protocolCode)
 	}
+}
+
+func RegisterProtocol(protocolCode byte, protocol Protocol) {
+	defaultProtocols.RegisterProtocol(protocolCode, protocol)
+}
+
+func UnRegisterProtocol(protocolCode byte) {
+	defaultProtocols.UnRegisterProtocol(protocolCode)
 }

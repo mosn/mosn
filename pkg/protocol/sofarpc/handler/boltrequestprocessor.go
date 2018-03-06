@@ -1,30 +1,27 @@
 package handler
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
 
 type BoltRequestProcessor struct {
 }
 
-func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}){
-	if cmd, ok := msg.(*codec.BoltRequestCommand); ok {
+func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
+	if cmd, ok := msg.(sofarpc.BoltRequestCommand); ok {
 		deserializeRequest(cmd)
 
 		//fake demo, invoke ctx as callback
-		if cb, ok := ctx.(func (*codec.BoltRequestCommand)); ok {
+		if cb, ok := ctx.(func(sofarpc.BoltRequestCommand)); ok {
 			cb(cmd)
 		}
-
 	}
-
 }
 
-
- // 反序列化请求
-func deserializeRequest(requestCommand *codec.BoltRequestCommand) (*codec.BoltRequestCommand, error) {
+// 反序列化请求
+func deserializeRequest(requestCommand sofarpc.BoltRequestCommand) (sofarpc.BoltRequestCommand, error) {
 	//get instance
 	serialize := serialize.Instance
 

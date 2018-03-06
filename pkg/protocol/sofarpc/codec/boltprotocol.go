@@ -1,11 +1,15 @@
-package sofarpc
+package codec
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/handler"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
+
+func init() {
+	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V1, BoltV1)
+	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltV2)
+}
 
 /**
  * Request command protocol for v1
@@ -43,11 +47,11 @@ import (
  * respstatus: response status
  */
 var BoltV1 = &BoltProtocol{
-	protocol.PROTOCOL_CODE_V1,
-	protocol.REQUEST_HEADER_LEN_V1,
-	protocol.RESPONSE_HEADER_LEN_V1,
-	&codec.BoltEncoderV1{},
-	&codec.BoltDecoderV1{},
+	sofarpc.PROTOCOL_CODE_V1,
+	sofarpc.REQUEST_HEADER_LEN_V1,
+	sofarpc.RESPONSE_HEADER_LEN_V1,
+	&boltV1Codec{},
+	&boltV1Codec{},
 	handler.NewBoltCommandHandler(),
 }
 
@@ -90,11 +94,11 @@ var BoltV1 = &BoltProtocol{
  * respstatus: response status
  */
 var BoltV2 = &BoltProtocol{
-	protocol.PROTOCOL_CODE_V2,
-	protocol.REQUEST_HEADER_LEN_V2,
-	protocol.RESPONSE_HEADER_LEN_V2,
-	&codec.BoltEncoderV2{},
-	&codec.BoltDecoderV2{},
+	sofarpc.PROTOCOL_CODE_V2,
+	sofarpc.REQUEST_HEADER_LEN_V2,
+	sofarpc.RESPONSE_HEADER_LEN_V2,
+	&boltV1Codec{},
+	&boltV1Codec{},
 	handler.NewBoltCommandHandler(),
 }
 
@@ -106,7 +110,7 @@ type BoltProtocol struct {
 	encoder types.Encoder
 	decoder types.Decoder
 	//heartbeatTrigger			protocol.HeartbeatTrigger todo
-	commandHandler			protocol.CommandHandler
+	commandHandler sofarpc.CommandHandler
 }
 
 func (b *BoltProtocol) GetRequestHeaderLength() int {
@@ -125,14 +129,6 @@ func (b *BoltProtocol) GetDecoder() types.Decoder {
 	return b.decoder
 }
 
-func (b *BoltProtocol) GetCommandHandler() protocol.CommandHandler {
+func (b *BoltProtocol) GetCommandHandler() sofarpc.CommandHandler {
 	return b.commandHandler
-}
-
-//TODO move this func to util
-func GetLessLen(x, y int) int {
-	if x < y {
-		return x
-	}
-	return y
 }

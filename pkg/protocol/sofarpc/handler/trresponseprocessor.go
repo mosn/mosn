@@ -1,9 +1,6 @@
 package handler
 
 
-type TrResponseProcessor struct {
-}
+type TrResponseProcessor struct {}
 
-func (b *TrResponseProcessor) Process(ctx interface{}, msg interface{}, executor interface{}){
-
-}
+func (b *TrResponseProcessor) Process(ctx interface{}, msg interface{}, executor interface{}){}
