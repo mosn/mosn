@@ -14,10 +14,6 @@ type RpcProxy interface {
 	//OTHER Function Definition to FILL
 }
 
-type ProxyConfig interface {
-	GetRouteFromEntries(connection types.Connection) string
-}
-
 type UpstreamCallbacks interface {
 	types.ReadFilter
 	types.ConnectionCallbacks
@@ -26,7 +22,6 @@ type UpstreamCallbacks interface {
 type DownstreamCallbacks interface {
 	types.ConnectionCallbacks
 }
-
 
 type UpstreamFailureReason string
 

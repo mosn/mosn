@@ -8,13 +8,15 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"errors"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 // 实现 sofa RPC 的 反向代理
 
 // ReadFilter
 type rpcproxy struct {
-	config              ProxyConfig
 	clusterManager      types.ClusterManager
 	readCallbacks       types.ReadFilterCallbacks
 	upstreamConnection  types.ClientConnection
@@ -24,16 +26,19 @@ type rpcproxy struct {
 
 	upstreamConnecting bool
 
-	protocolSet sofarpc.Protocols
+	protocols    sofarpc.Protocols
+	routerConfig types.RouterConfig
+	clusterName  string
 }
 
 func NewRPCProxy(config *v2.RpcProxy, clusterManager types.ClusterManager) RpcProxy {
 	proxy := &rpcproxy{
-		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,
 		requestInfo:    network.NewRequestInfo(),
-		protocolSet:    sofarpc.DefaultProtocols(),
+		protocols:      sofarpc.DefaultProtocols(),
 	}
+
+	proxy.routerConfig, _ = router.CreateRouteConfig(protocol.SofaRpc, config)
 
 	proxy.upstreamCallbacks = &upstreamCallbacks{
 		proxy: proxy,
@@ -61,25 +66,47 @@ func (p *rpcproxy) OnData(buf types.IoBuffer) types.FilterStatus {
 
 	var out = make([]sofarpc.RpcCommand, 0, 1)
 
-	p.protocolSet.Decode(nil, buf, &out)
+	p.protocols.Decode(nil, buf, &out)
 
-	if (len(out) > 0) {
+	if len(out) > 0 {
 		command := out[0]
-		p.protocolSet.Handle(command.GetProtocolCode(), func(requestCommand sofarpc.BoltRequestCommand) {
+		var headers map[string]string
+
+		// todo: combine Decode + Handle, just provide interface to write back headers, data, trailer
+		p.protocols.Handle(command.GetProtocolCode(), func(requestCommand sofarpc.BoltRequestCommand) {
 			log.DefaultLogger.Println("enter in fake callback")
 
-			if serviceName, ok := requestCommand.GetRequestHeader()["service"]; ok {
-				log.DefaultLogger.Println("get service name :", serviceName)
-
-				//do some route by service name
-
-				//send data after decode finished
-				p.upstreamConnection.Write(buf)
-			}
+			headers = requestCommand.GetRequestHeader()
 		}, command)
+
+		if headers == nil {
+			return types.StopIteration
+		}
+
+		//do some route by service name
+		route := p.routerConfig.Route(headers)
+
+		if route == nil || route.RouteRule() == nil {
+			// no route
+			p.onDataErr()
+
+			return types.StopIteration
+		}
+
+		if err := p.initializeUpstreamConnection(route.RouteRule().ClusterName()); err != nil {
+			p.onDataErr()
+		} else {
+			//send data after decode finished
+			p.upstreamConnection.Write(buf)
+		}
 	}
 
 	return types.StopIteration
+}
+
+func (p *rpcproxy) onDataErr() {
+	// todo: discard request buf
+	// todo: close connection
 }
 
 //rpc upstream onEvent
@@ -122,8 +149,6 @@ func (p *rpcproxy) onUpstreamEvent(event types.ConnectionEvent) {
 		// TODO: inc remote failed stat
 		if p.upstreamConnecting {
 			p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
-			p.closeUpstreamConnection()
-			p.initializeUpstreamConnection()
 		} else {
 			p.readCallbacks.Connection().Close(types.FlushWrite, types.LocalClose)
 		}
@@ -138,8 +163,6 @@ func (p *rpcproxy) onUpstreamEvent(event types.ConnectionEvent) {
 		p.onConnectionSuccess()
 	case types.ConnectTimeout:
 		p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
-		p.closeUpstreamConnection()
-		p.initializeUpstreamConnection()
 	}
 }
 
@@ -166,16 +189,14 @@ func (p *rpcproxy) closeUpstreamConnection() {
 	p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
 }
 
-func (p *rpcproxy) initializeUpstreamConnection() types.FilterStatus {
-	clusterName := p.getUpstreamCluster()
-
+func (p *rpcproxy) initializeUpstreamConnection(clusterName string) error {
 	clusterSnapshot := p.clusterManager.Get(clusterName, nil)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		p.requestInfo.SetResponseFlag(types.NoRouteFound)
 		p.onInitFailure(NoRoute)
 
-		return types.StopIteration
+		return errors.New(fmt.Sprintf("unkown cluster %s", clusterName))
 	}
 
 	clusterInfo := clusterSnapshot.ClusterInfo()
@@ -185,7 +206,7 @@ func (p *rpcproxy) initializeUpstreamConnection() types.FilterStatus {
 		p.requestInfo.SetResponseFlag(types.UpstreamOverflow)
 		p.onInitFailure(ResourceLimitExceeded)
 
-		return types.StopIteration
+		return errors.New(fmt.Sprintf("upstream overflow in cluster %s", clusterName))
 	}
 
 	connectionData := p.clusterManager.TcpConnForCluster(clusterName, nil)
@@ -194,7 +215,7 @@ func (p *rpcproxy) initializeUpstreamConnection() types.FilterStatus {
 		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		p.onInitFailure(NoHealthyUpstream)
 
-		return types.StopIteration
+		return errors.New(fmt.Sprintf("no healthy upstream in cluster %s", clusterName))
 	}
 
 	p.readCallbacks.SetUpstreamHost(connectionData.HostInfo)
@@ -203,7 +224,11 @@ func (p *rpcproxy) initializeUpstreamConnection() types.FilterStatus {
 	upstreamConnection := connectionData.Connection
 	upstreamConnection.AddConnectionCallbacks(p.upstreamCallbacks)
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
-	upstreamConnection.Connect()
+
+	if err := upstreamConnection.Connect(); err != nil {
+		return err
+	}
+
 	upstreamConnection.SetNoDelay(true)
 	upstreamConnection.SetReadDisable(false)
 
@@ -212,13 +237,7 @@ func (p *rpcproxy) initializeUpstreamConnection() types.FilterStatus {
 
 	// TODO: update upstream stats
 
-	return types.Continue
-}
-
-func (p *rpcproxy) getUpstreamCluster() string {
-	downstreamConnection := p.readCallbacks.Connection()
-
-	return p.config.GetRouteFromEntries(downstreamConnection)
+	return nil
 }
 
 func (p *rpcproxy) onConnectionSuccess() {}
@@ -241,51 +260,7 @@ func (p *rpcproxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 }
 
 func (p *rpcproxy) OnNewConnection() types.FilterStatus {
-	return p.initializeUpstreamConnection()
-}
-
-type proxyConfig struct {
-	routes []*route
-}
-
-func NewProxyConfig(config *v2.RpcProxy) ProxyConfig {
-	var routes []*route
-
-	for _, routeConfig := range config.Routes {
-		route := &route{
-			clusterName:      routeConfig.Cluster,
-			sourceAddrs:      routeConfig.SourceAddrs,
-			destinationAddrs: routeConfig.DestinationAddrs,
-		}
-
-		routes = append(routes, route)
-	}
-
-	return &proxyConfig{
-		routes: routes,
-	}
-}
-
-type route struct {
-	sourceAddrs      types.Addresses
-	destinationAddrs types.Addresses
-	clusterName      string
-}
-
-func (pc *proxyConfig) GetRouteFromEntries(connection types.Connection) string {
-	for _, r := range pc.routes {
-		if len(r.sourceAddrs) != 0 && !r.sourceAddrs.Contains(connection.RemoteAddr()) {
-			continue
-		}
-
-		if len(r.destinationAddrs) != 0 && r.destinationAddrs.Contains(connection.LocalAddr()) {
-			continue
-		}
-
-		return r.clusterName
-	}
-
-	return ""
+	return types.Continue
 }
 
 // ConnectionCallbacks

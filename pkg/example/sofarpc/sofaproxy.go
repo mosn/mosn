@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
@@ -11,6 +13,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/sofarpc"
 )
 
 const (
@@ -29,6 +32,11 @@ func main() {
 	//	sofarpc.PROTOCOL_CODE:sofarpc.Tr,
 	//
 	//})
+
+	go func() {
+		// pprof server
+		http.ListenAndServe("0.0.0.0:9090", nil)
+	}()
 
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
@@ -99,11 +107,6 @@ func main() {
 				Proxy: rpcProxyConfig(),
 			}, cmf)
 
-			//		boltV1PostData := bytes.NewBuffer([]byte("\x01\x00BoltV1"))
-			//codecImpl.Decode(nil,boltV1PostData,nil)
-
-			//
-
 			srv.AddListener(rpcProxyListener())
 			cmf.cccb.UpdateClusterConfig(clustersrpc())
 			cmf.chcb.UpdateClusterHost(TestClusterRPC, 0, rpchosts())
@@ -140,15 +143,17 @@ func main() {
 	}()
 
 	select {
-	case <-time.After(time.Second * 5):
+	case <-time.After(time.Second * 120):
 		stopChan <- true
 		fmt.Println("[MAIN]closing..")
 	}
-
 }
+
 func rpcProxyConfig() *v2.RpcProxy {
 	rpcProxyConfig := &v2.RpcProxy{}
 	rpcProxyConfig.Routes = append(rpcProxyConfig.Routes, &v2.RpcRoute{
+		Name:    "tstSofRpcRouter",
+		Service: "tstCluster",
 		Cluster: TestClusterRPC,
 	})
 
@@ -222,7 +227,6 @@ func (ccc *rpclientConnCallbacks) OnEvent(event types.ConnectionEvent) {
 		//boltV1PostData := buffer.NewIoBufferString("\x01\x00BoltV1test")
 		//boltV1PostData := &buffer.IoBuffer{: []byte([]byte("\x01\x00BoltV1test"))}
 		ccc.cc.Write(boltV1PostData)
-
 	}
 }
 

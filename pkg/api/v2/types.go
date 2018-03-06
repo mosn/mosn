@@ -28,9 +28,9 @@ type Cluster struct {
 }
 
 type Host struct {
-	Address   string
-	Hostname  string
-	Weight uint32
+	Address  string
+	Hostname string
+	Weight   uint32
 }
 
 type ListenerConfig struct {
@@ -53,14 +53,12 @@ type TcpProxy struct {
 	Routes []*TcpRoute
 }
 
-
 type RpcRoute struct {
-	Cluster          string
-	SourceAddrs      []net.Addr
-	DestinationAddrs []net.Addr
+	Name string
+	Service string
+	Cluster string
 }
 
 type RpcProxy struct {
 	Routes []*RpcRoute
 }
-

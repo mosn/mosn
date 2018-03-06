@@ -79,9 +79,22 @@ type StreamClientConnection interface {
 	newStream(responseDecoder StreamDecoder) StreamEncoder
 }
 
-
 type StreamFilterBase interface {
 	onDestroy()
+}
+
+type StreamFilterCallbacks interface {
+	Connection() Connection
+
+	ResetStream()
+
+	Route() Route
+
+	ClearRouteCache()
+
+	StreamId() string
+
+	RequestInfo() RequestInfo
 }
 
 type StreamEncoderFilter interface {
@@ -97,6 +110,8 @@ type StreamEncoderFilter interface {
 }
 
 type StreamEncoderFilterCallbacks interface {
+	StreamFilterCallbacks
+
 	ContinueEncoding()
 
 	EncodingBuffer() *bufio.Reader
@@ -125,6 +140,8 @@ type StreamDecoderFilter interface {
 }
 
 type StreamDecoderFilterCallbacks interface {
+	StreamFilterCallbacks
+
 	ContinueDecoding()
 
 	DecodingBuffer() *bufio.Reader

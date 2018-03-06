@@ -6,6 +6,10 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
+type RouterConfig interface {
+	Route(headers map[string]string) Route
+}
+
 type Route interface {
 	RedirectRule() RedirectRule
 
@@ -15,17 +19,15 @@ type Route interface {
 }
 
 type RouteRule interface {
+	ClusterName() string
+
 	Priority() pkg.Priority
 
-	VirtualServer() VirtualCluster
-
-	TargetCluster() TargetCluster
+	VirtualCluster(headers map[string]string) VirtualCluster
 
 	Policy() Policy
 
 	MetadataMatcher() MetadataMatcher
-
-	FinalizeRequest()
 }
 
 type Policy interface {

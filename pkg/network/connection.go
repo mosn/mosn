@@ -520,17 +520,19 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 	return conn
 }
 
-func (cc *clientConnection) Connect() {
+func (cc *clientConnection) Connect() (err error) {
 	cc.connectOnce.Do(func() {
 		var localTcpAddr *net.TCPAddr
 
 		if cc.localAddr != nil {
-			localTcpAddr, _ = net.ResolveTCPAddr("tcp", cc.localAddr.String())
+			localTcpAddr, err = net.ResolveTCPAddr("tcp", cc.localAddr.String())
 		}
 
-		remoteTcpAddr, _ := net.ResolveTCPAddr("tcp", cc.remoteAddr.String())
+		var remoteTcpAddr *net.TCPAddr
+		remoteTcpAddr, err = net.ResolveTCPAddr("tcp", cc.remoteAddr.String())
 
-		rawc, err := net.DialTCP("tcp", localTcpAddr, remoteTcpAddr)
+		var rawc *net.TCPConn
+		rawc, err = net.DialTCP("tcp", localTcpAddr, remoteTcpAddr)
 		cc.rawConnection = rawc
 		var event types.ConnectionEvent
 
@@ -553,4 +555,6 @@ func (cc *clientConnection) Connect() {
 			cccb.OnEvent(event)
 		}
 	})
+
+	return
 }

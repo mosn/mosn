@@ -150,7 +150,7 @@ type ClientConnection interface {
 	Connection
 
 	// connect to server in a async way
-	Connect()
+	Connect() error
 }
 
 type ConnectionEvent string
