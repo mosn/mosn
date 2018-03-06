@@ -12,6 +12,12 @@ type BoltRequestProcessor struct {
 func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}){
 	if cmd, ok := msg.(*codec.BoltRequestCommand); ok {
 		deserializeRequest(cmd)
+
+		//fake demo, invoke ctx as callback
+		if cb, ok := ctx.(func (*codec.BoltRequestCommand)); ok {
+			cb(cmd)
+		}
+
 	}
 
 }

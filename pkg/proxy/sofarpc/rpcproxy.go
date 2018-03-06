@@ -11,6 +11,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"reflect"
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 
@@ -79,12 +81,23 @@ func (p *rpcproxy) OnData(buf types.IoBuffer) types.FilterStatus {
 
 	p.protocolSet.Decode(nil,buf,&out)
 
+
 	if(len(out) > 0){
 		command := out[0]
-		p.protocolSet.Handle(command.GetProtocolCode(),nil, command)
+		p.protocolSet.Handle(command.GetProtocolCode(),func(requestCommand *codec.BoltRequestCommand){
+			log.DefaultLogger.Println("enter in fake callback")
+			if serviceName, ok := requestCommand.GetRequestHeader()["service"];ok {
+				log.DefaultLogger.Println("get service name :", serviceName)
 
-		//send data after decode finished
-		p.upstreamConnection.Write(buf)
+				//do some route by service name
+
+
+				//send data after decode finished
+				p.upstreamConnection.Write(buf)
+			}
+		}, command)
+
+
 	}
 	return types.StopIteration
 }

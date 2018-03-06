@@ -106,8 +106,8 @@ func (b *BoltRequestCommand) SetArriveTime(arriveTime int64) {
 func (b *BoltRequestCommand) SetRequestHeader(headerMap map[string]string) {
 	b.requestHeader = headerMap
 }
-func (b *BoltRequestCommand) GetRequestHeader(headerMap map[string]string) {
-	b.requestHeader = headerMap
+func (b *BoltRequestCommand) GetRequestHeader()  map[string]string {
+	return b.requestHeader
 }
 
 
