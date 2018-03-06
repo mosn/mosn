@@ -16,7 +16,7 @@ const (
 	RealServerAddr = "127.0.0.1:8080"
 )
 
-func main2() {
+func main() {
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
 	meshReadyChan := make(chan bool)

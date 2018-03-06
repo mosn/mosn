@@ -36,7 +36,7 @@ type simpleRpcRouter struct {
 }
 
 func NewSofaRpcRouter(config interface{}) (types.RouterConfig, error) {
-	if config, ok := config.(v2.RpcProxy); ok {
+	if config, ok := config.(*v2.RpcProxy); ok {
 		routers := make([]router.RouteBase, 0)
 
 		for _, r := range config.Routes {

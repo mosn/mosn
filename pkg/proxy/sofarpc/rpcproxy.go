@@ -158,7 +158,6 @@ func (p *rpcproxy) onUpstreamEvent(event types.ConnectionEvent) {
 		p.upstreamConnecting = true
 	case types.Connected:
 		p.upstreamConnecting = false
-		p.readCallbacks.Connection().SetReadDisable(false)
 
 		p.onConnectionSuccess()
 	case types.ConnectTimeout:
@@ -230,7 +229,6 @@ func (p *rpcproxy) initializeUpstreamConnection(clusterName string) error {
 	}
 
 	upstreamConnection.SetNoDelay(true)
-	upstreamConnection.SetReadDisable(false)
 
 	p.upstreamConnection = upstreamConnection
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
@@ -253,8 +251,6 @@ func (p *rpcproxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 	p.requestInfo.SetDownstreamLocalAddress(p.readCallbacks.Connection().LocalAddr())
 	p.requestInfo.SetDownstreamRemoteAddress(p.readCallbacks.Connection().RemoteAddr())
-
-	p.readCallbacks.Connection().SetReadDisable(true)
 
 	// TODO: set downstream connection stats
 }

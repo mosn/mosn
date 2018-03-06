@@ -180,8 +180,6 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 }
 
 func (al *activeListener) OnNewConnection(conn types.Connection) {
-	al.handler.logger.Debugf("New connection %d accepted", conn.Id())
-
 	// start conn loops first
 	conn.Start(nil)
 
@@ -308,8 +306,7 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 
 // ConnectionCallbacks
 func (ac *activeConnection) OnEvent(event types.ConnectionEvent) {
-	if event == types.LocalClose || event == types.RemoteClose ||
-		event == types.OnReadErrClose || event == types.OnWriteErrClose {
+	if event.IsClose() {
 		ac.listener.removeConnection(ac)
 	}
 }

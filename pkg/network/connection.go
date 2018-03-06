@@ -73,7 +73,7 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		remoteAddr:        rawc.RemoteAddr(),
 		stopChan:          stopChan,
 		bufferLimit:       4 * 1024,
-		readEnabled:       false,
+		readEnabled:       true,
 		readEnabledChan:   make(chan bool, 1),
 		writeBufferChan:   make(chan bool),
 		writeBuffer:       bytes.NewBuffer(make([]byte, 0, 4*1024)),
@@ -89,6 +89,8 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 	}
 
 	conn.filterManager = newFilterManager(conn)
+
+	conn.logger.Debugf("new downstream connection %d accepted", conn.Id())
 
 	return conn
 }
@@ -425,9 +427,8 @@ func (c *connection) SetReadDisable(disable bool) {
 		c.readEnabled = false
 		c.readEnabledChan <- false
 	} else {
-		c.readDisableCount--
-
 		if c.readDisableCount > 0 {
+			c.readDisableCount--
 			return
 		}
 
@@ -500,7 +501,7 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 			remoteAddr:        remoteAddr,
 			stopChan:          stopChan,
 			bufferLimit:       4 * 1024,
-			readEnabled:       false,
+			readEnabled:       true,
 			readEnabledChan:   make(chan bool, 1),
 			writeBufferChan:   make(chan bool),
 			writeBuffer:       bytes.NewBuffer(make([]byte, 0, 4*1024)),
@@ -516,6 +517,8 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 		},
 	}
 	conn.filterManager = newFilterManager(conn)
+
+	conn.logger.Debugf("new upstream connection %d created", conn.Id())
 
 	return conn
 }

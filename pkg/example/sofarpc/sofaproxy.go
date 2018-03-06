@@ -153,7 +153,7 @@ func rpcProxyConfig() *v2.RpcProxy {
 	rpcProxyConfig := &v2.RpcProxy{}
 	rpcProxyConfig.Routes = append(rpcProxyConfig.Routes, &v2.RpcRoute{
 		Name:    "tstSofRpcRouter",
-		Service: "tstCluster",
+		Service: ".*",
 		Cluster: TestClusterRPC,
 	})
 

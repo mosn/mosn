@@ -140,9 +140,9 @@ type Connection interface {
 }
 
 type ConnectionStats struct {
-	ReadTotal metrics.Counter
-	ReadCurrent metrics.Gauge
-	WriteTotal metrics.Counter
+	ReadTotal    metrics.Counter
+	ReadCurrent  metrics.Gauge
+	WriteTotal   metrics.Counter
 	WriteCurrent metrics.Gauge
 }
 
@@ -165,6 +165,11 @@ const (
 	ConnectTimeout  ConnectionEvent = "ConnectTimeout"
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
 )
+
+func (ce ConnectionEvent) IsClose() bool {
+	return ce == LocalClose || ce == RemoteClose ||
+		ce == OnReadErrClose || ce == OnWriteErrClose
+}
 
 // Network level callbacks that happen on a connection.
 type ConnectionCallbacks interface {

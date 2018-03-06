@@ -10,7 +10,7 @@ import (
 	"runtime"
 )
 
-func main() {
+func main2() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	go func() {
