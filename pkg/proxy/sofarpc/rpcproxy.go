@@ -3,12 +3,11 @@ package sofarpc
 import (
 	"fmt"
 	"reflect"
+	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
@@ -26,7 +25,8 @@ type rpcproxy struct {
 
 	upstreamConnecting bool
 
-	protocols    sofarpc.Protocols
+	bufCurrent   types.IoBuffer
+	protocols    types.Protocols
 	routerConfig types.RouterConfig
 	clusterName  string
 }
@@ -54,59 +54,52 @@ type upstreamCallbacks struct {
 	proxy *rpcproxy
 }
 
-////rpc onData，ADD Decode
-//
-//var pipelineDataChan = make(chan interface{})
-
 func (p *rpcproxy) OnData(buf types.IoBuffer) types.FilterStatus {
-	bytesRecved := p.requestInfo.BytesReceived() + uint64(buf.Len())
-	p.requestInfo.SetBytesReceived(bytesRecved)
-
-	fmt.Println("RPC MESH Receive Lens:", buf.Len())
-
-	var out = make([]sofarpc.RpcCommand, 0, 1)
-
-	p.protocols.Decode(nil, buf, &out)
-
-	if len(out) > 0 {
-		command := out[0]
-		var headers map[string]string
-
-		// todo: combine Decode + Handle, just provide interface to write back headers, data, trailer
-		p.protocols.Handle(command.GetProtocolCode(), func(requestCommand sofarpc.BoltRequestCommand) {
-			log.DefaultLogger.Println("enter in fake callback")
-
-			headers = requestCommand.GetRequestHeader()
-		}, command)
-
-		if headers == nil {
-			return types.StopIteration
-		}
-
-		//do some route by service name
-		route := p.routerConfig.Route(headers)
-
-		if route == nil || route.RouteRule() == nil {
-			// no route
-			p.onDataErr()
-
-			return types.StopIteration
-		}
-
-		if err := p.initializeUpstreamConnection(route.RouteRule().ClusterName()); err != nil {
-			p.onDataErr()
-		} else {
-			//send data after decode finished
-			p.upstreamConnection.Write(buf)
-		}
-	}
+	p.bufCurrent = buf
+	p.protocols.Decode(buf, p)
 
 	return types.StopIteration
 }
 
 func (p *rpcproxy) onDataErr() {
-	// todo: discard request buf
-	// todo: close connection
+	p.bufCurrent.Reset()
+
+	if p.upstreamConnection != nil {
+		p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
+	}
+
+	if p.readCallbacks.Connection() != nil {
+		p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)
+	}
+}
+
+func (p *rpcproxy) OnDecodeHeader(headers map[string]string) types.FilterStatus {
+	//do some route by service name
+	route := p.routerConfig.Route(headers)
+
+	if route == nil || route.RouteRule() == nil {
+		// no route
+		p.onDataErr()
+
+		return types.StopIteration
+	}
+
+	if err := p.initializeUpstreamConnection(route.RouteRule().ClusterName()); err != nil {
+		p.onDataErr()
+	} else {
+		//send data after decode finished
+		p.upstreamConnection.Write(p.bufCurrent)
+	}
+
+	return types.StopIteration
+}
+
+func (p *rpcproxy) OnDecodeData(data []byte) types.FilterStatus {
+	return types.StopIteration
+}
+
+func (p *rpcproxy) OnDecodeTrailer(trailers map[string]string) types.FilterStatus {
+	return types.StopIteration
 }
 
 //rpc upstream onEvent

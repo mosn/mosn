@@ -149,3 +149,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 		}
 	}
 }
+
+func (encoder *boltV1Codec) AddDecodeFilter(filter types.DecodeFilter) {
+
+}
