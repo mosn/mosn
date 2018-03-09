@@ -43,6 +43,12 @@ type ListenerConfig struct {
 	HandOffRestoredDestinationConnections bool
 }
 
+type AccessLog struct {
+	Path   string
+	Format string
+	// todo: add log filters
+}
+
 type TcpRoute struct {
 	Cluster          string
 	SourceAddrs      []net.Addr
@@ -50,15 +56,21 @@ type TcpRoute struct {
 }
 
 type TcpProxy struct {
-	Routes []*TcpRoute
+	Routes     []*TcpRoute
+	AccessLogs []*AccessLog
 }
 
 type RpcRoute struct {
-	Name string
+	Name    string
 	Service string
 	Cluster string
 }
 
 type RpcProxy struct {
 	Routes []*RpcRoute
+}
+
+type FaultInject struct {
+	DelayPercent  uint32
+	DelayDuration uint64
 }

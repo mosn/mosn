@@ -103,7 +103,7 @@ func main() {
 			cmf := &clusterManagerFilterRPC{}
 
 			//RPC
-			srv := server.NewServer(&proxy.RpcProxyFilterConfigFactory{
+			srv := server.NewServer(nil, &proxy.RpcProxyFilterConfigFactory{
 				Proxy: rpcProxyConfig(),
 			}, cmf)
 

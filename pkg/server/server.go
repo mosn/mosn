@@ -5,7 +5,18 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"os"
 )
+
+func init() {
+	onProcessExit = append(onProcessExit, func() {
+		if pidFile != "" {
+			os.Remove(pidFile)
+		}
+	})
+}
+
+var servers []*server
 
 type server struct {
 	logger         log.Logger
@@ -14,14 +25,27 @@ type server struct {
 	handler        types.ConnectionHandler
 }
 
-func NewServer(filterFactory NetworkFilterConfigFactory, cmFilter ClusterManagerFilter) Server {
-	// TODO: make logger configurable
-	log.InitDefaultLogger("", log.DEBUG)
+func NewServer(config *Config, filterFactory NetworkFilterConfigFactory, cmFilter ClusterManagerFilter) Server {
+	var logPath string
+	var logLevel log.LogLevel
 
-	return &server{
-		logger:  log.DefaultLogger,
-		handler: NewHandler(filterFactory, cmFilter, log.DefaultLogger),
+	if config != nil {
+		logPath = config.LogPath
+		logLevel = config.LogLevel
 	}
+
+	log.InitDefaultLogger(logPath, logLevel)
+	OnProcessShutDown(log.CloseAll)
+
+	server := &server{
+		logger:   log.DefaultLogger,
+		stopChan: make(chan bool),
+		handler:  NewHandler(filterFactory, cmFilter, log.DefaultLogger),
+	}
+
+	servers = append(servers, server)
+
+	return server
 }
 
 func (src *server) AddListener(lc v2.ListenerConfig) {
@@ -59,4 +83,10 @@ func (srv *server) Close() {
 	srv.handler.StopListeners(nil)
 
 	srv.stopChan <- true
+}
+
+func Stop() {
+	for _, server := range servers {
+		server.Close()
+	}
 }

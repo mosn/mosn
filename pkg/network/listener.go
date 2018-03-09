@@ -7,6 +7,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"fmt"
 	"runtime/debug"
+	"time"
 )
 
 // listener impl based on golang net package
@@ -97,6 +98,7 @@ func (l *listener) listen(lctx context.Context) error {
 }
 
 func (l *listener) accept(lctx context.Context) error {
+	l.rawl.SetDeadline(time.Now().Add(5 * time.Second))
 	rawc, err := l.rawl.Accept()
 
 	if err != nil {

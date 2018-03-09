@@ -90,8 +90,6 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 
 	conn.filterManager = newFilterManager(conn)
 
-	conn.logger.Debugf("new downstream connection %d accepted", conn.Id())
-
 	return conn
 }
 
@@ -202,7 +200,7 @@ func (c *connection) doRead() (err error) {
 		c.readerBufferPool.Give(c.readBuffer)
 	}
 
-	return nil
+	return
 }
 
 func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
@@ -297,13 +295,12 @@ func (c *connection) doWrite() (int64, error) {
 	return bytesSent, err
 }
 
-func (c *connection) doWriteIo() (int64, error) {
-	var bytesSent int64
-	var err error
+func (c *connection) doWriteIo() (bytesSent int64, err error) {
+	var m int64
 
 	for c.writeBufLen() > 0 {
 		c.writeBufferMux.Lock()
-		m, err := c.writeBuffer.WriteTo(c.rawConnection)
+		m, err = c.writeBuffer.WriteTo(c.rawConnection)
 		c.writeBufferMux.Unlock()
 
 		bytesSent += m
@@ -396,15 +393,45 @@ func (c *connection) RemoteAddr() net.Addr {
 }
 
 func (c *connection) AddConnectionCallbacks(cb types.ConnectionCallbacks) {
-	c.connCallbacks = append(c.connCallbacks, cb)
+	exist := false
+
+	for _, ccb := range c.connCallbacks {
+		if &ccb == &cb {
+			exist = true
+		}
+	}
+
+	if !exist {
+		c.connCallbacks = append(c.connCallbacks, cb)
+	}
 }
 
 func (c *connection) AddBytesReadCallback(cb func(bytesRead uint64)) {
+	exist := false
 
+	for _, brcb := range c.bytesReadCallbacks {
+		if &brcb == &cb {
+			exist = true
+		}
+	}
+
+	if !exist {
+		c.bytesReadCallbacks = append(c.bytesReadCallbacks, cb)
+	}
 }
 
 func (c *connection) AddBytesSentCallback(cb func(bytesSent uint64)) {
-	c.bytesSendCallbacks = append(c.bytesSendCallbacks, cb)
+	exist := false
+
+	for _, bscb := range c.bytesSendCallbacks {
+		if &bscb == &cb {
+			exist = true
+		}
+	}
+
+	if !exist {
+		c.bytesSendCallbacks = append(c.bytesSendCallbacks, cb)
+	}
 }
 
 func (c *connection) NextProtocol() string {
@@ -413,8 +440,10 @@ func (c *connection) NextProtocol() string {
 }
 
 func (c *connection) SetNoDelay(enable bool) {
-	rawc := c.rawConnection.(*net.TCPConn)
-	rawc.SetNoDelay(enable)
+	if c.rawConnection != nil {
+		rawc := c.rawConnection.(*net.TCPConn)
+		rawc.SetNoDelay(enable)
+	}
 }
 
 func (c *connection) SetReadDisable(disable bool) {
@@ -425,7 +454,6 @@ func (c *connection) SetReadDisable(disable bool) {
 		}
 
 		c.readEnabled = false
-		c.readEnabledChan <- false
 	} else {
 		if c.readDisableCount > 0 {
 			c.readDisableCount--
@@ -433,6 +461,7 @@ func (c *connection) SetReadDisable(disable bool) {
 		}
 
 		c.readEnabled = true
+		// only on read disable status, we need to trigger chan to wake read loop up
 		c.readEnabledChan <- true
 	}
 }
@@ -517,8 +546,6 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 		},
 	}
 	conn.filterManager = newFilterManager(conn)
-
-	conn.logger.Debugf("new upstream connection %d created", conn.Id())
 
 	return conn
 }

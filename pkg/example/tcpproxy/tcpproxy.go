@@ -16,7 +16,7 @@ const (
 	RealServerAddr = "127.0.0.1:8080"
 )
 
-func main() {
+func main2() {
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
 	meshReadyChan := make(chan bool)
@@ -80,7 +80,7 @@ func main() {
 		case <-upstreamReadyChan:
 			// mesh
 			cmf := &clusterManagerFilter{}
-			srv := server.NewServer(&proxy.TcpProxyFilterConfigFactory{
+			srv := server.NewServer(nil, &proxy.TcpProxyFilterConfigFactory{
 				Proxy: tcpProxyConfig(),
 			}, cmf)
 			srv.AddListener(tcpListener())

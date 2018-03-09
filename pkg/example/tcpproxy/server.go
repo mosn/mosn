@@ -10,7 +10,7 @@ import (
 	"runtime"
 )
 
-func main2() {
+func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	go func() {
@@ -18,12 +18,12 @@ func main2() {
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
 
-	stopChan := make(chan bool)
+	var srv server.Server
 
 	go func() {
 		// mesh
 		cmf := &clusterManagerFilter{}
-		srv := server.NewServer(&proxy.TcpProxyFilterConfigFactory{
+		srv = server.NewServer(nil, &proxy.TcpProxyFilterConfigFactory{
 			Proxy: tcpProxyConfig(),
 		}, cmf)
 		srv.AddListener(tcpListener())
@@ -31,16 +31,11 @@ func main2() {
 		cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts("11.162.169.38:80"))
 
 		srv.Start()
-
-		select {
-		case <-stopChan:
-			srv.Close()
-		}
 	}()
 
 	select {
-	case <-time.After(time.Second * 1800):
-		stopChan <- true
+	case <-time.After(time.Second * 100):
+		srv.Close()
 		fmt.Println("[MAIN]closing..")
 	}
 }

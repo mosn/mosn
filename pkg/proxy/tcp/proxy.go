@@ -1,10 +1,11 @@
 package tcp
 
 import (
+	"reflect"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"reflect"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // ReadFilter
@@ -17,24 +18,31 @@ type proxy struct {
 	upstreamCallbacks   UpstreamCallbacks
 	downstreamCallbacks DownstreamCallbacks
 
-	upstreamConnecting  bool
+	upstreamConnecting bool
+
+	accessLogs []types.AccessLog
 }
 
 func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {
-	proxy := &proxy{
+	p := &proxy{
 		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,
 		requestInfo:    network.NewRequestInfo(),
 	}
 
-	proxy.upstreamCallbacks = &upstreamCallbacks{
-		proxy: proxy,
+	p.upstreamCallbacks = &upstreamCallbacks{
+		proxy: p,
 	}
-	proxy.downstreamCallbacks = &downstreamCallbacks{
-		proxy: proxy,
+	p.downstreamCallbacks = &downstreamCallbacks{
+		proxy: p,
 	}
 
-	return proxy
+	for _, alConfig := range config.AccessLogs {
+		al, _ := log.NewAccessLog(alConfig.Path, nil, alConfig.Format)
+		p.accessLogs = append(p.accessLogs, al)
+	}
+
+	return p
 }
 
 func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
@@ -54,7 +62,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 
 	p.readCallbacks.Connection().AddConnectionCallbacks(p.downstreamCallbacks)
-
+	p.requestInfo.SetDownstreamRemoteAddress(p.readCallbacks.Connection().RemoteAddr())
+	p.requestInfo.SetDownstreamLocalAddress(p.readCallbacks.Connection().LocalAddr())
 	p.requestInfo.SetDownstreamLocalAddress(p.readCallbacks.Connection().LocalAddr())
 	p.requestInfo.SetDownstreamRemoteAddress(p.readCallbacks.Connection().RemoteAddr())
 
@@ -105,6 +114,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	upstreamConnection.Connect()
 
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
+	p.requestInfo.SetUpstreamLocalAddress(upstreamConnection.LocalAddr())
 
 	// TODO: update upstream stats
 
@@ -152,6 +162,8 @@ func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
 		p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
 		p.closeUpstreamConnection()
 		p.initializeUpstreamConnection()
+	case types.ConnectFailed:
+		p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
 	}
 }
 
@@ -160,7 +172,9 @@ func (p *proxy) finalizeUpstreamConnectionStats() {
 	upstreamClusterInfo.ResourceManager().ConnectionResource().Decrease()
 }
 
-func (p *proxy) onConnectionSuccess() {}
+func (p *proxy) onConnectionSuccess() {
+	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.Id())
+}
 
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 	if p.upstreamConnection != nil {
@@ -168,6 +182,12 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 			p.upstreamConnection.Close(types.FlushWrite, types.LocalClose)
 		} else if event == types.LocalClose {
 			p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
+		}
+	}
+
+	if event.IsClose() {
+		for _, al := range p.accessLogs {
+			al.Log(nil, nil, p.requestInfo)
 		}
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // 实现 sofa RPC 的 反向代理
@@ -231,7 +232,9 @@ func (p *rpcproxy) initializeUpstreamConnection(clusterName string) error {
 	return nil
 }
 
-func (p *rpcproxy) onConnectionSuccess() {}
+func (p *rpcproxy) onConnectionSuccess() {
+	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.Id())
+}
 
 func (p *rpcproxy) onInitFailure(reason UpstreamFailureReason) {
 	p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)

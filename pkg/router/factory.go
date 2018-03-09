@@ -1,19 +1,18 @@
 package router
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"errors"
 	"fmt"
+	"errors"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 type configFactory func(config interface{}) (types.RouterConfig, error)
 
-var routerConfigFactories map[protocol.Protocol]configFactory
+var routerConfigFactories map[types.Protocol]configFactory
 
-func RegisteRouterConfigFactory(port protocol.Protocol, factory configFactory) {
+func RegisteRouterConfigFactory(port types.Protocol, factory configFactory) {
 	if routerConfigFactories == nil {
-		routerConfigFactories = make(map[protocol.Protocol]configFactory)
+		routerConfigFactories = make(map[types.Protocol]configFactory)
 	}
 
 	if _, ok := routerConfigFactories[port]; !ok {
@@ -21,7 +20,7 @@ func RegisteRouterConfigFactory(port protocol.Protocol, factory configFactory) {
 	}
 }
 
-func CreateRouteConfig(port protocol.Protocol, config interface{}) (types.RouterConfig, error) {
+func CreateRouteConfig(port types.Protocol, config interface{}) (types.RouterConfig, error) {
 	if factory, ok := routerConfigFactories[port]; ok {
 		return factory(config)
 	} else {

@@ -59,11 +59,12 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 	var uf *activeReadFilter
 
 	if filter != nil {
-		index = filter.index
+		index = filter.index + 1
 	}
 
 	for ; index < len(fm.upstreamFilters); index++ {
 		uf = fm.upstreamFilters[index]
+		uf.index = index
 
 		if !uf.initialized {
 			uf.initialized = true

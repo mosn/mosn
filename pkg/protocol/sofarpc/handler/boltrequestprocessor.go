@@ -12,7 +12,7 @@ type BoltRequestProcessor struct {
 
 func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(sofarpc.BoltRequestCommand); ok {
-		deserializeRequest(cmd)
+		deserializeRequestHeaders(cmd)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
@@ -28,7 +28,7 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 }
 
 // 反序列化请求
-func deserializeRequest(requestCommand sofarpc.BoltRequestCommand) (sofarpc.BoltRequestCommand, error) {
+func deserializeRequestHeaders(requestCommand sofarpc.BoltRequestCommand) (sofarpc.BoltRequestCommand, error) {
 	//get instance
 	serialize := serialize.Instance
 

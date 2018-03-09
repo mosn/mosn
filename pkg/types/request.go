@@ -5,20 +5,26 @@ import (
 	"net"
 )
 
+type ResponseFlag int
+
+const (
+	NoHealthyUpstream             ResponseFlag = 0x2
+	UpstreamConnectionFailure     ResponseFlag = 0x20
+	UpstreamConnectionTermination ResponseFlag = 0x40
+	NoRouteFound                  ResponseFlag = 0x100
+	UpstreamOverflow              ResponseFlag = 0x80
+)
+
 type RequestInfo interface {
-	SetResponseFlag(flag ResponseFlag)
-
-	OnUpstreamHostSelected(host HostInfo)
-
 	StartTime() time.Time
 
-	RequestReceivedDuration() int
+	RequestReceivedDuration() time.Duration
 
-	SetRequestReceivedDuration(duration int)
+	SetRequestReceivedDuration(time time.Time)
 
-	ResponseReceivedDuration() int
+	ResponseReceivedDuration() time.Duration
 
-	SetResponseReceivedDuration(duration int)
+	SetResponseReceivedDuration(time time.Time)
 
 	BytesSent() uint64
 
@@ -28,21 +34,25 @@ type RequestInfo interface {
 
 	SetBytesReceived(bytesReceived uint64)
 
-	Protocol() string
-
-	SetProtocol(protocol string)
+	Protocol() Protocol
 
 	ResponseCode() uint32
 
-	Duration() int
+	Duration() time.Duration
 
-	GetResponseFlag(flag int)
+	GetResponseFlag(flag ResponseFlag) bool
+
+	SetResponseFlag(flag ResponseFlag)
 
 	UpstreamHost() HostInfo
 
+	OnUpstreamHostSelected(host HostInfo)
+
 	UpstreamLocalAddress() net.Addr
 
-	HealthCheck() bool
+	SetUpstreamLocalAddress(localAddress net.Addr)
+
+	IsHealthCheck() bool
 
 	SetHealthCheck(isHc bool)
 
@@ -55,4 +65,6 @@ type RequestInfo interface {
 	SetDownstreamRemoteAddress(addr net.Addr)
 
 	RouteEntry() RouteRule
+
+	SetRouteEntry(routerRule RouteRule)
 }

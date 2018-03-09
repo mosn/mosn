@@ -1,5 +1,6 @@
 package types
 
+type Protocol string
 
 type PoolFailureReason string
 

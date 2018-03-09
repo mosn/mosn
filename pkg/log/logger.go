@@ -32,6 +32,7 @@ func InitDefaultLogger(output string, level LogLevel) error {
 		Output: output,
 		Level:  level,
 		Roller: DefaultLogRoller(),
+		fileMux: new(sync.RWMutex),
 	}
 
 	return DefaultLogger.Start()
@@ -39,18 +40,16 @@ func InitDefaultLogger(output string, level LogLevel) error {
 
 func NewLogger(output string, level LogLevel) (Logger, error) {
 	logger := &logger{
-		Output: output,
-		Level:  level,
-		Roller: DefaultLogRoller(),
+		Output:  output,
+		Level:   level,
+		Roller:  DefaultLogRoller(),
+		fileMux: new(sync.RWMutex),
 	}
 
 	return logger, logger.Start()
 }
 
 func (l *logger) Start() error {
-	// initialize mutex on start
-	l.fileMux = new(sync.RWMutex)
-
 	var err error
 
 selectwriter:
@@ -147,6 +146,26 @@ func (l *logger) Close() error {
 	if closer, ok := l.writer.(io.WriteCloser); ok {
 		l.fileMux.Lock()
 		err := closer.Close()
+		l.fileMux.Unlock()
+		return err
+	}
+
+	return nil
+}
+
+func (l *logger) Reopen() error {
+	if l.writer == os.Stdout || l.writer == os.Stderr {
+		return nil
+	}
+
+	if closer, ok := l.writer.(io.WriteCloser); ok {
+		l.fileMux.Lock()
+		err := closer.Close()
+
+		if err := l.Start(); err != nil {
+			return err
+		}
+
 		l.fileMux.Unlock()
 		return err
 	}

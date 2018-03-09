@@ -26,7 +26,8 @@ type connHandler struct {
 	logger         log.Logger
 }
 
-func NewHandler(filterFactory NetworkFilterConfigFactory, clusterManagerFilter ClusterManagerFilter, logger log.Logger) types.ConnectionHandler {
+func NewHandler(filterFactory NetworkFilterConfigFactory,
+	clusterManagerFilter ClusterManagerFilter, logger log.Logger) types.ConnectionHandler {
 	ch := &connHandler{
 		numConnections: 0,
 		clusterManager: cluster.NewClusterManager(nil),
@@ -134,7 +135,7 @@ type activeListener struct {
 type ListenerStats struct {
 	downstreamTotal             metrics.Counter
 	downstreamDestroy           metrics.Counter
-	downstreamActive            metrics.Gauge
+	downstreamActive            metrics.Counter
 	downstreamBytesRead         metrics.Counter
 	downstreamBytesReadCurrent  metrics.Gauge
 	downstreamBytesWrite        metrics.Counter
@@ -159,7 +160,7 @@ func newListenerStats(listener types.Listener) *ListenerStats {
 	return &ListenerStats{
 		downstreamTotal:             metrics.GetOrRegisterCounter(listenerStatsName("connection_total", addr), nil),
 		downstreamDestroy:           metrics.GetOrRegisterCounter(listenerStatsName("connection_destroy", addr), nil),
-		downstreamActive:            metrics.GetOrRegisterGauge(listenerStatsName("connection_active", addr), nil),
+		downstreamActive:            metrics.GetOrRegisterCounter(listenerStatsName("connection_active", addr), nil),
 		downstreamBytesRead:         metrics.GetOrRegisterCounter(listenerStatsName("bytes_read", addr), nil),
 		downstreamBytesReadCurrent:  metrics.GetOrRegisterGauge(listenerStatsName("bytes_read_current", addr), nil),
 		downstreamBytesWrite:        metrics.GetOrRegisterCounter(listenerStatsName("bytes_write", addr), nil),
@@ -195,13 +196,16 @@ func (al *activeListener) OnNewConnection(conn types.Connection) {
 	} else {
 		ac := newActiveConnection(al, conn)
 
-		conn.AddConnectionCallbacks(ac)
 		al.connsMux.Lock()
 		e := al.conns.PushBack(ac)
 		al.connsMux.Unlock()
 		ac.element = e
 
+		al.stats.downstreamActive.Inc(1)
+		al.stats.downstreamTotal.Inc(1)
 		atomic.AddInt64(&al.handler.numConnections, 1)
+
+		al.handler.logger.Debugf("new downstream connection %d accepted", conn.Id())
 	}
 }
 
@@ -212,12 +216,13 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.conns.Remove(ac.element)
 	al.connsMux.Unlock()
 
-	al.stats.downstreamActive.Update(al.stats.downstreamActive.Value() - 1)
+	al.stats.downstreamActive.Dec(1)
 	al.stats.downstreamDestroy.Inc(1)
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
-	al.handler.logger.Debugf("close downstream connection, total %d, active %d",
-		al.stats.downstreamTotal.Count(), al.stats.downstreamActive.Value())
+	al.handler.logger.Debugf("close downstream connection, total %d, active %d, bytes read %d, bytes write %d",
+		al.stats.downstreamTotal.Count(), al.stats.downstreamActive.Count(),
+		al.stats.downstreamBytesRead.Count(), al.stats.downstreamBytesWrite.Count())
 }
 
 func (al *activeListener) newConnection(rawc net.Conn) {
@@ -297,9 +302,6 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 			listener.stats.downstreamBytesWrite.Inc(int64(bytesSent))
 		}
 	})
-
-	listener.stats.downstreamActive.Update(listener.stats.downstreamActive.Value() + 1)
-	listener.stats.downstreamTotal.Inc(1)
 
 	return ac
 }

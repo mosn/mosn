@@ -243,16 +243,6 @@ type FilterChainFactory interface {
 	CreateListenerFilterChain(listener ListenerFilterManager)
 }
 
-type ResponseFlag int
-
-const (
-	NoHealthyUpstream             ResponseFlag = 0x2
-	UpstreamConnectionFailure     ResponseFlag = 0x20
-	UpstreamConnectionTermination ResponseFlag = 0x40
-	NoRouteFound                  ResponseFlag = 0x100
-	UpstreamOverflow              ResponseFlag = 0x80
-)
-
 type Addresses []net.Addr
 
 func (as Addresses) Contains(addr net.Addr) bool {

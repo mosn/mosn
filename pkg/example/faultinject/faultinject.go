@@ -1,14 +1,69 @@
 package main
 
 import (
+	"time"
+	"fmt"
+	"net/http"
+	"runtime"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/filter"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
 const (
+	TestCluster    = "tstCluster"
 	TestListener   = "tstListener"
+	RealServerAddr = "127.0.0.1:8080"
 	MeshServerAddr = "127.0.0.1:2048"
 )
+
+func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	go func() {
+		// pprof server
+		http.ListenAndServe("0.0.0.0:9090", nil)
+	}()
+
+	stopChan := make(chan bool)
+
+	go func() {
+		// mesh
+		cmf := &clusterManagerFilter{}
+		srv := server.NewServer(nil, &filter.FaultInjectFilterConfigFactory{
+			FaultInject: &v2.FaultInject{
+				DelayPercent:  100,
+				DelayDuration: 2000,
+			},
+			Proxy: tcpProxyConfig(),
+		}, cmf)
+		srv.AddListener(tcpListener())
+		cmf.cccb.UpdateClusterConfig(clusters())
+		cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts("11.162.169.38:80"))
+
+		srv.Start()
+
+		select {
+		case <-stopChan:
+			srv.Close()
+		}
+	}()
+
+	select {
+	case <-time.After(time.Second * 1800):
+		stopChan <- true
+		fmt.Println("[MAIN]closing..")
+	}
+}
+
+func tcpListener() v2.ListenerConfig {
+	return v2.ListenerConfig{
+		Name:                 TestListener,
+		Addr:                 MeshServerAddr,
+		BindToPort:           true,
+		ConnBufferLimitBytes: 1024 * 32,
+	}
+}
 
 type clusterManagerFilter struct {
 	cccb server.ClusterConfigFactoryCb
@@ -25,18 +80,8 @@ func tcpProxyConfig() *v2.TcpProxy {
 	tcpProxyConfig.Routes = append(tcpProxyConfig.Routes, &v2.TcpRoute{
 		Cluster: TestCluster,
 	})
-	tcpProxyConfig.AccessLogs = append(tcpProxyConfig.AccessLogs, &v2.AccessLog{})
 
 	return tcpProxyConfig
-}
-
-func tcpListener() v2.ListenerConfig {
-	return v2.ListenerConfig{
-		Name:                 TestListener,
-		Addr:                 MeshServerAddr,
-		BindToPort:           true,
-		ConnBufferLimitBytes: 1024 * 32,
-	}
 }
 
 func clusters() []v2.Cluster {

@@ -3,11 +3,11 @@ package log
 type LogLevel uint8
 
 const (
-	FATAL LogLevel = iota
+	DEBUG LogLevel = iota
+	FATAL
 	ERROR
 	WARN
 	INFO
-	DEBUG
 )
 
 type Logger interface {
@@ -26,4 +26,7 @@ type Logger interface {
 	Fatalf(format string, args ...interface{})
 
 	Close() error
+
+	Reopen() error
 }
+
