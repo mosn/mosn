@@ -13,15 +13,18 @@ type Encoder interface {
 type Decoder interface {
 	//TODO replace ctx type with defined connection request context
 	//TODO replace out type with defined pipeline output container
-	Decode(ctx interface{}, data IoBuffer, out interface{})
+	Decode(ctx interface{}, data IoBuffer, out interface{}) int
 }
 
 type DecodeFilter interface {
-	OnDecodeHeader(headers map[string]string) FilterStatus
+	OnDecodeHeader(streamId uint32, headers map[string]string) FilterStatus
 
-	OnDecodeData(data []byte) FilterStatus
+	OnDecodeData(streamId uint32, data IoBuffer) FilterStatus
 
-	OnDecodeTrailer(trailers map[string]string) FilterStatus
+	OnDecodeTrailer(streamId uint32, trailers map[string]string) FilterStatus
+
+	// just for raw request forward
+	OnDecodeComplete(streamId uint32, buf IoBuffer)
 }
 
 type DecoderCallbacks interface {

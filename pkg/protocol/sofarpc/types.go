@@ -110,7 +110,7 @@ type RpcCommand interface {
 
 	GetCmdCode() int16
 
-	GetId() int
+	GetId() uint32
 }
 
 type BoltRequestCommand interface {
@@ -118,7 +118,7 @@ type BoltRequestCommand interface {
 
 	GetCmdCode() int16
 
-	GetId() int
+	GetId() uint32
 
 	GetClass() []byte
 

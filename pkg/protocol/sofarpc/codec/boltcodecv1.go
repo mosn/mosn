@@ -13,7 +13,7 @@ type boltV1Codec struct{}
 
 func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {}
 
-func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
+func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) int {
 	readableBytes := data.Len()
 	read := 0
 
@@ -56,7 +56,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 					//TODO mark buffer's off
 				} else { // not enough data
 					log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
-					return
+					return 0
 				}
 
 				request := &boltRequestCommand{
@@ -66,7 +66,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 						dataType,
 						codec,
 
-						int(requestId),
+						requestId,
 						int16(classLen),
 						int16(headerLen),
 						int(contentLen),
@@ -117,7 +117,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 					}
 				} else { // not enough data
 					log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
-					return
+					return 0
 				}
 
 				response := &boltResponseCommand{
@@ -126,7 +126,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 						ver2,
 						dataType,
 						codec,
-						int(requestId),
+						requestId,
 						int16(classLen),
 						int16(headerLen),
 						int(contentLen),
@@ -148,6 +148,8 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 			}
 		}
 	}
+
+	return read
 }
 
 func (encoder *boltV1Codec) AddDecodeFilter(filter types.DecodeFilter) {

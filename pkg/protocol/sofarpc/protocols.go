@@ -42,10 +42,12 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 			var out = make([]RpcCommand, 0, 1)
 
 			decoder := proto.GetDecoder()
-			decoder.Decode(filter, data, &out)
+			read := decoder.Decode(filter, data, &out)
 
 			if len(out) > 0 {
 				proto.GetCommandHandler().HandleCommand(filter, out[0])
+
+				filter.OnDecodeComplete(out[0].GetId(), data.Cut(read))
 			}
 		} else {
 			fmt.Println("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")

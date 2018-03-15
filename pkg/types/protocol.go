@@ -5,28 +5,28 @@ type Protocol string
 type PoolFailureReason string
 
 const (
-	Overflow PoolFailureReason = "Overflow"
+	Overflow          PoolFailureReason = "Overflow"
 	ConnectionFailure PoolFailureReason = "ConnectionFailure"
 )
 
 type ConnectionPool interface {
-	Protocol() string
+	Protocol() Protocol
 
 	AddDrainedCallback(cb func())
 
 	DrainConnections()
 
-	NewStream(responseDecoder StreamDecoder, cb PoolCallbacks) Cancellable
+	NewStream(streamId uint32, responseDecoder StreamDecoder, cb PoolCallbacks) Cancellable
+
+	Close()
 }
 
 type PoolCallbacks interface {
-	OnPoolFailure(reason string, host Host)
+	OnPoolFailure(streamId uint32, reason PoolFailureReason, host Host)
 
-	onPoolReady(encoder StreamEncoder, host Host)
+	OnPoolReady(streamId uint32, encoder StreamEncoder, host Host)
 }
 
 type Cancellable interface {
 	Cancel()
 }
-
-

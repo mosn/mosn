@@ -3,6 +3,7 @@ package buffer
 import (
 	"io"
 	"errors"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 const MinRead = 512
@@ -114,6 +115,23 @@ func (b *IoBuffer) Restore() {
 
 func (b *IoBuffer) Bytes() []byte {
 	return b.buf[b.off:]
+}
+
+func (b *IoBuffer) Cut(offset int) types.IoBuffer {
+	if b.off+offset >= len(b.buf) {
+		return nil
+	}
+
+	buf := make([]byte, 0, offset)
+
+	copy(buf, b.buf[b.off: b.off+offset])
+	b.off += offset
+	b.offMark = ResetOffMark
+
+	return &IoBuffer{
+		buf: buf,
+		off: 0,
+	}
 }
 
 func (b *IoBuffer) String() string {

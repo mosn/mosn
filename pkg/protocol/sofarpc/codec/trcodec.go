@@ -11,6 +11,8 @@ type trCodec struct {
 
 func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) {}
 
-func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
+func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) int {
 	fmt.Println("tr decode:", data.Bytes())
+
+	return 0
 }

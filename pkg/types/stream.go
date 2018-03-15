@@ -1,11 +1,16 @@
 package types
 
-import (
-	"bytes"
-	"bufio"
-)
-
 type StreamResetReason string
+
+const (
+	StreamConnectionTermination    StreamResetReason = "ConnectionTermination"
+	StreamConnectionFailed         StreamResetReason = "ConnectionFailed"
+	StreamLocalReset               StreamResetReason = "StreamLocalReset"
+	StreamLocalRefusedStreamReset  StreamResetReason = "StreamLocalRefusedStreamReset"
+	StreamOverflow                 StreamResetReason = "StreamOverflow"
+	StreamRemoteReset              StreamResetReason = "StreamRemoteReset"
+	StreanRemoteRefusedStreamReset StreamResetReason = "StreanRemoteRefusedStreamReset"
+)
 
 type StreamCallbacks interface {
 	OnResetStream(reason StreamResetReason)
@@ -38,7 +43,7 @@ type StreamRecognizer interface {
 type StreamEncoder interface {
 	EncodeHeaders(headers map[string]string, endStream bool)
 
-	EncodeData(data bytes.Buffer, endStream bool)
+	EncodeData(data IoBuffer, endStream bool)
 
 	EncodeTrailers(trailers map[string]string)
 
@@ -46,37 +51,47 @@ type StreamEncoder interface {
 }
 
 type StreamDecoder interface {
-	DecodeHeaders(hbr *bufio.Reader, endStream bool)
+	DecodeHeaders(headers map[string]string, endStream bool)
 
-	DecodeData(dr *bufio.Reader, endStream bool)
+	DecodeData(data IoBuffer, endStream bool)
 
 	DecodeTrailers(trailers map[string]string)
+
+	DecodeComplete(data IoBuffer)
 }
 
 type StreamConnection interface {
-	Dispatch(buffer *bytes.Buffer)
+	Dispatch(buffer IoBuffer)
 
-	GoAway()
+	//GoAway()
 
-	Protocol() string
+	Protocol() Protocol
 
-	ShutdownNotice()
-
-	WantsToWrite()
-
-	OnUnderlyingConnectionAboveWriteBufferHighWatermark()
-
-	OnUnderlyingConnectionBelowWriteBufferLowWatermark()
+	//ShutdownNotice()
+	//
+	//WantsToWrite()
+	//
+	//OnUnderlyingConnectionAboveWriteBufferHighWatermark()
+	//
+	//OnUnderlyingConnectionBelowWriteBufferLowWatermark()
 }
 
-type ServerConnection interface {
-	Connection
+type ServerStreamConnection interface {
+	StreamConnection
 }
 
-type StreamClientConnection interface {
-	Connection
+type ClientStreamConnection interface {
+	StreamConnection
 
-	newStream(responseDecoder StreamDecoder) StreamEncoder
+	NewStream(streamId uint32, responseDecoder StreamDecoder) StreamEncoder
+}
+
+type StreamConnectionCallbacks interface {
+	OnGoAway()
+}
+
+type ServerStreamConnectionCallbacks interface {
+	NewStream(streamId uint32, respDecoder StreamDecoder) StreamEncoder
 }
 
 type StreamFilterBase interface {
@@ -102,7 +117,7 @@ type StreamEncoderFilter interface {
 
 	EncodeHeaders(headers map[string]string, endStream bool) FilterHeadersStatus
 
-	EncodeData(dr *bufio.Reader, endStream bool) FilterDataStatus
+	EncodeData(buf IoBuffer, endStream bool) FilterDataStatus
 
 	EncodeTrailers(trailers map[string]string) FilterTrailersStatus
 
@@ -114,9 +129,9 @@ type StreamEncoderFilterCallbacks interface {
 
 	ContinueEncoding()
 
-	EncodingBuffer() *bufio.Reader
+	EncodingBuffer() IoBuffer
 
-	AddEncodedData(buffer *bufio.Reader, streamingFilter bool)
+	AddEncodedData(buf IoBuffer, streamingFilter bool)
 
 	OnEncoderFilterAboveWriteBufferHighWatermark()
 
@@ -132,7 +147,7 @@ type StreamDecoderFilter interface {
 
 	DecodeHeaders(headers map[string]string, endStream bool) FilterHeadersStatus
 
-	DecodeData(dr *bufio.Reader, endStream bool) FilterDataStatus
+	DecodeData(buf IoBuffer, endStream bool) FilterDataStatus
 
 	DecodeTrailers(trailers map[string]string) FilterTrailersStatus
 
@@ -144,15 +159,15 @@ type StreamDecoderFilterCallbacks interface {
 
 	ContinueDecoding()
 
-	DecodingBuffer() *bufio.Reader
+	DecodingBuffer() IoBuffer
 
-	AddDecodedData(data *bufio.Reader, streamingFilter bool)
+	AddDecodedData(buf IoBuffer, streamingFilter bool)
 
-	EncodeHeaders(dr *bufio.Reader, endStream bool)
+	EncodeHeaders(buf IoBuffer, endStream bool)
 
-	EncodeData(data bytes.Buffer, endStream bool)
+	EncodeData(buf IoBuffer, endStream bool)
 
-	EncodeTrailers(trailers *bufio.Reader)
+	EncodeTrailers(trailers IoBuffer)
 
 	OnDecoderFilterAboveWriteBufferHighWatermark()
 

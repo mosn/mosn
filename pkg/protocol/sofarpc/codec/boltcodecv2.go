@@ -12,6 +12,8 @@ type boltV2Codec struct {
 func (encoder *boltV2Codec) Encode(value interface{}, data types.IoBuffer) {
 }
 
-func (decoder *boltV2Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
+func (decoder *boltV2Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) int {
 	fmt.Println("bolt v2 decode:", data.Bytes())
+
+	return 0
 }

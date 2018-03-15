@@ -17,7 +17,7 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
 			if cmd.GetRequestHeader() != nil {
-				status := filter.OnDecodeHeader(cmd.GetRequestHeader())
+				status := filter.OnDecodeHeader(cmd.GetId(), cmd.GetRequestHeader())
 
 				if status == types.StopIteration {
 					return

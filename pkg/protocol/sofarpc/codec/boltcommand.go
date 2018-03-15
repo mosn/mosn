@@ -13,7 +13,7 @@ type boltCommand struct {
 	codec   byte
 	//protoSwitchStatus byte
 
-	id            int
+	id            uint32
 	classLength   int16
 	headerLength  int16
 	contentLength int
@@ -71,7 +71,7 @@ func (b *boltCommand) GetCmdCode() int16 {
 	return b.cmdCode
 }
 
-func (b *boltCommand) GetId() int {
+func (b *boltCommand) GetId() uint32 {
 	return b.id
 }
 
@@ -95,7 +95,7 @@ func (b *boltRequestCommand) GetCmdCode() int16 {
 	return b.cmdCode
 }
 
-func (b *boltRequestCommand) GetId() int {
+func (b *boltRequestCommand) GetId() uint32 {
 	return b.id
 }
 
@@ -123,7 +123,7 @@ func (b *boltResponseCommand) GetCmdCode() int16 {
 	return b.cmdCode
 }
 
-func (b *boltResponseCommand) GetId() int {
+func (b *boltResponseCommand) GetId() uint32 {
 	return b.id
 }
 

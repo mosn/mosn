@@ -66,6 +66,8 @@ type IoBuffer interface {
 
 	Bytes() []byte
 
+	Cut(offset int) IoBuffer
+
 	Mark()
 
 	Restore()
@@ -161,7 +163,7 @@ const (
 	OnReadErrClose  ConnectionEvent = "OnReadErrClose"
 	OnWriteErrClose ConnectionEvent = "OnWriteErrClose"
 	OnConnect       ConnectionEvent = "OnConnect"
-	Connected       ConnectionEvent = "Connected"
+	Connected       ConnectionEvent = "ConnectedFlag"
 	ConnectTimeout  ConnectionEvent = "ConnectTimeout"
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
 )

@@ -8,6 +8,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"errors"
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy/sofarpc"
 )
 
 const (
@@ -19,6 +20,7 @@ type clusterManager struct {
 	sourceAddr       net.Addr
 	primaryClusters  map[string]*primaryCluster
 	clusterSnapshots map[string]*golocalstore
+	sofaRpcConnPool  map[string]types.ConnectionPool
 }
 
 type clusterSnapshot struct {
@@ -32,6 +34,7 @@ func NewClusterManager(sourceAddr net.Addr) types.ClusterManager {
 		sourceAddr:       sourceAddr,
 		primaryClusters:  make(map[string]*primaryCluster),
 		clusterSnapshots: make(map[string]*golocalstore),
+		sofaRpcConnPool: make(map[string]types.ConnectionPool),
 	}
 }
 
@@ -158,7 +161,8 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 	return errors.New(fmt.Sprintf("cluster %s not found", clusterName))
 }
 
-func (cm *clusterManager) HttpConnPoolForCluster(cluster string, priority pkg.Priority, protocol string, context context.Context) types.HttpConnectionPool {
+func (cm *clusterManager) HttpConnPoolForCluster(cluster string, priority pkg.Priority, protocol string, context context.Context) types.ConnectionPool {
+	// todo
 	return nil
 }
 
@@ -175,6 +179,31 @@ func (cm *clusterManager) TcpConnForCluster(cluster string, context context.Cont
 		return host.CreateConnection()
 	} else {
 		return types.CreateConnectionData{}
+	}
+}
+
+func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context context.Context) types.ConnectionPool {
+	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
+
+	if clusterSnapshot == nil {
+		return nil
+	}
+
+	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
+
+	if host != nil {
+		addr := host.Address().String()
+
+		if connPool, ok := cm.sofaRpcConnPool[addr]; ok {
+			return connPool
+		} else {
+			connPool := sofarpc.NewConnPool(host)
+			cm.sofaRpcConnPool[addr] = connPool
+
+			return connPool
+		}
+	} else {
+		return nil
 	}
 }
 
