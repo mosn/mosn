@@ -41,6 +41,7 @@ func NewRPCProxy(config *v2.RpcProxy, clusterManager types.ClusterManager) RpcPr
 		clusterManager:   clusterManager,
 		requestInfo:      network.NewRequestInfo(),
 		protocols:        sofarpc.DefaultProtocols(),
+		activeSteams:     make(map[uint32]*activeStream),
 		upstreamRequests: make(map[uint32]*upstreamRequest),
 	}
 
@@ -106,10 +107,11 @@ func (s *activeStream) DecodeData(data types.IoBuffer, endStream bool) {}
 func (s *activeStream) DecodeTrailers(trailers map[string]string) {}
 
 func (s *activeStream) DecodeComplete(buf types.IoBuffer) {
-	upstreamReq := s.proxy.upstreamRequests[s.streamId]
-
-	upstreamReq.sendBuf = buf
-	upstreamReq.connPool.NewStream(s.streamId, upstreamReq, upstreamReq)
+	if buf != nil {
+		upstreamReq := s.proxy.upstreamRequests[s.streamId]
+		upstreamReq.sendBuf = buf
+		upstreamReq.connPool.NewStream(s.streamId, upstreamReq, upstreamReq)
+	}
 }
 
 // types.StreamCallbacks

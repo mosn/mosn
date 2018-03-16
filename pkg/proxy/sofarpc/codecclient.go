@@ -16,9 +16,10 @@ type codecClient struct {
 func newCodecClient(protocol types.Protocol, connection types.ClientConnection, host types.HostInfo) proxy.CodecClient {
 	codecClient := &codecClient{
 		proxy.BaseCodeClient{
-			Protocol:   protocol,
-			Connection: connection,
-			Host:       host,
+			Protocol:       protocol,
+			Connection:     connection,
+			Host:           host,
+			ActiveRequests: list.New(),
 		},
 	}
 	codecClient.Codec = newClientStreamConnection(connection, codecClient)

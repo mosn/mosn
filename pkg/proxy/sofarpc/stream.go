@@ -106,6 +106,10 @@ func newServerStreamConnection(connection types.Connection,
 	}
 }
 
+func (sc *serverStreamConnection) Dispatch(buffer types.IoBuffer) {
+	sc.protocols.Decode(buffer, sc)
+}
+
 // types.DecodeFilter
 func (sc *serverStreamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
 	if streamId > 0 {

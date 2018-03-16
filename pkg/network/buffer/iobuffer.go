@@ -118,11 +118,11 @@ func (b *IoBuffer) Bytes() []byte {
 }
 
 func (b *IoBuffer) Cut(offset int) types.IoBuffer {
-	if b.off+offset >= len(b.buf) {
+	if b.off+offset > len(b.buf) {
 		return nil
 	}
 
-	buf := make([]byte, 0, offset)
+	buf := make([]byte, offset)
 
 	copy(buf, b.buf[b.off: b.off+offset])
 	b.off += offset

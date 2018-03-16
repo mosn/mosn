@@ -104,6 +104,8 @@ func newActiveClient(pool *connPool) *activeClient {
 	ac.codecClient = newCodecClient(pool.Protocol(), data.Connection, data.HostInfo)
 	ac.host = data.HostInfo
 
+	data.Connection.Connect()
+
 	return ac
 }
 
