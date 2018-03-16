@@ -10,7 +10,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"container/list"
 )
 
@@ -46,7 +45,6 @@ func NewRPCProxy(config *v2.RpcProxy, clusterManager types.ClusterManager) RpcPr
 	}
 
 	proxy.routerConfig, _ = router.CreateRouteConfig(protocol.SofaRpc, config)
-
 	proxy.downstreamCallbacks = &downstreamCallbacks{
 		proxy: proxy,
 	}
@@ -65,8 +63,7 @@ type activeStream struct {
 
 // types.StreamCallbacks
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
-	s.responseEncoder.GetStream().RemoveCallbacks(s)
-	delete(s.proxy.activeSteams, s.streamId)
+	s.proxy.deleteActiveStream(s)
 }
 
 func (s *activeStream) OnAboveWriteBufferHighWatermark() {}
@@ -80,21 +77,22 @@ func (s *activeStream) DecodeHeaders(headers map[string]string, endStream bool) 
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
-		s.proxy.onDataErr()
+		s.onDataErr(nil)
 
 		return
 	}
 
-	err, pool := s.proxy.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
+	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
 
 	if err != nil {
-		s.proxy.onDataErr()
+		s.onDataErr(err)
 
 		return
 	}
 
 	s.proxy.upstreamRequests[s.streamId] = &upstreamRequest{
 		streamId:    s.streamId,
+		proxy:       s.proxy,
 		connPool:    pool,
 		requestInfo: network.NewRequestInfo(),
 	}
@@ -114,6 +112,51 @@ func (s *activeStream) DecodeComplete(buf types.IoBuffer) {
 	}
 }
 
+func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (error, types.ConnectionPool) {
+	// todo: we just reset downstream stream on route failed, confirm sofa rpc logic
+	clusterSnapshot := s.proxy.clusterManager.Get(clusterName, nil)
+
+	if reflect.ValueOf(clusterSnapshot).IsNil() {
+		//s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.onInitFailure(NoRoute)
+
+		return errors.New(fmt.Sprintf("unkown cluster %s", clusterName)), nil
+	}
+
+	clusterInfo := clusterSnapshot.ClusterInfo()
+	clusterConnectionResource := clusterInfo.ResourceManager().ConnectionResource()
+
+	if !clusterConnectionResource.CanCreate() {
+		//p.requestInfo.SetResponseFlag(types.UpstreamOverflow)
+		s.onInitFailure(ResourceLimitExceeded)
+
+		return errors.New(fmt.Sprintf("upstream overflow in cluster %s", clusterName)), nil
+	}
+
+	connPool := s.proxy.clusterManager.SofaRpcConnPoolForCluster(clusterName, nil)
+
+	if connPool == nil {
+		//p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
+		s.onInitFailure(NoHealthyUpstream)
+
+		return errors.New(fmt.Sprintf("no healthy upstream in cluster %s", clusterName)), nil
+	}
+
+	// TODO: update upstream stats
+
+	return nil, connPool
+}
+
+func (s *activeStream) onInitFailure(reason UpstreamFailureReason) {
+	// todo: convert upstream reason to reset reason
+	s.responseEncoder.GetStream().ResetStream(types.StreamConnectionFailed)
+}
+
+func (s *activeStream) onDataErr(err error) {
+	// todo: convert error to reset reason
+	s.responseEncoder.GetStream().ResetStream(types.StreamConnectionFailed)
+}
+
 // types.StreamCallbacks
 // types.StreamDecoder
 // types.PoolCallbacks
@@ -130,8 +173,8 @@ type upstreamRequest struct {
 // types.StreamCallbacks
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	r.requestInfo.SetResponseFlag(r.proxy.streamResetReasonToResponseFlag(reason))
-	delete(r.proxy.upstreamRequests, r.streamId)
-	r.proxy.onUpstreamReset(reason)
+	r.proxy.deleteUpstreamRequest(r)
+	r.proxy.onUpstreamReset(r.streamId, reason)
 }
 
 func (r *upstreamRequest) OnAboveWriteBufferHighWatermark() {}
@@ -147,7 +190,7 @@ func (r *upstreamRequest) DecodeTrailers(trailers map[string]string) {}
 
 func (r *upstreamRequest) DecodeComplete(data types.IoBuffer) {
 	r.proxy.readCallbacks.Connection().Write(data)
-	r.proxy.responseDecodeComplete(r)
+	r.proxy.deleteUpstreamRequest(r)
 }
 
 func (r *upstreamRequest) responseDecodeComplete() {}
@@ -180,16 +223,6 @@ func (p *rpcproxy) OnData(buf types.IoBuffer) types.FilterStatus {
 	return types.StopIteration
 }
 
-func (p *rpcproxy) onDataErr() {
-	if p.upstreamConnection != nil {
-		p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
-	}
-
-	if p.readCallbacks.Connection() != nil {
-		p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)
-	}
-}
-
 //rpc realize upstream on event
 func (p *rpcproxy) onDownstreamEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
@@ -205,48 +238,6 @@ func (p *rpcproxy) ReadDisableUpstream(disable bool) {
 
 func (p *rpcproxy) ReadDisableDownstream(disable bool) {
 	// TODO
-}
-
-func (p *rpcproxy) initializeUpstreamConnectionPool(clusterName string) (error, types.ConnectionPool) {
-	clusterSnapshot := p.clusterManager.Get(clusterName, nil)
-
-	if reflect.ValueOf(clusterSnapshot).IsNil() {
-		p.requestInfo.SetResponseFlag(types.NoRouteFound)
-		p.onInitFailure(NoRoute)
-
-		return errors.New(fmt.Sprintf("unkown cluster %s", clusterName)), nil
-	}
-
-	clusterInfo := clusterSnapshot.ClusterInfo()
-	clusterConnectionResource := clusterInfo.ResourceManager().ConnectionResource()
-
-	if !clusterConnectionResource.CanCreate() {
-		p.requestInfo.SetResponseFlag(types.UpstreamOverflow)
-		p.onInitFailure(ResourceLimitExceeded)
-
-		return errors.New(fmt.Sprintf("upstream overflow in cluster %s", clusterName)), nil
-	}
-
-	connPool := p.clusterManager.SofaRpcConnPoolForCluster(clusterName, nil)
-
-	if connPool == nil {
-		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		p.onInitFailure(NoHealthyUpstream)
-
-		return errors.New(fmt.Sprintf("no healthy upstream in cluster %s", clusterName)), nil
-	}
-
-	// TODO: update upstream stats
-
-	return nil, connPool
-}
-
-func (p *rpcproxy) onConnectionSuccess() {
-	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.Id())
-}
-
-func (p *rpcproxy) onInitFailure(reason UpstreamFailureReason) {
-	p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)
 }
 
 func (p *rpcproxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
@@ -285,13 +276,22 @@ func (p *rpcproxy) streamResetReasonToResponseFlag(reason types.StreamResetReaso
 	return 0
 }
 
-func (p *rpcproxy) onUpstreamReset(reason types.StreamResetReason) {
+func (p *rpcproxy) onUpstreamReset(streamId uint32, reason types.StreamResetReason) {
+	if as, ok := p.activeSteams[streamId]; ok {
+		p.deleteActiveStream(as)
+	}
 
+	// todo: update stats
 }
 
-func (p *rpcproxy) responseDecodeComplete(r *upstreamRequest) {
+func (p *rpcproxy) deleteUpstreamRequest(r *upstreamRequest) {
 	r.encoder.GetStream().RemoveCallbacks(r)
 	delete(p.upstreamRequests, r.streamId)
+}
+
+func (p *rpcproxy) deleteActiveStream(s *activeStream) {
+	s.responseEncoder.GetStream().RemoveCallbacks(s)
+	delete(p.activeSteams, s.streamId)
 }
 
 // ConnectionCallbacks
