@@ -5,6 +5,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
 
+// types.DecodeFilter
 // types.StreamConnection
 type streamConnection struct {
 	protocol      types.Protocol
@@ -13,6 +14,7 @@ type streamConnection struct {
 	protocols     types.Protocols
 }
 
+// types.StreamConnection
 func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	conn.protocols.Decode(buffer, conn)
 }
@@ -27,7 +29,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 		stream.decoder.DecodeHeaders(headers, false)
 	}
 
-	return types.Continue
+	return types.StopIteration
 }
 
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
@@ -73,7 +75,7 @@ func newClientStreamConnection(connection types.Connection,
 func (c *clientStreamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &stream{
 		streamId:   streamId,
-		connection: c.streamConnection,
+		connection: &c.streamConnection,
 		decoder:    responseDecoder,
 	}
 
@@ -96,12 +98,55 @@ func newServerStreamConnection(connection types.Connection,
 	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
 	return &serverStreamConnection{
 		streamConnection: streamConnection{
-			connection: connection,
-			protocols:  sofarpc.DefaultProtocols(),
+			connection:    connection,
+			protocols:     sofarpc.DefaultProtocols(),
 			activeStreams: make(map[uint32]*stream),
 		},
 		callbacks: callbacks,
 	}
+}
+
+// types.DecodeFilter
+func (sc *serverStreamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
+	if streamId > 0 {
+		sc.onNewStreamDetected(streamId)
+	}
+
+	sc.streamConnection.OnDecodeHeader(streamId, headers)
+
+	if streamId > 0 {
+		return types.StopIteration
+	} else {
+		return types.Continue
+	}
+}
+
+func (sc *serverStreamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
+	if streamId > 0 {
+		sc.onNewStreamDetected(streamId)
+	}
+
+	sc.streamConnection.OnDecodeData(streamId, data)
+
+	if streamId > 0 {
+		return types.StopIteration
+	} else {
+		return types.Continue
+	}
+}
+
+func (sc *serverStreamConnection) onNewStreamDetected(streamId uint32) {
+	if _, ok := sc.activeStreams[streamId]; ok {
+		return
+	}
+
+	stream := &stream{
+		streamId:   streamId,
+		connection: &sc.streamConnection,
+	}
+
+	stream.decoder = sc.callbacks.NewStream(streamId, stream)
+	sc.activeStreams[streamId] = stream
 }
 
 // types.Stream
@@ -109,7 +154,7 @@ func newServerStreamConnection(connection types.Connection,
 type stream struct {
 	readDisableCount int
 	streamId         uint32
-	connection       streamConnection
+	connection       *streamConnection
 	decoder          types.StreamDecoder
 	streamCbs        []types.StreamCallbacks
 }

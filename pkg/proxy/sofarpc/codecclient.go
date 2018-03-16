@@ -8,6 +8,7 @@ import (
 
 // proxy.CodecClient
 // types.ReadFilter
+// SOFA-RPC client
 type codecClient struct {
 	proxy.BaseCodeClient
 }

@@ -11,6 +11,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"container/list"
 )
 
 // 实现 sofa RPC 的 反向代理
@@ -28,6 +29,10 @@ type rpcproxy struct {
 	routerConfig types.RouterConfig
 	clusterName  string
 
+	codec types.ServerStreamConnection
+	// downstream requests
+	activeSteams map[uint32]*activeStream
+	// upstream requests
 	upstreamRequests map[uint32]*upstreamRequest
 }
 
@@ -46,6 +51,64 @@ func NewRPCProxy(config *v2.RpcProxy, clusterManager types.ClusterManager) RpcPr
 	}
 
 	return proxy
+}
+
+// types.StreamCallbacks
+// types.StreamDecoder
+type activeStream struct {
+	streamId        uint32
+	element         *list.Element
+	proxy           *rpcproxy
+	responseEncoder types.StreamEncoder
+}
+
+// types.StreamCallbacks
+func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
+	delete(s.proxy.activeSteams, s.streamId)
+}
+
+func (s *activeStream) OnAboveWriteBufferHighWatermark() {}
+
+func (s *activeStream) OnBelowWriteBufferLowWatermark() {}
+
+// types.StreamDecoder
+func (s *activeStream) DecodeHeaders(headers map[string]string, endStream bool) {
+	//do some route by service name
+	route := s.proxy.routerConfig.Route(headers)
+
+	if route == nil || route.RouteRule() == nil {
+		// no route
+		s.proxy.onDataErr()
+
+		return
+	}
+
+	err, pool := s.proxy.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
+
+	if err != nil {
+		s.proxy.onDataErr()
+
+		return
+	}
+
+	s.proxy.upstreamRequests[s.streamId] = &upstreamRequest{
+		streamId:    s.streamId,
+		connPool:    pool,
+		requestInfo: network.NewRequestInfo(),
+	}
+
+	return
+}
+
+func (s *activeStream) DecodeData(data types.IoBuffer, endStream bool) {}
+
+func (s *activeStream) DecodeTrailers(trailers map[string]string) {}
+
+func (s *activeStream) DecodeComplete(buf types.IoBuffer) {
+	upstreamReq := s.proxy.upstreamRequests[s.streamId]
+
+	upstreamReq.sendBuf = buf
+	upstreamReq.connPool.NewStream(s.streamId, upstreamReq, upstreamReq)
 }
 
 // types.StreamCallbacks
@@ -109,7 +172,7 @@ func (r *upstreamRequest) OnPoolReady(streamId uint32, encoder types.StreamEncod
 }
 
 func (p *rpcproxy) OnData(buf types.IoBuffer) types.FilterStatus {
-	p.protocols.Decode(buf, p)
+	p.codec.Dispatch(buf)
 
 	return types.StopIteration
 }
@@ -122,49 +185,6 @@ func (p *rpcproxy) onDataErr() {
 	if p.readCallbacks.Connection() != nil {
 		p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)
 	}
-}
-
-func (p *rpcproxy) OnDecodeComplete(streamId uint32, buf types.IoBuffer) {
-	upstreamReq := p.upstreamRequests[streamId]
-
-	upstreamReq.sendBuf = buf
-	upstreamReq.connPool.NewStream(streamId, upstreamReq, upstreamReq)
-}
-
-func (p *rpcproxy) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
-	//do some route by service name
-	route := p.routerConfig.Route(headers)
-
-	if route == nil || route.RouteRule() == nil {
-		// no route
-		p.onDataErr()
-
-		return types.StopIteration
-	}
-
-	err, pool := p.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
-
-	if err != nil {
-		p.onDataErr()
-
-		return types.StopIteration
-	}
-
-	p.upstreamRequests[streamId] = &upstreamRequest{
-		streamId:    streamId,
-		connPool:    pool,
-		requestInfo: network.NewRequestInfo(),
-	}
-
-	return types.StopIteration
-}
-
-func (p *rpcproxy) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
-	return types.StopIteration
-}
-
-func (p *rpcproxy) OnDecodeTrailer(streamId uint32, trailers map[string]string) types.FilterStatus {
-	return types.StopIteration
 }
 
 //rpc realize upstream on event
@@ -228,13 +248,24 @@ func (p *rpcproxy) onInitFailure(reason UpstreamFailureReason) {
 
 func (p *rpcproxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks = cb
-
 	p.readCallbacks.Connection().AddConnectionCallbacks(p.downstreamCallbacks)
 
-	p.requestInfo.SetDownstreamLocalAddress(p.readCallbacks.Connection().LocalAddr())
-	p.requestInfo.SetDownstreamRemoteAddress(p.readCallbacks.Connection().RemoteAddr())
+	p.codec = newServerStreamConnection(p.readCallbacks.Connection(), p)
 
 	// TODO: set downstream connection stats
+}
+
+func (p *rpcproxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
+	stream := &activeStream{
+		streamId:        streamId,
+		proxy:           p,
+		responseEncoder: responseEncoder,
+	}
+
+	stream.responseEncoder.GetStream().AddCallbacks(stream)
+	p.activeSteams[streamId] = stream
+
+	return stream
 }
 
 func (p *rpcproxy) OnNewConnection() types.FilterStatus {
