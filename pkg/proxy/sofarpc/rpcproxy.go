@@ -64,6 +64,7 @@ type activeStream struct {
 
 // types.StreamCallbacks
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
+	s.responseEncoder.GetStream().RemoveCallbacks(s)
 	delete(s.proxy.activeSteams, s.streamId)
 }
 
