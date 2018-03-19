@@ -78,8 +78,8 @@ func (csc *clientStreamConnection) OnGoAway() {
 func (csc *clientStreamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &clientStream{
 		stream: stream{
-			streamId:        streamId,
-			responseDecoder: responseDecoder,
+			streamId: streamId,
+			decoder:  responseDecoder,
 		},
 		connection: csc,
 	}
@@ -124,7 +124,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		connection: ssc,
 	}
 
-	stream.responseDecoder = ssc.serverStreamConnCallbacks.NewStream(0, stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(0, stream)
 
 	ele := ssc.activeStreams.PushBack(stream)
 	stream.element = ele
@@ -137,7 +137,7 @@ type stream struct {
 	readDisableCount int
 	request          *http.Request
 	response         *http.Response
-	responseDecoder  types.StreamDecoder
+	decoder          types.StreamDecoder
 	element          *list.Element
 	streamCbs        []types.StreamCallbacks
 }
@@ -225,14 +225,14 @@ func (s *clientStream) doSend() {
 				s.ResetStream(types.StreamConnectionFailed)
 			}
 		default:
-			s.responseDecoder.DecodeHeaders(decodeHeader(resp.Header), false)
+			s.decoder.DecodeHeaders(decodeHeader(resp.Header), false)
 
 			buf := &buffer.IoBuffer{}
 			// todo
 			buf.ReadFrom(resp.Body)
 
-			s.responseDecoder.DecodeData(buf, false)
-			s.responseDecoder.DecodeTrailers(decodeHeader(resp.Trailer))
+			s.decoder.DecodeData(buf, false)
+			s.decoder.DecodeTrailers(decodeHeader(resp.Trailer))
 		}
 	}()
 }
