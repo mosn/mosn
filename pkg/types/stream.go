@@ -83,6 +83,7 @@ type ServerStreamConnection interface {
 type ClientStreamConnection interface {
 	StreamConnection
 
+	// return request stream encoder
 	NewStream(streamId uint32, responseDecoder StreamDecoder) StreamEncoder
 }
 
@@ -91,6 +92,7 @@ type StreamConnectionCallbacks interface {
 }
 
 type ServerStreamConnectionCallbacks interface {
+	// return request stream decoder
 	NewStream(streamId uint32, responseEncoder StreamEncoder) StreamDecoder
 }
 

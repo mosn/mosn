@@ -1,9 +1,9 @@
 package sofarpc
 
 import (
+	"container/list"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"container/list"
 )
 
 // proxy.CodecClient
@@ -30,13 +30,13 @@ func newCodecClient(protocol types.Protocol, connection types.ClientConnection, 
 
 func (c *codecClient) NewStream(streamId uint32, respDecoder types.StreamDecoder) types.StreamEncoder {
 	ar := newActiveRequest(c, respDecoder)
-	ar.encoder = c.Codec.NewStream(streamId, ar)
-	ar.encoder.GetStream().AddCallbacks(ar)
+	ar.requestEncoder = c.Codec.NewStream(streamId, ar)
+	ar.requestEncoder.GetStream().AddCallbacks(ar)
 
 	ele := c.ActiveRequests.PushBack(ar)
 	ar.element = ele
 
-	return ar.encoder
+	return ar.requestEncoder
 }
 
 func (c *codecClient) Close() {
@@ -63,7 +63,7 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 				reason = types.StreamConnectionTermination
 			}
 
-			ar.Value.(*activeRequest).encoder.GetStream().ResetStream(reason)
+			ar.Value.(*activeRequest).requestEncoder.GetStream().ResetStream(reason)
 		}
 	}
 }
@@ -100,7 +100,7 @@ func (c *codecClient) onReset(request *activeRequest, reason types.StreamResetRe
 func (c *codecClient) responseDecodeComplete(request *activeRequest) {
 	c.deleteRequest(request)
 
-	request.encoder.GetStream().RemoveCallbacks(request)
+	request.requestEncoder.GetStream().RemoveCallbacks(request)
 }
 
 func (c *codecClient) deleteRequest(request *activeRequest) {
@@ -114,16 +114,16 @@ func (c *codecClient) deleteRequest(request *activeRequest) {
 // types.StreamCallbacks
 // types.StreamDecoderWrapper
 type activeRequest struct {
-	codecClient *codecClient
-	decoder     types.StreamDecoder
-	encoder     types.StreamEncoder
-	element     *list.Element
+	codecClient     *codecClient
+	responseDecoder types.StreamDecoder
+	requestEncoder  types.StreamEncoder
+	element         *list.Element
 }
 
 func newActiveRequest(codecClient *codecClient, streamDecoder types.StreamDecoder) *activeRequest {
 	return &activeRequest{
-		codecClient: codecClient,
-		decoder:     streamDecoder,
+		codecClient:     codecClient,
+		responseDecoder: streamDecoder,
 	}
 }
 
@@ -144,7 +144,7 @@ func (r *activeRequest) DecodeHeaders(headers map[string]string, endStream bool)
 		r.onPreDecodeComplete()
 	}
 
-	r.decoder.DecodeHeaders(headers, endStream)
+	r.responseDecoder.DecodeHeaders(headers, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
@@ -156,7 +156,7 @@ func (r *activeRequest) DecodeData(data types.IoBuffer, endStream bool) {
 		r.onPreDecodeComplete()
 	}
 
-	r.decoder.DecodeData(data, endStream)
+	r.responseDecoder.DecodeData(data, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
@@ -165,12 +165,12 @@ func (r *activeRequest) DecodeData(data types.IoBuffer, endStream bool) {
 
 func (r *activeRequest) DecodeTrailers(trailers map[string]string) {
 	r.onPreDecodeComplete()
-	r.decoder.DecodeTrailers(trailers)
+	r.responseDecoder.DecodeTrailers(trailers)
 	r.onDecodeComplete()
 }
 
 func (r *activeRequest) DecodeComplete(data types.IoBuffer) {
-	r.decoder.DecodeComplete(data)
+	r.responseDecoder.DecodeComplete(data)
 }
 
 func (r *activeRequest) onPreDecodeComplete() {

@@ -26,7 +26,7 @@ func (conn *streamConnection) Protocol() types.Protocol {
 // types.DecodeFilter
 func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.DecodeHeaders(headers, false)
+		stream.responseDecoder.DecodeHeaders(headers, false)
 	}
 
 	return types.StopIteration
@@ -34,7 +34,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.DecodeData(data, false)
+		stream.responseDecoder.DecodeData(data, false)
 	}
 
 	return types.Continue
@@ -42,7 +42,7 @@ func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer)
 
 func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.DecodeTrailers(trailers)
+		stream.responseDecoder.DecodeTrailers(trailers)
 	}
 
 	return types.Continue
@@ -50,7 +50,7 @@ func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[stri
 
 func (conn *streamConnection) OnDecodeComplete(streamId uint32, buf types.IoBuffer) {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.DecodeComplete(buf)
+		stream.responseDecoder.DecodeComplete(buf)
 	}
 }
 
@@ -74,9 +74,9 @@ func newClientStreamConnection(connection types.Connection,
 
 func (c *clientStreamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &stream{
-		streamId:   streamId,
-		connection: &c.streamConnection,
-		decoder:    responseDecoder,
+		streamId:        streamId,
+		connection:      &c.streamConnection,
+		responseDecoder: responseDecoder,
 	}
 
 	c.activeStreams[streamId] = stream
@@ -112,31 +112,25 @@ func (sc *serverStreamConnection) Dispatch(buffer types.IoBuffer) {
 
 // types.DecodeFilter
 func (sc *serverStreamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
-	if streamId > 0 {
-		sc.onNewStreamDetected(streamId)
-	}
-
-	sc.streamConnection.OnDecodeHeader(streamId, headers)
-
-	if streamId > 0 {
-		return types.StopIteration
-	} else {
+	if streamId == 0 {
 		return types.Continue
 	}
+
+	sc.onNewStreamDetected(streamId)
+	sc.streamConnection.OnDecodeHeader(streamId, headers)
+
+	return types.StopIteration
 }
 
 func (sc *serverStreamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
-	if streamId > 0 {
-		sc.onNewStreamDetected(streamId)
-	}
-
-	sc.streamConnection.OnDecodeData(streamId, data)
-
-	if streamId > 0 {
-		return types.StopIteration
-	} else {
+	if streamId == 0 {
 		return types.Continue
 	}
+
+	sc.onNewStreamDetected(streamId)
+	sc.streamConnection.OnDecodeData(streamId, data)
+
+	return types.StopIteration
 }
 
 func (sc *serverStreamConnection) onNewStreamDetected(streamId uint32) {
@@ -149,17 +143,17 @@ func (sc *serverStreamConnection) onNewStreamDetected(streamId uint32) {
 		connection: &sc.streamConnection,
 	}
 
-	stream.decoder = sc.callbacks.NewStream(streamId, stream)
+	stream.responseDecoder = sc.callbacks.NewStream(streamId, stream)
 	sc.activeStreams[streamId] = stream
 }
 
 // types.Stream
 // types.StreamEncoder
 type stream struct {
-	readDisableCount int
 	streamId         uint32
+	readDisableCount int
 	connection       *streamConnection
-	decoder          types.StreamDecoder
+	responseDecoder  types.StreamDecoder
 	streamCbs        []types.StreamCallbacks
 }
 

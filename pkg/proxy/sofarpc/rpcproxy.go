@@ -63,7 +63,7 @@ type activeStream struct {
 
 // types.StreamCallbacks
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
-	s.proxy.deleteActiveStream(s)
+	s.proxy.onStreamComplete(s.streamId)
 }
 
 func (s *activeStream) OnAboveWriteBufferHighWatermark() {}
@@ -173,7 +173,6 @@ type upstreamRequest struct {
 // types.StreamCallbacks
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	r.requestInfo.SetResponseFlag(r.proxy.streamResetReasonToResponseFlag(reason))
-	r.proxy.deleteUpstreamRequest(r)
 	r.proxy.onUpstreamReset(r.streamId, reason)
 }
 
@@ -190,7 +189,8 @@ func (r *upstreamRequest) DecodeTrailers(trailers map[string]string) {}
 
 func (r *upstreamRequest) DecodeComplete(data types.IoBuffer) {
 	r.proxy.readCallbacks.Connection().Write(data)
-	r.proxy.deleteUpstreamRequest(r)
+
+	r.proxy.onStreamComplete(r.streamId)
 }
 
 func (r *upstreamRequest) responseDecodeComplete() {}
@@ -277,9 +277,7 @@ func (p *rpcproxy) streamResetReasonToResponseFlag(reason types.StreamResetReaso
 }
 
 func (p *rpcproxy) onUpstreamReset(streamId uint32, reason types.StreamResetReason) {
-	if as, ok := p.activeSteams[streamId]; ok {
-		p.deleteActiveStream(as)
-	}
+	p.onStreamComplete(streamId)
 
 	// todo: update stats
 }
@@ -292,6 +290,16 @@ func (p *rpcproxy) deleteUpstreamRequest(r *upstreamRequest) {
 func (p *rpcproxy) deleteActiveStream(s *activeStream) {
 	s.responseEncoder.GetStream().RemoveCallbacks(s)
 	delete(p.activeSteams, s.streamId)
+}
+
+func (p *rpcproxy) onStreamComplete(streamId uint32) {
+	if as, ok := p.activeSteams[streamId]; ok {
+		p.deleteActiveStream(as)
+	}
+
+	if ur, ok := p.upstreamRequests[streamId]; ok {
+		p.deleteUpstreamRequest(ur)
+	}
 }
 
 // ConnectionCallbacks
