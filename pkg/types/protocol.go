@@ -24,7 +24,7 @@ type ConnectionPool interface {
 type PoolCallbacks interface {
 	OnPoolFailure(streamId uint32, reason PoolFailureReason, host Host)
 
-	OnPoolReady(streamId uint32, encoder StreamEncoder, host Host)
+	OnPoolReady(streamId uint32, requestEncoder StreamEncoder, host Host)
 }
 
 type Cancellable interface {

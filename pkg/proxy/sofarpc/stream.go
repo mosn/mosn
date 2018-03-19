@@ -44,7 +44,7 @@ func (conn *streamConnection) Protocol() types.Protocol {
 // types.DecodeFilter
 func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.responseDecoder.DecodeHeaders(headers, false)
+		stream.decoder.DecodeHeaders(headers, false)
 	}
 
 	return types.StopIteration
@@ -52,7 +52,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.responseDecoder.DecodeData(data, false)
+		stream.decoder.DecodeData(data, false)
 	}
 
 	return types.Continue
@@ -60,7 +60,7 @@ func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer)
 
 func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.responseDecoder.DecodeTrailers(trailers)
+		stream.decoder.DecodeTrailers(trailers)
 	}
 
 	return types.Continue
@@ -68,7 +68,7 @@ func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[stri
 
 func (conn *streamConnection) OnDecodeComplete(streamId uint32, buf types.IoBuffer) {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.responseDecoder.DecodeComplete(buf)
+		stream.decoder.DecodeComplete(buf)
 	}
 }
 
@@ -93,9 +93,9 @@ func newClientStreamConnection(connection types.Connection,
 
 func (c *clientStreamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &stream{
-		streamId:        streamId,
-		connection:      &c.streamConnection,
-		responseDecoder: responseDecoder,
+		streamId:   streamId,
+		connection: &c.streamConnection,
+		decoder:    responseDecoder,
 	}
 
 	c.activeStreams[streamId] = stream
@@ -158,7 +158,7 @@ func (sc *serverStreamConnection) onNewStreamDetected(streamId uint32) {
 		connection: &sc.streamConnection,
 	}
 
-	stream.responseDecoder = sc.serverStreamConnCallbacks.NewStream(streamId, stream)
+	stream.decoder = sc.serverStreamConnCallbacks.NewStream(streamId, stream)
 	sc.activeStreams[streamId] = stream
 }
 
@@ -168,7 +168,7 @@ type stream struct {
 	streamId         uint32
 	readDisableCount int
 	connection       *streamConnection
-	responseDecoder  types.StreamDecoder
+	decoder          types.StreamDecoder
 	streamCbs        []types.StreamCallbacks
 }
 
