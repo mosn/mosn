@@ -29,6 +29,8 @@ const (
 	TR_RESPONSE int16 = 14
 
 	TR_HEARTBEAT int16 = 0
+
+	PROCOCOL_VERSION byte = 13
 )
 
 // types.Encoder & types.Decoder
@@ -46,6 +48,71 @@ func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) {
 	} else {
 		log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
 	}
+
+	if trCommand, ok := value.(*trRequestCommand); ok {
+
+		data.AppendByte(PROCOCOL_VERSION)
+		data.AppendByte(HEADER_REQUEST)
+		//TODO 这里的协议要允许扩展,不能写死,最好从外面传递过来
+		data.AppendByte(HESSIAN2_SERIALIZE)
+		data.AppendByte(trCommand.direction)
+		data.AppendByte(0)
+		connRequestLength := len(trCommand.connRequestContent)
+		connRequestLengthByte := make([]byte, 4)
+		binary.BigEndian.PutUint32(connRequestLengthByte, uint32(connRequestLength))
+
+		data.Append(connRequestLengthByte)
+
+		appClassNameLength := len([]byte(trCommand.appClassName))
+
+		//appClassNameLength
+		data.AppendByte(byte(appClassNameLength))
+
+		appContentLengthByte := make([]byte, 4)
+
+		appContentLength := len(trCommand.appClassContent)
+		binary.BigEndian.PutUint32(appContentLengthByte, uint32(appContentLength))
+
+		data.Append(appContentLengthByte)
+
+		data.Append(trCommand.connRequestContent)
+		data.Append([]byte(trCommand.appClassName))
+		data.Append(trCommand.appClassContent)
+
+	} else if trCommand, ok := value.(*trResponseCommand); ok {
+
+		data.AppendByte(PROCOCOL_VERSION)
+		data.AppendByte(HEADER_RESPONSE)
+		//TODO 这里的协议要允许扩展,不能写死,最好从外面传递过来
+		data.AppendByte(HESSIAN2_SERIALIZE)
+		data.AppendByte(0)
+		data.AppendByte(0)
+		connRequestLength := len(trCommand.connRequestContent)
+		connRequestLengthByte := make([]byte, 4)
+		binary.BigEndian.PutUint32(connRequestLengthByte, uint32(connRequestLength))
+
+		data.Append(connRequestLengthByte)
+
+		appClassNameLength := len([]byte(trCommand.appClassName))
+
+		//appClassNameLength
+		data.AppendByte(byte(appClassNameLength))
+
+		appContentLengthByte := make([]byte, 4)
+
+		appContentLength := len(trCommand.appClassContent)
+		binary.BigEndian.PutUint32(appContentLengthByte, uint32(appContentLength))
+
+		data.Append(appContentLengthByte)
+
+		data.Append(trCommand.connRequestContent)
+		data.Append([]byte(trCommand.appClassName))
+		data.Append(trCommand.appClassContent)
+
+	} else {
+		log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
+	}
+
 }
 
 /**
