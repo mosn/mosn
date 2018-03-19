@@ -31,6 +31,8 @@ const (
 	TR_HEARTBEAT int16 = 0
 
 	PROCOCOL_VERSION byte = 13
+
+	PROTOCOL_HEADER_LENGTH uint32 = 14
 )
 
 // types.Encoder & types.Decoder
@@ -157,7 +159,7 @@ func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interfa
 	appClassName := string(appClassNameContent)
 	appClassContent := bytes[appClassNameEnd : appClassNameEnd+appClassContentLength]
 
-	totalLength := connRequestLength + appClassNameLength + appClassContentLength
+	totalLength := PROTOCOL_HEADER_LENGTH + connRequestLength + appClassNameLength + appClassContentLength
 
 	var cmdCode int16
 
@@ -192,6 +194,9 @@ func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interfa
 		}
 
 	} else if requestFlag == HEADER_RESPONSE {
+
+		cmdCode = TR_RESPONSE
+
 		response := trResponseCommand{
 
 			trCommand: trCommand{
