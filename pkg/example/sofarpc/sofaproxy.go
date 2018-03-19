@@ -139,7 +139,7 @@ func main() {
 			cc.AddConnectionCallbacks(&rpclientConnCallbacks{//ADD  connection callback
 				cc: cc,
 			})
-			cc.Connect()
+			cc.Connect(true)
 			cc.SetReadDisable(false)
 			cc.FilterManager().AddReadFilter(&rpcclientConnReadFilter{})
 

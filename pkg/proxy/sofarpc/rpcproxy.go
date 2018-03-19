@@ -249,6 +249,8 @@ func (p *rpcproxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	// TODO: set downstream connection stats
 }
 
+func (p *rpcproxy) OnGoAway() {}
+
 func (p *rpcproxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
 	stream := &activeStream{
 		streamId:        streamId,

@@ -12,7 +12,7 @@ type CodecClient interface {
 
 	AddConnectionCallbacks(cb types.ConnectionCallbacks)
 
-	ActiveRequestsLen() int
+	ActiveRequestsNum() int
 
 	NewStream(streamId uint32, respDecoder types.StreamDecoder) types.StreamEncoder
 
@@ -32,3 +32,12 @@ type CodecClientCallbacks interface {
 
 	OnStreamReset(reason types.StreamResetReason)
 }
+
+type ProtocolStreamFactory interface {
+	CreateClientStream(connection types.ClientConnection,
+		streamConnCallbacks types.StreamConnectionCallbacks, connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection
+
+	CreateServerStream(connection types.ServerConnection, callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection
+}
+
+

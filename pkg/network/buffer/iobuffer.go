@@ -22,6 +22,23 @@ type IoBuffer struct {
 	offMark int
 }
 
+func (b *IoBuffer) Read(p []byte) (n int, err error) {
+	if b.off >= len(b.buf) {
+		b.Reset()
+
+		if len(p) == 0 {
+			return
+		}
+
+		return 0, io.EOF
+	}
+
+	n = copy(p, b.buf[b.off:])
+	b.off += n
+
+	return
+}
+
 func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 	if b.off >= len(b.buf) {
 		b.Reset()
@@ -62,6 +79,10 @@ func (b *IoBuffer) WriteTo(w io.Writer) (n int64, err error) {
 
 		if e != nil {
 			return n, e
+		}
+
+		if m == 0 {
+			return n, nil
 		}
 	}
 

@@ -111,7 +111,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
 	p.upstreamConnection = upstreamConnection
 
-	upstreamConnection.Connect()
+	upstreamConnection.Connect(true)
 
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
 	p.requestInfo.SetUpstreamLocalAddress(upstreamConnection.LocalAddr())

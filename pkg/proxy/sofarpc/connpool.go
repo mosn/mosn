@@ -71,13 +71,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 }
 
 func (p *connPool) createCodecClient(connData types.CreateConnectionData) proxy.CodecClient {
-	return &codecClient{
-		proxy.BaseCodeClient{
-			Protocol:   protocol.SofaRpc,
-			Host:       connData.HostInfo,
-			Connection: connData.Connection,
-		},
-	}
+	return proxy.NewCodecClient(protocol.SofaRpc, connData.Connection, connData.HostInfo)
 }
 
 // proxy.CodecClientCallbacks
@@ -101,10 +95,10 @@ func newActiveClient(pool *connPool) *activeClient {
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
 
-	ac.codecClient = newCodecClient(pool.Protocol(), data.Connection, data.HostInfo)
+	ac.codecClient = codecClient
 	ac.host = data.HostInfo
 
-	data.Connection.Connect()
+	data.Connection.Connect(true)
 
 	return ac
 }

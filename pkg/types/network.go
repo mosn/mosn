@@ -56,6 +56,8 @@ type ListenerFilterManager interface {
 }
 
 type IoBuffer interface {
+	Read(p []byte) (n int, err error)
+
 	ReadFrom(r io.Reader) (n int64, err error)
 
 	WriteTo(w io.Writer) (n int64, err error)
@@ -152,7 +154,15 @@ type ClientConnection interface {
 	Connection
 
 	// connect to server in a async way
-	Connect() error
+	Connect(ioEnabled bool) error
+
+	RawConn() net.Conn
+}
+
+type ServerConnection interface {
+	Connection
+
+	RawConn() net.Conn
 }
 
 type ConnectionEvent string

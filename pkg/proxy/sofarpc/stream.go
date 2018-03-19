@@ -3,7 +3,25 @@ package sofarpc
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
+
+func init() {
+	proxy.Register(protocol.SofaRpc, &streamConnFactory{})
+}
+
+type streamConnFactory struct{}
+
+func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection,
+	streamConnCallbacks types.StreamConnectionCallbacks, connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection {
+	return newClientStreamConnection(connection, streamConnCallbacks)
+}
+
+func (f *streamConnFactory) CreateServerStream(connection types.ServerConnection,
+	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
+	return newServerStreamConnection(connection, callbacks)
+}
 
 // types.DecodeFilter
 // types.StreamConnection
@@ -57,18 +75,19 @@ func (conn *streamConnection) OnDecodeComplete(streamId uint32, buf types.IoBuff
 // types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection
-	callbacks types.StreamConnectionCallbacks
+	streamConnCallbacks types.StreamConnectionCallbacks
 }
 
 func newClientStreamConnection(connection types.Connection,
 	callbacks types.StreamConnectionCallbacks) types.ClientStreamConnection {
+
 	return &clientStreamConnection{
 		streamConnection: streamConnection{
 			connection:    connection,
 			protocols:     sofarpc.DefaultProtocols(),
 			activeStreams: make(map[uint32]*stream),
 		},
-		callbacks: callbacks,
+		streamConnCallbacks: callbacks,
 	}
 }
 
@@ -84,14 +103,10 @@ func (c *clientStreamConnection) NewStream(streamId uint32, responseDecoder type
 	return stream
 }
 
-type RquestStreamEncoderImpl struct {
-	stream
-}
-
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
-	callbacks types.ServerStreamConnectionCallbacks
+	serverStreamConnCallbacks types.ServerStreamConnectionCallbacks
 }
 
 func newServerStreamConnection(connection types.Connection,
@@ -102,7 +117,7 @@ func newServerStreamConnection(connection types.Connection,
 			protocols:     sofarpc.DefaultProtocols(),
 			activeStreams: make(map[uint32]*stream),
 		},
-		callbacks: callbacks,
+		serverStreamConnCallbacks: callbacks,
 	}
 }
 
@@ -143,7 +158,7 @@ func (sc *serverStreamConnection) onNewStreamDetected(streamId uint32) {
 		connection: &sc.streamConnection,
 	}
 
-	stream.responseDecoder = sc.callbacks.NewStream(streamId, stream)
+	stream.responseDecoder = sc.serverStreamConnCallbacks.NewStream(streamId, stream)
 	sc.activeStreams[streamId] = stream
 }
 

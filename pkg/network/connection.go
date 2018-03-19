@@ -550,7 +550,7 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 	return conn
 }
 
-func (cc *clientConnection) Connect() (err error) {
+func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 	cc.connectOnce.Do(func() {
 		var localTcpAddr *net.TCPAddr
 
@@ -578,7 +578,9 @@ func (cc *clientConnection) Connect() (err error) {
 		} else {
 			event = types.Connected
 
-			cc.Start(nil)
+			if ioEnabled {
+				cc.Start(nil)
+			}
 		}
 
 		for _, cccb := range cc.connCallbacks {
@@ -587,4 +589,8 @@ func (cc *clientConnection) Connect() (err error) {
 	})
 
 	return
+}
+
+func (cc *clientConnection) RawConn() net.Conn {
+	return cc.rawConnection
 }
