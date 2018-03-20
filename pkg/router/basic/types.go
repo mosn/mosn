@@ -1,4 +1,4 @@
-package sofarpc
+package basic
 
 import "gitlab.alipay-inc.com/afe/mosn/pkg"
 import "gitlab.alipay-inc.com/afe/mosn/pkg/types"

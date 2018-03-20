@@ -4,40 +4,28 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-type CodecClient interface {
-	types.ConnectionCallbacks
+type Proxy interface {
 	types.ReadFilter
 
-	Id() uint64
+	ReadDisableUpstream(disable bool)
 
-	AddConnectionCallbacks(cb types.ConnectionCallbacks)
-
-	ActiveRequestsNum() int
-
-	NewStream(streamId uint32, respDecoder types.StreamDecoder) types.StreamEncoder
-
-	SetConnectionStats(stats types.ConnectionStats)
-
-	SetCodecClientCallbacks(cb CodecClientCallbacks)
-
-	SetCodecConnectionCallbacks(cb types.StreamConnectionCallbacks)
-
-	Close()
-
-	RemoteClose() bool
+	ReadDisableDownstream(disable bool)
 }
 
-type CodecClientCallbacks interface {
-	OnStreamDestroy()
-
-	OnStreamReset(reason types.StreamResetReason)
+type UpstreamCallbacks interface {
+	types.ReadFilter
+	types.ConnectionCallbacks
 }
 
-type ProtocolStreamFactory interface {
-	CreateClientStream(connection types.ClientConnection,
-		streamConnCallbacks types.StreamConnectionCallbacks, connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection
-
-	CreateServerStream(connection types.ServerConnection, callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection
+type DownstreamCallbacks interface {
+	types.ConnectionCallbacks
 }
 
+type UpstreamFailureReason string
 
+const (
+	ConnectFailed         UpstreamFailureReason = "ConnectFailed"
+	NoHealthyUpstream     UpstreamFailureReason = "NoHealthyUpstream"
+	ResourceLimitExceeded UpstreamFailureReason = "ResourceLimitExceeded"
+	NoRoute               UpstreamFailureReason = "NoRoute"
+)

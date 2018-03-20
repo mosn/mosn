@@ -514,6 +514,10 @@ func (c *connection) FilterManager() types.FilterManager {
 	return c.filterManager
 }
 
+func (c *connection) RawConn() net.Conn {
+	return c.rawConnection
+}
+
 type clientConnection struct {
 	connection
 
@@ -561,9 +565,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 		var remoteTcpAddr *net.TCPAddr
 		remoteTcpAddr, err = net.ResolveTCPAddr("tcp", cc.remoteAddr.String())
 
-		var rawc *net.TCPConn
-		rawc, err = net.DialTCP("tcp", localTcpAddr, remoteTcpAddr)
-		cc.rawConnection = rawc
+		cc.rawConnection, err = net.DialTCP("tcp", localTcpAddr, remoteTcpAddr)
 		var event types.ConnectionEvent
 
 		if err != nil {
@@ -589,8 +591,4 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 	})
 
 	return
-}
-
-func (cc *clientConnection) RawConn() net.Conn {
-	return cc.rawConnection
 }

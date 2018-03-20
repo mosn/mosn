@@ -1,4 +1,4 @@
-package sofarpc
+package http2
 
 import "gitlab.alipay-inc.com/afe/mosn/pkg/types"
 

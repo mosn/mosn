@@ -19,6 +19,7 @@ import (
 // ClusterConfigFactoryCb
 // ClusterHostFactoryCb
 type connHandler struct {
+	disableConnIo  bool
 	numConnections int64
 	listeners      []*activeListener
 	clusterManager types.ClusterManager
@@ -27,8 +28,9 @@ type connHandler struct {
 }
 
 func NewHandler(filterFactory NetworkFilterConfigFactory,
-	clusterManagerFilter ClusterManagerFilter, logger log.Logger) types.ConnectionHandler {
+	clusterManagerFilter ClusterManagerFilter, logger log.Logger, DisableConnIo bool) types.ConnectionHandler {
 	ch := &connHandler{
+		disableConnIo:  DisableConnIo,
 		numConnections: 0,
 		clusterManager: cluster.NewClusterManager(nil),
 		listeners:      make([]*activeListener, 0),
@@ -181,8 +183,11 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 }
 
 func (al *activeListener) OnNewConnection(conn types.Connection) {
-	// start conn loops first
-	conn.Start(nil)
+	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
+	if !al.handler.disableConnIo {
+		// start conn loops first
+		conn.Start(nil)
+	}
 
 	configFactory := al.handler.filterFactory.CreateFilterFactory(al.handler.clusterManager)
 	buildFilterChain(conn.FilterManager(), configFactory)

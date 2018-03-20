@@ -1,4 +1,4 @@
-package proxy
+package stream
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -6,17 +6,7 @@ import (
 	"sync"
 )
 
-var streamFactories map[types.Protocol]ProtocolStreamFactory
-
-func init() {
-	streamFactories = make(map[types.Protocol]ProtocolStreamFactory)
-}
-
-func Register(prot types.Protocol, factory ProtocolStreamFactory) {
-	streamFactories[prot] = factory
-}
-
-// proxy.CodecClient
+// stream.CodecClient
 // types.ReadFilter
 // types.StreamConnectionCallbacks
 type codecClient struct {
@@ -160,7 +150,6 @@ func (c *codecClient) onReset(request *activeRequest, reason types.StreamResetRe
 
 func (c *codecClient) responseDecodeComplete(request *activeRequest) {
 	c.deleteRequest(request)
-
 	request.requestEncoder.GetStream().RemoveCallbacks(request)
 }
 

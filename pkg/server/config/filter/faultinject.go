@@ -5,7 +5,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/faultinject"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy/tcp"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/tcp"
 )
 
 type FaultInjectFilterConfigFactory struct {

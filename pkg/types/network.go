@@ -141,6 +141,10 @@ type Connection interface {
 	AboveHighWatermark() bool
 
 	FilterManager() FilterManager
+
+	// Caution: raw conn only used in io-loop disable mode
+	// todo: a better way to provide raw conn
+	RawConn() net.Conn
 }
 
 type ConnectionStats struct {
@@ -155,14 +159,6 @@ type ClientConnection interface {
 
 	// connect to server in a async way
 	Connect(ioEnabled bool) error
-
-	RawConn() net.Conn
-}
-
-type ServerConnection interface {
-	Connection
-
-	RawConn() net.Conn
 }
 
 type ConnectionEvent string

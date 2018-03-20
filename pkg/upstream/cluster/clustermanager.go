@@ -8,7 +8,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"errors"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 )
 
 const (
@@ -21,6 +22,7 @@ type clusterManager struct {
 	primaryClusters  map[string]*primaryCluster
 	clusterSnapshots map[string]*golocalstore
 	sofaRpcConnPool  map[string]types.ConnectionPool
+	http2ConnPool    map[string]types.ConnectionPool
 }
 
 type clusterSnapshot struct {
@@ -34,7 +36,8 @@ func NewClusterManager(sourceAddr net.Addr) types.ClusterManager {
 		sourceAddr:       sourceAddr,
 		primaryClusters:  make(map[string]*primaryCluster),
 		clusterSnapshots: make(map[string]*golocalstore),
-		sofaRpcConnPool: make(map[string]types.ConnectionPool),
+		sofaRpcConnPool:  make(map[string]types.ConnectionPool),
+		http2ConnPool:    make(map[string]types.ConnectionPool),
 	}
 }
 
@@ -161,9 +164,30 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 	return errors.New(fmt.Sprintf("cluster %s not found", clusterName))
 }
 
-func (cm *clusterManager) HttpConnPoolForCluster(cluster string, priority pkg.Priority, protocol string, context context.Context) types.ConnectionPool {
-	// todo
-	return nil
+func (cm *clusterManager) HttpConnPoolForCluster(cluster string, priority pkg.Priority, protocol types.Protocol, context context.Context) types.ConnectionPool {
+	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
+
+	if clusterSnapshot == nil {
+		return nil
+	}
+
+	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
+
+	if host != nil {
+		addr := host.Address().String()
+
+		// todo: support protocol http1.x
+		if connPool, ok := cm.http2ConnPool[addr]; ok {
+			return connPool
+		} else {
+			connPool := http2.NewConnPool(host)
+			cm.sofaRpcConnPool[addr] = connPool
+
+			return connPool
+		}
+	} else {
+		return nil
+	}
 }
 
 func (cm *clusterManager) TcpConnForCluster(cluster string, context context.Context) types.CreateConnectionData {

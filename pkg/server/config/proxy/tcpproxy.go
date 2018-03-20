@@ -4,7 +4,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy/tcp"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/tcp"
 )
 
 type TcpProxyFilterConfigFactory struct {

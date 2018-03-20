@@ -1,4 +1,4 @@
-package sofarpc
+package basic
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -10,7 +10,8 @@ import (
 )
 
 func init() {
-	router.RegisteRouterConfigFactory(protocol.SofaRpc, NewSofaRpcRouter)
+	router.RegisteRouterConfigFactory(protocol.SofaRpc, NewBasicRouter)
+	router.RegisteRouterConfigFactory(protocol.Http2, NewBasicRouter)
 }
 
 // types.RouterConfig
@@ -28,19 +29,19 @@ func (rc routeConfig) Route(headers map[string]string) types.Route {
 	return nil
 }
 
-type simpleRpcRouter struct {
+type basicRouter struct {
 	RouteRuleImplAdaptor
 	name    string
 	service string
 	cluster string
 }
 
-func NewSofaRpcRouter(config interface{}) (types.RouterConfig, error) {
-	if config, ok := config.(*v2.RpcProxy); ok {
+func NewBasicRouter(config interface{}) (types.RouterConfig, error) {
+	if config, ok := config.(*v2.Proxy); ok {
 		routers := make([]router.RouteBase, 0)
 
 		for _, r := range config.Routes {
-			routers = append(routers, &simpleRpcRouter{
+			routers = append(routers, &basicRouter{
 				name:    r.Name,
 				service: r.Service,
 				cluster: r.Cluster,
@@ -55,7 +56,7 @@ func NewSofaRpcRouter(config interface{}) (types.RouterConfig, error) {
 	}
 }
 
-func (srr *simpleRpcRouter) Match(headers map[string]string) types.Route {
+func (srr *basicRouter) Match(headers map[string]string) types.Route {
 	if headers == nil {
 		return nil
 	}
@@ -63,7 +64,7 @@ func (srr *simpleRpcRouter) Match(headers map[string]string) types.Route {
 	var ok bool
 	var service string
 
-	if service, ok = headers["service"]; !ok {
+	if service, ok = headers["Service"]; !ok {
 		return nil
 	}
 
@@ -74,18 +75,18 @@ func (srr *simpleRpcRouter) Match(headers map[string]string) types.Route {
 	}
 }
 
-func (srr *simpleRpcRouter) RedirectRule() types.RedirectRule {
+func (srr *basicRouter) RedirectRule() types.RedirectRule {
 	return nil
 }
 
-func (srr *simpleRpcRouter) RouteRule() types.RouteRule {
+func (srr *basicRouter) RouteRule() types.RouteRule {
 	return srr
 }
 
-func (srr *simpleRpcRouter) TraceDecorator() types.TraceDecorator {
+func (srr *basicRouter) TraceDecorator() types.TraceDecorator {
 	return nil
 }
 
-func (srr *simpleRpcRouter) ClusterName() string {
+func (srr *basicRouter) ClusterName() string {
 	return srr.cluster
 }

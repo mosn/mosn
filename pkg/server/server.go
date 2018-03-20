@@ -28,10 +28,12 @@ type server struct {
 func NewServer(config *Config, filterFactory NetworkFilterConfigFactory, cmFilter ClusterManagerFilter) Server {
 	var logPath string
 	var logLevel log.LogLevel
+	var disableConnIo bool
 
 	if config != nil {
 		logPath = config.LogPath
 		logLevel = config.LogLevel
+		disableConnIo = config.DisableConnIo
 	}
 
 	log.InitDefaultLogger(logPath, logLevel)
@@ -40,7 +42,7 @@ func NewServer(config *Config, filterFactory NetworkFilterConfigFactory, cmFilte
 	server := &server{
 		logger:   log.DefaultLogger,
 		stopChan: make(chan bool),
-		handler:  NewHandler(filterFactory, cmFilter, log.DefaultLogger),
+		handler:  NewHandler(filterFactory, cmFilter, log.DefaultLogger, disableConnIo),
 	}
 
 	servers = append(servers, server)

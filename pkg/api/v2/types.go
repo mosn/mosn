@@ -74,3 +74,15 @@ type FaultInject struct {
 	DelayPercent  uint32
 	DelayDuration uint64
 }
+
+type Proxy struct {
+	DownstreamProtocol string
+	UpstreamProtocol   string
+	Routes             []*BasicServiceRoute
+}
+
+type BasicServiceRoute struct {
+	Name    string
+	Service string
+	Cluster string
+}

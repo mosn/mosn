@@ -1,10 +1,10 @@
-package sofarpc
+package http2
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy"
 	"sync"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 // types.ConnectionPool
@@ -22,7 +22,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) Protocol() types.Protocol {
-	return protocol.SofaRpc
+	return protocol.Http2
 }
 
 func (p *connPool) AddDrainedCallback(cb func()) {}
@@ -96,8 +96,8 @@ func (p *connPool) onGoAway(client *activeClient) {
 	}
 }
 
-func (p *connPool) createCodecClient(connData types.CreateConnectionData) proxy.CodecClient {
-	return proxy.NewCodecClient(protocol.Http2, connData.Connection, connData.HostInfo)
+func (p *connPool) createCodecClient(connData types.CreateConnectionData) str.CodecClient {
+	return str.NewCodecClient(protocol.Http2, connData.Connection, connData.HostInfo)
 }
 
 func (p *connPool) movePrimaryToDraining() {
@@ -113,12 +113,12 @@ func (p *connPool) movePrimaryToDraining() {
 	}
 }
 
-// proxy.CodecClientCallbacks
+// stream.CodecClientCallbacks
 // types.ConnectionCallbacks
 // types.StreamConnectionCallbacks
 type activeClient struct {
 	pool        *connPool
-	codecClient proxy.CodecClient
+	codecClient str.CodecClient
 	host        types.HostInfo
 	totalStream uint64
 }
@@ -129,6 +129,8 @@ func newActiveClient(pool *connPool) *activeClient {
 	}
 
 	data := pool.host.CreateConnection()
+	data.Connection.Connect(false)
+
 	codecClient := pool.createCodecClient(data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
@@ -136,8 +138,6 @@ func newActiveClient(pool *connPool) *activeClient {
 
 	ac.codecClient = codecClient
 	ac.host = data.HostInfo
-
-	data.Connection.Connect(false)
 
 	return ac
 }

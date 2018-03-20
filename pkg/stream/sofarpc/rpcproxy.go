@@ -21,7 +21,6 @@ type rpcproxy struct {
 	clusterManager      types.ClusterManager
 	readCallbacks       types.ReadFilterCallbacks
 	upstreamConnection  types.ClientConnection
-	requestInfo         types.RequestInfo
 	downstreamCallbacks DownstreamCallbacks
 
 	protocols    types.Protocols
@@ -38,7 +37,6 @@ type rpcproxy struct {
 func NewRPCProxy(config *v2.RpcProxy, clusterManager types.ClusterManager) RpcProxy {
 	proxy := &rpcproxy{
 		clusterManager:   clusterManager,
-		requestInfo:      network.NewRequestInfo(),
 		protocols:        sofarpc.DefaultProtocols(),
 		activeSteams:     make(map[uint32]*activeStream),
 		upstreamRequests: make(map[uint32]*upstreamRequest),

@@ -7,8 +7,10 @@ import (
 )
 
 type Config struct {
-	LogPath    string
-	LogLevel   log.LogLevel
+	LogPath  string
+	LogLevel log.LogLevel
+	// only used in http2 case
+	DisableConnIo bool
 }
 
 type Server interface {

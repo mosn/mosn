@@ -19,7 +19,7 @@ type ClusterManager interface {
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
-	HttpConnPoolForCluster(cluster string, priority pkg.Priority, protocol string, context context.Context) ConnectionPool
+	HttpConnPoolForCluster(cluster string, priority pkg.Priority, protocol Protocol, context context.Context) ConnectionPool
 
 	TcpConnForCluster(cluster string, context context.Context) CreateConnectionData
 

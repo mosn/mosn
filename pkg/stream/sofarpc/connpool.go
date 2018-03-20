@@ -1,7 +1,7 @@
 package sofarpc
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy"
+	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
@@ -70,16 +70,16 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 	// todo: update host stats
 }
 
-func (p *connPool) createCodecClient(connData types.CreateConnectionData) proxy.CodecClient {
-	return proxy.NewCodecClient(protocol.SofaRpc, connData.Connection, connData.HostInfo)
+func (p *connPool) createCodecClient(connData types.CreateConnectionData) str.CodecClient {
+	return str.NewCodecClient(protocol.SofaRpc, connData.Connection, connData.HostInfo)
 }
 
-// proxy.CodecClientCallbacks
+// stream.CodecClientCallbacks
 // types.ConnectionCallbacks
 // types.StreamConnectionCallbacks
 type activeClient struct {
 	pool        *connPool
-	codecClient proxy.CodecClient
+	codecClient str.CodecClient
 	host        types.HostInfo
 	totalStream uint64
 }

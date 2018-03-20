@@ -3,12 +3,12 @@ package sofarpc
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy"
+	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 func init() {
-	proxy.Register(protocol.SofaRpc, &streamConnFactory{})
+	str.Register(protocol.SofaRpc, &streamConnFactory{})
 }
 
 type streamConnFactory struct{}
@@ -18,7 +18,7 @@ func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection
 	return newClientStreamConnection(connection, streamConnCallbacks)
 }
 
-func (f *streamConnFactory) CreateServerStream(connection types.ServerConnection,
+func (f *streamConnFactory) CreateServerStream(connection types.Connection,
 	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
 	return newServerStreamConnection(connection, callbacks)
 }
