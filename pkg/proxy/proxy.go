@@ -77,7 +77,7 @@ func (s *activeStream) cleanup() {
 }
 
 // types.StreamDecoder
-func (s *activeStream) DecodeHeaders(headers map[string]string, endStream bool) {
+func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	//do some route by service name
 	route := s.proxy.routerConfig.Route(headers)
 
@@ -114,15 +114,15 @@ func (s *activeStream) DecodeHeaders(headers map[string]string, endStream bool) 
 	return
 }
 
-func (s *activeStream) DecodeData(data types.IoBuffer, endStream bool) {
+func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 	s.upstreamRequest.requestEncoder.EncodeData(data, endStream)
 }
 
-func (s *activeStream) DecodeTrailers(trailers map[string]string) {
+func (s *activeStream) OnDecodeTrailers(trailers map[string]string) {
 	s.upstreamRequest.requestEncoder.EncodeTrailers(trailers)
 }
 
-func (s *activeStream) DecodeComplete(buf types.IoBuffer) {}
+func (s *activeStream) OnDecodeComplete(buf types.IoBuffer) {}
 
 func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (error, types.ConnectionPool) {
 	// todo: we just reset downstream stream on route failed, confirm sofa rpc logic
@@ -205,7 +205,7 @@ func (r *upstreamRequest) OnAboveWriteBufferHighWatermark() {}
 func (r *upstreamRequest) OnBelowWriteBufferLowWatermark() {}
 
 // types.StreamDecoder
-func (r *upstreamRequest) DecodeHeaders(headers map[string]string, endStream bool) {
+func (r *upstreamRequest) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	// most simple case: just encode headers to upstream
 	r.activeStream.responseEncoder.EncodeHeaders(headers, endStream)
 
@@ -214,7 +214,7 @@ func (r *upstreamRequest) DecodeHeaders(headers map[string]string, endStream boo
 	}
 }
 
-func (r *upstreamRequest) DecodeData(data types.IoBuffer, endStream bool) {
+func (r *upstreamRequest) OnDecodeData(data types.IoBuffer, endStream bool) {
 	r.activeStream.responseEncoder.EncodeData(data, endStream)
 
 	if endStream {
@@ -222,12 +222,12 @@ func (r *upstreamRequest) DecodeData(data types.IoBuffer, endStream bool) {
 	}
 }
 
-func (r *upstreamRequest) DecodeTrailers(trailers map[string]string) {
+func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 	r.activeStream.responseEncoder.EncodeTrailers(trailers)
 	r.cleanup()
 }
 
-func (r *upstreamRequest) DecodeComplete(data types.IoBuffer) {}
+func (r *upstreamRequest) OnDecodeComplete(data types.IoBuffer) {}
 
 func (r *upstreamRequest) cleanup() {
 	r.proxy.streamMux.Lock()

@@ -51,13 +51,13 @@ type StreamEncoder interface {
 }
 
 type StreamDecoder interface {
-	DecodeHeaders(headers map[string]string, endStream bool)
+	OnDecodeHeaders(headers map[string]string, endStream bool)
 
-	DecodeData(data IoBuffer, endStream bool)
+	OnDecodeData(data IoBuffer, endStream bool)
 
-	DecodeTrailers(trailers map[string]string)
+	OnDecodeTrailers(trailers map[string]string)
 
-	DecodeComplete(data IoBuffer)
+	OnDecodeComplete(data IoBuffer)
 }
 
 type StreamConnection interface {

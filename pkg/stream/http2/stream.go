@@ -130,13 +130,13 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(0, stream)
 	stream.element = ssc.activeStreams.PushBack(stream)
 
-	stream.decoder.DecodeHeaders(decodeHeader(request.Header), false)
+	stream.decoder.OnDecodeHeaders(decodeHeader(request.Header), false)
 
 	buf := &buffer.IoBuffer{}
 	// todo
 	buf.ReadFrom(request.Body)
-	stream.decoder.DecodeData(buf, false)
-	stream.decoder.DecodeTrailers(decodeHeader(request.Trailer))
+	stream.decoder.OnDecodeData(buf, false)
+	stream.decoder.OnDecodeTrailers(decodeHeader(request.Trailer))
 
 	select {
 	case <-stream.responseDoneChan:
@@ -275,14 +275,14 @@ func (s *clientStream) doSend() {
 				}
 			}
 		} else {
-			s.decoder.DecodeHeaders(decodeHeader(resp.Header), false)
+			s.decoder.OnDecodeHeaders(decodeHeader(resp.Header), false)
 
 			buf := &buffer.IoBuffer{}
 			// todo
 			buf.ReadFrom(resp.Body)
 
-			s.decoder.DecodeData(buf, false)
-			s.decoder.DecodeTrailers(decodeHeader(resp.Trailer))
+			s.decoder.OnDecodeData(buf, false)
+			s.decoder.OnDecodeTrailers(decodeHeader(resp.Trailer))
 		}
 
 		s.connection.activeStreams.Remove(s.element)

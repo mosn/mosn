@@ -192,38 +192,38 @@ func (r *activeRequest) OnBelowWriteBufferLowWatermark() {
 	// todo
 }
 
-func (r *activeRequest) DecodeHeaders(headers map[string]string, endStream bool) {
+func (r *activeRequest) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseDecoder.DecodeHeaders(headers, endStream)
+	r.responseDecoder.OnDecodeHeaders(headers, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
 	}
 }
 
-func (r *activeRequest) DecodeData(data types.IoBuffer, endStream bool) {
+func (r *activeRequest) OnDecodeData(data types.IoBuffer, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseDecoder.DecodeData(data, endStream)
+	r.responseDecoder.OnDecodeData(data, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
 	}
 }
 
-func (r *activeRequest) DecodeTrailers(trailers map[string]string) {
+func (r *activeRequest) OnDecodeTrailers(trailers map[string]string) {
 	r.onPreDecodeComplete()
-	r.responseDecoder.DecodeTrailers(trailers)
+	r.responseDecoder.OnDecodeTrailers(trailers)
 	r.onDecodeComplete()
 }
 
-func (r *activeRequest) DecodeComplete(data types.IoBuffer) {
-	r.responseDecoder.DecodeComplete(data)
+func (r *activeRequest) OnDecodeComplete(data types.IoBuffer) {
+	r.responseDecoder.OnDecodeComplete(data)
 }
 
 func (r *activeRequest) onPreDecodeComplete() {

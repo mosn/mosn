@@ -44,7 +44,7 @@ func (conn *streamConnection) Protocol() types.Protocol {
 // types.DecodeFilter
 func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.DecodeHeaders(headers, false)
+		stream.decoder.OnDecodeHeaders(headers, false)
 	}
 
 	return types.Continue
@@ -52,7 +52,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.DecodeData(data, true)
+		stream.decoder.OnDecodeData(data, true)
 	}
 
 	return types.Continue
@@ -60,7 +60,7 @@ func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer)
 
 func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.DecodeTrailers(trailers)
+		stream.decoder.OnDecodeTrailers(trailers)
 	}
 
 	return types.Continue
@@ -68,7 +68,7 @@ func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[stri
 
 func (conn *streamConnection) OnDecodeComplete(streamId uint32, buf types.IoBuffer) {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.DecodeComplete(buf)
+		stream.decoder.OnDecodeComplete(buf)
 	}
 }
 
