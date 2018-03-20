@@ -47,12 +47,12 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 		stream.decoder.DecodeHeaders(headers, false)
 	}
 
-	return types.StopIteration
+	return types.Continue
 }
 
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.DecodeData(data, false)
+		stream.decoder.DecodeData(data, true)
 	}
 
 	return types.Continue
@@ -207,18 +207,32 @@ func (s *stream) BufferLimit() uint32 {
 }
 
 // types.StreamEncoder
-// we just send raw request data in first stage
 func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
-	// skip encode headers
+	// todo: encode headers
+
+	if endStream {
+		s.endStream()
+	}
 }
 
 func (s *stream) EncodeData(data types.IoBuffer, endStream bool) {
-	// just send data in current solution
-	s.connection.connection.Write(data)
+	// todo: encode data
+
+	if endStream {
+		s.endStream()
+	}
 }
 
 func (s *stream) EncodeTrailers(trailers map[string]string) {
-	// skip encode trailers
+	// todo: encode trailer
+
+	s.endStream()
+}
+
+func (s *stream) endStream() {
+	// todo: flush stream data
+
+	delete(s.connection.activeStreams, s.streamId)
 }
 
 func (s *stream) GetStream() types.Stream {

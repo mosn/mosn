@@ -5,6 +5,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 )
 
 type BoltRequestProcessor struct {
@@ -18,6 +19,14 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 		if filter, ok := ctx.(types.DecodeFilter); ok {
 			if cmd.GetRequestHeader() != nil {
 				status := filter.OnDecodeHeader(cmd.GetId(), cmd.GetRequestHeader())
+
+				if status == types.StopIteration {
+					return
+				}
+			}
+
+			if cmd.GetContent() != nil {
+				status := filter.OnDecodeData(cmd.GetId(), buffer.NewIoBufferBytes(cmd.GetContent()))
 
 				if status == types.StopIteration {
 					return

@@ -198,3 +198,10 @@ func NewIoBufferString(s string) *IoBuffer {
 		offMark: ResetOffMark,
 	}
 }
+
+func NewIoBufferBytes(bytes []byte) *IoBuffer {
+	return &IoBuffer{
+		buf:     []byte(bytes),
+		offMark: ResetOffMark,
+	}
+}

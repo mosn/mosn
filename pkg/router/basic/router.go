@@ -65,7 +65,9 @@ func (srr *basicRouter) Match(headers map[string]string) types.Route {
 	var service string
 
 	if service, ok = headers["Service"]; !ok {
-		return nil
+		if service, ok = headers["service"]; !ok {
+			return nil
+		}
 	}
 
 	if match, _ := regexp.MatchString(srr.service, service); match {

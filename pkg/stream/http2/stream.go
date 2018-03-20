@@ -285,6 +285,7 @@ func (s *clientStream) doSend() {
 			s.decoder.DecodeTrailers(decodeHeader(resp.Trailer))
 		}
 
+		s.connection.activeStreams.Remove(s.element)
 	}()
 }
 
@@ -338,6 +339,7 @@ func (s *serverStream) EncodeTrailers(trailers map[string]string) {
 func (s *serverStream) endStream() {
 	s.doSend()
 	s.responseDoneChan <- true
+	s.connection.activeStreams.Remove(s.element)
 }
 
 func (s *serverStream) doSend() {
