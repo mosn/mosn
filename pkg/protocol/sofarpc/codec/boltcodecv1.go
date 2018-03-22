@@ -11,47 +11,21 @@ import (
 // types.Encoder & types.Decoder
 type boltV1Codec struct{}
 
-/*
-@author: Boqin
-input type: (*boltCommand, types.IoBuffer(NULL))
-
-
-Encode following fields in order
-
-bolt v1
-type RpcCommand struct {
-	protocol    byte   //1 boltv1, 2 boltv2, 13 tr
-	type        byte  //0 response,1是request,2是req oneway
-	cmdCode     int16 //0心跳,     1 是request,  2 response
-	ver2        byte
-	requestId   int32
-	codec       byte
-	timeout     int32 //request
-	respStatus  int16 //response
-	classLen    int16
-	headerLen   int16
-	contentLen  int32
-	clazz       []byte
-	header      []byte
-	content     []byte
-	//以下非消息体,表示请求还是结构信息.
-	commandType byte
-}
-*/
 func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {
-
 	if rpcCmd, ok := value.(*boltCommand); !ok {
 
 		log.DefaultLogger.Println("[Decode] Invalid Input Type")
 		return
+
 	} else {
 
 		requestType := ""
-
 		if rpcCmd.cmdCode == sofarpc.RPC_REQUEST {
+
 			requestType = "request"
 
 		} else {
+
 			requestType = "response"
 
 		}
@@ -67,7 +41,7 @@ func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {
 		binary.BigEndian.PutUint16(cmdCodeBytes, uint16(rpcCmd.cmdCode))
 		result = append(result, cmdCodeBytes...)
 
-		result = append(result, rpcCmd.ver2)
+		result = append(result, rpcCmd.version)
 
 		requestIdBytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(requestIdBytes, uint32(rpcCmd.id))
@@ -120,7 +94,7 @@ func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {
 	}
 }
 
-func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{})int {
+func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) int {
 	readableBytes := data.Len()
 	read := 0
 
@@ -163,7 +137,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 					//TODO mark buffer's off
 				} else { // not enough data
 					log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
-					return
+					return 0
 				}
 
 				request := &boltRequestCommand{
@@ -174,7 +148,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 						dataType,
 						codec,
 
-						int(requestId),
+						requestId,
 						int16(classLen),
 						int16(headerLen),
 						int(contentLen),
@@ -225,7 +199,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 					}
 				} else { // not enough data
 					log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
-					return
+					return 0
 				}
 
 				response := &boltResponseCommand{
@@ -235,7 +209,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 						ver2,
 						dataType,
 						codec,
-						int(requestId),
+						requestId,
 						int16(classLen),
 						int16(headerLen),
 						int(contentLen),
@@ -257,6 +231,7 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 			}
 		}
 	}
+
 	return read
 }
 
