@@ -33,4 +33,3 @@ type trResponseCommand struct {
 	//response command
 	response interface{} //TODO import ConnectionResponse
 }
-

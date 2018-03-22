@@ -28,6 +28,7 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 
 func (p *protocols) Encode(value interface{}, data types.IoBuffer) {}
 
+// filter = type.serverStreamConnection
 func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 	readableBytes := uint64(data.Len())
 
@@ -42,10 +43,10 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 			var out = make([]RpcCommand, 0, 1)
 
 			decoder := proto.GetDecoder()
-			read := decoder.Decode(filter, data, &out)
+			read := decoder.Decode(filter, data, &out)     //先解析称command,保存在OUT
 
 			if len(out) > 0 {
-				proto.GetCommandHandler().HandleCommand(filter, out[0])
+				proto.GetCommandHandler().HandleCommand(filter, out[0])  //做decode 同时序列化，在此调用！！
 
 				filter.OnDecodeComplete(out[0].GetId(), data.Cut(read))
 			}

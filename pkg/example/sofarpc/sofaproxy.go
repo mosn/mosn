@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	RealRPCServerAddr = "127.0.0.1:8088"
-	MeshRPCServerAddr = "127.0.0.1:2044"
+	RealRPCServerAddr = "127.0.0.1:8089"
+	MeshRPCServerAddr = "127.0.0.1:2045"
 	TestClusterRPC    = "tstCluster"
 	TestListenerRPC   = "tstListener"
 )
@@ -39,7 +39,7 @@ func main() {
 
 	go func() {
 		// pprof server
-		http.ListenAndServe("0.0.0.0:9090", nil)
+		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
 
 	stopChan := make(chan bool)

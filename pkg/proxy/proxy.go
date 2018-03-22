@@ -79,7 +79,7 @@ func (s *activeStream) cleanup() {
 // types.StreamDecoder
 func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	//do some route by service name
-	route := s.proxy.routerConfig.Route(headers)
+	route := s.proxy.routerConfig.Route(headers)     //请求的header，例如SOFA RPC
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
@@ -96,7 +96,7 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 		return
 	}
 
-	req := &upstreamRequest{
+	req := &upstreamRequest{    //组装往后发起的请求
 		activeStream: s,
 		proxy:        s.proxy,
 		connPool:     pool,
@@ -105,11 +105,11 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	req.element = s.proxy.upstreamRequests.PushBack(req)
 	s.upstreamRequest = req
 
-	req.connPool.NewStream(0, req, req)
+	req.connPool.NewStream(0, req, req)       //赋值 request
 
 	// todo: move this to pool ready
 	// most simple case: just encode headers to upstream
-	req.requestEncoder.EncodeHeaders(headers, endStream)
+	req.requestEncoder.EncodeHeaders(headers, endStream)     //往后发
 
 	return
 }
@@ -189,7 +189,7 @@ type upstreamRequest struct {
 	host           types.Host
 	requestInfo    types.RequestInfo
 	connPool       types.ConnectionPool
-	requestEncoder types.StreamEncoder
+	requestEncoder types.StreamEncoder    //用于向UPSTREAM请求的封装
 	sendBuf        types.IoBuffer
 }
 
@@ -294,6 +294,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
+//由stream层来调用
 func (p *proxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
 	stream := &activeStream{
 		proxy:           p,

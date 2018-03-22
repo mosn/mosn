@@ -24,7 +24,7 @@ func (h *BoltCommandHandler) HandleCommand(ctx interface{}, msg interface{}) {
 		cmdCode := cmd.GetCmdCode()
 		if processor, ok := h.processors[cmdCode]; ok {
 			fmt.Println("handle command")
-			processor.Process(ctx, cmd, nil)
+			processor.Process(ctx, cmd, nil)   //PROCESS中调用
 		} else {
 			fmt.Println("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")
 		}

@@ -35,6 +35,7 @@ type streamConnection struct {
 // types.StreamConnection
 func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	conn.protocols.Decode(buffer, conn)
+
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -44,7 +45,7 @@ func (conn *streamConnection) Protocol() types.Protocol {
 // types.DecodeFilter
 func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.OnDecodeHeaders(headers, false)
+		stream.decoder.OnDecodeHeaders(headers, false)   //回调PROXY层的OnDecodeHeaders
 	}
 
 	return types.Continue
@@ -122,7 +123,10 @@ func newServerStreamConnection(connection types.Connection,
 }
 
 func (sc *serverStreamConnection) Dispatch(buffer types.IoBuffer) {
-	sc.protocols.Decode(buffer, sc)
+	sc.protocols.Decode(buffer, sc)  //调用协议的decode，在decode中调用PROXY层的NEW STREAM作为一种通告机制，将返回STREAM DECODER
+
+
+
 }
 
 // types.DecodeFilter
@@ -131,8 +135,10 @@ func (sc *serverStreamConnection) OnDecodeHeader(streamId uint32, headers map[st
 		return types.Continue
 	}
 
-	sc.onNewStreamDetected(streamId)
-	sc.streamConnection.OnDecodeHeader(streamId, headers)
+	//把 map[string]string 传到这个位置
+	sc.onNewStreamDetected(streamId)   //创建NEW STREAM
+
+	sc.streamConnection.OnDecodeHeader(streamId, headers)   //间接回调 PROXY层的 接口
 
 	return types.StopIteration
 }
@@ -140,7 +146,7 @@ func (sc *serverStreamConnection) OnDecodeHeader(streamId uint32, headers map[st
 func (sc *serverStreamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if streamId == 0 {
 		return types.Continue
-	}
+	}    //
 
 	sc.onNewStreamDetected(streamId)
 	sc.streamConnection.OnDecodeData(streamId, data)
@@ -158,6 +164,7 @@ func (sc *serverStreamConnection) onNewStreamDetected(streamId uint32) {
 		connection: &sc.streamConnection,
 	}
 
+	//调用PROXY中定义的NEWSTREA，同时将 NEW出来的 STREAM作为 encoder 传进去
 	stream.decoder = sc.serverStreamConnCallbacks.NewStream(streamId, stream)
 	sc.activeStreams[streamId] = stream
 }
@@ -208,7 +215,7 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamEncoder
 func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
-	// todo: encode headers
+	// todo: encode headers  由stream层调用，将HEADERS 按照BOLT 的格式进行分装
 
 	if endStream {
 		s.endStream()

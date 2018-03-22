@@ -7,6 +7,8 @@ import (
 
 //bolt constants
 const (
+
+	//protocol code value
 	PROTOCOL_CODE_V1 byte = 1
 	PROTOCOL_CODE_V2 byte = 2
 
@@ -26,6 +28,7 @@ const (
 	REQUEST        byte = 1
 	REQUEST_ONEWAY byte = 2
 
+	//command code value
 	HEARTBEAT    int16 = 0
 	RPC_REQUEST  int16 = 1
 	RPC_RESPONSE int16 = 2
@@ -118,7 +121,7 @@ type BoltRequestCommand interface {
 
 	GetCmdCode() int16
 
-	GetId() uint32
+	GetId() int
 
 	GetClass() []byte
 

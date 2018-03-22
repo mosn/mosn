@@ -82,6 +82,7 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 			status := uf.filter.OnData(buffer)
 
 			if status == types.StopIteration {
+				//fm.conn.Write("your data")
 				return
 			}
 		}

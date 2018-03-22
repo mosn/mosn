@@ -117,6 +117,8 @@ func (ssc *serverStreamConnection) OnGoAway() {
 	ssc.serverStreamConnCallbacks.OnGoAway()
 }
 
+
+//每个
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
 	stream := &serverStream{
 		stream: stream{
@@ -127,9 +129,12 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseDoneChan: make(chan bool),
 	}
 
+	//调用 PROXY 层的NEW STREAM 作为一种通告机制，将返回STREAM DECODER, 用于
 	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(0, stream)
 	stream.element = ssc.activeStreams.PushBack(stream)
 
+
+	//继续调用 PROXY 层的OnDecodeHeader, 向后发起数据
 	stream.decoder.OnDecodeHeaders(decodeHeader(request.Header), false)
 
 	buf := &buffer.IoBuffer{}
@@ -298,6 +303,8 @@ type serverStream struct {
 }
 
 // types.StreamEncoder
+
+//
 func (s *serverStream) EncodeHeaders(headers map[string]string, endStream bool) {
 	if s.response == nil {
 		s.response = new(http.Response)

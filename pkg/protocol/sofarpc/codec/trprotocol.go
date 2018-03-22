@@ -1,10 +1,11 @@
 package codec
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/handler"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/handler"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
+
 func init() {
 	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE, Tr)
 }

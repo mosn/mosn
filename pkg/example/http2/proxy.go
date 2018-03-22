@@ -81,7 +81,7 @@ func main() {
 
 		meshReadyChan <- true
 
-		srv.Start()
+		srv.Start()   //开启连接
 
 		select {
 		case <-stopChan:
