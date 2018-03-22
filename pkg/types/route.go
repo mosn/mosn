@@ -4,6 +4,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"time"
 )
 
 type RouterConfig interface {
@@ -20,6 +21,8 @@ type Route interface {
 
 type RouteRule interface {
 	ClusterName() string
+
+	GlobalTimeout() time.Duration
 
 	Priority() pkg.Priority
 
@@ -87,11 +90,11 @@ type RateLimitPolicyEntry interface {
 }
 
 type RetryPolicy interface {
-	TryTimeout() int
+	RetryOn() bool
+
+	TryTimeout() time.Duration
 
 	NumRetries() int
-
-	RetryOn() int
 }
 
 type DoRetryCallback func()

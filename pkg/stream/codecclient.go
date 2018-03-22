@@ -53,6 +53,9 @@ func (c *codecClient) AddConnectionCallbacks(cb types.ConnectionCallbacks) {
 }
 
 func (c *codecClient) ActiveRequestsNum() int {
+	c.AcrMux.RLock()
+	defer c.AcrMux.RUnlock()
+
 	return c.ActiveRequests.Len()
 }
 
@@ -78,10 +81,8 @@ func (c *codecClient) NewStream(streamId uint32, respDecoder types.StreamDecoder
 	ar.requestEncoder.GetStream().AddCallbacks(ar)
 
 	c.AcrMux.Lock()
-	defer c.AcrMux.Unlock()
-
-	ele := c.ActiveRequests.PushBack(ar)
-	ar.element = ele
+	ar.element = c.ActiveRequests.PushBack(ar)
+	c.AcrMux.Unlock()
 
 	return ar.requestEncoder
 }

@@ -9,10 +9,16 @@ type ResponseFlag int
 
 const (
 	NoHealthyUpstream             ResponseFlag = 0x2
+	UpstreamRequestTimeout        ResponseFlag = 0x4
+	LocalReset                    ResponseFlag = 0x8
+	UpstreamRemoteReset           ResponseFlag = 0x10
 	UpstreamConnectionFailure     ResponseFlag = 0x20
 	UpstreamConnectionTermination ResponseFlag = 0x40
-	NoRouteFound                  ResponseFlag = 0x100
 	UpstreamOverflow              ResponseFlag = 0x80
+	NoRouteFound                  ResponseFlag = 0x100
+	DelayInjected                 ResponseFlag = 0x200
+	FaultInjected                 ResponseFlag = 0x400
+	RateLimited                   ResponseFlag = 0x800
 )
 
 type RequestInfo interface {

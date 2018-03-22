@@ -7,6 +7,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"errors"
 	"regexp"
+	"time"
 )
 
 func init() {
@@ -29,11 +30,16 @@ func (rc routeConfig) Route(headers map[string]string) types.Route {
 	return nil
 }
 
+// types.Route
+// types.RouteRule
+// router.Matchable
 type basicRouter struct {
 	RouteRuleImplAdaptor
-	name    string
-	service string
-	cluster string
+	name          string
+	service       string
+	cluster       string
+	globalTimeout time.Duration
+	policy        *routerPolicy
 }
 
 func NewBasicRouter(config interface{}) (types.RouterConfig, error) {
@@ -41,11 +47,29 @@ func NewBasicRouter(config interface{}) (types.RouterConfig, error) {
 		routers := make([]router.RouteBase, 0)
 
 		for _, r := range config.Routes {
-			routers = append(routers, &basicRouter{
-				name:    r.Name,
-				service: r.Service,
-				cluster: r.Cluster,
-			})
+			router := &basicRouter{
+				name:          r.Name,
+				service:       r.Service,
+				cluster:       r.Cluster,
+				globalTimeout: r.GlobalTimeout,
+			}
+
+			if r.RetryPolicy != nil {
+				router.policy = &routerPolicy{
+					retryOn:      r.RetryPolicy.RetryOn,
+					retryTimeout: r.RetryPolicy.RetryTimeout,
+					numRetries:   r.RetryPolicy.NumRetries,
+				}
+			} else {
+				// default
+				router.policy = &routerPolicy{
+					retryOn:      false,
+					retryTimeout: 0,
+					numRetries:   0,
+				}
+			}
+
+			routers = append(routers, router)
 		}
 
 		return &routeConfig{
@@ -91,4 +115,46 @@ func (srr *basicRouter) TraceDecorator() types.TraceDecorator {
 
 func (srr *basicRouter) ClusterName() string {
 	return srr.cluster
+}
+
+func (srr *basicRouter) GlobalTimeout() time.Duration {
+	return srr.globalTimeout
+}
+
+func (srr *basicRouter) Policy() types.Policy {
+	return srr.policy
+}
+
+type routerPolicy struct {
+	retryOn      bool
+	retryTimeout time.Duration
+	numRetries   int
+}
+
+func (p *routerPolicy) RetryOn() bool {
+	return p.retryOn
+}
+
+func (p *routerPolicy) TryTimeout() time.Duration {
+	return p.retryTimeout
+}
+
+func (p *routerPolicy) NumRetries() int {
+	return p.numRetries
+}
+
+func (p *routerPolicy) RetryPolicy() types.RetryPolicy {
+	return p
+}
+
+func (p *routerPolicy) ShadowPolicy() types.ShadowPolicy {
+	return nil
+}
+
+func (p *routerPolicy) CorsPolicy() types.CorsPolicy {
+	return nil
+}
+
+func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
+	return nil
 }
