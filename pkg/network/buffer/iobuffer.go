@@ -189,7 +189,7 @@ func makeSlice(n int) []byte {
 	return make([]byte, n)
 }
 
-func NewIoBuffer(bufSize int) *IoBuffer {
+func NewIoBuffer(bufSize int) types.IoBuffer {
 	buf := make([]byte, 0, bufSize)
 
 	return &IoBuffer{
@@ -198,14 +198,14 @@ func NewIoBuffer(bufSize int) *IoBuffer {
 	}
 }
 
-func NewIoBufferString(s string) *IoBuffer {
+func NewIoBufferString(s string) types.IoBuffer {
 	return &IoBuffer{
 		buf:     []byte(s),
 		offMark: ResetOffMark,
 	}
 }
 
-func NewIoBufferBytes(bytes []byte) *IoBuffer {
+func NewIoBufferBytes(bytes []byte) types.IoBuffer {
 	return &IoBuffer{
 		buf:     []byte(bytes),
 		offMark: ResetOffMark,

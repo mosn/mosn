@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"io"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 type IoBufferPool struct {
@@ -10,7 +11,7 @@ type IoBufferPool struct {
 }
 
 type IoBufferPoolEntry struct {
-	Br *IoBuffer
+	Br types.IoBuffer
 	Io io.Reader
 }
 

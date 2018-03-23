@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type retrystate struct {
+type retryState struct {
 	retryPolicy     types.RetryPolicy
 	requestHeaders  map[string]string
 	cluster         types.ClusterInfo
@@ -15,8 +15,9 @@ type retrystate struct {
 	retiesRemaining int
 }
 
-func newRetryState(retryPolicy types.RetryPolicy, requestHeaders map[string]string, cluster types.ClusterInfo) *retrystate {
-	rs := &retrystate{
+func newRetryState(retryPolicy types.RetryPolicy,
+	requestHeaders map[string]string, cluster types.ClusterInfo) *retryState {
+	rs := &retryState{
 		retryPolicy:     retryPolicy,
 		requestHeaders:  requestHeaders,
 		cluster:         cluster,
@@ -31,12 +32,10 @@ func newRetryState(retryPolicy types.RetryPolicy, requestHeaders map[string]stri
 	return rs
 }
 
-func (r *retrystate) shouldRetry(headers map[string]string, reason types.StreamResetReason) bool {
+func (r *retryState) shouldRetry(headers map[string]string, reason types.StreamResetReason) bool {
 	if r.retiesRemaining == 0 {
 		return false
 	}
-
-	r.retiesRemaining--
 
 	if !r.doCheckRetry(headers, reason) {
 		return false
@@ -45,20 +44,20 @@ func (r *retrystate) shouldRetry(headers map[string]string, reason types.StreamR
 	return true
 }
 
-func (r *retrystate) scheduleRetry(doRetry func()) {
+func (r *retryState) scheduleRetry(doRetry func()) *timer {
+	r.retiesRemaining--
+
 	// todo: better alth
 	timeout := rand.Intn(10)
 
-	go func() {
-		select {
-		case <-time.After(time.Duration(timeout) * time.Second):
-			doRetry()
-		}
-	}()
+	timer := newTimer(doRetry, time.Duration(timeout)*time.Second)
+	timer.start()
+
+	return timer
 }
 
-func (r *retrystate) doCheckRetry(headers map[string]string, reason types.StreamResetReason) bool {
-	if reason != "" && reason == types.StreamOverflow {
+func (r *retryState) doCheckRetry(headers map[string]string, reason types.StreamResetReason) bool {
+	if reason == types.StreamOverflow {
 		return false
 	}
 

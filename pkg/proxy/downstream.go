@@ -22,11 +22,13 @@ type activeStream struct {
 
 	// ~~~ control args
 	timeout    *ProxyTimeout
-	retryState *retrystate
+	retryState *retryState
 
-	requestInfo     types.RequestInfo
-	responseEncoder types.StreamEncoder
-	upstreamRequest *upstreamRequest
+	requestInfo      types.RequestInfo
+	responseEncoder  types.StreamEncoder
+	upstreamRequest  *upstreamRequest
+	perRetryTimer    *timer
+	globalRetryTimer *timer
 
 	// ~~~ downstream request buf
 	downstreamHeaders  map[string]string
@@ -40,7 +42,7 @@ type activeStream struct {
 	upstreamRequestSent bool
 	// downstream request received done
 	downstreamRecvDone bool
-	// 1. upstream response received done 2. done by a hijack response
+	// 1. upstream response send done 2. done by a hijack response
 	localProcessDone bool
 }
 
@@ -59,7 +61,7 @@ func (s *activeStream) OnBelowWriteBufferLowWatermark() {}
 // case 1: stream's lifecycle ends normally
 // case 2: proxy ends stream in lifecycle
 func (s *activeStream) endStream() {
-	s.clean()
+	s.stopTimer()
 
 	if s.responseEncoder != nil {
 		if !s.downstreamRecvDone || !s.localProcessDone {
@@ -177,27 +179,49 @@ func (s *activeStream) onUpstreamRequestSent() {
 
 	if s.upstreamRequest != nil {
 		// setup per try timeout timer
-		s.upstreamRequest.setupPerTryTimeout()
+		s.setupPerTryTimeout()
 
 		// setup global timeout timer
 		if s.timeout.GlobalTimeout > 0 {
-			go func() {
-				// todo: support cancel
-				select {
-				case <-time.After(s.timeout.GlobalTimeout):
-					s.onResponseTimeout()
-				}
-			}()
+			if s.globalRetryTimer != nil {
+				s.globalRetryTimer.stop()
+			}
+
+			s.globalRetryTimer = newTimer(s.onResponseTimeout, s.timeout.GlobalTimeout)
 		}
 	}
 }
 
 func (s *activeStream) onResponseTimeout() {
+	s.globalRetryTimer = nil
+
 	if s.upstreamRequest != nil {
 		s.upstreamRequest.resetStream()
 	}
 
 	s.onUpstreamReset(UpstreamGlobalTimeout, types.StreamLocalReset)
+}
+
+func (s *activeStream) setupPerTryTimeout() {
+	timeout := s.timeout
+
+	if timeout.TryTimeout > 0 {
+		if s.perRetryTimer != nil {
+			s.perRetryTimer.stop()
+		}
+
+		s.perRetryTimer = newTimer(s.onPerTryTimeout, timeout.TryTimeout*time.Second)
+		s.perRetryTimer.start()
+	}
+}
+
+func (s *activeStream) onPerTryTimeout() {
+	s.perRetryTimer = nil
+
+	s.upstreamRequest.resetStream()
+	s.upstreamRequest.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
+
+	s.onUpstreamReset(UpstreamPerTryTimeout, types.StreamLocalReset)
 }
 
 func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (error, types.ConnectionPool) {
@@ -284,7 +308,11 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 	if s.retryState != nil {
 		shouldRetry := s.retryState.shouldRetry(headers, "")
 		if shouldRetry && s.setupRetry(endStream) {
-			s.retryState.scheduleRetry(s.doRetry)
+			if s.perRetryTimer != nil {
+				s.perRetryTimer.stop()
+			}
+
+			s.perRetryTimer = s.retryState.scheduleRetry(s.doRetry)
 			return
 		}
 
@@ -294,7 +322,7 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 	s.downstreamResponseStarted = true
 
 	if endStream {
-		s.onUpstreamResponseComplete()
+		s.onUpstreamResponseRecvDone()
 	}
 
 	// todo: insert proxy headers
@@ -304,19 +332,19 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 
 func (s *activeStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 	if endStream {
-		s.onUpstreamResponseComplete()
+		s.onUpstreamResponseRecvDone()
 	}
 
 	s.encodeData(data, endStream)
 }
 
 func (s *activeStream) onUpstreamTrailers(trailers map[string]string) {
-	s.onUpstreamResponseComplete()
+	s.onUpstreamResponseRecvDone()
 
 	s.encodeTrailers(trailers)
 }
 
-func (s *activeStream) onUpstreamResponseComplete() {
+func (s *activeStream) onUpstreamResponseRecvDone() {
 	if !s.upstreamRequestSent {
 		s.upstreamRequest.resetStream()
 	}
@@ -324,7 +352,7 @@ func (s *activeStream) onUpstreamResponseComplete() {
 	// todo: stats
 	// todo: logs
 
-	s.upstreamRequest.clean()
+	s.stopTimer()
 }
 
 func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
@@ -334,7 +362,11 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 	if urtype != UpstreamGlobalTimeout &&
 		s.downstreamResponseStarted && s.retryState != nil {
 		if s.retryState.shouldRetry(nil, reason) && s.setupRetry(true) {
-			s.retryState.scheduleRetry(s.doRetry)
+			if s.perRetryTimer != nil {
+				s.perRetryTimer.stop()
+			}
+
+			s.perRetryTimer = s.retryState.scheduleRetry(s.doRetry)
 			return
 		}
 	}
@@ -342,10 +374,10 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 	// If we have not yet sent anything downstream, send a response with an appropriate status code.
 	// Otherwise just reset the ongoing response.
 	if s.downstreamResponseStarted {
-		s.upstreamRequest.clean()
+		s.stopTimer()
 		s.resetStream()
 	} else {
-		s.upstreamRequest.clean()
+		s.stopTimer()
 
 		var code int
 		if urtype == UpstreamGlobalTimeout || urtype == UpstreamPerTryTimeout {
@@ -378,7 +410,7 @@ func (s *activeStream) setupRetry(endStream bool) bool {
 func (s *activeStream) doRetry() {
 	err, pool := s.initializeUpstreamConnectionPool(s.cluster.Name())
 
-	if err != nil || pool != nil {
+	if err != nil {
 		// no available host
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		s.sendHijackReply(500, nil)
@@ -393,22 +425,23 @@ func (s *activeStream) doRetry() {
 		requestInfo:  network.NewRequestInfo(),
 	}
 
-	s.upstreamRequest.connPool.NewStream(0, s.upstreamRequest, s.upstreamRequest)
+	s.upstreamRequest.encodeHeaders(nil,
+		s.downstreamDataBuf != nil && s.downstreamTrailers != nil)
 
 	if s.upstreamRequest != nil {
 		if s.downstreamDataBuf != nil {
 			buf := buffer.NewIoBuffer(s.downstreamDataBuf.Len())
 			buf.ReadFrom(s.downstreamDataBuf)
-			s.upstreamRequest.requestEncoder.EncodeData(buf, s.downstreamTrailers == nil)
+			s.upstreamRequest.encodeData(buf, s.downstreamTrailers == nil)
 		}
 
 		if s.downstreamTrailers != nil {
-			s.upstreamRequest.requestEncoder.EncodeTrailers(s.downstreamTrailers)
+			s.upstreamRequest.encodeTrailers(s.downstreamTrailers)
 		}
-	}
 
-	// setup per try timeout timer
-	s.upstreamRequest.setupPerTryTimeout()
+		// setup per try timeout timer
+		s.setupPerTryTimeout()
+	}
 }
 
 func (s *activeStream) resetStream() {
@@ -425,6 +458,14 @@ func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 	s.encodeHeaders(headers, true)
 }
 
-func (s *activeStream) clean() {
-	// todo: clean as timer
+func (s *activeStream) stopTimer() {
+	if s.perRetryTimer != nil {
+		s.perRetryTimer.stop()
+		s.perRetryTimer = nil
+	}
+
+	if s.globalRetryTimer != nil {
+		s.globalRetryTimer.stop()
+		s.globalRetryTimer = nil
+	}
 }

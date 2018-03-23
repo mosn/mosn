@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"time"
 	"container/list"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
@@ -102,29 +101,4 @@ func (r *upstreamRequest) OnPoolReady(streamId uint32, encoder types.StreamEncod
 	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamHeaders, endStream)
 
 	// todo: check if we get a reset on encode headers
-}
-
-func (r *upstreamRequest) setupPerTryTimeout() {
-	timeout := r.activeStream.timeout
-
-	if timeout.TryTimeout > 0 {
-		go func() {
-			// todo: support cancel
-			select {
-			case <-time.After(timeout.TryTimeout * time.Second):
-				r.onPerTryTimeout()
-			}
-		}()
-	}
-}
-
-func (r *upstreamRequest) onPerTryTimeout() {
-	r.resetStream()
-
-	r.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
-	r.activeStream.onUpstreamReset(UpstreamPerTryTimeout, types.StreamLocalReset)
-}
-
-func (r *upstreamRequest) clean() {
-	// todo clean upstream timer
 }
