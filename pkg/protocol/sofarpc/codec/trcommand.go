@@ -2,17 +2,27 @@ package codec
 
 //command defination
 type trCommand struct {
-	id        int
-	protocol  byte
+	id              int
+	protocol        byte
+	protocolVersion byte
+	requestFlag     byte
+
 	direction byte
 
-	cmdCode byte
+	//请求,心跳等
+	cmdCode int16
 
 	conBytes     []byte
 	packet       []byte
 	appClassName string
-	totalLength  int
 
+	connRequestContent []byte
+
+	appClassContent []byte
+	totalLength     uint32
+
+	//存储原始的 byte
+	originalBytes []byte
 	invokeContext interface{}
 }
 
@@ -33,4 +43,3 @@ type trResponseCommand struct {
 	//response command
 	response interface{} //TODO import ConnectionResponse
 }
-
