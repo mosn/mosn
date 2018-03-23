@@ -111,10 +111,6 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 }
 
 func (p *proxy) deleteActiveStream(s *activeStream) {
-	if s.responseEncoder != nil {
-		s.responseEncoder.GetStream().RemoveCallbacks(s)
-	}
-
 	p.asMux.Lock()
 	p.activeSteams.Remove(s.element)
 	p.asMux.Unlock()

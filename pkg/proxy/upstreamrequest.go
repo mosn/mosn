@@ -1,9 +1,9 @@
 package proxy
 
 import (
+	"time"
 	"container/list"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"time"
 )
 
 // types.StreamCallbacks
@@ -87,6 +87,7 @@ func (r *upstreamRequest) setupPerTryTimeout() {
 
 	if timeout.TryTimeout > 0 {
 		go func() {
+			// todo: support cancel
 			select {
 			case <-time.After(timeout.TryTimeout * time.Second):
 				r.onPerTryTimeout()
