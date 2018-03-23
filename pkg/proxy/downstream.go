@@ -98,10 +98,6 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
 
 	if err != nil {
-		// no available host
-		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		s.sendHijackReply(500, nil)
-
 		return
 	}
 
@@ -229,8 +225,9 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	clusterSnapshot := s.proxy.clusterManager.Get(clusterName, nil)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
-		//s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.onInitFailure(NoRoute)
+		// no available cluster
+		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.sendHijackReply(404, nil)
 
 		return errors.New(fmt.Sprintf("unkown cluster %s", clusterName)), nil
 	}
@@ -240,8 +237,8 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	clusterConnectionResource := clusterInfo.ResourceManager().ConnectionResource()
 
 	if !clusterConnectionResource.CanCreate() {
-		//p.requestInfo.SetResponseFlag(types.UpstreamOverflow)
-		s.onInitFailure(ResourceLimitExceeded)
+		s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
+		s.sendHijackReply(503, nil)
 
 		return errors.New(fmt.Sprintf("upstream overflow in cluster %s", clusterName)), nil
 	}
@@ -259,8 +256,8 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	}
 
 	if connPool == nil {
-		//p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		s.onInitFailure(NoHealthyUpstream)
+		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
+		s.sendHijackReply(500, nil)
 
 		return errors.New(fmt.Sprintf("no healthy upstream in cluster %s", clusterName)), nil
 	}
@@ -268,11 +265,6 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	// TODO: update upstream stats
 
 	return nil, connPool
-}
-
-func (s *activeStream) onInitFailure(reason UpstreamFailureReason) {
-	// todo: convert upstream reason to reset reason
-	s.responseEncoder.GetStream().ResetStream(types.StreamConnectionFailed)
 }
 
 // ~~~ active stream encoder wrapper
@@ -411,10 +403,6 @@ func (s *activeStream) doRetry() {
 	err, pool := s.initializeUpstreamConnectionPool(s.cluster.Name())
 
 	if err != nil {
-		// no available host
-		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		s.sendHijackReply(500, nil)
-
 		return
 	}
 
