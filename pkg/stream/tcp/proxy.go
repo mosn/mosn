@@ -64,8 +64,6 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks.Connection().AddConnectionCallbacks(p.downstreamCallbacks)
 	p.requestInfo.SetDownstreamRemoteAddress(p.readCallbacks.Connection().RemoteAddr())
 	p.requestInfo.SetDownstreamLocalAddress(p.readCallbacks.Connection().LocalAddr())
-	p.requestInfo.SetDownstreamLocalAddress(p.readCallbacks.Connection().LocalAddr())
-	p.requestInfo.SetDownstreamRemoteAddress(p.readCallbacks.Connection().RemoteAddr())
 
 	p.readCallbacks.Connection().SetReadDisable(true)
 

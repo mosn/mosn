@@ -82,6 +82,7 @@ type Proxy struct {
 	DownstreamProtocol string
 	UpstreamProtocol   string
 	Routes             []*BasicServiceRoute
+	AccessLogs         []*AccessLog
 }
 
 type BasicServiceRoute struct {

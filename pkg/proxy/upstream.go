@@ -93,12 +93,14 @@ func (r *upstreamRequest) OnPoolFailure(streamId uint32, reason types.PoolFailur
 
 func (r *upstreamRequest) OnPoolReady(streamId uint32, encoder types.StreamEncoder, host types.Host) {
 	r.requestEncoder = encoder
-
-	r.requestInfo.OnUpstreamHostSelected(host)
 	r.requestEncoder.GetStream().AddCallbacks(r)
 
 	endStream := r.encodeComplete && !r.dataEncoded && !r.trailerEncoded
 	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamHeaders, endStream)
+
+	r.requestInfo.OnUpstreamHostSelected(host)
+	r.activeStream.requestInfo.OnUpstreamHostSelected(host)
+	r.activeStream.requestInfo.SetUpstreamLocalAddress(host.Address())
 
 	// todo: check if we get a reset on encode headers
 }

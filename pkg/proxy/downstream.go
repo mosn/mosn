@@ -46,11 +46,26 @@ type activeStream struct {
 	localProcessDone bool
 }
 
+func newActiveStream(proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
+	stream := &activeStream{
+		proxy:           proxy,
+		requestInfo:     network.NewRequestInfo(),
+		responseEncoder: responseEncoder,
+	}
+
+	stream.responseEncoder.GetStream().AddCallbacks(stream)
+
+	return stream
+}
+
 // types.StreamCallbacks
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
 	// todo: logging
 	// todo: stats
 
+	for _, al := range s.proxy.accessLogs {
+		al.Log(s.downstreamHeaders, nil, s.requestInfo)
+	}
 	s.proxy.deleteActiveStream(s)
 }
 
@@ -71,6 +86,10 @@ func (s *activeStream) endStream() {
 			s.responseEncoder.GetStream().RemoveCallbacks(s)
 			s.responseEncoder.GetStream().ResetStream(types.StreamLocalReset)
 		}
+	}
+
+	for _, al := range s.proxy.accessLogs {
+		al.Log(s.downstreamHeaders, nil, s.requestInfo)
 	}
 
 	s.proxy.deleteActiveStream(s)
@@ -95,6 +114,13 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 		return
 	}
 
+	s.requestInfo.SetRouteEntry(route.RouteRule())
+
+	// todo: validate headers
+
+	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
+	// todo: detect remote addr
+	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
 
 	if err != nil {
@@ -121,6 +147,7 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 }
 
 func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
+	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
 
 	// if active stream finished the lifecycle, just ignore further data
@@ -172,6 +199,7 @@ func (s *activeStream) OnDecodeComplete(buf types.IoBuffer) {}
 
 func (s *activeStream) onUpstreamRequestSent() {
 	s.upstreamRequestSent = true
+	s.requestInfo.SetRequestReceivedDuration(time.Now())
 
 	if s.upstreamRequest != nil {
 		// setup per try timeout timer
@@ -282,6 +310,8 @@ func (s *activeStream) encodeData(data types.IoBuffer, endStream bool) {
 	s.localProcessDone = endStream
 	s.responseEncoder.EncodeData(data, endStream)
 
+	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
+
 	if endStream {
 		s.endStream()
 	}
@@ -310,6 +340,8 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 
 		s.retryState = nil
 	}
+
+	s.requestInfo.SetResponseReceivedDuration(time.Now())
 
 	s.downstreamResponseStarted = true
 

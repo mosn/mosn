@@ -7,7 +7,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // types.ReadFilter
@@ -26,6 +26,9 @@ type proxy struct {
 	// downstream requests
 	activeSteams *list.List
 	asMux        sync.RWMutex
+
+	// access logs
+	accessLogs []types.AccessLog
 }
 
 func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
@@ -38,6 +41,11 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
 	proxy.routerConfig, _ = router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
 	proxy.downstreamCallbacks = &downstreamCallbacks{
 		proxy: proxy,
+	}
+
+	for _, alConfig := range config.AccessLogs {
+		al, _ := log.NewAccessLog(alConfig.Path, nil, alConfig.Format)
+		proxy.accessLogs = append(proxy.accessLogs, al)
 	}
 
 	return proxy
@@ -81,13 +89,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 func (p *proxy) OnGoAway() {}
 
 func (p *proxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
-	stream := &activeStream{
-		proxy:           p,
-		requestInfo:     network.NewRequestInfo(),
-		responseEncoder: responseEncoder,
-	}
-
-	stream.responseEncoder.GetStream().AddCallbacks(stream)
+	stream := newActiveStream(p, responseEncoder)
 
 	p.asMux.Lock()
 	stream.element = p.activeSteams.PushBack(stream)
