@@ -17,6 +17,11 @@ type upstreamRequest struct {
 	requestInfo    types.RequestInfo
 	requestEncoder types.StreamEncoder
 	connPool       types.ConnectionPool
+
+	//~~~ state
+	encodeComplete bool
+	dataEncoded    bool
+	trailerEncoded bool
 }
 
 func (r *upstreamRequest) resetStream() {
@@ -54,7 +59,24 @@ func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 
 func (r *upstreamRequest) OnDecodeComplete(data types.IoBuffer) {}
 
-func (r *upstreamRequest) responseDecodeComplete() {}
+// ~~~ encode request wrapper
+
+func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
+	r.encodeComplete = endStream
+	r.connPool.NewStream(0, r, r)
+}
+
+func (r *upstreamRequest) encodeData(data types.IoBuffer, endStream bool) {
+	r.encodeComplete = endStream
+	r.dataEncoded = true
+	r.requestEncoder.EncodeData(data, endStream)
+}
+
+func (r *upstreamRequest) encodeTrailers(trailers map[string]string) {
+	r.encodeComplete = true
+	r.trailerEncoded = true
+	r.requestEncoder.EncodeTrailers(trailers)
+}
 
 // types.PoolCallbacks
 func (r *upstreamRequest) OnPoolFailure(streamId uint32, reason types.PoolFailureReason, host types.Host) {
@@ -76,8 +98,8 @@ func (r *upstreamRequest) OnPoolReady(streamId uint32, encoder types.StreamEncod
 	r.requestInfo.OnUpstreamHostSelected(host)
 	r.requestEncoder.GetStream().AddCallbacks(r)
 
-	// todo
-	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamHeaders, false)
+	endStream := r.encodeComplete && !r.dataEncoded && !r.trailerEncoded
+	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamHeaders, endStream)
 
 	// todo: check if we get a reset on encode headers
 }
@@ -101,4 +123,8 @@ func (r *upstreamRequest) onPerTryTimeout() {
 
 	r.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
 	r.activeStream.onUpstreamReset(UpstreamPerTryTimeout, types.StreamLocalReset)
+}
+
+func (r *upstreamRequest) clean() {
+	// todo clean upstream timer
 }

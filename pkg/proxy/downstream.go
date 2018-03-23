@@ -16,25 +16,32 @@ import (
 // types.StreamCallbacks
 // types.StreamDecoder
 type activeStream struct {
-	proxy                     *proxy
-	cluster                   types.ClusterInfo
-	element                   *list.Element
-	timeout                   *ProxyTimeout
-	retryState                *retrystate
-	requestInfo               types.RequestInfo
-	responseEncoder           types.StreamEncoder
-	upstreamRequest           *upstreamRequest
-	downstreamResponseStarted bool
+	proxy   *proxy
+	cluster types.ClusterInfo
+	element *list.Element
 
-	// downstream request buf
+	// ~~~ control args
+	timeout    *ProxyTimeout
+	retryState *retrystate
+
+	requestInfo     types.RequestInfo
+	responseEncoder types.StreamEncoder
+	upstreamRequest *upstreamRequest
+
+	// ~~~ downstream request buf
 	downstreamHeaders  map[string]string
 	downstreamDataBuf  types.IoBuffer
 	downstreamTrailers map[string]string
 
-	// state
-	downstreamEndStream bool
-	remoteDone          bool
-	localDone           bool
+	// ~~~ state
+	// starts to send back downstream response, set on upstream response detected
+	downstreamResponseStarted bool
+	// upstream req sent
+	upstreamRequestSent bool
+	// downstream request received done
+	downstreamRecvDone bool
+	// 1. upstream response received done 2. done by a hijack response
+	localProcessDone bool
 }
 
 // types.StreamCallbacks
@@ -52,11 +59,13 @@ func (s *activeStream) OnBelowWriteBufferLowWatermark() {}
 // case 1: stream's lifecycle ends normally
 // case 2: proxy ends stream in lifecycle
 func (s *activeStream) endStream() {
-	// todo: cancel as timer
+	s.clean()
 
 	if s.responseEncoder != nil {
-		if !s.remoteDone || !s.localDone {
-			s.localDone = true
+		if !s.downstreamRecvDone || !s.localProcessDone {
+			// if downstream req received not done, or local proxy process not done by handle upstream response,
+			// just mark it as done and reset stream as a failed case
+			s.localProcessDone = true
 			s.responseEncoder.GetStream().RemoveCallbacks(s)
 			s.responseEncoder.GetStream().ResetStream(types.StreamLocalReset)
 		}
@@ -70,7 +79,7 @@ func (s *activeStream) endStream() {
 
 // types.StreamDecoder
 func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool) {
-	s.remoteDone = endStream
+	s.downstreamRecvDone = endStream
 	s.downstreamHeaders = headers
 
 	//do some route by service name
@@ -79,9 +88,7 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	if route == nil || route.RouteRule() == nil {
 		// no route
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		respHeaders := make(map[string]string)
-		respHeaders["Status"] = strconv.Itoa(404)
-		s.encodeHeaders(respHeaders, true)
+		s.sendHijackReply(404, nil)
 
 		return
 	}
@@ -91,9 +98,7 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	if err != nil {
 		// no available host
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		respHeaders := make(map[string]string)
-		respHeaders["Status"] = strconv.Itoa(500)
-		s.encodeHeaders(respHeaders, true)
+		s.sendHijackReply(500, nil)
 
 		return
 	}
@@ -108,20 +113,20 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 		requestInfo:  network.NewRequestInfo(),
 	}
 
-	s.upstreamRequest.connPool.NewStream(0, s.upstreamRequest, s.upstreamRequest)
+	s.upstreamRequest.encodeHeaders(headers, endStream)
 
 	if endStream {
-		s.onRequestComplete()
+		s.onUpstreamRequestSent()
 	}
 
 	return
 }
 
 func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
-	s.remoteDone = endStream
+	s.downstreamRecvDone = endStream
 
 	// if active stream finished the lifecycle, just ignore further data
-	if s.localDone {
+	if s.localProcessDone {
 		return
 	}
 
@@ -142,33 +147,33 @@ func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 		}
 
 		s.downstreamDataBuf.Append(buf.Bytes())
-		s.upstreamRequest.requestEncoder.EncodeData(s.downstreamDataBuf, endStream)
+		s.upstreamRequest.encodeData(s.downstreamDataBuf, endStream)
 	} else {
-		s.upstreamRequest.requestEncoder.EncodeData(data, endStream)
+		s.upstreamRequest.encodeData(data, endStream)
 	}
 
 	if endStream {
-		s.onRequestComplete()
+		s.onUpstreamRequestSent()
 	}
 }
 
 func (s *activeStream) OnDecodeTrailers(trailers map[string]string) {
-	s.remoteDone = true
+	s.downstreamRecvDone = true
 
 	// if active stream finished the lifecycle, just ignore further data
-	if s.localDone {
+	if s.localProcessDone {
 		return
 	}
 
 	s.downstreamTrailers = trailers
-	s.upstreamRequest.requestEncoder.EncodeTrailers(trailers)
-	s.onRequestComplete()
+	s.upstreamRequest.encodeTrailers(trailers)
+	s.onUpstreamRequestSent()
 }
 
 func (s *activeStream) OnDecodeComplete(buf types.IoBuffer) {}
 
-func (s *activeStream) onRequestComplete() {
-	s.downstreamEndStream = true
+func (s *activeStream) onUpstreamRequestSent() {
+	s.upstreamRequestSent = true
 
 	if s.upstreamRequest != nil {
 		// setup per try timeout timer
@@ -249,7 +254,7 @@ func (s *activeStream) onInitFailure(reason UpstreamFailureReason) {
 // ~~~ active stream encoder wrapper
 
 func (s *activeStream) encodeHeaders(headers map[string]string, endStream bool) {
-	s.localDone = endStream
+	s.localProcessDone = endStream
 	s.responseEncoder.EncodeHeaders(headers, endStream)
 
 	if endStream {
@@ -258,7 +263,7 @@ func (s *activeStream) encodeHeaders(headers map[string]string, endStream bool) 
 }
 
 func (s *activeStream) encodeData(data types.IoBuffer, endStream bool) {
-	s.localDone = endStream
+	s.localProcessDone = endStream
 	s.responseEncoder.EncodeData(data, endStream)
 
 	if endStream {
@@ -267,6 +272,7 @@ func (s *activeStream) encodeData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *activeStream) encodeTrailers(trailers map[string]string) {
+	s.localProcessDone = true
 	s.responseEncoder.EncodeTrailers(trailers)
 	s.endStream()
 }
@@ -288,7 +294,7 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 	s.downstreamResponseStarted = true
 
 	if endStream {
-		s.onUpstreamComplete()
+		s.onUpstreamResponseComplete()
 	}
 
 	// todo: insert proxy headers
@@ -298,27 +304,27 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 
 func (s *activeStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 	if endStream {
-		s.onUpstreamComplete()
+		s.onUpstreamResponseComplete()
 	}
 
 	s.encodeData(data, endStream)
 }
 
 func (s *activeStream) onUpstreamTrailers(trailers map[string]string) {
-	s.onUpstreamComplete()
+	s.onUpstreamResponseComplete()
 
 	s.encodeTrailers(trailers)
 }
 
-func (s *activeStream) onUpstreamComplete() {
-	if !s.downstreamEndStream {
+func (s *activeStream) onUpstreamResponseComplete() {
+	if !s.upstreamRequestSent {
 		s.upstreamRequest.resetStream()
 	}
 
 	// todo: stats
 	// todo: logs
 
-	// todo: cancel upstream timer
+	s.upstreamRequest.clean()
 }
 
 func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
@@ -336,10 +342,11 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 	// If we have not yet sent anything downstream, send a response with an appropriate status code.
 	// Otherwise just reset the ongoing response.
 	if s.downstreamResponseStarted {
-		// todo: cancel timer
+		s.upstreamRequest.clean()
 		s.resetStream()
 	} else {
-		// todo: cancel timer
+		s.upstreamRequest.clean()
+
 		var code int
 		if urtype == UpstreamGlobalTimeout || urtype == UpstreamPerTryTimeout {
 			s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
@@ -350,12 +357,12 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 			code = 500
 		}
 
-		s.sendReply(code, nil)
+		s.sendHijackReply(code, nil)
 	}
 }
 
 func (s *activeStream) setupRetry(endStream bool) bool {
-	if !s.downstreamEndStream {
+	if !s.upstreamRequestSent {
 		return false
 	}
 
@@ -374,9 +381,7 @@ func (s *activeStream) doRetry() {
 	if err != nil || pool != nil {
 		// no available host
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		respHeaders := make(map[string]string)
-		respHeaders["Status"] = strconv.Itoa(500)
-		s.encodeHeaders(respHeaders, true)
+		s.sendHijackReply(500, nil)
 
 		return
 	}
@@ -410,12 +415,16 @@ func (s *activeStream) resetStream() {
 	s.endStream()
 }
 
-func (s *activeStream) sendReply(code int, headers map[string]string) {
+func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 	if headers == nil {
 		headers = make(map[string]string)
 	}
 
-	headers["Status"] = strconv.Itoa(code)
 	// todo
+	headers["Status"] = strconv.Itoa(code)
 	s.encodeHeaders(headers, true)
+}
+
+func (s *activeStream) clean() {
+	// todo: clean as timer
 }
