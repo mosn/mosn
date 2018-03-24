@@ -8,6 +8,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/rcrowley/go-metrics"
+	"fmt"
 )
 
 // types.ReadFilter
@@ -26,6 +28,9 @@ type proxy struct {
 	// downstream requests
 	activeSteams *list.List
 	asMux        sync.RWMutex
+
+	// stats
+	stats *proxyStats
 
 	// access logs
 	accessLogs []types.AccessLog
@@ -60,6 +65,9 @@ func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 //rpc realize upstream on event
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
+		p.stats.downstreamConnDestroy.Inc(1)
+		p.stats.downstreamConnActive.Dec(1)
+
 		p.asMux.RLock()
 		defer p.asMux.RUnlock()
 
@@ -80,10 +88,29 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 
 func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks = cb
+	p.initProxyStats(cb)
+
+	p.stats.downstreamConnTotal.Inc(1)
+	p.stats.downstreamConnActive.Inc(1)
+
 	p.readCallbacks.Connection().AddConnectionCallbacks(p.downstreamCallbacks)
 	p.serverCodec = stream.CreateServerStreamConnection(types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+}
 
-	// TODO: set downstream connection stats
+func (p *proxy) initProxyStats(cb types.ReadFilterCallbacks) {
+	p.stats = &proxyStats{
+		downstreamConnTotal:     metrics.GetOrRegisterCounter(proxyStatsName(cb.Connection().Id(), "connection_total"), nil),
+		downstreamConnDestroy:   metrics.GetOrRegisterCounter(proxyStatsName(cb.Connection().Id(), "connection_destroy"), nil),
+		downstreamConnActive:    metrics.GetOrRegisterCounter(proxyStatsName(cb.Connection().Id(), "connection_active"), nil),
+		downstreamRequestTotal:  metrics.GetOrRegisterCounter(proxyStatsName(cb.Connection().Id(), "request_total"), nil),
+		downstreamRequestActive: metrics.GetOrRegisterCounter(proxyStatsName(cb.Connection().Id(), "request_active"), nil),
+		downstreamRequestReset:  metrics.GetOrRegisterCounter(proxyStatsName(cb.Connection().Id(), "request_reset"), nil),
+		downstreamRequestTime:   metrics.GetOrRegisterHistogram(proxyStatsName(cb.Connection().Id(), "request_time"), nil, metrics.NewUniformSample(100)),
+	}
+}
+
+func proxyStatsName(connId uint64, statName string) string {
+	return fmt.Sprintf("%d.proxy.downstream_%s", connId, statName)
 }
 
 func (p *proxy) OnGoAway() {}
@@ -133,4 +160,20 @@ func (dc *downstreamCallbacks) OnAboveWriteBufferHighWatermark() {
 
 func (dc *downstreamCallbacks) OnBelowWriteBufferLowWatermark() {
 	// TODO
+}
+
+type proxyStats struct {
+	downstreamConnTotal      metrics.Counter
+	downstreamConnDestroy    metrics.Counter
+	downstreamConnActive     metrics.Counter
+	downstreamConnBytesTotal metrics.Counter
+	downstreamRequestTotal   metrics.Counter
+	downstreamRequestActive  metrics.Counter
+	downstreamRequestReset   metrics.Counter
+	downstreamRequestTime    metrics.Histogram
+}
+
+func (s *proxyStats) print() {
+	log.DefaultLogger.Printf("downstream conn total %d, conn active %d, conn destroy %d, request total %d, request active %d, request reset %d",
+		s.downstreamConnTotal.Count(), s.downstreamConnActive.Count(), s.downstreamConnDestroy.Count(), s.downstreamRequestTotal.Count(), s.downstreamRequestActive.Count(), s.downstreamRequestReset.Count())
 }

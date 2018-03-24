@@ -55,18 +55,16 @@ func newActiveStream(proxy *proxy, responseEncoder types.StreamEncoder) *activeS
 
 	stream.responseEncoder.GetStream().AddCallbacks(stream)
 
+	proxy.stats.downstreamRequestTotal.Inc(1)
+	proxy.stats.downstreamRequestActive.Inc(1)
+
 	return stream
 }
 
 // types.StreamCallbacks
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
-	// todo: logging
-	// todo: stats
-
-	for _, al := range s.proxy.accessLogs {
-		al.Log(s.downstreamHeaders, nil, s.requestInfo)
-	}
-	s.proxy.deleteActiveStream(s)
+	s.proxy.stats.downstreamRequestReset.Inc(1)
+	s.cleanStream()
 }
 
 func (s *activeStream) OnAboveWriteBufferHighWatermark() {}
@@ -83,19 +81,25 @@ func (s *activeStream) endStream() {
 			// if downstream req received not done, or local proxy process not done by handle upstream response,
 			// just mark it as done and reset stream as a failed case
 			s.localProcessDone = true
-			s.responseEncoder.GetStream().RemoveCallbacks(s)
 			s.responseEncoder.GetStream().ResetStream(types.StreamLocalReset)
 		}
 	}
+
+	s.cleanStream()
+
+	// note: if proxy logic resets the stream, there maybe some underlying data in the conn.
+	// we ignore this for now, fix as a todo
+}
+
+func (s *activeStream) cleanStream() {
+	s.proxy.stats.downstreamRequestActive.Dec(1)
 
 	for _, al := range s.proxy.accessLogs {
 		al.Log(s.downstreamHeaders, nil, s.requestInfo)
 	}
 
+	s.proxy.stats.print()
 	s.proxy.deleteActiveStream(s)
-
-	// note: if proxy logic resets the stream, there maybe some underlying data in the conn.
-	// we ignore this for now, fix as a todo
 }
 
 // types.StreamDecoder
