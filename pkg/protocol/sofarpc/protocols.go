@@ -25,8 +25,31 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 		protocolMaps: protocolMaps,
 	}
 }
+/*
+	allField["XXX_protocol"] = string(requestCommand.GetProtocolCode())
+*/
 
-func (p *protocols) Encode(value interface{}, data types.IoBuffer) {}
+func (p *protocols) Encode(value interface{}, data types.IoBuffer) {
+	//被stream层调用的时候，传过来的是MAP结构
+	if headerMap, ok := value.(map[string]string); ok {
+
+		protocolCode := []byte(headerMap["XXX_protocol"])[0]   //Type: byte
+		log.DefaultLogger.Println("[Encode]protocol code = ", protocolCode)
+		if proto, exists := p.protocolMaps[protocolCode]; exists {
+
+			encoder := 	proto.GetEncoder()
+			encoder.Encode(value,data) //返回ENCODE的数据
+			return
+
+		}else {
+			log.DefaultLogger.Println("Unknown protocol code: [", protocolCode, "] while encode in ProtocolDecoder.")
+		}
+	}else{
+
+		log.DefaultLogger.Println("Invalid Arguments")
+	}
+
+}
 
 // filter = type.serverStreamConnection
 func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
@@ -43,7 +66,7 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 			var out = make([]RpcCommand, 0, 1)
 
 			decoder := proto.GetDecoder()
-			read := decoder.Decode(filter, data, &out)     //先解析称command,保存在OUT
+			read := decoder.Decode(filter, data, &out)     //先解析成command,即将一串二进制Decode到对应的字段
 
 			if len(out) > 0 {
 				proto.GetCommandHandler().HandleCommand(filter, out[0])  //做decode 同时序列化，在此调用！！

@@ -164,12 +164,13 @@ func (decoder *boltV2Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 				request := &boltRequestCommand{
 					boltCommand: boltCommand{
 						protocolCode,
+						dataType,
 						int16(cmdCode),
 						ver2,
-						dataType,
+						requestId,
 						codec,
 
-						requestId,
+
 						int16(classLen),
 						int16(headerLen),
 						int(contentLen),
@@ -231,11 +232,12 @@ func (decoder *boltV2Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 				response := &boltResponseCommand{
 					boltCommand: boltCommand{
 						protocolCode,
+						dataType,
 						int16(cmdCode),
 						ver2,
-						dataType,
-						codec,
 						requestId,
+						codec,
+
 						int16(classLen),
 						int16(headerLen),
 						int(contentLen),

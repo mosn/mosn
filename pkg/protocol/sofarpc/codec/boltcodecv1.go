@@ -11,28 +11,77 @@ import (
 // types.Encoder & types.Decoder
 type boltV1Codec struct{}
 
+
+
+
 func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {
-	if rpcCmd, ok := value.(*boltCommand); !ok {
 
-		log.DefaultLogger.Println("[Decode] Invalid Input Type")
-		return
 
-	} else {
+	var valueFinal interface{}
+	if valueMap ,ok := value.(map[string]string); ok {
 
-		requestType := ""
-		if rpcCmd.cmdCode == sofarpc.RPC_REQUEST {
+		valueFinal = EncodeAdapter(valueMap)
+	}
 
-			requestType = "request"
 
-		} else {
+	var result []byte
 
-			requestType = "response"
+	//REQUEST
+	if rpcCmd, ok := valueFinal.(*boltRequestCommand); ok {
 
+		log.DefaultLogger.Println("prepare to encode rpcCommand,=%+v", rpcCmd.cmdType)
+
+		//COMMON
+		result = append(result, rpcCmd.protocol) //encode protocol type: bolt v1
+
+		result = append(result, rpcCmd.cmdType)
+
+		cmdCodeBytes := make([]byte, 2)
+		binary.BigEndian.PutUint16(cmdCodeBytes, uint16(rpcCmd.cmdCode))
+		result = append(result, cmdCodeBytes...)
+
+		result = append(result, rpcCmd.version)
+
+		requestIdBytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(requestIdBytes, uint32(rpcCmd.id))
+		result = append(result, requestIdBytes...)
+
+		result = append(result, rpcCmd.codec)
+		//FOR REQUEST
+		timeoutBytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(timeoutBytes, uint32(rpcCmd.timeout))
+		result = append(result, timeoutBytes...)
+
+		//COMMON
+		clazzLengthBytes := make([]byte, 2)
+		binary.BigEndian.PutUint16(clazzLengthBytes, uint16(rpcCmd.classLength))
+		result = append(result, clazzLengthBytes...)
+
+		headerLengthBytes := make([]byte, 2)
+		binary.BigEndian.PutUint16(headerLengthBytes, uint16(rpcCmd.headerLength))
+		result = append(result, headerLengthBytes...)
+
+		contentLenBytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(contentLenBytes, uint32(rpcCmd.contentLength))
+		result = append(result, contentLenBytes...)
+
+		if rpcCmd.classLength > 0 {
+			result = append(result, rpcCmd.class...)
 		}
-		log.DefaultLogger.Println("prepare to encode rpcCommand,type=%s,command=%+v", requestType, rpcCmd)
 
-		var result []byte
+		if rpcCmd.headerLength > 0 {
+			result = append(result, rpcCmd.header...)
+		}
 
+		//CONTENT IS REGARDED AS BODY AND TRANSMIT DIRECTLY
+
+		//if rpcCmd.contentLength > 0 {
+		//	result = append(result, rpcCmd.content...)
+		//}
+
+
+		//RESPONSE
+	} else if rpcCmd, ok := value.(*boltResponseCommand); ok {
 		result = append(result, rpcCmd.protocol) //encode protocol type: bolt v1
 
 		result = append(result, rpcCmd.cmdType)
@@ -49,19 +98,13 @@ func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {
 
 		result = append(result, rpcCmd.codec)
 
-		if requestType == "request" { //timeout  int32 ,  for request
+		//FOR RESPONSE
 
-			requestCmd := value.(*boltRequestCommand)
-			timeoutBytes := make([]byte, 4)
-			binary.BigEndian.PutUint32(timeoutBytes, uint32(requestCmd.timeout))
-			result = append(result, timeoutBytes...)
-		} else { //respStatus  int16  , for response
-			responseCmd := value.(*boltResponseCommand)
-			respStatusBytes := make([]byte, 2)
-			binary.BigEndian.PutUint16(respStatusBytes, uint16(responseCmd.responseStatus))
-			result = append(result, respStatusBytes...)
-		}
+		respStatusBytes := make([]byte, 2)
+		binary.BigEndian.PutUint16(respStatusBytes, uint16(rpcCmd.responseStatus))
+		result = append(result, respStatusBytes...)
 
+		//COMMON
 		clazzLengthBytes := make([]byte, 2)
 		binary.BigEndian.PutUint16(clazzLengthBytes, uint16(rpcCmd.classLength))
 		result = append(result, clazzLengthBytes...)
@@ -86,12 +129,19 @@ func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {
 			result = append(result, rpcCmd.content...)
 		}
 
-		log.DefaultLogger.Println("encode command finished,type=%s,bytes=%d", requestType, result)
 
-		//append to data
-		data.Reset()
-		data.Append(result)
+	} else {
+		log.DefaultLogger.Println("[Decode] Invalid Input Type")
+		return
 	}
+
+
+	log.DefaultLogger.Println("encode command finished,bytes=%d", result)
+
+	//GET BINARY BYTE FLOW
+	data.Reset()
+	data.Append(result)
+
 }
 
 func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) int {
@@ -143,12 +193,11 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 				request := &boltRequestCommand{
 					boltCommand: boltCommand{
 						sofarpc.PROTOCOL_CODE_V1,
+						dataType,
 						int16(cmdCode),
 						ver2,
-						dataType,
-						codec,
-
 						requestId,
+						codec,
 						int16(classLen),
 						int16(headerLen),
 						int(contentLen),
@@ -205,11 +254,11 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 				response := &boltResponseCommand{
 					boltCommand: boltCommand{
 						sofarpc.PROTOCOL_CODE_V1,
+						dataType,
 						int16(cmdCode),
 						ver2,
-						dataType,
-						codec,
 						requestId,
+						codec,
 						int16(classLen),
 						int16(headerLen),
 						int(contentLen),

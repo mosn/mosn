@@ -8,20 +8,20 @@ import (
 //command defination
 type boltCommand struct {
 	protocol byte  // 1 boltv1, 2 boltv2, 13 tr request, 14 tr response
+	cmdType  byte  // 0 response,1 是request,2是 req oneway
 	cmdCode  int16 // 0 心跳,1 request, 2 response
 	version  byte  // ver2
-	cmdType  byte  // 0 response,1 是request,2是 req oneway
+	id       uint32
 	codec    byte
 	//protoSwitchStatus byte
 
-	id            uint32
 	classLength   int16
 	headerLength  int16
 	contentLength int
 
-	class   []byte
-	header  []byte
-	content []byte
+	class   []byte			//CLASS NAME
+	header  []byte			//HEADER
+	content []byte			//CONTENT BYTES
 
 	invokeContext interface{}
 }
@@ -97,6 +97,9 @@ func (b *boltCommand) GetContent() []byte {
 	return b.content
 }
 
+
+
+
 // FOR BOLRV2 Request
 func (b *boltRequestCommand) SetVer1(ver1 byte) {
 	b.ver1 = ver1
@@ -107,12 +110,43 @@ func (b *boltRequestCommand) GetVer1() byte {
 func (b *boltRequestCommand) SetSwitch(switchCode byte) {
 	b.switchCode = switchCode
 }
-func (b *boltRequestCommand) GetSwitch() byte {
-	return b.switchCode
+
+
+
+//GetCmdType()byte
+//GetVersion()byte
+//GetCodec()byte
+//GetTimeout()int
+//GetClassLength()int16
+//GetHeaderLength()int16
+//GetContentLength()int
+func (b *boltRequestCommand) GetProtocolCode() byte {
+	return b.protocol
+}
+func (b *boltRequestCommand) GetCmdType() byte {
+	return b.cmdType
+}
+func (b *boltRequestCommand) GetVersion() byte {
+	return b.version
+}
+func (b *boltRequestCommand) GetCodec() byte {
+	return b.codec
+}
+func (b *boltRequestCommand) GetTimeout() int {
+	return b.timeout
+}
+func (b *boltRequestCommand) GetClassLength() int16 {
+	return b.classLength
+}
+func (b *boltRequestCommand) GetHeaderLength() int16 {
+	return b.classLength
+}
+func (b *boltRequestCommand) GetContentLength() int {
+	return b.contentLength
 }
 
-func (b *boltRequestCommand) GetProtocolCode() byte {
-	return sofarpc.PROTOCOL_CODE_V1
+func (b *boltRequestCommand) GetSwitch() byte {
+	return b.switchCode
 }
 
 func (b *boltRequestCommand) GetCmdCode() int16 {
@@ -180,3 +214,12 @@ func (b *boltResponseCommand) SetSwitch(switchCode byte) {
 func (b *boltResponseCommand) GetSwitch() byte {
 	return b.switchCode
 }
+
+
+
+
+
+
+//func (b *boltRequestCommand) SetBoltAllField(headerMap map[string]string) {
+//	b.requestHeader = headerMap
+//}

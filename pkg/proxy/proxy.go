@@ -105,11 +105,11 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	req.element = s.proxy.upstreamRequests.PushBack(req)
 	s.upstreamRequest = req
 
-	req.connPool.NewStream(0, req, req)       //赋值 request
+	req.connPool.NewStream(0, req, req)       //赋值 requestEncoder
 
 	// todo: move this to pool ready
 	// most simple case: just encode headers to upstream
-	req.requestEncoder.EncodeHeaders(headers, endStream)     //往后发
+	req.requestEncoder.EncodeHeaders(headers, endStream)     //调用stream 层实现的EncodeHeaders
 
 	return
 }

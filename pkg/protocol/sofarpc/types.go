@@ -117,11 +117,24 @@ type RpcCommand interface {
 }
 
 type BoltRequestCommand interface {
+
 	GetProtocolCode() byte
 
+	GetCmdType()byte
 	GetCmdCode() int16
 
-	GetId() int
+	GetVersion()byte
+
+	GetId()  uint32 			//get request id
+
+	GetCodec()byte
+
+	GetTimeout()int
+
+	GetClassLength()int16
+	GetHeaderLength()int16
+	GetContentLength()int
+
 
 	GetClass() []byte
 
@@ -132,6 +145,8 @@ type BoltRequestCommand interface {
 	SetRequestHeader(headerMap map[string]string)
 
 	GetRequestHeader() map[string]string
+
+
 }
 
 type TrRequestCommand interface {

@@ -157,7 +157,6 @@ func (ccrf *clientConnReadFilter) OnData(buffer types.IoBuffer) types.FilterStat
 	buffer.Reset()
 
 
-
 	return types.Continue
 }
 
