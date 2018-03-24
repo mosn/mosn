@@ -53,7 +53,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.OnDecodeData(data, true)  ////回调PROXY层的OnDecodeData,把数据传进去
+		stream.decoder.OnDecodeData(data, true)  //回调PROXY层的OnDecodeData,把数据传进去
 	}
 
 	return types.Continue
@@ -230,7 +230,7 @@ func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
 func (s *stream) EncodeData(data types.IoBuffer, endStream bool) {
 
 
-	s.contentEncode = data      //对于content不再调用协议层
+	s.contentEncode = data      //对于content不再调用协议协议层ENCODER了
 	if endStream {
 		s.endStream()
 	}

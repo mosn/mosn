@@ -115,6 +115,7 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 }
 
 func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
+	//什么都不做，直接回传给stream
 	s.upstreamRequest.requestEncoder.EncodeData(data, endStream)
 }
 

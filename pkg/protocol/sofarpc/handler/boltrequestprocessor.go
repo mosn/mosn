@@ -27,21 +27,17 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
 			if cmd.GetRequestHeader() != nil {
-				//status := filter.OnDecodeHeader(cmd.GetId(), cmd.GetRequestHeader())//回调到stream中的OnDecoderHeader
+				//status := filter.OnDecodeHeader(cmd.GetId(), cmd.GetRequestHeader())
+				// 回调到stream中的OnDecoderHeader，回传HEADER数据
 				status := filter.OnDecodeHeader(cmd.GetId(),allHeader)
 
 				if status == types.StopIteration {
 					return
 				}
-				var data types.IoBuffer
-				data.Append(cmd.GetContent())
-				statusD := filter.OnDecodeData(cmd.GetId(),data)
-				if statusD == types.StopIteration {
-					return
-				}
 			}
 
 			if cmd.GetContent() != nil {
+				///回调到stream中的OnDecoderDATA，回传CONTENT数据
 				status := filter.OnDecodeData(cmd.GetId(), buffer.NewIoBufferBytes(cmd.GetContent()))
 
 				if status == types.StopIteration {
