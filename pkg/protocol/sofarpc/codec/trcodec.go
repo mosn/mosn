@@ -130,7 +130,7 @@ func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) {
  *   Body:       应用层对象类名
  *   Body:       应用层对象
  */
-func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) {
+func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interface{})int {
 	fmt.Println("tr decode:", data.Bytes())
 
 	bytes := data.Bytes()
@@ -217,5 +217,6 @@ func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interfa
 			*list = append(*list, response)
 		}
 	}
+	return int(totalLength)
 
 }

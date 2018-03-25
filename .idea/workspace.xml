@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="00883828-525e-40a1-a261-751f47fca9ac" name="Default" comment="" />
+    <list default="true" id="00883828-525e-40a1-a261-751f47fca9ac" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/adapter.go" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trcodec.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trcodec.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/handler/boltrequestprocessor.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/handler/boltrequestprocessor.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/proxy/downstream.go" afterPath="$PROJECT_DIR$/pkg/proxy/downstream.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/stream/http2/stream.go" afterPath="$PROJECT_DIR$/pkg/stream/http2/stream.go" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -11,50 +18,30 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="connection.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../mosn/pkg/network/connection.go">
+      <file leaf-file-name="connection.go" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/pkg/network/connection.go">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="316">
-              <caret line="78" column="24" lean-forward="true" selection-start-line="78" selection-start-column="24" selection-end-line="78" selection-end-column="24" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="tcpproxy.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../mosn/pkg/example/tcpproxy.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="321">
-              <caret line="95" column="36" lean-forward="true" selection-start-line="95" selection-start-column="36" selection-end-line="95" selection-end-column="36" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="proxy.go" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/../mosn/pkg/proxy/tcp/proxy.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="304">
-              <caret line="82" column="0" lean-forward="false" selection-start-line="82" selection-start-column="0" selection-end-line="82" selection-end-column="0" />
+              <caret line="78" column="24" lean-forward="false" selection-start-line="78" selection-start-column="24" selection-end-line="78" selection-end-column="24" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
       <file leaf-file-name="clustermanager.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/clustermanager.go">
+        <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/clustermanager.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="226">
-              <caret line="141" column="0" lean-forward="true" selection-start-line="141" selection-start-column="0" selection-end-line="141" selection-end-column="0" />
+            <state relative-caret-position="2227">
+              <caret line="141" column="0" lean-forward="false" selection-start-line="141" selection-start-column="0" selection-end-line="141" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
       <file leaf-file-name="golocalstore.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/golocalstore.go">
+        <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/golocalstore.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="149">
+            <state relative-caret-position="816">
               <caret line="55" column="0" lean-forward="false" selection-start-line="55" selection-start-column="0" selection-end-line="55" selection-end-column="0" />
               <folding />
             </state>
@@ -117,6 +104,9 @@
     </dirStrings>
   </component>
   <component name="GOROOT" path="/usr/local/Cellar/go/1.9.2/libexec" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
@@ -165,12 +155,12 @@
         <option value="$PROJECT_DIR$/pkg/network/filtermanager.go" />
         <option value="$PROJECT_DIR$/pkg/example/tcpproxy.go" />
         <option value="$PROJECT_DIR$/README.md" />
-        <option value="$PROJECT_DIR$/../mosn/pkg/types/network.go" />
-        <option value="$PROJECT_DIR$/../mosn/pkg/example/tcpproxy.go" />
-        <option value="$PROJECT_DIR$/../mosn/pkg/upstream/cluster/golocalstore.go" />
-        <option value="$PROJECT_DIR$/../mosn/pkg/network/connection.go" />
-        <option value="$PROJECT_DIR$/../mosn/pkg/proxy/tcp/proxy.go" />
-        <option value="$PROJECT_DIR$/../mosn/pkg/upstream/cluster/clustermanager.go" />
+        <option value="$PROJECT_DIR$/pkg/types/network.go" />
+        <option value="$PROJECT_DIR$/pkg/example/tcpproxy.go" />
+        <option value="$PROJECT_DIR$/pkg/upstream/cluster/golocalstore.go" />
+        <option value="$PROJECT_DIR$/pkg/network/connection.go" />
+        <option value="$PROJECT_DIR$/pkg/proxy/tcp/proxy.go" />
+        <option value="$PROJECT_DIR$/pkg/upstream/cluster/clustermanager.go" />
       </list>
     </option>
   </component>
@@ -186,10 +176,10 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="ProjectFrameBounds" extendedState="6">
+  <component name="ProjectFrameBounds">
     <option name="y" value="23" />
     <option name="width" value="1440" />
-    <option name="height" value="797" />
+    <option name="height" value="824" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -225,7 +215,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -286,6 +275,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
       <pane id="Scratches" />
     </panes>
   </component>
@@ -299,6 +289,7 @@
     <property name="DefaultGoTemplateProperty" value="Go File" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
     <property name="SearchEverywhereHistoryKey" value="()&#9;ACTION&#9;EditorPopupMenu1" />
+    <property name="go.vendoring.notification.had.been.shown" value="true" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -338,7 +329,7 @@
       <working_directory value="$PROJECT_DIR$/" />
       <go_parameters value="-i" />
       <kind value="FILE" />
-      <filePath value="$PROJECT_DIR$/../mosn/pkg/example/tcpproxy.go" />
+      <filePath value="$PROJECT_DIR$/pkg/example/tcpproxy.go" />
       <directory value="$PROJECT_DIR$/" />
     </configuration>
     <configuration name="go build tcpproxy.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true">
@@ -384,24 +375,24 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1440" height="797" extended-state="6" />
+    <frame x="0" y="23" width="1440" height="824" extended-state="6" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.15379113" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.15593705" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32905984" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24964234" sideWeight="0.5" order="3" side_tool="false" content_ui="combo" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32905984" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2962963" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.35042736" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.35042736" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24964234" sideWeight="0.5" order="3" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32905984" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -415,36 +406,32 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/resourcemanager.go</url>
+          <url>file://$PROJECT_DIR$/pkg/upstream/cluster/resourcemanager.go</url>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/../mosn/pkg/network/connection.go</url>
+          <url>file://$PROJECT_DIR$/pkg/network/connection.go</url>
           <line>280</line>
           <option name="timeStamp" value="16" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/../mosn/pkg/network/connection.go</url>
+          <url>file://$PROJECT_DIR$/pkg/network/connection.go</url>
           <line>255</line>
-          <properties />
           <option name="timeStamp" value="18" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/golocalstore.go</url>
+          <url>file://$PROJECT_DIR$/pkg/upstream/cluster/golocalstore.go</url>
           <line>55</line>
-          <properties />
           <option name="timeStamp" value="36" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/../mosn/pkg/proxy/tcp/proxy.go</url>
+          <url>file://$PROJECT_DIR$/pkg/proxy/tcp/proxy.go</url>
           <line>75</line>
-          <properties />
           <option name="timeStamp" value="42" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/clustermanager.go</url>
+          <url>file://$PROJECT_DIR$/pkg/upstream/cluster/clustermanager.go</url>
           <line>104</line>
-          <properties />
           <option name="timeStamp" value="43" />
         </line-breakpoint>
       </breakpoints>
@@ -453,16 +440,10 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/types/http.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="30">
-          <caret line="2" column="23" lean-forward="false" selection-start-line="2" selection-start-column="5" selection-end-line="2" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/types/http.go" />
     <entry file="file://$PROJECT_DIR$/pkg/protocol/http/types.go" />
     <entry file="file://$PROJECT_DIR$/pkg/protocol/filter/types.go" />
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/types/stream.go">
+    <entry file="file://$PROJECT_DIR$/pkg/types/stream.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2700">
           <caret line="180" column="0" lean-forward="true" selection-start-line="180" selection-start-column="0" selection-end-line="180" selection-end-column="0" />
@@ -474,113 +455,48 @@
     <entry file="file://$PROJECT_DIR$/pkg/protocol/codec/stream.go" />
     <entry file="file://$PROJECT_DIR$/pkg/upstream/types.go" />
     <entry file="file://$PROJECT_DIR$/pkg/router/types.go" />
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/loadbalancer.go">
+    <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/loadbalancer.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
           <caret line="5" column="46" lean-forward="false" selection-start-line="5" selection-start-column="41" selection-end-line="5" selection-end-column="46" />
-          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/pkg/upstream/healthcheck/types.go" />
     <entry file="file://$PROJECT_DIR$/pkg/trace/types.go" />
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/sync/atomic/doc.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="83">
-          <caret line="104" column="5" lean-forward="false" selection-start-line="104" selection-start-column="5" selection-end-line="104" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/sync/atomic/doc.go" />
     <entry file="file://$PROJECT_DIR$/pkg/example/echo.go" />
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/bytes/buffer.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="182">
-          <caret line="237" column="60" lean-forward="true" selection-start-line="237" selection-start-column="60" selection-end-line="237" selection-end-column="60" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/bufio/bufio.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="105">
-          <caret line="7" column="13" lean-forward="false" selection-start-line="7" selection-start-column="8" selection-end-line="7" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/network/buffer/bufferpool.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="14" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="14" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/net/tcpsock_posix.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-213">
-          <caret line="60" column="53" lean-forward="false" selection-start-line="60" selection-start-column="48" selection-end-line="60" selection-end-column="53" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/net/tcpsock.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="167">
-          <caret line="67" column="46" lean-forward="false" selection-start-line="67" selection-start-column="46" selection-end-line="67" selection-end-column="54" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/fmt/print.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="167">
-          <caret line="188" column="5" lean-forward="false" selection-start-line="188" selection-start-column="5" selection-end-line="188" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/runtime/asm_amd64.s">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="132">
-          <caret line="2337" column="0" lean-forward="false" selection-start-line="2337" selection-start-column="0" selection-end-line="2337" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/bytes/buffer.go" />
+    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/bufio/bufio.go" />
+    <entry file="file://$PROJECT_DIR$/pkg/network/buffer/bufferpool.go" />
+    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/net/tcpsock_posix.go" />
+    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/net/tcpsock.go" />
+    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/fmt/print.go" />
+    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/runtime/asm_amd64.s" />
     <entry file="file://$PROJECT_DIR$/pkg/server/listenermanager.go" />
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/proxy/tcp/types.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="210">
-          <caret line="16" column="23" lean-forward="false" selection-start-line="16" selection-start-column="4" selection-end-line="16" selection-end-column="23" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/api/v2/types.go">
+    <entry file="file://$PROJECT_DIR$/pkg/proxy/tcp/types.go" />
+    <entry file="file://$PROJECT_DIR$/pkg/api/v2/types.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="475">
           <caret line="42" column="20" lean-forward="false" selection-start-line="42" selection-start-column="4" selection-end-line="42" selection-end-column="20" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/server/types.go">
+    <entry file="file://$PROJECT_DIR$/pkg/server/types.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="300">
           <caret line="20" column="4" lean-forward="false" selection-start-line="20" selection-start-column="4" selection-end-line="20" selection-end-column="4" />
-          <folding>
-            <element signature="e#16#118#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/server/configuration.go">
+    <entry file="file://$PROJECT_DIR$/pkg/server/configuration.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="120">
           <caret line="8" column="1" lean-forward="true" selection-start-line="8" selection-start-column="1" selection-end-line="8" selection-end-column="1" />
-          <folding>
-            <element signature="e#16#66#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/server/handler.go">
+    <entry file="file://$PROJECT_DIR$/pkg/server/handler.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2">
           <caret line="124" column="66" lean-forward="true" selection-start-line="124" selection-start-column="66" selection-end-line="124" selection-end-column="66" />
@@ -588,7 +504,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/resourcemanager.go">
+    <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/resourcemanager.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="389">
           <caret line="69" column="0" lean-forward="true" selection-start-line="69" selection-start-column="0" selection-end-line="69" selection-end-column="0" />
@@ -598,100 +514,72 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/server/server.go">
+    <entry file="file://$PROJECT_DIR$/pkg/server/server.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="189">
           <caret line="18" column="1" lean-forward="true" selection-start-line="18" selection-start-column="1" selection-end-line="18" selection-end-column="1" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/cluster.go">
+    <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/cluster.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="133">
           <caret line="123" column="30" lean-forward="false" selection-start-line="123" selection-start-column="23" selection-end-line="123" selection-end-column="36" />
-          <folding>
-            <element signature="e#17#125#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/host.go">
+    <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/host.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="156">
           <caret line="63" column="45" lean-forward="false" selection-start-line="63" selection-start-column="26" selection-end-line="63" selection-end-column="45" />
-          <folding>
-            <element signature="e#17#172#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/network/listener.go">
+    <entry file="file://$PROJECT_DIR$/pkg/network/listener.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="90">
           <caret line="6" column="4" lean-forward="false" selection-start-line="6" selection-start-column="4" selection-end-line="6" selection-end-column="47" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/types/request.go">
+    <entry file="file://$PROJECT_DIR$/pkg/types/request.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="13" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="13" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/network/requestinfo.go">
+    <entry file="file://$PROJECT_DIR$/pkg/network/requestinfo.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="15" lean-forward="false" selection-start-line="0" selection-start-column="8" selection-end-line="0" selection-end-column="15" />
-          <folding>
-            <element signature="e#17#87#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/net/net.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="186">
-          <caret line="106" column="1" lean-forward="true" selection-start-line="106" selection-start-column="1" selection-end-line="106" selection-end-column="1" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/types.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="15">
-          <caret line="1" column="0" lean-forward="true" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/types.go">
+    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/net/net.go" />
+    <entry file="file://$PROJECT_DIR$/types.go" />
+    <entry file="file://$PROJECT_DIR$/pkg/types.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/CHANGELOG.md">
+    <entry file="file://$PROJECT_DIR$/CHANGELOG.md">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/Makefile">
+    <entry file="file://$PROJECT_DIR$/Makefile">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/types/codec.go">
+    <entry file="file://$PROJECT_DIR$/pkg/types/codec.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
           <caret line="4" column="24" lean-forward="true" selection-start-line="4" selection-start-column="24" selection-end-line="4" selection-end-column="24" />
@@ -699,31 +587,28 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/server/config/proxy/tcpproxy.go">
+    <entry file="file://$PROJECT_DIR$/pkg/server/config/proxy/tcpproxy.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
           <caret line="9" column="5" lean-forward="false" selection-start-line="9" selection-start-column="5" selection-end-line="9" selection-end-column="5" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/README.md">
+    <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="44" lean-forward="true" selection-start-line="0" selection-start-column="44" selection-end-line="0" selection-end-column="44" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/network/filtermanager.go">
+    <entry file="file://$PROJECT_DIR$/pkg/network/filtermanager.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="89">
           <caret line="13" column="15" lean-forward="true" selection-start-line="13" selection-start-column="5" selection-end-line="13" selection-end-column="21" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/types/network.go">
+    <entry file="file://$PROJECT_DIR$/pkg/types/network.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="199">
           <caret line="219" column="38" lean-forward="false" selection-start-line="219" selection-start-column="38" selection-end-line="219" selection-end-column="38" />
@@ -731,62 +616,40 @@
         </state>
       </provider>
     </entry>
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/sync/rwmutex.go">
+    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/sync/rwmutex.go" />
+    <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/golocalstore.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1481">
-          <caret line="27" column="5" lean-forward="false" selection-start-line="27" selection-start-column="5" selection-end-line="27" selection-end-column="5" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/golocalstore.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="149">
+        <state relative-caret-position="816">
           <caret line="55" column="0" lean-forward="false" selection-start-line="55" selection-start-column="0" selection-end-line="55" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/network/connection.go">
+    <entry file="file://$PROJECT_DIR$/pkg/network/connection.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="316">
-          <caret line="78" column="24" lean-forward="true" selection-start-line="78" selection-start-column="24" selection-end-line="78" selection-end-column="24" />
+          <caret line="78" column="24" lean-forward="false" selection-start-line="78" selection-start-column="24" selection-end-line="78" selection-end-column="24" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/example/tcpproxy.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="321">
-          <caret line="95" column="36" lean-forward="true" selection-start-line="95" selection-start-column="36" selection-end-line="95" selection-end-column="36" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/types/upstream.go">
+    <entry file="file://$PROJECT_DIR$/pkg/example/tcpproxy.go" />
+    <entry file="file://$PROJECT_DIR$/pkg/types/upstream.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="136">
           <caret line="34" column="32" lean-forward="true" selection-start-line="34" selection-start-column="32" selection-end-line="34" selection-end-column="32" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/upstream/cluster/clustermanager.go">
+    <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/clustermanager.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="226">
-          <caret line="141" column="0" lean-forward="true" selection-start-line="141" selection-start-column="0" selection-end-line="141" selection-end-column="0" />
+        <state relative-caret-position="2227">
+          <caret line="141" column="0" lean-forward="false" selection-start-line="141" selection-start-column="0" selection-end-line="141" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../mosn/pkg/proxy/tcp/proxy.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="304">
-          <caret line="82" column="0" lean-forward="false" selection-start-line="82" selection-start-column="0" selection-end-line="82" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/proxy/tcp/proxy.go" />
   </component>
   <component name="masterDetails">
     <states>

@@ -134,6 +134,7 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	s.timeout = parseProxyTimeout(route, headers)
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
+	//Build Request
 	s.upstreamRequest = &upstreamRequest{
 		activeStream: s,
 		proxy:        s.proxy,

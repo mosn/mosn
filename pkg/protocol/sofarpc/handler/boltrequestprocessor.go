@@ -4,12 +4,8 @@ import (
 	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-
-
-
 
 )
 
@@ -77,16 +73,16 @@ func deserializeRequestAllFields(requestCommand sofarpc.BoltRequestCommand) map[
 
 	allField["XXX_protocol"] = string(requestCommand.GetProtocolCode())
 	allField["XXX_cmdType"]  = string(requestCommand.GetCmdType())
-	allField["XXX_cmdCode"] = codec.UintToString(uint16(requestCommand.GetCmdCode()),16)
+	allField["XXX_cmdCode"] = sofarpc.UintToString(uint16(requestCommand.GetCmdCode()),16)
 	allField["XXX_version"] = string(requestCommand.GetVersion())
-	allField["XXX_requestId"] = codec.UintToString(uint32(requestCommand.GetId()),32)
+	allField["XXX_requestId"] = sofarpc.UintToString(uint32(requestCommand.GetId()),32)
 	allField["XXX_codec"]  = string(requestCommand.GetCodec())
 
-	allField["XXX_timeout"] = codec.UintToString(requestCommand.GetTimeout(),32)
+	allField["XXX_timeout"] = sofarpc.UintToString(uint32(requestCommand.GetTimeout()),32)
 
-	allField["XXX_classLength"] = codec.UintToString(uint16(requestCommand.GetClassLength()),16)
-	allField["XXX_headerLength"] = codec.UintToString(uint16(requestCommand.GetHeaderLength()),16)
-	allField["XXX_contentLength"] = codec.UintToString(uint32(requestCommand.GetCmdCode()),32)
+	allField["XXX_classLength"] = sofarpc.UintToString(uint16(requestCommand.GetClassLength()),16)
+	allField["XXX_headerLength"] = sofarpc.UintToString(uint16(requestCommand.GetHeaderLength()),16)
+	allField["XXX_contentLength"] = sofarpc.UintToString(uint32(requestCommand.GetCmdCode()),32)
 
 
 	//serialize class name

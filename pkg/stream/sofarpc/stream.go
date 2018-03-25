@@ -6,6 +6,9 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 func init() {
@@ -220,9 +223,14 @@ func (s *stream) BufferLimit() uint32 {
 func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
 
 	// boqin: 由proxy回调，同时调用协议层Encode方法
-	var encodedData types.IoBuffer
+
+
+	encodedData := buffer.NewIoBufferBytes(make([]byte, 1024))
+
 	s.connection.protocols.Encode(headers,encodedData)
 	s.headerEncode = encodedData    //临时保存在头部中的数据
+	log.DefaultLogger.Println("[Header to sent] %d",s.headerEncode.Bytes())
+	//fmt.Print("[Header to sent]",s.headerEncode)
 
 	if endStream {
 		s.endStream()
