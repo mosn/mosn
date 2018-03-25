@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"net/url"
 	"fmt"
+	"sync"
 )
 
 func init() {
@@ -42,6 +43,7 @@ type streamConnection struct {
 	rawConnection net.Conn
 	http2Conn     *http2.ClientConn
 	activeStreams *list.List
+	asMutex       sync.Mutex
 	connCallbacks types.ConnectionCallbacks
 }
 
@@ -86,7 +88,9 @@ func (csc *clientStreamConnection) NewStream(streamId uint32, responseDecoder ty
 		connection: csc,
 	}
 
+	csc.asMutex.Lock()
 	stream.element = csc.activeStreams.PushBack(stream)
+	csc.asMutex.Unlock()
 
 	return stream
 }
@@ -131,7 +135,9 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 
 	//调用 PROXY 层的NEW STREAM 作为一种通告机制，将返回STREAM DECODER, 用于
 	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(0, stream)
+	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
+	ssc.asMutex.Unlock()
 
 
 	//继续调用 PROXY 层的OnDecodeHeader, 向后发起数据
@@ -290,7 +296,9 @@ func (s *clientStream) doSend() {
 			s.decoder.OnDecodeTrailers(decodeHeader(resp.Trailer))
 		}
 
+		s.connection.asMutex.Lock()
 		s.connection.activeStreams.Remove(s.element)
+		s.connection.asMutex.Unlock()
 	}()
 }
 
@@ -346,7 +354,10 @@ func (s *serverStream) EncodeTrailers(trailers map[string]string) {
 func (s *serverStream) endStream() {
 	s.doSend()
 	s.responseDoneChan <- true
+
+	s.connection.asMutex.Lock()
 	s.connection.activeStreams.Remove(s.element)
+	s.connection.asMutex.Unlock()
 }
 
 func (s *serverStream) doSend() {

@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"time"
 )
 
 type Proxy interface {
@@ -21,6 +22,11 @@ type DownstreamCallbacks interface {
 	types.ConnectionCallbacks
 }
 
+type ProxyTimeout struct {
+	GlobalTimeout time.Duration
+	TryTimeout    time.Duration
+}
+
 type UpstreamFailureReason string
 
 const (
@@ -28,4 +34,12 @@ const (
 	NoHealthyUpstream     UpstreamFailureReason = "NoHealthyUpstream"
 	ResourceLimitExceeded UpstreamFailureReason = "ResourceLimitExceeded"
 	NoRoute               UpstreamFailureReason = "NoRoute"
+)
+
+type UpstreamResetType string
+
+const (
+	UpstreamReset         UpstreamResetType = "UpstreamReset"
+	UpstreamGlobalTimeout UpstreamResetType = "UpstreamGlobalTimeout"
+	UpstreamPerTryTimeout UpstreamResetType = "UpstreamPerTryTimeout"
 )

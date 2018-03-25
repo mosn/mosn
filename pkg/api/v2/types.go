@@ -1,6 +1,9 @@
 package v2
 
-import "net"
+import (
+	"net"
+	"time"
+)
 
 type Metadata struct {
 }
@@ -79,10 +82,19 @@ type Proxy struct {
 	DownstreamProtocol string
 	UpstreamProtocol   string
 	Routes             []*BasicServiceRoute
+	AccessLogs         []*AccessLog
 }
 
 type BasicServiceRoute struct {
-	Name    string
-	Service string
-	Cluster string
+	Name          string
+	Service       string
+	Cluster       string
+	GlobalTimeout time.Duration
+	RetryPolicy   *RetryPolicy
+}
+
+type RetryPolicy struct {
+	RetryOn      bool
+	RetryTimeout time.Duration
+	NumRetries   int
 }

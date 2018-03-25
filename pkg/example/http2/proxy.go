@@ -170,6 +170,7 @@ func genericProxyConfig() *v2.Proxy {
 		Service: ".*",
 		Cluster: TestCluster,
 	})
+	proxyConfig.AccessLogs = append(proxyConfig.AccessLogs, &v2.AccessLog{})
 
 	return proxyConfig
 }

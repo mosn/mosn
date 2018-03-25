@@ -1,6 +1,7 @@
 package sofarpc
 
 import (
+	"sync"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
@@ -29,6 +30,7 @@ type streamConnection struct {
 	protocol      types.Protocol
 	connection    types.Connection
 	activeStreams map[uint32]*stream
+	asMutex       sync.Mutex
 	protocols     types.Protocols
 }
 

@@ -115,6 +115,12 @@ func (b *IoBuffer) Append(data []byte) error {
 	return nil
 }
 
+func (b *IoBuffer) AppendByte(data byte) error {
+	datas:=makeSlice(1)
+	return b.Append(datas)
+
+}
+
 func (b *IoBuffer) Peek(n int) []byte {
 	if len(b.buf)-b.off < n {
 		return nil
@@ -183,7 +189,7 @@ func makeSlice(n int) []byte {
 	return make([]byte, n)
 }
 
-func NewIoBuffer(bufSize int) *IoBuffer {
+func NewIoBuffer(bufSize int) types.IoBuffer {
 	buf := make([]byte, 0, bufSize)
 
 	return &IoBuffer{
@@ -192,14 +198,14 @@ func NewIoBuffer(bufSize int) *IoBuffer {
 	}
 }
 
-func NewIoBufferString(s string) *IoBuffer {
+func NewIoBufferString(s string) types.IoBuffer {
 	return &IoBuffer{
 		buf:     []byte(s),
 		offMark: ResetOffMark,
 	}
 }
 
-func NewIoBufferBytes(bytes []byte) *IoBuffer {
+func NewIoBufferBytes(bytes []byte) types.IoBuffer {
 	return &IoBuffer{
 		buf:     []byte(bytes),
 		offMark: ResetOffMark,
