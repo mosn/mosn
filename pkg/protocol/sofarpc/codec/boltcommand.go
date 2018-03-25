@@ -1,7 +1,6 @@
 package codec
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"net"
 )
 
@@ -19,9 +18,9 @@ type boltCommand struct {
 	headerLength  int16
 	contentLength int
 
-	class   []byte			//CLASS NAME
-	header  []byte			//HEADER
-	content []byte			//CONTENT BYTES
+	class   []byte //CLASS NAME
+	header  []byte //HEADER
+	content []byte //CONTENT BYTES
 
 	invokeContext interface{}
 }
@@ -72,13 +71,28 @@ type boltResponseCommand struct {
 	switchCode byte
 }
 
+//GetCmdType()byte
+//GetVersion()byte
+//GetCodec()byte
+//GetTimeout()int
+//GetClassLength()int16
+//GetHeaderLength()int16
+//GetContentLength()int
 func (b *boltCommand) GetProtocolCode() byte {
 	//return sofarpc.PROTOCOL_CODE_V1
 	return b.protocol
 }
 
+func (b *boltCommand) GetCmdType() byte {
+	return b.cmdType
+}
+
 func (b *boltCommand) GetCmdCode() int16 {
 	return b.cmdCode
+}
+
+func (b *boltCommand) GetVersion() byte {
+	return b.version
 }
 
 func (b *boltCommand) GetId() uint32 {
@@ -97,64 +111,41 @@ func (b *boltCommand) GetContent() []byte {
 	return b.content
 }
 
+func (b *boltCommand) GetClassLength() int16 {
+	return b.classLength
+}
 
+func (b *boltCommand) GetHeaderLength() int16 {
+	return b.classLength
+}
 
+func (b *boltCommand) GetContentLength() int {
+	return b.contentLength
+}
+
+func (b *boltCommand) GetCodec() byte {
+	return b.codec
+}
 
 // FOR BOLRV2 Request
 func (b *boltRequestCommand) SetVer1(ver1 byte) {
 	b.ver1 = ver1
 }
+
 func (b *boltRequestCommand) GetVer1() byte {
 	return b.ver1
 }
+
 func (b *boltRequestCommand) SetSwitch(switchCode byte) {
 	b.switchCode = switchCode
 }
 
-
-
-//GetCmdType()byte
-//GetVersion()byte
-//GetCodec()byte
-//GetTimeout()int
-//GetClassLength()int16
-//GetHeaderLength()int16
-//GetContentLength()int
-func (b *boltRequestCommand) GetProtocolCode() byte {
-	return b.protocol
-}
-func (b *boltRequestCommand) GetCmdType() byte {
-	return b.cmdType
-}
-func (b *boltRequestCommand) GetVersion() byte {
-	return b.version
-}
-func (b *boltRequestCommand) GetCodec() byte {
-	return b.codec
-}
 func (b *boltRequestCommand) GetTimeout() int {
 	return b.timeout
-}
-func (b *boltRequestCommand) GetClassLength() int16 {
-	return b.classLength
-}
-func (b *boltRequestCommand) GetHeaderLength() int16 {
-	return b.classLength
-}
-func (b *boltRequestCommand) GetContentLength() int {
-	return b.contentLength
 }
 
 func (b *boltRequestCommand) GetSwitch() byte {
 	return b.switchCode
-}
-
-func (b *boltRequestCommand) GetCmdCode() int16 {
-	return b.cmdCode
-}
-
-func (b *boltRequestCommand) GetId() uint32 {
-	return b.id
 }
 
 func (b *boltRequestCommand) SetTimeout(timeout int) {
@@ -176,18 +167,6 @@ func (b *boltRequestCommand) GetRequestHeader() map[string]string {
 	return b.requestHeader
 }
 
-func (b *boltResponseCommand) GetProtocolCode() byte {
-	return sofarpc.PROTOCOL_CODE_V1
-}
-
-func (b *boltResponseCommand) GetCmdCode() int16 {
-	return b.cmdCode
-}
-
-func (b *boltResponseCommand) GetId() uint32 {
-	return b.id
-}
-
 func (b *boltResponseCommand) SetResponseStatus(status int16) {
 	b.responseStatus = status
 }
@@ -204,6 +183,7 @@ func (b *boltResponseCommand) SetResponseHost(host net.Addr) {
 func (b *boltResponseCommand) SetVer1(ver1 byte) {
 	b.ver1 = ver1
 }
+
 func (b *boltResponseCommand) GetVer1() byte {
 	return b.ver1
 }
@@ -211,15 +191,19 @@ func (b *boltResponseCommand) GetVer1() byte {
 func (b *boltResponseCommand) SetSwitch(switchCode byte) {
 	b.switchCode = switchCode
 }
+
 func (b *boltResponseCommand) GetSwitch() byte {
 	return b.switchCode
 }
 
+func (b *boltResponseCommand) GetResponseStatus() int16 {
+	return b.responseStatus
+}
 
+func (b *boltResponseCommand) SetResponseHeader(headerMap map[string]string) {
+	b.responseHeader = headerMap
+}
 
-
-
-
-//func (b *boltRequestCommand) SetBoltAllField(headerMap map[string]string) {
-//	b.requestHeader = headerMap
-//}
+func (b *boltResponseCommand) GetResponseHeader() map[string]string {
+	return b.responseHeader
+}

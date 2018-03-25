@@ -2,7 +2,7 @@ package codec
 
 //command defination
 type trCommand struct {
-	id              int
+	id              uint32
 	protocol        byte
 	protocolVersion byte
 	requestFlag     byte

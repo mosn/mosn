@@ -13,15 +13,13 @@ import (
 type boltV2Codec struct {
 }
 
-func (encoder *boltV2Codec) Encode(value interface{}, data types.IoBuffer) {
+func (encoder *boltV2Codec) Encode(value interface{}, data types.IoBuffer) uint32 {
 
 	if rpcCmd, ok := value.(*boltCommand); !ok {
 
 		log.DefaultLogger.Println("[Decode] Invalid Input Type")
-		return
-
+		return 0
 	} else {
-
 		requestType := ""
 		if rpcCmd.cmdCode == sofarpc.RPC_REQUEST {
 			requestType = "request"
@@ -36,14 +34,11 @@ func (encoder *boltV2Codec) Encode(value interface{}, data types.IoBuffer) {
 
 		//set ver1 for boltv2 request
 		if requestType == "request" {
-
 			requestCmd := value.(*boltRequestCommand)
 			result = append(result, requestCmd.GetVer1())
-
 		} else { //respStatus  int16  , for response
 			responseCmd := value.(*boltResponseCommand)
 			result = append(result, responseCmd.GetVer1())
-
 		}
 
 		result = append(result, rpcCmd.cmdType)
@@ -106,6 +101,8 @@ func (encoder *boltV2Codec) Encode(value interface{}, data types.IoBuffer) {
 		//append to data
 		data.Reset()
 		data.Append(result)
+
+		return rpcCmd.id
 	}
 }
 
@@ -144,15 +141,15 @@ func (decoder *boltV2Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 				//TODO because of no "mark & reset", bytes.off is not recoverable
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytes[read: read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytes[read: read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
 					//TODO mark buffer's off
@@ -213,15 +210,15 @@ func (decoder *boltV2Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytes[read: read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytes[read: read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
 				} else { // not enough data

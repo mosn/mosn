@@ -245,7 +245,8 @@ type rpcclientConnReadFilter struct {
 }
 
 func (ccrf *rpcclientConnReadFilter) OnData(buffer types.IoBuffer) types.FilterStatus {
-	fmt.Printf("[CLIENT]receive data '%s'", buffer.String())
+	fmt.Print("[CLIENT]receive data:")
+	fmt.Printf("%s", buffer.String())
 	fmt.Println()
 	buffer.Reset()
 

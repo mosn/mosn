@@ -15,54 +15,53 @@ import (
 // types.Encoder & types.Decoder
 type boltV1Codec struct{}
 
+func EncodeAdapter(allField map[string]string) interface{} {
 
-func EncodeAdapter(allField map[string]string)interface {}{
-
-	keyList := []string{"XXX_protocol","XXX_cmdType","XXX_cmdCode","XXX_requestId","XXX_codec",
-		"XXX_classLength", "XXX_headerLength","XXX_contentLength","XXX_className"}
+	keyList := []string{"XXX_protocol", "XXX_cmdType", "XXX_cmdCode", "XXX_requestId", "XXX_codec",
+		"XXX_classLength", "XXX_headerLength", "XXX_contentLength", "XXX_className"}
 
 	//COMMON FOR ALL
 	protocolCode := []byte(allField["XXX_protocol"])[0]
 
 	//BOLT V1
-	if protocolCode == sofarpc.PROTOCOL_CODE_V1{
+	if protocolCode == sofarpc.PROTOCOL_CODE_V1 {
 
 		cmdType := []byte(allField["XXX_cmdType"])[0]
-		cmdCode := int16(sofarpc.String2Uint(allField["XXX_cmdCode"],16).(uint16))  //Interface{} need converted first
+		cmdCode := int16(sofarpc.String2Uint(allField["XXX_cmdCode"], 16).(uint16)) //Interface{} need converted first
 		version := []byte(allField["XXX_version"])[0]
-		requestID := sofarpc.String2Uint(allField["XXX_requestId"],32).(uint32)
+		requestID := sofarpc.String2Uint(allField["XXX_requestId"], 32).(uint32)
 		codec := []byte(allField["XXX_codec"])[0]
 
 		//RPC Request
 		var timeout int
 		if cmdCode == sofarpc.RPC_REQUEST {
 
-			timeout =  int(sofarpc.String2Uint(allField["XXX_timeout"],32).(uint32))
-			keyList = append(keyList,"XXX_timeout" )
+			timeout = int(sofarpc.String2Uint(allField["XXX_timeout"], 32).(uint32))
+			keyList = append(keyList, "XXX_timeout")
 
 		} else if cmdCode == sofarpc.RPC_RESPONSE {
 
 			//todo RPC RESPONSE
 
-		}else{
+		} else {
 			// todo RPC_HB
 
 		}
 
-		classLength := int16(sofarpc.String2Uint(allField["XXX_classLength"],16).(uint16))
-		headerLength := int16(sofarpc.String2Uint(allField["XXX_headerLength"],16).(uint16))
-		contentLength :=  int(sofarpc.String2Uint(allField["XXX_contentLength"],32).(uint32))
+		classLength := int16(sofarpc.String2Uint(allField["XXX_classLength"], 16).(uint16))
+		headerLength := int16(sofarpc.String2Uint(allField["XXX_headerLength"], 16).(uint16))
+		contentLength := int(sofarpc.String2Uint(allField["XXX_contentLength"], 32).(uint32))
 
 		//class
 		className := allField["XXX_className"]
-		class,_ := serialize.Instance.Serialize(className)
+		class, _ := serialize.Instance.Serialize(className)
 
 		//header, reconstruct map，由于不知道KEY的内容，因而有点麻烦
 		headerMap := make(map[string]string)
 
-		for k,v := range allField {
+		for k, v := range allField {
 
-			if sofarpc.KeyInString(keyList,k){
+			if sofarpc.KeyInString(keyList, k) {
 
 				headerMap[k] = v
 			}
@@ -70,12 +69,11 @@ func EncodeAdapter(allField map[string]string)interface {}{
 
 		//serialize header
 
-		header,_:= serialize.Instance.Serialize(headerMap)
-
+		header, _ := serialize.Instance.Serialize(headerMap)
 
 		request := &boltRequestCommand{
 
-			boltCommand:boltCommand{
+			boltCommand: boltCommand{
 				protocolCode,
 				cmdType,
 				cmdCode,
@@ -100,16 +98,14 @@ func EncodeAdapter(allField map[string]string)interface {}{
 	return nil
 }
 
-func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {
-
-
+func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) uint32 {
 	var valueFinal interface{}
-	if valueMap ,ok := value.(map[string]string); ok {
+	if valueMap, ok := value.(map[string]string); ok {
 
 		valueFinal = EncodeAdapter(valueMap)
 	}
 
-
+	var reqId uint32
 	var result []byte
 
 	//REQUEST
@@ -165,7 +161,7 @@ func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {
 		//	result = append(result, rpcCmd.content...)
 		//}
 
-
+		reqId = rpcCmd.id
 		//RESPONSE
 	} else if rpcCmd, ok := value.(*boltResponseCommand); ok {
 		result = append(result, rpcCmd.protocol) //encode protocol type: bolt v1
@@ -215,22 +211,21 @@ func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) {
 			result = append(result, rpcCmd.content...)
 		}
 
-
+		reqId = rpcCmd.id
 	} else {
 		log.DefaultLogger.Println("[Decode] Invalid Input Type")
-		return
+		return 0
 	}
-
 
 	log.DefaultLogger.Println("encode command finished,bytes=%d", result)
 
 	//GET BINARY BYTE FLOW
- 	data.Reset()
+	data.Reset()
 	data.Append(result)
 
 	//data = buffer.NewIoBufferBytes(result)
 
-
+	return reqId
 }
 
 func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) int {
@@ -262,15 +257,15 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 				//TODO because of no "mark & reset", bytes.off is not recoverable
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytes[read: read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytes[read: read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
 					//TODO mark buffer's off
@@ -324,15 +319,15 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytes[read: read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytes[read: read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
 				} else { // not enough data

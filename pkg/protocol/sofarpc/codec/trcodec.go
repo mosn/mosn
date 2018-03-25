@@ -42,8 +42,7 @@ type trCodec struct {
 /**
 encode 这个
  */
-func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) {
-
+func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) uint32 {
 	//pass decode result to command handler
 	if trCommand, ok := value.(*trCommand); ok {
 		data.Append(trCommand.originalBytes)
@@ -81,6 +80,7 @@ func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) {
 		data.Append([]byte(trCommand.appClassName))
 		data.Append(trCommand.appClassContent)
 
+		return trCommand.id
 	} else if trCommand, ok := value.(*trResponseCommand); ok {
 
 		data.AppendByte(PROCOCOL_VERSION)
@@ -111,10 +111,12 @@ func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) {
 		data.Append([]byte(trCommand.appClassName))
 		data.Append(trCommand.appClassContent)
 
+		return trCommand.id
 	} else {
 		log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
 	}
 
+	return 0
 }
 
 /**
@@ -130,7 +132,7 @@ func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) {
  *   Body:       应用层对象类名
  *   Body:       应用层对象
  */
-func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interface{})int {
+func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) int {
 	fmt.Println("tr decode:", data.Bytes())
 
 	bytes := data.Bytes()
@@ -157,7 +159,7 @@ func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interfa
 	appClassNameEnd := connRequestEnd + appClassNameLength
 	appClassNameContent := bytes[connRequestEnd:appClassNameEnd]
 	appClassName := string(appClassNameContent)
-	appClassContent := bytes[appClassNameEnd : appClassNameEnd+appClassContentLength]
+	appClassContent := bytes[appClassNameEnd: appClassNameEnd+appClassContentLength]
 
 	totalLength := PROTOCOL_HEADER_LENGTH + connRequestLength + appClassNameLength + appClassContentLength
 

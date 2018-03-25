@@ -40,7 +40,6 @@ type streamConnection struct {
 // types.StreamConnection
 func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	conn.protocols.Decode(buffer, conn)
-
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -50,7 +49,7 @@ func (conn *streamConnection) Protocol() types.Protocol {
 // types.DecodeFilter 由serverStreamConnection调用
 func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.OnDecodeHeaders(headers, false)//回调PROXY层的OnDecodeHeaders，将HEADERS传进去
+		stream.decoder.OnDecodeHeaders(headers, false) //回调PROXY层的OnDecodeHeaders，将HEADERS传进去
 	}
 
 	return types.Continue
@@ -58,10 +57,10 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.OnDecodeData(data, true)  //回调PROXY层的OnDecodeData,把数据传进去
+		stream.decoder.OnDecodeData(data, true) //回调PROXY层的OnDecodeData,把数据传进去
 	}
 
-	return types.Continue
+	return types.StopIteration
 }
 
 func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[string]string) types.FilterStatus {
@@ -104,8 +103,6 @@ func (c *clientStreamConnection) NewStream(streamId uint32, responseDecoder type
 		decoder:    responseDecoder,
 	}
 
-	c.activeStreams[streamId] = stream
-
 	return stream
 }
 
@@ -130,7 +127,6 @@ func newServerStreamConnection(connection types.Connection,
 //调用协议的decode，将自己SC作为参数传进去，便于回调
 func (sc *serverStreamConnection) Dispatch(buffer types.IoBuffer) {
 	sc.protocols.Decode(buffer, sc)
-
 }
 
 // types.DecodeFilter
@@ -140,17 +136,17 @@ func (sc *serverStreamConnection) OnDecodeHeader(streamId uint32, headers map[st
 		return types.Continue
 	}
 
-	sc.onNewStreamDetected(streamId)   //创建NEW STREAM
+	sc.onNewStreamDetected(streamId) //创建NEW STREAM
 
-	sc.streamConnection.OnDecodeHeader(streamId, headers)   //调用到streamConnection的onDecodeHeader方法
+	sc.streamConnection.OnDecodeHeader(streamId, headers) //调用到streamConnection的onDecodeHeader方法
 
-	return types.StopIteration
+	return types.Continue
 }
 
 func (sc *serverStreamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if streamId == 0 {
 		return types.Continue
-	}    //
+	} //
 
 	sc.onNewStreamDetected(streamId)
 	sc.streamConnection.OnDecodeData(streamId, data)
@@ -181,8 +177,8 @@ type stream struct {
 	connection       *streamConnection
 	decoder          types.StreamDecoder
 	streamCbs        []types.StreamCallbacks
-	headerEncode      types.IoBuffer
-	contentEncode     types.IoBuffer
+	encodedHeaders   types.IoBuffer
+	encodedData      types.IoBuffer
 }
 
 // ~~ types.Stream
@@ -221,16 +217,16 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamEncoder 调用协议层ENCODE方法
 func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
-
 	// boqin: 由proxy回调，同时调用协议层Encode方法
 
+	encodeHeaders := buffer.NewIoBufferBytes(make([]byte, 1024))
 
-	encodedData := buffer.NewIoBufferBytes(make([]byte, 1024))
+	s.streamId = s.connection.protocols.Encode(headers, encodeHeaders)
+	s.connection.activeStreams[s.streamId] = s
 
-	s.connection.protocols.Encode(headers,encodedData)
-	s.headerEncode = encodedData    //临时保存在头部中的数据
-	log.DefaultLogger.Println("[Header to sent] %d",s.headerEncode.Bytes())
-	//fmt.Print("[Header to sent]",s.headerEncode)
+	s.encodedHeaders = encodeHeaders //临时保存在头部中的数据
+	log.DefaultLogger.Println("[Header to sent] %d", s.encodedHeaders.Bytes())
+	//fmt.Print("[Header to sent]",s.encodedHeaders)
 
 	if endStream {
 		s.endStream()
@@ -238,9 +234,8 @@ func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
 }
 
 func (s *stream) EncodeData(data types.IoBuffer, endStream bool) {
+	s.encodedData = data //对于content不再调用协议协议层ENCODER了
 
-
-	s.contentEncode = data      //对于content不再调用协议协议层ENCODER了
 	if endStream {
 		s.endStream()
 	}
@@ -253,15 +248,11 @@ func (s *stream) EncodeTrailers(trailers map[string]string) {
 }
 
 func (s *stream) endStream() {
-
 	//将数据发出去
-	s.connection.activeStreams[s.streamId].connection.connection.Write(s.headerEncode)
-	s.connection.activeStreams[s.streamId].connection.connection.Write(s.contentEncode)
+	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedHeaders)
+	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedData)
 
-
-
-
-	delete(s.connection.activeStreams, s.streamId)
+	//delete(s.connection.activeStreams, s.streamId)
 }
 
 func (s *stream) GetStream() types.Stream {

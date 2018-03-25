@@ -1,13 +1,17 @@
 package types
 
 type Protocols interface {
-	Encode(value interface{}, data IoBuffer)
+	//Encode(value interface{}, data IoBuffer)
+
+	// return stream id if have one
+	Encode(value interface{}, data IoBuffer) uint32
 
 	Decode(data IoBuffer, filter DecodeFilter)
 }
 
 type Encoder interface {
-	Encode(value interface{}, data IoBuffer)
+	// return stream id if have one
+	Encode(value interface{}, data IoBuffer) uint32
 }
 
 type Decoder interface {

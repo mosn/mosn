@@ -4,10 +4,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-
 //bolt constants
 const (
-
 	//protocol code value
 	PROTOCOL_CODE_V1 byte = 1
 	PROTOCOL_CODE_V2 byte = 2
@@ -117,24 +115,25 @@ type RpcCommand interface {
 }
 
 type BoltRequestCommand interface {
-
 	GetProtocolCode() byte
 
-	GetCmdType()byte
+	GetCmdType() byte
+
 	GetCmdCode() int16
 
-	GetVersion()byte
+	GetVersion() byte
 
-	GetId()  uint32 			//get request id
+	GetId() uint32 //get request id
 
-	GetCodec()byte
+	GetCodec() byte
 
-	GetTimeout()int
+	GetTimeout() int
 
-	GetClassLength()int16
-	GetHeaderLength()int16
-	GetContentLength()int
+	GetClassLength() int16
 
+	GetHeaderLength() int16
+
+	GetContentLength() int
 
 	GetClass() []byte
 
@@ -145,8 +144,38 @@ type BoltRequestCommand interface {
 	SetRequestHeader(headerMap map[string]string)
 
 	GetRequestHeader() map[string]string
+}
 
+type BoltResponseCommand interface {
+	GetProtocolCode() byte
 
+	GetCmdType() byte
+
+	GetCmdCode() int16
+
+	GetVersion() byte
+
+	GetId() uint32 //get request id
+
+	GetCodec() byte
+
+	GetClassLength() int16
+
+	GetHeaderLength() int16
+
+	GetContentLength() int
+
+	GetClass() []byte
+
+	GetHeader() []byte
+
+	GetContent() []byte
+
+	GetResponseStatus() int16
+
+	SetResponseHeader(headerMap map[string]string)
+
+	GetResponseHeader() map[string]string
 }
 
 type TrRequestCommand interface {
