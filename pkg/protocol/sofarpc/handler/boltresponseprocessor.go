@@ -6,6 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
+	"strconv"
 )
 
 type BoltResponseProcessor struct{}
@@ -43,20 +44,19 @@ func deserializeResponseAllFields(responseCommand sofarpc.BoltResponseCommand) {
 	serializeIns := serialize.Instance
 
 	allField := map[string]string{}
-	allField[sofarpc.SofaPropertyHeader("protocol")] = string(responseCommand.GetProtocolCode())
-	allField[sofarpc.SofaPropertyHeader("cmdType")] = string(responseCommand.GetCmdType())
-	allField[sofarpc.SofaPropertyHeader("cmdCode")] = sofarpc.UintToString(uint16(responseCommand.GetCmdCode()), 16)
-	allField[sofarpc.SofaPropertyHeader("version")] = string(responseCommand.GetVersion())
-	allField[sofarpc.SofaPropertyHeader("requestId")] = sofarpc.UintToString(uint32(responseCommand.GetId()), 32)
-	allField[sofarpc.SofaPropertyHeader("codec")] = string(responseCommand.GetCodec())
-	allField[sofarpc.SofaPropertyHeader("classLength")] = sofarpc.UintToString(uint16(responseCommand.GetClassLength()), 16)
-	allField[sofarpc.SofaPropertyHeader("headerLength")] = sofarpc.UintToString(uint16(responseCommand.GetHeaderLength()), 16)
-	allField[sofarpc.SofaPropertyHeader("contentLength")] = sofarpc.UintToString(uint32(responseCommand.GetContentLength()), 32)
-
+	allField[sofarpc.SofaPropertyHeader("protocol")] = strconv.FormatUint(uint64(responseCommand.GetProtocolCode()), 10)
+	allField[sofarpc.SofaPropertyHeader("cmdType")] = strconv.FormatUint(uint64(responseCommand.GetCmdType()), 10)
+	allField[sofarpc.SofaPropertyHeader("cmdCode")] = strconv.FormatUint(uint64(responseCommand.GetCmdCode()), 10)
+	allField[sofarpc.SofaPropertyHeader("version")] = strconv.FormatUint(uint64(responseCommand.GetVersion()), 10)
+	allField[sofarpc.SofaPropertyHeader("requestId")] = strconv.FormatUint(uint64(responseCommand.GetId()), 10)
+	allField[sofarpc.SofaPropertyHeader("codec")] = strconv.FormatUint(uint64(responseCommand.GetCodec()), 10)
+	allField[sofarpc.SofaPropertyHeader("classLength")] = strconv.FormatUint(uint64(responseCommand.GetClassLength()), 10)
+	allField[sofarpc.SofaPropertyHeader("headerLength")] = strconv.FormatUint(uint64(responseCommand.GetHeaderLength()), 10)
+	allField[sofarpc.SofaPropertyHeader("contentLength")] = strconv.FormatUint(uint64(responseCommand.GetContentLength()), 10)
 	// FOR RESPONSE,ENCODE RESPONSE STATUS and RESPONSE TIME
-	allField[sofarpc.SofaPropertyHeader("responseStatus")] = sofarpc.UintToString(uint16(responseCommand.GetResponseStatus()), 16)
+	allField[sofarpc.SofaPropertyHeader("responseStatus")] = strconv.FormatUint(uint64(responseCommand.GetResponseStatus()), 10)
 	//暂时不知道responseTimeMills封装在协议的位置
-	allField[sofarpc.SofaPropertyHeader("responseTimeMills")] = sofarpc.UintToString(uint64(responseCommand.GetResponseTimeMillis()), 64)
+	allField[sofarpc.SofaPropertyHeader("responseTimeMills")] = strconv.FormatUint(uint64(responseCommand.GetResponseTimeMillis()), 10)
 
 	//serialize class name
 	var className string

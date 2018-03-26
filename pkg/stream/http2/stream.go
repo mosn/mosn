@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"fmt"
 	"sync"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 func init() {
@@ -121,7 +122,6 @@ func (ssc *serverStreamConnection) OnGoAway() {
 	ssc.serverStreamConnCallbacks.OnGoAway()
 }
 
-
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
 	stream := &serverStream{
@@ -138,7 +138,6 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
 	ssc.asMutex.Unlock()
-
 
 	//继续调用 PROXY 层的OnDecodeHeader, 向后发起数据
 	stream.decoder.OnDecodeHeaders(decodeHeader(request.Header), false)
@@ -282,6 +281,7 @@ func (s *clientStream) doSend() {
 				} else if err.Error() == "net/http: request canceled" {
 					s.ResetStream(types.StreamLocalReset)
 				} else {
+					log.DefaultLogger.Errorf("Unknown err: %s", err)
 					s.ResetStream(types.StreamConnectionFailed)
 				}
 			}
@@ -311,8 +311,6 @@ type serverStream struct {
 }
 
 // types.StreamEncoder
-
-//
 func (s *serverStream) EncodeHeaders(headers map[string]string, endStream bool) {
 	if s.response == nil {
 		s.response = new(http.Response)
@@ -392,7 +390,8 @@ func decodeHeader(in map[string][]string) (out map[string]string) {
 	out = make(map[string]string)
 
 	for k, v := range in {
-		out[k] = strings.Join(v, ",")
+		// convert to lower case for internal process
+		out[strings.ToLower(k)] = strings.Join(v, ",")
 	}
 
 	return

@@ -6,7 +6,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"strconv"
 )
 
@@ -226,8 +225,6 @@ func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
 
 	s.streamId, s.encodedHeaders = s.connection.protocols.EncodeHeaders(headers)
 	s.connection.activeStreams[s.streamId] = s
-
-	log.DefaultLogger.Debugf("[Header to sent] %d", s.encodedHeaders.Len())
 
 	if endStream {
 		s.endStream()

@@ -9,6 +9,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"strings"
 )
 
 var (
@@ -17,17 +18,17 @@ var (
 
 func init() {
 	BoltV1PropertyHeaders["protocol"] = reflect.Uint8
-	BoltV1PropertyHeaders["cmdType"] = reflect.Uint8
-	BoltV1PropertyHeaders["cmdCode"] = reflect.Int16
+	BoltV1PropertyHeaders["cmdtype"] = reflect.Uint8
+	BoltV1PropertyHeaders["cmdcode"] = reflect.Int16
 	BoltV1PropertyHeaders["version"] = reflect.Uint8
-	BoltV1PropertyHeaders["requestId"] = reflect.Uint32
+	BoltV1PropertyHeaders["requestid"] = reflect.Uint32
 	BoltV1PropertyHeaders["codec"] = reflect.Uint8
-	BoltV1PropertyHeaders["classLength"] = reflect.Int16
-	BoltV1PropertyHeaders["headerLength"] = reflect.Int16
-	BoltV1PropertyHeaders["contentLength"] = reflect.Int
+	BoltV1PropertyHeaders["classlength"] = reflect.Int16
+	BoltV1PropertyHeaders["headerlength"] = reflect.Int16
+	BoltV1PropertyHeaders["contentlength"] = reflect.Int
 	BoltV1PropertyHeaders["timeout"] = reflect.Int
-	BoltV1PropertyHeaders["responseStatus"] = reflect.Int16
-	BoltV1PropertyHeaders["responseTimeMills"] = reflect.Int64
+	BoltV1PropertyHeaders["responsestatus"] = reflect.Int16
+	BoltV1PropertyHeaders["responsetimemills"] = reflect.Int64
 }
 
 // types.Encoder & types.Decoder
@@ -157,18 +158,22 @@ func (c *boltV1Codec) encodeResponseCommand(rpcCmd *boltResponseCommand) (uint32
 }
 
 func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
+	if len(headers) < 10 {
+		return nil
+	}
+
 	protocolCode := c.getPropertyValue(headers, "protocol")
-	cmdType := c.getPropertyValue(headers, "cmdType")
-	cmdCode := c.getPropertyValue(headers, "cmdCode")
+	cmdType := c.getPropertyValue(headers, "cmdtype")
+	cmdCode := c.getPropertyValue(headers, "cmdcode")
 	version := c.getPropertyValue(headers, "version")
-	requestID := c.getPropertyValue(headers, "requestId")
+	requestID := c.getPropertyValue(headers, "requestid")
 	codec := c.getPropertyValue(headers, "codec")
-	classLength := c.getPropertyValue(headers, "classLength")
-	headerLength := c.getPropertyValue(headers, "headerLength")
-	contentLength := c.getPropertyValue(headers, "contentLength")
+	classLength := c.getPropertyValue(headers, "classlength")
+	headerLength := c.getPropertyValue(headers, "headerlength")
+	contentLength := c.getPropertyValue(headers, "contentlength")
 
 	//class
-	className := c.getPropertyValue(headers, "className")
+	className := c.getPropertyValue(headers, "classname")
 	class, _ := serialize.Instance.Serialize(className)
 
 	//RPC Request
@@ -200,8 +205,8 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 		return request
 	} else if cmdCode == sofarpc.RPC_RESPONSE {
 		//todo : review
-		responseStatus := c.getPropertyValue(headers, "responseStatus")
-		responseTime := c.getPropertyValue(headers, "responseTimeMills")
+		responseStatus := c.getPropertyValue(headers, "responsestatus")
+		responseTime := c.getPropertyValue(headers, "responsetimemills")
 
 		//serialize header
 		header, _ := serialize.Instance.Serialize(headers)
@@ -235,6 +240,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 }
 
 func (c *boltV1Codec) getPropertyValue(headers map[string]string, name string) interface{} {
+	name = strings.ToLower(name)
 	propertyHeaderName := sofarpc.SofaPropertyHeader(name)
 
 	if value, ok := headers[propertyHeaderName]; ok {

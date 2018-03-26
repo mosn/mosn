@@ -6,6 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"strconv"
 )
 
 type BoltRequestProcessor struct{}
@@ -45,16 +46,16 @@ func deserializeRequestAllFields(requestCommand sofarpc.BoltRequestCommand) {
 	serializeIns := serialize.Instance
 
 	allField := map[string]string{}
-	allField[sofarpc.SofaPropertyHeader("protocol")] = string(requestCommand.GetProtocolCode())
-	allField[sofarpc.SofaPropertyHeader("cmdType")] = string(requestCommand.GetCmdType())
-	allField[sofarpc.SofaPropertyHeader("cmdCode")] = sofarpc.UintToString(uint16(requestCommand.GetCmdCode()), 16)
-	allField[sofarpc.SofaPropertyHeader("version")] = string(requestCommand.GetVersion())
-	allField[sofarpc.SofaPropertyHeader("requestId")] = sofarpc.UintToString(uint32(requestCommand.GetId()), 32)
-	allField[sofarpc.SofaPropertyHeader("codec")] = string(requestCommand.GetCodec())
-	allField[sofarpc.SofaPropertyHeader("timeout")] = sofarpc.UintToString(uint32(requestCommand.GetTimeout()), 32)
-	allField[sofarpc.SofaPropertyHeader("classLength")] = sofarpc.UintToString(uint16(requestCommand.GetClassLength()), 16)
-	allField[sofarpc.SofaPropertyHeader("headerLength")] = sofarpc.UintToString(uint16(requestCommand.GetHeaderLength()), 16)
-	allField[sofarpc.SofaPropertyHeader("contentLength")] = sofarpc.UintToString(uint32(requestCommand.GetContentLength()), 32)
+	allField[sofarpc.SofaPropertyHeader("protocol")] = strconv.FormatUint(uint64(requestCommand.GetProtocolCode()), 10)
+	allField[sofarpc.SofaPropertyHeader("cmdType")] = strconv.FormatUint(uint64(requestCommand.GetCmdType()), 10)
+	allField[sofarpc.SofaPropertyHeader("cmdCode")] = strconv.FormatUint(uint64(requestCommand.GetCmdCode()), 10)
+	allField[sofarpc.SofaPropertyHeader("version")] = strconv.FormatUint(uint64(requestCommand.GetVersion()), 10)
+	allField[sofarpc.SofaPropertyHeader("requestId")] = strconv.FormatUint(uint64(requestCommand.GetId()), 10)
+	allField[sofarpc.SofaPropertyHeader("codec")] = strconv.FormatUint(uint64(requestCommand.GetCodec()), 10)
+	allField[sofarpc.SofaPropertyHeader("timeout")] = strconv.FormatUint(uint64(requestCommand.GetTimeout()), 10)
+	allField[sofarpc.SofaPropertyHeader("classLength")] = strconv.FormatUint(uint64(requestCommand.GetClassLength()), 10)
+	allField[sofarpc.SofaPropertyHeader("headerLength")] = strconv.FormatUint(uint64(requestCommand.GetHeaderLength()), 10)
+	allField[sofarpc.SofaPropertyHeader("contentLength")] = strconv.FormatUint(uint64(requestCommand.GetContentLength()), 10)
 
 	//serialize class name
 	var className string

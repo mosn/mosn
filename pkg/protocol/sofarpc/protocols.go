@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"strconv"
 )
 
 //All of the protocolMaps
@@ -28,7 +29,9 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 
 func (p *protocols) EncodeHeaders(headers map[string]string) (uint32, types.IoBuffer) {
 	if proto, exist := headers[SofaPropertyHeader("protocol")]; exist {
-		protocolCode := []byte(proto)[0]
+		value, _ := strconv.ParseUint(proto, 10, 8)
+		protocolCode := byte(value)
+
 		log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
