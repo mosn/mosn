@@ -56,8 +56,6 @@ type StreamDecoder interface {
 	OnDecodeData(data IoBuffer, endStream bool)
 
 	OnDecodeTrailers(trailers map[string]string)
-
-	OnDecodeComplete(data IoBuffer)
 }
 
 type StreamConnection interface {

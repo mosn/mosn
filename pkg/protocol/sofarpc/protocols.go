@@ -37,10 +37,7 @@ func (p *protocols) Encode(value interface{}, data types.IoBuffer) uint32 {
 		protocolCode := []byte(headerMap["XXX_protocol"])[0] //Type: byte
 		log.DefaultLogger.Println("[Encode]protocol code = ", protocolCode)
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
-
-			encoder := proto.GetEncoder()
-
-			return encoder.Encode(value, data) //返回ENCODE的数据
+			return proto.GetEncoder().Encode(value, data) //返回ENCODE的数据
 		} else {
 			log.DefaultLogger.Println("Unknown protocol code: [", protocolCode, "] while encode in ProtocolDecoder.")
 		}
@@ -66,12 +63,10 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 			var out = make([]RpcCommand, 0, 1)
 
 			decoder := proto.GetDecoder()
-			read := decoder.Decode(filter, data, &out) //先解析成command,即将一串二进制Decode到对应的字段
+			decoder.Decode(filter, data, &out) //先解析成command,即将一串二进制Decode到对应的字段
 
 			if len(out) > 0 {
 				proto.GetCommandHandler().HandleCommand(filter, out[0]) //做decode 同时序列化，在此调用！！
-
-				filter.OnDecodeComplete(out[0].GetId(), data.Cut(read))
 			}
 		} else {
 			fmt.Println("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")

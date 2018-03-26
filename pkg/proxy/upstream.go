@@ -56,8 +56,6 @@ func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 	r.activeStream.onUpstreamTrailers(trailers)
 }
 
-func (r *upstreamRequest) OnDecodeComplete(data types.IoBuffer) {}
-
 // ~~~ encode request wrapper
 
 func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {

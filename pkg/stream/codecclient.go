@@ -223,10 +223,6 @@ func (r *activeRequest) OnDecodeTrailers(trailers map[string]string) {
 	r.onDecodeComplete()
 }
 
-func (r *activeRequest) OnDecodeComplete(data types.IoBuffer) {
-	r.responseDecoder.OnDecodeComplete(data)
-}
-
 func (r *activeRequest) onPreDecodeComplete() {
 	r.codecClient.responseDecodeComplete(r)
 }

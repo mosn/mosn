@@ -172,15 +172,17 @@ type BoltResponseCommand interface {
 	GetContent() []byte
 
 	GetResponseStatus() int16
-	GetResponseTimeMillis()int64
+	GetResponseTimeMillis() int64
 
 	SetResponseHeader(headerMap map[string]string)
 
 	GetResponseHeader() map[string]string
-
-
 }
 
 type TrRequestCommand interface {
 	GetCmdCode() int16
 }
+
+const (
+	SofaRpcHeaderPrefix = "x-mosn-sofarpc-"
+)

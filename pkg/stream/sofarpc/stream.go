@@ -71,12 +71,6 @@ func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[stri
 	return types.Continue
 }
 
-func (conn *streamConnection) OnDecodeComplete(streamId uint32, buf types.IoBuffer) {
-	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.OnDecodeComplete(buf)
-	}
-}
-
 // types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection

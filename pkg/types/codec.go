@@ -26,9 +26,6 @@ type DecodeFilter interface {
 	OnDecodeData(streamId uint32, data IoBuffer) FilterStatus
 
 	OnDecodeTrailer(streamId uint32, trailers map[string]string) FilterStatus
-
-	// just for raw request forward
-	OnDecodeComplete(streamId uint32, buf IoBuffer)
 }
 
 type DecoderCallbacks interface {

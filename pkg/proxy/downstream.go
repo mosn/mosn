@@ -200,8 +200,6 @@ func (s *activeStream) OnDecodeTrailers(trailers map[string]string) {
 	s.onUpstreamRequestSent()
 }
 
-func (s *activeStream) OnDecodeComplete(buf types.IoBuffer) {}
-
 func (s *activeStream) onUpstreamRequestSent() {
 	s.upstreamRequestSent = true
 	s.requestInfo.SetRequestReceivedDuration(time.Now())
