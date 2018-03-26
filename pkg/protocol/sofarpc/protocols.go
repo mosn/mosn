@@ -2,9 +2,9 @@ package sofarpc
 
 import (
 	"fmt"
+	"reflect"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"strconv"
 )
 
 //All of the protocolMaps
@@ -29,8 +29,8 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 
 func (p *protocols) EncodeHeaders(headers map[string]string) (uint32, types.IoBuffer) {
 	if proto, exist := headers[SofaPropertyHeader("protocol")]; exist {
-		value, _ := strconv.ParseUint(proto, 10, 8)
-		protocolCode := byte(value)
+		protoValue := ConvertPropertyValue(proto, reflect.Uint8)
+		protocolCode := protoValue.(byte)
 
 		log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
 
