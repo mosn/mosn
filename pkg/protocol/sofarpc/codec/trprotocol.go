@@ -12,8 +12,10 @@ func init() {
 
 var Tr = &TrProtocol{
 	sofarpc.PROTOCOL_CODE,
-	&trCodec{},
-	&trCodec{},
+	nil,
+	//&trCodec{},
+	nil,
+	//&trCodec{},
 	handler.NewTrCommandHandler(),
 }
 

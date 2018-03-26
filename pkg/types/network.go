@@ -72,6 +72,8 @@ type IoBuffer interface {
 
 	Cut(offset int) IoBuffer
 
+	Set(offset int)
+
 	Mark()
 
 	Restore()

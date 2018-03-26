@@ -26,83 +26,50 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 	}
 }
 
-func (p *protocols) Encode(value interface{}, data types.IoBuffer) uint32 {
+func (p *protocols) EncodeHeaders(headers map[string]string) (uint32, types.IoBuffer) {
+	protocolCode := []byte(headers[SofaPropertyHeader("protocol")])[0]
+	log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
 
-	//被stream层调用的时候，传过来的是MAP结构
-	if headerMap, ok := value.(map[string]string); ok {
-
-		protocolCode := []byte(headerMap[SofaPropertyHeader("protocol")])[0] //Type: byte
-		log.DefaultLogger.Println("[Encode]protocol code = ", protocolCode)
-
-		if proto, exists := p.protocolMaps[protocolCode]; exists {
-
-			return proto.GetEncoder().Encode(value, data) //返回ENCODE的数据
-		} else {
-			log.DefaultLogger.Println("Unknown protocol code: [", protocolCode, "] while encode in ProtocolDecoder.")
-		}
+	if proto, exists := p.protocolMaps[protocolCode]; exists {
+		return proto.GetEncoder().EncodeHeaders(headers) //返回ENCODE的数据
 	} else {
-		log.DefaultLogger.Println("Invalid Arguments")
-	}
+		log.DefaultLogger.Println("Unknown protocol code: [", protocolCode, "] while encode in ProtocolDecoder.")
 
-	return 0
+		return 0, nil
+	}
+}
+
+func (p *protocols) EncodeData(data types.IoBuffer) types.IoBuffer {
+	return data
+}
+
+func (p *protocols) EncodeTrailers(trailers map[string]string) types.IoBuffer {
+	return nil
 }
 
 // filter = type.serverStreamConnection
 func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
-	readableBytes := uint64(data.Len())
-
 	//at least 1 byte for protocol code recognize
-	if readableBytes > 1 {
+	for data.Len() > 1 {
 		protocolCode := data.Bytes()[0]
 		maybeProtocolVersion := data.Bytes()[1]
 
 		log.DefaultLogger.Println("[Decoder]protocol code = ", protocolCode, ", maybeProtocolVersion = ", maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
-			var out = make([]RpcCommand, 0, 1)
-
 			decoder := proto.GetDecoder()
-			decoder.Decode(filter, data, &out) //先解析成command,即将一串二进制Decode到对应的字段
+			_, cmd := decoder.Decode(data) //先解析成command,即将一串二进制Decode到对应的字段
 
-			if len(out) > 0 {
-				proto.GetCommandHandler().HandleCommand(filter, out[0]) //做decode 同时序列化，在此调用！！
+			if cmd != nil {
+				proto.GetCommandHandler().HandleCommand(filter, cmd) //做decode 同时序列化，在此调用！！
+			} else {
+				log.DefaultLogger.Debugf("Unable to decode sofa rpc command")
+				break
 			}
 		} else {
-			fmt.Println("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
+			log.DefaultLogger.Debugf("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
+			break
 		}
-	}
-}
-
-//TODO move this to seperate type 'ProtocolDecoer' or 'CodecEngine'
-func (p *protocols) doDecode(ctx interface{}, data types.IoBuffer, out interface{}) {
-	readableBytes := uint64(data.Len())
-
-	//at least 1 byte for protocol code recognize
-	if readableBytes > 1 {
-		bytes := data.Bytes()
-		protocolCode := bytes[0]
-		maybeProtocolVersion := bytes[1]
-
-		log.DefaultLogger.Println("[Decoder]protocol code = ", protocolCode, ", maybeProtocolVersion = ", maybeProtocolVersion)
-
-		if proto, exists := p.protocolMaps[protocolCode]; exists {
-			decoder := proto.GetDecoder()
-			decoder.Decode(ctx, data, out)
-
-			proto.GetCommandHandler().HandleCommand(ctx, decoder)
-
-		} else {
-			fmt.Println("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
-		}
-	}
-}
-
-//TODO move this to seperate type 'ProtocolDecoer' or 'CodecEngine'
-func (p *protocols) doHandle(protocolCode byte, ctx interface{}, msg interface{}) {
-	if proto, exists := p.protocolMaps[protocolCode]; exists {
-		proto.GetCommandHandler().HandleCommand(ctx, msg)
-	} else {
-		fmt.Println("Unknown protocol code: [", protocolCode, "] while doHandle in rpc handler.")
 	}
 }
 

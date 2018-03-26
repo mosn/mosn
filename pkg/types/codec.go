@@ -1,23 +1,28 @@
 package types
 
 type Protocols interface {
-	//Encode(value interface{}, data IoBuffer)
+	// return 1. stream id if have one 2. headers bytes
+	EncodeHeaders(headers map[string]string) (uint32, IoBuffer)
 
-	// return stream id if have one
-	Encode(value interface{}, data IoBuffer) uint32
+	EncodeData(data IoBuffer) IoBuffer
+
+	EncodeTrailers(trailers map[string]string) IoBuffer
 
 	Decode(data IoBuffer, filter DecodeFilter)
 }
 
 type Encoder interface {
-	// return stream id if have one
-	Encode(value interface{}, data IoBuffer) uint32
+	// return 1. stream id if have one 2. headers bytes
+	EncodeHeaders(headers map[string]string) (uint32, IoBuffer)
+
+	EncodeData(data IoBuffer) IoBuffer
+
+	EncodeTrailers(trailers map[string]string) IoBuffer
 }
 
 type Decoder interface {
-	//TODO replace ctx type with defined connection request context
-	//TODO replace out type with defined pipeline output container
-	Decode(ctx interface{}, data IoBuffer, out interface{}) int
+	// return 1. bytes decoded 2. decoded cmd
+	Decode(data IoBuffer) (int, interface{})
 }
 
 type DecodeFilter interface {

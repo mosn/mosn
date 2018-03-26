@@ -41,25 +41,6 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 	}
 }
 
-// 反序列化请求
-func deserializeRequestHeaders(requestCommand sofarpc.BoltRequestCommand) (sofarpc.BoltRequestCommand, error) {
-	//get instance
-	serialize := serialize.Instance
-
-	var className string
-	serialize.DeSerialize(requestCommand.GetClass(), &className)
-
-	fmt.Println("deSerialize class :", className)
-
-	var headerMap map[string]string
-	serialize.DeSerialize(requestCommand.GetHeader(), &headerMap)
-
-	fmt.Println("deSerialize  headerMap:", headerMap)
-	requestCommand.SetRequestHeader(headerMap) //SET Map[]
-
-	return requestCommand, nil
-}
-
 //  将所有BOLT的HEADER字段组装成map结构
 func deserializeRequestAllFields(requestCommand sofarpc.BoltRequestCommand) {
 	//get instance

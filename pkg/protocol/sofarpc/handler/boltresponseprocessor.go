@@ -12,9 +12,9 @@ type BoltResponseProcessor struct{}
 
 func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(sofarpc.BoltResponseCommand); ok {
-		//deserializeRequestHeaders(cmd)    //做反序列化
 
 		deserializeResponseAllFields(cmd)
+
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
 			if cmd.GetResponseHeader() != nil {

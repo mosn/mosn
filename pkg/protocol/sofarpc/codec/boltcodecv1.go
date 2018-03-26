@@ -8,142 +8,152 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 )
 
 var (
-	BoltV1PropertyHeaderNames = make(map[string]reflect.Kind, 11)
+	BoltV1PropertyHeaders = make(map[string]reflect.Kind, 11)
 )
 
 func init() {
-	BoltV1PropertyHeaderNames["protocol"] = reflect.Uint8
-	BoltV1PropertyHeaderNames["cmdType"] = reflect.Uint8
-	BoltV1PropertyHeaderNames["cmdCode"] = reflect.Int16
-	BoltV1PropertyHeaderNames["version"] = reflect.Uint8
-	BoltV1PropertyHeaderNames["requestId"] = reflect.Uint32
-	BoltV1PropertyHeaderNames["codec"] = reflect.Uint8
-	BoltV1PropertyHeaderNames["classLength"] = reflect.Int16
-	BoltV1PropertyHeaderNames["headerLength"] = reflect.Int16
-	BoltV1PropertyHeaderNames["contentLength"] = reflect.Int
-	BoltV1PropertyHeaderNames["timeout"] = reflect.Int
-	BoltV1PropertyHeaderNames["responseStatus"] = reflect.Int16
-	BoltV1PropertyHeaderNames["responseTimeMills"] = reflect.Int64
+	BoltV1PropertyHeaders["protocol"] = reflect.Uint8
+	BoltV1PropertyHeaders["cmdType"] = reflect.Uint8
+	BoltV1PropertyHeaders["cmdCode"] = reflect.Int16
+	BoltV1PropertyHeaders["version"] = reflect.Uint8
+	BoltV1PropertyHeaders["requestId"] = reflect.Uint32
+	BoltV1PropertyHeaders["codec"] = reflect.Uint8
+	BoltV1PropertyHeaders["classLength"] = reflect.Int16
+	BoltV1PropertyHeaders["headerLength"] = reflect.Int16
+	BoltV1PropertyHeaders["contentLength"] = reflect.Int
+	BoltV1PropertyHeaders["timeout"] = reflect.Int
+	BoltV1PropertyHeaders["responseStatus"] = reflect.Int16
+	BoltV1PropertyHeaders["responseTimeMills"] = reflect.Int64
 }
 
 // types.Encoder & types.Decoder
 type boltV1Codec struct{}
 
-func (c *boltV1Codec) Encode(value interface{}, data types.IoBuffer) uint32 {
-	var cmd interface{}
-	if valueMap, ok := value.(map[string]string); ok {
-		cmd = c.mapToCmd(valueMap)
-	}
+func (c *boltV1Codec) EncodeHeaders(headers map[string]string) (uint32, types.IoBuffer) {
+	cmd := c.mapToCmd(headers)
 
-	var reqId uint32
+	switch cmd.(type) {
+	case *boltRequestCommand:
+		return c.encodeRequestCommand(cmd.(*boltRequestCommand))
+	case *boltResponseCommand:
+		return c.encodeResponseCommand(cmd.(*boltResponseCommand))
+	default:
+		log.DefaultLogger.Println("[Decode] Invalid Input Type")
+		return 0, nil
+	}
+}
+
+func (c *boltV1Codec) EncodeData(data types.IoBuffer) types.IoBuffer {
+	return data
+}
+
+func (c *boltV1Codec) EncodeTrailers(trailers map[string]string) types.IoBuffer {
+	return nil
+}
+
+func (c *boltV1Codec) encodeRequestCommand(rpcCmd *boltRequestCommand) (uint32, types.IoBuffer) {
+	log.DefaultLogger.Println("start to encode rpc headers,=%+v", rpcCmd.cmdType)
+
 	var result []byte
 
-	//REQUEST
-	if rpcCmd, ok := cmd.(*boltRequestCommand); ok {
-		log.DefaultLogger.Println("prepare to encode rpcCommand,=%+v", rpcCmd.cmdType)
+	//COMMON
+	result = append(result, rpcCmd.protocol, rpcCmd.cmdType)
 
-		//COMMON
-		result = append(result, rpcCmd.protocol, rpcCmd.cmdType)
+	cmdCodeBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(cmdCodeBytes, uint16(rpcCmd.cmdCode))
+	result = append(result, cmdCodeBytes...)
+	result = append(result, rpcCmd.version)
 
-		cmdCodeBytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(cmdCodeBytes, uint16(rpcCmd.cmdCode))
-		result = append(result, cmdCodeBytes...)
-		result = append(result, rpcCmd.version)
+	requestIdBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(requestIdBytes, uint32(rpcCmd.id))
+	result = append(result, requestIdBytes...)
+	result = append(result, rpcCmd.codec)
 
-		requestIdBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(requestIdBytes, uint32(rpcCmd.id))
-		result = append(result, requestIdBytes...)
-		result = append(result, rpcCmd.codec)
+	//FOR REQUEST
+	timeoutBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(timeoutBytes, uint32(rpcCmd.timeout))
+	result = append(result, timeoutBytes...)
 
-		//FOR REQUEST
-		timeoutBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(timeoutBytes, uint32(rpcCmd.timeout))
-		result = append(result, timeoutBytes...)
+	//COMMON
+	clazzLengthBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(clazzLengthBytes, uint16(rpcCmd.classLength))
+	result = append(result, clazzLengthBytes...)
 
-		//COMMON
-		clazzLengthBytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(clazzLengthBytes, uint16(rpcCmd.classLength))
-		result = append(result, clazzLengthBytes...)
+	headerLengthBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(headerLengthBytes, uint16(rpcCmd.headerLength))
+	result = append(result, headerLengthBytes...)
 
-		headerLengthBytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(headerLengthBytes, uint16(rpcCmd.headerLength))
-		result = append(result, headerLengthBytes...)
+	contentLenBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(contentLenBytes, uint32(rpcCmd.contentLength))
+	result = append(result, contentLenBytes...)
 
-		contentLenBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(contentLenBytes, uint32(rpcCmd.contentLength))
-		result = append(result, contentLenBytes...)
-
-		if rpcCmd.classLength > 0 {
-			result = append(result, rpcCmd.class...)
-		}
-
-		if rpcCmd.headerLength > 0 {
-			result = append(result, rpcCmd.header...)
-		}
-
-		//CONTENT IS REGARDED AS BODY AND TRANSMIT DIRECTLY
-
-		reqId = rpcCmd.id
-		//RESPONSE
-	} else if rpcCmd, ok := value.(*boltResponseCommand); ok {
-		result = append(result, rpcCmd.protocol, rpcCmd.cmdType)
-
-		cmdCodeBytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(cmdCodeBytes, uint16(rpcCmd.cmdCode))
-		result = append(result, cmdCodeBytes...)
-		result = append(result, rpcCmd.version)
-
-		requestIdBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(requestIdBytes, uint32(rpcCmd.id))
-		result = append(result, requestIdBytes...)
-		result = append(result, rpcCmd.codec)
-
-		//FOR RESPONSE
-		respStatusBytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(respStatusBytes, uint16(rpcCmd.responseStatus))
-		result = append(result, respStatusBytes...)
-
-		//COMMON
-		clazzLengthBytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(clazzLengthBytes, uint16(rpcCmd.classLength))
-		result = append(result, clazzLengthBytes...)
-
-		headerLengthBytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(headerLengthBytes, uint16(rpcCmd.headerLength))
-		result = append(result, headerLengthBytes...)
-
-		contentLenBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(contentLenBytes, uint32(rpcCmd.contentLength))
-		result = append(result, contentLenBytes...)
-
-		if rpcCmd.classLength > 0 {
-			result = append(result, rpcCmd.class...)
-		}
-
-		if rpcCmd.headerLength > 0 {
-			result = append(result, rpcCmd.header...)
-		}
-
-		if rpcCmd.contentLength > 0 {
-			result = append(result, rpcCmd.content...)
-		}
-
-		reqId = rpcCmd.id
-	} else {
-		log.DefaultLogger.Println("[Decode] Invalid Input Type")
-		return 0
+	if rpcCmd.classLength > 0 {
+		result = append(result, rpcCmd.class...)
 	}
 
-	log.DefaultLogger.Println("encode command finished,bytes=%d", result)
+	if rpcCmd.headerLength > 0 {
+		result = append(result, rpcCmd.header...)
+	}
 
-	//GET BINARY BYTE FLOW
-	data.Reset()
-	data.Append(result)
+	log.DefaultLogger.Println("rpc headers encode finished,bytes=%d", result)
 
-	return reqId
+	return rpcCmd.id, buffer.NewIoBufferBytes(result)
+}
+
+func (c *boltV1Codec) encodeResponseCommand(rpcCmd *boltResponseCommand) (uint32, types.IoBuffer) {
+	log.DefaultLogger.Println("start to encode rpc headers,=%+v", rpcCmd.cmdType)
+
+	var result []byte
+
+	result = append(result, rpcCmd.protocol, rpcCmd.cmdType)
+
+	cmdCodeBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(cmdCodeBytes, uint16(rpcCmd.cmdCode))
+	result = append(result, cmdCodeBytes...)
+	result = append(result, rpcCmd.version)
+
+	requestIdBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(requestIdBytes, uint32(rpcCmd.id))
+	result = append(result, requestIdBytes...)
+	result = append(result, rpcCmd.codec)
+
+	//FOR RESPONSE
+	respStatusBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(respStatusBytes, uint16(rpcCmd.responseStatus))
+	result = append(result, respStatusBytes...)
+
+	//COMMON
+	clazzLengthBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(clazzLengthBytes, uint16(rpcCmd.classLength))
+	result = append(result, clazzLengthBytes...)
+
+	headerLengthBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(headerLengthBytes, uint16(rpcCmd.headerLength))
+	result = append(result, headerLengthBytes...)
+
+	contentLenBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(contentLenBytes, uint32(rpcCmd.contentLength))
+	result = append(result, contentLenBytes...)
+
+	if rpcCmd.classLength > 0 {
+		result = append(result, rpcCmd.class...)
+	}
+
+	if rpcCmd.headerLength > 0 {
+		result = append(result, rpcCmd.header...)
+	}
+
+	if rpcCmd.contentLength > 0 {
+		result = append(result, rpcCmd.content...)
+	}
+
+	log.DefaultLogger.Println("rpc headers encode finished,bytes=%d", result)
+
+	return rpcCmd.id, buffer.NewIoBufferBytes(result)
 }
 
 func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
@@ -230,20 +240,21 @@ func (c *boltV1Codec) getPropertyValue(headers map[string]string, name string) i
 	if value, ok := headers[propertyHeaderName]; ok {
 		delete(headers, propertyHeaderName)
 
-		return sofarpc.ConvertPropertyValue(value, BoltV1PropertyHeaderNames[name])
+		return sofarpc.ConvertPropertyValue(value, BoltV1PropertyHeaders[name])
 	} else {
 		if value, ok := headers[name]; ok {
 
-			return sofarpc.ConvertPropertyValue(value, BoltV1PropertyHeaderNames[name])
+			return sofarpc.ConvertPropertyValue(value, BoltV1PropertyHeaders[name])
 		}
 	}
 
 	return nil
 }
 
-func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) int {
+func (c *boltV1Codec) Decode(data types.IoBuffer) (int, interface{}) {
 	readableBytes := data.Len()
 	read := 0
+	var cmd interface{}
 
 	if readableBytes >= sofarpc.LESS_LEN_V1 {
 		bytes := data.Bytes()
@@ -267,7 +278,6 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 				read = sofarpc.REQUEST_HEADER_LEN_V1
 				var class, header, content []byte
 
-				//TODO because of no "mark & reset", bytes.off is not recoverable
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
 						class = bytes[read: read+int(classLen)]
@@ -281,10 +291,11 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
-					//TODO mark buffer's off
+
+					data.Set(read)
 				} else { // not enough data
 					log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
-					return 0
+					return 0, nil
 				}
 
 				request := &boltRequestCommand{
@@ -303,16 +314,13 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 						content,
 						nil,
 					},
+					timeout:    int(timeout),
+					arriveTime: time.Now().UnixNano() / int64(time.Millisecond),
 				}
-				request.SetTimeout(int(timeout))
-				request.SetArriveTime(time.Now().UnixNano() / int64(time.Millisecond))
 
 				log.DefaultLogger.Printf("[Decoder]bolt v1 decode request:%+v\n", request)
 
-				//pass decode result to command handler
-				if list, ok := out.(*[]sofarpc.RpcCommand); ok {
-					*list = append(*list, request)
-				}
+				cmd = request
 			}
 		} else {
 			//2. resposne
@@ -343,9 +351,13 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
-				} else { // not enough data
+
+					data.Set(read)
+				} else {
+					// not enough data
 					log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
-					return 0
+
+					return 0, nil
 				}
 
 				response := &boltResponseCommand{
@@ -364,23 +376,16 @@ func (decoder *boltV1Codec) Decode(ctx interface{}, data types.IoBuffer, out int
 						content,
 						nil,
 					},
+					responseStatus:     int16(status),
+					responseTimeMillis: time.Now().UnixNano() / int64(time.Millisecond),
 				}
-				response.SetResponseStatus(int16(status))
-				response.SetResponseTimeMillis(time.Now().UnixNano() / int64(time.Millisecond))
 
 				log.DefaultLogger.Printf("[Decoder]bolt v1 decode response:%+v\n", response)
 
-				//pass decode result to command handler
-				if list, ok := out.(*[]sofarpc.RpcCommand); ok {
-					*list = append(*list, response)
-				}
+				cmd = response
 			}
 		}
 	}
 
-	return read
-}
-
-func (encoder *boltV1Codec) AddDecodeFilter(filter types.DecodeFilter) {
-
+	return read, cmd
 }

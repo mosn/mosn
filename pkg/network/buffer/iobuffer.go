@@ -116,7 +116,7 @@ func (b *IoBuffer) Append(data []byte) error {
 }
 
 func (b *IoBuffer) AppendByte(data byte) error {
-	datas:=makeSlice(1)
+	datas := makeSlice(1)
 	return b.Append(datas)
 
 }
@@ -159,6 +159,15 @@ func (b *IoBuffer) Cut(offset int) types.IoBuffer {
 		buf: buf,
 		off: 0,
 	}
+}
+
+func (b *IoBuffer) Set(offset int) {
+	if b.off+offset > len(b.buf) {
+		return
+	}
+
+	b.off += offset
+	b.offMark = ResetOffMark
 }
 
 func (b *IoBuffer) String() string {
