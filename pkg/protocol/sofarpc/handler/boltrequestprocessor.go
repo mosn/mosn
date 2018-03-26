@@ -66,25 +66,21 @@ func deserializeRequestAllFields(requestCommand sofarpc.BoltRequestCommand) {
 	serializeIns := serialize.Instance
 
 	allField := map[string]string{}
-
-	allField["XXX_protocol"] = string(requestCommand.GetProtocolCode())
-	allField["XXX_cmdType"] = string(requestCommand.GetCmdType())
-	allField["XXX_cmdCode"] = sofarpc.UintToString(uint16(requestCommand.GetCmdCode()), 16)
-	allField["XXX_version"] = string(requestCommand.GetVersion())
-	allField["XXX_requestId"] = sofarpc.UintToString(uint32(requestCommand.GetId()), 32)
-	allField["XXX_codec"] = string(requestCommand.GetCodec())
-
-	allField["XXX_timeout"] = sofarpc.UintToString(uint32(requestCommand.GetTimeout()), 32)
-
-	allField["XXX_classLength"] = sofarpc.UintToString(uint16(requestCommand.GetClassLength()), 16)
-	allField["XXX_headerLength"] = sofarpc.UintToString(uint16(requestCommand.GetHeaderLength()), 16)
-	allField["XXX_contentLength"] = sofarpc.UintToString(uint32(requestCommand.GetCmdCode()), 32)
+	allField[sofarpc.SofaPropertyHeader("protocol")] = string(requestCommand.GetProtocolCode())
+	allField[sofarpc.SofaPropertyHeader("cmdType")] = string(requestCommand.GetCmdType())
+	allField[sofarpc.SofaPropertyHeader("cmdCode")] = sofarpc.UintToString(uint16(requestCommand.GetCmdCode()), 16)
+	allField[sofarpc.SofaPropertyHeader("version")] = string(requestCommand.GetVersion())
+	allField[sofarpc.SofaPropertyHeader("requestId")] = sofarpc.UintToString(uint32(requestCommand.GetId()), 32)
+	allField[sofarpc.SofaPropertyHeader("codec")] = string(requestCommand.GetCodec())
+	allField[sofarpc.SofaPropertyHeader("timeout")] = sofarpc.UintToString(uint32(requestCommand.GetTimeout()), 32)
+	allField[sofarpc.SofaPropertyHeader("classLength")] = sofarpc.UintToString(uint16(requestCommand.GetClassLength()), 16)
+	allField[sofarpc.SofaPropertyHeader("headerLength")] = sofarpc.UintToString(uint16(requestCommand.GetHeaderLength()), 16)
+	allField[sofarpc.SofaPropertyHeader("contentLength")] = sofarpc.UintToString(uint32(requestCommand.GetCmdCode()), 32)
 
 	//serialize class name
 	var className string
 	serializeIns.DeSerialize(requestCommand.GetClass(), &className)
-	fmt.Println("deSerialize class :", className)
-	allField["XXX_className"] = className
+	allField[sofarpc.SofaPropertyHeader("className")] = className
 
 	//serialize header
 	var headerMap map[string]string

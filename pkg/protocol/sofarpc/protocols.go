@@ -26,17 +26,16 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 	}
 }
 
-/*
-	allField["XXX_protocol"] = string(requestCommand.GetProtocolCode())
-*/
-
 func (p *protocols) Encode(value interface{}, data types.IoBuffer) uint32 {
+
 	//被stream层调用的时候，传过来的是MAP结构
 	if headerMap, ok := value.(map[string]string); ok {
 
-		protocolCode := []byte(headerMap["XXX_protocol"])[0] //Type: byte
+		protocolCode := []byte(headerMap[SofaPropertyHeader("protocol")])[0] //Type: byte
 		log.DefaultLogger.Println("[Encode]protocol code = ", protocolCode)
+
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
+
 			return proto.GetEncoder().Encode(value, data) //返回ENCODE的数据
 		} else {
 			log.DefaultLogger.Println("Unknown protocol code: [", protocolCode, "] while encode in ProtocolDecoder.")

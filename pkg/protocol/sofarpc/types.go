@@ -184,5 +184,5 @@ type TrRequestCommand interface {
 }
 
 const (
-	SofaRpcHeaderPrefix = "x-mosn-sofarpc-"
+	SofaRpcPropertyHeaderPrefix = "x-mosn-sofarpc-headers-property-"
 )

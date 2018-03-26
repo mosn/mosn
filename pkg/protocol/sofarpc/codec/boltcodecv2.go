@@ -10,8 +10,7 @@ import (
 )
 
 // types.Encoder & types.Decoder
-type boltV2Codec struct {
-}
+type boltV2Codec struct {}
 
 func (encoder *boltV2Codec) Encode(value interface{}, data types.IoBuffer) uint32 {
 
