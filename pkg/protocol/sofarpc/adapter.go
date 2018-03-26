@@ -44,9 +44,6 @@ return allField*/
 
 //ADAPT MAP[STRING]STRING TO COMMAND
 
-
-
-
 func UintToString(value interface{}, len int)string{
 
 	var result string
@@ -62,6 +59,12 @@ func UintToString(value interface{}, len int)string{
 		vBytes := make([]byte,4)
 		binary.BigEndian.PutUint32(vBytes,v)
 		result= string(vBytes[:])
+	}else if len == 64 {
+		v      := value.(uint64)
+		vBytes := make([]byte,8)
+		binary.BigEndian.PutUint64(vBytes,v)
+		result= string(vBytes[:])
+
 	} else {
 		fmt.Println("Error input for converting")
 	}
@@ -80,7 +83,10 @@ func String2Uint(in string,len int) interface{}{
 	} else if len == 32 {
 		resultUint32 := binary.BigEndian.Uint32(inByte)
 		return resultUint32
+	}else if len == 64 {
 
+		resultUint64 := binary.BigEndian.Uint64(inByte)
+		return resultUint64
 	}else {
 		fmt.Println("Error input for converting")
 	}

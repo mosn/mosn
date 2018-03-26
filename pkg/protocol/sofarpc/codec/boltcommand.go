@@ -175,6 +175,10 @@ func (b *boltResponseCommand) SetResponseTimeMillis(responseTime int64) {
 	b.responseTimeMillis = responseTime
 }
 
+func (b *boltResponseCommand) GetResponseTimeMillis() int64{
+	return b.responseTimeMillis
+}
+
 func (b *boltResponseCommand) SetResponseHost(host net.Addr) {
 	b.responseHost = host
 }

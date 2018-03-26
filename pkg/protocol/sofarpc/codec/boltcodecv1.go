@@ -17,10 +17,11 @@ type boltV1Codec struct{}
 
 func EncodeAdapter(allField map[string]string) interface{} {
 
+	//COMMON FIELD FOR REQUEST AND RESPONSE
 	keyList := []string{"XXX_protocol", "XXX_cmdType", "XXX_cmdCode", "XXX_requestId", "XXX_codec",
 		"XXX_classLength", "XXX_headerLength", "XXX_contentLength", "XXX_className"}
 
-	//COMMON FOR ALL
+	//COMMON FOR ALL PROTOCOL
 	protocolCode := []byte(allField["XXX_protocol"])[0]
 
 	//BOLT V1
@@ -32,65 +33,104 @@ func EncodeAdapter(allField map[string]string) interface{} {
 		requestID := sofarpc.String2Uint(allField["XXX_requestId"], 32).(uint32)
 		codec := []byte(allField["XXX_codec"])[0]
 
-		//RPC Request
-		var timeout int
-		if cmdCode == sofarpc.RPC_REQUEST {
-
-			timeout = int(sofarpc.String2Uint(allField["XXX_timeout"], 32).(uint32))
-			keyList = append(keyList, "XXX_timeout")
-
-		} else if cmdCode == sofarpc.RPC_RESPONSE {
-
-			//todo RPC RESPONSE
-
-		} else {
-			// todo RPC_HB
-
-		}
-
 		classLength := int16(sofarpc.String2Uint(allField["XXX_classLength"], 16).(uint16))
 		headerLength := int16(sofarpc.String2Uint(allField["XXX_headerLength"], 16).(uint16))
 		contentLength := int(sofarpc.String2Uint(allField["XXX_contentLength"], 32).(uint32))
+
 
 		//class
 		className := allField["XXX_className"]
 		class, _ := serialize.Instance.Serialize(className)
 
-		//header, reconstruct map，由于不知道KEY的内容，因而有点麻烦
 		headerMap := make(map[string]string)
 
-		for k, v := range allField {
+		//RPC Request
+		if cmdCode == sofarpc.RPC_REQUEST {
 
-			if sofarpc.KeyInString(keyList, k) {
+			timeout := int(sofarpc.String2Uint(allField["XXX_timeout"], 32).(uint32))
+			keyList = append(keyList, "XXX_timeout")
 
-				headerMap[k] = v
+			for k, v := range allField {
+
+				if  !sofarpc.KeyInString(keyList, k) {
+
+					headerMap[k] = v
+				}
 			}
+			//serialize header
+
+			header, _ := serialize.Instance.Serialize(headerMap)
+
+			request := &boltRequestCommand{
+
+				boltCommand: boltCommand{
+					protocolCode,
+					cmdType,
+					cmdCode,
+					version,
+					requestID,
+					codec,
+					classLength,
+					headerLength,
+					contentLength,
+					class,
+					header,
+					nil,
+					nil,
+				},
+			}
+			request.SetTimeout(int(timeout))
+			return request
+
+		} else if cmdCode == sofarpc.RPC_RESPONSE {
+
+			//todo : review
+			responseStatus := int16(sofarpc.String2Uint(allField["XXX_responseStatus"],16).(uint16))
+			responseTime := int64(sofarpc.String2Uint(allField["XXX_responseTimeMills"],64).(uint64))
+			keyList = append(keyList,"XXX_responseStatus","responseTime")
+
+			for k, v := range allField {
+
+				if  !sofarpc.KeyInString(keyList, k) {
+
+					headerMap[k] = v
+				}
+			}
+			//serialize header
+
+			header, _ := serialize.Instance.Serialize(headerMap)
+			response := &boltResponseCommand{
+
+				boltCommand: boltCommand{
+					protocolCode,
+					cmdType,
+					cmdCode,
+					version,
+					requestID,
+					codec,
+					classLength,
+					headerLength,
+					contentLength,
+					class,
+					header,
+					nil,
+					nil,
+				},
+			}
+			response.SetResponseStatus(responseStatus)
+			response.SetResponseTimeMillis(responseTime)
+
+
+			return response
+
+
+		} else {
+			// todo RPC_HB
+
 		}
+		//header, reconstruct map，由于不知道KEY的内容，因而有点麻烦
 
-		//serialize header
 
-		header, _ := serialize.Instance.Serialize(headerMap)
-
-		request := &boltRequestCommand{
-
-			boltCommand: boltCommand{
-				protocolCode,
-				cmdType,
-				cmdCode,
-				version,
-				requestID,
-				codec,
-				classLength,
-				headerLength,
-				contentLength,
-				class,
-				header,
-				nil,
-				nil,
-			},
-		}
-		request.SetTimeout(int(timeout))
-		return request
 	} else if protocolCode == sofarpc.PROTOCOL_CODE_V2 {
 
 	}
@@ -157,10 +197,6 @@ func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) uint3
 
 		//CONTENT IS REGARDED AS BODY AND TRANSMIT DIRECTLY
 
-		//if rpcCmd.contentLength > 0 {
-		//	result = append(result, rpcCmd.content...)
-		//}
-
 		reqId = rpcCmd.id
 		//RESPONSE
 	} else if rpcCmd, ok := value.(*boltResponseCommand); ok {
@@ -222,8 +258,6 @@ func (encoder *boltV1Codec) Encode(value interface{}, data types.IoBuffer) uint3
 	//GET BINARY BYTE FLOW
 	data.Reset()
 	data.Append(result)
-
-	//data = buffer.NewIoBufferBytes(result)
 
 	return reqId
 }

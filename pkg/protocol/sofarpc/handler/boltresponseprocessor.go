@@ -56,6 +56,12 @@ func deserializeResponseAllFields(responseCommand sofarpc.BoltResponseCommand) {
 	allField["XXX_headerLength"] = sofarpc.UintToString(uint16(responseCommand.GetHeaderLength()), 16)
 	allField["XXX_contentLength"] = sofarpc.UintToString(uint32(responseCommand.GetCmdCode()), 32)
 
+
+	// FOR RESPONSE,ENCODE RESPONSE STATUS and RESPONSE TIME
+	allField["XXX_responseStatus"] = sofarpc.UintToString(uint16(responseCommand.GetResponseStatus()),16)
+	//暂时不知道responseTimeMills封装在协议的位置
+	allField["XXX_responseTimeMills"] = sofarpc.UintToString(uint64(responseCommand.GetResponseTimeMillis()),64)
+
 	//serialize class name
 	var className string
 	serializeIns.DeSerialize(responseCommand.GetClass(), &className)
