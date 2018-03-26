@@ -321,9 +321,9 @@ func (s *serverStream) EncodeHeaders(headers map[string]string, endStream bool) 
 
 	s.response.Header = encodeHeader(headers)
 
-	if status := s.response.Header.Get("Status"); status != "" {
+	if status := s.response.Header.Get(types.HeaderStatus); status != "" {
 		s.response.StatusCode, _ = strconv.Atoi(status)
-		s.response.Header.Del("Status")
+		s.response.Header.Del(types.HeaderStatus)
 	}
 
 	if endStream {

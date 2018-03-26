@@ -27,13 +27,20 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 }
 
 func (p *protocols) EncodeHeaders(headers map[string]string) (uint32, types.IoBuffer) {
-	protocolCode := []byte(headers[SofaPropertyHeader("protocol")])[0]
-	log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
+	if proto, exist := headers[SofaPropertyHeader("protocol")]; exist {
+		protocolCode := []byte(proto)[0]
+		log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
 
-	if proto, exists := p.protocolMaps[protocolCode]; exists {
-		return proto.GetEncoder().EncodeHeaders(headers) //返回ENCODE的数据
+		if proto, exists := p.protocolMaps[protocolCode]; exists {
+			//返回ENCODE的数据
+			return proto.GetEncoder().EncodeHeaders(headers)
+		} else {
+			log.DefaultLogger.Debugf("Unknown protocol code: [", protocolCode, "] while encode headers.")
+
+			return 0, nil
+		}
 	} else {
-		log.DefaultLogger.Println("Unknown protocol code: [", protocolCode, "] while encode in ProtocolDecoder.")
+		log.DefaultLogger.Debugf("Invalid encode headers, should contains 'protocol'")
 
 		return 0, nil
 	}
@@ -47,9 +54,8 @@ func (p *protocols) EncodeTrailers(trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
-// filter = type.serverStreamConnection
 func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
-	//at least 1 byte for protocol code recognize
+	// at least 1 byte for protocol code recognize
 	for data.Len() > 1 {
 		protocolCode := data.Bytes()[0]
 		maybeProtocolVersion := data.Bytes()[1]
@@ -57,10 +63,9 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 		log.DefaultLogger.Println("[Decoder]protocol code = ", protocolCode, ", maybeProtocolVersion = ", maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
-			decoder := proto.GetDecoder()
-			_, cmd := decoder.Decode(data) //先解析成command,即将一串二进制Decode到对应的字段
 
-			if cmd != nil {
+			//先解析成command,即将一串二进制Decode到对应的字段
+			if _, cmd := proto.GetDecoder().Decode(data); cmd != nil {
 				proto.GetCommandHandler().HandleCommand(filter, cmd) //做decode 同时序列化，在此调用！！
 			} else {
 				log.DefaultLogger.Debugf("Unable to decode sofa rpc command")

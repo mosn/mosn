@@ -476,8 +476,7 @@ func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 		headers = make(map[string]string)
 	}
 
-	// todo
-	headers["Status"] = strconv.Itoa(code)
+	headers[types.HeaderStatus] = strconv.Itoa(code)
 	s.encodeHeaders(headers, true)
 }
 

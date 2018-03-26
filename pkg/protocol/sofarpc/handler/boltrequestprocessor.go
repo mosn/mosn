@@ -13,8 +13,6 @@ type BoltRequestProcessor struct{}
 // ctx = type.serverStreamConnection
 func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(sofarpc.BoltRequestCommand); ok {
-		//deserializeRequestHeaders(cmd)    //做反序列化
-
 		deserializeRequestAllFields(cmd)
 
 		//for demo, invoke ctx as callback
@@ -56,7 +54,7 @@ func deserializeRequestAllFields(requestCommand sofarpc.BoltRequestCommand) {
 	allField[sofarpc.SofaPropertyHeader("timeout")] = sofarpc.UintToString(uint32(requestCommand.GetTimeout()), 32)
 	allField[sofarpc.SofaPropertyHeader("classLength")] = sofarpc.UintToString(uint16(requestCommand.GetClassLength()), 16)
 	allField[sofarpc.SofaPropertyHeader("headerLength")] = sofarpc.UintToString(uint16(requestCommand.GetHeaderLength()), 16)
-	allField[sofarpc.SofaPropertyHeader("contentLength")] = sofarpc.UintToString(uint32(requestCommand.GetCmdCode()), 32)
+	allField[sofarpc.SofaPropertyHeader("contentLength")] = sofarpc.UintToString(uint32(requestCommand.GetContentLength()), 32)
 
 	//serialize class name
 	var className string

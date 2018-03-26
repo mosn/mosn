@@ -62,7 +62,7 @@ func (r *retryState) doCheckRetry(headers map[string]string, reason types.Stream
 	}
 
 	if r.retryOn {
-		if code, ok := headers["Status"]; ok {
+		if code, ok := headers[types.HeaderStatus]; ok {
 			codeValue, _ := strconv.Atoi(code)
 
 			return codeValue >= 500

@@ -12,7 +12,6 @@ type BoltResponseProcessor struct{}
 
 func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(sofarpc.BoltResponseCommand); ok {
-
 		deserializeResponseAllFields(cmd)
 
 		//for demo, invoke ctx as callback
@@ -52,7 +51,7 @@ func deserializeResponseAllFields(responseCommand sofarpc.BoltResponseCommand) {
 	allField[sofarpc.SofaPropertyHeader("codec")] = string(responseCommand.GetCodec())
 	allField[sofarpc.SofaPropertyHeader("classLength")] = sofarpc.UintToString(uint16(responseCommand.GetClassLength()), 16)
 	allField[sofarpc.SofaPropertyHeader("headerLength")] = sofarpc.UintToString(uint16(responseCommand.GetHeaderLength()), 16)
-	allField[sofarpc.SofaPropertyHeader("contentLength")] = sofarpc.UintToString(uint32(responseCommand.GetCmdCode()), 32)
+	allField[sofarpc.SofaPropertyHeader("contentLength")] = sofarpc.UintToString(uint32(responseCommand.GetContentLength()), 32)
 
 	// FOR RESPONSE,ENCODE RESPONSE STATUS and RESPONSE TIME
 	allField[sofarpc.SofaPropertyHeader("responseStatus")] = sofarpc.UintToString(uint16(responseCommand.GetResponseStatus()), 16)

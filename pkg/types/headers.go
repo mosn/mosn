@@ -1,5 +1,5 @@
 package types
 
 const (
-	// todo: define header namespace prefix.
+	HeaderStatus = "x-mosn-status"
 )

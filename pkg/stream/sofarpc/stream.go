@@ -7,6 +7,7 @@ import (
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"strconv"
 )
 
 func init() {
@@ -209,13 +210,24 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamEncoder 调用协议层ENCODE方法
 func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
+	if status, ok := headers[types.HeaderStatus]; ok {
+		statusCode, _ := strconv.Atoi(status)
+
+		if statusCode != 200 {
+			// todo: handle proxy hijack reply on exception
+
+		}
+
+		// remove proxy header before codec encode
+		delete(headers, types.HeaderStatus)
+	}
+
 	// boqin: 由proxy回调，同时调用协议层Encode方法
 
 	s.streamId, s.encodedHeaders = s.connection.protocols.EncodeHeaders(headers)
 	s.connection.activeStreams[s.streamId] = s
 
-	log.DefaultLogger.Println("[Header to sent] %d", s.encodedHeaders.Bytes())
-	//fmt.Print("[Header to sent]",s.encodedHeaders)
+	log.DefaultLogger.Debugf("[Header to sent] %d", s.encodedHeaders.Len())
 
 	if endStream {
 		s.endStream()
