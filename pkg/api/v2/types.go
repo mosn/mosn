@@ -98,3 +98,13 @@ type RetryPolicy struct {
 	RetryTimeout time.Duration
 	NumRetries   int
 }
+
+type HealthCheck struct {
+	Timeout            time.Duration
+	HealthyThreshold   uint32
+	UnhealthyThreshold uint32
+	Interval           time.Duration
+	IntervalJitter     time.Duration
+	CheckPath          string
+	ServiceName        string
+}

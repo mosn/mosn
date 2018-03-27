@@ -58,6 +58,8 @@ type host struct {
 	hostInfo
 	weight uint32
 	used   bool
+
+	healthFlags uint64
 }
 
 func newHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
@@ -79,7 +81,7 @@ func (h *host) CreateConnection() types.CreateConnectionData {
 
 	return types.CreateConnectionData{
 		Connection: clientConn,
-		HostInfo: &h.hostInfo,
+		HostInfo:   &h.hostInfo,
 	}
 }
 
@@ -92,13 +94,15 @@ func (h *host) Gauges() types.HostStats {
 }
 
 func (h *host) ClearHealthFlag(flag types.HealthFlag) {
+	h.healthFlags &= ^uint64(flag)
 }
 
 func (h *host) ContainHealthFlag(flag types.HealthFlag) bool {
-	return false
+	return h.healthFlags&uint64(flag) > 0
 }
 
 func (h *host) SetHealthFlag(flag types.HealthFlag) {
+	h.healthFlags |= uint64(flag)
 }
 
 func (h *host) Health() bool {

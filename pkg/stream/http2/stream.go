@@ -218,6 +218,22 @@ func (s *clientStream) EncodeHeaders(headers map[string]string, endStream bool) 
 			s.connection.rawConnection.RemoteAddr().String()))
 	}
 
+	if method, ok := headers[types.HeaderMethod]; ok {
+		s.request.Method = method
+		delete(headers, types.HeaderMethod)
+	}
+
+	if host, ok := headers[types.HeaderHost]; ok {
+		s.request.Host = host
+		delete(headers, types.HeaderHost)
+	}
+
+	if path, ok := headers[types.HeaderPath]; ok {
+		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s%s",
+			s.connection.rawConnection.RemoteAddr().String(), path))
+		delete(headers, types.HeaderPath)
+	}
+
 	s.request.Header = encodeHeader(headers)
 
 	if endStream {
