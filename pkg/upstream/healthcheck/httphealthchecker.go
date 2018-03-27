@@ -7,6 +7,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"net/http"
 )
 
 type httpHealthChecker struct {
@@ -30,15 +31,15 @@ func NewHttpHealthCheck(config v2.HealthCheck) types.HealthChecker {
 }
 
 func (c *httpHealthChecker) newSession(host types.Host) types.HealthCheckSession {
-	hcs := NewHealthCheckSession(&c.healthChecker, host)
-
-	hcs.intervalTimer = newTimer(hcs.onInterval)
-	hcs.timeoutTimer = newTimer(hcs.onTimeout)
-
-	return &httpHealthCheckSession{
+	hhcs := &httpHealthCheckSession{
 		healthChecker:      c,
-		healthCheckSession: *hcs,
+		healthCheckSession: *NewHealthCheckSession(&c.healthChecker, host),
 	}
+
+	hhcs.intervalTimer = newTimer(hhcs.onInterval)
+	hhcs.timeoutTimer = newTimer(hhcs.onTimeout)
+
+	return hhcs
 }
 
 func (c *httpHealthChecker) createCodecClient(data types.CreateConnectionData) stream.CodecClient {
@@ -75,7 +76,7 @@ func (s *httpHealthCheckSession) OnDecodeTrailers(trailers map[string]string) {
 	s.onResponseComplete()
 }
 
-// session
+// overload healthCheckSession
 func (s *httpHealthCheckSession) Start() {
 	s.onInterval()
 }
@@ -91,7 +92,7 @@ func (s *httpHealthCheckSession) onInterval() {
 	s.requestEncoder.GetStream().AddCallbacks(s)
 
 	reqHeaders := map[string]string{
-		types.HeaderMethod: "GET",
+		types.HeaderMethod: http.MethodGet,
 		types.HeaderHost:   s.healthChecker.cluster.Info().Name(),
 		types.HeaderPath:   s.healthChecker.checkPath,
 	}
