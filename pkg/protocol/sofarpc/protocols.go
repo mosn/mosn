@@ -69,7 +69,7 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 
 			//先解析成command,即将一串二进制Decode到对应的字段
 			if _, cmd := proto.GetDecoder().Decode(data); cmd != nil {
-				proto.GetCommandHandler().HandleCommand(filter, cmd) //做decode 同时序列化，在此调用！！
+				proto.GetCommandHandler().HandleCommand(filter, cmd) //做decode 同时序列化
 			} else {
 				log.DefaultLogger.Debugf("Unable to decode sofa rpc command")
 				break

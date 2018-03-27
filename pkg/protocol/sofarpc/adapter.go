@@ -11,6 +11,24 @@ func SofaPropertyHeader(name string) string {
 	return fmt.Sprintf("%s%s", SofaRpcPropertyHeaderPrefix, strings.ToLower(name))
 }
 
+func  GetPropertyValue(properHeaders map[string]reflect.Kind,headers map[string]string, name string) interface{} {
+	name = strings.ToLower(name)
+	propertyHeaderName := SofaPropertyHeader(name)
+
+	if value, ok := headers[propertyHeaderName]; ok {
+		delete(headers, propertyHeaderName)
+
+		return ConvertPropertyValue(value, properHeaders[name])
+	} else {
+		if value, ok := headers[name]; ok {
+
+			return ConvertPropertyValue(value, properHeaders[name])
+		}
+	}
+
+	return nil
+}
+
 func ConvertPropertyValue(strValue string, kind reflect.Kind) interface{} {
 	switch kind {
 	case reflect.Uint8:

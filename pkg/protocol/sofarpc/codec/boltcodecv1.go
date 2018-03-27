@@ -9,7 +9,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	"strings"
 )
 
 var (
@@ -162,23 +161,23 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 		return nil
 	}
 
-	protocolCode := c.getPropertyValue(headers, "protocol")
-	cmdType := c.getPropertyValue(headers, "cmdtype")
-	cmdCode := c.getPropertyValue(headers, "cmdcode")
-	version := c.getPropertyValue(headers, "version")
-	requestID := c.getPropertyValue(headers, "requestid")
-	codec := c.getPropertyValue(headers, "codec")
-	classLength := c.getPropertyValue(headers, "classlength")
-	headerLength := c.getPropertyValue(headers, "headerlength")
-	contentLength := c.getPropertyValue(headers, "contentlength")
+	protocolCode := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "protocol")
+	cmdType := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "cmdtype")
+	cmdCode := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "cmdcode")
+	version := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "version")
+	requestID := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "requestid")
+	codec := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "codec")
+	classLength := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "classlength")
+	headerLength := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "headerlength")
+	contentLength := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "contentlength")
 
 	//class
-	className := c.getPropertyValue(headers, "classname")
+	className := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "classname")
 	class, _ := serialize.Instance.Serialize(className)
 
 	//RPC Request
 	if cmdCode == sofarpc.RPC_REQUEST {
-		timeout := c.getPropertyValue(headers, "timeout")
+		timeout := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "timeout")
 
 		//serialize header
 		header, _ := serialize.Instance.Serialize(headers)
@@ -205,8 +204,8 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 		return request
 	} else if cmdCode == sofarpc.RPC_RESPONSE {
 		//todo : review
-		responseStatus := c.getPropertyValue(headers, "responsestatus")
-		responseTime := c.getPropertyValue(headers, "responsetimemills")
+		responseStatus := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "responsestatus")
+		responseTime := sofarpc.GetPropertyValue(BoltV1PropertyHeaders,headers, "responsetimemills")
 
 		//serialize header
 		header, _ := serialize.Instance.Serialize(headers)
@@ -234,24 +233,6 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 		return response
 	} else {
 		// todo RPC_HB
-	}
-
-	return nil
-}
-
-func (c *boltV1Codec) getPropertyValue(headers map[string]string, name string) interface{} {
-	name = strings.ToLower(name)
-	propertyHeaderName := sofarpc.SofaPropertyHeader(name)
-
-	if value, ok := headers[propertyHeaderName]; ok {
-		delete(headers, propertyHeaderName)
-
-		return sofarpc.ConvertPropertyValue(value, BoltV1PropertyHeaders[name])
-	} else {
-		if value, ok := headers[name]; ok {
-
-			return sofarpc.ConvertPropertyValue(value, BoltV1PropertyHeaders[name])
-		}
 	}
 
 	return nil

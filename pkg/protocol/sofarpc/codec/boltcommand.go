@@ -127,27 +127,9 @@ func (b *boltCommand) GetCodec() byte {
 	return b.codec
 }
 
-// FOR BOLRV2 Request
-func (b *boltRequestCommand) SetVer1(ver1 byte) {
-	b.ver1 = ver1
-}
-
-func (b *boltRequestCommand) GetVer1() byte {
-	return b.ver1
-}
-
-func (b *boltRequestCommand) SetSwitch(switchCode byte) {
-	b.switchCode = switchCode
-}
-
 func (b *boltRequestCommand) GetTimeout() int {
 	return b.timeout
 }
-
-func (b *boltRequestCommand) GetSwitch() byte {
-	return b.switchCode
-}
-
 func (b *boltRequestCommand) SetTimeout(timeout int) {
 	b.timeout = timeout
 }
@@ -167,6 +149,22 @@ func (b *boltRequestCommand) GetRequestHeader() map[string]string {
 	return b.requestHeader
 }
 
+// FOR BOLT V2 Request
+func (b *boltRequestCommand) SetVer1(ver1 byte) {
+	b.ver1 = ver1
+}
+func (b *boltRequestCommand) GetVer1() byte {
+	return b.ver1
+}
+
+func (b *boltRequestCommand) SetSwitch(switchCode byte) {
+	b.switchCode = switchCode
+}
+func (b *boltRequestCommand) GetSwitch() byte {
+	return b.switchCode
+}
+
+//RESPONSE
 func (b *boltResponseCommand) SetResponseStatus(status int16) {
 	b.responseStatus = status
 }
@@ -183,23 +181,6 @@ func (b *boltResponseCommand) SetResponseHost(host net.Addr) {
 	b.responseHost = host
 }
 
-//FOR BOLTV2 RESPONSE
-func (b *boltResponseCommand) SetVer1(ver1 byte) {
-	b.ver1 = ver1
-}
-
-func (b *boltResponseCommand) GetVer1() byte {
-	return b.ver1
-}
-
-func (b *boltResponseCommand) SetSwitch(switchCode byte) {
-	b.switchCode = switchCode
-}
-
-func (b *boltResponseCommand) GetSwitch() byte {
-	return b.switchCode
-}
-
 func (b *boltResponseCommand) GetResponseStatus() int16 {
 	return b.responseStatus
 }
@@ -210,4 +191,19 @@ func (b *boltResponseCommand) SetResponseHeader(headerMap map[string]string) {
 
 func (b *boltResponseCommand) GetResponseHeader() map[string]string {
 	return b.responseHeader
+}
+
+//FOR BOLT V2
+func (b *boltResponseCommand) SetVer1(ver1 byte) {
+	b.ver1 = ver1
+}
+func (b *boltResponseCommand) GetVer1() byte {
+	return b.ver1
+}
+
+func (b *boltResponseCommand) SetSwitch(switchCode byte) {
+	b.switchCode = switchCode
+}
+func (b *boltResponseCommand) GetSwitch() byte {
+	return b.switchCode
 }

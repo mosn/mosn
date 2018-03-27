@@ -97,9 +97,9 @@ var BoltV2 = &BoltProtocol{
 	sofarpc.PROTOCOL_CODE_V2,
 	sofarpc.REQUEST_HEADER_LEN_V2,
 	sofarpc.RESPONSE_HEADER_LEN_V2,
-	&boltV1Codec{},
-	&boltV1Codec{},
-	handler.NewBoltCommandHandler(),
+	&boltV2Codec{},
+	&boltV2Codec{},
+	handler.NewBoltCommandHandlerV2(),
 }
 
 type BoltProtocol struct {
