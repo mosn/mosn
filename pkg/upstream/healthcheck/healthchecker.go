@@ -126,9 +126,6 @@ func NewHealthCheckSession(hc *healthChecker, host types.Host) *healthCheckSessi
 		host:          host,
 	}
 
-	hcs.intervalTimer = newTimer(hcs.onIntervalBase)
-	hcs.timeoutTimer = newTimer(hcs.onTimeoutBase)
-
 	if !host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
 		hcs.healthChecker.decHealthy()
 	}
@@ -137,7 +134,7 @@ func NewHealthCheckSession(hc *healthChecker, host types.Host) *healthCheckSessi
 }
 
 func (s *healthCheckSession) Start() {
-	s.onIntervalBase()
+	s.onInterval()
 }
 
 func (s *healthCheckSession) Stop() {}
@@ -150,6 +147,7 @@ func (s *healthCheckSession) handleSuccess() {
 		s.numHealthy++
 
 		if s.numHealthy == s.healthChecker.healthyThreshold {
+			s.host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
 			s.healthChecker.incHealthy()
 			stateChanged = true
 		}
@@ -195,21 +193,14 @@ func (s *healthCheckSession) handleFailure(fType types.FailureType) {
 	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
-func (s *healthCheckSession) onIntervalBase() {
-	s.onInterval()
-
+func (s *healthCheckSession) onInterval() {
 	s.timeoutTimer.start(s.healthChecker.getInterval())
 	s.healthChecker.stats.attempt.Inc(1)
 }
 
-func (s *healthCheckSession) onInterval() {}
-
-func (s *healthCheckSession) onTimeoutBase() {
-	s.onTimeout()
+func (s *healthCheckSession) onTimeout() {
 	s.SetUnhealthy(types.FailureNetwork)
 }
-
-func (s *healthCheckSession) onTimeout() {}
 
 type healthCheckStats struct {
 	attempt        metrics.Counter

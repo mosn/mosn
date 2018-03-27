@@ -32,6 +32,9 @@ func NewHttpHealthCheck(config v2.HealthCheck) types.HealthChecker {
 func (c *httpHealthChecker) newSession(host types.Host) types.HealthCheckSession {
 	hcs := NewHealthCheckSession(&c.healthChecker, host)
 
+	hcs.intervalTimer = newTimer(hcs.onInterval)
+	hcs.timeoutTimer = newTimer(hcs.onTimeout)
+
 	return &httpHealthCheckSession{
 		healthChecker:      c,
 		healthCheckSession: *hcs,
@@ -53,6 +56,7 @@ type httpHealthCheckSession struct {
 	expectReset     bool
 }
 
+// // types.StreamDecoder
 func (s *httpHealthCheckSession) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	s.responseHeaders = headers
 
@@ -69,6 +73,11 @@ func (s *httpHealthCheckSession) OnDecodeData(data types.IoBuffer, endStream boo
 
 func (s *httpHealthCheckSession) OnDecodeTrailers(trailers map[string]string) {
 	s.onResponseComplete()
+}
+
+// session
+func (s *httpHealthCheckSession) Start() {
+	s.onInterval()
 }
 
 func (s *httpHealthCheckSession) onInterval() {
@@ -89,12 +98,16 @@ func (s *httpHealthCheckSession) onInterval() {
 
 	s.requestEncoder.EncodeHeaders(reqHeaders, true)
 	s.requestEncoder = nil
+
+	s.healthCheckSession.onInterval()
 }
 
 func (s *httpHealthCheckSession) onTimeout() {
 	s.expectReset = true
 	s.client.Close()
 	s.client = nil
+
+	s.healthCheckSession.onTimeout()
 }
 
 func (s *httpHealthCheckSession) onResponseComplete() {
