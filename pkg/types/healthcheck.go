@@ -1,7 +1,9 @@
 package types
 
+type HealthCheckCb func(host Host, changedState bool)
+
 type HealthChecker interface {
-	AddHostCheckCompleteCb(cb func(host Host, changedState bool))
+	AddHostCheckCompleteCb(cb HealthCheckCb)
 
 	Start()
 }

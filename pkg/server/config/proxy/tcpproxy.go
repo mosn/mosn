@@ -4,7 +4,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/tcp"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/tcpproxy"
 )
 
 type TcpProxyFilterConfigFactory struct {
@@ -13,7 +13,7 @@ type TcpProxyFilterConfigFactory struct {
 
 func (tpcf *TcpProxyFilterConfigFactory) CreateFilterFactory(clusterManager types.ClusterManager) server.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
-		manager.AddReadFilter(tcp.NewProxy(tpcf.Proxy, clusterManager))
+		manager.AddReadFilter(tcpproxy.NewProxy(tpcf.Proxy, clusterManager))
 	}
 }
 

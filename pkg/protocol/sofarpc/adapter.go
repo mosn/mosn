@@ -11,7 +11,7 @@ func SofaPropertyHeader(name string) string {
 	return fmt.Sprintf("%s%s", SofaRpcPropertyHeaderPrefix, strings.ToLower(name))
 }
 
-func  GetPropertyValue(properHeaders map[string]reflect.Kind,headers map[string]string, name string) interface{} {
+func GetPropertyValue(properHeaders map[string]reflect.Kind, headers map[string]string, name string) interface{} {
 	name = strings.ToLower(name)
 	propertyHeaderName := SofaPropertyHeader(name)
 

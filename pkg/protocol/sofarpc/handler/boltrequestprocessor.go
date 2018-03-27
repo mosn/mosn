@@ -13,8 +13,6 @@ type BoltRequestProcessor struct{}
 
 type BoltRequestProcessorV2 struct{}
 
-
-
 // ctx = type.serverStreamConnection
 func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(sofarpc.BoltRequestCommand); ok {
@@ -100,7 +98,6 @@ func deserializeRequestAllFields(requestCommand sofarpc.BoltRequestCommand) {
 
 	requestCommand.SetRequestHeader(allField)
 }
-
 
 //  将所有BOLT的HEADER字段组装成map结构
 func deserializeRequestAllFieldsV2(requestCommand sofarpc.BoltRequestCommand) {

@@ -30,7 +30,6 @@ func NewBoltCommandHandlerV2() *BoltCommandHandler {
 	}
 }
 
-
 func (h *BoltCommandHandler) HandleCommand(ctx interface{}, msg interface{}) {
 	if cmd, ok := msg.(sofarpc.RpcCommand); ok {
 		cmdCode := cmd.GetCmdCode()

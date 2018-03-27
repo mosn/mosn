@@ -146,9 +146,8 @@ type BoltRequestCommand interface {
 	GetRequestHeader() map[string]string
 
 	//FOR BOLT V2
-	GetVer1()  byte
+	GetVer1() byte
 	GetSwitch() byte
-
 }
 
 type BoltResponseCommand interface {
@@ -184,9 +183,8 @@ type BoltResponseCommand interface {
 	GetResponseHeader() map[string]string
 
 	//FOR BOLT V2
-	GetVer1()  byte
+	GetVer1() byte
 	GetSwitch() byte
-
 }
 
 type TrRequestCommand interface {
