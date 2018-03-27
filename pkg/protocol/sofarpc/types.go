@@ -144,6 +144,11 @@ type BoltRequestCommand interface {
 	SetRequestHeader(headerMap map[string]string)
 
 	GetRequestHeader() map[string]string
+
+	//FOR BOLT V2
+	GetVer1()  byte
+	GetSwitch() byte
+
 }
 
 type BoltResponseCommand interface {
@@ -177,6 +182,11 @@ type BoltResponseCommand interface {
 	SetResponseHeader(headerMap map[string]string)
 
 	GetResponseHeader() map[string]string
+
+	//FOR BOLT V2
+	GetVer1()  byte
+	GetSwitch() byte
+
 }
 
 type TrRequestCommand interface {
