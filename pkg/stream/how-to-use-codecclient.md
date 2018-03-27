@@ -13,7 +13,7 @@ codecClient.SetCodecConnectionCallbacks(ac)
 + codecclient callbacks: called on stream reset
 + codecclient connection callbacks: called on connection get a graceful close event
 
-#### Step 2. Make a new stream to send your request
+#### Step 2. Make a new stream
 
 ```
 requestStreamEncoder := codecClient.NewStream(streamId, responseDecoder)
@@ -61,7 +61,7 @@ func (r *responseDecoder) OnDecodeTrailers(trailers map[string]string) {
 }
 ```
 
-#### Example
+#### Event&Exceptions
 As mentioned in 'Step 1', we can register callbacks to get notified on connection/stream event.
 
 + Connection event callbacks:
