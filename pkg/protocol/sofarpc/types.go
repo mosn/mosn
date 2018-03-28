@@ -69,6 +69,8 @@ type Protocol interface {
 	 */
 	//TODO
 	GetCommandHandler() CommandHandler
+
+	GetHeadersBuilder() ProtocolHeadersBuilder
 }
 
 type Protocols interface {
@@ -112,6 +114,12 @@ type RpcCommand interface {
 	GetCmdCode() int16
 
 	GetId() uint32
+}
+
+type BoltRequestCommandV2 struct {
+	Id uint32
+	ProtocolCode byte
+	CmdType byte
 }
 
 type BoltRequestCommand interface {

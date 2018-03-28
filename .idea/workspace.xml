@@ -2,12 +2,14 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="00883828-525e-40a1-a261-751f47fca9ac" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/adapter.go" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" />
-      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trcodec.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trcodec.go" />
-      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/handler/boltrequestprocessor.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/handler/boltrequestprocessor.go" />
-      <change beforePath="$PROJECT_DIR$/pkg/proxy/downstream.go" afterPath="$PROJECT_DIR$/pkg/proxy/downstream.go" />
-      <change beforePath="$PROJECT_DIR$/pkg/stream/http2/stream.go" afterPath="$PROJECT_DIR$/pkg/stream/http2/stream.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/protocols.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/protocols.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/stream/how-to-use-codecclient.md" afterPath="$PROJECT_DIR$/pkg/stream/how-to-use-codecclient.md" />
+      <change beforePath="$PROJECT_DIR$/pkg/stream/sofarpc/stream.go" afterPath="$PROJECT_DIR$/pkg/stream/sofarpc/stream.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/types/codec.go" afterPath="$PROJECT_DIR$/pkg/types/codec.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/types/stream.go" afterPath="$PROJECT_DIR$/pkg/types/stream.go" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -17,32 +19,12 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="connection.go" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/pkg/network/connection.go">
+    <leaf>
+      <file leaf-file-name="boltcodecv1.go" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="316">
-              <caret line="78" column="24" lean-forward="false" selection-start-line="78" selection-start-column="24" selection-end-line="78" selection-end-column="24" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="clustermanager.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/clustermanager.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2227">
-              <caret line="141" column="0" lean-forward="false" selection-start-line="141" selection-start-column="0" selection-end-line="141" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="golocalstore.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/golocalstore.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="816">
-              <caret line="55" column="0" lean-forward="false" selection-start-line="55" selection-start-column="0" selection-end-line="55" selection-end-column="0" />
+            <state relative-caret-position="200">
+              <caret line="35" column="83" lean-forward="true" selection-start-line="35" selection-start-column="83" selection-end-line="35" selection-end-column="83" />
               <folding />
             </state>
           </provider>
@@ -110,15 +92,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/pkg/protocol/http/types.go" />
-        <option value="$PROJECT_DIR$/pkg/upstream/upstreammanager.go" />
-        <option value="$PROJECT_DIR$/pkg/upstream/cluster/types.go" />
-        <option value="$PROJECT_DIR$/pkg/upstream/clustermanager.go" />
-        <option value="$PROJECT_DIR$/pkg/api/v2/types.go" />
-        <option value="$PROJECT_DIR$/pkg/types/types.go" />
-        <option value="$PROJECT_DIR$/pkg/upstream/types.go" />
-        <option value="$PROJECT_DIR$/pkg/interfaces/trace.go" />
-        <option value="$PROJECT_DIR$/pkg/interfaces/network.go" />
         <option value="$PROJECT_DIR$/pkg/upstream/healthcheck/types.go" />
         <option value="$PROJECT_DIR$/pkg/interfaces/healthcheck.go" />
         <option value="$PROJECT_DIR$/pkg/interfaces/outlierDetect.go" />
@@ -130,7 +103,6 @@
         <option value="$PROJECT_DIR$/pkg/network/types.go" />
         <option value="$PROJECT_DIR$/pkg/types/http.go" />
         <option value="$PROJECT_DIR$/pkg/types/upstream.go" />
-        <option value="$PROJECT_DIR$/pkg/types/stream.go" />
         <option value="$PROJECT_DIR$/pkg/upstream/cluster/cluster.go" />
         <option value="$PROJECT_DIR$/pkg/upstream/cluster/clustermanager.go" />
         <option value="$PROJECT_DIR$/pkg/upstream/cluster/loadbalancer.go" />
@@ -161,6 +133,16 @@
         <option value="$PROJECT_DIR$/pkg/network/connection.go" />
         <option value="$PROJECT_DIR$/pkg/proxy/tcp/proxy.go" />
         <option value="$PROJECT_DIR$/pkg/upstream/cluster/clustermanager.go" />
+        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/builder.go" />
+        <option value="$PROJECT_DIR$/pkg/types/stream.go" />
+        <option value="$PROJECT_DIR$/pkg/types/codec.go" />
+        <option value="$PROJECT_DIR$/pkg/stream/sofarpc/stream.go" />
+        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/protocols.go" />
+        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1builder.go" />
+        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltprotocol.go" />
+        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trprotocol.go" />
+        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" />
+        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" />
       </list>
     </option>
   </component>
@@ -215,68 +197,58 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
             <path>
-              <item name="boost" type="b2602c69:ProjectViewProjectNode" />
+              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
               <item name="mosn" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="boost" type="b2602c69:ProjectViewProjectNode" />
+              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
               <item name="mosn" type="462c0819:PsiDirectoryNode" />
               <item name="pkg" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="boost" type="b2602c69:ProjectViewProjectNode" />
+              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
               <item name="mosn" type="462c0819:PsiDirectoryNode" />
               <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="example" type="462c0819:PsiDirectoryNode" />
+              <item name="protocol" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="boost" type="b2602c69:ProjectViewProjectNode" />
+              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
               <item name="mosn" type="462c0819:PsiDirectoryNode" />
               <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="network" type="462c0819:PsiDirectoryNode" />
+              <item name="protocol" type="462c0819:PsiDirectoryNode" />
+              <item name="sofarpc" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="boost" type="b2602c69:ProjectViewProjectNode" />
+              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
               <item name="mosn" type="462c0819:PsiDirectoryNode" />
               <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="proxy" type="462c0819:PsiDirectoryNode" />
+              <item name="protocol" type="462c0819:PsiDirectoryNode" />
+              <item name="sofarpc" type="462c0819:PsiDirectoryNode" />
+              <item name="codec" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="boost" type="b2602c69:ProjectViewProjectNode" />
+              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
               <item name="mosn" type="462c0819:PsiDirectoryNode" />
               <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="proxy" type="462c0819:PsiDirectoryNode" />
-              <item name="tcp" type="462c0819:PsiDirectoryNode" />
+              <item name="stream" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="boost" type="b2602c69:ProjectViewProjectNode" />
+              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
               <item name="mosn" type="462c0819:PsiDirectoryNode" />
               <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="types" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="boost" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mosn" type="462c0819:PsiDirectoryNode" />
-              <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="upstream" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="boost" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mosn" type="462c0819:PsiDirectoryNode" />
-              <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="upstream" type="462c0819:PsiDirectoryNode" />
-              <item name="cluster" type="462c0819:PsiDirectoryNode" />
+              <item name="stream" type="462c0819:PsiDirectoryNode" />
+              <item name="sofarpc" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -292,15 +264,16 @@
     <property name="go.vendoring.notification.had.been.shown" value="true" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/pkg/protocol/sofarpc/codec" />
+      <recent name="$PROJECT_DIR$/pkg/controller" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/pkg/upstream/cluster" />
       <recent name="$PROJECT_DIR$/pkg/upstream" />
       <recent name="$PROJECT_DIR$/pkg/network" />
       <recent name="$PROJECT_DIR$/pkg/network/buffer" />
       <recent name="$PROJECT_DIR$/pkg/server" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/pkg/controller" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -375,25 +348,36 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1440" height="824" extended-state="6" />
+    <frame x="0" y="23" width="1440" height="800" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.15593705" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1602289" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32905984" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2962963" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.35042736" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32905984" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2962963" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24964234" sideWeight="0.5" order="3" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.15593705" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32905984" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.35042736" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -440,31 +424,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/pkg/types/http.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/protocol/http/types.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/protocol/filter/types.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/types/stream.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2700">
-          <caret line="180" column="0" lean-forward="true" selection-start-line="180" selection-start-column="0" selection-end-line="180" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pkg/protocol/connectionpool/types.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/protocol/codec/simple.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/protocol/codec/stream.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/upstream/types.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/router/types.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/upstream/cluster/loadbalancer.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="75">
-          <caret line="5" column="46" lean-forward="false" selection-start-line="5" selection-start-column="41" selection-end-line="5" selection-end-column="46" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pkg/upstream/healthcheck/types.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/trace/types.go" />
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/sync/atomic/doc.go" />
     <entry file="file://$PROJECT_DIR$/pkg/example/echo.go" />
     <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/bytes/buffer.go" />
     <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/bufio/bufio.go" />
@@ -500,7 +459,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2">
           <caret line="124" column="66" lean-forward="true" selection-start-line="124" selection-start-column="66" selection-end-line="124" selection-end-column="66" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -579,14 +537,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pkg/types/codec.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="60">
-          <caret line="4" column="24" lean-forward="true" selection-start-line="4" selection-start-column="24" selection-end-line="4" selection-end-column="24" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pkg/server/config/proxy/tcpproxy.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
@@ -612,7 +562,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="199">
           <caret line="219" column="38" lean-forward="false" selection-start-line="219" selection-start-column="38" selection-end-line="219" selection-end-column="38" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -650,6 +599,118 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/pkg/proxy/tcp/proxy.go" />
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/adapter.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="60">
+          <caret line="9" column="23" lean-forward="false" selection-start-line="9" selection-start-column="5" selection-end-line="9" selection-end-column="23" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv2.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="90">
+          <caret line="6" column="4" lean-forward="false" selection-start-line="6" selection-start-column="4" selection-end-line="6" selection-end-column="57" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trcodec.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-2717">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/builder.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="210">
+          <caret line="14" column="1" lean-forward="true" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/types/stream.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="645">
+          <caret line="43" column="18" lean-forward="true" selection-start-line="43" selection-start-column="18" selection-end-line="43" selection-end-column="37" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/stream/sofarpc/stream.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="356">
+          <caret line="228" column="60" lean-forward="false" selection-start-line="228" selection-start-column="60" selection-end-line="228" selection-end-column="60" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/types/codec.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="60">
+          <caret line="4" column="37" lean-forward="true" selection-start-line="4" selection-start-column="26" selection-end-line="4" selection-end-column="37" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trprotocol.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="570">
+          <caret line="42" column="1" lean-forward="true" selection-start-line="42" selection-start-column="1" selection-end-line="42" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltprotocol.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="613">
+          <caret line="102" column="1" lean-forward="true" selection-start-line="102" selection-start-column="1" selection-end-line="102" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/protocols.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="614">
+          <caret line="53" column="21" lean-forward="true" selection-start-line="53" selection-start-column="21" selection-end-line="53" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1builder.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="105">
+          <caret line="7" column="5" lean-forward="false" selection-start-line="7" selection-start-column="5" selection-end-line="7" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/types.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="263">
+          <caret line="118" column="34" lean-forward="true" selection-start-line="118" selection-start-column="34" selection-end-line="118" selection-end-column="34" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcommand.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="7" column="25" lean-forward="true" selection-start-line="7" selection-start-column="25" selection-end-line="7" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="200">
+          <caret line="35" column="83" lean-forward="true" selection-start-line="35" selection-start-column="83" selection-end-line="35" selection-end-column="83" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
   </component>
   <component name="masterDetails">
     <states>

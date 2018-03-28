@@ -33,7 +33,22 @@ func init() {
 // types.Encoder & types.Decoder
 type boltV1Codec struct{}
 
-func (c *boltV1Codec) EncodeHeaders(headers map[string]string) (uint32, types.IoBuffer) {
+func (c *boltV1Codec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
+	switch headers.(type) {
+	case sofarpc.BoltRequestCommand:
+		headerReq := headers.(sofarpc.BoltRequestCommandV2)
+
+	case sofarpc.BoltResponseCommand:
+		// todo
+		return 0, nil
+	case map[string]string:
+		return c.EncodeHeadersMap(headers.(map[string]string))
+	default:
+		return 0, nil
+	}
+}
+
+func (c *boltV1Codec) EncodeHeadersMap(headers map[string]string) (uint32, types.IoBuffer) {
 	cmd := c.mapToCmd(headers)
 
 	switch cmd.(type) {
@@ -53,6 +68,16 @@ func (c *boltV1Codec) EncodeData(data types.IoBuffer) types.IoBuffer {
 
 func (c *boltV1Codec) EncodeTrailers(trailers map[string]string) types.IoBuffer {
 	return nil
+}
+
+func (c *boltV1Codec) encodeRequestCommandV2(cmd sofarpc.BoltRequestCommandV2) (uint32, types.IoBuffer) {
+	var result []byte
+
+	result = append(result, cmd.ProtocolCode, cmd.CmdType)
+
+	// todo
+
+	return cmd.Id, buffer.NewIoBufferBytes(result)
 }
 
 func (c *boltV1Codec) encodeRequestCommand(rpcCmd *boltRequestCommand) (uint32, types.IoBuffer) {

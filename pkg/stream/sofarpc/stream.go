@@ -208,17 +208,20 @@ func (s *stream) BufferLimit() uint32 {
 }
 
 // types.StreamEncoder 调用协议层ENCODE方法
-func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
-	if status, ok := headers[types.HeaderStatus]; ok {
-		statusCode, _ := strconv.Atoi(status)
+func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
+	if headerMaps, ok := headers.(map[string]string); ok {
+		if status, ok := headerMaps[types.HeaderStatus]; ok {
+			statusCode, _ := strconv.Atoi(status)
 
-		if statusCode != 200 {
-			// todo: handle proxy hijack reply on exception
+			if statusCode != 200 {
+				// todo: handle proxy hijack reply on exception
 
+			}
+
+			// remove proxy header before codec encode
+			delete(headerMaps, types.HeaderStatus)
+			headers = headerMaps
 		}
-
-		// remove proxy header before codec encode
-		delete(headers, types.HeaderStatus)
 	}
 
 	// boqin: 由proxy回调，同时调用协议层Encode方法

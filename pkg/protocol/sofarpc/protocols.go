@@ -27,23 +27,34 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 	}
 }
 
-func (p *protocols) EncodeHeaders(headers map[string]string) (uint32, types.IoBuffer) {
-	if proto, exist := headers[SofaPropertyHeader("protocol")]; exist {
-		protoValue := ConvertPropertyValue(proto, reflect.Uint8)
-		protocolCode := protoValue.(byte)
+func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
+	var protocolCode byte
 
-		log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
-
-		if proto, exists := p.protocolMaps[protocolCode]; exists {
-			//返回ENCODE的数据
-			return proto.GetEncoder().EncodeHeaders(headers)
+	switch headers.(type) {
+	case RpcCommand:
+		protocolCode = headers.(RpcCommand).GetProtocolCode()
+	case map[string]string:
+		if proto, exist := headers.(map[string]string)[SofaPropertyHeader("protocol")]; exist {
+			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
+			protocolCode = protoValue.(byte)
 		} else {
-			log.DefaultLogger.Debugf("Unknown protocol code: [", protocolCode, "] while encode headers.")
+			log.DefaultLogger.Debugf("Invalid encode headers, should contains 'protocol'")
 
 			return 0, nil
 		}
+	default:
+		log.DefaultLogger.Debugf("Invalid encode headers")
+
+		return 0, nil
+	}
+
+	log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
+
+	if proto, exists := p.protocolMaps[protocolCode]; exists {
+		//返回ENCODE的数据
+		return proto.GetEncoder().EncodeHeaders(headers)
 	} else {
-		log.DefaultLogger.Debugf("Invalid encode headers, should contains 'protocol'")
+		log.DefaultLogger.Debugf("Unknown protocol code: [", protocolCode, "] while encode headers.")
 
 		return 0, nil
 	}
