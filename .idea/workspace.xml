@@ -2,14 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="00883828-525e-40a1-a261-751f47fca9ac" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" />
-      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/protocols.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/protocols.go" />
-      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" />
-      <change beforePath="$PROJECT_DIR$/pkg/stream/how-to-use-codecclient.md" afterPath="$PROJECT_DIR$/pkg/stream/how-to-use-codecclient.md" />
-      <change beforePath="$PROJECT_DIR$/pkg/stream/sofarpc/stream.go" afterPath="$PROJECT_DIR$/pkg/stream/sofarpc/stream.go" />
-      <change beforePath="$PROJECT_DIR$/pkg/types/codec.go" afterPath="$PROJECT_DIR$/pkg/types/codec.go" />
-      <change beforePath="$PROJECT_DIR$/pkg/types/stream.go" afterPath="$PROJECT_DIR$/pkg/types/stream.go" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -23,8 +16,8 @@
       <file leaf-file-name="boltcodecv1.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="200">
-              <caret line="35" column="83" lean-forward="true" selection-start-line="35" selection-start-column="83" selection-end-line="35" selection-end-column="83" />
+            <state relative-caret-position="260">
+              <caret line="39" column="50" lean-forward="false" selection-start-line="39" selection-start-column="50" selection-end-line="39" selection-end-column="50" />
               <folding />
             </state>
           </provider>
@@ -141,8 +134,8 @@
         <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1builder.go" />
         <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltprotocol.go" />
         <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trprotocol.go" />
-        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" />
         <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" />
+        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" />
       </list>
     </option>
   </component>
@@ -705,8 +698,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="200">
-          <caret line="35" column="83" lean-forward="true" selection-start-line="35" selection-start-column="83" selection-end-line="35" selection-end-column="83" />
+        <state relative-caret-position="260">
+          <caret line="39" column="50" lean-forward="false" selection-start-line="39" selection-start-column="50" selection-end-line="39" selection-end-column="50" />
           <folding />
         </state>
       </provider>

@@ -37,7 +37,7 @@ func (c *boltV1Codec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer
 	switch headers.(type) {
 	case sofarpc.BoltRequestCommand:
 		headerReq := headers.(sofarpc.BoltRequestCommandV2)
-
+		return c.encodeRequestCommandV2(headerReq)
 	case sofarpc.BoltResponseCommand:
 		// todo
 		return 0, nil
