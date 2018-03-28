@@ -35,7 +35,7 @@ type boltV1Codec struct{}
 
 func (c *boltV1Codec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
 	switch headers.(type) {
-	case sofarpc.BoltRequestCommand:
+	case sofarpc.BoltRequestCommandV2:
 		headerReq := headers.(sofarpc.BoltRequestCommandV2)
 		return c.encodeRequestCommandV2(headerReq)
 	case sofarpc.BoltResponseCommand:
