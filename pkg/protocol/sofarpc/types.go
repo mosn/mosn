@@ -69,8 +69,6 @@ type Protocol interface {
 	 */
 	//TODO
 	GetCommandHandler() CommandHandler
-
-	GetHeadersBuilder() ProtocolHeadersBuilder
 }
 
 type Protocols interface {

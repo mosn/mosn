@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="00883828-525e-40a1-a261-751f47fca9ac" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" />
+      <change beforePath="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" afterPath="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -14,61 +13,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="boltcodecv1.go" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="126">
-              <caret line="35" column="83" lean-forward="true" selection-start-line="35" selection-start-column="83" selection-end-line="35" selection-end-column="83" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="stream.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pkg/types/stream.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="446">
-              <caret line="42" column="30" lean-forward="true" selection-start-line="42" selection-start-column="30" selection-end-line="42" selection-end-column="30" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="codec.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pkg/types/codec.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="30">
-              <caret line="2" column="26" lean-forward="true" selection-start-line="2" selection-start-column="26" selection-end-line="2" selection-end-column="26" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="types.go" pinned="false" current-in-tab="false">
+      <file leaf-file-name="types.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/types.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="207">
-              <caret line="122" column="1" lean-forward="true" selection-start-line="122" selection-start-column="1" selection-end-line="122" selection-end-column="1" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="stream.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pkg/stream/sofarpc/stream.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="117">
-              <caret line="210" column="69" lean-forward="true" selection-start-line="210" selection-start-column="69" selection-end-line="210" selection-end-column="69" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="protocols.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/protocols.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="112">
-              <caret line="32" column="27" lean-forward="true" selection-start-line="32" selection-start-column="27" selection-end-line="32" selection-end-column="27" />
+            <state relative-caret-position="-1397">
+              <caret line="71" column="0" lean-forward="false" selection-start-line="71" selection-start-column="0" selection-end-line="71" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -184,9 +133,9 @@
         <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1builder.go" />
         <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltprotocol.go" />
         <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trprotocol.go" />
-        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" />
         <option value="$PROJECT_DIR$/pkg/stream/sofarpc/stream.go" />
         <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go" />
+        <option value="$PROJECT_DIR$/pkg/protocol/sofarpc/types.go" />
       </list>
     </option>
   </component>
@@ -267,33 +216,6 @@
               <item name="pkg" type="462c0819:PsiDirectoryNode" />
               <item name="protocol" type="462c0819:PsiDirectoryNode" />
               <item name="sofarpc" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mosn" type="462c0819:PsiDirectoryNode" />
-              <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="protocol" type="462c0819:PsiDirectoryNode" />
-              <item name="sofarpc" type="462c0819:PsiDirectoryNode" />
-              <item name="codec" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mosn" type="462c0819:PsiDirectoryNode" />
-              <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="stream" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mosn" type="462c0819:PsiDirectoryNode" />
-              <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="stream" type="462c0819:PsiDirectoryNode" />
-              <item name="sofarpc" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mosn" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mosn" type="462c0819:PsiDirectoryNode" />
-              <item name="pkg" type="462c0819:PsiDirectoryNode" />
-              <item name="types" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -474,8 +396,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/bufio/bufio.go" />
-    <entry file="file://$PROJECT_DIR$/pkg/network/buffer/bufferpool.go" />
     <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/net/tcpsock_posix.go" />
     <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/net/tcpsock.go" />
     <entry file="file:///usr/local/Cellar/go/1.9.2/libexec/src/fmt/print.go" />
@@ -687,26 +607,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltprotocol.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="613">
-          <caret line="102" column="1" lean-forward="true" selection-start-line="102" selection-start-column="1" selection-end-line="102" selection-end-column="1" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1builder.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
           <caret line="7" column="5" lean-forward="false" selection-start-line="7" selection-start-column="5" selection-end-line="7" selection-end-column="5" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcommand.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="75">
-          <caret line="7" column="25" lean-forward="true" selection-start-line="7" selection-start-column="25" selection-end-line="7" selection-end-column="25" />
           <folding />
         </state>
       </provider>
@@ -735,14 +639,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pkg/types/stream.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="446">
-          <caret line="42" column="30" lean-forward="true" selection-start-line="42" selection-start-column="30" selection-end-line="42" selection-end-column="30" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/protocols.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="112">
@@ -759,18 +655,58 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/types.go">
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="207">
-          <caret line="122" column="1" lean-forward="true" selection-start-line="122" selection-start-column="1" selection-end-line="122" selection-end-column="1" />
+        <state relative-caret-position="141">
+          <caret line="36" column="27" lean-forward="true" selection-start-line="36" selection-start-column="27" selection-end-line="36" selection-end-column="27" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcodecv1.go">
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltprotocol.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="126">
-          <caret line="35" column="83" lean-forward="true" selection-start-line="35" selection-start-column="83" selection-end-line="35" selection-end-column="83" />
+        <state relative-caret-position="419">
+          <caret line="102" column="1" lean-forward="true" selection-start-line="102" selection-start-column="1" selection-end-line="102" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/boltcommand.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="7" column="25" lean-forward="true" selection-start-line="7" selection-start-column="25" selection-end-line="7" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/codec/trcommand.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="23" lean-forward="true" selection-start-line="3" selection-start-column="23" selection-end-line="3" selection-end-column="23" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/types/stream.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="213">
+          <caret line="52" column="30" lean-forward="true" selection-start-line="52" selection-start-column="30" selection-end-line="52" selection-end-column="30" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/types.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pkg/protocol/sofarpc/types.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1397">
+          <caret line="71" column="0" lean-forward="false" selection-start-line="71" selection-start-column="0" selection-end-line="71" selection-end-column="0" />
           <folding />
         </state>
       </provider>
