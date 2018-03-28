@@ -1,10 +1,10 @@
 package codec
 
 import (
-	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"encoding/binary"
+	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 const (
@@ -41,7 +41,7 @@ type trCodec struct {
 
 /**
 encode 这个
- */
+*/
 func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) uint32 {
 	//pass decode result to command handler
 	if trCommand, ok := value.(*trCommand); ok {
@@ -159,7 +159,7 @@ func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interfa
 	appClassNameEnd := connRequestEnd + appClassNameLength
 	appClassNameContent := bytes[connRequestEnd:appClassNameEnd]
 	appClassName := string(appClassNameContent)
-	appClassContent := bytes[appClassNameEnd: appClassNameEnd+appClassContentLength]
+	appClassContent := bytes[appClassNameEnd : appClassNameEnd+appClassContentLength]
 
 	totalLength := PROTOCOL_HEADER_LENGTH + connRequestLength + appClassNameLength + appClassContentLength
 

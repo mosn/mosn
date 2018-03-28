@@ -1,21 +1,21 @@
 package http2
 
 import (
+	"container/list"
+	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"golang.org/x/net/http2"
 	"io"
 	"net"
 	"net/http"
-	"golang.org/x/net/http2"
-	"container/list"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"strings"
-	"strconv"
 	"net/url"
-	"fmt"
+	"strconv"
+	"strings"
 	"sync"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 func init() {
@@ -210,7 +210,40 @@ type clientStream struct {
 }
 
 // types.StreamEncoder
-func (s *clientStream) EncodeHeaders(headers map[string]string, endStream bool) {
+func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) {
+	headers, _ := headers_.(map[string]string)
+	if s.request == nil {
+		s.request = new(http.Request)
+		s.request.Method = http.MethodGet
+		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s/",
+			s.connection.rawConnection.RemoteAddr().String()))
+	}
+
+	if method, ok := headers[types.HeaderMethod]; ok {
+		s.request.Method = method
+		delete(headers, types.HeaderMethod)
+	}
+
+	if host, ok := headers[types.HeaderHost]; ok {
+		s.request.Host = host
+		delete(headers, types.HeaderHost)
+	}
+
+	if path, ok := headers[types.HeaderPath]; ok {
+		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s%s",
+			s.connection.rawConnection.RemoteAddr().String(), path))
+		delete(headers, types.HeaderPath)
+	}
+
+	s.request.Header = encodeHeader(headers)
+
+	if endStream {
+		s.endStream()
+	}
+}
+
+// types.StreamEncoder
+func (s *clientStream) EncodeHeaders2(headers map[string]string, endStream bool) {
 	if s.request == nil {
 		s.request = new(http.Request)
 		s.request.Method = http.MethodGet
@@ -327,7 +360,28 @@ type serverStream struct {
 }
 
 // types.StreamEncoder
-func (s *serverStream) EncodeHeaders(headers map[string]string, endStream bool) {
+func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) {
+
+	headers, _ := headers_.(map[string]string)
+	if s.response == nil {
+		s.response = new(http.Response)
+		s.response.StatusCode = 200
+	}
+
+	s.response.Header = encodeHeader(headers)
+
+	if status := s.response.Header.Get(types.HeaderStatus); status != "" {
+		s.response.StatusCode, _ = strconv.Atoi(status)
+		s.response.Header.Del(types.HeaderStatus)
+	}
+
+	if endStream {
+		s.endStream()
+	}
+}
+
+// types.StreamEncoder
+func (s *serverStream) EncodeHeaders2(headers map[string]string, endStream bool) {
 	if s.response == nil {
 		s.response = new(http.Response)
 		s.response.StatusCode = 200

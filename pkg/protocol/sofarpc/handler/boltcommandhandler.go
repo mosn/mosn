@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
 
 type BoltCommandHandler struct {
@@ -31,14 +31,29 @@ func NewBoltCommandHandlerV2() *BoltCommandHandler {
 }
 
 func (h *BoltCommandHandler) HandleCommand(ctx interface{}, msg interface{}) {
-	if cmd, ok := msg.(sofarpc.RpcCommand); ok {
-		cmdCode := cmd.GetCmdCode()
-		if processor, ok := h.processors[cmdCode]; ok {
-			fmt.Println("handle command")
-			processor.Process(ctx, cmd, nil)
-		} else {
-			fmt.Println("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")
-		}
+
+	var cmdCode int16
+	var cmd interface{}
+	var ok bool
+
+	if cmd, ok = msg.(sofarpc.BoltRequestCommand); ok {
+		cmdCode = cmd.(sofarpc.BoltRequestCommand).CmdCode
+
+	} else if cmd, ok = msg.(sofarpc.BoltResponseCommand); ok {
+		cmdCode = cmd.(sofarpc.BoltResponseCommand).CmdCode
+
+	} else if cmd, ok = msg.(sofarpc.BoltRequestCommandV2); ok {
+		cmdCode = cmd.(sofarpc.BoltRequestCommandV2).CmdCode
+
+	} else if cmd, ok = msg.(sofarpc.BoltResponseCommandV2); ok {
+		cmdCode = cmd.(sofarpc.BoltResponseCommandV2).CmdCode
+	}
+
+	if processor, ok := h.processors[cmdCode]; ok {
+		fmt.Println("handle command")
+		processor.Process(ctx, cmd, nil)
+	} else {
+		fmt.Println("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")
 	}
 }
 

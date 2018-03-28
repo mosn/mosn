@@ -31,8 +31,15 @@ func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) 
 	var protocolCode byte
 
 	switch headers.(type) {
-	case RpcCommand:
-		protocolCode = headers.(RpcCommand).GetProtocolCode()
+	case BoltRequestCommand:
+		protocolCode = headers.(BoltRequestCommand).Protocol
+	case BoltResponseCommand:
+		protocolCode = headers.(BoltResponseCommand).Protocol
+	case BoltRequestCommandV2:
+		protocolCode = headers.(BoltRequestCommandV2).Protocol
+	case BoltResponseCommandV2:
+		protocolCode = headers.(BoltResponseCommandV2).Protocol
+
 	case map[string]string:
 		if proto, exist := headers.(map[string]string)[SofaPropertyHeader("protocol")]; exist {
 			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
@@ -78,9 +85,9 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 
-			//先解析成command,即将一串二进制Decode到对应的字段
+			//Decode the Binary Streams to Command Type
 			if _, cmd := proto.GetDecoder().Decode(data); cmd != nil {
-				proto.GetCommandHandler().HandleCommand(filter, cmd) //做decode 同时序列化
+				proto.GetCommandHandler().HandleCommand(filter, cmd)
 			} else {
 				log.DefaultLogger.Debugf("Unable to decode sofa rpc command")
 				break
