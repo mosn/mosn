@@ -74,7 +74,6 @@ func (c *boltV1Codec) encodeResponseCommand(cmd *sofarpc.BoltResponseCommand) (u
 	result := c.doEncodeResponseCommand(cmd)
 
 	return cmd.ReqId, buffer.NewIoBufferBytes(result)
-
 }
 
 func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []byte {
