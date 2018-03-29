@@ -38,7 +38,7 @@ requestEncoder.EncodeData(requestDataBuf, endStream)
 
 + Encode trailers
 ```
-requestEncoder.EncodeTrailers(requestHeaders, endStream)
+requestEncoder.EncodeTrailers(requestHeaders)
 ```
 
 + 'endStream' means further encode is not needed. for example, if we call EncodeHeaders(requestHeaders, true), stream will handle headers and send request, data and trailers will be ignored.

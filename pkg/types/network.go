@@ -1,11 +1,11 @@
 package types
 
 import (
-	"net"
-	"io"
-	"crypto/tls"
 	"context"
+	"crypto/tls"
 	"github.com/rcrowley/go-metrics"
+	"io"
+	"net"
 )
 
 const (
@@ -87,6 +87,8 @@ type IoBuffer interface {
 	Len() int
 
 	Reset()
+
+	Insert(index int, bs []byte) bool
 }
 
 type ConnState string

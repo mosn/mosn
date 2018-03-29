@@ -2,7 +2,7 @@ package types
 
 type Protocols interface {
 	// return 1. stream id if have one 2. headers bytes
-	EncodeHeaders(headers map[string]string) (uint32, IoBuffer)
+	EncodeHeaders(headers interface{}) (uint32, IoBuffer)
 
 	EncodeData(data IoBuffer) IoBuffer
 
@@ -13,7 +13,7 @@ type Protocols interface {
 
 type Encoder interface {
 	// return 1. stream id if have one 2. headers bytes
-	EncodeHeaders(headers map[string]string) (uint32, IoBuffer)
+	EncodeHeaders(headers interface{}) (uint32, IoBuffer)
 
 	EncodeData(data IoBuffer) IoBuffer
 

@@ -1,12 +1,12 @@
 package sofarpc
 
 import (
-	"sync"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"strconv"
+	"sync"
 )
 
 func init() {
@@ -44,10 +44,10 @@ func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
 }
 
-// types.DecodeFilter 由serverStreamConnection调用
+// types.DecodeFilter Called by serverStreamConnection
 func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.OnDecodeHeaders(headers, false) //回调PROXY层的OnDecodeHeaders，将HEADERS传进去
+		stream.decoder.OnDecodeHeaders(headers, false) //Call Back Proxy-Level's OnDecodeHeaders
 	}
 
 	return types.Continue
@@ -208,21 +208,23 @@ func (s *stream) BufferLimit() uint32 {
 }
 
 // types.StreamEncoder 调用协议层ENCODE方法
-func (s *stream) EncodeHeaders(headers map[string]string, endStream bool) {
-	if status, ok := headers[types.HeaderStatus]; ok {
-		statusCode, _ := strconv.Atoi(status)
+func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
+	if headerMaps, ok := headers.(map[string]string); ok {
+		if status, ok := headerMaps[types.HeaderStatus]; ok {
+			statusCode, _ := strconv.Atoi(status)
 
-		if statusCode != 200 {
-			// todo: handle proxy hijack reply on exception
+			if statusCode != 200 {
+				// todo: handle proxy hijack reply on exception
 
+			}
+
+			// remove proxy header before codec encode
+			delete(headerMaps, types.HeaderStatus)
+			headers = headerMaps
 		}
-
-		// remove proxy header before codec encode
-		delete(headers, types.HeaderStatus)
 	}
 
-	// boqin: 由proxy回调，同时调用协议层Encode方法
-
+	// Call Protocol-Level's EncodeHeaders Func
 	s.streamId, s.encodedHeaders = s.connection.protocols.EncodeHeaders(headers)
 	s.connection.activeStreams[s.streamId] = s
 

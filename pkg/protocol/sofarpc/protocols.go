@@ -1,10 +1,9 @@
 package sofarpc
 
 import (
-	"fmt"
-	"reflect"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"reflect"
 )
 
 //All of the protocolMaps
@@ -27,23 +26,34 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 	}
 }
 
-func (p *protocols) EncodeHeaders(headers map[string]string) (uint32, types.IoBuffer) {
-	if proto, exist := headers[SofaPropertyHeader("protocol")]; exist {
-		protoValue := ConvertPropertyValue(proto, reflect.Uint8)
-		protocolCode := protoValue.(byte)
+func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
+	var protocolCode byte
 
-		log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
-
-		if proto, exists := p.protocolMaps[protocolCode]; exists {
-			//返回ENCODE的数据
-			return proto.GetEncoder().EncodeHeaders(headers)
+	switch headers.(type) {
+	case ProtoBasicCmd:
+		protocolCode = headers.(ProtoBasicCmd).GetProtocol()
+	case map[string]string:
+		if proto, exist := headers.(map[string]string)[SofaPropertyHeader("protocol")]; exist {
+			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
+			protocolCode = protoValue.(byte)
 		} else {
-			log.DefaultLogger.Debugf("Unknown protocol code: [", protocolCode, "] while encode headers.")
+			log.DefaultLogger.Debugf("Invalid encode headers, should contains 'protocol'")
 
 			return 0, nil
 		}
+	default:
+		log.DefaultLogger.Debugf("Invalid encode headers")
+
+		return 0, nil
+	}
+
+	log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
+
+	if proto, exists := p.protocolMaps[protocolCode]; exists {
+		//Return encoded data in map[string]string to stream layer
+		return proto.GetEncoder().EncodeHeaders(headers)
 	} else {
-		log.DefaultLogger.Debugf("Invalid encode headers, should contains 'protocol'")
+		log.DefaultLogger.Debugf("Unknown protocol code: [", protocolCode, "] while encode headers.")
 
 		return 0, nil
 	}
@@ -67,9 +77,9 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 
-			//先解析成command,即将一串二进制Decode到对应的字段
+			//Decode the Binary Streams to Command Type
 			if _, cmd := proto.GetDecoder().Decode(data); cmd != nil {
-				proto.GetCommandHandler().HandleCommand(filter, cmd) //做decode 同时序列化
+				proto.GetCommandHandler().HandleCommand(filter, cmd)
 			} else {
 				break
 			}
@@ -82,7 +92,7 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 
 func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
-		fmt.Println("Protocol alreay Exist:", protocolCode)
+		log.DefaultLogger.Println("Protocol alreay Exist:", protocolCode)
 	} else {
 		p.protocolMaps[protocolCode] = protocol
 	}
@@ -91,7 +101,7 @@ func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 func (p *protocols) UnRegisterProtocol(protocolCode byte) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
 		delete(p.protocolMaps, protocolCode)
-		fmt.Println("Delete Protocol:", protocolCode)
+		log.DefaultLogger.Println("Delete Protocol:", protocolCode)
 	}
 }
 

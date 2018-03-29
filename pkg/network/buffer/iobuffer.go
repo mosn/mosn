@@ -1,9 +1,9 @@
 package buffer
 
 import (
-	"io"
 	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"io"
 )
 
 const MinRead = 512
@@ -57,9 +57,9 @@ func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 		b.off = 0
 	}
 
-	m, err := r.Read(b.buf[len(b.buf):len(b.buf)+MinRead])
+	m, err := r.Read(b.buf[len(b.buf) : len(b.buf)+MinRead])
 
-	b.buf = b.buf[0: len(b.buf)+m]
+	b.buf = b.buf[0 : len(b.buf)+m]
 	n += int64(m)
 
 	return
@@ -110,7 +110,7 @@ func (b *IoBuffer) Append(data []byte) error {
 	}
 
 	m := copy(b.buf[len(b.buf):len(b.buf)+dataLen], data)
-	b.buf = b.buf[0: len(b.buf)+m]
+	b.buf = b.buf[0 : len(b.buf)+m]
 
 	return nil
 }
@@ -126,7 +126,7 @@ func (b *IoBuffer) Peek(n int) []byte {
 		return nil
 	}
 
-	return b.buf[b.off:b.off+n]
+	return b.buf[b.off : b.off+n]
 }
 
 func (b *IoBuffer) Mark() {
@@ -151,7 +151,7 @@ func (b *IoBuffer) Cut(offset int) types.IoBuffer {
 
 	buf := make([]byte, offset)
 
-	copy(buf, b.buf[b.off: b.off+offset])
+	copy(buf, b.buf[b.off:b.off+offset])
 	b.off += offset
 	b.offMark = ResetOffMark
 
@@ -186,6 +186,35 @@ func (b *IoBuffer) Reset() {
 
 func (b *IoBuffer) available() int {
 	return len(b.buf) - b.off
+}
+
+func (b *IoBuffer) Insert(index int, bytes []byte) bool {
+
+	if b.off >= len(b.buf) {
+		b.Reset()
+	}
+
+	dataLen := len(bytes)
+
+	if free := cap(b.buf) - len(b.buf); free < dataLen {
+		// not enough space at end
+		newBuf := b.buf
+		if b.off+free < dataLen {
+			// not enough space using beginning of buffer;
+			// double buffer capacity
+			newBuf = makeSlice(2*cap(b.buf) + dataLen)
+		}
+		copy(newBuf, b.buf[b.off:])
+		b.buf = newBuf[:len(b.buf)-b.off]
+		b.off = 0
+	}
+	tail := b.buf[b.off+index:]
+
+	m := copy(b.buf[b.off+index:b.off+index+dataLen+1], bytes)
+	copy(b.buf[b.off+index+dataLen+1:], tail)
+	b.buf = b.buf[0 : len(b.buf)+m]
+
+	return true
 }
 
 func makeSlice(n int) []byte {
