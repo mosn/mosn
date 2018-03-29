@@ -4,6 +4,9 @@ import (
 	"sync"
 	"container/list"
 	"net"
+	"fmt"
+	"strconv"
+	"strings"
 	"context"
 	"sync/atomic"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -11,8 +14,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"github.com/rcrowley/go-metrics"
-	"fmt"
 )
 
 // ConnectionHandler
@@ -126,22 +127,14 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 
 // ListenerCallbacks
 type activeListener struct {
-	listener types.Listener
-	conns    *list.List
-	connsMux sync.RWMutex
-	handler  *connHandler
-	stopChan chan bool
-	stats    *ListenerStats
-}
-
-type ListenerStats struct {
-	downstreamTotal             metrics.Counter
-	downstreamDestroy           metrics.Counter
-	downstreamActive            metrics.Counter
-	downstreamBytesRead         metrics.Counter
-	downstreamBytesReadCurrent  metrics.Gauge
-	downstreamBytesWrite        metrics.Counter
-	downstreamBytesWriteCurrent metrics.Gauge
+	listener       types.Listener
+	listenPort     int
+	statsNamespace string
+	conns          *list.List
+	connsMux       sync.RWMutex
+	handler        *connHandler
+	stopChan       chan bool
+	stats          *ListenerStats
 }
 
 func newActiveListener(listener types.Listener, handler *connHandler, stopChan chan bool) *activeListener {
@@ -150,28 +143,20 @@ func newActiveListener(listener types.Listener, handler *connHandler, stopChan c
 		conns:    list.New(),
 		handler:  handler,
 		stopChan: stopChan,
-		stats:    newListenerStats(listener),
 	}
+
+	listenPort := 0
+	localAddr := al.listener.Addr().String()
+
+	if temps := strings.Split(localAddr, ":"); len(temps) > 0 {
+		listenPort, _ = strconv.Atoi(temps[len(temps)-1])
+	}
+
+	al.listenPort = listenPort
+	al.statsNamespace = fmt.Sprintf(types.ListenerStatsPrefix, listenPort)
+	al.stats = newListenerStats(al.statsNamespace)
 
 	return al
-}
-
-func newListenerStats(listener types.Listener) *ListenerStats {
-	addr := listener.Addr().String()
-
-	return &ListenerStats{
-		downstreamTotal:             metrics.GetOrRegisterCounter(listenerStatsName("connection_total", addr), nil),
-		downstreamDestroy:           metrics.GetOrRegisterCounter(listenerStatsName("connection_destroy", addr), nil),
-		downstreamActive:            metrics.GetOrRegisterCounter(listenerStatsName("connection_active", addr), nil),
-		downstreamBytesRead:         metrics.GetOrRegisterCounter(listenerStatsName("bytes_read", addr), nil),
-		downstreamBytesReadCurrent:  metrics.GetOrRegisterGauge(listenerStatsName("bytes_read_current", addr), nil),
-		downstreamBytesWrite:        metrics.GetOrRegisterCounter(listenerStatsName("bytes_write", addr), nil),
-		downstreamBytesWriteCurrent: metrics.GetOrRegisterGauge(listenerStatsName("bytes_write_current", addr), nil),
-	}
-}
-
-func listenerStatsName(addr string, statName string) string {
-	return fmt.Sprintf("listener.%s.downstream_%s", addr, statName)
 }
 
 // ListenerCallbacks
@@ -179,17 +164,21 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
-	arc.ContinueFilterChain(true)
+	ctx := context.WithValue(context.Background(), types.ListenerPort, al.listenPort)
+	ctx = context.WithValue(ctx, types.ListenerName, al.listener.Name())
+	ctx = context.WithValue(ctx, types.ListenerStatsNameSpace, al.statsNamespace)
+
+	arc.ContinueFilterChain(true, ctx)
 }
 
-func (al *activeListener) OnNewConnection(conn types.Connection) {
+func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Context) {
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
 	if !al.handler.disableConnIo {
 		// start conn loops first
-		conn.Start(nil)
+		conn.Start(ctx)
 	}
 
-	configFactory := al.handler.filterFactory.CreateFilterFactory(al.handler.clusterManager)
+	configFactory := al.handler.filterFactory.CreateFilterFactory(al.handler.clusterManager, ctx)
 	buildFilterChain(conn.FilterManager(), configFactory)
 
 	filterManager := conn.FilterManager()
@@ -206,8 +195,8 @@ func (al *activeListener) OnNewConnection(conn types.Connection) {
 		al.connsMux.Unlock()
 		ac.element = e
 
-		al.stats.downstreamActive.Inc(1)
-		al.stats.downstreamTotal.Inc(1)
+		al.stats.DownstreamConnectionActive().Inc(1)
+		al.stats.DownstreamConnectionTotal().Inc(1)
 		atomic.AddInt64(&al.handler.numConnections, 1)
 
 		al.handler.logger.Debugf("new downstream connection %d accepted", conn.Id())
@@ -221,24 +210,23 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.conns.Remove(ac.element)
 	al.connsMux.Unlock()
 
-	al.stats.downstreamActive.Dec(1)
-	al.stats.downstreamDestroy.Inc(1)
+	al.stats.DownstreamConnectionActive().Dec(1)
+	al.stats.DownstreamConnectionDestroy().Inc(1)
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
-	al.handler.logger.Debugf("close downstream connection, total %d, active %d, bytes read %d, bytes write %d",
-		al.stats.downstreamTotal.Count(), al.stats.downstreamActive.Count(),
-		al.stats.downstreamBytesRead.Count(), al.stats.downstreamBytesWrite.Count())
+	al.handler.logger.Debugf("close downstream connection, stats: %s", al.stats.String())
 }
 
-func (al *activeListener) newConnection(rawc net.Conn) {
+func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 	conn := network.NewServerConnection(rawc, al.stopChan, al.handler.logger)
+	newCtx := context.WithValue(ctx, types.ConnectionId, conn.Id())
 
 	var limit uint32
 	// TODO: read from config.perConnectionBufferLimitBytes()
 	limit = 4 * 1024
 	conn.SetBufferLimit(limit)
 
-	al.OnNewConnection(conn)
+	al.OnNewConnection(conn, newCtx)
 }
 
 type activeRawConn struct {
@@ -256,7 +244,7 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 	}
 }
 
-func (arc *activeRawConn) ContinueFilterChain(success bool) {
+func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context) {
 	if success {
 		for ; arc.accptedFilterIndex < len(arc.acceptedFilters); arc.accptedFilterIndex++ {
 			filterStatus := arc.acceptedFilters[arc.accptedFilterIndex].OnAccept(arc)
@@ -268,7 +256,7 @@ func (arc *activeRawConn) ContinueFilterChain(success bool) {
 
 		// TODO: handle hand_off_restored_destination_connections logic
 
-		arc.activeListener.newConnection(arc.rawc)
+		arc.activeListener.newConnection(arc.rawc, ctx)
 	}
 }
 
@@ -294,17 +282,17 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 	ac.conn.SetNoDelay(true)
 	ac.conn.AddConnectionCallbacks(ac)
 	ac.conn.AddBytesReadCallback(func(bytesRead uint64) {
-		listener.stats.downstreamBytesReadCurrent.Update(int64(bytesRead))
+		listener.stats.DownstreamBytesReadCurrent().Update(int64(bytesRead))
 
 		if bytesRead > 0 {
-			listener.stats.downstreamBytesRead.Inc(int64(bytesRead))
+			listener.stats.DownstreamBytesRead().Inc(int64(bytesRead))
 		}
 	})
 	ac.conn.AddBytesSentCallback(func(bytesSent uint64) {
-		listener.stats.downstreamBytesWriteCurrent.Update(int64(bytesSent))
+		listener.stats.DownstreamBytesWriteCurrent().Update(int64(bytesSent))
 
 		if bytesSent > 0 {
-			listener.stats.downstreamBytesWrite.Inc(int64(bytesSent))
+			listener.stats.DownstreamBytesWrite().Inc(int64(bytesSent))
 		}
 	})
 

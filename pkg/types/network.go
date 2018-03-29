@@ -8,6 +8,10 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
+const (
+	ListenerStatsPrefix = "listener.%d."
+)
+
 type Listener interface {
 	Name() string
 
@@ -26,7 +30,7 @@ type Listener interface {
 type ListenerCallbacks interface {
 	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool)
 
-	OnNewConnection(conn Connection)
+	OnNewConnection(conn Connection, ctx context.Context)
 
 	OnClose()
 }
@@ -47,7 +51,7 @@ type ListenerFilter interface {
 type ListenerFilterCallbacks interface {
 	Conn() net.Conn
 
-	ContinueFilterChain(success bool)
+	ContinueFilterChain(success bool, ctx context.Context)
 }
 
 // Note: unsupport for now
@@ -135,6 +139,8 @@ type Connection interface {
 	BufferLimit() uint32
 
 	SetLocalAddress(localAddress net.Addr, restored bool)
+
+	SetStats(stats *ConnectionStats)
 
 	LocalAddressRestored() bool
 

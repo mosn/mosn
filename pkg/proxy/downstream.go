@@ -11,6 +11,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // types.StreamCallbacks
@@ -55,18 +56,18 @@ func newActiveStream(proxy *proxy, responseEncoder types.StreamEncoder) *activeS
 
 	stream.responseEncoder.GetStream().AddCallbacks(stream)
 
-	proxy.stats.downstreamRequestTotal.Inc(1)
-	proxy.stats.downstreamRequestActive.Inc(1)
-	globalStats.downstreamRequestTotal.Inc(1)
-	globalStats.downstreamRequestActive.Inc(1)
+	proxy.stats.DownstreamRequestTotal().Inc(1)
+	proxy.stats.DownstreamRequestActive().Inc(1)
+	proxy.listenerStats.DownstreamRequestTotal().Inc(1)
+	proxy.listenerStats.DownstreamRequestActive().Inc(1)
 
 	return stream
 }
 
 // types.StreamCallbacks
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
-	s.proxy.stats.downstreamRequestReset.Inc(1)
-	globalStats.downstreamRequestReset.Inc(1)
+	s.proxy.stats.DownstreamRequestReset().Inc(1)
+	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
 	s.cleanStream()
 }
 
@@ -95,15 +96,15 @@ func (s *activeStream) endStream() {
 }
 
 func (s *activeStream) cleanStream() {
-	s.proxy.stats.downstreamRequestActive.Dec(1)
-	globalStats.downstreamRequestActive.Dec(1)
+	s.proxy.stats.DownstreamRequestActive().Dec(1)
+	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
 	for _, al := range s.proxy.accessLogs {
 		al.Log(s.downstreamHeaders, nil, s.requestInfo)
 	}
 
-	s.proxy.stats.print()
-	globalStats.print()
+	log.DefaultLogger.Debugf(s.proxy.stats.String())
+	log.DefaultLogger.Debugf(s.proxy.listenerStats.String())
 	s.proxy.deleteActiveStream(s)
 }
 

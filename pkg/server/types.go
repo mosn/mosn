@@ -4,6 +4,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"context"
 )
 
 type Config struct {
@@ -26,7 +27,7 @@ type Server interface {
 type NetworkFilterFactoryCb func(manager types.FilterManager)
 
 type NetworkFilterConfigFactory interface {
-	CreateFilterFactory(clusterManager types.ClusterManager) NetworkFilterFactoryCb
+	CreateFilterFactory(clusterManager types.ClusterManager, context context.Context) NetworkFilterFactoryCb
 }
 
 type ClusterConfigFactoryCb interface {

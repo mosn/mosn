@@ -489,6 +489,10 @@ func (c *connection) SetLocalAddress(localAddress net.Addr, restored bool) {
 	c.localAddressRestored = restored
 }
 
+func (c *connection) SetStats(stats *types.ConnectionStats) {
+	c.stats = stats
+}
+
 func (c *connection) LocalAddressRestored() bool {
 	return c.localAddressRestored
 }

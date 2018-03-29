@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
@@ -11,8 +12,8 @@ type GenericProxyFilterConfigFactory struct {
 	Proxy *v2.Proxy
 }
 
-func (gfcf *GenericProxyFilterConfigFactory) CreateFilterFactory(clusterManager types.ClusterManager) server.NetworkFilterFactoryCb {
+func (gfcf *GenericProxyFilterConfigFactory) CreateFilterFactory(clusterManager types.ClusterManager, context context.Context) server.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
-		manager.AddReadFilter(proxy.NewProxy(gfcf.Proxy, clusterManager))
+		manager.AddReadFilter(proxy.NewProxy(gfcf.Proxy, clusterManager, context))
 	}
 }
