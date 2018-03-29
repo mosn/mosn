@@ -41,7 +41,7 @@ type StreamRecognizer interface {
 }
 
 type StreamEncoder interface {
-	EncodeHeaders(headers map[string]string, endStream bool)
+	EncodeHeaders(headers interface{}, endStream bool)
 
 	EncodeData(data IoBuffer, endStream bool)
 

@@ -20,14 +20,14 @@ func NewTrCommandHandler() *TrCommandHandler {
 }
 
 func (h *TrCommandHandler) HandleCommand(ctx interface{}, msg interface{}) {
-	if cmd, ok := msg.(sofarpc.TrRequestCommand); ok {
-		cmdCode := cmd.GetCmdCode()
-		if processor, ok := h.processors[cmdCode]; ok {
-			processor.Process(ctx, cmd, nil)
-		} else {
-			fmt.Println("Unknown cmd code: [", cmdCode, "] while handle in TrCommandHandler.")
-		}
-	}
+	//if cmd, ok := msg.(sofarpc.TrRequestCommand); ok {
+	//	cmdCode := cmd.GetCmdCode()
+	//	if processor, ok := h.processors[cmdCode]; ok {
+	//		processor.Process(ctx, cmd, nil)
+	//	} else {
+	//		fmt.Println("Unknown cmd code: [", cmdCode, "] while handle in TrCommandHandler.")
+	//	}
+	//}
 }
 
 func (h *TrCommandHandler) RegisterProcessor(cmdCode int16, processor *sofarpc.RemotingProcessor) {

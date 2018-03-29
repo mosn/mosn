@@ -106,89 +106,89 @@ type RemotingProcessor interface {
 	Process(ctx interface{}, msg interface{}, executor interface{})
 }
 
-type RpcCommand interface {
-	GetProtocolCode() byte
-
+type ProtoBasicCmd interface {
+	GetProtocol() byte
 	GetCmdCode() int16
-
-	GetId() uint32
+	GetReqId() uint32
 }
 
-type BoltRequestCommand interface {
-	GetProtocolCode() byte
+type BoltRequestCommand struct {
+	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
+	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
+	CmdCode  int16 //HB:0,     Req:1,    Resp:2
+	Version  byte
+	ReqId    uint32
+	CodecPro byte
 
-	GetCmdType() byte
+	Timeout int
 
-	GetCmdCode() int16
+	ClassLen      int16
+	HeaderLen     int16
+	ContentLen    int
+	ClassName     []byte
+	HeaderMap     []byte
+	Content       []byte
+	InvokeContext interface{}
 
-	GetVersion() byte
-
-	GetId() uint32 //get request id
-
-	GetCodec() byte
-
-	GetTimeout() int
-
-	GetClassLength() int16
-
-	GetHeaderLength() int16
-
-	GetContentLength() int
-
-	GetClass() []byte
-
-	GetHeader() []byte
-
-	GetContent() []byte
-
-	SetRequestHeader(headerMap map[string]string)
-
-	GetRequestHeader() map[string]string
-
-	//FOR BOLT V2
-	GetVer1() byte
-	GetSwitch() byte
+	RequestHeader map[string]string
 }
 
-type BoltResponseCommand interface {
-	GetProtocolCode() byte
+type BoltResponseCommand struct {
+	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
+	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
+	CmdCode  int16 //HB:0,     Req:1,    Resp:2
+	Version  byte
+	ReqId    uint32
+	CodecPro byte
 
-	GetCmdType() byte
+	ResponseStatus int16
 
-	GetCmdCode() int16
+	ClassLen      int16
+	HeaderLen     int16
+	ContentLen    int
+	ClassName     []byte
+	HeaderMap     []byte
+	Content       []byte
+	InvokeContext interface{}
 
-	GetVersion() byte
-
-	GetId() uint32 //get request id
-
-	GetCodec() byte
-
-	GetClassLength() int16
-
-	GetHeaderLength() int16
-
-	GetContentLength() int
-
-	GetClass() []byte
-
-	GetHeader() []byte
-
-	GetContent() []byte
-
-	GetResponseStatus() int16
-	GetResponseTimeMillis() int64
-
-	SetResponseHeader(headerMap map[string]string)
-
-	GetResponseHeader() map[string]string
-
-	//FOR BOLT V2
-	GetVer1() byte
-	GetSwitch() byte
+	ResponseTimeMillis int64 //ResponseTimeMillis is not the field of the header
+	ResponseHeader     map[string]string
 }
 
-type TrRequestCommand interface {
-	GetCmdCode() int16
+type BoltV2RequestCommand struct {
+	BoltRequestCommand
+	Version1   byte
+	SwitchCode byte
+}
+
+type BoltV2ResponseCommand struct {
+	BoltResponseCommand
+	Version1   byte
+	SwitchCode byte
+}
+
+func (b *BoltRequestCommand) GetProtocol() byte {
+	return b.Protocol
+}
+
+func (b *BoltRequestCommand) GetCmdCode() int16 {
+	return b.CmdCode
+}
+
+func (b *BoltRequestCommand) GetReqId() uint32 {
+	return b.ReqId
+}
+
+func (b *BoltResponseCommand) GetProtocol() byte {
+	return b.Protocol
+}
+
+func (b *BoltResponseCommand) GetCmdCode() int16 {
+	return b.CmdCode
+}
+
+func (b *BoltResponseCommand) GetReqId() uint32 {
+	return b.ReqId
 }
 
 const (

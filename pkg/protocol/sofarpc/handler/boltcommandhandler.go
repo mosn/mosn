@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
 
 type BoltCommandHandler struct {
@@ -31,7 +31,8 @@ func NewBoltCommandHandlerV2() *BoltCommandHandler {
 }
 
 func (h *BoltCommandHandler) HandleCommand(ctx interface{}, msg interface{}) {
-	if cmd, ok := msg.(sofarpc.RpcCommand); ok {
+
+	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
 		if processor, ok := h.processors[cmdCode]; ok {
 			fmt.Println("handle command")

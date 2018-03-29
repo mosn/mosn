@@ -1,10 +1,10 @@
 package codec
 
 import (
-	"testing"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"bytes"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"testing"
 )
 
 func Test_TrRequestCommand_Parse(t *testing.T) {
