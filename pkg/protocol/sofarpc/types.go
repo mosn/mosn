@@ -169,27 +169,26 @@ type BoltV2ResponseCommand struct {
 
 func (b *BoltRequestCommand) GetProtocol() byte {
 	return b.Protocol
-
 }
+
 func (b *BoltRequestCommand) GetCmdCode() int16 {
 	return b.CmdCode
-
 }
+
 func (b *BoltRequestCommand) GetReqId() uint32 {
 	return b.ReqId
-
 }
+
 func (b *BoltResponseCommand) GetProtocol() byte {
 	return b.Protocol
-
 }
+
 func (b *BoltResponseCommand) GetCmdCode() int16 {
 	return b.CmdCode
-
 }
+
 func (b *BoltResponseCommand) GetReqId() uint32 {
 	return b.ReqId
-
 }
 
 const (

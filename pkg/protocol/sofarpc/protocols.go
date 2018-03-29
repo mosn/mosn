@@ -1,7 +1,6 @@
 package sofarpc
 
 import (
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"reflect"
@@ -31,15 +30,8 @@ func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) 
 	var protocolCode byte
 
 	switch headers.(type) {
-	case BoltRequestCommand:
-		protocolCode = headers.(BoltRequestCommand).Protocol
-	case BoltResponseCommand:
-		protocolCode = headers.(BoltResponseCommand).Protocol
-	case BoltV2RequestCommand:
-		protocolCode = headers.(BoltV2RequestCommand).Protocol
-	case BoltV2ResponseCommand:
-		protocolCode = headers.(BoltV2ResponseCommand).Protocol
-
+	case ProtoBasicCmd:
+		protocolCode = headers.(ProtoBasicCmd).GetProtocol()
 	case map[string]string:
 		if proto, exist := headers.(map[string]string)[SofaPropertyHeader("protocol")]; exist {
 			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
@@ -58,7 +50,7 @@ func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) 
 	log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
 
 	if proto, exists := p.protocolMaps[protocolCode]; exists {
-		//返回ENCODE的数据
+		//Return encoded data in map[string]string to stream layer
 		return proto.GetEncoder().EncodeHeaders(headers)
 	} else {
 		log.DefaultLogger.Debugf("Unknown protocol code: [", protocolCode, "] while encode headers.")
@@ -101,7 +93,7 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 
 func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
-		fmt.Println("Protocol alreay Exist:", protocolCode)
+		log.DefaultLogger.Println("Protocol alreay Exist:", protocolCode)
 	} else {
 		p.protocolMaps[protocolCode] = protocol
 	}
@@ -110,7 +102,7 @@ func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 func (p *protocols) UnRegisterProtocol(protocolCode byte) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
 		delete(p.protocolMaps, protocolCode)
-		fmt.Println("Delete Protocol:", protocolCode)
+		log.DefaultLogger.Println("Delete Protocol:", protocolCode)
 	}
 }
 

@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
@@ -91,7 +91,7 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 	//serialize header
 	var headerMap map[string]string
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
-	fmt.Println("deSerialize  headerMap:", headerMap)
+	log.DefaultLogger.Println("deSerialize  headerMap:", headerMap)
 
 	for k, v := range headerMap {
 		allField[k] = v
@@ -100,7 +100,6 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 	requestCommand.RequestHeader = allField
 }
 
-//  将所有BOLT的HEADER字段组装成map结构
 func deserializeRequestAllFieldsV2(requestCommandV2 *sofarpc.BoltV2RequestCommand) {
 
 	deserializeRequestAllFields(&requestCommandV2.BoltRequestCommand)
