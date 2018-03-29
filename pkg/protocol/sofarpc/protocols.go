@@ -71,11 +71,10 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 			if _, cmd := proto.GetDecoder().Decode(data); cmd != nil {
 				proto.GetCommandHandler().HandleCommand(filter, cmd) //做decode 同时序列化
 			} else {
-				log.DefaultLogger.Debugf("Unable to decode sofa rpc command")
 				break
 			}
 		} else {
-			log.DefaultLogger.Debugf("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
+			log.DefaultLogger.Errorf("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
 			break
 		}
 	}

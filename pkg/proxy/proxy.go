@@ -12,6 +12,20 @@ import (
 	"fmt"
 )
 
+var globalStats *proxyStats
+
+func init() {
+	globalStats = &proxyStats{
+		downstreamConnTotal:     metrics.GetOrRegisterCounter("proxy.downstream_connection_total", nil),
+		downstreamConnDestroy:   metrics.GetOrRegisterCounter("proxy.downstream_connection_destroy", nil),
+		downstreamConnActive:    metrics.GetOrRegisterCounter("proxy.downstream_connection_active", nil),
+		downstreamRequestTotal:  metrics.GetOrRegisterCounter("proxy.downstream_request_total", nil),
+		downstreamRequestActive: metrics.GetOrRegisterCounter("proxy.downstream_request_active", nil),
+		downstreamRequestReset:  metrics.GetOrRegisterCounter("proxy.downstream_request_reset", nil),
+		downstreamRequestTime:   metrics.GetOrRegisterHistogram("proxy.downstream_request_time", nil, metrics.NewUniformSample(100)),
+	}
+}
+
 // types.ReadFilter
 // types.ServerStreamConnectionCallbacks
 type proxy struct {
@@ -66,6 +80,8 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
 		p.stats.downstreamConnDestroy.Inc(1)
 		p.stats.downstreamConnActive.Dec(1)
+		globalStats.downstreamConnDestroy.Inc(1)
+		globalStats.downstreamConnActive.Dec(1)
 
 		p.asMux.RLock()
 		defer p.asMux.RUnlock()
@@ -91,6 +107,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 	p.stats.downstreamConnTotal.Inc(1)
 	p.stats.downstreamConnActive.Inc(1)
+	globalStats.downstreamConnTotal.Inc(1)
+	globalStats.downstreamConnActive.Inc(1)
 
 	p.readCallbacks.Connection().AddConnectionCallbacks(p.downstreamCallbacks)
 	p.serverCodec = stream.CreateServerStreamConnection(types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)

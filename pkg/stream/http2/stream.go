@@ -265,57 +265,52 @@ func (s *clientStream) endStream() {
 }
 
 func (s *clientStream) doSend() {
-	go func() {
-		resp, err := s.connection.http2Conn.RoundTrip(s.request)
+	resp, err := s.connection.http2Conn.RoundTrip(s.request)
 
-		if err != nil {
-			fmt.Printf("err: %s", err)
-			fmt.Println()
-
-			// due to we use golang h2 conn impl, we need to do some adapt to some things observable
-			switch err.(type) {
-			case http2.StreamError:
-				s.ResetStream(types.StreamRemoteReset)
-			case http2.GoAwayError:
+	if err != nil {
+		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
+		switch err.(type) {
+		case http2.StreamError:
+			s.ResetStream(types.StreamRemoteReset)
+		case http2.GoAwayError:
+			s.connection.streamConnCallbacks.OnGoAway()
+		case error:
+			// todo: target remote close event
+			if err == io.EOF {
+				s.connection.connCallbacks.OnEvent(types.RemoteClose)
+			} else if err.Error() == "http2: client conn is closed" {
+				// we dont use mosn io impl, so get connection state from golang h2 io read/write loop
+				s.connection.connCallbacks.OnEvent(types.LocalClose)
+			} else if err.Error() == "http2: client conn not usable" {
+				// raise overflow event to let conn pool taking action
+				s.ResetStream(types.StreamOverflow)
+			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY" {
 				s.connection.streamConnCallbacks.OnGoAway()
-			case error:
-				// todo: target remote close event
-				if err == io.EOF {
-					s.connection.connCallbacks.OnEvent(types.RemoteClose)
-				} else if err.Error() == "http2: client conn is closed" {
-					// we dont use mosn io impl, so get connection state from golang h2 io read/write loop
-					s.connection.connCallbacks.OnEvent(types.LocalClose)
-				} else if err.Error() == "http2: client conn not usable" {
-					// raise overflow event to let conn pool taking action
-					s.ResetStream(types.StreamOverflow)
-				} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY" {
-					s.connection.streamConnCallbacks.OnGoAway()
-				} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY; some request body already written" {
-					// todo: retry
-				} else if err.Error() == "http2: timeout awaiting response headers" {
-					s.ResetStream(types.StreamConnectionFailed)
-				} else if err.Error() == "net/http: request canceled" {
-					s.ResetStream(types.StreamLocalReset)
-				} else {
-					log.DefaultLogger.Errorf("Unknown err: %s", err)
-					s.ResetStream(types.StreamConnectionFailed)
-				}
+			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY; some request body already written" {
+				// todo: retry
+			} else if err.Error() == "http2: timeout awaiting response headers" {
+				s.ResetStream(types.StreamConnectionFailed)
+			} else if err.Error() == "net/http: request canceled" {
+				s.ResetStream(types.StreamLocalReset)
+			} else {
+				log.DefaultLogger.Errorf("Unknown err: %s", err)
+				s.ResetStream(types.StreamConnectionFailed)
 			}
-		} else {
-			s.decoder.OnDecodeHeaders(decodeHeader(resp.Header), false)
-
-			buf := &buffer.IoBuffer{}
-			// todo
-			buf.ReadFrom(resp.Body)
-
-			s.decoder.OnDecodeData(buf, false)
-			s.decoder.OnDecodeTrailers(decodeHeader(resp.Trailer))
 		}
+	} else {
+		s.decoder.OnDecodeHeaders(decodeHeader(resp.Header), false)
 
-		s.connection.asMutex.Lock()
-		s.connection.activeStreams.Remove(s.element)
-		s.connection.asMutex.Unlock()
-	}()
+		buf := &buffer.IoBuffer{}
+		// todo
+		buf.ReadFrom(resp.Body)
+
+		s.decoder.OnDecodeData(buf, false)
+		s.decoder.OnDecodeTrailers(decodeHeader(resp.Trailer))
+	}
+
+	s.connection.asMutex.Lock()
+	s.connection.activeStreams.Remove(s.element)
+	s.connection.asMutex.Unlock()
 }
 
 type serverStream struct {

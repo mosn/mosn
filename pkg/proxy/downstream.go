@@ -57,6 +57,8 @@ func newActiveStream(proxy *proxy, responseEncoder types.StreamEncoder) *activeS
 
 	proxy.stats.downstreamRequestTotal.Inc(1)
 	proxy.stats.downstreamRequestActive.Inc(1)
+	globalStats.downstreamRequestTotal.Inc(1)
+	globalStats.downstreamRequestActive.Inc(1)
 
 	return stream
 }
@@ -64,6 +66,7 @@ func newActiveStream(proxy *proxy, responseEncoder types.StreamEncoder) *activeS
 // types.StreamCallbacks
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
 	s.proxy.stats.downstreamRequestReset.Inc(1)
+	globalStats.downstreamRequestReset.Inc(1)
 	s.cleanStream()
 }
 
@@ -93,12 +96,14 @@ func (s *activeStream) endStream() {
 
 func (s *activeStream) cleanStream() {
 	s.proxy.stats.downstreamRequestActive.Dec(1)
+	globalStats.downstreamRequestActive.Dec(1)
 
 	for _, al := range s.proxy.accessLogs {
 		al.Log(s.downstreamHeaders, nil, s.requestInfo)
 	}
 
 	s.proxy.stats.print()
+	globalStats.print()
 	s.proxy.deleteActiveStream(s)
 }
 

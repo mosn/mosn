@@ -3,26 +3,22 @@ package cluster
 import (
 	"net"
 	"context"
+	"errors"
+	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"errors"
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
-)
-
-const (
-	ClusterSnapshot = "ClusterSnapshot"
+	"github.com/orcaman/concurrent-map"
 )
 
 // ClusterManager
 type clusterManager struct {
-	sourceAddr       net.Addr
-	primaryClusters  map[string]*primaryCluster
-	clusterSnapshots map[string]*golocalstore
-	sofaRpcConnPool  map[string]types.ConnectionPool
-	http2ConnPool    map[string]types.ConnectionPool
+	sourceAddr      net.Addr
+	primaryClusters map[string]*primaryCluster
+	sofaRpcConnPool cmap.ConcurrentMap
+	http2ConnPool   cmap.ConcurrentMap
 }
 
 type clusterSnapshot struct {
@@ -33,11 +29,10 @@ type clusterSnapshot struct {
 
 func NewClusterManager(sourceAddr net.Addr) types.ClusterManager {
 	return &clusterManager{
-		sourceAddr:       sourceAddr,
-		primaryClusters:  make(map[string]*primaryCluster),
-		clusterSnapshots: make(map[string]*golocalstore),
-		sofaRpcConnPool:  make(map[string]types.ConnectionPool),
-		http2ConnPool:    make(map[string]types.ConnectionPool),
+		sourceAddr:      sourceAddr,
+		primaryClusters: make(map[string]*primaryCluster),
+		sofaRpcConnPool: cmap.New(),
+		http2ConnPool:   cmap.New(),
 	}
 }
 
@@ -113,20 +108,6 @@ func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *cluste
 	}
 }
 
-func (cm *clusterManager) updateClusterSnapshot(cluster types.Cluster, priority uint32,
-	hostsAdded []types.Host, hostsRemoved []types.Host) {
-	hostSet := cluster.PrioritySet().HostSetsByPriority()[priority]
-
-	var hosts []types.Host
-	copy(hosts, hostSet.Hosts())
-
-	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster.Info().Name())
-	clusterSnapshot.prioritySet.GetOrCreateHostSet(priority).UpdateHosts(hosts, nil,
-		nil, nil, hostsAdded, hostsRemoved)
-
-	cm.clusterSnapshots[cluster.Info().Name()].Set(ClusterSnapshot, clusterSnapshot)
-}
-
 func (cm *clusterManager) SetInitializedCb(cb func()) {}
 
 func (cm *clusterManager) Clusters() map[string]types.Cluster {
@@ -164,7 +145,8 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 	return errors.New(fmt.Sprintf("cluster %s not found", clusterName))
 }
 
-func (cm *clusterManager) HttpConnPoolForCluster(cluster string, priority pkg.Priority, protocol types.Protocol, context context.Context) types.ConnectionPool {
+func (cm *clusterManager) HttpConnPoolForCluster(cluster string, priority pkg.Priority,
+	protocol types.Protocol, context context.Context) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -177,11 +159,11 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, priority pkg.Pr
 		addr := host.Address().String()
 
 		// todo: support protocol http1.x
-		if connPool, ok := cm.http2ConnPool[addr]; ok {
-			return connPool
+		if connPool, ok := cm.http2ConnPool.Get(addr); ok {
+			return connPool.(types.ConnectionPool)
 		} else {
 			connPool := http2.NewConnPool(host)
-			cm.sofaRpcConnPool[addr] = connPool
+			cm.http2ConnPool.Set(addr, connPool)
 
 			return connPool
 		}
@@ -218,11 +200,11 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 	if host != nil {
 		addr := host.Address().String()
 
-		if connPool, ok := cm.sofaRpcConnPool[addr]; ok {
-			return connPool
+		if connPool, ok := cm.sofaRpcConnPool.Get(addr); ok {
+			return connPool.(types.ConnectionPool)
 		} else {
 			connPool := sofarpc.NewConnPool(host)
-			cm.sofaRpcConnPool[addr] = connPool
+			cm.sofaRpcConnPool.Set(addr, connPool)
 
 			return connPool
 		}
