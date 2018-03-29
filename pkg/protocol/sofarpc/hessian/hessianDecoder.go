@@ -253,7 +253,13 @@ func (d *decoder) readString(flag int32) (interface{}, error) {
 	}
 	last := true
 	var len int32
-	if (tag >= BC_STRING_DIRECT && tag <= STRING_DIRECT_MAX) || (tag >= 0x30 && tag <= 0x33) || (tag >= 0xb0 && tag <= 0xbf) || tag >= 0xc0 && tag <= 0xcf || (tag == BC_STRING_CHUNK || tag == BC_STRING) {
+	if tag == 'N' {
+		return nil, nil
+	} else if tag == 'T' {
+		return "true", nil
+	} else if tag == 'F' {
+		return "false", nil
+	} else if (tag >= BC_STRING_DIRECT && tag <= STRING_DIRECT_MAX) || (tag >= 0x30 && tag <= 0x33) || (tag >= 0xb0 && tag <= 0xbf) || tag >= 0xc0 && tag <= 0xcf || (tag == BC_STRING_CHUNK || tag == BC_STRING) {
 		//fmt.Println("inside ", tag)
 		if tag == BC_STRING_CHUNK {
 			last = false
@@ -334,7 +340,12 @@ func (d *decoder) readInstance(typ reflect.Type, cls ClassDef) (interface{}, err
 			if err != nil {
 				return nil, newCodecError("ReadString "+fldName, err)
 			}
-			fldValue.SetString(str.(string))
+
+			if str == nil {
+				//不要设置了
+			} else {
+				fldValue.SetString(str.(string))
+			}
 		case kind == reflect.Int32 || kind == reflect.Int || kind == reflect.Int16:
 			i, err := d.readInt(TAG_READ)
 			if err != nil {
