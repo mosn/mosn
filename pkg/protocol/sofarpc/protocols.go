@@ -2,9 +2,9 @@ package sofarpc
 
 import (
 	"fmt"
-	"reflect"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"reflect"
 )
 
 //All of the protocolMaps
@@ -35,10 +35,10 @@ func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) 
 		protocolCode = headers.(BoltRequestCommand).Protocol
 	case BoltResponseCommand:
 		protocolCode = headers.(BoltResponseCommand).Protocol
-	case BoltRequestCommandV2:
-		protocolCode = headers.(BoltRequestCommandV2).Protocol
-	case BoltResponseCommandV2:
-		protocolCode = headers.(BoltResponseCommandV2).Protocol
+	case BoltV2RequestCommand:
+		protocolCode = headers.(BoltV2RequestCommand).Protocol
+	case BoltV2ResponseCommand:
+		protocolCode = headers.(BoltV2ResponseCommand).Protocol
 
 	case map[string]string:
 		if proto, exist := headers.(map[string]string)[SofaPropertyHeader("protocol")]; exist {

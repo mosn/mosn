@@ -41,12 +41,12 @@ type boltV2Codec struct{}
 
 func (c *boltV2Codec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
 	switch headers.(type) {
-	case sofarpc.BoltRequestCommandV2:
-		headerReq := headers.(*sofarpc.BoltRequestCommandV2)
+	case sofarpc.BoltV2RequestCommand:
+		headerReq := headers.(*sofarpc.BoltV2RequestCommand)
 		return c.encodeRequestCommand(headerReq)
 
-	case sofarpc.BoltResponseCommandV2:
-		headerRsp := headers.(*sofarpc.BoltResponseCommandV2)
+	case sofarpc.BoltV2ResponseCommand:
+		headerRsp := headers.(*sofarpc.BoltV2ResponseCommand)
 		return c.encodeResponseCommand(headerRsp)
 
 	case map[string]string:
@@ -60,10 +60,10 @@ func (c *boltV2Codec) EncodeHeadersMap(headers map[string]string) (uint32, types
 	cmd := c.mapToCmd(headers)
 
 	switch cmd.(type) {
-	case *sofarpc.BoltRequestCommandV2:
-		return c.encodeRequestCommand(cmd.(*sofarpc.BoltRequestCommandV2))
-	case *sofarpc.BoltResponseCommandV2:
-		return c.encodeResponseCommand(cmd.(*sofarpc.BoltResponseCommandV2))
+	case *sofarpc.BoltV2RequestCommand:
+		return c.encodeRequestCommand(cmd.(*sofarpc.BoltV2RequestCommand))
+	case *sofarpc.BoltV2ResponseCommand:
+		return c.encodeResponseCommand(cmd.(*sofarpc.BoltV2ResponseCommand))
 	default:
 		log.DefaultLogger.Println("[BoltV2 Decode] Invalid Input Type")
 		return 0, nil
@@ -76,7 +76,7 @@ func (c *boltV2Codec) EncodeData(data types.IoBuffer) types.IoBuffer {
 func (c *boltV2Codec) EncodeTrailers(trailers map[string]string) types.IoBuffer {
 	return nil
 }
-func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltRequestCommandV2) (uint32, types.IoBuffer) {
+func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltV2RequestCommand) (uint32, types.IoBuffer) {
 	var result []byte
 
 	result = append(result, cmd.Protocol, cmd.Version1, cmd.CmdType) //PAY ATTENTION TO THE DIFFERENCE WITH BOLT V1
@@ -120,7 +120,7 @@ func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltRequestCommandV2) (u
 
 	return cmd.ReqId, buffer.NewIoBufferBytes(result)
 }
-func (c *boltV2Codec) encodeResponseCommand(cmd *sofarpc.BoltResponseCommandV2) (uint32, types.IoBuffer) {
+func (c *boltV2Codec) encodeResponseCommand(cmd *sofarpc.BoltV2ResponseCommand) (uint32, types.IoBuffer) {
 
 	var result []byte
 
@@ -194,7 +194,7 @@ func (c *boltV2Codec) mapToCmd(headers map[string]string) interface{} {
 		//serialize header
 		header, _ := serialize.Instance.Serialize(headers)
 
-		request := &sofarpc.BoltRequestCommandV2{
+		request := &sofarpc.BoltV2RequestCommand{
 			sofarpc.BoltRequestCommand{
 				protocolCode.(byte),
 				cmdType.(byte),
@@ -224,7 +224,7 @@ func (c *boltV2Codec) mapToCmd(headers map[string]string) interface{} {
 		//serialize header
 		header, _ := serialize.Instance.Serialize(headers)
 
-		response := &sofarpc.BoltResponseCommandV2{
+		response := &sofarpc.BoltV2ResponseCommand{
 			sofarpc.BoltResponseCommand{
 				protocolCode.(byte),
 				cmdType.(byte),
@@ -305,7 +305,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					return 0, nil
 				}
 
-				request := &sofarpc.BoltRequestCommandV2{
+				request := &sofarpc.BoltV2RequestCommand{
 					sofarpc.BoltRequestCommand{
 						sofarpc.PROTOCOL_CODE_V1,
 						dataType,
@@ -367,7 +367,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					return 0, nil
 				}
 
-				response := &sofarpc.BoltResponseCommandV2{
+				response := &sofarpc.BoltV2ResponseCommand{
 					sofarpc.BoltResponseCommand{
 
 						sofarpc.PROTOCOL_CODE_V1,

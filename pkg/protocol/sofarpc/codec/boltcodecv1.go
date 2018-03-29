@@ -34,31 +34,23 @@ func init() {
 type boltV1Codec struct{}
 
 func (c *boltV1Codec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
-	switch headers.(type) {
-	case sofarpc.BoltRequestCommand:
-		headerReq := headers.(*sofarpc.BoltRequestCommand)
-		return c.encodeRequestCommand(headerReq)
 
-	case sofarpc.BoltResponseCommand:
-		headerRsp := headers.(*sofarpc.BoltResponseCommand)
-		return c.encodeResponseCommand(headerRsp)
+	if headerMap, ok := headers.(map[string]string); ok {
 
-	case map[string]string:
-		return c.EncodeHeadersMap(headers.(map[string]string))
-
-	default:
-		return 0, nil
+		cmd := c.mapToCmd(headerMap)
+		return c.encodeHeaders(cmd)
 	}
+	return c.encodeHeaders(headers)
+
 }
 
-func (c *boltV1Codec) EncodeHeadersMap(headers map[string]string) (uint32, types.IoBuffer) {
-	cmd := c.mapToCmd(headers)
+func (c *boltV1Codec) encodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
 
-	switch cmd.(type) {
+	switch headers.(type) {
 	case *sofarpc.BoltRequestCommand:
-		return c.encodeRequestCommand(cmd.(*sofarpc.BoltRequestCommand))
+		return c.encodeRequestCommand(headers.(*sofarpc.BoltRequestCommand))
 	case *sofarpc.BoltResponseCommand:
-		return c.encodeResponseCommand(cmd.(*sofarpc.BoltResponseCommand))
+		return c.encodeResponseCommand(headers.(*sofarpc.BoltResponseCommand))
 	default:
 		log.DefaultLogger.Println("[Decode] Invalid Input Type")
 		return 0, nil

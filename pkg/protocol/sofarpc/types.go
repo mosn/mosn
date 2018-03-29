@@ -106,16 +106,21 @@ type RemotingProcessor interface {
 	Process(ctx interface{}, msg interface{}, executor interface{})
 }
 
+type ProtoBasicCmd interface {
+	GetProtocol() byte
+	GetCmdCode() int16
+	GetReqId() uint32
+}
 
 type BoltRequestCommand struct {
-	Protocol      byte  //BoltV1:1, BoltV2:2, Tr:13
-	CmdType       byte  //Req:1,    Resp:0,   OneWay:2
-	CmdCode       int16 //HB:0,     Req:1,    Resp:2
-	Version       byte
-	ReqId         uint32
-	CodecPro      byte
+	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
+	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
+	CmdCode  int16 //HB:0,     Req:1,    Resp:2
+	Version  byte
+	ReqId    uint32
+	CodecPro byte
 
-	Timeout       int
+	Timeout int
 
 	ClassLen      int16
 	HeaderLen     int16
@@ -129,38 +134,62 @@ type BoltRequestCommand struct {
 }
 
 type BoltResponseCommand struct {
-	Protocol       byte  //BoltV1:1, BoltV2:2, Tr:13
-	CmdType        byte  //Req:1,    Resp:0,   OneWay:2
-	CmdCode        int16 //HB:0,     Req:1,    Resp:2
-	Version        byte
-	ReqId          uint32
-	CodecPro       byte
+	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
+	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
+	CmdCode  int16 //HB:0,     Req:1,    Resp:2
+	Version  byte
+	ReqId    uint32
+	CodecPro byte
 
 	ResponseStatus int16
 
-	ClassLen       int16
-	HeaderLen      int16
-	ContentLen     int
-	ClassName      []byte
-	HeaderMap      []byte
-	Content        []byte
-	InvokeContext  interface{}
+	ClassLen      int16
+	HeaderLen     int16
+	ContentLen    int
+	ClassName     []byte
+	HeaderMap     []byte
+	Content       []byte
+	InvokeContext interface{}
 
-	ResponseTimeMillis int64   //ResponseTimeMillis is not the field of the header
-	ResponseHeader	map[string]string
+	ResponseTimeMillis int64 //ResponseTimeMillis is not the field of the header
+	ResponseHeader     map[string]string
 }
 
-type BoltRequestCommandV2 struct {
+type BoltV2RequestCommand struct {
 	BoltRequestCommand
-	Version1           byte
-	SwitchCode         byte
-
+	Version1   byte
+	SwitchCode byte
 }
 
-type BoltResponseCommandV2 struct {
+type BoltV2ResponseCommand struct {
 	BoltResponseCommand
-	Version1           byte
-	SwitchCode         byte
+	Version1   byte
+	SwitchCode byte
+}
+
+func (b *BoltRequestCommand) GetProtocol() byte {
+	return b.Protocol
+
+}
+func (b *BoltRequestCommand) GetCmdCode() int16 {
+	return b.CmdCode
+
+}
+func (b *BoltRequestCommand) GetReqId() uint32 {
+	return b.ReqId
+
+}
+func (b *BoltResponseCommand) GetProtocol() byte {
+	return b.Protocol
+
+}
+func (b *BoltResponseCommand) GetCmdCode() int16 {
+	return b.CmdCode
+
+}
+func (b *BoltResponseCommand) GetReqId() uint32 {
+	return b.ReqId
+
 }
 
 const (

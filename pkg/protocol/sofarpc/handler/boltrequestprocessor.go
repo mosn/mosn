@@ -15,7 +15,7 @@ type BoltRequestProcessorV2 struct{}
 
 // ctx = type.serverStreamConnection
 func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
-	if cmd, ok := msg.(sofarpc.BoltRequestCommand); ok {
+	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(cmd)
 
 		//for demo, invoke ctx as callback
@@ -41,7 +41,7 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 
 // ctx = type.serverStreamConnection
 func (b *BoltRequestProcessorV2) Process(ctx interface{}, msg interface{}, executor interface{}) {
-	if cmd, ok := msg.(sofarpc.BoltRequestCommandV2); ok {
+	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
 		deserializeRequestAllFieldsV2(cmd)
 
 		//for demo, invoke ctx as callback
@@ -66,7 +66,8 @@ func (b *BoltRequestProcessorV2) Process(ctx interface{}, msg interface{}, execu
 }
 
 //Convert BoltV1's Protocol Header  and Content Header to Map[string]string
-func deserializeRequestAllFields(requestCommand sofarpc.BoltRequestCommand) {
+func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
+
 	//get instance
 	serializeIns := serialize.Instance
 
@@ -100,7 +101,7 @@ func deserializeRequestAllFields(requestCommand sofarpc.BoltRequestCommand) {
 }
 
 //  将所有BOLT的HEADER字段组装成map结构
-func deserializeRequestAllFieldsV2(requestCommand sofarpc.BoltRequestCommandV2) {
+func deserializeRequestAllFieldsV2(requestCommand *sofarpc.BoltV2RequestCommand) {
 	//get instance
 	serializeIns := serialize.Instance
 

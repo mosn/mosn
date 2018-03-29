@@ -40,7 +40,7 @@ func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, execut
 	}
 }
 func (b *BoltResponseProcessorV2) Process(ctx interface{}, msg interface{}, executor interface{}) {
-	if cmd, ok := msg.(sofarpc.BoltResponseCommandV2); ok {
+	if cmd, ok := msg.(sofarpc.BoltV2ResponseCommand); ok {
 		deserializeResponseAllFieldsV2(cmd)
 
 		//for demo, invoke ctx as callback
@@ -103,7 +103,7 @@ func deserializeResponseAllFields(responseCommand sofarpc.BoltResponseCommand) {
 	responseCommand.ResponseHeader = allField
 }
 
-func deserializeResponseAllFieldsV2(responseCommand sofarpc.BoltResponseCommandV2) {
+func deserializeResponseAllFieldsV2(responseCommand sofarpc.BoltV2ResponseCommand) {
 	//get instance
 	serializeIns := serialize.Instance
 
