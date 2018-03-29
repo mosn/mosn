@@ -8,6 +8,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"reflect"
 	"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 )
 
 // types.Encoder & types.Decoder
@@ -76,23 +77,15 @@ func (c *boltV2Codec) EncodeTrailers(trailers map[string]string) types.IoBuffer 
 	return nil
 }
 func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltV2RequestCommand) (uint32, types.IoBuffer) {
-	var result []byte
+	result := boltV1.doEncodeRequestCommand(&cmd.BoltRequestCommand)
 
-	reqId, resultBytes := boltV1.encodeRequestCommand(&cmd.BoltRequestCommand)
-
-	var versionBytes []byte
-	versionBytes = append(versionBytes, cmd.Version1)
-	resultBytes.Insert(1, versionBytes)
-
-	var switchcodeByes []byte
-	switchcodeByes = append(switchcodeByes, cmd.SwitchCode)
-	resultBytes.Insert(11, switchcodeByes)
+	c.insertToBytes(result, 1, cmd.Version1)
+	c.insertToBytes(result, 11, cmd.SwitchCode)
 
 	log.DefaultLogger.Println("[BOLTV2]rpc headers encode finished,bytes=%d", result)
 
 	//return cmd.ReqId, buffer.NewIoBufferBytes(result)
-	return reqId, resultBytes
-
+	return cmd.ReqId, buffer.NewIoBufferBytes(result)
 }
 func (c *boltV2Codec) encodeResponseCommand(cmd *sofarpc.BoltV2ResponseCommand) (uint32, types.IoBuffer) {
 
@@ -181,15 +174,15 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytes[read: read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytes[read: read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
 					data.Set(read)
@@ -244,15 +237,15 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytes[read: read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytes[read: read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
 				} else { // not enough data
@@ -291,4 +284,10 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 	}
 
 	return read, cmd
+}
+
+func (c *boltV2Codec) insertToBytes(slice []byte, idx int, b byte) {
+	slice = append(slice, 0)
+	copy(slice[idx+1:], slice[idx:])
+	slice[idx] = b
 }
