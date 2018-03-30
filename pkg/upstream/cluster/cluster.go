@@ -51,7 +51,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 
 	// TODO: init more props: maxrequestsperconn, connecttimeout, connectionbuflimit
 
-	// TODO: change hardcode to read from config
+	// TODO: change hardcode to read from config @wugou
 	cluster.info.resourceManager = NewResourceManager(102400, 102400, 102400)
 
 	cluster.prioritySet.GetOrCreateHostSet(0)

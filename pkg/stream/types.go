@@ -16,7 +16,7 @@ type CodecClient interface {
 
 	NewStream(streamId uint32, respDecoder types.StreamDecoder) types.StreamEncoder
 
-	SetConnectionStats(stats types.ConnectionStats)
+	SetConnectionStats(stats *types.ConnectionStats)
 
 	SetCodecClientCallbacks(cb CodecClientCallbacks)
 

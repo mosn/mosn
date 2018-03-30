@@ -175,7 +175,7 @@ func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 
 	if shouldBufData {
 		buf := buffer.NewIoBuffer(data.Len())
-		// todo
+		// todo: change to ReadAll @wugou
 		buf.ReadFrom(data)
 
 		if s.downstreamDataBuf == nil {
@@ -258,7 +258,6 @@ func (s *activeStream) onPerTryTimeout() {
 }
 
 func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (error, types.ConnectionPool) {
-	// todo: we just reset downstream stream on route failed, confirm sofa rpc logic
 	clusterSnapshot := s.proxy.clusterManager.Get(clusterName, nil)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {

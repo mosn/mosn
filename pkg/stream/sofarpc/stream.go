@@ -214,7 +214,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 			statusCode, _ := strconv.Atoi(status)
 
 			if statusCode != 200 {
-				// todo: handle proxy hijack reply on exception
+				// todo: handle proxy hijack reply on exception @boqin
 
 			}
 
@@ -242,8 +242,6 @@ func (s *stream) EncodeData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *stream) EncodeTrailers(trailers map[string]string) {
-	// todo: encode trailer
-
 	s.endStream()
 }
 

@@ -101,11 +101,12 @@ func (c *connection) Id() uint64 {
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
-		// TODO: panic recover
 
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
+					// TODO: panic recover @wugou
+
 					fmt.Printf("panic %v", p)
 					fmt.Println()
 
@@ -119,6 +120,8 @@ func (c *connection) Start(lctx context.Context) {
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
+					// TODO: panic recover @wugou
+
 					fmt.Printf("panic %v", p)
 					fmt.Println()
 
@@ -213,6 +216,7 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 	}
 
 	if bytesBufSize != c.lastBytesSizeRead {
+		// todo: fix: when read blocks, ReadCurrent is out-of-date
 		c.stats.ReadCurrent.Update(bytesBufSize)
 		c.lastBytesSizeRead = bytesBufSize
 	}

@@ -59,8 +59,8 @@ func (c *codecClient) ActiveRequestsNum() int {
 	return c.ActiveRequests.Len()
 }
 
-func (c *codecClient) SetConnectionStats(stats types.ConnectionStats) {
-	// todo
+func (c *codecClient) SetConnectionStats(stats *types.ConnectionStats) {
+	c.Connection.SetStats(stats)
 }
 
 func (c *codecClient) SetCodecClientCallbacks(cb CodecClientCallbacks) {

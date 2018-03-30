@@ -59,7 +59,7 @@ func (srv *server) AddOrUpdateListener(lc v2.ListenerConfig) {
 }
 
 func (srv *server) Start() {
-	// TODO: handle main thread panic
+	// TODO: handle main thread panic @wugou
 
 	for _, lc := range srv.listenersConfs {
 		l := network.NewListener(lc)
