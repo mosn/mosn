@@ -208,16 +208,19 @@ func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data type
 	}
 
 	if shouldBufData {
-		buf := buffer.NewIoBuffer(data.Len())
-		// todo: change to ReadAll @wugou
-		buf.ReadFrom(data)
+		copied := data.Clone()
 
-		if s.downstreamReqDataBuf == nil {
-			s.downstreamReqDataBuf = buffer.NewIoBuffer(data.Len())
+		if s.downstreamReqDataBuf != data {
+			// not in on decodeData continue decode context
+			if s.downstreamReqDataBuf == nil {
+				s.downstreamReqDataBuf = buffer.NewIoBuffer(data.Len())
+			}
+
+			s.downstreamReqDataBuf.ReadFrom(data)
 		}
 
-		s.downstreamReqDataBuf.Append(buf.Bytes())
-		s.upstreamRequest.encodeData(s.downstreamReqDataBuf, endStream)
+		// use a copy when we need to reuse buffer later
+		s.upstreamRequest.encodeData(copied, endStream)
 	} else {
 		s.upstreamRequest.encodeData(data, endStream)
 	}
@@ -527,9 +530,9 @@ func (s *activeStream) doRetry() {
 
 	if s.upstreamRequest != nil {
 		if s.downstreamReqDataBuf != nil {
-			buf := buffer.NewIoBuffer(s.downstreamReqDataBuf.Len())
-			buf.ReadFrom(s.downstreamReqDataBuf)
-			s.upstreamRequest.encodeData(buf, s.downstreamReqTrailers == nil)
+			// make a data copy to retry
+			copied := s.downstreamReqDataBuf.Clone()
+			s.upstreamRequest.encodeData(copied, s.downstreamReqTrailers == nil)
 		}
 
 		if s.downstreamReqTrailers != nil {

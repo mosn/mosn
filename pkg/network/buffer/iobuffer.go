@@ -188,33 +188,12 @@ func (b *IoBuffer) available() int {
 	return len(b.buf) - b.off
 }
 
-func (b *IoBuffer) Insert(index int, bytes []byte) bool {
+func (b *IoBuffer) Clone() types.IoBuffer {
+	// todo: use buf pool
+	copied := make([]byte, b.Len())
+	copy(copied, b.Bytes())
 
-	if b.off >= len(b.buf) {
-		b.Reset()
-	}
-
-	dataLen := len(bytes)
-
-	if free := cap(b.buf) - len(b.buf); free < dataLen {
-		// not enough space at end
-		newBuf := b.buf
-		if b.off+free < dataLen {
-			// not enough space using beginning of buffer;
-			// double buffer capacity
-			newBuf = makeSlice(2*cap(b.buf) + dataLen)
-		}
-		copy(newBuf, b.buf[b.off:])
-		b.buf = newBuf[:len(b.buf)-b.off]
-		b.off = 0
-	}
-	tail := b.buf[b.off+index:]
-
-	m := copy(b.buf[b.off+index:b.off+index+dataLen+1], bytes)
-	copy(b.buf[b.off+index+dataLen+1:], tail)
-	b.buf = b.buf[0 : len(b.buf)+m]
-
-	return true
+	return NewIoBuffer(b.Len())
 }
 
 func makeSlice(n int) []byte {

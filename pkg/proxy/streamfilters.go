@@ -43,7 +43,7 @@ func (s *activeStream) encodeHeaderFilters(filter *activeStreamEncoderFilter, he
 		s.filterStage &= ^EncodeHeaders
 
 		if status == types.FilterHeadersStatusStopIteration {
-			f.filterStopped = true
+			f.stopped = true
 
 			return true
 		} else {
@@ -72,19 +72,24 @@ func (s *activeStream) encodeDataFilters(filter *activeStreamEncoderFilter, data
 		s.filterStage &= ^EncodeData
 
 		if status == types.FilterDataStatusContinue {
-			if f.filterStopped {
+			if f.stopped {
 				f.handleBufferData(data)
 				f.doContinue()
 
 				return true
 			}
 		} else {
-			f.filterStopped = true
+			f.stopped = true
 
-			if status == types.FilterDataStatusStopIterationAndBuffer ||
-				status == types.FilterDataStatusStopIterationAndWatermark {
+			switch status {
+			case types.FilterDataStatusStopIterationAndBuffer,
+				types.FilterDataStatusStopIterationAndWatermark:
 				s.encoderFiltersStreaming = status == types.FilterDataStatusStopIterationAndWatermark
 				f.handleBufferData(data)
+			case types.FilterDataStatusStopIterationNoBuffer:
+				f.stoppedNoBuf = true
+				// make sure no data banked up
+				data.Reset()
 			}
 
 			return true
@@ -110,7 +115,7 @@ func (s *activeStream) encodeTrailersFilters(filter *activeStreamEncoderFilter, 
 		s.filterStage &= ^EncodeTrailers
 
 		if status == types.FilterTrailersStatusContinue {
-			if f.filterStopped {
+			if f.stopped {
 				f.doContinue()
 
 				return true
@@ -139,7 +144,7 @@ func (s *activeStream) decodeHeaderFilters(filter *activeStreamDecoderFilter, he
 		s.filterStage &= ^DecodeHeaders
 
 		if status == types.FilterHeadersStatusStopIteration {
-			f.filterStopped = true
+			f.stopped = true
 
 			return true
 		} else {
@@ -172,19 +177,24 @@ func (s *activeStream) decodeDataFilters(filter *activeStreamDecoderFilter, data
 		s.filterStage &= ^DecodeData
 
 		if status == types.FilterDataStatusContinue {
-			if f.filterStopped {
+			if f.stopped {
 				f.handleBufferData(data)
 				f.doContinue()
 
 				return false
 			}
 		} else {
-			f.filterStopped = true
+			f.stopped = true
 
-			if status == types.FilterDataStatusStopIterationAndBuffer ||
-				status == types.FilterDataStatusStopIterationAndWatermark {
+			switch status {
+			case types.FilterDataStatusStopIterationAndBuffer,
+				types.FilterDataStatusStopIterationAndWatermark:
 				s.decoderFiltersStreaming = status == types.FilterDataStatusStopIterationAndWatermark
 				f.handleBufferData(data)
+			case types.FilterDataStatusStopIterationNoBuffer:
+				f.stoppedNoBuf = true
+				// make sure no data banked up
+				data.Reset()
 			}
 
 			return true
@@ -214,7 +224,7 @@ func (s *activeStream) decodeTrailersFilters(filter *activeStreamDecoderFilter, 
 		s.filterStage &= ^DecodeTrailers
 
 		if status == types.FilterTrailersStatusContinue {
-			if f.filterStopped {
+			if f.stopped {
 				f.doContinue()
 
 				return false
@@ -243,7 +253,8 @@ type activeStreamFilter struct {
 	index int
 
 	activeStream     *activeStream
-	filterStopped    bool
+	stopped          bool
+	stoppedNoBuf     bool
 	headersContinued bool
 }
 
@@ -297,7 +308,7 @@ func (f *activeStreamDecoderFilter) doContinue() {
 		return
 	}
 
-	f.filterStopped = false
+	f.stopped = false
 	hasBuffedData := f.activeStream.downstreamReqDataBuf != nil
 	hasTrailer := f.activeStream.downstreamReqTrailers != nil
 
@@ -308,7 +319,11 @@ func (f *activeStreamDecoderFilter) doContinue() {
 		f.activeStream.doDecodeHeaders(f, f.activeStream.downstreamReqHeaders, endStream)
 	}
 
-	if hasBuffedData {
+	if hasBuffedData || f.stoppedNoBuf {
+		if f.stoppedNoBuf || f.activeStream.downstreamReqDataBuf == nil {
+			f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(0)
+		}
+
 		endStream := f.activeStream.downstreamRecvDone && !hasTrailer
 		f.activeStream.doDecodeData(f, f.activeStream.downstreamReqDataBuf, endStream)
 	}
@@ -402,7 +417,7 @@ func (f *activeStreamEncoderFilter) ContinueEncoding() {
 }
 
 func (f *activeStreamEncoderFilter) doContinue() {
-	f.filterStopped = false
+	f.stopped = false
 	hasBuffedData := f.activeStream.downstreamRespDataBuf != nil
 	hasTrailer := f.activeStream.downstreamRespTrailers == nil
 
@@ -412,7 +427,11 @@ func (f *activeStreamEncoderFilter) doContinue() {
 		f.activeStream.doEncodeHeaders(f, f.activeStream.downstreamRespHeaders, endStream)
 	}
 
-	if hasBuffedData {
+	if hasBuffedData || f.stoppedNoBuf {
+		if f.stoppedNoBuf || f.activeStream.downstreamRespDataBuf == nil {
+			f.activeStream.downstreamRespDataBuf = buffer.NewIoBuffer(0)
+		}
+
 		endStream := f.activeStream.downstreamRecvDone && !hasTrailer
 		f.activeStream.doEncodeData(f, f.activeStream.downstreamRespDataBuf, endStream)
 	}

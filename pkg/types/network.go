@@ -88,7 +88,7 @@ type IoBuffer interface {
 
 	Reset()
 
-	Insert(index int, bs []byte) bool
+	Clone() IoBuffer
 }
 
 type ConnState string

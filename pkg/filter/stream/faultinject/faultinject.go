@@ -27,7 +27,6 @@ func (f *faultInjectFilter) DecodeHeaders(headers map[string]string, endStream b
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
-		log.DefaultLogger.Println("Delay")
 		return types.FilterHeadersStatusStopIteration
 	} else {
 		return types.FilterHeadersStatusContinue
@@ -38,7 +37,7 @@ func (f *faultInjectFilter) DecodeData(buf types.IoBuffer, endStream bool) types
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
-		return types.FilterDataStatusStopIterationNoBuffer
+		return types.FilterDataStatusStopIterationAndBuffer
 	} else {
 		return types.FilterDataStatusContinue
 	}
