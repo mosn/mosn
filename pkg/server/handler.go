@@ -20,23 +20,25 @@ import (
 // ClusterConfigFactoryCb
 // ClusterHostFactoryCb
 type connHandler struct {
-	disableConnIo  bool
-	numConnections int64
-	listeners      []*activeListener
-	clusterManager types.ClusterManager
-	filterFactory  NetworkFilterConfigFactory
-	logger         log.Logger
+	disableConnIo         bool
+	numConnections        int64
+	listeners             []*activeListener
+	clusterManager        types.ClusterManager
+	networkFiltersFactory NetworkFilterChainFactory
+	streamFiltersFactory  types.StreamFilterChainFactory
+	logger                log.Logger
 }
 
-func NewHandler(filterFactory NetworkFilterConfigFactory,
+func NewHandler(networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactory types.StreamFilterChainFactory,
 	clusterManagerFilter ClusterManagerFilter, logger log.Logger, DisableConnIo bool) types.ConnectionHandler {
 	ch := &connHandler{
-		disableConnIo:  DisableConnIo,
-		numConnections: 0,
-		clusterManager: cluster.NewClusterManager(nil),
-		listeners:      make([]*activeListener, 0),
-		filterFactory:  filterFactory,
-		logger:         logger,
+		disableConnIo:         DisableConnIo,
+		numConnections:        0,
+		clusterManager:        cluster.NewClusterManager(nil),
+		listeners:             make([]*activeListener, 0),
+		networkFiltersFactory: networkFiltersFactory,
+		streamFiltersFactory:  streamFiltersFactory,
+		logger:                logger,
 	}
 
 	clusterManagerFilter.OnCreated(ch, ch)
@@ -164,9 +166,11 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
-	ctx := context.WithValue(context.Background(), types.ListenerPort, al.listenPort)
-	ctx = context.WithValue(ctx, types.ListenerName, al.listener.Name())
-	ctx = context.WithValue(ctx, types.ListenerStatsNameSpace, al.statsNamespace)
+	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
+	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
+	ctx = context.WithValue(ctx, types.ContextKeyListenerStatsNameSpace, al.statsNamespace)
+	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactory, al.handler.networkFiltersFactory)
+	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactory, al.handler.streamFiltersFactory)
 
 	arc.ContinueFilterChain(true, ctx)
 }
@@ -178,7 +182,7 @@ func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Con
 		conn.Start(ctx)
 	}
 
-	configFactory := al.handler.filterFactory.CreateFilterFactory(al.handler.clusterManager, ctx)
+	configFactory := al.handler.networkFiltersFactory.CreateFilterFactory(al.handler.clusterManager, ctx)
 	buildFilterChain(conn.FilterManager(), configFactory)
 
 	filterManager := conn.FilterManager()
@@ -219,7 +223,7 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 
 func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 	conn := network.NewServerConnection(rawc, al.stopChan, al.handler.logger)
-	newCtx := context.WithValue(ctx, types.ConnectionId, conn.Id())
+	newCtx := context.WithValue(ctx, types.ContextKeyConnectionId, conn.Id())
 
 	var limit uint32
 	// TODO: read from config.perConnectionBufferLimitBytes()

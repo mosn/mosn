@@ -16,10 +16,13 @@ import (
 
 // types.StreamCallbacks
 // types.StreamDecoder
+// types.FilterChainFactoryCallbacks
 type activeStream struct {
-	proxy   *proxy
-	cluster types.ClusterInfo
-	element *list.Element
+	streamId uint32
+	proxy    *proxy
+	route    types.Route
+	cluster  types.ClusterInfo
+	element  *list.Element
 
 	// ~~~ control args
 	timeout    *ProxyTimeout
@@ -32,9 +35,14 @@ type activeStream struct {
 	globalRetryTimer *timer
 
 	// ~~~ downstream request buf
-	downstreamHeaders  map[string]string
-	downstreamDataBuf  types.IoBuffer
-	downstreamTrailers map[string]string
+	downstreamReqHeaders  map[string]string
+	downstreamReqDataBuf  types.IoBuffer
+	downstreamReqTrailers map[string]string
+
+	// ~~~ downstream response buf
+	downstreamRespHeaders  map[string]string
+	downstreamRespDataBuf  types.IoBuffer
+	downstreamRespTrailers map[string]string
 
 	// ~~~ state
 	// starts to send back downstream response, set on upstream response detected
@@ -45,10 +53,21 @@ type activeStream struct {
 	downstreamRecvDone bool
 	// 1. upstream response send done 2. done by a hijack response
 	localProcessDone bool
+
+	encoderFiltersStreaming bool
+
+	decoderFiltersStreaming bool
+
+	filterStage int
+
+	// ~~~ filters
+	encoderFilters []*activeStreamEncoderFilter
+	decoderFilters []*activeStreamDecoderFilter
 }
 
-func newActiveStream(proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
+func newActiveStream(streamId uint32, proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
 	stream := &activeStream{
+		streamId:        streamId,
 		proxy:           proxy,
 		requestInfo:     network.NewRequestInfo(),
 		responseEncoder: responseEncoder,
@@ -100,7 +119,7 @@ func (s *activeStream) cleanStream() {
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
 	for _, al := range s.proxy.accessLogs {
-		al.Log(s.downstreamHeaders, nil, s.requestInfo)
+		al.Log(s.downstreamReqHeaders, nil, s.requestInfo)
 	}
 
 	log.DefaultLogger.Debugf(s.proxy.stats.String())
@@ -111,7 +130,17 @@ func (s *activeStream) cleanStream() {
 // types.StreamDecoder
 func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	s.downstreamRecvDone = endStream
-	s.downstreamHeaders = headers
+	s.downstreamReqHeaders = headers
+
+	// todo: validate headers
+
+	s.doDecodeHeaders(nil, headers, endStream)
+}
+
+func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, headers map[string]string, endStream bool) {
+	if s.decodeHeaderFilters(filter, headers, endStream) {
+		return
+	}
 
 	//do some route by service name
 	route := s.proxy.routerConfig.Route(headers)
@@ -124,9 +153,8 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 		return
 	}
 
+	s.route = route
 	s.requestInfo.SetRouteEntry(route.RouteRule())
-
-	// todo: validate headers
 
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
@@ -153,8 +181,6 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
-
-	return
 }
 
 func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
@@ -163,6 +189,14 @@ func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
+		return
+	}
+
+	s.doDecodeData(nil, data, endStream)
+}
+
+func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data types.IoBuffer, endStream bool) {
+	if s.decodeDataFilters(filter, data, endStream) {
 		return
 	}
 
@@ -178,12 +212,12 @@ func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 		// todo: change to ReadAll @wugou
 		buf.ReadFrom(data)
 
-		if s.downstreamDataBuf == nil {
-			s.downstreamDataBuf = buffer.NewIoBuffer(data.Len())
+		if s.downstreamReqDataBuf == nil {
+			s.downstreamReqDataBuf = buffer.NewIoBuffer(data.Len())
 		}
 
-		s.downstreamDataBuf.Append(buf.Bytes())
-		s.upstreamRequest.encodeData(s.downstreamDataBuf, endStream)
+		s.downstreamReqDataBuf.Append(buf.Bytes())
+		s.upstreamRequest.encodeData(s.downstreamReqDataBuf, endStream)
 	} else {
 		s.upstreamRequest.encodeData(data, endStream)
 	}
@@ -201,7 +235,15 @@ func (s *activeStream) OnDecodeTrailers(trailers map[string]string) {
 		return
 	}
 
-	s.downstreamTrailers = trailers
+	s.doDecodeTrailers(nil, trailers)
+}
+
+func (s *activeStream) doDecodeTrailers(filter *activeStreamDecoderFilter, trailers map[string]string) {
+	if s.decodeTrailersFilters(filter, trailers) {
+		return
+	}
+
+	s.downstreamReqTrailers = trailers
 	s.upstreamRequest.encodeTrailers(trailers)
 	s.onUpstreamRequestSent()
 }
@@ -307,6 +349,15 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 func (s *activeStream) encodeHeaders(headers map[string]string, endStream bool) {
 	s.localProcessDone = endStream
+
+	s.doEncodeHeaders(nil, headers, endStream)
+}
+
+func (s *activeStream) doEncodeHeaders(filter *activeStreamEncoderFilter, headers map[string]string, endStream bool) {
+	if s.encodeHeaderFilters(filter, headers, endStream) {
+		return
+	}
+
 	s.responseEncoder.EncodeHeaders(headers, endStream)
 
 	if endStream {
@@ -316,6 +367,15 @@ func (s *activeStream) encodeHeaders(headers map[string]string, endStream bool) 
 
 func (s *activeStream) encodeData(data types.IoBuffer, endStream bool) {
 	s.localProcessDone = endStream
+
+	s.doEncodeData(nil, data, endStream)
+}
+
+func (s *activeStream) doEncodeData(filter *activeStreamEncoderFilter, data types.IoBuffer, endStream bool) {
+	if s.encodeDataFilters(filter, data, endStream) {
+		return
+	}
+
 	s.responseEncoder.EncodeData(data, endStream)
 
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
@@ -327,6 +387,15 @@ func (s *activeStream) encodeData(data types.IoBuffer, endStream bool) {
 
 func (s *activeStream) encodeTrailers(trailers map[string]string) {
 	s.localProcessDone = true
+
+	s.doEncodeTrailers(nil, trailers)
+}
+
+func (s *activeStream) doEncodeTrailers(filter *activeStreamEncoderFilter, trailers map[string]string) {
+	if s.encodeTrailersFilters(filter, trailers) {
+		return
+	}
+
 	s.responseEncoder.EncodeTrailers(trailers)
 	s.endStream()
 }
@@ -454,17 +523,17 @@ func (s *activeStream) doRetry() {
 	}
 
 	s.upstreamRequest.encodeHeaders(nil,
-		s.downstreamDataBuf != nil && s.downstreamTrailers != nil)
+		s.downstreamReqDataBuf != nil && s.downstreamReqTrailers != nil)
 
 	if s.upstreamRequest != nil {
-		if s.downstreamDataBuf != nil {
-			buf := buffer.NewIoBuffer(s.downstreamDataBuf.Len())
-			buf.ReadFrom(s.downstreamDataBuf)
-			s.upstreamRequest.encodeData(buf, s.downstreamTrailers == nil)
+		if s.downstreamReqDataBuf != nil {
+			buf := buffer.NewIoBuffer(s.downstreamReqDataBuf.Len())
+			buf.ReadFrom(s.downstreamReqDataBuf)
+			s.upstreamRequest.encodeData(buf, s.downstreamReqTrailers == nil)
 		}
 
-		if s.downstreamTrailers != nil {
-			s.upstreamRequest.encodeTrailers(s.downstreamTrailers)
+		if s.downstreamReqTrailers != nil {
+			s.upstreamRequest.encodeTrailers(s.downstreamReqTrailers)
 		}
 
 		// setup per try timeout timer
@@ -495,4 +564,18 @@ func (s *activeStream) stopTimer() {
 		s.globalRetryTimer.stop()
 		s.globalRetryTimer = nil
 	}
+}
+
+func (s *activeStream) setBufferLimit(bufferLimit uint32) {
+	// todo
+}
+
+func (s *activeStream) AddStreamDecoderFilter(filter types.StreamDecoderFilter) {
+	sf := newActiveStreamDecoderFilter(len(s.decoderFilters), s, filter)
+	s.decoderFilters = append(s.decoderFilters, sf)
+}
+
+func (s *activeStream) AddStreamEncoderFilter(filter types.StreamEncoderFilter) {
+	sf := newActiveStreamEncoderFilter(len(s.encoderFilters), s, filter)
+	s.encoderFilters = append(s.encoderFilters, sf)
 }

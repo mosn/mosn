@@ -77,7 +77,7 @@ func main() {
 		srv := server.NewServer(&server.Config{
 		}, &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
-		}, cmf)
+		}, nil, cmf)
 
 		srv.AddListener(rpcProxyListener())
 		cmf.cccb.UpdateClusterConfig(clustersrpc())

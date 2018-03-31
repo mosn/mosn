@@ -30,6 +30,8 @@ type proxy struct {
 	routerConfig types.RouterConfig
 	serverCodec  types.ServerStreamConnection
 
+	context context.Context
+
 	// downstream requests
 	activeSteams *list.List
 	asMux        sync.RWMutex
@@ -50,9 +52,10 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 		clusterManager: clusterManager,
 		activeSteams:   list.New(),
 		stats:          globalStats,
+		context:        ctx,
 	}
 
-	listenStatsNamespace := ctx.Value(types.ListenerStatsNameSpace).(string)
+	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
 
 	proxy.routerConfig, _ = router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
@@ -118,7 +121,10 @@ func (p *proxy) OnGoAway() {}
 
 //由stream层来调用
 func (p *proxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
-	stream := newActiveStream(p, responseEncoder)
+	stream := newActiveStream(streamId, p, responseEncoder)
+
+	ff := p.context.Value(types.ContextKeyStreamFilterChainFactory).(types.StreamFilterChainFactory)
+	ff.CreateFilterChain(stream)
 
 	p.asMux.Lock()
 	stream.element = p.activeSteams.PushBack(stream)

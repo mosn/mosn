@@ -94,7 +94,7 @@ func (r *upstreamRequest) OnPoolReady(streamId uint32, encoder types.StreamEncod
 	r.requestEncoder.GetStream().AddCallbacks(r)
 
 	endStream := r.encodeComplete && !r.dataEncoded && !r.trailerEncoded
-	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamHeaders, endStream)
+	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamReqHeaders, endStream)
 
 	r.requestInfo.OnUpstreamHostSelected(host)
 	r.activeStream.requestInfo.OnUpstreamHostSelected(host)

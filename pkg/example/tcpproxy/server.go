@@ -25,7 +25,7 @@ func main() {
 		cmf := &clusterManagerFilter{}
 		srv = server.NewServer(nil, &proxy.TcpProxyFilterConfigFactory{
 			Proxy: tcpProxyConfig(),
-		}, cmf)
+		}, nil, cmf)
 		srv.AddListener(tcpListener())
 		cmf.cccb.UpdateClusterConfig(clusters())
 		cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts("11.162.169.38:80"))

@@ -34,12 +34,6 @@ type Stream interface {
 
 type StreamProto string
 
-type StreamRecognizer interface {
-	MagicBytesLength() int
-
-	SnifferProto([]byte) StreamProto
-}
-
 type StreamEncoder interface {
 	EncodeHeaders(headers interface{}, endStream bool)
 
@@ -65,10 +59,6 @@ type StreamConnection interface {
 
 	Protocol() Protocol
 
-	//ShutdownNotice()
-	//
-	//WantsToWrite()
-	//
 	//OnUnderlyingConnectionAboveWriteBufferHighWatermark()
 	//
 	//OnUnderlyingConnectionBelowWriteBufferLowWatermark()
@@ -97,7 +87,7 @@ type ServerStreamConnectionCallbacks interface {
 }
 
 type StreamFilterBase interface {
-	onDestroy()
+	OnDestroy()
 }
 
 type StreamFilterCallbacks interface {
@@ -107,9 +97,7 @@ type StreamFilterCallbacks interface {
 
 	Route() Route
 
-	ClearRouteCache()
-
-	StreamId() string
+	StreamId() uint32
 
 	RequestInfo() RequestInfo
 }
@@ -165,11 +153,11 @@ type StreamDecoderFilterCallbacks interface {
 
 	AddDecodedData(buf IoBuffer, streamingFilter bool)
 
-	EncodeHeaders(buf IoBuffer, endStream bool)
+	EncodeHeaders(headers map[string]string, endStream bool)
 
 	EncodeData(buf IoBuffer, endStream bool)
 
-	EncodeTrailers(trailers IoBuffer)
+	EncodeTrailers(trailers map[string]string)
 
 	OnDecoderFilterAboveWriteBufferHighWatermark()
 
@@ -188,6 +176,16 @@ type DownstreamWatermarkCallbacks interface {
 	OnAboveWriteBufferHighWatermark()
 
 	OnBelowWriteBufferLowWatermark()
+}
+
+type StreamFilterChainFactory interface {
+	CreateFilterChain(callbacks FilterChainFactoryCallbacks)
+}
+
+type FilterChainFactoryCallbacks interface {
+	AddStreamDecoderFilter(filter StreamDecoderFilter)
+
+	AddStreamEncoderFilter(filter StreamEncoderFilter)
 }
 
 type FilterHeadersStatus string

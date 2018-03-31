@@ -26,7 +26,7 @@ type Server interface {
 
 type NetworkFilterFactoryCb func(manager types.FilterManager)
 
-type NetworkFilterConfigFactory interface {
+type NetworkFilterChainFactory interface {
 	CreateFilterFactory(clusterManager types.ClusterManager, context context.Context) NetworkFilterFactoryCb
 }
 

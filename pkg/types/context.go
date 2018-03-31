@@ -1,12 +1,14 @@
 package types
 
-type ContextType string
+type ContextKey string
 
 const (
-	ConnectionId           ContextType = "ConnectionId"
-	ListenerPort           ContextType = "ListenerPort"
-	ListenerName           ContextType = "ListenerName"
-	ListenerStatsNameSpace ContextType = "ListenerStatsNameSpace"
+	ContextKeyConnectionId              ContextKey = "ConnectionId"
+	ContextKeyListenerPort              ContextKey = "ListenerPort"
+	ContextKeyListenerName              ContextKey = "ListenerName"
+	ContextKeyListenerStatsNameSpace    ContextKey = "ListenerStatsNameSpace"
+	ContextKeyNetworkFilterChainFactory ContextKey = "NetworkFilterChainFactory"
+	ContextKeyStreamFilterChainFactory  ContextKey = "StreamFilterChainFactory"
 )
 
 const (

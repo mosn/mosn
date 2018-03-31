@@ -73,7 +73,7 @@ func main() {
 			DisableConnIo: true,
 		}, &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
-		}, cmf)
+		}, nil, cmf)
 
 		srv.AddListener(rpcProxyListener())
 		cmf.cccb.UpdateClusterConfig(clustersrpc())

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"runtime"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/filter"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/filter/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
@@ -28,15 +28,17 @@ func main() {
 	stopChan := make(chan bool)
 
 	go func() {
-		// mesh
-		cmf := &clusterManagerFilter{}
-		srv := server.NewServer(nil, &filter.FaultInjectFilterConfigFactory{
+		nf := &network.FaultInjectFilterConfigFactory{
 			FaultInject: &v2.FaultInject{
 				DelayPercent:  100,
 				DelayDuration: 2000,
 			},
 			Proxy: tcpProxyConfig(),
-		}, cmf)
+		}
+
+		// mesh
+		cmf := &clusterManagerFilter{}
+		srv := server.NewServer(nil, nf, nil, cmf)
 		srv.AddListener(tcpListener())
 		cmf.cccb.UpdateClusterConfig(clusters())
 		cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts("11.162.169.38:80"))
