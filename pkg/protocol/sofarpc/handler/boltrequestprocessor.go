@@ -14,6 +14,7 @@ type BoltRequestProcessor struct{}
 type BoltRequestProcessorV2 struct{}
 
 // ctx = type.serverStreamConnection
+// CALLBACK STREAM LEVEL'S OnDecodeHeaders
 func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(cmd)
@@ -21,6 +22,7 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
+				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
 				status := filter.OnDecodeHeader(cmd.ReqId, cmd.RequestHeader)
 
 				if status == types.StopIteration {

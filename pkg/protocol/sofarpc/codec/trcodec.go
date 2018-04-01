@@ -1,124 +1,36 @@
 package codec
 
 import (
-	"encoding/binary"
-	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-)
-
-const (
-	HEADER_REQUEST byte = 0
-
-	HEADER_RESPONSE byte = 1
-
-	HESSIAN_SERIALIZE byte = 1
-
-	JAVA_SERIALIZE byte = 2
-
-	TOP_SERIALIZE byte = 3
-
-	HESSIAN2_SERIALIZE byte = 4
-
-	HEADER_ONEWAY byte = 1
-
-	HEADER_TWOWAY byte = 2
-
-	TR_REQUEST int16 = 13
-
-	TR_RESPONSE int16 = 14
-
-	TR_HEARTBEAT int16 = 0
-
-	PROCOCOL_VERSION byte = 13
-
-	PROTOCOL_HEADER_LENGTH uint32 = 14
+	"encoding/binary"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	sf"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"reflect"
 )
 
 // types.Encoder & types.Decoder
-type trCodec struct {
+type trCodec struct {}
+
+var (
+	TrPropertyHeaders = make(map[string]reflect.Kind, 8)
+)
+
+func init() {
+	TrPropertyHeaders["protocol"] = reflect.Uint8
+	TrPropertyHeaders["requestflag"] = reflect.Uint8
+	TrPropertyHeaders["serializeprotocol"] = reflect.Uint8 //
+	TrPropertyHeaders["direction"] = reflect.Uint8
+	TrPropertyHeaders["reserved"] = reflect.Uint8
+	TrPropertyHeaders["appclassnamelen"] = reflect.Uint8
+
+	TrPropertyHeaders["connrequestlen"] = reflect.Uint32
+	TrPropertyHeaders["appclasscontentlen"] = reflect.Uint32
+
+	TrPropertyHeaders["cmdcode"] = reflect.Int16
+
+	TrPropertyHeaders["requestid"] = reflect.Int64
 }
-
-/**
-encode 这个
-*/
-func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) uint32 {
-	//pass decode result to command handler
-	if trCommand, ok := value.(*trCommand); ok {
-		data.Append(trCommand.originalBytes)
-	} else {
-		log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
-	}
-
-	if trCommand, ok := value.(*trRequestCommand); ok {
-
-		data.AppendByte(PROCOCOL_VERSION)
-		data.AppendByte(HEADER_REQUEST)
-		//TODO 这里的协议要允许扩展,不能写死,最好从外面传递过来
-		data.AppendByte(HESSIAN2_SERIALIZE)
-		data.AppendByte(trCommand.direction)
-		data.AppendByte(0)
-		connRequestLength := len(trCommand.connRequestContent)
-		connRequestLengthByte := make([]byte, 4)
-		binary.BigEndian.PutUint32(connRequestLengthByte, uint32(connRequestLength))
-
-		data.Append(connRequestLengthByte)
-
-		appClassNameLength := len([]byte(trCommand.appClassName))
-
-		//appClassNameLength
-		data.AppendByte(byte(appClassNameLength))
-
-		appContentLengthByte := make([]byte, 4)
-
-		appContentLength := len(trCommand.appClassContent)
-		binary.BigEndian.PutUint32(appContentLengthByte, uint32(appContentLength))
-
-		data.Append(appContentLengthByte)
-
-		data.Append(trCommand.connRequestContent)
-		data.Append([]byte(trCommand.appClassName))
-		data.Append(trCommand.appClassContent)
-
-		return trCommand.id
-	} else if trCommand, ok := value.(*trResponseCommand); ok {
-
-		data.AppendByte(PROCOCOL_VERSION)
-		data.AppendByte(HEADER_RESPONSE)
-		//TODO 这里的协议要允许扩展,不能写死,最好从外面传递过来
-		data.AppendByte(HESSIAN2_SERIALIZE)
-		data.AppendByte(0)
-		data.AppendByte(0)
-		connRequestLength := len(trCommand.connRequestContent)
-		connRequestLengthByte := make([]byte, 4)
-		binary.BigEndian.PutUint32(connRequestLengthByte, uint32(connRequestLength))
-
-		data.Append(connRequestLengthByte)
-
-		appClassNameLength := len([]byte(trCommand.appClassName))
-
-		//appClassNameLength
-		data.AppendByte(byte(appClassNameLength))
-
-		appContentLengthByte := make([]byte, 4)
-
-		appContentLength := len(trCommand.appClassContent)
-		binary.BigEndian.PutUint32(appContentLengthByte, uint32(appContentLength))
-
-		data.Append(appContentLengthByte)
-
-		data.Append(trCommand.connRequestContent)
-		data.Append([]byte(trCommand.appClassName))
-		data.Append(trCommand.appClassContent)
-
-		return trCommand.id
-	} else {
-		log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
-	}
-
-	return 0
-}
-
 /**
  *   Header(1B): 报文版本
  *   Header(1B): 请求/响应
@@ -128,97 +40,231 @@ func (encoder *trCodec) Encode(value interface{}, data types.IoBuffer) uint32 {
  *   Header(4B): 通信层对象长度
  *   Header(1B): 应用层对象类名长度
  *   Header(4B): 应用层对象长度
+//以下使用HESSION序列化
  *   Body:       通信层对象
  *   Body:       应用层对象类名
  *   Body:       应用层对象
  */
-func (decoder *trCodec) Decode(ctx interface{}, data types.IoBuffer, out interface{}) int {
-	fmt.Println("tr decode:", data.Bytes())
 
-	bytes := data.Bytes()
 
-	protocolVersion := bytes[0]
+func (c *trCodec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
 
-	requestFlag := bytes[1]
+	if headerMap, ok := headers.(map[string]string); ok {
 
-	serializeProtocol := bytes[2]
+		cmd := c.mapToCmd(headerMap)
+		return c.encodeHeaders(cmd)
+	}
+	return c.encodeHeaders(headers)
+}
 
-	direction := bytes[3]
+func (c *trCodec) encodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
 
-	//跳过 reserved
+	switch headers.(type) {
+	case *sf.TrRequestCommand:
+		return c.encodeRequestCommand(headers.(*sf.TrRequestCommand))
+	case *sf.TrResponseCommand:
+		return c.encodeResponseCommand(headers.(*sf.TrResponseCommand))
+	default:
+		log.DefaultLogger.Println("[Decode] Invalid Input Type")
+		return 0, nil
+	}
+}
 
-	connRequestLength := binary.BigEndian.Uint32(bytes[5:9])
+func (c *trCodec) encodeRequestCommand(rpcCmd *sf.TrRequestCommand) (uint32, types.IoBuffer) {
 
-	appClassNameLength := uint32(bytes[9])
+	log.DefaultLogger.Println("[TR]start to encode rpc headers,protocol code=%+v", rpcCmd.Protocol)
 
-	appClassContentLength := binary.BigEndian.Uint32(bytes[10:14])
+	var result []byte
+	result = append(result, rpcCmd.Protocol, rpcCmd.RequestFlag)
+	result = append(result, rpcCmd.SerializeProtocol, rpcCmd.Direction,rpcCmd.Reserved)
 
-	connRequestEnd := 14 + connRequestLength
-	connRequestContent := bytes[14:connRequestEnd]
+	connRequestLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(connRequestLen, rpcCmd.ConnRequestLen)
+	result = append(result,connRequestLen...)
 
-	appClassNameEnd := connRequestEnd + appClassNameLength
-	appClassNameContent := bytes[connRequestEnd:appClassNameEnd]
-	appClassName := string(appClassNameContent)
-	appClassContent := bytes[appClassNameEnd : appClassNameEnd+appClassContentLength]
+	result = append(result,rpcCmd.AppClassNameLen)
 
-	totalLength := PROTOCOL_HEADER_LENGTH + connRequestLength + appClassNameLength + appClassContentLength
+	appContentLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(appContentLen, rpcCmd.AppClassContentLen)
+	result = append(result,appContentLen...)
 
-	var cmdCode int16
+	//todo AS TR's req id is 64bit long, need adjust
+	return uint32(rpcCmd.RequestID),buffer.NewIoBufferBytes(result)
+}
 
-	if requestFlag == HEADER_REQUEST {
+func (c *trCodec) encodeResponseCommand(rpcCmd *sf.TrResponseCommand) (uint32, types.IoBuffer) {
+	log.DefaultLogger.Println("[TR]start to encode rpc headers,=%+v", rpcCmd.Protocol)
 
-		if appClassName == "com.taobao.remoting.impl.ConnectionHeartBeat" {
+	var result []byte
+	result = append(result, rpcCmd.Protocol, rpcCmd.RequestFlag)
+	result = append(result, rpcCmd.SerializeProtocol, rpcCmd.Direction,rpcCmd.Reserved)
 
-			direction = HEADER_TWOWAY
-			cmdCode = TR_HEARTBEAT
-		} else {
-			cmdCode = TR_REQUEST
-		}
+	connRequestLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(connRequestLen, rpcCmd.ConnRequestLen)
+	result = append(result,connRequestLen...)
 
-		request := trRequestCommand{
+	result = append(result,rpcCmd.AppClassNameLen)
 
-			trCommand: trCommand{
-				originalBytes:      bytes,
-				protocolVersion:    protocolVersion,
-				requestFlag:        requestFlag,
-				protocol:           serializeProtocol,
-				direction:          direction,
-				cmdCode:            cmdCode,
-				appClassName:       appClassName,
-				connRequestContent: connRequestContent,
-				appClassContent:    appClassContent,
-				totalLength:        totalLength,
+	appContentLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(appContentLen, rpcCmd.AppClassContentLen)
+	result = append(result,appContentLen...)
+
+	//todo AS TR's req id is 64bit long, need adjust
+	return uint32(rpcCmd.RequestID),buffer.NewIoBufferBytes(result)
+}
+
+func (c *trCodec) EncodeData(data types.IoBuffer) types.IoBuffer {
+	return data
+}
+
+func (c *trCodec) EncodeTrailers(trailers map[string]string) types.IoBuffer {
+	return nil
+}
+
+func (c *trCodec)mapToCmd(headers_ interface{})interface{}{
+
+	headers,_ := headers_.(map[string]string)
+	if len(headers) < 8{
+		return nil
+	}
+	protocol := sf.GetPropertyValue(TrPropertyHeaders,headers, "protocol")
+	requestFlag := sf.GetPropertyValue(TrPropertyHeaders,headers, "requestflag")
+
+	serializeProtocol := sf.GetPropertyValue(TrPropertyHeaders,headers, "serializeprotocol")
+	direction := sf.GetPropertyValue(TrPropertyHeaders,headers, "direction")
+	reserved := sf.GetPropertyValue(TrPropertyHeaders,headers, "reserved")
+
+	appClassNameLen := sf.GetPropertyValue(TrPropertyHeaders,headers, "appclassnameLen")
+	connRequestLen := sf.GetPropertyValue(TrPropertyHeaders,headers, "connrequestLen")
+	appClassContentLen := sf.GetPropertyValue(TrPropertyHeaders,headers, "appclasscontentLen")
+
+	cmdcode := sf.GetPropertyValue(TrPropertyHeaders,headers, "cmdcode")
+	requestID := sf.GetPropertyValue(TrPropertyHeaders,headers, "requestID")
+
+	if requestFlag == sf.HEADER_REQUEST{
+
+		request := &sf.TrRequestCommand{
+			TrCommand:sf.TrCommand{
+				protocol.(byte),
+				requestFlag.(byte),
+				serializeProtocol.(byte),
+				direction.(byte),
+				reserved.(byte),
+				connRequestLen.(uint32),
+				appClassNameLen.(byte),
+				appClassContentLen.(uint32),
+				nil,
+				"",
+				nil,
 			},
+			CmdCode:cmdcode.(int16),
+			RequestID:requestID.(int64),
 		}
-		//pass decode result to command handler
-		if list, ok := out.(*[]trRequestCommand); ok {
-			*list = append(*list, request)
-		}
-
-	} else if requestFlag == HEADER_RESPONSE {
-
-		cmdCode = TR_RESPONSE
-
-		response := trResponseCommand{
-
-			trCommand: trCommand{
-				originalBytes:      bytes,
-				protocolVersion:    protocolVersion,
-				requestFlag:        requestFlag,
-				protocol:           serializeProtocol,
-				direction:          direction,
-				cmdCode:            cmdCode,
-				appClassName:       appClassName,
-				connRequestContent: connRequestContent,
-				appClassContent:    appClassContent,
-				totalLength:        totalLength,
+		return request
+	} else if requestFlag == sf.HEADER_RESPONSE{
+		response := &sf.TrResponseCommand{
+			TrCommand:sf.TrCommand{
+				protocol.(byte),
+				requestFlag.(byte),
+				serializeProtocol.(byte),
+				direction.(byte),
+				reserved.(byte),
+				connRequestLen.(uint32),
+				appClassNameLen.(byte),
+				appClassContentLen.(uint32),
+				nil,
+				"",
+				nil,
 			},
+			CmdCode:cmdcode.(int16),
+			RequestID:requestID.(int64),
 		}
-		//pass decode result to command handler
-		if list, ok := out.(*[]trResponseCommand); ok {
-			*list = append(*list, response)
+		return response
+
+	} else{
+		//HB
+	}
+
+	return nil
+}
+
+func (decoder *trCodec) Decode(data types.IoBuffer) (int,interface{}) {
+	readableBytes := data.Len()
+	read := 0
+	var cmd interface{}
+
+	if readableBytes >= int(sf.PROTOCOL_HEADER_LENGTH) {
+		bytes := data.Bytes()
+		protocol := bytes[0]
+		requestFlag := bytes[1]
+		serializeProtocol := bytes[2]
+		direction := bytes[3]
+		reserved := bytes[4]
+		connRequestLen := binary.BigEndian.Uint32(bytes[5:9])
+		appClassNameLen := bytes[9]
+		appClassContentLen := binary.BigEndian.Uint32(bytes[10:14])
+
+		connRequestEnd := 14 + connRequestLen
+		connRequestContent := bytes[14:connRequestEnd]
+		appClassNameEnd := connRequestEnd + uint32(appClassNameLen)
+		appClassNameContent := bytes[connRequestEnd:appClassNameEnd]
+		appClassName := string(appClassNameContent)
+		appClassContent := bytes[appClassNameEnd: appClassNameEnd+appClassContentLen]
+		totalLength := sf.PROTOCOL_HEADER_LENGTH + connRequestLen + uint32(appClassNameLen) + appClassContentLen
+		data.Set(int(totalLength))
+		var cmdCode int16
+
+		if requestFlag == sf.HEADER_REQUEST {
+			if appClassName == "com.taobao.remoting.impl.ConnectionHeartBeat" {
+				cmdCode = sf.TR_HEARTBEAT
+			} else {
+				cmdCode = sf.TR_REQUEST
+			}
+
+			request := &sf.TrRequestCommand{
+				TrCommand: sf.TrCommand{
+					protocol,
+					requestFlag,
+					serializeProtocol,
+					direction,
+					reserved,
+					connRequestLen,
+					appClassNameLen,
+					appClassContentLen,
+					connRequestContent,
+					appClassName,
+					appClassContent,
+				},
+				CmdCode:cmdCode,
+				RequestContent:bytes[14 : 14 + connRequestLen + uint32(appClassNameLen) + appClassContentLen],
+			}
+			log.DefaultLogger.Printf("[Decoder]TR decode request:%+v\n", request)
+			cmd = request
+			read = int(totalLength)
+
+		} else if requestFlag == sf.HEADER_RESPONSE {
+			cmdCode = sf.TR_RESPONSE
+			response := sf.TrResponseCommand{
+				TrCommand: sf.TrCommand{
+					protocol,
+					requestFlag,
+					serializeProtocol,
+					direction,
+					reserved,
+					connRequestLen,
+					appClassNameLen,
+					appClassContentLen,
+					connRequestContent,
+					appClassName,
+					appClassContent,
+				},
+				CmdCode:cmdCode,
+				ResponseContent:bytes[14 : 14 + connRequestLen + uint32(appClassNameLen) + appClassContentLen],
+
+			}
+			cmd = response
+			read = int(totalLength)
 		}
 	}
-	return int(totalLength)
-
+	return read,cmd
 }

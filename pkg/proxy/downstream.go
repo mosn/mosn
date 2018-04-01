@@ -108,7 +108,7 @@ func (s *activeStream) cleanStream() {
 	s.proxy.deleteActiveStream(s)
 }
 
-// types.StreamDecoder
+// types.StreamDecoder 被STREAM层回调
 func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	s.downstreamRecvDone = endStream
 	s.downstreamHeaders = headers
@@ -148,7 +148,7 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 		requestInfo:  network.NewRequestInfo(),
 	}
 
-	s.upstreamRequest.encodeHeaders(headers, endStream)
+	s.upstreamRequest.encodeHeaders(headers, endStream)    //调用ENCODER封装
 
 	if endStream {
 		s.onUpstreamRequestSent()
@@ -359,7 +359,7 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 
 	// todo: insert proxy headers
 
-	s.encodeHeaders(headers, endStream)
+	s.encodeHeaders(headers, endStream)   //OK HERE
 }
 
 func (s *activeStream) onUpstreamData(data types.IoBuffer, endStream bool) {

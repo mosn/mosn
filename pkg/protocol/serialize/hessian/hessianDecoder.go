@@ -434,8 +434,8 @@ func (d *decoder) readMap(value reflect.Value) error {
 	for d.isEnd() == false {
 		key, err := d.ReadObject()
 
-		fmt.Println("start read map key ")
-		fmt.Println(key)
+		//fmt.Println("start read map key ")
+		//fmt.Println(key)
 		if err != nil {
 			if err == io.EOF {
 				fmt.Println("endMamp")
@@ -447,8 +447,8 @@ func (d *decoder) readMap(value reflect.Value) error {
 		}
 		vl, err := d.ReadObject()
 
-		fmt.Println("start read map value ")
-		fmt.Println(vl)
+		//fmt.Println("start read map value ")
+		//fmt.Println(vl)
 		//fmt.Println(key, vl)
 		m.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(vl))
 

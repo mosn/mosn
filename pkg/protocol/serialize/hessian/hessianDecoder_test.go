@@ -27,14 +27,14 @@ func Test_HessianCodecHeader(t *testing.T) {
 
 		fmt.Print(obj)
 		if so, ok := obj.(reflect.Value); ok {
-			u1 := so.Interface().(*SofaRequest)
+			u1 := so.Interface().(*SofaRequest) //
 			fmt.Println(u1.RequestProps["rpc_trace_context"])
 
 			log.DefaultLogger.Infof("obj,%+v", u1)
 		}
 
 		if so, ok := obj.(SofaRequest); ok {
-			fmt.Print(so.RequestProps)
+			fmt.Print(so.RequestProps) //HEADER MAP
 		}
 	}
 }
@@ -62,7 +62,7 @@ func Test_RequestIDCodec(t *testing.T) {
 			u1 := so.Interface().(*ConnectionRequest)
 			log.DefaultLogger.Infof("obj,%+v", u1)
 
-			log.DefaultLogger.Infof(string(u1.Ctx.Id))
+			log.DefaultLogger.Infof(string(u1.Ctx.Id)) //GET REQUEST ID
 		}
 
 		if so, ok := obj.(SofaRequest); ok {
@@ -94,7 +94,7 @@ func Test_ResponseIDCodec(t *testing.T) {
 			u1 := so.Interface().(*ConnectionResponse)
 			log.DefaultLogger.Infof("obj,%+v", u1)
 
-			log.DefaultLogger.Infof(string(u1.Ctx.Id))
+			log.DefaultLogger.Infof(string(u1.Ctx.Id)) //GET RESPONSE ID
 		}
 
 		if so, ok := obj.(SofaRequest); ok {

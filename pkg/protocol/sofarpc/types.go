@@ -32,12 +32,6 @@ const (
 	RPC_RESPONSE int16 = 2
 )
 
-//tr constants
-const (
-	PROTOCOL_CODE       byte = 13
-	PROTOCOL_HEADER_LEN int  = 14
-)
-
 //统一的RPC PROTOCOL抽象接口
 type Protocol interface {
 	/**
@@ -194,3 +188,89 @@ func (b *BoltResponseCommand) GetReqId() uint32 {
 const (
 	SofaRpcPropertyHeaderPrefix = "x-mosn-sofarpc-headers-property-"
 )
+
+//tr constants
+const (
+	PROTOCOL_CODE          byte   = 13
+	HEADER_REQUEST         byte   = 0
+	HEADER_RESPONSE        byte   = 1
+	HESSIAN_SERIALIZE      byte   = 1
+	JAVA_SERIALIZE         byte   = 2
+	TOP_SERIALIZE          byte   = 3
+	HESSIAN2_SERIALIZE     byte   = 4
+	HEADER_ONEWAY          byte   = 1
+	HEADER_TWOWAY          byte   = 2
+	TR_REQUEST             int16  = 13
+	TR_RESPONSE            int16  = 14
+	TR_HEARTBEAT           int16  = 0
+	PROCOCOL_VERSION       byte   = 13
+	PROTOCOL_HEADER_LENGTH uint32 = 14
+)
+
+/**
+ *   Header(1B): 报文版本
+ *   Header(1B): 请求/响应
+ *   Header(1B): 序列化协议(HESSIAN/JAVA)
+ *   Header(1B): 单向/双向(响应报文中不使用这个字段)
+ *   Header(1B): Reserved
+ *   Header(4B): 通信层对象长度
+ *   Header(1B): 应用层对象类名长度
+ *   Header(4B): 应用层对象长度
+ *   Body:       通信层对象
+ *   Body:       应用层对象类名
+ *   Body:       应用层对象
+ */
+
+type TrCommand struct {
+	//Protocol Field
+	Protocol          byte
+	RequestFlag       byte
+	SerializeProtocol byte
+	Direction         byte
+	Reserved          byte
+
+	ConnRequestLen     uint32
+	AppClassNameLen    byte
+	AppClassContentLen uint32
+	ConnClassContent   []byte
+	AppClassName       string
+	AppClassContent    []byte
+}
+
+type TrRequestCommand struct {
+	TrCommand
+	CmdCode                 int16
+	RequestID               int64
+	RequestHeader           map[string]string
+	RequestContent          []byte
+	TargetAppName           string
+	TargetServiceUniqueName string
+}
+
+type TrResponseCommand struct {
+	TrCommand
+	CmdCode         int16
+	RequestID       int64
+	ResponseHeader  map[string]string
+	ResponseContent []byte
+}
+
+func (b *TrCommand) GetProtocol() byte {
+	return b.Protocol
+}
+
+func (b *TrCommand) GetCmdCode() int16 {
+	return 0
+}
+
+func (b *TrCommand) GetReqId() uint32 {
+	return 0
+}
+
+func (b *TrRequestCommand) GetCmdCode() int16 {
+	return b.CmdCode
+}
+
+func (b *TrResponseCommand) GetCmdCode() int16 {
+	return b.CmdCode
+}
