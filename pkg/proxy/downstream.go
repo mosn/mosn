@@ -40,7 +40,7 @@ type activeStream struct {
 	downstreamReqTrailers map[string]string
 
 	// ~~~ downstream response buf
-	downstreamRespHeaders  map[string]string
+	downstreamRespHeaders  interface{}
 	downstreamRespDataBuf  types.IoBuffer
 	downstreamRespTrailers map[string]string
 
@@ -356,7 +356,7 @@ func (s *activeStream) encodeHeaders(headers map[string]string, endStream bool) 
 	s.doEncodeHeaders(nil, headers, endStream)
 }
 
-func (s *activeStream) doEncodeHeaders(filter *activeStreamEncoderFilter, headers map[string]string, endStream bool) {
+func (s *activeStream) doEncodeHeaders(filter *activeStreamEncoderFilter, headers interface{}, endStream bool) {
 	if s.encodeHeaderFilters(filter, headers, endStream) {
 		return
 	}

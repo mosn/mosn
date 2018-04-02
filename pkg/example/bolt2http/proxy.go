@@ -15,7 +15,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/filter/stream"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
 )
@@ -74,7 +74,7 @@ func main() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
 
-		sf := &stream.FaultInjectFilterConfigFactory{
+		sf := &faultinject.FaultInjectFilterConfigFactory{
 			FaultInject: &v2.FaultInject{
 				DelayPercent:  100,
 				DelayDuration: 2000,

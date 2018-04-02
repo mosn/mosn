@@ -108,3 +108,10 @@ type HealthCheck struct {
 	CheckPath          string
 	ServiceName        string
 }
+
+type HealthCheckFilter struct {
+	PassThrough                 bool
+	CacheTime                   time.Duration
+	Endpoint                    string
+	ClusterMinHealthyPercentage map[string]float32
+}

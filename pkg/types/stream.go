@@ -105,7 +105,7 @@ type StreamFilterCallbacks interface {
 type StreamEncoderFilter interface {
 	StreamFilterBase
 
-	EncodeHeaders(headers map[string]string, endStream bool) FilterHeadersStatus
+	EncodeHeaders(headers interface{}, endStream bool) FilterHeadersStatus
 
 	EncodeData(buf IoBuffer, endStream bool) FilterDataStatus
 
@@ -153,7 +153,7 @@ type StreamDecoderFilterCallbacks interface {
 
 	AddDecodedData(buf IoBuffer, streamingFilter bool)
 
-	EncodeHeaders(headers map[string]string, endStream bool)
+	EncodeHeaders(headers interface{}, endStream bool)
 
 	EncodeData(buf IoBuffer, endStream bool)
 

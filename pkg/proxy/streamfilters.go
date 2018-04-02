@@ -27,7 +27,7 @@ func (s *activeStream) addDecodedData(filter *activeStreamDecoderFilter, data ty
 	}
 }
 
-func (s *activeStream) encodeHeaderFilters(filter *activeStreamEncoderFilter, headers map[string]string, endStream bool) bool {
+func (s *activeStream) encodeHeaderFilters(filter *activeStreamEncoderFilter, headers interface{}, endStream bool) bool {
 	var index int
 	var f *activeStreamEncoderFilter
 
@@ -351,18 +351,18 @@ func (f *activeStreamDecoderFilter) AddDecodedData(buf types.IoBuffer, streaming
 	f.activeStream.addDecodedData(f, buf, streamingFilter)
 }
 
-func (f *activeStreamDecoderFilter) EncodeHeaders(headers map[string]string, endStream bool) {
+func (f *activeStreamDecoderFilter) EncodeHeaders(headers interface{}, endStream bool) {
 	f.activeStream.downstreamRespHeaders = headers
-	f.activeStream.encodeHeaderFilters(nil, headers, endStream)
+	f.activeStream.doEncodeHeaders(nil, headers, endStream)
 }
 
 func (f *activeStreamDecoderFilter) EncodeData(buf types.IoBuffer, endStream bool) {
-	f.activeStream.encodeDataFilters(nil, buf, endStream)
+	f.activeStream.doEncodeData(nil, buf, endStream)
 }
 
 func (f *activeStreamDecoderFilter) EncodeTrailers(trailers map[string]string) {
 	f.activeStream.downstreamRespTrailers = trailers
-	f.activeStream.encodeTrailersFilters(nil, trailers)
+	f.activeStream.doEncodeTrailers(nil, trailers)
 }
 
 func (f *activeStreamDecoderFilter) OnDecoderFilterAboveWriteBufferHighWatermark() {

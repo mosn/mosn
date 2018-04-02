@@ -91,3 +91,13 @@ func (fi *faultInjectFilter) getDelayDuration() uint64 {
 
 	return fi.delayDuration
 }
+
+// ~~ factory
+type FaultInjectFilterConfigFactory struct {
+	FaultInject *v2.FaultInject
+}
+
+func (f *FaultInjectFilterConfigFactory) CreateFilterChain(callbacks types.FilterChainFactoryCallbacks) {
+	filter := NewFaultInjectFilter(f.FaultInject)
+	callbacks.AddStreamDecoderFilter(filter)
+}
