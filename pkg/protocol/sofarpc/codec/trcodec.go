@@ -204,6 +204,13 @@ func (decoder *trCodec) Decode(data types.IoBuffer) (int,interface{}) {
 		appClassNameLen := bytes[9]
 		appClassContentLen := binary.BigEndian.Uint32(bytes[10:14])
 
+		if uint32(readableBytes) < sf.PROTOCOL_HEADER_LENGTH + connRequestLen +
+			uint32(appClassNameLen) + appClassContentLen {
+			//not enough data
+			log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
+			return 0, nil
+		}
+
 		connRequestEnd := 14 + connRequestLen
 		connRequestContent := bytes[14:connRequestEnd]
 		appClassNameEnd := connRequestEnd + uint32(appClassNameLen)
@@ -220,7 +227,6 @@ func (decoder *trCodec) Decode(data types.IoBuffer) (int,interface{}) {
 			} else {
 				cmdCode = sf.TR_REQUEST
 			}
-
 			request := &sf.TrRequestCommand{
 				TrCommand: sf.TrCommand{
 					protocol,
