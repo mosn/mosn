@@ -9,6 +9,7 @@ import (
 	"math"
 	"reflect"
 	"strings"
+	"regexp"
 )
 
 /**
@@ -433,9 +434,19 @@ func (d *decoder) readMap(value reflect.Value) error {
 	//read key and value
 	for d.isEnd() == false {
 		key, err := d.ReadObject()
+		log.DefaultLogger.Infof("start read map key,%+v", key)
 
-		//fmt.Println("start read map key ")
-		//fmt.Println(key)
+		//TODO fix me 这里做一个特殊的处理, isEnd 方法不好判断
+
+		keyStr, _ := key.(string)
+		reg := regexp.MustCompile(`\w+`)
+
+		match := reg.MatchString(keyStr)
+
+		if !match {
+			break
+		}
+
 		if err != nil {
 			if err == io.EOF {
 				fmt.Println("endMamp")
@@ -447,14 +458,11 @@ func (d *decoder) readMap(value reflect.Value) error {
 		}
 		vl, err := d.ReadObject()
 
-		//fmt.Println("start read map value ")
-		//fmt.Println(vl)
-		//fmt.Println(key, vl)
+		log.DefaultLogger.Infof("start read map value,%+v", vl)
 		m.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(vl))
 
 		log.DefaultLogger.Infof("map processing,%+v", m)
 	}
-	log.DefaultLogger.Infof("map processing,for ")
 
 	if so, ok := singleObj.(map[interface{}]interface{}); ok {
 		for k, v := range so {
