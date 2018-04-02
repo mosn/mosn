@@ -25,7 +25,7 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 		protocolMaps: protocolMaps,
 	}
 }
-
+//PROTOCOL LEVEL's Unified EncodeHeaders for BOLTV1、BOLTV2、TR
 func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
 	var protocolCode byte
 
@@ -33,7 +33,8 @@ func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) 
 	case ProtoBasicCmd:
 		protocolCode = headers.(ProtoBasicCmd).GetProtocol()
 	case map[string]string:
-		if proto, exist := headers.(map[string]string)[SofaPropertyHeader("protocol")]; exist {
+		headers_ := headers.(map[string]string)
+		if proto, exist := headers_[SofaPropertyHeader("protocol")]; exist {
 			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
 			protocolCode = protoValue.(byte)
 		} else {

@@ -60,7 +60,7 @@ func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 
 func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
 	r.encodeComplete = endStream
-	r.connPool.NewStream(0, r, r)
+	r.connPool.NewStream(0, r, r)    //调用STREAM层的NEW stream函数
 }
 
 func (r *upstreamRequest) encodeData(data types.IoBuffer, endStream bool) {

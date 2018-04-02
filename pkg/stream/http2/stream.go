@@ -209,7 +209,7 @@ type clientStream struct {
 	connection *clientStreamConnection
 }
 
-// types.StreamEncoder
+// types.StreamEncoder   发送数据的时候是作为CLIENT STREAM 发送的
 func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) {
 	headers, _ := headers_.(map[string]string)
 	if s.request == nil {

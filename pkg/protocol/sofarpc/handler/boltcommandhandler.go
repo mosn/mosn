@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
 
@@ -35,10 +36,10 @@ func (h *BoltCommandHandler) HandleCommand(ctx interface{}, msg interface{}) {
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
 		if processor, ok := h.processors[cmdCode]; ok {
-			fmt.Println("handle command")
+			log.DefaultLogger.Println("handle command")
 			processor.Process(ctx, cmd, nil)
 		} else {
-			fmt.Println("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")
+			log.DefaultLogger.Println("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")
 		}
 	}
 }
