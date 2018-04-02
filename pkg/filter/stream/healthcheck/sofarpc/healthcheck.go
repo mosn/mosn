@@ -42,7 +42,9 @@ func (f *healthCheckFilter) DecodeHeaders(headers map[string]string, endStream b
 			f.healthCheckReq = true
 			f.cb.RequestInfo().SetHealthCheck(true)
 
-			f.intercept = true
+			if !f.passThrough {
+				f.intercept = true
+			}
 		}
 	}
 
