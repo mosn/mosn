@@ -20,16 +20,16 @@ import (
 // ClusterConfigFactoryCb
 // ClusterHostFactoryCb
 type connHandler struct {
-	disableConnIo         bool
-	numConnections        int64
-	listeners             []*activeListener
-	clusterManager        types.ClusterManager
-	networkFiltersFactory NetworkFilterChainFactory
-	streamFiltersFactory  types.StreamFilterChainFactory
-	logger                log.Logger
+	disableConnIo          bool
+	numConnections         int64
+	listeners              []*activeListener
+	clusterManager         types.ClusterManager
+	networkFiltersFactory  NetworkFilterChainFactory
+	streamFiltersFactories []types.StreamFilterChainFactory
+	logger                 log.Logger
 }
 
-func NewHandler(networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactory types.StreamFilterChainFactory,
+func NewHandler(networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
 	clusterManagerFilter ClusterManagerFilter, logger log.Logger, DisableConnIo bool) types.ConnectionHandler {
 	ch := &connHandler{
 		disableConnIo:         DisableConnIo,
@@ -37,7 +37,7 @@ func NewHandler(networkFiltersFactory NetworkFilterChainFactory, streamFiltersFa
 		clusterManager:        cluster.NewClusterManager(nil),
 		listeners:             make([]*activeListener, 0),
 		networkFiltersFactory: networkFiltersFactory,
-		streamFiltersFactory:  streamFiltersFactory,
+		streamFiltersFactories:  streamFiltersFactories,
 		logger:                logger,
 	}
 
@@ -170,7 +170,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = context.WithValue(ctx, types.ContextKeyListenerStatsNameSpace, al.statsNamespace)
 	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactory, al.handler.networkFiltersFactory)
-	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactory, al.handler.streamFiltersFactory)
+	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.handler.streamFiltersFactories)
 
 	arc.ContinueFilterChain(true, ctx)
 }

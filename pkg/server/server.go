@@ -26,7 +26,7 @@ type server struct {
 }
 
 func NewServer(config *Config, networkFiltersFactory NetworkFilterChainFactory,
-	streamFiltersFactory types.StreamFilterChainFactory, cmFilter ClusterManagerFilter) Server {
+	streamFiltersFactories []types.StreamFilterChainFactory, cmFilter ClusterManagerFilter) Server {
 	var logPath string
 	var logLevel log.LogLevel
 	var disableConnIo bool
@@ -43,7 +43,7 @@ func NewServer(config *Config, networkFiltersFactory NetworkFilterChainFactory,
 	server := &server{
 		logger:   log.DefaultLogger,
 		stopChan: make(chan bool),
-		handler:  NewHandler(networkFiltersFactory, streamFiltersFactory, cmFilter, log.DefaultLogger, disableConnIo),
+		handler:  NewHandler(networkFiltersFactory, streamFiltersFactories, cmFilter, log.DefaultLogger, disableConnIo),
 	}
 
 	servers = append(servers, server)

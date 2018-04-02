@@ -123,8 +123,13 @@ func (p *proxy) OnGoAway() {}
 func (p *proxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
 	stream := newActiveStream(streamId, p, responseEncoder)
 
-	ff := p.context.Value(types.ContextKeyStreamFilterChainFactory).(types.StreamFilterChainFactory)
-	ff.CreateFilterChain(stream)
+	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
+		ffs := ff.([]types.StreamFilterChainFactory)
+
+		for _, f := range ffs {
+			f.CreateFilterChain(stream)
+		}
+	}
 
 	p.asMux.Lock()
 	stream.element = p.activeSteams.PushBack(stream)
