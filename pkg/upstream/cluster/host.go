@@ -2,9 +2,11 @@ package cluster
 
 import (
 	"net"
+	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"github.com/rcrowley/go-metrics"
 )
 
 type hostSet struct {
@@ -70,8 +72,36 @@ func newHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 			address:     addr,
 			hostname:    config.Hostname,
 			clusterInfo: clusterInfo,
+			stats:       newHostStats(config),
 		},
 		weight: config.Weight,
+	}
+}
+
+func newHostStats(config v2.Host) types.HostStats {
+	nameSpace := fmt.Sprintf("host.%s", config.Address)
+
+	return types.HostStats{
+		Namespace:                                      nameSpace,
+		UpstreamConnectionTotal:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total"), nil),
+		UpstreamConnectionClose:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_close"), nil),
+		UpstreamConnectionActive:                       metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_active"), nil),
+		UpstreamConnectionTotalHttp1:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http1"), nil),
+		UpstreamConnectionTotalHttp2:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http2"), nil),
+		UpstreamConnectionTotalSofaRpc:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_sofarpc"), nil),
+		UpstreamConnectionConFail:                      metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_con_fail"), nil),
+		UpstreamConnectionLocalClose:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_local_close"), nil),
+		UpstreamConnectionRemoteClose:                  metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_remote_close"), nil),
+		UpstreamConnectionLocalCloseWithActiveRequest:  metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_local_close_with_active_request"), nil),
+		UpstreamConnectionRemoteCloseWithActiveRequest: metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_remote_close_with_active_request"), nil),
+		UpstreamConnectionCloseNotify:                  metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_close_notify"), nil),
+		UpstreamRequestTotal:                           metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_total"), nil),
+		UpstreamRequestActive:                          metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_active"), nil),
+		UpstreamRequestLocalReset:                      metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_local_reset"), nil),
+		UpstreamRequestRemoteReset:                     metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_remote_reset"), nil),
+		UpstreamRequestTimeout:                         metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_timeout"), nil),
+		UpstreamRequestFailureEject:                    metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_failure_eject"), nil),
+		UpstreamRequestPendingOverflow:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_pending_overflow"), nil),
 	}
 }
 
@@ -86,11 +116,11 @@ func (h *host) CreateConnection() types.CreateConnectionData {
 }
 
 func (h *host) Counters() types.HostStats {
-	return nil
+	return types.HostStats{}
 }
 
 func (h *host) Gauges() types.HostStats {
-	return nil
+	return types.HostStats{}
 }
 
 func (h *host) ClearHealthFlag(flag types.HealthFlag) {
@@ -136,7 +166,9 @@ type hostInfo struct {
 	address     net.Addr
 	canary      bool
 	clusterInfo types.ClusterInfo
-	// TODO: metadata, locality, stats, outlier, healthchecker
+	stats       types.HostStats
+
+	// TODO: metadata, locality, outlier, healthchecker
 }
 
 func (hi *hostInfo) Hostname() string {
@@ -168,5 +200,5 @@ func (hi *hostInfo) Address() net.Addr {
 }
 
 func (hi *hostInfo) HostStats() types.HostStats {
-	return nil
+	return hi.stats
 }

@@ -1,10 +1,16 @@
 package types
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"time"
+)
+
+type Priority int
+
+const (
+	PriorityDefault Priority = 0
+	PriorityHigh Priority = 1
 )
 
 type RouterConfig interface {
@@ -24,7 +30,7 @@ type RouteRule interface {
 
 	GlobalTimeout() time.Duration
 
-	Priority() pkg.Priority
+	Priority() Priority
 
 	VirtualCluster(headers map[string]string) VirtualCluster
 

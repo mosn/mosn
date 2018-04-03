@@ -3,8 +3,8 @@ package types
 import (
 	"net"
 	"context"
+	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg"
 )
 
 type ClusterManager interface {
@@ -19,7 +19,7 @@ type ClusterManager interface {
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
-	HttpConnPoolForCluster(cluster string, priority pkg.Priority, protocol Protocol, context context.Context) ConnectionPool
+	HttpConnPoolForCluster(cluster string, protocol Protocol, context context.Context) ConnectionPool
 
 	TcpConnForCluster(cluster string, context context.Context) CreateConnectionData
 
@@ -148,21 +148,28 @@ type HostInfo interface {
 	// TODO: add deploy locality
 }
 
-type HostStats []pkg.Stat
-
-var (
-	cxTotal = pkg.Stat{
-		Key:  "cx_total",
-		Type: pkg.COUNTER,
-	}
-
-	cxActive = pkg.Stat{
-		Key:  "cx_active",
-		Type: pkg.GAUGE,
-	}
-
-	// TODO
-)
+type HostStats struct {
+	Namespace                                      string
+	UpstreamConnectionTotal                        metrics.Counter
+	UpstreamConnectionClose                        metrics.Counter
+	UpstreamConnectionActive                       metrics.Counter
+	UpstreamConnectionTotalHttp1                   metrics.Counter
+	UpstreamConnectionTotalHttp2                   metrics.Counter
+	UpstreamConnectionTotalSofaRpc                 metrics.Counter
+	UpstreamConnectionConFail                      metrics.Counter
+	UpstreamConnectionLocalClose                   metrics.Counter
+	UpstreamConnectionRemoteClose                  metrics.Counter
+	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
+	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
+	UpstreamConnectionCloseNotify                  metrics.Counter
+	UpstreamRequestTotal                           metrics.Counter
+	UpstreamRequestActive                          metrics.Counter
+	UpstreamRequestLocalReset                      metrics.Counter
+	UpstreamRequestRemoteReset                     metrics.Counter
+	UpstreamRequestTimeout                         metrics.Counter
+	UpstreamRequestFailureEject                    metrics.Counter
+	UpstreamRequestPendingOverflow                 metrics.Counter
+}
 
 type ClusterInfo interface {
 	Name() string
@@ -207,21 +214,34 @@ type Resource interface {
 	Max() uint64
 }
 
-type ClusterStats []pkg.Stat
-
-var (
-	lbHealthyPanic = pkg.Stat{
-		Key:  "lb_healthy_panic",
-		Type: pkg.COUNTER,
-	}
-
-	lbLocalClusterNotOk = pkg.Stat{
-		Key:  "lb_local_cluster_not_ok",
-		Type: pkg.COUNTER,
-	}
-
-	// TODO
-)
+type ClusterStats struct {
+	Namespace                                      string
+	UpstreamConnectionTotal                        metrics.Counter
+	UpstreamConnectionClose                        metrics.Counter
+	UpstreamConnectionActive                       metrics.Counter
+	UpstreamConnectionTotalHttp1                   metrics.Counter
+	UpstreamConnectionTotalHttp2                   metrics.Counter
+	UpstreamConnectionTotalSofaRpc                 metrics.Counter
+	UpstreamConnectionConFail                      metrics.Counter
+	UpstreamConnectionRetry                        metrics.Counter
+	UpstreamConnectionLocalClose                   metrics.Counter
+	UpstreamConnectionRemoteClose                  metrics.Counter
+	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
+	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
+	UpstreamConnectionCloseNotify                  metrics.Counter
+	UpstreamBytesRead                              metrics.Counter
+	UpstreamBytesReadCurrent                       metrics.Gauge
+	UpstreamBytesWrite                             metrics.Counter
+	UpstreamBytesWriteCurrent                      metrics.Gauge
+	UpstreamRequestTotal                           metrics.Counter
+	UpstreamRequestActive                          metrics.Counter
+	UpstreamRequestLocalReset                      metrics.Counter
+	UpstreamRequestRemoteReset                     metrics.Counter
+	UpstreamRequestRetry                           metrics.Counter
+	UpstreamRequestTimeout                         metrics.Counter
+	UpstreamRequestFailureEject                    metrics.Counter
+	UpstreamRequestPendingOverflow                 metrics.Counter
+}
 
 type CreateConnectionData struct {
 	Connection ClientConnection

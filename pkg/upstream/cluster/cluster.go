@@ -2,8 +2,10 @@ package cluster
 
 import (
 	"net"
+	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"github.com/rcrowley/go-metrics"
 )
 
 // Cluster
@@ -38,6 +40,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 			clusterType: clusterConfig.ClusterType,
 			sourceAddr:  sourceAddr,
 			addedViaApi: addedViaApi,
+			stats:       newClusterStats(clusterConfig),
 		},
 		initHelper: initHelper,
 	}
@@ -74,6 +77,38 @@ func (c *cluster) Initialize(cb func()) {
 	}
 }
 
+func newClusterStats(config v2.Cluster) types.ClusterStats {
+	nameSpace := fmt.Sprintf("cluster.%s", config.Name)
+
+	return types.ClusterStats{
+		Namespace:                                      nameSpace,
+		UpstreamConnectionTotal:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total"), nil),
+		UpstreamConnectionClose:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_close"), nil),
+		UpstreamConnectionActive:                       metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_active"), nil),
+		UpstreamConnectionTotalHttp1:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http1"), nil),
+		UpstreamConnectionTotalHttp2:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http2"), nil),
+		UpstreamConnectionTotalSofaRpc:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_sofarpc"), nil),
+		UpstreamConnectionConFail:                      metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_con_fail"), nil),
+		UpstreamConnectionRetry:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_retry"), nil),
+		UpstreamConnectionLocalClose:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_local_close"), nil),
+		UpstreamConnectionRemoteClose:                  metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_remote_close"), nil),
+		UpstreamConnectionLocalCloseWithActiveRequest:  metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_local_close_with_active_request"), nil),
+		UpstreamConnectionRemoteCloseWithActiveRequest: metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_remote_close_with_active_request"), nil),
+		UpstreamConnectionCloseNotify:                  metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_close_notify"), nil),
+		UpstreamBytesRead:                              metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_bytes_read"), nil),
+		UpstreamBytesReadCurrent:                       metrics.GetOrRegisterGauge(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_bytes_read_current"), nil),
+		UpstreamBytesWrite:                             metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_bytes_write"), nil),
+		UpstreamBytesWriteCurrent:                      metrics.GetOrRegisterGauge(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_bytes_write_current"), nil),
+		UpstreamRequestTotal:                           metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_total"), nil),
+		UpstreamRequestActive:                          metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_active"), nil),
+		UpstreamRequestLocalReset:                      metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_local_reset"), nil),
+		UpstreamRequestRemoteReset:                     metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_remote_reset"), nil),
+		UpstreamRequestTimeout:                         metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_timeout"), nil),
+		UpstreamRequestFailureEject:                    metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_failure_eject"), nil),
+		UpstreamRequestPendingOverflow:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_pending_overflow"), nil),
+	}
+}
+
 func (c *cluster) Info() types.ClusterInfo {
 	return c.info
 }
@@ -107,6 +142,7 @@ type clusterInfo struct {
 	maxRequestsPerConn   uint64
 	addedViaApi          bool
 	resourceManager      types.ResourceManager
+	stats                types.ClusterStats
 }
 
 func (ci *clusterInfo) Name() string {
@@ -154,7 +190,7 @@ func (ci *clusterInfo) MaxRequestsPerConn() uint64 {
 }
 
 func (ci *clusterInfo) Stats() types.ClusterStats {
-	return nil
+	return ci.stats
 }
 
 func (ci *clusterInfo) ResourceManager() types.ResourceManager {
