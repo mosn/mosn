@@ -93,12 +93,13 @@ func (f *healthCheckFilter) handleIntercept() {
 
 	var resp interface{}
 
+	//TODO add protocl-level interface for heartbeat process, like Protocols.TriggerHeartbeat(protocolCode, requestId)&Protocols.ReplyHeartbeat(protocolCode, requestId)
 	switch {
 	//case f.protocol == sofarpc.PROTOCOL_CODE:
-	//	resp = newTrHeartbeatAck()
+		//resp = codec.NewTrHeartbeatAck( f.requestId)
 	case f.protocol == sofarpc.PROTOCOL_CODE_V1 || f.protocol == sofarpc.PROTOCOL_CODE_V2:
 		//boltv1 and boltv2 use same heartbeat struct as BoltV1
-		resp = newBoltHeartbeatAck(f.protocol, f.requestId)
+		resp = codec.NewBoltHeartbeatAck( f.requestId)
 	default:
 		log.DefaultLogger.Debugf("Unknown protocol code: [", f.protocol, "] while intercept healthcheck.")
 	}
@@ -106,28 +107,6 @@ func (f *healthCheckFilter) handleIntercept() {
 	f.cb.EncodeHeaders(resp, true)
 }
 
-/**
-func newTrHeartbeatAck() *sofarpc.TrResponseCommand{
-	return &sofarpc.TrResponseCommand{
-		Protocol: sofarpc.PROTOCOL_CODE,
-		CmdType:  byte(2),
-		CmdCode:  int16(0),
-		// todo: fill in more properties...
-	}
-}
-**/
-
-func newBoltHeartbeatAck(protocol byte, requestId uint32) *sofarpc.BoltResponseCommand{
-	return &sofarpc.BoltResponseCommand{
-		Protocol: protocol,
-		CmdType:  sofarpc.RESPONSE,
-		CmdCode:  sofarpc.HEARTBEAT,
-		Version: 1,
-		ReqId: requestId,
-		CodecPro: codec.HESSIAN2_SERIALIZE,//todo: read default codec from config
-		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
-	}
-}
 
 func (f *healthCheckFilter) SetDecoderFilterCallbacks(cb types.StreamDecoderFilterCallbacks) {
 	f.cb = cb
