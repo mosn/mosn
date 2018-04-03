@@ -102,7 +102,6 @@ func (p *connPool) onStreamDestroy(client *activeClient) {
 }
 
 func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetReason) {
-	// todo: update host stats
 	if reason == types.StreamConnectionTermination || reason == types.StreamConnectionFailed {
 		p.host.HostStats().UpstreamRequestFailureEject.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestFailureEject.Inc(1)

@@ -111,6 +111,7 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 
 		for ar := c.ActiveRequests.Front(); ar != nil; ar = ar.Next() {
 			reason := types.StreamConnectionFailed
+
 			if c.ConnectedFlag {
 				reason = types.StreamConnectionTermination
 			}

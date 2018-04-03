@@ -6,10 +6,8 @@ const (
 	StreamConnectionTermination    StreamResetReason = "ConnectionTermination"
 	StreamConnectionFailed         StreamResetReason = "ConnectionFailed"
 	StreamLocalReset               StreamResetReason = "StreamLocalReset"
-	StreamLocalRefusedStreamReset  StreamResetReason = "StreamLocalRefusedStreamReset"
 	StreamOverflow                 StreamResetReason = "StreamOverflow"
 	StreamRemoteReset              StreamResetReason = "StreamRemoteReset"
-	StreanRemoteRefusedStreamReset StreamResetReason = "StreanRemoteRefusedStreamReset"
 )
 
 type StreamCallbacks interface {
