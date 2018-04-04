@@ -68,9 +68,12 @@ func (conn *streamConnection) Protocol() types.Protocol {
 func (conn *streamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &stream{
 		streamId:   streamId,
+		direction:  0,
 		connection: conn,
 		decoder:    responseDecoder,
 	}
+
+	conn.activeStreams[streamId] = stream
 
 	return stream
 }
@@ -91,6 +94,10 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
 		stream.decoder.OnDecodeData(data, true) //回调PROXY层的OnDecodeData,把数据传进去
+
+		if stream.direction == 0 {
+			delete(stream.connection.activeStreams, stream.streamId)
+		}
 	}
 
 	return types.StopIteration
@@ -101,7 +108,7 @@ func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[stri
 		stream.decoder.OnDecodeTrailers(trailers)
 	}
 
-	return types.Continue
+	return types.StopIteration
 }
 
 func (conn *streamConnection) onNewStreamDetected(streamId uint32) {
@@ -111,6 +118,7 @@ func (conn *streamConnection) onNewStreamDetected(streamId uint32) {
 
 	stream := &stream{
 		streamId:   streamId,
+		direction:  1,
 		connection: conn,
 	}
 
@@ -122,6 +130,7 @@ func (conn *streamConnection) onNewStreamDetected(streamId uint32) {
 // types.StreamEncoder
 type stream struct {
 	streamId         uint32
+	direction        int // 0: out, 1: in
 	readDisableCount int
 	connection       *streamConnection
 	decoder          types.StreamDecoder
@@ -207,7 +216,9 @@ func (s *stream) endStream() {
 	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedHeaders)
 	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedData)
 
-	delete(s.connection.activeStreams, s.streamId)
+	if s.direction == 1 {
+		delete(s.connection.activeStreams, s.streamId)
+	}
 }
 
 func (s *stream) GetStream() types.Stream {
