@@ -34,6 +34,11 @@ func (f *streamConnFactory) CreateServerStream(connection types.Connection,
 	return newServerStreamConnection(connection, callbacks)
 }
 
+func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionCallbacks,
+	serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection {
+		return nil
+}
+
 var transport http2.Transport
 var server http2.Server
 

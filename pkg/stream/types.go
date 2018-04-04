@@ -35,9 +35,12 @@ type CodecClientCallbacks interface {
 
 type ProtocolStreamFactory interface {
 	CreateClientStream(connection types.ClientConnection,
-		streamConnCallbacks types.StreamConnectionCallbacks, connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection
+		streamConnCallbacks types.StreamConnectionCallbacks, callbacks types.ConnectionCallbacks) types.ClientStreamConnection
 
 	CreateServerStream(connection types.Connection, callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection
+
+	CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionCallbacks,
+		serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection
 }
 
 

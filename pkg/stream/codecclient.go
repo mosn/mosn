@@ -44,6 +44,26 @@ func NewCodecClient(prot types.Protocol, connection types.ClientConnection, host
 	return codecClient
 }
 
+func NewBiDirectCodeClient(prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
+	serverCallbacks types.ServerStreamConnectionCallbacks) CodecClient {
+	codecClient := &codecClient{
+		Protocol:       prot,
+		Connection:     connection,
+		Host:           host,
+		ActiveRequests: list.New(),
+	}
+
+	if factory, ok := streamFactories[prot]; ok {
+		codecClient.Codec = factory.CreateBiDirectStream(connection, codecClient, serverCallbacks)
+	} else {
+		return nil
+	}
+
+	connection.FilterManager().AddReadFilter(codecClient)
+
+	return codecClient
+}
+
 func (c *codecClient) Id() uint64 {
 	return c.Connection.Id()
 }

@@ -59,3 +59,22 @@ func ConvertPropertyValue(strValue string, kind reflect.Kind) interface{} {
 		return strValue
 	}
 }
+
+func IsSofaRequest(headers map[string]string)bool{
+
+	procode:= ConvertPropertyValue(headers[SofaPropertyHeader("protocol")],reflect.Uint8)
+	if procode== PROTOCOL_CODE_V1 || procode == PROTOCOL_CODE_V2 {
+
+		cmdtype := ConvertPropertyValue(headers[SofaPropertyHeader("cmdtype")],reflect.Uint8)
+		if cmdtype == REQUEST{
+			return true
+		}
+	} else if procode == TR_PROTOCOL_CODE {
+
+		requestFlage :=  ConvertPropertyValue(headers[SofaPropertyHeader("requestflag")],reflect.Uint8)
+		if requestFlage == TR_REQUEST{
+			return true
+		}
+	}
+	return false
+}

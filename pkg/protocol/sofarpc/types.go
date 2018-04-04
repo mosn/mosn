@@ -30,6 +30,8 @@ const (
 	HEARTBEAT    int16 = 0
 	RPC_REQUEST  int16 = 1
 	RPC_RESPONSE int16 = 2
+
+	TR_PROTOCOL_CODE byte = 13
 )
 
 //统一的RPC PROTOCOL抽象接口
