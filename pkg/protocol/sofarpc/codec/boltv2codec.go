@@ -173,7 +173,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 						content = bytes[read: read+int(contentLen)]
 						read += int(contentLen)
 					}
-					data.Set(read)
+					data.Drain(read)
 				} else { // not enough data
 					log.DefaultLogger.Println("[BOLTV2 Decoder]no enough data for fully decode")
 					return 0, nil

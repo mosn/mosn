@@ -1,9 +1,9 @@
 package buffer
 
 import (
+	"io"
 	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"io"
 )
 
 const MinRead = 512
@@ -20,6 +20,8 @@ type IoBuffer struct {
 	buf     []byte // contents: buf[off : len(buf)]
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
+
+	bootstrap [64]byte
 }
 
 func (b *IoBuffer) Read(p []byte) (n int, err error) {
@@ -39,7 +41,7 @@ func (b *IoBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
+func (b *IoBuffer) ReadOne(r io.Reader) (n int64, err error) {
 	if b.off >= len(b.buf) {
 		b.Reset()
 	}
@@ -65,6 +67,65 @@ func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 	return
 }
 
+func (b *IoBuffer) Write(p []byte) (n int, err error) {
+	m, ok := b.tryGrowByReslice(len(p))
+
+	if !ok {
+		m = b.grow(len(p))
+	}
+
+	return copy(b.buf[m:], p), nil
+}
+
+func (b *IoBuffer) tryGrowByReslice(n int) (int, bool) {
+	if l := len(b.buf); l+n <= cap(b.buf) {
+		b.buf = b.buf[:l+n]
+
+		return l, true
+	}
+
+	return 0, false
+}
+
+func (b *IoBuffer) grow(n int) int {
+	m := b.Len()
+
+	// If buffer is empty, reset to recover space.
+	if m == 0 && b.off != 0 {
+		b.Reset()
+	}
+
+	// Try to grow by means of a reslice.
+	if i, ok := b.tryGrowByReslice(n); ok {
+		return i
+	}
+
+	// Check if we can make use of bootstrap array.
+	if b.buf == nil && n <= len(b.bootstrap) {
+		b.buf = b.bootstrap[:n]
+		return 0
+	}
+
+	if m+n <= cap(b.buf)/2 {
+		// We can slide things down instead of allocating a new
+		// slice. We only need m+n <= cap(b.buf) to slide, but
+		// we instead let capacity get twice as large so we
+		// don't spend all our time copying.
+		copy(b.buf[:], b.buf[b.off:])
+	} else {
+		// Not enough space anywhere, we need to allocate.
+		buf := makeSlice(2*cap(b.buf) + n)
+		copy(buf, b.buf[b.off:])
+		b.buf = buf
+	}
+
+	// Restore b.off and len(b.buf).
+	b.off = 0
+	b.buf = b.buf[:m+n]
+
+	return m
+}
+
 func (b *IoBuffer) WriteTo(w io.Writer) (n int64, err error) {
 	for b.off < len(b.buf) {
 		nBytes := b.Len()
@@ -81,7 +142,7 @@ func (b *IoBuffer) WriteTo(w io.Writer) (n int64, err error) {
 			return n, e
 		}
 
-		if m == 0 {
+		if m == 0 || m == nBytes {
 			return n, nil
 		}
 	}
@@ -161,7 +222,7 @@ func (b *IoBuffer) Cut(offset int) types.IoBuffer {
 	}
 }
 
-func (b *IoBuffer) Set(offset int) {
+func (b *IoBuffer) Drain(offset int) {
 	if b.off+offset > len(b.buf) {
 		return
 	}
@@ -206,8 +267,8 @@ func makeSlice(n int) []byte {
 	return make([]byte, n)
 }
 
-func NewIoBuffer(bufSize int) types.IoBuffer {
-	buf := make([]byte, 0, bufSize)
+func NewIoBuffer(capacity int) types.IoBuffer {
+	buf := make([]byte, 0, capacity)
 
 	return &IoBuffer{
 		buf:     buf,

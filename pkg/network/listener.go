@@ -16,7 +16,7 @@ type listener struct {
 	localAddress                          net.Addr
 	bindToPort                            bool
 	listenerTag                           uint64
-	connBufferLimitBytes                  uint32
+	perConnBufferLimitBytes               uint32
 	handOffRestoredDestinationConnections bool
 	cb                                    types.ListenerCallbacks
 	rawl                                  *net.TCPListener
@@ -30,7 +30,7 @@ func NewListener(lc v2.ListenerConfig) types.Listener {
 		localAddress:                          la,
 		bindToPort:                            lc.BindToPort,
 		listenerTag:                           lc.ListenerTag,
-		connBufferLimitBytes:                  lc.ConnBufferLimitBytes,
+		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
 		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
 	}
 
@@ -73,6 +73,10 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 
 func (l *listener) ListenerTag() uint64 {
 	return l.listenerTag
+}
+
+func (l *listener) PerConnBufferLimitBytes() uint32 {
+	return l.perConnBufferLimitBytes
 }
 
 func (l *listener) SetListenerCallbacks(cb types.ListenerCallbacks) {

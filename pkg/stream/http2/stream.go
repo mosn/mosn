@@ -36,7 +36,7 @@ func (f *streamConnFactory) CreateServerStream(connection types.Connection,
 
 func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionCallbacks,
 	serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection {
-		return nil
+	return nil
 }
 
 var transport http2.Transport
@@ -58,6 +58,22 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {}
 
 func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
+}
+
+func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
+	for as := conn.activeStreams.Front(); as != nil; as = as.Next() {
+		for _, cb := range as.Value.(stream).streamCbs {
+			cb.OnAboveWriteBufferHighWatermark()
+		}
+	}
+}
+
+func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark() {
+	for as := conn.activeStreams.Front(); as != nil; as = as.Next() {
+		for _, cb := range as.Value.(stream).streamCbs {
+			cb.OnBelowWriteBufferLowWatermark()
+		}
+	}
 }
 
 type clientStreamConnection struct {
@@ -149,7 +165,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 
 	buf := &buffer.IoBuffer{}
 	// todo
-	buf.ReadFrom(request.Body)
+	buf.ReadOne(request.Body)
 	stream.decoder.OnDecodeData(buf, false)
 	stream.decoder.OnDecodeTrailers(decodeHeader(request.Trailer))
 
@@ -195,17 +211,9 @@ func (s *stream) ResetStream(reason types.StreamResetReason) {
 	}
 }
 
-func (s *stream) ReadDisable(disable bool) {
-	// todo
-}
-
 func (s *stream) BufferLimit() uint32 {
 	// todo
 	return 0
-}
-
-func (s *stream) GetStream() types.Stream {
-	return s
 }
 
 type clientStream struct {
@@ -302,6 +310,11 @@ func (s *clientStream) endStream() {
 	s.doSend()
 }
 
+func (s *clientStream) ReadDisable(disable bool) {
+	// todo: disable client read
+	log.DefaultLogger.Println("high watermark")
+}
+
 func (s *clientStream) doSend() {
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
 
@@ -340,7 +353,7 @@ func (s *clientStream) doSend() {
 
 		buf := &buffer.IoBuffer{}
 		// todo
-		buf.ReadFrom(resp.Body)
+		buf.ReadOne(resp.Body)
 
 		s.decoder.OnDecodeData(buf, false)
 		s.decoder.OnDecodeTrailers(decodeHeader(resp.Trailer))
@@ -349,6 +362,10 @@ func (s *clientStream) doSend() {
 	s.connection.asMutex.Lock()
 	s.connection.activeStreams.Remove(s.element)
 	s.connection.asMutex.Unlock()
+}
+
+func (s *clientStream) GetStream() types.Stream {
+	return s
 }
 
 type serverStream struct {
@@ -428,6 +445,11 @@ func (s *serverStream) endStream() {
 	s.connection.asMutex.Unlock()
 }
 
+func (s *serverStream) ReadDisable(disable bool) {
+	// todo: disable server read
+	log.DefaultLogger.Println("high watermark")
+}
+
 func (s *serverStream) doSend() {
 	for key, values := range s.response.Header {
 		for _, value := range values {
@@ -439,11 +461,15 @@ func (s *serverStream) doSend() {
 
 	buf := &buffer.IoBuffer{}
 	// todo
-	buf.ReadFrom(s.response.Body)
+	buf.ReadOne(s.response.Body)
 
 	// todo
 	s.responseWriter.Write(buf.Bytes())
 	buf.Reset()
+}
+
+func (s *serverStream) GetStream() types.Stream {
+	return s
 }
 
 func encodeHeader(in map[string]string) (out map[string][]string) {

@@ -225,10 +225,7 @@ func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 	conn := network.NewServerConnection(rawc, al.stopChan, al.handler.logger)
 	newCtx := context.WithValue(ctx, types.ContextKeyConnectionId, conn.Id())
 
-	var limit uint32
-	// TODO: read from config.perConnectionBufferLimitBytes()
-	limit = 4 * 1024
-	conn.SetBufferLimit(limit)
+	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
 	al.OnNewConnection(conn, newCtx)
 }

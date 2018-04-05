@@ -57,9 +57,9 @@ type StreamConnection interface {
 
 	Protocol() Protocol
 
-	//OnUnderlyingConnectionAboveWriteBufferHighWatermark()
-	//
-	//OnUnderlyingConnectionBelowWriteBufferLowWatermark()
+	OnUnderlyingConnectionAboveWriteBufferHighWatermark()
+
+	OnUnderlyingConnectionBelowWriteBufferLowWatermark()
 }
 
 type ServerStreamConnection interface {

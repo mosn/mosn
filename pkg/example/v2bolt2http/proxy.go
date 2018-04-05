@@ -166,10 +166,10 @@ func genericProxyConfig() *v2.Proxy {
 
 func rpcProxyListener() v2.ListenerConfig {
 	return v2.ListenerConfig{
-		Name:                 TestListener,
-		Addr:                 MeshServerAddr,
-		BindToPort:           true,
-		ConnBufferLimitBytes: 1024 * 32,
+		Name:                    TestListener,
+		Addr:                    MeshServerAddr,
+		BindToPort:              true,
+		PerConnBufferLimitBytes: 1024 * 32,
 	}
 }
 
@@ -201,7 +201,7 @@ func clustersrpc() []v2.Cluster {
 		ClusterType:          v2.SIMPLE_CLUSTER,
 		LbType:               v2.LB_RANDOM,
 		MaxRequestPerConn:    1024,
-		ConnBufferLimitBytes: 16 * 1026,
+		ConnBufferLimitBytes: 32 * 1024,
 	})
 
 	return configs

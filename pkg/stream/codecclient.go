@@ -39,7 +39,9 @@ func NewCodecClient(prot types.Protocol, connection types.ClientConnection, host
 		return nil
 	}
 
+	connection.AddConnectionCallbacks(codecClient)
 	connection.FilterManager().AddReadFilter(codecClient)
+	connection.SetNoDelay(true)
 
 	return codecClient
 }
@@ -59,7 +61,9 @@ func NewBiDirectCodeClient(prot types.Protocol, connection types.ClientConnectio
 		return nil
 	}
 
+	connection.AddConnectionCallbacks(codecClient)
 	connection.FilterManager().AddReadFilter(codecClient)
+	connection.SetNoDelay(true)
 
 	return codecClient
 }
@@ -142,11 +146,11 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 }
 
 func (c *codecClient) OnAboveWriteBufferHighWatermark() {
-	// todo
+	c.Codec.OnUnderlyingConnectionAboveWriteBufferHighWatermark()
 }
 
 func (c *codecClient) OnBelowWriteBufferLowWatermark() {
-	// todo
+	c.Codec.OnUnderlyingConnectionBelowWriteBufferLowWatermark()
 }
 
 // read filter, recv upstream data
@@ -206,13 +210,9 @@ func (r *activeRequest) OnResetStream(reason types.StreamResetReason) {
 	r.codecClient.onReset(r, reason)
 }
 
-func (r *activeRequest) OnAboveWriteBufferHighWatermark() {
-	// todo
-}
+func (r *activeRequest) OnAboveWriteBufferHighWatermark() {}
 
-func (r *activeRequest) OnBelowWriteBufferLowWatermark() {
-	// todo
-}
+func (r *activeRequest) OnBelowWriteBufferLowWatermark() {}
 
 func (r *activeRequest) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	if endStream {

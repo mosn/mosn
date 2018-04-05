@@ -65,6 +65,14 @@ func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
 }
 
+func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
+	// todo
+}
+
+func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark() {
+	// todo
+}
+
 func (conn *streamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &stream{
 		streamId:   streamId,

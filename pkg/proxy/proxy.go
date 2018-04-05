@@ -168,9 +168,9 @@ func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 }
 
 func (dc *downstreamCallbacks) OnAboveWriteBufferHighWatermark() {
-	// TODO
+	dc.proxy.serverCodec.OnUnderlyingConnectionAboveWriteBufferHighWatermark()
 }
 
 func (dc *downstreamCallbacks) OnBelowWriteBufferLowWatermark() {
-	// TODO
+	dc.proxy.serverCodec.OnUnderlyingConnectionBelowWriteBufferLowWatermark()
 }

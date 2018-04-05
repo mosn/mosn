@@ -21,6 +21,8 @@ type Listener interface {
 
 	ListenerTag() uint64
 
+	PerConnBufferLimitBytes() uint32
+
 	SetListenerCallbacks(cb ListenerCallbacks)
 
 	Close(lctx context.Context) error
@@ -62,7 +64,9 @@ type ListenerFilterManager interface {
 type IoBuffer interface {
 	Read(p []byte) (n int, err error)
 
-	ReadFrom(r io.Reader) (n int64, err error)
+	ReadOne(r io.Reader) (n int64, err error)
+
+	Write(p []byte) (n int, err error)
 
 	WriteTo(w io.Writer) (n int64, err error)
 
@@ -76,7 +80,7 @@ type IoBuffer interface {
 
 	Cut(offset int) IoBuffer
 
-	Set(offset int)
+	Drain(offset int)
 
 	Mark()
 
@@ -89,6 +93,12 @@ type IoBuffer interface {
 	Reset()
 
 	Clone() IoBuffer
+}
+
+type BufferWatermarkListener interface {
+	OnHighWatermark()
+
+	OnLowWatermark()
 }
 
 type ConnState string

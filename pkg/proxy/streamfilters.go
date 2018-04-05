@@ -339,7 +339,7 @@ func (f *activeStreamDecoderFilter) handleBufferData(buf types.IoBuffer) {
 			f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(buf.Len())
 		}
 
-		f.activeStream.downstreamReqDataBuf.ReadFrom(buf)
+		f.activeStream.downstreamReqDataBuf.ReadOne(buf)
 	}
 }
 
@@ -366,28 +366,27 @@ func (f *activeStreamDecoderFilter) EncodeTrailers(trailers map[string]string) {
 }
 
 func (f *activeStreamDecoderFilter) OnDecoderFilterAboveWriteBufferHighWatermark() {
-	// todo
+	f.activeStream.responseEncoder.GetStream().ReadDisable(true)
 }
 
 func (f *activeStreamDecoderFilter) OnDecoderFilterBelowWriteBufferLowWatermark() {
-	// todo
+	f.activeStream.responseEncoder.GetStream().ReadDisable(false)
 }
 
 func (f *activeStreamDecoderFilter) AddDownstreamWatermarkCallbacks(cb types.DownstreamWatermarkCallbacks) {
-	// todo
+	f.activeStream.watermarkCallbacks = cb
 }
 
 func (f *activeStreamDecoderFilter) RemoveDownstreamWatermarkCallbacks(cb types.DownstreamWatermarkCallbacks) {
-	// todo
+	f.activeStream.watermarkCallbacks = nil
 }
 
 func (f *activeStreamDecoderFilter) SetDecoderBufferLimit(limit uint32) {
-	// todo
+	f.activeStream.setBufferLimit(limit)
 }
 
 func (f *activeStreamDecoderFilter) DecoderBufferLimit() uint32 {
-	// todo
-	return 0
+	return f.activeStream.bufferLimit
 }
 
 // types.StreamEncoderFilterCallbacks
@@ -447,7 +446,7 @@ func (f *activeStreamEncoderFilter) handleBufferData(buf types.IoBuffer) {
 			f.activeStream.downstreamRespDataBuf = buffer.NewIoBuffer(buf.Len())
 		}
 
-		f.activeStream.downstreamRespDataBuf.ReadFrom(buf)
+		f.activeStream.downstreamRespDataBuf.ReadOne(buf)
 	}
 }
 
@@ -460,18 +459,17 @@ func (f *activeStreamEncoderFilter) AddEncodedData(buf types.IoBuffer, streaming
 }
 
 func (f *activeStreamEncoderFilter) OnEncoderFilterAboveWriteBufferHighWatermark() {
-	// todo
+	f.activeStream.callHighWatermarkCallbacks()
 }
 
 func (f *activeStreamEncoderFilter) OnEncoderFilterBelowWriteBufferLowWatermark() {
-	// todo
+	f.activeStream.callLowWatermarkCallbacks()
 }
 
 func (f *activeStreamEncoderFilter) SetEncoderBufferLimit(limit uint32) {
-	// todo
+	f.activeStream.setBufferLimit(limit)
 }
 
 func (f *activeStreamEncoderFilter) EncoderBufferLimit() uint32 {
-	// todo
-	return 0
+	return f.activeStream.bufferLimit
 }

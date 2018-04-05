@@ -36,11 +36,12 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 	cluster := cluster{
 		prioritySet: &prioritySet{},
 		info: &clusterInfo{
-			name:        clusterConfig.Name,
-			clusterType: clusterConfig.ClusterType,
-			sourceAddr:  sourceAddr,
-			addedViaApi: addedViaApi,
-			stats:       newClusterStats(clusterConfig),
+			name:                 clusterConfig.Name,
+			clusterType:          clusterConfig.ClusterType,
+			sourceAddr:           sourceAddr,
+			addedViaApi:          addedViaApi,
+			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
+			stats:                newClusterStats(clusterConfig),
 		},
 		initHelper: initHelper,
 	}
