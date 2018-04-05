@@ -64,7 +64,7 @@ type ListenerFilterManager interface {
 type IoBuffer interface {
 	Read(p []byte) (n int, err error)
 
-	ReadOne(r io.Reader) (n int64, err error)
+	ReadOnce(r io.Reader) (n int64, err error)
 
 	ReadFrom(r io.Reader) (n int64, err error)
 

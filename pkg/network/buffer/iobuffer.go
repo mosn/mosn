@@ -41,7 +41,7 @@ func (b *IoBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (b *IoBuffer) ReadOne(r io.Reader) (n int64, err error) {
+func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 	if b.off >= len(b.buf) {
 		b.Reset()
 	}

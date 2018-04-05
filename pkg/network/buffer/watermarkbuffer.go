@@ -21,8 +21,8 @@ func (b *WatermarkBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (b *WatermarkBuffer) ReadOne(r io.Reader) (n int64, err error) {
-	n, err = b.IoBuffer.ReadOne(r)
+func (b *WatermarkBuffer) ReadOnce(r io.Reader) (n int64, err error) {
+	n, err = b.IoBuffer.ReadOnce(r)
 	b.checkHighWatermark()
 
 	return
