@@ -164,8 +164,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 	stream.decoder.OnDecodeHeaders(decodeHeader(request.Header), false)
 
 	buf := &buffer.IoBuffer{}
-	// todo
-	buf.ReadOne(request.Body)
+	buf.ReadFrom(request.Body)
 	stream.decoder.OnDecodeData(buf, false)
 	stream.decoder.OnDecodeTrailers(decodeHeader(request.Trailer))
 
@@ -352,8 +351,7 @@ func (s *clientStream) doSend() {
 		s.decoder.OnDecodeHeaders(decodeHeader(resp.Header), false)
 
 		buf := &buffer.IoBuffer{}
-		// todo
-		buf.ReadOne(resp.Body)
+		buf.ReadFrom(resp.Body)
 
 		s.decoder.OnDecodeData(buf, false)
 		s.decoder.OnDecodeTrailers(decodeHeader(resp.Trailer))
@@ -460,8 +458,7 @@ func (s *serverStream) doSend() {
 	s.responseWriter.WriteHeader(s.response.StatusCode)
 
 	buf := &buffer.IoBuffer{}
-	// todo
-	buf.ReadOne(s.response.Body)
+	buf.ReadFrom(s.response.Body)
 
 	// todo
 	s.responseWriter.Write(buf.Bytes())

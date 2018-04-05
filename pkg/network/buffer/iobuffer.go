@@ -59,10 +59,50 @@ func (b *IoBuffer) ReadOne(r io.Reader) (n int64, err error) {
 		b.off = 0
 	}
 
-	m, err := r.Read(b.buf[len(b.buf) : len(b.buf)+MinRead])
+	m, err := r.Read(b.buf[len(b.buf):cap(b.buf)])
 
-	b.buf = b.buf[0 : len(b.buf)+m]
+	b.buf = b.buf[0: len(b.buf)+m]
 	n += int64(m)
+
+	return
+}
+
+func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
+	if b.off >= len(b.buf) {
+		b.Reset()
+	}
+
+	for {
+		if free := cap(b.buf) - len(b.buf); free < MinRead {
+			// not enough space at end
+			newBuf := b.buf
+			if b.off+free < MinRead {
+				// not enough space using beginning of buffer;
+				// double buffer capacity
+				newBuf = makeSlice(2*cap(b.buf) + MinRead)
+			}
+			copy(newBuf, b.buf[b.off:])
+			b.buf = newBuf[:len(b.buf)-b.off]
+			b.off = 0
+		}
+
+		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
+
+		b.buf = b.buf[0: len(b.buf)+m]
+		n += int64(m)
+
+		if e == io.EOF {
+			break
+		}
+
+		if m == 0 {
+			break
+		}
+
+		if e != nil {
+			return n, e
+		}
+	}
 
 	return
 }
@@ -171,7 +211,7 @@ func (b *IoBuffer) Append(data []byte) error {
 	}
 
 	m := copy(b.buf[len(b.buf):len(b.buf)+dataLen], data)
-	b.buf = b.buf[0 : len(b.buf)+m]
+	b.buf = b.buf[0: len(b.buf)+m]
 
 	return nil
 }
@@ -187,7 +227,7 @@ func (b *IoBuffer) Peek(n int) []byte {
 		return nil
 	}
 
-	return b.buf[b.off : b.off+n]
+	return b.buf[b.off: b.off+n]
 }
 
 func (b *IoBuffer) Mark() {

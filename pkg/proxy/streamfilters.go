@@ -339,7 +339,7 @@ func (f *activeStreamDecoderFilter) handleBufferData(buf types.IoBuffer) {
 			f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(buf.Len())
 		}
 
-		f.activeStream.downstreamReqDataBuf.ReadOne(buf)
+		f.activeStream.downstreamReqDataBuf.ReadFrom(buf)
 	}
 }
 
@@ -446,7 +446,7 @@ func (f *activeStreamEncoderFilter) handleBufferData(buf types.IoBuffer) {
 			f.activeStream.downstreamRespDataBuf = buffer.NewIoBuffer(buf.Len())
 		}
 
-		f.activeStream.downstreamRespDataBuf.ReadOne(buf)
+		f.activeStream.downstreamRespDataBuf.ReadFrom(buf)
 	}
 }
 

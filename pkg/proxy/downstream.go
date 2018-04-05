@@ -244,7 +244,7 @@ func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data type
 				s.downstreamReqDataBuf = buffer.NewIoBuffer(data.Len())
 			}
 
-			s.downstreamReqDataBuf.ReadOne(data)
+			s.downstreamReqDataBuf.ReadFrom(data)
 		}
 
 		// use a copy when we need to reuse buffer later

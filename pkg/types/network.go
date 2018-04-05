@@ -66,6 +66,8 @@ type IoBuffer interface {
 
 	ReadOne(r io.Reader) (n int64, err error)
 
+	ReadFrom(r io.Reader) (n int64, err error)
+
 	Write(p []byte) (n int, err error)
 
 	WriteTo(w io.Writer) (n int64, err error)
