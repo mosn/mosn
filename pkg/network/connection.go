@@ -194,17 +194,15 @@ func (c *connection) doRead() (err error) {
 
 	var bytesRead int64
 
-	if c.readBuffer.Br.Len() < int(c.bufferLimit) {
-		bytesRead, err = c.readBuffer.Read()
+	bytesRead, err = c.readBuffer.Read()
 
-		if err != nil {
-			if te, ok := err.(net.Error); ok && te.Timeout() {
-				return
-			}
-
-			c.readerBufferPool.Give(c.readBuffer)
-			return err
+	if err != nil {
+		if te, ok := err.(net.Error); ok && te.Timeout() {
+			return
 		}
+
+		c.readerBufferPool.Give(c.readBuffer)
+		return err
 	}
 
 	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Br.Len()))

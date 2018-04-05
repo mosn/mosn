@@ -6,7 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-const MinRead = 512
+const MinRead = 1024
 const ResetOffMark = -1
 
 var (

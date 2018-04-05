@@ -105,11 +105,9 @@ func (b *WatermarkBuffer) SetWaterMarks(lowWatermark uint32, highWatermark uint3
 }
 
 func NewWatermarkBuffer(capacity int, listener types.BufferWatermarkListener) types.IoBuffer {
-	buf := make([]byte, 0, capacity)
-
 	return &WatermarkBuffer{
 		IoBuffer: IoBuffer{
-			buf:     buf,
+			buf:     make([]byte, 0, capacity),
 			offMark: ResetOffMark,
 		},
 		watermarkListener: listener,
