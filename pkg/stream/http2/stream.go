@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 func init() {
@@ -162,7 +163,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 	stream.element = ssc.activeStreams.PushBack(stream)
 	ssc.asMutex.Unlock()
 
-	if stream.readDisableCount <= 0 {
+	if atomic.LoadInt32(&stream.readDisableCount) <= 0 {
 		stream.handleRequest()
 	}
 
@@ -174,7 +175,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 // types.Stream
 // types.StreamEncoder
 type stream struct {
-	readDisableCount int
+	readDisableCount int32
 	request          *http.Request
 	response         *http.Response
 	decoder          types.StreamDecoder
@@ -279,11 +280,11 @@ func (s *clientStream) ReadDisable(disable bool) {
 	log.DefaultLogger.Println("high watermark on h2 stream client")
 
 	if disable {
-		s.readDisableCount++
+		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
-		s.readDisableCount--
+		atomic.AddInt32(&s.readDisableCount, -1)
 
-		if s.readDisableCount <= 0 {
+		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleResponse()
 		}
 	}
@@ -325,7 +326,7 @@ func (s *clientStream) doSend() {
 	} else {
 		s.response = resp
 
-		if s.readDisableCount <= 0 {
+		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleResponse()
 		}
 	}
@@ -411,11 +412,11 @@ func (s *serverStream) ReadDisable(disable bool) {
 	log.DefaultLogger.Println("high watermark on h2 stream server")
 
 	if disable {
-		s.readDisableCount++
+		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
-		s.readDisableCount--
+		atomic.AddInt32(&s.readDisableCount, -1)
 
-		if s.readDisableCount <= 0 {
+		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleRequest()
 		}
 	}
