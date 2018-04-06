@@ -76,6 +76,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 	}
 }
 
+// types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection
 	streamConnCallbacks types.StreamConnectionCallbacks
@@ -117,6 +118,7 @@ func (csc *clientStreamConnection) NewStream(streamId uint32, responseDecoder ty
 	return stream
 }
 
+// types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
 	serverStreamConnCallbacks types.ServerStreamConnectionCallbacks
@@ -151,7 +153,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		},
 		connection:       ssc,
 		responseWriter:   responseWriter,
-		responseDoneChan: make(chan bool),
+		responseDoneChan: make(chan bool, 1),
 	}
 
 	//调用 PROXY 层的NEW STREAM 作为一种通告机制，将返回STREAM DECODER, 用于解析请求
@@ -160,13 +162,9 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 	stream.element = ssc.activeStreams.PushBack(stream)
 	ssc.asMutex.Unlock()
 
-	//继续调用 PROXY 层的OnDecodeHeader, 向后发起数据
-	stream.decoder.OnDecodeHeaders(decodeHeader(request.Header), false)
-
-	buf := &buffer.IoBuffer{}
-	buf.ReadFrom(request.Body)
-	stream.decoder.OnDecodeData(buf, false)
-	stream.decoder.OnDecodeTrailers(decodeHeader(request.Trailer))
+	if stream.readDisableCount <= 0 {
+		stream.handleRequest()
+	}
 
 	select {
 	case <-stream.responseDoneChan:
@@ -217,45 +215,13 @@ func (s *stream) BufferLimit() uint32 {
 
 type clientStream struct {
 	stream
-	request    *http.Request
 	connection *clientStreamConnection
 }
 
 // types.StreamEncoder   发送数据的时候是作为CLIENT STREAM 发送的
 func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) {
 	headers, _ := headers_.(map[string]string)
-	if s.request == nil {
-		s.request = new(http.Request)
-		s.request.Method = http.MethodGet
-		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s/",
-			s.connection.rawConnection.RemoteAddr().String()))
-	}
 
-	if method, ok := headers[types.HeaderMethod]; ok {
-		s.request.Method = method
-		delete(headers, types.HeaderMethod)
-	}
-
-	if host, ok := headers[types.HeaderHost]; ok {
-		s.request.Host = host
-		delete(headers, types.HeaderHost)
-	}
-
-	if path, ok := headers[types.HeaderPath]; ok {
-		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s%s",
-			s.connection.rawConnection.RemoteAddr().String(), path))
-		delete(headers, types.HeaderPath)
-	}
-
-	s.request.Header = encodeHeader(headers)
-
-	if endStream {
-		s.endStream()
-	}
-}
-
-// types.StreamEncoder
-func (s *clientStream) EncodeHeaders2(headers map[string]string, endStream bool) {
 	if s.request == nil {
 		s.request = new(http.Request)
 		s.request.Method = http.MethodGet
@@ -310,8 +276,17 @@ func (s *clientStream) endStream() {
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
-	// todo: disable client read
-	log.DefaultLogger.Println("high watermark")
+	log.DefaultLogger.Println("high watermark on h2 stream client")
+
+	if disable {
+		s.readDisableCount++
+	} else {
+		s.readDisableCount--
+
+		if s.readDisableCount <= 0 {
+			s.handleResponse()
+		}
+	}
 }
 
 func (s *clientStream) doSend() {
@@ -348,18 +323,27 @@ func (s *clientStream) doSend() {
 			}
 		}
 	} else {
-		s.decoder.OnDecodeHeaders(decodeHeader(resp.Header), false)
+		s.response = resp
 
-		buf := &buffer.IoBuffer{}
-		buf.ReadFrom(resp.Body)
-
-		s.decoder.OnDecodeData(buf, false)
-		s.decoder.OnDecodeTrailers(decodeHeader(resp.Trailer))
+		if s.readDisableCount <= 0 {
+			s.handleResponse()
+		}
 	}
+}
 
-	s.connection.asMutex.Lock()
-	s.connection.activeStreams.Remove(s.element)
-	s.connection.asMutex.Unlock()
+func (s *clientStream) handleResponse() {
+	if s.response != nil {
+		s.decoder.OnDecodeHeaders(decodeHeader(s.response.Header), false)
+		buf := &buffer.IoBuffer{}
+		buf.ReadFrom(s.response.Body)
+		s.decoder.OnDecodeData(buf, false)
+		s.decoder.OnDecodeTrailers(decodeHeader(s.response.Trailer))
+
+		s.connection.asMutex.Lock()
+		s.response = nil
+		s.connection.activeStreams.Remove(s.element)
+		s.connection.asMutex.Unlock()
+	}
 }
 
 func (s *clientStream) GetStream() types.Stream {
@@ -368,7 +352,6 @@ func (s *clientStream) GetStream() types.Stream {
 
 type serverStream struct {
 	stream
-	response         *http.Response
 	connection       *serverStreamConnection
 	responseWriter   http.ResponseWriter
 	responseDoneChan chan bool
@@ -376,27 +359,8 @@ type serverStream struct {
 
 // types.StreamEncoder
 func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) {
-
 	headers, _ := headers_.(map[string]string)
-	if s.response == nil {
-		s.response = new(http.Response)
-		s.response.StatusCode = 200
-	}
 
-	s.response.Header = encodeHeader(headers)
-
-	if status := s.response.Header.Get(types.HeaderStatus); status != "" {
-		s.response.StatusCode, _ = strconv.Atoi(status)
-		s.response.Header.Del(types.HeaderStatus)
-	}
-
-	if endStream {
-		s.endStream()
-	}
-}
-
-// types.StreamEncoder
-func (s *serverStream) EncodeHeaders2(headers map[string]string, endStream bool) {
 	if s.response == nil {
 		s.response = new(http.Response)
 		s.response.StatusCode = 200
@@ -444,8 +408,17 @@ func (s *serverStream) endStream() {
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
-	// todo: disable server read
-	log.DefaultLogger.Println("high watermark")
+	log.DefaultLogger.Println("high watermark on h2 stream server")
+
+	if disable {
+		s.readDisableCount++
+	} else {
+		s.readDisableCount--
+
+		if s.readDisableCount <= 0 {
+			s.handleRequest()
+		}
+	}
 }
 
 func (s *serverStream) doSend() {
@@ -459,10 +432,17 @@ func (s *serverStream) doSend() {
 
 	buf := &buffer.IoBuffer{}
 	buf.ReadFrom(s.response.Body)
+	buf.WriteTo(s.responseWriter)
+}
 
-	// todo
-	s.responseWriter.Write(buf.Bytes())
-	buf.Reset()
+func (s *serverStream) handleRequest() {
+	if s.request != nil {
+		s.decoder.OnDecodeHeaders(decodeHeader(s.request.Header), false)
+		buf := &buffer.IoBuffer{}
+		buf.ReadFrom(s.request.Body)
+		s.decoder.OnDecodeData(buf, false)
+		s.decoder.OnDecodeTrailers(decodeHeader(s.request.Trailer))
+	}
 }
 
 func (s *serverStream) GetStream() types.Stream {
@@ -500,5 +480,6 @@ func (rc *IoBufferReadCloser) Read(p []byte) (n int, err error) {
 }
 
 func (rc *IoBufferReadCloser) Close() error {
+	rc.buf.Reset()
 	return nil
 }

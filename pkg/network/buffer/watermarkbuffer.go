@@ -93,8 +93,8 @@ func (b *WatermarkBuffer) checkLowWatermark() {
 }
 
 func (b *WatermarkBuffer) checkHighWatermark() {
-	if b.aboveHighWatermarkCalled ||
-		(b.highWatermark > 0 && uint32(b.Len()) <= b.highWatermark) {
+	if b.aboveHighWatermarkCalled || b.highWatermark == 0 ||
+		uint32(b.Len()) <= b.highWatermark {
 		return
 	}
 
