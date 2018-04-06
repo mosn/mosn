@@ -209,11 +209,6 @@ func (s *stream) ResetStream(reason types.StreamResetReason) {
 	}
 }
 
-func (s *stream) BufferLimit() uint32 {
-	// todo
-	return 0
-}
-
 type clientStream struct {
 	stream
 	connection *clientStreamConnection
@@ -282,9 +277,9 @@ func (s *clientStream) ReadDisable(disable bool) {
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
-		atomic.AddInt32(&s.readDisableCount, -1)
+		newCount := atomic.AddInt32(&s.readDisableCount, -1)
 
-		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+		if newCount <= 0 {
 			s.handleResponse()
 		}
 	}
@@ -414,9 +409,9 @@ func (s *serverStream) ReadDisable(disable bool) {
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
-		atomic.AddInt32(&s.readDisableCount, -1)
+		newCount := atomic.AddInt32(&s.readDisableCount, -1)
 
-		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+		if newCount <= 0 {
 			s.handleRequest()
 		}
 	}

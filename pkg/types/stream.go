@@ -26,8 +26,6 @@ type Stream interface {
 	ResetStream(reason StreamResetReason)
 
 	ReadDisable(disable bool)
-
-	BufferLimit() uint32
 }
 
 type StreamProto string
