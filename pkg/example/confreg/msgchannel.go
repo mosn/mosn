@@ -51,6 +51,7 @@ func main() {
 	var wg sync.WaitGroup
 	channelReadyChan := make(chan bool)
 	wg.Add(2)
+
 	go func(){
 		go msgChan.StartChannel()
 		channelReadyChan <- true
@@ -65,7 +66,6 @@ func main() {
 		case <- channelReadyChan:
 			go httpreceive()
 		}
-
 	}()
 
 	wg.Wait()

@@ -13,6 +13,12 @@ codecClient.SetCodecConnectionCallbacks(ac)
 + codecclient callbacks: called on stream reset
 + codecclient connection callbacks: called on connection get a graceful close event
 
+####Also: If you want to use the stream to realize bidirection communication, you need use NewBiDirectCodeClient 
+```
+codecClient := str.NewBiDirectCodeClient(protocol.Http2, connData.Connection, connData.HostInfo, SrvStreamCB)
+```
+where `SrvStreamCB` realizes interface `SrvStreamCBServerStreamConnectionCallbacks`, and you need to realize related func by yourself
+
 #### Step 2. Make a new stream
 
 ```

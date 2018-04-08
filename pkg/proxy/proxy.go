@@ -119,7 +119,6 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-//由stream层来调用
 func (p *proxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
 	stream := newActiveStream(streamId, p, responseEncoder)
 
