@@ -199,7 +199,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 	}
 
 	// Call Protocol-Level's EncodeHeaders Func
-	s.streamId, s.encodedHeaders = s.connection.protocols.EncodeHeaders(headers) //OK.......
+	s.streamId, s.encodedHeaders = s.connection.protocols.EncodeHeaders(headers)
 	s.connection.activeStreams[s.streamId] = s
 
 	if endStream {
