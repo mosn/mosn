@@ -553,7 +553,7 @@ func (s *activeStream) doRetry() {
 		requestInfo:  network.NewRequestInfo(),
 	}
 
-	s.upstreamRequest.encodeHeaders(nil,
+	s.upstreamRequest.encodeHeaders(s.downstreamReqHeaders,
 		s.downstreamReqDataBuf != nil && s.downstreamReqTrailers != nil)
 
 	if s.upstreamRequest != nil {

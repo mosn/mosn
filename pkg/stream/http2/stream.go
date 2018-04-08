@@ -157,7 +157,6 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	//调用 PROXY 层的NEW STREAM 作为一种通告机制，将返回STREAM DECODER, 用于解析请求
 	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(0, stream)
 	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
