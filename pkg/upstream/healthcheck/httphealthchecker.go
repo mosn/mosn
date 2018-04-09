@@ -1,7 +1,6 @@
 package healthcheck
 
 import (
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
@@ -150,66 +149,3 @@ func (s *httpHealthCheckSession) OnResetStream(reason types.StreamResetReason) {
 func (s *httpHealthCheckSession) OnAboveWriteBufferHighWatermark() {}
 
 func (s *httpHealthCheckSession) OnBelowWriteBufferLowWatermark() {}
-
-func (s *httpHealthCheckSession) OnGoAway() {}
-
-//When you receive health check
-func (s *httpHealthCheckSession) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
-	as := &requestStream{}
-	return as
-}
-
-var RespEncoder types.StreamEncoder
-
-func (s *httpHealthCheckSession) onIntervalDemo2() {
-	if s.client == nil {
-		connData := s.host.CreateConnection()
-		s.client = stream.NewBiDirectCodeClient(protocol.Http2, connData.Connection, connData.HostInfo, s)
-		s.expectReset = false
-	}
-
-	s.requestEncoder = s.client.NewStream(0, s)
-	RespEncoder = s.requestEncoder
-
-	s.requestEncoder.GetStream().AddCallbacks(s)
-	reqHeaders := map[string]string{
-		types.HeaderMethod: http.MethodGet,
-		types.HeaderHost:   s.healthChecker.cluster.Info().Name(),
-		types.HeaderPath:   s.healthChecker.checkPath,
-	}
-	s.requestEncoder.EncodeHeaders(reqHeaders, true)
-	s.requestEncoder = nil
-	s.healthCheckSession.onInterval()
-}
-
-type requestStream struct {
-}
-
-func (s *requestStream) OnDecodeHeaders(headers map[string]string, endStream bool) {
-
-	//Deal with request headers, for example
-	if headers["CMD"] == "PUSH" {
-
-		for key, value := range headers {
-			fmt.Println(key, value)
-		}
-
-	}
-	//Build Response Header
-	//CALL OnEncodeHeaders
-	RespEncoder.EncodeHeaders(headers, false)
-}
-
-func (s *requestStream) OnDecodeData(data types.IoBuffer, endStream bool) {
-
-	//CALL OnEncodeData
-	msg := []byte("OK")
-	data.Append(msg)
-	RespEncoder.EncodeData(data, true)
-}
-
-func (s *requestStream) OnDecodeTrailers(trailers map[string]string) {
-
-	//CALL OnEncodeTrailers
-
-}
