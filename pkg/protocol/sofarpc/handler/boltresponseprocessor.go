@@ -74,7 +74,6 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand) 
 	allField[sofarpc.SofaPropertyHeader("cmdCode")] = strconv.FormatUint(uint64(responseCommand.CmdCode), 10)
 	allField[sofarpc.SofaPropertyHeader("version")] = strconv.FormatUint(uint64(responseCommand.Version), 10)
 	allField[sofarpc.SofaPropertyHeader("requestid")] = strconv.FormatUint(uint64(responseCommand.ReqId), 10)
-	allField[sofarpc.SofaPropertyHeader("streamid")] = strconv.FormatUint(uint64(responseCommand.ReqId), 10)
 	allField[sofarpc.SofaPropertyHeader("codec")] = strconv.FormatUint(uint64(responseCommand.CodecPro), 10)
 	// FOR RESPONSE,ENCODE RESPONSE STATUS and RESPONSE TIME
 	allField[sofarpc.SofaPropertyHeader("responseStatus")] = strconv.FormatUint(uint64(responseCommand.ResponseStatus), 10)
