@@ -127,6 +127,8 @@ func (c *trCodec)mapToCmd(headers_ interface{})interface{}{
 	if len(headers) < 8{
 		return nil
 	}
+
+	delete(headers,types.MosnStreamID)
 	protocol := sf.GetPropertyValue(TrPropertyHeaders,headers, "protocol")
 	requestFlag := sf.GetPropertyValue(TrPropertyHeaders,headers, "requestflag")
 

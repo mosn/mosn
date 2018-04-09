@@ -76,7 +76,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 func (conn *streamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &stream{
 		streamId:   streamId,
-		direction:  0,
+		direction:  0,  //out
 		connection: conn,
 		decoder:    responseDecoder,
 	}
@@ -101,7 +101,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
-		stream.decoder.OnDecodeData(data, true) //回调PROXY层的OnDecodeData,把数据传进去
+		stream.decoder.OnDecodeData(data, true)
 
 		if stream.direction == 0 {
 			delete(stream.connection.activeStreams, stream.streamId)
@@ -126,7 +126,7 @@ func (conn *streamConnection) onNewStreamDetected(streamId uint32) {
 
 	stream := &stream{
 		streamId:   streamId,
-		direction:  1,
+		direction:  1,  //in
 		connection: conn,
 	}
 
@@ -181,7 +181,7 @@ func (s *stream) BufferLimit() uint32 {
 	return s.connection.connection.BufferLimit()
 }
 
-// types.StreamEncoder 调用协议层ENCODE方法
+// types.StreamEncoder
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 	if headerMaps, ok := headers.(map[string]string); ok {
 		if status, ok := headerMaps[types.HeaderStatus]; ok {
@@ -208,7 +208,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 }
 
 func (s *stream) EncodeData(data types.IoBuffer, endStream bool) {
-	s.encodedData = data //对于content不再调用协议协议层ENCODER了
+	s.encodedData = data
 
 	if endStream {
 		s.endStream()
@@ -220,7 +220,6 @@ func (s *stream) EncodeTrailers(trailers map[string]string) {
 }
 
 func (s *stream) endStream() {
-	//将数据发出去
 	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedHeaders)
 	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedData)
 

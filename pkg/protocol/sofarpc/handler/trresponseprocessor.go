@@ -55,7 +55,8 @@ func deserializeResponseAllFieldsTR(responseCommand *sofarpc.TrResponseCommand) 
 	allField[sofarpc.SofaPropertyHeader("appClassContentLen")] = strconv.FormatUint(uint64(responseCommand.AppClassContentLen), 10)
 
 	allField[sofarpc.SofaPropertyHeader("cmdcode")] = strconv.FormatUint(uint64(responseCommand.CmdCode), 10)
-	allField[sofarpc.SofaPropertyHeader("requestID")] = strconv.FormatUint(uint64(responseCommand.RequestID), 10)
+	allField[sofarpc.SofaPropertyHeader("requestid")] = strconv.FormatUint(uint64(responseCommand.RequestID), 10)
+	allField[types.MosnStreamID] = strconv.FormatUint(uint64(responseCommand.RequestID), 10)
 
 	responseCommand.ResponseHeader = allField
 }

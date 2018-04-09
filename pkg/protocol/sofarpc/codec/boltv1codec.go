@@ -165,6 +165,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 		return nil
 	}
 
+	delete(headers,types.MosnStreamID)
 	protocolCode := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "protocol")
 	cmdType := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "cmdtype")
 	cmdCode := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "cmdcode")

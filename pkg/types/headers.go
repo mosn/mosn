@@ -5,4 +5,5 @@ const (
 	HeaderMethod = "x-mosn-method"
 	HeaderHost   = "x-mosn-host"
 	HeaderPath   = "x-mosn-path"
+	MosnStreamID = "x-mosn-streamid"
 )

@@ -73,7 +73,6 @@ func (s *sofaHealthCheckSession) onInterval() {
 	s.requestEncoder.EncodeHeaders(reqHeaders.(map[string]string), false)
 	s.requestEncoder.EncodeData(buffer.NewIoBufferBytes(body),true)
 
-
 	s.requestEncoder = nil
 	s.healthCheckSession.onInterval()
 }

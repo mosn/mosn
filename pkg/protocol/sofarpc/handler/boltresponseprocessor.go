@@ -73,17 +73,17 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand) 
 	allField[sofarpc.SofaPropertyHeader("cmdType")] = strconv.FormatUint(uint64(responseCommand.CmdType), 10)
 	allField[sofarpc.SofaPropertyHeader("cmdCode")] = strconv.FormatUint(uint64(responseCommand.CmdCode), 10)
 	allField[sofarpc.SofaPropertyHeader("version")] = strconv.FormatUint(uint64(responseCommand.Version), 10)
-	allField[sofarpc.SofaPropertyHeader("requestId")] = strconv.FormatUint(uint64(responseCommand.ReqId), 10)
+	allField[sofarpc.SofaPropertyHeader("requestid")] = strconv.FormatUint(uint64(responseCommand.ReqId), 10)
+	allField[sofarpc.SofaPropertyHeader("streamid")] = strconv.FormatUint(uint64(responseCommand.ReqId), 10)
 	allField[sofarpc.SofaPropertyHeader("codec")] = strconv.FormatUint(uint64(responseCommand.CodecPro), 10)
-
 	// FOR RESPONSE,ENCODE RESPONSE STATUS and RESPONSE TIME
 	allField[sofarpc.SofaPropertyHeader("responseStatus")] = strconv.FormatUint(uint64(responseCommand.ResponseStatus), 10)
-
 	allField[sofarpc.SofaPropertyHeader("classLength")] = strconv.FormatUint(uint64(responseCommand.ClassLen), 10)
 	allField[sofarpc.SofaPropertyHeader("headerLength")] = strconv.FormatUint(uint64(responseCommand.HeaderLen), 10)
 	allField[sofarpc.SofaPropertyHeader("contentLength")] = strconv.FormatUint(uint64(responseCommand.ContentLen), 10)
-
 	allField[sofarpc.SofaPropertyHeader("responseTimeMills")] = strconv.FormatUint(uint64(responseCommand.ResponseTimeMillis), 10)
+
+	allField[types.MosnStreamID] = strconv.FormatUint(uint64(responseCommand.ReqId), 10)
 
 	//serialize class name
 	var className string
