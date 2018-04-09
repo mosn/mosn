@@ -92,6 +92,10 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 		conn.onNewStreamDetected(streamId)
 	}
 
+	if v,ok := headers[sofarpc.SofaPropertyHeader("requestid")];ok {
+		headers[types.MosnStreamID] = v
+	}
+
 	if stream, ok := conn.activeStreams[streamId]; ok {
 		stream.decoder.OnDecodeHeaders(headers, false) //Call Back Proxy-Level's OnDecodeHeaders
 	}
@@ -194,8 +198,12 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 
 			// remove proxy header before codec encode
 			delete(headerMaps, types.HeaderStatus)
-			headers = headerMaps
 		}
+
+		if  _, ok := headerMaps[types.MosnStreamID]; ok {
+			delete(headerMaps,types.MosnStreamID)
+		}
+		headers = headerMaps
 	}
 
 	// Call Protocol-Level's EncodeHeaders Func

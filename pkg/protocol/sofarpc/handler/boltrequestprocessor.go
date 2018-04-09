@@ -85,8 +85,6 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 	allField[sofarpc.SofaPropertyHeader("headerLength")] = strconv.FormatUint(uint64(requestCommand.HeaderLen), 10)
 	allField[sofarpc.SofaPropertyHeader("contentLength")] = strconv.FormatUint(uint64(requestCommand.ContentLen), 10)
 
-	allField[types.MosnStreamID] = strconv.FormatUint(uint64(requestCommand.ReqId), 10)
-
 	//serialize class name
 	var className string
 	serializeIns.DeSerialize(requestCommand.ClassName, &className)

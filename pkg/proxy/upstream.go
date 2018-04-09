@@ -65,8 +65,8 @@ func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 
 func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
 	r.encodeComplete = endStream
-
 	streamID := 0
+
 	if sid, ok := headers[types.MosnStreamID]; ok {
 		if streamid, err := strconv.Atoi(sid); err == nil {
 			streamID = streamid

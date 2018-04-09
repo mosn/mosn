@@ -82,8 +82,6 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand) 
 	allField[sofarpc.SofaPropertyHeader("contentLength")] = strconv.FormatUint(uint64(responseCommand.ContentLen), 10)
 	allField[sofarpc.SofaPropertyHeader("responseTimeMills")] = strconv.FormatUint(uint64(responseCommand.ResponseTimeMillis), 10)
 
-	allField[types.MosnStreamID] = strconv.FormatUint(uint64(responseCommand.ReqId), 10)
-
 	//serialize class name
 	var className string
 	serializeIns.DeSerialize(responseCommand.ClassName, &className)
