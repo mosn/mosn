@@ -3,6 +3,7 @@ package proxy
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"time"
+	"strconv"
 )
 
 func parseProxyTimeout(route types.Route, headers map[string]string) *ProxyTimeout {
@@ -12,6 +13,18 @@ func parseProxyTimeout(route types.Route, headers map[string]string) *ProxyTimeo
 
 	// todo: check global timeout in request headers
 	// todo: check per try timeout in request headers
+
+	if tto, ok := headers[types.MosnTryTimeout]; ok {
+		if trytimeout, err := strconv.ParseInt(tto,10,64); err == nil {
+			timeout.TryTimeout = time.Duration(trytimeout)
+		}
+	}
+
+	if gto, ok := headers[types.MosnGlobalTimeout]; ok {
+		if globaltimeout, err := strconv.ParseInt(gto,10,64); err == nil {
+			timeout.GlobalTimeout = time.Duration(globaltimeout)
+		}
+	}
 
 	if timeout.TryTimeout >= timeout.GlobalTimeout {
 		timeout.TryTimeout = 0

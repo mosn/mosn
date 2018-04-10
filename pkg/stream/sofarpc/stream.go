@@ -97,6 +97,14 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 		headers[types.MosnStreamID] = v
 	}
 
+	if v, ok := headers[sofarpc.SofaPropertyHeader("timeout")]; ok {
+		headers[types.MosnTryTimeout] = v
+	}
+
+	if v, ok := headers[sofarpc.SofaPropertyHeader("globaltimeout")]; ok {
+		headers[types.MosnGlobalTimeout] = v
+	}
+
 	if stream, ok := conn.activeStreams[streamId]; ok {
 		stream.decoder.OnDecodeHeaders(headers, false) //Call Back Proxy-Level's OnDecodeHeaders
 	}
@@ -190,13 +198,21 @@ func (s *stream) BufferLimit() uint32 {
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 	if headerMaps, ok := headers.(map[string]string); ok {
 
+		// remove proxy header before codec encode
 		if _, ok := headerMaps[types.MosnStreamID]; ok {
 			delete(headerMaps, types.MosnStreamID)
 		}
 
+		if _, ok := headerMaps[types.MosnGlobalTimeout]; ok {
+			delete(headerMaps, types.MosnGlobalTimeout)
+		}
+
+		if _, ok := headerMaps[types.MosnTryTimeout]; ok {
+			delete(headerMaps, types.MosnTryTimeout)
+		}
+
 		if status, ok := headerMaps[types.HeaderStatus]; ok {
 
-			// remove proxy header before codec encode
 			delete(headerMaps, types.HeaderStatus)
 			statusCode, _ := strconv.Atoi(status)
 
@@ -205,7 +221,6 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 
 				//Build Router Unavailable Response Msg
 				if statusCode == 404 {
-
 					respHeaders, err := sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
 					if err == nil {
 						switch respHeaders.(type) {
@@ -220,7 +235,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 						log.DefaultLogger.Println(err.Error())
 						headers = headerMaps
 					}
-				}
+				} //Other exception code
 			} else {
 
 				headers = headerMaps
