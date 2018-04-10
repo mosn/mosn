@@ -216,15 +216,15 @@ func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
 
+	s.doDecodeData(nil, data, endStream)
+}
+
+func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data types.IoBuffer, endStream bool) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
 		return
 	}
 
-	s.doDecodeData(nil, data, endStream)
-}
-
-func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data types.IoBuffer, endStream bool) {
 	if s.decodeDataFilters(filter, data, endStream) {
 		return
 	}
@@ -262,15 +262,15 @@ func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data type
 func (s *activeStream) OnDecodeTrailers(trailers map[string]string) {
 	s.downstreamRecvDone = true
 
+	s.doDecodeTrailers(nil, trailers)
+}
+
+func (s *activeStream) doDecodeTrailers(filter *activeStreamDecoderFilter, trailers map[string]string) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
 		return
 	}
 
-	s.doDecodeTrailers(nil, trailers)
-}
-
-func (s *activeStream) doDecodeTrailers(filter *activeStreamDecoderFilter, trailers map[string]string) {
 	if s.decodeTrailersFilters(filter, trailers) {
 		return
 	}
