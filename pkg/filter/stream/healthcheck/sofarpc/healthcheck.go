@@ -24,7 +24,7 @@ type healthCheckFilter struct {
 	cb types.StreamDecoderFilterCallbacks
 }
 
-func NewHealthCheckFilter(config v2.HealthCheckFilter) *healthCheckFilter {
+func NewHealthCheckFilter(config *v2.HealthCheckFilter) *healthCheckFilter {
 	return &healthCheckFilter{
 		passThrough:                  config.PassThrough,
 		cacheTime:                    config.CacheTime,
@@ -104,7 +104,7 @@ func (f *healthCheckFilter) OnDestroy() {}
 
 // ~~ factory
 type HealthCheckFilterConfigFactory struct {
-	FilterConfig v2.HealthCheckFilter
+	FilterConfig *v2.HealthCheckFilter
 }
 
 func (f *HealthCheckFilterConfigFactory) CreateFilterChain(callbacks types.FilterChainFactoryCallbacks) {

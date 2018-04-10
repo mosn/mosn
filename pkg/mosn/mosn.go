@@ -68,40 +68,44 @@ func main() {
 
 	//commands
 	app.Commands = []cli.Command{
-		cli.Command{
-			Name:        "example",
-			Category:    "motion",
-			Usage:       "run built-in example",
-			Subcommands: cli.Commands{
-				cli.Command{
-					Name:   "sofarpc",
-					Action: exampleSofarpcAction,
-				},
-			},
-
-			Action: func(c *cli.Context) error {
-				c.Command.FullName()
-				c.Command.HasName("wop")
-				c.Command.Names()
-				c.Command.VisibleFlags()
-				fmt.Fprintf(c.App.Writer, "please choose one example suite\n")
-				return nil
-			},
-			OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {
-				fmt.Fprintf(c.App.Writer, "usage error\n")
-				return err
-			},
-		},
+		//cli.Command{
+		//	Name:        "example",
+		//	Category:    "motion",
+		//	Usage:       "run built-in example",
+		//	Subcommands: cli.Commands{
+		//		cli.Command{
+		//			Name:   "sofarpc",
+		//			Action: exampleSofarpcAction,
+		//		},
+		//	},
+		//
+		//	Action: func(c *cli.Context) error {
+		//		c.Command.FullName()
+		//		c.Command.HasName("wop")
+		//		c.Command.Names()
+		//		c.Command.VisibleFlags()
+		//		fmt.Fprintf(c.App.Writer, "please choose one example suite\n")
+		//		return nil
+		//	},
+		//	OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {
+		//		fmt.Fprintf(c.App.Writer, "usage error\n")
+		//		return err
+		//	},
+		//},
+		cmdStart,
+		cmdStop,
+		cmdReload,
 	}
 
 	//flags
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "config, c",
-			Usage: "Load configuration from `FILE`",
-			Value: "config/mson.conf",
-		},
-	}
+	//app.Flags = []cli.Flag{
+	//	cli.StringFlag{
+	//		Name:  "config, c",
+	//		Usage: "Load configuration from `FILE`",
+	//		EnvVar: "MOSN_CONFIG",
+	//		Value: "config/mson.conf",
+	//	},
+	//}
 
 	//hooks
 	//app.Before = func(c *cli.Context) error {
@@ -142,11 +146,6 @@ func main() {
 		}
 
 		c.App.Setup()
-
-		//todo load config and strat proxy server
-		if c.String("config") != "" {
-			fmt.Fprintf(c.App.Writer, "received config flag: %s", c.String("config"))
-		}
 		return nil
 	}
 

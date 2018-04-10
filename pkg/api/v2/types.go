@@ -28,6 +28,7 @@ type Cluster struct {
 	LbType               LbType
 	MaxRequestPerConn    uint64
 	ConnBufferLimitBytes int
+	HealthCheck 		 HealthCheck
 }
 
 type Host struct {

@@ -21,7 +21,7 @@ var servers []*server
 type server struct {
 	logger         log.Logger
 	stopChan       chan bool
-	listenersConfs []v2.ListenerConfig
+	listenersConfs []*v2.ListenerConfig
 	handler        types.ConnectionHandler
 }
 
@@ -51,7 +51,7 @@ func NewServer(config *Config, networkFiltersFactory NetworkFilterChainFactory,
 	return server
 }
 
-func (src *server) AddListener(lc v2.ListenerConfig) {
+func (src *server) AddListener(lc *v2.ListenerConfig) {
 	src.listenersConfs = append(src.listenersConfs, lc)
 }
 

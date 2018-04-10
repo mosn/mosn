@@ -22,7 +22,7 @@ type listener struct {
 	rawl                                  *net.TCPListener
 }
 
-func NewListener(lc v2.ListenerConfig) types.Listener {
+func NewListener(lc *v2.ListenerConfig) types.Listener {
 	la, _ := net.ResolveTCPAddr("tcp", lc.Addr)
 
 	l := &listener{

@@ -15,7 +15,7 @@ type Config struct {
 }
 
 type Server interface {
-	AddListener(lc v2.ListenerConfig)
+	AddListener(lc *v2.ListenerConfig)
 
 	Start()
 
