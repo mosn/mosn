@@ -1,6 +1,7 @@
 package sofarpc
 
 import (
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
@@ -76,7 +77,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 func (conn *streamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &stream{
 		streamId:   streamId,
-		direction:  0,  //out
+		direction:  0, //out
 		connection: conn,
 		decoder:    responseDecoder,
 	}
@@ -92,7 +93,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 		conn.onNewStreamDetected(streamId)
 	}
 
-	if v,ok := headers[sofarpc.SofaPropertyHeader("requestid")];ok {
+	if v, ok := headers[sofarpc.SofaPropertyHeader("requestid")]; ok {
 		headers[types.MosnStreamID] = v
 	}
 
@@ -130,7 +131,7 @@ func (conn *streamConnection) onNewStreamDetected(streamId uint32) {
 
 	stream := &stream{
 		streamId:   streamId,
-		direction:  1,  //in
+		direction:  1, //in
 		connection: conn,
 	}
 
@@ -188,22 +189,46 @@ func (s *stream) BufferLimit() uint32 {
 // types.StreamEncoder
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 	if headerMaps, ok := headers.(map[string]string); ok {
+
+		if _, ok := headerMaps[types.MosnStreamID]; ok {
+			delete(headerMaps, types.MosnStreamID)
+		}
+
 		if status, ok := headerMaps[types.HeaderStatus]; ok {
+
+			// remove proxy header before codec encode
+			delete(headerMaps, types.HeaderStatus)
 			statusCode, _ := strconv.Atoi(status)
 
 			if statusCode != 200 {
 				// todo: handle proxy hijack reply on exception @boqin
 
+				//Build Router Unavailable Response Msg
+				if statusCode == 404 {
+
+					respHeaders, err := sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
+					if err == nil {
+						switch respHeaders.(type) {
+						case *sofarpc.BoltResponseCommand:
+							headers = respHeaders.(*sofarpc.BoltResponseCommand)
+						case *sofarpc.BoltV2ResponseCommand:
+							headers = respHeaders.(*sofarpc.BoltV2ResponseCommand)
+						default:
+							headers = headerMaps
+						}
+					} else {
+						log.DefaultLogger.Println(err.Error())
+						headers = headerMaps
+					}
+				}
+			} else {
+
+				headers = headerMaps
 			}
 
-			// remove proxy header before codec encode
-			delete(headerMaps, types.HeaderStatus)
+		} else {
+			headers = headerMaps
 		}
-
-		if  _, ok := headerMaps[types.MosnStreamID]; ok {
-			delete(headerMaps,types.MosnStreamID)
-		}
-		headers = headerMaps
 	}
 
 	// Call Protocol-Level's EncodeHeaders Func
@@ -228,8 +253,18 @@ func (s *stream) EncodeTrailers(trailers map[string]string) {
 }
 
 func (s *stream) endStream() {
-	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedHeaders)
-	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedData)
+
+	if s.encodedHeaders != nil {
+		s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedHeaders)
+		if s.encodedData != nil {
+			s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedData)
+		} else {
+			log.DefaultLogger.Println("Response Body is void...")
+		}
+
+	} else {
+		log.DefaultLogger.Println("Response Headers is void...")
+	}
 
 	if s.direction == 1 {
 		delete(s.connection.activeStreams, s.streamId)

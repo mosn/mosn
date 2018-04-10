@@ -1,17 +1,17 @@
 package proxy
 
 import (
-	"strconv"
-	"fmt"
-	"time"
-	"errors"
-	"reflect"
 	"container/list"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"errors"
+	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"reflect"
+	"strconv"
+	"time"
 )
 
 // types.StreamCallbacks
@@ -176,7 +176,8 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	if route == nil || route.RouteRule() == nil {
 		// no route
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(404, nil)
+
+		s.sendHijackReply(404, headers)
 
 		return
 	}
@@ -459,7 +460,7 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 
 	// todo: insert proxy headers
 
-	s.encodeHeaders(headers, endStream) //OK HERE
+	s.encodeHeaders(headers, endStream)
 }
 
 func (s *activeStream) onUpstreamData(data types.IoBuffer, endStream bool) {
