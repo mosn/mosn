@@ -3,6 +3,7 @@ package proxy
 import (
 	"container/list"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"strconv"
 )
 
 // types.StreamCallbacks
@@ -64,8 +65,14 @@ func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 
 func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
 	r.encodeComplete = endStream
+	streamID := 0
 
-	r.connPool.NewStream(0, r, r)
+	if sid, ok := headers[types.MosnStreamID]; ok {
+		if streamid, err := strconv.Atoi(sid); err == nil {
+			streamID = streamid
+		}
+	}
+	r.connPool.NewStream(uint32(streamID), r, r)
 }
 
 func (r *upstreamRequest) encodeData(data types.IoBuffer, endStream bool) {

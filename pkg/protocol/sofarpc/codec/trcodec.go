@@ -127,6 +127,7 @@ func (c *trCodec)mapToCmd(headers_ interface{})interface{}{
 	if len(headers) < 8{
 		return nil
 	}
+
 	protocol := sf.GetPropertyValue(TrPropertyHeaders,headers, "protocol")
 	requestFlag := sf.GetPropertyValue(TrPropertyHeaders,headers, "requestflag")
 

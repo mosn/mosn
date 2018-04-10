@@ -204,7 +204,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		requestInfo:  network.NewRequestInfo(),
 	}
 
-	s.upstreamRequest.encodeHeaders(headers, endStream) //调用ENCODER封装
+	s.upstreamRequest.encodeHeaders(headers, endStream)
 
 	if endStream {
 		s.onUpstreamRequestSent()

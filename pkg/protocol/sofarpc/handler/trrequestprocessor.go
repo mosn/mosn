@@ -61,6 +61,7 @@ func deserializeRequestAllFieldsTR(requestCommand *sofarpc.TrRequestCommand) {
 
 	allField[sofarpc.SofaPropertyHeader("cmdcode")] = strconv.FormatUint(uint64(requestCommand.CmdCode), 10)
 	allField[sofarpc.SofaPropertyHeader("requestid")] = strconv.FormatUint(uint64(requestCommand.RequestID), 10)
+
 	//TargetServiceUniqueName
 	allField["service"] = requestCommand.TargetServiceUniqueName
 
