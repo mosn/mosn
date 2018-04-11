@@ -526,14 +526,14 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 		var code int
 		if urtype == UpstreamGlobalTimeout || urtype == UpstreamPerTryTimeout {
 			s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
-			code = 504
+			code = types.TimeoutExceptionCode
 		} else {
 			reasonFlag := s.proxy.streamResetReasonToResponseFlag(reason)
 			s.requestInfo.SetResponseFlag(reasonFlag)
-			code = 500
+			code = types.NoHealthUpstreamCode
 		}
 
-		s.sendHijackReply(code, nil)
+		s.sendHijackReply(code, s.downstreamReqHeaders)
 	}
 }
 
