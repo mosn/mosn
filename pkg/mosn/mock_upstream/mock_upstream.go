@@ -1,16 +1,16 @@
 package main
 
 import (
-	"time"
-	"net/http"
+	"fmt"
 	"golang.org/x/net/http2"
 	"net"
-	"fmt"
+	"net/http"
+	"time"
 )
 
-const 	RealServerAddr = "127.0.0.1:8088"
+const RealServerAddr = "127.0.0.1:8088"
 
-func main(){
+func main() {
 
 	go func() {
 		// upstream

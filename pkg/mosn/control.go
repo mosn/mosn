@@ -7,14 +7,14 @@ import (
 
 var (
 	cmdStart = cli.Command{
-		Name:    "start",
-		Usage:   "start mosn proxy",
+		Name:  "start",
+		Usage: "start mosn proxy",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "config, c",
-				Usage: "Load configuration from `FILE`",
+				Name:   "config, c",
+				Usage:  "Load configuration from `FILE`",
 				EnvVar: "MOSN_CONFIG",
-				Value: "config/mson.conf",
+				Value:  "config/mson.conf",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -26,19 +26,18 @@ var (
 	}
 
 	cmdStop = cli.Command{
-		Name:    "stop",
-		Usage:   "stop mosn proxy",
+		Name:  "stop",
+		Usage: "stop mosn proxy",
 		Action: func(c *cli.Context) error {
 			return nil
 		},
 	}
 
 	cmdReload = cli.Command{
-		Name:    "reload",
-		Usage:   "reconfiguration",
+		Name:  "reload",
+		Usage: "reconfiguration",
 		Action: func(c *cli.Context) error {
 			return nil
 		},
 	}
-
 )

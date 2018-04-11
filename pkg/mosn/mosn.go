@@ -2,12 +2,12 @@ package main
 
 import (
 	"errors"
-	_"flag"
+	_ "flag"
 	"fmt"
+	"github.com/urfave/cli"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/example/sofarpc"
 	"os"
 	"time"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/example/sofarpc"
-	"github.com/urfave/cli"
 )
 
 func init() {
@@ -159,7 +159,6 @@ func main() {
 	//	"explicable": false,
 	//	"whatever-values": 19.99,
 	//}
-
 
 	// ignore error so we don't exit non-zero and break gfmrun README example tests
 	_ = app.Run(os.Args)

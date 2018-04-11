@@ -66,7 +66,7 @@
       {
         "name": "local_service",
         "type": "SIMPLE",
-        "lb_type": "LB_ROUNDROBIN",
+        "lb_type": "LB_RANDOM",
         "max_request_per_conn": 100000,
         "healthcheck": {
           "timeout": 1000,
@@ -86,7 +86,7 @@
       {
         "name": "local_service_2",
         "type": "SIMPLE",
-        "lb_type": "LB_ROUNDROBIN",
+        "lb_type": "LB_RANDOM",
         "hosts": [
           {
             "hostname": "local_upstream",
