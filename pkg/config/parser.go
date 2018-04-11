@@ -43,9 +43,9 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 
 	//routes
 	if routes, ok  := c.Config["routes"]; ok{
-		if routes, ok := routes.([]map[string]interface{}); ok {
+		if routes, ok := routes.([]interface{}); ok {
 			for _, route := range routes {
-				proxyConfig.Routes = append(proxyConfig.Routes, parseRouteConfig(route))
+				proxyConfig.Routes = append(proxyConfig.Routes, parseRouteConfig(route.(map[string]interface{})))
 			}
 		}else{
 			log.Fatal("[routes] in proxy filter config is not list of routemap")
@@ -101,8 +101,8 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject{
 
 	//percent
 	if percent, ok  := config["delay_percent"]; ok{
-		if percent, ok := percent.(uint32); ok {
-			faultInject.DelayPercent = percent
+		if percent, ok := percent.(float64); ok {
+			faultInject.DelayPercent = uint32(percent)
 		}else{
 			log.Fatal("[delay_percent] in fault inject filter config is not integer")
 		}
@@ -112,8 +112,8 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject{
 
 	//duration
 	if duration, ok  := config["delay_duration_ms"]; ok{
-		if duration, ok := duration.(uint64); ok {
-			faultInject.DelayDuration = duration
+		if duration, ok := duration.(float64); ok {
+			faultInject.DelayDuration = uint64(duration)
 		}else{
 			log.Fatal("[delay_duration_ms] in fault inject filter config is not integer")
 		}
@@ -139,7 +139,7 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 
 	//cache time
 	if cacheTime, ok  := config["cache_time_ms"]; ok{
-		if cacheTime, ok := cacheTime.(uint32); ok {
+		if cacheTime, ok := cacheTime.(float64); ok {
 			healthcheck.CacheTime = time.Duration(cacheTime)
 		}else{
 			log.Fatal("[cache_time_ms] in health check filter config is not integer")
@@ -153,7 +153,7 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 		if clusterMinHealthyPercentage, ok := clusterMinHealthyPercentage.(map[string]interface{}); ok {
 			healthcheck.ClusterMinHealthyPercentage = make(map[string]float32)
 			for cluster, percent := range clusterMinHealthyPercentage{
-				healthcheck.ClusterMinHealthyPercentage[cluster] = percent.(float32)
+				healthcheck.ClusterMinHealthyPercentage[cluster] = float32(percent.(float64))
 			}
 		}else{
 			log.Fatal("[passthrough] in health check filter config is not bool")
@@ -202,7 +202,7 @@ func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
 	}
 
 	if c.ConnBufferLimitBytes == 0 {
-		c.MaxRequestPerConn = 16 * 1026
+		c.ConnBufferLimitBytes = 16 * 1026
 		log.Println("[conn_buffer_limit_bytes] is not specified, use default value 16 * 1026")
 	}
 

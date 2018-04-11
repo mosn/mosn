@@ -11,10 +11,12 @@ import (
 	"log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/healthcheck/sofarpc"
 	"fmt"
+	"time"
+	"net/http"
 )
 
 func Start(c *config.MOSNConfig){
-	fmt.Printf("mosn config : %+v", c)
+	fmt.Printf("mosn config : %+v\n", c)
 
 	srvNum :=  len(c.Servers)
 	if srvNum == 0 {
@@ -26,6 +28,11 @@ func Start(c *config.MOSNConfig){
 	}
 
 	stopChans := make([]chan bool, srvNum)
+
+	go func() {
+		// pprof server
+		http.ListenAndServe("0.0.0.0:9099", nil)
+	}()
 
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
@@ -72,13 +79,19 @@ func Start(c *config.MOSNConfig){
 
 			srv.Start() //开启连接
 
-			fmt.Println("mosn server started")
+			fmt.Println("[MAIN]mosn server started..")
 
 			select {
 			case <-stopChan:
 				srv.Close()
 			}
 		}()
+	}
+
+	select {
+	case <-time.After(time.Second * 120):
+		stopChans[0] <- true
+		fmt.Println("[MAIN]closing..")
 	}
 
 }

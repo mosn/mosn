@@ -1,14 +1,12 @@
 {
   "servers": [
     {
-      "access_log": "logs/access.log",
-      "log_level": "INFO",
       "network_filters": [
         {
           "type": "proxy",
           "config": {
-            "downstream_protocol": "sofarpc",
-            "upstream_protocol": "http2",
+            "downstream_protocol": "SofaRpc",
+            "upstream_protocol": "Http2",
             "routes": [
               {
                 "name": "example_route",
@@ -67,7 +65,7 @@
     "clusters": [
       {
         "name": "local_service",
-        "type": "static",
+        "type": "SIMPLE",
         "lb_type": "LB_ROUNDROBIN",
         "max_request_per_conn": 100000,
         "healthcheck": {
@@ -87,7 +85,7 @@
       },
       {
         "name": "local_service_2",
-        "type": "static",
+        "type": "SIMPLE",
         "lb_type": "LB_ROUNDROBIN",
         "hosts": [
           {
