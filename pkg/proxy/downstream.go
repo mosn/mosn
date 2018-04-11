@@ -162,6 +162,16 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 
 	// todo: validate headers
 
+	if types.CheckException(headers){
+
+		if _,ok := headers[types.MosnExceptionCodeC]; ok {
+
+			s.sendHijackReply(types.CodecExceptionCode,headers)
+		}
+
+		//Others
+	}
+
 	s.doDecodeHeaders(nil, headers, endStream)
 }
 
@@ -177,7 +187,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		// no route
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
-		s.sendHijackReply(404, headers)
+		s.sendHijackReply(types.RouterUnavailableCode, headers)
 
 		return
 	}
@@ -337,7 +347,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(404, nil)
+		s.sendHijackReply(404, s.downstreamReqHeaders)
 
 		return errors.New(fmt.Sprintf("unkown cluster %s", clusterName)), nil
 	}
@@ -348,7 +358,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 	if !clusterConnectionResource.CanCreate() {
 		s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
-		s.sendHijackReply(503, nil)
+		s.sendHijackReply(types.UpstreamOverFlowCode, s.downstreamReqHeaders)
 
 		return errors.New(fmt.Sprintf("upstream overflow in cluster %s", clusterName)), nil
 	}
@@ -367,7 +377,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 	if connPool == nil {
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		s.sendHijackReply(500, nil)
+		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 
 		return errors.New(fmt.Sprintf("no healthy upstream in cluster %s", clusterName)), nil
 	}

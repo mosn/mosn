@@ -89,6 +89,7 @@ func (conn *streamConnection) NewStream(streamId uint32, responseDecoder types.S
 
 // types.DecodeFilter Called by serverStreamConnection
 func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
+
 	if sofarpc.IsSofaRequest(headers) {
 		conn.onNewStreamDetected(streamId)
 	}
@@ -107,6 +108,12 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 
 	if stream, ok := conn.activeStreams[streamId]; ok {
 		stream.decoder.OnDecodeHeaders(headers, false) //Call Back Proxy-Level's OnDecodeHeaders
+	}
+
+	//Check exception if walking here
+	if types.CheckException(headers) {
+		conn.onNewStreamDetected(0) //TODO, for codec execption, request id is unavailable, set 0 currently
+		conn.activeStreams[0].decoder.OnDecodeHeaders(headers, true)
 	}
 
 	return types.Continue
@@ -216,26 +223,41 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 			delete(headerMaps, types.HeaderStatus)
 			statusCode, _ := strconv.Atoi(status)
 
+			//todo: handle proxy hijack reply on exception @boqin
 			if statusCode != 200 {
-				// todo: handle proxy hijack reply on exception @boqin
+
+				var respHeaders interface{}
+				var err error
 
 				//Build Router Unavailable Response Msg
-				if statusCode == 404 {
-					respHeaders, err := sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
-					if err == nil {
-						switch respHeaders.(type) {
-						case *sofarpc.BoltResponseCommand:
-							headers = respHeaders.(*sofarpc.BoltResponseCommand)
-						case *sofarpc.BoltV2ResponseCommand:
-							headers = respHeaders.(*sofarpc.BoltV2ResponseCommand)
-						default:
-							headers = headerMaps
-						}
-					} else {
-						log.DefaultLogger.Println(err.Error())
+				switch statusCode {
+
+				case types.RouterUnavailableCode, types.NoHealthUpstreamCode, types.UpstreamOverFlowCode:
+					//No available path
+					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
+
+				case types.CodecExceptionCode:
+					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
+
+				default:
+
+					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
+				}
+
+				if err == nil {
+					switch respHeaders.(type) {
+					case *sofarpc.BoltResponseCommand:
+						headers = respHeaders.(*sofarpc.BoltResponseCommand)
+					case *sofarpc.BoltV2ResponseCommand:
+						headers = respHeaders.(*sofarpc.BoltV2ResponseCommand)
+					default:
 						headers = headerMaps
 					}
-				} //Other exception code
+				} else {
+					log.DefaultLogger.Println(err.Error())
+					headers = headerMaps
+				}
+
 			} else {
 
 				headers = headerMaps
