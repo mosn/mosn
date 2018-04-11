@@ -67,7 +67,7 @@ func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream boo
 	r.encodeComplete = endStream
 	streamID := 0
 
-	if sid, ok := headers[types.MosnStreamID]; ok {
+	if sid, ok := headers[types.HeaderStreamID]; ok {
 		if streamid, err := strconv.Atoi(sid); err == nil {
 			streamID = streamid
 		}

@@ -161,17 +161,18 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	s.downstreamReqHeaders = headers
 
 	// todo: validate headers
-
-	if types.CheckException(headers){
-
-		if _,ok := headers[types.MosnExceptionCodeC]; ok {
-
+	if v,ok := headers[types.HeaderException]; ok {
+		switch v{
+		case types.MosnExceptionCodeC:
 			s.sendHijackReply(types.CodecExceptionCode,headers)
+		case types.MosnExceptionDeserial:
+			s.sendHijackReply(types.DeserialExceptionCode,headers)
+		case types.MosnExceptionTimeout:
+			s.sendHijackReply(types.TimeoutExceptionCode,headers)
+		default:
+			s.sendHijackReply(types.UnknownCode,headers)
 		}
-
-		//Others
 	}
-
 	s.doDecodeHeaders(nil, headers, endStream)
 }
 
@@ -347,7 +348,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(404, s.downstreamReqHeaders)
+		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 
 		return errors.New(fmt.Sprintf("unkown cluster %s", clusterName)), nil
 	}

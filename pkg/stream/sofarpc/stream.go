@@ -95,15 +95,15 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 	}
 
 	if v, ok := headers[sofarpc.SofaPropertyHeader("requestid")]; ok {
-		headers[types.MosnStreamID] = v
+		headers[types.HeaderStreamID] = v
 	}
 
 	if v, ok := headers[sofarpc.SofaPropertyHeader("timeout")]; ok {
-		headers[types.MosnTryTimeout] = v
+		headers[types.HeaderTryTimeout] = v
 	}
 
 	if v, ok := headers[sofarpc.SofaPropertyHeader("globaltimeout")]; ok {
-		headers[types.MosnGlobalTimeout] = v
+		headers[types.HeaderGlobalTimeout] = v
 	}
 
 	if stream, ok := conn.activeStreams[streamId]; ok {
@@ -111,8 +111,8 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 	}
 
 	//Check exception if walking here
-	if types.CheckException(headers) {
-		conn.onNewStreamDetected(0) //TODO, for codec execption, request id is unavailable, set 0 currently
+	if _,ok := headers[types.HeaderException]; ok {
+		conn.onNewStreamDetected(0)        //TODO, for codec execption, request id is unavailable, set 0 currently
 		conn.activeStreams[0].decoder.OnDecodeHeaders(headers, true)
 	}
 
@@ -206,16 +206,16 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 	if headerMaps, ok := headers.(map[string]string); ok {
 
 		// remove proxy header before codec encode
-		if _, ok := headerMaps[types.MosnStreamID]; ok {
-			delete(headerMaps, types.MosnStreamID)
+		if _, ok := headerMaps[types.HeaderStreamID]; ok {
+			delete(headerMaps, types.HeaderStreamID)
 		}
 
-		if _, ok := headerMaps[types.MosnGlobalTimeout]; ok {
-			delete(headerMaps, types.MosnGlobalTimeout)
+		if _, ok := headerMaps[types.HeaderGlobalTimeout]; ok {
+			delete(headerMaps, types.HeaderGlobalTimeout)
 		}
 
-		if _, ok := headerMaps[types.MosnTryTimeout]; ok {
-			delete(headerMaps, types.MosnTryTimeout)
+		if _, ok := headerMaps[types.HeaderTryTimeout]; ok {
+			delete(headerMaps, types.HeaderTryTimeout)
 		}
 
 		if status, ok := headerMaps[types.HeaderStatus]; ok {
@@ -224,7 +224,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 			statusCode, _ := strconv.Atoi(status)
 
 			//todo: handle proxy hijack reply on exception @boqin
-			if statusCode != 200 {
+			if statusCode != types.SuccessCode {
 
 				var respHeaders interface{}
 				var err error
@@ -238,6 +238,10 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 
 				case types.CodecExceptionCode:
 					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
+				case types.DeserialExceptionCode:
+					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
+				case types.TimeoutExceptionCode:
+					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_TIMEOUT)
 
 				default:
 

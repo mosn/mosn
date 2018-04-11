@@ -86,7 +86,7 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 			}
 		} else {
 			headers := make(map[string]string)
-			headers[types.MosnExceptionCodeC] = "[Decode]Unknown protocol code"
+			headers[types.HeaderException] = types.MosnExceptionCodeC
 			log.DefaultLogger.Println("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
 			filter.OnDecodeHeader(0,headers)
 			break
