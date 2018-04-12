@@ -3,7 +3,6 @@ package proxy
 import (
 	"container/list"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"strconv"
 )
 
 // types.StreamCallbacks
@@ -65,14 +64,13 @@ func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 
 func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
 	r.encodeComplete = endStream
-	streamID := 0
+	streamID := ""
 
-	if sid, ok := headers[types.HeaderStreamID]; ok {
-		if streamid, err := strconv.Atoi(sid); err == nil {
+	if streamid, ok := headers[types.HeaderStreamID]; ok {
 			streamID = streamid
-		}
+
 	}
-	r.connPool.NewStream(uint32(streamID), r, r)
+	r.connPool.NewStream(streamID, r, r)
 }
 
 func (r *upstreamRequest) encodeData(data types.IoBuffer, endStream bool) {
@@ -88,7 +86,7 @@ func (r *upstreamRequest) encodeTrailers(trailers map[string]string) {
 }
 
 // types.PoolCallbacks
-func (r *upstreamRequest) OnPoolFailure(streamId uint32, reason types.PoolFailureReason, host types.Host) {
+func (r *upstreamRequest) OnPoolFailure(streamId string, reason types.PoolFailureReason, host types.Host) {
 	var resetReason types.StreamResetReason
 
 	switch reason {
@@ -101,7 +99,7 @@ func (r *upstreamRequest) OnPoolFailure(streamId uint32, reason types.PoolFailur
 	r.OnResetStream(resetReason)
 }
 
-func (r *upstreamRequest) OnPoolReady(streamId uint32, encoder types.StreamEncoder, host types.Host) {
+func (r *upstreamRequest) OnPoolReady(streamId string, encoder types.StreamEncoder, host types.Host) {
 	r.requestEncoder = encoder
 	r.requestEncoder.GetStream().AddCallbacks(r)
 

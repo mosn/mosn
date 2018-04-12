@@ -16,15 +16,15 @@ type ConnectionPool interface {
 
 	DrainConnections()
 
-	NewStream(streamId uint32, responseDecoder StreamDecoder, cb PoolCallbacks) Cancellable
+	NewStream(streamId string, responseDecoder StreamDecoder, cb PoolCallbacks) Cancellable
 
 	Close()
 }
 
 type PoolCallbacks interface {
-	OnPoolFailure(streamId uint32, reason PoolFailureReason, host Host)
+	OnPoolFailure(streamId string, reason PoolFailureReason, host Host)
 
-	OnPoolReady(streamId uint32, requestEncoder StreamEncoder, host Host)
+	OnPoolReady(streamId string, requestEncoder StreamEncoder, host Host)
 }
 
 type Cancellable interface {

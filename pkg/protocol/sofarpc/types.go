@@ -364,8 +364,20 @@ func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{},
 		}, nil
 	} else if pro == TR_PROTOCOL_CODE {
 		return headers, nil
+	} else if headers[types.HeaderException] == types.MosnExceptionCodeC {
+		//If Codec exception occurs, build bolt v1 response
+		return &BoltResponseCommand{
+			Protocol:       PROTOCOL_CODE_V1,
+			CmdType:        RESPONSE,
+			CmdCode:        RPC_RESPONSE,
+			Version:        version,
+			ReqId:          reqId,
+			CodecPro:       codec,
+			ResponseStatus: respStatus,
+		}, nil
 	} else {
 		log.DefaultLogger.Println("[BuildSofaRespMsg Error]Unknown Protocol Code")
 		return headers, errors.New("[BuildSofaRespMsg Error]Unknown Protocol Code")
 	}
 }
+

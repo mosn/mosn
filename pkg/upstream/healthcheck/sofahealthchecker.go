@@ -157,7 +157,7 @@ func (s *sofaHealthCheckSession) OnBelowWriteBufferLowWatermark() {}
 func (s *sofaHealthCheckSession) OnGoAway() {}
 
 //When you receive health check
-func (s *sofaHealthCheckSession) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
+func (s *sofaHealthCheckSession) NewStream(streamId string, responseEncoder types.StreamEncoder) types.StreamDecoder {
 
 	as := &requestStream{
 		responseEncoder,

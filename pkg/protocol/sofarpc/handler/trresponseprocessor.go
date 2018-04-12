@@ -6,6 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"strconv"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 )
 
 type TrResponseProcessor struct{}
@@ -14,11 +15,13 @@ func (b *TrResponseProcessor) Process(ctx interface{}, msg interface{}, executor
 
 	if cmd, ok := msg.(*sofarpc.TrResponseCommand); ok {
 		deserializeResponseAllFieldsTR(cmd)
+		reqID := utility.StreamIDConvert(uint32(cmd.RequestID))
+
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
 			if cmd.ResponseHeader != nil {
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
-				status := filter.OnDecodeHeader(uint32(cmd.RequestID), cmd.ResponseHeader)
+				status := filter.OnDecodeHeader(reqID, cmd.ResponseHeader)
 
 				if status == types.StopIteration {
 					return
@@ -26,7 +29,7 @@ func (b *TrResponseProcessor) Process(ctx interface{}, msg interface{}, executor
 			}
 
 			if cmd.ResponseContent != nil {
-				status := filter.OnDecodeData(uint32(cmd.RequestID), buffer.NewIoBufferBytes(cmd.ResponseContent))
+				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.ResponseContent))
 
 				if status == types.StopIteration {
 					return

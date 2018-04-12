@@ -1,6 +1,7 @@
 package sofarpc
 
 import (
+	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
@@ -38,7 +39,7 @@ func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnecti
 type streamConnection struct {
 	protocol        types.Protocol
 	connection      types.Connection
-	activeStreams   map[uint32]*stream
+	activeStreams   map[string]*stream
 	asMutex         sync.Mutex
 	protocols       types.Protocols
 	clientCallbacks types.StreamConnectionCallbacks
@@ -51,7 +52,7 @@ func newStreamConnection(connection types.Connection, clientCallbacks types.Stre
 	return &streamConnection{
 		connection:      connection,
 		protocols:       sofarpc.DefaultProtocols(),
-		activeStreams:   make(map[uint32]*stream),
+		activeStreams:   make(map[string]*stream),
 		clientCallbacks: clientCallbacks,
 		serverCallbacks: serverCallbacks,
 	}
@@ -74,7 +75,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 	// todo
 }
 
-func (conn *streamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
+func (conn *streamConnection) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &stream{
 		streamId:   streamId,
 		direction:  0, //out
@@ -88,7 +89,7 @@ func (conn *streamConnection) NewStream(streamId uint32, responseDecoder types.S
 }
 
 // types.DecodeFilter Called by serverStreamConnection
-func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
+func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string]string) types.FilterStatus {
 
 	if sofarpc.IsSofaRequest(headers) {
 		conn.onNewStreamDetected(streamId)
@@ -108,18 +109,16 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 
 	if stream, ok := conn.activeStreams[streamId]; ok {
 		stream.decoder.OnDecodeHeaders(headers, false) //Call Back Proxy-Level's OnDecodeHeaders
-	}
-
-	//Check exception if walking here
-	if _,ok := headers[types.HeaderException]; ok {
-		conn.onNewStreamDetected(0)        //TODO, for codec execption, request id is unavailable, set 0 currently
-		conn.activeStreams[0].decoder.OnDecodeHeaders(headers, true)
+	} else if v, ok := headers[types.HeaderException]; ok && v == types.MosnExceptionCodeC {
+		//If codec exception happens
+		conn.onNewStreamDetected(streamId)
+		conn.activeStreams[streamId].decoder.OnDecodeHeaders(headers, true)
 	}
 
 	return types.Continue
 }
 
-func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
+func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
 		stream.decoder.OnDecodeData(data, true)
 
@@ -131,7 +130,7 @@ func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer)
 	return types.StopIteration
 }
 
-func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[string]string) types.FilterStatus {
+func (conn *streamConnection) OnDecodeTrailer(streamId string, trailers map[string]string) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
 		stream.decoder.OnDecodeTrailers(trailers)
 	}
@@ -139,7 +138,7 @@ func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[stri
 	return types.StopIteration
 }
 
-func (conn *streamConnection) onNewStreamDetected(streamId uint32) {
+func (conn *streamConnection) onNewStreamDetected(streamId string) {
 	if _, ok := conn.activeStreams[streamId]; ok {
 		return
 	}
@@ -157,7 +156,7 @@ func (conn *streamConnection) onNewStreamDetected(streamId uint32) {
 // types.Stream
 // types.StreamEncoder
 type stream struct {
-	streamId         uint32
+	streamId         string
 	direction        int // 0: out, 1: in
 	readDisableCount int
 	connection       *streamConnection
@@ -202,7 +201,7 @@ func (s *stream) BufferLimit() uint32 {
 }
 
 // types.StreamEncoder
-func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
+func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 	if headerMaps, ok := headers.(map[string]string); ok {
 
 		// remove proxy header before codec encode
@@ -235,16 +234,17 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 				case types.RouterUnavailableCode, types.NoHealthUpstreamCode, types.UpstreamOverFlowCode:
 					//No available path
 					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
-
 				case types.CodecExceptionCode:
+					//Decode or Encode Error
 					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
 				case types.DeserialExceptionCode:
+					//Hessian Exception
 					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
 				case types.TimeoutExceptionCode:
+					//Response Timeout
 					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_TIMEOUT)
 
 				default:
-
 					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
 				}
 
@@ -271,26 +271,32 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 			headers = headerMaps
 		}
 	}
-
-	// Call Protocol-Level's EncodeHeaders Func
 	s.streamId, s.encodedHeaders = s.connection.protocols.EncodeHeaders(headers)
+
+	// Exception occurs when encoding headers
+	if s.encodedHeaders == nil {
+		return errors.New(s.streamId)
+	}
 	s.connection.activeStreams[s.streamId] = s
 
 	if endStream {
 		s.endStream()
 	}
+	return nil
 }
 
-func (s *stream) EncodeData(data types.IoBuffer, endStream bool) {
+func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
 
 	if endStream {
 		s.endStream()
 	}
+	return nil
 }
 
-func (s *stream) EncodeTrailers(trailers map[string]string) {
+func (s *stream) EncodeTrailers(trailers map[string]string) error {
 	s.endStream()
+	return nil
 }
 
 func (s *stream) endStream() {

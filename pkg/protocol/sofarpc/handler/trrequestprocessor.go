@@ -5,6 +5,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize/hessian"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"strconv"
 )
 
@@ -14,20 +15,21 @@ type TrRequestProcessor struct{}
 // CALLBACK STREAM LEVEL'S OnDecodeHeaders
 func (b *TrRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.TrRequestCommand); ok {
-
 		deserializeRequestAllFieldsTR(cmd)
+		reqID := utility.StreamIDConvert(uint32(cmd.RequestID))
+
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
-				status := filter.OnDecodeHeader(uint32(cmd.RequestID), cmd.RequestHeader)
+				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
 				if status == types.StopIteration {
 					return
 				}
 			}
 
 			if cmd.RequestContent != nil {
-				status := filter.OnDecodeData(uint32(cmd.RequestID), buffer.NewIoBufferBytes(cmd.RequestContent))
+				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.RequestContent))
 
 				if status == types.StopIteration {
 					return

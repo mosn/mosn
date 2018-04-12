@@ -3,6 +3,7 @@ package sofarpc
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"reflect"
 )
 
@@ -25,8 +26,9 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 		protocolMaps: protocolMaps,
 	}
 }
+
 //PROTOCOL LEVEL's Unified EncodeHeaders for BOLTV1、BOLTV2、TR
-func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
+func (p *protocols) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
 	var protocolCode byte
 
 	switch headers.(type) {
@@ -37,15 +39,19 @@ func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) 
 		if proto, exist := headers_[SofaPropertyHeader("protocol")]; exist {
 			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
 			protocolCode = protoValue.(byte)
-		} else {
-			log.DefaultLogger.Debugf("Invalid encode headers, should contains 'protocol'")
+		} else { //Codec exception
+			err := "Invalid encode headers, should contains 'protocol'"
+			log.DefaultLogger.Debugf(err)
 
-			return 0, nil
+			//Returned as the exception details
+			streamID := utility.GenerateExceptionStreamID(err)
+			return streamID, nil
 		}
 	default:
-		log.DefaultLogger.Debugf("Invalid encode headers")
-
-		return 0, nil
+		err := "Invalid encode headers"
+		log.DefaultLogger.Debugf(err)
+		streamID := utility.GenerateExceptionStreamID(err)
+		return streamID, nil
 	}
 
 	log.DefaultLogger.Println("[EncodeHeaders]protocol code = ", protocolCode)
@@ -54,9 +60,10 @@ func (p *protocols) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) 
 		//Return encoded data in map[string]string to stream layer
 		return proto.GetEncoder().EncodeHeaders(headers)
 	} else {
+		err := "Unknown protocol code,while encode headers."
 		log.DefaultLogger.Debugf("Unknown protocol code: [", protocolCode, "] while encode headers.")
-
-		return 0, nil
+		streamID := utility.GenerateExceptionStreamID(err)
+		return streamID, nil
 	}
 }
 
@@ -84,11 +91,13 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 			} else {
 				break
 			}
-		} else {
+		} else { //Codec Exception
 			headers := make(map[string]string)
 			headers[types.HeaderException] = types.MosnExceptionCodeC
 			log.DefaultLogger.Println("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
-			filter.OnDecodeHeader(0,headers)
+
+			err := "Unknown protocol code while decode in ProtocolDecoder."
+			filter.OnDecodeHeader(utility.GenerateExceptionStreamID(err), headers)
 			break
 		}
 	}

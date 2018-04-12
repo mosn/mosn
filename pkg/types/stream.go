@@ -31,11 +31,11 @@ type Stream interface {
 type StreamProto string
 
 type StreamEncoder interface {
-	EncodeHeaders(headers interface{}, endStream bool)
+	EncodeHeaders(headers interface{}, endStream bool)error
 
-	EncodeData(data IoBuffer, endStream bool)
+	EncodeData(data IoBuffer, endStream bool)error
 
-	EncodeTrailers(trailers map[string]string)
+	EncodeTrailers(trailers map[string]string)error
 
 	GetStream() Stream
 }
@@ -68,7 +68,7 @@ type ClientStreamConnection interface {
 	StreamConnection
 
 	// return request stream encoder
-	NewStream(streamId uint32, responseDecoder StreamDecoder) StreamEncoder
+	NewStream(streamId string, responseDecoder StreamDecoder) StreamEncoder
 }
 
 type StreamConnectionCallbacks interface {
@@ -79,7 +79,7 @@ type ServerStreamConnectionCallbacks interface {
 	StreamConnectionCallbacks
 
 	// return request stream decoder
-	NewStream(streamId uint32, responseEncoder StreamEncoder) StreamDecoder
+	NewStream(streamId string, responseEncoder StreamEncoder) StreamDecoder
 }
 
 type StreamFilterBase interface {
@@ -93,7 +93,7 @@ type StreamFilterCallbacks interface {
 
 	Route() Route
 
-	StreamId() uint32
+	StreamId() string
 
 	RequestInfo() RequestInfo
 }

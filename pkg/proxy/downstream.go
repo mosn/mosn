@@ -18,7 +18,7 @@ import (
 // types.StreamDecoder
 // types.FilterChainFactoryCallbacks
 type activeStream struct {
-	streamId uint32
+	streamId string
 	proxy    *proxy
 	route    types.Route
 	cluster  types.ClusterInfo
@@ -71,7 +71,7 @@ type activeStream struct {
 	decoderFilters []*activeStreamDecoderFilter
 }
 
-func newActiveStream(streamId uint32, proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
+func newActiveStream(streamId string, proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
 	stream := &activeStream{
 		streamId:        streamId,
 		proxy:           proxy,
@@ -160,24 +160,26 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
 
-	// todo: validate headers
-	if v,ok := headers[types.HeaderException]; ok {
-		switch v{
-		case types.MosnExceptionCodeC:
-			s.sendHijackReply(types.CodecExceptionCode,headers)
-		case types.MosnExceptionDeserial:
-			s.sendHijackReply(types.DeserialExceptionCode,headers)
-		case types.MosnExceptionTimeout:
-			s.sendHijackReply(types.TimeoutExceptionCode,headers)
-		default:
-			s.sendHijackReply(types.UnknownCode,headers)
-		}
-	}
 	s.doDecodeHeaders(nil, headers, endStream)
 }
 
 func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, headers map[string]string, endStream bool) {
 	if s.decodeHeaderFilters(filter, headers, endStream) {
+		return
+	}
+
+	// todo: validate headers
+	if v, ok := headers[types.HeaderException]; ok {
+		switch v {
+		case types.MosnExceptionCodeC:
+			s.sendHijackReply(types.CodecExceptionCode, headers)
+		case types.MosnExceptionDeserial:
+			s.sendHijackReply(types.DeserialExceptionCode, headers)
+		case types.MosnExceptionTimeout:
+			s.sendHijackReply(types.TimeoutExceptionCode, headers)
+		default:
+			s.sendHijackReply(types.UnknownCode, headers)
+		}
 		return
 	}
 
@@ -392,7 +394,6 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 func (s *activeStream) encodeHeaders(headers map[string]string, endStream bool) {
 	s.localProcessDone = endStream
-
 	s.doEncodeHeaders(nil, headers, endStream)
 }
 
@@ -401,7 +402,10 @@ func (s *activeStream) doEncodeHeaders(filter *activeStreamEncoderFilter, header
 		return
 	}
 
-	s.responseEncoder.EncodeHeaders(headers, endStream)
+	//Currently, just log the error
+	if err := s.responseEncoder.EncodeHeaders(headers, endStream); err != nil {
+		log.DefaultLogger.Println(err.Error())
+	}
 
 	if endStream {
 		s.endStream()
@@ -469,8 +473,21 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 		s.onUpstreamResponseRecvDone()
 	}
 
-	// todo: insert proxy headers
+	if v, ok := headers[types.HeaderException]; ok {
+		switch v {
+		case types.MosnExceptionCodeC:
+			s.sendHijackReply(types.CodecExceptionCode, headers)
+		case types.MosnExceptionDeserial:
+			s.sendHijackReply(types.DeserialExceptionCode, headers)
+		case types.MosnExceptionTimeout:
+			s.sendHijackReply(types.TimeoutExceptionCode, headers)
+		default:
+			s.sendHijackReply(types.UnknownCode, headers)
+		}
+		return
+	}
 
+	// todo: insert proxy headers
 	s.encodeHeaders(headers, endStream)
 }
 

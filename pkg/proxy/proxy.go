@@ -119,7 +119,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
+func (p *proxy) NewStream(streamId string, responseEncoder types.StreamEncoder) types.StreamDecoder {
 	stream := newActiveStream(streamId, p, responseEncoder)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
