@@ -297,9 +297,9 @@ func (b *TrResponseCommand) GetCmdCode() int16 {
 
 func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{}, error) {
 
-	var pro byte = 0
-	var reqId uint32 = 0
-	var version byte = 0
+	var pro byte = 1
+	var reqId uint32 = 1
+	var version byte = 1
 	var codec byte = 1
 
 	if p, ok := headers[SofaPropertyHeader("protocol")]; ok {
@@ -335,8 +335,8 @@ func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{},
 		}, nil
 
 	} else if pro == PROTOCOL_CODE_V2 {
-		var ver1 byte = 0
-		var switchcode byte = 0
+		var ver1 byte
+		var switchcode byte
 
 		if v, ok := headers[SofaPropertyHeader("ver1")]; ok {
 			ver, _ := strconv.Atoi(v)
