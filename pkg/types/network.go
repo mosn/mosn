@@ -19,7 +19,7 @@ type Listener interface {
 
 	Start(stopChan chan bool, lctx context.Context)
 
-	Stop(stopChan chan bool)
+	Stop()
 
 	ListenerTag() uint64
 

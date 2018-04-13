@@ -74,12 +74,12 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 
 	if l.bindToPort {
 		for {
-			select {
-			case <-stopChan:
-				//FIXME: can not enter this branch util Listener.accept return
-				log.DefaultLogger.Println("listener " +l.name + " stop accepting connections by stop chan")
-				return
-			default:
+			//select {
+			//case <-stopChan:
+			//	//FIXME: can not enter this branch util Listener.accept return
+			//	log.DefaultLogger.Println("listener " +l.name + " stop accepting connections by stop chan")
+			//	return
+			//default:
 				if err := l.accept(lctx); err != nil {
 					if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 						log.DefaultLogger.Println("listener " +l.name + " stop accepting connections by deadline")
@@ -92,13 +92,12 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 						log.DefaultLogger.Println("unknown error while listener accepting:" + err.Error())
 					}
 				}
-			}
+			//}
 		}
 	}
 }
 
-func (l *listener) Stop(stopChan chan bool)  {
-	stopChan <- true
+func (l *listener) Stop()  {
 	l.rawl.SetDeadline(time.Now())
 }
 
