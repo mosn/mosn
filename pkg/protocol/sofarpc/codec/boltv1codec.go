@@ -180,7 +180,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 
 	//class
 	className := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "classname")
-	class, _ := serialize.Instance.Serialize(className)  //77
+	class, _ := serialize.Instance.Serialize(className)
 
 	//RPC Request
 	if cmdCode == sofarpc.RPC_REQUEST {
