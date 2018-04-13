@@ -145,7 +145,14 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 	switch reason {
 	case types.StreamConnectionFailed:
 		return types.UpstreamConnectionFailure
-
+	case types.StreamConnectionTermination:
+		return types.UpstreamConnectionTermination
+	case types.StreamLocalReset:
+		return types.UpstreamLocalReset
+	case types.StreamOverflow:
+		return types.UpstreamOverflow
+	case types.StreamRemoteReset:
+		return types.UpstreamRemoteReset
 	}
 
 	return 0
