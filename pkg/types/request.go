@@ -10,7 +10,7 @@ type ResponseFlag int
 const (
 	NoHealthyUpstream             ResponseFlag = 0x2
 	UpstreamRequestTimeout        ResponseFlag = 0x4
-	LocalReset                    ResponseFlag = 0x8
+	UpstreamLocalReset            ResponseFlag = 0x8
 	UpstreamRemoteReset           ResponseFlag = 0x10
 	UpstreamConnectionFailure     ResponseFlag = 0x20
 	UpstreamConnectionTermination ResponseFlag = 0x40

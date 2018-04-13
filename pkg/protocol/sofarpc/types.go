@@ -1,7 +1,10 @@
 package sofarpc
 
 import (
+	"errors"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"strconv"
 )
 
 //bolt constants
@@ -32,6 +35,21 @@ const (
 	RPC_RESPONSE int16 = 2
 
 	TR_PROTOCOL_CODE byte = 13
+
+	//response status
+	RESPONSE_STATUS_SUCCESS                   int16 = 0  // 0x00
+	RESPONSE_STATUS_ERROR                     int16 = 1  // 0x01
+	RESPONSE_STATUS_SERVER_EXCEPTION          int16 = 2  // 0x02
+	RESPONSE_STATUS_UNKNOWN                   int16 = 3  // 0x03
+	RESPONSE_STATUS_SERVER_THREADPOOL_BUSY    int16 = 4  // 0x04
+	RESPONSE_STATUS_ERROR_COMM                int16 = 5  // 0x05
+	RESPONSE_STATUS_NO_PROCESSOR              int16 = 6  // 0x06
+	RESPONSE_STATUS_TIMEOUT                   int16 = 7  // 0x07
+	RESPONSE_STATUS_CLIENT_SEND_ERROR         int16 = 8  // 0x08
+	RESPONSE_STATUS_CODEC_EXCEPTION           int16 = 9  // 0x09
+	RESPONSE_STATUS_CONNECTION_CLOSED         int16 = 16 // 0x10
+	RESPONSE_STATUS_SERVER_SERIAL_EXCEPTION   int16 = 17 // 0x11
+	RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION int16 = 18 // 0x12
 )
 
 //统一的RPC PROTOCOL抽象接口
@@ -112,7 +130,7 @@ type BoltRequestCommand struct {
 	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
 	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
 	CmdCode  int16 //HB:0,     Req:1,    Resp:2
-	Version  byte
+	Version  byte  //1
 	ReqId    uint32
 	CodecPro byte
 
@@ -133,9 +151,9 @@ type BoltResponseCommand struct {
 	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
 	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
 	CmdCode  int16 //HB:0,     Req:1,    Resp:2
-	Version  byte
+	Version  byte  //BoltV1:1  BoltV2: 1
 	ReqId    uint32
-	CodecPro byte
+	CodecPro byte // 1
 
 	ResponseStatus int16
 
@@ -153,13 +171,13 @@ type BoltResponseCommand struct {
 
 type BoltV2RequestCommand struct {
 	BoltRequestCommand
-	Version1   byte
+	Version1   byte //00
 	SwitchCode byte
 }
 
 type BoltV2ResponseCommand struct {
 	BoltResponseCommand
-	Version1   byte
+	Version1   byte //00
 	SwitchCode byte
 }
 
@@ -276,3 +294,90 @@ func (b *TrRequestCommand) GetCmdCode() int16 {
 func (b *TrResponseCommand) GetCmdCode() int16 {
 	return b.CmdCode
 }
+
+func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{}, error) {
+
+	var pro byte = 1
+	var reqId uint32 = 1
+	var version byte = 1
+	var codec byte = 1
+
+	if p, ok := headers[SofaPropertyHeader("protocol")]; ok {
+		pr, _ := strconv.Atoi(p)
+		pro = byte(pr)
+	}
+
+	if r, ok := headers[SofaPropertyHeader("requestid")]; ok {
+		rd, _ := strconv.Atoi(r)
+		reqId = uint32(rd)
+	}
+
+	if v, ok := headers[SofaPropertyHeader("version")]; ok {
+		ver, _ := strconv.Atoi(v)
+		version = byte(ver)
+	}
+
+	if c, ok := headers[SofaPropertyHeader("codec")]; ok {
+		ver, _ := strconv.Atoi(c)
+		codec = byte(ver)
+	}
+
+	if pro == PROTOCOL_CODE_V1 {
+
+		return &BoltResponseCommand{
+			Protocol:       PROTOCOL_CODE_V1,
+			CmdType:        RESPONSE,
+			CmdCode:        RPC_RESPONSE,
+			Version:        version,
+			ReqId:          reqId,
+			CodecPro:       codec,
+			ResponseStatus: respStatus,
+		}, nil
+
+	} else if pro == PROTOCOL_CODE_V2 {
+		var ver1 byte
+		var switchcode byte
+
+		if v, ok := headers[SofaPropertyHeader("ver1")]; ok {
+			ver, _ := strconv.Atoi(v)
+			ver1 = byte(ver)
+		}
+
+		if s, ok := headers[SofaPropertyHeader("switchcode")]; ok {
+			sw, _ := strconv.Atoi(s)
+			switchcode = byte(sw)
+		}
+
+		return &BoltV2ResponseCommand{
+
+			BoltResponseCommand: BoltResponseCommand{
+				Protocol:       PROTOCOL_CODE_V1,
+				CmdType:        RESPONSE,
+				CmdCode:        RPC_RESPONSE,
+				Version:        version,
+				ReqId:          reqId,
+				CodecPro:       codec,
+				ResponseStatus: respStatus,
+			},
+			Version1:   ver1,
+			SwitchCode: switchcode,
+		}, nil
+	} else if pro == TR_PROTOCOL_CODE {
+		return headers, nil
+	} else if headers[types.HeaderException] == types.MosnExceptionCodeC {
+		//If Codec exception occurs, build bolt v1 response
+		return &BoltResponseCommand{
+			Protocol:       PROTOCOL_CODE_V1,
+			CmdType:        RESPONSE,
+			CmdCode:        RPC_RESPONSE,
+			Version:        version,
+			ReqId:          reqId,
+			CodecPro:       codec,
+			ResponseStatus: respStatus,
+		}, nil
+	} else {
+		log.DefaultLogger.Println("[BuildSofaRespMsg Error]Unknown Protocol Code")
+		return headers, errors.New("[BuildSofaRespMsg Error]Unknown Protocol Code")
+	}
+}
+

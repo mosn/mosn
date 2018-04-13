@@ -6,6 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"strconv"
 )
 
@@ -18,12 +19,13 @@ type BoltRequestProcessorV2 struct{}
 func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(cmd)
+		reqID := utility.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
-				status := filter.OnDecodeHeader(cmd.ReqId, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -31,7 +33,7 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(cmd.ReqId, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return
@@ -45,11 +47,12 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 func (b *BoltRequestProcessorV2) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
 		deserializeRequestAllFieldsV2(cmd)
+		reqID := utility.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
-				status := filter.OnDecodeHeader(cmd.ReqId, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -57,7 +60,7 @@ func (b *BoltRequestProcessorV2) Process(ctx interface{}, msg interface{}, execu
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(cmd.ReqId, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return
@@ -78,7 +81,7 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 	allField[sofarpc.SofaPropertyHeader("cmdType")] = strconv.FormatUint(uint64(requestCommand.CmdType), 10)
 	allField[sofarpc.SofaPropertyHeader("cmdCode")] = strconv.FormatUint(uint64(requestCommand.CmdCode), 10)
 	allField[sofarpc.SofaPropertyHeader("version")] = strconv.FormatUint(uint64(requestCommand.Version), 10)
-	allField[sofarpc.SofaPropertyHeader("requestId")] = strconv.FormatUint(uint64(requestCommand.ReqId), 10)
+	allField[sofarpc.SofaPropertyHeader("requestid")] = strconv.FormatUint(uint64(requestCommand.ReqId), 10)
 	allField[sofarpc.SofaPropertyHeader("codec")] = strconv.FormatUint(uint64(requestCommand.CodecPro), 10)
 	allField[sofarpc.SofaPropertyHeader("timeout")] = strconv.FormatUint(uint64(requestCommand.Timeout), 10)
 	allField[sofarpc.SofaPropertyHeader("classLength")] = strconv.FormatUint(uint64(requestCommand.ClassLen), 10)
@@ -89,6 +92,7 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 	var className string
 	serializeIns.DeSerialize(requestCommand.ClassName, &className)
 	allField[sofarpc.SofaPropertyHeader("className")] = className
+	log.DefaultLogger.Println("ClassName is:", className)
 
 	//serialize header
 	var headerMap map[string]string

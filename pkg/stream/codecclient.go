@@ -99,7 +99,7 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(streamId uint32, respDecoder types.StreamDecoder) types.StreamEncoder {
+func (c *codecClient) NewStream(streamId string, respDecoder types.StreamDecoder) types.StreamEncoder {
 	ar := newActiveRequest(c, respDecoder)
 	ar.requestEncoder = c.Codec.NewStream(streamId, ar)
 	ar.requestEncoder.GetStream().AddCallbacks(ar)

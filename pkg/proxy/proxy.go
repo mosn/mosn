@@ -119,8 +119,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-//由stream层来调用
-func (p *proxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
+func (p *proxy) NewStream(streamId string, responseEncoder types.StreamEncoder) types.StreamDecoder {
 	stream := newActiveStream(streamId, p, responseEncoder)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
@@ -146,7 +145,14 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 	switch reason {
 	case types.StreamConnectionFailed:
 		return types.UpstreamConnectionFailure
-
+	case types.StreamConnectionTermination:
+		return types.UpstreamConnectionTermination
+	case types.StreamLocalReset:
+		return types.UpstreamLocalReset
+	case types.StreamOverflow:
+		return types.UpstreamOverflow
+	case types.StreamRemoteReset:
+		return types.UpstreamRemoteReset
 	}
 
 	return 0

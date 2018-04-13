@@ -14,7 +14,7 @@ type CodecClient interface {
 
 	ActiveRequestsNum() int
 
-	NewStream(streamId uint32, respDecoder types.StreamDecoder) types.StreamEncoder
+	NewStream(streamId string, respDecoder types.StreamDecoder) types.StreamEncoder
 
 	SetConnectionStats(stats *types.ConnectionStats)
 

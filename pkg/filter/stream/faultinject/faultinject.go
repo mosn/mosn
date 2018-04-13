@@ -1,3 +1,4 @@
+//Similar to Network's damage on flow
 package faultinject
 
 import (

@@ -270,7 +270,7 @@ func (f *activeStreamFilter) Route() types.Route {
 	return f.activeStream.route
 }
 
-func (f *activeStreamFilter) StreamId() uint32 {
+func (f *activeStreamFilter) StreamId() string {
 	return f.activeStream.streamId
 }
 

@@ -1,13 +1,13 @@
 package healthcheck
 
 import (
-	"strings"
-	"strconv"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 type httpHealthChecker struct {

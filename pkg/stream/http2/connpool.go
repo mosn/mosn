@@ -30,7 +30,7 @@ func (p *connPool) AddDrainedCallback(cb func()) {}
 func (p *connPool) DrainConnections() {}
 
 //由 PROXY 调用
-func (p *connPool) NewStream(streamId uint32, responseDecoder types.StreamDecoder,
+func (p *connPool) NewStream(streamId string, responseDecoder types.StreamDecoder,
 	cb types.PoolCallbacks) types.Cancellable {
 	p.mux.Lock()
 

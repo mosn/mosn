@@ -1,16 +1,17 @@
 package codec
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"encoding/binary"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	sf"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	sf "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"reflect"
 )
 
 // types.Encoder & types.Decoder
-type trCodec struct {}
+type trCodec struct{}
 
 var (
 	TrPropertyHeaders = make(map[string]reflect.Kind, 8)
@@ -31,6 +32,7 @@ func init() {
 
 	TrPropertyHeaders["requestid"] = reflect.Int64
 }
+
 /**
  *   Header(1B): 报文版本
  *   Header(1B): 请求/响应
@@ -44,10 +46,9 @@ func init() {
  *   Body:       通信层对象
  *   Body:       应用层对象类名
  *   Body:       应用层对象
- */
+*/
 
-
-func (c *trCodec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
+func (c *trCodec) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
 
 	if headerMap, ok := headers.(map[string]string); ok {
 
@@ -57,7 +58,7 @@ func (c *trCodec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
 	return c.encodeHeaders(headers)
 }
 
-func (c *trCodec) encodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
+func (c *trCodec) encodeHeaders(headers interface{}) (string, types.IoBuffer) {
 
 	switch headers.(type) {
 	case *sf.TrRequestCommand:
@@ -65,52 +66,54 @@ func (c *trCodec) encodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
 	case *sf.TrResponseCommand:
 		return c.encodeResponseCommand(headers.(*sf.TrResponseCommand))
 	default:
-		log.DefaultLogger.Println("[Decode] Invalid Input Type")
-		return 0, nil
+		err := "[TR Encode] Invalid Input Type"
+		streamID := utility.GenerateExceptionStreamID(err)
+		log.DefaultLogger.Println(err)
+		return streamID, nil
 	}
 }
 
-func (c *trCodec) encodeRequestCommand(rpcCmd *sf.TrRequestCommand) (uint32, types.IoBuffer) {
+func (c *trCodec) encodeRequestCommand(rpcCmd *sf.TrRequestCommand) (string, types.IoBuffer) {
 
 	log.DefaultLogger.Println("[TR]start to encode rpc headers,protocol code=%+v", rpcCmd.Protocol)
 
 	var result []byte
 	result = append(result, rpcCmd.Protocol, rpcCmd.RequestFlag)
-	result = append(result, rpcCmd.SerializeProtocol, rpcCmd.Direction,rpcCmd.Reserved)
+	result = append(result, rpcCmd.SerializeProtocol, rpcCmd.Direction, rpcCmd.Reserved)
 
 	connRequestLen := make([]byte, 4)
 	binary.BigEndian.PutUint32(connRequestLen, rpcCmd.ConnRequestLen)
-	result = append(result,connRequestLen...)
+	result = append(result, connRequestLen...)
 
-	result = append(result,rpcCmd.AppClassNameLen)
+	result = append(result, rpcCmd.AppClassNameLen)
 
 	appContentLen := make([]byte, 4)
 	binary.BigEndian.PutUint32(appContentLen, rpcCmd.AppClassContentLen)
-	result = append(result,appContentLen...)
+	result = append(result, appContentLen...)
 
 	//todo AS TR's req id is 64bit long, need adjust
-	return uint32(rpcCmd.RequestID),buffer.NewIoBufferBytes(result)
+	return utility.StreamIDConvert(uint32(rpcCmd.RequestID)), buffer.NewIoBufferBytes(result)
 }
 
-func (c *trCodec) encodeResponseCommand(rpcCmd *sf.TrResponseCommand) (uint32, types.IoBuffer) {
+func (c *trCodec) encodeResponseCommand(rpcCmd *sf.TrResponseCommand) (string, types.IoBuffer) {
 	log.DefaultLogger.Println("[TR]start to encode rpc headers,=%+v", rpcCmd.Protocol)
 
 	var result []byte
 	result = append(result, rpcCmd.Protocol, rpcCmd.RequestFlag)
-	result = append(result, rpcCmd.SerializeProtocol, rpcCmd.Direction,rpcCmd.Reserved)
+	result = append(result, rpcCmd.SerializeProtocol, rpcCmd.Direction, rpcCmd.Reserved)
 
 	connRequestLen := make([]byte, 4)
 	binary.BigEndian.PutUint32(connRequestLen, rpcCmd.ConnRequestLen)
-	result = append(result,connRequestLen...)
+	result = append(result, connRequestLen...)
 
-	result = append(result,rpcCmd.AppClassNameLen)
+	result = append(result, rpcCmd.AppClassNameLen)
 
 	appContentLen := make([]byte, 4)
 	binary.BigEndian.PutUint32(appContentLen, rpcCmd.AppClassContentLen)
-	result = append(result,appContentLen...)
+	result = append(result, appContentLen...)
 
 	//todo AS TR's req id is 64bit long, need adjust
-	return uint32(rpcCmd.RequestID),buffer.NewIoBufferBytes(result)
+	return utility.StreamIDConvert(uint32(rpcCmd.RequestID)), buffer.NewIoBufferBytes(result)
 }
 
 func (c *trCodec) EncodeData(data types.IoBuffer) types.IoBuffer {
@@ -121,30 +124,31 @@ func (c *trCodec) EncodeTrailers(trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
-func (c *trCodec)mapToCmd(headers_ interface{})interface{}{
+func (c *trCodec) mapToCmd(headers_ interface{}) interface{} {
 
-	headers,_ := headers_.(map[string]string)
-	if len(headers) < 8{
+	headers, _ := headers_.(map[string]string)
+	if len(headers) < 8 {
 		return nil
 	}
-	protocol := sf.GetPropertyValue(TrPropertyHeaders,headers, "protocol")
-	requestFlag := sf.GetPropertyValue(TrPropertyHeaders,headers, "requestflag")
 
-	serializeProtocol := sf.GetPropertyValue(TrPropertyHeaders,headers, "serializeprotocol")
-	direction := sf.GetPropertyValue(TrPropertyHeaders,headers, "direction")
-	reserved := sf.GetPropertyValue(TrPropertyHeaders,headers, "reserved")
+	protocol := sf.GetPropertyValue(TrPropertyHeaders, headers, "protocol")
+	requestFlag := sf.GetPropertyValue(TrPropertyHeaders, headers, "requestflag")
 
-	appClassNameLen := sf.GetPropertyValue(TrPropertyHeaders,headers, "appclassnameLen")
-	connRequestLen := sf.GetPropertyValue(TrPropertyHeaders,headers, "connrequestLen")
-	appClassContentLen := sf.GetPropertyValue(TrPropertyHeaders,headers, "appclasscontentLen")
+	serializeProtocol := sf.GetPropertyValue(TrPropertyHeaders, headers, "serializeprotocol")
+	direction := sf.GetPropertyValue(TrPropertyHeaders, headers, "direction")
+	reserved := sf.GetPropertyValue(TrPropertyHeaders, headers, "reserved")
 
-	cmdcode := sf.GetPropertyValue(TrPropertyHeaders,headers, "cmdcode")
-	requestID := sf.GetPropertyValue(TrPropertyHeaders,headers, "requestID")
+	appClassNameLen := sf.GetPropertyValue(TrPropertyHeaders, headers, "appclassnameLen")
+	connRequestLen := sf.GetPropertyValue(TrPropertyHeaders, headers, "connrequestLen")
+	appClassContentLen := sf.GetPropertyValue(TrPropertyHeaders, headers, "appclasscontentLen")
 
-	if requestFlag == sf.HEADER_REQUEST{
+	cmdcode := sf.GetPropertyValue(TrPropertyHeaders, headers, "cmdcode")
+	requestID := sf.GetPropertyValue(TrPropertyHeaders, headers, "requestID")
+
+	if requestFlag == sf.HEADER_REQUEST {
 
 		request := &sf.TrRequestCommand{
-			TrCommand:sf.TrCommand{
+			TrCommand: sf.TrCommand{
 				protocol.(byte),
 				requestFlag.(byte),
 				serializeProtocol.(byte),
@@ -157,13 +161,13 @@ func (c *trCodec)mapToCmd(headers_ interface{})interface{}{
 				"",
 				nil,
 			},
-			CmdCode:cmdcode.(int16),
-			RequestID:requestID.(int64),
+			CmdCode:   cmdcode.(int16),
+			RequestID: requestID.(int64),
 		}
 		return request
-	} else if requestFlag == sf.HEADER_RESPONSE{
+	} else if requestFlag == sf.HEADER_RESPONSE {
 		response := &sf.TrResponseCommand{
-			TrCommand:sf.TrCommand{
+			TrCommand: sf.TrCommand{
 				protocol.(byte),
 				requestFlag.(byte),
 				serializeProtocol.(byte),
@@ -176,19 +180,19 @@ func (c *trCodec)mapToCmd(headers_ interface{})interface{}{
 				"",
 				nil,
 			},
-			CmdCode:cmdcode.(int16),
-			RequestID:requestID.(int64),
+			CmdCode:   cmdcode.(int16),
+			RequestID: requestID.(int64),
 		}
 		return response
 
-	} else{
+	} else {
 		//HB
 	}
 
 	return nil
 }
 
-func (decoder *trCodec) Decode(data types.IoBuffer) (int,interface{}) {
+func (decoder *trCodec) Decode(data types.IoBuffer) (int, interface{}) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
@@ -204,8 +208,8 @@ func (decoder *trCodec) Decode(data types.IoBuffer) (int,interface{}) {
 		appClassNameLen := bytes[9]
 		appClassContentLen := binary.BigEndian.Uint32(bytes[10:14])
 
-		if uint32(readableBytes) < sf.PROTOCOL_HEADER_LENGTH + connRequestLen +
-			uint32(appClassNameLen) + appClassContentLen {
+		if uint32(readableBytes) < sf.PROTOCOL_HEADER_LENGTH+connRequestLen+
+			uint32(appClassNameLen)+appClassContentLen {
 			//not enough data
 			log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
 			return 0, nil
@@ -216,7 +220,7 @@ func (decoder *trCodec) Decode(data types.IoBuffer) (int,interface{}) {
 		appClassNameEnd := connRequestEnd + uint32(appClassNameLen)
 		appClassNameContent := bytes[connRequestEnd:appClassNameEnd]
 		appClassName := string(appClassNameContent)
-		appClassContent := bytes[appClassNameEnd: appClassNameEnd+appClassContentLen]
+		appClassContent := bytes[appClassNameEnd : appClassNameEnd+appClassContentLen]
 		totalLength := sf.PROTOCOL_HEADER_LENGTH + connRequestLen + uint32(appClassNameLen) + appClassContentLen
 		data.Drain(int(totalLength))
 		var cmdCode int16
@@ -241,8 +245,8 @@ func (decoder *trCodec) Decode(data types.IoBuffer) (int,interface{}) {
 					appClassName,
 					appClassContent,
 				},
-				CmdCode:cmdCode,
-				RequestContent:bytes[14 : 14 + connRequestLen + uint32(appClassNameLen) + appClassContentLen],
+				CmdCode:        cmdCode,
+				RequestContent: bytes[14 : 14+connRequestLen+uint32(appClassNameLen)+appClassContentLen],
 			}
 			log.DefaultLogger.Printf("[Decoder]TR decode request:%+v\n", request)
 			cmd = request
@@ -264,13 +268,12 @@ func (decoder *trCodec) Decode(data types.IoBuffer) (int,interface{}) {
 					appClassName,
 					appClassContent,
 				},
-				CmdCode:cmdCode,
-				ResponseContent:bytes[14 : 14 + connRequestLen + uint32(appClassNameLen) + appClassContentLen],
-
+				CmdCode:         cmdCode,
+				ResponseContent: bytes[14 : 14+connRequestLen+uint32(appClassNameLen)+appClassContentLen],
 			}
 			cmd = response
 			read = int(totalLength)
 		}
 	}
-	return read,cmd
+	return read, cmd
 }
