@@ -92,6 +92,7 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 	var className string
 	serializeIns.DeSerialize(requestCommand.ClassName, &className)
 	allField[sofarpc.SofaPropertyHeader("className")] = className
+	log.DefaultLogger.Println("ClassName is:", className)
 
 	//serialize header
 	var headerMap map[string]string

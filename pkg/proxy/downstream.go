@@ -175,8 +175,6 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 			s.sendHijackReply(types.CodecExceptionCode, headers)
 		case types.MosnExceptionDeserial:
 			s.sendHijackReply(types.DeserialExceptionCode, headers)
-		case types.MosnExceptionTimeout:
-			s.sendHijackReply(types.TimeoutExceptionCode, headers)
 		default:
 			s.sendHijackReply(types.UnknownCode, headers)
 		}
@@ -479,8 +477,6 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 			s.sendHijackReply(types.CodecExceptionCode, headers)
 		case types.MosnExceptionDeserial:
 			s.sendHijackReply(types.DeserialExceptionCode, headers)
-		case types.MosnExceptionTimeout:
-			s.sendHijackReply(types.TimeoutExceptionCode, headers)
 		default:
 			s.sendHijackReply(types.UnknownCode, headers)
 		}
