@@ -6,6 +6,9 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"os"
+	"time"
+	"errors"
+	"sync"
 )
 
 func init() {
@@ -91,5 +94,36 @@ func (srv *server) Close() {
 func Stop() {
 	for _, server := range servers {
 		server.Close()
+	}
+}
+
+func StopAccept() {
+	for _, server := range servers {
+		server.handler.StopListeners(nil)
+	}
+}
+
+func ListListenerFD() []uintptr {
+	var fds []uintptr
+	for _, server := range servers {
+		fds = append(fds,  server.handler.ListListenersFD(nil)...)
+	}
+	return fds
+}
+
+func WaitConnectionsDone(duration time.Duration) error  {
+	timeout := time.NewTimer(duration)
+	wait := make(chan struct{})
+	go func() {
+		//todo close idle connections and wait active connections complete
+		time.Sleep(duration * 2)
+		wait <- struct{}{}
+	}()
+
+	select {
+	case <-timeout.C:
+		return errors.New("wait timeout")
+	case <-wait:
+		return nil
 	}
 }

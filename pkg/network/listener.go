@@ -7,7 +7,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"fmt"
 	"runtime/debug"
-	"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // listener impl based on golang net package
@@ -37,6 +37,25 @@ func NewListener(lc *v2.ListenerConfig) types.Listener {
 	return l
 }
 
+/*
+func NewFDListener(lc *v2.ListenerConfig, fd uintptr) types.Listener {
+	s := &Server{cm: NewConnectionManager(), logger: logger}
+
+	file := os.NewFile(fd, "/tmp/sock-go-graceful-restart")
+	listener, err := net.FileListener(file)
+	if err != nil {
+		return nil, errors.New("File to recover socket from file descriptor: " + err.Error())
+	}
+	listenerTCP, ok := listener.(*net.TCPListener)
+	if !ok {
+		return nil, fmt.Errorf("File descriptor %d is not a valid TCP socket", fd)
+	}
+	s.socket = listenerTCP
+
+	return s, nil
+}
+*/
+
 func (l *listener) Name() string {
 	return l.name
 }
@@ -55,15 +74,16 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 		for {
 			select {
 			case <-stopChan:
+				log.DefaultLogger.Println("listener " +l.name + " stop accepting connections")
 				return
 			default:
 				if err := l.accept(lctx); err != nil {
 					if ope, ok := err.(*net.OpError); ok {
-						if !(ope.Timeout() && ope.Temporary()) {
-							// LOGGING
+						if !(ope.Timeout() && ope.Temporary()){
+							log.DefaultLogger.Println("not temp-timeout error:" + err.Error())
 						}
 					} else {
-						// LOGGING
+						log.DefaultLogger.Println("unknown error while listener accepting:" + err.Error())
 					}
 				}
 			}
@@ -73,6 +93,14 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 
 func (l *listener) ListenerTag() uint64 {
 	return l.listenerTag
+}
+
+func (l *listener) ListenerFD() (uintptr, error)  {
+	file, err := l.rawl.File()
+	if err != nil {
+		return 0, err
+	}
+	return file.Fd(), nil
 }
 
 func (l *listener) SetListenerCallbacks(cb types.ListenerCallbacks) {
@@ -98,7 +126,6 @@ func (l *listener) listen(lctx context.Context) error {
 }
 
 func (l *listener) accept(lctx context.Context) error {
-	l.rawl.SetDeadline(time.Now().Add(5 * time.Second))
 	rawc, err := l.rawl.Accept()
 
 	if err != nil {

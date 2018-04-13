@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
@@ -9,21 +8,23 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"log"
 	"net/http"
 	"time"
+	"os"
+	"net"
+	"log"
 )
 
 func Start(c *config.MOSNConfig) {
-	fmt.Printf("mosn config : %+v\n", c)
+	log.Printf("mosn config : %+v\n", c)
 
 	srvNum := len(c.Servers)
 	if srvNum == 0 {
-		log.Fatal("no server found")
+		log.Fatalln("no server found")
 	}
 
 	if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
-		log.Fatal("no cluster found")
+		log.Fatalln("no cluster found")
 	}
 
 	stopChans := make([]chan bool, srvNum)
@@ -32,6 +33,8 @@ func Start(c *config.MOSNConfig) {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
+
+	getInheritListeners()
 
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
@@ -55,7 +58,7 @@ func Start(c *config.MOSNConfig) {
 
 			//add listener
 			if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
-				log.Fatal("no listener found")
+				log.Fatalln("no listener found")
 			}
 
 			for _, listenerConfig := range serverConfig.Listeners {
@@ -78,7 +81,7 @@ func Start(c *config.MOSNConfig) {
 
 			srv.Start() //开启连接
 
-			fmt.Println("[MAIN]mosn server started..")
+			log.Println("[MAIN]mosn server started..")
 
 			select {
 			case <-stopChan:
@@ -90,20 +93,20 @@ func Start(c *config.MOSNConfig) {
 	select {
 	case <-time.After(time.Second * 120):
 		stopChans[0] <- true
-		fmt.Println("[MAIN]closing..")
+		log.Println("[MAIN]closing..")
 	}
 
 }
 
 func getNetworkFilter(configs []config.FilterConfig) server.NetworkFilterChainFactory {
 	if len(configs) != 1 {
-		log.Fatal("only one network filter supported")
+		log.Fatalln("only one network filter supported")
 	}
 
 	c := &configs[0]
 
 	if c.Type != "proxy" {
-		log.Fatal("only proxy network filter supported")
+		log.Fatalln("only proxy network filter supported")
 	}
 
 	return &proxy.GenericProxyFilterConfigFactory{
@@ -125,7 +128,7 @@ func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFa
 				FilterConfig: config.ParseHealthcheckFilter(c.Config),
 			})
 		default:
-			log.Fatal("unsupport stream filter type:" + c.Type)
+			log.Fatalln("unsupport stream filter type:" + c.Type)
 		}
 
 	}
@@ -140,4 +143,25 @@ type clusterManagerFilter struct {
 func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
+}
+
+
+func getInheritListeners() []types.Listener{
+	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
+
+		for _, fd := range []uintptr{3,4 } {
+			file := os.NewFile(fd, "")
+			listener, err := net.FileListener(file)
+			if err != nil {
+				log.Println("net.FileListener create err", err)
+			}
+			var  ok bool
+			listener, ok = listener.(*net.TCPListener)
+			if !ok {
+				log.Println("net.TCPListener cast err", err)
+			}
+			log.Println("recovered listener: ", listener.Addr())
+		}
+	}
+	return nil
 }

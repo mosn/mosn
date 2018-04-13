@@ -21,6 +21,8 @@ type Listener interface {
 
 	ListenerTag() uint64
 
+	ListenerFD() (uintptr, error)
+
 	SetListenerCallbacks(cb ListenerCallbacks)
 
 	Close(lctx context.Context) error
@@ -212,6 +214,8 @@ type ConnectionHandler interface {
 	StopListener(listenerTag uint64, lctx context.Context)
 
 	StopListeners(lctx context.Context)
+
+	ListListenersFD(lctx context.Context) []uintptr
 }
 
 // only called by conn read loop

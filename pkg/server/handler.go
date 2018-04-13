@@ -114,6 +114,19 @@ func (ch *connHandler) StopListeners(lctx context.Context) {
 	}
 }
 
+func (ch *connHandler) ListListenersFD(lctx context.Context) []uintptr {
+	fds := make([]uintptr, len(ch.listeners))
+
+	for _, l := range ch.listeners {
+		fd, err := l.listener.ListenerFD()
+		if err != nil {
+			log.DefaultLogger.Fatalln("fail to get listener", l.listener.Name() ," file descriptor:", err)
+		}
+		fds = append(fds, fd)
+	}
+	return fds
+}
+
 func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListener {
 	for _, l := range ch.listeners {
 		if l.listener != nil {

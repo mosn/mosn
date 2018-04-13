@@ -78,7 +78,7 @@ func catchSignalsCrossPlatform() {
 				log.Reopen()
 			case syscall.SIGHUP:
 				// reload
-				// todo
+				 reconfigure()
 			case syscall.SIGUSR2:
 				// ignore
 			}
@@ -134,4 +134,40 @@ func executeShutdownCallbacks(signame string) (exitCode int) {
 
 func OnProcessShutDown(cb func() error) {
 	shutdownCallbacks = append(shutdownCallbacks, cb)
+}
+
+
+func reconfigure(){
+	// Stop accepting requests
+	StopAccept()
+
+	// Get socket file descriptor to pass it to fork
+	listenerFD := ListListenerFD()
+	if len(listenerFD) == 0 {
+		log.DefaultLogger.Fatalln("no listener fd found")
+	}
+
+	log.DefaultLogger.Println("ready to pass fds:", listenerFD)
+
+	// Set a flag for the new process start process
+	os.Setenv("_MOSN_GRACEFUL_RESTART", "true")
+
+	execSpec := &syscall.ProcAttr{
+		Env:   os.Environ(),
+		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}, listenerFD...),
+	}
+
+	// Fork exec the new version of your server
+	fork, err := syscall.ForkExec(os.Args[0], os.Args, execSpec)
+	if err != nil {
+		log.DefaultLogger.Fatalln("Fail to fork", err)
+	}
+	log.DefaultLogger.Println("SIGHUP received: fork-exec to", fork)
+
+	// Wait for all conections to be finished
+	WaitConnectionsDone(time.Duration(time.Second) * 15)
+	log.DefaultLogger.Println(os.Getpid(), "Server gracefully shutdown")
+
+	// Stop the old server, all the connections have been closed and the new one is running
+	os.Exit(0)
 }
