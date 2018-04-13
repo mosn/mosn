@@ -14,7 +14,6 @@ const (
 const (
 	MosnExceptionCodeC    = "exception-codec"
 	MosnExceptionDeserial = "exception-deserial"
-	MosnExceptionTimeout  = "exception-timeout"
 )
 
 const (
