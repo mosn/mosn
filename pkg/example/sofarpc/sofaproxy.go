@@ -59,7 +59,7 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Name:                 TestListenerRPC,
 		Addr:                 MeshRPCServerAddr,
 		BindToPort:           true,
-		ConnBufferLimitBytes: 1024 * 32,
+		PerConnBufferLimitBytes: 1024 * 32,
 	}
 }
 

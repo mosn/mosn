@@ -39,7 +39,31 @@ func NewCodecClient(prot types.Protocol, connection types.ClientConnection, host
 		return nil
 	}
 
+	connection.AddConnectionCallbacks(codecClient)
 	connection.FilterManager().AddReadFilter(codecClient)
+	connection.SetNoDelay(true)
+
+	return codecClient
+}
+
+func NewBiDirectCodeClient(prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
+	serverCallbacks types.ServerStreamConnectionCallbacks) CodecClient {
+	codecClient := &codecClient{
+		Protocol:       prot,
+		Connection:     connection,
+		Host:           host,
+		ActiveRequests: list.New(),
+	}
+
+	if factory, ok := streamFactories[prot]; ok {
+		codecClient.Codec = factory.CreateBiDirectStream(connection, codecClient, serverCallbacks)
+	} else {
+		return nil
+	}
+
+	connection.AddConnectionCallbacks(codecClient)
+	connection.FilterManager().AddReadFilter(codecClient)
+	connection.SetNoDelay(true)
 
 	return codecClient
 }
@@ -111,6 +135,7 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 
 		for ar := c.ActiveRequests.Front(); ar != nil; ar = ar.Next() {
 			reason := types.StreamConnectionFailed
+
 			if c.ConnectedFlag {
 				reason = types.StreamConnectionTermination
 			}
@@ -121,11 +146,11 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 }
 
 func (c *codecClient) OnAboveWriteBufferHighWatermark() {
-	// todo
+	c.Codec.OnUnderlyingConnectionAboveWriteBufferHighWatermark()
 }
 
 func (c *codecClient) OnBelowWriteBufferLowWatermark() {
-	// todo
+	c.Codec.OnUnderlyingConnectionBelowWriteBufferLowWatermark()
 }
 
 // read filter, recv upstream data
@@ -185,13 +210,9 @@ func (r *activeRequest) OnResetStream(reason types.StreamResetReason) {
 	r.codecClient.onReset(r, reason)
 }
 
-func (r *activeRequest) OnAboveWriteBufferHighWatermark() {
-	// todo
-}
+func (r *activeRequest) OnAboveWriteBufferHighWatermark() {}
 
-func (r *activeRequest) OnBelowWriteBufferLowWatermark() {
-	// todo
-}
+func (r *activeRequest) OnBelowWriteBufferLowWatermark() {}
 
 func (r *activeRequest) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	if endStream {

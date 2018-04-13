@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
@@ -145,8 +144,8 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 	return errors.New(fmt.Sprintf("cluster %s not found", clusterName))
 }
 
-func (cm *clusterManager) HttpConnPoolForCluster(cluster string, priority pkg.Priority,
-	protocol types.Protocol, context context.Context) types.ConnectionPool {
+func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.Protocol,
+	context context.Context) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {

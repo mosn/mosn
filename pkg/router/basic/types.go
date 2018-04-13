@@ -1,6 +1,5 @@
 package basic
 
-import "gitlab.alipay-inc.com/afe/mosn/pkg"
 import "gitlab.alipay-inc.com/afe/mosn/pkg/types"
 
 type RouteRuleImplAdaptor struct {
@@ -10,8 +9,8 @@ func (r *RouteRuleImplAdaptor) ClusterName() string {
 	return ""
 }
 
-func (r *RouteRuleImplAdaptor) Priority() pkg.Priority {
-	return pkg.NORMAL
+func (r *RouteRuleImplAdaptor) Priority() types.Priority {
+	return types.PriorityDefault
 }
 
 func (r *RouteRuleImplAdaptor) VirtualCluster(headers map[string]string) types.VirtualCluster {

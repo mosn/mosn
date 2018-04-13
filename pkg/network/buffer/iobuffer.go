@@ -1,12 +1,12 @@
 package buffer
 
 import (
+	"io"
 	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"io"
 )
 
-const MinRead = 512
+const MinRead = 1024
 const ResetOffMark = -1
 
 var (
@@ -20,6 +20,8 @@ type IoBuffer struct {
 	buf     []byte // contents: buf[off : len(buf)]
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
+
+	bootstrap [64]byte
 }
 
 func (b *IoBuffer) Read(p []byte) (n int, err error) {
@@ -39,7 +41,7 @@ func (b *IoBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
+func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 	if b.off >= len(b.buf) {
 		b.Reset()
 	}
@@ -57,12 +59,111 @@ func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 		b.off = 0
 	}
 
-	m, err := r.Read(b.buf[len(b.buf) : len(b.buf)+MinRead])
+	m, err := r.Read(b.buf[len(b.buf):cap(b.buf)])
 
-	b.buf = b.buf[0 : len(b.buf)+m]
+	b.buf = b.buf[0: len(b.buf)+m]
 	n += int64(m)
 
 	return
+}
+
+func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
+	if b.off >= len(b.buf) {
+		b.Reset()
+	}
+
+	for {
+		if free := cap(b.buf) - len(b.buf); free < MinRead {
+			// not enough space at end
+			newBuf := b.buf
+			if b.off+free < MinRead {
+				// not enough space using beginning of buffer;
+				// double buffer capacity
+				newBuf = makeSlice(2*cap(b.buf) + MinRead)
+			}
+			copy(newBuf, b.buf[b.off:])
+			b.buf = newBuf[:len(b.buf)-b.off]
+			b.off = 0
+		}
+
+		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
+
+		b.buf = b.buf[0: len(b.buf)+m]
+		n += int64(m)
+
+		if e == io.EOF {
+			break
+		}
+
+		if m == 0 {
+			break
+		}
+
+		if e != nil {
+			return n, e
+		}
+	}
+
+	return
+}
+
+func (b *IoBuffer) Write(p []byte) (n int, err error) {
+	m, ok := b.tryGrowByReslice(len(p))
+
+	if !ok {
+		m = b.grow(len(p))
+	}
+
+	return copy(b.buf[m:], p), nil
+}
+
+func (b *IoBuffer) tryGrowByReslice(n int) (int, bool) {
+	if l := len(b.buf); l+n <= cap(b.buf) {
+		b.buf = b.buf[:l+n]
+
+		return l, true
+	}
+
+	return 0, false
+}
+
+func (b *IoBuffer) grow(n int) int {
+	m := b.Len()
+
+	// If buffer is empty, reset to recover space.
+	if m == 0 && b.off != 0 {
+		b.Reset()
+	}
+
+	// Try to grow by means of a reslice.
+	if i, ok := b.tryGrowByReslice(n); ok {
+		return i
+	}
+
+	// Check if we can make use of bootstrap array.
+	if b.buf == nil && n <= len(b.bootstrap) {
+		b.buf = b.bootstrap[:n]
+		return 0
+	}
+
+	if m+n <= cap(b.buf)/2 {
+		// We can slide things down instead of allocating a new
+		// slice. We only need m+n <= cap(b.buf) to slide, but
+		// we instead let capacity get twice as large so we
+		// don't spend all our time copying.
+		copy(b.buf[:], b.buf[b.off:])
+	} else {
+		// Not enough space anywhere, we need to allocate.
+		buf := makeSlice(2*cap(b.buf) + n)
+		copy(buf, b.buf[b.off:])
+		b.buf = buf
+	}
+
+	// Restore b.off and len(b.buf).
+	b.off = 0
+	b.buf = b.buf[:m+n]
+
+	return m
 }
 
 func (b *IoBuffer) WriteTo(w io.Writer) (n int64, err error) {
@@ -81,7 +182,7 @@ func (b *IoBuffer) WriteTo(w io.Writer) (n int64, err error) {
 			return n, e
 		}
 
-		if m == 0 {
+		if m == 0 || m == nBytes {
 			return n, nil
 		}
 	}
@@ -110,7 +211,7 @@ func (b *IoBuffer) Append(data []byte) error {
 	}
 
 	m := copy(b.buf[len(b.buf):len(b.buf)+dataLen], data)
-	b.buf = b.buf[0 : len(b.buf)+m]
+	b.buf = b.buf[0: len(b.buf)+m]
 
 	return nil
 }
@@ -126,7 +227,7 @@ func (b *IoBuffer) Peek(n int) []byte {
 		return nil
 	}
 
-	return b.buf[b.off : b.off+n]
+	return b.buf[b.off: b.off+n]
 }
 
 func (b *IoBuffer) Mark() {
@@ -161,7 +262,7 @@ func (b *IoBuffer) Cut(offset int) types.IoBuffer {
 	}
 }
 
-func (b *IoBuffer) Set(offset int) {
+func (b *IoBuffer) Drain(offset int) {
 	if b.off+offset > len(b.buf) {
 		return
 	}
@@ -206,8 +307,8 @@ func makeSlice(n int) []byte {
 	return make([]byte, n)
 }
 
-func NewIoBuffer(bufSize int) types.IoBuffer {
-	buf := make([]byte, 0, bufSize)
+func NewIoBuffer(capacity int) types.IoBuffer {
+	buf := make([]byte, 0, capacity)
 
 	return &IoBuffer{
 		buf:     buf,

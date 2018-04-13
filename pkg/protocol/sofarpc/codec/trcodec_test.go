@@ -15,7 +15,7 @@ func Test_TrRequestCommand_Parse(t *testing.T) {
 	trCodec := trCodec{}
 	data := &buffer.IoBuffer{}
 
-	data.ReadFrom(bytes.NewBuffer(strEchoBytes))
+	data.ReadOnce(bytes.NewBuffer(strEchoBytes))
 	trRequestCommands := make([]trRequestCommand, 0)
 	trCodec.Decode(data)
 
@@ -38,7 +38,7 @@ func Test_TrResponseCommand_Parse(t *testing.T) {
 	trCodec := trCodec{}
 	data := &buffer.IoBuffer{}
 
-	data.ReadFrom(bytes.NewBuffer(strEchoBytes))
+	data.ReadOnce(bytes.NewBuffer(strEchoBytes))
 	trResponseCommands := make([]trResponseCommand, 0)
 	trCodec.Decode(nil, data, &trResponseCommands)
 

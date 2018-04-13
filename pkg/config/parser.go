@@ -6,13 +6,35 @@ import (
 	"log"
 	"strings"
 	"time"
+	log2 "gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
+var logLevelMap = map[string]log2.LogLevel{
+	"DEBUG":log2.DEBUG,
+	"FATAL": log2.FATAL,
+	"ERROR": log2.ERROR,
+	"WARN": log2.WARN,
+	"INFO": log2.INFO,
+}
+
+
+
 func ParseServerConfig(c *ServerConfig) *server.Config {
-	return &server.Config{
-		LogPath: c.AccessLog,
-		//LogLevel:c.LogLevel,
+	sc := &server.Config{}
+
+	if c.AccessLog != ""{
+		sc.LogPath = c.AccessLog
 	}
+
+	if c.LogLevel != ""{
+		if logLevel, ok := logLevelMap[c.LogLevel]; ok{
+			sc.LogLevel = logLevel
+		}else{
+			log.Fatalln("unknown log level:" + c.LogLevel)
+		}
+	}
+
+	return sc
 }
 
 func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
@@ -177,7 +199,7 @@ func ParseListenerConfig(c *ListenerConfig) *v2.ListenerConfig {
 		Name:                 c.Name,
 		Addr:                 c.Address,
 		BindToPort:           c.BindToPort,
-		ConnBufferLimitBytes: 1024 * 32,
+		PerConnBufferLimitBytes: 1024 * 32,
 	}
 }
 

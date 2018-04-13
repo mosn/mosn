@@ -6,10 +6,8 @@ const (
 	StreamConnectionTermination    StreamResetReason = "ConnectionTermination"
 	StreamConnectionFailed         StreamResetReason = "ConnectionFailed"
 	StreamLocalReset               StreamResetReason = "StreamLocalReset"
-	StreamLocalRefusedStreamReset  StreamResetReason = "StreamLocalRefusedStreamReset"
 	StreamOverflow                 StreamResetReason = "StreamOverflow"
 	StreamRemoteReset              StreamResetReason = "StreamRemoteReset"
-	StreanRemoteRefusedStreamReset StreamResetReason = "StreanRemoteRefusedStreamReset"
 )
 
 type StreamCallbacks interface {
@@ -28,8 +26,6 @@ type Stream interface {
 	ResetStream(reason StreamResetReason)
 
 	ReadDisable(disable bool)
-
-	BufferLimit() uint32
 }
 
 type StreamProto string
@@ -59,9 +55,9 @@ type StreamConnection interface {
 
 	Protocol() Protocol
 
-	//OnUnderlyingConnectionAboveWriteBufferHighWatermark()
-	//
-	//OnUnderlyingConnectionBelowWriteBufferLowWatermark()
+	OnUnderlyingConnectionAboveWriteBufferHighWatermark()
+
+	OnUnderlyingConnectionBelowWriteBufferLowWatermark()
 }
 
 type ServerStreamConnection interface {

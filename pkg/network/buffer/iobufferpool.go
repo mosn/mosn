@@ -16,7 +16,7 @@ type IoBufferPoolEntry struct {
 }
 
 func (bpe *IoBufferPoolEntry) Read() (n int64, err error) {
-	return bpe.Br.ReadFrom(bpe.Io)
+	return bpe.Br.ReadOnce(bpe.Io)
 }
 
 func (p *IoBufferPool) Take(r io.Reader) (bpe *IoBufferPoolEntry) {

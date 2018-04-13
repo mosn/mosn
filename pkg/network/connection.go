@@ -12,14 +12,14 @@ import (
 	"sync/atomic"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"bytes"
 	"runtime"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"github.com/rcrowley/go-metrics"
 )
 
 const (
-	ConnectionCloseDebugMsg = "Close connection %d, event %s, type %s, data read %d, data write %d"
+	ConnectionCloseDebugMsg    = "Close connection %d, event %s, type %s, data read %d, data write %d"
+	DefaultWriteBufferCapacity = 4 * 1024
 )
 
 var idCounter uint64
@@ -47,7 +47,7 @@ type connection struct {
 	stopChan           chan bool
 	curWriteBufferData *[]byte
 	readBuffer         *buffer.IoBufferPoolEntry
-	writeBuffer        *bytes.Buffer
+	writeBuffer        types.IoBuffer
 	writeBufferMux     sync.RWMutex
 	writeBufferChan    chan bool
 	writeLoopStopChan  chan bool
@@ -72,11 +72,9 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		localAddr:         rawc.LocalAddr(),
 		remoteAddr:        rawc.RemoteAddr(),
 		stopChan:          stopChan,
-		bufferLimit:       4 * 1024,
 		readEnabled:       true,
 		readEnabledChan:   make(chan bool, 1),
 		writeBufferChan:   make(chan bool),
-		writeBuffer:       bytes.NewBuffer(make([]byte, 0, 4*1024)),
 		writeLoopStopChan: make(chan bool, 1),
 		readerBufferPool:  buffer.NewIoBufferPool(1, 1024),
 		stats: &types.ConnectionStats{
@@ -88,9 +86,27 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		logger: log.DefaultLogger,
 	}
 
+	conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)
 	conn.filterManager = newFilterManager(conn)
 
 	return conn
+}
+
+// watermark listener
+func (c *connection) OnHighWatermark() {
+	c.aboveHighWatermark = true
+
+	for _, cb := range c.connCallbacks {
+		cb.OnAboveWriteBufferHighWatermark()
+	}
+}
+
+func (c *connection) OnLowWatermark() {
+	c.aboveHighWatermark = false
+
+	for _, cb := range c.connCallbacks {
+		cb.OnBelowWriteBufferLowWatermark()
+	}
 }
 
 // basic
@@ -178,17 +194,15 @@ func (c *connection) doRead() (err error) {
 
 	var bytesRead int64
 
-	if c.readBuffer.Br.Len() < int(c.bufferLimit) {
-		bytesRead, err = c.readBuffer.Read()
+	bytesRead, err = c.readBuffer.Read()
 
-		if err != nil {
-			if te, ok := err.(net.Error); ok && te.Timeout() {
-				return
-			}
-
-			c.readerBufferPool.Give(c.readBuffer)
-			return err
+	if err != nil {
+		if te, ok := err.(net.Error); ok && te.Timeout() {
+			return
 		}
+
+		c.readerBufferPool.Give(c.readBuffer)
+		return err
 	}
 
 	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Br.Len()))
@@ -481,6 +495,8 @@ func (c *connection) Ssl() *tls.Conn {
 func (c *connection) SetBufferLimit(limit uint32) {
 	if limit > 0 {
 		c.bufferLimit = limit
+
+		c.writeBuffer.(*buffer.WatermarkBuffer).SetWaterMark(limit)
 	}
 }
 
@@ -541,11 +557,9 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 			localAddr:         sourceAddr,
 			remoteAddr:        remoteAddr,
 			stopChan:          stopChan,
-			bufferLimit:       4 * 1024,
 			readEnabled:       true,
 			readEnabledChan:   make(chan bool, 1),
 			writeBufferChan:   make(chan bool),
-			writeBuffer:       bytes.NewBuffer(make([]byte, 0, 4*1024)),
 			writeLoopStopChan: make(chan bool, 1),
 			readerBufferPool:  buffer.NewIoBufferPool(1, 1024),
 			stats: &types.ConnectionStats{
@@ -557,6 +571,8 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 			logger: log.DefaultLogger,
 		},
 	}
+
+	conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)
 	conn.filterManager = newFilterManager(conn)
 
 	return conn

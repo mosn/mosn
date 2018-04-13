@@ -16,23 +16,44 @@ func init() {
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection,
-	streamConnCallbacks types.StreamConnectionCallbacks, connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection {
-	return newClientStreamConnection(connection, streamConnCallbacks)
+	clientCallbacks types.StreamConnectionCallbacks, connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection {
+	return newStreamConnection(connection, clientCallbacks, nil)
 }
 
 func (f *streamConnFactory) CreateServerStream(connection types.Connection,
-	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
-	return newServerStreamConnection(connection, callbacks)
+	serverCallbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
+	return newStreamConnection(connection, nil, serverCallbacks)
+}
+
+func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionCallbacks,
+	serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection {
+	return newStreamConnection(connection, clientCallbacks, serverCallbacks)
 }
 
 // types.DecodeFilter
 // types.StreamConnection
+// types.ClientStreamConnection
+// types.ServerStreamConnection
 type streamConnection struct {
-	protocol      types.Protocol
-	connection    types.Connection
-	activeStreams map[uint32]*stream
-	asMutex       sync.Mutex
-	protocols     types.Protocols
+	protocol        types.Protocol
+	connection      types.Connection
+	activeStreams   map[uint32]*stream
+	asMutex         sync.Mutex
+	protocols       types.Protocols
+	clientCallbacks types.StreamConnectionCallbacks
+	serverCallbacks types.ServerStreamConnectionCallbacks
+}
+
+func newStreamConnection(connection types.Connection, clientCallbacks types.StreamConnectionCallbacks,
+	serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection {
+
+	return &streamConnection{
+		connection:      connection,
+		protocols:       sofarpc.DefaultProtocols(),
+		activeStreams:   make(map[uint32]*stream),
+		clientCallbacks: clientCallbacks,
+		serverCallbacks: serverCallbacks,
+	}
 }
 
 // types.StreamConnection
@@ -44,8 +65,33 @@ func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
 }
 
+func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
+	// todo
+}
+
+func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark() {
+	// todo
+}
+
+func (conn *streamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
+	stream := &stream{
+		streamId:   streamId,
+		direction:  0,
+		connection: conn,
+		decoder:    responseDecoder,
+	}
+
+	conn.activeStreams[streamId] = stream
+
+	return stream
+}
+
 // types.DecodeFilter Called by serverStreamConnection
 func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
+	if sofarpc.IsSofaRequest(headers) {
+		conn.onNewStreamDetected(streamId)
+	}
+
 	if stream, ok := conn.activeStreams[streamId]; ok {
 		stream.decoder.OnDecodeHeaders(headers, false) //Call Back Proxy-Level's OnDecodeHeaders
 	}
@@ -56,6 +102,10 @@ func (conn *streamConnection) OnDecodeHeader(streamId uint32, headers map[string
 func (conn *streamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStreams[streamId]; ok {
 		stream.decoder.OnDecodeData(data, true) //回调PROXY层的OnDecodeData,把数据传进去
+
+		if stream.direction == 0 {
+			delete(stream.connection.activeStreams, stream.streamId)
+		}
 	}
 
 	return types.StopIteration
@@ -66,105 +116,29 @@ func (conn *streamConnection) OnDecodeTrailer(streamId uint32, trailers map[stri
 		stream.decoder.OnDecodeTrailers(trailers)
 	}
 
-	return types.Continue
-}
-
-// types.ClientStreamConnection
-type clientStreamConnection struct {
-	streamConnection
-	streamConnCallbacks types.StreamConnectionCallbacks
-}
-
-func newClientStreamConnection(connection types.Connection,
-	callbacks types.StreamConnectionCallbacks) types.ClientStreamConnection {
-
-	return &clientStreamConnection{
-		streamConnection: streamConnection{
-			connection:    connection,
-			protocols:     sofarpc.DefaultProtocols(),
-			activeStreams: make(map[uint32]*stream),
-		},
-		streamConnCallbacks: callbacks,
-	}
-}
-
-func (c *clientStreamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
-	stream := &stream{
-		streamId:   streamId,
-		connection: &c.streamConnection,
-		decoder:    responseDecoder,
-	}
-
-	return stream
-}
-
-// types.ServerStreamConnection
-type serverStreamConnection struct {
-	streamConnection
-	serverStreamConnCallbacks types.ServerStreamConnectionCallbacks
-}
-
-func newServerStreamConnection(connection types.Connection,
-	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
-	return &serverStreamConnection{
-		streamConnection: streamConnection{
-			connection:    connection,
-			protocols:     sofarpc.DefaultProtocols(),
-			activeStreams: make(map[uint32]*stream),
-		},
-		serverStreamConnCallbacks: callbacks,
-	}
-}
-
-//调用协议的decode，将自己SC作为参数传进去，便于回调
-func (sc *serverStreamConnection) Dispatch(buffer types.IoBuffer) {
-	sc.protocols.Decode(buffer, sc)
-}
-
-// types.DecodeFilter
-//被协议层回调，回传headers
-func (sc *serverStreamConnection) OnDecodeHeader(streamId uint32, headers map[string]string) types.FilterStatus {
-	if streamId == 0 {
-		return types.Continue
-	}
-
-	sc.onNewStreamDetected(streamId) //创建NEW STREAM
-
-	sc.streamConnection.OnDecodeHeader(streamId, headers) //调用到streamConnection的onDecodeHeader方法
-
-	return types.Continue
-}
-
-func (sc *serverStreamConnection) OnDecodeData(streamId uint32, data types.IoBuffer) types.FilterStatus {
-	if streamId == 0 {
-		return types.Continue
-	} //
-
-	sc.onNewStreamDetected(streamId)
-	sc.streamConnection.OnDecodeData(streamId, data)
-
 	return types.StopIteration
 }
 
-func (sc *serverStreamConnection) onNewStreamDetected(streamId uint32) {
-	if _, ok := sc.activeStreams[streamId]; ok {
+func (conn *streamConnection) onNewStreamDetected(streamId uint32) {
+	if _, ok := conn.activeStreams[streamId]; ok {
 		return
 	}
 
 	stream := &stream{
 		streamId:   streamId,
-		connection: &sc.streamConnection,
+		direction:  1,
+		connection: conn,
 	}
 
-	//调用PROXY中定义的NEWSTREAM，同时将 NEW出来的 STREAM作为 encoder 传进去
-	stream.decoder = sc.serverStreamConnCallbacks.NewStream(streamId, stream)
-	sc.activeStreams[streamId] = stream
+	stream.decoder = conn.serverCallbacks.NewStream(streamId, stream)
+	conn.activeStreams[streamId] = stream
 }
 
 // types.Stream
 // types.StreamEncoder
 type stream struct {
 	streamId         uint32
+	direction        int // 0: out, 1: in
 	readDisableCount int
 	connection       *streamConnection
 	decoder          types.StreamDecoder
@@ -225,7 +199,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) {
 	}
 
 	// Call Protocol-Level's EncodeHeaders Func
-	s.streamId, s.encodedHeaders = s.connection.protocols.EncodeHeaders(headers)  //OK.......
+	s.streamId, s.encodedHeaders = s.connection.protocols.EncodeHeaders(headers) //OK.......
 	s.connection.activeStreams[s.streamId] = s
 
 	if endStream {
@@ -250,7 +224,9 @@ func (s *stream) endStream() {
 	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedHeaders)
 	s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedData)
 
-	//delete(s.connection.activeStreams, s.streamId)
+	if s.direction == 1 {
+		delete(s.connection.activeStreams, s.streamId)
+	}
 }
 
 func (s *stream) GetStream() types.Stream {

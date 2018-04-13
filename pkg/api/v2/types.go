@@ -27,7 +27,8 @@ type Cluster struct {
 	ClusterType          ClusterType
 	LbType               LbType
 	MaxRequestPerConn    uint64
-	ConnBufferLimitBytes int
+
+	ConnBufferLimitBytes uint32
 	HealthCheck 		 HealthCheck
 }
 
@@ -43,7 +44,7 @@ type ListenerConfig struct {
 	ListenerTag                           uint64
 	ListenerScope                         string
 	BindToPort                            bool
-	ConnBufferLimitBytes                  uint32
+	PerConnBufferLimitBytes               uint32
 	HandOffRestoredDestinationConnections bool
 }
 

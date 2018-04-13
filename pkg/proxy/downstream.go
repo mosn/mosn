@@ -24,6 +24,10 @@ type activeStream struct {
 	cluster  types.ClusterInfo
 	element  *list.Element
 
+	// flow control
+	bufferLimit        uint32
+	highWatermarkCount int
+
 	// ~~~ control args
 	timeout    *ProxyTimeout
 	retryState *retryState
@@ -60,6 +64,8 @@ type activeStream struct {
 
 	filterStage int
 
+	watermarkCallbacks types.DownstreamWatermarkCallbacks
+
 	// ~~~ filters
 	encoderFilters []*activeStreamEncoderFilter
 	decoderFilters []*activeStreamDecoderFilter
@@ -90,9 +96,31 @@ func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
 	s.cleanStream()
 }
 
-func (s *activeStream) OnAboveWriteBufferHighWatermark() {}
+func (s *activeStream) OnAboveWriteBufferHighWatermark() {
+	s.callHighWatermarkCallbacks()
+}
 
-func (s *activeStream) OnBelowWriteBufferLowWatermark() {}
+func (s *activeStream) callHighWatermarkCallbacks() {
+	s.upstreamRequest.requestEncoder.GetStream().ReadDisable(true)
+	s.highWatermarkCount++
+
+	if s.watermarkCallbacks != nil {
+		s.watermarkCallbacks.OnAboveWriteBufferHighWatermark()
+	}
+}
+
+func (s *activeStream) OnBelowWriteBufferLowWatermark() {
+	s.callLowWatermarkCallbacks()
+}
+
+func (s *activeStream) callLowWatermarkCallbacks() {
+	s.upstreamRequest.requestEncoder.GetStream().ReadDisable(false)
+	s.highWatermarkCount--
+
+	if s.watermarkCallbacks != nil {
+		s.watermarkCallbacks.OnBelowWriteBufferLowWatermark()
+	}
+}
 
 // case 1: stream's lifecycle ends normally
 // case 2: proxy ends stream in lifecycle
@@ -176,7 +204,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		requestInfo:  network.NewRequestInfo(),
 	}
 
-	s.upstreamRequest.encodeHeaders(headers, endStream)    //调用ENCODER封装
+	s.upstreamRequest.encodeHeaders(headers, endStream) //调用ENCODER封装
 
 	if endStream {
 		s.onUpstreamRequestSent()
@@ -331,9 +359,9 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	case protocol.SofaRpc:
 		connPool = s.proxy.clusterManager.SofaRpcConnPoolForCluster(clusterName, nil)
 	case protocol.Http2:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, 0, protocol.Http2, nil)
+		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, nil)
 	default:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, 0, protocol.Http2, nil)
+		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, nil)
 	}
 
 	if connPool == nil {
@@ -431,7 +459,7 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 
 	// todo: insert proxy headers
 
-	s.encodeHeaders(headers, endStream)   //OK HERE
+	s.encodeHeaders(headers, endStream) //OK HERE
 }
 
 func (s *activeStream) onUpstreamData(data types.IoBuffer, endStream bool) {
@@ -525,7 +553,7 @@ func (s *activeStream) doRetry() {
 		requestInfo:  network.NewRequestInfo(),
 	}
 
-	s.upstreamRequest.encodeHeaders(nil,
+	s.upstreamRequest.encodeHeaders(s.downstreamReqHeaders,
 		s.downstreamReqDataBuf != nil && s.downstreamReqTrailers != nil)
 
 	if s.upstreamRequest != nil {
@@ -542,6 +570,14 @@ func (s *activeStream) doRetry() {
 		// setup per try timeout timer
 		s.setupPerTryTimeout()
 	}
+}
+
+func (s *activeStream) onUpstreamAboveWriteBufferHighWatermark() {
+	s.responseEncoder.GetStream().ReadDisable(true)
+}
+
+func (s *activeStream) onUpstreamBelowWriteBufferHighWatermark() {
+	s.responseEncoder.GetStream().ReadDisable(false)
 }
 
 func (s *activeStream) resetStream() {
@@ -570,6 +606,8 @@ func (s *activeStream) stopTimer() {
 }
 
 func (s *activeStream) setBufferLimit(bufferLimit uint32) {
+	s.bufferLimit = bufferLimit
+
 	// todo
 }
 

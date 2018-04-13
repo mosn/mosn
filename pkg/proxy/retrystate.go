@@ -53,6 +53,8 @@ func (r *retryState) scheduleRetry(doRetry func()) *timer {
 	timer := newTimer(doRetry, time.Duration(timeout)*time.Second)
 	timer.start()
 
+	r.cluster.Stats().UpstreamRequestRetry.Inc(1)
+
 	return timer
 }
 

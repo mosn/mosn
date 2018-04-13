@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 	"errors"
-	"sync"
+	_"sync"
 )
 
 func init() {

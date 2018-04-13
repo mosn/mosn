@@ -39,9 +39,13 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	r.activeStream.onUpstreamReset(UpstreamReset, reason)
 }
 
-func (r *upstreamRequest) OnAboveWriteBufferHighWatermark() {}
+func (r *upstreamRequest) OnAboveWriteBufferHighWatermark() {
+	r.activeStream.onUpstreamAboveWriteBufferHighWatermark()
+}
 
-func (r *upstreamRequest) OnBelowWriteBufferLowWatermark() {}
+func (r *upstreamRequest) OnBelowWriteBufferLowWatermark() {
+	r.activeStream.onUpstreamBelowWriteBufferHighWatermark()
+}
 
 // types.StreamDecoder
 func (r *upstreamRequest) OnDecodeHeaders(headers map[string]string, endStream bool) {
@@ -60,7 +64,8 @@ func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 
 func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
 	r.encodeComplete = endStream
-	r.connPool.NewStream(0, r, r)    //调用STREAM层的NEW stream函数
+
+	r.connPool.NewStream(0, r, r)
 }
 
 func (r *upstreamRequest) encodeData(data types.IoBuffer, endStream bool) {

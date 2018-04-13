@@ -87,7 +87,7 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 
 		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEle.Next() {
 			ur := urEle.Value.(*upstreamRequest)
-			ur.requestEncoder.GetStream().ResetStream(types.StreamLocalReset)
+			ur.requestEncoder.GetStream().ResetStream(types.StreamConnectionTermination)
 		}
 	}
 }
@@ -168,9 +168,9 @@ func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 }
 
 func (dc *downstreamCallbacks) OnAboveWriteBufferHighWatermark() {
-	// TODO
+	dc.proxy.serverCodec.OnUnderlyingConnectionAboveWriteBufferHighWatermark()
 }
 
 func (dc *downstreamCallbacks) OnBelowWriteBufferLowWatermark() {
-	// TODO
+	dc.proxy.serverCodec.OnUnderlyingConnectionBelowWriteBufferLowWatermark()
 }

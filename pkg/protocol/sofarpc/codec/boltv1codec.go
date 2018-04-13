@@ -280,7 +280,7 @@ func (c *boltV1Codec) Decode(data types.IoBuffer) (int, interface{}) {
 						read += int(contentLen)
 					}
 
-					data.Set(read)
+					data.Drain(read)
 
 				} else { // not enough data
 
@@ -340,7 +340,7 @@ func (c *boltV1Codec) Decode(data types.IoBuffer) (int, interface{}) {
 						read += int(contentLen)
 					}
 
-					data.Set(read)
+					data.Drain(read)
 				} else {
 					// not enough data
 					log.DefaultLogger.Println("[Decoder]no enough data for fully decode")

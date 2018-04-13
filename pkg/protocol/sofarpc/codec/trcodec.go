@@ -218,7 +218,7 @@ func (decoder *trCodec) Decode(data types.IoBuffer) (int,interface{}) {
 		appClassName := string(appClassNameContent)
 		appClassContent := bytes[appClassNameEnd: appClassNameEnd+appClassContentLen]
 		totalLength := sf.PROTOCOL_HEADER_LENGTH + connRequestLen + uint32(appClassNameLen) + appClassContentLen
-		data.Set(int(totalLength))
+		data.Drain(int(totalLength))
 		var cmdCode int16
 
 		if requestFlag == sf.HEADER_REQUEST {

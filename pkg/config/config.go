@@ -48,7 +48,7 @@ type ClusterConfig struct {
 	Type                 string
 	LbType               string `json:"lb_type"`
 	MaxRequestPerConn    uint64 `json:"max_request_per_conn"`
-	ConnBufferLimitBytes int
+	ConnBufferLimitBytes uint32
 	HealthCheck          HealthCheckConfig `json:"healthcheck"`
 	Hosts                []HostConfig
 }
