@@ -110,7 +110,7 @@ func (ch *connHandler) StopListener(listenerTag uint64, lctx context.Context) {
 func (ch *connHandler) StopListeners(lctx context.Context) {
 	for _, l := range ch.listeners {
 		// stop goruntine
-		l.stopChan <- true
+		l.listener.Stop(l.stopChan)
 	}
 }
 

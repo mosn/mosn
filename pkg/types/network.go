@@ -19,6 +19,8 @@ type Listener interface {
 
 	Start(stopChan chan bool, lctx context.Context)
 
+	Stop(stopChan chan bool)
+
 	ListenerTag() uint64
 
 	ListenerFD() (uintptr, error)

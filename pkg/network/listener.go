@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"time"
 )
 
 // listener impl based on golang net package
@@ -67,6 +68,7 @@ func (l *listener) Addr() net.Addr {
 func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 	if err := l.listen(lctx); err != nil {
 		// TODO: notify listener callbacks
+		log.DefaultLogger.Println( l.name + " listen failed, " , err)
 		return
 	}
 
@@ -74,11 +76,15 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 		for {
 			select {
 			case <-stopChan:
-				log.DefaultLogger.Println("listener " +l.name + " stop accepting connections")
+				//FIXME: can not enter this branch util Listener.accept return
+				log.DefaultLogger.Println("listener " +l.name + " stop accepting connections by stop chan")
 				return
 			default:
 				if err := l.accept(lctx); err != nil {
-					if ope, ok := err.(*net.OpError); ok {
+					if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+						log.DefaultLogger.Println("listener " +l.name + " stop accepting connections by deadline")
+						return
+					} else if ope, ok := err.(*net.OpError); ok {
 						if !(ope.Timeout() && ope.Temporary()){
 							log.DefaultLogger.Println("not temp-timeout error:" + err.Error())
 						}
@@ -89,6 +95,11 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 			}
 		}
 	}
+}
+
+func (l *listener) Stop(stopChan chan bool)  {
+	stopChan <- true
+	l.rawl.SetDeadline(time.Now())
 }
 
 func (l *listener) ListenerTag() uint64 {
