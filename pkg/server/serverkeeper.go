@@ -57,6 +57,7 @@ func catchSignalsCrossPlatform() {
 			syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
 
 		for sig := range sigchan {
+			log.DefaultLogger.Println(sig, " received!")
 			switch sig {
 			case syscall.SIGQUIT:
 				// quit

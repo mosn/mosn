@@ -9,10 +9,10 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"net/http"
-	"time"
 	"os"
 	"net"
 	"log"
+	"time"
 )
 
 func Start(c *config.MOSNConfig) {
@@ -38,50 +38,48 @@ func Start(c *config.MOSNConfig) {
 
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
-		//start server
-		go func() {
-			//1. server config prepare
-			//server config
-			sc := config.ParseServerConfig(&serverConfig)
 
-			// network filters
-			nfcf := getNetworkFilter(serverConfig.NetworkFilters)
+		//1. server config prepare
+		//server config
+		sc := config.ParseServerConfig(&serverConfig)
 
-			//stream filters
-			sfcf := getStreamFilters(serverConfig.StreamFilters)
+		// network filters
+		nfcf := getNetworkFilter(serverConfig.NetworkFilters)
 
-			//cluster manager filter
-			cmf := &clusterManagerFilter{}
+		//stream filters
+		sfcf := getStreamFilters(serverConfig.StreamFilters)
 
-			//2. initialize server instance
-			srv := server.NewServer(sc, nfcf, sfcf, cmf)
+		//cluster manager filter
+		cmf := &clusterManagerFilter{}
 
-			//add listener
-			if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
-				log.Fatalln("no listener found")
-			}
+		//2. initialize server instance
+		srv := server.NewServer(sc, nfcf, sfcf, cmf)
 
-			for _, listenerConfig := range serverConfig.Listeners {
-				srv.AddListener(config.ParseListenerConfig(&listenerConfig))
-			}
+		//add listener
+		if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
+			log.Fatalln("no listener found")
+		}
 
-			var clusters []v2.Cluster
-			clusterMap := make(map[string][]v2.Host)
+		for _, listenerConfig := range serverConfig.Listeners {
+			srv.AddListener(config.ParseListenerConfig(&listenerConfig))
+		}
 
-			for _, cluster := range c.ClusterManager.Clusters {
-				parsed := config.ParseClusterConfig(&cluster)
-				clusters = append(clusters, parsed)
-				clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
-			}
-			cmf.cccb.UpdateClusterConfig(clusters)
+		var clusters []v2.Cluster
+		clusterMap := make(map[string][]v2.Host)
 
-			for clusterName, hosts := range clusterMap {
-				cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
-			}
+		for _, cluster := range c.ClusterManager.Clusters {
+			parsed := config.ParseClusterConfig(&cluster)
+			clusters = append(clusters, parsed)
+			clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
+		}
+		cmf.cccb.UpdateClusterConfig(clusters)
 
+		for clusterName, hosts := range clusterMap {
+			cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
+		}
+
+		go func(){
 			srv.Start() //开启连接
-
-			log.Println("[MAIN]mosn server started..")
 
 			select {
 			case <-stopChan:
@@ -91,10 +89,11 @@ func Start(c *config.MOSNConfig) {
 	}
 
 	select {
-	case <-time.After(time.Second * 120):
-		stopChans[0] <- true
-		log.Println("[MAIN]closing..")
+	case <-time.After(time.Second * 50):
+		//wait for server start
+		//todo: daemon running
 	}
+
 
 }
 

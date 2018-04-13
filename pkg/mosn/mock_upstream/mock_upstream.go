@@ -6,16 +6,17 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"log"
 )
 
-const RealServerAddr = "127.0.0.1:8088"
+const RealServerAddr = "127.0.0.1:12345"
 
 func main() {
 
 	go func() {
 		// upstream
 		server := &http.Server{
-			Addr:         ":8080",
+			Addr:         RealServerAddr,
 			Handler:      &serverHandler{},
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 5 * time.Second,
@@ -25,7 +26,10 @@ func main() {
 		}
 
 		http2.ConfigureServer(server, s2)
-		l, _ := net.Listen("tcp", RealServerAddr)
+		l, err := net.Listen("tcp", RealServerAddr)
+		if err != nil{
+			log.Fatalln("listen error:", err)
+		}
 		defer l.Close()
 
 		for {

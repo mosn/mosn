@@ -1,6 +1,8 @@
 {
   "servers": [
     {
+      "access_log": "/home/admin/logs/mosn/default.log",
+      "log_level": "INFO",
       "network_filters": [
         {
           "type": "proxy",
@@ -78,7 +80,7 @@
         "hosts": [
           {
             "hostname": "local_upstream",
-            "address": "127.0.0.1:8088",
+            "address": "127.0.0.1:12345",
             "weight": 1
           }
         ]
@@ -90,12 +92,12 @@
         "hosts": [
           {
             "hostname": "local_upstream",
-            "address": "127.0.0.1:8088",
+            "address": "127.0.0.1:12345",
             "weight": 10
           },
           {
             "hostname": "local_upstream",
-            "address": "127.0.0.1:8089",
+            "address": "127.0.0.1:12346",
             "weight": 90
           }
         ]
