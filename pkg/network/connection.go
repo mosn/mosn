@@ -551,6 +551,10 @@ type clientConnection struct {
 func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan bool) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
+	if log.DefaultLogger == nil {
+		log.InitDefaultLogger("", log.DEBUG)
+	}
+
 	conn := &clientConnection{
 		connection: connection{
 			id:                id,
