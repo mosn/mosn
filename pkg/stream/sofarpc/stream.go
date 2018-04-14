@@ -84,8 +84,8 @@ func (conn *streamConnection) NewStream(streamId string, responseDecoder types.S
 	}
 
 	conn.asMutex.Lock()
-	defer conn.asMutex.Unlock()
 	conn.activeStreams[streamId] = stream
+	conn.asMutex.Unlock()
 
 	return stream
 }
@@ -110,8 +110,8 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 	}
 
 	conn.asMutex.RLock()
-	defer conn.asMutex.RUnlock()
 	stream, ok := conn.activeStreams[streamId]
+	conn.asMutex.RUnlock()
 
 	if ok {
 		stream.decoder.OnDecodeHeaders(headers, false) //Call Back Proxy-Level's OnDecodeHeaders
@@ -126,8 +126,8 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 
 func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer) types.FilterStatus {
 	conn.asMutex.RLock()
-	defer conn.asMutex.RUnlock()
 	stream, ok := conn.activeStreams[streamId]
+	conn.asMutex.RUnlock()
 
 	if  ok {
 		stream.decoder.OnDecodeData(data, true)
@@ -135,8 +135,8 @@ func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer)
 		if stream.direction == 0 {
 
 			conn.asMutex.Lock()
-			defer conn.asMutex.Unlock()
 			delete(stream.connection.activeStreams, stream.streamId)
+			conn.asMutex.Unlock()
 		}
 	}
 
@@ -145,8 +145,8 @@ func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer)
 
 func (conn *streamConnection) OnDecodeTrailer(streamId string, trailers map[string]string) types.FilterStatus {
 	conn.asMutex.RLock()
-	defer conn.asMutex.RUnlock()
 	stream, ok := conn.activeStreams[streamId]
+	conn.asMutex.RUnlock()
 
 	if  ok {
 		stream.decoder.OnDecodeTrailers(trailers)
@@ -158,8 +158,8 @@ func (conn *streamConnection) OnDecodeTrailer(streamId string, trailers map[stri
 func (conn *streamConnection) onNewStreamDetected(streamId string) {
 
 	conn.asMutex.RLock()
-	defer conn.asMutex.RUnlock()
-	_, ok := conn.activeStreams[streamId];
+	_, ok := conn.activeStreams[streamId]
+	conn.asMutex.RUnlock()
 
 	if  ok {
 		return
@@ -172,9 +172,10 @@ func (conn *streamConnection) onNewStreamDetected(streamId string) {
 	}
 
 	stream.decoder = conn.serverCallbacks.NewStream(streamId, stream)
+
 	conn.asMutex.Lock()
-	defer conn.asMutex.Unlock()
 	conn.activeStreams[streamId] = stream
+	conn.asMutex.Unlock()
 }
 
 // types.Stream
@@ -303,9 +304,8 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 	}
 
 	s.connection.asMutex.Lock()
-	defer s.connection.asMutex.Unlock()
 	s.connection.activeStreams[s.streamId] = s
-
+	s.connection.asMutex.Unlock()
 	if endStream {
 		s.endStream()
 	}
@@ -328,12 +328,16 @@ func (s *stream) EncodeTrailers(trailers map[string]string) error {
 
 func (s *stream) endStream() {
 
+	s.connection.asMutex.RLock()
+	ssid := s.connection.activeStreams[s.streamId]
+	s.connection.asMutex.RUnlock()
+
 	if s.encodedHeaders != nil {
-		s.connection.asMutex.RLock()
-		defer s.connection.asMutex.RUnlock()
-		s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedHeaders)
+
+		ssid.connection.connection.Write(s.encodedHeaders)
+
 		if s.encodedData != nil {
-			s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedData)
+			ssid.connection.connection.Write(s.encodedData)
 		} else {
 			log.DefaultLogger.Println("Response Body is void...")
 		}
@@ -343,10 +347,10 @@ func (s *stream) endStream() {
 	}
 
 	s.connection.asMutex.Lock()
-	defer s.connection.asMutex.Unlock()
 	if s.direction == 1 {
 		delete(s.connection.activeStreams, s.streamId)
 	}
+	s.connection.asMutex.Unlock()
 }
 
 func (s *stream) GetStream() types.Stream {
