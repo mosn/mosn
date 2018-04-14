@@ -89,7 +89,7 @@ func Start(c *config.MOSNConfig) {
 	}
 
 	select {
-	case <-time.After(time.Second * 50):
+	case <-time.After(time.Second * 3600):
 		//wait for server start
 		//todo: daemon running
 	}
