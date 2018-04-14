@@ -161,6 +161,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 		if connPool, ok := cm.http2ConnPool.Get(addr); ok {
 			return connPool.(types.ConnectionPool)
 		} else {
+			// todo: move this to a centralized factory, remove dependency to http2 stream
 			connPool := http2.NewConnPool(host)
 			cm.http2ConnPool.Set(addr, connPool)
 
@@ -202,6 +203,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 		if connPool, ok := cm.sofaRpcConnPool.Get(addr); ok {
 			return connPool.(types.ConnectionPool)
 		} else {
+			// todo: move this to a centralized factory, remove dependency to sofarpc stream
 			connPool := sofarpc.NewConnPool(host)
 			cm.sofaRpcConnPool.Set(addr, connPool)
 

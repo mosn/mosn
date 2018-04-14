@@ -178,8 +178,8 @@ func genericProxyConfig() *v2.Proxy {
 	return proxyConfig
 }
 
-func rpcProxyListener() v2.ListenerConfig {
-	return v2.ListenerConfig{
+func rpcProxyListener() *v2.ListenerConfig {
+	return &v2.ListenerConfig{
 		Name:                    TestListener,
 		Addr:                    MeshServerAddr,
 		BindToPort:              true,
