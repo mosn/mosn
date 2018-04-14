@@ -10,7 +10,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"reflect"
 	"time"
-	"sync"
 )
 
 var (
@@ -115,11 +114,6 @@ func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []
 	}
 
 	if cmd.HeaderLen > 0 {
-
-		var lock sync.RWMutex
-		lock.Lock()
-		defer lock.Unlock()
-
 		data = append(data, cmd.HeaderMap...)
 	}
 

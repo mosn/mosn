@@ -8,7 +8,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"strconv"
-	"sync"
 )
 
 type BoltRequestProcessor struct{}
@@ -97,10 +96,6 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 
 	//serialize header
 	var headerMap map[string]string
-
-	var lock sync.RWMutex
-	lock.Lock()
-	defer lock.Unlock()
 
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
 	log.DefaultLogger.Println("deSerialize  headerMap:", headerMap)
