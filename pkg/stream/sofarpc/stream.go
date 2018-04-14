@@ -40,6 +40,7 @@ type streamConnection struct {
 	protocol        types.Protocol
 	connection      types.Connection
 	activeStreams   map[string]*stream
+	Lock			sync.RWMutex
 	asMutex         sync.Mutex
 	protocols       types.Protocols
 	clientCallbacks types.StreamConnectionCallbacks
@@ -83,6 +84,8 @@ func (conn *streamConnection) NewStream(streamId string, responseDecoder types.S
 		decoder:    responseDecoder,
 	}
 
+	conn.Lock.Lock()
+	defer conn.Lock.Unlock()
 	conn.activeStreams[streamId] = stream
 
 	return stream
@@ -107,7 +110,11 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 		headers[types.HeaderGlobalTimeout] = v
 	}
 
-	if stream, ok := conn.activeStreams[streamId]; ok {
+	conn.Lock.RLock()
+	defer conn.Lock.RUnlock()
+	stream, ok := conn.activeStreams[streamId]
+
+	if ok {
 		stream.decoder.OnDecodeHeaders(headers, false) //Call Back Proxy-Level's OnDecodeHeaders
 	} else if v, ok := headers[types.HeaderException]; ok && v == types.MosnExceptionCodeC {
 		//If codec exception happens
@@ -119,10 +126,17 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 }
 
 func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer) types.FilterStatus {
-	if stream, ok := conn.activeStreams[streamId]; ok {
+	conn.Lock.RLock()
+	defer conn.Lock.RUnlock()
+	stream, ok := conn.activeStreams[streamId]
+
+	if  ok {
 		stream.decoder.OnDecodeData(data, true)
 
 		if stream.direction == 0 {
+
+			conn.Lock.Lock()
+			defer conn.Lock.Unlock()
 			delete(stream.connection.activeStreams, stream.streamId)
 		}
 	}
@@ -131,7 +145,11 @@ func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer)
 }
 
 func (conn *streamConnection) OnDecodeTrailer(streamId string, trailers map[string]string) types.FilterStatus {
-	if stream, ok := conn.activeStreams[streamId]; ok {
+	conn.Lock.RLock()
+	defer conn.Lock.RUnlock()
+	stream, ok := conn.activeStreams[streamId]
+
+	if  ok {
 		stream.decoder.OnDecodeTrailers(trailers)
 	}
 
@@ -139,7 +157,12 @@ func (conn *streamConnection) OnDecodeTrailer(streamId string, trailers map[stri
 }
 
 func (conn *streamConnection) onNewStreamDetected(streamId string) {
-	if _, ok := conn.activeStreams[streamId]; ok {
+
+	conn.Lock.RLock()
+	defer conn.Lock.RUnlock()
+	_, ok := conn.activeStreams[streamId];
+
+	if  ok {
 		return
 	}
 
@@ -150,6 +173,8 @@ func (conn *streamConnection) onNewStreamDetected(streamId string) {
 	}
 
 	stream.decoder = conn.serverCallbacks.NewStream(streamId, stream)
+	conn.Lock.Lock()
+	defer conn.Lock.Unlock()
 	conn.activeStreams[streamId] = stream
 }
 
@@ -277,6 +302,9 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 	if s.encodedHeaders == nil {
 		return errors.New(s.streamId)
 	}
+
+	s.connection.Lock.Lock()
+	defer s.connection.Lock.Unlock()
 	s.connection.activeStreams[s.streamId] = s
 
 	if endStream {
@@ -302,6 +330,9 @@ func (s *stream) EncodeTrailers(trailers map[string]string) error {
 func (s *stream) endStream() {
 
 	if s.encodedHeaders != nil {
+		s.connection.Lock.RLock()
+		defer s.connection.Lock.RUnlock()
+
 		s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedHeaders)
 		if s.encodedData != nil {
 			s.connection.activeStreams[s.streamId].connection.connection.Write(s.encodedData)
@@ -313,6 +344,8 @@ func (s *stream) endStream() {
 		log.DefaultLogger.Println("Response Headers is void...")
 	}
 
+	s.connection.Lock.Lock()
+	defer s.connection.Lock.Unlock()
 	if s.direction == 1 {
 		delete(s.connection.activeStreams, s.streamId)
 	}
