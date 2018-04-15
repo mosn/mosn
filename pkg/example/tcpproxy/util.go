@@ -30,8 +30,8 @@ func tcpProxyConfig() *v2.TcpProxy {
 	return tcpProxyConfig
 }
 
-func tcpListener() v2.ListenerConfig {
-	return v2.ListenerConfig{
+func tcpListener() *v2.ListenerConfig {
+	return &v2.ListenerConfig{
 		Name:                    TestListener,
 		Addr:                    MeshServerAddr,
 		BindToPort:              true,

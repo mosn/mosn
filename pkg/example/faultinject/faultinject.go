@@ -58,8 +58,8 @@ func main() {
 	}
 }
 
-func tcpListener() v2.ListenerConfig {
-	return v2.ListenerConfig{
+func tcpListener() *v2.ListenerConfig {
+	return &v2.ListenerConfig{
 		Name:                    TestListener,
 		Addr:                    MeshServerAddr,
 		BindToPort:              true,

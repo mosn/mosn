@@ -107,7 +107,7 @@ func main2() {
 			cc.AddConnectionCallbacks(&clientConnCallbacks{      //ADD  connection callback
 				cc: cc,
 			})
-			cc.Connect()
+			cc.Connect(true)
 			cc.SetReadDisable(false)
 			cc.FilterManager().AddReadFilter(&clientConnReadFilter{})
 
