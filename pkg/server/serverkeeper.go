@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"fmt"
 )
 
 const (
@@ -152,7 +151,7 @@ func reconfigure(){
 
 	// Set a flag for the new process start process
 	os.Setenv("_MOSN_GRACEFUL_RESTART", "true")
-	os.Setenv("_MOSN_INHERIT_FD", string(len(listenerFD)))
+	os.Setenv("_MOSN_INHERIT_FD", strconv.Itoa(len(listenerFD)))
 
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),

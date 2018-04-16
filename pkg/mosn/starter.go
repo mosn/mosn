@@ -146,9 +146,9 @@ func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, c
 
 func getInheritListeners() []types.Listener {
 	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
-		count, _ := strconv.ParseUint(os.Getenv("_MOSN_INHERIT_FD"), 10, 32)
+		count, _ := strconv.Atoi(os.Getenv("_MOSN_INHERIT_FD"))
 
-		for idx := 0; idx < int(count); idx++ {
+		for idx := 0; idx < count; idx++ {
 			//because passed listeners fd's index starts from 3
 			file := os.NewFile(uintptr(3 + idx), "")
 			listener, err := net.FileListener(file)
