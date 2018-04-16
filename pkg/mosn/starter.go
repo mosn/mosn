@@ -9,6 +9,12 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	_"net/http/pprof"
 	"net/http"
 	"os"
 	"net"
@@ -32,7 +38,7 @@ func Start(c *config.MOSNConfig) {
 
 	go func() {
 		// pprof server
-		http.ListenAndServe("0.0.0.0:9099", nil)
+		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
 
 	getInheritListeners()
@@ -90,7 +96,7 @@ func Start(c *config.MOSNConfig) {
 	}
 
 	select {
-	case <-time.After(time.Second * 50):
+	case <-time.After(time.Second * 3600):
 		//wait for server start
 		//todo: daemon running
 	}
