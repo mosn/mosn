@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -147,11 +146,11 @@ func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, c
 
 func getInheritListeners() []types.Listener {
 	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
-		inherit := os.Getenv("_MOSN_INHERIT_FD")
-		log.Println("get inherit fds from env:", inherit)
+		count, _ := strconv.ParseUint(os.Getenv("_MOSN_INHERIT_FD"), 10, 32)
 
-		for _, fd := range fromInheritString(inherit) {
-			file := os.NewFile(fd, "")
+		for idx := 0; idx < int(count); idx++ {
+			//because passed listeners fd's index starts from 3
+			file := os.NewFile(uintptr(3 + idx), "")
 			listener, err := net.FileListener(file)
 			if err != nil {
 				log.Println("net.FileListener create err", err)
@@ -165,16 +164,4 @@ func getInheritListeners() []types.Listener {
 		}
 	}
 	return nil
-}
-
-//TODO from func, move to util package
-func fromInheritString(str string) []uintptr {
-	parts := strings.Split(str, ":")
-	fds := make([]uintptr, len(parts))
-
-	for i, part := range parts {
-		fdIntValue, _ := strconv.ParseUint(part, 10, 64)
-		fds[i] = uintptr(fdIntValue)
-	}
-	return fds
 }

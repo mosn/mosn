@@ -152,7 +152,7 @@ func reconfigure(){
 
 	// Set a flag for the new process start process
 	os.Setenv("_MOSN_GRACEFUL_RESTART", "true")
-	os.Setenv("_MOSN_INHERIT_FD", toInheritString(listenerFD))
+	os.Setenv("_MOSN_INHERIT_FD", string(len(listenerFD)))
 
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),
@@ -172,16 +172,4 @@ func reconfigure(){
 
 	// Stop the old server, all the connections have been closed and the new one is running
 	os.Exit(0)
-}
-
-//TODO to func, move to util package
-func toInheritString(fds []uintptr) string {
-	s := ""
-	for _, fd := range fds {
-		if len(s) > 0 {
-			s += ":"
-		}
-		s += fmt.Sprint(fd)
-	}
-	return s
 }
