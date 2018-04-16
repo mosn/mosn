@@ -96,6 +96,7 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 
 	//serialize header
 	var headerMap map[string]string
+
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
 	log.DefaultLogger.Println("deSerialize  headerMap:", headerMap)
 

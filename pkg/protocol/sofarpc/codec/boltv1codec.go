@@ -197,10 +197,10 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 			requestID.(uint32),
 			codec.(byte),
 			timeout.(int),
-			//classLength.(int16),
-			int16(len(class)),
-			//headerLength.(int16),
-			int16(len(header)),
+			classLength.(int16),
+			//int16(len(class)),
+			headerLength.(int16),
+			//int16(len(header)),
 			contentLength.(int),
 			class,
 			header,
@@ -311,7 +311,7 @@ func (c *boltV1Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					nil,
 					nil,
 				}
-				log.DefaultLogger.Printf("[Decoder]bolt v1 decode request:%+v\n", request)
+				log.DefaultLogger.Printf("[Decoder]bolt v1 decode request reqID is:%+v\n", request.ReqId)
 
 				cmd = request
 			}
@@ -373,7 +373,7 @@ func (c *boltV1Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					nil,
 				}
 
-				log.DefaultLogger.Printf("[Decoder]bolt v1 decode response:%+v\n", response)
+				log.DefaultLogger.Printf("[Decoder]bolt v1 decode response, response status is:%+v\n", response.ResponseStatus)
 
 				cmd = response
 			}

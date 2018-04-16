@@ -34,10 +34,9 @@ func (s *SimpleSerialization) Serialize(v interface{}) ([]byte, error) {
 	var err error
 	switch t {
 	case "string":
-		buf.WriteByte(1)
 		_, err = encodeString(rv, buf)
 	case "map[string]string":
-		buf.WriteByte(2)
+		//buf.WriteByte(2)
 		err = encodeMap(rv, buf)
 	case "[]uint8":
 		buf.WriteByte(3)
@@ -216,11 +215,22 @@ func decodeBytes(buf *bytes.Buffer) ([]byte, error) {
 	return b, nil
 }
 
-func encodeString(v reflect.Value, buf *bytes.Buffer) (int32, error) {
+func encodeStringMap(v reflect.Value, buf *bytes.Buffer) (int32, error) {
 	b := []byte(v.String())
 	l := int32(len(b))
 	err := binary.Write(buf, binary.BigEndian, l)
 	err = binary.Write(buf, binary.BigEndian, b)
+	if err != nil {
+		return 0, err
+	}
+	return l + 4, nil
+}
+
+func encodeString(v reflect.Value, buf *bytes.Buffer) (int32, error) {
+	b := []byte(v.String())
+	l := int32(len(b))
+	//err := binary.Write(buf, binary.BigEndian, l)
+	err := binary.Write(buf, binary.BigEndian, b)
 	if err != nil {
 		return 0, err
 	}
@@ -233,18 +243,17 @@ func encodeMap(v reflect.Value, buf *bytes.Buffer) error {
 	var err error
 	for _, mk := range v.MapKeys() {
 		mv := v.MapIndex(mk)
-		l, err = encodeString(mk, b)
+		l, err = encodeStringMap(mk, b)
 		size += l
 		if err != nil {
 			return err
 		}
-		l, err = encodeString(mv, b)
+		l, err = encodeStringMap(mv, b)
 		size += l
 		if err != nil {
 			return err
 		}
 	}
-	err = binary.Write(buf, binary.BigEndian, int32(size))
 	err = binary.Write(buf, binary.BigEndian, b.Bytes()[:size])
 	return err
 }
