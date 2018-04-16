@@ -20,9 +20,12 @@ import (
 	"net"
 	"log"
 	"time"
+	"runtime"
 )
 
 func Start(c *config.MOSNConfig) {
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	log.Printf("mosn config : %+v\n", c)
 
 	srvNum := len(c.Servers)

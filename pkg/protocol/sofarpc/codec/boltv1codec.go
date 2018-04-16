@@ -2,6 +2,7 @@ package codec
 
 import (
 	"encoding/binary"
+	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
@@ -127,6 +128,11 @@ func (c *boltV1Codec) doEncodeResponseCommand(cmd *sofarpc.BoltResponseCommand) 
 	data = append(data, cmd.Protocol, cmd.CmdType)
 	cmdCodeBytes := make([]byte, 2)
 	binary.BigEndian.PutUint16(cmdCodeBytes, uint16(cmd.CmdCode))
+
+	if cmd.CmdCode == sofarpc.HEARTBEAT {
+		log.DefaultLogger.Debugf("[Build HeartBeat Response]")
+	}
+
 	data = append(data, cmdCodeBytes...)
 	data = append(data, cmd.Version)
 
@@ -211,7 +217,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 
 		return request
 
-	} else if cmdCode == sofarpc.RPC_RESPONSE {
+	} else if cmdCode == sofarpc.RPC_RESPONSE || cmdCode == sofarpc.HEARTBEAT {
 		//todo : review
 		responseStatus := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "responsestatus")
 		responseTime := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "responsetimemills")
@@ -239,8 +245,6 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 
 		return response
 
-	} else {
-		// todo RPC_HB
 	}
 
 	return nil
@@ -260,6 +264,11 @@ func (c *boltV1Codec) Decode(data types.IoBuffer) (int, interface{}) {
 			if readableBytes >= sofarpc.REQUEST_HEADER_LEN_V1 {
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
+
+				if cmdCode == uint16(sofarpc.HEARTBEAT) {
+					log.DefaultLogger.Debugf("Decode: Get HB Msg")
+				}
+
 				ver2 := bytes[4]
 				requestId := binary.BigEndian.Uint32(bytes[5:9])
 				codec := bytes[9]
