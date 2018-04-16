@@ -31,6 +31,8 @@ func (p *IoBufferPoolV2) Take(r io.Reader) (bpe *IoBufferPoolEntry) {
 	v := p.pool.Get()
 
 	if v != nil {
+		v.(*IoBufferPoolEntry).Io = r
+
 		return v.(*IoBufferPoolEntry)
 	}
 
@@ -46,6 +48,8 @@ func (p *IoBufferPoolV2) Give(bpe *IoBufferPoolEntry) {
 	if atomic.AddUint64(&p.calls[idx], 1) > calibrateCallsThreshold {
 		p.calibrate()
 	}
+
+	bpe.Io = nil
 
 	maxSize := int(atomic.LoadUint64(&p.maxSize))
 

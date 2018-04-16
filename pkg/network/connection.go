@@ -202,6 +202,7 @@ func (c *connection) doRead() (err error) {
 		}
 
 		c.readerBufferPool.Give(c.readBuffer)
+		c.readBuffer = nil
 		return err
 	}
 
@@ -215,6 +216,7 @@ func (c *connection) doRead() (err error) {
 
 	if c.readBuffer.Br.Len() == 0 {
 		c.readerBufferPool.Give(c.readBuffer)
+		c.readBuffer = nil
 	}
 
 	return

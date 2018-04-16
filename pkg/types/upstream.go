@@ -25,7 +25,7 @@ type ClusterManager interface {
 
 	SofaRpcConnPoolForCluster(cluster string, context context.Context) ConnectionPool
 
-	RemovePrimaryCluster(cluster string)
+	RemovePrimaryCluster(cluster string) bool
 
 	Shutdown() error
 
@@ -85,8 +85,8 @@ type HostSet interface {
 
 	HealthHostsPerLocality() [][]Host
 
-	UpdateHosts(hosts []Host, healthyHost []Host, hostsPerLocality []Host,
-		healthyHostPerLocality []Host, hostsAdded []Host, hostsRemoved []Host)
+	UpdateHosts(hosts []Host, healthyHost []Host, hostsPerLocality [][]Host,
+		healthyHostPerLocality [][]Host, hostsAdded []Host, hostsRemoved []Host)
 
 	Priority() uint32
 }
