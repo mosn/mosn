@@ -8,10 +8,12 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"log"
+	"net"
 	"net/http"
 	"os"
-	"net"
-	"log"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -78,7 +80,7 @@ func Start(c *config.MOSNConfig) {
 			cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
 		}
 
-		go func(){
+		go func() {
 			srv.Start() //开启连接
 
 			select {
@@ -93,7 +95,6 @@ func Start(c *config.MOSNConfig) {
 		//wait for server start
 		//todo: daemon running
 	}
-
 
 }
 
@@ -144,17 +145,18 @@ func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, c
 	cmf.chcb = chcb
 }
 
-
-func getInheritListeners() []types.Listener{
+func getInheritListeners() []types.Listener {
 	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
+		inherit := os.Getenv("_MOSN_INHERIT_FD")
+		log.Println("get inherit fds from env:", inherit)
 
-		for _, fd := range []uintptr{3,4 } {
+		for _, fd := range fromInheritString(inherit) {
 			file := os.NewFile(fd, "")
 			listener, err := net.FileListener(file)
 			if err != nil {
 				log.Println("net.FileListener create err", err)
 			}
-			var  ok bool
+			var ok bool
 			listener, ok = listener.(*net.TCPListener)
 			if !ok {
 				log.Println("net.TCPListener cast err", err)
@@ -163,4 +165,16 @@ func getInheritListeners() []types.Listener{
 		}
 	}
 	return nil
+}
+
+//TODO from func, move to util package
+func fromInheritString(str string) []uintptr {
+	parts := strings.Split(str, ":")
+	fds := make([]uintptr, len(parts))
+
+	for i, part := range parts {
+		fdIntValue, _ := strconv.ParseUint(part, 10, 64)
+		fds[i] = uintptr(fdIntValue)
+	}
+	return fds
 }

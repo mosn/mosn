@@ -108,6 +108,7 @@ func (l *listener) ListenerTag() uint64 {
 func (l *listener) ListenerFD() (uintptr, error) {
 	file, err := l.rawl.File()
 	if err != nil {
+		log.DefaultLogger.Println(l.name, " listener fd not found : ", err)
 		return 0, err
 	}
 	return file.Fd(), nil

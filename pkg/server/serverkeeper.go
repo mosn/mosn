@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"strings"
 )
 
 const (
@@ -137,7 +138,6 @@ func OnProcessShutDown(cb func() error) {
 	shutdownCallbacks = append(shutdownCallbacks, cb)
 }
 
-
 func reconfigure(){
 	// Stop accepting requests
 	StopAccept()
@@ -152,6 +152,7 @@ func reconfigure(){
 
 	// Set a flag for the new process start process
 	os.Setenv("_MOSN_GRACEFUL_RESTART", "true")
+	os.Setenv("_MOSN_INHERIT_FD", toInheritString(listenerFD))
 
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),
@@ -171,4 +172,17 @@ func reconfigure(){
 
 	// Stop the old server, all the connections have been closed and the new one is running
 	os.Exit(0)
+}
+
+//TODO to func, move to util package
+func toInheritString(fds []uintptr) string {
+	s := ""
+	for _, fd := range fds {
+		if len(s) > 0 {
+			s += ":"
+		}
+		s += string(fd)
+	}
+
+	return s
 }
