@@ -117,12 +117,12 @@ func (ch *connHandler) StopListeners(lctx context.Context) {
 func (ch *connHandler) ListListenersFD(lctx context.Context) []uintptr {
 	fds := make([]uintptr, len(ch.listeners))
 
-	for _, l := range ch.listeners {
+	for idx, l := range ch.listeners {
 		fd, err := l.listener.ListenerFD()
 		if err != nil {
 			log.DefaultLogger.Fatalln("fail to get listener", l.listener.Name() ," file descriptor:", err)
 		}
-		fds = append(fds, fd)
+		fds[idx] =  fd
 	}
 	return fds
 }

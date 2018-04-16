@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"strings"
+	"fmt"
 )
 
 const (
@@ -181,8 +181,7 @@ func toInheritString(fds []uintptr) string {
 		if len(s) > 0 {
 			s += ":"
 		}
-		s += string(fd)
+		s += fmt.Sprint(fd)
 	}
-
 	return s
 }
