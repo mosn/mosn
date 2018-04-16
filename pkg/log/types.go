@@ -4,10 +4,10 @@ type LogLevel uint8
 
 const (
 	DEBUG LogLevel = iota
-	FATAL
-	ERROR
-	WARN
 	INFO
+	WARN
+	ERROR
+	FATAL
 )
 
 type Logger interface {
@@ -29,4 +29,3 @@ type Logger interface {
 
 	Reopen() error
 }
-
