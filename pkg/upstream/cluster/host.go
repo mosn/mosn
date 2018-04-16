@@ -7,36 +7,53 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
+	"sync"
 )
 
 type hostSet struct {
 	priority                uint32
 	hosts                   []types.Host
 	healthyHosts            []types.Host
-	hostsPerLocality        []types.Host
-	healthyHostsPerLocality []types.Host
+	hostsPerLocality        [][]types.Host
+	healthyHostsPerLocality [][]types.Host
+	mux                     sync.RWMutex
 	updateCallbacks         []types.MemberUpdateCallback
 }
 
 func (hs *hostSet) Hosts() []types.Host {
+	hs.mux.RLock()
+	defer hs.mux.RUnlock()
+
 	return hs.hosts
 }
 
 func (hs *hostSet) HealthyHosts() []types.Host {
+	hs.mux.RLock()
+	defer hs.mux.RUnlock()
+
 	// TODO: support health check
 	return hs.hosts
 }
 
 func (hs *hostSet) HostsPerLocality() [][]types.Host {
-	return nil
+	hs.mux.RLock()
+	defer hs.mux.RUnlock()
+
+	return hs.hostsPerLocality
 }
 
 func (hs *hostSet) HealthHostsPerLocality() [][]types.Host {
-	return nil
+	hs.mux.RLock()
+	defer hs.mux.RUnlock()
+
+	return hs.healthyHostsPerLocality
 }
 
-func (hs *hostSet) UpdateHosts(hosts []types.Host, healthyHosts []types.Host, hostsPerLocality []types.Host,
-	healthyHostsPerLocality []types.Host, hostsAdded []types.Host, hostsRemoved []types.Host) {
+func (hs *hostSet) UpdateHosts(hosts []types.Host, healthyHosts []types.Host, hostsPerLocality [][]types.Host,
+	healthyHostsPerLocality [][]types.Host, hostsAdded []types.Host, hostsRemoved []types.Host) {
+	hs.mux.Lock()
+	defer hs.mux.Unlock()
+
 	hs.hosts = hosts
 	hs.healthyHosts = healthyHosts
 	hs.hostsPerLocality = hostsPerLocality
@@ -150,6 +167,7 @@ func (h *host) Weight() uint32 {
 }
 
 func (h *host) SetWeight(weight uint32) {
+	h.weight = weight
 }
 
 func (h *host) Used() bool {
