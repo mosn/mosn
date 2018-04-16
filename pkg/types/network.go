@@ -94,6 +94,8 @@ type IoBuffer interface {
 
 	Len() int
 
+	Cap() int
+
 	Reset()
 
 	Clone() IoBuffer

@@ -279,6 +279,10 @@ func (b *IoBuffer) Len() int {
 	return len(b.buf) - b.off
 }
 
+func (b *IoBuffer) Cap() int {
+	return cap(b.buf)
+}
+
 func (b *IoBuffer) Reset() {
 	b.buf = b.buf[:0]
 	b.off = 0
@@ -304,6 +308,7 @@ func makeSlice(n int) []byte {
 			panic(ErrTooLarge)
 		}
 	}()
+
 	return make([]byte, n)
 }
 
