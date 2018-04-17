@@ -10,4 +10,7 @@
 - Integration with confreg in service discovery model
 - Support basic route support
 - Support start from a json-format config file
+- Support HUP smooth reload
+- Support process smooth upgrade
+- Process guard by supervisord & log managed by logrotate
 - More features...

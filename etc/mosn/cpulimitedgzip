@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cpulimit -l 30 $(which gzip) "$@"
