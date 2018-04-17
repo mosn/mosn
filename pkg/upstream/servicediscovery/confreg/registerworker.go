@@ -1,0 +1,219 @@
+package registry
+
+import (
+    "time"
+    "container/list"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+    "sync"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
+    "net"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/network"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
+    "github.com/rcrowley/go-metrics"
+    "errors"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
+)
+
+const (
+    TASK_TYPE_PUBLISH   = 0
+    TASK_TYPE_SUBSCRIBE = 1
+)
+
+type registryStreamContext struct {
+    streamId         string
+    registryRequest  interface{}
+    registryResponse *model.RegisterResponsePb
+    finished         chan bool
+    err              error
+}
+
+type registryTask struct {
+    taskId      string
+    taskType    int
+    eventType   string
+    subscriber  *Subscriber
+    publisher   *Publisher
+    data        []string
+    sendCounter metrics.Counter
+}
+
+type registerWorker struct {
+    systemConfig         *config.SystemConfig
+    registryConfig       *config.RegistryConfig
+    confregServerManager *servermanager.RegistryServerManager
+    rpcServerManager     servermanager.RPCServerManager
+    codecClient          *stream.CodecClient
+
+    publisherHolder         sync.Map
+    subscriberHolder        sync.Map
+    registryTaskQueue       *list.List
+    registryFailedTaskQueue *list.List
+
+    initialized      bool
+    stopChan         chan bool
+    registryWorkChan chan bool
+}
+
+func NewRegisterWorker(sysConfig *config.SystemConfig, registryConfig *config.RegistryConfig,
+    confregServerManager *servermanager.RegistryServerManager, rpcServerManager servermanager.RPCServerManager) *registerWorker {
+    rw := &registerWorker{
+        systemConfig:            sysConfig,
+        registryConfig:          registryConfig,
+        confregServerManager:    confregServerManager,
+        rpcServerManager:        rpcServerManager,
+        registryTaskQueue:       list.New(),
+        registryFailedTaskQueue: list.New(),
+        initialized:             false,
+        stopChan:                make(chan bool, 1),
+        registryWorkChan:        make(chan bool),
+    }
+
+    rw.init()
+
+    confregServerManager.RegisterServerChangeListener(rw)
+
+    go rw.work()
+    go rw.scheduleWorkAtFixTime()
+
+    return rw
+}
+
+func (rw *registerWorker) init() {
+    if rw.initialized {
+        return
+    }
+    rw.initialized = true
+
+    rw.newCodecClient()
+}
+
+func (rw *registerWorker) newCodecClient() {
+    rs, _ := rw.confregServerManager.GetRegistryServerByRandom()
+    remoteAddr, _ := net.ResolveTCPAddr("tcp", rs)
+    conn := network.NewClientConnection(nil, remoteAddr, rw.stopChan)
+    receiveDataListener := NewReceiveDataListener(rw.rpcServerManager)
+    codecClient := stream.NewBiDirectCodeClient(protocol.SofaRpc, conn, nil, receiveDataListener)
+    conn.Connect(true)
+    rw.codecClient = &codecClient
+    log.DefaultLogger.Infof("Connect to confreg server. server = %v", rs)
+}
+
+func (rw *registerWorker) SubmitPublishTask(dataId string, data []string, eventType string) {
+    storedPublisher, ok := rw.publisherHolder.Load(dataId)
+    if !ok {
+        storedPublisher = NewPublisher(dataId, rw.codecClient, rw.registryConfig, rw.systemConfig)
+        rw.publisherHolder.Store(dataId, storedPublisher)
+    }
+    registryTask := registryTask{
+        taskType:    TASK_TYPE_PUBLISH,
+        eventType:   eventType,
+        publisher:   storedPublisher.(*Publisher),
+        data:        data,
+        sendCounter: metrics.NewCounter(),
+    }
+    rw.registryTaskQueue.PushBack(registryTask)
+
+    rw.registryWorkChan <- true
+}
+
+func (rw *registerWorker) SubmitSubscribeTask(dataId string, eventType string) {
+    storedSubscriber, ok := rw.subscriberHolder.Load(dataId)
+    if !ok {
+        storedSubscriber = NewSubscriber(dataId, rw.codecClient, rw.registryConfig, rw.systemConfig)
+        rw.subscriberHolder.Store(dataId, storedSubscriber)
+    }
+
+    registryTask := registryTask{
+        taskType:    TASK_TYPE_SUBSCRIBE,
+        eventType:   eventType,
+        subscriber:  storedSubscriber.(*Subscriber),
+        sendCounter: metrics.NewCounter(),
+    }
+
+    rw.registryTaskQueue.PushBack(registryTask)
+
+    rw.registryWorkChan <- true
+}
+
+func (rw *registerWorker) work() {
+    for ; ; {
+        select {
+        case <-rw.registryWorkChan:
+            {
+                log.DefaultLogger.Infof("Start consume registry task. task queue size = %d", rw.registryTaskQueue.Len())
+                var next *list.Element
+                for ele := rw.registryTaskQueue.Front(); ele != nil; {
+                    next = ele.Next()
+                    if err := rw.doRegister(ele); err == nil {
+                        rw.registryTaskQueue.Remove(ele)
+                    }
+                    ele = next
+                }
+
+            }
+        case <-rw.stopChan:
+            {
+                break
+            }
+        }
+    }
+}
+
+func (rw *registerWorker) doRegister(ele *list.Element) error {
+    registryTask := ele.Value.(registryTask)
+    registryTask.taskId = RandomUuid()
+    
+    var registrySuccess bool
+    //Retry 2 times
+    for i := 0; i < 2; i++ {
+        time.Sleep(CalRetreatTime(registryTask.sendCounter.Count(), 5))
+
+        if registryTask.taskType == TASK_TYPE_PUBLISH {
+            publisher := registryTask.publisher
+            registrySuccess = publisher.doWork(registryTask.taskId, registryTask.data, registryTask.eventType)
+            publisher.version++
+        } else {
+            sub := registryTask.subscriber
+            registrySuccess = sub.doWork(registryTask.taskId, registryTask.eventType)
+            sub.version++
+        }
+
+        if registrySuccess {
+            registryTask.sendCounter.Clear()
+            return nil
+        } else {
+            registryTask.sendCounter.Inc(1)
+        }
+    }
+
+    log.DefaultLogger.Errorf("Register failed for two times. Task = %v", registryTask)
+
+    return errors.New("register failed")
+
+}
+
+func (rw *registerWorker) scheduleWorkAtFixTime() {
+    for ; ; {
+        t := time.NewTimer(rw.registryConfig.ScheduleRegisterTaskDuration)
+        <-t.C
+        rw.registryWorkChan <- true
+    }
+}
+
+func (rw *registerWorker) OnRegistryServerChangeEvent(registryServers []string) {
+    rw.newCodecClient()
+    rw.publisherHolder.Range(rw.refreshPublisherCodecClient)
+    rw.subscriberHolder.Range(rw.refreshSubscriberCodecClient)
+}
+
+func (rw *registerWorker) refreshPublisherCodecClient(key, value interface{}) bool {
+    value.(*Publisher).codecClient = rw.codecClient
+    return true
+}
+
+func (rw *registerWorker) refreshSubscriberCodecClient(key, value interface{}) bool {
+    value.(*Subscriber).codecClient = rw.codecClient
+    return true
+}

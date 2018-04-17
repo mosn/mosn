@@ -35,7 +35,7 @@ const (
 	RPC_RESPONSE int16 = 2
 
 	TR_PROTOCOL_CODE byte = 13
-	
+
 	//response status
 	RESPONSE_STATUS_SUCCESS                   int16 = 0  // 0x00
 	RESPONSE_STATUS_ERROR                     int16 = 1  // 0x01
@@ -134,12 +134,12 @@ type BoltRequestCommand struct {
 	ReqId    uint32
 	CodecPro byte
 
-	Timeout int
+	Timeout int //3000ms
 
-	ClassLen      int16
-	HeaderLen     int16
-	ContentLen    int
-	ClassName     []byte
+	ClassLen      int16 //utf-8 全类名.className长度
+	HeaderLen     int16 //headerMap字节数 0
+	ContentLen    int //content byte 长度
+	ClassName     []byte //
 	HeaderMap     []byte
 	Content       []byte
 	InvokeContext interface{}
@@ -155,7 +155,7 @@ type BoltResponseCommand struct {
 	ReqId    uint32
 	CodecPro byte // 1
 
-	ResponseStatus int16
+	ResponseStatus int16 //0正常 1异常
 
 	ClassLen      int16
 	HeaderLen     int16

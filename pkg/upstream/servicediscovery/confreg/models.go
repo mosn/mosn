@@ -1,4 +1,4 @@
-package confreg
+package registry
 
 //pub request
 type PublishServiceRequest struct {
