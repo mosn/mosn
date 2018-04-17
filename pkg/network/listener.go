@@ -1,13 +1,13 @@
 package network
 
 import (
-	"net"
 	"context"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"fmt"
-	"runtime/debug"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"net"
+	"runtime/debug"
 	"time"
 )
 
@@ -24,17 +24,20 @@ type listener struct {
 }
 
 func NewListener(lc *v2.ListenerConfig) types.Listener {
-	la, _ := net.ResolveTCPAddr("tcp", lc.Addr)
 
 	l := &listener{
 		name:                                  lc.Name,
-		localAddress:                          la,
+		localAddress:                          lc.Addr,
 		bindToPort:                            lc.BindToPort,
 		listenerTag:                           lc.ListenerTag,
 		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
 		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
 	}
 
+	if lc.InheritListener != nil {
+		//inherit old process's listener
+		l.rawl = lc.InheritListener
+	}
 	return l
 }
 
@@ -66,10 +69,13 @@ func (l *listener) Addr() net.Addr {
 }
 
 func (l *listener) Start(stopChan chan bool, lctx context.Context) {
-	if err := l.listen(lctx); err != nil {
-		// TODO: notify listener callbacks
-		log.DefaultLogger.Println( l.name + " listen failed, " , err)
-		return
+	//call listen if not inherit
+	if l.rawl == nil {
+		if err := l.listen(lctx); err != nil {
+			// TODO: notify listener callbacks
+			log.DefaultLogger.Println(l.name+" listen failed, ", err)
+			return
+		}
 	}
 
 	if l.bindToPort {
@@ -80,24 +86,24 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 			//	log.DefaultLogger.Println("listener " +l.name + " stop accepting connections by stop chan")
 			//	return
 			//default:
-				if err := l.accept(lctx); err != nil {
-					if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-						log.DefaultLogger.Println("listener " +l.name + " stop accepting connections by deadline")
-						return
-					} else if ope, ok := err.(*net.OpError); ok {
-						if !(ope.Timeout() && ope.Temporary()){
-							log.DefaultLogger.Println("not temp-timeout error:" + err.Error())
-						}
-					} else {
-						log.DefaultLogger.Println("unknown error while listener accepting:" + err.Error())
+			if err := l.accept(lctx); err != nil {
+				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+					log.DefaultLogger.Println("listener " + l.name + " stop accepting connections by deadline")
+					return
+				} else if ope, ok := err.(*net.OpError); ok {
+					if !(ope.Timeout() && ope.Temporary()) {
+						log.DefaultLogger.Println("not temp-timeout error:" + err.Error())
 					}
+				} else {
+					log.DefaultLogger.Println("unknown error while listener accepting:" + err.Error())
 				}
+			}
 			//}
 		}
 	}
 }
 
-func (l *listener) Stop()  {
+func (l *listener) Stop() {
 	l.rawl.SetDeadline(time.Now())
 }
 

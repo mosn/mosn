@@ -2,34 +2,33 @@ package config
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	log2 "gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"log"
+	"net"
 	"strings"
 	"time"
-	log2 "gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 var logLevelMap = map[string]log2.LogLevel{
-	"DEBUG":log2.DEBUG,
+	"DEBUG": log2.DEBUG,
 	"FATAL": log2.FATAL,
 	"ERROR": log2.ERROR,
-	"WARN": log2.WARN,
-	"INFO": log2.INFO,
+	"WARN":  log2.WARN,
+	"INFO":  log2.INFO,
 }
-
-
 
 func ParseServerConfig(c *ServerConfig) *server.Config {
 	sc := &server.Config{}
 
-	if c.AccessLog != ""{
+	if c.AccessLog != "" {
 		sc.LogPath = c.AccessLog
 	}
 
-	if c.LogLevel != ""{
-		if logLevel, ok := logLevelMap[c.LogLevel]; ok{
+	if c.LogLevel != "" {
+		if logLevel, ok := logLevelMap[c.LogLevel]; ok {
 			sc.LogLevel = logLevel
-		}else{
+		} else {
 			log.Fatalln("unknown log level:" + c.LogLevel)
 		}
 	}
@@ -186,19 +185,36 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 	return healthcheck
 }
 
-func ParseListenerConfig(c *ListenerConfig) *v2.ListenerConfig {
+func ParseListenerConfig(c *ListenerConfig, inheritListeners []v2.ListenerConfig) *v2.ListenerConfig {
 	if c.Name == "" {
-		log.Fatal("[name] is required in listener config")
+		log.Fatalln("[name] is required in listener config")
 	}
 
 	if c.Address == "" {
-		log.Fatal("[Address] is required in listener config")
+		log.Fatalln("[Address] is required in listener config")
+	}
+
+	addr, err := net.ResolveTCPAddr("tcp", c.Address)
+	if err != nil {
+		log.Fatalln("[Address] not valid:" + c.Address)
+	}
+
+	var old *net.TCPListener = nil
+
+	for _, il := range inheritListeners {
+		if il.Addr == addr {
+			log.Println("inherit listener addr:", c.Address)
+			old = il.InheritListener
+			il.Remain = true
+			break
+		}
 	}
 
 	return &v2.ListenerConfig{
-		Name:                 c.Name,
-		Addr:                 c.Address,
-		BindToPort:           c.BindToPort,
+		Name:                    c.Name,
+		Addr:                    addr,
+		BindToPort:              c.BindToPort,
+		InheritListener:         old,
 		PerConnBufferLimitBytes: 1024 * 32,
 	}
 }

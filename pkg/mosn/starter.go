@@ -35,7 +35,7 @@ func Start(c *config.MOSNConfig) {
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
 
-	getInheritListeners()
+	inheritListeners := getInheritListeners()
 
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
@@ -62,7 +62,7 @@ func Start(c *config.MOSNConfig) {
 		}
 
 		for _, listenerConfig := range serverConfig.Listeners {
-			srv.AddListener(config.ParseListenerConfig(&listenerConfig))
+			srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners))
 		}
 
 		var clusters []v2.Cluster
@@ -87,6 +87,14 @@ func Start(c *config.MOSNConfig) {
 				srv.Close()
 			}
 		}()
+	}
+
+	//close legacy listeners
+	for _, ln := range inheritListeners {
+		if !ln.Remain {
+			log.Println("close legacy listener:", ln.Addr)
+			ln.InheritListener.Close()
+		}
 	}
 
 	select {
@@ -144,24 +152,25 @@ func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, c
 	cmf.chcb = chcb
 }
 
-func getInheritListeners() []types.Listener {
+func getInheritListeners() []v2.ListenerConfig {
 	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
 		count, _ := strconv.Atoi(os.Getenv("_MOSN_INHERIT_FD"))
+		listeners := make([]v2.ListenerConfig, count)
 
 		for idx := 0; idx < count; idx++ {
 			//because passed listeners fd's index starts from 3
-			file := os.NewFile(uintptr(3 + idx), "")
-			listener, err := net.FileListener(file)
+			file := os.NewFile(uintptr(3+idx), "")
+			fileListener, err := net.FileListener(file)
 			if err != nil {
 				log.Println("net.FileListener create err", err)
 			}
-			var ok bool
-			listener, ok = listener.(*net.TCPListener)
-			if !ok {
+			if listener, ok := fileListener.(*net.TCPListener); ok {
+				listeners[idx] = v2.ListenerConfig{Addr: listener.Addr(), InheritListener: listener}
+			} else {
 				log.Println("net.TCPListener cast err", err)
 			}
-			log.Println("recovered listener: ", listener.Addr())
 		}
+		return listeners
 	}
 	return nil
 }
