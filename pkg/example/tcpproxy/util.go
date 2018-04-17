@@ -3,6 +3,7 @@ package main
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"net"
 )
 
 const (
@@ -30,10 +31,12 @@ func tcpProxyConfig() *v2.TcpProxy {
 	return tcpProxyConfig
 }
 
-func tcpListener() v2.ListenerConfig {
-	return v2.ListenerConfig{
+func tcpListener() *v2.ListenerConfig {
+	addr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
+
+	return &v2.ListenerConfig{
 		Name:                    TestListener,
-		Addr:                    MeshServerAddr,
+		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
 	}

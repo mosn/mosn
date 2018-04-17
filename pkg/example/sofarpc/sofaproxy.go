@@ -55,9 +55,11 @@ func genericProxyConfig() *v2.Proxy {
 }
 
 func rpcProxyListener() *v2.ListenerConfig {
+	addr, _ := net.ResolveTCPAddr("tcp", MeshRPCServerAddr)
+
 	return &v2.ListenerConfig{
 		Name:                 TestListenerRPC,
-		Addr:                 MeshRPCServerAddr,
+		Addr:                 addr,
 		BindToPort:           true,
 		PerConnBufferLimitBytes: 1024 * 32,
 	}
