@@ -88,8 +88,8 @@ func (s *httpHealthCheckSession) onInterval() {
 		s.expectReset = false
 	}
 
-	s.requestEncoder = s.client.NewStream(0, s)
-	s.requestEncoder.GetStream().AddCallbacks(s)
+	s.requestEncoder = s.client.NewStream("", s)
+	s.requestEncoder.GetStream().AddEventListener(s)
 
 	reqHeaders := map[string]string{
 		types.HeaderMethod: http.MethodGet,

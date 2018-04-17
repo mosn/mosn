@@ -2,7 +2,6 @@ package codec
 
 import (
 	"encoding/binary"
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"

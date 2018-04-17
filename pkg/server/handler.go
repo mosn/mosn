@@ -1,19 +1,19 @@
 package server
 
 import (
-	"sync"
 	"container/list"
-	"net"
-	"fmt"
-	"strconv"
-	"strings"
 	"context"
-	"sync/atomic"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+	"net"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
 )
 
 // ConnectionHandler
@@ -32,13 +32,13 @@ type connHandler struct {
 func NewHandler(networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
 	clusterManagerFilter ClusterManagerFilter, logger log.Logger, DisableConnIo bool) types.ConnectionHandler {
 	ch := &connHandler{
-		disableConnIo:         DisableConnIo,
-		numConnections:        0,
-		clusterManager:        cluster.NewClusterManager(nil),
-		listeners:             make([]*activeListener, 0),
-		networkFiltersFactory: networkFiltersFactory,
-		streamFiltersFactories:  streamFiltersFactories,
-		logger:                logger,
+		disableConnIo:          DisableConnIo,
+		numConnections:         0,
+		clusterManager:         cluster.NewClusterManager(nil),
+		listeners:              make([]*activeListener, 0),
+		networkFiltersFactory:  networkFiltersFactory,
+		streamFiltersFactories: streamFiltersFactories,
+		logger:                 logger,
 	}
 
 	clusterManagerFilter.OnCreated(ch, ch)
@@ -120,7 +120,7 @@ func (ch *connHandler) ListListenersFD(lctx context.Context) []uintptr {
 	for _, l := range ch.listeners {
 		fd, err := l.listener.ListenerFD()
 		if err != nil {
-			log.DefaultLogger.Fatalln("fail to get listener", l.listener.Name() ," file descriptor:", err)
+			log.DefaultLogger.Fatalln("fail to get listener", l.listener.Name(), " file descriptor:", err)
 		}
 		fds = append(fds, fd)
 	}
@@ -140,7 +140,7 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 	return nil
 }
 
-// ListenerCallbacks
+// ListenerEventListener
 type activeListener struct {
 	listener       types.Listener
 	listenPort     int
@@ -174,7 +174,7 @@ func newActiveListener(listener types.Listener, handler *connHandler, stopChan c
 	return al
 }
 
-// ListenerCallbacks
+// ListenerEventListener
 func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool) {
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
@@ -278,7 +278,7 @@ func (arc *activeRawConn) Conn() net.Conn {
 	return arc.rawc
 }
 
-// ConnectionCallbacks
+// ConnectionEventListener
 // ListenerFilterManager note:unsupported now
 // ListenerFilterCallbacks note:unsupported now
 type activeConnection struct {
@@ -294,15 +294,15 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 	}
 
 	ac.conn.SetNoDelay(true)
-	ac.conn.AddConnectionCallbacks(ac)
-	ac.conn.AddBytesReadCallback(func(bytesRead uint64) {
+	ac.conn.AddConnectionEventListener(ac)
+	ac.conn.AddBytesReadListener(func(bytesRead uint64) {
 		listener.stats.DownstreamBytesReadCurrent().Update(int64(bytesRead))
 
 		if bytesRead > 0 {
 			listener.stats.DownstreamBytesRead().Inc(int64(bytesRead))
 		}
 	})
-	ac.conn.AddBytesSentCallback(func(bytesSent uint64) {
+	ac.conn.AddBytesSentListener(func(bytesSent uint64) {
 		listener.stats.DownstreamBytesWriteCurrent().Update(int64(bytesSent))
 
 		if bytesSent > 0 {
@@ -313,15 +313,15 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 	return ac
 }
 
-// ConnectionCallbacks
+// ConnectionEventListener
 func (ac *activeConnection) OnEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
 		ac.listener.removeConnection(ac)
 	}
 }
 
-// ConnectionCallbacks
+// ConnectionEventListener
 func (ac *activeConnection) OnAboveWriteBufferHighWatermark() {}
 
-// ConnectionCallbacks
+// ConnectionEventListener
 func (ac *activeConnection) OnBelowWriteBufferLowWatermark() {}

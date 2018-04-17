@@ -22,7 +22,7 @@ func main() {
 		// client
 		remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
 		cc := network.NewClientConnection(nil, remoteAddr, stopChan)
-		cc.AddConnectionCallbacks(&rpclientConnCallbacks{ //ADD  connection callback
+		cc.AddConnectionEventListener(&rpclientConnCallbacks{ //ADD  connection callback
 			cc: cc,
 		})
 		cc.Connect(true)

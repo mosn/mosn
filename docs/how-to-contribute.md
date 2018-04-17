@@ -13,7 +13,7 @@
 ### Coding
 
 + coding
-+ cli: make test (todo support)
++ cli: make test
 + add a term of code change to changelog
 + change version in VERSION file if needed
 + commit code

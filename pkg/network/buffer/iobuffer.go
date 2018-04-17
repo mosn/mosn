@@ -1,9 +1,9 @@
 package buffer
 
 import (
-	"io"
 	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"io"
 )
 
 const MinRead = 1024
@@ -61,7 +61,7 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 	m, err := r.Read(b.buf[len(b.buf):cap(b.buf)])
 
-	b.buf = b.buf[0: len(b.buf)+m]
+	b.buf = b.buf[0 : len(b.buf)+m]
 	n += int64(m)
 
 	return
@@ -88,7 +88,7 @@ func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 
 		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
 
-		b.buf = b.buf[0: len(b.buf)+m]
+		b.buf = b.buf[0 : len(b.buf)+m]
 		n += int64(m)
 
 		if e == io.EOF {
@@ -211,7 +211,7 @@ func (b *IoBuffer) Append(data []byte) error {
 	}
 
 	m := copy(b.buf[len(b.buf):len(b.buf)+dataLen], data)
-	b.buf = b.buf[0: len(b.buf)+m]
+	b.buf = b.buf[0 : len(b.buf)+m]
 
 	return nil
 }
@@ -227,7 +227,7 @@ func (b *IoBuffer) Peek(n int) []byte {
 		return nil
 	}
 
-	return b.buf[b.off: b.off+n]
+	return b.buf[b.off : b.off+n]
 }
 
 func (b *IoBuffer) Mark() {

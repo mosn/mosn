@@ -1,11 +1,11 @@
 package tcpproxy
 
 import (
-	"reflect"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"reflect"
 )
 
 // ReadFilter
@@ -61,7 +61,7 @@ func (p *proxy) OnNewConnection() types.FilterStatus {
 func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 
-	p.readCallbacks.Connection().AddConnectionCallbacks(p.downstreamCallbacks)
+	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
 	p.requestInfo.SetDownstreamRemoteAddress(p.readCallbacks.Connection().RemoteAddr())
 	p.requestInfo.SetDownstreamLocalAddress(p.readCallbacks.Connection().LocalAddr())
 
@@ -105,7 +105,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	clusterConnectionResource.Increase()
 
 	upstreamConnection := connectionData.Connection
-	upstreamConnection.AddConnectionCallbacks(p.upstreamCallbacks)
+	upstreamConnection.AddConnectionEventListener(p.upstreamCallbacks)
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
 	p.upstreamConnection = upstreamConnection
 
@@ -242,7 +242,7 @@ func (pc *proxyConfig) GetRouteFromEntries(connection types.Connection) string {
 	return ""
 }
 
-// ConnectionCallbacks
+// ConnectionEventListener
 // ReadFilter
 type upstreamCallbacks struct {
 	proxy *proxy
@@ -278,7 +278,7 @@ func (uc *upstreamCallbacks) OnNewConnection() types.FilterStatus {
 
 func (uc *upstreamCallbacks) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
 
-// ConnectionCallbacks
+// ConnectionEventListener
 type downstreamCallbacks struct {
 	proxy *proxy
 }

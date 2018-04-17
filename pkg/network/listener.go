@@ -1,13 +1,13 @@
 package network
 
 import (
-	"net"
 	"context"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"fmt"
-	"runtime/debug"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"net"
+	"runtime/debug"
 )
 
 // listener impl based on golang net package
@@ -18,7 +18,7 @@ type listener struct {
 	listenerTag                           uint64
 	perConnBufferLimitBytes               uint32
 	handOffRestoredDestinationConnections bool
-	cb                                    types.ListenerCallbacks
+	cb                                    types.ListenerEventListener
 	rawl                                  *net.TCPListener
 }
 
@@ -74,12 +74,12 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 		for {
 			select {
 			case <-stopChan:
-				log.DefaultLogger.Println("listener " +l.name + " stop accepting connections")
+				log.DefaultLogger.Println("listener " + l.name + " stop accepting connections")
 				return
 			default:
 				if err := l.accept(lctx); err != nil {
 					if ope, ok := err.(*net.OpError); ok {
-						if !(ope.Timeout() && ope.Temporary()){
+						if !(ope.Timeout() && ope.Temporary()) {
 							log.DefaultLogger.Println("not temp-timeout error:" + err.Error())
 						}
 					} else {
@@ -107,7 +107,7 @@ func (l *listener) PerConnBufferLimitBytes() uint32 {
 	return l.perConnBufferLimitBytes
 }
 
-func (l *listener) SetListenerCallbacks(cb types.ListenerCallbacks) {
+func (l *listener) SetListenerCallbacks(cb types.ListenerEventListener) {
 	l.cb = cb
 }
 

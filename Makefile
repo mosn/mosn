@@ -13,6 +13,13 @@ BUILD_IMAGE   = godep-builder
 IMAGE_NAME = ${GIT_USER}/mosnd
 REGISTRY = acs-reg.alipay.com
 
+ut-local:
+	go test ./...
+
+unit-test:
+	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make ut-local
+
 build:
 	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
 	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make build-local
@@ -36,5 +43,5 @@ image:
 	docker tag ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} ${REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION}
 	rm -rf IMAGEBUILD
 
-.PHONY: binary build build-local image
+.PHONY: unit-test build image
 

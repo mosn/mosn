@@ -1,8 +1,8 @@
 package proxy
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 func (s *activeStream) addEncodedData(filter *activeStreamEncoderFilter, data types.IoBuffer, streaming bool) {
@@ -240,7 +240,7 @@ func (s *activeStream) decodeTrailersFilters(filter *activeStreamDecoderFilter, 
 type FilterStage int
 
 const (
-	DecodeHeaders  = iota
+	DecodeHeaders = iota
 	DecodeData
 	DecodeTrailers
 	EncodeHeaders
@@ -373,11 +373,11 @@ func (f *activeStreamDecoderFilter) OnDecoderFilterBelowWriteBufferLowWatermark(
 	f.activeStream.responseEncoder.GetStream().ReadDisable(false)
 }
 
-func (f *activeStreamDecoderFilter) AddDownstreamWatermarkCallbacks(cb types.DownstreamWatermarkCallbacks) {
+func (f *activeStreamDecoderFilter) AddDownstreamWatermarkCallbacks(cb types.DownstreamWatermarkEventListener) {
 	f.activeStream.watermarkCallbacks = cb
 }
 
-func (f *activeStreamDecoderFilter) RemoveDownstreamWatermarkCallbacks(cb types.DownstreamWatermarkCallbacks) {
+func (f *activeStreamDecoderFilter) RemoveDownstreamWatermarkCallbacks(cb types.DownstreamWatermarkEventListener) {
 	f.activeStream.watermarkCallbacks = nil
 }
 

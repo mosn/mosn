@@ -1,20 +1,20 @@
 package network
 
 import (
-	"net"
 	"context"
-	"io"
-	"sync"
 	"crypto/tls"
 	"fmt"
-	"runtime/debug"
-	"time"
-	"sync/atomic"
+	"github.com/rcrowley/go-metrics"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"io"
+	"net"
 	"runtime"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"github.com/rcrowley/go-metrics"
+	"runtime/debug"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 const (
@@ -39,7 +39,7 @@ type connection struct {
 	bufferLimit          uint32
 	rawConnection        net.Conn
 	closeWithFlush       bool
-	connCallbacks        []types.ConnectionCallbacks
+	connCallbacks        []types.ConnectionEventListener
 	bytesReadCallbacks   []func(bytesRead uint64)
 	bytesSendCallbacks   []func(bytesSent uint64)
 	filterManager        types.FilterManager
@@ -412,7 +412,7 @@ func (c *connection) RemoteAddr() net.Addr {
 	return c.remoteAddr
 }
 
-func (c *connection) AddConnectionCallbacks(cb types.ConnectionCallbacks) {
+func (c *connection) AddConnectionEventListener(cb types.ConnectionEventListener) {
 	exist := false
 
 	for _, ccb := range c.connCallbacks {
@@ -426,7 +426,7 @@ func (c *connection) AddConnectionCallbacks(cb types.ConnectionCallbacks) {
 	}
 }
 
-func (c *connection) AddBytesReadCallback(cb func(bytesRead uint64)) {
+func (c *connection) AddBytesReadListener(cb func(bytesRead uint64)) {
 	exist := false
 
 	for _, brcb := range c.bytesReadCallbacks {
@@ -440,7 +440,7 @@ func (c *connection) AddBytesReadCallback(cb func(bytesRead uint64)) {
 	}
 }
 
-func (c *connection) AddBytesSentCallback(cb func(bytesSent uint64)) {
+func (c *connection) AddBytesSentListener(cb func(bytesSent uint64)) {
 	exist := false
 
 	for _, bscb := range c.bytesSendCallbacks {

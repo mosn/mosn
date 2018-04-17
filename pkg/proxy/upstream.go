@@ -5,9 +5,9 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-// types.StreamCallbacks
+// types.StreamEventListener
 // types.StreamDecoder
-// types.PoolCallbacks
+// types.PoolEventListener
 type upstreamRequest struct {
 	proxy          *proxy
 	element        *list.Element
@@ -25,12 +25,12 @@ type upstreamRequest struct {
 
 func (r *upstreamRequest) resetStream() {
 	if r.requestEncoder != nil {
-		r.requestEncoder.GetStream().RemoveCallbacks(r)
+		r.requestEncoder.GetStream().RemoveEventListener(r)
 		r.requestEncoder.GetStream().ResetStream(types.StreamLocalReset)
 	}
 }
 
-// types.StreamCallbacks
+// types.StreamEventListener
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	r.requestEncoder = nil
 
@@ -67,7 +67,7 @@ func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream boo
 	streamID := ""
 
 	if streamid, ok := headers[types.HeaderStreamID]; ok {
-			streamID = streamid
+		streamID = streamid
 
 	}
 	r.connPool.NewStream(streamID, r, r)
@@ -85,7 +85,7 @@ func (r *upstreamRequest) encodeTrailers(trailers map[string]string) {
 	r.requestEncoder.EncodeTrailers(trailers)
 }
 
-// types.PoolCallbacks
+// types.PoolEventListener
 func (r *upstreamRequest) OnPoolFailure(streamId string, reason types.PoolFailureReason, host types.Host) {
 	var resetReason types.StreamResetReason
 
@@ -101,7 +101,7 @@ func (r *upstreamRequest) OnPoolFailure(streamId string, reason types.PoolFailur
 
 func (r *upstreamRequest) OnPoolReady(streamId string, encoder types.StreamEncoder, host types.Host) {
 	r.requestEncoder = encoder
-	r.requestEncoder.GetStream().AddCallbacks(r)
+	r.requestEncoder.GetStream().AddEventListener(r)
 
 	endStream := r.encodeComplete && !r.dataEncoded && !r.trailerEncoded
 	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamReqHeaders, endStream)

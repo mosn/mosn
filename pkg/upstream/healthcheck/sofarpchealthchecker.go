@@ -7,10 +7,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"net/http"
 	"reflect"
-	"strconv"
-	"strings"
 )
 
 type sofarpcHealthChecker struct {
@@ -102,13 +99,12 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	}
 
 	//TODO random requestId generator
-	var id uint32 = 0
-	s.requestEncoder = s.client.NewStream(id, s)
-	s.requestEncoder.GetStream().AddCallbacks(s)
+	s.requestEncoder = s.client.NewStream("", s)
+	s.requestEncoder.GetStream().AddEventListener(s)
 
 	//create protocol specified heartbeat packet
 	//todo: support tr
-	reqHeaders := codec.NewBoltHeartbeat(id)
+	reqHeaders := codec.NewBoltHeartbeat(0)
 
 	s.requestEncoder.EncodeHeaders(reqHeaders, true)
 	s.requestEncoder = nil

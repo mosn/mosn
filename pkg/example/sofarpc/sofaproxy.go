@@ -2,19 +2,19 @@ package sofarpc
 
 import (
 	"fmt"
-	"time"
-	"net"
-	"net/http"
-	_ "net/http/pprof"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"time"
 )
 
 const (
@@ -56,9 +56,9 @@ func genericProxyConfig() *v2.Proxy {
 
 func rpcProxyListener() *v2.ListenerConfig {
 	return &v2.ListenerConfig{
-		Name:                 TestListenerRPC,
-		Addr:                 MeshRPCServerAddr,
-		BindToPort:           true,
+		Name:                    TestListenerRPC,
+		Addr:                    MeshRPCServerAddr,
+		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
 	}
 }
@@ -143,8 +143,7 @@ func (ccrf *rpcclientConnReadFilter) OnNewConnection() types.FilterStatus {
 
 func (ccrf *rpcclientConnReadFilter) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
 
-
-func Run(){
+func Run() {
 	go func() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9099", nil)
@@ -240,7 +239,7 @@ func Run(){
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshRPCServerAddr)
 			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
-			cc.AddConnectionCallbacks(&rpclientConnCallbacks{//ADD  connection callback
+			cc.AddConnectionEventListener(&rpclientConnCallbacks{ //ADD  connection callback
 				cc: cc,
 			})
 			cc.Connect(true)

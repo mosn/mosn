@@ -5,12 +5,12 @@ import (
 )
 
 type CodecClient interface {
-	types.ConnectionCallbacks
+	types.ConnectionEventListener
 	types.ReadFilter
 
 	Id() uint64
 
-	AddConnectionCallbacks(cb types.ConnectionCallbacks)
+	AddConnectionCallbacks(cb types.ConnectionEventListener)
 
 	ActiveRequestsNum() int
 
@@ -20,7 +20,7 @@ type CodecClient interface {
 
 	SetCodecClientCallbacks(cb CodecClientCallbacks)
 
-	SetCodecConnectionCallbacks(cb types.StreamConnectionCallbacks)
+	SetCodecConnectionCallbacks(cb types.StreamConnectionEventListener)
 
 	Close()
 
@@ -35,12 +35,10 @@ type CodecClientCallbacks interface {
 
 type ProtocolStreamFactory interface {
 	CreateClientStream(connection types.ClientConnection,
-		streamConnCallbacks types.StreamConnectionCallbacks, callbacks types.ConnectionCallbacks) types.ClientStreamConnection
+		streamConnCallbacks types.StreamConnectionEventListener, callbacks types.ConnectionEventListener) types.ClientStreamConnection
 
-	CreateServerStream(connection types.Connection, callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection
+	CreateServerStream(connection types.Connection, callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection
 
-	CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionCallbacks,
-		serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection
+	CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener,
+		serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection
 }
-
-

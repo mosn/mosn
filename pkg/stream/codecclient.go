@@ -1,14 +1,14 @@
 package stream
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"container/list"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"sync"
 )
 
 // stream.CodecClient
 // types.ReadFilter
-// types.StreamConnectionCallbacks
+// types.StreamConnectionEventListener
 type codecClient struct {
 	Protocol   types.Protocol
 	Connection types.ClientConnection
@@ -18,9 +18,9 @@ type codecClient struct {
 	ActiveRequests *list.List
 	AcrMux         sync.RWMutex
 
-	CodecCallbacks            types.StreamConnectionCallbacks
+	CodecCallbacks            types.StreamConnectionEventListener
 	CodecClientCallbacks      CodecClientCallbacks
-	StreamConnectionCallbacks types.StreamConnectionCallbacks
+	StreamConnectionCallbacks types.StreamConnectionEventListener
 	ConnectedFlag             bool
 	RemoteCloseFlag           bool
 }
@@ -39,7 +39,7 @@ func NewCodecClient(prot types.Protocol, connection types.ClientConnection, host
 		return nil
 	}
 
-	connection.AddConnectionCallbacks(codecClient)
+	connection.AddConnectionEventListener(codecClient)
 	connection.FilterManager().AddReadFilter(codecClient)
 	connection.SetNoDelay(true)
 
@@ -47,7 +47,7 @@ func NewCodecClient(prot types.Protocol, connection types.ClientConnection, host
 }
 
 func NewBiDirectCodeClient(prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
-	serverCallbacks types.ServerStreamConnectionCallbacks) CodecClient {
+	serverCallbacks types.ServerStreamConnectionEventListener) CodecClient {
 	codecClient := &codecClient{
 		Protocol:       prot,
 		Connection:     connection,
@@ -61,7 +61,7 @@ func NewBiDirectCodeClient(prot types.Protocol, connection types.ClientConnectio
 		return nil
 	}
 
-	connection.AddConnectionCallbacks(codecClient)
+	connection.AddConnectionEventListener(codecClient)
 	connection.FilterManager().AddReadFilter(codecClient)
 	connection.SetNoDelay(true)
 
@@ -72,8 +72,8 @@ func (c *codecClient) Id() uint64 {
 	return c.Connection.Id()
 }
 
-func (c *codecClient) AddConnectionCallbacks(cb types.ConnectionCallbacks) {
-	c.Connection.AddConnectionCallbacks(cb)
+func (c *codecClient) AddConnectionCallbacks(cb types.ConnectionEventListener) {
+	c.Connection.AddConnectionEventListener(cb)
 }
 
 func (c *codecClient) ActiveRequestsNum() int {
@@ -91,7 +91,7 @@ func (c *codecClient) SetCodecClientCallbacks(cb CodecClientCallbacks) {
 	c.CodecClientCallbacks = cb
 }
 
-func (c *codecClient) SetCodecConnectionCallbacks(cb types.StreamConnectionCallbacks) {
+func (c *codecClient) SetCodecConnectionCallbacks(cb types.StreamConnectionEventListener) {
 	c.StreamConnectionCallbacks = cb
 }
 
@@ -102,7 +102,7 @@ func (c *codecClient) RemoteClose() bool {
 func (c *codecClient) NewStream(streamId string, respDecoder types.StreamDecoder) types.StreamEncoder {
 	ar := newActiveRequest(c, respDecoder)
 	ar.requestEncoder = c.Codec.NewStream(streamId, ar)
-	ar.requestEncoder.GetStream().AddCallbacks(ar)
+	ar.requestEncoder.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()
 	ar.element = c.ActiveRequests.PushBack(ar)
@@ -115,7 +115,7 @@ func (c *codecClient) Close() {
 	c.Connection.Close(types.NoFlush, types.LocalClose)
 }
 
-// types.StreamConnectionCallbacks
+// types.StreamConnectionEventListener
 func (c *codecClient) OnGoAway() {
 	c.CodecCallbacks.OnGoAway()
 }
@@ -176,7 +176,7 @@ func (c *codecClient) onReset(request *activeRequest, reason types.StreamResetRe
 
 func (c *codecClient) responseDecodeComplete(request *activeRequest) {
 	c.deleteRequest(request)
-	request.requestEncoder.GetStream().RemoveCallbacks(request)
+	request.requestEncoder.GetStream().RemoveEventListener(request)
 }
 
 func (c *codecClient) deleteRequest(request *activeRequest) {
@@ -190,7 +190,7 @@ func (c *codecClient) deleteRequest(request *activeRequest) {
 	}
 }
 
-// types.StreamCallbacks
+// types.StreamEventListener
 // types.StreamDecoderWrapper
 type activeRequest struct {
 	codecClient     *codecClient

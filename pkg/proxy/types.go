@@ -15,11 +15,11 @@ type Proxy interface {
 
 type UpstreamCallbacks interface {
 	types.ReadFilter
-	types.ConnectionCallbacks
+	types.ConnectionEventListener
 }
 
 type DownstreamCallbacks interface {
-	types.ConnectionCallbacks
+	types.ConnectionEventListener
 }
 
 type ProxyTimeout struct {

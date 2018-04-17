@@ -27,17 +27,17 @@ func init() {
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection,
-	streamConnCallbacks types.StreamConnectionCallbacks, connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection {
+	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(connection, streamConnCallbacks, connCallbacks)
 }
 
 func (f *streamConnFactory) CreateServerStream(connection types.Connection,
-	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
+	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(connection, callbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionCallbacks,
-	serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection {
+func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener,
+	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
 }
 
@@ -45,14 +45,14 @@ var transport http2.Transport
 var server http2.Server
 
 // types.StreamConnection
-// types.StreamConnectionCallbacks
+// types.StreamConnectionEventListener
 type streamConnection struct {
 	protocol      types.Protocol
 	rawConnection net.Conn
 	http2Conn     *http2.ClientConn
 	activeStreams *list.List
 	asMutex       sync.Mutex
-	connCallbacks types.ConnectionCallbacks
+	connCallbacks types.ConnectionEventListener
 }
 
 // types.StreamConnection
@@ -81,12 +81,12 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 // types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection
-	streamConnCallbacks types.StreamConnectionCallbacks
+	streamConnCallbacks types.StreamConnectionEventListener
 }
 
 func newClientStreamConnection(connection types.ClientConnection,
-	streamConnCallbacks types.StreamConnectionCallbacks,
-	connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection {
+	streamConnCallbacks types.StreamConnectionEventListener,
+	connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 
 	h2Conn, _ := transport.NewClientConn(connection.RawConn())
 
@@ -123,11 +123,11 @@ func (csc *clientStreamConnection) NewStream(streamId string, responseDecoder ty
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
-	serverStreamConnCallbacks types.ServerStreamConnectionCallbacks
+	serverStreamConnCallbacks types.ServerStreamConnectionEventListener
 }
 
 func newServerStreamConnection(connection types.Connection,
-	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
+	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
 			rawConnection: connection.RawConn(),
@@ -180,15 +180,15 @@ type stream struct {
 	response         *http.Response
 	decoder          types.StreamDecoder
 	element          *list.Element
-	streamCbs        []types.StreamCallbacks
+	streamCbs        []types.StreamEventListener
 }
 
 // types.Stream
-func (s *stream) AddCallbacks(streamCb types.StreamCallbacks) {
+func (s *stream) AddEventListener(streamCb types.StreamEventListener) {
 	s.streamCbs = append(s.streamCbs, streamCb)
 }
 
-func (s *stream) RemoveCallbacks(streamCb types.StreamCallbacks) {
+func (s *stream) RemoveEventListener(streamCb types.StreamEventListener) {
 	cbIdx := -1
 
 	for i, streamCb := range s.streamCbs {
@@ -215,7 +215,7 @@ type clientStream struct {
 }
 
 // types.StreamEncoder   发送数据的时候是作为CLIENT STREAM 发送的
-func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error{
+func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
 	headers, _ := headers_.(map[string]string)
 
 	if s.request == nil {
@@ -250,7 +250,7 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 	return nil
 }
 
-func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error{
+func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 	if s.request == nil {
 		s.request = new(http.Request)
 	}
@@ -266,7 +266,7 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error{
 	return nil
 }
 
-func (s *clientStream) EncodeTrailers(trailers map[string]string) error{
+func (s *clientStream) EncodeTrailers(trailers map[string]string) error {
 	s.request.Trailer = encodeHeader(trailers)
 	s.endStream()
 
@@ -360,7 +360,7 @@ type serverStream struct {
 }
 
 // types.StreamEncoder
-func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) error{
+func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
 	headers, _ := headers_.(map[string]string)
 
 	if s.response == nil {
@@ -381,7 +381,7 @@ func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 	return nil
 }
 
-func (s *serverStream) EncodeData(data types.IoBuffer, endStream bool)error {
+func (s *serverStream) EncodeData(data types.IoBuffer, endStream bool) error {
 	if s.response == nil {
 		s.response = new(http.Response)
 	}
@@ -396,7 +396,7 @@ func (s *serverStream) EncodeData(data types.IoBuffer, endStream bool)error {
 	return nil
 }
 
-func (s *serverStream) EncodeTrailers(trailers map[string]string)error{
+func (s *serverStream) EncodeTrailers(trailers map[string]string) error {
 	s.response.Trailer = encodeHeader(trailers)
 
 	s.endStream()

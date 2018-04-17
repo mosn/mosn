@@ -15,7 +15,7 @@ func Register(prot types.Protocol, factory ProtocolStreamFactory) {
 }
 
 func CreateServerStreamConnection(prot types.Protocol, connection types.Connection,
-	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
+	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 
 	if ssc, ok := streamFactories[prot]; ok {
 		return ssc.CreateServerStream(connection, callbacks)

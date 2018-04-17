@@ -82,8 +82,8 @@ func main() {
 			},
 		}
 
-		sh := &sofarpc.HealthCheckFilterConfigFactory {
-			FilterConfig: &v2.HealthCheckFilter {
+		sh := &sofarpc.HealthCheckFilterConfigFactory{
+			FilterConfig: &v2.HealthCheckFilter{
 				PassThrough: false,
 				CacheTime:   3600,
 			},
@@ -114,7 +114,7 @@ func main() {
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
 			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
-			cc.AddConnectionCallbacks(&rpclientConnCallbacks{ //ADD  connection callback
+			cc.AddConnectionEventListener(&rpclientConnCallbacks{ //ADD  connection callback
 				cc: cc,
 			})
 			cc.Connect(true)

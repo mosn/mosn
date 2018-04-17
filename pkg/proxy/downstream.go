@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// types.StreamCallbacks
+// types.StreamEventListener
 // types.StreamDecoder
 // types.FilterChainFactoryCallbacks
 type activeStream struct {
@@ -64,7 +64,7 @@ type activeStream struct {
 
 	filterStage int
 
-	watermarkCallbacks types.DownstreamWatermarkCallbacks
+	watermarkCallbacks types.DownstreamWatermarkEventListener
 
 	// ~~~ filters
 	encoderFilters []*activeStreamEncoderFilter
@@ -79,7 +79,7 @@ func newActiveStream(streamId string, proxy *proxy, responseEncoder types.Stream
 		responseEncoder: responseEncoder,
 	}
 
-	stream.responseEncoder.GetStream().AddCallbacks(stream)
+	stream.responseEncoder.GetStream().AddEventListener(stream)
 
 	proxy.stats.DownstreamRequestTotal().Inc(1)
 	proxy.stats.DownstreamRequestActive().Inc(1)
@@ -89,7 +89,7 @@ func newActiveStream(streamId string, proxy *proxy, responseEncoder types.Stream
 	return stream
 }
 
-// types.StreamCallbacks
+// types.StreamEventListener
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
 	s.proxy.stats.DownstreamRequestReset().Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)

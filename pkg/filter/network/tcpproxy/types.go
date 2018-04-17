@@ -19,11 +19,11 @@ type ProxyConfig interface {
 
 type UpstreamCallbacks interface {
 	types.ReadFilter
-	types.ConnectionCallbacks
+	types.ConnectionEventListener
 }
 
 type DownstreamCallbacks interface {
-	types.ConnectionCallbacks
+	types.ConnectionEventListener
 }
 
 type UpstreamFailureReason string

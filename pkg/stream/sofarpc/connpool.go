@@ -1,9 +1,9 @@
 package sofarpc
 
 import (
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 // types.ConnectionPool
@@ -22,12 +22,10 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.SofaRpc
 }
 
-func (p *connPool) AddDrainedCallback(cb func()) {}
-
 func (p *connPool) DrainConnections() {}
 
 func (p *connPool) NewStream(streamId string, responseDecoder types.StreamDecoder,
-	cb types.PoolCallbacks) types.Cancellable {
+	cb types.PoolEventListener) types.Cancellable {
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(p)
 	}
@@ -75,8 +73,8 @@ func (p *connPool) createCodecClient(connData types.CreateConnectionData) str.Co
 }
 
 // stream.CodecClientCallbacks
-// types.ConnectionCallbacks
-// types.StreamConnectionCallbacks
+// types.ConnectionEventListener
+// types.StreamConnectionEventListener
 type activeClient struct {
 	pool        *connPool
 	codecClient str.CodecClient

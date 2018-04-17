@@ -18,17 +18,17 @@ func init() {
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection,
-	clientCallbacks types.StreamConnectionCallbacks, connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection {
+	clientCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 	return newStreamConnection(connection, clientCallbacks, nil)
 }
 
 func (f *streamConnFactory) CreateServerStream(connection types.Connection,
-	serverCallbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
+	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newStreamConnection(connection, nil, serverCallbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionCallbacks,
-	serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection {
+func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener,
+	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return newStreamConnection(connection, clientCallbacks, serverCallbacks)
 }
 
@@ -37,18 +37,18 @@ func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnecti
 // types.ClientStreamConnection
 // types.ServerStreamConnection
 type streamConnection struct {
-	protocol        types.Protocol
-	connection      types.Connection
+	protocol   types.Protocol
+	connection types.Connection
 	activeStream
 	protocols       types.Protocols
-	clientCallbacks types.StreamConnectionCallbacks
-	serverCallbacks types.ServerStreamConnectionCallbacks
+	clientCallbacks types.StreamConnectionEventListener
+	serverCallbacks types.ServerStreamConnectionEventListener
 }
 
 var as activeStream
 
-func newStreamConnection(connection types.Connection, clientCallbacks types.StreamConnectionCallbacks,
-	serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection {
+func newStreamConnection(connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
+	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	return &streamConnection{
 		connection:      connection,
@@ -112,7 +112,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 	} else if v, ok := headers[types.HeaderException]; ok && v == types.MosnExceptionCodeC {
 		// codec exception may happen
 		conn.onNewStreamDetected(streamId)
-		stream,_ = conn.activeStream.getStream(streamId)
+		stream, _ = conn.activeStream.getStream(streamId)
 		stream.decoder.OnDecodeHeaders(headers, true)
 	}
 
@@ -165,17 +165,17 @@ type stream struct {
 	readDisableCount int
 	connection       *streamConnection
 	decoder          types.StreamDecoder
-	streamCbs        []types.StreamCallbacks
+	streamCbs        []types.StreamEventListener
 	encodedHeaders   types.IoBuffer
 	encodedData      types.IoBuffer
 }
 
 // ~~ types.Stream
-func (s *stream) AddCallbacks(cb types.StreamCallbacks) {
+func (s *stream) AddEventListener(cb types.StreamEventListener) {
 	s.streamCbs = append(s.streamCbs, cb)
 }
 
-func (s *stream) RemoveCallbacks(cb types.StreamCallbacks) {
+func (s *stream) RemoveEventListener(cb types.StreamEventListener) {
 	cbIdx := -1
 
 	for i, streamCb := range s.streamCbs {
