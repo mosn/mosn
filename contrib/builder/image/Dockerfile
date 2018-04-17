@@ -3,8 +3,11 @@ MAINTAINER  xiaodong.dxd@alibaba-inc.com
 
 ENV TMP_FOLDER      /tmp
 ENV GIT_USER        afe
+ENV MOSN_PREFIX     /home/admin/mosn
+ENV PATH            $MOSN_PREFIX/sbin:$PATH
 
-RUN mkdir -p /home/admin/mosn
+RUN mkdir -p $MOSN_PREFIX/conf
+RUN mkdir -p $MOSN_PREFIX/logs
 
 RUN yum install -y \
        ssh wget curl perl logrotate make build-essential procps \
@@ -36,6 +39,9 @@ RUN cd cpulimit-master && make && cp src/cpulimit /usr/bin
 COPY ./etc/mosn/cpulimitedgzip                 /usr/bin/cpulimitedgzip
 RUN  chmod +x /usr/bin/cpulimitedgzip
 
+RUN echo "export MOSN_PREFIX=/home/admin/mosn" >> /etc/bashrc;
+RUN echo "export PATH=$PATH" >> /etc/bashrc
+
 COPY ./etc/supervisor/supervisord.conf            /etc/supervisord.conf
 COPY ./etc/supervisor/mosn.conf                   /etc/supervisord/conf.d/mosn.conf
 COPY ./etc/mosn/mosn.logrotate                    /etc/logrotate.d/mosn
@@ -43,6 +49,6 @@ RUN mv /etc/cron.daily/logrotate                  /etc/cron.hourly/logrotate
 
 EXPOSE 22 80
 
-ADD ./mosnd /usr/bin
+ADD ./mosnd $MOSN_PREFIX/sbin
 
 ENTRYPOINT ["/usr/bin/supervisord" , "-c" , "/etc/supervisord.conf"]
