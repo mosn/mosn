@@ -185,7 +185,7 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 	return healthcheck
 }
 
-func ParseListenerConfig(c *ListenerConfig, inheritListeners []v2.ListenerConfig) *v2.ListenerConfig {
+func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfig) *v2.ListenerConfig {
 	if c.Name == "" {
 		log.Fatalln("[name] is required in listener config")
 	}
@@ -202,7 +202,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []v2.ListenerConfig
 	var old *net.TCPListener = nil
 
 	for _, il := range inheritListeners {
-		if il.Addr == addr {
+		if il.Addr.String() == addr.String() {
 			log.Println("inherit listener addr:", c.Address)
 			old = il.InheritListener
 			il.Remain = true

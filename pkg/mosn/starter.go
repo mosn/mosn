@@ -152,10 +152,10 @@ func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, c
 	cmf.chcb = chcb
 }
 
-func getInheritListeners() []v2.ListenerConfig {
+func getInheritListeners() []*v2.ListenerConfig {
 	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
 		count, _ := strconv.Atoi(os.Getenv("_MOSN_INHERIT_FD"))
-		listeners := make([]v2.ListenerConfig, count)
+		listeners := make([]*v2.ListenerConfig, count)
 
 		for idx := 0; idx < count; idx++ {
 			//because passed listeners fd's index starts from 3
@@ -165,7 +165,7 @@ func getInheritListeners() []v2.ListenerConfig {
 				log.Println("net.FileListener create err", err)
 			}
 			if listener, ok := fileListener.(*net.TCPListener); ok {
-				listeners[idx] = v2.ListenerConfig{Addr: listener.Addr(), InheritListener: listener}
+				listeners[idx] = &v2.ListenerConfig{Addr: listener.Addr(), InheritListener: listener}
 			} else {
 				log.Println("net.TCPListener cast err", err)
 			}
