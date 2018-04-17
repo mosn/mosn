@@ -1,14 +1,14 @@
 package server
 
 import (
-	"os"
-	"time"
-	"sync"
-	"strconv"
-	"io/ioutil"
-	"os/signal"
-	"syscall"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"io/ioutil"
+	"os"
+	"os/signal"
+	"strconv"
+	"sync"
+	"syscall"
+	"time"
 )
 
 const (
@@ -37,10 +37,10 @@ var (
 )
 
 func writePidFile() error {
-	pidFile = MosnBasePath + string(os.PathSeparator) + "pid.log"
+	pidFile = MosnBasePath + string(os.PathSeparator) + "logs" + string(os.PathSeparator) + "pid.log"
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
-	os.MkdirAll(MosnBasePath, 0644);
+	os.MkdirAll(MosnBasePath, 0644)
 
 	return ioutil.WriteFile(pidFile, pid, 0644)
 }
@@ -79,7 +79,7 @@ func catchSignalsCrossPlatform() {
 				log.Reopen()
 			case syscall.SIGHUP:
 				// reload
-				 reconfigure()
+				reconfigure()
 			case syscall.SIGUSR2:
 				// ignore
 			}
@@ -137,8 +137,7 @@ func OnProcessShutDown(cb func() error) {
 	shutdownCallbacks = append(shutdownCallbacks, cb)
 }
 
-
-func reconfigure(){
+func reconfigure() {
 	// Stop accepting requests
 	StopAccept()
 
