@@ -9,6 +9,8 @@ import (
     "github.com/golang/protobuf/proto"
     "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
     "gitlab.alipay-inc.com/afe/mosn/pkg/types"
+    "fmt"
+    "errors"
 )
 
 type Subscriber struct {
@@ -38,7 +40,7 @@ func NewSubscriber(dataId string, client *stream.CodecClient,
     return sub
 }
 
-func (s *Subscriber) doWork(taskId string, eventType string) bool {
+func (s *Subscriber) doWork(taskId string, eventType string) error {
     defer func() {
         if err := recover(); err != nil {
             log.DefaultLogger.Errorf("Registry to confreg failed. eventType = %s, dataId = %s, registerId = %s error = %v.",
@@ -68,14 +70,15 @@ func (s *Subscriber) sendRequest(taskId string, body []byte) {
     streamEncoder.EncodeData(buffer.NewIoBufferBytes(body), true)
 }
 
-func (s *Subscriber) handleResponse(taskId string, request *model.SubscriberRegisterPb) bool {
+func (s *Subscriber) handleResponse(taskId string, request *model.SubscriberRegisterPb) error {
     t := time.NewTimer(s.registryConfig.RegisterTimeout)
     for ; ; {
         select {
         case <-t.C:
             {
-                log.DefaultLogger.Errorf("Subscribe data from confreg timeout. register id = %v", taskId)
-                return false
+                errMsg := fmt.Sprintf("Subscribe data from confreg timeout. register id = %v", taskId)
+                log.DefaultLogger.Errorf(errMsg)
+                return errors.New(errMsg)
             }
         case <-s.streamContext.finished:
             {
@@ -83,12 +86,12 @@ func (s *Subscriber) handleResponse(taskId string, request *model.SubscriberRegi
 
                 if s.streamContext.err == nil && subResponse.Success && !subResponse.Refused {
                     log.DefaultLogger.Infof("Subscribe data from confreg success. register id = %v", subResponse.RegistId)
-                    return true
-                    break
+                    return nil
                 }
-                log.DefaultLogger.Errorf("Subscribe data from confreg failed. register id = %v, message = %v",
+                errMsg := fmt.Sprintf("Subscribe data from confreg failed. register id = %v, message = %v",
                     subResponse.RegistId, subResponse.Message)
-                return false
+                log.DefaultLogger.Errorf(errMsg)
+                return errors.New(errMsg)
             }
         }
     }

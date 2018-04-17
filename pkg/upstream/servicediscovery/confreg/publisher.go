@@ -10,6 +10,7 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
     "fmt"
+    "errors"
 )
 
 type Publisher struct {
@@ -39,7 +40,7 @@ func NewPublisher(dataId string, codecClient *stream.CodecClient, registryConfig
 }
 
 //sync call. not thread safe
-func (p *Publisher) doWork(taskId string, svrHost []string, eventType string) bool {
+func (p *Publisher) doWork(taskId string, svrHost []string, eventType string) error {
     defer func() {
         if err := recover(); err != nil {
             log.DefaultLogger.Errorf("Publish data to confreg failed. eventType = %s, "+
@@ -70,14 +71,15 @@ func (p *Publisher) sendRequest(taskId string, body []byte) {
     streamEncoder.EncodeData(buffer.NewIoBufferBytes(body), true)
 }
 
-func (p *Publisher) handleResponse(taskId string, request *model.PublisherRegisterPb) bool {
+func (p *Publisher) handleResponse(taskId string, request *model.PublisherRegisterPb) error {
     t := time.NewTimer(p.registryConfig.RegisterTimeout)
     for ; ; {
         select {
         case <-t.C:
             {
-                log.DefaultLogger.Errorf("Publish data to confreg timeout. register id = %v", taskId)
-                return false
+                errMsg := fmt.Sprintf("Publish data to confreg timeout. register id = %v", taskId)
+                log.DefaultLogger.Errorf(errMsg)
+                return errors.New(errMsg)
             }
         case <-p.streamContext.finished:
             {
@@ -85,12 +87,12 @@ func (p *Publisher) handleResponse(taskId string, request *model.PublisherRegist
 
                 if p.streamContext.err == nil && pubResponse.Success && !pubResponse.Refused {
                     log.DefaultLogger.Infof("Publish data to confreg success. register id = %v", pubResponse.RegistId)
-                    return true
-                    break
+                    return nil
                 }
-                log.DefaultLogger.Errorf("Publish data to confreg failed. register id = %v, message = %v",
+                errMsg := fmt.Sprintf("Publish data to confreg failed. register id = %v, message = %v",
                     pubResponse.RegistId, pubResponse.Message)
-                return false
+                log.DefaultLogger.Errorf(errMsg)
+                return errors.New(errMsg)
             }
         }
     }

@@ -40,18 +40,34 @@ func (rc *DefaultRegistryClient) GetRPCServerManager() servermanager.RPCServerMa
     return rc.rpcServerManager
 }
 
-func (rc *DefaultRegistryClient) Publish(dataId string, data ...string) {
+func (rc *DefaultRegistryClient) PublishAsync(dataId string, data ...string) {
     rc.registerWorker.SubmitPublishTask(dataId, data, model.EventTypePb_REGISTER.String())
 }
 
-func (rc *DefaultRegistryClient) UnPublish(dataId string, data ...string) {
+func (rc *DefaultRegistryClient) UnPublishAsync(dataId string, data ...string) {
     rc.registerWorker.SubmitPublishTask(dataId, data, model.EventTypePb_UNREGISTER.String())
 }
 
-func (rc *DefaultRegistryClient) Subscribe(dataId string) {
+func (rc *DefaultRegistryClient) SubscribeAsync(dataId string) {
     rc.registerWorker.SubmitSubscribeTask(dataId, model.EventTypePb_REGISTER.String())
 }
 
-func (rc *DefaultRegistryClient) UnSubscribe(dataId string) {
+func (rc *DefaultRegistryClient) UnSubscribeAsync(dataId string) {
     rc.registerWorker.SubmitSubscribeTask(dataId, model.EventTypePb_UNREGISTER.String())
+}
+
+func (rc *DefaultRegistryClient) PublishSync(dataId string, data ...string) error {
+    return rc.registerWorker.PublishSync(dataId, data)
+}
+
+func (rc *DefaultRegistryClient) UnPublishSync(dataId string, data ...string) error {
+    return rc.registerWorker.UnPublishSync(dataId, data)
+}
+
+func (rc *DefaultRegistryClient) SubscribeSync(dataId string) error {
+    return rc.registerWorker.SubscribeSync(dataId)
+}
+
+func (rc *DefaultRegistryClient) UnSubscribeSync(dataId string) error {
+    return rc.registerWorker.UnSubscribeSync(dataId)
 }

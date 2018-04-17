@@ -14,8 +14,8 @@ type ProviderMetaInfo struct {
 }
 
 //pub result
-type PublishServiceResult struct {
-	ErrorMessage string `json:"errorMessage"`
+type HttpResponse struct {
+	ErrorMessage interface{} `json:"errorMessage"`
 	Success      bool   `json:"success"`
 }
 
@@ -37,19 +37,8 @@ type UnPublishServiceRequest struct {
 	ServiceName string `json:"serviceName"`
 }
 
-//unpublish result
-type UnPublishServiceResult struct {
-	ErrorMessage string `json:"errorMessage"`
-	Success      bool   `json:"success"`
-}
-
 //UnSubscribe request
 type UnSubscribeServiceRequest struct {
 	ServiceName string `json:"serviceName"`
 }
 
-//UnSubscribe result
-type UnSubscribeServiceResult struct {
-	ErrorMessage string `json:"errorMessage"`
-	Success      bool   `json:"success"`
-}

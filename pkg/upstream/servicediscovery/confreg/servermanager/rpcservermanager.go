@@ -64,12 +64,12 @@ func (sm *DefaultRPCServerManager) RegisterRPCServer(receivedData *model.Receive
     }
 }
 
-func (sm *DefaultRPCServerManager) GetRPCServerList(dataId string) map[string][]string {
+func (sm *DefaultRPCServerManager) GetRPCServerList(dataId string) (servers map[string][]string, ok bool) {
     result := make(map[string][]string)
 
     segments, ok := sm.svrData[dataId]
     if !ok {
-        return result
+        return result, false
     }
 
     for _, segmentData := range segments {
@@ -79,29 +79,30 @@ func (sm *DefaultRPCServerManager) GetRPCServerList(dataId string) map[string][]
         }
     }
 
-    return result
+    return result, true
 }
 
-func (sm *DefaultRPCServerManager) GetRPCServerListByZone(dataId string, zone string) []string {
+func (sm *DefaultRPCServerManager) GetRPCServerListByZone(dataId string, zone string) (servers []string, ok bool) {
     segments, ok := sm.svrData[dataId]
     if !ok {
-        return []string{}
+        return nil, false
     }
 
     for _, segmentData := range segments {
         for storedZone, srvs := range segmentData.data {
             if storedZone == zone {
-                return srvs
+                return srvs, true
             }
         }
     }
 
-    return []string{}
+    return nil, false
 }
 
 func (sm *DefaultRPCServerManager) triggerRPCServerChangeEvent(dataId string) {
+    data, _ := sm.GetRPCServerList(dataId)
     for _, listener := range sm.listeners {
-        listener.OnRPCServerChanged(dataId, sm.GetRPCServerList(dataId))
+        listener.OnRPCServerChanged(dataId, data)
     }
 }
 

@@ -101,15 +101,12 @@ func (rw *registerWorker) newCodecClient() {
 }
 
 func (rw *registerWorker) SubmitPublishTask(dataId string, data []string, eventType string) {
-    storedPublisher, ok := rw.publisherHolder.Load(dataId)
-    if !ok {
-        storedPublisher = NewPublisher(dataId, rw.codecClient, rw.registryConfig, rw.systemConfig)
-        rw.publisherHolder.Store(dataId, storedPublisher)
-    }
+    publisher := rw.getPublisher(dataId)
+
     registryTask := registryTask{
         taskType:    TASK_TYPE_PUBLISH,
         eventType:   eventType,
-        publisher:   storedPublisher.(*Publisher),
+        publisher:   publisher,
         data:        data,
         sendCounter: metrics.NewCounter(),
     }
@@ -119,16 +116,12 @@ func (rw *registerWorker) SubmitPublishTask(dataId string, data []string, eventT
 }
 
 func (rw *registerWorker) SubmitSubscribeTask(dataId string, eventType string) {
-    storedSubscriber, ok := rw.subscriberHolder.Load(dataId)
-    if !ok {
-        storedSubscriber = NewSubscriber(dataId, rw.codecClient, rw.registryConfig, rw.systemConfig)
-        rw.subscriberHolder.Store(dataId, storedSubscriber)
-    }
+    subscriber := rw.getSubscriber(dataId)
 
     registryTask := registryTask{
         taskType:    TASK_TYPE_SUBSCRIBE,
         eventType:   eventType,
-        subscriber:  storedSubscriber.(*Subscriber),
+        subscriber:  subscriber,
         sendCounter: metrics.NewCounter(),
     }
 
@@ -164,23 +157,23 @@ func (rw *registerWorker) work() {
 func (rw *registerWorker) doRegister(ele *list.Element) error {
     registryTask := ele.Value.(registryTask)
     registryTask.taskId = RandomUuid()
-    
-    var registrySuccess bool
+
+    var err error
     //Retry 2 times
     for i := 0; i < 2; i++ {
         time.Sleep(CalRetreatTime(registryTask.sendCounter.Count(), 5))
 
         if registryTask.taskType == TASK_TYPE_PUBLISH {
             publisher := registryTask.publisher
-            registrySuccess = publisher.doWork(registryTask.taskId, registryTask.data, registryTask.eventType)
+            err = publisher.doWork(registryTask.taskId, registryTask.data, registryTask.eventType)
             publisher.version++
         } else {
             sub := registryTask.subscriber
-            registrySuccess = sub.doWork(registryTask.taskId, registryTask.eventType)
+            err = sub.doWork(registryTask.taskId, registryTask.eventType)
             sub.version++
         }
 
-        if registrySuccess {
+        if err == nil {
             registryTask.sendCounter.Clear()
             return nil
         } else {
@@ -192,6 +185,42 @@ func (rw *registerWorker) doRegister(ele *list.Element) error {
 
     return errors.New("register failed")
 
+}
+
+func (rw *registerWorker) PublishSync(dataId string, data []string) error {
+    return rw.getPublisher(dataId).doWork(RandomUuid(), data, model.EventTypePb_REGISTER.String())
+}
+
+func (rw *registerWorker) UnPublishSync(dataId string, data []string) error {
+    return rw.getPublisher(dataId).doWork(RandomUuid(), data, model.EventTypePb_UNREGISTER.String())
+}
+
+func (rw *registerWorker) SubscribeSync(dataId string) error {
+    return rw.getSubscriber(dataId).doWork(RandomUuid(), model.EventTypePb_REGISTER.String())
+}
+
+func (rw *registerWorker) UnSubscribeSync(dataId string) error {
+    return rw.getSubscriber(dataId).doWork(RandomUuid(), model.EventTypePb_UNREGISTER.String())
+}
+
+func (rw *registerWorker) getPublisher(dataId string) *Publisher {
+    storedPublisher, ok := rw.publisherHolder.Load(dataId)
+    if ok {
+        return storedPublisher.(*Publisher)
+    }
+    newPublisher := NewPublisher(dataId, rw.codecClient, rw.registryConfig, rw.systemConfig)
+    rw.publisherHolder.Store(dataId, newPublisher)
+    return newPublisher
+}
+
+func (rw *registerWorker) getSubscriber(dataId string) *Subscriber {
+    storedSubscriber, ok := rw.subscriberHolder.Load(dataId)
+    if ok {
+        return storedSubscriber.(*Subscriber)
+    }
+    newSubscriber := NewSubscriber(dataId, rw.codecClient, rw.registryConfig, rw.systemConfig)
+    rw.subscriberHolder.Store(dataId, newSubscriber)
+    return newSubscriber
 }
 
 func (rw *registerWorker) scheduleWorkAtFixTime() {

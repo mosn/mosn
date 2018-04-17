@@ -5,6 +5,8 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "fmt"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
+    "github.com/golang/protobuf/proto"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type receiveDataListener struct {
@@ -41,9 +43,14 @@ func (d *receiveDataStreamDecoder) OnDecodeHeaders(headers map[string]string, en
 
 func (d *receiveDataStreamDecoder) OnDecodeData(data types.IoBuffer, endStream bool) {
     if endStream {
-        //receivedData := &model.ReceivedDataPb{}
-        //proto.Unmarshal(data.Bytes(), receivedData)
-        d.rpcServerManager.RegisterRPCServer(assembleReceivedData())
+        receivedData := &model.ReceivedDataPb{}
+        err := proto.Unmarshal(data.Bytes(), receivedData)
+        if err == nil {
+            d.rpcServerManager.RegisterRPCServer(receivedData)
+        } else {
+            log.DefaultLogger.Errorf("Unmarshal received data failed. error = %v", err)
+        }
+
     }
 }
 

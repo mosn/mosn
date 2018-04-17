@@ -6,13 +6,21 @@ const CONFREG_SOFA_GROUP  = "SOFA"
 
 
 type RegistryClient interface {
-    Publish(dataId string, data ...string)
+    PublishAsync(dataId string, data ...string)
 
-    UnPublish(dataId string, data ...string)
+    UnPublishAsync(dataId string, data ...string)
 
-    Subscribe(dataId string)
+    SubscribeAsync(dataId string)
 
-    UnSubscribe(dataId string)
+    UnSubscribeAsync(dataId string)
+
+    PublishSync(dataId string, data ...string) error
+
+    UnPublishSync(dataId string, data ...string) error
+
+    SubscribeSync(dataId string) error
+
+    UnSubscribeSync(dataId string) error
 
     GetRPCServerManager() servermanager.RPCServerManager
 }

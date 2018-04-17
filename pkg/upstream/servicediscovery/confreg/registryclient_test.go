@@ -12,7 +12,7 @@ import (
 )
 
 func Test_Publish(t *testing.T) {
-    log.InitDefaultLogger("", log.INFO)
+    log.InitDefaultLogger("stdout", log.INFO)
 
     var sysConfig = &config.SystemConfig{
         Zone:             "GZ00b",
@@ -29,13 +29,13 @@ func Test_Publish(t *testing.T) {
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
-    rc.Publish(someDataId, "dfsfds")
+    rc.PublishAsync(someDataId, "dfsfds")
 }
 
 func Test_Register(t *testing.T) {
     log.InitDefaultLogger("", log.INFO)
 
-    runRpcServer()
+    MockRpcServer()
 
     var sysConfig = &config.SystemConfig{
         Zone:             "GZ00b",
@@ -55,23 +55,23 @@ func Test_Register(t *testing.T) {
 
     someDataId := "someDataId"
     anotherDataId := "anotherDataId"
-    rc.UnPublish(someDataId, "dfsfds")
+    rc.UnPublishAsync(someDataId, "dfsfds")
     //rc.Publish("anotherDataId", "dfsfds")
 
-    rc.Subscribe(someDataId)
-    rc.Subscribe(anotherDataId)
+    rc.SubscribeAsync(someDataId)
+    rc.SubscribeAsync(anotherDataId)
     //
     //rc.GetRPCServerManager().RegisterRPCServerChangeListener(&MockRPCServerChangeListener{})
     for ; ; {
         time.Sleep(5 * time.Second)
-        rc.Publish(someDataId, "dfsfds")
+        rc.PublishAsync(someDataId, "dfsfds")
     }
 }
 
 func Test_Received(t *testing.T) {
     log.InitDefaultLogger("", log.INFO)
 
-    runRpcServer()
+    MockRpcServer()
 
     var sysConfig = &config.SystemConfig{
         Zone:             "GZ00b",
@@ -92,7 +92,7 @@ func Test_Received(t *testing.T) {
     someDataId := "someDataId"
     //anotherDataId := "anotherDataId"
 
-    rc.Subscribe(someDataId)
+    rc.SubscribeAsync(someDataId)
     //rc.Subscribe(anotherDataId)
     //
     rc.GetRPCServerManager().RegisterRPCServerChangeListener(&MockRPCServerChangeListener{})
