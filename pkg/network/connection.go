@@ -4,10 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/rcrowley/go-metrics"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"io"
 	"net"
 	"runtime"
@@ -15,6 +11,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/rcrowley/go-metrics"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 const (
@@ -262,7 +263,9 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 	c.writeBufferMux.Lock()
 
 	for _, buf := range buffers {
-		buf.WriteTo(c.writeBuffer)
+		if buf != nil {
+			buf.WriteTo(c.writeBuffer)
+		}
 	}
 
 	c.writeBufferMux.Unlock()
