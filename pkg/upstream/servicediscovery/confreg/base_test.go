@@ -1,28 +1,18 @@
 package registry
 
 import (
-    "testing"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
     "time"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 var sysConfig *config.SystemConfig
 var registryConfig *config.RegistryConfig
 
-func TestMsgChannel_PublishService(t *testing.T) {
-    before()
-
-    StartupRegistryModule(sysConfig, registryConfig)
-
-    registryClient, _ := GetRegistryClient()
-    msgChann := NewMsgChannel(nil, nil, registryClient)
-
-    msgChann.StartChannel()
-}
-
-func before() {
+func beforeTest() {
+    log.InitDefaultLogger("", log.INFO)
     MockRpcServer()
-    
+
     sysConfig = &config.SystemConfig{
         Zone:             "GZ00b",
         RegistryEndpoint: "confreg.sit.alipay.net",
@@ -32,5 +22,11 @@ func before() {
     registryConfig = &config.RegistryConfig{
         ScheduleRegisterTaskDuration: 60 * time.Second,
         RegisterTimeout:              3 * time.Second,
+    }
+}
+
+func blockThread() {
+    for ; ; {
+        time.Sleep(5 * time.Second)
     }
 }

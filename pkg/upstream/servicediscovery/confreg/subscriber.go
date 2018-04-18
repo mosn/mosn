@@ -11,6 +11,7 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/types"
     "fmt"
     "errors"
+    "math/rand"
 )
 
 type Subscriber struct {
@@ -52,22 +53,28 @@ func (s *Subscriber) doWork(taskId string, eventType string) error {
     request := s.assembleSubscriberRegisterPb(eventType)
     body, _ := proto.Marshal(request)
     //2. Send request
-    s.sendRequest(taskId, body)
-
+    reqId := fmt.Sprintf("%d", rand.Uint32())
+    err := s.sendRequest(taskId, reqId, body)
+    if err != nil {
+        return err
+    }
     s.streamContext = &registryStreamContext{
-        streamId:        taskId,
+        streamId:        reqId,
         registryRequest: request,
         finished:        make(chan bool),
     }
-
+    //3. Handle response
     return s.handleResponse(taskId, request)
 }
 
-func (s *Subscriber) sendRequest(taskId string, body []byte) {
+func (s *Subscriber) sendRequest(taskId string, reqId string, body []byte) error {
     streamEncoder := (*s.codecClient).NewStream(taskId, s)
-    headers := BuildBoltSubscribeRequestCommand(len(body))
-    streamEncoder.EncodeHeaders(headers, false)
-    streamEncoder.EncodeData(buffer.NewIoBufferBytes(body), true)
+    headers := BuildBoltSubscribeRequestCommand(len(body), reqId)
+    err := streamEncoder.EncodeHeaders(headers, false)
+    if err != nil {
+        return err
+    }
+    return streamEncoder.EncodeData(buffer.NewIoBufferBytes(body), true)
 }
 
 func (s *Subscriber) handleResponse(taskId string, request *model.SubscriberRegisterPb) error {
@@ -107,6 +114,10 @@ func (s *Subscriber) OnDecodeData(data types.IoBuffer, endStream bool) {
         data.Reset()
     }()
 
+    if s.streamContext.err != nil {
+        return
+    }
+
     responseStream := data.Bytes()
     response := &model.RegisterResponsePb{}
 
@@ -124,7 +135,16 @@ func (s *Subscriber) OnDecodeTrailers(trailers map[string]string) {
 }
 
 func (s *Subscriber) OnDecodeHeaders(headers map[string]string, endStream bool) {
-
+    if !endStream {
+        return 
+    }
+    boltReqId := headers["x-mosn-sofarpc-headers-property-requestid"]
+    if boltReqId != s.streamContext.streamId {
+        errMsg := fmt.Sprintf("Received mismatch subscribe response. received reqId = %s, context reqId = %s",
+            boltReqId, s.streamContext.streamId)
+        s.streamContext.err = errors.New(errMsg)
+        log.DefaultLogger.Errorf(errMsg)
+    }
 }
 
 func (s *Subscriber) assembleSubscriberRegisterPb(eventType string) *model.SubscriberRegisterPb {

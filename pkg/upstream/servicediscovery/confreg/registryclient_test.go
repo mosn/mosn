@@ -4,127 +4,50 @@ import (
     "testing"
     _ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
     _ "gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
-    "time"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "fmt"
 )
 
+
 func Test_Publish(t *testing.T) {
-    log.InitDefaultLogger("stdout", log.INFO)
+    beforeTest()
 
-    var sysConfig = &config.SystemConfig{
-        Zone:             "GZ00b",
-        RegistryEndpoint: "confreg.sit.alipay.net",
-        //RegistryEndpoint: "11.239.90.33",
-        InstanceId: "000001",
-        AppName:    "someApp",
-    }
-
-    var registryConfig = &config.RegistryConfig{
-        ScheduleRegisterTaskDuration: 60 * 1000 * 1000 * 1000,
-    }
     csm := servermanager.NewRegistryServerManager(sysConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     rc.PublishAsync(someDataId, "dfsfds")
+
+    blockThread()
 }
 
 func Test_Register(t *testing.T) {
-    log.InitDefaultLogger("", log.INFO)
+    beforeTest()
 
-    MockRpcServer()
-
-    var sysConfig = &config.SystemConfig{
-        Zone:             "GZ00b",
-        RegistryEndpoint: "confreg.sit.alipay.net",
-        //RegistryEndpoint: "11.239.90.33",
-        InstanceId: "000001",
-        AppName:    "someApp",
-    }
-
-    var registryConfig = &config.RegistryConfig{
-        ScheduleRegisterTaskDuration: time.Duration(5 * time.Second),
-        RegisterTimeout:              time.Duration(3 * time.Second),
-    }
     csm := servermanager.NewRegistryServerManager(sysConfig)
 
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     anotherDataId := "anotherDataId"
-    rc.UnPublishAsync(someDataId, "dfsfds")
-    //rc.Publish("anotherDataId", "dfsfds")
-
     rc.SubscribeAsync(someDataId)
     rc.SubscribeAsync(anotherDataId)
-    //
-    //rc.GetRPCServerManager().RegisterRPCServerChangeListener(&MockRPCServerChangeListener{})
-    for ; ; {
-        time.Sleep(5 * time.Second)
-        rc.PublishAsync(someDataId, "dfsfds")
-    }
+
+    blockThread()
 }
 
 func Test_Received(t *testing.T) {
-    log.InitDefaultLogger("", log.INFO)
+    beforeTest()
 
-    MockRpcServer()
-
-    var sysConfig = &config.SystemConfig{
-        Zone:             "GZ00b",
-        RegistryEndpoint: "confreg.sit.alipay.net",
-        //RegistryEndpoint: "11.239.90.33",
-        InstanceId: "000001",
-        AppName:    "someApp",
-    }
-
-    var registryConfig = &config.RegistryConfig{
-        ScheduleRegisterTaskDuration: time.Duration(5 * time.Second),
-        RegisterTimeout:              time.Duration(3 * time.Second),
-    }
     csm := servermanager.NewRegistryServerManager(sysConfig)
 
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
-    //anotherDataId := "anotherDataId"
-
     rc.SubscribeAsync(someDataId)
-    //rc.Subscribe(anotherDataId)
-    //
     rc.GetRPCServerManager().RegisterRPCServerChangeListener(&MockRPCServerChangeListener{})
-    for ; ; {
-        time.Sleep(5 * time.Second)
-    }
-}
 
-func TestNewRegistryClient(t *testing.T) {
-    c := make(chan bool)
-    go func() {
-        for ; ; {
-            t := time.NewTimer(5 * time.Second)
-            <-t.C
-            c <- true
-            fmt.Println("yyyy")
-        }
-    }()
-    go func() {
-        for ; ; {
-            select {
-            case <-c:
-                fmt.Println("xx")
-            }
-
-        }
-    }()
-
-    for ; ; {
-        time.Sleep(10 * time.Minute)
-    }
-
+    blockThread()
 }
 
 type MockRPCServerChangeListener struct {

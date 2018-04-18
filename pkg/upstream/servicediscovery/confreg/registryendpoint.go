@@ -11,7 +11,7 @@ import (
     "time"
 )
 
-type MsgChannel struct {
+type RegistryEndpoint struct {
     ServiceInfo
     MsgChannelCB   MsgChanCallback
     registryClient RegistryClient
@@ -35,17 +35,17 @@ func (l *StartupRPCServerChangeListener) OnRPCServerChanged(dataId string, zoneS
     }
 }
 
-func NewMsgChannel(services []string, msgChannelCB MsgChanCallback, registryClient RegistryClient) *MsgChannel {
+func NewRegistryEndpoint(services []string, msgChannelCB MsgChanCallback, registryClient RegistryClient) *RegistryEndpoint {
     rpcServerChangeListener = &StartupRPCServerChangeListener{}
     registryClient.GetRPCServerManager().RegisterRPCServerChangeListener(rpcServerChangeListener)
-    return &MsgChannel{
+    return &RegistryEndpoint{
         ServiceInfo:    ServiceInfo{ServiceSet: services},
         MsgChannelCB:   msgChannelCB,
         registryClient: registryClient,
     }
 }
 
-func (m *MsgChannel) PublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (m *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     raw, _ := ioutil.ReadAll(r.Body)
 
     var request PublishServiceRequest
@@ -63,7 +63,7 @@ func (m *MsgChannel) PublishService(w http.ResponseWriter, r *http.Request, ps h
     }
 }
 
-func (m *MsgChannel) UnPublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (m *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     body, _ := ioutil.ReadAll(r.Body)
 
     var request UnPublishServiceRequest
@@ -79,9 +79,7 @@ func (m *MsgChannel) UnPublishService(w http.ResponseWriter, r *http.Request, ps
     }
 }
 
-// 订阅服务
-
-func (m *MsgChannel) SubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (m *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     body, _ := ioutil.ReadAll(r.Body)
 
     var request SubscribeServiceRequest
@@ -132,9 +130,7 @@ func (m *MsgChannel) SubscribeService(w http.ResponseWriter, r *http.Request, ps
     }
 }
 
-// 取消订阅服务
-
-func (m *MsgChannel) UnSubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (m *RegistryEndpoint) UnSubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     body, _ := ioutil.ReadAll(r.Body)
 
     var request UnSubscribeServiceRequest
@@ -151,14 +147,6 @@ func (m *MsgChannel) UnSubscribeService(w http.ResponseWriter, r *http.Request, 
 
 }
 
-func checkMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
-    if r.Method != expectedMethod {
-        doResponse(false, "Unsupported method. The supported method is "+expectedMethod, w)
-        return false
-    }
-    return true
-}
-
 func doResponse(success bool, errMsg interface{}, w http.ResponseWriter) {
     if !success {
         log.DefaultLogger.Errorf("Handle http request failed. error message = %v", errMsg)
@@ -172,12 +160,12 @@ func doResponse(success bool, errMsg interface{}, w http.ResponseWriter) {
     w.Write(bytes)
 }
 
-func (m *MsgChannel) StartChannel() {
+func (m *RegistryEndpoint) StartChannel() {
     router := httprouter.New()
     router.POST("/services/publish", m.PublishService)
-    router.DELETE("/services/unpublish", m.UnPublishService)
+    router.POST("/services/unpublish", m.UnPublishService)
     router.POST("/services/subscribe", m.SubscribeService)
-    router.DELETE("/services/unsubscribe", m.UnSubscribeService)
+    router.POST("/services/unsubscribe", m.UnSubscribeService)
 
     port := "8888"
     httpServerEndpoint := "localhost:" + port

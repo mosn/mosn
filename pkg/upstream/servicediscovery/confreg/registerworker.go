@@ -40,11 +40,12 @@ type registryTask struct {
 }
 
 type registerWorker struct {
-    systemConfig         *config.SystemConfig
-    registryConfig       *config.RegistryConfig
-    confregServerManager *servermanager.RegistryServerManager
-    rpcServerManager     servermanager.RPCServerManager
-    codecClient          *stream.CodecClient
+    systemConfig           *config.SystemConfig
+    registryConfig         *config.RegistryConfig
+    confregServerManager   *servermanager.RegistryServerManager
+    rpcServerManager       servermanager.RPCServerManager
+    codecClient            *stream.CodecClient
+    connectedConfregServer string
 
     publisherHolder         sync.Map
     subscriberHolder        sync.Map
@@ -86,18 +87,22 @@ func (rw *registerWorker) init() {
     }
     rw.initialized = true
 
-    rw.newCodecClient()
+    confregServer, ok := rw.confregServerManager.GetRegistryServerByRandom()
+    if !ok {
+        panic("Can not connect to confreg server. Because confreg server list is empty.")
+    }
+    rw.connectedConfregServer = confregServer
+    rw.newCodecClient(confregServer)
 }
 
-func (rw *registerWorker) newCodecClient() {
-    rs, _ := rw.confregServerManager.GetRegistryServerByRandom()
-    remoteAddr, _ := net.ResolveTCPAddr("tcp", rs)
+func (rw *registerWorker) newCodecClient(confregServer string) {
+    remoteAddr, _ := net.ResolveTCPAddr("tcp", confregServer)
     conn := network.NewClientConnection(nil, remoteAddr, rw.stopChan)
     receiveDataListener := NewReceiveDataListener(rw.rpcServerManager)
     codecClient := stream.NewBiDirectCodeClient(protocol.SofaRpc, conn, nil, receiveDataListener)
     conn.Connect(true)
     rw.codecClient = &codecClient
-    log.DefaultLogger.Infof("Connect to confreg server. server = %v", rs)
+    log.DefaultLogger.Infof("Connect to confreg server. server = %v", confregServer)
 }
 
 func (rw *registerWorker) SubmitPublishTask(dataId string, data []string, eventType string) {
@@ -178,11 +183,10 @@ func (rw *registerWorker) doRegister(ele *list.Element) error {
             return nil
         } else {
             registryTask.sendCounter.Inc(1)
+            log.DefaultLogger.Errorf("Register failed at %d times. Task = %v, error = %v", registryTask.sendCounter.Count(),
+                registryTask, err)
         }
     }
-
-    log.DefaultLogger.Errorf("Register failed for two times. Task = %v", registryTask)
-
     return errors.New("register failed")
 
 }
@@ -232,7 +236,19 @@ func (rw *registerWorker) scheduleWorkAtFixTime() {
 }
 
 func (rw *registerWorker) OnRegistryServerChangeEvent(registryServers []string) {
-    rw.newCodecClient()
+    var isConnectedServerStillAlive = false
+    for _, s := range registryServers {
+        if s == rw.connectedConfregServer {
+            isConnectedServerStillAlive = true
+            break
+        }
+    }
+    if isConnectedServerStillAlive {
+        return
+    }
+    confregServer, _ := rw.confregServerManager.GetRegistryServerByRandom()
+    rw.newCodecClient(confregServer)
+    rw.connectedConfregServer = confregServer
     rw.publisherHolder.Range(rw.refreshPublisherCodecClient)
     rw.subscriberHolder.Range(rw.refreshSubscriberCodecClient)
 }

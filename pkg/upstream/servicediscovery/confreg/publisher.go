@@ -11,6 +11,7 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
     "fmt"
     "errors"
+    "math/rand"
 )
 
 type Publisher struct {
@@ -53,10 +54,14 @@ func (p *Publisher) doWork(taskId string, svrHost []string, eventType string) er
     request := p.assemblePublisherRegisterPb(svrHost, eventType)
     body, _ := proto.Marshal(request)
     //2. Send request
-    p.sendRequest(taskId, body)
+    streamId := fmt.Sprintf("%d", rand.Uint32())
+    err := p.sendRequest(taskId, streamId, body)
+    if err != nil {
+        return err
+    }
     //3. Handle response
     p.streamContext = &registryStreamContext{
-        streamId:        taskId,
+        streamId:        streamId,
         registryRequest: request,
         finished:        make(chan bool),
     }
@@ -64,11 +69,14 @@ func (p *Publisher) doWork(taskId string, svrHost []string, eventType string) er
     return p.handleResponse(taskId, request)
 }
 
-func (p *Publisher) sendRequest(taskId string, body []byte) {
+func (p *Publisher) sendRequest(taskId string, streamId string, body []byte) error {
     streamEncoder := (*p.codecClient).NewStream(taskId, p)
-    headers := BuildBoltPublishRequestCommand(len(body))
-    streamEncoder.EncodeHeaders(headers, false)
-    streamEncoder.EncodeData(buffer.NewIoBufferBytes(body), true)
+    headers := BuildBoltPublishRequestCommand(len(body), streamId)
+    err := streamEncoder.EncodeHeaders(headers, false)
+    if err != nil {
+        return err
+    }
+    return streamEncoder.EncodeData(buffer.NewIoBufferBytes(body), true)
 }
 
 func (p *Publisher) handleResponse(taskId string, request *model.PublisherRegisterPb) error {
@@ -107,6 +115,10 @@ func (p *Publisher) OnDecodeData(data types.IoBuffer, endStream bool) {
         data.Reset()
     }()
 
+    if p.streamContext.err != nil {
+        return
+    }
+
     responseStream := data.Bytes()
     response := &model.RegisterResponsePb{}
 
@@ -126,8 +138,13 @@ func (p *Publisher) OnDecodeHeaders(headers map[string]string, endStream bool) {
     if !endStream {
         return
     }
-    //检查taskId是否是当前，如果不是就抛弃
-    fmt.Println(headers)
+    boltReqId := headers["x-mosn-sofarpc-headers-property-requestid"]
+    if boltReqId != p.streamContext.streamId {
+        errMsg := fmt.Sprintf("Received mismatch subscribe response. received reqId = %s, context reqId = %s",
+            boltReqId, p.streamContext.streamId)
+        p.streamContext.err = errors.New(errMsg)
+        log.DefaultLogger.Errorf(errMsg)
+    }
 }
 
 func (p *Publisher) assemblePublisherRegisterPb(svrHost []string, eventType string) *model.PublisherRegisterPb {

@@ -2,32 +2,41 @@ package servermanager
 
 import (
     "testing"
-    "time"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "fmt"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
 )
 
-func TestConfregServerManager_GetConfregServerByRandom(t *testing.T) {
-    log.InitDefaultLogger("", log.INFO)
+func TestConfregServerManager_WrongEndpoint(t *testing.T) {
+    beforeTest()
+
     sysConfig := &config.SystemConfig{
-        Zone: "GZ00b",
-        //RegistryEndpoint: "confreg.sit.alipay.net",
+        Zone:             "GZ00b",
+        RegistryEndpoint: "11.239.90.330",
+    }
+
+    NewRegistryServerManager(sysConfig)
+
+}
+func TestConfregServerManager_GetConfregServerByRandom(t *testing.T) {
+    beforeTest()
+
+    sysConfig := &config.SystemConfig{
+        Zone:             "GZ00b",
         RegistryEndpoint: "11.239.90.33",
     }
     csm := NewRegistryServerManager(sysConfig)
 
-    server, err := csm.GetRegistryServerByRandom()
-    if err != nil {
-        fmt.Print(err)
-    } else {
-        fmt.Print(server)
+    server, ok := csm.GetRegistryServerByRandom()
+    if ok {
+        fmt.Println(server)
     }
 
-    for ; ; {
-        fmt.Println(csm.GetRegistryServerByRandom())
-        time.Sleep(2 * time.Second)
+    servers, ok := csm.GetRegistryServerList()
+    if ok {
+        fmt.Println(servers)
     }
+
+    blockThread()
 }
 
 func TestRegistryServerManager_IsChanged(t *testing.T) {
@@ -36,7 +45,7 @@ func TestRegistryServerManager_IsChanged(t *testing.T) {
     new2 := []string{"a", "b", "c", "d"}
     new3 := []string{"a", "b", "c"}
 
-    fmt.Println(isChanged(old, new))
+    fmt.Println(isChanged(nil, new))
     fmt.Println(isChanged(old, new2))
     fmt.Println(isChanged(old, new3))
 }

@@ -17,10 +17,10 @@ func Test(t *testing.T) {
     rpcSvrManager.RegisterRPCServer(assembleReceivedData3())
 
     dataId := "someDataId1"
-    srvs := rpcSvrManager.GetRPCServerList(dataId)
+    srvs, _ := rpcSvrManager.GetRPCServerList(dataId)
     fmt.Println(srvs)
-    zone2Srvs := rpcSvrManager.GetRPCServerListByZone(dataId, "zone2")
-    zone3Srvs := rpcSvrManager.GetRPCServerListByZone(dataId, "zone3")
+    zone2Srvs, _ := rpcSvrManager.GetRPCServerListByZone(dataId, "zone2")
+    zone3Srvs, _ := rpcSvrManager.GetRPCServerListByZone(dataId, "zone3")
     fmt.Println(zone2Srvs)
     fmt.Println(zone3Srvs)
 
