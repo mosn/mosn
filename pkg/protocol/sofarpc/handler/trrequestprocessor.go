@@ -9,8 +9,6 @@ import (
 	"sync/atomic"
 )
 
-var trStreamIdCounter uint32
-
 type TrRequestProcessor struct{}
 
 // ctx = type.serverStreamConnection
@@ -18,7 +16,7 @@ type TrRequestProcessor struct{}
 func (b *TrRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.TrRequestCommand); ok {
 		deserializeRequestAllFieldsTR(cmd)
-		streamId := atomic.AddUint32(&trStreamIdCounter, 1)
+		streamId := atomic.AddUint32(&streamIdCsounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//for demo, invoke ctx as callback

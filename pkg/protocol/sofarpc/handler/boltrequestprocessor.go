@@ -10,8 +10,7 @@ import (
 	"sync/atomic"
 )
 
-var boltStreamIdCounter uint32
-var boltv2StreamIdCounter uint32
+var streamIdCsounter uint32
 
 type BoltRequestProcessor struct{}
 
@@ -22,7 +21,7 @@ type BoltRequestProcessorV2 struct{}
 func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(cmd)
-		streamId := atomic.AddUint32(&boltStreamIdCounter, 1)
+		streamId := atomic.AddUint32(&streamIdCsounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//for demo, invoke ctx as callback
@@ -51,7 +50,7 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 func (b *BoltRequestProcessorV2) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
 		deserializeRequestAllFieldsV2(cmd)
-		streamId := atomic.AddUint32(&boltv2StreamIdCounter, 1)
+		streamId := atomic.AddUint32(&streamIdCsounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//for demo, invoke ctx as callback
