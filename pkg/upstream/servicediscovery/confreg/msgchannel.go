@@ -19,6 +19,8 @@ type ServiceInfo struct {
 	ServiceSet []string `json:"service_set"`
 }
 
+var MsgChan = MsgChannel{}
+
 //发布服务
 func (m *MsgChannel) PublishService(w http.ResponseWriter, r *http.Request) {
 
@@ -153,7 +155,7 @@ func (m *MsgChannel) UnSubscribeService(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (m *MsgChannel) StartChannel() {
+func (m *MsgChannel) StartChannel(address string) {
 
 	fmt.Println("[MESH HTTP LISTEN]")
 	http.HandleFunc("/publishService", m.PublishService)
@@ -161,7 +163,7 @@ func (m *MsgChannel) StartChannel() {
 	http.HandleFunc("/subscribeService", m.SubscribeService)
 	http.HandleFunc("/unSubscribeService", m.UnSubscribeService)
 
-	if err := http.ListenAndServe("localhost:8888", nil); err != nil {
+	if err := http.ListenAndServe(address, nil); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }

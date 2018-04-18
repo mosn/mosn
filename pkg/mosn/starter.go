@@ -19,8 +19,9 @@ import (
 	"os"
 	"net"
 	"log"
-	"time"
 	"runtime"
+	"sync"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
 )
 
 func Start(c *config.MOSNConfig) {
@@ -39,9 +40,20 @@ func Start(c *config.MOSNConfig) {
 
 	stopChans := make([]chan bool, srvNum)
 
+	var wg sync.WaitGroup
+	wg.Add(2 + srvNum)
+
 	go func() {
 		// pprof server
-		http.ListenAndServe("0.0.0.0:9090", nil)
+		http.ListenAndServe("10.210.168.5:9090", nil)
+		wg.Done()
+	}()
+
+	//MsgChannel Server
+	msgChanAddr := config.ParseHostMsgChan(&c.MsgChannelSrv)
+	go func(){
+		confreg.MsgChan.StartChannel(msgChanAddr)
+		wg.Done()
 	}()
 
 	getInheritListeners()
@@ -95,16 +107,10 @@ func Start(c *config.MOSNConfig) {
 			case <-stopChan:
 				srv.Close()
 			}
+			wg.Done()
 		}()
 	}
-
-	select {
-	case <-time.After(time.Second * 3600):
-		//wait for server start
-		//todo: daemon running
-	}
-
-
+	wg.Wait()
 }
 
 func getNetworkFilter(configs []config.FilterConfig) server.NetworkFilterChainFactory {

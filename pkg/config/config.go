@@ -57,9 +57,14 @@ type ClusterManagerConfig struct {
 	Clusters []ClusterConfig `json:"clusters"`
 }
 
+type MsgChanConfig struct {
+	Host HostConfig   `json:"host"`
+}
+
 type MOSNConfig struct {
 	Servers        []ServerConfig       `json:"servers"`
 	ClusterManager ClusterManagerConfig `json:"cluster_manager"`
+	MsgChannelSrv  MsgChanConfig        `json:"MsgChannel"`
 	//tracing config
 }
 
