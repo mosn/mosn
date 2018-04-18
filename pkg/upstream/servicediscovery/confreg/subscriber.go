@@ -38,7 +38,7 @@ func NewSubscriber(dataId string, client *stream.CodecClient,
         registerId:     RandomUuid(),
         dataId:         dataId,
         scope:          "global",
-        version:        0,
+        version:        1,
     }
 
     return sub
@@ -83,7 +83,7 @@ func (s *Subscriber) handleResponse(request *model.SubscriberRegisterPb) error {
         select {
         case <-time.After(s.registryConfig.RegisterTimeout):
             {
-                errMsg := fmt.Sprintf("Subscribe data from confreg timeout. register id = %v", s.registerId)
+                errMsg := fmt.Sprintf("Subscribe data from confreg timeout.  data id = %s, register id = %v", s.dataId, s.registerId)
                 log.DefaultLogger.Errorf(errMsg)
                 return errors.New(errMsg)
             }

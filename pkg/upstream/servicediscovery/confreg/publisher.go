@@ -31,7 +31,7 @@ type Publisher struct {
 func NewPublisher(dataId string, codecClient *stream.CodecClient, registryConfig *config.RegistryConfig,
     systemConfig *config.SystemConfig) *Publisher {
     p := &Publisher{
-        version:        0,
+        version:        1,
         dataId:         dataId,
         registryConfig: registryConfig,
         sysConfig:      systemConfig,
@@ -83,7 +83,7 @@ func (p *Publisher) handleResponse(request *model.PublisherRegisterPb) error {
         select {
         case <-time.After(p.registryConfig.RegisterTimeout):
             {
-                errMsg := fmt.Sprintf("Publish data to confreg timeout. register id = %v", p.registerId)
+                errMsg := fmt.Sprintf("Publish data to confreg timeout. data id = %s, register id = %v", p.dataId, p.registerId)
                 log.DefaultLogger.Errorf(errMsg)
                 return errors.New(errMsg)
             }

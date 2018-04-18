@@ -8,6 +8,7 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
     "github.com/golang/protobuf/proto"
     "encoding/binary"
+    "math/rand"
 )
 
 func MockRpcServer() {
@@ -78,14 +79,19 @@ func run() {
                             fmt.Println("Version = ", subscriberRequestPb.BaseRegister.Version)
                             fmt.Println("Timestamp = ", subscriberRequestPb.BaseRegister.Timestamp)
                             //do response
-                            fmt.Println()
-                            conn.Write(assembleRegisterResponse(regId, request.ReqId))
+                            go func() {
+                                if "someDataId" ==  subscriberRequestPb.BaseRegister.DataId {
+                                    time.Sleep(4 * time.Second)
+                                }
+                                fmt.Println()
+                                conn.Write(assembleRegisterResponse(regId, request.ReqId))
+                            }()
 
                             //write data
-                            time.Sleep(1 * time.Second)
-                            fmt.Println("Write data...")
-                            receivedDataCmd := assembleReceivedDataRequest(subscriberRequestPb.BaseRegister.DataId)
-                            conn.Write(doEncodeRequestCommand(receivedDataCmd))
+                            //time.Sleep(1 * time.Second)
+                            //fmt.Println("Write data...")
+                            //receivedDataCmd := assembleReceivedDataRequest(subscriberRequestPb.BaseRegister.DataId)
+                            //conn.Write(doEncodeRequestCommand(receivedDataCmd))
                         }
                     }
 
@@ -211,7 +217,7 @@ func assembleReceivedDataRequest(dataId string) *sofarpc.BoltRequestCommand {
         CmdType:    1,
         CmdCode:    1,
         Version:    1,
-        ReqId:      114,
+        ReqId:      rand.Uint32(),
         CodecPro:   11,
         Timeout:    int(3000),
         ClassLen:   int16(len(class)),
