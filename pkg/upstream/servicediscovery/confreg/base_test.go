@@ -20,7 +20,7 @@ func beforeTest() {
         AppName:          "someApp",
     }
     registryConfig = &config.RegistryConfig{
-        ScheduleRegisterTaskDuration: 60 * time.Second,
+        ScheduleRegisterTaskDuration: 5 * time.Second,
         RegisterTimeout:              3 * time.Second,
     }
 }

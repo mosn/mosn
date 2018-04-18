@@ -9,18 +9,6 @@ import (
 )
 
 
-func Test_Publish(t *testing.T) {
-    beforeTest()
-
-    csm := servermanager.NewRegistryServerManager(sysConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
-
-    someDataId := "someDataId"
-    rc.PublishAsync(someDataId, "dfsfds")
-
-    blockThread()
-}
-
 func Test_Register(t *testing.T) {
     beforeTest()
 

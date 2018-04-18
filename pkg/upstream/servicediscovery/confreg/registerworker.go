@@ -27,10 +27,11 @@ type registryStreamContext struct {
     registryResponse *model.RegisterResponsePb
     finished         chan bool
     err              error
+    mismatch         bool
 }
 
 type registryTask struct {
-    taskId      string
+    dataId      string
     taskType    int
     eventType   string
     subscriber  *Subscriber
@@ -47,10 +48,11 @@ type registerWorker struct {
     codecClient            *stream.CodecClient
     connectedConfregServer string
 
-    publisherHolder         sync.Map
-    subscriberHolder        sync.Map
-    registryTaskQueue       *list.List
-    registryFailedTaskQueue *list.List
+    publisherHolder   sync.Map
+    subscriberHolder  sync.Map
+    registryTaskQueue *list.List
+    pubMutex          *sync.Mutex
+    subMutex          *sync.Mutex
 
     initialized      bool
     stopChan         chan bool
@@ -60,15 +62,16 @@ type registerWorker struct {
 func NewRegisterWorker(sysConfig *config.SystemConfig, registryConfig *config.RegistryConfig,
     confregServerManager *servermanager.RegistryServerManager, rpcServerManager servermanager.RPCServerManager) *registerWorker {
     rw := &registerWorker{
-        systemConfig:            sysConfig,
-        registryConfig:          registryConfig,
-        confregServerManager:    confregServerManager,
-        rpcServerManager:        rpcServerManager,
-        registryTaskQueue:       list.New(),
-        registryFailedTaskQueue: list.New(),
-        initialized:             false,
-        stopChan:                make(chan bool, 1),
-        registryWorkChan:        make(chan bool),
+        systemConfig:         sysConfig,
+        registryConfig:       registryConfig,
+        confregServerManager: confregServerManager,
+        rpcServerManager:     rpcServerManager,
+        registryTaskQueue:    list.New(),
+        pubMutex:             new(sync.Mutex),
+        subMutex:             new(sync.Mutex),
+        initialized:          false,
+        stopChan:             make(chan bool, 1),
+        registryWorkChan:     make(chan bool),
     }
 
     rw.init()
@@ -109,6 +112,7 @@ func (rw *registerWorker) SubmitPublishTask(dataId string, data []string, eventT
     publisher := rw.getPublisher(dataId)
 
     registryTask := registryTask{
+        dataId:      dataId,
         taskType:    TASK_TYPE_PUBLISH,
         eventType:   eventType,
         publisher:   publisher,
@@ -124,6 +128,7 @@ func (rw *registerWorker) SubmitSubscribeTask(dataId string, eventType string) {
     subscriber := rw.getSubscriber(dataId)
 
     registryTask := registryTask{
+        dataId:      dataId,
         taskType:    TASK_TYPE_SUBSCRIBE,
         eventType:   eventType,
         subscriber:  subscriber,
@@ -133,6 +138,22 @@ func (rw *registerWorker) SubmitSubscribeTask(dataId string, eventType string) {
     rw.registryTaskQueue.PushBack(registryTask)
 
     rw.registryWorkChan <- true
+}
+
+func (rw *registerWorker) PublishSync(dataId string, data []string) error {
+    return rw.getPublisher(dataId).doWork(data, model.EventTypePb_REGISTER.String())
+}
+
+func (rw *registerWorker) UnPublishSync(dataId string, data []string) error {
+    return rw.getPublisher(dataId).doWork(data, model.EventTypePb_UNREGISTER.String())
+}
+
+func (rw *registerWorker) SubscribeSync(dataId string) error {
+    return rw.getSubscriber(dataId).doWork(model.EventTypePb_REGISTER.String())
+}
+
+func (rw *registerWorker) UnSubscribeSync(dataId string) error {
+    return rw.getSubscriber(dataId).doWork(model.EventTypePb_UNREGISTER.String())
 }
 
 func (rw *registerWorker) work() {
@@ -149,7 +170,6 @@ func (rw *registerWorker) work() {
                     }
                     ele = next
                 }
-
             }
         case <-rw.stopChan:
             {
@@ -160,9 +180,14 @@ func (rw *registerWorker) work() {
 }
 
 func (rw *registerWorker) doRegister(ele *list.Element) error {
-    registryTask := ele.Value.(registryTask)
-    registryTask.taskId = RandomUuid()
+    defer func() {
+        //Keeping register work thread alive
+        if err := recover(); err != nil {
+            log.DefaultLogger.Fatal("Some unexpected exception occurred. err = ", err)
+        }
+    }()
 
+    registryTask := ele.Value.(registryTask)
     var err error
     //Retry 2 times
     for i := 0; i < 2; i++ {
@@ -170,12 +195,10 @@ func (rw *registerWorker) doRegister(ele *list.Element) error {
 
         if registryTask.taskType == TASK_TYPE_PUBLISH {
             publisher := registryTask.publisher
-            err = publisher.doWork(registryTask.taskId, registryTask.data, registryTask.eventType)
-            publisher.version++
+            err = publisher.doWork(registryTask.data, registryTask.eventType)
         } else {
             sub := registryTask.subscriber
-            err = sub.doWork(registryTask.taskId, registryTask.eventType)
-            sub.version++
+            err = sub.doWork(registryTask.eventType)
         }
 
         if err == nil {
@@ -183,31 +206,19 @@ func (rw *registerWorker) doRegister(ele *list.Element) error {
             return nil
         } else {
             registryTask.sendCounter.Inc(1)
-            log.DefaultLogger.Errorf("Register failed at %d times. Task = %v, error = %v", registryTask.sendCounter.Count(),
-                registryTask, err)
+            log.DefaultLogger.Errorf("Register failed at %d times. data id = %v, error = %v", registryTask.sendCounter.Count(),
+                registryTask.dataId, err)
         }
     }
     return errors.New("register failed")
 
 }
 
-func (rw *registerWorker) PublishSync(dataId string, data []string) error {
-    return rw.getPublisher(dataId).doWork(RandomUuid(), data, model.EventTypePb_REGISTER.String())
-}
-
-func (rw *registerWorker) UnPublishSync(dataId string, data []string) error {
-    return rw.getPublisher(dataId).doWork(RandomUuid(), data, model.EventTypePb_UNREGISTER.String())
-}
-
-func (rw *registerWorker) SubscribeSync(dataId string) error {
-    return rw.getSubscriber(dataId).doWork(RandomUuid(), model.EventTypePb_REGISTER.String())
-}
-
-func (rw *registerWorker) UnSubscribeSync(dataId string) error {
-    return rw.getSubscriber(dataId).doWork(RandomUuid(), model.EventTypePb_UNREGISTER.String())
-}
-
 func (rw *registerWorker) getPublisher(dataId string) *Publisher {
+    rw.pubMutex.Lock()
+    defer func() {
+        rw.pubMutex.Unlock()
+    }()
     storedPublisher, ok := rw.publisherHolder.Load(dataId)
     if ok {
         return storedPublisher.(*Publisher)
@@ -218,6 +229,10 @@ func (rw *registerWorker) getPublisher(dataId string) *Publisher {
 }
 
 func (rw *registerWorker) getSubscriber(dataId string) *Subscriber {
+    rw.subMutex.Lock()
+    defer func() {
+        rw.subMutex.Unlock()
+    }()
     storedSubscriber, ok := rw.subscriberHolder.Load(dataId)
     if ok {
         return storedSubscriber.(*Subscriber)
@@ -229,8 +244,7 @@ func (rw *registerWorker) getSubscriber(dataId string) *Subscriber {
 
 func (rw *registerWorker) scheduleWorkAtFixTime() {
     for ; ; {
-        t := time.NewTimer(rw.registryConfig.ScheduleRegisterTaskDuration)
-        <-t.C
+        <-time.After(rw.registryConfig.ScheduleRegisterTaskDuration)
         rw.registryWorkChan <- true
     }
 }

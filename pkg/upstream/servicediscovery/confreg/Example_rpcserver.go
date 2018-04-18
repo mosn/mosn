@@ -43,7 +43,7 @@ func run() {
                     return
                 } else {
                     request := decodeBoltRequest(buf[:bytesRead])
-                    fmt.Println("------------Received Data---------- ")
+                    fmt.Println("------------Confreg Server Received Data---------- ")
                     fmt.Printf("BoltReqId = %d", request.ReqId)
                     fmt.Println()
                     publishRequestPb := &model.PublisherRegisterPb{}
@@ -51,13 +51,21 @@ func run() {
                     var regId string
                     if err == nil {
                         fmt.Println("Recievied publish request.")
-                        fmt.Println("DataId: " + publishRequestPb.BaseRegister.DataId)
+                        fmt.Println("DataId = " + publishRequestPb.BaseRegister.DataId)
+                        fmt.Println("RegistId = " + publishRequestPb.BaseRegister.RegistId)
+                        fmt.Println("Version = ", publishRequestPb.BaseRegister.Version)
+                        fmt.Println("Timestamp = ", publishRequestPb.BaseRegister.Timestamp)
+
                         fmt.Printf("Data: %v", publishRequestPb.DataList)
                         regId = publishRequestPb.BaseRegister.RegistId
 
                         fmt.Println()
-                        conn.Write(assembleRegisterResponse(regId, request.ReqId))
-
+                        go func() {
+                            if "someDataId" ==  publishRequestPb.BaseRegister.DataId {
+                                time.Sleep(4 * time.Second)
+                            }
+                            conn.Write(assembleRegisterResponse(regId, request.ReqId))
+                        }()
                     } else {
                         subscriberRequestPb := &model.SubscriberRegisterPb{}
                         err := proto.Unmarshal(request.Content, subscriberRequestPb)
@@ -66,7 +74,9 @@ func run() {
                             fmt.Println("Scope = " + subscriberRequestPb.Scope)
                             fmt.Println("DataId = " + subscriberRequestPb.BaseRegister.DataId)
                             regId = subscriberRequestPb.BaseRegister.RegistId
-                            fmt.Println("RegId = " + regId)
+                            fmt.Println("RegistId = " + regId)
+                            fmt.Println("Version = ", subscriberRequestPb.BaseRegister.Version)
+                            fmt.Println("Timestamp = ", subscriberRequestPb.BaseRegister.Timestamp)
                             //do response
                             fmt.Println()
                             conn.Write(assembleRegisterResponse(regId, request.ReqId))
@@ -121,6 +131,12 @@ func assembleRegisterResponse(registId string, boltReqId uint32) []byte {
 
 func decodeBoltRequest(bytes []byte) *sofarpc.BoltRequestCommand {
 
+    //defer func() {
+    //    if err := recover(); err != nil {
+    //        fmt.Println(bytes)
+    //        fmt.Println("ERROR : ", err)
+    //    }
+    //}()
     read := 0
     dataType := bytes[1]
 

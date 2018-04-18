@@ -12,7 +12,10 @@ import (
     "fmt"
     "errors"
     "math/rand"
+    "sync"
 )
+
+var subLock = new(sync.Mutex)
 
 type Subscriber struct {
     systemConfig   *config.SystemConfig
@@ -41,20 +44,17 @@ func NewSubscriber(dataId string, client *stream.CodecClient,
     return sub
 }
 
-func (s *Subscriber) doWork(taskId string, eventType string) error {
+func (s *Subscriber) doWork(eventType string) error {
+    subLock.Lock()
     defer func() {
-        if err := recover(); err != nil {
-            log.DefaultLogger.Errorf("Registry to confreg failed. eventType = %s, dataId = %s, registerId = %s error = %v.",
-                eventType, s.dataId, s.registerId, err)
-        }
+        subLock.Unlock()
     }()
     //1. Assemble request
-    s.registerId = taskId
     request := s.assembleSubscriberRegisterPb(eventType)
     body, _ := proto.Marshal(request)
     //2. Send request
     reqId := fmt.Sprintf("%d", rand.Uint32())
-    err := s.sendRequest(taskId, reqId, body)
+    err := s.sendRequest(reqId, body)
     if err != nil {
         return err
     }
@@ -62,13 +62,14 @@ func (s *Subscriber) doWork(taskId string, eventType string) error {
         streamId:        reqId,
         registryRequest: request,
         finished:        make(chan bool),
+        mismatch:        false,
     }
     //3. Handle response
-    return s.handleResponse(taskId, request)
+    return s.handleResponse(request)
 }
 
-func (s *Subscriber) sendRequest(taskId string, reqId string, body []byte) error {
-    streamEncoder := (*s.codecClient).NewStream(taskId, s)
+func (s *Subscriber) sendRequest(reqId string, body []byte) error {
+    streamEncoder := (*s.codecClient).NewStream(reqId, s)
     headers := BuildBoltSubscribeRequestCommand(len(body), reqId)
     err := streamEncoder.EncodeHeaders(headers, false)
     if err != nil {
@@ -77,13 +78,12 @@ func (s *Subscriber) sendRequest(taskId string, reqId string, body []byte) error
     return streamEncoder.EncodeData(buffer.NewIoBufferBytes(body), true)
 }
 
-func (s *Subscriber) handleResponse(taskId string, request *model.SubscriberRegisterPb) error {
-    t := time.NewTimer(s.registryConfig.RegisterTimeout)
+func (s *Subscriber) handleResponse(request *model.SubscriberRegisterPb) error {
     for ; ; {
         select {
-        case <-t.C:
+        case <-time.After(s.registryConfig.RegisterTimeout):
             {
-                errMsg := fmt.Sprintf("Subscribe data from confreg timeout. register id = %v", taskId)
+                errMsg := fmt.Sprintf("Subscribe data from confreg timeout. register id = %v", s.registerId)
                 log.DefaultLogger.Errorf(errMsg)
                 return errors.New(errMsg)
             }
@@ -92,11 +92,12 @@ func (s *Subscriber) handleResponse(taskId string, request *model.SubscriberRegi
                 subResponse := s.streamContext.registryResponse
 
                 if s.streamContext.err == nil && subResponse.Success && !subResponse.Refused {
-                    log.DefaultLogger.Infof("Subscribe data from confreg success. register id = %v", subResponse.RegistId)
+                    log.DefaultLogger.Infof("Subscribe data from confreg success. data id = %s, register id = %v",
+                        s.dataId, subResponse.RegistId)
                     return nil
                 }
-                errMsg := fmt.Sprintf("Subscribe data from confreg failed. register id = %v, message = %v",
-                    subResponse.RegistId, subResponse.Message)
+                errMsg := fmt.Sprintf("Subscribe data from confreg failed.  data id = %s, register id = %v, message = %v",
+                    s.dataId, subResponse.RegistId, subResponse.Message)
                 log.DefaultLogger.Errorf(errMsg)
                 return errors.New(errMsg)
             }
@@ -104,8 +105,22 @@ func (s *Subscriber) handleResponse(taskId string, request *model.SubscriberRegi
     }
 }
 
+func (s *Subscriber) OnDecodeHeaders(headers map[string]string, endStream bool) {
+    boltReqId := headers["x-mosn-sofarpc-headers-property-requestid"]
+    if boltReqId != s.streamContext.streamId {
+        errMsg := fmt.Sprintf("Received mismatch subscribe response. data id = %s, received reqId = %s, context reqId = %s",
+            s.dataId, boltReqId, s.streamContext.streamId)
+        s.streamContext.mismatch = true
+        log.DefaultLogger.Errorf(errMsg)
+    }
+}
+
 func (s *Subscriber) OnDecodeData(data types.IoBuffer, endStream bool) {
     if !endStream {
+        return
+    }
+    if s.streamContext.mismatch {
+        s.streamContext.mismatch = false
         return
     }
 
@@ -123,7 +138,7 @@ func (s *Subscriber) OnDecodeData(data types.IoBuffer, endStream bool) {
 
     if err := proto.Unmarshal(responseStream, response); err != nil {
         s.streamContext.err = err
-        log.DefaultLogger.Errorf("Unmarshal registry result failed. error = %v", err)
+        log.DefaultLogger.Errorf("Unmarshal registry result failed. data id = %s, error = %v", s.dataId, err)
         return
     }
 
@@ -132,19 +147,6 @@ func (s *Subscriber) OnDecodeData(data types.IoBuffer, endStream bool) {
 
 func (s *Subscriber) OnDecodeTrailers(trailers map[string]string) {
 
-}
-
-func (s *Subscriber) OnDecodeHeaders(headers map[string]string, endStream bool) {
-    if !endStream {
-        return 
-    }
-    boltReqId := headers["x-mosn-sofarpc-headers-property-requestid"]
-    if boltReqId != s.streamContext.streamId {
-        errMsg := fmt.Sprintf("Received mismatch subscribe response. received reqId = %s, context reqId = %s",
-            boltReqId, s.streamContext.streamId)
-        s.streamContext.err = errors.New(errMsg)
-        log.DefaultLogger.Errorf(errMsg)
-    }
 }
 
 func (s *Subscriber) assembleSubscriberRegisterPb(eventType string) *model.SubscriberRegisterPb {
@@ -167,5 +169,6 @@ func (s *Subscriber) assembleSubscriberRegisterPb(eventType string) *model.Subsc
         BaseRegister: br,
     }
 
+    s.version = s.version + 1
     return sr
 }

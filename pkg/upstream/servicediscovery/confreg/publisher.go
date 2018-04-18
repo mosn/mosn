@@ -12,50 +12,48 @@ import (
     "fmt"
     "errors"
     "math/rand"
+    "sync"
 )
+
+var pubLock = new(sync.Mutex)
 
 type Publisher struct {
     registryConfig *config.RegistryConfig
     sysConfig      *config.SystemConfig
     codecClient    *stream.CodecClient
-
-    registerId string
-    dataId     string
-
-    version       int64
-    startTime     int32
-    streamContext *registryStreamContext
+    registerId     string
+    dataId         string
+    version        int64
+    startTime      int32
+    streamContext  *registryStreamContext
 }
 
 func NewPublisher(dataId string, codecClient *stream.CodecClient, registryConfig *config.RegistryConfig,
     systemConfig *config.SystemConfig) *Publisher {
     p := &Publisher{
-        dataId:         dataId,
         version:        0,
+        dataId:         dataId,
         registryConfig: registryConfig,
         sysConfig:      systemConfig,
         codecClient:    codecClient,
+        registerId:     RandomUuid(),
     }
 
     return p
 }
 
 //sync call. not thread safe
-func (p *Publisher) doWork(taskId string, svrHost []string, eventType string) error {
+func (p *Publisher) doWork(svrHost []string, eventType string) error {
+    pubLock.Lock()
     defer func() {
-        if err := recover(); err != nil {
-            log.DefaultLogger.Errorf("Publish data to confreg failed. eventType = %s, "+
-                "dataId = %s, registerId = %s, server = %v. error = %v",
-                eventType, p.dataId, p.registerId, svrHost, err)
-        }
+        pubLock.Unlock()
     }()
     //1. Assemble request
-    p.registerId = taskId
     request := p.assemblePublisherRegisterPb(svrHost, eventType)
     body, _ := proto.Marshal(request)
     //2. Send request
     streamId := fmt.Sprintf("%d", rand.Uint32())
-    err := p.sendRequest(taskId, streamId, body)
+    err := p.sendRequest(streamId, body)
     if err != nil {
         return err
     }
@@ -64,13 +62,14 @@ func (p *Publisher) doWork(taskId string, svrHost []string, eventType string) er
         streamId:        streamId,
         registryRequest: request,
         finished:        make(chan bool),
+        mismatch:        false,
     }
 
-    return p.handleResponse(taskId, request)
+    return p.handleResponse(request)
 }
 
-func (p *Publisher) sendRequest(taskId string, streamId string, body []byte) error {
-    streamEncoder := (*p.codecClient).NewStream(taskId, p)
+func (p *Publisher) sendRequest(streamId string, body []byte) error {
+    streamEncoder := (*p.codecClient).NewStream(streamId, p)
     headers := BuildBoltPublishRequestCommand(len(body), streamId)
     err := streamEncoder.EncodeHeaders(headers, false)
     if err != nil {
@@ -79,13 +78,12 @@ func (p *Publisher) sendRequest(taskId string, streamId string, body []byte) err
     return streamEncoder.EncodeData(buffer.NewIoBufferBytes(body), true)
 }
 
-func (p *Publisher) handleResponse(taskId string, request *model.PublisherRegisterPb) error {
-    t := time.NewTimer(p.registryConfig.RegisterTimeout)
+func (p *Publisher) handleResponse(request *model.PublisherRegisterPb) error {
     for ; ; {
         select {
-        case <-t.C:
+        case <-time.After(p.registryConfig.RegisterTimeout):
             {
-                errMsg := fmt.Sprintf("Publish data to confreg timeout. register id = %v", taskId)
+                errMsg := fmt.Sprintf("Publish data to confreg timeout. register id = %v", p.registerId)
                 log.DefaultLogger.Errorf(errMsg)
                 return errors.New(errMsg)
             }
@@ -94,11 +92,13 @@ func (p *Publisher) handleResponse(taskId string, request *model.PublisherRegist
                 pubResponse := p.streamContext.registryResponse
 
                 if p.streamContext.err == nil && pubResponse.Success && !pubResponse.Refused {
-                    log.DefaultLogger.Infof("Publish data to confreg success. register id = %v", pubResponse.RegistId)
+                    log.DefaultLogger.Infof("Publish data to confreg success. data id = %v, register id = %v",
+                        p.dataId, pubResponse.RegistId)
                     return nil
                 }
-                errMsg := fmt.Sprintf("Publish data to confreg failed. register id = %v, message = %v",
-                    pubResponse.RegistId, pubResponse.Message)
+
+                errMsg := fmt.Sprintf("Publish data to confreg failed.  data id = %s, register id = %v, message = %v",
+                    p.dataId, pubResponse.RegistId, pubResponse.Message)
                 log.DefaultLogger.Errorf(errMsg)
                 return errors.New(errMsg)
             }
@@ -106,10 +106,26 @@ func (p *Publisher) handleResponse(taskId string, request *model.PublisherRegist
     }
 }
 
+func (p *Publisher) OnDecodeHeaders(headers map[string]string, endStream bool) {
+    boltReqId := headers["x-mosn-sofarpc-headers-property-requestid"]
+    if boltReqId != p.streamContext.streamId {
+        errMsg := fmt.Sprintf("Received mismatch subscribe response. data id = %s, received reqId = %s, context reqId = %s",
+            p.dataId, boltReqId, p.streamContext.streamId)
+        p.streamContext.mismatch = true
+        log.DefaultLogger.Errorf(errMsg)
+    }
+}
+
 func (p *Publisher) OnDecodeData(data types.IoBuffer, endStream bool) {
     if !endStream {
         return
     }
+    //Ignore mismatch response.
+    if p.streamContext.mismatch {
+        p.streamContext.mismatch = false
+        return
+    }
+
     defer func() {
         p.streamContext.finished <- true
         data.Reset()
@@ -124,7 +140,7 @@ func (p *Publisher) OnDecodeData(data types.IoBuffer, endStream bool) {
 
     if err := proto.Unmarshal(responseStream, response); err != nil {
         p.streamContext.err = err
-        log.DefaultLogger.Errorf("Unmarshal registry result failed. error = %v", err)
+        log.DefaultLogger.Errorf("Unmarshal registry result failed. data id = %s, error = %v", p.dataId, err)
         return
     }
 
@@ -132,19 +148,6 @@ func (p *Publisher) OnDecodeData(data types.IoBuffer, endStream bool) {
 }
 
 func (p *Publisher) OnDecodeTrailers(trailers map[string]string) {
-}
-
-func (p *Publisher) OnDecodeHeaders(headers map[string]string, endStream bool) {
-    if !endStream {
-        return
-    }
-    boltReqId := headers["x-mosn-sofarpc-headers-property-requestid"]
-    if boltReqId != p.streamContext.streamId {
-        errMsg := fmt.Sprintf("Received mismatch subscribe response. received reqId = %s, context reqId = %s",
-            boltReqId, p.streamContext.streamId)
-        p.streamContext.err = errors.New(errMsg)
-        log.DefaultLogger.Errorf(errMsg)
-    }
 }
 
 func (p *Publisher) assemblePublisherRegisterPb(svrHost []string, eventType string) *model.PublisherRegisterPb {
