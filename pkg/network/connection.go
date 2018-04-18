@@ -45,7 +45,7 @@ type connection struct {
 	filterManager        types.FilterManager
 
 	stopChan           chan bool
-	curWriteBufferData *[]byte
+	curWriteBufferData []types.IoBuffer
 	readBuffer         *buffer.IoBufferPoolEntry
 	writeBuffer        types.IoBuffer
 	writeBufferMux     sync.RWMutex
@@ -250,9 +250,8 @@ func (c *connection) onRead(bytesRead int64) {
 	c.filterManager.OnRead()
 }
 
-func (c *connection) Write(buf types.IoBuffer) error {
-	bufBytes := buf.Bytes()
-	c.curWriteBufferData = &bufBytes
+func (c *connection) Write(buffers ...types.IoBuffer) error {
+	c.curWriteBufferData = buffers
 	fs := c.filterManager.OnWrite()
 	c.curWriteBufferData = nil
 
@@ -261,7 +260,11 @@ func (c *connection) Write(buf types.IoBuffer) error {
 	}
 
 	c.writeBufferMux.Lock()
-	buf.WriteTo(c.writeBuffer)
+
+	for _, buf := range buffers {
+		buf.WriteTo(c.writeBuffer)
+	}
+
 	c.writeBufferMux.Unlock()
 
 	c.writeBufferChan <- true
@@ -520,7 +523,7 @@ func (c *connection) LocalAddressRestored() bool {
 }
 
 // BufferSource
-func (c *connection) GetWriteBuffer() *[]byte {
+func (c *connection) GetWriteBuffer() []types.IoBuffer {
 	return c.curWriteBufferData
 }
 

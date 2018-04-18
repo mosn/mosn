@@ -2,6 +2,7 @@ package sofarpc
 
 import (
 	"errors"
+
 	"github.com/orcaman/concurrent-map"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
@@ -236,13 +237,7 @@ func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
 		if v, ok := s.connection.activeStream.Get(s.streamId); ok {
 			stream := v.(*stream)
-			stream.connection.connection.Write(s.encodedHeaders)
-
-			if s.encodedData != nil {
-				stream.connection.connection.Write(s.encodedData)
-			} else {
-				log.DefaultLogger.Debugf("Response Body is void...")
-			}
+			stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 		} else {
 			log.DefaultLogger.Errorf("No stream %s to end", s.streamId)
 		}

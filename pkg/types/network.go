@@ -128,7 +128,7 @@ type Connection interface {
 	Start(lctx context.Context)
 
 	// only called by other-stream connection's read loop notifying data buf
-	Write(buf IoBuffer) error
+	Write(buf ...IoBuffer) error
 
 	Close(ccType ConnectionCloseType, eventType ConnectionEvent) error
 
@@ -162,7 +162,7 @@ type Connection interface {
 
 	LocalAddressRestored() bool
 
-	GetWriteBuffer() *[]byte
+	GetWriteBuffer() []IoBuffer
 
 	GetReadBuffer() IoBuffer
 
@@ -244,7 +244,7 @@ type ReadFilter interface {
 
 // only called by conn accept loop
 type WriteFilter interface {
-	OnWrite(buffer *[]byte) FilterStatus
+	OnWrite(buffer []IoBuffer) FilterStatus
 }
 
 // called by read filter to talk to connection
