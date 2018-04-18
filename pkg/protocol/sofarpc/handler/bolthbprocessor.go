@@ -1,11 +1,10 @@
 package handler
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type BoltHbProcessor struct {
@@ -16,7 +15,7 @@ type BoltHbProcessor struct {
 func (b *BoltHbProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(cmd)
-		reqID := utility.StreamIDConvert(cmd.ReqId)
+		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
@@ -24,6 +23,7 @@ func (b *BoltHbProcessor) Process(ctx interface{}, msg interface{}, executor int
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
 				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
 				log.DefaultLogger.Debugf("Process Heartbeat Msg")
+
 				if status == types.StopIteration {
 					return
 				}
@@ -39,4 +39,3 @@ func (b *BoltHbProcessor) Process(ctx interface{}, msg interface{}, executor int
 		}
 	}
 }
-

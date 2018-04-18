@@ -8,7 +8,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"golang.org/x/net/http2"
 	"io"
 	"net"
@@ -18,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 func init() {
@@ -158,7 +158,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(utility.GenerateDefaultStreamID(), stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream("streamID-"+time.Now().String(), stream)
 	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
 	ssc.asMutex.Unlock()

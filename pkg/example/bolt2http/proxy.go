@@ -236,7 +236,7 @@ func (ccc *rpclientConnCallbacks) OnEvent(event types.ConnectionEvent) {
 
 		fmt.Println("[CLIENT]write 'bolt test msg' to remote server")
 
-		boltV1PostData := buffer.NewIoBufferBytes(boltV1HBBytes)
+		boltV1PostData := buffer.NewIoBufferBytes(boltV1ReqBytes)
 
 		ccc.cc.Write(boltV1PostData)
 	}

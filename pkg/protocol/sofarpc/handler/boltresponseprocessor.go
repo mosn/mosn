@@ -6,7 +6,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"strconv"
 )
 
@@ -16,7 +15,7 @@ type BoltResponseProcessorV2 struct{}
 func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
 		deserializeResponseAllFields(cmd)
-		reqID := utility.StreamIDConvert(cmd.ReqId)
+		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
@@ -43,7 +42,7 @@ func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, execut
 func (b *BoltResponseProcessorV2) Process(ctx interface{}, msg interface{}, executor interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2ResponseCommand); ok {
 		deserializeResponseAllFieldsV2(cmd)
-		reqID := utility.StreamIDConvert(cmd.ReqId)
+		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {
@@ -93,7 +92,7 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand) 
 	//serialize header
 	var headerMap map[string]string
 	serializeIns.DeSerialize(responseCommand.HeaderMap, &headerMap)
-	log.DefaultLogger.Println("deSerialize  headerMap:", headerMap)
+	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
 
 	for k, v := range headerMap {
 		allField[k] = v

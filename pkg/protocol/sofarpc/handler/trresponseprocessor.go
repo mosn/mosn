@@ -6,7 +6,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"strconv"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 )
 
 type TrResponseProcessor struct{}
@@ -15,7 +14,7 @@ func (b *TrResponseProcessor) Process(ctx interface{}, msg interface{}, executor
 
 	if cmd, ok := msg.(*sofarpc.TrResponseCommand); ok {
 		deserializeResponseAllFieldsTR(cmd)
-		reqID := utility.StreamIDConvert(uint32(cmd.RequestID))
+		reqID := sofarpc.StreamIDConvert(uint32(cmd.RequestID))
 
 		//for demo, invoke ctx as callback
 		if filter, ok := ctx.(types.DecodeFilter); ok {

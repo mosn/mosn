@@ -2,6 +2,7 @@ package sofarpc
 
 import (
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"reflect"
 	"strconv"
 	"strings"
@@ -60,21 +61,30 @@ func ConvertPropertyValue(strValue string, kind reflect.Kind) interface{} {
 	}
 }
 
-func IsSofaRequest(headers map[string]string)bool{
+func IsSofaRequest(headers map[string]string) bool {
+	procode := ConvertPropertyValue(headers[SofaPropertyHeader("protocol")], reflect.Uint8)
 
-	procode:= ConvertPropertyValue(headers[SofaPropertyHeader("protocol")],reflect.Uint8)
-	if procode== PROTOCOL_CODE_V1 || procode == PROTOCOL_CODE_V2 {
+	if procode == PROTOCOL_CODE_V1 || procode == PROTOCOL_CODE_V2 {
+		cmdtype := ConvertPropertyValue(headers[SofaPropertyHeader("cmdtype")], reflect.Uint8)
 
-		cmdtype := ConvertPropertyValue(headers[SofaPropertyHeader("cmdtype")],reflect.Uint8)
-		if cmdtype == REQUEST{
+		if cmdtype == REQUEST {
 			return true
 		}
 	} else if procode == TR_PROTOCOL_CODE {
+		requestFlage := ConvertPropertyValue(headers[SofaPropertyHeader("requestflag")], reflect.Uint8)
 
-		requestFlage :=  ConvertPropertyValue(headers[SofaPropertyHeader("requestflag")],reflect.Uint8)
-		if requestFlage == HEADER_REQUEST{
+		if requestFlage == HEADER_REQUEST {
 			return true
 		}
 	}
+
+	return false
+}
+
+func HasCodecException(headers map[string]string) bool {
+	if v, ok := headers[types.HeaderException]; ok && v == types.MosnExceptionCodeC {
+		return true
+	}
+
 	return false
 }

@@ -68,8 +68,8 @@ func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream boo
 
 	if streamid, ok := headers[types.HeaderStreamID]; ok {
 		streamID = streamid
-
 	}
+
 	r.connPool.NewStream(streamID, r, r)
 }
 

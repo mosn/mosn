@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
@@ -36,17 +35,17 @@ func (h *BoltCommandHandler) HandleCommand(ctx interface{}, msg interface{}) {
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
 		if processor, ok := h.processors[cmdCode]; ok {
-			log.DefaultLogger.Println("handle command")
+			log.DefaultLogger.Debugf("handle command")
 			processor.Process(ctx, cmd, nil)
 		} else {
-			log.DefaultLogger.Println("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")
+			log.DefaultLogger.Debugf("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")
 		}
 	}
 }
 
 func (h *BoltCommandHandler) RegisterProcessor(cmdCode int16, processor *sofarpc.RemotingProcessor) {
 	if _, exists := h.processors[cmdCode]; exists {
-		fmt.Println("handler alreay exist:", cmdCode)
+		log.DefaultLogger.Debugf("handler alreay exist:", cmdCode)
 	} else {
 		h.processors[cmdCode] = *processor
 	}

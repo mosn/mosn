@@ -7,7 +7,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"reflect"
 	"time"
 )
@@ -60,9 +59,9 @@ func (c *boltV2Codec) encodeHeaders(headers interface{}) (string, types.IoBuffer
 		return c.encodeResponseCommand(headers.(*sofarpc.BoltV2ResponseCommand))
 	default:
 		err := "[BoltV2 Encode] Invalid Input Type"
-		streamID := utility.GenerateExceptionStreamID(err)
-		log.DefaultLogger.Println(err)
-		return streamID, nil
+		log.DefaultLogger.Errorf(err)
+
+		return "", nil
 	}
 }
 
@@ -82,20 +81,18 @@ func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltV2RequestCommand) (s
 
 	log.DefaultLogger.Println("[BOLTV2]rpc headers encode finished,bytes=%d", result)
 
-	return utility.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
+	return sofarpc.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
 }
 
 func (c *boltV2Codec) encodeResponseCommand(cmd *sofarpc.BoltV2ResponseCommand) (string, types.IoBuffer) {
-
 	result := boltV1.doEncodeResponseCommand(&cmd.BoltResponseCommand)
 
 	c.insertToBytes(result, 1, cmd.Version1)
 	c.insertToBytes(result, 11, cmd.SwitchCode)
 
-	log.DefaultLogger.Println("rpc headers encode finished,bytes=%d", result)
+	log.DefaultLogger.Debugf("rpc headers encode finished,bytes=%d", result)
 
-	return utility.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
-
+	return sofarpc.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
 }
 
 func (c *boltV2Codec) mapToCmd(headers map[string]string) interface{} {
@@ -178,7 +175,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					}
 					data.Drain(read)
 				} else { // not enough data
-					log.DefaultLogger.Println("[BOLTV2 Decoder]no enough data for fully decode")
+					log.DefaultLogger.Debugf("[BOLTV2 Decoder]no enough data for fully decode")
 					return 0, nil
 				}
 
@@ -204,7 +201,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					switchCode,
 				}
 
-				log.DefaultLogger.Printf("[Decoder]bolt v2 decode request:%+v\n", request)
+				log.DefaultLogger.Debugf("[Decoder]bolt v2 decode request:%+v\n", request)
 
 				cmd = request
 			}
@@ -240,7 +237,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 						read += int(contentLen)
 					}
 				} else { // not enough data
-					log.DefaultLogger.Println("[BOLTBV2 Decoder]no enough data for fully decode")
+					log.DefaultLogger.Debugf("[BOLTBV2 Decoder]no enough data for fully decode")
 					return 0, nil
 				}
 
@@ -268,7 +265,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					switchCode,
 				}
 
-				log.DefaultLogger.Printf("[Decoder]bolt v2 decode response:%+v\n", response)
+				log.DefaultLogger.Debugf("[Decoder]bolt v2 decode response:%+v\n", response)
 				cmd = response
 			}
 		}

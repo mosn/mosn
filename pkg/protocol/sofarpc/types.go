@@ -35,7 +35,7 @@ const (
 	RPC_RESPONSE int16 = 2
 
 	TR_PROTOCOL_CODE byte = 13
-	
+
 	//response status
 	RESPONSE_STATUS_SUCCESS                   int16 = 0  // 0x00
 	RESPONSE_STATUS_ERROR                     int16 = 1  // 0x01
@@ -297,7 +297,6 @@ func (b *TrResponseCommand) GetCmdCode() int16 {
 }
 
 func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{}, error) {
-
 	var pro byte = 1
 	var reqId uint32 = 1
 	var version byte = 1
@@ -334,7 +333,6 @@ func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{},
 			CodecPro:       codec,
 			ResponseStatus: respStatus,
 		}, nil
-
 	} else if pro == PROTOCOL_CODE_V2 {
 		var ver1 byte
 		var switchcode byte
@@ -377,8 +375,8 @@ func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{},
 			ResponseStatus: respStatus,
 		}, nil
 	} else {
-		log.DefaultLogger.Println("[BuildSofaRespMsg Error]Unknown Protocol Code")
+		log.DefaultLogger.Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
+
 		return headers, errors.New("[BuildSofaRespMsg Error]Unknown Protocol Code")
 	}
 }
-

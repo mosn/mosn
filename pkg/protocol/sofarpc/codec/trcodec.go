@@ -6,7 +6,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	sf "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"reflect"
 )
 
@@ -49,17 +48,16 @@ func init() {
 */
 
 func (c *trCodec) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
-
 	if headerMap, ok := headers.(map[string]string); ok {
-
 		cmd := c.mapToCmd(headerMap)
+
 		return c.encodeHeaders(cmd)
 	}
+
 	return c.encodeHeaders(headers)
 }
 
 func (c *trCodec) encodeHeaders(headers interface{}) (string, types.IoBuffer) {
-
 	switch headers.(type) {
 	case *sf.TrRequestCommand:
 		return c.encodeRequestCommand(headers.(*sf.TrRequestCommand))
@@ -67,15 +65,14 @@ func (c *trCodec) encodeHeaders(headers interface{}) (string, types.IoBuffer) {
 		return c.encodeResponseCommand(headers.(*sf.TrResponseCommand))
 	default:
 		err := "[TR Encode] Invalid Input Type"
-		streamID := utility.GenerateExceptionStreamID(err)
-		log.DefaultLogger.Println(err)
-		return streamID, nil
+		log.DefaultLogger.Errorf(err)
+
+		return "", nil
 	}
 }
 
 func (c *trCodec) encodeRequestCommand(rpcCmd *sf.TrRequestCommand) (string, types.IoBuffer) {
-
-	log.DefaultLogger.Println("[TR]start to encode rpc headers,protocol code=%+v", rpcCmd.Protocol)
+	log.DefaultLogger.Debugf("[TR]start to encode rpc headers,protocol code=%+v", rpcCmd.Protocol)
 
 	var result []byte
 	result = append(result, rpcCmd.Protocol, rpcCmd.RequestFlag)
@@ -91,12 +88,11 @@ func (c *trCodec) encodeRequestCommand(rpcCmd *sf.TrRequestCommand) (string, typ
 	binary.BigEndian.PutUint32(appContentLen, rpcCmd.AppClassContentLen)
 	result = append(result, appContentLen...)
 
-	//todo AS TR's req id is 64bit long, need adjust
-	return utility.StreamIDConvert(uint32(rpcCmd.RequestID)), buffer.NewIoBufferBytes(result)
+	return "", buffer.NewIoBufferBytes(result)
 }
 
 func (c *trCodec) encodeResponseCommand(rpcCmd *sf.TrResponseCommand) (string, types.IoBuffer) {
-	log.DefaultLogger.Println("[TR]start to encode rpc headers,=%+v", rpcCmd.Protocol)
+	log.DefaultLogger.Debugf("[TR]start to encode rpc headers,=%+v", rpcCmd.Protocol)
 
 	var result []byte
 	result = append(result, rpcCmd.Protocol, rpcCmd.RequestFlag)
@@ -112,8 +108,7 @@ func (c *trCodec) encodeResponseCommand(rpcCmd *sf.TrResponseCommand) (string, t
 	binary.BigEndian.PutUint32(appContentLen, rpcCmd.AppClassContentLen)
 	result = append(result, appContentLen...)
 
-	//todo AS TR's req id is 64bit long, need adjust
-	return utility.StreamIDConvert(uint32(rpcCmd.RequestID)), buffer.NewIoBufferBytes(result)
+	return "", buffer.NewIoBufferBytes(result)
 }
 
 func (c *trCodec) EncodeData(data types.IoBuffer) types.IoBuffer {
@@ -211,7 +206,7 @@ func (decoder *trCodec) Decode(data types.IoBuffer) (int, interface{}) {
 		if uint32(readableBytes) < sf.PROTOCOL_HEADER_LENGTH+connRequestLen+
 			uint32(appClassNameLen)+appClassContentLen {
 			//not enough data
-			log.DefaultLogger.Println("[Decoder]no enough data for fully decode")
+			log.DefaultLogger.Debugf("[Decoder]no enough data for fully decode")
 			return 0, nil
 		}
 
@@ -248,7 +243,7 @@ func (decoder *trCodec) Decode(data types.IoBuffer) (int, interface{}) {
 				CmdCode:        cmdCode,
 				RequestContent: bytes[14 : 14+connRequestLen+uint32(appClassNameLen)+appClassContentLen],
 			}
-			log.DefaultLogger.Printf("[Decoder]TR decode request:%+v\n", request)
+			log.DefaultLogger.Debugf("[Decoder]TR decode request:%+v\n", request)
 			cmd = request
 			read = int(totalLength)
 
