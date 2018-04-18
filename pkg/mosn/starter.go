@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
+	"sync"
 )
 
 func Start(c *config.MOSNConfig) {
@@ -29,6 +29,9 @@ func Start(c *config.MOSNConfig) {
 	}
 
 	stopChans := make([]chan bool, srvNum)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 
 	go func() {
 		// pprof server
@@ -97,12 +100,8 @@ func Start(c *config.MOSNConfig) {
 		}
 	}
 
-	select {
-	case <-time.After(time.Second * 50):
-		//wait for server start
-		//todo: daemon running
-	}
-
+	//todo: daemon running
+	wg.Wait()
 }
 
 func getNetworkFilter(configs []config.FilterConfig) server.NetworkFilterChainFactory {
