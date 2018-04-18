@@ -61,6 +61,7 @@ func main() {
 
 func tcpListener() *v2.ListenerConfig {
 	addr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
+
 	return &v2.ListenerConfig{
 		Name:                    TestListener,
 		Addr:                    addr,

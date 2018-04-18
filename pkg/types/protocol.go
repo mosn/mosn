@@ -12,19 +12,17 @@ const (
 type ConnectionPool interface {
 	Protocol() Protocol
 
-	AddDrainedCallback(cb func())
-
 	DrainConnections()
 
-	NewStream(streamId uint32, responseDecoder StreamDecoder, cb PoolCallbacks) Cancellable
+	NewStream(streamId string, responseDecoder StreamDecoder, cb PoolEventListener) Cancellable
 
 	Close()
 }
 
-type PoolCallbacks interface {
-	OnPoolFailure(streamId uint32, reason PoolFailureReason, host Host)
+type PoolEventListener interface {
+	OnPoolFailure(streamId string, reason PoolFailureReason, host Host)
 
-	OnPoolReady(streamId uint32, requestEncoder StreamEncoder, host Host)
+	OnPoolReady(streamId string, requestEncoder StreamEncoder, host Host)
 }
 
 type Cancellable interface {

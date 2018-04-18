@@ -1,24 +1,24 @@
 package proxy
 
 import (
-	"strconv"
-	"fmt"
-	"time"
-	"errors"
-	"reflect"
 	"container/list"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"errors"
+	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"reflect"
+	"strconv"
+	"time"
 )
 
-// types.StreamCallbacks
+// types.StreamEventListener
 // types.StreamDecoder
 // types.FilterChainFactoryCallbacks
 type activeStream struct {
-	streamId uint32
+	streamId string
 	proxy    *proxy
 	route    types.Route
 	cluster  types.ClusterInfo
@@ -64,14 +64,14 @@ type activeStream struct {
 
 	filterStage int
 
-	watermarkCallbacks types.DownstreamWatermarkCallbacks
+	watermarkCallbacks types.DownstreamWatermarkEventListener
 
 	// ~~~ filters
 	encoderFilters []*activeStreamEncoderFilter
 	decoderFilters []*activeStreamDecoderFilter
 }
 
-func newActiveStream(streamId uint32, proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
+func newActiveStream(streamId string, proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
 	stream := &activeStream{
 		streamId:        streamId,
 		proxy:           proxy,
@@ -79,7 +79,7 @@ func newActiveStream(streamId uint32, proxy *proxy, responseEncoder types.Stream
 		responseEncoder: responseEncoder,
 	}
 
-	stream.responseEncoder.GetStream().AddCallbacks(stream)
+	stream.responseEncoder.GetStream().AddEventListener(stream)
 
 	proxy.stats.DownstreamRequestTotal().Inc(1)
 	proxy.stats.DownstreamRequestActive().Inc(1)
@@ -89,7 +89,7 @@ func newActiveStream(streamId uint32, proxy *proxy, responseEncoder types.Stream
 	return stream
 }
 
-// types.StreamCallbacks
+// types.StreamEventListener
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
 	s.proxy.stats.DownstreamRequestReset().Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
@@ -160,13 +160,24 @@ func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
 
-	// todo: validate headers
-
 	s.doDecodeHeaders(nil, headers, endStream)
 }
 
 func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, headers map[string]string, endStream bool) {
 	if s.decodeHeaderFilters(filter, headers, endStream) {
+		return
+	}
+
+	// todo: validate headers
+	if v, ok := headers[types.HeaderException]; ok {
+		switch v {
+		case types.MosnExceptionCodeC:
+			s.sendHijackReply(types.CodecExceptionCode, headers)
+		case types.MosnExceptionDeserial:
+			s.sendHijackReply(types.DeserialExceptionCode, headers)
+		default:
+			s.sendHijackReply(types.UnknownCode, headers)
+		}
 		return
 	}
 
@@ -176,7 +187,8 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	if route == nil || route.RouteRule() == nil {
 		// no route
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(404, nil)
+
+		s.sendHijackReply(types.RouterUnavailableCode, headers)
 
 		return
 	}
@@ -204,7 +216,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		requestInfo:  network.NewRequestInfo(),
 	}
 
-	s.upstreamRequest.encodeHeaders(headers, endStream) //调用ENCODER封装
+	s.upstreamRequest.encodeHeaders(headers, endStream)
 
 	if endStream {
 		s.onUpstreamRequestSent()
@@ -215,15 +227,15 @@ func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
 
+	s.doDecodeData(nil, data, endStream)
+}
+
+func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data types.IoBuffer, endStream bool) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
 		return
 	}
 
-	s.doDecodeData(nil, data, endStream)
-}
-
-func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data types.IoBuffer, endStream bool) {
 	if s.decodeDataFilters(filter, data, endStream) {
 		return
 	}
@@ -261,15 +273,15 @@ func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data type
 func (s *activeStream) OnDecodeTrailers(trailers map[string]string) {
 	s.downstreamRecvDone = true
 
+	s.doDecodeTrailers(nil, trailers)
+}
+
+func (s *activeStream) doDecodeTrailers(filter *activeStreamDecoderFilter, trailers map[string]string) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
 		return
 	}
 
-	s.doDecodeTrailers(nil, trailers)
-}
-
-func (s *activeStream) doDecodeTrailers(filter *activeStreamDecoderFilter, trailers map[string]string) {
 	if s.decodeTrailersFilters(filter, trailers) {
 		return
 	}
@@ -336,7 +348,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(404, nil)
+		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 
 		return errors.New(fmt.Sprintf("unkown cluster %s", clusterName)), nil
 	}
@@ -347,7 +359,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 	if !clusterConnectionResource.CanCreate() {
 		s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
-		s.sendHijackReply(503, nil)
+		s.sendHijackReply(types.UpstreamOverFlowCode, s.downstreamReqHeaders)
 
 		return errors.New(fmt.Sprintf("upstream overflow in cluster %s", clusterName)), nil
 	}
@@ -366,7 +378,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 	if connPool == nil {
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		s.sendHijackReply(500, nil)
+		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 
 		return errors.New(fmt.Sprintf("no healthy upstream in cluster %s", clusterName)), nil
 	}
@@ -380,7 +392,6 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 func (s *activeStream) encodeHeaders(headers map[string]string, endStream bool) {
 	s.localProcessDone = endStream
-
 	s.doEncodeHeaders(nil, headers, endStream)
 }
 
@@ -389,7 +400,10 @@ func (s *activeStream) doEncodeHeaders(filter *activeStreamEncoderFilter, header
 		return
 	}
 
-	s.responseEncoder.EncodeHeaders(headers, endStream)
+	//Currently, just log the error
+	if err := s.responseEncoder.EncodeHeaders(headers, endStream); err != nil {
+		log.DefaultLogger.Println(err.Error())
+	}
 
 	if endStream {
 		s.endStream()
@@ -457,9 +471,20 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 		s.onUpstreamResponseRecvDone()
 	}
 
-	// todo: insert proxy headers
+	if v, ok := headers[types.HeaderException]; ok {
+		switch v {
+		case types.MosnExceptionCodeC:
+			s.sendHijackReply(types.CodecExceptionCode, headers)
+		case types.MosnExceptionDeserial:
+			s.sendHijackReply(types.DeserialExceptionCode, headers)
+		default:
+			s.sendHijackReply(types.UnknownCode, headers)
+		}
+		return
+	}
 
-	s.encodeHeaders(headers, endStream) //OK HERE
+	// todo: insert proxy headers
+	s.encodeHeaders(headers, endStream)
 }
 
 func (s *activeStream) onUpstreamData(data types.IoBuffer, endStream bool) {
@@ -514,14 +539,14 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 		var code int
 		if urtype == UpstreamGlobalTimeout || urtype == UpstreamPerTryTimeout {
 			s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
-			code = 504
+			code = types.TimeoutExceptionCode
 		} else {
 			reasonFlag := s.proxy.streamResetReasonToResponseFlag(reason)
 			s.requestInfo.SetResponseFlag(reasonFlag)
-			code = 500
+			code = types.NoHealthUpstreamCode
 		}
 
-		s.sendHijackReply(code, nil)
+		s.sendHijackReply(code, s.downstreamReqHeaders)
 	}
 }
 

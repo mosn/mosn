@@ -1,23 +1,23 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
-	"time"
-	"net"
-	"net/http"
-	_ "net/http/pprof"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
-	"golang.org/x/net/http2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
-	"encoding/binary"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"golang.org/x/net/http2"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"time"
 )
 
 const (
@@ -74,8 +74,7 @@ func main() {
 		cmf := &clusterManagerFilterRPC{}
 
 		//RPC
-		srv := server.NewServer(&server.Config{
-		}, &proxy.GenericProxyFilterConfigFactory{
+		srv := server.NewServer(&server.Config{}, &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
 		}, nil, cmf)
 
@@ -108,7 +107,7 @@ func main() {
 						// client
 						remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
 						cc := network.NewClientConnection(nil, remoteAddr, stopChan)
-						cc.AddConnectionCallbacks(&rpclientConnCallbacks{//ADD  connection callback
+						cc.AddConnectionEventListener(&rpclientConnCallbacks{ //ADD  connection callback
 							cc: cc,
 						})
 						cc.Connect(true)

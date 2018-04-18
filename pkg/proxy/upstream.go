@@ -5,9 +5,9 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-// types.StreamCallbacks
+// types.StreamEventListener
 // types.StreamDecoder
-// types.PoolCallbacks
+// types.PoolEventListener
 type upstreamRequest struct {
 	proxy          *proxy
 	element        *list.Element
@@ -25,12 +25,12 @@ type upstreamRequest struct {
 
 func (r *upstreamRequest) resetStream() {
 	if r.requestEncoder != nil {
-		r.requestEncoder.GetStream().RemoveCallbacks(r)
+		r.requestEncoder.GetStream().RemoveEventListener(r)
 		r.requestEncoder.GetStream().ResetStream(types.StreamLocalReset)
 	}
 }
 
-// types.StreamCallbacks
+// types.StreamEventListener
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	r.requestEncoder = nil
 
@@ -64,8 +64,13 @@ func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 
 func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
 	r.encodeComplete = endStream
+	streamID := ""
 
-	r.connPool.NewStream(0, r, r)
+	if streamid, ok := headers[types.HeaderStreamID]; ok {
+		streamID = streamid
+
+	}
+	r.connPool.NewStream(streamID, r, r)
 }
 
 func (r *upstreamRequest) encodeData(data types.IoBuffer, endStream bool) {
@@ -80,8 +85,8 @@ func (r *upstreamRequest) encodeTrailers(trailers map[string]string) {
 	r.requestEncoder.EncodeTrailers(trailers)
 }
 
-// types.PoolCallbacks
-func (r *upstreamRequest) OnPoolFailure(streamId uint32, reason types.PoolFailureReason, host types.Host) {
+// types.PoolEventListener
+func (r *upstreamRequest) OnPoolFailure(streamId string, reason types.PoolFailureReason, host types.Host) {
 	var resetReason types.StreamResetReason
 
 	switch reason {
@@ -94,9 +99,9 @@ func (r *upstreamRequest) OnPoolFailure(streamId uint32, reason types.PoolFailur
 	r.OnResetStream(resetReason)
 }
 
-func (r *upstreamRequest) OnPoolReady(streamId uint32, encoder types.StreamEncoder, host types.Host) {
+func (r *upstreamRequest) OnPoolReady(streamId string, encoder types.StreamEncoder, host types.Host) {
 	r.requestEncoder = encoder
-	r.requestEncoder.GetStream().AddCallbacks(r)
+	r.requestEncoder.GetStream().AddEventListener(r)
 
 	endStream := r.encodeComplete && !r.dataEncoded && !r.trailerEncoded
 	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamReqHeaders, endStream)

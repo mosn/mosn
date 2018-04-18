@@ -8,6 +8,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"golang.org/x/net/http2"
 	"io"
 	"net"
@@ -26,17 +27,17 @@ func init() {
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection,
-	streamConnCallbacks types.StreamConnectionCallbacks, connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection {
+	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(connection, streamConnCallbacks, connCallbacks)
 }
 
 func (f *streamConnFactory) CreateServerStream(connection types.Connection,
-	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
+	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(connection, callbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionCallbacks,
-	serverCallbacks types.ServerStreamConnectionCallbacks) types.ClientStreamConnection {
+func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener,
+	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
 }
 
@@ -44,14 +45,14 @@ var transport http2.Transport
 var server http2.Server
 
 // types.StreamConnection
-// types.StreamConnectionCallbacks
+// types.StreamConnectionEventListener
 type streamConnection struct {
 	protocol      types.Protocol
 	rawConnection net.Conn
 	http2Conn     *http2.ClientConn
 	activeStreams *list.List
 	asMutex       sync.Mutex
-	connCallbacks types.ConnectionCallbacks
+	connCallbacks types.ConnectionEventListener
 }
 
 // types.StreamConnection
@@ -80,12 +81,12 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 // types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection
-	streamConnCallbacks types.StreamConnectionCallbacks
+	streamConnCallbacks types.StreamConnectionEventListener
 }
 
 func newClientStreamConnection(connection types.ClientConnection,
-	streamConnCallbacks types.StreamConnectionCallbacks,
-	connCallbacks types.ConnectionCallbacks) types.ClientStreamConnection {
+	streamConnCallbacks types.StreamConnectionEventListener,
+	connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 
 	h2Conn, _ := transport.NewClientConn(connection.RawConn())
 
@@ -104,7 +105,7 @@ func (csc *clientStreamConnection) OnGoAway() {
 	csc.streamConnCallbacks.OnGoAway()
 }
 
-func (csc *clientStreamConnection) NewStream(streamId uint32, responseDecoder types.StreamDecoder) types.StreamEncoder {
+func (csc *clientStreamConnection) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &clientStream{
 		stream: stream{
 			decoder: responseDecoder,
@@ -122,11 +123,11 @@ func (csc *clientStreamConnection) NewStream(streamId uint32, responseDecoder ty
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
-	serverStreamConnCallbacks types.ServerStreamConnectionCallbacks
+	serverStreamConnCallbacks types.ServerStreamConnectionEventListener
 }
 
 func newServerStreamConnection(connection types.Connection,
-	callbacks types.ServerStreamConnectionCallbacks) types.ServerStreamConnection {
+	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
 			rawConnection: connection.RawConn(),
@@ -157,7 +158,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(0, stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(utility.GenerateDefaultStreamID(), stream)
 	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
 	ssc.asMutex.Unlock()
@@ -179,15 +180,15 @@ type stream struct {
 	response         *http.Response
 	decoder          types.StreamDecoder
 	element          *list.Element
-	streamCbs        []types.StreamCallbacks
+	streamCbs        []types.StreamEventListener
 }
 
 // types.Stream
-func (s *stream) AddCallbacks(streamCb types.StreamCallbacks) {
+func (s *stream) AddEventListener(streamCb types.StreamEventListener) {
 	s.streamCbs = append(s.streamCbs, streamCb)
 }
 
-func (s *stream) RemoveCallbacks(streamCb types.StreamCallbacks) {
+func (s *stream) RemoveEventListener(streamCb types.StreamEventListener) {
 	cbIdx := -1
 
 	for i, streamCb := range s.streamCbs {
@@ -214,7 +215,7 @@ type clientStream struct {
 }
 
 // types.StreamEncoder   发送数据的时候是作为CLIENT STREAM 发送的
-func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) {
+func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
 	headers, _ := headers_.(map[string]string)
 
 	if s.request == nil {
@@ -245,9 +246,11 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) {
 	if endStream {
 		s.endStream()
 	}
+
+	return nil
 }
 
-func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) {
+func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 	if s.request == nil {
 		s.request = new(http.Request)
 	}
@@ -259,11 +262,15 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) {
 	if endStream {
 		s.endStream()
 	}
+
+	return nil
 }
 
-func (s *clientStream) EncodeTrailers(trailers map[string]string) {
+func (s *clientStream) EncodeTrailers(trailers map[string]string) error {
 	s.request.Trailer = encodeHeader(trailers)
 	s.endStream()
+
+	return nil
 }
 
 func (s *clientStream) endStream() {
@@ -353,7 +360,7 @@ type serverStream struct {
 }
 
 // types.StreamEncoder
-func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) {
+func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
 	headers, _ := headers_.(map[string]string)
 
 	if s.response == nil {
@@ -371,9 +378,10 @@ func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) {
 	if endStream {
 		s.endStream()
 	}
+	return nil
 }
 
-func (s *serverStream) EncodeData(data types.IoBuffer, endStream bool) {
+func (s *serverStream) EncodeData(data types.IoBuffer, endStream bool) error {
 	if s.response == nil {
 		s.response = new(http.Response)
 	}
@@ -385,12 +393,14 @@ func (s *serverStream) EncodeData(data types.IoBuffer, endStream bool) {
 	if endStream {
 		s.endStream()
 	}
+	return nil
 }
 
-func (s *serverStream) EncodeTrailers(trailers map[string]string) {
+func (s *serverStream) EncodeTrailers(trailers map[string]string) error {
 	s.response.Trailer = encodeHeader(trailers)
 
 	s.endStream()
+	return nil
 }
 
 func (s *serverStream) endStream() {

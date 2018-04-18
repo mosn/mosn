@@ -4,11 +4,12 @@ import (
 	"encoding/binary"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
 	"reflect"
 	"time"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 )
 
 // types.Encoder & types.Decoder
@@ -39,7 +40,7 @@ func init() {
 
 type boltV2Codec struct{}
 
-func (c *boltV2Codec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
+func (c *boltV2Codec) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
 
 	if headerMap, ok := headers.(map[string]string); ok {
 
@@ -50,7 +51,7 @@ func (c *boltV2Codec) EncodeHeaders(headers interface{}) (uint32, types.IoBuffer
 
 }
 
-func (c *boltV2Codec) encodeHeaders(headers interface{}) (uint32, types.IoBuffer) {
+func (c *boltV2Codec) encodeHeaders(headers interface{}) (string, types.IoBuffer) {
 
 	switch headers.(type) {
 	case *sofarpc.BoltV2RequestCommand:
@@ -58,8 +59,10 @@ func (c *boltV2Codec) encodeHeaders(headers interface{}) (uint32, types.IoBuffer
 	case *sofarpc.BoltV2ResponseCommand:
 		return c.encodeResponseCommand(headers.(*sofarpc.BoltV2ResponseCommand))
 	default:
-		log.DefaultLogger.Println("[BoltV2 Decode] Invalid Input Type")
-		return 0, nil
+		err := "[BoltV2 Encode] Invalid Input Type"
+		streamID := utility.GenerateExceptionStreamID(err)
+		log.DefaultLogger.Println(err)
+		return streamID, nil
 	}
 }
 
@@ -71,7 +74,7 @@ func (c *boltV2Codec) EncodeTrailers(trailers map[string]string) types.IoBuffer 
 	return nil
 }
 
-func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltV2RequestCommand) (uint32, types.IoBuffer) {
+func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltV2RequestCommand) (string, types.IoBuffer) {
 	result := boltV1.doEncodeRequestCommand(&cmd.BoltRequestCommand)
 
 	c.insertToBytes(result, 1, cmd.Version1)
@@ -79,10 +82,10 @@ func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltV2RequestCommand) (u
 
 	log.DefaultLogger.Println("[BOLTV2]rpc headers encode finished,bytes=%d", result)
 
-	return cmd.ReqId, buffer.NewIoBufferBytes(result)
+	return utility.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
 }
 
-func (c *boltV2Codec) encodeResponseCommand(cmd *sofarpc.BoltV2ResponseCommand) (uint32, types.IoBuffer) {
+func (c *boltV2Codec) encodeResponseCommand(cmd *sofarpc.BoltV2ResponseCommand) (string, types.IoBuffer) {
 
 	result := boltV1.doEncodeResponseCommand(&cmd.BoltResponseCommand)
 
@@ -91,7 +94,7 @@ func (c *boltV2Codec) encodeResponseCommand(cmd *sofarpc.BoltV2ResponseCommand) 
 
 	log.DefaultLogger.Println("rpc headers encode finished,bytes=%d", result)
 
-	return cmd.ReqId, buffer.NewIoBufferBytes(result)
+	return utility.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
 
 }
 
@@ -162,15 +165,15 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read: read+int(classLen)]
+						class = bytes[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read: read+int(headerLen)]
+						header = bytes[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read: read+int(contentLen)]
+						content = bytes[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
 					data.Drain(read)
@@ -225,15 +228,15 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read: read+int(classLen)]
+						class = bytes[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read: read+int(headerLen)]
+						header = bytes[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read: read+int(contentLen)]
+						content = bytes[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
 				} else { // not enough data

@@ -1,20 +1,20 @@
 package network
 
 import (
-	"net"
 	"context"
-	"io"
-	"sync"
 	"crypto/tls"
 	"fmt"
-	"runtime/debug"
-	"time"
-	"sync/atomic"
+	"github.com/rcrowley/go-metrics"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"io"
+	"net"
 	"runtime"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"github.com/rcrowley/go-metrics"
+	"runtime/debug"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 const (
@@ -39,7 +39,7 @@ type connection struct {
 	bufferLimit          uint32
 	rawConnection        net.Conn
 	closeWithFlush       bool
-	connCallbacks        []types.ConnectionCallbacks
+	connCallbacks        []types.ConnectionEventListener
 	bytesReadCallbacks   []func(bytesRead uint64)
 	bytesSendCallbacks   []func(bytesSent uint64)
 	filterManager        types.FilterManager
@@ -51,7 +51,7 @@ type connection struct {
 	writeBufferMux     sync.RWMutex
 	writeBufferChan    chan bool
 	writeLoopStopChan  chan bool
-	readerBufferPool   *buffer.IoBufferPool
+	readerBufferPool   *buffer.IoBufferPoolV2
 
 	stats              *types.ConnectionStats
 	lastBytesSizeRead  int64
@@ -76,7 +76,7 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		readEnabledChan:   make(chan bool, 1),
 		writeBufferChan:   make(chan bool),
 		writeLoopStopChan: make(chan bool, 1),
-		readerBufferPool:  buffer.NewIoBufferPool(1, 1024),
+		readerBufferPool:  buffer.NewIoBufferPoolV2(1, 1024),
 		stats: &types.ConnectionStats{
 			ReadTotal:    metrics.NewCounter(),
 			ReadCurrent:  metrics.NewGauge(),
@@ -202,6 +202,7 @@ func (c *connection) doRead() (err error) {
 		}
 
 		c.readerBufferPool.Give(c.readBuffer)
+		c.readBuffer = nil
 		return err
 	}
 
@@ -215,6 +216,7 @@ func (c *connection) doRead() (err error) {
 
 	if c.readBuffer.Br.Len() == 0 {
 		c.readerBufferPool.Give(c.readBuffer)
+		c.readBuffer = nil
 	}
 
 	return
@@ -410,7 +412,7 @@ func (c *connection) RemoteAddr() net.Addr {
 	return c.remoteAddr
 }
 
-func (c *connection) AddConnectionCallbacks(cb types.ConnectionCallbacks) {
+func (c *connection) AddConnectionEventListener(cb types.ConnectionEventListener) {
 	exist := false
 
 	for _, ccb := range c.connCallbacks {
@@ -424,7 +426,7 @@ func (c *connection) AddConnectionCallbacks(cb types.ConnectionCallbacks) {
 	}
 }
 
-func (c *connection) AddBytesReadCallback(cb func(bytesRead uint64)) {
+func (c *connection) AddBytesReadListener(cb func(bytesRead uint64)) {
 	exist := false
 
 	for _, brcb := range c.bytesReadCallbacks {
@@ -438,7 +440,7 @@ func (c *connection) AddBytesReadCallback(cb func(bytesRead uint64)) {
 	}
 }
 
-func (c *connection) AddBytesSentCallback(cb func(bytesSent uint64)) {
+func (c *connection) AddBytesSentListener(cb func(bytesSent uint64)) {
 	exist := false
 
 	for _, bscb := range c.bytesSendCallbacks {
@@ -551,6 +553,10 @@ type clientConnection struct {
 func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan bool) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
+	if log.DefaultLogger == nil {
+		log.InitDefaultLogger("", log.DEBUG)
+	}
+
 	conn := &clientConnection{
 		connection: connection{
 			id:                id,
@@ -561,7 +567,7 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 			readEnabledChan:   make(chan bool, 1),
 			writeBufferChan:   make(chan bool),
 			writeLoopStopChan: make(chan bool, 1),
-			readerBufferPool:  buffer.NewIoBufferPool(1, 1024),
+			readerBufferPool:  buffer.NewIoBufferPoolV2(1, 1024),
 			stats: &types.ConnectionStats{
 				ReadTotal:    metrics.NewCounter(),
 				ReadCurrent:  metrics.NewGauge(),

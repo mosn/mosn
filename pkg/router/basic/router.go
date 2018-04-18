@@ -20,6 +20,7 @@ type routeConfig struct {
 	routers []router.RouteBase
 }
 
+//Use for Routing, need completing
 func (rc routeConfig) Route(headers map[string]string) types.Route {
 	for _, r := range rc.routers {
 		if rule := r.Match(headers); rule != nil {

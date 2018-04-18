@@ -2,7 +2,7 @@ package types
 
 type Protocols interface {
 	// return 1. stream id if have one 2. headers bytes
-	EncodeHeaders(headers interface{}) (uint32, IoBuffer)
+	EncodeHeaders(headers interface{}) (string, IoBuffer)
 
 	EncodeData(data IoBuffer) IoBuffer
 
@@ -13,7 +13,7 @@ type Protocols interface {
 
 type Encoder interface {
 	// return 1. stream id if have one 2. headers bytes
-	EncodeHeaders(headers interface{}) (uint32, IoBuffer)
+	EncodeHeaders(headers interface{}) (string, IoBuffer)
 
 	EncodeData(data IoBuffer) IoBuffer
 
@@ -26,11 +26,11 @@ type Decoder interface {
 }
 
 type DecodeFilter interface {
-	OnDecodeHeader(streamId uint32, headers map[string]string) FilterStatus
+	OnDecodeHeader(streamId string, headers map[string]string) FilterStatus
 
-	OnDecodeData(streamId uint32, data IoBuffer) FilterStatus
+	OnDecodeData(streamId string, data IoBuffer) FilterStatus
 
-	OnDecodeTrailer(streamId uint32, trailers map[string]string) FilterStatus
+	OnDecodeTrailer(streamId string, trailers map[string]string) FilterStatus
 }
 
 type DecoderCallbacks interface {

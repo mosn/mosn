@@ -72,7 +72,7 @@ func IsSofaRequest(headers map[string]string)bool{
 	} else if procode == TR_PROTOCOL_CODE {
 
 		requestFlage :=  ConvertPropertyValue(headers[SofaPropertyHeader("requestflag")],reflect.Uint8)
-		if requestFlage == TR_REQUEST{
+		if requestFlage == HEADER_REQUEST{
 			return true
 		}
 	}

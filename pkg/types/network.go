@@ -27,13 +27,13 @@ type Listener interface {
 
 	PerConnBufferLimitBytes() uint32
 
-	SetListenerCallbacks(cb ListenerCallbacks)
+	SetListenerCallbacks(cb ListenerEventListener)
 
 	Close(lctx context.Context) error
 }
 
 // Callbacks invoked by a listener.
-type ListenerCallbacks interface {
+type ListenerEventListener interface {
 	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool)
 
 	OnNewConnection(conn Connection, ctx context.Context)
@@ -96,6 +96,8 @@ type IoBuffer interface {
 
 	Len() int
 
+	Cap() int
+
 	Reset()
 
 	Clone() IoBuffer
@@ -136,11 +138,11 @@ type Connection interface {
 
 	RemoteAddr() net.Addr
 
-	AddConnectionCallbacks(cb ConnectionCallbacks)
+	AddConnectionEventListener(cb ConnectionEventListener)
 
-	AddBytesReadCallback(cb func(bytesRead uint64))
+	AddBytesReadListener(cb func(bytesRead uint64))
 
-	AddBytesSentCallback(cb func(bytesSent uint64))
+	AddBytesSentListener(cb func(bytesSent uint64))
 
 	NextProtocol() string
 
@@ -208,7 +210,7 @@ func (ce ConnectionEvent) IsClose() bool {
 }
 
 // Network level callbacks that happen on a connection.
-type ConnectionCallbacks interface {
+type ConnectionEventListener interface {
 	OnEvent(event ConnectionEvent)
 
 	OnAboveWriteBufferHighWatermark()

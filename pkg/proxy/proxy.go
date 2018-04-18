@@ -1,14 +1,14 @@
 package proxy
 
 import (
-	"sync"
-	"context"
 	"container/list"
+	"context"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"sync"
 )
 
 var globalStats *proxyStats
@@ -18,7 +18,7 @@ func init() {
 }
 
 // types.ReadFilter
-// types.ServerStreamConnectionCallbacks
+// types.ServerStreamConnectionEventListener
 type proxy struct {
 	config              *v2.Proxy
 	clusterManager      types.ClusterManager
@@ -113,14 +113,13 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.stats.DownstreamConnectionTotal().Inc(1)
 	p.stats.DownstreamConnectionActive().Inc(1)
 
-	p.readCallbacks.Connection().AddConnectionCallbacks(p.downstreamCallbacks)
+	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
 	p.serverCodec = stream.CreateServerStreamConnection(types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
 }
 
 func (p *proxy) OnGoAway() {}
 
-//由stream层来调用
-func (p *proxy) NewStream(streamId uint32, responseEncoder types.StreamEncoder) types.StreamDecoder {
+func (p *proxy) NewStream(streamId string, responseEncoder types.StreamEncoder) types.StreamDecoder {
 	stream := newActiveStream(streamId, p, responseEncoder)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
@@ -146,7 +145,14 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 	switch reason {
 	case types.StreamConnectionFailed:
 		return types.UpstreamConnectionFailure
-
+	case types.StreamConnectionTermination:
+		return types.UpstreamConnectionTermination
+	case types.StreamLocalReset:
+		return types.UpstreamLocalReset
+	case types.StreamOverflow:
+		return types.UpstreamOverflow
+	case types.StreamRemoteReset:
+		return types.UpstreamRemoteReset
 	}
 
 	return 0
@@ -158,7 +164,7 @@ func (p *proxy) deleteActiveStream(s *activeStream) {
 	p.asMux.Unlock()
 }
 
-// ConnectionCallbacks
+// ConnectionEventListener
 type downstreamCallbacks struct {
 	proxy *proxy
 }

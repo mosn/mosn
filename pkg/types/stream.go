@@ -3,14 +3,14 @@ package types
 type StreamResetReason string
 
 const (
-	StreamConnectionTermination    StreamResetReason = "ConnectionTermination"
-	StreamConnectionFailed         StreamResetReason = "ConnectionFailed"
-	StreamLocalReset               StreamResetReason = "StreamLocalReset"
-	StreamOverflow                 StreamResetReason = "StreamOverflow"
-	StreamRemoteReset              StreamResetReason = "StreamRemoteReset"
+	StreamConnectionTermination StreamResetReason = "ConnectionTermination"
+	StreamConnectionFailed      StreamResetReason = "ConnectionFailed"
+	StreamLocalReset            StreamResetReason = "StreamLocalReset"
+	StreamOverflow              StreamResetReason = "StreamOverflow"
+	StreamRemoteReset           StreamResetReason = "StreamRemoteReset"
 )
 
-type StreamCallbacks interface {
+type StreamEventListener interface {
 	OnResetStream(reason StreamResetReason)
 
 	OnAboveWriteBufferHighWatermark()
@@ -19,9 +19,9 @@ type StreamCallbacks interface {
 }
 
 type Stream interface {
-	AddCallbacks(streamCb StreamCallbacks)
+	AddEventListener(streamEventListener StreamEventListener)
 
-	RemoveCallbacks(streamCb StreamCallbacks)
+	RemoveEventListener(streamEventListener StreamEventListener)
 
 	ResetStream(reason StreamResetReason)
 
@@ -31,11 +31,11 @@ type Stream interface {
 type StreamProto string
 
 type StreamEncoder interface {
-	EncodeHeaders(headers interface{}, endStream bool)
+	EncodeHeaders(headers interface{}, endStream bool) error
 
-	EncodeData(data IoBuffer, endStream bool)
+	EncodeData(data IoBuffer, endStream bool) error
 
-	EncodeTrailers(trailers map[string]string)
+	EncodeTrailers(trailers map[string]string) error
 
 	GetStream() Stream
 }
@@ -50,8 +50,6 @@ type StreamDecoder interface {
 
 type StreamConnection interface {
 	Dispatch(buffer IoBuffer)
-
-	//GoAway()
 
 	Protocol() Protocol
 
@@ -68,18 +66,18 @@ type ClientStreamConnection interface {
 	StreamConnection
 
 	// return request stream encoder
-	NewStream(streamId uint32, responseDecoder StreamDecoder) StreamEncoder
+	NewStream(streamId string, responseDecoder StreamDecoder) StreamEncoder
 }
 
-type StreamConnectionCallbacks interface {
+type StreamConnectionEventListener interface {
 	OnGoAway()
 }
 
-type ServerStreamConnectionCallbacks interface {
-	StreamConnectionCallbacks
+type ServerStreamConnectionEventListener interface {
+	StreamConnectionEventListener
 
 	// return request stream decoder
-	NewStream(streamId uint32, responseEncoder StreamEncoder) StreamDecoder
+	NewStream(streamId string, responseEncoder StreamEncoder) StreamDecoder
 }
 
 type StreamFilterBase interface {
@@ -93,7 +91,7 @@ type StreamFilterCallbacks interface {
 
 	Route() Route
 
-	StreamId() uint32
+	StreamId() string
 
 	RequestInfo() RequestInfo
 }
@@ -159,16 +157,16 @@ type StreamDecoderFilterCallbacks interface {
 
 	OnDecoderFilterBelowWriteBufferLowWatermark()
 
-	AddDownstreamWatermarkCallbacks(cb DownstreamWatermarkCallbacks)
+	AddDownstreamWatermarkCallbacks(cb DownstreamWatermarkEventListener)
 
-	RemoveDownstreamWatermarkCallbacks(cb DownstreamWatermarkCallbacks)
+	RemoveDownstreamWatermarkCallbacks(cb DownstreamWatermarkEventListener)
 
 	SetDecoderBufferLimit(limit uint32)
 
 	DecoderBufferLimit() uint32
 }
 
-type DownstreamWatermarkCallbacks interface {
+type DownstreamWatermarkEventListener interface {
 	OnAboveWriteBufferHighWatermark()
 
 	OnBelowWriteBufferLowWatermark()

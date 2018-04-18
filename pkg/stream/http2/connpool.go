@@ -1,10 +1,10 @@
 package http2
 
 import (
-	"sync"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"sync"
 )
 
 // types.ConnectionPool
@@ -25,13 +25,11 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.Http2
 }
 
-func (p *connPool) AddDrainedCallback(cb func()) {}
-
 func (p *connPool) DrainConnections() {}
 
 //由 PROXY 调用
-func (p *connPool) NewStream(streamId uint32, responseDecoder types.StreamDecoder,
-	cb types.PoolCallbacks) types.Cancellable {
+func (p *connPool) NewStream(streamId string, responseDecoder types.StreamDecoder,
+	cb types.PoolEventListener) types.Cancellable {
 	p.mux.Lock()
 
 	if p.primaryClient == nil {
@@ -145,8 +143,8 @@ func (p *connPool) movePrimaryToDraining() {
 }
 
 // stream.CodecClientCallbacks
-// types.ConnectionCallbacks
-// types.StreamConnectionCallbacks
+// types.ConnectionEventListener
+// types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connPool
 	codecClient        str.CodecClient

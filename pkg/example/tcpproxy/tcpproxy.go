@@ -1,14 +1,14 @@
 package main
 
 import (
-	"time"
-	"net"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"net"
+	"time"
 )
 
 const (
@@ -104,10 +104,10 @@ func main2() {
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
 			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
-			cc.AddConnectionCallbacks(&clientConnCallbacks{      //ADD  connection callback
+			cc.AddConnectionEventListener(&clientConnCallbacks{ //ADD  connection callback
 				cc: cc,
 			})
-			cc.Connect()
+			cc.Connect(true)
 			cc.SetReadDisable(false)
 			cc.FilterManager().AddReadFilter(&clientConnReadFilter{})
 
@@ -155,7 +155,6 @@ func (ccrf *clientConnReadFilter) OnData(buffer types.IoBuffer) types.FilterStat
 	fmt.Printf("[CLIENT]receive data '%s'", buffer.String())
 	fmt.Println()
 	buffer.Reset()
-
 
 	return types.Continue
 }

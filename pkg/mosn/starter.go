@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "net/http/pprof"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
@@ -10,13 +11,22 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"strconv"
 	"sync"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	_"net/http/pprof"
+	"net/http"
+	"runtime"
 )
 
 func Start(c *config.MOSNConfig) {
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	log.Printf("mosn config : %+v\n", c)
 
 	srvNum := len(c.Servers)
@@ -35,7 +45,7 @@ func Start(c *config.MOSNConfig) {
 
 	go func() {
 		// pprof server
-		http.ListenAndServe("0.0.0.0:9099", nil)
+		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
 
 	inheritListeners := getInheritListeners()

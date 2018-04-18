@@ -8,7 +8,10 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"net"
 	"runtime/debug"
+<<<<<<< HEAD
 	"time"
+=======
+>>>>>>> origin/master
 )
 
 // listener impl based on golang net package
@@ -19,7 +22,7 @@ type listener struct {
 	listenerTag                           uint64
 	perConnBufferLimitBytes               uint32
 	handOffRestoredDestinationConnections bool
-	cb                                    types.ListenerCallbacks
+	cb                                    types.ListenerEventListener
 	rawl                                  *net.TCPListener
 }
 
@@ -80,6 +83,7 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 
 	if l.bindToPort {
 		for {
+<<<<<<< HEAD
 			//select {
 			//case <-stopChan:
 			//	//FIXME: can not enter this branch util Listener.accept return
@@ -93,6 +97,20 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 				} else if ope, ok := err.(*net.OpError); ok {
 					if !(ope.Timeout() && ope.Temporary()) {
 						log.DefaultLogger.Println("not temp-timeout error:" + err.Error())
+=======
+			select {
+			case <-stopChan:
+				log.DefaultLogger.Println("listener " + l.name + " stop accepting connections")
+				return
+			default:
+				if err := l.accept(lctx); err != nil {
+					if ope, ok := err.(*net.OpError); ok {
+						if !(ope.Timeout() && ope.Temporary()) {
+							log.DefaultLogger.Println("not temp-timeout error:" + err.Error())
+						}
+					} else {
+						log.DefaultLogger.Println("unknown error while listener accepting:" + err.Error())
+>>>>>>> origin/master
 					}
 				} else {
 					log.DefaultLogger.Println("unknown error while listener accepting:" + err.Error())
@@ -124,7 +142,7 @@ func (l *listener) PerConnBufferLimitBytes() uint32 {
 	return l.perConnBufferLimitBytes
 }
 
-func (l *listener) SetListenerCallbacks(cb types.ListenerCallbacks) {
+func (l *listener) SetListenerCallbacks(cb types.ListenerEventListener) {
 	l.cb = cb
 }
 
