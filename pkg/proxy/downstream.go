@@ -146,8 +146,14 @@ func (s *activeStream) cleanStream() {
 	s.proxy.stats.DownstreamRequestActive().Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
+	var downstreamRespHeadersMap map[string]string
+
+	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+		downstreamRespHeadersMap = v
+	}
+
 	for _, al := range s.proxy.accessLogs {
-		al.Log(s.downstreamReqHeaders, nil, s.requestInfo)
+		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
 	}
 
 	log.DefaultLogger.Debugf(s.proxy.stats.String())
