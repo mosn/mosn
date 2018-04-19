@@ -6,7 +6,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"log"
 	"net"
-	"strings"
 	"time"
 )
 
