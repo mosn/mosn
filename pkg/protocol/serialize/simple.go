@@ -30,6 +30,7 @@ func (s *SimpleSerialization) Serialize(v interface{}) ([]byte, error) {
 
 	t := rv.Type().String()
 	//t := fmt.Sprintf("%s", rv.Type())
+
 	buf := new(bytes.Buffer)
 	var err error
 	switch t {
