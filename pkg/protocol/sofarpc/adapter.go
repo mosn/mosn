@@ -1,7 +1,6 @@
 package sofarpc
 
 import (
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"reflect"
 	"strconv"
@@ -9,7 +8,7 @@ import (
 )
 
 func SofaPropertyHeader(name string) string {
-	return fmt.Sprintf("%s%s", SofaRpcPropertyHeaderPrefix, strings.ToLower(name))
+	return SofaRpcPropertyHeaderPrefix + strings.ToLower(name)
 }
 
 func GetPropertyValue(properHeaders map[string]reflect.Kind, headers map[string]string, name string) interface{} {

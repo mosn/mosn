@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type MsgChannel struct {
@@ -17,6 +17,14 @@ type MsgChanCallback func([]string)
 
 type ServiceInfo struct {
 	ServiceSet []string `json:"service_set"`
+}
+
+func init(){
+	//MsgChannel Server
+	var MsgChan = MsgChannel{}
+	go func(){
+		MsgChan.StartChannel()
+	}()
 }
 
 //发布服务
@@ -161,7 +169,7 @@ func (m *MsgChannel) StartChannel() {
 	http.HandleFunc("/subscribeService", m.SubscribeService)
 	http.HandleFunc("/unSubscribeService", m.UnSubscribeService)
 
-	if err := http.ListenAndServe("localhost:8888", nil); err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	if err := http.ListenAndServe("0.0.0.0:8888", nil); err != nil {
+		log.DefaultLogger.Errorf("ListenAndServe: ", err)
 	}
 }

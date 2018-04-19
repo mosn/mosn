@@ -3,7 +3,6 @@ package server
 import (
 	"container/list"
 	"context"
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
@@ -168,7 +167,7 @@ func newActiveListener(listener types.Listener, handler *connHandler, stopChan c
 	}
 
 	al.listenPort = listenPort
-	al.statsNamespace = fmt.Sprintf(types.ListenerStatsPrefix, listenPort)
+	al.statsNamespace = types.ListenerStatsPrefix + strconv.Itoa(listenPort)
 	al.stats = newListenerStats(al.statsNamespace)
 
 	return al
