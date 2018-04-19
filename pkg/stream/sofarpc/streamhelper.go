@@ -61,13 +61,13 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 func decodeSterilize(streamId string, headers map[string]string) map[string]string {
 	headers[types.HeaderStreamID] = streamId
 
-	if v, ok := headers[sofarpc.SofaPropertyHeader("timeout")]; ok {
-		headers[types.HeaderTryTimeout] = v
-	}
-
-	if v, ok := headers[sofarpc.SofaPropertyHeader("globaltimeout")]; ok {
-		headers[types.HeaderGlobalTimeout] = v
-	}
+	//if v, ok := headers[sofarpc.SofaPropertyHeader("timeout")]; ok {
+	//	headers[types.HeaderTryTimeout] = v
+	//}
+	//
+	//if v, ok := headers[sofarpc.SofaPropertyHeader("globaltimeout")]; ok {
+	//	headers[types.HeaderGlobalTimeout] = v
+	//}
 
 	return headers
 }

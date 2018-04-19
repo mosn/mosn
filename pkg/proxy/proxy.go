@@ -86,8 +86,8 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 		defer p.asMux.RUnlock()
 
 		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEle.Next() {
-			ur := urEle.Value.(*upstreamRequest)
-			ur.requestEncoder.GetStream().ResetStream(types.StreamConnectionTermination)
+			ur := urEle.Value.(*activeStream)
+			ur.OnResetStream(types.StreamConnectionTermination)
 		}
 	}
 }
