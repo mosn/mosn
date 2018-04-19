@@ -21,7 +21,7 @@ import (
 	"log"
 	"runtime"
 	"sync"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
 )
 
 func Start(c *config.MOSNConfig) {
@@ -41,17 +41,11 @@ func Start(c *config.MOSNConfig) {
 	stopChans := make([]chan bool, srvNum)
 
 	var wg sync.WaitGroup
-	wg.Add(2 + srvNum)
+	wg.Add(1 + srvNum)
 
 	go func() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9090", nil)
-		wg.Done()
-	}()
-
-	//MsgChannel Server
-	go func(){
-		confreg.MsgChan.StartChannel()
 		wg.Done()
 	}()
 

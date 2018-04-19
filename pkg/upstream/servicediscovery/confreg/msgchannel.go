@@ -19,7 +19,13 @@ type ServiceInfo struct {
 	ServiceSet []string `json:"service_set"`
 }
 
-var MsgChan = MsgChannel{}
+func init(){
+	//MsgChannel Server
+	var MsgChan = MsgChannel{}
+	go func(){
+		MsgChan.StartChannel()
+	}()
+}
 
 //发布服务
 func (m *MsgChannel) PublishService(w http.ResponseWriter, r *http.Request) {
