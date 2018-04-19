@@ -99,7 +99,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 		conn.onNewStreamDetected(streamId, headers)
 	}
 
-	headers = decodeSterilize(streamId, headers)
+	decodeSterilize(streamId, headers)
 
 	if v, ok := conn.activeStream.Get(streamId); ok {
 		stream := v.(*stream)

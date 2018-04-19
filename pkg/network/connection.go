@@ -77,7 +77,7 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		readEnabledChan:   make(chan bool, 1),
 		writeBufferChan:   make(chan bool),
 		writeLoopStopChan: make(chan bool, 1),
-		readerBufferPool:  buffer.NewIoBufferPoolV2(1, 1024),
+		readerBufferPool:  buffer.NewIoBufferPoolV2(1, 4096),
 		stats: &types.ConnectionStats{
 			ReadTotal:    metrics.NewCounter(),
 			ReadCurrent:  metrics.NewGauge(),
@@ -573,7 +573,7 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 			readEnabledChan:   make(chan bool, 1),
 			writeBufferChan:   make(chan bool),
 			writeLoopStopChan: make(chan bool, 1),
-			readerBufferPool:  buffer.NewIoBufferPoolV2(1, 1024),
+			readerBufferPool:  buffer.NewIoBufferPoolV2(1, 4096),
 			stats: &types.ConnectionStats{
 				ReadTotal:    metrics.NewCounter(),
 				ReadCurrent:  metrics.NewGauge(),

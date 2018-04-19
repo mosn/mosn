@@ -58,7 +58,7 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 	return headers
 }
 
-func decodeSterilize(streamId string, headers map[string]string) map[string]string {
+func decodeSterilize(streamId string, headers map[string]string) {
 	headers[types.HeaderStreamID] = streamId
 
 	if v, ok := headers[sofarpc.SofaPropertyHeader("timeout")]; ok {
@@ -69,5 +69,4 @@ func decodeSterilize(streamId string, headers map[string]string) map[string]stri
 		headers[types.HeaderGlobalTimeout] = v
 	}
 
-	return headers
 }
