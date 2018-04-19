@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"reflect"
 )
 
@@ -29,7 +28,7 @@ func (s *SimpleSerialization) Serialize(v interface{}) ([]byte, error) {
 		rv = reflect.ValueOf(v)
 	}
 
-	t := fmt.Sprintf("%s", rv.Type())
+	t :=rv.Type().String()
 	buf := new(bytes.Buffer)
 	var err error
 	switch t {
