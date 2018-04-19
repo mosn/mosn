@@ -1,27 +1,27 @@
 {
   "servers": [
     {
-      "network_filters": [
-        {
-          "type": "proxy",
-          "config": {
-            "downstream_protocol": "SofaRpc",
-            "upstream_protocol": "SofaRpc",
-            "routes": [
-              {
-                "name": "example_route",
-                "service": ".*",
-                "cluster": "local_service"
-              }
-            ]
-          }
-        }
-      ],
       "listeners": [
         {
           "name": "default_sofa",
           "address": "30.55.208.30:12200",
-          "bind_port": true
+          "bind_port": true,
+          "network_filters": [
+            {
+              "type": "proxy",
+              "config": {
+                "downstream_protocol": "SofaRpc",
+                "upstream_protocol": "SofaRpc",
+                "routes": [
+                  {
+                    "name": "example_route",
+                    "service": ".*",
+                    "cluster": "local_service"
+                  }
+                ]
+              }
+            }
+          ]
         }
       ]
     }

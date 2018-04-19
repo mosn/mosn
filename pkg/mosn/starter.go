@@ -57,17 +57,11 @@ func Start(c *config.MOSNConfig) {
 		//server config
 		sc := config.ParseServerConfig(&serverConfig)
 
-		// network filters
-		nfcf := getNetworkFilter(serverConfig.NetworkFilters)
-
-		//stream filters
-		sfcf := getStreamFilters(serverConfig.StreamFilters)
-
 		//cluster manager filter
 		cmf := &clusterManagerFilter{}
 
 		//2. initialize server instance
-		srv := server.NewServer(sc, nfcf, sfcf, cmf)
+		srv := server.NewServer(sc, cmf)
 
 		//add listener
 		if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
@@ -75,7 +69,13 @@ func Start(c *config.MOSNConfig) {
 		}
 
 		for _, listenerConfig := range serverConfig.Listeners {
-			srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners))
+			// network filters
+			nfcf := getNetworkFilter(listenerConfig.NetworkFilters)
+
+			//stream filters
+			sfcf := getStreamFilters(listenerConfig.StreamFilters)
+
+			srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nfcf, sfcf)
 		}
 
 		var clusters []v2.Cluster
@@ -105,7 +105,7 @@ func Start(c *config.MOSNConfig) {
 	//close legacy listeners
 	for _, ln := range inheritListeners {
 		if !ln.Remain {
-			log.Println("close legacy listener:", ln.Addr)
+			log.Println("close useless legacy listener:", ln.Addr)
 			ln.InheritListener.Close()
 		}
 	}
@@ -114,7 +114,7 @@ func Start(c *config.MOSNConfig) {
 	wg.Wait()
 }
 
-func getNetworkFilter(configs []config.FilterConfig) server.NetworkFilterChainFactory {
+func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFactory {
 	if len(configs) != 1 {
 		log.Fatalln("only one network filter supported")
 	}
@@ -152,11 +152,11 @@ func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFa
 }
 
 type clusterManagerFilter struct {
-	cccb server.ClusterConfigFactoryCb
-	chcb server.ClusterHostFactoryCb
+	cccb types.ClusterConfigFactoryCb
+	chcb types.ClusterHostFactoryCb
 }
 
-func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
+func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
 }

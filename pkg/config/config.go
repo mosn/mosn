@@ -14,17 +14,20 @@ type FilterConfig struct {
 }
 
 type ListenerConfig struct {
-	Name       string
-	Address    string
-	BindToPort bool `json:"bind_port"`
+	Name           string
+	Address        string
+	BindToPort     bool           `json:"bind_port"`
+	NetworkFilters []FilterConfig `json:"network_filters"`
+	StreamFilters  []FilterConfig `json:"stream_filters"`
 }
 
 type ServerConfig struct {
-	AccessLog      string         `json:"access_log"`
-	LogLevel       string         `json:"log_level"`
-	NetworkFilters []FilterConfig `json:"network_filters"`
-	StreamFilters  []FilterConfig `json:"stream_filters"`
-	Listeners      []ListenerConfig
+	AccessLog string `json:"access_log"`
+	LogLevel  string `json:"log_level"`
+	// only used in http2 case
+	DisableConnIo bool `json:"disable_conn_io"`
+
+	Listeners []ListenerConfig
 }
 
 type HostConfig struct {

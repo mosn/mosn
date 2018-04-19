@@ -1,9 +1,9 @@
 package main
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"net"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 const (
@@ -12,11 +12,11 @@ const (
 )
 
 type clusterManagerFilter struct {
-	cccb server.ClusterConfigFactoryCb
-	chcb server.ClusterHostFactoryCb
+	cccb types.ClusterConfigFactoryCb
+	chcb types.ClusterHostFactoryCb
 }
 
-func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
+func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
 }

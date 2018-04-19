@@ -47,6 +47,7 @@ type ListenerConfig struct {
 	PerConnBufferLimitBytes               uint32
 	HandOffRestoredDestinationConnections bool
 
+	// used in inherit case
 	InheritListener *net.TCPListener
 	Remain          bool
 }

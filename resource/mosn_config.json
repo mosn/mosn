@@ -1,53 +1,62 @@
 {
   "servers": [
     {
-      "access_log": "/home/admin/logs/mosn/default.log",
+      "access_log": "/home/admin/mosn/logs/default.log",
       "log_level": "INFO",
-      "network_filters": [
-        {
-          "type": "proxy",
-          "config": {
-            "downstream_protocol": "SofaRpc",
-            "upstream_protocol": "Http2",
-            "routes": [
-              {
-                "name": "example_route",
-                "service": ".*",
-                "cluster": "local_service"
-              }
-            ]
-          }
-        }
-      ],
-      "stream_filters": [
-        {
-          "type": "fault_inject",
-          "config": {
-            "delay_percent": 100,
-            "delay_duration_ms": 2000
-          }
-        },
-        {
-          "type": "healthcheck",
-          "config": {
-            "passthrough": false,
-            "cache_time_ms": 360000,
-            "cluster_min_healthy_percentages": {
-              "local_service": 70
-            }
-          }
-        }
-      ],
       "listeners": [
         {
-          "name": "default_sofa",
+          "name": "egress",
           "address": "127.0.0.1:12200",
-          "bind_port": true
+          "bind_port": true,
+          "network_filters": [
+            {
+              "type": "proxy",
+              "config": {
+                "downstream_protocol": "SofaRpc",
+                "upstream_protocol": "SofaRpc",
+                "routes": [
+                  {
+                    "name": "example_route",
+                    "service": ".*",
+                    "cluster": "remote_service"
+                  }
+                ]
+              }
+            }
+          ],
+          "stream_filters": [
+            {
+              "type": "healthcheck",
+              "config": {
+                "passthrough": false,
+                "cache_time_ms": 360000,
+                "cluster_min_healthy_percentages": {
+                  "local_service": 70
+                }
+              }
+            }
+          ]
         },
         {
-          "name": "extra_sofa",
+          "name": "ingress",
           "address": "127.0.0.1:12201",
-          "bind_port": true
+          "bind_port": true,
+          "network_filters": [
+            {
+              "type": "proxy",
+              "config": {
+                "downstream_protocol": "SofaRpc",
+                "upstream_protocol": "SofaRpc",
+                "routes": [
+                  {
+                    "name": "example_route",
+                    "service": ".*",
+                    "cluster": "local_service"
+                  }
+                ]
+              }
+            }
+          ]
         }
       ]
     }
@@ -79,26 +88,21 @@
         },
         "hosts": [
           {
-            "hostname": "local_upstream",
+            "hostname": "downstream_machine",
             "address": "127.0.0.1:12345",
             "weight": 1
           }
         ]
       },
       {
-        "name": "local_service_2",
+        "name": "remote_service",
         "type": "SIMPLE",
         "lb_type": "LB_RANDOM",
         "hosts": [
           {
-            "hostname": "local_upstream",
-            "address": "127.0.0.1:12345",
+            "hostname": "upstream_machine",
+            "address": "127.0.0.1:23456",
             "weight": 10
-          },
-          {
-            "hostname": "local_upstream",
-            "address": "127.0.0.1:12346",
-            "weight": 90
           }
         ]
       }

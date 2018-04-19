@@ -1,20 +1,21 @@
 package main
 
 import (
-	"net"
 	"fmt"
-	"time"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"time"
 
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
+	"crypto/tls"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"golang.org/x/net/http2"
-	"crypto/tls"
 	"io/ioutil"
 )
 
@@ -71,17 +72,17 @@ func main() {
 		//RPC
 		srv := server.NewServer(&server.Config{
 			DisableConnIo: true,
-		}, &proxy.GenericProxyFilterConfigFactory{
-			Proxy: genericProxyConfig(),
-		}, nil, cmf)
+		}, cmf)
 
-		srv.AddListener(rpcProxyListener())
+		srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
+			Proxy: genericProxyConfig(),
+		}, nil)
 		cmf.cccb.UpdateClusterConfig(clustersrpc())
 		cmf.chcb.UpdateClusterHost(TestCluster, 0, rpchosts())
 
 		meshReadyChan <- true
 
-		srv.Start()   //开启连接
+		srv.Start() //开启连接
 
 		select {
 		case <-stopChan:
@@ -162,7 +163,7 @@ func ShowRequestInfoHandler(w http.ResponseWriter, r *http.Request) {
 func genericProxyConfig() *v2.Proxy {
 	proxyConfig := &v2.Proxy{
 		DownstreamProtocol: string(protocol.Http2),
-		UpstreamProtocol: string(protocol.Http2),
+		UpstreamProtocol:   string(protocol.Http2),
 	}
 
 	proxyConfig.Routes = append(proxyConfig.Routes, &v2.BasicServiceRoute{
@@ -198,11 +199,11 @@ func rpchosts() []v2.Host {
 }
 
 type clusterManagerFilterRPC struct {
-	cccb server.ClusterConfigFactoryCb
-	chcb server.ClusterHostFactoryCb
+	cccb types.ClusterConfigFactoryCb
+	chcb types.ClusterHostFactoryCb
 }
 
-func (cmf *clusterManagerFilterRPC) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
+func (cmf *clusterManagerFilterRPC) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
 }

@@ -20,25 +20,20 @@ import (
 // ClusterConfigFactoryCb
 // ClusterHostFactoryCb
 type connHandler struct {
-	disableConnIo          bool
-	numConnections         int64
-	listeners              []*activeListener
-	clusterManager         types.ClusterManager
-	networkFiltersFactory  NetworkFilterChainFactory
-	streamFiltersFactories []types.StreamFilterChainFactory
-	logger                 log.Logger
+	disableConnIo  bool
+	numConnections int64
+	listeners      []*activeListener
+	clusterManager types.ClusterManager
+	logger         log.Logger
 }
 
-func NewHandler(networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
-	clusterManagerFilter ClusterManagerFilter, logger log.Logger, DisableConnIo bool) types.ConnectionHandler {
+func NewHandler(clusterManagerFilter types.ClusterManagerFilter, logger log.Logger, DisableConnIo bool) types.ConnectionHandler {
 	ch := &connHandler{
-		disableConnIo:          DisableConnIo,
-		numConnections:         0,
-		clusterManager:         cluster.NewClusterManager(nil),
-		listeners:              make([]*activeListener, 0),
-		networkFiltersFactory:  networkFiltersFactory,
-		streamFiltersFactories: streamFiltersFactories,
-		logger:                 logger,
+		disableConnIo:  DisableConnIo,
+		numConnections: 0,
+		clusterManager: cluster.NewClusterManager(nil),
+		listeners:      make([]*activeListener, 0),
+		logger:         logger,
 	}
 
 	clusterManagerFilter.OnCreated(ch, ch)
@@ -68,16 +63,17 @@ func (ch *connHandler) NumConnections() uint64 {
 	return uint64(atomic.LoadInt64(&ch.numConnections))
 }
 
-func (ch *connHandler) StartListener(l types.Listener) {
+func (ch *connHandler) StartListener(l types.Listener, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
+	//TODO: connection level stop-chan usage confirm
 	listenerStopChan := make(chan bool)
 
-	al := newActiveListener(l, ch, listenerStopChan)
+	al := newActiveListener(l, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan)
 	l.SetListenerCallbacks(al)
 
 	ch.listeners = append(ch.listeners, al)
 
 	// TODO: use goruntine pool
-	go l.Start(al.stopChan, nil)
+	go l.Start(nil)
 }
 
 func (ch *connHandler) FindListenerByAddress(addr net.Addr) types.Listener {
@@ -122,7 +118,7 @@ func (ch *connHandler) ListListenersFD(lctx context.Context) []uintptr {
 		if err != nil {
 			log.DefaultLogger.Fatalln("fail to get listener", l.listener.Name(), " file descriptor:", err)
 		}
-		fds[idx] =  fd
+		fds[idx] = fd
 	}
 	return fds
 }
@@ -142,19 +138,23 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 
 // ListenerEventListener
 type activeListener struct {
-	listener       types.Listener
-	listenPort     int
-	statsNamespace string
-	conns          *list.List
-	connsMux       sync.RWMutex
-	handler        *connHandler
-	stopChan       chan bool
-	stats          *ListenerStats
+	listener               types.Listener
+	networkFiltersFactory  types.NetworkFilterChainFactory
+	streamFiltersFactories []types.StreamFilterChainFactory
+	listenPort             int
+	statsNamespace         string
+	conns                  *list.List
+	connsMux               sync.RWMutex
+	handler                *connHandler
+	stopChan               chan bool
+	stats                  *ListenerStats
 }
 
-func newActiveListener(listener types.Listener, handler *connHandler, stopChan chan bool) *activeListener {
+func newActiveListener(listener types.Listener, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool) *activeListener {
 	al := &activeListener{
-		listener: listener,
+		listener:               listener,
+		networkFiltersFactory:  networkFiltersFactory,
+		streamFiltersFactories: streamFiltersFactories,
 		conns:    list.New(),
 		handler:  handler,
 		stopChan: stopChan,
@@ -182,8 +182,8 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
 	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = context.WithValue(ctx, types.ContextKeyListenerStatsNameSpace, al.statsNamespace)
-	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactory, al.handler.networkFiltersFactory)
-	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.handler.streamFiltersFactories)
+	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactory, al.networkFiltersFactory)
+	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 
 	arc.ContinueFilterChain(true, ctx)
 }
@@ -195,7 +195,7 @@ func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Con
 		conn.Start(ctx)
 	}
 
-	configFactory := al.handler.networkFiltersFactory.CreateFilterFactory(al.handler.clusterManager, ctx)
+	configFactory := al.networkFiltersFactory.CreateFilterFactory(al.handler.clusterManager, ctx)
 	buildFilterChain(conn.FilterManager(), configFactory)
 
 	filterManager := conn.FilterManager()

@@ -18,9 +18,20 @@ var logLevelMap = map[string]log2.LogLevel{
 	"INFO":  log2.INFO,
 }
 
-func ParseServerConfig(c *ServerConfig) *server.Config {
-	sc := &server.Config{}
+var networkFilterTypeMap = map[string]string{}
 
+var streamFilterTypeMap = map[string]string{}
+
+var clusterTypeMap = map[string]v2.ClusterType{
+	"SIMPLE": v2.SIMPLE_CLUSTER,
+}
+
+var lbTypeMap = map[string]v2.LbType{
+	"LB_RANDOM": v2.LB_RANDOM,
+}
+
+func ParseServerConfig(c *ServerConfig) *server.Config {
+	sc := &server.Config{DisableConnIo: c.DisableConnIo}
 	if c.AccessLog != "" {
 		sc.LogPath = c.AccessLog
 	}
@@ -45,10 +56,10 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 		if downstreamProtocol, ok := downstreamProtocol.(string); ok {
 			proxyConfig.DownstreamProtocol = downstreamProtocol
 		} else {
-			log.Fatal("[downstream_protocol] in proxy filter config is not string")
+			log.Fatalln("[downstream_protocol] in proxy filter config is not string")
 		}
 	} else {
-		log.Fatal("[downstream_protocol] is required in proxy filter config")
+		log.Fatalln("[downstream_protocol] is required in proxy filter config")
 	}
 
 	//upstream protocol
@@ -56,10 +67,10 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 		if upstreamProtocol, ok := upstreamProtocol.(string); ok {
 			proxyConfig.UpstreamProtocol = upstreamProtocol
 		} else {
-			log.Fatal("[upstream_protocol] in proxy filter config is not string")
+			log.Fatalln("[upstream_protocol] in proxy filter config is not string")
 		}
 	} else {
-		log.Fatal("[upstream_protocol] is required in proxy filter config")
+		log.Fatalln("[upstream_protocol] is required in proxy filter config")
 	}
 
 	//routes
@@ -69,10 +80,10 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 				proxyConfig.Routes = append(proxyConfig.Routes, parseRouteConfig(route.(map[string]interface{})))
 			}
 		} else {
-			log.Fatal("[routes] in proxy filter config is not list of routemap")
+			log.Fatalln("[routes] in proxy filter config is not list of routemap")
 		}
 	} else {
-		log.Fatal("[routes] is required in proxy filter config")
+		log.Fatalln("[routes] is required in proxy filter config")
 	}
 	return proxyConfig
 }
@@ -85,10 +96,10 @@ func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
 		if name, ok := name.(string); ok {
 			route.Name = name
 		} else {
-			log.Fatal("[name] in proxy filter route config is not string")
+			log.Fatalln("[name] in proxy filter route config is not string")
 		}
 	} else {
-		log.Fatal("[name] is required in proxy filter route config")
+		log.Fatalln("[name] is required in proxy filter route config")
 	}
 
 	//service
@@ -96,10 +107,10 @@ func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
 		if service, ok := service.(string); ok {
 			route.Service = service
 		} else {
-			log.Fatal("[service] in proxy filter route config is not string")
+			log.Fatalln("[service] in proxy filter route config is not string")
 		}
 	} else {
-		log.Fatal("[service] is required in proxy filter route config")
+		log.Fatalln("[service] is required in proxy filter route config")
 	}
 
 	//cluster
@@ -107,10 +118,10 @@ func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
 		if cluster, ok := cluster.(string); ok {
 			route.Cluster = cluster
 		} else {
-			log.Fatal("[cluster] in proxy filter route config is not string")
+			log.Fatalln("[cluster] in proxy filter route config is not string")
 		}
 	} else {
-		log.Fatal("[cluster] is required in proxy filter route config")
+		log.Fatalln("[cluster] is required in proxy filter route config")
 	}
 
 	return route
@@ -125,10 +136,10 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 		if percent, ok := percent.(float64); ok {
 			faultInject.DelayPercent = uint32(percent)
 		} else {
-			log.Fatal("[delay_percent] in fault inject filter config is not integer")
+			log.Fatalln("[delay_percent] in fault inject filter config is not integer")
 		}
 	} else {
-		log.Fatal("[delay_percent] is required in fault inject filter config")
+		log.Fatalln("[delay_percent] is required in fault inject filter config")
 	}
 
 	//duration
@@ -136,10 +147,10 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 		if duration, ok := duration.(float64); ok {
 			faultInject.DelayDuration = uint64(duration)
 		} else {
-			log.Fatal("[delay_duration_ms] in fault inject filter config is not integer")
+			log.Fatalln("[delay_duration_ms] in fault inject filter config is not integer")
 		}
 	} else {
-		log.Fatal("[delay_duration_ms] is required in fault inject filter config")
+		log.Fatalln("[delay_duration_ms] is required in fault inject filter config")
 	}
 
 	return faultInject
@@ -152,10 +163,10 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 		if passthrough, ok := passthrough.(bool); ok {
 			healthcheck.PassThrough = passthrough
 		} else {
-			log.Fatal("[passthrough] in health check filter config is not bool")
+			log.Fatalln("[passthrough] in health check filter config is not bool")
 		}
 	} else {
-		log.Fatal("[passthrough] is required in healthcheck filter config")
+		log.Fatalln("[passthrough] is required in healthcheck filter config")
 	}
 
 	//cache time
@@ -163,10 +174,10 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 		if cacheTime, ok := cacheTime.(float64); ok {
 			healthcheck.CacheTime = time.Duration(cacheTime)
 		} else {
-			log.Fatal("[cache_time_ms] in health check filter config is not integer")
+			log.Fatalln("[cache_time_ms] in health check filter config is not integer")
 		}
 	} else {
-		log.Fatal("[cache_time_ms] is required in healthcheck filter config")
+		log.Fatalln("[cache_time_ms] is required in healthcheck filter config")
 	}
 
 	//cluster_min_healthy_percentages
@@ -177,10 +188,10 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 				healthcheck.ClusterMinHealthyPercentage[cluster] = float32(percent.(float64))
 			}
 		} else {
-			log.Fatal("[passthrough] in health check filter config is not bool")
+			log.Fatalln("[passthrough] in health check filter config is not bool")
 		}
 	} else {
-		log.Fatal("[passthrough] is required in healthcheck filter config")
+		log.Fatalln("[passthrough] is required in healthcheck filter config")
 	}
 	return healthcheck
 }
@@ -199,6 +210,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		log.Fatalln("[Address] not valid:" + c.Address)
 	}
 
+	//try inherit legacy listener
 	var old *net.TCPListener = nil
 
 	for _, il := range inheritListeners {
@@ -221,15 +233,29 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 
 func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
 	if c.Name == "" {
-		log.Fatal("[name] is required in cluster config")
+		log.Fatalln("[name] is required in cluster config")
 	}
 
+	var clusterType v2.ClusterType
 	if c.Type == "" {
-		log.Fatal("[type] is required in cluster config")
+		log.Fatalln("[type] is required in cluster config")
+	} else {
+		if ct, ok := clusterTypeMap[c.Type]; ok {
+			clusterType = ct
+		} else {
+			log.Fatalln("unknown cluster type:", c.Type)
+		}
 	}
 
+	var lbType v2.LbType
 	if c.LbType == "" {
-		log.Fatal("[lb_type] is required in cluster config")
+		log.Fatalln("[lb_type] is required in cluster config")
+	} else {
+		if lt, ok := lbTypeMap[c.LbType]; ok {
+			lbType = lt
+		} else {
+			log.Fatalln("unknown lb type:", c.LbType)
+		}
 	}
 
 	if c.MaxRequestPerConn == 0 {
@@ -244,8 +270,8 @@ func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
 
 	return v2.Cluster{
 		Name:                 c.Name,
-		ClusterType:          v2.ClusterType(strings.ToUpper(c.Type)),
-		LbType:               v2.LbType(strings.ToUpper(c.LbType)),
+		ClusterType:          clusterType,
+		LbType:               lbType,
 		MaxRequestPerConn:    c.MaxRequestPerConn,
 		ConnBufferLimitBytes: c.ConnBufferLimitBytes,
 	}
@@ -253,14 +279,14 @@ func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
 
 func ParseHostConfig(c *ClusterConfig) []v2.Host {
 	if c.Hosts == nil || len(c.Hosts) == 0 {
-		log.Fatal("[hosts] is required in cluster config")
+		log.Fatalln("[hosts] is required in cluster config")
 	}
 
 	var hosts []v2.Host
 
 	for _, host := range c.Hosts {
 		if host.Address == "" {
-			log.Fatal("[host.address] is required in host config")
+			log.Fatalln("[host.address] is required in host config")
 		}
 
 		hosts = append(hosts, v2.Host{
