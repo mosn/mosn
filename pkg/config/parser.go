@@ -256,10 +256,3 @@ func ParseHostConfig(c *ClusterConfig) []v2.Host {
 
 	return hosts
 }
-
-func ParseHostMsgChan(c *MsgChanConfig) string {
-	if c.Host.Address == "" {
-		log.Fatal("[MsgChannel.host] shoudl have a valild address")
-	}
-	return c.Host.Address
-}

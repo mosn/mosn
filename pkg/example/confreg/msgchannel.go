@@ -53,7 +53,7 @@ func main() {
 	wg.Add(2)
 
 	go func(){
-		go msgChan.StartChannel("localhost:8888")
+		go msgChan.StartChannel()
 		channelReadyChan <- true
 	}()
 

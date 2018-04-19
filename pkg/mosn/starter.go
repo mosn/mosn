@@ -45,14 +45,13 @@ func Start(c *config.MOSNConfig) {
 
 	go func() {
 		// pprof server
-		http.ListenAndServe("10.210.168.5:9090", nil)
+		http.ListenAndServe("0.0.0.0:9090", nil)
 		wg.Done()
 	}()
 
 	//MsgChannel Server
-	msgChanAddr := config.ParseHostMsgChan(&c.MsgChannelSrv)
 	go func(){
-		confreg.MsgChan.StartChannel(msgChanAddr)
+		confreg.MsgChan.StartChannel()
 		wg.Done()
 	}()
 

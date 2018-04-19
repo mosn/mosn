@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type MsgChannel struct {
@@ -155,7 +155,7 @@ func (m *MsgChannel) UnSubscribeService(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (m *MsgChannel) StartChannel(address string) {
+func (m *MsgChannel) StartChannel() {
 
 	fmt.Println("[MESH HTTP LISTEN]")
 	http.HandleFunc("/publishService", m.PublishService)
@@ -163,7 +163,7 @@ func (m *MsgChannel) StartChannel(address string) {
 	http.HandleFunc("/subscribeService", m.SubscribeService)
 	http.HandleFunc("/unSubscribeService", m.UnSubscribeService)
 
-	if err := http.ListenAndServe(address, nil); err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	if err := http.ListenAndServe("0.0.0.0:8888", nil); err != nil {
+		log.DefaultLogger.Errorf("ListenAndServe: ", err)
 	}
 }
