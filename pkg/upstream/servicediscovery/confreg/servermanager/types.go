@@ -9,6 +9,8 @@ type RPCServerManager interface {
 
     GetRPCServerListByZone(dataId string, zone string) (servers []string, ok bool)
 
+    GetRPCServiceSnapshot() []byte
+
     RegisterRPCServerChangeListener(listener RPCServerChangeListener)
 }
 

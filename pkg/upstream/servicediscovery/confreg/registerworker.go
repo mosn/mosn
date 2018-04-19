@@ -14,6 +14,7 @@ import (
     "github.com/rcrowley/go-metrics"
     "errors"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 const (
@@ -92,20 +93,33 @@ func (rw *registerWorker) init() {
 
     confregServer, ok := rw.confregServerManager.GetRegistryServerByRandom()
     if !ok {
-        panic("Can not connect to confreg server. Because confreg server list is empty.")
+        errMsg := "can not connect to confreg server. Because confreg server list is empty"
+        log.DefaultLogger.Errorf(errMsg)
+        panic(errMsg)
     }
-    rw.connectedConfregServer = confregServer
-    rw.newCodecClient(confregServer)
+    for err := rw.newCodecClient(confregServer); err != nil; {
+        log.DefaultLogger.Warnf("Connect to confreg server failed. error = %v", err)
+        time.Sleep(rw.registryConfig.ConnectRetryDuration)
+        confregServer, ok = rw.confregServerManager.GetRegistryServerByRR()
+        err = rw.newCodecClient(confregServer)
+    }
 }
 
-func (rw *registerWorker) newCodecClient(confregServer string) {
+func (rw *registerWorker) newCodecClient(confregServer string) error {
+    rw.connectedConfregServer = confregServer
+
     remoteAddr, _ := net.ResolveTCPAddr("tcp", confregServer)
     conn := network.NewClientConnection(nil, remoteAddr, rw.stopChan)
     receiveDataListener := NewReceiveDataListener(rw.rpcServerManager)
     codecClient := stream.NewBiDirectCodeClient(protocol.SofaRpc, conn, nil, receiveDataListener)
-    conn.Connect(true)
+    codecClient.AddConnectionCallbacks(rw)
+    err := conn.Connect(true)
+    if err != nil {
+        return err
+    }
     rw.codecClient = &codecClient
     log.DefaultLogger.Infof("Connect to confreg server. server = %v", confregServer)
+    return nil
 }
 
 func (rw *registerWorker) SubmitPublishTask(dataId string, data []string, eventType string) {
@@ -260,9 +274,25 @@ func (rw *registerWorker) OnRegistryServerChangeEvent(registryServers []string) 
     if isConnectedServerStillAlive {
         return
     }
-    confregServer, _ := rw.confregServerManager.GetRegistryServerByRandom()
-    rw.newCodecClient(confregServer)
-    rw.connectedConfregServer = confregServer
+    rw.refreshCodecClient()
+}
+
+func (rw *registerWorker) refreshCodecClient() {
+    for {
+        confregServer, ok := rw.confregServerManager.GetRegistryServerByRR()
+        if !ok {
+            log.DefaultLogger.Warnf("Confreg server list is empty.")
+            time.Sleep(rw.registryConfig.ConnectRetryDuration)
+            continue
+        }
+        err := rw.newCodecClient(confregServer)
+        if err != nil {
+            log.DefaultLogger.Warnf("Connect to confreg server failed. error = %v", err)
+            time.Sleep(rw.registryConfig.ConnectRetryDuration)
+            continue
+        }
+        break
+    }
     rw.publisherHolder.Range(rw.refreshPublisherCodecClient)
     rw.subscriberHolder.Range(rw.refreshSubscriberCodecClient)
 }
@@ -275,4 +305,18 @@ func (rw *registerWorker) refreshPublisherCodecClient(key, value interface{}) bo
 func (rw *registerWorker) refreshSubscriberCodecClient(key, value interface{}) bool {
     value.(*Subscriber).codecClient = rw.codecClient
     return true
+}
+
+func (rw *registerWorker) OnEvent(event types.ConnectionEvent) {
+    if event.IsClose() {
+        log.DefaultLogger.Infof("The Connection with confreg server closed, will connect to another server. "+
+            "current connected confreg server = %s", rw.connectedConfregServer)
+        rw.refreshCodecClient()
+    }
+}
+
+func (rw *registerWorker) OnAboveWriteBufferHighWatermark() {
+}
+
+func (rw *registerWorker) OnBelowWriteBufferLowWatermark() {
 }

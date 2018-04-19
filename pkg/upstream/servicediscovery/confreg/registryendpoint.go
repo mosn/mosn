@@ -45,7 +45,7 @@ func NewRegistryEndpoint(services []string, msgChannelCB MsgChanCallback, regist
     }
 }
 
-func (m *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     raw, _ := ioutil.ReadAll(r.Body)
 
     var request PublishServiceRequest
@@ -55,7 +55,7 @@ func (m *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Request
     }
     dataId := ps.ByName("serviceName")
     //todo Assemble publish data
-    err := m.registryClient.PublishSync(dataId, "127.0.0.1:6666")
+    err := re.registryClient.PublishSync(dataId, "127.0.0.1:6666")
     if err == nil {
         doResponse(true, "success", w)
     } else {
@@ -63,7 +63,7 @@ func (m *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Request
     }
 }
 
-func (m *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     body, _ := ioutil.ReadAll(r.Body)
 
     var request UnPublishServiceRequest
@@ -71,7 +71,7 @@ func (m *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Reque
         doResponse(false, "Unmarshal body stream to unpublish service request failed.", w)
         return
     }
-    err := m.registryClient.UnPublishSync(request.ServiceName)
+    err := re.registryClient.UnPublishSync(request.ServiceName)
     if err == nil {
         doResponse(true, "success", w)
     } else {
@@ -79,7 +79,7 @@ func (m *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Reque
     }
 }
 
-func (m *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     body, _ := ioutil.ReadAll(r.Body)
 
     var request SubscribeServiceRequest
@@ -89,7 +89,7 @@ func (m *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Reque
     }
     //1. Subscribe from confreg
     dataId := request.ServiceName
-    err := m.registryClient.SubscribeSync(dataId)
+    err := re.registryClient.SubscribeSync(dataId)
     if err != nil {
         doResponse(false, err, w)
         return
@@ -112,7 +112,7 @@ func (m *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Reque
                     Success:      true,
                     ServiceName:  dataId,
                 }
-                servers, ok := m.registryClient.GetRPCServerManager().GetRPCServerList(dataId)
+                servers, ok := re.registryClient.GetRPCServerManager().GetRPCServerList(dataId)
                 if !ok {
                     result.Datas = []string{}
                 } else {
@@ -123,14 +123,14 @@ func (m *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Reque
                 }
                 res, _ := json.Marshal(result)
                 w.Write(res)
-                return 
+                return
             }
 
         }
     }
 }
 
-func (m *RegistryEndpoint) UnSubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *RegistryEndpoint) UnSubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     body, _ := ioutil.ReadAll(r.Body)
 
     var request UnSubscribeServiceRequest
@@ -138,13 +138,16 @@ func (m *RegistryEndpoint) UnSubscribeService(w http.ResponseWriter, r *http.Req
         doResponse(false, "Unmarshal body stream to subscribe service request failed.", w)
         return
     }
-    err := m.registryClient.UnSubscribeSync(request.ServiceName)
+    err := re.registryClient.UnSubscribeSync(request.ServiceName)
     if err == nil {
         doResponse(true, "success", w)
     } else {
         doResponse(false, err, w)
     }
+}
 
+func (re *RegistryEndpoint) GetServiceInfoSnapshot(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    w.Write(re.registryClient.GetRPCServerManager().GetRPCServiceSnapshot())
 }
 
 func doResponse(success bool, errMsg interface{}, w http.ResponseWriter) {
@@ -160,12 +163,13 @@ func doResponse(success bool, errMsg interface{}, w http.ResponseWriter) {
     w.Write(bytes)
 }
 
-func (m *RegistryEndpoint) StartChannel() {
+func (re *RegistryEndpoint) StartListener() {
     router := httprouter.New()
-    router.POST("/services/publish", m.PublishService)
-    router.POST("/services/unpublish", m.UnPublishService)
-    router.POST("/services/subscribe", m.SubscribeService)
-    router.POST("/services/unsubscribe", m.UnSubscribeService)
+    router.POST("/services/publish", re.PublishService)
+    router.POST("/services/unpublish", re.UnPublishService)
+    router.POST("/services/subscribe", re.SubscribeService)
+    router.POST("/services/unsubscribe", re.UnSubscribeService)
+    router.GET("/services", re.GetServiceInfoSnapshot)
 
     port := "8888"
     httpServerEndpoint := "localhost:" + port

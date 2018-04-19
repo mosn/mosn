@@ -2,12 +2,15 @@ package servermanager
 
 import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
+    "github.com/deckarep/golang-set"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
+    "encoding/json"
 )
 
 type segmentData struct {
-    segment string
-    version int64
-    data    map[string][]string
+    Segment string              `json:"segment"`
+    Version int64               `json:"version"`
+    Data    map[string][]string `json:"data"`
 }
 
 func newSegmentData(receivedData *model.ReceivedDataPb) segmentData {
@@ -21,9 +24,9 @@ func newSegmentData(receivedData *model.ReceivedDataPb) segmentData {
         result[zone] = resolvedSrvs
     }
     return segmentData{
-        segment: receivedData.Segment,
-        version: receivedData.Version,
-        data:    result,
+        Segment: receivedData.Segment,
+        Version: receivedData.Version,
+        Data:    result,
     }
 }
 
@@ -55,27 +58,42 @@ func (sm *DefaultRPCServerManager) RegisterRPCServer(receivedData *model.Receive
         go sm.triggerRPCServerChangeEvent(dataId)
     } else {
         storedSegment, ok := storedDataIdContainer[receivedData.Segment]
-        if !ok || storedSegment.version < receivedData.Version {
+        if !ok || storedSegment.Version < receivedData.Version {
             segment := newSegmentData(receivedData)
             storedDataIdContainer[receivedData.Segment] = segment
 
             go sm.triggerRPCServerChangeEvent(dataId)
+        } else {
+            log.DefaultLogger.Infof("Received data which the version is lower than stored data, and will ignore the data."+
+                "stored version = %d, received version = %d", storedSegment.Version, receivedData.Version)
         }
     }
 }
 
 func (sm *DefaultRPCServerManager) GetRPCServerList(dataId string) (servers map[string][]string, ok bool) {
-    result := make(map[string][]string)
-
     segments, ok := sm.svrData[dataId]
     if !ok {
-        return result, false
+        return nil, false
     }
 
+    zoneMapServerSet := make(map[string]mapset.Set)
     for _, segmentData := range segments {
-        for zone, srvs := range segmentData.data {
-            zoneSrvs := srvs
-            result[zone] = zoneSrvs
+        for zone, srvs := range segmentData.Data {
+            if zoneMapServerSet[zone] == nil {
+                zoneMapServerSet[zone] = mapset.NewSet()
+            }
+            for _, srv := range srvs {
+                zoneMapServerSet[zone].Add(srv)
+            }
+        }
+    }
+
+    result := make(map[string][]string)
+    for zone, srvSet := range zoneMapServerSet {
+        srvSetSlice := srvSet.ToSlice()
+        result[zone] = make([]string, len(srvSetSlice))
+        for i, srv := range srvSetSlice {
+            result[zone][i] = srv.(string)
         }
     }
 
@@ -87,16 +105,33 @@ func (sm *DefaultRPCServerManager) GetRPCServerListByZone(dataId string, zone st
     if !ok {
         return nil, false
     }
-
+    srvSet := mapset.NewSet()
     for _, segmentData := range segments {
-        for storedZone, srvs := range segmentData.data {
-            if storedZone == zone {
-                return srvs, true
+        for segZone, srvs := range segmentData.Data {
+            if segZone != zone {
+                continue
+            }
+            for _, srv := range srvs {
+                srvSet.Add(srv)
             }
         }
     }
+    srvSetSlice := srvSet.ToSlice()
+    if len(srvSetSlice) == 0 {
+        return nil, false
+    }
 
-    return nil, false
+    srvs := make([]string, len(srvSetSlice))
+    for i, srv := range srvSetSlice {
+        srvs[i] = srv.(string)
+    }
+
+    return srvs, true
+}
+
+func (sm *DefaultRPCServerManager) GetRPCServiceSnapshot() []byte {
+    snapshot, _ := json.Marshal(sm.svrData)
+    return snapshot
 }
 
 func (sm *DefaultRPCServerManager) triggerRPCServerChangeEvent(dataId string) {

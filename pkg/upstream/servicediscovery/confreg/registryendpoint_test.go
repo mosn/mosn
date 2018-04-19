@@ -13,6 +13,6 @@ func TestMsgChannel_PublishService(t *testing.T) {
     registryClient, _ := GetRegistryClient()
     msgChann := NewRegistryEndpoint(nil, nil, registryClient)
 
-    msgChann.StartChannel()
+    msgChann.StartListener()
 }
 

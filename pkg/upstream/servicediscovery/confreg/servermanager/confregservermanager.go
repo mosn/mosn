@@ -25,6 +25,7 @@ type RegistryServerManager struct {
     endpoint        string
     registryServers []string
     changeListeners []RegistryServerChangeListener
+    rrIndex         int
 }
 
 func NewRegistryServerManager(sysConfig *config.SystemConfig) *RegistryServerManager {
@@ -35,6 +36,7 @@ func NewRegistryServerManager(sysConfig *config.SystemConfig) *RegistryServerMan
     csm := &RegistryServerManager{
         endpoint:        endpoint,
         changeListeners: make([]RegistryServerChangeListener, 0, 10),
+        rrIndex:         0,
     }
 
     httpClient := http.Client{
@@ -138,6 +140,17 @@ func (csm *RegistryServerManager) GetRegistryServerByRandom() (string, bool) {
     //    return csm.registryServers[index], true
     //}
     //return "", false
+}
+
+func (csm *RegistryServerManager) GetRegistryServerByRR() (string, bool) {
+    serverCount := len(csm.registryServers)
+    if serverCount <= 0 {
+        return "", false
+    }
+    if csm.rrIndex >= serverCount {
+        csm.rrIndex = 0
+    }
+    return csm.registryServers[csm.rrIndex], true
 }
 
 func (csm *RegistryServerManager) RegisterServerChangeListener(listener RegistryServerChangeListener) {

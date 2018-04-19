@@ -11,7 +11,7 @@ var registryConfig *config.RegistryConfig
 
 func beforeTest() {
     log.InitDefaultLogger("", log.INFO)
-    MockRpcServer()
+    //MockRpcServer()
 
     sysConfig = &config.SystemConfig{
         Zone:             "GZ00b",

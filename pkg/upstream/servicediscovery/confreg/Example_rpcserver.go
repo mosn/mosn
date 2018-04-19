@@ -20,86 +20,104 @@ func run() {
 
     defer l.Close()
 
+    conn, _ := l.Accept()
+
+    fmt.Printf("[REALSERVER]get connection %s..", conn.RemoteAddr())
+    fmt.Println()
+
+    buf := make([]byte, 4*1024)
+
     for {
-        select {
-        case <-time.After(2 * time.Second):
-            conn, _ := l.Accept()
+        t := time.Now()
+        conn.SetReadDeadline(t.Add(3 * time.Second))
 
-            fmt.Printf("[REALSERVER]get connection %s..", conn.RemoteAddr())
+        if bytesRead, err := conn.Read(buf); err != nil {
+
+            if err, ok := err.(net.Error); ok && err.Timeout() {
+                continue
+            }
+
+            fmt.Println("[REALSERVER]failed read buf")
+            return
+        } else {
+            request := decodeBoltRequest(buf[:bytesRead])
+            fmt.Println("------------Confreg Server Received Data---------- ")
+            fmt.Printf("BoltReqId = %d", request.ReqId)
             fmt.Println()
+            publishRequestPb := &model.PublisherRegisterPb{}
+            err := proto.Unmarshal(request.Content, publishRequestPb)
+            var regId string
+            if err == nil {
+                fmt.Println("Recievied publish request.")
+                fmt.Println("DataId = " + publishRequestPb.BaseRegister.DataId)
+                fmt.Println("RegistId = " + publishRequestPb.BaseRegister.RegistId)
+                fmt.Println("Version = ", publishRequestPb.BaseRegister.Version)
+                fmt.Println("Timestamp = ", publishRequestPb.BaseRegister.Timestamp)
 
-            buf := make([]byte, 4*1024)
+                fmt.Printf("Data: %v", publishRequestPb.DataList)
+                regId = publishRequestPb.BaseRegister.RegistId
 
-            for {
-                t := time.Now()
-                conn.SetReadDeadline(t.Add(3 * time.Second))
-
-                if bytesRead, err := conn.Read(buf); err != nil {
-
-                    if err, ok := err.(net.Error); ok && err.Timeout() {
-                        continue
-                    }
-
-                    fmt.Println("[REALSERVER]failed read buf")
-                    return
-                } else {
-                    request := decodeBoltRequest(buf[:bytesRead])
-                    fmt.Println("------------Confreg Server Received Data---------- ")
-                    fmt.Printf("BoltReqId = %d", request.ReqId)
-                    fmt.Println()
-                    publishRequestPb := &model.PublisherRegisterPb{}
-                    err := proto.Unmarshal(request.Content, publishRequestPb)
-                    var regId string
-                    if err == nil {
-                        fmt.Println("Recievied publish request.")
-                        fmt.Println("DataId = " + publishRequestPb.BaseRegister.DataId)
-                        fmt.Println("RegistId = " + publishRequestPb.BaseRegister.RegistId)
-                        fmt.Println("Version = ", publishRequestPb.BaseRegister.Version)
-                        fmt.Println("Timestamp = ", publishRequestPb.BaseRegister.Timestamp)
-
-                        fmt.Printf("Data: %v", publishRequestPb.DataList)
-                        regId = publishRequestPb.BaseRegister.RegistId
-
+                fmt.Println()
+                go func() {
+                    //if "someDataId" == publishRequestPb.BaseRegister.DataId {
+                    //    time.Sleep(4 * time.Second)
+                    //}
+                    conn.Write(assembleRegisterResponse(regId, request.ReqId))
+                }()
+            } else {
+                subscriberRequestPb := &model.SubscriberRegisterPb{}
+                err := proto.Unmarshal(request.Content, subscriberRequestPb)
+                if err == nil {
+                    fmt.Println("Recievied subscriber request.")
+                    fmt.Println("Scope = " + subscriberRequestPb.Scope)
+                    fmt.Println("DataId = " + subscriberRequestPb.BaseRegister.DataId)
+                    regId = subscriberRequestPb.BaseRegister.RegistId
+                    fmt.Println("RegistId = " + regId)
+                    fmt.Println("Version = ", subscriberRequestPb.BaseRegister.Version)
+                    fmt.Println("Timestamp = ", subscriberRequestPb.BaseRegister.Timestamp)
+                    //do response
+                    go func() {
+                        //if "someDataId" ==  subscriberRequestPb.BaseRegister.DataId {
+                        //time.Sleep(4 * time.Second)
+                        //}
                         fmt.Println()
-                        go func() {
-                            if "someDataId" ==  publishRequestPb.BaseRegister.DataId {
-                                time.Sleep(4 * time.Second)
-                            }
-                            conn.Write(assembleRegisterResponse(regId, request.ReqId))
-                        }()
-                    } else {
-                        subscriberRequestPb := &model.SubscriberRegisterPb{}
-                        err := proto.Unmarshal(request.Content, subscriberRequestPb)
-                        if err == nil {
-                            fmt.Println("Recievied subscriber request.")
-                            fmt.Println("Scope = " + subscriberRequestPb.Scope)
-                            fmt.Println("DataId = " + subscriberRequestPb.BaseRegister.DataId)
-                            regId = subscriberRequestPb.BaseRegister.RegistId
-                            fmt.Println("RegistId = " + regId)
-                            fmt.Println("Version = ", subscriberRequestPb.BaseRegister.Version)
-                            fmt.Println("Timestamp = ", subscriberRequestPb.BaseRegister.Timestamp)
-                            //do response
-                            go func() {
-                                if "someDataId" ==  subscriberRequestPb.BaseRegister.DataId {
-                                    time.Sleep(4 * time.Second)
-                                }
-                                fmt.Println()
-                                conn.Write(assembleRegisterResponse(regId, request.ReqId))
-                            }()
+                        conn.Write(assembleRegisterResponse(regId, request.ReqId))
+                    }()
 
-                            //write data
-                            //time.Sleep(1 * time.Second)
-                            //fmt.Println("Write data...")
-                            //receivedDataCmd := assembleReceivedDataRequest(subscriberRequestPb.BaseRegister.DataId)
-                            //conn.Write(doEncodeRequestCommand(receivedDataCmd))
-                        }
+                    //write data
+                    //v := int64(1)
+                    //for ; ; {
+                    time.Sleep(1 * time.Second)
+                    //v++
+                    receivedDataCmd := assembleReceivedDataRequest(subscriberRequestPb.BaseRegister.DataId, "s1", 10)
+                    conn.Write(doEncodeRequestCommand(receivedDataCmd))
+
+                    time.Sleep(1 * time.Second)
+                    receivedDataCmd2 := assembleReceivedDataRequest(subscriberRequestPb.BaseRegister.DataId, "s1", 1)
+                    conn.Write(doEncodeRequestCommand(receivedDataCmd2))
+                    //}
+
+                    time.Sleep(5 * time.Second)
+                    err := l.Close()
+                    if err != nil {
+                        fmt.Println(err)
                     }
+                    //time.Sleep(1 * time.Second)
+                    //receivedDataCmd2 := assembleReceivedDataRequest(subscriberRequestPb.BaseRegister.DataId, "s1", 1)
+                    //fmt.Println("Push data. Version = ", receivedDataCmd2.Version)
+                    //conn.Write(doEncodeRequestCommand(receivedDataCmd2))
 
-                    //time.Sleep(4 * time.Second)
-                    //break
+                    //time.Sleep(1 * time.Second)
+                    //receivedDataCmd3 := assembleReceivedDataRequest(subscriberRequestPb.BaseRegister.DataId, "s3")
+                    //fmt.Println("Push data. Version = ", receivedDataCmd3.Version)
+                    //conn.Write(doEncodeRequestCommand(receivedDataCmd3))
 
                 }
             }
+
+            //time.Sleep(4 * time.Second)
+            //break
+
         }
     }
 
@@ -136,13 +154,6 @@ func assembleRegisterResponse(registId string, boltReqId uint32) []byte {
 }
 
 func decodeBoltRequest(bytes []byte) *sofarpc.BoltRequestCommand {
-
-    //defer func() {
-    //    if err := recover(); err != nil {
-    //        fmt.Println(bytes)
-    //        fmt.Println("ERROR : ", err)
-    //    }
-    //}()
     read := 0
     dataType := bytes[1]
 
@@ -192,21 +203,21 @@ func decodeBoltRequest(bytes []byte) *sofarpc.BoltRequestCommand {
 
 var v int64 = 0
 
-func assembleReceivedDataRequest(dataId string) *sofarpc.BoltRequestCommand {
+func assembleReceivedDataRequest(dataId string, seg string, version int64) *sofarpc.BoltRequestCommand {
     v ++
     dataBox := &model.DataBoxesPb{
-        Data: []*model.DataBoxPb{{"data1"}, {"data2"}, {"data3"}},
+        Data: []*model.DataBoxPb{{"data1"}, {"data2"}, {"data3"}, {RandomUuid()}},
     }
 
     dataBox2 := &model.DataBoxesPb{
-        Data: []*model.DataBoxPb{{"c1"}, {"c2"}, {"c3"}},
+        Data: []*model.DataBoxPb{{"c1"}, {"c2"}, {"c3"}, {RandomUuid()}},
     }
 
     rd := &model.ReceivedDataPb{
         DataId:  dataId,
-        Segment: "s1",
+        Segment: seg,
         Data:    map[string]*model.DataBoxesPb{"zone1": dataBox, "zone2": dataBox2},
-        Version: v,
+        Version: version,
     }
 
     class := "com.alipay.confreg"

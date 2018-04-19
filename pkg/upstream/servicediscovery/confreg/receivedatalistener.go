@@ -47,6 +47,8 @@ func (d *receiveDataStreamDecoder) OnDecodeData(data types.IoBuffer, endStream b
     receivedData := &model.ReceivedDataPb{}
     err := proto.Unmarshal(data.Bytes(), receivedData)
     if err == nil {
+        log.DefaultLogger.Infof("Received Confreg pushed data. data id = %s, segment = %s, version = %d, data = %v",
+            receivedData.DataId, receivedData.Segment, receivedData.Version, receivedData.Data)
         d.rpcServerManager.RegisterRPCServer(receivedData)
     } else {
         log.DefaultLogger.Errorf("Unmarshal received data failed. error = %v", err)
@@ -55,26 +57,4 @@ func (d *receiveDataStreamDecoder) OnDecodeData(data types.IoBuffer, endStream b
 
 func (d *receiveDataStreamDecoder) OnDecodeTrailers(trailers map[string]string) {
 
-}
-
-var version = int64(1)
-
-func assembleReceivedData() *model.ReceivedDataPb {
-    dataBox := &model.DataBoxesPb{
-        Data: []*model.DataBoxPb{{"data1"}, {"data2"}, {"data3"}},
-    }
-
-    dataBox2 := &model.DataBoxesPb{
-        Data: []*model.DataBoxPb{{"c1"}, {"c2"}, {"c3"}},
-    }
-
-    version++
-    rd := &model.ReceivedDataPb{
-        DataId:  "someDataId1",
-        Segment: "s1",
-        Data:    map[string]*model.DataBoxesPb{"zone1": dataBox, "zone2": dataBox2},
-        Version: version,
-    }
-
-    return rd
 }
