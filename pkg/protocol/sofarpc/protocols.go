@@ -37,7 +37,7 @@ func (p *protocols) EncodeHeaders(headers interface{}) (string, types.IoBuffer) 
 	case map[string]string:
 		headersMap := headers.(map[string]string)
 
-		if proto, exist := headersMap[SofaPropertyHeader("protocol")]; exist {
+		if proto, exist := headersMap[SofaPropertyHeader(HeaderProtocolCode)]; exist {
 			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
 			protocolCode = protoValue.(byte)
 		} else {

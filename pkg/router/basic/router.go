@@ -86,7 +86,20 @@ func (srr *basicRouter) Match(headers map[string]string) types.Route {
 		return nil
 	}
 
-	return srr
+	var ok bool
+	var service string
+
+	if service, ok = headers["Service"]; !ok {
+		if service, ok = headers["service"]; !ok {
+			return nil
+		}
+	}
+
+	if srr.service == service {
+		return srr
+	} else {
+		return nil
+	}
 }
 
 func (srr *basicRouter) RedirectRule() types.RedirectRule {

@@ -20,21 +20,20 @@ var (
 var boltV1 = &boltV1Codec{}
 
 func init() {
-	BoltV2PropertyHeaders["protocol"] = reflect.Uint8
-	BoltV2PropertyHeaders["cmdtype"] = reflect.Uint8
-	BoltV2PropertyHeaders["cmdcode"] = reflect.Int16
-	BoltV2PropertyHeaders["version"] = reflect.Uint8
-	BoltV2PropertyHeaders["requestid"] = reflect.Uint32
-	BoltV2PropertyHeaders["codec"] = reflect.Uint8
-	BoltV2PropertyHeaders["classlength"] = reflect.Int16
-	BoltV2PropertyHeaders["headerlength"] = reflect.Int16
-	BoltV2PropertyHeaders["contentlength"] = reflect.Int
-	BoltV2PropertyHeaders["timeout"] = reflect.Int
-	BoltV2PropertyHeaders["responsestatus"] = reflect.Int16
-	BoltV2PropertyHeaders["responsetimemills"] = reflect.Int64
-
-	BoltV2PropertyHeaders["ver1"] = reflect.Uint8
-	BoltV2PropertyHeaders["switchcode"] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderProtocolCode] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderCmdType] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderCmdCode] = reflect.Int16
+	BoltV2PropertyHeaders[sofarpc.HeaderVersion] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderReqID] = reflect.Uint32
+	BoltV2PropertyHeaders[sofarpc.HeaderCodec] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderClassLen] = reflect.Int16
+	BoltV2PropertyHeaders[sofarpc.HeaderHeaderLen] = reflect.Int16
+	BoltV2PropertyHeaders[sofarpc.HeaderContentLen] = reflect.Int
+	BoltV2PropertyHeaders[sofarpc.HeaderTimeout] = reflect.Int
+	BoltV2PropertyHeaders[sofarpc.HeaderRespStatus] = reflect.Int16
+	BoltV2PropertyHeaders[sofarpc.HeaderRespTimeMills] = reflect.Int64
+	BoltV2PropertyHeaders[sofarpc.HeaderVersion1] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderSwitchCode] = reflect.Uint8
 }
 
 type boltV2Codec struct{}
