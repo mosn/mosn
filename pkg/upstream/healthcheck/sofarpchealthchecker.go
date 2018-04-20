@@ -61,9 +61,9 @@ type sofarpcHealthCheckSession struct {
 // // types.StreamDecoder
 func (s *sofarpcHealthCheckSession) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	//bolt
-	if statusStr, ok := headers[sofarpc.SofaPropertyHeader("responsestatus")]; ok {
+	if statusStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
 		s.responseStatus = sofarpc.ConvertPropertyValue(statusStr, reflect.Int16).(int16)
-	} else if protocolStr, ok := headers[sofarpc.SofaPropertyHeader("protocol")]; ok {
+	} else if protocolStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]; ok {
 		//tr protocol, set responseStatus to 'SUCCESS'
 		protocol := sofarpc.ConvertPropertyValue(protocolStr, reflect.Uint8).(byte)
 		if protocol == sofarpc.PROTOCOL_CODE {

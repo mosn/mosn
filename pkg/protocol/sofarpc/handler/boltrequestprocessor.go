@@ -81,28 +81,28 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 	serializeIns := serialize.Instance
 
 	allField := map[string]string{}
-	allField[sofarpc.SofaPropertyHeader("protocol")] = strconv.FormatUint(uint64(requestCommand.Protocol), 10)
-	allField[sofarpc.SofaPropertyHeader("cmdType")] = strconv.FormatUint(uint64(requestCommand.CmdType), 10)
-	allField[sofarpc.SofaPropertyHeader("cmdCode")] = strconv.FormatUint(uint64(requestCommand.CmdCode), 10)
-	allField[sofarpc.SofaPropertyHeader("version")] = strconv.FormatUint(uint64(requestCommand.Version), 10)
-	allField[sofarpc.SofaPropertyHeader("requestid")] = strconv.FormatUint(uint64(requestCommand.ReqId), 10)
-	allField[sofarpc.SofaPropertyHeader("codec")] = strconv.FormatUint(uint64(requestCommand.CodecPro), 10)
-	allField[sofarpc.SofaPropertyHeader("timeout")] = strconv.FormatUint(uint64(requestCommand.Timeout), 10)
-	allField[sofarpc.SofaPropertyHeader("classLength")] = strconv.FormatUint(uint64(requestCommand.ClassLen), 10)
-	allField[sofarpc.SofaPropertyHeader("headerLength")] = strconv.FormatUint(uint64(requestCommand.HeaderLen), 10)
-	allField[sofarpc.SofaPropertyHeader("contentLength")] = strconv.FormatUint(uint64(requestCommand.ContentLen), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(requestCommand.Protocol), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType)] = strconv.FormatUint(uint64(requestCommand.CmdType), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)] = strconv.FormatUint(uint64(requestCommand.CmdCode), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion)] = strconv.FormatUint(uint64(requestCommand.Version), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(requestCommand.ReqId), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCodec)] = strconv.FormatUint(uint64(requestCommand.CodecPro), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)] = strconv.FormatUint(uint64(requestCommand.Timeout), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassLen)] = strconv.FormatUint(uint64(requestCommand.ClassLen), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderHeaderLen)] = strconv.FormatUint(uint64(requestCommand.HeaderLen), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderContentLen)] = strconv.FormatUint(uint64(requestCommand.ContentLen), 10)
 
 	//serialize class name
 	var className string
 	serializeIns.DeSerialize(requestCommand.ClassName, &className)
-	allField[sofarpc.SofaPropertyHeader("className")] = className
-	log.DefaultLogger.Debugf("ClassName is:", className)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassName)] = className
+	log.DefaultLogger.Debugf("Request ClassName is:", className)
 
 	//serialize header
 	var headerMap map[string]string
 
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
-	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
+	log.DefaultLogger.Println("deSerialize  headerMap:", headerMap)
 
 	for k, v := range headerMap {
 		allField[k] = v
@@ -114,6 +114,6 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 func deserializeRequestAllFieldsV2(requestCommandV2 *sofarpc.BoltV2RequestCommand) {
 
 	deserializeRequestAllFields(&requestCommandV2.BoltRequestCommand)
-	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader("ver1")] = strconv.FormatUint(uint64(requestCommandV2.Version1), 10)
-	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader("switchcode")] = strconv.FormatUint(uint64(requestCommandV2.SwitchCode), 10)
+	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion1)] = strconv.FormatUint(uint64(requestCommandV2.Version1), 10)
+	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderSwitchCode)] = strconv.FormatUint(uint64(requestCommandV2.SwitchCode), 10)
 }

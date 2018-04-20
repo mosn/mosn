@@ -36,14 +36,14 @@ func NewHealthCheckFilter(config *v2.HealthCheckFilter) *healthCheckFilter {
 }
 
 func (f *healthCheckFilter) DecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
-	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader("cmdcode")]; ok {
+	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
 		cmdCode := sofarpc.ConvertPropertyValue(cmdCodeStr, reflect.Int16)
 
 		//sofarpc.HEARTBEAT(0) is equal to sofarpc.TR_HEARTBEAT(0)
 		if cmdCode == sofarpc.HEARTBEAT {
-			protocolStr := headers[sofarpc.SofaPropertyHeader("protocol")]
+			protocolStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]
 			f.protocol = sofarpc.ConvertPropertyValue(protocolStr, reflect.Uint8).(byte)
-			requestIdStr := headers[sofarpc.SofaPropertyHeader("requestid")]
+			requestIdStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
 			f.requestId = sofarpc.ConvertPropertyValue(requestIdStr, reflect.Uint32).(uint32)
 			f.healthCheckReq = true
 			f.cb.RequestInfo().SetHealthCheck(true)

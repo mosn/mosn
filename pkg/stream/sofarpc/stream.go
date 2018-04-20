@@ -133,14 +133,14 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 	}
 
 	var requestId string
-	if v, ok := headers[sofarpc.SofaPropertyHeader("requestid")]; ok {
+	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
 		requestId = v
 	} else {
 		// on decode exception stream
 		requestId = streamId
 	}
 
-	headers[sofarpc.SofaPropertyHeader("requestid")] = streamId
+	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = streamId
 
 	stream := &stream{
 		streamId:   streamId,

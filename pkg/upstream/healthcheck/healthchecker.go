@@ -1,11 +1,11 @@
 package healthcheck
 
 import (
-	"time"
-	"math/rand"
 	"github.com/rcrowley/go-metrics"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"math/rand"
+	"time"
 )
 
 // types.HealthChecker
