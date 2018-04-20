@@ -12,7 +12,7 @@ import (
 
 type TrResponseProcessor struct{}
 
-func (b *TrResponseProcessor) Process(filter interface{}, msg interface{}, executor interface{}, context context.Context) {
+func (b *TrResponseProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 
 	if cmd, ok := msg.(*sofarpc.TrResponseCommand); ok {
 		deserializeResponseAllFieldsTR(cmd, context)

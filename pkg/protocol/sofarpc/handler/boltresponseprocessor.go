@@ -14,13 +14,13 @@ import (
 type BoltResponseProcessor struct{}
 type BoltResponseProcessorV2 struct{}
 
-func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, executor interface{}, context context.Context) {
+func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
 		deserializeResponseAllFields(cmd, context)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback
-		if filter, ok := ctx.(types.DecodeFilter); ok {
+		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.ResponseHeader != nil {
 				// 回调到stream中的OnDecoderHeader，回传HEADER数据
 				status := filter.OnDecodeHeader(reqID, cmd.ResponseHeader)
@@ -41,13 +41,14 @@ func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, execut
 		}
 	}
 }
-func (b *BoltResponseProcessorV2) Process(ctx interface{}, msg interface{}, executor interface{}, context context.Context) {
+
+func (b *BoltResponseProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2ResponseCommand); ok {
 		deserializeResponseAllFieldsV2(cmd, context)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback
-		if filter, ok := ctx.(types.DecodeFilter); ok {
+		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.ResponseHeader != nil {
 
 				status := filter.OnDecodeHeader(reqID, cmd.ResponseHeader)

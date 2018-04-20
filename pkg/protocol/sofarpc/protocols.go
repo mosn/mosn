@@ -87,7 +87,7 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter, conte
 
 			//Decode the Binary Streams to Command Type
 			if _, cmd := proto.GetDecoder().Decode(data); cmd != nil {
-				proto.GetCommandHandler().HandleCommand(filter, cmd, context)
+				proto.GetCommandHandler().HandleCommand(context, cmd, filter)
 			} else {
 				break
 			}

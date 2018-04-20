@@ -136,7 +136,7 @@ type HeartbeatTrigger interface {
 
 //TODO
 type CommandHandler interface {
-	HandleCommand(filter interface{}, msg interface{}, context context.Context)
+	HandleCommand(context context.Context, msg interface{}, filter interface{})
 
 	RegisterProcessor(cmdCode int16, processor *RemotingProcessor)
 
@@ -146,7 +146,7 @@ type CommandHandler interface {
 }
 
 type RemotingProcessor interface {
-	Process(ctx interface{}, msg interface{}, executor interface{}, context context.Context)
+	Process(context context.Context, msg interface{}, filter interface{})
 }
 
 type ProtoBasicCmd interface {

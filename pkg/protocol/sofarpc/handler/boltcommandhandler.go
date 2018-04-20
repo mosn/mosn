@@ -32,13 +32,13 @@ func NewBoltCommandHandlerV2() *BoltCommandHandler {
 	}
 }
 
-func (h *BoltCommandHandler) HandleCommand(filter interface{}, msg interface{}, context context.Context) {
+func (h *BoltCommandHandler) HandleCommand(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
 
 		if processor, ok := h.processors[cmdCode]; ok {
 			log.DefaultLogger.Debugf("handle command")
-			processor.Process(filter, cmd, nil, context)
+			processor.Process(context, cmd, filter)
 		} else {
 			log.DefaultLogger.Debugf("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")
 		}

@@ -15,14 +15,14 @@ type TrRequestProcessor struct{}
 
 // ctx = type.serverStreamConnection
 // CALLBACK STREAM LEVEL'S OnDecodeHeaders
-func (b *TrRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}, context context.Context) {
+func (b *TrRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.TrRequestCommand); ok {
 		deserializeRequestAllFieldsTR(cmd, context)
 		streamId := atomic.AddUint32(&streamIdCsounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//for demo, invoke ctx as callback
-		if filter, ok := ctx.(types.DecodeFilter); ok {
+		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
 				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
