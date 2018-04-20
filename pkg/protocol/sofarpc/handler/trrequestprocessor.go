@@ -1,21 +1,23 @@
 package handler
 
 import (
+	"context"
+	"strconv"
+	"sync/atomic"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize/hessian"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"strconv"
-	"sync/atomic"
 )
 
 type TrRequestProcessor struct{}
 
 // ctx = type.serverStreamConnection
 // CALLBACK STREAM LEVEL'S OnDecodeHeaders
-func (b *TrRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
+func (b *TrRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}, context context.Context) {
 	if cmd, ok := msg.(*sofarpc.TrRequestCommand); ok {
-		deserializeRequestAllFieldsTR(cmd)
+		deserializeRequestAllFieldsTR(cmd, context)
 		streamId := atomic.AddUint32(&streamIdCsounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
@@ -41,7 +43,7 @@ func (b *TrRequestProcessor) Process(ctx interface{}, msg interface{}, executor 
 }
 
 //Convert TR's Protocol Header  and Content Header to Map[string]string
-func deserializeRequestAllFieldsTR(requestCommand *sofarpc.TrRequestCommand) {
+func deserializeRequestAllFieldsTR(requestCommand *sofarpc.TrRequestCommand, context context.Context) {
 
 	//DeSerialize Hessian
 	hessianSerialize := hessian.HessianInstance
@@ -52,7 +54,7 @@ func deserializeRequestAllFieldsTR(requestCommand *sofarpc.TrRequestCommand) {
 	requestCommand.RequestID = hessianSerialize.SerializeConnRequestBytes(ConnRequstBytes)
 	requestCommand.TargetServiceUniqueName = hessianSerialize.SerializeAppRequestBytes(AppRequstBytes)
 
-	allField := map[string]string{}
+	allField := sofarpc.GetMap(context, 20)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(requestCommand.Protocol), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqFlag)] = strconv.FormatUint(uint64(requestCommand.RequestFlag), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderSeriProtocol)] = strconv.FormatUint(uint64(requestCommand.SerializeProtocol), 10)
@@ -61,7 +63,6 @@ func deserializeRequestAllFieldsTR(requestCommand *sofarpc.TrRequestCommand) {
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderAppclassnamelen)] = strconv.FormatUint(uint64(requestCommand.AppClassNameLen), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderConnrequestlen)] = strconv.FormatUint(uint64(requestCommand.ConnRequestLen), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderAppclasscontentlen)] = strconv.FormatUint(uint64(requestCommand.AppClassContentLen), 10)
-
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)] = strconv.FormatUint(uint64(requestCommand.CmdCode), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(requestCommand.RequestID), 10)
 

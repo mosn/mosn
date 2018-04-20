@@ -2,13 +2,8 @@ package http2
 
 import (
 	"container/list"
+	"context"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"golang.org/x/net/http2"
 	"io"
 	"net"
 	"net/http"
@@ -18,6 +13,13 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"golang.org/x/net/http2"
 )
 
 func init() {
@@ -56,7 +58,7 @@ type streamConnection struct {
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {}
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer, context context.Context) {}
 
 func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
@@ -455,7 +457,7 @@ func (s *serverStream) GetStream() types.Stream {
 }
 
 func encodeHeader(in map[string]string) (out map[string][]string) {
-	out = make(map[string][]string)
+	out = make(map[string][]string, len(in))
 
 	for k, v := range in {
 		out[k] = strings.Split(v, ",")
@@ -465,7 +467,7 @@ func encodeHeader(in map[string]string) (out map[string][]string) {
 }
 
 func decodeHeader(in map[string][]string) (out map[string]string) {
-	out = make(map[string]string)
+	out = make(map[string]string, len(in))
 
 	for k, v := range in {
 		// convert to lower case for internal process

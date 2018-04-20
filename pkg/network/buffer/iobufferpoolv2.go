@@ -27,7 +27,7 @@ type IoBufferPoolV2 struct {
 	pool sync.Pool
 }
 
-func (p *IoBufferPoolV2) Take(r io.Reader) (bpe *IoBufferPoolEntry) {
+func (p *IoBufferPoolV2) Take(r io.ReadWriter) (bpe *IoBufferPoolEntry) {
 	v := p.pool.Get()
 
 	if v != nil {
@@ -43,11 +43,11 @@ func (p *IoBufferPoolV2) Take(r io.Reader) (bpe *IoBufferPoolEntry) {
 }
 
 func (p *IoBufferPoolV2) Give(bpe *IoBufferPoolEntry) {
-	idx := index(bpe.Br.Len())
-
-	if atomic.AddUint64(&p.calls[idx], 1) > calibrateCallsThreshold {
-		p.calibrate()
-	}
+	//idx := index(bpe.Br.Len())
+	//
+	//if atomic.AddUint64(&p.calls[idx], 1) > calibrateCallsThreshold {
+	//	p.calibrate()
+	//}
 
 	bpe.Io = nil
 

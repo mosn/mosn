@@ -1,13 +1,15 @@
 package sofarpc
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"context"
 	"reflect"
 	"strconv"
+	"sync"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 func SofaPropertyHeader(name string) string {
-//	return SofaRpcPropertyHeaderPrefix + name
 	return name
 }
 
@@ -86,4 +88,24 @@ func HasCodecException(headers map[string]string) bool {
 	}
 
 	return false
+}
+
+func GetMap(context context.Context, defaultSize int) map[string]string {
+	var amap map[string]string
+
+	if context != nil && context.Value(types.ContextKeyConnectionCodecBufferPool) != nil {
+		pool := context.Value(types.ContextKeyConnectionCodecBufferPool).(sync.Pool)
+		v := pool.Get()
+
+		if v != nil {
+			amap = v.(map[string]string)
+			amap = make(map[string]string, defaultSize)
+		}
+	}
+
+	if amap == nil {
+		amap = make(map[string]string, defaultSize)
+	}
+
+	return amap
 }

@@ -1,10 +1,12 @@
 package sofarpc
 
 import (
+	"context"
 	"errors"
+	"strconv"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"strconv"
 )
 
 //bolt constants
@@ -134,7 +136,8 @@ type HeartbeatTrigger interface {
 
 //TODO
 type CommandHandler interface {
-	HandleCommand(ctx interface{}, msg interface{})
+	HandleCommand(filter interface{}, msg interface{}, context context.Context)
+
 	RegisterProcessor(cmdCode int16, processor *RemotingProcessor)
 
 	//TODO executor selection
@@ -143,7 +146,7 @@ type CommandHandler interface {
 }
 
 type RemotingProcessor interface {
-	Process(ctx interface{}, msg interface{}, executor interface{})
+	Process(ctx interface{}, msg interface{}, executor interface{}, context context.Context)
 }
 
 type ProtoBasicCmd interface {

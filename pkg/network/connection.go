@@ -24,6 +24,8 @@ const (
 )
 
 var idCounter uint64
+var readerBufferPool = buffer.NewIoBufferPoolV2(1, 4*1024)
+var writeBufferPool = buffer.NewIoBufferPoolV2(1, 4*1024)
 
 type connection struct {
 	id         uint64
@@ -48,11 +50,12 @@ type connection struct {
 	stopChan           chan bool
 	curWriteBufferData []types.IoBuffer
 	readBuffer         *buffer.IoBufferPoolEntry
-	writeBuffer        types.IoBuffer
+	writeBuffer        *buffer.IoBufferPoolEntry
 	writeBufferMux     sync.RWMutex
 	writeBufferChan    chan bool
 	writeLoopStopChan  chan bool
 	readerBufferPool   *buffer.IoBufferPoolV2
+	writeBufferPool    *buffer.IoBufferPoolV2
 
 	stats              *types.ConnectionStats
 	lastBytesSizeRead  int64
@@ -77,7 +80,8 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		readEnabledChan:   make(chan bool, 1),
 		writeBufferChan:   make(chan bool),
 		writeLoopStopChan: make(chan bool, 1),
-		readerBufferPool:  buffer.NewIoBufferPoolV2(1, 4096),
+		readerBufferPool:  readerBufferPool,
+		writeBufferPool:   writeBufferPool,
 		stats: &types.ConnectionStats{
 			ReadTotal:    metrics.NewCounter(),
 			ReadCurrent:  metrics.NewGauge(),
@@ -87,7 +91,7 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		logger: log.DefaultLogger,
 	}
 
-	conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)
+	//conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)
 	conn.filterManager = newFilterManager(conn)
 
 	return conn
@@ -262,9 +266,13 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 
 	c.writeBufferMux.Lock()
 
+	if c.writeBuffer == nil {
+		c.writeBuffer = c.writeBufferPool.Take(c.rawConnection)
+	}
+
 	for _, buf := range buffers {
 		if buf != nil {
-			buf.WriteTo(c.writeBuffer)
+			buf.WriteTo(c.writeBuffer.Br)
 		}
 	}
 
@@ -312,7 +320,7 @@ func (c *connection) startWriteLoop() {
 func (c *connection) doWrite() (int64, error) {
 	bytesSent, err := c.doWriteIo()
 
-	c.updateWriteBuffStats(bytesSent, int64(c.writeBuffer.Len()))
+	c.updateWriteBuffStats(bytesSent, int64(c.writeBufLen()))
 
 	for _, cb := range c.bytesSendCallbacks {
 		cb(uint64(bytesSent))
@@ -326,7 +334,12 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 
 	for c.writeBufLen() > 0 {
 		c.writeBufferMux.Lock()
-		m, err = c.writeBuffer.WriteTo(c.rawConnection)
+		m, err = c.writeBuffer.Write()
+
+		if c.writeBuffer.Br.Len() == 0 {
+			c.writeBufferPool.Give(c.writeBuffer)
+			c.writeBuffer = nil
+		}
 		c.writeBufferMux.Unlock()
 
 		bytesSent += m
@@ -360,8 +373,13 @@ func (c *connection) updateWriteBuffStats(bytesWrite int64, bytesBufSize int64) 
 
 func (c *connection) writeBufLen() int {
 	c.writeBufferMux.RLock()
-	wbLen := c.writeBuffer.Len()
-	c.writeBufferMux.RUnlock()
+	defer c.writeBufferMux.RUnlock()
+
+	if c.writeBuffer == nil {
+		return 0
+	}
+
+	wbLen := c.writeBuffer.Br.Len()
 
 	return wbLen
 }
@@ -504,7 +522,7 @@ func (c *connection) SetBufferLimit(limit uint32) {
 	if limit > 0 {
 		c.bufferLimit = limit
 
-		c.writeBuffer.(*buffer.WatermarkBuffer).SetWaterMark(limit)
+		//c.writeBuffer.(*buffer.WatermarkBuffer).SetWaterMark(limit)
 	}
 }
 
@@ -573,7 +591,8 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 			readEnabledChan:   make(chan bool, 1),
 			writeBufferChan:   make(chan bool),
 			writeLoopStopChan: make(chan bool, 1),
-			readerBufferPool:  buffer.NewIoBufferPoolV2(1, 4096),
+			readerBufferPool:  readerBufferPool,
+			writeBufferPool:   writeBufferPool,
 			stats: &types.ConnectionStats{
 				ReadTotal:    metrics.NewCounter(),
 				ReadCurrent:  metrics.NewGauge(),
@@ -584,7 +603,6 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 		},
 	}
 
-	conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)
 	conn.filterManager = newFilterManager(conn)
 
 	return conn

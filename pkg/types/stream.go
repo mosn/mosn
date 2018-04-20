@@ -1,5 +1,7 @@
 package types
 
+import "context"
+
 type StreamResetReason string
 
 const (
@@ -49,7 +51,7 @@ type StreamDecoder interface {
 }
 
 type StreamConnection interface {
-	Dispatch(buffer IoBuffer)
+	Dispatch(buffer IoBuffer, context context.Context)
 
 	Protocol() Protocol
 

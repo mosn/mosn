@@ -1,9 +1,11 @@
 package sofarpc
 
 import (
+	"context"
+	"reflect"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"reflect"
 )
 
 //All of the protocolMaps
@@ -73,7 +75,7 @@ func (p *protocols) EncodeTrailers(trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
-func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
+func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter, context context.Context) {
 	// at least 1 byte for protocol code recognize
 	for data.Len() > 1 {
 		protocolCode := data.Bytes()[0]
@@ -85,13 +87,13 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 
 			//Decode the Binary Streams to Command Type
 			if _, cmd := proto.GetDecoder().Decode(data); cmd != nil {
-				proto.GetCommandHandler().HandleCommand(filter, cmd)
+				proto.GetCommandHandler().HandleCommand(filter, cmd, context)
 			} else {
 				break
 			}
 		} else {
 			//Codec Exception
-			headers := make(map[string]string)
+			headers := make(map[string]string, 1)
 			headers[types.HeaderException] = types.MosnExceptionCodeC
 			log.DefaultLogger.Errorf("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
 

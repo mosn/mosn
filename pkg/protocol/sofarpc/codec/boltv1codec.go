@@ -78,7 +78,7 @@ func (c *boltV1Codec) encodeResponseCommand(cmd *sofarpc.BoltResponseCommand) (s
 }
 
 func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []byte {
-	var data []byte
+	data := make([]byte, 0, 32)
 
 	data = append(data, cmd.Protocol, cmd.CmdType)
 	cmdCodeBytes := make([]byte, 2)
@@ -119,8 +119,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []
 }
 
 func (c *boltV1Codec) doEncodeResponseCommand(cmd *sofarpc.BoltResponseCommand) []byte {
-
-	var data []byte
+	data := make([]byte, 0, 32)
 
 	data = append(data, cmd.Protocol, cmd.CmdType)
 	cmdCodeBytes := make([]byte, 2)

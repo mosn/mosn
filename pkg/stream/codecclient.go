@@ -2,8 +2,9 @@ package stream
 
 import (
 	"container/list"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"sync"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 // stream.CodecClient
@@ -155,7 +156,8 @@ func (c *codecClient) OnBelowWriteBufferLowWatermark() {
 
 // read filter, recv upstream data
 func (c *codecClient) OnData(buffer types.IoBuffer) types.FilterStatus {
-	c.Codec.Dispatch(buffer)
+	// todo: pass a context with types.ContextKeyConnectionCodecBufferPool
+	c.Codec.Dispatch(buffer, nil)
 
 	return types.StopIteration
 }

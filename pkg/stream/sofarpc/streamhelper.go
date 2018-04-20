@@ -64,8 +64,4 @@ func decodeSterilize(streamId string, headers map[string]string) {
 	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)]; ok {
 		headers[types.HeaderTryTimeout] = v
 	}
-
-	if v, ok := headers[sofarpc.SofaPropertyHeader("globaltimeout")]; ok {
-		headers[types.HeaderGlobalTimeout] = v
-	}
 }

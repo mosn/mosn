@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
@@ -12,9 +14,9 @@ type BoltHbProcessor struct {
 
 // ctx = type.serverStreamConnection
 // CALLBACK STREAM LEVEL'S OnDecodeHeaders
-func (b *BoltHbProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
+func (b *BoltHbProcessor) Process(ctx interface{}, msg interface{}, executor interface{}, context context.Context) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
-		deserializeRequestAllFields(cmd)
+		deserializeRequestAllFields(cmd, context)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback

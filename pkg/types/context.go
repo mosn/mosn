@@ -9,6 +9,7 @@ const (
 	ContextKeyListenerStatsNameSpace     ContextKey = "ListenerStatsNameSpace"
 	ContextKeyNetworkFilterChainFactory  ContextKey = "NetworkFilterChainFactory"
 	ContextKeyStreamFilterChainFactories ContextKey = "StreamFilterChainFactory"
+	ContextKeyConnectionCodecBufferPool  ContextKey = "ContextKeyConnectionCodecBufferPool"
 )
 
 const (

@@ -1,20 +1,22 @@
 package handler
 
 import (
+	"context"
+	"strconv"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"strconv"
 )
 
 type BoltResponseProcessor struct{}
 type BoltResponseProcessorV2 struct{}
 
-func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
+func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, executor interface{}, context context.Context) {
 	if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
-		deserializeResponseAllFields(cmd)
+		deserializeResponseAllFields(cmd, context)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback
@@ -39,9 +41,9 @@ func (b *BoltResponseProcessor) Process(ctx interface{}, msg interface{}, execut
 		}
 	}
 }
-func (b *BoltResponseProcessorV2) Process(ctx interface{}, msg interface{}, executor interface{}) {
+func (b *BoltResponseProcessorV2) Process(ctx interface{}, msg interface{}, executor interface{}, context context.Context) {
 	if cmd, ok := msg.(*sofarpc.BoltV2ResponseCommand); ok {
-		deserializeResponseAllFieldsV2(cmd)
+		deserializeResponseAllFieldsV2(cmd, context)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback
@@ -66,11 +68,15 @@ func (b *BoltResponseProcessorV2) Process(ctx interface{}, msg interface{}, exec
 		}
 	}
 }
-func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand) {
+func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand, context context.Context) {
 	//get instance
 	serializeIns := serialize.Instance
+	//serialize header
+	var headerMap map[string]string
+	serializeIns.DeSerialize(responseCommand.HeaderMap, &headerMap)
+	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
 
-	allField := map[string]string{}
+	allField := sofarpc.GetMap(context, 20+len(headerMap))
 
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(responseCommand.Protocol), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType)] = strconv.FormatUint(uint64(responseCommand.CmdType), 10)
@@ -80,8 +86,7 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand) 
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCodec)] = strconv.FormatUint(uint64(responseCommand.CodecPro), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassLen)] = strconv.FormatUint(uint64(responseCommand.ClassLen), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderHeaderLen)] = strconv.FormatUint(uint64(responseCommand.HeaderLen), 10)
-	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderContentLen)] = strconv.FormatUint(uint64(responseCommand.ContentLen),10)
-
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderContentLen)] = strconv.FormatUint(uint64(responseCommand.ContentLen), 10)
 	// FOR RESPONSE,ENCODE RESPONSE STATUS and RESPONSE TIME
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)] = strconv.FormatUint(uint64(responseCommand.ResponseStatus), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespTimeMills)] = strconv.FormatUint(uint64(responseCommand.ResponseTimeMillis), 10)
@@ -92,11 +97,6 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand) 
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassName)] = className
 	log.DefaultLogger.Debugf("Response ClassName is:", className)
 
-	//serialize header
-	var headerMap map[string]string
-	serializeIns.DeSerialize(responseCommand.HeaderMap, &headerMap)
-	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
-
 	for k, v := range headerMap {
 		allField[k] = v
 	}
@@ -104,10 +104,8 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand) 
 	responseCommand.ResponseHeader = allField
 }
 
-func deserializeResponseAllFieldsV2(responseCommandV2 *sofarpc.BoltV2ResponseCommand) {
-	//get instance
-
-	deserializeResponseAllFields(&responseCommandV2.BoltResponseCommand)
+func deserializeResponseAllFieldsV2(responseCommandV2 *sofarpc.BoltV2ResponseCommand, context context.Context) {
+	deserializeResponseAllFields(&responseCommandV2.BoltResponseCommand, context)
 	responseCommandV2.ResponseHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion1)] = strconv.FormatUint(uint64(responseCommandV2.Version1), 10)
 	responseCommandV2.ResponseHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderSwitchCode)] = strconv.FormatUint(uint64(responseCommandV2.SwitchCode), 10)
 }

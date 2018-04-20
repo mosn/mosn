@@ -1,6 +1,7 @@
 package sofarpc
 
 import (
+	"context"
 	"errors"
 
 	"github.com/orcaman/concurrent-map"
@@ -65,8 +66,8 @@ func newStreamConnection(connection types.Connection, clientCallbacks types.Stre
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
-	conn.protocols.Decode(buffer, conn)
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer, context context.Context) {
+	conn.protocols.Decode(buffer, conn, context)
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {

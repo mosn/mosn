@@ -3,14 +3,16 @@ package proxy
 import (
 	"container/list"
 	"context"
+	"sync"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"sync"
 )
 
+var codecBufPool sync.Pool
 var globalStats *proxyStats
 
 func init() {
@@ -29,6 +31,7 @@ type proxy struct {
 	clusterName  string
 	routerConfig types.RouterConfig
 	serverCodec  types.ServerStreamConnection
+	codecPool    sync.Pool
 
 	context context.Context
 
@@ -47,11 +50,13 @@ type proxy struct {
 }
 
 func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
+	//ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecBufferPool, codecBufPool)
 	proxy := &proxy{
 		config:         config,
 		clusterManager: clusterManager,
 		activeSteams:   list.New(),
 		stats:          globalStats,
+		codecPool:      codecBufPool,
 		context:        ctx,
 	}
 
@@ -71,7 +76,7 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 }
 
 func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
-	p.serverCodec.Dispatch(buf)
+	p.serverCodec.Dispatch(buf, p.context)
 
 	return types.StopIteration
 }
@@ -159,6 +164,14 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 }
 
 func (p *proxy) deleteActiveStream(s *activeStream) {
+	// reuse decode map
+	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+		for k := range v {
+			delete(v, k)
+		}
+		p.codecPool.Put(v)
+	}
+
 	p.asMux.Lock()
 	p.activeSteams.Remove(s.element)
 	p.asMux.Unlock()

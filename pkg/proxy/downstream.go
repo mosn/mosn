@@ -4,14 +4,15 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"reflect"
+	"strconv"
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"reflect"
-	"strconv"
-	"time"
 )
 
 // types.StreamEventListener
@@ -156,8 +157,6 @@ func (s *activeStream) cleanStream() {
 		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
 	}
 
-	log.DefaultLogger.Debugf(s.proxy.stats.String())
-	log.DefaultLogger.Debugf(s.proxy.listenerStats.String())
 	s.proxy.deleteActiveStream(s)
 }
 
@@ -617,7 +616,7 @@ func (s *activeStream) resetStream() {
 
 func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 	if headers == nil {
-		headers = make(map[string]string)
+		headers = make(map[string]string, 5)
 	}
 
 	headers[types.HeaderStatus] = strconv.Itoa(code)
