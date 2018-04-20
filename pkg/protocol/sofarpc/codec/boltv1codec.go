@@ -16,18 +16,18 @@ var (
 )
 
 func init() {
-	BoltV1PropertyHeaders["protocol"] = reflect.Uint8
-	BoltV1PropertyHeaders["cmdtype"] = reflect.Uint8
-	BoltV1PropertyHeaders["cmdcode"] = reflect.Int16
-	BoltV1PropertyHeaders["version"] = reflect.Uint8
-	BoltV1PropertyHeaders["requestid"] = reflect.Uint32
-	BoltV1PropertyHeaders["codec"] = reflect.Uint8
-	BoltV1PropertyHeaders["classlength"] = reflect.Int16
-	BoltV1PropertyHeaders["headerlength"] = reflect.Int16
-	BoltV1PropertyHeaders["contentlength"] = reflect.Int
-	BoltV1PropertyHeaders["timeout"] = reflect.Int
-	BoltV1PropertyHeaders["responsestatus"] = reflect.Int16
-	BoltV1PropertyHeaders["responsetimemills"] = reflect.Int64
+	BoltV1PropertyHeaders[sofarpc.HeaderProtocolCode] = reflect.Uint8
+	BoltV1PropertyHeaders[sofarpc.HeaderCmdType] = reflect.Uint8
+	BoltV1PropertyHeaders[sofarpc.HeaderCmdCode] = reflect.Int16
+	BoltV1PropertyHeaders[sofarpc.HeaderVersion] = reflect.Uint8
+	BoltV1PropertyHeaders[sofarpc.HeaderReqID] = reflect.Uint32
+	BoltV1PropertyHeaders[sofarpc.HeaderCodec] = reflect.Uint8
+	BoltV1PropertyHeaders[sofarpc.HeaderClassLen] = reflect.Int16
+	BoltV1PropertyHeaders[sofarpc.HeaderHeaderLen] = reflect.Int16
+	BoltV1PropertyHeaders[sofarpc.HeaderContentLen] = reflect.Int
+	BoltV1PropertyHeaders[sofarpc.HeaderTimeout] = reflect.Int
+	BoltV1PropertyHeaders[sofarpc.HeaderRespStatus] = reflect.Int16
+	BoltV1PropertyHeaders[sofarpc.HeaderRespTimeMills] = reflect.Int64
 }
 
 // types.Encoder & types.Decoder
@@ -171,15 +171,15 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 		return nil
 	}
 
-	protocolCode := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "protocol")
-	cmdType := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "cmdtype")
-	cmdCode := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "cmdcode")
-	version := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "version")
-	requestID := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "requestid")
-	codec := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "codec")
-	classLength := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "classlength")
-	headerLength := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "headerlength")
-	contentLength := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "contentlength")
+	protocolCode := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderProtocolCode)
+	cmdType := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderCmdType)
+	cmdCode := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderCmdCode)
+	version := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderVersion)
+	requestID := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderReqID)
+	codec := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderCodec)
+	classLength := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderClassLen)
+	headerLength := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderHeaderLen)
+	contentLength := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderContentLen)
 
 	//class
 	className := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "classname")
@@ -187,7 +187,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 
 	//RPC Request
 	if cmdCode == sofarpc.RPC_REQUEST {
-		timeout := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "timeout")
+		timeout := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderTimeout)
 
 		//serialize header
 		header, _ := serialize.Instance.Serialize(headers)
@@ -216,8 +216,8 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 
 	} else if cmdCode == sofarpc.RPC_RESPONSE || cmdCode == sofarpc.HEARTBEAT {
 		//todo : review
-		responseStatus := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "responsestatus")
-		responseTime := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, "responsetimemills")
+		responseStatus := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderRespStatus)
+		responseTime := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderRespTimeMills)
 
 		//serialize header
 		header, _ := serialize.Instance.Serialize(headers)

@@ -10,7 +10,7 @@ import (
 func (s *stream) encodeSterilize(headers interface{}) interface{} {
 	if headerMaps, ok := headers.(map[string]string); ok {
 		if s.direction == InStream {
-			headerMaps[sofarpc.SofaPropertyHeader("requestid")] = s.requestId
+			headerMaps[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = s.requestId
 		}
 
 		// remove proxy header before codec encode
@@ -58,10 +58,10 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 	return headers
 }
 
-func decodeSterilize(streamId string, headers map[string]string) map[string]string {
+func decodeSterilize(streamId string, headers map[string]string) {
 	headers[types.HeaderStreamID] = streamId
 
-	if v, ok := headers[sofarpc.SofaPropertyHeader("timeout")]; ok {
+	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)]; ok {
 		headers[types.HeaderTryTimeout] = v
 	}
 
@@ -69,5 +69,4 @@ func decodeSterilize(streamId string, headers map[string]string) map[string]stri
 		headers[types.HeaderGlobalTimeout] = v
 	}
 
-	return headers
 }

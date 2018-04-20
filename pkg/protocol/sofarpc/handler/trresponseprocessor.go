@@ -47,16 +47,17 @@ func deserializeResponseAllFieldsTR(responseCommand *sofarpc.TrResponseCommand) 
 	responseCommand.RequestID = hessianSerialize.SerializeConnResponseBytes(ConnRequstBytes)
 
 	allField := map[string]string{}
-	allField[sofarpc.SofaPropertyHeader("protocol")] = strconv.FormatUint(uint64(responseCommand.Protocol), 10)
-	allField[sofarpc.SofaPropertyHeader("requestFlag")] = strconv.FormatUint(uint64(responseCommand.RequestFlag), 10)
-	allField[sofarpc.SofaPropertyHeader("serializeProtocol")] = strconv.FormatUint(uint64(responseCommand.SerializeProtocol), 10)
-	allField[sofarpc.SofaPropertyHeader("direction")] = strconv.FormatUint(uint64(responseCommand.Direction), 10)
-	allField[sofarpc.SofaPropertyHeader("reserved")] = strconv.FormatUint(uint64(responseCommand.Reserved), 10)
-	allField[sofarpc.SofaPropertyHeader("appClassNameLen")] = strconv.FormatUint(uint64(responseCommand.AppClassNameLen), 10)
-	allField[sofarpc.SofaPropertyHeader("connRequestLen")] = strconv.FormatUint(uint64(responseCommand.ConnRequestLen), 10)
-	allField[sofarpc.SofaPropertyHeader("appClassContentLen")] = strconv.FormatUint(uint64(responseCommand.AppClassContentLen), 10)
 
-	allField[sofarpc.SofaPropertyHeader("cmdcode")] = strconv.FormatUint(uint64(responseCommand.CmdCode), 10)
-	allField[sofarpc.SofaPropertyHeader("requestid")] = strconv.FormatUint(uint64(responseCommand.RequestID), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(responseCommand.Protocol), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqFlag)] = strconv.FormatUint(uint64(responseCommand.RequestFlag), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderSeriProtocol)] = strconv.FormatUint(uint64(responseCommand.SerializeProtocol), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderDirection)] = strconv.FormatUint(uint64(responseCommand.Direction), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReserved)] = strconv.FormatUint(uint64(responseCommand.Reserved), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderAppclassnamelen)] = strconv.FormatUint(uint64(responseCommand.AppClassNameLen), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderConnrequestlen)] = strconv.FormatUint(uint64(responseCommand.ConnRequestLen), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderAppclasscontentlen)] = strconv.FormatUint(uint64(responseCommand.AppClassContentLen), 10)
+
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)] = strconv.FormatUint(uint64(responseCommand.CmdCode), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(responseCommand.RequestID), 10)
 	responseCommand.ResponseHeader = allField
 }

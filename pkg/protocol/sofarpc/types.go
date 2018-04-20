@@ -8,6 +8,32 @@ import (
 )
 
 //bolt constants
+
+const (
+	HeaderProtocolCode       string = "protocol"
+	HeaderCmdType            string = "cmdtype"
+	HeaderCmdCode            string = "cmdcode"
+	HeaderVersion            string = "version"
+	HeaderReqID              string = "requestid"
+	HeaderCodec              string = "codec"
+	HeaderTimeout            string = "timeout"
+	HeaderClassLen           string = "classlen"
+	HeaderHeaderLen          string = "headerlen"
+	HeaderContentLen         string = "contentlen"
+	HeaderClassName          string = "classname"
+	HeaderVersion1           string = "ver1"
+	HeaderSwitchCode         string = "switchcode"
+	HeaderRespStatus         string = "respstatus"
+	HeaderRespTimeMills      string = "resptimemills"
+	HeaderReqFlag            string = "requestflag"
+	HeaderSeriProtocol       string = "serializeprotocol"
+	HeaderDirection          string = "direction"
+	HeaderReserved           string = "reserved"
+	HeaderAppclassnamelen    string = "appclassnamelen"
+	HeaderConnrequestlen     string = "connrequestlen"
+	HeaderAppclasscontentlen string = "appclasscontentlen"
+)
+
 const (
 	//protocol code value
 	PROTOCOL_CODE_V1 byte = 1
@@ -244,12 +270,11 @@ const (
 
 type TrCommand struct {
 	//Protocol Field
-	Protocol          byte
-	RequestFlag       byte
-	SerializeProtocol byte
-	Direction         byte
-	Reserved          byte
-
+	Protocol           byte
+	RequestFlag        byte
+	SerializeProtocol  byte
+	Direction          byte
+	Reserved           byte
 	ConnRequestLen     uint32
 	AppClassNameLen    byte
 	AppClassContentLen uint32
@@ -302,22 +327,22 @@ func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{},
 	var version byte = 1
 	var codec byte = 1
 
-	if p, ok := headers[SofaPropertyHeader("protocol")]; ok {
+	if p, ok := headers[SofaPropertyHeader(HeaderProtocolCode)]; ok {
 		pr, _ := strconv.Atoi(p)
 		pro = byte(pr)
 	}
 
-	if r, ok := headers[SofaPropertyHeader("requestid")]; ok {
+	if r, ok := headers[SofaPropertyHeader(HeaderReqID)]; ok {
 		rd, _ := strconv.Atoi(r)
 		reqId = uint32(rd)
 	}
 
-	if v, ok := headers[SofaPropertyHeader("version")]; ok {
+	if v, ok := headers[SofaPropertyHeader(HeaderVersion)]; ok {
 		ver, _ := strconv.Atoi(v)
 		version = byte(ver)
 	}
 
-	if c, ok := headers[SofaPropertyHeader("codec")]; ok {
+	if c, ok := headers[SofaPropertyHeader(HeaderCodec)]; ok {
 		ver, _ := strconv.Atoi(c)
 		codec = byte(ver)
 	}

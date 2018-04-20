@@ -17,19 +17,20 @@ var (
 )
 
 func init() {
-	TrPropertyHeaders["protocol"] = reflect.Uint8
-	TrPropertyHeaders["requestflag"] = reflect.Uint8
-	TrPropertyHeaders["serializeprotocol"] = reflect.Uint8 //
-	TrPropertyHeaders["direction"] = reflect.Uint8
-	TrPropertyHeaders["reserved"] = reflect.Uint8
-	TrPropertyHeaders["appclassnamelen"] = reflect.Uint8
+	TrPropertyHeaders[sf.HeaderProtocolCode] = reflect.Uint8
+	TrPropertyHeaders[sf.HeaderReqFlag] = reflect.Uint8
+	TrPropertyHeaders[sf.HeaderSeriProtocol] = reflect.Uint8 //
+	TrPropertyHeaders[sf.HeaderDirection] = reflect.Uint8
 
-	TrPropertyHeaders["connrequestlen"] = reflect.Uint32
-	TrPropertyHeaders["appclasscontentlen"] = reflect.Uint32
+	TrPropertyHeaders[sf.HeaderReserved] = reflect.Uint8
+	TrPropertyHeaders[sf.HeaderAppclassnamelen] = reflect.Uint8
 
-	TrPropertyHeaders["cmdcode"] = reflect.Int16
+	TrPropertyHeaders[sf.HeaderConnrequestlen] = reflect.Uint32
+	TrPropertyHeaders[sf.HeaderAppclasscontentlen] = reflect.Uint32
 
-	TrPropertyHeaders["requestid"] = reflect.Int64
+	TrPropertyHeaders[sf.HeaderCmdCode] = reflect.Int16
+
+	TrPropertyHeaders[sf.HeaderReqID] = reflect.Int64
 }
 
 /**
@@ -126,19 +127,19 @@ func (c *trCodec) mapToCmd(headers_ interface{}) interface{} {
 		return nil
 	}
 
-	protocol := sf.GetPropertyValue(TrPropertyHeaders, headers, "protocol")
-	requestFlag := sf.GetPropertyValue(TrPropertyHeaders, headers, "requestflag")
+	protocol := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderProtocolCode)
+	requestFlag := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderReqFlag)
 
-	serializeProtocol := sf.GetPropertyValue(TrPropertyHeaders, headers, "serializeprotocol")
-	direction := sf.GetPropertyValue(TrPropertyHeaders, headers, "direction")
-	reserved := sf.GetPropertyValue(TrPropertyHeaders, headers, "reserved")
+	serializeProtocol := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderSeriProtocol)
+	direction := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderDirection)
+	reserved := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderReserved)
 
-	appClassNameLen := sf.GetPropertyValue(TrPropertyHeaders, headers, "appclassnameLen")
-	connRequestLen := sf.GetPropertyValue(TrPropertyHeaders, headers, "connrequestLen")
-	appClassContentLen := sf.GetPropertyValue(TrPropertyHeaders, headers, "appclasscontentLen")
+	appClassNameLen := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderAppclassnamelen)
+	connRequestLen := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderConnrequestlen)
+	appClassContentLen := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderAppclasscontentlen)
 
-	cmdcode := sf.GetPropertyValue(TrPropertyHeaders, headers, "cmdcode")
-	requestID := sf.GetPropertyValue(TrPropertyHeaders, headers, "requestID")
+	cmdcode := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderCmdCode)
+	requestID := sf.GetPropertyValue(TrPropertyHeaders, headers, sf.HeaderReqID)
 
 	if requestFlag == sf.HEADER_REQUEST {
 
