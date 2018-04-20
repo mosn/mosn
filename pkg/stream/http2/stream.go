@@ -28,17 +28,18 @@ func init() {
 
 type streamConnFactory struct{}
 
-func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection,
+func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(connection, streamConnCallbacks, connCallbacks)
 }
 
-func (f *streamConnFactory) CreateServerStream(connection types.Connection,
+func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(connection, callbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener,
+func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
+	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
 }

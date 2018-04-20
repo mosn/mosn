@@ -218,7 +218,6 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		activeStream: s,
 		proxy:        s.proxy,
 		connPool:     pool,
-		requestInfo:  network.NewRequestInfo(),
 	}
 
 	s.upstreamRequest.encodeHeaders(headers, endStream)
@@ -342,8 +341,6 @@ func (s *activeStream) onPerTryTimeout() {
 	s.perRetryTimer = nil
 
 	s.upstreamRequest.resetStream()
-	s.upstreamRequest.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
-
 	s.onUpstreamReset(UpstreamPerTryTimeout, types.StreamLocalReset)
 }
 
@@ -580,7 +577,6 @@ func (s *activeStream) doRetry() {
 		activeStream: s,
 		proxy:        s.proxy,
 		connPool:     pool,
-		requestInfo:  network.NewRequestInfo(),
 	}
 
 	s.upstreamRequest.encodeHeaders(s.downstreamReqHeaders,

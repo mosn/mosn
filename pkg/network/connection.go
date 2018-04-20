@@ -25,7 +25,7 @@ const (
 
 var idCounter uint64
 var readerBufferPool = buffer.NewIoBufferPoolV2(1, DefaultBufferCapacity)
-var writeBufferPool = buffer.NewIoBufferPoolV2(1, DefaultBufferCapacity)
+var writeBufferPool = buffer.NewIoBufferPoolV2(1, DefaultBufferCapacity*2)
 
 type connection struct {
 	id         uint64

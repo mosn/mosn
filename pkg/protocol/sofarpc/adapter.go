@@ -92,8 +92,8 @@ func HasCodecException(headers map[string]string) bool {
 func GetMap(context context.Context, defaultSize int) map[string]string {
 	var amap map[string]string
 
-	if context != nil && context.Value(types.ContextKeyConnectionCodecBufferPool) != nil {
-		pool := context.Value(types.ContextKeyConnectionCodecBufferPool).(types.HeadersBufferPool)
+	if context != nil && context.Value(types.ContextKeyConnectionCodecMapPool) != nil {
+		pool := context.Value(types.ContextKeyConnectionCodecMapPool).(types.HeadersBufferPool)
 		amap = pool.Take(defaultSize)
 	}
 

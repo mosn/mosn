@@ -13,12 +13,14 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-var codecBufPool types.HeadersBufferPool
+var codecHeadersBufPool types.HeadersBufferPool
+var genericHeadersBufPool types.GenericMapPool
 var globalStats *proxyStats
 
 func init() {
 	globalStats = newProxyStats(types.GlobalStatsNamespace)
-	codecBufPool = buffer.NewHeadersBufferPool(1)
+	codecHeadersBufPool = buffer.NewHeadersBufferPool(1)
+	genericHeadersBufPool = buffer.NewGenericMapPool(1)
 }
 
 // types.ReadFilter
@@ -53,7 +55,8 @@ type proxy struct {
 }
 
 func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
-	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecBufferPool, codecBufPool)
+	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecMapPool, codecHeadersBufPool)
+	ctx = context.WithValue(ctx, types.ContextKeyConnectionStreamMapPool, genericHeadersBufPool)
 
 	proxy := &proxy{
 		config:         config,
@@ -61,7 +64,7 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 		activeSteams:   list.New(),
 		stats:          globalStats,
 		resueCodecMaps: true,
-		codecPool:      codecBufPool,
+		codecPool:      codecHeadersBufPool,
 		context:        ctx,
 	}
 
@@ -124,7 +127,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.stats.DownstreamConnectionActive().Inc(1)
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
-	p.serverCodec = stream.CreateServerStreamConnection(types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+	p.serverCodec = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
 }
 
 func (p *proxy) OnGoAway() {}
@@ -171,8 +174,12 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 func (p *proxy) deleteActiveStream(s *activeStream) {
 	// reuse decode map
 	if p.resueCodecMaps {
-		if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-			p.codecPool.Give(v)
+		if s.downstreamReqHeaders != nil {
+			p.codecPool.Give(s.downstreamReqHeaders)
+		}
+
+		if s.upstreamRequest.upstreamRespHeaders != nil {
+			p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
 		}
 	}
 

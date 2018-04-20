@@ -3,9 +3,10 @@ package types
 import (
 	"context"
 	"crypto/tls"
-	"github.com/rcrowley/go-metrics"
 	"io"
 	"net"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 const (
@@ -111,6 +112,12 @@ type HeadersBufferPool interface {
 	Take(defaultSize int) (amap map[string]string)
 
 	Give(amap map[string]string)
+}
+
+type GenericMapPool interface {
+	Take(defaultSize int) (amap map[string]interface{})
+
+	Give(amap map[string]interface{})
 }
 
 type ConnState string

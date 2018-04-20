@@ -1,6 +1,8 @@
 package stream
 
 import (
+	"context"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
@@ -14,11 +16,11 @@ func Register(prot types.Protocol, factory ProtocolStreamFactory) {
 	streamFactories[prot] = factory
 }
 
-func CreateServerStreamConnection(prot types.Protocol, connection types.Connection,
+func CreateServerStreamConnection(context context.Context, prot types.Protocol, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 
 	if ssc, ok := streamFactories[prot]; ok {
-		return ssc.CreateServerStream(connection, callbacks)
+		return ssc.CreateServerStream(context, connection, callbacks)
 	} else {
 		return nil
 	}

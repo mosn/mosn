@@ -1,5 +1,7 @@
 package types
 
+import "context"
+
 type Protocol string
 
 type PoolFailureReason string
@@ -14,7 +16,8 @@ type ConnectionPool interface {
 
 	DrainConnections()
 
-	NewStream(streamId string, responseDecoder StreamDecoder, cb PoolEventListener) Cancellable
+	NewStream(context context.Context, streamId string,
+		responseDecoder StreamDecoder, cb PoolEventListener) Cancellable
 
 	Close()
 }
