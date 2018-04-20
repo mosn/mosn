@@ -95,12 +95,7 @@ func GetMap(context context.Context, defaultSize int) map[string]string {
 
 	if context != nil && context.Value(types.ContextKeyConnectionCodecBufferPool) != nil {
 		pool := context.Value(types.ContextKeyConnectionCodecBufferPool).(sync.Pool)
-		v := pool.Get()
-
-		if v != nil {
-			amap = v.(map[string]string)
-			amap = make(map[string]string, defaultSize)
-		}
+		amap = pool.Get().(map[string]string)
 	}
 
 	if amap == nil {

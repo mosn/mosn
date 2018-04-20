@@ -28,10 +28,11 @@ type proxy struct {
 	upstreamConnection  types.ClientConnection
 	downstreamCallbacks DownstreamCallbacks
 
-	clusterName  string
-	routerConfig types.RouterConfig
-	serverCodec  types.ServerStreamConnection
-	codecPool    sync.Pool
+	clusterName    string
+	routerConfig   types.RouterConfig
+	serverCodec    types.ServerStreamConnection
+	resueCodecMaps bool
+	codecPool      sync.Pool
 
 	context context.Context
 
@@ -57,6 +58,7 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 		clusterManager: clusterManager,
 		activeSteams:   list.New(),
 		stats:          globalStats,
+		resueCodecMaps: true,
 		codecPool:      codecBufPool,
 		context:        ctx,
 	}
@@ -166,11 +168,13 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 
 func (p *proxy) deleteActiveStream(s *activeStream) {
 	// reuse decode map
-	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-		for k := range v {
-			delete(v, k)
+	if p.resueCodecMaps {
+		if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+			for k := range v {
+				delete(v, k)
+			}
+			p.codecPool.Put(v)
 		}
-		p.codecPool.Put(v)
 	}
 
 	p.asMux.Lock()
