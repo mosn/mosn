@@ -2,8 +2,9 @@ package buffer
 
 import (
 	"errors"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"io"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 const MinRead = 1024

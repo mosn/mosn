@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"io"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
