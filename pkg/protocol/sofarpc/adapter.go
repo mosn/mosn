@@ -7,7 +7,8 @@ import (
 )
 
 func SofaPropertyHeader(name string) string {
-	return SofaRpcPropertyHeaderPrefix + name
+//	return SofaRpcPropertyHeaderPrefix + name
+	return name
 }
 
 func GetPropertyValue(properHeaders map[string]reflect.Kind, headers map[string]string, name string) interface{} {

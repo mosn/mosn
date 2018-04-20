@@ -10,22 +10,21 @@ import (
 //bolt constants
 
 const (
-	HeaderProtocolCode  string = "protocol"
-	HeaderCmdType       string = "cmdtype"
-	HeaderCmdCode       string = "cmdcode"
-	HeaderVersion       string = "version"
-	HeaderReqID         string = "requestid"
-	HeaderCodec         string = "codec"
-	HeaderTimeout       string = "timeout"
-	HeaderClassLen      string = "classlen"
-	HeaderHeaderLen     string = "headerlen"
-	HeaderContentLen    string = "contentlen"
-	HeaderClassName     string = "classname"
-	HeaderVersion1      string = "ver1"
-	HeaderSwitchCode    string = "switchcode"
-	HeaderRespStatus    string = "respstatus"
-	HeaderRespTimeMills string = "resptimemills"
-
+	HeaderProtocolCode       string = "protocol"
+	HeaderCmdType            string = "cmdtype"
+	HeaderCmdCode            string = "cmdcode"
+	HeaderVersion            string = "version"
+	HeaderReqID              string = "requestid"
+	HeaderCodec              string = "codec"
+	HeaderTimeout            string = "timeout"
+	HeaderClassLen           string = "classlen"
+	HeaderHeaderLen          string = "headerlen"
+	HeaderContentLen         string = "contentlen"
+	HeaderClassName          string = "classname"
+	HeaderVersion1           string = "ver1"
+	HeaderSwitchCode         string = "switchcode"
+	HeaderRespStatus         string = "respstatus"
+	HeaderRespTimeMills      string = "resptimemills"
 	HeaderReqFlag            string = "requestflag"
 	HeaderSeriProtocol       string = "serializeprotocol"
 	HeaderDirection          string = "direction"
@@ -271,12 +270,11 @@ const (
 
 type TrCommand struct {
 	//Protocol Field
-	Protocol          byte
-	RequestFlag       byte
-	SerializeProtocol byte
-	Direction         byte
-	Reserved          byte
-
+	Protocol           byte
+	RequestFlag        byte
+	SerializeProtocol  byte
+	Direction          byte
+	Reserved           byte
 	ConnRequestLen     uint32
 	AppClassNameLen    byte
 	AppClassContentLen uint32

@@ -102,7 +102,7 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
 	var headerMap map[string]string
 
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
-	log.DefaultLogger.Println("deSerialize  headerMap:", headerMap)
+	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
 
 	for k, v := range headerMap {
 		allField[k] = v
