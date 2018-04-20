@@ -107,6 +107,12 @@ type BufferWatermarkListener interface {
 	OnLowWatermark()
 }
 
+type HeadersBufferPool interface {
+	Take(defaultSize int) (amap map[string]string)
+
+	Give(amap map[string]string)
+}
+
 type ConnState string
 
 const (

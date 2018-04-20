@@ -7,16 +7,18 @@ import (
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-var codecBufPool sync.Pool
+var codecBufPool types.HeadersBufferPool
 var globalStats *proxyStats
 
 func init() {
 	globalStats = newProxyStats(types.GlobalStatsNamespace)
+	codecBufPool = buffer.NewHeadersBufferPool(1)
 }
 
 // types.ReadFilter
@@ -32,7 +34,7 @@ type proxy struct {
 	routerConfig   types.RouterConfig
 	serverCodec    types.ServerStreamConnection
 	resueCodecMaps bool
-	codecPool      sync.Pool
+	codecPool      types.HeadersBufferPool
 
 	context context.Context
 
@@ -170,10 +172,7 @@ func (p *proxy) deleteActiveStream(s *activeStream) {
 	// reuse decode map
 	if p.resueCodecMaps {
 		if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-			for k := range v {
-				delete(v, k)
-			}
-			p.codecPool.Put(v)
+			p.codecPool.Give(v)
 		}
 	}
 

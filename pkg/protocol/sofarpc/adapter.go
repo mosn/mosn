@@ -4,7 +4,6 @@ import (
 	"context"
 	"reflect"
 	"strconv"
-	"sync"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
@@ -94,8 +93,8 @@ func GetMap(context context.Context, defaultSize int) map[string]string {
 	var amap map[string]string
 
 	if context != nil && context.Value(types.ContextKeyConnectionCodecBufferPool) != nil {
-		pool := context.Value(types.ContextKeyConnectionCodecBufferPool).(sync.Pool)
-		amap = pool.Get().(map[string]string)
+		pool := context.Value(types.ContextKeyConnectionCodecBufferPool).(types.HeadersBufferPool)
+		amap = pool.Take(defaultSize)
 	}
 
 	if amap == nil {
