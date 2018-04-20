@@ -67,7 +67,7 @@ func newStreamConnection(connection types.Connection, clientCallbacks types.Stre
 
 // types.StreamConnection
 func (conn *streamConnection) Dispatch(buffer types.IoBuffer, context context.Context) {
-	conn.protocols.Decode(buffer, conn, context)
+	conn.protocols.Decode(context, buffer, conn)
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {

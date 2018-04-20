@@ -75,7 +75,7 @@ func (p *protocols) EncodeTrailers(trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
-func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter, context context.Context) {
+func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter types.DecodeFilter) {
 	// at least 1 byte for protocol code recognize
 	for data.Len() > 1 {
 		protocolCode := data.Bytes()[0]
@@ -86,7 +86,7 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter, conte
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 
 			//Decode the Binary Streams to Command Type
-			if _, cmd := proto.GetDecoder().Decode(data); cmd != nil {
+			if _, cmd := proto.GetDecoder().Decode(context, data); cmd != nil {
 				proto.GetCommandHandler().HandleCommand(context, cmd, filter)
 			} else {
 				break

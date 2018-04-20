@@ -1,14 +1,16 @@
 package codec
 
 import (
+	"context"
 	"encoding/binary"
+	"reflect"
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"reflect"
-	"time"
 )
 
 var (
@@ -246,7 +248,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 	return nil
 }
 
-func (c *boltV1Codec) Decode(data types.IoBuffer) (int, interface{}) {
+func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int, interface{}) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}

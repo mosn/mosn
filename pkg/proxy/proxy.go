@@ -50,7 +50,8 @@ type proxy struct {
 }
 
 func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
-	//ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecBufferPool, codecBufPool)
+	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecBufferPool, codecBufPool)
+
 	proxy := &proxy{
 		config:         config,
 		clusterManager: clusterManager,

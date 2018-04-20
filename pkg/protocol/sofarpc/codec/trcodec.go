@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"context"
 	"encoding/binary"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
@@ -188,7 +189,7 @@ func (c *trCodec) mapToCmd(headers_ interface{}) interface{} {
 	return nil
 }
 
-func (decoder *trCodec) Decode(data types.IoBuffer) (int, interface{}) {
+func (decoder *trCodec) Decode(context context.Context, data types.IoBuffer) (int, interface{}) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}

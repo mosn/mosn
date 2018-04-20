@@ -1,14 +1,15 @@
 package codec
 
 import (
+	"context"
 	"encoding/binary"
+	"reflect"
+	"time"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"reflect"
-	"time"
 )
 
 // types.Encoder & types.Decoder
@@ -39,18 +40,16 @@ func init() {
 type boltV2Codec struct{}
 
 func (c *boltV2Codec) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
-
 	if headerMap, ok := headers.(map[string]string); ok {
-
 		cmd := c.mapToCmd(headerMap)
+
 		return c.encodeHeaders(cmd)
 	}
-	return c.encodeHeaders(headers)
 
+	return c.encodeHeaders(headers)
 }
 
 func (c *boltV2Codec) encodeHeaders(headers interface{}) (string, types.IoBuffer) {
-
 	switch headers.(type) {
 	case *sofarpc.BoltV2RequestCommand:
 		return c.encodeRequestCommand(headers.(*sofarpc.BoltV2RequestCommand))
@@ -105,21 +104,20 @@ func (c *boltV2Codec) mapToCmd(headers map[string]string) interface{} {
 	switchcode := sofarpc.GetPropertyValue(BoltV2PropertyHeaders, headers, "switchcode")
 
 	if cmdV2req, ok := cmdV1.(sofarpc.BoltRequestCommand); ok {
-
 		request := &sofarpc.BoltV2RequestCommand{
 			BoltRequestCommand: cmdV2req,
 			Version1:           ver1.(byte),
 			SwitchCode:         switchcode.(byte),
 		}
+
 		return request
-
 	} else if cmdV2res, ok := cmdV1.(sofarpc.BoltResponseCommand); ok {
-
 		response := &sofarpc.BoltV2ResponseCommand{
 			BoltResponseCommand: cmdV2res,
 			Version1:            ver1.(byte),
 			SwitchCode:          switchcode.(byte),
 		}
+
 		return response
 	} else {
 		// todo RPC_HB
@@ -128,7 +126,7 @@ func (c *boltV2Codec) mapToCmd(headers map[string]string) interface{} {
 	return nil
 }
 
-func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
+func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int, interface{}) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
