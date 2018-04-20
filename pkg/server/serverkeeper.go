@@ -1,7 +1,6 @@
 package server
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -9,6 +8,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 const (
@@ -16,6 +17,8 @@ const (
 		"admin" + string(os.PathSeparator) + "mosn"
 
 	MosnDefaultLogPath = MosnBasePath + string(os.PathSeparator) + "logs"
+
+	MosnDefaultLogFPath = MosnDefaultLogPath + string(os.PathSeparator) + "mosn.log"
 
 	MosnPidFileName = "mosn.pid"
 )

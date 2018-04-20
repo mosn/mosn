@@ -1,14 +1,14 @@
 package server
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"os"
-	"time"
 	"errors"
-	_"sync"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"os"
+	_ "sync"
+	"time"
 )
 
 func init() {
@@ -38,6 +38,11 @@ func NewServer(config *Config, networkFiltersFactory NetworkFilterChainFactory,
 		logPath = config.LogPath
 		logLevel = config.LogLevel
 		disableConnIo = config.DisableConnIo
+	}
+
+	//use default log path
+	if logPath == "" {
+		logPath = MosnDefaultLogFPath
 	}
 
 	log.InitDefaultLogger(logPath, logLevel)
@@ -106,12 +111,12 @@ func StopAccept() {
 func ListListenerFD() []uintptr {
 	var fds []uintptr
 	for _, server := range servers {
-		fds = append(fds,  server.handler.ListListenersFD(nil)...)
+		fds = append(fds, server.handler.ListListenersFD(nil)...)
 	}
 	return fds
 }
 
-func WaitConnectionsDone(duration time.Duration) error  {
+func WaitConnectionsDone(duration time.Duration) error {
 	timeout := time.NewTimer(duration)
 	wait := make(chan struct{})
 	go func() {

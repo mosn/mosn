@@ -4,7 +4,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"reflect"
-	"fmt"
 )
 
 //All of the protocolMaps
