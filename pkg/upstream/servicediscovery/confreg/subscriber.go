@@ -18,14 +18,15 @@ import (
 var subLock = new(sync.Mutex)
 
 type Subscriber struct {
-    systemConfig   *config.SystemConfig
-    registryConfig *config.RegistryConfig
-    codecClient    *stream.CodecClient
-    registerId     string
-    dataId         string
-    scope          string
-    version        int64
-    streamContext  *registryStreamContext
+    systemConfig        *config.SystemConfig
+    registryConfig      *config.RegistryConfig
+    codecClient         *stream.CodecClient
+    registerId          string
+    dataId              string
+    scope               string
+    version             int64
+    lastActionEventType string
+    streamContext       *registryStreamContext
 }
 
 func NewSubscriber(dataId string, client *stream.CodecClient,
@@ -44,11 +45,23 @@ func NewSubscriber(dataId string, client *stream.CodecClient,
     return sub
 }
 
+func (s *Subscriber) redo() error {
+    if s.lastActionEventType == model.EventTypePb_REGISTER.String() {
+        log.DefaultLogger.Infof("Resubscribe data. data id = %s", s.dataId)
+        s.doWork(s.lastActionEventType)
+    }
+    return nil
+}
+
 func (s *Subscriber) doWork(eventType string) error {
     subLock.Lock()
+
+    s.lastActionEventType = eventType
+
     defer func() {
         subLock.Unlock()
     }()
+
     //1. Assemble request
     request := s.assembleSubscriberRegisterPb(eventType)
     body, _ := proto.Marshal(request)
@@ -83,7 +96,8 @@ func (s *Subscriber) handleResponse(request *model.SubscriberRegisterPb) error {
         select {
         case <-time.After(s.registryConfig.RegisterTimeout):
             {
-                errMsg := fmt.Sprintf("Subscribe data from confreg timeout.  data id = %s, register id = %v", s.dataId, s.registerId)
+                errMsg := fmt.Sprintf("Subscribe data from confreg timeout.  data id = %s, register id = %v",
+                    s.dataId, s.registerId)
                 log.DefaultLogger.Errorf(errMsg)
                 return errors.New(errMsg)
             }

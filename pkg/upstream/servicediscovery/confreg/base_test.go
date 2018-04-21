@@ -11,7 +11,7 @@ var registryConfig *config.RegistryConfig
 
 func beforeTest() {
     log.InitDefaultLogger("", log.INFO)
-    //MockRpcServer()
+    MockRpcServer()
 
     sysConfig = &config.SystemConfig{
         Zone:             "GZ00b",
@@ -20,8 +20,8 @@ func beforeTest() {
         AppName:          "someApp",
     }
     registryConfig = &config.RegistryConfig{
-        ScheduleRegisterTaskDuration: 5 * time.Second,
-        RegisterTimeout:              3 * time.Second,
+        ScheduleCompensateRegisterTaskDuration: 5 * time.Second,
+        RegisterTimeout:                        3 * time.Second,
     }
 }
 

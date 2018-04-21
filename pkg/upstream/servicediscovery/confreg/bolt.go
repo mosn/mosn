@@ -5,8 +5,8 @@ import (
     "strconv"
 )
 
-const PUBLISHER_REGISTER_CLASS = "com.alipay.sofa.registry.core.model.PublisherRegister"
-const SUBSCRIBER_REGISTER_CLASS = "com.alipay.sofa.registry.core.model.SubscriberRegister"
+const PUBLISHER_REGISTER_CLASS = "com.alipay.sofa.registry.common.model.client.pb.PublisherRegisterPb"
+const SUBSCRIBER_REGISTER_CLASS = "com.alipay.sofa.registry.common.model.client.pb.SubscriberRegisterPb"
 
 var PUBLISHER_REGISTER_CLASS_LEN = strconv.Itoa(len(PUBLISHER_REGISTER_CLASS))
 var SUBSCRIBER_REGISTER_CLASS_LEN = strconv.Itoa(len(SUBSCRIBER_REGISTER_CLASS))

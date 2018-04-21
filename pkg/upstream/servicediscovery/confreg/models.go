@@ -1,5 +1,14 @@
 package registry
 
+type ApplicationInfoRequest struct {
+    AntShareCloud    bool   `json:"antShareCloud"`
+    DataCenter       string `json:"dataCenter"`
+    AppName          string `json:"appName"`
+    Zone             string `json:"zone"`
+    RegistryEndpoint string ` json:"registryEndpoint"`
+    AccessKey        string `json:"accessKey"`
+    SecretKey        string `json:"secretKey"`
+}
 //pub request
 type PublishServiceRequest struct {
 	ServiceName      string           `json:"serviceName"`
@@ -15,7 +24,7 @@ type ProviderMetaInfo struct {
 
 //pub result
 type HttpResponse struct {
-	ErrorMessage interface{} `json:"errorMessage"`
+	ErrorMessage string `json:"errorMessage"`
 	Success      bool   `json:"success"`
 }
 

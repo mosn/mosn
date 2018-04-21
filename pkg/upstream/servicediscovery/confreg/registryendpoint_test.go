@@ -5,14 +5,11 @@ import (
 )
 
 
-func TestMsgChannel_PublishService(t *testing.T) {
+func Test_RegistryModule(t *testing.T) {
     beforeTest()
 
-    StartupRegistryModule(sysConfig, registryConfig)
+    registryEndpoint := NewRegistryEndpoint(nil, nil, registryClient)
 
-    registryClient, _ := GetRegistryClient()
-    msgChann := NewRegistryEndpoint(nil, nil, registryClient)
-
-    msgChann.StartListener()
+    registryEndpoint.StartListener()
 }
 

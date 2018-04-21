@@ -12,7 +12,7 @@ import (
 func Test_Register(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
 
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
@@ -27,7 +27,7 @@ func Test_Register(t *testing.T) {
 func Test_Received(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
 
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 

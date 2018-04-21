@@ -1,26 +1,22 @@
 package servermanager
 
 import (
-    "strconv"
-    "bytes"
     "io/ioutil"
     "net/http"
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/javaio"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
-    "fmt"
     "time"
     "net"
+    "fmt"
+    "strings"
+    "math/rand"
+    "errors"
 )
 
-const (
-    REGISTRY_ENDPOINT_PORT = 9603
-    ZONE_KEY               = "com.alipay.ldc.zone"
-    REGISTRY_VERSION_KEY   = "version"
-    REGISTRY_VERSION_VALUE = "4.3.0"
-)
 
 type RegistryServerManager struct {
+    sysConfig       *config.SystemConfig
+    registryConfig  *config.RegistryConfig
     httpClient      http.Client
     endpoint        string
     registryServers []string
@@ -28,12 +24,20 @@ type RegistryServerManager struct {
     rrIndex         int
 }
 
-func NewRegistryServerManager(sysConfig *config.SystemConfig) *RegistryServerManager {
-    endpoint := "http://" + sysConfig.RegistryEndpoint + ":" + strconv.Itoa(REGISTRY_ENDPOINT_PORT) + "?" +
-        ZONE_KEY + "=" + sysConfig.Zone + "&" +
-        REGISTRY_VERSION_KEY + "=" + REGISTRY_VERSION_VALUE
+func NewRegistryServerManager(sysConfig *config.SystemConfig, registryConfig *config.RegistryConfig) *RegistryServerManager {
+    var env string
+    if sysConfig.AntShareCloud {
+        env = "share"
+    } else {
+        env = "other"
+    }
+    endpoint := fmt.Sprintf("%s:%d/api/servers/query?env=%s&zone=%s&dataCenter=%s&appName=%s&instanceId=%s",
+        sysConfig.RegistryEndpoint, registryConfig.RegistryEndpointPort, env, sysConfig.Zone, sysConfig.DataCenter,
+        sysConfig.AppName, sysConfig.InstanceId)
 
     csm := &RegistryServerManager{
+        sysConfig:       sysConfig,
+        registryConfig:  registryConfig,
         endpoint:        endpoint,
         changeListeners: make([]RegistryServerChangeListener, 0, 10),
         rrIndex:         0,
@@ -56,7 +60,7 @@ func NewRegistryServerManager(sysConfig *config.SystemConfig) *RegistryServerMan
 
     for i := 0; i < 3; i++ {
         servers, err := csm.fetchRegistryServer()
-        if err != nil {
+        if err != nil || len(servers) == 0 {
             log.DefaultLogger.Errorf("Fetch registry server failed at %d time. %s, %v", i, endpoint, err)
             continue
         }
@@ -71,40 +75,23 @@ func NewRegistryServerManager(sysConfig *config.SystemConfig) *RegistryServerMan
 }
 
 func (csm *RegistryServerManager) fetchRegistryServer() (serverList []string, err error) {
-    log.DefaultLogger.Debugf("Try fetch registry server list. Confreg endpoint = %v", csm.endpoint)
-    var fetchConfregServerCommand = []byte{
-        0xac, 0xed, 0x00, 0x05, 0x73, 0x72, 0x00, 0x2c, 0x63, 0x6f, 0x6d, 0x2e, 0x61, 0x6c, 0x69, 0x70, 0x61, 0x79, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2e, 0x64, 0x61, 0x74, 0x61, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x2e, 0x4e, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x03, 0xd0, 0x15, 0x42, 0xd4, 0xca, 0xfc, 0x87, 0x02, 0x00, 0x04, 0x5a, 0x00, 0x0c, 0x69, 0x73, 0x4e, 0x65, 0x77, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x4c, 0x00, 0x02, 0x69, 0x64, 0x74, 0x00, 0x12, 0x4c, 0x6a, 0x61, 0x76, 0x61, 0x2f, 0x6c, 0x61, 0x6e, 0x67, 0x2f, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x3b, 0x4c, 0x00, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x71, 0x00, 0x7e, 0x00, 0x01, 0x5b, 0x00, 0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x74, 0x00, 0x13, 0x5b, 0x4c, 0x6a, 0x61, 0x76, 0x61, 0x2f, 0x6c, 0x61, 0x6e, 0x67, 0x2f, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x3b, 0x78, 0x70, 0x00, 0x70, 0x74, 0x00, 0x0f, 0x71, 0x75, 0x65, 0x72, 0x79, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x6c, 0x69, 0x73, 0x74, 0x70}
-    var commandBytes = bytes.NewBuffer(fetchConfregServerCommand)
-    req, _ := http.NewRequest("POST", csm.endpoint, commandBytes)
-
-    resp, err := csm.httpClient.Do(req)
-
+    resp, err := http.Get(csm.endpoint)
     if err != nil {
         return nil, err
     }
-
     defer resp.Body.Close()
-
     bodyBytes, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        log.DefaultLogger.Errorf("Fetch registry server failed. Confreg endpoint = %v", csm.endpoint)
+        log.DefaultLogger.Errorf("Fetch confreg server failed. endpoint = %s", csm.endpoint)
         return nil, err
     }
-
-    inputObjectStream := javaio.InputObjectStream{}
-    inputObjectStream.SetBytes(bodyBytes)
-    var result = inputObjectStream.ReadContent()
-
-    if servers, ok := result.(*javaio.List); ok {
-        log.DefaultLogger.Infof("Fetch registry server success. Confreg server = %v", servers)
-
-        newSvrs := servers.GetValue()
-
-        return newSvrs, nil
+    srvStr := string(bodyBytes)
+    if srvStr == "" {
+        log.DefaultLogger.Warnf("Fetched empty confreg server. endpoint = %s", csm.endpoint)
+        return nil, errors.New("empty server list")
     } else {
-        errMsg := fmt.Sprintf("Decode registry server list from java object bytes failed. Confreg endpoint = %v", csm.endpoint)
-        log.DefaultLogger.Errorf(errMsg)
-        return nil, err
+        log.DefaultLogger.Infof("Fetched confreg server list = %s, endpoint = %s", srvStr, csm.endpoint)
+        return strings.Split(srvStr, ";"), nil
     }
 }
 
@@ -134,12 +121,12 @@ func (csm *RegistryServerManager) GetRegistryServerList() ([]string, bool) {
 }
 
 func (csm *RegistryServerManager) GetRegistryServerByRandom() (string, bool) {
-    return "127.0.0.1:8089", true
-    //if len(csm.registryServers) > 0 {
-    //    index := rand.Intn(len(csm.registryServers))
-    //    return csm.registryServers[index], true
-    //}
-    //return "", false
+    //return "127.0.0.1:8089", true
+    if len(csm.registryServers) > 0 {
+        index := rand.Intn(len(csm.registryServers))
+        return csm.registryServers[index], true
+    }
+    return "", false
 }
 
 func (csm *RegistryServerManager) GetRegistryServerByRR() (string, bool) {
@@ -168,7 +155,7 @@ func (csm *RegistryServerManager) triggerChangeEvent(newRegistryServer []string)
 
 func (csm *RegistryServerManager) refreshConfregServerAtFixRate() {
     for ; ; {
-        time.Sleep(60 * time.Second)
+        time.Sleep(csm.registryConfig.ScheduleRefreshConfregServerTaskDuration)
         log.DefaultLogger.Infof("Start to refresh confreg server list.")
         if newSvrs, err := csm.fetchRegistryServer(); err == nil {
             if isChanged(csm.registryServers, newSvrs) {

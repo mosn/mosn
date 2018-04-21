@@ -4,12 +4,13 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "testing"
     "time"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
 )
 
 func Test_AsyncPubSubOneService(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -22,7 +23,7 @@ func Test_AsyncPubSubOneService(t *testing.T) {
 func Test_yncPubSubOneService(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -35,7 +36,7 @@ func Test_yncPubSubOneService(t *testing.T) {
 func Test_AsyncPubSubOneServiceAndPubTimeout(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -48,7 +49,7 @@ func Test_AsyncPubSubOneServiceAndPubTimeout(t *testing.T) {
 func Test_SyncPubSubOneServiceAndPubTimeout(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -61,7 +62,7 @@ func Test_SyncPubSubOneServiceAndPubTimeout(t *testing.T) {
 func Test_AsyncPubSubOneServiceAndPubSubTimeout(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -74,7 +75,7 @@ func Test_AsyncPubSubOneServiceAndPubSubTimeout(t *testing.T) {
 func Test_AsyncPubSubManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     go func() {

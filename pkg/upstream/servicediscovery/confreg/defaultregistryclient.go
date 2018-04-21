@@ -18,7 +18,7 @@ type DefaultRegistryClient struct {
 }
 
 func NewRegistryClient(systemConfig *config.SystemConfig, registryConfig *config.RegistryConfig,
-    manager *servermanager.RegistryServerManager) *DefaultRegistryClient {
+    manager *servermanager.RegistryServerManager) RegistryClient {
 
     rc := &DefaultRegistryClient{
         systemConfig:         systemConfig,

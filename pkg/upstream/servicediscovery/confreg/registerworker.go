@@ -217,6 +217,7 @@ func (rw *registerWorker) doRegister(ele *list.Element) error {
 
         if err == nil {
             registryTask.sendCounter.Clear()
+            //todo recode sub/pub success context. Playback when reconnect
             return nil
         } else {
             registryTask.sendCounter.Inc(1)
@@ -258,7 +259,7 @@ func (rw *registerWorker) getSubscriber(dataId string) *Subscriber {
 
 func (rw *registerWorker) scheduleWorkAtFixTime() {
     for ; ; {
-        <-time.After(rw.registryConfig.ScheduleRegisterTaskDuration)
+        <-time.After(rw.registryConfig.ScheduleCompensateRegisterTaskDuration)
         rw.registryWorkChan <- true
     }
 }
@@ -275,6 +276,18 @@ func (rw *registerWorker) OnRegistryServerChangeEvent(registryServers []string) 
         return
     }
     rw.refreshCodecClient()
+}
+
+func (rw *registerWorker) OnEvent(event types.ConnectionEvent) {
+    if !event.IsClose() {
+        return
+    }
+    log.DefaultLogger.Infof("The Connection with confreg server closed, will connect to another server. "+
+        "current connected confreg server = %s, event type = %v", rw.connectedConfregServer, event)
+    rw.refreshCodecClient()
+
+    rw.publisherHolder.Range(rePub)
+    rw.subscriberHolder.Range(reSub)
 }
 
 func (rw *registerWorker) refreshCodecClient() {
@@ -307,12 +320,18 @@ func (rw *registerWorker) refreshSubscriberCodecClient(key, value interface{}) b
     return true
 }
 
-func (rw *registerWorker) OnEvent(event types.ConnectionEvent) {
-    if event.IsClose() {
-        log.DefaultLogger.Infof("The Connection with confreg server closed, will connect to another server. "+
-            "current connected confreg server = %s", rw.connectedConfregServer)
-        rw.refreshCodecClient()
+func rePub(key, value interface{}) bool {
+    if err := value.(*Publisher).redo(); err != nil {
+        return false
     }
+    return true
+}
+
+func reSub(key, value interface{}) bool {
+    if err := value.(*Subscriber).redo(); err != nil {
+        return false
+    }
+    return true
 }
 
 func (rw *registerWorker) OnAboveWriteBufferHighWatermark() {

@@ -24,7 +24,7 @@ func Test_OpenCC(t *testing.T) {
 func Test_ReceiveSingleSegmentData(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
     rc.GetRPCServerManager().RegisterRPCServerChangeListener(listener)
 

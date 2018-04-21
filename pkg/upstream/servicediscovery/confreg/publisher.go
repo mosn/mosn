@@ -18,14 +18,15 @@ import (
 var pubLock = new(sync.Mutex)
 
 type Publisher struct {
-    registryConfig *config.RegistryConfig
-    sysConfig      *config.SystemConfig
-    codecClient    *stream.CodecClient
-    registerId     string
-    dataId         string
-    version        int64
-    startTime      int32
-    streamContext  *registryStreamContext
+    registryConfig      *config.RegistryConfig
+    sysConfig           *config.SystemConfig
+    codecClient         *stream.CodecClient
+    registerId          string
+    dataId              string
+    version             int64
+    lastPubData         []string
+    lastActionEventType string
+    streamContext       *registryStreamContext
 }
 
 func NewPublisher(dataId string, codecClient *stream.CodecClient, registryConfig *config.RegistryConfig,
@@ -42,12 +43,25 @@ func NewPublisher(dataId string, codecClient *stream.CodecClient, registryConfig
     return p
 }
 
+func (p *Publisher) redo() error {
+    if p.lastActionEventType == model.EventTypePb_REGISTER.String() {
+        log.DefaultLogger.Infof("Republish data. data id = %s", p.dataId)
+        return p.doWork(p.lastPubData, p.lastActionEventType)
+    }
+    return nil
+}
+
 //sync call. not thread safe
 func (p *Publisher) doWork(svrHost []string, eventType string) error {
     pubLock.Lock()
+
+    p.lastActionEventType = eventType
+    p.lastPubData = svrHost
+
     defer func() {
         pubLock.Unlock()
     }()
+
     //1. Assemble request
     request := p.assemblePublisherRegisterPb(svrHost, eventType)
     body, _ := proto.Marshal(request)

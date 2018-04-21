@@ -10,7 +10,7 @@ import (
 func Test_AsyncPublishOneService(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -22,7 +22,7 @@ func Test_AsyncPublishOneService(t *testing.T) {
 func Test_SyncPublishOneService(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -37,7 +37,7 @@ func Test_SyncPublishOneService(t *testing.T) {
 func Test_AsyncPublishOneServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     for ; ; {
@@ -50,7 +50,7 @@ func Test_AsyncPublishOneServiceManyTimes(t *testing.T) {
 func Test_SyncPublishOneServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -66,7 +66,7 @@ func Test_SyncPublishOneServiceManyTimes(t *testing.T) {
 func Test_AsyncPublishManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     for i := 0; i < 3; i++ {
@@ -85,7 +85,7 @@ func Test_AsyncPublishManyServiceManyTimes(t *testing.T) {
 func Test_SyncPublishManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     for i := 0; i < 10; i++ {
@@ -104,7 +104,7 @@ func Test_SyncPublishManyServiceManyTimes(t *testing.T) {
 func Test_AsyncPublishTimeout(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -116,7 +116,7 @@ func Test_AsyncPublishTimeout(t *testing.T) {
 func Test_SyncPublishTimeout(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
@@ -131,7 +131,7 @@ func Test_SyncPublishTimeout(t *testing.T) {
 func Test_AsyncPublishThreeServiceAndOneFailed(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
