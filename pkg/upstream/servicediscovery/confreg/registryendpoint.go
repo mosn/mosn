@@ -12,8 +12,7 @@ import (
 )
 
 type RegistryEndpoint struct {
-    ServiceInfo
-    MsgChannelCB   MsgChanCallback
+    registryConfig *config.RegistryConfig
     RegistryClient RegistryClient
 }
 
@@ -34,10 +33,9 @@ func (l *StartupRPCServerChangeListener) OnRPCServerChanged(dataId string, zoneS
     }
 }
 
-func NewRegistryEndpoint(services []string, msgChannelCB MsgChanCallback, registryClient RegistryClient) *RegistryEndpoint {
+func NewRegistryEndpoint(registryConfig *config.RegistryConfig, registryClient RegistryClient) *RegistryEndpoint {
     re := &RegistryEndpoint{
-        ServiceInfo:  ServiceInfo{ServiceSet: services},
-        MsgChannelCB: msgChannelCB,
+        registryConfig: registryConfig,
     }
     if registryClient != nil {
         re.RegistryClient = registryClient
@@ -114,13 +112,13 @@ func (re *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Requ
     }
     //2. Get service info from confreg in block.
     subscribeRecorder[dataId] = make(chan bool)
-    timeout := 3 * time.Second
-    t := time.NewTimer(timeout)
+    t := time.NewTimer(re.registryConfig.WaitReceivedDataTimeout)
     for ; ; {
         select {
         case <-t.C:
             {
-                doResponse(false, fmt.Sprintf("Wait confreg server push data timeout. data id = %s, timeout = %v", dataId, timeout), w)
+                doResponse(false, fmt.Sprintf("Wait confreg server push data timeout. data id = %s, timeout = %v",
+                    dataId, re.registryConfig.WaitReceivedDataTimeout), w)
                 return
             }
         case <-subscribeRecorder[dataId]:

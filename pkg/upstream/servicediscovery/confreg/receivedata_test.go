@@ -28,7 +28,7 @@ func Test_ReceiveSingleSegmentData(t *testing.T) {
     rc := NewRegistryClient(sysConfig, registryConfig, csm)
     rc.GetRPCServerManager().RegisterRPCServerChangeListener(listener)
 
-    re := NewRegistryEndpoint(nil, nil, rc)
+    re := NewRegistryEndpoint(registryConfig, rc)
     go re.StartListener()
     
     dataId := "someDataId"

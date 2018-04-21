@@ -8,7 +8,7 @@ import (
 func Test_RegistryModule(t *testing.T) {
     beforeTest()
 
-    registryEndpoint := NewRegistryEndpoint(nil, nil, registryClient)
+    registryEndpoint := NewRegistryEndpoint(registryConfig, registryClient)
 
     registryEndpoint.StartListener()
 }
