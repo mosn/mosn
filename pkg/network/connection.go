@@ -3,7 +3,6 @@ package network
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net"
 	"runtime"
@@ -124,8 +123,7 @@ func (c *connection) Start(lctx context.Context) {
 				if p := recover(); p != nil {
 					// TODO: panic recover @wugou
 
-					fmt.Printf("panic %v", p)
-					fmt.Println()
+					log.DefaultLogger.Errorf("panic %v\n", p)
 
 					debug.PrintStack()
 				}
@@ -139,8 +137,7 @@ func (c *connection) Start(lctx context.Context) {
 				if p := recover(); p != nil {
 					// TODO: panic recover @wugou
 
-					fmt.Printf("panic %v", p)
-					fmt.Println()
+					log.DefaultLogger.Errorf("panic %v\n", p)
 
 					debug.PrintStack()
 				}

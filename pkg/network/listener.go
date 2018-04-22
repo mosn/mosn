@@ -2,7 +2,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -74,16 +73,16 @@ func (l *listener) Start(stopChan chan bool, lctx context.Context) {
 		for {
 			select {
 			case <-stopChan:
-				log.DefaultLogger.Println("listener " + l.name + " stop accepting connections")
+				log.DefaultLogger.Infof("listener %s stop accepting connections", l.name)
 				return
 			default:
 				if err := l.accept(lctx); err != nil {
 					if ope, ok := err.(*net.OpError); ok {
 						if !(ope.Timeout() && ope.Temporary()) {
-							log.DefaultLogger.Println("not temp-timeout error:" + err.Error())
+							log.DefaultLogger.Errorf("not temp-timeout error:" + err.Error())
 						}
 					} else {
-						log.DefaultLogger.Println("unknown error while listener accepting:" + err.Error())
+						log.DefaultLogger.Errorf("unknown error while listener accepting:" + err.Error())
 					}
 				}
 			}
@@ -140,8 +139,7 @@ func (l *listener) accept(lctx context.Context) error {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				fmt.Printf("panic %v", p)
-				fmt.Println()
+				log.DefaultLogger.Errorf("panic %v\n", p)
 
 				debug.PrintStack()
 			}

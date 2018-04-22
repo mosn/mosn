@@ -31,13 +31,14 @@ func init(){
 func (m *MsgChannel) PublishService(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
-		fmt.Println("ERROR [MESH HTTP GET]")
+		log.DefaultLogger.Errorf("[MSG CHANNEL] expect method 'POST' but got '%s'", r.Method)
+		return
 	}
 
 	body, _ := ioutil.ReadAll(r.Body)
 	body_str := string(body)
 
-	fmt.Println("[MESH HTTP GET]:" + body_str)
+	log.DefaultLogger.Infof("[MSG CHANNEL] MESH HTTP GET :%s", body_str)
 
 	var msg PublishServiceRequest
 	if err := json.Unmarshal(body, &msg); err == nil {
@@ -52,10 +53,10 @@ func (m *MsgChannel) PublishService(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			w.Write(m)
 		} else {
-			fmt.Println(err)
+			log.DefaultLogger.Errorf("[MSG CHANNEL] %s", err)
 		}
 	} else {
-		fmt.Println(err)
+		log.DefaultLogger.Errorf("[MSG CHANNEL] %s", err)
 		fmt.Fprint(w, "Error")
 	}
 }
@@ -64,13 +65,13 @@ func (m *MsgChannel) PublishService(w http.ResponseWriter, r *http.Request) {
 func (m *MsgChannel) UnPublishService(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
-		fmt.Println("ERROR [MESH HTTP GET]")
+		log.DefaultLogger.Errorf("[MSG CHANNEL] expect method 'POST' but got '%s'", r.Method)
 	}
 
 	body, _ := ioutil.ReadAll(r.Body)
 	body_str := string(body)
 
-	fmt.Println("[MESH HTTP GET]:" + body_str)
+	log.DefaultLogger.Infof("[MSG CHANNEL] MESH HTTP GET :%s", body_str)
 
 	var msg UnPublishServiceRequest
 	if err := json.Unmarshal(body, &msg); err == nil {
@@ -84,10 +85,10 @@ func (m *MsgChannel) UnPublishService(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			w.Write(m)
 		} else {
-			fmt.Println(err)
+			log.DefaultLogger.Errorf("[MSG CHANNEL] %s", err)
 		}
 	} else {
-		fmt.Println(err)
+		log.DefaultLogger.Errorf("[MSG CHANNEL] %s", err)
 		fmt.Fprint(w, "Error")
 	}
 }
@@ -97,13 +98,13 @@ func (m *MsgChannel) UnPublishService(w http.ResponseWriter, r *http.Request) {
 func (m *MsgChannel) SubscribeService(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
-		fmt.Println("ERROR [MESH HTTP GET]")
+		log.DefaultLogger.Errorf("[MSG CHANNEL] expect method 'POST' but got '%s'", r.Method)
 	}
 
 	body, _ := ioutil.ReadAll(r.Body)
 	body_str := string(body)
 
-	fmt.Println("[MESH HTTP GET]:" + body_str)
+	log.DefaultLogger.Infof("[MSG CHANNEL] MESH HTTP GET :%s", body_str)
 
 	var msg SubscribeServiceRequest
 	if err := json.Unmarshal(body, &msg); err == nil {
@@ -120,10 +121,10 @@ func (m *MsgChannel) SubscribeService(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			w.Write(m)
 		} else {
-			fmt.Println(err)
+			log.DefaultLogger.Errorf("[MSG CHANNEL] %s", err)
 		}
 	} else {
-		fmt.Println(err)
+		log.DefaultLogger.Errorf("[MSG CHANNEL] %s", err)
 		fmt.Fprint(w, "Error")
 	}
 }
@@ -133,13 +134,13 @@ func (m *MsgChannel) SubscribeService(w http.ResponseWriter, r *http.Request) {
 func (m *MsgChannel) UnSubscribeService(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
-		fmt.Println("ERROR [MESH HTTP GET]")
+		log.DefaultLogger.Errorf("[MSG CHANNEL] expect method 'POST' but got '%s'", r.Method)
 	}
 
 	body, _ := ioutil.ReadAll(r.Body)
 	body_str := string(body)
 
-	fmt.Println("[MESH HTTP GET]:" + body_str)
+	log.DefaultLogger.Infof("[MSG CHANNEL] MESH HTTP GET :%s", body_str)
 
 	var msg UnSubscribeServiceRequest
 	if err := json.Unmarshal(body, &msg); err == nil {
@@ -153,10 +154,10 @@ func (m *MsgChannel) UnSubscribeService(w http.ResponseWriter, r *http.Request) 
 		if err == nil {
 			w.Write(m)
 		} else {
-			fmt.Println(err)
+			log.DefaultLogger.Errorf("[MSG CHANNEL] %s", err)
 		}
 	} else {
-		fmt.Println(err)
+		log.DefaultLogger.Errorf("[MSG CHANNEL] %s", err)
 		fmt.Fprint(w, "Error")
 	}
 }
@@ -170,6 +171,6 @@ func (m *MsgChannel) StartChannel() {
 	http.HandleFunc("/unSubscribeService", m.UnSubscribeService)
 
 	if err := http.ListenAndServe("0.0.0.0:8888", nil); err != nil {
-		log.DefaultLogger.Errorf("ListenAndServe: ", err)
+		log.DefaultLogger.Errorf("[MSG CHANNEL] ListenAndServe: %s", err)
 	}
 }

@@ -2,10 +2,10 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
+	"log"
 )
 
 type FilterConfig struct {
@@ -64,10 +64,10 @@ type MOSNConfig struct {
 }
 
 func Load(path string) *MOSNConfig {
-	fmt.Println("load config from : " + path)
+	log.Println("load config from : ", path)
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatalln("load config failed, ", err)
 		os.Exit(1)
 	}
 
@@ -75,9 +75,3 @@ func Load(path string) *MOSNConfig {
 	json.Unmarshal(content, &config)
 	return &config
 }
-
-//func main() {
-//	config := Load("D:/workspace/go_files/src/gitlab.alipay-inc.com/afe/mosn/pkg/mosn/mosn_config.json")
-//	fmt.Printf("config : %+v", config)
-//
-//}

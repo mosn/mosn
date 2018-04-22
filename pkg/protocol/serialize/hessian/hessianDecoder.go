@@ -278,7 +278,7 @@ func (d *decoder) readString(flag int32) (interface{}, error) {
 
 		return string(buf), nil
 	} else {
-		fmt.Println(tag, len, last)
+		log.DefaultLogger.Errorf("[HESSIAN DECODER] byte3 integer codec error, %x, %d, %t", tag , len, last)
 		return nil, newCodecError("byte3 integer")
 	}
 
@@ -326,7 +326,7 @@ func (d *decoder) readInstance(typ reflect.Type, cls ClassDef) (interface{}, err
 		fldName := cls.FieldName[i]
 		index, err := findField(fldName, typ)
 		if err != nil {
-			log.DefaultLogger.Infof("%s is not found, will ski type ->p %v", fldName, typ)
+			log.DefaultLogger.Debugf("%s is not found, will ski type ->p %v", fldName, typ)
 			continue
 		}
 		fldValue := st.Field(index)
@@ -375,7 +375,7 @@ func (d *decoder) readInstance(typ reflect.Type, cls ClassDef) (interface{}, err
 		case kind == reflect.Struct:
 			s, err := d.ReadObject()
 			if err != nil {
-				log.DefaultLogger.Infof("struct error,%+v", err)
+				log.DefaultLogger.Errorf("struct error,%+v", err)
 			}
 			fldValue.Set(reflect.Indirect(s.(reflect.Value)))
 			//fmt.Println("s with struct", s)
@@ -405,14 +405,14 @@ func (d *decoder) readInstance(typ reflect.Type, cls ClassDef) (interface{}, err
 这里 value 就是一个 map[string]interface{}
 */
 func (d *decoder) readMap(value reflect.Value) error {
-	fmt.Println("map -----------")
+	log.DefaultLogger.Debugf("[HESSIAN DECODEER] read map")
 
 	tag, _ := d.readBufByte()
 	if tag == BC_MAP {
 		b, _ := d.peekBufByte()
 
 		if b >= 0 {
-			fmt.Print("some magic number")
+			log.DefaultLogger.Debugf("[HESSIAN DECODEER] some magic number")
 		}
 
 	} else if tag == BC_MAP_UNTYPED {
@@ -425,16 +425,16 @@ func (d *decoder) readMap(value reflect.Value) error {
 	//this is map's parent 's member key
 	member, _ := d.ReadObject()
 
-	log.DefaultLogger.Infof("start read map meber var ,%+v", member)
+	log.DefaultLogger.Debugf("[HESSIAN DECODEER] start read map meber var ,%+v", member)
 
 	singleObj, _ := d.ReadObject()
 
-	log.DefaultLogger.Infof("start read map singleObj var ,%+v", singleObj)
+	log.DefaultLogger.Debugf("[HESSIAN DECODEER] start read map singleObj var ,%+v", singleObj)
 
 	//read key and value
 	for d.isEnd() == false {
 		key, err := d.ReadObject()
-		log.DefaultLogger.Infof("start read map key,%+v", key)
+		log.DefaultLogger.Debugf("[HESSIAN DECODEER] start read map key,%+v", key)
 
 		//TODO fix me 这里做一个特殊的处理, isEnd 方法不好判断
 
@@ -449,19 +449,19 @@ func (d *decoder) readMap(value reflect.Value) error {
 
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("endMamp")
+				log.DefaultLogger.Debugf("[HESSIAN DECODEER] endMamp")
 				break
 			} else {
-				fmt.Println(err)
+				log.DefaultLogger.Errorf("[HESSIAN DECODEER] %s", err)
 				return newCodecError("ReadType", err)
 			}
 		}
 		vl, err := d.ReadObject()
 
-		log.DefaultLogger.Infof("start read map value,%+v", vl)
+		log.DefaultLogger.Debugf("[HESSIAN DECODEER] start read map value,%+v", vl)
 		m.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(vl))
 
-		log.DefaultLogger.Infof("map processing,%+v", m)
+		log.DefaultLogger.Debugf("[HESSIAN DECODEER] map processing,%+v", m)
 	}
 
 	if so, ok := singleObj.(map[interface{}]interface{}); ok {

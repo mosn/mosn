@@ -408,7 +408,7 @@ func (s *activeStream) doEncodeHeaders(filter *activeStreamEncoderFilter, header
 
 	//Currently, just log the error
 	if err := s.responseEncoder.EncodeHeaders(headers, endStream); err != nil {
-		log.DefaultLogger.Println(err.Error())
+		log.DefaultLogger.Errorf("[downstream] decode headers error, %s", err)
 	}
 
 	if endStream {

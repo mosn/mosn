@@ -64,7 +64,7 @@ func catchSignalsCrossPlatform() {
 			syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
 
 		for sig := range sigchan {
-			log.DefaultLogger.Println(sig, " received!")
+			log.DefaultLogger.Debugf("signal %s received!", sig)
 			switch sig {
 			case syscall.SIGQUIT:
 				// quit
@@ -154,8 +154,6 @@ func reconfigure() {
 		log.DefaultLogger.Fatalln("no listener fd found")
 	}
 
-	log.DefaultLogger.Println("ready to pass fds:", listenerFD)
-
 	// Set a flag for the new process start process
 	os.Setenv("_MOSN_GRACEFUL_RESTART", "true")
 
@@ -169,11 +167,11 @@ func reconfigure() {
 	if err != nil {
 		log.DefaultLogger.Fatalln("Fail to fork", err)
 	}
-	log.DefaultLogger.Println("SIGHUP received: fork-exec to", fork)
+	log.DefaultLogger.Infof("SIGHUP received: fork-exec to %d", fork)
 
 	// Wait for all conections to be finished
 	WaitConnectionsDone(time.Duration(time.Second) * 15)
-	log.DefaultLogger.Println(os.Getpid(), "Server gracefully shutdown")
+	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
 
 	// Stop the old server, all the connections have been closed and the new one is running
 	os.Exit(0)

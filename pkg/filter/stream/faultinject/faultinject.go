@@ -73,7 +73,7 @@ func (f *faultInjectFilter) tryInjectDelay() {
 				select {
 				case <-time.After(time.Duration(duration) * time.Millisecond):
 					atomic.StoreUint32(&f.delaying, 0)
-					log.DefaultLogger.Println("Continue")
+					log.DefaultLogger.Debugf("[FaultInject] Continue after delay")
 					f.cb.ContinueDecoding()
 				}
 			}()
