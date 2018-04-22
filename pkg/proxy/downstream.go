@@ -220,11 +220,11 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		connPool:     pool,
 	}
 
-	s.upstreamRequest.encodeHeaders(headers, endStream)
-
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
+
+	s.upstreamRequest.encodeHeaders(headers, endStream)
 }
 
 func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
@@ -251,6 +251,10 @@ func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data type
 		// todo: set a buf limit
 	}
 
+	if endStream {
+		s.onUpstreamRequestSent()
+	}
+
 	if shouldBufData {
 		copied := data.Clone()
 
@@ -267,10 +271,6 @@ func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data type
 		s.upstreamRequest.encodeData(copied, endStream)
 	} else {
 		s.upstreamRequest.encodeData(data, endStream)
-	}
-
-	if endStream {
-		s.onUpstreamRequestSent()
 	}
 }
 
@@ -291,8 +291,8 @@ func (s *activeStream) doDecodeTrailers(filter *activeStreamDecoderFilter, trail
 	}
 
 	s.downstreamReqTrailers = trailers
-	s.upstreamRequest.encodeTrailers(trailers)
 	s.onUpstreamRequestSent()
+	s.upstreamRequest.encodeTrailers(trailers)
 }
 
 func (s *activeStream) onUpstreamRequestSent() {
