@@ -14,13 +14,11 @@ import (
 )
 
 var codecHeadersBufPool types.HeadersBufferPool
-var genericHeadersBufPool types.GenericMapPool
 var globalStats *proxyStats
 
 func init() {
 	globalStats = newProxyStats(types.GlobalStatsNamespace)
 	codecHeadersBufPool = buffer.NewHeadersBufferPool(1)
-	genericHeadersBufPool = buffer.NewGenericMapPool(1)
 }
 
 // types.ReadFilter
@@ -56,7 +54,6 @@ type proxy struct {
 
 func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
 	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecMapPool, codecHeadersBufPool)
-	ctx = context.WithValue(ctx, types.ContextKeyConnectionStreamMapPool, genericHeadersBufPool)
 
 	proxy := &proxy{
 		config:         config,
