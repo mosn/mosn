@@ -94,7 +94,7 @@ selectwriter:
 		}
 	}
 
-	l.Logger = log.New(l.writer, "", log.LstdFlags | log.Lshortfile)
+	l.Logger = log.New(l.writer, "", log.LstdFlags)
 
 	return nil
 }
