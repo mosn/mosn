@@ -17,7 +17,9 @@ type Listener interface {
 
 	Addr() net.Addr
 
-	Start(stopChan chan bool, lctx context.Context)
+	Start(lctx context.Context)
+
+	Stop()
 
 	ListenerTag() uint64
 
@@ -219,7 +221,7 @@ type ConnectionEventListener interface {
 type ConnectionHandler interface {
 	NumConnections() uint64
 
-	StartListener(l Listener)
+	StartListener(l Listener, networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactories []StreamFilterChainFactory)
 
 	FindListenerByAddress(addr net.Addr) Listener
 
@@ -279,6 +281,13 @@ type FilterChainFactory interface {
 	CreateNetworkFilterChain(conn Connection)
 
 	CreateListenerFilterChain(listener ListenerFilterManager)
+}
+
+
+type NetworkFilterFactoryCb func(manager FilterManager)
+
+type NetworkFilterChainFactory interface {
+	CreateFilterFactory(clusterManager ClusterManager, context context.Context) NetworkFilterFactoryCb
 }
 
 type Addresses []net.Addr

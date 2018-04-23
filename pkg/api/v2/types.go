@@ -23,13 +23,13 @@ const (
 )
 
 type Cluster struct {
-	Name                 string
-	ClusterType          ClusterType
-	LbType               LbType
-	MaxRequestPerConn    uint64
+	Name              string
+	ClusterType       ClusterType
+	LbType            LbType
+	MaxRequestPerConn uint64
 
 	ConnBufferLimitBytes uint32
-	HealthCheck 		 HealthCheck
+	HealthCheck          HealthCheck
 }
 
 type Host struct {
@@ -40,12 +40,16 @@ type Host struct {
 
 type ListenerConfig struct {
 	Name                                  string
-	Addr                                  string
+	Addr                                  net.Addr
 	ListenerTag                           uint64
 	ListenerScope                         string
 	BindToPort                            bool
 	PerConnBufferLimitBytes               uint32
 	HandOffRestoredDestinationConnections bool
+
+	// used in inherit case
+	InheritListener *net.TCPListener
+	Remain          bool
 }
 
 type AccessLog struct {
