@@ -1,50 +1,42 @@
 package log
 
 import (
-	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	//"time"
-	"errors"
-	"reflect"
 	"strings"
 )
 
-type Funcs map[string]reflect.Value
 var (
 	RequestInfoFuncMap map[string]interface{}
-	ErrParamsNotAdapted = errors.New("The number of params is not adapted.")
-	funcs Funcs
+	funcs              types.FuncMaps
 )
 
 func init() {
-	
-	funcs =  make(Funcs, 10)
-	RequestInfoFuncMap = map[string]interface{}{
-		types.LogStartTime: types.RequestInfo.StartTime,
-		types.LogProtocol:  types.RequestInfo.Protocol,
-		types.LogResponseReceivedDuration:types.RequestInfo.ResponseReceivedDuration,
-		types.LogBytesSent: types.RequestInfo.BytesSent,
-		types.LogBytesReceived:  types.RequestInfo.BytesReceived,
-		types.LogResponseCode:types.RequestInfo.ResponseCode,
-		types.LogDuration: types.RequestInfo.Duration,
-		types.LogResponseFlag:types.RequestInfo.GetResponseFlag,
-		types.LogUpstreamLocalAddress: types.RequestInfo.UpstreamLocalAddress,
-		types.LogDownstreamLocalAddress:types.RequestInfo.DownstreamLocalAddress,
+	funcs = make(types.FuncMaps, 10)
+	RequestInfoFuncMap = map[string]interface{} {
+		types.LogStartTime:                types.RequestInfo.StartTime,
+		types.LogRequestReceivedDuration:  types.RequestInfo.RequestReceivedDuration,
+		types.LogResponseReceivedDuration: types.RequestInfo.ResponseReceivedDuration,
+		types.LogBytesSent:                types.RequestInfo.BytesSent,
+		types.LogBytesReceived:            types.RequestInfo.BytesReceived,
+		types.LogProtocol:                 types.RequestInfo.Protocol,
+		types.LogResponseCode:             types.RequestInfo.ResponseCode,
+		types.LogDuration:                 types.RequestInfo.Duration,
+		types.LogResponseFlag:             types.RequestInfo.GetResponseFlag,
+		types.LogUpstreamLocalAddress:     types.RequestInfo.UpstreamLocalAddress,
+		types.LogDownstreamLocalAddress:   types.RequestInfo.DownstreamLocalAddress,
 	}
 
 	for k, v := range RequestInfoFuncMap {
-		err := funcs.Bind(k, v)
-
-		if err != nil {
-			fmt.Println("Bind %s: %s", k, err)
+		if err := funcs.Bind(k, v);err != nil{
+			DefaultLogger.Errorf("Bind %s: %s", k, err.Error())
 		}
 	}
 }
 
 const (
 	//read docs/access-log-details.md
-	DefaultAccessLogFormat = "%StartTime% %PROTOCOL% %DownstreamLocalAddress% " +
-		"%UpstreamLocalAddress% %RESPONSE_CODE% %RESPONSE_FLAGS%"
+	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
+		"%BytesReceived% %PROTOCOL% %ResponseCode% %Duration% %RESPONSE_FLAGS%  %RESPONSE_CODE% %RESPONSE_FLAGS%"
 )
 
 var accesslogs []*accesslog
@@ -184,16 +176,27 @@ func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHe
 	// todo: map fieldName to field vale string
 
 	if f.reqInfoFormat == nil {
+		DefaultLogger.Debugf("No ReqInfo Format Keys Input")
 		return ""
 	}
 
 	format := ""
-	for _,key := range(f.reqInfoFormat){
+	for _, key := range f.reqInfoFormat {
 
-		r ,_ := funcs.Call(key)
-		format = format + r[0].String() + " "
+		if r, err := funcs.Call(key); err != nil {
+			DefaultLogger.Errorf(err.Error())
+		} else {
+			vString := funcs.GetValueInString(r[0].Interface())
+			if vString == types.LogNotFoundError {
+				DefaultLogger.Errorf("Convert Error Occurs ")
+			} else {
+				format = format + vString + " "
+			}
+		}
 	}
 
+	//delete the last " "
+	format = format[:len(format)-1]
 	return format
 }
 
@@ -204,16 +207,16 @@ type simpleReqHeadersFormatter struct {
 func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 
 	if f.reqHeaderFormat == nil {
-		DefaultLogger.Debugf("No Req Format Keys Input")
+		DefaultLogger.Debugf("No ReqHeaders Format Keys Input")
 		return ""
 	}
 	format := ""
 
-	for _,key := range(f.reqHeaderFormat){
-		if v,ok :=reqHeaders[key];ok{
-			format = format + "Req."+ v + " "
-		}else {
-			DefaultLogger.Debugf("Invalid Resp Format Keys")
+	for _, key := range f.reqHeaderFormat {
+		if v, ok := reqHeaders[key]; ok {
+			format = format + "Req." + v + " "
+		} else {
+			DefaultLogger.Debugf("Invalid RespHeaders Format Keys %s", key)
 		}
 	}
 
@@ -228,17 +231,17 @@ type simpleRespHeadersFormatter struct {
 
 func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 	if f.respHeaderFormat == nil {
-		DefaultLogger.Debugf("No Resp Format Keys Input")
+		DefaultLogger.Debugf("No RespHeaders Format Keys Input")
 		return ""
 	}
 
 	format := ""
-	for _,key := range(f.respHeaderFormat){
+	for _, key := range f.respHeaderFormat {
 
-		if v,ok :=respHeaders[key];ok{
-			format = format + "Resp."+v + " "
-		}else {
-			DefaultLogger.Debugf("Invalid Resp Format Keys")
+		if v, ok := respHeaders[key]; ok {
+			format = format + "Resp." + v + " "
+		} else {
+			DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
 		}
 	}
 
@@ -246,33 +249,3 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 	format = format[:len(format)-1]
 	return format
 }
-
-func (f Funcs) Bind(name string, fn interface{}) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			err = errors.New(name + " is not callable.")
-		}
-	}()
-	v := reflect.ValueOf(fn)
-	v.Type().NumIn()
-	f[name] = v
-	return
-}
-
-func (f Funcs) Call(name string, params ...interface{}) (result []reflect.Value, err error) {
-	if _, ok := f[name]; !ok {
-		err = errors.New(name + " does not exist.")
-		return
-	}
-	if len(params) != f[name].Type().NumIn() {
-		err = ErrParamsNotAdapted
-		return
-	}
-	in := make([]reflect.Value, len(params))
-	for k, param := range params {
-		in[k] = reflect.ValueOf(param)
-	}
-	result = f[name].Call(in)
-	return
-}
-
