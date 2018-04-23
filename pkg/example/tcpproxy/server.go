@@ -1,13 +1,13 @@
 package main
 
 import (
-	"net/http"
-	"time"
 	"fmt"
-	_ "net/http/pprof"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	"net/http"
+	_ "net/http/pprof"
 	"runtime"
+	"time"
 )
 
 func main() {
@@ -23,10 +23,10 @@ func main() {
 	go func() {
 		// mesh
 		cmf := &clusterManagerFilter{}
-		srv = server.NewServer(nil, &proxy.TcpProxyFilterConfigFactory{
+		srv = server.NewServer(nil, cmf)
+		srv.AddListener(tcpListener(), &proxy.TcpProxyFilterConfigFactory{
 			Proxy: tcpProxyConfig(),
-		}, nil, cmf)
-		srv.AddListener(tcpListener())
+		}, nil)
 		cmf.cccb.UpdateClusterConfig(clusters())
 		cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts("11.162.169.38:80"))
 

@@ -1,14 +1,19 @@
 package handler
 
 import (
+	"context"
+	"strconv"
+	"sync/atomic"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
-	"strconv"
 )
+
+var streamIdCsounter uint32
+var defaultTmpBufferSize = 1 << 6
 
 type BoltRequestProcessor struct{}
 
@@ -16,16 +21,17 @@ type BoltRequestProcessorV2 struct{}
 
 // ctx = type.serverStreamConnection
 // CALLBACK STREAM LEVEL'S OnDecodeHeaders
-func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
+func (b *BoltRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
-		deserializeRequestAllFields(cmd)
-		reqID := utility.StreamIDConvert(cmd.ReqId)
+		deserializeRequestAllFields(context, cmd)
+		streamId := atomic.AddUint32(&streamIdCsounter, 1)
+		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//for demo, invoke ctx as callback
-		if filter, ok := ctx.(types.DecodeFilter); ok {
+		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
-				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -33,7 +39,7 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(streamIdStr, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return
@@ -44,15 +50,16 @@ func (b *BoltRequestProcessor) Process(ctx interface{}, msg interface{}, executo
 }
 
 // ctx = type.serverStreamConnection
-func (b *BoltRequestProcessorV2) Process(ctx interface{}, msg interface{}, executor interface{}) {
+func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
-		deserializeRequestAllFieldsV2(cmd)
-		reqID := utility.StreamIDConvert(cmd.ReqId)
+		deserializeRequestAllFieldsV2(cmd, context)
+		streamId := atomic.AddUint32(&streamIdCsounter, 1)
+		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//for demo, invoke ctx as callback
-		if filter, ok := ctx.(types.DecodeFilter); ok {
+		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
-				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -60,7 +67,7 @@ func (b *BoltRequestProcessorV2) Process(ctx interface{}, msg interface{}, execu
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(streamIdStr, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return
@@ -71,45 +78,45 @@ func (b *BoltRequestProcessorV2) Process(ctx interface{}, msg interface{}, execu
 }
 
 //Convert BoltV1's Protocol Header  and Content Header to Map[string]string
-func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand) {
-
+func deserializeRequestAllFields(context context.Context, requestCommand *sofarpc.BoltRequestCommand) {
 	//get instance
 	serializeIns := serialize.Instance
 
-	allField := map[string]string{}
-	allField[sofarpc.SofaPropertyHeader("protocol")] = strconv.FormatUint(uint64(requestCommand.Protocol), 10)
-	allField[sofarpc.SofaPropertyHeader("cmdType")] = strconv.FormatUint(uint64(requestCommand.CmdType), 10)
-	allField[sofarpc.SofaPropertyHeader("cmdCode")] = strconv.FormatUint(uint64(requestCommand.CmdCode), 10)
-	allField[sofarpc.SofaPropertyHeader("version")] = strconv.FormatUint(uint64(requestCommand.Version), 10)
-	allField[sofarpc.SofaPropertyHeader("requestid")] = strconv.FormatUint(uint64(requestCommand.ReqId), 10)
-	allField[sofarpc.SofaPropertyHeader("codec")] = strconv.FormatUint(uint64(requestCommand.CodecPro), 10)
-	allField[sofarpc.SofaPropertyHeader("timeout")] = strconv.FormatUint(uint64(requestCommand.Timeout), 10)
-	allField[sofarpc.SofaPropertyHeader("classLength")] = strconv.FormatUint(uint64(requestCommand.ClassLen), 10)
-	allField[sofarpc.SofaPropertyHeader("headerLength")] = strconv.FormatUint(uint64(requestCommand.HeaderLen), 10)
-	allField[sofarpc.SofaPropertyHeader("contentLength")] = strconv.FormatUint(uint64(requestCommand.ContentLen), 10)
+	//serialize header
+	headerMap := sofarpc.GetMap(context, defaultTmpBufferSize)
+
+	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
+	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
+
+	allField := sofarpc.GetMap(context, 20+len(headerMap))
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(requestCommand.Protocol), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType)] = strconv.FormatUint(uint64(requestCommand.CmdType), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)] = strconv.FormatUint(uint64(requestCommand.CmdCode), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion)] = strconv.FormatUint(uint64(requestCommand.Version), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(requestCommand.ReqId), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCodec)] = strconv.FormatUint(uint64(requestCommand.CodecPro), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)] = strconv.FormatUint(uint64(requestCommand.Timeout), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassLen)] = strconv.FormatUint(uint64(requestCommand.ClassLen), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderHeaderLen)] = strconv.FormatUint(uint64(requestCommand.HeaderLen), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderContentLen)] = strconv.FormatUint(uint64(requestCommand.ContentLen), 10)
 
 	//serialize class name
 	var className string
 	serializeIns.DeSerialize(requestCommand.ClassName, &className)
-	allField[sofarpc.SofaPropertyHeader("className")] = className
-	log.DefaultLogger.Println("ClassName is:", className)
-
-	//serialize header
-	var headerMap map[string]string
-
-	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
-	log.DefaultLogger.Println("deSerialize  headerMap:", headerMap)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassName)] = className
+	log.DefaultLogger.Debugf("Request ClassName is:", className)
 
 	for k, v := range headerMap {
 		allField[k] = v
 	}
 
+	sofarpc.ReleaseMap(context, headerMap)
+
 	requestCommand.RequestHeader = allField
 }
 
-func deserializeRequestAllFieldsV2(requestCommandV2 *sofarpc.BoltV2RequestCommand) {
-
-	deserializeRequestAllFields(&requestCommandV2.BoltRequestCommand)
-	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader("ver1")] = strconv.FormatUint(uint64(requestCommandV2.Version1), 10)
-	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader("switchcode")] = strconv.FormatUint(uint64(requestCommandV2.SwitchCode), 10)
+func deserializeRequestAllFieldsV2(requestCommandV2 *sofarpc.BoltV2RequestCommand, context context.Context) {
+	deserializeRequestAllFields(context, &requestCommandV2.BoltRequestCommand)
+	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion1)] = strconv.FormatUint(uint64(requestCommandV2.Version1), 10)
+	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderSwitchCode)] = strconv.FormatUint(uint64(requestCommandV2.SwitchCode), 10)
 }

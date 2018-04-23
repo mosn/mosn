@@ -3,8 +3,9 @@ package hessian
 import (
 	"bytes"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"reflect"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type DeserializeTRHessian struct {

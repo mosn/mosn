@@ -43,5 +43,9 @@ image:
 	docker tag ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} ${REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION}
 	rm -rf IMAGEBUILD
 
-.PHONY: unit-test build image
+shell:
+	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker run --rm -ti -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} /bin/bash
+
+.PHONY: unit-test build image shell
 

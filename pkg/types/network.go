@@ -3,9 +3,10 @@ package types
 import (
 	"context"
 	"crypto/tls"
-	"github.com/rcrowley/go-metrics"
 	"io"
 	"net"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 const (
@@ -17,7 +18,9 @@ type Listener interface {
 
 	Addr() net.Addr
 
-	Start(stopChan chan bool, lctx context.Context)
+	Start(lctx context.Context)
+
+	Stop()
 
 	ListenerTag() uint64
 
@@ -107,6 +110,24 @@ type BufferWatermarkListener interface {
 	OnLowWatermark()
 }
 
+type HeadersBufferPool interface {
+	Take(defaultSize int) (amap map[string]string)
+
+	Give(amap map[string]string)
+}
+
+type GenericMapPool interface {
+	Take(defaultSize int) (amap map[string]interface{})
+
+	Give(amap map[string]interface{})
+}
+
+type ObjectBufferPool interface {
+	Take() interface{}
+
+	Give(object interface{})
+}
+
 type ConnState string
 
 const (
@@ -128,7 +149,7 @@ type Connection interface {
 	Start(lctx context.Context)
 
 	// only called by other-stream connection's read loop notifying data buf
-	Write(buf IoBuffer) error
+	Write(buf ...IoBuffer) error
 
 	Close(ccType ConnectionCloseType, eventType ConnectionEvent) error
 
@@ -162,7 +183,7 @@ type Connection interface {
 
 	LocalAddressRestored() bool
 
-	GetWriteBuffer() *[]byte
+	GetWriteBuffer() []IoBuffer
 
 	GetReadBuffer() IoBuffer
 
@@ -219,7 +240,7 @@ type ConnectionEventListener interface {
 type ConnectionHandler interface {
 	NumConnections() uint64
 
-	StartListener(l Listener)
+	StartListener(l Listener, networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactories []StreamFilterChainFactory)
 
 	FindListenerByAddress(addr net.Addr) Listener
 
@@ -244,7 +265,7 @@ type ReadFilter interface {
 
 // only called by conn accept loop
 type WriteFilter interface {
-	OnWrite(buffer *[]byte) FilterStatus
+	OnWrite(buffer []IoBuffer) FilterStatus
 }
 
 // called by read filter to talk to connection
@@ -279,6 +300,13 @@ type FilterChainFactory interface {
 	CreateNetworkFilterChain(conn Connection)
 
 	CreateListenerFilterChain(listener ListenerFilterManager)
+}
+
+
+type NetworkFilterFactoryCb func(manager FilterManager)
+
+type NetworkFilterChainFactory interface {
+	CreateFilterFactory(clusterManager ClusterManager, context context.Context) NetworkFilterFactoryCb
 }
 
 type Addresses []net.Addr

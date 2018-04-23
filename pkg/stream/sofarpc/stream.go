@@ -1,14 +1,22 @@
 package sofarpc
 
 import (
+	"context"
 	"errors"
+	"sync"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"strconv"
-	"sync"
+)
+
+type StreamDirection int
+
+const (
+	InStream  StreamDirection = 1
+	OutStream StreamDirection = 0
 )
 
 func init() {
@@ -17,19 +25,20 @@ func init() {
 
 type streamConnFactory struct{}
 
-func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection,
+func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
-	return newStreamConnection(connection, clientCallbacks, nil)
+	return newStreamConnection(context, connection, clientCallbacks, nil)
 }
 
-func (f *streamConnFactory) CreateServerStream(connection types.Connection,
+func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
-	return newStreamConnection(connection, nil, serverCallbacks)
+	return newStreamConnection(context, connection, nil, serverCallbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener,
+func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
+	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
-	return newStreamConnection(connection, clientCallbacks, serverCallbacks)
+	return newStreamConnection(context, connection, clientCallbacks, serverCallbacks)
 }
 
 // types.DecodeFilter
@@ -37,31 +46,29 @@ func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnecti
 // types.ClientStreamConnection
 // types.ServerStreamConnection
 type streamConnection struct {
-	protocol   types.Protocol
-	connection types.Connection
-	activeStream
+	protocol        types.Protocol
+	connection      types.Connection
 	protocols       types.Protocols
+	activeStream    streamMap
 	clientCallbacks types.StreamConnectionEventListener
 	serverCallbacks types.ServerStreamConnectionEventListener
 }
 
-var as activeStream
-
-func newStreamConnection(connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
+func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	return &streamConnection{
 		connection:      connection,
 		protocols:       sofarpc.DefaultProtocols(),
-		activeStream:    as.init(),
+		activeStream:    newStreamMap(context),
 		clientCallbacks: clientCallbacks,
 		serverCallbacks: serverCallbacks,
 	}
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
-	conn.protocols.Decode(buffer, conn)
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer, context context.Context) {
+	conn.protocols.Decode(context, buffer, conn)
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -77,55 +84,38 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 }
 
 func (conn *streamConnection) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
-	stream := &stream{
+	stream := stream{
 		streamId:   streamId,
-		direction:  0, //out
+		requestId:  streamId,
+		direction:  OutStream,
 		connection: conn,
 		decoder:    responseDecoder,
 	}
+	conn.activeStream.Set(streamId, stream)
 
-	conn.activeStream.addStream(streamId, stream)
-	return stream
+	return &stream
 }
 
-// types.DecodeFilter Called by serverStreamConnection
 func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string]string) types.FilterStatus {
-
-	if sofarpc.IsSofaRequest(headers) {
-		conn.onNewStreamDetected(streamId)
+	if sofarpc.IsSofaRequest(headers) || sofarpc.HasCodecException(headers) {
+		conn.onNewStreamDetected(streamId, headers)
 	}
 
-	if v, ok := headers[sofarpc.SofaPropertyHeader("requestid")]; ok {
-		headers[types.HeaderStreamID] = v
-	}
+	decodeSterilize(streamId, headers)
 
-	if v, ok := headers[sofarpc.SofaPropertyHeader("timeout")]; ok {
-		headers[types.HeaderTryTimeout] = v
-	}
-
-	if v, ok := headers[sofarpc.SofaPropertyHeader("globaltimeout")]; ok {
-		headers[types.HeaderGlobalTimeout] = v
-	}
-
-	if stream, ok := conn.activeStream.getStream(streamId); ok {
-		stream.decoder.OnDecodeHeaders(headers, false) //Call Back Proxy-Level's OnDecodeHeaders
-	} else if v, ok := headers[types.HeaderException]; ok && v == types.MosnExceptionCodeC {
-		// codec exception may happen
-		conn.onNewStreamDetected(streamId)
-		stream, _ = conn.activeStream.getStream(streamId)
-		stream.decoder.OnDecodeHeaders(headers, true)
+	if stream, ok := conn.activeStream.Get(streamId); ok {
+		stream.decoder.OnDecodeHeaders(headers, false)
 	}
 
 	return types.Continue
 }
 
 func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer) types.FilterStatus {
-
-	if stream, ok := conn.activeStream.getStream(streamId); ok {
+	if stream, ok := conn.activeStream.Get(streamId); ok {
 		stream.decoder.OnDecodeData(data, true)
 
-		if stream.direction == 0 {
-			stream.connection.activeStream.delStream(stream.streamId)
+		if stream.direction == OutStream {
+			stream.connection.activeStream.Remove(stream.streamId)
 		}
 	}
 
@@ -133,35 +123,42 @@ func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer)
 }
 
 func (conn *streamConnection) OnDecodeTrailer(streamId string, trailers map[string]string) types.FilterStatus {
-
-	if stream, ok := conn.activeStream.getStream(streamId); ok {
-		stream.decoder.OnDecodeTrailers(trailers)
-	}
-
+	// unsupported
 	return types.StopIteration
 }
 
-func (conn *streamConnection) onNewStreamDetected(streamId string) {
-
-	if _, ok := conn.activeStream.getStream(streamId); ok {
+func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[string]string) {
+	if ok := conn.activeStream.Has(streamId); ok {
 		return
 	}
 
-	stream := &stream{
+	var requestId string
+	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
+		requestId = v
+	} else {
+		// on decode exception stream
+		requestId = streamId
+	}
+
+	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = streamId
+
+	stream := stream{
 		streamId:   streamId,
-		direction:  1, //in
+		requestId:  requestId,
+		direction:  InStream,
 		connection: conn,
 	}
 
-	stream.decoder = conn.serverCallbacks.NewStream(streamId, stream)
-	conn.activeStream.addStream(streamId, stream)
+	stream.decoder = conn.serverCallbacks.NewStream(streamId, &stream)
+	conn.activeStream.Set(streamId, stream)
 }
 
 // types.Stream
 // types.StreamEncoder
 type stream struct {
 	streamId         string
-	direction        int // 0: out, 1: in
+	requestId        string
+	direction        StreamDirection // 0: out, 1: in
 	readDisableCount int
 	connection       *streamConnection
 	decoder          types.StreamDecoder
@@ -206,86 +203,17 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamEncoder
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
-	if headerMaps, ok := headers.(map[string]string); ok {
-
-		// remove proxy header before codec encode
-		if _, ok := headerMaps[types.HeaderStreamID]; ok {
-			delete(headerMaps, types.HeaderStreamID)
-		}
-
-		if _, ok := headerMaps[types.HeaderGlobalTimeout]; ok {
-			delete(headerMaps, types.HeaderGlobalTimeout)
-		}
-
-		if _, ok := headerMaps[types.HeaderTryTimeout]; ok {
-			delete(headerMaps, types.HeaderTryTimeout)
-		}
-
-		if status, ok := headerMaps[types.HeaderStatus]; ok {
-
-			delete(headerMaps, types.HeaderStatus)
-			statusCode, _ := strconv.Atoi(status)
-
-			//todo: handle proxy hijack reply on exception @boqin
-			if statusCode != types.SuccessCode {
-
-				var respHeaders interface{}
-				var err error
-
-				//Build Router Unavailable Response Msg
-				switch statusCode {
-
-				case types.RouterUnavailableCode, types.NoHealthUpstreamCode, types.UpstreamOverFlowCode:
-					//No available path
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
-				case types.CodecExceptionCode:
-					//Decode or Encode Error
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
-				case types.DeserialExceptionCode:
-					//Hessian Exception
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
-				case types.TimeoutExceptionCode:
-					//Response Timeout
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_TIMEOUT)
-
-				default:
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
-				}
-
-				if err == nil {
-					switch respHeaders.(type) {
-					case *sofarpc.BoltResponseCommand:
-						headers = respHeaders.(*sofarpc.BoltResponseCommand)
-					case *sofarpc.BoltV2ResponseCommand:
-						headers = respHeaders.(*sofarpc.BoltV2ResponseCommand)
-					default:
-						headers = headerMaps
-					}
-				} else {
-					log.DefaultLogger.Println(err.Error())
-					headers = headerMaps
-				}
-
-			} else {
-
-				headers = headerMaps
-			}
-
-		} else {
-			headers = headerMaps
-		}
-	}
-	s.streamId, s.encodedHeaders = s.connection.protocols.EncodeHeaders(headers)
+	_, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.encodeSterilize(headers))
 
 	// Exception occurs when encoding headers
 	if s.encodedHeaders == nil {
 		return errors.New(s.streamId)
 	}
-	s.connection.activeStream.addStream(s.streamId, s)
 
 	if endStream {
 		s.endStream()
 	}
+
 	return nil
 }
 
@@ -295,30 +223,36 @@ func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 	if endStream {
 		s.endStream()
 	}
+
 	return nil
 }
 
 func (s *stream) EncodeTrailers(trailers map[string]string) error {
 	s.endStream()
+
 	return nil
 }
 
 func (s *stream) endStream() {
-
 	if s.encodedHeaders != nil {
-		stream, _ := s.connection.activeStream.getStream(s.streamId)
-		stream.connection.connection.Write(s.encodedHeaders)
+		if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
 
-		if s.encodedData != nil {
-			stream.connection.connection.Write(s.encodedData)
+			if s.encodedData != nil {
+				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
+			} else {
+				log.DefaultLogger.Debugf("Response Body is void...")
+
+				stream.connection.connection.Write(s.encodedHeaders)
+			}
 		} else {
-			log.DefaultLogger.Println("Response Body is void...")
+			log.DefaultLogger.Errorf("No stream %s to end", s.streamId)
 		}
 	} else {
-		log.DefaultLogger.Println("Response Headers is void...")
+		log.DefaultLogger.Debugf("Response Headers is void...")
 	}
-	if s.direction == 1 {
-		s.connection.activeStream.delStream(s.streamId)
+
+	if s.direction == InStream {
+		s.connection.activeStream.Remove(s.streamId)
 	}
 }
 
@@ -326,33 +260,51 @@ func (s *stream) GetStream() types.Stream {
 	return s
 }
 
-type activeStream struct {
-	activeStreams map[string]*stream
-	asMutex       *sync.RWMutex
+type streamMap struct {
+	smap map[string]interface{}
+	mux  sync.RWMutex
 }
 
-func (as *activeStream) init() activeStream {
-	return activeStream{
-		activeStreams: make(map[string]*stream),
-		asMutex:       new(sync.RWMutex),
+func newStreamMap(context context.Context) streamMap {
+	smap := str.GetMap(context, 5096)
+
+	return streamMap{
+		smap: smap,
 	}
 }
 
-func (as *activeStream) getStream(streamId string) (*stream, bool) {
-	as.asMutex.RLock()
-	defer as.asMutex.RUnlock()
-	s, ok := as.activeStreams[streamId]
-	return s, ok
+func (m *streamMap) Has(streamId string) bool {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	if _, ok := m.smap[streamId]; ok {
+		return true
+	} else {
+		return false
+	}
 }
 
-func (as *activeStream) addStream(streamId string, s *stream) {
-	as.asMutex.Lock()
-	defer as.asMutex.Unlock()
-	as.activeStreams[streamId] = s
+func (m *streamMap) Get(streamId string) (stream, bool) {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	if s, ok := m.smap[streamId]; ok {
+		return s.(stream), ok
+	} else {
+		return stream{}, false
+	}
 }
 
-func (as *activeStream) delStream(streamId string) {
-	as.asMutex.Lock()
-	defer as.asMutex.Unlock()
-	delete(as.activeStreams, streamId)
+func (m *streamMap) Remove(streamId string) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	delete(m.smap, streamId)
+}
+
+func (m *streamMap) Set(streamId string, s stream) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	m.smap[streamId] = s
 }

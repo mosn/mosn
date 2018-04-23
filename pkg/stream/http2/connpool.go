@@ -1,10 +1,12 @@
 package http2
 
 import (
+	"context"
+	"sync"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"sync"
 )
 
 // types.ConnectionPool
@@ -28,12 +30,12 @@ func (p *connPool) Protocol() types.Protocol {
 func (p *connPool) DrainConnections() {}
 
 //由 PROXY 调用
-func (p *connPool) NewStream(streamId string, responseDecoder types.StreamDecoder,
+func (p *connPool) NewStream(context context.Context, streamId string, responseDecoder types.StreamDecoder,
 	cb types.PoolEventListener) types.Cancellable {
 	p.mux.Lock()
 
 	if p.primaryClient == nil {
-		p.primaryClient = newActiveClient(p)
+		p.primaryClient = newActiveClient(context, p)
 	}
 	p.mux.Unlock()
 
@@ -125,8 +127,8 @@ func (p *connPool) onGoAway(client *activeClient) {
 	}
 }
 
-func (p *connPool) createCodecClient(connData types.CreateConnectionData) str.CodecClient {
-	return str.NewCodecClient(protocol.Http2, connData.Connection, connData.HostInfo)
+func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
+	return str.NewCodecClient(context, protocol.Http2, connData.Connection, connData.HostInfo)
 }
 
 func (p *connPool) movePrimaryToDraining() {
@@ -153,7 +155,7 @@ type activeClient struct {
 	closeWithActiveReq bool
 }
 
-func newActiveClient(pool *connPool) *activeClient {
+func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
@@ -161,7 +163,7 @@ func newActiveClient(pool *connPool) *activeClient {
 	data := pool.host.CreateConnection()
 	data.Connection.Connect(false)
 
-	codecClient := pool.createCodecClient(data)
+	codecClient := pool.createCodecClient(context, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)

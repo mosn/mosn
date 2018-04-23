@@ -4,14 +4,15 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"reflect"
+	"strconv"
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"reflect"
-	"strconv"
-	"time"
 )
 
 // types.StreamEventListener
@@ -72,13 +73,18 @@ type activeStream struct {
 }
 
 func newActiveStream(streamId string, proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
-	stream := &activeStream{
-		streamId:        streamId,
-		proxy:           proxy,
-		requestInfo:     network.NewRequestInfo(),
-		responseEncoder: responseEncoder,
+	var stream *activeStream
+
+	if buf := activeStreamPool.Take(); buf == nil {
+		stream = &activeStream{}
+	} else {
+		stream = buf.(*activeStream)
 	}
 
+	stream.streamId = streamId
+	stream.proxy = proxy
+	stream.requestInfo = network.NewRequestInfo()
+	stream.responseEncoder = responseEncoder
 	stream.responseEncoder.GetStream().AddEventListener(stream)
 
 	proxy.stats.DownstreamRequestTotal().Inc(1)
@@ -146,12 +152,16 @@ func (s *activeStream) cleanStream() {
 	s.proxy.stats.DownstreamRequestActive().Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
-	for _, al := range s.proxy.accessLogs {
-		al.Log(s.downstreamReqHeaders, nil, s.requestInfo)
+	var downstreamRespHeadersMap map[string]string
+
+	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+		downstreamRespHeadersMap = v
 	}
 
-	log.DefaultLogger.Debugf(s.proxy.stats.String())
-	log.DefaultLogger.Debugf(s.proxy.listenerStats.String())
+	for _, al := range s.proxy.accessLogs {
+		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+	}
+
 	s.proxy.deleteActiveStream(s)
 }
 
@@ -213,14 +223,13 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		activeStream: s,
 		proxy:        s.proxy,
 		connPool:     pool,
-		requestInfo:  network.NewRequestInfo(),
 	}
-
-	s.upstreamRequest.encodeHeaders(headers, endStream)
 
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
+
+	s.upstreamRequest.encodeHeaders(headers, endStream)
 }
 
 func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
@@ -247,6 +256,10 @@ func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data type
 		// todo: set a buf limit
 	}
 
+	if endStream {
+		s.onUpstreamRequestSent()
+	}
+
 	if shouldBufData {
 		copied := data.Clone()
 
@@ -263,10 +276,6 @@ func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data type
 		s.upstreamRequest.encodeData(copied, endStream)
 	} else {
 		s.upstreamRequest.encodeData(data, endStream)
-	}
-
-	if endStream {
-		s.onUpstreamRequestSent()
 	}
 }
 
@@ -287,8 +296,8 @@ func (s *activeStream) doDecodeTrailers(filter *activeStreamDecoderFilter, trail
 	}
 
 	s.downstreamReqTrailers = trailers
-	s.upstreamRequest.encodeTrailers(trailers)
 	s.onUpstreamRequestSent()
+	s.upstreamRequest.encodeTrailers(trailers)
 }
 
 func (s *activeStream) onUpstreamRequestSent() {
@@ -337,8 +346,6 @@ func (s *activeStream) onPerTryTimeout() {
 	s.perRetryTimer = nil
 
 	s.upstreamRequest.resetStream()
-	s.upstreamRequest.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
-
 	s.onUpstreamReset(UpstreamPerTryTimeout, types.StreamLocalReset)
 }
 
@@ -575,7 +582,6 @@ func (s *activeStream) doRetry() {
 		activeStream: s,
 		proxy:        s.proxy,
 		connPool:     pool,
-		requestInfo:  network.NewRequestInfo(),
 	}
 
 	s.upstreamRequest.encodeHeaders(s.downstreamReqHeaders,
@@ -611,7 +617,7 @@ func (s *activeStream) resetStream() {
 
 func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 	if headers == nil {
-		headers = make(map[string]string)
+		headers = make(map[string]string, 5)
 	}
 
 	headers[types.HeaderStatus] = strconv.Itoa(code)
@@ -644,4 +650,37 @@ func (s *activeStream) AddStreamDecoderFilter(filter types.StreamDecoderFilter) 
 func (s *activeStream) AddStreamEncoderFilter(filter types.StreamEncoderFilter) {
 	sf := newActiveStreamEncoderFilter(len(s.encoderFilters), s, filter)
 	s.encoderFilters = append(s.encoderFilters, sf)
+}
+
+func (s *activeStream) reset() {
+	s.streamId = ""
+	s.proxy = nil
+	s.route = nil
+	s.cluster = nil
+	s.element = nil
+	s.bufferLimit = 0
+	s.highWatermarkCount = 0
+	s.timeout = nil
+	s.retryState = nil
+	s.requestInfo = nil
+	s.responseEncoder = nil
+	s.upstreamRequest = nil
+	s.perRetryTimer = nil
+	s.globalRetryTimer = nil
+	s.downstreamRespHeaders = nil
+	s.downstreamReqDataBuf = nil
+	s.downstreamReqTrailers = nil
+	s.downstreamRespHeaders = nil
+	s.downstreamRespDataBuf = nil
+	s.downstreamRespTrailers = nil
+	s.downstreamResponseStarted = false
+	s.upstreamRequestSent = false
+	s.downstreamRecvDone = false
+	s.localProcessDone = false
+	s.encoderFiltersStreaming = false
+	s.decoderFiltersStreaming = false
+	s.filterStage = 0
+	s.watermarkCallbacks = nil
+	s.encoderFilters = s.encoderFilters[:0]
+	s.decoderFilters = s.decoderFilters[:0]
 }

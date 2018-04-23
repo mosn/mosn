@@ -1,15 +1,15 @@
 package codec
 
 import (
+	"context"
 	"encoding/binary"
+	"reflect"
+	"time"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
-	"reflect"
-	"time"
 )
 
 // types.Encoder & types.Decoder
@@ -21,38 +21,35 @@ var (
 var boltV1 = &boltV1Codec{}
 
 func init() {
-	BoltV2PropertyHeaders["protocol"] = reflect.Uint8
-	BoltV2PropertyHeaders["cmdtype"] = reflect.Uint8
-	BoltV2PropertyHeaders["cmdcode"] = reflect.Int16
-	BoltV2PropertyHeaders["version"] = reflect.Uint8
-	BoltV2PropertyHeaders["requestid"] = reflect.Uint32
-	BoltV2PropertyHeaders["codec"] = reflect.Uint8
-	BoltV2PropertyHeaders["classlength"] = reflect.Int16
-	BoltV2PropertyHeaders["headerlength"] = reflect.Int16
-	BoltV2PropertyHeaders["contentlength"] = reflect.Int
-	BoltV2PropertyHeaders["timeout"] = reflect.Int
-	BoltV2PropertyHeaders["responsestatus"] = reflect.Int16
-	BoltV2PropertyHeaders["responsetimemills"] = reflect.Int64
-
-	BoltV2PropertyHeaders["ver1"] = reflect.Uint8
-	BoltV2PropertyHeaders["switchcode"] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderProtocolCode] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderCmdType] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderCmdCode] = reflect.Int16
+	BoltV2PropertyHeaders[sofarpc.HeaderVersion] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderReqID] = reflect.Uint32
+	BoltV2PropertyHeaders[sofarpc.HeaderCodec] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderClassLen] = reflect.Int16
+	BoltV2PropertyHeaders[sofarpc.HeaderHeaderLen] = reflect.Int16
+	BoltV2PropertyHeaders[sofarpc.HeaderContentLen] = reflect.Int
+	BoltV2PropertyHeaders[sofarpc.HeaderTimeout] = reflect.Int
+	BoltV2PropertyHeaders[sofarpc.HeaderRespStatus] = reflect.Int16
+	BoltV2PropertyHeaders[sofarpc.HeaderRespTimeMills] = reflect.Int64
+	BoltV2PropertyHeaders[sofarpc.HeaderVersion1] = reflect.Uint8
+	BoltV2PropertyHeaders[sofarpc.HeaderSwitchCode] = reflect.Uint8
 }
 
 type boltV2Codec struct{}
 
 func (c *boltV2Codec) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
-
 	if headerMap, ok := headers.(map[string]string); ok {
-
 		cmd := c.mapToCmd(headerMap)
+
 		return c.encodeHeaders(cmd)
 	}
-	return c.encodeHeaders(headers)
 
+	return c.encodeHeaders(headers)
 }
 
 func (c *boltV2Codec) encodeHeaders(headers interface{}) (string, types.IoBuffer) {
-
 	switch headers.(type) {
 	case *sofarpc.BoltV2RequestCommand:
 		return c.encodeRequestCommand(headers.(*sofarpc.BoltV2RequestCommand))
@@ -60,9 +57,9 @@ func (c *boltV2Codec) encodeHeaders(headers interface{}) (string, types.IoBuffer
 		return c.encodeResponseCommand(headers.(*sofarpc.BoltV2ResponseCommand))
 	default:
 		err := "[BoltV2 Encode] Invalid Input Type"
-		streamID := utility.GenerateExceptionStreamID(err)
-		log.DefaultLogger.Println(err)
-		return streamID, nil
+		log.DefaultLogger.Errorf(err)
+
+		return "", nil
 	}
 }
 
@@ -82,20 +79,18 @@ func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltV2RequestCommand) (s
 
 	log.DefaultLogger.Println("[BOLTV2]rpc headers encode finished,bytes=%d", result)
 
-	return utility.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
+	return sofarpc.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
 }
 
 func (c *boltV2Codec) encodeResponseCommand(cmd *sofarpc.BoltV2ResponseCommand) (string, types.IoBuffer) {
-
 	result := boltV1.doEncodeResponseCommand(&cmd.BoltResponseCommand)
 
 	c.insertToBytes(result, 1, cmd.Version1)
 	c.insertToBytes(result, 11, cmd.SwitchCode)
 
-	log.DefaultLogger.Println("rpc headers encode finished,bytes=%d", result)
+	log.DefaultLogger.Debugf("rpc headers encode finished,bytes=%d", result)
 
-	return utility.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
-
+	return sofarpc.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
 }
 
 func (c *boltV2Codec) mapToCmd(headers map[string]string) interface{} {
@@ -109,21 +104,20 @@ func (c *boltV2Codec) mapToCmd(headers map[string]string) interface{} {
 	switchcode := sofarpc.GetPropertyValue(BoltV2PropertyHeaders, headers, "switchcode")
 
 	if cmdV2req, ok := cmdV1.(sofarpc.BoltRequestCommand); ok {
-
 		request := &sofarpc.BoltV2RequestCommand{
 			BoltRequestCommand: cmdV2req,
 			Version1:           ver1.(byte),
 			SwitchCode:         switchcode.(byte),
 		}
+
 		return request
-
 	} else if cmdV2res, ok := cmdV1.(sofarpc.BoltResponseCommand); ok {
-
 		response := &sofarpc.BoltV2ResponseCommand{
 			BoltResponseCommand: cmdV2res,
 			Version1:            ver1.(byte),
 			SwitchCode:          switchcode.(byte),
 		}
+
 		return response
 	} else {
 		// todo RPC_HB
@@ -132,7 +126,7 @@ func (c *boltV2Codec) mapToCmd(headers map[string]string) interface{} {
 	return nil
 }
 
-func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
+func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int, interface{}) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
@@ -178,7 +172,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					}
 					data.Drain(read)
 				} else { // not enough data
-					log.DefaultLogger.Println("[BOLTV2 Decoder]no enough data for fully decode")
+					log.DefaultLogger.Debugf("[BOLTV2 Decoder]no enough data for fully decode")
 					return 0, nil
 				}
 
@@ -204,7 +198,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					switchCode,
 				}
 
-				log.DefaultLogger.Printf("[Decoder]bolt v2 decode request:%+v\n", request)
+				log.DefaultLogger.Debugf("[Decoder]bolt v2 decode request:%+v\n", request)
 
 				cmd = request
 			}
@@ -240,7 +234,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 						read += int(contentLen)
 					}
 				} else { // not enough data
-					log.DefaultLogger.Println("[BOLTBV2 Decoder]no enough data for fully decode")
+					log.DefaultLogger.Debugf("[BOLTBV2 Decoder]no enough data for fully decode")
 					return 0, nil
 				}
 
@@ -268,7 +262,7 @@ func (c *boltV2Codec) Decode(data types.IoBuffer) (int, interface{}) {
 					switchCode,
 				}
 
-				log.DefaultLogger.Printf("[Decoder]bolt v2 decode response:%+v\n", response)
+				log.DefaultLogger.Debugf("[Decoder]bolt v2 decode response:%+v\n", response)
 				cmd = response
 			}
 		}

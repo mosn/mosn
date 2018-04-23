@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"bytes"
 	"github.com/rcrowley/go-metrics"
+	"strconv"
 )
 
 type Stats struct {
@@ -70,36 +71,37 @@ func (s *Stats) Histogram(name string) metrics.Histogram {
 func (s *Stats) String() string {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("namespace: %s, ", s.namespace))
+	//buffer.WriteString(fmt.Sprintf("namespace: %s, ", s.namespace))
+	buffer.WriteString("namespace: "+ s.namespace+ ", ")
 
 	if len(s.counters) > 0 {
-		buffer.WriteString(fmt.Sprintf("counters: ["))
+		buffer.WriteString("counters: [")
 
 		for name, counter := range s.counters {
-			buffer.WriteString(fmt.Sprintf("%s: %d, ", name, counter.Count()))
+			buffer.WriteString(name + ": " + strconv.FormatInt(counter.Count(),10))
 		}
 
-		buffer.WriteString(fmt.Sprintf("], "))
+		buffer.WriteString("], ")
 	}
 
 	if len(s.gauges) > 0 {
-		buffer.WriteString(fmt.Sprintf("gauges: ["))
+		buffer.WriteString("gauges: [")
 
 		for name, gauge := range s.gauges {
-			buffer.WriteString(fmt.Sprintf("%s: %d, ", name, gauge.Value()))
+			buffer.WriteString(name + ": " + strconv.FormatInt(gauge.Value(),10))
 		}
 
-		buffer.WriteString(fmt.Sprintf("], "))
+		buffer.WriteString("], ")
 	}
 
 	if len(s.histograms) > 0 {
-		buffer.WriteString(fmt.Sprintf("histograms: ["))
+		buffer.WriteString("histograms: [")
 
 		for name, histogram := range s.histograms {
-			buffer.WriteString(fmt.Sprintf("%s, %d ", name, histogram.Count()))
+			buffer.WriteString(name + ": " + strconv.FormatInt(histogram.Count(),10))
 		}
 
-		buffer.WriteString(fmt.Sprintf("]"))
+		buffer.WriteString("]")
 	}
 
 	return buffer.String()

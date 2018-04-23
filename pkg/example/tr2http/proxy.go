@@ -73,11 +73,11 @@ func main() {
 		cmf := &clusterManagerFilterRPC{}
 
 		//RPC
-		srv := server.NewServer(&server.Config{}, &proxy.GenericProxyFilterConfigFactory{
-			Proxy: genericProxyConfig(),
-		}, nil, cmf)
+		srv := server.NewServer(&server.Config{}, cmf)
 
-		srv.AddListener(rpcProxyListener())
+		srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
+			Proxy: genericProxyConfig(),
+		}, nil)
 		cmf.cccb.UpdateClusterConfig(clustersrpc())
 		cmf.chcb.UpdateClusterHost(TestCluster, 0, rpchosts())
 
@@ -163,9 +163,11 @@ func genericProxyConfig() *v2.Proxy {
 }
 
 func rpcProxyListener() *v2.ListenerConfig {
+	addr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
+
 	return &v2.ListenerConfig{
 		Name:                    TestListener,
-		Addr:                    MeshServerAddr,
+		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
 	}
@@ -183,11 +185,11 @@ func rpchosts() []v2.Host {
 }
 
 type clusterManagerFilterRPC struct {
-	cccb server.ClusterConfigFactoryCb
-	chcb server.ClusterHostFactoryCb
+	cccb types.ClusterConfigFactoryCb
+	chcb types.ClusterHostFactoryCb
 }
 
-func (cmf *clusterManagerFilterRPC) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
+func (cmf *clusterManagerFilterRPC) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
 }

@@ -1,13 +1,41 @@
 package sofarpc
 
 import (
+	"context"
 	"errors"
+	"strconv"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"strconv"
 )
 
 //bolt constants
+
+const (
+	HeaderProtocolCode       string = "protocol"
+	HeaderCmdType            string = "cmdtype"
+	HeaderCmdCode            string = "cmdcode"
+	HeaderVersion            string = "version"
+	HeaderReqID              string = "requestid"
+	HeaderCodec              string = "codec"
+	HeaderTimeout            string = "timeout"
+	HeaderClassLen           string = "classlen"
+	HeaderHeaderLen          string = "headerlen"
+	HeaderContentLen         string = "contentlen"
+	HeaderClassName          string = "classname"
+	HeaderVersion1           string = "ver1"
+	HeaderSwitchCode         string = "switchcode"
+	HeaderRespStatus         string = "respstatus"
+	HeaderRespTimeMills      string = "resptimemills"
+	HeaderReqFlag            string = "requestflag"
+	HeaderSeriProtocol       string = "serializeprotocol"
+	HeaderDirection          string = "direction"
+	HeaderReserved           string = "reserved"
+	HeaderAppclassnamelen    string = "appclassnamelen"
+	HeaderConnrequestlen     string = "connrequestlen"
+	HeaderAppclasscontentlen string = "appclasscontentlen"
+)
+
 const (
 	//protocol code value
 	PROTOCOL_CODE_V1 byte = 1
@@ -108,7 +136,8 @@ type HeartbeatTrigger interface {
 
 //TODO
 type CommandHandler interface {
-	HandleCommand(ctx interface{}, msg interface{})
+	HandleCommand(context context.Context, msg interface{}, filter interface{})
+
 	RegisterProcessor(cmdCode int16, processor *RemotingProcessor)
 
 	//TODO executor selection
@@ -117,7 +146,7 @@ type CommandHandler interface {
 }
 
 type RemotingProcessor interface {
-	Process(ctx interface{}, msg interface{}, executor interface{})
+	Process(context context.Context, msg interface{}, filter interface{})
 }
 
 type ProtoBasicCmd interface {
@@ -242,12 +271,11 @@ const (
 
 type TrCommand struct {
 	//Protocol Field
-	Protocol          byte
-	RequestFlag       byte
-	SerializeProtocol byte
-	Direction         byte
-	Reserved          byte
-
+	Protocol           byte
+	RequestFlag        byte
+	SerializeProtocol  byte
+	Direction          byte
+	Reserved           byte
 	ConnRequestLen     uint32
 	AppClassNameLen    byte
 	AppClassContentLen uint32
@@ -295,28 +323,27 @@ func (b *TrResponseCommand) GetCmdCode() int16 {
 }
 
 func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{}, error) {
-
 	var pro byte = 1
 	var reqId uint32 = 1
 	var version byte = 1
 	var codec byte = 1
 
-	if p, ok := headers[SofaPropertyHeader("protocol")]; ok {
+	if p, ok := headers[SofaPropertyHeader(HeaderProtocolCode)]; ok {
 		pr, _ := strconv.Atoi(p)
 		pro = byte(pr)
 	}
 
-	if r, ok := headers[SofaPropertyHeader("requestid")]; ok {
+	if r, ok := headers[SofaPropertyHeader(HeaderReqID)]; ok {
 		rd, _ := strconv.Atoi(r)
 		reqId = uint32(rd)
 	}
 
-	if v, ok := headers[SofaPropertyHeader("version")]; ok {
+	if v, ok := headers[SofaPropertyHeader(HeaderVersion)]; ok {
 		ver, _ := strconv.Atoi(v)
 		version = byte(ver)
 	}
 
-	if c, ok := headers[SofaPropertyHeader("codec")]; ok {
+	if c, ok := headers[SofaPropertyHeader(HeaderCodec)]; ok {
 		ver, _ := strconv.Atoi(c)
 		codec = byte(ver)
 	}
@@ -332,7 +359,6 @@ func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{},
 			CodecPro:       codec,
 			ResponseStatus: respStatus,
 		}, nil
-
 	} else if pro == PROTOCOL_CODE_V2 {
 		var ver1 byte
 		var switchcode byte
@@ -375,7 +401,8 @@ func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{},
 			ResponseStatus: respStatus,
 		}, nil
 	} else {
-		log.DefaultLogger.Println("[BuildSofaRespMsg Error]Unknown Protocol Code")
+		log.DefaultLogger.Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
+
 		return headers, errors.New("[BuildSofaRespMsg Error]Unknown Protocol Code")
 	}
 }

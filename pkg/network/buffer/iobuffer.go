@@ -2,11 +2,12 @@ package buffer
 
 import (
 	"errors"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"io"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-const MinRead = 1024
+const MinRead = 1 << 10
 const ResetOffMark = -1
 
 var (
@@ -21,7 +22,7 @@ type IoBuffer struct {
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
 
-	bootstrap [64]byte
+	bootstrap [1 << 6]byte
 }
 
 func (b *IoBuffer) Read(p []byte) (n int, err error) {
@@ -330,7 +331,7 @@ func NewIoBufferString(s string) types.IoBuffer {
 
 func NewIoBufferBytes(bytes []byte) types.IoBuffer {
 	return &IoBuffer{
-		buf:     []byte(bytes),
+		buf:     bytes,
 		offMark: ResetOffMark,
 	}
 }

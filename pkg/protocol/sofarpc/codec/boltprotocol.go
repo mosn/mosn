@@ -133,26 +133,26 @@ func (b *BoltProtocol) GetCommandHandler() sofarpc.CommandHandler {
 	return b.commandHandler
 }
 
-func NewBoltHeartbeat(requestId uint32) *sofarpc.BoltRequestCommand{
+func NewBoltHeartbeat(requestId uint32) *sofarpc.BoltRequestCommand {
 	return &sofarpc.BoltRequestCommand{
 		Protocol: sofarpc.PROTOCOL_CODE_V1,
 		CmdType:  sofarpc.REQUEST,
 		CmdCode:  sofarpc.HEARTBEAT,
-		Version: 1,
-		ReqId: requestId,
-		CodecPro: sofarpc.HESSIAN2_SERIALIZE,//todo: read default codec from config
-		Timeout: -1,
+		Version:  1,
+		ReqId:    requestId,
+		CodecPro: sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		Timeout:  -1,
 	}
 }
 
-func NewBoltHeartbeatAck(requestId uint32) *sofarpc.BoltResponseCommand{
+func NewBoltHeartbeatAck(requestId uint32) *sofarpc.BoltResponseCommand {
 	return &sofarpc.BoltResponseCommand{
-		Protocol: sofarpc.PROTOCOL_CODE_V1,
-		CmdType:  sofarpc.RESPONSE,
-		CmdCode:  sofarpc.HEARTBEAT,
-		Version: 1,
-		ReqId: requestId,
-		CodecPro: sofarpc.HESSIAN2_SERIALIZE,//todo: read default codec from config
+		Protocol:       sofarpc.PROTOCOL_CODE_V1,
+		CmdType:        sofarpc.RESPONSE,
+		CmdCode:        sofarpc.HEARTBEAT,
+		Version:        1,
+		ReqId:          requestId,
+		CodecPro:       sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
 		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
 	}
 }

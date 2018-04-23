@@ -16,9 +16,8 @@ var (
 	funcs Funcs
 )
 
-
 func init() {
-
+	
 	funcs =  make(Funcs, 10)
 	RequestInfoFuncMap = map[string]interface{}{
 		types.LogStartTime: types.RequestInfo.StartTime,
@@ -205,20 +204,21 @@ type simpleReqHeadersFormatter struct {
 func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 
 	if f.reqHeaderFormat == nil {
+		DefaultLogger.Debugf("No Req Format Keys Input")
 		return ""
 	}
-
 	format := ""
+
 	for _,key := range(f.reqHeaderFormat){
-
 		if v,ok :=reqHeaders[key];ok{
-
-			format = format + "Req."+v + " "
+			format = format + "Req."+ v + " "
 		}else {
-
+			DefaultLogger.Debugf("Invalid Resp Format Keys")
 		}
 	}
 
+	//delete the last " "
+	format = format[:len(format)-1]
 	return format
 }
 
@@ -228,6 +228,7 @@ type simpleRespHeadersFormatter struct {
 
 func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 	if f.respHeaderFormat == nil {
+		DefaultLogger.Debugf("No Resp Format Keys Input")
 		return ""
 	}
 
@@ -235,12 +236,14 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 	for _,key := range(f.respHeaderFormat){
 
 		if v,ok :=respHeaders[key];ok{
-
 			format = format + "Resp."+v + " "
 		}else {
-
+			DefaultLogger.Debugf("Invalid Resp Format Keys")
 		}
 	}
+
+	//delete the last " "
+	format = format[:len(format)-1]
 	return format
 }
 

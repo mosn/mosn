@@ -1,13 +1,13 @@
 package basic
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
+	"errors"
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"errors"
-	"regexp"
-	"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 func init() {
@@ -82,24 +82,26 @@ func NewBasicRouter(config interface{}) (types.RouterConfig, error) {
 }
 
 func (srr *basicRouter) Match(headers map[string]string) types.Route {
-	if headers == nil {
-		return nil
-	}
+	//if headers == nil {
+	//	return nil
+	//}
+	//
+	//var ok bool
+	//var service string
+	//
+	//if service, ok = headers["Service"]; !ok {
+	//	if service, ok = headers["service"]; !ok {
+	//		return nil
+	//	}
+	//}
+	//
+	//if srr.service == service {
+	//	return srr
+	//} else {
+	//	return nil
+	//}
 
-	var ok bool
-	var service string
-
-	if service, ok = headers["Service"]; !ok {
-		if service, ok = headers["service"]; !ok {
-			return nil
-		}
-	}
-
-	if match, _ := regexp.MatchString(srr.service, service); match {
-		return srr
-	} else {
-		return nil
-	}
+	return srr
 }
 
 func (srr *basicRouter) RedirectRule() types.RedirectRule {

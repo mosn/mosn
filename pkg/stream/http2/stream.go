@@ -2,14 +2,8 @@ package http2
 
 import (
 	"container/list"
+	"context"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/utility"
-	"golang.org/x/net/http2"
 	"io"
 	"net"
 	"net/http"
@@ -18,6 +12,14 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"golang.org/x/net/http2"
 )
 
 func init() {
@@ -26,17 +28,18 @@ func init() {
 
 type streamConnFactory struct{}
 
-func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection,
+func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(connection, streamConnCallbacks, connCallbacks)
 }
 
-func (f *streamConnFactory) CreateServerStream(connection types.Connection,
+func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(connection, callbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener,
+func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
+	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
 }
@@ -56,7 +59,7 @@ type streamConnection struct {
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {}
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer, context context.Context) {}
 
 func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
@@ -158,7 +161,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(utility.GenerateDefaultStreamID(), stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream("streamID-"+time.Now().String(), stream)
 	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
 	ssc.asMutex.Unlock()
@@ -455,7 +458,7 @@ func (s *serverStream) GetStream() types.Stream {
 }
 
 func encodeHeader(in map[string]string) (out map[string][]string) {
-	out = make(map[string][]string)
+	out = make(map[string][]string, len(in))
 
 	for k, v := range in {
 		out[k] = strings.Split(v, ",")
@@ -465,7 +468,7 @@ func encodeHeader(in map[string]string) (out map[string][]string) {
 }
 
 func decodeHeader(in map[string][]string) (out map[string]string) {
-	out = make(map[string]string)
+	out = make(map[string]string, len(in))
 
 	for k, v := range in {
 		// convert to lower case for internal process

@@ -1,18 +1,18 @@
 package sofarpc
 
 import (
-	"fmt"
+	"context"
 	"reflect"
 	"strconv"
-	"strings"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 func SofaPropertyHeader(name string) string {
-	return fmt.Sprintf("%s%s", SofaRpcPropertyHeaderPrefix, strings.ToLower(name))
+	return name
 }
 
 func GetPropertyValue(properHeaders map[string]reflect.Kind, headers map[string]string, name string) interface{} {
-	name = strings.ToLower(name)
 	propertyHeaderName := SofaPropertyHeader(name)
 
 	if value, ok := headers[propertyHeaderName]; ok {
@@ -60,21 +60,52 @@ func ConvertPropertyValue(strValue string, kind reflect.Kind) interface{} {
 	}
 }
 
-func IsSofaRequest(headers map[string]string)bool{
+func IsSofaRequest(headers map[string]string) bool {
+	procode := ConvertPropertyValue(headers[SofaPropertyHeader(HeaderProtocolCode)], reflect.Uint8)
 
-	procode:= ConvertPropertyValue(headers[SofaPropertyHeader("protocol")],reflect.Uint8)
-	if procode== PROTOCOL_CODE_V1 || procode == PROTOCOL_CODE_V2 {
+	if procode == PROTOCOL_CODE_V1 || procode == PROTOCOL_CODE_V2 {
+		cmdtype := ConvertPropertyValue(headers[SofaPropertyHeader(HeaderCmdType)], reflect.Uint8)
 
-		cmdtype := ConvertPropertyValue(headers[SofaPropertyHeader("cmdtype")],reflect.Uint8)
-		if cmdtype == REQUEST{
+		if cmdtype == REQUEST {
 			return true
 		}
 	} else if procode == TR_PROTOCOL_CODE {
+		requestFlage := ConvertPropertyValue(headers[SofaPropertyHeader(HeaderReqFlag)], reflect.Uint8)
 
-		requestFlage :=  ConvertPropertyValue(headers[SofaPropertyHeader("requestflag")],reflect.Uint8)
-		if requestFlage == HEADER_REQUEST{
+		if requestFlage == HEADER_REQUEST {
 			return true
 		}
 	}
+
 	return false
+}
+
+func HasCodecException(headers map[string]string) bool {
+	if v, ok := headers[types.HeaderException]; ok && v == types.MosnExceptionCodeC {
+		return true
+	}
+
+	return false
+}
+
+func GetMap(context context.Context, defaultSize int) map[string]string {
+	var amap map[string]string
+
+	if context != nil && context.Value(types.ContextKeyConnectionCodecMapPool) != nil {
+		pool := context.Value(types.ContextKeyConnectionCodecMapPool).(types.HeadersBufferPool)
+		amap = pool.Take(defaultSize)
+	}
+
+	if amap == nil {
+		amap = make(map[string]string, defaultSize)
+	}
+
+	return amap
+}
+
+func ReleaseMap(context context.Context, amap map[string]string) {
+	if context != nil && context.Value(types.ContextKeyConnectionCodecMapPool) != nil {
+		pool := context.Value(types.ContextKeyConnectionCodecMapPool).(types.HeadersBufferPool)
+		pool.Give(amap)
+	}
 }
