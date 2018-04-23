@@ -20,7 +20,7 @@ import (
 
 const (
 	ConnectionCloseDebugMsg = "Close connection %d, event %s, type %s, data read %d, data write %d"
-	DefaultBufferCapacity   = 4 * 1024
+	DefaultBufferCapacity   = 1 << 12
 )
 
 var idCounter uint64

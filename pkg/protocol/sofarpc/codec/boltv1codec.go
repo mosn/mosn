@@ -15,6 +15,7 @@ import (
 
 var (
 	BoltV1PropertyHeaders = make(map[string]reflect.Kind, 11)
+	defaultTmpBufferSize  = 1 << 6
 )
 
 func init() {
@@ -81,7 +82,7 @@ func (c *boltV1Codec) encodeResponseCommand(cmd *sofarpc.BoltResponseCommand) (s
 func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []byte {
 	offset := 0
 	// todo: reuse bytes @boqin
-	data := make([]byte, 22, 64)
+	data := make([]byte, 22, defaultTmpBufferSize)
 
 	data[offset] = cmd.Protocol
 	offset++
@@ -127,7 +128,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []
 func (c *boltV1Codec) doEncodeResponseCommand(cmd *sofarpc.BoltResponseCommand) []byte {
 	offset := 0
 	// todo: reuse bytes @boqin
-	data := make([]byte, 20, 64)
+	data := make([]byte, 20, defaultTmpBufferSize)
 
 	data[offset] = cmd.Protocol
 	offset++

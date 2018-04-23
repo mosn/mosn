@@ -74,7 +74,7 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand, 
 	serializeIns := serialize.Instance
 
 	//serialize header
-	headerMap := sofarpc.GetMap(context, 64)
+	headerMap := sofarpc.GetMap(context, defaultTmpBufferSize)
 	serializeIns.DeSerialize(responseCommand.HeaderMap, &headerMap)
 	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
 

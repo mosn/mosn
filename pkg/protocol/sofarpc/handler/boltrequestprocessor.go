@@ -13,6 +13,7 @@ import (
 )
 
 var streamIdCsounter uint32
+var defaultTmpBufferSize = 1 << 6
 
 type BoltRequestProcessor struct{}
 
@@ -82,7 +83,7 @@ func deserializeRequestAllFields(context context.Context, requestCommand *sofarp
 	serializeIns := serialize.Instance
 
 	//serialize header
-	headerMap := sofarpc.GetMap(context, 64)
+	headerMap := sofarpc.GetMap(context, defaultTmpBufferSize)
 
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
 	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
