@@ -73,13 +73,18 @@ type activeStream struct {
 }
 
 func newActiveStream(streamId string, proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
-	stream := &activeStream{
-		streamId:        streamId,
-		proxy:           proxy,
-		requestInfo:     network.NewRequestInfo(),
-		responseEncoder: responseEncoder,
+	var stream *activeStream
+
+	if buf := activeStreamPool.Take(); buf == nil {
+		stream = &activeStream{}
+	} else {
+		stream = buf.(*activeStream)
 	}
 
+	stream.streamId = streamId
+	stream.proxy = proxy
+	stream.requestInfo = network.NewRequestInfo()
+	stream.responseEncoder = responseEncoder
 	stream.responseEncoder.GetStream().AddEventListener(stream)
 
 	proxy.stats.DownstreamRequestTotal().Inc(1)
@@ -645,4 +650,37 @@ func (s *activeStream) AddStreamDecoderFilter(filter types.StreamDecoderFilter) 
 func (s *activeStream) AddStreamEncoderFilter(filter types.StreamEncoderFilter) {
 	sf := newActiveStreamEncoderFilter(len(s.encoderFilters), s, filter)
 	s.encoderFilters = append(s.encoderFilters, sf)
+}
+
+func (s *activeStream) reset() {
+	s.streamId = ""
+	s.proxy = nil
+	s.route = nil
+	s.cluster = nil
+	s.element = nil
+	s.bufferLimit = 0
+	s.highWatermarkCount = 0
+	s.timeout = nil
+	s.retryState = nil
+	s.requestInfo = nil
+	s.responseEncoder = nil
+	s.upstreamRequest = nil
+	s.perRetryTimer = nil
+	s.globalRetryTimer = nil
+	s.downstreamRespHeaders = nil
+	s.downstreamReqDataBuf = nil
+	s.downstreamReqTrailers = nil
+	s.downstreamRespHeaders = nil
+	s.downstreamRespDataBuf = nil
+	s.downstreamRespTrailers = nil
+	s.downstreamResponseStarted = false
+	s.upstreamRequestSent = false
+	s.downstreamRecvDone = false
+	s.localProcessDone = false
+	s.encoderFiltersStreaming = false
+	s.decoderFiltersStreaming = false
+	s.filterStage = 0
+	s.watermarkCallbacks = nil
+	s.encoderFilters = s.encoderFilters[:0]
+	s.decoderFilters = s.decoderFilters[:0]
 }

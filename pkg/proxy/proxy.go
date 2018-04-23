@@ -13,12 +13,16 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-var codecHeadersBufPool types.HeadersBufferPool
-var globalStats *proxyStats
+var (
+	codecHeadersBufPool types.HeadersBufferPool
+	activeStreamPool    types.ObjectBufferPool
+	globalStats         *proxyStats
+)
 
 func init() {
 	globalStats = newProxyStats(types.GlobalStatsNamespace)
 	codecHeadersBufPool = buffer.NewHeadersBufferPool(1)
+	activeStreamPool = buffer.NewObjectPool(1)
 }
 
 // types.ReadFilter
@@ -183,6 +187,9 @@ func (p *proxy) deleteActiveStream(s *activeStream) {
 	p.asMux.Lock()
 	p.activeSteams.Remove(s.element)
 	p.asMux.Unlock()
+
+	s.reset()
+	activeStreamPool.Give(s)
 }
 
 // ConnectionEventListener

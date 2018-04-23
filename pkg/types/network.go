@@ -120,6 +120,12 @@ type GenericMapPool interface {
 	Give(amap map[string]interface{})
 }
 
+type ObjectBufferPool interface {
+	Take() interface{}
+
+	Give(object interface{})
+}
+
 type ConnState string
 
 const (
