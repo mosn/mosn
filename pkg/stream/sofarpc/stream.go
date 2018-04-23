@@ -58,8 +58,6 @@ type streamConnection struct {
 func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
-	l.Println("newStreamConnection")
-
 	return &streamConnection{
 		connection:      connection,
 		protocols:       sofarpc.DefaultProtocols(),

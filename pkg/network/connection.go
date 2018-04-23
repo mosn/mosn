@@ -336,10 +336,10 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		c.writeBufferMux.Lock()
 		m, err = c.writeBuffer.Write()
 
-		if c.writeBuffer.Br.Len() == 0 {
-			c.writeBufferPool.Give(c.writeBuffer)
-			c.writeBuffer = nil
-		}
+		//if c.writeBuffer.Br.Len() == 0 {
+		//	c.writeBufferPool.Give(c.writeBuffer)
+		//	c.writeBuffer = nil
+		//}
 		c.writeBufferMux.Unlock()
 
 		bytesSent += m

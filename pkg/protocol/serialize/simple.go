@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"reflect"
+	"unsafe"
 )
 
 //singleton
@@ -21,28 +22,20 @@ func (s *SimpleSerialization) Serialize(v interface{}) ([]byte, error) {
 	if v == nil {
 		return []byte{0}, nil
 	}
-	var rv reflect.Value
-	if nrv, ok := v.(reflect.Value); ok {
-		rv = nrv
-	} else {
-		rv = reflect.ValueOf(v)
-	}
 
-	t := rv.Type().String()
-	//t := fmt.Sprintf("%s", rv.Type())
+	buf := bytes.Buffer{}
 
-	buf := new(bytes.Buffer)
 	var err error
-	switch t {
-	case "string":
-		_, err = encodeString(rv, buf)
-	case "map[string]string":
-		//buf.WriteByte(2)
-		err = encodeMap(rv, buf)
-	case "[]uint8":
+	switch v.(type) {
+	case string:
+		_, err = encodeString(v.(string), &buf)
+	case map[string]string:
+		err = encodeMap(v.(map[string]string), &buf)
+	case []uint8:
 		buf.WriteByte(3)
-		err = encodeBytes(rv, buf)
+		err = encodeBytes(v.([]uint8), &buf)
 	}
+
 	return buf.Bytes(), err
 }
 
@@ -59,9 +52,7 @@ func (s *SimpleSerialization) DeSerialize(b []byte, v interface{}) (interface{},
 			return nil, err
 		}
 		if v != nil {
-			if sv, ok := v.(*string); ok {
-				*sv = st
-			}
+			*sv = st
 		}
 		return sv, err
 	}
@@ -72,57 +63,12 @@ func (s *SimpleSerialization) DeSerialize(b []byte, v interface{}) (interface{},
 			return nil, err
 		}
 		if v != nil {
-			if mv, ok := v.(*map[string]string); ok {
-				*mv = ma
-			}
+			*mv = ma
 		}
 		return mv, err
 	}
 
 	return nil, nil
-
-	/*
-
-		case 0:
-			v = nil
-			return nil, nil
-		case 1:
-			st, _, err := decodeString(buf)
-			if err != nil {
-				return nil, err
-			}
-			if v != nil {
-				if sv, ok := v.(*string); ok {
-					*sv = st
-				}
-			}
-			return st, err
-		case 2:
-			ma, err := decodeMap(buf)
-			if err != nil {
-				return nil, err
-			}
-			if v != nil {
-				if mv, ok := v.(*map[string]string); ok {
-					*mv = ma
-				}
-			}
-			return ma, err
-		case 3:
-			by, err := decodeBytes(buf)
-			if err != nil {
-				return nil, err
-			}
-			if v != nil {
-				if bv, ok := v.(*[]byte); ok {
-					*bv = by
-				}
-			}
-			return by, err
-		}
-
-	*/
-	//return nil, fmt.Errorf("can not deserialize. unknown type:%v", tp)
 }
 
 func (s *SimpleSerialization) SerializeMulti(v []interface{}) ([]byte, error) {
@@ -163,10 +109,7 @@ func readInt32(buf *bytes.Buffer) (int, error) {
 }
 
 func decodeString(buf *bytes.Buffer) (string, int, error) {
-
-	b := buf.Bytes()
-
-	return string(b), buf.Len(), nil
+	return string(buf.Bytes()), buf.Len(), nil
 }
 
 /**
@@ -203,21 +146,8 @@ func decodeMap(buf *bytes.Buffer) (map[string]string, error) {
 
 }
 
-func decodeBytes(buf *bytes.Buffer) ([]byte, error) {
-	size, err := readInt32(buf)
-	if err != nil {
-		return nil, err
-	}
-	b := buf.Next(size)
-	if len(b) != size {
-		return nil, errors.New("read byte not enough")
-	}
-
-	return b, nil
-}
-
-func encodeStringMap(v reflect.Value, buf *bytes.Buffer) (int32, error) {
-	b := []byte(v.String())
+func encodeStringMap(v string, buf *bytes.Buffer) (int32, error) {
+	b := unsafeStrToByte(v)
 	l := int32(len(b))
 	err := binary.Write(buf, binary.BigEndian, l)
 	err = binary.Write(buf, binary.BigEndian, b)
@@ -227,41 +157,64 @@ func encodeStringMap(v reflect.Value, buf *bytes.Buffer) (int32, error) {
 	return l + 4, nil
 }
 
-func encodeString(v reflect.Value, buf *bytes.Buffer) (int32, error) {
-	b := []byte(v.String())
+func encodeString(v string, buf *bytes.Buffer) (int32, error) {
+	b := unsafeStrToByte(v)
 	l := int32(len(b))
-	//err := binary.Write(buf, binary.BigEndian, l)
+
 	err := binary.Write(buf, binary.BigEndian, b)
+
 	if err != nil {
 		return 0, err
 	}
+
 	return l + 4, nil
 }
 
-func encodeMap(v reflect.Value, buf *bytes.Buffer) error {
-	b := new(bytes.Buffer)
+func encodeMap(v map[string]string, buf *bytes.Buffer) error {
+	b := bytes.Buffer{}
+
 	var size, l int32
 	var err error
-	for _, mk := range v.MapKeys() {
-		mv := v.MapIndex(mk)
-		l, err = encodeStringMap(mk, b)
+	for k, v := range v {
+		l, err = encodeStringMap(k, &b)
 		size += l
 		if err != nil {
 			return err
 		}
-		l, err = encodeStringMap(mv, b)
+		l, err = encodeStringMap(v, &b)
 		size += l
 		if err != nil {
 			return err
 		}
 	}
 	err = binary.Write(buf, binary.BigEndian, b.Bytes()[:size])
+
 	return err
 }
 
-func encodeBytes(v reflect.Value, buf *bytes.Buffer) error {
-	l := len(v.Bytes())
+func encodeBytes(v []uint8, buf *bytes.Buffer) error {
+	l := len(v)
 	err := binary.Write(buf, binary.BigEndian, int32(l))
-	err = binary.Write(buf, binary.BigEndian, v.Bytes())
+	err = binary.Write(buf, binary.BigEndian, v)
 	return err
+}
+
+func unsafeStrToByte(s string) []byte {
+	var b []byte
+	byteHeader := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+
+	// we need to take the address of s's Data field and assign it to b's Data field in one
+	// expression as it as a uintptr and in the future Go may have a compacting GC that moves
+	// pointers but it will not update uintptr values, but single expressions should be safe.
+	// For more details see https://groups.google.com/forum/#!msg/golang-dev/rd8XgvAmtAA/p6r28fbF1QwJ
+	byteHeader.Data = (*reflect.StringHeader)(unsafe.Pointer(&s)).Data
+
+	// need to take the length of s here to ensure s is live until after we update b's Data
+	// field since the garbage collector can collect a variable once it is no longer used
+	// not when it goes out of scope, for more details see https://github.com/golang/go/issues/9046
+	l := len(s)
+	byteHeader.Len = l
+	byteHeader.Cap = l
+
+	return b
 }

@@ -6,31 +6,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-type headersBufferPool struct {
-	pool chan map[string]string
-}
-
-func (p *headersBufferPool) Take(defaultSize int) (amap map[string]string) {
-	select {
-	case amap = <-p.pool:
-	default:
-		amap = make(map[string]string, defaultSize)
-	}
-
-	return
-}
-
-func (p *headersBufferPool) Give(amap map[string]string) {
-	for k := range amap {
-		delete(amap, k)
-	}
-
-	select {
-	case p.pool <- amap: // return to pool
-	default: // discard
-	}
-}
-
 type headersBufferPoolV2 struct {
 	sync.Pool
 }
