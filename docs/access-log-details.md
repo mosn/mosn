@@ -1,12 +1,11 @@
 
-#### Access Log Format:
+#### AccessLog format consists of following three parts, the keys of each part are linked by "%" and blank space:
 ```$xslt
-
-RequestInfoFormat = "%StartTime% %Protocol% "
-
+part1:RequestInfoFormat 
+part2:RequestHeaderFormat 
+Part3:ResponseHeaderForamt
 ```
-
-#### and Request Information Contains:
+##### For part1, the request information contains keys:
 + StartTime  
 + RequestReceivedDuration
 + ResponseReceivedDuration
@@ -18,17 +17,24 @@ RequestInfoFormat = "%StartTime% %Protocol% "
 + ResponseFlag
 + UpstreamLocalAddress
 + DownstreamLocalAddress
-
-#### For Request headers and response headers, you can customized your details according with protocol you choose in format: 
-
-```
-"%REQ.part1% %REQ.part2% %REQ.part3%..."
-"%RESP.part1% %RESP.part2% %RESP.part3%..."
-
-Take boltv1 for example:
-Request Headers: %REQ.RequestID% %REQ.Version% %REQ.CmdType%
-Response Headers: %RESP.RequestID% %RESP.ResponseStatus%
-
+#####so you can choose above keys to define part1 format such as
+```$xslt
+RequestInfoFormat = "%StartTime% %Protocol% %ResponseCode%"
 ```
 
+##### For Part2 and Part3, you should define keys according to protocols you choose in format: 
+
+###### For Part2,your format begins with 'REQ.', such as：
+```
+RequestHeaderFormat = "%REQ.part1% %REQ.part2% %REQ.part3%..."
+```
+###### For part3, your format begins with "Resp." , such as；
+```
+ResponseHeaderForamt = "%RESP.part1% %RESP.part2% %RESP.part3%..."
+```
+#### As a whole, the final format looks like:
+```
+format = "%StartTime% %Protocol% %ResponseCode% %REQ.part1% %REQ.part2% %RESP.part1% %RESP.part2%"
+```
 we will parse the details and get the content from headers, then log them
+
