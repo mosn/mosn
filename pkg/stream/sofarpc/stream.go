@@ -3,7 +3,6 @@ package sofarpc
 import (
 	"context"
 	"errors"
-	l "log"
 	"sync"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
