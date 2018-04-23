@@ -1,5 +1,14 @@
-package confreg
+package registry
 
+type ApplicationInfoRequest struct {
+    AntShareCloud    bool   `json:"antShareCloud"`
+    DataCenter       string `json:"dataCenter"`
+    AppName          string `json:"appName"`
+    Zone             string `json:"zone"`
+    RegistryEndpoint string ` json:"registryEndpoint"`
+    AccessKey        string `json:"accessKey"`
+    SecretKey        string `json:"secretKey"`
+}
 //pub request
 type PublishServiceRequest struct {
 	ServiceName      string           `json:"serviceName"`
@@ -14,7 +23,7 @@ type ProviderMetaInfo struct {
 }
 
 //pub result
-type PublishServiceResult struct {
+type HttpResponse struct {
 	ErrorMessage string `json:"errorMessage"`
 	Success      bool   `json:"success"`
 }
@@ -37,19 +46,8 @@ type UnPublishServiceRequest struct {
 	ServiceName string `json:"serviceName"`
 }
 
-//unpublish result
-type UnPublishServiceResult struct {
-	ErrorMessage string `json:"errorMessage"`
-	Success      bool   `json:"success"`
-}
-
 //UnSubscribe request
 type UnSubscribeServiceRequest struct {
 	ServiceName string `json:"serviceName"`
 }
 
-//UnSubscribe result
-type UnSubscribeServiceResult struct {
-	ErrorMessage string `json:"errorMessage"`
-	Success      bool   `json:"success"`
-}

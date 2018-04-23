@@ -264,3 +264,14 @@ type LoadBalancer interface {
 	ChooseHost(context context.Context) Host
 }
 
+type ClusterConfigFactoryCb interface {
+	UpdateClusterConfig(configs []v2.Cluster) error
+}
+
+type ClusterHostFactoryCb interface {
+	UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error
+}
+
+type ClusterManagerFilter interface {
+	OnCreated(cccb ClusterConfigFactoryCb, chcb ClusterHostFactoryCb)
+}

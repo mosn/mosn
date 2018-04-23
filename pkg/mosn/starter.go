@@ -1,27 +1,26 @@
 package main
 
 import (
-	_ "net/http/pprof"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/healthcheck/sofarpc"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
-	_"net/http/pprof"
-	"net/http"
-	"os"
-	"net"
 	"log"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
 	"runtime"
+	"strconv"
 	"sync"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
 )
 
 func Start(c *config.MOSNConfig) {
@@ -40,8 +39,8 @@ func Start(c *config.MOSNConfig) {
 
 	stopChans := make([]chan bool, srvNum)
 
-	var wg sync.WaitGroup
-	wg.Add(1 + srvNum)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 
 	go func() {
 		// pprof server
@@ -49,7 +48,7 @@ func Start(c *config.MOSNConfig) {
 		wg.Done()
 	}()
 
-	getInheritListeners()
+	inheritListeners := getInheritListeners()
 
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
@@ -58,17 +57,11 @@ func Start(c *config.MOSNConfig) {
 		//server config
 		sc := config.ParseServerConfig(&serverConfig)
 
-		// network filters
-		nfcf := getNetworkFilter(serverConfig.NetworkFilters)
-
-		//stream filters
-		sfcf := getStreamFilters(serverConfig.StreamFilters)
-
 		//cluster manager filter
 		cmf := &clusterManagerFilter{}
 
 		//2. initialize server instance
-		srv := server.NewServer(sc, nfcf, sfcf, cmf)
+		srv := server.NewServer(sc, cmf)
 
 		//add listener
 		if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
@@ -76,7 +69,13 @@ func Start(c *config.MOSNConfig) {
 		}
 
 		for _, listenerConfig := range serverConfig.Listeners {
-			srv.AddListener(config.ParseListenerConfig(&listenerConfig))
+			// network filters
+			nfcf := getNetworkFilter(listenerConfig.NetworkFilters)
+
+			//stream filters
+			sfcf := getStreamFilters(listenerConfig.StreamFilters)
+
+			srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nfcf, sfcf)
 		}
 
 		var clusters []v2.Cluster
@@ -93,7 +92,7 @@ func Start(c *config.MOSNConfig) {
 			cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
 		}
 
-		go func(){
+		go func() {
 			srv.Start() //开启连接
 
 			select {
@@ -103,10 +102,20 @@ func Start(c *config.MOSNConfig) {
 			wg.Done()
 		}()
 	}
+
+	//close legacy listeners
+	for _, ln := range inheritListeners {
+		if !ln.Remain {
+			log.Println("close useless legacy listener:", ln.Addr)
+			ln.InheritListener.Close()
+		}
+	}
+
+	//todo: daemon running
 	wg.Wait()
 }
 
-func getNetworkFilter(configs []config.FilterConfig) server.NetworkFilterChainFactory {
+func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFactory {
 	if len(configs) != 1 {
 		log.Fatalln("only one network filter supported")
 	}
@@ -144,32 +153,34 @@ func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFa
 }
 
 type clusterManagerFilter struct {
-	cccb server.ClusterConfigFactoryCb
-	chcb server.ClusterHostFactoryCb
+	cccb types.ClusterConfigFactoryCb
+	chcb types.ClusterHostFactoryCb
 }
 
-func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
+func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
 }
 
-
-func getInheritListeners() []types.Listener{
+func getInheritListeners() []*v2.ListenerConfig {
 	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
+		count, _ := strconv.Atoi(os.Getenv("_MOSN_INHERIT_FD"))
+		listeners := make([]*v2.ListenerConfig, count)
 
-		for _, fd := range []uintptr{3,4 } {
-			file := os.NewFile(fd, "")
-			listener, err := net.FileListener(file)
+		for idx := 0; idx < count; idx++ {
+			//because passed listeners fd's index starts from 3
+			file := os.NewFile(uintptr(3+idx), "")
+			fileListener, err := net.FileListener(file)
 			if err != nil {
 				log.Println("net.FileListener create err", err)
 			}
-			var  ok bool
-			listener, ok = listener.(*net.TCPListener)
-			if !ok {
+			if listener, ok := fileListener.(*net.TCPListener); ok {
+				listeners[idx] = &v2.ListenerConfig{Addr: listener.Addr(), InheritListener: listener}
+			} else {
 				log.Println("net.TCPListener cast err", err)
 			}
-			log.Println("recovered listener: ", listener.Addr())
 		}
+		return listeners
 	}
 	return nil
 }

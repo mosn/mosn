@@ -1,13 +1,15 @@
 package main
 
 import (
-	"time"
 	"fmt"
-	"net/http"
-	"runtime"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/filter/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"net"
+	"net/http"
+	"runtime"
+	"time"
 )
 
 const (
@@ -38,8 +40,8 @@ func main() {
 
 		// mesh
 		cmf := &clusterManagerFilter{}
-		srv := server.NewServer(nil, nf, nil, cmf)
-		srv.AddListener(tcpListener())
+		srv := server.NewServer(nil, cmf)
+		srv.AddListener(tcpListener(), nf, nil)
 		cmf.cccb.UpdateClusterConfig(clusters())
 		cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts("11.162.169.38:80"))
 
@@ -59,20 +61,22 @@ func main() {
 }
 
 func tcpListener() *v2.ListenerConfig {
+	addr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
+
 	return &v2.ListenerConfig{
 		Name:                    TestListener,
-		Addr:                    MeshServerAddr,
+		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
 	}
 }
 
 type clusterManagerFilter struct {
-	cccb server.ClusterConfigFactoryCb
-	chcb server.ClusterHostFactoryCb
+	cccb types.ClusterConfigFactoryCb
+	chcb types.ClusterHostFactoryCb
 }
 
-func (cmf *clusterManagerFilter) OnCreated(cccb server.ClusterConfigFactoryCb, chcb server.ClusterHostFactoryCb) {
+func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
 }
