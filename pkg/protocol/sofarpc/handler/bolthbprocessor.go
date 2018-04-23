@@ -16,7 +16,7 @@ type BoltHbProcessor struct {
 // CALLBACK STREAM LEVEL'S OnDecodeHeaders
 func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
-		deserializeRequestAllFields(cmd, context)
+		deserializeRequestAllFields(context, cmd)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//for demo, invoke ctx as callback

@@ -43,28 +43,24 @@ func (s *SimpleSerialization) DeSerialize(b []byte, v interface{}) (interface{},
 	if len(b) == 0 {
 		return nil, nil
 	}
-	buf := bytes.NewBuffer(b)
-	//tp, _ := buf.ReadByte()
 
 	if sv, ok := v.(*string); ok {
-		st, _, err := decodeString(buf)
+		_, err := decodeString(b, sv)
+
 		if err != nil {
 			return nil, err
 		}
-		if v != nil {
-			*sv = st
-		}
+
 		return sv, err
 	}
 
 	if mv, ok := v.(*map[string]string); ok {
-		ma, err := decodeMap(buf)
+		err := decodeMap(b, mv)
+
 		if err != nil {
 			return nil, err
 		}
-		if v != nil {
-			*mv = ma
-		}
+
 		return mv, err
 	}
 
@@ -108,42 +104,40 @@ func readInt32(buf *bytes.Buffer) (int, error) {
 	return int(i), nil
 }
 
-func decodeString(buf *bytes.Buffer) (string, int, error) {
-	return string(buf.Bytes()), buf.Len(), nil
+func decodeString(b []byte, result *string) (int, error) {
+	*result = string(b)
+
+	return len(b), nil
 }
 
 /**
 这个map是参考com.alipay.sofa.rpc.remoting.codec.SimpleMapSerializer进行实现的.
 */
-func decodeMap(buf *bytes.Buffer) (map[string]string, error) {
-
-	result := make(map[string]string, 16)
+func decodeMap(b []byte, result *map[string]string) error {
+	buf := bytes.NewBuffer(b)
 
 	for {
 		length, err := readInt32(buf)
 		if length == -1 || err != nil {
-			return result, nil
+			return nil
 		}
 
 		key := make([]byte, length)
-
 		buf.Read(key)
 
 		length, err = readInt32(buf)
 		if length == -1 || err != nil {
-			return result, nil
+			return nil
 		}
 
 		value := make([]byte, length)
-
 		buf.Read(value)
 
 		keyStr := string(key)
 		valueStr := string(value)
 
-		result[keyStr] = valueStr
+		(*result)[keyStr] = valueStr
 	}
-
 }
 
 func encodeStringMap(v string, buf *bytes.Buffer) (int32, error) {

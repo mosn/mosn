@@ -103,3 +103,10 @@ func GetMap(context context.Context, defaultSize int) map[string]string {
 
 	return amap
 }
+
+func ReleaseMap(context context.Context, amap map[string]string) {
+	if context != nil && context.Value(types.ContextKeyConnectionCodecMapPool) != nil {
+		pool := context.Value(types.ContextKeyConnectionCodecMapPool).(types.HeadersBufferPool)
+		pool.Give(amap)
+	}
+}

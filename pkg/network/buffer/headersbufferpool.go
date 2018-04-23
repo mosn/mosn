@@ -31,9 +31,5 @@ func (p *headersBufferPoolV2) Give(amap map[string]string) {
 }
 
 func NewHeadersBufferPool(poolSize int) types.HeadersBufferPool {
-	//return &headersBufferPool{
-	//	pool: make(chan map[string]string, poolSize),
-	//}
-	//
 	return &headersBufferPoolV2{}
 }

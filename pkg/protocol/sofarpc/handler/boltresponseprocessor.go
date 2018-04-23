@@ -72,8 +72,9 @@ func (b *BoltResponseProcessorV2) Process(context context.Context, msg interface
 func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand, context context.Context) {
 	//get instance
 	serializeIns := serialize.Instance
+
 	//serialize header
-	var headerMap map[string]string
+	headerMap := sofarpc.GetMap(context, 64)
 	serializeIns.DeSerialize(responseCommand.HeaderMap, &headerMap)
 	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
 
@@ -101,6 +102,8 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand, 
 	for k, v := range headerMap {
 		allField[k] = v
 	}
+
+	sofarpc.ReleaseMap(context, headerMap)
 
 	responseCommand.ResponseHeader = allField
 }

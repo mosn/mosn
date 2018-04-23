@@ -22,7 +22,7 @@ type BoltRequestProcessorV2 struct{}
 // CALLBACK STREAM LEVEL'S OnDecodeHeaders
 func (b *BoltRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
-		deserializeRequestAllFields(cmd, context)
+		deserializeRequestAllFields(context, cmd)
 		streamId := atomic.AddUint32(&streamIdCsounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
@@ -77,11 +77,13 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 }
 
 //Convert BoltV1's Protocol Header  and Content Header to Map[string]string
-func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand, context context.Context) {
+func deserializeRequestAllFields(context context.Context, requestCommand *sofarpc.BoltRequestCommand) {
 	//get instance
 	serializeIns := serialize.Instance
+
 	//serialize header
-	var headerMap map[string]string
+	headerMap := sofarpc.GetMap(context, 64)
+
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
 	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
 
@@ -107,11 +109,13 @@ func deserializeRequestAllFields(requestCommand *sofarpc.BoltRequestCommand, con
 		allField[k] = v
 	}
 
+	sofarpc.ReleaseMap(context, headerMap)
+
 	requestCommand.RequestHeader = allField
 }
 
 func deserializeRequestAllFieldsV2(requestCommandV2 *sofarpc.BoltV2RequestCommand, context context.Context) {
-	deserializeRequestAllFields(&requestCommandV2.BoltRequestCommand, context)
+	deserializeRequestAllFields(context, &requestCommandV2.BoltRequestCommand)
 	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion1)] = strconv.FormatUint(uint64(requestCommandV2.Version1), 10)
 	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderSwitchCode)] = strconv.FormatUint(uint64(requestCommandV2.SwitchCode), 10)
 }
