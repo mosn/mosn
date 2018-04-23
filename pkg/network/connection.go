@@ -278,7 +278,9 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 
 	c.writeBufferMux.Unlock()
 
-	c.writeBufferChan <- true
+	go func() {
+		c.writeBufferChan <- true
+	}()
 
 	return nil
 }

@@ -13,7 +13,6 @@ func SofaPropertyHeader(name string) string {
 }
 
 func GetPropertyValue(properHeaders map[string]reflect.Kind, headers map[string]string, name string) interface{} {
-
 	propertyHeaderName := SofaPropertyHeader(name)
 
 	if value, ok := headers[propertyHeaderName]; ok {

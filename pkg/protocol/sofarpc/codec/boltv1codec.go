@@ -52,8 +52,7 @@ func (c *boltV1Codec) encodeHeaders(headers interface{}) (string, types.IoBuffer
 	case *sofarpc.BoltResponseCommand:
 		return c.encodeResponseCommand(headers.(*sofarpc.BoltResponseCommand))
 	default:
-		err := "[BoltV1 Encode] Invalid Input Type"
-		log.DefaultLogger.Errorf(err)
+		log.DefaultLogger.Errorf("[BoltV1 Encode] Invalid Input Type")
 
 		return "", nil
 	}
@@ -167,7 +166,6 @@ func (c *boltV1Codec) doEncodeResponseCommand(cmd *sofarpc.BoltResponseCommand) 
 }
 
 func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
-
 	if len(headers) < 10 {
 		return nil
 	}
@@ -193,7 +191,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 		//serialize header
 		header, _ := serialize.Instance.Serialize(headers)
 
-		request := &sofarpc.BoltRequestCommand{
+		request := sofarpc.BoltRequestCommand{
 			protocolCode.(byte),
 			cmdType.(byte),
 			cmdCode.(int16),
@@ -213,8 +211,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 			nil,
 		}
 
-		return request
-
+		return &request
 	} else if cmdCode == sofarpc.RPC_RESPONSE || cmdCode == sofarpc.HEARTBEAT {
 		//todo : review
 		responseStatus := sofarpc.GetPropertyValue(BoltV1PropertyHeaders, headers, sofarpc.HeaderRespStatus)
@@ -222,7 +219,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 
 		//serialize header
 		header, _ := serialize.Instance.Serialize(headers)
-		response := &sofarpc.BoltResponseCommand{
+		response := sofarpc.BoltResponseCommand{
 			protocolCode.(byte),
 			cmdType.(byte),
 			cmdCode.(int16),
@@ -241,7 +238,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 			nil,
 		}
 
-		return response
+		return &response
 
 	}
 
@@ -300,7 +297,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					return 0, nil
 				}
 
-				request := &sofarpc.BoltRequestCommand{
+				request := sofarpc.BoltRequestCommand{
 
 					sofarpc.PROTOCOL_CODE_V1,
 					dataType,
@@ -320,7 +317,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				}
 				log.DefaultLogger.Debugf("[Decoder]bolt v1 decode request reqID is:%+v\n", request.ReqId)
 
-				cmd = request
+				cmd = &request
 			}
 		} else {
 			//2. resposne
@@ -360,7 +357,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					return 0, nil
 				}
 
-				response := &sofarpc.BoltResponseCommand{
+				response := sofarpc.BoltResponseCommand{
 
 					sofarpc.PROTOCOL_CODE_V1,
 					dataType,
@@ -382,7 +379,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 
 				log.DefaultLogger.Debugf("[Decoder]bolt v1 decode response, response status is:%+v\n", response.ResponseStatus)
 
-				cmd = response
+				cmd = &response
 			}
 		}
 	}

@@ -331,7 +331,7 @@ func NewIoBufferString(s string) types.IoBuffer {
 
 func NewIoBufferBytes(bytes []byte) types.IoBuffer {
 	return &IoBuffer{
-		buf:     []byte(bytes),
+		buf:     bytes,
 		offMark: ResetOffMark,
 	}
 }
