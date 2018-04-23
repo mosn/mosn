@@ -324,7 +324,7 @@ func (c *boltV1Codec) Decode(data types.IoBuffer) (int, interface{}) {
 				cmd = request
 			}
 		} else {
-			//2. resposne
+			//2. response
 			if readableBytes > sofarpc.RESPONSE_HEADER_LEN_V1 {
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])

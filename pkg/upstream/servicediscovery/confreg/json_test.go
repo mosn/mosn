@@ -1,4 +1,4 @@
-package confreg
+package registry
 
 import (
 	"encoding/json"

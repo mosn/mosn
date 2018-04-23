@@ -35,7 +35,7 @@ const (
 	RPC_RESPONSE int16 = 2
 
 	TR_PROTOCOL_CODE byte = 13
-	
+
 	//response status
 	RESPONSE_STATUS_SUCCESS                   int16 = 0  // 0x00
 	RESPONSE_STATUS_ERROR                     int16 = 1  // 0x01
