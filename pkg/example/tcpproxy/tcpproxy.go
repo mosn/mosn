@@ -80,10 +80,10 @@ func main2() {
 		case <-upstreamReadyChan:
 			// mesh
 			cmf := &clusterManagerFilter{}
-			srv := server.NewServer(nil, &proxy.TcpProxyFilterConfigFactory{
+			srv := server.NewServer(nil, cmf)
+			srv.AddListener(tcpListener(), &proxy.TcpProxyFilterConfigFactory{
 				Proxy: tcpProxyConfig(),
-			}, nil, cmf)
-			srv.AddListener(tcpListener())
+			}, nil)
 			cmf.cccb.UpdateClusterConfig(clusters())
 			cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts(""))
 

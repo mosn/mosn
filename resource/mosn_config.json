@@ -1,0 +1,111 @@
+{
+  "servers": [
+    {
+      "access_log": "/home/admin/mosn/logs/default.log",
+      "log_level": "INFO",
+      "listeners": [
+        {
+          "name": "egress",
+          "address": "127.0.0.1:12200",
+          "bind_port": true,
+          "network_filters": [
+            {
+              "type": "proxy",
+              "config": {
+                "downstream_protocol": "SofaRpc",
+                "upstream_protocol": "SofaRpc",
+                "routes": [
+                  {
+                    "name": "example_route",
+                    "service": ".*",
+                    "cluster": "remote_service"
+                  }
+                ]
+              }
+            }
+          ],
+          "stream_filters": [
+            {
+              "type": "healthcheck",
+              "config": {
+                "passthrough": false,
+                "cache_time_ms": 360000,
+                "cluster_min_healthy_percentages": {
+                  "local_service": 70
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "ingress",
+          "address": "127.0.0.1:12201",
+          "bind_port": true,
+          "network_filters": [
+            {
+              "type": "proxy",
+              "config": {
+                "downstream_protocol": "SofaRpc",
+                "upstream_protocol": "SofaRpc",
+                "routes": [
+                  {
+                    "name": "example_route",
+                    "service": ".*",
+                    "cluster": "local_service"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tracing": {
+    "http": {
+      "driver": {
+        "type": "zipkin",
+        "config": {
+          "collector_cluster": "jaeger",
+          "collector_endpoint": "/api/v1/spans"
+        }
+      }
+    }
+  },
+  "cluster_manager": {
+    "clusters": [
+      {
+        "name": "local_service",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "max_request_per_conn": 100000,
+        "healthcheck": {
+          "timeout": 1000,
+          "healthy_threshold": 3,
+          "unhealthy_threshold": 5,
+          "interval": 6000,
+          "interval_jitter": 1000
+        },
+        "hosts": [
+          {
+            "hostname": "downstream_machine",
+            "address": "127.0.0.1:12345",
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "name": "remote_service",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "hosts": [
+          {
+            "hostname": "upstream_machine",
+            "address": "127.0.0.1:23456",
+            "weight": 10
+          }
+        ]
+      }
+    ]
+  }
+}

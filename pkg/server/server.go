@@ -24,12 +24,17 @@ var servers []*server
 type server struct {
 	logger         log.Logger
 	stopChan       chan bool
-	listenersConfs []*v2.ListenerConfig
+	listenersConfs []*listenerConf
 	handler        types.ConnectionHandler
 }
 
-func NewServer(config *Config, networkFiltersFactory NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory, cmFilter ClusterManagerFilter) Server {
+type listenerConf struct {
+	config                 *v2.ListenerConfig
+	networkFiltersFactory  types.NetworkFilterChainFactory
+	streamFiltersFactories []types.StreamFilterChainFactory
+}
+
+func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
 	var logPath string
 	var logLevel log.LogLevel
 	var disableConnIo bool
@@ -51,7 +56,7 @@ func NewServer(config *Config, networkFiltersFactory NetworkFilterChainFactory,
 	server := &server{
 		logger:   log.DefaultLogger,
 		stopChan: make(chan bool),
-		handler:  NewHandler(networkFiltersFactory, streamFiltersFactories, cmFilter, log.DefaultLogger, disableConnIo),
+		handler:  NewHandler(cmFilter, log.DefaultLogger, disableConnIo),
 	}
 
 	servers = append(servers, server)
@@ -59,8 +64,13 @@ func NewServer(config *Config, networkFiltersFactory NetworkFilterChainFactory,
 	return server
 }
 
-func (src *server) AddListener(lc *v2.ListenerConfig) {
-	src.listenersConfs = append(src.listenersConfs, lc)
+func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
+	conf := &listenerConf{
+		config:                 lc,
+		networkFiltersFactory:  networkFiltersFactory,
+		streamFiltersFactories: streamFiltersFactories,
+	}
+	srv.listenersConfs = append(srv.listenersConfs, conf)
 }
 
 func (srv *server) AddOrUpdateListener(lc v2.ListenerConfig) {
@@ -71,8 +81,8 @@ func (srv *server) Start() {
 	// TODO: handle main thread panic @wugou
 
 	for _, lc := range srv.listenersConfs {
-		l := network.NewListener(lc)
-		srv.handler.StartListener(l)
+		l := network.NewListener(lc.config)
+		srv.handler.StartListener(l, lc.networkFiltersFactory, lc.streamFiltersFactories)
 	}
 
 	for {

@@ -94,6 +94,48 @@ func catchSignalsCrossPlatform() {
 	}()
 }
 
+/*
+//add by wugou.cyf for windows go skd compile compatibility
+func catchSignalsCrossPlatform() {
+	go func() {
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT , //syscall.SIGUSR1, syscall.SIGUSR2
+		)
+
+		for sig := range sigchan {
+			log.DefaultLogger.Println(sig, " received!")
+			switch sig {
+			case syscall.SIGQUIT:
+				// quit
+				for _, f := range onProcessExit {
+					f() // only perform important cleanup actions
+				}
+				os.Exit(0)
+			case syscall.SIGTERM:
+				// stop to quit
+				exitCode := executeShutdownCallbacks("SIGTERM")
+				for _, f := range onProcessExit {
+					f() // only perform important cleanup actions
+				}
+				Stop()
+
+				os.Exit(exitCode)
+				//case syscall.SIGUSR1:
+				// reopen
+				//	log.Reopen()
+			case syscall.SIGHUP:
+				// reload
+				//reconfigure()
+				//case syscall.SIGUSR2:
+				// ignore
+				//}
+			}
+		}
+	}()
+}
+*/
+
+
 func catchSignalsPosix() {
 	go func() {
 		shutdown := make(chan os.Signal, 1)
@@ -156,6 +198,7 @@ func reconfigure() {
 
 	// Set a flag for the new process start process
 	os.Setenv("_MOSN_GRACEFUL_RESTART", "true")
+	os.Setenv("_MOSN_INHERIT_FD", strconv.Itoa(len(listenerFD)))
 
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),

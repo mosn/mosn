@@ -7,6 +7,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"net"
 	"runtime/debug"
+	"time"
 )
 
 // listener impl based on golang net package
@@ -22,38 +23,22 @@ type listener struct {
 }
 
 func NewListener(lc *v2.ListenerConfig) types.Listener {
-	la, _ := net.ResolveTCPAddr("tcp", lc.Addr)
 
 	l := &listener{
 		name:                                  lc.Name,
-		localAddress:                          la,
+		localAddress:                          lc.Addr,
 		bindToPort:                            lc.BindToPort,
 		listenerTag:                           lc.ListenerTag,
 		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
 		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
 	}
 
+	if lc.InheritListener != nil {
+		//inherit old process's listener
+		l.rawl = lc.InheritListener
+	}
 	return l
 }
-
-/*
-func NewFDListener(lc *v2.ListenerConfig, fd uintptr) types.Listener {
-	s := &Server{cm: NewConnectionManager(), logger: logger}
-
-	file := os.NewFile(fd, "/tmp/sock-go-graceful-restart")
-	listener, err := net.FileListener(file)
-	if err != nil {
-		return nil, errors.New("File to recover socket from file descriptor: " + err.Error())
-	}
-	listenerTCP, ok := listener.(*net.TCPListener)
-	if !ok {
-		return nil, fmt.Errorf("File descriptor %d is not a valid TCP socket", fd)
-	}
-	s.socket = listenerTCP
-
-	return s, nil
-}
-*/
 
 func (l *listener) Name() string {
 	return l.name
@@ -63,31 +48,36 @@ func (l *listener) Addr() net.Addr {
 	return l.localAddress
 }
 
-func (l *listener) Start(stopChan chan bool, lctx context.Context) {
-	if err := l.listen(lctx); err != nil {
-		// TODO: notify listener callbacks
-		return
+func (l *listener) Start(lctx context.Context) {
+	//call listen if not inherit
+	if l.rawl == nil {
+		if err := l.listen(lctx); err != nil {
+			// TODO: notify listener callbacks
+			log.DefaultLogger.Fatalln(l.name, " listen failed, ", err)
+			return
+		}
 	}
 
 	if l.bindToPort {
 		for {
-			select {
-			case <-stopChan:
-				log.DefaultLogger.Infof("listener %s stop accepting connections", l.name)
-				return
-			default:
-				if err := l.accept(lctx); err != nil {
-					if ope, ok := err.(*net.OpError); ok {
-						if !(ope.Timeout() && ope.Temporary()) {
-							log.DefaultLogger.Errorf("not temp-timeout error:" + err.Error())
-						}
-					} else {
-						log.DefaultLogger.Errorf("unknown error while listener accepting:" + err.Error())
+			if err := l.accept(lctx); err != nil {
+				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+					log.DefaultLogger.Infof("listener %s stop accepting connections by deadline", l.name)
+					return
+				} else if ope, ok := err.(*net.OpError); ok {
+					if !(ope.Timeout() && ope.Temporary()) {
+						log.DefaultLogger.Errorf("not temp-timeout error:%s", err.Error())
 					}
+				} else {
+					log.DefaultLogger.Errorf("unknown error while listener accepting:%s", err.Error())
 				}
 			}
 		}
 	}
+}
+
+func (l *listener) Stop() {
+	l.rawl.SetDeadline(time.Now())
 }
 
 func (l *listener) ListenerTag() uint64 {
@@ -97,6 +87,7 @@ func (l *listener) ListenerTag() uint64 {
 func (l *listener) ListenerFD() (uintptr, error) {
 	file, err := l.rawl.File()
 	if err != nil {
+		log.DefaultLogger.Println(l.name, " listener fd not found : ", err)
 		return 0, err
 	}
 	return file.Fd(), nil
