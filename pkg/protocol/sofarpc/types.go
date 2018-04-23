@@ -35,7 +35,7 @@ const (
 	RPC_RESPONSE int16 = 2
 
 	TR_PROTOCOL_CODE byte = 13
-	
+
 	//response status
 	RESPONSE_STATUS_SUCCESS                   int16 = 0  // 0x00
 	RESPONSE_STATUS_ERROR                     int16 = 1  // 0x01
@@ -127,15 +127,13 @@ type ProtoBasicCmd interface {
 }
 
 type BoltRequestCommand struct {
-	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
-	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
-	CmdCode  int16 //HB:0,     Req:1,    Resp:2
-	Version  byte  //1
-	ReqId    uint32
-	CodecPro byte
-
-	Timeout int
-
+	Protocol      byte  //BoltV1:1, BoltV2:2, Tr:13
+	CmdType       byte  //Req:1,    Resp:0,   OneWay:2
+	CmdCode       int16 //HB:0,     Req:1,    Resp:2
+	Version       byte  //1
+	ReqId         uint32
+	CodecPro      byte
+	Timeout       int
 	ClassLen      int16
 	HeaderLen     int16
 	ContentLen    int
@@ -155,7 +153,7 @@ type BoltResponseCommand struct {
 	ReqId    uint32
 	CodecPro byte // 1
 
-	ResponseStatus int16
+	ResponseStatus int16 //Success:0 Error:1 Timeout:7
 
 	ClassLen      int16
 	HeaderLen     int16
@@ -381,4 +379,3 @@ func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{},
 		return headers, errors.New("[BuildSofaRespMsg Error]Unknown Protocol Code")
 	}
 }
-

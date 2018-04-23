@@ -75,6 +75,8 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	} else {
 		log.Fatal("[routes] is required in proxy filter config")
 	}
+
+	//todo add accesslogs
 	return proxyConfig
 }
 

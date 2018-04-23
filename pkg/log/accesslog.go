@@ -1,13 +1,16 @@
 package log
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	//"time"
+	"strings"
 )
 
 const (
 	// todo: add headers
-	DefaultAccessLogFormat = "%PROTOCOL% %RESPONSE_CODE% %RESPONSE_FLAGS% ..."
+	DefaultAccessLogFormat = "%StartTime% %PROTOCOL% %DownstreamLocalAddress% " +
+		"%UpstreamLocalAddress% %RESPONSE_CODE% %RESPONSE_FLAGS%"
 )
 
 var accesslogs []*accesslog
@@ -74,6 +77,8 @@ type accesslogformatter struct {
 func NewAccessLogFormatter(format string) types.AccessLogFormatter {
 	if format == "" {
 		format = DefaultAccessLogFormat
+	} else {
+		format += DefaultAccessLogFormat
 	}
 
 	return &accesslogformatter{
@@ -85,8 +90,49 @@ func NewAccessLogFormatter(format string) types.AccessLogFormatter {
 func formatToFormatters(format string) []types.AccessLogFormatter {
 	// TODO: format to formatters
 
+	//format = "%StartTime% %PROTOCOL% %DownstreamLocalAddress% %UpstreamLocalAddress% %RESPONSE_CODE% %RESPONSE_FLAGS%" +
+	//	"%REQ.RequestID% %REQ.Version% %REQ.CmdType%" +
+
+	strArray := strings.Split(format," ")
+
+	//delete %
+	for i :=0; i < len(strArray);i++{
+		strArray[i] = strArray[i][1:len(strArray[i])-1]
+	}
+
+	var reqHeaderArray ,respHeaderArray []string
+
+	// set request headers and response headers
+	for _,s := range(strArray){
+		if strings.HasPrefix(s,"REQ"){
+			reqHeaderArray = append(reqHeaderArray,s)
+		} else if strings.HasPrefix(s,"RESP"){
+			respHeaderArray = append(respHeaderArray,s)
+		}
+	}
+
+	//delete REQ.
+	if reqHeaderArray != nil {
+
+		for i := 0 ; i < len(reqHeaderArray); i ++{
+			reqHeaderArray[i] = reqHeaderArray[i][4:]
+		}
+	}
+
+	//delete Resp.
+	if respHeaderArray != nil {
+
+		for i := 0 ; i < len(respHeaderArray); i ++{
+			respHeaderArray[i] = respHeaderArray[i][5:]
+		}
+	}
+
+
 	return []types.AccessLogFormatter{
 		&simpleRequestInfoFormatter{},
+		&simpleReqHeadersFormatter{},
+		&simpleRespHeadersFormatter{},
+
 	}
 }
 
@@ -101,15 +147,25 @@ func (f *accesslogformatter) Format(reqHeaders map[string]string, respHeaders ma
 }
 
 type simpleRequestInfoFormatter struct {
-	fieldName string
+	startTime string
+	protocol string
 }
 
 func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 	// todo: map fieldName to field vale string
+
+	f.startTime = requestInfo.StartTime().String()
+
+	f.protocol = string(requestInfo.Protocol())
+
+
+
 	return fmt.Sprintf("%+v", requestInfo)
 }
 
 type simpleReqHeadersFormatter struct {
+
+	reqHeaderArray []string
 }
 
 func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {

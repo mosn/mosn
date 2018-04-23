@@ -155,7 +155,7 @@ func (s *activeStream) cleanStream() {
 	s.proxy.deleteActiveStream(s)
 }
 
-// types.StreamDecoder 被STREAM层回调
+// types.StreamDecoder
 func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
