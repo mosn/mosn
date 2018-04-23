@@ -1,8 +1,8 @@
 
 #### AccessLog format consists of following three parts, the keys of each part are linked by "%" and blank space:
 ```$xslt
-part1:RequestInfoFormat 
-part2:RequestHeaderFormat 
+part1:RequestInfoFormat
+part2:RequestHeaderFormat
 Part3:ResponseHeaderForamt
 ```
 ##### For part1, the request information contains keys:
@@ -17,18 +17,18 @@ Part3:ResponseHeaderForamt
 + ResponseFlag
 + UpstreamLocalAddress
 + DownstreamLocalAddress
-#####so you can choose above keys to define part1 format such as
+#####so you can choose above keys optionally to define part1 format such as
 ```$xslt
 RequestInfoFormat = "%StartTime% %Protocol% %ResponseCode%"
 ```
 
-##### For Part2 and Part3, you should define keys according to protocols you choose in format: 
+##### For Part2 and Part3, you should define keys according to protocols you choose in format:
 
-###### For Part2,your format begins with 'REQ.', such as：
+###### For Part2,your format begins with 'REQ.', such as:
 ```
 RequestHeaderFormat = "%REQ.part1% %REQ.part2% %REQ.part3%..."
 ```
-###### For part3, your format begins with "Resp." , such as；
+###### For part3, your format begins with "Resp." , such as:
 ```
 ResponseHeaderForamt = "%RESP.part1% %RESP.part2% %RESP.part3%..."
 ```
@@ -37,4 +37,3 @@ ResponseHeaderForamt = "%RESP.part1% %RESP.part2% %RESP.part3%..."
 format = "%StartTime% %Protocol% %ResponseCode% %REQ.part1% %REQ.part2% %RESP.part1% %RESP.part2%"
 ```
 we will parse the details and get the content from headers, then log them
-
