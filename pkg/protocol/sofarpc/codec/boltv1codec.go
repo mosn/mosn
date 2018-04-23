@@ -79,34 +79,39 @@ func (c *boltV1Codec) encodeResponseCommand(cmd *sofarpc.BoltResponseCommand) (s
 }
 
 func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []byte {
-	data := make([]byte, 0, 32)
+	offset := 0
+	// todo: reuse bytes @boqin
+	data := make([]byte, 22, 64)
 
-	data = append(data, cmd.Protocol, cmd.CmdType)
-	cmdCodeBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(cmdCodeBytes, uint16(cmd.CmdCode))
-	data = append(data, cmdCodeBytes...)
-	data = append(data, cmd.Version)
+	data[offset] = cmd.Protocol
+	offset++
 
-	requestIdBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(requestIdBytes, uint32(cmd.ReqId))
-	data = append(data, requestIdBytes...)
-	data = append(data, cmd.CodecPro)
+	data[offset] = cmd.CmdType
+	offset++
 
-	timeoutBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(timeoutBytes, uint32(cmd.Timeout))
-	data = append(data, timeoutBytes...)
+	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.CmdCode))
+	offset += 2
 
-	clazzLengthBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(clazzLengthBytes, uint16(cmd.ClassLen))
-	data = append(data, clazzLengthBytes...)
+	data[offset] = cmd.Version
+	offset++
 
-	headerLengthBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(headerLengthBytes, uint16(cmd.HeaderLen))
-	data = append(data, headerLengthBytes...)
+	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ReqId))
+	offset += 4
 
-	contentLenBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(contentLenBytes, uint32(cmd.ContentLen))
-	data = append(data, contentLenBytes...)
+	data[offset] = cmd.CodecPro
+	offset++
+
+	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.Timeout))
+	offset += 4
+
+	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.ClassLen))
+	offset += 2
+
+	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.HeaderLen))
+	offset += 2
+
+	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ContentLen))
+	offset += 4
 
 	if cmd.ClassLen > 0 {
 		data = append(data, cmd.ClassName...)
@@ -120,39 +125,43 @@ func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []
 }
 
 func (c *boltV1Codec) doEncodeResponseCommand(cmd *sofarpc.BoltResponseCommand) []byte {
-	data := make([]byte, 0, 32)
+	offset := 0
+	// todo: reuse bytes @boqin
+	data := make([]byte, 20, 64)
 
-	data = append(data, cmd.Protocol, cmd.CmdType)
-	cmdCodeBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(cmdCodeBytes, uint16(cmd.CmdCode))
+	data[offset] = cmd.Protocol
+	offset++
+
+	data[offset] = cmd.CmdType
+	offset++
+
+	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.CmdCode))
+	offset += 2
 
 	if cmd.CmdCode == sofarpc.HEARTBEAT {
 		log.DefaultLogger.Debugf("[Build HeartBeat Response]")
 	}
 
-	data = append(data, cmdCodeBytes...)
-	data = append(data, cmd.Version)
+	data[offset] = cmd.Version
+	offset++
 
-	requestIdBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(requestIdBytes, uint32(cmd.ReqId))
-	data = append(data, requestIdBytes...)
-	data = append(data, cmd.CodecPro)
+	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ReqId))
+	offset += 4
 
-	respStatusBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(respStatusBytes, uint16(cmd.ResponseStatus))
-	data = append(data, respStatusBytes...)
+	data[offset] = cmd.CodecPro
+	offset++
 
-	clazzLengthBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(clazzLengthBytes, uint16(cmd.ClassLen))
-	data = append(data, clazzLengthBytes...)
+	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.ResponseStatus))
+	offset += 2
 
-	headerLengthBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(headerLengthBytes, uint16(cmd.HeaderLen))
-	data = append(data, headerLengthBytes...)
+	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.ClassLen))
+	offset += 2
 
-	contentLenBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(contentLenBytes, uint32(cmd.ContentLen))
-	data = append(data, contentLenBytes...)
+	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.HeaderLen))
+	offset += 2
+
+	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ContentLen))
+	offset += 4
 
 	if cmd.ClassLen > 0 {
 		data = append(data, cmd.ClassName...)
@@ -239,7 +248,6 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 		}
 
 		return &response
-
 	}
 
 	return nil
@@ -383,5 +391,6 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 			}
 		}
 	}
+
 	return read, cmd
 }
