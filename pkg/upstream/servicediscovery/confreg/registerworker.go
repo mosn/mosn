@@ -113,10 +113,12 @@ func (rw *registerWorker) newCodecClient(confregServer string) error {
     receiveDataListener := NewReceiveDataListener(rw.rpcServerManager)
     codecClient := stream.NewBiDirectCodeClient(protocol.SofaRpc, conn, nil, receiveDataListener)
     codecClient.AddConnectionCallbacks(rw)
+
     err := conn.Connect(true)
     if err != nil {
         return err
     }
+
     rw.codecClient = &codecClient
     log.DefaultLogger.Infof("Connect to confreg server. server = %v", confregServer)
     return nil
@@ -217,7 +219,6 @@ func (rw *registerWorker) doRegister(ele *list.Element) error {
 
         if err == nil {
             registryTask.sendCounter.Clear()
-            //todo recode sub/pub success context. Playback when reconnect
             return nil
         } else {
             registryTask.sendCounter.Inc(1)
@@ -282,8 +283,9 @@ func (rw *registerWorker) OnEvent(event types.ConnectionEvent) {
     if !event.IsClose() {
         return
     }
-    log.DefaultLogger.Infof("The Connection with confreg server closed, will connect to another server. "+
+    log.DefaultLogger.Warnf("The Connection with confreg server closed, will connect to another server. "+
         "current connected confreg server = %s, event type = %v", rw.connectedConfregServer, event)
+
     rw.refreshCodecClient()
 
     rw.publisherHolder.Range(rePub)

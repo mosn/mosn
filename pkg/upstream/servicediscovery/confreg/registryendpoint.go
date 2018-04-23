@@ -24,10 +24,10 @@ type ServiceInfo struct {
 
 var subscribeRecorder = make(map[string]chan bool)
 
-type StartupRPCServerChangeListener struct {
+type WaitDataPushedListener struct {
 }
 
-func (l *StartupRPCServerChangeListener) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
+func (l *WaitDataPushedListener) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
     if r, ok := subscribeRecorder[dataId]; ok {
         r <- true
     }
@@ -56,7 +56,7 @@ func (re *RegistryEndpoint) setSystemConfig(w http.ResponseWriter, r *http.Reque
 
     re.RegistryClient = StartupRegistryModule(sysConfig, config.DefaultRegistryConfig)
 
-    rpcServerChangeListener := &StartupRPCServerChangeListener{}
+    rpcServerChangeListener := &WaitDataPushedListener{}
     re.RegistryClient.GetRPCServerManager().RegisterRPCServerChangeListener(rpcServerChangeListener)
 
     doResponse(true, "", w)
@@ -71,12 +71,20 @@ func (re *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Reques
         return
     }
     //todo Assemble publish data
-    err := re.RegistryClient.PublishSync(request.ServiceName, "127.0.0.1:6666")
+    err := re.RegistryClient.PublishSync(request.ServiceName, re.assemblePublishData(request))
     if err == nil {
         doResponse(true, "", w)
     } else {
         doResponse(false, err.Error(), w)
     }
+}
+
+func (re *RegistryEndpoint) assemblePublishData(request PublishServiceRequest) string {
+    data := fmt.Sprintf("%s:%d?_TIMEOUT=3000&p=%s&_SERIALIZETYPE=%s&app_name=%s&zone=%s&v=%s",
+        GetOutboundIP().String(), re.registryConfig.RPCServerPort, request.ProviderMetaInfo.Protocol,
+        request.ProviderMetaInfo.SerializeType, request.ProviderMetaInfo.AppName,
+        config.SysConfig.Zone, request.ProviderMetaInfo.Version)
+    return data
 }
 
 func (re *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
