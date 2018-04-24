@@ -24,7 +24,7 @@
                 "accesslog":[
                   {
                     "accesslogPath": "./accesslogE.log",
-                    "accesslogForamt": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %RESP.requestid% %RESP.test%"
+                    "accesslogForamt": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %RESP.requestid% %RESP.service%"
                   }
                 ]
               }

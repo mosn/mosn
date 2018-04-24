@@ -32,7 +32,8 @@ const (
 )
 
 const (
-	LogNotFoundError string = "Unkown"
+	ReqHeaderPrefix  string = "REQ."
+	RespHeaderPrefix string = "RESP."
 )
 
 var (
@@ -65,7 +66,7 @@ func ProtocolGetter(info RequestInfo) string {
 }
 
 func ResponseCodeGetter(info RequestInfo) string {
-	return strconv.FormatUint(uint64(info.ResponseCode()),10)
+	return strconv.FormatUint(uint64(info.ResponseCode()), 10)
 }
 
 func DurationGetter(info RequestInfo) string {

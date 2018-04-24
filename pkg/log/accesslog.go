@@ -119,10 +119,10 @@ func formatToFormatters(format string) []types.AccessLogFormatter {
 	//classify keys
 	var reqInfoArray, reqHeaderArray, respHeaderArray []string
 	for _, s := range strArray {
-		if strings.HasPrefix(s, "REQ") {
+		if strings.HasPrefix(s, types.ReqHeaderPrefix) {
 			reqHeaderArray = append(reqHeaderArray, s)
 
-		} else if strings.HasPrefix(s, "RESP") {
+		} else if strings.HasPrefix(s, types.RespHeaderPrefix) {
 			respHeaderArray = append(respHeaderArray, s)
 		} else {
 			reqInfoArray = append(reqInfoArray, s)
@@ -132,14 +132,14 @@ func formatToFormatters(format string) []types.AccessLogFormatter {
 	//delete REQ.
 	if reqHeaderArray != nil {
 		for i := 0; i < len(reqHeaderArray); i++ {
-			reqHeaderArray[i] = reqHeaderArray[i][4:]
+			reqHeaderArray[i] = reqHeaderArray[i][len(types.ReqHeaderPrefix):]
 		}
 	}
 
-	//delete Resp.
+	//delete RESP.
 	if respHeaderArray != nil {
 		for i := 0; i < len(respHeaderArray); i++ {
-			respHeaderArray[i] = respHeaderArray[i][5:]
+			respHeaderArray[i] = respHeaderArray[i][len(types.RespHeaderPrefix):]
 		}
 	}
 
@@ -155,6 +155,11 @@ func (f *accesslogformatter) Format(reqHeaders map[string]string, respHeaders ma
 
 	for _, formatter := range f.formatters {
 		log += formatter.Format(reqHeaders, respHeaders, requestInfo)
+	}
+
+	//delete the final " "
+	if len(log) > 0 {
+		log = log[:len(log)-1]
 	}
 
 	return log
@@ -197,7 +202,7 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 
 	for _, key := range f.reqHeaderFormat {
 		if v, ok := reqHeaders[key]; ok {
-			format = format + "REQ." + v + " "
+			format = format + types.ReqHeaderPrefix + v + " "
 		} else {
 			DefaultLogger.Debugf("Invalid RespHeaders Format Keys %s", key)
 		}
@@ -220,15 +225,10 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 	for _, key := range f.respHeaderFormat {
 
 		if v, ok := respHeaders[key]; ok {
-			format = format + "RESP." + v + " "
+			format = format + types.RespHeaderPrefix + v + " "
 		} else {
 			DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
 		}
-	}
-
-	//delete the last " "
-	if len(format) > 0 {
-		format = format[:len(format)-1]
 	}
 
 	return format
