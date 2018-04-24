@@ -51,7 +51,6 @@ func (p *Publisher) redo() error {
     return nil
 }
 
-//sync call. not thread safe
 func (p *Publisher) doWork(svrHost []string, eventType string) error {
     pubLock.Lock()
 
