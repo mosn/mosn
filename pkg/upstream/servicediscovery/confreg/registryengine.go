@@ -11,7 +11,7 @@ var registryClient RegistryClient
 
 var lock = new(sync.Mutex)
 
-var Initialization = false
+var RegistryModuleStarted = false
 
 func StartupRegistryModule(sysConfig *config.SystemConfig, registryConfig *config.RegistryConfig) RegistryClient {
     lock.Lock()
@@ -20,11 +20,12 @@ func StartupRegistryModule(sysConfig *config.SystemConfig, registryConfig *confi
         lock.Unlock()
     }()
 
-    if Initialization {
+    if RegistryModuleStarted {
         return registryClient
     }
-    Initialization = true
-
     confregServerManager = servermanager.NewRegistryServerManager(sysConfig, registryConfig)
+
+    RegistryModuleStarted = true
+
     return NewRegistryClient(sysConfig, registryConfig, confregServerManager)
 }

@@ -25,94 +25,92 @@ import (
 
 func Start(c *config.MOSNConfig) {
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	log.Printf("mosn config : %+v\n", c)
+    runtime.GOMAXPROCS(runtime.NumCPU())
+    log.Printf("mosn config : %+v\n", c)
 
-	srvNum := len(c.Servers)
-	if srvNum == 0 {
-		log.Fatalln("no server found")
-	}
+    srvNum := len(c.Servers)
+    if srvNum == 0 {
+        log.Fatalln("no server found")
+    }
 
-	if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
-		log.Fatalln("no cluster found")
-	}
+    if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
+        log.Fatalln("no cluster found")
+    }
 
-	stopChans := make([]chan bool, srvNum)
+    stopChans := make([]chan bool, srvNum)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
+    wg := sync.WaitGroup{}
+    wg.Add(1)
 
-	go func() {
-		// pprof server
-		http.ListenAndServe("0.0.0.0:9090", nil)
-		wg.Done()
-	}()
+    go func() {
+        // pprof server
+        http.ListenAndServe("0.0.0.0:9090", nil)
+    }()
 
-	inheritListeners := getInheritListeners()
+    inheritListeners := getInheritListeners()
 
-	for i, serverConfig := range c.Servers {
-		stopChan := stopChans[i]
+    for i, serverConfig := range c.Servers {
+        stopChan := stopChans[i]
 
-		//1. server config prepare
-		//server config
-		sc := config.ParseServerConfig(&serverConfig)
+        //1. server config prepare
+        //server config
+        sc := config.ParseServerConfig(&serverConfig)
 
-		//cluster manager filter
-		cmf := &clusterManagerFilter{}
+        //cluster manager filter
+        cmf := &clusterManagerFilter{}
 
-		//2. initialize server instance
-		srv := server.NewServer(sc, cmf)
+        //2. initialize server instance
+        srv := server.NewServer(sc, cmf)
 
-		//add listener
-		if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
-			log.Fatalln("no listener found")
-		}
+        //add listener
+        if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
+            log.Fatalln("no listener found")
+        }
 
-		for _, listenerConfig := range serverConfig.Listeners {
-			// network filters
-			nfcf := getNetworkFilter(listenerConfig.NetworkFilters)
+        for _, listenerConfig := range serverConfig.Listeners {
+            // network filters
+            nfcf := getNetworkFilter(listenerConfig.NetworkFilters)
 
-			//stream filters
-			sfcf := getStreamFilters(listenerConfig.StreamFilters)
+            //stream filters
+            sfcf := getStreamFilters(listenerConfig.StreamFilters)
 
-			srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nfcf, sfcf)
-		}
+            srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nfcf, sfcf)
+        }
 
-		var clusters []v2.Cluster
-		clusterMap := make(map[string][]v2.Host)
+        var clusters []v2.Cluster
+        clusterMap := make(map[string][]v2.Host)
 
-		for _, cluster := range c.ClusterManager.Clusters {
-			parsed := config.ParseClusterConfig(&cluster)
-			clusters = append(clusters, parsed)
-			clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
-		}
-		cmf.cccb.UpdateClusterConfig(clusters)
+        for _, cluster := range c.ClusterManager.Clusters {
+            parsed := config.ParseClusterConfig(&cluster)
+            clusters = append(clusters, parsed)
+            clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
+        }
+        cmf.cccb.UpdateClusterConfig(clusters)
 
-		for clusterName, hosts := range clusterMap {
-			cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
-		}
+        for clusterName, hosts := range clusterMap {
+            cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
+        }
 
-		go func() {
-			srv.Start() //开启连接
+        go func() {
+            srv.Start() //开启连接
 
-			select {
-			case <-stopChan:
-				srv.Close()
-			}
-			wg.Done()
-		}()
-	}
+            select {
+            case <-stopChan:
+                srv.Close()
+            }
+        }()
+    }
 
-	//close legacy listeners
-	for _, ln := range inheritListeners {
-		if !ln.Remain {
-			log.Println("close useless legacy listener:", ln.Addr)
-			ln.InheritListener.Close()
-		}
-	}
+    //close legacy listeners
+    for _, ln := range inheritListeners {
+        if !ln.Remain {
+            log.Println("close useless legacy listener:", ln.Addr)
+            ln.InheritListener.Close()
+        }
+    }
 
-	//todo: daemon running
-	wg.Wait()
+    //todo: daemon running
+    wg.Wait()
 }
 
 func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFactory {
