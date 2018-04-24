@@ -5,7 +5,10 @@ import (
     "github.com/deckarep/golang-set"
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "encoding/json"
+    "strings"
 )
+
+var rpcServerManagerInstance RPCServerManager
 
 type segmentData struct {
     Segment string              `json:"segment"`
@@ -38,16 +41,25 @@ type DefaultRPCServerManager struct {
 }
 
 func NewRPCServerManager() RPCServerManager {
+    if rpcServerManagerInstance != nil {
+        return rpcServerManagerInstance
+    }
     RPCServerManager := &DefaultRPCServerManager{
         svrData:   make(map[string]map[string]segmentData),
         listeners: make([]RPCServerChangeListener, 0, 100),
     }
 
+    rpcServerManagerInstance = RPCServerManager
     return RPCServerManager
+}
+
+func GetRPCServerManager() RPCServerManager {
+    return rpcServerManagerInstance
 }
 
 func (sm *DefaultRPCServerManager) RegisterRPCServer(receivedData *model.ReceivedDataPb) {
     dataId := receivedData.DataId
+    dataId = handleDataId(dataId)
     storedDataIdContainer, ok := sm.svrData[dataId]
     if !ok {
         segment := newSegmentData(receivedData)
@@ -143,4 +155,12 @@ func (sm *DefaultRPCServerManager) triggerRPCServerChangeEvent(dataId string) {
 
 func (sm *DefaultRPCServerManager) RegisterRPCServerChangeListener(listener RPCServerChangeListener) {
     sm.listeners = append(sm.listeners, listener)
+}
+
+func handleDataId(dataId string) string {
+    idx := strings.Index(dataId, "#@#")
+    if idx > 0 {
+        return dataId[0: idx]
+    }
+    return dataId
 }
