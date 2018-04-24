@@ -22,8 +22,8 @@ type ListenerConfig struct {
 }
 
 type ServerConfig struct {
-	AccessLog string `json:"access_log"`
-	LogLevel  string `json:"log_level"`
+	LoggerPath string `json:"logger_path"`
+	LoggerLevel  string `json:"logger_level"`
 	// only used in http2 case
 	DisableConnIo bool `json:"disable_conn_io"`
 

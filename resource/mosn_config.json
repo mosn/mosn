@@ -1,8 +1,8 @@
 {
   "servers": [
     {
-      "access_log": "/home/admin/mosn/logs/default.log",
-      "log_level": "INFO",
+      "logger_path": "./default.log",
+      "logger_level": "DEBUG",
       "listeners": [
         {
           "name": "egress",
@@ -13,7 +13,7 @@
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "SofaRpc",
+                "upstream_protocol": "http2",
                 "routes": [
                   {
                     "name": "example_route",

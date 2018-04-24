@@ -31,15 +31,15 @@ var lbTypeMap = map[string]v2.LbType{
 
 func ParseServerConfig(c *ServerConfig) *server.Config {
 	sc := &server.Config{DisableConnIo: c.DisableConnIo}
-	if c.AccessLog != "" {
-		sc.LogPath = c.AccessLog
+	if c.LoggerPath != "" {
+		sc.LogPath = c.LoggerPath
 	}
 
-	if c.LogLevel != "" {
-		if logLevel, ok := logLevelMap[c.LogLevel]; ok {
+	if c.LoggerLevel != "" {
+		if logLevel, ok := logLevelMap[c.LoggerLevel]; ok {
 			sc.LogLevel = logLevel
 		} else {
-			log.Fatalln("unknown log level:" + c.LogLevel)
+			log.Fatalln("unknown log level:" + c.LoggerLevel)
 		}
 	}
 
