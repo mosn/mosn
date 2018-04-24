@@ -118,14 +118,14 @@ func parseAccessConfig(config map[string]interface{}) *v2.AccessLog {
 	}
 
 	//accesslog format
-	if alformat, ok := config["accesslogForamt"]; ok {
+	if alformat, ok := config["accesslogFormat"]; ok {
 		if formatstr, ok := alformat.(string); ok {
 			accesslog.Format = formatstr
 		} else {
-			log.Fatalln("[accesslogForamt] in proxy filter accesslog config is not string")
+			log.Fatalln("[accesslogFormat] in proxy filter accesslog config is not string")
 		}
 	} else {
-		log.Fatalln("[accesslogForamt] is required in proxy filter accesslog config")
+		log.Fatalln("[accesslogFormat] is required in proxy filter accesslog config")
 	}
 
 	return accesslog

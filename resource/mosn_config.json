@@ -24,7 +24,7 @@
                 "accesslog":[
                   {
                     "accesslogPath": "./accesslogE.log",
-                    "accesslogForamt": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %RESP.requestid% %RESP.service%"
+                    "accesslogFormat": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
                   }
                 ]
               }
@@ -63,7 +63,7 @@
                 "accesslog":[
                   {
                     "accesslogPath": "./accesslogIn.log",
-                    "accesslogForamt": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %RESP.%requestid"
+                    "accesslogFormat": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %RESP.%requestid"
                   }
                 ]
               }
