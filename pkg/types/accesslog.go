@@ -2,10 +2,7 @@ package types
 
 import (
 	"errors"
-	"net"
-	"reflect"
 	"strconv"
-	"time"
 )
 
 type AccessLog interface {
@@ -42,53 +39,48 @@ var (
 	ErrParamsNotAdapted = errors.New("The number of params is not adapted.")
 )
 
-type FuncMaps map[string]reflect.Value
-
-func (f FuncMaps) Bind(name string, fn interface{}) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			err = errors.New(name + " is not callable.")
-		}
-	}()
-	v := reflect.ValueOf(fn)
-	v.Type().NumIn()
-	f[name] = v
-	return
+func StartTimeGetter(info RequestInfo) string {
+	return info.StartTime().String()
 }
 
-func (f FuncMaps) Call(name string, params ...interface{}) (result []reflect.Value, err error) {
-	if _, ok := f[name]; !ok {
-		err = errors.New(name + " does not exist.")
-		return
-	}
-	if len(params) != f[name].Type().NumIn() {
-		err = ErrParamsNotAdapted
-		return
-	}
-	in := make([]reflect.Value, len(params))
-	for k, param := range params {
-		in[k] = reflect.ValueOf(param)
-	}
-	result = f[name].Call(in)
-	return
+func ReceivedDurationGetter(info RequestInfo) string {
+	return info.RequestReceivedDuration().String()
 }
 
-func (f FuncMaps) GetValueInString(val interface{}) string {
+func ResponseReceivedDurationGetter(info RequestInfo) string {
+	return info.ResponseReceivedDuration().String()
+}
 
-	switch v := val.(type) {
-	case time.Time:
-		return v.String()
-	case net.Addr:
-		return v.String()
-	case time.Duration:
-		return v.String()
-	case uint64:
-		return strconv.FormatUint(v, 10)
-	case uint32:
-		return strconv.FormatUint(uint64(v), 10)
-	case bool:
-		return strconv.FormatBool(v)
-	default:
-		return LogNotFoundError
-	}
+func BytesSentGetter(info RequestInfo) string {
+	return strconv.FormatUint(info.BytesSent(), 10)
+}
+
+func BytesReceivedGetter(info RequestInfo) string {
+
+	return strconv.FormatUint(info.BytesReceived(), 10)
+}
+
+func ProtocolGetter(info RequestInfo) string {
+	return string(info.Protocol())
+}
+
+func ResponseCodeGetter(info RequestInfo) string {
+	return strconv.FormatUint(uint64(info.ResponseCode()),10)
+}
+
+func DurationGetter(info RequestInfo) string {
+	return info.Duration().String()
+}
+
+func GetResponseFlagGetter(info RequestInfo) string {
+
+	return strconv.FormatBool(info.GetResponseFlag(0))
+}
+
+func UpstreamLocalAddressGetter(info RequestInfo) string {
+	return info.UpstreamLocalAddress().String()
+}
+
+func DownstreamLocalAddressGetter(info RequestInfo) string {
+	return info.DownstreamLocalAddress().String()
 }

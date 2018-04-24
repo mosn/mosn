@@ -85,8 +85,50 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 		log.Fatalln("[routes] is required in proxy filter config")
 	}
 
+	//accesslog
+	if accesslog, ok := c.Config["accesslog"]; ok {
+		if accesslogs, ok := accesslog.([]interface{}); ok {
+			for _, alog := range accesslogs {
+				proxyConfig.AccessLogs = append(proxyConfig.AccessLogs, parseAccessConfig(alog.(map[string]interface{})))
+			}
+		} else {
+			log.Fatalln("[accesslog] in proxy filter config is not list of acclessmap")
+		}
+	} else {
+		log.Fatalln("[accesslog] is required in proxy filter config")
+	}
+
+
 	//todo add accesslogs
 	return proxyConfig
+}
+
+func parseAccessConfig(config map[string]interface{}) *v2.AccessLog {
+	accesslog := &v2.AccessLog{}
+
+	//accesslog path
+	if alpath, ok := config["accesslogPath"]; ok {
+		if pathstr, ok := alpath.(string); ok {
+			accesslog.Path = pathstr
+		} else {
+			log.Fatalln("[accesslogPath] in proxy filter accesslog config is not string")
+		}
+	} else {
+		log.Fatalln("[accesslogPath] is required in proxy filter accesslog config")
+	}
+
+	//accesslog format
+	if alformat, ok := config["accesslogForamt"]; ok {
+		if formatstr, ok := alformat.(string); ok {
+			accesslog.Format = formatstr
+		} else {
+			log.Fatalln("[accesslogForamt] in proxy filter accesslog config is not string")
+		}
+	} else {
+		log.Fatalln("[accesslogForamt] is required in proxy filter accesslog config")
+	}
+
+	return accesslog
 }
 
 func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {

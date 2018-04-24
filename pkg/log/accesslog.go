@@ -6,37 +6,29 @@ import (
 )
 
 var (
-	RequestInfoFuncMap map[string]interface{}
-	funcs              types.FuncMaps
+	RequestInfoFuncMap map[string]func(info types.RequestInfo)string
 )
 
 func init() {
-	funcs = make(types.FuncMaps, 10)
-	RequestInfoFuncMap = map[string]interface{} {
-		types.LogStartTime:                types.RequestInfo.StartTime,
-		types.LogRequestReceivedDuration:  types.RequestInfo.RequestReceivedDuration,
-		types.LogResponseReceivedDuration: types.RequestInfo.ResponseReceivedDuration,
-		types.LogBytesSent:                types.RequestInfo.BytesSent,
-		types.LogBytesReceived:            types.RequestInfo.BytesReceived,
-		types.LogProtocol:                 types.RequestInfo.Protocol,
-		types.LogResponseCode:             types.RequestInfo.ResponseCode,
-		types.LogDuration:                 types.RequestInfo.Duration,
-		types.LogResponseFlag:             types.RequestInfo.GetResponseFlag,
-		types.LogUpstreamLocalAddress:     types.RequestInfo.UpstreamLocalAddress,
-		types.LogDownstreamLocalAddress:   types.RequestInfo.DownstreamLocalAddress,
-	}
-
-	for k, v := range RequestInfoFuncMap {
-		if err := funcs.Bind(k, v);err != nil{
-			DefaultLogger.Errorf("Bind %s: %s", k, err.Error())
-		}
+	RequestInfoFuncMap = map[string]func(info types.RequestInfo)string {
+		types.LogStartTime:                types.StartTimeGetter,
+		types.LogRequestReceivedDuration:  types.ReceivedDurationGetter,
+		types.LogResponseReceivedDuration: types.ResponseReceivedDurationGetter,
+		types.LogBytesSent:                types.BytesSentGetter,
+		types.LogBytesReceived:            types.BytesReceivedGetter,
+		types.LogProtocol:                 types.ProtocolGetter,
+		types.LogResponseCode:             types.ResponseCodeGetter,
+		types.LogDuration:                 types.DurationGetter,
+		types.LogResponseFlag:             types.GetResponseFlagGetter,
+		types.LogUpstreamLocalAddress:     types.UpstreamLocalAddressGetter,
+		types.LogDownstreamLocalAddress:   types.DownstreamLocalAddressGetter,
 	}
 }
 
 const (
 	//read docs/access-log-details.md
 	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
-		"%BytesReceived% %PROTOCOL% %ResponseCode% %Duration% %RESPONSE_FLAGS%  %RESPONSE_CODE% %RESPONSE_FLAGS%"
+		"%BytesReceived% %PROTOCOL% %ResponseCode% %Duration% %RESPONSE_FLAGS% %RESPONSE_CODE% %RESPONSE_FLAGS%"
 )
 
 var accesslogs []*accesslog
@@ -174,7 +166,6 @@ type simpleRequestInfoFormatter struct {
 
 func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 	// todo: map fieldName to field vale string
-
 	if f.reqInfoFormat == nil {
 		DefaultLogger.Debugf("No ReqInfo Format Keys Input")
 		return ""
@@ -183,20 +174,12 @@ func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHe
 	format := ""
 	for _, key := range f.reqInfoFormat {
 
-		if r, err := funcs.Call(key); err != nil {
-			DefaultLogger.Errorf(err.Error())
+		if vFunc, ok := RequestInfoFuncMap[key]; ok {
+			format = format + vFunc(requestInfo) + " "
 		} else {
-			vString := funcs.GetValueInString(r[0].Interface())
-			if vString == types.LogNotFoundError {
-				DefaultLogger.Errorf("Convert Error Occurs ")
-			} else {
-				format = format + vString + " "
-			}
+			DefaultLogger.Debugf("Invalid RespHeaders Format Keys %s", key)
 		}
 	}
-
-	//delete the last " "
-	format = format[:len(format)-1]
 	return format
 }
 
@@ -214,14 +197,12 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 
 	for _, key := range f.reqHeaderFormat {
 		if v, ok := reqHeaders[key]; ok {
-			format = format + "Req." + v + " "
+			format = format + "REQ." + v + " "
 		} else {
 			DefaultLogger.Debugf("Invalid RespHeaders Format Keys %s", key)
 		}
 	}
 
-	//delete the last " "
-	format = format[:len(format)-1]
 	return format
 }
 
@@ -239,13 +220,16 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 	for _, key := range f.respHeaderFormat {
 
 		if v, ok := respHeaders[key]; ok {
-			format = format + "Resp." + v + " "
+			format = format + "RESP." + v + " "
 		} else {
 			DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
 		}
 	}
 
 	//delete the last " "
-	format = format[:len(format)-1]
+	if len(format) > 0 {
+		format = format[:len(format)-1]
+	}
+
 	return format
 }

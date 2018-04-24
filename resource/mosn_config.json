@@ -20,6 +20,12 @@
                     "service": ".*",
                     "cluster": "remote_service"
                   }
+                ],
+                "accesslog":[
+                  {
+                    "accesslogPath": "./accesslogE.log",
+                    "accesslogForamt": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %RESP.requestid% %RESP.test%"
+                  }
                 ]
               }
             }
@@ -46,12 +52,18 @@
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "SofaRpc",
+                "upstream_protocol": "http2",
                 "routes": [
                   {
                     "name": "example_route",
                     "service": ".*",
                     "cluster": "local_service"
+                  }
+                ],
+                "accesslog":[
+                  {
+                    "accesslogPath": "./accesslogIn.log",
+                    "accesslogForamt": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %RESP.%requestid"
                   }
                 ]
               }
