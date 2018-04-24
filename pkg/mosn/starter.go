@@ -70,7 +70,7 @@ func Start(c *config.MOSNConfig) {
 
         for _, listenerConfig := range serverConfig.Listeners {
             // network filters
-            nfcf := getNetworkFilter(listenerConfig.NetworkFilters)
+            nfcf := getNetworkFilter(listenerConfig.NetworkFilters,listenerConfig.Name)
 
             //stream filters
             sfcf := getStreamFilters(listenerConfig.StreamFilters)
@@ -116,7 +116,7 @@ func Start(c *config.MOSNConfig) {
     wg.Wait()
 }
 
-func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFactory {
+func getNetworkFilter(configs []config.FilterConfig,name string) types.NetworkFilterChainFactory {
 	if len(configs) != 1 {
 		log.Fatalln("only one network filter supported")
 	}
@@ -128,7 +128,7 @@ func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFac
 	}
 
 	return &proxy.GenericProxyFilterConfigFactory{
-		Proxy: config.ParseProxyFilter(c),
+		Proxy: config.ParseProxyFilter(c,name),
 	}
 }
 
