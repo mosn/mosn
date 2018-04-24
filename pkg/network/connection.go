@@ -87,7 +87,7 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 			WriteTotal:   metrics.NewCounter(),
 			WriteCurrent: metrics.NewGauge(),
 		},
-		logger: log.DefaultLogger,
+		logger: logger,
 	}
 
 	//conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)

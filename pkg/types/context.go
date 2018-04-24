@@ -4,6 +4,7 @@ type ContextKey string
 
 const (
 	ContextKeyConnectionId               ContextKey = "ConnectionId"
+	ContextKeyLogger                     ContextKey = "Logger"
 	ContextKeyListenerPort               ContextKey = "ListenerPort"
 	ContextKeyListenerName               ContextKey = "ListenerName"
 	ContextKeyListenerStatsNameSpace     ContextKey = "ListenerStatsNameSpace"

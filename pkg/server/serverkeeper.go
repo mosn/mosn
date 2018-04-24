@@ -16,9 +16,9 @@ const (
 	MosnBasePath = string(os.PathSeparator) + "home" + string(os.PathSeparator) +
 		"admin" + string(os.PathSeparator) + "mosn"
 
-	MosnDefaultLogPath = MosnBasePath + string(os.PathSeparator) + "logs"
+	MosnLogBasePath = MosnBasePath + string(os.PathSeparator) + "logs"
 
-	MosnDefaultLogFPath = MosnDefaultLogPath + string(os.PathSeparator) + "mosn.log"
+	MosnLogDefaultPath = MosnLogBasePath + string(os.PathSeparator) + "mosn.log"
 
 	MosnPidFileName = "mosn.pid"
 )
@@ -44,7 +44,7 @@ var (
 )
 
 func writePidFile() error {
-	pidFile = MosnDefaultLogPath + string(os.PathSeparator) + MosnPidFileName
+	pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
 	os.MkdirAll(MosnBasePath, 0644)

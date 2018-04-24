@@ -9,6 +9,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -62,17 +63,42 @@ func (ch *connHandler) NumConnections() uint64 {
 	return uint64(atomic.LoadInt64(&ch.numConnections))
 }
 
-func (ch *connHandler) StartListener(l types.Listener, logger log.Logger, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
+func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
 	//TODO: connection level stop-chan usage confirm
 	listenerStopChan := make(chan bool)
+
+	l := network.NewListener(lc)
+
+	//use default listener path
+	if lc.LogPath == "" {
+		lc.LogPath = MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
+	}
+
+	logger, err := log.NewLogger(lc.LogPath, log.LogLevel(lc.LogLevel))
+	if err != nil {
+		log.DefaultLogger.Fatalln("initialize listener logger failed : ", err)
+	}
 
 	al := newActiveListener(l, logger, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan)
 	l.SetListenerCallbacks(al)
 
 	ch.listeners = append(ch.listeners, al)
+}
 
-	// TODO: use goruntine pool
-	go l.Start(nil)
+func (ch *connHandler) StartListener(listenerTag uint64, lctx context.Context) {
+	for _, l := range ch.listeners {
+		if l.listener.ListenerTag() == listenerTag {
+			// TODO: use goruntine pool
+			go l.listener.Start(nil)
+		}
+	}
+}
+
+func (ch *connHandler) StartListeners(lctx context.Context) {
+	for _, l := range ch.listeners {
+		// start goruntine
+		go l.listener.Start(nil)
+	}
 }
 
 func (ch *connHandler) FindListenerByAddress(addr net.Addr) types.Listener {
@@ -185,6 +211,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyListenerStatsNameSpace, al.statsNamespace)
 	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactory, al.networkFiltersFactory)
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
+	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 
 	arc.ContinueFilterChain(true, ctx)
 }

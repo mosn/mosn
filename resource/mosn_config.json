@@ -1,13 +1,15 @@
 {
   "servers": [
     {
-      "access_log": "/home/admin/mosn/logs/default.log",
+      "access_log": "/Users/wugou.cyf/mosn/logs/default.log",
       "log_level": "INFO",
       "listeners": [
         {
           "name": "egress",
           "address": "127.0.0.1:12200",
           "bind_port": true,
+          "log_path": "/Users/wugou.cyf/mosn/logs/egress.log",
+          "log_level": "DEBUG",
           "network_filters": [
             {
               "type": "proxy",
@@ -41,6 +43,8 @@
           "name": "ingress",
           "address": "127.0.0.1:12201",
           "bind_port": true,
+          "log_path": "/Users/wugou.cyf/mosn/logs/ingress.log",
+          "log_level": "DEBUG",
           "network_filters": [
             {
               "type": "proxy",

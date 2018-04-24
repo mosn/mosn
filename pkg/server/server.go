@@ -2,13 +2,13 @@ package server
 
 import (
 	"errors"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"os"
 	_ "sync"
 	"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	log2 "log"
 )
 
 func init() {
@@ -22,16 +22,9 @@ func init() {
 var servers []*server
 
 type server struct {
-	logger         log.Logger
-	stopChan       chan bool
-	listenersConfs []*listenerConf
-	handler        types.ConnectionHandler
-}
-
-type listenerConf struct {
-	config                 *v2.ListenerConfig
-	networkFiltersFactory  types.NetworkFilterChainFactory
-	streamFiltersFactories []types.StreamFilterChainFactory
+	logger   log.Logger
+	stopChan chan bool
+	handler  types.ConnectionHandler
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
@@ -47,10 +40,14 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
 
 	//use default log path
 	if logPath == "" {
-		logPath = MosnDefaultLogFPath
+		logPath = MosnLogDefaultPath
 	}
 
-	log.InitDefaultLogger(logPath, logLevel)
+	err := log.InitDefaultLogger(logPath, logLevel)
+	if err != nil {
+		log2.Fatalln("initialize default logger failed : ", err)
+	}
+
 	OnProcessShutDown(log.CloseAll)
 
 	server := &server{
@@ -65,12 +62,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
 }
 
 func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
-	conf := &listenerConf{
-		config:                 lc,
-		networkFiltersFactory:  networkFiltersFactory,
-		streamFiltersFactories: streamFiltersFactories,
-	}
-	srv.listenersConfs = append(srv.listenersConfs, conf)
+	srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
 }
 
 func (srv *server) AddOrUpdateListener(lc v2.ListenerConfig) {
@@ -80,21 +72,7 @@ func (srv *server) AddOrUpdateListener(lc v2.ListenerConfig) {
 func (srv *server) Start() {
 	// TODO: handle main thread panic @wugou
 
-	for _, lc := range srv.listenersConfs {
-
-		//use default listener path
-		if lc.config.LogPath == "" {
-			lc.config.LogPath = MosnDefaultLogPath + string(os.PathSeparator) + lc.config.Name
-		}
-
-		logger, err := log.NewLogger(lc.config.LogPath, lc.config.LogLevel)
-		if err != nil {
-			log.DefaultLogger.Fatalln("initialize listener logger failed : ", err)
-		}
-
-		l := network.NewListener(lc.config)
-		srv.handler.StartListener(l, logger, lc.networkFiltersFactory, lc.streamFiltersFactories)
-	}
+	srv.handler.StartListeners(nil)
 
 	for {
 		select {

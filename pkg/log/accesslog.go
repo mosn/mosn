@@ -1,8 +1,8 @@
 package log
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 const (

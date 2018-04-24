@@ -221,11 +221,11 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		}
 	}
 
-	var ll log2.LogLevel
+	var ll uint8
 
 	if c.LogLevel != "" {
 		if logLevel, ok := logLevelMap[c.LogLevel]; ok {
-			ll = logLevel
+			ll = uint8(logLevel)
 		} else {
 			log.Fatalln("unknown log level:" + c.LogLevel)
 		}

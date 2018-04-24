@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"context"
+	"fmt"
 )
 
 var remoteSyslogPrefixes = map[string]string{
@@ -37,6 +40,15 @@ func InitDefaultLogger(output string, level LogLevel) error {
 	}
 
 	return DefaultLogger.Start()
+}
+
+func ByContext(ctx context.Context) Logger {
+	if ctx != nil{
+		if logger := ctx.Value(types.ContextKeyLogger); logger != nil{
+			return logger.(Logger)
+		}
+	}
+	return DefaultLogger
 }
 
 func NewLogger(output string, level LogLevel) (Logger, error) {
@@ -78,7 +90,9 @@ selectwriter:
 		var file *os.File
 
 		//create parent dir if not exists
-		os.MkdirAll(filepath.Dir(l.Output), 0644)
+		err := os.MkdirAll(filepath.Dir(l.Output), 0644)
+
+		fmt.Println(err)
 
 		file, err = os.OpenFile(l.Output, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {

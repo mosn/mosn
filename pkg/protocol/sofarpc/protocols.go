@@ -3,6 +3,7 @@ package sofarpc
 import (
 	"context"
 	"reflect"
+	log2"log"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -81,7 +82,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 		protocolCode := data.Bytes()[0]
 		maybeProtocolVersion := data.Bytes()[1]
 
-		log.DefaultLogger.Debugf("[Decoder]protocol code = ", protocolCode, ", maybeProtocolVersion = ", maybeProtocolVersion)
+		log.ByContext(context).Debugf("[Decoder]protocol code = ", protocolCode, ", maybeProtocolVersion = ", maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 
@@ -95,7 +96,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 			//Codec Exception
 			headers := make(map[string]string, 1)
 			headers[types.HeaderException] = types.MosnExceptionCodeC
-			log.DefaultLogger.Errorf("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
+			log.ByContext(context).Errorf("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
 
 			err := "Unknown protocol code while decode in ProtocolDecoder."
 			filter.OnDecodeHeader(GenerateExceptionStreamID(err), headers)
@@ -107,16 +108,25 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 
 func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
-		log.DefaultLogger.Debugf("Protocol alreay Exist:", protocolCode)
+		log.DefaultLogger.Warnf("protocol alreay Exist:", protocolCode)
 	} else {
 		p.protocolMaps[protocolCode] = protocol
+		if log.DefaultLogger != nil {
+			log.DefaultLogger.Debugf("register protocol:", protocolCode)
+		} else {
+			log2.Println("register protocol:", protocolCode)
+		}
 	}
 }
 
 func (p *protocols) UnRegisterProtocol(protocolCode byte) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
 		delete(p.protocolMaps, protocolCode)
-		log.DefaultLogger.Debugf("Delete Protocol:", protocolCode)
+		if log.DefaultLogger != nil {
+			log.DefaultLogger.Debugf("unregister protocol:", protocolCode)
+		} else {
+			log2.Println("unregister protocol:", protocolCode)
+		}
 	}
 }
 
