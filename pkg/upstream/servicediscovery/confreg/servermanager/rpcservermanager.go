@@ -112,6 +112,34 @@ func (sm *DefaultRPCServerManager) GetRPCServerList(dataId string) (servers map[
     return result, true
 }
 
+func (sm *DefaultRPCServerManager) GetRPCServerListWithoutZone(dataId string) (servers []string, ok bool) {
+    segments, ok := sm.svrData[dataId]
+    if !ok {
+        return nil, false
+    }
+
+    srvSet := mapset.NewSet()
+    for _, segmentData := range segments {
+        for _, srvs := range segmentData.Data {
+            for _, srv := range srvs {
+                srvSet.Add(srv)
+            }
+        }
+    }
+
+    srvSetSlice := srvSet.ToSlice()
+    if len(srvSetSlice) == 0 {
+        return nil, false
+    }
+
+    srvs := make([]string, len(srvSetSlice))
+    for _, srv := range srvSetSlice {
+        srvs = append(srvs, srv.(string))
+    }
+
+    return srvs, true
+}
+
 func (sm *DefaultRPCServerManager) GetRPCServerListByZone(dataId string, zone string) (servers []string, ok bool) {
     segments, ok := sm.svrData[dataId]
     if !ok {
