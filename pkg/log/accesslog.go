@@ -145,7 +145,7 @@ func formatToFormatters(format string) []types.AccessLogFormatter {
 
 	return []types.AccessLogFormatter{
 		&simpleRequestInfoFormatter{reqInfoFormat: reqInfoArray},
-		&simpleReqHeadersFormatter{reqHeaderFormat: respHeaderArray},
+		&simpleReqHeadersFormatter{reqHeaderFormat: reqHeaderArray},
 		&simpleRespHeadersFormatter{respHeaderFormat: respHeaderArray},
 	}
 }
