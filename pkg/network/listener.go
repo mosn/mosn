@@ -37,6 +37,7 @@ func NewListener(lc *v2.ListenerConfig) types.Listener {
 		//inherit old process's listener
 		l.rawl = lc.InheritListener
 	}
+
 	return l
 }
 

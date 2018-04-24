@@ -81,8 +81,19 @@ func (srv *server) Start() {
 	// TODO: handle main thread panic @wugou
 
 	for _, lc := range srv.listenersConfs {
+
+		//use default listener path
+		if lc.config.LogPath == "" {
+			lc.config.LogPath = MosnDefaultLogPath + string(os.PathSeparator) + lc.config.Name
+		}
+
+		logger, err := log.NewLogger(lc.config.LogPath, lc.config.LogLevel)
+		if err != nil {
+			log.DefaultLogger.Fatalln("initialize listener logger failed : ", err)
+		}
+
 		l := network.NewListener(lc.config)
-		srv.handler.StartListener(l, lc.networkFiltersFactory, lc.streamFiltersFactories)
+		srv.handler.StartListener(l, logger, lc.networkFiltersFactory, lc.streamFiltersFactories)
 	}
 
 	for {

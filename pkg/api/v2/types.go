@@ -3,6 +3,7 @@ package v2
 import (
 	"net"
 	"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type Metadata struct {
@@ -50,6 +51,10 @@ type ListenerConfig struct {
 	// used in inherit case
 	InheritListener *net.TCPListener
 	Remain          bool
+
+	// log
+	LogPath string
+	LogLevel log.LogLevel
 }
 
 type AccessLog struct {

@@ -221,12 +221,24 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		}
 	}
 
+	var ll log2.LogLevel
+
+	if c.LogLevel != "" {
+		if logLevel, ok := logLevelMap[c.LogLevel]; ok {
+			ll = logLevel
+		} else {
+			log.Fatalln("unknown log level:" + c.LogLevel)
+		}
+	}
+
 	return &v2.ListenerConfig{
 		Name:                    c.Name,
 		Addr:                    addr,
 		BindToPort:              c.BindToPort,
 		InheritListener:         old,
 		PerConnBufferLimitBytes: 1024 * 32,
+		LogPath:                 c.LogPath,
+		LogLevel:                ll,
 	}
 }
 

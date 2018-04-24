@@ -3,9 +3,9 @@ package config
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
 	"time"
-	"log"
 )
 
 type FilterConfig struct {
@@ -19,6 +19,9 @@ type ListenerConfig struct {
 	BindToPort     bool           `json:"bind_port"`
 	NetworkFilters []FilterConfig `json:"network_filters"`
 	StreamFilters  []FilterConfig `json:"stream_filters"`
+
+	LogPath  string `json:"log_path"`
+	LogLevel string `json:"log_level"`
 }
 
 type ServerConfig struct {

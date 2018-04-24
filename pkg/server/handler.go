@@ -62,11 +62,11 @@ func (ch *connHandler) NumConnections() uint64 {
 	return uint64(atomic.LoadInt64(&ch.numConnections))
 }
 
-func (ch *connHandler) StartListener(l types.Listener, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
+func (ch *connHandler) StartListener(l types.Listener, logger log.Logger, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
 	//TODO: connection level stop-chan usage confirm
 	listenerStopChan := make(chan bool)
 
-	al := newActiveListener(l, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan)
+	al := newActiveListener(l, logger, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan)
 	l.SetListenerCallbacks(al)
 
 	ch.listeners = append(ch.listeners, al)
@@ -147,9 +147,10 @@ type activeListener struct {
 	handler                *connHandler
 	stopChan               chan bool
 	stats                  *ListenerStats
+	logger                 log.Logger
 }
 
-func newActiveListener(listener types.Listener, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool) *activeListener {
+func newActiveListener(listener types.Listener, logger log.Logger, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool) *activeListener {
 	al := &activeListener{
 		listener:               listener,
 		networkFiltersFactory:  networkFiltersFactory,
@@ -157,6 +158,7 @@ func newActiveListener(listener types.Listener, networkFiltersFactory types.Netw
 		conns:    list.New(),
 		handler:  handler,
 		stopChan: stopChan,
+		logger:   logger,
 	}
 
 	listenPort := 0
@@ -215,7 +217,7 @@ func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Con
 		al.stats.DownstreamConnectionTotal().Inc(1)
 		atomic.AddInt64(&al.handler.numConnections, 1)
 
-		al.handler.logger.Debugf("new downstream connection %d accepted", conn.Id())
+		al.logger.Debugf("new downstream connection %d accepted", conn.Id())
 	}
 }
 
@@ -230,11 +232,11 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.stats.DownstreamConnectionDestroy().Inc(1)
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
-	al.handler.logger.Debugf("close downstream connection, stats: %s", al.stats.String())
+	al.logger.Debugf("close downstream connection, stats: %s", al.stats.String())
 }
 
 func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
-	conn := network.NewServerConnection(rawc, al.stopChan, al.handler.logger)
+	conn := network.NewServerConnection(rawc, al.stopChan, al.logger)
 	newCtx := context.WithValue(ctx, types.ContextKeyConnectionId, conn.Id())
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())

@@ -6,6 +6,7 @@ import (
 	"github.com/rcrowley/go-metrics"
 	"io"
 	"net"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 const (
@@ -221,7 +222,7 @@ type ConnectionEventListener interface {
 type ConnectionHandler interface {
 	NumConnections() uint64
 
-	StartListener(l Listener, networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactories []StreamFilterChainFactory)
+	StartListener(l Listener, logger log.Logger, networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactories []StreamFilterChainFactory)
 
 	FindListenerByAddress(addr net.Addr) Listener
 
