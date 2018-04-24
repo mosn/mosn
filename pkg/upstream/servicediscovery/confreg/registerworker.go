@@ -18,8 +18,8 @@ import (
 )
 
 const (
-    TASK_TYPE_PUBLISH   = 0
-    TASK_TYPE_SUBSCRIBE = 1
+    PublishTask    = 0
+    SubscriberTask = 1
 )
 
 type registryStreamContext struct {
@@ -129,7 +129,7 @@ func (rw *registerWorker) SubmitPublishTask(dataId string, data []string, eventT
 
     registryTask := registryTask{
         dataId:      dataId,
-        taskType:    TASK_TYPE_PUBLISH,
+        taskType:    PublishTask,
         eventType:   eventType,
         publisher:   publisher,
         data:        data,
@@ -145,7 +145,7 @@ func (rw *registerWorker) SubmitSubscribeTask(dataId string, eventType string) {
 
     registryTask := registryTask{
         dataId:      dataId,
-        taskType:    TASK_TYPE_SUBSCRIBE,
+        taskType:    SubscriberTask,
         eventType:   eventType,
         subscriber:  subscriber,
         sendCounter: metrics.NewCounter(),
@@ -209,7 +209,7 @@ func (rw *registerWorker) doRegister(ele *list.Element) error {
     for i := 0; i < 2; i++ {
         time.Sleep(CalRetreatTime(registryTask.sendCounter.Count(), 5))
 
-        if registryTask.taskType == TASK_TYPE_PUBLISH {
+        if registryTask.taskType == PublishTask {
             publisher := registryTask.publisher
             err = publisher.doWork(registryTask.data, registryTask.eventType)
         } else {
