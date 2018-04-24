@@ -32,7 +32,7 @@ func InitSystemConfig(antShareCloud bool, dc string, appName string, zone string
         DataCenter:    dc,
         AppName:       appName,
         Zone:          zone,
-        InstanceId:    "DEFAULT_INSTANCE_ID",
+        InstanceId:    "default_client_instanceid",
     }
 
     confregUrl, z := readPropertyFromServerConfFile(antShareCloud)
@@ -51,7 +51,7 @@ func readPropertyFromServerConfFile(antShareCloud bool) (confregUrl string, zone
         serverConf := properties.MustLoadFile(ServerConfFilePath, properties.UTF8)
         cu, ok := serverConf.Get("confregurl")
         if !ok {
-            errMsg := fmt.Sprintf("Load confregurl from %s failed.", serverConf)
+            errMsg := fmt.Sprintf("Load confregurl from %s failed.", ServerConfFilePath)
             log.DefaultLogger.Errorf(errMsg)
             panic(errMsg)
         }

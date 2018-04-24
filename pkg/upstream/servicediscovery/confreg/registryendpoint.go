@@ -11,6 +11,8 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
 )
 
+const RegistryModuleNotStartedErrMsg  =  "Registry module not startup. Should call '/configs/application' endpoint at first."
+
 type RegistryEndpoint struct {
     registryConfig *config.RegistryConfig
     RegistryClient RegistryClient
@@ -73,6 +75,11 @@ func (re *RegistryEndpoint) GetRegistryConfig(w http.ResponseWriter, r *http.Req
 }
 
 func (re *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !RegistryModuleStarted {
+        doResponse(false, RegistryModuleNotStartedErrMsg, w)
+        return
+    }
+
     raw, _ := ioutil.ReadAll(r.Body)
 
     var request PublishServiceRequest
@@ -98,6 +105,11 @@ func (re *RegistryEndpoint) assemblePublishData(request PublishServiceRequest) s
 }
 
 func (re *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !RegistryModuleStarted {
+        doResponse(false, RegistryModuleNotStartedErrMsg, w)
+        return
+    }
+
     body, _ := ioutil.ReadAll(r.Body)
 
     var request UnPublishServiceRequest
@@ -114,6 +126,10 @@ func (re *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Requ
 }
 
 func (re *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !RegistryModuleStarted {
+        doResponse(false, RegistryModuleNotStartedErrMsg, w)
+        return
+    }
     body, _ := ioutil.ReadAll(r.Body)
 
     var request SubscribeServiceRequest
@@ -165,6 +181,10 @@ func (re *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Requ
 }
 
 func (re *RegistryEndpoint) UnSubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !RegistryModuleStarted {
+        doResponse(false, RegistryModuleNotStartedErrMsg, w)
+        return
+    }
     body, _ := ioutil.ReadAll(r.Body)
 
     var request UnSubscribeServiceRequest
@@ -181,10 +201,15 @@ func (re *RegistryEndpoint) UnSubscribeService(w http.ResponseWriter, r *http.Re
 }
 
 func (re *RegistryEndpoint) GetServiceInfoSnapshot(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !RegistryModuleStarted {
+        doResponse(false, RegistryModuleNotStartedErrMsg, w)
+        return
+    }
     w.Write(re.RegistryClient.GetRPCServerManager().GetRPCServiceSnapshot())
 }
 
 func (re *RegistryEndpoint) GetServiceInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    
     dataId := ps.ByName("serviceName")
     services, ok := re.RegistryClient.GetRPCServerManager().GetRPCServerList(dataId)
     if !ok {
@@ -221,7 +246,7 @@ func (re *RegistryEndpoint) StartListener() {
     router.GET("/services/:serviceName", re.GetServiceInfo)
 
     port := "8888"
-    httpServerEndpoint := "localhost:" + port
+    httpServerEndpoint := "0.0.0.0:" + port
     log.DefaultLogger.Infof("Mesh registry endpoint started on port(s): %s (http)", port)
 
     if err := http.ListenAndServe(httpServerEndpoint, router); err != nil {

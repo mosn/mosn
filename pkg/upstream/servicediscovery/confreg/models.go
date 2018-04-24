@@ -30,7 +30,7 @@ type HttpResponse struct {
 
 // sub request
 type SubscribeServiceRequest struct {
-	ServiceName string `json:"serviceName"`
+    ServiceName string `json:"serviceName"`
 }
 
 //sub result
