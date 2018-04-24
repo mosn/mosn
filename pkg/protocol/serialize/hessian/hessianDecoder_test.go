@@ -3,9 +3,10 @@ package hessian
 import (
 	"bytes"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"reflect"
 	"testing"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 func Test_HessianCodecHeader(t *testing.T) {

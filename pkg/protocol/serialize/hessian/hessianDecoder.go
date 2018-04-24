@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"io"
 	"math"
 	"reflect"
-	"strings"
 	"regexp"
+	"strings"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 /**

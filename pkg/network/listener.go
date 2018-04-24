@@ -2,12 +2,14 @@ package network
 
 import (
 	"context"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"net"
 	"runtime/debug"
 	"time"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 // listener impl based on golang net package

@@ -13,7 +13,9 @@ type filterManager struct {
 
 func newFilterManager(conn types.Connection) types.FilterManager {
 	return &filterManager{
-		conn: conn,
+		conn:              conn,
+		upstreamFilters:   make([]*activeReadFilter, 0, 32),
+		downstreamFilters: make([]types.WriteFilter, 0, 32),
 	}
 }
 

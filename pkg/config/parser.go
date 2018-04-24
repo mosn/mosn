@@ -236,7 +236,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		Addr:                    addr,
 		BindToPort:              c.BindToPort,
 		InheritListener:         old,
-		PerConnBufferLimitBytes: 1024 * 32,
+		PerConnBufferLimitBytes: 1 << 15,
 		LogPath:                 c.LogPath,
 		LogLevel:                ll,
 	}

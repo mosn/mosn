@@ -172,7 +172,7 @@ func genericProxyConfig() *v2.Proxy {
 
 	proxyConfig.Routes = append(proxyConfig.Routes, &v2.BasicServiceRoute{
 		Name:    "tstSofRpcRouter",
-		Service: ".*",
+		Service: "com.alipay.rpc.common.service.facade.SampleService:1.0",
 		Cluster: TestCluster,
 	})
 

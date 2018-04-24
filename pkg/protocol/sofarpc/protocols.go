@@ -1,9 +1,11 @@
 package sofarpc
 
 import (
+	"context"
+	"reflect"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"reflect"
 )
 
 //All of the protocolMaps
@@ -37,7 +39,7 @@ func (p *protocols) EncodeHeaders(headers interface{}) (string, types.IoBuffer) 
 	case map[string]string:
 		headersMap := headers.(map[string]string)
 
-		if proto, exist := headersMap[SofaPropertyHeader("protocol")]; exist {
+		if proto, exist := headersMap[SofaPropertyHeader(HeaderProtocolCode)]; exist {
 			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
 			protocolCode = protoValue.(byte)
 		} else {
@@ -73,7 +75,7 @@ func (p *protocols) EncodeTrailers(trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
-func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
+func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter types.DecodeFilter) {
 	// at least 1 byte for protocol code recognize
 	for data.Len() > 1 {
 		protocolCode := data.Bytes()[0]
@@ -84,14 +86,14 @@ func (p *protocols) Decode(data types.IoBuffer, filter types.DecodeFilter) {
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 
 			//Decode the Binary Streams to Command Type
-			if _, cmd := proto.GetDecoder().Decode(data); cmd != nil {
-				proto.GetCommandHandler().HandleCommand(filter, cmd)
+			if _, cmd := proto.GetDecoder().Decode(context, data); cmd != nil {
+				proto.GetCommandHandler().HandleCommand(context, cmd, filter)
 			} else {
 				break
 			}
 		} else {
 			//Codec Exception
-			headers := make(map[string]string)
+			headers := make(map[string]string, 1)
 			headers[types.HeaderException] = types.MosnExceptionCodeC
 			log.DefaultLogger.Errorf("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
 

@@ -1,28 +1,26 @@
 package main
 
 import (
-	_ "net/http/pprof"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/healthcheck/sofarpc"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"log"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
+	"runtime"
 	"strconv"
 	"sync"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
-	_"net/http/pprof"
-	"net/http"
-	"runtime"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
 )
 
 func Start(c *config.MOSNConfig) {

@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"container/list"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
@@ -13,9 +14,11 @@ type upstreamRequest struct {
 	element        *list.Element
 	activeStream   *activeStream
 	host           types.Host
-	requestInfo    types.RequestInfo
 	requestEncoder types.StreamEncoder
 	connPool       types.ConnectionPool
+
+	// ~~~ upstream response buf
+	upstreamRespHeaders map[string]string
 
 	//~~~ state
 	encodeComplete bool
@@ -35,7 +38,6 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	r.requestEncoder = nil
 
 	// todo: check if we get a reset on encode request headers. e.g. encode failed
-	r.requestInfo.SetResponseFlag(r.proxy.streamResetReasonToResponseFlag(reason))
 	r.activeStream.onUpstreamReset(UpstreamReset, reason)
 }
 
@@ -49,6 +51,7 @@ func (r *upstreamRequest) OnBelowWriteBufferLowWatermark() {
 
 // types.StreamDecoder
 func (r *upstreamRequest) OnDecodeHeaders(headers map[string]string, endStream bool) {
+	r.upstreamRespHeaders = headers
 	r.activeStream.onUpstreamHeaders(headers, endStream)
 }
 
@@ -70,7 +73,7 @@ func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream boo
 		streamID = streamid
 	}
 
-	r.connPool.NewStream(streamID, r, r)
+	r.connPool.NewStream(r.proxy.context, streamID, r, r)
 }
 
 func (r *upstreamRequest) encodeData(data types.IoBuffer, endStream bool) {
@@ -106,7 +109,6 @@ func (r *upstreamRequest) OnPoolReady(streamId string, encoder types.StreamEncod
 	endStream := r.encodeComplete && !r.dataEncoded && !r.trailerEncoded
 	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamReqHeaders, endStream)
 
-	r.requestInfo.OnUpstreamHostSelected(host)
 	r.activeStream.requestInfo.OnUpstreamHostSelected(host)
 	r.activeStream.requestInfo.SetUpstreamLocalAddress(host.Address())
 

@@ -2,14 +2,18 @@ package stream
 
 import (
 	"container/list"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"context"
 	"sync"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 // stream.CodecClient
 // types.ReadFilter
 // types.StreamConnectionEventListener
 type codecClient struct {
+	context context.Context
+
 	Protocol   types.Protocol
 	Connection types.ClientConnection
 	Host       types.HostInfo
@@ -25,8 +29,9 @@ type codecClient struct {
 	RemoteCloseFlag           bool
 }
 
-func NewCodecClient(prot types.Protocol, connection types.ClientConnection, host types.HostInfo) CodecClient {
+func NewCodecClient(context context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo) CodecClient {
 	codecClient := &codecClient{
+		context:        context,
 		Protocol:       prot,
 		Connection:     connection,
 		Host:           host,
@@ -34,7 +39,7 @@ func NewCodecClient(prot types.Protocol, connection types.ClientConnection, host
 	}
 
 	if factory, ok := streamFactories[prot]; ok {
-		codecClient.Codec = factory.CreateClientStream(connection, codecClient, codecClient)
+		codecClient.Codec = factory.CreateClientStream(context, connection, codecClient, codecClient)
 	} else {
 		return nil
 	}
@@ -46,7 +51,7 @@ func NewCodecClient(prot types.Protocol, connection types.ClientConnection, host
 	return codecClient
 }
 
-func NewBiDirectCodeClient(prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
+func NewBiDirectCodeClient(context context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
 	serverCallbacks types.ServerStreamConnectionEventListener) CodecClient {
 	codecClient := &codecClient{
 		Protocol:       prot,
@@ -56,7 +61,7 @@ func NewBiDirectCodeClient(prot types.Protocol, connection types.ClientConnectio
 	}
 
 	if factory, ok := streamFactories[prot]; ok {
-		codecClient.Codec = factory.CreateBiDirectStream(connection, codecClient, serverCallbacks)
+		codecClient.Codec = factory.CreateBiDirectStream(context, connection, codecClient, serverCallbacks)
 	} else {
 		return nil
 	}
@@ -155,7 +160,7 @@ func (c *codecClient) OnBelowWriteBufferLowWatermark() {
 
 // read filter, recv upstream data
 func (c *codecClient) OnData(buffer types.IoBuffer) types.FilterStatus {
-	c.Codec.Dispatch(buffer)
+	c.Codec.Dispatch(buffer, c.context)
 
 	return types.StopIteration
 }

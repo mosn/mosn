@@ -55,9 +55,9 @@ func (s *sofaHealthCheckSession) onInterval() {
 	//Use map[string]string as input
 	var reqHeaders interface{}
 	reqHeaders = map[string]string{
-		sofarpc.SofaPropertyHeader("protocol"): strconv.Itoa(int(sofarpc.PROTOCOL_CODE_V1)),
-		sofarpc.SofaPropertyHeader("cmdType"):  strconv.Itoa(int(sofarpc.REQUEST)),
-		sofarpc.SofaPropertyHeader("cmdCode"):  strconv.Itoa(int(sofarpc.HEARTBEAT)),
+		sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode): strconv.Itoa(int(sofarpc.PROTOCOL_CODE_V1)),
+		sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType):      strconv.Itoa(int(sofarpc.REQUEST)),
+		sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode):      strconv.Itoa(int(sofarpc.HEARTBEAT)),
 	}
 
 	//Use BoltRequestCommand as input
@@ -132,7 +132,7 @@ func (s *sofaHealthCheckSession) onResponseComplete() {
 }
 
 func (s *sofaHealthCheckSession) isHealthCheckSucceeded() bool {
-	if status, ok := s.responseHeaders[sofarpc.SofaPropertyHeader("responsestatus")]; ok {
+	if status, ok := s.responseHeaders[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
 		statusCode, _ := strconv.Atoi(status)
 
 		return statusCode == 0x0000 //success = 0
@@ -173,11 +173,11 @@ type requestStream struct {
 func (s *requestStream) OnDecodeHeaders(headers map[string]string, endStream bool) {
 
 	//Deal with request headers, for example
-	if cmdType, ok := headers[sofarpc.SofaPropertyHeader("cmdType")]; ok {
+	if cmdType, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType)]; ok {
 		v, _ := strconv.Atoi(cmdType)
 
 		if v == int(sofarpc.REQUEST) {
-			cmdCode := headers[sofarpc.SofaPropertyHeader("cmdcode")]
+			cmdCode := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]
 			c, _ := strconv.Atoi(cmdCode)
 
 			if c == int(sofarpc.HEARTBEAT) {

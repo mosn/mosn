@@ -1,9 +1,10 @@
 package sofarpc
 
 import (
+	"context"
 	"errors"
+	"sync"
 
-	"github.com/orcaman/concurrent-map"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
@@ -24,19 +25,20 @@ func init() {
 
 type streamConnFactory struct{}
 
-func (f *streamConnFactory) CreateClientStream(connection types.ClientConnection,
+func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
-	return newStreamConnection(connection, clientCallbacks, nil)
+	return newStreamConnection(context, connection, clientCallbacks, nil)
 }
 
-func (f *streamConnFactory) CreateServerStream(connection types.Connection,
+func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
-	return newStreamConnection(connection, nil, serverCallbacks)
+	return newStreamConnection(context, connection, nil, serverCallbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener,
+func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
+	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
-	return newStreamConnection(connection, clientCallbacks, serverCallbacks)
+	return newStreamConnection(context, connection, clientCallbacks, serverCallbacks)
 }
 
 // types.DecodeFilter
@@ -47,26 +49,26 @@ type streamConnection struct {
 	protocol        types.Protocol
 	connection      types.Connection
 	protocols       types.Protocols
-	activeStream    cmap.ConcurrentMap // string: *stream
+	activeStream    streamMap
 	clientCallbacks types.StreamConnectionEventListener
 	serverCallbacks types.ServerStreamConnectionEventListener
 }
 
-func newStreamConnection(connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
+func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	return &streamConnection{
 		connection:      connection,
 		protocols:       sofarpc.DefaultProtocols(),
-		activeStream:    cmap.New(),
+		activeStream:    newStreamMap(context),
 		clientCallbacks: clientCallbacks,
 		serverCallbacks: serverCallbacks,
 	}
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
-	conn.protocols.Decode(buffer, conn)
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer, context context.Context) {
+	conn.protocols.Decode(context, buffer, conn)
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -82,7 +84,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 }
 
 func (conn *streamConnection) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
-	stream := &stream{
+	stream := stream{
 		streamId:   streamId,
 		requestId:  streamId,
 		direction:  OutStream,
@@ -91,7 +93,7 @@ func (conn *streamConnection) NewStream(streamId string, responseDecoder types.S
 	}
 	conn.activeStream.Set(streamId, stream)
 
-	return stream
+	return &stream
 }
 
 func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string]string) types.FilterStatus {
@@ -101,8 +103,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 
 	decodeSterilize(streamId, headers)
 
-	if v, ok := conn.activeStream.Get(streamId); ok {
-		stream := v.(*stream)
+	if stream, ok := conn.activeStream.Get(streamId); ok {
 		stream.decoder.OnDecodeHeaders(headers, false)
 	}
 
@@ -110,8 +111,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 }
 
 func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer) types.FilterStatus {
-	if v, ok := conn.activeStream.Get(streamId); ok {
-		stream := v.(*stream)
+	if stream, ok := conn.activeStream.Get(streamId); ok {
 		stream.decoder.OnDecodeData(data, true)
 
 		if stream.direction == OutStream {
@@ -133,23 +133,23 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 	}
 
 	var requestId string
-	if v, ok := headers[sofarpc.SofaPropertyHeader("requestid")]; ok {
+	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
 		requestId = v
 	} else {
 		// on decode exception stream
 		requestId = streamId
 	}
 
-	headers[sofarpc.SofaPropertyHeader("requestid")] = streamId
+	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = streamId
 
-	stream := &stream{
+	stream := stream{
 		streamId:   streamId,
 		requestId:  requestId,
 		direction:  InStream,
 		connection: conn,
 	}
 
-	stream.decoder = conn.serverCallbacks.NewStream(streamId, stream)
+	stream.decoder = conn.serverCallbacks.NewStream(streamId, &stream)
 	conn.activeStream.Set(streamId, stream)
 }
 
@@ -235,8 +235,7 @@ func (s *stream) EncodeTrailers(trailers map[string]string) error {
 
 func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
-		if v, ok := s.connection.activeStream.Get(s.streamId); ok {
-			stream := v.(*stream)
+		if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
 
 			if s.encodedData != nil {
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
@@ -245,7 +244,6 @@ func (s *stream) endStream() {
 
 				stream.connection.connection.Write(s.encodedHeaders)
 			}
-
 		} else {
 			log.DefaultLogger.Errorf("No stream %s to end", s.streamId)
 		}
@@ -260,4 +258,53 @@ func (s *stream) endStream() {
 
 func (s *stream) GetStream() types.Stream {
 	return s
+}
+
+type streamMap struct {
+	smap map[string]interface{}
+	mux  sync.RWMutex
+}
+
+func newStreamMap(context context.Context) streamMap {
+	smap := str.GetMap(context, 5096)
+
+	return streamMap{
+		smap: smap,
+	}
+}
+
+func (m *streamMap) Has(streamId string) bool {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	if _, ok := m.smap[streamId]; ok {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (m *streamMap) Get(streamId string) (stream, bool) {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+
+	if s, ok := m.smap[streamId]; ok {
+		return s.(stream), ok
+	} else {
+		return stream{}, false
+	}
+}
+
+func (m *streamMap) Remove(streamId string) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	delete(m.smap, streamId)
+}
+
+func (m *streamMap) Set(streamId string, s stream) {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	m.smap[streamId] = s
 }

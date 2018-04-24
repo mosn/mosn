@@ -1,6 +1,8 @@
 package stream
 
 import (
+	"context"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
@@ -34,11 +36,14 @@ type CodecClientCallbacks interface {
 }
 
 type ProtocolStreamFactory interface {
-	CreateClientStream(connection types.ClientConnection,
-		streamConnCallbacks types.StreamConnectionEventListener, callbacks types.ConnectionEventListener) types.ClientStreamConnection
+	CreateClientStream(context context.Context, connection types.ClientConnection,
+		streamConnCallbacks types.StreamConnectionEventListener,
+		callbacks types.ConnectionEventListener) types.ClientStreamConnection
 
-	CreateServerStream(connection types.Connection, callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection
+	CreateServerStream(context context.Context, connection types.Connection,
+		callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection
 
-	CreateBiDirectStream(connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener,
+	CreateBiDirectStream(context context.Context, connection types.ClientConnection,
+		clientCallbacks types.StreamConnectionEventListener,
 		serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection
 }

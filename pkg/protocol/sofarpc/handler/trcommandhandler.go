@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
@@ -19,13 +21,13 @@ func NewTrCommandHandler() *TrCommandHandler {
 	}
 }
 
-func (h *TrCommandHandler) HandleCommand(ctx interface{}, msg interface{}) {
+func (h *TrCommandHandler) HandleCommand(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
 		if processor, ok := h.processors[cmdCode]; ok {
 			log.DefaultLogger.Debugf("handle command")
 
-			processor.Process(ctx, cmd, nil)
+			processor.Process(context, cmd, filter)
 		} else {
 			log.DefaultLogger.Debugf("Unknown cmd code: [", cmdCode, "] while handle in TrCommandHandler.")
 		}

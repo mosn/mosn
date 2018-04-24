@@ -1,8 +1,8 @@
 package buffer
 
 import (
-	"io"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"io"
 )
 
 type IoBufferPool struct {
@@ -12,14 +12,18 @@ type IoBufferPool struct {
 
 type IoBufferPoolEntry struct {
 	Br types.IoBuffer
-	Io io.Reader
+	Io io.ReadWriter
 }
 
 func (bpe *IoBufferPoolEntry) Read() (n int64, err error) {
 	return bpe.Br.ReadOnce(bpe.Io)
 }
 
-func (p *IoBufferPool) Take(r io.Reader) (bpe *IoBufferPoolEntry) {
+func (bpe *IoBufferPoolEntry) Write() (n int64, err error) {
+	return bpe.Br.WriteTo(bpe.Io)
+}
+
+func (p *IoBufferPool) Take(r io.ReadWriter) (bpe *IoBufferPoolEntry) {
 	select {
 	case bpe = <-p.pool:
 		// swap out the underlying reader

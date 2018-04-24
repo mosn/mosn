@@ -1,23 +1,25 @@
 package handler
 
 import (
+	"context"
+	"strconv"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize/hessian"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"strconv"
 )
 
 type TrResponseProcessor struct{}
 
-func (b *TrResponseProcessor) Process(ctx interface{}, msg interface{}, executor interface{}) {
+func (b *TrResponseProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 
 	if cmd, ok := msg.(*sofarpc.TrResponseCommand); ok {
-		deserializeResponseAllFieldsTR(cmd)
+		deserializeResponseAllFieldsTR(cmd, context)
 		reqID := sofarpc.StreamIDConvert(uint32(cmd.RequestID))
 
 		//for demo, invoke ctx as callback
-		if filter, ok := ctx.(types.DecodeFilter); ok {
+		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.ResponseHeader != nil {
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
 				status := filter.OnDecodeHeader(reqID, cmd.ResponseHeader)
@@ -39,24 +41,25 @@ func (b *TrResponseProcessor) Process(ctx interface{}, msg interface{}, executor
 }
 
 //Convert TR's Protocol Header  and Content Header to Map[string]string
-func deserializeResponseAllFieldsTR(responseCommand *sofarpc.TrResponseCommand) {
+func deserializeResponseAllFieldsTR(responseCommand *sofarpc.TrResponseCommand, context context.Context) {
 
 	//DeSerialize Hessian
 	hessianSerialize := hessian.HessianInstance
 	ConnRequstBytes := responseCommand.ConnClassContent
 	responseCommand.RequestID = hessianSerialize.SerializeConnResponseBytes(ConnRequstBytes)
 
-	allField := map[string]string{}
-	allField[sofarpc.SofaPropertyHeader("protocol")] = strconv.FormatUint(uint64(responseCommand.Protocol), 10)
-	allField[sofarpc.SofaPropertyHeader("requestFlag")] = strconv.FormatUint(uint64(responseCommand.RequestFlag), 10)
-	allField[sofarpc.SofaPropertyHeader("serializeProtocol")] = strconv.FormatUint(uint64(responseCommand.SerializeProtocol), 10)
-	allField[sofarpc.SofaPropertyHeader("direction")] = strconv.FormatUint(uint64(responseCommand.Direction), 10)
-	allField[sofarpc.SofaPropertyHeader("reserved")] = strconv.FormatUint(uint64(responseCommand.Reserved), 10)
-	allField[sofarpc.SofaPropertyHeader("appClassNameLen")] = strconv.FormatUint(uint64(responseCommand.AppClassNameLen), 10)
-	allField[sofarpc.SofaPropertyHeader("connRequestLen")] = strconv.FormatUint(uint64(responseCommand.ConnRequestLen), 10)
-	allField[sofarpc.SofaPropertyHeader("appClassContentLen")] = strconv.FormatUint(uint64(responseCommand.AppClassContentLen), 10)
+	allField := sofarpc.GetMap(context, 20)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(responseCommand.Protocol), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqFlag)] = strconv.FormatUint(uint64(responseCommand.RequestFlag), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderSeriProtocol)] = strconv.FormatUint(uint64(responseCommand.SerializeProtocol), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderDirection)] = strconv.FormatUint(uint64(responseCommand.Direction), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReserved)] = strconv.FormatUint(uint64(responseCommand.Reserved), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderAppclassnamelen)] = strconv.FormatUint(uint64(responseCommand.AppClassNameLen), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderConnrequestlen)] = strconv.FormatUint(uint64(responseCommand.ConnRequestLen), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderAppclasscontentlen)] = strconv.FormatUint(uint64(responseCommand.AppClassContentLen), 10)
 
-	allField[sofarpc.SofaPropertyHeader("cmdcode")] = strconv.FormatUint(uint64(responseCommand.CmdCode), 10)
-	allField[sofarpc.SofaPropertyHeader("requestid")] = strconv.FormatUint(uint64(responseCommand.RequestID), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)] = strconv.FormatUint(uint64(responseCommand.CmdCode), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(responseCommand.RequestID), 10)
+
 	responseCommand.ResponseHeader = allField
 }

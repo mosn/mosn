@@ -3,10 +3,12 @@ package types
 import (
 	"context"
 	"crypto/tls"
-	"github.com/rcrowley/go-metrics"
 	"io"
 	"net"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 const (
@@ -108,6 +110,24 @@ type BufferWatermarkListener interface {
 	OnHighWatermark()
 
 	OnLowWatermark()
+}
+
+type HeadersBufferPool interface {
+	Take(defaultSize int) (amap map[string]string)
+
+	Give(amap map[string]string)
+}
+
+type GenericMapPool interface {
+	Take(defaultSize int) (amap map[string]interface{})
+
+	Give(amap map[string]interface{})
+}
+
+type ObjectBufferPool interface {
+	Take() interface{}
+
+	Give(object interface{})
 }
 
 type ConnState string
@@ -283,7 +303,6 @@ type FilterChainFactory interface {
 
 	CreateListenerFilterChain(listener ListenerFilterManager)
 }
-
 
 type NetworkFilterFactoryCb func(manager FilterManager)
 

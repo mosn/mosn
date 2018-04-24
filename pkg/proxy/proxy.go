@@ -3,18 +3,26 @@ package proxy
 import (
 	"container/list"
 	"context"
+	"sync"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"sync"
 )
 
-var globalStats *proxyStats
+var (
+	codecHeadersBufPool types.HeadersBufferPool
+	activeStreamPool    types.ObjectBufferPool
+	globalStats         *proxyStats
+)
 
 func init() {
 	globalStats = newProxyStats(types.GlobalStatsNamespace)
+	codecHeadersBufPool = buffer.NewHeadersBufferPool(1)
+	activeStreamPool = buffer.NewObjectPool(1)
 }
 
 // types.ReadFilter
@@ -26,9 +34,11 @@ type proxy struct {
 	upstreamConnection  types.ClientConnection
 	downstreamCallbacks DownstreamCallbacks
 
-	clusterName  string
-	routerConfig types.RouterConfig
-	serverCodec  types.ServerStreamConnection
+	clusterName    string
+	routerConfig   types.RouterConfig
+	serverCodec    types.ServerStreamConnection
+	resueCodecMaps bool
+	codecPool      types.HeadersBufferPool
 
 	context context.Context
 
@@ -47,11 +57,15 @@ type proxy struct {
 }
 
 func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
+	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecMapPool, codecHeadersBufPool)
+
 	proxy := &proxy{
 		config:         config,
 		clusterManager: clusterManager,
 		activeSteams:   list.New(),
 		stats:          globalStats,
+		resueCodecMaps: true,
+		codecPool:      codecHeadersBufPool,
 		context:        ctx,
 	}
 
@@ -71,7 +85,7 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 }
 
 func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
-	p.serverCodec.Dispatch(buf)
+	p.serverCodec.Dispatch(buf, p.context)
 
 	return types.StopIteration
 }
@@ -86,8 +100,8 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 		defer p.asMux.RUnlock()
 
 		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEle.Next() {
-			ur := urEle.Value.(*upstreamRequest)
-			ur.requestEncoder.GetStream().ResetStream(types.StreamConnectionTermination)
+			ur := urEle.Value.(*activeStream)
+			ur.OnResetStream(types.StreamConnectionTermination)
 		}
 	}
 }
@@ -114,7 +128,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.stats.DownstreamConnectionActive().Inc(1)
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
-	p.serverCodec = stream.CreateServerStreamConnection(types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+	p.serverCodec = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
 }
 
 func (p *proxy) OnGoAway() {}
@@ -159,9 +173,23 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 }
 
 func (p *proxy) deleteActiveStream(s *activeStream) {
+	// reuse decode map
+	if p.resueCodecMaps {
+		if s.downstreamReqHeaders != nil {
+			p.codecPool.Give(s.downstreamReqHeaders)
+		}
+
+		if s.upstreamRequest.upstreamRespHeaders != nil {
+			p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
+		}
+	}
+
 	p.asMux.Lock()
 	p.activeSteams.Remove(s.element)
 	p.asMux.Unlock()
+
+	s.reset()
+	activeStreamPool.Give(s)
 }
 
 // ConnectionEventListener

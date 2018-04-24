@@ -1,8 +1,9 @@
 package network
 
 import (
-	"time"
 	"net"
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 

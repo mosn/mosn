@@ -1,8 +1,8 @@
 package hessian
 
 const (
-	mask = byte(127)
-	flag = byte(128)
+	mask = byte(1<<7 - 1)
+	flag = byte(1 << 7)
 )
 
 const (
