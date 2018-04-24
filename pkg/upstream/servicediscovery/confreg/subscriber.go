@@ -13,6 +13,7 @@ import (
     "errors"
     "math/rand"
     "sync"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
 
 var subLock = new(sync.Mutex)
@@ -120,7 +121,7 @@ func (s *Subscriber) handleResponse(request *model.SubscriberRegisterPb) error {
 }
 
 func (s *Subscriber) OnDecodeHeaders(headers map[string]string, endStream bool) {
-    boltReqId := headers["x-mosn-sofarpc-headers-property-requestid"]
+    boltReqId := headers[sofarpc.HeaderReqID]
     if boltReqId != s.streamContext.streamId {
         errMsg := fmt.Sprintf("Received mismatch subscribe response. data id = %s, received reqId = %s, context reqId = %s",
             s.dataId, boltReqId, s.streamContext.streamId)
