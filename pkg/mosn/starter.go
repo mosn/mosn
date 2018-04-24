@@ -45,7 +45,6 @@ func Start(c *config.MOSNConfig) {
 	go func() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9090", nil)
-		wg.Done()
 	}()
 
 	inheritListeners := getInheritListeners()
@@ -99,7 +98,6 @@ func Start(c *config.MOSNConfig) {
 			case <-stopChan:
 				srv.Close()
 			}
-			wg.Done()
 		}()
 	}
 
