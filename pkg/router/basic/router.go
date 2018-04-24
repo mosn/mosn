@@ -82,24 +82,24 @@ func NewBasicRouter(config interface{}) (types.RouterConfig, error) {
 }
 
 func (srr *basicRouter) Match(headers map[string]string) types.Route {
-	//if headers == nil {
-	//	return nil
-	//}
-	//
-	//var ok bool
-	//var service string
-	//
-	//if service, ok = headers["Service"]; !ok {
-	//	if service, ok = headers["service"]; !ok {
-	//		return nil
-	//	}
-	//}
-	//
-	//if srr.service == service {
-	//	return srr
-	//} else {
-	//	return nil
-	//}
+	if headers == nil {
+		return nil
+	}
+
+	var ok bool
+	var service string
+
+	if service, ok = headers["Service"]; !ok {
+		if service, ok = headers["service"]; !ok {
+			return nil
+		}
+	}
+
+	if srr.service == service {
+		return srr
+	} else {
+		return nil
+	}
 
 	return srr
 }
