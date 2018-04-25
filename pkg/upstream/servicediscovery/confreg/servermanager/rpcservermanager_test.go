@@ -17,12 +17,15 @@ func Test(t *testing.T) {
     rpcSvrManager.RegisterRPCServer(assembleReceivedData3())
 
     dataId := "someDataId1"
-    srvs, _ := rpcSvrManager.GetRPCServerList(dataId)
-    fmt.Println(srvs)
-    zone2Srvs, _ := rpcSvrManager.GetRPCServerListByZone(dataId, "zone2")
-    zone3Srvs, _ := rpcSvrManager.GetRPCServerListByZone(dataId, "zone3")
-    fmt.Println(zone2Srvs)
-    fmt.Println(zone3Srvs)
+    //srvs, _ := rpcSvrManager.GetRPCServerList(dataId)
+    //fmt.Println(srvs)
+    //zone2Srvs, _ := rpcSvrManager.GetRPCServerListByZone(dataId, "zone2")
+    //zone3Srvs, _ := rpcSvrManager.GetRPCServerListByZone(dataId, "zone3")
+    srvsWithoutZone, _ := rpcSvrManager.GetRPCServerListWithoutZone(dataId)
+    //fmt.Println(zone2Srvs)
+    //fmt.Println(zone3Srvs)
+    fmt.Println(srvsWithoutZone)
+    fmt.Println(len(srvsWithoutZone))
 
     for ; ; {
         time.Sleep(5 * time.Second)
@@ -54,7 +57,7 @@ func (l *MyRPCServerChangeListener) OnRPCServerChanged(dataId string, zoneServer
 
 func assembleReceivedData() *model.ReceivedDataPb {
     dataBox := &model.DataBoxesPb{
-        Data: []*model.DataBoxPb{{"data1"}, {"data2"}, {"data3"}},
+        Data: []*model.DataBoxPb{{"c1"}, {"data2"}, {"data3"}},
     }
 
     dataBox2 := &model.DataBoxesPb{

@@ -14,7 +14,7 @@ func Test_Register(t *testing.T) {
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
 
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     anotherDataId := "anotherDataId"
@@ -29,7 +29,7 @@ func Test_Received(t *testing.T) {
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
 
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeAsync(someDataId)

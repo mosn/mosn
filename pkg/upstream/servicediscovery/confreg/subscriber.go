@@ -170,7 +170,7 @@ func (s *Subscriber) assembleSubscriberRegisterPb(eventType string) *model.Subsc
         Zone:       s.systemConfig.Zone,
         AppName:    s.systemConfig.AppName,
         DataId:     s.dataId,
-        Group:      CONFREG_SOFA_GROUP,
+        Group:      ConfregSofaGroup,
         ProcessId:  RandomUuid(),
         RegistId:   s.registerId,
         ClientId:   s.registerId,

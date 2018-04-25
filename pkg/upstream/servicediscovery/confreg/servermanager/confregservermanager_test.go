@@ -14,7 +14,7 @@ func TestConfregServerManager_WrongEndpoint(t *testing.T) {
         RegistryEndpoint: "11.239.90.330",
     }
 
-    NewRegistryServerManager(sysConfig)
+    NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
 
 }
 func TestConfregServerManager_GetConfregServerByRandom(t *testing.T) {
@@ -24,7 +24,7 @@ func TestConfregServerManager_GetConfregServerByRandom(t *testing.T) {
         Zone:             "GZ00b",
         RegistryEndpoint: "11.239.90.33",
     }
-    csm := NewRegistryServerManager(sysConfig)
+    csm := NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
 
     server, ok := csm.GetRegistryServerByRandom()
     if ok {

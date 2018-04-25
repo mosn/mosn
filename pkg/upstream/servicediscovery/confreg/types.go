@@ -2,10 +2,8 @@ package registry
 
 import "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 
-const CONFREG_SOFA_GROUP  = "SOFA"
 
-
-type RegistryClient interface {
+type Client interface {
     PublishAsync(dataId string, data ...string)
 
     UnPublishAsync(dataId string, data ...string)

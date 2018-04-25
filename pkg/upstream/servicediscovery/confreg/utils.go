@@ -13,16 +13,15 @@ func RandomUuid() string {
 }
 
 func CalRetreatTime(t int64, maxTime int64) time.Duration {
-    return time.Duration(0)
-    //if t == 0 {
-    //    return time.Duration(0)
-    //}
-    //if t > maxTime {
-    //    //5min
-    //    return 5 * time.Minute
-    //}
-    //r := 1 << uint(t)
-    //return time.Duration(r * 1000 * 1000 * 1000)
+    if t == 0 {
+        return time.Duration(0)
+    }
+    if t > maxTime {
+        //5min
+        return 5 * time.Minute
+    }
+    r := 1 << uint(t)
+    return time.Duration(r * 1000 * 1000 * 1000)
 }
 
 // Get preferred outbound ip of this machine
@@ -37,3 +36,4 @@ func GetOutboundIP() net.IP {
 
     return localAddr.IP
 }
+
