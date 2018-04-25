@@ -127,7 +127,7 @@ func (c *connection) Start(lctx context.Context) {
 				if p := recover(); p != nil {
 					// TODO: panic recover @wugou
 
-					log.DefaultLogger.Errorf("panic %v\n", p)
+					c.logger.Errorf("panic %v", p)
 
 					debug.PrintStack()
 				}
@@ -141,7 +141,7 @@ func (c *connection) Start(lctx context.Context) {
 				if p := recover(); p != nil {
 					// TODO: panic recover @wugou
 
-					log.DefaultLogger.Errorf("panic %v\n", p)
+					c.logger.Errorf("panic %v", p)
 
 					debug.PrintStack()
 				}
@@ -573,12 +573,8 @@ type clientConnection struct {
 	connectOnce sync.Once
 }
 
-func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan bool) types.ClientConnection {
+func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan bool, logger log.Logger) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
-
-	if log.DefaultLogger == nil {
-		log.InitDefaultLogger("", log.DEBUG)
-	}
 
 	conn := &clientConnection{
 		connection: connection{
@@ -598,7 +594,7 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 				WriteTotal:   metrics.NewCounter(),
 				WriteCurrent: metrics.NewGauge(),
 			},
-			logger: log.DefaultLogger,
+			logger: logger,
 		},
 	}
 

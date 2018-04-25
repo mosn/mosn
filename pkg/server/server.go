@@ -8,7 +8,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	log2 "log"
 )
 
 func init() {
@@ -28,24 +27,10 @@ type server struct {
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
-	var logPath string
-	var logLevel log.LogLevel
 	var disableConnIo bool
 
 	if config != nil {
-		logPath = config.LogPath
-		logLevel = config.LogLevel
 		disableConnIo = config.DisableConnIo
-	}
-
-	//use default log path
-	if logPath == "" {
-		logPath = MosnLogDefaultPath
-	}
-
-	err := log.InitDefaultLogger(logPath, logLevel)
-	if err != nil {
-		log2.Fatalln("initialize default logger failed : ", err)
 	}
 
 	OnProcessShutDown(log.CloseAll)

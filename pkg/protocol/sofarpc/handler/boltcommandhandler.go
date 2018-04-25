@@ -35,19 +35,21 @@ func NewBoltCommandHandlerV2() *BoltCommandHandler {
 func (h *BoltCommandHandler) HandleCommand(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
+		logger := log.ByContext(context)
+
 
 		if processor, ok := h.processors[cmdCode]; ok {
-			log.DefaultLogger.Debugf("handle command")
+			logger.Debugf("handle bolt command")
 			processor.Process(context, cmd, filter)
 		} else {
-			log.DefaultLogger.Debugf("Unknown cmd code: [", cmdCode, "] while handle in BoltCommandHandler.")
+			logger.Errorf("Unknown cmd code: [%x] while handle in BoltCommandHandler.", cmdCode)
 		}
 	}
 }
 
 func (h *BoltCommandHandler) RegisterProcessor(cmdCode int16, processor *sofarpc.RemotingProcessor) {
 	if _, exists := h.processors[cmdCode]; exists {
-		log.DefaultLogger.Debugf("handler alreay exist:", cmdCode)
+		log.DefaultLogger.Warnf("bolt cmd handler [%x] alreay exist:", cmdCode)
 	} else {
 		h.processors[cmdCode] = *processor
 	}

@@ -24,19 +24,21 @@ func NewTrCommandHandler() *TrCommandHandler {
 func (h *TrCommandHandler) HandleCommand(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
+		logger := log.ByContext(context)
+
 		if processor, ok := h.processors[cmdCode]; ok {
-			log.DefaultLogger.Debugf("handle command")
+			logger.Debugf("handle tr command")
 
 			processor.Process(context, cmd, filter)
 		} else {
-			log.DefaultLogger.Debugf("Unknown cmd code: [", cmdCode, "] while handle in TrCommandHandler.")
+			logger.Debugf("Unknown cmd code: [%x] while handle in TrCommandHandler.", cmdCode)
 		}
 	}
 }
 
 func (h *TrCommandHandler) RegisterProcessor(cmdCode int16, processor *sofarpc.RemotingProcessor) {
 	if _, exists := h.processors[cmdCode]; exists {
-		log.DefaultLogger.Debugf("handler alreay exist:", cmdCode)
+		log.DefaultLogger.Warnf("tr cmd handler [%x] alreay exist:", cmdCode)
 	} else {
 		h.processors[cmdCode] = *processor
 	}

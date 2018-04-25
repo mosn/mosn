@@ -258,6 +258,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
+	logger := log.ByContext(context)
 
 	if readableBytes >= sofarpc.LESS_LEN_V1 {
 		bytes := data.Bytes()
@@ -270,7 +271,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
-					log.DefaultLogger.Debugf("Decode: Get HB Msg")
+					logger.Debugf("Decode: Get Bolt HB Msg")
 				}
 
 				ver2 := bytes[4]
@@ -302,7 +303,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 
 				} else { // not enough data
 
-					log.DefaultLogger.Debugf("[Decoder]no enough data for fully decode")
+					logger.Debugf("[Decoder]no enough data for fully decode")
 					return 0, nil
 				}
 
@@ -324,7 +325,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					nil,
 					nil,
 				}
-				log.DefaultLogger.Debugf("[Decoder]bolt v1 decode request reqID is:%+v\n", request.ReqId)
+				logger.Debugf("[Decoder]bolt v1 decode request reqID is:%+v", request.ReqId)
 
 				cmd = &request
 			}
@@ -361,7 +362,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					data.Drain(read)
 				} else {
 					// not enough data
-					log.DefaultLogger.Debugf("[Decoder]no enough data for fully decode")
+					logger.Debugf("[Decoder]no enough data for fully decode")
 
 					return 0, nil
 				}
@@ -386,7 +387,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					nil,
 				}
 
-				log.DefaultLogger.Debugf("[Decoder]bolt v1 decode response, response status is:%+v\n", response.ResponseStatus)
+				logger.Debugf("[Decoder]bolt v1 decode response, response status is:%+v", response.ResponseStatus)
 
 				cmd = &response
 			}

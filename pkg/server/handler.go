@@ -67,8 +67,6 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 	//TODO: connection level stop-chan usage confirm
 	listenerStopChan := make(chan bool)
 
-	l := network.NewListener(lc)
-
 	//use default listener path
 	if lc.LogPath == "" {
 		lc.LogPath = MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
@@ -76,8 +74,10 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 
 	logger, err := log.NewLogger(lc.LogPath, log.LogLevel(lc.LogLevel))
 	if err != nil {
-		log.DefaultLogger.Fatalln("initialize listener logger failed : ", err)
+		ch.logger.Fatalf("initialize listener logger failed : %v", err)
 	}
+
+	l := network.NewListener(lc, logger)
 
 	al := newActiveListener(l, logger, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan)
 	l.SetListenerCallbacks(al)

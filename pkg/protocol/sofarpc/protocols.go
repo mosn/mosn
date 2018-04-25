@@ -79,10 +79,12 @@ func (p *protocols) EncodeTrailers(trailers map[string]string) types.IoBuffer {
 func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter types.DecodeFilter) {
 	// at least 1 byte for protocol code recognize
 	for data.Len() > 1 {
+		logger := log.ByContext(context)
+
 		protocolCode := data.Bytes()[0]
 		maybeProtocolVersion := data.Bytes()[1]
 
-		log.ByContext(context).Debugf("[Decoder]protocol code = ", protocolCode, ", maybeProtocolVersion = ", maybeProtocolVersion)
+		logger.Debugf("[Decoder]protocol code = %x, maybeProtocolVersion = %x", protocolCode,  maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 
@@ -96,7 +98,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 			//Codec Exception
 			headers := make(map[string]string, 1)
 			headers[types.HeaderException] = types.MosnExceptionCodeC
-			log.ByContext(context).Errorf("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
+			logger.Errorf("Unknown protocol code: [%x] while decode in ProtocolDecoder.", protocolCode)
 
 			err := "Unknown protocol code while decode in ProtocolDecoder."
 			filter.OnDecodeHeader(GenerateExceptionStreamID(err), headers)

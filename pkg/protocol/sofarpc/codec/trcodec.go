@@ -194,6 +194,7 @@ func (decoder *trCodec) Decode(context context.Context, data types.IoBuffer) (in
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
+	logger := log.ByContext(context)
 
 	if readableBytes >= int(sf.PROTOCOL_HEADER_LENGTH) {
 		bytes := data.Bytes()
@@ -209,7 +210,7 @@ func (decoder *trCodec) Decode(context context.Context, data types.IoBuffer) (in
 		if uint32(readableBytes) < sf.PROTOCOL_HEADER_LENGTH+connRequestLen+
 			uint32(appClassNameLen)+appClassContentLen {
 			//not enough data
-			log.DefaultLogger.Debugf("[Decoder]no enough data for fully decode")
+			logger.Debugf("[Decoder]no enough data for fully decode")
 			return 0, nil
 		}
 
@@ -246,7 +247,7 @@ func (decoder *trCodec) Decode(context context.Context, data types.IoBuffer) (in
 				CmdCode:        cmdCode,
 				RequestContent: bytes[14 : 14+connRequestLen+uint32(appClassNameLen)+appClassContentLen],
 			}
-			log.DefaultLogger.Debugf("[Decoder]TR decode request:%+v\n", request)
+			logger.Debugf("[Decoder]TR decode request:%+v", request)
 			cmd = request
 			read = int(totalLength)
 

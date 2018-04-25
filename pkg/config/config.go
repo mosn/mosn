@@ -25,8 +25,6 @@ type ListenerConfig struct {
 }
 
 type ServerConfig struct {
-	AccessLog string `json:"access_log"`
-	LogLevel  string `json:"log_level"`
 	// only used in http2 case
 	DisableConnIo bool `json:"disable_conn_io"`
 
@@ -64,9 +62,13 @@ type ClusterManagerConfig struct {
 }
 
 type MOSNConfig struct {
-	Servers        []ServerConfig       `json:"servers"`
-	ClusterManager ClusterManagerConfig `json:"cluster_manager"`
+	Servers        []ServerConfig       `json:"servers"`         //server config
+	ClusterManager ClusterManagerConfig `json:"cluster_manager"` //cluster config
 	//tracing config
+
+	//default logger
+	DefaultLogPath  string `json:"default_log_path"`
+	DefaultLogLevel string `json:"default_log_level"`
 }
 
 func Load(path string) *MOSNConfig {

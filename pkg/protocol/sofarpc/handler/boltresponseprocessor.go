@@ -73,10 +73,13 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand, 
 	//get instance
 	serializeIns := serialize.Instance
 
+	//logger
+	logger := log.ByContext(context)
+
 	//serialize header
 	headerMap := sofarpc.GetMap(context, defaultTmpBufferSize)
 	serializeIns.DeSerialize(responseCommand.HeaderMap, &headerMap)
-	log.DefaultLogger.Debugf("deSerialize  headerMap:", headerMap)
+	logger.Debugf("deserialize header map: %+v", headerMap)
 
 	allField := sofarpc.GetMap(context, 20+len(headerMap))
 
@@ -97,7 +100,7 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand, 
 	var className string
 	serializeIns.DeSerialize(responseCommand.ClassName, &className)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassName)] = className
-	log.DefaultLogger.Debugf("Response ClassName is:", className)
+	logger.Debugf("Response ClassName is: %s", className)
 
 	for k, v := range headerMap {
 		allField[k] = v

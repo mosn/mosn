@@ -89,7 +89,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 		pool: pool,
 	}
 
-	data := pool.host.CreateConnection()
+	data := pool.host.CreateConnection(context)
 	codecClient := pool.createCodecClient(context, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)

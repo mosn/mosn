@@ -2,19 +2,18 @@ package config
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	log2 "gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
-	"log"
 	"net"
 	"time"
 )
 
-var logLevelMap = map[string]log2.LogLevel{
-	"DEBUG": log2.DEBUG,
-	"FATAL": log2.FATAL,
-	"ERROR": log2.ERROR,
-	"WARN":  log2.WARN,
-	"INFO":  log2.INFO,
+var logLevelMap = map[string]log.LogLevel{
+	"DEBUG": log.DEBUG,
+	"FATAL": log.FATAL,
+	"ERROR": log.ERROR,
+	"WARN":  log.WARN,
+	"INFO":  log.INFO,
 }
 
 var networkFilterTypeMap = map[string]string{}
@@ -29,20 +28,20 @@ var lbTypeMap = map[string]v2.LbType{
 	"LB_RANDOM": v2.LB_RANDOM,
 }
 
-func ParseServerConfig(c *ServerConfig) *server.Config {
-	sc := &server.Config{DisableConnIo: c.DisableConnIo}
-	if c.AccessLog != "" {
-		sc.LogPath = c.AccessLog
-	}
-
-	if c.LogLevel != "" {
-		if logLevel, ok := logLevelMap[c.LogLevel]; ok {
-			sc.LogLevel = logLevel
+func ParseLogLevel(level string) log.LogLevel {
+	if level != "" {
+		if logLevel, ok := logLevelMap[level]; ok {
+			return logLevel
 		} else {
-			log.Fatalln("unknown log level:" + c.LogLevel)
+			log.StartLogger.Fatalln("unsupported log level: ", level)
 		}
 	}
+	return log.FATAL
+}
 
+func ParseServerConfig(c *ServerConfig) *server.Config {
+	sc := &server.Config{DisableConnIo: c.DisableConnIo}
+	
 	return sc
 }
 
@@ -55,10 +54,10 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 		if downstreamProtocol, ok := downstreamProtocol.(string); ok {
 			proxyConfig.DownstreamProtocol = downstreamProtocol
 		} else {
-			log.Fatalln("[downstream_protocol] in proxy filter config is not string")
+			log.StartLogger.Fatalln("[downstream_protocol] in proxy filter config is not string")
 		}
 	} else {
-		log.Fatalln("[downstream_protocol] is required in proxy filter config")
+		log.StartLogger.Fatalln("[downstream_protocol] is required in proxy filter config")
 	}
 
 	//upstream protocol
@@ -66,10 +65,10 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 		if upstreamProtocol, ok := upstreamProtocol.(string); ok {
 			proxyConfig.UpstreamProtocol = upstreamProtocol
 		} else {
-			log.Fatalln("[upstream_protocol] in proxy filter config is not string")
+			log.StartLogger.Fatalln("[upstream_protocol] in proxy filter config is not string")
 		}
 	} else {
-		log.Fatalln("[upstream_protocol] is required in proxy filter config")
+		log.StartLogger.Fatalln("[upstream_protocol] is required in proxy filter config")
 	}
 
 	//routes
@@ -79,10 +78,10 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 				proxyConfig.Routes = append(proxyConfig.Routes, parseRouteConfig(route.(map[string]interface{})))
 			}
 		} else {
-			log.Fatalln("[routes] in proxy filter config is not list of routemap")
+			log.StartLogger.Fatalln("[routes] in proxy filter config is not list of routemap")
 		}
 	} else {
-		log.Fatalln("[routes] is required in proxy filter config")
+		log.StartLogger.Fatalln("[routes] is required in proxy filter config")
 	}
 	return proxyConfig
 }
@@ -95,10 +94,10 @@ func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
 		if name, ok := name.(string); ok {
 			route.Name = name
 		} else {
-			log.Fatalln("[name] in proxy filter route config is not string")
+			log.StartLogger.Fatalln("[name] in proxy filter route config is not string")
 		}
 	} else {
-		log.Fatalln("[name] is required in proxy filter route config")
+		log.StartLogger.Fatalln("[name] is required in proxy filter route config")
 	}
 
 	//service
@@ -106,10 +105,10 @@ func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
 		if service, ok := service.(string); ok {
 			route.Service = service
 		} else {
-			log.Fatalln("[service] in proxy filter route config is not string")
+			log.StartLogger.Fatalln("[service] in proxy filter route config is not string")
 		}
 	} else {
-		log.Fatalln("[service] is required in proxy filter route config")
+		log.StartLogger.Fatalln("[service] is required in proxy filter route config")
 	}
 
 	//cluster
@@ -117,10 +116,10 @@ func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
 		if cluster, ok := cluster.(string); ok {
 			route.Cluster = cluster
 		} else {
-			log.Fatalln("[cluster] in proxy filter route config is not string")
+			log.StartLogger.Fatalln("[cluster] in proxy filter route config is not string")
 		}
 	} else {
-		log.Fatalln("[cluster] is required in proxy filter route config")
+		log.StartLogger.Fatalln("[cluster] is required in proxy filter route config")
 	}
 
 	return route
@@ -135,10 +134,10 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 		if percent, ok := percent.(float64); ok {
 			faultInject.DelayPercent = uint32(percent)
 		} else {
-			log.Fatalln("[delay_percent] in fault inject filter config is not integer")
+			log.StartLogger.Fatalln("[delay_percent] in fault inject filter config is not integer")
 		}
 	} else {
-		log.Fatalln("[delay_percent] is required in fault inject filter config")
+		log.StartLogger.Fatalln("[delay_percent] is required in fault inject filter config")
 	}
 
 	//duration
@@ -146,10 +145,10 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 		if duration, ok := duration.(float64); ok {
 			faultInject.DelayDuration = uint64(duration)
 		} else {
-			log.Fatalln("[delay_duration_ms] in fault inject filter config is not integer")
+			log.StartLogger.Fatalln("[delay_duration_ms] in fault inject filter config is not integer")
 		}
 	} else {
-		log.Fatalln("[delay_duration_ms] is required in fault inject filter config")
+		log.StartLogger.Fatalln("[delay_duration_ms] is required in fault inject filter config")
 	}
 
 	return faultInject
@@ -162,10 +161,10 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 		if passthrough, ok := passthrough.(bool); ok {
 			healthcheck.PassThrough = passthrough
 		} else {
-			log.Fatalln("[passthrough] in health check filter config is not bool")
+			log.StartLogger.Fatalln("[passthrough] in health check filter config is not bool")
 		}
 	} else {
-		log.Fatalln("[passthrough] is required in healthcheck filter config")
+		log.StartLogger.Fatalln("[passthrough] is required in healthcheck filter config")
 	}
 
 	//cache time
@@ -173,10 +172,10 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 		if cacheTime, ok := cacheTime.(float64); ok {
 			healthcheck.CacheTime = time.Duration(cacheTime)
 		} else {
-			log.Fatalln("[cache_time_ms] in health check filter config is not integer")
+			log.StartLogger.Fatalln("[cache_time_ms] in health check filter config is not integer")
 		}
 	} else {
-		log.Fatalln("[cache_time_ms] is required in healthcheck filter config")
+		log.StartLogger.Fatalln("[cache_time_ms] is required in healthcheck filter config")
 	}
 
 	//cluster_min_healthy_percentages
@@ -187,26 +186,26 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 				healthcheck.ClusterMinHealthyPercentage[cluster] = float32(percent.(float64))
 			}
 		} else {
-			log.Fatalln("[passthrough] in health check filter config is not bool")
+			log.StartLogger.Fatalln("[passthrough] in health check filter config is not bool")
 		}
 	} else {
-		log.Fatalln("[passthrough] is required in healthcheck filter config")
+		log.StartLogger.Fatalln("[passthrough] is required in healthcheck filter config")
 	}
 	return healthcheck
 }
 
 func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfig) *v2.ListenerConfig {
 	if c.Name == "" {
-		log.Fatalln("[name] is required in listener config")
+		log.StartLogger.Fatalln("[name] is required in listener config")
 	}
 
 	if c.Address == "" {
-		log.Fatalln("[Address] is required in listener config")
+		log.StartLogger.Fatalln("[Address] is required in listener config")
 	}
 
 	addr, err := net.ResolveTCPAddr("tcp", c.Address)
 	if err != nil {
-		log.Fatalln("[Address] not valid:" + c.Address)
+		log.StartLogger.Fatalln("[Address] not valid:" + c.Address)
 	}
 
 	//try inherit legacy listener
@@ -214,20 +213,10 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 
 	for _, il := range inheritListeners {
 		if il.Addr.String() == addr.String() {
-			log.Println("inherit listener addr:", c.Address)
+			log.StartLogger.Infof("inherit listener addr: %s", c.Address)
 			old = il.InheritListener
 			il.Remain = true
 			break
-		}
-	}
-
-	var ll uint8
-
-	if c.LogLevel != "" {
-		if logLevel, ok := logLevelMap[c.LogLevel]; ok {
-			ll = uint8(logLevel)
-		} else {
-			log.Fatalln("unknown log level:" + c.LogLevel)
 		}
 	}
 
@@ -238,45 +227,45 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		InheritListener:         old,
 		PerConnBufferLimitBytes: 1 << 15,
 		LogPath:                 c.LogPath,
-		LogLevel:                ll,
+		LogLevel:                uint8(ParseLogLevel(c.LogLevel)),
 	}
 }
 
 func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
 	if c.Name == "" {
-		log.Fatalln("[name] is required in cluster config")
+		log.StartLogger.Fatalln("[name] is required in cluster config")
 	}
 
 	var clusterType v2.ClusterType
 	if c.Type == "" {
-		log.Fatalln("[type] is required in cluster config")
+		log.StartLogger.Fatalln("[type] is required in cluster config")
 	} else {
 		if ct, ok := clusterTypeMap[c.Type]; ok {
 			clusterType = ct
 		} else {
-			log.Fatalln("unknown cluster type:", c.Type)
+			log.StartLogger.Fatalln("unknown cluster type:", c.Type)
 		}
 	}
 
 	var lbType v2.LbType
 	if c.LbType == "" {
-		log.Fatalln("[lb_type] is required in cluster config")
+		log.StartLogger.Fatalln("[lb_type] is required in cluster config")
 	} else {
 		if lt, ok := lbTypeMap[c.LbType]; ok {
 			lbType = lt
 		} else {
-			log.Fatalln("unknown lb type:", c.LbType)
+			log.StartLogger.Fatalln("unknown lb type:", c.LbType)
 		}
 	}
 
 	if c.MaxRequestPerConn == 0 {
 		c.MaxRequestPerConn = 1024
-		log.Println("[max_request_per_conn] is not specified, use default value 1024")
+		log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value 1024")
 	}
 
 	if c.ConnBufferLimitBytes == 0 {
 		c.ConnBufferLimitBytes = 16 * 1026
-		log.Println("[conn_buffer_limit_bytes] is not specified, use default value 16 * 1026")
+		log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value 16 * 1026")
 	}
 
 	return v2.Cluster{
@@ -290,14 +279,14 @@ func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
 
 func ParseHostConfig(c *ClusterConfig) []v2.Host {
 	if c.Hosts == nil || len(c.Hosts) == 0 {
-		log.Fatalln("[hosts] is required in cluster config")
+		log.StartLogger.Fatalln("[hosts] is required in cluster config")
 	}
 
 	var hosts []v2.Host
 
 	for _, host := range c.Hosts {
 		if host.Address == "" {
-			log.Fatalln("[host.address] is required in host config")
+			log.StartLogger.Fatalln("[host.address] is required in host config")
 		}
 
 		hosts = append(hosts, v2.Host{

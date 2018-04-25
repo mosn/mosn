@@ -1,10 +1,19 @@
 package main
 
 import (
+	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"runtime"
+	"strconv"
+	"sync"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/healthcheck/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
@@ -13,28 +22,20 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"log"
-	"net"
-	"net/http"
-	_ "net/http/pprof"
-	"os"
-	"runtime"
-	"strconv"
-	"sync"
 )
 
 func Start(c *config.MOSNConfig) {
+	log.StartLogger.Infof("start by config : %+v", c)
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	log.Printf("mosn config : %+v\n", c)
 
 	srvNum := len(c.Servers)
 	if srvNum == 0 {
-		log.Fatalln("no server found")
+		log.StartLogger.Fatalln("no server found")
 	}
 
 	if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
-		log.Fatalln("no cluster found")
+		log.StartLogger.Fatalln("no cluster found")
 	}
 
 	stopChans := make([]chan bool, srvNum)
@@ -47,7 +48,11 @@ func Start(c *config.MOSNConfig) {
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
 
+	//get inherit fds
 	inheritListeners := getInheritListeners()
+
+	//init default logger
+	initDefaultLogger(c.DefaultLogPath, c.DefaultLogLevel)
 
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
@@ -64,7 +69,7 @@ func Start(c *config.MOSNConfig) {
 
 		//add listener
 		if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
-			log.Fatalln("no listener found")
+			log.StartLogger.Fatalln("no listener found")
 		}
 
 		for _, listenerConfig := range serverConfig.Listeners {
@@ -104,7 +109,7 @@ func Start(c *config.MOSNConfig) {
 	//close legacy listeners
 	for _, ln := range inheritListeners {
 		if !ln.Remain {
-			log.Println("close useless legacy listener:", ln.Addr)
+			log.StartLogger.Infof("close useless legacy listener: %v", ln.Addr)
 			ln.InheritListener.Close()
 		}
 	}
@@ -115,13 +120,13 @@ func Start(c *config.MOSNConfig) {
 
 func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFactory {
 	if len(configs) != 1 {
-		log.Fatalln("only one network filter supported")
+		log.StartLogger.Fatalln("only one network filter supported, but got ", len(configs))
 	}
 
 	c := &configs[0]
 
 	if c.Type != "proxy" {
-		log.Fatalln("only proxy network filter supported")
+		log.StartLogger.Fatalln("only proxy network filter supported, but got ", c.Type)
 	}
 
 	return &proxy.GenericProxyFilterConfigFactory{
@@ -143,7 +148,7 @@ func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFa
 				FilterConfig: config.ParseHealthcheckFilter(c.Config),
 			})
 		default:
-			log.Fatalln("unsupport stream filter type:" + c.Type)
+			log.StartLogger.Fatalln("unsupport stream filter type: ", c.Type)
 		}
 
 	}
@@ -165,20 +170,37 @@ func getInheritListeners() []*v2.ListenerConfig {
 		count, _ := strconv.Atoi(os.Getenv("_MOSN_INHERIT_FD"))
 		listeners := make([]*v2.ListenerConfig, count)
 
+		log.StartLogger.Infof("received %d inherit fds", count)
+
 		for idx := 0; idx < count; idx++ {
 			//because passed listeners fd's index starts from 3
-			file := os.NewFile(uintptr(3+idx), "")
+			fd := uintptr(3+idx)
+			file := os.NewFile(fd, "")
 			fileListener, err := net.FileListener(file)
 			if err != nil {
-				log.Println("net.FileListener create err", err)
+				log.StartLogger.Errorf("recover listener from fd %d failed: %s",fd, err)
+				continue
 			}
 			if listener, ok := fileListener.(*net.TCPListener); ok {
 				listeners[idx] = &v2.ListenerConfig{Addr: listener.Addr(), InheritListener: listener}
 			} else {
-				log.Println("net.TCPListener cast err", err)
+				log.StartLogger.Errorf("listener recovered from fd %d is not a tcp listener", fd)
 			}
 		}
 		return listeners
 	}
 	return nil
+}
+
+func initDefaultLogger(logPath string, logLevel string) {
+
+	//use default log path
+	if logPath == "" {
+		logPath = server.MosnLogDefaultPath
+	}
+
+	err := log.InitDefaultLogger(logPath, config.ParseLogLevel(logLevel))
+	if err != nil {
+		log.StartLogger.Fatalln("initialize default logger failed : ", err)
+	}
 }

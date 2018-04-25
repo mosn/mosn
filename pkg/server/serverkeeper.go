@@ -12,17 +12,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-const (
-	MosnBasePath = string(os.PathSeparator) + "home" + string(os.PathSeparator) +
-		"admin" + string(os.PathSeparator) + "mosn"
-
-	MosnLogBasePath = MosnBasePath + string(os.PathSeparator) + "logs"
-
-	MosnLogDefaultPath = MosnLogBasePath + string(os.PathSeparator) + "mosn.log"
-
-	MosnPidFileName = "mosn.pid"
-)
-
 func init() {
 	writePidFile()
 

@@ -130,6 +130,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
+	logger := log.ByContext(context)
 
 	if readableBytes >= sofarpc.LESS_LEN_V2 {
 		bytes := data.Bytes()
@@ -172,7 +173,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					}
 					data.Drain(read)
 				} else { // not enough data
-					log.DefaultLogger.Debugf("[BOLTV2 Decoder]no enough data for fully decode")
+					logger.Debugf("[BOLTV2 Decoder]no enough data for fully decode")
 					return 0, nil
 				}
 
@@ -198,7 +199,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					switchCode,
 				}
 
-				log.DefaultLogger.Debugf("[Decoder]bolt v2 decode request:%+v\n", request)
+				logger.Debugf("[Decoder]bolt v2 decode request:%+v", request)
 
 				cmd = request
 			}
@@ -234,7 +235,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 						read += int(contentLen)
 					}
 				} else { // not enough data
-					log.DefaultLogger.Debugf("[BOLTBV2 Decoder]no enough data for fully decode")
+					logger.Debugf("[BOLTBV2 Decoder]no enough data for fully decode")
 					return 0, nil
 				}
 
@@ -262,7 +263,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					switchCode,
 				}
 
-				log.DefaultLogger.Debugf("[Decoder]bolt v2 decode response:%+v\n", response)
+				logger.Debugf("[Decoder]bolt v2 decode response:%+v\n", response)
 				cmd = response
 			}
 		}

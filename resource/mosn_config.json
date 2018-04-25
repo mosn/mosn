@@ -1,8 +1,8 @@
 {
+  "default_log_path": "/Users/wugou.cyf/mosn/logs/default.log",
+  "default_log_level": "INFO",
   "servers": [
     {
-      "access_log": "/Users/wugou.cyf/mosn/logs/default.log",
-      "log_level": "INFO",
       "listeners": [
         {
           "name": "egress",

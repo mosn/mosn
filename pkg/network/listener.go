@@ -22,9 +22,10 @@ type listener struct {
 	handOffRestoredDestinationConnections bool
 	cb                                    types.ListenerEventListener
 	rawl                                  *net.TCPListener
+	logger                                log.Logger
 }
 
-func NewListener(lc *v2.ListenerConfig) types.Listener {
+func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 
 	l := &listener{
 		name:                                  lc.Name,
@@ -33,6 +34,7 @@ func NewListener(lc *v2.ListenerConfig) types.Listener {
 		listenerTag:                           lc.ListenerTag,
 		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
 		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
+		logger: logger,
 	}
 
 	if lc.InheritListener != nil {
@@ -56,7 +58,7 @@ func (l *listener) Start(lctx context.Context) {
 	if l.rawl == nil {
 		if err := l.listen(lctx); err != nil {
 			// TODO: notify listener callbacks
-			log.DefaultLogger.Fatalln(l.name, " listen failed, ", err)
+			log.StartLogger.Fatalln(l.name, " listen failed, ", err)
 			return
 		}
 	}
@@ -65,14 +67,14 @@ func (l *listener) Start(lctx context.Context) {
 		for {
 			if err := l.accept(lctx); err != nil {
 				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-					log.DefaultLogger.Infof("listener %s stop accepting connections by deadline", l.name)
+					l.logger.Infof("listener %s stop accepting connections by deadline", l.name)
 					return
 				} else if ope, ok := err.(*net.OpError); ok {
 					if !(ope.Timeout() && ope.Temporary()) {
-						log.DefaultLogger.Errorf("not temp-timeout error:%s", err.Error())
+						l.logger.Errorf("not temp-timeout error:%s", err.Error())
 					}
 				} else {
-					log.DefaultLogger.Errorf("unknown error while listener accepting:%s", err.Error())
+					l.logger.Errorf("unknown error while listener accepting:%s", err.Error())
 				}
 			}
 		}
@@ -90,7 +92,7 @@ func (l *listener) ListenerTag() uint64 {
 func (l *listener) ListenerFD() (uintptr, error) {
 	file, err := l.rawl.File()
 	if err != nil {
-		log.DefaultLogger.Println(l.name, " listener fd not found : ", err)
+		l.logger.Errorf(" listener %s fd not found : %s", l.name, err)
 		return 0, err
 	}
 	return file.Fd(), nil
@@ -133,7 +135,7 @@ func (l *listener) accept(lctx context.Context) error {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("panic %v\n", p)
+				l.logger.Errorf("panic %v", p)
 
 				debug.PrintStack()
 			}

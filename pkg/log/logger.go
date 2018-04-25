@@ -21,6 +21,20 @@ var remoteSyslogPrefixes = map[string]string{
 
 var DefaultLogger *logger
 
+var StartLogger  *logger
+
+func init(){
+	//use console  as start logger
+	StartLogger = &logger{
+		Output:  "",
+		Level:   DEBUG,
+		Roller:  DefaultLogRoller(),
+		fileMux: new(sync.RWMutex),
+	}
+
+	StartLogger.Start()
+}
+
 // Logger
 type logger struct {
 	Output string
