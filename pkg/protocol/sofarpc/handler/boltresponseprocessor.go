@@ -9,6 +9,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"time"
 )
 
 type BoltResponseProcessor struct{}
@@ -18,6 +19,9 @@ func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}
 	if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
 		deserializeResponseAllFields(cmd, context)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
+
+		//print tracer log
+		log.DefaultLogger.Infof("time=%s,streamId=%s,protocol=%s", time.Now(), reqID, "bolt")
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
