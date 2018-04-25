@@ -6,7 +6,9 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
 )
 
-type DefaultRegistryClient struct {
+const ConfregSofaGroup = "SOFA"
+
+type ConfregClient struct {
     systemConfig         *config.SystemConfig
     registryConfig       *config.RegistryConfig
     confregServerManager *servermanager.RegistryServerManager
@@ -17,10 +19,10 @@ type DefaultRegistryClient struct {
     stopConnChan chan bool
 }
 
-func NewRegistryClient(systemConfig *config.SystemConfig, registryConfig *config.RegistryConfig,
-    manager *servermanager.RegistryServerManager) RegistryClient {
+func NewConfregClient(systemConfig *config.SystemConfig, registryConfig *config.RegistryConfig,
+    manager *servermanager.RegistryServerManager) Client {
 
-    rc := &DefaultRegistryClient{
+    rc := &ConfregClient{
         systemConfig:         systemConfig,
         registryConfig:       registryConfig,
         confregServerManager: manager,
@@ -36,38 +38,38 @@ func NewRegistryClient(systemConfig *config.SystemConfig, registryConfig *config
     return rc
 }
 
-func (rc *DefaultRegistryClient) GetRPCServerManager() servermanager.RPCServerManager {
+func (rc *ConfregClient) GetRPCServerManager() servermanager.RPCServerManager {
     return rc.rpcServerManager
 }
 
-func (rc *DefaultRegistryClient) PublishAsync(dataId string, data ...string) {
+func (rc *ConfregClient) PublishAsync(dataId string, data ...string) {
     rc.registerWorker.SubmitPublishTask(dataId, data, model.EventTypePb_REGISTER.String())
 }
 
-func (rc *DefaultRegistryClient) UnPublishAsync(dataId string, data ...string) {
+func (rc *ConfregClient) UnPublishAsync(dataId string, data ...string) {
     rc.registerWorker.SubmitPublishTask(dataId, data, model.EventTypePb_UNREGISTER.String())
 }
 
-func (rc *DefaultRegistryClient) SubscribeAsync(dataId string) {
+func (rc *ConfregClient) SubscribeAsync(dataId string) {
     rc.registerWorker.SubmitSubscribeTask(dataId, model.EventTypePb_REGISTER.String())
 }
 
-func (rc *DefaultRegistryClient) UnSubscribeAsync(dataId string) {
+func (rc *ConfregClient) UnSubscribeAsync(dataId string) {
     rc.registerWorker.SubmitSubscribeTask(dataId, model.EventTypePb_UNREGISTER.String())
 }
 
-func (rc *DefaultRegistryClient) PublishSync(dataId string, data ...string) error {
+func (rc *ConfregClient) PublishSync(dataId string, data ...string) error {
     return rc.registerWorker.PublishSync(dataId, data)
 }
 
-func (rc *DefaultRegistryClient) UnPublishSync(dataId string, data ...string) error {
+func (rc *ConfregClient) UnPublishSync(dataId string, data ...string) error {
     return rc.registerWorker.UnPublishSync(dataId, data)
 }
 
-func (rc *DefaultRegistryClient) SubscribeSync(dataId string) error {
+func (rc *ConfregClient) SubscribeSync(dataId string) error {
     return rc.registerWorker.SubscribeSync(dataId)
 }
 
-func (rc *DefaultRegistryClient) UnSubscribeSync(dataId string) error {
+func (rc *ConfregClient) UnSubscribeSync(dataId string) error {
     return rc.registerWorker.UnSubscribeSync(dataId)
 }

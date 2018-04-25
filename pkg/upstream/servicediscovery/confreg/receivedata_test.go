@@ -25,7 +25,7 @@ func Test_ReceiveSingleSegmentData(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
     rc.GetRPCServerManager().RegisterRPCServerChangeListener(listener)
 
     re := NewRegistryEndpoint(registryConfig, rc)

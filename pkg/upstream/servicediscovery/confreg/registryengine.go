@@ -7,25 +7,25 @@ import (
 )
 
 var confregServerManager *servermanager.RegistryServerManager
-var registryClient RegistryClient
+var registryClient Client
 
 var lock = new(sync.Mutex)
 
-var RegistryModuleStarted = false
+var ModuleStarted = false
 
-func StartupRegistryModule(sysConfig *config.SystemConfig, registryConfig *config.RegistryConfig) RegistryClient {
+func StartupRegistryModule(sysConfig *config.SystemConfig, registryConfig *config.RegistryConfig) Client {
     lock.Lock()
 
     defer func() {
         lock.Unlock()
     }()
 
-    if RegistryModuleStarted {
+    if ModuleStarted {
         return registryClient
     }
     confregServerManager = servermanager.NewRegistryServerManager(sysConfig, registryConfig)
 
-    RegistryModuleStarted = true
+    ModuleStarted = true
 
-    return NewRegistryClient(sysConfig, registryConfig, confregServerManager)
+    return NewConfregClient(sysConfig, registryConfig, confregServerManager)
 }

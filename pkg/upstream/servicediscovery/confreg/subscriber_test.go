@@ -10,7 +10,7 @@ func Test_AsyncSubscribeOneService(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeAsync(someDataId)
@@ -22,7 +22,7 @@ func Test_SyncSubscribeOneService(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeSync(someDataId)
@@ -34,7 +34,7 @@ func Test_AsyncSubscribeOneServiceManyTimes(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     for ; ; {
@@ -49,7 +49,7 @@ func Test_SyncSubscribeOneServiceManyTimes(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     for ; ; {
@@ -64,7 +64,7 @@ func Test_AsyncSubscribeManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     for i := 0; i < 3; i++ {
         someDataId := "ServiceName-" + RandomUuid()
@@ -83,7 +83,7 @@ func Test_SyncSubscribeManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     for i := 0; i < 10; i++ {
         someDataId := "ServiceName-" + RandomUuid()
@@ -102,7 +102,7 @@ func Test_AsyncSubscribeTimeout(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeAsync(someDataId)
@@ -114,7 +114,7 @@ func Test_SyncSubscribeTimeout(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeSync(someDataId)
@@ -126,7 +126,7 @@ func Test_AsyncSubscribeThreeServiceAndOneFailed(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, registryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeAsync(someDataId)

@@ -5,7 +5,6 @@ import (
     "github.com/deckarep/golang-set"
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "encoding/json"
-    "strings"
 )
 
 var rpcServerManagerInstance RPCServerManager
@@ -59,7 +58,6 @@ func GetRPCServerManager() RPCServerManager {
 
 func (sm *DefaultRPCServerManager) RegisterRPCServer(receivedData *model.ReceivedDataPb) {
     dataId := receivedData.DataId
-    dataId = handleDataId(dataId)
     storedDataIdContainer, ok := sm.svrData[dataId]
     if !ok {
         segment := newSegmentData(receivedData)
@@ -76,7 +74,7 @@ func (sm *DefaultRPCServerManager) RegisterRPCServer(receivedData *model.Receive
 
             go sm.triggerRPCServerChangeEvent(dataId)
         } else {
-            log.DefaultLogger.Infof("Received data which the version is lower than stored data, and will ignore the data."+
+            log.DefaultLogger.Warnf("Received data which the version is lower than stored data, and will ignore the data."+
                 "stored version = %d, received version = %d", storedSegment.Version, receivedData.Version)
         }
     }
@@ -122,7 +120,9 @@ func (sm *DefaultRPCServerManager) GetRPCServerListWithoutZone(dataId string) (s
     for _, segmentData := range segments {
         for _, srvs := range segmentData.Data {
             for _, srv := range srvs {
-                srvSet.Add(srv)
+                if srv != "" {
+                    srvSet.Add(srv)
+                }
             }
         }
     }
@@ -133,8 +133,8 @@ func (sm *DefaultRPCServerManager) GetRPCServerListWithoutZone(dataId string) (s
     }
 
     srvs := make([]string, len(srvSetSlice))
-    for _, srv := range srvSetSlice {
-        srvs = append(srvs, srv.(string))
+    for i, srv := range srvSetSlice {
+        srvs[i] = srv.(string)
     }
 
     return srvs, true
@@ -183,12 +183,4 @@ func (sm *DefaultRPCServerManager) triggerRPCServerChangeEvent(dataId string) {
 
 func (sm *DefaultRPCServerManager) RegisterRPCServerChangeListener(listener RPCServerChangeListener) {
     sm.listeners = append(sm.listeners, listener)
-}
-
-func handleDataId(dataId string) string {
-    idx := strings.Index(dataId, "#@#")
-    if idx > 0 {
-        return dataId[0: idx]
-    }
-    return dataId
 }
