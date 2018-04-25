@@ -7,6 +7,8 @@ import (
     "strings"
 )
 
+const ServerConfFilePath = "/home/admin/server.conf"
+
 type SystemConfig struct {
     AntShareCloud    bool
     InstanceId       string
@@ -30,7 +32,7 @@ func InitSystemConfig(antShareCloud bool, dc string, appName string, zone string
         DataCenter:    dc,
         AppName:       appName,
         Zone:          zone,
-        InstanceId:    "DEFAULT_INSTANCE_ID",
+        InstanceId:    "default_client_instanceid",
     }
 
     confregUrl, z := readPropertyFromServerConfFile(antShareCloud)
@@ -44,14 +46,12 @@ func InitSystemConfig(antShareCloud bool, dc string, appName string, zone string
     return SysConfig
 }
 
-var serverConfFilePath = "/Users/lepdou/server.conf"
-
 func readPropertyFromServerConfFile(antShareCloud bool) (confregUrl string, zone string) {
     if !antShareCloud {
-        serverConf := properties.MustLoadFile(serverConfFilePath, properties.UTF8)
+        serverConf := properties.MustLoadFile(ServerConfFilePath, properties.UTF8)
         cu, ok := serverConf.Get("confregurl")
         if !ok {
-            errMsg := fmt.Sprintf("Load confregurl from %s failed.", serverConf)
+            errMsg := fmt.Sprintf("Load confregurl from %s failed.", ServerConfFilePath)
             log.DefaultLogger.Errorf(errMsg)
             panic(errMsg)
         }
