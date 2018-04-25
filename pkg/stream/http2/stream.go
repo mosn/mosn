@@ -281,7 +281,7 @@ func (s *clientStream) endStream() {
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
-	log.DefaultLogger.Println("high watermark on h2 stream client")
+	log.DefaultLogger.Debugf("high watermark on h2 stream client")
 
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
@@ -416,7 +416,7 @@ func (s *serverStream) endStream() {
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
-	log.DefaultLogger.Println("high watermark on h2 stream server")
+	log.DefaultLogger.Debugf("high watermark on h2 stream server")
 
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)

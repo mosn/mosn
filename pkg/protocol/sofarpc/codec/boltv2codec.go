@@ -77,7 +77,7 @@ func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltV2RequestCommand) (s
 	c.insertToBytes(result, 1, cmd.Version1)
 	c.insertToBytes(result, 11, cmd.SwitchCode)
 
-	log.DefaultLogger.Println("[BOLTV2]rpc headers encode finished,bytes=%d", result)
+	log.DefaultLogger.Debugf("[BOLTV2]rpc headers encode finished,bytes=%d", result)
 
 	return sofarpc.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
 }

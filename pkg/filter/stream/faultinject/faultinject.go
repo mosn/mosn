@@ -2,12 +2,12 @@
 package faultinject
 
 import (
-	"time"
-	"sync/atomic"
-	"math/rand"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"math/rand"
+	"sync/atomic"
+	"time"
 )
 
 type faultInjectFilter struct {
@@ -73,7 +73,7 @@ func (f *faultInjectFilter) tryInjectDelay() {
 				select {
 				case <-time.After(time.Duration(duration) * time.Millisecond):
 					atomic.StoreUint32(&f.delaying, 0)
-					log.DefaultLogger.Println("Continue")
+					log.DefaultLogger.Debugf("Continue")
 					f.cb.ContinueDecoding()
 				}
 			}()

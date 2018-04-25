@@ -1,12 +1,12 @@
 package log
 
 import (
+	"github.com/hashicorp/go-syslog"
 	"io"
 	"log"
-	"sync"
 	"os"
 	"strings"
-	"github.com/hashicorp/go-syslog"
+	"sync"
 )
 
 var remoteSyslogPrefixes = map[string]string{
@@ -19,8 +19,8 @@ var DefaultLogger *logger
 
 // Logger
 type logger struct {
-	Output  string
-	Level   LogLevel
+	Output string
+	Level  LogLevel
 	*log.Logger
 	Roller  *LogRoller
 	writer  io.Writer
@@ -29,9 +29,9 @@ type logger struct {
 
 func InitDefaultLogger(output string, level LogLevel) error {
 	DefaultLogger = &logger{
-		Output: output,
-		Level:  level,
-		Roller: DefaultLogRoller(),
+		Output:  output,
+		Level:   level,
+		Roller:  DefaultLogRoller(),
 		fileMux: new(sync.RWMutex),
 	}
 
@@ -115,7 +115,6 @@ func (l *logger) Infof(format string, args ...interface{}) {
 
 func (l *logger) Debugf(format string, args ...interface{}) {
 	if l.Level >= DEBUG {
-
 		l.Printf(format, args...)
 	}
 }
