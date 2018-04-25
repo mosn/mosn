@@ -1,8 +1,8 @@
 {
   "servers": [
     {
-      "access_log": "/home/admin/mosn/logs/default.log",
-      "log_level": "INFO",
+      "logger_path": "./default.log",
+      "logger_level": "DEBUG",
       "listeners": [
         {
           "name": "egress",
@@ -13,12 +13,18 @@
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "SofaRpc",
+                "upstream_protocol": "http2",
                 "routes": [
                   {
                     "name": "example_route",
                     "service": ".*",
                     "cluster": "remote_service"
+                  }
+                ],
+                "accesslog":[
+                  {
+                    "accesslogPath": "./accesslogE.log",
+                    "accesslogFormat": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
                   }
                 ]
               }
@@ -46,12 +52,18 @@
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "SofaRpc",
+                "upstream_protocol": "http2",
                 "routes": [
                   {
                     "name": "example_route",
                     "service": ".*",
                     "cluster": "local_service"
+                  }
+                ],
+                "accesslog":[
+                  {
+                    "accesslogPath": "./accesslogIn.log",
+                    "accesslogFormat": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %RESP.%requestid"
                   }
                 ]
               }

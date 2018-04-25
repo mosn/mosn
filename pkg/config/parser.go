@@ -6,6 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"log"
 	"net"
+	"os"
 	"time"
 )
 
@@ -16,6 +17,12 @@ var logLevelMap = map[string]log2.LogLevel{
 	"WARN":  log2.WARN,
 	"INFO":  log2.INFO,
 }
+
+const (
+	LogDefaultFile                     = "/home/admin/mosn/logs/"
+	LoggerDefaultName    string        = "logger.log"
+	DefaultLevel         log2.LogLevel = log2.INFO
+)
 
 var networkFilterTypeMap = map[string]string{}
 
@@ -29,24 +36,34 @@ var lbTypeMap = map[string]v2.LbType{
 	"LB_RANDOM": v2.LB_RANDOM,
 }
 
+//add default loggerfile by @boqin
 func ParseServerConfig(c *ServerConfig) *server.Config {
 	sc := &server.Config{DisableConnIo: c.DisableConnIo}
-	if c.AccessLog != "" {
-		sc.LogPath = c.AccessLog
+	if c.LoggerPath != "" {
+		sc.LogPath = c.LoggerPath
+	} else {
+		//use default logger path
+		if isDirExists(LogDefaultFile) {
+			sc.LogPath = LogDefaultFile + LoggerDefaultName
+		} else {
+			sc.LogPath = "./" + LoggerDefaultName
+		}
 	}
 
-	if c.LogLevel != "" {
-		if logLevel, ok := logLevelMap[c.LogLevel]; ok {
+	if c.LoggerLevel != "" {
+		if logLevel, ok := logLevelMap[c.LoggerLevel]; ok {
 			sc.LogLevel = logLevel
 		} else {
-			log.Fatalln("unknown log level:" + c.LogLevel)
+			log.Fatalln("unknown log level:" + c.LoggerLevel)
 		}
+	} else {
+		sc.LogLevel = DefaultLevel
 	}
 
 	return sc
 }
 
-func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
+func ParseProxyFilter(c *FilterConfig,name string) *v2.Proxy {
 	proxyConfig := &v2.Proxy{}
 
 	//downstream protocol
@@ -84,7 +101,56 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	} else {
 		log.Fatalln("[routes] is required in proxy filter config")
 	}
+
+	//accesslog
+	if accesslog, ok := c.Config["accesslog"]; ok {
+		if accesslogs, ok := accesslog.([]interface{}); ok {
+			for _, alog := range accesslogs {
+				proxyConfig.AccessLogs = append(proxyConfig.AccessLogs, parseAccessConfig(alog.(map[string]interface{}),name))
+			}
+		} else {
+			//log.Fatalln("[accesslog] in proxy filter config is not list of accesslogmap")
+		}
+	} else {
+		//ues default
+	}
+
+	//todo add accesslogs
 	return proxyConfig
+}
+
+func parseAccessConfig(config map[string]interface{},name string) *v2.AccessLog {
+	accesslog := &v2.AccessLog{}
+
+	//accesslog path
+	if alpath, ok := config["accesslogPath"]; ok {
+		if pathstr, ok := alpath.(string); ok {
+			accesslog.Path = pathstr
+		} else {
+			log.Fatalln("[accesslogPath] in proxy filter accesslog config is not string")
+		}
+	} else {
+		//log.Fatalln("[accesslogPath] is required in proxy filter accesslog config")
+		logfilename := "listener" + "_" + name + "_" + "access.log"
+		if isDirExists(LogDefaultFile){
+			accesslog.Path = LogDefaultFile + logfilename
+		} else {
+			accesslog.Path = "./" + logfilename
+		}
+	}
+
+	//accesslog format
+	if alformat, ok := config["accesslogFormat"]; ok {
+		if formatstr, ok := alformat.(string); ok {
+			accesslog.Format = formatstr
+		} else {
+			log.Fatalln("[accesslogFormat] in proxy filter accesslog config is not string")
+		}
+	} else {
+		//log.Fatalln("[accesslogFormat] is required in proxy filter accesslog config")
+	}
+
+	return accesslog
 }
 
 func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
@@ -296,4 +362,14 @@ func ParseHostConfig(c *ClusterConfig) []v2.Host {
 	}
 
 	return hosts
+}
+
+func isDirExists(path string) bool {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return os.IsExist(err)
+	} else {
+		return fi.IsDir()
+	}
+	panic("not reached")
 }

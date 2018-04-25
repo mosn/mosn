@@ -2,12 +2,33 @@ package log
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"fmt"
+	"strings"
 )
 
+var (
+	RequestInfoFuncMap map[string]func(info types.RequestInfo)string
+)
+
+func init() {
+	RequestInfoFuncMap = map[string]func(info types.RequestInfo)string {
+		types.LogStartTime:                types.StartTimeGetter,
+		types.LogRequestReceivedDuration:  types.ReceivedDurationGetter,
+		types.LogResponseReceivedDuration: types.ResponseReceivedDurationGetter,
+		types.LogBytesSent:                types.BytesSentGetter,
+		types.LogBytesReceived:            types.BytesReceivedGetter,
+		types.LogProtocol:                 types.ProtocolGetter,
+		types.LogResponseCode:             types.ResponseCodeGetter,
+		types.LogDuration:                 types.DurationGetter,
+		types.LogResponseFlag:             types.GetResponseFlagGetter,
+		types.LogUpstreamLocalAddress:     types.UpstreamLocalAddressGetter,
+		types.LogDownstreamLocalAddress:   types.DownstreamLocalAddressGetter,
+	}
+}
+
 const (
-	// todo: add headers
-	DefaultAccessLogFormat = "%PROTOCOL% %RESPONSE_CODE% %RESPONSE_FLAGS% ..."
+	//read docs/access-log-details.md
+	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
+		"%BytesReceived% %PROTOCOL% %ResponseCode% %Duration% %RESPONSE_FLAGS% %RESPONSE_CODE% %RESPONSE_FLAGS%"
 )
 
 var accesslogs []*accesslog
@@ -81,12 +102,51 @@ func NewAccessLogFormatter(format string) types.AccessLogFormatter {
 	}
 }
 
-// format example: "{request info field a} {request info field b} {request info field c} {request info field d} ..."
+//format to formatters
+// Format Example:
+// "%StartTime% %PROTOCOL% %DownstreamLocalAddress%  +
+//	"%REQ.RequestID% %REQ.Version% %REQ.CmdType%" +
+//  "%RESP.RequestID% %RESP.RespCode% "
 func formatToFormatters(format string) []types.AccessLogFormatter {
-	// TODO: format to formatters
+
+	strArray := strings.Split(format, " ")
+
+	//delete %
+	for i := 0; i < len(strArray); i++ {
+		strArray[i] = strArray[i][1 : len(strArray[i])-1]
+	}
+
+	//classify keys
+	var reqInfoArray, reqHeaderArray, respHeaderArray []string
+	for _, s := range strArray {
+		if strings.HasPrefix(s, types.ReqHeaderPrefix) {
+			reqHeaderArray = append(reqHeaderArray, s)
+
+		} else if strings.HasPrefix(s, types.RespHeaderPrefix) {
+			respHeaderArray = append(respHeaderArray, s)
+		} else {
+			reqInfoArray = append(reqInfoArray, s)
+		}
+	}
+
+	//delete REQ.
+	if reqHeaderArray != nil {
+		for i := 0; i < len(reqHeaderArray); i++ {
+			reqHeaderArray[i] = reqHeaderArray[i][len(types.ReqHeaderPrefix):]
+		}
+	}
+
+	//delete RESP.
+	if respHeaderArray != nil {
+		for i := 0; i < len(respHeaderArray); i++ {
+			respHeaderArray[i] = respHeaderArray[i][len(types.RespHeaderPrefix):]
+		}
+	}
 
 	return []types.AccessLogFormatter{
-		&simpleRequestInfoFormatter{},
+		&simpleRequestInfoFormatter{reqInfoFormat: reqInfoArray},
+		&simpleReqHeadersFormatter{reqHeaderFormat: reqHeaderArray},
+		&simpleRespHeadersFormatter{respHeaderFormat: respHeaderArray},
 	}
 }
 
@@ -97,28 +157,79 @@ func (f *accesslogformatter) Format(reqHeaders map[string]string, respHeaders ma
 		log += formatter.Format(reqHeaders, respHeaders, requestInfo)
 	}
 
+	//delete the final " "
+	if len(log) > 0 {
+		log = log[:len(log)-1]
+	}
+
 	return log
 }
 
 type simpleRequestInfoFormatter struct {
-	fieldName string
+	reqInfoFormat []string
 }
 
 func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 	// todo: map fieldName to field vale string
-	return fmt.Sprintf("%+v", requestInfo)
+	if f.reqInfoFormat == nil {
+		DefaultLogger.Debugf("No ReqInfo Format Keys Input")
+		return ""
+	}
+
+	format := ""
+	for _, key := range f.reqInfoFormat {
+
+		if vFunc, ok := RequestInfoFuncMap[key]; ok {
+			format = format + vFunc(requestInfo) + " "
+		} else {
+			DefaultLogger.Debugf("Invalid RespHeaders Format Keys %s", key)
+		}
+	}
+	return format
 }
 
 type simpleReqHeadersFormatter struct {
+	reqHeaderFormat []string
 }
 
 func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
-	return "" // todo: reqHeaders
+
+	if f.reqHeaderFormat == nil {
+		DefaultLogger.Debugf("No ReqHeaders Format Keys Input")
+		return ""
+	}
+	format := ""
+
+	for _, key := range f.reqHeaderFormat {
+		if v, ok := reqHeaders[key]; ok {
+			format = format + types.ReqHeaderPrefix + v + " "
+		} else {
+			DefaultLogger.Debugf("Invalid RespHeaders Format Keys %s", key)
+		}
+	}
+
+	return format
 }
 
 type simpleRespHeadersFormatter struct {
+	respHeaderFormat []string
 }
 
 func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
-	return "" // todo: respHeaders
+	if f.respHeaderFormat == nil {
+		DefaultLogger.Debugf("No RespHeaders Format Keys Input")
+		return ""
+	}
+
+	format := ""
+	for _, key := range f.respHeaderFormat {
+
+		if v, ok := respHeaders[key]; ok {
+			format = format + types.RespHeaderPrefix + v + " "
+		} else {
+			DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
+		}
+	}
+
+	return format
 }

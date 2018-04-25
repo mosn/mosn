@@ -42,6 +42,7 @@ func Start(c *config.MOSNConfig) {
     wg := sync.WaitGroup{}
     wg.Add(1)
 
+
     go func() {
         // pprof server
         http.ListenAndServe("0.0.0.0:9090", nil)
@@ -69,7 +70,7 @@ func Start(c *config.MOSNConfig) {
 
         for _, listenerConfig := range serverConfig.Listeners {
             // network filters
-            nfcf := getNetworkFilter(listenerConfig.NetworkFilters)
+            nfcf := getNetworkFilter(listenerConfig.NetworkFilters,listenerConfig.Name)
 
             //stream filters
             sfcf := getStreamFilters(listenerConfig.StreamFilters)
@@ -94,12 +95,14 @@ func Start(c *config.MOSNConfig) {
         go func() {
             srv.Start() //开启连接
 
+
             select {
             case <-stopChan:
                 srv.Close()
             }
         }()
     }
+
 
     //close legacy listeners
     for _, ln := range inheritListeners {
@@ -113,7 +116,7 @@ func Start(c *config.MOSNConfig) {
     wg.Wait()
 }
 
-func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFactory {
+func getNetworkFilter(configs []config.FilterConfig,name string) types.NetworkFilterChainFactory {
 	if len(configs) != 1 {
 		log.Fatalln("only one network filter supported")
 	}
@@ -125,7 +128,7 @@ func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFac
 	}
 
 	return &proxy.GenericProxyFilterConfigFactory{
-		Proxy: config.ParseProxyFilter(c),
+		Proxy: config.ParseProxyFilter(c,name),
 	}
 }
 
