@@ -19,7 +19,7 @@ var ModuleStarted = false
 func init() {
 
     fmt.Printf("........init.........")
-    log.DefaultLogger.Debugf("", log.INFO)
+    log.InitDefaultLogger("", log.INFO)
     go func() {
         re := &Endpoint{
             registryConfig: config.DefaultRegistryConfig,

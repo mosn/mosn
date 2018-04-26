@@ -15,6 +15,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 	_"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 	"log"
 	"net"
@@ -170,8 +171,7 @@ type clusterManagerFilter struct {
 func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
-	//servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(cmf)
-
+	servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(cmf)
 }
 
 func getInheritListeners() []*v2.ListenerConfig {
@@ -197,11 +197,15 @@ func getInheritListeners() []*v2.ListenerConfig {
 	return nil
 }
 
+var i int = 0
+
 func (p *clusterManagerFilter) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
 
 	//11.166.22.163:12200?_TIMEOUT=3000&p=1&_SERIALIZETYPE=protobuf&_WARMUPTIME=0
 	// &_WARMUPWEIGHT=10&app_name=bar1&zone=GZ00A&_MAXREADIDLETIME=30&_IDLETIMEOUT=27&v=4.0
 	// &_WEIGHT=100&startTime=1524565802559
+	i++
+	fmt.Printf("Call back by confreg %d times",i)
 	serviceName := dataId
 	fmt.Printf(serviceName)
 	var hosts []v2.Host
