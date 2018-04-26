@@ -9,7 +9,6 @@ import (
 
 const ServerConfFilePath = "/home/admin/server.conf"
 
-
 type SystemConfig struct {
     AntShareCloud    bool
     InstanceId       string
