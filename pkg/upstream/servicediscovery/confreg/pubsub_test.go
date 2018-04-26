@@ -11,7 +11,7 @@ func Test_AsyncPubSubOneService(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.PublishAsync(someDataId, "a", "b", "c")
@@ -24,7 +24,7 @@ func Test_yncPubSubOneService(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.PublishSync(someDataId, "a", "b", "c")
@@ -37,7 +37,7 @@ func Test_AsyncPubSubOneServiceAndPubTimeout(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.PublishAsync(someDataId, "a", "b", "c")
@@ -50,7 +50,7 @@ func Test_SyncPubSubOneServiceAndPubTimeout(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.PublishSync(someDataId, "a", "b", "c")
@@ -63,7 +63,7 @@ func Test_AsyncPubSubOneServiceAndPubSubTimeout(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.PublishAsync(someDataId, "a", "b", "c")
@@ -76,7 +76,7 @@ func Test_AsyncPubSubManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
     csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     go func() {
         for i := 0; i < 3; i++ {

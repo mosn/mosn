@@ -9,6 +9,7 @@ import (
 
 const ServerConfFilePath = "/home/admin/server.conf"
 
+
 type SystemConfig struct {
     AntShareCloud    bool
     InstanceId       string
@@ -32,7 +33,7 @@ func InitSystemConfig(antShareCloud bool, dc string, appName string, zone string
         DataCenter:    dc,
         AppName:       appName,
         Zone:          zone,
-        InstanceId:    "default_client_instanceid",
+        InstanceId:    "",
     }
 
     confregUrl, z := readPropertyFromServerConfFile(antShareCloud)

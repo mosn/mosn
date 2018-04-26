@@ -6,15 +6,16 @@ import (
     _ "gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "fmt"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
 )
 
 
 func Test_Register(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
 
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     anotherDataId := "anotherDataId"
@@ -27,9 +28,9 @@ func Test_Register(t *testing.T) {
 func Test_Received(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
 
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeAsync(someDataId)
