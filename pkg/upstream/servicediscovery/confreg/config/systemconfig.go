@@ -7,7 +7,7 @@ import (
     "strings"
 )
 
-const ServerConfFilePath = "/home/admin/server.conf"
+const ServerConfFilePath = "/Users/boqin/server.conf"
 
 
 type SystemConfig struct {
