@@ -17,9 +17,10 @@ var ModuleStarted = false
 
 //Startup registry endpoint.
 func init() {
-
-    fmt.Printf("........init.........")
     log.InitDefaultLogger("", log.INFO)
+
+    servermanager.NewRPCServerManager()
+
     go func() {
         re := &Endpoint{
             registryConfig: config.DefaultRegistryConfig,
