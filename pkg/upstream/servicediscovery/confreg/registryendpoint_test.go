@@ -2,15 +2,14 @@ package registry
 
 import (
     "testing"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 
 func Test_RegistryModule(t *testing.T) {
-    beforeTest()
+    //beforeTest()
+    log.InitDefaultLogger("", log.INFO)
 
-    registryEndpoint := NewRegistryEndpoint(config.DefaultRegistryConfig, registryClient)
-
-    registryEndpoint.StartListener()
+    blockThread()
 }
 

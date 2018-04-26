@@ -14,6 +14,7 @@ type connPool struct {
 	host         types.Host
 }
 
+
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
 		host: host,

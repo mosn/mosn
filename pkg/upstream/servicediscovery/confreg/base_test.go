@@ -7,21 +7,17 @@ import (
 )
 
 var sysConfig *config.SystemConfig
-var registryConfig *config.RegistryConfig
 
 func beforeTest() {
     log.InitDefaultLogger("", log.INFO)
+
     MockRpcServer()
 
     sysConfig = &config.SystemConfig{
-        Zone:             "GZ00b",
-        RegistryEndpoint: "confreg.sit.alipay.net",
+        Zone:             "GZ00A",
+        RegistryEndpoint: "http://confregsession-ci-04.inc.alipay.net",
         InstanceId:       "000001",
         AppName:          "someApp",
-    }
-    registryConfig = &config.RegistryConfig{
-        ScheduleCompensateRegisterTaskDuration: 5 * time.Second,
-        RegisterTimeout:                        3 * time.Second,
     }
 }
 

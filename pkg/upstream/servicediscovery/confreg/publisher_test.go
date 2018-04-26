@@ -5,13 +5,14 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "fmt"
     "time"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
 )
 
 func Test_AsyncPublishOneService(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.PublishAsync(someDataId, "a", "b", "c")
@@ -22,8 +23,8 @@ func Test_AsyncPublishOneService(t *testing.T) {
 func Test_SyncPublishOneService(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     err := rc.PublishSync(someDataId, "a", "b", "c")
@@ -37,8 +38,8 @@ func Test_SyncPublishOneService(t *testing.T) {
 func Test_AsyncPublishOneServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     for ; ; {
         <-time.After(1 * time.Second)
@@ -50,8 +51,8 @@ func Test_AsyncPublishOneServiceManyTimes(t *testing.T) {
 func Test_SyncPublishOneServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     for i := 0; i < 10; i++ {
@@ -66,8 +67,8 @@ func Test_SyncPublishOneServiceManyTimes(t *testing.T) {
 func Test_AsyncPublishManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     for i := 0; i < 3; i++ {
         someDataId := "ServiceName-" + RandomUuid()
@@ -85,8 +86,8 @@ func Test_AsyncPublishManyServiceManyTimes(t *testing.T) {
 func Test_SyncPublishManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     for i := 0; i < 10; i++ {
         someDataId := "ServiceName-" + RandomUuid()
@@ -104,8 +105,8 @@ func Test_SyncPublishManyServiceManyTimes(t *testing.T) {
 func Test_AsyncPublishTimeout(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.PublishAsync(someDataId, "a", "b", "c")
@@ -116,8 +117,8 @@ func Test_AsyncPublishTimeout(t *testing.T) {
 func Test_SyncPublishTimeout(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     err := rc.PublishSync(someDataId, "a", "b", "c")
@@ -131,8 +132,8 @@ func Test_SyncPublishTimeout(t *testing.T) {
 func Test_AsyncPublishThreeServiceAndOneFailed(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewConfregClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.PublishAsync(someDataId, "a", "b", "c")
