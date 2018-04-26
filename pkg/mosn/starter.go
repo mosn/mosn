@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
@@ -14,6 +15,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 	"log"
 	"net"
 	"net/http"
@@ -21,103 +23,109 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 )
 
+var ClusterInitFinishChan = make(chan bool)
+
 func Start(c *config.MOSNConfig) {
 
-    runtime.GOMAXPROCS(runtime.NumCPU())
-    log.Printf("mosn config : %+v\n", c)
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	log.Printf("mosn config : %+v\n", c)
 
-    srvNum := len(c.Servers)
-    if srvNum == 0 {
-        log.Fatalln("no server found")
-    }
+	srvNum := len(c.Servers)
+	if srvNum == 0 {
+		log.Fatalln("no server found")
+	}
 
-    if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
-        log.Fatalln("no cluster found")
-    }
+	if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
+		log.Fatalln("no cluster found")
+	}
 
-    stopChans := make([]chan bool, srvNum)
+	stopChans := make([]chan bool, srvNum)
 
-    wg := sync.WaitGroup{}
-    wg.Add(1)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 
+	go func() {
+		// pprof server
+		http.ListenAndServe("0.0.0.0:9090", nil)
+	}()
 
-    go func() {
-        // pprof server
-        http.ListenAndServe("0.0.0.0:9090", nil)
-    }()
+	inheritListeners := getInheritListeners()
 
-    inheritListeners := getInheritListeners()
+	for i, serverConfig := range c.Servers {
+		stopChan := stopChans[i]
 
-    for i, serverConfig := range c.Servers {
-        stopChan := stopChans[i]
+		//1. server config prepare
+		//server config
+		sc := config.ParseServerConfig(&serverConfig)
 
-        //1. server config prepare
-        //server config
-        sc := config.ParseServerConfig(&serverConfig)
+		//cluster manager filter
+		cmf := &clusterManagerFilter{}
 
-        //cluster manager filter
-        cmf := &clusterManagerFilter{}
+		//2. initialize server instance
+		srv := server.NewServer(sc, cmf)
 
-        //2. initialize server instance
-        srv := server.NewServer(sc, cmf)
+		//add listener
+		if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
+			log.Fatalln("no listener found")
+		}
 
-        //add listener
-        if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
-            log.Fatalln("no listener found")
-        }
+		for _, listenerConfig := range serverConfig.Listeners {
+			// network filters
+			nfcf := getNetworkFilter(listenerConfig.NetworkFilters, listenerConfig.Name)
 
-        for _, listenerConfig := range serverConfig.Listeners {
-            // network filters
-            nfcf := getNetworkFilter(listenerConfig.NetworkFilters,listenerConfig.Name)
+			//stream filters
+			sfcf := getStreamFilters(listenerConfig.StreamFilters)
 
-            //stream filters
-            sfcf := getStreamFilters(listenerConfig.StreamFilters)
+			srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nfcf, sfcf)
+		}
 
-            srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nfcf, sfcf)
-        }
+		//config cluster
+		var clusters []v2.Cluster
+		clusterMap := make(map[string][]v2.Host)
 
-        var clusters []v2.Cluster
-        clusterMap := make(map[string][]v2.Host)
+		for _, cluster := range c.ClusterManager.Clusters {
+			parsed := config.ParseClusterConfig(&cluster)
+			clusters = append(clusters, parsed)
+			clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
+		}
+		cmf.cccb.UpdateClusterConfig(clusters)
 
-        for _, cluster := range c.ClusterManager.Clusters {
-            parsed := config.ParseClusterConfig(&cluster)
-            clusters = append(clusters, parsed)
-            clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
-        }
-        cmf.cccb.UpdateClusterConfig(clusters)
+		for clusterName, hosts := range clusterMap {
+			cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
+		}
 
-        for clusterName, hosts := range clusterMap {
-            cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
-        }
+		ClusterInitFinishChan <- true
 
-        go func() {
-            srv.Start() //开启连接
+		go func() {
+			srv.Start()
 
+			select {
+			case <-stopChan:
+				srv.Close()
+			}
+		}()
+	}
 
-            select {
-            case <-stopChan:
-                srv.Close()
-            }
-        }()
-    }
+	//close legacy listeners
+	for _, ln := range inheritListeners {
+		if !ln.Remain {
+			log.Println("close useless legacy listener:", ln.Addr)
+			ln.InheritListener.Close()
+		}
+	}
 
+	//todo: daemon running
 
-    //close legacy listeners
-    for _, ln := range inheritListeners {
-        if !ln.Remain {
-            log.Println("close useless legacy listener:", ln.Addr)
-            ln.InheritListener.Close()
-        }
-    }
+	//add cluster's callback
 
-    //todo: daemon running
-    wg.Wait()
+	wg.Wait()
 }
 
-func getNetworkFilter(configs []config.FilterConfig,name string) types.NetworkFilterChainFactory {
+func getNetworkFilter(configs []config.FilterConfig, name string) types.NetworkFilterChainFactory {
 	if len(configs) != 1 {
 		log.Fatalln("only one network filter supported")
 	}
@@ -129,7 +137,7 @@ func getNetworkFilter(configs []config.FilterConfig,name string) types.NetworkFi
 	}
 
 	return &proxy.GenericProxyFilterConfigFactory{
-		Proxy: config.ParseProxyFilter(c,name),
+		Proxy: config.ParseProxyFilter(c, name),
 	}
 }
 
@@ -162,6 +170,8 @@ type clusterManagerFilter struct {
 func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
+	//servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(cmf)
+
 }
 
 func getInheritListeners() []*v2.ListenerConfig {
@@ -185,4 +195,32 @@ func getInheritListeners() []*v2.ListenerConfig {
 		return listeners
 	}
 	return nil
+}
+
+func (p *clusterManagerFilter) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
+
+	//11.166.22.163:12200?_TIMEOUT=3000&p=1&_SERIALIZETYPE=protobuf&_WARMUPTIME=0
+	// &_WARMUPWEIGHT=10&app_name=bar1&zone=GZ00A&_MAXREADIDLETIME=30&_IDLETIMEOUT=27&v=4.0
+	// &_WEIGHT=100&startTime=1524565802559
+	serviceName := dataId
+	fmt.Printf(serviceName)
+	var hosts []v2.Host
+	for _, val := range zoneServers {
+		for _, v := range val {
+
+			idx := strings.Index("?", v)
+			if idx > 0 {
+				ipaddress := v[:idx]
+				hosts = append(hosts, v2.Host{
+					Address: ipaddress,
+				})
+			}
+		}
+	}
+	select {
+
+	case <-ClusterInitFinishChan:
+		p.chcb.UpdateClusterHost("remote_service", 0, hosts)
+	}
+
 }

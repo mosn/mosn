@@ -17,9 +17,9 @@ var ModuleStarted = false
 
 //Startup registry endpoint.
 func init() {
-    fmt.Printf("---[][][]----")
-    //log.DefaultLogger.Debugf("", log.INFO)
-    log.InitDefaultLogger("",log.INFO)
+
+    fmt.Printf("........init.........")
+    log.DefaultLogger.Debugf("", log.INFO)
     go func() {
         re := &Endpoint{
             registryConfig: config.DefaultRegistryConfig,
