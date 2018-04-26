@@ -9,7 +9,6 @@ import (
 
 const ServerConfFilePath = "/Users/boqin/server.conf"
 
-
 type SystemConfig struct {
     AntShareCloud    bool
     InstanceId       string
