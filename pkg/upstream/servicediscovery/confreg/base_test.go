@@ -22,7 +22,7 @@ func beforeTest() {
 }
 
 func blockThread() {
-    for ; ; {
-        time.Sleep(5 * time.Second)
-    }
+    //for ; ; {
+    //    time.Sleep(5 * time.Second)
+    //}
 }
