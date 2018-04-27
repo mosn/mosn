@@ -4,27 +4,40 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "sync"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 var confregServerManager *servermanager.RegistryServerManager
-var registryClient RegistryClient
+var registryClient Client
 
 var lock = new(sync.Mutex)
 
-var Initialization = false
+var ModuleStarted = false
 
-func StartupRegistryModule(sysConfig *config.SystemConfig, registryConfig *config.RegistryConfig) RegistryClient {
+//Startup registry endpoint.
+func init() {
+    log.InitDefaultLogger("", log.INFO)
+    go func() {
+        re := &Endpoint{
+            registryConfig: config.DefaultRegistryConfig,
+        }
+        re.StartListener()
+    }()
+}
+
+func StartupRegistryModule(sysConfig *config.SystemConfig, registryConfig *config.RegistryConfig) Client {
     lock.Lock()
 
     defer func() {
         lock.Unlock()
     }()
 
-    if Initialization {
+    if ModuleStarted {
         return registryClient
     }
-    Initialization = true
-
     confregServerManager = servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    return NewRegistryClient(sysConfig, registryConfig, confregServerManager)
+
+    ModuleStarted = true
+
+    return NewConfregClient(sysConfig, registryConfig, confregServerManager)
 }

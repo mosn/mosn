@@ -4,6 +4,7 @@ import (
     "testing"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "fmt"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
 )
 
 type TestRPCServerChangeListener struct {
@@ -24,13 +25,10 @@ func Test_OpenCC(t *testing.T) {
 func Test_ReceiveSingleSegmentData(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
     rc.GetRPCServerManager().RegisterRPCServerChangeListener(listener)
 
-    re := NewRegistryEndpoint(registryConfig, rc)
-    go re.StartListener()
-    
     dataId := "someDataId"
     rc.SubscribeSync(dataId)
 

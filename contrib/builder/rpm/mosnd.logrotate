@@ -1,0 +1,12 @@
+/home/admin/mosn/logs/*.log {
+    compress
+    rotate 5
+    size 500M
+    missingok
+    notifempty
+    nodateext
+    sharedscripts
+    postrotate
+        kill -USR1 `cat /home/admin/mosn/logs/mosn.pid` || true
+    endscript
+}

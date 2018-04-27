@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
@@ -54,9 +53,6 @@ type proxy struct {
 
 	// access logs
 	accessLogs []types.AccessLog
-
-	//logger
-	logger log.Logger
 }
 
 func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
@@ -70,6 +66,7 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 		resueCodecMaps: true,
 		codecPool:      codecHeadersBufPool,
 		context:        ctx,
+		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
@@ -78,10 +75,6 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 	proxy.routerConfig, _ = router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
 	proxy.downstreamCallbacks = &downstreamCallbacks{
 		proxy: proxy,
-	}
-	for _, alConfig := range config.AccessLogs {
-		al, _ := log.NewAccessLog(alConfig.Path, nil, alConfig.Format)
-		proxy.accessLogs = append(proxy.accessLogs, al)
 	}
 
 	return proxy

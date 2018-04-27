@@ -75,9 +75,26 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 		ch.logger.Fatalf("initialize listener logger failed : %v", err)
 	}
 
+	//initialize access log
+	var als []types.AccessLog
+
+	for _, alConfig := range lc.AccessLogs {
+
+		//use default listener access log path
+		if alConfig.Path == "" {
+			alConfig.Path = MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
+		}
+
+		if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
+			als = append(als, al)
+		} else {
+			log.StartLogger.Fatalln("initialize listener access logger %s failed : %v", alConfig.Path, err)
+		}
+	}
+
 	l := network.NewListener(lc, logger)
 
-	al := newActiveListener(l, logger, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
+	al := newActiveListener(l, logger, als, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
 	l.SetListenerCallbacks(al)
 
 	ch.listeners = append(ch.listeners, al)
@@ -174,18 +191,20 @@ type activeListener struct {
 	stopChan               chan bool
 	stats                  *ListenerStats
 	logger                 log.Logger
+	accessLogs             []types.AccessLog
 }
 
-func newActiveListener(listener types.Listener, logger log.Logger, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
+func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
 	al := &activeListener{
 		disableConnIo:          disableConnIo,
 		listener:               listener,
 		networkFiltersFactory:  networkFiltersFactory,
 		streamFiltersFactories: streamFiltersFactories,
-		conns:    list.New(),
-		handler:  handler,
-		stopChan: stopChan,
-		logger:   logger,
+		conns:      list.New(),
+		handler:    handler,
+		stopChan:   stopChan,
+		logger:     logger,
+		accessLogs: accessLoggers,
 	}
 
 	listenPort := 0
@@ -213,6 +232,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactory, al.networkFiltersFactory)
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
+	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
 
 	arc.ContinueFilterChain(true, ctx)
 }

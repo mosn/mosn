@@ -156,6 +156,7 @@ func reconfigure() {
 		log.DefaultLogger.Errorf("Fail to fork %v", err)
 		return
 	}
+
 	log.DefaultLogger.Infof("SIGHUP received: fork-exec to %d", fork)
 
 	// Stop accepting requests

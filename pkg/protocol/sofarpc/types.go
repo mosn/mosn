@@ -156,15 +156,13 @@ type ProtoBasicCmd interface {
 }
 
 type BoltRequestCommand struct {
-	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
-	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
-	CmdCode  int16 //HB:0,     Req:1,    Resp:2
-	Version  byte  //1
-	ReqId    uint32
-	CodecPro byte
-
-	Timeout int
-
+	Protocol      byte  //BoltV1:1, BoltV2:2, Tr:13
+	CmdType       byte  //Req:1,    Resp:0,   OneWay:2
+	CmdCode       int16 //HB:0,     Req:1,    Resp:2
+	Version       byte  //1
+	ReqId         uint32
+	CodecPro      byte
+	Timeout       int
 	ClassLen      int16
 	HeaderLen     int16
 	ContentLen    int
@@ -184,7 +182,7 @@ type BoltResponseCommand struct {
 	ReqId    uint32
 	CodecPro byte // 1
 
-	ResponseStatus int16
+	ResponseStatus int16 //Success:0 Error:1 Timeout:7
 
 	ClassLen      int16
 	HeaderLen     int16

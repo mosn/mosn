@@ -192,6 +192,7 @@ func rpcProxyListener() *v2.ListenerConfig {
 		PerConnBufferLimitBytes: 1024 * 32,
 		LogPath:                 "",
 		LogLevel:                uint8(log.DEBUG),
+		AccessLogs:              []v2.AccessLog{{Path: "/home/admin/mosn/logs/test_access.log"}},
 	}
 }
 

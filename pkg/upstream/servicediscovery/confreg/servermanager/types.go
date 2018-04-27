@@ -7,6 +7,8 @@ type RPCServerManager interface {
 
     GetRPCServerList(dataId string) (servers map[string][]string, ok bool)
 
+    GetRPCServerListWithoutZone(dataId string) (servers []string, ok bool)
+
     GetRPCServerListByZone(dataId string, zone string) (servers []string, ok bool)
 
     GetRPCServiceSnapshot() []byte

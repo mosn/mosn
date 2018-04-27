@@ -169,7 +169,7 @@ func (s *activeStream) cleanStream() {
 	s.proxy.deleteActiveStream(s)
 }
 
-// types.StreamDecoder 被STREAM层回调
+// types.StreamDecoder
 func (s *activeStream) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
@@ -460,6 +460,7 @@ func (s *activeStream) doEncodeTrailers(filter *activeStreamEncoderFilter, trail
 
 func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bool) {
 	// check retry
+	s.downstreamRespHeaders = headers
 	if s.retryState != nil {
 		shouldRetry := s.retryState.shouldRetry(headers, "")
 		if shouldRetry && s.setupRetry(endStream) {

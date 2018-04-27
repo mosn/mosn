@@ -4,13 +4,14 @@ import (
     "testing"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "time"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
 )
 
 func Test_AsyncSubscribeOneService(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeAsync(someDataId)
@@ -21,8 +22,8 @@ func Test_AsyncSubscribeOneService(t *testing.T) {
 func Test_SyncSubscribeOneService(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeSync(someDataId)
@@ -33,8 +34,8 @@ func Test_SyncSubscribeOneService(t *testing.T) {
 func Test_AsyncSubscribeOneServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     for ; ; {
@@ -48,8 +49,8 @@ func Test_AsyncSubscribeOneServiceManyTimes(t *testing.T) {
 func Test_SyncSubscribeOneServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     for ; ; {
@@ -63,8 +64,8 @@ func Test_SyncSubscribeOneServiceManyTimes(t *testing.T) {
 func Test_AsyncSubscribeManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     for i := 0; i < 3; i++ {
         someDataId := "ServiceName-" + RandomUuid()
@@ -82,8 +83,8 @@ func Test_AsyncSubscribeManyServiceManyTimes(t *testing.T) {
 func Test_SyncSubscribeManyServiceManyTimes(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     for i := 0; i < 10; i++ {
         someDataId := "ServiceName-" + RandomUuid()
@@ -101,8 +102,8 @@ func Test_SyncSubscribeManyServiceManyTimes(t *testing.T) {
 func Test_AsyncSubscribeTimeout(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeAsync(someDataId)
@@ -113,8 +114,8 @@ func Test_AsyncSubscribeTimeout(t *testing.T) {
 func Test_SyncSubscribeTimeout(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeSync(someDataId)
@@ -125,8 +126,8 @@ func Test_SyncSubscribeTimeout(t *testing.T) {
 func Test_AsyncSubscribeThreeServiceAndOneFailed(t *testing.T) {
     beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, registryConfig)
-    rc := NewRegistryClient(sysConfig, registryConfig, csm)
+    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
     someDataId := "someDataId"
     rc.SubscribeAsync(someDataId)

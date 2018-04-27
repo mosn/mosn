@@ -108,7 +108,7 @@ func Start(c *config.MOSNConfig) {
 	//close legacy listeners
 	for _, ln := range inheritListeners {
 		if !ln.Remain {
-			log.StartLogger.Infof("close useless legacy listener: %v", ln.Addr)
+			log.StartLogger.Println("close useless legacy listener:", ln.Addr)
 			ln.InheritListener.Close()
 		}
 	}

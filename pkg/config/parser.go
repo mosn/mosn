@@ -6,6 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"net"
 	"strings"
+
 	"time"
 )
 
@@ -37,7 +38,8 @@ func ParseLogLevel(level string) log.LogLevel {
 			log.StartLogger.Fatalln("unsupported log level: ", level)
 		}
 	}
-	return log.FATAL
+	//use INFO as default log level
+	return log.INFO
 }
 
 func ParseServerConfig(c *ServerConfig) *server.Config {
@@ -88,7 +90,21 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	} else {
 		log.StartLogger.Fatalln("[routes] is required in proxy filter config")
 	}
+
 	return proxyConfig
+}
+
+func ParseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
+	var logs []v2.AccessLog
+
+	for _, logConfig := range c {
+		logs = append(logs, v2.AccessLog{
+			Path:   logConfig.LogPath,
+			Format: logConfig.LogFormat,
+		})
+	}
+
+	return logs
 }
 
 func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
@@ -241,6 +257,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		PerConnBufferLimitBytes: 1 << 15,
 		LogPath:                 c.LogPath,
 		LogLevel:                uint8(ParseLogLevel(c.LogLevel)),
+		AccessLogs:              ParseAccessConfig(c.AccessLogs),
 		DisableConnIo:           c.DisableConnIo,
 	}
 }

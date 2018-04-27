@@ -15,6 +15,11 @@ type FilterConfig struct {
 	Config map[string]interface{}
 }
 
+type AccessLogConfig struct {
+	LogPath   string `json:"log_path"`
+	LogFormat string `json:"log_format"`
+}
+
 type ListenerConfig struct {
 	Name           string
 	Address        string
@@ -22,8 +27,12 @@ type ListenerConfig struct {
 	NetworkFilters []FilterConfig `json:"network_filters"`
 	StreamFilters  []FilterConfig `json:"stream_filters"`
 
+	//logger
 	LogPath  string `json:"log_path"`
 	LogLevel string `json:"log_level"`
+
+	//access log
+	AccessLogs []AccessLogConfig `json:"access_logs"`
 
 	// only used in http2 case
 	DisableConnIo bool `json:"disable_conn_io"`

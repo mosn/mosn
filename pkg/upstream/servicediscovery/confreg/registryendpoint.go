@@ -11,9 +11,11 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
 )
 
-type RegistryEndpoint struct {
+const ModuleNotStartedErrMsg = "Registry module not startup. Should call '/configs/application' endpoint at first."
+
+type Endpoint struct {
     registryConfig *config.RegistryConfig
-    RegistryClient RegistryClient
+    RegistryClient Client
 }
 
 type MsgChanCallback func([]string)
@@ -24,26 +26,7 @@ type ServiceInfo struct {
 
 var subscribeRecorder = make(map[string]chan bool)
 
-type WaitDataPushedListener struct {
-}
-
-func (l *WaitDataPushedListener) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
-    if r, ok := subscribeRecorder[dataId]; ok {
-        r <- true
-    }
-}
-
-func NewRegistryEndpoint(registryConfig *config.RegistryConfig, registryClient RegistryClient) *RegistryEndpoint {
-    re := &RegistryEndpoint{
-        registryConfig: registryConfig,
-    }
-    if registryClient != nil {
-        re.RegistryClient = registryClient
-    }
-    return re
-}
-
-func (re *RegistryEndpoint) SetSystemConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *Endpoint) SetSystemConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     raw, _ := ioutil.ReadAll(r.Body)
 
     var request ApplicationInfoRequest
@@ -53,7 +36,7 @@ func (re *RegistryEndpoint) SetSystemConfig(w http.ResponseWriter, r *http.Reque
     }
 
     sysConfig := config.InitSystemConfig(request.AntShareCloud, request.DataCenter, request.AppName, request.Zone)
-
+    //Startup registry module.
     re.RegistryClient = StartupRegistryModule(sysConfig, config.DefaultRegistryConfig)
 
     rpcServerChangeListener := &WaitDataPushedListener{}
@@ -62,17 +45,22 @@ func (re *RegistryEndpoint) SetSystemConfig(w http.ResponseWriter, r *http.Reque
     doResponse(true, "", w)
 }
 
-func (re *RegistryEndpoint) GetSystemConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *Endpoint) GetSystemConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     res, _ := json.Marshal(config.SysConfig)
     w.Write(res)
 }
 
-func (re *RegistryEndpoint) GetRegistryConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *Endpoint) GetRegistryConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     res, _ := json.Marshal(config.DefaultRegistryConfig)
     w.Write(res)
 }
 
-func (re *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *Endpoint) PublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !ModuleStarted {
+        doResponse(false, ModuleNotStartedErrMsg, w)
+        return
+    }
+
     raw, _ := ioutil.ReadAll(r.Body)
 
     var request PublishServiceRequest
@@ -80,7 +68,7 @@ func (re *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Reques
         doResponse(false, "Unmarshal body stream to publish service request failed.", w)
         return
     }
-    //todo Assemble publish data
+
     err := re.RegistryClient.PublishSync(request.ServiceName, re.assemblePublishData(request))
     if err == nil {
         doResponse(true, "", w)
@@ -89,7 +77,7 @@ func (re *RegistryEndpoint) PublishService(w http.ResponseWriter, r *http.Reques
     }
 }
 
-func (re *RegistryEndpoint) assemblePublishData(request PublishServiceRequest) string {
+func (re *Endpoint) assemblePublishData(request PublishServiceRequest) string {
     data := fmt.Sprintf("%s:%d?_TIMEOUT=3000&p=%s&_SERIALIZETYPE=%s&app_name=%s&zone=%s&v=%s",
         GetOutboundIP().String(), re.registryConfig.RPCServerPort, request.ProviderMetaInfo.Protocol,
         request.ProviderMetaInfo.SerializeType, request.ProviderMetaInfo.AppName,
@@ -97,7 +85,12 @@ func (re *RegistryEndpoint) assemblePublishData(request PublishServiceRequest) s
     return data
 }
 
-func (re *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *Endpoint) UnPublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !ModuleStarted {
+        doResponse(false, ModuleNotStartedErrMsg, w)
+        return
+    }
+
     body, _ := ioutil.ReadAll(r.Body)
 
     var request UnPublishServiceRequest
@@ -113,7 +106,11 @@ func (re *RegistryEndpoint) UnPublishService(w http.ResponseWriter, r *http.Requ
     }
 }
 
-func (re *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *Endpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !ModuleStarted {
+        doResponse(false, ModuleNotStartedErrMsg, w)
+        return
+    }
     body, _ := ioutil.ReadAll(r.Body)
 
     var request SubscribeServiceRequest
@@ -164,7 +161,11 @@ func (re *RegistryEndpoint) SubscribeService(w http.ResponseWriter, r *http.Requ
     }
 }
 
-func (re *RegistryEndpoint) UnSubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *Endpoint) UnSubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !ModuleStarted {
+        doResponse(false, ModuleNotStartedErrMsg, w)
+        return
+    }
     body, _ := ioutil.ReadAll(r.Body)
 
     var request UnSubscribeServiceRequest
@@ -180,11 +181,16 @@ func (re *RegistryEndpoint) UnSubscribeService(w http.ResponseWriter, r *http.Re
     }
 }
 
-func (re *RegistryEndpoint) GetServiceInfoSnapshot(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *Endpoint) GetServiceInfoSnapshot(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    if !ModuleStarted {
+        doResponse(false, ModuleNotStartedErrMsg, w)
+        return
+    }
     w.Write(re.RegistryClient.GetRPCServerManager().GetRPCServiceSnapshot())
 }
 
-func (re *RegistryEndpoint) GetServiceInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (re *Endpoint) GetServiceInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
     dataId := ps.ByName("serviceName")
     services, ok := re.RegistryClient.GetRPCServerManager().GetRPCServerList(dataId)
     if !ok {
@@ -208,12 +214,21 @@ func doResponse(success bool, errMsg string, w http.ResponseWriter) {
     w.Write(bytes)
 }
 
-func (re *RegistryEndpoint) StartListener() {
+type WaitDataPushedListener struct {
+}
+
+func (l *WaitDataPushedListener) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
+    if r, ok := subscribeRecorder[dataId]; ok {
+        r <- true
+    }
+}
+
+func (re *Endpoint) StartListener() {
     router := httprouter.New()
-    router.POST("/services/publish", re.PublishService)
     router.POST("/configs/application", re.SetSystemConfig)
     router.GET("/configs/application", re.GetSystemConfig)
     router.GET("/configs/registry", re.GetRegistryConfig)
+    router.POST("/services/publish", re.PublishService)
     router.POST("/services/unpublish", re.UnPublishService)
     router.POST("/services/subscribe", re.SubscribeService)
     router.POST("/services/unsubscribe", re.UnSubscribeService)
@@ -221,7 +236,7 @@ func (re *RegistryEndpoint) StartListener() {
     router.GET("/services/:serviceName", re.GetServiceInfo)
 
     port := "8888"
-    httpServerEndpoint := "localhost:" + port
+    httpServerEndpoint := "0.0.0.0:" + port
     log.DefaultLogger.Infof("Mesh registry endpoint started on port(s): %s (http)", port)
 
     if err := http.ListenAndServe(httpServerEndpoint, router); err != nil {

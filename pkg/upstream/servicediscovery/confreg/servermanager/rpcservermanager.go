@@ -7,6 +7,8 @@ import (
     "encoding/json"
 )
 
+var rpcServerManagerInstance RPCServerManager
+
 type segmentData struct {
     Segment string              `json:"segment"`
     Version int64               `json:"version"`
@@ -38,12 +40,20 @@ type DefaultRPCServerManager struct {
 }
 
 func NewRPCServerManager() RPCServerManager {
+    if rpcServerManagerInstance != nil {
+        return rpcServerManagerInstance
+    }
     RPCServerManager := &DefaultRPCServerManager{
         svrData:   make(map[string]map[string]segmentData),
         listeners: make([]RPCServerChangeListener, 0, 100),
     }
 
+    rpcServerManagerInstance = RPCServerManager
     return RPCServerManager
+}
+
+func GetRPCServerManager() RPCServerManager {
+    return rpcServerManagerInstance
 }
 
 func (sm *DefaultRPCServerManager) RegisterRPCServer(receivedData *model.ReceivedDataPb) {
@@ -64,7 +74,7 @@ func (sm *DefaultRPCServerManager) RegisterRPCServer(receivedData *model.Receive
 
             go sm.triggerRPCServerChangeEvent(dataId)
         } else {
-            log.DefaultLogger.Infof("Received data which the version is lower than stored data, and will ignore the data."+
+            log.DefaultLogger.Warnf("Received data which the version is lower than stored data, and will ignore the data."+
                 "stored version = %d, received version = %d", storedSegment.Version, receivedData.Version)
         }
     }
@@ -98,6 +108,36 @@ func (sm *DefaultRPCServerManager) GetRPCServerList(dataId string) (servers map[
     }
 
     return result, true
+}
+
+func (sm *DefaultRPCServerManager) GetRPCServerListWithoutZone(dataId string) (servers []string, ok bool) {
+    segments, ok := sm.svrData[dataId]
+    if !ok {
+        return nil, false
+    }
+
+    srvSet := mapset.NewSet()
+    for _, segmentData := range segments {
+        for _, srvs := range segmentData.Data {
+            for _, srv := range srvs {
+                if srv != "" {
+                    srvSet.Add(srv)
+                }
+            }
+        }
+    }
+
+    srvSetSlice := srvSet.ToSlice()
+    if len(srvSetSlice) == 0 {
+        return nil, false
+    }
+
+    srvs := make([]string, len(srvSetSlice))
+    for i, srv := range srvSetSlice {
+        srvs[i] = srv.(string)
+    }
+
+    return srvs, true
 }
 
 func (sm *DefaultRPCServerManager) GetRPCServerListByZone(dataId string, zone string) (servers []string, ok bool) {

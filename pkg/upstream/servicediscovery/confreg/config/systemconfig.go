@@ -5,9 +5,17 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "fmt"
     "strings"
+    "os"
 )
 
-const ServerConfFilePath = "/home/admin/server.conf"
+var ServerConfFilePath string
+
+func init() {
+    ServerConfFilePath = os.Getenv("server_conf_path")
+    if ServerConfFilePath == "" {
+        ServerConfFilePath = "/home/admin/server.conf"
+    }
+}
 
 type SystemConfig struct {
     AntShareCloud    bool
@@ -32,7 +40,7 @@ func InitSystemConfig(antShareCloud bool, dc string, appName string, zone string
         DataCenter:    dc,
         AppName:       appName,
         Zone:          zone,
-        InstanceId:    "DEFAULT_INSTANCE_ID",
+        InstanceId:    "",
     }
 
     confregUrl, z := readPropertyFromServerConfFile(antShareCloud)
@@ -51,7 +59,7 @@ func readPropertyFromServerConfFile(antShareCloud bool) (confregUrl string, zone
         serverConf := properties.MustLoadFile(ServerConfFilePath, properties.UTF8)
         cu, ok := serverConf.Get("confregurl")
         if !ok {
-            errMsg := fmt.Sprintf("Load confregurl from %s failed.", serverConf)
+            errMsg := fmt.Sprintf("Load confregurl from %s failed.", ServerConfFilePath)
             log.DefaultLogger.Errorf(errMsg)
             panic(errMsg)
         }

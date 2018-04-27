@@ -52,11 +52,12 @@ type ListenerConfig struct {
 	Remain          bool
 
 	// log
-	LogPath  string
-	LogLevel uint8
+	LogPath    string
+	LogLevel   uint8
+	AccessLogs []AccessLog
 
 	// only used in http2 case
-	DisableConnIo  bool
+	DisableConnIo bool
 }
 
 type AccessLog struct {
@@ -95,7 +96,6 @@ type Proxy struct {
 	DownstreamProtocol string
 	UpstreamProtocol   string
 	Routes             []*BasicServiceRoute
-	AccessLogs         []*AccessLog
 }
 
 type BasicServiceRoute struct {

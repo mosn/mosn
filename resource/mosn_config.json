@@ -12,12 +12,17 @@
           "bind_port": true,
           "log_path": "/home/admin/mosn/logs/egress.log",
           "log_level": "DEBUG",
+          "access_logs":[
+            {
+              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
+            }
+          ],
           "network_filters": [
             {
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "SofaRpc",
+                "upstream_protocol": "http2",
                 "routes": [
                   {
                     "name": "example_route",
@@ -52,7 +57,7 @@
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "SofaRpc",
+                "upstream_protocol": "http2",
                 "routes": [
                   {
                     "name": "example_route",
