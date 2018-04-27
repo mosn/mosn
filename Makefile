@@ -80,5 +80,9 @@ shell:
 	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
 	docker run --rm -ti -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} /bin/bash
 
+upload:
+	tools/osscmd/osscmd put bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}-${GIT_VERSION}.x86_64.rpm --host=oss-cn-hangzhou-zmf.aliyuncs.com \
+	--id=rYnBYHJEco40Oziu --key=mUxxJ1w39WCHqfxvTqWxKWgQSWXsAD oss://docker-static/alipay/afe/mosn/release/${RPM_SRC_DIR}-${GIT_VERSION}.x86_64.rpm
+
 .PHONY: unit-test build image shell
 
