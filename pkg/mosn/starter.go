@@ -99,11 +99,8 @@ func Start(c *config.MOSNConfig) {
 			cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
 		}
 
-		ClusterInitFinishChan <- true
-
 		go func() {
 			srv.Start()
-
 			select {
 			case <-stopChan:
 				srv.Close()
@@ -205,26 +202,35 @@ func (p *clusterManagerFilter) OnRPCServerChanged(dataId string, zoneServers map
 	// &_WARMUPWEIGHT=10&app_name=bar1&zone=GZ00A&_MAXREADIDLETIME=30&_IDLETIMEOUT=27&v=4.0
 	// &_WEIGHT=100&startTime=1524565802559
 	i++
-	fmt.Printf("Call back by confreg %d times",i)
+	fmt.Println("Call back by confreg %d times\n",i,zoneServers)
+
+	dataId = dataId[:len(dataId)-8]
 	serviceName := dataId
-	fmt.Printf(serviceName)
+
+	fmt.Println(serviceName)
 	var hosts []v2.Host
 	for _, val := range zoneServers {
 		for _, v := range val {
 
-			idx := strings.Index("?", v)
+			idx := strings.Index( v,"?")
 			if idx > 0 {
 				ipaddress := v[:idx]
 				hosts = append(hosts, v2.Host{
 					Address: ipaddress,
 				})
+				fmt.Println(ipaddress)
 			}
 		}
 	}
-	select {
 
-	case <-ClusterInitFinishChan:
+	go func() {
 		p.chcb.UpdateClusterHost("remote_service", 0, hosts)
-	}
+	}()
 
+	//select {
+	//case <-ClusterInitFinishChan:
+	//	go func() {
+	//		p.chcb.UpdateClusterHost("remote_service", 0, hosts)
+	//	}()
+	//}
 }

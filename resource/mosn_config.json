@@ -13,7 +13,7 @@
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "http2",
+                "upstream_protocol": "SofaRpc",
                 "routes": [
                   {
                     "name": "example_route",
@@ -52,7 +52,7 @@
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "http2",
+                "upstream_protocol": "SofaRpc",
                 "routes": [
                   {
                     "name": "example_route",
@@ -113,7 +113,7 @@
         "hosts": [
           {
             "hostname": "upstream_machine",
-            "address": "127.0.0.1:23456",
+            "address": "11.166.22.163:xxxx",
             "weight": 10
           }
         ]

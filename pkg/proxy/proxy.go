@@ -3,8 +3,6 @@ package proxy
 import (
 	"container/list"
 	"context"
-	"fmt"
-	"strings"
 	"sync"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
@@ -181,8 +179,10 @@ func (p *proxy) deleteActiveStream(s *activeStream) {
 			p.codecPool.Give(s.downstreamReqHeaders)
 		}
 
-		if s.upstreamRequest.upstreamRespHeaders != nil {
-			p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
+		if s.upstreamRequest != nil {
+			if s.upstreamRequest.upstreamRespHeaders != nil {
+				p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
+			}
 		}
 	}
 

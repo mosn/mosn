@@ -4,7 +4,6 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
-    "fmt"
     "sync"
 )
 

@@ -4,6 +4,7 @@ import (
 	"net"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type dynamicClusterBase struct {
@@ -78,6 +79,13 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 
 	sc.mux.Lock()
 	defer sc.mux.Unlock()
+
+	if sc.hosts !=nil{
+		log.DefaultLogger.Debugf("[origin host]",sc.hosts[0])
+	}
+	if newHosts != nil{
+		log.DefaultLogger.Debugf("[after fetching confreg host]",newHosts[0])
+	}
 
 	copy(curHosts, sc.hosts)
 

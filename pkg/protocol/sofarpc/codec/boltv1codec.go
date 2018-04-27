@@ -386,7 +386,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					nil,
 				}
 
-				log.DefaultLogger.Debugf("[Decoder]bolt v1 decode response, response status is:%+v\n", response.ResponseStatus)
+				log.DefaultLogger.Debugf("[Decoder]bolt v1 decode response, response status is:%d %s\n,", response.ResponseStatus,time.Now().String())
 
 				cmd = &response
 			}

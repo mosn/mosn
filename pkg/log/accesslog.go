@@ -227,7 +227,7 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 		if v, ok := respHeaders[key]; ok {
 			format = format + types.RespHeaderPrefix + v + " "
 		} else {
-			DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
+			DefaultLogger.Debugf("[accesslog debuginfo]Invalid RespHeaders Format Keys:%s", key)
 		}
 	}
 
