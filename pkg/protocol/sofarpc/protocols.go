@@ -3,7 +3,6 @@ package sofarpc
 import (
 	"context"
 	"reflect"
-	log2"log"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -31,7 +30,7 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 
 // todo: add error as return value
 //PROTOCOL LEVEL's Unified EncodeHeaders for BOLTV1、BOLTV2、TR
-func (p *protocols) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
+func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
 	var protocolCode byte
 
 	switch headers.(type) {
@@ -45,34 +44,34 @@ func (p *protocols) EncodeHeaders(headers interface{}) (string, types.IoBuffer) 
 			protocolCode = protoValue.(byte)
 		} else {
 			//Codec exception
-			log.DefaultLogger.Errorf("Invalid encode headers, should contains 'protocol'")
+			log.ByContext(context).Errorf("Invalid encode headers, should contains 'protocol'")
 
 			return "", nil
 		}
 	default:
 		err := "Invalid encode headers"
-		log.DefaultLogger.Debugf(err)
+		log.ByContext(context).Errorf(err)
 
 		return "", nil
 	}
 
-	log.DefaultLogger.Debugf("[EncodeHeaders]protocol code = ", protocolCode)
+	log.ByContext(context).Debugf("[EncodeHeaders]protocol code = %x", protocolCode)
 
 	if proto, exists := p.protocolMaps[protocolCode]; exists {
 		//Return encoded data in map[string]string to stream layer
-		return proto.GetEncoder().EncodeHeaders(headers)
+		return proto.GetEncoder().EncodeHeaders(context, headers)
 	} else {
-		log.DefaultLogger.Errorf("Unknown protocol code: [", protocolCode, "] while encode headers.")
+		log.ByContext(context).Errorf("Unknown protocol code: [%d] while encode headers.", protocolCode)
 
 		return "", nil
 	}
 }
 
-func (p *protocols) EncodeData(data types.IoBuffer) types.IoBuffer {
+func (p *protocols) EncodeData(context context.Context, data types.IoBuffer) types.IoBuffer {
 	return data
 }
 
-func (p *protocols) EncodeTrailers(trailers map[string]string) types.IoBuffer {
+func (p *protocols) EncodeTrailers(context context.Context, trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
@@ -84,7 +83,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 		protocolCode := data.Bytes()[0]
 		maybeProtocolVersion := data.Bytes()[1]
 
-		logger.Debugf("[Decoder]protocol code = %x, maybeProtocolVersion = %x", protocolCode,  maybeProtocolVersion)
+		logger.Debugf("[Decoder]protocol code = %x, maybeProtocolVersion = %x", protocolCode, maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 
@@ -113,22 +112,14 @@ func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 		log.DefaultLogger.Warnf("protocol alreay Exist:", protocolCode)
 	} else {
 		p.protocolMaps[protocolCode] = protocol
-		if log.DefaultLogger != nil {
-			log.DefaultLogger.Debugf("register protocol:", protocolCode)
-		} else {
-			log2.Println("register protocol:", protocolCode)
-		}
+		log.StartLogger.Debugf("register protocol:%x", protocolCode)
 	}
 }
 
 func (p *protocols) UnRegisterProtocol(protocolCode byte) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
 		delete(p.protocolMaps, protocolCode)
-		if log.DefaultLogger != nil {
-			log.DefaultLogger.Debugf("unregister protocol:", protocolCode)
-		} else {
-			log2.Println("unregister protocol:", protocolCode)
-		}
+		log.StartLogger.Debugf("unregister protocol:%x", protocolCode)
 	}
 }
 

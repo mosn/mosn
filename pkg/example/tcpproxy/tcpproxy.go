@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
@@ -17,6 +18,8 @@ const (
 )
 
 func main2() {
+	log.InitDefaultLogger("", log.DEBUG)
+
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
 	meshReadyChan := make(chan bool)
@@ -103,7 +106,7 @@ func main2() {
 		case <-meshReadyChan:
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
-			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
+			cc := network.NewClientConnection(nil, remoteAddr, stopChan, log.DefaultLogger)
 			cc.AddConnectionEventListener(&clientConnCallbacks{ //ADD  connection callback
 				cc: cc,
 			})

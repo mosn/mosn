@@ -6,22 +6,22 @@ import (
 
 type Protocols interface {
 	// return 1. stream id if have one 2. headers bytes
-	EncodeHeaders(headers interface{}) (string, IoBuffer)
+	EncodeHeaders(context context.Context, headers interface{}) (string, IoBuffer)
 
-	EncodeData(data IoBuffer) IoBuffer
+	EncodeData(context context.Context, data IoBuffer) IoBuffer
 
-	EncodeTrailers(trailers map[string]string) IoBuffer
+	EncodeTrailers(context context.Context, trailers map[string]string) IoBuffer
 
 	Decode(context context.Context, data IoBuffer, filter DecodeFilter)
 }
 
 type Encoder interface {
 	// return 1. stream id if have one 2. headers bytes
-	EncodeHeaders(headers interface{}) (string, IoBuffer)
+	EncodeHeaders(context context.Context, headers interface{}) (string, IoBuffer)
 
-	EncodeData(data IoBuffer) IoBuffer
+	EncodeData(context context.Context, data IoBuffer) IoBuffer
 
-	EncodeTrailers(trailers map[string]string) IoBuffer
+	EncodeTrailers(context context.Context, trailers map[string]string) IoBuffer
 }
 
 type Decoder interface {

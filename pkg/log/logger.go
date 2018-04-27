@@ -104,7 +104,7 @@ selectwriter:
 		var file *os.File
 
 		//create parent dir if not exists
-		err := os.MkdirAll(filepath.Dir(l.Output), 0644)
+		err := os.MkdirAll(filepath.Dir(l.Output), 0755)
 
 		fmt.Println(err)
 

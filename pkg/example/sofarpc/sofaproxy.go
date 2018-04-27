@@ -3,7 +3,13 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
@@ -12,10 +18,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"net"
-	"net/http"
-	_ "net/http/pprof"
-	"time"
 )
 
 const (
@@ -66,6 +68,8 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
+		LogPath:                 "",
+		LogLevel:                uint8(log.DEBUG),
 	}
 }
 
@@ -154,6 +158,8 @@ func Run() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
+
+	log.InitDefaultLogger("", log.DEBUG)
 
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
@@ -244,7 +250,7 @@ func Run() {
 		case <-meshReadyChan:
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshRPCServerAddr)
-			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
+			cc := network.NewClientConnection(nil, remoteAddr, stopChan, log.DefaultLogger)
 			cc.AddConnectionEventListener(&rpclientConnCallbacks{ //ADD  connection callback
 				cc: cc,
 			})

@@ -2,23 +2,27 @@
 package faultinject
 
 import (
-	"time"
-	"sync/atomic"
-	"math/rand"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"context"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"math/rand"
+	"sync/atomic"
+	"time"
 )
 
 type faultInjectFilter struct {
+	context context.Context
+
 	delayPercent  uint32
 	delayDuration uint64
 	delaying      uint32
 	cb            types.StreamDecoderFilterCallbacks
 }
 
-func NewFaultInjectFilter(config *v2.FaultInject) *faultInjectFilter {
+func NewFaultInjectFilter(context context.Context, config *v2.FaultInject) *faultInjectFilter {
 	return &faultInjectFilter{
+		context:       context,
 		delayPercent:  config.DelayPercent,
 		delayDuration: config.DelayDuration,
 	}
@@ -73,7 +77,7 @@ func (f *faultInjectFilter) tryInjectDelay() {
 				select {
 				case <-time.After(time.Duration(duration) * time.Millisecond):
 					atomic.StoreUint32(&f.delaying, 0)
-					log.DefaultLogger.Debugf("[FaultInject] Continue after delay")
+					log.ByContext(f.context).Debugf("[FaultInject] Continue after delay")
 					f.cb.ContinueDecoding()
 				}
 			}()
@@ -98,7 +102,7 @@ type FaultInjectFilterConfigFactory struct {
 	FaultInject *v2.FaultInject
 }
 
-func (f *FaultInjectFilterConfigFactory) CreateFilterChain(callbacks types.FilterChainFactoryCallbacks) {
-	filter := NewFaultInjectFilter(f.FaultInject)
+func (f *FaultInjectFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
+	filter := NewFaultInjectFilter(context, f.FaultInject)
 	callbacks.AddStreamDecoderFilter(filter)
 }

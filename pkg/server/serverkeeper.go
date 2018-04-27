@@ -23,7 +23,7 @@ var (
 
 	onProcessExit []func()
 
-	gracefulTimeout time.Duration
+	gracefulTimeout time.Duration = time.Second * 30 //default 30s
 
 	BaseFolder string
 
@@ -83,48 +83,6 @@ func catchSignalsCrossPlatform() {
 	}()
 }
 
-/*
-//add by wugou.cyf for windows go skd compile compatibility
-func catchSignalsCrossPlatform() {
-	go func() {
-		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT , //syscall.SIGUSR1, syscall.SIGUSR2
-		)
-
-		for sig := range sigchan {
-			log.DefaultLogger.Println(sig, " received!")
-			switch sig {
-			case syscall.SIGQUIT:
-				// quit
-				for _, f := range onProcessExit {
-					f() // only perform important cleanup actions
-				}
-				os.Exit(0)
-			case syscall.SIGTERM:
-				// stop to quit
-				exitCode := executeShutdownCallbacks("SIGTERM")
-				for _, f := range onProcessExit {
-					f() // only perform important cleanup actions
-				}
-				Stop()
-
-				os.Exit(exitCode)
-				//case syscall.SIGUSR1:
-				// reopen
-				//	log.Reopen()
-			case syscall.SIGHUP:
-				// reload
-				//reconfigure()
-				//case syscall.SIGUSR2:
-				// ignore
-				//}
-			}
-		}
-	}()
-}
-*/
-
-
 func catchSignalsPosix() {
 	go func() {
 		shutdown := make(chan os.Signal, 1)
@@ -162,7 +120,7 @@ func executeShutdownCallbacks(signame string) (exitCode int) {
 
 		if len(errs) > 0 {
 			for _, err := range errs {
-				log.DefaultLogger.Printf("[ERROR] %s shutdown: %v", signame, err)
+				log.DefaultLogger.Errorf("[ERROR] %s shutdown: %v", signame, err)
 			}
 			exitCode = 4
 		}
@@ -176,13 +134,11 @@ func OnProcessShutDown(cb func() error) {
 }
 
 func reconfigure() {
-	// Stop accepting requests
-	StopAccept()
-
 	// Get socket file descriptor to pass it to fork
 	listenerFD := ListListenerFD()
 	if len(listenerFD) == 0 {
-		log.DefaultLogger.Fatalln("no listener fd found")
+		log.DefaultLogger.Errorf("no listener fd found")
+		return
 	}
 
 	// Set a flag for the new process start process
@@ -197,12 +153,16 @@ func reconfigure() {
 	// Fork exec the new version of your server
 	fork, err := syscall.ForkExec(os.Args[0], os.Args, execSpec)
 	if err != nil {
-		log.DefaultLogger.Fatalln("Fail to fork", err)
+		log.DefaultLogger.Errorf("Fail to fork %v", err)
+		return
 	}
 	log.DefaultLogger.Infof("SIGHUP received: fork-exec to %d", fork)
 
+	// Stop accepting requests
+	StopAccept()
+
 	// Wait for all conections to be finished
-	WaitConnectionsDone(time.Duration(time.Second) * 15)
+	WaitConnectionsDone(gracefulTimeout)
 	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
 
 	// Stop the old server, all the connections have been closed and the new one is running

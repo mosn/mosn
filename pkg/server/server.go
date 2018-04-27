@@ -2,12 +2,12 @@ package server
 
 import (
 	"errors"
-	"os"
-	_ "sync"
-	"time"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"os"
+	_ "sync"
+	"time"
 )
 
 func init() {
@@ -27,18 +27,23 @@ type server struct {
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
-	var disableConnIo bool
+	var logPath string
+	var logLevel log.LogLevel
 
 	if config != nil {
-		disableConnIo = config.DisableConnIo
+		logPath = config.LogPath
+		logLevel = config.LogLevel
+		gracefulTimeout = config.GracefulTimeout
 	}
+
+	initDefaultLogger(logPath, logLevel)
 
 	OnProcessShutDown(log.CloseAll)
 
 	server := &server{
 		logger:   log.DefaultLogger,
 		stopChan: make(chan bool),
-		handler:  NewHandler(cmFilter, log.DefaultLogger, disableConnIo),
+		handler:  NewHandler(cmFilter, log.DefaultLogger),
 	}
 
 	servers = append(servers, server)
@@ -114,5 +119,18 @@ func WaitConnectionsDone(duration time.Duration) error {
 		return errors.New("wait timeout")
 	case <-wait:
 		return nil
+	}
+}
+
+func initDefaultLogger(logPath string, logLevel log.LogLevel) {
+
+	//use default log path
+	if logPath == "" {
+		logPath = MosnLogDefaultPath
+	}
+
+	err := log.InitDefaultLogger(logPath, logLevel)
+	if err != nil {
+		log.StartLogger.Fatalln("initialize default logger failed : ", err)
 	}
 }

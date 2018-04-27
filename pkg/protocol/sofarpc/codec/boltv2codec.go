@@ -39,56 +39,56 @@ func init() {
 
 type boltV2Codec struct{}
 
-func (c *boltV2Codec) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
+func (c *boltV2Codec) EncodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
 	if headerMap, ok := headers.(map[string]string); ok {
 		cmd := c.mapToCmd(headerMap)
 
-		return c.encodeHeaders(cmd)
+		return c.encodeHeaders(context, cmd)
 	}
 
-	return c.encodeHeaders(headers)
+	return c.encodeHeaders(context, headers)
 }
 
-func (c *boltV2Codec) encodeHeaders(headers interface{}) (string, types.IoBuffer) {
+func (c *boltV2Codec) encodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
 	switch headers.(type) {
 	case *sofarpc.BoltV2RequestCommand:
-		return c.encodeRequestCommand(headers.(*sofarpc.BoltV2RequestCommand))
+		return c.encodeRequestCommand(context, headers.(*sofarpc.BoltV2RequestCommand))
 	case *sofarpc.BoltV2ResponseCommand:
-		return c.encodeResponseCommand(headers.(*sofarpc.BoltV2ResponseCommand))
+		return c.encodeResponseCommand(context, headers.(*sofarpc.BoltV2ResponseCommand))
 	default:
 		err := "[BoltV2 Encode] Invalid Input Type"
-		log.DefaultLogger.Errorf(err)
+		log.ByContext(context).Errorf(err)
 
 		return "", nil
 	}
 }
 
-func (c *boltV2Codec) EncodeData(data types.IoBuffer) types.IoBuffer {
+func (c *boltV2Codec) EncodeData(context context.Context, data types.IoBuffer) types.IoBuffer {
 	return data
 }
 
-func (c *boltV2Codec) EncodeTrailers(trailers map[string]string) types.IoBuffer {
+func (c *boltV2Codec) EncodeTrailers(context context.Context, trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
-func (c *boltV2Codec) encodeRequestCommand(cmd *sofarpc.BoltV2RequestCommand) (string, types.IoBuffer) {
-	result := boltV1.doEncodeRequestCommand(&cmd.BoltRequestCommand)
+func (c *boltV2Codec) encodeRequestCommand(context context.Context, cmd *sofarpc.BoltV2RequestCommand) (string, types.IoBuffer) {
+	result := boltV1.doEncodeRequestCommand(context, &cmd.BoltRequestCommand)
 
 	c.insertToBytes(result, 1, cmd.Version1)
 	c.insertToBytes(result, 11, cmd.SwitchCode)
 
-	log.DefaultLogger.Debugf("[BOLTV2]rpc headers encode finished,bytes=%d", result)
+	log.ByContext(context).Debugf("[BOLTV2]rpc headers encode finished,bytes=%d", result)
 
 	return sofarpc.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
 }
 
-func (c *boltV2Codec) encodeResponseCommand(cmd *sofarpc.BoltV2ResponseCommand) (string, types.IoBuffer) {
-	result := boltV1.doEncodeResponseCommand(&cmd.BoltResponseCommand)
+func (c *boltV2Codec) encodeResponseCommand(context context.Context, cmd *sofarpc.BoltV2ResponseCommand) (string, types.IoBuffer) {
+	result := boltV1.doEncodeResponseCommand(context, &cmd.BoltResponseCommand)
 
 	c.insertToBytes(result, 1, cmd.Version1)
 	c.insertToBytes(result, 11, cmd.SwitchCode)
 
-	log.DefaultLogger.Debugf("rpc headers encode finished,bytes=%d", result)
+	log.ByContext(context).Debugf("rpc headers encode finished,bytes=%d", result)
 
 	return sofarpc.StreamIDConvert(cmd.ReqId), buffer.NewIoBufferBytes(result)
 }

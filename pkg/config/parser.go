@@ -5,6 +5,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -40,8 +41,12 @@ func ParseLogLevel(level string) log.LogLevel {
 }
 
 func ParseServerConfig(c *ServerConfig) *server.Config {
-	sc := &server.Config{DisableConnIo: c.DisableConnIo}
-	
+	sc := &server.Config{
+		LogPath:         c.DefaultLogPath,
+		LogLevel:        ParseLogLevel(c.DefaultLogLevel),
+		GracefulTimeout: c.GracefulTimeout.Duration,
+	}
+
 	return sc
 }
 
@@ -141,14 +146,18 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 	}
 
 	//duration
-	if duration, ok := config["delay_duration_ms"]; ok {
-		if duration, ok := duration.(float64); ok {
-			faultInject.DelayDuration = uint64(duration)
+	if duration, ok := config["delay_duration"]; ok {
+		if duration, ok := duration.(string); ok {
+			if duration, error := time.ParseDuration(strings.Trim(duration, `"`)); error == nil {
+				faultInject.DelayDuration = uint64(duration)
+			} else {
+				log.StartLogger.Fatalln("[delay_duration] in fault inject filter config is not valid ,", error)
+			}
 		} else {
-			log.StartLogger.Fatalln("[delay_duration_ms] in fault inject filter config is not integer")
+			log.StartLogger.Fatalln("[delay_duration] in fault inject filter config is not a numeric string, like '30s'")
 		}
 	} else {
-		log.StartLogger.Fatalln("[delay_duration_ms] is required in fault inject filter config")
+		log.StartLogger.Fatalln("[delay_duration] is required in fault inject filter config")
 	}
 
 	return faultInject
@@ -168,14 +177,18 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 	}
 
 	//cache time
-	if cacheTime, ok := config["cache_time_ms"]; ok {
-		if cacheTime, ok := cacheTime.(float64); ok {
-			healthcheck.CacheTime = time.Duration(cacheTime)
+	if cacheTime, ok := config["cache_time"]; ok {
+		if cacheTime, ok := cacheTime.(string); ok {
+			if duration, error := time.ParseDuration(strings.Trim(cacheTime, `"`)); error == nil {
+				healthcheck.CacheTime = duration
+			} else {
+				log.StartLogger.Fatalln("[cache_time] in health check filter is not valid ,", error)
+			}
 		} else {
-			log.StartLogger.Fatalln("[cache_time_ms] in health check filter config is not integer")
+			log.StartLogger.Fatalln("[cache_time] in health check filter config is not a numeric string")
 		}
 	} else {
-		log.StartLogger.Fatalln("[cache_time_ms] is required in healthcheck filter config")
+		log.StartLogger.Fatalln("[cache_time] is required in healthcheck filter config")
 	}
 
 	//cluster_min_healthy_percentages
@@ -228,6 +241,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		PerConnBufferLimitBytes: 1 << 15,
 		LogPath:                 c.LogPath,
 		LogLevel:                uint8(ParseLogLevel(c.LogLevel)),
+		DisableConnIo:           c.DisableConnIo,
 	}
 }
 

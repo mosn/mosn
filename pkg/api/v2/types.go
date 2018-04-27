@@ -54,6 +54,9 @@ type ListenerConfig struct {
 	// log
 	LogPath  string
 	LogLevel uint8
+
+	// only used in http2 case
+	DisableConnIo  bool
 }
 
 type AccessLog struct {

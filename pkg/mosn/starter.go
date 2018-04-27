@@ -32,6 +32,8 @@ func Start(c *config.MOSNConfig) {
 	srvNum := len(c.Servers)
 	if srvNum == 0 {
 		log.StartLogger.Fatalln("no server found")
+	} else if srvNum > 1 {
+		log.StartLogger.Fatalln("multiple server not supported yet, got ", srvNum)
 	}
 
 	if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
@@ -50,9 +52,6 @@ func Start(c *config.MOSNConfig) {
 
 	//get inherit fds
 	inheritListeners := getInheritListeners()
-
-	//init default logger
-	initDefaultLogger(c.DefaultLogPath, c.DefaultLogLevel)
 
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
@@ -174,11 +173,11 @@ func getInheritListeners() []*v2.ListenerConfig {
 
 		for idx := 0; idx < count; idx++ {
 			//because passed listeners fd's index starts from 3
-			fd := uintptr(3+idx)
+			fd := uintptr(3 + idx)
 			file := os.NewFile(fd, "")
 			fileListener, err := net.FileListener(file)
 			if err != nil {
-				log.StartLogger.Errorf("recover listener from fd %d failed: %s",fd, err)
+				log.StartLogger.Errorf("recover listener from fd %d failed: %s", fd, err)
 				continue
 			}
 			if listener, ok := fileListener.(*net.TCPListener); ok {
@@ -190,17 +189,4 @@ func getInheritListeners() []*v2.ListenerConfig {
 		return listeners
 	}
 	return nil
-}
-
-func initDefaultLogger(logPath string, logLevel string) {
-
-	//use default log path
-	if logPath == "" {
-		logPath = server.MosnLogDefaultPath
-	}
-
-	err := log.InitDefaultLogger(logPath, config.ParseLogLevel(logLevel))
-	if err != nil {
-		log.StartLogger.Fatalln("initialize default logger failed : ", err)
-	}
 }

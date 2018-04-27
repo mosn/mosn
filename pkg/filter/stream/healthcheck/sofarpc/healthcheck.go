@@ -1,6 +1,7 @@
 package sofarpc
 
 import (
+	"context"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
@@ -14,6 +15,8 @@ import (
 
 // types.StreamEncoderFilter
 type healthCheckFilter struct {
+	context context.Context
+
 	// config
 	passThrough                  bool
 	cacheTime                    time.Duration
@@ -27,8 +30,9 @@ type healthCheckFilter struct {
 	cb types.StreamDecoderFilterCallbacks
 }
 
-func NewHealthCheckFilter(config *v2.HealthCheckFilter) *healthCheckFilter {
+func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter) *healthCheckFilter {
 	return &healthCheckFilter{
+		context:                      context,
 		passThrough:                  config.PassThrough,
 		cacheTime:                    config.CacheTime,
 		clusterMinHealthyPercentages: config.ClusterMinHealthyPercentage,
@@ -97,14 +101,15 @@ func (f *healthCheckFilter) handleIntercept() {
 	var resp interface{}
 
 	//TODO add protocl-level interface for heartbeat process, like Protocols.TriggerHeartbeat(protocolCode, requestId)&Protocols.ReplyHeartbeat(protocolCode, requestId)
-	switch {
+	switch f.protocol {
 	//case f.protocol == sofarpc.PROTOCOL_CODE:
 	//resp = codec.NewTrHeartbeatAck( f.requestId)
-	case f.protocol == sofarpc.PROTOCOL_CODE_V1 || f.protocol == sofarpc.PROTOCOL_CODE_V2:
+	case sofarpc.PROTOCOL_CODE_V1, sofarpc.PROTOCOL_CODE_V2:
 		//boltv1 and boltv2 use same heartbeat struct as BoltV1
 		resp = codec.NewBoltHeartbeatAck(f.requestId)
 	default:
-		log.DefaultLogger.Debugf("Unknown protocol code: [", f.protocol, "] while intercept healthcheck.")
+		log.ByContext(f.context).Errorf("Unknown protocol code: [%x] while intercept healthcheck.", f.protocol)
+		//TODO: set hijack reply - codec error, actually this would happen at codec stage which is before this
 	}
 
 	f.cb.EncodeHeaders(resp, true)
@@ -121,7 +126,7 @@ type HealthCheckFilterConfigFactory struct {
 	FilterConfig *v2.HealthCheckFilter
 }
 
-func (f *HealthCheckFilterConfigFactory) CreateFilterChain(callbacks types.FilterChainFactoryCallbacks) {
-	filter := NewHealthCheckFilter(f.FilterConfig)
+func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
+	filter := NewHealthCheckFilter(context, f.FilterConfig)
 	callbacks.AddStreamDecoderFilter(filter)
 }

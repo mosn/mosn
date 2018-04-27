@@ -36,50 +36,50 @@ func init() {
 // types.Encoder & types.Decoder
 type boltV1Codec struct{}
 
-func (c *boltV1Codec) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
+func (c *boltV1Codec) EncodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
 	if headerMap, ok := headers.(map[string]string); ok {
 
 		cmd := c.mapToCmd(headerMap)
-		return c.encodeHeaders(cmd)
+		return c.encodeHeaders(context, cmd)
 	}
 
-	return c.encodeHeaders(headers)
+	return c.encodeHeaders(context, headers)
 }
 
-func (c *boltV1Codec) encodeHeaders(headers interface{}) (string, types.IoBuffer) {
+func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
 	switch headers.(type) {
 	case *sofarpc.BoltRequestCommand:
-		return c.encodeRequestCommand(headers.(*sofarpc.BoltRequestCommand))
+		return c.encodeRequestCommand(context, headers.(*sofarpc.BoltRequestCommand))
 	case *sofarpc.BoltResponseCommand:
-		return c.encodeResponseCommand(headers.(*sofarpc.BoltResponseCommand))
+		return c.encodeResponseCommand(context, headers.(*sofarpc.BoltResponseCommand))
 	default:
-		log.DefaultLogger.Errorf("[BoltV1 Encode] Invalid Input Type")
+		log.ByContext(context).Errorf("[BoltV1 Encode] Invalid Input Type")
 
 		return "", nil
 	}
 }
 
-func (c *boltV1Codec) EncodeData(data types.IoBuffer) types.IoBuffer {
+func (c *boltV1Codec) EncodeData(context context.Context, data types.IoBuffer) types.IoBuffer {
 	return data
 }
 
-func (c *boltV1Codec) EncodeTrailers(trailers map[string]string) types.IoBuffer {
+func (c *boltV1Codec) EncodeTrailers(context context.Context, trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
-func (c *boltV1Codec) encodeRequestCommand(cmd *sofarpc.BoltRequestCommand) (string, types.IoBuffer) {
-	result := c.doEncodeRequestCommand(cmd)
+func (c *boltV1Codec) encodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) (string, types.IoBuffer) {
+	result := c.doEncodeRequestCommand(context, cmd)
 
 	return "", buffer.NewIoBufferBytes(result)
 }
 
-func (c *boltV1Codec) encodeResponseCommand(cmd *sofarpc.BoltResponseCommand) (string, types.IoBuffer) {
-	result := c.doEncodeResponseCommand(cmd)
+func (c *boltV1Codec) encodeResponseCommand(context context.Context, cmd *sofarpc.BoltResponseCommand) (string, types.IoBuffer) {
+	result := c.doEncodeResponseCommand(context, cmd)
 
 	return "", buffer.NewIoBufferBytes(result)
 }
 
-func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []byte {
+func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) []byte {
 	offset := 0
 	// todo: reuse bytes @boqin
 	data := make([]byte, 22, defaultTmpBufferSize)
@@ -125,7 +125,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(cmd *sofarpc.BoltRequestCommand) []
 	return data
 }
 
-func (c *boltV1Codec) doEncodeResponseCommand(cmd *sofarpc.BoltResponseCommand) []byte {
+func (c *boltV1Codec) doEncodeResponseCommand(context context.Context, cmd *sofarpc.BoltResponseCommand) []byte {
 	offset := 0
 	// todo: reuse bytes @boqin
 	data := make([]byte, 20, defaultTmpBufferSize)
@@ -140,7 +140,7 @@ func (c *boltV1Codec) doEncodeResponseCommand(cmd *sofarpc.BoltResponseCommand) 
 	offset += 2
 
 	if cmd.CmdCode == sofarpc.HEARTBEAT {
-		log.DefaultLogger.Debugf("[Build HeartBeat Response]")
+		log.ByContext(context).Debugf("[Build HeartBeat Response]")
 	}
 
 	data[offset] = cmd.Version

@@ -90,7 +90,7 @@ func deserializeRequestAllFields(context context.Context, requestCommand *sofarp
 
 
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
-	logger.Debugf("deSerialize  headerMap:", headerMap)
+	logger.Debugf("deserialize header map:%v", headerMap)
 
 	allField := sofarpc.GetMap(context, 20+len(headerMap))
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(requestCommand.Protocol), 10)
@@ -108,7 +108,7 @@ func deserializeRequestAllFields(context context.Context, requestCommand *sofarp
 	var className string
 	serializeIns.DeSerialize(requestCommand.ClassName, &className)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassName)] = className
-	logger.Debugf("Request ClassName is:", className)
+	logger.Debugf("request class name is:%s", className)
 
 	for k, v := range headerMap {
 		allField[k] = v

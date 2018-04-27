@@ -20,16 +20,14 @@ import (
 // ClusterConfigFactoryCb
 // ClusterHostFactoryCb
 type connHandler struct {
-	disableConnIo  bool
 	numConnections int64
 	listeners      []*activeListener
 	clusterManager types.ClusterManager
 	logger         log.Logger
 }
 
-func NewHandler(clusterManagerFilter types.ClusterManagerFilter, logger log.Logger, DisableConnIo bool) types.ConnectionHandler {
+func NewHandler(clusterManagerFilter types.ClusterManagerFilter, logger log.Logger) types.ConnectionHandler {
 	ch := &connHandler{
-		disableConnIo:  DisableConnIo,
 		numConnections: 0,
 		clusterManager: cluster.NewClusterManager(nil),
 		listeners:      make([]*activeListener, 0),
@@ -79,7 +77,7 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 
 	l := network.NewListener(lc, logger)
 
-	al := newActiveListener(l, logger, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan)
+	al := newActiveListener(l, logger, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
 	l.SetListenerCallbacks(al)
 
 	ch.listeners = append(ch.listeners, al)
@@ -141,7 +139,8 @@ func (ch *connHandler) ListListenersFD(lctx context.Context) []uintptr {
 	for idx, l := range ch.listeners {
 		fd, err := l.listener.ListenerFD()
 		if err != nil {
-			log.DefaultLogger.Fatalln("fail to get listener", l.listener.Name(), " file descriptor:", err)
+			log.DefaultLogger.Errorf("fail to get listener %s file descriptor: %v", l.listener.Name(), err)
+			return nil //stop reconfigure
 		}
 		fds[idx] = fd
 	}
@@ -163,6 +162,7 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 
 // ListenerEventListener
 type activeListener struct {
+	disableConnIo          bool
 	listener               types.Listener
 	networkFiltersFactory  types.NetworkFilterChainFactory
 	streamFiltersFactories []types.StreamFilterChainFactory
@@ -176,8 +176,9 @@ type activeListener struct {
 	logger                 log.Logger
 }
 
-func newActiveListener(listener types.Listener, logger log.Logger, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool) *activeListener {
+func newActiveListener(listener types.Listener, logger log.Logger, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
 	al := &activeListener{
+		disableConnIo:          disableConnIo,
 		listener:               listener,
 		networkFiltersFactory:  networkFiltersFactory,
 		streamFiltersFactories: streamFiltersFactories,
@@ -218,7 +219,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 
 func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Context) {
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
-	if !al.handler.disableConnIo {
+	if !al.disableConnIo {
 		// start conn loops first
 		conn.Start(ctx)
 	}

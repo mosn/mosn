@@ -1,14 +1,16 @@
 {
-  "default_log_path": "/Users/wugou.cyf/mosn/logs/default.log",
-  "default_log_level": "INFO",
   "servers": [
     {
+      "default_log_path": "/home/admin/mosn/logs/default.log",
+      "default_log_level": "INFO",
+      "graceful_timeout": "60s",
+
       "listeners": [
         {
           "name": "egress",
           "address": "127.0.0.1:12200",
           "bind_port": true,
-          "log_path": "/Users/wugou.cyf/mosn/logs/egress.log",
+          "log_path": "/home/admin/mosn/logs/egress.log",
           "log_level": "DEBUG",
           "network_filters": [
             {
@@ -31,7 +33,7 @@
               "type": "healthcheck",
               "config": {
                 "passthrough": false,
-                "cache_time_ms": 360000,
+                "cache_time": "360s",
                 "cluster_min_healthy_percentages": {
                   "local_service": 70
                 }
@@ -43,7 +45,7 @@
           "name": "ingress",
           "address": "127.0.0.1:12201",
           "bind_port": true,
-          "log_path": "/Users/wugou.cyf/mosn/logs/ingress.log",
+          "log_path": "/home/admin/mosn/logs/ingress.log",
           "log_level": "DEBUG",
           "network_filters": [
             {
@@ -84,11 +86,11 @@
         "lb_type": "LB_RANDOM",
         "max_request_per_conn": 100000,
         "healthcheck": {
-          "timeout": 1000,
+          "timeout": "3s",
           "healthy_threshold": 3,
           "unhealthy_threshold": 5,
-          "interval": 6000,
-          "interval_jitter": 1000
+          "interval": "6s",
+          "interval_jitter": "1s"
         },
         "hosts": [
           {

@@ -54,6 +54,9 @@ type proxy struct {
 
 	// access logs
 	accessLogs []types.AccessLog
+
+	//logger
+	logger log.Logger
 }
 
 func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
@@ -85,7 +88,7 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 }
 
 func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
-	p.serverCodec.Dispatch(buf, p.context)
+	p.serverCodec.Dispatch(buf)
 
 	return types.StopIteration
 }
@@ -140,7 +143,7 @@ func (p *proxy) NewStream(streamId string, responseEncoder types.StreamEncoder) 
 		ffs := ff.([]types.StreamFilterChainFactory)
 
 		for _, f := range ffs {
-			f.CreateFilterChain(stream)
+			f.CreateFilterChain(p.context, stream)
 		}
 	}
 
