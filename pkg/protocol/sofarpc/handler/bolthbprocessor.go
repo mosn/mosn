@@ -18,13 +18,14 @@ func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filt
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
+		logger := log.ByContext(context)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
 				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
-				log.DefaultLogger.Debugf("Process Heartbeat Msg")
+				logger.Debugf("Process Heartbeat Msg")
 
 				if status == types.StopIteration {
 					return

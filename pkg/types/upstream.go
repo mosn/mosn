@@ -101,7 +101,7 @@ const (
 type Host interface {
 	HostInfo
 
-	CreateConnection() CreateConnectionData
+	CreateConnection(context context.Context) CreateConnectionData
 
 	Counters() HostStats
 

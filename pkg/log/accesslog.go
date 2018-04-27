@@ -2,15 +2,16 @@ package log
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+
 	"strings"
 )
 
 var (
-	RequestInfoFuncMap map[string]func(info types.RequestInfo)string
+	RequestInfoFuncMap map[string]func(info types.RequestInfo) string
 )
 
 func init() {
-	RequestInfoFuncMap = map[string]func(info types.RequestInfo)string {
+	RequestInfoFuncMap = map[string]func(info types.RequestInfo) string{
 		types.LogStartTime:                types.StartTimeGetter,
 		types.LogRequestReceivedDuration:  types.ReceivedDurationGetter,
 		types.LogResponseReceivedDuration: types.ResponseReceivedDurationGetter,
@@ -28,10 +29,12 @@ func init() {
 const (
 	//read docs/access-log-details.md
 	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
-		"%BytesReceived% %PROTOCOL% %ResponseCode% %Duration% %RESPONSE_FLAGS% %RESPONSE_CODE% %RESPONSE_FLAGS%"
+		"%BytesReceived% %PROTOCOL% %ResponseCode% %Duration% %RESPONSE_FLAGS% %RESPONSE_CODE%"
 )
 
-var accesslogs []*accesslog
+
+//TODO: optimize access log instance count
+//var accesslogs []*accesslog
 
 // types.AccessLog
 type accesslog struct {
@@ -46,7 +49,7 @@ func NewAccessLog(output string, filter types.AccessLogFilter,
 	var err error
 	var logger Logger
 
-	if logger, err = NewLogger(output, 0); err != nil {
+	if logger, err = GetLoggerInstance(output, 0); err != nil {
 		return nil, err
 	}
 
@@ -56,26 +59,6 @@ func NewAccessLog(output string, filter types.AccessLogFilter,
 		formatter: NewAccessLogFormatter(format),
 		logger:    logger,
 	}, nil
-}
-
-func Reopen() error {
-	for _, al := range accesslogs {
-		if err := al.logger.Reopen(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func CloseAll() error {
-	for _, al := range accesslogs {
-		if err := al.logger.Close(); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (l *accesslog) Log(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) {

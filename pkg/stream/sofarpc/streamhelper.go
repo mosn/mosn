@@ -1,7 +1,6 @@
 package sofarpc
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"strconv"
@@ -30,24 +29,24 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 				switch statusCode {
 				case types.RouterUnavailableCode, types.NoHealthUpstreamCode, types.UpstreamOverFlowCode:
 					//No available path
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
+					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
 				case types.CodecExceptionCode:
 					//Decode or Encode Error
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
+					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context ,headerMaps, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
 				case types.DeserialExceptionCode:
 					//Hessian Exception
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
+					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context ,headerMaps, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
 				case types.TimeoutExceptionCode:
 					//Response Timeout
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_TIMEOUT)
+					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context ,headerMaps, sofarpc.RESPONSE_STATUS_TIMEOUT)
 				default:
-					respHeaders, err = sofarpc.BuildSofaRespMsg(headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
+					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
 				}
 
 				if err == nil {
 					headers = respHeaders
 				} else {
-					log.DefaultLogger.Errorf(err.Error())
+					s.connection.logger.Errorf(err.Error())
 				}
 			}
 		}

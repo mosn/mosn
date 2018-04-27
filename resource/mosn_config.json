@@ -1,13 +1,22 @@
 {
   "servers": [
     {
-      "logger_path": "./default.log",
-      "logger_level": "DEBUG",
+      "default_log_path": "/home/admin/mosn/logs/default.log",
+      "default_log_level": "INFO",
+      "graceful_timeout": "60s",
+
       "listeners": [
         {
           "name": "egress",
           "address": "127.0.0.1:12200",
           "bind_port": true,
+          "log_path": "/home/admin/mosn/logs/egress.log",
+          "log_level": "DEBUG",
+          "access_logs":[
+            {
+              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
+            }
+          ],
           "network_filters": [
             {
               "type": "proxy",
@@ -20,12 +29,6 @@
                     "service": ".*",
                     "cluster": "remote_service"
                   }
-                ],
-                "accesslog":[
-                  {
-                    "accesslogPath": "./accesslogE.log",
-                    "accesslogFormat": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
-                  }
                 ]
               }
             }
@@ -35,7 +38,7 @@
               "type": "healthcheck",
               "config": {
                 "passthrough": false,
-                "cache_time_ms": 360000,
+                "cache_time": "360s",
                 "cluster_min_healthy_percentages": {
                   "local_service": 70
                 }
@@ -47,6 +50,8 @@
           "name": "ingress",
           "address": "127.0.0.1:12201",
           "bind_port": true,
+          "log_path": "/home/admin/mosn/logs/ingress.log",
+          "log_level": "DEBUG",
           "network_filters": [
             {
               "type": "proxy",
@@ -58,12 +63,6 @@
                     "name": "example_route",
                     "service": ".*",
                     "cluster": "local_service"
-                  }
-                ],
-                "accesslog":[
-                  {
-                    "accesslogPath": "./accesslogIn.log",
-                    "accesslogFormat": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %RESP.%requestid"
                   }
                 ]
               }
@@ -92,11 +91,11 @@
         "lb_type": "LB_RANDOM",
         "max_request_per_conn": 100000,
         "healthcheck": {
-          "timeout": 1000,
+          "timeout": "3s",
           "healthy_threshold": 3,
           "unhealthy_threshold": 5,
-          "interval": 6000,
-          "interval_jitter": 1000
+          "interval": "6s",
+          "interval_jitter": "1s"
         },
         "hosts": [
           {

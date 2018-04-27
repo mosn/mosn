@@ -51,7 +51,7 @@ type StreamDecoder interface {
 }
 
 type StreamConnection interface {
-	Dispatch(buffer IoBuffer, context context.Context)
+	Dispatch(buffer IoBuffer)
 
 	Protocol() Protocol
 
@@ -175,7 +175,7 @@ type DownstreamWatermarkEventListener interface {
 }
 
 type StreamFilterChainFactory interface {
-	CreateFilterChain(callbacks FilterChainFactoryCallbacks)
+	CreateFilterChain(context context.Context, callbacks FilterChainFactoryCallbacks)
 }
 
 type FilterChainFactoryCallbacks interface {

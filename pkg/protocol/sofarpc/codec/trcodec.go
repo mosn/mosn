@@ -50,32 +50,32 @@ func init() {
  *   Body:       应用层对象
 */
 
-func (c *trCodec) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
+func (c *trCodec) EncodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
 	if headerMap, ok := headers.(map[string]string); ok {
 		cmd := c.mapToCmd(headerMap)
 
-		return c.encodeHeaders(cmd)
+		return c.encodeHeaders(context, cmd)
 	}
 
-	return c.encodeHeaders(headers)
+	return c.encodeHeaders(context, headers)
 }
 
-func (c *trCodec) encodeHeaders(headers interface{}) (string, types.IoBuffer) {
+func (c *trCodec) encodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
 	switch headers.(type) {
 	case *sf.TrRequestCommand:
-		return c.encodeRequestCommand(headers.(*sf.TrRequestCommand))
+		return c.encodeRequestCommand(context, headers.(*sf.TrRequestCommand))
 	case *sf.TrResponseCommand:
-		return c.encodeResponseCommand(headers.(*sf.TrResponseCommand))
+		return c.encodeResponseCommand(context, headers.(*sf.TrResponseCommand))
 	default:
 		err := "[TR Encode] Invalid Input Type"
-		log.DefaultLogger.Errorf(err)
+		log.ByContext(context).Errorf(err)
 
 		return "", nil
 	}
 }
 
-func (c *trCodec) encodeRequestCommand(rpcCmd *sf.TrRequestCommand) (string, types.IoBuffer) {
-	log.DefaultLogger.Debugf("[TR]start to encode rpc headers,protocol code=%+v", rpcCmd.Protocol)
+func (c *trCodec) encodeRequestCommand(context context.Context, rpcCmd *sf.TrRequestCommand) (string, types.IoBuffer) {
+	log.ByContext(context).Debugf("[TR]start to encode rpc headers,protocol code=%+v", rpcCmd.Protocol)
 
 	var result []byte
 	result = append(result, rpcCmd.Protocol, rpcCmd.RequestFlag)
@@ -94,8 +94,8 @@ func (c *trCodec) encodeRequestCommand(rpcCmd *sf.TrRequestCommand) (string, typ
 	return "", buffer.NewIoBufferBytes(result)
 }
 
-func (c *trCodec) encodeResponseCommand(rpcCmd *sf.TrResponseCommand) (string, types.IoBuffer) {
-	log.DefaultLogger.Debugf("[TR]start to encode rpc headers,=%+v", rpcCmd.Protocol)
+func (c *trCodec) encodeResponseCommand(context context.Context, rpcCmd *sf.TrResponseCommand) (string, types.IoBuffer) {
+	log.ByContext(context).Debugf("[TR]start to encode rpc headers,=%+v", rpcCmd.Protocol)
 
 	var result []byte
 	result = append(result, rpcCmd.Protocol, rpcCmd.RequestFlag)
@@ -114,11 +114,11 @@ func (c *trCodec) encodeResponseCommand(rpcCmd *sf.TrResponseCommand) (string, t
 	return "", buffer.NewIoBufferBytes(result)
 }
 
-func (c *trCodec) EncodeData(data types.IoBuffer) types.IoBuffer {
+func (c *trCodec) EncodeData(context context.Context, data types.IoBuffer) types.IoBuffer {
 	return data
 }
 
-func (c *trCodec) EncodeTrailers(trailers map[string]string) types.IoBuffer {
+func (c *trCodec) EncodeTrailers(context context.Context, trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
@@ -194,6 +194,7 @@ func (decoder *trCodec) Decode(context context.Context, data types.IoBuffer) (in
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
+	logger := log.ByContext(context)
 
 	if readableBytes >= int(sf.PROTOCOL_HEADER_LENGTH) {
 		bytes := data.Bytes()
@@ -209,7 +210,7 @@ func (decoder *trCodec) Decode(context context.Context, data types.IoBuffer) (in
 		if uint32(readableBytes) < sf.PROTOCOL_HEADER_LENGTH+connRequestLen+
 			uint32(appClassNameLen)+appClassContentLen {
 			//not enough data
-			log.DefaultLogger.Debugf("[Decoder]no enough data for fully decode")
+			logger.Debugf("[Decoder]no enough data for fully decode")
 			return 0, nil
 		}
 
@@ -246,7 +247,7 @@ func (decoder *trCodec) Decode(context context.Context, data types.IoBuffer) (in
 				CmdCode:        cmdCode,
 				RequestContent: bytes[14 : 14+connRequestLen+uint32(appClassNameLen)+appClassContentLen],
 			}
-			log.DefaultLogger.Debugf("[Decoder]TR decode request:%+v\n", request)
+			logger.Debugf("[Decoder]TR decode request:%+v", request)
 			cmd = request
 			read = int(totalLength)
 

@@ -160,7 +160,7 @@ func (c *codecClient) OnBelowWriteBufferLowWatermark() {
 
 // read filter, recv upstream data
 func (c *codecClient) OnData(buffer types.IoBuffer) types.FilterStatus {
-	c.Codec.Dispatch(buffer, c.context)
+	c.Codec.Dispatch(buffer)
 
 	return types.StopIteration
 }

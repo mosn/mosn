@@ -9,6 +9,7 @@ import (
 
 	"crypto/tls"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
@@ -31,6 +32,8 @@ func main() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
+
+	log.InitDefaultLogger("", log.DEBUG)
 
 	stopChan := make(chan bool)
 	meshReadyChan := make(chan bool)
@@ -70,9 +73,7 @@ func main() {
 		cmf := &clusterManagerFilterRPC{}
 
 		//RPC
-		srv := server.NewServer(&server.Config{
-			DisableConnIo: true,
-		}, cmf)
+		srv := server.NewServer(&server.Config{}, cmf)
 
 		srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
@@ -184,6 +185,9 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
+		LogPath:                 "",
+		LogLevel:                uint8(log.DEBUG),
+		DisableConnIo:           true,
 	}
 }
 

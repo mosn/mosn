@@ -30,12 +30,12 @@ type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
-	return newClientStreamConnection(connection, streamConnCallbacks, connCallbacks)
+	return newClientStreamConnection(context, connection, streamConnCallbacks, connCallbacks)
 }
 
 func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
-	return newServerStreamConnection(connection, callbacks)
+	return newServerStreamConnection(context, connection, callbacks)
 }
 
 func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
@@ -50,16 +50,20 @@ var server http2.Server
 // types.StreamConnection
 // types.StreamConnectionEventListener
 type streamConnection struct {
+	context context.Context
+
 	protocol      types.Protocol
 	rawConnection net.Conn
 	http2Conn     *http2.ClientConn
 	activeStreams *list.List
 	asMutex       sync.Mutex
 	connCallbacks types.ConnectionEventListener
+
+	logger log.Logger
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer, context context.Context) {}
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {}
 
 func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
@@ -87,7 +91,7 @@ type clientStreamConnection struct {
 	streamConnCallbacks types.StreamConnectionEventListener
 }
 
-func newClientStreamConnection(connection types.ClientConnection,
+func newClientStreamConnection(context context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener,
 	connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 
@@ -95,6 +99,7 @@ func newClientStreamConnection(connection types.ClientConnection,
 
 	return &clientStreamConnection{
 		streamConnection: streamConnection{
+			context:       context,
 			rawConnection: connection.RawConn(),
 			http2Conn:     h2Conn,
 			activeStreams: list.New(),
@@ -111,6 +116,7 @@ func (csc *clientStreamConnection) OnGoAway() {
 func (csc *clientStreamConnection) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := &clientStream{
 		stream: stream{
+			context: context.WithValue(csc.context, types.ContextKeyStreamId, streamId),
 			decoder: responseDecoder,
 		},
 		connection: csc,
@@ -129,10 +135,11 @@ type serverStreamConnection struct {
 	serverStreamConnCallbacks types.ServerStreamConnectionEventListener
 }
 
-func newServerStreamConnection(connection types.Connection,
+func newServerStreamConnection(context context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
+			context:       context,
 			rawConnection: connection.RawConn(),
 			activeStreams: list.New(),
 		},
@@ -152,8 +159,12 @@ func (ssc *serverStreamConnection) OnGoAway() {
 
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
+	//generate stream id using timestamp
+	streamId := "streamID-"+time.Now().String()
+
 	stream := &serverStream{
 		stream: stream{
+			context:    context.WithValue(ssc.context, types.ContextKeyStreamId, streamId),
 			request: request,
 		},
 		connection:       ssc,
@@ -161,7 +172,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream("streamID-"+time.Now().String(), stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamId, stream)
 	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
 	ssc.asMutex.Unlock()
@@ -178,6 +189,8 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 // types.Stream
 // types.StreamEncoder
 type stream struct {
+	context context.Context
+
 	readDisableCount int32
 	request          *http.Request
 	response         *http.Response
@@ -281,7 +294,7 @@ func (s *clientStream) endStream() {
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
-	log.DefaultLogger.Debugf("high watermark on h2 stream client")
+	s.connection.logger.Debugf("high watermark on h2 stream client")
 
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
@@ -323,7 +336,7 @@ func (s *clientStream) doSend() {
 			} else if err.Error() == "net/http: request canceled" {
 				s.ResetStream(types.StreamLocalReset)
 			} else {
-				log.DefaultLogger.Errorf("Unknown err: %s", err)
+				s.connection.logger.Errorf("Unknown err: %v", err)
 				s.ResetStream(types.StreamConnectionFailed)
 			}
 		}
@@ -416,7 +429,7 @@ func (s *serverStream) endStream() {
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
-	log.DefaultLogger.Debugf("high watermark on h2 stream server")
+	s.connection.logger.Debugf("high watermark on h2 stream server")
 
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)

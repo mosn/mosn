@@ -46,29 +46,34 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 // types.ClientStreamConnection
 // types.ServerStreamConnection
 type streamConnection struct {
+	context         context.Context
 	protocol        types.Protocol
 	connection      types.Connection
 	protocols       types.Protocols
 	activeStream    streamMap
 	clientCallbacks types.StreamConnectionEventListener
 	serverCallbacks types.ServerStreamConnectionEventListener
+
+	logger log.Logger
 }
 
 func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	return &streamConnection{
+		context:         context,
 		connection:      connection,
 		protocols:       sofarpc.DefaultProtocols(),
 		activeStream:    newStreamMap(context),
 		clientCallbacks: clientCallbacks,
 		serverCallbacks: serverCallbacks,
+		logger:          log.ByContext(context),
 	}
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer, context context.Context) {
-	conn.protocols.Decode(context, buffer, conn)
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
+	conn.protocols.Decode(conn.context, buffer, conn)
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -85,6 +90,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 
 func (conn *streamConnection) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
 	stream := stream{
+		context:    context.WithValue(conn.context, types.ContextKeyStreamId, streamId),
 		streamId:   streamId,
 		requestId:  streamId,
 		direction:  OutStream,
@@ -143,6 +149,7 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = streamId
 
 	stream := stream{
+		context:    context.WithValue(conn.context, types.ContextKeyStreamId, streamId),
 		streamId:   streamId,
 		requestId:  requestId,
 		direction:  InStream,
@@ -156,6 +163,8 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 // types.Stream
 // types.StreamEncoder
 type stream struct {
+	context context.Context
+
 	streamId         string
 	requestId        string
 	direction        StreamDirection // 0: out, 1: in
@@ -203,7 +212,7 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamEncoder
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
-	_, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.encodeSterilize(headers))
+	_, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers))
 
 	// Exception occurs when encoding headers
 	if s.encodedHeaders == nil {
@@ -240,15 +249,15 @@ func (s *stream) endStream() {
 			if s.encodedData != nil {
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 			} else {
-				log.DefaultLogger.Debugf("Response Body is void...")
+				s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
 
 				stream.connection.connection.Write(s.encodedHeaders)
 			}
 		} else {
-			log.DefaultLogger.Errorf("No stream %s to end", s.streamId)
+			s.connection.logger.Errorf("No stream %s to end", s.streamId)
 		}
 	} else {
-		log.DefaultLogger.Debugf("Response Headers is void...")
+		s.connection.logger.Debugf("Response Headers is void...")
 	}
 
 	if s.direction == InStream {

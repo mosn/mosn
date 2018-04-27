@@ -30,7 +30,7 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 
 // todo: add error as return value
 //PROTOCOL LEVEL's Unified EncodeHeaders for BOLTV1、BOLTV2、TR
-func (p *protocols) EncodeHeaders(headers interface{}) (string, types.IoBuffer) {
+func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
 	var protocolCode byte
 
 	switch headers.(type) {
@@ -44,44 +44,46 @@ func (p *protocols) EncodeHeaders(headers interface{}) (string, types.IoBuffer) 
 			protocolCode = protoValue.(byte)
 		} else {
 			//Codec exception
-			log.DefaultLogger.Errorf("Invalid encode headers, should contains 'protocol'")
+			log.ByContext(context).Errorf("Invalid encode headers, should contains 'protocol'")
 
 			return "", nil
 		}
 	default:
 		err := "Invalid encode headers"
-		log.DefaultLogger.Debugf(err)
+		log.ByContext(context).Errorf(err)
 
 		return "", nil
 	}
 
-	log.DefaultLogger.Debugf("[EncodeHeaders]protocol code = ", protocolCode)
+	log.ByContext(context).Debugf("[EncodeHeaders]protocol code = %x", protocolCode)
 
 	if proto, exists := p.protocolMaps[protocolCode]; exists {
 		//Return encoded data in map[string]string to stream layer
-		return proto.GetEncoder().EncodeHeaders(headers)
+		return proto.GetEncoder().EncodeHeaders(context, headers)
 	} else {
-		log.DefaultLogger.Errorf("Unknown protocol code: [", protocolCode, "] while encode headers.")
+		log.ByContext(context).Errorf("Unknown protocol code: [%d] while encode headers.", protocolCode)
 
 		return "", nil
 	}
 }
 
-func (p *protocols) EncodeData(data types.IoBuffer) types.IoBuffer {
+func (p *protocols) EncodeData(context context.Context, data types.IoBuffer) types.IoBuffer {
 	return data
 }
 
-func (p *protocols) EncodeTrailers(trailers map[string]string) types.IoBuffer {
+func (p *protocols) EncodeTrailers(context context.Context, trailers map[string]string) types.IoBuffer {
 	return nil
 }
 
 func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter types.DecodeFilter) {
 	// at least 1 byte for protocol code recognize
 	for data.Len() > 1 {
+		logger := log.ByContext(context)
+
 		protocolCode := data.Bytes()[0]
 		maybeProtocolVersion := data.Bytes()[1]
 
-		log.DefaultLogger.Debugf("[Decoder]protocol code = ", protocolCode, ", maybeProtocolVersion = ", maybeProtocolVersion)
+		logger.Debugf("[Decoder]protocol code = %x, maybeProtocolVersion = %x", protocolCode, maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 
@@ -95,7 +97,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 			//Codec Exception
 			headers := make(map[string]string, 1)
 			headers[types.HeaderException] = types.MosnExceptionCodeC
-			log.DefaultLogger.Errorf("Unknown protocol code: [", protocolCode, "] while decode in ProtocolDecoder.")
+			logger.Errorf("Unknown protocol code: [%x] while decode in ProtocolDecoder.", protocolCode)
 
 			err := "Unknown protocol code while decode in ProtocolDecoder."
 			filter.OnDecodeHeader(GenerateExceptionStreamID(err), headers)
@@ -107,16 +109,17 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 
 func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
-		log.DefaultLogger.Debugf("Protocol alreay Exist:", protocolCode)
+		log.DefaultLogger.Warnf("protocol alreay Exist:", protocolCode)
 	} else {
 		p.protocolMaps[protocolCode] = protocol
+		log.StartLogger.Debugf("register protocol:%x", protocolCode)
 	}
 }
 
 func (p *protocols) UnRegisterProtocol(protocolCode byte) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
 		delete(p.protocolMaps, protocolCode)
-		log.DefaultLogger.Debugf("Delete Protocol:", protocolCode)
+		log.StartLogger.Debugf("unregister protocol:%x", protocolCode)
 	}
 }
 

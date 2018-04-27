@@ -4,7 +4,6 @@ import (
 	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"os"
 	_ "sync"
@@ -22,36 +21,29 @@ func init() {
 var servers []*server
 
 type server struct {
-	logger         log.Logger
-	stopChan       chan bool
-	listenersConfs []*listenerConf
-	handler        types.ConnectionHandler
-}
-
-type listenerConf struct {
-	config                 *v2.ListenerConfig
-	networkFiltersFactory  types.NetworkFilterChainFactory
-	streamFiltersFactories []types.StreamFilterChainFactory
+	logger   log.Logger
+	stopChan chan bool
+	handler  types.ConnectionHandler
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
 	var logPath string
 	var logLevel log.LogLevel
-	var disableConnIo bool
 
 	if config != nil {
 		logPath = config.LogPath
 		logLevel = config.LogLevel
-		disableConnIo = config.DisableConnIo
+		gracefulTimeout = config.GracefulTimeout
 	}
 
-	log.InitDefaultLogger(logPath, logLevel)
+	initDefaultLogger(logPath, logLevel)
+
 	OnProcessShutDown(log.CloseAll)
 
 	server := &server{
 		logger:   log.DefaultLogger,
 		stopChan: make(chan bool),
-		handler:  NewHandler(cmFilter, log.DefaultLogger, disableConnIo),
+		handler:  NewHandler(cmFilter, log.DefaultLogger),
 	}
 
 	servers = append(servers, server)
@@ -60,12 +52,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
 }
 
 func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
-	conf := &listenerConf{
-		config:                 lc,
-		networkFiltersFactory:  networkFiltersFactory,
-		streamFiltersFactories: streamFiltersFactories,
-	}
-	srv.listenersConfs = append(srv.listenersConfs, conf)
+	srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
 }
 
 func (srv *server) AddOrUpdateListener(lc v2.ListenerConfig) {
@@ -75,10 +62,7 @@ func (srv *server) AddOrUpdateListener(lc v2.ListenerConfig) {
 func (srv *server) Start() {
 	// TODO: handle main thread panic @wugou
 
-	for _, lc := range srv.listenersConfs {
-		l := network.NewListener(lc.config)
-		srv.handler.StartListener(l, lc.networkFiltersFactory, lc.streamFiltersFactories)
-	}
+	srv.handler.StartListeners(nil)
 
 	for {
 		select {
@@ -135,5 +119,18 @@ func WaitConnectionsDone(duration time.Duration) error {
 		return errors.New("wait timeout")
 	case <-wait:
 		return nil
+	}
+}
+
+func initDefaultLogger(logPath string, logLevel log.LogLevel) {
+
+	//use default log path
+	if logPath == "" {
+		logPath = MosnLogDefaultPath
+	}
+
+	err := log.InitDefaultLogger(logPath, logLevel)
+	if err != nil {
+		log.StartLogger.Fatalln("initialize default logger failed : ", err)
 	}
 }

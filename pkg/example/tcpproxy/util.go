@@ -2,8 +2,9 @@ package main
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"net"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"net"
 )
 
 const (
@@ -39,6 +40,8 @@ func tcpListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
+		LogPath:                 "",
+		LogLevel:                uint8(log.DEBUG),
 	}
 }
 

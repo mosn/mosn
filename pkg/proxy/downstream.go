@@ -70,6 +70,8 @@ type activeStream struct {
 	// ~~~ filters
 	encoderFilters []*activeStreamEncoderFilter
 	decoderFilters []*activeStreamDecoderFilter
+
+	logger log.Logger
 }
 
 func newActiveStream(streamId string, proxy *proxy, responseEncoder types.StreamEncoder) *activeStream {
@@ -86,6 +88,8 @@ func newActiveStream(streamId string, proxy *proxy, responseEncoder types.Stream
 	stream.requestInfo = network.NewRequestInfo()
 	stream.responseEncoder = responseEncoder
 	stream.responseEncoder.GetStream().AddEventListener(stream)
+
+	stream.logger = log.ByContext(proxy.context)
 
 	proxy.stats.DownstreamRequestTotal().Inc(1)
 	proxy.stats.DownstreamRequestActive().Inc(1)
@@ -153,7 +157,7 @@ func (s *activeStream) cleanStream() {
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
 	var downstreamRespHeadersMap map[string]string
-	
+
 	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
 		downstreamRespHeadersMap = v
 	}
@@ -409,7 +413,7 @@ func (s *activeStream) doEncodeHeaders(filter *activeStreamEncoderFilter, header
 
 	//Currently, just log the error
 	if err := s.responseEncoder.EncodeHeaders(headers, endStream); err != nil {
-		log.DefaultLogger.Debugf(err.Error())
+		s.logger.Errorf("[downstream] decode headers error, %s", err)
 	}
 
 	if endStream {

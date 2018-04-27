@@ -1,7 +1,6 @@
 package server
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -9,15 +8,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
-)
 
-const (
-	MosnBasePath = string(os.PathSeparator) + "home" + string(os.PathSeparator) +
-		"admin" + string(os.PathSeparator) + "mosn"
-
-	MosnDefaultLogPath = MosnBasePath + string(os.PathSeparator) + "logs"
-
-	MosnPidFileName = "mosn.pid"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 func init() {
@@ -31,7 +23,7 @@ var (
 
 	onProcessExit []func()
 
-	gracefulTimeout time.Duration
+	gracefulTimeout time.Duration = time.Second * 30 //default 30s
 
 	BaseFolder string
 
@@ -41,7 +33,7 @@ var (
 )
 
 func writePidFile() error {
-	pidFile = MosnDefaultLogPath + string(os.PathSeparator) + MosnPidFileName
+	pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
 	os.MkdirAll(MosnBasePath, 0644)
@@ -61,7 +53,7 @@ func catchSignalsCrossPlatform() {
 			syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
 
 		for sig := range sigchan {
-			log.DefaultLogger.Debugf(sig.String(), " received!")
+			log.DefaultLogger.Debugf("signal %s received!", sig)
 			switch sig {
 			case syscall.SIGQUIT:
 				// quit
@@ -90,47 +82,6 @@ func catchSignalsCrossPlatform() {
 		}
 	}()
 }
-
-/*
-//add by wugou.cyf for windows go skd compile compatibility
-func catchSignalsCrossPlatform() {
-	go func() {
-		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT , //syscall.SIGUSR1, syscall.SIGUSR2
-		)
-
-		for sig := range sigchan {
-			log.DefaultLogger.Println(sig, " received!")
-			switch sig {
-			case syscall.SIGQUIT:
-				// quit
-				for _, f := range onProcessExit {
-					f() // only perform important cleanup actions
-				}
-				os.Exit(0)
-			case syscall.SIGTERM:
-				// stop to quit
-				exitCode := executeShutdownCallbacks("SIGTERM")
-				for _, f := range onProcessExit {
-					f() // only perform important cleanup actions
-				}
-				Stop()
-
-				os.Exit(exitCode)
-				//case syscall.SIGUSR1:
-				// reopen
-				//	log.Reopen()
-			case syscall.SIGHUP:
-				// reload
-				//reconfigure()
-				//case syscall.SIGUSR2:
-				// ignore
-				//}
-			}
-		}
-	}()
-}
-*/
 
 func catchSignalsPosix() {
 	go func() {
@@ -169,7 +120,7 @@ func executeShutdownCallbacks(signame string) (exitCode int) {
 
 		if len(errs) > 0 {
 			for _, err := range errs {
-				log.DefaultLogger.Printf("[ERROR] %s shutdown: %v", signame, err)
+				log.DefaultLogger.Errorf("[ERROR] %s shutdown: %v", signame, err)
 			}
 			exitCode = 4
 		}
@@ -183,16 +134,12 @@ func OnProcessShutDown(cb func() error) {
 }
 
 func reconfigure() {
-	// Stop accepting requests
-	StopAccept()
-
 	// Get socket file descriptor to pass it to fork
 	listenerFD := ListListenerFD()
 	if len(listenerFD) == 0 {
-		log.DefaultLogger.Fatalln("no listener fd found")
+		log.DefaultLogger.Errorf("no listener fd found")
+		return
 	}
-
-	log.DefaultLogger.Debugf("ready to pass fds:", listenerFD)
 
 	// Set a flag for the new process start process
 	os.Setenv("_MOSN_GRACEFUL_RESTART", "true")
@@ -206,13 +153,18 @@ func reconfigure() {
 	// Fork exec the new version of your server
 	fork, err := syscall.ForkExec(os.Args[0], os.Args, execSpec)
 	if err != nil {
-		log.DefaultLogger.Fatalln("Fail to fork", err)
+		log.DefaultLogger.Errorf("Fail to fork %v", err)
+		return
 	}
-	log.DefaultLogger.Debugf("SIGHUP received: fork-exec to", fork)
+
+	log.DefaultLogger.Infof("SIGHUP received: fork-exec to %d", fork)
+
+	// Stop accepting requests
+	StopAccept()
 
 	// Wait for all conections to be finished
-	WaitConnectionsDone(time.Duration(time.Second) * 15)
-	log.DefaultLogger.Debugf(strconv.Itoa(os.Getpid()), "Server gracefully shutdown")
+	WaitConnectionsDone(gracefulTimeout)
+	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
 
 	// Stop the old server, all the connections have been closed and the new one is running
 	os.Exit(0)

@@ -322,7 +322,7 @@ func (b *TrResponseCommand) GetCmdCode() int16 {
 	return b.CmdCode
 }
 
-func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{}, error) {
+func BuildSofaRespMsg(context context.Context, headers map[string]string, respStatus int16) (interface{}, error) {
 	var pro byte = 1
 	var reqId uint32 = 1
 	var version byte = 1
@@ -401,7 +401,7 @@ func BuildSofaRespMsg(headers map[string]string, respStatus int16) (interface{},
 			ResponseStatus: respStatus,
 		}, nil
 	} else {
-		log.DefaultLogger.Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
+		log.ByContext(context).Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
 
 		return headers, errors.New("[BuildSofaRespMsg Error]Unknown Protocol Code")
 	}

@@ -174,7 +174,7 @@ func (cm *clusterManager) TcpConnForCluster(cluster string, context context.Cont
 	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
 
 	if host != nil {
-		return host.CreateConnection()
+		return host.CreateConnection(context)
 	} else {
 		return types.CreateConnectionData{}
 	}

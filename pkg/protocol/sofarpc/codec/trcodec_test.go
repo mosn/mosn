@@ -1,5 +1,11 @@
 package codec
 
+import (
+	"testing"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"path/filepath"
+)
+
 /*
 import (
 	"bytes"
@@ -53,3 +59,10 @@ func Test_TrResponseCommand_Parse(t *testing.T) {
 	}
 }
 */
+
+func Test_Dir(t *testing.T) {
+
+	log.InitDefaultLogger("", log.INFO)
+
+	log.DefaultLogger.Println(filepath.Dir("/home/admin/mosn/logs/default.log"))
+}

@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"golang.org/x/net/http2"
+	"log"
 	"net"
 	"net/http"
 	"time"
-	"log"
 )
 
 const RealServerAddr = "127.0.0.1:23456"
+
 
 func main() {
 
@@ -27,7 +28,7 @@ func main() {
 
 		http2.ConfigureServer(server, s2)
 		l, err := net.Listen("tcp", RealServerAddr)
-		if err != nil{
+		if err != nil {
 			log.Fatalln("listen error:", err)
 		}
 		defer l.Close()

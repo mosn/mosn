@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/filter/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -26,6 +27,8 @@ func main() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
+
+	log.InitDefaultLogger("", log.DEBUG)
 
 	stopChan := make(chan bool)
 
@@ -68,6 +71,8 @@ func tcpListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
+		LogPath:                 "",
+		LogLevel:                uint8(log.DEBUG),
 	}
 }
 

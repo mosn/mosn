@@ -9,6 +9,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,16 +20,14 @@ import (
 // ClusterConfigFactoryCb
 // ClusterHostFactoryCb
 type connHandler struct {
-	disableConnIo  bool
 	numConnections int64
 	listeners      []*activeListener
 	clusterManager types.ClusterManager
 	logger         log.Logger
 }
 
-func NewHandler(clusterManagerFilter types.ClusterManagerFilter, logger log.Logger, DisableConnIo bool) types.ConnectionHandler {
+func NewHandler(clusterManagerFilter types.ClusterManagerFilter, logger log.Logger) types.ConnectionHandler {
 	ch := &connHandler{
-		disableConnIo:  DisableConnIo,
 		numConnections: 0,
 		clusterManager: cluster.NewClusterManager(nil),
 		listeners:      make([]*activeListener, 0),
@@ -62,17 +61,59 @@ func (ch *connHandler) NumConnections() uint64 {
 	return uint64(atomic.LoadInt64(&ch.numConnections))
 }
 
-func (ch *connHandler) StartListener(l types.Listener, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
+func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
 	//TODO: connection level stop-chan usage confirm
 	listenerStopChan := make(chan bool)
 
-	al := newActiveListener(l, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan)
+	//use default listener path
+	if lc.LogPath == "" {
+		lc.LogPath = MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
+	}
+
+	logger, err := log.NewLogger(lc.LogPath, log.LogLevel(lc.LogLevel))
+	if err != nil {
+		ch.logger.Fatalf("initialize listener logger failed : %v", err)
+	}
+
+	//initialize access log
+	var als []types.AccessLog
+
+	for _, alConfig := range lc.AccessLogs {
+
+		//use default listener access log path
+		if alConfig.Path == "" {
+			alConfig.Path = MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
+		}
+
+		if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
+			als = append(als, al)
+		} else {
+			log.StartLogger.Fatalln("initialize listener access logger %s failed : %v", alConfig.Path, err)
+		}
+	}
+
+	l := network.NewListener(lc, logger)
+
+	al := newActiveListener(l, logger, als, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
 	l.SetListenerCallbacks(al)
 
 	ch.listeners = append(ch.listeners, al)
+}
 
-	// TODO: use goruntine pool
-	go l.Start(nil)
+func (ch *connHandler) StartListener(listenerTag uint64, lctx context.Context) {
+	for _, l := range ch.listeners {
+		if l.listener.ListenerTag() == listenerTag {
+			// TODO: use goruntine pool
+			go l.listener.Start(nil)
+		}
+	}
+}
+
+func (ch *connHandler) StartListeners(lctx context.Context) {
+	for _, l := range ch.listeners {
+		// start goruntine
+		go l.listener.Start(nil)
+	}
 }
 
 func (ch *connHandler) FindListenerByAddress(addr net.Addr) types.Listener {
@@ -115,7 +156,8 @@ func (ch *connHandler) ListListenersFD(lctx context.Context) []uintptr {
 	for idx, l := range ch.listeners {
 		fd, err := l.listener.ListenerFD()
 		if err != nil {
-			log.DefaultLogger.Fatalln("fail to get listener", l.listener.Name(), " file descriptor:", err)
+			log.DefaultLogger.Errorf("fail to get listener %s file descriptor: %v", l.listener.Name(), err)
+			return nil //stop reconfigure
 		}
 		fds[idx] = fd
 	}
@@ -137,6 +179,7 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 
 // ListenerEventListener
 type activeListener struct {
+	disableConnIo          bool
 	listener               types.Listener
 	networkFiltersFactory  types.NetworkFilterChainFactory
 	streamFiltersFactories []types.StreamFilterChainFactory
@@ -147,16 +190,21 @@ type activeListener struct {
 	handler                *connHandler
 	stopChan               chan bool
 	stats                  *ListenerStats
+	logger                 log.Logger
+	accessLogs             []types.AccessLog
 }
 
-func newActiveListener(listener types.Listener, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool) *activeListener {
+func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
 	al := &activeListener{
+		disableConnIo:          disableConnIo,
 		listener:               listener,
 		networkFiltersFactory:  networkFiltersFactory,
 		streamFiltersFactories: streamFiltersFactories,
-		conns:    list.New(),
-		handler:  handler,
-		stopChan: stopChan,
+		conns:      list.New(),
+		handler:    handler,
+		stopChan:   stopChan,
+		logger:     logger,
+		accessLogs: accessLoggers,
 	}
 
 	listenPort := 0
@@ -183,13 +231,15 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyListenerStatsNameSpace, al.statsNamespace)
 	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactory, al.networkFiltersFactory)
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
+	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
+	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
 
 	arc.ContinueFilterChain(true, ctx)
 }
 
 func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Context) {
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
-	if !al.handler.disableConnIo {
+	if !al.disableConnIo {
 		// start conn loops first
 		conn.Start(ctx)
 	}
@@ -215,7 +265,7 @@ func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Con
 		al.stats.DownstreamConnectionTotal().Inc(1)
 		atomic.AddInt64(&al.handler.numConnections, 1)
 
-		al.handler.logger.Debugf("new downstream connection %d accepted", conn.Id())
+		al.logger.Debugf("new downstream connection %d accepted", conn.Id())
 	}
 }
 
@@ -230,11 +280,11 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.stats.DownstreamConnectionDestroy().Inc(1)
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
-	al.handler.logger.Debugf("close downstream connection, stats: %s", al.stats.String())
+	al.logger.Debugf("close downstream connection, stats: %s", al.stats.String())
 }
 
 func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
-	conn := network.NewServerConnection(rawc, al.stopChan, al.handler.logger)
+	conn := network.NewServerConnection(rawc, al.stopChan, al.logger)
 	newCtx := context.WithValue(ctx, types.ContextKeyConnectionId, conn.Id())
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())

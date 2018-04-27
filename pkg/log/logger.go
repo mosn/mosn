@@ -1,27 +1,54 @@
 package log
 
 import (
-	"github.com/hashicorp/go-syslog"
+	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/hashicorp/go-syslog"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-var remoteSyslogPrefixes = map[string]string{
-	"syslog+tcp://": "tcp",
-	"syslog+udp://": "udp",
-	"syslog://":     "udp",
-}
+var (
+	DefaultLogger, StartLogger *logger
 
-var DefaultLogger *logger
+	remoteSyslogPrefixes = map[string]string{
+		"syslog+tcp://": "tcp",
+		"syslog+udp://": "udp",
+		"syslog://":     "udp",
+	}
+
+	//due to the fact that multiple access log owned by different listener can point to same log path
+	//make logger instance for each log path unique, and can be shared by different access log
+	// AccessLog x(path:/home/a, format:foo) -> RealLog a
+	// AccessLog y(path:/home/a, format:bar) -> RealLog a
+	// AccessLog z(path:/home/b)             -> RealLog b
+	loggers []*logger
+)
+
+func init() {
+	//use console  as start logger
+	StartLogger = &logger{
+		Output:  "",
+		Level:   DEBUG,
+		Roller:  DefaultLogRoller(),
+		fileMux: new(sync.RWMutex),
+	}
+
+	StartLogger.Start()
+}
 
 // Logger
 type logger struct {
-	Output string
-	Level  LogLevel
 	*log.Logger
+
+	Output  string
+	Level   LogLevel
 	Roller  *LogRoller
 	writer  io.Writer
 	fileMux *sync.RWMutex
@@ -35,7 +62,28 @@ func InitDefaultLogger(output string, level LogLevel) error {
 		fileMux: new(sync.RWMutex),
 	}
 
+	loggers = append(loggers, DefaultLogger)
+
 	return DefaultLogger.Start()
+}
+
+func ByContext(ctx context.Context) Logger {
+	if ctx != nil {
+		if logger := ctx.Value(types.ContextKeyLogger); logger != nil {
+			return logger.(Logger)
+		}
+	}
+	return DefaultLogger
+}
+
+func GetLoggerInstance(output string, level LogLevel) (Logger, error) {
+	for _, logger := range loggers {
+		if logger.Output == output && logger.Level == level {
+			return logger, nil
+		}
+	}
+
+	return NewLogger(output, level)
 }
 
 func NewLogger(output string, level LogLevel) (Logger, error) {
@@ -45,6 +93,8 @@ func NewLogger(output string, level LogLevel) (Logger, error) {
 		Roller:  DefaultLogRoller(),
 		fileMux: new(sync.RWMutex),
 	}
+
+	loggers = append(loggers, logger)
 
 	return logger, logger.Start()
 }
@@ -76,6 +126,11 @@ selectwriter:
 
 		var file *os.File
 
+		//create parent dir if not exists
+		err := os.MkdirAll(filepath.Dir(l.Output), 0755)
+
+		fmt.Println(err)
+
 		file, err = os.OpenFile(l.Output, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			return err
@@ -90,7 +145,7 @@ selectwriter:
 		}
 	}
 
-	l.Logger = log.New(l.writer, "", 0)
+	l.Logger = log.New(l.writer, "", log.LstdFlags)
 
 	return nil
 }
@@ -184,6 +239,27 @@ func parseSyslogAddress(location string) *syslogAddress {
 				network: network,
 				address: strings.TrimPrefix(location, prefix),
 			}
+		}
+	}
+
+	return nil
+}
+
+
+func Reopen() error {
+	for _, logger := range loggers {
+		if err := logger.Reopen(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func CloseAll() error {
+	for _, logger := range loggers {
+		if err := logger.Close(); err != nil {
+			return err
 		}
 	}
 

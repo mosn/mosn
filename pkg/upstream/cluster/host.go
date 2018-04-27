@@ -8,6 +8,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
 	"sync"
+	"context"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type hostSet struct {
@@ -122,8 +124,9 @@ func newHostStats(config v2.Host) types.HostStats {
 	}
 }
 
-func (h *host) CreateConnection() types.CreateConnectionData {
-	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), h.address, nil)
+func (h *host) CreateConnection(context context.Context) types.CreateConnectionData {
+	logger := log.ByContext(context)
+	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), h.address, nil, logger)
 	clientConn.SetBufferLimit(h.clusterInfo.ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{

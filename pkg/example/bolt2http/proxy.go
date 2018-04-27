@@ -5,6 +5,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/healthcheck/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
@@ -37,6 +38,8 @@ func main() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
+
+	log.InitDefaultLogger("", log.DEBUG)
 
 	stopChan := make(chan bool)
 	meshReadyChan := make(chan bool)
@@ -113,7 +116,7 @@ func main() {
 		case <-meshReadyChan:
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
-			cc := network.NewClientConnection(nil, remoteAddr, stopChan)
+			cc := network.NewClientConnection(nil, remoteAddr, stopChan, log.DefaultLogger)
 			cc.AddConnectionEventListener(&rpclientConnCallbacks{ //ADD  connection callback
 				cc: cc,
 			})
@@ -187,6 +190,9 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
+		LogPath:                 "",
+		LogLevel:                uint8(log.DEBUG),
+		AccessLogs:              []v2.AccessLog{{Path: "/home/admin/mosn/logs/test_access.log"}},
 	}
 }
 
