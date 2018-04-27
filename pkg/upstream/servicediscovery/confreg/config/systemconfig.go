@@ -5,10 +5,17 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "fmt"
     "strings"
+    "os"
 )
 
-const ServerConfFilePath = "/home/admin/server.conf"
+var ServerConfFilePath string
 
+func init() {
+    ServerConfFilePath = os.Getenv("server_conf_path")
+    if ServerConfFilePath == "" {
+        ServerConfFilePath = "/home/admin/server.conf"
+    }
+}
 
 type SystemConfig struct {
     AntShareCloud    bool
