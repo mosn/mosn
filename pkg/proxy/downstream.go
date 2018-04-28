@@ -99,7 +99,6 @@ func newActiveStream(streamId string, proxy *proxy, responseEncoder types.Stream
 func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
 	s.proxy.stats.DownstreamRequestReset().Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
-
 	s.cleanStream()
 }
 
@@ -134,10 +133,7 @@ func (s *activeStream) callLowWatermarkCallbacks() {
 func (s *activeStream) endStream() {
 	s.stopTimer()
 
-	//fix bug by @boqin to delete nil point error
-
-	hc := s.requestInfo.IsHealthCheck()
-	_ = hc
+	//fix bug by @boqin to delete nil point error when request is healthcheck
 	if (!s.downstreamRecvDone || !s.localProcessDone ) && !s.requestInfo.IsHealthCheck() {
 		// if downstream req received not done, or local proxy process not done by handle upstream response,
 		// just mark it as done and reset stream as a failed case

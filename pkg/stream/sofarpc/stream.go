@@ -106,7 +106,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 	if stream, ok := conn.activeStream.Get(streamId); ok {
 		//change by boqin: if HB msg, endstream is true
 		stream.decoder.OnDecodeHeaders(headers, isHBMsg)
-		if isHBMsg{
+		if isHBMsg {
 			return types.StopIteration
 		}
 	}

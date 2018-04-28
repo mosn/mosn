@@ -4,6 +4,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"reflect"
 	"strconv"
 )
 
@@ -58,10 +59,21 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 	return headers
 }
 
-func decodeSterilize(streamId string, headers map[string]string) {
+//add by boqin: return value represents whether request is HearBeat or not
+func decodeSterilize(streamId string, headers map[string]string) bool{
 	headers[types.HeaderStreamID] = streamId
 
 	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)]; ok {
 		headers[types.HeaderTryTimeout] = v
 	}
+
+	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
+		cmdCode := sofarpc.ConvertPropertyValue(cmdCodeStr, reflect.Int16)
+
+		//sofarpc.HEARTBEAT(0) is equal to sofarpc.TR_HEARTBEAT(0)
+		if cmdCode == sofarpc.HEARTBEAT {
+			return true
+		}
+	}
+	return false
 }
