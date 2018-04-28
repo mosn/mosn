@@ -132,17 +132,19 @@ func (s *activeStream) callLowWatermarkCallbacks() {
 // case 2: proxy ends stream in lifecycle
 func (s *activeStream) endStream() {
 	s.stopTimer()
-
+	var isReset bool
 	if s.responseEncoder != nil {
-		if (!s.downstreamRecvDone || !s.localProcessDone)  && !s.requestInfo.IsHealthCheck() {
+		if (!s.downstreamRecvDone || !s.localProcessDone){
 			// if downstream req received not done, or local proxy process not done by handle upstream response,
 			// just mark it as done and reset stream as a failed case
 			s.localProcessDone = true
 			s.responseEncoder.GetStream().ResetStream(types.StreamLocalReset)
+			isReset = true
 		}
 	}
-
-	s.cleanStream()
+	if (!isReset){
+		s.cleanStream()
+	}
 	// note: if proxy logic resets the stream, there maybe some underlying data in the conn.
 	// we ignore this for now, fix as a todo
 }
