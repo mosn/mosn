@@ -133,11 +133,13 @@ func (s *activeStream) callLowWatermarkCallbacks() {
 func (s *activeStream) endStream() {
 	s.stopTimer()
 
-	if s.responseEncoder != nil {
-		if !s.downstreamRecvDone || !s.localProcessDone {
-			// if downstream req received not done, or local proxy process not done by handle upstream response,
-			// just mark it as done and reset stream as a failed case
+	//fix bug by @boqin to delete nil point error
+
+	if !s.downstreamRecvDone || !s.localProcessDone {
+		// if downstream req received not done, or local proxy process not done by handle upstream response,
+		// just mark it as done and reset stream as a failed case
 			s.localProcessDone = true
+			if s.responseEncoder != nil {
 			s.responseEncoder.GetStream().ResetStream(types.StreamLocalReset)
 		}
 	}
@@ -149,6 +151,8 @@ func (s *activeStream) endStream() {
 }
 
 func (s *activeStream) cleanStream() {
+
+
 	s.proxy.stats.DownstreamRequestActive().Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
@@ -158,8 +162,11 @@ func (s *activeStream) cleanStream() {
 		downstreamRespHeadersMap = v
 	}
 
-	for _, al := range s.proxy.accessLogs {
-		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+	if s.proxy != nil && s.proxy.accessLogs != nil {
+
+		for _, al := range s.proxy.accessLogs {
+			al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+		}
 	}
 
 	s.proxy.deleteActiveStream(s)

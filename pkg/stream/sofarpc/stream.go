@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
@@ -238,10 +239,11 @@ func (s *stream) endStream() {
 		if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
 
 			if s.encodedData != nil {
+				log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 			} else {
 				log.DefaultLogger.Debugf("Response Body is void...")
-
+				log.DefaultLogger.Debugf("[response data2 Response Body is void ]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders)
 			}
 		} else {

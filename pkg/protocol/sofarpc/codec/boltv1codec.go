@@ -140,7 +140,7 @@ func (c *boltV1Codec) doEncodeResponseCommand(cmd *sofarpc.BoltResponseCommand) 
 	offset += 2
 
 	if cmd.CmdCode == sofarpc.HEARTBEAT {
-		log.DefaultLogger.Debugf("[Build HeartBeat Response]")
+		log.DefaultLogger.Debugf("[Build HeartBeat Response] ",time.Now().String())
 	}
 
 	data[offset] = cmd.Version
@@ -270,7 +270,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
-					log.DefaultLogger.Debugf("Decode: Get HB Msg")
+					log.DefaultLogger.Debugf("[Decode: Get HB Msg]",time.Now().String())
 				}
 
 				ver2 := bytes[4]
