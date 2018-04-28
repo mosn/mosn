@@ -6,7 +6,7 @@
       "listeners": [
         {
           "name": "egress",
-          "address": "0.0.0.0:12200",
+          "address": "0.0.0.0:12220",
           "bind_port": true,
           "network_filters": [
             {
@@ -113,7 +113,7 @@
         "hosts": [
           {
             "hostname": "upstream_machine",
-            "address": "11.166.22.163:xxxx",
+            "address": "11.166.22.163:12200",
             "weight": 10
           }
         ]
