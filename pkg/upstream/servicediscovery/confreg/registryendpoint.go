@@ -9,6 +9,7 @@ import (
     "github.com/julienschmidt/httprouter"
     "time"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+    "sync"
 )
 
 const ModuleNotStartedErrMsg = "Registry module not startup. Should call '/configs/application' endpoint at first."
@@ -25,8 +26,19 @@ type ServiceInfo struct {
 }
 
 var subscribeRecorder = make(map[string]chan bool)
+var moduleStartMutex = new(sync.Mutex)
 
 func (re *Endpoint) SetSystemConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    moduleStartMutex.Lock()
+    defer func() {
+        moduleStartMutex.Unlock()
+    }()
+
+    if ModuleStarted {
+        doResponse(true, "", w)
+        return
+    }
+
     raw, _ := ioutil.ReadAll(r.Body)
 
     var request ApplicationInfoRequest
