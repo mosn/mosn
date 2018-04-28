@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
@@ -102,10 +101,14 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 		conn.onNewStreamDetected(streamId, headers)
 	}
 
-	decodeSterilize(streamId, headers)
+	isHBMsg := decodeSterilize(streamId, headers)
 
 	if stream, ok := conn.activeStream.Get(streamId); ok {
-		stream.decoder.OnDecodeHeaders(headers, false)
+		//change by boqin: if HB msg, endstream is true
+		stream.decoder.OnDecodeHeaders(headers, isHBMsg)
+		if isHBMsg{
+			return types.StopIteration
+		}
 	}
 
 	return types.Continue
@@ -239,11 +242,11 @@ func (s *stream) endStream() {
 		if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
 
 			if s.encodedData != nil {
-				log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
+				//log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 			} else {
 				log.DefaultLogger.Debugf("Response Body is void...")
-				log.DefaultLogger.Debugf("[response data2 Response Body is void ]",s.encodedHeaders.Bytes(),time.Now().String())
+				//lllog.DefaultLogger.Debugf("[response data2 Response Body is void ]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders)
 			}
 		} else {

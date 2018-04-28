@@ -7,8 +7,8 @@ import (
     "strings"
 )
 
-//const ServerConfFilePath = "/Users/boqin/server.conf"
-const ServerConfFilePath = "/home/admin/server.conf"
+const ServerConfFilePath = "/Users/boqin/server.conf"
+//const ServerConfFilePath = "/home/admin/server.conf"
 
 type SystemConfig struct {
     AntShareCloud    bool
