@@ -4,6 +4,7 @@ import (
     "time"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
+    "os"
 )
 
 var sysConfig *config.SystemConfig
@@ -22,7 +23,9 @@ func beforeTest() {
 }
 
 func blockThread() {
-    for ; ; {
-        time.Sleep(5 * time.Second)
+    if os.Getenv("run_mode") == "test" {
+        for ; ; {
+            time.Sleep(5 * time.Second)
+        }
     }
 }
