@@ -133,18 +133,16 @@ func (s *activeStream) callLowWatermarkCallbacks() {
 func (s *activeStream) endStream() {
 	s.stopTimer()
 
-	//fix bug by @boqin to delete nil point error when request is healthcheck
-	if (!s.downstreamRecvDone || !s.localProcessDone ) && !s.requestInfo.IsHealthCheck() {
-		// if downstream req received not done, or local proxy process not done by handle upstream response,
-		// just mark it as done and reset stream as a failed case
+	if s.responseEncoder != nil {
+		if (!s.downstreamRecvDone || !s.localProcessDone)  && !s.requestInfo.IsHealthCheck() {
+			// if downstream req received not done, or local proxy process not done by handle upstream response,
+			// just mark it as done and reset stream as a failed case
 			s.localProcessDone = true
-			if s.responseEncoder != nil {
 			s.responseEncoder.GetStream().ResetStream(types.StreamLocalReset)
 		}
 	}
 
 	s.cleanStream()
-
 	// note: if proxy logic resets the stream, there maybe some underlying data in the conn.
 	// we ignore this for now, fix as a todo
 }
