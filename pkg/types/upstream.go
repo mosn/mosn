@@ -1,10 +1,10 @@
 package types
 
 import (
-	"net"
 	"context"
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"net"
 )
 
 type ClusterManager interface {
@@ -62,8 +62,8 @@ type Cluster interface {
 type InitializePhase string
 
 const (
-	Primary   InitializePhase = "Primary";
-	Secondary InitializePhase = "Secondary";
+	Primary   InitializePhase = "Primary"
+	Secondary InitializePhase = "Secondary"
 )
 
 type MemberUpdateCallback func(priority uint32, hostsAdded []Host, hostsRemoved []Host)
@@ -272,6 +272,11 @@ type ClusterHostFactoryCb interface {
 	UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error
 }
 
+type ClusterUpdateFromConfregCb interface {
+	//servermanager.RPCServerChangeListener
+	RegisterConfregListenerCb()
+}
+
 type ClusterManagerFilter interface {
-	OnCreated(cccb ClusterConfigFactoryCb, chcb ClusterHostFactoryCb)
+	OnCreated(cccb ClusterConfigFactoryCb, chcb ClusterHostFactoryCb, cucc ClusterUpdateFromConfregCb)
 }

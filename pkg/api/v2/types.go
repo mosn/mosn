@@ -11,8 +11,9 @@ type Metadata struct {
 type ClusterType string
 
 const (
-	STATIC_CLUSTER ClusterType = "STATIC"
-	SIMPLE_CLUSTER ClusterType = "SIMPLE"
+	STATIC_CLUSTER  ClusterType = "STATIC"
+	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
+	CONFREG_CLUSTER ClusterType = "CONFREG"
 )
 
 type LbType string

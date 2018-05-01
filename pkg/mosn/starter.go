@@ -7,7 +7,6 @@ import (
 	"os"
 	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
@@ -30,8 +29,6 @@ import (
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
-
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 )
 
 func Start(c *config.MOSNConfig) {
@@ -98,12 +95,18 @@ func Start(c *config.MOSNConfig) {
 			parsed := config.ParseClusterConfig(&cluster)
 			clusters = append(clusters, parsed)
 			clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
+			if parsed.ClusterType == v2.CONFREG_CLUSTER {
+				//todo 区分不同的cluster
+				log.StartLogger.Debugf("[RegisterConfregListenerCb Called!]")
+				cmf.cucc.RegisterConfregListenerCb()
+			}
 		}
 		cmf.cccb.UpdateClusterConfig(clusters)
 
 		for clusterName, hosts := range clusterMap {
 			cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
 		}
+
 
 		go func() {
 			srv.Start() //开启连接
@@ -167,12 +170,15 @@ func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFa
 type clusterManagerFilter struct {
 	cccb types.ClusterConfigFactoryCb
 	chcb types.ClusterHostFactoryCb
+	cucc types.ClusterUpdateFromConfregCb
 }
 
-func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
+func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb,
+	cucc types.ClusterUpdateFromConfregCb) {
+
 	cmf.cccb = cccb
 	cmf.chcb = chcb
-	servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(cmf)
+	cmf.cucc = cucc
 }
 
 func getInheritListeners() []*v2.ListenerConfig {
@@ -200,39 +206,4 @@ func getInheritListeners() []*v2.ListenerConfig {
 		return listeners
 	}
 	return nil
-}
-
-var i int = 0
-
-func (p *clusterManagerFilter) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
-
-	//11.166.22.163:12200?_TIMEOUT=3000&p=1&_SERIALIZETYPE=protobuf&_WARMUPTIME=0
-	// &_WARMUPWEIGHT=10&app_name=bar1&zone=GZ00A&_MAXREADIDLETIME=30&_IDLETIMEOUT=27&v=4.0
-	// &_WEIGHT=100&startTime=1524565802559
-	i++
-	log.StartLogger.Debugf("Call back by confreg %d times\n", i, zoneServers)
-
-	dataId = dataId[:len(dataId)-8]
-	serviceName := dataId
-
-	log.StartLogger.Debugf(serviceName)
-	var hosts []v2.Host
-	for _, val := range zoneServers {
-		for _, v := range val {
-
-			idx := strings.Index(v, "?")
-			if idx > 0 {
-				ipaddress := v[:idx]
-				hosts = append(hosts, v2.Host{
-					Address: ipaddress,
-				})
-				log.StartLogger.Debugf(ipaddress)
-			}
-		}
-	}
-
-	go func() {
-		p.chcb.UpdateClusterHost("remote_service", 0, hosts)
-	}()
-
 }

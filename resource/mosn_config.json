@@ -28,7 +28,7 @@
                   {
                     "name": "example_route",
                     "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
-                    "cluster": "remote_service"
+                    "cluster": "confreg_service1"
                   }
                 ]
               }
@@ -109,6 +109,18 @@
       {
         "name": "remote_service",
         "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "hosts": [
+          {
+            "hostname": "upstream_machine",
+            "address": "11.166.22.163:12200",
+            "weight": 10
+          }
+        ]
+      },
+      {
+        "name": "confreg_service1",
+        "type": "CONFREG",
         "lb_type": "LB_RANDOM",
         "hosts": [
           {
