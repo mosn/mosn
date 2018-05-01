@@ -134,3 +134,4 @@ func initDefaultLogger(logPath string, logLevel log.LogLevel) {
 		log.StartLogger.Fatalln("initialize default logger failed : ", err)
 	}
 }
+

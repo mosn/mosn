@@ -8,7 +8,7 @@
       "listeners": [
         {
           "name": "egress",
-          "address": "127.0.0.1:12200",
+          "address": "0.0.0.0:12220",
           "bind_port": true,
           "log_path": "/home/admin/mosn/logs/egress.log",
           "log_level": "DEBUG",
@@ -22,11 +22,11 @@
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "http2",
+                "upstream_protocol": "SofaRpc",
                 "routes": [
                   {
                     "name": "example_route",
-                    "service": ".*",
+                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
                     "cluster": "remote_service"
                   }
                 ]
@@ -57,7 +57,7 @@
               "type": "proxy",
               "config": {
                 "downstream_protocol": "SofaRpc",
-                "upstream_protocol": "http2",
+                "upstream_protocol": "SofaRpc",
                 "routes": [
                   {
                     "name": "example_route",
@@ -112,7 +112,7 @@
         "hosts": [
           {
             "hostname": "upstream_machine",
-            "address": "127.0.0.1:23456",
+            "address": "11.166.22.163:12200",
             "weight": 10
           }
         ]

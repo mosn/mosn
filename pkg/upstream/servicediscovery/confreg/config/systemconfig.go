@@ -8,6 +8,7 @@ import (
     "os"
 )
 
+<<<<<<< HEAD
 var ServerConfFilePath string
 
 func init() {
@@ -17,6 +18,11 @@ func init() {
     }
 }
 
+=======
+//const ServerConfFilePath = "/Users/boqin/server.conf"
+const ServerConfFilePath = "/home/admin/server.conf"
+
+>>>>>>> linkboqin
 type SystemConfig struct {
     AntShareCloud    bool
     InstanceId       string

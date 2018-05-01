@@ -138,9 +138,8 @@ func (s *activeStream) endStream() {
 	s.stopTimer()
 	//add by @boqin to make "cleanstream" done only once
 	var isReset bool
-
 	if s.responseEncoder != nil {
-		if !s.downstreamRecvDone || !s.localProcessDone {
+		if (!s.downstreamRecvDone || !s.localProcessDone){
 			// if downstream req received not done, or local proxy process not done by handle upstream response,
 			// just mark it as done and reset stream as a failed case
 			s.localProcessDone = true
@@ -151,12 +150,13 @@ func (s *activeStream) endStream() {
 	if !isReset {
 		s.cleanStream()
 	}
-
 	// note: if proxy logic resets the stream, there maybe some underlying data in the conn.
 	// we ignore this for now, fix as a todo
 }
 
 func (s *activeStream) cleanStream() {
+
+	//123
 	s.proxy.stats.DownstreamRequestActive().Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
@@ -166,8 +166,11 @@ func (s *activeStream) cleanStream() {
 		downstreamRespHeadersMap = v
 	}
 
-	for _, al := range s.proxy.accessLogs {
-		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+	if s.proxy != nil && s.proxy.accessLogs != nil {
+
+		for _, al := range s.proxy.accessLogs {
+			al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+		}
 	}
 
 	s.proxy.deleteActiveStream(s)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
@@ -22,6 +23,15 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 )
 
 func Start(c *config.MOSNConfig) {
@@ -162,6 +172,7 @@ type clusterManagerFilter struct {
 func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
+	servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(cmf)
 }
 
 func getInheritListeners() []*v2.ListenerConfig {
@@ -189,4 +200,45 @@ func getInheritListeners() []*v2.ListenerConfig {
 		return listeners
 	}
 	return nil
+}
+
+var i int = 0
+
+func (p *clusterManagerFilter) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
+
+	//11.166.22.163:12200?_TIMEOUT=3000&p=1&_SERIALIZETYPE=protobuf&_WARMUPTIME=0
+	// &_WARMUPWEIGHT=10&app_name=bar1&zone=GZ00A&_MAXREADIDLETIME=30&_IDLETIMEOUT=27&v=4.0
+	// &_WEIGHT=100&startTime=1524565802559
+	i++
+	log.StartLogger.Debugf("Call back by confreg %d times\n", i, zoneServers)
+
+	dataId = dataId[:len(dataId)-8]
+	serviceName := dataId
+
+	log.StartLogger.Debugf(serviceName)
+	var hosts []v2.Host
+	for _, val := range zoneServers {
+		for _, v := range val {
+
+			idx := strings.Index(v, "?")
+			if idx > 0 {
+				ipaddress := v[:idx]
+				hosts = append(hosts, v2.Host{
+					Address: ipaddress,
+				})
+				log.StartLogger.Debugf(ipaddress)
+			}
+		}
+	}
+
+	go func() {
+		p.chcb.UpdateClusterHost("remote_service", 0, hosts)
+	}()
+
+	//select {
+	//case <-ClusterInitFinishChan:
+	//	go func() {
+	//		p.chcb.UpdateClusterHost("remote_service", 0, hosts)
+	//	}()
+	//}
 }

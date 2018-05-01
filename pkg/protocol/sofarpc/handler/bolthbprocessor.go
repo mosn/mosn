@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
@@ -26,6 +25,7 @@ func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filt
 				//CALLBACK STREAM LEVEL'S ON_DECODE_HEADER
 				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
 				logger.Debugf("Process Heartbeat Msg")
+
 
 				if status == types.StopIteration {
 					return

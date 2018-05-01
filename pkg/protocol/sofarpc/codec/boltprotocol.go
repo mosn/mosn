@@ -140,7 +140,7 @@ func NewBoltHeartbeat(requestId uint32) *sofarpc.BoltRequestCommand {
 		CmdCode:  sofarpc.HEARTBEAT,
 		Version:  1,
 		ReqId:    requestId,
-		CodecPro: sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		CodecPro: sofarpc.HESSIAN_SERIALIZE, //todo: read default codec from config
 		Timeout:  -1,
 	}
 }
@@ -152,7 +152,7 @@ func NewBoltHeartbeatAck(requestId uint32) *sofarpc.BoltResponseCommand {
 		CmdCode:        sofarpc.HEARTBEAT,
 		Version:        1,
 		ReqId:          requestId,
-		CodecPro:       sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		CodecPro:       sofarpc.HESSIAN_SERIALIZE, //todo: read default codec from config
 		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
 	}
 }
