@@ -107,10 +107,14 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 		conn.onNewStreamDetected(streamId, headers)
 	}
 
-	decodeSterilize(streamId, headers)
+	isHBMsg := decodeSterilize(streamId, headers)
 
 	if stream, ok := conn.activeStream.Get(streamId); ok {
-		stream.decoder.OnDecodeHeaders(headers, false)
+		//changed by @boqin: if HB msg, endstream is true
+		stream.decoder.OnDecodeHeaders(headers, isHBMsg)
+		if isHBMsg {
+			return types.StopIteration
+		}
 	}
 
 	return types.Continue
