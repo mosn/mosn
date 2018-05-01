@@ -1,0 +1,135 @@
+{
+  "servers": [
+    {
+      "default_log_path": "./default.log",
+      "default_log_level": "INFO",
+      "graceful_timeout": "60s",
+
+      "listeners": [
+        {
+          "name": "egress",
+          "address": "0.0.0.0:12220",
+          "bind_port": true,
+          "log_path": "./egress.log",
+          "log_level": "DEBUG",
+          "access_logs":[
+            {
+              "log_path": "./access_egress.log",
+              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
+            }
+          ],
+          "network_filters": [
+            {
+              "type": "proxy",
+              "config": {
+                "downstream_protocol": "SofaRpc",
+                "upstream_protocol": "SofaRpc",
+                "routes": [
+                  {
+                    "name": "confreg_service1",
+                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
+                    "cluster": "remote_service"
+                  }
+                ]
+              }
+            }
+          ],
+          "stream_filters": [
+            {
+              "type": "healthcheck",
+              "config": {
+                "passthrough": false,
+                "cache_time": "360s",
+                "cluster_min_healthy_percentages": {
+                  "local_service": 70
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "ingress",
+          "address": "127.0.0.1:12201",
+          "bind_port": true,
+          "log_path": "/home/admin/mosn/logs/ingress.log",
+          "log_level": "DEBUG",
+          "network_filters": [
+            {
+              "type": "proxy",
+              "config": {
+                "downstream_protocol": "SofaRpc",
+                "upstream_protocol": "SofaRpc",
+                "routes": [
+                  {
+                    "name": "example_route",
+                    "service": ".*",
+                    "cluster": "local_service"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tracing": {
+    "http": {
+      "driver": {
+        "type": "zipkin",
+        "config": {
+          "collector_cluster": "jaeger",
+          "collector_endpoint": "/api/v1/spans"
+        }
+      }
+    }
+  },
+  "cluster_manager": {
+    "clusters": [
+      {
+        "name": "local_service",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "max_request_per_conn": 100000,
+        "healthcheck": {
+          "timeout": "3s",
+          "healthy_threshold": 3,
+          "unhealthy_threshold": 5,
+          "interval": "6s",
+          "interval_jitter": "1s"
+        },
+        "hosts": [
+          {
+            "hostname": "downstream_machine",
+            "address": "127.0.0.1:12345",
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "name": "remote_service",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "hosts": [
+          {
+            "hostname": "upstream_machine",
+            "address": "11.166.22.163:12200",
+            "weight": 10
+          }
+        ]
+      },
+      {
+        "name": "confreg_service1",
+        "type": "CONFREG",
+        "lb_type": "LB_RANDOM",
+        "hosts": [
+          {
+            "hostname": "upstream_machine",
+            "address": "11.166.22.163:xxxx",
+            "weight": 10
+          }
+        ]
+      }
+    ]
+  }
+}
