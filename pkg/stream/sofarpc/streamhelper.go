@@ -58,7 +58,7 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 	return headers
 }
 
-//add by @boqin: return value represents whether the request is HearBeat or not
+//added by @boqin: return value represents whether the request is HearBeat or not
 func decodeSterilize(streamId string, headers map[string]string) bool{
 	headers[types.HeaderStreamID] = streamId
 

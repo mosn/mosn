@@ -136,7 +136,7 @@ func (s *activeStream) callLowWatermarkCallbacks() {
 // case 2: proxy ends stream in lifecycle
 func (s *activeStream) endStream() {
 	s.stopTimer()
-	//add by @boqin to make "cleanstream" done only once
+	//added by @boqin to make "cleanstream" done only once
 	var isReset bool
 	if s.responseEncoder != nil {
 		if (!s.downstreamRecvDone || !s.localProcessDone){
@@ -155,8 +155,6 @@ func (s *activeStream) endStream() {
 }
 
 func (s *activeStream) cleanStream() {
-
-	//123
 	s.proxy.stats.DownstreamRequestActive().Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 

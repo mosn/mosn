@@ -57,7 +57,7 @@ func (ch *connHandler) UpdateClusterHost(cluster string, priority uint32, hosts 
 	return ch.clusterManager.UpdateClusterHosts(cluster, priority, hosts)
 }
 
-//add by @boqin to register RPCServerChangeListener
+//added by @boqin to register RPCServerChangeListener
 func (ch *connHandler) RegisterConfregListenerCb() {
 	servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(ch)
 }

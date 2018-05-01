@@ -10,7 +10,7 @@
           "name": "egress",
           "address": "0.0.0.0:12220",
           "bind_port": true,
-          "log_path": "./egress.log",
+          "log_path": "/home/admin/mosn/logs/egress.log",
           "log_level": "DEBUG",
           "access_logs":[
             {
