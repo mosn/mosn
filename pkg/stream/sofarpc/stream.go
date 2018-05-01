@@ -110,11 +110,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 	isHBMsg := decodeSterilize(streamId, headers)
 
 	if stream, ok := conn.activeStream.Get(streamId); ok {
-<<<<<<< HEAD
 		//changed by @boqin: if HB msg, endstream is true
-=======
-		//change by boqin: if HB msg, endstream is true
->>>>>>> linkboqin
 		stream.decoder.OnDecodeHeaders(headers, isHBMsg)
 		if isHBMsg {
 			return types.StopIteration
@@ -258,13 +254,7 @@ func (s *stream) endStream() {
 				//log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 			} else {
-<<<<<<< HEAD
 				s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
-
-=======
-				log.DefaultLogger.Debugf("Response Body is void...")
-				//lllog.DefaultLogger.Debugf("[response data2 Response Body is void ]",s.encodedHeaders.Bytes(),time.Now().String())
->>>>>>> linkboqin
 				stream.connection.connection.Write(s.encodedHeaders)
 			}
 		} else {
