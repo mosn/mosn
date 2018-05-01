@@ -235,10 +235,4 @@ func (p *clusterManagerFilter) OnRPCServerChanged(dataId string, zoneServers map
 		p.chcb.UpdateClusterHost("remote_service", 0, hosts)
 	}()
 
-	//select {
-	//case <-ClusterInitFinishChan:
-	//	go func() {
-	//		p.chcb.UpdateClusterHost("remote_service", 0, hosts)
-	//	}()
-	//}
 }

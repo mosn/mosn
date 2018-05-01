@@ -55,7 +55,7 @@ func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) 
 		return "", nil
 	}
 
-	//log.ByContext(context).Debugf("[EncodeHeaders]protocol code = %x", protocolCode)
+	log.ByContext(context).Debugf("[EncodeHeaders]protocol code = %x", protocolCode)
 
 	if proto, exists := p.protocolMaps[protocolCode]; exists {
 		//Return encoded data in map[string]string to stream layer
