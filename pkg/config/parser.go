@@ -279,7 +279,7 @@ func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
 	} else {
 		if ct, ok := clusterTypeMap[c.Type]; ok {
 			clusterType = ct
-			if c.SubType != " " {
+			if c.SubType != "" {
 				if cs, ok := subClusterTypeMap[c.SubType]; ok {
 					subclusterType = cs
 				} else {
