@@ -10,11 +10,11 @@ type headersBufferPoolV2 struct {
 	sync.Pool
 }
 
-func (p *headersBufferPoolV2) Take(defaultSize int) (amap map[string]string) {
+func (p *headersBufferPoolV2) Take(capacity int) (amap map[string]string) {
 	v := p.Get()
 
 	if v == nil {
-		amap = make(map[string]string, defaultSize)
+		amap = make(map[string]string, capacity)
 	} else {
 		amap = v.(map[string]string)
 	}
