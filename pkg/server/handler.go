@@ -66,12 +66,12 @@ func (ch *connHandler) OnRPCServerChanged(dataId string, zoneServers map[string]
 	//11.166.22.163:12200?_TIMEOUT=3000&p=1&_SERIALIZETYPE=protobuf&_WARMUPTIME=0
 	// &_WARMUPWEIGHT=10&app_name=bar1&zone=GZ00A&_MAXREADIDLETIME=30&_IDLETIMEOUT=27&v=4.0
 	// &_WEIGHT=100&startTime=1524565802559
-	log.StartLogger.Debugf("[Call back by confreg]\n", zoneServers)
+	log.StartLogger.Debugf("[Call back by confreg]", zoneServers)
 
 	dataId = dataId[:len(dataId)-8]
 	serviceName := dataId
 
-	log.StartLogger.Debugf(serviceName)
+	log.StartLogger.Debugf("[Service Name]",serviceName)
 	var hosts []v2.Host
 	for _, val := range zoneServers {
 		for _, v := range val {
@@ -82,13 +82,13 @@ func (ch *connHandler) OnRPCServerChanged(dataId string, zoneServers map[string]
 				hosts = append(hosts, v2.Host{
 					Address: ipaddress,
 				})
-				log.StartLogger.Debugf(ipaddress)
+				log.StartLogger.Debugf("IP_ADDR",ipaddress)
 			}
 		}
 	}
 	//todo: update route according to services
 	go func() {
-		ch.UpdateClusterHost("remote_service", 0, hosts)
+		ch.UpdateClusterHost("confreg_service1", 0, hosts)
 	}()
 }
 

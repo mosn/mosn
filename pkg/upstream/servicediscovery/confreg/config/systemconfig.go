@@ -13,7 +13,7 @@ var ServerConfFilePath string
 func init() {
 	ServerConfFilePath = os.Getenv("server_conf_path")
 	if ServerConfFilePath == "" {
-		ServerConfFilePath = "/Users/boqin/"
+		ServerConfFilePath = "/home/admin/server.conf"
 	}
 }
 

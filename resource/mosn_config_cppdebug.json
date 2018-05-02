@@ -26,9 +26,9 @@
                 "upstream_protocol": "SofaRpc",
                 "routes": [
                   {
-                    "name": "confreg_service1",
+                    "name": "cpptest_route",
                     "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
-                    "cluster": "remote_service"
+                    "cluster": "confreg_service1"
                   }
                 ]
               }
