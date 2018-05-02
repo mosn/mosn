@@ -2,6 +2,68 @@ package types
 
 import "context"
 
+//
+//   The bunch of interfaces are structure skeleton to build a high performance, extensible protocol stream architecture.
+//
+//   In mosn, we have 4 layers to build a mesh, stream is the inheritance layer to bond protocol layer and proxy layer together.
+//	 -----------------------
+//   |        PROXY          |
+//    -----------------------
+//   |       STREAMING       |
+//    -----------------------
+//   |        PROTOCOL       |
+//    -----------------------
+//   |         NET/IO        |
+//    -----------------------
+//
+//   Core model in stream layer is stream, which manages process of a request and a corresponding response.
+// 	 Event listeners can be installed into a stream to monitor event.
+//	 Stream always has a encoder and decoder:
+// 		- StreamEncoder encodes and sends out a request/response, flag 'endStream' means data is ready to sendout, no need to wait for further input.
+//		- StreamDecoder receives and decodes a request/response. In other words, it's more like a decode listener to get called on data decoded.
+//
+//   Stream:
+//   	- Event listener
+// 			- StreamEventListener
+//      - Encoder
+// 			- StreamEncoder
+// 		- Decoder
+//			- StreamDecoder
+//
+//	 In order to meet the expansion requirements in the stream processing, StreamEncoderFilter and StreamDecoderFilter can be used to do a filter inject to encode/decode process.
+//   Filter's method will be called on each stream process stage and returns a status(Continue/Stop) to effect the control flow.
+//	 TODO: more comments on StreamEncoderFilter/StreamDecoderFilter
+//
+//   From an abstract perspective, stream represents a virtual process on underlying connection. To make stream interactive with connection, some intermediate object can be used.
+//	 StreamConnection is the core model to connect connection system to stream system. As a example, when proxy reads binary data from connection, it dispatches data to StreamConnection to do protocol decode.
+//   Specifically, ClientStreamConnection uses a NewStream to exchange StreamDecoder with StreamEncoder.
+//   Engine provides a callbacks(StreamEncoderFilterCallbacks/StreamDecoderFilterCallbacks) to let filter interact with stream engine.
+// 	 As a example, a encoder filter stopped the encode process, it can continue it by StreamEncoderFilterCallbacks.ContinueEncoding later. Actually, a filter engine is a encoder/decoder itself.
+//
+//   Below is the basic relation on stream and connection:
+//    ----------------------------------------------------------------------------------------------------------
+//   |																											|
+//   | 	  EventListener       						EventListener												|
+//   |        *|                                           |   *												|
+//   |         |                                           |													|
+//   |        1|        1    1  				 *     1   |   *												|
+// 	 |	    Connection -------- StreamConnection ------- Stream													|
+//   |        1|                   	 					   |1													|
+//	 |         |                   						   |--------------------------------					|
+//   |        *|                   						   |*           	 				|*					|
+//   |	 ConnectionFilter    						StreamEncoder  						StreamDecoder			|
+//   |													   |1				 				|1					|
+// 	 |													   |				 				|					|
+//	 |													   |*				 				|*					|
+//	 |										 	 StreamDecoderFilter	   			StreamDecoderFilter			|
+//	 |													   |1								|1					|
+//	 |													   |								|					|
+// 	 |													   |1								|1					|
+//	 |										 StreamDecoderFilterCallbacks     	StreamDecoderFilterCallbacks	|
+//   |																											|
+//    ----------------------------------------------------------------------------------------------------------
+//
+
 type StreamResetReason string
 
 const (

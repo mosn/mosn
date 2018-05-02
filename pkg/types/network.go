@@ -13,7 +13,7 @@ import (
 //
 //   The bunch of interfaces are structure skeleton to build a high performance, extensible network framework.
 //
-//   In mosn, we have 4 layers to build a mesh, net/io is the fundamental layer to support upper level's functionality.
+//   In mosn, we have 4 layers to build a mesh, net/io layer is the fundamental layer to support upper level's functionality.
 //	 -----------------------
 //   |        PROXY          |
 //    -----------------------
@@ -50,7 +50,7 @@ import (
 //   |         |                   |       				|
 //   |        1|     1      *      |1          			|
 // 	 |	    Listener --------- Connection      			|
-//   |        1|     [accpet]      |1          			|
+//   |        1|      [accpet]     |1          			|
 //	 |         |                   |-----------         |
 //   |        *|                   |*          |*       |
 //   |	 ListenerFilter       ReadFilter  WriteFilter   |
