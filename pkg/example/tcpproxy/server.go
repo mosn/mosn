@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+
 	"net/http"
 	_ "net/http/pprof"
 	"runtime"
@@ -23,7 +25,8 @@ func main() {
 	go func() {
 		// mesh
 		cmf := &clusterManagerFilter{}
-		srv = server.NewServer(nil, cmf)
+		cm := cluster.NewClusterManager(nil,nil,nil)
+		srv = server.NewServer(nil, cmf,cm)
 		srv.AddListener(tcpListener(), &proxy.TcpProxyFilterConfigFactory{
 			Proxy: tcpProxyConfig(),
 		}, nil)

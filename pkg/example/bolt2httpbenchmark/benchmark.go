@@ -14,6 +14,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"golang.org/x/net/http2"
 	"net"
 	"net/http"
@@ -76,8 +77,10 @@ func main() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
 
+		cm := cluster.NewClusterManager(nil,nil,nil)
+
 		//RPC
-		srv := server.NewServer(&server.Config{}, cmf)
+		srv := server.NewServer(&server.Config{}, cmf,cm)
 
 		srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
