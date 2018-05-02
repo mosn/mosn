@@ -50,6 +50,7 @@ func (r *upstreamRequest) OnBelowWriteBufferLowWatermark() {
 }
 
 // types.StreamDecoder
+// Method to decode upstream's response message
 func (r *upstreamRequest) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	r.upstreamRespHeaders = headers
 	r.activeStream.onUpstreamHeaders(headers, endStream)

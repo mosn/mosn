@@ -29,10 +29,9 @@ func NewConfregClient(systemConfig *config.SystemConfig, registryConfig *config.
         stopConnChan:         make(chan bool),
     }
 
-    rpcServerManager := servermanager.NewRPCServerManager()
-    rc.rpcServerManager = rpcServerManager
+    rc.rpcServerManager = servermanager.GetRPCServerManager()
 
-    rw := NewRegisterWorker(systemConfig, registryConfig, manager, rpcServerManager)
+    rw := NewRegisterWorker(systemConfig, registryConfig, manager, rc.rpcServerManager)
     rc.registerWorker = rw
 
     return rc

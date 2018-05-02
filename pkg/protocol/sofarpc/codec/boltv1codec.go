@@ -386,9 +386,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					time.Now().UnixNano() / int64(time.Millisecond),
 					nil,
 				}
-
 				logger.Debugf("[Decoder]bolt v1 decode response, response status is:%+v", response.ResponseStatus)
-
 				cmd = &response
 			}
 		}

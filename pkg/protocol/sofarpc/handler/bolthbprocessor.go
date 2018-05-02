@@ -26,6 +26,7 @@ func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filt
 				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
 				logger.Debugf("Process Heartbeat Msg")
 
+
 				if status == types.StopIteration {
 					return
 				}

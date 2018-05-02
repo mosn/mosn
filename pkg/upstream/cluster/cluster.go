@@ -1,12 +1,12 @@
 package cluster
 
 import (
-	"net"
 	"fmt"
-	"sync"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"net"
+	"sync"
 )
 
 // Cluster
@@ -27,7 +27,8 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool)
 	var newCluster types.Cluster
 
 	switch clusterConfig.ClusterType {
-	case v2.SIMPLE_CLUSTER:
+	//todo: add individual cluster for confreg
+	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaApi)
 	}
 

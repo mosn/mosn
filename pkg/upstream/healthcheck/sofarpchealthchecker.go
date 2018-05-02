@@ -44,7 +44,7 @@ func (c *sofarpcHealthChecker) newSession(host types.Host) types.HealthCheckSess
 }
 
 func (c *sofarpcHealthChecker) createCodecClient(data types.CreateConnectionData) stream.CodecClient {
-	return stream.NewCodecClient(protocol.SofaRpc, data.Connection, data.HostInfo)
+	return stream.NewCodecClient(nil,protocol.SofaRpc, data.Connection, data.HostInfo)
 }
 
 // types.StreamDecoder

@@ -58,7 +58,7 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 	return headers
 }
 
-//add by @boqin: return value represents whether the request is HearBeat or not
+//added by @boqin: return value represents whether the request is HearBeat or not
 func decodeSterilize(streamId string, headers map[string]string) bool{
 	headers[types.HeaderStreamID] = streamId
 
@@ -69,6 +69,7 @@ func decodeSterilize(streamId string, headers map[string]string) bool{
 	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
 		cmdCode := sofarpc.ConvertPropertyValue(cmdCodeStr, reflect.Int16)
 
+		//sofarpc.HEARTBEAT(0) is equal to sofarpc.TR_HEARTBEAT(0)
 		if cmdCode == sofarpc.HEARTBEAT {
 			return true
 		}

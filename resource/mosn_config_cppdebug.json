@@ -1,7 +1,7 @@
 {
   "servers": [
     {
-      "default_log_path": "/home/admin/mosn/logs/default.log",
+      "default_log_path": "./default.log",
       "default_log_level": "INFO",
       "graceful_timeout": "60s",
 
@@ -10,7 +10,7 @@
           "name": "egress",
           "address": "0.0.0.0:12220",
           "bind_port": true,
-          "log_path": "/home/admin/mosn/logs/egress.log",
+          "log_path": "./egress.log",
           "log_level": "DEBUG",
           "access_logs":[
             {
@@ -26,7 +26,7 @@
                 "upstream_protocol": "SofaRpc",
                 "routes": [
                   {
-                    "name": "example_route",
+                    "name": "cpptest_route",
                     "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
                     "cluster": "confreg_service1"
                   }
@@ -120,12 +120,13 @@
       },
       {
         "name": "confreg_service1",
-        "type": "CONFREG",
+        "type": "DYNAMIC",
+        "sub_type": "CONFREG",
         "lb_type": "LB_RANDOM",
         "hosts": [
           {
             "hostname": "upstream_machine",
-            "address": "11.166.22.163:12200",
+            "address": "11.166.22.163:xxx",
             "weight": 10
           }
         ]

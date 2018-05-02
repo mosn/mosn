@@ -7,7 +7,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"net"
 	"os"
 	"strconv"
@@ -26,10 +25,10 @@ type connHandler struct {
 	logger         log.Logger
 }
 
-func NewHandler(clusterManagerFilter types.ClusterManagerFilter, logger log.Logger) types.ConnectionHandler {
+func NewHandler(clusterManagerFilter types.ClusterManagerFilter,clMng types.ClusterManager, logger log.Logger) types.ConnectionHandler {
 	ch := &connHandler{
 		numConnections: 0,
-		clusterManager: cluster.NewClusterManager(nil),
+		clusterManager: clMng,
 		listeners:      make([]*activeListener, 0),
 		logger:         logger,
 	}
@@ -233,7 +232,6 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
-
 	arc.ContinueFilterChain(true, ctx)
 }
 
