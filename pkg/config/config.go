@@ -68,6 +68,7 @@ type HealthCheckConfig struct {
 type ClusterConfig struct {
 	Name                 string
 	Type                 string
+	SubType              string `json:"sub_type"`
 	LbType               string `json:"lb_type"`
 	MaxRequestPerConn    uint64 `json:"max_request_per_conn"`
 	ConnBufferLimitBytes uint32

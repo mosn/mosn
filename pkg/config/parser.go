@@ -24,7 +24,11 @@ var streamFilterTypeMap = map[string]string{}
 
 var clusterTypeMap = map[string]v2.ClusterType{
 	"SIMPLE":  v2.SIMPLE_CLUSTER,
-	"Dynamic_Confreg": v2.DYNAMIC_CONFREG_CLUSTER,
+	"DYNAMIC": v2.DYNAMIC_CLUSTER,
+}
+
+var subClusterTypeMap = map[string]v2.SubClusterType{
+	"CONFREG": v2.CONFREG_CLUSTER,
 }
 
 var lbTypeMap = map[string]v2.LbType{
@@ -269,11 +273,19 @@ func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
 	}
 
 	var clusterType v2.ClusterType
+	var subclusterType v2.SubClusterType
 	if c.Type == "" {
 		log.StartLogger.Fatalln("[type] is required in cluster config")
 	} else {
 		if ct, ok := clusterTypeMap[c.Type]; ok {
 			clusterType = ct
+			if c.SubType != " " {
+				if cs, ok := subClusterTypeMap[c.SubType]; ok {
+					subclusterType = cs
+				} else {
+					log.StartLogger.Fatalln("[unknown sub-cluster type]", c.SubType)
+				}
+			}
 		} else {
 			log.StartLogger.Fatalln("unknown cluster type:", c.Type)
 		}
@@ -303,6 +315,7 @@ func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
 	return v2.Cluster{
 		Name:                 c.Name,
 		ClusterType:          clusterType,
+		SubClustetType:       subclusterType,
 		LbType:               lbType,
 		MaxRequestPerConn:    c.MaxRequestPerConn,
 		ConnBufferLimitBytes: c.ConnBufferLimitBytes,

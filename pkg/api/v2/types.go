@@ -11,9 +11,15 @@ type Metadata struct {
 type ClusterType string
 
 const (
-	STATIC_CLUSTER          ClusterType = "STATIC"
-	SIMPLE_CLUSTER          ClusterType = "SIMPLE"
-	DYNAMIC_CONFREG_CLUSTER ClusterType = "Dynamic_Confreg"
+	STATIC_CLUSTER  ClusterType = "STATIC"
+	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
+	DYNAMIC_CLUSTER ClusterType = "DYNAMIC"
+)
+
+type SubClusterType string
+
+const (
+	CONFREG_CLUSTER SubClusterType = "CONFREG"
 )
 
 type LbType string
@@ -26,6 +32,7 @@ const (
 type Cluster struct {
 	Name              string
 	ClusterType       ClusterType
+	SubClustetType    SubClusterType
 	LbType            LbType
 	MaxRequestPerConn uint64
 

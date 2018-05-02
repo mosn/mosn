@@ -284,6 +284,5 @@ type ClusterManagerFilter interface {
 }
 
 type RegisterUpstreamUpdateMethodCb interface{
-
 	RegisterUpdateMethod()
 }

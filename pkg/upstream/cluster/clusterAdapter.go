@@ -14,36 +14,40 @@ func init() {
 	cfa := &confregAdaptor{
 		ca: &ClusterAdap,
 	}
-	RegisterUpstreamUpdateMethod(v2.DYNAMIC_CONFREG_CLUSTER, cfa)
+	SetAdapterMap(v2.CONFREG_CLUSTER, cfa)
 }
 
 var ClusterAdap ClusterAdapter
 
 type ClusterAdapter struct {
-	clustermnger *clusterManager
+	clusterMng *clusterManager
 }
 
-var adapterMap = make(map[v2.ClusterType]types.RegisterUpstreamUpdateMethodCb,4)
+var adapterMap = make(map[v2.SubClusterType]types.RegisterUpstreamUpdateMethodCb, 4)
 
-func RegisterUpstreamUpdateMethod(dtype v2.ClusterType, f types.RegisterUpstreamUpdateMethodCb) {
-	adapterMap[dtype] = f
+func SetAdapterMap(sct v2.SubClusterType, f types.RegisterUpstreamUpdateMethodCb) {
+	adapterMap[sct] = f
 }
 
-func (ca *ClusterAdapter) CallUpstreamUpdateMethod(providerType v2.ClusterType) {
+func (ca *ClusterAdapter) DoRegister(providerType v2.SubClusterType) {
 	if v, ok := adapterMap[providerType]; ok {
 		v.RegisterUpdateMethod()
 	} else {
-		log.DefaultLogger.Debugf("Type %s doesn't exist",string(providerType))
+		log.DefaultLogger.Debugf("Type %s doesn't exist", string(providerType))
 	}
 }
 
 type confregAdaptor struct {
-	ca *ClusterAdapter
+	ca    *ClusterAdapter
+	isReg bool
 }
 
 func (cf *confregAdaptor) RegisterUpdateMethod() {
 	log.DefaultLogger.Debugf("[RegisterConfregListenerCb Called!]")
-	servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(cf)
+	if !cf.isReg {
+		servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(cf)
+		cf.isReg = true
+	}
 }
 
 func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
@@ -72,6 +76,6 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 	}
 	//todo: update route according to services
 	go func() {
-		cf.ca.clustermnger.UpdateClusterHosts("confreg_service1", 0, hosts)
+		cf.ca.clusterMng.UpdateClusterHosts("confreg_service1", 0, hosts)
 	}()
 }

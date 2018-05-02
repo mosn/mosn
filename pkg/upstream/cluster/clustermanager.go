@@ -10,7 +10,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"net"
-	"strings"
 )
 
 // ClusterManager
@@ -37,7 +36,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster, clusterMap ma
 	}
 	//init ClusterAdap
 	ClusterAdap = ClusterAdapter{
-		clustermnger: cm,
+		clusterMng: cm,
 	}
 
 	cm.clusterAdapter = ClusterAdap
@@ -47,8 +46,8 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster, clusterMap ma
 	for _, cluster := range clusters {
 		cm.AddOrUpdatePrimaryCluster(cluster)
 		//For dynamic cluster,register update method
-		if strings.HasPrefix(string(cluster.ClusterType),"Dynamic") {
-			ClusterAdap.CallUpstreamUpdateMethod(cluster.ClusterType)
+		if cluster.ClusterType == v2.DYNAMIC_CLUSTER {
+			ClusterAdap.DoRegister(cluster.SubClustetType)
 		}
 	}
 

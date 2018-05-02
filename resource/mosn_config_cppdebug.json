@@ -120,7 +120,8 @@
       },
       {
         "name": "confreg_service1",
-        "type": "Dynamic_Confreg",
+        "type": "Dynamic",
+        "sub_type": "Confreg",
         "lb_type": "LB_RANDOM",
         "hosts": [
           {
