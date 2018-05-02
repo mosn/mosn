@@ -69,6 +69,10 @@ func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
 }
 
+func (conn *streamConnection) GoAway() {
+	// todo
+}
+
 func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
 	for as := conn.activeStreams.Front(); as != nil; as = as.Next() {
 		for _, cb := range as.Value.(stream).streamCbs {
@@ -160,11 +164,11 @@ func (ssc *serverStreamConnection) OnGoAway() {
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
 	//generate stream id using timestamp
-	streamId := "streamID-"+time.Now().String()
+	streamId := "streamID-" + time.Now().String()
 
 	stream := &serverStream{
 		stream: stream{
-			context:    context.WithValue(ssc.context, types.ContextKeyStreamId, streamId),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamId, streamId),
 			request: request,
 		},
 		connection:       ssc,

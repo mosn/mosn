@@ -80,6 +80,10 @@ func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
 }
 
+func (conn *streamConnection) GoAway() {
+	// todo
+}
+
 func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
 	// todo
 }
