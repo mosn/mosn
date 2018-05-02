@@ -202,73 +202,108 @@ type StreamFilterCallbacks interface {
 	RequestInfo() RequestInfo
 }
 
+// Stream encoder filter
 type StreamEncoderFilter interface {
 	StreamFilterBase
 
+	// Encode headers
+	// endStream supplies whether this is a header only request/response
 	EncodeHeaders(headers interface{}, endStream bool) FilterHeadersStatus
 
+	// Called with data to be encoded
+	// endStream supplies whether this is the last data
 	EncodeData(buf IoBuffer, endStream bool) FilterDataStatus
 
+	// Called with trailers to be encoded, implicitly ending the stream
 	EncodeTrailers(trailers map[string]string) FilterTrailersStatus
 
+	// Set StreamEncoderFilterCallbacks
 	SetEncoderFilterCallbacks(cb StreamEncoderFilterCallbacks)
 }
 
 type StreamEncoderFilterCallbacks interface {
 	StreamFilterCallbacks
 
+	// Continue iterating through the filter chain with buffered headers and body data
 	ContinueEncoding()
 
+	// data buffered by this filter or previous ones in the filter chain
 	EncodingBuffer() IoBuffer
 
+	// Add buffered body data
 	AddEncodedData(buf IoBuffer, streamingFilter bool)
 
+	// Called when an encoder filter goes over its high watermark
 	OnEncoderFilterAboveWriteBufferHighWatermark()
 
+	// Called when a encoder filter goes from over its high watermark to under its low watermark
 	OnEncoderFilterBelowWriteBufferLowWatermark()
 
+	// Set the buffer limit
 	SetEncoderBufferLimit(limit uint32)
 
+	// Get buffer limit
 	EncoderBufferLimit() uint32
 }
 
+// Stream decoder filter
 type StreamDecoderFilter interface {
 	StreamFilterBase
 
+	// Called with decoded headers
+	// endStream supplies whether this is a header only request/response
 	DecodeHeaders(headers map[string]string, endStream bool) FilterHeadersStatus
 
+	// Called with a decoded data
+	// endStream supplies whether this is the last data
 	DecodeData(buf IoBuffer, endStream bool) FilterDataStatus
 
+	// Called with decoded trailers, implicitly ending the stream
 	DecodeTrailers(trailers map[string]string) FilterTrailersStatus
 
+	// Set decoder filter callbacks
 	SetDecoderFilterCallbacks(cb StreamDecoderFilterCallbacks)
 }
 
+// Stream decoder filter callbacks add additional callbacks that allow a decoding filter to restart
+// decoding if they decide to hold data
 type StreamDecoderFilterCallbacks interface {
 	StreamFilterCallbacks
 
+	// Continue iterating through the filter chain with buffered headers and body data
 	ContinueDecoding()
 
+	// data buffered by this filter or previous ones in the filter chain
 	DecodingBuffer() IoBuffer
 
+	// Add buffered body data
 	AddDecodedData(buf IoBuffer, streamingFilter bool)
 
+	// Called with headers to be encoded, optionally indicating end of stream
 	EncodeHeaders(headers interface{}, endStream bool)
 
+	// Called with data to be encoded, optionally indicating end of stream.
 	EncodeData(buf IoBuffer, endStream bool)
 
+	// Called with trailers to be encoded, implicitly ends the stream.
 	EncodeTrailers(trailers map[string]string)
 
+	// Called when the buffer for a decoder filter or any buffers the filter sends data to go over their high watermark
 	OnDecoderFilterAboveWriteBufferHighWatermark()
 
+	// Called when a decoder filter or any buffers the filter sends data to go from over its high watermark to under its low watermark
 	OnDecoderFilterBelowWriteBufferLowWatermark()
 
+	// Called by a filter to subscribe to watermark events on the downstream stream and downstream connection
 	AddDownstreamWatermarkCallbacks(cb DownstreamWatermarkEventListener)
 
+	// Called by a filter to stop subscribing to watermark events on the downstream stream and downstream connection
 	RemoveDownstreamWatermarkCallbacks(cb DownstreamWatermarkEventListener)
 
+	// Set the buffer limit for decoder filters
 	SetDecoderBufferLimit(limit uint32)
 
+	// Get decoder buffer limit
 	DecoderBufferLimit() uint32
 }
 
@@ -291,22 +326,30 @@ type FilterChainFactoryCallbacks interface {
 type FilterHeadersStatus string
 
 const (
-	FilterHeadersStatusContinue      FilterHeadersStatus = "Continue"
+	// Continue filter chain iteration.
+	FilterHeadersStatusContinue FilterHeadersStatus = "Continue"
+	// Do not iterate to next iterator. Filter calls continueDecoding to continue.
 	FilterHeadersStatusStopIteration FilterHeadersStatus = "StopIteration"
 )
 
 type FilterDataStatus string
 
 const (
-	FilterDataStatusContinue                  FilterDataStatus = "Continue"
-	FilterDataStatusStopIterationAndBuffer    FilterDataStatus = "StopIterationAndBuffer"
+	// Continue filter chain iteration
+	FilterDataStatusContinue FilterDataStatus = "Continue"
+	// Do not iterate to next iterator, and buffer body data for later use
+	FilterDataStatusStopIterationAndBuffer FilterDataStatus = "StopIterationAndBuffer"
+	// Do not iterate to next iterator, and buffer body data for later use
 	FilterDataStatusStopIterationAndWatermark FilterDataStatus = "StopIterationAndWatermark"
-	FilterDataStatusStopIterationNoBuffer     FilterDataStatus = "StopIterationNoBuffer"
+	// Do not iterate to next iterator, but do not buffer any of the body data for later use
+	FilterDataStatusStopIterationNoBuffer FilterDataStatus = "StopIterationNoBuffer"
 )
 
 type FilterTrailersStatus string
 
 const (
-	FilterTrailersStatusContinue      FilterTrailersStatus = "Continue"
+	// Continue filter chain iteration
+	FilterTrailersStatusContinue FilterTrailersStatus = "Continue"
+	// Do not iterate to next iterator. Filter calls continueDecoding to continue.
 	FilterTrailersStatusStopIteration FilterTrailersStatus = "StopIteration"
 )
