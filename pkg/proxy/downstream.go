@@ -136,11 +136,10 @@ func (s *activeStream) callLowWatermarkCallbacks() {
 // case 2: proxy ends stream in lifecycle
 func (s *activeStream) endStream() {
 	s.stopTimer()
-	//add by @boqin to make "cleanstream" done only once
+	//added by @boqin to make "cleanstream" done only once
 	var isReset bool
-
 	if s.responseEncoder != nil {
-		if !s.downstreamRecvDone || !s.localProcessDone {
+		if (!s.downstreamRecvDone || !s.localProcessDone){
 			// if downstream req received not done, or local proxy process not done by handle upstream response,
 			// just mark it as done and reset stream as a failed case
 			s.localProcessDone = true
@@ -151,7 +150,6 @@ func (s *activeStream) endStream() {
 	if !isReset {
 		s.cleanStream()
 	}
-
 	// note: if proxy logic resets the stream, there maybe some underlying data in the conn.
 	// we ignore this for now, fix as a todo
 }
@@ -166,8 +164,11 @@ func (s *activeStream) cleanStream() {
 		downstreamRespHeadersMap = v
 	}
 
-	for _, al := range s.proxy.accessLogs {
-		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+	if s.proxy != nil && s.proxy.accessLogs != nil {
+
+		for _, al := range s.proxy.accessLogs {
+			al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+		}
 	}
 
 	s.proxy.deleteActiveStream(s)
@@ -186,7 +187,8 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		return
 	}
 
-	// todo: validate headers
+	// todo: enrich headers' information to do some hijack
+	//Check headers' info to do hijack
 	if v, ok := headers[types.HeaderException]; ok {
 		switch v {
 		case types.MosnExceptionCodeC:
@@ -199,7 +201,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		return
 	}
 
-	//do some route by service name
+	//Get some route by service name
 	route := s.proxy.routerConfig.Route(headers)
 
 	if route == nil || route.RouteRule() == nil {
@@ -236,7 +238,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
-
+	//Call upstream's encode header method to build upstream's request
 	s.upstreamRequest.encodeHeaders(headers, endStream)
 }
 

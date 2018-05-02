@@ -1,10 +1,10 @@
 package registry
 
 import (
+    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "sync"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 var confregServerManager *servermanager.RegistryServerManager
@@ -17,6 +17,7 @@ var ModuleStarted = false
 //Startup registry endpoint.
 func init() {
     log.InitDefaultLogger("", log.INFO)
+    servermanager.NewRPCServerManager()
     go func() {
         re := &Endpoint{
             registryConfig: config.DefaultRegistryConfig,

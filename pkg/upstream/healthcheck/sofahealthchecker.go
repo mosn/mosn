@@ -45,7 +45,7 @@ func (c *sofHealthChecker) newSession(host types.Host) types.HealthCheckSession 
 func (s *sofaHealthCheckSession) onInterval() {
 	if s.client == nil {
 		connData := s.host.CreateConnection()
-		s.client = stream.NewBiDirectCodeClient(protocol.SofaRpc, connData.Connection, connData.HostInfo, s)
+		s.client = stream.NewBiDirectCodeClient(nil,protocol.SofaRpc, connData.Connection, connData.HostInfo, s)
 		s.expectReset = false
 	}
 

@@ -22,6 +22,14 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
 )
 
 func Start(c *config.MOSNConfig) {
@@ -62,9 +70,19 @@ func Start(c *config.MOSNConfig) {
 
 		//cluster manager filter
 		cmf := &clusterManagerFilter{}
+		var clusters []v2.Cluster
+		clusterMap := make(map[string][]v2.Host)
 
-		//2. initialize server instance
-		srv := server.NewServer(sc, cmf)
+		for _, cluster := range c.ClusterManager.Clusters {
+			parsed := config.ParseClusterConfig(&cluster)
+			clusters = append(clusters, parsed)
+			clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
+		}
+
+		//create cluster manager
+		cm := cluster.NewClusterManager(nil,clusters,clusterMap)
+		//initialize server instance
+		srv := server.NewServer(sc, cmf, cm)
 
 		//add listener
 		if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
@@ -81,23 +99,8 @@ func Start(c *config.MOSNConfig) {
 			srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nfcf, sfcf)
 		}
 
-		var clusters []v2.Cluster
-		clusterMap := make(map[string][]v2.Host)
-
-		for _, cluster := range c.ClusterManager.Clusters {
-			parsed := config.ParseClusterConfig(&cluster)
-			clusters = append(clusters, parsed)
-			clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
-		}
-		cmf.cccb.UpdateClusterConfig(clusters)
-
-		for clusterName, hosts := range clusterMap {
-			cmf.chcb.UpdateClusterHost(clusterName, 0, hosts)
-		}
-
 		go func() {
-			srv.Start() //开启连接
-
+			srv.Start()
 			select {
 			case <-stopChan:
 				srv.Close()
