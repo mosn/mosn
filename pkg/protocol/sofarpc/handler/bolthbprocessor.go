@@ -20,20 +20,12 @@ func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filt
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 		logger := log.ByContext(context)
 
-		//for demo, invoke ctx as callback
+		//HeartBeat Msg only has request header
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
-				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
+				//CALLBACK STREAM LEVEL'S ON_DECODE_HEADER
 				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
 				logger.Debugf("Process Heartbeat Msg")
-
-				if status == types.StopIteration {
-					return
-				}
-			}
-
-			if cmd.Content != nil {
-				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return
