@@ -1,15 +1,16 @@
 package cluster
 
 import (
-	"net"
 	"context"
 	"errors"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 	"github.com/orcaman/concurrent-map"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"net"
+	"strings"
 )
 
 // ClusterManager
@@ -18,6 +19,7 @@ type clusterManager struct {
 	primaryClusters cmap.ConcurrentMap // string: *primaryCluster
 	sofaRpcConnPool cmap.ConcurrentMap // string: types.ConnectionPool
 	http2ConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
+	clusterAdapter  ClusterAdapter
 }
 
 type clusterSnapshot struct {
@@ -26,13 +28,36 @@ type clusterSnapshot struct {
 	loadbalancer types.LoadBalancer
 }
 
-func NewClusterManager(sourceAddr net.Addr) types.ClusterManager {
-	return &clusterManager{
+func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster, clusterMap map[string][]v2.Host) types.ClusterManager {
+	cm := &clusterManager{
 		sourceAddr:      sourceAddr,
 		primaryClusters: cmap.New(),
 		sofaRpcConnPool: cmap.New(),
 		http2ConnPool:   cmap.New(),
 	}
+	//init ClusterAdap
+	ClusterAdap = ClusterAdapter{
+		clustermnger: cm,
+	}
+
+	cm.clusterAdapter = ClusterAdap
+
+	//Add cluster to cm
+	//Register upstream update type
+	for _, cluster := range clusters {
+		cm.AddOrUpdatePrimaryCluster(cluster)
+		//For dynamic cluster,register update method
+		if strings.HasPrefix(string(cluster.ClusterType),"Dynamic") {
+			ClusterAdap.CallUpstreamUpdateMethod(cluster.ClusterType)
+		}
+	}
+
+	//Add hosts to cluster
+	for clusterName, hosts := range clusterMap {
+		cm.UpdateClusterHosts(clusterName, 0, hosts)
+	}
+
+	return cm
 }
 
 func (cs *clusterSnapshot) PrioritySet() types.PrioritySet {

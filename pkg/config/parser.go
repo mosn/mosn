@@ -24,7 +24,7 @@ var streamFilterTypeMap = map[string]string{}
 
 var clusterTypeMap = map[string]v2.ClusterType{
 	"SIMPLE":  v2.SIMPLE_CLUSTER,
-	"CONFREG": v2.CONFREG_CLUSTER,
+	"Dynamic_Confreg": v2.DYNAMIC_CONFREG_CLUSTER,
 }
 
 var lbTypeMap = map[string]v2.LbType{

@@ -26,7 +26,7 @@ type server struct {
 	handler  types.ConnectionHandler
 }
 
-func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
+func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
 	var logPath string
 	var logLevel log.LogLevel
 
@@ -43,7 +43,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter) Server {
 	server := &server{
 		logger:   log.DefaultLogger,
 		stopChan: make(chan bool),
-		handler:  NewHandler(cmFilter, log.DefaultLogger),
+		handler:  NewHandler(cmFilter, clMng, log.DefaultLogger),
 	}
 
 	servers = append(servers, server)

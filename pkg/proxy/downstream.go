@@ -187,7 +187,8 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		return
 	}
 
-	// todo: validate headers
+	// todo: enrich headers' information to do some hijack
+	//Check headers' info to do hijack
 	if v, ok := headers[types.HeaderException]; ok {
 		switch v {
 		case types.MosnExceptionCodeC:
@@ -200,7 +201,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		return
 	}
 
-	//do some route by service name
+	//Get some route by service name
 	route := s.proxy.routerConfig.Route(headers)
 
 	if route == nil || route.RouteRule() == nil {
@@ -237,7 +238,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
-
+	//Call upstream's encode header method to build upstream's request
 	s.upstreamRequest.encodeHeaders(headers, endStream)
 }
 

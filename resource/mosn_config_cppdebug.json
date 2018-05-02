@@ -120,12 +120,12 @@
       },
       {
         "name": "confreg_service1",
-        "type": "CONFREG",
+        "type": "Dynamic_Confreg",
         "lb_type": "LB_RANDOM",
         "hosts": [
           {
             "hostname": "upstream_machine",
-            "address": "11.166.22.163:xxxx",
+            "address": "11.166.22.163:xxx",
             "weight": 10
           }
         ]

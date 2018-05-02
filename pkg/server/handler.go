@@ -7,8 +7,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 	"net"
 	"os"
 	"strconv"
@@ -27,15 +25,15 @@ type connHandler struct {
 	logger         log.Logger
 }
 
-func NewHandler(clusterManagerFilter types.ClusterManagerFilter, logger log.Logger) types.ConnectionHandler {
+func NewHandler(clusterManagerFilter types.ClusterManagerFilter,clMng types.ClusterManager, logger log.Logger) types.ConnectionHandler {
 	ch := &connHandler{
 		numConnections: 0,
-		clusterManager: cluster.NewClusterManager(nil),
+		clusterManager: clMng,
 		listeners:      make([]*activeListener, 0),
 		logger:         logger,
 	}
 
-	clusterManagerFilter.OnCreated(ch, ch, ch)
+	clusterManagerFilter.OnCreated(ch, ch)
 
 	return ch
 }
@@ -55,41 +53,6 @@ func (ch *connHandler) UpdateClusterConfig(clusters []v2.Cluster) error {
 // ClusterHostFactoryCb
 func (ch *connHandler) UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error {
 	return ch.clusterManager.UpdateClusterHosts(cluster, priority, hosts)
-}
-
-//added by @boqin to register RPCServerChangeListener
-func (ch *connHandler) RegisterConfregListenerCb() {
-	servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(ch)
-}
-
-func (ch *connHandler) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
-	//11.166.22.163:12200?_TIMEOUT=3000&p=1&_SERIALIZETYPE=protobuf&_WARMUPTIME=0
-	// &_WARMUPWEIGHT=10&app_name=bar1&zone=GZ00A&_MAXREADIDLETIME=30&_IDLETIMEOUT=27&v=4.0
-	// &_WEIGHT=100&startTime=1524565802559
-	log.StartLogger.Debugf("[Call back by confreg]", zoneServers)
-
-	dataId = dataId[:len(dataId)-8]
-	serviceName := dataId
-
-	log.StartLogger.Debugf("[Service Name]",serviceName)
-	var hosts []v2.Host
-	for _, val := range zoneServers {
-		for _, v := range val {
-
-			idx := strings.Index(v, "?")
-			if idx > 0 {
-				ipaddress := v[:idx]
-				hosts = append(hosts, v2.Host{
-					Address: ipaddress,
-				})
-				log.StartLogger.Debugf("IP_ADDR",ipaddress)
-			}
-		}
-	}
-	//todo: update route according to services
-	go func() {
-		ch.UpdateClusterHost("confreg_service1", 0, hosts)
-	}()
 }
 
 // ConnectionHandler
