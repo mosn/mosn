@@ -4,6 +4,7 @@
       "default_log_path": "/home/admin/mosn/logs/default.log",
       "default_log_level": "INFO",
       "graceful_timeout": "60s",
+      "Processor": 1,
 
       "listeners": [
         {
@@ -120,7 +121,8 @@
       },
       {
         "name": "confreg_service1",
-        "type": "CONFREG",
+        "type": "DYNAMIC",
+        "sub_type": "CONFREG",
         "lb_type": "LB_RANDOM",
         "hosts": [
           {

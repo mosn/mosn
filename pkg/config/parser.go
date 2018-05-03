@@ -52,6 +52,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        ParseLogLevel(c.DefaultLogLevel),
 		GracefulTimeout: c.GracefulTimeout.Duration,
+		Processor:       c.Processor,
 	}
 
 	return sc

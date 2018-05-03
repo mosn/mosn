@@ -5,7 +5,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"runtime"
 	"strconv"
 	"sync"
 
@@ -24,18 +23,11 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
 )
 
 func Start(c *config.MOSNConfig) {
 	log.StartLogger.Infof("start by config : %+v", c)
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	srvNum := len(c.Servers)
 	if srvNum == 0 {
