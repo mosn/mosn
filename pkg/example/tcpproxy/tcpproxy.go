@@ -8,6 +8,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+
 	"net"
 	"time"
 )
@@ -83,7 +85,8 @@ func main2() {
 		case <-upstreamReadyChan:
 			// mesh
 			cmf := &clusterManagerFilter{}
-			srv := server.NewServer(nil, cmf)
+			cm := cluster.NewClusterManager(nil,nil,nil)
+			srv := server.NewServer(nil, cmf,cm)
 			srv.AddListener(tcpListener(), &proxy.TcpProxyFilterConfigFactory{
 				Proxy: tcpProxyConfig(),
 			}, nil)

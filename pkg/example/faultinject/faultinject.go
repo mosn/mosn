@@ -7,6 +7,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/filter/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+
 	"net"
 	"net/http"
 	"runtime"
@@ -43,7 +45,9 @@ func main() {
 
 		// mesh
 		cmf := &clusterManagerFilter{}
-		srv := server.NewServer(nil, cmf)
+		cm := cluster.NewClusterManager(nil,nil,nil)
+
+		srv := server.NewServer(nil, cmf,cm)
 		srv.AddListener(tcpListener(), nf, nil)
 		cmf.cccb.UpdateClusterConfig(clusters())
 		cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts("11.162.169.38:80"))
