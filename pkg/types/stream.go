@@ -16,12 +16,12 @@ import "context"
 //   |         NET/IO        |
 //    -----------------------
 //
-//   Core model in stream layer is stream, which manages process of a request and a corresponding response.
+//   Core model in stream layer is stream, which manages process of a round-trip, a request and a corresponding response.
 // 	 Event listeners can be installed into a stream to monitor event.
 //	 Stream has two related models, encoder and decoder:
 // 		- StreamEncoder: a sender encodes request/response to binary and sends it out, flag 'endStream' means data is ready to sendout, no need to wait for further input.
 //		- StreamDecoder: It's more like a decode listener to get called on a receiver receives binary and decodes to a request/response.
-//	 	- Stream does not have a predetermined direction, so StreamEncoder could be a request encoder as a client or a response encode as a server. It's just about the usecase, so does StreamDecoder.
+//	 	- Stream does not have a predetermined direction, so StreamEncoder could be a request encoder as a client or a response encoder as a server. It's just about the scenario, so does StreamDecoder.
 //
 //   Stream:
 //   	- Event listener
@@ -102,7 +102,9 @@ type StreamEventListener interface {
 	OnBelowWriteBufferLowWatermark()
 }
 
-// Encode protocol stream
+// StreamEncoder encodes protocol stream
+// On server scenario, StreamEncoder handles response
+// On client scenario, StreamEncoder handles request
 type StreamEncoder interface {
 	// Encode headers
 	// endStream supplies whether this is a header only request/response
@@ -120,6 +122,8 @@ type StreamEncoder interface {
 }
 
 // Listeners called on decode stream event
+// On server scenario, StreamDecoder handles request
+// On client scenario, StreamEncoder handles response
 type StreamDecoder interface {
 	// Called with decoded headers
 	// endStream supplies whether this is a header only request/response
@@ -136,6 +140,7 @@ type StreamDecoder interface {
 // A connection runs multiple streams
 type StreamConnection interface {
 	// Dispatch incoming data
+	// On data read scenario, it connects connection and stream by dispatching read buffer to stream, stream uses protocol decode data, and popup event to controller
 	Dispatch(buffer IoBuffer)
 
 	// Protocol on the connection
@@ -271,21 +276,29 @@ type StreamDecoderFilterCallbacks interface {
 	StreamFilterCallbacks
 
 	// Continue iterating through the filter chain with buffered headers and body data
+	// It can only be called if decode process has been stopped by current filter, using StopIteration from decodeHeaders() or StopIterationAndBuffer or StopIterationNoBuffer from decodeData()
+	// The controller will dispatch headers and any buffered body data to the next filter in the chain.
 	ContinueDecoding()
 
 	// data buffered by this filter or previous ones in the filter chain
+	// Nil if nothing has been buffered
 	DecodingBuffer() IoBuffer
 
 	// Add buffered body data
 	AddDecodedData(buf IoBuffer, streamingFilter bool)
 
 	// Called with headers to be encoded, optionally indicating end of stream
+	// Filter uses this function to send out request/response headers of the stream
+	// endStream supplies whether this is a header only request/response
 	EncodeHeaders(headers interface{}, endStream bool)
 
 	// Called with data to be encoded, optionally indicating end of stream.
+	// Filter uses this function to send out request/response data of the stream
+	// endStream supplies whether this is the last data
 	EncodeData(buf IoBuffer, endStream bool)
 
 	// Called with trailers to be encoded, implicitly ends the stream.
+	// Filter uses this function to send out request/response trailers of the stream
 	EncodeTrailers(trailers map[string]string)
 
 	// Called when the buffer for a decoder filter or any buffers the filter sends data to go over their high watermark
