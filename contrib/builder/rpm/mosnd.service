@@ -8,7 +8,7 @@
 # Description:       <DESCRIPTION>
 ### END INIT INFO
 
-SCRIPT="/home/admin/mosn/bin/mosnd -c /home/admin/mosn/conf/mosn.conf"
+SCRIPT="/home/admin/mosn/bin/mosnd start -c /home/admin/mosn/conf/mosn.conf"
 RUNAS=root
 
 PIDFILE=/home/admin/mosn/logs/mosn.pid

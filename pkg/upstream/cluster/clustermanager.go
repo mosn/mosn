@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+
 	"github.com/orcaman/concurrent-map"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"net"
 )
 
 // ClusterManager
@@ -171,7 +172,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
 
 	if host != nil {
-		addr := host.Address().String()
+		addr := host.AddressString()
 
 		// todo: support protocol http1.x
 		if connPool, ok := cm.http2ConnPool.Get(addr); ok {
@@ -214,7 +215,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
 
 	if host != nil {
-		addr := host.Address().String()
+		addr := host.AddressString()
 
 		if connPool, ok := cm.sofaRpcConnPool.Get(addr); ok {
 			return connPool.(types.ConnectionPool)

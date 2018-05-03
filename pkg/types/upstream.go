@@ -144,6 +144,8 @@ type HostInfo interface {
 
 	Address() net.Addr
 
+	AddressString() string
+
 	HostStats() HostStats
 
 	// TODO: add deploy locality
@@ -283,6 +285,6 @@ type ClusterManagerFilter interface {
 	OnCreated(cccb ClusterConfigFactoryCb, chcb ClusterHostFactoryCb)
 }
 
-type RegisterUpstreamUpdateMethodCb interface{
+type RegisterUpstreamUpdateMethodCb interface {
 	RegisterUpdateMethod()
 }
