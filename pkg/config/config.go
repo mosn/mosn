@@ -46,6 +46,9 @@ type ServerConfig struct {
 	//graceful shutdown config
 	GracefulTimeout DurationConfig `json:"graceful_timeout"`
 
+	//go processor number
+	Processor int
+
 	Listeners []ListenerConfig
 }
 

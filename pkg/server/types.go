@@ -23,6 +23,7 @@ type Config struct {
 	LogPath         string
 	LogLevel        log.LogLevel
 	GracefulTimeout time.Duration
+	Processor       int
 }
 
 type Server interface {
