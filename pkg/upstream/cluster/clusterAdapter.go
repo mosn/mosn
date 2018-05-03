@@ -42,6 +42,7 @@ type confregAdaptor struct {
 	isReg bool
 }
 
+//todo: confreg module starting here according to config file
 func (cf *confregAdaptor) RegisterUpdateMethod() {
 	log.DefaultLogger.Debugf("[RegisterConfregListenerCb Called!]")
 	if !cf.isReg {

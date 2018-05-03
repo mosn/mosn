@@ -19,6 +19,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 )
 
 const (
@@ -210,9 +211,9 @@ func Run() {
 		case <-upstreamReadyChan:
 			//  mesh
 			cmf := &clusterManagerFilterRPC{}
-
+			cm := cluster.NewClusterManager(nil,nil,nil)
 			//RPC
-			srv := server.NewServer(nil, cmf)
+			srv := server.NewServer(nil, cmf,cm)
 
 			srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
 				Proxy: genericProxyConfig(),
