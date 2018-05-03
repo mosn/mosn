@@ -6,6 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"os"
+	"runtime"
 	_ "sync"
 	"time"
 )
@@ -29,12 +30,25 @@ type server struct {
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
 	var logPath string
 	var logLevel log.LogLevel
+	procNum  := runtime.NumCPU()
 
 	if config != nil {
 		logPath = config.LogPath
 		logLevel = config.LogLevel
-		gracefulTimeout = config.GracefulTimeout
+
+		//graceful timeout setting
+		if config.GracefulTimeout != 0 {
+			gracefulTimeout = config.GracefulTimeout
+		}
+
+		//processor num setting
+		if config.Processor > 0 {
+			procNum = config.Processor
+		}
 	}
+
+
+	runtime.GOMAXPROCS(procNum)
 
 	initDefaultLogger(logPath, logLevel)
 

@@ -24,6 +24,7 @@ rm -rf %{buildroot}
 
 %install
 mkdir -p $RPM_BUILD_ROOT/%{_homedir}/bin
+mkdir -p $RPM_BUILD_ROOT/%{_homedir}/conf
 install -m 755 mosnd $RPM_BUILD_ROOT/%{_homedir}/bin
 mkdir -p $RPM_BUILD_ROOT/etc/init.d
 mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d

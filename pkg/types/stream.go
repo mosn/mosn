@@ -350,11 +350,11 @@ type FilterDataStatus string
 const (
 	// Continue filter chain iteration
 	FilterDataStatusContinue FilterDataStatus = "Continue"
-	// Do not iterate to next iterator, and buffer body data for later use
+	// Do not iterate to next iterator, and buffer body data in controller for later use
 	FilterDataStatusStopIterationAndBuffer FilterDataStatus = "StopIterationAndBuffer"
-	// Do not iterate to next iterator, and buffer body data for later use
+	// Do not iterate to next iterator, and buffer body data in controller for later use
 	FilterDataStatusStopIterationAndWatermark FilterDataStatus = "StopIterationAndWatermark"
-	// Do not iterate to next iterator, but do not buffer any of the body data for later use
+	// Do not iterate to next iterator, but do not buffer any of the body data in controller for later use
 	FilterDataStatusStopIterationNoBuffer FilterDataStatus = "StopIterationNoBuffer"
 )
 

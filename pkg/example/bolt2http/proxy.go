@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/healthcheck/sofarpc"
@@ -17,10 +22,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"golang.org/x/net/http2"
-	"net"
-	"net/http"
-	_ "net/http/pprof"
-	"time"
 )
 
 const (
@@ -41,7 +42,6 @@ func main() {
 	}()
 
 	log.InitDefaultLogger("", log.DEBUG)
-
 
 	stopChan := make(chan bool)
 	meshReadyChan := make(chan bool)
@@ -94,11 +94,13 @@ func main() {
 			},
 		}
 
-
-		cm := cluster.NewClusterManager(nil,nil,nil)
+		cm := cluster.NewClusterManager(nil, nil, nil)
 
 		//RPC
-		srv := server.NewServer(&server.Config{}, cmf,cm)
+		srv := server.NewServer(&server.Config{
+			LogPath:  "stderr",
+			LogLevel: log.DEBUG,
+		}, cmf, cm)
 
 		srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
@@ -195,9 +197,9 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
-		LogPath:                 "",
+		LogPath:                 "stderr",
 		LogLevel:                uint8(log.DEBUG),
-		AccessLogs:              []v2.AccessLog{{Path: "/home/admin/mosn/logs/test_access.log"}},
+		AccessLogs:              []v2.AccessLog{{Path: "stderr"}},
 	}
 }
 

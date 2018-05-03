@@ -1,15 +1,16 @@
 package cluster
 
 import (
-	"net"
-	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"github.com/rcrowley/go-metrics"
-	"sync"
 	"context"
+	"fmt"
+	"net"
+	"sync"
+
+	"github.com/rcrowley/go-metrics"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 type hostSet struct {
@@ -87,13 +88,8 @@ func newHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 	addr, _ := net.ResolveTCPAddr("tcp", config.Address)
 
 	return &host{
-		hostInfo: hostInfo{
-			address:     addr,
-			hostname:    config.Hostname,
-			clusterInfo: clusterInfo,
-			stats:       newHostStats(config),
-		},
-		weight: config.Weight,
+		hostInfo: newHostInfo(addr, config, clusterInfo),
+		weight:   config.Weight,
 	}
 }
 
@@ -183,13 +179,24 @@ func (h *host) SetUsed(used bool) {
 
 // HostInfo
 type hostInfo struct {
-	hostname    string
-	address     net.Addr
-	canary      bool
-	clusterInfo types.ClusterInfo
-	stats       types.HostStats
+	hostname      string
+	address       net.Addr
+	addressString string
+	canary        bool
+	clusterInfo   types.ClusterInfo
+	stats         types.HostStats
 
 	// TODO: metadata, locality, outlier, healthchecker
+}
+
+func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) hostInfo {
+	return hostInfo{
+		address:       addr,
+		addressString: config.Address,
+		hostname:      config.Hostname,
+		clusterInfo:   clusterInfo,
+		stats:         newHostStats(config),
+	}
 }
 
 func (hi *hostInfo) Hostname() string {
@@ -218,6 +225,10 @@ func (hi *hostInfo) HealthChecker() types.HealthCheckHostMonitor {
 
 func (hi *hostInfo) Address() net.Addr {
 	return hi.address
+}
+
+func (hi *hostInfo) AddressString() string {
+	return hi.addressString
 }
 
 func (hi *hostInfo) HostStats() types.HostStats {
