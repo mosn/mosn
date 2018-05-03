@@ -275,12 +275,6 @@ type ClusterHostFactoryCb interface {
 	UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error
 }
 
-//added by @boqin to register confreg listener
-type ClusterUpdateFromConfregCb interface {
-	//servermanager.RPCServerChangeListener
-	RegisterConfregListenerCb()
-}
-
 type ClusterManagerFilter interface {
 	OnCreated(cccb ClusterConfigFactoryCb, chcb ClusterHostFactoryCb)
 }

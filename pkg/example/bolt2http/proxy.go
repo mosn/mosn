@@ -94,11 +94,13 @@ func main() {
 			},
 		}
 
+		cm := cluster.NewClusterManager(nil, nil, nil)
+
 		//RPC
 		srv := server.NewServer(&server.Config{
 			LogPath:  "stderr",
 			LogLevel: log.DEBUG,
-		}, cmf, cluster.NewClusterManager(nil, nil, nil))
+		}, cmf, cm)
 
 		srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
