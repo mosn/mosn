@@ -29,7 +29,7 @@ func init() {
 const (
 	//read docs/access-log-details.md
 	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
-		"%BytesReceived% %PROTOCOL% %ResponseCode% %Duration% %RESPONSE_FLAGS% %RESPONSE_CODE%"
+		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode%"
 )
 
 
@@ -165,7 +165,7 @@ func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHe
 		if vFunc, ok := RequestInfoFuncMap[key]; ok {
 			format = format + vFunc(requestInfo) + " "
 		} else {
-			DefaultLogger.Debugf("Invalid RespHeaders Format Keys %s", key)
+			DefaultLogger.Debugf("[accesslog debuginfo]Invalid ReqInfo Format Keys: %s", key)
 		}
 	}
 	return format
@@ -187,7 +187,7 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 		if v, ok := reqHeaders[key]; ok {
 			format = format + types.ReqHeaderPrefix + v + " "
 		} else {
-			DefaultLogger.Debugf("Invalid RespHeaders Format Keys %s", key)
+			DefaultLogger.Debugf("[accesslog debuginfo]Invalid ReqHeaders Format Keys: %s", key)
 		}
 	}
 
