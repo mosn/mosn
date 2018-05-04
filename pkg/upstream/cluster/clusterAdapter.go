@@ -9,7 +9,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-//added by  @boqin：update cluster dynamic,update upstream dynamic, update route dynamic
+//added by  @boqin：update cluster dynamically,update upstream dynamically, update route dynamically
 func init() {
 	cfa := &confregAdaptor{
 		ca: &ClusterAdap,

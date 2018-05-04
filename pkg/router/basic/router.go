@@ -23,17 +23,17 @@ type routeConfig struct {
 
 }
 
-//根据cluster的变化更新route
+//update route when cluster changed
 func (rc *routeConfig) OnClusterChanged(serviceName string, clusterName string) {
-	log.DefaultLogger.Infof("called", serviceName, clusterName)
+	log.DefaultLogger.Debugf("[Debuginfo]cluster changed servicename:%s clustername:%s ", serviceName, clusterName)
 	for _, r := range rc.routers {
 
 		if r.ClusterName() == clusterName {
 			log.DefaultLogger.Debugf("[DEBUG INFO],cluster %s already exit", clusterName)
-		//	r.UpdateServiceName(serviceName)
+			//r.UpdateServiceName(serviceName)
 			return
 		} else {
-			//create a new basic route 
+			//create a new basic route
 			routeName := rc.GetRouteNameByCluster(clusterName)
 			router := &basicRouter{
 				name:    routeName,
@@ -51,15 +51,14 @@ func (rc *routeConfig) OnClusterChanged(serviceName string, clusterName string) 
 	}
 }
 
+//at this time, just use echo
 func (srr *routeConfig) GetRouteNameByCluster(clusterName string) string {
-	routeName := clusterName
-	return routeName
+	return clusterName
 }
 
 //Use for Routing, need completing
 func (rc *routeConfig) Route(headers map[string]string) types.Route {
-
-	log.DefaultLogger.Infof("[INFO Router]",rc.routers)
+	log.DefaultLogger.Debugf("[DebugInfo]",rc.routers)
 	for _, r := range rc.routers {
 		if rule := r.Match(headers); rule != nil {
 			return rule

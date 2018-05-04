@@ -55,7 +55,6 @@ type proxy struct {
 	accessLogs []types.AccessLog
 }
 
-//called by buildFilterChain
 func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
 	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecMapPool, codecHeadersBufPool)
 
@@ -72,8 +71,6 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
-
-	//call NewBasicRouter
 	proxy.routerConfig, _ = router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
 	proxy.downstreamCallbacks = &downstreamCallbacks{
 		proxy: proxy,
