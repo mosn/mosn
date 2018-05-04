@@ -84,11 +84,20 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 		if !v.(*primaryCluster).addedViaApi {
 			return false
 		}
+		//return true
 	}
 
 	cm.loadCluster(cluster, true)
 
 	return true
+}
+
+func (cm *clusterManager) ClusterExist(clusterName string) bool {
+	if _, exist := cm.primaryClusters.Get(clusterName); exist {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaApi bool) types.Cluster {

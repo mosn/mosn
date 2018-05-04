@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 )
 
 func init() {
@@ -18,16 +20,51 @@ func init() {
 // types.RouterConfig
 type routeConfig struct {
 	routers []router.RouteBase
+
+}
+
+//根据cluster的变化更新route
+func (rc *routeConfig) OnClusterChanged(serviceName string, clusterName string) {
+	log.DefaultLogger.Infof("called", serviceName, clusterName)
+	for _, r := range rc.routers {
+
+		if r.ClusterName() == clusterName {
+			log.DefaultLogger.Debugf("[DEBUG INFO],cluster %s already exit", clusterName)
+		//	r.UpdateServiceName(serviceName)
+			return
+		} else {
+			//create a new basic route 
+			routeName := rc.GetRouteNameByCluster(clusterName)
+			router := &basicRouter{
+				name:    routeName,
+				service: serviceName,
+				cluster: clusterName,
+			}
+			router.policy = &routerPolicy{
+				retryOn:      false,
+				retryTimeout: 0,
+				numRetries:   0,
+			}
+
+			rc.routers = append(rc.routers, router)
+		}
+	}
+}
+
+func (srr *routeConfig) GetRouteNameByCluster(clusterName string) string {
+	routeName := clusterName
+	return routeName
 }
 
 //Use for Routing, need completing
-func (rc routeConfig) Route(headers map[string]string) types.Route {
+func (rc *routeConfig) Route(headers map[string]string) types.Route {
+
+	log.DefaultLogger.Infof("[INFO Router]",rc.routers)
 	for _, r := range rc.routers {
 		if rule := r.Match(headers); rule != nil {
 			return rule
 		}
 	}
-
 	return nil
 }
 
@@ -43,6 +80,7 @@ type basicRouter struct {
 	policy        *routerPolicy
 }
 
+//Called by NewProxy
 func NewBasicRouter(config interface{}) (types.RouterConfig, error) {
 	if config, ok := config.(*v2.Proxy); ok {
 		routers := make([]router.RouteBase, 0)
@@ -73,35 +111,43 @@ func NewBasicRouter(config interface{}) (types.RouterConfig, error) {
 			routers = append(routers, router)
 		}
 
-		return &routeConfig{
+		rc := &routeConfig {
 			routers,
-		}, nil
+		}
+		//注册cluster变动时候的监听器
+		cluster.ClusterAdap.RegisterClusterChangeListener(rc)
+		return rc, nil
 	} else {
 		return nil, errors.New("invalid config struct")
 	}
 }
 
 func (srr *basicRouter) Match(headers map[string]string) types.Route {
-	//if headers == nil {
-	//	return nil
-	//}
-	//
-	//var ok bool
-	//var service string
-	//
-	//if service, ok = headers["Service"]; !ok {
-	//	if service, ok = headers["service"]; !ok {
-	//		return nil
-	//	}
-	//}
-	//
-	//if srr.service == service {
-	//	return srr
-	//} else {
-	//	return nil
-	//}
+	if headers == nil {
+		return nil
+	}
+
+	var ok bool
+	var service string
+
+	if service, ok = headers["Service"]; !ok {
+		if service, ok = headers["service"]; !ok {
+			return nil
+		}
+	}
+
+	if srr.service == service {
+		return srr
+	} else {
+		return nil
+	}
 
 	return srr
+}
+
+//update cluster's service name if needed
+func (srr *basicRouter) UpdateServiceName(serviceName string) {
+	srr.service = serviceName
 }
 
 func (srr *basicRouter) RedirectRule() types.RedirectRule {

@@ -242,6 +242,7 @@ func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Con
 		conn.Start(ctx)
 	}
 
+	//Register Proxy's Filter
 	configFactory := al.networkFiltersFactory.CreateFilterFactory(al.handler.clusterManager, ctx)
 	buildFilterChain(conn.FilterManager(), configFactory)
 

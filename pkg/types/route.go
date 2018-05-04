@@ -15,6 +15,7 @@ const (
 
 type RouterConfig interface {
 	Route(headers map[string]string) Route
+	GetRouteNameByCluster(clusterName string)string
 }
 
 type Route interface {
@@ -23,6 +24,7 @@ type Route interface {
 	RouteRule() RouteRule
 
 	TraceDecorator() TraceDecorator
+
 }
 
 type RouteRule interface {
@@ -37,6 +39,8 @@ type RouteRule interface {
 	Policy() Policy
 
 	MetadataMatcher() MetadataMatcher
+
+	UpdateServiceName(serviceName string)
 }
 
 type Policy interface {
