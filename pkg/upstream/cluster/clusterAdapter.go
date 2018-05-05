@@ -21,7 +21,6 @@ var ClusterAdap ClusterAdapter
 
 type ClusterAdapter struct {
 	clusterMng             *clusterManager
-	clusterChangeListeners []types.ClusterChangeListener
 }
 
 var adapterMap = make(map[v2.SubClusterType]types.RegisterUpstreamUpdateMethodCb, 4)
@@ -35,28 +34,6 @@ func (ca *ClusterAdapter) DoRegister(providerType v2.SubClusterType) {
 		v.RegisterUpdateMethod()
 	} else {
 		log.DefaultLogger.Debugf("Type %s doesn't exist", string(providerType))
-	}
-}
-
-func (ca *ClusterAdapter) RegisterClusterChangeListener(listener types.ClusterChangeListener) {
-	ca.clusterChangeListeners = append(ca.clusterChangeListeners, listener)
-	//load history info
-	if types.ServiceToClusterHistory != nil{
-		for k,v := range types.ServiceToClusterHistory{
-			ca.TriggerClusterChangeEventWhenRegister(listener,k,v)
-		}
-	}
-}
-
-//all a unique listener
-func (ca *ClusterAdapter) TriggerClusterChangeEventWhenRegister(listener types.ClusterChangeListener,serviceName string, clusterName string) {
-	listener.OnClusterChanged(serviceName, clusterName)
-}
-
-//trigger all listener
-func (ca *ClusterAdapter) TriggerClusterChangeEvent(serviceName string, clusterName string) {
-	for _, listener := range ca.clusterChangeListeners {
-		listener.OnClusterChanged(serviceName, clusterName)
 	}
 }
 
@@ -75,10 +52,7 @@ func (cf *confregAdaptor) RegisterUpdateMethod() {
 }
 
 func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
-	//an example of response-info from confreg:
-	//11.166.22.163:12200?_TIMEOUT=3000&p=1&_SERIALIZETYPE=protobuf&_WARMUPTIME=0
-	// &_WARMUPWEIGHT=10&app_name=bar1&zone=GZ00A&_MAXREADIDLETIME=30&_IDLETIMEOUT=27&v=4.0
-	// &_WEIGHT=100&startTime=1524565802559
+
 	log.StartLogger.Debugf("[Call back by confreg]", zoneServers)
 
 	dataId = dataId[:len(dataId)-8]
@@ -103,10 +77,10 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 	clusterName := types.GetClusterNameByServiceName(serviceName)
 
 	//trigger cluster update
-	cf.TriggerClusterUpdate(serviceName, clusterName, hosts)
+	cf.TriggerClusterUpdate(clusterName, hosts)
 }
 
-func (cf *confregAdaptor) TriggerClusterUpdate(serviceName string, clusterName string, hosts []v2.Host) {
+func (cf *confregAdaptor) TriggerClusterUpdate(clusterName string, hosts []v2.Host) {
 
 	//update cluster
 	clusterExist := cf.ca.clusterMng.ClusterExist(clusterName)
@@ -124,10 +98,4 @@ func (cf *confregAdaptor) TriggerClusterUpdate(serviceName string, clusterName s
 	}
 	//add hosts to cluster
 	cf.ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
-
-	//update
-	types.ServiceToClusterHistory[serviceName] = clusterName
-
-	//trigger clusterChange event, update route according to cluster
-	cf.ca.TriggerClusterChangeEvent(serviceName, clusterName)
 }

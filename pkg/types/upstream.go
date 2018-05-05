@@ -283,24 +283,9 @@ type ClusterManagerFilter interface {
 
 type RegisterUpstreamUpdateMethodCb interface {
 	RegisterUpdateMethod()
-	TriggerClusterUpdate(serviceName string, clusterName string, hosts []v2.Host)
-}
-
-type ClusterDynamicUpdateRoutes interface {
-	RegisterClusterChangeListener(listener ClusterChangeListener)
-	TriggerClusterChangeEvent(serviceName string, clusterName string)
-	TriggerClusterChangeEventWhenRegister(listener ClusterChangeListener,serviceName string, clusterName string)
-
-}
-
-//add by @boqin: to update route along with cluster changed
-type ClusterChangeListener interface {
-	OnClusterChanged(serviceName string, clusterName string)
+	TriggerClusterUpdate(clusterName string, hosts []v2.Host)
 }
 
 func GetClusterNameByServiceName(serviceName string) string {
 	return serviceName
 }
-
-//history
-var ServiceToClusterHistory = make(map[string]string)

@@ -84,6 +84,23 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 		log.StartLogger.Fatalln("[upstream_protocol] is required in proxy filter config")
 	}
 
+	//support dynamic route or not
+	if dynamicBool, ok := c.Config["support_dynamic_route"]; ok {
+		if dynamicBool, ok := dynamicBool.(string); ok {
+			if dynamicBool == "yes" {
+				proxyConfig.SupportDynamicRoute = true
+			} else if dynamicBool == "no" {
+				proxyConfig.SupportDynamicRoute = false
+			} else {
+				log.StartLogger.Fatalln("[support_dynamic_route] should be \"yes\" or\"not\" ")
+			}
+		} else {
+			log.StartLogger.Fatalln("[support_dynamic_route] in proxy filter support_dynamic_route is not string")
+		}
+	} else {
+		log.StartLogger.Fatalln("[support_dynamic_route] is required in proxy filter config")
+	}
+
 	//routes
 	if routes, ok := c.Config["routes"]; ok {
 		if routes, ok := routes.([]interface{}); ok {
