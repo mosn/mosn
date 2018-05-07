@@ -71,7 +71,6 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
-
 	proxy.routerConfig, _ = router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
 	proxy.downstreamCallbacks = &downstreamCallbacks{
 		proxy: proxy,

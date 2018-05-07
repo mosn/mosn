@@ -2,7 +2,7 @@
   "servers": [
     {
       "default_log_path": "./default.log",
-      "default_log_level": "INFO",
+      "default_log_level": "DEBUG",
       "graceful_timeout": "60s",
 
       "listeners": [
@@ -15,7 +15,7 @@
           "access_logs":[
             {
               "log_path": "./access_egress.log",
-              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
+              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent% %BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %REQ.service% %RESP.service%"
             }
           ],
           "network_filters": [
@@ -24,10 +24,11 @@
               "config": {
                 "downstream_protocol": "SofaRpc",
                 "upstream_protocol": "SofaRpc",
+                "support_dynamic_route":true,
                 "routes": [
                   {
                     "name": "cpptest_route",
-                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
+                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0xxx",
                     "cluster": "confreg_service1"
                   }
                 ]
@@ -59,6 +60,7 @@
               "config": {
                 "downstream_protocol": "SofaRpc",
                 "upstream_protocol": "SofaRpc",
+                "support_dynamic_route":true,
                 "routes": [
                   {
                     "name": "example_route",
@@ -126,7 +128,7 @@
         "hosts": [
           {
             "hostname": "upstream_machine",
-            "address": "11.166.22.163:xxx",
+            "address": "11.166.22.163:12200",
             "weight": 10
           }
         ]

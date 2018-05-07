@@ -101,9 +101,10 @@ type FaultInject struct {
 }
 
 type Proxy struct {
-	DownstreamProtocol string
-	UpstreamProtocol   string
-	Routes             []*BasicServiceRoute
+	DownstreamProtocol  string
+	UpstreamProtocol    string
+	SupportDynamicRoute bool
+	Routes              []*BasicServiceRoute
 }
 
 type BasicServiceRoute struct {

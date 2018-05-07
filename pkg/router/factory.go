@@ -22,7 +22,7 @@ func RegisteRouterConfigFactory(port types.Protocol, factory configFactory) {
 
 func CreateRouteConfig(port types.Protocol, config interface{}) (types.RouterConfig, error) {
 	if factory, ok := routerConfigFactories[port]; ok {
-		return factory(config)
+		return factory(config)  //call NewBasicRoute
 	} else {
 		return nil, errors.New(fmt.Sprintf("Unsupported protocol %s", port))
 	}
