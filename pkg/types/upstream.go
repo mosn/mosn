@@ -282,10 +282,6 @@ type ClusterManagerFilter interface {
 }
 
 type RegisterUpstreamUpdateMethodCb interface {
-	RegisterUpdateMethod()
 	TriggerClusterUpdate(clusterName string, hosts []v2.Host)
-}
-
-func GetClusterNameByServiceName(serviceName string) string {
-	return serviceName
+	GetClusterNameByServiceName(serviceName string) string
 }

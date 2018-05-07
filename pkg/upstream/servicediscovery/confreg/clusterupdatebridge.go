@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 )
 
@@ -36,9 +35,7 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 			}
 		}
 	}
-	//get clusterName
-	clusterName := types.GetClusterNameByServiceName(serviceName)
 
 	//trigger cluster update
-	cf.ca.TriggerClusterUpdate(clusterName, hosts)
+	cf.ca.TriggerClusterUpdate(serviceName, hosts)
 }

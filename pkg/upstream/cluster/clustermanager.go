@@ -267,29 +267,3 @@ func (cm *clusterManager) VersionInfo() string {
 func (cm *clusterManager) LocalClusterName() string {
 	return ""
 }
-
-var ClusterAdap ClusterAdapter
-
-type ClusterAdapter struct {
-	clusterMng             *clusterManager
-}
-
-func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) {
-
-	//update cluster
-	clusterExist := ca.clusterMng.ClusterExist(clusterName)
-
-	if !clusterExist {
-
-		cluster := v2.Cluster {
-			Name:           clusterName,
-			ClusterType:    v2.DYNAMIC_CLUSTER,
-			SubClustetType: v2.CONFREG_CLUSTER,
-			LbType:         v2.LB_RANDOM,
-		}
-		//new cluster
-		ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
-	}
-	//add hosts to cluster
-	ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
-}
