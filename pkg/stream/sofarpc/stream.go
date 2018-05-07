@@ -15,8 +15,8 @@ import (
 type StreamDirection int
 
 const (
-	InStream  StreamDirection = 1
-	OutStream StreamDirection = 0
+	ServerStream StreamDirection = 1
+	ClientStream StreamDirection = 0
 )
 
 func init() {
@@ -97,7 +97,7 @@ func (conn *streamConnection) NewStream(streamId string, responseDecoder types.S
 		context:    context.WithValue(conn.context, types.ContextKeyStreamId, streamId),
 		streamId:   streamId,
 		requestId:  streamId,
-		direction:  OutStream,
+		direction:  ClientStream,
 		connection: conn,
 		decoder:    responseDecoder,
 	}
@@ -127,7 +127,8 @@ func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer)
 	if stream, ok := conn.activeStream.Get(streamId); ok {
 		stream.decoder.OnDecodeData(data, true)
 
-		if stream.direction == OutStream {
+		if stream.direction == ClientStream {
+			// for client stream, remove stream on response read
 			stream.connection.activeStream.Remove(stream.streamId)
 		}
 	}
@@ -159,7 +160,7 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 		context:    context.WithValue(conn.context, types.ContextKeyStreamId, streamId),
 		streamId:   streamId,
 		requestId:  requestId,
-		direction:  InStream,
+		direction:  ServerStream,
 		connection: conn,
 	}
 
@@ -249,6 +250,9 @@ func (s *stream) EncodeTrailers(trailers map[string]string) error {
 	return nil
 }
 
+// Flush stream data
+// For server stream, write out response
+// For client stream, write out request
 func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
 		if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
@@ -267,7 +271,8 @@ func (s *stream) endStream() {
 		s.connection.logger.Debugf("Response Headers is void...")
 	}
 
-	if s.direction == InStream {
+	if s.direction == ServerStream {
+		// for a server stream, remove stream on response wrote
 		s.connection.activeStream.Remove(s.streamId)
 	}
 }

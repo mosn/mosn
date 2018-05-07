@@ -131,6 +131,7 @@ func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFac
 func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFactory {
 	var factories []types.StreamFilterChainFactory
 
+	// todo: provide a generic way to init streamfilter@wugou
 	for _, c := range configs {
 		switch c.Type {
 		case "fault_inject":
