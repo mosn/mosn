@@ -18,6 +18,8 @@ import "context"
 //	 Stream layer leverages protocol's ability to do binary-model conversation. In detail, Stream uses Protocols's encode/decode facade method and DecodeFilter to receive decode event call.
 //
 
+// TODO: support error case: add error as return value in EncodeX method; add OnError(error) in DecodeFilter @wugou
+
 type Protocol string
 
 // Protocols' facade used by Stream

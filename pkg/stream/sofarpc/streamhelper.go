@@ -9,7 +9,7 @@ import (
 
 func (s *stream) encodeSterilize(headers interface{}) interface{} {
 	if headerMaps, ok := headers.(map[string]string); ok {
-		if s.direction == InStream {
+		if s.direction == ServerStream {
 			headerMaps[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = s.requestId
 		}
 
@@ -33,13 +33,13 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
 				case types.CodecExceptionCode:
 					//Decode or Encode Error
-					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context ,headerMaps, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
+					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
 				case types.DeserialExceptionCode:
 					//Hessian Exception
-					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context ,headerMaps, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
+					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
 				case types.TimeoutExceptionCode:
 					//Response Timeout
-					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context ,headerMaps, sofarpc.RESPONSE_STATUS_TIMEOUT)
+					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_TIMEOUT)
 				default:
 					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
 				}
@@ -59,7 +59,7 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 }
 
 //added by @boqin: return value represents whether the request is HearBeat or not
-func decodeSterilize(streamId string, headers map[string]string) bool{
+func decodeSterilize(streamId string, headers map[string]string) bool {
 	headers[types.HeaderStreamID] = streamId
 
 	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)]; ok {
