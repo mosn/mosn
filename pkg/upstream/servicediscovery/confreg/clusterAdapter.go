@@ -1,8 +1,8 @@
 package registry
 
 import (
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 	"strings"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
@@ -10,19 +10,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 )
 
-func init() {
-	cf := &confregAdaptor{
-		ca:&cluster.ClusterAdap,
-	}
-	servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(cf)
-}
-
 type confregAdaptor struct {
 	ca    *cluster.ClusterAdapter
-}
-
-func (cf *confregAdaptor) RegisterUpdateMethod() {
-	servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(cf)
 }
 
 func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {

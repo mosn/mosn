@@ -5,6 +5,7 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
     "sync"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 )
 
 var confregServerManager *servermanager.RegistryServerManager
@@ -14,10 +15,16 @@ var lock = new(sync.Mutex)
 
 var ModuleStarted = false
 
-//Startup registry endpoint.
+//Setup registry module.
 func init() {
     log.InitDefaultLogger("", log.INFO)
-    servermanager.NewRPCServerManager()
+
+    rpcServerManager := servermanager.NewRPCServerManager()
+    cf := &confregAdaptor{
+        ca: &cluster.ClusterAdap,
+    }
+    rpcServerManager.RegisterRPCServerChangeListener(cf)
+
     go func() {
         re := &Endpoint{
             registryConfig: config.DefaultRegistryConfig,
