@@ -1,10 +1,8 @@
 package log
 
 import (
-	"strconv"
-
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-
+	"strconv"
 	"strings"
 )
 

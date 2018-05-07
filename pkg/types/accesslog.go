@@ -2,7 +2,6 @@ package types
 
 import (
 	"errors"
-	"strconv"
 )
 
 type AccessLog interface {
