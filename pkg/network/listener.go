@@ -95,6 +95,7 @@ func (l *listener) ListenerFD() (uintptr, error) {
 		l.logger.Errorf(" listener %s fd not found : %v", l.name, err)
 		return 0, err
 	}
+	defer  file.Close()
 	return file.Fd(), nil
 }
 
