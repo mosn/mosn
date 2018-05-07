@@ -1,6 +1,8 @@
 package log
 
 import (
+	"strconv"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 
 	"strings"
@@ -12,17 +14,17 @@ var (
 
 func init() {
 	RequestInfoFuncMap = map[string]func(info types.RequestInfo) string{
-		types.LogStartTime:                types.StartTimeGetter,
-		types.LogRequestReceivedDuration:  types.ReceivedDurationGetter,
-		types.LogResponseReceivedDuration: types.ResponseReceivedDurationGetter,
-		types.LogBytesSent:                types.BytesSentGetter,
-		types.LogBytesReceived:            types.BytesReceivedGetter,
-		types.LogProtocol:                 types.ProtocolGetter,
-		types.LogResponseCode:             types.ResponseCodeGetter,
-		types.LogDuration:                 types.DurationGetter,
-		types.LogResponseFlag:             types.GetResponseFlagGetter,
-		types.LogUpstreamLocalAddress:     types.UpstreamLocalAddressGetter,
-		types.LogDownstreamLocalAddress:   types.DownstreamLocalAddressGetter,
+		types.LogStartTime:                StartTimeGetter,
+		types.LogRequestReceivedDuration:  ReceivedDurationGetter,
+		types.LogResponseReceivedDuration: ResponseReceivedDurationGetter,
+		types.LogBytesSent:                BytesSentGetter,
+		types.LogBytesReceived:            BytesReceivedGetter,
+		types.LogProtocol:                 ProtocolGetter,
+		types.LogResponseCode:             ResponseCodeGetter,
+		types.LogDuration:                 DurationGetter,
+		types.LogResponseFlag:             GetResponseFlagGetter,
+		types.LogUpstreamLocalAddress:     UpstreamLocalAddressGetter,
+		types.LogDownstreamLocalAddress:   DownstreamLocalAddressGetter,
 	}
 }
 
@@ -31,7 +33,6 @@ const (
 	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
 		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode%"
 )
-
 
 //TODO: optimize access log instance count
 //var accesslogs []*accesslog
@@ -215,4 +216,50 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 	}
 
 	return format
+}
+
+func StartTimeGetter(info types.RequestInfo) string {
+	return info.StartTime().String()
+}
+
+func ReceivedDurationGetter(info types.RequestInfo) string {
+	return info.RequestReceivedDuration().String()
+}
+
+func ResponseReceivedDurationGetter(info types.RequestInfo) string {
+	return info.ResponseReceivedDuration().String()
+}
+
+func BytesSentGetter(info types.RequestInfo) string {
+	return strconv.FormatUint(info.BytesSent(), 10)
+}
+
+func BytesReceivedGetter(info types.RequestInfo) string {
+
+	return strconv.FormatUint(info.BytesReceived(), 10)
+}
+
+func ProtocolGetter(info types.RequestInfo) string {
+	return string(info.Protocol())
+}
+
+func ResponseCodeGetter(info types.RequestInfo) string {
+	return strconv.FormatUint(uint64(info.ResponseCode()), 10)
+}
+
+func DurationGetter(info types.RequestInfo) string {
+	return info.Duration().String()
+}
+
+func GetResponseFlagGetter(info types.RequestInfo) string {
+
+	return strconv.FormatBool(info.GetResponseFlag(0))
+}
+
+func UpstreamLocalAddressGetter(info types.RequestInfo) string {
+	return info.UpstreamLocalAddress().String()
+}
+
+func DownstreamLocalAddressGetter(info types.RequestInfo) string {
+	return info.DownstreamLocalAddress().String()
 }
