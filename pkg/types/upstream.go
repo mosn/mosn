@@ -109,7 +109,7 @@ type Host interface {
 	Counters() HostStats
 
 	Gauges() HostStats
-
+m
 	ClearHealthFlag(flag HealthFlag)
 
 	ContainHealthFlag(flag HealthFlag) bool
