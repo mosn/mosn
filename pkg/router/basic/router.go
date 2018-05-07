@@ -20,23 +20,17 @@ func init() {
 type routeConfig struct {
 	routers        []router.RouteBase
 	supportDynamic bool
-	dynamicRouter  DynamicRouter
 }
 
 //Routing, use static router first， then use dynamic router if support
 func (rc *routeConfig) Route(headers map[string]string) (types.Route, string) {
 	log.DefaultLogger.Debugf("[DebugInfo]", rc.routers)
 
-	//use static route
+	//use static router first, then use dynamic router
 	for _, r := range rc.routers {
 		if rule, key := r.Match(headers); rule != nil {
 			return rule, key
 		}
-	}
-
-	//use dynamic route
-	if rc.supportDynamic {
-		return rc.dynamicRouter.Match(headers)
 	}
 
 	return nil, ""
@@ -100,13 +94,13 @@ func NewRouterConfig(config interface{}) (types.RouterConfig, error) {
 				globalTimeout: routers[0].GlobalTimeout(),
 				policy:        routers[0].Policy().(*routerPolicy),
 			}
+			routers = append(routers, &dynamicRouter)
 		}
 
 		//new routeConfig
 		rc := &routeConfig{
 			routers:        routers,
 			supportDynamic: config.SupportDynamicRoute,
-			dynamicRouter:  dynamicRouter,
 		}
 
 		return rc, nil
