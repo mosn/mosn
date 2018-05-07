@@ -35,7 +35,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster, clusterMap ma
 		sofaRpcConnPool: cmap.New(),
 		http2ConnPool:   cmap.New(),
 	}
-	//init ClusterAdap
+	//init ClusterAdap when run app
 	ClusterAdap = ClusterAdapter{
 		clusterMng: cm,
 	}
@@ -47,9 +47,9 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster, clusterMap ma
 	for _, cluster := range clusters {
 		cm.AddOrUpdatePrimaryCluster(cluster)
 		//For dynamic cluster,register update method
-		if cluster.ClusterType == v2.DYNAMIC_CLUSTER {
-			ClusterAdap.DoRegister(cluster.SubClustetType)
-		}
+		//if cluster.ClusterType == v2.DYNAMIC_CLUSTER {
+		//	ClusterAdap.DoRegister(cluster.SubClustetType)
+		//}
 	}
 
 	//Add hosts to cluster
@@ -84,11 +84,20 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 		if !v.(*primaryCluster).addedViaApi {
 			return false
 		}
+		//return true
 	}
 
 	cm.loadCluster(cluster, true)
 
 	return true
+}
+
+func (cm *clusterManager) ClusterExist(clusterName string) bool {
+	if _, exist := cm.primaryClusters.Get(clusterName); exist {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaApi bool) types.Cluster {

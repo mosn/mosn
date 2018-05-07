@@ -35,6 +35,8 @@ type ClusterManager interface {
 	VersionInfo() string
 
 	LocalClusterName() string
+
+	ClusterExist(clusterName string) bool
 }
 
 // thread-safe cluster snapshot
@@ -280,5 +282,6 @@ type ClusterManagerFilter interface {
 }
 
 type RegisterUpstreamUpdateMethodCb interface {
-	RegisterUpdateMethod()
+	TriggerClusterUpdate(clusterName string, hosts []v2.Host)
+	GetClusterNameByServiceName(serviceName string) string
 }

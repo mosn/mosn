@@ -14,7 +14,8 @@ const (
 )
 
 type RouterConfig interface {
-	Route(headers map[string]string) Route
+	Route(headers map[string]string) (Route,string)
+	//GetRouteNameByCluster(clusterName string)string
 }
 
 type Route interface {
@@ -23,10 +24,11 @@ type Route interface {
 	RouteRule() RouteRule
 
 	TraceDecorator() TraceDecorator
+
 }
 
 type RouteRule interface {
-	ClusterName() string
+	ClusterName(serviceName string) string
 
 	GlobalTimeout() time.Duration
 
@@ -37,6 +39,8 @@ type RouteRule interface {
 	Policy() Policy
 
 	MetadataMatcher() MetadataMatcher
+
+	//UpdateServiceName(serviceName string)
 }
 
 type Policy interface {
