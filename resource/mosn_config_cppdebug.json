@@ -24,7 +24,7 @@
               "config": {
                 "downstream_protocol": "SofaRpc",
                 "upstream_protocol": "SofaRpc",
-                "support_dynamic_route":"yes",
+                "support_dynamic_route":true,
                 "routes": [
                   {
                     "name": "cpptest_route",
@@ -60,7 +60,7 @@
               "config": {
                 "downstream_protocol": "SofaRpc",
                 "upstream_protocol": "SofaRpc",
-                "support_dynamic_route":"yes",
+                "support_dynamic_route":true,
                 "routes": [
                   {
                     "name": "example_route",

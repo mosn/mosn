@@ -86,16 +86,10 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 
 	//support dynamic route or not
 	if dynamicBool, ok := c.Config["support_dynamic_route"]; ok {
-		if dynamicBool, ok := dynamicBool.(string); ok {
-			if dynamicBool == "yes" {
-				proxyConfig.SupportDynamicRoute = true
-			} else if dynamicBool == "no" {
-				proxyConfig.SupportDynamicRoute = false
-			} else {
-				log.StartLogger.Fatalln("[support_dynamic_route] should be \"yes\" or\"not\" ")
-			}
+		if dynamicBool, ok := dynamicBool.(bool); ok {
+				proxyConfig.SupportDynamicRoute = dynamicBool
 		} else {
-			log.StartLogger.Fatalln("[support_dynamic_route] in proxy filter support_dynamic_route is not string")
+			log.StartLogger.Fatalln("[support_dynamic_route] in proxy filter support_dynamic_route is not bool")
 		}
 	} else {
 		log.StartLogger.Fatalln("[support_dynamic_route] is required in proxy filter config")
