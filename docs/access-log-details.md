@@ -3,9 +3,9 @@
 ```$xslt
 part1:RequestInfoFormat
 part2:RequestHeaderFormat
-Part3:ResponseHeaderForamt
+Part3:ResponseHeaderFormat
 ```
-##### For part1, the request information contains keys:
+##### For part1, the request information contains keys(case sensitive):
 + StartTime  
 + RequestReceivedDuration
 + ResponseReceivedDuration
