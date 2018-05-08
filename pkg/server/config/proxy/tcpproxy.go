@@ -13,7 +13,6 @@ type TcpProxyFilterConfigFactory struct {
 
 func (tpcf *TcpProxyFilterConfigFactory) CreateFilterFactory(clusterManager types.ClusterManager, context context.Context) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
-		manager.AddReadFilter(tcpproxy.NewProxy(tpcf.Proxy, clusterManager))
+		manager.AddReadFilter(tcpproxy.NewProxy(tpcf.Proxy, clusterManager,context))
 	}
 }
-

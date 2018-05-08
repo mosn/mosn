@@ -11,9 +11,8 @@ const (
 	ContextKeyNetworkFilterChainFactory  ContextKey = "NetworkFilterChainFactory"
 	ContextKeyStreamFilterChainFactories ContextKey = "StreamFilterChainFactory"
 	ContextKeyConnectionCodecMapPool     ContextKey = "ContextKeyConnectionCodecMapPool"
-
-	ContextKeyLogger     ContextKey = "Logger"
-	ContextKeyAccessLogs ContextKey = "AccessLogs"
+	ContextKeyLogger                     ContextKey = "Logger"
+	ContextKeyAccessLogs                 ContextKey = "AccessLogs"
 )
 
 const (

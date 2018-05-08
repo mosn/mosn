@@ -5,6 +5,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"context"
 	"reflect"
 )
 
@@ -23,11 +24,12 @@ type proxy struct {
 	accessLogs []types.AccessLog
 }
 
-func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {
+func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager,ctx context.Context) Proxy {
 	p := &proxy{
 		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,
 		requestInfo:    network.NewRequestInfo(),
+		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
 
 	p.upstreamCallbacks = &upstreamCallbacks{
@@ -35,11 +37,6 @@ func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {
 	}
 	p.downstreamCallbacks = &downstreamCallbacks{
 		proxy: p,
-	}
-
-	for _, alConfig := range config.AccessLogs {
-		al, _ := log.NewAccessLog(alConfig.Path, nil, alConfig.Format)
-		p.accessLogs = append(p.accessLogs, al)
 	}
 
 	return p
