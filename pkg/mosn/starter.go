@@ -36,10 +36,6 @@ func Start(c *config.MOSNConfig) {
 		log.StartLogger.Fatalln("multiple server not supported yet, got ", srvNum)
 	}
 
-	if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
-		log.StartLogger.Fatalln("no cluster found")
-	}
-
 	stopChans := make([]chan bool, srvNum)
 
 	wg := sync.WaitGroup{}
