@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
@@ -107,4 +108,10 @@ type FaultInjectFilterConfigFactory struct {
 func (f *FaultInjectFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
 	filter := NewFaultInjectFilter(context, f.FaultInject)
 	callbacks.AddStreamDecoderFilter(filter)
+}
+
+func CreateFaultInjectFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+	return &FaultInjectFilterConfigFactory{
+		FaultInject: config.ParseFaultInjectFilter(conf),
+	}, nil
 }
