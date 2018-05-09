@@ -72,7 +72,7 @@ func main() {
 	go func() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
-		cm := cluster.NewClusterManager(nil,nil,nil)
+		cm := cluster.NewClusterManager(nil,nil,nil,false)
 
 
 		//RPC

@@ -77,7 +77,7 @@ func main() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
 
-		cm := cluster.NewClusterManager(nil,nil,nil)
+		cm := cluster.NewClusterManager(nil,nil,nil,false)
 
 		//RPC
 		srv := server.NewServer(&server.Config{}, cmf,cm)
