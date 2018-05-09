@@ -80,7 +80,8 @@ type ClusterConfig struct {
 }
 
 type ClusterManagerConfig struct {
-	Clusters []ClusterConfig `json:"clusters"`
+	AutoDiscovery bool            `json:"auto_discovery"`
+	Clusters      []ClusterConfig `json:"clusters"`
 }
 
 type MOSNConfig struct {

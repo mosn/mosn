@@ -20,6 +20,7 @@ type clusterManager struct {
 	sofaRpcConnPool cmap.ConcurrentMap // string: types.ConnectionPool
 	http2ConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
 	clusterAdapter  ClusterAdapter
+	autoDiscovery   bool
 }
 
 type clusterSnapshot struct {
@@ -28,12 +29,14 @@ type clusterSnapshot struct {
 	loadbalancer types.LoadBalancer
 }
 
-func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster, clusterMap map[string][]v2.Host) types.ClusterManager {
+func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
+	clusterMap map[string][]v2.Host, autoDiscovery bool) types.ClusterManager {
 	cm := &clusterManager{
 		sourceAddr:      sourceAddr,
 		primaryClusters: cmap.New(),
 		sofaRpcConnPool: cmap.New(),
 		http2ConnPool:   cmap.New(),
+		autoDiscovery:   autoDiscovery,
 	}
 	//init ClusterAdap when run app
 	ClusterAdap = ClusterAdapter{

@@ -36,6 +36,14 @@ func Start(c *config.MOSNConfig) {
 		log.StartLogger.Fatalln("multiple server not supported yet, got ", srvNum)
 	}
 
+	if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
+		if c.ClusterManager.AutoDiscovery {
+			return
+		} else {
+			log.StartLogger.Fatalln("no cluster found and cluster manager doesn't support auto discovery")
+		}
+	}
+
 	stopChans := make([]chan bool, srvNum)
 
 	wg := sync.WaitGroup{}
@@ -68,7 +76,7 @@ func Start(c *config.MOSNConfig) {
 		}
 
 		//create cluster manager
-		cm := cluster.NewClusterManager(nil, clusters, clusterMap)
+		cm := cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
 		//initialize server instance
 		srv := server.NewServer(sc, cmf, cm)
 
