@@ -10,19 +10,19 @@ import (
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/healthcheck/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 
+	"gitlab.alipay-inc.com/afe/mosn/pkg/filter"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
 )
 
@@ -127,21 +127,8 @@ func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFac
 func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFactory {
 	var factories []types.StreamFilterChainFactory
 
-	// todo: provide a generic way to init streamfilter@wugou
 	for _, c := range configs {
-		switch c.Type {
-		case "fault_inject":
-			factories = append(factories, &faultinject.FaultInjectFilterConfigFactory{
-				FaultInject: config.ParseFaultInjectFilter(c.Config),
-			})
-		case "healthcheck":
-			factories = append(factories, &sofarpc.HealthCheckFilterConfigFactory{
-				FilterConfig: config.ParseHealthcheckFilter(c.Config),
-			})
-		default:
-			log.StartLogger.Fatalln("unsupport stream filter type: ", c.Type)
-		}
-
+		factories = append(factories, filter.CreateStreamFilterChainFactory(c.Type, c.Config))
 	}
 	return factories
 }

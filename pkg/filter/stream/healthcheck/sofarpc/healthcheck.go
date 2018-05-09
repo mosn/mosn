@@ -9,6 +9,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"reflect"
 	"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 )
 
 // todo: support cached pass through
@@ -129,4 +130,10 @@ type HealthCheckFilterConfigFactory struct {
 func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
 	filter := NewHealthCheckFilter(context, f.FilterConfig)
 	callbacks.AddStreamDecoderFilter(filter)
+}
+
+func CreateHealthCheckFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+	return &HealthCheckFilterConfigFactory{
+		FilterConfig: config.ParseHealthcheckFilter(conf),
+	}, nil
 }
