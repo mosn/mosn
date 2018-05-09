@@ -37,9 +37,7 @@ func Start(c *config.MOSNConfig) {
 	}
 
 	if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
-		if c.ClusterManager.AutoDiscovery {
-			return
-		} else {
+		if !c.ClusterManager.AutoDiscovery {
 			log.StartLogger.Fatalln("no cluster found and cluster manager doesn't support auto discovery")
 		}
 	}
