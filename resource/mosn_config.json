@@ -71,6 +71,18 @@
                 ]
               }
             }
+          ],
+          "stream_filters": [
+            {
+              "type": "healthcheck",
+              "config": {
+                "passthrough": true,
+                "cache_time": "360s",
+                "cluster_min_healthy_percentages": {
+                  "local_service": 70
+                }
+              }
+            }
           ]
         }
       ]
@@ -95,11 +107,11 @@
         "type": "SIMPLE",
         "lb_type": "LB_RANDOM",
         "max_request_per_conn": 100000,
-        "healthcheck": {
+        "health_check": {
           "timeout": "3s",
           "healthy_threshold": 3,
           "unhealthy_threshold": 5,
-          "interval": "6s",
+          "interval": "15s",
           "interval_jitter": "1s"
         },
         "hosts": [
@@ -131,6 +143,23 @@
           {
             "hostname": "upstream_machine",
             "address": "11.166.22.163:12200",
+            "weight": 10
+          }
+        ]
+      },
+      {
+        "name": "CE",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "health_check": {
+          "timeout": "60s",
+          "interval": "10s",
+          "check_path":"http://instpay.rz00b.alipay.net:9500/checkService"
+        },
+        "hosts": [
+          {
+            "hostname": "APP_HOST_CE",
+            "address": "10.244.20.49:12200",
             "weight": 10
           }
         ]

@@ -22,11 +22,11 @@ func NewHttpHealthCheck(config v2.HealthCheck) types.HealthChecker {
 		healthChecker: *hc,
 		checkPath:     config.CheckPath,
 	}
-	
+
 	if config.ServiceName != "" {
 		hhc.serviceName = config.ServiceName
 	}
-	
+
 	return hhc
 }
 
@@ -35,21 +35,21 @@ func (c *http2HealthChecker) newSession(host types.Host) types.HealthCheckSessio
 		healthChecker:      c,
 		healthCheckSession: *NewHealthCheckSession(&c.healthChecker, host),
 	}
-	
+
 	hhcs.intervalTicker = newTicker(hhcs.onInterval)
 	hhcs.timeoutTimer = newTimer(hhcs.onTimeout)
-	
+
 	return hhcs
 }
 
 func (c *http2HealthChecker) createCodecClient(data types.CreateConnectionData) stream.CodecClient {
-	return stream.NewCodecClient(nil,protocol.Http2, data.Connection, data.HostInfo)
+	return stream.NewCodecClient(nil, protocol.Http2, data.Connection, data.HostInfo)
 }
 
 // types.StreamDecoder
 type http2HealthCheckSession struct {
 	healthCheckSession
-	
+
 	client          stream.CodecClient
 	requestEncoder  types.StreamEncoder
 	responseHeaders map[string]string
@@ -60,7 +60,7 @@ type http2HealthCheckSession struct {
 // // types.StreamDecoder
 func (s *http2HealthCheckSession) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	s.responseHeaders = headers
-	
+
 	if endStream {
 		s.onResponseComplete()
 	}
@@ -87,19 +87,19 @@ func (s *http2HealthCheckSession) onInterval() {
 		s.client = s.healthChecker.createCodecClient(connData)
 		s.expectReset = false
 	}
-	
+
 	s.requestEncoder = s.client.NewStream("", s)
 	s.requestEncoder.GetStream().AddEventListener(s)
-	
+
 	reqHeaders := map[string]string{
 		types.HeaderMethod: http.MethodGet,
 		types.HeaderHost:   s.healthChecker.cluster.Info().Name(),
 		types.HeaderPath:   s.healthChecker.checkPath,
 	}
-	
+
 	s.requestEncoder.EncodeHeaders(reqHeaders, true)
 	s.requestEncoder = nil
-	
+
 	s.healthCheckSession.onInterval()
 }
 
@@ -107,7 +107,7 @@ func (s *http2HealthCheckSession) onTimeout() {
 	s.expectReset = true
 	s.client.Close()
 	s.client = nil
-	
+
 	s.healthCheckSession.onTimeout()
 }
 
@@ -117,24 +117,24 @@ func (s *http2HealthCheckSession) onResponseComplete() {
 	} else {
 		s.handleFailure(types.FailureActive)
 	}
-	
+
 	if conn, ok := s.responseHeaders["connection"]; ok {
 		if strings.Compare(strings.ToLower(conn), "close") == 0 {
 			s.client.Close()
 			s.client = nil
 		}
 	}
-	
+
 	s.responseHeaders = nil
 }
 
 func (s *http2HealthCheckSession) isHealthCheckSucceeded() bool {
 	if status, ok := s.responseHeaders[types.HeaderStatus]; ok {
 		statusCode, _ := strconv.Atoi(status)
-		
+
 		return statusCode == 200
 	}
-	
+
 	return true
 }
 
@@ -142,7 +142,7 @@ func (s *http2HealthCheckSession) OnResetStream(reason types.StreamResetReason) 
 	if s.expectReset {
 		return
 	}
-	
+
 	s.handleFailure(types.FailureNetwork)
 }
 

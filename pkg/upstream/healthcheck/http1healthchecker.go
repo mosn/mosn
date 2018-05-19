@@ -15,31 +15,31 @@ func StartHttpHealthCheck(tickInterval time.Duration, timerTimeout time.Duration
 	}
 
 	shc.checkTicker = newTicker(shc.OnInterval)
-	shc.timeoutTicker = newTimer(timeoutCB)
+	shc.timeoutTimer = newTimer(timeoutCB)
 
 	shc.Start()
 }
 
 type Http1HealthCheck struct {
-	checkTicker   *ticker
-	timeoutTicker *timer
-	checkPath     string
-	intervalCB    func(string string, h1f func())
-	timeout       time.Duration
-	interval      time.Duration
+	checkTicker  *ticker
+	timeoutTimer *timer
+	checkPath    string
+	intervalCB   func(string string, h1f func())
+	timeout      time.Duration
+	interval     time.Duration
 }
 
 func (shc *Http1HealthCheck) Start() {
 	shc.checkTicker.start(shc.interval)
-	shc.timeoutTicker.start(shc.timeout)
+	shc.timeoutTimer.start(shc.timeout)
 }
 
 func (shc *Http1HealthCheck) OnInterval() {
 	// call app's function
 	shc.intervalCB(shc.checkPath, shc.OnTimeoutTimerRest)
+	shc.timeoutTimer.start(shc.timeout)
 }
 
 func (shc *Http1HealthCheck) OnTimeoutTimerRest() {
-	shc.timeoutTicker.stop()
-	shc.timeoutTicker.start(shc.timeout)
+	shc.timeoutTimer.stop()
 }

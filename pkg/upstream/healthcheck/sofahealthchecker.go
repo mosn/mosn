@@ -35,8 +35,8 @@ func (c *sofHealthChecker) newSession(host types.Host) types.HealthCheckSession 
 		healthChecker:      c,
 		healthCheckSession: *NewHealthCheckSession(&c.healthChecker, host),
 	}
-
-	hhcs.intervalTimer = newTimer(hhcs.onInterval)
+	
+	hhcs.intervalTicker = newTicker(hhcs.onInterval)
 	hhcs.timeoutTimer = newTimer(hhcs.onTimeout)
 
 	return hhcs
@@ -44,7 +44,7 @@ func (c *sofHealthChecker) newSession(host types.Host) types.HealthCheckSession 
 
 func (s *sofaHealthCheckSession) onInterval() {
 	if s.client == nil {
-		connData := s.host.CreateConnection()
+		connData := s.host.CreateConnection(nil)
 		s.client = stream.NewBiDirectCodeClient(nil,protocol.SofaRpc, connData.Connection, connData.HostInfo, s)
 		s.expectReset = false
 	}
@@ -196,7 +196,6 @@ func (s *requestStream) OnDecodeHeaders(headers map[string]string, endStream boo
 }
 
 func (s *requestStream) OnDecodeData(data types.IoBuffer, endStream bool) {
-
 	//CALL OnEncodeData
 	if s.HBFlag {
 		msg := []byte{0x0000}

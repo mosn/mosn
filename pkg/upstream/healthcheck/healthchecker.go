@@ -178,8 +178,6 @@ func (s *healthCheckSession) handleSuccess() {
 	
 	// stop timeout timer
 	s.timeoutTimer.stop()
-	
-	// start next timer for sending heartbeat
 	// change to use -> ticker, so no need to start here
 	//s.intervalTimer.start(s.healthChecker.getInterval())
 }
@@ -220,6 +218,10 @@ func (s *healthCheckSession) handleFailure(fType types.FailureType) {
 func (s *healthCheckSession) onInterval() {
 	s.timeoutTimer.start(s.healthChecker.getTimeoutDuration())
 	s.healthChecker.stats.attempt.Inc(1)
+}
+
+func (s *healthCheckSession) tickerStart() {
+	s.intervalTicker.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) onTimeout() {

@@ -160,7 +160,7 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			var hosts []types.Host
 
 			for _, hc := range hostConfigs {
-				hosts = append(hosts, newHost(hc, pcc.Info()))
+				hosts = append(hosts, NewHost(hc, pcc.Info()))
 			}
 
 			concretedCluster.UpdateHosts(hosts)

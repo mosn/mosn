@@ -30,6 +30,9 @@
                     "name": "cpptest_route",
                     "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0xxx",
                     "cluster": "confreg_service1"
+                  },
+                  {
+                  
                   }
                 ]
               }
@@ -87,13 +90,14 @@
     }
   },
   "cluster_manager": {
+    "auto_discovery":true,
     "clusters": [
       {
         "name": "local_service",
         "type": "SIMPLE",
         "lb_type": "LB_RANDOM",
         "max_request_per_conn": 100000,
-        "healthcheck": {
+        "health_check": {
           "timeout": "3s",
           "healthy_threshold": 3,
           "unhealthy_threshold": 5,

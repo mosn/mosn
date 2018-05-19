@@ -8,29 +8,30 @@ import (
 	"strings"
 	"time"
 )
-func init(){
-	log.InitDefaultLogger("",log.DEBUG)
+
+func init() {
+	log.InitDefaultLogger("", log.DEBUG)
 }
+
 const (
-	IntervalDur      time.Duration = 1 * time.Second
-	TimeoutDur       time.Duration = 10 * time.Second
+	IntervalDur      time.Duration = 15 * time.Second
+	TimeoutDur       time.Duration = 6 * 15 * time.Second
 	APPCheckPointURL string        = "http://127.0.0.1:9500/checkService"
 )
 
 func StartAppHealthCheck() {
 	healthcheck.StartHttpHealthCheck(IntervalDur, TimeoutDur, APPCheckPointURL, onAppInterval, onTimeout)
-	time.Sleep(3600 * time.Second)
 }
 
 func onAppInterval(path string, hcResetTimeOut func()) {
 
-	log.DefaultLogger.Debugf("Send Http Get %s",path)
+	log.DefaultLogger.Debugf("Send Http Get %s", path)
 	resp, err := http.Get(path)
 
 	if err != nil {
 		// handle error
 		log.DefaultLogger.Debugf("[DEBUG] Get Error: %s from path %s",
-			err.Error(),path)
+			err.Error(), path)
 		// wait next tick
 	}
 

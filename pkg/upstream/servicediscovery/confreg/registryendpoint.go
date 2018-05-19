@@ -48,12 +48,14 @@ func (re *Endpoint) SetSystemConfig(w http.ResponseWriter, r *http.Request, ps h
     }
 
     sysConfig := config.InitSystemConfig(request.AntShareCloud, request.DataCenter, request.AppName, request.Zone)
+    
     //Startup registry module.
     re.RegistryClient = StartupRegistryModule(sysConfig, config.DefaultRegistryConfig)
 
     rpcServerChangeListener := &WaitDataPushedListener{}
     re.RegistryClient.GetRPCServerManager().RegisterRPCServerChangeListener(rpcServerChangeListener)
 
+    //send application's response
     doResponse(true, "", w)
 }
 
@@ -131,6 +133,7 @@ func (re *Endpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps 
         return
     }
     //1. Subscribe from confreg
+    // dataId equals servicename
     dataId := request.ServiceName
     err := re.RegistryClient.SubscribeSync(dataId)
     if err != nil {

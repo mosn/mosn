@@ -35,7 +35,10 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 			}
 		}
 	}
-
-	//trigger cluster update
+	
+	// note: ServiceName is regarded as cluster name in simple rule
+	// trigger cluster update
 	cf.ca.TriggerClusterUpdate(serviceName, hosts)
 }
+
+

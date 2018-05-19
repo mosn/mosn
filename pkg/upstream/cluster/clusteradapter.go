@@ -11,12 +11,14 @@ type ClusterAdapter struct {
 	clusterMng *clusterManager
 }
 
-func (ca *ClusterAdapter) TriggerClusterUpdate(serviceName string, hosts []v2.Host) {
-	log.DefaultLogger.Debugf("[DEBUG INFO]Update cluster,cluster name is : %s,hosts are: %+v", serviceName, hosts)
+func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) {
+	log.DefaultLogger.Debugf("[DEBUG INFO]Update cluster,cluster name is : %s,hosts are: %+v", clusterName, hosts)
 
 	//get clusterName
-	clusterName := ca.GetClusterNameByServiceName(serviceName)
-
+	//clusterName := ca.GetClusterNameByServiceName(serviceName)
+	
+	//   serviceName -> cluster -> route (== )
+	
 	clusterExist := ca.clusterMng.ClusterExist(clusterName)
 
 	//update cluster

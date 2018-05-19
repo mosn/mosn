@@ -40,7 +40,7 @@ func NewRegistryServerManager(sysConfig *config.SystemConfig, registryConfig *co
         registryConfig:  registryConfig,
         endpoint:        endpoint,
         changeListeners: make([]RegistryServerChangeListener, 0, 10),
-        rrIndex:         0,
+        rrIndex:         -1,
     }
 
     httpClient := http.Client{
@@ -134,6 +134,7 @@ func (csm *RegistryServerManager) GetRegistryServerByRR() (string, bool) {
     if serverCount <= 0 {
         return "", false
     }
+    csm.rrIndex = csm.rrIndex + 1
     if csm.rrIndex >= serverCount {
         csm.rrIndex = 0
     }
