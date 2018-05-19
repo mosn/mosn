@@ -205,7 +205,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 			}
 		} else {
 			//2. resposne
-			if readableBytes > sofarpc.RESPONSE_HEADER_LEN_V2 {
+			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V2 {
 
 				cmdCode := binary.BigEndian.Uint16(bytes[3:5])
 				ver2 := bytes[5]
