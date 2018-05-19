@@ -34,17 +34,17 @@ In stream encoder/decoder interface, we split request/response as three standard
 
 + Encode headers
 ```
-requestEncoder.EncodeHeaders(requestHeaders, endStream)
+requestStreamEncoder.EncodeHeaders(requestHeaders, endStream)
 ```
 
 + Encode data
 ```
-requestEncoder.EncodeData(requestDataBuf, endStream)
+requestStreamEncoder.EncodeData(requestDataBuf, endStream)
 ```
 
 + Encode trailers
 ```
-requestEncoder.EncodeTrailers(requestHeaders)
+requestStreamEncoder.EncodeTrailers(requestHeaders)
 ```
 
 + 'endStream' means further encode is not needed. for example, if we call EncodeHeaders(requestHeaders, true), stream will handle headers and send request, data and trailers will be ignored.

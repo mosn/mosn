@@ -35,6 +35,7 @@ func NewHealthCheck(config v2.HealthCheck) *healthChecker {
 		intervalJitter:      config.IntervalJitter,
 		healthyThreshold:    config.HealthyThreshold,
 		unhealthyThreshold:  config.UnhealthyThreshold,
+		stats:               newHealthCheckStats(config.ServiceName),
 	}
 
 	return hc
@@ -103,6 +104,21 @@ func (c *healthChecker) getInterval() time.Duration {
 	return baseInterval
 }
 
+func (c *healthChecker) getTimeoutDuration() time.Duration {
+	baseInterval := c.timeout
+	
+	if baseInterval < 0 {
+		baseInterval = 0
+	}
+	
+	maxUint := ^uint(0)
+	if uint(baseInterval) > maxUint {
+		baseInterval = time.Duration(maxUint)
+	}
+	
+	return baseInterval
+}
+
 func (c *healthChecker) runCallbacks(host types.Host, changed bool) {
 	c.refreshHealthyStat()
 
@@ -113,7 +129,8 @@ func (c *healthChecker) runCallbacks(host types.Host, changed bool) {
 
 type healthCheckSession struct {
 	healthChecker *healthChecker
-	intervalTimer *timer
+	//intervalTimer *timer
+	intervalTicker *ticker
 	timeoutTimer  *timer
 	numHealthy    uint32
 	numUnHealthy  uint32
@@ -137,7 +154,10 @@ func (s *healthCheckSession) Start() {
 	s.onInterval()
 }
 
-func (s *healthCheckSession) Stop() {}
+//// stop intervalTimer to stop sending health message
+func (s *healthCheckSession) Stop() {
+	s.intervalTicker.stop()
+}
 
 func (s *healthCheckSession) handleSuccess() {
 	s.numUnHealthy = 0
@@ -155,9 +175,11 @@ func (s *healthCheckSession) handleSuccess() {
 
 	s.healthChecker.stats.success.Inc(1)
 	s.healthChecker.runCallbacks(s.host, stateChanged)
-
+	
+	// stop timeout timer
 	s.timeoutTimer.stop()
-	s.intervalTimer.start(s.healthChecker.getInterval())
+	// change to use -> ticker, so no need to start here
+	//s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
@@ -188,14 +210,18 @@ func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
 
 func (s *healthCheckSession) handleFailure(fType types.FailureType) {
 	s.SetUnhealthy(fType)
-
-	s.timeoutTimer.stop()
-	s.intervalTimer.start(s.healthChecker.getInterval())
+	// ticker now
+//	s.timeoutTimer.stop()
+//	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) onInterval() {
-	s.timeoutTimer.start(s.healthChecker.getInterval())
+	s.timeoutTimer.start(s.healthChecker.getTimeoutDuration())
 	s.healthChecker.stats.attempt.Inc(1)
+}
+
+func (s *healthCheckSession) tickerStart() {
+	s.intervalTicker.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) onTimeout() {
@@ -210,4 +236,16 @@ type healthCheckStats struct {
 	networkFailure metrics.Counter
 	verifyCluster  metrics.Counter
 	healthy        metrics.Gauge
+}
+
+func newHealthCheckStats(namespace string) *healthCheckStats {
+	return &healthCheckStats{
+		attempt:        metrics.GetOrRegisterCounter(namespace+"attempt", nil),
+		success:        metrics.GetOrRegisterCounter(namespace+"success", nil),
+		failure:        metrics.GetOrRegisterCounter(namespace+"failure", nil),
+		passiveFailure: metrics.GetOrRegisterCounter(namespace+"passiveFailure", nil),
+		networkFailure: metrics.GetOrRegisterCounter(namespace+"networkFailure", nil),
+		verifyCluster:  metrics.GetOrRegisterCounter(namespace+"verifyCluster", nil),
+		healthy:        metrics.GetOrRegisterGauge(namespace+"healty", nil),
+	}
 }

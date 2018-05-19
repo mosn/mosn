@@ -149,6 +149,11 @@ type clusterInfo struct {
 	stats                types.ClusterStats
 }
 
+
+func NewClusterInfo()*clusterInfo{
+	return &clusterInfo{}
+}
+
 func (ci *clusterInfo) Name() string {
 	return ci.name
 }

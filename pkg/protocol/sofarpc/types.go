@@ -36,6 +36,13 @@ const (
 	HeaderAppclasscontentlen string = "appclasscontentlen"
 )
 
+type ProtocolType byte
+const (
+	BOLT_V1 ProtocolType = 1
+	BOLT_V2 ProtocolType = 2
+	SOFA_TR ProtocolType = 13
+)
+
 const (
 	//protocol code value
 	PROTOCOL_CODE_V1 byte = 1

@@ -4,6 +4,10 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
+    //"strconv"
+    //"sync/atomic"
+    "math/rand"
+    
     "time"
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "github.com/golang/protobuf/proto"
@@ -11,7 +15,6 @@ import (
     "gitlab.alipay-inc.com/afe/mosn/pkg/types"
     "fmt"
     "errors"
-    "math/rand"
     "sync"
     "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
@@ -66,14 +69,15 @@ func (s *Subscriber) doWork(eventType string) error {
     //1. Assemble request
     request := s.assembleSubscriberRegisterPb(eventType)
     body, _ := proto.Marshal(request)
+    
     //2. Send request
-    reqId := fmt.Sprintf("%d", rand.Uint32())
-    err := s.sendRequest(reqId, body)
+    reqIdstr := fmt.Sprintf("%d", rand.Uint32())
+    err := s.sendRequest(reqIdstr, body)
     if err != nil {
         return err
     }
     s.streamContext = &registryStreamContext{
-        streamId:        reqId,
+        streamId:        reqIdstr,
         registryRequest: request,
         finished:        make(chan bool),
         mismatch:        false,

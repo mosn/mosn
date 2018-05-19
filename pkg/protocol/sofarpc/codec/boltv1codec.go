@@ -121,7 +121,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofar
 	if cmd.HeaderLen > 0 {
 		data = append(data, cmd.HeaderMap...)
 	}
-
+	
 	return data
 }
 
@@ -263,7 +263,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 	if readableBytes >= sofarpc.LESS_LEN_V1 {
 		bytes := data.Bytes()
 		dataType := bytes[1]
-
+		
 		//1. request
 		if dataType == sofarpc.REQUEST || dataType == sofarpc.REQUEST_ONEWAY {
 			if readableBytes >= sofarpc.REQUEST_HEADER_LEN_V1 {
@@ -271,9 +271,8 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
-					logger.Debugf("Decode: Get Bolt HB Msg")
+					logger.Debugf("[DECODE REQUEST]Decode: Get Bolt HB Msg")
 				}
-
 				ver2 := bytes[4]
 				requestId := binary.BigEndian.Uint32(bytes[5:9])
 				codec := bytes[9]
@@ -331,7 +330,8 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 			}
 		} else {
 			//2. response
-			if readableBytes > sofarpc.RESPONSE_HEADER_LEN_V1 {
+			// bug fix, pay attention to here
+			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V1 {
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 				ver2 := bytes[4]
@@ -386,11 +386,15 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					time.Now().UnixNano() / int64(time.Millisecond),
 					nil,
 				}
+				
+				if cmdCode == uint16(sofarpc.HEARTBEAT) {
+					logger.Debugf("[DECODE RESPONSE]Decode: Get Bolt HB Msg")
+				}
 				logger.Debugf("[Decoder]bolt v1 decode response, response status is:%+v", response.ResponseStatus)
 				cmd = &response
 			}
 		}
 	}
-
+	logger.Debugf("[DECODE]",cmd)
 	return read, cmd
 }
