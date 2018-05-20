@@ -3,36 +3,42 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
+//global instance for load & dump
+var ConfigPath string
+var config MOSNConfig
+
 type FilterConfig struct {
-	Type   string
-	Config map[string]interface{}
+	Type   string                 `json:"type,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
 }
 
 type AccessLogConfig struct {
-	LogPath   string `json:"log_path"`
-	LogFormat string `json:"log_format"`
+	LogPath   string `json:"log_path,omitempty"`
+	LogFormat string `json:"log_format,omitempty"`
 }
 
 type ListenerConfig struct {
-	Name           string
-	Address        string
+	Name           string         `json:"name,omitempty"`
+	Address        string         `json:"address,omitempty"`
 	BindToPort     bool           `json:"bind_port"`
-	NetworkFilters []FilterConfig `json:"network_filters"`
-	StreamFilters  []FilterConfig `json:"stream_filters"`
+	NetworkFilters []FilterConfig `json:"network_filters,service_registry"`
+	StreamFilters  []FilterConfig `json:"stream_filters,omitempty"`
 
 	//logger
-	LogPath  string `json:"log_path"`
-	LogLevel string `json:"log_level"`
+	LogPath  string `json:"log_path,omitempty"`
+	LogLevel string `json:"log_level,omitempty"`
 
 	//access log
-	AccessLogs []AccessLogConfig `json:"access_logs"`
+	AccessLogs []AccessLogConfig `json:"access_logs,omitempty"`
 
 	// only used in http2 case
 	DisableConnIo bool `json:"disable_conn_io"`
@@ -40,8 +46,8 @@ type ListenerConfig struct {
 
 type ServerConfig struct {
 	//default logger
-	DefaultLogPath  string `json:"default_log_path"`
-	DefaultLogLevel string `json:"default_log_level"`
+	DefaultLogPath  string `json:"default_log_path,omitempty"`
+	DefaultLogLevel string `json:"default_log_level,omitempty"`
 
 	//graceful shutdown config
 	GracefulTimeout DurationConfig `json:"graceful_timeout"`
@@ -49,13 +55,13 @@ type ServerConfig struct {
 	//go processor number
 	Processor int
 
-	Listeners []ListenerConfig
+	Listeners []ListenerConfig `json:"listeners,omitempty"`
 }
 
 type HostConfig struct {
-	Address  string
-	Hostname string
-	Weight   uint32
+	Address  string `json:"address,omitempty"`
+	Hostname string `json:"hostname,omitempty"`
+	Weight   uint32 `json:"weight,omitempty"`
 }
 
 type HealthCheckConfig struct {
@@ -64,29 +70,55 @@ type HealthCheckConfig struct {
 	UnhealthyThreshold uint32 `json:"unhealthy_threshold"`
 	Interval           DurationConfig
 	IntervalJitter     DurationConfig `json:"interval_jitter"`
-	CheckPath          string
-	ServiceName        string
+	CheckPath          string         `json:"check_path,omitempty"`
+	ServiceName        string         `json:"service_name,omitempty"`
+}
+
+type ClusterSpecConfig struct {
+	Subscribes []SubscribeSpecConfig `json:"subscribe,omitempty"`
+}
+
+type SubscribeSpecConfig struct {
+	ServiceName string `json:"service_name,omitempty"`
 }
 
 type ClusterConfig struct {
 	Name                 string
 	Type                 string
-	SubType              string `json:"sub_type"`
-	LbType               string `json:"lb_type"`
-	MaxRequestPerConn    uint64 `json:"max_request_per_conn"`
-	ConnBufferLimitBytes uint32
-	HealthCheck          HealthCheckConfig `json:"healthcheck"`
-	Hosts                []HostConfig
+	SubType              string            `json:"sub_type"`
+	LbType               string            `json:"lb_type"`
+	MaxRequestPerConn    uint64            `json:"max_request_per_conn"`
+	ConnBufferLimitBytes uint32            `json:"conn_buffer_limit_bytes"`
+	HealthCheck          v2.HealthCheck    `json:"health_check,omitempty"`              //v2.HealthCheck
+	ClusterSpecConfig    ClusterSpecConfig `json:"spec,omitempty"`                      //	ClusterSpecConfig
+	Hosts                []v2.Host         `json:"hosts,omitempty"` //v2.Host
 }
 
 type ClusterManagerConfig struct {
 	AutoDiscovery bool            `json:"auto_discovery"`
-	Clusters      []ClusterConfig `json:"clusters"`
+	Clusters      []ClusterConfig `json:"clusters,omitempty"`
+}
+
+type ServiceRegistryConfig struct {
+	ServiceAppInfo ServiceAppInfoConfig   `json:"application"`
+	ServicePubInfo []ServicePubInfoConfig `json:"publish_info,omitempty"`
+}
+
+type ServiceAppInfoConfig struct {
+	AntShareCloud bool   `json:"ant_share_cloud"`
+	DataCenter    string `json:"data_center,omitempty"`
+	AppName       string `json:"app_name,omitempty"`
+}
+
+type ServicePubInfoConfig struct {
+	ServiceName string `json:"service_name,omitempty"`
+	PubData     string `json:"pub_data,omitempty"`
 }
 
 type MOSNConfig struct {
-	Servers        []ServerConfig       `json:"servers"`         //server config
-	ClusterManager ClusterManagerConfig `json:"cluster_manager"` //cluster config
+	Servers         []ServerConfig        `json:"servers,omitempty"`         //server config
+	ClusterManager  ClusterManagerConfig  `json:"cluster_manager,omitempty"` //cluster config
+	ServiceRegistry ServiceRegistryConfig `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
 }
 
@@ -111,8 +143,10 @@ func Load(path string) *MOSNConfig {
 		log.Fatalln("load config failed, ", err)
 		os.Exit(1)
 	}
+	ConfigPath, _ = filepath.Abs(path)
+	// todo delete
+	//ConfigPath = "../../resource/mosn_config_dump_result.json"
 
-	var config MOSNConfig
 	json.Unmarshal(content, &config)
 	return &config
 }

@@ -54,7 +54,7 @@ func Start(c *config.MOSNConfig) {
 
 	//get inherit fds
 	inheritListeners := getInheritListeners()
-
+	
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
 
@@ -67,11 +67,14 @@ func Start(c *config.MOSNConfig) {
 		var clusters []v2.Cluster
 		clusterMap := make(map[string][]v2.Host)
 
-		for _, cluster := range c.ClusterManager.Clusters {
-			parsed := config.ParseClusterConfig(&cluster)
-			clusters = append(clusters, parsed)
-			clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
-		}
+		//for _, cluster := range c.ClusterManager.Clusters {
+		//	parsed := config.ParseClusterConfig(&cluster)
+		//	clusters = append(clusters, parsed)
+		//	clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
+		//}
+		
+		// parse cluster all in one
+		clusters,clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
 
 		//create cluster manager
 		cm := cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
@@ -85,7 +88,7 @@ func Start(c *config.MOSNConfig) {
 
 		for _, listenerConfig := range serverConfig.Listeners {
 			// network filters
-			nfcf := getNetworkFilter(listenerConfig.NetworkFilters)
+			nfcf := GetNetworkFilter(listenerConfig.NetworkFilters)
 
 			//stream filters
 			sfcf := getStreamFilters(listenerConfig.StreamFilters)
@@ -101,6 +104,9 @@ func Start(c *config.MOSNConfig) {
 			}
 		}()
 	}
+	
+	//parse service registry info
+	config.ParseServiceRegistry(c.ServiceRegistry)
 
 	//close legacy listeners
 	for _, ln := range inheritListeners {
@@ -114,7 +120,8 @@ func Start(c *config.MOSNConfig) {
 	wg.Wait()
 }
 
-func getNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFactory {
+// maybe used in proxy rewrite
+func GetNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFactory {
 	if len(configs) != 1 {
 		log.StartLogger.Fatalln("only one network filter supported, but got ", len(configs))
 	}

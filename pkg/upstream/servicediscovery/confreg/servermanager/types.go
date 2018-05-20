@@ -14,6 +14,8 @@ type RPCServerManager interface {
     GetRPCServiceSnapshot() []byte
 
     RegisterRPCServerChangeListener(listener RPCServerChangeListener)
+
+    Reset()
 }
 
 type RPCServerChangeListener interface {

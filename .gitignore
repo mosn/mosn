@@ -3,6 +3,7 @@ gitignore
 .gitignore
 .DS_Store
 .idea
+*.log
 IMAGEBUILD/
 accesslogE.log
 mosn_config_dump_result.json

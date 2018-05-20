@@ -8,7 +8,7 @@ import (
 )
 
 func Test(t *testing.T) {
-    rpcSvrManager := NewRPCServerManager()
+    rpcSvrManager := GetRPCServerManager()
 
     rpcSvrManager.RegisterRPCServerChangeListener(&MyRPCServerChangeListener{})
 
@@ -34,7 +34,7 @@ func Test(t *testing.T) {
 }
 
 func TestCoverd(t *testing.T) {
-    rpcSvrManager := NewRPCServerManager()
+    rpcSvrManager := GetRPCServerManager()
 
     rpcSvrManager.RegisterRPCServerChangeListener(&MyRPCServerChangeListener{})
     //first time

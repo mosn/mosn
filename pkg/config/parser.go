@@ -10,30 +10,51 @@ import (
 	"time"
 )
 
-var logLevelMap = map[string]log.LogLevel{
-	"DEBUG": log.DEBUG,
-	"FATAL": log.FATAL,
-	"ERROR": log.ERROR,
-	"WARN":  log.WARN,
-	"INFO":  log.INFO,
+type ConfigContentKey string
+
+// callback when corresponding module parsed
+type ConfigParsedCallback func(data interface{}, endParsing bool) error
+
+// notes: configcontentkey equals to the key of config file
+const (
+	ParseCallbackKeyCluster        ConfigContentKey = "clusters"
+	ParseCallbackKeyServiceRgtInfo ConfigContentKey = "service_registry"
+)
+
+func RegisterConfigParsedListener(key ConfigContentKey, cb ConfigParsedCallback) {
+	if cbs, ok := configParsedCBMaps[key]; ok {
+		cbs = append(cbs, cb)
+	} else {
+		log.StartLogger.Infof("[INFO] %s added to configParsedCBMaps", key)
+		cpc := []ConfigParsedCallback{cb}
+		configParsedCBMaps[key] = cpc
+	}
 }
 
-var networkFilterTypeMap = map[string]string{}
+var (
+	configParsedCBMaps = make(map[ConfigContentKey][]ConfigParsedCallback)
 
-var streamFilterTypeMap = map[string]string{}
+	logLevelMap = map[string]log.LogLevel{
+		"DEBUG": log.DEBUG,
+		"FATAL": log.FATAL,
+		"ERROR": log.ERROR,
+		"WARN":  log.WARN,
+		"INFO":  log.INFO,
+	}
 
-var clusterTypeMap = map[string]v2.ClusterType{
-	"SIMPLE":  v2.SIMPLE_CLUSTER,
-	"DYNAMIC": v2.DYNAMIC_CLUSTER,
-}
+	clusterTypeMap = map[string]v2.ClusterType{
+		"SIMPLE":  v2.SIMPLE_CLUSTER,
+		"DYNAMIC": v2.DYNAMIC_CLUSTER,
+	}
 
-var subClusterTypeMap = map[string]v2.SubClusterType{
-	"CONFREG": v2.CONFREG_CLUSTER,
-}
+	subClusterTypeMap = map[string]v2.SubClusterType{
+		"CONFREG": v2.CONFREG_CLUSTER,
+	}
 
-var lbTypeMap = map[string]v2.LbType{
-	"LB_RANDOM": v2.LB_RANDOM,
-}
+	lbTypeMap = map[string]v2.LbType{
+		"LB_RANDOM": v2.LB_RANDOM,
+	}
+)
 
 func ParseLogLevel(level string) log.LogLevel {
 	if level != "" {
@@ -60,7 +81,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 
 func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	proxyConfig := &v2.Proxy{}
-
+	
 	//downstream protocol
 	//TODO config(json object) extract and type convert util
 	if downstreamProtocol, ok := c.Config["downstream_protocol"]; ok {
@@ -72,7 +93,7 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	} else {
 		log.StartLogger.Fatalln("[downstream_protocol] is required in proxy filter config")
 	}
-
+	
 	//upstream protocol
 	if upstreamProtocol, ok := c.Config["upstream_protocol"]; ok {
 		if upstreamProtocol, ok := upstreamProtocol.(string); ok {
@@ -84,16 +105,16 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 		log.StartLogger.Fatalln("[upstream_protocol] is required in proxy filter config")
 	}
 
-	//support dynamic route or not
-	if dynamicBool, ok := c.Config["support_dynamic_route"]; ok {
-		if dynamicBool, ok := dynamicBool.(bool); ok {
-				proxyConfig.SupportDynamicRoute = dynamicBool
-		} else {
-			log.StartLogger.Fatalln("[support_dynamic_route] in proxy filter support_dynamic_route is not bool")
-		}
-	} else {
-		log.StartLogger.Fatalln("[support_dynamic_route] is required in proxy filter config")
-	}
+	//todo support dynamic route or not, save
+	//if dynamicBool, ok := c.Config["support_dynamic_route"]; ok {
+	//	if dynamicBool, ok := dynamicBool.(bool); ok {
+	//		proxyConfig.SupportDynamicRoute = dynamicBool
+	//	} else {
+	//		log.StartLogger.Fatalln("[support_dynamic_route] in proxy filter support_dynamic_route is not bool")
+	//	}
+	//} else {
+	//	log.StartLogger.Fatalln("[support_dynamic_route] is required in proxy filter config")
+	//}
 
 	//routes
 	if routes, ok := c.Config["routes"]; ok {
@@ -107,20 +128,20 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	} else {
 		log.StartLogger.Fatalln("[routes] is required in proxy filter config")
 	}
-
+	
 	return proxyConfig
 }
 
 func ParseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
 	var logs []v2.AccessLog
-
+	
 	for _, logConfig := range c {
 		logs = append(logs, v2.AccessLog{
 			Path:   logConfig.LogPath,
 			Format: logConfig.LogFormat,
 		})
 	}
-
+	
 	return logs
 }
 
@@ -198,6 +219,7 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 
 func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter {
 	healthcheck := &v2.HealthCheckFilter{}
+	
 	//passthrough
 	if passthrough, ok := config["passthrough"]; ok {
 		if passthrough, ok := passthrough.(bool); ok {
@@ -248,8 +270,8 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 	if c.Address == "" {
 		log.StartLogger.Fatalln("[Address] is required in listener config")
 	}
-
 	addr, err := net.ResolveTCPAddr("tcp", c.Address)
+	
 	if err != nil {
 		log.StartLogger.Fatalln("[Address] not valid:" + c.Address)
 	}
@@ -279,79 +301,158 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 	}
 }
 
-func ParseClusterConfig(c *ClusterConfig) v2.Cluster {
-	if c.Name == "" {
-		log.StartLogger.Fatalln("[name] is required in cluster config")
-	}
+func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2.Host) {
+	var clustersV2 []v2.Cluster
+	clusterV2Map := make(map[string][]v2.Host)
 
-	var clusterType v2.ClusterType
-	var subclusterType v2.SubClusterType
-	if c.Type == "" {
-		log.StartLogger.Fatalln("[type] is required in cluster config")
-	} else {
-		if ct, ok := clusterTypeMap[c.Type]; ok {
-			clusterType = ct
-			if c.SubType != "" {
-				if cs, ok := subClusterTypeMap[c.SubType]; ok {
-					subclusterType = cs
-				} else {
-					log.StartLogger.Fatalln("[unknown sub-cluster type]", c.SubType)
+	for _, c := range clusters {
+		// cluster name
+		if c.Name == "" {
+			log.StartLogger.Fatalln("[name] is required in cluster config")
+		}
+		
+		var clusterType v2.ClusterType
+		var subclusterType v2.SubClusterType
+		
+		//cluster type
+		if c.Type == "" {
+			log.StartLogger.Fatalln("[type] is required in cluster config")
+		} else {
+			if ct, ok := clusterTypeMap[c.Type]; ok {
+				clusterType = ct
+				if c.SubType != "" {
+					if cs, ok := subClusterTypeMap[c.SubType]; ok {
+						subclusterType = cs
+					} else {
+						log.StartLogger.Fatalln("[unknown sub-cluster type]", c.SubType)
+					}
 				}
+			} else {
+				log.StartLogger.Fatalln("unknown cluster type:", c.Type)
 			}
+		}
+		
+		var lbType v2.LbType
+		
+		if c.LbType == "" {
+			log.StartLogger.Fatalln("[lb_type] is required in cluster config")
 		} else {
-			log.StartLogger.Fatalln("unknown cluster type:", c.Type)
+			if lt, ok := lbTypeMap[c.LbType]; ok {
+				lbType = lt
+			} else {
+				log.StartLogger.Fatalln("unknown lb type:", c.LbType)
+			}
+		}
+
+		if c.MaxRequestPerConn == 0 {
+			c.MaxRequestPerConn = 1024
+			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d", c.MaxRequestPerConn)
+		}
+
+		if c.ConnBufferLimitBytes == 0 {
+			c.ConnBufferLimitBytes = 16 * 1026
+			log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value %d", c.ConnBufferLimitBytes)
+		}
+
+		//clusterSpec := c.ClusterSpecConfig.(ClusterSpecConfig)
+		clusterSpec := c.ClusterSpecConfig
+
+		//v2.Cluster
+		clusterV2 := v2.Cluster{
+			Name:                 c.Name,
+			ClusterType:          clusterType,
+			SubClustetType:       subclusterType,
+			LbType:               lbType,
+			MaxRequestPerConn:    c.MaxRequestPerConn,
+			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
+			Spec:                 ParseConfigSpecConfig(&clusterSpec),
+		}
+
+		clustersV2 = append(clustersV2, clusterV2)
+		hostV2 := ParseHostConfig(&c)
+		clusterV2Map[c.Name] = hostV2
+	}
+
+	// trigger all callbacks
+	// for confreg, endParsed = false
+	if cbs, ok := configParsedCBMaps[ParseCallbackKeyCluster]; ok {
+		for _, cb := range cbs {
+			cb(clustersV2, false)
 		}
 	}
+	return clustersV2, clusterV2Map
+}
 
-	var lbType v2.LbType
-	if c.LbType == "" {
-		log.StartLogger.Fatalln("[lb_type] is required in cluster config")
-	} else {
-		if lt, ok := lbTypeMap[c.LbType]; ok {
-			lbType = lt
-		} else {
-			log.StartLogger.Fatalln("unknown lb type:", c.LbType)
-		}
+func ParseConfigSpecConfig(c *ClusterSpecConfig) v2.ClusterSpecInfo {
+	var specs []v2.SubscribeSpec
+
+	for _, sub := range c.Subscribes {
+		specs = append(specs, v2.SubscribeSpec{
+			ServiceName: sub.ServiceName,
+		})
 	}
 
-	if c.MaxRequestPerConn == 0 {
-		c.MaxRequestPerConn = 1024
-		log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value 1024")
-	}
-
-	if c.ConnBufferLimitBytes == 0 {
-		c.ConnBufferLimitBytes = 16 * 1026
-		log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value 16 * 1026")
-	}
-
-	return v2.Cluster{
-		Name:                 c.Name,
-		ClusterType:          clusterType,
-		SubClustetType:       subclusterType,
-		LbType:               lbType,
-		MaxRequestPerConn:    c.MaxRequestPerConn,
-		ConnBufferLimitBytes: c.ConnBufferLimitBytes,
+	return v2.ClusterSpecInfo{
+		Subscribes: specs,
 	}
 }
 
 func ParseHostConfig(c *ClusterConfig) []v2.Host {
-	if c.Hosts == nil || len(c.Hosts) == 0 {
-		log.StartLogger.Fatalln("[hosts] is required in cluster config")
-	}
-
+	// host maybe nil when rewriting config
+	//if c.Hosts == nil || len(c.Hosts) == 0 {
+	//	log.StartLogger.Debugf("[hosts] is required in cluster config")
+	//}
 	var hosts []v2.Host
 
 	for _, host := range c.Hosts {
-		if host.Address == "" {
+		hostV2 := host
+		if hostV2.Address == "" {
 			log.StartLogger.Fatalln("[host.address] is required in host config")
 		}
 
 		hosts = append(hosts, v2.Host{
-			Hostname: host.Hostname,
-			Address:  host.Address,
-			Weight:   host.Weight,
+			Hostname: hostV2.Hostname,
+			Address:  hostV2.Address,
+			Weight:   hostV2.Weight,
 		})
 	}
 
 	return hosts
+}
+
+func ParseServiceRegistry(src ServiceRegistryConfig) {
+	var SrvRegInfo v2.ServiceRegistryInfo
+
+	if src.ServiceAppInfo.AppName == "" {
+		log.StartLogger.Debugf("[ParseServiceRegistry] appname is nil")
+	}
+
+	srvappinfo := v2.ApplicationInfo{
+		AntShareCloud: src.ServiceAppInfo.AntShareCloud,
+		DataCenter:    src.ServiceAppInfo.DataCenter,
+		AppName:       src.ServiceAppInfo.AppName,
+	}
+
+	var SrvPubInfoArray []v2.PublishInfo
+
+	for _, pubs := range src.ServicePubInfo {
+		SrvPubInfoArray = append(SrvPubInfoArray, v2.PublishInfo{
+			Pub: v2.PublishContent{
+				ServiceName: pubs.ServiceName,
+				PubData:     pubs.PubData,
+			},
+		})
+	}
+
+	SrvRegInfo = v2.ServiceRegistryInfo{
+		srvappinfo,
+		SrvPubInfoArray,
+	}
+
+	//trigger all callbacks
+	if cbs, ok := configParsedCBMaps[ParseCallbackKeyServiceRgtInfo]; ok {
+		for _, cb := range cbs {
+			cb(SrvRegInfo, true)
+		}
+	}
 }

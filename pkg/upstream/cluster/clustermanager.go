@@ -49,10 +49,6 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	//Register upstream update type
 	for _, cluster := range clusters {
 		cm.AddOrUpdatePrimaryCluster(cluster)
-		//For dynamic cluster,register update method
-		//if cluster.ClusterType == v2.DYNAMIC_CLUSTER {
-		//	ClusterAdap.DoRegister(cluster.SubClustetType)
-		//}
 	}
 
 	//Add hosts to cluster

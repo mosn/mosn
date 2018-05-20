@@ -2,9 +2,10 @@
   "servers": [
     {
       "default_log_path": "./default.log",
-      "default_log_level": "DEBUG",
+      "default_log_level": "INFO",
       "graceful_timeout": "60s",
-
+      "Processor": 1,
+      
       "listeners": [
         {
           "name": "egress",
@@ -15,7 +16,7 @@
           "access_logs":[
             {
               "log_path": "./access_egress.log",
-              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent% %BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %REQ.service% %RESP.service%"
+              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
             }
           ],
           "network_filters": [
@@ -27,8 +28,8 @@
                 "support_dynamic_route":true,
                 "routes": [
                   {
-                    "name": "cpptest_route",
-                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0xxx",
+                    "name": "example_route",
+                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.01",
                     "cluster": "confreg_service1"
                   },
                   {
@@ -55,7 +56,7 @@
           "name": "ingress",
           "address": "127.0.0.1:12201",
           "bind_port": true,
-          "log_path": "/home/admin/mosn/logs/ingress.log",
+          "log_path": "./ingress.log",
           "log_level": "DEBUG",
           "network_filters": [
             {
@@ -113,18 +114,6 @@
         ]
       },
       {
-        "name": "remote_service",
-        "type": "SIMPLE",
-        "lb_type": "LB_RANDOM",
-        "hosts": [
-          {
-            "hostname": "upstream_machine",
-            "address": "11.166.22.163:12200",
-            "weight": 10
-          }
-        ]
-      },
-      {
         "name": "confreg_service1",
         "type": "DYNAMIC",
         "sub_type": "CONFREG",
@@ -136,6 +125,43 @@
             "weight": 10
           }
         ]
+      },
+      {
+        "name": "x_test_service2",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "spec": {
+          "subscribe": [
+            {
+              "service_name": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0"
+            }
+          ]
+        },
+        "hosts": [
+          {
+            "hostname": "upstream_machine",
+            "address": "11.166.22.163:12200",
+            "weight": 10
+          }
+        ]
+      }
+    ]
+  },
+  "service_registry":
+  {
+    "application":{
+      "ant_share_cloud":false,
+      "data_center":"dc",
+      "app_name":"testapp"
+    },
+    "publish_info":[
+      {
+        "service_name":"service_1",
+        "pub_data":"pub_data_xxx"
+      },
+      {
+        "service_name":"service_2",
+        "pub_data":"pub_data_xxx"
       }
     ]
   }

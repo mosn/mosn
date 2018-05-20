@@ -34,7 +34,7 @@ type proxy struct {
 	downstreamCallbacks DownstreamCallbacks
 
 	clusterName    string
-	routerConfig   types.RouterConfig
+	routerConfig   types.Routers
 	serverCodec    types.ServerStreamConnection
 	resueCodecMaps bool
 	codecPool      types.HeadersBufferPool

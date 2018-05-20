@@ -31,28 +31,36 @@ type SystemConfig struct {
 var SysConfig *SystemConfig
 
 func InitSystemConfig(antShareCloud bool, dc string, appName string, zone string) *SystemConfig {
-	if SysConfig != nil {
-		return SysConfig
-	}
-
-	SysConfig = &SystemConfig{
-		AntShareCloud: antShareCloud,
-		DataCenter:    dc,
-		AppName:       appName,
-		Zone:          zone,
-		InstanceId:    "",
-	}
-
-	confregUrl, z := readPropertyFromServerConfFile(antShareCloud)
-	if SysConfig.Zone == "" {
-		SysConfig.Zone = z
-	}
-	if !strings.HasPrefix(confregUrl, "http://") {
-		confregUrl = "http://" + confregUrl
-	}
-	SysConfig.RegistryEndpoint = confregUrl
-	return SysConfig
+    if SysConfig != nil {
+        return SysConfig
+    }
+	return doInit(antShareCloud, dc, appName, zone)
 }
+
+func ForceInitSystemConfig(antShareCloud bool, dc string, appName string, zone string) *SystemConfig {
+    return doInit(antShareCloud, dc, appName, zone)
+}
+
+func doInit(antShareCloud bool, dc string, appName string, zone string) *SystemConfig {
+    SysConfig = &SystemConfig{
+        AntShareCloud: antShareCloud,
+        DataCenter:    dc,
+        AppName:       appName,
+        Zone:          zone,
+        InstanceId:    "",
+    }
+
+    confregUrl, z := readPropertyFromServerConfFile(antShareCloud)
+    if SysConfig.Zone == "" {
+        SysConfig.Zone = z
+    }
+    if !strings.HasPrefix(confregUrl, "http://") {
+        confregUrl = "http://" + confregUrl
+    }
+    SysConfig.RegistryEndpoint = confregUrl
+    return SysConfig
+}
+
 
 func readPropertyFromServerConfFile(antShareCloud bool) (confregUrl string, zone string) {
 	if !antShareCloud {

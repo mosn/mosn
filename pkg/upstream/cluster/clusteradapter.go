@@ -16,12 +16,8 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 
 	//get clusterName
 	//clusterName := ca.GetClusterNameByServiceName(serviceName)
-	
 	//   serviceName -> cluster -> route (== )
-	
 	clusterExist := ca.clusterMng.ClusterExist(clusterName)
-
-	//update cluster
 	if !clusterExist {
 		if ca.clusterMng.autoDiscovery {
 			cluster := v2.Cluster{
@@ -36,11 +32,17 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 			return
 		}
 	}
-
+	
 	//add hosts to existing cluster
+	log.DefaultLogger.Debugf("[TriggerClusterUpdate Called] cluster name is:%s hosts are:%+v",
+		clusterName,hosts)
 	ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
 }
 
-func (ca *ClusterAdapter) GetClusterNameByServiceName(serviceName string) string {
-	return serviceName
+func (ca *ClusterAdapter) TriggerClusterDel(clusterName string) {
+	log.DefaultLogger.Debugf("TriggerClusterDel", clusterName)
+	
+	//get clusterName
+	//remove hosts from existing cluster
+	ca.clusterMng.RemovePrimaryCluster(clusterName)
 }
