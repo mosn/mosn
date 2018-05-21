@@ -55,7 +55,7 @@ func (rc *Routers) AddRouter(routerName string) {
 	br := &basicRouter{
 		name:    routerName,
 		service: routerName,
-		cluster: routerName + "@DEFAULT",
+		cluster: routerName,
 	}
 
 	if len(rc.routers) > 0 {

@@ -5,7 +5,10 @@ import (
     "time"
     "net"
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
+    "strings"
 )
+
+const DataIdSuffix = "@DEFAULT"
 
 func RandomUuid() string {
     u, _ := uuid.NewV4()
@@ -35,5 +38,19 @@ func GetOutboundIP() net.IP {
     localAddr := conn.LocalAddr().(*net.UDPAddr)
 
     return localAddr.IP
+}
+
+func appendDataIdSuffix(dataId string) string {
+    if strings.HasSuffix(dataId, DataIdSuffix) {
+        return dataId
+    }
+    return dataId + DataIdSuffix
+}
+
+func cutoffDataIdSuffix(dataId string) string {
+    if strings.HasSuffix(dataId, DataIdSuffix) {
+        return dataId[:len(dataId) - 8]
+    }
+    return dataId
 }
 
