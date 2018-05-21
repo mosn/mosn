@@ -46,8 +46,7 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 
 	// routerName,without "@DEFAULT"
 	// add dynamically generated routers to all routerConfigs
-	routerName := CovertRouterName(dataId)
-	router.RoutersManager.AddRouterInRouters([]string{routerName})
+	router.RoutersManager.AddRouterInRouters([]string{dataId})
 }
 
 // del dynamic cluster from memory
@@ -59,7 +58,7 @@ func TriggerDynamicClusterClear() {
 	}
 
 	// remove dynamically generated routers in all routerConfigs
-	go router.RoutersManager.RemoveRouterInRouters(ConvertServiceNameList(subServiceList))
+	go router.RoutersManager.RemoveRouterInRouters(subServiceList)
 }
 
 var (
@@ -147,7 +146,7 @@ func AddSubInfo(subInfo []string) bool {
 
 func DelSubInfo(subinfo []string) bool {
 	// remove dynamically generated routers in all routerConfigs
-	go router.RoutersManager.RemoveRouterInRouters(ConvertServiceNameList(subinfo))
+	go router.RoutersManager.RemoveRouterInRouters(subinfo)
 	log.DefaultLogger.Debugf("[DelSubInfo] DelSubInfo Called")
 	
 	for _, sub := range subinfo {
@@ -241,16 +240,4 @@ func OnServiceRegistryInfoParsed(data interface{}, endParsed bool) error {
 		RecoverRegistryModule()
 	}
 	return nil
-}
-
-func CovertRouterName(servicename string) string {
-	return servicename[:len(servicename)-8]
-}
-
-func ConvertServiceNameList(serviceNames []string) []string {
-	routerNameList := []string{}
-	for _, srv := range serviceNames {
-		routerNameList = append(routerNameList, srv[:len(srv)-8]) //delete "@DEFAULT"
-	}
-	return routerNameList
 }

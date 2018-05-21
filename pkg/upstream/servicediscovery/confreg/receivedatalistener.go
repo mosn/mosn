@@ -51,6 +51,9 @@ func (d *receiveDataStreamDecoder) OnDecodeData(data types.IoBuffer, endStream b
         return
     }
 
+    //cutoff @DEFAULT suffix
+    receivedData.DataId = cutoffDataIdSuffix(receivedData.DataId)
+
     log.DefaultLogger.Infof("Received Confreg pushed data. data id = %s, segment = %s, version = %d, data = %v",
         receivedData.DataId, receivedData.Segment, receivedData.Version, receivedData.Data)
 

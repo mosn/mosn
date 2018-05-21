@@ -173,7 +173,7 @@ func (s *Subscriber) assembleSubscriberRegisterPb(eventType string) *model.Subsc
         InstanceId: s.systemConfig.InstanceId,
         Zone:       s.systemConfig.Zone,
         AppName:    s.systemConfig.AppName,
-        DataId:     s.dataId,
+        DataId:     appendDataIdSuffix(s.dataId),
         Group:      ConfregSofaGroup,
         ProcessId:  RandomUuid(),
         RegistId:   s.registerId,
