@@ -5,9 +5,11 @@ import (
     "github.com/deckarep/golang-set"
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "encoding/json"
+    "sync"
 )
 
 var rpcServerManagerInstance RPCServerManager
+var lock sync.Mutex
 
 type segmentData struct {
     Segment string              `json:"segment"`
@@ -39,10 +41,17 @@ type DefaultRPCServerManager struct {
     listeners []RPCServerChangeListener
 }
 
-func NewRPCServerManager() RPCServerManager {
+func GetRPCServerManager() RPCServerManager {
+    lock.Lock()
+
+    defer func() {
+        lock.Unlock()
+    }()
+
     if rpcServerManagerInstance != nil {
         return rpcServerManagerInstance
     }
+
     RPCServerManager := &DefaultRPCServerManager{
         svrData:   make(map[string]map[string]segmentData),
         listeners: make([]RPCServerChangeListener, 0, 100),
@@ -50,10 +59,6 @@ func NewRPCServerManager() RPCServerManager {
 
     rpcServerManagerInstance = RPCServerManager
     return RPCServerManager
-}
-
-func GetRPCServerManager() RPCServerManager {
-    return rpcServerManagerInstance
 }
 
 func (sm *DefaultRPCServerManager) RegisterRPCServer(receivedData *model.ReceivedDataPb) {
@@ -183,4 +188,9 @@ func (sm *DefaultRPCServerManager) triggerRPCServerChangeEvent(dataId string) {
 
 func (sm *DefaultRPCServerManager) RegisterRPCServerChangeListener(listener RPCServerChangeListener) {
     sm.listeners = append(sm.listeners, listener)
+}
+
+func (sm *DefaultRPCServerManager) Reset() {
+    //Only clear data info, do not clear listeners
+    sm.svrData = make(map[string]map[string]segmentData)
 }

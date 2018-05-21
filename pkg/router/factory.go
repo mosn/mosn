@@ -6,7 +6,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-type configFactory func(config interface{}) (types.RouterConfig, error)
+type configFactory func(config interface{}) (types.Routers, error)
 
 var routerConfigFactories map[types.Protocol]configFactory
 
@@ -20,7 +20,7 @@ func RegisteRouterConfigFactory(port types.Protocol, factory configFactory) {
 	}
 }
 
-func CreateRouteConfig(port types.Protocol, config interface{}) (types.RouterConfig, error) {
+func CreateRouteConfig(port types.Protocol, config interface{}) (types.Routers, error) {
 	if factory, ok := routerConfigFactories[port]; ok {
 		return factory(config)  //call NewBasicRoute
 	} else {

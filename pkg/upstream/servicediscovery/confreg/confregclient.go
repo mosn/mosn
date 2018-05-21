@@ -8,6 +8,8 @@ import (
 
 const ConfregSofaGroup = "SOFA"
 
+var confregClient *ConfregClient
+
 type ConfregClient struct {
     systemConfig         *config.SystemConfig
     registryConfig       *config.RegistryConfig
@@ -15,8 +17,6 @@ type ConfregClient struct {
 
     registerWorker   *registerWorker
     rpcServerManager servermanager.RPCServerManager
-
-    stopConnChan chan bool
 }
 
 func NewConfregClient(systemConfig *config.SystemConfig, registryConfig *config.RegistryConfig,
@@ -26,7 +26,6 @@ func NewConfregClient(systemConfig *config.SystemConfig, registryConfig *config.
         systemConfig:         systemConfig,
         registryConfig:       registryConfig,
         confregServerManager: manager,
-        stopConnChan:         make(chan bool),
     }
 
     rc.rpcServerManager = servermanager.GetRPCServerManager()
@@ -34,12 +33,15 @@ func NewConfregClient(systemConfig *config.SystemConfig, registryConfig *config.
     rw := NewRegisterWorker(systemConfig, registryConfig, manager, rc.rpcServerManager)
     rc.registerWorker = rw
 
+    confregClient = rc
+
     return rc
 }
 
 func (rc *ConfregClient) GetRPCServerManager() servermanager.RPCServerManager {
     return rc.rpcServerManager
 }
+
 
 func (rc *ConfregClient) PublishAsync(dataId string, data ...string) {
     rc.registerWorker.SubmitPublishTask(dataId, data, model.EventTypePb_REGISTER.String())
@@ -71,4 +73,12 @@ func (rc *ConfregClient) SubscribeSync(dataId string) error {
 
 func (rc *ConfregClient) UnSubscribeSync(dataId string) error {
     return rc.registerWorker.UnSubscribeSync(dataId)
+}
+
+func (rc *ConfregClient) Reset() {
+    rc.registerWorker.Reset()
+}
+
+func existedSubscriber(dataId string) bool {
+    return confregClient.registerWorker.existedSubscriber(dataId)
 }

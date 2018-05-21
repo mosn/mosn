@@ -46,12 +46,16 @@ func (d *receiveDataStreamDecoder) OnDecodeData(data types.IoBuffer, endStream b
     }
     receivedData := &model.ReceivedDataPb{}
     err := proto.Unmarshal(data.Bytes(), receivedData)
-    if err == nil {
-        log.DefaultLogger.Infof("Received Confreg pushed data. data id = %s, segment = %s, version = %d, data = %v",
-            receivedData.DataId, receivedData.Segment, receivedData.Version, receivedData.Data)
-        d.rpcServerManager.RegisterRPCServer(receivedData)
-    } else {
+    if err != nil {
         log.DefaultLogger.Errorf("Unmarshal received data failed. error = %v", err)
+        return
+    }
+
+    log.DefaultLogger.Infof("Received Confreg pushed data. data id = %s, segment = %s, version = %d, data = %v",
+        receivedData.DataId, receivedData.Segment, receivedData.Version, receivedData.Data)
+
+    if existedSubscriber(receivedData.DataId) {
+        d.rpcServerManager.RegisterRPCServer(receivedData)
     }
 }
 

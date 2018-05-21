@@ -8,6 +8,11 @@ import (
 type Metadata struct {
 }
 
+const (
+	MaxRequestsPerConn  uint64 = 10000
+	ConnBufferLimitByte uint32 = 16 * 1024
+)
+
 type ClusterType string
 
 const (
@@ -20,6 +25,7 @@ type SubClusterType string
 
 const (
 	CONFREG_CLUSTER SubClusterType = "CONFREG"
+	// also , ZooKeeper
 )
 
 type LbType string
@@ -38,6 +44,7 @@ type Cluster struct {
 
 	ConnBufferLimitBytes uint32
 	HealthCheck          HealthCheck
+	Spec                 ClusterSpecInfo
 }
 
 type Host struct {
@@ -103,7 +110,7 @@ type FaultInject struct {
 type Proxy struct {
 	DownstreamProtocol  string
 	UpstreamProtocol    string
-	SupportDynamicRoute bool
+	//SupportDynamicRoute bool
 	Routes              []*BasicServiceRoute
 }
 
@@ -136,4 +143,34 @@ type HealthCheckFilter struct {
 	CacheTime                   time.Duration
 	Endpoint                    string
 	ClusterMinHealthyPercentage map[string]float32
+}
+
+// currently only one subscribe allowed
+type ClusterSpecInfo struct {
+	Subscribes []SubscribeSpec
+}
+
+type SubscribeSpec struct {
+	ServiceName string
+}
+
+type ServiceRegistryInfo struct{
+	ServiceAppInfo  ApplicationInfo
+	ServicePubInfo  []PublishInfo
+}
+
+type ApplicationInfo struct {
+	AntShareCloud bool
+	DataCenter    string
+	AppName       string
+	Zone          string
+}
+
+type PublishInfo struct{
+	Pub  PublishContent
+}
+
+type PublishContent struct{
+	ServiceName string
+	PubData string
 }

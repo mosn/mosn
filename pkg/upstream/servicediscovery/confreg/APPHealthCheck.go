@@ -9,18 +9,14 @@ import (
 	"time"
 )
 
-func init() {
-	log.InitDefaultLogger("", log.DEBUG)
-}
-
 const (
 	IntervalDur      time.Duration = 15 * time.Second
 	TimeoutDur       time.Duration = 6 * 15 * time.Second
 	APPCheckPointURL string        = "http://127.0.0.1:9500/checkService"
 )
 
-func StartAppHealthCheck() {
-	healthcheck.StartHttpHealthCheck(IntervalDur, TimeoutDur, APPCheckPointURL, onAppInterval, onTimeout)
+func StartAppHealthCheck(url string) {
+	healthcheck.StartHttpHealthCheck(IntervalDur, TimeoutDur, url, onAppInterval, onTimeout)
 }
 
 func onAppInterval(path string, hcResetTimeOut func()) {

@@ -193,7 +193,9 @@ type activeListener struct {
 	accessLogs             []types.AccessLog
 }
 
-func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory, handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
+func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog,
+	networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
+		handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
 	al := &activeListener{
 		disableConnIo:          disableConnIo,
 		listener:               listener,

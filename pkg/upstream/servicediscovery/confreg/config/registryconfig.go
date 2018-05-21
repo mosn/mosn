@@ -14,7 +14,7 @@ type RegistryConfig struct {
 }
 
 var DefaultRegistryConfig = &RegistryConfig{
-	RPCServerPort:                            12200,
+	RPCServerPort:                            12201,
 	RegistryEndpointPort:                     9603,
 	ScheduleCompensateRegisterTaskDuration:   60 * time.Second,
 	ScheduleRefreshConfregServerTaskDuration: 60 * time.Second,

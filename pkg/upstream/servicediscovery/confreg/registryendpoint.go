@@ -9,14 +9,27 @@ import (
     "github.com/julienschmidt/httprouter"
     "time"
     "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
-    "sync"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 )
 
 const ModuleNotStartedErrMsg = "Registry module not startup. Should call '/configs/application' endpoint at first."
 
+func init() {
+    rpcServerChangeListener := &WaitDataPushedListener{}
+    servermanager.GetRPCServerManager().RegisterRPCServerChangeListener(rpcServerChangeListener)
+}
+
+type WaitDataPushedListener struct {
+}
+
+func (l *WaitDataPushedListener) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
+    if r, ok := subscribeRecorder[dataId]; ok {
+        r <- true
+    }
+}
+
 type Endpoint struct {
     registryConfig *config.RegistryConfig
-    RegistryClient Client
 }
 
 type MsgChanCallback func([]string)
@@ -26,47 +39,29 @@ type ServiceInfo struct {
 }
 
 var subscribeRecorder = make(map[string]chan bool)
-var moduleStartMutex = new(sync.Mutex)
 
 func (re *Endpoint) SetSystemConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-    moduleStartMutex.Lock()
-    defer func() {
-        moduleStartMutex.Unlock()
-    }()
-
-    if ModuleStarted {
-        doResponse(true, "", w)
-        return
-    }
-
     raw, _ := ioutil.ReadAll(r.Body)
-
+    
     var request ApplicationInfoRequest
     if err := json.Unmarshal(raw, &request); err != nil {
         doResponse(false, fmt.Sprintf("Unmarshal body stream to application info request failed. error = %v", err), w)
         return
     }
-
-    sysConfig := config.InitSystemConfig(request.AntShareCloud, request.DataCenter, request.AppName, request.Zone)
+    
+    sysConfig := config.ForceInitSystemConfig(request.AntShareCloud, request.DataCenter, request.AppName, request.Zone)
+    
+    //Should reset registry module at first.
+    if err := ResetRegistryModule(sysConfig); err != nil {
+        log.DefaultLogger.Errorf("Reset registry module failed. error = %v", err)
+    } else {
+        log.DefaultLogger.Infof("Reset registry module succeeded.")
+    }
     
     //Startup registry module.
-    re.RegistryClient = StartupRegistryModule(sysConfig, config.DefaultRegistryConfig)
-
-    rpcServerChangeListener := &WaitDataPushedListener{}
-    re.RegistryClient.GetRPCServerManager().RegisterRPCServerChangeListener(rpcServerChangeListener)
-
-    //send application's response
+    StartupRegistryModule(sysConfig, config.DefaultRegistryConfig)
+    
     doResponse(true, "", w)
-}
-
-func (re *Endpoint) GetSystemConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-    res, _ := json.Marshal(config.SysConfig)
-    w.Write(res)
-}
-
-func (re *Endpoint) GetRegistryConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-    res, _ := json.Marshal(config.DefaultRegistryConfig)
-    w.Write(res)
 }
 
 func (re *Endpoint) PublishService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -74,16 +69,20 @@ func (re *Endpoint) PublishService(w http.ResponseWriter, r *http.Request, ps ht
         doResponse(false, ModuleNotStartedErrMsg, w)
         return
     }
-
+    
     raw, _ := ioutil.ReadAll(r.Body)
-
+    
     var request PublishServiceRequest
     if err := json.Unmarshal(raw, &request); err != nil {
         doResponse(false, "Unmarshal body stream to publish service request failed.", w)
         return
     }
-
-    err := re.RegistryClient.PublishSync(request.ServiceName, re.assemblePublishData(request))
+    
+    pubData := re.assemblePublishData(request)
+    //1. Store publish info.
+    AddPubInfo(map[string]string{request.ServiceName: pubData})
+    //2. Publish data to registry server.
+    err := RegistryClient.PublishSync(request.ServiceName, pubData)
     if err == nil {
         doResponse(true, "", w)
     } else {
@@ -104,15 +103,20 @@ func (re *Endpoint) UnPublishService(w http.ResponseWriter, r *http.Request, ps 
         doResponse(false, ModuleNotStartedErrMsg, w)
         return
     }
-
+    
     body, _ := ioutil.ReadAll(r.Body)
-
+    
     var request UnPublishServiceRequest
     if err := json.Unmarshal(body, &request); err != nil {
         doResponse(false, "Unmarshal body stream to unpublish service request failed.", w)
         return
     }
-    err := re.RegistryClient.UnPublishSync(request.ServiceName)
+    
+    //1. Delete stored publish info.
+    DelPubInfo(request.ServiceName)
+    
+    //2. Unpublish from registry server.
+    err := RegistryClient.UnPublishSync(request.ServiceName)
     if err == nil {
         doResponse(true, "", w)
     } else {
@@ -126,22 +130,25 @@ func (re *Endpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps 
         return
     }
     body, _ := ioutil.ReadAll(r.Body)
-
+    
     var request SubscribeServiceRequest
     if err := json.Unmarshal(body, &request); err != nil {
         doResponse(false, "Unmarshal body stream to subscribe service request failed.", w)
         return
     }
     //1. Subscribe from confreg
-    // dataId equals servicename
     dataId := request.ServiceName
-    err := re.RegistryClient.SubscribeSync(dataId)
+    subscribeRecorder[dataId] = make(chan bool)
+    
+    err := RegistryClient.SubscribeSync(dataId)
     if err != nil {
         doResponse(false, err.Error(), w)
         return
     }
-    //2. Get service info from confreg in block.
-    subscribeRecorder[dataId] = make(chan bool)
+    //2. Store subscribe info to config.
+    AddSubInfo([]string{dataId})
+    
+    //3. Get service info from confreg in block.
     t := time.NewTimer(re.registryConfig.WaitReceivedDataTimeout)
     for ; ; {
         select {
@@ -158,7 +165,7 @@ func (re *Endpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps 
                     Success:      true,
                     ServiceName:  dataId,
                 }
-                servers, ok := re.RegistryClient.GetRPCServerManager().GetRPCServerList(dataId)
+                servers, ok := RegistryClient.GetRPCServerManager().GetRPCServerList(dataId)
                 if !ok {
                     result.Datas = []string{}
                 } else {
@@ -171,7 +178,7 @@ func (re *Endpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps 
                 w.Write(res)
                 return
             }
-
+            
         }
     }
 }
@@ -182,13 +189,17 @@ func (re *Endpoint) UnSubscribeService(w http.ResponseWriter, r *http.Request, p
         return
     }
     body, _ := ioutil.ReadAll(r.Body)
-
+    
     var request UnSubscribeServiceRequest
     if err := json.Unmarshal(body, &request); err != nil {
         doResponse(false, "Unmarshal body stream to subscribe service request failed.", w)
         return
     }
-    err := re.RegistryClient.UnSubscribeSync(request.ServiceName)
+    
+    //Delete stored subscribe info.
+    DelSubInfo([]string{request.ServiceName})
+    
+    err := RegistryClient.UnSubscribeSync(request.ServiceName)
     if err == nil {
         doResponse(true, "", w)
     } else {
@@ -196,18 +207,28 @@ func (re *Endpoint) UnSubscribeService(w http.ResponseWriter, r *http.Request, p
     }
 }
 
+func (re *Endpoint) GetSystemConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    res, _ := json.Marshal(config.SysConfig)
+    w.Write(res)
+}
+
+func (re *Endpoint) GetRegistryConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    res, _ := json.Marshal(config.DefaultRegistryConfig)
+    w.Write(res)
+}
+
 func (re *Endpoint) GetServiceInfoSnapshot(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     if !ModuleStarted {
         doResponse(false, ModuleNotStartedErrMsg, w)
         return
     }
-    w.Write(re.RegistryClient.GetRPCServerManager().GetRPCServiceSnapshot())
+    w.Write(RegistryClient.GetRPCServerManager().GetRPCServiceSnapshot())
 }
 
 func (re *Endpoint) GetServiceInfo(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
+    
     dataId := ps.ByName("serviceName")
-    services, ok := re.RegistryClient.GetRPCServerManager().GetRPCServerList(dataId)
+    services, ok := RegistryClient.GetRPCServerManager().GetRPCServerList(dataId)
     if !ok {
         w.Write([]byte("The services is empty."))
     } else {
@@ -224,18 +245,9 @@ func doResponse(success bool, errMsg string, w http.ResponseWriter) {
         Success:      success,
         ErrorMessage: errMsg,
     }
-
+    
     bytes, _ := json.Marshal(r)
     w.Write(bytes)
-}
-
-type WaitDataPushedListener struct {
-}
-
-func (l *WaitDataPushedListener) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
-    if r, ok := subscribeRecorder[dataId]; ok {
-        r <- true
-    }
 }
 
 func (re *Endpoint) StartListener() {
@@ -249,11 +261,11 @@ func (re *Endpoint) StartListener() {
     router.POST("/services/unsubscribe", re.UnSubscribeService)
     router.GET("/services", re.GetServiceInfoSnapshot)
     router.GET("/services/:serviceName", re.GetServiceInfo)
-
+    
     port := "8888"
     httpServerEndpoint := "0.0.0.0:" + port
     log.DefaultLogger.Infof("Mesh registry endpoint started on port(s): %s (http)", port)
-
+    
     if err := http.ListenAndServe(httpServerEndpoint, router); err != nil {
         log.DefaultLogger.Fatal("Http server startup failed. port = ", port)
     }
