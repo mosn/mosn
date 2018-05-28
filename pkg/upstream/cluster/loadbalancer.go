@@ -2,8 +2,9 @@ package cluster
 
 import (
 	"context"
-	"math/rand"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"math/rand"
 )
 
 func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySet) types.LoadBalancer {
@@ -38,8 +39,13 @@ func (l *randomloadbalancer) ChooseHost(context context.Context) types.Host {
 	hostset := hostSets[idx]
 
 	hosts := hostset.HealthyHosts()
+	logger := log.ByContext(context)
+	
+	if len(hosts) == 0 {
+		logger.Debugf("Choose host failed, no health host found")
+		return nil
+	}
 	hostIdx := rand.Intn(len(hosts))
-
 	return hosts[hostIdx]
 }
 
