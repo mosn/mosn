@@ -11,13 +11,11 @@ type ClusterAdapter struct {
 	clusterMng *clusterManager
 }
 
+// called when confreg called
 func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) {
-	log.DefaultLogger.Debugf("[DEBUG INFO]Update cluster,cluster name is : %s,hosts are: %+v", clusterName, hosts)
-
-	//get clusterName
-	//clusterName := ca.GetClusterNameByServiceName(serviceName)
-	//   serviceName -> cluster -> route (== )
+	log.DefaultLogger.Debugf("Update cluster,cluster name is : %s,hosts are: %+v", clusterName, hosts)
 	clusterExist := ca.clusterMng.ClusterExist(clusterName)
+
 	if !clusterExist {
 		if ca.clusterMng.autoDiscovery {
 			cluster := v2.Cluster{
@@ -33,16 +31,27 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 		}
 	}
 	
-	//add hosts to existing cluster
 	log.DefaultLogger.Debugf("[TriggerClusterUpdate Called] cluster name is:%s hosts are:%+v",
-		clusterName,hosts)
+		clusterName, hosts)
 	ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
 }
 
-func (ca *ClusterAdapter) TriggerClusterDel(clusterName string) {
-	log.DefaultLogger.Debugf("TriggerClusterDel", clusterName)
+// called by service subscribe
+func (ca *ClusterAdapter) TriggerClusterAdded(cluster v2.Cluster) {
+	clusterExist := ca.clusterMng.ClusterExist(cluster.Name)
 	
-	//get clusterName
-	//remove hosts from existing cluster
+	if !clusterExist {
+		log.DefaultLogger.Debugf("Add PrimaryCluster: %s", cluster.Name)
+		ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
+	} else {
+		log.DefaultLogger.Debugf("Added PrimaryCluster: %s Already Exist", cluster.Name)
+
+	}
+
+}
+
+// called by service unsubscribe
+func (ca *ClusterAdapter) TriggerClusterDel(clusterName string) {
+	log.DefaultLogger.Debugf("Delete Cluster %s", clusterName)
 	ca.clusterMng.RemovePrimaryCluster(clusterName)
 }
