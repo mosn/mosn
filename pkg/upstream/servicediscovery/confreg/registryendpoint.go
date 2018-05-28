@@ -139,7 +139,11 @@ func (re *Endpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps 
     //1. Subscribe from confreg
     dataId := request.ServiceName
     subscribeRecorder[dataId] = make(chan bool)
-    
+
+    defer func() {
+        delete(subscribeRecorder, dataId)
+    }()
+
     err := RegistryClient.SubscribeSync(dataId)
     if err != nil {
         doResponse(false, err.Error(), w)
