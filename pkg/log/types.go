@@ -10,6 +10,14 @@ const (
 	DEBUG
 )
 
+const (
+	InfoPre  string = "[INFO]"
+	DebugPre string = "[DEBUG]"
+	WarnPre  string = "[WARN]"
+	ErrorPre string = "[ERROR]"
+	FatalPre string = "[Fatal]"
+)
+
 type Logger interface {
 	Println(args ...interface{})
 

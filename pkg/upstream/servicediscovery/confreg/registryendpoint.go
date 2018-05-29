@@ -149,6 +149,7 @@ func (re *Endpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps 
         doResponse(false, err.Error(), w)
         return
     }
+    
     //2. Store subscribe info to config.
     AddSubInfo([]string{dataId})
     
@@ -188,6 +189,7 @@ func (re *Endpoint) SubscribeService(w http.ResponseWriter, r *http.Request, ps 
 }
 
 func (re *Endpoint) UnSubscribeService(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    log.DefaultLogger.Debugf("unsubscribe service called")
     if !ModuleStarted {
         doResponse(false, ModuleNotStartedErrMsg, w)
         return

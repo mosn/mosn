@@ -83,6 +83,7 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 	if sc.hosts != nil {
 		log.DefaultLogger.Debugf("[origin host]", sc.hosts[0])
 	}
+	
 	if newHosts != nil {
 		log.DefaultLogger.Debugf("[after fetching confreg host]", newHosts[0])
 	}

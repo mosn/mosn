@@ -17,7 +17,7 @@ const (
 // change RouterConfig -> Routers to manage all routers
 type Routers interface {
 	// routing with headers
-	Route(headers map[string]string) Route
+	Route(headers map[string]string) (Route,string)
 	// add router to Routers
 	AddRouter(routerName string)
 	
@@ -44,7 +44,7 @@ type Route interface {
 }
 
 type RouteRule interface {
-	ClusterName() string
+	ClusterName(clusterKey string) string
 	
 	GlobalTimeout() time.Duration
 	

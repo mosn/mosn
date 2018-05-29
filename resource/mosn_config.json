@@ -2,7 +2,7 @@
   "servers": [
     {
       "default_log_path": "/home/admin/mosn/logs/default.log",
-      "default_log_level": "INFO",
+      "default_log_level": "DEBUG",
       "graceful_timeout": "10s",
       "Processor": 1,
       "listeners": [
@@ -19,9 +19,10 @@
                   {
                     "cluster": "confreg_service1",
                     "name": "example_route",
-                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0x"
+                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0@"
                   }
                 ],
+                "support_dynamic_route": true,
                 "upstream_protocol": "SofaRpc"
               }
             }

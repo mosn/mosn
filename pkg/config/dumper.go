@@ -16,7 +16,7 @@ func Dump(dirty bool) {
 
 	if dirty {
 		//log.DefaultLogger.Println("dump config to: ", ConfigPath)
-		log.DefaultLogger.Debugf("[DEBUG]dump config content: %+v", config)
+		log.DefaultLogger.Debugf("dump config content: %+v", config)
 
 		//todo: ignore zero values in config struct @boqin
 		content, err := json.MarshalIndent(config, "", "  ")
@@ -28,6 +28,6 @@ func Dump(dirty bool) {
 			log.DefaultLogger.Errorf("dump config failed, caused by: " + err.Error())
 		}
 	} else {
-		log.DefaultLogger.Infof("[INFO]config is clean no needed to dump")
+		log.DefaultLogger.Infof("config is clean no needed to dump")
 	}
 }

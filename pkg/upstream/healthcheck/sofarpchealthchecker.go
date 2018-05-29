@@ -97,7 +97,7 @@ type sofarpcHealthCheckSession struct {
 
 func (s *sofarpcHealthCheckSession) OnDecodeHeaders(headers map[string]string, endStream bool) {
 	//bolt
-	log.DefaultLogger.Debugf("[BoltHealthCheck] get heartbeat message")
+	log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
 	if statusStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
 		s.responseStatus = sofarpc.ConvertPropertyValue(statusStr, reflect.Int16).(int16)
 	} else if protocolStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]; ok {
@@ -150,7 +150,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 		reqHeaders := codec.NewBoltHeartbeat(id)
 
 		s.requestEncoder.EncodeHeaders(reqHeaders, true)
-		log.DefaultLogger.Debugf("[BoltHealthCheck]Sending Heart Beat,request id is %s ...", reqID)
+		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat,request id is %s ...", reqID)
 		s.requestEncoder = nil
 		s.healthCheckSession.onInterval()
 	} else {

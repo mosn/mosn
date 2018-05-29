@@ -8,7 +8,6 @@ import (
 	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 )
 
@@ -22,7 +21,7 @@ func init() {
 }
 
 func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
-	log.StartLogger.Debugf("[DEBUG]Call back by confreg,%+v", zoneServers)
+	log.StartLogger.Debugf("Call back by confreg,%+v", zoneServers)
 	//dataId = dataId[:len(dataId)-8]
 	serviceName := dataId
 	log.StartLogger.Debugf("[Service Name]", serviceName)
@@ -40,51 +39,41 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 			}
 		}
 	}
-	// trigger cluster update
+
 	// note: at this time, serviceName == clusterName
 	cf.ca.TriggerClusterUpdate(serviceName, hosts)
 
-	// routerName,without "@DEFAULT"
-	// add dynamically generated routers to all routerConfigs
-	router.RoutersManager.AddRouterInRouters([]string{dataId})
+	//router.RoutersManager.AddRouterInRouters([]string{dataId})
 }
 
 // del dynamic cluster from memory
 func TriggerDynamicClusterClear() {
-	log.StartLogger.Debugf("[DEBUG]Call back by confreg to reset dynamic cluster")
+	log.StartLogger.Debugf("Call back by confreg to reset dynamic cluster")
 
 	for _, serviceName := range subServiceList {
 		cluster.ClusterAdap.TriggerClusterDel(serviceName)
 	}
-
-	// remove dynamically generated routers in all routerConfigs
-	go router.RoutersManager.RemoveRouterInRouters(subServiceList)
+	//go router.RoutersManager.RemoveRouterInRouters(subServiceList)
 }
 
 var (
-	// used to record service registry info
-	subServiceList  []string
-	pubServiceList  = make(map[string]string)
-	registryAppInfo = v2.ApplicationInfo{}
-
-	// used to make Message Synchronization
+	subServiceList   []string
+	pubServiceList   = make(map[string]string)
+	registryAppInfo  = v2.ApplicationInfo{}
 	configParseReady bool
 )
 
 // Called by registry module
 // In turn: GetAppInfoFromConfig -> GetSubListFromConfig -> GetPubListFromConfig
 func GetAppInfoFromConfig() v2.ApplicationInfo {
-
 	return registryAppInfo
 }
 
 func GetSubListFromConfig() []string {
-
 	return subServiceList
 }
 
 func GetPubListFromConfig() map[string]string {
-
 	return pubServiceList
 }
 
@@ -93,10 +82,8 @@ func GetPubListFromConfig() map[string]string {
 func ResetRegistryInfo(appInfo v2.ApplicationInfo) {
 	for {
 		if configParseReady {
-			//delete dynamic cluster
-			TriggerDynamicClusterClear()
-			ResetApplicationInfo(appInfo)
-			// init service registry info
+			go TriggerDynamicClusterClear()
+			go ResetApplicationInfo(appInfo)
 			subServiceList = []string{}
 			pubServiceList = map[string]string{}
 			return
@@ -106,20 +93,28 @@ func ResetRegistryInfo(appInfo v2.ApplicationInfo) {
 
 func ResetApplicationInfo(appInfo v2.ApplicationInfo) bool {
 	registryAppInfo = appInfo
-	go config.ResetServiceRegistryInfo(registryAppInfo, subServiceList)
+	config.ResetServiceRegistryInfo(registryAppInfo, subServiceList)
 	return true
 }
 
 func AddSubInfo(subInfo []string) bool {
-	// as parsing first, then write client's push registry, so no need mutex here
-	log.DefaultLogger.Debugf("[AddSubInfo] AddSubInfo Called")
-	
-	subServiceList = append(subServiceList, subInfo...)
-	// write to config module
+	log.DefaultLogger.Debugf("AddSubInfo", subInfo)
 	var clustersAdded []v2.Cluster
 
 	for _, si := range subInfo {
-		cluster := v2.Cluster{
+		exist := false
+		for _, s := range subServiceList {
+			if si == s {
+				exist = true
+				break
+			}
+		}
+		if exist {
+			continue
+		}
+		
+		subServiceList = append(subServiceList, si)
+		v2Cluster := v2.Cluster{
 			Name:                 si,
 			ClusterType:          v2.DYNAMIC_CLUSTER,
 			SubClustetType:       v2.CONFREG_CLUSTER,
@@ -134,21 +129,21 @@ func AddSubInfo(subInfo []string) bool {
 				},
 			},
 		}
-		clustersAdded = append(clustersAdded, cluster)
+
+		clustersAdded = append(clustersAdded, v2Cluster)
+		cluster.ClusterAdap.TriggerClusterAdded(v2Cluster)
 	}
 
 	if len(clustersAdded) != 0 {
 		config.AddClusterConfig(clustersAdded)
-
 	}
 	return true
 }
 
 func DelSubInfo(subinfo []string) bool {
-	// remove dynamically generated routers in all routerConfigs
-	go router.RoutersManager.RemoveRouterInRouters(subinfo)
-	log.DefaultLogger.Debugf("[DelSubInfo] DelSubInfo Called")
-	
+	//go router.RoutersManager.RemoveRouterInRouters(subinfo)
+	log.DefaultLogger.Debugf("DelSubInfo",subinfo)
+
 	for _, sub := range subinfo {
 		for i, s := range subServiceList {
 			if sub == s {
@@ -157,9 +152,11 @@ func DelSubInfo(subinfo []string) bool {
 			}
 		}
 	}
-
+	
+	for _, serviceName := range subinfo {
+		cluster.ClusterAdap.TriggerClusterDel(serviceName)
+	}
 	go config.RemoveClusterConfig(subinfo)
-
 	return true
 }
 
@@ -202,11 +199,12 @@ func OnClusterInfoParsed(data interface{}, endParsed bool) error {
 		}
 	} else {
 		var err error = errors.New("invalid value passed")
-		log.DefaultLogger.Fatalf("[FATAL]%+v invalid value passed", data)
+		log.DefaultLogger.Fatalf("%+v invalid value passed", data)
 		return err
 	}
 
 	OnSubInfoParsed(subInfo)
+	
 	if endParsed {
 		configParseReady = true
 		RecoverRegistryModule()
@@ -228,7 +226,7 @@ func OnServiceRegistryInfoParsed(data interface{}, endParsed bool) error {
 		}
 	} else {
 		var err error = errors.New("invalid value passed")
-		log.DefaultLogger.Fatalf("[FATAL]%+v invalid value passed", data)
+		log.DefaultLogger.Fatalf("%+v invalid value passed", data)
 		return err
 	}
 
