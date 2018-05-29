@@ -9,18 +9,14 @@ import (
 	"time"
 )
 
-func init() {
-	log.InitDefaultLogger("", log.DEBUG)
-}
-
 const (
 	IntervalDur      time.Duration = 15 * time.Second
 	TimeoutDur       time.Duration = 6 * 15 * time.Second
 	APPCheckPointURL string        = "http://127.0.0.1:9500/checkService"
 )
 
-func StartAppHealthCheck() {
-	healthcheck.StartHttpHealthCheck(IntervalDur, TimeoutDur, APPCheckPointURL, onAppInterval, onTimeout)
+func StartAppHealthCheck(url string) {
+	healthcheck.StartHttpHealthCheck(IntervalDur, TimeoutDur, url, onAppInterval, onTimeout)
 }
 
 func onAppInterval(path string, hcResetTimeOut func()) {
@@ -30,7 +26,7 @@ func onAppInterval(path string, hcResetTimeOut func()) {
 
 	if err != nil {
 		// handle error
-		log.DefaultLogger.Debugf("[DEBUG] Get Error: %s from path %s",
+		log.DefaultLogger.Debugf(" Get Error: %s from path %s",
 			err.Error(), path)
 		// wait next tick
 	}
@@ -40,7 +36,7 @@ func onAppInterval(path string, hcResetTimeOut func()) {
 
 	if err != nil {
 		// handle error
-		log.DefaultLogger.Debugf("[DEBUG] Read %s %s", path,
+		log.DefaultLogger.Debugf(" Read %s %s", path,
 			err.Error())
 
 		// wait next tick
@@ -54,7 +50,7 @@ func onAppInterval(path string, hcResetTimeOut func()) {
 
 	if res[:idx] == "passed:true" {
 		//shc.handleSuccess()
-		log.DefaultLogger.Debugf("[DEBUG]APP Health Checks got success")
+		log.DefaultLogger.Debugf("APP Health Checks got success")
 		hcResetTimeOut()
 	} else {
 		// wait next tick

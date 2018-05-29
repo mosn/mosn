@@ -101,7 +101,7 @@ type simpleRequestInfoFormatter struct {
 func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 	// todo: map fieldName to field vale string
 	if f.reqInfoFormat == nil {
-		DefaultLogger.Debugf("[DEBUG]No ReqInfo Format Keys Input")
+		DefaultLogger.Debugf("No ReqInfo Format Keys Input")
 		return ""
 	}
 
@@ -111,7 +111,7 @@ func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHe
 		if vFunc, ok := RequestInfoFuncMap[key]; ok {
 			format = format + vFunc(requestInfo) + " "
 		} else {
-			DefaultLogger.Debugf("[DEBUG]Invalid ReqInfo Format Keys: %s", key)
+			DefaultLogger.Debugf("Invalid ReqInfo Format Keys: %s", key)
 		}
 	}
 	return format
@@ -125,7 +125,7 @@ type simpleReqHeadersFormatter struct {
 func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 
 	if f.reqHeaderFormat == nil {
-		DefaultLogger.Debugf("[DEBUG]No ReqHeaders Format Keys Input")
+		DefaultLogger.Debugf("No ReqHeaders Format Keys Input")
 		return ""
 	}
 	format := ""
@@ -134,7 +134,7 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 		if v, ok := reqHeaders[key]; ok {
 			format = format + types.ReqHeaderPrefix + v + " "
 		} else {
-			DefaultLogger.Debugf("[DEBUG]Invalid ReqHeaders Format Keys: %s", key)
+			DefaultLogger.Debugf("Invalid ReqHeaders Format Keys: %s", key)
 		}
 	}
 
@@ -148,7 +148,7 @@ type simpleRespHeadersFormatter struct {
 
 func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 	if f.respHeaderFormat == nil {
-		DefaultLogger.Debugf("[DEBUG]No RespHeaders Format Keys Input")
+		DefaultLogger.Debugf("No RespHeaders Format Keys Input")
 		return ""
 	}
 
@@ -158,7 +158,7 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 		if v, ok := respHeaders[key]; ok {
 			format = format + types.RespHeaderPrefix + v + " "
 		} else {
-			DefaultLogger.Debugf("[DEBUG]Invalid RespHeaders Format Keys:%s", key)
+			DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
 		}
 	}
 

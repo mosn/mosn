@@ -11,7 +11,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/healthcheck"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/healthcheck"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
@@ -59,7 +58,8 @@ type registerWorker struct {
 	subMutex          *sync.Mutex
 
 	initialized      bool
-	stopChan         chan bool
+	connStopChan     chan bool
+	workStopChan     chan bool
 	registryWorkChan chan bool
 }
 
@@ -74,7 +74,8 @@ func NewRegisterWorker(sysConfig *config.SystemConfig, registryConfig *config.Re
 		pubMutex:             new(sync.Mutex),
 		subMutex:             new(sync.Mutex),
 		initialized:          false,
-		stopChan:             make(chan bool, 1),
+		connStopChan:         make(chan bool, 1),
+		workStopChan:         make(chan bool, 1),
 		registryWorkChan:     make(chan bool),
 	}
 
@@ -94,15 +95,12 @@ func (rw *registerWorker) init() {
 	}
 	rw.initialized = true
 
-	//get remote server
 	confregServer, ok := rw.confregServerManager.GetRegistryServerByRandom()
-
 	if !ok {
 		errMsg := "can not connect to confreg server. Because confreg server list is empty"
 		log.DefaultLogger.Errorf(errMsg)
 		panic(errMsg)
 	}
-
 	for err := rw.newCodecClient(confregServer); err != nil; {
 		log.DefaultLogger.Warnf("Connect to confreg server failed. error = %v", err)
 		time.Sleep(rw.registryConfig.ConnectRetryDuration)
@@ -111,28 +109,27 @@ func (rw *registerWorker) init() {
 	}
 }
 
-
 func (rw *registerWorker) newCodecClient(confregServer string) error {
 	rw.connectedConfregServer = confregServer
 
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", confregServer)
-	conn := network.NewClientConnection(nil, remoteAddr, rw.stopChan, log.DefaultLogger)
+	conn := network.NewClientConnection(nil, remoteAddr, rw.connStopChan, log.DefaultLogger)
 	receiveDataListener := NewReceiveDataListener(rw.rpcServerManager)
 	codecClient := stream.NewBiDirectCodeClient(nil, protocol.SofaRpc, conn, nil, receiveDataListener)
 
 	codecClient.AddConnectionCallbacks(rw)
 
 	err := conn.Connect(true)
-
 	if err != nil {
 		return err
 	}
+
 	rw.codecClient = &codecClient
 	log.DefaultLogger.Infof("Connect to confreg server. server = %v", confregServer)
 
 	//todo use conn idle detect to start/stop heartbeat
 	go healthcheck.StartSofaHeartBeat(config.BoltHeartBeatTimout, config.BoltHeartBeatInterval,
-		confregServer, codecClient,config.HealthName,sofarpc.BOLT_V1)
+		confregServer, codecClient, config.HealthName, sofarpc.BOLT_V1)
 	return nil
 }
 
@@ -181,7 +178,18 @@ func (rw *registerWorker) SubscribeSync(dataId string) error {
 }
 
 func (rw *registerWorker) UnSubscribeSync(dataId string) error {
-	return rw.getSubscriber(dataId).doWork(model.EventTypePb_UNREGISTER.String())
+	err := rw.getSubscriber(dataId).doWork(model.EventTypePb_UNREGISTER.String())
+
+	if existedSubscriber(dataId) {
+		rw.subscriberHolder.Delete(dataId)
+	}
+
+	return err
+}
+
+func (rw *registerWorker) existedSubscriber(dataId string) bool {
+	_, ok := rw.subscriberHolder.Load(dataId)
+	return ok
 }
 
 func (rw *registerWorker) work() {
@@ -199,7 +207,7 @@ func (rw *registerWorker) work() {
 					ele = next
 				}
 			}
-		case <-rw.stopChan:
+		case <-rw.workStopChan:
 			{
 				break
 			}
@@ -291,21 +299,31 @@ func (rw *registerWorker) OnRegistryServerChangeEvent(registryServers []string) 
 	rw.refreshCodecClient()
 }
 
-// if closed, choose another server to connect;
 func (rw *registerWorker) OnEvent(event types.ConnectionEvent) {
 	if !event.IsClose() {
-		log.DefaultLogger.Debugf("[confreg-register]",event)
-		
 		return
 	}
-	log.DefaultLogger.Debugf("[confreg-register]register connection close")
-	log.DefaultLogger.Infof("[INFO]", "The Connection with confreg server closed, will connect to another server. "+
+	log.DefaultLogger.Warnf("The Connection with confreg server closed, will connect to another server. "+
 		"current connected confreg server = %s, event type = %v", rw.connectedConfregServer, event)
 
 	rw.refreshCodecClient()
 
 	rw.publisherHolder.Range(rePub)
 	rw.subscriberHolder.Range(reSub)
+}
+
+func rePub(key, value interface{}) bool {
+	if err := value.(*Publisher).redo(); err != nil {
+		return false
+	}
+	return true
+}
+
+func reSub(key, value interface{}) bool {
+	if err := value.(*Subscriber).redo(); err != nil {
+		return false
+	}
+	return true
 }
 
 func (rw *registerWorker) refreshCodecClient() {
@@ -338,17 +356,23 @@ func (rw *registerWorker) refreshSubscriberCodecClient(key, value interface{}) b
 	return true
 }
 
-func rePub(key, value interface{}) bool {
-	if err := value.(*Publisher).redo(); err != nil {
-		return false
-	}
+func (rw *registerWorker) Reset() {
+	rw.subscriberHolder.Range(rw.unSub)
+	rw.publisherHolder.Range(rw.unPub)
+
+	//Assign empty collections to clear status.
+	rw.subscriberHolder = sync.Map{}
+	rw.publisherHolder = sync.Map{}
+	rw.registryTaskQueue = list.New()
+}
+
+func (rw *registerWorker) unSub(dataId, value interface{}) bool {
+	rw.UnSubscribeSync(dataId.(string))
 	return true
 }
 
-func reSub(key, value interface{}) bool {
-	if err := value.(*Subscriber).redo(); err != nil {
-		return false
-	}
+func (rw *registerWorker) unPub(dataId, value interface{}) bool {
+	rw.UnPublishSync(dataId.(string), []string{})
 	return true
 }
 

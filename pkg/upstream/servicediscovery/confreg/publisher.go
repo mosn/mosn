@@ -169,7 +169,7 @@ func (p *Publisher) assemblePublisherRegisterPb(svrHost []string, eventType stri
         InstanceId: p.sysConfig.InstanceId,
         Zone:       p.sysConfig.Zone,
         AppName:    p.sysConfig.AppName,
-        DataId:     p.dataId,
+        DataId:     appendDataIdSuffix(p.dataId),
         Group:      ConfregSofaGroup,
         ProcessId:  RandomUuid(),
         RegistId:   p.registerId,

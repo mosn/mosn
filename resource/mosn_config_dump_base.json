@@ -2,24 +2,24 @@
   "servers": [
     {
       "default_log_path": "/home/admin/mosn/logs/default.log",
-      "default_log_level": "DEBUG",
-      "graceful_timeout": "10s",
+      "default_log_level": "INFO",
+      "graceful_timeout": "1m0s",
       "Processor": 1,
-      "listeners": [
+      "Listeners": [
         {
-          "name": "egress",
-          "address": "0.0.0.0:12220",
+          "Name": "egress",
+          "Address": "0.0.0.0:12220",
           "bind_port": true,
           "network_filters": [
             {
-              "type": "proxy",
-              "config": {
+              "Type": "proxy",
+              "Config": {
                 "downstream_protocol": "SofaRpc",
                 "routes": [
                   {
                     "cluster": "confreg_service1",
                     "name": "example_route",
-                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0@"
+                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0"
                   }
                 ],
                 "support_dynamic_route": true,
@@ -29,8 +29,8 @@
           ],
           "stream_filters": [
             {
-              "type": "healthcheck",
-              "config": {
+              "Type": "healthcheck",
+              "Config": {
                 "cache_time": "360s",
                 "cluster_min_healthy_percentages": {
                   "local_service": 70
@@ -50,13 +50,13 @@
           "disable_conn_io": false
         },
         {
-          "name": "ingress",
-          "address": "127.0.0.1:12201",
+          "Name": "ingress",
+          "Address": "127.0.0.1:12201",
           "bind_port": true,
           "network_filters": [
             {
-              "type": "proxy",
-              "config": {
+              "Type": "proxy",
+              "Config": {
                 "downstream_protocol": "SofaRpc",
                 "routes": [
                   {
@@ -70,8 +70,10 @@
               }
             }
           ],
+          "stream_filters": null,
           "log_path": "/home/admin/mosn/logs/ingress.log",
           "log_level": "DEBUG",
+          "access_logs": null,
           "disable_conn_io": false
         }
       ]
@@ -96,7 +98,13 @@
           "CheckPath": "",
           "ServiceName": ""
         },
-        "spec": {},
+        "spec": {
+          "subscribe": [
+            {
+              "service_name": "x_test_service1"
+            }
+          ]
+        },
         "hosts": [
           {
             "Address": "127.0.0.1:12345",
@@ -104,6 +112,61 @@
             "Weight": 1
           }
         ]
+      },
+      {
+        "Name": "x_test_service2",
+        "Type": "SIMPLE",
+        "sub_type": "",
+        "lb_type": "LB_RANDOM",
+        "max_request_per_conn": 0,
+        "conn_buffer_limit_bytes": 0,
+        "health_check": {
+          "Timeout": 0,
+          "HealthyThreshold": 0,
+          "UnhealthyThreshold": 0,
+          "Interval": 0,
+          "IntervalJitter": 0,
+          "CheckPath": "",
+          "ServiceName": ""
+        },
+        "spec": {
+          "subscribe": [
+            {
+              "service_name": "x_test_service2"
+            }
+          ]
+        },
+        "hosts": [
+          {
+            "Address": "11.166.22.163:12200",
+            "Hostname": "upstream_machine",
+            "Weight": 10
+          }
+        ]
+      },
+      {
+        "Name": "confreg_service_x",
+        "Type": "DYNAMIC",
+        "sub_type": "CONFREG",
+        "lb_type": "LB_RANDOM",
+        "max_request_per_conn": 0,
+        "conn_buffer_limit_bytes": 0,
+        "health_check": {
+          "Timeout": 0,
+          "HealthyThreshold": 0,
+          "UnhealthyThreshold": 0,
+          "Interval": 0,
+          "IntervalJitter": 0,
+          "CheckPath": "",
+          "ServiceName": ""
+        },
+        "spec": {
+          "subscribe": [
+            {
+              "service_name": "x_test_service"
+            }
+          ]
+        }
       }
     ]
   },
@@ -112,6 +175,16 @@
       "ant_share_cloud": false,
       "data_center": "dc",
       "app_name": "testapp"
-    }
+    },
+    "publish_info": [
+      {
+        "service_name": "service_1",
+        "pub_data": "pub_data_xxx"
+      },
+      {
+        "service_name": "service_2",
+        "pub_data": "pub_data_xxx"
+      }
+    ]
   }
 }

@@ -2,38 +2,88 @@ package basic
 
 import (
 	"errors"
-	"time"
-
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"sync"
+	"time"
 )
 
 func init() {
-	router.RegisteRouterConfigFactory(protocol.SofaRpc, NewRouterConfig)
-	router.RegisteRouterConfigFactory(protocol.Http2, NewRouterConfig)
+	router.RegisteRouterConfigFactory(protocol.SofaRpc, NewRouters)
+	router.RegisteRouterConfigFactory(protocol.Http2, NewRouters)
 }
 
-// types.RouterConfig
-type routeConfig struct {
-	routers        []router.RouteBase
-	supportDynamic bool
+// types.Routers
+type Routers struct {
+	rMutex  *sync.RWMutex
+	routers []router.RouteBase
 }
 
 //Routing, use static router first， then use dynamic router if support
-func (rc *routeConfig) Route(headers map[string]string) (types.Route, string) {
-	log.DefaultLogger.Debugf("[DebugInfo]", rc.routers)
-
+func (rc *Routers) Route(headers map[string]string) (types.Route, string) {
 	//use static router first, then use dynamic router
 	for _, r := range rc.routers {
 		if rule, key := r.Match(headers); rule != nil {
 			return rule, key
 		}
 	}
-
+	
 	return nil, ""
+}
+
+func (rc *Routers) AddRouter(routerName string) {
+	
+	rc.rMutex.Lock()
+	defer rc.rMutex.Unlock()
+	
+	for _, r := range rc.routers {
+		if r.GetRouterName() == routerName {
+			log.DefaultLogger.Debugf("[Basic Router]router already exist %s",routerName)
+			
+			return
+		}
+	}
+	
+	// new dynamic router
+	// note: as cluster's name is ended with "@DEFAULT" @boqin ...check
+	br := &basicRouter{
+		name:    routerName,
+		service: routerName,
+		cluster: routerName,
+	}
+
+	if len(rc.routers) > 0 {
+		br.globalTimeout = rc.routers[0].GlobalTimeout()
+		br.policy = rc.routers[0].Policy().(*routerPolicy)
+	} else {
+		br.globalTimeout = types.GlobalTimeout
+		br.policy = &routerPolicy{
+			retryOn:      false,
+			retryTimeout: 0,
+			numRetries:   0,
+		}
+	}
+	
+	rc.routers = append(rc.routers, br)
+	log.DefaultLogger.Debugf("[Basic Router]add routes,router name is %s, router %+v",br.name,br)
+}
+
+func (rc *Routers) DelRouter(routerName string) {
+	rc.rMutex.Lock()
+	defer rc.rMutex.Unlock()
+	
+	for i, r := range rc.routers {
+		if r.GetRouterName() == routerName {
+			//return
+			rc.routers = append(rc.routers[:i],rc.routers[i+1:]...)
+			log.DefaultLogger.Debugf("[Basic Router]delete routes,router name %s, routers is",routerName,rc)
+			
+			return
+		}
+	}
 }
 
 // types.Route
@@ -54,12 +104,10 @@ type DynamicRouter struct {
 	policy        *routerPolicy
 }
 
-//Called by NewProxy
-func NewRouterConfig(config interface{}) (types.RouterConfig, error) {
+func NewRouters(config interface{}) (types.Routers, error) {
 	if config, ok := config.(*v2.Proxy); ok {
 		routers := make([]router.RouteBase, 0)
-
-		//new basic router
+		
 		for _, r := range config.Routes {
 			router := &basicRouter{
 				name:          r.Name,
@@ -85,44 +133,52 @@ func NewRouterConfig(config interface{}) (types.RouterConfig, error) {
 
 			routers = append(routers, router)
 		}
-
-		//new dynamic route
-		var dynamicRouter DynamicRouter
+		
 		if config.SupportDynamicRoute {
-			dynamicRouter = DynamicRouter{
-				//use static route's config for GlobalTimeout and Policy
-				globalTimeout: routers[0].GlobalTimeout(),
-				policy:        routers[0].Policy().(*routerPolicy),
+			dynamicRouter := DynamicRouter{}
+			
+			if len(routers) > 0 {
+				dynamicRouter.globalTimeout = routers[0].GlobalTimeout()
+				dynamicRouter.policy = routers[0].Policy().(*routerPolicy)
+			} else {
+				dynamicRouter.globalTimeout = types.GlobalTimeout
+				dynamicRouter.policy = &routerPolicy{
+					retryOn:      false,
+					retryTimeout: 0,
+					numRetries:   0,
+				}
 			}
 			routers = append(routers, &dynamicRouter)
+			log.DefaultLogger.Debugf("Add dynamic router in routers")
 		}
-
-		//new routeConfig
-		rc := &routeConfig{
-			routers:        routers,
-			supportDynamic: config.SupportDynamicRoute,
+		rc := &Routers{
+			//new(sync.RWMutex),
+			routers:routers,
+			
 		}
-
+		
+		//router.RoutersManager.AddRoutersSet(rc)
 		return rc, nil
+		
 	} else {
 		return nil, errors.New("invalid config struct")
 	}
 }
 
-func (srr *basicRouter) Match(headers map[string]string) (types.Route, string) {
+func (srr *basicRouter) Match(headers map[string]string) (types.Route,string ){
 	if headers == nil {
 		return nil, ""
 	}
-
+	
 	var ok bool
 	var service string
-
+	
 	if service, ok = headers["Service"]; !ok {
 		if service, ok = headers["service"]; !ok {
 			return nil, ""
 		}
 	}
-
+	
 	if srr.service == service {
 		return srr, service
 	} else {
@@ -135,15 +191,16 @@ func (drr *DynamicRouter) Match(headers map[string]string) (types.Route, string)
 	if headers == nil {
 		return nil, ""
 	}
-
+	
 	var ok bool
 	var service string
-
+	
 	if service, ok = headers["Service"]; !ok {
 		if service, ok = headers["service"]; !ok {
 			return nil, ""
 		}
 	}
+	log.DefaultLogger.Debugf("match dynamic router in routers")
 	return drr, service
 }
 
@@ -171,14 +228,16 @@ func (drr *DynamicRouter) TraceDecorator() types.TraceDecorator {
 	return nil
 }
 
-func (srr *basicRouter) ClusterName(serviceName string) string {
+
+func (srr *basicRouter) ClusterName(clusterKey string) string {
 	return srr.cluster
 }
 
 //use servicename
-func (drr *DynamicRouter) ClusterName(serviceName string) string {
-	return drr.MapRule(serviceName)
+func (drr *DynamicRouter) ClusterName(clusterKey string) string {
+	return drr.MapRule(clusterKey)
 }
+
 
 func (srr *basicRouter) GlobalTimeout() time.Duration {
 	return srr.globalTimeout
@@ -199,6 +258,14 @@ func (drr *DynamicRouter) Policy() types.Policy {
 //For dynamic use echo at this time
 func (drr *DynamicRouter)MapRule(routeKey string) string{
 	return routeKey
+}
+
+func (srr *basicRouter) GetRouterName() string {
+	return srr.name
+}
+
+func (drr *DynamicRouter) GetRouterName() string {
+	return ""
 }
 
 type routerPolicy struct {

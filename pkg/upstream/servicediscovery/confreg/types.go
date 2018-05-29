@@ -21,4 +21,6 @@ type Client interface {
     UnSubscribeSync(dataId string) error
 
     GetRPCServerManager() servermanager.RPCServerManager
+
+    Reset()
 }
