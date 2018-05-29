@@ -21,7 +21,7 @@ func init() {
 }
 
 func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
-	log.StartLogger.Debugf("[DEBUG]Call back by confreg,%+v", zoneServers)
+	log.StartLogger.Debugf("Call back by confreg,%+v", zoneServers)
 	//dataId = dataId[:len(dataId)-8]
 	serviceName := dataId
 	log.StartLogger.Debugf("[Service Name]", serviceName)
@@ -199,7 +199,7 @@ func OnClusterInfoParsed(data interface{}, endParsed bool) error {
 		}
 	} else {
 		var err error = errors.New("invalid value passed")
-		log.DefaultLogger.Fatalf("[FATAL]%+v invalid value passed", data)
+		log.DefaultLogger.Fatalf("%+v invalid value passed", data)
 		return err
 	}
 
@@ -226,7 +226,7 @@ func OnServiceRegistryInfoParsed(data interface{}, endParsed bool) error {
 		}
 	} else {
 		var err error = errors.New("invalid value passed")
-		log.DefaultLogger.Fatalf("[FATAL]%+v invalid value passed", data)
+		log.DefaultLogger.Fatalf("%+v invalid value passed", data)
 		return err
 	}
 

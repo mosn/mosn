@@ -25,7 +25,7 @@ func RegisterConfigParsedListener(key ConfigContentKey, cb ConfigParsedCallback)
 	if cbs, ok := configParsedCBMaps[key]; ok {
 		cbs = append(cbs, cb)
 	} else {
-		log.StartLogger.Infof("[INFO] %s added to configParsedCBMaps", key)
+		log.StartLogger.Infof(" %s added to configParsedCBMaps", key)
 		cpc := []ConfigParsedCallback{cb}
 		configParsedCBMaps[key] = cpc
 	}

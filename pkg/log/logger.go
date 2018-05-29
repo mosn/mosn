@@ -164,31 +164,31 @@ func (l *logger) Printf(format string, args ...interface{}) {
 
 func (l *logger) Infof(format string, args ...interface{}) {
 	if l.Level >= INFO {
-		l.Printf(format, args...)
+		l.Printf(InfoPre+format, args...)
 	}
 }
 
 func (l *logger) Debugf(format string, args ...interface{}) {
 	if l.Level >= DEBUG {
-		l.Printf(format, args...)
+		l.Printf(DebugPre+format, args...)
 	}
 }
 
 func (l *logger) Warnf(format string, args ...interface{}) {
 	if l.Level >= WARN {
-		l.Printf(format, args...)
+		l.Printf(WarnPre+format, args...)
 	}
 }
 
 func (l *logger) Errorf(format string, args ...interface{}) {
 	if l.Level >= ERROR {
-		l.Printf(format, args...)
+		l.Printf(ErrorPre+format, args...)
 	}
 }
 
 func (l *logger) Fatalf(format string, args ...interface{}) {
 	if l.Level >= FATAL {
-		l.Printf(format, args...)
+		l.Printf(FatalPre+format, args...)
 	}
 }
 
@@ -244,7 +244,6 @@ func parseSyslogAddress(location string) *syslogAddress {
 
 	return nil
 }
-
 
 func Reopen() error {
 	for _, logger := range loggers {

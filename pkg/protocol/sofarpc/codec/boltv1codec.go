@@ -53,7 +53,7 @@ func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}
 	case *sofarpc.BoltResponseCommand:
 		return c.encodeResponseCommand(context, headers.(*sofarpc.BoltResponseCommand))
 	default:
-		log.ByContext(context).Errorf("[BoltV1 Encode] Invalid Input Type")
+		log.ByContext(context).Errorf("BoltV1 Encode Invalid Input Type")
 
 		return "", nil
 	}
@@ -140,7 +140,7 @@ func (c *boltV1Codec) doEncodeResponseCommand(context context.Context, cmd *sofa
 	offset += 2
 
 	if cmd.CmdCode == sofarpc.HEARTBEAT {
-		log.ByContext(context).Debugf("[Build HeartBeat Response]")
+		log.ByContext(context).Debugf("Build HeartBeat Response")
 	}
 
 	data[offset] = cmd.Version
@@ -271,7 +271,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
-					logger.Debugf("[DECODE REQUEST]Decode: Get Bolt HB Msg")
+					logger.Debugf("BoltV1 DECODE Request: Get Bolt HB Msg")
 				}
 				ver2 := bytes[4]
 				requestId := binary.BigEndian.Uint32(bytes[5:9])
@@ -302,7 +302,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 
 				} else { // not enough data
 
-					logger.Debugf("[Decoder]no enough data for fully decode")
+					logger.Debugf("BoltV1 DECODE Request, no enough data for fully decode")
 					return 0, nil
 				}
 
@@ -324,8 +324,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					nil,
 					nil,
 				}
-				logger.Debugf("[Decoder]bolt v1 decode request reqID is:%+v", request.ReqId)
-
+				logger.Debugf("BoltV1 DECODE Request, bolt v1 decode request reqID is:%+v", request.ReqId)
 				cmd = &request
 			}
 		} else {
@@ -362,7 +361,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					data.Drain(read)
 				} else {
 					// not enough data
-					logger.Debugf("[Decoder]no enough data for fully decode")
+					logger.Debugf("BoltV1 DECODE RESPONSE: no enough data for fully decode")
 
 					return 0, nil
 				}
@@ -388,13 +387,12 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				}
 				
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
-					logger.Debugf("[DECODE RESPONSE]Decode: Get Bolt HB Msg")
+					logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
 				}
-				logger.Debugf("[Decoder]bolt v1 decode response, response status is:%+v", response.ResponseStatus)
+				logger.Debugf("BoltV1 DECODE RESPONSE, response status is:%+v", response.ResponseStatus)
 				cmd = &response
 			}
 		}
 	}
-	logger.Debugf("[DECODE]",cmd)
 	return read, cmd
 }

@@ -26,7 +26,7 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 			}
 			ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
 		} else {
-			log.DefaultLogger.Debugf("[DEBUG] cluster:%s doesn't exist", clusterName)
+			log.DefaultLogger.Debugf(" cluster:%s doesn't exist", clusterName)
 			return
 		}
 	}

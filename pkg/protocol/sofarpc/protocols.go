@@ -83,7 +83,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 		protocolCode := data.Bytes()[0]
 		maybeProtocolVersion := data.Bytes()[1]
 
-		logger.Debugf("[Decoder]protocol code = %x, maybeProtocolVersion = %x", protocolCode, maybeProtocolVersion)
+		logger.Debugf("Decoderprotocol code = %x, maybeProtocolVersion = %x", protocolCode, maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 

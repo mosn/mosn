@@ -120,7 +120,7 @@ func executeShutdownCallbacks(signame string) (exitCode int) {
 
 		if len(errs) > 0 {
 			for _, err := range errs {
-				log.DefaultLogger.Errorf("[ERROR] %s shutdown: %v", signame, err)
+				log.DefaultLogger.Errorf(" %s shutdown: %v", signame, err)
 			}
 			exitCode = 4
 		}
