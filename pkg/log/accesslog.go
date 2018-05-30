@@ -134,7 +134,7 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 		if v, ok := reqHeaders[key]; ok {
 			format = format + types.ReqHeaderPrefix + v + " "
 		} else {
-			DefaultLogger.Debugf("Invalid ReqHeaders Format Keys: %s", key)
+			//DefaultLogger.Debugf("Invalid reqHeaders format keys when print access log: %s", key)
 		}
 	}
 
@@ -158,7 +158,7 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 		if v, ok := respHeaders[key]; ok {
 			format = format + types.RespHeaderPrefix + v + " "
 		} else {
-			DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
+			//DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
 		}
 	}
 

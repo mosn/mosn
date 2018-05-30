@@ -106,6 +106,9 @@ func (s *sofaHealthCheckSession) OnDecodeTrailers(trailers map[string]string) {
 	s.onResponseComplete()
 }
 
+func (s *sofaHealthCheckSession)OnDecodeError(err error, headers map[string]string) {
+}
+
 // overload healthCheckSession
 func (s *sofaHealthCheckSession) Start() {
 	s.onInterval()
@@ -206,4 +209,7 @@ func (s *requestStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 
 func (s *requestStream) OnDecodeTrailers(trailers map[string]string) {
 	//CALL OnEncodeTrailers
+}
+
+func (d *requestStream) OnDecodeError(err error,headers map[string]string){
 }

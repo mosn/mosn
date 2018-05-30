@@ -9,8 +9,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-//bolt constants
-
+//bolt constants used to
 const (
 	HeaderProtocolCode       string = "protocol"
 	HeaderCmdType            string = "cmdtype"
@@ -34,6 +33,16 @@ const (
 	HeaderAppclassnamelen    string = "appclassnamelen"
 	HeaderConnrequestlen     string = "connrequestlen"
 	HeaderAppclasscontentlen string = "appclasscontentlen"
+)
+
+// Encode/Decode Exception Msg
+const (
+	InvalidCommandType string = "Invalid command type for encoding"
+	NoProCodeInHeader  string = "Protocol code not found in header"
+	InvalidHeaderType  string = "Invalid header type, neither map nor command"
+	UnKnownReqtype     string = "Unknown request type"
+	UnKnownCmdcode     string = "Unknown cmd code"
+	NoReqIdFound       string = "No request Id found in header"
 )
 
 type ProtocolType byte
@@ -68,9 +77,6 @@ const (
 	HEARTBEAT    int16 = 0
 	RPC_REQUEST  int16 = 1
 	RPC_RESPONSE int16 = 2
-
-	TR_PROTOCOL_CODE byte = 13
-
 	//response status
 	RESPONSE_STATUS_SUCCESS                   int16 = 0  // 0x00
 	RESPONSE_STATUS_ERROR                     int16 = 1  // 0x01
@@ -143,7 +149,7 @@ type HeartbeatTrigger interface {
 
 //TODO
 type CommandHandler interface {
-	HandleCommand(context context.Context, msg interface{}, filter interface{})
+	HandleCommand(context context.Context, msg interface{}, filter interface{}) error
 
 	RegisterProcessor(cmdCode int16, processor *RemotingProcessor)
 
@@ -245,7 +251,7 @@ const (
 
 //tr constants
 const (
-	PROTOCOL_CODE          byte   = 13
+	PROTOCOL_CODE_TR       byte   = 13
 	HEADER_REQUEST         byte   = 0
 	HEADER_RESPONSE        byte   = 1
 	HESSIAN_SERIALIZE      byte   = 1
@@ -330,10 +336,8 @@ func (b *TrResponseCommand) GetCmdCode() int16 {
 }
 
 func BuildSofaRespMsg(context context.Context, headers map[string]string, respStatus int16) (interface{}, error) {
-	var pro byte = 1
-	var reqId uint32 = 1
-	var version byte = 1
-	var codec byte = 1
+	var pro, version, codec byte
+	var reqId uint32
 
 	if p, ok := headers[SofaPropertyHeader(HeaderProtocolCode)]; ok {
 		pr, _ := strconv.Atoi(p)
@@ -343,6 +347,10 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 	if r, ok := headers[SofaPropertyHeader(HeaderReqID)]; ok {
 		rd, _ := strconv.Atoi(r)
 		reqId = uint32(rd)
+	} else {
+		errMsg := NoReqIdFound
+		log.ByContext(context).Errorf(errMsg)
+		return headers, errors.New(errMsg)
 	}
 
 	if v, ok := headers[SofaPropertyHeader(HeaderVersion)]; ok {
@@ -356,7 +364,6 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 	}
 
 	if pro == PROTOCOL_CODE_V1 {
-
 		return &BoltResponseCommand{
 			Protocol:       PROTOCOL_CODE_V1,
 			CmdType:        RESPONSE,
@@ -367,8 +374,7 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 			ResponseStatus: respStatus,
 		}, nil
 	} else if pro == PROTOCOL_CODE_V2 {
-		var ver1 byte
-		var switchcode byte
+		var ver1,switchCode byte
 
 		if v, ok := headers[SofaPropertyHeader("ver1")]; ok {
 			ver, _ := strconv.Atoi(v)
@@ -377,11 +383,10 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 
 		if s, ok := headers[SofaPropertyHeader("switchcode")]; ok {
 			sw, _ := strconv.Atoi(s)
-			switchcode = byte(sw)
+			switchCode = byte(sw)
 		}
 
 		return &BoltV2ResponseCommand{
-
 			BoltResponseCommand: BoltResponseCommand{
 				Protocol:       PROTOCOL_CODE_V1,
 				CmdType:        RESPONSE,
@@ -392,24 +397,12 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 				ResponseStatus: respStatus,
 			},
 			Version1:   ver1,
-			SwitchCode: switchcode,
+			SwitchCode: switchCode,
 		}, nil
-	} else if pro == TR_PROTOCOL_CODE {
+	} else if pro == PROTOCOL_CODE_TR {
 		return headers, nil
-	} else if headers[types.HeaderException] == types.MosnExceptionCodeC {
-		//If Codec exception occurs, build bolt v1 response
-		return &BoltResponseCommand{
-			Protocol:       PROTOCOL_CODE_V1,
-			CmdType:        RESPONSE,
-			CmdCode:        RPC_RESPONSE,
-			Version:        version,
-			ReqId:          reqId,
-			CodecPro:       codec,
-			ResponseStatus: respStatus,
-		}, nil
 	} else {
 		log.ByContext(context).Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
-
-		return headers, errors.New("[BuildSofaRespMsg Error]Unknown Protocol Code")
+		return headers, errors.New(types.UnSupportedProCode)
 	}
 }

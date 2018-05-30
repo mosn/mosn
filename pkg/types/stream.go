@@ -135,6 +135,9 @@ type StreamDecoder interface {
 
 	// Called with a decoded trailers frame, implicitly ends the stream.
 	OnDecodeTrailers(trailers map[string]string)
+
+	// Called with when exception occurs
+	OnDecodeError(err error, headers map[string]string)
 }
 
 // A connection runs multiple streams

@@ -2,7 +2,6 @@ package sofarpc
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -107,10 +106,9 @@ func (conn *streamConnection) NewStream(streamId string, responseDecoder types.S
 }
 
 func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string]string) types.FilterStatus {
-	if sofarpc.IsSofaRequest(headers) || sofarpc.HasCodecException(headers) {
+	if sofarpc.IsSofaRequest(headers) {
 		conn.onNewStreamDetected(streamId, headers)
 	}
-
 	endStream := decodeSterilize(streamId, headers)
 
 	if stream, ok := conn.activeStream.Get(streamId); ok {
@@ -139,6 +137,43 @@ func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer)
 func (conn *streamConnection) OnDecodeTrailer(streamId string, trailers map[string]string) types.FilterStatus {
 	// unsupported
 	return types.StopIteration
+}
+
+// todo, deal with more exception
+func (conn *streamConnection) OnDecodeError(err error, header map[string]string) {
+	if err == nil {
+		return
+	}
+
+	// for header decode error, close the connection directly
+	if err.Error() == types.UnSupportedProCode {
+		conn.connection.Close(types.NoFlush, types.LocalClose)
+	}
+
+	if err.Error() == sofarpc.UnKnownCmdcode {
+		conn.connection.Close(types.NoFlush, types.LocalClose)
+	}
+
+	if err.Error() == sofarpc.UnKnownReqtype {
+		conn.connection.Close(types.NoFlush, types.LocalClose)
+	}
+	
+	// for other exception
+	if err.Error() == types.CodecException {
+		var streamId string
+		if v, ok := header[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
+			streamId = v
+		} else {
+			// if no request id found, no reason to send response, so close connection
+			conn.connection.Close(types.NoFlush, types.LocalClose)
+		}
+		
+		conn.onNewStreamDetected(streamId,header)
+		
+		if stream, ok := conn.activeStream.Get(streamId); ok {
+			stream.decoder.OnDecodeError(err,header)
+		}
+	}
 }
 
 func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[string]string) {
@@ -220,11 +255,10 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamEncoder
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
-	_, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers))
 
-	// Exception occurs when encoding headers
-	if s.encodedHeaders == nil {
-		return errors.New(s.streamId)
+	var err error
+	if err, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers)); err != nil {
+		return err
 	}
 
 	if endStream {
@@ -261,7 +295,7 @@ func (s *stream) endStream() {
 				//log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 			} else {
-				s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
+			//	s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
 				stream.connection.connection.Write(s.encodedHeaders)
 			}
 		} else {

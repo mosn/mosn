@@ -63,5 +63,7 @@ func (d *receiveDataStreamDecoder) OnDecodeData(data types.IoBuffer, endStream b
 }
 
 func (d *receiveDataStreamDecoder) OnDecodeTrailers(trailers map[string]string) {
+}
 
+func (d *receiveDataStreamDecoder) OnDecodeError(err error,headers map[string]string){
 }

@@ -11,6 +11,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"errors"
 )
 
 var (
@@ -36,7 +37,7 @@ func init() {
 // types.Encoder & types.Decoder
 type boltV1Codec struct{}
 
-func (c *boltV1Codec) EncodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
+func (c *boltV1Codec) EncodeHeaders(context context.Context, headers interface{}) (error, types.IoBuffer) {
 	if headerMap, ok := headers.(map[string]string); ok {
 
 		cmd := c.mapToCmd(headerMap)
@@ -46,16 +47,18 @@ func (c *boltV1Codec) EncodeHeaders(context context.Context, headers interface{}
 	return c.encodeHeaders(context, headers)
 }
 
-func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
+func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}) (error, types.IoBuffer) {
 	switch headers.(type) {
 	case *sofarpc.BoltRequestCommand:
 		return c.encodeRequestCommand(context, headers.(*sofarpc.BoltRequestCommand))
 	case *sofarpc.BoltResponseCommand:
 		return c.encodeResponseCommand(context, headers.(*sofarpc.BoltResponseCommand))
 	default:
-		log.ByContext(context).Errorf("BoltV1 Encode Invalid Input Type")
-
-		return "", nil
+		
+		errMsg := sofarpc.InvalidCommandType
+		err := errors.New(errMsg)
+		log.ByContext(context).Errorf("boltV1"+errMsg)
+		return err, nil
 	}
 }
 
@@ -67,16 +70,14 @@ func (c *boltV1Codec) EncodeTrailers(context context.Context, trailers map[strin
 	return nil
 }
 
-func (c *boltV1Codec) encodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) (string, types.IoBuffer) {
+func (c *boltV1Codec) encodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) (error, types.IoBuffer) {
 	result := c.doEncodeRequestCommand(context, cmd)
-
-	return "", buffer.NewIoBufferBytes(result)
+	return nil, buffer.NewIoBufferBytes(result)
 }
 
-func (c *boltV1Codec) encodeResponseCommand(context context.Context, cmd *sofarpc.BoltResponseCommand) (string, types.IoBuffer) {
+func (c *boltV1Codec) encodeResponseCommand(context context.Context, cmd *sofarpc.BoltResponseCommand) (error, types.IoBuffer) {
 	result := c.doEncodeResponseCommand(context, cmd)
-
-	return "", buffer.NewIoBufferBytes(result)
+	return nil, buffer.NewIoBufferBytes(result)
 }
 
 func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) []byte {
@@ -270,9 +271,9 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 
-				if cmdCode == uint16(sofarpc.HEARTBEAT) {
-					logger.Debugf("BoltV1 DECODE Request: Get Bolt HB Msg")
-				}
+				//if cmdCode == uint16(sofarpc.HEARTBEAT) {
+				//	logger.Debugf("BoltV1 DECODE Request: Get Bolt HB Msg")
+				//}
 				ver2 := bytes[4]
 				requestId := binary.BigEndian.Uint32(bytes[5:9])
 				codec := bytes[9]
@@ -324,12 +325,11 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					nil,
 					nil,
 				}
-				logger.Debugf("BoltV1 DECODE Request, bolt v1 decode request reqID is:%+v", request.ReqId)
+				logger.Debugf("BoltV1 DECODE REQUEST, content is :%+v", request)
 				cmd = &request
 			}
 		} else {
 			//2. response
-			// bug fix, pay attention to here
 			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V1 {
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
@@ -367,7 +367,6 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				}
 
 				response := sofarpc.BoltResponseCommand{
-
 					sofarpc.PROTOCOL_CODE_V1,
 					dataType,
 					int16(cmdCode),
@@ -387,12 +386,13 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				}
 				
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
-					logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
+					//logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
 				}
-				logger.Debugf("BoltV1 DECODE RESPONSE, response status is:%+v", response.ResponseStatus)
+				logger.Debugf("BoltV1 DECODE RESPONSE, response status is:%+v,..., all content: %+v", response.ResponseStatus,response)
 				cmd = &response
 			}
 		}
 	}
+	
 	return read, cmd
 }

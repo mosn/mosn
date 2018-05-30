@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
@@ -32,19 +33,21 @@ func NewBoltCommandHandlerV2() *BoltCommandHandler {
 	}
 }
 
-func (h *BoltCommandHandler) HandleCommand(context context.Context, msg interface{}, filter interface{}) {
+func (h *BoltCommandHandler) HandleCommand(context context.Context, msg interface{}, filter interface{}) error {
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
 		logger := log.ByContext(context)
-
-
+		
 		if processor, ok := h.processors[cmdCode]; ok {
-			logger.Debugf("handle bolt command")
+			//logger.Debugf("handle bolt command")
 			processor.Process(context, cmd, filter)
 		} else {
-			logger.Errorf("Unknown cmd code: [%x] while handle in BoltCommandHandler.", cmdCode)
+			errMsg := sofarpc.UnKnownCmdcode
+			logger.Errorf(errMsg + "when decoding bolt %s", cmdCode)
+			return errors.New(errMsg)
 		}
 	}
+	return nil
 }
 
 func (h *BoltCommandHandler) RegisterProcessor(cmdCode int16, processor *sofarpc.RemotingProcessor) {

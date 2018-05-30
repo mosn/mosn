@@ -164,6 +164,9 @@ func (p *Publisher) OnDecodeData(data types.IoBuffer, endStream bool) {
 func (p *Publisher) OnDecodeTrailers(trailers map[string]string) {
 }
 
+func (p *Publisher) OnDecodeError(err error,headers map[string]string){
+}
+
 func (p *Publisher) assemblePublisherRegisterPb(svrHost []string, eventType string) *model.PublisherRegisterPb {
     br := &model.BaseRegisterPb{
         InstanceId: p.sysConfig.InstanceId,
