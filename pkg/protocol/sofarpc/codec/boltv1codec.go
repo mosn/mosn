@@ -270,9 +270,9 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 
-				if cmdCode == uint16(sofarpc.HEARTBEAT) {
-					logger.Debugf("BoltV1 DECODE Request: Get Bolt HB Msg")
-				}
+				//if cmdCode == uint16(sofarpc.HEARTBEAT) {
+				//	logger.Debugf("BoltV1 DECODE Request: Get Bolt HB Msg")
+				//}
 				ver2 := bytes[4]
 				requestId := binary.BigEndian.Uint32(bytes[5:9])
 				codec := bytes[9]
@@ -324,7 +324,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					nil,
 					nil,
 				}
-				logger.Debugf("BoltV1 DECODE Request, bolt v1 decode request reqID is:%+v", request.ReqId)
+				logger.Debugf("BoltV1 DECODE REQUEST, content is :%+v", request)
 				cmd = &request
 			}
 		} else {
@@ -367,7 +367,6 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				}
 
 				response := sofarpc.BoltResponseCommand{
-
 					sofarpc.PROTOCOL_CODE_V1,
 					dataType,
 					int16(cmdCode),
@@ -387,12 +386,13 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				}
 				
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
-					logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
+					//logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
 				}
-				logger.Debugf("BoltV1 DECODE RESPONSE, response status is:%+v", response.ResponseStatus)
+				logger.Debugf("BoltV1 DECODE RESPONSE, response status is:%+v,..., all content: %+v", response.ResponseStatus,response)
 				cmd = &response
 			}
 		}
 	}
+	
 	return read, cmd
 }

@@ -13,7 +13,6 @@ type ClusterAdapter struct {
 
 // called when confreg called
 func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) {
-	log.DefaultLogger.Debugf("Update cluster,cluster name is : %s,hosts are: %+v", clusterName, hosts)
 	clusterExist := ca.clusterMng.ClusterExist(clusterName)
 
 	if !clusterExist {
@@ -26,7 +25,7 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 			}
 			ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
 		} else {
-			log.DefaultLogger.Debugf(" cluster:%s doesn't exist", clusterName)
+			log.DefaultLogger.Errorf("doesn't support cluster auto discovery ")
 			return
 		}
 	}

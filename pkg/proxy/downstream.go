@@ -223,6 +223,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(clusterKey))
 
 	if err != nil {
+		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed")
 		return
 	}
 
@@ -365,6 +366,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
+		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s",clusterName)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 
@@ -376,6 +378,8 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	clusterConnectionResource := clusterInfo.ResourceManager().ConnectionResource()
 
 	if !clusterConnectionResource.CanCreate() {
+		log.DefaultLogger.Errorf("cluster Connection Resource can't create, cluster name is %s",clusterName)
+		
 		s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
 		s.sendHijackReply(types.UpstreamOverFlowCode, s.downstreamReqHeaders)
 

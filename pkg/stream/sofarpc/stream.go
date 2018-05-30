@@ -261,7 +261,7 @@ func (s *stream) endStream() {
 				//log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 			} else {
-				s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
+			//	s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
 				stream.connection.connection.Write(s.encodedHeaders)
 			}
 		} else {

@@ -11,6 +11,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // ClusterManager
@@ -217,6 +218,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
+		log.DefaultLogger.Errorf(" Sofa Rpc ConnPool For Cluster is nil %s",cluster)
 		return nil
 	}
 
@@ -235,6 +237,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 			return connPool
 		}
 	} else {
+		log.DefaultLogger.Errorf("  clusterSnapshot.loadbalancer.ChooseHost is nil %s",cluster)
 		return nil
 	}
 }

@@ -33,8 +33,6 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 	
 	// delete subInfo / dynamic clusters
 	RemoveClusterConfig(subServiceList)
-	
-	go Dump(true)
 }
 
 
@@ -117,7 +115,7 @@ func DelPubInfo(serviceName string) {
 		}
 	}
 	
-	Dump(dirty)
+	go Dump(dirty)
 }
 
 // ~ convert functions, api.v2 model -> config model
