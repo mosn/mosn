@@ -36,10 +36,9 @@ func (h *BoltCommandHandler) HandleCommand(context context.Context, msg interfac
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
 		logger := log.ByContext(context)
-
-
+		
 		if processor, ok := h.processors[cmdCode]; ok {
-			logger.Debugf("handle bolt command")
+			//logger.Debugf("handle bolt command")
 			processor.Process(context, cmd, filter)
 		} else {
 			logger.Errorf("Unknown cmd code: [%x] while handle in BoltCommandHandler.", cmdCode)

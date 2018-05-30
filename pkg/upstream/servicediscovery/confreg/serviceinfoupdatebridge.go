@@ -82,8 +82,8 @@ func GetPubListFromConfig() map[string]string {
 func ResetRegistryInfo(appInfo v2.ApplicationInfo) {
 	for {
 		if configParseReady {
-			go TriggerDynamicClusterClear()
-			go ResetApplicationInfo(appInfo)
+			TriggerDynamicClusterClear()
+			ResetApplicationInfo(appInfo)
 			subServiceList = []string{}
 			pubServiceList = map[string]string{}
 			return
