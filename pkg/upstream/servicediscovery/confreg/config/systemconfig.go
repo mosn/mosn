@@ -1,31 +1,32 @@
 package config
 
 import (
-	"fmt"
-	"github.com/magiconair/properties"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"os"
-	"strings"
+    "fmt"
+    "github.com/magiconair/properties"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
+    "os"
+    "strings"
 )
 
+const DefaultConfregServerAddress = "confreg-pool"
 var ServerConfFilePath string
 
 func init() {
-	ServerConfFilePath = os.Getenv("server_conf_path")
-	if ServerConfFilePath == "" {
-		ServerConfFilePath = "/home/admin/server.conf"
-	}
+    ServerConfFilePath = os.Getenv("server_conf_path")
+    if ServerConfFilePath == "" {
+        ServerConfFilePath = "/home/admin/server.conf"
+    }
 }
 
 type SystemConfig struct {
-	AntShareCloud    bool
-	InstanceId       string
-	DataCenter       string
-	AppName          string
-	Zone             string
-	RegistryEndpoint string
-	AccessKey        string
-	SecretKey        string
+    AntShareCloud    bool
+    InstanceId       string
+    DataCenter       string
+    AppName          string
+    Zone             string
+    RegistryEndpoint string
+    AccessKey        string
+    SecretKey        string
 }
 
 var SysConfig *SystemConfig
@@ -34,7 +35,7 @@ func InitSystemConfig(antShareCloud bool, dc string, appName string, zone string
     if SysConfig != nil {
         return SysConfig
     }
-	return doInit(antShareCloud, dc, appName, zone)
+    return doInit(antShareCloud, dc, appName, zone)
 }
 
 func ForceInitSystemConfig(antShareCloud bool, dc string, appName string, zone string) *SystemConfig {
@@ -61,18 +62,31 @@ func doInit(antShareCloud bool, dc string, appName string, zone string) *SystemC
     return SysConfig
 }
 
-
 func readPropertyFromServerConfFile(antShareCloud bool) (confregUrl string, zone string) {
-	if !antShareCloud {
-		serverConf := properties.MustLoadFile(ServerConfFilePath, properties.UTF8)
-		cu, ok := serverConf.Get("confregurl")
-		if !ok {
-			errMsg := fmt.Sprintf("Load confregurl from %s failed.", ServerConfFilePath)
-			log.DefaultLogger.Errorf(errMsg)
-			panic(errMsg)
-		}
-		z, _ := serverConf.Get("zone")
-		return cu, z
-	}
-	return "", ""
+    if antShareCloud {
+        panic("Mosn not support ant cloud environment now.")
+    }
+
+    if !fileExists(ServerConfFilePath) {
+        return DefaultConfregServerAddress, ""
+    }
+
+    serverConf := properties.MustLoadFile(ServerConfFilePath, properties.UTF8)
+    cu, ok := serverConf.Get("confregurl")
+    if !ok {
+        errMsg := fmt.Sprintf("Load confregurl from %s failed.", ServerConfFilePath)
+        log.DefaultLogger.Errorf(errMsg)
+        panic(errMsg)
+    }
+    z, _ := serverConf.Get("zone")
+
+    return cu, z
+}
+
+func fileExists(path string) bool {
+    _, err := os.Stat(path)
+    if err == nil {
+        return true
+    }
+    return false
 }
