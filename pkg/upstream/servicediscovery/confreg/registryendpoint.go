@@ -268,7 +268,7 @@ func (re *Endpoint) StartListener() {
     router.GET("/services", re.GetServiceInfoSnapshot)
     router.GET("/services/:serviceName", re.GetServiceInfo)
     
-    port := "8888"
+    port := "13330"
     httpServerEndpoint := "0.0.0.0:" + port
     log.DefaultLogger.Infof("Mesh registry endpoint started on port(s): %s (http)", port)
     
