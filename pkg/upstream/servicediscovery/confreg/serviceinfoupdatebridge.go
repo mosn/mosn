@@ -1,11 +1,11 @@
 package registry
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-
+	"errors"
 	"strings"
 
-	"errors"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
@@ -35,7 +35,7 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 				hosts = append(hosts, v2.Host{
 					Address: ipaddress,
 				})
-				log.StartLogger.Debugf("IP_ADDR", ipaddress)
+				log.StartLogger.Debugf("dataId is %s, IP_ADDR is %s", dataId, ipaddress)
 			}
 		}
 	}
@@ -112,7 +112,7 @@ func AddSubInfo(subInfo []string) bool {
 		if exist {
 			continue
 		}
-		
+
 		subServiceList = append(subServiceList, si)
 		v2Cluster := v2.Cluster{
 			Name:                 si,
@@ -142,7 +142,7 @@ func AddSubInfo(subInfo []string) bool {
 
 func DelSubInfo(subinfo []string) bool {
 	//go router.RoutersManager.RemoveRouterInRouters(subinfo)
-	log.DefaultLogger.Debugf("DelSubInfo",subinfo)
+	log.DefaultLogger.Debugf("DelSubInfo", subinfo)
 
 	for _, sub := range subinfo {
 		for i, s := range subServiceList {
@@ -152,7 +152,7 @@ func DelSubInfo(subinfo []string) bool {
 			}
 		}
 	}
-	
+
 	for _, serviceName := range subinfo {
 		cluster.ClusterAdap.TriggerClusterDel(serviceName)
 	}
@@ -204,7 +204,7 @@ func OnClusterInfoParsed(data interface{}, endParsed bool) error {
 	}
 
 	OnSubInfoParsed(subInfo)
-	
+
 	if endParsed {
 		configParseReady = true
 		RecoverRegistryModule()

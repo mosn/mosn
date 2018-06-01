@@ -8,10 +8,10 @@ import (
 
 	"github.com/orcaman/concurrent-map"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // ClusterManager
@@ -218,7 +218,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
-		log.DefaultLogger.Errorf(" Sofa Rpc ConnPool For Cluster is nil %s",cluster)
+		log.DefaultLogger.Errorf(" Sofa Rpc ConnPool For Cluster is nil %s", cluster)
 		return nil
 	}
 
@@ -226,6 +226,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 
 	if host != nil {
 		addr := host.AddressString()
+		log.DefaultLogger.Debugf(" clusterSnapshot.loadbalancer.ChooseHost result is %s,cluser is %s", addr, cluster)
 
 		if connPool, ok := cm.sofaRpcConnPool.Get(addr); ok {
 			return connPool.(types.ConnectionPool)
@@ -237,7 +238,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 			return connPool
 		}
 	} else {
-		log.DefaultLogger.Errorf("  clusterSnapshot.loadbalancer.ChooseHost is nil %s",cluster)
+		log.DefaultLogger.Errorf("  clusterSnapshot.loadbalancer.ChooseHost is nil %s", cluster)
 		return nil
 	}
 }
