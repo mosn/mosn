@@ -12,8 +12,9 @@ const (
 )
 
 const (
-	MosnExceptionCodeC    = "exception-codec"
-	MosnExceptionDeserial = "exception-deserial"
+	UnSupportedProCode   string = " Protocol Code not supported"
+	CodecException       string = "codec exception occurs"
+	DeserializeException string = "deserial exception occurs"
 )
 
 const (

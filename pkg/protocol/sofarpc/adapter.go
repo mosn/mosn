@@ -69,20 +69,12 @@ func IsSofaRequest(headers map[string]string) bool {
 		if cmdtype == REQUEST {
 			return true
 		}
-	} else if procode == TR_PROTOCOL_CODE {
+	} else if procode == PROTOCOL_CODE_TR {
 		requestFlage := ConvertPropertyValue(headers[SofaPropertyHeader(HeaderReqFlag)], reflect.Uint8)
 
 		if requestFlage == HEADER_REQUEST {
 			return true
 		}
-	}
-
-	return false
-}
-
-func HasCodecException(headers map[string]string) bool {
-	if v, ok := headers[types.HeaderException]; ok && v == types.MosnExceptionCodeC {
-		return true
 	}
 
 	return false

@@ -136,10 +136,9 @@ func (s *activeStream) callLowWatermarkCallbacks() {
 // case 2: proxy ends stream in lifecycle
 func (s *activeStream) endStream() {
 	s.stopTimer()
-	//added by @boqin to make "cleanstream" done only once
 	var isReset bool
 	if s.responseEncoder != nil {
-		if (!s.downstreamRecvDone || !s.localProcessDone){
+		if !s.downstreamRecvDone || !s.localProcessDone {
 			// if downstream req received not done, or local proxy process not done by handle upstream response,
 			// just mark it as done and reset stream as a failed case
 			s.localProcessDone = true
@@ -187,22 +186,8 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		return
 	}
 
-	// todo: enrich headers' information to do some hijack
-	//Check headers' info to do hijack
-	if v, ok := headers[types.HeaderException]; ok {
-		switch v {
-		case types.MosnExceptionCodeC:
-			s.sendHijackReply(types.CodecExceptionCode, headers)
-		case types.MosnExceptionDeserial:
-			s.sendHijackReply(types.DeserialExceptionCode, headers)
-		default:
-			s.sendHijackReply(types.UnknownCode, headers)
-		}
-		return
-	}
-
 	//Get some route by service name
-	route,clusterKey:= s.proxy.routerConfig.Route(headers)
+	route, clusterKey := s.proxy.routerConfig.Route(headers)
 	// route,routeKey:= s.proxy.routerConfig.Route(headers)
 
 	if route == nil || route.RouteRule() == nil {
@@ -295,6 +280,20 @@ func (s *activeStream) OnDecodeTrailers(trailers map[string]string) {
 	s.downstreamRecvDone = true
 
 	s.doDecodeTrailers(nil, trailers)
+}
+
+func (s *activeStream) OnDecodeError(err error,headers map[string]string) {
+	// todo: enrich headers' information to do some hijack
+	//Check headers' info to do hijack
+	switch err.Error() {
+	case types.CodecException:
+		s.sendHijackReply(types.CodecExceptionCode, headers)
+	case types.DeserializeException:
+		s.sendHijackReply(types.DeserialExceptionCode, headers)
+	default:
+		s.sendHijackReply(types.UnknownCode, headers)
+	}
+	return
 }
 
 func (s *activeStream) doDecodeTrailers(filter *activeStreamDecoderFilter, trailers map[string]string) {
@@ -493,19 +492,7 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 	if endStream {
 		s.onUpstreamResponseRecvDone()
 	}
-
-	if v, ok := headers[types.HeaderException]; ok {
-		switch v {
-		case types.MosnExceptionCodeC:
-			s.sendHijackReply(types.CodecExceptionCode, headers)
-		case types.MosnExceptionDeserial:
-			s.sendHijackReply(types.DeserialExceptionCode, headers)
-		default:
-			s.sendHijackReply(types.UnknownCode, headers)
-		}
-		return
-	}
-
+	
 	// todo: insert proxy headers
 	s.encodeHeaders(headers, endStream)
 }

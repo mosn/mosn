@@ -8,11 +8,11 @@ import (
 )
 
 func init() {
-	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE, Tr)
+	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_TR, Tr)
 }
 
 var Tr = &TrProtocol{
-	sofarpc.PROTOCOL_CODE,
+	sofarpc.PROTOCOL_CODE_TR,
 	&trCodec{},
 	&trCodec{},
 	handler.NewTrCommandHandler(),

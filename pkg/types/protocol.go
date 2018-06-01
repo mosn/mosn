@@ -1,6 +1,8 @@
 package types
 
-import "context"
+import (
+	"context"
+)
 
 // 	 The bunch of interfaces are structure skeleton to build a extensible protocol engine.
 //
@@ -28,7 +30,7 @@ type Protocols interface {
 
 	// EncodeHeaders encodes headers to binary buffer
 	// return 1. stream id if have one 2. headers bytes
-	EncodeHeaders(context context.Context, headers interface{}) (string, IoBuffer)
+	EncodeHeaders(context context.Context, headers interface{}) (error, IoBuffer)
 
 	// EncodeData encodes data to binary buffer
 	EncodeData(context context.Context, data IoBuffer) IoBuffer
@@ -51,13 +53,17 @@ type DecodeFilter interface {
 
 	// Called on trailers decoded
 	OnDecodeTrailer(streamId string, trailers map[string]string) FilterStatus
+	
+	// Called when error occurs
+	// When error occurring, filter status = stop
+	OnDecodeError(err error, headers map[string]string)
 }
 
 // A encoder interface to extend various of protocols
 type Encoder interface {
 	// EncodeHeaders encodes headers to buffer
 	// return 1. stream id if have one 2. headers bytes
-	EncodeHeaders(context context.Context, headers interface{}) (string, IoBuffer)
+	EncodeHeaders(context context.Context, headers interface{}) (error, IoBuffer)
 
 	// EncodeData encodes data to buffer
 	EncodeData(context context.Context, data IoBuffer) IoBuffer

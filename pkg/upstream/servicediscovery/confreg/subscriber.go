@@ -168,6 +168,10 @@ func (s *Subscriber) OnDecodeTrailers(trailers map[string]string) {
 
 }
 
+func (p *Subscriber) OnDecodeError(err error,headers map[string]string){
+
+}
+
 func (s *Subscriber) assembleSubscriberRegisterPb(eventType string) *model.SubscriberRegisterPb {
     br := &model.BaseRegisterPb{
         InstanceId: s.systemConfig.InstanceId,

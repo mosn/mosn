@@ -3,6 +3,7 @@ package codec
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"reflect"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -23,15 +24,11 @@ func init() {
 	TrPropertyHeaders[sf.HeaderReqFlag] = reflect.Uint8
 	TrPropertyHeaders[sf.HeaderSeriProtocol] = reflect.Uint8 //
 	TrPropertyHeaders[sf.HeaderDirection] = reflect.Uint8
-
 	TrPropertyHeaders[sf.HeaderReserved] = reflect.Uint8
 	TrPropertyHeaders[sf.HeaderAppclassnamelen] = reflect.Uint8
-
 	TrPropertyHeaders[sf.HeaderConnrequestlen] = reflect.Uint32
 	TrPropertyHeaders[sf.HeaderAppclasscontentlen] = reflect.Uint32
-
 	TrPropertyHeaders[sf.HeaderCmdCode] = reflect.Int16
-
 	TrPropertyHeaders[sf.HeaderReqID] = reflect.Int64
 }
 
@@ -50,32 +47,32 @@ func init() {
  *   Body:       应用层对象
 */
 
-func (c *trCodec) EncodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
+func (c *trCodec) EncodeHeaders(context context.Context, headers interface{}) (error, types.IoBuffer) {
 	if headerMap, ok := headers.(map[string]string); ok {
 		cmd := c.mapToCmd(headerMap)
-
 		return c.encodeHeaders(context, cmd)
 	}
 
 	return c.encodeHeaders(context, headers)
 }
 
-func (c *trCodec) encodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
+func (c *trCodec) encodeHeaders(context context.Context, headers interface{}) (error, types.IoBuffer) {
 	switch headers.(type) {
 	case *sf.TrRequestCommand:
 		return c.encodeRequestCommand(context, headers.(*sf.TrRequestCommand))
 	case *sf.TrResponseCommand:
 		return c.encodeResponseCommand(context, headers.(*sf.TrResponseCommand))
 	default:
-		err := "[TR Encode] Invalid Input Type"
-		log.ByContext(context).Errorf(err)
+		errMsg := sf.InvalidCommandType
+		err := errors.New(errMsg)
+		log.ByContext(context).Errorf(errMsg)
 
-		return "", nil
+		return err, nil
 	}
 }
 
-func (c *trCodec) encodeRequestCommand(context context.Context, rpcCmd *sf.TrRequestCommand) (string, types.IoBuffer) {
-	log.ByContext(context).Debugf("[TR]start to encode rpc headers,protocol code=%+v", rpcCmd.Protocol)
+func (c *trCodec) encodeRequestCommand(context context.Context, rpcCmd *sf.TrRequestCommand) (error, types.IoBuffer) {
+	log.ByContext(context).Debugf("TR encode start to encode rpc headers,protocol code=%+v", rpcCmd.Protocol)
 
 	var result []byte
 	result = append(result, rpcCmd.Protocol, rpcCmd.RequestFlag)
@@ -91,10 +88,10 @@ func (c *trCodec) encodeRequestCommand(context context.Context, rpcCmd *sf.TrReq
 	binary.BigEndian.PutUint32(appContentLen, rpcCmd.AppClassContentLen)
 	result = append(result, appContentLen...)
 
-	return "", buffer.NewIoBufferBytes(result)
+	return nil, buffer.NewIoBufferBytes(result)
 }
 
-func (c *trCodec) encodeResponseCommand(context context.Context, rpcCmd *sf.TrResponseCommand) (string, types.IoBuffer) {
+func (c *trCodec) encodeResponseCommand(context context.Context, rpcCmd *sf.TrResponseCommand) (error, types.IoBuffer) {
 	log.ByContext(context).Debugf("[TR]start to encode rpc headers,=%+v", rpcCmd.Protocol)
 
 	var result []byte
@@ -111,7 +108,7 @@ func (c *trCodec) encodeResponseCommand(context context.Context, rpcCmd *sf.TrRe
 	binary.BigEndian.PutUint32(appContentLen, rpcCmd.AppClassContentLen)
 	result = append(result, appContentLen...)
 
-	return "", buffer.NewIoBufferBytes(result)
+	return nil, buffer.NewIoBufferBytes(result)
 }
 
 func (c *trCodec) EncodeData(context context.Context, data types.IoBuffer) types.IoBuffer {

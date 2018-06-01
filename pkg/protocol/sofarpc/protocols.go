@@ -2,6 +2,7 @@ package sofarpc
 
 import (
 	"context"
+	"errors"
 	"reflect"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -30,7 +31,7 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 
 // todo: add error as return value
 //PROTOCOL LEVEL's Unified EncodeHeaders for BOLTV1、BOLTV2、TR
-func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) (string, types.IoBuffer) {
+func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) (error, types.IoBuffer) {
 	var protocolCode byte
 
 	switch headers.(type) {
@@ -43,27 +44,27 @@ func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) 
 			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
 			protocolCode = protoValue.(byte)
 		} else {
-			//Codec exception
-			log.ByContext(context).Errorf("Invalid encode headers, should contains 'protocol'")
-
-			return "", nil
+			errMsg := NoProCodeInHeader
+			log.ByContext(context).Errorf(errMsg)
+			err := errors.New(errMsg)
+			return err, nil
 		}
 	default:
-		err := "Invalid encode headers"
-		log.ByContext(context).Errorf(err)
-
-		return "", nil
+		errMsg := InvalidHeaderType
+		log.ByContext(context).Errorf(errMsg)
+		err := errors.New(errMsg)
+		return err, nil
 	}
-	//todo: for @ledou to fix the contex bug
-	//log.ByContext(context).Debugf("[EncodeHeaders]protocol code = %x", protocolCode)
 
 	if proto, exists := p.protocolMaps[protocolCode]; exists {
 		//Return encoded data in map[string]string to stream layer
 		return proto.GetEncoder().EncodeHeaders(context, headers)
 	} else {
-		log.ByContext(context).Errorf("Unknown protocol code: [%d] while encode headers.", protocolCode)
+		errMsg := types.UnSupportedProCode
+		err := errors.New(errMsg)
+		log.ByContext(context).Errorf(errMsg+"%s", protocolCode)
 
-		return "", nil
+		return err, nil
 	}
 }
 
@@ -79,29 +80,27 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 	// at least 1 byte for protocol code recognize
 	for data.Len() > 1 {
 		logger := log.ByContext(context)
-
 		protocolCode := data.Bytes()[0]
 		maybeProtocolVersion := data.Bytes()[1]
-
 		logger.Debugf("Decoderprotocol code = %x, maybeProtocolVersion = %x", protocolCode, maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
-
-			//Decode the Binary Streams to Command Type
 			if _, cmd := proto.GetDecoder().Decode(context, data); cmd != nil {
-				proto.GetCommandHandler().HandleCommand(context, cmd, filter)
+				if err := proto.GetCommandHandler().HandleCommand(context, cmd, filter); err != nil {
+					filter.OnDecodeError(err, nil)
+					break
+				}
 			} else {
+				// protocol type error
+				errMsg := UnKnownReqtype
+				logger.Errorf(errMsg + "when decoding")
+				filter.OnDecodeError(errors.New(errMsg), nil)
 				break
 			}
 		} else {
-			//Codec Exception
-			headers := make(map[string]string, 1)
-			headers[types.HeaderException] = types.MosnExceptionCodeC
-			logger.Errorf("Unknown protocol code: [%x] while decode in ProtocolDecoder.", protocolCode)
-
-			err := "Unknown protocol code while decode in ProtocolDecoder."
-			filter.OnDecodeHeader(GenerateExceptionStreamID(err), headers)
-
+			errMsg := types.UnSupportedProCode
+			logger.Errorf(errMsg+"When Decoding %s", protocolCode)
+			filter.OnDecodeError(errors.New(errMsg), nil)
 			break
 		}
 	}

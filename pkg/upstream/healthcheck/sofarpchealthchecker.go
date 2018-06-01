@@ -103,7 +103,7 @@ func (s *sofarpcHealthCheckSession) OnDecodeHeaders(headers map[string]string, e
 	} else if protocolStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]; ok {
 		//tr protocol, set responseStatus to 'SUCCESS'
 		protocol := sofarpc.ConvertPropertyValue(protocolStr, reflect.Uint8).(byte)
-		if protocol == sofarpc.PROTOCOL_CODE {
+		if protocol == sofarpc.PROTOCOL_CODE_TR {
 			s.responseStatus = sofarpc.RESPONSE_STATUS_SUCCESS
 		}
 	}
@@ -121,6 +121,9 @@ func (s *sofarpcHealthCheckSession) OnDecodeData(data types.IoBuffer, endStream 
 
 func (s *sofarpcHealthCheckSession) OnDecodeTrailers(trailers map[string]string) {
 	s.onResponseComplete()
+}
+
+func (s *sofarpcHealthCheckSession) OnDecodeError(err error, headers map[string]string){
 }
 
 // overload healthCheckSession
