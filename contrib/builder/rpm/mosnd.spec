@@ -26,11 +26,13 @@ rm -rf %{buildroot}
 mkdir -p $RPM_BUILD_ROOT/%{_homedir}/bin
 mkdir -p $RPM_BUILD_ROOT/%{_homedir}/conf
 install -m 755 mosnd $RPM_BUILD_ROOT/%{_homedir}/bin
+install -m 666 mosn_config.json $RPM_BUILD_ROOT/%{_homedir}/conf
 mkdir -p $RPM_BUILD_ROOT/etc/init.d
 mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
 install -m 755 mosnd.service $RPM_BUILD_ROOT/etc/init.d/mosnd
 install -m 755 mosnd.logrotate $RPM_BUILD_ROOT/etc/logrotate.d/mosnd
 ls -al $RPM_BUILD_ROOT/%{_homedir}/bin
+ls -al $RPM_BUILD_ROOT/%{_homedir}/conf
 
 %preun
 
@@ -39,6 +41,7 @@ cp /etc/cron.daily/logrotate   /etc/cron.hourly/
 
 %files
 %{_homedir}/bin/mosnd
+%{_homedir}/conf/mosn_config.json
 /etc/init.d/mosnd
 /etc/logrotate.d/mosnd
 
