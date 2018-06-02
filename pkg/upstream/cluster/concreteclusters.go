@@ -81,16 +81,18 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 	defer sc.mux.Unlock()
 
 	if sc.hosts != nil {
-		log.DefaultLogger.Debugf("[origin host]", sc.hosts[0])
+		log.DefaultLogger.Debugf("[origin host] is %+v", sc.hosts)
 	}
-	
+
 	if newHosts != nil {
-		log.DefaultLogger.Debugf("[New hosts host]", newHosts[0])
+		log.DefaultLogger.Debugf("[New host] is  %+v", newHosts)
 	}
 
 	copy(curHosts, sc.hosts)
 
 	changed, finalHosts, hostsAdded, hostsRemoved := sc.updateDynamicHostList(newHosts, curHosts)
+
+	log.DefaultLogger.Debugf("[after update confreg host list],changed is %+v, finalHosts is %+v, hostsAdded is %+v, hostsRemoved is %+v", changed, finalHosts, hostsAdded, hostsRemoved)
 
 	if changed {
 		sc.hosts = finalHosts
