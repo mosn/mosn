@@ -92,7 +92,7 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 
 	changed, finalHosts, hostsAdded, hostsRemoved := sc.updateDynamicHostList(newHosts, curHosts)
 
-	log.DefaultLogger.Debugf("[after update confreg host list],changed is %+v, finalHosts is %+v, hostsAdded is %+v, hostsRemoved is %+v", changed, finalHosts, hostsAdded, hostsRemoved)
+	log.DefaultLogger.Debugf("[after update confreg host list],changed is %v, finalHosts is %v, hostsAdded is %v, hostsRemoved is %v", changed, &finalHosts, &hostsAdded, &hostsRemoved)
 
 	if changed {
 		sc.hosts = finalHosts

@@ -622,6 +622,7 @@ func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 	if headers == nil {
 		headers = make(map[string]string, 5)
 	}
+	log.DefaultLogger.Debugf("downstream send hijack reply,with code %d",code)
 
 	headers[types.HeaderStatus] = strconv.Itoa(code)
 	s.encodeHeaders(headers, true)

@@ -41,6 +41,9 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 	}
 
 	// note: at this time, serviceName == clusterName
+	hosts = append(hosts, v2.Host{
+		Address: "10.209.69.12:12200?_TIMEOUT=3000&p=1&_SERIALIZETYPE=protobuf&_WARMUPTIME=0&_WARMUPWEIGHT=10&app_name=antfeaturecloud&zone=GZ00B&_MAXREADIDLETIME=30&_IDLETIMEOUT=27&v=4.0&_WEIGHT=100&startTime=1527948156454",
+	})
 	cf.ca.TriggerClusterUpdate(serviceName, hosts)
 
 	//router.RoutersManager.AddRouterInRouters([]string{dataId})

@@ -634,6 +634,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 		}
 
+		log.DefaultLogger.Debugf("connect raw tcp ,event = %+v, error =%+v",event,err)
 		for _, cccb := range cc.connCallbacks {
 			cccb.OnEvent(event)
 		}

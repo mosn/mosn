@@ -3,6 +3,7 @@ package sofarpc
 import (
 	"context"
 
+	`gitlab.alipay-inc.com/afe/mosn/pkg/log`
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -98,7 +99,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	ac.codecClient = codecClient
 	ac.host = data.HostInfo
-
+	log.DefaultLogger.Debugf("new client create, codecClient=%+v, host=%+v,connection data =%+v", codecClient,data.HostInfo,data)
 	data.Connection.Connect(true)
 
 	return ac
