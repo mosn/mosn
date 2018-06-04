@@ -152,7 +152,7 @@ func (h *host) SetHealthFlag(flag types.HealthFlag) {
 }
 
 func (h *host) Health() bool {
-	return true
+	return h.healthFlags == 0
 }
 
 func (h *host) SetHealthChecker(healthCheck types.HealthCheckHostMonitor) {
