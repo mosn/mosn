@@ -2,11 +2,12 @@ package cluster
 
 import (
 	"fmt"
+	"net"
+	"sync"
+
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"net"
-	"sync"
 )
 
 // Cluster
@@ -17,6 +18,7 @@ type cluster struct {
 	info                           *clusterInfo
 	mux                            sync.RWMutex
 	initHelper                     concreteClusterInitHelper
+	healthChecker                  types.HealthChecker
 }
 
 type concreteClusterInitHelper interface {
@@ -31,6 +33,11 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool)
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaApi)
 	}
+
+	// init healthchecker
+	var hc types.HealthChecker
+	// todo: init healthchecker based on v2 cluster config
+	newCluster.SetHealthChecker(hc)
 
 	return newCluster
 }
@@ -125,14 +132,27 @@ func (c *cluster) PrioritySet() types.PrioritySet {
 	return c.prioritySet
 }
 
+func (c *cluster) SetHealthChecker(hc types.HealthChecker) {
+	c.healthChecker = hc
+	c.healthChecker.Start()
+	c.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool) {
+		if changedState {
+			c.refreshHealthHosts()
+		}
+	})
+}
+
 func (c *cluster) HealthChecker() types.HealthChecker {
-	// TODO
-	return nil
+	return c.healthChecker
 }
 
 func (c *cluster) OutlierDetector() types.Detector {
 	// TODO
 	return nil
+}
+
+func (c *cluster) refreshHealthHosts() {
+	// todo
 }
 
 type clusterInfo struct {
@@ -149,8 +169,7 @@ type clusterInfo struct {
 	stats                types.ClusterStats
 }
 
-
-func NewClusterInfo()*clusterInfo{
+func NewClusterInfo() *clusterInfo {
 	return &clusterInfo{}
 }
 

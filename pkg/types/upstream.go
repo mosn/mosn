@@ -57,6 +57,8 @@ type Cluster interface {
 
 	PrioritySet() PrioritySet
 
+	SetHealthChecker(hc HealthChecker)
+
 	HealthChecker() HealthChecker
 
 	OutlierDetector() Detector

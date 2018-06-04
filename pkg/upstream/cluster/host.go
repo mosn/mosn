@@ -34,8 +34,7 @@ func (hs *hostSet) HealthyHosts() []types.Host {
 	hs.mux.RLock()
 	defer hs.mux.RUnlock()
 
-	// TODO: support health check
-	return hs.hosts
+	return hs.healthyHosts
 }
 
 func (hs *hostSet) HostsPerLocality() [][]types.Host {
@@ -122,7 +121,7 @@ func newHostStats(config v2.Host) types.HostStats {
 
 func (h *host) CreateConnection(context context.Context) types.CreateConnectionData {
 	logger := log.ByContext(context)
-	
+
 	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), h.address, nil, logger)
 	clientConn.SetBufferLimit(h.clusterInfo.ConnBufferLimitBytes())
 
