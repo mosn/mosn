@@ -365,7 +365,7 @@ const (
 
 func (ce ConnectionEvent) IsClose() bool {
 	return ce == LocalClose || ce == RemoteClose ||
-		ce == OnReadErrClose || ce == OnWriteErrClose
+		ce == OnReadErrClose || ce == OnWriteErrClose || ce == ConnectFailed
 }
 
 // Network level callbacks that happen on a connection.

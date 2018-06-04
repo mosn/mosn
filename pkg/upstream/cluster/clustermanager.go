@@ -170,6 +170,40 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 	return errors.New(fmt.Sprintf("cluster %s not found", clusterName))
 }
 
+func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host) error {
+	if host == nil {
+		return errors.New("host is nil")
+	}
+	
+	if v, ok := cm.primaryClusters.Get(clusterName); ok {
+		pcc := v.(*primaryCluster).cluster
+		
+		found := false
+		if concretedCluster, ok := pcc.(*simpleInMemCluster); ok {
+			
+			for i := 0; i < len(concretedCluster.hosts); {
+				curNh := concretedCluster.hosts[i]
+				
+				if host.AddressString() == curNh.AddressString() {
+					concretedCluster.hosts = append(concretedCluster.hosts[:i], concretedCluster.hosts[i+1:]...)
+					found = true
+					break
+				} else {
+					i++
+				}
+			}
+			if found == true {
+				log.DefaultLogger.Debugf("Remove Host Success, Host is %+v",host)
+			}
+			
+		} else {
+			return errors.New(fmt.Sprintf("cluster's hostset %s can't be update", clusterName))
+		}
+	}
+	
+	return nil
+}
+
 func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.Protocol,
 	context context.Context) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
