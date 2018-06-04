@@ -68,7 +68,7 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
-	if event.IsClose() {
+	if event.IsClose()|| event == types.ConnectFailed {
 		// todo: update host stats
 		p.activeClient = nil
 	} else if event == types.ConnectTimeout {
