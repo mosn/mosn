@@ -152,7 +152,13 @@ func (c *cluster) OutlierDetector() types.Detector {
 }
 
 func (c *cluster) refreshHealthHosts() {
-	// todo
+	for _, hostSet := range c.prioritySet.hostSets {
+		var healthyHost []types.Host
+		var healthyHostPerLocality [][]types.Host
+		// todo: calculate healthyHost & healthyHostPerLocality
+		hostSet.UpdateHosts(hostSet.Hosts(), healthyHost, hostSet.HostsPerLocality(),
+			healthyHostPerLocality, nil, nil)
+	}
 }
 
 type clusterInfo struct {
