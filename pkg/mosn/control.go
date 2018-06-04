@@ -14,7 +14,7 @@ var (
 				Name:   "config, c",
 				Usage:  "Load configuration from `FILE`",
 				EnvVar: "MOSN_CONFIG",
-				Value:  "resource/mson_config.json",
+				Value:  "resource/mosn_config.json",
 			},
 		},
 		Action: func(c *cli.Context) error {
