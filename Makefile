@@ -46,7 +46,7 @@ build-local:
 
 image:
 	@rm -rf IMAGEBUILD
-	cp -r contrib/builder/image IMAGEBUILD && cp bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r resources IMAGEBUILD && cp -r etc IMAGEBUILD
+	cp -r contrib/builder/image IMAGEBUILD && cp bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r resource IMAGEBUILD && cp -r etc IMAGEBUILD
 	docker build --no-cache --rm -t ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} IMAGEBUILD
 	docker tag ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} ${REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION}
 	rm -rf IMAGEBUILD
