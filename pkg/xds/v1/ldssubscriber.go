@@ -5,16 +5,19 @@ import (
 	"io/ioutil"
 	"encoding/json"
 
-	//"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	google_protobuf "github.com/gogo/protobuf/types"
+	"github.com/gogo/protobuf/jsonpb"
+	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 func (c *xdsClient) getListeners(endpoint string) Listeners{
 	url := c.getLDSResquest(endpoint)
-	fmt.Println(url)
 	resp, err := c.httpClient.Get(url)
 	if err != nil {
-		//c.logger.Errorf("couldn't get listeners: %v", err)
-		fmt.Printf("couldn't get listeners: %v\n", err)
+		log.DefaultLogger.Errorf("couldn't get listeners: %v", err)
+		//fmt.Printf("couldn't get listeners: %v\n", err)
 		return nil
 	}
 
@@ -22,54 +25,72 @@ func (c *xdsClient) getListeners(endpoint string) Listeners{
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		//c.logger.Errorf("read body error when get listeners: %v", err)
-		fmt.Printf("read body error when get listeners: %v\n", err)
+		log.DefaultLogger.Errorf("read body error when get listeners: %v", err)
+		//fmt.Printf("read body error when get listeners: %v\n", err)
 		return nil
 	}
+
 	return c.parseListeners(body)
 }
 
 func (c *xdsClient) parseListeners(body []byte) Listeners {
-	var res ldsResponse
+	var res ListenersData
 
 	err := json.Unmarshal(body, &res)
 	if err != nil {
-		//c.logger.Errorf("read body error when get listeners: %v", err)
-		fmt.Printf("read body error when get listeners: %v\n", err)
+		log.DefaultLogger.Errorf("read body error when get listeners: %v", err)
+		//fmt.Printf("read body error when get listeners: %v\n", err)
 		return nil
 	}
 
-	for _, listener := range res.Listeners {
-		//fmt.Printf("listener name: %s\n", listener.Name)
-		if len(listener.Filters) < 1 {
-			//c.logger.Errorf("network filter not found for listener: %#v", listener)
-			//fmt.Printf("network filter not found for listener: %#v\n", listener)
-			continue
-		}
-		filter := listener.Filters[0]
-		if filter.Name == "http_connection_manager" {
-			var httpConfig HTTPFilterConfig
-			err := json.Unmarshal(filter.Config, &httpConfig)
-			if err != nil {
-				//c.logger.Errorf("fail to unmarshal http_connection_manager filter config: %v", err)
-				fmt.Printf("fail to unmarshal http_connection_manager filter config: %v\n", err)
-				continue
-			}
-			filter.HTTPFilterConfig = &httpConfig
+	listeners := make([]*xdsapi.Listener, 0, len(res.ListenersV1))
+	for _, listenerV1 := range res.ListenersV1 {
+		listenerV2 := &xdsapi.Listener{}
+		filterChain := envoy_api_v2_listener.FilterChain{}
 
-		} else if filter.Name == "tcp_proxy" {
-			var tcpConfig TCPProxyFilterConfig
-			err := json.Unmarshal(filter.Config, &tcpConfig)
-			if err != nil {
-				//c.logger.Errorf("fail to unmarshal http_connection_manager filter config: %v", err)
-				fmt.Printf("fail to unmarshal http_connection_manager filter config: %v\n", err)
-				continue
-			}
-			filter.TCPProxyFilterConfig = &tcpConfig
+		listenerV2.Name = listenerV1.Name
+		err := translateAddress(listenerV1.Address, true, true, &listenerV2.Address)
+		if err != nil {
+			log.DefaultLogger.Errorf("fail to translate address : %v\n", err)
+			//fmt.Printf("fail to translate address : %v\n", err)
+			return nil
 		}
+
+		listenerV2.UseOriginalDst = &google_protobuf.BoolValue{listenerV1.UseOriginalDst}
+		listenerV2.DeprecatedV1 = &xdsapi.Listener_DeprecatedV1{}
+		listenerV2.DeprecatedV1.BindToPort = &google_protobuf.BoolValue{listenerV1.BindToPort}
+		listenerV2.PerConnectionBufferLimitBytes = &google_protobuf.UInt32Value{uint32(listenerV1.PerConnectionBufferLimitBytes)}
+		if listenerV1.DrainType == "modify_only" {
+			listenerV2.DrainType = xdsapi.Listener_MODIFY_ONLY
+		}
+
+		filterChain.UseProxyProto = &google_protobuf.BoolValue{listenerV1.UseProxyProto}
+		//filterChain.TlsContext = translateDownstreamTlsContext(listenerV1.SSLContext)
+
+		filterChain.Filters = make([]envoy_api_v2_listener.Filter, 0, len(listenerV1.Filters))
+		for _, filterV1 := range listenerV1.Filters {
+			filterV2 := envoy_api_v2_listener.Filter{}
+			filterV2.Name = filterV1.Name
+			filterV2.DeprecatedV1 = &envoy_api_v2_listener.Filter_DeprecatedV1{}
+			filterV2.DeprecatedV1.Type = filterV1.Type
+			filterV2.Config = &google_protobuf.Struct{}
+
+			filterConfig := fmt.Sprintf("{\"deprecated_v1\": true, \"value\": %s}", string(filterV1.Config))
+			err = jsonpb.UnmarshalString(filterConfig, filterV2.Config)
+			if err != nil {
+				log.DefaultLogger.Errorf("fail to translate filter config : %v\n", err)
+				//fmt.Printf("fail to translate filter config : %v\n", err)
+				return nil
+			}
+			filterChain.Filters = append(filterChain.Filters, filterV2)
+		}
+
+		listenerV2.FilterChains = make([]envoy_api_v2_listener.FilterChain, 0, 1)
+		listenerV2.FilterChains = append(listenerV2.FilterChains, filterChain)
+		listeners = append(listeners, listenerV2)
 	}
 
-	return res.Listeners
+	return listeners
 }
 
 func (c *xdsClient) getLDSResquest(endpoint string) string {

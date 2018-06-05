@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sort"
 
-	//"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
 
 const (
@@ -96,7 +96,6 @@ type xdsClient struct {
 	httpClient *http.Client
 	serviceCluster string
 	serviceNode string
-	//logger log.logger
 }
 
 // Tracing definition
@@ -142,11 +141,17 @@ type DelayFilter struct {
 	Duration int64  `json:"fixed_duration_ms,omitempty"`
 }
 
+type RangeMatch struct {
+	start int `json:"start, omitempty"`
+	end int `json:"end, omitempty"`
+}
+
 // Header definition
 type Header struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 	Regex bool   `json:"regex,omitempty"`
+	RangeMatch *RangeMatch  `json:"range_match,omitempty"`
 }
 
 // FilterFaultConfig definition
@@ -185,6 +190,9 @@ type HTTPRoute struct {
 
 	Path   string `json:"path,omitempty"`
 	Prefix string `json:"prefix,omitempty"`
+	Regex  string `json:"regex,omitempty"`
+
+	CaseSensitive bool `json:"case_sensitive"`
 
 	PrefixRewrite string `json:"prefix_rewrite,omitempty"`
 	HostRewrite   string `json:"host_rewrite,omitempty"`
@@ -193,6 +201,7 @@ type HTTPRoute struct {
 	HostRedirect string `json:"host_redirect,omitempty"`
 
 	Cluster          string           `json:"cluster,omitempty"`
+	ClusterHeader    string           `json:"cluster_header,omitempty"`
 	WeightedClusters *WeightedCluster `json:"weighted_clusters,omitempty"`
 
 	Headers      Headers           `json:"headers,omitempty"`
@@ -205,7 +214,7 @@ type HTTPRoute struct {
 
 	// clusters contains the set of referenced clusters in the route; the field is special
 	// and used only to aggregate cluster information after composing routes
-	clusters Clusters
+	clusters ClustersV1
 
 	// faults contains the set of referenced faults in the route; the field is special
 	// and used only to aggregate fault filter information after composing routes
@@ -258,7 +267,7 @@ type RetryPolicy struct {
 // WeightedCluster definition
 // See https://envoyproxy.github.io/envoy/configuration/http_conn_man/route_config/route.html
 type WeightedCluster struct {
-	Clusters         []*WeightedClusterEntry `json:"clusters"`
+	ClustersV1         []*WeightedClusterEntry `json:"clusters"`
 	RuntimeKeyPrefix string                  `json:"runtime_key_prefix,omitempty"`
 }
 
@@ -275,8 +284,8 @@ type VirtualHost struct {
 	Routes  []*HTTPRoute `json:"routes"`
 }
 
-func (host *VirtualHost) clusters() Clusters {
-	out := make(Clusters, 0)
+func (host *VirtualHost) clusters() ClustersV1 {
+	out := make(ClustersV1, 0)
 	for _, route := range host.Routes {
 		out = append(out, route.clusters...)
 	}
@@ -286,6 +295,7 @@ func (host *VirtualHost) clusters() Clusters {
 // HTTPRouteConfig definition
 type HTTPRouteConfig struct {
 	VirtualHosts []*VirtualHost `json:"virtual_hosts"`
+	ValidateClusters bool `json:"validate_clusters,omitempty"`
 }
 
 // HTTPRouteConfigs is a map from the port number to the route config
@@ -301,8 +311,8 @@ func (routes HTTPRouteConfigs) EnsurePort(port int) *HTTPRouteConfig {
 	return config
 }
 
-func (routes HTTPRouteConfigs) clusters() Clusters {
-	out := make(Clusters, 0)
+func (routes HTTPRouteConfigs) clusters() ClustersV1 {
+	out := make(ClustersV1, 0)
 	for _, config := range routes {
 		out = append(out, config.clusters()...)
 	}
@@ -356,8 +366,8 @@ func (rc *HTTPRouteConfig) faults() []*HTTPFilter {
 	return out
 }
 
-func (rc *HTTPRouteConfig) clusters() Clusters {
-	out := make(Clusters, 0)
+func (rc *HTTPRouteConfig) clusters() ClustersV1 {
+	out := make(ClustersV1, 0)
 	for _, host := range rc.VirtualHosts {
 		out = append(out, host.clusters()...)
 	}
@@ -498,14 +508,18 @@ type Listener struct {
 	SSLContext     *SSLContext      `json:"ssl_context,omitempty"`
 	BindToPort     bool             `json:"bind_to_port"`
 	UseOriginalDst bool             `json:"use_original_dst,omitempty"`
+	UseProxyProto  bool             `json:"use_proxy_proto,omitempty"`
+	PerConnectionBufferLimitBytes int `json:"per_connection_buffer_limit_bytes,omitempty"`
+	DrainType      string 			 `json:"drain_type,omitempty"`
 }
 
 // Listeners is a collection of listeners
-type Listeners []*Listener
+type ListenersV1 []*Listener
+type Listeners []*xdsapi.Listener
 
 // normalize sorts and de-duplicates listeners by address
-func (listeners Listeners) normalize() Listeners {
-	out := make(Listeners, 0, len(listeners))
+func (listeners ListenersV1) normalize() ListenersV1 {
+	out := make(ListenersV1, 0, len(listeners))
 	set := make(map[string]bool)
 	for _, listener := range listeners {
 		if !set[listener.Address] {
@@ -518,7 +532,7 @@ func (listeners Listeners) normalize() Listeners {
 }
 
 // GetByAddress returns a listener by its address
-func (listeners Listeners) GetByAddress(addr string) *Listener {
+func (listeners ListenersV1) GetByAddress(addr string) *Listener {
 	for _, listener := range listeners {
 		if listener.Address == addr {
 			return listener
@@ -573,6 +587,7 @@ type Cluster struct {
 	Features         string             `json:"features,omitempty"`
 	CircuitBreaker   *CircuitBreaker    `json:"circuit_breakers,omitempty"`
 	OutlierDetection *OutlierDetection  `json:"outlier_detection,omitempty"`
+	PerConnectionBufferLimitBytes int `json:"per_connection_buffer_limit_bytes,omitempty"`
 
 	// special values used by the post-processing passes for outbound mesh-local clusters
 	outbound bool
@@ -585,10 +600,18 @@ type Cluster struct {
 // See: https://lyft.github.io/envoy/docs/configuration/cluster_manager/cluster_circuit_breakers.html#circuit-breakers
 type CircuitBreaker struct {
 	Default DefaultCBPriority `json:"default"`
+	High HighCBPriority `json:"high"`
 }
 
 // DefaultCBPriority defines the circuit breaker for default cluster priority
 type DefaultCBPriority struct {
+	MaxConnections     int `json:"max_connections,omitempty"`
+	MaxPendingRequests int `json:"max_pending_requests,omitempty"`
+	MaxRequests        int `json:"max_requests,omitempty"`
+	MaxRetries         int `json:"max_retries,omitempty"`
+}
+
+type HighCBPriority struct {
 	MaxConnections     int `json:"max_connections,omitempty"`
 	MaxPendingRequests int `json:"max_pending_requests,omitempty"`
 	MaxRequests        int `json:"max_requests,omitempty"`
@@ -602,14 +625,22 @@ type OutlierDetection struct {
 	IntervalMS         int64 `json:"interval_ms,omitempty"`
 	BaseEjectionTimeMS int64 `json:"base_ejection_time_ms,omitempty"`
 	MaxEjectionPercent int   `json:"max_ejection_percent,omitempty"`
+	ConsecutiveGatewayFailure int `json:"consecutive_gateway_failure,omitempty"`
+	EnforcingConsecutive5xx int `json:"enforcing_consecutive_5xx,omitempty"`
+	EnforcingConsecutiveGatewayFailure int `json:"enforcing_consecutive_gateway_failure,omitempty"`
+	EnforcingSuccessRate  int `json:"enforcing_success_rate,omitempty"`
+	SuccessRateMinimumHosts int `json:"success_rate_minimum_hosts,omitempty"`
+	SuccessRateRequestVolume  int `json:"success_rate_request_volume,omitempty"`
+	SuccessRateStdevFactor int `json:"success_rate_stdev_factor,omitempty"`
 }
 
 // Clusters is a collection of clusters
-type Clusters []*Cluster
+type ClustersV1 []*Cluster
+type Clusters []*xdsapi.Cluster
 
 // normalize deduplicates and sorts clusters by name
-func (clusters Clusters) normalize() Clusters {
-	out := make(Clusters, 0, len(clusters))
+func (clusters ClustersV1) normalize() ClustersV1 {
+	out := make(ClustersV1, 0, len(clusters))
 	set := make(map[string]bool)
 	for _, cluster := range clusters {
 		if !set[cluster.Name] {
@@ -698,7 +729,7 @@ type RDS struct {
 
 // ClusterManager definition
 type ClusterManager struct {
-	Clusters Clusters          `json:"clusters"`
+	ClustersV1 ClustersV1          `json:"clusters"`
 	SDS      *DiscoveryCluster `json:"sds,omitempty"`
 	CDS      *DiscoveryCluster `json:"cds,omitempty"`
 }
@@ -754,8 +785,8 @@ const (
 // have labels name=kittyCat,region=us-east.
 type Labels map[string]string
 
-type ldsResponse struct {
-	Listeners Listeners `json:"listeners"`
+type ListenersData struct {
+	ListenersV1 ListenersV1 `json:"listeners"`
 }
 
 type ServiceHosts struct {
