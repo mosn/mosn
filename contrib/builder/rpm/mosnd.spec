@@ -41,7 +41,7 @@ cp /etc/cron.daily/logrotate   /etc/cron.hourly/
 
 %files
 %{_homedir}/bin/mosnd
-%{_homedir}/conf/mosn_config.json
+%config(noreplace) %{_homedir}/conf/mosn_config.json
 /etc/init.d/mosnd
 /etc/logrotate.d/mosnd
 
