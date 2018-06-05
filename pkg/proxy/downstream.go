@@ -12,6 +12,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	`gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/models`
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
@@ -205,11 +206,11 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
-	
+
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
-	
+
 	s.timeout = parseProxyTimeout(route, headers)
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
@@ -221,14 +222,14 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 			log.DefaultLogger.Errorf("Initialize Upstream Connection Pool Error, Request Can't be Proxied")
 			return
 		}
-		
+
 		//Build Request
 		s.upstreamRequest = &upstreamRequest{
 			activeStream: s,
 			proxy:        s.proxy,
 			connPool:     pool,
 		}
-		
+
 		// if current selected connPool can't init active client, need to:
 		// 1. delete the remote host from cluster
 		// 2  select another host
@@ -241,6 +242,8 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 			break
 		}
 	}
+
+	log.DefaultLogger.Debugf("proxy rpc, tracerId=%s, service=%s, remote host=%s",headers[models.TRACER_ID_KEY],headers[models.SERVICE_KEY],s.upstreamRequest.connPool.Host())
 
 	// Call upstream's encode header method to build upstream's request
 	s.upstreamRequest.encodeHeaders(headers, endStream)

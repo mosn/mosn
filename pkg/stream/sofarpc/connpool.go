@@ -69,6 +69,7 @@ func (p *connPool) Close() {
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
 	if event.IsClose()|| event == types.ConnectFailed {
+
 		// todo: update host stats
 		p.activeClient = nil
 	} else if event == types.ConnectTimeout {
@@ -112,7 +113,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 			pool.host.AddressString(),err)
 		return nil
 	}
-	
+
 	codecClient := pool.createCodecClient(context, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
@@ -121,7 +122,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac.codecClient = codecClient
 	ac.host = data.HostInfo
 	log.DefaultLogger.Debugf("new client create, codecClient=%+v, host=%+v,connection data =%+v", codecClient, data.HostInfo, data)
-	
+
 	return ac
 }
 
