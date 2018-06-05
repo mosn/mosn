@@ -218,7 +218,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(clusterKey))
 
 		if err != nil {
-			log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed")
+			log.DefaultLogger.Errorf("Initialize Upstream Connection Pool Error, Request Can't be Proxied")
 			return
 		}
 		
@@ -235,8 +235,9 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		if err := s.upstreamRequest.connPool.InitActiveClient(s.proxy.context); err != nil {
 			host := s.upstreamRequest.connPool.Host()
 			s.proxy.clusterManager.RemoveClusterHosts(clusterKey,host)
-			log.DefaultLogger.Errorf(err.Error())
+			log.DefaultLogger.Errorf(err.Error() + "Choose Another Host")
 		} else {
+			log.DefaultLogger.Debugf("Init Active Client Success, Remote Host is %s",s.upstreamRequest.connPool.Host())
 			break
 		}
 	}

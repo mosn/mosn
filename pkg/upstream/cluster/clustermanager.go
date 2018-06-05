@@ -180,20 +180,21 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host
 		
 		found := false
 		if concretedCluster, ok := pcc.(*simpleInMemCluster); ok {
-			
-			for i := 0; i < len(concretedCluster.hosts); {
-				curNh := concretedCluster.hosts[i]
+			ccHosts := concretedCluster.hosts
+			for i := 0; i < len(ccHosts); i++ {
 				
-				if host.AddressString() == curNh.AddressString() {
-					concretedCluster.hosts = append(concretedCluster.hosts[:i], concretedCluster.hosts[i+1:]...)
+				if host.AddressString() == ccHosts[i].AddressString() {
+					ccHosts = append(ccHosts[:i], ccHosts[i+1:]...)
 					found = true
 					break
-				} else {
-					i++
 				}
 			}
 			if found == true {
 				log.DefaultLogger.Debugf("Remove Host Success, Host is %+v",host)
+				concretedCluster.UpdateHosts(ccHosts)
+			} else {
+				log.DefaultLogger.Debugf("Remove Host Failed, Host %+v Doesn't Exist",host)
+				
 			}
 			
 		} else {
