@@ -10,7 +10,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-func (c *xdsClient) getEndpoints(endpoint string, cluster pb.Cluster) []pb.ClusterLoadAssignment {
+func (c *xdsClient) getEndpoints(endpoint string, clusterName string) []pb.ClusterLoadAssignment {
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
 	if err != nil {
 		log.DefaultLogger.Fatalf("did not connect: %v", err)
@@ -26,7 +26,7 @@ func (c *xdsClient) getEndpoints(endpoint string, cluster pb.Cluster) []pb.Clust
 	}
 	err = streamClient.Send(&pb.DiscoveryRequest{
 		VersionInfo:"",
-		ResourceNames: []string{cluster.Name},
+		ResourceNames: []string{clusterName},
 		TypeUrl:"",
 		ResponseNonce:"",
 		ErrorDetail: &google_rpc.Status{

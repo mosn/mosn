@@ -2,12 +2,14 @@ package v2
 
 import (
 
-	//"github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	//util "github.com/envoyproxy/go-control-plane/pkg/util"
+	util "github.com/envoyproxy/go-control-plane/pkg/util"
 	"net/http"
 	"fmt"
+	http_conn "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	//"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 )
+
 
 var xdsEnpoint string =  "istio-pilot.istio-system-beta.svc.szbd-uc.uaebd.local:15010"
 var xdsHttpEnpoint string =  "istio-pilot.istio-system-beta.svc.szbd-uc.uaebd.local:15003"
@@ -31,25 +33,31 @@ func (c *xdsClient) getConfig() {
 
 func (c *xdsClient) getListenersAndRoutes() {
 	ldsEndpoint := xdsEnpoint
-	//rdsEnpoint := xdsHttpEnpoint
+	rdsEnpoint := xdsHttpEnpoint
 	listeners := c.getListeners(ldsEndpoint)
 	if listeners == nil {
 		return
 	}
 	for _,listener := range listeners {
 		fmt.Println("xds get listener : %s" , listener.String())
-		//for _, filterChain := range listener.FilterChains {
-		//	for _,filter := range filterChain.Filters {
-		//		if(filter.Name == util.HTTPConnectionManager){
-		//			filterConfig := &HttpConnectionManager{}
-		//			util.StructToMessage(filter.Config,filterConfig)
-		//			rds ,err := filterConfig.RouteSpecifier.(*http_conn.HttpConnectionManager_Rds)
-		//			if !err {
-		//				c.getRoute(rdsEnpoint,rds.Rds.RouteConfigName)
-		//			}
-		//		}
-		//	}
-		//}
+		for _, filterChain := range listener.FilterChains {
+			for _,filter := range filterChain.Filters {
+				if(filter.Name == util.HTTPConnectionManager){
+					filterConfig := &http_conn.HttpConnectionManager{}
+					util.StructToMessage(filter.Config,filterConfig)
+					rds := filterConfig.GetRds()
+					if rds != nil {
+						fmt.Println("rds config name:",rds.RouteConfigName)
+						ht := c.getRoute(rdsEnpoint,rds.RouteConfigName)
+						for _,vh := range ht.VirtualHosts{
+							fmt.Println("virtual host name:",vh.Name)
+						}
+					}else{
+						fmt.Println("rds convert fail")
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -60,14 +68,21 @@ func (c *xdsClient) getClustersAndHosts() {
 	for _,cluster := range clusters{
 		fmt.Println("xds get cluster : %s" , cluster.String())
 		if( cluster.Type == pb.Cluster_EDS ){
-			lbAssignments := c.getEndpoints(edsEndpoint,cluster)
+			lbAssignments := c.getEndpoints(edsEndpoint,cluster.Name)
 			for _,lbAssignment := range lbAssignments{
 				//log.DefaultLogger.Infof("get endpoint : %s",lbAssignment.String())
 				fmt.Printf("xds get endpoint : %s",lbAssignment.String())
 			}
 		}
 	}
-
+	//eds test
+	lbAssignments := c.getEndpoints(edsEndpoint,"out.s1.hw.svc.szbd-uc.uaebd.local|http-s1|version=v1")
+	for _,lbAssignment := range lbAssignments{
+		for _,item := range lbAssignment.Endpoints{
+			item.String()
+		}
+		fmt.Printf("xds get endpoint : %s",lbAssignment.String())
+	}
 }
 
 func Start() {

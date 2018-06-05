@@ -1,7 +1,6 @@
 package v1
 
 import (
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"fmt"
 	"io/ioutil"
 	"encoding/json"

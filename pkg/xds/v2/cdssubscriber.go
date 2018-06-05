@@ -8,7 +8,6 @@ import (
 	"golang.org/x/net/context"
 	google_rpc "github.com/gogo/googleapis/google/rpc"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"fmt"
 )
 
 func (c *xdsClient) getClusters(endpoint string) []pb.Cluster {
