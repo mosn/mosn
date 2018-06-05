@@ -12,9 +12,9 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-func (c *xdsClient) getListeners(endpoint string) Listeners{
+func (c *V1Client) GetListeners(endpoint string) Listeners{
 	url := c.getLDSResquest(endpoint)
-	resp, err := c.httpClient.Get(url)
+	resp, err := c.HttpClient.Get(url)
 	if err != nil {
 		log.DefaultLogger.Errorf("couldn't get listeners: %v", err)
 		//fmt.Printf("couldn't get listeners: %v\n", err)
@@ -33,7 +33,7 @@ func (c *xdsClient) getListeners(endpoint string) Listeners{
 	return c.parseListeners(body)
 }
 
-func (c *xdsClient) parseListeners(body []byte) Listeners {
+func (c *V1Client) parseListeners(body []byte) Listeners {
 	var res ListenersData
 
 	err := json.Unmarshal(body, &res)
@@ -75,8 +75,8 @@ func (c *xdsClient) parseListeners(body []byte) Listeners {
 			filterV2.DeprecatedV1.Type = filterV1.Type
 			filterV2.Config = &google_protobuf.Struct{}
 
-			filterConfig := fmt.Sprintf("{\"deprecated_v1\": true, \"value\": %s}", string(filterV1.Config))
-			err = jsonpb.UnmarshalString(filterConfig, filterV2.Config)
+			//filterConfig := fmt.Sprintf("{\"deprecated_v1\": true, \"value\": %s}", string(filterV1.Config))
+			err = jsonpb.UnmarshalString(string(filterV1.Config), filterV2.Config)
 			if err != nil {
 				log.DefaultLogger.Errorf("fail to translate filter config : %v\n", err)
 				//fmt.Printf("fail to translate filter config : %v\n", err)
@@ -93,6 +93,6 @@ func (c *xdsClient) parseListeners(body []byte) Listeners {
 	return listeners
 }
 
-func (c *xdsClient) getLDSResquest(endpoint string) string {
-	return fmt.Sprintf("http://%s/v1/listeners/%s/%s", endpoint, c.serviceCluster, c.serviceNode)
+func (c *V1Client) getLDSResquest(endpoint string) string {
+	return fmt.Sprintf("http://%s/v1/listeners/%s/%s", endpoint, c.ServiceCluster, c.ServiceNode)
 }

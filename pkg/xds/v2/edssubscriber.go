@@ -10,10 +10,11 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-func (c *xdsClient) getEndpoints(endpoint string, clusterName string) []pb.ClusterLoadAssignment {
+func (c *V2Client) GetEndpoints(endpoint string, clusterName string) []*pb.ClusterLoadAssignment {
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
 	if err != nil {
 		log.DefaultLogger.Fatalf("did not connect: %v", err)
+		return nil
 	}
 	defer conn.Close()
 	client := pb.NewEndpointDiscoveryServiceClient(conn)
@@ -23,6 +24,7 @@ func (c *xdsClient) getEndpoints(endpoint string, clusterName string) []pb.Clust
 	streamClient, err := client.StreamEndpoints(ctx)
 	if err != nil {
 		log.DefaultLogger.Fatalf("get endpoints fail: %v", err)
+		return nil
 	}
 	err = streamClient.Send(&pb.DiscoveryRequest{
 		VersionInfo:"",
@@ -33,22 +35,25 @@ func (c *xdsClient) getEndpoints(endpoint string, clusterName string) []pb.Clust
 
 		},
 		Node:&envoy_api_v2_core1.Node{
-			Id:c.serviceNode,
-			Cluster:c.serviceCluster,
+			Id:c.ServiceNode,
+			Cluster:c.ServiceCluster,
 		},
 	})
 	if err != nil {
 		log.DefaultLogger.Fatalf("get endpoints fail: %v", err)
+		return nil
 	}
 	r,err := streamClient.Recv()
 	if err != nil {
 		log.DefaultLogger.Fatalf("get endpoints fail: %v", err)
+		return nil
+
 	}
-	lbAssignments := make([]pb.ClusterLoadAssignment,0)
+	lbAssignments := make([]*pb.ClusterLoadAssignment,0)
 	for _ ,res := range r.Resources{
 		lbAssignment := pb.ClusterLoadAssignment{}
 		lbAssignment.Unmarshal(res.GetValue())
-		lbAssignments = append(lbAssignments, lbAssignment)
+		lbAssignments = append(lbAssignments, &lbAssignment)
 	}
 	return lbAssignments
 }

@@ -11,9 +11,9 @@ import (
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 )
 
-func (c *xdsClient) getRoute(endpoint, routeConfigName string) *xdsapi.RouteConfiguration {
+func (c *V1Client) GetRoute(endpoint, routeConfigName string) *xdsapi.RouteConfiguration {
 	url := c.getRDSResquest(endpoint, routeConfigName)
-	resp, err := c.httpClient.Get(url)
+	resp, err := c.HttpClient.Get(url)
 	if err != nil {
 		log.DefaultLogger.Errorf("couldn't get routes: %v", err)
 		//fmt.Printf("couldn't get routes: %v\n", err)
@@ -31,7 +31,7 @@ func (c *xdsClient) getRoute(endpoint, routeConfigName string) *xdsapi.RouteConf
 	return c.parseRoutes(body)
 }
 
-func (c *xdsClient) parseRoutes(body []byte) *xdsapi.RouteConfiguration {
+func (c *V1Client) parseRoutes(body []byte) *xdsapi.RouteConfiguration {
 	var res HTTPRouteConfig
 	err := json.Unmarshal(body, &res)
 	if err != nil {
@@ -57,6 +57,6 @@ func (c *xdsClient) parseRoutes(body []byte) *xdsapi.RouteConfiguration {
 	return &routesV2
 }
 
-func (c *xdsClient) getRDSResquest(endpoint, routeConfigName string) string {
-	return fmt.Sprintf("http://%s/v1/routes/%s/%s/%s", endpoint, routeConfigName, c.serviceCluster, c.serviceNode)
+func (c *V1Client) getRDSResquest(endpoint, routeConfigName string) string {
+	return fmt.Sprintf("http://%s/v1/routes/%s/%s/%s", endpoint, routeConfigName, c.ServiceCluster, c.ServiceNode)
 }

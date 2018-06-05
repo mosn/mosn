@@ -10,11 +10,12 @@ import (
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 )
 
-func (c *xdsClient) getClusters(endpoint string) []pb.Cluster {
+func (c *V2Client) GetClusters(endpoint string) []*pb.Cluster {
 		// Set up a connection to the server.
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
 	if err != nil {
 		log.DefaultLogger.Fatalf("did not connect: %v", err)
+		return nil
 	}
 	defer conn.Close()
 	client := pb.NewClusterDiscoveryServiceClient(conn)
@@ -24,6 +25,7 @@ func (c *xdsClient) getClusters(endpoint string) []pb.Cluster {
 	streamClient, err := client.StreamClusters(ctx)
 	if err != nil {
 		log.DefaultLogger.Fatalf("get clusters fail: %v", err)
+		return nil
 	}
 	err = streamClient.Send(&pb.DiscoveryRequest{
 		VersionInfo:"",
@@ -34,21 +36,23 @@ func (c *xdsClient) getClusters(endpoint string) []pb.Cluster {
 
 		},
 		Node:&envoy_api_v2_core1.Node{
-			Id:c.serviceNode,
+			Id:c.ServiceNode,
 		},
 	})
 	if err != nil {
 		log.DefaultLogger.Fatalf("get clusters fail: %v", err)
+		return nil
 	}
 	r,err := streamClient.Recv()
 	if err != nil {
 		log.DefaultLogger.Fatalf("get clusters fail: %v", err)
+		return nil
 	}
-	clusters := make([]pb.Cluster,0)
+	clusters := make([]*pb.Cluster,0)
 	for _ ,res := range r.Resources{
 		cluster := pb.Cluster{}
 		cluster.Unmarshal(res.GetValue())
-		clusters = append(clusters,cluster)
+		clusters = append(clusters,&cluster)
 	}
 	return clusters
 }

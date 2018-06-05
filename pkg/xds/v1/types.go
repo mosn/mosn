@@ -92,10 +92,10 @@ const (
 	both    = "both"
 )
 
-type xdsClient struct {
-	httpClient *http.Client
-	serviceCluster string
-	serviceNode string
+type V1Client struct {
+	HttpClient *http.Client
+	ServiceCluster string
+	ServiceNode string
 }
 
 // Tracing definition

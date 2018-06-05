@@ -8,9 +8,9 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-func (c *xdsClient) getHosts(endpoint, serviceName string) *ServiceHosts {
+func (c *V1Client) GetHosts(endpoint, serviceName string) *ServiceHosts {
 	url := c.getSDSResquest(endpoint, serviceName)
-	resp, err := c.httpClient.Get(url)
+	resp, err := c.HttpClient.Get(url)
 	if err != nil {
 		log.DefaultLogger.Errorf("couldn't get hosts: %v", err)
 		//fmt.Printf("couldn't get hosts: %v\n", err)
@@ -28,7 +28,7 @@ func (c *xdsClient) getHosts(endpoint, serviceName string) *ServiceHosts {
 	return c.parseHosts(body)
 }
 
-func (c *xdsClient) parseHosts(body []byte) *ServiceHosts {
+func (c *V1Client) parseHosts(body []byte) *ServiceHosts {
 	res := ServiceHosts{}
 	err := json.Unmarshal(body, &res)
 	if err != nil {
@@ -38,6 +38,6 @@ func (c *xdsClient) parseHosts(body []byte) *ServiceHosts {
 	return &res
 }
 
-func (c *xdsClient) getSDSResquest(endpoint, serviceName string) string {
+func (c *V1Client) getSDSResquest(endpoint, serviceName string) string {
 	return fmt.Sprintf("http://%s/v1/registration/%s", endpoint, serviceName)
 }

@@ -14,9 +14,9 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 )
 
-func (c *xdsClient) getClusters(endpoint string) Clusters {
+func (c *V1Client) GetClusters(endpoint string) Clusters {
 	url := c.getCDSRequest(endpoint)
-	resp, err := c.httpClient.Get(url)
+	resp, err := c.HttpClient.Get(url)
 	if err != nil {
 		log.DefaultLogger.Errorf("couldn't get clusters: %v", err)
 		//fmt.Printf("couldn't get clusters: %v\n", err)
@@ -34,7 +34,7 @@ func (c *xdsClient) getClusters(endpoint string) Clusters {
 	return c.parseClusters(body)
 }
 
-func (c *xdsClient) parseClusters(body []byte) Clusters {
+func (c *V1Client) parseClusters(body []byte) Clusters {
 	res := ClusterManager{}
 	err := json.Unmarshal(body, &res)
 	if err != nil {
@@ -133,6 +133,6 @@ func (c *xdsClient) parseClusters(body []byte) Clusters {
 	return clusters
 }
 
-func (c *xdsClient) getCDSRequest(endpoint string) string {
-	return fmt.Sprintf("http://%s/v1/clusters/%s/%s", endpoint, c.serviceCluster, c.serviceNode)
+func (c *V1Client) getCDSRequest(endpoint string) string {
+	return fmt.Sprintf("http://%s/v1/clusters/%s/%s", endpoint, c.ServiceCluster, c.ServiceNode)
 }

@@ -10,11 +10,12 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-func (c *xdsClient) getListeners(endpoint string) []pb.Listener{
+func (c *V2Client) GetListeners(endpoint string) []*pb.Listener{
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
 	if err != nil {
 		log.DefaultLogger.Fatalf("did not connect: %v", err)
+		return nil
 	}
 	defer conn.Close()
 	client := pb.NewListenerDiscoveryServiceClient(conn)
@@ -24,6 +25,7 @@ func (c *xdsClient) getListeners(endpoint string) []pb.Listener{
 	streamClient, err := client.StreamListeners(ctx)
 	if err != nil {
 		log.DefaultLogger.Fatalf("get listener fail: %v", err)
+		return nil
 	}
 	err = streamClient.Send(&pb.DiscoveryRequest{
 		VersionInfo:"",
@@ -34,21 +36,23 @@ func (c *xdsClient) getListeners(endpoint string) []pb.Listener{
 
 		},
 		Node:&envoy_api_v2_core1.Node{
-			Id:c.serviceNode,
+			Id:c.ServiceNode,
 		},
 	})
 	if err != nil {
 		log.DefaultLogger.Fatalf("get listener fail: %v", err)
+		return nil
 	}
 	r,err := streamClient.Recv()
 	if err != nil {
 		log.DefaultLogger.Fatalf("get listener fail: %v", err)
+		return nil
 	}
-	listeners := make([]pb.Listener,0)
+	listeners := make([]*pb.Listener,0)
 	for _ ,res := range r.Resources{
 		listener := pb.Listener{}
 		listener.Unmarshal(res.GetValue())
-		listeners = append(listeners, listener)
+		listeners = append(listeners, &listener)
 	}
 	return listeners
 }
