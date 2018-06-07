@@ -7,92 +7,107 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/xds/v2"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"time"
+	"errors"
 )
 
-var xdsHttpEnpoint string =  "istio-pilot.istio-system-beta.svc.szbd-uc.uaebd.local:15003"
-var xdsRpcEnpoint string =  "istio-pilot.istio-system-beta.svc.szbd-uc.uaebd.local:15010"
+var xdsHttpEnpoint string =  "istio-pilot.istio-system.svc.szbd-uc.uaebd.local:15003"
+var xdsRpcEnpoint string =  "istio-pilot.istio-system.svc.szbd-uc.uaebd.local:15010"
 var serviceCluster string = "hsf-client-demo"
 var serviceNode string = "sidecar~10.151.99.229~hsf-client-demo-v1-0.hsfdemo~hsfdemo.svc.cluster.local"
-var stop chan bool = make(chan bool)
-var done chan bool = make(chan bool)
+var warmuped chan bool = make(chan bool)
+var stopping chan bool = make(chan bool)
+var stopped chan bool = make(chan bool)
 
 type xdsClient struct {
 	v1 *v1.V1Client
 	v2 *v2.V2Client
 }
 
-func (c *xdsClient) getConfig(callbacks *Callbacks) {
+func (c *xdsClient) getConfig(config *Config) (err error){
 
 	log.DefaultLogger.Infof("start to get config from istio\n")
 	chans := make([]chan bool, 2)
 	chans[0] = make(chan bool)
-	go c.getListenersAndRoutes(callbacks, chans[0])
+	go c.getListenersAndRoutes(config, chans[0])
 	chans[1] = make(chan bool)
-	go c.getClustersAndHosts(callbacks, chans[1])
+	go c.getClustersAndHosts(config, chans[1])
 
+	success := true
 	for _, ch := range chans {
-		<- ch
+		v := <- ch
+		success = success && v
 		close(ch)
 	}
+	if !success {
+		log.DefaultLogger.Infof("fail to get config from istio\n")
+		err = errors.New("fail to get config from istio")
+		return err
+	}
+	return nil
 }
 
-func (c *xdsClient) getListenersAndRoutes(callbacks *Callbacks, ch chan <- bool) {
-	ldsEndpoint := xdsHttpEnpoint
+func (c *xdsClient) getListenersAndRoutes(config *Config, ch chan <- bool) {
+	ldsEndpoint := xdsRpcEnpoint
 	rdsEnpoint := xdsHttpEnpoint
-	listeners := c.v1.GetListeners(ldsEndpoint)
+	listeners := c.v2.GetListeners(ldsEndpoint)
 	if listeners == nil {
-		ch <- true
+		ch <- false
 		return
 	}
-	callbacks.OnUpdateListeners(listeners)
+	config.OnUpdateListeners(listeners)
 
+	success := true
 	for _, listener := range listeners {
 		//log.DefaultLogger.Infof("listener: %+v \n", listener)
 		//fmt.Printf("listener: %+v \n", listener)
-
 		for _, filterChain := range listener.FilterChains {
 			for _, filter := range filterChain.Filters {
 				if filter.Config.Fields["rds"] != nil {
 					rdsConfig := filter.Config.Fields["rds"].GetStructValue()
 					routeConfigName := rdsConfig.Fields["route_config_name"].GetStringValue()
 					route := c.v1.GetRoute(rdsEnpoint, routeConfigName)
-					if route != nil {
-						callbacks.OnUpdateRoutes(route)
+					if route == nil {
+						success = false
 					}
+					config.OnUpdateRoutes(route)
+
 					//log.DefaultLogger.Infof("route: %+v \n", route)
 					//fmt.Printf("route: %+v \n", route)
 				}
 			}
 		}
 	}
-	ch <- true
+
+	ch <- success
 }
 
-func (c *xdsClient) getClustersAndHosts(callbacks *Callbacks, ch chan <- bool) {
+func (c *xdsClient) getClustersAndHosts(config *Config, ch chan <- bool) {
 	cdsEndpoint := xdsHttpEnpoint
 	edsEndpoint := xdsRpcEnpoint
 	clusters := c.v1.GetClusters(cdsEndpoint)
 	if clusters == nil {
-		ch <- true
+		ch <- false
 		return
 	}
-	callbacks.OnUpdateClusters(clusters)
+	config.OnUpdateClusters(clusters)
 
+	success := true
 	for _, cluster := range clusters {
 		//log.DefaultLogger.Infof("cluster: %+v \n", cluster)
 		//fmt.Printf("cluster: %#v \n", cluster)
 		if cluster.Type == xdsapi.Cluster_EDS {
 			clusterName := cluster.Name
 			endpoints := c.v2.GetEndpoints(edsEndpoint, clusterName)
-			if endpoints != nil {
-				callbacks.OnUpdateEndpoints(endpoints)
+			if endpoints == nil {
+				success = false
 			}
+			config.OnUpdateEndpoints(endpoints)
 		}
 	}
-	ch <- true
+	ch <- success
 }
 
-func Start(callbacks *Callbacks) {
+func Start(config *Config) {
 
 	log.DefaultLogger.Infof("xdsclient start\n")
 	client := xdsClient{}
@@ -103,15 +118,21 @@ func Start(callbacks *Callbacks) {
 		client.v2 = &v2.V2Client{serviceCluster, serviceNode}
 	}
 
-	client.getConfig(callbacks)
+	for {
+		err := client.getConfig(config)
+		if err == nil {
+			break
+		}
+	}
+	warmuped <- true
 
 	t1 := time.NewTimer(time.Second * 5)
 	for {
 		select {
-		case <- stop:
-			done <- true
+		case <- stopping:
+			stopped <- true
 		case <- t1.C:
-			client.getConfig(callbacks)
+			client.getConfig(config)
 			t1.Reset(time.Second * 5)
 		}
 	}
@@ -120,7 +141,11 @@ func Start(callbacks *Callbacks) {
 
 func Stop() {
 	log.DefaultLogger.Infof("prepare to stop xdsclient\n")
-	stop <- true
-	<- done
+	stopping <- true
+	<- stopped
 	log.DefaultLogger.Infof("xdsclient stop\n")
+}
+
+func WaitForWarmUp() {
+	<- warmuped
 }

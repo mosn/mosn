@@ -5,6 +5,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	google_rpc "github.com/gogo/googleapis/google/rpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -18,11 +19,11 @@ func (c *V2Client) GetListeners(endpoint string) []*pb.Listener{
 		return nil
 	}
 	defer conn.Close()
-	client := pb.NewListenerDiscoveryServiceClient(conn)
+	client := ads.NewAggregatedDiscoveryServiceClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	streamClient, err := client.StreamListeners(ctx)
+	streamClient, err := client.StreamAggregatedResources(ctx)
 	if err != nil {
 		log.DefaultLogger.Fatalf("get listener fail: %v", err)
 		return nil
@@ -30,7 +31,7 @@ func (c *V2Client) GetListeners(endpoint string) []*pb.Listener{
 	err = streamClient.Send(&pb.DiscoveryRequest{
 		VersionInfo:"",
 		ResourceNames: []string{},
-		TypeUrl:"",
+		TypeUrl:"type.googleapis.com/envoy.api.v2.Listener",
 		ResponseNonce:"",
 		ErrorDetail: &google_rpc.Status{
 

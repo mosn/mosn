@@ -5,6 +5,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	google_rpc "github.com/gogo/googleapis/google/rpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -17,11 +18,11 @@ func (c *V2Client) GetEndpoints(endpoint string, clusterName string) []*pb.Clust
 		return nil
 	}
 	defer conn.Close()
-	client := pb.NewEndpointDiscoveryServiceClient(conn)
+	client := ads.NewAggregatedDiscoveryServiceClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	streamClient, err := client.StreamEndpoints(ctx)
+	streamClient, err := client.StreamAggregatedResources(ctx)
 	if err != nil {
 		log.DefaultLogger.Fatalf("get endpoints fail: %v", err)
 		return nil
@@ -29,7 +30,7 @@ func (c *V2Client) GetEndpoints(endpoint string, clusterName string) []*pb.Clust
 	err = streamClient.Send(&pb.DiscoveryRequest{
 		VersionInfo:"",
 		ResourceNames: []string{clusterName},
-		TypeUrl:"",
+		TypeUrl: "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
 		ResponseNonce:"",
 		ErrorDetail: &google_rpc.Status{
 
