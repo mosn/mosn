@@ -219,7 +219,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(clusterKey))
 
 		if err != nil {
-			log.DefaultLogger.Errorf("Initialize Upstream Connection Pool Error, Request Can't be Proxied")
+			s.logger.Errorf("Initialize Upstream Connection Pool Error, Request Can't be Retransmitted")
 			return
 		}
 
@@ -236,14 +236,14 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		if err := s.upstreamRequest.connPool.InitActiveClient(s.proxy.context); err != nil {
 			host := s.upstreamRequest.connPool.Host()
 			s.proxy.clusterManager.RemoveClusterHosts(clusterKey,host)
-			log.DefaultLogger.Errorf(err.Error() + "Choose Another Host")
+			s.logger.Errorf(err.Error() +" "+ "Choose Another Host")
 		} else {
-			log.DefaultLogger.Debugf("Init Active Client Success, Remote Host is %s",s.upstreamRequest.connPool.Host())
+			s.logger.Debugf("Init Active Client Success, Remote Host is: %s",s.upstreamRequest.connPool.Host().AddressString())
 			break
 		}
 	}
 
-	log.DefaultLogger.Debugf("proxy rpc, tracerId=%s, service=%s, remote host=%s",headers[models.TRACER_ID_KEY],headers[models.SERVICE_KEY],s.upstreamRequest.connPool.Host())
+	s.logger.Debugf("Proxy rpc, TracerId=%s, Service=%s, Remote Host is: %s",headers[models.TRACER_ID_KEY],headers[models.SERVICE_KEY],s.upstreamRequest.connPool.Host().AddressString())
 
 	// Call upstream's encode header method to build upstream's request
 	s.upstreamRequest.encodeHeaders(headers, endStream)
@@ -385,7 +385,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
-		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", clusterName)
+		s.logger.Errorf("cluster snapshot is nil, cluster name is: %s", clusterName)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 
@@ -397,7 +397,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	clusterConnectionResource := clusterInfo.ResourceManager().ConnectionResource()
 
 	if !clusterConnectionResource.CanCreate() {
-		log.DefaultLogger.Errorf("cluster Connection Resource can't create, cluster name is %s", clusterName)
+		s.logger.Errorf("cluster Connection Resource can't create, cluster name is %s", clusterName)
 
 		s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
 		s.sendHijackReply(types.UpstreamOverFlowCode, s.downstreamReqHeaders)
@@ -642,7 +642,7 @@ func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 	if headers == nil {
 		headers = make(map[string]string, 5)
 	}
-	log.DefaultLogger.Debugf("downstream send hijack reply,with code %d", code)
+	s.logger.Debugf("downstream send hijack reply,with code %d", code)
 
 	headers[types.HeaderStatus] = strconv.Itoa(code)
 	s.encodeHeaders(headers, true)

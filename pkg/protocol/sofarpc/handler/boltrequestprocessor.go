@@ -30,7 +30,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//print tracer log
-		log.DefaultLogger.Infof("time=%s,tracerId=%s,streamId=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY],streamIdStr, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
+		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamId=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY],streamIdStr, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
 
 
 		//for demo, invoke ctx as callback

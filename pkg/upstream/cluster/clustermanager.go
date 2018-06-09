@@ -190,10 +190,10 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host
 				}
 			}
 			if found == true {
-				log.DefaultLogger.Debugf("Remove Host Success, Host is %+v",host)
+				log.DefaultLogger.Debugf("Remove Host Success, Host Address is %s",host.AddressString())
 				concretedCluster.UpdateHosts(ccHosts)
 			} else {
-				log.DefaultLogger.Debugf("Remove Host Failed, Host %+v Doesn't Exist",host)
+				log.DefaultLogger.Debugf("Remove Host Failed, Host %s Doesn't Exist",host.AddressString())
 				
 			}
 			
@@ -273,7 +273,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 			return connPool
 		}
 	} else {
-		log.DefaultLogger.Errorf("  clusterSnapshot.loadbalancer.ChooseHost is nil %s", cluster)
+		log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil %s", cluster)
 		return nil
 	}
 }

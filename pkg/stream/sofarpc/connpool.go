@@ -40,6 +40,8 @@ func (p *connPool) InitActiveClient(context context.Context) error {
 		} else {
 			p.activeClient = ac
 		}
+	}else {
+		log.DefaultLogger.Debugf("Active Client Already Exist, Address is %s",p.Host().AddressString())
 	}
 
 	return nil
@@ -68,18 +70,20 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
-	if event.IsClose()|| event == types.ConnectFailed {
+	if event.IsClose()|| event.ConnectFailure() {
 
 		// todo: update host stats
 		p.activeClient = nil
-	} else if event == types.ConnectTimeout {
-		// todo: update host stats
-		client.codecClient.Close()
+		log.DefaultLogger.Debugf("Reset p.activeClient = nil,onConnectionEvent=%s,Remote Host=%s",event,p.Host().AddressString())
 	}
+	// else if event == types.ConnectTimeout {
+	//	// todo: update host stats
+	//	client.codecClient.Close()
+	//}
 }
 
 func (p *connPool) onStreamDestroy(client *activeClient) {
-	// todo: update host stats
+	// todo: update host statsm
 	p.host.ClusterInfo().ResourceManager().Requests().Decrease()
 }
 
@@ -109,7 +113,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	data := pool.host.CreateConnection(context)
 	if err := data.Connection.Connect(true); err != nil {
-		log.DefaultLogger.Errorf("Create Active Client Error,Remote Address is: %s, Err is %+v",
+		log.DefaultLogger.Errorf("Create Active Client Error, Remote Address = %s, Err = %+v",
 			pool.host.AddressString(),err)
 		return nil
 	}
@@ -121,7 +125,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	ac.codecClient = codecClient
 	ac.host = data.HostInfo
-	log.DefaultLogger.Debugf("new client create, codecClient=%+v, host=%+v,connection data =%+v", codecClient, data.HostInfo, data)
+	log.DefaultLogger.Debugf("Create Active Client Success, Remote Host = %s", data.HostInfo.AddressString())
 
 	return ac
 }

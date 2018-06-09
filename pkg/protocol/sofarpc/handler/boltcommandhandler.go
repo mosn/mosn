@@ -34,9 +34,10 @@ func NewBoltCommandHandlerV2() *BoltCommandHandler {
 }
 
 func (h *BoltCommandHandler) HandleCommand(context context.Context, msg interface{}, filter interface{}) error {
+	logger := log.ByContext(context)
+	
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
-		logger := log.ByContext(context)
 		
 		if processor, ok := h.processors[cmdCode]; ok {
 			//logger.Debugf("handle bolt command")
@@ -46,7 +47,12 @@ func (h *BoltCommandHandler) HandleCommand(context context.Context, msg interfac
 			logger.Errorf(errMsg + "when decoding bolt %s", cmdCode)
 			return errors.New(errMsg)
 		}
+	} else {
+		errMsg := sofarpc.UnKnownCmd
+		logger.Errorf(errMsg + "when decoding bolt %s", msg)
+		return errors.New(errMsg)
 	}
+	
 	return nil
 }
 
