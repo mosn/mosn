@@ -17,17 +17,21 @@ type http2HealthChecker struct {
 }
 
 func NewHttpHealthCheck(config v2.HealthCheck) types.HealthChecker {
-	hc := NewHealthCheck(config)
-	hhc := &http2HealthChecker{
-		healthChecker: *hc,
-		checkPath:     config.CheckPath,
-	}
+	hc := NHCInstance.NewHealthCheck(config)
+	if hcc, ok := hc.(*healthChecker); ok {
 
-	if config.ServiceName != "" {
-		hhc.serviceName = config.ServiceName
-	}
+		hhc := &http2HealthChecker{
+			healthChecker: *hcc,
+			checkPath:     config.CheckPath,
+		}
 
-	return hhc
+		if config.ServiceName != "" {
+			hhc.serviceName = config.ServiceName
+		}
+
+		return hhc
+	}
+	return nil
 }
 
 func (c *http2HealthChecker) newSession(host types.Host) types.HealthCheckSession {
@@ -76,7 +80,7 @@ func (s *http2HealthCheckSession) OnDecodeTrailers(trailers map[string]string) {
 	s.onResponseComplete()
 }
 
-func (s *http2HealthCheckSession) OnDecodeError(err error,headers map[string]string){
+func (s *http2HealthCheckSession) OnDecodeError(err error, headers map[string]string) {
 }
 
 // overload healthCheckSession

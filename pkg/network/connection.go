@@ -388,6 +388,10 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 		return nil
 	}
 
+	// todo
+	if c.rawConnection == nil {
+		return nil
+	}
 	// shutdown read first
 	c.rawConnection.(*net.TCPConn).CloseRead()
 

@@ -77,7 +77,8 @@ func Start(c *config.MOSNConfig) {
 		clusters,clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
 
 		//create cluster manager
-		cm := cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
+		cm := cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,
+			c.ClusterManager.UseHealthCheckGlobal)
 		//initialize server instance
 		srv := server.NewServer(sc, cmf, cm)
 

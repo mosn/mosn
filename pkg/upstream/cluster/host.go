@@ -139,18 +139,23 @@ func (h *host) Gauges() types.HostStats {
 	return types.HostStats{}
 }
 
+// set h.healthFlags = 0
+// ^1 = 0
 func (h *host) ClearHealthFlag(flag types.HealthFlag) {
 	h.healthFlags &= ^uint64(flag)
 }
 
+// return 1, if h.healthFlags = 1
 func (h *host) ContainHealthFlag(flag types.HealthFlag) bool {
 	return h.healthFlags&uint64(flag) > 0
 }
 
+// set h.healthFlags = 1
 func (h *host) SetHealthFlag(flag types.HealthFlag) {
 	h.healthFlags |= uint64(flag)
 }
 
+// return 1 when h.healthFlags == 0
 func (h *host) Health() bool {
 	return h.healthFlags == 0
 }

@@ -42,7 +42,6 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 
 	// note: at this time, serviceName == clusterName
 	cf.ca.TriggerClusterUpdate(serviceName, hosts)
-
 	//router.RoutersManager.AddRouterInRouters([]string{dataId})
 }
 
@@ -117,7 +116,7 @@ func AddSubInfo(subInfo []string) bool {
 		v2Cluster := v2.Cluster{
 			Name:                 si,
 			ClusterType:          v2.DYNAMIC_CLUSTER,
-			SubClustetType:       v2.CONFREG_CLUSTER,
+			SubClusterType:       v2.CONFREG_CLUSTER,
 			LbType:               v2.LB_RANDOM,
 			MaxRequestPerConn:    v2.MaxRequestsPerConn,
 			ConnBufferLimitBytes: v2.ConnBufferLimitByte,

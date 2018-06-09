@@ -255,8 +255,8 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamEncoder
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
-
 	var err error
+	
 	if err, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers)); err != nil {
 		return err
 	}

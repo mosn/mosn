@@ -23,7 +23,7 @@ type sofarpcHealthChecker struct {
 	serviceName  string
 }
 
-// Use for hearth beat starting for sofa bolt in the same codecClient
+// use for hearth-beat starting for sofa bolt in the same codecClient
 // for bolt heartbeat, timeout: 90s interval: 15s
 func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr string,
 	codecClient stream.CodecClient, nameHB string, pro sofarpc.ProtocolType) types.HealthCheckSession {
@@ -40,8 +40,8 @@ func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr 
 
 	host := cluster.NewHost(hostV2, nil)
 
-	hc := NewSofarpcHealthCheck(hcV2, pro)
-	hcs := hc.newSession(codecClient, host)
+	hc := NewSofaRpcHealthCheck(hcV2, pro)
+	hcs := hc.NewSofaRpcHealthCheckSession(codecClient, host)
 	hcs.Start()
 
 	return hcs
@@ -52,22 +52,30 @@ func StopSofaHeartBeat(hsc types.HealthCheckSession) {
 	hsc.Stop()
 }
 
-func NewSofarpcHealthCheck(config v2.HealthCheck, pro sofarpc.ProtocolType) *sofarpcHealthChecker {
-	hc := NewHealthCheck(config)
+func NewSofaRpcHealthCheck(config v2.HealthCheck, pro sofarpc.ProtocolType) *sofarpcHealthChecker {
+	hc := NHCInstance.NewHealthCheck(config)
+	if hcc,ok := hc.(*healthChecker);ok {
+		shc := &sofarpcHealthChecker{
+			healthChecker: *hcc,
+			protocolCode:  pro,
+		}
+		if config.ServiceName != "" {
+			shc.serviceName = config.ServiceName
+		}
+		return shc
+	}
+	return nil
+}
 
+func NewSofaRpcHealthCheckWithHc(hc *healthChecker,pro sofarpc.ProtocolType) *sofarpcHealthChecker {
 	shc := &sofarpcHealthChecker{
 		healthChecker: *hc,
 		protocolCode:  pro,
 	}
-
-	if config.ServiceName != "" {
-		shc.serviceName = config.ServiceName
-	}
-
 	return shc
 }
 
-func (c *sofarpcHealthChecker) newSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
+func (c *sofarpcHealthChecker) NewSofaRpcHealthCheckSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
 	shcs := &sofarpcHealthCheckSession{
 		client:             codecClinet,
 		healthChecker:      c,
@@ -153,7 +161,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 		reqHeaders := codec.NewBoltHeartbeat(id)
 
 		s.requestEncoder.EncodeHeaders(reqHeaders, true)
-		//log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat,request id is %s ...", reqID)
+		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat,request id is %s ...", reqID)
 		s.requestEncoder = nil
 		s.healthCheckSession.onInterval()
 	} else {
@@ -162,9 +170,10 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 }
 
 func (s *sofarpcHealthCheckSession) onTimeout() {
-	s.expectReset = true
-	s.client.Close()
-	s.client = nil
+	// todo: fulfil Timeout
+	//s.expectReset = true
+	//s.client.Close()
+	//s.client = nil
 
 	log.DefaultLogger.Infof("Pay attention: heartbeat client close connection\n")
 	s.healthCheckSession.onTimeout()

@@ -53,11 +53,13 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
-	if event.IsClose() {
+	// todo
+	if event.IsClose() || event == types.ConnectFailed {
 		// todo: update host stats
 		p.activeClient = nil
 	} else if event == types.ConnectTimeout {
 		// todo: update host stats
+		// todo: check for ConnectTimeout, at this time, mesh hasn't connected to remote, close??
 		client.codecClient.Close()
 	}
 }

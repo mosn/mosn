@@ -79,6 +79,7 @@
   ],
   "cluster_manager": {
     "auto_discovery": true,
+    "use_health_check_global": true,
     "clusters": [
       {
         "Name": "local_service",
@@ -88,19 +89,24 @@
         "max_request_per_conn": 100000,
         "conn_buffer_limit_bytes": 0,
         "health_check": {
-          "Timeout": 0,
-          "HealthyThreshold": 0,
-          "UnhealthyThreshold": 0,
-          "Interval": 0,
-          "IntervalJitter": 0,
-          "CheckPath": "",
-          "ServiceName": ""
+          "protocol": "SofaRpc",
+          "timeout": "90s",
+          "healthy_threshold": 2,
+          "unhealthy_threshold": 2,
+          "interval": "5s",
+          "interval_jitter": 0,
+          "check_path": ""
         },
         "spec": {},
         "hosts": [
           {
             "Address": "127.0.0.1:12345",
             "Hostname": "downstream_machine",
+            "Weight": 1
+          },
+          {
+            "Address": "11.166.12.246:9600",
+            "Hostname": "confreg_server",
             "Weight": 1
           }
         ]

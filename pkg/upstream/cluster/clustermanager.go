@@ -22,6 +22,7 @@ type clusterManager struct {
 	http2ConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
 	clusterAdapter  ClusterAdapter
 	autoDiscovery   bool
+	useHealthCheck  bool
 }
 
 type clusterSnapshot struct {
@@ -31,13 +32,14 @@ type clusterSnapshot struct {
 }
 
 func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
-	clusterMap map[string][]v2.Host, autoDiscovery bool) types.ClusterManager {
+	clusterMap map[string][]v2.Host, autoDiscovery bool, useHealthCheck bool) types.ClusterManager {
 	cm := &clusterManager{
 		sourceAddr:      sourceAddr,
 		primaryClusters: cmap.New(),
 		sofaRpcConnPool: cmap.New(),
 		http2ConnPool:   cmap.New(),
 		autoDiscovery:   autoDiscovery,
+		useHealthCheck:  useHealthCheck,
 	}
 	//init ClusterAdap when run app
 	ClusterAdap = ClusterAdapter{
@@ -79,12 +81,11 @@ type primaryCluster struct {
 
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	clusterName := cluster.Name
-
+	
 	if v, exist := cm.primaryClusters.Get(clusterName); exist {
 		if !v.(*primaryCluster).addedViaApi {
 			return false
 		}
-		//return true
 	}
 
 	cm.loadCluster(cluster, true)
@@ -101,6 +102,7 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 }
 
 func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaApi bool) types.Cluster {
+	//clusterConfig.UseHealthCheck
 	cluster := NewCluster(clusterConfig, cm.sourceAddr, addedViaApi)
 
 	cluster.Initialize(func() {

@@ -128,8 +128,8 @@ func (rw *registerWorker) newCodecClient(confregServer string) error {
 	log.DefaultLogger.Infof("Connect to confreg server. server = %v", confregServer)
 
 	//todo use conn idle detect to start/stop heartbeat
-	go healthcheck.StartSofaHeartBeat(config.BoltHeartBeatTimout, config.BoltHeartBeatInterval,
-		confregServer, codecClient, config.HealthName, sofarpc.BOLT_V1)
+	go healthcheck.StartSofaHeartBeat(types.DefaultBoltHeartBeatTimeout, types.DefaultBoltHeartBeatInterval,
+		confregServer, codecClient, types.HealthName, sofarpc.BOLT_V1)
 	return nil
 }
 

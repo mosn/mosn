@@ -3,10 +3,16 @@ package healthcheck
 import (
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"math/rand"
 	"time"
 )
+
+func init(){
+	types.HealthCheckInss= NHCInstance
+}
 
 // types.HealthChecker
 type healthChecker struct {
@@ -27,7 +33,11 @@ type healthChecker struct {
 	stats *healthCheckStats
 }
 
-func NewHealthCheck(config v2.HealthCheck) *healthChecker {
+var NHCInstance = &NHC{}
+
+type NHC struct {}
+
+func (nhc *NHC) NewHealthCheck(config v2.HealthCheck) types.HealthChecker {
 	hc := &healthChecker{
 		healthCheckSessions: make(map[types.Host]types.HealthCheckSession),
 		timeout:             config.Timeout,
@@ -39,6 +49,10 @@ func NewHealthCheck(config v2.HealthCheck) *healthChecker {
 	}
 
 	return hc
+}
+
+func (c *healthChecker) AddCluster(cluster types.Cluster){
+	c.cluster = cluster
 }
 
 func (c *healthChecker) Start() {
@@ -56,14 +70,37 @@ func (c *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 }
 
 func (c *healthChecker) newSession(host types.Host) types.HealthCheckSession {
+	
+	if host.ClusterInfo().HealthCheckProtocol() == types.SofaRpc {
+		log.DefaultLogger.Println("Add sofa health check session, remote host address is %s",host.AddressString())
+		sfhc := NewSofaRpcHealthCheckWithHc(c,sofarpc.BOLT_V1)
+		sfhcs :=sfhc.NewSofaRpcHealthCheckSession(nil,host)
+		return sfhcs
+	}
+	
+	// todo support other protocol
 	return nil
 }
 
 func (c *healthChecker) addHosts(hosts []types.Host) {
 	for _, host := range hosts {
-		c.healthCheckSessions[host] = c.newSession(host)
+		
+		var ns types.HealthCheckSession
+		if ns =c.newSession(host) ; ns == nil {
+			log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address is %s",host.AddressString())
+			return
+		}
+		
+		c.healthCheckSessions[host] = ns
 		c.healthCheckSessions[host].Start()
 	}
+}
+
+func (c *healthChecker) delHosts(hosts []types.Host) {}
+
+func (c *healthChecker) OnClusterMemberUpdate(hostsAdded []types.Host, hostDel []types.Host) {
+	c.addHosts(hostsAdded)
+	c.delHosts(hostDel)
 }
 
 func (c *healthChecker) decHealthy() {
@@ -106,16 +143,16 @@ func (c *healthChecker) getInterval() time.Duration {
 
 func (c *healthChecker) getTimeoutDuration() time.Duration {
 	baseInterval := c.timeout
-	
+
 	if baseInterval < 0 {
 		baseInterval = 0
 	}
-	
+
 	maxUint := ^uint(0)
 	if uint(baseInterval) > maxUint {
 		baseInterval = time.Duration(maxUint)
 	}
-	
+
 	return baseInterval
 }
 
@@ -131,10 +168,10 @@ type healthCheckSession struct {
 	healthChecker *healthChecker
 	//intervalTimer *timer
 	intervalTicker *ticker
-	timeoutTimer  *timer
-	numHealthy    uint32
-	numUnHealthy  uint32
-	host          types.Host
+	timeoutTimer   *timer
+	numHealthy     uint32
+	numUnHealthy   uint32
+	host           types.Host
 }
 
 func NewHealthCheckSession(hc *healthChecker, host types.Host) *healthCheckSession {
@@ -174,8 +211,11 @@ func (s *healthCheckSession) handleSuccess() {
 	}
 
 	s.healthChecker.stats.success.Inc(1)
-	s.healthChecker.runCallbacks(s.host, stateChanged)
+	if stateChanged {
+		s.healthChecker.runCallbacks(s.host, stateChanged)
+	}
 	
+
 	// stop timeout timer
 	s.timeoutTimer.stop()
 	// change to use -> ticker, so no need to start here
@@ -205,14 +245,17 @@ func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
 		s.healthChecker.stats.passiveFailure.Inc(1)
 	}
 
-	s.healthChecker.runCallbacks(s.host, stateChanged)
+	if stateChanged {
+		s.healthChecker.runCallbacks(s.host, stateChanged)
+	}
+	
 }
 
 func (s *healthCheckSession) handleFailure(fType types.FailureType) {
 	s.SetUnhealthy(fType)
 	// ticker now
-//	s.timeoutTimer.stop()
-//	s.intervalTimer.start(s.healthChecker.getInterval())
+	//	s.timeoutTimer.stop()
+	//	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) onInterval() {
