@@ -36,12 +36,11 @@ const (
 )
 
 type Cluster struct {
-	Name              string
-	ClusterType       ClusterType
-	SubClustetType    SubClusterType
-	LbType            LbType
-	MaxRequestPerConn uint64
-
+	Name                 string
+	ClusterType          ClusterType
+	SubClusterType       SubClusterType
+	LbType               LbType
+	MaxRequestPerConn    uint64
 	ConnBufferLimitBytes uint32
 	HealthCheck          HealthCheck
 	Spec                 ClusterSpecInfo
@@ -129,11 +128,12 @@ type RetryPolicy struct {
 }
 
 type HealthCheck struct {
+	Protocol           string
 	Timeout            time.Duration
-	HealthyThreshold   uint32
-	UnhealthyThreshold uint32
 	Interval           time.Duration
 	IntervalJitter     time.Duration
+	HealthyThreshold   uint32
+	UnhealthyThreshold uint32
 	CheckPath          string
 	ServiceName        string
 }
@@ -154,9 +154,9 @@ type SubscribeSpec struct {
 	ServiceName string
 }
 
-type ServiceRegistryInfo struct{
-	ServiceAppInfo  ApplicationInfo
-	ServicePubInfo  []PublishInfo
+type ServiceRegistryInfo struct {
+	ServiceAppInfo ApplicationInfo
+	ServicePubInfo []PublishInfo
 }
 
 type ApplicationInfo struct {
@@ -166,11 +166,11 @@ type ApplicationInfo struct {
 	Zone          string
 }
 
-type PublishInfo struct{
-	Pub  PublishContent
+type PublishInfo struct {
+	Pub PublishContent
 }
 
-type PublishContent struct{
+type PublishContent struct {
 	ServiceName string
-	PubData string
+	PubData     string
 }

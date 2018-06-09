@@ -17,7 +17,7 @@ func Test_AddClusterAndDump(t *testing.T) {
 		v2.Cluster{
 			Name:           "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0@DEFAULT",
 			ClusterType:    v2.DYNAMIC_CLUSTER,
-			SubClustetType: v2.CONFREG_CLUSTER,
+			SubClusterType: v2.CONFREG_CLUSTER,
 			LbType:         v2.LB_RANDOM,
 			Spec: v2.ClusterSpecInfo{
 				Subscribes: []v2.SubscribeSpec{

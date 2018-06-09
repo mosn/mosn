@@ -64,12 +64,13 @@ type HostConfig struct {
 	Weight   uint32 `json:"weight,omitempty"`
 }
 
-type HealthCheckConfig struct {
-	Timeout            DurationConfig
-	HealthyThreshold   uint32 `json:"healthy_threshold"`
-	UnhealthyThreshold uint32 `json:"unhealthy_threshold"`
-	Interval           DurationConfig
+type ClusterHealthCheckConfig struct {
+	Protocol           string         `json:"protocol"`
+	Timeout            DurationConfig `json:"timeout"`
+	Interval           DurationConfig `json:"interval"`
 	IntervalJitter     DurationConfig `json:"interval_jitter"`
+	HealthyThreshold   uint32         `json:"healthy_threshold"`
+	UnhealthyThreshold uint32         `json:"unhealthy_threshold"`
 	CheckPath          string         `json:"check_path,omitempty"`
 	ServiceName        string         `json:"service_name,omitempty"`
 }
@@ -85,18 +86,19 @@ type SubscribeSpecConfig struct {
 type ClusterConfig struct {
 	Name                 string
 	Type                 string
-	SubType              string            `json:"sub_type"`
-	LbType               string            `json:"lb_type"`
-	MaxRequestPerConn    uint64            `json:"max_request_per_conn"`
-	ConnBufferLimitBytes uint32            `json:"conn_buffer_limit_bytes"`
-	HealthCheck          v2.HealthCheck    `json:"health_check,omitempty"`              //v2.HealthCheck
-	ClusterSpecConfig    ClusterSpecConfig `json:"spec,omitempty"`                      //	ClusterSpecConfig
-	Hosts                []v2.Host         `json:"hosts,omitempty"` //v2.Host
+	SubType              string                   `json:"sub_type"`
+	LbType               string                   `json:"lb_type"`
+	MaxRequestPerConn    uint64                   `json:"max_request_per_conn"`
+	ConnBufferLimitBytes uint32                   `json:"conn_buffer_limit_bytes"`
+	HealthCheck          ClusterHealthCheckConfig `json:"health_check,omitempty"` //v2.HealthCheck
+	ClusterSpecConfig    ClusterSpecConfig        `json:"spec,omitempty"`         //	ClusterSpecConfig
+	Hosts                []v2.Host                `json:"hosts,omitempty"`        //v2.Host
 }
 
 type ClusterManagerConfig struct {
-	AutoDiscovery bool            `json:"auto_discovery"`
-	Clusters      []ClusterConfig `json:"clusters,omitempty"`
+	AutoDiscovery        bool            `json:"auto_discovery"`
+	UseHealthCheckGlobal bool            `json:"use_health_check_global"`
+	Clusters             []ClusterConfig `json:"clusters,omitempty"`
 }
 
 type ServiceRegistryConfig struct {

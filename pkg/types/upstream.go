@@ -81,7 +81,10 @@ type PrioritySet interface {
 	HostSetsByPriority() []HostSet
 }
 
+// HostSet is as set of hosts that contains all of the endpoints for a given
+// LocalityLbEndpoints priority level.
 type HostSet interface {
+	// all hosts that make up the set at the current time.
 	Hosts() []Host
 
 	HealthyHosts() []Host
@@ -99,13 +102,17 @@ type HostSet interface {
 type HealthFlag int
 
 const (
+	// The host is currently failing active health checks.
 	FAILED_ACTIVE_HC     HealthFlag = 0x1
+	// The host is currently considered an outlier and has been ejected.
 	FAILED_OUTLIER_CHECK HealthFlag = 0x02
 )
 
+// An upstream host
 type Host interface {
 	HostInfo
 
+	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
 	Counters() HostStats
@@ -204,6 +211,9 @@ type ClusterInfo interface {
 	Stats() ClusterStats
 
 	ResourceManager() ResourceManager
+	
+	// protocol used for health checking for this cluster
+	HealthCheckProtocol() string
 }
 
 type ResourceManager interface {

@@ -361,13 +361,14 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		clusterV2 := v2.Cluster{
 			Name:                 c.Name,
 			ClusterType:          clusterType,
-			SubClustetType:       subclusterType,
+			SubClusterType:       subclusterType,
 			LbType:               lbType,
 			MaxRequestPerConn:    c.MaxRequestPerConn,
 			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
+			HealthCheck:          ParseClusterHealthCheckConf(&c.HealthCheck),
 			Spec:                 ParseConfigSpecConfig(&clusterSpec),
 		}
-
+		
 		clustersV2 = append(clustersV2, clusterV2)
 		hostV2 := ParseHostConfig(&c)
 		clusterV2Map[c.Name] = hostV2
@@ -381,6 +382,20 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		}
 	}
 	return clustersV2, clusterV2Map
+}
+
+func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck{
+	
+	return v2.HealthCheck{
+		c.Protocol,
+		c.Interval.Duration,
+		c.IntervalJitter.Duration,
+		c.Timeout.Duration,
+		c.HealthyThreshold,
+		c.UnhealthyThreshold,
+		c.CheckPath,
+		c.ServiceName,
+	}
 }
 
 func ParseConfigSpecConfig(c *ClusterSpecConfig) v2.ClusterSpecInfo {
