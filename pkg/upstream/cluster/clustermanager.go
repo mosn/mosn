@@ -172,6 +172,41 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 	return errors.New(fmt.Sprintf("cluster %s not found", clusterName))
 }
 
+func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host) error {
+	if host == nil {
+		return errors.New("host is nil")
+	}
+	
+	if v, ok := cm.primaryClusters.Get(clusterName); ok {
+		pcc := v.(*primaryCluster).cluster
+		
+		found := false
+		if concretedCluster, ok := pcc.(*simpleInMemCluster); ok {
+			ccHosts := concretedCluster.hosts
+			for i := 0; i < len(ccHosts); i++ {
+				
+				if host.AddressString() == ccHosts[i].AddressString() {
+					ccHosts = append(ccHosts[:i], ccHosts[i+1:]...)
+					found = true
+					break
+				}
+			}
+			if found == true {
+				log.DefaultLogger.Debugf("Remove Host Success, Host Address is %s",host.AddressString())
+				concretedCluster.UpdateHosts(ccHosts)
+			} else {
+				log.DefaultLogger.Debugf("Remove Host Failed, Host %s Doesn't Exist",host.AddressString())
+				
+			}
+			
+		} else {
+			return errors.New(fmt.Sprintf("cluster's hostset %s can't be update", clusterName))
+		}
+	}
+	
+	return nil
+}
+
 func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.Protocol,
 	context context.Context) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
@@ -240,7 +275,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 			return connPool
 		}
 	} else {
-		log.DefaultLogger.Errorf("  clusterSnapshot.loadbalancer.ChooseHost is nil %s", cluster)
+		log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil %s", cluster)
 		return nil
 	}
 }

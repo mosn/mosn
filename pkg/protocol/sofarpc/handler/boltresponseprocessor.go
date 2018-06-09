@@ -19,6 +19,9 @@ func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}
 		deserializeResponseAllFields(cmd, context)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
+		//print tracer log
+		log.DefaultLogger.Infof("streamId=%s,protocol=%s", reqID, "bolt")
+
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.ResponseHeader != nil {

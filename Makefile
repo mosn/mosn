@@ -1,6 +1,7 @@
 SHELL = /bin/bash
 
 TARGET       = mosnd
+CONFIG_FILE  = mosn_config.json
 GIT_USER     = afe
 PROJECT_NAME = gitlab.alipay-inc.com/${GIT_USER}/mosn
 
@@ -41,10 +42,11 @@ build-local:
 	mkdir -p bundles/${MAJOR_VERSION}/binary
 	mv ${TARGET} bundles/${MAJOR_VERSION}/binary
 	@cd bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET} | cut -d' ' -f1  > ${TARGET}.md5
+	cp resource/${CONFIG_FILE} bundles/${MAJOR_VERSION}/binary
 
 image:
 	@rm -rf IMAGEBUILD
-	cp -r contrib/builder/image IMAGEBUILD && cp bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r resources IMAGEBUILD && cp -r etc IMAGEBUILD
+	cp -r contrib/builder/image IMAGEBUILD && cp bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r resource IMAGEBUILD && cp -r etc IMAGEBUILD
 	docker build --no-cache --rm -t ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} IMAGEBUILD
 	docker tag ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} ${REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION}
 	rm -rf IMAGEBUILD
@@ -62,6 +64,7 @@ rpm-build-local:
 	@rm -rf bundles/${MAJOR_VERSION}/rpm
 	mkdir -p bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
 	cp -r bundles/${MAJOR_VERSION}/binary/${TARGET} bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
+	cp -r bundles/${MAJOR_VERSION}/binary/${CONFIG_FILE} bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
 	cp contrib/builder/rpm/${TARGET}.spec bundles/${MAJOR_VERSION}/rpm
 	cp contrib/builder/rpm/${TARGET}.service bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
 	cp contrib/builder/rpm/${TARGET}.logrotate bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}

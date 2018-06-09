@@ -2,7 +2,9 @@ package sofarpc
 
 import (
 	"context"
+	"errors"
 
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -14,7 +16,6 @@ type connPool struct {
 	host         types.Host
 }
 
-
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
 		host: host,
@@ -25,13 +26,29 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.SofaRpc
 }
 
+func (p *connPool) Host() types.Host {
+	return p.host
+}
+
 func (p *connPool) DrainConnections() {}
+
+func (p *connPool) InitActiveClient(context context.Context) error {
+	if p.activeClient == nil {
+		ac := newActiveClient(context, p)
+		if ac == nil {
+			return errors.New("Init Active Error")
+		} else {
+			p.activeClient = ac
+		}
+	}else {
+		log.DefaultLogger.Debugf("Active Client Already Exist, Address is %s",p.Host().AddressString())
+	}
+
+	return nil
+}
 
 func (p *connPool) NewStream(context context.Context, streamId string,
 	responseDecoder types.StreamDecoder, cb types.PoolEventListener) types.Cancellable {
-	if p.activeClient == nil {
-		p.activeClient = newActiveClient(context, p)
-	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		cb.OnPoolFailure(streamId, types.Overflow, nil)
@@ -53,19 +70,17 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
-	// todo
-	if event.IsClose() || event == types.ConnectFailed {
+
+	if event.IsClose()|| event.ConnectFailure() {
+		
 		// todo: update host stats
 		p.activeClient = nil
-	} else if event == types.ConnectTimeout {
-		// todo: update host stats
-		// todo: check for ConnectTimeout, at this time, mesh hasn't connected to remote, close??
-		client.codecClient.Close()
+		log.DefaultLogger.Debugf("Reset p.activeClient = nil,onConnectionEvent=%s,Remote Host=%s", event, p.Host().AddressString())
 	}
 }
 
 func (p *connPool) onStreamDestroy(client *activeClient) {
-	// todo: update host stats
+	// todo: update host statsm
 	p.host.ClusterInfo().ResourceManager().Requests().Decrease()
 }
 
@@ -87,12 +102,19 @@ type activeClient struct {
 	totalStream uint64
 }
 
+// return nil if error occurs
 func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
 
 	data := pool.host.CreateConnection(context)
+	if err := data.Connection.Connect(true); err != nil {
+		log.DefaultLogger.Errorf("Create Active Client Error, Remote Address = %s, Err = %+v",
+			pool.host.AddressString(),err)
+		return nil
+	}
+
 	codecClient := pool.createCodecClient(context, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
@@ -100,8 +122,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	ac.codecClient = codecClient
 	ac.host = data.HostInfo
-
-	data.Connection.Connect(true)
+	log.DefaultLogger.Debugf("Create Active Client Success, Remote Host = %s", data.HostInfo.AddressString())
 
 	return ac
 }

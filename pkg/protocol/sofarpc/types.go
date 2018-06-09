@@ -38,11 +38,12 @@ const (
 // Encode/Decode Exception Msg
 const (
 	InvalidCommandType string = "Invalid command type for encoding"
-	NoProCodeInHeader  string = "Protocol code not found in header"
+	NoProCodeInHeader  string = "Protocol code not found in header when encoding"
 	InvalidHeaderType  string = "Invalid header type, neither map nor command"
 	UnKnownReqtype     string = "Unknown request type"
 	UnKnownCmdcode     string = "Unknown cmd code"
 	NoReqIdFound       string = "No request Id found in header"
+	UnKnownCmd         string = "Unknown Command"
 )
 
 type ProtocolType byte

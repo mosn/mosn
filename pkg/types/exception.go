@@ -12,9 +12,9 @@ const (
 )
 
 const (
-	UnSupportedProCode   string = " Protocol Code not supported"
-	CodecException       string = "codec exception occurs"
-	DeserializeException string = "deserial exception occurs"
+	UnSupportedProCode   string = "Protocol Code not supported"
+	CodecException       string = "Codec exception occurs"
+	DeserializeException string = "Deserial exception occurs"
 )
 
 const (

@@ -165,16 +165,16 @@ func (c *connection) startReadLoop() {
 				if atomic.LoadUint32(&c.closed) > 0 {
 					return
 				}
-
-				if err == io.EOF {
-					// remote conn closed
-					c.Close(types.NoFlush, types.RemoteClose)
-					return
-				}
-
+				
 				if err != nil {
-					c.logger.Errorf("Error on read. Connection %d, err %s", c.id, err)
-					c.Close(types.NoFlush, types.OnReadErrClose)
+					if err == io.EOF {
+						c.Close(types.NoFlush, types.RemoteClose)
+					} else {
+						c.Close(types.NoFlush, types.OnReadErrClose)
+						
+					}
+					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
+						c.id,c.RemoteAddr().String(), err)
 					return
 				}
 			} else {
@@ -304,11 +304,14 @@ func (c *connection) startWriteLoop() {
 				if err == io.EOF {
 					// remote conn closed
 					c.Close(types.NoFlush, types.RemoteClose)
+
 				} else {
-					c.logger.Errorf("Error on write. Connection %d, err %s", c.id, err)
 					// on non-timeout error
 					c.Close(types.NoFlush, types.OnWriteErrClose)
 				}
+				
+				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
+					c.id,c.RemoteAddr().String(), err)
 
 				return
 			}
@@ -387,12 +390,13 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if !atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
 		return nil
 	}
-
-	// todo
+	
 	if c.rawConnection == nil {
 		return nil
 	}
+	
 	// shutdown read first
+	c.logger.Debugf("Close TCP Conn, Remote Address is = %s, eventType is = %s", c.rawConnection.(*net.TCPConn).RemoteAddr(),eventType)
 	c.rawConnection.(*net.TCPConn).CloseRead()
 
 	if ccType == types.FlushWrite {
@@ -423,9 +427,13 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
-
+	
+	for i, cb := range c.connCallbacks {
+		c.logger.Debugf("Conn Close CB, index = %d, cb = %+v",i, cb)
+	}
+	
 	for _, cb := range c.connCallbacks {
-		cb.OnEvent(eventType)
+		go cb.OnEvent(eventType)
 	}
 
 	return nil
@@ -445,10 +453,12 @@ func (c *connection) AddConnectionEventListener(cb types.ConnectionEventListener
 	for _, ccb := range c.connCallbacks {
 		if &ccb == &cb {
 			exist = true
+			c.logger.Debugf("AddConnectionEventListener Failed, %+v Already Exist",cb)
 		}
 	}
 
 	if !exist {
+		c.logger.Debugf("AddConnectionEventListener Success, cb = %+v",cb)
 		c.connCallbacks = append(c.connCallbacks, cb)
 	}
 }
@@ -637,9 +647,10 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 				cc.Start(nil)
 			}
 		}
-
+		
+		cc.connection.logger.Debugf("connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
 		for _, cccb := range cc.connCallbacks {
-			cccb.OnEvent(event)
+			go cccb.OnEvent(event)
 		}
 	})
 
