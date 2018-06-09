@@ -41,6 +41,7 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 	}
 
 	// note: at this time, serviceName == clusterName
+
 	cf.ca.TriggerClusterUpdate(serviceName, hosts)
 
 	//router.RoutersManager.AddRouterInRouters([]string{dataId})

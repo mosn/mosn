@@ -368,6 +368,10 @@ func (ce ConnectionEvent) IsClose() bool {
 		ce == OnReadErrClose || ce == OnWriteErrClose
 }
 
+func (ce ConnectionEvent) ConnectFailure() bool {
+	return ce == ConnectFailed || ce == ConnectTimeout
+}
+
 // Network level callbacks that happen on a connection.
 type ConnectionEventListener interface {
 	// Called on ConnectionEvent

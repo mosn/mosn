@@ -104,6 +104,30 @@
             "Weight": 1
           }
         ]
+      },
+      {
+        "Name": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
+        "Type": "DYNAMIC",
+        "sub_type": "CONFREG",
+        "lb_type": "LB_RANDOM",
+        "max_request_per_conn": 10000,
+        "conn_buffer_limit_bytes": 16384,
+        "health_check": {
+          "Timeout": 0,
+          "HealthyThreshold": 0,
+          "UnhealthyThreshold": 0,
+          "Interval": 0,
+          "IntervalJitter": 0,
+          "CheckPath": "",
+          "ServiceName": ""
+        },
+        "spec": {
+          "subscribe": [
+            {
+              "service_name": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0"
+            }
+          ]
+        }
       }
     ]
   },

@@ -37,6 +37,8 @@ type ClusterManager interface {
 	LocalClusterName() string
 
 	ClusterExist(clusterName string) bool
+	
+	RemoveClusterHosts(clusterName string, host Host) error
 }
 
 // thread-safe cluster snapshot
