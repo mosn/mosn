@@ -388,9 +388,9 @@ func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck{
 	
 	return v2.HealthCheck{
 		c.Protocol,
+		c.Timeout.Duration,
 		c.Interval.Duration,
 		c.IntervalJitter.Duration,
-		c.Timeout.Duration,
 		c.HealthyThreshold,
 		c.UnhealthyThreshold,
 		c.CheckPath,

@@ -139,6 +139,7 @@ func (h *host) Gauges() types.HostStats {
 	return types.HostStats{}
 }
 
+// health:0, unhealth:1
 // set h.healthFlags = 0
 // ^1 = 0
 func (h *host) ClearHealthFlag(flag types.HealthFlag) {

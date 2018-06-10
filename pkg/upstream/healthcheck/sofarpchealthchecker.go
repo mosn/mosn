@@ -1,19 +1,16 @@
 package healthcheck
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
-	"math/rand"
-	"strconv"
+"math/rand"
+"reflect"
+"strconv"
 
-	"reflect"
-	"time"
+"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
+"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
+"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 type sofarpcHealthChecker struct {
@@ -23,51 +20,7 @@ type sofarpcHealthChecker struct {
 	serviceName  string
 }
 
-// use for hearth-beat starting for sofa bolt in the same codecClient
-// for bolt heartbeat, timeout: 90s interval: 15s
-func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr string,
-	codecClient stream.CodecClient, nameHB string, pro sofarpc.ProtocolType) types.HealthCheckSession {
-
-	hcV2 := v2.HealthCheck{
-		Timeout:     timeout,
-		Interval:    interval,
-		ServiceName: nameHB,
-	}
-
-	hostV2 := v2.Host{
-		Address: hostAddr,
-	}
-
-	host := cluster.NewHost(hostV2, nil)
-
-	hc := NewSofaRpcHealthCheck(hcV2, pro)
-	hcs := hc.NewSofaRpcHealthCheckSession(codecClient, host)
-	hcs.Start()
-
-	return hcs
-}
-
-// Use for hearth beat stopping for sofa bolt in the same codecClient
-func StopSofaHeartBeat(hsc types.HealthCheckSession) {
-	hsc.Stop()
-}
-
-func NewSofaRpcHealthCheck(config v2.HealthCheck, pro sofarpc.ProtocolType) *sofarpcHealthChecker {
-	hc := NHCInstance.NewHealthCheck(config)
-	if hcc,ok := hc.(*healthChecker);ok {
-		shc := &sofarpcHealthChecker{
-			healthChecker: *hcc,
-			protocolCode:  pro,
-		}
-		if config.ServiceName != "" {
-			shc.serviceName = config.ServiceName
-		}
-		return shc
-	}
-	return nil
-}
-
-func NewSofaRpcHealthCheckWithHc(hc *healthChecker,pro sofarpc.ProtocolType) *sofarpcHealthChecker {
+func NewSofaRpcHealthCheckWithHC(hc *healthChecker,pro sofarpc.ProtocolType) *sofarpcHealthChecker {
 	shc := &sofarpcHealthChecker{
 		healthChecker: *hc,
 		protocolCode:  pro,
@@ -145,7 +98,15 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	if s.client == nil {
 		log.DefaultLogger.Debugf("For health check, no codecClient can used")
 		connData := s.host.CreateConnection(nil)
+		
+		if err := connData.Connection.Connect(true); err != nil {
+			s.handleFailure(types.FailureActive)
+			log.DefaultLogger.Debugf("For health check, Connect Error!")
+			return
+		}
+		
 		s.client = s.healthChecker.createCodecClient(connData)
+		
 		s.expectReset = false
 	}
 
@@ -161,7 +122,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 		reqHeaders := codec.NewBoltHeartbeat(id)
 
 		s.requestEncoder.EncodeHeaders(reqHeaders, true)
-		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat,request id is %s ...", reqID)
+		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat to %s,request id = %d",s.host.AddressString(),reqID)
 		s.requestEncoder = nil
 		s.healthCheckSession.onInterval()
 	} else {

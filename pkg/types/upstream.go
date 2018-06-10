@@ -8,9 +8,17 @@ import (
 	"net"
 )
 
-type ClusterManager interface {
-	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
+//   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
+//
+//           1              * | 1                1 | 1                *| 1          *
+//   clusterManager --------- cluster  --------- prioritySet --------- hostSet------hosts
 
+
+// Manage connection pools and load balancing for upstream clusters.
+type ClusterManager interface {
+	// Add or update a cluster via API.
+	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
+	
 	SetInitializedCb(cb func())
 
 	Clusters() map[string]Cluster
@@ -50,17 +58,20 @@ type ClusterSnapshot interface {
 	LoadBalancer() LoadBalancer
 }
 
+// An upstream cluster (group of hosts).
 type Cluster interface {
 	Initialize(cb func())
 
 	Info() ClusterInfo
 
 	InitializePhase() InitializePhase
-
+	
 	PrioritySet() PrioritySet
 
+	// set the cluster's health checker
 	SetHealthChecker(hc HealthChecker)
-
+	
+	// return the cluster's health checker
 	HealthChecker() HealthChecker
 
 	OutlierDetector() Detector
@@ -75,7 +86,10 @@ const (
 
 type MemberUpdateCallback func(priority uint32, hostsAdded []Host, hostsRemoved []Host)
 
+// PrioritySet is a hostSet grouped by priority for a given cluster, for ease of load balancing.
 type PrioritySet interface {
+	
+	// Get the hostSet for this priority level, creating it if not exist.
 	GetOrCreateHostSet(priority uint32) HostSet
 
 	AddMemberUpdateCb(cb MemberUpdateCallback)
@@ -86,6 +100,7 @@ type PrioritySet interface {
 // HostSet is as set of hosts that contains all of the endpoints for a given
 // LocalityLbEndpoints priority level.
 type HostSet interface {
+	
 	// all hosts that make up the set at the current time.
 	Hosts() []Host
 

@@ -79,13 +79,6 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 	defer sc.mux.Unlock()
 	
 	var curHosts = make([]types.Host,len(sc.hosts))
-	if sc.hosts != nil {
-		log.DefaultLogger.Debugf("update hosts, origin hosts = %+v", sc.hosts)
-	}
-	
-	if newHosts != nil {
-		log.DefaultLogger.Debugf("update hosts, new hosts = %+v", newHosts)
-	}
 	
 	copy(curHosts, sc.hosts)
 	changed, finalHosts, hostsAdded, hostsRemoved := sc.updateDynamicHostList(newHosts, curHosts)
@@ -103,6 +96,7 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 	if changed {
 		sc.hosts = finalHosts
 		// todo: need to consider how to update healthyHost
+		// Note: currently, we only use priority 0
 		sc.prioritySet.GetOrCreateHostSet(0).UpdateHosts(sc.hosts,
 			sc.hosts, nil, nil, hostsAdded, hostsRemoved)
 		

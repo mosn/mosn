@@ -458,7 +458,6 @@ func (c *connection) AddConnectionEventListener(cb types.ConnectionEventListener
 	}
 
 	if !exist {
-		c.logger.Debugf("AddConnectionEventListener Success, cb = %+v",cb)
 		c.connCallbacks = append(c.connCallbacks, cb)
 	}
 }

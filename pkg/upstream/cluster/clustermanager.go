@@ -54,7 +54,8 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 		cm.AddOrUpdatePrimaryCluster(cluster)
 	}
 
-	//Add hosts to cluster
+	// Add hosts to cluster
+	// Note: currently, use priority = 0
 	for clusterName, hosts := range clusterMap {
 		cm.UpdateClusterHosts(clusterName, 0, hosts)
 	}
@@ -87,7 +88,8 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 			return false
 		}
 	}
-
+	
+	// todo for static cluster, shouldn't use this way
 	cm.loadCluster(cluster, true)
 
 	return true
@@ -255,15 +257,15 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
-		log.DefaultLogger.Errorf(" Sofa Rpc ConnPool For Cluster is nil %s", cluster)
+		log.DefaultLogger.Errorf(" Sofa Rpc ConnPool For Cluster is nil, cluster name = %s", cluster)
 		return nil
 	}
 
-	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
+	host := clusterSnapshot.loadbalancer.ChooseHost(context)
 
 	if host != nil {
 		addr := host.AddressString()
-		log.DefaultLogger.Debugf(" clusterSnapshot.loadbalancer.ChooseHost result is %s,cluser is %s", addr, cluster)
+		log.DefaultLogger.Debugf(" clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, cluster)
 
 		if connPool, ok := cm.sofaRpcConnPool.Get(addr); ok {
 			return connPool.(types.ConnectionPool)
@@ -275,7 +277,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 			return connPool
 		}
 	} else {
-		log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil %s", cluster)
+		log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil, cluster name = %s", cluster)
 		return nil
 	}
 }
@@ -284,11 +286,13 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterName string) bool {
 	if v, exist := cm.primaryClusters.Get(clusterName); exist {
 		if !v.(*primaryCluster).addedViaApi {
 			return false
+			log.DefaultLogger.Warnf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaApi",clusterName)
+		} else {
+			cm.primaryClusters.Remove(clusterName)
+			log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s",clusterName)
 		}
 	}
-
-	cm.primaryClusters.Remove(clusterName)
-
+	
 	return true
 }
 

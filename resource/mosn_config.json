@@ -17,9 +17,9 @@
                 "downstream_protocol": "SofaRpc",
                 "routes": [
                   {
-                    "cluster": "confreg_service1",
+                    "cluster": "remote_server",
                     "name": "example_route",
-                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0@"
+                    "service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0"
                   }
                 ],
                 "support_dynamic_route": true,
@@ -82,7 +82,7 @@
     "use_health_check_global": true,
     "clusters": [
       {
-        "Name": "local_service",
+        "Name": "remote_server",
         "Type": "SIMPLE",
         "sub_type": "",
         "lb_type": "LB_RANDOM",
@@ -93,55 +93,74 @@
           "timeout": "90s",
           "healthy_threshold": 2,
           "unhealthy_threshold": 2,
-          "interval": "5s",
+          "interval": "15s",
           "interval_jitter": 0,
           "check_path": ""
         },
         "spec": {},
         "hosts": [
           {
-            "Address": "127.0.0.1:12345",
-            "Hostname": "downstream_machine",
+            "Address": "192.166.22.163:12200",
+            "Hostname": "unconfreg_server",
             "Weight": 1
           },
           {
-            "Address": "11.166.12.246:9600",
-            "Hostname": "confreg_server",
+            "Address": "11.166.22.163:12200",
+            "Hostname": "remote_server",
             "Weight": 1
           }
         ]
       },
+	  {
+		"Name": "confeg_server",
+		"Type": "SIMPLE",
+		"sub_type": "",
+		"lb_type": "LB_RANDOM",
+		"max_request_per_conn": 100000,
+		"conn_buffer_limit_bytes": 0,
+		"health_check": {
+		  "protocol": "SofaRpc",
+		  "timeout": "90s",
+		  "healthy_threshold": 2,
+		  "unhealthy_threshold": 2,
+		  "interval": "15s",
+		  "interval_jitter": 0,
+		  "check_path": ""
+		},
+		"spec": {},
+		"hosts": [
+		  {
+			"Address": "11.166.12.246:9600",
+			"Hostname": "confreg_server",
+			"Weight": 1
+		  }
+		]
+	  },
       {
-        "Name": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
-        "Type": "DYNAMIC",
-        "sub_type": "CONFREG",
+        "Name": "local_server",
+        "Type": "SIMPLE",
+        "sub_type": "",
         "lb_type": "LB_RANDOM",
-        "max_request_per_conn": 10000,
-        "conn_buffer_limit_bytes": 16384,
+        "max_request_per_conn": 100000,
+        "conn_buffer_limit_bytes": 0,
         "health_check": {
-          "Timeout": 0,
-          "HealthyThreshold": 0,
-          "UnhealthyThreshold": 0,
-          "Interval": 0,
-          "IntervalJitter": 0,
-          "CheckPath": "",
-          "ServiceName": ""
+          "protocol": "SofaRpc",
+          "timeout": "90s",
+          "healthy_threshold": 2,
+          "unhealthy_threshold": 2,
+          "interval": "15s",
+          "interval_jitter": 0,
+          "check_path": ""
         },
-        "spec": {
-          "subscribe": [
-            {
-              "service_name": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0"
-            }
-          ]
-        }
+        "spec": {},
+        "hosts": [
+          {
+            "Address": "127.0.0.1:12220",
+            "Hostname": "unconfreg_server",
+            "Weight": 1
+          }
+        ]
       }
     ]
-  },
-  "service_registry": {
-    "application": {
-      "ant_share_cloud": false,
-      "data_center": "dc",
-      "app_name": "testapp"
-    }
   }
 }

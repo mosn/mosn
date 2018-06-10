@@ -12,7 +12,7 @@ type ClusterAdapter struct {
 	clusterMng *clusterManager
 }
 
-// Called by register module to update cluster's host info
+// Called by registry module to update cluster's host info
 func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) {
 	clusterExist := ca.clusterMng.ClusterExist(clusterName)
 
@@ -27,22 +27,22 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 			
 			// for dynamically added cluster, use cluster manager's health check config
 			if ca.clusterMng.useHealthCheck {
+				// todo support more default health check @boqin
 				cluster.HealthCheck = types.DefaultSofaRpcHealthCheckConf
 			}
 
 			ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
 		} else {
-			log.DefaultLogger.Errorf("doesn't support cluster auto discovery ")
+			log.DefaultLogger.Errorf("cluster doesn't support auto discovery ")
 			return
 		}
 	}
 
-	log.DefaultLogger.Debugf("[TriggerClusterUpdate Called] cluster name is:%s hosts are:%+v",
-		clusterName, hosts)
+	log.DefaultLogger.Debugf("triggering cluster update, cluster name = %s hosts = %+v",clusterName, hosts)
 	ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
 }
 
-// added when mesh receiving subscribe info
+// Called when mesh receive subscribe info
 func (ca *ClusterAdapter) TriggerClusterAdded(cluster v2.Cluster) {
 	clusterExist := ca.clusterMng.ClusterExist(cluster.Name)
 
@@ -60,7 +60,7 @@ func (ca *ClusterAdapter) TriggerClusterAdded(cluster v2.Cluster) {
 	}
 }
 
-// called by service unsubscribe
+// Called when mesh receive unsubscribe info
 func (ca *ClusterAdapter) TriggerClusterDel(clusterName string) {
 	log.DefaultLogger.Debugf("Delete Cluster %s", clusterName)
 	ca.clusterMng.RemovePrimaryCluster(clusterName)

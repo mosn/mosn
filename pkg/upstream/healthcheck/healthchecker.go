@@ -4,7 +4,6 @@ import (
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"math/rand"
 	"time"
@@ -70,29 +69,23 @@ func (c *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 }
 
 func (c *healthChecker) newSession(host types.Host) types.HealthCheckSession {
-	
-	if host.ClusterInfo().HealthCheckProtocol() == types.SofaRpc {
-		log.DefaultLogger.Println("Add sofa health check session, remote host address is %s",host.AddressString())
-		sfhc := NewSofaRpcHealthCheckWithHc(c,sofarpc.BOLT_V1)
-		sfhcs :=sfhc.NewSofaRpcHealthCheckSession(nil,host)
-		return sfhcs
-	}
-	
-	// todo support other protocol
-	return nil
+	return NewSessionFactory(c,host)
 }
 
 func (c *healthChecker) addHosts(hosts []types.Host) {
 	for _, host := range hosts {
 		
-		var ns types.HealthCheckSession
-		if ns =c.newSession(host) ; ns == nil {
-			log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address is %s",host.AddressString())
-			return
-		}
-		
-		c.healthCheckSessions[host] = ns
-		c.healthCheckSessions[host].Start()
+		h := host
+		go func(){
+			var ns types.HealthCheckSession
+			if ns = c.newSession(h); ns == nil {
+				log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", host.AddressString())
+				return
+			}
+			c.healthCheckSessions[h] = ns
+			c.healthCheckSessions[h].Start()
+		}()
+
 	}
 }
 
@@ -156,6 +149,7 @@ func (c *healthChecker) getTimeoutDuration() time.Duration {
 	return baseInterval
 }
 
+// when health receive handling result
 func (c *healthChecker) runCallbacks(host types.Host, changed bool) {
 	c.refreshHealthyStat()
 
@@ -209,13 +203,10 @@ func (s *healthCheckSession) handleSuccess() {
 			stateChanged = true
 		}
 	}
-
-	s.healthChecker.stats.success.Inc(1)
-	if stateChanged {
-		s.healthChecker.runCallbacks(s.host, stateChanged)
-	}
 	
-
+	s.healthChecker.stats.success.Inc(1)
+	s.healthChecker.runCallbacks(s.host, stateChanged)
+	
 	// stop timeout timer
 	s.timeoutTimer.stop()
 	// change to use -> ticker, so no need to start here
@@ -244,11 +235,8 @@ func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
 	case types.FailurePassive:
 		s.healthChecker.stats.passiveFailure.Inc(1)
 	}
-
-	if stateChanged {
-		s.healthChecker.runCallbacks(s.host, stateChanged)
-	}
 	
+	s.healthChecker.runCallbacks(s.host, stateChanged)
 }
 
 func (s *healthCheckSession) handleFailure(fType types.FailureType) {

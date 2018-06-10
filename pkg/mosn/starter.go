@@ -66,19 +66,14 @@ func Start(c *config.MOSNConfig) {
 		cmf := &clusterManagerFilter{}
 		var clusters []v2.Cluster
 		clusterMap := make(map[string][]v2.Host)
-
-		//for _, cluster := range c.ClusterManager.Clusters {
-		//	parsed := config.ParseClusterConfig(&cluster)
-		//	clusters = append(clusters, parsed)
-		//	clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
-		//}
 		
-		// parse cluster all in one
+		//parse cluster all in one
 		clusters,clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
 
 		//create cluster manager
 		cm := cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,
 			c.ClusterManager.UseHealthCheckGlobal)
+		
 		//initialize server instance
 		srv := server.NewServer(sc, cmf, cm)
 
