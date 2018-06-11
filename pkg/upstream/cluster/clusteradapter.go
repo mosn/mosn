@@ -3,7 +3,7 @@ package cluster
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 )
 
 var ClusterAdap ClusterAdapter
@@ -26,9 +26,9 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 			}
 			
 			// for dynamically added cluster, use cluster manager's health check config
-			if ca.clusterMng.useHealthCheck {
+			if ca.clusterMng.registryUseHealthCheck {
 				// todo support more default health check @boqin
-				cluster.HealthCheck = types.DefaultSofaRpcHealthCheckConf
+				cluster.HealthCheck = sofarpc.DefaultSofaRpcHealthCheckConf
 			}
 
 			ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
@@ -50,8 +50,8 @@ func (ca *ClusterAdapter) TriggerClusterAdded(cluster v2.Cluster) {
 		log.DefaultLogger.Debugf("Add PrimaryCluster: %s", cluster.Name)
 
 		// for dynamically added cluster, use cluster manager's health check config
-		if ca.clusterMng.useHealthCheck {
-			cluster.HealthCheck = types.DefaultSofaRpcHealthCheckConf
+		if ca.clusterMng.registryUseHealthCheck {
+			cluster.HealthCheck = sofarpc.DefaultSofaRpcHealthCheckConf
 		}
 
 		ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)

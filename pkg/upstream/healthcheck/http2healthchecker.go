@@ -40,7 +40,7 @@ func (c *http2HealthChecker) newSession(host types.Host) types.HealthCheckSessio
 		healthCheckSession: *NewHealthCheckSession(&c.healthChecker, host),
 	}
 
-	hhcs.intervalTicker = newTicker(hhcs.onInterval)
+	hhcs.intervalTimer = newTimer(hhcs.onInterval)
 	hhcs.timeoutTimer = newTimer(hhcs.onTimeout)
 
 	return hhcs

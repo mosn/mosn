@@ -9,13 +9,16 @@ import (
 
 func NewSessionFactory(c *healthChecker,host types.Host) types.HealthCheckSession {
 	
-	if host.ClusterInfo().HealthCheckProtocol() == types.SofaRpc {
-		log.DefaultLogger.Debugf("Add sofa health check session, remote host address = %s",host.AddressString())
-		sfhc := NewSofaRpcHealthCheckWithHC(c,sofarpc.BOLT_V1)
-		sfhcs := sfhc.NewSofaRpcHealthCheckSession(nil,host)
-		return sfhcs
+	var sfhcs types.HealthCheckSession
+	
+	switch host.ClusterInfo().HealthCheckProtocol(){
+		case sofarpc.SofaRpc:
+			log.DefaultLogger.Debugf("Add sofa health check session, remote host address = %s",host.AddressString())
+			sfhc := NewSofaRpcHealthCheckWithHC(c,sofarpc.BOLT_V1)
+			sfhcs = sfhc.NewSofaRpcHealthCheckSession(nil,host)
+			
+			// todo support other protocol
 	}
 	
-	// todo support other protocol
-	return nil
+	return sfhcs
 }

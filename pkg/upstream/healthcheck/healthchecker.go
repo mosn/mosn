@@ -85,7 +85,6 @@ func (c *healthChecker) addHosts(hosts []types.Host) {
 			c.healthCheckSessions[h] = ns
 			c.healthCheckSessions[h].Start()
 		}()
-
 	}
 }
 
@@ -160,9 +159,10 @@ func (c *healthChecker) runCallbacks(host types.Host, changed bool) {
 
 type healthCheckSession struct {
 	healthChecker *healthChecker
-	//intervalTimer *timer
-	intervalTicker *ticker
+
+	intervalTimer *timer
 	timeoutTimer   *timer
+
 	numHealthy     uint32
 	numUnHealthy   uint32
 	host           types.Host
@@ -187,7 +187,7 @@ func (s *healthCheckSession) Start() {
 
 //// stop intervalTimer to stop sending health message
 func (s *healthCheckSession) Stop() {
-	s.intervalTicker.stop()
+	s.intervalTimer.stop()
 }
 
 func (s *healthCheckSession) handleSuccess() {
@@ -209,8 +209,9 @@ func (s *healthCheckSession) handleSuccess() {
 	
 	// stop timeout timer
 	s.timeoutTimer.stop()
-	// change to use -> ticker, so no need to start here
-	//s.intervalTimer.start(s.healthChecker.getInterval())
+	
+	// start a new interval timer
+	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
@@ -241,9 +242,12 @@ func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
 
 func (s *healthCheckSession) handleFailure(fType types.FailureType) {
 	s.SetUnhealthy(fType)
-	// ticker now
-	//	s.timeoutTimer.stop()
-	//	s.intervalTimer.start(s.healthChecker.getInterval())
+	
+	// stop timeout timer
+	s.timeoutTimer.stop()
+	
+	// start a new interval timer
+	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) onInterval() {
@@ -251,12 +255,10 @@ func (s *healthCheckSession) onInterval() {
 	s.healthChecker.stats.attempt.Inc(1)
 }
 
-func (s *healthCheckSession) tickerStart() {
-	s.intervalTicker.start(s.healthChecker.getInterval())
-}
-
 func (s *healthCheckSession) onTimeout() {
 	s.SetUnhealthy(types.FailureNetwork)
+	// sending another health check
+	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 type healthCheckStats struct {

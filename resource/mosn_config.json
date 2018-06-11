@@ -79,7 +79,7 @@
   ],
   "cluster_manager": {
     "auto_discovery": true,
-    "use_health_check_global": true,
+    "registry_use_health_check": true,
     "clusters": [
       {
         "Name": "remote_server",

@@ -96,9 +96,11 @@ type ClusterConfig struct {
 }
 
 type ClusterManagerConfig struct {
-	AutoDiscovery        bool            `json:"auto_discovery"`
-	UseHealthCheckGlobal bool            `json:"use_health_check_global"`
-	Clusters             []ClusterConfig `json:"clusters,omitempty"`
+	// Note: consider to use standard configure
+	AutoDiscovery          bool            `json:"auto_discovery"`
+	// Note: this is a hack method to realize cluster's  health check which push by registry
+	RegistryUseHealthCheck bool            `json:"registry_use_health_check"`
+	Clusters               []ClusterConfig `json:"clusters,omitempty"`
 }
 
 type ServiceRegistryConfig struct {

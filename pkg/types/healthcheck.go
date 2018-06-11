@@ -2,8 +2,7 @@ package types
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	
-	"time"
+
 )
 
 // Health check interfaces
@@ -31,7 +30,7 @@ type HealthChecker interface {
 
 	// Used to update cluster's hosts for health checking
 	OnClusterMemberUpdate(hostsAdded []Host, hostDel []Host)
-	
+
 	// Add cluster to healthChecker
 	AddCluster(cluster Cluster)
 }
@@ -49,30 +48,6 @@ type HealthCheckSession interface {
 }
 
 type HealthCheckHostMonitor interface {
-}
-
-// Sofa Rpc Default HC Parameters
-const (
-	SofaRpc                      string        = "SofaRpc"
-	HealthName                   string        = "ToConfReg"
-	DefaultBoltHeartBeatTimeout  time.Duration = 6 * 15 * time.Second
-	DefaultBoltHeartBeatInterval time.Duration = 15 * time.Second
-)
-
-// Global HC Parameters
-const (
-	DefaultIntervalJitter     time.Duration = 5 * time.Millisecond
-	DefaultHealthyThreshold   uint32        = 2
-	DefaultUnhealthyThreshold uint32        = 2
-)
-
-var DefaultSofaRpcHealthCheckConf = v2.HealthCheck{
-	Protocol:           SofaRpc,
-	Timeout:            DefaultBoltHeartBeatTimeout,
-	HealthyThreshold:   DefaultHealthyThreshold,
-	UnhealthyThreshold: DefaultUnhealthyThreshold,
-	Interval:           DefaultBoltHeartBeatInterval,
-	IntervalJitter:     DefaultIntervalJitter,
 }
 
 var HealthCheckInss HealthCheckInsInterface
