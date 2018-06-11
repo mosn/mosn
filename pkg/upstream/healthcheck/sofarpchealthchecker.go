@@ -34,8 +34,9 @@ func (c *sofarpcHealthChecker) NewSofaRpcHealthCheckSession(codecClinet stream.C
 		healthChecker:      c,
 		healthCheckSession: *NewHealthCheckSession(&c.healthChecker, host),
 	}
-
-	shcs.intervalTicker = newTicker(shcs.onInterval)
+	
+	// add timer to trigger hb sending and timeout handling
+	shcs.intervalTimer = newTimer(shcs.onInterval)
 	shcs.timeoutTimer = newTimer(shcs.onTimeout)
 
 	return shcs
@@ -89,8 +90,7 @@ func (s *sofarpcHealthCheckSession) OnDecodeError(err error, headers map[string]
 
 // overload healthCheckSession
 func (s *sofarpcHealthCheckSession) Start() {
-	// start ticker for periodically sending hb
-	s.healthCheckSession.tickerStart()
+	// start interval timer
 	s.onInterval()
 }
 
@@ -124,19 +124,18 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 		s.requestEncoder.EncodeHeaders(reqHeaders, true)
 		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat to %s,request id = %d",s.host.AddressString(),reqID)
 		s.requestEncoder = nil
+		// start timeout interval
 		s.healthCheckSession.onInterval()
 	} else {
-		log.DefaultLogger.Fatalf("For health check, only support bolt v1 currently")
+		log.DefaultLogger.Errorf("For health check, only support bolt v1 currently")
 	}
 }
 
 func (s *sofarpcHealthCheckSession) onTimeout() {
 	// todo: fulfil Timeout
-	//s.expectReset = true
-	//s.client.Close()
-	//s.client = nil
-
-	log.DefaultLogger.Infof("Pay attention: heartbeat client close connection\n")
+	s.expectReset = true
+	log.DefaultLogger.Errorf("Health Check Timeout for Remote Host = %s",s.host.AddressString())
+	// deal with timeout event
 	s.healthCheckSession.onTimeout()
 }
 

@@ -497,8 +497,9 @@ func (c *connection) NextProtocol() string {
 
 func (c *connection) SetNoDelay(enable bool) {
 	if c.rawConnection != nil {
-		rawc := c.rawConnection.(*net.TCPConn)
-		rawc.SetNoDelay(enable)
+		if rawc,ok := c.rawConnection.(*net.TCPConn);ok {
+			rawc.SetNoDelay(enable)
+		}
 	}
 }
 

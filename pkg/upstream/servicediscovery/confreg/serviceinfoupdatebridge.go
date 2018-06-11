@@ -199,7 +199,7 @@ func OnClusterInfoParsed(data interface{}, endParsed bool) error {
 		}
 	} else {
 		var err error = errors.New("invalid value passed")
-		log.DefaultLogger.Fatalf("%+v invalid value passed", data)
+		log.DefaultLogger.Errorf("%+v invalid value passed", data)
 		return err
 	}
 
@@ -226,7 +226,7 @@ func OnServiceRegistryInfoParsed(data interface{}, endParsed bool) error {
 		}
 	} else {
 		var err error = errors.New("invalid value passed")
-		log.DefaultLogger.Fatalf("%+v invalid value passed", data)
+		log.DefaultLogger.Errorf("%+v invalid value passed", data)
 		return err
 	}
 

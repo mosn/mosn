@@ -16,13 +16,13 @@ import (
 
 // ClusterManager
 type clusterManager struct {
-	sourceAddr      net.Addr
-	primaryClusters cmap.ConcurrentMap // string: *primaryCluster
-	sofaRpcConnPool cmap.ConcurrentMap // string: types.ConnectionPool
-	http2ConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
-	clusterAdapter  ClusterAdapter
-	autoDiscovery   bool
-	useHealthCheck  bool
+	sourceAddr             net.Addr
+	primaryClusters        cmap.ConcurrentMap // string: *primaryCluster
+	sofaRpcConnPool        cmap.ConcurrentMap // string: types.ConnectionPool
+	http2ConnPool          cmap.ConcurrentMap // string: types.ConnectionPool
+	clusterAdapter         ClusterAdapter
+	autoDiscovery          bool
+	registryUseHealthCheck bool
 }
 
 type clusterSnapshot struct {
@@ -34,12 +34,12 @@ type clusterSnapshot struct {
 func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	clusterMap map[string][]v2.Host, autoDiscovery bool, useHealthCheck bool) types.ClusterManager {
 	cm := &clusterManager{
-		sourceAddr:      sourceAddr,
-		primaryClusters: cmap.New(),
-		sofaRpcConnPool: cmap.New(),
-		http2ConnPool:   cmap.New(),
-		autoDiscovery:   autoDiscovery,
-		useHealthCheck:  useHealthCheck,
+		sourceAddr:             sourceAddr,
+		primaryClusters:        cmap.New(),
+		sofaRpcConnPool:        cmap.New(),
+		http2ConnPool:          cmap.New(),
+		autoDiscovery:          autoDiscovery,
+		registryUseHealthCheck: useHealthCheck,
 	}
 	//init ClusterAdap when run app
 	ClusterAdap = ClusterAdapter{
@@ -217,7 +217,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 		return nil
 	}
 
-	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
+	host := clusterSnapshot.loadbalancer.ChooseHost(context)
 
 	if host != nil {
 		addr := host.AddressString()
@@ -244,7 +244,7 @@ func (cm *clusterManager) TcpConnForCluster(cluster string, context context.Cont
 		return types.CreateConnectionData{}
 	}
 
-	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
+	host := clusterSnapshot.loadbalancer.ChooseHost(context)
 
 	if host != nil {
 		return host.CreateConnection(context)

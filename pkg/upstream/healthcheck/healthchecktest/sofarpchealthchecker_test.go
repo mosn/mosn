@@ -1,4 +1,4 @@
-package healthcheck
+package healthchecktest
 
 import (
 	"net"
@@ -10,7 +10,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/healthcheck"
 )
 const(
 	confregServer  string  = "11.166.12.246:9600"
@@ -30,13 +30,14 @@ func TestStartSofaHeartBeat(t *testing.T) {
 	err := conn.Connect(true)
 	
 	if err != nil {
-		log.DefaultLogger.Fatalf("Connect to confreg server failed. server = %v", confregServer)
+		log.DefaultLogger.Errorf("Connect to confreg server failed. server = %v", confregServer)
 	}
 	
-	log.DefaultLogger.Infof("Connect to confreg server. server = %v", confregServer)
+	log.DefaultLogger.Debugf("Connect to confreg server. server = %v", confregServer)
+	
 	
 	//todo use conn idle detect to start/stop heartbeat
-	StartSofaHeartBeat(types.DefaultBoltHeartBeatTimeout, types.DefaultBoltHeartBeatInterval,
-		confregServer, codecClient,types.HealthName,sofarpc.BOLT_V1)
+	healthcheck.StartSofaHeartBeat(10*time.Second, 5*time.Second,
+		confregServer, codecClient,sofarpc.HealthName,sofarpc.BOLT_V1)
 	time.Sleep(3600*time.Second)
 }

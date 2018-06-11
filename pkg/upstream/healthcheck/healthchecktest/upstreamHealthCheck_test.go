@@ -1,4 +1,4 @@
-package healthcheck
+package healthchecktest
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 var c  *config.MOSNConfig
 
 func init(){
-	c = config.Load("../../../resource/mosn_config.json")
+	c = config.Load("../../../../resource/mosn_config.json")
 }
 
 func Test_cluster_refreshHealthHosts(t *testing.T) {
@@ -20,7 +20,7 @@ func Test_cluster_refreshHealthHosts(t *testing.T) {
 	
 	//create cluster manager
 	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,
-		c.ClusterManager.UseHealthCheckGlobal)
+		c.ClusterManager.RegistryUseHealthCheck)
 	
 	time.Sleep(1*time.Hour)
 }
