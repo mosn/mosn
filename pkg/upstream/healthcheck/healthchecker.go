@@ -219,7 +219,6 @@ func (s *healthCheckSession) handleSuccess() {
 
 	// stop timeout timer
 	s.timeoutTimer.stop()
-
 	// start a new interval timer
 	s.intervalTimer.start(s.healthChecker.getInterval())
 }

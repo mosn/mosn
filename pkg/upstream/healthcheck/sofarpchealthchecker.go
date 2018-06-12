@@ -63,7 +63,6 @@ func (c *sofarpcHealthChecker) newSession(host types.Host) types.HealthCheckSess
 		healthChecker:      c,
 		healthCheckSession: *newHealthCheckSession(&c.healthChecker, host),
 	}
-
 	// add timer to trigger hb sending and timeout handling
 	shcs.intervalTimer = newTimer(shcs.onInterval)
 	shcs.timeoutTimer = newTimer(shcs.onTimeout)
@@ -163,6 +162,9 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 func (s *sofarpcHealthCheckSession) onTimeout() {
 	// todo: fulfil Timeout
 	s.expectReset = true
+	s.client.Close()
+	s.client = nil
+
 	log.DefaultLogger.Errorf("Health Check Timeout for Remote Host = %s", s.host.AddressString())
 	// deal with timeout event
 	s.healthCheckSession.onTimeout()
