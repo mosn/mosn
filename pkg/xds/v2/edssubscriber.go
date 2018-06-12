@@ -1,9 +1,9 @@
 package v2
 
 import (
-	"time"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
+	//"time"
+	//"golang.org/x/net/context"
+	//"google.golang.org/grpc"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -11,7 +11,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-func (c *V2Client) GetEndpoints(endpoint string, clusterName string) []*pb.ClusterLoadAssignment {
+func (c *V2Client) GetEndpoints(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient, clusterName string) []*pb.ClusterLoadAssignment {
+/*
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
 	if err != nil {
 		log.DefaultLogger.Fatalf("did not connect: %v", err)
@@ -27,7 +28,11 @@ func (c *V2Client) GetEndpoints(endpoint string, clusterName string) []*pb.Clust
 		log.DefaultLogger.Fatalf("get endpoints fail: %v", err)
 		return nil
 	}
-	err = streamClient.Send(&pb.DiscoveryRequest{
+*/
+	if streamClient == nil {
+		return nil
+	}
+	err := streamClient.Send(&pb.DiscoveryRequest{
 		VersionInfo:"",
 		ResourceNames: []string{clusterName},
 		TypeUrl: "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",

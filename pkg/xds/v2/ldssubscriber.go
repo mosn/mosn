@@ -1,9 +1,9 @@
 package v2
 
 import (
-	"time"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
+	//"time"
+	//"golang.org/x/net/context"
+	//"google.golang.org/grpc"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -11,7 +11,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-func (c *V2Client) GetListeners(endpoint string) []*pb.Listener{
+func (c *V2Client) GetListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*pb.Listener{
+/*
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
 	if err != nil {
@@ -28,7 +29,11 @@ func (c *V2Client) GetListeners(endpoint string) []*pb.Listener{
 		log.DefaultLogger.Fatalf("get listener fail: %v", err)
 		return nil
 	}
-	err = streamClient.Send(&pb.DiscoveryRequest{
+*/
+	if streamClient == nil {
+		return nil
+	}
+	err := streamClient.Send(&pb.DiscoveryRequest{
 		VersionInfo:"",
 		ResourceNames: []string{},
 		TypeUrl:"type.googleapis.com/envoy.api.v2.Listener",

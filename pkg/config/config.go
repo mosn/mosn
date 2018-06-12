@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
 )
 
 //global instance for load & dump
@@ -120,6 +121,8 @@ type MOSNConfig struct {
 	ClusterManager  ClusterManagerConfig  `json:"cluster_manager,omitempty"` //cluster config
 	ServiceRegistry ServiceRegistryConfig `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
+	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"`  //dynamic_resources raw message
+	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`   //static_resources raw message
 }
 
 //wrapper for time.Duration, so time config can be written in '300ms' or '1h' format
@@ -148,5 +151,6 @@ func Load(path string) *MOSNConfig {
 	//ConfigPath = "../../resource/mosn_config_dump_result.json"
 
 	json.Unmarshal(content, &config)
+
 	return &config
 }

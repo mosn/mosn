@@ -1,31 +1,27 @@
 package xds
 
 import (
-	"net/http"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/xds/v1"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/xds/v2"
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"time"
 	"errors"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/xds/v2"
+	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/gogo/protobuf/jsonpb"
 )
 
-var xdsHttpEnpoint string =  "istio-pilot.istio-system.svc.szbd-uc.uaebd.local:15003"
-var xdsRpcEnpoint string =  "istio-pilot.istio-system.svc.szbd-uc.uaebd.local:15010"
-var serviceCluster string = "hsf-client-demo"
-var serviceNode string = "sidecar~10.151.99.229~hsf-client-demo-v1-0.hsfdemo~hsfdemo.svc.cluster.local"
 var warmuped chan bool = make(chan bool)
 var stopping chan bool = make(chan bool)
 var stopped chan bool = make(chan bool)
 
 type xdsClient struct {
-	v1 *v1.V1Client
 	v2 *v2.V2Client
 }
 
-func (c *xdsClient) getConfig(config *Config) (err error){
+func (c *xdsClient) getConfig(config *config.MOSNConfig) (err error){
 
-	log.DefaultLogger.Infof("start to get config from istio\n")
+	log.DefaultLogger.Infof("start to get config from istio")
 	chans := make([]chan bool, 2)
 	chans[0] = make(chan bool)
 	go c.getListenersAndRoutes(config, chans[0])
@@ -39,57 +35,52 @@ func (c *xdsClient) getConfig(config *Config) (err error){
 		close(ch)
 	}
 	if !success {
-		log.DefaultLogger.Infof("fail to get config from istio\n")
+		log.DefaultLogger.Fatalf("fail to get config from istio")
 		err = errors.New("fail to get config from istio")
 		return err
 	}
+	log.DefaultLogger.Infof("get config from istio success")
 	return nil
 }
 
-func (c *xdsClient) getListenersAndRoutes(config *Config, ch chan <- bool) {
-	ldsEndpoint := xdsRpcEnpoint
-	rdsEnpoint := xdsHttpEnpoint
-	listeners := c.v2.GetListeners(ldsEndpoint)
+func (c *xdsClient) getListenersAndRoutes(config *config.MOSNConfig, ch chan <- bool) {
+	log.DefaultLogger.Infof("start to get listeners from LDS")
+	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
+	listeners := c.v2.GetListeners(streamClient)
 	if listeners == nil {
+		log.DefaultLogger.Fatalf("get none listeners")
 		ch <- false
 		return
 	}
-	config.OnUpdateListeners(listeners)
-
-	success := true
-	for _, listener := range listeners {
-		//log.DefaultLogger.Infof("listener: %+v \n", listener)
-		//fmt.Printf("listener: %+v \n", listener)
-		for _, filterChain := range listener.FilterChains {
-			for _, filter := range filterChain.Filters {
-				if filter.Config.Fields["rds"] != nil {
-					rdsConfig := filter.Config.Fields["rds"].GetStructValue()
-					routeConfigName := rdsConfig.Fields["route_config_name"].GetStringValue()
-					route := c.v1.GetRoute(rdsEnpoint, routeConfigName)
-					if route == nil {
-						success = false
-					}
-					config.OnUpdateRoutes(route)
-
-					//log.DefaultLogger.Infof("route: %+v \n", route)
-					//fmt.Printf("route: %+v \n", route)
-				}
-			}
-		}
+	log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
+	err := config.OnUpdateListeners(listeners)
+	if err != nil {
+		log.DefaultLogger.Fatalf("fail to update listeners")
+		ch <- false
+		return
 	}
+	log.DefaultLogger.Infof("update listeners success")
+	ch <- true
 
-	ch <- success
 }
 
-func (c *xdsClient) getClustersAndHosts(config *Config, ch chan <- bool) {
-	cdsEndpoint := xdsHttpEnpoint
-	edsEndpoint := xdsRpcEnpoint
-	clusters := c.v1.GetClusters(cdsEndpoint)
+func (c *xdsClient) getClustersAndHosts(config *config.MOSNConfig, ch chan <- bool) {
+	log.DefaultLogger.Infof("start to get clusters from CDS")
+	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
+	clusters := c.v2.GetClusters(streamClient)
 	if clusters == nil {
+		log.DefaultLogger.Fatalf("get none clusters")
 		ch <- false
 		return
 	}
-	config.OnUpdateClusters(clusters)
+	log.DefaultLogger.Infof("get &d clusters from CDS", len(clusters))
+	err := config.OnUpdateClusters(clusters)
+	if err != nil {
+		log.DefaultLogger.Fatalf("fall to update clusters")
+		ch <- false
+		return
+	}
+	log.DefaultLogger.Infof("update clusters success")
 
 	success := true
 	for _, cluster := range clusters {
@@ -97,25 +88,76 @@ func (c *xdsClient) getClustersAndHosts(config *Config, ch chan <- bool) {
 		//fmt.Printf("cluster: %#v \n", cluster)
 		if cluster.Type == xdsapi.Cluster_EDS {
 			clusterName := cluster.Name
-			endpoints := c.v2.GetEndpoints(edsEndpoint, clusterName)
+			log.DefaultLogger.Infof("start to get endpoints for cluster %s from EDS", clusterName)
+			endpoints := c.v2.GetEndpoints(streamClient, clusterName)
 			if endpoints == nil {
+				log.DefaultLogger.Warnf("get none endpoints for cluster %s", clusterName)
 				success = false
+				continue
 			}
-			config.OnUpdateEndpoints(endpoints)
+			log.DefaultLogger.Infof("get %d endpoints for cluster %s", len(endpoints), clusterName)
+			err = config.OnUpdateEndpoints(endpoints)
+			if err != nil {
+				log.DefaultLogger.Fatalf("fail to update endpoints for cluster %s", clusterName)
+				success = false
+				continue
+			}
+			log.DefaultLogger.Infof("update endpoints for cluster %s success", clusterName)
 		}
 	}
 	ch <- success
 }
 
-func Start(config *Config) {
+
+func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources, err error) {
+	if len(config.RawDynamicResources) > 0 {
+		dynamicResources = &bootstrap.Bootstrap_DynamicResources{}
+		err = jsonpb.UnmarshalString(string(config.RawDynamicResources), dynamicResources)
+		if err != nil {
+			return nil, nil, err
+		}
+		err = dynamicResources.Validate()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	if len(config.RawStaticResources) > 0 {
+		staticResources = &bootstrap.Bootstrap_StaticResources{}
+		err = jsonpb.UnmarshalString(string(config.RawStaticResources), staticResources)
+		if err != nil {
+			return nil,nil,err
+		}
+		err = staticResources.Validate()
+		if err != nil {
+			return nil,nil,err
+		}
+	}
+	return dynamicResources, staticResources, nil
+}
+
+
+
+func Start(config *config.MOSNConfig, serviceCluster, serviceNode string) {
 
 	log.DefaultLogger.Infof("xdsclient start\n")
 	client := xdsClient{}
-	if client.v1 == nil {
-		client.v1 = &v1.V1Client{&http.Client{}, serviceCluster, serviceNode}
-	}
 	if client.v2 == nil {
-		client.v2 = &v2.V2Client{serviceCluster, serviceNode}
+		dynamicResources, staticResources, err := UnmarshalResources(config)
+		if err != nil {
+			log.DefaultLogger.Fatalf("fail to unmarshal xds resources, skip xds: %v", err)
+			warmuped <- true
+			stopped <- true
+			return
+		}
+		xdsConfig := v2.XDSConfig{}
+		err = xdsConfig.Init(dynamicResources, staticResources)
+		if err != nil {
+			log.DefaultLogger.Fatalf("failt to init xds config, skip xds: %v", err)
+			warmuped <- true
+			stopped <- true
+			return
+		}
+		client.v2 = &v2.V2Client{serviceCluster, serviceNode, &xdsConfig}
 	}
 
 	for {
@@ -126,14 +168,16 @@ func Start(config *Config) {
 	}
 	warmuped <- true
 
-	t1 := time.NewTimer(time.Second * 5)
+	refreshDelay := client.v2.Config.ADSConfig.RefreshDelay
+	t1 := time.NewTimer(*refreshDelay)
 	for {
 		select {
 		case <- stopping:
+			client.v2.Config.ADSConfig.CloseADSStreamClient()
 			stopped <- true
 		case <- t1.C:
 			client.getConfig(config)
-			t1.Reset(time.Second * 5)
+			t1.Reset(*refreshDelay)
 		}
 	}
 

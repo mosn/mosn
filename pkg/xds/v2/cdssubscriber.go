@@ -1,18 +1,19 @@
 package v2
 
 import (
-	"time"
-	"google.golang.org/grpc"
+	//"time"
+	//"google.golang.org/grpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"golang.org/x/net/context"
+	//"golang.org/x/net/context"
 	google_rpc "github.com/gogo/googleapis/google/rpc"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 )
 
-func (c *V2Client) GetClusters(endpoint string) []*pb.Cluster {
+func (c *V2Client) GetClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*pb.Cluster {
 		// Set up a connection to the server.
+/*
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
 	if err != nil {
 		log.DefaultLogger.Fatalf("did not connect: %v", err)
@@ -28,7 +29,11 @@ func (c *V2Client) GetClusters(endpoint string) []*pb.Cluster {
 		log.DefaultLogger.Fatalf("get clusters fail: %v", err)
 		return nil
 	}
-	err = streamClient.Send(&pb.DiscoveryRequest{
+*/
+	if streamClient == nil {
+		return nil
+	}
+	err := streamClient.Send(&pb.DiscoveryRequest{
 		VersionInfo:"",
 		ResourceNames: []string{},
 		TypeUrl:"type.googleapis.com/envoy.api.v2.Cluster",
