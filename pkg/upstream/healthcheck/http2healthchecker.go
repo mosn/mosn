@@ -16,28 +16,23 @@ type http2HealthChecker struct {
 	serviceName string
 }
 
-func NewHttpHealthCheck(config v2.HealthCheck) types.HealthChecker {
-	hc := NHCInstance.NewHealthCheck(config)
-	if hcc, ok := hc.(*healthChecker); ok {
+func newHttpHealthCheck(config v2.HealthCheck) types.HealthChecker {
+	hc := newHealthChecker(config)
 
-		hhc := &http2HealthChecker{
-			healthChecker: *hcc,
-			checkPath:     config.CheckPath,
-		}
-
-		if config.ServiceName != "" {
-			hhc.serviceName = config.ServiceName
-		}
-
-		return hhc
+	hhc := &http2HealthChecker{
+		healthChecker: *hc,
+		checkPath:     config.CheckPath,
 	}
-	return nil
+
+	hhc.sessionFactory = hc
+
+	return hhc
 }
 
 func (c *http2HealthChecker) newSession(host types.Host) types.HealthCheckSession {
 	hhcs := &http2HealthCheckSession{
 		healthChecker:      c,
-		healthCheckSession: *NewHealthCheckSession(&c.healthChecker, host),
+		healthCheckSession: *newHealthCheckSession(&c.healthChecker, host),
 	}
 
 	hhcs.intervalTimer = newTimer(hhcs.onInterval)

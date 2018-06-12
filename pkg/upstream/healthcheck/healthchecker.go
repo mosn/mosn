@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-func init(){
-	types.HealthCheckInss= NHCInstance
+type sessionFactory interface {
+	newSession(host types.Host) types.HealthCheckSession
 }
 
 // types.HealthChecker
@@ -29,14 +29,11 @@ type healthChecker struct {
 	healthyThreshold   uint32
 	unhealthyThreshold uint32
 
-	stats *healthCheckStats
+	sessionFactory sessionFactory
+	stats          *healthCheckStats
 }
 
-var NHCInstance = &NHC{}
-
-type NHC struct {}
-
-func (nhc *NHC) NewHealthCheck(config v2.HealthCheck) types.HealthChecker {
+func newHealthChecker(config v2.HealthCheck) *healthChecker {
 	hc := &healthChecker{
 		healthCheckSessions: make(map[types.Host]types.HealthCheckSession),
 		timeout:             config.Timeout,
@@ -47,10 +44,14 @@ func (nhc *NHC) NewHealthCheck(config v2.HealthCheck) types.HealthChecker {
 		stats:               newHealthCheckStats(config.ServiceName),
 	}
 
+	if config.ServiceName != "" {
+		hc.serviceName = config.ServiceName
+	}
+
 	return hc
 }
 
-func (c *healthChecker) AddCluster(cluster types.Cluster){
+func (c *healthChecker) SetCluster(cluster types.Cluster) {
 	c.cluster = cluster
 }
 
@@ -69,19 +70,28 @@ func (c *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 }
 
 func (c *healthChecker) newSession(host types.Host) types.HealthCheckSession {
-	return NewSessionFactory(c,host)
+	if c.sessionFactory != nil {
+		return c.sessionFactory.newSession(host)
+	} else {
+		return &healthCheckSession{
+			healthChecker: c,
+			host:          host,
+		}
+	}
 }
 
 func (c *healthChecker) addHosts(hosts []types.Host) {
 	for _, host := range hosts {
-		
 		h := host
-		go func(){
+
+		go func() {
 			var ns types.HealthCheckSession
+
 			if ns = c.newSession(h); ns == nil {
 				log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", host.AddressString())
 				return
 			}
+
 			c.healthCheckSessions[h] = ns
 			c.healthCheckSessions[h].Start()
 		}()
@@ -161,14 +171,14 @@ type healthCheckSession struct {
 	healthChecker *healthChecker
 
 	intervalTimer *timer
-	timeoutTimer   *timer
+	timeoutTimer  *timer
 
-	numHealthy     uint32
-	numUnHealthy   uint32
-	host           types.Host
+	numHealthy   uint32
+	numUnHealthy uint32
+	host         types.Host
 }
 
-func NewHealthCheckSession(hc *healthChecker, host types.Host) *healthCheckSession {
+func newHealthCheckSession(hc *healthChecker, host types.Host) *healthCheckSession {
 	hcs := &healthCheckSession{
 		healthChecker: hc,
 		host:          host,
@@ -203,13 +213,13 @@ func (s *healthCheckSession) handleSuccess() {
 			stateChanged = true
 		}
 	}
-	
+
 	s.healthChecker.stats.success.Inc(1)
 	s.healthChecker.runCallbacks(s.host, stateChanged)
-	
+
 	// stop timeout timer
 	s.timeoutTimer.stop()
-	
+
 	// start a new interval timer
 	s.intervalTimer.start(s.healthChecker.getInterval())
 }
@@ -236,16 +246,16 @@ func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
 	case types.FailurePassive:
 		s.healthChecker.stats.passiveFailure.Inc(1)
 	}
-	
+
 	s.healthChecker.runCallbacks(s.host, stateChanged)
 }
 
 func (s *healthCheckSession) handleFailure(fType types.FailureType) {
 	s.SetUnhealthy(fType)
-	
+
 	// stop timeout timer
 	s.timeoutTimer.stop()
-	
+
 	// start a new interval timer
 	s.intervalTimer.start(s.healthChecker.getInterval())
 }

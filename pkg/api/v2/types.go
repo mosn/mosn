@@ -129,6 +129,7 @@ type RetryPolicy struct {
 
 type HealthCheck struct {
 	Protocol           string
+	ProtocolCode       byte // used by sofa rpc
 	Timeout            time.Duration
 	Interval           time.Duration
 	IntervalJitter     time.Duration

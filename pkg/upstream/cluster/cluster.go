@@ -34,14 +34,14 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool)
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaApi)
 	}
-	
+
 	// init health check for cluster's host
 	if clusterConfig.HealthCheck.Protocol != "" {
 		var hc types.HealthChecker
-		hc = types.HealthCheckInss.NewHealthCheck(clusterConfig.HealthCheck)
+		hc = types.HealthCheckFactoryInstance.New(clusterConfig.HealthCheck)
 		newCluster.SetHealthChecker(hc)
 	}
-	
+
 	return newCluster
 }
 
@@ -56,7 +56,6 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig),
 			healthCheckProtocol:  clusterConfig.HealthCheck.Protocol,
-			
 		},
 		initHelper: initHelper,
 	}
@@ -139,7 +138,7 @@ func (c *cluster) PrioritySet() types.PrioritySet {
 
 func (c *cluster) SetHealthChecker(hc types.HealthChecker) {
 	c.healthChecker = hc
-	c.healthChecker.AddCluster(c)
+	c.healthChecker.SetCluster(c)
 	c.healthChecker.Start()
 	c.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool) {
 		if changedState {
@@ -160,24 +159,24 @@ func (c *cluster) OutlierDetector() types.Detector {
 // update health-hostSet for only one hostSet, reduce update times
 func (c *cluster) refreshHealthHosts(host types.Host) {
 	if host.Health() {
-		log.DefaultLogger.Debugf("Add health host %s to cluster's healthHostSet by refreshHealthHosts",host.AddressString())
-		addHealthyHost(c.prioritySet.hostSets,host)
+		log.DefaultLogger.Debugf("Add health host %s to cluster's healthHostSet by refreshHealthHosts", host.AddressString())
+		addHealthyHost(c.prioritySet.hostSets, host)
 	} else {
-		log.DefaultLogger.Debugf("Del host %s from cluster's healthHostSet by refreshHealthHosts",host.AddressString())
-		delHealthHost(c.prioritySet.hostSets,host)
+		log.DefaultLogger.Debugf("Del host %s from cluster's healthHostSet by refreshHealthHosts", host.AddressString())
+		delHealthHost(c.prioritySet.hostSets, host)
 	}
 }
 
 // refresh health hosts globally
 func (c *cluster) refreshHealthHostsGlobal() {
-	
+
 	for _, hostSet := range c.prioritySet.hostSets {
 		var healthyHost []types.Host
 		var healthyHostPerLocality [][]types.Host
-		
+
 		healthyHost = getHealthHost(hostSet.Hosts())
 		healthyHostPerLocality = getHealthHostsPerLocality(hostSet.HostsPerLocality())
-		
+
 		hostSet.UpdateHosts(hostSet.Hosts(), healthyHost, hostSet.HostsPerLocality(),
 			healthyHostPerLocality, nil, nil)
 	}
@@ -259,7 +258,7 @@ func (ci *clusterInfo) HealthCheckProtocol() string {
 }
 
 type prioritySet struct {
-	hostSets        []types.HostSet    // Note: index is the priority
+	hostSets        []types.HostSet // Note: index is the priority
 	updateCallbacks []types.MemberUpdateCallback
 	mux             sync.RWMutex
 }
@@ -270,7 +269,7 @@ func (ps *prioritySet) GetOrCreateHostSet(priority uint32) types.HostSet {
 
 	// Create a priority set
 	if uint32(len(ps.hostSets)) < priority+1 {
-		
+
 		for i := uint32(len(ps.hostSets)); i <= priority; i++ {
 			hostSet := ps.createHostSet(i)
 			hostSet.addMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
@@ -302,7 +301,7 @@ func (ps *prioritySet) HostSetsByPriority() []types.HostSet {
 	return ps.hostSets
 }
 
-func getHealthHost(hosts[]types.Host)[]types.Host {
+func getHealthHost(hosts []types.Host) []types.Host {
 	var healthyHost []types.Host
 	// todo: calculate healthyHost & healthyHostPerLocality
 	for _, h := range hosts {
@@ -313,15 +312,15 @@ func getHealthHost(hosts[]types.Host)[]types.Host {
 	return healthyHost
 }
 
-func getHealthHostsPerLocality(hhpl[][]types.Host) [][]types.Host {
+func getHealthHostsPerLocality(hhpl [][]types.Host) [][]types.Host {
 	var healthyHostPerLocality = make([][]types.Host, len(hhpl))
 	hi := 0
-	
+
 	for i := range hhpl {
 		hj := 0
 		for j := range hhpl[i] {
 			if hhpl[i][j].Health() {
-				healthyHostPerLocality[hi] = append(healthyHostPerLocality[hi],hhpl[i][j])
+				healthyHostPerLocality[hi] = append(healthyHostPerLocality[hi], hhpl[i][j])
 				hj++
 			}
 		}
@@ -332,26 +331,26 @@ func getHealthHostsPerLocality(hhpl[][]types.Host) [][]types.Host {
 	return healthyHostPerLocality
 }
 
-func addHealthyHost(hostSets []types.HostSet,host types.Host) {
+func addHealthyHost(hostSets []types.HostSet, host types.Host) {
 	// Note: currently, one host only belong to a hostSet
-	
+
 	for i, hostSet := range hostSets {
 		found := false
-		
-		for _,h := range hostSet.Hosts() {
+
+		for _, h := range hostSet.Hosts() {
 			if h.AddressString() == host.AddressString() {
-				log.DefaultLogger.Debugf("add healthy host = %s, in priority = %d",host.AddressString(),i)
+				log.DefaultLogger.Debugf("add healthy host = %s, in priority = %d", host.AddressString(), i)
 				found = true
 				break
 			}
 		}
-		
+
 		if found {
 			newHealthHost := hostSet.HealthyHosts()
 			newHealthHost = append(newHealthHost, host)
 			newHealthyHostPerLocality := hostSet.HealthHostsPerLocality()
 			newHealthyHostPerLocality[len(newHealthyHostPerLocality)-1] = append(newHealthyHostPerLocality[len(newHealthyHostPerLocality)-1], host)
-			
+
 			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, hostSet.HostsPerLocality(),
 				newHealthyHostPerLocality, nil, nil)
 			break
@@ -360,10 +359,10 @@ func addHealthyHost(hostSets []types.HostSet,host types.Host) {
 }
 
 func delHealthHost(hostSets []types.HostSet, host types.Host) {
-	for i,hostSet := range hostSets {
+	for i, hostSet := range hostSets {
 		// Note: currently, one host only belong to a hostSet
 		found := false
-		
+
 		for _, h := range hostSet.Hosts() {
 			if h.AddressString() == host.AddressString() {
 				log.DefaultLogger.Debugf("del healthy host = %s, in priority = %d", host.AddressString(), i)
@@ -371,11 +370,11 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 				break
 			}
 		}
-		
+
 		if found {
 			newHealthHost := hostSet.HealthyHosts()
 			newHealthyHostPerLocality := hostSet.HealthHostsPerLocality()
-			
+
 			for i, hh := range newHealthHost {
 				if host.Hostname() == hh.Hostname() {
 					//remove
@@ -383,17 +382,17 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 					break
 				}
 			}
-			
+
 			for i := range newHealthyHostPerLocality {
 				for j := range newHealthyHostPerLocality[i] {
-					
+
 					if host.Hostname() == newHealthyHostPerLocality[i][j].Hostname() {
 						newHealthyHostPerLocality[i] = append(newHealthyHostPerLocality[i][:j], newHealthyHostPerLocality[i][j+1:]...)
 						break
 					}
 				}
 			}
-			
+
 			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, hostSet.HostsPerLocality(),
 				newHealthyHostPerLocality, nil, nil)
 			break

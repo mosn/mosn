@@ -2,7 +2,6 @@ package types
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-
 )
 
 // Health check interfaces
@@ -32,7 +31,7 @@ type HealthChecker interface {
 	OnClusterMemberUpdate(hostsAdded []Host, hostDel []Host)
 
 	// Add cluster to healthChecker
-	AddCluster(cluster Cluster)
+	SetCluster(cluster Cluster)
 }
 
 // A health check session for an upstream host
@@ -50,8 +49,8 @@ type HealthCheckSession interface {
 type HealthCheckHostMonitor interface {
 }
 
-var HealthCheckInss HealthCheckInsInterface
+var HealthCheckFactoryInstance HealthCheckerFactory
 
-type HealthCheckInsInterface interface {
-	NewHealthCheck(config v2.HealthCheck) HealthChecker
+type HealthCheckerFactory interface {
+	New(config v2.HealthCheck) HealthChecker
 }
