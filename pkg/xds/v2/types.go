@@ -33,6 +33,13 @@ type ADSConfig struct {
 	StreamClient *StreamClient
 }
 
+type ADSClient struct {
+	adsConfig *ADSConfig
+	controlChan chan int
+	streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient
+	v2Client *V2Client
+}
+
 type ServiceConfig struct {
 	Timeout *time.Duration
 	ClusterConfig *ClusterConfig
