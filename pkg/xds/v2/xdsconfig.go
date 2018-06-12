@@ -109,11 +109,22 @@ func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticReso
 			log.DefaultLogger.Warnf("only random lbPoliy supported, convert to random")
 		}
 		config.LbPolicy = xdsapi.Cluster_RANDOM
-		config.ConnectTimeout = &cluster.ConnectTimeout
+		if cluster.ConnectTimeout.Nanoseconds() <= 0 {
+			duration := time.Duration(time.Second)
+			config.ConnectTimeout = &duration // default connect timeout
+		}else {
+			config.ConnectTimeout = &cluster.ConnectTimeout
+		}
 		config.Address = make([]string, 0, len(cluster.Hosts))
 		for _, host := range cluster.Hosts {
 			if address, ok := host.Address.(*core.Address_SocketAddress); ok {
-				config.Address = append(config.Address, address.SocketAddress.Address)
+				if port, ok := address.SocketAddress.PortSpecifier.(*core.SocketAddress_PortValue); ok {
+					newAddress := fmt.Sprintf("%s:%d", address.SocketAddress.Address, port.PortValue)
+					config.Address = append(config.Address, newAddress)
+				}else{
+					log.DefaultLogger.Warnf("only PortValue supported")
+					continue
+				}
 			}else{
 				log.DefaultLogger.Warnf("only SocketAddress supported")
 				continue
@@ -173,7 +184,7 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	sc.Cancel = cancel
 	streamClient, err := client.StreamAggregatedResources(ctx)
 	if err != nil {
-		log.DefaultLogger.Fatalf("get clusters fail: %v", err)
+		log.DefaultLogger.Fatalf("fail to create stream client: %v", err)
 		return nil
 	}
 	sc.Client = streamClient

@@ -11,9 +11,9 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 )
 
-var warmuped chan bool = make(chan bool)
-var stopping chan bool = make(chan bool)
-var stopped chan bool = make(chan bool)
+var warmuped chan bool = make(chan bool, 10)
+var stopping chan bool = make(chan bool, 10)
+var stopped chan bool = make(chan bool, 10)
 
 type xdsClient struct {
 	v2 *v2.V2Client
@@ -73,7 +73,7 @@ func (c *xdsClient) getClustersAndHosts(config *config.MOSNConfig, ch chan <- bo
 		ch <- false
 		return
 	}
-	log.DefaultLogger.Infof("get &d clusters from CDS", len(clusters))
+	log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
 	err := config.OnUpdateClusters(clusters)
 	if err != nil {
 		log.DefaultLogger.Fatalf("fall to update clusters")
