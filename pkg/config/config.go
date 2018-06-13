@@ -83,15 +83,14 @@ type SubscribeSpecConfig struct {
 }
 
 type ClusterConfig struct {
-	Name                 string
-	Type                 string
-	SubType              string            `json:"sub_type"`
-	LbType               string            `json:"lb_type"`
-	MaxRequestPerConn    uint64            `json:"max_request_per_conn"`
-	ConnBufferLimitBytes uint32            `json:"conn_buffer_limit_bytes"`
-	HealthCheck          v2.HealthCheck    `json:"health_check,omitempty"`              //v2.HealthCheck
-	ClusterSpecConfig    ClusterSpecConfig `json:"spec,omitempty"`                      //	ClusterSpecConfig
-	Hosts                []v2.Host         `json:"hosts,omitempty"` //v2.Host
+	Name              string
+	Type              string
+	SubType           string             `json:"sub_type"`
+	LbType            string             `json:"lb_type"`
+	CircuitBreakers   v2.CircuitBreakers `json:"circuit_breakers"`
+	HealthCheck       v2.HealthCheck     `json:"health_check,omitempty"` //v2.HealthCheck
+	ClusterSpecConfig ClusterSpecConfig  `json:"spec,omitempty"`         //	ClusterSpecConfig
+	Hosts             []v2.Host          `json:"hosts,omitempty"`        //v2.Host
 }
 
 type ClusterManagerConfig struct {

@@ -36,15 +36,22 @@ const (
 )
 
 type Cluster struct {
-	Name              string
-	ClusterType       ClusterType
-	SubClustetType    SubClusterType
-	LbType            LbType
-	MaxRequestPerConn uint64
+	Name             string
+	ClusterType      ClusterType
+	SubClustetType   SubClusterType
+	LbType           LbType
+	CirBreThresholds CircuitBreakers
+	HealthCheck      HealthCheck
+	Spec             ClusterSpecInfo
+}
 
+type CircuitBreakers struct {
+	MaxRequestPerConn    uint32
+	MaxConnections       uint32
+	MaxPendingRequests   uint32
+	MaxRequests          uint32
+	MaxRetries           uint32
 	ConnBufferLimitBytes uint32
-	HealthCheck          HealthCheck
-	Spec                 ClusterSpecInfo
 }
 
 type Host struct {
@@ -154,9 +161,9 @@ type SubscribeSpec struct {
 	ServiceName string
 }
 
-type ServiceRegistryInfo struct{
-	ServiceAppInfo  ApplicationInfo
-	ServicePubInfo  []PublishInfo
+type ServiceRegistryInfo struct {
+	ServiceAppInfo ApplicationInfo
+	ServicePubInfo []PublishInfo
 }
 
 type ApplicationInfo struct {
@@ -166,11 +173,11 @@ type ApplicationInfo struct {
 	Zone          string
 }
 
-type PublishInfo struct{
-	Pub  PublishContent
+type PublishInfo struct {
+	Pub PublishContent
 }
 
-type PublishContent struct{
+type PublishContent struct {
 	ServiceName string
-	PubData string
+	PubData     string
 }

@@ -125,8 +125,7 @@ func convertClusterConfig(cluster v2.Cluster) ClusterConfig {
 		Type:                 string(cluster.ClusterType),
 		SubType:              string(cluster.SubClustetType),
 		LbType:               string(cluster.LbType),
-		MaxRequestPerConn:    cluster.MaxRequestPerConn,
-		ConnBufferLimitBytes: cluster.ConnBufferLimitBytes,
+		CircuitBreakers:      cluster.CirBreThresholds,
 		//HealthCheck        : nil,
 		ClusterSpecConfig: convertClusterSpec(cluster.Spec),
 	}

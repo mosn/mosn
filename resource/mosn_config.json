@@ -85,8 +85,10 @@
         "Type": "SIMPLE",
         "sub_type": "",
         "lb_type": "LB_RANDOM",
-        "max_request_per_conn": 100000,
-        "conn_buffer_limit_bytes": 0,
+        "circuit_breakers":{
+          "MaxRequestPerConn":1024,
+          "	ConnBufferLimitBytes":102400
+        },
         "health_check": {
           "Timeout": 0,
           "HealthyThreshold": 0,

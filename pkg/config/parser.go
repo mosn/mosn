@@ -81,7 +81,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 
 func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	proxyConfig := &v2.Proxy{}
-	
+
 	//downstream protocol
 	//TODO config(json object) extract and type convert util
 	if downstreamProtocol, ok := c.Config["downstream_protocol"]; ok {
@@ -93,7 +93,7 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	} else {
 		log.StartLogger.Fatalln("[downstream_protocol] is required in proxy filter config")
 	}
-	
+
 	//upstream protocol
 	if upstreamProtocol, ok := c.Config["upstream_protocol"]; ok {
 		if upstreamProtocol, ok := upstreamProtocol.(string); ok {
@@ -128,20 +128,20 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	} else {
 		log.StartLogger.Fatalln("[routes] is required in proxy filter config")
 	}
-	
+
 	return proxyConfig
 }
 
 func ParseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
 	var logs []v2.AccessLog
-	
+
 	for _, logConfig := range c {
 		logs = append(logs, v2.AccessLog{
 			Path:   logConfig.LogPath,
 			Format: logConfig.LogFormat,
 		})
 	}
-	
+
 	return logs
 }
 
@@ -219,7 +219,7 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 
 func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter {
 	healthcheck := &v2.HealthCheckFilter{}
-	
+
 	//passthrough
 	if passthrough, ok := config["passthrough"]; ok {
 		if passthrough, ok := passthrough.(bool); ok {
@@ -271,7 +271,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		log.StartLogger.Fatalln("[Address] is required in listener config")
 	}
 	addr, err := net.ResolveTCPAddr("tcp", c.Address)
-	
+
 	if err != nil {
 		log.StartLogger.Fatalln("[Address] not valid:" + c.Address)
 	}
@@ -310,10 +310,10 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		if c.Name == "" {
 			log.StartLogger.Fatalln("[name] is required in cluster config")
 		}
-		
+
 		var clusterType v2.ClusterType
 		var subclusterType v2.SubClusterType
-		
+
 		//cluster type
 		if c.Type == "" {
 			log.StartLogger.Fatalln("[type] is required in cluster config")
@@ -331,9 +331,9 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 				log.StartLogger.Fatalln("unknown cluster type:", c.Type)
 			}
 		}
-		
+
 		var lbType v2.LbType
-		
+
 		if c.LbType == "" {
 			log.StartLogger.Fatalln("[lb_type] is required in cluster config")
 		} else {
@@ -344,14 +344,14 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			}
 		}
 
-		if c.MaxRequestPerConn == 0 {
-			c.MaxRequestPerConn = 1024
-			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d", c.MaxRequestPerConn)
+		if c.CircuitBreakers.MaxRequestPerConn == 0 {
+			c.CircuitBreakers.MaxRequestPerConn = 1024
+			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d", 1024)
 		}
 
-		if c.ConnBufferLimitBytes == 0 {
-			c.ConnBufferLimitBytes = 16 * 1026
-			log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value %d", c.ConnBufferLimitBytes)
+		if c.CircuitBreakers.ConnBufferLimitBytes == 0 {
+			c.CircuitBreakers.ConnBufferLimitBytes = 16 * 1026
+			log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value %d", 1024*16)
 		}
 
 		//clusterSpec := c.ClusterSpecConfig.(ClusterSpecConfig)
@@ -359,13 +359,12 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 
 		//v2.Cluster
 		clusterV2 := v2.Cluster{
-			Name:                 c.Name,
-			ClusterType:          clusterType,
-			SubClustetType:       subclusterType,
-			LbType:               lbType,
-			MaxRequestPerConn:    c.MaxRequestPerConn,
-			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
-			Spec:                 ParseConfigSpecConfig(&clusterSpec),
+			Name:             c.Name,
+			ClusterType:      clusterType,
+			SubClustetType:   subclusterType,
+			LbType:           lbType,
+			CirBreThresholds: c.CircuitBreakers,
+			Spec:             ParseConfigSpecConfig(&clusterSpec),
 		}
 
 		clustersV2 = append(clustersV2, clusterV2)

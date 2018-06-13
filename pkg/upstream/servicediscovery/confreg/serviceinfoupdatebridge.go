@@ -119,8 +119,8 @@ func AddSubInfo(subInfo []string) bool {
 			ClusterType:          v2.DYNAMIC_CLUSTER,
 			SubClustetType:       v2.CONFREG_CLUSTER,
 			LbType:               v2.LB_RANDOM,
-			MaxRequestPerConn:    v2.MaxRequestsPerConn,
-			ConnBufferLimitBytes: v2.ConnBufferLimitByte,
+			CirBreThresholds: v2.CircuitBreakers{MaxRequestPerConn: 1024, ConnBufferLimitBytes: 32 * 1024},
+			
 			Spec: v2.ClusterSpecInfo{
 				Subscribes: []v2.SubscribeSpec{
 					v2.SubscribeSpec{
