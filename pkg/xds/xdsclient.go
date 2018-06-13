@@ -11,9 +11,10 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 )
 
-var warmuped chan bool = make(chan bool, 10)
-var stopping chan bool = make(chan bool, 10)
-var stopped chan bool = make(chan bool, 10)
+var warmuped chan bool = make(chan bool)
+var stopping chan bool = make(chan bool)
+var stopped chan bool = make(chan bool)
+var started bool = false
 
 type xdsClient struct {
 	v2 *v2.V2Client
@@ -145,16 +146,14 @@ func Start(config *config.MOSNConfig, serviceCluster, serviceNode string) {
 		dynamicResources, staticResources, err := UnmarshalResources(config)
 		if err != nil {
 			log.DefaultLogger.Fatalf("fail to unmarshal xds resources, skip xds: %v", err)
-			warmuped <- true
-			stopped <- true
+			warmuped <- false
 			return
 		}
 		xdsConfig := v2.XDSConfig{}
 		err = xdsConfig.Init(dynamicResources, staticResources)
 		if err != nil {
 			log.DefaultLogger.Fatalf("failt to init xds config, skip xds: %v", err)
-			warmuped <- true
-			stopped <- true
+			warmuped <- false
 			return
 		}
 		client.v2 = &v2.V2Client{serviceCluster, serviceNode, &xdsConfig}
@@ -167,6 +166,7 @@ func Start(config *config.MOSNConfig, serviceCluster, serviceNode string) {
 		}
 	}
 	warmuped <- true
+	started = true
 
 	refreshDelay := client.v2.Config.ADSConfig.RefreshDelay
 	t1 := time.NewTimer(*refreshDelay)
@@ -223,11 +223,15 @@ func StartV2(config *config.MOSNConfig, serviceCluster, serviceNode string) {
 
 func Stop() {
 	log.DefaultLogger.Infof("prepare to stop xdsclient\n")
-	stopping <- true
-	<- stopped
+	if started {
+		stopping <- true
+		<-stopped
+	}
+	started = false
 	log.DefaultLogger.Infof("xdsclient stop\n")
 }
 
+// must be call after func start
 func WaitForWarmUp() {
 	<- warmuped
 }
