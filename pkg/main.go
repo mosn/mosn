@@ -31,6 +31,7 @@ func main() {
 	json.Unmarshal(content, &config)
 
 	go xds.Start(&config, serviceCluster, serviceNode)
+	xds.WaitForWarmUp()
 
 	t1 := time.NewTimer(time.Second * 10)
 	for {
