@@ -9,7 +9,6 @@ import (
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	google_rpc "github.com/gogo/googleapis/google/rpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 func (c *V2Client) GetListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Listener{

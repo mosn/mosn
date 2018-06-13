@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"golang.org/x/net/context"
 	"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 )
 
 type V2Client struct {
@@ -34,10 +35,13 @@ type ADSConfig struct {
 }
 
 type ADSClient struct {
-	adsConfig *ADSConfig
-	controlChan chan int
-	streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient
-	v2Client *V2Client
+	AdsConfig *ADSConfig
+	StreamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient
+	V2Client *V2Client
+	MosnConfig *config.MOSNConfig
+	SendControlChan chan int
+	RecvControlChan chan int
+	StopChan chan int
 }
 
 type ServiceConfig struct {
