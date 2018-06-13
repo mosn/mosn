@@ -114,9 +114,9 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 	if len(config.RawDynamicResources) > 0 {
 		dynamicResources = &bootstrap.Bootstrap_DynamicResources{}
 		err = jsonpb.UnmarshalString(string(config.RawDynamicResources), dynamicResources)
-		if err != nil {
-			return nil, nil, err
-		}
+		//if err != nil {
+		//	return nil, nil, err
+		//}
 		err = dynamicResources.Validate()
 		if err != nil {
 			return nil, nil, err
@@ -125,9 +125,9 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 	if len(config.RawStaticResources) > 0 {
 		staticResources = &bootstrap.Bootstrap_StaticResources{}
 		err = jsonpb.UnmarshalString(string(config.RawStaticResources), staticResources)
-		if err != nil {
-			return nil,nil,err
-		}
+		//if err != nil {
+		//	return nil,nil,err
+		//}
 		err = staticResources.Validate()
 		if err != nil {
 			return nil,nil,err
@@ -181,6 +181,44 @@ func Start(config *config.MOSNConfig, serviceCluster, serviceNode string) {
 		}
 	}
 
+}
+
+func StartV2(config *config.MOSNConfig, serviceCluster, serviceNode string) {
+	log.DefaultLogger.Infof("xdsclient start\n")
+	client := xdsClient{}
+	if client.v2 == nil {
+		dynamicResources, staticResources, err := UnmarshalResources(config)
+		if err != nil {
+			log.DefaultLogger.Fatalf("fail to unmarshal xds resources, skip xds: %v", err)
+			warmuped <- true
+			stopped <- true
+			return
+		}
+		xdsConfig := v2.XDSConfig{}
+		err = xdsConfig.Init(dynamicResources, staticResources)
+		if err != nil {
+			log.DefaultLogger.Fatalf("failt to init xds config, skip xds: %v", err)
+			warmuped <- true
+			stopped <- true
+			return
+		}
+		client.v2 = &v2.V2Client{serviceCluster, serviceNode, &xdsConfig}
+	}
+	stopChan := make(chan int)
+	sendControlChan := make(chan int)
+	recvControlChan := make(chan int)
+	adsClient := &v2.ADSClient{
+		AdsConfig: client.v2.Config.ADSConfig,
+		StreamClient: nil,
+		V2Client: client.v2,
+		MosnConfig: nil,
+		SendControlChan: sendControlChan,
+		RecvControlChan: recvControlChan,
+		StopChan: stopChan,
+	}
+	adsClient.Start()
+	time.Sleep(time.Second * 30)
+	adsClient.Stop()
 }
 
 func Stop() {

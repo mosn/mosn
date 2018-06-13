@@ -30,10 +30,11 @@ func main() {
 
 	json.Unmarshal(content, &config)
 
-	go xds.Start(&config, serviceCluster, serviceNode)
+	//go xds.Start(&config, serviceCluster, serviceNode)
+	go xds.StartV2(&config, serviceCluster, serviceNode)
 	xds.WaitForWarmUp()
 
-	t1 := time.NewTimer(time.Second * 10)
+	t1 := time.NewTimer(time.Second * 60)
 	for {
 		select {
 		case <-t1.C:

@@ -4,14 +4,14 @@ import (
 	//"time"
 	//"golang.org/x/net/context"
 	//"google.golang.org/grpc"
-	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	google_rpc "github.com/gogo/googleapis/google/rpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
-func (c *V2Client) GetListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*pb.Listener{
+func (c *V2Client) GetListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Listener{
 /*
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
@@ -33,7 +33,7 @@ func (c *V2Client) GetListeners(streamClient ads.AggregatedDiscoveryService_Stre
 	if streamClient == nil {
 		return nil
 	}
-	err := streamClient.Send(&pb.DiscoveryRequest{
+	err := streamClient.Send(&envoy_api_v2.DiscoveryRequest{
 		VersionInfo:"",
 		ResourceNames: []string{},
 		TypeUrl:"type.googleapis.com/envoy.api.v2.Listener",
@@ -54,11 +54,45 @@ func (c *V2Client) GetListeners(streamClient ads.AggregatedDiscoveryService_Stre
 		log.DefaultLogger.Fatalf("get listener fail: %v", err)
 		return nil
 	}
-	listeners := make([]*pb.Listener,0)
+	listeners := make([]*envoy_api_v2.Listener,0)
 	for _ ,res := range r.Resources{
-		listener := pb.Listener{}
+		listener := envoy_api_v2.Listener{}
 		listener.Unmarshal(res.GetValue())
 		listeners = append(listeners, &listener)
 	}
 	return listeners
 }
+
+
+func (c *V2Client) ReqListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient){
+	if streamClient == nil {
+		return
+	}
+	err := streamClient.Send(&envoy_api_v2.DiscoveryRequest{
+		VersionInfo:"",
+		ResourceNames: []string{},
+		TypeUrl:"type.googleapis.com/envoy.api.v2.Listener",
+		ResponseNonce:"",
+		ErrorDetail: &google_rpc.Status{
+
+		},
+		Node:&envoy_api_v2_core1.Node{
+			Id:c.ServiceNode,
+		},
+	})
+	if err != nil {
+		log.DefaultLogger.Fatalf("get listener fail: %v", err)
+		return
+	}
+}
+
+func (c *V2Client) HandleListersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Listener{
+	listeners := make([]*envoy_api_v2.Listener,0)
+	for _ ,res := range resp.Resources{
+		listener := envoy_api_v2.Listener{}
+		listener.Unmarshal(res.GetValue())
+		listeners = append(listeners, &listener)
+	}
+	return listeners
+}
+
