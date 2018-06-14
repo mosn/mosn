@@ -344,8 +344,8 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			}
 		}
 
-		if c.CircuitBreakers.MaxRequestPerConn == 0 {
-			c.CircuitBreakers.MaxRequestPerConn = 1024
+		if c.MaxRequestPerConn == 0 {
+			c.MaxRequestPerConn = 1024
 			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d", 1024)
 		}
 

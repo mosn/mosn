@@ -115,12 +115,12 @@ func AddSubInfo(subInfo []string) bool {
 
 		subServiceList = append(subServiceList, si)
 		v2Cluster := v2.Cluster{
-			Name:                 si,
-			ClusterType:          v2.DYNAMIC_CLUSTER,
-			SubClustetType:       v2.CONFREG_CLUSTER,
-			LbType:               v2.LB_RANDOM,
-			CirBreThresholds: v2.CircuitBreakers{MaxRequestPerConn: 1024, ConnBufferLimitBytes: 32 * 1024},
-			
+			Name:              si,
+			ClusterType:       v2.DYNAMIC_CLUSTER,
+			SubClustetType:    v2.CONFREG_CLUSTER,
+			LbType:            v2.LB_RANDOM,
+			MaxRequestPerConn: 1024,
+			CirBreThresholds:  v2.CircuitBreakers{ConnBufferLimitBytes: 32 * 1024},
 			Spec: v2.ClusterSpecInfo{
 				Subscribes: []v2.SubscribeSpec{
 					v2.SubscribeSpec{

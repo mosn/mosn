@@ -40,13 +40,13 @@ type Cluster struct {
 	ClusterType      ClusterType
 	SubClustetType   SubClusterType
 	LbType           LbType
+	MaxRequestPerConn uint32
 	CirBreThresholds CircuitBreakers
 	HealthCheck      HealthCheck
 	Spec             ClusterSpecInfo
 }
 
 type CircuitBreakers struct {
-	MaxRequestPerConn    uint32
 	MaxConnections       uint32
 	MaxPendingRequests   uint32
 	MaxRequests          uint32

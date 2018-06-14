@@ -197,7 +197,7 @@ type ClusterInfo interface {
 
 	MaintenanceMode() bool
 
-	MaxRequestsPerConn() uint64
+	MaxRequestsPerConn() uint32
 
 	Stats() ClusterStats
 

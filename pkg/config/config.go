@@ -87,6 +87,7 @@ type ClusterConfig struct {
 	Type              string
 	SubType           string             `json:"sub_type"`
 	LbType            string             `json:"lb_type"`
+	MaxRequestPerConn uint32
 	CircuitBreakers   v2.CircuitBreakers `json:"circuit_breakers"`
 	HealthCheck       v2.HealthCheck     `json:"health_check,omitempty"` //v2.HealthCheck
 	ClusterSpecConfig ClusterSpecConfig  `json:"spec,omitempty"`         //	ClusterSpecConfig

@@ -43,6 +43,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 			clusterType:          clusterConfig.ClusterType,
 			sourceAddr:           sourceAddr,
 			addedViaApi:          addedViaApi,
+			maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
 			connBufferLimitBytes: clusterConfig.CirBreThresholds.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig),
 		},
@@ -143,7 +144,7 @@ type clusterInfo struct {
 	connectTimeout       int
 	connBufferLimitBytes uint32
 	features             int
-	maxRequestsPerConn   uint64
+	maxRequestsPerConn   uint32
 	addedViaApi          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
@@ -194,7 +195,7 @@ func (ci *clusterInfo) MaintenanceMode() bool {
 	return false
 }
 
-func (ci *clusterInfo) MaxRequestsPerConn() uint64 {
+func (ci *clusterInfo) MaxRequestsPerConn() uint32 {
 	return ci.maxRequestsPerConn
 }
 
