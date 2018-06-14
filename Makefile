@@ -30,7 +30,13 @@ build:
 	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
 	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make build-local
 
+build-host:
+	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker run --net=host --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make build-local
+
 binary: build
+
+binary-host: build-host
 
 build-local:
 	@rm -rf bundles/${MAJOR_VERSION}/binary

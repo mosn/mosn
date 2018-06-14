@@ -150,7 +150,10 @@ func Load(path string) *MOSNConfig {
 	// todo delete
 	//ConfigPath = "../../resource/mosn_config_dump_result.json"
 
-	json.Unmarshal(content, &config)
-
+	err = json.Unmarshal(content, &config)
+	if err != nil {
+		log.Fatalln("json unmarshal config failed, ", err)
+		os.Exit(1)
+	}
 	return &config
 }

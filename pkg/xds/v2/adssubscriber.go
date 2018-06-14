@@ -27,8 +27,16 @@ func (adsClient *ADSClient) SendThread(){
 			adsClient.StopChan <- 1
 			return
 		case <- t1.C:
-			adsClient.V2Client.ReqListeners(adsClient.StreamClient)
-			adsClient.V2Client.ReqClusters(adsClient.StreamClient)
+			log.DefaultLogger.Infof("send thread request lds")
+			err := adsClient.V2Client.ReqListeners(adsClient.StreamClient)
+			if err != nil{
+				log.DefaultLogger.Warnf("send thread request lds fail!auto retry next period")
+			}
+			log.DefaultLogger.Infof("send thread request cds")
+			err = adsClient.V2Client.ReqClusters(adsClient.StreamClient)
+			if err != nil{
+				log.DefaultLogger.Warnf("send thread request cds fail!auto retry next period")
+			}
 			t1.Reset(*refreshDelay)
 		}
 	}
@@ -44,7 +52,8 @@ func (adsClient *ADSClient) ReceiveThread(){
 		default:
 			resp,err := adsClient.StreamClient.Recv()
 			if err != nil{
-				log.DefaultLogger.Fatalf("get resp fail: %v", err)
+				log.DefaultLogger.Warnf("get resp timeout: %v", err)
+				continue
 			}
 			typeUrl := resp.TypeUrl
 			if typeUrl == "type.googleapis.com/envoy.api.v2.Listener"{
@@ -67,11 +76,13 @@ func (adsClient *ADSClient) ReceiveThread(){
 					return
 				}
 				log.DefaultLogger.Infof("update clusters success")
+				clusterNames := make([]string,0)
 				for _,cluster := range clusters{
 					if cluster.Type == envoy_api_v2.Cluster_EDS {
-						adsClient.V2Client.ReqEndpoints(adsClient.StreamClient, cluster.Name)
+						clusterNames = append(clusterNames, cluster.Name)
 					}
 				}
+				adsClient.V2Client.ReqEndpoints(adsClient.StreamClient, clusterNames)
 			}else if typeUrl == "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"{
 				log.DefaultLogger.Infof("get eds resp,handle it ")
 				endpoints := adsClient.V2Client.HandleEndpointesResp(resp)
@@ -96,4 +107,7 @@ func (adsClient *ADSClient) Stop(){
 			log.DefaultLogger.Infof("stop signal")
 		}
 	}
+	close(adsClient.SendControlChan)
+	close(adsClient.RecvControlChan)
+	close(adsClient.StopChan)
 }

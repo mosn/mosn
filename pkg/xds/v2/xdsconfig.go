@@ -110,7 +110,7 @@ func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticReso
 		}
 		config.LbPolicy = xdsapi.Cluster_RANDOM
 		if cluster.ConnectTimeout.Nanoseconds() <= 0 {
-			duration := time.Duration(time.Second)
+			duration := time.Duration(time.Second * 10)
 			config.ConnectTimeout = &duration // default connect timeout
 		}else {
 			config.ConnectTimeout = &cluster.ConnectTimeout
@@ -158,12 +158,12 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 		return nil
 	}
 	var endpoint string
-	var timeout *time.Duration
+	//var timeout *time.Duration
 	for _, service := range c.Services{
 		if service.ClusterConfig == nil {
 			continue
 		}
-		endpoint, timeout = service.ClusterConfig.GetEndpoint()
+		endpoint, _ = service.ClusterConfig.GetEndpoint()
 		if len(endpoint) > 0 {
 			break
 		}
@@ -180,7 +180,8 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	sc.Conn = conn
 	client := ads.NewAggregatedDiscoveryServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+
+	ctx, cancel := context.WithCancel(context.Background())
 	sc.Cancel = cancel
 	streamClient, err := client.StreamAggregatedResources(ctx)
 	if err != nil {

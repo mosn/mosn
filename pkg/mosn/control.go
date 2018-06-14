@@ -15,12 +15,22 @@ var (
 				Usage:  "Load configuration from `FILE`",
 				EnvVar: "MOSN_CONFIG",
 				Value:  "resource/mson_config.json",
+			},cli.StringFlag{
+				Name:   "service-cluster, s",
+				Usage:  "sidecar service cluster",
+				EnvVar: "SERVICE_CLUSTER",
+			},cli.StringFlag{
+				Name:   "service-node, n",
+				Usage:  "sidecar service node",
+				EnvVar: "SERVICE_NODE",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			configPath := c.String("config")
+			serviceCluster := c.String("service-cluster")
+			serviceNode := c.String("service-node")
 			conf := config.Load(configPath)
-			Start(conf)
+			Start(conf,serviceCluster,serviceNode)
 			return nil
 		},
 	}
