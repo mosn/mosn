@@ -1,0 +1,136 @@
+{
+	"dynamic_resources": {
+		"lds_config": {
+			"ads": {}
+		},
+		"cds_config": {
+			"ads": {}
+		},
+		"ads_config": {
+			"api_type": "GRPC",
+			"grpc_services": [{
+				"envoy_grpc": {
+					"cluster_name": "xds-grpc"
+				}
+			}]
+		}
+	},
+	"static_resources": {
+		"clusters": [{
+			"name": "xds-grpc",
+			"type": "STRICT_DNS",
+			"lb_policy": "ROUND_ROBIN",
+
+			"hosts": [{
+				"socket_address": {
+					"address": "192.168.1.254",
+					"port_value": 15010
+				}
+			}],
+			"circuit_breakers": {
+				"thresholds": [{
+						"priority": "default",
+						"max_connections": "100000",
+						"max_pending_requests": "100000",
+						"max_requests": "100000"
+					},
+					{
+						"priority": "high",
+						"max_connections": "100000",
+						"max_pending_requests": "100000",
+						"max_requests": "100000"
+					}
+				]
+			},
+			"http2_protocol_options": {}
+		}]
+	},
+	"servers": [{
+		"default_log_path": "/tmp/xds/mosn/default.log",
+		"default_log_level": "INFO",
+		"graceful_timeout": "10s",
+		"Processor": 1,
+		"listeners": [{
+				"name": "egress",
+				"address": "0.0.0.0:12220",
+				"bind_port": true,
+				"network_filters": [{
+					"type": "proxy",
+					"config": {
+						"downstream_protocol": "SofaRpc",
+						"routes": [{
+							"cluster": "confreg_service1",
+							"name": "example_route",
+							"service": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0x"
+						}],
+						"upstream_protocol": "SofaRpc"
+					}
+				}],
+				"stream_filters": [{
+					"type": "healthcheck",
+					"config": {
+						"cache_time": "360s",
+						"cluster_min_healthy_percentages": {
+							"local_service": 70
+						},
+						"passthrough": false
+					}
+				}],
+				"log_path": "/tmp/xds/mosn/logs/egress.log",
+				"log_level": "DEBUG",
+				"access_logs": [{
+					"log_path": "./access_egress.log",
+					"log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
+				}],
+				"disable_conn_io": false
+			},
+			{
+				"name": "ingress",
+				"address": "127.0.0.1:12201",
+				"bind_port": true,
+				"network_filters": [{
+					"type": "proxy",
+					"config": {
+						"downstream_protocol": "SofaRpc",
+						"routes": [{
+							"cluster": "local_service",
+							"name": "example_route",
+							"service": ".*"
+						}],
+						"support_dynamic_route": true,
+						"upstream_protocol": "SofaRpc"
+					}
+				}],
+				"log_path": "/tmp/xds/mosn/logs/ingress.log",
+				"log_level": "DEBUG",
+				"disable_conn_io": false
+			}
+		]
+	}],
+	"cluster_manager": {
+		"auto_discovery": false,
+		"clusters": [{
+			"Name": "local_service",
+			"Type": "SIMPLE",
+			"sub_type": "",
+			"lb_type": "LB_RANDOM",
+			"max_request_per_conn": 100000,
+			"conn_buffer_limit_bytes": 0,
+			"health_check": {
+				"Timeout": 0,
+				"HealthyThreshold": 0,
+				"UnhealthyThreshold": 0,
+				"Interval": 0,
+				"IntervalJitter": 0,
+				"CheckPath": "",
+				"ServiceName": ""
+			},
+			"spec": {},
+			"hosts": [{
+				"Address": "127.0.0.1:12345",
+				"Hostname": "downstream_machine",
+				"Weight": 1
+			}]
+		}]
+	}
+}
