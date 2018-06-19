@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
@@ -79,7 +80,82 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 	return sc
 }
 
-func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
+func ParseProxyFilterJson(c *v2.Filter) *v2.Proxy {
+
+	proxyConfig := &v2.Proxy{}
+
+	if data, err := json.Marshal(c.Config); err == nil {
+		json.Unmarshal(data, &proxyConfig)
+	} else {
+		log.StartLogger.Fatal("Parsing Proxy Network Fitler Error")
+	}
+
+	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
+		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Fitler")
+	}
+
+	if !proxyConfig.SupportDynamicRoute {
+		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
+	}
+
+	if len(proxyConfig.VirtualHosts) == 0 {
+		log.StartLogger.Warnf("No VirtualHosts Founded")
+
+	} else {
+
+		for _, vh := range proxyConfig.VirtualHosts {
+
+			if len(vh.Routers) == 0 {
+				log.StartLogger.Warnf("No Router Founded in VirtualHosts")
+			}
+		}
+	}
+
+	proxyConfig.BasicRoutes = ParseBasicFilter(proxyConfig)
+
+	return proxyConfig
+}
+
+func GetServiceFromHeader(router *v2.Router) *v2.BasicServiceRoute {
+
+	if router == nil {
+		return nil
+	}
+
+	var ServiceName, ClusterName string
+
+	for _, h := range router.Match.Headers {
+		if h.Name == "service" || h.Name == "Service" {
+			ServiceName = h.Value
+		}
+	}
+
+	ClusterName = router.Route.ClusterName
+
+	if ServiceName == "" || ClusterName == "" {
+		return nil
+	}
+
+	return &v2.BasicServiceRoute{
+		Service: ServiceName,
+		Cluster: ClusterName,
+	}
+}
+
+func ParseBasicFilter(proxy *v2.Proxy) []*v2.BasicServiceRoute {
+
+	var BSR []*v2.BasicServiceRoute
+
+	for _, p := range proxy.VirtualHosts {
+
+		for _, r := range p.Routers {
+			BSR = append(BSR, GetServiceFromHeader(&r))
+		}
+	}
+	return BSR
+}
+
+func ParseProxyFilter(c *v2.Filter) *v2.Proxy {
 	proxyConfig := &v2.Proxy{}
 
 	//downstream protocol
@@ -120,7 +196,7 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	if routes, ok := c.Config["routes"]; ok {
 		if routes, ok := routes.([]interface{}); ok {
 			for _, route := range routes {
-				proxyConfig.Routes = append(proxyConfig.Routes, parseRouteConfig(route.(map[string]interface{})))
+				proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, parseRouteConfig(route.(map[string]interface{})))
 			}
 		} else {
 			log.StartLogger.Fatalln("[routes] in proxy filter config is not list of routemap")

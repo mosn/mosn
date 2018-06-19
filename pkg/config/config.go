@@ -30,7 +30,7 @@ type ListenerConfig struct {
 	Name           string         `json:"name,omitempty"`
 	Address        string         `json:"address,omitempty"`
 	BindToPort     bool           `json:"bind_port"`
-	NetworkFilters []FilterConfig `json:"network_filters,service_registry"`
+	NetworkFilters []v2.FilterChain    `json:"filter_chains"`
 	StreamFilters  []FilterConfig `json:"stream_filters,omitempty"`
 
 	//logger
@@ -92,6 +92,7 @@ type ClusterConfig struct {
 	HealthCheck       v2.HealthCheck     `json:"health_check,omitempty"` //v2.HealthCheck
 	ClusterSpecConfig ClusterSpecConfig  `json:"spec,omitempty"`         //	ClusterSpecConfig
 	Hosts             []v2.Host          `json:"hosts,omitempty"`        //v2.Host
+	LBSubsetConfig    v2.LBSubsetConfig
 }
 
 type ClusterManagerConfig struct {
