@@ -7,8 +7,14 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/xds/v2"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	"github.com/gogo/protobuf/types"
 	"github.com/gogo/protobuf/jsonpb"
 	//"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"encoding/json"
+	"fmt"
+	"time"
+	"strings"
 )
 
 //var warmuped chan bool = make(chan bool)
@@ -93,28 +99,153 @@ func (c *XdsClient) getClustersAndHosts(config *config.MOSNConfig) error{
 	return nil
 }
 
+func duration2String(duration *types.Duration) string {
+	d := time.Duration(duration.Seconds)*time.Second + time.Duration(duration.Nanos)*time.Nanosecond
+	x := fmt.Sprintf("%.9f", d.Seconds())
+	x = strings.TrimSuffix(x, "000")
+	x = strings.TrimSuffix(x, "000")
+	return x + "s"
+}
 
-func (c *XdsClient)UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources, err error) {
+/*
+in order to convert bootstrap_v2 json to pb struct (go-control-plane), some fields must be exchanged format
+ */
+func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources, err error) {
+
 	if len(config.RawDynamicResources) > 0 {
 		dynamicResources = &bootstrap.Bootstrap_DynamicResources{}
-		err = jsonpb.UnmarshalString(string(config.RawDynamicResources), dynamicResources)
-		//if err != nil {
-		//	return nil, nil, err
-		//}
-		err = dynamicResources.Validate()
+		resources := map[string]json.RawMessage{}
+		err = json.Unmarshal([]byte(config.RawDynamicResources), &resources)
 		if err != nil {
+			log.DefaultLogger.Fatalf("fail to unmarshal dynamic_resources: %v", err)
+			return nil, nil, err
+		}
+		if adsConfigRaw, ok := resources["ads_config"]; ok {
+			var b []byte
+			adsConfig := map[string]json.RawMessage{}
+			err = json.Unmarshal([]byte(adsConfigRaw), &adsConfig)
+			if err != nil {
+				log.DefaultLogger.Fatalf("fail to unmarshal ads_config: %v", err)
+				return nil, nil, err
+			}
+			if refreshDelayRaw, ok := adsConfig["refresh_delay"]; ok {
+				refreshDelay := types.Duration{}
+				err = json.Unmarshal([]byte(refreshDelayRaw), &refreshDelay)
+				if err != nil {
+					log.DefaultLogger.Fatalf("fail to unmarshal refresh_delay: %v", err)
+					return nil, nil, err
+				}
+
+				d := duration2String(&refreshDelay)
+				b, err = json.Marshal(&d)
+				adsConfig["refresh_delay"] = json.RawMessage(b)
+			}
+			b, err = json.Marshal(&adsConfig)
+			if err != nil {
+				log.DefaultLogger.Fatalf("fail to marshal refresh_delay: %v", err)
+				return nil, nil, err
+			}
+			resources["ads_config"] = json.RawMessage(b)
+			b, err = json.Marshal(&resources)
+			if err != nil {
+				log.DefaultLogger.Fatalf("fail to marshal ads_config: %v", err)
+				return nil, nil, err
+			}
+
+			err = jsonpb.UnmarshalString(string(b), dynamicResources)
+			if err != nil {
+				log.DefaultLogger.Fatalf("fail to marshal dynamic_resources: %v", err)
+				return nil, nil, err
+			}
+			err = dynamicResources.Validate()
+			if err != nil {
+				log.DefaultLogger.Fatalf("invalid dynamic_resources: %v", err)
+				return nil, nil, err
+			}
+		} else{
+			log.DefaultLogger.Fatalf("ads_config not found")
+			err = errors.New("lack of ads_config")
 			return nil, nil, err
 		}
 	}
+
+
 	if len(config.RawStaticResources) > 0 {
 		staticResources = &bootstrap.Bootstrap_StaticResources{}
-		err = jsonpb.UnmarshalString(string(config.RawStaticResources), staticResources)
-		//if err != nil {
-		//	return nil,nil,err
-		//}
+		var b []byte
+		resources := map[string]json.RawMessage{}
+		err = json.Unmarshal([]byte(config.RawStaticResources), &resources)
+		if err != nil {
+			log.DefaultLogger.Fatalf("fail to unmarshal static_resources: %v", err)
+			return nil, nil, err
+		}
+		if clustersRaw, ok := resources["clusters"]; ok {
+			clusters := []json.RawMessage{}
+			err = json.Unmarshal([]byte(clustersRaw), &clusters)
+			if err != nil {
+				log.DefaultLogger.Fatalf("fail to unmarshal clusters: %v", err)
+				return nil, nil, err
+			}
+			for i, clusterRaw := range clusters {
+				cluster := map[string]json.RawMessage{}
+				err = json.Unmarshal([]byte(clusterRaw), &cluster)
+				if err != nil {
+					log.DefaultLogger.Fatalf("fail to unmarshal cluster: %v", err)
+					return nil, nil, err
+				}
+				cb := apicluster.CircuitBreakers{}
+				b, err = json.Marshal(&cb)
+				if err != nil {
+					log.DefaultLogger.Fatalf("fail to marshal circuit_breakers: %v", err)
+					return nil, nil, err
+				}
+				cluster["circuit_breakers"] = json.RawMessage(b)
+
+				if connectTimeoutRaw, ok := cluster["connect_timeout"]; ok {
+					connectTimeout := types.Duration{}
+					err = json.Unmarshal([]byte(connectTimeoutRaw), &connectTimeout)
+					if err != nil {
+						log.DefaultLogger.Fatalf("fail to unmarshal connect_timeout: %v", err)
+						return nil, nil, err
+					}
+					d := duration2String(&connectTimeout)
+					b, err = json.Marshal(&d)
+					if err != nil {
+						log.DefaultLogger.Fatalf("fail to marshal connect_timeout: %v", err)
+						return nil, nil, err
+					}
+					cluster["connect_timeout"] = json.RawMessage(b)
+				}
+				b, err = json.Marshal(&cluster)
+				if err != nil {
+					log.DefaultLogger.Fatalf("fail to marshal cluster: %v", err)
+					return nil, nil, err
+				}
+				clusters[i] = json.RawMessage(b)
+			}
+			b, err = json.Marshal(&clusters)
+			if err != nil {
+				log.DefaultLogger.Fatalf("fail to marshal clusters: %v", err)
+				return nil, nil, err
+			}
+		}
+		resources["clusters"] = json.RawMessage(b)
+		b, err = json.Marshal(&resources)
+		if err != nil {
+			log.DefaultLogger.Fatalf("fail to marshal resources: %v", err)
+			return nil, nil, err
+		}
+
+		err = jsonpb.UnmarshalString(string(b), staticResources)
+		if err != nil {
+			log.DefaultLogger.Fatalf("fail to unmarshal static_resources: %v", err)
+			return nil, nil, err
+		}
+
 		err = staticResources.Validate()
 		if err != nil {
-			return nil,nil,err
+			log.DefaultLogger.Fatalf("Invalid static_resources: %v", err)
+			return nil, nil, err
 		}
 	}
 	return dynamicResources, staticResources, nil
@@ -170,7 +301,7 @@ func (c *XdsClient)UnmarshalResources(config *config.MOSNConfig) (dynamicResourc
 func (c *XdsClient)Start(config *config.MOSNConfig, serviceCluster, serviceNode string) error{
 	log.DefaultLogger.Infof("xds client start")
 	if c.v2 == nil {
-		dynamicResources, staticResources, err := c.UnmarshalResources(config)
+		dynamicResources, staticResources, err := UnmarshalResources(config)
 		if err != nil {
 			log.DefaultLogger.Fatalf("fail to unmarshal xds resources, skip xds: %v", err)
 			return errors.New("fail to unmarshal xds resources")
