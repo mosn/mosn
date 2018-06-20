@@ -24,9 +24,10 @@ import (
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
 )
 
-func Start(c *config.MOSNConfig) {
+func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	log.StartLogger.Infof("start by config : %+v", c)
 
 	srvNum := len(c.Servers)
@@ -51,6 +52,10 @@ func Start(c *config.MOSNConfig) {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
+
+	//get xds config
+	xdsClient := xds.XdsClient{}
+	xdsClient.Start(c, serviceCluster, serviceNode)
 
 	//get inherit fds
 	inheritListeners := getInheritListeners()
@@ -118,6 +123,7 @@ func Start(c *config.MOSNConfig) {
 
 	//todo: daemon running
 	wg.Wait()
+	xdsClient.Stop()
 }
 
 // maybe used in proxy rewrite

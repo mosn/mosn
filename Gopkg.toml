@@ -1,0 +1,82 @@
+# Gopkg.toml example
+#
+# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#   name = "github.com/x/y"
+#   version = "2.4.0"
+#
+# [prune]
+#   non-go = false
+#   go-tests = true
+#   unused-packages = true
+
+
+[[constraint]]
+  name = "github.com/deckarep/golang-set"
+  version = "1.7.0"
+
+[[constraint]]
+  name = "github.com/envoyproxy/go-control-plane"
+  version = "0.2.0"
+
+[[constraint]]
+  name = "github.com/gogo/protobuf"
+  version = "0.5.0"
+
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "1.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/hashicorp/go-syslog"
+
+[[constraint]]
+  name = "github.com/julienschmidt/httprouter"
+  version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/magiconair/properties"
+  version = "1.8.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/nu7hatch/gouuid"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/orcaman/concurrent-map"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/rcrowley/go-metrics"
+
+[[constraint]]
+  name = "github.com/urfave/cli"
+  version = "1.20.0"
+
+[[constraint]]
+  name = "google.golang.org/grpc"
+  version = "1.11.1"
+
+[[constraint]]
+  name = "gopkg.in/natefinch/lumberjack.v2"
+  version = "2.1.0"
+
+[prune]
+  go-tests = true
+  unused-packages = true
