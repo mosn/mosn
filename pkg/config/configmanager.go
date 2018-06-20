@@ -150,7 +150,7 @@ func AddRouterConfig(clusterName string) {
 	routerName := clusterName[0 : len(clusterName)-8]
 
 	for _, l := range config.Servers[0].Listeners {
-		if routers, ok := l.NetworkFilters[0].Filters[0].Config["routes"].([]interface{}); ok {
+		if routers, ok := l.FilterChains[0].Filters[0].Config["routes"].([]interface{}); ok {
 			// remove repetition
 			for _, route := range routers {
 				if r, ok := route.(map[string]interface{}); ok {
@@ -168,9 +168,9 @@ func AddRouterConfig(clusterName string) {
 			s["service"] = routerName
 			s["cluster"] = clusterName
 			routers = append(routers, s)
-			l.NetworkFilters[0].Filters[0].Config["routes"] = routers
+			l.FilterChains[0].Filters[0].Config["routes"] = routers
 		} else {
-			fmt.Println(l.NetworkFilters[0].Filters[0].Config["routes"])
+			fmt.Println(l.FilterChains[0].Filters[0].Config["routes"])
 		}
 	}
 }

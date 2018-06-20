@@ -1,7 +1,6 @@
 package v2
 
 import (
-	"crypto/tls"
 	"net"
 	"time"
 )
@@ -36,15 +35,16 @@ const (
 )
 
 type Cluster struct {
-	Name             string
-	ClusterType      ClusterType
-	SubClustetType   SubClusterType
-	LbType           LbType
+	Name              string
+	ClusterType       ClusterType
+	SubClustetType    SubClusterType
+	LbType            LbType
 	MaxRequestPerConn uint32
-	CirBreThresholds CircuitBreakers
-	HealthCheck      HealthCheck
-	Spec             ClusterSpecInfo
-	LBSubSetConfig   LBSubsetConfig
+	CirBreThresholds  CircuitBreakers
+	HealthCheck       HealthCheck
+	Spec              ClusterSpecInfo
+	LBSubSetConfig    LBSubsetConfig
+	TLS               TLSConfig
 }
 
 type CircuitBreakers struct {
@@ -70,24 +70,35 @@ type ListenerConfig struct {
 	BindToPort                            bool
 	PerConnBufferLimitBytes               uint32
 	HandOffRestoredDestinationConnections bool
-
-	// used in inherit case
-	InheritListener *net.TCPListener
-	Remain          bool
-
-	// log
-	LogPath    string
-	LogLevel   uint8
-	AccessLogs []AccessLog
-
-	// only used in http2 case
-	DisableConnIo bool
+	InheritListener                       *net.TCPListener // used in inherit case
+	Remain                                bool
+	LogPath                               string // log
+	LogLevel                              uint8
+	AccessLogs                            []AccessLog
+	DisableConnIo                         bool          // only used in http2 case
+	FilterChains                          []FilterChain // FilterChains
 }
 
 type AccessLog struct {
 	Path   string
 	Format string
 	// todo: add log filters
+}
+
+type TLSConfig struct {
+	Status       bool
+	ServerName   string
+	CACert       string
+	CertChain    string
+	PrivateKey   string
+	VerifyClient bool
+	VerifyServer bool
+	CipherSuites string
+	EcdhCurves   string
+	MinVersion   string
+	MaxVersion   string
+	ALPN         string
+	Ticket       string
 }
 
 type TcpRoute struct {
@@ -193,7 +204,7 @@ type LBSubsetConfig struct {
 
 type FilterChain struct {
 	FilterChainMatch string
-	TlsContext       tls.Certificate
+	TLS              TLSConfig
 	Filters          []Filter
 }
 

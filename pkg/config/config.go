@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,11 +10,18 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
 //global instance for load & dump
 var ConfigPath string
 var config MOSNConfig
+
+type FilterChain struct {
+	FilterChainMatch string       `json:"match,omitempty"`
+	TLS              TLSConfig    `json:"tls_context,omitempty"`
+	Filters          []FilterConfig `json:"filters"`
+}
 
 type FilterConfig struct {
 	Type   string                 `json:"type,omitempty"`
@@ -31,7 +37,7 @@ type ListenerConfig struct {
 	Name           string         `json:"name,omitempty"`
 	Address        string         `json:"address,omitempty"`
 	BindToPort     bool           `json:"bind_port"`
-	NetworkFilters []v2.FilterChain    `json:"filter_chains"`
+	FilterChains   []FilterChain  `json:"filter_chains"`
 	StreamFilters  []FilterConfig `json:"stream_filters,omitempty"`
 
 	//logger
@@ -43,6 +49,22 @@ type ListenerConfig struct {
 
 	// only used in http2 case
 	DisableConnIo bool `json:"disable_conn_io"`
+}
+
+type TLSConfig struct {
+	Status       bool   `json:"status,omitempty"`
+	ServerName   string `json:"server_name,omitempty"`
+	CACert       string `json:"cacert,omitempty"`
+	CertChain    string `json:"certchain,omitempty"`
+	PrivateKey   string `json:"privatekey,omitempty"`
+	VerifyClient bool   `json:"verifyclient,omitempty"`
+	VerifyServer bool   `json:"verifyserver,omitempty"`
+	CipherSuites string `json:"ciphersuites,omitempty"`
+	EcdhCurves   string `json:"ecdhcurves,omitempty"`
+	MinVersion   string `json:"minversion,omitempty"`
+	MaxVersion   string `json:"maxversion,omitempty"`
+	ALPN         string `json:"alpn,omitempty"`
+	Ticket       string `json:"ticket,omitempty"`
 }
 
 type ServerConfig struct {
@@ -84,16 +106,17 @@ type SubscribeSpecConfig struct {
 }
 
 type ClusterConfig struct {
-	Name              string
-	Type              string
-	SubType           string             `json:"sub_type"`
-	LbType            string             `json:"lb_type"`
-	MaxRequestPerConn uint32
+	Name                 string
+	Type                 string
+	SubType              string            `json:"sub_type"`
+	LbType               string            `json:"lb_type"`
+	MaxRequestPerConn    uint32            `json:"max_request_per_conn"`
 	CircuitBreakers   v2.CircuitBreakers `json:"circuit_breakers"`
 	HealthCheck       v2.HealthCheck     `json:"health_check,omitempty"` //v2.HealthCheck
 	ClusterSpecConfig ClusterSpecConfig  `json:"spec,omitempty"`         //	ClusterSpecConfig
 	Hosts             []v2.Host          `json:"hosts,omitempty"`        //v2.Host
 	LBSubsetConfig    v2.LBSubsetConfig
+	TLS               TLSConfig          `json:"tls_context,omitempty"`
 }
 
 type ClusterManagerConfig struct {
