@@ -20,10 +20,10 @@
                 "SignedCertificateTimestamps": null,
                 "Leaf": null
               },
-              "Filters": [
+              "filters": [
                 {
-                  "Name": "proxy",
-                  "Config": {
+                  "type": "proxy",
+                  "config": {
                     "DownstreamProtocol": "http1",
                     "Name": "proxy_config",
                     "SupportDynamicRoute": true,
@@ -136,10 +136,10 @@
                 "SignedCertificateTimestamps": null,
                 "Leaf": null
               },
-              "Filters": [
+              "filters": [
                 {
-                  "Name": "proxy",
-                  "Config": {
+                  "type": "proxy",
+                  "config": {
                     "DownstreamProtocol": "SofaRpc",
                     "Name": "proxy_config",
                     "SupportDynamicRoute": true,
@@ -215,8 +215,8 @@
               },
               "Filters": [
                 {
-                  "Name": "proxy",
-                  "Config": {
+                  "type": "proxy",
+                  "config": {
                     "DownstreamProtocol": "SofaRpc",
                     "Name": "proxy_config",
                     "SupportDynamicRoute": true,
