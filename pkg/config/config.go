@@ -16,6 +16,12 @@ import (
 var ConfigPath string
 var config MOSNConfig
 
+type FilterChain struct {
+	FilterChainMatch string       `json:"match,omitempty"`
+	TLS              TLSConfig    `json:"tls_context,omitempty"`
+	Filters          []FilterConfig `json:"filters"`
+}
+
 type FilterConfig struct {
 	Type   string                 `json:"type,omitempty"`
 	Config map[string]interface{} `json:"config,omitempty"`
@@ -27,11 +33,11 @@ type AccessLogConfig struct {
 }
 
 type ListenerConfig struct {
-	Name           string           `json:"name,omitempty"`
-	Address        string           `json:"address,omitempty"`
-	BindToPort     bool             `json:"bind_port"`
-	NetworkFilters []v2.FilterChain `json:"filter_chains"`
-	StreamFilters  []FilterConfig   `json:"stream_filters,omitempty"`
+	Name           string         `json:"name,omitempty"`
+	Address        string         `json:"address,omitempty"`
+	BindToPort     bool           `json:"bind_port"`
+	FilterChains   []FilterChain  `json:"filter_chains"`
+	StreamFilters  []FilterConfig `json:"stream_filters,omitempty"`
 
 	//logger
 	LogPath  string `json:"log_path,omitempty"`
@@ -42,6 +48,22 @@ type ListenerConfig struct {
 
 	// only used in http2 case
 	DisableConnIo bool `json:"disable_conn_io"`
+}
+
+type TLSConfig struct {
+	Status       bool   `json:"status,omitempty"`
+	ServerName   string `json:"server_name,omitempty"`
+	CACert       string `json:"cacert,omitempty"`
+	CertChain    string `json:"certchain,omitempty"`
+	PrivateKey   string `json:"privatekey,omitempty"`
+	VerifyClient bool   `json:"verifyclient,omitempty"`
+	VerifyServer bool   `json:"verifyserver,omitempty"`
+	CipherSuites string `json:"ciphersuites,omitempty"`
+	EcdhCurves   string `json:"ecdhcurves,omitempty"`
+	MinVersion   string `json:"minversion,omitempty"`
+	MaxVersion   string `json:"maxversion,omitempty"`
+	ALPN         string `json:"alpn,omitempty"`
+	Ticket       string `json:"ticket,omitempty"`
 }
 
 type ServerConfig struct {
@@ -94,6 +116,8 @@ type ClusterConfig struct {
 	ClusterSpecConfig    ClusterSpecConfig     `json:"spec,omitempty"`         //	ClusterSpecConfig
 	Hosts                []v2.Host             `json:"hosts,omitempty"`        //v2.Host
 	LBSubsetConfig       v2.LBSubsetConfig
+	TLS                  TLSConfig             `json:"tls_context,omitempty"`
+
 }
 
 type CircuitBreakerdConfig struct {

@@ -202,6 +202,8 @@ type ClusterInfo interface {
 	Stats() ClusterStats
 
 	ResourceManager() ResourceManager
+
+        TLSMng() TLSContextManager
 }
 
 type ResourceManager interface {
