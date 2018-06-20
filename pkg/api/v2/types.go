@@ -36,24 +36,36 @@ const (
 )
 
 type Cluster struct {
-	Name             string
-	ClusterType      ClusterType
-	SubClustetType   SubClusterType
-	LbType           LbType
-	MaxRequestPerConn uint32
-	CirBreThresholds CircuitBreakers
-	HealthCheck      HealthCheck
-	Spec             ClusterSpecInfo
-	LBSubSetConfig   LBSubsetConfig
+	Name                 string
+	ClusterType          ClusterType
+	SubClustetType       SubClusterType
+	ConnBufferLimitBytes uint32
+	LbType               LbType
+	MaxRequestPerConn    uint32
+	CirBreThresholds     CircuitBreakers
+	HealthCheck          HealthCheck
+	Spec                 ClusterSpecInfo
+	LBSubSetConfig       LBSubsetConfig
 }
 
 type CircuitBreakers struct {
-	MaxConnections       uint32
-	MaxPendingRequests   uint32
-	MaxRequests          uint32
-	MaxRetries           uint32
-	ConnBufferLimitBytes uint32
+	Thresholds []Thresholds
 }
+
+type Thresholds struct {
+	Priority           RoutingPriority
+	MaxConnections     uint32
+	MaxPendingRequests uint32
+	MaxRequests        uint32
+	MaxRetries         uint32
+}
+
+type RoutingPriority string
+
+const (
+	DEFAULT RoutingPriority = "DEFAULT"
+	HIGH    RoutingPriority = "HIGH"
+)
 
 type Host struct {
 	Address  string
@@ -135,7 +147,7 @@ type BasicServiceRoute struct {
 type RetryPolicy struct {
 	RetryOn      bool
 	RetryTimeout time.Duration
-	NumRetries   int
+	NumRetries   uint32
 }
 
 type HealthCheck struct {
@@ -256,14 +268,14 @@ type ClusterWeight struct {
 }
 
 type RuntimeUInt32 struct {
-	DefaultValue int32
+	DefaultValue uint32
 	RuntimeKey   string
 }
 
 type HeaderMatcher struct {
 	Name  string
 	Value string
-	Regex string
+	Regex bool
 }
 
 type VirtualCluster struct {

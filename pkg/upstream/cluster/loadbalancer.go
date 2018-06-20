@@ -1,14 +1,10 @@
 package cluster
 
 import (
-"context"
-"math/rand"
-
-
-"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-
-
+	"context"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"math/rand"
 )
 
 func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySet) types.LoadBalancer {
@@ -46,7 +42,7 @@ func (l *randomLoadBalancer) ChooseHost(context context.Context) types.Host {
 
 	hosts := hostset.HealthyHosts()
 	logger := log.ByContext(context)
-	
+
 	if len(hosts) == 0 {
 		logger.Debugf("Choose host failed, no health host found")
 		return nil
@@ -60,8 +56,8 @@ type roundRobinLoadBalancer struct {
 	loadbalaner
 	// rrIndex for hostSet select
 	rrIndexPriority uint32
-	// rrInde for host select
-	rrIndex         uint32
+	// rrIndex for host select
+	rrIndex uint32
 }
 
 func newRoundRobinLoadBalancer(prioritySet types.PrioritySet) types.LoadBalancer {
@@ -74,11 +70,11 @@ func newRoundRobinLoadBalancer(prioritySet types.PrioritySet) types.LoadBalancer
 
 func (l *roundRobinLoadBalancer) ChooseHost(context context.Context) types.Host {
 	var selectedHostSet []types.Host
-	
+
 	hostSets := l.prioritySet.HostSetsByPriority()
 	hostSetsNum := uint32(len(hostSets))
-	curHostSet := hostSets[l.rrIndexPriority % hostSetsNum].HealthyHosts()
-	
+	curHostSet := hostSets[l.rrIndexPriority%hostSetsNum].HealthyHosts()
+
 	if l.rrIndex >= uint32(len(curHostSet)) {
 		l.rrIndexPriority = (l.rrIndexPriority + 1) % hostSetsNum
 		l.rrIndex = 0
@@ -86,15 +82,15 @@ func (l *roundRobinLoadBalancer) ChooseHost(context context.Context) types.Host 
 	} else {
 		selectedHostSet = curHostSet
 	}
-	
+
 	if len(selectedHostSet) == 0 {
 		logger := log.ByContext(context)
 		logger.Debugf("Choose host in RoundRobin failed, no health host found")
 		return nil
 	}
-	
-	selectedHost := selectedHostSet[l.rrIndex % uint32(len(selectedHostSet))]
-	l.rrIndex ++
-	
+
+	selectedHost := selectedHostSet[l.rrIndex%uint32(len(selectedHostSet))]
+	l.rrIndex++
+
 	return selectedHost
 }

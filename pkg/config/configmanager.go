@@ -125,7 +125,7 @@ func convertClusterConfig(cluster v2.Cluster) ClusterConfig {
 		Type:                 string(cluster.ClusterType),
 		SubType:              string(cluster.SubClustetType),
 		LbType:               string(cluster.LbType),
-		CircuitBreakers:      cluster.CirBreThresholds,
+		//CircuitBreakers:      cluster.CirBreThresholds,
 		//HealthCheck        : nil,
 		ClusterSpecConfig: convertClusterSpec(cluster.Spec),
 	}

@@ -79,7 +79,7 @@
                                   },
                                   {
                                     "MetadataMatch": {
-                                      "filter_metadata": {
+                                      "filter_metadmata": {
                                         "envoy.lb": {
                                           "version": "1.1"
                                         }
@@ -288,13 +288,17 @@
         "sub_type": "",
         "lb_type": "LB_RANDOM",
         "MaxRequestPerConn": 0,
-        "circuit_breakers": {
-          "MaxConnections": 0,
-          "MaxPendingRequests": 0,
-          "MaxRequests": 0,
-          "MaxRetries": 0,
-          "ConnBufferLimitBytes": 0
-        },
+        "ConnBufferLimitBytes": 0,
+        "circuit_breakers":[
+          {
+            "priority":"default",
+          "max_connections": 0,
+          "max_pending_requests": 0,
+          "max_requests": 0,
+          "max_retries": 0
+        }
+      ],
+        
         "health_check": {
           "Timeout": 0,
           "HealthyThreshold": 0,

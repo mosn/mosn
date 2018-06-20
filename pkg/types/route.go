@@ -118,7 +118,7 @@ type RetryPolicy interface {
 	
 	TryTimeout() time.Duration
 	
-	NumRetries() int
+	NumRetries() uint32
 }
 
 type DoRetryCallback func()

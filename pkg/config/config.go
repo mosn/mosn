@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
 )
 
 //global instance for load & dump
@@ -28,11 +27,11 @@ type AccessLogConfig struct {
 }
 
 type ListenerConfig struct {
-	Name           string         `json:"name,omitempty"`
-	Address        string         `json:"address,omitempty"`
-	BindToPort     bool           `json:"bind_port"`
-	NetworkFilters []v2.FilterChain    `json:"filter_chains"`
-	StreamFilters  []FilterConfig `json:"stream_filters,omitempty"`
+	Name           string           `json:"name,omitempty"`
+	Address        string           `json:"address,omitempty"`
+	BindToPort     bool             `json:"bind_port"`
+	NetworkFilters []v2.FilterChain `json:"filter_chains"`
+	StreamFilters  []FilterConfig   `json:"stream_filters,omitempty"`
 
 	//logger
 	LogPath  string `json:"log_path,omitempty"`
@@ -84,16 +83,25 @@ type SubscribeSpecConfig struct {
 }
 
 type ClusterConfig struct {
-	Name              string
-	Type              string
-	SubType           string             `json:"sub_type"`
-	LbType            string             `json:"lb_type"`
-	MaxRequestPerConn uint32
-	CircuitBreakers   v2.CircuitBreakers `json:"circuit_breakers"`
-	HealthCheck       v2.HealthCheck     `json:"health_check,omitempty"` //v2.HealthCheck
-	ClusterSpecConfig ClusterSpecConfig  `json:"spec,omitempty"`         //	ClusterSpecConfig
-	Hosts             []v2.Host          `json:"hosts,omitempty"`        //v2.Host
-	LBSubsetConfig    v2.LBSubsetConfig
+	Name                 string
+	Type                 string
+	SubType              string `json:"sub_type"`
+	LbType               string `json:"lb_type"`
+	MaxRequestPerConn    uint32
+	ConnBufferLimitBytes uint32
+	CircuitBreakers      []*CircuitBreakerdConfig `json:"circuit_breakers"`
+	HealthCheck          v2.HealthCheck        `json:"health_check,omitempty"` //v2.HealthCheck
+	ClusterSpecConfig    ClusterSpecConfig     `json:"spec,omitempty"`         //	ClusterSpecConfig
+	Hosts                []v2.Host             `json:"hosts,omitempty"`        //v2.Host
+	LBSubsetConfig       v2.LBSubsetConfig
+}
+
+type CircuitBreakerdConfig struct {
+	Priority           string  `json:"priority"`
+	MaxConnections     uint32  `json:"max_connections"`
+	MaxPendingRequests uint32  `json:"max_pending_requests"`
+	MaxRequests        uint32  `json:"max_requests"`
+	MaxRetries         uint32  `json:"max_retries"`
 }
 
 type ClusterManagerConfig struct {
@@ -122,8 +130,8 @@ type MOSNConfig struct {
 	ClusterManager  ClusterManagerConfig  `json:"cluster_manager,omitempty"` //cluster config
 	ServiceRegistry ServiceRegistryConfig `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
-	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"`  //dynamic_resources raw message
-	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`   //static_resources raw message
+	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
+	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 }
 
 //wrapper for time.Duration, so time config can be written in '300ms' or '1h' format

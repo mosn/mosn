@@ -12,7 +12,7 @@ type retryState struct {
 	requestHeaders  map[string]string
 	cluster         types.ClusterInfo
 	retryOn         bool
-	retiesRemaining int
+	retiesRemaining uint32
 }
 
 func newRetryState(retryPolicy types.RetryPolicy,

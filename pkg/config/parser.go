@@ -425,8 +425,8 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d", 1024)
 		}
 
-		if c.CircuitBreakers.ConnBufferLimitBytes == 0 {
-			c.CircuitBreakers.ConnBufferLimitBytes = 16 * 1026
+		if c.ConnBufferLimitBytes == 0 {
+			c.ConnBufferLimitBytes = 16 * 1026
 			log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value %d", 1024*16)
 		}
 
@@ -435,12 +435,14 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 
 		//v2.Cluster
 		clusterV2 := v2.Cluster{
-			Name:             c.Name,
-			ClusterType:      clusterType,
-			SubClustetType:   subclusterType,
-			LbType:           lbType,
-			CirBreThresholds: c.CircuitBreakers,
-			Spec:             ParseConfigSpecConfig(&clusterSpec),
+			Name:                 c.Name,
+			ClusterType:          clusterType,
+			SubClustetType:       subclusterType,
+			LbType:               lbType,
+			MaxRequestPerConn:    c.MaxRequestPerConn,
+			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
+			CirBreThresholds:     ParseCircuitBreakers(c.CircuitBreakers),
+			Spec:                 ParseConfigSpecConfig(&clusterSpec),
 		}
 
 		clustersV2 = append(clustersV2, clusterV2)
@@ -456,6 +458,31 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		}
 	}
 	return clustersV2, clusterV2Map
+}
+
+func ParseCircuitBreakers (cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
+	var cb v2.CircuitBreakers
+	var rp v2.RoutingPriority
+	
+	for _,cbc := range cbcs {
+		if strings.ToLower(cbc.Priority) == "default" {
+			rp = v2.DEFAULT
+		} else {
+			rp = v2.HIGH
+		}
+		
+		threshold := v2.Thresholds{
+			Priority:rp,
+			MaxConnections:cbc.MaxConnections,
+			MaxPendingRequests:cbc.MaxPendingRequests,
+			MaxRequests:cbc.MaxRequests,
+			MaxRetries:cbc.MaxRetries,
+		}
+		
+		cb.Thresholds = append(cb.Thresholds,threshold)
+	}
+	
+	return cb
 }
 
 func ParseConfigSpecConfig(c *ClusterSpecConfig) v2.ClusterSpecInfo {

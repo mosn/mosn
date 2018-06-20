@@ -271,7 +271,7 @@ func (drr *DynamicRouter) GetRouterName() string {
 type routerPolicy struct {
 	retryOn      bool
 	retryTimeout time.Duration
-	numRetries   int
+	numRetries   uint32
 }
 
 func (p *routerPolicy) RetryOn() bool {
@@ -282,7 +282,7 @@ func (p *routerPolicy) TryTimeout() time.Duration {
 	return p.retryTimeout
 }
 
-func (p *routerPolicy) NumRetries() int {
+func (p *routerPolicy) NumRetries() uint32 {
 	return p.numRetries
 }
 

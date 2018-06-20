@@ -207,7 +207,8 @@ func clustersrpc() []v2.Cluster {
 		ClusterType:       v2.SIMPLE_CLUSTER,
 		LbType:            v2.LB_RANDOM,
 		MaxRequestPerConn: 1024,
-		CirBreThresholds:  v2.CircuitBreakers{ConnBufferLimitBytes: 32 * 1024},
+		ConnBufferLimitBytes: 32 * 1024,
+		CirBreThresholds:  v2.CircuitBreakers{},
 	})
 
 	return configs
