@@ -1,12 +1,12 @@
 package v2
 
 import (
+	"crypto/tls"
 	"net"
 	"time"
 )
 
-type Metadata struct {
-}
+type Metadata map[string]string
 
 const (
 	MaxRequestsPerConn  uint64 = 10000
@@ -44,6 +44,7 @@ type Cluster struct {
 	CirBreThresholds CircuitBreakers
 	HealthCheck      HealthCheck
 	Spec             ClusterSpecInfo
+	LBSubSetConfig   LBSubsetConfig
 }
 
 type CircuitBreakers struct {
@@ -58,6 +59,7 @@ type Host struct {
 	Address  string
 	Hostname string
 	Weight   uint32
+	MetaData Metadata
 }
 
 type ListenerConfig struct {
@@ -118,7 +120,8 @@ type Proxy struct {
 	DownstreamProtocol  string
 	UpstreamProtocol    string
 	SupportDynamicRoute bool
-	Routes              []*BasicServiceRoute
+	BasicRoutes         []*BasicServiceRoute
+	VirtualHosts        []*VirtualHost
 }
 
 type BasicServiceRoute struct {
@@ -180,4 +183,91 @@ type PublishInfo struct {
 type PublishContent struct {
 	ServiceName string
 	PubData     string
+}
+
+type LBSubsetConfig struct {
+	FallBackPolicy  uint8             // NoFallBack,...
+	DefaultSubset   map[string]string // {e1,e2,e3}
+	SubsetSelectors [][]string        // {{keys,},}, used to create subsets of hosts, pre-computing, sorted
+}
+
+type FilterChain struct {
+	FilterChainMatch string
+	TlsContext       tls.Certificate
+	Filters          []Filter
+}
+
+type Filter struct {
+	Name   string
+	Config map[string]interface{}
+}
+
+type VirtualHost struct {
+	Name            string
+	Domains         []string
+	Routers         []Router
+	RequireTls      string
+	VirtualClusters []VirtualCluster
+}
+
+type Router struct {
+	Match     RouterMatch
+	Route     RouteAction
+	Redirect  RedirectAction
+	Metadata  Metadata
+	Decorator Decorator
+}
+
+type Decorator string
+
+type RedirectAction struct {
+	HostRedirect string
+	PathRedirect string
+	ResponseCode uint32
+}
+
+type RouterMatch struct {
+	Prefix        string
+	Path          string
+	Regex         string
+	CaseSensitive bool
+	Runtime       RuntimeUInt32
+	Headers       []HeaderMatcher
+}
+
+type RouteAction struct {
+	ClusterName      string
+	ClusterHeader    string // used for http only
+	WeightedClusters []WeightedCluster
+	MetadataMatch    Metadata
+	Timeout          time.Duration
+	RetryPolicy      *RetryPolicy
+}
+
+type WeightedCluster struct {
+	Clusters         ClusterWeight
+	RuntimeKeyPrefix string // not used currently
+}
+
+type ClusterWeight struct {
+	Name          string
+	Weight        uint32
+	MetadataMatch Metadata
+}
+
+type RuntimeUInt32 struct {
+	DefaultValue int32
+	RuntimeKey   string
+}
+
+type HeaderMatcher struct {
+	Name  string
+	Value string
+	Regex string
+}
+
+type VirtualCluster struct {
+	Pattern string
+	Name    string
+	Method  string // http.Request.Method
 }

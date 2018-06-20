@@ -3,7 +3,7 @@ package sofarpc
 import (
 	"context"
 	"sync"
-
+	
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
@@ -255,12 +255,14 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamEncoder
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
-
 	var err error
+	
 	if err, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers)); err != nil {
 		return err
 	}
-
+	
+	log.StartLogger.Debugf("EncodeHeaders,request id = %s, direction = %d",s.streamId,s.direction)
+	
 	if endStream {
 		s.endStream()
 	}
@@ -270,7 +272,9 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 
 func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
-
+	
+	log.StartLogger.Debugf("EncodeData,request id = %s, direction = %d",s.streamId,s.direction)
+	
 	if endStream {
 		s.endStream()
 	}
@@ -289,10 +293,12 @@ func (s *stream) EncodeTrailers(trailers map[string]string) error {
 // For client stream, write out request
 func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
+		log.StartLogger.Debugf("Write, stream id = %s, direction = %d",s.streamId,s.direction)
+		
 		if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
 
 			if s.encodedData != nil {
-				//log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
+			//	log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 			} else {
 			//	s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
@@ -308,6 +314,7 @@ func (s *stream) endStream() {
 	if s.direction == ServerStream {
 		// for a server stream, remove stream on response wrote
 		s.connection.activeStream.Remove(s.streamId)
+		log.StartLogger.Warnf("Remove Request ID = %+v",s.streamId)
 	}
 }
 

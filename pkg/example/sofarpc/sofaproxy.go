@@ -45,7 +45,7 @@ func genericProxyConfig() *v2.Proxy {
 		UpstreamProtocol:   string(protocol.SofaRpc),
 	}
 
-	proxyConfig.Routes = append(proxyConfig.Routes, &v2.BasicServiceRoute{
+	proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, &v2.BasicServiceRoute{
 		Name:    "tstSofRpcRouter",
 		Service: ".*",
 		Cluster: TestClusterRPC,

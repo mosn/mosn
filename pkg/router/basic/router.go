@@ -108,7 +108,7 @@ func NewRouters(config interface{}) (types.Routers, error) {
 	if config, ok := config.(*v2.Proxy); ok {
 		routers := make([]router.RouteBase, 0)
 		
-		for _, r := range config.Routes {
+		for _, r := range config.BasicRoutes {
 			router := &basicRouter{
 				name:          r.Name,
 				service:       r.Service,
