@@ -24,3 +24,7 @@ func (r *RouteRuleImplAdaptor) Policy() types.Policy {
 func (r *RouteRuleImplAdaptor) MetadataMatcher() types.MetadataMatcher {
 	return nil
 }
+
+func (r *RouteRuleImplAdaptor) VirtualHost () types.VirtualHost{
+		return nil
+}

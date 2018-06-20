@@ -3,7 +3,7 @@ package router
 import "gitlab.alipay-inc.com/afe/mosn/pkg/types"
 
 type Matchable interface {
-	Match(headers map[string]string) (types.Route,string)
+	Match(headers map[string]string,randomValue uint64) (types.Route,string)
 	
 }
 

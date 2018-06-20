@@ -12,12 +12,13 @@ const (
 	PriorityDefault Priority      = 0
 	PriorityHigh    Priority      = 1
 	GlobalTimeout   time.Duration = 60 * time.Second
+	DefaultRouteTimeout          = 15 * time.Second
 )
 
 // change RouterConfig -> Routers to manage all routers
 type Routers interface {
 	// routing with headers
-	Route(headers map[string]string) (Route,string)
+	Route(headers map[string]string, randomValue uint64) (Route, string)
 	// add router to Routers
 	AddRouter(routerName string)
 	
@@ -49,6 +50,8 @@ type RouteRule interface {
 	GlobalTimeout() time.Duration
 	
 	Priority() Priority
+	
+	VirtualHost() VirtualHost
 	
 	VirtualCluster(headers map[string]string) VirtualCluster
 	
@@ -151,6 +154,8 @@ type VirtualHost interface {
 	CorsPolicy() CorsPolicy
 	
 	RateLimitPolicy() RateLimitPolicy
+	
+	GetRouteFromEntries(headers map[string]string, randomValue uint64) Route
 }
 
 type MetadataMatcher interface {

@@ -23,10 +23,10 @@ type Routers struct {
 }
 
 //Routing, use static router first， then use dynamic router if support
-func (rc *Routers) Route(headers map[string]string) (types.Route, string) {
+func (rc *Routers) Route(headers map[string]string,randomValue uint64) (types.Route, string) {
 	//use static router first, then use dynamic router
 	for _, r := range rc.routers {
-		if rule, key := r.Match(headers); rule != nil {
+		if rule, key := r.Match(headers,randomValue); rule != nil {
 			return rule, key
 		}
 	}
@@ -165,7 +165,7 @@ func NewRouters(config interface{}) (types.Routers, error) {
 	}
 }
 
-func (srr *basicRouter) Match(headers map[string]string) (types.Route,string ){
+func (srr *basicRouter) Match(headers map[string]string,randomValue uint64) (types.Route,string ){
 	if headers == nil {
 		return nil, ""
 	}
@@ -187,7 +187,7 @@ func (srr *basicRouter) Match(headers map[string]string) (types.Route,string ){
 	return srr, service
 }
 
-func (drr *DynamicRouter) Match(headers map[string]string) (types.Route, string) {
+func (drr *DynamicRouter) Match(headers map[string]string,randomValue uint64) (types.Route, string) {
 	if headers == nil {
 		return nil, ""
 	}

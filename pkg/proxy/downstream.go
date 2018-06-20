@@ -187,7 +187,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	}
 
 	//Get some route by service name
-	route, clusterKey := s.proxy.routerConfig.Route(headers)
+	route, clusterKey := s.proxy.routerConfig.Route(headers,1)
 	// route,routeKey:= s.proxy.routerConfig.Route(headers)
 
 	if route == nil || route.RouteRule() == nil {

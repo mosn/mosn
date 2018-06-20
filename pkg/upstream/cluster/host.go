@@ -21,6 +21,7 @@ type hostSet struct {
 	healthyHostsPerLocality [][]types.Host
 	mux                     sync.RWMutex
 	updateCallbacks         []types.MemberUpdateCallback
+	metdata                  v2.Metadata
 }
 
 func (hs *hostSet) Hosts() []types.Host {
