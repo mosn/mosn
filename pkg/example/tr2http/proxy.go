@@ -37,7 +37,7 @@ func main() {
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
 
-	log.InitDefaultLogger("", log.DEBUG)
+	//log.InitDefaultLogger("", log.DEBUG)
 
 	stopChan := make(chan bool)
 	meshReadyChan := make(chan bool)
@@ -75,9 +75,9 @@ func main() {
 	go func() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
-		cm := cluster.NewClusterManager(nil,nil,nil,false)
+		cm := cluster.NewClusterManager(nil, nil, nil, false)
 		//RPC
-		srv := server.NewServer(&server.Config{}, cmf,cm)
+		srv := server.NewServer(&server.Config{}, cmf, cm)
 
 		srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
@@ -100,7 +100,7 @@ func main() {
 		case <-meshReadyChan:
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
-			cc := network.NewClientConnection(nil, remoteAddr, stopChan, log.DefaultLogger)
+			cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
 			cc.AddConnectionEventListener(&rpclientConnCallbacks{ //ADD  connection callback
 				cc: cc,
 			})

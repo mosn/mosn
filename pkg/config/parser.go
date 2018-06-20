@@ -221,6 +221,56 @@ func ParseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
 	return logs
 }
 
+func ParseFilterChains(c []FilterChain) []v2.FilterChain {
+	var filterchains []v2.FilterChain
+
+	for _, fc := range c {
+		filters := make([]v2.Filter, 0)
+		for _, f := range fc.Filters {
+			filters = append(filters, v2.Filter{
+				Name:   f.Type,
+				Config: f.Config,
+			})
+		}
+
+		filterchains = append(filterchains, v2.FilterChain{
+			FilterChainMatch: fc.FilterChainMatch,
+			TLS:              ParseTLSConfig(&fc.TLS),
+			Filters:          filters,
+		})
+	}
+
+	return filterchains
+}
+
+func ParseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
+	if tlsconfig.Status == false {
+		return v2.TLSConfig{
+			Status: false,
+		}
+	}
+
+	if (tlsconfig.VerifyClient || tlsconfig.VerifyServer) && tlsconfig.CACert == "" {
+		log.StartLogger.Fatalln("[CaCert] is required in TLS config")
+	}
+
+	return v2.TLSConfig{
+		Status:       tlsconfig.Status,
+		ServerName:   tlsconfig.ServerName,
+		CACert:       tlsconfig.CACert,
+		CertChain:    tlsconfig.CertChain,
+		PrivateKey:   tlsconfig.PrivateKey,
+		VerifyClient: tlsconfig.VerifyClient,
+		VerifyServer: tlsconfig.VerifyServer,
+		CipherSuites: tlsconfig.CipherSuites,
+		EcdhCurves:   tlsconfig.EcdhCurves,
+		MinVersion:   tlsconfig.MinVersion,
+		MaxVersion:   tlsconfig.MaxVersion,
+		ALPN:         tlsconfig.ALPN,
+		Ticket:       tlsconfig.Ticket,
+	}
+}
+
 func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
 	route := &v2.BasicServiceRoute{}
 
@@ -322,7 +372,7 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 		log.StartLogger.Fatalln("[cache_time] is required in healthcheck filter config")
 	}
 
-	//cluster_min_healthy_percentages
+	//cluster_min_healthy_percentagesp
 	if clusterMinHealthyPercentage, ok := config["cluster_min_healthy_percentages"]; ok {
 		if clusterMinHealthyPercentage, ok := clusterMinHealthyPercentage.(map[string]interface{}); ok {
 			healthcheck.ClusterMinHealthyPercentage = make(map[string]float32)
@@ -374,6 +424,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		LogLevel:                uint8(ParseLogLevel(c.LogLevel)),
 		AccessLogs:              ParseAccessConfig(c.AccessLogs),
 		DisableConnIo:           c.DisableConnIo,
+		FilterChains:            ParseFilterChains(c.FilterChains),
 	}
 }
 
@@ -443,6 +494,7 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
 			CirBreThresholds:     ParseCircuitBreakers(c.CircuitBreakers),
 			Spec:                 ParseConfigSpecConfig(&clusterSpec),
+			TLS:                  ParseTLSConfig(&c.TLS),
 		}
 
 		clustersV2 = append(clustersV2, clusterV2)

@@ -59,7 +59,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 
 	//get inherit fds
 	inheritListeners := getInheritListeners()
-	
+
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
 
@@ -77,12 +77,12 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		//	clusters = append(clusters, parsed)
 		//	clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
 		//}
-		
+
 		// parse cluster all in one
-		clusters,clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
+		clusters, clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
 
 		//create cluster manager
-		cm := cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
+		cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery)
 		//initialize server instance
 		srv := server.NewServer(sc, cmf, cm)
 
@@ -92,13 +92,16 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		}
 
 		for _, listenerConfig := range serverConfig.Listeners {
+			// parse ListenerConfig
+			lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
+
 			// network filters
-			nfcf := GetNetworkFilter(&listenerConfig.NetworkFilters[0])
+			nfcf := GetNetworkFilter(&lc.FilterChains[0])
 
 			//stream filters
 			sfcf := getStreamFilters(listenerConfig.StreamFilters)
 
-			srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nfcf, sfcf)
+			srv.AddListener(lc, nfcf, sfcf)
 		}
 
 		go func() {
@@ -109,7 +112,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			}
 		}()
 	}
-	
+
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 
