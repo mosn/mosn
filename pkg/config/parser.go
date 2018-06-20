@@ -111,7 +111,7 @@ func ParseProxyFilterJson(c *v2.Filter) *v2.Proxy {
 		}
 	}
 
-	proxyConfig.BasicRoutes = ParseBasicFilter(proxyConfig)
+	//proxyConfig.BasicRoutes = ParseBasicFilter(proxyConfig)
 
 	return proxyConfig
 }
