@@ -52,6 +52,7 @@ type ListenerConfig struct {
 
 type TLSConfig struct {
 	Status       bool   `json:"status,omitempty"`
+	Inspector    bool   `json:"inspector,omitempty"`
 	ServerName   string `json:"server_name,omitempty"`
 	CACert       string `json:"cacert,omitempty"`
 	CertChain    string `json:"certchain,omitempty"`

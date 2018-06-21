@@ -99,6 +99,7 @@ type AccessLog struct {
 
 type TLSConfig struct {
 	Status       bool
+	Inspector    bool
 	ServerName   string
 	CACert       string
 	CertChain    string

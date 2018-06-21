@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"net"
 
-	"bufio"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -99,6 +98,7 @@ type ContextManager struct {
 	contextMap map[string]*Context
 
 	isClient bool
+	inspector bool
 	context  *Context
 	listener types.Listener
 }
@@ -248,18 +248,33 @@ func (cm *ContextManager) Enabled() bool {
 }
 
 func (cm *ContextManager) Conn(c net.Conn) net.Conn {
-	var conn *tls.Conn
 	context := cm.defaultContext()
 
 	if cm.isClient {
-		conn = tls.Client(c, context.tlsConfig)
-
-	} else {
-		conn = tls.Server(c, context.tlsConfig)
-
+		return tls.Client(c, context.tlsConfig)
 	}
 
-	return &Conn{Conn: conn, context: context}
+	if !cm.inspector {
+		return tls.Server(c, context.tlsConfig)
+	}
+
+	conn := &Conn{
+		Conn: c,
+	}
+
+	buf := conn.Peek()
+	if buf == nil {
+		return tls.Server(conn, context.tlsConfig)
+	}
+
+	switch buf[0] {
+	// TLS handshake
+	case 0x16:
+		return tls.Server(conn, context.tlsConfig)
+	// http plain
+	default:
+		return conn
+	}
 }
 
 func (cm *ContextManager) defaultContext() *Context {
@@ -409,6 +424,10 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 
 	context.ServerName = c.ServerName
 
+	if c.Inspector {
+		cm.inspector = true
+	}
+
 	if err := context.NewTLSConfig(cm); err != nil {
 		return nil, err
 	}
@@ -418,22 +437,36 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 
 type Conn struct {
 	net.Conn
-	context *Context
-	r       *bufio.Reader
+	peek    [1]byte
+	haspeek bool
 }
 
-//func (c *Conn) Peek(n int) ([]byte, error) {
-//	return c.r.Peek(n)
-//}
+func (c *Conn) Peek() []byte {
+	b := make([]byte, 1, 1)
+	n, err := c.Conn.Read(b)
+	if n == 0 {
+		log.StartLogger.Infof("TLS Peek() error: ", err)
+		return nil
+	}
 
-//func (c *Conn) Read(b []byte) (int, error) {
-//	return c.r.Read(b)
-//}
-
-func (c *Conn) SNI() string {
-	return ""
+	c.peek[0] = b[0]
+	c.haspeek = true
+	return b
 }
 
-func (c *Conn) ALPN() string {
-	return ""
+func (c *Conn) Read(b []byte) (int, error) {
+	peek := 0
+	if c.haspeek {
+		c.haspeek = false
+		b[0] = c.peek[0]
+		if len(b) == 1 {
+			return 1, nil
+		}
+
+		peek = 1
+		b = b[peek:]
+	}
+
+	n, err := c.Conn.Read(b)
+	return n + peek, err
 }
