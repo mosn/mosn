@@ -579,7 +579,7 @@ func ParseServiceRegistry(src ServiceRegistryConfig) {
 	var SrvRegInfo v2.ServiceRegistryInfo
 
 	if src.ServiceAppInfo.AppName == "" {
-		log.StartLogger.Debugf("[ParseServiceRegistry] appname is nil")
+		//log.StartLogger.Debugf("[ParseServiceRegistry] appname is nil")
 	}
 
 	srvappinfo := v2.ApplicationInfo{

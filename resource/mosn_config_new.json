@@ -324,12 +324,5 @@
         }
       }
     ]
-  },
-  "service_registry": {
-    "application": {
-      "ant_share_cloud": false,
-      "data_center": "dc",
-      "app_name": "testapp"
-    }
   }
 }

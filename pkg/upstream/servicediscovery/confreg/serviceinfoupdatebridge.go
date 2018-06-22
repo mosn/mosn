@@ -208,7 +208,7 @@ func OnClusterInfoParsed(data interface{}, endParsed bool) error {
 
 	if endParsed {
 		configParseReady = true
-		RecoverRegistryModule()
+		//RecoverRegistryModule()
 	}
 	return nil
 }
@@ -236,7 +236,7 @@ func OnServiceRegistryInfoParsed(data interface{}, endParsed bool) error {
 
 	if endParsed {
 		configParseReady = true
-		RecoverRegistryModule()
+		//RecoverRegistryModule()
 	}
 	return nil
 }
