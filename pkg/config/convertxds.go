@@ -106,6 +106,7 @@ func convertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []*v2.
 		host := v2.Host{
 			Address:    address,
 			Weight:     xdsHost.GetLoadBalancingWeight().GetValue(),
+			MetaData:   convertMeta(xdsHost.Metadata),
 		}
 		hosts = append(hosts, &host)
 	}
