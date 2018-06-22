@@ -137,10 +137,6 @@ func (l *listener) accept(lctx context.Context) error {
 		return err
 	}
 
-	if l.tlsMng.Enabled() {
-		rawc = l.tlsMng.Conn(rawc)
-	}
-
 	// TODO: use thread pool
 	go func() {
 		defer func() {
@@ -150,6 +146,10 @@ func (l *listener) accept(lctx context.Context) error {
 				debug.PrintStack()
 			}
 		}()
+
+		if l.tlsMng.Enabled() {
+			rawc = l.tlsMng.Conn(rawc)
+		}
 
 		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections)
 	}()

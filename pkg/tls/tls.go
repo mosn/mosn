@@ -5,12 +5,13 @@ import (
 	"crypto/x509"
 	"net"
 
-	"bufio"
+	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"io/ioutil"
 	"strings"
+	"sync"
 )
 
 var TLSdefaultMinProtocols uint16 = tls.VersionTLS10
@@ -95,16 +96,29 @@ type Context struct {
 }
 
 type ContextManager struct {
-	contexts   []*Context
-	contextMap map[string]*Context
+	contextMap []map[string]*Context
 
-	isClient bool
-	context  *Context
-	listener types.Listener
+	isClient  bool
+	inspector bool
+	context   *Context
+	listener  types.Listener
+
+	sync.RWMutex
 }
 
-func BuildContextMap(cm *ContextManager, context *Context) {
+func BuildContextMap(cm *ContextManager, context *Context, index int) {
+	if context == nil {
+		if index >= len(cm.contextMap) {
+			cm.contextMap = append(cm.contextMap, nil)
+		} else {
+			cm.contextMap[index] = nil
+		}
+		return
+	}
+
 	c := context.tlsConfig
+
+	m := make(map[string]*Context)
 
 	for i := range c.Certificates {
 		cert := &c.Certificates[i]
@@ -112,57 +126,114 @@ func BuildContextMap(cm *ContextManager, context *Context) {
 		if err != nil {
 			continue
 		}
-		if len(x509Cert.Subject.CommonName) > 0 && cm.contextMap[x509Cert.Subject.CommonName] == nil {
-			cm.contextMap[x509Cert.Subject.CommonName] = context
+		if len(x509Cert.Subject.CommonName) > 0 {
+			m[x509Cert.Subject.CommonName] = context
 		}
 		for _, san := range x509Cert.DNSNames {
-			if cm.contextMap[san] == nil {
-				cm.contextMap[san] = context
-			}
+			m[san] = context
 		}
 	}
 
 	if context.ALPN != nil {
 		for _, protocol := range context.ALPN {
-			if cm.contextMap[protocol] == nil {
-				cm.contextMap[protocol] = context
-			}
+			m[protocol] = context
 		}
 	}
 
-	if cm.contextMap[context.ServerName] == nil {
-		cm.contextMap[context.ServerName] = context
+	m[context.ServerName] = context
+
+	if index >= len(cm.contextMap) {
+		cm.contextMap = append(cm.contextMap, m)
+	} else {
+		cm.contextMap[index] = m
 	}
 }
 
 func NewTLSServerContextManager(config []v2.FilterChain, l types.Listener) types.TLSContextManager {
 	cm := new(ContextManager)
-	cm.contexts = make([]*Context, 1)
-	cm.contextMap = make(map[string]*Context)
 
 	first := true
-	for _, c := range config {
+	for i, c := range config {
 		context, err := NewTLSContext(&c.TLS, cm)
 		if err != nil {
 			log.StartLogger.Fatalln("New Server TLS Context Manager failed: ", err)
 		}
 
-		cm.contexts = append(cm.contexts, context)
+		BuildContextMap(cm, context, i)
 
-		if context == nil {
-			continue
+		if context != nil {
+			context.Listener = l
 		}
 
-		context.Listener = l
-		BuildContextMap(cm, context)
-
-		if first {
+		if first && context != nil {
 			cm.context = context
 			first = false
 		}
 	}
 
 	return cm
+}
+
+func AddTLSServerContext(c *v2.TLSConfig, tlsMng types.TLSContextManager, index int) error {
+	var cm *ContextManager
+
+	if tlsMng == nil {
+		return errors.New("Add Server TLS Context failed: tlsMng is nil")
+	}
+
+	if c, ok := tlsMng.(*ContextManager); ok {
+		cm = c
+	} else {
+		return errors.New("Add Server TLS Context failed: tlsMng is not tls.ContextManager")
+	}
+
+	if index < 0 || index > len(cm.contextMap) {
+		return errors.New("Add Server TLS Context failed: index is out of bounds")
+	}
+
+	context, err := NewTLSContext(c, cm)
+	if err != nil {
+		return err
+	}
+
+	context.Listener = cm.listener
+
+	//todo sync.RWMutex, Maps are not safe for concurrent use
+	BuildContextMap(cm, context, index)
+
+	if cm.context == nil {
+		cm.context = context
+	}
+
+	return nil
+}
+
+func DelTLSServerContext(tlsMng types.TLSContextManager, index int) error {
+	var cm *ContextManager
+	if tlsMng == nil {
+		return errors.New("Del Server TLS Context failed: tlsMng is nil")
+	}
+
+	if c, ok := tlsMng.(*ContextManager); ok {
+		cm = c
+	} else {
+		return errors.New("Del Server TLS Context failed: tlsMng is not tls.ContextManager")
+	}
+
+	if index < 0 || index >= len(cm.contextMap) {
+		return errors.New("Del Server TLS Context failed: index is out of bounds")
+	}
+
+	maps := make([]map[string]*Context, 0)
+	for i, m := range cm.contextMap {
+		if i != index {
+			maps = append(maps, m)
+		}
+	}
+
+	cm.contextMap = maps
+
+	return nil
 }
 
 func NewTLSClientContextManager(config *v2.TLSConfig, info types.ClusterInfo) types.TLSContextManager {
@@ -188,51 +259,50 @@ func (cm *ContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Co
 	var context *Context
 	var ok bool
 
-	// first match ServerName
-	// e.g. www.example.com will be first matched against www.example.com, then *.example.com, then *.com
-	if info.ServerName != "" {
-		name := strings.ToLower(info.ServerName)
-		for len(name) > 0 && name[len(name)-1] == '.' {
-			name = name[:len(name)-1]
+	for _, maps := range cm.contextMap {
+		if maps == nil {
+			continue
 		}
+		// first match ServerName
+		// e.g. www.example.com will be first matched against www.example.com, then *.example.com, then *.com
+		if info.ServerName != "" {
+			name := strings.ToLower(info.ServerName)
+			for len(name) > 0 && name[len(name)-1] == '.' {
+				name = name[:len(name)-1]
+			}
 
-		if context, ok = cm.contextMap[name]; ok {
-			goto find
-		}
-
-		labels := strings.Split(name, ".")
-		for i := 0; i < len(labels)-1; i++ {
-			labels[i] = "*"
-			candidate := strings.Join(labels[i:], ".")
-			if context, ok = cm.contextMap[candidate]; ok {
+			if context, ok = maps[name]; ok {
 				goto find
+			}
+
+			labels := strings.Split(name, ".")
+			for i := 0; i < len(labels)-1; i++ {
+				labels[i] = "*"
+				candidate := strings.Join(labels[i:], ".")
+				if context, ok = maps[candidate]; ok {
+					goto find
+				}
+			}
+		}
+
+		// Sencond match ALPN
+		if info.SupportedProtos != nil {
+			for _, protocol := range info.SupportedProtos {
+				protocol = strings.ToLower(protocol)
+				if context, ok = maps[protocol]; ok {
+					goto find
+				}
 			}
 		}
 	}
 
-	// Sencond match ALPN
-	if info.SupportedProtos != nil {
-		for _, protocol := range info.SupportedProtos {
-			protocol = strings.ToLower(protocol)
-			if context, ok = cm.contextMap[protocol]; ok {
-				goto find
-			}
-		}
-	}
-
-	// Third, return the first certificate.
+	// Last, return the first certificate.
 	context = cm.context
 
 find:
 
 	// todo
 	// callback select filter config
-	// var index int
-	// for i, c := range cm.contexts {
-	//    if context == c {
-	//  	index = i
-	//    }
-	// }
 	// callback(cm.listener, index)
 
 	return context.tlsConfig.Clone(), nil
@@ -248,18 +318,33 @@ func (cm *ContextManager) Enabled() bool {
 }
 
 func (cm *ContextManager) Conn(c net.Conn) net.Conn {
-	var conn *tls.Conn
 	context := cm.defaultContext()
 
 	if cm.isClient {
-		conn = tls.Client(c, context.tlsConfig)
-
-	} else {
-		conn = tls.Server(c, context.tlsConfig)
-
+		return tls.Client(c, context.tlsConfig)
 	}
 
-	return &Conn{Conn: conn, context: context}
+	if !cm.inspector {
+		return tls.Server(c, context.tlsConfig)
+	}
+
+	conn := &Conn{
+		Conn: c,
+	}
+
+	buf := conn.Peek()
+	if buf == nil {
+		return tls.Server(conn, context.tlsConfig)
+	}
+
+	switch buf[0] {
+	// TLS handshake
+	case 0x16:
+		return tls.Server(conn, context.tlsConfig)
+	// http plain
+	default:
+		return conn
+	}
 }
 
 func (cm *ContextManager) defaultContext() *Context {
@@ -379,10 +464,22 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 	}
 
 	if c.CertChain != "" && c.PrivateKey != "" {
-		cert, err := tls.LoadX509KeyPair(c.CertChain, c.PrivateKey)
-		if err != nil {
-			log.StartLogger.Fatalln("load [certchain] or [privatekey] error: ", err)
+		var cert tls.Certificate
+		var err error
+
+		if strings.Contains(c.CertChain, "-----BEGIN") &&
+			strings.Contains(c.PrivateKey, "-----BEGIN") {
+			cert, err = tls.X509KeyPair([]byte(c.CertChain), []byte(c.PrivateKey))
+			if err != nil {
+				log.StartLogger.Fatalln("load [certchain] or [privatekey] error: ", err)
+			}
+		} else {
+			cert, err = tls.LoadX509KeyPair(c.CertChain, c.PrivateKey)
+			if err != nil {
+				log.StartLogger.Fatalln("load [certchain] or [privatekey] error: ", err)
+			}
 		}
+
 		context.Certificates = append(context.Certificates, cert)
 	}
 
@@ -391,9 +488,16 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 	}
 
 	if c.CACert != "" {
-		ca, err := ioutil.ReadFile(c.CACert)
-		if err != nil {
-			log.StartLogger.Fatalln("load [cacert] error: ", err)
+		var err error
+		var ca []byte
+
+		if strings.Contains(c.CACert, "-----BEGIN") {
+			ca = []byte(c.CACert)
+		} else {
+			ca, err = ioutil.ReadFile(c.CACert)
+			if err != nil {
+				log.StartLogger.Fatalln("load [cacert] error: ", err)
+			}
 		}
 
 		pool := x509.NewCertPool()
@@ -409,6 +513,10 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 
 	context.ServerName = c.ServerName
 
+	if c.Inspector {
+		cm.inspector = true
+	}
+
 	if err := context.NewTLSConfig(cm); err != nil {
 		return nil, err
 	}
@@ -418,22 +526,36 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 
 type Conn struct {
 	net.Conn
-	context *Context
-	r       *bufio.Reader
+	peek    [1]byte
+	haspeek bool
 }
 
-//func (c *Conn) Peek(n int) ([]byte, error) {
-//	return c.r.Peek(n)
-//}
+func (c *Conn) Peek() []byte {
+	b := make([]byte, 1, 1)
+	n, err := c.Conn.Read(b)
+	if n == 0 {
+		log.StartLogger.Infof("TLS Peek() error: ", err)
+		return nil
+	}
 
-//func (c *Conn) Read(b []byte) (int, error) {
-//	return c.r.Read(b)
-//}
-
-func (c *Conn) SNI() string {
-	return ""
+	c.peek[0] = b[0]
+	c.haspeek = true
+	return b
 }
 
-func (c *Conn) ALPN() string {
-	return ""
+func (c *Conn) Read(b []byte) (int, error) {
+	peek := 0
+	if c.haspeek {
+		c.haspeek = false
+		b[0] = c.peek[0]
+		if len(b) == 1 {
+			return 1, nil
+		}
+
+		peek = 1
+		b = b[peek:]
+	}
+
+	n, err := c.Conn.Read(b)
+	return n + peek, err
 }
