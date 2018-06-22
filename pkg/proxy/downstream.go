@@ -187,7 +187,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	}
 
 	//Get some route by service name
-	route, clusterKey := s.proxy.routerConfig.Route(headers,1)
+	route := s.proxy.routerConfig.Route(headers,1)
 	// route,routeKey:= s.proxy.routerConfig.Route(headers)
 
 	if route == nil || route.RouteRule() == nil {
@@ -205,7 +205,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
-	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(clusterKey))
+	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
 
 	if err != nil {
 		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed")

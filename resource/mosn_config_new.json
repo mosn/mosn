@@ -42,10 +42,13 @@
                               "Headers": [
                                 {
                                   "Name": "x-custom-version",
-                                  "Value": "pre-release"
+                                  "Value": "pre-release",
+                                  "Regex":false
                                 }
                               ],
-                              "Prefix": "/"
+                              "Path": "/",
+                              "Regex":".*",
+                              "Prefix":"/a"
                             },
                             "Route": {
                               "ClusterName": "c1",
@@ -154,7 +157,8 @@
                               "Headers": [
                                 {
                                   "Name": "service",
-                                  "Value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0"
+                                  "Value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
+                                  "Regex":false
                                 }
                               ]
                             },
@@ -231,7 +235,8 @@
                               "Headers": [
                                 {
                                   "Name": "service",
-                                  "Value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0"
+                                  "Value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
+                                  "Regex":false
                                 }
                               ]
                             },

@@ -1,83 +1,97 @@
 package router
 
 import (
+	"container/list"
 	"regexp"
-	"strings"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-type LowerCaseString struct {
-	string_ string
+var ConfigUtilityInst = &ConfigUtility{}
+
+type ConfigUtility struct {
+	types.HeaderData
+	QueryParameterMatcher
 }
 
-func (lcs *LowerCaseString) lower() {
-	lcs.string_ = strings.ToLower(lcs.string_)
+// types.MatchHeaders
+func (cu *ConfigUtility) MatchHeaders(requestHeaders map[string]string, configHeaders []*types.HeaderData) bool {
+
+	// step 1: match name
+	// step 2: match value, if regex true, match pattern
+	for _, cfgHeaderData := range configHeaders {
+		cfgName := cfgHeaderData.Name.Get()
+		cfgValue := cfgHeaderData.Value
+
+		if value, ok := requestHeaders[cfgName]; ok {
+
+			if !cfgHeaderData.IsRegex {
+				if cfgValue != value {
+					return false
+				}
+			} else {
+				if !cfgHeaderData.RegexPattern.MatchString(value) {
+					return false
+				}
+			}
+		}
+	}
+
+	return true
 }
 
-func (lcs *LowerCaseString) equal(rhs *LowerCaseString) bool {
-	
-	return lcs.string_ == rhs.string_
-}
+// types.MatchQueryParams
+func (cu *ConfigUtility) MatchQueryParams(queryParams *types.QueryParams, configQueryParams []types.QueryParameterMatcher) bool {
 
-func (lcs *LowerCaseString) get() string {
-	return lcs.string_
-}
+	for _, configQueryParam := range configQueryParams {
 
-type HeaderData struct {
-	name LowerCaseString
-	value string
-	isRegex bool
-	regexPattern regexp.Regexp
-	
+		if !configQueryParam.Matches(*queryParams) {
+			return false
+		}
+	}
+
+	return true
 }
 
 type QueryParameterMatcher struct {
-	name string
-	value string
-	isRegex bool
+	name         string
+	value        string
+	isRegex      bool
 	regexPattern regexp.Regexp
 }
 
-func (qpm *QueryParameterMatcher) matches (requestQueryParams *QueryParams) bool {
+func (qpm *QueryParameterMatcher) Matches(requestQueryParams types.QueryParams) bool {
 
-	return false
+	if requestQueryValue, ok := requestQueryParams[qpm.name]; !ok {
+		return false
+	} else if qpm.isRegex {
+		return qpm.regexPattern.MatchString(requestQueryValue)
+	} else if qpm.value == "" {
+		return true
+	} else {
+		return qpm.value == requestQueryValue
+	}
+
+	return true
 }
 
-
-
-type QueryParams map[string]string
-
-
-type RateLimitPolicyEntryImpl struct {
-	stage uint64
-	disablleKey  string
-	actions RateLimitAction
+// Implementation of Config that reads from a proto file.
+type ConfigImpl struct {
+	name                  string
+	routeMatcher          RouteMatcher
+	internalOnlyHeaders   *list.List
+	requestHeadersParser  *HeaderParser
+	responseHeadersParser *HeaderParser
 }
 
-func (rpei *RateLimitPolicyEntryImpl) Stage() uint64{
-	return rpei.stage
+func (ci *ConfigImpl) Name() string {
+	return ci.name
 }
 
-func (repi *RateLimitPolicyEntryImpl)DisableKey() string{
-	return  repi.disablleKey
+func (ci *ConfigImpl) Route(headers map[string]string, randomValue uint64) types.Route {
+	return ci.routeMatcher.Route(headers, randomValue)
 }
 
-func (repi *RateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule, descriptors []ratelimit.Descriptor, localSrvCluster string,
-	headers map[string]string, remoteAddr string){
-}
-
-type RateLimitAction interface{}
-
-type ShadowPolicyImpl struct {
-	cluster string
-	runtimeKey string
-}
-
-func (spi *ShadowPolicyImpl) ClusterName() string {
-	return spi.cluster
-}
-
-func (spi *ShadowPolicyImpl) RuntimeKey() string {
-	return spi.runtimeKey
+func (ci *ConfigImpl) InternalOnlyHeaders() *list.List {
+	return ci.internalOnlyHeaders
 }

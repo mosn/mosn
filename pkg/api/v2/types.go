@@ -145,6 +145,7 @@ type Proxy struct {
 	SupportDynamicRoute bool
 	BasicRoutes         []*BasicServiceRoute
 	VirtualHosts        []*VirtualHost
+	ValidateClusters    bool
 }
 
 type BasicServiceRoute struct {
