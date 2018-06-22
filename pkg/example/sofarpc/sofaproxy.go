@@ -44,11 +44,27 @@ func genericProxyConfig() *v2.Proxy {
 		DownstreamProtocol: string(protocol.SofaRpc),
 		UpstreamProtocol:   string(protocol.SofaRpc),
 	}
-
-	proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, &v2.BasicServiceRoute{
-		Name:    "tstSofRpcRouter",
-		Service: ".*",
-		Cluster: TestClusterRPC,
+	
+	
+	header := v2.HeaderMatcher{
+		Name:"service",
+		Value:"com.alipay.rpc.common.service.facade.SampleService:1.0",
+	}
+	
+	routerV2 := v2.Router{
+		Match:v2.RouterMatch{
+			Headers:[]v2.HeaderMatcher{header},
+		},
+		
+		Route:v2.RouteAction{
+			ClusterName:TestClusterRPC,
+		},
+	}
+	
+	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
+		Name:    "testSofaRoute",
+		Domains:  []string{"*"},
+		Routers:  []v2.Router{routerV2},
 	})
 
 	return proxyConfig

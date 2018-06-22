@@ -177,7 +177,7 @@ func (srri *SofaRouteRuleImpl) MatchType() types.PathMatchType {
 
 func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	if value, ok := headers[types.SofaRouteMatchKey]; ok {
-		if value == srri.matchValue {
+		if value == srri.matchValue || srri.matchValue == ".*" {
 			return srri
 		}
 

@@ -157,11 +157,36 @@ func genericProxyConfig() *v2.Proxy {
 		UpstreamProtocol:   string(protocol.Http2),
 	}
 
-	proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, &v2.BasicServiceRoute{
-		Name:    "tstSofRpcRouter",
-		Service: "com.alipay.demo.SampleService:1.0",
-		Cluster: TestCluster,
+	//proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, &v2.BasicServiceRoute{
+	//	Name:    "tstSofRpcRouter",
+	//	Service: "com.alipay.demo.SampleService:1.0",
+	//	Cluster: TestCluster,
+	//}
+	
+	
+	header := v2.HeaderMatcher{
+		Name:"service",
+		Value:"com.alipay.demo.SampleService:1.0",
+	}
+	
+	routerV2 := v2.Router{
+		Match:v2.RouterMatch{
+			Headers:[]v2.HeaderMatcher{header},
+		},
+		
+		Route:v2.RouteAction{
+			ClusterName:TestCluster,
+		},
+	}
+	
+	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
+		Name:    "testSofaRoute",
+		Domains:  []string{"*"},
+		Routers:  []v2.Router{routerV2},
 	})
+	
+	
+	
 
 	return proxyConfig
 }
