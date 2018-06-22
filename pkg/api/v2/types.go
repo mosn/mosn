@@ -8,6 +8,13 @@ import (
 type Metadata map[string]string
 
 const (
+	DEFAULT_NETWORK_FILTER  = "proxy"
+	SOFARPC_INBOUND_FILTER = "inbound_bolt"
+	SOFARPC_OUTBOUND_FILTER = "outbound_bolt"
+	X_PROTOCOL_FILTER = "x_protocol"
+)
+
+const (
 	MaxRequestsPerConn  uint64 = 10000
 	ConnBufferLimitByte uint32 = 16 * 1024
 )
@@ -42,6 +49,7 @@ type Cluster struct {
 	LbType               LbType
 	MaxRequestPerConn    uint32
 	CirBreThresholds     CircuitBreakers
+	OutlierDetection     OutlierDetection
 	HealthCheck          HealthCheck
 	Spec                 ClusterSpecInfo
 	LBSubSetConfig       LBSubsetConfig
@@ -58,6 +66,20 @@ type Thresholds struct {
 	MaxPendingRequests uint32
 	MaxRequests        uint32
 	MaxRetries         uint32
+}
+
+type OutlierDetection struct {
+	Consecutive_5Xx                    uint32
+	Interval                           time.Duration
+	BaseEjectionTime                   time.Duration
+	MaxEjectionPercent                 uint32
+	ConsecutiveGatewayFailure          uint32
+	EnforcingConsecutive5xx            uint32
+	EnforcingConsecutiveGatewayFailure uint32
+	EnforcingSuccessRate               uint32
+	SuccessRateMinimumHosts            uint32
+	SuccessRateRequestVolume           uint32
+	SuccessRateStdevFactor             uint32
 }
 
 type RoutingPriority string

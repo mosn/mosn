@@ -7,26 +7,41 @@ import (
 
 func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener)  error {
 	for _, listener := range listeners {
-		log.DefaultLogger.Infof("listener: %+v\n", listener)
+		mosnListener := convertListenerConfig(listener)
+		if mosnListener == nil {
+			continue
+		}
+		//AddOrUpdateListener(mosnListener)
+		log.DefaultLogger.Infof("listener: %+v\n", mosnListener)
 	}
 	return nil
 }
 
+/*
 func (config *MOSNConfig) OnUpdateRoutes(route *pb.RouteConfiguration) error {
 	log.DefaultLogger.Infof("route: %+v\n", route)
 	return nil
 }
+*/
 
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error{
-	for _, cluster := range clusters {
+	mosnClusters := convertClustersConfig(clusters)
+	//UpdateClusterConfig(mosnClusters)
+	for _, cluster := range mosnClusters {
 		log.DefaultLogger.Infof("cluster: %+v\n", cluster)
 	}
 	return nil
 }
 
-func (config *MOSNConfig) OnUpdateEndpoints(endpoints []*pb.ClusterLoadAssignment) error {
-	for _, endpoint := range endpoints {
-		log.DefaultLogger.Infof("endpoint: %+v\n", endpoint)
+func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAssignment) error {
+	for _, loadAssignment := range loadAssignments {
+		for _, endpoints := range loadAssignment.Endpoints {
+			hosts := convertEndpointsConfig(&endpoints)
+			//UpdateClusterHost(loadAssignment.ClusterName, endpoints.Priority, hosts)
+			for _, host := range hosts {
+				log.DefaultLogger.Infof("endpoint: cluster: %s, priority: %d, %+v\n", loadAssignment.ClusterName, endpoints.Priority, host)
+			}
+		}
 	}
 	return nil
 }
