@@ -70,7 +70,7 @@ func convertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			//Hosts:                convertClusterHosts(xdsCluster.GetHosts()),
+			Hosts:                convertClusterHosts(xdsCluster.GetHosts()),
 			Spec:                 convertSpec(xdsCluster),
 		}
 
@@ -80,11 +80,11 @@ func convertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 	return clusters
 }
 
-func convertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []*v2.Host {
+func convertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.Host {
 	if xdsEndpoint == nil {
 		return nil
 	}
-	hosts := make([]*v2.Host, 0, len(xdsEndpoint.GetLbEndpoints()))
+	hosts := make([]v2.Host, 0, len(xdsEndpoint.GetLbEndpoints()))
 	for _, xdsHost := range xdsEndpoint.GetLbEndpoints() {
 		var address string
 		if xdsAddress, ok := xdsHost.GetEndpoint().GetAddress().GetAddress().(*xdscore.Address_SocketAddress); ok {
@@ -108,7 +108,7 @@ func convertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []*v2.
 			Weight:     xdsHost.GetLoadBalancingWeight().GetValue(),
 			MetaData:   convertMeta(xdsHost.Metadata),
 		}
-		hosts = append(hosts, &host)
+		hosts = append(hosts, host)
 	}
 	return hosts
 }
@@ -584,24 +584,20 @@ func convertSpec(xdsCluster *xdsapi.Cluster) v2.ClusterSpecInfo {
 	}
 }
 
-/*
-func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.HostWithMetadata {
+
+func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.Host {
 	if xdsHosts == nil {
 		return nil
 	}
-	hostsWithMetaData := make([]v2.HostWithMetadata, 0, len(xdsHosts))
+	hostsWithMetaData := make([]v2.Host, 0, len(xdsHosts))
 	for _, xdsHost := range xdsHosts {
-		addr := convertAddress(xdsHost)
-		host := v2.Host{
-			Address:    addr.String(),
-		}
-		hostWithMetaData := v2.HostWithMetadata{
-			Host:   host,
+		hostWithMetaData := v2.Host{
+			Address:convertAddress(xdsHost).String(),
 		}
 		hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
 	}
 	return hostsWithMetaData
-}*/
+}
 
 func convertDuration(p *types.Duration) time.Duration {
 	if p == nil {

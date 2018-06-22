@@ -261,7 +261,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 		return err
 	}
 	
-	log.StartLogger.Debugf("EncodeHeaders,request id = %s, direction = %d",s.streamId,s.direction)
+	//log.StartLogger.Debugf("EncodeHeaders,request id = %s, direction = %d",s.streamId,s.direction)
 	
 	if endStream {
 		s.endStream()
@@ -273,7 +273,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
 	
-	log.StartLogger.Debugf("EncodeData,request id = %s, direction = %d",s.streamId,s.direction)
+	//log.StartLogger.Debugf("EncodeData,request id = %s, direction = %d",s.streamId,s.direction)
 	
 	if endStream {
 		s.endStream()
@@ -314,7 +314,7 @@ func (s *stream) endStream() {
 	if s.direction == ServerStream {
 		// for a server stream, remove stream on response wrote
 		s.connection.activeStream.Remove(s.streamId)
-		log.StartLogger.Warnf("Remove Request ID = %+v",s.streamId)
+	//	log.StartLogger.Warnf("Remove Request ID = %+v",s.streamId)
 	}
 }
 

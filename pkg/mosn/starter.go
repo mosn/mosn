@@ -52,11 +52,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
-
-	//get xds config
-	xdsClient := xds.XdsClient{}
-	xdsClient.Start(c, serviceCluster, serviceNode)
-
+	
 	//get inherit fds
 	inheritListeners := getInheritListeners()
 
@@ -97,10 +93,11 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 
 			// network filters
 			nfcf := GetNetworkFilter(&lc.FilterChains[0])
-
+			
 			//stream filters
 			sfcf := getStreamFilters(listenerConfig.StreamFilters)
 
+			config.SetGlobalStreamFilter(sfcf)
 			srv.AddListener(lc, nfcf, sfcf)
 		}
 
@@ -123,7 +120,10 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			ln.InheritListener.Close()
 		}
 	}
-
+	//get xds config
+	xdsClient := xds.XdsClient{}
+	xdsClient.Start(c, serviceCluster, serviceNode)
+	
 	//todo: daemon running
 	wg.Wait()
 	xdsClient.Stop()
@@ -132,7 +132,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 // maybe used in proxy rewrite
 func GetNetworkFilter(c *v2.FilterChain) types.NetworkFilterChainFactory {
 	
-	if len (c.Filters) != 1 || c.Filters[0].Name != "proxy" {
+	if len (c.Filters) != 1 || c.Filters[0].Name != v2.DEFAULT_NETWORK_FILTER {
 		log.StartLogger.Fatalln("Currently, only Proxy Network Filter Needed!")
 	}
 

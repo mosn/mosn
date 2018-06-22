@@ -53,7 +53,8 @@ type Cluster struct {
 	HealthCheck          HealthCheck
 	Spec                 ClusterSpecInfo
 	LBSubSetConfig       LBSubsetConfig
-	TLS               TLSConfig
+	TLS                  TLSConfig
+	Hosts                []Host
 }
 
 type CircuitBreakers struct {

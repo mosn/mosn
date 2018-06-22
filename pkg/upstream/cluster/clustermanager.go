@@ -37,7 +37,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 		primaryClusters: cmap.New(),
 		sofaRpcConnPool: cmap.New(),
 		http2ConnPool:   cmap.New(),
-		autoDiscovery:   autoDiscovery,
+		autoDiscovery:   true,  //todo delete
 	}
 	//init ClusterAdap when run app
 	ClusterAdap = ClusterAdapter{
@@ -159,7 +159,6 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			for _, hc := range hostConfigs {
 				hosts = append(hosts, NewHost(hc, pcc.Info()))
 			}
-
 			concretedCluster.UpdateHosts(hosts)
 			return nil
 		} else {
