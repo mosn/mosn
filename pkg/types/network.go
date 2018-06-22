@@ -124,6 +124,9 @@ type ListenerFilterCallbacks interface {
 
 	// Continue filter chain
 	ContinueFilterChain(success bool, ctx context.Context)
+
+	// Set original addr
+	SetOrigingalAddr(ip string, port int)
 }
 
 // Note: unsupport for now
