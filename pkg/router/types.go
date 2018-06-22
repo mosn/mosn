@@ -162,3 +162,37 @@ type WeightedClusterEntry struct {
 	clusterWeight                uint64
 	clusterMetadataMatchCriteria *MetadataMatchCriteriaImpl
 }
+
+type routerPolicy struct {
+	retryOn      bool
+	retryTimeout time.Duration
+	numRetries   uint32
+}
+
+func (p *routerPolicy) RetryOn() bool {
+	return p.retryOn
+}
+
+func (p *routerPolicy) TryTimeout() time.Duration {
+	return p.retryTimeout
+}
+
+func (p *routerPolicy) NumRetries() uint32 {
+	return p.numRetries
+}
+
+func (p *routerPolicy) RetryPolicy() types.RetryPolicy {
+	return p
+}
+
+func (p *routerPolicy) ShadowPolicy() types.ShadowPolicy {
+	return nil
+}
+
+func (p *routerPolicy) CorsPolicy() types.CorsPolicy {
+	return nil
+}
+
+func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
+	return nil
+}

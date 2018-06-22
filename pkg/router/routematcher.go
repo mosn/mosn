@@ -114,7 +114,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) *Vir
 
 		if route.Match.Prefix != "" {
 
-			virtualHostImpl.routes = append(virtualHostImpl.routes, &PrefixRouteEntryImpl{
+			virtualHostImpl.routes = append(virtualHostImpl.routes, &PrefixRouteRuleImpl{
 				NewRouteRuleImplBase(virtualHostImpl, &route),
 				route.Match.Prefix,
 			})
@@ -128,7 +128,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) *Vir
 		} else if route.Match.Regex != "" {
 
 			if regPattern, err := regexp.Compile(route.Match.Prefix); err == nil {
-				virtualHostImpl.routes = append(virtualHostImpl.routes, &RegexRouteEntryImpl{
+				virtualHostImpl.routes = append(virtualHostImpl.routes, &RegexRouteRuleImpl{
 					NewRouteRuleImplBase(virtualHostImpl, &route),
 					route.Match.Prefix,
 					*regPattern,

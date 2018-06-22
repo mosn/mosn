@@ -15,8 +15,8 @@ import (
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
-
+	"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
+	
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -120,13 +120,13 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			ln.InheritListener.Close()
 		}
 	}
-	//get xds config
-	//xdsClient := xds.XdsClient{}
-	//xdsClient.Start(c, serviceCluster, serviceNode)
-	
-	//todo: daemon running
+	////get xds config
+	xdsClient := xds.XdsClient{}
+	xdsClient.Start(c, serviceCluster, serviceNode)
+	//
+	////todo: daemon running
 	wg.Wait()
-	//xdsClient.Stop()
+	xdsClient.Stop()
 }
 
 // maybe used in proxy rewrite

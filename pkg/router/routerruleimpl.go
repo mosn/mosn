@@ -6,62 +6,12 @@ import (
 	"time"
 
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
-	"github.com/markphelps/optional"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	httpmosn "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/http"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
-
-type VirtualHostImpl struct {
-	virtualHostName       string
-	routes                []RouteBase //route impl
-	virtualClusters       []VirtualClusterEntry
-	sslRequirements       types.SslRequirements
-	corsPolicy            types.CorsPolicy
-	globalRouteConfig     *ConfigImpl
-	requestHeadersParser  *HeaderParser
-	responseHeadersParser *HeaderParser
-}
-
-type VirtualClusterEntry struct {
-	pattern regexp.Regexp
-	method  optional.String
-	name    string
-}
-
-func (vce *VirtualClusterEntry) VirtualClusterName() string {
-
-	return vce.name
-}
-
-func (vh *VirtualHostImpl) Name() string {
-
-	return vh.virtualHostName
-}
-
-func (vh *VirtualHostImpl) CorsPolicy() types.CorsPolicy {
-
-	return nil
-}
-
-func (vh *VirtualHostImpl) RateLimitPolicy() types.RateLimitPolicy {
-
-	return nil
-}
-
-func (vh *VirtualHostImpl) GetRouteFromEntries(headers map[string]string, randomValue uint64) types.Route {
-	// todo check tls
-	for _, route := range vh.routes {
-
-		if routeEntry := route.Match(headers, randomValue); routeEntry != nil {
-			return routeEntry
-		}
-	}
-
-	return nil
-}
 
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
 	return RouteRuleImplBase{
@@ -280,23 +230,23 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string,
 	prri.finalizePathHeader(headers, prri.path)
 }
 
-type PrefixRouteEntryImpl struct {
+type PrefixRouteRuleImpl struct {
 	RouteRuleImplBase
 	prefix string
 }
 
-func (prei *PrefixRouteEntryImpl) Matcher() string {
+func (prei *PrefixRouteRuleImpl) Matcher() string {
 
 	return prei.prefix
 }
 
-func (prei *PrefixRouteEntryImpl) MatchType() types.PathMatchType {
+func (prei *PrefixRouteRuleImpl) MatchType() types.PathMatchType {
 
 	return types.Prefix
 }
 
 // Compare Path's Prefix
-func (prei *PrefixRouteEntryImpl) Match(headers map[string]string, randomValue uint64) types.Route {
+func (prei *PrefixRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 
 	if prei.matchRoute(headers, randomValue) {
 
@@ -312,28 +262,28 @@ func (prei *PrefixRouteEntryImpl) Match(headers map[string]string, randomValue u
 	return nil
 }
 
-func (prei *PrefixRouteEntryImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
 	prei.finalizePathHeader(headers, prei.prefix)
 }
 
 //
-type RegexRouteEntryImpl struct {
+type RegexRouteRuleImpl struct {
 	RouteRuleImplBase
 	regexStr     string
 	regexPattern regexp.Regexp
 }
 
-func (rrei *RegexRouteEntryImpl) Matcher() string {
+func (rrei *RegexRouteRuleImpl) Matcher() string {
 
 	return rrei.regexStr
 }
 
-func (rrei *RegexRouteEntryImpl) MatchType() types.PathMatchType {
+func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
 
 	return types.Regex
 }
 
-func (rrei *RegexRouteEntryImpl) Match(headers map[string]string, randomValue uint64) types.Route {
+func (rrei *RegexRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 
 	if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
 		if rrei.regexPattern.MatchString(headerPathValue) {
@@ -345,40 +295,6 @@ func (rrei *RegexRouteEntryImpl) Match(headers map[string]string, randomValue ui
 	return nil
 }
 
-func (rrei *RegexRouteEntryImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
 	rrei.finalizePathHeader(headers, rrei.regexStr)
-}
-
-type routerPolicy struct {
-	retryOn      bool
-	retryTimeout time.Duration
-	numRetries   uint32
-}
-
-func (p *routerPolicy) RetryOn() bool {
-	return p.retryOn
-}
-
-func (p *routerPolicy) TryTimeout() time.Duration {
-	return p.retryTimeout
-}
-
-func (p *routerPolicy) NumRetries() uint32 {
-	return p.numRetries
-}
-
-func (p *routerPolicy) RetryPolicy() types.RetryPolicy {
-	return p
-}
-
-func (p *routerPolicy) ShadowPolicy() types.ShadowPolicy {
-	return nil
-}
-
-func (p *routerPolicy) CorsPolicy() types.CorsPolicy {
-	return nil
-}
-
-func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
-	return nil
 }
