@@ -41,21 +41,21 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 		}
 
 		if networkFilter == nil {
-			errMsg := "proxy needed in network filters"
+			errMsg := "xds client update listener error: proxy needed in network filters"
 			log.DefaultLogger.Errorf(errMsg)
 			return errors.New(errMsg)
 		}
 
-		if streamFilter != nil {
-			errMsg := "stream filter needed in network filters"
+		if streamFilter == nil {
+			errMsg := "xds client update listener error: stream filter needed in network filters"
 			log.DefaultLogger.Errorf(errMsg)
 			return errors.New(errMsg)
 		}
 
 		if err := server.GetServer().AddListenerAndStart(mosnListener, networkFilter, streamFilter); err == nil {
-			log.StartLogger.Infof("Add listener success listener = %+v\n", mosnListener)
+			log.DefaultLogger.Infof("xds client update listener success,listener = %+v\n", mosnListener)
 		} else {
-			log.StartLogger.Infof("Add listener error, listener = %+v\n", mosnListener)
+			log.DefaultLogger.Infof("xds client update listener error,listener = %+v\n", mosnListener)
 			return err
 		}
 	}
@@ -76,7 +76,10 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	for _, cluster := range mosnClusters {
 		log.DefaultLogger.Infof("cluster: %+v\n", cluster)
 		if err := clusterAdapter.ClusterAdap.TriggerClusterUpdate(cluster.Name, cluster.Hosts); err != nil {
-			log.DefaultLogger.Errorf("Istio Update Clusters Error = %s", err.Error())
+			log.DefaultLogger.Errorf("xds client update cluster error ,err = %s, clustername = %s , hosts = %+v",
+				err.Error(),cluster.Name,cluster.Hosts)
+		} else {
+			log.DefaultLogger.Debugf("xds client update cluster success, clustername = %s",cluster.Name)
 		}
 
 	}
@@ -93,11 +96,14 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 			hosts := convertEndpointsConfig(&endpoints)
 
 			for _, host := range hosts {
-				log.DefaultLogger.Infof("endpoint: cluster: %s, priority: %d, %+v\n", loadAssignment.ClusterName, endpoints.Priority, host)
+				log.DefaultLogger.Infof("xds client update endpoint: cluster: %s, priority: %d, %+v\n", loadAssignment.ClusterName, endpoints.Priority, host)
 			}
 
 			if err := clusterAdapter.ClusterAdap.TriggerClusterUpdate(clusterName, hosts); err != nil {
-				log.DefaultLogger.Errorf("Istio Update Clusters Error = %s", err.Error())
+				log.DefaultLogger.Errorf("xds client update Error = %s", err.Error())
+			} else {
+				log.DefaultLogger.Debugf("xds client update host success")
+				
 			}
 		}
 	}
