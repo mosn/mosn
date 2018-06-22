@@ -22,6 +22,7 @@ func init() {
 	})
 }
 
+// currently, only one server supported
 func GetServer () *server{
 	return servers[0]
 }

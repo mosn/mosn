@@ -24,7 +24,7 @@ import (
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
 )
 
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
@@ -121,12 +121,12 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		}
 	}
 	//get xds config
-	xdsClient := xds.XdsClient{}
-	xdsClient.Start(c, serviceCluster, serviceNode)
+	//xdsClient := xds.XdsClient{}
+	//xdsClient.Start(c, serviceCluster, serviceNode)
 	
 	//todo: daemon running
 	wg.Wait()
-	xdsClient.Stop()
+	//xdsClient.Stop()
 }
 
 // maybe used in proxy rewrite

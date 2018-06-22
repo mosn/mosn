@@ -15,6 +15,7 @@ const (
 	PriorityHigh        Priority      = 1
 	GlobalTimeout       time.Duration = 60 * time.Second
 	DefaultRouteTimeout               = 15 * time.Second
+	SofaRouteMatchKey                 = "service"
 )
 
 // change RouterConfig -> Routers to manage all routers
@@ -219,6 +220,7 @@ const (
 	Prefix
 	Exact
 	Regex
+	SofaHeader
 )
 
 type SslRequirements uint32

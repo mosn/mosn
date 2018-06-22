@@ -9,7 +9,7 @@ const (
 )
 
 const (
-	MosnHeadersHostKey = "HostKey"
-	MosnHeaderPathKey = "PathKey"
-	MosnHeaderQueryStringKey = "QueryStringKey"
+	MosnHeaderHostKey        = "Host"
+	MosnHeaderPathKey        = "Path"
+	MosnHeaderQueryStringKey = "QueryString"
 )

@@ -14,159 +14,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-func init_test() {
-	RegisteRouterConfigFactory(protocol.SofaRpc, NewRouterMatcher)
-	RegisteRouterConfigFactory(protocol.Http2, NewRouterMatcher)
-}
-
-func NewRouterMatcher(config interface{}) (types.Routers, error) {
-	routerMatcher := &RouteMatcher{
-		virtualHosts: make(map[string]types.VirtualHost),
-	}
-
-	if config, ok := config.(*v2.Proxy); ok {
-
-		for _, virtualHost := range config.VirtualHosts {
-
-			//todo 补充virtual host 其他成员
-			vh := NewVirtualHostImpl(virtualHost, config.ValidateClusters)
-
-			for _, domain := range virtualHost.Domains {
-				if domain == "*" {
-					if routerMatcher.defaultVirtualHost != nil {
-						log.DefaultLogger.Errorf("Only a single wildcard domain permitted")
-					}
-					
-					routerMatcher.defaultVirtualHost = vh
-				} else if  _,ok := routerMatcher.virtualHosts[domain]; ok {
-					log.DefaultLogger.Errorf("Only unique values for domains are permitted, get duplicate domain = %s",
-						domain)
-				} else {
-					routerMatcher.virtualHosts[domain] = vh
-				}
-			}
-		}
-
-	}
-
-	return routerMatcher, nil
-}
-
-// A router wrapper used to matches an incoming request headers to a backend cluster
-type RouteMatcher struct {
-	virtualHosts                map[string]types.VirtualHost // key: host
-	defaultVirtualHost          types.VirtualHost
-	wildcardVirtualHostSuffixes map[int64]map[string]types.VirtualHost
-}
-
-// Routing with Virtual Host
-func (rm *RouteMatcher) Route(headers map[string]string, randomValue uint64) types.Route {
-	// First Step: Select VirtualHost with "host" in Headers form VirtualHost Array
-	virtualHost := rm.findVirtualHost(headers)
-
-	if virtualHost == nil {
-		log.DefaultLogger.Warnf("No VirtualHost Found when Routing %+v", headers)
-
-		return nil
-	}
-
-	// Second Step: Match Route from Routes in a Virtual Host
-	return virtualHost.GetRouteFromEntries(headers, randomValue)
-}
-
-func (rm *RouteMatcher) findVirtualHost(headers map[string]string) types.VirtualHost {
-	if len(rm.virtualHosts) == 0 && rm.defaultVirtualHost != nil {
-
-		return rm.defaultVirtualHost
-	}
-
-	host := strings.ToLower(headers[protocol.MosnHeadersHostKey])
-
-	// for service, header["host"] == header["service"] == servicename
-	// or use only a unique key for sofa's virtual host
-	if virtualHost, ok := rm.virtualHosts[host]; ok {
-		return virtualHost
-	}
-
-	// todo support WildcardVirtualHost
-
-	return rm.defaultVirtualHost
-}
-
-// todo match wildcard
-func (rm *RouteMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
-
-	return nil
-}
-
-func (rm *RouteMatcher) AddRouter(routerName string) {}
-
-func (rm *RouteMatcher) DelRouter(routerName string) {}
-
-func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) *VirtualHostImpl {
-
-	var virtualHostImpl = &VirtualHostImpl{virtualHostName: virtualHost.Name}
-
-	switch virtualHost.RequireTls {
-	case "EXTERNALONLY":
-		virtualHostImpl.sslRequirements = types.EXTERNALONLY
-	case "ALL":
-		virtualHostImpl.sslRequirements = types.ALL
-	default:
-		virtualHostImpl.sslRequirements = types.NONE
-	}
-
-	for _, route := range virtualHost.Routers {
-
-		if route.Match.Prefix != "" {
-
-			virtualHostImpl.routes = append(virtualHostImpl.routes, &PrefixRouteEntryImpl{
-				NewRouteRuleImplBase(virtualHostImpl, &route),
-				route.Match.Prefix,
-			})
-
-		} else if route.Match.Path != "" {
-			virtualHostImpl.routes = append(virtualHostImpl.routes, &PathRouteRuleImpl{
-				NewRouteRuleImplBase(virtualHostImpl, &route),
-				route.Match.Path,
-			})
-
-		} else if route.Match.Regex != "" {
-
-			if regPattern, err := regexp.Compile(route.Match.Prefix); err == nil {
-				virtualHostImpl.routes = append(virtualHostImpl.routes, &RegexRouteEntryImpl{
-					NewRouteRuleImplBase(virtualHostImpl, &route),
-					route.Match.Prefix,
-					*regPattern,
-				})
-			} else {
-				log.DefaultLogger.Errorf("Compile Regex Error")
-			}
-		}
-	}
-
-	// todo check cluster's validity
-	if validateClusters {
-	}
-
-	// Add Virtual Cluster
-	for _, vc := range virtualHost.VirtualClusters {
-
-		if regxPattern, err := regexp.Compile(vc.Pattern); err == nil {
-			virtualHostImpl.virtualClusters = append(virtualHostImpl.virtualClusters,
-				VirtualClusterEntry{
-					name:    vc.Name,
-					method:  optional.NewString(vc.Method),
-					pattern: *regxPattern,
-				})
-		} else {
-			log.DefaultLogger.Errorf("Compile Error")
-		}
-	}
-
-	return virtualHostImpl
-}
-
 type VirtualHostImpl struct {
 	virtualHostName       string
 	routes                []RouteBase //route impl
@@ -222,6 +69,11 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImp
 		routerMatch:  route.Match,
 		routerAction: route.Route,
 		metaData:     route.Metadata,
+		policy: &routerPolicy{
+			retryOn:      false,
+			retryTimeout: 0,
+			numRetries:   0,
+		},
 	}
 }
 
@@ -262,6 +114,8 @@ type RouteRuleImplBase struct {
 	decorator                   *types.Decorator
 	directResponseCode          httpmosn.HttpCode
 	directResponseBody          string
+	policy                      *routerPolicy
+	virtualClusters             *VirtualClusterEntry
 }
 
 // types.RouterInfo
@@ -283,7 +137,7 @@ func (rri *RouteRuleImplBase) RouteRule() types.RouteRule {
 
 func (rri *RouteRuleImplBase) TraceDecorator() types.TraceDecorator {
 
-	return rri.TraceDecorator()
+	return nil
 }
 
 // types.RouteRule
@@ -306,22 +160,22 @@ func (rri *RouteRuleImplBase) Priority() types.Priority {
 
 func (rri *RouteRuleImplBase) VirtualHost() types.VirtualHost {
 
-	return rri.VirtualHost()
+	return rri.vHost
 }
 
 func (rri *RouteRuleImplBase) VirtualCluster(headers map[string]string) types.VirtualCluster {
 
-	return rri.VirtualCluster(headers)
+	return rri.virtualClusters
 }
 
 func (rri *RouteRuleImplBase) Policy() types.Policy {
 
-	return rri.Policy()
+	return rri.policy
 }
 
 func (rri *RouteRuleImplBase) MetadataMatcher() types.MetadataMatcher {
 
-	return rri.MetadataMatcher()
+	return nil
 }
 
 // todo
@@ -354,6 +208,34 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	}
 
 	return true
+}
+
+type SofaRouteRuleImpl struct {
+	RouteRuleImplBase
+	matchValue string
+}
+
+func (srri *SofaRouteRuleImpl) Matcher() string {
+
+	return srri.matchValue
+}
+
+func (srri *SofaRouteRuleImpl) MatchType() types.PathMatchType {
+
+	return types.SofaHeader
+}
+
+func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
+	if value, ok := headers[types.SofaRouteMatchKey]; ok {
+		if value == srri.matchValue {
+			return srri
+		}
+
+		log.DefaultLogger.Debugf("Sofa Router Matched")
+
+	}
+
+	return nil
 }
 
 type PathRouteRuleImpl struct {
@@ -465,4 +347,38 @@ func (rrei *RegexRouteEntryImpl) Match(headers map[string]string, randomValue ui
 
 func (rrei *RegexRouteEntryImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
 	rrei.finalizePathHeader(headers, rrei.regexStr)
+}
+
+type routerPolicy struct {
+	retryOn      bool
+	retryTimeout time.Duration
+	numRetries   uint32
+}
+
+func (p *routerPolicy) RetryOn() bool {
+	return p.retryOn
+}
+
+func (p *routerPolicy) TryTimeout() time.Duration {
+	return p.retryTimeout
+}
+
+func (p *routerPolicy) NumRetries() uint32 {
+	return p.numRetries
+}
+
+func (p *routerPolicy) RetryPolicy() types.RetryPolicy {
+	return p
+}
+
+func (p *routerPolicy) ShadowPolicy() types.ShadowPolicy {
+	return nil
+}
+
+func (p *routerPolicy) CorsPolicy() types.CorsPolicy {
+	return nil
+}
+
+func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
+	return nil
 }

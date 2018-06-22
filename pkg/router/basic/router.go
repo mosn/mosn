@@ -1,19 +1,23 @@
 package basic
 
 import (
-	"errors"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"sync"
-	"time"
+"errors"
+"sync"
+"time"
+
+
+"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+"gitlab.alipay-inc.com/afe/mosn/pkg/router"
+"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+
+
+
 )
 
 func init() {
-	router.RegisteRouterConfigFactory(protocol.SofaRpc, NewRouters)
-	router.RegisteRouterConfigFactory(protocol.Http2, NewRouters)
+	//router.RegisteRouterConfigFactory(protocol.SofaRpc, NewRouters)
+	//router.RegisteRouterConfigFactory(protocol.Http2, NewRouters)
 }
 
 // types.Routers
