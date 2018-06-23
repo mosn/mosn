@@ -1,10 +1,8 @@
 package router
 
 import (
-	"regexp"
 	"strings"
 
-	"github.com/markphelps/optional"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
@@ -29,15 +27,20 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 			vh := NewVirtualHostImpl(virtualHost, config.ValidateClusters)
 
 			for _, domain := range virtualHost.Domains {
+				domain = strings.ToLower(domain)
+
 				if domain == "*" {
 					if routerMatcher.defaultVirtualHost != nil {
-						log.DefaultLogger.Errorf("Only a single wildcard domain permitted")
+						log.StartLogger.Fatal("Only a single wildcard domain permitted")
 					}
-
 					routerMatcher.defaultVirtualHost = vh
+
+				} else if len(domain) > 1 && "*" == domain[:1] {
+					domainMap := map[string]types.VirtualHost{domain[1:]: vh}
+					routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1] = domainMap
+
 				} else if _, ok := routerMatcher.virtualHosts[domain]; ok {
-					log.DefaultLogger.Errorf("Only unique values for domains are permitted, get duplicate domain = %s",
-						domain)
+					log.StartLogger.Fatal("Only unique values for domains are permitted, get duplicate domain = %s", domain)
 				} else {
 					routerMatcher.virtualHosts[domain] = vh
 				}
@@ -52,7 +55,7 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 type RouteMatcher struct {
 	virtualHosts                map[string]types.VirtualHost // key: host
 	defaultVirtualHost          types.VirtualHost
-	wildcardVirtualHostSuffixes map[int64]map[string]types.VirtualHost
+	wildcardVirtualHostSuffixes map[int]map[string]types.VirtualHost
 }
 
 // Routing with Virtual Host
@@ -82,13 +85,31 @@ func (rm *RouteMatcher) findVirtualHost(headers map[string]string) types.Virtual
 		return virtualHost
 	}
 
-	// todo support WildcardVirtualHost
+	if len(rm.wildcardVirtualHostSuffixes) > 0 {
+
+		if vhost := rm.findWildcardVirtualHost(host); vhost != nil {
+			return vhost
+		}
+	}
 
 	return rm.defaultVirtualHost
 }
 
-// todo match wildcard
+// Rule: longest wildcard suffix match against the host
 func (rm *RouteMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
+	
+	// e.g. foo-bar.baz.com will match *-bar.baz.com
+	for wildcardLen, wildcardMap := range rm.wildcardVirtualHostSuffixes {
+		if wildcardLen >= len(host) {
+			continue
+		} else {
+			for domainKey, virtualHost := range wildcardMap {
+				if domainKey == host[len(host)-wildcardLen:] {
+					return virtualHost
+				}
+			}
+		}
+	}
 
 	return nil
 }
@@ -96,76 +117,3 @@ func (rm *RouteMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
 func (rm *RouteMatcher) AddRouter(routerName string) {}
 
 func (rm *RouteMatcher) DelRouter(routerName string) {}
-
-func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) *VirtualHostImpl {
-
-	var virtualHostImpl = &VirtualHostImpl{virtualHostName: virtualHost.Name}
-
-	switch virtualHost.RequireTls {
-	case "EXTERNALONLY":
-		virtualHostImpl.sslRequirements = types.EXTERNALONLY
-	case "ALL":
-		virtualHostImpl.sslRequirements = types.ALL
-	default:
-		virtualHostImpl.sslRequirements = types.NONE
-	}
-
-	for _, route := range virtualHost.Routers {
-
-		if route.Match.Prefix != "" {
-
-			virtualHostImpl.routes = append(virtualHostImpl.routes, &PrefixRouteRuleImpl{
-				NewRouteRuleImplBase(virtualHostImpl, &route),
-				route.Match.Prefix,
-			})
-
-		} else if route.Match.Path != "" {
-			virtualHostImpl.routes = append(virtualHostImpl.routes, &PathRouteRuleImpl{
-				NewRouteRuleImplBase(virtualHostImpl, &route),
-				route.Match.Path,
-			})
-
-		} else if route.Match.Regex != "" {
-
-			if regPattern, err := regexp.Compile(route.Match.Prefix); err == nil {
-				virtualHostImpl.routes = append(virtualHostImpl.routes, &RegexRouteRuleImpl{
-					NewRouteRuleImplBase(virtualHostImpl, &route),
-					route.Match.Prefix,
-					*regPattern,
-				})
-			} else {
-				log.DefaultLogger.Errorf("Compile Regex Error")
-			}
-		} else {
-			for _, header := range route.Match.Headers {
-				if header.Name == types.SofaRouteMatchKey {
-					virtualHostImpl.routes = append(virtualHostImpl.routes, &SofaRouteRuleImpl{
-						RouteRuleImplBase: NewRouteRuleImplBase(virtualHostImpl, &route),
-						matchValue:        header.Value,
-					})
-				}
-			}
-		}
-	}
-
-	// todo check cluster's validity
-	if validateClusters {
-	}
-
-	// Add Virtual Cluster
-	for _, vc := range virtualHost.VirtualClusters {
-
-		if regxPattern, err := regexp.Compile(vc.Pattern); err == nil {
-			virtualHostImpl.virtualClusters = append(virtualHostImpl.virtualClusters,
-				VirtualClusterEntry{
-					name:    vc.Name,
-					method:  optional.NewString(vc.Method),
-					pattern: *regxPattern,
-				})
-		} else {
-			log.DefaultLogger.Errorf("Compile Error")
-		}
-	}
-
-	return virtualHostImpl
-}

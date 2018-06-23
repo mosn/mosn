@@ -289,7 +289,7 @@
         "Name": "test_cpp",
         "Type": "SIMPLE",
         "sub_type": "",
-        "lb_type": "LB_RANDOM",
+        "lb_type": "LB_ROUNDROBIN",
         "MaxRequestPerConn": 0,
         "ConnBufferLimitBytes": 0,
         "circuit_breakers":[
