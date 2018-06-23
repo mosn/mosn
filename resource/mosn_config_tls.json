@@ -136,6 +136,9 @@
                       {
                         "Name": "sofa",
                         "RequireTls": "no",
+                         "Domains":[
+                          "*"
+                        ],
                         "Routers": [
                           {
                             "Match": {
@@ -217,6 +220,9 @@
                       {
                         "Name": "sofa",
                         "RequireTls": "no",
+                         "Domains":[
+                          "*"
+                        ],
                         "Routers": [
                           {
                             "Match": {
