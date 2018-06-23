@@ -51,13 +51,18 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 			log.DefaultLogger.Errorf(errMsg)
 			return errors.New(errMsg)
 		}
-
-		if err := server.GetServer().AddListenerAndStart(mosnListener, networkFilter, streamFilter); err == nil {
-			log.DefaultLogger.Infof("xds client update listener success,listener = %+v\n", mosnListener)
+		
+		if server :=server.GetServer(); server == nil {
+			log.DefaultLogger.Fatal("Server is nil and hasn't been initiated at this time")
 		} else {
-			log.DefaultLogger.Infof("xds client update listener error,listener = %+v\n", mosnListener)
-			return err
+			if err := server.AddListenerAndStart(mosnListener, networkFilter, streamFilter); err == nil {
+				log.DefaultLogger.Infof("xds client update listener success,listener = %+v\n", mosnListener)
+			} else {
+				log.DefaultLogger.Infof("xds client update listener error,listener = %+v\n", mosnListener)
+				return err
+			}
 		}
+		
 	}
 
 	return nil

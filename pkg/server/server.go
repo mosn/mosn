@@ -24,16 +24,21 @@ func init() {
 
 // currently, only one server supported
 func GetServer () *server{
+	if len(servers) == 0 {
+		log.DefaultLogger.Errorf("Server is nil and hasn't been initiated at this time")
+		return nil
+	}
+	
 	return servers[0]
 }
 
 var servers []*server
 
 type server struct {
-	logger   log.Logger
-	stopChan chan bool
-	handler  types.ConnectionHandler
-	ListenInMap cmap.ConcurrentMap
+	logger        log.Logger
+	stopChan      chan bool
+	handler       types.ConnectionHandler
+	ListenerInMap cmap.ConcurrentMap
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
@@ -64,10 +69,10 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	OnProcessShutDown(log.CloseAll)
 
 	server := &server{
-		logger:   log.DefaultLogger,
-		stopChan: make(chan bool),
-		handler:  NewHandler(cmFilter, clMng, log.DefaultLogger),
-		ListenInMap:cmap.New(),
+		logger:        log.DefaultLogger,
+		stopChan:      make(chan bool),
+		handler:       NewHandler(cmFilter, clMng, log.DefaultLogger),
+		ListenerInMap: cmap.New(),
 	}
 
 	servers = append(servers, server)
@@ -76,21 +81,21 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 }
 
 func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
-	if srv.ListenInMap.Has(lc.Name) {
+	if srv.ListenerInMap.Has(lc.Name) {
 		log.DefaultLogger.Warnf("Listen Already Started, Listen = %+v",lc)
 	} else {
-		srv.ListenInMap.Set(lc.Name,lc)
+		srv.ListenerInMap.Set(lc.Name,lc)
 		srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
 	}
 }
 
 func (srv *server) AddListenerAndStart(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) error{
-	if srv.ListenInMap.Has(lc.Name) {
-		log.DefaultLogger.Warnf("Listen Already Started, Listen = %+v",lc)
+	if srv.ListenerInMap.Has(lc.Name) {
+		log.DefaultLogger.Warnf("Listener Already Started, Listener Name = %+v",lc.Name)
 	} else {
 		
-		srv.ListenInMap.Set(lc.Name,lc)
+		srv.ListenerInMap.Set(lc.Name,lc)
 		
 		
 		listenerStopChan := make(chan bool)

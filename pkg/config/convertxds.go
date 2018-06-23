@@ -39,6 +39,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 	if !isSupport(xdsListener) {
 		return nil
 	}
+	
 	listenerConfig :=  &v2.ListenerConfig{
 		Name:                                    xdsListener.GetName(),
 		Addr:                                    convertAddress(&xdsListener.Address),
@@ -47,9 +48,11 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 		HandOffRestoredDestinationConnections:   xdsListener.GetUseOriginalDst().GetValue(),
 		AccessLogs:                              convertAccessLogs(xdsListener),
 	}
+	
 	if listenerConfig.HandOffRestoredDestinationConnections {
 		return listenerConfig
 	}
+	
 	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
 	return listenerConfig
 }
