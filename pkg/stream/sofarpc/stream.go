@@ -178,6 +178,7 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 
 func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[string]string) {
 	if ok := conn.activeStream.Has(streamId); ok {
+		log.DefaultLogger.Infof("OnDecodeHeaders, stream already exist, maybe response, StreamID = %s",streamId)
 		return
 	}
 
@@ -198,7 +199,9 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 		direction:  ServerStream,
 		connection: conn,
 	}
-
+	
+	log.DefaultLogger.Infof("OnDecodeHeaders, New stream detected, Request id = %s, StreamID = %s",requestId,streamId)
+	
 	stream.decoder = conn.serverCallbacks.NewStream(streamId, &stream)
 	conn.activeStream.Set(streamId, stream)
 }
@@ -261,7 +264,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 		return err
 	}
 	
-	//log.StartLogger.Debugf("EncodeHeaders,request id = %s, direction = %d",s.streamId,s.direction)
+	log.DefaultLogger.Infof("EncodeHeaders,request id = %s, direction = %d",s.streamId,s.direction)
 	
 	if endStream {
 		s.endStream()
@@ -273,7 +276,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
 	
-	//log.StartLogger.Debugf("EncodeData,request id = %s, direction = %d",s.streamId,s.direction)
+	log.DefaultLogger.Infof("EncodeData,request id = %s, direction = %d",s.streamId,s.direction)
 	
 	if endStream {
 		s.endStream()
@@ -293,7 +296,7 @@ func (s *stream) EncodeTrailers(trailers map[string]string) error {
 // For client stream, write out request
 func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
-		log.StartLogger.Debugf("Write, stream id = %s, direction = %d",s.streamId,s.direction)
+		log.DefaultLogger.Infof("Write to remote, stream id = %s, direction = %d",s.streamId,s.direction)
 		
 		if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
 
