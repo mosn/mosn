@@ -13,7 +13,7 @@ import (
 
 type ConfigContentKey string
 
-// callback when corresponding module parsed
+// callback when corresponding momdule parsed
 type ConfigParsedCallback func(data interface{}, endParsing bool) error
 
 // notes: configcontentkey equals to the key of config file
