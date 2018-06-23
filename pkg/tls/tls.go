@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"sync"
+	"fmt"
 )
 
 var TLSdefaultMinProtocols uint16 = tls.VersionTLS10
@@ -74,40 +75,41 @@ var TLSCiphersMap = map[string]uint16{
 	"RSA-3DES-EDE-CBC-SHA":               tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
 }
 
-type Context struct {
-	ServerName   string
-	MinVersion   uint16
-	MaxVersion   uint16
-	ALPN         []string
-	ClientAuth   tls.ClientAuthType
-	CACert       *x509.CertPool
-	CipherSuites []uint16
-	EcdhCurves   []tls.CurveID
-	Certificates []tls.Certificate
-	Ticket       string
+type context struct {
+	serverName   string
+	minVersion   uint16
+	maxVersion   uint16
+	alpn         []string
+	clientAuth   tls.ClientAuthType
+	caCert       *x509.CertPool
+	cipherSuites []uint16
+	ecdhCurves   []tls.CurveID
+	certificates []tls.Certificate
+	ticket       string
 
-	VerifyClient bool
-	VerifyServer bool
+	verifyClient bool
+	verifyServer bool
 
-	Listener    types.Listener
-	ClusterInfo types.ClusterInfo
+	listener    types.Listener
+	clusterInfo types.ClusterInfo
 
 	tlsConfig *tls.Config
 }
 
-type ContextManager struct {
-	contextMap []map[string]*Context
+type contextManager struct {
+	contextMap []map[string]*context
 
-	isClient  bool
-	inspector bool
-	context   *Context
-	listener  types.Listener
+	logger     log.Logger
+	isClient   bool
+	inspector  bool
+	tlscontext *context
+	listener   types.Listener
 
 	sync.RWMutex
 }
 
-func BuildContextMap(cm *ContextManager, context *Context, index int) {
-	if context == nil {
+func buildContextMap(cm *contextManager, tlscontext *context, index int) {
+	if tlscontext == nil {
 		if index >= len(cm.contextMap) {
 			cm.contextMap = append(cm.contextMap, nil)
 		} else {
@@ -116,9 +118,9 @@ func BuildContextMap(cm *ContextManager, context *Context, index int) {
 		return
 	}
 
-	c := context.tlsConfig
+	c := tlscontext.tlsConfig
 
-	m := make(map[string]*Context)
+	m := make(map[string]*context)
 
 	for i := range c.Certificates {
 		cert := &c.Certificates[i]
@@ -127,20 +129,20 @@ func BuildContextMap(cm *ContextManager, context *Context, index int) {
 			continue
 		}
 		if len(x509Cert.Subject.CommonName) > 0 {
-			m[x509Cert.Subject.CommonName] = context
+			m[x509Cert.Subject.CommonName] = tlscontext
 		}
 		for _, san := range x509Cert.DNSNames {
-			m[san] = context
+			m[san] = tlscontext
 		}
 	}
 
-	if context.ALPN != nil {
-		for _, protocol := range context.ALPN {
-			m[protocol] = context
+	if tlscontext.alpn != nil {
+		for _, protocol := range tlscontext.alpn {
+			m[protocol] = tlscontext
 		}
 	}
 
-	m[context.ServerName] = context
+	m[tlscontext.serverName] = tlscontext
 
 	if index >= len(cm.contextMap) {
 		cm.contextMap = append(cm.contextMap, m)
@@ -149,24 +151,26 @@ func BuildContextMap(cm *ContextManager, context *Context, index int) {
 	}
 }
 
-func NewTLSServerContextManager(config []v2.FilterChain, l types.Listener) types.TLSContextManager {
-	cm := new(ContextManager)
+func NewTLSServerContextManager(config []v2.FilterChain, l types.Listener, logger log.Logger) types.TLSContextManager {
+	cm := new(contextManager)
+	cm.logger = logger
 
 	first := true
 	for i, c := range config {
-		context, err := NewTLSContext(&c.TLS, cm)
+		tlscontext, err := newTLSContext(&c.TLS, cm)
 		if err != nil {
-			log.StartLogger.Fatalln("New Server TLS Context Manager failed: ", err)
+			cm.logger.Errorf("New Server TLS Context Manager failed: %v", err)
+			return nil
 		}
 
-		BuildContextMap(cm, context, i)
+		buildContextMap(cm, tlscontext, i)
 
-		if context != nil {
-			context.Listener = l
+		if tlscontext != nil {
+			tlscontext.listener = l
 		}
 
-		if first && context != nil {
-			cm.context = context
+		if first && tlscontext != nil {
+			cm.tlscontext = tlscontext
 			first = false
 		}
 	}
@@ -175,13 +179,13 @@ func NewTLSServerContextManager(config []v2.FilterChain, l types.Listener) types
 }
 
 func AddTLSServerContext(c *v2.TLSConfig, tlsMng types.TLSContextManager, index int) error {
-	var cm *ContextManager
+	var cm *contextManager
 
 	if tlsMng == nil {
 		return errors.New("Add Server TLS Context failed: tlsMng is nil")
 	}
 
-	if c, ok := tlsMng.(*ContextManager); ok {
+	if c, ok := tlsMng.(*contextManager); ok {
 		cm = c
 	} else {
 		return errors.New("Add Server TLS Context failed: tlsMng is not tls.ContextManager")
@@ -191,30 +195,30 @@ func AddTLSServerContext(c *v2.TLSConfig, tlsMng types.TLSContextManager, index 
 		return errors.New("Add Server TLS Context failed: index is out of bounds")
 	}
 
-	context, err := NewTLSContext(c, cm)
+	tlscontext, err := newTLSContext(c, cm)
 	if err != nil {
 		return err
 	}
 
-	context.Listener = cm.listener
+	tlscontext.listener = cm.listener
 
 	//todo sync.RWMutex, Maps are not safe for concurrent use
-	BuildContextMap(cm, context, index)
+	buildContextMap(cm, tlscontext, index)
 
-	if cm.context == nil {
-		cm.context = context
+	if cm.tlscontext == nil {
+		cm.tlscontext = tlscontext
 	}
 
 	return nil
 }
 
 func DelTLSServerContext(tlsMng types.TLSContextManager, index int) error {
-	var cm *ContextManager
+	var cm *contextManager
 	if tlsMng == nil {
 		return errors.New("Del Server TLS Context failed: tlsMng is nil")
 	}
 
-	if c, ok := tlsMng.(*ContextManager); ok {
+	if c, ok := tlsMng.(*contextManager); ok {
 		cm = c
 	} else {
 		return errors.New("Del Server TLS Context failed: tlsMng is not tls.ContextManager")
@@ -224,7 +228,7 @@ func DelTLSServerContext(tlsMng types.TLSContextManager, index int) error {
 		return errors.New("Del Server TLS Context failed: index is out of bounds")
 	}
 
-	maps := make([]map[string]*Context, 0)
+	maps := make([]map[string]*context, 0)
 	for i, m := range cm.contextMap {
 		if i != index {
 			maps = append(maps, m)
@@ -237,27 +241,34 @@ func DelTLSServerContext(tlsMng types.TLSContextManager, index int) error {
 }
 
 func NewTLSClientContextManager(config *v2.TLSConfig, info types.ClusterInfo) types.TLSContextManager {
-	cm := new(ContextManager)
+	cm := new(contextManager)
 	cm.isClient = true
+	cm.logger = log.DefaultLogger
 
-	context, err := NewTLSContext(config, cm)
+	tlscontext, err := newTLSContext(config, cm)
 	if err != nil {
-		log.StartLogger.Fatalln("New TLS Client Context Manager failed: ", err)
+		cm.logger.Errorf("New TLS Client Context Manager failed: %v", err)
+		return nil
 	}
 
-	if context == nil {
+	if tlscontext == nil {
 		return cm
 	}
 
-	context.ClusterInfo = info
-	cm.context = context
+	tlscontext.clusterInfo = info
+	cm.tlscontext = tlscontext
 
 	return cm
 }
 
-func (cm *ContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Config, error) {
-	var context *Context
+func (cm *contextManager) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Config, error) {
+	var tlscontext *context
 	var ok bool
+
+	// only one Cartificate
+	if len(cm.contextMap) == 1 {
+		return cm.tlscontext.tlsConfig.Clone(), nil
+	}
 
 	for _, maps := range cm.contextMap {
 		if maps == nil {
@@ -271,7 +282,7 @@ func (cm *ContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Co
 				name = name[:len(name)-1]
 			}
 
-			if context, ok = maps[name]; ok {
+			if tlscontext, ok = maps[name]; ok {
 				goto find
 			}
 
@@ -279,7 +290,7 @@ func (cm *ContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Co
 			for i := 0; i < len(labels)-1; i++ {
 				labels[i] = "*"
 				candidate := strings.Join(labels[i:], ".")
-				if context, ok = maps[candidate]; ok {
+				if tlscontext, ok = maps[candidate]; ok {
 					goto find
 				}
 			}
@@ -289,7 +300,7 @@ func (cm *ContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Co
 		if info.SupportedProtos != nil {
 			for _, protocol := range info.SupportedProtos {
 				protocol = strings.ToLower(protocol)
-				if context, ok = maps[protocol]; ok {
+				if tlscontext, ok = maps[protocol]; ok {
 					goto find
 				}
 			}
@@ -297,7 +308,7 @@ func (cm *ContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Co
 	}
 
 	// Last, return the first certificate.
-	context = cm.context
+	tlscontext = cm.tlscontext
 
 find:
 
@@ -305,11 +316,11 @@ find:
 	// callback select filter config
 	// callback(cm.listener, index)
 
-	return context.tlsConfig.Clone(), nil
+	return tlscontext.tlsConfig.Clone(), nil
 
 }
 
-func (cm *ContextManager) Enabled() bool {
+func (cm *contextManager) Enabled() bool {
 	if cm.defaultContext() != nil {
 		return true
 	} else {
@@ -317,63 +328,63 @@ func (cm *ContextManager) Enabled() bool {
 	}
 }
 
-func (cm *ContextManager) Conn(c net.Conn) net.Conn {
-	context := cm.defaultContext()
+func (cm *contextManager) Conn(c net.Conn) net.Conn {
+	tlscontext := cm.defaultContext()
 
 	if cm.isClient {
-		return tls.Client(c, context.tlsConfig)
+		return tls.Client(c, tlscontext.tlsConfig)
 	}
 
 	if !cm.inspector {
-		return tls.Server(c, context.tlsConfig)
+		return tls.Server(c, tlscontext.tlsConfig)
 	}
 
-	conn := &Conn{
+	tlsconn := &conn{
 		Conn: c,
 	}
 
-	buf := conn.Peek()
+	buf := tlsconn.Peek()
 	if buf == nil {
-		return tls.Server(conn, context.tlsConfig)
+		return tls.Server(tlsconn, tlscontext.tlsConfig)
 	}
 
 	switch buf[0] {
 	// TLS handshake
 	case 0x16:
-		return tls.Server(conn, context.tlsConfig)
+		return tls.Server(tlsconn, tlscontext.tlsConfig)
 	// http plain
 	default:
-		return conn
+		return tlsconn
 	}
 }
 
-func (cm *ContextManager) defaultContext() *Context {
-	return cm.context
+func (cm *contextManager) defaultContext() *context {
+	return cm.tlscontext
 }
 
-func (c *Context) NewTLSConfig(cm *ContextManager) error {
+func (c *context) newTLSConfig(cm *contextManager) error {
 	config := new(tls.Config)
-	config.Certificates = c.Certificates
+	config.Certificates = c.certificates
 	config.GetConfigForClient = cm.GetConfigForClient
-	config.MaxVersion = c.MaxVersion
-	config.MinVersion = c.MinVersion
-	config.CipherSuites = c.CipherSuites
-	config.CurvePreferences = c.EcdhCurves
-	config.NextProtos = c.ALPN
+	config.MaxVersion = c.maxVersion
+	config.MinVersion = c.minVersion
+	config.CipherSuites = c.cipherSuites
+	config.CurvePreferences = c.ecdhCurves
+	config.NextProtos = c.alpn
 	config.InsecureSkipVerify = true
 
-	if c.VerifyClient {
-		config.ClientCAs = c.CACert
+	if c.verifyClient {
+		config.ClientCAs = c.caCert
 		config.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
-	if c.VerifyServer {
-		config.RootCAs = c.CACert
+	if c.verifyServer {
+		config.RootCAs = c.caCert
 		config.InsecureSkipVerify = false
 	}
 
 	if cm.isClient {
-		config.ServerName = c.ServerName
+		config.ServerName = c.serverName
 	}
 
 	c.tlsConfig = config
@@ -381,26 +392,26 @@ func (c *Context) NewTLSConfig(cm *ContextManager) error {
 	return nil
 }
 
-func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
+func newTLSContext(c *v2.TLSConfig, cm *contextManager) (*context, error) {
 	if c.Status == false {
 		return nil, nil
 	}
 
-	context := new(Context)
+	tlscontext := new(context)
 
 	if c.CipherSuites != "" {
 		ciphers := strings.Split(c.CipherSuites, ":")
 		for _, s := range ciphers {
 			cipher, ok := TLSCiphersMap[s]
 			if !ok {
-				log.StartLogger.Fatalln("error cipher name or cipher not supported: ", s)
+				return nil, errors.New("error cipher name or cipher not supported")
 			}
 
-			context.CipherSuites = append(context.CipherSuites, cipher)
+			tlscontext.cipherSuites = append(tlscontext.cipherSuites, cipher)
 		}
 
-		if len(context.CipherSuites) == 0 {
-			context.CipherSuites = TLSdefaultCiphers
+		if len(tlscontext.cipherSuites) == 0 {
+			tlscontext.cipherSuites = TLSdefaultCiphers
 		}
 	}
 
@@ -409,47 +420,47 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 		for _, s := range curves {
 			curve, ok := TLSCurves[strings.ToLower(s)]
 			if !ok {
-				log.StartLogger.Fatalln("error curve name or curve not supported: ", s)
+				return nil, errors.New("error curve name or curve not supported")
 			}
 
-			context.EcdhCurves = append(context.EcdhCurves, curve)
+			tlscontext.ecdhCurves = append(tlscontext.ecdhCurves, curve)
 		}
 
-		if len(context.EcdhCurves) == 0 {
-			context.EcdhCurves = TLSdefaultCurves
+		if len(tlscontext.ecdhCurves) == 0 {
+			tlscontext.ecdhCurves = TLSdefaultCurves
 		}
 	}
 
 	if c.MaxVersion != "" {
 		protocol, ok := TLSProtocols[strings.ToLower(c.MaxVersion)]
 		if !ok {
-			log.StartLogger.Fatalln("error protocols name or protocol not supported: ", c.MaxVersion)
+			return nil, errors.New("error tls protocols name or protocol not supported")
 		}
 
 		if protocol == 0 {
-			context.MaxVersion = TLSdefaultMaxProtocols
+			tlscontext.maxVersion = TLSdefaultMaxProtocols
 
 		} else {
-			context.MaxVersion = protocol
+			tlscontext.maxVersion = protocol
 		}
 	} else {
-		context.MaxVersion = TLSdefaultMaxProtocols
+		tlscontext.maxVersion = TLSdefaultMaxProtocols
 	}
 
 	if c.MinVersion != "" {
 		protocol, ok := TLSProtocols[strings.ToLower(c.MinVersion)]
 		if !ok {
-			log.StartLogger.Fatalln("error protocols name or protocol not supported: ", c.MinVersion)
+			return nil, errors.New("error tls protocols name or protocol not supported")
 		}
 
 		if protocol == 0 {
-			context.MinVersion = TLSdefaultMinProtocols
+			tlscontext.minVersion = TLSdefaultMinProtocols
 
 		} else {
-			context.MinVersion = protocol
+			tlscontext.minVersion = protocol
 		}
 	} else {
-		context.MinVersion = TLSdefaultMinProtocols
+		tlscontext.minVersion = TLSdefaultMinProtocols
 	}
 
 	if c.ALPN != "" {
@@ -457,9 +468,9 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 		for _, p := range protocols {
 			_, ok := TLSALPN[strings.ToLower(p)]
 			if !ok {
-				log.StartLogger.Fatalln("error ALPN or ALPN not supported: ", p)
+				return nil, errors.New("error ALPN or ALPN not supported")
 			}
-			context.ALPN = append(context.ALPN, p)
+			tlscontext.alpn = append(tlscontext.alpn, p)
 		}
 	}
 
@@ -471,20 +482,21 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 			strings.Contains(c.PrivateKey, "-----BEGIN") {
 			cert, err = tls.X509KeyPair([]byte(c.CertChain), []byte(c.PrivateKey))
 			if err != nil {
-				log.StartLogger.Fatalln("load [certchain] or [privatekey] error: ", err)
+				return nil, errors.New(fmt.Sprintf("load [certchain] or [privatekey] error: %v", err))
 			}
 		} else {
 			cert, err = tls.LoadX509KeyPair(c.CertChain, c.PrivateKey)
 			if err != nil {
-				log.StartLogger.Fatalln("load [certchain] or [privatekey] error: ", err)
+				return nil, errors.New(fmt.Sprintf("load [certchain] or [privatekey] error: %v", err))
+
 			}
 		}
 
-		context.Certificates = append(context.Certificates, cert)
+		tlscontext.certificates = append(tlscontext.certificates, cert)
 	}
 
-	if !cm.isClient && len(context.Certificates) == 0 {
-		log.StartLogger.Fatalln("[certchain] and [privatekey] are required in TLS config")
+	if !cm.isClient && len(tlscontext.certificates) == 0 {
+		return nil, errors.New("[certchain] and [privatekey] are required in TLS config")
 	}
 
 	if c.CACert != "" {
@@ -496,45 +508,45 @@ func NewTLSContext(c *v2.TLSConfig, cm *ContextManager) (*Context, error) {
 		} else {
 			ca, err = ioutil.ReadFile(c.CACert)
 			if err != nil {
-				log.StartLogger.Fatalln("load [cacert] error: ", err)
+				return nil, errors.New(fmt.Sprintf("load [cacert] error: %v", err))
 			}
 		}
 
 		pool := x509.NewCertPool()
 		if ok := pool.AppendCertsFromPEM(ca); !ok {
-			log.StartLogger.Fatalln("parse [cacert] error")
+			return nil, errors.New("parse [cacert] error")
 		}
 
-		context.CACert = pool
+		tlscontext.caCert = pool
 	}
 
-	context.VerifyClient = c.VerifyClient
-	context.VerifyServer = c.VerifyServer
+	tlscontext.verifyClient = c.VerifyClient
+	tlscontext.verifyServer = c.VerifyServer
 
-	context.ServerName = c.ServerName
+	tlscontext.serverName = c.ServerName
 
 	if c.Inspector {
 		cm.inspector = true
 	}
 
-	if err := context.NewTLSConfig(cm); err != nil {
+	if err := tlscontext.newTLSConfig(cm); err != nil {
 		return nil, err
 	}
 
-	return context, nil
+	return tlscontext, nil
 }
 
-type Conn struct {
+type conn struct {
 	net.Conn
 	peek    [1]byte
 	haspeek bool
 }
 
-func (c *Conn) Peek() []byte {
+func (c *conn) Peek() []byte {
 	b := make([]byte, 1, 1)
 	n, err := c.Conn.Read(b)
 	if n == 0 {
-		log.StartLogger.Infof("TLS Peek() error: ", err)
+		log.DefaultLogger.Infof("TLS Peek() error: %v", err)
 		return nil
 	}
 
@@ -543,7 +555,7 @@ func (c *Conn) Peek() []byte {
 	return b
 }
 
-func (c *Conn) Read(b []byte) (int, error) {
+func (c *conn) Read(b []byte) (int, error) {
 	peek := 0
 	if c.haspeek {
 		c.haspeek = false

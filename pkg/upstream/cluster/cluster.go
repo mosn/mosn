@@ -67,6 +67,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 	cluster.prioritySet.AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 		// TODO: update cluster stats
 	})
+
 	cluster.info.tlsMng = tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 
 	return cluster
