@@ -54,6 +54,7 @@ var (
 
 	lbTypeMap = map[string]v2.LbType{
 		"LB_RANDOM": v2.LB_RANDOM,
+		"LB_ROUNDROBIN":v2.LB_ROUNDROBIN,
 	}
 )
 
