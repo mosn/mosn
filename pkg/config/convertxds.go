@@ -20,6 +20,7 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/fatih/structs"
 	"time"
+	"strings"
 )
 
 var supportFilter map[string]bool = map[string]bool{
@@ -72,6 +73,7 @@ func convertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
 			Hosts:                convertClusterHosts(xdsCluster.GetHosts()),
 			Spec:                 convertSpec(xdsCluster),
+			TLS:                  convertTLS(xdsCluster.GetTlsContext()),
 		}
 
 		clusters = append(clusters, cluster)
@@ -193,7 +195,7 @@ func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) []v2.FilterC
 	for _, xdsFilterChain := range xdsFilterChains {
 		filterChain := v2.FilterChain{
 			FilterChainMatch:  xdsFilterChain.GetFilterChainMatch().String(),
-			TLS:        convertTLS(xdsFilterChain.GetTlsContext()),
+			TLS:               convertTLS(xdsFilterChain.GetTlsContext()),
 			Filters:           convertFilters(xdsFilterChain.GetFilters()),
 		}
 		filterChains = append(filterChains, filterChain)
@@ -612,7 +614,46 @@ func convertDuration(p *types.Duration) time.Duration {
 	return d
 }
 
-// TODO
-func convertTLS(xdsTlsContext *xdsauth.DownstreamTlsContext) v2.TLSConfig {
-	return v2.TLSConfig{}
+func convertTLS(xdsTlsContext interface{}) v2.TLSConfig {
+	var config v2.TLSConfig
+	var isDownstream bool
+	var common *xdsauth.CommonTlsContext
+
+	if xdsTlsContext == nil {
+		return config
+	}
+	if context, ok := xdsTlsContext.(*xdsauth.DownstreamTlsContext); ok {
+		config.VerifyClient = context.RequireClientCertificate.GetValue()
+		common = context.GetCommonTlsContext()
+		isDownstream = true
+	} else if context, ok := xdsTlsContext.(*xdsauth.UpstreamTlsContext); ok {
+		config.ServerName = context.GetSni()
+		common = context.GetCommonTlsContext()
+		isDownstream = false
+	}
+	if common == nil {
+		return config
+	}
+	// Currently only a single certificate is supported
+	for _, cert := range common.GetTlsCertificates() {
+		config.CertChain = cert.GetCertificateChain().String()
+		config.PrivateKey = cert.GetPrivateKey().String()
+	}
+	config.CACert = common.GetValidationContext().GetTrustedCa().String()
+	config.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
+	param := common.GetTlsParams()
+	config.CipherSuites = strings.Join(param.GetCipherSuites(), ":")
+	config.EcdhCurves = strings.Join(param.GetEcdhCurves(), ",")
+	config.MinVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMinimumProtocolVersion())]
+	config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
+
+	if isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
+		log.DefaultLogger.Fatalf("tls_certificates are required in downstream tls_context")
+		config.Status = false
+		return config
+	}
+
+	config.Status = true
+	config.Inspector = true
+	return config
 }
