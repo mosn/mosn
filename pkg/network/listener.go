@@ -44,8 +44,7 @@ func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 		l.rawl = lc.InheritListener
 	}
 
-    l.tlsMng = tls.NewTLSServerContextManager(lc.FilterChains, l)
-
+    l.tlsMng = tls.NewTLSServerContextManager(lc.FilterChains, l, logger)
 
 	return l
 }
@@ -147,7 +146,7 @@ func (l *listener) accept(lctx context.Context) error {
 			}
 		}()
 
-		if l.tlsMng.Enabled() {
+		if l.tlsMng != nil && l.tlsMng.Enabled() {
 			rawc = l.tlsMng.Conn(rawc)
 		}
 
