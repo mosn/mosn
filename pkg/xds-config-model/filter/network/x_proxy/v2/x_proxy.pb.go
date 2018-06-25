@@ -22,7 +22,7 @@ import envoy_api_v21 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 import envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 import envoy_type1 "github.com/envoyproxy/go-control-plane/envoy/type"
 import _ "github.com/golang/protobuf/ptypes/duration"
-import google_protobuf "github.com/golang/protobuf/ptypes/struct"
+import google_protobuf "github.com/gogo/protobuf/types"
 import _ "github.com/lyft/protoc-gen-validate/validate"
 import _ "github.com/gogo/protobuf/gogoproto"
 
