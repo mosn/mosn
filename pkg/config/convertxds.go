@@ -626,8 +626,8 @@ func convertTLS(xdsTlsContext interface{}) v2.TLSConfig {
 		return config
 	}
 	if context, ok := xdsTlsContext.(*xdsauth.DownstreamTlsContext); ok {
-		if context.RequireClientCertificate != nil {
-			config.VerifyClient = context.RequireClientCertificate.GetValue()
+		if context.GetRequireClientCertificate() != nil {
+			config.VerifyClient = context.GetRequireClientCertificate().GetValue()
 		}
 		common = context.GetCommonTlsContext()
 		isDownstream = true
