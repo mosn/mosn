@@ -59,7 +59,7 @@ func main() {
 		}
 
 		http2.ConfigureServer(server, s2)
-		l, _ := net.Listen("tcp", RealServerAddr)
+		l, _ := net.Listen("tcp",  "127.0.0.1:8089")
 		defer l.Close()
 
 		for {
