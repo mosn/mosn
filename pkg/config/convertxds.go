@@ -626,7 +626,9 @@ func convertTLS(xdsTlsContext interface{}) v2.TLSConfig {
 		return config
 	}
 	if context, ok := xdsTlsContext.(*xdsauth.DownstreamTlsContext); ok {
-		config.VerifyClient = context.RequireClientCertificate.GetValue()
+		if context.RequireClientCertificate != nil {
+			config.VerifyClient = context.RequireClientCertificate.GetValue()
+		}
 		common = context.GetCommonTlsContext()
 		isDownstream = true
 	} else if context, ok := xdsTlsContext.(*xdsauth.UpstreamTlsContext); ok {
@@ -638,17 +640,32 @@ func convertTLS(xdsTlsContext interface{}) v2.TLSConfig {
 		return config
 	}
 	// Currently only a single certificate is supported
-	for _, cert := range common.GetTlsCertificates() {
-		config.CertChain = cert.GetCertificateChain().String()
-		config.PrivateKey = cert.GetPrivateKey().String()
+	if common.GetTlsCertificates() != nil {
+		for _, cert := range common.GetTlsCertificates() {
+			if cert.GetCertificateChain() != nil && cert.GetPrivateKey() != nil {
+				config.CertChain = cert.GetCertificateChain().String()
+				config.PrivateKey = cert.GetPrivateKey().String()
+			}
+		}
 	}
-	config.CACert = common.GetValidationContext().GetTrustedCa().String()
-	config.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
+
+	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
+		config.CACert = common.GetValidationContext().GetTrustedCa().String()
+	}
+	if common.GetAlpnProtocols() != nil {
+		config.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
+	}
 	param := common.GetTlsParams()
-	config.CipherSuites = strings.Join(param.GetCipherSuites(), ":")
-	config.EcdhCurves = strings.Join(param.GetEcdhCurves(), ",")
-	config.MinVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMinimumProtocolVersion())]
-	config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
+	if param != nil {
+		if param.GetCipherSuites() != nil {
+			config.CipherSuites = strings.Join(param.GetCipherSuites(), ":")
+		}
+		if param.GetEcdhCurves() != nil {
+			config.EcdhCurves = strings.Join(param.GetEcdhCurves(), ",")
+		}
+		config.MinVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMinimumProtocolVersion())]
+		config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
+	}
 
 	if isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
 		log.DefaultLogger.Fatalf("tls_certificates are required in downstream tls_context")
