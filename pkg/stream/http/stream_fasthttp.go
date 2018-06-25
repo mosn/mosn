@@ -188,8 +188,8 @@ func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 	s := &serverStream{
 		stream: stream{
 			context: context.WithValue(ssc.context, types.ContextKeyStreamId, streamId),
-			ctx:     ctx,
 		},
+		ctx:              ctx,
 		connection:       ssc,
 		responseDoneChan: make(chan bool, 1),
 	}
@@ -215,11 +215,6 @@ type stream struct {
 	context context.Context
 
 	readDisableCount int32
-
-	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
-	ctx      *fasthttp.RequestCtx
-	request  *fasthttp.Request
-	response *fasthttp.Response
 
 	decoder   types.StreamDecoder
 	streamCbs []types.StreamEventListener
@@ -253,6 +248,11 @@ func (s *stream) ResetStream(reason types.StreamResetReason) {
 
 type clientStream struct {
 	stream
+
+	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
+	request  *fasthttp.Request
+	response *fasthttp.Response
+
 	element *list.Element
 	wrapper *clientStreamWrapper
 }
@@ -367,6 +367,10 @@ func (s *clientStream) GetStream() types.Stream {
 
 type serverStream struct {
 	stream
+
+	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
+	ctx *fasthttp.RequestCtx
+
 	connection       *serverStreamConnection
 	responseDoneChan chan bool
 }
@@ -375,18 +379,13 @@ type serverStream struct {
 func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
 	headers, _ := headers_.(map[string]string)
 
-	if s.response == nil {
-		s.response = fasthttp.AcquireResponse()
-		s.response.SetStatusCode(fasthttp.StatusOK)
-	}
-
-	encodeRespHeader(s.response, headers)
-
-	if status := s.response.Header.Peek(types.HeaderStatus); status != nil {
+	if status, ok := headers[types.HeaderStatus]; ok {
 		statusCode, _ := strconv.Atoi(string(status))
-		s.response.SetStatusCode(statusCode)
-		s.response.Header.Del(types.HeaderStatus)
+		s.ctx.SetStatusCode(statusCode)
+		delete(headers, types.HeaderStatus)
 	}
+
+	encodeRespHeader(&s.ctx.Response, headers)
 
 	if endStream {
 		s.endStream()
@@ -437,9 +436,13 @@ func (s *serverStream) doSend() {
 func (s *serverStream) handleRequest() {
 	if s.ctx != nil {
 		s.decoder.OnDecodeHeaders(decodeReqHeader(s.ctx.Request.Header), false)
-		buf := buffer.NewIoBufferBytes(s.ctx.Request.Body())
-		s.decoder.OnDecodeData(buf, true)
-		//no Trailer in Http/1.x
+
+		//remove detect
+		if s.connection.activeStream != nil {
+			buf := buffer.NewIoBufferBytes(s.ctx.Request.Body())
+			s.decoder.OnDecodeData(buf, true)
+			//no Trailer in Http/1.x
+		}
 	}
 }
 
