@@ -455,9 +455,11 @@ func (s *serverStream) doSend() {
 
 	s.responseWriter.WriteHeader(s.response.StatusCode)
 
-	buf := &buffer.IoBuffer{}
-	buf.ReadFrom(s.response.Body)
-	buf.WriteTo(s.responseWriter)
+	if s.response.Body != nil{
+		buf := &buffer.IoBuffer{}
+		buf.ReadFrom(s.response.Body)
+		buf.WriteTo(s.responseWriter)
+	}
 }
 
 func (s *serverStream) handleRequest() {
