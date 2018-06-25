@@ -355,6 +355,7 @@ func (s *clientStream) handleResponse() {
 		s.decoder.OnDecodeData(buf, true)
 
 		s.wrapper.asMutex.Lock()
+		s.request = nil
 		s.response = nil
 		s.wrapper.activeStreams.Remove(s.element)
 		s.wrapper.asMutex.Unlock()
