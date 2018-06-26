@@ -3,16 +3,32 @@ package original_dst
 import (
     "net"
     "syscall"
+    "errors"
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "gitlab.alipay-inc.com/afe/mosn/pkg/types"
     
 )
 
-func (filter *Original_Dst)OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus{
-    ip, port, err := getOriginalAddr(cb.Conn)
+const (
+	SO_ORIGINAL_DST      = 80
+	IP6T_SO_ORIGINAL_DST = 80
+)
+
+
+type original_dst struct {
+
+}
+
+func NewOriginalDst() Original_Dst{
+    return &original_dst{}
+}
+
+
+func (filter *original_dst)OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus{
+    ip, port, err := getOriginalAddr(cb.Conn())
     if(err != nil){
         log.StartLogger.Println("get original addr failed:", err.Error())
-        return ctx
+        return types.Continue
     }
 
     ips := string(ip)
@@ -25,7 +41,7 @@ func (filter *Original_Dst)OnAccept(cb types.ListenerFilterCallbacks) types.Filt
 
 
 
-func getOriginalAddr(conn net.Conn)([]byte, uint16, error){
+func getOriginalAddr(conn net.Conn)([]byte, int, error){
         tc := conn.(*net.TCPConn)
 
         f, err := tc.File()
@@ -47,5 +63,5 @@ func getOriginalAddr(conn net.Conn)([]byte, uint16, error){
         ip := addr.Multiaddr[4:8]
  
 
-        return ip, port, nil
+        return ip,  int(port), nil
 }

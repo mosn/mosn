@@ -216,7 +216,7 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 
 	if temps := strings.Split(localAddr, ":"); len(temps) > 0 {
 		listenPort, _ = strconv.Atoi(temps[len(temps)-1])
-		listenIp = temps[0]
+		listenIP = temps[0]
 	}
 
     al.listenIP = listenIP
@@ -233,7 +233,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	// TODO: create listener filter chain
 
 	if handOffRestoredDestinationConnections {
-		arc.acceptedFilters = append(arc.acceptedFilters, &original_dst.Original_Dst{})
+		arc.acceptedFilters = append(arc.acceptedFilters, original_dst.NewOriginalDst())
 	}
 
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)

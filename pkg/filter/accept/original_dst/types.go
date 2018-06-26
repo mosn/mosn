@@ -5,6 +5,5 @@ import (
 )
 
 type Original_Dst interface {
-	types.ReadFilter
-
+	OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus
 }

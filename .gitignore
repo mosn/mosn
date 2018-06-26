@@ -22,3 +22,5 @@ mosnCPP0508
 mosnCpp
 mosnPT0423
 vendor/github.com/x/*
+vendor/golang.org/x/net/*
+vendor/github.com/urfave/*
