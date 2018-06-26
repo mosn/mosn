@@ -22,3 +22,5 @@ mosnCPP0508
 mosnCpp
 mosnPT0423
 vendor/github.com/x/*
+Gopkg.lock
+vendor/**
