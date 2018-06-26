@@ -4,6 +4,8 @@ import (
     "net"
     "syscall"
     "errors"
+    "fmt"
+    __tl "log"
     "gitlab.alipay-inc.com/afe/mosn/pkg/log"
     "gitlab.alipay-inc.com/afe/mosn/pkg/types"
     
@@ -30,8 +32,9 @@ func (filter *original_dst)OnAccept(cb types.ListenerFilterCallbacks) types.Filt
         log.StartLogger.Println("get original addr failed:", err.Error())
         return types.Continue
     }
+    ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
 
-    ips := string(ip)
+    __tl.Print("ips:", ips)
 
     cb.SetOrigingalAddr(ips, port)
 
@@ -55,13 +58,17 @@ func getOriginalAddr(conn net.Conn)([]byte, int, error){
         addr, err := syscall.GetsockoptIPv6Mreq(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST)
        
 
-        p0 := addr.Multiaddr[2]
-        p1 := addr.Multiaddr[3]
+       
 
-        var port uint16 = uint16(p0 * 16 + p1)
+        p0 := int(addr.Multiaddr[2])
+        p1 := int(addr.Multiaddr[3])
+
+        port := p0 * 256 + p1
 
         ip := addr.Multiaddr[4:8]
+
+       
  
 
-        return ip,  int(port), nil
+        return ip,  port, nil
 }

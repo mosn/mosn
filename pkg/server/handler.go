@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	__tl "log"
 )
 
 // ConnectionHandler
@@ -234,6 +235,10 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 
 	if handOffRestoredDestinationConnections {
 		arc.acceptedFilters = append(arc.acceptedFilters, original_dst.NewOriginalDst())
+		arc.handOffRestoredDestinationConnections = true
+		__tl.Printf("accept restored destination connection from:%s", al.listener.Addr().String())
+	}else{
+		__tl.Printf("accept connection from:%s", al.listener.Addr().String())
 	}
 
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
@@ -243,6 +248,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+
 	arc.ContinueFilterChain(true, ctx)
 }
 
@@ -306,6 +312,7 @@ type activeRawConn struct {
 	rawc               net.Conn
 	originalDstIP	    string
 	originalDstPort	    int
+	handOffRestoredDestinationConnections bool
 	rawcElement        *list.Element
 	activeListener     *activeListener
 	acceptedFilters    []types.ListenerFilter
@@ -322,6 +329,8 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 func (arc *activeRawConn)SetOrigingalAddr(ip string, port int){
 	arc.originalDstIP = ip
 	arc.originalDstPort = port
+
+	__tl.Printf("conn set origin addr:%s:%d", ip, port)
 }
 
 func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context) {
@@ -337,8 +346,9 @@ func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context)
 		// TODO: handle hand_off_restored_destination_connections logic
 
 		var _lst, _ls2 *activeListener
-		
+
 		for _, lst := range arc.activeListener.handler.listeners{
+			
 			if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
 				_lst = lst
 				break
@@ -350,13 +360,18 @@ func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context)
 		}
 
 		if _lst != nil{
+			 __tl.Printf("original dst:%s:%d", _lst.listenIP, _lst.listenPort)
 			_lst.OnAccept(arc.rawc, false)
 		}else if _ls2 != nil{
+			 __tl.Printf("original dst:%s:%d", _ls2.listenIP, _ls2.listenPort)
 			_ls2.OnAccept(arc.rawc, false)
 		}
 
 
-		arc.activeListener.newConnection(arc.rawc, ctx)
+		if !arc.handOffRestoredDestinationConnections{
+			arc.activeListener.newConnection(arc.rawc, ctx)
+		}
+		
 	}
 }
 

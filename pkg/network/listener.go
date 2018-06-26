@@ -55,7 +55,7 @@ func (l *listener) Addr() net.Addr {
 
 func (l *listener) Start(lctx context.Context) {
 	//call listen if not inherit
-	if l.rawl == nil {
+	if l.rawl == nil && l.bindToPort {
 		if err := l.listen(lctx); err != nil {
 			// TODO: notify listener callbacks
 			log.StartLogger.Fatalln(l.name, " listen failed, ", err)

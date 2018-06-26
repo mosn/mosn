@@ -50,7 +50,7 @@
     }
   ],
   "cluster_manager": {
-    "auto_discovery": true,
+    "auto_discovery": false,
     "clusters": [
       {
         "Name": "local_service",
@@ -114,12 +114,5 @@
         }
       }
     ]
-  },
-  "service_registry": {
-    "application": {
-      "ant_share_cloud": false,
-      "data_center": "dc",
-      "app_name": "testapp"
-    }
   }
 }
