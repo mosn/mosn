@@ -394,6 +394,8 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 		connPool = s.proxy.clusterManager.SofaRpcConnPoolForCluster(clusterName, nil)
 	case protocol.Http2:
 		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, nil)
+	case protocol.Xprotocol:
+		connPool = s.proxy.clusterManager.XprotocolConnPoolForCluster(clusterName, protocol.Xprotocol, nil)
 	default:
 		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, nil)
 	}
