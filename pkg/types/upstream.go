@@ -22,6 +22,8 @@ type ClusterManager interface {
 
 	HttpConnPoolForCluster(cluster string, protocol Protocol, context context.Context) ConnectionPool
 
+	XprotocolConnPoolForCluster(cluster string, protocol Protocol, context context.Context) ConnectionPool
+
 	TcpConnForCluster(cluster string, context context.Context) CreateConnectionData
 
 	SofaRpcConnPoolForCluster(cluster string, context context.Context) ConnectionPool

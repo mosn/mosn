@@ -9,9 +9,10 @@ import (
 	"github.com/orcaman/concurrent-map"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/xprotocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 )
 
 // ClusterManager
@@ -20,6 +21,7 @@ type clusterManager struct {
 	primaryClusters cmap.ConcurrentMap // string: *primaryCluster
 	sofaRpcConnPool cmap.ConcurrentMap // string: types.ConnectionPool
 	http2ConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
+	xProtocolConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
 	clusterAdapter  ClusterAdapter
 	autoDiscovery   bool
 }
@@ -37,6 +39,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 		primaryClusters: cmap.New(),
 		sofaRpcConnPool: cmap.New(),
 		http2ConnPool:   cmap.New(),
+		xProtocolConnPool: cmap.New(),
 		autoDiscovery:   autoDiscovery,
 	}
 	//init ClusterAdap when run app
@@ -190,6 +193,32 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 			// todo: move this to a centralized factory, remove dependency to http2 stream
 			connPool := http2.NewConnPool(host)
 			cm.http2ConnPool.Set(addr, connPool)
+
+			return connPool
+		}
+	} else {
+		return nil
+	}
+}
+
+func (cm *clusterManager) XprotocolConnPoolForCluster(cluster string, protocol types.Protocol,
+	context context.Context) types.ConnectionPool {
+	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
+
+	if clusterSnapshot == nil {
+		return nil
+	}
+
+	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
+
+	if host != nil {
+		addr := host.AddressString()
+
+		if connPool, ok := cm.xProtocolConnPool.Get(addr); ok {
+			return connPool.(types.ConnectionPool)
+		} else {
+			connPool := xprotocol.NewConnPool(host)
+			cm.xProtocolConnPool.Set(addr, connPool)
 
 			return connPool
 		}
