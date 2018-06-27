@@ -314,10 +314,14 @@ func (c *XdsClient)Start(config *config.MOSNConfig, serviceCluster, serviceNode 
 		}
 		c.v2 = &v2.V2Client{serviceCluster, serviceNode, &xdsConfig}
 	}
-	err := c.getConfig(config)
-	if err != nil {
-		return err
+	for true {
+		err := c.getConfig(config)
+		if err != nil {
+			continue
+		}
+		break
 	}
+
 	stopChan := make(chan int)
 	sendControlChan := make(chan int)
 	recvControlChan := make(chan int)

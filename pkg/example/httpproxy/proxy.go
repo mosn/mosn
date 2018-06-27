@@ -18,8 +18,10 @@ import (
 
 const (
 	RealServerAddr  = "127.0.0.1:8088"
+	RealServerAddr2 = "127.0.0.1:8089"
 	MeshServerAddr  = "127.0.0.1:2044"
-	TestCluster     = "tstCluster"
+	TestCluster1     = "tstCluster1"
+	TestCluster2     = "tstCluster2"
 	TestListenerRPC = "tstListener"
 )
 
@@ -35,10 +37,21 @@ func main() {
 	meshReadyChan := make(chan bool)
 
 	go func() {
-		// upstream
+		// upstream1
 		server := &http.Server{
 			Addr:         RealServerAddr,
-			Handler:      &serverHandler{},
+			Handler:      &serverHandler{"ups1"},
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+		}
+		server.ListenAndServe()
+	}()
+
+	go func() {
+		// upstream2
+		server := &http.Server{
+			Addr:         RealServerAddr2,
+			Handler:      &serverHandler{"ups2"},
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 5 * time.Second,
 		}
@@ -61,7 +74,8 @@ func main() {
 			Proxy: genericProxyConfig(),
 		}, nil)
 		cmf.cccb.UpdateClusterConfig(clustersrpc())
-		cmf.chcb.UpdateClusterHost(TestCluster, 0, rpchosts())
+		cmf.chcb.UpdateClusterHost(TestCluster1, 0, rpchosts1())
+		cmf.chcb.UpdateClusterHost(TestCluster2, 0, rpchosts2())
 
 		meshReadyChan <- true
 
@@ -81,8 +95,8 @@ func main() {
 			}
 
 			httpClient := http.Client{Transport: tr}
-			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/", MeshServerAddr), nil)
-			req.Header.Add("service", "tst")
+			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/hahaha.htm?key1=valuex&nobody=true", MeshServerAddr), nil)
+			req.Header.Add("service", "com.alipay.rpc.common.service.facade.SampleService:1.0")
 			resp, err := httpClient.Do(req)
 
 			if err != nil {
@@ -113,14 +127,15 @@ func main() {
 }
 
 type serverHandler struct {
+	tag string
 }
 
 func (sh *serverHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ShowRequestInfoHandler(w, req)
+	sh.ShowRequestInfoHandler(w, req)
 }
 
-func ShowRequestInfoHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("[UPSTREAM]receive request %s", r.URL)
+func (sh *serverHandler) ShowRequestInfoHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("[UPSTREAM %s]receive request %s", sh.tag, r.URL)
 	fmt.Println()
 
 	w.Header().Set("Content-Type", "text/plain")
@@ -145,12 +160,52 @@ func genericProxyConfig() *v2.Proxy {
 		UpstreamProtocol:   string(protocol.Http1),
 	}
 
-	proxyConfig.Routes = append(proxyConfig.Routes, &v2.BasicServiceRoute{
-		Name:    "tstSofRpcRouter",
-		Service: "tst",
-		Cluster: TestCluster,
-	})
+	header1 := v2.HeaderMatcher{
+		Name:  "service",
+		Value: "com.alipay.rpc.common.service.facade.SampleService:1.0",
+	}
 
+	header2 := v2.HeaderMatcher{
+		Name:  "service",
+		Value: "tst",
+	}
+
+	router1V2 := v2.Router{
+		Match: v2.RouterMatch{
+			Headers: []v2.HeaderMatcher{header1},
+		},
+
+		Route: v2.RouteAction{
+			ClusterName: TestCluster1,
+		},
+	}
+
+	router2V2 := v2.Router{
+		Match: v2.RouterMatch{
+			Headers: []v2.HeaderMatcher{header2},
+		},
+
+		Route: v2.RouteAction{
+			ClusterName: TestCluster2,
+		},
+	}
+
+	router3V2 := v2.Router{
+		Match: v2.RouterMatch{
+			Headers: []v2.HeaderMatcher{header1},
+			Path: "/hahaha.htm",
+		},
+
+		Route: v2.RouteAction{
+			ClusterName: TestCluster2,
+		},
+	}
+
+	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
+		Name:    "testSofaRoute",
+		Domains: []string{"*"},
+		Routers: []v2.Router{router1V2, router2V2, router3V2},
+	})
 	return proxyConfig
 }
 
@@ -168,11 +223,22 @@ func rpcProxyListener() *v2.ListenerConfig {
 	}
 }
 
-func rpchosts() []v2.Host {
+func rpchosts1() []v2.Host {
 	var hosts []v2.Host
 
 	hosts = append(hosts, v2.Host{
 		Address: RealServerAddr,
+		Weight:  100,
+	})
+
+	return hosts
+}
+
+func rpchosts2() []v2.Host {
+	var hosts []v2.Host
+
+	hosts = append(hosts, v2.Host{
+		Address: RealServerAddr2,
 		Weight:  100,
 	})
 
@@ -192,7 +258,14 @@ func (cmf *clusterManagerFilterRPC) OnCreated(cccb types.ClusterConfigFactoryCb,
 func clustersrpc() []v2.Cluster {
 	var configs []v2.Cluster
 	configs = append(configs, v2.Cluster{
-		Name:              TestCluster,
+		Name:              TestCluster1,
+		ClusterType:       v2.SIMPLE_CLUSTER,
+		LbType:            v2.LB_RANDOM,
+		MaxRequestPerConn: 1024,
+	})
+
+	configs = append(configs, v2.Cluster{
+		Name:              TestCluster2,
 		ClusterType:       v2.SIMPLE_CLUSTER,
 		LbType:            v2.LB_RANDOM,
 		MaxRequestPerConn: 1024,

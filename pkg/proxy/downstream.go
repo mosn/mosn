@@ -187,8 +187,8 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	}
 
 	//Get some route by service name
-	route, clusterKey := s.proxy.routerConfig.Route(headers)
-	// route,routeKey:= s.proxy.routerConfig.Route(headers)
+	route := s.proxy.routers.Route(headers, 1)
+	// route,routeKey:= s.proxy.routers.Route(headers)
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
@@ -205,7 +205,8 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
-	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(clusterKey))
+
+	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
 
 	if err != nil {
 		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed")
@@ -282,7 +283,7 @@ func (s *activeStream) OnDecodeTrailers(trailers map[string]string) {
 	s.doDecodeTrailers(nil, trailers)
 }
 
-func (s *activeStream) OnDecodeError(err error,headers map[string]string) {
+func (s *activeStream) OnDecodeError(err error, headers map[string]string) {
 	// todo: enrich headers' information to do some hijack
 	//Check headers' info to do hijack
 	switch err.Error() {
@@ -365,7 +366,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
-		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s",clusterName)
+		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", clusterName)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 
@@ -377,8 +378,8 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	clusterConnectionResource := clusterInfo.ResourceManager().ConnectionResource()
 
 	if !clusterConnectionResource.CanCreate() {
-		log.DefaultLogger.Errorf("cluster Connection Resource can't create, cluster name is %s",clusterName)
-		
+		log.DefaultLogger.Errorf("cluster Connection Resource can't create, cluster name is %s", clusterName)
+
 		s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
 		s.sendHijackReply(types.UpstreamOverFlowCode, s.downstreamReqHeaders)
 
@@ -494,7 +495,7 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 	if endStream {
 		s.onUpstreamResponseRecvDone()
 	}
-	
+
 	// todo: insert proxy headers
 	s.encodeHeaders(headers, endStream)
 }

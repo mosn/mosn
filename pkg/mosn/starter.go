@@ -15,8 +15,8 @@ import (
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
-
+	"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
+	
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -24,7 +24,7 @@ import (
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter"
 	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
 )
 
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
@@ -52,14 +52,10 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
-
-	//get xds config
-	xdsClient := xds.XdsClient{}
-	xdsClient.Start(c, serviceCluster, serviceNode)
-
+	
 	//get inherit fds
 	inheritListeners := getInheritListeners()
-	
+
 	for i, serverConfig := range c.Servers {
 		stopChan := stopChans[i]
 
@@ -77,12 +73,12 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		//	clusters = append(clusters, parsed)
 		//	clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
 		//}
-		
+
 		// parse cluster all in one
-		clusters,clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
+		clusters, clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
 
 		//create cluster manager
-		cm := cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
+		cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery)
 		//initialize server instance
 		srv := server.NewServer(sc, cmf, cm)
 
@@ -92,13 +88,17 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		}
 
 		for _, listenerConfig := range serverConfig.Listeners {
-			// network filters
-			nfcf := GetNetworkFilter(listenerConfig.NetworkFilters)
+			// parse ListenerConfig
+			lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
 
+			// network filters
+			nfcf := GetNetworkFilter(&lc.FilterChains[0])
+			
 			//stream filters
 			sfcf := getStreamFilters(listenerConfig.StreamFilters)
 
-			srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nfcf, sfcf)
+			config.SetGlobalStreamFilter(sfcf)
+			srv.AddListener(lc, nfcf, sfcf)
 		}
 
 		go func() {
@@ -109,7 +109,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			}
 		}()
 	}
-	
+
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 
@@ -120,26 +120,24 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			ln.InheritListener.Close()
 		}
 	}
-
-	//todo: daemon running
+	////get xds config
+	xdsClient := xds.XdsClient{}
+	xdsClient.Start(c, serviceCluster, serviceNode)
+	//
+	////todo: daemon running
 	wg.Wait()
 	xdsClient.Stop()
 }
 
 // maybe used in proxy rewrite
-func GetNetworkFilter(configs []config.FilterConfig) types.NetworkFilterChainFactory {
-	if len(configs) != 1 {
-		log.StartLogger.Fatalln("only one network filter supported, but got ", len(configs))
-	}
-
-	c := &configs[0]
-
-	if c.Type != "proxy" {
-		log.StartLogger.Fatalln("only proxy network filter supported, but got ", c.Type)
+func GetNetworkFilter(c *v2.FilterChain) types.NetworkFilterChainFactory {
+	
+	if len (c.Filters) != 1 || c.Filters[0].Name != v2.DEFAULT_NETWORK_FILTER {
+		log.StartLogger.Fatalln("Currently, only Proxy Network Filter Needed!")
 	}
 
 	return &proxy.GenericProxyFilterConfigFactory{
-		Proxy: config.ParseProxyFilter(c),
+		Proxy: config.ParseProxyFilterJson(&c.Filters[0]),
 	}
 }
 

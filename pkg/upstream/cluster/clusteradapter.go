@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"errors"
+	
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
@@ -12,7 +14,7 @@ type ClusterAdapter struct {
 }
 
 // called when confreg called
-func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) {
+func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) error {
 	clusterExist := ca.clusterMng.ClusterExist(clusterName)
 
 	if !clusterExist {
@@ -26,13 +28,13 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 			ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
 		} else {
 			log.DefaultLogger.Errorf("doesn't support cluster auto discovery ")
-			return
+			return errors.New("not auto discovery")
 		}
 	}
 	
 	log.DefaultLogger.Debugf("[TriggerClusterUpdate Called] cluster name is:%s hosts are:%+v",
 		clusterName, hosts)
-	ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
+	return ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
 }
 
 // called by service subscribe

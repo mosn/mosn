@@ -27,6 +27,14 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.Http2
 }
 
+func (p *connPool) Host() types.Host {
+	return p.host
+}
+
+func (p *connPool) GitInitActiveClient(context context.Context) error{
+	return nil
+}
+
 func (p *connPool) DrainConnections() {}
 
 //由 PROXY 调用

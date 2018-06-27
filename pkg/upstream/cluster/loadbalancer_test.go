@@ -51,8 +51,7 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 	for i := 0; i < len(want); i++ {
 		got := l.ChooseHost(nil)
 		if got != want[i] {
-			t.Fatal("Test Error in case %d , got %+v, but want %+v,", i, got, want)
+			t.Fatal("Test Error in case %d , got %+v, but want %+v,", i, got, want[i])
 		}
-
 	}
 }

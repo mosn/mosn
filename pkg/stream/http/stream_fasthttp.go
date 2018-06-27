@@ -436,9 +436,23 @@ func (s *serverStream) doSend() {
 
 func (s *serverStream) handleRequest() {
 	if s.ctx != nil {
-		s.decoder.OnDecodeHeaders(decodeReqHeader(s.ctx.Request.Header), false)
 
-		//remove detect
+		// header
+		header := decodeReqHeader(s.ctx.Request.Header)
+
+		//set path header if not found
+		if _, ok := header[types.HeaderPath]; !ok {
+			header[types.HeaderPath] = string(s.ctx.Path())
+		}
+
+		//set query string header if not found
+		if _, ok := header[types.HeaderQueryString]; !ok {
+			header[types.HeaderQueryString] = string(s.ctx.URI().QueryString())
+		}
+
+		s.decoder.OnDecodeHeaders(header, false)
+
+		// data remove detect
 		if s.connection.activeStream != nil {
 			buf := buffer.NewIoBufferBytes(s.ctx.Request.Body())
 			s.decoder.OnDecodeData(buf, true)

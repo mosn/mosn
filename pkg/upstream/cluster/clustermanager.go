@@ -12,7 +12,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	protocol2 "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	proto "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http"
 )
 
@@ -41,7 +41,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 		sofaRpcConnPool: cmap.New(),
 		http2ConnPool:   cmap.New(),
 		http1ConnPool:   cmap.New(),
-		autoDiscovery:   autoDiscovery,
+		autoDiscovery:   true,  //todo delete
 	}
 	//init ClusterAdap when run app
 	ClusterAdap = ClusterAdapter{
@@ -163,7 +163,6 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			for _, hc := range hostConfigs {
 				hosts = append(hosts, NewHost(hc, pcc.Info()))
 			}
-
 			concretedCluster.UpdateHosts(hosts)
 			return nil
 		} else {
@@ -188,7 +187,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 		addr := host.AddressString()
 
 		switch protocol {
-		case protocol2.Http2:
+		case proto.Http2:
 			if connPool, ok := cm.http2ConnPool.Get(addr); ok {
 				return connPool.(types.ConnectionPool)
 			} else {
@@ -198,7 +197,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 
 				return connPool
 			}
-		case protocol2.Http1:
+		case proto.Http1:
 			if connPool, ok := cm.http1ConnPool.Get(addr); ok {
 				return connPool.(types.ConnectionPool)
 			} else {

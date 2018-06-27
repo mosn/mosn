@@ -10,7 +10,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"fmt"
 )
 
 var (
@@ -35,7 +34,7 @@ type proxy struct {
 	downstreamCallbacks DownstreamCallbacks
 
 	clusterName    string
-	routerConfig   types.Routers
+	routers        types.Routers
 	serverCodec    types.ServerStreamConnection
 	resueCodecMaps bool
 	codecPool      types.HeadersBufferPool
@@ -72,11 +71,7 @@ func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
-	var err error
-	proxy.routerConfig, err = router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
-	if (err != nil) {
-		fmt.Println("create route config for proxy error:", err)
-	}
+	proxy.routers, _ = router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
 	proxy.downstreamCallbacks = &downstreamCallbacks{
 		proxy: proxy,
 	}

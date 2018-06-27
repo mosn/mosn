@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/tls"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"net"
 	"sync"
@@ -44,7 +45,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 			sourceAddr:           sourceAddr,
 			addedViaApi:          addedViaApi,
 			maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
-			connBufferLimitBytes: clusterConfig.CirBreThresholds.ConnBufferLimitBytes,
+			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig),
 		},
 		initHelper: initHelper,
@@ -66,6 +67,8 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 	cluster.prioritySet.AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 		// TODO: update cluster stats
 	})
+
+	cluster.info.tlsMng = tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 
 	return cluster
 }
@@ -148,10 +151,10 @@ type clusterInfo struct {
 	addedViaApi          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
+	tlsMng                types.TLSContextManager
 }
 
-
-func NewClusterInfo()*clusterInfo{
+func NewClusterInfo() *clusterInfo {
 	return &clusterInfo{}
 }
 
@@ -205,6 +208,10 @@ func (ci *clusterInfo) Stats() types.ClusterStats {
 
 func (ci *clusterInfo) ResourceManager() types.ResourceManager {
 	return ci.resourceManager
+}
+
+func (ci *clusterInfo) TLSMng() types.TLSContextManager {
+	return ci.tlsMng
 }
 
 type prioritySet struct {
