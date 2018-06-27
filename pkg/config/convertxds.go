@@ -49,6 +49,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 		PerConnBufferLimitBytes:                 xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 		HandOffRestoredDestinationConnections:   xdsListener.GetUseOriginalDst().GetValue(),
 		AccessLogs:                              convertAccessLogs(xdsListener),
+		LogPath:                                 "stdout",
 	}
 	
 	if listenerConfig.HandOffRestoredDestinationConnections {
@@ -261,6 +262,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		return structs.Map(proxyConfig)
 	}else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
+		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
 			DownstreamProtocol: filterConfig.GetDownstreamProtocol().String(),
 			UpstreamProtocol:   filterConfig.GetUpstreamProtocol().String(),
