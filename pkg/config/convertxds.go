@@ -49,6 +49,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 		PerConnBufferLimitBytes:                 xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 		HandOffRestoredDestinationConnections:   xdsListener.GetUseOriginalDst().GetValue(),
 		AccessLogs:                              convertAccessLogs(xdsListener),
+		LogPath:                                 "stdout",
 	}
 	
 	if listenerConfig.HandOffRestoredDestinationConnections {
