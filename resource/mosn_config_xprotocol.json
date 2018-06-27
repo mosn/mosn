@@ -32,6 +32,7 @@
                       {
                         "Name": "xprotocol",
                         "RequireTls": "no",
+                        "Domains":["*"],
                         "Routers": [
                           {
                             "Match": {
@@ -88,22 +89,6 @@
         "sub_type": "",
         "lb_type": "LB_RANDOM",
         "MaxRequestPerConn": 0,
-        "circuit_breakers": {
-          "MaxConnections": 0,
-          "MaxPendingRequests": 0,
-          "MaxRequests": 0,
-          "MaxRetries": 0,
-          "ConnBufferLimitBytes": 0
-        },
-        "health_check": {
-          "Timeout": 0,
-          "HealthyThreshold": 0,
-          "UnhealthyThreshold": 0,
-          "Interval": 0,
-          "IntervalJitter": 0,
-          "CheckPath": "",
-          "ServiceName": ""
-        },
         "spec": {},
         "hosts": [
           {

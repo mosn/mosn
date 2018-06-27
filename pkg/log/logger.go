@@ -191,6 +191,12 @@ func (l *logger) Errorf(format string, args ...interface{}) {
 	}
 }
 
+func (l *logger) Tracef(format string, args ...interface{}) {
+	if l.Level >= TRACE {
+		l.Printf(TracePre+format, args...)
+	}
+}
+
 func (l *logger) Fatalf(format string, args ...interface{}) {
 	if l.Level >= FATAL {
 		l.Printf(FatalPre+format, args...)

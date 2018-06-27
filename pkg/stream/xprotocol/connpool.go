@@ -7,6 +7,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // types.ConnectionPool
@@ -32,6 +33,7 @@ func (p *connPool) DrainConnections() {}
 //由 PROXY 调用
 func (p *connPool) NewStream(context context.Context, streamId string, responseDecoder types.StreamDecoder,
 	cb types.PoolEventListener) types.Cancellable {
+	log.StartLogger.Debugf("xprotocol conn pool new stream")
 	p.mux.Lock()
 
 	if p.primaryClient == nil {
@@ -50,7 +52,9 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
+		log.StartLogger.Debugf("xprotocol conn pool codec client new stream")
 		streamEncoder := p.primaryClient.codecClient.NewStream(streamId, responseDecoder)
+		log.StartLogger.Debugf("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
 		cb.OnPoolReady(streamId, streamEncoder, p.host)
 	}
 
@@ -161,7 +165,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	}
 
 	data := pool.host.CreateConnection(context)
-	data.Connection.Connect(false)
+	data.Connection.Connect(true)
 
 	codecClient := pool.createCodecClient(context, data)
 	codecClient.AddConnectionCallbacks(ac)

@@ -208,6 +208,7 @@ func (prri *PathRouteRuleImpl) MatchType() types.PathMatchType {
 // Exact Path Comparing
 func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	// match base rule first
+	log.StartLogger.Debugf("path route rule match invoked")
 	if prri.matchRoute(headers, randomValue) {
 
 		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
@@ -218,7 +219,7 @@ func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint
 					return prri
 				}
 			} else if strings.EqualFold(headerPathValue, prri.path) {
-
+				log.StartLogger.Debugf("path route rule match success")
 				return prri
 			}
 		}

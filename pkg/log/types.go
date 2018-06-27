@@ -8,6 +8,7 @@ const (
 	WARN
 	INFO
 	DEBUG
+	TRACE
 )
 
 const (
@@ -16,6 +17,7 @@ const (
 	WarnPre  string = "[WARN]"
 	ErrorPre string = "[ERROR]"
 	FatalPre string = "[Fatal]"
+	TracePre string = "[TRACE]"
 )
 
 type Logger interface {
@@ -30,6 +32,8 @@ type Logger interface {
 	Warnf(format string, args ...interface{})
 
 	Errorf(format string, args ...interface{})
+
+	Tracef(format string, args ...interface{})
 
 	Fatalf(format string, args ...interface{})
 

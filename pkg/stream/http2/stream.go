@@ -163,6 +163,7 @@ func (ssc *serverStreamConnection) OnGoAway() {
 
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
+	log.StartLogger.Debugf("http2 stream serve http request")
 	//generate stream id using timestamp
 	streamId := "streamID-" + time.Now().String()
 
@@ -175,7 +176,6 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseWriter:   responseWriter,
 		responseDoneChan: make(chan bool, 1),
 	}
-
 	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamId, stream)
 	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
@@ -236,6 +236,7 @@ type clientStream struct {
 
 // types.StreamEncoder
 func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
+	log.StartLogger.Debugf("http2 client stream encode headers")
 	headers, _ := headers_.(map[string]string)
 
 	if s.request == nil {
@@ -263,6 +264,8 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 
 	s.request.Header = encodeHeader(headers)
 
+	log.StartLogger.Debugf("http2 client stream encode headers,headers = %v",s.request.Header)
+
 	if endStream {
 		s.endStream()
 	}
@@ -271,6 +274,7 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 }
 
 func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
+	log.StartLogger.Debugf("http2 client stream encode data")
 	if s.request == nil {
 		s.request = new(http.Request)
 	}
@@ -278,6 +282,8 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 	s.request.Body = &IoBufferReadCloser{
 		buf: data,
 	}
+
+	log.StartLogger.Debugf("http2 client stream encode data,data = %v",data.String())
 
 	if endStream {
 		s.endStream()
@@ -287,6 +293,7 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 }
 
 func (s *clientStream) EncodeTrailers(trailers map[string]string) error {
+	log.StartLogger.Debugf("http2 client stream encode trailers")
 	s.request.Trailer = encodeHeader(trailers)
 	s.endStream()
 
@@ -312,9 +319,11 @@ func (s *clientStream) ReadDisable(disable bool) {
 }
 
 func (s *clientStream) doSend() {
+	log.StartLogger.Debugf("http2 client stream do send,request = %v",s.request)
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
 
 	if err != nil {
+		log.StartLogger.Debugf("http2 client stream send error %v",err)
 		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
 		switch err.(type) {
 		case http2.StreamError:
@@ -354,7 +363,9 @@ func (s *clientStream) doSend() {
 }
 
 func (s *clientStream) handleResponse() {
+	log.StartLogger.Debugf("client stream handle response")
 	if s.response != nil {
+		log.StartLogger.Debugf("client stream handle response success")
 		s.decoder.OnDecodeHeaders(decodeHeader(s.response.Header), false)
 		buf := &buffer.IoBuffer{}
 		buf.ReadFrom(s.response.Body)
@@ -462,11 +473,11 @@ func (s *serverStream) doSend() {
 
 func (s *serverStream) handleRequest() {
 	if s.request != nil {
-		s.decoder.OnDecodeHeaders(decodeHeader(s.request.Header), false)
+		s.decoder.OnDecodeHeaders(decodeHeaderWithOutPath(s.request.Header), false)
 		buf := &buffer.IoBuffer{}
 		buf.ReadFrom(s.request.Body)
 		s.decoder.OnDecodeData(buf, false)
-		s.decoder.OnDecodeTrailers(decodeHeader(s.request.Trailer))
+		s.decoder.OnDecodeTrailers(decodeHeaderWithOutPath(s.request.Trailer))
 	}
 }
 
@@ -488,8 +499,21 @@ func decodeHeader(in map[string][]string) (out map[string]string) {
 	out = make(map[string]string, len(in))
 
 	for k, v := range in {
-		// convert to lower case for internal process
+		//// convert to lower case for internal process
 		out[strings.ToLower(k)] = strings.Join(v, ",")
+	}
+
+	return
+}
+
+func decodeHeaderWithOutPath(in map[string][]string) (out map[string]string) {
+	out = make(map[string]string, len(in))
+	for k, v := range in {
+		//// convert to lower case for internal process
+		out[strings.ToLower(k)] = strings.Join(v, ",")
+		if strings.ToLower(k) == "path" {
+			out["Path"] = strings.Join(v, ",")
+		}
 	}
 
 	return

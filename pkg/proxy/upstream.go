@@ -4,6 +4,7 @@ import (
 	"container/list"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // types.StreamEventListener
@@ -70,6 +71,7 @@ func (r *upstreamRequest) OnDecodeError(err error,headers map[string]string){
 // ~~~ encode request wrapper
 
 func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
+	log.StartLogger.Debugf("upstream request encode headers")
 	r.encodeComplete = endStream
 	streamID := ""
 
@@ -77,16 +79,19 @@ func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream boo
 		streamID = streamid
 	}
 
+	log.StartLogger.Debugf("upstream request before conn pool new stream")
 	r.connPool.NewStream(r.proxy.context, streamID, r, r)
 }
 
 func (r *upstreamRequest) encodeData(data types.IoBuffer, endStream bool) {
+	log.DefaultLogger.Debugf("upstream request encode data")
 	r.encodeComplete = endStream
 	r.dataEncoded = true
 	r.requestEncoder.EncodeData(data, endStream)
 }
 
 func (r *upstreamRequest) encodeTrailers(trailers map[string]string) {
+	log.DefaultLogger.Debugf("upstream request encode trailers")
 	r.encodeComplete = true
 	r.trailerEncoded = true
 	r.requestEncoder.EncodeTrailers(trailers)

@@ -187,17 +187,20 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	}
 
 	//Get some route by service name
+	log.StartLogger.Debugf("before active stream route")
 	route := s.proxy.routers.Route(headers, 1)
 	// route,routeKey:= s.proxy.routers.Route(headers)
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
+		log.StartLogger.Warnf("no route to init upstream,headers = %v",headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 
 		return
 	}
+	log.StartLogger.Debugf("get route : %v,clusterName=%v",route,route.RouteRule().ClusterName())
 
 	s.route = route
 	s.requestInfo.SetRouteEntry(route.RouteRule())
@@ -206,6 +209,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
+	log.StartLogger.Debugf("before initializeUpstreamConnectionPool")
 	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
 
 	if err != nil {
@@ -213,6 +217,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		return
 	}
 
+	log.StartLogger.Debugf("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
@@ -238,6 +243,7 @@ func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data types.IoBuffer, endStream bool) {
+	log.StartLogger.Debugf("active stream do decode data")
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
 		return
