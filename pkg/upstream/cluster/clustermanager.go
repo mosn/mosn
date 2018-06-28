@@ -190,7 +190,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 		return nil
 	}
 
-	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
+	host := clusterSnapshot.loadbalancer.ChooseHost(lbCtx)
 
 	if host != nil {
 		addr := host.AddressString()

@@ -7,10 +7,10 @@ import (
 
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	httpmosn "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/http"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
@@ -195,13 +195,15 @@ func (srri *SofaRouteRuleImpl) MatchType() types.PathMatchType {
 func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	if value, ok := headers[types.SofaRouteMatchKey]; ok {
 		if value == srri.matchValue || srri.matchValue == ".*" {
+			log.DefaultLogger.Debugf("Sofa Router Matched")
 			return srri
+		} else {
+			log.DefaultLogger.Warnf("No Sofa Router Matched, Service Value in Header = %s",value)
 		}
-
-		log.DefaultLogger.Debugf("Sofa Router Matched")
-
+	} else {
+		log.DefaultLogger.Warnf("No service key found in header, sofa router matcher error")
 	}
-
+	
 	return nil
 }
 

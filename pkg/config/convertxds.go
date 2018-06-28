@@ -11,6 +11,7 @@ import (
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	xdsxproxy "gitlab.alipay-inc.com/afe/mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/fatih/structs"
@@ -27,7 +28,7 @@ var supportFilter map[string]bool = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
 	v2.SOFARPC_INBOUND_FILTER:     true,
 	v2.SOFARPC_OUTBOUND_FILTER:    true,
-	v2.X_PROTOCOL_FILTER:          true,
+	v2.X_PROXY:          true,
 }
 
 var httpBaseConfig map[string]bool = map[string]bool{
@@ -180,8 +181,21 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 						accessLogs = append(accessLogs, accessLog)
 					}
 				}
-			} else if xdsFilter.GetName() == v2.X_PROTOCOL_FILTER {
-				//TODO
+
+			} else if xdsFilter.GetName() == v2.X_PROXY {
+				filterConfig := &xdsxproxy.XProxy{}
+				xdsutil.StructToMessage(xdsFilter.GetConfig(), filterConfig)
+				for _, accConfig := range filterConfig.GetAccessLog() {
+					if accConfig.Name == xdsutil.FileAccessLog {
+						als := &xdsaccesslog.FileAccessLog{}
+						xdsutil.StructToMessage(accConfig.GetConfig(), als)
+						accessLog := v2.AccessLog{
+							Path:   als.GetPath(),
+							Format: als.GetFormat(),
+						}
+						accessLogs = append(accessLogs, accessLog)
+					}
+				}
 			} else {
 				log.DefaultLogger.Fatalf("unsupport filter config type, filter name: %s", xdsFilter.GetName())
 			}
@@ -189,6 +203,8 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 	}
 	return accessLogs
 }
+
+
 
 func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) []v2.FilterChain {
 	if xdsFilterChains == nil {
@@ -232,7 +248,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		proxyConfig := v2.Proxy{
 			DownstreamProtocol: string(protocol.Http2),
 			UpstreamProtocol:   string(protocol.Http2),
-			VirtualHosts:       convertVirtualHosts(filterConfig),
+			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
 	} else if name == v2.SOFARPC_OUTBOUND_FILTER || name == v2.SOFARPC_INBOUND_FILTER {
@@ -241,34 +257,41 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		proxyConfig := v2.Proxy{
 			DownstreamProtocol: string(protocol.SofaRpc),
 			UpstreamProtocol:   string(protocol.SofaRpc),
-			VirtualHosts:       convertVirtualHosts(filterConfig),
+			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
-	} else if name == v2.X_PROTOCOL_FILTER {
-		//TODO
-	} else {
+	}else if name == v2.X_PROXY {
+		filterConfig := &xdsxproxy.XProxy{}
+		proxyConfig := v2.Proxy{
+			DownstreamProtocol: filterConfig.GetDownstreamProtocol().String(),
+			UpstreamProtocol:   filterConfig.GetUpstreamProtocol().String(),
+			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
+		}
+		return structs.Map(proxyConfig)
+	}else{
 		log.DefaultLogger.Fatalf("unsupport filter config, filter name: %s", name)
 	}
 	return nil
 }
 
-func convertVirtualHosts(xdsFilterConfig *xdshttp.HttpConnectionManager) []*v2.VirtualHost {
-	if xdsFilterConfig == nil {
+func convertVirtualHosts(xdsRouteConfig *xdsapi.RouteConfiguration) []*v2.VirtualHost {
+	if xdsRouteConfig == nil {
 		return nil
 	}
 	virtualHosts := make([]*v2.VirtualHost, 0)
-	if xdsRouteConfig := xdsFilterConfig.GetRouteConfig(); xdsRouteConfig != nil {
-		for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
-			virtualHost := &v2.VirtualHost{
-				Name:            xdsVirtualHost.GetName(),
-				Domains:         xdsVirtualHost.GetDomains(),
-				Routers:         convertRoutes(xdsVirtualHost.GetRoutes()),
-				RequireTls:      xdsVirtualHost.GetRequireTls().String(),
-				VirtualClusters: convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
-			}
-			virtualHosts = append(virtualHosts, virtualHost)
+
+
+	for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
+		virtualHost := &v2.VirtualHost{
+			Name:            xdsVirtualHost.GetName(),
+			Domains:         xdsVirtualHost.GetDomains(),
+			Routers:         convertRoutes(xdsVirtualHost.GetRoutes()),
+			RequireTls:      xdsVirtualHost.GetRequireTls().String(),
+			VirtualClusters: convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
 		}
+		virtualHosts = append(virtualHosts, virtualHost)
 	}
+
 	return virtualHosts
 }
 
@@ -625,7 +648,9 @@ func convertTLS(xdsTlsContext interface{}) v2.TLSConfig {
 		return config
 	}
 	if context, ok := xdsTlsContext.(*xdsauth.DownstreamTlsContext); ok {
-		config.VerifyClient = context.RequireClientCertificate.GetValue()
+		if context.GetRequireClientCertificate() != nil {
+			config.VerifyClient = context.GetRequireClientCertificate().GetValue()
+		}
 		common = context.GetCommonTlsContext()
 		isDownstream = true
 	} else if context, ok := xdsTlsContext.(*xdsauth.UpstreamTlsContext); ok {
@@ -637,17 +662,32 @@ func convertTLS(xdsTlsContext interface{}) v2.TLSConfig {
 		return config
 	}
 	// Currently only a single certificate is supported
-	for _, cert := range common.GetTlsCertificates() {
-		config.CertChain = cert.GetCertificateChain().String()
-		config.PrivateKey = cert.GetPrivateKey().String()
+	if common.GetTlsCertificates() != nil {
+		for _, cert := range common.GetTlsCertificates() {
+			if cert.GetCertificateChain() != nil && cert.GetPrivateKey() != nil {
+				config.CertChain = cert.GetCertificateChain().String()
+				config.PrivateKey = cert.GetPrivateKey().String()
+			}
+		}
 	}
-	config.CACert = common.GetValidationContext().GetTrustedCa().String()
-	config.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
+
+	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
+		config.CACert = common.GetValidationContext().GetTrustedCa().String()
+	}
+	if common.GetAlpnProtocols() != nil {
+		config.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
+	}
 	param := common.GetTlsParams()
-	config.CipherSuites = strings.Join(param.GetCipherSuites(), ":")
-	config.EcdhCurves = strings.Join(param.GetEcdhCurves(), ",")
-	config.MinVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMinimumProtocolVersion())]
-	config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
+	if param != nil {
+		if param.GetCipherSuites() != nil {
+			config.CipherSuites = strings.Join(param.GetCipherSuites(), ":")
+		}
+		if param.GetEcdhCurves() != nil {
+			config.EcdhCurves = strings.Join(param.GetEcdhCurves(), ",")
+		}
+		config.MinVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMinimumProtocolVersion())]
+		config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
+	}
 
 	if isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
 		log.DefaultLogger.Fatalf("tls_certificates are required in downstream tls_context")

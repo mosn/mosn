@@ -89,9 +89,9 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 // SubSet LB Entry
 func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	if nil != context {
-		var hostChoosen *bool
-		host := sslb.TryChooseHostFromContext(context, hostChoosen)
-		if *hostChoosen {
+		var hostChoosen = false
+		host := sslb.TryChooseHostFromContext(context, &hostChoosen)
+		if hostChoosen {
 			return host
 		}
 	}

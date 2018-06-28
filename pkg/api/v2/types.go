@@ -11,7 +11,7 @@ const (
 	DEFAULT_NETWORK_FILTER  = "proxy"
 	SOFARPC_INBOUND_FILTER = "inbound_bolt"
 	SOFARPC_OUTBOUND_FILTER = "outbound_bolt"
-	X_PROTOCOL_FILTER = "x_protocol"
+	X_PROXY = "x_proxy"
 )
 
 const (
