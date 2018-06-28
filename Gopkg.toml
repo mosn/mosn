@@ -81,8 +81,13 @@
   version = "v1.0"
 
 [[constraint]]
+<<<<<<< HEAD
   branch = "master"
   name = "github.com/valyala/fasthttp"
+=======
+    branch = "master"
+    name = "github.com/valyala/fasthttp"
+>>>>>>> dev
 
 [prune]
   go-tests = true
