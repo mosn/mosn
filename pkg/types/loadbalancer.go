@@ -35,8 +35,6 @@ type SubSetLoadBalancer interface {
 	// or if the matching subset contains no hosts/or no unhealthy hosts
 	TryChooseHostFromContext(context LoadBalancerContext, hostChosen *bool) Host
 
-	HostMatchesDefaultSubset(host Host) bool
-
 	// used to created and update fallback subset
 	UpdateFallbackSubset(priority uint32, hostAdded []Host, hostsRemoved []Host)
 
@@ -115,7 +113,6 @@ const (
 // act as the root
 type LbSubsetMap map[string]ValueSubsetMap
 
-// key in map is the detail value in lbsubsetmap's value
 type ValueSubsetMap map[HashedValue]LBSubsetEntry
 
 type SubsetMetadata []Pair

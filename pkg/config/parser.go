@@ -13,7 +13,7 @@ import (
 
 type ConfigContentKey string
 
-// callback when corresponding momdule parsed
+// callback when corresponding module parsed
 type ConfigParsedCallback func(data interface{}, endParsing bool) error
 
 // notes: configcontentkey equals to the key of config file
@@ -490,7 +490,7 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		if c.LBSubsetConfig.FallBackPolicy > 2 {
 			log.StartLogger.Panic("lb subset config 's fall back policy set error. " +
 				"For 0, represent NO_FALLBACK"+
-				"Fo 1, reprenst ANY_ENDPOINT" +
+				"For 1, reprenst ANY_ENDPOINT" +
 				"For 2, reprenst DEFAULT_SUBSET")
 		}
 

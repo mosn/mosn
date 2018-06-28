@@ -201,7 +201,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	}
 
 	s.route = route
-	
+
 	s.requestInfo.SetRouteEntry(route.RouteRule())
 
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
@@ -209,7 +209,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
 	// active realize loadbalancer ctx
-	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(),s)
+	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(), s)
 
 	if err != nil {
 		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed")
@@ -364,7 +364,7 @@ func (s *activeStream) onPerTryTimeout() {
 	s.onUpstreamReset(UpstreamPerTryTimeout, types.StreamLocalReset)
 }
 
-func (s *activeStream) initializeUpstreamConnectionPool(clusterName string,lbCtx types.LoadBalancerContext) (error, types.ConnectionPool) {
+func (s *activeStream) initializeUpstreamConnectionPool(clusterName string, lbCtx types.LoadBalancerContext) (error, types.ConnectionPool) {
 	clusterSnapshot := s.proxy.clusterManager.Get(clusterName, nil)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
@@ -579,7 +579,7 @@ func (s *activeStream) setupRetry(endStream bool) bool {
 }
 
 func (s *activeStream) doRetry() {
-	err, pool := s.initializeUpstreamConnectionPool(s.cluster.Name(),nil)
+	err, pool := s.initializeUpstreamConnectionPool(s.cluster.Name(), nil)
 
 	if err != nil {
 		return
@@ -694,13 +694,12 @@ func (s *activeStream) reset() {
 
 // types.LoadBalancerContext
 // no use currently
-func (s *activeStream)ComputeHashKey() types.HashedValue {
-
+func (s *activeStream) ComputeHashKey() types.HashedValue {
 	return [16]byte{}
 }
 
-func (s *activeStream) 	MetadataMatchCriteria() types.MetadataMatchCriteria {
-	if  nil != s.requestInfo.RouteEntry(){
+func (s *activeStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
+	if nil != s.requestInfo.RouteEntry() {
 		return s.requestInfo.RouteEntry().MetadataMatchCriteria()
 	} else {
 		return nil
@@ -711,6 +710,6 @@ func (s *activeStream) DownstreamConnection() net.Conn {
 	return s.proxy.readCallbacks.Connection().RawConn()
 }
 
-func (s *activeStream) DownstreamHeaders()map[string]string {
+func (s *activeStream) DownstreamHeaders() map[string]string {
 	return s.downstreamReqHeaders
 }

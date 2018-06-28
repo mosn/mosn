@@ -248,7 +248,6 @@
                                     "label": "gray",
                                     "version":"1.1",
                                     "stage":"pre-release"
-                                    
                                   }
                                 }
                               }
@@ -323,13 +322,14 @@
             "Hostname": "downstream_machine1",
             "Weight": 1,
             "MetaData": {
-              "label": "gray",
-              "stage": "1"
+              "stage": "pre-release",
+              "version": "1.1",
+              "label": "gray"
             }
           }
         ],
         "LBSubsetConfig": {
-          "FallBackPolicy": 0,
+          "FallBackPolicy": 2,
           "DefaultSubset": {
             "stage": "pre-release",
             "version": "1.1",

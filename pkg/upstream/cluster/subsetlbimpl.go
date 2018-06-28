@@ -8,21 +8,16 @@ import (
 )
 
 type subSetLoadBalancer struct {
-	lbType types.LoadBalancerType // LB for choosing subset's  host
-
-	runtime types.Loader
-	stats   types.ClusterStats
-	random  rand.Rand
-
-	fallbackSubset *LBSubsetEntry
-	fallBackPolicy types.FallBackPolicy
-
-	defaultSubSetMetadata types.SubsetMetadata
-	subSetKeys            []types.SortedStringSetType //cluster配置的，已经字典序后的列表
-
-	originalPrioritySet types.PrioritySet
-
-	subSets types.LbSubsetMap //final trie-like structure
+	lbType                types.LoadBalancerType // inner LB algorithm for choosing subset's host
+	runtime               types.Loader
+	stats                 types.ClusterStats
+	random                rand.Rand
+	fallBackPolicy        types.FallBackPolicy
+	defaultSubSetMetadata types.SubsetMetadata        // default subset metadata
+	subSetKeys            []types.SortedStringSetType // subset selectors
+	originalPrioritySet   types.PrioritySet
+	fallbackSubset        *LBSubsetEntry    // subset entry generated according to fallback policy
+	subSets               types.LbSubsetMap // final trie-like structure used to stored easily searched subset
 }
 
 //
@@ -39,13 +34,13 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.Prio
 		subSets:               make(map[string]types.ValueSubsetMap),
 	}
 
-	// init subset, fallback subset and so on
 	// foreach every priority subset
+	// init subset, fallback subset and so on
 	for _, hostSet := range prioritySet.HostSetsByPriority() {
 		ssb.Update(hostSet.Priority(), hostSet.Hosts(), nil)
 	}
 
-	// add update callback
+	// add update callback when original priority set updated
 	ssb.originalPrioritySet.AddMemberUpdateCb(
 		func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 			ssb.Update(priority, hostsAdded, hostsRemoved)
@@ -88,6 +83,7 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 
 // SubSet LB Entry
 func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+
 	if nil != context {
 		var hostChoosen = false
 		host := sslb.TryChooseHostFromContext(context, &hostChoosen)
@@ -143,7 +139,6 @@ func (sslb *subSetLoadBalancer) UpdateFallbackSubset(priority uint32, hostAdded 
 				return true
 			}
 		} else if types.DefaultSubsetDefaultSubset == sslb.fallBackPolicy {
-
 			predicate = func(host types.Host) bool {
 				return sslb.HostMatches(sslb.defaultSubSetMetadata, host)
 			}
@@ -155,7 +150,7 @@ func (sslb *subSetLoadBalancer) UpdateFallbackSubset(priority uint32, hostAdded 
 		}
 	}
 
-	// add
+	// update default host subset
 	sslb.fallbackSubset.prioritySubset.Update(priority, hostAdded, hostsRemoved)
 }
 
@@ -173,7 +168,6 @@ func (sslb *subSetLoadBalancer) ProcessSubsets(hostAdded []types.Host, hostsRemo
 			for _, subSetKey := range sslb.subSetKeys {
 				//
 				kvs := sslb.ExtractSubsetMetadata(subSetKey.Keys(), host)
-
 				if len(kvs) > 0 {
 					entry := sslb.FindOrCreateSubset(sslb.subSets, kvs, 0)
 
@@ -186,10 +180,10 @@ func (sslb *subSetLoadBalancer) ProcessSubsets(hostAdded []types.Host, hostsRemo
 					if entry.Initialized() {
 						updateCB(entry)
 					} else {
-
 						predicate := func(host types.Host) bool {
 							return sslb.HostMatches(kvs, host)
 						}
+
 						newCB(entry, predicate, kvs, addinghost)
 					}
 				}
@@ -198,11 +192,8 @@ func (sslb *subSetLoadBalancer) ProcessSubsets(hostAdded []types.Host, hostsRemo
 	}
 }
 
-func (sslb *subSetLoadBalancer) HostMatchesDefaultSubset(host types.Host) bool {
-	return true
-}
-
 // judge whether the host's metatada match the subset
+// kvs and host must in the same order
 func (sslb *subSetLoadBalancer) HostMatches(kvs types.SubsetMetadata, host types.Host) bool {
 	hostMetadata := host.Metadata()
 
@@ -211,12 +202,15 @@ func (sslb *subSetLoadBalancer) HostMatches(kvs types.SubsetMetadata, host types
 			if !types.EqualHashValue(value, kv.T2) {
 				return false
 			}
+		} else {
+			return false
 		}
 	}
 
 	return true
 }
 
+// search subset tree
 func (sslb *subSetLoadBalancer) FindSubset(matchCriteria []types.MetadataMatchCriterion) types.LBSubsetEntry {
 
 	// subsets : map[string]ValueSubsetMap
@@ -229,7 +223,7 @@ func (sslb *subSetLoadBalancer) FindSubset(matchCriteria []types.MetadataMatchCr
 
 			if vsEntry, ok := vsMap[mcCriterion.Value()]; ok {
 
-				if len(matchCriteria) == i+1 {
+				if  i + 1 == len(matchCriteria) {
 					return vsEntry
 				}
 
@@ -246,7 +240,7 @@ func (sslb *subSetLoadBalancer) FindSubset(matchCriteria []types.MetadataMatchCr
 	return nil
 }
 
-// 递归的创建 subset 树形结构体
+// generate subset recursively
 func (sslb *subSetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap,
 	kvs types.SubsetMetadata, idx uint32) types.LBSubsetEntry {
 
@@ -265,7 +259,7 @@ func (sslb *subSetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap,
 		} else {
 
 			entry = &LBSubsetEntry{
-				children:       make(map[string]types.ValueSubsetMap),
+				children: make(map[string]types.ValueSubsetMap),
 				//prioritySubset: &PrioritySubsetImpl{},
 			}
 
@@ -277,8 +271,8 @@ func (sslb *subSetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap,
 	} else {
 
 		entry = &LBSubsetEntry{
-			children:       make(map[string]types.ValueSubsetMap),
-		//	prioritySubset: &PrioritySubsetImpl{},
+			children: make(map[string]types.ValueSubsetMap),
+			//	prioritySubset: &PrioritySubsetImpl{},
 		}
 
 		valueSubsetMap := types.ValueSubsetMap{
@@ -298,8 +292,8 @@ func (sslb *subSetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap,
 
 // 从host的meta以及cluster的subset keys中，生成字典序的 subset metadata
 // 之所以生成字典序是由于subsetkeys已经按照字典序排好了
-// value是对metadata value 取md5
 func (sslb *subSetLoadBalancer) ExtractSubsetMetadata(subsetKeys []string, host types.Host) types.SubsetMetadata {
+	
 	metadata := host.Metadata()
 	var kvs types.SubsetMetadata
 
@@ -338,7 +332,6 @@ type LBSubsetEntry struct {
 }
 
 func (lbbe *LBSubsetEntry) Initialized() bool {
-
 	return nil != lbbe.prioritySubset
 }
 
@@ -446,13 +439,11 @@ func (hsi *hostSubsetImpl) Empty() bool {
 
 // subset of original priority set
 type PrioritySubsetImpl struct {
-	prioritySubset types.PrioritySet // storing the matched host in subset
-
+	prioritySubset      types.PrioritySet // storing the matched host in subset
 	originalPrioritySet types.PrioritySet
 	empty               bool
 	loadbalancer        types.LoadBalancer
-
-	predicate_ types.HostPredicate
+	predicate_          types.HostPredicate // match function for host and metadata
 }
 
 func NewPrioritySubsetImpl(subsetLB *subSetLoadBalancer, predicate types.HostPredicate) types.PrioritySubset {
@@ -489,14 +480,10 @@ func (psi *PrioritySubsetImpl) Update(priority uint32, hostsAdded []types.Host, 
 
 	psi.GetOrCreateHostSubset(priority).Update(hostsAdded, hostsRemoved, psi.predicate_)
 
-	if psi.empty != psi.Empty() {
-		psi.empty = true
-
-		for _, hostSet := range psi.prioritySubset.HostSetsByPriority() {
-			if len(hostSet.Hosts()) > 0 {
-				psi.empty = false
-				return
-			}
+	for _, hostSet := range psi.prioritySubset.HostSetsByPriority() {
+		if len(hostSet.Hosts()) > 0 {
+			psi.empty = false
+			return
 		}
 	}
 }
@@ -507,7 +494,6 @@ func (psi *PrioritySubsetImpl) Empty() bool {
 }
 
 func (psi *PrioritySubsetImpl) GetOrCreateHostSubset(priority uint32) types.HostSubset {
-
 	return &hostSubsetImpl{
 		hostSubset: psi.prioritySubset.GetOrCreateHostSet(priority),
 	}
