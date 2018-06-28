@@ -3,17 +3,19 @@ package router
 import (
 	"strings"
 	"time"
-	
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 type Matchable interface {
-	Match(headers map[string]string,randomValue uint64) types.Route
+	Match(headers map[string]string, randomValue uint64) types.Route
 }
 
-type RouterInfo interface{
-	GetRouterName()string
+type RouterInfo interface {
+	GetRouterName() string
 }
 
 type RouteBase interface {
@@ -79,12 +81,12 @@ type RateLimitPolicyImpl struct {
 }
 
 func (rp *RateLimitPolicyImpl) Enabled() bool {
-	
+
 	return true
 }
 
 func (rp *RateLimitPolicyImpl) GetApplicableRateLimit(stage string) []types.RateLimitPolicyEntry {
-	
+
 	return rp.rateLimitEntries
 }
 
@@ -104,29 +106,6 @@ func (p *RetryPolicyImpl) TryTimeout() time.Duration {
 
 func (p *RetryPolicyImpl) NumRetries() uint32 {
 	return p.numRetries
-}
-
-type Loader struct{}
-
-type MetadataMatchCriteriaImpl struct {
-	metadataMatchCriteria []*types.MetadataMatchCriterion
-}
-
-func (mmcti *MetadataMatchCriteriaImpl) MetadataMatchCriteria() []*types.MetadataMatchCriterion {
-	return mmcti.metadataMatchCriteria
-}
-
-type MetadataMatchCriterionImpl struct {
-	name  string
-	value types.HashedValue
-}
-
-func (mmci *MetadataMatchCriterionImpl) MetadataKeyName() string {
-	return mmci.name
-}
-
-func (mmci *MetadataMatchCriterionImpl) Value() types.HashedValue {
-	return mmci.value
 }
 
 // todo implement CorsPolicy
@@ -158,7 +137,7 @@ type RateLimitAction interface{}
 
 type WeightedClusterEntry struct {
 	runtimeKey                   string
-	loader                       Loader
+	loader                       types.Loader
 	clusterWeight                uint64
 	clusterMetadataMatchCriteria *MetadataMatchCriteriaImpl
 }
@@ -194,5 +173,44 @@ func (p *routerPolicy) CorsPolicy() types.CorsPolicy {
 }
 
 func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
+	return nil
+}
+
+// e.g. metadata =  { "filter_metadata": {"envoy.lb": { "label": "gray"  } } }
+// 4-tier map
+func GetClusterEnvoyLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
+	metadataMap := make(map[string]types.HashedValue)
+
+	if metadataInterface, ok := metadata[types.RouterMatadataKey]; ok {
+		if value, ok := metadataInterface.(map[string]interface{}); ok {
+			if envoyLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
+				if envoyLb, ok := envoyLbInterface.(map[string]interface{}); ok {
+					for k, v := range envoyLb {
+						if vs, ok := v.(string); ok {
+							metadataMap[k] = types.GenerateHashedValue(vs)
+						} else {
+							log.DefaultLogger.Fatal("Currently,only map[string]string type is supported for metadata")
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return metadataMap
+}
+
+// get envoy lb metadata from config
+func GetEnvoyLBMetaData(route *v2.Router) map[string]interface{} {
+	if metadataInterface, ok := route.Route.MetadataMatch[types.RouterMatadataKey]; ok {
+		if value, ok := metadataInterface.(map[string]interface{}); ok {
+			if envoyLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
+				if envoyLb, ok := envoyLbInterface.(map[string]interface{}); ok {
+					return envoyLb
+				}
+			}
+		}
+	}
+
 	return nil
 }

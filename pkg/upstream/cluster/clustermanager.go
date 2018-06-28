@@ -123,9 +123,22 @@ func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *cluste
 		clusterSnapshot := &clusterSnapshot{
 			prioritySet:  pcc.PrioritySet(),
 			clusterInfo:  pcc.Info(),
-			loadbalancer: NewLoadBalancer(pcc.Info().LbType(), pcc.PrioritySet()),
 		}
-
+		
+		var lb types.LoadBalancer
+		
+		if pcc.Info().LbSubsetInfo().IsEnabled() {
+			// use subset loadbalancer
+			lb = NewSubsetLoadBalancer(pcc.Info().LbType(),pcc.PrioritySet(),pcc.Info().Stats(),
+				pcc.Info().LbSubsetInfo())
+			
+		} else {
+			// use common loadbalancer
+			lb = NewLoadBalancer(pcc.Info().LbType(), pcc.PrioritySet())
+		}
+		
+		clusterSnapshot.loadbalancer = lb
+		
 		return clusterSnapshot
 	} else {
 		return nil
@@ -170,7 +183,7 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 }
 
 func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.Protocol,
-	context context.Context) types.ConnectionPool {
+	lbCtx types.LoadBalancerContext) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -197,7 +210,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 	}
 }
 
-func (cm *clusterManager) TcpConnForCluster(cluster string, context context.Context) types.CreateConnectionData {
+func (cm *clusterManager) TcpConnForCluster(cluster string,lbCtx types.LoadBalancerContext) types.CreateConnectionData {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -207,13 +220,13 @@ func (cm *clusterManager) TcpConnForCluster(cluster string, context context.Cont
 	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
 
 	if host != nil {
-		return host.CreateConnection(context)
+		return host.CreateConnection(nil)
 	} else {
 		return types.CreateConnectionData{}
 	}
 }
 
-func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context context.Context) types.ConnectionPool {
+func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, lbCtx types.LoadBalancerContext) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -221,7 +234,7 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, context cont
 		return nil
 	}
 
-	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
+	host := clusterSnapshot.loadbalancer.ChooseHost(lbCtx)
 
 	if host != nil {
 		addr := host.AddressString()

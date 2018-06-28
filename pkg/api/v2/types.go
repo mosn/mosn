@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Metadata map[string]string
+type Metadata map[string]interface{}
 
 const (
 	DEFAULT_NETWORK_FILTER  = "proxy"

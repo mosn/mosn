@@ -1,11 +1,11 @@
 package types
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
 	"container/list"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
 	"regexp"
 	"time"
+	"crypto/md5"
 )
 
 type Priority int
@@ -16,6 +16,8 @@ const (
 	GlobalTimeout       time.Duration = 60 * time.Second
 	DefaultRouteTimeout               = 15 * time.Second
 	SofaRouteMatchKey                 = "service"
+	RouterMatadataKey                 = "filter_metadata"
+	RouterMetadataKeyLb               = "envoy.lb"
 )
 
 // change RouterConfig -> Routers to manage all routers
@@ -60,7 +62,12 @@ type RouteRule interface {
 
 	Policy() Policy
 
-	MetadataMatcher() MetadataMatcher
+	//MetadataMatcher() MetadataMatcher
+	
+	Metadata() RouteMetaData
+	
+	// return the metadata that a subset load balancer should match when selecting an upstream host
+	MetadataMatchCriteria() MetadataMatchCriteria
 }
 
 type Policy interface {
@@ -163,7 +170,7 @@ type VirtualHost interface {
 }
 
 type MetadataMatcher interface {
-	Metadata() v2.Metadata
+	Metadata() RouteMetaData
 
 	MetadataMatchEntrySet() MetadataMatchEntrySet
 }
@@ -190,14 +197,23 @@ type TraceDecorator interface {
 	getOperation() string
 }
 
-// the name of the metadata key
 type MetadataMatchCriterion interface {
+	// the name of the metadata key
 	MetadataKeyName() string
+	
+	// the value for the metadata key
 	Value() HashedValue
 }
 
+
 type MetadataMatchCriteria interface {
-	MetadataMatchCriteria() []*MetadataMatchCriterion
+	
+	// @return: a set of MetadataMatchCriterion(metadata) sorted lexically by name
+	// to be matched against upstream endpoints when load balancing
+	MetadataMatchCriteria() []MetadataMatchCriterion
+	
+	
+	MergeMatchCriteria(metadataMatches map[string]interface{})  MetadataMatchCriteria
 }
 
 type Decorator interface {
@@ -206,7 +222,7 @@ type Decorator interface {
 }
 
 // todo add HashedValue
-type HashedValue struct{}
+type HashedValue [16]byte   // value as md5's result
 
 type HeaderFormat interface {
 	Format(info RequestInfo) string
@@ -234,14 +250,13 @@ const (
 /**
  * The router configuration.
  */
-type Config interface{
-	Route(headers map[string]string, randomValue uint64) (Route,string)
+type Config interface {
+	Route(headers map[string]string, randomValue uint64) (Route, string)
 	InternalOnlyHeaders() *list.List
 	Name() string
 }
 
 type QueryParams map[string]string
-
 
 // match request's query parameter
 type QueryParameterMatcher interface {
@@ -264,12 +279,11 @@ type HeaderData struct {
 type ConfigUtility interface {
 	// See if the headers specified in the config are present in a request.
 	// bool true if all the headers (and values) in the config_headers are found in the request_headers
-	MatchHeaders (requestHeaders map[string]string, configHeaders[]*HeaderData) bool
-	
+	MatchHeaders(requestHeaders map[string]string, configHeaders []*HeaderData) bool
+
 	// See if the query parameters specified in the config are present in a request.
 	// bool true if all the query params (and values) in the config_params are found in the query_params
-	MatchQueryParams (queryParams *QueryParams, configQueryParams []QueryParameterMatcher) bool
-	
+	MatchQueryParams(queryParams *QueryParams, configQueryParams []QueryParameterMatcher) bool
 }
 
 type LowerCaseString interface {
@@ -280,5 +294,25 @@ type LowerCaseString interface {
 
 type PathMatchCriterion interface {
 	MatchType() PathMatchType
-	Matcher()string
+	Matcher() string
+}
+
+type Loader struct{}
+
+type RouteMetaData map[string]HashedValue
+
+// generate hashed valued with md5
+func GenerateHashedValue(input string) HashedValue {
+	data := []byte(input)
+	h := md5.Sum(data)
+	
+	return h
+}
+
+func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {
+	if h1 == h2 {
+		return true
+	} else {
+		return false
+	}
 }

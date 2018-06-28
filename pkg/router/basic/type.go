@@ -21,10 +21,18 @@ func (r *RouteRuleImplAdaptor) Policy() types.Policy {
 	return nil
 }
 
-func (r *RouteRuleImplAdaptor) MetadataMatcher() types.MetadataMatcher {
+//func (r *RouteRuleImplAdaptor) MetadataMatcher() types.MetadataMatcher {
+//	return nil
+//}
+
+func (r *RouteRuleImplAdaptor) VirtualHost () types.VirtualHost{
 	return nil
 }
 
-func (r *RouteRuleImplAdaptor) VirtualHost () types.VirtualHost{
+func (r *RouteRuleImplAdaptor) Metadata() types.RouteMetaData {
+	return nil
+}
+
+func (r *RouteRuleImplAdaptor) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	return nil
 }

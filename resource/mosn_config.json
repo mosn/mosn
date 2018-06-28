@@ -168,6 +168,8 @@
                               "MetadataMatch": {
                                 "filter_metadata": {
                                   "envoy.lb": {
+                                    "version":"1.1",
+                                    "stage":"pre-release",
                                     "label": "gray"
                                   }
                                 }
@@ -243,7 +245,10 @@
                               "MetadataMatch": {
                                 "filter_metadata": {
                                   "envoy.lb": {
-                                    "label": "gray"
+                                    "label": "gray",
+                                    "version":"1.1",
+                                    "stage":"pre-release"
+                                    
                                   }
                                 }
                               }
@@ -325,8 +330,20 @@
         ],
         "LBSubsetConfig": {
           "FallBackPolicy": 0,
-          "DefaultSubset": null,
-          "SubsetSelectors": null
+          "DefaultSubset": {
+            "stage": "pre-release",
+            "version": "1.1",
+            "label": "gray"
+          },
+          "SubsetSelectors": [
+            [
+               "stage", "type"
+            ],
+            [
+              "stage", "label","version"
+            ],
+            ["version"]
+          ]
         }
       }
     ]
