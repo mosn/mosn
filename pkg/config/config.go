@@ -43,6 +43,11 @@ type ListenerConfig struct {
 	LogPath  string `json:"log_path,omitempty"`
 	LogLevel string `json:"log_level,omitempty"`
 
+
+    //HandOffRestoredDestinationConnections
+	HandOffRestoredDestinationConnections bool `json:"handoff_restoreddestination"`
+
+
 	//access log
 	AccessLogs []AccessLogConfig `json:"access_logs,omitempty"`
 

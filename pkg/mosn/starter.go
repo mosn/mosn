@@ -92,8 +92,12 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
 
 			// network filters
+			if lc.HandOffRestoredDestinationConnections {
+				srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nil, nil)
+				continue
+			}
 			nfcf := GetNetworkFilter(&lc.FilterChains[0])
-			
+
 			//stream filters
 			sfcf := getStreamFilters(listenerConfig.StreamFilters)
 

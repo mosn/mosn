@@ -7,12 +7,14 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+    "gitlab.alipay-inc.com/afe/mosn/pkg/filter/accept/original_dst"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
+	__tl "log"
 )
 
 // ConnectionHandler
@@ -182,6 +184,7 @@ type activeListener struct {
 	listener               types.Listener
 	networkFiltersFactory  types.NetworkFilterChainFactory
 	streamFiltersFactories []types.StreamFilterChainFactory
+	listenIP			   string
 	listenPort             int
 	statsNamespace         string
 	conns                  *list.List
@@ -209,12 +212,15 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 	}
 
 	listenPort := 0
+	var listenIP string
 	localAddr := al.listener.Addr().String()
 
 	if temps := strings.Split(localAddr, ":"); len(temps) > 0 {
 		listenPort, _ = strconv.Atoi(temps[len(temps)-1])
+		listenIP = temps[0]
 	}
 
+    al.listenIP = listenIP
 	al.listenPort = listenPort
 	al.statsNamespace = types.ListenerStatsPrefix + strconv.Itoa(listenPort)
 	al.stats = newListenerStats(al.statsNamespace)
@@ -227,6 +233,14 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
+	if handOffRestoredDestinationConnections {
+		arc.acceptedFilters = append(arc.acceptedFilters, original_dst.NewOriginalDst())
+		arc.handOffRestoredDestinationConnections = true
+		__tl.Printf("accept restored destination connection from:%s", al.listener.Addr().String())
+	}else{
+		__tl.Printf("accept connection from:%s", al.listener.Addr().String())
+	}
+
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
 	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = context.WithValue(ctx, types.ContextKeyListenerStatsNameSpace, al.statsNamespace)
@@ -234,6 +248,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+
 	arc.ContinueFilterChain(true, ctx)
 }
 
@@ -295,6 +310,9 @@ func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 
 type activeRawConn struct {
 	rawc               net.Conn
+	originalDstIP	    string
+	originalDstPort	    int
+	handOffRestoredDestinationConnections bool
 	rawcElement        *list.Element
 	activeListener     *activeListener
 	acceptedFilters    []types.ListenerFilter
@@ -306,6 +324,13 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 		rawc:           rawc,
 		activeListener: activeListener,
 	}
+}
+
+func (arc *activeRawConn)SetOrigingalAddr(ip string, port int){
+	arc.originalDstIP = ip
+	arc.originalDstPort = port
+
+	__tl.Printf("conn set origin addr:%s:%d", ip, port)
 }
 
 func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context) {
@@ -320,7 +345,33 @@ func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context)
 
 		// TODO: handle hand_off_restored_destination_connections logic
 
-		arc.activeListener.newConnection(arc.rawc, ctx)
+		var _lst, _ls2 *activeListener
+
+		for _, lst := range arc.activeListener.handler.listeners{
+			
+			if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
+				_lst = lst
+				break
+			}
+
+			if lst.listenPort == arc.originalDstPort && lst.listenIP =="0.0.0.0" {
+				_ls2 = lst
+			}
+		}
+
+		if _lst != nil{
+			 __tl.Printf("original dst:%s:%d", _lst.listenIP, _lst.listenPort)
+			_lst.OnAccept(arc.rawc, false)
+		}else if _ls2 != nil{
+			 __tl.Printf("original dst:%s:%d", _ls2.listenIP, _ls2.listenPort)
+			_ls2.OnAccept(arc.rawc, false)
+		}
+
+
+		if !arc.handOffRestoredDestinationConnections{
+			arc.activeListener.newConnection(arc.rawc, ctx)
+		}
+		
 	}
 }
 

@@ -30,26 +30,28 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 
 		var networkFilter *proxy.GenericProxyFilterConfigFactory
 
-		for _, filterChain := range mosnListener.FilterChains {
-			for _, filter := range filterChain.Filters {
-				if filter.Name == v2.DEFAULT_NETWORK_FILTER {
-					networkFilter = &proxy.GenericProxyFilterConfigFactory{
-						Proxy: ParseProxyFilterJson(&filter),
+		if !mosnListener.HandOffRestoredDestinationConnections {
+			for _, filterChain := range mosnListener.FilterChains {
+				for _, filter := range filterChain.Filters {
+					if filter.Name == v2.DEFAULT_NETWORK_FILTER {
+						networkFilter = &proxy.GenericProxyFilterConfigFactory{
+							Proxy: ParseProxyFilterJson(&filter),
+						}
 					}
 				}
 			}
-		}
 
-		if networkFilter == nil {
-			errMsg := "xds client update listener error: proxy needed in network filters"
-			log.DefaultLogger.Errorf(errMsg)
-			return errors.New(errMsg)
-		}
+			if networkFilter == nil {
+				errMsg := "xds client update listener error: proxy needed in network filters"
+				log.DefaultLogger.Errorf(errMsg)
+				return errors.New(errMsg)
+			}
 
-		if streamFilter == nil {
-			errMsg := "xds client update listener error: stream filter needed in network filters"
-			log.DefaultLogger.Errorf(errMsg)
-			return errors.New(errMsg)
+			if streamFilter == nil {
+				errMsg := "xds client update listener error: stream filter needed in network filters"
+				log.DefaultLogger.Errorf(errMsg)
+				return errors.New(errMsg)
+			}
 		}
 		
 		if server :=server.GetServer(); server == nil {
