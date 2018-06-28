@@ -221,7 +221,6 @@ type Decorator interface {
 	getOperation() string
 }
 
-// todo add HashedValue
 type HashedValue [16]byte   // value as md5's result
 
 type HeaderFormat interface {

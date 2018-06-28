@@ -10,6 +10,11 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
+type  HeaderParser struct {
+	headersToAdd    []types.Pair
+	headersToRemove []*LowerCaseString
+}
+
 type Matchable interface {
 	Match(headers map[string]string, randomValue uint64) types.Route
 }

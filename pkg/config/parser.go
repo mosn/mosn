@@ -570,16 +570,12 @@ func ParseHostConfig(c *ClusterConfig) []v2.Host {
 	var hosts []v2.Host
 
 	for _, host := range c.Hosts {
-		hostV2 := host
-		if hostV2.Address == "" {
+		
+		if host.Address == "" {
 			log.StartLogger.Fatalln("[host.address] is required in host config")
 		}
 
-		hosts = append(hosts, v2.Host{
-			Hostname: hostV2.Hostname,
-			Address:  hostV2.Address,
-			Weight:   hostV2.Weight,
-		})
+		hosts = append(hosts,host)
 	}
 
 	return hosts

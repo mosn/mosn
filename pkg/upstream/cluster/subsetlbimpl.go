@@ -7,6 +7,9 @@ import (
 	"math/rand"
 )
 
+var SubSetsGlobal types.LbSubsetMap     // stored globally subset
+var FallbackSubsetGlobal *LBSubsetEntry // stored globally fallback subset
+
 type subSetLoadBalancer struct {
 	lbType                types.LoadBalancerType // inner LB algorithm for choosing subset's host
 	runtime               types.Loader
@@ -27,12 +30,19 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.Prio
 	ssb := &subSetLoadBalancer{
 		lbType:                lbType,
 		fallBackPolicy:        subsets.FallbackPolicy(),
-		defaultSubSetMetadata: GenerateDftSubsetKeys(subsets.DefaultSubset()),
+		defaultSubSetMetadata: GenerateDftSubsetKeys(subsets.DefaultSubset()), //ordered subset metadata pair, value为md5 hash值
 		subSetKeys:            subsets.SubsetKeys(),
 		originalPrioritySet:   prioritySet,
 		stats:                 stats,
-		subSets:               make(map[string]types.ValueSubsetMap),
 	}
+
+	if SubSetsGlobal != nil && FallbackSubsetGlobal != nil {
+		ssb.subSets = SubSetsGlobal
+		ssb.fallbackSubset = FallbackSubsetGlobal
+		return ssb
+	}
+	
+	ssb.subSets = make(map[string]types.ValueSubsetMap)
 
 	// foreach every priority subset
 	// init subset, fallback subset and so on
@@ -55,6 +65,7 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 
 	// step1. create or update fallback subset
 	sslb.UpdateFallbackSubset(priority, hostAdded, hostsRemoved)
+	FallbackSubsetGlobal = sslb.fallbackSubset
 
 	// step2. create or update global subset
 	sslb.ProcessSubsets(hostAdded, hostsRemoved,
@@ -79,6 +90,8 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 				sslb.stats.LBSubsetsCreated.Inc(1)
 			}
 		})
+	
+	SubSetsGlobal = sslb.subSets
 }
 
 // SubSet LB Entry
@@ -223,7 +236,7 @@ func (sslb *subSetLoadBalancer) FindSubset(matchCriteria []types.MetadataMatchCr
 
 			if vsEntry, ok := vsMap[mcCriterion.Value()]; ok {
 
-				if  i + 1 == len(matchCriteria) {
+				if i+1 == len(matchCriteria) {
 					return vsEntry
 				}
 
@@ -241,6 +254,7 @@ func (sslb *subSetLoadBalancer) FindSubset(matchCriteria []types.MetadataMatchCr
 }
 
 // generate subset recursively
+// return leaf node
 func (sslb *subSetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap,
 	kvs types.SubsetMetadata, idx uint32) types.LBSubsetEntry {
 
@@ -278,6 +292,7 @@ func (sslb *subSetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap,
 		valueSubsetMap := types.ValueSubsetMap{
 			hashedValue: entry,
 		}
+
 		subsets[name] = valueSubsetMap
 	}
 
@@ -293,7 +308,7 @@ func (sslb *subSetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap,
 // 从host的meta以及cluster的subset keys中，生成字典序的 subset metadata
 // 之所以生成字典序是由于subsetkeys已经按照字典序排好了
 func (sslb *subSetLoadBalancer) ExtractSubsetMetadata(subsetKeys []string, host types.Host) types.SubsetMetadata {
-	
+
 	metadata := host.Metadata()
 	var kvs types.SubsetMetadata
 
@@ -531,8 +546,8 @@ func NewLBSubsetInfo(subsetCfg *v2.LBSubsetConfig) types.LBSubsetInfo {
 type LBSubsetInfoImpl struct {
 	enabled        bool
 	fallbackPolicy types.FallBackPolicy
-	defaultSubSet  types.SortedMap
-	subSetKeys     []types.SortedStringSetType
+	defaultSubSet  types.SortedMap             //  sorted default subset
+	subSetKeys     []types.SortedStringSetType // sorted subset selectors
 }
 
 func (lbsi *LBSubsetInfoImpl) IsEnabled() bool {
@@ -551,6 +566,7 @@ func (lbsi *LBSubsetInfoImpl) SubsetKeys() []types.SortedStringSetType {
 	return lbsi.subSetKeys
 }
 
+// used to generate sorted keys
 func GenerateSubsetKeys(keysArray [][]string) []types.SortedStringSetType {
 	var ssst []types.SortedStringSetType
 	for _, keys := range keysArray {
