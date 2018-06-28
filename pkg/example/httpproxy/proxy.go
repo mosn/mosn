@@ -95,7 +95,7 @@ func main() {
 			}
 
 			httpClient := http.Client{Transport: tr}
-			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/hahaha.htm?key1=valuex&nobody=true", MeshServerAddr), nil)
+			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/hahaha1.htm?key1=valuex&nobody=true", MeshServerAddr), nil)
 			req.Header.Add("service", "com.alipay.rpc.common.service.facade.SampleService:1.0")
 			resp, err := httpClient.Do(req)
 
@@ -204,7 +204,7 @@ func genericProxyConfig() *v2.Proxy {
 	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
 		Name:    "testSofaRoute",
 		Domains: []string{"*"},
-		Routers: []v2.Router{router1V2, router2V2, router3V2},
+		Routers: []v2.Router{router3V2, router1V2, router2V2},
 	})
 	return proxyConfig
 }
