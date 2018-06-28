@@ -131,7 +131,7 @@
                     "DownstreamProtocol": "SofaRpc",
                     "Name": "proxy_config",
                     "SupportDynamicRoute": true,
-                    "UpstreamProtocol": "SofaRpc",
+                    "UpstreamProtocol": "Http2",
                     "VirtualHosts": [
                       {
                         "Name": "sofa",
@@ -194,6 +194,7 @@
           "name": "egress_sofa1",
           "address": "0.0.0.0:12201",
           "bind_port": true,
+          "disable_conn_io": true,
           "filter_chains": [
             {
              "match":"",
@@ -212,7 +213,7 @@
                 {
                   "type": "proxy",
                   "config": {
-                    "DownstreamProtocol": "SofaRpc",
+                    "DownstreamProtocol": "Http2",
                     "Name": "proxy_config",
                     "SupportDynamicRoute": true,
                     "UpstreamProtocol": "SofaRpc",
@@ -271,8 +272,7 @@
               "log_path": "./access_egress.log",
               "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
             }
-          ],
-          "disable_conn_io": false
+          ]
         },
         {
           "name": "ingress_sofa",
@@ -366,7 +366,7 @@
           "max_retries": 0
         }
       ],
-        
+
         "health_check": {
           "Timeout": 0,
           "HealthyThreshold": 0,
