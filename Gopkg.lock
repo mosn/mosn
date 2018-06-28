@@ -93,6 +93,22 @@
   revision = "599609688a40c0234f4ed5bdc005b241909dbc46"
 
 [[projects]]
+  name = "github.com/klauspost/compress"
+  packages = [
+    "flate",
+    "gzip",
+    "zlib"
+  ]
+  revision = "5fb1f31b0a61e9858f12f39266e059848a5f1cea"
+  version = "v1.3.0"
+
+[[projects]]
+  name = "github.com/klauspost/cpuid"
+  packages = ["."]
+  revision = "ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da"
+  version = "v1.1"
+
+[[projects]]
   name = "github.com/lyft/protoc-gen-validate"
   packages = ["validate"]
   revision = "cae364899cd8c08b83bfdcabf4ce4dd4a68ca6da"
@@ -132,6 +148,22 @@
   packages = ["."]
   revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
   version = "v1.20.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/valyala/bytebufferpool"
+  packages = ["."]
+  revision = "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
+
+[[projects]]
+  name = "github.com/valyala/fasthttp"
+  packages = [
+    ".",
+    "fasthttputil",
+    "stackless"
+  ]
+  revision = "e5f51c11919d4f66400334047b897ef0a94c6f3c"
+  version = "v20180529"
 
 [[projects]]
   name = "golang.org/x/net"
@@ -212,6 +244,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b8f40ba5bea8be62114bd1a13a20cfcdf0218736b1e8ec7d36f54c61066c5710"
+  inputs-digest = "7b853d8df4cb0c24d114755abbc8ae44440c3b81a0e445fa92b4e4226acda743"
   solver-name = "gps-cdcl"
   solver-version = 1
