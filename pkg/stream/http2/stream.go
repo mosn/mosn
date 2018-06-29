@@ -373,6 +373,7 @@ func (s *clientStream) handleResponse() {
 		s.connection.asMutex.Lock()
 		s.response = nil
 		s.connection.activeStreams.Remove(s.element)
+		s.element = nil
 		s.connection.asMutex.Unlock()
 	}
 }
@@ -438,6 +439,7 @@ func (s *serverStream) endStream() {
 
 	s.connection.asMutex.Lock()
 	s.connection.activeStreams.Remove(s.element)
+	s.element = nil
 	s.connection.asMutex.Unlock()
 }
 
@@ -464,18 +466,24 @@ func (s *serverStream) doSend() {
 
 	s.responseWriter.WriteHeader(s.response.StatusCode)
 
-	buf := &buffer.IoBuffer{}
-	buf.ReadFrom(s.response.Body)
-	buf.WriteTo(s.responseWriter)
+	if s.response.Body != nil{
+		buf := &buffer.IoBuffer{}
+		buf.ReadFrom(s.response.Body)
+		buf.WriteTo(s.responseWriter)
+	}
 }
 
 func (s *serverStream) handleRequest() {
 	if s.request != nil {
 		s.decoder.OnDecodeHeaders(decodeHeader(s.request.Header), false)
-		buf := &buffer.IoBuffer{}
-		buf.ReadFrom(s.request.Body)
-		s.decoder.OnDecodeData(buf, false)
-		s.decoder.OnDecodeTrailers(decodeHeader(s.request.Trailer))
+
+		//remove detect
+		if s.element != nil {
+			buf := &buffer.IoBuffer{}
+			buf.ReadFrom(s.request.Body)
+			s.decoder.OnDecodeData(buf, false)
+			s.decoder.OnDecodeTrailers(decodeHeader(s.request.Trailer))
+		}
 	}
 }
 

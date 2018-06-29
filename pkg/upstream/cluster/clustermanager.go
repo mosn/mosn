@@ -12,6 +12,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	proto "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http"
 )
 
 // ClusterManager
@@ -20,6 +22,7 @@ type clusterManager struct {
 	primaryClusters cmap.ConcurrentMap // string: *primaryCluster
 	sofaRpcConnPool cmap.ConcurrentMap // string: types.ConnectionPool
 	http2ConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
+	http1ConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
 	clusterAdapter  ClusterAdapter
 	autoDiscovery   bool
 }
@@ -37,6 +40,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 		primaryClusters: cmap.New(),
 		sofaRpcConnPool: cmap.New(),
 		http2ConnPool:   cmap.New(),
+		http1ConnPool:   cmap.New(),
 		autoDiscovery:   true,  //todo delete
 	}
 	//init ClusterAdap when run app
@@ -195,19 +199,32 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 	if host != nil {
 		addr := host.AddressString()
 
-		// todo: support protocol http1.x
-		if connPool, ok := cm.http2ConnPool.Get(addr); ok {
-			return connPool.(types.ConnectionPool)
-		} else {
-			// todo: move this to a centralized factory, remove dependency to http2 stream
-			connPool := http2.NewConnPool(host)
-			cm.http2ConnPool.Set(addr, connPool)
+		switch protocol {
+		case proto.Http2:
+			if connPool, ok := cm.http2ConnPool.Get(addr); ok {
+				return connPool.(types.ConnectionPool)
+			} else {
+				// todo: move this to a centralized factory, remove dependency to http2 stream
+				connPool := http2.NewConnPool(host)
+				cm.http2ConnPool.Set(addr, connPool)
 
-			return connPool
+				return connPool
+			}
+		case proto.Http1:
+			if connPool, ok := cm.http1ConnPool.Get(addr); ok {
+				return connPool.(types.ConnectionPool)
+			} else {
+				// todo: move this to a centralized factory, remove dependency to http1 stream
+				connPool := http.NewConnPool(host)
+				cm.http1ConnPool.Set(addr, connPool)
+
+				return connPool
+			}
 		}
-	} else {
-		return nil
+
 	}
+	return nil
+
 }
 
 func (cm *clusterManager) TcpConnForCluster(cluster string,lbCtx types.LoadBalancerContext) types.CreateConnectionData {

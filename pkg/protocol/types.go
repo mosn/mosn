@@ -7,9 +7,3 @@ const (
 	Http1   types.Protocol = "Http1"
 	Http2   types.Protocol = "Http2"
 )
-
-const (
-	MosnHeaderHostKey        = "Host"
-	MosnHeaderPathKey        = "Path"
-	MosnHeaderQueryStringKey = "QueryString"
-)

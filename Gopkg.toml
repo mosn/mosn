@@ -24,8 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-required = ["github.com/valyala/fasthttp"]
-
 [[constraint]]
   name = "github.com/deckarep/golang-set"
   version = "1.7.0"
@@ -83,8 +81,8 @@ required = ["github.com/valyala/fasthttp"]
   version = "v1.0"
 
 [[constraint]]
-    branch = "master"
-    name = "github.com/valyala/fasthttp"
+  branch = "master"
+  name = "github.com/valyala/fasthttp"
 
 [prune]
   go-tests = true

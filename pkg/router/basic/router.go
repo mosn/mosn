@@ -9,11 +9,13 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	_"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 func init() {
-//	router.RegisteRouterConfigFactory(protocol.SofaRpc, NewRouters)
-//	router.RegisteRouterConfigFactory(protocol.Http2, NewRouters)
+	//router.RegisteRouterConfigFactory(protocol.SofaRpc, NewRouters)
+	//router.RegisteRouterConfigFactory(protocol.Http2, NewRouters)
+	//router.RegisteRouterConfigFactory(protocol.Http1, NewRouters)
 }
 
 // types.Routers

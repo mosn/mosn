@@ -7,7 +7,6 @@ import (
 
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	httpmosn "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/http"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -24,15 +23,15 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImp
 			numRetries:   0,
 		},
 	}
-	
+
 	// generate metadata match criteria from router's metadata
 	if len(route.Route.MetadataMatch) > 0 {
-		
+
 		envoyLBMetaData := GetEnvoyLBMetaData(route)
 		routeRuleImplBase.metadataMatchCriteria = NewMetadataMatchCriteriaImpl(envoyLBMetaData)
-		
+
 		routeRuleImplBase.metaData = GetClusterEnvoyLBMetaDataMap(route.Route.MetadataMatch)
-		
+
 	}
 
 	return routeRuleImplBase
@@ -164,7 +163,7 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	// 2. match query parameters
 	var queryParams types.QueryParams
 
-	if QueryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
+	if QueryString, ok := headers[types.HeaderQueryString]; ok {
 		queryParams = httpmosn.ParseQueryString(QueryString)
 	}
 
@@ -198,12 +197,12 @@ func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint
 			log.DefaultLogger.Debugf("Sofa Router Matched")
 			return srri
 		} else {
-			log.DefaultLogger.Warnf("No Sofa Router Matched, Service Value in Header = %s",value)
+			log.DefaultLogger.Warnf("No Sofa Router Matched, Service Value in Header = %s", value)
 		}
 	} else {
 		log.DefaultLogger.Warnf("No service key found in header, sofa router matcher error")
 	}
-	
+
 	return nil
 }
 
@@ -227,7 +226,7 @@ func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint
 	// match base rule first
 	if prri.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
+		if headerPathValue, ok := headers[types.HeaderPath]; ok {
 
 			if prri.caseSensitive {
 				if headerPathValue == prri.path {
@@ -267,7 +266,7 @@ func (prei *PrefixRouteRuleImpl) Match(headers map[string]string, randomValue ui
 
 	if prei.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
+		if headerPathValue, ok := headers[types.HeaderPath]; ok {
 
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
 
@@ -302,14 +301,14 @@ func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
 
 func (rrei *RegexRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	if rrei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
+		if headerPathValue, ok := headers[types.HeaderPath]; ok {
 			if rrei.regexPattern.MatchString(headerPathValue) {
-				
+
 				return rrei
 			}
 		}
 	}
-	
+
 	return nil
 }
 
