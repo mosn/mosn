@@ -58,9 +58,9 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 			log.DefaultLogger.Fatal("Server is nil and hasn't been initiated at this time")
 		} else {
 			if err := server.AddListenerAndStart(mosnListener, networkFilter, streamFilter); err == nil {
-				log.DefaultLogger.Infof("xds client update listener success,listener = %+v\n", mosnListener)
+				log.DefaultLogger.Debugf("xds client update listener success,listener = %+v\n", mosnListener)
 			} else {
-				log.DefaultLogger.Infof("xds client update listener error,listener = %+v\n", mosnListener)
+				log.DefaultLogger.Errorf("xds client update listener error,listener = %+v\n", mosnListener)
 				return err
 			}
 		}
@@ -81,7 +81,7 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	mosnClusters := convertClustersConfig(clusters)
 
 	for _, cluster := range mosnClusters {
-		log.DefaultLogger.Infof("cluster: %+v\n", cluster)
+		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
 		if err := clusterAdapter.ClusterAdap.TriggerClusterUpdate(cluster.Name, cluster.Hosts); err != nil {
 			log.DefaultLogger.Errorf("xds client update cluster error ,err = %s, clustername = %s , hosts = %+v",
 				err.Error(),cluster.Name,cluster.Hosts)
@@ -103,7 +103,7 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 			hosts := convertEndpointsConfig(&endpoints)
 
 			for _, host := range hosts {
-				log.DefaultLogger.Infof("xds client update endpoint: cluster: %s, priority: %d, %+v\n", loadAssignment.ClusterName, endpoints.Priority, host)
+				log.DefaultLogger.Debugf("xds client update endpoint: cluster: %s, priority: %d, %+v\n", loadAssignment.ClusterName, endpoints.Priority, host)
 			}
 
 			if err := clusterAdapter.ClusterAdap.TriggerClusterUpdate(clusterName, hosts); err != nil {
