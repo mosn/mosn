@@ -53,8 +53,8 @@ var (
 	}
 
 	lbTypeMap = map[string]v2.LbType{
-		"LB_RANDOM": v2.LB_RANDOM,
-		"LB_ROUNDROBIN":v2.LB_ROUNDROBIN,
+		"LB_RANDOM":     v2.LB_RANDOM,
+		"LB_ROUNDROBIN": v2.LB_ROUNDROBIN,
 	}
 )
 
@@ -485,6 +485,14 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 
 		//clusterSpec := c.ClusterSpecConfig.(ClusterSpecConfig)
 		clusterSpec := c.ClusterSpecConfig
+		
+		// checkout LBSubsetConfig
+		if c.LBSubsetConfig.FallBackPolicy > 2 {
+			log.StartLogger.Panic("lb subset config 's fall back policy set error. " +
+				"For 0, represent NO_FALLBACK"+
+				"For 1, reprenst ANY_ENDPOINT" +
+				"For 2, reprenst DEFAULT_SUBSET")
+		}
 
 		//v2.Cluster
 		clusterV2 := v2.Cluster{
@@ -496,6 +504,7 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
 			CirBreThresholds:     ParseCircuitBreakers(c.CircuitBreakers),
 			Spec:                 ParseConfigSpecConfig(&clusterSpec),
+			LBSubSetConfig:       c.LBSubsetConfig,
 			TLS:                  ParseTLSConfig(&c.TLS),
 		}
 
@@ -514,28 +523,28 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 	return clustersV2, clusterV2Map
 }
 
-func ParseCircuitBreakers (cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
+func ParseCircuitBreakers(cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
 	var cb v2.CircuitBreakers
 	var rp v2.RoutingPriority
-	
-	for _,cbc := range cbcs {
+
+	for _, cbc := range cbcs {
 		if strings.ToLower(cbc.Priority) == "default" {
 			rp = v2.DEFAULT
 		} else {
 			rp = v2.HIGH
 		}
-		
+
 		threshold := v2.Thresholds{
-			Priority:rp,
-			MaxConnections:cbc.MaxConnections,
-			MaxPendingRequests:cbc.MaxPendingRequests,
-			MaxRequests:cbc.MaxRequests,
-			MaxRetries:cbc.MaxRetries,
+			Priority:           rp,
+			MaxConnections:     cbc.MaxConnections,
+			MaxPendingRequests: cbc.MaxPendingRequests,
+			MaxRequests:        cbc.MaxRequests,
+			MaxRetries:         cbc.MaxRetries,
 		}
-		
-		cb.Thresholds = append(cb.Thresholds,threshold)
+
+		cb.Thresholds = append(cb.Thresholds, threshold)
 	}
-	
+
 	return cb
 }
 
@@ -561,16 +570,12 @@ func ParseHostConfig(c *ClusterConfig) []v2.Host {
 	var hosts []v2.Host
 
 	for _, host := range c.Hosts {
-		hostV2 := host
-		if hostV2.Address == "" {
+		
+		if host.Address == "" {
 			log.StartLogger.Fatalln("[host.address] is required in host config")
 		}
 
-		hosts = append(hosts, v2.Host{
-			Hostname: hostV2.Hostname,
-			Address:  hostV2.Address,
-			Weight:   hostV2.Weight,
-		})
+		hosts = append(hosts,host)
 	}
 
 	return hosts

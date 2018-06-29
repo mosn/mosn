@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"context"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"math/rand"
 )
@@ -35,16 +33,16 @@ func newRandomLoadbalancer(prioritySet types.PrioritySet) types.LoadBalancer {
 	}
 }
 
-func (l *randomLoadBalancer) ChooseHost(context context.Context) types.Host {
+func (l *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	hostSets := l.prioritySet.HostSetsByPriority()
 	idx := rand.Intn(len(hostSets))
 	hostset := hostSets[idx]
 
 	hosts := hostset.HealthyHosts()
-	logger := log.ByContext(context)
+	//logger := log.ByContext(context)
 
 	if len(hosts) == 0 {
-		logger.Debugf("Choose host failed, no health host found")
+	//	logger.Debugf("Choose host failed, no health host found")
 		return nil
 	}
 	hostIdx := rand.Intn(len(hosts))
@@ -68,7 +66,7 @@ func newRoundRobinLoadBalancer(prioritySet types.PrioritySet) types.LoadBalancer
 	}
 }
 
-func (l *roundRobinLoadBalancer) ChooseHost(context context.Context) types.Host {
+func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	var selectedHostSet []types.Host
 
 	hostSets := l.prioritySet.HostSetsByPriority()
@@ -84,8 +82,8 @@ func (l *roundRobinLoadBalancer) ChooseHost(context context.Context) types.Host 
 	}
 
 	if len(selectedHostSet) == 0 {
-		logger := log.ByContext(context)
-		logger.Debugf("Choose host in RoundRobin failed, no health host found")
+		//logger := log.ByContext(context)
+		//logger.Debugf("Choose host in RoundRobin failed, no health host found")
 		return nil
 	}
 

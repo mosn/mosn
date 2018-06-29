@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-
 func init() {
 	onProcessExit = append(onProcessExit, func() {
 		if pidFile != "" {
@@ -23,12 +22,12 @@ func init() {
 }
 
 // currently, only one server supported
-func GetServer () *server{
+func GetServer() *server {
 	if len(servers) == 0 {
 		log.DefaultLogger.Errorf("Server is nil and hasn't been initiated at this time")
 		return nil
 	}
-	
+
 	return servers[0]
 }
 
@@ -44,7 +43,7 @@ type server struct {
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
 	var logPath string
 	var logLevel log.LogLevel
-	procNum  := runtime.NumCPU()
+	procNum := runtime.NumCPU()
 
 	if config != nil {
 		logPath = config.LogPath
@@ -60,7 +59,6 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 			procNum = config.Processor
 		}
 	}
-
 
 	runtime.GOMAXPROCS(procNum)
 
@@ -82,51 +80,51 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 
 func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
 	if srv.ListenerInMap.Has(lc.Name) {
-		log.DefaultLogger.Warnf("Listen Already Started, Listen = %+v",lc)
+		log.DefaultLogger.Warnf("Listen Already Started, Listen = %+v", lc)
 	} else {
-		srv.ListenerInMap.Set(lc.Name,lc)
+		srv.ListenerInMap.Set(lc.Name, lc)
 		srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
 	}
 }
 
 func (srv *server) AddListenerAndStart(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) error{
+	streamFiltersFactories []types.StreamFilterChainFactory) error {
+
 	if srv.ListenerInMap.Has(lc.Name) {
-		log.DefaultLogger.Warnf("Listener Already Started, Listener Name = %+v",lc.Name)
+		log.DefaultLogger.Warnf("Listener Already Started, Listener Name = %+v", lc.Name)
 	} else {
-		
-		srv.ListenerInMap.Set(lc.Name,lc)
-		
-		
+		srv.ListenerInMap.Set(lc.Name, lc)
+		srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
+
 		listenerStopChan := make(chan bool)
-		
+
 		//use default listener path
 		if lc.LogPath == "" {
 			lc.LogPath = MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
 		}
-		
-		if ch, ok  := srv.handler.(*connHandler);!ok {
+
+		if ch, ok := srv.handler.(*connHandler); !ok {
 			log.DefaultLogger.Errorf("Add Listener Error")
 			return errors.New("Add Listener Error")
 		} else {
-			
+
 			logger, err := log.NewLogger(lc.LogPath, log.LogLevel(lc.LogLevel))
 			if err != nil {
-				
+
 				log.DefaultLogger.Errorf("initialize listener logger failed : %v", err)
 				return err
 			}
-			
+
 			//initialize access log
 			var als []types.AccessLog
-			
+
 			for _, alConfig := range lc.AccessLogs {
-				
+
 				//use default listener access log path
 				if alConfig.Path == "" {
 					alConfig.Path = MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
 				}
-				
+
 				if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
 					als = append(als, al)
 				} else {
@@ -134,19 +132,19 @@ func (srv *server) AddListenerAndStart(lc *v2.ListenerConfig, networkFiltersFact
 					return err
 				}
 			}
-			
+
 			l := network.NewListener(lc, logger)
-			
-			al := newActiveListener(l, logger, als, networkFiltersFactory, streamFiltersFactories,ch, listenerStopChan, lc.DisableConnIo)
+
+			al := newActiveListener(l, logger, als, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
 			l.SetListenerCallbacks(al)
-			
+
 			// start listener
 			go al.listener.Start(nil)
 		}
 	}
+	
 	return nil
 }
-
 
 func (srv *server) AddOrUpdateListener(lc v2.ListenerConfig) {
 	// TODO: support add listener or update existing listener

@@ -20,6 +20,7 @@ import (
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"golang.org/x/net/http2"
+	"crypto/tls"
 )
 
 func init() {
@@ -148,6 +149,14 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 			activeStreams: list.New(),
 		},
 		serverStreamConnCallbacks: callbacks,
+	}
+	if tlsConn, ok := ssc.rawConnection.(*tls.Conn); ok {
+
+		if err := tlsConn.Handshake(); err != nil {
+			logger := log.ByContext(context)
+			logger.Errorf("TLS handshake error from %s: %v", ssc.rawConnection.RemoteAddr(), err)
+			return nil
+		}
 	}
 
 	server.ServeConn(connection.RawConn(), &http2.ServeConnOpts{
