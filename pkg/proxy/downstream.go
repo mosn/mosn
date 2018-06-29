@@ -13,6 +13,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"net"
 )
 
 // types.StreamEventListener
@@ -200,13 +201,15 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	}
 
 	s.route = route
+
 	s.requestInfo.SetRouteEntry(route.RouteRule())
 
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
-	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
+	// active realize loadbalancer ctx
+	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(), s)
 
 	if err != nil {
 		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed")
@@ -361,7 +364,7 @@ func (s *activeStream) onPerTryTimeout() {
 	s.onUpstreamReset(UpstreamPerTryTimeout, types.StreamLocalReset)
 }
 
-func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (error, types.ConnectionPool) {
+func (s *activeStream) initializeUpstreamConnectionPool(clusterName string, lbCtx types.LoadBalancerContext) (error, types.ConnectionPool) {
 	clusterSnapshot := s.proxy.clusterManager.Get(clusterName, nil)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
@@ -391,11 +394,11 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string) (err
 	// todo: refactor
 	switch types.Protocol(s.proxy.config.UpstreamProtocol) {
 	case protocol.SofaRpc:
-		connPool = s.proxy.clusterManager.SofaRpcConnPoolForCluster(clusterName, nil)
+		connPool = s.proxy.clusterManager.SofaRpcConnPoolForCluster(clusterName, lbCtx)
 	case protocol.Http2:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, nil)
+		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, lbCtx)
 	default:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, nil)
+		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, lbCtx)
 	}
 
 	if connPool == nil {
@@ -576,7 +579,7 @@ func (s *activeStream) setupRetry(endStream bool) bool {
 }
 
 func (s *activeStream) doRetry() {
-	err, pool := s.initializeUpstreamConnectionPool(s.cluster.Name())
+	err, pool := s.initializeUpstreamConnectionPool(s.cluster.Name(), nil)
 
 	if err != nil {
 		return
@@ -687,4 +690,26 @@ func (s *activeStream) reset() {
 	s.watermarkCallbacks = nil
 	s.encoderFilters = s.encoderFilters[:0]
 	s.decoderFilters = s.decoderFilters[:0]
+}
+
+// types.LoadBalancerContext
+// no use currently
+func (s *activeStream) ComputeHashKey() types.HashedValue {
+	return [16]byte{}
+}
+
+func (s *activeStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
+	if nil != s.requestInfo.RouteEntry() {
+		return s.requestInfo.RouteEntry().MetadataMatchCriteria()
+	} else {
+		return nil
+	}
+}
+
+func (s *activeStream) DownstreamConnection() net.Conn {
+	return s.proxy.readCallbacks.Connection().RawConn()
+}
+
+func (s *activeStream) DownstreamHeaders() map[string]string {
+	return s.downstreamReqHeaders
 }

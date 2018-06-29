@@ -47,6 +47,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 			maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
 			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig),
+			lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
 		},
 		initHelper: initHelper,
 	}
@@ -114,6 +115,10 @@ func newClusterStats(config v2.Cluster) types.ClusterStats {
 		UpstreamRequestTimeout:                         metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_timeout"), nil),
 		UpstreamRequestFailureEject:                    metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_failure_eject"), nil),
 		UpstreamRequestPendingOverflow:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_pending_overflow"), nil),
+		LBSubSetsFallBack:                              metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubSetsFallBack"), nil),
+		LBSubSetsActive:                                metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubSetsActive"), nil),
+		LBSubsetsCreated:                               metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubsetsCreated"), nil),
+		LBSubsetsRemoved:                               metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubsetsRemoved"), nil),
 	}
 }
 
@@ -151,7 +156,8 @@ type clusterInfo struct {
 	addedViaApi          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
-	tlsMng                types.TLSContextManager
+	tlsMng               types.TLSContextManager
+	lbSubsetInfo         types.LBSubsetInfo
 }
 
 func NewClusterInfo() *clusterInfo {
@@ -212,6 +218,10 @@ func (ci *clusterInfo) ResourceManager() types.ResourceManager {
 
 func (ci *clusterInfo) TLSMng() types.TLSContextManager {
 	return ci.tlsMng
+}
+
+func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
+	return ci.lbSubsetInfo
 }
 
 type prioritySet struct {

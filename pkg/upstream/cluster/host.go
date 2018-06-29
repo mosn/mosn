@@ -21,7 +21,7 @@ type hostSet struct {
 	healthyHostsPerLocality [][]types.Host
 	mux                     sync.RWMutex
 	updateCallbacks         []types.MemberUpdateCallback
-	metdata                  v2.Metadata
+	metadata                v2.Metadata
 }
 
 func (hs *hostSet) Hosts() []types.Host {
@@ -187,8 +187,9 @@ type hostInfo struct {
 	canary        bool
 	clusterInfo   types.ClusterInfo
 	stats         types.HostStats
+	metaData      types.RouteMetaData
 
-	// TODO: metadata, locality, outlier, healthchecker
+	// TODO: locality, outlier, healthchecker
 }
 
 func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) hostInfo {
@@ -198,6 +199,7 @@ func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) h
 		hostname:      config.Hostname,
 		clusterInfo:   clusterInfo,
 		stats:         newHostStats(config),
+		metaData:      GenerateHostMeta(config.MetaData),
 	}
 }
 
@@ -209,8 +211,8 @@ func (hi *hostInfo) Canary() bool {
 	return hi.canary
 }
 
-func (hi *hostInfo) Metadata() v2.Metadata {
-	return v2.Metadata{}
+func (hi *hostInfo) Metadata() types.RouteMetaData {
+	return hi.metaData
 }
 
 func (hi *hostInfo) ClusterInfo() types.ClusterInfo {
@@ -235,4 +237,16 @@ func (hi *hostInfo) AddressString() string {
 
 func (hi *hostInfo) HostStats() types.HostStats {
 	return hi.stats
+}
+
+func GenerateHostMeta(metadata v2.Metadata) types.RouteMetaData {
+	rm := make(map[string]types.HashedValue, 1)
+
+	for k, v := range metadata {
+		if vs, ok := v.(string); ok {
+			rm[k] = types.GenerateHashedValue(vs)
+		}
+	}
+
+	return rm
 }

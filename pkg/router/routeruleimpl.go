@@ -14,17 +14,28 @@ import (
 )
 
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
-	return RouteRuleImplBase{
+	routeRuleImplBase := RouteRuleImplBase{
 		vHost:        vHost,
 		routerMatch:  route.Match,
 		routerAction: route.Route,
-		metaData:     route.Metadata,
 		policy: &routerPolicy{
 			retryOn:      false,
 			retryTimeout: 0,
 			numRetries:   0,
 		},
 	}
+	
+	// generate metadata match criteria from router's metadata
+	if len(route.Route.MetadataMatch) > 0 {
+		
+		envoyLBMetaData := GetEnvoyLBMetaData(route)
+		routeRuleImplBase.metadataMatchCriteria = NewMetadataMatchCriteriaImpl(envoyLBMetaData)
+		
+		routeRuleImplBase.metaData = GetClusterEnvoyLBMetaDataMap(route.Route.MetadataMatch)
+		
+	}
+
+	return routeRuleImplBase
 }
 
 // Base implementation for all route entries.
@@ -35,6 +46,7 @@ type RouteRuleImplBase struct {
 	includeVirtualHostRateLimit bool
 	corsPolicy                  types.CorsPolicy //todo
 	vHost                       *VirtualHostImpl
+
 	autoHostRewrite             bool
 	useWebSocket                bool
 	clusterName                 string //
@@ -47,25 +59,31 @@ type RouteRuleImplBase struct {
 	httpsRedirect               bool
 	retryPolicy                 *RetryPolicyImpl
 	rateLimitPolicy             *RateLimitPolicyImpl
-	routerAction                v2.RouteAction
-	routerMatch                 v2.RouterMatch
-	shadowPolicy                *ShadowPolicyImpl
-	priority                    types.ResourcePriority
-	configHeaders               []*types.HeaderData //
-	configQueryParameters       []types.QueryParameterMatcher
-	weightedClusters            []*WeightedClusterEntry
-	totalClusterWeight          uint64
-	hashPolicy                  HashPolicyImpl
-	metadataMatchCriteria       *MetadataMatchCriteriaImpl
-	requestHeadersParser        *HeaderParser
-	responseHeadersParser       *HeaderParser
-	metaData                    v2.Metadata
-	opaqueConfig                multimap.MultiMap
-	decorator                   *types.Decorator
-	directResponseCode          httpmosn.HttpCode
-	directResponseBody          string
-	policy                      *routerPolicy
-	virtualClusters             *VirtualClusterEntry
+
+	routerAction v2.RouteAction
+	routerMatch  v2.RouterMatch
+
+	shadowPolicy          *ShadowPolicyImpl
+	priority              types.ResourcePriority
+	configHeaders         []*types.HeaderData //
+	configQueryParameters []types.QueryParameterMatcher
+	weightedClusters      []*WeightedClusterEntry
+	totalClusterWeight    uint64
+	hashPolicy            HashPolicyImpl
+
+	metadataMatchCriteria *MetadataMatchCriteriaImpl
+	metaData              types.RouteMetaData
+
+	requestHeadersParser  *HeaderParser
+	responseHeadersParser *HeaderParser
+
+	opaqueConfig multimap.MultiMap
+
+	decorator          *types.Decorator
+	directResponseCode httpmosn.HttpCode
+	directResponseBody string
+	policy             *routerPolicy
+	virtualClusters    *VirtualClusterEntry
 }
 
 // types.RouterInfo
@@ -123,9 +141,12 @@ func (rri *RouteRuleImplBase) Policy() types.Policy {
 	return rri.policy
 }
 
-func (rri *RouteRuleImplBase) MetadataMatcher() types.MetadataMatcher {
+func (rri *RouteRuleImplBase) Metadata() types.RouteMetaData {
+	return rri.metaData
+}
 
-	return nil
+func (rri *RouteRuleImplBase) MetadataMatchCriteria() types.MetadataMatchCriteria {
+	return rri.metadataMatchCriteria
 }
 
 // todo
@@ -134,11 +155,9 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matc
 }
 
 func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue uint64) bool {
-
 	// todo check runtime
 	// 1. match headers' KV
 	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
-
 		return false
 	}
 
@@ -150,10 +169,8 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	}
 
 	if len(queryParams) == 0 {
-
 		return true
 	} else {
-
 		return ConfigUtilityInst.MatchQueryParams(&queryParams, rri.configQueryParameters)
 	}
 
@@ -214,11 +231,9 @@ func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint
 
 			if prri.caseSensitive {
 				if headerPathValue == prri.path {
-
 					return prri
 				}
 			} else if strings.EqualFold(headerPathValue, prri.path) {
-
 				return prri
 			}
 		}
@@ -286,14 +301,15 @@ func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
 }
 
 func (rrei *RegexRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
-
-	if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
-		if rrei.regexPattern.MatchString(headerPathValue) {
-
-			return rrei
+	if rrei.matchRoute(headers, randomValue) {
+		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
+			if rrei.regexPattern.MatchString(headerPathValue) {
+				
+				return rrei
+			}
 		}
 	}
-
+	
 	return nil
 }
 

@@ -96,7 +96,8 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 
 	if changed {
 		sc.hosts = finalHosts
+		// todo checkout healthy hosts
 		sc.prioritySet.GetOrCreateHostSet(0).UpdateHosts(sc.hosts,
-			nil, nil, nil, hostsAdded, hostsRemoved)
+			sc.hosts, nil, nil, hostsAdded, hostsRemoved)
 	}
 }

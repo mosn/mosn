@@ -118,7 +118,6 @@ type ClusterConfig struct {
 	Hosts                []v2.Host             `json:"hosts,omitempty"`        //v2.Host
 	LBSubsetConfig       v2.LBSubsetConfig
 	TLS                  TLSConfig             `json:"tls_context,omitempty"`
-
 }
 
 type CircuitBreakerdConfig struct {

@@ -68,12 +68,12 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 	return nil
 }
 
-/*
+// todo update router dynamically
 func (config *MOSNConfig) OnUpdateRoutes(route *pb.RouteConfiguration) error {
 	log.DefaultLogger.Infof("route: %+v\n", route)
 	return nil
 }
-*/
+
 
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	mosnClusters := convertClustersConfig(clusters)

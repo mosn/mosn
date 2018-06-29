@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-
 	"net"
+	"sort"
 )
 
 type ClusterManager interface {
@@ -20,11 +20,11 @@ type ClusterManager interface {
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
-	HttpConnPoolForCluster(cluster string, protocol Protocol, context context.Context) ConnectionPool
+	HttpConnPoolForCluster(cluster string, protocol Protocol, balancerContext LoadBalancerContext) ConnectionPool
 
-	TcpConnForCluster(cluster string, context context.Context) CreateConnectionData
+	TcpConnForCluster(cluster string, balancerContext LoadBalancerContext) CreateConnectionData
 
-	SofaRpcConnPoolForCluster(cluster string, context context.Context) ConnectionPool
+	SofaRpcConnPoolForCluster(cluster string, balancerContext LoadBalancerContext) ConnectionPool
 
 	RemovePrimaryCluster(cluster string) bool
 
@@ -65,12 +65,14 @@ type Cluster interface {
 type InitializePhase string
 
 const (
+	
 	Primary   InitializePhase = "Primary"
 	Secondary InitializePhase = "Secondary"
 )
 
 type MemberUpdateCallback func(priority uint32, hostsAdded []Host, hostsRemoved []Host)
 
+//  PrioritySet contains all of the HostSets for a given cluster grouped by priority
 type PrioritySet interface {
 	GetOrCreateHostSet(priority uint32) HostSet
 
@@ -78,6 +80,8 @@ type PrioritySet interface {
 
 	HostSetsByPriority() []HostSet
 }
+
+type HostPredicate func(Host) bool
 
 type HostSet interface {
 	Hosts() []Host
@@ -136,7 +140,7 @@ type HostInfo interface {
 
 	Canary() bool
 
-	Metadata() v2.Metadata
+	Metadata() RouteMetaData
 
 	ClusterInfo() ClusterInfo
 
@@ -203,7 +207,9 @@ type ClusterInfo interface {
 
 	ResourceManager() ResourceManager
 
-        TLSMng() TLSContextManager
+	TLSMng() TLSContextManager
+
+	LbSubsetInfo() LBSubsetInfo
 }
 
 type ResourceManager interface {
@@ -248,6 +254,10 @@ type ClusterStats struct {
 	UpstreamRequestTimeout                         metrics.Counter
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
+	LBSubSetsFallBack                              metrics.Counter
+	LBSubSetsActive                                metrics.Counter
+	LBSubsetsCreated                               metrics.Counter
+	LBSubsetsRemoved                               metrics.Counter
 }
 
 type CreateConnectionData struct {
@@ -258,17 +268,6 @@ type CreateConnectionData struct {
 // a simple in mem cluster
 type SimpleCluster interface {
 	UpdateHosts(newHosts []Host)
-}
-
-type LoadBalancerType string
-
-const (
-	RoundRobin LoadBalancerType = "RoundRobin"
-	Random     LoadBalancerType = "Random"
-)
-
-type LoadBalancer interface {
-	ChooseHost(context context.Context) Host
 }
 
 type ClusterConfigFactoryCb interface {
@@ -288,65 +287,81 @@ type RegisterUpstreamUpdateMethodCb interface {
 	GetClusterNameByServiceName(serviceName string) string
 }
 
-// SubSetLoadBalancer
-type SubSetLoadBalancer interface {
-	// Find a host from the subsets, context is LoadBalancerContext
-	TryChooseHostFromContext(context *context.Context, hostChosen *bool)
-	
-	HostMatchesDefaultSubset(host Host) bool
-	
-	HostMatches(kvs *SubsetMetadata, host *Host) bool
-	
-	// Iterates over the given metadata match criteria (which must be lexically sorted by key) and find
-	// a matching LbSubsetEnryPtr, if any.
-	FindSubset(matches []MetadataMatchEntry)*LBSubsetEntry
-	
-	// Given a vector of key-values (from extractSubsetMetadata), recursively finds the matching
-	// LbSubsetEntryPtr.
-	FindOrCreateSubset(subsets *LbSubsetMap, kvs *SubsetMetadata, idx uint32)
-	
-	// Iterates over subset_keys looking up values from the given host's metadata. Each key-value pair
-	// is appended to kvs. Returns a non-empty value if the host has a value for each key.
-	ExtractSubsetMetadata(subsetKeys []string, host Host)
-	
-	//extractSubsetMetadata2(subsetKeys []string, host Host)
+type LBSubsetInfo interface {
+	IsEnabled() bool
+
+	FallbackPolicy() FallBackPolicy
+
+	DefaultSubset() SortedMap
+
+	SubsetKeys() []SortedStringSetType
 }
 
-type FallBackPolicy uint8
-
-const (
-	NoFallBack FallBackPolicy = 0
-	AnyEndPoint FallBackPolicy = 1
-	DefaultSubsetDefaultSubset FallBackPolicy = 2
-)
-
-// Forms a trie-like structure. Route Metadata requires lexically sorted
-type LbSubsetMap struct {
-	lbSubsetMap  map[string]ValueSubsetMap
+// realize a sorted string set
+type SortedStringSetType struct {
+	keys []string
 }
 
-//
-type ValueSubsetMap struct {
-	valueSubsetMap    map[interface{}]*LBSubsetEntry
+func InitSet(input []string) SortedStringSetType {
+	var ssst SortedStringSetType
+	var keys []string
+
+	for _, keyInput := range input {
+		exsit := false
+
+		for _, keyIn := range keys {
+			if keyIn == keyInput {
+				exsit = true
+				break
+			}
+		}
+
+		if !exsit {
+			keys = append(keys, keyInput)
+		}
+	}
+	ssst.keys = keys
+	sort.Sort(&ssst)
+
+	return ssst
 }
 
-type LBSubsetEntry struct {
-	children       LbSubsetMap
-	prioritySubset HostSet
+func (ss *SortedStringSetType) Keys() []string {
+	return ss.keys
 }
 
-type SubsetMetadata struct {
-	subsetMatadata  []Pair
+func (ss *SortedStringSetType) Len() int {
+	return len(ss.keys)
 }
 
-type Pair struct {
-	T1   string
-	T2   interface {}
+func (ss *SortedStringSetType) Less(i, j int) bool {
+	return ss.keys[i] < ss.keys[j]
 }
 
-type ResourcePriority uint8
+func (ss *SortedStringSetType) Swap(i, j int) {
+	ss.keys[i], ss.keys[j] = ss.keys[j], ss.keys[i]
+}
 
-const (
-	Default ResourcePriority = 0
-	High ResourcePriority = 1
-)
+type SortedMap struct {
+	Content map[string]string
+}
+
+func InitSortedMap(input map[string]string) SortedMap {
+	var keyset []string
+	var smap = make(map[string]string,len(input))
+	
+	for k,_ := range input {
+		
+		keyset = append(keyset,k)
+	}
+	
+	sort.Strings(keyset)
+	
+	for _, key := range keyset {
+		smap[key] = input[key]
+	}
+	
+	return SortedMap{
+		smap,
+	}
+}

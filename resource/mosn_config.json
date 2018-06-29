@@ -168,6 +168,8 @@
                               "MetadataMatch": {
                                 "filter_metadata": {
                                   "envoy.lb": {
+                                    "version":"1.1",
+                                    "stage":"pre-release",
                                     "label": "gray"
                                   }
                                 }
@@ -243,7 +245,9 @@
                               "MetadataMatch": {
                                 "filter_metadata": {
                                   "envoy.lb": {
-                                    "label": "gray"
+                                    "label": "gray",
+                                    "version":"1.1",
+                                    "stage":"pre-release"
                                   }
                                 }
                               }
@@ -318,15 +322,28 @@
             "Hostname": "downstream_machine1",
             "Weight": 1,
             "MetaData": {
-              "label": "gray",
-              "stage": "1"
+              "stage": "pre-release",
+              "version": "1.1",
+              "label": "gray"
             }
           }
         ],
         "LBSubsetConfig": {
-          "FallBackPolicy": 0,
-          "DefaultSubset": null,
-          "SubsetSelectors": null
+          "FallBackPolicy": 2,
+          "DefaultSubset": {
+            "stage": "pre-release",
+            "version": "1.1",
+            "label": "gray"
+          },
+          "SubsetSelectors": [
+            [
+               "stage", "type"
+            ],
+            [
+              "stage", "label","version"
+            ],
+            ["version"]
+          ]
         }
       }
     ]

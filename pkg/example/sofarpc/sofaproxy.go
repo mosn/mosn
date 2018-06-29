@@ -51,6 +51,10 @@ func genericProxyConfig() *v2.Proxy {
 		Value:"com.alipay.rpc.common.service.facade.SampleService:1.0",
 	}
 	
+	var envoyvalue = map[string]interface{} {"stage":"pre-release","version":"1.1","label": "gray"}
+	
+	var value = map[string]interface{}{"envoy.lb":envoyvalue}
+	
 	routerV2 := v2.Router{
 		Match:v2.RouterMatch{
 			Headers:[]v2.HeaderMatcher{header},
@@ -58,6 +62,9 @@ func genericProxyConfig() *v2.Proxy {
 		
 		Route:v2.RouteAction{
 			ClusterName:TestClusterRPC,
+			MetadataMatch:v2.Metadata{
+				"filter_metadata":value,
+			},
 		},
 	}
 	
@@ -66,7 +73,7 @@ func genericProxyConfig() *v2.Proxy {
 		Domains:  []string{"*"},
 		Routers:  []v2.Router{routerV2},
 	})
-
+	
 	return proxyConfig
 }
 
