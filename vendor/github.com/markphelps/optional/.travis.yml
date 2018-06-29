@@ -1,0 +1,6 @@
+language: go
+go: "1.10"
+
+install: true
+before_script: make setup
+script: make ci
