@@ -533,6 +533,7 @@ func (s *activeStream) onUpstreamResponseRecvDone() {
 
 func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
 	// todo: update stats
+	log.StartLogger.Debugf("on upstream reset invoked")
 
 	// see if we need a retry
 	if urtype != UpstreamGlobalTimeout &&
@@ -545,6 +546,12 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 			s.perRetryTimer = s.retryState.scheduleRetry(s.doRetry)
 			return
 		}
+	}
+
+	if reason == types.StreamOverflow {
+		log.StartLogger.Debugf("on upstream reset reason %v",types.StreamOverflow)
+		s.resetStream()
+		return
 	}
 
 	// If we have not yet sent anything downstream, send a response with an appropriate status code.

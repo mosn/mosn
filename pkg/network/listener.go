@@ -150,7 +150,7 @@ func (l *listener) accept(lctx context.Context) error {
 			rawc = l.tlsMng.Conn(rawc)
 		}
 
-		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections)
+		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections,nil)
 	}()
 
 	return nil
