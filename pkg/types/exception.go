@@ -5,6 +5,7 @@ const (
 	HeaderMethod        = "x-mosn-method"
 	HeaderHost          = "x-mosn-host"
 	HeaderPath          = "x-mosn-path"
+	HeaderQueryString   = "x-mosn-querystring"
 	HeaderStreamID      = "x-mosn-streamid"
 	HeaderGlobalTimeout = "global-timeout"
 	HeaderTryTimeout    = "try-timeout"

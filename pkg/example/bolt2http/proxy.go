@@ -25,9 +25,9 @@ import (
 )
 
 const (
-	RealServerAddr = "127.0.0.1:8088"
+	RealServerAddr  = "127.0.0.1:8088"
 	RealServerAddr2 = "127.0.0.1:9099"
-	
+
 	MeshServerAddr = "127.0.0.1:2045"
 	TestCluster    = "tstCluster"
 	TestListener   = "tstListener"
@@ -239,7 +239,7 @@ func rpchosts() []v2.Host {
 			"label":   "gray",
 		},
 	})
-	
+
 	hosts = append(hosts, v2.Host{
 		Address: RealServerAddr2,
 		Weight:  100,
@@ -267,24 +267,21 @@ func clustersrpc() []v2.Cluster {
 	var configs []v2.Cluster
 	var lbsubsetconfig = v2.LBSubsetConfig{
 
-		FallBackPolicy:  2,
-		DefaultSubset:   map[string]string{
-			"stage": "pre-release",
+		FallBackPolicy: 2,
+		DefaultSubset: map[string]string{
+			"stage":   "pre-release",
 			"version": "1.1",
-			"label": "gray",
+			"label":   "gray",
 		},
 		SubsetSelectors: [][]string{{"stage", "type"},
-		{"stage", "label","version"},
-		{"version"}},
+			{"stage", "label", "version"},
+			{"version"}},
 	}
-	
-	
+
 	/*
 				"stage":   "pre-release",
 			"version": "1.1",
 			"label":   "gray",*/
-			
-			
 			
 	configs = append(configs, v2.Cluster{
 		Name:                 TestCluster,

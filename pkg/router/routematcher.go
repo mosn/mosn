@@ -5,13 +5,14 @@ import (
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 func init() {
 	RegisteRouterConfigFactory(protocol.SofaRpc, NewRouteMatcher)
 	RegisteRouterConfigFactory(protocol.Http2, NewRouteMatcher)
+	RegisteRouterConfigFactory(protocol.Http1, NewRouteMatcher)
 }
 
 func NewRouteMatcher(config interface{}) (types.Routers, error) {
@@ -77,7 +78,7 @@ func (rm *RouteMatcher) findVirtualHost(headers map[string]string) types.Virtual
 		return rm.defaultVirtualHost
 	}
 
-	host := strings.ToLower(headers[protocol.MosnHeaderHostKey])
+	host := strings.ToLower(headers[types.HeaderHost])
 
 	// for service, header["host"] == header["service"] == servicename
 	// or use only a unique key for sofa's virtual host
@@ -97,7 +98,7 @@ func (rm *RouteMatcher) findVirtualHost(headers map[string]string) types.Virtual
 
 // Rule: longest wildcard suffix match against the host
 func (rm *RouteMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
-	
+
 	// e.g. foo-bar.baz.com will match *-bar.baz.com
 	for wildcardLen, wildcardMap := range rm.wildcardVirtualHostSuffixes {
 		if wildcardLen >= len(host) {
