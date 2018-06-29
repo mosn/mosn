@@ -68,6 +68,7 @@ func (rm *RouteMatcher) Route(headers map[string]string, randomValue uint64) typ
 
 	if virtualHost == nil {
 		log.DefaultLogger.Warnf("No VirtualHost Found when Routing, But Use Default Virtual Host, Request Headers = %+v", headers)
+		return nil
 	}
 
 	// Second Step: Match Route from Routes in a Virtual Host
