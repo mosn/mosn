@@ -29,7 +29,6 @@ AUTHOR{{with $length := len .Authors}}{{if ne 1 $length}}S{{end}}{{end}}:
    {{end}}{{$author}}{{end}}{{end}}{{if .VisibleCommands}}
 
 COMMANDS:{{range .VisibleCategories}}{{if .Name}}
-
    {{.Name}}:{{end}}{{range .VisibleCommands}}
      {{join .Names ", "}}{{"\t"}}{{.Usage}}{{end}}{{end}}{{end}}{{if .VisibleFlags}}
 
@@ -158,14 +157,8 @@ func DefaultAppComplete(c *Context) {
 		if command.Hidden {
 			continue
 		}
-		if os.Getenv("_CLI_ZSH_AUTOCOMPLETE_HACK") == "1" {
-			for _, name := range command.Names() {
-				fmt.Fprintf(c.App.Writer, "%s:%s\n", name, command.Usage)
-			}
-		} else {
-			for _, name := range command.Names() {
-				fmt.Fprintf(c.App.Writer, "%s\n", name)
-			}
+		for _, name := range command.Names() {
+			fmt.Fprintln(c.App.Writer, name)
 		}
 	}
 }

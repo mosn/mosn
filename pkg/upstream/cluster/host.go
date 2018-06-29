@@ -21,6 +21,7 @@ type hostSet struct {
 	healthyHostsPerLocality [][]types.Host
 	mux                     sync.RWMutex
 	updateCallbacks         []types.MemberUpdateCallback
+	metadata                v2.Metadata
 }
 
 func (hs *hostSet) Hosts() []types.Host {
@@ -121,8 +122,8 @@ func newHostStats(config v2.Host) types.HostStats {
 
 func (h *host) CreateConnection(context context.Context) types.CreateConnectionData {
 	logger := log.ByContext(context)
-
-	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), h.address, nil, logger)
+	
+	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), h.clusterInfo.TLSMng(), h.address, nil, logger)
 	clientConn.SetBufferLimit(h.clusterInfo.ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
@@ -191,8 +192,9 @@ type hostInfo struct {
 	canary        bool
 	clusterInfo   types.ClusterInfo
 	stats         types.HostStats
+	metaData      types.RouteMetaData
 
-	// TODO: metadata, locality, outlier, healthchecker
+	// TODO: locality, outlier, healthchecker
 }
 
 func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) hostInfo {
@@ -202,6 +204,7 @@ func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) h
 		hostname:      config.Hostname,
 		clusterInfo:   clusterInfo,
 		stats:         newHostStats(config),
+		metaData:      GenerateHostMeta(config.MetaData),
 	}
 }
 
@@ -213,8 +216,8 @@ func (hi *hostInfo) Canary() bool {
 	return hi.canary
 }
 
-func (hi *hostInfo) Metadata() v2.Metadata {
-	return v2.Metadata{}
+func (hi *hostInfo) Metadata() types.RouteMetaData {
+	return hi.metaData
 }
 
 func (hi *hostInfo) ClusterInfo() types.ClusterInfo {
@@ -239,4 +242,16 @@ func (hi *hostInfo) AddressString() string {
 
 func (hi *hostInfo) HostStats() types.HostStats {
 	return hi.stats
+}
+
+func GenerateHostMeta(metadata v2.Metadata) types.RouteMetaData {
+	rm := make(map[string]types.HashedValue, 1)
+
+	for k, v := range metadata {
+		if vs, ok := v.(string); ok {
+			rm[k] = types.GenerateHashedValue(vs)
+		}
+	}
+
+	return rm
 }

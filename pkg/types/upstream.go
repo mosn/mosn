@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-
 	"net"
+	"sort"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -28,11 +28,11 @@ type ClusterManager interface {
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
-	HttpConnPoolForCluster(cluster string, protocol Protocol, context context.Context) ConnectionPool
+	HttpConnPoolForCluster(cluster string, protocol Protocol, balancerContext LoadBalancerContext) ConnectionPool
 
-	TcpConnForCluster(cluster string, context context.Context) CreateConnectionData
+	TcpConnForCluster(cluster string, balancerContext LoadBalancerContext) CreateConnectionData
 
-	SofaRpcConnPoolForCluster(cluster string, context context.Context) ConnectionPool
+	SofaRpcConnPoolForCluster(cluster string, balancerContext LoadBalancerContext) ConnectionPool
 
 	RemovePrimaryCluster(cluster string) bool
 
@@ -80,6 +80,7 @@ type Cluster interface {
 type InitializePhase string
 
 const (
+	
 	Primary   InitializePhase = "Primary"
 	Secondary InitializePhase = "Secondary"
 )
@@ -96,6 +97,8 @@ type PrioritySet interface {
 
 	HostSetsByPriority() []HostSet
 }
+
+type HostPredicate func(Host) bool
 
 // HostSet is as set of hosts that contains all of the endpoints for a given
 // LocalityLbEndpoints priority level.
@@ -162,7 +165,7 @@ type HostInfo interface {
 
 	Canary() bool
 
-	Metadata() v2.Metadata
+	Metadata() RouteMetaData
 
 	ClusterInfo() ClusterInfo
 
@@ -223,7 +226,7 @@ type ClusterInfo interface {
 
 	MaintenanceMode() bool
 
-	MaxRequestsPerConn() uint64
+	MaxRequestsPerConn() uint32
 
 	Stats() ClusterStats
 
@@ -231,6 +234,11 @@ type ClusterInfo interface {
 	
 	// protocol used for health checking for this cluster
 	HealthCheckProtocol() string
+	
+	TLSMng() TLSContextManager
+
+	LbSubsetInfo() LBSubsetInfo
+
 }
 
 type ResourceManager interface {
@@ -275,6 +283,10 @@ type ClusterStats struct {
 	UpstreamRequestTimeout                         metrics.Counter
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
+	LBSubSetsFallBack                              metrics.Counter
+	LBSubSetsActive                                metrics.Counter
+	LBSubsetsCreated                               metrics.Counter
+	LBSubsetsRemoved                               metrics.Counter
 }
 
 type CreateConnectionData struct {
@@ -285,17 +297,6 @@ type CreateConnectionData struct {
 // a simple in mem cluster
 type SimpleCluster interface {
 	UpdateHosts(newHosts []Host)
-}
-
-type LoadBalancerType string
-
-const (
-	RoundRobin LoadBalancerType = "RoundRobin"
-	Random     LoadBalancerType = "Random"
-)
-
-type LoadBalancer interface {
-	ChooseHost(context context.Context) Host
 }
 
 type ClusterConfigFactoryCb interface {
@@ -313,4 +314,83 @@ type ClusterManagerFilter interface {
 type RegisterUpstreamUpdateMethodCb interface {
 	TriggerClusterUpdate(clusterName string, hosts []v2.Host)
 	GetClusterNameByServiceName(serviceName string) string
+}
+
+type LBSubsetInfo interface {
+	IsEnabled() bool
+
+	FallbackPolicy() FallBackPolicy
+
+	DefaultSubset() SortedMap
+
+	SubsetKeys() []SortedStringSetType
+}
+
+// realize a sorted string set
+type SortedStringSetType struct {
+	keys []string
+}
+
+func InitSet(input []string) SortedStringSetType {
+	var ssst SortedStringSetType
+	var keys []string
+
+	for _, keyInput := range input {
+		exsit := false
+
+		for _, keyIn := range keys {
+			if keyIn == keyInput {
+				exsit = true
+				break
+			}
+		}
+
+		if !exsit {
+			keys = append(keys, keyInput)
+		}
+	}
+	ssst.keys = keys
+	sort.Sort(&ssst)
+
+	return ssst
+}
+
+func (ss *SortedStringSetType) Keys() []string {
+	return ss.keys
+}
+
+func (ss *SortedStringSetType) Len() int {
+	return len(ss.keys)
+}
+
+func (ss *SortedStringSetType) Less(i, j int) bool {
+	return ss.keys[i] < ss.keys[j]
+}
+
+func (ss *SortedStringSetType) Swap(i, j int) {
+	ss.keys[i], ss.keys[j] = ss.keys[j], ss.keys[i]
+}
+
+type SortedMap struct {
+	Content map[string]string
+}
+
+func InitSortedMap(input map[string]string) SortedMap {
+	var keyset []string
+	var smap = make(map[string]string,len(input))
+	
+	for k,_ := range input {
+		
+		keyset = append(keyset,k)
+	}
+	
+	sort.Strings(keyset)
+	
+	for _, key := range keyset {
+		smap[key] = input[key]
+	}
+	
+	return SortedMap{
+		smap,
+	}
 }

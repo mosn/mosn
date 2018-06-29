@@ -109,7 +109,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofar
 	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.ClassLen))
 	offset += 2
 
-	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.HeaderLen))
+	binary.BigEndian.PutUint16(data[offset:], uint16(len(cmd.HeaderMap)))
 	offset += 2
 
 	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ContentLen))
@@ -119,7 +119,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofar
 		data = append(data, cmd.ClassName...)
 	}
 
-	if cmd.HeaderLen > 0 {
+	if len(cmd.HeaderMap) > 0 {
 		data = append(data, cmd.HeaderMap...)
 	}
 	
@@ -159,7 +159,7 @@ func (c *boltV1Codec) doEncodeResponseCommand(context context.Context, cmd *sofa
 	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.ClassLen))
 	offset += 2
 
-	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.HeaderLen))
+	binary.BigEndian.PutUint16(data[offset:], uint16(len(cmd.HeaderMap)))
 	offset += 2
 
 	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ContentLen))
@@ -169,7 +169,7 @@ func (c *boltV1Codec) doEncodeResponseCommand(context context.Context, cmd *sofa
 		data = append(data, cmd.ClassName...)
 	}
 
-	if cmd.HeaderLen > 0 {
+	if len(cmd.HeaderMap) > 0 {
 		data = append(data, cmd.HeaderMap...)
 	}
 

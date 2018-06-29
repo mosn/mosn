@@ -24,7 +24,7 @@ func TestStartSofaHeartBeat(t *testing.T) {
 	log.DefaultLogger.Debugf("wait 15 seconds")
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", confregServer)
 	stopChan := make(chan bool,1)
-	conn := network.NewClientConnection(nil, remoteAddr, stopChan, log.DefaultLogger)
+	conn := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
 	codecClient := stream.NewBiDirectCodeClient(nil, protocol.SofaRpc, conn, nil, nil)
 	
 	err := conn.Connect(true)

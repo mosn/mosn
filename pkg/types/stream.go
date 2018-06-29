@@ -386,11 +386,6 @@ type ConnectionPool interface {
 		responseDecoder StreamDecoder, cb PoolEventListener) Cancellable
 
 	Close()
-	
-	// Used to init active client for conn pool
-	InitActiveClient(context context.Context) error
-	// Used to get host of the conn pool
-	Host() Host
 }
 
 type PoolEventListener interface {

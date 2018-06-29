@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"crypto/tls"
 	"io"
 	"net"
 
@@ -91,6 +90,12 @@ type Listener interface {
 
 	// Close listener, not closing connections
 	Close(lctx context.Context) error
+}
+
+// TLS ContextManager
+type TLSContextManager interface {
+	Conn(c net.Conn) net.Conn
+	Enabled() bool
 }
 
 // Callbacks invoked by a listener.
@@ -304,7 +309,7 @@ type Connection interface {
 	ReadEnabled() bool
 
 	// Returns a related tls connection
-	Ssl() *tls.Conn
+	TLS() net.Conn
 
 	// Set buffer limit
 	SetBufferLimit(limit uint32)

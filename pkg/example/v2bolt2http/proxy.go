@@ -75,9 +75,13 @@ func main() {
 	go func() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
+<<<<<<< HEAD
 		cm := cluster.NewClusterManager(nil,nil,nil,false,false)
+=======
+		cm := cluster.NewClusterManager(nil, nil, nil, false)
+>>>>>>> 4d74bf6684b9c900238238efa492633e70083731
 		//RPC
-		srv := server.NewServer(&server.Config{}, cmf,cm)
+		srv := server.NewServer(&server.Config{}, cmf, cm)
 
 		srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
@@ -100,7 +104,7 @@ func main() {
 		case <-meshReadyChan:
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
-			cc := network.NewClientConnection(nil, remoteAddr, stopChan, log.DefaultLogger)
+			cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
 			cc.AddConnectionEventListener(&rpclientConnCallbacks{ //ADD  connection callback
 				cc: cc,
 			})
@@ -157,11 +161,36 @@ func genericProxyConfig() *v2.Proxy {
 		UpstreamProtocol:   string(protocol.Http2),
 	}
 
-	proxyConfig.Routes = append(proxyConfig.Routes, &v2.BasicServiceRoute{
-		Name:    "tstSofRpcRouter",
-		Service: "com.alipay.demo.SampleService:1.0",
-		Cluster: TestCluster,
+	//proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, &v2.BasicServiceRoute{
+	//	Name:    "tstSofRpcRouter",
+	//	Service: "com.alipay.demo.SampleService:1.0",
+	//	Cluster: TestCluster,
+	//}
+	
+	
+	header := v2.HeaderMatcher{
+		Name:"service",
+		Value:"com.alipay.demo.SampleService:1.0",
+	}
+	
+	routerV2 := v2.Router{
+		Match:v2.RouterMatch{
+			Headers:[]v2.HeaderMatcher{header},
+		},
+		
+		Route:v2.RouteAction{
+			ClusterName:TestCluster,
+		},
+	}
+	
+	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
+		Name:    "testSofaRoute",
+		Domains:  []string{"*"},
+		Routers:  []v2.Router{routerV2},
 	})
+	
+	
+	
 
 	return proxyConfig
 }
@@ -203,11 +232,12 @@ func (cmf *clusterManagerFilterRPC) OnCreated(cccb types.ClusterConfigFactoryCb,
 func clustersrpc() []v2.Cluster {
 	var configs []v2.Cluster
 	configs = append(configs, v2.Cluster{
-		Name:                 TestCluster,
-		ClusterType:          v2.SIMPLE_CLUSTER,
-		LbType:               v2.LB_RANDOM,
-		MaxRequestPerConn:    1024,
+		Name:              TestCluster,
+		ClusterType:       v2.SIMPLE_CLUSTER,
+		LbType:            v2.LB_RANDOM,
+		MaxRequestPerConn: 1024,
 		ConnBufferLimitBytes: 32 * 1024,
+		CirBreThresholds:  v2.CircuitBreakers{},
 	})
 
 	return configs

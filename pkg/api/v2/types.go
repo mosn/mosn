@@ -5,8 +5,14 @@ import (
 	"time"
 )
 
-type Metadata struct {
-}
+type Metadata map[string]interface{}
+
+const (
+	DEFAULT_NETWORK_FILTER  = "proxy"
+	SOFARPC_INBOUND_FILTER = "inbound_bolt"
+	SOFARPC_OUTBOUND_FILTER = "outbound_bolt"
+	X_PROXY = "x_proxy"
+)
 
 const (
 	MaxRequestsPerConn  uint64 = 10000
@@ -40,16 +46,55 @@ type Cluster struct {
 	ClusterType          ClusterType
 	SubClusterType       SubClusterType
 	LbType               LbType
-	MaxRequestPerConn    uint64
+	MaxRequestPerConn    uint32
 	ConnBufferLimitBytes uint32
+	CirBreThresholds     CircuitBreakers
+	OutlierDetection     OutlierDetection
 	HealthCheck          HealthCheck
 	Spec                 ClusterSpecInfo
+	LBSubSetConfig       LBSubsetConfig
+	TLS                  TLSConfig
+	Hosts                []Host
 }
+
+type CircuitBreakers struct {
+	Thresholds []Thresholds
+}
+
+type Thresholds struct {
+	Priority           RoutingPriority
+	MaxConnections     uint32
+	MaxPendingRequests uint32
+	MaxRequests        uint32
+	MaxRetries         uint32
+}
+
+type OutlierDetection struct {
+	Consecutive_5Xx                    uint32
+	Interval                           time.Duration
+	BaseEjectionTime                   time.Duration
+	MaxEjectionPercent                 uint32
+	ConsecutiveGatewayFailure          uint32
+	EnforcingConsecutive5xx            uint32
+	EnforcingConsecutiveGatewayFailure uint32
+	EnforcingSuccessRate               uint32
+	SuccessRateMinimumHosts            uint32
+	SuccessRateRequestVolume           uint32
+	SuccessRateStdevFactor             uint32
+}
+
+type RoutingPriority string
+
+const (
+	DEFAULT RoutingPriority = "DEFAULT"
+	HIGH    RoutingPriority = "HIGH"
+)
 
 type Host struct {
 	Address  string
 	Hostname string
 	Weight   uint32
+	MetaData Metadata
 }
 
 type ListenerConfig struct {
@@ -60,24 +105,36 @@ type ListenerConfig struct {
 	BindToPort                            bool
 	PerConnBufferLimitBytes               uint32
 	HandOffRestoredDestinationConnections bool
-
-	// used in inherit case
-	InheritListener *net.TCPListener
-	Remain          bool
-
-	// log
-	LogPath    string
-	LogLevel   uint8
-	AccessLogs []AccessLog
-
-	// only used in http2 case
-	DisableConnIo bool
+	InheritListener                       *net.TCPListener // used in inherit case
+	Remain                                bool
+	LogPath                               string // log
+	LogLevel                              uint8
+	AccessLogs                            []AccessLog
+	DisableConnIo                         bool          // only used in http2 case
+	FilterChains                          []FilterChain // FilterChains
 }
 
 type AccessLog struct {
 	Path   string
 	Format string
 	// todo: add log filters
+}
+
+type TLSConfig struct {
+	Status       bool
+	Inspector    bool
+	ServerName   string
+	CACert       string
+	CertChain    string
+	PrivateKey   string
+	VerifyClient bool
+	VerifyServer bool
+	CipherSuites string
+	EcdhCurves   string
+	MinVersion   string
+	MaxVersion   string
+	ALPN         string
+	Ticket       string
 }
 
 type TcpRoute struct {
@@ -110,7 +167,9 @@ type Proxy struct {
 	DownstreamProtocol  string
 	UpstreamProtocol    string
 	SupportDynamicRoute bool
-	Routes              []*BasicServiceRoute
+	BasicRoutes         []*BasicServiceRoute
+	VirtualHosts        []*VirtualHost
+	ValidateClusters    bool
 }
 
 type BasicServiceRoute struct {
@@ -124,7 +183,7 @@ type BasicServiceRoute struct {
 type RetryPolicy struct {
 	RetryOn      bool
 	RetryTimeout time.Duration
-	NumRetries   int
+	NumRetries   uint32
 }
 
 type HealthCheck struct {
@@ -174,4 +233,91 @@ type PublishInfo struct {
 type PublishContent struct {
 	ServiceName string
 	PubData     string
+}
+
+type LBSubsetConfig struct {
+	FallBackPolicy  uint8             // NoFallBack,...
+	DefaultSubset   map[string]string // {e1,e2,e3}
+	SubsetSelectors [][]string        // {{keys,},}, used to create subsets of hosts, pre-computing, sorted
+}
+
+type FilterChain struct {
+	FilterChainMatch string
+	TLS              TLSConfig
+	Filters          []Filter
+}
+
+type Filter struct {
+	Name   string
+	Config map[string]interface{}
+}
+
+type VirtualHost struct {
+	Name            string
+	Domains         []string
+	Routers         []Router
+	RequireTls      string
+	VirtualClusters []VirtualCluster
+}
+
+type Router struct {
+	Match     RouterMatch
+	Route     RouteAction
+	Redirect  RedirectAction
+	Metadata  Metadata
+	Decorator Decorator
+}
+
+type Decorator string
+
+type RedirectAction struct {
+	HostRedirect string
+	PathRedirect string
+	ResponseCode uint32
+}
+
+type RouterMatch struct {
+	Prefix        string
+	Path          string
+	Regex         string
+	CaseSensitive bool
+	Runtime       RuntimeUInt32
+	Headers       []HeaderMatcher
+}
+
+type RouteAction struct {
+	ClusterName      string
+	ClusterHeader    string // used for http only
+	WeightedClusters []WeightedCluster
+	MetadataMatch    Metadata
+	Timeout          time.Duration
+	RetryPolicy      *RetryPolicy
+}
+
+type WeightedCluster struct {
+	Clusters         ClusterWeight
+	RuntimeKeyPrefix string // not used currently
+}
+
+type ClusterWeight struct {
+	Name          string
+	Weight        uint32
+	MetadataMatch Metadata
+}
+
+type RuntimeUInt32 struct {
+	DefaultValue uint32
+	RuntimeKey   string
+}
+
+type HeaderMatcher struct {
+	Name  string
+	Value string
+	Regex bool
+}
+
+type VirtualCluster struct {
+	Pattern string
+	Name    string
+	Method  string // http.Request.Method
 }

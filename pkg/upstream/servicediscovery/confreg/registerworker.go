@@ -114,7 +114,7 @@ func (rw *registerWorker) newCodecClient(confregServer string) error {
 	rw.connectedConfregServer = confregServer
 
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", confregServer)
-	conn := network.NewClientConnection(nil, remoteAddr, rw.connStopChan, log.DefaultLogger)
+	conn := network.NewClientConnection(nil, nil, remoteAddr, rw.connStopChan, log.DefaultLogger)
 	receiveDataListener := NewReceiveDataListener(rw.rpcServerManager)
 	codecClient := stream.NewBiDirectCodeClient(nil, protocol.SofaRpc, conn, nil, receiveDataListener)
 

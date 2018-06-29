@@ -2,7 +2,6 @@ package network
 
 import (
 	"context"
-	"crypto/tls"
 	"io"
 	"net"
 	"runtime"
@@ -40,6 +39,7 @@ type connection struct {
 	aboveHighWatermark   bool
 	bufferLimit          uint32
 	rawConnection        net.Conn
+	tlsMng               types.TLSContextManager
 	closeWithFlush       bool
 	connCallbacks        []types.ConnectionEventListener
 	bytesReadCallbacks   []func(bytesRead uint64)
@@ -165,7 +165,7 @@ func (c *connection) startReadLoop() {
 				if atomic.LoadUint32(&c.closed) > 0 {
 					return
 				}
-				
+
 				if err != nil {
 					if err == io.EOF {
 						c.Close(types.NoFlush, types.RemoteClose)
@@ -175,6 +175,7 @@ func (c *connection) startReadLoop() {
 					}
 					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
 						c.id,c.RemoteAddr().String(), err)
+
 					return
 				}
 			} else {
@@ -313,6 +314,9 @@ func (c *connection) startWriteLoop() {
 				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
 					c.id,c.RemoteAddr().String(), err)
 
+				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
+					c.id, c.RemoteAddr().String(), err)
+
 				return
 			}
 		}
@@ -390,20 +394,24 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if !atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
 		return nil
 	}
-	
+
+
 	if c.rawConnection == nil {
 		return nil
 	}
-	
+
 	// shutdown read first
-	c.logger.Debugf("Close TCP Conn, Remote Address is = %s, eventType is = %s", c.rawConnection.(*net.TCPConn).RemoteAddr(),eventType)
-	c.rawConnection.(*net.TCPConn).CloseRead()
+	if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
+		c.logger.Debugf("Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
+		rawc.CloseRead()
+	}
 
 	if ccType == types.FlushWrite {
 		if c.writeBufLen() > 0 {
 			c.closeWithFlush = true
 
 			for {
+
 				bytesSent, err := c.doWrite()
 
 				if err != nil {
@@ -428,6 +436,10 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
 	
+	for i, cb := range c.connCallbacks {
+		c.logger.Debugf("Conn Close CB, index = %d, cb = %+v", i, cb)
+	}
+	
 	for _, cb := range c.connCallbacks {
 		go cb.OnEvent(eventType)
 	}
@@ -449,11 +461,12 @@ func (c *connection) AddConnectionEventListener(cb types.ConnectionEventListener
 	for _, ccb := range c.connCallbacks {
 		if &ccb == &cb {
 			exist = true
-			c.logger.Debugf("AddConnectionEventListener Failed, %+v Already Exist",cb)
+			c.logger.Debugf("AddConnectionEventListener Failed, %+v Already Exist", cb)
 		}
 	}
 
 	if !exist {
+		c.logger.Debugf("AddConnectionEventListener Success, cb = %+v", cb)
 		c.connCallbacks = append(c.connCallbacks, cb)
 	}
 }
@@ -493,7 +506,8 @@ func (c *connection) NextProtocol() string {
 
 func (c *connection) SetNoDelay(enable bool) {
 	if c.rawConnection != nil {
-		if rawc,ok := c.rawConnection.(*net.TCPConn);ok {
+
+		if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
 			rawc.SetNoDelay(enable)
 		}
 	}
@@ -523,7 +537,7 @@ func (c *connection) ReadEnabled() bool {
 	return c.readEnabled
 }
 
-func (c *connection) Ssl() *tls.Conn {
+func (c *connection) TLS() net.Conn {
 	return nil
 }
 
@@ -583,7 +597,7 @@ type clientConnection struct {
 	connectOnce sync.Once
 }
 
-func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan bool, logger log.Logger) types.ClientConnection {
+func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan bool, logger log.Logger) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{
@@ -605,6 +619,7 @@ func NewClientConnection(sourceAddr net.Addr, remoteAddr net.Addr, stopChan chan
 				WriteCurrent: metrics.NewGauge(),
 			},
 			logger: logger,
+			tlsMng:  tlsMng,
 		},
 	}
 
@@ -638,6 +653,10 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 		} else {
 			event = types.Connected
+
+			if cc.tlsMng != nil && cc.tlsMng.Enabled() {
+				cc.rawConnection = cc.tlsMng.Conn(cc.rawConnection)
+			}
 
 			if ioEnabled {
 				cc.Start(nil)

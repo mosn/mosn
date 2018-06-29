@@ -4,6 +4,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
+	"errors"
 )
 
 var ClusterAdap ClusterAdapter
@@ -13,7 +14,7 @@ type ClusterAdapter struct {
 }
 
 // Called by registry module to update cluster's host info
-func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) {
+func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) error {
 	clusterExist := ca.clusterMng.ClusterExist(clusterName)
 
 	if !clusterExist {
@@ -33,13 +34,16 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 
 			ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
 		} else {
-			log.DefaultLogger.Errorf("cluster doesn't support auto discovery ")
-			return
+			msg := "cluster doesn't support auto discovery "
+			log.DefaultLogger.Errorf(msg)
+			return errors.New(msg)
 		}
 	}
 
 	log.DefaultLogger.Debugf("triggering cluster update, cluster name = %s hosts = %+v",clusterName, hosts)
 	ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
+	
+	return nil
 }
 
 // Called when mesh receive subscribe info

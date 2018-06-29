@@ -103,6 +103,7 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 		if sc.healthChecker != nil {
 			sc.healthChecker.OnClusterMemberUpdate(hostsAdded,hostsRemoved)
 		}
+
 	}
 	
 	if len(sc.hosts) == 0 {

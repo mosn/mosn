@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
@@ -52,7 +53,8 @@ var (
 	}
 
 	lbTypeMap = map[string]v2.LbType{
-		"LB_RANDOM": v2.LB_RANDOM,
+		"LB_RANDOM":     v2.LB_RANDOM,
+		"LB_ROUNDROBIN": v2.LB_ROUNDROBIN,
 	}
 )
 
@@ -79,9 +81,84 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 	return sc
 }
 
-func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
+func ParseProxyFilterJson(c *v2.Filter) *v2.Proxy {
+
 	proxyConfig := &v2.Proxy{}
-	
+
+	if data, err := json.Marshal(c.Config); err == nil {
+		json.Unmarshal(data, &proxyConfig)
+	} else {
+		log.StartLogger.Fatal("Parsing Proxy Network Fitler Error")
+	}
+
+	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
+		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Fitler")
+	}
+
+	if !proxyConfig.SupportDynamicRoute {
+		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
+	}
+
+	if len(proxyConfig.VirtualHosts) == 0 {
+		log.StartLogger.Warnf("No VirtualHosts Founded")
+
+	} else {
+
+		for _, vh := range proxyConfig.VirtualHosts {
+
+			if len(vh.Routers) == 0 {
+				log.StartLogger.Warnf("No Router Founded in VirtualHosts")
+			}
+		}
+	}
+
+	proxyConfig.BasicRoutes = ParseBasicFilter(proxyConfig)
+
+	return proxyConfig
+}
+
+func GetServiceFromHeader(router *v2.Router) *v2.BasicServiceRoute {
+
+	if router == nil {
+		return nil
+	}
+
+	var ServiceName, ClusterName string
+
+	for _, h := range router.Match.Headers {
+		if h.Name == "service" || h.Name == "Service" {
+			ServiceName = h.Value
+		}
+	}
+
+	ClusterName = router.Route.ClusterName
+
+	if ServiceName == "" || ClusterName == "" {
+		return nil
+	}
+
+	return &v2.BasicServiceRoute{
+		Service: ServiceName,
+		Cluster: ClusterName,
+	}
+}
+
+func ParseBasicFilter(proxy *v2.Proxy) []*v2.BasicServiceRoute {
+
+	var BSR []*v2.BasicServiceRoute
+
+	for _, p := range proxy.VirtualHosts {
+
+		for _, r := range p.Routers {
+			BSR = append(BSR, GetServiceFromHeader(&r))
+		}
+	}
+	return BSR
+}
+
+func ParseProxyFilter(c *v2.Filter) *v2.Proxy {
+	proxyConfig := &v2.Proxy{}
+
 	//downstream protocol
 	//TODO config(json object) extract and type convert util
 	if downstreamProtocol, ok := c.Config["downstream_protocol"]; ok {
@@ -93,7 +170,7 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	} else {
 		log.StartLogger.Fatalln("[downstream_protocol] is required in proxy filter config")
 	}
-	
+
 	//upstream protocol
 	if upstreamProtocol, ok := c.Config["upstream_protocol"]; ok {
 		if upstreamProtocol, ok := upstreamProtocol.(string); ok {
@@ -120,7 +197,7 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	if routes, ok := c.Config["routes"]; ok {
 		if routes, ok := routes.([]interface{}); ok {
 			for _, route := range routes {
-				proxyConfig.Routes = append(proxyConfig.Routes, parseRouteConfig(route.(map[string]interface{})))
+				proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, parseRouteConfig(route.(map[string]interface{})))
 			}
 		} else {
 			log.StartLogger.Fatalln("[routes] in proxy filter config is not list of routemap")
@@ -128,21 +205,72 @@ func ParseProxyFilter(c *FilterConfig) *v2.Proxy {
 	} else {
 		log.StartLogger.Fatalln("[routes] is required in proxy filter config")
 	}
-	
+
 	return proxyConfig
 }
 
 func ParseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
 	var logs []v2.AccessLog
-	
+
 	for _, logConfig := range c {
 		logs = append(logs, v2.AccessLog{
 			Path:   logConfig.LogPath,
 			Format: logConfig.LogFormat,
 		})
 	}
-	
+
 	return logs
+}
+
+func ParseFilterChains(c []FilterChain) []v2.FilterChain {
+	var filterchains []v2.FilterChain
+
+	for _, fc := range c {
+		filters := make([]v2.Filter, 0)
+		for _, f := range fc.Filters {
+			filters = append(filters, v2.Filter{
+				Name:   f.Type,
+				Config: f.Config,
+			})
+		}
+
+		filterchains = append(filterchains, v2.FilterChain{
+			FilterChainMatch: fc.FilterChainMatch,
+			TLS:              ParseTLSConfig(&fc.TLS),
+			Filters:          filters,
+		})
+	}
+
+	return filterchains
+}
+
+func ParseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
+	if tlsconfig.Status == false {
+		return v2.TLSConfig{
+			Status: false,
+		}
+	}
+
+	if (tlsconfig.VerifyClient || tlsconfig.VerifyServer) && tlsconfig.CACert == "" {
+		log.StartLogger.Fatalln("[CaCert] is required in TLS config")
+	}
+
+	return v2.TLSConfig{
+		Status:       tlsconfig.Status,
+		Inspector:    tlsconfig.Inspector,
+		ServerName:   tlsconfig.ServerName,
+		CACert:       tlsconfig.CACert,
+		CertChain:    tlsconfig.CertChain,
+		PrivateKey:   tlsconfig.PrivateKey,
+		VerifyClient: tlsconfig.VerifyClient,
+		VerifyServer: tlsconfig.VerifyServer,
+		CipherSuites: tlsconfig.CipherSuites,
+		EcdhCurves:   tlsconfig.EcdhCurves,
+		MinVersion:   tlsconfig.MinVersion,
+		MaxVersion:   tlsconfig.MaxVersion,
+		ALPN:         tlsconfig.ALPN,
+		Ticket:       tlsconfig.Ticket,
+	}
 }
 
 func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
@@ -219,7 +347,7 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 
 func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter {
 	healthcheck := &v2.HealthCheckFilter{}
-	
+
 	//passthrough
 	if passthrough, ok := config["passthrough"]; ok {
 		if passthrough, ok := passthrough.(bool); ok {
@@ -246,7 +374,7 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 		log.StartLogger.Fatalln("[cache_time] is required in healthcheck filter config")
 	}
 
-	//cluster_min_healthy_percentages
+	//cluster_min_healthy_percentagesp
 	if clusterMinHealthyPercentage, ok := config["cluster_min_healthy_percentages"]; ok {
 		if clusterMinHealthyPercentage, ok := clusterMinHealthyPercentage.(map[string]interface{}); ok {
 			healthcheck.ClusterMinHealthyPercentage = make(map[string]float32)
@@ -271,7 +399,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		log.StartLogger.Fatalln("[Address] is required in listener config")
 	}
 	addr, err := net.ResolveTCPAddr("tcp", c.Address)
-	
+
 	if err != nil {
 		log.StartLogger.Fatalln("[Address] not valid:" + c.Address)
 	}
@@ -298,6 +426,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		LogLevel:                uint8(ParseLogLevel(c.LogLevel)),
 		AccessLogs:              ParseAccessConfig(c.AccessLogs),
 		DisableConnIo:           c.DisableConnIo,
+		FilterChains:            ParseFilterChains(c.FilterChains),
 	}
 }
 
@@ -310,10 +439,10 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		if c.Name == "" {
 			log.StartLogger.Fatalln("[name] is required in cluster config")
 		}
-		
+
 		var clusterType v2.ClusterType
 		var subclusterType v2.SubClusterType
-		
+
 		//cluster type
 		if c.Type == "" {
 			log.StartLogger.Fatalln("[type] is required in cluster config")
@@ -331,9 +460,9 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 				log.StartLogger.Fatalln("unknown cluster type:", c.Type)
 			}
 		}
-		
+
 		var lbType v2.LbType
-		
+
 		if c.LbType == "" {
 			log.StartLogger.Fatalln("[lb_type] is required in cluster config")
 		} else {
@@ -346,16 +475,24 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 
 		if c.MaxRequestPerConn == 0 {
 			c.MaxRequestPerConn = 1024
-			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d", c.MaxRequestPerConn)
+			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d", 1024)
 		}
 
 		if c.ConnBufferLimitBytes == 0 {
 			c.ConnBufferLimitBytes = 16 * 1026
-			log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value %d", c.ConnBufferLimitBytes)
+			log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value %d", 1024*16)
 		}
 
 		//clusterSpec := c.ClusterSpecConfig.(ClusterSpecConfig)
 		clusterSpec := c.ClusterSpecConfig
+		
+		// checkout LBSubsetConfig
+		if c.LBSubsetConfig.FallBackPolicy > 2 {
+			log.StartLogger.Panic("lb subset config 's fall back policy set error. " +
+				"For 0, represent NO_FALLBACK"+
+				"For 1, reprenst ANY_ENDPOINT" +
+				"For 2, reprenst DEFAULT_SUBSET")
+		}
 
 		//v2.Cluster
 		clusterV2 := v2.Cluster{
@@ -365,8 +502,13 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			LbType:               lbType,
 			MaxRequestPerConn:    c.MaxRequestPerConn,
 			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
+
 			HealthCheck:          ParseClusterHealthCheckConf(&c.HealthCheck),
+			CirBreThresholds:     ParseCircuitBreakers(c.CircuitBreakers),
+
 			Spec:                 ParseConfigSpecConfig(&clusterSpec),
+			LBSubSetConfig:       c.LBSubsetConfig,
+			TLS:                  ParseTLSConfig(&c.TLS),
 		}
 		
 		clustersV2 = append(clustersV2, clusterV2)
@@ -384,18 +526,44 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 	return clustersV2, clusterV2Map
 }
 
-func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck{
+
+func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
 	
 	return v2.HealthCheck{
-		Protocol:c.Protocol,
-		Timeout:c.Timeout.Duration,
-		Interval:c.Interval.Duration,
-		IntervalJitter:c.IntervalJitter.Duration,
-		HealthyThreshold:c.HealthyThreshold,
-		UnhealthyThreshold:c.UnhealthyThreshold,
-		CheckPath:c.CheckPath,
-		ServiceName:c.ServiceName,
+		Protocol:           c.Protocol,
+		Timeout:            c.Timeout.Duration,
+		Interval:           c.Interval.Duration,
+		IntervalJitter:     c.IntervalJitter.Duration,
+		HealthyThreshold:   c.HealthyThreshold,
+		UnhealthyThreshold: c.UnhealthyThreshold,
+		CheckPath:          c.CheckPath,
+		ServiceName:        c.ServiceName,
 	}
+}
+
+func ParseCircuitBreakers(cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
+	var cb v2.CircuitBreakers
+	var rp v2.RoutingPriority
+
+	for _, cbc := range cbcs {
+		if strings.ToLower(cbc.Priority) == "default" {
+			rp = v2.DEFAULT
+		} else {
+			rp = v2.HIGH
+		}
+
+		threshold := v2.Thresholds{
+			Priority:           rp,
+			MaxConnections:     cbc.MaxConnections,
+			MaxPendingRequests: cbc.MaxPendingRequests,
+			MaxRequests:        cbc.MaxRequests,
+			MaxRetries:         cbc.MaxRetries,
+		}
+
+		cb.Thresholds = append(cb.Thresholds, threshold)
+	}
+
+	return cb
 }
 
 func ParseConfigSpecConfig(c *ClusterSpecConfig) v2.ClusterSpecInfo {
@@ -420,16 +588,12 @@ func ParseHostConfig(c *ClusterConfig) []v2.Host {
 	var hosts []v2.Host
 
 	for _, host := range c.Hosts {
-		hostV2 := host
-		if hostV2.Address == "" {
+		
+		if host.Address == "" {
 			log.StartLogger.Fatalln("[host.address] is required in host config")
 		}
 
-		hosts = append(hosts, v2.Host{
-			Hostname: hostV2.Hostname,
-			Address:  hostV2.Address,
-			Weight:   hostV2.Weight,
-		})
+		hosts = append(hosts,host)
 	}
 
 	return hosts
@@ -439,7 +603,7 @@ func ParseServiceRegistry(src ServiceRegistryConfig) {
 	var SrvRegInfo v2.ServiceRegistryInfo
 
 	if src.ServiceAppInfo.AppName == "" {
-		log.StartLogger.Debugf("[ParseServiceRegistry] appname is nil")
+		//log.StartLogger.Debugf("[ParseServiceRegistry] appname is nil")
 	}
 
 	srvappinfo := v2.ApplicationInfo{

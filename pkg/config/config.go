@@ -16,6 +16,12 @@ import (
 var ConfigPath string
 var config MOSNConfig
 
+type FilterChain struct {
+	FilterChainMatch string       `json:"match,omitempty"`
+	TLS              TLSConfig    `json:"tls_context,omitempty"`
+	Filters          []FilterConfig `json:"filters"`
+}
+
 type FilterConfig struct {
 	Type   string                 `json:"type,omitempty"`
 	Config map[string]interface{} `json:"config,omitempty"`
@@ -30,7 +36,7 @@ type ListenerConfig struct {
 	Name           string         `json:"name,omitempty"`
 	Address        string         `json:"address,omitempty"`
 	BindToPort     bool           `json:"bind_port"`
-	NetworkFilters []FilterConfig `json:"network_filters,service_registry"`
+	FilterChains   []FilterChain  `json:"filter_chains"`
 	StreamFilters  []FilterConfig `json:"stream_filters,omitempty"`
 
 	//logger
@@ -42,6 +48,23 @@ type ListenerConfig struct {
 
 	// only used in http2 case
 	DisableConnIo bool `json:"disable_conn_io"`
+}
+
+type TLSConfig struct {
+	Status       bool   `json:"status,omitempty"`
+	Inspector    bool   `json:"inspector,omitempty"`
+	ServerName   string `json:"server_name,omitempty"`
+	CACert       string `json:"cacert,omitempty"`
+	CertChain    string `json:"certchain,omitempty"`
+	PrivateKey   string `json:"privatekey,omitempty"`
+	VerifyClient bool   `json:"verifyclient,omitempty"`
+	VerifyServer bool   `json:"verifyserver,omitempty"`
+	CipherSuites string `json:"ciphersuites,omitempty"`
+	EcdhCurves   string `json:"ecdhcurves,omitempty"`
+	MinVersion   string `json:"minversion,omitempty"`
+	MaxVersion   string `json:"maxversion,omitempty"`
+	ALPN         string `json:"alpn,omitempty"`
+	Ticket       string `json:"ticket,omitempty"`
 }
 
 type ServerConfig struct {
@@ -86,13 +109,24 @@ type SubscribeSpecConfig struct {
 type ClusterConfig struct {
 	Name                 string
 	Type                 string
-	SubType              string                   `json:"sub_type"`
-	LbType               string                   `json:"lb_type"`
-	MaxRequestPerConn    uint64                   `json:"max_request_per_conn"`
-	ConnBufferLimitBytes uint32                   `json:"conn_buffer_limit_bytes"`
-	HealthCheck          ClusterHealthCheckConfig `json:"health_check,omitempty"` //v2.HealthCheck
-	ClusterSpecConfig    ClusterSpecConfig        `json:"spec,omitempty"`         //	ClusterSpecConfig
-	Hosts                []v2.Host                `json:"hosts,omitempty"`        //v2.Host
+	SubType              string `json:"sub_type"`
+	LbType               string `json:"lb_type"`
+	MaxRequestPerConn    uint32
+	ConnBufferLimitBytes uint32
+	CircuitBreakers      []*CircuitBreakerdConfig `json:"circuit_breakers"`
+	HealthCheck          ClusterHealthCheckConfig        `json:"health_check,omitempty"` //v2.HealthCheck
+	ClusterSpecConfig    ClusterSpecConfig     `json:"spec,omitempty"`         //	ClusterSpecConfig
+	Hosts                []v2.Host             `json:"hosts,omitempty"`        //v2.Host
+	LBSubsetConfig       v2.LBSubsetConfig
+	TLS                  TLSConfig             `json:"tls_context,omitempty"`
+}
+
+type CircuitBreakerdConfig struct {
+	Priority           string  `json:"priority"`
+	MaxConnections     uint32  `json:"max_connections"`
+	MaxPendingRequests uint32  `json:"max_pending_requests"`
+	MaxRequests        uint32  `json:"max_requests"`
+	MaxRetries         uint32  `json:"max_retries"`
 }
 
 type ClusterManagerConfig struct {
@@ -124,6 +158,8 @@ type MOSNConfig struct {
 	ClusterManager  ClusterManagerConfig  `json:"cluster_manager,omitempty"` //cluster config
 	ServiceRegistry ServiceRegistryConfig `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
+	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
+	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 }
 
 //wrapper for time.Duration, so time config can be written in '300ms' or '1h' format
@@ -151,6 +187,10 @@ func Load(path string) *MOSNConfig {
 	// todo delete
 	//ConfigPath = "../../resource/mosn_config_dump_result.json"
 
-	json.Unmarshal(content, &config)
+	err = json.Unmarshal(content, &config)
+	if err != nil {
+		log.Fatalln("json unmarshal config failed, ", err)
+		os.Exit(1)
+	}
 	return &config
 }

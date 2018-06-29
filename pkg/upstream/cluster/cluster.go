@@ -7,8 +7,10 @@ import (
 
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/tls"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // Cluster
@@ -53,9 +55,10 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 			clusterType:          clusterConfig.ClusterType,
 			sourceAddr:           sourceAddr,
 			addedViaApi:          addedViaApi,
+			maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
 			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig),
-			healthCheckProtocol:  clusterConfig.HealthCheck.Protocol,
+			lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
 		},
 		initHelper: initHelper,
 	}
@@ -76,6 +79,8 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 	cluster.prioritySet.AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 		// TODO: update cluster stats
 	})
+
+	cluster.info.tlsMng = tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 
 	return cluster
 }
@@ -121,6 +126,10 @@ func newClusterStats(config v2.Cluster) types.ClusterStats {
 		UpstreamRequestTimeout:                         metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_timeout"), nil),
 		UpstreamRequestFailureEject:                    metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_failure_eject"), nil),
 		UpstreamRequestPendingOverflow:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_pending_overflow"), nil),
+		LBSubSetsFallBack:                              metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubSetsFallBack"), nil),
+		LBSubSetsActive:                                metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubSetsActive"), nil),
+		LBSubsetsCreated:                               metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubsetsCreated"), nil),
+		LBSubsetsRemoved:                               metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubsetsRemoved"), nil),
 	}
 }
 
@@ -190,11 +199,15 @@ type clusterInfo struct {
 	connectTimeout       int
 	connBufferLimitBytes uint32
 	features             int
-	maxRequestsPerConn   uint64
+	maxRequestsPerConn   uint32
 	addedViaApi          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
+
 	healthCheckProtocol  string
+
+	tlsMng               types.TLSContextManager
+	lbSubsetInfo         types.LBSubsetInfo
 }
 
 func NewClusterInfo() *clusterInfo {
@@ -241,7 +254,7 @@ func (ci *clusterInfo) MaintenanceMode() bool {
 	return false
 }
 
-func (ci *clusterInfo) MaxRequestsPerConn() uint64 {
+func (ci *clusterInfo) MaxRequestsPerConn() uint32 {
 	return ci.maxRequestsPerConn
 }
 
@@ -253,8 +266,18 @@ func (ci *clusterInfo) ResourceManager() types.ResourceManager {
 	return ci.resourceManager
 }
 
+
 func (ci *clusterInfo) HealthCheckProtocol() string {
 	return ci.healthCheckProtocol
+}
+
+func (ci *clusterInfo) TLSMng() types.TLSContextManager {
+	return ci.tlsMng
+}
+
+func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
+	return ci.lbSubsetInfo
+	
 }
 
 type prioritySet struct {

@@ -115,12 +115,13 @@ func AddSubInfo(subInfo []string) bool {
 
 		subServiceList = append(subServiceList, si)
 		v2Cluster := v2.Cluster{
-			Name:                 si,
-			ClusterType:          v2.DYNAMIC_CLUSTER,
-			SubClusterType:       v2.CONFREG_CLUSTER,
-			LbType:               v2.LB_RANDOM,
-			MaxRequestPerConn:    v2.MaxRequestsPerConn,
-			ConnBufferLimitBytes: v2.ConnBufferLimitByte,
+			Name:              si,
+			ClusterType:       v2.DYNAMIC_CLUSTER,
+			SubClusterType:    v2.CONFREG_CLUSTER,
+			LbType:            v2.LB_RANDOM,
+			MaxRequestPerConn: 1024,
+			ConnBufferLimitBytes: 32 * 1024,
+			CirBreThresholds:  v2.CircuitBreakers{},
 			Spec: v2.ClusterSpecInfo{
 				Subscribes: []v2.SubscribeSpec{
 					v2.SubscribeSpec{
@@ -207,7 +208,7 @@ func OnClusterInfoParsed(data interface{}, endParsed bool) error {
 
 	if endParsed {
 		configParseReady = true
-		RecoverRegistryModule()
+		//RecoverRegistryModule()
 	}
 	return nil
 }
@@ -235,7 +236,7 @@ func OnServiceRegistryInfoParsed(data interface{}, endParsed bool) error {
 
 	if endParsed {
 		configParseReady = true
-		RecoverRegistryModule()
+		//RecoverRegistryModule()
 	}
 	return nil
 }

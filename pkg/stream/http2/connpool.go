@@ -31,6 +31,7 @@ func (p *connPool) Host() types.Host {
 	return p.host
 }
 
+
 func (p *connPool) InitActiveClient(context context.Context) error{
 	return nil
 }

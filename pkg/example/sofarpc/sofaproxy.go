@@ -44,13 +44,36 @@ func genericProxyConfig() *v2.Proxy {
 		DownstreamProtocol: string(protocol.SofaRpc),
 		UpstreamProtocol:   string(protocol.SofaRpc),
 	}
-
-	proxyConfig.Routes = append(proxyConfig.Routes, &v2.BasicServiceRoute{
-		Name:    "tstSofRpcRouter",
-		Service: ".*",
-		Cluster: TestClusterRPC,
+	
+	
+	header := v2.HeaderMatcher{
+		Name:"service",
+		Value:"com.alipay.rpc.common.service.facade.SampleService:1.0",
+	}
+	
+	var envoyvalue = map[string]interface{} {"stage":"pre-release","version":"1.1","label": "gray"}
+	
+	var value = map[string]interface{}{"mosn.lb":envoyvalue}
+	
+	routerV2 := v2.Router{
+		Match:v2.RouterMatch{
+			Headers:[]v2.HeaderMatcher{header},
+		},
+		
+		Route:v2.RouteAction{
+			ClusterName:TestClusterRPC,
+			MetadataMatch:v2.Metadata{
+				"filter_metadata":value,
+			},
+		},
+	}
+	
+	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
+		Name:    "testSofaRoute",
+		Domains:  []string{"*"},
+		Routers:  []v2.Router{routerV2},
 	})
-
+	
 	return proxyConfig
 }
 
@@ -91,11 +114,11 @@ func (cmf *clusterManagerFilterRPC) OnCreated(cccb types.ClusterConfigFactoryCb,
 func clustersrpc() []v2.Cluster {
 	var configs []v2.Cluster
 	configs = append(configs, v2.Cluster{
-		Name:                 TestClusterRPC,
-		ClusterType:          v2.SIMPLE_CLUSTER,
-		LbType:               v2.LB_RANDOM,
-		MaxRequestPerConn:    1024,
-		ConnBufferLimitBytes: 16 * 1026,
+		Name:              TestClusterRPC,
+		ClusterType:       v2.SIMPLE_CLUSTER,
+		MaxRequestPerConn: 1024,
+		ConnBufferLimitBytes: 32 * 1024,
+		CirBreThresholds:  v2.CircuitBreakers{},
 	})
 
 	return configs
@@ -211,9 +234,13 @@ func Run() {
 		case <-upstreamReadyChan:
 			//  mesh
 			cmf := &clusterManagerFilterRPC{}
+<<<<<<< HEAD
 			cm := cluster.NewClusterManager(nil,nil,nil,false,false)
+=======
+			cm := cluster.NewClusterManager(nil, nil, nil, false)
+>>>>>>> 4d74bf6684b9c900238238efa492633e70083731
 			//RPC
-			srv := server.NewServer(nil, cmf,cm)
+			srv := server.NewServer(nil, cmf, cm)
 
 			srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
 				Proxy: genericProxyConfig(),
@@ -237,7 +264,7 @@ func Run() {
 		case <-meshReadyChan:
 			// client
 			remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshRPCServerAddr)
-			cc := network.NewClientConnection(nil, remoteAddr, stopChan, log.DefaultLogger)
+			cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
 			cc.AddConnectionEventListener(&rpclientConnCallbacks{ //ADD  connection callback
 				cc: cc,
 			})

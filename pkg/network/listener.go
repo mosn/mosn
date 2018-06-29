@@ -10,6 +10,7 @@ import (
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/tls"
 )
 
 // listener impl based on golang net package
@@ -23,6 +24,7 @@ type listener struct {
 	cb                                    types.ListenerEventListener
 	rawl                                  *net.TCPListener
 	logger                                log.Logger
+	tlsMng                                types.TLSContextManager
 }
 
 func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
@@ -34,13 +36,15 @@ func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 		listenerTag:                           lc.ListenerTag,
 		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
 		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
-		logger: logger,
+		logger:         logger,
 	}
 
 	if lc.InheritListener != nil {
 		//inherit old process's listener
 		l.rawl = lc.InheritListener
 	}
+
+    l.tlsMng = tls.NewTLSServerContextManager(lc.FilterChains, l, logger)
 
 	return l
 }
@@ -54,16 +58,17 @@ func (l *listener) Addr() net.Addr {
 }
 
 func (l *listener) Start(lctx context.Context) {
-	//call listen if not inherit
-	if l.rawl == nil {
-		if err := l.listen(lctx); err != nil {
-			// TODO: notify listener callbacks
-			log.StartLogger.Fatalln(l.name, " listen failed, ", err)
-			return
-		}
-	}
 
 	if l.bindToPort {
+		//call listen if not inherit
+		if l.rawl == nil {
+			if err := l.listen(lctx); err != nil {
+				// TODO: notify listener callbacks
+				log.StartLogger.Fatalln(l.name, " listen failed, ", err)
+				return
+			}
+		}
+		
 		for {
 			if err := l.accept(lctx); err != nil {
 				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
@@ -95,7 +100,7 @@ func (l *listener) ListenerFD() (uintptr, error) {
 		l.logger.Errorf(" listener %s fd not found : %v", l.name, err)
 		return 0, err
 	}
-	defer  file.Close()
+	defer file.Close()
 	return file.Fd(), nil
 }
 
@@ -141,6 +146,10 @@ func (l *listener) accept(lctx context.Context) error {
 				debug.PrintStack()
 			}
 		}()
+
+		if l.tlsMng != nil && l.tlsMng.Enabled() {
+			rawc = l.tlsMng.Conn(rawc)
+		}
 
 		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections)
 	}()
