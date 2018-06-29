@@ -189,7 +189,7 @@ func genericProxyConfig() *v2.Proxy {
 
 	var envoyvalue = map[string]interface{}{"stage": "pre-release", "version": "1.1", "label": "gray"}
 
-	var value = map[string]interface{}{"envoy.lb": envoyvalue}
+	var value = map[string]interface{}{"mosn.lb": envoyvalue}
 
 	routerV2 := v2.Router{
 		Match: v2.RouterMatch{

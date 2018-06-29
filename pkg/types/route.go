@@ -17,7 +17,7 @@ const (
 	DefaultRouteTimeout               = 15 * time.Second
 	SofaRouteMatchKey                 = "service"
 	RouterMatadataKey                 = "filter_metadata"
-	RouterMetadataKeyLb               = "envoy.lb"
+	RouterMetadataKeyLb               = "mosn.lb"
 )
 
 // change RouterConfig -> Routers to manage all routers

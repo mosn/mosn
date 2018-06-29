@@ -46,7 +46,7 @@ func TestGetEnvoyLBMetaData(t *testing.T) {
 	
 	var envoyvalue = map[string]interface{} {"label": "gray","stage":"pre-release"}
 	
-	var value = map[string]interface{}{"envoy.lb":envoyvalue}
+	var value = map[string]interface{}{"mosn.lb":envoyvalue}
 	
 	routerV2 := v2.Router{
 		Match:v2.RouterMatch{
@@ -82,8 +82,8 @@ func TestGetEnvoyLBMetaData(t *testing.T) {
 	
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetEnvoyLBMetaData(tt.args.route); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetEnvoyLBMetaData() = %v, want %v", got, tt.want)
+			if got := GetMosnLBMetaData(tt.args.route); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetMosnLBMetaData() = %v, want %v", got, tt.want)
 			}
 		})
 	}

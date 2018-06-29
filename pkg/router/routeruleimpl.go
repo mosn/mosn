@@ -28,10 +28,10 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImp
 	// generate metadata match criteria from router's metadata
 	if len(route.Route.MetadataMatch) > 0 {
 		
-		envoyLBMetaData := GetEnvoyLBMetaData(route)
+		envoyLBMetaData := GetMosnLBMetaData(route)
 		routeRuleImplBase.metadataMatchCriteria = NewMetadataMatchCriteriaImpl(envoyLBMetaData)
 		
-		routeRuleImplBase.metaData = GetClusterEnvoyLBMetaDataMap(route.Route.MetadataMatch)
+		routeRuleImplBase.metaData = GetClusterMosnLBMetaDataMap(route.Route.MetadataMatch)
 		
 	}
 

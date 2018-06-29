@@ -181,16 +181,16 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 	return nil
 }
 
-// e.g. metadata =  { "filter_metadata": {"envoy.lb": { "label": "gray"  } } }
+// e.g. metadata =  { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
 // 4-tier map
-func GetClusterEnvoyLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
+func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	metadataMap := make(map[string]types.HashedValue)
 
 	if metadataInterface, ok := metadata[types.RouterMatadataKey]; ok {
 		if value, ok := metadataInterface.(map[string]interface{}); ok {
-			if envoyLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
-				if envoyLb, ok := envoyLbInterface.(map[string]interface{}); ok {
-					for k, v := range envoyLb {
+			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
+				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
+					for k, v := range mosnLb {
 						if vs, ok := v.(string); ok {
 							metadataMap[k] = types.GenerateHashedValue(vs)
 						} else {
@@ -205,13 +205,13 @@ func GetClusterEnvoyLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	return metadataMap
 }
 
-// get envoy lb metadata from config
-func GetEnvoyLBMetaData(route *v2.Router) map[string]interface{} {
+// get mosn lb metadata from config
+func GetMosnLBMetaData(route *v2.Router) map[string]interface{} {
 	if metadataInterface, ok := route.Route.MetadataMatch[types.RouterMatadataKey]; ok {
 		if value, ok := metadataInterface.(map[string]interface{}); ok {
-			if envoyLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
-				if envoyLb, ok := envoyLbInterface.(map[string]interface{}); ok {
-					return envoyLb
+			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
+				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
+					return mosnLb
 				}
 			}
 		}

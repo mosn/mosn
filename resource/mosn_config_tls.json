@@ -45,7 +45,7 @@
                               "ClusterName": "c1",
                               "MetadataMatch": {
                                 "filter_metadata": {
-                                  "envoy.lb": {
+                                  "mosn.lb": {
                                     "stage": "dev",
                                     "version": "1.2-pre"
                                   }
@@ -63,7 +63,7 @@
                                   {
                                     "MetadataMatch": {
                                       "filter_metadata": {
-                                        "envoy.lb": {
+                                        "mosn.lb": {
                                           "version": "1.0"
                                         }
                                       }
@@ -74,7 +74,7 @@
                                   {
                                     "MetadataMatch": {
                                       "filter_metadmata": {
-                                        "envoy.lb": {
+                                        "mosn.lb": {
                                           "version": "1.1"
                                         }
                                       }
@@ -153,7 +153,7 @@
                               "ClusterName": "test_cpp1",
                               "MetadataMatch": {
                                 "filter_metadata": {
-                                  "envoy.lb": {
+                                  "mosn.lb": {
                                     "label": "gray"
                                   }
                                 }
@@ -238,7 +238,7 @@
                               "ClusterName": "test_cpp",
                               "MetadataMatch": {
                                 "filter_metadata": {
-                                  "envoy.lb": {
+                                  "mosn.lb": {
                                     "label": "gray"
                                   }
                                 }
@@ -308,7 +308,7 @@
                               "ClusterName": "c1",
                               "MetadataMatch": {
                                 "filter_metadata": {
-                                  "envoy.lb": {
+                                  "mosn.lb": {
                                     "label": "gray"
                                   }
                                 }
