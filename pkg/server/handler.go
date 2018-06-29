@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	__tl "log"
 )
 
 // ConnectionHandler
@@ -210,6 +209,7 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 		logger:     logger,
 		accessLogs: accessLoggers,
 	}
+	handler.listeners = append(handler.listeners, al)
 
 	listenPort := 0
 	var listenIP string
@@ -236,9 +236,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	if handOffRestoredDestinationConnections {
 		arc.acceptedFilters = append(arc.acceptedFilters, original_dst.NewOriginalDst())
 		arc.handOffRestoredDestinationConnections = true
-		__tl.Printf("accept restored destination connection from:%s", al.listener.Addr().String())
+		log.DefaultLogger.Infof("accept restored destination connection from:%s", al.listener.Addr().String())
 	}else{
-		__tl.Printf("accept connection from:%s", al.listener.Addr().String())
+		log.DefaultLogger.Infof("accept connection from:%s", al.listener.Addr().String())
 	}
 
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
@@ -329,8 +329,7 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 func (arc *activeRawConn)SetOrigingalAddr(ip string, port int){
 	arc.originalDstIP = ip
 	arc.originalDstPort = port
-
-	__tl.Printf("conn set origin addr:%s:%d", ip, port)
+	log.DefaultLogger.Infof("conn set origin addr:%s:%d", ip, port)
 }
 
 func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context) {
@@ -344,31 +343,29 @@ func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context)
 		}
 
 		// TODO: handle hand_off_restored_destination_connections logic
+		if arc.handOffRestoredDestinationConnections {
+			var _lst, _ls2 *activeListener
 
-		var _lst, _ls2 *activeListener
+			for _, lst := range arc.activeListener.handler.listeners {
+				if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
+					_lst = lst
+					break
+				}
 
-		for _, lst := range arc.activeListener.handler.listeners{
-			
-			if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
-				_lst = lst
-				break
+				if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
+					_ls2 = lst
+				}
 			}
 
-			if lst.listenPort == arc.originalDstPort && lst.listenIP =="0.0.0.0" {
-				_ls2 = lst
+			if _lst != nil {
+				log.DefaultLogger.Infof("original dst:%s:%d", _lst.listenIP, _lst.listenPort)
+				_lst.OnAccept(arc.rawc, false)
+			} else if _ls2 != nil {
+				log.DefaultLogger.Infof("original dst:%s:%d", _ls2.listenIP, _ls2.listenPort)
+				_ls2.OnAccept(arc.rawc, false)
 			}
-		}
 
-		if _lst != nil{
-			 __tl.Printf("original dst:%s:%d", _lst.listenIP, _lst.listenPort)
-			_lst.OnAccept(arc.rawc, false)
-		}else if _ls2 != nil{
-			 __tl.Printf("original dst:%s:%d", _ls2.listenIP, _ls2.listenPort)
-			_ls2.OnAccept(arc.rawc, false)
-		}
-
-
-		if !arc.handOffRestoredDestinationConnections{
+		}else{
 			arc.activeListener.newConnection(arc.rawc, ctx)
 		}
 		
