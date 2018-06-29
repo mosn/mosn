@@ -122,7 +122,6 @@ func convertClusterConfig(cluster v2.Cluster) ClusterConfig {
 	return ClusterConfig{
 		Name:                 cluster.Name,
 		Type:                 string(cluster.ClusterType),
-		SubType:              string(cluster.SubClusterType),
 		LbType:               string(cluster.LbType),
 		MaxRequestPerConn:    cluster.MaxRequestPerConn,
 		ConnBufferLimitBytes: cluster.ConnBufferLimitBytes,

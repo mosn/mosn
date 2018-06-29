@@ -413,7 +413,6 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 // Sofa Rpc Default HC Parameters
 const (
 	SofaRpc                             = "SofaRpc"
-	HealthName                          = "ToConfReg"
 	DefaultBoltHeartBeatTimeout         = 6 * 15 * time.Second
 	DefaultBoltHeartBeatInterval        = 15 * time.Second
 	DefaultIntervalJitter               = 5 * time.Millisecond

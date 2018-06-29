@@ -22,7 +22,6 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 			cluster := v2.Cluster{
 				Name:           clusterName,
 				ClusterType:    v2.DYNAMIC_CLUSTER,
-				SubClusterType: v2.CONFREG_CLUSTER,
 				LbType:         v2.LB_RANDOM,
 			}
 			
