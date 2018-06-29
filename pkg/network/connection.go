@@ -428,10 +428,6 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
 	
-	for i, cb := range c.connCallbacks {
-		c.logger.Debugf("Conn Close CB, index = %d, cb = %+v",i, cb)
-	}
-	
 	for _, cb := range c.connCallbacks {
 		go cb.OnEvent(eventType)
 	}

@@ -124,7 +124,6 @@ func (s *sofarpcHealthCheckSession) Start() {
 
 func (s *sofarpcHealthCheckSession) onInterval() {
 	if s.client == nil {
-		log.DefaultLogger.Debugf("For health check, no codecClient can used")
 		connData := s.host.CreateConnection(nil)
 
 		if err := connData.Connection.Connect(true); err != nil {

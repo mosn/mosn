@@ -387,14 +387,14 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck{
 	
 	return v2.HealthCheck{
-		c.Protocol,
-		c.Timeout.Duration,
-		c.Interval.Duration,
-		c.IntervalJitter.Duration,
-		c.HealthyThreshold,
-		c.UnhealthyThreshold,
-		c.CheckPath,
-		c.ServiceName,
+		Protocol:c.Protocol,
+		Timeout:c.Timeout.Duration,
+		Interval:c.Interval.Duration,
+		IntervalJitter:c.IntervalJitter.Duration,
+		HealthyThreshold:c.HealthyThreshold,
+		UnhealthyThreshold:c.UnhealthyThreshold,
+		CheckPath:c.CheckPath,
+		ServiceName:c.ServiceName,
 	}
 }
 
