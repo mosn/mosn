@@ -76,12 +76,9 @@ func main() {
 	go func() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
-
-<<<<<<< HEAD
+		
 		cm := cluster.NewClusterManager(nil,nil,nil,false,false)
-=======
-		cm := cluster.NewClusterManager(nil, nil, nil, false)
->>>>>>> 4d74bf6684b9c900238238efa492633e70083731
+
 
 		//RPC
 		srv := server.NewServer(&server.Config{}, cmf, cm)
