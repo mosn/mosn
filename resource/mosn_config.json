@@ -288,6 +288,7 @@
   ],
   "cluster_manager": {
     "auto_discovery": true,
+    "registry_use_health_check": true,
     "clusters": [
       {
         "Name": "test_cpp",
@@ -307,13 +308,13 @@
       ],
         
         "health_check": {
-          "Timeout": 0,
-          "HealthyThreshold": 0,
-          "UnhealthyThreshold": 0,
-          "Interval": 0,
-          "IntervalJitter": 0,
-          "CheckPath": "",
-          "ServiceName": ""
+          "protocol": "SofaRpc",
+          "timeout": "90s",
+          "healthy_threshold": 2,
+          "unhealthy_threshold": 2,
+          "interval": "15s",
+          "interval_jitter": 0,
+          "check_path": ""
         },
         "spec": {},
         "hosts": [

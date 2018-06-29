@@ -234,7 +234,9 @@ func Run() {
 		case <-upstreamReadyChan:
 			//  mesh
 			cmf := &clusterManagerFilterRPC{}
-			cm := cluster.NewClusterManager(nil, nil, nil, false)
+			
+			cm := cluster.NewClusterManager(nil,nil,nil,false,false)
+
 			//RPC
 			srv := server.NewServer(nil, cmf, cm)
 

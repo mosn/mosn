@@ -498,16 +498,19 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		clusterV2 := v2.Cluster{
 			Name:                 c.Name,
 			ClusterType:          clusterType,
-			SubClustetType:       subclusterType,
+			SubClusterType:       subclusterType,
 			LbType:               lbType,
 			MaxRequestPerConn:    c.MaxRequestPerConn,
 			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
+
+			HealthCheck:          ParseClusterHealthCheckConf(&c.HealthCheck),
 			CirBreThresholds:     ParseCircuitBreakers(c.CircuitBreakers),
+
 			Spec:                 ParseConfigSpecConfig(&clusterSpec),
 			LBSubSetConfig:       c.LBSubsetConfig,
 			TLS:                  ParseTLSConfig(&c.TLS),
 		}
-
+		
 		clustersV2 = append(clustersV2, clusterV2)
 		hostV2 := ParseHostConfig(&c)
 		clusterV2Map[c.Name] = hostV2
@@ -521,6 +524,21 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		}
 	}
 	return clustersV2, clusterV2Map
+}
+
+
+func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
+	
+	return v2.HealthCheck{
+		Protocol:           c.Protocol,
+		Timeout:            c.Timeout.Duration,
+		Interval:           c.Interval.Duration,
+		IntervalJitter:     c.IntervalJitter.Duration,
+		HealthyThreshold:   c.HealthyThreshold,
+		UnhealthyThreshold: c.UnhealthyThreshold,
+		CheckPath:          c.CheckPath,
+		ServiceName:        c.ServiceName,
+	}
 }
 
 func ParseCircuitBreakers(cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {

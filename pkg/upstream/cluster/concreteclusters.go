@@ -75,29 +75,42 @@ func newSimpleInMemCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedV
 }
 
 func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
-	var curHosts []types.Host
-
 	sc.mux.Lock()
 	defer sc.mux.Unlock()
-
-	if sc.hosts != nil {
-		log.DefaultLogger.Debugf("[origin host] is %+v", sc.hosts)
-	}
-
-	if newHosts != nil {
-		log.DefaultLogger.Debugf("[New host] is  %+v", newHosts)
-	}
-
+	
+	var curHosts = make([]types.Host,len(sc.hosts))
+	
 	copy(curHosts, sc.hosts)
-
 	changed, finalHosts, hostsAdded, hostsRemoved := sc.updateDynamicHostList(newHosts, curHosts)
-
-	log.DefaultLogger.Debugf("[after update confreg host list],changed is %+v, finalHosts is %+v, hostsAdded is %+v, hostsRemoved is %+v", changed, finalHosts, hostsAdded, hostsRemoved)
-
+	
+	if len(finalHosts) == 0 {
+		log.DefaultLogger.Debugf("final host is []")
+	}
+	
+	for i, f := range finalHosts {
+		log.DefaultLogger.Debugf("final host index = %d, address = %s,",i,f.AddressString())
+	}
+	
+	log.DefaultLogger.Debugf("changed %s", changed)
+	
 	if changed {
 		sc.hosts = finalHosts
-		// todo checkout healthy hosts
+		// todo: need to consider how to update healthyHost
+		// Note: currently, we only use priority 0
 		sc.prioritySet.GetOrCreateHostSet(0).UpdateHosts(sc.hosts,
 			sc.hosts, nil, nil, hostsAdded, hostsRemoved)
+		
+		if sc.healthChecker != nil {
+			sc.healthChecker.OnClusterMemberUpdate(hostsAdded,hostsRemoved)
+		}
+
+	}
+	
+	if len(sc.hosts) == 0 {
+		log.DefaultLogger.Debugf(" after update final host is []")
+	}
+	
+	for i, f := range sc.hosts {
+		log.DefaultLogger.Debugf("after update final host index = %d, address = %s,",i,f.AddressString())
 	}
 }

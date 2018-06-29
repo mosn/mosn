@@ -3,10 +3,15 @@ package healthcheck
 import (
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"math/rand"
 	"time"
 )
+
+type sessionFactory interface {
+	newSession(host types.Host) types.HealthCheckSession
+}
 
 // types.HealthChecker
 type healthChecker struct {
@@ -24,10 +29,11 @@ type healthChecker struct {
 	healthyThreshold   uint32
 	unhealthyThreshold uint32
 
-	stats *healthCheckStats
+	sessionFactory sessionFactory
+	stats          *healthCheckStats
 }
 
-func NewHealthCheck(config v2.HealthCheck) *healthChecker {
+func newHealthChecker(config v2.HealthCheck) *healthChecker {
 	hc := &healthChecker{
 		healthCheckSessions: make(map[types.Host]types.HealthCheckSession),
 		timeout:             config.Timeout,
@@ -38,7 +44,15 @@ func NewHealthCheck(config v2.HealthCheck) *healthChecker {
 		stats:               newHealthCheckStats(config.ServiceName),
 	}
 
+	if config.ServiceName != "" {
+		hc.serviceName = config.ServiceName
+	}
+
 	return hc
+}
+
+func (c *healthChecker) SetCluster(cluster types.Cluster) {
+	c.cluster = cluster
 }
 
 func (c *healthChecker) Start() {
@@ -56,14 +70,39 @@ func (c *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 }
 
 func (c *healthChecker) newSession(host types.Host) types.HealthCheckSession {
-	return nil
+	if c.sessionFactory != nil {
+		return c.sessionFactory.newSession(host)
+	} else {
+		return &healthCheckSession{
+			healthChecker: c,
+			host:          host,
+		}
+	}
 }
 
 func (c *healthChecker) addHosts(hosts []types.Host) {
 	for _, host := range hosts {
-		c.healthCheckSessions[host] = c.newSession(host)
-		c.healthCheckSessions[host].Start()
+		h := host
+
+		go func() {
+			var ns types.HealthCheckSession
+
+			if ns = c.newSession(h); ns == nil {
+				log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", host.AddressString())
+				return
+			}
+
+			c.healthCheckSessions[h] = ns
+			c.healthCheckSessions[h].Start()
+		}()
 	}
+}
+
+func (c *healthChecker) delHosts(hosts []types.Host) {}
+
+func (c *healthChecker) OnClusterMemberUpdate(hostsAdded []types.Host, hostDel []types.Host) {
+	c.addHosts(hostsAdded)
+	c.delHosts(hostDel)
 }
 
 func (c *healthChecker) decHealthy() {
@@ -106,19 +145,20 @@ func (c *healthChecker) getInterval() time.Duration {
 
 func (c *healthChecker) getTimeoutDuration() time.Duration {
 	baseInterval := c.timeout
-	
+
 	if baseInterval < 0 {
 		baseInterval = 0
 	}
-	
+
 	maxUint := ^uint(0)
 	if uint(baseInterval) > maxUint {
 		baseInterval = time.Duration(maxUint)
 	}
-	
+
 	return baseInterval
 }
 
+// when health receive handling result
 func (c *healthChecker) runCallbacks(host types.Host, changed bool) {
 	c.refreshHealthyStat()
 
@@ -129,15 +169,16 @@ func (c *healthChecker) runCallbacks(host types.Host, changed bool) {
 
 type healthCheckSession struct {
 	healthChecker *healthChecker
-	//intervalTimer *timer
-	intervalTicker *ticker
+
+	intervalTimer *timer
 	timeoutTimer  *timer
-	numHealthy    uint32
-	numUnHealthy  uint32
-	host          types.Host
+
+	numHealthy   uint32
+	numUnHealthy uint32
+	host         types.Host
 }
 
-func NewHealthCheckSession(hc *healthChecker, host types.Host) *healthCheckSession {
+func newHealthCheckSession(hc *healthChecker, host types.Host) *healthCheckSession {
 	hcs := &healthCheckSession{
 		healthChecker: hc,
 		host:          host,
@@ -156,7 +197,7 @@ func (s *healthCheckSession) Start() {
 
 //// stop intervalTimer to stop sending health message
 func (s *healthCheckSession) Stop() {
-	s.intervalTicker.stop()
+	s.intervalTimer.stop()
 }
 
 func (s *healthCheckSession) handleSuccess() {
@@ -175,11 +216,11 @@ func (s *healthCheckSession) handleSuccess() {
 
 	s.healthChecker.stats.success.Inc(1)
 	s.healthChecker.runCallbacks(s.host, stateChanged)
-	
+
 	// stop timeout timer
 	s.timeoutTimer.stop()
-	// change to use -> ticker, so no need to start here
-	//s.intervalTimer.start(s.healthChecker.getInterval())
+	// start a new interval timer
+	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
@@ -210,9 +251,12 @@ func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
 
 func (s *healthCheckSession) handleFailure(fType types.FailureType) {
 	s.SetUnhealthy(fType)
-	// ticker now
-//	s.timeoutTimer.stop()
-//	s.intervalTimer.start(s.healthChecker.getInterval())
+
+	// stop timeout timer
+	s.timeoutTimer.stop()
+
+	// start a new interval timer
+	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) onInterval() {
@@ -220,12 +264,10 @@ func (s *healthCheckSession) onInterval() {
 	s.healthChecker.stats.attempt.Inc(1)
 }
 
-func (s *healthCheckSession) tickerStart() {
-	s.intervalTicker.start(s.healthChecker.getInterval())
-}
-
 func (s *healthCheckSession) onTimeout() {
 	s.SetUnhealthy(types.FailureNetwork)
+	// sending another health check
+	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 type healthCheckStats struct {

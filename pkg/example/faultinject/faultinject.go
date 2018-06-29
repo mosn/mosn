@@ -45,7 +45,7 @@ func main() {
 
 		// mesh
 		cmf := &clusterManagerFilter{}
-		cm := cluster.NewClusterManager(nil,nil,nil,false)
+		cm := cluster.NewClusterManager(nil,nil,nil,false,false)
 
 		srv := server.NewServer(nil, cmf,cm)
 		srv.AddListener(tcpListener(), nf, nil)

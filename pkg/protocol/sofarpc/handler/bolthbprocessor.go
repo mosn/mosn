@@ -47,6 +47,6 @@ func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filt
 			}
 		}
 	} else {
-		logger.Fatalf("decode heart beat error\n")
+		logger.Errorf("decode heart beat error\n")
 	}
 }

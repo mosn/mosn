@@ -325,7 +325,8 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					nil,
 					nil,
 				}
-				logger.Debugf("BoltV1 DECODE REQUEST, content is :%+v", request)
+				logger.Debugf("BoltV1 DECODE REQUEST, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
+					request.Protocol,request.CmdType,request.CmdCode,request.ReqId)
 				cmd = &request
 			}
 		} else {
@@ -388,7 +389,8 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
 					//logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
 				}
-				logger.Debugf("BoltV1 DECODE RESPONSE, response status is:%+v,..., all content: %+v", response.ResponseStatus,response)
+				logger.Debugf("BoltV1 DECODE RESPONSE,RespStatus = %d, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
+				response.ResponseStatus, response.Protocol,response.CmdType,response.CmdCode,response.ReqId)
 				cmd = &response
 			}
 		}

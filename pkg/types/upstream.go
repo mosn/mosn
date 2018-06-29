@@ -8,9 +8,17 @@ import (
 	"sort"
 )
 
-type ClusterManager interface {
-	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
+//   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
+//
+//           1              * | 1                1 | 1                *| 1          *
+//   clusterManager --------- cluster  --------- prioritySet --------- hostSet------hosts
 
+
+// Manage connection pools and load balancing for upstream clusters.
+type ClusterManager interface {
+	// Add or update a cluster via API.
+	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
+	
 	SetInitializedCb(cb func())
 
 	Clusters() map[string]Cluster
@@ -37,6 +45,8 @@ type ClusterManager interface {
 	LocalClusterName() string
 
 	ClusterExist(clusterName string) bool
+	
+	RemoveClusterHosts(clusterName string, host Host) error
 }
 
 // thread-safe cluster snapshot
@@ -48,15 +58,20 @@ type ClusterSnapshot interface {
 	LoadBalancer() LoadBalancer
 }
 
+// An upstream cluster (group of hosts).
 type Cluster interface {
 	Initialize(cb func())
 
 	Info() ClusterInfo
 
 	InitializePhase() InitializePhase
-
+	
 	PrioritySet() PrioritySet
 
+	// set the cluster's health checker
+	SetHealthChecker(hc HealthChecker)
+	
+	// return the cluster's health checker
 	HealthChecker() HealthChecker
 
 	OutlierDetector() Detector
@@ -72,8 +87,10 @@ const (
 
 type MemberUpdateCallback func(priority uint32, hostsAdded []Host, hostsRemoved []Host)
 
-//  PrioritySet contains all of the HostSets for a given cluster grouped by priority
+// PrioritySet is a hostSet grouped by priority for a given cluster, for ease of load balancing.
 type PrioritySet interface {
+	
+	// Get the hostSet for this priority level, creating it if not exist.
 	GetOrCreateHostSet(priority uint32) HostSet
 
 	AddMemberUpdateCb(cb MemberUpdateCallback)
@@ -83,7 +100,11 @@ type PrioritySet interface {
 
 type HostPredicate func(Host) bool
 
+// HostSet is as set of hosts that contains all of the endpoints for a given
+// LocalityLbEndpoints priority level.
 type HostSet interface {
+	
+	// all hosts that make up the set at the current time.
 	Hosts() []Host
 
 	HealthyHosts() []Host
@@ -101,13 +122,17 @@ type HostSet interface {
 type HealthFlag int
 
 const (
+	// The host is currently failing active health checks.
 	FAILED_ACTIVE_HC     HealthFlag = 0x1
+	// The host is currently considered an outlier and has been ejected.
 	FAILED_OUTLIER_CHECK HealthFlag = 0x02
 )
 
+// An upstream host
 type Host interface {
 	HostInfo
 
+	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
 	Counters() HostStats
@@ -206,10 +231,14 @@ type ClusterInfo interface {
 	Stats() ClusterStats
 
 	ResourceManager() ResourceManager
-
+	
+	// protocol used for health checking for this cluster
+	HealthCheckProtocol() string
+	
 	TLSMng() TLSContextManager
 
 	LbSubsetInfo() LBSubsetInfo
+
 }
 
 type ResourceManager interface {

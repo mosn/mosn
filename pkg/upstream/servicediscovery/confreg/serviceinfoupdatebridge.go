@@ -41,8 +41,8 @@ func (cf *confregAdaptor) OnRPCServerChanged(dataId string, zoneServers map[stri
 	}
 
 	// note: at this time, serviceName == clusterName
-	cf.ca.TriggerClusterUpdate(serviceName, hosts)
 
+	cf.ca.TriggerClusterUpdate(serviceName, hosts)
 	//router.RoutersManager.AddRouterInRouters([]string{dataId})
 }
 
@@ -117,7 +117,7 @@ func AddSubInfo(subInfo []string) bool {
 		v2Cluster := v2.Cluster{
 			Name:              si,
 			ClusterType:       v2.DYNAMIC_CLUSTER,
-			SubClustetType:    v2.CONFREG_CLUSTER,
+			SubClusterType:    v2.CONFREG_CLUSTER,
 			LbType:            v2.LB_RANDOM,
 			MaxRequestPerConn: 1024,
 			ConnBufferLimitBytes: 32 * 1024,
@@ -200,7 +200,7 @@ func OnClusterInfoParsed(data interface{}, endParsed bool) error {
 		}
 	} else {
 		var err error = errors.New("invalid value passed")
-		log.DefaultLogger.Fatalf("%+v invalid value passed", data)
+		log.DefaultLogger.Errorf("%+v invalid value passed", data)
 		return err
 	}
 
@@ -227,7 +227,7 @@ func OnServiceRegistryInfoParsed(data interface{}, endParsed bool) error {
 		}
 	} else {
 		var err error = errors.New("invalid value passed")
-		log.DefaultLogger.Fatalf("%+v invalid value passed", data)
+		log.DefaultLogger.Errorf("%+v invalid value passed", data)
 		return err
 	}
 

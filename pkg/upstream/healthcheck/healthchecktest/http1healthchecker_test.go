@@ -1,4 +1,4 @@
-package healthcheck
+package healthchecktest
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/healthcheck"
 )
 
 const (
@@ -21,7 +22,7 @@ func init(){
 }
 
 func TestHttp1HealthCheck_Start(t *testing.T) {
-	StartHttpHealthCheck(IntervalDur, TimeoutDur, APPCheckPointURL, onAppInterval, onTimeout)
+	healthcheck.StartHttpHealthCheck(IntervalDur, TimeoutDur, APPCheckPointURL, onAppInterval, onTimeout)
 	log.DefaultLogger.Debugf("wait 15 seconds")
 	
 	time.Sleep(3600 * time.Second)

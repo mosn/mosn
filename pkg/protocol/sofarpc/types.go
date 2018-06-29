@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"strconv"
-
+	"time"
+	
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
@@ -38,11 +40,12 @@ const (
 // Encode/Decode Exception Msg
 const (
 	InvalidCommandType string = "Invalid command type for encoding"
-	NoProCodeInHeader  string = "Protocol code not found in header"
+	NoProCodeInHeader  string = "Protocol code not found in header when encoding"
 	InvalidHeaderType  string = "Invalid header type, neither map nor command"
 	UnKnownReqtype     string = "Unknown request type"
 	UnKnownCmdcode     string = "Unknown cmd code"
 	NoReqIdFound       string = "No request Id found in header"
+	UnKnownCmd         string = "Unknown Command"
 )
 
 type ProtocolType byte
@@ -405,4 +408,24 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 		log.ByContext(context).Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
 		return headers, errors.New(types.UnSupportedProCode)
 	}
+}
+
+// Sofa Rpc Default HC Parameters
+const (
+	SofaRpc                             = "SofaRpc"
+	HealthName                          = "ToConfReg"
+	DefaultBoltHeartBeatTimeout         = 6 * 15 * time.Second
+	DefaultBoltHeartBeatInterval        = 15 * time.Second
+	DefaultIntervalJitter               = 5 * time.Millisecond
+	DefaultHealthyThreshold      uint32 = 2
+	DefaultUnhealthyThreshold    uint32 = 2
+)
+
+var DefaultSofaRpcHealthCheckConf = v2.HealthCheck{
+	Protocol:           SofaRpc,
+	Timeout:            DefaultBoltHeartBeatTimeout,
+	HealthyThreshold:   DefaultHealthyThreshold,
+	UnhealthyThreshold: DefaultUnhealthyThreshold,
+	Interval:           DefaultBoltHeartBeatInterval,
+	IntervalJitter:     DefaultIntervalJitter,
 }

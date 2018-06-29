@@ -1,5 +1,9 @@
 package types
 
+import (
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+)
+
 // Health check interfaces
 
 type FailureType string
@@ -22,6 +26,12 @@ type HealthChecker interface {
 
 	// Add a health check callback, which will be called on a check round-trip is completed for a specified host.
 	AddHostCheckCompleteCb(cb HealthCheckCb)
+
+	// Used to update cluster's hosts for health checking
+	OnClusterMemberUpdate(hostsAdded []Host, hostDel []Host)
+
+	// Add cluster to healthChecker
+	SetCluster(cluster Cluster)
 }
 
 // A health check session for an upstream host
@@ -37,4 +47,11 @@ type HealthCheckSession interface {
 }
 
 type HealthCheckHostMonitor interface {
+}
+
+// todo: move facotry instance to a factory package
+var HealthCheckFactoryInstance HealthCheckerFactory
+
+type HealthCheckerFactory interface {
+	New(config v2.HealthCheck) HealthChecker
 }

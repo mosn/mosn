@@ -2,12 +2,15 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/rcrowley/go-metrics"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/tls"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"net"
 	"sync"
+
+	"github.com/rcrowley/go-metrics"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/tls"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // Cluster
@@ -18,6 +21,7 @@ type cluster struct {
 	info                           *clusterInfo
 	mux                            sync.RWMutex
 	initHelper                     concreteClusterInitHelper
+	healthChecker                  types.HealthChecker
 }
 
 type concreteClusterInitHelper interface {
@@ -31,6 +35,13 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool)
 	//todo: add individual cluster for confreg
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaApi)
+	}
+
+	// init health check for cluster's host
+	if clusterConfig.HealthCheck.Protocol != "" {
+		var hc types.HealthChecker
+		hc = types.HealthCheckFactoryInstance.New(clusterConfig.HealthCheck)
+		newCluster.SetHealthChecker(hc)
 	}
 
 	return newCluster
@@ -134,14 +145,50 @@ func (c *cluster) PrioritySet() types.PrioritySet {
 	return c.prioritySet
 }
 
+func (c *cluster) SetHealthChecker(hc types.HealthChecker) {
+	c.healthChecker = hc
+	c.healthChecker.SetCluster(c)
+	c.healthChecker.Start()
+	c.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool) {
+		if changedState {
+			c.refreshHealthHosts(host)
+		}
+	})
+}
+
 func (c *cluster) HealthChecker() types.HealthChecker {
-	// TODO
-	return nil
+	return c.healthChecker
 }
 
 func (c *cluster) OutlierDetector() types.Detector {
 	// TODO
 	return nil
+}
+
+// update health-hostSet for only one hostSet, reduce update times
+func (c *cluster) refreshHealthHosts(host types.Host) {
+	if host.Health() {
+		log.DefaultLogger.Debugf("Add health host %s to cluster's healthHostSet by refreshHealthHosts", host.AddressString())
+		addHealthyHost(c.prioritySet.hostSets, host)
+	} else {
+		log.DefaultLogger.Debugf("Del host %s from cluster's healthHostSet by refreshHealthHosts", host.AddressString())
+		delHealthHost(c.prioritySet.hostSets, host)
+	}
+}
+
+// refresh health hosts globally
+func (c *cluster) refreshHealthHostsGlobal() {
+
+	for _, hostSet := range c.prioritySet.hostSets {
+		var healthyHost []types.Host
+		var healthyHostPerLocality [][]types.Host
+
+		healthyHost = getHealthHost(hostSet.Hosts())
+		healthyHostPerLocality = getHealthHostsPerLocality(hostSet.HostsPerLocality())
+
+		hostSet.UpdateHosts(hostSet.Hosts(), healthyHost, hostSet.HostsPerLocality(),
+			healthyHostPerLocality, nil, nil)
+	}
 }
 
 type clusterInfo struct {
@@ -156,6 +203,9 @@ type clusterInfo struct {
 	addedViaApi          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
+
+	healthCheckProtocol  string
+
 	tlsMng               types.TLSContextManager
 	lbSubsetInfo         types.LBSubsetInfo
 }
@@ -216,16 +266,22 @@ func (ci *clusterInfo) ResourceManager() types.ResourceManager {
 	return ci.resourceManager
 }
 
+
+func (ci *clusterInfo) HealthCheckProtocol() string {
+	return ci.healthCheckProtocol
+}
+
 func (ci *clusterInfo) TLSMng() types.TLSContextManager {
 	return ci.tlsMng
 }
 
 func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 	return ci.lbSubsetInfo
+	
 }
 
 type prioritySet struct {
-	hostSets        []types.HostSet
+	hostSets        []types.HostSet // Note: index is the priority
 	updateCallbacks []types.MemberUpdateCallback
 	mux             sync.RWMutex
 }
@@ -234,7 +290,9 @@ func (ps *prioritySet) GetOrCreateHostSet(priority uint32) types.HostSet {
 	ps.mux.Lock()
 	defer ps.mux.Unlock()
 
+	// Create a priority set
 	if uint32(len(ps.hostSets)) < priority+1 {
+
 		for i := uint32(len(ps.hostSets)); i <= priority; i++ {
 			hostSet := ps.createHostSet(i)
 			hostSet.addMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
@@ -264,4 +322,103 @@ func (ps *prioritySet) HostSetsByPriority() []types.HostSet {
 	defer ps.mux.RUnlock()
 
 	return ps.hostSets
+}
+
+func getHealthHost(hosts []types.Host) []types.Host {
+	var healthyHost []types.Host
+	// todo: calculate healthyHost & healthyHostPerLocality
+	for _, h := range hosts {
+		if h.Health() {
+			healthyHost = append(healthyHost, h)
+		}
+	}
+	return healthyHost
+}
+
+func getHealthHostsPerLocality(hhpl [][]types.Host) [][]types.Host {
+	var healthyHostPerLocality = make([][]types.Host, len(hhpl))
+	hi := 0
+
+	for i := range hhpl {
+		hj := 0
+		for j := range hhpl[i] {
+			if hhpl[i][j].Health() {
+				healthyHostPerLocality[hi] = append(healthyHostPerLocality[hi], hhpl[i][j])
+				hj++
+			}
+		}
+		if hj > 0 {
+			hi++
+		}
+	}
+	return healthyHostPerLocality
+}
+
+func addHealthyHost(hostSets []types.HostSet, host types.Host) {
+	// Note: currently, one host only belong to a hostSet
+
+	for i, hostSet := range hostSets {
+		found := false
+
+		for _, h := range hostSet.Hosts() {
+			if h.AddressString() == host.AddressString() {
+				log.DefaultLogger.Debugf("add healthy host = %s, in priority = %d", host.AddressString(), i)
+				found = true
+				break
+			}
+		}
+
+		if found {
+			newHealthHost := hostSet.HealthyHosts()
+			newHealthHost = append(newHealthHost, host)
+			newHealthyHostPerLocality := hostSet.HealthHostsPerLocality()
+			newHealthyHostPerLocality[len(newHealthyHostPerLocality)-1] = append(newHealthyHostPerLocality[len(newHealthyHostPerLocality)-1], host)
+
+			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, hostSet.HostsPerLocality(),
+				newHealthyHostPerLocality, nil, nil)
+			break
+		}
+	}
+}
+
+func delHealthHost(hostSets []types.HostSet, host types.Host) {
+	for i, hostSet := range hostSets {
+		// Note: currently, one host only belong to a hostSet
+		found := false
+
+		for _, h := range hostSet.Hosts() {
+			if h.AddressString() == host.AddressString() {
+				log.DefaultLogger.Debugf("del healthy host = %s, in priority = %d", host.AddressString(), i)
+				found = true
+				break
+			}
+		}
+
+		if found {
+			newHealthHost := hostSet.HealthyHosts()
+			newHealthyHostPerLocality := hostSet.HealthHostsPerLocality()
+
+			for i, hh := range newHealthHost {
+				if host.Hostname() == hh.Hostname() {
+					//remove
+					newHealthHost = append(newHealthHost[:i], newHealthHost[i+1:]...)
+					break
+				}
+			}
+
+			for i := range newHealthyHostPerLocality {
+				for j := range newHealthyHostPerLocality[i] {
+
+					if host.Hostname() == newHealthyHostPerLocality[i][j].Hostname() {
+						newHealthyHostPerLocality[i] = append(newHealthyHostPerLocality[i][:j], newHealthyHostPerLocality[i][j+1:]...)
+						break
+					}
+				}
+			}
+
+			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, hostSet.HostsPerLocality(),
+				newHealthyHostPerLocality, nil, nil)
+			break
+		}
+	}
 }

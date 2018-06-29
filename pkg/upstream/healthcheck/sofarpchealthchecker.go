@@ -1,6 +1,10 @@
 package healthcheck
 
 import (
+	"math/rand"
+	"reflect"
+	"strconv"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
@@ -8,73 +12,59 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
-	"math/rand"
-	"strconv"
-
-	"reflect"
-	"time"
 )
 
 type sofarpcHealthChecker struct {
 	healthChecker
 	//TODO set 'protocolCode' after service subscribe finished
 	protocolCode sofarpc.ProtocolType
-	serviceName  string
 }
 
-// Use for hearth beat starting for sofa bolt in the same codecClient
-// for bolt heartbeat, timeout: 90s interval: 15s
-func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr string,
-	codecClient stream.CodecClient, nameHB string, pro sofarpc.ProtocolType) types.HealthCheckSession {
+func newSofaRpcHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
+	hc := newHealthChecker(config)
 
-	hcV2 := v2.HealthCheck{
-		Timeout:     timeout,
-		Interval:    interval,
-		ServiceName: nameHB,
+	shc := &sofarpcHealthChecker{
+		healthChecker: *hc,
+		protocolCode:  sofarpc.ProtocolType(config.ProtocolCode),
 	}
 
-	hostV2 := v2.Host{
-		Address: hostAddr,
-	}
+	shc.sessionFactory = shc
 
-	host := cluster.NewHost(hostV2, nil)
-
-	hc := NewSofarpcHealthCheck(hcV2, pro)
-	hcs := hc.newSession(codecClient, host)
-	hcs.Start()
-
-	return hcs
+	return shc
 }
 
-// Use for hearth beat stopping for sofa bolt in the same codecClient
-func StopSofaHeartBeat(hsc types.HealthCheckSession) {
-	hsc.Stop()
-}
-
-func NewSofarpcHealthCheck(config v2.HealthCheck, pro sofarpc.ProtocolType) *sofarpcHealthChecker {
-	hc := NewHealthCheck(config)
-
+func newSofaRpcHealthCheckerWithBaseHealthChecker(hc *healthChecker, pro sofarpc.ProtocolType) *sofarpcHealthChecker {
 	shc := &sofarpcHealthChecker{
 		healthChecker: *hc,
 		protocolCode:  pro,
 	}
 
-	if config.ServiceName != "" {
-		shc.serviceName = config.ServiceName
-	}
+	shc.sessionFactory = shc
 
 	return shc
 }
 
-func (c *sofarpcHealthChecker) newSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
+func (c *sofarpcHealthChecker) newSofaRpcHealthCheckSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
 	shcs := &sofarpcHealthCheckSession{
 		client:             codecClinet,
 		healthChecker:      c,
-		healthCheckSession: *NewHealthCheckSession(&c.healthChecker, host),
+		healthCheckSession: *newHealthCheckSession(&c.healthChecker, host),
 	}
 
-	shcs.intervalTicker = newTicker(shcs.onInterval)
+	// add timer to trigger hb sending and timeout handling
+	shcs.intervalTimer = newTimer(shcs.onInterval)
+	shcs.timeoutTimer = newTimer(shcs.onTimeout)
+
+	return shcs
+}
+
+func (c *sofarpcHealthChecker) newSession(host types.Host) types.HealthCheckSession {
+	shcs := &sofarpcHealthCheckSession{
+		healthChecker:      c,
+		healthCheckSession: *newHealthCheckSession(&c.healthChecker, host),
+	}
+	// add timer to trigger hb sending and timeout handling
+	shcs.intervalTimer = newTimer(shcs.onInterval)
 	shcs.timeoutTimer = newTimer(shcs.onTimeout)
 
 	return shcs
@@ -123,21 +113,27 @@ func (s *sofarpcHealthCheckSession) OnDecodeTrailers(trailers map[string]string)
 	s.onResponseComplete()
 }
 
-func (s *sofarpcHealthCheckSession) OnDecodeError(err error, headers map[string]string){
+func (s *sofarpcHealthCheckSession) OnDecodeError(err error, headers map[string]string) {
 }
 
 // overload healthCheckSession
 func (s *sofarpcHealthCheckSession) Start() {
-	// start ticker for periodically sending hb
-	s.healthCheckSession.tickerStart()
+	// start interval timer
 	s.onInterval()
 }
 
 func (s *sofarpcHealthCheckSession) onInterval() {
 	if s.client == nil {
-		log.DefaultLogger.Debugf("For health check, no codecClient can used")
 		connData := s.host.CreateConnection(nil)
+
+		if err := connData.Connection.Connect(true); err != nil {
+			s.handleFailure(types.FailureActive)
+			log.DefaultLogger.Debugf("For health check, Connect Error!")
+			return
+		}
+
 		s.client = s.healthChecker.createCodecClient(connData)
+
 		s.expectReset = false
 	}
 
@@ -153,20 +149,23 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 		reqHeaders := codec.NewBoltHeartbeat(id)
 
 		s.requestEncoder.EncodeHeaders(reqHeaders, true)
-		//log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat,request id is %s ...", reqID)
+		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat to %s,request id = %d", s.host.AddressString(), reqID)
 		s.requestEncoder = nil
+		// start timeout interval
 		s.healthCheckSession.onInterval()
 	} else {
-		log.DefaultLogger.Fatalf("For health check, only support bolt v1 currently")
+		log.DefaultLogger.Errorf("For health check, only support bolt v1 currently")
 	}
 }
 
 func (s *sofarpcHealthCheckSession) onTimeout() {
+	// todo: fulfil Timeout
 	s.expectReset = true
 	s.client.Close()
 	s.client = nil
 
-	log.DefaultLogger.Infof("Pay attention: heartbeat client close connection\n")
+	log.DefaultLogger.Errorf("Health Check Timeout for Remote Host = %s", s.host.AddressString())
+	// deal with timeout event
 	s.healthCheckSession.onTimeout()
 }
 

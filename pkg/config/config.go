@@ -87,12 +87,13 @@ type HostConfig struct {
 	Weight   uint32 `json:"weight,omitempty"`
 }
 
-type HealthCheckConfig struct {
-	Timeout            DurationConfig
-	HealthyThreshold   uint32 `json:"healthy_threshold"`
-	UnhealthyThreshold uint32 `json:"unhealthy_threshold"`
-	Interval           DurationConfig
+type ClusterHealthCheckConfig struct {
+	Protocol           string         `json:"protocol"`
+	Timeout            DurationConfig `json:"timeout"`
+	Interval           DurationConfig `json:"interval"`
 	IntervalJitter     DurationConfig `json:"interval_jitter"`
+	HealthyThreshold   uint32         `json:"healthy_threshold"`
+	UnhealthyThreshold uint32         `json:"unhealthy_threshold"`
 	CheckPath          string         `json:"check_path,omitempty"`
 	ServiceName        string         `json:"service_name,omitempty"`
 }
@@ -113,7 +114,7 @@ type ClusterConfig struct {
 	MaxRequestPerConn    uint32
 	ConnBufferLimitBytes uint32
 	CircuitBreakers      []*CircuitBreakerdConfig `json:"circuit_breakers"`
-	HealthCheck          v2.HealthCheck        `json:"health_check,omitempty"` //v2.HealthCheck
+	HealthCheck          ClusterHealthCheckConfig        `json:"health_check,omitempty"` //v2.HealthCheck
 	ClusterSpecConfig    ClusterSpecConfig     `json:"spec,omitempty"`         //	ClusterSpecConfig
 	Hosts                []v2.Host             `json:"hosts,omitempty"`        //v2.Host
 	LBSubsetConfig       v2.LBSubsetConfig
@@ -129,8 +130,11 @@ type CircuitBreakerdConfig struct {
 }
 
 type ClusterManagerConfig struct {
-	AutoDiscovery bool            `json:"auto_discovery"`
-	Clusters      []ClusterConfig `json:"clusters,omitempty"`
+	// Note: consider to use standard configure
+	AutoDiscovery          bool            `json:"auto_discovery"`
+	// Note: this is a hack method to realize cluster's  health check which push by registry
+	RegistryUseHealthCheck bool            `json:"registry_use_health_check"`
+	Clusters               []ClusterConfig `json:"clusters,omitempty"`
 }
 
 type ServiceRegistryConfig struct {

@@ -1,22 +1,23 @@
 package registry
 
 import (
-	"container/list"
-	"errors"
-	"github.com/rcrowley/go-metrics"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/healthcheck"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
-	"net"
-	"sync"
-	"time"
+"container/list"
+"errors"
+"net"
+"sync"
+"time"
+
+"github.com/rcrowley/go-metrics"
+"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
+"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
+"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/healthcheck"
+"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
+"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 )
 
 const (
@@ -128,8 +129,8 @@ func (rw *registerWorker) newCodecClient(confregServer string) error {
 	log.DefaultLogger.Infof("Connect to confreg server. server = %v", confregServer)
 
 	//todo use conn idle detect to start/stop heartbeat
-	go healthcheck.StartSofaHeartBeat(config.BoltHeartBeatTimout, config.BoltHeartBeatInterval,
-		confregServer, codecClient, config.HealthName, sofarpc.BOLT_V1)
+	go healthcheck.StartSofaHeartBeat(sofarpc.DefaultBoltHeartBeatTimeout, sofarpc.DefaultBoltHeartBeatInterval,
+		confregServer, codecClient, sofarpc.HealthName, sofarpc.BOLT_V1)
 	return nil
 }
 

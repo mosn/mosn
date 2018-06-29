@@ -75,7 +75,9 @@ func main() {
 	go func() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
-		cm := cluster.NewClusterManager(nil, nil, nil, false)
+
+		cm := cluster.NewClusterManager(nil,nil,nil,false,false)
+
 		//RPC
 		srv := server.NewServer(&server.Config{}, cmf, cm)
 
@@ -156,15 +158,52 @@ func genericProxyConfig() *v2.Proxy {
 		DownstreamProtocol: string(protocol.SofaRpc),
 		UpstreamProtocol:   string(protocol.Http2),
 	}
-
-	proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, &v2.BasicServiceRoute{
-		Name:    "tstSofRpcRouter",
-		Service: ".*",
-		Cluster: TestCluster,
+	
+	header := v2.HeaderMatcher{
+		Name:  "service",
+		Value: "com.alipay.rpc.common.service.facade.SampleService:1.0",
+	}
+	
+	var envoyvalue = map[string]interface{}{"stage": "pre-release", "version": "1.1", "label": "gray"}
+	
+	var value = map[string]interface{}{"mosn.lb": envoyvalue}
+	
+	routerV2 := v2.Router{
+		Match: v2.RouterMatch{
+			Headers: []v2.HeaderMatcher{header},
+		},
+		
+		Route: v2.RouteAction{
+			ClusterName: TestCluster,
+			MetadataMatch: v2.Metadata{
+				"filter_metadata": value,
+			},
+		},
+	}
+	
+	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
+		Name:    "testSofaRoute",
+		Domains: []string{"*"},
+		Routers: []v2.Router{routerV2},
 	})
-
+	
 	return proxyConfig
 }
+
+//func genericProxyConfig() *v2.Proxy {
+//	proxyConfig := &v2.Proxy{
+//		DownstreamProtocol: string(protocol.SofaRpc),
+//		UpstreamProtocol:   string(protocol.Http2),
+//	}
+//
+//	proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, &v2.BasicServiceRoute{
+//		Name:    "tstSofRpcRouter",
+//		Service: ".*",
+//		Cluster: TestCluster,
+//	})
+//
+//	return proxyConfig
+//}
 
 func rpcProxyListener() *v2.ListenerConfig {
 	addr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)
@@ -181,13 +220,62 @@ func rpcProxyListener() *v2.ListenerConfig {
 
 func rpchosts() []v2.Host {
 	var hosts []v2.Host
-
+	
 	hosts = append(hosts, v2.Host{
 		Address: RealServerAddr,
 		Weight:  100,
+		MetaData: map[string]interface{}{
+			"stage":   "pre-release",
+			"version": "1.1",
+			"label":   "gray",
+		},
 	})
-
+	
 	return hosts
+}
+
+//func rpchosts() []v2.Host {
+//	var hosts []v2.Host
+//
+//	hosts = append(hosts, v2.Host{
+//		Address: RealServerAddr,
+//		Weight:  100,
+//	})
+//
+//	return hosts
+//}
+
+func clustersrpc() []v2.Cluster {
+	var configs []v2.Cluster
+	var lbsubsetconfig = v2.LBSubsetConfig{
+		
+		FallBackPolicy: 2,
+		DefaultSubset: map[string]string{
+			"stage":   "pre-release",
+			"version": "1.1",
+			"label":   "gray",
+		},
+		SubsetSelectors: [][]string{{"stage", "type"},
+			{"stage", "label", "version"},
+			{"version"}},
+	}
+	
+	/*
+				"stage":   "pre-release",
+			"version": "1.1",
+			"label":   "gray",*/
+	
+	configs = append(configs, v2.Cluster{
+		Name:                 TestCluster,
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_RANDOM,
+		MaxRequestPerConn:    1024,
+		ConnBufferLimitBytes: 32 * 1024,
+		CirBreThresholds:     v2.CircuitBreakers{},
+		LBSubSetConfig:       lbsubsetconfig,
+	})
+	
+	return configs
 }
 
 type clusterManagerFilterRPC struct {
@@ -200,18 +288,18 @@ func (cmf *clusterManagerFilterRPC) OnCreated(cccb types.ClusterConfigFactoryCb,
 	cmf.chcb = chcb
 }
 
-func clustersrpc() []v2.Cluster {
-	var configs []v2.Cluster
-	configs = append(configs, v2.Cluster{
-		Name:                 TestCluster,
-		ClusterType:          v2.SIMPLE_CLUSTER,
-		LbType:               v2.LB_RANDOM,
-		MaxRequestPerConn:    1024,
-		ConnBufferLimitBytes: 32 * 1024,
-	})
-
-	return configs
-}
+//func clustersrpc() []v2.Cluster {
+//	var configs []v2.Cluster
+//	configs = append(configs, v2.Cluster{
+//		Name:                 TestCluster,
+//		ClusterType:          v2.SIMPLE_CLUSTER,
+//		LbType:               v2.LB_RANDOM,
+//		MaxRequestPerConn:    1024,
+//		ConnBufferLimitBytes: 32 * 1024,
+//	})
+//
+//	return configs
+//}
 
 type rpclientConnCallbacks struct {
 	cc types.Connection

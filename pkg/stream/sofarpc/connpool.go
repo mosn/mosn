@@ -2,7 +2,7 @@ package sofarpc
 
 import (
 	"context"
-
+	
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -32,7 +32,7 @@ func (p *connPool) NewStream(context context.Context, streamId string,
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(context, p)
 	}
-
+	
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		cb.OnPoolFailure(streamId, types.Overflow, nil)
 	} else {
@@ -42,7 +42,7 @@ func (p *connPool) NewStream(context context.Context, streamId string,
 		streamEncoder := p.activeClient.codecClient.NewStream(streamId, responseDecoder)
 		cb.OnPoolReady(streamId, streamEncoder, p.host)
 	}
-
+	
 	return nil
 }
 
@@ -89,18 +89,18 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
-
+	
 	data := pool.host.CreateConnection(context)
 	codecClient := pool.createCodecClient(context, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
-
+	
 	ac.codecClient = codecClient
 	ac.host = data.HostInfo
-
+	
 	data.Connection.Connect(true)
-
+	
 	return ac
 }
 

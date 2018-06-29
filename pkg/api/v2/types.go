@@ -44,10 +44,10 @@ const (
 type Cluster struct {
 	Name                 string
 	ClusterType          ClusterType
-	SubClustetType       SubClusterType
-	ConnBufferLimitBytes uint32
+	SubClusterType       SubClusterType
 	LbType               LbType
 	MaxRequestPerConn    uint32
+	ConnBufferLimitBytes uint32
 	CirBreThresholds     CircuitBreakers
 	OutlierDetection     OutlierDetection
 	HealthCheck          HealthCheck
@@ -187,11 +187,13 @@ type RetryPolicy struct {
 }
 
 type HealthCheck struct {
+	Protocol           string
+	ProtocolCode       byte // used by sofa rpc
 	Timeout            time.Duration
-	HealthyThreshold   uint32
-	UnhealthyThreshold uint32
 	Interval           time.Duration
 	IntervalJitter     time.Duration
+	HealthyThreshold   uint32
+	UnhealthyThreshold uint32
 	CheckPath          string
 	ServiceName        string
 }

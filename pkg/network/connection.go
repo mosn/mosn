@@ -171,10 +171,11 @@ func (c *connection) startReadLoop() {
 						c.Close(types.NoFlush, types.RemoteClose)
 					} else {
 						c.Close(types.NoFlush, types.OnReadErrClose)
-
+						
 					}
 					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
-						c.id, c.RemoteAddr().String(), err)
+						c.id,c.RemoteAddr().String(), err)
+
 					return
 				}
 			} else {
@@ -309,6 +310,9 @@ func (c *connection) startWriteLoop() {
 					// on non-timeout error
 					c.Close(types.NoFlush, types.OnWriteErrClose)
 				}
+				
+				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
+					c.id,c.RemoteAddr().String(), err)
 
 				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
 					c.id, c.RemoteAddr().String(), err)
@@ -391,6 +395,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 		return nil
 	}
 
+
 	if c.rawConnection == nil {
 		return nil
 	}
@@ -430,11 +435,11 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
-
+	
 	for i, cb := range c.connCallbacks {
 		c.logger.Debugf("Conn Close CB, index = %d, cb = %+v", i, cb)
 	}
-
+	
 	for _, cb := range c.connCallbacks {
 		go cb.OnEvent(eventType)
 	}
@@ -501,6 +506,7 @@ func (c *connection) NextProtocol() string {
 
 func (c *connection) SetNoDelay(enable bool) {
 	if c.rawConnection != nil {
+
 		if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
 			rawc.SetNoDelay(enable)
 		}
@@ -656,7 +662,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 				cc.Start(nil)
 			}
 		}
-
+		
 		cc.connection.logger.Debugf("connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
 		for _, cccb := range cc.connCallbacks {
 			go cccb.OnEvent(event)

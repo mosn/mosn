@@ -35,8 +35,7 @@ func (hs *hostSet) HealthyHosts() []types.Host {
 	hs.mux.RLock()
 	defer hs.mux.RUnlock()
 
-	// TODO: support health check
-	return hs.hosts
+	return hs.healthyHosts
 }
 
 func (hs *hostSet) HostsPerLocality() [][]types.Host {
@@ -123,7 +122,7 @@ func newHostStats(config v2.Host) types.HostStats {
 
 func (h *host) CreateConnection(context context.Context) types.CreateConnectionData {
 	logger := log.ByContext(context)
-
+	
 	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), h.clusterInfo.TLSMng(), h.address, nil, logger)
 	clientConn.SetBufferLimit(h.clusterInfo.ConnBufferLimitBytes())
 
@@ -141,20 +140,26 @@ func (h *host) Gauges() types.HostStats {
 	return types.HostStats{}
 }
 
+// health:0, unhealth:1
+// set h.healthFlags = 0
+// ^1 = 0
 func (h *host) ClearHealthFlag(flag types.HealthFlag) {
 	h.healthFlags &= ^uint64(flag)
 }
 
+// return 1, if h.healthFlags = 1
 func (h *host) ContainHealthFlag(flag types.HealthFlag) bool {
 	return h.healthFlags&uint64(flag) > 0
 }
 
+// set h.healthFlags = 1
 func (h *host) SetHealthFlag(flag types.HealthFlag) {
 	h.healthFlags |= uint64(flag)
 }
 
+// return 1 when h.healthFlags == 0
 func (h *host) Health() bool {
-	return true
+	return h.healthFlags == 0
 }
 
 func (h *host) SetHealthChecker(healthCheck types.HealthCheckHostMonitor) {

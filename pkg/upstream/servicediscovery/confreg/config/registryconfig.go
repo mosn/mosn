@@ -22,9 +22,3 @@ var DefaultRegistryConfig = &RegistryConfig{
 	ConnectRetryDuration:                     5 * time.Second,
 	WaitReceivedDataTimeout:                  3 * time.Second,
 }
-
-const (
-	HealthName            string = "ToConfReg"
-	BoltHeartBeatTimout   time.Duration = 6 * 15 * time.Second
-	BoltHeartBeatInterval time.Duration = 15 * time.Second
-)

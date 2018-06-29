@@ -30,7 +30,7 @@ func TestGetSubListFromConfig(t *testing.T) {
 
 func TestGetPubListFromConfig(t *testing.T) {
 	clusters,clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
-	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
+	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,false)
 	
 	config.ParseServiceRegistry(c.ServiceRegistry)
 	fmt.Println(GetPubListFromConfig())
@@ -49,7 +49,7 @@ func TestResetApplicationInfo(t *testing.T) {
 
 func TestResetRegistryInfo(t *testing.T) {
 	clusters,clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
-	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
+	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,false)
 	
 	config.ParseServiceRegistry(c.ServiceRegistry)
 	app := v2.ApplicationInfo{
@@ -64,7 +64,7 @@ func TestResetRegistryInfo(t *testing.T) {
 
 func TestAddPubInfo(t *testing.T) {
 	clusters,clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
-	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
+	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,false)
 	
 	config.ParseServiceRegistry(c.ServiceRegistry)
 	m := map[string]string{"serviceNameAdded":"DataAdded"}
@@ -73,7 +73,7 @@ func TestAddPubInfo(t *testing.T) {
 
 func TestDelPubInfo(t *testing.T) {
 	clusters,clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
-	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
+	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,false)
 	
 	config.ParseServiceRegistry(c.ServiceRegistry)
 	//m := map[string]string{"serviceNameAdded":"DataAdded"}
@@ -82,7 +82,7 @@ func TestDelPubInfo(t *testing.T) {
 
 func TestAddSubInfo(t *testing.T) {
 	clusters,clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
-	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
+	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,false)
 	
 	//config.ParseServiceRegistry(c.ServiceRegistry)
 	s := []string{"testAddedSub"}
@@ -91,7 +91,7 @@ func TestAddSubInfo(t *testing.T) {
 
 func TestDelSubInfo(t *testing.T) {
 	clusters,clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
-	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery)
+	cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,false)
 	
 	config.ParseServiceRegistry(c.ServiceRegistry)
 	s := []string{"x_test_service2"}
