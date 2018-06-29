@@ -48,10 +48,6 @@ var (
 		"DYNAMIC": v2.DYNAMIC_CLUSTER,
 	}
 
-	subClusterTypeMap = map[string]v2.SubClusterType{
-		"CONFREG": v2.CONFREG_CLUSTER,
-	}
-
 	lbTypeMap = map[string]v2.LbType{
 		"LB_RANDOM":     v2.LB_RANDOM,
 		"LB_ROUNDROBIN": v2.LB_ROUNDROBIN,
@@ -441,7 +437,6 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		}
 
 		var clusterType v2.ClusterType
-		var subclusterType v2.SubClusterType
 
 		//cluster type
 		if c.Type == "" {
@@ -449,13 +444,6 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		} else {
 			if ct, ok := clusterTypeMap[c.Type]; ok {
 				clusterType = ct
-				if c.SubType != "" {
-					if cs, ok := subClusterTypeMap[c.SubType]; ok {
-						subclusterType = cs
-					} else {
-						log.StartLogger.Fatalln("[unknown sub-cluster type]", c.SubType)
-					}
-				}
 			} else {
 				log.StartLogger.Fatalln("unknown cluster type:", c.Type)
 			}
@@ -498,7 +486,6 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		clusterV2 := v2.Cluster{
 			Name:                 c.Name,
 			ClusterType:          clusterType,
-			SubClusterType:       subclusterType,
 			LbType:               lbType,
 			MaxRequestPerConn:    c.MaxRequestPerConn,
 			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
@@ -517,7 +504,6 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 	}
 
 	// trigger all callbacks
-	// for confreg, endParsed = false
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyCluster]; ok {
 		for _, cb := range cbs {
 			cb(clustersV2, false)

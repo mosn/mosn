@@ -3,6 +3,13 @@ package main
 import (
 	_ "flag"
 	"github.com/urfave/cli"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/healthcheck"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/xds"
+	_ "net/http/pprof"
 	"os"
 	"time"
 )

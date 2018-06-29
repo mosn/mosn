@@ -3,7 +3,6 @@ package main
 import (
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"strconv"
 	"sync"
@@ -11,10 +10,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
 	
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
@@ -23,8 +18,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
-	_"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
 )
 
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
@@ -62,7 +55,10 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		//1. server config prepare
 		//server config
 		sc := config.ParseServerConfig(&serverConfig)
-
+		
+		// init default log
+		server.InitDefaultLogger(sc)
+		
 		//cluster manager filter
 		cmf := &clusterManagerFilter{}
 		var clusters []v2.Cluster

@@ -27,13 +27,6 @@ const (
 	DYNAMIC_CLUSTER ClusterType = "DYNAMIC"
 )
 
-type SubClusterType string
-
-const (
-	CONFREG_CLUSTER SubClusterType = "CONFREG"
-	// also , ZooKeeper
-)
-
 type LbType string
 
 const (
@@ -44,7 +37,6 @@ const (
 type Cluster struct {
 	Name                 string
 	ClusterType          ClusterType
-	SubClusterType       SubClusterType
 	LbType               LbType
 	MaxRequestPerConn    uint32
 	ConnBufferLimitBytes uint32

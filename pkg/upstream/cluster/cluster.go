@@ -32,7 +32,7 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool)
 	var newCluster types.Cluster
 
 	switch clusterConfig.ClusterType {
-	//todo: add individual cluster for confreg
+	
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaApi)
 	}

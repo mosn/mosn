@@ -41,14 +41,10 @@ type server struct {
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
-	var logPath string
-	var logLevel log.LogLevel
+	
 	procNum := runtime.NumCPU()
-
+	
 	if config != nil {
-		logPath = config.LogPath
-		logLevel = config.LogLevel
-
 		//graceful timeout setting
 		if config.GracefulTimeout != 0 {
 			gracefulTimeout = config.GracefulTimeout
@@ -61,9 +57,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	}
 
 	runtime.GOMAXPROCS(procNum)
-
-	initDefaultLogger(logPath, logLevel)
-
+	
 	OnProcessShutDown(log.CloseAll)
 
 	server := &server{
@@ -213,8 +207,17 @@ func WaitConnectionsDone(duration time.Duration) error {
 	}
 }
 
-func initDefaultLogger(logPath string, logLevel log.LogLevel) {
-
+func InitDefaultLogger(config *Config) {
+	
+	var logPath string
+	var logLevel log.LogLevel
+	
+	if config != nil {
+		logPath = config.LogPath
+		logLevel = config.LogLevel
+		}
+	
+	
 	//use default log path
 	if logPath == "" {
 		logPath = MosnLogDefaultPath
