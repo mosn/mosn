@@ -229,7 +229,7 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool) {
+func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool,oriRemoteAddr net.Addr) {
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
@@ -248,6 +248,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 
 	arc.ContinueFilterChain(true, ctx)
 }
@@ -301,6 +302,10 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 
 func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 	conn := network.NewServerConnection(rawc, al.stopChan, al.logger)
+	oriRemoteAddr := ctx.Value(types.ContextOriRemoteAddr)
+	if oriRemoteAddr != nil{
+		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
+	}
 	newCtx := context.WithValue(ctx, types.ContextKeyConnectionId, conn.Id())
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
@@ -312,6 +317,7 @@ type activeRawConn struct {
 	rawc               net.Conn
 	originalDstIP	    string
 	originalDstPort	    int
+	oriRemoteAddr 		net.Addr
 	handOffRestoredDestinationConnections bool
 	rawcElement        *list.Element
 	activeListener     *activeListener
@@ -329,6 +335,7 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 func (arc *activeRawConn)SetOrigingalAddr(ip string, port int){
 	arc.originalDstIP = ip
 	arc.originalDstPort = port
+	arc.oriRemoteAddr,_ = net.ResolveTCPAddr("",ip+":"+ strconv.Itoa(port))
 	log.DefaultLogger.Infof("conn set origin addr:%s:%d", ip, port)
 }
 
@@ -359,10 +366,10 @@ func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context)
 
 			if _lst != nil {
 				log.DefaultLogger.Infof("original dst:%s:%d", _lst.listenIP, _lst.listenPort)
-				_lst.OnAccept(arc.rawc, false)
+				_lst.OnAccept(arc.rawc, false,arc.oriRemoteAddr)
 			} else if _ls2 != nil {
 				log.DefaultLogger.Infof("original dst:%s:%d", _ls2.listenIP, _ls2.listenPort)
-				_ls2.OnAccept(arc.rawc, false)
+				_ls2.OnAccept(arc.rawc, false,arc.oriRemoteAddr)
 			}
 
 		}else{

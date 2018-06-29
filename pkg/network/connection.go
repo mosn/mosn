@@ -450,6 +450,10 @@ func (c *connection) RemoteAddr() net.Addr {
 	return c.remoteAddr
 }
 
+func (c *connection) SetRemoteAddr(address net.Addr)  {
+	c.remoteAddr = address
+}
+
 func (c *connection) AddConnectionEventListener(cb types.ConnectionEventListener) {
 	exist := false
 
