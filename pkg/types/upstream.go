@@ -39,7 +39,7 @@ type ClusterManager interface {
 
 	Clusters() map[string]Cluster
 
-	Get(cluster string, context context.Context) ClusterSnapshot
+	Get(context context.Context, cluster string) ClusterSnapshot
 
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error

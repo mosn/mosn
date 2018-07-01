@@ -180,7 +180,7 @@ func (cm *clusterManager) Clusters() map[string]types.Cluster {
 	return clusterInfoMap
 }
 
-func (cm *clusterManager) Get(cluster string, context context.Context) types.ClusterSnapshot {
+func (cm *clusterManager) Get(context context.Context, cluster string) types.ClusterSnapshot {
 	return cm.getOrCreateClusterSnapshot(cluster)
 }
 

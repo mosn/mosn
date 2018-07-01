@@ -382,7 +382,7 @@ func (s *activeStream) onPerTryTimeout() {
 }
 
 func (s *activeStream) initializeUpstreamConnectionPool(clusterName string, lbCtx types.LoadBalancerContext) (error, types.ConnectionPool) {
-	clusterSnapshot := s.proxy.clusterManager.Get(clusterName, nil)
+	clusterSnapshot := s.proxy.clusterManager.Get(nil, clusterName)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
