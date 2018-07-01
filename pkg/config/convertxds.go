@@ -1,7 +1,27 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package config
 
 import (
 	"fmt"
+	"net"
+	"strings"
+	"time"
+
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
@@ -11,7 +31,6 @@ import (
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	xdsxproxy "gitlab.alipay-inc.com/afe/mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/fatih/structs"
@@ -19,16 +38,14 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"net"
-	"strings"
-	"time"
+	xdsxproxy "gitlab.alipay-inc.com/afe/mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
 )
 
 var supportFilter map[string]bool = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
 	v2.SOFARPC_INBOUND_FILTER:     true,
 	v2.SOFARPC_OUTBOUND_FILTER:    true,
-	v2.X_PROXY:          true,
+	v2.X_PROXY:                    true,
 }
 
 var httpBaseConfig map[string]bool = map[string]bool{
@@ -204,8 +221,6 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 	return accessLogs
 }
 
-
-
 func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) []v2.FilterChain {
 	if xdsFilterChains == nil {
 		return nil
@@ -260,7 +275,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
-	}else if name == v2.X_PROXY {
+	} else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
 		proxyConfig := v2.Proxy{
 			DownstreamProtocol: filterConfig.GetDownstreamProtocol().String(),
@@ -268,7 +283,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
-	}else{
+	} else {
 		log.DefaultLogger.Fatalf("unsupport filter config, filter name: %s", name)
 	}
 	return nil
@@ -279,7 +294,6 @@ func convertVirtualHosts(xdsRouteConfig *xdsapi.RouteConfiguration) []*v2.Virtua
 		return nil
 	}
 	virtualHosts := make([]*v2.VirtualHost, 0)
-
 
 	for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
 		virtualHost := &v2.VirtualHost{

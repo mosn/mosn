@@ -1,8 +1,25 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package router
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"sync"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
@@ -30,7 +47,7 @@ func (rm *routersManager) AddRoutersSet(routers types.Routers) {
 }
 
 func (rm *routersManager) RemoveRouterInRouters(routerNames []string) {
-	log.DefaultLogger.Debugf("[RouterManager]RemoveRouterInRouters Called, routerNames is",routerNames)
+	log.DefaultLogger.Debugf("[RouterManager]RemoveRouterInRouters Called, routerNames is", routerNames)
 
 	rm.DeleteRouterNameInList(routerNames)
 	for _, rn := range routerNames {
@@ -41,13 +58,13 @@ func (rm *routersManager) RemoveRouterInRouters(routerNames []string) {
 }
 
 func (rm *routersManager) AddRouterInRouters(routerNames []string) {
-	
-	log.DefaultLogger.Debugf("[RouterManager]AddRouterInRouters Called, routerNames is",routerNames)
+
+	log.DefaultLogger.Debugf("[RouterManager]AddRouterInRouters Called, routerNames is", routerNames)
 	rm.AddRouterNameInList(routerNames)
 
 	for _, rn := range routerNames {
 		for _, r := range rm.routersSet {
-		//	log.StartLogger.Debugf("[RouterManager]Add Routers to Basic Router %+v", r)
+			//	log.StartLogger.Debugf("[RouterManager]Add Routers to Basic Router %+v", r)
 			r.AddRouter(rn)
 		}
 	}
@@ -56,7 +73,7 @@ func (rm *routersManager) AddRouterInRouters(routerNames []string) {
 func (rm *routersManager) AddRouterNameInList(routerNames []string) {
 	rm.rMutex.Lock()
 	defer rm.rMutex.Unlock()
-	
+
 	for _, name := range routerNames {
 		in := false
 		for _, n := range rm.routerNames {
@@ -66,7 +83,7 @@ func (rm *routersManager) AddRouterNameInList(routerNames []string) {
 			}
 		}
 		if !in {
-			rm.routerNames = append(rm.routerNames,name)
+			rm.routerNames = append(rm.routerNames, name)
 		}
 	}
 }

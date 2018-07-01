@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package config
 
 import (
@@ -144,22 +160,20 @@ func convertClusterSpec(clusterSpec v2.ClusterSpecInfo) ClusterSpecConfig {
 	}
 }
 
-
 // used to convert config's hc to v2 api
 func convertClusterHealthCheck(cchc v2.HealthCheck) ClusterHealthCheckConfig {
-	
+
 	return ClusterHealthCheckConfig{
-		Protocol: cchc.Protocol,
-		Timeout:  DurationConfig{cchc.Timeout},
-		HealthyThreshold:cchc.HealthyThreshold,
-		UnhealthyThreshold:cchc.HealthyThreshold,
-		Interval:DurationConfig{cchc.Interval},
-		IntervalJitter:DurationConfig{cchc.IntervalJitter},
-		CheckPath:cchc.CheckPath,
-		ServiceName:cchc.ServiceName,
+		Protocol:           cchc.Protocol,
+		Timeout:            DurationConfig{cchc.Timeout},
+		HealthyThreshold:   cchc.HealthyThreshold,
+		UnhealthyThreshold: cchc.HealthyThreshold,
+		Interval:           DurationConfig{cchc.Interval},
+		IntervalJitter:     DurationConfig{cchc.IntervalJitter},
+		CheckPath:          cchc.CheckPath,
+		ServiceName:        cchc.ServiceName,
 	}
 }
-
 
 // todo: add router config delete
 

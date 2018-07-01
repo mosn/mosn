@@ -1,7 +1,28 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package main
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
@@ -15,10 +36,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"golang.org/x/net/http2"
-	"net"
-	"net/http"
-	_ "net/http/pprof"
-	"time"
 )
 
 const (
@@ -75,7 +92,7 @@ func main() {
 	go func() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
-		cm := cluster.NewClusterManager(nil,nil,nil,false,false)
+		cm := cluster.NewClusterManager(nil, nil, nil, false, false)
 
 		//RPC
 		srv := server.NewServer(&server.Config{}, cmf, cm)
@@ -163,31 +180,27 @@ func genericProxyConfig() *v2.Proxy {
 	//	Service: "com.alipay.demo.SampleService:1.0",
 	//	Cluster: TestCluster,
 	//}
-	
-	
+
 	header := v2.HeaderMatcher{
-		Name:"service",
-		Value:"com.alipay.demo.SampleService:1.0",
+		Name:  "service",
+		Value: "com.alipay.demo.SampleService:1.0",
 	}
-	
+
 	routerV2 := v2.Router{
-		Match:v2.RouterMatch{
-			Headers:[]v2.HeaderMatcher{header},
+		Match: v2.RouterMatch{
+			Headers: []v2.HeaderMatcher{header},
 		},
-		
-		Route:v2.RouteAction{
-			ClusterName:TestCluster,
+
+		Route: v2.RouteAction{
+			ClusterName: TestCluster,
 		},
 	}
-	
+
 	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
 		Name:    "testSofaRoute",
-		Domains:  []string{"*"},
-		Routers:  []v2.Router{routerV2},
+		Domains: []string{"*"},
+		Routers: []v2.Router{routerV2},
 	})
-	
-	
-	
 
 	return proxyConfig
 }
@@ -229,12 +242,12 @@ func (cmf *clusterManagerFilterRPC) OnCreated(cccb types.ClusterConfigFactoryCb,
 func clustersrpc() []v2.Cluster {
 	var configs []v2.Cluster
 	configs = append(configs, v2.Cluster{
-		Name:              TestCluster,
-		ClusterType:       v2.SIMPLE_CLUSTER,
-		LbType:            v2.LB_RANDOM,
-		MaxRequestPerConn: 1024,
+		Name:                 TestCluster,
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_RANDOM,
+		MaxRequestPerConn:    1024,
 		ConnBufferLimitBytes: 32 * 1024,
-		CirBreThresholds:  v2.CircuitBreakers{},
+		CirBreThresholds:     v2.CircuitBreakers{},
 	})
 
 	return configs

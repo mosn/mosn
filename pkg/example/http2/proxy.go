@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package main
 
 import (
@@ -8,6 +24,8 @@ import (
 	"time"
 
 	"crypto/tls"
+	"io/ioutil"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
@@ -18,7 +36,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"golang.org/x/net/http2"
-	"io/ioutil"
 )
 
 const (
@@ -72,11 +89,10 @@ func main() {
 	go func() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
-		cm := cluster.NewClusterManager(nil,nil,nil,false,false)
-
+		cm := cluster.NewClusterManager(nil, nil, nil, false, false)
 
 		//RPC
-		srv := server.NewServer(&server.Config{}, cmf,cm)
+		srv := server.NewServer(&server.Config{}, cmf, cm)
 
 		srv.AddListener(rpcProxyListener(), &proxy.GenericProxyFilterConfigFactory{
 			Proxy: genericProxyConfig(),
@@ -169,26 +185,26 @@ func genericProxyConfig() *v2.Proxy {
 		DownstreamProtocol: string(protocol.Http2),
 		UpstreamProtocol:   string(protocol.Http2),
 	}
-	
+
 	header := v2.HeaderMatcher{
-		Name:"service",
-		Value:"com.alipay.rpc.common.service.facade.SampleService:1.0",
+		Name:  "service",
+		Value: "com.alipay.rpc.common.service.facade.SampleService:1.0",
 	}
-	
+
 	routerV2 := v2.Router{
-		Match:v2.RouterMatch{
-			Headers:[]v2.HeaderMatcher{header},
+		Match: v2.RouterMatch{
+			Headers: []v2.HeaderMatcher{header},
 		},
-		
-		Route:v2.RouteAction{
-			ClusterName:TestCluster,
+
+		Route: v2.RouteAction{
+			ClusterName: TestCluster,
 		},
 	}
-	
+
 	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
 		Name:    "testSofaRoute",
-		Domains:  []string{"*"},
-		Routers:  []v2.Router{routerV2},
+		Domains: []string{"*"},
+		Routers: []v2.Router{routerV2},
 	})
 
 	return proxyConfig

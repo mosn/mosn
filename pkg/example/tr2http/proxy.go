@@ -1,7 +1,28 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package main
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
@@ -15,10 +36,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 	"golang.org/x/net/http2"
-	"net"
-	"net/http"
-	_ "net/http/pprof"
-	"time"
 )
 
 const (
@@ -76,7 +93,7 @@ func main() {
 		//  mesh
 		cmf := &clusterManagerFilterRPC{}
 
-		cm := cluster.NewClusterManager(nil,nil,nil,false,false)
+		cm := cluster.NewClusterManager(nil, nil, nil, false, false)
 
 		//RPC
 		srv := server.NewServer(&server.Config{}, cmf, cm)
@@ -158,21 +175,21 @@ func genericProxyConfig() *v2.Proxy {
 		DownstreamProtocol: string(protocol.SofaRpc),
 		UpstreamProtocol:   string(protocol.Http2),
 	}
-	
+
 	header := v2.HeaderMatcher{
 		Name:  "service",
 		Value: "com.alipay.rpc.common.service.facade.SampleService:1.0",
 	}
-	
+
 	var envoyvalue = map[string]interface{}{"stage": "pre-release", "version": "1.1", "label": "gray"}
-	
+
 	var value = map[string]interface{}{"mosn.lb": envoyvalue}
-	
+
 	routerV2 := v2.Router{
 		Match: v2.RouterMatch{
 			Headers: []v2.HeaderMatcher{header},
 		},
-		
+
 		Route: v2.RouteAction{
 			ClusterName: TestCluster,
 			MetadataMatch: v2.Metadata{
@@ -180,13 +197,13 @@ func genericProxyConfig() *v2.Proxy {
 			},
 		},
 	}
-	
+
 	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
 		Name:    "testSofaRoute",
 		Domains: []string{"*"},
 		Routers: []v2.Router{routerV2},
 	})
-	
+
 	return proxyConfig
 }
 
@@ -220,7 +237,7 @@ func rpcProxyListener() *v2.ListenerConfig {
 
 func rpchosts() []v2.Host {
 	var hosts []v2.Host
-	
+
 	hosts = append(hosts, v2.Host{
 		Address: RealServerAddr,
 		Weight:  100,
@@ -230,7 +247,7 @@ func rpchosts() []v2.Host {
 			"label":   "gray",
 		},
 	})
-	
+
 	return hosts
 }
 
@@ -248,7 +265,7 @@ func rpchosts() []v2.Host {
 func clustersrpc() []v2.Cluster {
 	var configs []v2.Cluster
 	var lbsubsetconfig = v2.LBSubsetConfig{
-		
+
 		FallBackPolicy: 2,
 		DefaultSubset: map[string]string{
 			"stage":   "pre-release",
@@ -259,12 +276,12 @@ func clustersrpc() []v2.Cluster {
 			{"stage", "label", "version"},
 			{"version"}},
 	}
-	
+
 	/*
-				"stage":   "pre-release",
-			"version": "1.1",
-			"label":   "gray",*/
-	
+			"stage":   "pre-release",
+		"version": "1.1",
+		"label":   "gray",*/
+
 	configs = append(configs, v2.Cluster{
 		Name:                 TestCluster,
 		ClusterType:          v2.SIMPLE_CLUSTER,
@@ -274,7 +291,7 @@ func clustersrpc() []v2.Cluster {
 		CirBreThresholds:     v2.CircuitBreakers{},
 		LBSubSetConfig:       lbsubsetconfig,
 	})
-	
+
 	return configs
 }
 
