@@ -347,7 +347,7 @@ type streamMap struct {
 }
 
 func newStreamMap(context context.Context) streamMap {
-	smap := str.GetMap(context, 5096)
+	smap := make(map[string]interface{}, 5096)
 
 	return streamMap{
 		smap: smap,
