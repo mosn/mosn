@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package http2
 
 import (
@@ -14,13 +30,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"crypto/tls"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"golang.org/x/net/http2"
-	"crypto/tls"
 )
 
 func init() {
@@ -466,7 +483,7 @@ func (s *serverStream) doSend() {
 
 	s.responseWriter.WriteHeader(s.response.StatusCode)
 
-	if s.response.Body != nil{
+	if s.response.Body != nil {
 		buf := &buffer.IoBuffer{}
 		buf.ReadFrom(s.response.Body)
 		buf.WriteTo(s.responseWriter)

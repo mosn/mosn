@@ -1,15 +1,31 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package config
 
 import (
 	"errors"
 
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	clusterAdapter "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
 func SetGlobalStreamFilter(globalStreamFilters []types.StreamFilterChainFactory) {
@@ -51,8 +67,8 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 			log.DefaultLogger.Errorf(errMsg)
 			return errors.New(errMsg)
 		}
-		
-		if server :=server.GetServer(); server == nil {
+
+		if server := server.GetServer(); server == nil {
 			log.DefaultLogger.Fatal("Server is nil and hasn't been initiated at this time")
 		} else {
 			if err := server.AddListenerAndStart(mosnListener, networkFilter, streamFilter); err == nil {
@@ -62,7 +78,7 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 				return err
 			}
 		}
-		
+
 	}
 
 	return nil
@@ -74,7 +90,6 @@ func (config *MOSNConfig) OnUpdateRoutes(route *pb.RouteConfiguration) error {
 	return nil
 }
 
-
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	mosnClusters := convertClustersConfig(clusters)
 
@@ -82,9 +97,9 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 		log.DefaultLogger.Infof("cluster: %+v\n", cluster)
 		if err := clusterAdapter.ClusterAdap.TriggerClusterUpdate(cluster.Name, cluster.Hosts); err != nil {
 			log.DefaultLogger.Errorf("xds client update cluster error ,err = %s, clustername = %s , hosts = %+v",
-				err.Error(),cluster.Name,cluster.Hosts)
+				err.Error(), cluster.Name, cluster.Hosts)
 		} else {
-			log.DefaultLogger.Debugf("xds client update cluster success, clustername = %s",cluster.Name)
+			log.DefaultLogger.Debugf("xds client update cluster success, clustername = %s", cluster.Name)
 		}
 
 	}
@@ -108,7 +123,7 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 				log.DefaultLogger.Errorf("xds client update Error = %s", err.Error())
 			} else {
 				log.DefaultLogger.Debugf("xds client update host success")
-				
+
 			}
 		}
 	}

@@ -1,20 +1,37 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package xds
 
 import (
 	"errors"
+
+	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/gogo/protobuf/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/xds/v2"
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
-	"github.com/gogo/protobuf/types"
-	"github.com/gogo/protobuf/jsonpb"
 	//"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"encoding/json"
 	"fmt"
-	"time"
 	"strings"
+	"time"
 )
 
 //var warmuped chan bool = make(chan bool)
@@ -23,11 +40,11 @@ import (
 //var started bool = false
 
 type XdsClient struct {
-	v2 *v2.V2Client
+	v2        *v2.V2Client
 	adsClient *v2.ADSClient
 }
 
-func (c *XdsClient) getConfig(config *config.MOSNConfig) error{
+func (c *XdsClient) getConfig(config *config.MOSNConfig) error {
 	log.DefaultLogger.Infof("start to get config from istio")
 	err := c.getListenersAndRoutes(config)
 	if err != nil {
@@ -43,7 +60,7 @@ func (c *XdsClient) getConfig(config *config.MOSNConfig) error{
 	return nil
 }
 
-func (c *XdsClient) getListenersAndRoutes(config *config.MOSNConfig) error{
+func (c *XdsClient) getListenersAndRoutes(config *config.MOSNConfig) error {
 	log.DefaultLogger.Infof("start to get listeners from LDS")
 	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
 	listeners := c.v2.GetListeners(streamClient)
@@ -61,7 +78,7 @@ func (c *XdsClient) getListenersAndRoutes(config *config.MOSNConfig) error{
 	return nil
 }
 
-func (c *XdsClient) getClustersAndHosts(config *config.MOSNConfig) error{
+func (c *XdsClient) getClustersAndHosts(config *config.MOSNConfig) error {
 	log.DefaultLogger.Infof("start to get clusters from CDS")
 	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
 	clusters := c.v2.GetClusters(streamClient)
@@ -77,7 +94,7 @@ func (c *XdsClient) getClustersAndHosts(config *config.MOSNConfig) error{
 	}
 	log.DefaultLogger.Infof("update clusters success")
 
-	clusterNames := make([]string,0)
+	clusterNames := make([]string, 0)
 	for _, cluster := range clusters {
 		if cluster.Type == xdsapi.Cluster_EDS {
 			clusterNames = append(clusterNames, cluster.Name)
@@ -109,7 +126,7 @@ func duration2String(duration *types.Duration) string {
 
 /*
 in order to convert bootstrap_v2 json to pb struct (go-control-plane), some fields must be exchanged format
- */
+*/
 func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources, err error) {
 
 	if len(config.RawDynamicResources) > 0 {
@@ -162,13 +179,12 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 				log.DefaultLogger.Fatalf("invalid dynamic_resources: %v", err)
 				return nil, nil, err
 			}
-		} else{
+		} else {
 			log.DefaultLogger.Fatalf("ads_config not found")
 			err = errors.New("lack of ads_config")
 			return nil, nil, err
 		}
 	}
-
 
 	if len(config.RawStaticResources) > 0 {
 		staticResources = &bootstrap.Bootstrap_StaticResources{}
@@ -251,8 +267,6 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 	return dynamicResources, staticResources, nil
 }
 
-
-
 //func Start(config *config.MOSNConfig, serviceCluster, serviceNode string) {
 //
 //	log.DefaultLogger.Infof("xdsclient start\n")
@@ -298,7 +312,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 //
 //}
 
-func (c *XdsClient)Start(config *config.MOSNConfig, serviceCluster, serviceNode string) error{
+func (c *XdsClient) Start(config *config.MOSNConfig, serviceCluster, serviceNode string) error {
 	log.DefaultLogger.Infof("xds client start")
 	if c.v2 == nil {
 		dynamicResources, staticResources, err := UnmarshalResources(config)
@@ -326,20 +340,20 @@ func (c *XdsClient)Start(config *config.MOSNConfig, serviceCluster, serviceNode 
 	sendControlChan := make(chan int)
 	recvControlChan := make(chan int)
 	adsClient := &v2.ADSClient{
-		AdsConfig: c.v2.Config.ADSConfig,
-		StreamClient: nil,
-		V2Client: c.v2,
-		MosnConfig: nil,
+		AdsConfig:       c.v2.Config.ADSConfig,
+		StreamClient:    nil,
+		V2Client:        c.v2,
+		MosnConfig:      nil,
 		SendControlChan: sendControlChan,
 		RecvControlChan: recvControlChan,
-		StopChan: stopChan,
+		StopChan:        stopChan,
 	}
 	adsClient.Start()
 	c.adsClient = adsClient
 	return nil
 }
 
-func (c *XdsClient)Stop() {
+func (c *XdsClient) Stop() {
 	log.DefaultLogger.Infof("prepare to stop xds client")
 	c.adsClient.Stop()
 	log.DefaultLogger.Infof("xds client stop")

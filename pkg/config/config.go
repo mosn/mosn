@@ -1,15 +1,32 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package config
 
 import (
 	"encoding/json"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
 //global instance for load & dump
@@ -17,8 +34,8 @@ var ConfigPath string
 var config MOSNConfig
 
 type FilterChain struct {
-	FilterChainMatch string       `json:"match,omitempty"`
-	TLS              TLSConfig    `json:"tls_context,omitempty"`
+	FilterChainMatch string         `json:"match,omitempty"`
+	TLS              TLSConfig      `json:"tls_context,omitempty"`
 	Filters          []FilterConfig `json:"filters"`
 }
 
@@ -33,11 +50,11 @@ type AccessLogConfig struct {
 }
 
 type ListenerConfig struct {
-	Name           string         `json:"name,omitempty"`
-	Address        string         `json:"address,omitempty"`
-	BindToPort     bool           `json:"bind_port"`
-	FilterChains   []FilterChain  `json:"filter_chains"`
-	StreamFilters  []FilterConfig `json:"stream_filters,omitempty"`
+	Name          string         `json:"name,omitempty"`
+	Address       string         `json:"address,omitempty"`
+	BindToPort    bool           `json:"bind_port"`
+	FilterChains  []FilterChain  `json:"filter_chains"`
+	StreamFilters []FilterConfig `json:"stream_filters,omitempty"`
 
 	//logger
 	LogPath  string `json:"log_path,omitempty"`
@@ -114,24 +131,24 @@ type ClusterConfig struct {
 	MaxRequestPerConn    uint32
 	ConnBufferLimitBytes uint32
 	CircuitBreakers      []*CircuitBreakerdConfig `json:"circuit_breakers"`
-	HealthCheck          ClusterHealthCheckConfig        `json:"health_check,omitempty"` //v2.HealthCheck
-	ClusterSpecConfig    ClusterSpecConfig     `json:"spec,omitempty"`         //	ClusterSpecConfig
-	Hosts                []v2.Host             `json:"hosts,omitempty"`        //v2.Host
+	HealthCheck          ClusterHealthCheckConfig `json:"health_check,omitempty"` //v2.HealthCheck
+	ClusterSpecConfig    ClusterSpecConfig        `json:"spec,omitempty"`         //	ClusterSpecConfig
+	Hosts                []v2.Host                `json:"hosts,omitempty"`        //v2.Host
 	LBSubsetConfig       v2.LBSubsetConfig
-	TLS                  TLSConfig             `json:"tls_context,omitempty"`
+	TLS                  TLSConfig `json:"tls_context,omitempty"`
 }
 
 type CircuitBreakerdConfig struct {
-	Priority           string  `json:"priority"`
-	MaxConnections     uint32  `json:"max_connections"`
-	MaxPendingRequests uint32  `json:"max_pending_requests"`
-	MaxRequests        uint32  `json:"max_requests"`
-	MaxRetries         uint32  `json:"max_retries"`
+	Priority           string `json:"priority"`
+	MaxConnections     uint32 `json:"max_connections"`
+	MaxPendingRequests uint32 `json:"max_pending_requests"`
+	MaxRequests        uint32 `json:"max_requests"`
+	MaxRetries         uint32 `json:"max_retries"`
 }
 
 type ClusterManagerConfig struct {
 	// Note: consider to use standard configure
-	AutoDiscovery          bool            `json:"auto_discovery"`
+	AutoDiscovery bool `json:"auto_discovery"`
 	// Note: this is a hack method to realize cluster's  health check which push by registry
 	RegistryUseHealthCheck bool            `json:"registry_use_health_check"`
 	Clusters               []ClusterConfig `json:"clusters,omitempty"`

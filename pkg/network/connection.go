@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package network
 
 import (
@@ -171,10 +187,10 @@ func (c *connection) startReadLoop() {
 						c.Close(types.NoFlush, types.RemoteClose)
 					} else {
 						c.Close(types.NoFlush, types.OnReadErrClose)
-						
+
 					}
 					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
-						c.id,c.RemoteAddr().String(), err)
+						c.id, c.RemoteAddr().String(), err)
 
 					return
 				}
@@ -310,9 +326,9 @@ func (c *connection) startWriteLoop() {
 					// on non-timeout error
 					c.Close(types.NoFlush, types.OnWriteErrClose)
 				}
-				
+
 				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
-					c.id,c.RemoteAddr().String(), err)
+					c.id, c.RemoteAddr().String(), err)
 
 				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
 					c.id, c.RemoteAddr().String(), err)
@@ -395,7 +411,6 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 		return nil
 	}
 
-
 	if c.rawConnection == nil {
 		return nil
 	}
@@ -435,11 +450,11 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
-	
+
 	for i, cb := range c.connCallbacks {
 		c.logger.Debugf("Conn Close CB, index = %d, cb = %+v", i, cb)
 	}
-	
+
 	for _, cb := range c.connCallbacks {
 		go cb.OnEvent(eventType)
 	}
@@ -619,7 +634,7 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 				WriteCurrent: metrics.NewGauge(),
 			},
 			logger: logger,
-			tlsMng:  tlsMng,
+			tlsMng: tlsMng,
 		},
 	}
 
@@ -662,7 +677,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 				cc.Start(nil)
 			}
 		}
-		
+
 		cc.connection.logger.Debugf("connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
 		for _, cccb := range cc.connCallbacks {
 			go cccb.OnEvent(event)

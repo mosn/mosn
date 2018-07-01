@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package types
 
 import (
@@ -71,7 +87,7 @@ type LBSubsetEntry interface {
 	Active() bool
 
 	PrioritySubset() PrioritySubset
-	
+
 	SetPrioritySubset(PrioritySubset)
 
 	Children() LbSubsetMap
@@ -79,7 +95,6 @@ type LBSubsetEntry interface {
 
 // Represents a subset of an original HostSet.
 type HostSubset interface {
-	
 	Update(hostsAdded []Host, hostsRemoved []Host, predicate HostPredicate)
 	//	TriggerCallbacks()   todo
 	Empty() bool
@@ -88,15 +103,15 @@ type HostSubset interface {
 // Represents a subset of an original PrioritySet.
 type PrioritySubset interface {
 	//PrioritySet
-	
+
 	Update(priority uint32, hostsAdded []Host, hostsRemoved []Host)
-	
+
 	Empty() bool
-	
+
 	GetOrCreateHostSubset(priority uint32) HostSubset
-	
+
 	TriggerCallbacks()
-	
+
 	CreateHostSet(priority uint32) HostSet
 	LB() LoadBalancer
 }
