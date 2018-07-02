@@ -1,11 +1,28 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package types
 
 import (
 	"context"
-	"github.com/rcrowley/go-metrics"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"net"
 	"sort"
+
+	"github.com/rcrowley/go-metrics"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -13,17 +30,16 @@ import (
 //           1              * | 1                1 | 1                *| 1          *
 //   clusterManager --------- cluster  --------- prioritySet --------- hostSet------hosts
 
-
 // Manage connection pools and load balancing for upstream clusters.
 type ClusterManager interface {
 	// Add or update a cluster via API.
 	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
-	
+
 	SetInitializedCb(cb func())
 
 	Clusters() map[string]Cluster
 
-	Get(cluster string, context context.Context) ClusterSnapshot
+	Get(context context.Context, cluster string) ClusterSnapshot
 
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
@@ -45,7 +61,7 @@ type ClusterManager interface {
 	LocalClusterName() string
 
 	ClusterExist(clusterName string) bool
-	
+
 	RemoveClusterHosts(clusterName string, host Host) error
 }
 
@@ -65,12 +81,12 @@ type Cluster interface {
 	Info() ClusterInfo
 
 	InitializePhase() InitializePhase
-	
+
 	PrioritySet() PrioritySet
 
 	// set the cluster's health checker
 	SetHealthChecker(hc HealthChecker)
-	
+
 	// return the cluster's health checker
 	HealthChecker() HealthChecker
 
@@ -80,7 +96,6 @@ type Cluster interface {
 type InitializePhase string
 
 const (
-	
 	Primary   InitializePhase = "Primary"
 	Secondary InitializePhase = "Secondary"
 )
@@ -89,7 +104,7 @@ type MemberUpdateCallback func(priority uint32, hostsAdded []Host, hostsRemoved 
 
 // PrioritySet is a hostSet grouped by priority for a given cluster, for ease of load balancing.
 type PrioritySet interface {
-	
+
 	// Get the hostSet for this priority level, creating it if not exist.
 	GetOrCreateHostSet(priority uint32) HostSet
 
@@ -103,7 +118,7 @@ type HostPredicate func(Host) bool
 // HostSet is as set of hosts that contains all of the endpoints for a given
 // LocalityLbEndpoints priority level.
 type HostSet interface {
-	
+
 	// all hosts that make up the set at the current time.
 	Hosts() []Host
 
@@ -123,7 +138,7 @@ type HealthFlag int
 
 const (
 	// The host is currently failing active health checks.
-	FAILED_ACTIVE_HC     HealthFlag = 0x1
+	FAILED_ACTIVE_HC HealthFlag = 0x1
 	// The host is currently considered an outlier and has been ejected.
 	FAILED_OUTLIER_CHECK HealthFlag = 0x02
 )
@@ -231,14 +246,13 @@ type ClusterInfo interface {
 	Stats() ClusterStats
 
 	ResourceManager() ResourceManager
-	
+
 	// protocol used for health checking for this cluster
 	HealthCheckProtocol() string
-	
+
 	TLSMng() TLSContextManager
 
 	LbSubsetInfo() LBSubsetInfo
-
 }
 
 type ResourceManager interface {
@@ -377,19 +391,19 @@ type SortedMap struct {
 
 func InitSortedMap(input map[string]string) SortedMap {
 	var keyset []string
-	var smap = make(map[string]string,len(input))
-	
-	for k,_ := range input {
-		
-		keyset = append(keyset,k)
+	var smap = make(map[string]string, len(input))
+
+	for k, _ := range input {
+
+		keyset = append(keyset, k)
 	}
-	
+
 	sort.Strings(keyset)
-	
+
 	for _, key := range keyset {
 		smap[key] = input[key]
 	}
-	
+
 	return SortedMap{
 		smap,
 	}

@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package codec
 
 import (
@@ -6,12 +22,13 @@ import (
 	"reflect"
 	"time"
 
+	"errors"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"errors"
 )
 
 var (
@@ -54,10 +71,10 @@ func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}
 	case *sofarpc.BoltResponseCommand:
 		return c.encodeResponseCommand(context, headers.(*sofarpc.BoltResponseCommand))
 	default:
-		
+
 		errMsg := sofarpc.InvalidCommandType
 		err := errors.New(errMsg)
-		log.ByContext(context).Errorf("boltV1"+errMsg)
+		log.ByContext(context).Errorf("boltV1" + errMsg)
 		return err, nil
 	}
 }
@@ -122,7 +139,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofar
 	if len(cmd.HeaderMap) > 0 {
 		data = append(data, cmd.HeaderMap...)
 	}
-	
+
 	return data
 }
 
@@ -264,7 +281,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 	if readableBytes >= sofarpc.LESS_LEN_V1 {
 		bytes := data.Bytes()
 		dataType := bytes[1]
-		
+
 		//1. request
 		if dataType == sofarpc.REQUEST || dataType == sofarpc.REQUEST_ONEWAY {
 			if readableBytes >= sofarpc.REQUEST_HEADER_LEN_V1 {
@@ -326,7 +343,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					nil,
 				}
 				logger.Debugf("BoltV1 DECODE REQUEST, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
-					request.Protocol,request.CmdType,request.CmdCode,request.ReqId)
+					request.Protocol, request.CmdType, request.CmdCode, request.ReqId)
 				cmd = &request
 			}
 		} else {
@@ -385,16 +402,16 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					time.Now().UnixNano() / int64(time.Millisecond),
 					nil,
 				}
-				
+
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
 					//logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
 				}
 				logger.Debugf("BoltV1 DECODE RESPONSE,RespStatus = %d, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
-				response.ResponseStatus, response.Protocol,response.CmdType,response.CmdCode,response.ReqId)
+					response.ResponseStatus, response.Protocol, response.CmdType, response.CmdCode, response.ReqId)
 				cmd = &response
 			}
 		}
 	}
-	
+
 	return read, cmd
 }

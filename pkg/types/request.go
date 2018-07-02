@@ -1,8 +1,24 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package types
 
 import (
-	"time"
 	"net"
+	"time"
 )
 
 type ResponseFlag int
@@ -10,33 +26,33 @@ type ResponseFlag int
 // Some Response Flags
 const (
 	// no healthy upstream found
-	NoHealthyUpstream             ResponseFlag = 0x2
+	NoHealthyUpstream ResponseFlag = 0x2
 	// Upstream Request timeout
-	UpstreamRequestTimeout        ResponseFlag = 0x4
+	UpstreamRequestTimeout ResponseFlag = 0x4
 	// local reset
-	UpstreamLocalReset            ResponseFlag = 0x8
+	UpstreamLocalReset ResponseFlag = 0x8
 	// upstream reset
-	UpstreamRemoteReset           ResponseFlag = 0x10
+	UpstreamRemoteReset ResponseFlag = 0x10
 	// connect upstream failure
-	UpstreamConnectionFailure     ResponseFlag = 0x20
+	UpstreamConnectionFailure ResponseFlag = 0x20
 	// upstream terminate connection
 	UpstreamConnectionTermination ResponseFlag = 0x40
 	// upstream's connection overflow
-	UpstreamOverflow              ResponseFlag = 0x80
+	UpstreamOverflow ResponseFlag = 0x80
 	// no route found
-	NoRouteFound                  ResponseFlag = 0x100
+	NoRouteFound ResponseFlag = 0x100
 	// inject delay
-	DelayInjected                 ResponseFlag = 0x200
+	DelayInjected ResponseFlag = 0x200
 	// inject fault
-	FaultInjected                 ResponseFlag = 0x400
+	FaultInjected ResponseFlag = 0x400
 	// rate limited
-	RateLimited                   ResponseFlag = 0x800
+	RateLimited ResponseFlag = 0x800
 )
 
 type RequestInfo interface {
 	// get request's arriving time
 	StartTime() time.Time
-	
+
 	// get duration between request arriving and request resend to upstream
 	RequestReceivedDuration() time.Duration
 
@@ -60,13 +76,13 @@ type RequestInfo interface {
 
 	// set  bytes received
 	SetBytesReceived(bytesReceived uint64)
-	
+
 	// get request's protocol type
 	Protocol() Protocol
-	
+
 	// get request's response code
 	ResponseCode() uint32
-	
+
 	// get duration since request's starting time
 	Duration() time.Duration
 
@@ -81,10 +97,10 @@ type RequestInfo interface {
 
 	// set upstream selected
 	OnUpstreamHostSelected(host HostInfo)
-	
+
 	// get upstream's local address
 	UpstreamLocalAddress() net.Addr
-	
+
 	// set upstream's local address
 	SetUpstreamLocalAddress(localAddress net.Addr)
 
@@ -96,13 +112,13 @@ type RequestInfo interface {
 
 	// get downstream's local address
 	DownstreamLocalAddress() net.Addr
-	
+
 	// set downstream's local address
 	SetDownstreamLocalAddress(addr net.Addr)
-	
+
 	// get downstream's local address
 	DownstreamRemoteAddress() net.Addr
-	
+
 	// set downstream's local address
 	SetDownstreamRemoteAddress(addr net.Addr)
 

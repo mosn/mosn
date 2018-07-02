@@ -1,27 +1,44 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package main
 
 import (
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"net/http"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
-	"time"
+	"io/ioutil"
 	"net"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+	"net/http"
+	"time"
+
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/router/basic"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
-	"io/ioutil"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 )
 
 const (
 	RealServerAddr  = "127.0.0.1:8088"
 	RealServerAddr2 = "127.0.0.1:8089"
 	MeshServerAddr  = "127.0.0.1:2044"
-	TestCluster1     = "tstCluster1"
-	TestCluster2     = "tstCluster2"
+	TestCluster1    = "tstCluster1"
+	TestCluster2    = "tstCluster2"
 	TestListenerRPC = "tstListener"
 )
 
@@ -91,8 +108,7 @@ func main() {
 		select {
 		case <-meshReadyChan:
 			// client
-			tr := &http.Transport{
-			}
+			tr := &http.Transport{}
 
 			httpClient := http.Client{Transport: tr}
 			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/hahaha1.htm?key1=valuex&nobody=true", MeshServerAddr), nil)
@@ -193,7 +209,7 @@ func genericProxyConfig() *v2.Proxy {
 	router3V2 := v2.Router{
 		Match: v2.RouterMatch{
 			Headers: []v2.HeaderMatcher{header1},
-			Path: "/hahaha.htm",
+			Path:    "/hahaha.htm",
 		},
 
 		Route: v2.RouteAction{

@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package sofarpc
 
 import (
@@ -50,7 +66,7 @@ func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) 
 		}
 	default:
 		errMsg := InvalidHeaderType
-		log.ByContext(context).Errorf(errMsg + " headers = %+v",headers)
+		log.ByContext(context).Errorf(errMsg+" headers = %+v", headers)
 		err := errors.New(errMsg)
 		return err, nil
 	}
@@ -61,7 +77,7 @@ func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) 
 	} else {
 		errMsg := types.UnSupportedProCode
 		err := errors.New(errMsg)
-		log.ByContext(context).Errorf(errMsg + "protocolCode = %s", protocolCode)
+		log.ByContext(context).Errorf(errMsg+"protocolCode = %s", protocolCode)
 
 		return err, nil
 	}
@@ -92,13 +108,13 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 			} else {
 				// protocol type error
 				errMsg := UnKnownReqtype
-				logger.Errorf(errMsg + " "+ "CmdCode = %+v",cmd)
+				logger.Errorf(errMsg+" "+"CmdCode = %+v", cmd)
 				filter.OnDecodeError(errors.New(errMsg), nil)
 				break
 			}
 		} else {
 			errMsg := types.UnSupportedProCode
-			logger.Errorf(errMsg+ "protocolCode = %s", protocolCode)
+			logger.Errorf(errMsg+"protocolCode = %s", protocolCode)
 			filter.OnDecodeError(errors.New(errMsg), nil)
 			break
 		}

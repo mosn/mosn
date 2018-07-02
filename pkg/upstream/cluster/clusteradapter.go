@@ -1,10 +1,27 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package cluster
 
 import (
+	"errors"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"errors"
 )
 
 var ClusterAdap ClusterAdapter
@@ -20,11 +37,11 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 	if !clusterExist {
 		if ca.clusterMng.autoDiscovery {
 			cluster := v2.Cluster{
-				Name:           clusterName,
-				ClusterType:    v2.DYNAMIC_CLUSTER,
-				LbType:         v2.LB_RANDOM,
+				Name:        clusterName,
+				ClusterType: v2.DYNAMIC_CLUSTER,
+				LbType:      v2.LB_RANDOM,
 			}
-			
+
 			// for dynamically added cluster, use cluster manager's health check config
 			if ca.clusterMng.registryUseHealthCheck {
 				// todo support more default health check @boqin
@@ -39,9 +56,9 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 		}
 	}
 
-	log.DefaultLogger.Debugf("triggering cluster update, cluster name = %s hosts = %+v",clusterName, hosts)
+	log.DefaultLogger.Debugf("triggering cluster update, cluster name = %s hosts = %+v", clusterName, hosts)
 	ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
-	
+
 	return nil
 }
 

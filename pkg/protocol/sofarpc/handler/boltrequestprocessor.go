@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package handler
 
 import (
@@ -5,13 +21,14 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"time"
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"time"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/models"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 var streamIdCsounter uint32
@@ -30,8 +47,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//print tracer log
-		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamId=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY],streamIdStr, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
-
+		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamId=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamIdStr, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -93,7 +109,7 @@ func deserializeRequestAllFields(context context.Context, requestCommand *sofarp
 
 	//logger
 	logger := log.ByContext(context)
-	
+
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
 	logger.Debugf("deserialize header map:%v", headerMap)
 

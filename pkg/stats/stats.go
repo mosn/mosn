@@ -1,10 +1,27 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package stats
 
 import (
-	"fmt"
 	"bytes"
-	"github.com/rcrowley/go-metrics"
+	"fmt"
 	"strconv"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 type Stats struct {
@@ -72,13 +89,13 @@ func (s *Stats) String() string {
 	var buffer bytes.Buffer
 
 	//buffer.WriteString(fmt.Sprintf("namespace: %s, ", s.namespace))
-	buffer.WriteString("namespace: "+ s.namespace+ ", ")
+	buffer.WriteString("namespace: " + s.namespace + ", ")
 
 	if len(s.counters) > 0 {
 		buffer.WriteString("counters: [")
 
 		for name, counter := range s.counters {
-			buffer.WriteString(name + ": " + strconv.FormatInt(counter.Count(),10))
+			buffer.WriteString(name + ": " + strconv.FormatInt(counter.Count(), 10))
 		}
 
 		buffer.WriteString("], ")
@@ -88,7 +105,7 @@ func (s *Stats) String() string {
 		buffer.WriteString("gauges: [")
 
 		for name, gauge := range s.gauges {
-			buffer.WriteString(name + ": " + strconv.FormatInt(gauge.Value(),10))
+			buffer.WriteString(name + ": " + strconv.FormatInt(gauge.Value(), 10))
 		}
 
 		buffer.WriteString("], ")
@@ -98,7 +115,7 @@ func (s *Stats) String() string {
 		buffer.WriteString("histograms: [")
 
 		for name, histogram := range s.histograms {
-			buffer.WriteString(name + ": " + strconv.FormatInt(histogram.Count(),10))
+			buffer.WriteString(name + ": " + strconv.FormatInt(histogram.Count(), 10))
 		}
 
 		buffer.WriteString("]")

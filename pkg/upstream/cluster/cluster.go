@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package cluster
 
 import (
@@ -8,9 +24,9 @@ import (
 	"github.com/rcrowley/go-metrics"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/tls"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // Cluster
@@ -32,7 +48,7 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool)
 	var newCluster types.Cluster
 
 	switch clusterConfig.ClusterType {
-	
+
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaApi)
 	}
@@ -204,10 +220,10 @@ type clusterInfo struct {
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
 
-	healthCheckProtocol  string
+	healthCheckProtocol string
 
-	tlsMng               types.TLSContextManager
-	lbSubsetInfo         types.LBSubsetInfo
+	tlsMng       types.TLSContextManager
+	lbSubsetInfo types.LBSubsetInfo
 }
 
 func NewClusterInfo() *clusterInfo {
@@ -266,7 +282,6 @@ func (ci *clusterInfo) ResourceManager() types.ResourceManager {
 	return ci.resourceManager
 }
 
-
 func (ci *clusterInfo) HealthCheckProtocol() string {
 	return ci.healthCheckProtocol
 }
@@ -277,7 +292,7 @@ func (ci *clusterInfo) TLSMng() types.TLSContextManager {
 
 func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 	return ci.lbSubsetInfo
-	
+
 }
 
 type prioritySet struct {

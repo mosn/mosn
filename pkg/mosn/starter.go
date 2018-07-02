@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package main
 
 import (
@@ -11,7 +27,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/xds"
-	
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -45,7 +61,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
-	
+
 	//get inherit fds
 	inheritListeners := getInheritListeners()
 
@@ -55,22 +71,22 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		//1. server config prepare
 		//server config
 		sc := config.ParseServerConfig(&serverConfig)
-		
+
 		// init default log
 		server.InitDefaultLogger(sc)
-		
+
 		//cluster manager filter
 		cmf := &clusterManagerFilter{}
 		var clusters []v2.Cluster
 		clusterMap := make(map[string][]v2.Host)
-		
+
 		//parse cluster all in one
-		clusters,clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
+		clusters, clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
 
 		//create cluster manager
-		cm := cluster.NewClusterManager(nil, clusters, clusterMap,c.ClusterManager.AutoDiscovery,
+		cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery,
 			c.ClusterManager.RegistryUseHealthCheck)
-		
+
 		//initialize server instance
 		srv := server.NewServer(sc, cmf, cm)
 
@@ -85,7 +101,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 
 			// network filters
 			nfcf := GetNetworkFilter(&lc.FilterChains[0])
-			
+
 			//stream filters
 			sfcf := getStreamFilters(listenerConfig.StreamFilters)
 
@@ -123,8 +139,8 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 
 // maybe used in proxy rewrite
 func GetNetworkFilter(c *v2.FilterChain) types.NetworkFilterChainFactory {
-	
-	if len (c.Filters) != 1 || c.Filters[0].Name != v2.DEFAULT_NETWORK_FILTER {
+
+	if len(c.Filters) != 1 || c.Filters[0].Name != v2.DEFAULT_NETWORK_FILTER {
 		log.StartLogger.Fatalln("Currently, only Proxy Network Filter Needed!")
 	}
 
