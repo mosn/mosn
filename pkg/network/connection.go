@@ -68,6 +68,7 @@ type connection struct {
 	writeBuffer        *buffer.IoBufferPoolEntry
 	writeBufferMux     sync.RWMutex
 	writeBufferChan    chan bool
+	readLoopStopChan   chan bool
 	writeLoopStopChan  chan bool
 	readerBufferPool   *buffer.IoBufferPoolV2
 	writeBufferPool    *buffer.IoBufferPoolV2
@@ -94,7 +95,8 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		readEnabled:       true,
 		readEnabledChan:   make(chan bool, 1),
 		writeBufferChan:   make(chan bool),
-		writeLoopStopChan: make(chan bool, 1),
+		readLoopStopChan:  make(chan bool),
+		writeLoopStopChan: make(chan bool),
 		readerBufferPool:  readerBufferPool,
 		writeBufferPool:   writeBufferPool,
 		stats: &types.ConnectionStats{
@@ -173,6 +175,8 @@ func (c *connection) startReadLoop() {
 		select {
 		case <-c.stopChan:
 			return
+		case <-c.readLoopStopChan:
+			return
 		case <-c.readEnabledChan:
 		default:
 			if c.readEnabled {
@@ -183,6 +187,9 @@ func (c *connection) startReadLoop() {
 				}
 
 				if err != nil {
+					// sync stop write
+					c.writeLoopStopChan <- true
+
 					if err == io.EOF {
 						c.Close(types.NoFlush, types.RemoteClose)
 					} else {
@@ -318,17 +325,16 @@ func (c *connection) startWriteLoop() {
 					continue
 				}
 
+				// sync stop write
+				c.readLoopStopChan <- true
+
 				if err == io.EOF {
 					// remote conn closed
 					c.Close(types.NoFlush, types.RemoteClose)
-
 				} else {
 					// on non-timeout error
 					c.Close(types.NoFlush, types.OnWriteErrClose)
 				}
-
-				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
-					c.id, c.RemoteAddr().String(), err)
 
 				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
 					c.id, c.RemoteAddr().String(), err)
@@ -442,7 +448,6 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 		}
 	}
 
-	c.writeLoopStopChan <- true
 	c.rawConnection.Close()
 
 	c.logger.Debugf(ConnectionCloseDebugMsg, c.id, eventType,
@@ -624,7 +629,8 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			readEnabled:       true,
 			readEnabledChan:   make(chan bool, 1),
 			writeBufferChan:   make(chan bool),
-			writeLoopStopChan: make(chan bool, 1),
+			readLoopStopChan:  make(chan bool),
+			writeLoopStopChan: make(chan bool),
 			readerBufferPool:  readerBufferPool,
 			writeBufferPool:   writeBufferPool,
 			stats: &types.ConnectionStats{
