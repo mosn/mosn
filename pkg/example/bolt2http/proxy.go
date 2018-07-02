@@ -279,12 +279,7 @@ func clustersrpc() []v2.Cluster {
 			{"stage", "label", "version"},
 			{"version"}},
 	}
-
-	/*
-				"stage":   "pre-release",
-			"version": "1.1",
-			"label":   "gray",*/
-			
+	
 	configs = append(configs, v2.Cluster{
 		Name:                 TestCluster,
 		ClusterType:          v2.SIMPLE_CLUSTER,

@@ -202,7 +202,7 @@ type MetadataMatchCriterion interface {
 	MetadataKeyName() string
 	
 	// the value for the metadata key
-	Value() HashedValue
+	MetadataValue() HashedValue
 }
 
 
@@ -222,6 +222,8 @@ type Decorator interface {
 }
 
 type HashedValue [16]byte   // value as md5's result
+//// todo use hash again for index
+//type HashedValue string
 
 type HeaderFormat interface {
 	Format(info RequestInfo) string
@@ -304,6 +306,7 @@ type RouteMetaData map[string]HashedValue
 func GenerateHashedValue(input string) HashedValue {
 	data := []byte(input)
 	h := md5.Sum(data)
+	//h := input
 	
 	return h
 }

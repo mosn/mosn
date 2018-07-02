@@ -41,7 +41,7 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.Prio
 		ssb.fallbackSubset = FallbackSubsetGlobal
 		return ssb
 	}
-	
+
 	ssb.subSets = make(map[string]types.ValueSubsetMap)
 
 	// foreach every priority subset
@@ -51,6 +51,7 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.Prio
 	}
 
 	// add update callback when original priority set updated
+	
 	ssb.originalPrioritySet.AddMemberUpdateCb(
 		func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 			ssb.Update(priority, hostsAdded, hostsRemoved)
@@ -82,15 +83,16 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 			}
 		},
 
-		func(entry types.LBSubsetEntry, preficate types.HostPredicate, kvs types.SubsetMetadata, addinghost bool) {
+		func(entry types.LBSubsetEntry, predicate types.HostPredicate, kvs types.SubsetMetadata, addinghost bool) {
 			if addinghost {
+				prioritySubset := NewPrioritySubsetImpl(sslb, predicate)
 				log.DefaultLogger.Debugf("creating subset loadbalancing for %+v", kvs)
-				entry.SetPrioritySubset(NewPrioritySubsetImpl(sslb, preficate))
+				entry.SetPrioritySubset(prioritySubset)
 				sslb.stats.LBSubSetsActive.Inc(1)
 				sslb.stats.LBSubsetsCreated.Inc(1)
 			}
 		})
-	
+
 	SubSetsGlobal = sslb.subSets
 }
 
@@ -174,22 +176,17 @@ func (sslb *subSetLoadBalancer) ProcessSubsets(hostAdded []types.Host, hostsRemo
 	hostMapWithBool := map[bool][]types.Host{true: hostAdded, false: hostsRemoved}
 
 	//	subSetsModified := mapset.NewSet(LBSubsetEntry{})
-
 	for addinghost, hosts := range hostMapWithBool {
 
 		for _, host := range hosts {
+
 			for _, subSetKey := range sslb.subSetKeys {
-				//
+
 				kvs := sslb.ExtractSubsetMetadata(subSetKey.Keys(), host)
 				if len(kvs) > 0 {
+					
 					entry := sslb.FindOrCreateSubset(sslb.subSets, kvs, 0)
-
-					//if subSetsModified.Contains(entry) {
-					//	continue
-					////}
-					//
-					//subSetsModified.Add(entry)
-
+					
 					if entry.Initialized() {
 						updateCB(entry)
 					} else {
@@ -225,7 +222,6 @@ func (sslb *subSetLoadBalancer) HostMatches(kvs types.SubsetMetadata, host types
 
 // search subset tree
 func (sslb *subSetLoadBalancer) FindSubset(matchCriteria []types.MetadataMatchCriterion) types.LBSubsetEntry {
-
 	// subsets : map[string]ValueSubsetMap
 	// valueSubsetMap: map[HashedValue]LBSubsetEntry
 	var subSets = sslb.subSets
@@ -234,7 +230,7 @@ func (sslb *subSetLoadBalancer) FindSubset(matchCriteria []types.MetadataMatchCr
 
 		if vsMap, ok := subSets[mcCriterion.MetadataKeyName()]; ok {
 
-			if vsEntry, ok := vsMap[mcCriterion.Value()]; ok {
+			if vsEntry, ok := vsMap[mcCriterion.MetadataValue()]; ok {
 
 				if i+1 == len(matchCriteria) {
 					return vsEntry
@@ -269,24 +265,21 @@ func (sslb *subSetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap,
 	if vsMap, ok := subsets[name]; ok {
 
 		if lbEntry, ok := vsMap[hashedValue]; ok {
+			// entry already exist
 			entry = lbEntry
 		} else {
-
+			// new lbsubset entry
 			entry = &LBSubsetEntry{
-				children: make(map[string]types.ValueSubsetMap),
-				//prioritySubset: &PrioritySubsetImpl{},
+				children:       make(map[string]types.ValueSubsetMap),
+				prioritySubset: nil,
 			}
-
-			value_subset_map := vsMap
-			value_subset_map[hashedValue] = entry
-
-			subsets[name] = value_subset_map
+			vsMap[hashedValue] = entry
+			subsets[name] = vsMap
 		}
 	} else {
-
 		entry = &LBSubsetEntry{
-			children: make(map[string]types.ValueSubsetMap),
-			//	prioritySubset: &PrioritySubsetImpl{},
+			children:       make(map[string]types.ValueSubsetMap),
+			prioritySubset: nil,
 		}
 
 		valueSubsetMap := types.ValueSubsetMap{
@@ -305,20 +298,19 @@ func (sslb *subSetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap,
 	return sslb.FindOrCreateSubset(entry.Children(), kvs, idx)
 }
 
-// 从host的meta以及cluster的subset keys中，生成字典序的 subset metadata
+// 从host的metadata 以及cluster的subset keys中，生成字典序的 subset metadata
 // 之所以生成字典序是由于subsetkeys已经按照字典序排好了
-func (sslb *subSetLoadBalancer) ExtractSubsetMetadata(subsetKeys []string, host types.Host) types.SubsetMetadata {
+// 生成规则：subsetkeys中所有的key均在host的metadata中出现
 
+func (sslb *subSetLoadBalancer) ExtractSubsetMetadata(subsetKeys []string, host types.Host) types.SubsetMetadata {
 	metadata := host.Metadata()
 	var kvs types.SubsetMetadata
 
 	for _, key := range subsetKeys {
 		exist := false
-
 		var value types.HashedValue
 
 		for keyM, valueM := range metadata {
-
 			if keyM == key {
 				value = valueM
 				exist = true
@@ -370,7 +362,7 @@ type hostSubsetImpl struct {
 	hostSubset types.HostSet
 }
 
-func (hsi *hostSubsetImpl) Update(hostsAdded []types.Host, hostsRemoved []types.Host, predicate types.HostPredicate) {
+func (hsi *hostSubsetImpl) UpdateHostSubset(hostsAdded []types.Host, hostsRemoved []types.Host, predicate types.HostPredicate) {
 	// todo check host predicate
 
 	var filteredAdded []types.Host
@@ -391,16 +383,6 @@ func (hsi *hostSubsetImpl) Update(hostsAdded []types.Host, hostsRemoved []types.
 		}
 	}
 
-	//for _, host := range hsi.hostSubset.Hosts() {
-	//
-	//	if predicate(host) {
-	//		hosts = append(hosts, host)
-	//		if host.Health() {
-	//			healthyHosts = append(healthyHosts, host)
-	//		}
-	//	}
-	//}
-
 	finalhosts := hsi.GetFinalHosts(filteredAdded, filteredRemoved)
 
 	for _, host := range finalhosts {
@@ -415,15 +397,11 @@ func (hsi *hostSubsetImpl) Update(hostsAdded []types.Host, hostsRemoved []types.
 }
 
 func (hsi *hostSubsetImpl) GetFinalHosts(hostsAdded []types.Host, hostsRemoved []types.Host) []types.Host {
-
 	hosts := hsi.hostSubset.Hosts()
 
 	for _, host := range hostsAdded {
-
 		found := false
-
 		for _, hostOrig := range hosts {
-
 			if host.AddressString() == hostOrig.AddressString() {
 				found = true
 			}
@@ -435,9 +413,7 @@ func (hsi *hostSubsetImpl) GetFinalHosts(hostsAdded []types.Host, hostsRemoved [
 	}
 
 	for _, host := range hostsRemoved {
-
 		for i, hostOrig := range hosts {
-
 			if host.AddressString() == hostOrig.AddressString() {
 				hosts = append(hosts[:i], hosts[i+1:]...)
 				continue
@@ -450,6 +426,10 @@ func (hsi *hostSubsetImpl) GetFinalHosts(hostsAdded []types.Host, hostsRemoved [
 
 func (hsi *hostSubsetImpl) Empty() bool {
 	return len(hsi.hostSubset.Hosts()) == 0
+}
+
+func (hsi *hostSubsetImpl) Hosts() []types.Host {
+	return hsi.hostSubset.Hosts()
 }
 
 // subset of original priority set
@@ -493,7 +473,7 @@ func NewPrioritySubsetImpl(subsetLB *subSetLoadBalancer, predicate types.HostPre
 
 func (psi *PrioritySubsetImpl) Update(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 
-	psi.GetOrCreateHostSubset(priority).Update(hostsAdded, hostsRemoved, psi.predicate_)
+	psi.GetOrCreateHostSubset(priority).UpdateHostSubset(hostsAdded, hostsRemoved, psi.predicate_)
 
 	for _, hostSet := range psi.prioritySubset.HostSetsByPriority() {
 		if len(hostSet.Hosts()) > 0 {
@@ -567,10 +547,24 @@ func (lbsi *LBSubsetInfoImpl) SubsetKeys() []types.SortedStringSetType {
 }
 
 // used to generate sorted keys
+// without duplication
 func GenerateSubsetKeys(keysArray [][]string) []types.SortedStringSetType {
 	var ssst []types.SortedStringSetType
+
 	for _, keys := range keysArray {
-		ssst = append(ssst, types.InitSet(keys))
+		sortedStringSet := types.InitSet(keys)
+		found := false
+
+		for _, s := range ssst {
+			if judgeStringArrayEqual(sortedStringSet.Keys(), s.Keys()) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			ssst = append(ssst, sortedStringSet)
+		}
 	}
 
 	return ssst
@@ -583,4 +577,20 @@ func GenerateDftSubsetKeys(dftkeys types.SortedMap) types.SubsetMetadata {
 	}
 
 	return sm
+}
+
+func judgeStringArrayEqual(T1 []string, T2 []string) bool {
+
+	if len(T1) != len(T2) {
+		return false
+	}
+
+	for i := 0; i < len(T1); i++ {
+		if T1[i] != T2[i] {
+			return false
+		}
+	}
+
+	return true
+
 }

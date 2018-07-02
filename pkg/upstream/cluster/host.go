@@ -204,7 +204,7 @@ func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) h
 		hostname:      config.Hostname,
 		clusterInfo:   clusterInfo,
 		stats:         newHostStats(config),
-		metaData:      GenerateHostMeta(config.MetaData),
+		metaData:      GenerateHostMetadata(config.MetaData),
 	}
 }
 
@@ -244,7 +244,7 @@ func (hi *hostInfo) HostStats() types.HostStats {
 	return hi.stats
 }
 
-func GenerateHostMeta(metadata v2.Metadata) types.RouteMetaData {
+func GenerateHostMetadata(metadata v2.Metadata) types.RouteMetaData {
 	rm := make(map[string]types.HashedValue, 1)
 
 	for k, v := range metadata {
