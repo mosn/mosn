@@ -412,19 +412,7 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string, lbCt
 		return errors.New(fmt.Sprintf("unkown cluster %s", clusterName)), nil
 	}
 
-	clusterInfo := clusterSnapshot.ClusterInfo()
-	s.cluster = clusterInfo
-	clusterConnectionResource := clusterInfo.ResourceManager().Connections()
-
-	if !clusterConnectionResource.CanCreate() {
-		log.DefaultLogger.Errorf("cluster Connection Resource can't create, cluster name is %s", clusterName)
-
-		s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
-		s.sendHijackReply(types.UpstreamOverFlowCode, s.downstreamReqHeaders)
-
-		return errors.New(fmt.Sprintf("upstream overflow in cluster %s", clusterName)), nil
-	}
-
+	s.cluster = clusterSnapshot.ClusterInfo()
 	var connPool types.ConnectionPool
 
 	// todo: refactor
