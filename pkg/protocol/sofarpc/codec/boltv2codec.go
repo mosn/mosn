@@ -173,7 +173,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					data.Drain(read)
 				} else { // not enough data
 					logger.Debugf("[BOLTV2 Decoder]no enough data for fully decode")
-					return 0, nil
+					return read, nil
 				}
 
 				request := &sofarpc.BoltV2RequestCommand{
@@ -235,7 +235,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					}
 				} else { // not enough data
 					logger.Debugf("[BOLTBV2 Decoder]no enough data for fully decode")
-					return 0, nil
+					return read, nil
 				}
 
 				response := &sofarpc.BoltV2ResponseCommand{

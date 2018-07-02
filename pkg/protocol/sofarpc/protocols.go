@@ -84,16 +84,18 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 		logger.Debugf("Decoderprotocol code = %x, maybeProtocolVersion = %x", protocolCode, maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
-			if _, cmd := proto.GetDecoder().Decode(context, data); cmd != nil {
+			if read, cmd := proto.GetDecoder().Decode(context, data); cmd != nil {
 				if err := proto.GetCommandHandler().HandleCommand(context, cmd, filter); err != nil {
 					filter.OnDecodeError(err, nil)
 					break
 				}
-			} else {
+			} else if 0 == read {
 				// protocol type error
 				errMsg := UnKnownReqtype
 				logger.Errorf(errMsg + " "+ "CmdCode = %+v",cmd)
 				filter.OnDecodeError(errors.New(errMsg), nil)
+				break
+			} else {
 				break
 			}
 		} else {
