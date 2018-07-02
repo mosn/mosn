@@ -187,8 +187,6 @@ func (c *connection) startReadLoop() {
 				}
 
 				if err != nil {
-					// sync stop write
-					c.writeLoopStopChan <- true
 
 					if err == io.EOF {
 						c.Close(types.NoFlush, types.RemoteClose)
@@ -325,9 +323,6 @@ func (c *connection) startWriteLoop() {
 					continue
 				}
 
-				// sync stop write
-				c.readLoopStopChan <- true
-
 				if err == io.EOF {
 					// remote conn closed
 					c.Close(types.NoFlush, types.RemoteClose)
@@ -447,6 +442,11 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 			}
 		}
 	}
+
+	// sync stop write
+	c.readLoopStopChan <- true
+	// sync stop write
+	c.writeLoopStopChan <- true
 
 	c.rawConnection.Close()
 
