@@ -2,17 +2,18 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-green.svg)
 
-MOSN是一款基于 Golang 实现的Service Mesh数据平面转发代理，旨在提供模块化，可观察，智能化的代理能力，由蚂蚁金服公司开源贡献。
+MOSN是一款基于 Golang 实现的Service Mesh数据平面代理，旨在提供分布式，模块化，可观察，智能化的代理能力，由蚂蚁金服公司开源贡献。
 
 ## 背景
-ServiceMesh衍生于云原生，微服务等技术生态并得到快速发展，越来越多公司意识到Mesh技术的便利性和重要性，并纷纷加入了生态建设。蚂蚁在调研探索了业界开源项目的基础上，进行了多轮验证试错，最终选择自研数据平面，并对社区开源。
+ServiceMesh衍生于云原生，微服务技术生态并得到快速发展，旨在为分布式系统提供可靠可管理的服务网格。蚂蚁在调研探索业界开源项目的基础上，进行了多轮验证试错，最终选择基于 Golang 自研数据平面，并对社区开源。
 
 ## 核心能力
 
-### 支持Istio 0.8
+### Istio集成
 + 集成 Istio 0.8 版本 Pilot V2 api，可基于全动态资源配置运行
 
 ### 核心转发
++ 自包含的网络服务器
 + 支持TCP代理
 + 支持Tproxy模式
 
@@ -25,13 +26,18 @@ ServiceMesh衍生于云原生，微服务等技术生态并得到快速发展，
 + 支持virtual host路由
 + 支持headers/url/prefix路由
 + 支持基于host metadata的subset路由
++ 支持重试
 
-### 后端管理
-+ 支持cluster管理
+### 后端管理&负载均衡
 + 支持链接池
++ 支持熔断
 + 支持后端主动健康检查
 + 支持random/rr等负载策略
 + 支持基于host metadata的subset负载策略
+
+### 可观察性
++ 观察网络数据
++ 观察协议数据
 
 ### mTls
 + 支持Http 1.1 on Tls
