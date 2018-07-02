@@ -248,8 +248,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
-	ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
-
+	if oriRemoteAddr != nil {
+		ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+	}
 	arc.ContinueFilterChain(true, ctx)
 }
 

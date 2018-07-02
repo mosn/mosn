@@ -340,6 +340,11 @@ func (s *clientStream) doSend() {
 			} else if err.Error() == "http2: client conn not usable" {
 				// raise overflow event to let conn pool taking action
 				s.ResetStream(types.StreamOverflow)
+				// TODO action in callback
+				s.connection.asMutex.Lock()
+				s.response = nil
+				s.connection.activeStreams.Remove(s.element)
+				s.connection.asMutex.Unlock()
 			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY" {
 				s.connection.streamConnCallbacks.OnGoAway()
 			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY; some request body already written" {

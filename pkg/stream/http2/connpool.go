@@ -71,6 +71,7 @@ func (p *connPool) Close() {
 
 	if p.primaryClient != nil {
 		p.primaryClient.codecClient.Close()
+		p.primaryClient = nil
 	}
 }
 

@@ -184,6 +184,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 
 	if host != nil {
 		addr := host.AddressString()
+		log.StartLogger.Debugf("http connection pool upstream addr : %v",addr)
 
 		// todo: support protocol http1.x
 		if connPool, ok := cm.http2ConnPool.Get(addr); ok {
@@ -212,6 +213,7 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(cluster string, protocol t
 
 	if host != nil {
 		addr := host.AddressString()
+		log.StartLogger.Debugf("Xprotocol connection pool upstream addr : %v",addr)
 
 		if connPool, ok := cm.xProtocolConnPool.Get(addr); ok {
 			return connPool.(types.ConnectionPool)

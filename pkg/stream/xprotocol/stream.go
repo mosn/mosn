@@ -143,7 +143,7 @@ func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer)
 			stream.connection.activeStream.Remove(stream.streamId)
 		}
 	}
-
+	data.Drain(data.Len())
 	return types.StopIteration
 }
 
