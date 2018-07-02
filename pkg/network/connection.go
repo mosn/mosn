@@ -456,7 +456,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	for _, cb := range c.connCallbacks {
-		go cb.OnEvent(eventType)
+		cb.OnEvent(eventType)
 	}
 
 	return nil
@@ -680,7 +680,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 
 		cc.connection.logger.Debugf("connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
 		for _, cccb := range cc.connCallbacks {
-			go cccb.OnEvent(event)
+			cccb.OnEvent(event)
 		}
 	})
 

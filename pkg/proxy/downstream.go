@@ -150,8 +150,6 @@ func (s *activeStream) callLowWatermarkCallbacks() {
 // case 1: stream's lifecycle ends normally
 // case 2: proxy ends stream in lifecycle
 func (s *activeStream) endStream() {
-	s.cleanTimers()
-
 	var isReset bool
 	if s.responseEncoder != nil {
 		if !s.downstreamRecvDone || !s.localProcessDone {
@@ -174,19 +172,37 @@ func (s *activeStream) cleanStream() {
 	s.proxy.stats.DownstreamRequestActive().Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
-	var downstreamRespHeadersMap map[string]string
-
-	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-		downstreamRespHeadersMap = v
+	// reset corresponding upstream stream
+	if s.upstreamRequest != nil {
+		s.upstreamRequest.resetStream()
 	}
 
+	// clean up timers
+	s.cleanUp()
+
+	// tell filters it's time to destroy
+	for _, ef := range s.encoderFilters {
+		ef.filter.OnDestroy()
+	}
+
+	for _, ef := range s.decoderFilters {
+		ef.filter.OnDestroy()
+	}
+
+	// access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
+		var downstreamRespHeadersMap map[string]string
+
+		if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+			downstreamRespHeadersMap = v
+		}
 
 		for _, al := range s.proxy.accessLogs {
 			al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
 		}
 	}
 
+	// delete stream
 	s.proxy.deleteActiveStream(s)
 }
 
@@ -219,7 +235,6 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	s.route = route
 
 	s.requestInfo.SetRouteEntry(route.RouteRule())
-
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
@@ -242,11 +257,12 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		connPool:     pool,
 	}
 
+	//Call upstream's encode header method to build upstream's request
+	s.upstreamRequest.encodeHeaders(headers, endStream)
+
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
-	//Call upstream's encode header method to build upstream's request
-	s.upstreamRequest.encodeHeaders(headers, endStream)
 }
 
 func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
@@ -548,7 +564,7 @@ func (s *activeStream) onUpstreamResponseRecvFinished() {
 	// todo: stats
 	// todo: logs
 
-	s.cleanTimers()
+	s.cleanUp()
 }
 
 func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
@@ -566,7 +582,7 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 	}
 
 	// clean up all timers
-	s.cleanTimers()
+	s.cleanUp()
 
 	// If we have not yet sent anything downstream, send a response with an appropriate status code.
 	// Otherwise just reset the ongoing response.
@@ -607,7 +623,7 @@ func (s *activeStream) doRetry() {
 
 	if err != nil {
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
-		s.cleanTimers()
+		s.cleanUp()
 		return
 	}
 
@@ -657,18 +673,24 @@ func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 	s.encodeHeaders(headers, true)
 }
 
-func (s *activeStream) cleanTimers() {
+func (s *activeStream) cleanUp() {
+	// reset upstream request
+	s.upstreamRequest.requestEncoder = nil
+
+	// reset retry state
+	s.retryState.reset()
+
+	// reset pertry timer
 	if s.perRetryTimer != nil {
 		s.perRetryTimer.stop()
 		s.perRetryTimer = nil
 	}
 
+	// reset response timer
 	if s.responseTimer != nil {
 		s.responseTimer.stop()
 		s.responseTimer = nil
 	}
-
-	s.retryState.reset()
 }
 
 func (s *activeStream) setBufferLimit(bufferLimit uint32) {
