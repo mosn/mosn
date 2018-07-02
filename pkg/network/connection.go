@@ -68,8 +68,7 @@ type connection struct {
 	writeBuffer        *buffer.IoBufferPoolEntry
 	writeBufferMux     sync.RWMutex
 	writeBufferChan    chan bool
-	readLoopStopChan   chan bool
-	writeLoopStopChan  chan bool
+	internalStopChan   chan bool
 	readerBufferPool   *buffer.IoBufferPoolV2
 	writeBufferPool    *buffer.IoBufferPoolV2
 
@@ -87,18 +86,17 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
-		id:                id,
-		rawConnection:     rawc,
-		localAddr:         rawc.LocalAddr(),
-		remoteAddr:        rawc.RemoteAddr(),
-		stopChan:          stopChan,
-		readEnabled:       true,
-		readEnabledChan:   make(chan bool, 1),
-		writeBufferChan:   make(chan bool),
-		readLoopStopChan:  make(chan bool),
-		writeLoopStopChan: make(chan bool),
-		readerBufferPool:  readerBufferPool,
-		writeBufferPool:   writeBufferPool,
+		id:               id,
+		rawConnection:    rawc,
+		localAddr:        rawc.LocalAddr(),
+		remoteAddr:       rawc.RemoteAddr(),
+		stopChan:         stopChan,
+		readEnabled:      true,
+		readEnabledChan:  make(chan bool, 1),
+		writeBufferChan:  make(chan bool),
+		internalStopChan: make(chan bool),
+		readerBufferPool: readerBufferPool,
+		writeBufferPool:  writeBufferPool,
 		stats: &types.ConnectionStats{
 			ReadTotal:    metrics.NewCounter(),
 			ReadCurrent:  metrics.NewGauge(),
@@ -175,7 +173,7 @@ func (c *connection) startReadLoop() {
 		select {
 		case <-c.stopChan:
 			return
-		case <-c.readLoopStopChan:
+		case <-c.internalStopChan:
 			return
 		case <-c.readEnabledChan:
 		default:
@@ -309,7 +307,7 @@ func (c *connection) startWriteLoop() {
 		select {
 		case <-c.stopChan:
 			return
-		case <-c.writeLoopStopChan:
+		case <-c.internalStopChan:
 			return
 		case <-c.writeBufferChan:
 			if atomic.LoadUint32(&c.closed) > 0 {
@@ -444,10 +442,8 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	// wait for io loops exit, ensure single thread operate streams on the connection
-	// sync stop write
-	c.readLoopStopChan <- true
-	// sync stop write
-	c.writeLoopStopChan <- true
+	// cause close function must be called by one loop thread, notify another loop here
+	c.internalStopChan <- true
 
 	c.rawConnection.Close()
 
@@ -619,17 +615,16 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 
 	conn := &clientConnection{
 		connection: connection{
-			id:                id,
-			localAddr:         sourceAddr,
-			remoteAddr:        remoteAddr,
-			stopChan:          stopChan,
-			readEnabled:       true,
-			readEnabledChan:   make(chan bool, 1),
-			writeBufferChan:   make(chan bool),
-			readLoopStopChan:  make(chan bool),
-			writeLoopStopChan: make(chan bool),
-			readerBufferPool:  readerBufferPool,
-			writeBufferPool:   writeBufferPool,
+			id:               id,
+			localAddr:        sourceAddr,
+			remoteAddr:       remoteAddr,
+			stopChan:         stopChan,
+			readEnabled:      true,
+			readEnabledChan:  make(chan bool, 1),
+			writeBufferChan:  make(chan bool),
+			internalStopChan: make(chan bool),
+			readerBufferPool: readerBufferPool,
+			writeBufferPool:  writeBufferPool,
 			stats: &types.ConnectionStats{
 				ReadTotal:    metrics.NewCounter(),
 				ReadCurrent:  metrics.NewGauge(),
