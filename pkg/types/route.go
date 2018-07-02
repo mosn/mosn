@@ -1,9 +1,9 @@
 package types
 
 import (
+	"container/list"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
-	"container/list"
 	"regexp"
 	"time"
 )
@@ -234,14 +234,13 @@ const (
 /**
  * The router configuration.
  */
-type Config interface{
-	Route(headers map[string]string, randomValue uint64) (Route,string)
+type Config interface {
+	Route(headers map[string]string, randomValue uint64) (Route, string)
 	InternalOnlyHeaders() *list.List
 	Name() string
 }
 
 type QueryParams map[string]string
-
 
 // match request's query parameter
 type QueryParameterMatcher interface {
@@ -264,12 +263,11 @@ type HeaderData struct {
 type ConfigUtility interface {
 	// See if the headers specified in the config are present in a request.
 	// bool true if all the headers (and values) in the config_headers are found in the request_headers
-	MatchHeaders (requestHeaders map[string]string, configHeaders[]*HeaderData) bool
-	
+	MatchHeaders(requestHeaders map[string]string, configHeaders []*HeaderData) bool
+
 	// See if the query parameters specified in the config are present in a request.
 	// bool true if all the query params (and values) in the config_params are found in the query_params
-	MatchQueryParams (queryParams *QueryParams, configQueryParams []QueryParameterMatcher) bool
-	
+	MatchQueryParams(queryParams *QueryParams, configQueryParams []QueryParameterMatcher) bool
 }
 
 type LowerCaseString interface {
@@ -280,5 +278,5 @@ type LowerCaseString interface {
 
 type PathMatchCriterion interface {
 	MatchType() PathMatchType
-	Matcher()string
+	Matcher() string
 }

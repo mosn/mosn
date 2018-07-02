@@ -1,14 +1,13 @@
 package original_dst
 
 import (
-    "net"
-    "syscall"
-    "errors"
-    "fmt"
-    __tl "log"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/types"
-    
+	"errors"
+	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	__tl "log"
+	"net"
+	"syscall"
 )
 
 const (
@@ -16,59 +15,46 @@ const (
 	IP6T_SO_ORIGINAL_DST = 80
 )
 
-
 type original_dst struct {
-
 }
 
-func NewOriginalDst() Original_Dst{
-    return &original_dst{}
+func NewOriginalDst() Original_Dst {
+	return &original_dst{}
 }
 
+func (filter *original_dst) OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus {
+	ip, port, err := getOriginalAddr(cb.Conn())
+	if err != nil {
+		log.StartLogger.Println("get original addr failed:", err.Error())
+		return types.Continue
+	}
+	ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
 
-func (filter *original_dst)OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus{
-    ip, port, err := getOriginalAddr(cb.Conn())
-    if(err != nil){
-        log.StartLogger.Println("get original addr failed:", err.Error())
-        return types.Continue
-    }
-    ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
+	__tl.Print("ips:", ips)
 
-    __tl.Print("ips:", ips)
+	cb.SetOrigingalAddr(ips, port)
 
-    cb.SetOrigingalAddr(ips, port)
-
-
-    return types.Continue
+	return types.Continue
 }
 
+func getOriginalAddr(conn net.Conn) ([]byte, int, error) {
+	tc := conn.(*net.TCPConn)
 
+	f, err := tc.File()
+	if err != nil {
+		log.StartLogger.Println("get conn file error, err:", err)
+		return nil, 0, errors.New("conn has error")
+	}
 
-func getOriginalAddr(conn net.Conn)([]byte, int, error){
-        tc := conn.(*net.TCPConn)
+	fd := int(f.Fd())
+	addr, err := syscall.GetsockoptIPv6Mreq(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST)
 
-        f, err := tc.File()
-        if err != nil{
-            log.StartLogger.Println("get conn file error, err:", err)
-            return nil, 0, errors.New("conn has error")
-        }
+	p0 := int(addr.Multiaddr[2])
+	p1 := int(addr.Multiaddr[3])
 
+	port := p0*256 + p1
 
-        fd := int(f.Fd())
-        addr, err := syscall.GetsockoptIPv6Mreq(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST)
-       
+	ip := addr.Multiaddr[4:8]
 
-       
-
-        p0 := int(addr.Multiaddr[2])
-        p1 := int(addr.Multiaddr[3])
-
-        port := p0 * 256 + p1
-
-        ip := addr.Multiaddr[4:8]
-
-       
- 
-
-        return ip,  port, nil
+	return ip, port, nil
 }

@@ -76,7 +76,7 @@ func (s *http2HealthCheckSession) OnDecodeTrailers(trailers map[string]string) {
 	s.onResponseComplete()
 }
 
-func (s *http2HealthCheckSession) OnDecodeError(err error,headers map[string]string){
+func (s *http2HealthCheckSession) OnDecodeError(err error, headers map[string]string) {
 }
 
 // overload healthCheckSession

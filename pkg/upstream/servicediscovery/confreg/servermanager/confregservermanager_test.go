@@ -1,51 +1,51 @@
 package servermanager
 
 import (
-    "testing"
-    "fmt"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+	"fmt"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+	"testing"
 )
 
 func TestConfregServerManager_WrongEndpoint(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    sysConfig := &config.SystemConfig{
-        Zone:             "GZ00b",
-        RegistryEndpoint: "11.239.90.330",
-    }
+	sysConfig := &config.SystemConfig{
+		Zone:             "GZ00b",
+		RegistryEndpoint: "11.239.90.330",
+	}
 
-    NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
 
 }
 func TestConfregServerManager_GetConfregServerByRandom(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    sysConfig := &config.SystemConfig{
-        Zone:             "GZ00b",
-        RegistryEndpoint: "11.239.90.33",
-    }
-    csm := NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	sysConfig := &config.SystemConfig{
+		Zone:             "GZ00b",
+		RegistryEndpoint: "11.239.90.33",
+	}
+	csm := NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
 
-    server, ok := csm.GetRegistryServerByRandom()
-    if ok {
-        fmt.Println(server)
-    }
+	server, ok := csm.GetRegistryServerByRandom()
+	if ok {
+		fmt.Println(server)
+	}
 
-    servers, ok := csm.GetRegistryServerList()
-    if ok {
-        fmt.Println(servers)
-    }
+	servers, ok := csm.GetRegistryServerList()
+	if ok {
+		fmt.Println(servers)
+	}
 
-    blockThread()
+	blockThread()
 }
 
 func TestRegistryServerManager_IsChanged(t *testing.T) {
-    old := []string{"a", "b", "c"}
-    new := []string{"a", "d", "c"}
-    new2 := []string{"a", "b", "c", "d"}
-    new3 := []string{"a", "b", "c"}
+	old := []string{"a", "b", "c"}
+	new := []string{"a", "d", "c"}
+	new2 := []string{"a", "b", "c", "d"}
+	new3 := []string{"a", "b", "c"}
 
-    fmt.Println(isChanged(nil, new))
-    fmt.Println(isChanged(old, new2))
-    fmt.Println(isChanged(old, new3))
+	fmt.Println(isChanged(nil, new))
+	fmt.Println(isChanged(old, new2))
+	fmt.Println(isChanged(old, new3))
 }

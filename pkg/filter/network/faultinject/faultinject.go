@@ -1,11 +1,11 @@
 package faultinject
 
 import (
-	"time"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"math/rand"
 	"sync/atomic"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"time"
 )
 
 type faultinjecter struct {

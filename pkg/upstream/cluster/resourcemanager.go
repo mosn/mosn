@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"sync/atomic"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"sync/atomic"
 )
 
 // ResourceManager

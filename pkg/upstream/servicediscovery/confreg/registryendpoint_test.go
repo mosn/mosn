@@ -1,15 +1,13 @@
 package registry
 
 import (
-    "testing"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"testing"
 )
 
-
 func Test_RegistryModule(t *testing.T) {
-    //beforeTest()
-    log.InitDefaultLogger("", log.INFO)
+	//beforeTest()
+	log.InitDefaultLogger("", log.INFO)
 
-    blockThread()
+	blockThread()
 }
-

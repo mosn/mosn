@@ -25,6 +25,6 @@ func (r *RouteRuleImplAdaptor) MetadataMatcher() types.MetadataMatcher {
 	return nil
 }
 
-func (r *RouteRuleImplAdaptor) VirtualHost () types.VirtualHost{
+func (r *RouteRuleImplAdaptor) VirtualHost() types.VirtualHost {
 	return nil
 }

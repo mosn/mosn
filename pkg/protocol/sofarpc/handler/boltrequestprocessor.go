@@ -87,7 +87,7 @@ func deserializeRequestAllFields(context context.Context, requestCommand *sofarp
 
 	//logger
 	logger := log.ByContext(context)
-	
+
 	serializeIns.DeSerialize(requestCommand.HeaderMap, &headerMap)
 	logger.Debugf("deserialize header map:%v", headerMap)
 

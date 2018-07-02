@@ -249,7 +249,7 @@ func (r *activeRequest) OnDecodeTrailers(trailers map[string]string) {
 	r.onDecodeComplete()
 }
 
-func (r *activeRequest) OnDecodeError(err error,headers map[string]string){
+func (r *activeRequest) OnDecodeError(err error, headers map[string]string) {
 }
 
 func (r *activeRequest) onPreDecodeComplete() {

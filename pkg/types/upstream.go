@@ -205,7 +205,7 @@ type ClusterInfo interface {
 
 	ResourceManager() ResourceManager
 
-        TLSMng() TLSContextManager
+	TLSMng() TLSContextManager
 }
 
 type ResourceManager interface {
@@ -294,42 +294,42 @@ type RegisterUpstreamUpdateMethodCb interface {
 type SubSetLoadBalancer interface {
 	// Find a host from the subsets, context is LoadBalancerContext
 	TryChooseHostFromContext(context *context.Context, hostChosen *bool)
-	
+
 	HostMatchesDefaultSubset(host Host) bool
-	
+
 	HostMatches(kvs *SubsetMetadata, host *Host) bool
-	
+
 	// Iterates over the given metadata match criteria (which must be lexically sorted by key) and find
 	// a matching LbSubsetEnryPtr, if any.
-	FindSubset(matches []MetadataMatchEntry)*LBSubsetEntry
-	
+	FindSubset(matches []MetadataMatchEntry) *LBSubsetEntry
+
 	// Given a vector of key-values (from extractSubsetMetadata), recursively finds the matching
 	// LbSubsetEntryPtr.
 	FindOrCreateSubset(subsets *LbSubsetMap, kvs *SubsetMetadata, idx uint32)
-	
+
 	// Iterates over subset_keys looking up values from the given host's metadata. Each key-value pair
 	// is appended to kvs. Returns a non-empty value if the host has a value for each key.
 	ExtractSubsetMetadata(subsetKeys []string, host Host)
-	
+
 	//extractSubsetMetadata2(subsetKeys []string, host Host)
 }
 
 type FallBackPolicy uint8
 
 const (
-	NoFallBack FallBackPolicy = 0
-	AnyEndPoint FallBackPolicy = 1
+	NoFallBack                 FallBackPolicy = 0
+	AnyEndPoint                FallBackPolicy = 1
 	DefaultSubsetDefaultSubset FallBackPolicy = 2
 )
 
 // Forms a trie-like structure. Route Metadata requires lexically sorted
 type LbSubsetMap struct {
-	lbSubsetMap  map[string]ValueSubsetMap
+	lbSubsetMap map[string]ValueSubsetMap
 }
 
 //
 type ValueSubsetMap struct {
-	valueSubsetMap    map[interface{}]*LBSubsetEntry
+	valueSubsetMap map[interface{}]*LBSubsetEntry
 }
 
 type LBSubsetEntry struct {
@@ -338,17 +338,17 @@ type LBSubsetEntry struct {
 }
 
 type SubsetMetadata struct {
-	subsetMatadata  []Pair
+	subsetMatadata []Pair
 }
 
 type Pair struct {
-	T1   string
-	T2   interface {}
+	T1 string
+	T2 interface{}
 }
 
 type ResourcePriority uint8
 
 const (
 	Default ResourcePriority = 0
-	High ResourcePriority = 1
+	High    ResourcePriority = 1
 )

@@ -1,9 +1,9 @@
 package codec
 
 import (
-	"testing"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"path/filepath"
+	"testing"
 )
 
 /*

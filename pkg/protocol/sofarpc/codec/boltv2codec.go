@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"time"
 
+	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"errors"
 )
 
 // types.Encoder & types.Decoder
@@ -59,7 +59,7 @@ func (c *boltV2Codec) encodeHeaders(context context.Context, headers interface{}
 	default:
 		errMsg := sofarpc.InvalidCommandType
 		err := errors.New(errMsg)
-		log.ByContext(context).Errorf("boltV2"+errMsg)
+		log.ByContext(context).Errorf("boltV2" + errMsg)
 		return err, nil
 	}
 }

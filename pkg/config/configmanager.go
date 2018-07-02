@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
-	
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
+
 // dumper provides basic operation with mosn elements, like 'cluster', to write back the config file with dynamic changes
 // biz logic operation, like 'clear all subscribe info', should be written in the bridge code, not in config module.
 //
@@ -27,20 +28,19 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 		DataCenter:    appInfo.DataCenter,
 		AppName:       appInfo.AppName,
 	}
-	
+
 	// reset servicePubInfo
 	config.ServiceRegistry.ServicePubInfo = []ServicePubInfoConfig{}
-	
+
 	// delete subInfo / dynamic clusters
 	RemoveClusterConfig(subServiceList)
 }
-
 
 func AddClusterConfig(clusters []v2.Cluster) {
 	for _, cluster := range clusters {
 		clusterConfig := convertClusterConfig(cluster)
 		exist := false
-		
+
 		for i, _ := range config.ClusterManager.Clusters {
 			// rewrite cluster's info if exist already
 			if config.ClusterManager.Clusters[i].Name == clusterConfig.Name {
@@ -49,12 +49,12 @@ func AddClusterConfig(clusters []v2.Cluster) {
 				break
 			}
 		}
-		
+
 		//added cluster if not exist
 		if !exist {
 			config.ClusterManager.Clusters = append(config.ClusterManager.Clusters, clusterConfig)
 		}
-		
+
 		// update routes
 		//AddRouterConfig(cluster.Name)
 	}
@@ -63,7 +63,7 @@ func AddClusterConfig(clusters []v2.Cluster) {
 
 func RemoveClusterConfig(clusterNames []string) {
 	dirty := false
-	
+
 	for _, clusterName := range clusterNames {
 		for i, cluster := range config.ClusterManager.Clusters {
 			if cluster.Name == clusterName {
@@ -74,7 +74,7 @@ func RemoveClusterConfig(clusterNames []string) {
 			}
 		}
 	}
-	
+
 	go Dump(dirty)
 }
 
@@ -85,7 +85,7 @@ func AddPubInfo(pubInfoAdded map[string]string) {
 			ServiceName: srvName,
 			PubData:     srvData,
 		}
-		
+
 		for i, _ := range config.ServiceRegistry.ServicePubInfo {
 			// rewrite cluster's info
 			if config.ServiceRegistry.ServicePubInfo[i].ServiceName == srvName {
@@ -94,18 +94,18 @@ func AddPubInfo(pubInfoAdded map[string]string) {
 				break
 			}
 		}
-		
+
 		if !exist {
 			config.ServiceRegistry.ServicePubInfo = append(config.ServiceRegistry.ServicePubInfo, srvPubInfo)
 		}
 	}
-	
+
 	go Dump(true)
 }
 
 func DelPubInfo(serviceName string) {
 	dirty := false
-	
+
 	for i, srvPubInfo := range config.ServiceRegistry.ServicePubInfo {
 		if srvPubInfo.ServiceName == serviceName {
 			//remove
@@ -114,17 +114,17 @@ func DelPubInfo(serviceName string) {
 			break
 		}
 	}
-	
+
 	go Dump(dirty)
 }
 
 // ~ convert functions, api.v2 model -> config model
 func convertClusterConfig(cluster v2.Cluster) ClusterConfig {
 	return ClusterConfig{
-		Name:                 cluster.Name,
-		Type:                 string(cluster.ClusterType),
-		SubType:              string(cluster.SubClustetType),
-		LbType:               string(cluster.LbType),
+		Name:    cluster.Name,
+		Type:    string(cluster.ClusterType),
+		SubType: string(cluster.SubClustetType),
+		LbType:  string(cluster.LbType),
 		//CircuitBreakers:      cluster.CirBreThresholds,
 		//HealthCheck        : nil,
 		ClusterSpecConfig: convertClusterSpec(cluster.Spec),
@@ -133,13 +133,13 @@ func convertClusterConfig(cluster v2.Cluster) ClusterConfig {
 
 func convertClusterSpec(clusterSpec v2.ClusterSpecInfo) ClusterSpecConfig {
 	var specs []SubscribeSpecConfig
-	
+
 	for _, sub := range clusterSpec.Subscribes {
 		specs = append(specs, SubscribeSpecConfig{
 			ServiceName: sub.ServiceName,
 		})
 	}
-	
+
 	return ClusterSpecConfig{
 		Subscribes: specs,
 	}

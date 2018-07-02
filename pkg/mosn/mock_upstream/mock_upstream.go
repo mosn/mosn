@@ -11,7 +11,6 @@ import (
 
 const RealServerAddr = "127.0.0.1:23456"
 
-
 func main() {
 
 	go func() {
@@ -39,7 +38,7 @@ func main() {
 				fmt.Println("accept err:", err)
 				continue
 			}
-			fmt.Println("Accept:",rwc.RemoteAddr().String())
+			fmt.Println("Accept:", rwc.RemoteAddr().String())
 			go s2.ServeConn(rwc, &http2.ServeConnOpts{BaseConfig: server})
 		}
 	}()

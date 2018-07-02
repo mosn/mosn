@@ -9,9 +9,9 @@ type Metadata map[string]string
 
 const (
 	DEFAULT_NETWORK_FILTER  = "proxy"
-	SOFARPC_INBOUND_FILTER = "inbound_bolt"
+	SOFARPC_INBOUND_FILTER  = "inbound_bolt"
 	SOFARPC_OUTBOUND_FILTER = "outbound_bolt"
-	X_PROXY = "x_proxy"
+	X_PROXY                 = "x_proxy"
 )
 
 const (

@@ -53,8 +53,8 @@ var (
 	}
 
 	lbTypeMap = map[string]v2.LbType{
-		"LB_RANDOM": v2.LB_RANDOM,
-		"LB_ROUNDROBIN":v2.LB_ROUNDROBIN,
+		"LB_RANDOM":     v2.LB_RANDOM,
+		"LB_ROUNDROBIN": v2.LB_ROUNDROBIN,
 	}
 )
 
@@ -417,17 +417,17 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 	}
 
 	return &v2.ListenerConfig{
-		Name:                    c.Name,
-		Addr:                    addr,
-		BindToPort:              c.BindToPort,
-		InheritListener:         old,
-		PerConnBufferLimitBytes: 1 << 15,
-		LogPath:                 c.LogPath,
-		LogLevel:                uint8(ParseLogLevel(c.LogLevel)),
-		AccessLogs:              ParseAccessConfig(c.AccessLogs),
-		DisableConnIo:           c.DisableConnIo,
+		Name:                                  c.Name,
+		Addr:                                  addr,
+		BindToPort:                            c.BindToPort,
+		InheritListener:                       old,
+		PerConnBufferLimitBytes:               1 << 15,
+		LogPath:                               c.LogPath,
+		LogLevel:                              uint8(ParseLogLevel(c.LogLevel)),
+		AccessLogs:                            ParseAccessConfig(c.AccessLogs),
+		DisableConnIo:                         c.DisableConnIo,
 		HandOffRestoredDestinationConnections: c.HandOffRestoredDestinationConnections,
-		FilterChains:            ParseFilterChains(c.FilterChains),
+		FilterChains:                          ParseFilterChains(c.FilterChains),
 	}
 }
 
@@ -515,28 +515,28 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 	return clustersV2, clusterV2Map
 }
 
-func ParseCircuitBreakers (cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
+func ParseCircuitBreakers(cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
 	var cb v2.CircuitBreakers
 	var rp v2.RoutingPriority
-	
-	for _,cbc := range cbcs {
+
+	for _, cbc := range cbcs {
 		if strings.ToLower(cbc.Priority) == "default" {
 			rp = v2.DEFAULT
 		} else {
 			rp = v2.HIGH
 		}
-		
+
 		threshold := v2.Thresholds{
-			Priority:rp,
-			MaxConnections:cbc.MaxConnections,
-			MaxPendingRequests:cbc.MaxPendingRequests,
-			MaxRequests:cbc.MaxRequests,
-			MaxRetries:cbc.MaxRetries,
+			Priority:           rp,
+			MaxConnections:     cbc.MaxConnections,
+			MaxPendingRequests: cbc.MaxPendingRequests,
+			MaxRequests:        cbc.MaxRequests,
+			MaxRetries:         cbc.MaxRetries,
 		}
-		
-		cb.Thresholds = append(cb.Thresholds,threshold)
+
+		cb.Thresholds = append(cb.Thresholds, threshold)
 	}
-	
+
 	return cb
 }
 

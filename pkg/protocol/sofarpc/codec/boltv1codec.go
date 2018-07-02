@@ -6,12 +6,12 @@ import (
 	"reflect"
 	"time"
 
+	"errors"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"errors"
 )
 
 var (
@@ -54,10 +54,10 @@ func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}
 	case *sofarpc.BoltResponseCommand:
 		return c.encodeResponseCommand(context, headers.(*sofarpc.BoltResponseCommand))
 	default:
-		
+
 		errMsg := sofarpc.InvalidCommandType
 		err := errors.New(errMsg)
-		log.ByContext(context).Errorf("boltV1"+errMsg)
+		log.ByContext(context).Errorf("boltV1" + errMsg)
 		return err, nil
 	}
 }
@@ -122,7 +122,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofar
 	if cmd.HeaderLen > 0 {
 		data = append(data, cmd.HeaderMap...)
 	}
-	
+
 	return data
 }
 
@@ -264,7 +264,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 	if readableBytes >= sofarpc.LESS_LEN_V1 {
 		bytes := data.Bytes()
 		dataType := bytes[1]
-		
+
 		//1. request
 		if dataType == sofarpc.REQUEST || dataType == sofarpc.REQUEST_ONEWAY {
 			if readableBytes >= sofarpc.REQUEST_HEADER_LEN_V1 {
@@ -384,15 +384,15 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					time.Now().UnixNano() / int64(time.Millisecond),
 					nil,
 				}
-				
+
 				if cmdCode == uint16(sofarpc.HEARTBEAT) {
 					//logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
 				}
-				logger.Debugf("BoltV1 DECODE RESPONSE, response status is:%+v,..., all content: %+v", response.ResponseStatus,response)
+				logger.Debugf("BoltV1 DECODE RESPONSE, response status is:%+v,..., all content: %+v", response.ResponseStatus, response)
 				cmd = &response
 			}
 		}
 	}
-	
+
 	return read, cmd
 }

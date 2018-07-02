@@ -3,17 +3,17 @@ package router
 import (
 	"strings"
 	"time"
-	
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 type Matchable interface {
-	Match(headers map[string]string,randomValue uint64) types.Route
+	Match(headers map[string]string, randomValue uint64) types.Route
 }
 
-type RouterInfo interface{
-	GetRouterName()string
+type RouterInfo interface {
+	GetRouterName() string
 }
 
 type RouteBase interface {
@@ -79,12 +79,12 @@ type RateLimitPolicyImpl struct {
 }
 
 func (rp *RateLimitPolicyImpl) Enabled() bool {
-	
+
 	return true
 }
 
 func (rp *RateLimitPolicyImpl) GetApplicableRateLimit(stage string) []types.RateLimitPolicyEntry {
-	
+
 	return rp.rateLimitEntries
 }
 

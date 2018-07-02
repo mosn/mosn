@@ -17,6 +17,6 @@ func (fifcf *FaultInjectFilterConfigFactory) CreateFilterFactory(clusterManager 
 	context context.Context) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
 		manager.AddReadFilter(faultinject.NewFaultInjecter(fifcf.FaultInject))
-		manager.AddReadFilter(tcpproxy.NewProxy(fifcf.Proxy, clusterManager,context))
+		manager.AddReadFilter(tcpproxy.NewProxy(fifcf.Proxy, clusterManager, context))
 	}
 }

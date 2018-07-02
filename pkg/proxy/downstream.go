@@ -193,14 +193,14 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
-		log.StartLogger.Warnf("no route to init upstream,headers = %v",headers)
+		log.StartLogger.Warnf("no route to init upstream,headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 
 		return
 	}
-	log.StartLogger.Debugf("get route : %v,clusterName=%v",route,route.RouteRule().ClusterName())
+	log.StartLogger.Debugf("get route : %v,clusterName=%v", route, route.RouteRule().ClusterName())
 
 	s.route = route
 	s.requestInfo.SetRouteEntry(route.RouteRule())
@@ -549,7 +549,7 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 	}
 
 	if reason == types.StreamOverflow {
-		log.StartLogger.Debugf("on upstream reset reason %v",types.StreamOverflow)
+		log.StartLogger.Debugf("on upstream reset reason %v", types.StreamOverflow)
 		s.upstreamRequest.connPool.Close()
 		s.proxy.readCallbacks.Connection().RawConn().Close()
 		s.resetStream()

@@ -9,8 +9,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/tls"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 // listener impl based on golang net package
@@ -36,7 +36,7 @@ func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 		listenerTag:                           lc.ListenerTag,
 		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
 		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
-		logger:         logger,
+		logger: logger,
 	}
 
 	if lc.InheritListener != nil {
@@ -44,7 +44,7 @@ func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 		l.rawl = lc.InheritListener
 	}
 
-    l.tlsMng = tls.NewTLSServerContextManager(lc.FilterChains, l, logger)
+	l.tlsMng = tls.NewTLSServerContextManager(lc.FilterChains, l, logger)
 
 	return l
 }
@@ -150,7 +150,7 @@ func (l *listener) accept(lctx context.Context) error {
 			rawc = l.tlsMng.Conn(rawc)
 		}
 
-		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections,nil)
+		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil)
 	}()
 
 	return nil

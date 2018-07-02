@@ -15,11 +15,11 @@ var (
 				Usage:  "Load configuration from `FILE`",
 				EnvVar: "MOSN_CONFIG",
 				Value:  "resource/mosn_config.json",
-			},cli.StringFlag{
+			}, cli.StringFlag{
 				Name:   "service-cluster, s",
 				Usage:  "sidecar service cluster",
 				EnvVar: "SERVICE_CLUSTER",
-			},cli.StringFlag{
+			}, cli.StringFlag{
 				Name:   "service-node, n",
 				Usage:  "sidecar service node",
 				EnvVar: "SERVICE_NODE",
@@ -30,7 +30,7 @@ var (
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
 			conf := config.Load(configPath)
-			Start(conf,serviceCluster,serviceNode)
+			Start(conf, serviceCluster, serviceNode)
 			return nil
 		},
 	}

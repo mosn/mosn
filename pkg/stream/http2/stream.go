@@ -264,7 +264,7 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 
 	s.request.Header = encodeHeader(headers)
 
-	log.StartLogger.Debugf("http2 client stream encode headers,headers = %v",s.request.Header)
+	log.StartLogger.Debugf("http2 client stream encode headers,headers = %v", s.request.Header)
 
 	if endStream {
 		s.endStream()
@@ -283,7 +283,7 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 		buf: data,
 	}
 
-	log.StartLogger.Debugf("http2 client stream encode data,data = %v",data.String())
+	log.StartLogger.Debugf("http2 client stream encode data,data = %v", data.String())
 
 	if endStream {
 		s.endStream()
@@ -319,11 +319,11 @@ func (s *clientStream) ReadDisable(disable bool) {
 }
 
 func (s *clientStream) doSend() {
-	log.StartLogger.Debugf("http2 client stream do send,request = %v",s.request)
+	log.StartLogger.Debugf("http2 client stream do send,request = %v", s.request)
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
 
 	if err != nil {
-		log.StartLogger.Debugf("http2 client stream send error %v",err)
+		log.StartLogger.Debugf("http2 client stream send error %v", err)
 		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
 		switch err.(type) {
 		case http2.StreamError:

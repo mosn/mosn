@@ -1,8 +1,8 @@
 package server
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stats"
 	"github.com/rcrowley/go-metrics"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stats"
 )
 
 const (

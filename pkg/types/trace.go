@@ -17,4 +17,3 @@ type Span interface {
 type Driver interface {
 	start(requestHeaders map[string]string, operationName string, startTime time.Time) Span
 }
-

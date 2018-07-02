@@ -31,7 +31,7 @@ func (p *connPool) Host() types.Host {
 	return p.host
 }
 
-func (p *connPool) GitInitActiveClient(context context.Context) error{
+func (p *connPool) GitInitActiveClient(context context.Context) error {
 	return nil
 }
 

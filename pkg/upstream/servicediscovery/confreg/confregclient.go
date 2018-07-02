@@ -1,9 +1,9 @@
 package registry
 
 import (
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/model"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
 )
 
 const ConfregSofaGroup = "SOFA"
@@ -11,74 +11,73 @@ const ConfregSofaGroup = "SOFA"
 var confregClient *ConfregClient
 
 type ConfregClient struct {
-    systemConfig         *config.SystemConfig
-    registryConfig       *config.RegistryConfig
-    confregServerManager *servermanager.RegistryServerManager
+	systemConfig         *config.SystemConfig
+	registryConfig       *config.RegistryConfig
+	confregServerManager *servermanager.RegistryServerManager
 
-    registerWorker   *registerWorker
-    rpcServerManager servermanager.RPCServerManager
+	registerWorker   *registerWorker
+	rpcServerManager servermanager.RPCServerManager
 }
 
 func NewConfregClient(systemConfig *config.SystemConfig, registryConfig *config.RegistryConfig,
-    manager *servermanager.RegistryServerManager) Client {
+	manager *servermanager.RegistryServerManager) Client {
 
-    rc := &ConfregClient{
-        systemConfig:         systemConfig,
-        registryConfig:       registryConfig,
-        confregServerManager: manager,
-    }
+	rc := &ConfregClient{
+		systemConfig:         systemConfig,
+		registryConfig:       registryConfig,
+		confregServerManager: manager,
+	}
 
-    rc.rpcServerManager = servermanager.GetRPCServerManager()
+	rc.rpcServerManager = servermanager.GetRPCServerManager()
 
-    rw := NewRegisterWorker(systemConfig, registryConfig, manager, rc.rpcServerManager)
-    rc.registerWorker = rw
+	rw := NewRegisterWorker(systemConfig, registryConfig, manager, rc.rpcServerManager)
+	rc.registerWorker = rw
 
-    confregClient = rc
+	confregClient = rc
 
-    return rc
+	return rc
 }
 
 func (rc *ConfregClient) GetRPCServerManager() servermanager.RPCServerManager {
-    return rc.rpcServerManager
+	return rc.rpcServerManager
 }
 
-
 func (rc *ConfregClient) PublishAsync(dataId string, data ...string) {
-    rc.registerWorker.SubmitPublishTask(dataId, data, model.EventTypePb_REGISTER.String())
+	rc.registerWorker.SubmitPublishTask(dataId, data, model.EventTypePb_REGISTER.String())
 }
 
 func (rc *ConfregClient) UnPublishAsync(dataId string, data ...string) {
-    rc.registerWorker.SubmitPublishTask(dataId, data, model.EventTypePb_UNREGISTER.String())
+	rc.registerWorker.SubmitPublishTask(dataId, data, model.EventTypePb_UNREGISTER.String())
 }
 
 func (rc *ConfregClient) SubscribeAsync(dataId string) {
-    rc.registerWorker.SubmitSubscribeTask(dataId, model.EventTypePb_REGISTER.String())
+	rc.registerWorker.SubmitSubscribeTask(dataId, model.EventTypePb_REGISTER.String())
 }
 
 func (rc *ConfregClient) UnSubscribeAsync(dataId string) {
-    rc.registerWorker.SubmitSubscribeTask(dataId, model.EventTypePb_UNREGISTER.String())
+	rc.registerWorker.SubmitSubscribeTask(dataId, model.EventTypePb_UNREGISTER.String())
 }
 
 func (rc *ConfregClient) PublishSync(dataId string, data ...string) error {
-    return rc.registerWorker.PublishSync(dataId, data)
+	return rc.registerWorker.PublishSync(dataId, data)
 }
 
 func (rc *ConfregClient) UnPublishSync(dataId string, data ...string) error {
-    return rc.registerWorker.UnPublishSync(dataId, data)
+	return rc.registerWorker.UnPublishSync(dataId, data)
 }
 
 func (rc *ConfregClient) SubscribeSync(dataId string) error {
-    return rc.registerWorker.SubscribeSync(dataId)
+	return rc.registerWorker.SubscribeSync(dataId)
 }
 
 func (rc *ConfregClient) UnSubscribeSync(dataId string) error {
-    return rc.registerWorker.UnSubscribeSync(dataId)
+	return rc.registerWorker.UnSubscribeSync(dataId)
 }
 
 func (rc *ConfregClient) Reset() {
-    rc.registerWorker.Reset()
+	rc.registerWorker.Reset()
 }
 
 func existedSubscriber(dataId string) bool {
-    return confregClient.registerWorker.existedSubscriber(dataId)
+	return confregClient.registerWorker.existedSubscriber(dataId)
 }

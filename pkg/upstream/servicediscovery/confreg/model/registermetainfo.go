@@ -1,10 +1,9 @@
 package model
 
 type PublisherMetaInfo struct {
-    DataId  string
+	DataId string
 }
 
 type SubscriberMetaInfo struct {
-    DataId  string
+	DataId string
 }
-
