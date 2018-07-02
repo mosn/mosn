@@ -37,14 +37,18 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 
 	hs1 := hostSet{
 		hosts: hosts1,
+		healthyHosts:hosts1,
 	}
 
 	hs2 := hostSet{
 		hosts: hosts2,
+		healthyHosts:hosts2,
+		
 	}
 
 	hs3 := hostSet{
 		hosts: hosts3,
+		healthyHosts:hosts3,
 	}
 
 	hostset := []types.HostSet{&hs1, &hs2, &hs3}
