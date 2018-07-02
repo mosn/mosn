@@ -28,13 +28,13 @@ import (
 type Priority int
 
 const (
-	PriorityDefault     Priority      = 0
-	PriorityHigh        Priority      = 1
-	GlobalTimeout       time.Duration = 60 * time.Second
-	DefaultRouteTimeout               = 15 * time.Second
-	SofaRouteMatchKey                 = "service"
-	RouterMatadataKey                 = "filter_metadata"
-	RouterMetadataKeyLb               = "mosn.lb"
+	PriorityDefault     Priority = 0
+	PriorityHigh        Priority = 1
+	GlobalTimeout                = 60 * time.Second
+	DefaultRouteTimeout          = 15 * time.Second
+	SofaRouteMatchKey            = "service"
+	RouterMatadataKey            = "filter_metadata"
+	RouterMetadataKeyLb          = "mosn.lb"
 )
 
 // change RouterConfig -> Routers to manage all routers
@@ -143,6 +143,14 @@ type RateLimitPolicyEntry interface {
 	PopulateDescriptors(route RouteRule, descriptors []ratelimit.Descriptor, localSrvCluster string, headers map[string]string, remoteAddr string)
 }
 
+type RetryCheckStatus int
+
+const (
+	ShouldRetry   RetryCheckStatus = 0
+	NoRetry       RetryCheckStatus = -1
+	RetryOverflow RetryCheckStatus = -2
+)
+
 type RetryPolicy interface {
 	RetryOn() bool
 
@@ -223,7 +231,6 @@ type MetadataMatchCriterion interface {
 }
 
 type MetadataMatchCriteria interface {
-
 	// @return: a set of MetadataMatchCriterion(metadata) sorted lexically by name
 	// to be matched against upstream endpoints when load balancing
 	MetadataMatchCriteria() []MetadataMatchCriterion

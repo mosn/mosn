@@ -97,7 +97,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	}
 
 	clusterInfo := clusterSnapshot.ClusterInfo()
-	clusterConnectionResource := clusterInfo.ResourceManager().ConnectionResource()
+	clusterConnectionResource := clusterInfo.ResourceManager().Connections()
 
 	if !clusterConnectionResource.CanCreate() {
 		p.requestInfo.SetResponseFlag(types.UpstreamOverflow)
@@ -181,7 +181,7 @@ func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
 
 func (p *proxy) finalizeUpstreamConnectionStats() {
 	upstreamClusterInfo := p.readCallbacks.UpstreamHost().ClusterInfo()
-	upstreamClusterInfo.ResourceManager().ConnectionResource().Decrease()
+	upstreamClusterInfo.ResourceManager().Connections().Decrease()
 }
 
 func (p *proxy) onConnectionSuccess() {

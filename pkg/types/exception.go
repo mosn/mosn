@@ -23,8 +23,8 @@ const (
 	HeaderPath          = "x-mosn-path"
 	HeaderQueryString   = "x-mosn-querystring"
 	HeaderStreamID      = "x-mosn-streamid"
-	HeaderGlobalTimeout = "global-timeout"
-	HeaderTryTimeout    = "try-timeout"
+	HeaderGlobalTimeout = "x-mosn-global-timeout"
+	HeaderTryTimeout    = "x-mosn-try-timeout"
 	HeaderException     = "x-mosn-exception"
 )
 

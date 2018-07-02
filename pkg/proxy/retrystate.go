@@ -30,6 +30,8 @@ type retryState struct {
 	cluster         types.ClusterInfo
 	retryOn         bool
 	retiesRemaining uint32
+	retryFunc       func()
+	retryTimer      *timer
 }
 
 func newRetryState(retryPolicy types.RetryPolicy,
@@ -39,7 +41,7 @@ func newRetryState(retryPolicy types.RetryPolicy,
 		requestHeaders:  requestHeaders,
 		cluster:         cluster,
 		retryOn:         retryPolicy.RetryOn(),
-		retiesRemaining: 1,
+		retiesRemaining: 3,
 	}
 
 	if retryPolicy.NumRetries() > rs.retiesRemaining {
@@ -49,33 +51,54 @@ func newRetryState(retryPolicy types.RetryPolicy,
 	return rs
 }
 
-func (r *retryState) shouldRetry(headers map[string]string, reason types.StreamResetReason) bool {
+func (r *retryState) retry(headers map[string]string, reason types.StreamResetReason, doRetry func()) types.RetryCheckStatus {
+	r.reset()
+
+	check := r.shouldRetry(headers, reason)
+
+	if check != 0 {
+		return check
+	}
+
+	r.retryTimer = r.scheduleRetry(doRetry)
+
+	return 0
+}
+
+func (r *retryState) shouldRetry(headers map[string]string, reason types.StreamResetReason) types.RetryCheckStatus {
 	if r.retiesRemaining == 0 {
-		return false
+		return types.NoRetry
 	}
 
-	if !r.doCheckRetry(headers, reason) {
-		return false
+	r.retiesRemaining--
+
+	if !r.doRetryCheck(headers, reason) {
+		return types.NoRetry
 	}
 
-	return true
+	if r.cluster.ResourceManager().Retries().CanCreate() {
+		r.cluster.Stats().UpstreamRequestRetryOverflow.Inc(1)
+
+		return types.RetryOverflow
+	}
+
+	return types.ShouldRetry
 }
 
 func (r *retryState) scheduleRetry(doRetry func()) *timer {
-	r.retiesRemaining--
+	r.retryFunc = doRetry
+	r.cluster.ResourceManager().Retries().Increase()
+	r.cluster.Stats().UpstreamRequestRetry.Inc(1)
 
-	// todo: better alth
+	// todo: use backoff alth
 	timeout := rand.Intn(10)
-
 	timer := newTimer(doRetry, time.Duration(timeout)*time.Second)
 	timer.start()
-
-	r.cluster.Stats().UpstreamRequestRetry.Inc(1)
 
 	return timer
 }
 
-func (r *retryState) doCheckRetry(headers map[string]string, reason types.StreamResetReason) bool {
+func (r *retryState) doRetryCheck(headers map[string]string, reason types.StreamResetReason) bool {
 	if reason == types.StreamOverflow {
 		return false
 	}
@@ -91,4 +114,11 @@ func (r *retryState) doCheckRetry(headers map[string]string, reason types.Stream
 	}
 
 	return false
+}
+
+func (r *retryState) reset() {
+	if r.retryFunc != nil {
+		r.cluster.ResourceManager().Retries().Decrease()
+		r.retryFunc = nil
+	}
 }

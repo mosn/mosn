@@ -256,11 +256,17 @@ type ClusterInfo interface {
 }
 
 type ResourceManager interface {
-	ConnectionResource() Resource
+	// Connections resource to count connections in pool. Only used by protocol which has a connection pool which has multiple connections.
+	Connections() Resource
 
+	// Pending request resource to count pending requests. Only used by protocol which has a connection pool and pending requests to assign to connections.
 	PendingRequests() Resource
 
+	// Request resource to count requests
 	Requests() Resource
+
+	// Retries resource to count retries
+	Retries() Resource
 }
 
 type Resource interface {
@@ -294,6 +300,7 @@ type ClusterStats struct {
 	UpstreamRequestLocalReset                      metrics.Counter
 	UpstreamRequestRemoteReset                     metrics.Counter
 	UpstreamRequestRetry                           metrics.Counter
+	UpstreamRequestRetryOverflow                   metrics.Counter
 	UpstreamRequestTimeout                         metrics.Counter
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
