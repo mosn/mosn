@@ -50,16 +50,16 @@ const (
 	// For every protocol
 	X XProxy_Protocol = 0
 	// protocol between sidecars
-	HTTP2 XProxy_Protocol = 1
+	Http2 XProxy_Protocol = 1
 )
 
 var XProxy_Protocol_name = map[int32]string{
 	0: "X",
-	1: "HTTP2",
+	1: "Http2",
 }
 var XProxy_Protocol_value = map[string]int32{
 	"X":     0,
-	"HTTP2": 1,
+	"Http2": 1,
 }
 
 func (x XProxy_Protocol) String() string {

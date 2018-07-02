@@ -197,7 +197,7 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 					}
 				}
 			} else {
-				log.DefaultLogger.Fatalf("unsupport filter config type, filter name: %s", xdsFilter.GetName())
+				log.DefaultLogger.Errorf("unsupport filter config type, filter name: %s", xdsFilter.GetName())
 			}
 		}
 	}
@@ -270,7 +270,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		}
 		return structs.Map(proxyConfig)
 	}else{
-		log.DefaultLogger.Fatalf("unsupport filter config, filter name: %s", name)
+		log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
 	}
 	return nil
 }
@@ -318,7 +318,7 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 			}
 			routes = append(routes, route)
 		}else{
-			log.DefaultLogger.Fatalf("unsupport route actin, just Route and Redirect support yet, ignore this route")
+			log.DefaultLogger.Errorf("unsupport route actin, just Route and Redirect support yet, ignore this route")
 			continue
 		}
 	}
@@ -471,13 +471,13 @@ func convertAddress(xdsAddress *xdscore.Address) net.Addr {
 			return nil
 		}
 	}else{
-		log.DefaultLogger.Fatalf("only SocketAddress supported")
+		log.DefaultLogger.Errorf("only SocketAddress supported")
 		return nil
 	}
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
-		log.DefaultLogger.Fatalf("Invalid address: %v", err)
+		log.DefaultLogger.Errorf("Invalid address: %v", err)
 		return nil
 	}
 	return tcpAddr
@@ -634,7 +634,7 @@ func convertDuration(p *types.Duration) time.Duration {
 	d := time.Duration(p.Seconds) * time.Second
 	if p.Nanos != 0 {
 		if dur := d + time.Duration(p.Nanos); (dur < 0) != (p.Nanos < 0) {
-			log.DefaultLogger.Fatalf("duration: %#v is out of range for time.Duration, ignore nanos", p)
+			log.DefaultLogger.Warnf("duration: %#v is out of range for time.Duration, ignore nanos", p)
 		}
 	}
 	return d

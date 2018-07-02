@@ -31,12 +31,12 @@ func (c *XdsClient) getConfig(config *config.MOSNConfig) error{
 	log.DefaultLogger.Infof("start to get config from istio")
 	err := c.getListenersAndRoutes(config)
 	if err != nil {
-		log.DefaultLogger.Fatalf("fail to get lds config from istio")
+		log.DefaultLogger.Errorf("fail to get lds config from istio")
 		return err
 	}
 	err = c.getClustersAndHosts(config)
 	if err != nil {
-		log.DefaultLogger.Fatalf("fail to get cds config from istio")
+		log.DefaultLogger.Errorf("fail to get cds config from istio")
 		return err
 	}
 	log.DefaultLogger.Infof("get config from istio success")
@@ -48,13 +48,13 @@ func (c *XdsClient) getListenersAndRoutes(config *config.MOSNConfig) error{
 	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
 	listeners := c.v2.GetListeners(streamClient)
 	if listeners == nil {
-		log.DefaultLogger.Fatalf("get none listeners")
+		log.DefaultLogger.Errorf("get none listeners")
 		return errors.New("get none listener")
 	}
 	log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
 	err := config.OnUpdateListeners(listeners)
 	if err != nil {
-		log.DefaultLogger.Fatalf("fail to update listeners")
+		log.DefaultLogger.Errorf("fail to update listeners")
 		return errors.New("fail to update listeners")
 	}
 	log.DefaultLogger.Infof("update listeners success")
@@ -66,36 +66,38 @@ func (c *XdsClient) getClustersAndHosts(config *config.MOSNConfig) error{
 	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
 	clusters := c.v2.GetClusters(streamClient)
 	if clusters == nil {
-		log.DefaultLogger.Fatalf("get none clusters")
+		log.DefaultLogger.Errorf("get none clusters")
 		return errors.New("get none clusters")
 	}
 	log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
 	err := config.OnUpdateClusters(clusters)
 	if err != nil {
-		log.DefaultLogger.Fatalf("fall to update clusters")
+		log.DefaultLogger.Errorf("fall to update clusters")
 		return errors.New("fail to update clusters")
 	}
 	log.DefaultLogger.Infof("update clusters success")
 
+	log.DefaultLogger.Infof("start to get clusters from EDS")
 	clusterNames := make([]string,0)
 	for _, cluster := range clusters {
 		if cluster.Type == xdsapi.Cluster_EDS {
 			clusterNames = append(clusterNames, cluster.Name)
 		}
 	}
-	log.DefaultLogger.Infof("start to get endpoints for cluster %v from EDS", clusterNames)
+	log.DefaultLogger.Debugf("start to get endpoints for cluster %v from EDS", clusterNames)
 	endpoints := c.v2.GetEndpoints(streamClient, clusterNames)
 	if endpoints == nil {
 		log.DefaultLogger.Warnf("get none endpoints for cluster %v", clusterNames)
 		return errors.New("get none endpoints for clusters")
 	}
-	log.DefaultLogger.Infof("get %d endpoints for cluster %v", len(endpoints), clusterNames)
+	log.DefaultLogger.Debugf("get %d endpoints for cluster %v", len(endpoints), clusterNames)
 	err = config.OnUpdateEndpoints(endpoints)
 	if err != nil {
-		log.DefaultLogger.Fatalf("fail to update endpoints for cluster %v", clusterNames)
+		log.DefaultLogger.Errorf("fail to update endpoints for cluster %v", clusterNames)
 		return errors.New("fail to update endpoints for clusters")
 	}
-	log.DefaultLogger.Infof("update endpoints for cluster %v success", clusterNames)
+	log.DefaultLogger.Debugf("update endpoints for cluster %v success", clusterNames)
+	log.DefaultLogger.Infof("update endpoints success")
 	return nil
 }
 
@@ -117,7 +119,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 		resources := map[string]json.RawMessage{}
 		err = json.Unmarshal([]byte(config.RawDynamicResources), &resources)
 		if err != nil {
-			log.DefaultLogger.Fatalf("fail to unmarshal dynamic_resources: %v", err)
+			log.DefaultLogger.Errorf("fail to unmarshal dynamic_resources: %v", err)
 			return nil, nil, err
 		}
 		if adsConfigRaw, ok := resources["ads_config"]; ok {
@@ -125,14 +127,14 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 			adsConfig := map[string]json.RawMessage{}
 			err = json.Unmarshal([]byte(adsConfigRaw), &adsConfig)
 			if err != nil {
-				log.DefaultLogger.Fatalf("fail to unmarshal ads_config: %v", err)
+				log.DefaultLogger.Errorf("fail to unmarshal ads_config: %v", err)
 				return nil, nil, err
 			}
 			if refreshDelayRaw, ok := adsConfig["refresh_delay"]; ok {
 				refreshDelay := types.Duration{}
 				err = json.Unmarshal([]byte(refreshDelayRaw), &refreshDelay)
 				if err != nil {
-					log.DefaultLogger.Fatalf("fail to unmarshal refresh_delay: %v", err)
+					log.DefaultLogger.Errorf("fail to unmarshal refresh_delay: %v", err)
 					return nil, nil, err
 				}
 
@@ -142,28 +144,28 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 			}
 			b, err = json.Marshal(&adsConfig)
 			if err != nil {
-				log.DefaultLogger.Fatalf("fail to marshal refresh_delay: %v", err)
+				log.DefaultLogger.Errorf("fail to marshal refresh_delay: %v", err)
 				return nil, nil, err
 			}
 			resources["ads_config"] = json.RawMessage(b)
 			b, err = json.Marshal(&resources)
 			if err != nil {
-				log.DefaultLogger.Fatalf("fail to marshal ads_config: %v", err)
+				log.DefaultLogger.Errorf("fail to marshal ads_config: %v", err)
 				return nil, nil, err
 			}
 
 			err = jsonpb.UnmarshalString(string(b), dynamicResources)
 			if err != nil {
-				log.DefaultLogger.Fatalf("fail to marshal dynamic_resources: %v", err)
+				log.DefaultLogger.Errorf("fail to marshal dynamic_resources: %v", err)
 				return nil, nil, err
 			}
 			err = dynamicResources.Validate()
 			if err != nil {
-				log.DefaultLogger.Fatalf("invalid dynamic_resources: %v", err)
+				log.DefaultLogger.Errorf("invalid dynamic_resources: %v", err)
 				return nil, nil, err
 			}
 		} else{
-			log.DefaultLogger.Fatalf("ads_config not found")
+			log.DefaultLogger.Errorf("ads_config not found")
 			err = errors.New("lack of ads_config")
 			return nil, nil, err
 		}
@@ -176,27 +178,27 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 		resources := map[string]json.RawMessage{}
 		err = json.Unmarshal([]byte(config.RawStaticResources), &resources)
 		if err != nil {
-			log.DefaultLogger.Fatalf("fail to unmarshal static_resources: %v", err)
+			log.DefaultLogger.Errorf("fail to unmarshal static_resources: %v", err)
 			return nil, nil, err
 		}
 		if clustersRaw, ok := resources["clusters"]; ok {
 			clusters := []json.RawMessage{}
 			err = json.Unmarshal([]byte(clustersRaw), &clusters)
 			if err != nil {
-				log.DefaultLogger.Fatalf("fail to unmarshal clusters: %v", err)
+				log.DefaultLogger.Errorf("fail to unmarshal clusters: %v", err)
 				return nil, nil, err
 			}
 			for i, clusterRaw := range clusters {
 				cluster := map[string]json.RawMessage{}
 				err = json.Unmarshal([]byte(clusterRaw), &cluster)
 				if err != nil {
-					log.DefaultLogger.Fatalf("fail to unmarshal cluster: %v", err)
+					log.DefaultLogger.Errorf("fail to unmarshal cluster: %v", err)
 					return nil, nil, err
 				}
 				cb := apicluster.CircuitBreakers{}
 				b, err = json.Marshal(&cb)
 				if err != nil {
-					log.DefaultLogger.Fatalf("fail to marshal circuit_breakers: %v", err)
+					log.DefaultLogger.Errorf("fail to marshal circuit_breakers: %v", err)
 					return nil, nil, err
 				}
 				cluster["circuit_breakers"] = json.RawMessage(b)
@@ -205,111 +207,64 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 					connectTimeout := types.Duration{}
 					err = json.Unmarshal([]byte(connectTimeoutRaw), &connectTimeout)
 					if err != nil {
-						log.DefaultLogger.Fatalf("fail to unmarshal connect_timeout: %v", err)
+						log.DefaultLogger.Errorf("fail to unmarshal connect_timeout: %v", err)
 						return nil, nil, err
 					}
 					d := duration2String(&connectTimeout)
 					b, err = json.Marshal(&d)
 					if err != nil {
-						log.DefaultLogger.Fatalf("fail to marshal connect_timeout: %v", err)
+						log.DefaultLogger.Errorf("fail to marshal connect_timeout: %v", err)
 						return nil, nil, err
 					}
 					cluster["connect_timeout"] = json.RawMessage(b)
 				}
 				b, err = json.Marshal(&cluster)
 				if err != nil {
-					log.DefaultLogger.Fatalf("fail to marshal cluster: %v", err)
+					log.DefaultLogger.Errorf("fail to marshal cluster: %v", err)
 					return nil, nil, err
 				}
 				clusters[i] = json.RawMessage(b)
 			}
 			b, err = json.Marshal(&clusters)
 			if err != nil {
-				log.DefaultLogger.Fatalf("fail to marshal clusters: %v", err)
+				log.DefaultLogger.Errorf("fail to marshal clusters: %v", err)
 				return nil, nil, err
 			}
 		}
 		resources["clusters"] = json.RawMessage(b)
 		b, err = json.Marshal(&resources)
 		if err != nil {
-			log.DefaultLogger.Fatalf("fail to marshal resources: %v", err)
+			log.DefaultLogger.Errorf("fail to marshal resources: %v", err)
 			return nil, nil, err
 		}
 
 		err = jsonpb.UnmarshalString(string(b), staticResources)
 		if err != nil {
-			log.DefaultLogger.Fatalf("fail to unmarshal static_resources: %v", err)
+			log.DefaultLogger.Errorf("fail to unmarshal static_resources: %v", err)
 			return nil, nil, err
 		}
 
 		err = staticResources.Validate()
 		if err != nil {
-			log.DefaultLogger.Fatalf("Invalid static_resources: %v", err)
+			log.DefaultLogger.Errorf("Invalid static_resources: %v", err)
 			return nil, nil, err
 		}
 	}
 	return dynamicResources, staticResources, nil
 }
 
-
-
-//func Start(config *config.MOSNConfig, serviceCluster, serviceNode string) {
-//
-//	log.DefaultLogger.Infof("xdsclient start\n")
-//	client := XdsClient{}
-//	if client.v2 == nil {
-//		dynamicResources, staticResources, err := UnmarshalResources(config)
-//		if err != nil {
-//			log.DefaultLogger.Fatalf("fail to unmarshal xds resources, skip xds: %v", err)
-//			warmuped <- false
-//			return
-//		}
-//		xdsConfig := v2.XDSConfig{}
-//		err = xdsConfig.Init(dynamicResources, staticResources)
-//		if err != nil {
-//			log.DefaultLogger.Fatalf("failt to init xds config, skip xds: %v", err)
-//			warmuped <- false
-//			return
-//		}
-//		client.v2 = &v2.V2Client{serviceCluster, serviceNode, &xdsConfig}
-//	}
-//
-//	for {
-//		err := client.getConfig(config)
-//		if err == nil {
-//			break
-//		}
-//	}
-//	warmuped <- true
-//	started = true
-//
-//	refreshDelay := client.v2.Config.ADSConfig.RefreshDelay
-//	t1 := time.NewTimer(*refreshDelay)
-//	for {
-//		select {
-//		case <- stopping:
-//			client.v2.Config.ADSConfig.CloseADSStreamClient()
-//			stopped <- true
-//		case <- t1.C:
-//			client.getConfig(config)
-//			t1.Reset(*refreshDelay)
-//		}
-//	}
-//
-//}
-
 func (c *XdsClient)Start(config *config.MOSNConfig, serviceCluster, serviceNode string) error{
 	log.DefaultLogger.Infof("xds client start")
 	if c.v2 == nil {
 		dynamicResources, staticResources, err := UnmarshalResources(config)
 		if err != nil {
-			log.DefaultLogger.Fatalf("fail to unmarshal xds resources, skip xds: %v", err)
+			log.DefaultLogger.Warnf("fail to unmarshal xds resources, skip xds: %v", err)
 			return errors.New("fail to unmarshal xds resources")
 		}
 		xdsConfig := v2.XDSConfig{}
 		err = xdsConfig.Init(dynamicResources, staticResources)
 		if err != nil {
-			log.DefaultLogger.Fatalf("fail to init xds config, skip xds: %v", err)
+			log.DefaultLogger.Warnf("fail to init xds config, skip xds: %v", err)
 			return errors.New("fail to init xds config")
 		}
 		c.v2 = &v2.V2Client{serviceCluster, serviceNode, &xdsConfig}
