@@ -55,8 +55,8 @@ ServiceMesh衍生于云原生，微服务等技术生态并得到快速发展，
 * [Issues](https://github.com/alipay/mosn/issues)
 
 ## 贡献
-* [代码贡献](./CONTRIBUTING.md) 
-+ MOSN借鉴了ENVOY核心思路，根据我们的需求在多协议支持，路由，进程管理等方面进行了调整。目前项目仍处在初级阶段，仍有很多能力协议补全，很多bug需要修复，欢迎所有人提交代码。我们欢迎您参与但不限于如下方面：
++ [代码贡献](./CONTRIBUTING.md) 
++ MOSN仍处在初级阶段，有很多能力需要补全，很多bug需要修复，欢迎所有人提交代码。我们欢迎您参与但不限于如下方面：
    + 核心路由功能点补全
    + Outlier detection
    + Tracing支持
