@@ -133,7 +133,7 @@ type StreamSender interface {
 
 // Listeners called on decode stream event
 // On server scenario, StreamReceiver handles request
-// On client scenario, StreamSender handles response
+// On client scenario, StreamReceiver handles response
 type StreamReceiver interface {
 	// Called with decoded headers
 	// endStream supplies whether this is a header only request/response
