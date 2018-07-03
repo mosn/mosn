@@ -255,15 +255,15 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 }
 
 func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Context) {
+	//Register Proxy's Filter
+	configFactory := al.networkFiltersFactory.CreateFilterFactory(al.handler.clusterManager, ctx)
+	buildFilterChain(conn.FilterManager(), configFactory)
+
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
 	if !al.disableConnIo {
 		// start conn loops first
 		conn.Start(ctx)
 	}
-
-	//Register Proxy's Filter
-	configFactory := al.networkFiltersFactory.CreateFilterFactory(al.handler.clusterManager, ctx)
-	buildFilterChain(conn.FilterManager(), configFactory)
 
 	filterManager := conn.FilterManager()
 

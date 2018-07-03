@@ -404,6 +404,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 		return nil
 	}
 
+	// connection failed in client mode
 	if c.rawConnection == nil {
 		return nil
 	}
