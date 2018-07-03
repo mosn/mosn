@@ -612,7 +612,7 @@ func (s *activeStream) setupRetry(endStream bool) bool {
 		s.upstreamRequest.resetStream()
 	}
 
-	s.upstreamRequest = nil
+	s.upstreamRequest.requestEncoder = nil
 
 	return true
 }
@@ -675,7 +675,9 @@ func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 
 func (s *activeStream) cleanUp() {
 	// reset upstream request
-	s.upstreamRequest.requestEncoder = nil
+	if s.upstreamRequest != nil {
+		s.upstreamRequest.requestEncoder = nil
+	}
 
 	// reset retry state
 	s.retryState.reset()

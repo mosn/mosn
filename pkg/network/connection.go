@@ -62,15 +62,16 @@ type connection struct {
 	bytesSendCallbacks   []func(bytesSent uint64)
 	filterManager        types.FilterManager
 
-	stopChan           chan bool
-	curWriteBufferData []types.IoBuffer
-	readBuffer         *buffer.IoBufferPoolEntry
-	writeBuffer        *buffer.IoBufferPoolEntry
-	writeBufferMux     sync.RWMutex
-	writeBufferChan    chan bool
-	internalStopChan   chan bool
-	readerBufferPool   *buffer.IoBufferPoolV2
-	writeBufferPool    *buffer.IoBufferPoolV2
+	stopChan            chan bool
+	curWriteBufferData  []types.IoBuffer
+	readBuffer          *buffer.IoBufferPoolEntry
+	writeBuffer         *buffer.IoBufferPoolEntry
+	writeBufferMux      sync.RWMutex
+	writeBufferChan     chan bool
+	internalLoopStarted bool
+	internalStopChan    chan bool
+	readerBufferPool    *buffer.IoBufferPoolV2
+	writeBufferPool     *buffer.IoBufferPoolV2
 
 	stats              *types.ConnectionStats
 	lastBytesSizeRead  int64
@@ -137,15 +138,16 @@ func (c *connection) Id() uint64 {
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
+		c.internalLoopStarted = true
 
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					// TODO: panic recover @wugou
-
 					c.logger.Errorf("panic %v", p)
 
 					debug.PrintStack()
+
+					c.startReadLoop()
 				}
 			}()
 
@@ -155,11 +157,11 @@ func (c *connection) Start(lctx context.Context) {
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					// TODO: panic recover @wugou
-
 					c.logger.Errorf("panic %v", p)
 
 					debug.PrintStack()
+
+					c.startWriteLoop()
 				}
 			}()
 
@@ -442,8 +444,10 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	// wait for io loops exit, ensure single thread operate streams on the connection
-	// cause close function must be called by one loop thread, notify another loop here
-	c.internalStopChan <- true
+	if c.internalLoopStarted {
+		// because close function must be called by one io loop thread, notify another loop here
+		c.internalStopChan <- true
+	}
 
 	c.rawConnection.Close()
 
