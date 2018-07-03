@@ -141,6 +141,7 @@ type serverStreamConnection struct {
 
 func newServerStreamConnection(context context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+	connection.SetReadDisable(true)
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
 			context:       context,
@@ -149,7 +150,6 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 		},
 		serverStreamConnCallbacks: callbacks,
 	}
-
 	server.ServeConn(connection.RawConn(), &http2.ServeConnOpts{
 		Handler: ssc,
 	})
@@ -262,6 +262,11 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 		delete(headers, types.HeaderPath)
 	}
 
+	if _, ok := headers["Host"]; ok {
+		headers["Host"] = s.connection.rawConnection.RemoteAddr().String()
+		s.request.Host = s.connection.rawConnection.RemoteAddr().String()
+	}
+
 	s.request.Header = encodeHeader(headers)
 
 	log.StartLogger.Debugf("http2 client stream encode headers,headers = %v",s.request.Header)
@@ -279,6 +284,7 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 		s.request = new(http.Request)
 	}
 
+	s.request.Method = http.MethodPost
 	s.request.Body = &IoBufferReadCloser{
 		buf: data,
 	}
@@ -319,17 +325,17 @@ func (s *clientStream) ReadDisable(disable bool) {
 }
 
 func (s *clientStream) doSend() {
-	log.StartLogger.Debugf("http2 client stream do send,request = %v",s.request)
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
-
 	if err != nil {
 		log.StartLogger.Debugf("http2 client stream send error %v",err)
 		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
 		switch err.(type) {
 		case http2.StreamError:
 			s.ResetStream(types.StreamRemoteReset)
+			s.CleanStream()
 		case http2.GoAwayError:
 			s.connection.streamConnCallbacks.OnGoAway()
+			s.CleanStream()
 		case error:
 			// todo: target remote close event
 			if err == io.EOF {
@@ -340,11 +346,7 @@ func (s *clientStream) doSend() {
 			} else if err.Error() == "http2: client conn not usable" {
 				// raise overflow event to let conn pool taking action
 				s.ResetStream(types.StreamOverflow)
-				// TODO action in callback
-				s.connection.asMutex.Lock()
-				s.response = nil
-				s.connection.activeStreams.Remove(s.element)
-				s.connection.asMutex.Unlock()
+
 			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY" {
 				s.connection.streamConnCallbacks.OnGoAway()
 			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY; some request body already written" {
@@ -357,14 +359,21 @@ func (s *clientStream) doSend() {
 				s.connection.logger.Errorf("Unknown err: %v", err)
 				s.ResetStream(types.StreamConnectionFailed)
 			}
+			s.CleanStream()
 		}
 	} else {
 		s.response = resp
-
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleResponse()
 		}
 	}
+}
+
+func (s *clientStream) CleanStream(){
+	s.connection.asMutex.Lock()
+	s.response = nil
+	s.connection.activeStreams.Remove(s.element)
+	s.connection.asMutex.Unlock()
 }
 
 func (s *clientStream) handleResponse() {
