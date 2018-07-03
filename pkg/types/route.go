@@ -21,20 +21,18 @@ import (
 	"crypto/md5"
 	"regexp"
 	"time"
-
-	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
 )
 
 type Priority int
 
 const (
-	PriorityDefault     Priority      = 0
-	PriorityHigh        Priority      = 1
-	GlobalTimeout       time.Duration = 60 * time.Second
-	DefaultRouteTimeout               = 15 * time.Second
-	SofaRouteMatchKey                 = "service"
-	RouterMatadataKey                 = "filter_metadata"
-	RouterMetadataKeyLb               = "mosn.lb"
+	PriorityDefault     Priority = 0
+	PriorityHigh        Priority = 1
+	GlobalTimeout                = 60 * time.Second
+	DefaultRouteTimeout          = 15 * time.Second
+	SofaRouteMatchKey            = "service"
+	RouterMatadataKey            = "filter_metadata"
+	RouterMetadataKeyLb          = "mosn.lb"
 )
 
 // change RouterConfig -> Routers to manage all routers
@@ -140,8 +138,32 @@ type RateLimitPolicyEntry interface {
 
 	DisableKey() string
 
-	PopulateDescriptors(route RouteRule, descriptors []ratelimit.Descriptor, localSrvCluster string, headers map[string]string, remoteAddr string)
+	PopulateDescriptors(route RouteRule, descriptors []Descriptor, localSrvCluster string, headers map[string]string, remoteAddr string)
 }
+type LimitStatus string
+
+const (
+	OK        LimitStatus = "OK"
+	Error     LimitStatus = "Error"
+	OverLimit LimitStatus = "OverLimit"
+)
+
+type DescriptorEntry struct {
+	Key   string
+	Value string
+}
+
+type Descriptor struct {
+	entries []DescriptorEntry
+}
+
+type RetryCheckStatus int
+
+const (
+	ShouldRetry   RetryCheckStatus = 0
+	NoRetry       RetryCheckStatus = -1
+	RetryOverflow RetryCheckStatus = -2
+)
 
 type RetryPolicy interface {
 	RetryOn() bool
@@ -223,7 +245,6 @@ type MetadataMatchCriterion interface {
 }
 
 type MetadataMatchCriteria interface {
-
 	// @return: a set of MetadataMatchCriterion(metadata) sorted lexically by name
 	// to be matched against upstream endpoints when load balancing
 	MetadataMatchCriteria() []MetadataMatchCriterion
@@ -236,7 +257,7 @@ type Decorator interface {
 	getOperation() string
 }
 
-type HashedValue [16]byte   // value as md5's result
+type HashedValue [16]byte // value as md5's result
 
 type HeaderFormat interface {
 	Format(info RequestInfo) string

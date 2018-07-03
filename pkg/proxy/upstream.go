@@ -23,70 +23,69 @@ import (
 )
 
 // types.StreamEventListener
-// types.StreamDecoder
+// types.StreamReceiver
 // types.PoolEventListener
 type upstreamRequest struct {
-	proxy          *proxy
-	element        *list.Element
-	activeStream   *activeStream
-	host           types.Host
-	requestEncoder types.StreamEncoder
-	connPool       types.ConnectionPool
+	proxy         *proxy
+	element       *list.Element
+	activeStream  *downStream
+	host          types.Host
+	requestSender types.StreamSender
+	connPool      types.ConnectionPool
 
 	// ~~~ upstream response buf
 	upstreamRespHeaders map[string]string
 
 	//~~~ state
-	encodeComplete bool
-	dataEncoded    bool
-	trailerEncoded bool
+	appendComplete  bool
+	dataAppended    bool
+	trailerAppended bool
 }
 
+// reset upstream request
+// 1. downstream cleanup
+// 2. on upstream global timeout
+// 3. on upstream per req timeout
+// 4. on upstream response receive error
+// 5. before a retry
 func (r *upstreamRequest) resetStream() {
-	if r.requestEncoder != nil {
-		r.requestEncoder.GetStream().RemoveEventListener(r)
-		r.requestEncoder.GetStream().ResetStream(types.StreamLocalReset)
+	// only reset a alive request sender stream
+	if r.requestSender != nil {
+		r.requestSender.GetStream().RemoveEventListener(r)
+		r.requestSender.GetStream().ResetStream(types.StreamLocalReset)
 	}
 }
 
 // types.StreamEventListener
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
-	r.requestEncoder = nil
+	r.requestSender = nil
 
-	// todo: check if we get a reset on encode request headers. e.g. encode failed
+	// todo: check if we get a reset on encode request headers. e.g. send failed
 	r.activeStream.onUpstreamReset(UpstreamReset, reason)
 }
 
-func (r *upstreamRequest) OnAboveWriteBufferHighWatermark() {
-	r.activeStream.onUpstreamAboveWriteBufferHighWatermark()
-}
-
-func (r *upstreamRequest) OnBelowWriteBufferLowWatermark() {
-	r.activeStream.onUpstreamBelowWriteBufferHighWatermark()
-}
-
-// types.StreamDecoder
+// types.StreamReceiver
 // Method to decode upstream's response message
-func (r *upstreamRequest) OnDecodeHeaders(headers map[string]string, endStream bool) {
+func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	r.upstreamRespHeaders = headers
 	r.activeStream.onUpstreamHeaders(headers, endStream)
 }
 
-func (r *upstreamRequest) OnDecodeData(data types.IoBuffer, endStream bool) {
+func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
 	r.activeStream.onUpstreamData(data, endStream)
 }
 
-func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
+func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
 	r.activeStream.onUpstreamTrailers(trailers)
 }
 
 func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
 }
 
-// ~~~ encode request wrapper
+// ~~~ send request wrapper
 
-func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
-	r.encodeComplete = endStream
+func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream bool) {
+	r.appendComplete = endStream
 	streamID := ""
 
 	if streamid, ok := headers[types.HeaderStreamID]; ok {
@@ -96,20 +95,20 @@ func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream boo
 	r.connPool.NewStream(r.proxy.context, streamID, r, r)
 }
 
-func (r *upstreamRequest) encodeData(data types.IoBuffer, endStream bool) {
-	r.encodeComplete = endStream
-	r.dataEncoded = true
-	r.requestEncoder.EncodeData(data, endStream)
+func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
+	r.appendComplete = endStream
+	r.dataAppended = true
+	r.requestSender.AppendData(data, endStream)
 }
 
-func (r *upstreamRequest) encodeTrailers(trailers map[string]string) {
-	r.encodeComplete = true
-	r.trailerEncoded = true
-	r.requestEncoder.EncodeTrailers(trailers)
+func (r *upstreamRequest) appendTrailers(trailers map[string]string) {
+	r.appendComplete = true
+	r.trailerAppended = true
+	r.requestSender.AppendTrailers(trailers)
 }
 
 // types.PoolEventListener
-func (r *upstreamRequest) OnPoolFailure(streamId string, reason types.PoolFailureReason, host types.Host) {
+func (r *upstreamRequest) OnFailure(streamId string, reason types.PoolFailureReason, host types.Host) {
 	var resetReason types.StreamResetReason
 
 	switch reason {
@@ -122,15 +121,15 @@ func (r *upstreamRequest) OnPoolFailure(streamId string, reason types.PoolFailur
 	r.OnResetStream(resetReason)
 }
 
-func (r *upstreamRequest) OnPoolReady(streamId string, encoder types.StreamEncoder, host types.Host) {
-	r.requestEncoder = encoder
-	r.requestEncoder.GetStream().AddEventListener(r)
+func (r *upstreamRequest) OnReady(streamId string, sender types.StreamSender, host types.Host) {
+	r.requestSender = sender
+	r.requestSender.GetStream().AddEventListener(r)
 
-	endStream := r.encodeComplete && !r.dataEncoded && !r.trailerEncoded
-	r.requestEncoder.EncodeHeaders(r.activeStream.downstreamReqHeaders, endStream)
+	endStream := r.appendComplete && !r.dataAppended && !r.trailerAppended
+	r.requestSender.AppendHeaders(r.activeStream.downstreamReqHeaders, endStream)
 
 	r.activeStream.requestInfo.OnUpstreamHostSelected(host)
 	r.activeStream.requestInfo.SetUpstreamLocalAddress(host.Address())
 
-	// todo: check if we get a reset on encode headers
+	// todo: check if we get a reset on send headers
 }

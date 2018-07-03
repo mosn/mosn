@@ -39,7 +39,7 @@ type BoltRequestProcessor struct{}
 type BoltRequestProcessorV2 struct{}
 
 // ctx = type.serverStreamConnection
-// CALLBACK STREAM LEVEL'S OnDecodeHeaders
+// CALLBACK STREAM LEVEL'S OnReceiveHeaders
 func (b *BoltRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)

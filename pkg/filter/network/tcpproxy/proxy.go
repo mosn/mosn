@@ -97,7 +97,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	}
 
 	clusterInfo := clusterSnapshot.ClusterInfo()
-	clusterConnectionResource := clusterInfo.ResourceManager().ConnectionResource()
+	clusterConnectionResource := clusterInfo.ResourceManager().Connections()
 
 	if !clusterConnectionResource.CanCreate() {
 		p.requestInfo.SetResponseFlag(types.UpstreamOverflow)
@@ -181,7 +181,7 @@ func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
 
 func (p *proxy) finalizeUpstreamConnectionStats() {
 	upstreamClusterInfo := p.readCallbacks.UpstreamHost().ClusterInfo()
-	upstreamClusterInfo.ResourceManager().ConnectionResource().Decrease()
+	upstreamClusterInfo.ResourceManager().Connections().Decrease()
 }
 
 func (p *proxy) onConnectionSuccess() {
@@ -272,14 +272,6 @@ func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	uc.proxy.onUpstreamEvent(event)
 }
 
-func (uc *upstreamCallbacks) OnAboveWriteBufferHighWatermark() {
-	// TODO
-}
-
-func (uc *upstreamCallbacks) OnBelowWriteBufferLowWatermark() {
-	// TODO
-}
-
 func (uc *upstreamCallbacks) OnData(buffer types.IoBuffer) types.FilterStatus {
 	uc.proxy.onUpstreamData(buffer)
 
@@ -299,12 +291,4 @@ type downstreamCallbacks struct {
 
 func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	dc.proxy.onDownstreamEvent(event)
-}
-
-func (dc *downstreamCallbacks) OnAboveWriteBufferHighWatermark() {
-	// TODO
-}
-
-func (dc *downstreamCallbacks) OnBelowWriteBufferLowWatermark() {
-	// TODO
 }

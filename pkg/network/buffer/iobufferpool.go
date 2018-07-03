@@ -18,13 +18,14 @@ package buffer
 
 import (
 	"io"
+	"sync"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 type IoBufferPool struct {
-	bufSize int
-	pool    chan *IoBufferPoolEntry
+	defaultSize uint64
+	pool        sync.Pool
 }
 
 type IoBufferPoolEntry struct {
@@ -41,31 +42,28 @@ func (bpe *IoBufferPoolEntry) Write() (n int64, err error) {
 }
 
 func (p *IoBufferPool) Take(r io.ReadWriter) (bpe *IoBufferPoolEntry) {
-	select {
-	case bpe = <-p.pool:
-		// swap out the underlying reader
-		bpe.Io = r
-	default:
-		// none available.  create a new one
-		bpe = &IoBufferPoolEntry{nil, r}
-		bpe.Br = NewIoBuffer(p.bufSize)
+	v := p.pool.Get()
+
+	if v != nil {
+		v.(*IoBufferPoolEntry).Io = r
+
+		return v.(*IoBufferPoolEntry)
 	}
+
+	bpe = &IoBufferPoolEntry{nil, r}
+	bpe.Br = NewIoBuffer(int(p.defaultSize))
 
 	return
 }
 
 func (p *IoBufferPool) Give(bpe *IoBufferPoolEntry) {
+	bpe.Io = nil
 	bpe.Br.Reset()
-
-	select {
-	case p.pool <- bpe: // return to pool
-	default: // discard
-	}
+	p.pool.Put(bpe)
 }
 
-func NewIoBufferPool(poolSize, bufferSize int) *IoBufferPool {
+func NewIoBufferPool(bufferSize int) *IoBufferPool {
 	return &IoBufferPool{
-		bufSize: bufferSize,
-		pool:    make(chan *IoBufferPoolEntry, poolSize),
+		defaultSize: uint64(bufferSize),
 	}
 }

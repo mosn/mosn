@@ -38,8 +38,8 @@ const (
 )
 
 var idCounter uint64
-var readerBufferPool = buffer.NewIoBufferPoolV2(1, DefaultBufferCapacity)
-var writeBufferPool = buffer.NewIoBufferPoolV2(1, DefaultBufferCapacity*2)
+var readerBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
+var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity * 2)
 
 type connection struct {
 	id         uint64
@@ -62,15 +62,16 @@ type connection struct {
 	bytesSendCallbacks   []func(bytesSent uint64)
 	filterManager        types.FilterManager
 
-	stopChan           chan bool
-	curWriteBufferData []types.IoBuffer
-	readBuffer         *buffer.IoBufferPoolEntry
-	writeBuffer        *buffer.IoBufferPoolEntry
-	writeBufferMux     sync.RWMutex
-	writeBufferChan    chan bool
-	writeLoopStopChan  chan bool
-	readerBufferPool   *buffer.IoBufferPoolV2
-	writeBufferPool    *buffer.IoBufferPoolV2
+	stopChan            chan bool
+	curWriteBufferData  []types.IoBuffer
+	readBuffer          *buffer.IoBufferPoolEntry
+	writeBuffer         *buffer.IoBufferPoolEntry
+	writeBufferMux      sync.RWMutex
+	writeBufferChan     chan bool
+	internalLoopStarted bool
+	internalStopChan    chan bool
+	readerBufferPool    *buffer.IoBufferPool
+	writeBufferPool     *buffer.IoBufferPool
 
 	stats              *types.ConnectionStats
 	lastBytesSizeRead  int64
@@ -86,17 +87,17 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
-		id:                id,
-		rawConnection:     rawc,
-		localAddr:         rawc.LocalAddr(),
-		remoteAddr:        rawc.RemoteAddr(),
-		stopChan:          stopChan,
-		readEnabled:       true,
-		readEnabledChan:   make(chan bool, 1),
-		writeBufferChan:   make(chan bool),
-		writeLoopStopChan: make(chan bool, 1),
-		readerBufferPool:  readerBufferPool,
-		writeBufferPool:   writeBufferPool,
+		id:               id,
+		rawConnection:    rawc,
+		localAddr:        rawc.LocalAddr(),
+		remoteAddr:       rawc.RemoteAddr(),
+		stopChan:         stopChan,
+		readEnabled:      true,
+		readEnabledChan:  make(chan bool, 1),
+		writeBufferChan:  make(chan bool),
+		internalStopChan: make(chan bool),
+		readerBufferPool: readerBufferPool,
+		writeBufferPool:  writeBufferPool,
 		stats: &types.ConnectionStats{
 			ReadTotal:    metrics.NewCounter(),
 			ReadCurrent:  metrics.NewGauge(),
@@ -115,18 +116,10 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 // watermark listener
 func (c *connection) OnHighWatermark() {
 	c.aboveHighWatermark = true
-
-	for _, cb := range c.connCallbacks {
-		cb.OnAboveWriteBufferHighWatermark()
-	}
 }
 
 func (c *connection) OnLowWatermark() {
 	c.aboveHighWatermark = false
-
-	for _, cb := range c.connCallbacks {
-		cb.OnBelowWriteBufferLowWatermark()
-	}
 }
 
 // basic
@@ -137,15 +130,16 @@ func (c *connection) Id() uint64 {
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
+		c.internalLoopStarted = true
 
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					// TODO: panic recover @wugou
-
 					c.logger.Errorf("panic %v", p)
 
 					debug.PrintStack()
+
+					c.startReadLoop()
 				}
 			}()
 
@@ -155,11 +149,11 @@ func (c *connection) Start(lctx context.Context) {
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					// TODO: panic recover @wugou
-
 					c.logger.Errorf("panic %v", p)
 
 					debug.PrintStack()
+
+					c.startWriteLoop()
 				}
 			}()
 
@@ -169,26 +163,29 @@ func (c *connection) Start(lctx context.Context) {
 }
 
 func (c *connection) startReadLoop() {
+	defer func() {
+		_, _ = <-c.internalStopChan
+	}()
+
 	for {
 		select {
 		case <-c.stopChan:
+			return
+		case <-c.internalStopChan:
 			return
 		case <-c.readEnabledChan:
 		default:
 			if c.readEnabled {
 				err := c.doRead()
 
-				if atomic.LoadUint32(&c.closed) > 0 {
-					return
-				}
-
 				if err != nil {
+
 					if err == io.EOF {
 						c.Close(types.NoFlush, types.RemoteClose)
 					} else {
 						c.Close(types.NoFlush, types.OnReadErrClose)
-
 					}
+
 					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
 						c.id, c.RemoteAddr().String(), err)
 
@@ -300,17 +297,17 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 }
 
 func (c *connection) startWriteLoop() {
+	defer func() {
+		_, _ = <-c.internalStopChan
+	}()
+
 	for {
 		select {
 		case <-c.stopChan:
 			return
-		case <-c.writeLoopStopChan:
+		case <-c.internalStopChan:
 			return
 		case <-c.writeBufferChan:
-			if atomic.LoadUint32(&c.closed) > 0 {
-				return
-			}
-
 			_, err := c.doWrite()
 
 			if err != nil {
@@ -321,14 +318,10 @@ func (c *connection) startWriteLoop() {
 				if err == io.EOF {
 					// remote conn closed
 					c.Close(types.NoFlush, types.RemoteClose)
-
 				} else {
 					// on non-timeout error
 					c.Close(types.NoFlush, types.OnWriteErrClose)
 				}
-
-				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
-					c.id, c.RemoteAddr().String(), err)
 
 				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
 					c.id, c.RemoteAddr().String(), err)
@@ -411,6 +404,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 		return nil
 	}
 
+	// connection failed in client mode
 	if c.rawConnection == nil {
 		return nil
 	}
@@ -442,7 +436,13 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 		}
 	}
 
-	c.writeLoopStopChan <- true
+	// wait for io loops exit, ensure single thread operate streams on the connection
+	if c.internalLoopStarted {
+		// because close function must be called by one io loop thread, notify another loop here
+		c.internalStopChan <- true
+		close(c.internalStopChan)
+	}
+
 	c.rawConnection.Close()
 
 	c.logger.Debugf(ConnectionCloseDebugMsg, c.id, eventType,
@@ -451,12 +451,8 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
 
-	for i, cb := range c.connCallbacks {
-		c.logger.Debugf("Conn Close CB, index = %d, cb = %+v", i, cb)
-	}
-
 	for _, cb := range c.connCallbacks {
-		go cb.OnEvent(eventType)
+		cb.OnEvent(eventType)
 	}
 
 	return nil
@@ -594,10 +590,6 @@ func (c *connection) GetReadBuffer() types.IoBuffer {
 	}
 }
 
-func (c *connection) AboveHighWatermark() bool {
-	return c.aboveHighWatermark
-}
-
 func (c *connection) FilterManager() types.FilterManager {
 	return c.filterManager
 }
@@ -617,16 +609,16 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 
 	conn := &clientConnection{
 		connection: connection{
-			id:                id,
-			localAddr:         sourceAddr,
-			remoteAddr:        remoteAddr,
-			stopChan:          stopChan,
-			readEnabled:       true,
-			readEnabledChan:   make(chan bool, 1),
-			writeBufferChan:   make(chan bool),
-			writeLoopStopChan: make(chan bool, 1),
-			readerBufferPool:  readerBufferPool,
-			writeBufferPool:   writeBufferPool,
+			id:               id,
+			localAddr:        sourceAddr,
+			remoteAddr:       remoteAddr,
+			stopChan:         stopChan,
+			readEnabled:      true,
+			readEnabledChan:  make(chan bool, 1),
+			writeBufferChan:  make(chan bool),
+			internalStopChan: make(chan bool),
+			readerBufferPool: readerBufferPool,
+			writeBufferPool:  writeBufferPool,
 			stats: &types.ConnectionStats{
 				ReadTotal:    metrics.NewCounter(),
 				ReadCurrent:  metrics.NewGauge(),
@@ -680,7 +672,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 
 		cc.connection.logger.Debugf("connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
 		for _, cccb := range cc.connCallbacks {
-			go cccb.OnEvent(event)
+			cccb.OnEvent(event)
 		}
 	})
 

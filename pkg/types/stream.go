@@ -35,26 +35,26 @@ import "context"
 //   Core model in stream layer is stream, which manages process of a round-trip, a request and a corresponding response.
 // 	 Event listeners can be installed into a stream to monitor event.
 //	 Stream has two related models, encoder and decoder:
-// 		- StreamEncoder: a sender encodes request/response to binary and sends it out, flag 'endStream' means data is ready to sendout, no need to wait for further input.
-//		- StreamDecoder: It's more like a decode listener to get called on a receiver receives binary and decodes to a request/response.
-//	 	- Stream does not have a predetermined direction, so StreamEncoder could be a request encoder as a client or a response encoder as a server. It's just about the scenario, so does StreamDecoder.
+// 		- StreamSender: a sender encodes request/response to binary and sends it out, flag 'endStream' means data is ready to sendout, no need to wait for further input.
+//		- StreamReceiver: It's more like a decode listener to get called on a receiver receives binary and decodes to a request/response.
+//	 	- Stream does not have a predetermined direction, so StreamSender could be a request encoder as a client or a response encoder as a server. It's just about the scenario, so does StreamReceiver.
 //
 //   Stream:
 //   	- Event listener
 // 			- StreamEventListener
 //      - Encoder
-// 			- StreamEncoder
+// 			- StreamSender
 // 		- Decoder
-//			- StreamDecoder
+//			- StreamReceiver
 //
 //	 In order to meet the expansion requirements in the stream processing, StreamEncoderFilters and StreamDecoderFilters are introduced as a filter chain in encode/decode process.
 //   Filter's method will be called on corresponding stream process stage and returns a status(Continue/Stop) to effect the control flow.
 //
 //   From an abstract perspective, stream represents a virtual process on underlying connection. To make stream interactive with connection, some intermediate object can be used.
 //	 StreamConnection is the core model to connect connection system to stream system. As a example, when proxy reads binary data from connection, it dispatches data to StreamConnection to do protocol decode.
-//   Specifically, ClientStreamConnection uses a NewStream to exchange StreamDecoder with StreamEncoder.
-//   Engine provides a callbacks(StreamEncoderFilterCallbacks/StreamDecoderFilterCallbacks) to let filter interact with stream engine.
-// 	 As a example, a encoder filter stopped the encode process, it can continue it by StreamEncoderFilterCallbacks.ContinueEncoding later. Actually, a filter engine is a encoder/decoder itself.
+//   Specifically, ClientStreamConnection uses a NewStream to exchange StreamReceiver with StreamSender.
+//   Engine provides a callbacks(StreamSenderFilterCallbacks/StreamReceiverFilterCallbacks) to let filter interact with stream engine.
+// 	 As a example, a encoder filter stopped the encode process, it can continue it by StreamSenderFilterCallbacks.ContinueEncoding later. Actually, a filter engine is a encoder/decoder itself.
 //
 //   Below is the basic relation on stream and connection:
 //    --------------------------------------------------------------------------------------------------------------
@@ -68,15 +68,15 @@ import "context"
 // 	 |		   |					   |				   	   |                                                    |
 //	 |         |                   	   |					   |--------------------------------					|
 //   |        *|                   	   |					   |*           	 				|*					|
-//   |	 ConnectionFilter    		   |			 StreamEncoder[sender]  		StreamDecoder[receiver]			|
+//   |	 ConnectionFilter    		   |			    StreamSender[sender]  		     StreamReceiver[receiver]	|
 //   |								   |*					   |1				 				|1					|
 // 	 |						StreamConnectionEventListener	   |				 				|					|
 //	 |													       |*				 				|*					|
-//	 |										 	 		StreamDecoderFilter	   			StreamDecoderFilter			|
+//	 |										 	 		StreamReceiverFilter	   			StreamReceiverFilter	|
 //	 |													   	   |1								|1					|
 //	 |													   	   |								|					|
 // 	 |													       |1								|1					|
-//	 |										 		StreamDecoderFilterCallbacks     StreamDecoderFilterCallbacks	|
+//	 |										 		StreamReceiverFilterCallbacks     StreamReceiverFilterCallbacks	|
 //   |																												|
 //    --------------------------------------------------------------------------------------------------------------
 //
@@ -110,47 +110,41 @@ type Stream interface {
 type StreamEventListener interface {
 	// Called on a stream is been reset
 	OnResetStream(reason StreamResetReason)
-
-	// Called when a stream , or the connection the stream is sending to, goes over its high watermark.
-	OnAboveWriteBufferHighWatermark()
-
-	// Called when a stream, or the connection the stream is sending to, goes from over its high watermark to under its low watermark
-	OnBelowWriteBufferLowWatermark()
 }
 
-// StreamEncoder encodes protocol stream
-// On server scenario, StreamEncoder handles response
-// On client scenario, StreamEncoder handles request
-type StreamEncoder interface {
+// StreamSender encodes protocol stream
+// On server scenario, StreamSender handles response
+// On client scenario, StreamSender handles request
+type StreamSender interface {
 	// Encode headers
 	// endStream supplies whether this is a header only request/response
-	EncodeHeaders(headers interface{}, endStream bool) error
+	AppendHeaders(headers interface{}, endStream bool) error
 
 	// Encode data
 	// endStream supplies whether this is the last data frame
-	EncodeData(data IoBuffer, endStream bool) error
+	AppendData(data IoBuffer, endStream bool) error
 
 	// Encode trailers, implicitly ends the stream.
-	EncodeTrailers(trailers map[string]string) error
+	AppendTrailers(trailers map[string]string) error
 
 	// Get related stream
 	GetStream() Stream
 }
 
 // Listeners called on decode stream event
-// On server scenario, StreamDecoder handles request
-// On client scenario, StreamEncoder handles response
-type StreamDecoder interface {
+// On server scenario, StreamReceiver handles request
+// On client scenario, StreamReceiver handles response
+type StreamReceiver interface {
 	// Called with decoded headers
 	// endStream supplies whether this is a header only request/response
-	OnDecodeHeaders(headers map[string]string, endStream bool)
+	OnReceiveHeaders(headers map[string]string, endOfStream bool)
 
 	// Called with a decoded data
 	// endStream supplies whether this is the last data
-	OnDecodeData(data IoBuffer, endStream bool)
+	OnReceiveData(data IoBuffer, endOfStream bool)
 
 	// Called with a decoded trailers frame, implicitly ends the stream.
-	OnDecodeTrailers(trailers map[string]string)
+	OnReceiveTrailers(trailers map[string]string)
 
 	// Called with when exception occurs
 	OnDecodeError(err error, headers map[string]string)
@@ -167,12 +161,6 @@ type StreamConnection interface {
 
 	// Send go away to remote for graceful shutdown
 	GoAway()
-
-	// Called when the underlying Connection goes over its high watermark.
-	OnUnderlyingConnectionAboveWriteBufferHighWatermark()
-
-	// Called when the underlying Connection goes from over its high watermark to under its low watermark.
-	OnUnderlyingConnectionBelowWriteBufferLowWatermark()
 }
 
 // A server side stream connection.
@@ -186,8 +174,8 @@ type ClientStreamConnection interface {
 
 	// Create a new outgoing request stream
 	// responseDecoder supplies the decoder listeners on decode event
-	// StreamEncoder supplies the encoder to write the request
-	NewStream(streamId string, responseDecoder StreamDecoder) StreamEncoder
+	// StreamSender supplies the encoder to write the request
+	NewStream(streamId string, responseDecoder StreamReceiver) StreamSender
 }
 
 // Stream connection event listener
@@ -201,7 +189,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// return request stream decoder
-	NewStream(streamId string, responseEncoder StreamEncoder) StreamDecoder
+	NewStream(streamId string, responseEncoder StreamSender) StreamReceiver
 }
 
 type StreamFilterBase interface {
@@ -227,25 +215,25 @@ type StreamFilterCallbacks interface {
 }
 
 // Stream encoder filter
-type StreamEncoderFilter interface {
+type StreamSenderFilter interface {
 	StreamFilterBase
 
 	// Encode headers
 	// endStream supplies whether this is a header only request/response
-	EncodeHeaders(headers interface{}, endStream bool) FilterHeadersStatus
+	AppendHeaders(headers interface{}, endStream bool) FilterHeadersStatus
 
 	// Called with data to be encoded
 	// endStream supplies whether this is the last data
-	EncodeData(buf IoBuffer, endStream bool) FilterDataStatus
+	AppendData(buf IoBuffer, endStream bool) FilterDataStatus
 
 	// Called with trailers to be encoded, implicitly ending the stream
-	EncodeTrailers(trailers map[string]string) FilterTrailersStatus
+	AppendTrailers(trailers map[string]string) FilterTrailersStatus
 
-	// Set StreamEncoderFilterCallbacks
-	SetEncoderFilterCallbacks(cb StreamEncoderFilterCallbacks)
+	// Set StreamSenderFilterCallbacks
+	SetEncoderFilterCallbacks(cb StreamSenderFilterCallbacks)
 }
 
-type StreamEncoderFilterCallbacks interface {
+type StreamSenderFilterCallbacks interface {
 	StreamFilterCallbacks
 
 	// Continue iterating through the filter chain with buffered headers and body data
@@ -257,12 +245,6 @@ type StreamEncoderFilterCallbacks interface {
 	// Add buffered body data
 	AddEncodedData(buf IoBuffer, streamingFilter bool)
 
-	// Called when an encoder filter goes over its high watermark
-	OnEncoderFilterAboveWriteBufferHighWatermark()
-
-	// Called when a encoder filter goes from over its high watermark to under its low watermark
-	OnEncoderFilterBelowWriteBufferLowWatermark()
-
 	// Set the buffer limit
 	SetEncoderBufferLimit(limit uint32)
 
@@ -271,27 +253,27 @@ type StreamEncoderFilterCallbacks interface {
 }
 
 // Stream decoder filter
-type StreamDecoderFilter interface {
+type StreamReceiverFilter interface {
 	StreamFilterBase
 
 	// Called with decoded headers
 	// endStream supplies whether this is a header only request/response
-	DecodeHeaders(headers map[string]string, endStream bool) FilterHeadersStatus
+	OnDecodeHeaders(headers map[string]string, endStream bool) FilterHeadersStatus
 
 	// Called with a decoded data
 	// endStream supplies whether this is the last data
-	DecodeData(buf IoBuffer, endStream bool) FilterDataStatus
+	OnDecodeData(buf IoBuffer, endStream bool) FilterDataStatus
 
 	// Called with decoded trailers, implicitly ending the stream
-	DecodeTrailers(trailers map[string]string) FilterTrailersStatus
+	OnDecodeTrailers(trailers map[string]string) FilterTrailersStatus
 
 	// Set decoder filter callbacks
-	SetDecoderFilterCallbacks(cb StreamDecoderFilterCallbacks)
+	SetDecoderFilterCallbacks(cb StreamReceiverFilterCallbacks)
 }
 
 // Stream decoder filter callbacks add additional callbacks that allow a decoding filter to restart
 // decoding if they decide to hold data
-type StreamDecoderFilterCallbacks interface {
+type StreamReceiverFilterCallbacks interface {
 	StreamFilterCallbacks
 
 	// Continue iterating through the filter chain with buffered headers and body data
@@ -309,28 +291,16 @@ type StreamDecoderFilterCallbacks interface {
 	// Called with headers to be encoded, optionally indicating end of stream
 	// Filter uses this function to send out request/response headers of the stream
 	// endStream supplies whether this is a header only request/response
-	EncodeHeaders(headers interface{}, endStream bool)
+	AppendHeaders(headers interface{}, endStream bool)
 
 	// Called with data to be encoded, optionally indicating end of stream.
 	// Filter uses this function to send out request/response data of the stream
 	// endStream supplies whether this is the last data
-	EncodeData(buf IoBuffer, endStream bool)
+	AppendData(buf IoBuffer, endStream bool)
 
 	// Called with trailers to be encoded, implicitly ends the stream.
 	// Filter uses this function to send out request/response trailers of the stream
-	EncodeTrailers(trailers map[string]string)
-
-	// Called when the buffer for a decoder filter or any buffers the filter sends data to go over their high watermark
-	OnDecoderFilterAboveWriteBufferHighWatermark()
-
-	// Called when a decoder filter or any buffers the filter sends data to go from over its high watermark to under its low watermark
-	OnDecoderFilterBelowWriteBufferLowWatermark()
-
-	// Called by a filter to subscribe to watermark events on the downstream stream and downstream connection
-	AddDownstreamWatermarkCallbacks(cb DownstreamWatermarkEventListener)
-
-	// Called by a filter to stop subscribing to watermark events on the downstream stream and downstream connection
-	RemoveDownstreamWatermarkCallbacks(cb DownstreamWatermarkEventListener)
+	AppendTrailers(trailers map[string]string)
 
 	// Set the buffer limit for decoder filters
 	SetDecoderBufferLimit(limit uint32)
@@ -339,20 +309,14 @@ type StreamDecoderFilterCallbacks interface {
 	DecoderBufferLimit() uint32
 }
 
-type DownstreamWatermarkEventListener interface {
-	OnAboveWriteBufferHighWatermark()
-
-	OnBelowWriteBufferLowWatermark()
-}
-
 type StreamFilterChainFactory interface {
 	CreateFilterChain(context context.Context, callbacks FilterChainFactoryCallbacks)
 }
 
 type FilterChainFactoryCallbacks interface {
-	AddStreamDecoderFilter(filter StreamDecoderFilter)
+	AddStreamSenderFilter(filter StreamSenderFilter)
 
-	AddStreamEncoderFilter(filter StreamEncoderFilter)
+	AddStreamReceiverFilter(filter StreamReceiverFilter)
 }
 
 type FilterHeadersStatus string
@@ -399,15 +363,15 @@ type ConnectionPool interface {
 	DrainConnections()
 
 	NewStream(context context.Context, streamId string,
-		responseDecoder StreamDecoder, cb PoolEventListener) Cancellable
+		responseDecoder StreamReceiver, cb PoolEventListener) Cancellable
 
 	Close()
 }
 
 type PoolEventListener interface {
-	OnPoolFailure(streamId string, reason PoolFailureReason, host Host)
+	OnFailure(streamId string, reason PoolFailureReason, host Host)
 
-	OnPoolReady(streamId string, requestEncoder StreamEncoder, host Host)
+	OnReady(streamId string, requestEncoder StreamSender, host Host)
 }
 
 type Cancellable interface {

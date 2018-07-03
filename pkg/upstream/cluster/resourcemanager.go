@@ -19,7 +19,16 @@ package cluster
 import (
 	"sync/atomic"
 
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+)
+
+const (
+	// note: 10x bigger than envoy default value
+	DefaultMaxConnections     = uint64(10240)
+	DefaultMaxPendingRequests = uint64(10240)
+	DefaultMaxRequests        = uint64(10240)
+	DefaultMaxRetries         = uint64(3)
 )
 
 // ResourceManager
@@ -27,9 +36,23 @@ type resourcemanager struct {
 	connections     *resource
 	pendingRequests *resource
 	requests        *resource
+	retries         *resource
 }
 
-func NewResourceManager(maxConnections uint64, maxPendingRequests uint64, maxRequests uint64) types.ResourceManager {
+func NewResourceManager(circuitBreakers v2.CircuitBreakers) types.ResourceManager {
+	maxConnections := DefaultMaxConnections
+	maxPendingRequests := DefaultMaxPendingRequests
+	maxRequests := DefaultMaxRequests
+	maxRetries := DefaultMaxRetries
+
+	// note: we dont support group cb by priority
+	if circuitBreakers.Thresholds != nil && len(circuitBreakers.Thresholds) > 0 {
+		maxConnections = uint64(circuitBreakers.Thresholds[0].MaxConnections)
+		maxPendingRequests = uint64(circuitBreakers.Thresholds[0].MaxPendingRequests)
+		maxRequests = uint64(circuitBreakers.Thresholds[0].MaxRequests)
+		maxRetries = uint64(circuitBreakers.Thresholds[0].MaxRetries)
+	}
+
 	return &resourcemanager{
 		connections: &resource{
 			max: maxConnections,
@@ -40,10 +63,13 @@ func NewResourceManager(maxConnections uint64, maxPendingRequests uint64, maxReq
 		requests: &resource{
 			max: maxRequests,
 		},
+		retries: &resource{
+			max: maxRetries,
+		},
 	}
 }
 
-func (rm *resourcemanager) ConnectionResource() types.Resource {
+func (rm *resourcemanager) Connections() types.Resource {
 	return rm.connections
 }
 
@@ -53,6 +79,10 @@ func (rm *resourcemanager) PendingRequests() types.Resource {
 
 func (rm *resourcemanager) Requests() types.Resource {
 	return rm.requests
+}
+
+func (rm *resourcemanager) Retries() types.Resource {
+	return rm.retries
 }
 
 // Resource

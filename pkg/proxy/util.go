@@ -75,7 +75,6 @@ func (t *timer) start() {
 			t.callback()
 		case <-t.stopChan:
 			t.stopped = true
-			return
 		}
 	}()
 }

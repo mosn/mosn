@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
@@ -150,7 +149,7 @@ func (repi *RateLimitPolicyEntryImpl) DisableKey() string {
 	return repi.disablleKey
 }
 
-func (repi *RateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule, descriptors []ratelimit.Descriptor, localSrvCluster string,
+func (repi *RateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule, descriptors []types.Descriptor, localSrvCluster string,
 	headers map[string]string, remoteAddr string) {
 }
 

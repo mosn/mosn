@@ -111,7 +111,7 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 		defer p.asMux.RUnlock()
 
 		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEle.Next() {
-			ur := urEle.Value.(*activeStream)
+			ur := urEle.Value.(*downStream)
 			ur.OnResetStream(types.StreamConnectionTermination)
 		}
 	}
@@ -144,8 +144,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStream(streamId string, responseEncoder types.StreamEncoder) types.StreamDecoder {
-	stream := newActiveStream(streamId, p, responseEncoder)
+func (p *proxy) NewStream(streamId string, responseSender types.StreamSender) types.StreamReceiver {
+	stream := newActiveStream(streamId, p, responseSender)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
@@ -183,7 +183,7 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 	return 0
 }
 
-func (p *proxy) deleteActiveStream(s *activeStream) {
+func (p *proxy) deleteActiveStream(s *downStream) {
 	// reuse decode map
 	if p.resueCodecMaps {
 		if s.downstreamReqHeaders != nil {
@@ -212,12 +212,4 @@ type downstreamCallbacks struct {
 
 func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	dc.proxy.onDownstreamEvent(event)
-}
-
-func (dc *downstreamCallbacks) OnAboveWriteBufferHighWatermark() {
-	dc.proxy.serverCodec.OnUnderlyingConnectionAboveWriteBufferHighWatermark()
-}
-
-func (dc *downstreamCallbacks) OnBelowWriteBufferLowWatermark() {
-	dc.proxy.serverCodec.OnUnderlyingConnectionBelowWriteBufferLowWatermark()
 }
