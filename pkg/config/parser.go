@@ -553,6 +553,11 @@ func ParseCircuitBreakers(cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
 		} else {
 			rp = v2.HIGH
 		}
+		
+		if 0 == cbc.MaxConnections || 0 == cbc.MaxPendingRequests ||
+			0 == cbc.MaxRequests || 0 == cbc.MaxRetries {
+				log.StartLogger.Warnf("zero is set in circuitBreakers' config")
+		}
 
 		threshold := v2.Thresholds{
 			Priority:           rp,
