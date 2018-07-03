@@ -37,14 +37,18 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 
 	hs1 := hostSet{
 		hosts: hosts1,
+		healthyHosts:hosts1,
 	}
 
 	hs2 := hostSet{
 		hosts: hosts2,
+		healthyHosts:hosts2,
+		
 	}
 
 	hs3 := hostSet{
 		hosts: hosts3,
+		healthyHosts:hosts3,
 	}
 
 	hostset := []types.HostSet{&hs1, &hs2, &hs3}
@@ -66,7 +70,7 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 	for i := 0; i < len(want); i++ {
 		got := l.ChooseHost(nil)
 		if got != want[i] {
-			t.Fatal("Test Error in case %d , got %+v, but want %+v,", i, got, want[i])
+			t.Errorf("Test Error in case %d , got %+v, but want %+v,", i, got, want[i])
 		}
 	}
 }

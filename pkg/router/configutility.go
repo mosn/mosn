@@ -126,32 +126,28 @@ func NewMetadataMatchCriteriaImpl(metadataMatches map[string]interface{}) *Metad
 
 // realize sort.Sort
 func (mmcti *MetadataMatchCriteriaImpl) Len() int {
-	return len(mmcti.metadataMatchCriteria)
+	return len(mmcti.MatchCriteriaArray)
 }
 
 func (mmcti *MetadataMatchCriteriaImpl) Less(i, j int) bool {
-	return mmcti.metadataMatchCriteria[i].MetadataKeyName() < mmcti.metadataMatchCriteria[j].MetadataKeyName()
+	return mmcti.MatchCriteriaArray[i].MetadataKeyName() < mmcti.MatchCriteriaArray[j].MetadataKeyName()
 }
 
 func (mmcti *MetadataMatchCriteriaImpl) Swap(i, j int) {
-	mmcti.metadataMatchCriteria[i], mmcti.metadataMatchCriteria[j] = mmcti.metadataMatchCriteria[j],
-		mmcti.metadataMatchCriteria[i]
+	mmcti.MatchCriteriaArray[i], mmcti.MatchCriteriaArray[j] = mmcti.MatchCriteriaArray[j],
+		mmcti.MatchCriteriaArray[i]
 }
 
 type MetadataMatchCriteriaImpl struct {
-	metadataMatchCriteria []types.MetadataMatchCriterion
+	MatchCriteriaArray []types.MetadataMatchCriterion
 }
 
 func (mmcti *MetadataMatchCriteriaImpl) MetadataMatchCriteria() []types.MetadataMatchCriterion {
-	return mmcti.metadataMatchCriteria
+	return mmcti.MatchCriteriaArray
 }
 
 func (mmcti *MetadataMatchCriteriaImpl) MergeMatchCriteria(metadataMatches map[string]interface{}) types.MetadataMatchCriteria {
 	return nil
-}
-
-func (mmcti *MetadataMatchCriteriaImpl) metadataMatchCriteriaImpl(criteria []types.MetadataMatchCriterion) {
-	mmcti.metadataMatchCriteria = criteria
 }
 
 // used to generate metadata match criteria from config
@@ -176,8 +172,8 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 
 		if vs, ok := v.(string); ok {
 			mmci := &MetadataMatchCriterionImpl{
-				name:  k,
-				value: types.GenerateHashedValue(vs),
+				Name:  k,
+				Value: types.GenerateHashedValue(vs),
 			}
 
 			if index, ok := existingMap[k]; ok {
@@ -194,7 +190,7 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 		}
 	}
 
-	mmcti.metadataMatchCriteria = mdMatchCriteria
+	mmcti.MatchCriteriaArray = mdMatchCriteria
 
 	// sorting in lexically by name
 	sort.Sort(mmcti)
@@ -202,14 +198,14 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 
 //
 type MetadataMatchCriterionImpl struct {
-	name  string
-	value types.HashedValue
+	Name  string
+	Value types.HashedValue
 }
 
 func (mmci *MetadataMatchCriterionImpl) MetadataKeyName() string {
-	return mmci.name
+	return mmci.Name
 }
 
-func (mmci *MetadataMatchCriterionImpl) Value() types.HashedValue {
-	return mmci.value
+func (mmci *MetadataMatchCriterionImpl) MetadataValue() types.HashedValue {
+	return mmci.Value
 }

@@ -95,9 +95,12 @@ type LBSubsetEntry interface {
 
 // Represents a subset of an original HostSet.
 type HostSubset interface {
-	Update(hostsAdded []Host, hostsRemoved []Host, predicate HostPredicate)
+	
+	UpdateHostSubset(hostsAdded []Host, hostsRemoved []Host, predicate HostPredicate)
 	//	TriggerCallbacks()   todo
 	Empty() bool
+	
+	Hosts() []Host
 }
 
 // Represents a subset of an original PrioritySet.
@@ -113,6 +116,7 @@ type PrioritySubset interface {
 	TriggerCallbacks()
 
 	CreateHostSet(priority uint32) HostSet
+	
 	LB() LoadBalancer
 }
 
@@ -129,6 +133,11 @@ const (
 type LbSubsetMap map[string]ValueSubsetMap
 
 type ValueSubsetMap map[HashedValue]LBSubsetEntry
+
+//type LBSubsetEntry struct {
+//	children       types.LbSubsetMap
+//	prioritySubset types.PrioritySubset
+//}
 
 type SubsetMetadata []Pair
 

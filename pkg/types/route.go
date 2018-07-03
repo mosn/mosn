@@ -227,7 +227,7 @@ type MetadataMatchCriterion interface {
 	MetadataKeyName() string
 
 	// the value for the metadata key
-	Value() HashedValue
+	MetadataValue() HashedValue
 }
 
 type MetadataMatchCriteria interface {
@@ -243,7 +243,7 @@ type Decorator interface {
 	getOperation() string
 }
 
-type HashedValue [16]byte // value as md5's result
+type HashedValue [16]byte   // value as md5's result
 
 type HeaderFormat interface {
 	Format(info RequestInfo) string
