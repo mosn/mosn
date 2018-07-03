@@ -515,9 +515,9 @@ func (s *activeStream) doEncodeTrailers(filter *activeStreamEncoderFilter, trail
 // ~~~ upstream event handler
 
 func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bool) {
-	// check retry
 	s.downstreamRespHeaders = headers
 
+	// check retry
 	if s.retryState != nil {
 		retryCheck := s.retryState.retry(headers, "", s.doRetry)
 
@@ -614,6 +614,12 @@ func (s *activeStream) setupRetry(endStream bool) bool {
 
 	s.upstreamRequest.requestEncoder = nil
 
+	// reset pertry timer
+	if s.perRetryTimer != nil {
+		s.perRetryTimer.stop()
+		s.perRetryTimer = nil
+	}
+
 	return true
 }
 
@@ -675,12 +681,16 @@ func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 
 func (s *activeStream) cleanUp() {
 	// reset upstream request
+	// if a downstream filter ends downstream before send to upstream, upstreamRequest will be nil
 	if s.upstreamRequest != nil {
 		s.upstreamRequest.requestEncoder = nil
 	}
 
 	// reset retry state
-	s.retryState.reset()
+	// if  a downstream filter ends downstream before send to upstream, retryState will be nil
+	if s.retryState != nil {
+		s.retryState.reset()
+	}
 
 	// reset pertry timer
 	if s.perRetryTimer != nil {
