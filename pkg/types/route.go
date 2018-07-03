@@ -21,8 +21,6 @@ import (
 	"crypto/md5"
 	"regexp"
 	"time"
-
-	"gitlab.alipay-inc.com/afe/mosn/pkg/flowcontrol/ratelimit"
 )
 
 type Priority int
@@ -140,7 +138,23 @@ type RateLimitPolicyEntry interface {
 
 	DisableKey() string
 
-	PopulateDescriptors(route RouteRule, descriptors []ratelimit.Descriptor, localSrvCluster string, headers map[string]string, remoteAddr string)
+	PopulateDescriptors(route RouteRule, descriptors []Descriptor, localSrvCluster string, headers map[string]string, remoteAddr string)
+}
+type LimitStatus string
+
+const (
+	OK        LimitStatus = "OK"
+	Error     LimitStatus = "Error"
+	OverLimit LimitStatus = "OverLimit"
+)
+
+type DescriptorEntry struct {
+	Key   string
+	Value string
+}
+
+type Descriptor struct {
+	entries []DescriptorEntry
 }
 
 type RetryCheckStatus int
@@ -243,7 +257,7 @@ type Decorator interface {
 	getOperation() string
 }
 
-type HashedValue [16]byte   // value as md5's result
+type HashedValue [16]byte // value as md5's result
 
 type HeaderFormat interface {
 	Format(info RequestInfo) string

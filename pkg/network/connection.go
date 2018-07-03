@@ -38,8 +38,8 @@ const (
 )
 
 var idCounter uint64
-var readerBufferPool = buffer.NewIoBufferPoolV2(1, DefaultBufferCapacity)
-var writeBufferPool = buffer.NewIoBufferPoolV2(1, DefaultBufferCapacity*2)
+var readerBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
+var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity * 2)
 
 type connection struct {
 	id         uint64
@@ -70,8 +70,8 @@ type connection struct {
 	writeBufferChan     chan bool
 	internalLoopStarted bool
 	internalStopChan    chan bool
-	readerBufferPool    *buffer.IoBufferPoolV2
-	writeBufferPool     *buffer.IoBufferPoolV2
+	readerBufferPool    *buffer.IoBufferPool
+	writeBufferPool     *buffer.IoBufferPool
 
 	stats              *types.ConnectionStats
 	lastBytesSizeRead  int64
