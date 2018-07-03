@@ -300,10 +300,10 @@
         "circuit_breakers":[
           {
             "priority":"default",
-          "max_connections": 0,
-          "max_pending_requests": 0,
-          "max_requests": 0,
-          "max_retries": 0
+          "max_connections": 1024,
+          "max_pending_requests": 1024,
+          "max_requests": 1024,
+          "max_retries": 3
         }
       ],
         
