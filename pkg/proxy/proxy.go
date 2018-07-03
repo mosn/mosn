@@ -111,7 +111,7 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 		defer p.asMux.RUnlock()
 
 		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEle.Next() {
-			ur := urEle.Value.(*activeStream)
+			ur := urEle.Value.(*downStream)
 			ur.OnResetStream(types.StreamConnectionTermination)
 		}
 	}
@@ -183,7 +183,7 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 	return 0
 }
 
-func (p *proxy) deleteActiveStream(s *activeStream) {
+func (p *proxy) deleteActiveStream(s *downStream) {
 	// reuse decode map
 	if p.resueCodecMaps {
 		if s.downstreamReqHeaders != nil {

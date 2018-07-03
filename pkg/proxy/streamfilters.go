@@ -21,7 +21,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-func (s *activeStream) addEncodedData(filter *activeStreamSenderFilter, data types.IoBuffer, streaming bool) {
+func (s *downStream) addEncodedData(filter *activeStreamSenderFilter, data types.IoBuffer, streaming bool) {
 	if s.filterStage == 0 || s.filterStage&EncodeHeaders > 0 ||
 		s.filterStage&EncodeData > 0 {
 		s.senderFiltersStreaming = streaming
@@ -32,18 +32,18 @@ func (s *activeStream) addEncodedData(filter *activeStreamSenderFilter, data typ
 	}
 }
 
-func (s *activeStream) addDecodedData(filter *activeStreamReceiverFilter, data types.IoBuffer, streaming bool) {
+func (s *downStream) addDecodedData(filter *activeStreamReceiverFilter, data types.IoBuffer, streaming bool) {
 	if s.filterStage == 0 || s.filterStage&DecodeHeaders > 0 ||
 		s.filterStage&DecodeData > 0 {
 		s.receiverFiltersStreaming = streaming
 
 		filter.handleBufferData(data)
 	} else if s.filterStage&EncodeTrailers > 0 {
-		s.decodeDataFilters(filter, data, false)
+		s.runReceiveDataFilters(filter, data, false)
 	}
 }
 
-func (s *activeStream) runAppendHeaderFilters(filter *activeStreamSenderFilter, headers interface{}, endStream bool) bool {
+func (s *downStream) runAppendHeaderFilters(filter *activeStreamSenderFilter, headers interface{}, endStream bool) bool {
 	var index int
 	var f *activeStreamSenderFilter
 
@@ -72,7 +72,7 @@ func (s *activeStream) runAppendHeaderFilters(filter *activeStreamSenderFilter, 
 	return false
 }
 
-func (s *activeStream) runAppendDataFilters(filter *activeStreamSenderFilter, data types.IoBuffer, endStream bool) bool {
+func (s *downStream) runAppendDataFilters(filter *activeStreamSenderFilter, data types.IoBuffer, endStream bool) bool {
 	var index int
 	var f *activeStreamSenderFilter
 
@@ -115,7 +115,7 @@ func (s *activeStream) runAppendDataFilters(filter *activeStreamSenderFilter, da
 	return false
 }
 
-func (s *activeStream) runAppendTrailersFilters(filter *activeStreamSenderFilter, trailers map[string]string) bool {
+func (s *downStream) runAppendTrailersFilters(filter *activeStreamSenderFilter, trailers map[string]string) bool {
 	var index int
 	var f *activeStreamSenderFilter
 
@@ -144,7 +144,7 @@ func (s *activeStream) runAppendTrailersFilters(filter *activeStreamSenderFilter
 	return false
 }
 
-func (s *activeStream) decodeHeaderFilters(filter *activeStreamReceiverFilter, headers map[string]string, endStream bool) bool {
+func (s *downStream) runReceiveHeadersFilters(filter *activeStreamReceiverFilter, headers map[string]string, endStream bool) bool {
 	var index int
 	var f *activeStreamReceiverFilter
 
@@ -173,7 +173,7 @@ func (s *activeStream) decodeHeaderFilters(filter *activeStreamReceiverFilter, h
 	return false
 }
 
-func (s *activeStream) decodeDataFilters(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) bool {
+func (s *downStream) runReceiveDataFilters(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) bool {
 	if s.localProcessDone {
 		return false
 	}
@@ -220,7 +220,7 @@ func (s *activeStream) decodeDataFilters(filter *activeStreamReceiverFilter, dat
 	return false
 }
 
-func (s *activeStream) decodeTrailersFilters(filter *activeStreamReceiverFilter, trailers map[string]string) bool {
+func (s *downStream) runReceiveTrailersFilters(filter *activeStreamReceiverFilter, trailers map[string]string) bool {
 	if s.localProcessDone {
 		return false
 	}
@@ -268,7 +268,7 @@ const (
 type activeStreamFilter struct {
 	index int
 
-	activeStream     *activeStream
+	activeStream     *downStream
 	stopped          bool
 	stoppedNoBuf     bool
 	headersContinued bool
@@ -301,7 +301,7 @@ type activeStreamReceiverFilter struct {
 	filter types.StreamReceiverFilter
 }
 
-func newActiveStreamReceiverFilter(idx int, activeStream *activeStream,
+func newActiveStreamReceiverFilter(idx int, activeStream *downStream,
 	filter types.StreamReceiverFilter) *activeStreamReceiverFilter {
 	f := &activeStreamReceiverFilter{
 		activeStreamFilter: activeStreamFilter{
@@ -396,7 +396,7 @@ type activeStreamSenderFilter struct {
 	filter types.StreamSenderFilter
 }
 
-func newActiveStreamSenderFilter(idx int, activeStream *activeStream,
+func newActiveStreamSenderFilter(idx int, activeStream *downStream,
 	filter types.StreamSenderFilter) *activeStreamSenderFilter {
 	f := &activeStreamSenderFilter{
 		activeStreamFilter: activeStreamFilter{

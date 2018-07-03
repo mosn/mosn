@@ -28,7 +28,7 @@ import (
 type upstreamRequest struct {
 	proxy         *proxy
 	element       *list.Element
-	activeStream  *activeStream
+	activeStream  *downStream
 	host          types.Host
 	requestSender types.StreamSender
 	connPool      types.ConnectionPool
@@ -42,7 +42,14 @@ type upstreamRequest struct {
 	trailerAppended bool
 }
 
+// reset upstream request
+// 1. downstream cleanup
+// 2. on upstream global timeout
+// 3. on upstream per req timeout
+// 4. on upstream response receive error
+// 5. before a retry
 func (r *upstreamRequest) resetStream() {
+	// only reset a alive request sender stream
 	if r.requestSender != nil {
 		r.requestSender.GetStream().RemoveEventListener(r)
 		r.requestSender.GetStream().ResetStream(types.StreamLocalReset)

@@ -35,7 +35,8 @@ import (
 // types.StreamEventListener
 // types.StreamReceiver
 // types.FilterChainFactoryCallbacks
-type activeStream struct {
+// Downstream stream, as a controller to handle downstream and upstream proxy flow
+type downStream struct {
 	streamId string
 	proxy    *proxy
 	route    types.Route
@@ -87,13 +88,13 @@ type activeStream struct {
 	logger log.Logger
 }
 
-func newActiveStream(streamId string, proxy *proxy, responseSender types.StreamSender) *activeStream {
-	var stream *activeStream
+func newActiveStream(streamId string, proxy *proxy, responseSender types.StreamSender) *downStream {
+	var stream *downStream
 
 	if buf := activeStreamPool.Take(); buf == nil {
-		stream = &activeStream{}
+		stream = &downStream{}
 	} else {
-		stream = buf.(*activeStream)
+		stream = buf.(*downStream)
 	}
 
 	stream.streamId = streamId
@@ -113,15 +114,16 @@ func newActiveStream(streamId string, proxy *proxy, responseSender types.StreamS
 }
 
 // types.StreamEventListener
-func (s *activeStream) OnResetStream(reason types.StreamResetReason) {
+// Called downstream stream is reset
+func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	s.proxy.stats.DownstreamRequestReset().Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
 	s.cleanStream()
 }
 
-// case 1: stream's lifecycle ends normally
-// case 2: proxy ends stream in lifecycle
-func (s *activeStream) endStream() {
+// case 1: downstream's lifecycle ends normally
+// case 2: downstream got reset. See downStream.resetStream for more detail
+func (s *downStream) endStream() {
 	var isReset bool
 	if s.responseSender != nil {
 		if !s.downstreamRecvDone || !s.localProcessDone {
@@ -140,13 +142,13 @@ func (s *activeStream) endStream() {
 	// we ignore this for now, fix as a todo
 }
 
-// Clean up on the very end of the stream, normal or exception reset
+// Clean up on the very end of the stream: end stream or reset stream
 // Resources to clean up / reset:
 // 	+ upstream request
 // 	+ all timers
 // 	+ all filters
 //  + remove stream in proxy context
-func (s *activeStream) cleanStream() {
+func (s *downStream) cleanStream() {
 	s.proxy.stats.DownstreamRequestActive().Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
@@ -185,21 +187,20 @@ func (s *activeStream) cleanStream() {
 }
 
 // types.StreamReceiver
-func (s *activeStream) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (s *downStream) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
 
 	s.doReceiveHeaders(nil, headers, endStream)
 }
 
-func (s *activeStream) doReceiveHeaders(filter *activeStreamReceiverFilter, headers map[string]string, endStream bool) {
-	if s.decodeHeaderFilters(filter, headers, endStream) {
+func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, headers map[string]string, endStream bool) {
+	if s.runReceiveHeadersFilters(filter, headers, endStream) {
 		return
 	}
 
 	//Get some route by service name
 	route := s.proxy.routers.Route(headers, 1)
-	// route,routeKey:= s.proxy.routers.Route(headers)
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
@@ -243,20 +244,20 @@ func (s *activeStream) doReceiveHeaders(filter *activeStreamReceiverFilter, head
 	}
 }
 
-func (s *activeStream) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
 
 	s.doReceiveData(nil, data, endStream)
 }
 
-func (s *activeStream) doReceiveData(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) {
+func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
 		return
 	}
 
-	if s.decodeDataFilters(filter, data, endStream) {
+	if s.runReceiveDataFilters(filter, data, endStream) {
 		return
 	}
 
@@ -290,13 +291,13 @@ func (s *activeStream) doReceiveData(filter *activeStreamReceiverFilter, data ty
 	}
 }
 
-func (s *activeStream) OnReceiveTrailers(trailers map[string]string) {
+func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
 	s.downstreamRecvDone = true
 
 	s.doReceiveTrailers(nil, trailers)
 }
 
-func (s *activeStream) OnDecodeError(err error, headers map[string]string) {
+func (s *downStream) OnDecodeError(err error, headers map[string]string) {
 	// todo: enrich headers' information to do some hijack
 	//Check headers' info to do hijack
 	switch err.Error() {
@@ -310,13 +311,13 @@ func (s *activeStream) OnDecodeError(err error, headers map[string]string) {
 	return
 }
 
-func (s *activeStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trailers map[string]string) {
+func (s *downStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trailers map[string]string) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
 		return
 	}
 
-	if s.decodeTrailersFilters(filter, trailers) {
+	if s.runReceiveTrailersFilters(filter, trailers) {
 		return
 	}
 
@@ -325,13 +326,13 @@ func (s *activeStream) doReceiveTrailers(filter *activeStreamReceiverFilter, tra
 	s.upstreamRequest.appendTrailers(trailers)
 }
 
-func (s *activeStream) onUpstreamRequestSent() {
+func (s *downStream) onUpstreamRequestSent() {
 	s.upstreamRequestSent = true
 	s.requestInfo.SetRequestReceivedDuration(time.Now())
 
 	if s.upstreamRequest != nil {
-		// setup per try timeout timer
-		s.setupPerTryTimeout()
+		// setup per req timeout timer
+		s.setupPerReqTimeout()
 
 		// setup global timeout timer
 		if s.timeout.GlobalTimeout > 0 {
@@ -346,7 +347,7 @@ func (s *activeStream) onUpstreamRequestSent() {
 }
 
 // Note: global-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
-func (s *activeStream) onResponseTimeout() {
+func (s *downStream) onResponseTimeout() {
 	s.responseTimer = nil
 	s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
 
@@ -361,7 +362,7 @@ func (s *activeStream) onResponseTimeout() {
 	s.onUpstreamReset(UpstreamGlobalTimeout, types.StreamLocalReset)
 }
 
-func (s *activeStream) setupPerTryTimeout() {
+func (s *downStream) setupPerReqTimeout() {
 	timeout := s.timeout
 
 	if timeout.TryTimeout > 0 {
@@ -369,13 +370,13 @@ func (s *activeStream) setupPerTryTimeout() {
 			s.perRetryTimer.stop()
 		}
 
-		s.perRetryTimer = newTimer(s.onPerTryTimeout, timeout.TryTimeout*time.Second)
+		s.perRetryTimer = newTimer(s.onPerReqTimeout, timeout.TryTimeout*time.Second)
 		s.perRetryTimer.start()
 	}
 }
 
 // Note: per-try-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
-func (s *activeStream) onPerTryTimeout() {
+func (s *downStream) onPerReqTimeout() {
 	if !s.downstreamResponseStarted {
 		// handle timeout on response not
 
@@ -394,7 +395,7 @@ func (s *activeStream) onPerTryTimeout() {
 	}
 }
 
-func (s *activeStream) initializeUpstreamConnectionPool(clusterName string, lbCtx types.LoadBalancerContext) (error, types.ConnectionPool) {
+func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx types.LoadBalancerContext) (error, types.ConnectionPool) {
 	clusterSnapshot := s.proxy.clusterManager.Get(nil, clusterName)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
@@ -435,12 +436,12 @@ func (s *activeStream) initializeUpstreamConnectionPool(clusterName string, lbCt
 
 // ~~~ active stream sender wrapper
 
-func (s *activeStream) appendHeaders(headers map[string]string, endStream bool) {
+func (s *downStream) appendHeaders(headers map[string]string, endStream bool) {
 	s.localProcessDone = endStream
 	s.doAppendHeaders(nil, headers, endStream)
 }
 
-func (s *activeStream) doAppendHeaders(filter *activeStreamSenderFilter, headers interface{}, endStream bool) {
+func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers interface{}, endStream bool) {
 	if s.runAppendHeaderFilters(filter, headers, endStream) {
 		return
 	}
@@ -455,13 +456,13 @@ func (s *activeStream) doAppendHeaders(filter *activeStreamSenderFilter, headers
 	}
 }
 
-func (s *activeStream) appendData(data types.IoBuffer, endStream bool) {
+func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
 	s.localProcessDone = endStream
 
 	s.doAppendData(nil, data, endStream)
 }
 
-func (s *activeStream) doAppendData(filter *activeStreamSenderFilter, data types.IoBuffer, endStream bool) {
+func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.IoBuffer, endStream bool) {
 	if s.runAppendDataFilters(filter, data, endStream) {
 		return
 	}
@@ -475,13 +476,13 @@ func (s *activeStream) doAppendData(filter *activeStreamSenderFilter, data types
 	}
 }
 
-func (s *activeStream) appendTrailers(trailers map[string]string) {
+func (s *downStream) appendTrailers(trailers map[string]string) {
 	s.localProcessDone = true
 
 	s.doAppendTrailers(nil, trailers)
 }
 
-func (s *activeStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers map[string]string) {
+func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers map[string]string) {
 	if s.runAppendTrailersFilters(filter, trailers) {
 		return
 	}
@@ -492,7 +493,7 @@ func (s *activeStream) doAppendTrailers(filter *activeStreamSenderFilter, traile
 
 // ~~~ upstream event handler
 
-func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bool) {
+func (s *downStream) onUpstreamHeaders(headers map[string]string, endStream bool) {
 	s.downstreamRespHeaders = headers
 
 	// check retry
@@ -520,7 +521,7 @@ func (s *activeStream) onUpstreamHeaders(headers map[string]string, endStream bo
 	s.appendHeaders(headers, endStream)
 }
 
-func (s *activeStream) onUpstreamData(data types.IoBuffer, endStream bool) {
+func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
@@ -528,13 +529,13 @@ func (s *activeStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 	s.appendData(data, endStream)
 }
 
-func (s *activeStream) onUpstreamTrailers(trailers map[string]string) {
+func (s *downStream) onUpstreamTrailers(trailers map[string]string) {
 	s.onUpstreamResponseRecvFinished()
 
 	s.appendTrailers(trailers)
 }
 
-func (s *activeStream) onUpstreamResponseRecvFinished() {
+func (s *downStream) onUpstreamResponseRecvFinished() {
 	if !s.upstreamRequestSent {
 		s.upstreamRequest.resetStream()
 	}
@@ -545,7 +546,7 @@ func (s *activeStream) onUpstreamResponseRecvFinished() {
 	s.cleanUp()
 }
 
-func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
+func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
 	// see if we need a retry
 	if urtype != UpstreamGlobalTimeout &&
 		s.downstreamResponseStarted && s.retryState != nil {
@@ -581,7 +582,7 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 	}
 }
 
-func (s *activeStream) setupRetry(endStream bool) bool {
+func (s *downStream) setupRetry(endStream bool) bool {
 	if !s.upstreamRequestSent {
 		return false
 	}
@@ -592,7 +593,7 @@ func (s *activeStream) setupRetry(endStream bool) bool {
 
 	s.upstreamRequest.requestSender = nil
 
-	// reset pertry timer
+	// reset per req timer
 	if s.perRetryTimer != nil {
 		s.perRetryTimer.stop()
 		s.perRetryTimer = nil
@@ -602,7 +603,7 @@ func (s *activeStream) setupRetry(endStream bool) bool {
 }
 
 // Note: retry-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
-func (s *activeStream) doRetry() {
+func (s *downStream) doRetry() {
 	err, pool := s.initializeUpstreamConnectionPool(s.cluster.Name(), nil)
 
 	if err != nil {
@@ -632,23 +633,26 @@ func (s *activeStream) doRetry() {
 		}
 
 		// setup per try timeout timer
-		s.setupPerTryTimeout()
+		s.setupPerReqTimeout()
 	}
 }
 
-func (s *activeStream) onUpstreamAboveWriteBufferHighWatermark() {
+func (s *downStream) onUpstreamAboveWriteBufferHighWatermark() {
 	s.responseSender.GetStream().ReadDisable(true)
 }
 
-func (s *activeStream) onUpstreamBelowWriteBufferHighWatermark() {
+func (s *downStream) onUpstreamBelowWriteBufferHighWatermark() {
 	s.responseSender.GetStream().ReadDisable(false)
 }
 
-func (s *activeStream) resetStream() {
+// Downstream got reset on scenario below:
+// 1. downstream filter reset downstream
+// 2. corresponding upstream got reset
+func (s *downStream) resetStream() {
 	s.endStream()
 }
 
-func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
+func (s *downStream) sendHijackReply(code int, headers map[string]string) {
 	if headers == nil {
 		headers = make(map[string]string, 5)
 	}
@@ -657,7 +661,7 @@ func (s *activeStream) sendHijackReply(code int, headers map[string]string) {
 	s.appendHeaders(headers, true)
 }
 
-func (s *activeStream) cleanUp() {
+func (s *downStream) cleanUp() {
 	// reset upstream request
 	// if a downstream filter ends downstream before send to upstream, upstreamRequest will be nil
 	if s.upstreamRequest != nil {
@@ -683,23 +687,23 @@ func (s *activeStream) cleanUp() {
 	}
 }
 
-func (s *activeStream) setBufferLimit(bufferLimit uint32) {
+func (s *downStream) setBufferLimit(bufferLimit uint32) {
 	s.bufferLimit = bufferLimit
 
 	// todo
 }
 
-func (s *activeStream) AddStreamReceiverFilter(filter types.StreamReceiverFilter) {
+func (s *downStream) AddStreamReceiverFilter(filter types.StreamReceiverFilter) {
 	sf := newActiveStreamReceiverFilter(len(s.receiverFilters), s, filter)
 	s.receiverFilters = append(s.receiverFilters, sf)
 }
 
-func (s *activeStream) AddStreamSenderFilter(filter types.StreamSenderFilter) {
+func (s *downStream) AddStreamSenderFilter(filter types.StreamSenderFilter) {
 	sf := newActiveStreamSenderFilter(len(s.senderFilters), s, filter)
 	s.senderFilters = append(s.senderFilters, sf)
 }
 
-func (s *activeStream) reset() {
+func (s *downStream) reset() {
 	s.streamId = ""
 	s.proxy = nil
 	s.route = nil
@@ -733,11 +737,11 @@ func (s *activeStream) reset() {
 
 // types.LoadBalancerContext
 // no use currently
-func (s *activeStream) ComputeHashKey() types.HashedValue {
+func (s *downStream) ComputeHashKey() types.HashedValue {
 	return [16]byte{}
 }
 
-func (s *activeStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
+func (s *downStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	if nil != s.requestInfo.RouteEntry() {
 		return s.requestInfo.RouteEntry().MetadataMatchCriteria()
 	} else {
@@ -745,10 +749,10 @@ func (s *activeStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	}
 }
 
-func (s *activeStream) DownstreamConnection() net.Conn {
+func (s *downStream) DownstreamConnection() net.Conn {
 	return s.proxy.readCallbacks.Connection().RawConn()
 }
 
-func (s *activeStream) DownstreamHeaders() map[string]string {
+func (s *downStream) DownstreamHeaders() map[string]string {
 	return s.downstreamReqHeaders
 }
