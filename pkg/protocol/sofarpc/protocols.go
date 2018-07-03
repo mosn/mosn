@@ -77,7 +77,7 @@ func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) 
 	} else {
 		errMsg := types.UnSupportedProCode
 		err := errors.New(errMsg)
-		log.ByContext(context).Errorf(errMsg+"protocolCode = %s", protocolCode)
+		log.ByContext(context).Errorf(errMsg + "protocolCode = %s", protocolCode)
 
 		return err, nil
 	}

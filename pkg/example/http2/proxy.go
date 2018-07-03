@@ -188,7 +188,7 @@ func genericProxyConfig() *v2.Proxy {
 
 	header := v2.HeaderMatcher{
 		Name:  "service",
-		Value: "com.alipay.rpc.common.service.facade.SampleService:1.0",
+		Value: "tst",
 	}
 
 	routerV2 := v2.Router{
