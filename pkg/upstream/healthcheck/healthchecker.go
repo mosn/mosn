@@ -106,16 +106,16 @@ func (c *healthChecker) getInterval() time.Duration {
 
 func (c *healthChecker) getTimeoutDuration() time.Duration {
 	baseInterval := c.timeout
-	
+
 	if baseInterval < 0 {
 		baseInterval = 0
 	}
-	
+
 	maxUint := ^uint(0)
 	if uint(baseInterval) > maxUint {
 		baseInterval = time.Duration(maxUint)
 	}
-	
+
 	return baseInterval
 }
 
@@ -131,10 +131,10 @@ type healthCheckSession struct {
 	healthChecker *healthChecker
 	//intervalTimer *timer
 	intervalTicker *ticker
-	timeoutTimer  *timer
-	numHealthy    uint32
-	numUnHealthy  uint32
-	host          types.Host
+	timeoutTimer   *timer
+	numHealthy     uint32
+	numUnHealthy   uint32
+	host           types.Host
 }
 
 func NewHealthCheckSession(hc *healthChecker, host types.Host) *healthCheckSession {
@@ -175,7 +175,7 @@ func (s *healthCheckSession) handleSuccess() {
 
 	s.healthChecker.stats.success.Inc(1)
 	s.healthChecker.runCallbacks(s.host, stateChanged)
-	
+
 	// stop timeout timer
 	s.timeoutTimer.stop()
 	// change to use -> ticker, so no need to start here
@@ -211,8 +211,8 @@ func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
 func (s *healthCheckSession) handleFailure(fType types.FailureType) {
 	s.SetUnhealthy(fType)
 	// ticker now
-//	s.timeoutTimer.stop()
-//	s.intervalTimer.start(s.healthChecker.getInterval())
+	//	s.timeoutTimer.stop()
+	//	s.intervalTimer.start(s.healthChecker.getInterval())
 }
 
 func (s *healthCheckSession) onInterval() {

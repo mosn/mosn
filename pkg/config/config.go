@@ -17,8 +17,8 @@ var ConfigPath string
 var config MOSNConfig
 
 type FilterChain struct {
-	FilterChainMatch string       `json:"match,omitempty"`
-	TLS              TLSConfig    `json:"tls_context,omitempty"`
+	FilterChainMatch string         `json:"match,omitempty"`
+	TLS              TLSConfig      `json:"tls_context,omitempty"`
 	Filters          []FilterConfig `json:"filters"`
 }
 
@@ -33,20 +33,18 @@ type AccessLogConfig struct {
 }
 
 type ListenerConfig struct {
-	Name           string         `json:"name,omitempty"`
-	Address        string         `json:"address,omitempty"`
-	BindToPort     bool           `json:"bind_port"`
-	FilterChains   []FilterChain  `json:"filter_chains"`
-	StreamFilters  []FilterConfig `json:"stream_filters,omitempty"`
+	Name          string         `json:"name,omitempty"`
+	Address       string         `json:"address,omitempty"`
+	BindToPort    bool           `json:"bind_port"`
+	FilterChains  []FilterChain  `json:"filter_chains"`
+	StreamFilters []FilterConfig `json:"stream_filters,omitempty"`
 
 	//logger
 	LogPath  string `json:"log_path,omitempty"`
 	LogLevel string `json:"log_level,omitempty"`
 
-
-    //HandOffRestoredDestinationConnections
+	//HandOffRestoredDestinationConnections
 	HandOffRestoredDestinationConnections bool `json:"handoff_restoreddestination"`
-
 
 	//access log
 	AccessLogs []AccessLogConfig `json:"access_logs,omitempty"`
@@ -118,20 +116,19 @@ type ClusterConfig struct {
 	MaxRequestPerConn    uint32
 	ConnBufferLimitBytes uint32
 	CircuitBreakers      []*CircuitBreakerdConfig `json:"circuit_breakers"`
-	HealthCheck          v2.HealthCheck        `json:"health_check,omitempty"` //v2.HealthCheck
-	ClusterSpecConfig    ClusterSpecConfig     `json:"spec,omitempty"`         //	ClusterSpecConfig
-	Hosts                []v2.Host             `json:"hosts,omitempty"`        //v2.Host
+	HealthCheck          v2.HealthCheck           `json:"health_check,omitempty"` //v2.HealthCheck
+	ClusterSpecConfig    ClusterSpecConfig        `json:"spec,omitempty"`         //	ClusterSpecConfig
+	Hosts                []v2.Host                `json:"hosts,omitempty"`        //v2.Host
 	LBSubsetConfig       v2.LBSubsetConfig
-	TLS                  TLSConfig             `json:"tls_context,omitempty"`
-
+	TLS                  TLSConfig `json:"tls_context,omitempty"`
 }
 
 type CircuitBreakerdConfig struct {
-	Priority           string  `json:"priority"`
-	MaxConnections     uint32  `json:"max_connections"`
-	MaxPendingRequests uint32  `json:"max_pending_requests"`
-	MaxRequests        uint32  `json:"max_requests"`
-	MaxRetries         uint32  `json:"max_retries"`
+	Priority           string `json:"priority"`
+	MaxConnections     uint32 `json:"max_connections"`
+	MaxPendingRequests uint32 `json:"max_pending_requests"`
+	MaxRequests        uint32 `json:"max_requests"`
+	MaxRetries         uint32 `json:"max_retries"`
 }
 
 type ClusterManagerConfig struct {
@@ -162,6 +159,27 @@ type MOSNConfig struct {
 	//tracing config
 	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
+}
+
+type Mode uint8
+
+const (
+	File Mode = iota
+	Xds
+	Mix
+)
+
+func (c *MOSNConfig) Mode() Mode {
+	if len(c.Servers) > 0 {
+		if len(c.RawStaticResources) == 0 || len(c.RawDynamicResources) == 0 {
+			return File
+		} else {
+			return Mix
+		}
+	} else if len(c.RawStaticResources) > 0 && len(c.RawDynamicResources) > 0 {
+		return Xds
+	}
+	return File
 }
 
 //wrapper for time.Duration, so time config can be written in '300ms' or '1h' format

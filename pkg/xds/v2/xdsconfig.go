@@ -1,17 +1,17 @@
 package v2
 
 import (
-	"time"
 	"errors"
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"google.golang.org/grpc"
-	"golang.org/x/net/context"
 	"fmt"
+	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"math/rand"
+	"time"
 )
 
 func (c *XDSConfig) Init(dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources) error {
@@ -69,8 +69,8 @@ func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 			if service.Timeout == nil || (serviceConfig.Timeout.Seconds() <= 0 && serviceConfig.Timeout.Nanoseconds() <= 0) {
 				duration := time.Duration(time.Second) // default connection timeout
 				serviceConfig.Timeout = &duration
-			}else{
-				var nanos int64 = service.Timeout.Seconds * int64(time.Second) + int64(service.Timeout.Nanos)
+			} else {
+				var nanos int64 = service.Timeout.Seconds*int64(time.Second) + int64(service.Timeout.Nanos)
 				duration := time.Duration(nanos)
 				serviceConfig.Timeout = &duration
 			}
@@ -82,7 +82,7 @@ func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 				return nil, err
 			}
 			config.Services = append(config.Services, &serviceConfig)
-		}else if _, ok := t.(*core.GrpcService_GoogleGrpc_); ok {
+		} else if _, ok := t.(*core.GrpcService_GoogleGrpc_); ok {
 			log.DefaultLogger.Warnf("GrpcService_GoogleGrpc_ not support yet")
 			continue
 		}
@@ -90,7 +90,7 @@ func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 	return config, nil
 }
 
-func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticResources) error{
+func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticResources) error {
 	if staticResources == nil {
 		log.DefaultLogger.Errorf("StaticResources is null")
 		err := errors.New("null point exception")
@@ -112,7 +112,7 @@ func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticReso
 		if cluster.ConnectTimeout.Nanoseconds() <= 0 {
 			duration := time.Duration(time.Second * 10)
 			config.ConnectTimeout = &duration // default connect timeout
-		}else {
+		} else {
 			config.ConnectTimeout = &cluster.ConnectTimeout
 		}
 		config.Address = make([]string, 0, len(cluster.Hosts))
@@ -121,11 +121,11 @@ func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticReso
 				if port, ok := address.SocketAddress.PortSpecifier.(*core.SocketAddress_PortValue); ok {
 					newAddress := fmt.Sprintf("%s:%d", address.SocketAddress.Address, port.PortValue)
 					config.Address = append(config.Address, newAddress)
-				}else{
+				} else {
 					log.DefaultLogger.Warnf("only PortValue supported")
 					continue
 				}
-			}else{
+			} else {
 				log.DefaultLogger.Warnf("only SocketAddress supported")
 				continue
 			}
@@ -136,18 +136,18 @@ func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticReso
 }
 
 func (c *ClusterConfig) GetEndpoint() (string, *time.Duration) {
-	if c.LbPolicy != xdsapi.Cluster_RANDOM  || len(c.Address) < 1 {
+	if c.LbPolicy != xdsapi.Cluster_RANDOM || len(c.Address) < 1 {
 		// never happen
 		return "", nil
 	}
-	r  := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	idx := r.Intn(len(c.Address))
 
 	return c.Address[idx], c.ConnectTimeout
 }
 
 func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient {
-	if c.StreamClient != nil && c.StreamClient.Client != nil{
+	if c.StreamClient != nil && c.StreamClient.Client != nil {
 		return c.StreamClient.Client
 	}
 
@@ -159,7 +159,7 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	}
 	var endpoint string
 	//var timeout *time.Duration
-	for _, service := range c.Services{
+	for _, service := range c.Services {
 		if service.ClusterConfig == nil {
 			continue
 		}
@@ -180,7 +180,6 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	sc.Conn = conn
 	client := ads.NewAggregatedDiscoveryServiceClient(conn)
 
-
 	ctx, cancel := context.WithCancel(context.Background())
 	sc.Cancel = cancel
 	streamClient, err := client.StreamAggregatedResources(ctx)
@@ -198,7 +197,7 @@ func (c *ADSConfig) GetADSRefreshDelay() *time.Duration {
 }
 
 func (c *ADSConfig) CloseADSStreamClient() {
-	if c.StreamClient == nil{
+	if c.StreamClient == nil {
 		return
 	}
 	c.StreamClient.Cancel()

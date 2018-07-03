@@ -1,11 +1,11 @@
 package tcpproxy
 
 import (
+	"context"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"context"
 	"reflect"
 )
 
@@ -24,7 +24,7 @@ type proxy struct {
 	accessLogs []types.AccessLog
 }
 
-func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager,ctx context.Context) Proxy {
+func NewProxy(config *v2.TcpProxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
 	p := &proxy{
 		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,

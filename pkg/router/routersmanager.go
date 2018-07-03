@@ -30,7 +30,7 @@ func (rm *routersManager) AddRoutersSet(routers types.Routers) {
 }
 
 func (rm *routersManager) RemoveRouterInRouters(routerNames []string) {
-	log.DefaultLogger.Debugf("[RouterManager]RemoveRouterInRouters Called, routerNames is",routerNames)
+	log.DefaultLogger.Debugf("[RouterManager]RemoveRouterInRouters Called, routerNames is", routerNames)
 
 	rm.DeleteRouterNameInList(routerNames)
 	for _, rn := range routerNames {
@@ -41,13 +41,13 @@ func (rm *routersManager) RemoveRouterInRouters(routerNames []string) {
 }
 
 func (rm *routersManager) AddRouterInRouters(routerNames []string) {
-	
-	log.DefaultLogger.Debugf("[RouterManager]AddRouterInRouters Called, routerNames is",routerNames)
+
+	log.DefaultLogger.Debugf("[RouterManager]AddRouterInRouters Called, routerNames is", routerNames)
 	rm.AddRouterNameInList(routerNames)
 
 	for _, rn := range routerNames {
 		for _, r := range rm.routersSet {
-		//	log.StartLogger.Debugf("[RouterManager]Add Routers to Basic Router %+v", r)
+			//	log.StartLogger.Debugf("[RouterManager]Add Routers to Basic Router %+v", r)
 			r.AddRouter(rn)
 		}
 	}
@@ -56,7 +56,7 @@ func (rm *routersManager) AddRouterInRouters(routerNames []string) {
 func (rm *routersManager) AddRouterNameInList(routerNames []string) {
 	rm.rMutex.Lock()
 	defer rm.rMutex.Unlock()
-	
+
 	for _, name := range routerNames {
 		in := false
 		for _, n := range rm.routerNames {
@@ -66,7 +66,7 @@ func (rm *routersManager) AddRouterNameInList(routerNames []string) {
 			}
 		}
 		if !in {
-			rm.routerNames = append(rm.routerNames,name)
+			rm.routerNames = append(rm.routerNames, name)
 		}
 	}
 }

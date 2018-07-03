@@ -101,7 +101,7 @@ type TLSContextManager interface {
 // Callbacks invoked by a listener.
 type ListenerEventListener interface {
 	// Called on new connection accepted
-	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool,oriRemoteAddr net.Addr)
+	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr)
 
 	// Called on new mosn connection created
 	OnNewConnection(conn Connection, ctx context.Context)

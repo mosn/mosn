@@ -37,13 +37,13 @@ func (h *BoltCommandHandler) HandleCommand(context context.Context, msg interfac
 	if cmd, ok := msg.(sofarpc.ProtoBasicCmd); ok {
 		cmdCode := cmd.GetCmdCode()
 		logger := log.ByContext(context)
-		
+
 		if processor, ok := h.processors[cmdCode]; ok {
 			//logger.Debugf("handle bolt command")
 			processor.Process(context, cmd, filter)
 		} else {
 			errMsg := sofarpc.UnKnownCmdcode
-			logger.Errorf(errMsg + "when decoding bolt %s", cmdCode)
+			logger.Errorf(errMsg+"when decoding bolt %s", cmdCode)
 			return errors.New(errMsg)
 		}
 	}

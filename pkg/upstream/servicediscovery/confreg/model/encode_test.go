@@ -1,9 +1,9 @@
 package model
 
 import (
-	"testing"
-	"github.com/golang/protobuf/proto"
 	"fmt"
+	"github.com/golang/protobuf/proto"
+	"testing"
 )
 
 func Test_Encode(t *testing.T) {
@@ -41,9 +41,9 @@ func Test_Encode(t *testing.T) {
 		panic(err)
 	} else {
 
-		for _,d:=range pData {
-		//	fmt.Print(d)
-			fmt.Printf("%02x",d)
+		for _, d := range pData {
+			//	fmt.Print(d)
+			fmt.Printf("%02x", d)
 
 		}
 	}

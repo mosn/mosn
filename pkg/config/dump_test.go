@@ -7,11 +7,11 @@ import (
 )
 
 func Test_AddClusterAndDump(t *testing.T) {
-	
+
 	log.InitDefaultLogger("", log.INFO)
-	
+
 	Load("../../../mosn/resource/mosn_config.json")
-	
+
 	//add cluster
 	AddClusterConfig([]v2.Cluster{
 		v2.Cluster{
@@ -28,21 +28,21 @@ func Test_AddClusterAndDump(t *testing.T) {
 			},
 		},
 	})
-	
+
 	//change dump path, just for test
 	ConfigPath = "../../../mosn/resource/mosn_config_dump_result.json"
-	
+
 	Dump(true)
 }
 
 func Test_RemoveClusterAndDump(t *testing.T) {
-	
+
 	log.InitDefaultLogger("", log.INFO)
-	
+
 }
 
 func Test_ServiceRegistryInfoDump(t *testing.T) {
-	
+
 	log.InitDefaultLogger("", log.INFO)
-	
+
 }

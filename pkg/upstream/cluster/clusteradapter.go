@@ -2,7 +2,7 @@ package cluster
 
 import (
 	"errors"
-	
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
@@ -31,7 +31,7 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 			return errors.New("not auto discovery")
 		}
 	}
-	
+
 	log.DefaultLogger.Debugf("[TriggerClusterUpdate Called] cluster name is:%s hosts are:%+v",
 		clusterName, hosts)
 	return ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
@@ -40,7 +40,7 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 // called by service subscribe
 func (ca *ClusterAdapter) TriggerClusterAdded(cluster v2.Cluster) {
 	clusterExist := ca.clusterMng.ClusterExist(cluster.Name)
-	
+
 	if !clusterExist {
 		log.DefaultLogger.Debugf("Add PrimaryCluster: %s", cluster.Name)
 		ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)

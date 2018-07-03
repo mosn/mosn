@@ -179,26 +179,26 @@ func genericProxyConfig() *v2.Proxy {
 	//	Service: ".*",
 	//	Cluster: TestCluster,
 	//})
-	
+
 	header := v2.HeaderMatcher{
-		Name:"service",
-		Value:".*",
+		Name:  "service",
+		Value: ".*",
 	}
-	
+
 	routerV2 := v2.Router{
-		Match:v2.RouterMatch{
-			Headers:[]v2.HeaderMatcher{header},
+		Match: v2.RouterMatch{
+			Headers: []v2.HeaderMatcher{header},
 		},
-		
-		Route:v2.RouteAction{
-			ClusterName:TestCluster,
+
+		Route: v2.RouteAction{
+			ClusterName: TestCluster,
 		},
 	}
-	
+
 	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
 		Name:    "testSofaRoute",
-		Domains:  []string{"*"},
-		Routers:  []v2.Router{routerV2},
+		Domains: []string{"*"},
+		Routers: []v2.Router{routerV2},
 	})
 
 	return proxyConfig
@@ -241,12 +241,12 @@ func (cmf *clusterManagerFilterRPC) OnCreated(cccb types.ClusterConfigFactoryCb,
 func clustersrpc() []v2.Cluster {
 	var configs []v2.Cluster
 	configs = append(configs, v2.Cluster{
-		Name:              TestCluster,
-		ClusterType:       v2.SIMPLE_CLUSTER,
-		LbType:            v2.LB_RANDOM,
-		MaxRequestPerConn: 1024,
+		Name:                 TestCluster,
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_RANDOM,
+		MaxRequestPerConn:    1024,
 		ConnBufferLimitBytes: 32 * 1024,
-		CirBreThresholds:  v2.CircuitBreakers{},
+		CirBreThresholds:     v2.CircuitBreakers{},
 	})
 
 	return configs

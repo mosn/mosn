@@ -1,142 +1,142 @@
 package registry
 
 import (
-    "testing"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
-    "time"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
+	"testing"
+	"time"
 )
 
 func Test_AsyncSubscribeOneService(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    someDataId := "someDataId"
-    rc.SubscribeAsync(someDataId)
+	someDataId := "someDataId"
+	rc.SubscribeAsync(someDataId)
 
-    blockThread()
+	blockThread()
 }
 
 func Test_SyncSubscribeOneService(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    someDataId := "someDataId"
-    rc.SubscribeSync(someDataId)
+	someDataId := "someDataId"
+	rc.SubscribeSync(someDataId)
 
-    blockThread()
+	blockThread()
 }
 
 func Test_AsyncSubscribeOneServiceManyTimes(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    someDataId := "someDataId"
-    for ; ; {
-        <-time.After(1 * time.Second)
-        rc.SubscribeAsync(someDataId)
-    }
+	someDataId := "someDataId"
+	for {
+		<-time.After(1 * time.Second)
+		rc.SubscribeAsync(someDataId)
+	}
 
-    blockThread()
+	blockThread()
 }
 
 func Test_SyncSubscribeOneServiceManyTimes(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    someDataId := "someDataId"
-    for ; ; {
-        <-time.After(1 * time.Second)
-        rc.SubscribeSync(someDataId)
-    }
+	someDataId := "someDataId"
+	for {
+		<-time.After(1 * time.Second)
+		rc.SubscribeSync(someDataId)
+	}
 
-    blockThread()
+	blockThread()
 }
 
 func Test_AsyncSubscribeManyServiceManyTimes(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    for i := 0; i < 3; i++ {
-        someDataId := "ServiceName-" + RandomUuid()
-        go func() {
-            for ; ; {
-                <-time.After(1 * time.Second)
-                rc.SubscribeAsync(someDataId)
-            }
-        }()
-    }
+	for i := 0; i < 3; i++ {
+		someDataId := "ServiceName-" + RandomUuid()
+		go func() {
+			for {
+				<-time.After(1 * time.Second)
+				rc.SubscribeAsync(someDataId)
+			}
+		}()
+	}
 
-    blockThread()
+	blockThread()
 }
 
 func Test_SyncSubscribeManyServiceManyTimes(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    for i := 0; i < 10; i++ {
-        someDataId := "ServiceName-" + RandomUuid()
-        go func() {
-            for ; ; {
-                <-time.After(3 * time.Second)
-                rc.SubscribeSync(someDataId)
-            }
-        }()
-    }
+	for i := 0; i < 10; i++ {
+		someDataId := "ServiceName-" + RandomUuid()
+		go func() {
+			for {
+				<-time.After(3 * time.Second)
+				rc.SubscribeSync(someDataId)
+			}
+		}()
+	}
 
-    blockThread()
+	blockThread()
 }
 
 func Test_AsyncSubscribeTimeout(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    someDataId := "someDataId"
-    rc.SubscribeAsync(someDataId)
+	someDataId := "someDataId"
+	rc.SubscribeAsync(someDataId)
 
-    blockThread()
+	blockThread()
 }
 
 func Test_SyncSubscribeTimeout(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    someDataId := "someDataId"
-    rc.SubscribeSync(someDataId)
+	someDataId := "someDataId"
+	rc.SubscribeSync(someDataId)
 
-    blockThread()
+	blockThread()
 }
 
 func Test_AsyncSubscribeThreeServiceAndOneFailed(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    someDataId := "someDataId"
-    rc.SubscribeAsync(someDataId)
+	someDataId := "someDataId"
+	rc.SubscribeAsync(someDataId)
 
-    anotherDataId := "anotherDataId"
-    rc.SubscribeAsync(anotherDataId)
+	anotherDataId := "anotherDataId"
+	rc.SubscribeAsync(anotherDataId)
 
-    thirdDataId := "thirdDataId"
-    rc.SubscribeAsync(thirdDataId)
+	thirdDataId := "thirdDataId"
+	rc.SubscribeAsync(thirdDataId)
 
-    blockThread()
+	blockThread()
 }

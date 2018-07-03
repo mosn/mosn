@@ -151,7 +151,7 @@ type clusterInfo struct {
 	addedViaApi          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
-	tlsMng                types.TLSContextManager
+	tlsMng               types.TLSContextManager
 }
 
 func NewClusterInfo() *clusterInfo {

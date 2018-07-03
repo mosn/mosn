@@ -25,8 +25,8 @@ func main() {
 	go func() {
 		// mesh
 		cmf := &clusterManagerFilter{}
-		cm := cluster.NewClusterManager(nil,nil,nil,false)
-		srv = server.NewServer(nil, cmf,cm)
+		cm := cluster.NewClusterManager(nil, nil, nil, false)
+		srv = server.NewServer(nil, cmf, cm)
 		srv.AddListener(tcpListener(), &proxy.TcpProxyFilterConfigFactory{
 			Proxy: tcpProxyConfig(),
 		}, nil)

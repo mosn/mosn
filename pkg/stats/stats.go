@@ -1,8 +1,8 @@
 package stats
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	"github.com/rcrowley/go-metrics"
 	"strconv"
 )
@@ -72,13 +72,13 @@ func (s *Stats) String() string {
 	var buffer bytes.Buffer
 
 	//buffer.WriteString(fmt.Sprintf("namespace: %s, ", s.namespace))
-	buffer.WriteString("namespace: "+ s.namespace+ ", ")
+	buffer.WriteString("namespace: " + s.namespace + ", ")
 
 	if len(s.counters) > 0 {
 		buffer.WriteString("counters: [")
 
 		for name, counter := range s.counters {
-			buffer.WriteString(name + ": " + strconv.FormatInt(counter.Count(),10))
+			buffer.WriteString(name + ": " + strconv.FormatInt(counter.Count(), 10))
 		}
 
 		buffer.WriteString("], ")
@@ -88,7 +88,7 @@ func (s *Stats) String() string {
 		buffer.WriteString("gauges: [")
 
 		for name, gauge := range s.gauges {
-			buffer.WriteString(name + ": " + strconv.FormatInt(gauge.Value(),10))
+			buffer.WriteString(name + ": " + strconv.FormatInt(gauge.Value(), 10))
 		}
 
 		buffer.WriteString("], ")
@@ -98,7 +98,7 @@ func (s *Stats) String() string {
 		buffer.WriteString("histograms: [")
 
 		for name, histogram := range s.histograms {
-			buffer.WriteString(name + ": " + strconv.FormatInt(histogram.Count(),10))
+			buffer.WriteString(name + ": " + strconv.FormatInt(histogram.Count(), 10))
 		}
 
 		buffer.WriteString("]")

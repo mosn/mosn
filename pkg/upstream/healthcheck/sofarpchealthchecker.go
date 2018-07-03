@@ -123,7 +123,7 @@ func (s *sofarpcHealthCheckSession) OnDecodeTrailers(trailers map[string]string)
 	s.onResponseComplete()
 }
 
-func (s *sofarpcHealthCheckSession) OnDecodeError(err error, headers map[string]string){
+func (s *sofarpcHealthCheckSession) OnDecodeError(err error, headers map[string]string) {
 }
 
 // overload healthCheckSession

@@ -53,7 +53,7 @@ type DecodeFilter interface {
 
 	// Called on trailers decoded
 	OnDecodeTrailer(streamId string, trailers map[string]string) FilterStatus
-	
+
 	// Called when error occurs
 	// When error occurring, filter status = stop
 	OnDecodeError(err error, headers map[string]string)

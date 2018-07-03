@@ -24,7 +24,7 @@ var DefaultRegistryConfig = &RegistryConfig{
 }
 
 const (
-	HealthName            string = "ToConfReg"
+	HealthName            string        = "ToConfReg"
 	BoltHeartBeatTimout   time.Duration = 6 * 15 * time.Second
 	BoltHeartBeatInterval time.Duration = 15 * time.Second
 )

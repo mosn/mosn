@@ -63,7 +63,7 @@ type RouteMatcher struct {
 // Routing with Virtual Host
 func (rm *RouteMatcher) Route(headers map[string]string, randomValue uint64) types.Route {
 	// First Step: Select VirtualHost with "host" in Headers form VirtualHost Array
-	log.StartLogger.Debugf("routing header = %v,randomValue=%v", headers,randomValue)
+	log.StartLogger.Debugf("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
 
 	if virtualHost == nil {
@@ -101,7 +101,7 @@ func (rm *RouteMatcher) findVirtualHost(headers map[string]string) types.Virtual
 
 // Rule: longest wildcard suffix match against the host
 func (rm *RouteMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
-	
+
 	// e.g. foo-bar.baz.com will match *-bar.baz.com
 	for wildcardLen, wildcardMap := range rm.wildcardVirtualHostSuffixes {
 		if wildcardLen >= len(host) {

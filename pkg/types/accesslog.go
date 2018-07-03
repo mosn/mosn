@@ -56,7 +56,7 @@ const (
 
 const (
 	// Prefix of request header's formatter
-	ReqHeaderPrefix  string = "REQ."
+	ReqHeaderPrefix string = "REQ."
 	// Prefix of response header's formatter
 	RespHeaderPrefix string = "RESP."
 )
@@ -65,5 +65,5 @@ const (
 	// Default Access Log Format, for more details please read "access-log-details.md"
 	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
 		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
-			"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
+		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
 )

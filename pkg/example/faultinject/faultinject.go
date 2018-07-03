@@ -45,9 +45,9 @@ func main() {
 
 		// mesh
 		cmf := &clusterManagerFilter{}
-		cm := cluster.NewClusterManager(nil,nil,nil,false)
+		cm := cluster.NewClusterManager(nil, nil, nil, false)
 
-		srv := server.NewServer(nil, cmf,cm)
+		srv := server.NewServer(nil, cmf, cm)
 		srv.AddListener(tcpListener(), nf, nil)
 		cmf.cccb.UpdateClusterConfig(clusters())
 		cmf.chcb.UpdateClusterHost(TestCluster, 0, hosts("11.162.169.38:80"))

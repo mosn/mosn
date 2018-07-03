@@ -279,7 +279,7 @@ func (d *decoder) readString(flag int32) (interface{}, error) {
 
 		return string(buf), nil
 	} else {
-		log.DefaultLogger.Errorf("[HESSIAN DECODER] byte3 integer codec error, %x, %d, %t", tag , len, last)
+		log.DefaultLogger.Errorf("[HESSIAN DECODER] byte3 integer codec error, %x, %d, %t", tag, len, last)
 		return nil, newCodecError("byte3 integer")
 	}
 

@@ -9,21 +9,21 @@ import (
 	"github.com/orcaman/concurrent-map"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/xprotocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/xprotocol"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 // ClusterManager
 type clusterManager struct {
-	sourceAddr      net.Addr
-	primaryClusters cmap.ConcurrentMap // string: *primaryCluster
-	sofaRpcConnPool cmap.ConcurrentMap // string: types.ConnectionPool
-	http2ConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
-	xProtocolConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
-	clusterAdapter  ClusterAdapter
-	autoDiscovery   bool
+	sourceAddr        net.Addr
+	primaryClusters   cmap.ConcurrentMap // string: *primaryCluster
+	sofaRpcConnPool   cmap.ConcurrentMap // string: types.ConnectionPool
+	http2ConnPool     cmap.ConcurrentMap // string: types.ConnectionPool
+	xProtocolConnPool cmap.ConcurrentMap // string: types.ConnectionPool
+	clusterAdapter    ClusterAdapter
+	autoDiscovery     bool
 }
 
 type clusterSnapshot struct {
@@ -35,12 +35,12 @@ type clusterSnapshot struct {
 func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	clusterMap map[string][]v2.Host, autoDiscovery bool) types.ClusterManager {
 	cm := &clusterManager{
-		sourceAddr:      sourceAddr,
-		primaryClusters: cmap.New(),
-		sofaRpcConnPool: cmap.New(),
-		http2ConnPool:   cmap.New(),
+		sourceAddr:        sourceAddr,
+		primaryClusters:   cmap.New(),
+		sofaRpcConnPool:   cmap.New(),
+		http2ConnPool:     cmap.New(),
 		xProtocolConnPool: cmap.New(),
-		autoDiscovery:   autoDiscovery,
+		autoDiscovery:     autoDiscovery,
 	}
 	//init ClusterAdap when run app
 	ClusterAdap = ClusterAdapter{
@@ -184,7 +184,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 
 	if host != nil {
 		addr := host.AddressString()
-		log.StartLogger.Debugf("http connection pool upstream addr : %v",addr)
+		log.StartLogger.Debugf("http connection pool upstream addr : %v", addr)
 
 		// todo: support protocol http1.x
 		if connPool, ok := cm.http2ConnPool.Get(addr); ok {
@@ -213,7 +213,7 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(cluster string, protocol t
 
 	if host != nil {
 		addr := host.AddressString()
-		log.StartLogger.Debugf("Xprotocol connection pool upstream addr : %v",addr)
+		log.StartLogger.Debugf("Xprotocol connection pool upstream addr : %v", addr)
 
 		if connPool, ok := cm.xProtocolConnPool.Get(addr); ok {
 			return connPool.(types.ConnectionPool)

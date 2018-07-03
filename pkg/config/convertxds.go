@@ -1,34 +1,35 @@
 package config
 
 import (
-	"net"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	xdslistener"github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
-	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
-	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	xdsxproxy "gitlab.alipay-inc.com/afe/mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
-	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
-	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"fmt"
+	"net"
+	"strings"
+	"time"
+
+	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
+	"github.com/fatih/structs"
+	"github.com/gogo/protobuf/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"github.com/gogo/protobuf/types"
-	"github.com/fatih/structs"
-	"time"
-	"strings"
+	xdsxproxy "gitlab.alipay-inc.com/afe/mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
 )
 
 var supportFilter map[string]bool = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
 	v2.SOFARPC_INBOUND_FILTER:     true,
 	v2.SOFARPC_OUTBOUND_FILTER:    true,
-	v2.X_PROXY:          true,
+	v2.X_PROXY:                    true,
 }
 
 var httpBaseConfig map[string]bool = map[string]bool{
@@ -41,21 +42,22 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 	if !isSupport(xdsListener) {
 		return nil
 	}
-	
-	listenerConfig :=  &v2.ListenerConfig{
-		Name:                                    xdsListener.GetName(),
-		Addr:                                    convertAddress(&xdsListener.Address),
-		BindToPort:                              convertBindToPort(xdsListener.GetDeprecatedV1()),
-		PerConnBufferLimitBytes:                 xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
-		HandOffRestoredDestinationConnections:   xdsListener.GetUseOriginalDst().GetValue(),
-		AccessLogs:                              convertAccessLogs(xdsListener),
-		LogPath:                                 "stdout",
+
+	listenerConfig := &v2.ListenerConfig{
+		Name:                                  xdsListener.GetName(),
+		Addr:                                  convertAddress(&xdsListener.Address),
+		BindToPort:                            convertBindToPort(xdsListener.GetDeprecatedV1()),
+		PerConnBufferLimitBytes:               xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
+		HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
+		AccessLogs:                            convertAccessLogs(xdsListener),
+		LogPath:                               "stdout",
+		LogLevel:                              uint8(log.INFO),
 	}
-	
-	if listenerConfig.HandOffRestoredDestinationConnections {
+
+	if listenerConfig.Name == "virtual" {
 		return listenerConfig
 	}
-	
+
 	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
 	return listenerConfig
 }
@@ -97,23 +99,23 @@ func convertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.H
 		if xdsAddress, ok := xdsHost.GetEndpoint().GetAddress().GetAddress().(*xdscore.Address_SocketAddress); ok {
 			if xdsPort, ok := xdsAddress.SocketAddress.GetPortSpecifier().(*xdscore.SocketAddress_PortValue); ok {
 				address = fmt.Sprintf("%s:%d", xdsAddress.SocketAddress.GetAddress(), xdsPort.PortValue)
-			}else if xdsPort, ok := xdsAddress.SocketAddress.GetPortSpecifier().(*xdscore.SocketAddress_NamedPort); ok {
+			} else if xdsPort, ok := xdsAddress.SocketAddress.GetPortSpecifier().(*xdscore.SocketAddress_NamedPort); ok {
 				address = fmt.Sprintf("%s:%s", xdsAddress.SocketAddress.GetAddress(), xdsPort.NamedPort)
-			}else{
+			} else {
 				log.DefaultLogger.Warnf("unsupported port type")
 				continue
 			}
 
-		}else if xdsAddress, ok := xdsHost.GetEndpoint().GetAddress().GetAddress().(*xdscore.Address_Pipe); ok {
+		} else if xdsAddress, ok := xdsHost.GetEndpoint().GetAddress().GetAddress().(*xdscore.Address_Pipe); ok {
 			address = xdsAddress.Pipe.GetPath()
-		}else{
+		} else {
 			log.DefaultLogger.Warnf("unsupported address type")
 			continue
 		}
 		host := v2.Host{
-			Address:    address,
-			Weight:     xdsHost.GetLoadBalancingWeight().GetValue(),
-			MetaData:   convertMeta(xdsHost.Metadata),
+			Address:  address,
+			Weight:   xdsHost.GetLoadBalancingWeight().GetValue(),
+			MetaData: convertMeta(xdsHost.Metadata),
 		}
 		hosts = append(hosts, host)
 	}
@@ -125,7 +127,7 @@ func isSupport(xdsListener *xdsapi.Listener) bool {
 	if xdsListener == nil {
 		return false
 	}
-	if xdsListener.UseOriginalDst.GetValue() {
+	if xdsListener.Name == "virtual" {
 		return true
 	}
 	for _, filterChain := range xdsListener.GetFilterChains() {
@@ -139,7 +141,7 @@ func isSupport(xdsListener *xdsapi.Listener) bool {
 }
 
 func convertBindToPort(xdsDeprecatedV1 *xdsapi.Listener_DeprecatedV1) bool {
-	if xdsDeprecatedV1 == nil || xdsDeprecatedV1.GetBindToPort() == nil{
+	if xdsDeprecatedV1 == nil || xdsDeprecatedV1.GetBindToPort() == nil {
 		return true
 	}
 	return xdsDeprecatedV1.GetBindToPort().GetValue()
@@ -204,8 +206,6 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 	return accessLogs
 }
 
-
-
 func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) []v2.FilterChain {
 	if xdsFilterChains == nil {
 		return nil
@@ -213,9 +213,9 @@ func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) []v2.FilterC
 	filterChains := make([]v2.FilterChain, 0, len(xdsFilterChains))
 	for _, xdsFilterChain := range xdsFilterChains {
 		filterChain := v2.FilterChain{
-			FilterChainMatch:  xdsFilterChain.GetFilterChainMatch().String(),
-			TLS:               convertTLS(xdsFilterChain.GetTlsContext()),
-			Filters:           convertFilters(xdsFilterChain.GetFilters()),
+			FilterChainMatch: xdsFilterChain.GetFilterChainMatch().String(),
+			TLS:              convertTLS(xdsFilterChain.GetTlsContext()),
+			Filters:          convertFilters(xdsFilterChain.GetFilters()),
 		}
 		filterChains = append(filterChains, filterChain)
 	}
@@ -229,8 +229,8 @@ func convertFilters(xdsFilters []xdslistener.Filter) []v2.Filter {
 	filters := make([]v2.Filter, 0, len(xdsFilters))
 	for _, xdsFilter := range xdsFilters {
 		filter := v2.Filter{
-			Name:    v2.DEFAULT_NETWORK_FILTER,
-			Config:  convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig()),
+			Name:   v2.DEFAULT_NETWORK_FILTER,
+			Config: convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig()),
 		}
 		filters = append(filters, filter)
 	}
@@ -246,30 +246,33 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol: string(protocol.Http2),
-			UpstreamProtocol:   string(protocol.Http2),
-			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
+			DownstreamProtocol:  string(protocol.Http2),
+			UpstreamProtocol:    string(protocol.Http2),
+			SupportDynamicRoute: true,
+			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
-	}else if name == v2.SOFARPC_OUTBOUND_FILTER || name == v2.SOFARPC_INBOUND_FILTER {
+	} else if name == v2.SOFARPC_OUTBOUND_FILTER || name == v2.SOFARPC_INBOUND_FILTER {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol: string(protocol.SofaRpc),
-			UpstreamProtocol:   string(protocol.SofaRpc),
-			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
+			DownstreamProtocol:  string(protocol.SofaRpc),
+			UpstreamProtocol:    string(protocol.SofaRpc),
+			SupportDynamicRoute: true,
+			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
-	}else if name == v2.X_PROXY {
+	} else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol: filterConfig.GetDownstreamProtocol().String(),
-			UpstreamProtocol:   filterConfig.GetUpstreamProtocol().String(),
-			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
+			DownstreamProtocol:  filterConfig.GetDownstreamProtocol().String(),
+			UpstreamProtocol:    filterConfig.GetUpstreamProtocol().String(),
+			SupportDynamicRoute: true,
+			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
-	}else{
+	} else {
 		log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
 	}
 	return nil
@@ -303,21 +306,21 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 	for _, xdsRoute := range xdsRoutes {
 		if xdsRouteAction := xdsRoute.GetRoute(); xdsRouteAction != nil {
 			route := v2.Router{
-				Match:         convertRouteMatch(xdsRoute.GetMatch()),
-				Route:         convertRouteAction(xdsRouteAction),
-				Metadata:      convertMeta(xdsRoute.GetMetadata()),
-				Decorator:     v2.Decorator(xdsRoute.GetDecorator().String()),
+				Match:     convertRouteMatch(xdsRoute.GetMatch()),
+				Route:     convertRouteAction(xdsRouteAction),
+				Metadata:  convertMeta(xdsRoute.GetMetadata()),
+				Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
 			}
 			routes = append(routes, route)
-		}else if xdsRouteAction := xdsRoute.GetRedirect(); xdsRouteAction != nil {
+		} else if xdsRouteAction := xdsRoute.GetRedirect(); xdsRouteAction != nil {
 			route := v2.Router{
-				Match:         convertRouteMatch(xdsRoute.GetMatch()),
-				Redirect:      convertRedirectAction(xdsRouteAction),
-				Metadata:      convertMeta(xdsRoute.GetMetadata()),
-				Decorator:     v2.Decorator(xdsRoute.GetDecorator().String()),
+				Match:     convertRouteMatch(xdsRoute.GetMatch()),
+				Redirect:  convertRedirectAction(xdsRouteAction),
+				Metadata:  convertMeta(xdsRoute.GetMetadata()),
+				Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
 			}
 			routes = append(routes, route)
-		}else{
+		} else {
 			log.DefaultLogger.Errorf("unsupport route actin, just Route and Redirect support yet, ignore this route")
 			continue
 		}
@@ -327,12 +330,12 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 
 func convertRouteMatch(xdsRouteMatch xdsroute.RouteMatch) v2.RouterMatch {
 	return v2.RouterMatch{
-		Prefix:           xdsRouteMatch.GetPrefix(),
-		Path:             xdsRouteMatch.GetPath(),
-		Regex:            xdsRouteMatch.GetRegex(),
-		CaseSensitive:    xdsRouteMatch.GetCaseSensitive().GetValue(),
-		Runtime:          convertRuntime(xdsRouteMatch.GetRuntime()),
-		Headers:          convertHeaders(xdsRouteMatch.GetHeaders()),
+		Prefix:        xdsRouteMatch.GetPrefix(),
+		Path:          xdsRouteMatch.GetPath(),
+		Regex:         xdsRouteMatch.GetRegex(),
+		CaseSensitive: xdsRouteMatch.GetCaseSensitive().GetValue(),
+		Runtime:       convertRuntime(xdsRouteMatch.GetRuntime()),
+		Headers:       convertHeaders(xdsRouteMatch.GetHeaders()),
 	}
 }
 
@@ -341,8 +344,8 @@ func convertRuntime(xdsRuntime *xdscore.RuntimeUInt32) v2.RuntimeUInt32 {
 		return v2.RuntimeUInt32{}
 	}
 	return v2.RuntimeUInt32{
-		DefaultValue:    xdsRuntime.GetDefaultValue(),
-		RuntimeKey:      xdsRuntime.GetRuntimeKey(),
+		DefaultValue: xdsRuntime.GetDefaultValue(),
+		RuntimeKey:   xdsRuntime.GetRuntimeKey(),
 	}
 }
 
@@ -353,9 +356,9 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 	headerMatchers := make([]v2.HeaderMatcher, 0, len(xdsHeaders))
 	for _, xdsHeader := range xdsHeaders {
 		headerMatcher := v2.HeaderMatcher{
-			Name:    xdsHeader.GetName(),
-			Value:   xdsHeader.GetValue(),
-			Regex:   xdsHeader.GetRegex().GetValue(),
+			Name:  xdsHeader.GetName(),
+			Value: xdsHeader.GetValue(),
+			Regex: xdsHeader.GetRegex().GetValue(),
 		}
 		headerMatchers = append(headerMatchers, headerMatcher)
 	}
@@ -378,12 +381,12 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 		return v2.RouteAction{}
 	}
 	return v2.RouteAction{
-		ClusterName:         xdsRouteAction.GetCluster(),
-		ClusterHeader:       xdsRouteAction.GetClusterHeader(),
-		WeightedClusters:    convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
-		MetadataMatch:       convertMeta(xdsRouteAction.GetMetadataMatch()),
-		Timeout:             convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),
-		RetryPolicy:         convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
+		ClusterName:      xdsRouteAction.GetCluster(),
+		ClusterHeader:    xdsRouteAction.GetClusterHeader(),
+		WeightedClusters: convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
+		MetadataMatch:    convertMeta(xdsRouteAction.GetMetadataMatch()),
+		Timeout:          convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),
+		RetryPolicy:      convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
 	}
 }
 
@@ -394,29 +397,29 @@ func convertTimeDurPoint2TimeDur(duration *time.Duration) time.Duration {
 	return *duration
 }
 
-func convertWeightedClusters(xdsWeightedClusters *xdsroute.WeightedCluster)  []v2.WeightedCluster{
+func convertWeightedClusters(xdsWeightedClusters *xdsroute.WeightedCluster) []v2.WeightedCluster {
 	if xdsWeightedClusters == nil {
 		return nil
 	}
 	weightedClusters := make([]v2.WeightedCluster, 0, len(xdsWeightedClusters.GetClusters()))
-	for _, cluster := range xdsWeightedClusters.GetClusters(){
+	for _, cluster := range xdsWeightedClusters.GetClusters() {
 		weightedCluster := v2.WeightedCluster{
-			Clusters:           convertWeightedCluster(cluster),
-			RuntimeKeyPrefix:   xdsWeightedClusters.GetRuntimeKeyPrefix(),
+			Clusters:         convertWeightedCluster(cluster),
+			RuntimeKeyPrefix: xdsWeightedClusters.GetRuntimeKeyPrefix(),
 		}
 		weightedClusters = append(weightedClusters, weightedCluster)
 	}
 	return weightedClusters
 }
 
-func convertWeightedCluster(xdsWeightedCluster *xdsroute.WeightedCluster_ClusterWeight)  v2.ClusterWeight{
+func convertWeightedCluster(xdsWeightedCluster *xdsroute.WeightedCluster_ClusterWeight) v2.ClusterWeight {
 	if xdsWeightedCluster == nil {
 		return v2.ClusterWeight{}
 	}
 	return v2.ClusterWeight{
-		Name:              xdsWeightedCluster.GetName(),
-		Weight:            xdsWeightedCluster.GetWeight().GetValue(),
-		MetadataMatch:     convertMeta(xdsWeightedCluster.GetMetadataMatch()),
+		Name:          xdsWeightedCluster.GetName(),
+		Weight:        xdsWeightedCluster.GetWeight().GetValue(),
+		MetadataMatch: convertMeta(xdsWeightedCluster.GetMetadataMatch()),
 	}
 }
 
@@ -425,9 +428,9 @@ func convertRetryPolicy(xdsRetryPolicy *xdsroute.RouteAction_RetryPolicy) *v2.Re
 		return &v2.RetryPolicy{}
 	}
 	return &v2.RetryPolicy{
-		RetryOn:         len(xdsRetryPolicy.GetRetryOn()) > 0,
-		RetryTimeout:    convertTimeDurPoint2TimeDur(xdsRetryPolicy.GetPerTryTimeout()),
-		NumRetries:      xdsRetryPolicy.GetNumRetries().GetValue(),
+		RetryOn:      len(xdsRetryPolicy.GetRetryOn()) > 0,
+		RetryTimeout: convertTimeDurPoint2TimeDur(xdsRetryPolicy.GetPerTryTimeout()),
+		NumRetries:   xdsRetryPolicy.GetNumRetries().GetValue(),
 	}
 }
 
@@ -436,9 +439,9 @@ func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) v2.Redire
 		return v2.RedirectAction{}
 	}
 	return v2.RedirectAction{
-		HostRedirect:    xdsRedirectAction.GetHostRedirect(),
-		PathRedirect:    xdsRedirectAction.GetPathRedirect(),
-		ResponseCode:    uint32(xdsRedirectAction.GetResponseCode()),
+		HostRedirect: xdsRedirectAction.GetHostRedirect(),
+		PathRedirect: xdsRedirectAction.GetPathRedirect(),
+		ResponseCode: uint32(xdsRedirectAction.GetResponseCode()),
 	}
 }
 
@@ -449,9 +452,9 @@ func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.
 	virtualClusters := make([]v2.VirtualCluster, 0, len(xdsVirtualClusters))
 	for _, xdsVirtualCluster := range xdsVirtualClusters {
 		virtualCluster := v2.VirtualCluster{
-			Pattern:      xdsVirtualCluster.GetPattern(),
-			Name:         xdsVirtualCluster.GetName(),
-			Method:       xdsVirtualCluster.GetMethod().String(),
+			Pattern: xdsVirtualCluster.GetPattern(),
+			Name:    xdsVirtualCluster.GetName(),
+			Method:  xdsVirtualCluster.GetMethod().String(),
 		}
 		virtualClusters = append(virtualClusters, virtualCluster)
 	}
@@ -466,11 +469,11 @@ func convertAddress(xdsAddress *xdscore.Address) net.Addr {
 	if addr, ok := xdsAddress.GetAddress().(*xdscore.Address_SocketAddress); ok {
 		if xdsPort, ok := addr.SocketAddress.GetPortSpecifier().(*xdscore.SocketAddress_PortValue); ok {
 			address = fmt.Sprintf("%s:%d", addr.SocketAddress.GetAddress(), xdsPort.PortValue)
-		}else{
+		} else {
 			log.DefaultLogger.Warnf("only port value supported")
 			return nil
 		}
-	}else{
+	} else {
 		log.DefaultLogger.Errorf("only SocketAddress supported")
 		return nil
 	}
@@ -559,18 +562,18 @@ func convertHealthChecks(xdsHealthChecks []*xdscore.HealthCheck) v2.HealthCheck 
 	}
 }
 
-func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.CircuitBreakers{
+func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.CircuitBreakers {
 	if xdsCircuitBreaker == nil {
 		return v2.CircuitBreakers{}
 	}
 	thresholds := make([]v2.Thresholds, 0, len(xdsCircuitBreaker.GetThresholds()))
 	for _, xdsThreshold := range xdsCircuitBreaker.GetThresholds() {
 		threshold := v2.Thresholds{
-			Priority:             v2.RoutingPriority(xdsThreshold.GetPriority().String()),
-			MaxConnections:       xdsThreshold.GetMaxConnections().GetValue(),
-			MaxPendingRequests:   xdsThreshold.GetMaxPendingRequests().GetValue(),
-			MaxRequests:          xdsThreshold.GetMaxRequests().GetValue(),
-			MaxRetries:           xdsThreshold.GetMaxRetries().GetValue(),
+			Priority:           v2.RoutingPriority(xdsThreshold.GetPriority().String()),
+			MaxConnections:     xdsThreshold.GetMaxConnections().GetValue(),
+			MaxPendingRequests: xdsThreshold.GetMaxPendingRequests().GetValue(),
+			MaxRequests:        xdsThreshold.GetMaxRequests().GetValue(),
+			MaxRetries:         xdsThreshold.GetMaxRetries().GetValue(),
 		}
 		thresholds = append(thresholds, threshold)
 	}
@@ -612,7 +615,6 @@ func convertSpec(xdsCluster *xdsapi.Cluster) v2.ClusterSpecInfo {
 	}
 }
 
-
 func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.Host {
 	if xdsHosts == nil {
 		return nil
@@ -620,7 +622,7 @@ func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.Host {
 	hostsWithMetaData := make([]v2.Host, 0, len(xdsHosts))
 	for _, xdsHost := range xdsHosts {
 		hostWithMetaData := v2.Host{
-			Address:convertAddress(xdsHost).String(),
+			Address: convertAddress(xdsHost).String(),
 		}
 		hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
 	}

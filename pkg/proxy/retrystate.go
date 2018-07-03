@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"strconv"
 	"math/rand"
+	"strconv"
 	"time"
 )
 

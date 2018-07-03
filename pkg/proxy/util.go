@@ -46,7 +46,7 @@ func newTimer(callback func(), interval time.Duration) *timer {
 	return &timer{
 		callback: callback,
 		interval: interval,
-		stopChan: make(chan bool,1),
+		stopChan: make(chan bool, 1),
 	}
 }
 

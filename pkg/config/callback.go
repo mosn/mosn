@@ -2,14 +2,15 @@ package config
 
 import (
 	"errors"
+	"fmt"
 
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	clusterAdapter "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
 func SetGlobalStreamFilter(globalStreamFilters []types.StreamFilterChainFactory) {
@@ -46,15 +47,9 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 				log.DefaultLogger.Errorf(errMsg)
 				return errors.New(errMsg)
 			}
-
-			if streamFilter == nil {
-				errMsg := "xds client update listener error: stream filter needed in network filters"
-				log.DefaultLogger.Errorf(errMsg)
-				return errors.New(errMsg)
-			}
 		}
-		
-		if server :=server.GetServer(); server == nil {
+
+		if server := server.GetServer(); server == nil {
 			log.DefaultLogger.Fatal("Server is nil and hasn't been initiated at this time")
 		} else {
 			if err := server.AddListenerAndStart(mosnListener, networkFilter, streamFilter); err == nil {
@@ -64,18 +59,11 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 				return err
 			}
 		}
-		
+
 	}
 
 	return nil
 }
-
-/*
-func (config *MOSNConfig) OnUpdateRoutes(route *pb.RouteConfiguration) error {
-	log.DefaultLogger.Infof("route: %+v\n", route)
-	return nil
-}
-*/
 
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	mosnClusters := convertClustersConfig(clusters)
@@ -84,9 +72,9 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
 		if err := clusterAdapter.ClusterAdap.TriggerClusterUpdate(cluster.Name, cluster.Hosts); err != nil {
 			log.DefaultLogger.Errorf("xds client update cluster error ,err = %s, clustername = %s , hosts = %+v",
-				err.Error(),cluster.Name,cluster.Hosts)
+				err.Error(), cluster.Name, cluster.Hosts)
 		} else {
-			log.DefaultLogger.Debugf("xds client update cluster success, clustername = %s",cluster.Name)
+			log.DefaultLogger.Debugf("xds client update cluster success, clustername = %s", cluster.Name)
 		}
 
 	}
@@ -110,7 +98,7 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 				log.DefaultLogger.Errorf("xds client update Error = %s", err.Error())
 			} else {
 				log.DefaultLogger.Debugf("xds client update host success")
-				
+
 			}
 		}
 	}

@@ -3,16 +3,17 @@ package xprotocol
 import (
 	"context"
 	"sync"
-	
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"sync/atomic"
 	"strconv"
+	"sync/atomic"
 )
 
 type StreamDirection int
+
 var streamIdXprotocolCount uint32
 
 const (
@@ -228,7 +229,7 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamEncoder
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
-	log.StartLogger.Debugf("EncodeHeaders,request id = %s, direction = %d",s.streamId,s.direction)
+	log.StartLogger.Debugf("EncodeHeaders,request id = %s, direction = %d", s.streamId, s.direction)
 	if endStream {
 		s.endStream()
 	}
@@ -237,7 +238,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 
 func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
-	log.StartLogger.Debugf("EncodeData,request id = %s, direction = %d,data = %v",s.streamId,s.direction,data.String())
+	log.StartLogger.Debugf("EncodeData,request id = %s, direction = %d,data = %v", s.streamId, s.direction, data.String())
 	if endStream {
 		s.endStream()
 	}
@@ -245,7 +246,7 @@ func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 }
 
 func (s *stream) EncodeTrailers(trailers map[string]string) error {
-	log.StartLogger.Debugf("EncodeTrailers,request id = %s, direction = %d",s.streamId,s.direction)
+	log.StartLogger.Debugf("EncodeTrailers,request id = %s, direction = %d", s.streamId, s.direction)
 	s.endStream()
 	return nil
 }
@@ -256,7 +257,7 @@ func (s *stream) EncodeTrailers(trailers map[string]string) error {
 
 //TODO: x-protocol stream has encodeHeaders?
 func (s *stream) endStream() {
-	log.StartLogger.Debugf("xprotocol stream end stream invoked , request id = %s, direction = %d",s.streamId,s.direction)
+	log.StartLogger.Debugf("xprotocol stream end stream invoked , request id = %s, direction = %d", s.streamId, s.direction)
 	if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
 		log.StartLogger.Debugf("xprotocol stream end stream write encodedata")
 		stream.connection.connection.Write(s.encodedData)
@@ -267,7 +268,7 @@ func (s *stream) endStream() {
 	if s.direction == ServerStream {
 		// for a server stream, remove stream on response wrote
 		s.connection.activeStream.Remove(s.streamId)
-		log.StartLogger.Warnf("Remove Request ID = %+v",s.streamId)
+		log.StartLogger.Warnf("Remove Request ID = %+v", s.streamId)
 	}
 }
 

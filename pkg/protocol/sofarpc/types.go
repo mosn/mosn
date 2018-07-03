@@ -46,6 +46,7 @@ const (
 )
 
 type ProtocolType byte
+
 const (
 	BOLT_V1 ProtocolType = 1
 	BOLT_V2 ProtocolType = 2
@@ -374,7 +375,7 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 			ResponseStatus: respStatus,
 		}, nil
 	} else if pro == PROTOCOL_CODE_V2 {
-		var ver1,switchCode byte
+		var ver1, switchCode byte
 
 		if v, ok := headers[SofaPropertyHeader("ver1")]; ok {
 			ver, _ := strconv.Atoi(v)

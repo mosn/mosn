@@ -122,4 +122,3 @@ const (
 // lumberjacks maps log filenames to the logger
 // that is being used to keep them rolled/maintained.
 var lumberjacks = make(map[string]*lumberjack.Logger)
-

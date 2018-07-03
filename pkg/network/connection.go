@@ -450,7 +450,7 @@ func (c *connection) RemoteAddr() net.Addr {
 	return c.remoteAddr
 }
 
-func (c *connection) SetRemoteAddr(address net.Addr)  {
+func (c *connection) SetRemoteAddr(address net.Addr) {
 	c.remoteAddr = address
 }
 
@@ -617,7 +617,7 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 				WriteCurrent: metrics.NewGauge(),
 			},
 			logger: logger,
-			tlsMng:  tlsMng,
+			tlsMng: tlsMng,
 		},
 	}
 

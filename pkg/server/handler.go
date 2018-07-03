@@ -4,10 +4,10 @@ import (
 	"container/list"
 	"context"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/accept/original_dst"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/filter/accept/original_dst"
 	"net"
 	"os"
 	"strconv"
@@ -26,7 +26,7 @@ type connHandler struct {
 	logger         log.Logger
 }
 
-func NewHandler(clusterManagerFilter types.ClusterManagerFilter,clMng types.ClusterManager, logger log.Logger) types.ConnectionHandler {
+func NewHandler(clusterManagerFilter types.ClusterManagerFilter, clMng types.ClusterManager, logger log.Logger) types.ConnectionHandler {
 	ch := &connHandler{
 		numConnections: 0,
 		clusterManager: clMng,
@@ -183,7 +183,7 @@ type activeListener struct {
 	listener               types.Listener
 	networkFiltersFactory  types.NetworkFilterChainFactory
 	streamFiltersFactories []types.StreamFilterChainFactory
-	listenIP			   string
+	listenIP               string
 	listenPort             int
 	statsNamespace         string
 	conns                  *list.List
@@ -197,7 +197,7 @@ type activeListener struct {
 
 func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog,
 	networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
-		handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
+	handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
 	al := &activeListener{
 		disableConnIo:          disableConnIo,
 		listener:               listener,
@@ -220,7 +220,7 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 		listenIP = temps[0]
 	}
 
-    al.listenIP = listenIP
+	al.listenIP = listenIP
 	al.listenPort = listenPort
 	al.statsNamespace = types.ListenerStatsPrefix + strconv.Itoa(listenPort)
 	al.stats = newListenerStats(al.statsNamespace)
@@ -229,7 +229,7 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool,oriRemoteAddr net.Addr) {
+func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr) {
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
@@ -237,7 +237,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 		arc.acceptedFilters = append(arc.acceptedFilters, original_dst.NewOriginalDst())
 		arc.handOffRestoredDestinationConnections = true
 		log.DefaultLogger.Infof("accept restored destination connection from:%s", al.listener.Addr().String())
-	}else{
+	} else {
 		log.DefaultLogger.Infof("accept connection from:%s", al.listener.Addr().String())
 	}
 
@@ -304,7 +304,7 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 	conn := network.NewServerConnection(rawc, al.stopChan, al.logger)
 	oriRemoteAddr := ctx.Value(types.ContextOriRemoteAddr)
-	if oriRemoteAddr != nil{
+	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
 	newCtx := context.WithValue(ctx, types.ContextKeyConnectionId, conn.Id())
@@ -315,15 +315,15 @@ func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 }
 
 type activeRawConn struct {
-	rawc               net.Conn
-	originalDstIP	    string
-	originalDstPort	    int
-	oriRemoteAddr 		net.Addr
+	rawc                                  net.Conn
+	originalDstIP                         string
+	originalDstPort                       int
+	oriRemoteAddr                         net.Addr
 	handOffRestoredDestinationConnections bool
-	rawcElement        *list.Element
-	activeListener     *activeListener
-	acceptedFilters    []types.ListenerFilter
-	accptedFilterIndex int
+	rawcElement                           *list.Element
+	activeListener                        *activeListener
+	acceptedFilters                       []types.ListenerFilter
+	accptedFilterIndex                    int
 }
 
 func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawConn {
@@ -333,10 +333,10 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 	}
 }
 
-func (arc *activeRawConn)SetOrigingalAddr(ip string, port int){
+func (arc *activeRawConn) SetOrigingalAddr(ip string, port int) {
 	arc.originalDstIP = ip
 	arc.originalDstPort = port
-	arc.oriRemoteAddr,_ = net.ResolveTCPAddr("",ip+":"+ strconv.Itoa(port))
+	arc.oriRemoteAddr, _ = net.ResolveTCPAddr("", ip+":"+strconv.Itoa(port))
 	log.DefaultLogger.Infof("conn set origin addr:%s:%d", ip, port)
 }
 
@@ -367,16 +367,16 @@ func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context)
 
 			if _lst != nil {
 				log.DefaultLogger.Infof("original dst:%s:%d", _lst.listenIP, _lst.listenPort)
-				_lst.OnAccept(arc.rawc, false,arc.oriRemoteAddr)
+				_lst.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
 			} else if _ls2 != nil {
 				log.DefaultLogger.Infof("original dst:%s:%d", _ls2.listenIP, _ls2.listenPort)
-				_ls2.OnAccept(arc.rawc, false,arc.oriRemoteAddr)
+				_ls2.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
 			}
 
-		}else{
+		} else {
 			arc.activeListener.newConnection(arc.rawc, ctx)
 		}
-		
+
 	}
 }
 

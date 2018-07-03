@@ -3,8 +3,8 @@ package proxy
 import (
 	"context"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/proxy"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 type GenericProxyFilterConfigFactory struct {

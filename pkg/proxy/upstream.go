@@ -3,8 +3,8 @@ package proxy
 import (
 	"container/list"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 // types.StreamEventListener
@@ -65,7 +65,7 @@ func (r *upstreamRequest) OnDecodeTrailers(trailers map[string]string) {
 	r.activeStream.onUpstreamTrailers(trailers)
 }
 
-func (r *upstreamRequest) OnDecodeError(err error,headers map[string]string){
+func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
 }
 
 // ~~~ encode request wrapper

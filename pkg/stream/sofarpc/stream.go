@@ -3,7 +3,7 @@ package sofarpc
 import (
 	"context"
 	"sync"
-	
+
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
@@ -157,7 +157,7 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 	if err.Error() == sofarpc.UnKnownReqtype {
 		conn.connection.Close(types.NoFlush, types.LocalClose)
 	}
-	
+
 	// for other exception
 	if err.Error() == types.CodecException {
 		var streamId string
@@ -167,18 +167,18 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 			// if no request id found, no reason to send response, so close connection
 			conn.connection.Close(types.NoFlush, types.LocalClose)
 		}
-		
-		conn.onNewStreamDetected(streamId,header)
-		
+
+		conn.onNewStreamDetected(streamId, header)
+
 		if stream, ok := conn.activeStream.Get(streamId); ok {
-			stream.decoder.OnDecodeError(err,header)
+			stream.decoder.OnDecodeError(err, header)
 		}
 	}
 }
 
 func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[string]string) {
 	if ok := conn.activeStream.Has(streamId); ok {
-		log.DefaultLogger.Infof("OnDecodeHeaders, stream already exist, maybe response, StreamID = %s",streamId)
+		log.DefaultLogger.Infof("OnDecodeHeaders, stream already exist, maybe response, StreamID = %s", streamId)
 		return
 	}
 
@@ -199,9 +199,9 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 		direction:  ServerStream,
 		connection: conn,
 	}
-	
-	log.DefaultLogger.Infof("OnDecodeHeaders, New stream detected, Request id = %s, StreamID = %s",requestId,streamId)
-	
+
+	log.DefaultLogger.Infof("OnDecodeHeaders, New stream detected, Request id = %s, StreamID = %s", requestId, streamId)
+
 	stream.decoder = conn.serverCallbacks.NewStream(streamId, &stream)
 	conn.activeStream.Set(streamId, stream)
 }
@@ -259,13 +259,13 @@ func (s *stream) BufferLimit() uint32 {
 // types.StreamEncoder
 func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 	var err error
-	
+
 	if err, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers)); err != nil {
 		return err
 	}
-	
-	log.DefaultLogger.Infof("EncodeHeaders,request id = %s, direction = %d",s.streamId,s.direction)
-	
+
+	log.DefaultLogger.Infof("EncodeHeaders,request id = %s, direction = %d", s.streamId, s.direction)
+
 	if endStream {
 		s.endStream()
 	}
@@ -275,9 +275,9 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 
 func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
-	
-	log.DefaultLogger.Infof("EncodeData,request id = %s, direction = %d",s.streamId,s.direction)
-	
+
+	log.DefaultLogger.Infof("EncodeData,request id = %s, direction = %d", s.streamId, s.direction)
+
 	if endStream {
 		s.endStream()
 	}
@@ -296,15 +296,15 @@ func (s *stream) EncodeTrailers(trailers map[string]string) error {
 // For client stream, write out request
 func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
-		log.DefaultLogger.Infof("Write to remote, stream id = %s, direction = %d",s.streamId,s.direction)
-		
+		log.DefaultLogger.Infof("Write to remote, stream id = %s, direction = %d", s.streamId, s.direction)
+
 		if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
 
 			if s.encodedData != nil {
-			//	log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
+				//	log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 			} else {
-			//	s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
+				//	s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
 				stream.connection.connection.Write(s.encodedHeaders)
 			}
 		} else {
@@ -317,7 +317,7 @@ func (s *stream) endStream() {
 	if s.direction == ServerStream {
 		// for a server stream, remove stream on response wrote
 		s.connection.activeStream.Remove(s.streamId)
-	//	log.StartLogger.Warnf("Remove Request ID = %+v",s.streamId)
+		//	log.StartLogger.Warnf("Remove Request ID = %+v",s.streamId)
 	}
 }
 

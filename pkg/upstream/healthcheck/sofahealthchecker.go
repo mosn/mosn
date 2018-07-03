@@ -35,7 +35,7 @@ func (c *sofHealthChecker) newSession(host types.Host) types.HealthCheckSession 
 		healthChecker:      c,
 		healthCheckSession: *NewHealthCheckSession(&c.healthChecker, host),
 	}
-	
+
 	hhcs.intervalTicker = newTicker(hhcs.onInterval)
 	hhcs.timeoutTimer = newTimer(hhcs.onTimeout)
 
@@ -45,7 +45,7 @@ func (c *sofHealthChecker) newSession(host types.Host) types.HealthCheckSession 
 func (s *sofaHealthCheckSession) onInterval() {
 	if s.client == nil {
 		connData := s.host.CreateConnection(nil)
-		s.client = stream.NewBiDirectCodeClient(nil,protocol.SofaRpc, connData.Connection, connData.HostInfo, s)
+		s.client = stream.NewBiDirectCodeClient(nil, protocol.SofaRpc, connData.Connection, connData.HostInfo, s)
 		s.expectReset = false
 	}
 
@@ -106,7 +106,7 @@ func (s *sofaHealthCheckSession) OnDecodeTrailers(trailers map[string]string) {
 	s.onResponseComplete()
 }
 
-func (s *sofaHealthCheckSession)OnDecodeError(err error, headers map[string]string) {
+func (s *sofaHealthCheckSession) OnDecodeError(err error, headers map[string]string) {
 }
 
 // overload healthCheckSession
@@ -211,5 +211,5 @@ func (s *requestStream) OnDecodeTrailers(trailers map[string]string) {
 	//CALL OnEncodeTrailers
 }
 
-func (d *requestStream) OnDecodeError(err error,headers map[string]string){
+func (d *requestStream) OnDecodeError(err error, headers map[string]string) {
 }

@@ -73,11 +73,11 @@ func ByContext(ctx context.Context) Logger {
 			return logger.(Logger)
 		}
 	}
-	
+
 	if DefaultLogger == nil {
-		InitDefaultLogger("",DEBUG)
+		InitDefaultLogger("", DEBUG)
 	}
-	
+
 	return DefaultLogger
 }
 

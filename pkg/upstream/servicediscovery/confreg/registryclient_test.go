@@ -1,48 +1,47 @@
 package registry
 
 import (
-    "testing"
-    _ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
-    _ "gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
-    "fmt"
-    "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+	"fmt"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/config"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg/servermanager"
+	"testing"
 )
 
-
 func Test_Register(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
 
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    someDataId := "someDataId"
-    anotherDataId := "anotherDataId"
-    rc.SubscribeAsync(someDataId)
-    rc.SubscribeAsync(anotherDataId)
+	someDataId := "someDataId"
+	anotherDataId := "anotherDataId"
+	rc.SubscribeAsync(someDataId)
+	rc.SubscribeAsync(anotherDataId)
 
-    blockThread()
+	blockThread()
 }
 
 func Test_Received(t *testing.T) {
-    beforeTest()
+	beforeTest()
 
-    csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
+	csm := servermanager.NewRegistryServerManager(sysConfig, config.DefaultRegistryConfig)
 
-    rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
+	rc := NewConfregClient(sysConfig, config.DefaultRegistryConfig, csm)
 
-    someDataId := "someDataId"
-    rc.SubscribeAsync(someDataId)
-    rc.GetRPCServerManager().RegisterRPCServerChangeListener(&MockRPCServerChangeListener{})
+	someDataId := "someDataId"
+	rc.SubscribeAsync(someDataId)
+	rc.GetRPCServerManager().RegisterRPCServerChangeListener(&MockRPCServerChangeListener{})
 
-    blockThread()
+	blockThread()
 }
 
 type MockRPCServerChangeListener struct {
 }
 
 func (l *MockRPCServerChangeListener) OnRPCServerChanged(dataId string, zoneServers map[string][]string) {
-    fmt.Println("Changed: dataId = " + dataId)
-    fmt.Println(zoneServers)
+	fmt.Println("Changed: dataId = " + dataId)
+	fmt.Println(zoneServers)
 }
