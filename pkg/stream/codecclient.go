@@ -120,16 +120,16 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(streamId string, respDecoder types.StreamDecoder) types.StreamEncoder {
+func (c *codecClient) NewStream(streamId string, respDecoder types.StreamReceiver) types.StreamSender {
 	ar := newActiveRequest(c, respDecoder)
-	ar.requestEncoder = c.Codec.NewStream(streamId, ar)
-	ar.requestEncoder.GetStream().AddEventListener(ar)
+	ar.requestSender = c.Codec.NewStream(streamId, ar)
+	ar.requestSender.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()
 	ar.element = c.ActiveRequests.PushBack(ar)
 	c.AcrMux.Unlock()
 
-	return ar.requestEncoder
+	return ar.requestSender
 }
 
 func (c *codecClient) Close() {
@@ -165,14 +165,6 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 	}
 }
 
-func (c *codecClient) OnAboveWriteBufferHighWatermark() {
-	c.Codec.OnUnderlyingConnectionAboveWriteBufferHighWatermark()
-}
-
-func (c *codecClient) OnBelowWriteBufferLowWatermark() {
-	c.Codec.OnUnderlyingConnectionBelowWriteBufferLowWatermark()
-}
-
 // read filter, recv upstream data
 func (c *codecClient) OnData(buffer types.IoBuffer) types.FilterStatus {
 	c.Codec.Dispatch(buffer)
@@ -196,7 +188,7 @@ func (c *codecClient) onReset(request *activeRequest, reason types.StreamResetRe
 
 func (c *codecClient) responseDecodeComplete(request *activeRequest) {
 	c.deleteRequest(request)
-	request.requestEncoder.GetStream().RemoveEventListener(request)
+	request.requestSender.GetStream().RemoveEventListener(request)
 }
 
 func (c *codecClient) deleteRequest(request *activeRequest) {
@@ -213,16 +205,16 @@ func (c *codecClient) deleteRequest(request *activeRequest) {
 // types.StreamEventListener
 // types.StreamDecoderWrapper
 type activeRequest struct {
-	codecClient     *codecClient
-	responseDecoder types.StreamDecoder
-	requestEncoder  types.StreamEncoder
-	element         *list.Element
+	codecClient      *codecClient
+	responseReceiver types.StreamReceiver
+	requestSender    types.StreamSender
+	element          *list.Element
 }
 
-func newActiveRequest(codecClient *codecClient, streamDecoder types.StreamDecoder) *activeRequest {
+func newActiveRequest(codecClient *codecClient, streamDecoder types.StreamReceiver) *activeRequest {
 	return &activeRequest{
-		codecClient:     codecClient,
-		responseDecoder: streamDecoder,
+		codecClient:      codecClient,
+		responseReceiver: streamDecoder,
 	}
 }
 
@@ -230,37 +222,33 @@ func (r *activeRequest) OnResetStream(reason types.StreamResetReason) {
 	r.codecClient.onReset(r, reason)
 }
 
-func (r *activeRequest) OnAboveWriteBufferHighWatermark() {}
-
-func (r *activeRequest) OnBelowWriteBufferLowWatermark() {}
-
-func (r *activeRequest) OnDecodeHeaders(headers map[string]string, endStream bool) {
+func (r *activeRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseDecoder.OnDecodeHeaders(headers, endStream)
+	r.responseReceiver.OnReceiveHeaders(headers, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
 	}
 }
 
-func (r *activeRequest) OnDecodeData(data types.IoBuffer, endStream bool) {
+func (r *activeRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseDecoder.OnDecodeData(data, endStream)
+	r.responseReceiver.OnReceiveData(data, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
 	}
 }
 
-func (r *activeRequest) OnDecodeTrailers(trailers map[string]string) {
+func (r *activeRequest) OnReceiveTrailers(trailers map[string]string) {
 	r.onPreDecodeComplete()
-	r.responseDecoder.OnDecodeTrailers(trailers)
+	r.responseReceiver.OnReceiveTrailers(trailers)
 	r.onDecodeComplete()
 }
 

@@ -91,22 +91,6 @@ func (conn *streamConnection) GoAway() {
 	// todo
 }
 
-func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
-	for as := conn.activeStreams.Front(); as != nil; as = as.Next() {
-		for _, cb := range as.Value.(stream).streamCbs {
-			cb.OnAboveWriteBufferHighWatermark()
-		}
-	}
-}
-
-func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark() {
-	for as := conn.activeStreams.Front(); as != nil; as = as.Next() {
-		for _, cb := range as.Value.(stream).streamCbs {
-			cb.OnBelowWriteBufferLowWatermark()
-		}
-	}
-}
-
 // types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection
@@ -135,7 +119,7 @@ func (csc *clientStreamConnection) OnGoAway() {
 	csc.streamConnCallbacks.OnGoAway()
 }
 
-func (csc *clientStreamConnection) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
+func (csc *clientStreamConnection) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
 			context: context.WithValue(csc.context, types.ContextKeyStreamId, streamId),
@@ -217,14 +201,14 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 }
 
 // types.Stream
-// types.StreamEncoder
+// types.StreamSender
 type stream struct {
 	context context.Context
 
 	readDisableCount int32
 	request          *http.Request
 	response         *http.Response
-	decoder          types.StreamDecoder
+	decoder          types.StreamReceiver
 	element          *list.Element
 	streamCbs        []types.StreamEventListener
 }
@@ -260,8 +244,8 @@ type clientStream struct {
 	connection *clientStreamConnection
 }
 
-// types.StreamEncoder
-func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
+// types.StreamSender
+func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error {
 	headers, _ := headers_.(map[string]string)
 
 	if s.request == nil {
@@ -296,7 +280,7 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 	return nil
 }
 
-func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
+func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
 	if s.request == nil {
 		s.request = new(http.Request)
 	}
@@ -312,7 +296,7 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *clientStream) EncodeTrailers(trailers map[string]string) error {
+func (s *clientStream) AppendTrailers(trailers map[string]string) error {
 	s.request.Trailer = encodeHeader(trailers)
 	s.endStream()
 
@@ -381,11 +365,11 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		s.decoder.OnDecodeHeaders(decodeHeader(s.response.Header), false)
+		s.decoder.OnReceiveHeaders(decodeHeader(s.response.Header), false)
 		buf := &buffer.IoBuffer{}
 		buf.ReadFrom(s.response.Body)
-		s.decoder.OnDecodeData(buf, false)
-		s.decoder.OnDecodeTrailers(decodeHeader(s.response.Trailer))
+		s.decoder.OnReceiveData(buf, false)
+		s.decoder.OnReceiveTrailers(decodeHeader(s.response.Trailer))
 
 		s.connection.asMutex.Lock()
 		s.response = nil
@@ -406,8 +390,8 @@ type serverStream struct {
 	responseDoneChan chan bool
 }
 
-// types.StreamEncoder
-func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
+// types.StreamSender
+func (s *serverStream) AppendHeaders(headers_ interface{}, endStream bool) error {
 	headers, _ := headers_.(map[string]string)
 
 	if s.response == nil {
@@ -428,7 +412,7 @@ func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 	return nil
 }
 
-func (s *serverStream) EncodeData(data types.IoBuffer, endStream bool) error {
+func (s *serverStream) AppendData(data types.IoBuffer, endStream bool) error {
 	if s.response == nil {
 		s.response = new(http.Response)
 	}
@@ -443,7 +427,7 @@ func (s *serverStream) EncodeData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *serverStream) EncodeTrailers(trailers map[string]string) error {
+func (s *serverStream) AppendTrailers(trailers map[string]string) error {
 	s.response.Trailer = encodeHeader(trailers)
 
 	s.endStream()
@@ -492,14 +476,14 @@ func (s *serverStream) doSend() {
 
 func (s *serverStream) handleRequest() {
 	if s.request != nil {
-		s.decoder.OnDecodeHeaders(decodeHeader(s.request.Header), false)
+		s.decoder.OnReceiveHeaders(decodeHeader(s.request.Header), false)
 
 		//remove detect
 		if s.element != nil {
 			buf := &buffer.IoBuffer{}
 			buf.ReadFrom(s.request.Body)
-			s.decoder.OnDecodeData(buf, false)
-			s.decoder.OnDecodeTrailers(decodeHeader(s.request.Trailer))
+			s.decoder.OnReceiveData(buf, false)
+			s.decoder.OnReceiveTrailers(decodeHeader(s.request.Trailer))
 		}
 	}
 }

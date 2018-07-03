@@ -83,18 +83,6 @@ func (conn *streamConnection) GoAway() {
 	// todo
 }
 
-func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
-	for _, cb := range conn.activeStream.streamCbs {
-		cb.OnAboveWriteBufferHighWatermark()
-	}
-}
-
-func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark() {
-	for _, cb := range conn.activeStream.streamCbs {
-		cb.OnBelowWriteBufferLowWatermark()
-	}
-}
-
 // since we use fasthttp client, which already implements the conn-pool feature and manage the connnections itself
 // there is no need to do the connection management. so http/1.x stream only wrap the progress for constructing request/response
 // and have no aware of the connection it would use
@@ -136,31 +124,15 @@ func (csw *clientStreamWrapper) GoAway() {
 	// todo
 }
 
-func (csw *clientStreamWrapper) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
-	for as := csw.activeStreams.Front(); as != nil; as = as.Next() {
-		for _, cb := range as.Value.(stream).streamCbs {
-			cb.OnAboveWriteBufferHighWatermark()
-		}
-	}
-}
-
-func (csw *clientStreamWrapper) OnUnderlyingConnectionBelowWriteBufferLowWatermark() {
-	for as := csw.activeStreams.Front(); as != nil; as = as.Next() {
-		for _, cb := range as.Value.(stream).streamCbs {
-			cb.OnAboveWriteBufferHighWatermark()
-		}
-	}
-}
-
 func (csw *clientStreamWrapper) OnGoAway() {
 	csw.streamConnCallbacks.OnGoAway()
 }
 
-func (csw *clientStreamWrapper) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
+func (csw *clientStreamWrapper) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
-			context: context.WithValue(csw.context, types.ContextKeyStreamId, streamId),
-			decoder: responseDecoder,
+			context:  context.WithValue(csw.context, types.ContextKeyStreamId, streamId),
+			receiver: responseDecoder,
 		},
 		wrapper: csw,
 	}
@@ -211,7 +183,7 @@ func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	s.decoder = ssc.serverStreamConnCallbacks.NewStream(streamId, s)
+	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamId, s)
 
 	ssc.activeStream = &s.stream
 
@@ -227,13 +199,13 @@ func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 }
 
 // types.Stream
-// types.StreamEncoder
+// types.StreamSender
 type stream struct {
 	context context.Context
 
 	readDisableCount int32
 
-	decoder   types.StreamDecoder
+	receiver  types.StreamReceiver
 	streamCbs []types.StreamEventListener
 }
 
@@ -274,8 +246,8 @@ type clientStream struct {
 	wrapper *clientStreamWrapper
 }
 
-// types.StreamEncoder
-func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
+// types.StreamSender
+func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error {
 	headers, _ := headers_.(map[string]string)
 
 	if s.request == nil {
@@ -308,7 +280,7 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 	return nil
 }
 
-func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
+func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
 	if s.request == nil {
 		s.request = fasthttp.AcquireRequest()
 	}
@@ -322,7 +294,7 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *clientStream) EncodeTrailers(trailers map[string]string) error {
+func (s *clientStream) AppendTrailers(trailers map[string]string) error {
 	s.endStream()
 
 	return nil
@@ -367,9 +339,9 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		s.decoder.OnDecodeHeaders(decodeRespHeader(s.response.Header), false)
+		s.receiver.OnReceiveHeaders(decodeRespHeader(s.response.Header), false)
 		buf := buffer.NewIoBufferBytes(s.response.Body())
-		s.decoder.OnDecodeData(buf, true)
+		s.receiver.OnReceiveData(buf, true)
 
 		s.wrapper.asMutex.Lock()
 		s.request = nil
@@ -393,8 +365,8 @@ type serverStream struct {
 	responseDoneChan chan bool
 }
 
-// types.StreamEncoder
-func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
+// types.StreamSender
+func (s *serverStream) AppendHeaders(headers_ interface{}, endStream bool) error {
 	headers, _ := headers_.(map[string]string)
 
 	if status, ok := headers[types.HeaderStatus]; ok {
@@ -411,17 +383,17 @@ func (s *serverStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 	return nil
 }
 
-func (s *serverStream) EncodeData(data types.IoBuffer, endStream bool) error {
-
+func (s *serverStream) AppendData(data types.IoBuffer, endStream bool) error {
 	s.ctx.SetBody(data.Bytes())
 
 	if endStream {
 		s.endStream()
 	}
+
 	return nil
 }
 
-func (s *serverStream) EncodeTrailers(trailers map[string]string) error {
+func (s *serverStream) AppendTrailers(trailers map[string]string) error {
 	s.endStream()
 	return nil
 }
@@ -467,12 +439,12 @@ func (s *serverStream) handleRequest() {
 			header[types.HeaderQueryString] = string(s.ctx.URI().QueryString())
 		}
 
-		s.decoder.OnDecodeHeaders(header, false)
+		s.receiver.OnReceiveHeaders(header, false)
 
 		// data remove detect
 		if s.connection.activeStream != nil {
 			buf := buffer.NewIoBufferBytes(s.ctx.Request.Body())
-			s.decoder.OnDecodeData(buf, true)
+			s.receiver.OnReceiveData(buf, true)
 			//no Trailer in Http/1.x
 		}
 	}

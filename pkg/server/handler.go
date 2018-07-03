@@ -386,9 +386,3 @@ func (ac *activeConnection) OnEvent(event types.ConnectionEvent) {
 		ac.listener.removeConnection(ac)
 	}
 }
-
-// ConnectionEventListener
-func (ac *activeConnection) OnAboveWriteBufferHighWatermark() {}
-
-// ConnectionEventListener
-func (ac *activeConnection) OnBelowWriteBufferLowWatermark() {}

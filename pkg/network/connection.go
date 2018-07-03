@@ -116,18 +116,10 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 // watermark listener
 func (c *connection) OnHighWatermark() {
 	c.aboveHighWatermark = true
-
-	for _, cb := range c.connCallbacks {
-		cb.OnAboveWriteBufferHighWatermark()
-	}
 }
 
 func (c *connection) OnLowWatermark() {
 	c.aboveHighWatermark = false
-
-	for _, cb := range c.connCallbacks {
-		cb.OnBelowWriteBufferLowWatermark()
-	}
 }
 
 // basic
@@ -594,10 +586,6 @@ func (c *connection) GetReadBuffer() types.IoBuffer {
 	} else {
 		return nil
 	}
-}
-
-func (c *connection) AboveHighWatermark() bool {
-	return c.aboveHighWatermark
 }
 
 func (c *connection) FilterManager() types.FilterManager {

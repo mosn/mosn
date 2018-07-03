@@ -167,10 +167,6 @@ func (ccc *clientConnCallbacks) OnEvent(event types.ConnectionEvent) {
 	}
 }
 
-func (ccc *clientConnCallbacks) OnAboveWriteBufferHighWatermark() {}
-
-func (ccc *clientConnCallbacks) OnBelowWriteBufferLowWatermark() {}
-
 type clientConnReadFilter struct {
 }
 

@@ -43,19 +43,19 @@ func (p *connPool) Protocol() types.Protocol {
 func (p *connPool) DrainConnections() {}
 
 func (p *connPool) NewStream(context context.Context, streamId string,
-	responseDecoder types.StreamDecoder, cb types.PoolEventListener) types.Cancellable {
+	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(context, p)
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnPoolFailure(streamId, types.Overflow, nil)
+		cb.OnFailure(streamId, types.Overflow, nil)
 	} else {
 		// todo: update host stats
 		p.activeClient.totalStream++
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		streamEncoder := p.activeClient.codecClient.NewStream(streamId, responseDecoder)
-		cb.OnPoolReady(streamId, streamEncoder, p.host)
+		cb.OnReady(streamId, streamEncoder, p.host)
 	}
 
 	return nil
@@ -122,10 +122,6 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
-
-func (ac *activeClient) OnAboveWriteBufferHighWatermark() {}
-
-func (ac *activeClient) OnBelowWriteBufferLowWatermark() {}
 
 func (ac *activeClient) OnStreamDestroy() {
 	ac.pool.onStreamDestroy(ac)

@@ -159,10 +159,6 @@ func (ccc *rpclientConnCallbacks) OnEvent(event types.ConnectionEvent) {
 	}
 }
 
-func (ccc *rpclientConnCallbacks) OnAboveWriteBufferHighWatermark() {}
-
-func (ccc *rpclientConnCallbacks) OnBelowWriteBufferLowWatermark() {}
-
 type rpcclientConnReadFilter struct {
 }
 

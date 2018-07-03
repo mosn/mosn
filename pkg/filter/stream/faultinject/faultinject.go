@@ -36,7 +36,7 @@ type faultInjectFilter struct {
 	delayPercent  uint32
 	delayDuration uint64
 	delaying      uint32
-	cb            types.StreamDecoderFilterCallbacks
+	cb            types.StreamReceiverFilterCallbacks
 }
 
 func NewFaultInjectFilter(context context.Context, config *v2.FaultInject) *faultInjectFilter {
@@ -47,7 +47,7 @@ func NewFaultInjectFilter(context context.Context, config *v2.FaultInject) *faul
 	}
 }
 
-func (f *faultInjectFilter) DecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
+func (f *faultInjectFilter) OnDecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
@@ -57,7 +57,7 @@ func (f *faultInjectFilter) DecodeHeaders(headers map[string]string, endStream b
 	}
 }
 
-func (f *faultInjectFilter) DecodeData(buf types.IoBuffer, endStream bool) types.FilterDataStatus {
+func (f *faultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.FilterDataStatus {
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
@@ -67,7 +67,7 @@ func (f *faultInjectFilter) DecodeData(buf types.IoBuffer, endStream bool) types
 	}
 }
 
-func (f *faultInjectFilter) DecodeTrailers(trailers map[string]string) types.FilterTrailersStatus {
+func (f *faultInjectFilter) OnDecodeTrailers(trailers map[string]string) types.FilterTrailersStatus {
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
@@ -77,7 +77,7 @@ func (f *faultInjectFilter) DecodeTrailers(trailers map[string]string) types.Fil
 	}
 }
 
-func (f *faultInjectFilter) SetDecoderFilterCallbacks(cb types.StreamDecoderFilterCallbacks) {
+func (f *faultInjectFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
 	f.cb = cb
 }
 
@@ -123,7 +123,7 @@ type FaultInjectFilterConfigFactory struct {
 
 func (f *FaultInjectFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
 	filter := NewFaultInjectFilter(context, f.FaultInject)
-	callbacks.AddStreamDecoderFilter(filter)
+	callbacks.AddStreamReceiverFilter(filter)
 }
 
 func CreateFaultInjectFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {

@@ -44,14 +44,14 @@ type Protocol string
 type Protocols interface {
 	// Synchronously encodes headers/data/trailers to buffer by Stream
 
-	// EncodeHeaders encodes headers to binary buffer
+	// AppendHeaders encodes headers to binary buffer
 	// return 1. stream id if have one 2. headers bytes
 	EncodeHeaders(context context.Context, headers interface{}) (error, IoBuffer)
 
-	// EncodeData encodes data to binary buffer
+	// AppendData encodes data to binary buffer
 	EncodeData(context context.Context, data IoBuffer) IoBuffer
 
-	// EncodeTrailers encodes trailers to binary buffer
+	// AppendTrailers encodes trailers to binary buffer
 	EncodeTrailers(context context.Context, trailers map[string]string) IoBuffer
 
 	// Decode decodes data to headers-data-trailers by Stream
@@ -77,14 +77,14 @@ type DecodeFilter interface {
 
 // A encoder interface to extend various of protocols
 type Encoder interface {
-	// EncodeHeaders encodes headers to buffer
+	// AppendHeaders encodes headers to buffer
 	// return 1. stream id if have one 2. headers bytes
 	EncodeHeaders(context context.Context, headers interface{}) (error, IoBuffer)
 
-	// EncodeData encodes data to buffer
+	// AppendData encodes data to buffer
 	EncodeData(context context.Context, data IoBuffer) IoBuffer
 
-	// EncodeTrailers encodes trailers to buffer
+	// AppendTrailers encodes trailers to buffer
 	EncodeTrailers(context context.Context, trailers map[string]string) IoBuffer
 }
 

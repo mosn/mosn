@@ -272,14 +272,6 @@ func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	uc.proxy.onUpstreamEvent(event)
 }
 
-func (uc *upstreamCallbacks) OnAboveWriteBufferHighWatermark() {
-	// TODO
-}
-
-func (uc *upstreamCallbacks) OnBelowWriteBufferLowWatermark() {
-	// TODO
-}
-
 func (uc *upstreamCallbacks) OnData(buffer types.IoBuffer) types.FilterStatus {
 	uc.proxy.onUpstreamData(buffer)
 
@@ -299,12 +291,4 @@ type downstreamCallbacks struct {
 
 func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	dc.proxy.onDownstreamEvent(event)
-}
-
-func (dc *downstreamCallbacks) OnAboveWriteBufferHighWatermark() {
-	// TODO
-}
-
-func (dc *downstreamCallbacks) OnBelowWriteBufferLowWatermark() {
-	// TODO
 }
