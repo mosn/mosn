@@ -53,8 +53,8 @@ func main() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
-
-	//log.InitDefaultLogger("", log.DEBUG)
+	
+	log.InitDefaultLogger("", log.DEBUG)
 
 	stopChan := make(chan bool)
 	meshReadyChan := make(chan bool)

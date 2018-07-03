@@ -24,10 +24,11 @@ import (
 
 func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySet) types.LoadBalancer {
 	switch lbType {
-	case types.Random:
-		return newRandomLoadbalancer(prioritySet)
+	
 	case types.RoundRobin:
 		return newRoundRobinLoadBalancer(prioritySet)
+	default :
+		return newRandomLoadbalancer(prioritySet)
 	}
 
 	return nil
