@@ -63,7 +63,7 @@ func genericProxyConfig() *v2.Proxy {
 
 	header := v2.HeaderMatcher{
 		Name:  "service",
-		Value: "com.alipay.rpc.common.service.facade.SampleService:1.0",
+		Value: "com.alipay.test.TestService:1.0",
 	}
 
 	var envoyvalue = map[string]interface{}{"stage": "pre-release", "version": "1.1", "label": "gray"}
@@ -167,7 +167,9 @@ type rpcclientConnReadFilter struct {
 }
 
 func (ccrf *rpcclientConnReadFilter) OnData(buffer types.IoBuffer) types.FilterStatus {
-	fmt.Println("[Client Receive]: %s", buffer.String())
+	//s := buffer.String()
+	fmt.Printf("[Client Receive]: %s \n","Bolt Response")
+	
 	buffer.Reset()
 
 	return types.Continue
@@ -225,8 +227,7 @@ func Run() {
 						return
 					} else {
 						if bytesRead > 0 {
-							fmt.Printf("[REALSERVER]get data '%s'", string(buf[:bytesRead]))
-							fmt.Println()
+							fmt.Printf("[REALSERVER] Get Bolt Request'")
 							break
 						}
 					}
