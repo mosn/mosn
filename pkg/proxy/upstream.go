@@ -42,7 +42,7 @@ type upstreamRequest struct {
 	trailerAppended bool
 }
 
-// reset upstream request
+// reset upstream request in proxy context
 // 1. downstream cleanup
 // 2. on upstream global timeout
 // 3. on upstream per req timeout
@@ -57,6 +57,7 @@ func (r *upstreamRequest) resetStream() {
 }
 
 // types.StreamEventListener
+// Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 

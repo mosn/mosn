@@ -116,15 +116,15 @@ type StreamEventListener interface {
 // On server scenario, StreamSender handles response
 // On client scenario, StreamSender handles request
 type StreamSender interface {
-	// Encode headers
+	// Append headers
 	// endStream supplies whether this is a header only request/response
 	AppendHeaders(headers interface{}, endStream bool) error
 
-	// Encode data
+	// Append data
 	// endStream supplies whether this is the last data frame
 	AppendData(data IoBuffer, endStream bool) error
 
-	// Encode trailers, implicitly ends the stream.
+	// Append trailers, implicitly ends the stream.
 	AppendTrailers(trailers map[string]string) error
 
 	// Get related stream

@@ -95,7 +95,7 @@ type sofarpcHealthCheckSession struct {
 	healthCheckSession
 
 	client         stream.CodecClient
-	requestEncoder types.StreamSender
+	requestSender  types.StreamSender
 	responseStatus int16
 	healthChecker  *sofarpcHealthChecker
 	expectReset    bool
@@ -156,17 +156,17 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	id := rand.Uint32()
 	reqID := strconv.Itoa(int(id))
 
-	s.requestEncoder = s.client.NewStream(reqID, s)
-	s.requestEncoder.GetStream().AddEventListener(s)
+	s.requestSender = s.client.NewStream(reqID, s)
+	s.requestSender.GetStream().AddEventListener(s)
 
 	//todo: support tr
 	//create protocol specified heartbeat packet
 	if s.healthChecker.protocolCode == sofarpc.BOLT_V1 {
 		reqHeaders := codec.NewBoltHeartbeat(id)
 
-		s.requestEncoder.AppendHeaders(reqHeaders, true)
+		s.requestSender.AppendHeaders(reqHeaders, true)
 		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat to %s,request id = %d", s.host.AddressString(), reqID)
-		s.requestEncoder = nil
+		s.requestSender = nil
 		// start timeout interval
 		s.healthCheckSession.onInterval()
 	} else {

@@ -114,7 +114,7 @@ func newActiveStream(streamId string, proxy *proxy, responseSender types.StreamS
 }
 
 // types.StreamEventListener
-// Called downstream stream is reset
+// Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	s.proxy.stats.DownstreamRequestReset().Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
@@ -645,7 +645,7 @@ func (s *downStream) onUpstreamBelowWriteBufferHighWatermark() {
 	s.responseSender.GetStream().ReadDisable(false)
 }
 
-// Downstream got reset on scenario below:
+// Downstream got reset in proxy context on scenario below:
 // 1. downstream filter reset downstream
 // 2. corresponding upstream got reset
 func (s *downStream) resetStream() {
