@@ -116,18 +116,10 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 // watermark listener
 func (c *connection) OnHighWatermark() {
 	c.aboveHighWatermark = true
-
-	for _, cb := range c.connCallbacks {
-		cb.OnAboveWriteBufferHighWatermark()
-	}
 }
 
 func (c *connection) OnLowWatermark() {
 	c.aboveHighWatermark = false
-
-	for _, cb := range c.connCallbacks {
-		cb.OnBelowWriteBufferLowWatermark()
-	}
 }
 
 // basic
@@ -171,6 +163,10 @@ func (c *connection) Start(lctx context.Context) {
 }
 
 func (c *connection) startReadLoop() {
+	defer func() {
+		_, _ = <-c.internalStopChan
+	}()
+
 	for {
 		select {
 		case <-c.stopChan:
@@ -182,18 +178,14 @@ func (c *connection) startReadLoop() {
 			if c.readEnabled {
 				err := c.doRead()
 
-				if atomic.LoadUint32(&c.closed) > 0 {
-					return
-				}
-
 				if err != nil {
 
 					if err == io.EOF {
 						c.Close(types.NoFlush, types.RemoteClose)
 					} else {
 						c.Close(types.NoFlush, types.OnReadErrClose)
-
 					}
+
 					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
 						c.id, c.RemoteAddr().String(), err)
 
@@ -305,6 +297,10 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 }
 
 func (c *connection) startWriteLoop() {
+	defer func() {
+		_, _ = <-c.internalStopChan
+	}()
+
 	for {
 		select {
 		case <-c.stopChan:
@@ -312,10 +308,6 @@ func (c *connection) startWriteLoop() {
 		case <-c.internalStopChan:
 			return
 		case <-c.writeBufferChan:
-			if atomic.LoadUint32(&c.closed) > 0 {
-				return
-			}
-
 			_, err := c.doWrite()
 
 			if err != nil {
@@ -447,6 +439,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if c.internalLoopStarted {
 		// because close function must be called by one io loop thread, notify another loop here
 		c.internalStopChan <- true
+		close(c.internalStopChan)
 	}
 
 	c.rawConnection.Close()
@@ -594,10 +587,6 @@ func (c *connection) GetReadBuffer() types.IoBuffer {
 	} else {
 		return nil
 	}
-}
-
-func (c *connection) AboveHighWatermark() bool {
-	return c.aboveHighWatermark
 }
 
 func (c *connection) FilterManager() types.FilterManager {

@@ -99,15 +99,7 @@ func (conn *streamConnection) GoAway() {
 	// todo
 }
 
-func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
-	// todo
-}
-
-func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark() {
-	// todo
-}
-
-func (conn *streamConnection) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
+func (conn *streamConnection) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := stream{
 		context:    context.WithValue(conn.context, types.ContextKeyStreamId, streamId),
 		streamId:   streamId,
@@ -128,7 +120,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 	endStream := decodeSterilize(streamId, headers)
 
 	if stream, ok := conn.activeStream.Get(streamId); ok {
-		stream.decoder.OnDecodeHeaders(headers, endStream)
+		stream.decoder.OnReceiveHeaders(headers, endStream)
 		if endStream {
 			return types.StopIteration
 		}
@@ -139,7 +131,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 
 func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStream.Get(streamId); ok {
-		stream.decoder.OnDecodeData(data, true)
+		stream.decoder.OnReceiveData(data, true)
 
 		if stream.direction == ClientStream {
 			// for client stream, remove stream on response read
@@ -194,7 +186,7 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 
 func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[string]string) {
 	if ok := conn.activeStream.Has(streamId); ok {
-		log.DefaultLogger.Infof("OnDecodeHeaders, stream already exist, maybe response, StreamID = %s", streamId)
+		log.DefaultLogger.Infof("OnReceiveHeaders, stream already exist, maybe response, StreamID = %s", streamId)
 		return
 	}
 
@@ -216,14 +208,14 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 		connection: conn,
 	}
 
-	log.DefaultLogger.Infof("OnDecodeHeaders, New stream detected, Request id = %s, StreamID = %s", requestId, streamId)
+	log.DefaultLogger.Infof("OnReceiveHeaders, New stream detected, Request id = %s, StreamID = %s", requestId, streamId)
 
 	stream.decoder = conn.serverCallbacks.NewStream(streamId, &stream)
 	conn.activeStream.Set(streamId, stream)
 }
 
 // types.Stream
-// types.StreamEncoder
+// types.StreamSender
 type stream struct {
 	context context.Context
 
@@ -232,7 +224,7 @@ type stream struct {
 	direction        StreamDirection // 0: out, 1: in
 	readDisableCount int
 	connection       *streamConnection
-	decoder          types.StreamDecoder
+	decoder          types.StreamReceiver
 	streamCbs        []types.StreamEventListener
 	encodedHeaders   types.IoBuffer
 	encodedData      types.IoBuffer
@@ -272,15 +264,15 @@ func (s *stream) BufferLimit() uint32 {
 	return s.connection.connection.BufferLimit()
 }
 
-// types.StreamEncoder
-func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
+// types.StreamSender
+func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
 	var err error
 
 	if err, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers)); err != nil {
 		return err
 	}
 
-	log.DefaultLogger.Infof("EncodeHeaders,request id = %s, direction = %d", s.streamId, s.direction)
+	log.DefaultLogger.Infof("AppendHeaders,request id = %s, direction = %d", s.streamId, s.direction)
 
 	if endStream {
 		s.endStream()
@@ -289,10 +281,10 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 	return nil
 }
 
-func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
+func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
 
-	log.DefaultLogger.Infof("EncodeData,request id = %s, direction = %d", s.streamId, s.direction)
+	log.DefaultLogger.Infof("AppendData,request id = %s, direction = %d", s.streamId, s.direction)
 
 	if endStream {
 		s.endStream()
@@ -301,7 +293,7 @@ func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *stream) EncodeTrailers(trailers map[string]string) error {
+func (s *stream) AppendTrailers(trailers map[string]string) error {
 	s.endStream()
 
 	return nil

@@ -21,21 +21,21 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-func (s *activeStream) addEncodedData(filter *activeStreamEncoderFilter, data types.IoBuffer, streaming bool) {
+func (s *activeStream) addEncodedData(filter *activeStreamSenderFilter, data types.IoBuffer, streaming bool) {
 	if s.filterStage == 0 || s.filterStage&EncodeHeaders > 0 ||
 		s.filterStage&EncodeData > 0 {
-		s.encoderFiltersStreaming = streaming
+		s.senderFiltersStreaming = streaming
 
 		filter.handleBufferData(data)
 	} else if s.filterStage&EncodeTrailers > 0 {
-		s.encodeDataFilters(filter, data, false)
+		s.runAppendDataFilters(filter, data, false)
 	}
 }
 
-func (s *activeStream) addDecodedData(filter *activeStreamDecoderFilter, data types.IoBuffer, streaming bool) {
+func (s *activeStream) addDecodedData(filter *activeStreamReceiverFilter, data types.IoBuffer, streaming bool) {
 	if s.filterStage == 0 || s.filterStage&DecodeHeaders > 0 ||
 		s.filterStage&DecodeData > 0 {
-		s.decoderFiltersStreaming = streaming
+		s.receiverFiltersStreaming = streaming
 
 		filter.handleBufferData(data)
 	} else if s.filterStage&EncodeTrailers > 0 {
@@ -43,19 +43,19 @@ func (s *activeStream) addDecodedData(filter *activeStreamDecoderFilter, data ty
 	}
 }
 
-func (s *activeStream) encodeHeaderFilters(filter *activeStreamEncoderFilter, headers interface{}, endStream bool) bool {
+func (s *activeStream) runAppendHeaderFilters(filter *activeStreamSenderFilter, headers interface{}, endStream bool) bool {
 	var index int
-	var f *activeStreamEncoderFilter
+	var f *activeStreamSenderFilter
 
 	if filter != nil {
 		index = filter.index + 1
 	}
 
-	for ; index < len(s.encoderFilters); index++ {
-		f = s.encoderFilters[index]
+	for ; index < len(s.senderFilters); index++ {
+		f = s.senderFilters[index]
 
 		s.filterStage |= EncodeHeaders
-		status := f.filter.EncodeHeaders(headers, endStream)
+		status := f.filter.AppendHeaders(headers, endStream)
 		s.filterStage &= ^EncodeHeaders
 
 		if status == types.FilterHeadersStatusStopIteration {
@@ -72,19 +72,19 @@ func (s *activeStream) encodeHeaderFilters(filter *activeStreamEncoderFilter, he
 	return false
 }
 
-func (s *activeStream) encodeDataFilters(filter *activeStreamEncoderFilter, data types.IoBuffer, endStream bool) bool {
+func (s *activeStream) runAppendDataFilters(filter *activeStreamSenderFilter, data types.IoBuffer, endStream bool) bool {
 	var index int
-	var f *activeStreamEncoderFilter
+	var f *activeStreamSenderFilter
 
 	if filter != nil {
 		index = filter.index + 1
 	}
 
-	for ; index < len(s.encoderFilters); index++ {
-		f = s.encoderFilters[index]
+	for ; index < len(s.senderFilters); index++ {
+		f = s.senderFilters[index]
 
 		s.filterStage |= EncodeData
-		status := f.filter.EncodeData(data, endStream)
+		status := f.filter.AppendData(data, endStream)
 		s.filterStage &= ^EncodeData
 
 		if status == types.FilterDataStatusContinue {
@@ -100,7 +100,7 @@ func (s *activeStream) encodeDataFilters(filter *activeStreamEncoderFilter, data
 			switch status {
 			case types.FilterDataStatusStopIterationAndBuffer,
 				types.FilterDataStatusStopIterationAndWatermark:
-				s.encoderFiltersStreaming = status == types.FilterDataStatusStopIterationAndWatermark
+				s.senderFiltersStreaming = status == types.FilterDataStatusStopIterationAndWatermark
 				f.handleBufferData(data)
 			case types.FilterDataStatusStopIterationNoBuffer:
 				f.stoppedNoBuf = true
@@ -115,19 +115,19 @@ func (s *activeStream) encodeDataFilters(filter *activeStreamEncoderFilter, data
 	return false
 }
 
-func (s *activeStream) encodeTrailersFilters(filter *activeStreamEncoderFilter, trailers map[string]string) bool {
+func (s *activeStream) runAppendTrailersFilters(filter *activeStreamSenderFilter, trailers map[string]string) bool {
 	var index int
-	var f *activeStreamEncoderFilter
+	var f *activeStreamSenderFilter
 
 	if filter != nil {
 		index = filter.index + 1
 	}
 
-	for ; index < len(s.encoderFilters); index++ {
-		f = s.encoderFilters[index]
+	for ; index < len(s.senderFilters); index++ {
+		f = s.senderFilters[index]
 
 		s.filterStage |= EncodeTrailers
-		status := f.filter.EncodeTrailers(trailers)
+		status := f.filter.AppendTrailers(trailers)
 		s.filterStage &= ^EncodeTrailers
 
 		if status == types.FilterTrailersStatusContinue {
@@ -144,19 +144,19 @@ func (s *activeStream) encodeTrailersFilters(filter *activeStreamEncoderFilter, 
 	return false
 }
 
-func (s *activeStream) decodeHeaderFilters(filter *activeStreamDecoderFilter, headers map[string]string, endStream bool) bool {
+func (s *activeStream) decodeHeaderFilters(filter *activeStreamReceiverFilter, headers map[string]string, endStream bool) bool {
 	var index int
-	var f *activeStreamDecoderFilter
+	var f *activeStreamReceiverFilter
 
 	if filter != nil {
 		index = filter.index + 1
 	}
 
-	for ; index < len(s.decoderFilters); index++ {
-		f = s.decoderFilters[index]
+	for ; index < len(s.receiverFilters); index++ {
+		f = s.receiverFilters[index]
 
 		s.filterStage |= DecodeHeaders
-		status := f.filter.DecodeHeaders(headers, endStream)
+		status := f.filter.OnDecodeHeaders(headers, endStream)
 		s.filterStage &= ^DecodeHeaders
 
 		if status == types.FilterHeadersStatusStopIteration {
@@ -173,23 +173,23 @@ func (s *activeStream) decodeHeaderFilters(filter *activeStreamDecoderFilter, he
 	return false
 }
 
-func (s *activeStream) decodeDataFilters(filter *activeStreamDecoderFilter, data types.IoBuffer, endStream bool) bool {
+func (s *activeStream) decodeDataFilters(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) bool {
 	if s.localProcessDone {
 		return false
 	}
 
 	var index int
-	var f *activeStreamDecoderFilter
+	var f *activeStreamReceiverFilter
 
 	if filter != nil {
 		index = filter.index + 1
 	}
 
-	for ; index < len(s.decoderFilters); index++ {
-		f = s.decoderFilters[index]
+	for ; index < len(s.receiverFilters); index++ {
+		f = s.receiverFilters[index]
 
 		s.filterStage |= DecodeData
-		status := f.filter.DecodeData(data, endStream)
+		status := f.filter.OnDecodeData(data, endStream)
 		s.filterStage &= ^DecodeData
 
 		if status == types.FilterDataStatusContinue {
@@ -205,7 +205,7 @@ func (s *activeStream) decodeDataFilters(filter *activeStreamDecoderFilter, data
 			switch status {
 			case types.FilterDataStatusStopIterationAndBuffer,
 				types.FilterDataStatusStopIterationAndWatermark:
-				s.decoderFiltersStreaming = status == types.FilterDataStatusStopIterationAndWatermark
+				s.receiverFiltersStreaming = status == types.FilterDataStatusStopIterationAndWatermark
 				f.handleBufferData(data)
 			case types.FilterDataStatusStopIterationNoBuffer:
 				f.stoppedNoBuf = true
@@ -220,23 +220,23 @@ func (s *activeStream) decodeDataFilters(filter *activeStreamDecoderFilter, data
 	return false
 }
 
-func (s *activeStream) decodeTrailersFilters(filter *activeStreamDecoderFilter, trailers map[string]string) bool {
+func (s *activeStream) decodeTrailersFilters(filter *activeStreamReceiverFilter, trailers map[string]string) bool {
 	if s.localProcessDone {
 		return false
 	}
 
 	var index int
-	var f *activeStreamDecoderFilter
+	var f *activeStreamReceiverFilter
 
 	if filter != nil {
 		index = filter.index + 1
 	}
 
-	for ; index < len(s.decoderFilters); index++ {
-		f = s.decoderFilters[index]
+	for ; index < len(s.receiverFilters); index++ {
+		f = s.receiverFilters[index]
 
 		s.filterStage |= DecodeTrailers
-		status := f.filter.DecodeTrailers(trailers)
+		status := f.filter.OnDecodeTrailers(trailers)
 		s.filterStage &= ^DecodeTrailers
 
 		if status == types.FilterTrailersStatusContinue {
@@ -294,16 +294,16 @@ func (f *activeStreamFilter) RequestInfo() types.RequestInfo {
 	return f.activeStream.requestInfo
 }
 
-// types.StreamDecoderFilterCallbacks
-type activeStreamDecoderFilter struct {
+// types.StreamReceiverFilterCallbacks
+type activeStreamReceiverFilter struct {
 	activeStreamFilter
 
-	filter types.StreamDecoderFilter
+	filter types.StreamReceiverFilter
 }
 
-func newActiveStreamDecoderFilter(idx int, activeStream *activeStream,
-	filter types.StreamDecoderFilter) *activeStreamDecoderFilter {
-	f := &activeStreamDecoderFilter{
+func newActiveStreamReceiverFilter(idx int, activeStream *activeStream,
+	filter types.StreamReceiverFilter) *activeStreamReceiverFilter {
+	f := &activeStreamReceiverFilter{
 		activeStreamFilter: activeStreamFilter{
 			index:        idx,
 			activeStream: activeStream,
@@ -315,11 +315,11 @@ func newActiveStreamDecoderFilter(idx int, activeStream *activeStream,
 	return f
 }
 
-func (f *activeStreamDecoderFilter) ContinueDecoding() {
+func (f *activeStreamReceiverFilter) ContinueDecoding() {
 	f.doContinue()
 }
 
-func (f *activeStreamDecoderFilter) doContinue() {
+func (f *activeStreamReceiverFilter) doContinue() {
 	if f.activeStream.localProcessDone {
 		return
 	}
@@ -332,7 +332,7 @@ func (f *activeStreamDecoderFilter) doContinue() {
 		f.headersContinued = true
 
 		endStream := f.activeStream.downstreamRecvDone && !hasBuffedData && !hasTrailer
-		f.activeStream.doDecodeHeaders(f, f.activeStream.downstreamReqHeaders, endStream)
+		f.activeStream.doReceiveHeaders(f, f.activeStream.downstreamReqHeaders, endStream)
 	}
 
 	if hasBuffedData || f.stoppedNoBuf {
@@ -341,15 +341,15 @@ func (f *activeStreamDecoderFilter) doContinue() {
 		}
 
 		endStream := f.activeStream.downstreamRecvDone && !hasTrailer
-		f.activeStream.doDecodeData(f, f.activeStream.downstreamReqDataBuf, endStream)
+		f.activeStream.doReceiveData(f, f.activeStream.downstreamReqDataBuf, endStream)
 	}
 
 	if hasTrailer {
-		f.activeStream.doDecodeTrailers(f, f.activeStream.downstreamReqTrailers)
+		f.activeStream.doReceiveTrailers(f, f.activeStream.downstreamReqTrailers)
 	}
 }
 
-func (f *activeStreamDecoderFilter) handleBufferData(buf types.IoBuffer) {
+func (f *activeStreamReceiverFilter) handleBufferData(buf types.IoBuffer) {
 	if f.activeStream.downstreamReqDataBuf != buf {
 		if f.activeStream.downstreamReqDataBuf == nil {
 			f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(buf.Len())
@@ -359,62 +359,46 @@ func (f *activeStreamDecoderFilter) handleBufferData(buf types.IoBuffer) {
 	}
 }
 
-func (f *activeStreamDecoderFilter) DecodingBuffer() types.IoBuffer {
+func (f *activeStreamReceiverFilter) DecodingBuffer() types.IoBuffer {
 	return f.activeStream.downstreamReqDataBuf
 }
 
-func (f *activeStreamDecoderFilter) AddDecodedData(buf types.IoBuffer, streamingFilter bool) {
+func (f *activeStreamReceiverFilter) AddDecodedData(buf types.IoBuffer, streamingFilter bool) {
 	f.activeStream.addDecodedData(f, buf, streamingFilter)
 }
 
-func (f *activeStreamDecoderFilter) EncodeHeaders(headers interface{}, endStream bool) {
+func (f *activeStreamReceiverFilter) AppendHeaders(headers interface{}, endStream bool) {
 	f.activeStream.downstreamRespHeaders = headers
-	f.activeStream.doEncodeHeaders(nil, headers, endStream)
+	f.activeStream.doAppendHeaders(nil, headers, endStream)
 }
 
-func (f *activeStreamDecoderFilter) EncodeData(buf types.IoBuffer, endStream bool) {
-	f.activeStream.doEncodeData(nil, buf, endStream)
+func (f *activeStreamReceiverFilter) AppendData(buf types.IoBuffer, endStream bool) {
+	f.activeStream.doAppendData(nil, buf, endStream)
 }
 
-func (f *activeStreamDecoderFilter) EncodeTrailers(trailers map[string]string) {
+func (f *activeStreamReceiverFilter) AppendTrailers(trailers map[string]string) {
 	f.activeStream.downstreamRespTrailers = trailers
-	f.activeStream.doEncodeTrailers(nil, trailers)
+	f.activeStream.doAppendTrailers(nil, trailers)
 }
 
-func (f *activeStreamDecoderFilter) OnDecoderFilterAboveWriteBufferHighWatermark() {
-	f.activeStream.responseEncoder.GetStream().ReadDisable(true)
-}
-
-func (f *activeStreamDecoderFilter) OnDecoderFilterBelowWriteBufferLowWatermark() {
-	f.activeStream.responseEncoder.GetStream().ReadDisable(false)
-}
-
-func (f *activeStreamDecoderFilter) AddDownstreamWatermarkCallbacks(cb types.DownstreamWatermarkEventListener) {
-	f.activeStream.watermarkCallbacks = cb
-}
-
-func (f *activeStreamDecoderFilter) RemoveDownstreamWatermarkCallbacks(cb types.DownstreamWatermarkEventListener) {
-	f.activeStream.watermarkCallbacks = nil
-}
-
-func (f *activeStreamDecoderFilter) SetDecoderBufferLimit(limit uint32) {
+func (f *activeStreamReceiverFilter) SetDecoderBufferLimit(limit uint32) {
 	f.activeStream.setBufferLimit(limit)
 }
 
-func (f *activeStreamDecoderFilter) DecoderBufferLimit() uint32 {
+func (f *activeStreamReceiverFilter) DecoderBufferLimit() uint32 {
 	return f.activeStream.bufferLimit
 }
 
-// types.StreamEncoderFilterCallbacks
-type activeStreamEncoderFilter struct {
+// types.StreamSenderFilterCallbacks
+type activeStreamSenderFilter struct {
 	activeStreamFilter
 
-	filter types.StreamEncoderFilter
+	filter types.StreamSenderFilter
 }
 
-func newActiveStreamEncoderFilter(idx int, activeStream *activeStream,
-	filter types.StreamEncoderFilter) *activeStreamEncoderFilter {
-	f := &activeStreamEncoderFilter{
+func newActiveStreamSenderFilter(idx int, activeStream *activeStream,
+	filter types.StreamSenderFilter) *activeStreamSenderFilter {
+	f := &activeStreamSenderFilter{
 		activeStreamFilter: activeStreamFilter{
 			index:        idx,
 			activeStream: activeStream,
@@ -427,11 +411,11 @@ func newActiveStreamEncoderFilter(idx int, activeStream *activeStream,
 	return f
 }
 
-func (f *activeStreamEncoderFilter) ContinueEncoding() {
+func (f *activeStreamSenderFilter) ContinueEncoding() {
 	f.doContinue()
 }
 
-func (f *activeStreamEncoderFilter) doContinue() {
+func (f *activeStreamSenderFilter) doContinue() {
 	f.stopped = false
 	hasBuffedData := f.activeStream.downstreamRespDataBuf != nil
 	hasTrailer := f.activeStream.downstreamRespTrailers == nil
@@ -439,7 +423,7 @@ func (f *activeStreamEncoderFilter) doContinue() {
 	if !f.headersContinued {
 		f.headersContinued = true
 		endStream := f.activeStream.localProcessDone && !hasBuffedData && !hasTrailer
-		f.activeStream.doEncodeHeaders(f, f.activeStream.downstreamRespHeaders, endStream)
+		f.activeStream.doAppendHeaders(f, f.activeStream.downstreamRespHeaders, endStream)
 	}
 
 	if hasBuffedData || f.stoppedNoBuf {
@@ -448,15 +432,15 @@ func (f *activeStreamEncoderFilter) doContinue() {
 		}
 
 		endStream := f.activeStream.downstreamRecvDone && !hasTrailer
-		f.activeStream.doEncodeData(f, f.activeStream.downstreamRespDataBuf, endStream)
+		f.activeStream.doAppendData(f, f.activeStream.downstreamRespDataBuf, endStream)
 	}
 
 	if hasTrailer {
-		f.activeStream.doEncodeTrailers(f, f.activeStream.downstreamRespTrailers)
+		f.activeStream.doAppendTrailers(f, f.activeStream.downstreamRespTrailers)
 	}
 }
 
-func (f *activeStreamEncoderFilter) handleBufferData(buf types.IoBuffer) {
+func (f *activeStreamSenderFilter) handleBufferData(buf types.IoBuffer) {
 	if f.activeStream.downstreamRespDataBuf != buf {
 		if f.activeStream.downstreamRespDataBuf == nil {
 			f.activeStream.downstreamRespDataBuf = buffer.NewIoBuffer(buf.Len())
@@ -466,26 +450,18 @@ func (f *activeStreamEncoderFilter) handleBufferData(buf types.IoBuffer) {
 	}
 }
 
-func (f *activeStreamEncoderFilter) EncodingBuffer() types.IoBuffer {
+func (f *activeStreamSenderFilter) EncodingBuffer() types.IoBuffer {
 	return f.activeStream.downstreamRespDataBuf
 }
 
-func (f *activeStreamEncoderFilter) AddEncodedData(buf types.IoBuffer, streamingFilter bool) {
+func (f *activeStreamSenderFilter) AddEncodedData(buf types.IoBuffer, streamingFilter bool) {
 	f.activeStream.addEncodedData(f, buf, streamingFilter)
 }
 
-func (f *activeStreamEncoderFilter) OnEncoderFilterAboveWriteBufferHighWatermark() {
-	f.activeStream.callHighWatermarkCallbacks()
-}
-
-func (f *activeStreamEncoderFilter) OnEncoderFilterBelowWriteBufferLowWatermark() {
-	f.activeStream.callLowWatermarkCallbacks()
-}
-
-func (f *activeStreamEncoderFilter) SetEncoderBufferLimit(limit uint32) {
+func (f *activeStreamSenderFilter) SetEncoderBufferLimit(limit uint32) {
 	f.activeStream.setBufferLimit(limit)
 }
 
-func (f *activeStreamEncoderFilter) EncoderBufferLimit() uint32 {
+func (f *activeStreamSenderFilter) EncoderBufferLimit() uint32 {
 	return f.activeStream.bufferLimit
 }

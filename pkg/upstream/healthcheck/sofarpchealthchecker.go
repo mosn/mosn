@@ -90,18 +90,18 @@ func (c *sofarpcHealthChecker) createCodecClient(data types.CreateConnectionData
 	return stream.NewCodecClient(nil, protocol.SofaRpc, data.Connection, data.HostInfo)
 }
 
-// types.StreamDecoder
+// types.StreamReceiver
 type sofarpcHealthCheckSession struct {
 	healthCheckSession
 
 	client         stream.CodecClient
-	requestEncoder types.StreamEncoder
+	requestEncoder types.StreamSender
 	responseStatus int16
 	healthChecker  *sofarpcHealthChecker
 	expectReset    bool
 }
 
-func (s *sofarpcHealthCheckSession) OnDecodeHeaders(headers map[string]string, endStream bool) {
+func (s *sofarpcHealthCheckSession) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	//bolt
 	//log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
 	if statusStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
@@ -119,13 +119,13 @@ func (s *sofarpcHealthCheckSession) OnDecodeHeaders(headers map[string]string, e
 	}
 }
 
-func (s *sofarpcHealthCheckSession) OnDecodeData(data types.IoBuffer, endStream bool) {
+func (s *sofarpcHealthCheckSession) OnReceiveData(data types.IoBuffer, endStream bool) {
 	if endStream {
 		s.onResponseComplete()
 	}
 }
 
-func (s *sofarpcHealthCheckSession) OnDecodeTrailers(trailers map[string]string) {
+func (s *sofarpcHealthCheckSession) OnReceiveTrailers(trailers map[string]string) {
 	s.onResponseComplete()
 }
 
@@ -164,7 +164,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	if s.healthChecker.protocolCode == sofarpc.BOLT_V1 {
 		reqHeaders := codec.NewBoltHeartbeat(id)
 
-		s.requestEncoder.EncodeHeaders(reqHeaders, true)
+		s.requestEncoder.AppendHeaders(reqHeaders, true)
 		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat to %s,request id = %d", s.host.AddressString(), reqID)
 		s.requestEncoder = nil
 		// start timeout interval
@@ -207,7 +207,3 @@ func (s *sofarpcHealthCheckSession) OnResetStream(reason types.StreamResetReason
 
 	s.handleFailure(types.FailureNetwork)
 }
-
-func (s *sofarpcHealthCheckSession) OnAboveWriteBufferHighWatermark() {}
-
-func (s *sofarpcHealthCheckSession) OnBelowWriteBufferLowWatermark() {}

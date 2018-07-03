@@ -62,19 +62,19 @@ func (c *http2HealthChecker) createCodecClient(data types.CreateConnectionData) 
 	return stream.NewCodecClient(nil, protocol.Http2, data.Connection, data.HostInfo)
 }
 
-// types.StreamDecoder
+// types.StreamReceiver
 type http2HealthCheckSession struct {
 	healthCheckSession
 
 	client          stream.CodecClient
-	requestEncoder  types.StreamEncoder
+	requestSender   types.StreamSender
 	responseHeaders map[string]string
 	healthChecker   *http2HealthChecker
 	expectReset     bool
 }
 
-// // types.StreamDecoder
-func (s *http2HealthCheckSession) OnDecodeHeaders(headers map[string]string, endStream bool) {
+// // types.StreamReceiver
+func (s *http2HealthCheckSession) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	s.responseHeaders = headers
 
 	if endStream {
@@ -82,13 +82,13 @@ func (s *http2HealthCheckSession) OnDecodeHeaders(headers map[string]string, end
 	}
 }
 
-func (s *http2HealthCheckSession) OnDecodeData(data types.IoBuffer, endStream bool) {
+func (s *http2HealthCheckSession) OnReceiveData(data types.IoBuffer, endStream bool) {
 	if endStream {
 		s.onResponseComplete()
 	}
 }
 
-func (s *http2HealthCheckSession) OnDecodeTrailers(trailers map[string]string) {
+func (s *http2HealthCheckSession) OnReceiveTrailers(trailers map[string]string) {
 	s.onResponseComplete()
 }
 
@@ -107,8 +107,8 @@ func (s *http2HealthCheckSession) onInterval() {
 		s.expectReset = false
 	}
 
-	s.requestEncoder = s.client.NewStream("", s)
-	s.requestEncoder.GetStream().AddEventListener(s)
+	s.requestSender = s.client.NewStream("", s)
+	s.requestSender.GetStream().AddEventListener(s)
 
 	reqHeaders := map[string]string{
 		types.HeaderMethod: http.MethodGet,
@@ -116,8 +116,8 @@ func (s *http2HealthCheckSession) onInterval() {
 		types.HeaderPath:   s.healthChecker.checkPath,
 	}
 
-	s.requestEncoder.EncodeHeaders(reqHeaders, true)
-	s.requestEncoder = nil
+	s.requestSender.AppendHeaders(reqHeaders, true)
+	s.requestSender = nil
 
 	s.healthCheckSession.onInterval()
 }
@@ -164,7 +164,3 @@ func (s *http2HealthCheckSession) OnResetStream(reason types.StreamResetReason) 
 
 	s.handleFailure(types.FailureNetwork)
 }
-
-func (s *http2HealthCheckSession) OnAboveWriteBufferHighWatermark() {}
-
-func (s *http2HealthCheckSession) OnBelowWriteBufferLowWatermark() {}

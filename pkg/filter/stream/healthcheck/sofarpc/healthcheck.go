@@ -31,7 +31,7 @@ import (
 
 // todo: support cached pass through
 
-// types.StreamEncoderFilter
+// types.StreamSenderFilter
 type healthCheckFilter struct {
 	context context.Context
 
@@ -45,7 +45,7 @@ type healthCheckFilter struct {
 	requestId      uint32
 	healthCheckReq bool
 	// callbacks
-	cb types.StreamDecoderFilterCallbacks
+	cb types.StreamReceiverFilterCallbacks
 }
 
 func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter) *healthCheckFilter {
@@ -57,7 +57,7 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 	}
 }
 
-func (f *healthCheckFilter) DecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
+func (f *healthCheckFilter) OnDecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
 	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
 		cmdCode := sofarpc.ConvertPropertyValue(cmdCodeStr, reflect.Int16)
 
@@ -89,7 +89,7 @@ func (f *healthCheckFilter) DecodeHeaders(headers map[string]string, endStream b
 	}
 }
 
-func (f *healthCheckFilter) DecodeData(buf types.IoBuffer, endStream bool) types.FilterDataStatus {
+func (f *healthCheckFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.FilterDataStatus {
 	if endStream && f.intercept {
 		f.handleIntercept()
 	}
@@ -101,7 +101,7 @@ func (f *healthCheckFilter) DecodeData(buf types.IoBuffer, endStream bool) types
 	}
 }
 
-func (f *healthCheckFilter) DecodeTrailers(trailers map[string]string) types.FilterTrailersStatus {
+func (f *healthCheckFilter) OnDecodeTrailers(trailers map[string]string) types.FilterTrailersStatus {
 	if f.intercept {
 		f.handleIntercept()
 	}
@@ -130,10 +130,10 @@ func (f *healthCheckFilter) handleIntercept() {
 		//TODO: set hijack reply - codec error, actually this would happen at codec stage which is before this
 	}
 
-	f.cb.EncodeHeaders(resp, true)
+	f.cb.AppendHeaders(resp, true)
 }
 
-func (f *healthCheckFilter) SetDecoderFilterCallbacks(cb types.StreamDecoderFilterCallbacks) {
+func (f *healthCheckFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
 	f.cb = cb
 }
 
@@ -146,7 +146,7 @@ type HealthCheckFilterConfigFactory struct {
 
 func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
 	filter := NewHealthCheckFilter(context, f.FilterConfig)
-	callbacks.AddStreamDecoderFilter(filter)
+	callbacks.AddStreamReceiverFilter(filter)
 }
 
 func CreateHealthCheckFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {

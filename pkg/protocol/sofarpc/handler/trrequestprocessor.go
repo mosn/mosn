@@ -30,7 +30,7 @@ import (
 type TrRequestProcessor struct{}
 
 // ctx = type.serverStreamConnection
-// CALLBACK STREAM LEVEL'S OnDecodeHeaders
+// CALLBACK STREAM LEVEL'S OnReceiveHeaders
 func (b *TrRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.TrRequestCommand); ok {
 		deserializeRequestAllFieldsTR(cmd, context)

@@ -54,7 +54,7 @@ func (p *connPool) InitActiveClient(context context.Context) error {
 func (p *connPool) DrainConnections() {}
 
 //由 PROXY 调用
-func (p *connPool) NewStream(context context.Context, streamId string, responseDecoder types.StreamDecoder,
+func (p *connPool) NewStream(context context.Context, streamId string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
 	p.mux.Lock()
 
@@ -64,7 +64,7 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 	p.mux.Unlock()
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnPoolFailure(streamId, types.Overflow, nil)
+		cb.OnFailure(streamId, types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -75,7 +75,7 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		streamEncoder := p.primaryClient.codecClient.NewStream(streamId, responseDecoder)
-		cb.OnPoolReady(streamId, streamEncoder, p.host)
+		cb.OnReady(streamId, streamEncoder, p.host)
 	}
 
 	return nil
@@ -215,10 +215,6 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
-
-func (ac *activeClient) OnAboveWriteBufferHighWatermark() {}
-
-func (ac *activeClient) OnBelowWriteBufferLowWatermark() {}
 
 func (ac *activeClient) OnStreamDestroy() {
 	ac.pool.onStreamDestroy(ac)

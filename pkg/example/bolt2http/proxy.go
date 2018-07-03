@@ -294,7 +294,7 @@ func clustersrpc() []v2.Cluster {
 			{"stage", "label", "version"},
 			{"version"}},
 	}
-	
+
 	configs = append(configs, v2.Cluster{
 		Name:                 TestCluster,
 		ClusterType:          v2.SIMPLE_CLUSTER,
@@ -327,10 +327,6 @@ func (ccc *rpclientConnCallbacks) OnEvent(event types.ConnectionEvent) {
 		ccc.cc.Write(boltV1PostData)
 	}
 }
-
-func (ccc *rpclientConnCallbacks) OnAboveWriteBufferHighWatermark() {}
-
-func (ccc *rpclientConnCallbacks) OnBelowWriteBufferLowWatermark() {}
 
 type rpcclientConnReadFilter struct {
 }

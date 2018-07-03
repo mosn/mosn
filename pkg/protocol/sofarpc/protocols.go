@@ -45,7 +45,7 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 	}
 }
 
-//PROTOCOL LEVEL's Unified EncodeHeaders for BOLTV1、BOLTV2、TR
+//PROTOCOL LEVEL's Unified AppendHeaders for BOLTV1、BOLTV2、TR
 func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) (error, types.IoBuffer) {
 	var protocolCode byte
 

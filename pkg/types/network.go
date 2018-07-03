@@ -348,8 +348,6 @@ type Connection interface {
 	// Get read buffer, used by network read filter
 	GetReadBuffer() IoBuffer
 
-	AboveHighWatermark() bool
-
 	FilterManager() FilterManager
 
 	// Caution: raw conn only used in io-loop disable mode
@@ -397,12 +395,6 @@ func (ce ConnectionEvent) ConnectFailure() bool {
 type ConnectionEventListener interface {
 	// Called on ConnectionEvent
 	OnEvent(event ConnectionEvent)
-
-	// Called on write buffer's data run above write buffer
-	OnAboveWriteBufferHighWatermark()
-
-	// Called on write buffer's data run below write buffer
-	OnBelowWriteBufferLowWatermark()
 }
 
 type ConnectionHandler interface {
