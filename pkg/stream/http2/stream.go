@@ -499,14 +499,14 @@ func (s *serverStream) doSend() {
 
 func (s *serverStream) handleRequest() {
 	if s.request != nil {
-		s.decoder.OnReceiveHeaders(decodeHeader(s.request.Header), false)
+		s.decoder.OnReceiveHeaders(decodeHeaderWithOutPath(s.request.Header), false)
 
 		//remove detect
 		if s.element != nil {
 			buf := &buffer.IoBuffer{}
 			buf.ReadFrom(s.request.Body)
 			s.decoder.OnReceiveData(buf, false)
-			s.decoder.OnReceiveTrailers(decodeHeader(s.request.Trailer))
+			s.decoder.OnReceiveTrailers(decodeHeaderWithOutPath(s.request.Trailer))
 		}
 	}
 }
