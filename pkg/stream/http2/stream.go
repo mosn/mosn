@@ -163,7 +163,6 @@ func (ssc *serverStreamConnection) OnGoAway() {
 
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
-	log.StartLogger.Debugf("http2 stream serve http request")
 	//generate stream id using timestamp
 	streamId := "streamID-" + time.Now().String()
 
@@ -236,7 +235,7 @@ type clientStream struct {
 
 // types.StreamEncoder
 func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error {
-	log.StartLogger.Debugf("http2 client stream encode headers")
+	log.StartLogger.Tracef("http2 client stream encode headers")
 	headers, _ := headers_.(map[string]string)
 
 	if s.request == nil {
@@ -269,7 +268,7 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 
 	s.request.Header = encodeHeader(headers)
 
-	log.StartLogger.Debugf("http2 client stream encode headers,headers = %v", s.request.Header)
+	log.StartLogger.Tracef("http2 client stream encode headers,headers = %v", s.request.Header)
 
 	if endStream {
 		s.endStream()
@@ -279,7 +278,7 @@ func (s *clientStream) EncodeHeaders(headers_ interface{}, endStream bool) error
 }
 
 func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
-	log.StartLogger.Debugf("http2 client stream encode data")
+	log.StartLogger.Tracef("http2 client stream encode data")
 	if s.request == nil {
 		s.request = new(http.Request)
 	}
@@ -289,7 +288,7 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 		buf: data,
 	}
 
-	log.StartLogger.Debugf("http2 client stream encode data,data = %v", data.String())
+	log.StartLogger.Tracef("http2 client stream encode data,data = %v", data.String())
 
 	if endStream {
 		s.endStream()
@@ -299,7 +298,7 @@ func (s *clientStream) EncodeData(data types.IoBuffer, endStream bool) error {
 }
 
 func (s *clientStream) EncodeTrailers(trailers map[string]string) error {
-	log.StartLogger.Debugf("http2 client stream encode trailers")
+	log.StartLogger.Tracef("http2 client stream encode trailers")
 	s.request.Trailer = encodeHeader(trailers)
 	s.endStream()
 
@@ -327,7 +326,7 @@ func (s *clientStream) ReadDisable(disable bool) {
 func (s *clientStream) doSend() {
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
 	if err != nil {
-		log.StartLogger.Debugf("http2 client stream send error %v", err)
+		log.StartLogger.Tracef("http2 client stream send error %v", err)
 		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
 		switch err.(type) {
 		case http2.StreamError:
@@ -377,9 +376,7 @@ func (s *clientStream) CleanStream(){
 }
 
 func (s *clientStream) handleResponse() {
-	log.StartLogger.Debugf("client stream handle response")
 	if s.response != nil {
-		log.StartLogger.Debugf("client stream handle response success")
 		s.decoder.OnDecodeHeaders(decodeHeader(s.response.Header), false)
 		buf := &buffer.IoBuffer{}
 		buf.ReadFrom(s.response.Body)

@@ -187,7 +187,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	}
 
 	//Get some route by service name
-	log.StartLogger.Debugf("before active stream route")
+	log.StartLogger.Tracef("before active stream route")
 	route := s.proxy.routers.Route(headers, 1)
 	// route,routeKey:= s.proxy.routers.Route(headers)
 
@@ -200,7 +200,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 
 		return
 	}
-	log.StartLogger.Debugf("get route : %v,clusterName=%v", route, route.RouteRule().ClusterName())
+	log.StartLogger.Tracef("get route : %v,clusterName=%v", route, route.RouteRule().ClusterName())
 
 	s.route = route
 	s.requestInfo.SetRouteEntry(route.RouteRule())
@@ -209,7 +209,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
-	log.StartLogger.Debugf("before initializeUpstreamConnectionPool")
+	log.StartLogger.Tracef("before initializeUpstreamConnectionPool")
 	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
 
 	if err != nil {
@@ -217,7 +217,7 @@ func (s *activeStream) doDecodeHeaders(filter *activeStreamDecoderFilter, header
 		return
 	}
 
-	log.StartLogger.Debugf("after initializeUpstreamConnectionPool")
+	log.StartLogger.Tracef("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
@@ -243,7 +243,7 @@ func (s *activeStream) OnDecodeData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *activeStream) doDecodeData(filter *activeStreamDecoderFilter, data types.IoBuffer, endStream bool) {
-	log.StartLogger.Debugf("active stream do decode data")
+	log.StartLogger.Tracef("active stream do decode data")
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
 		return
@@ -533,7 +533,7 @@ func (s *activeStream) onUpstreamResponseRecvDone() {
 
 func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
 	// todo: update stats
-	log.StartLogger.Debugf("on upstream reset invoked")
+	log.StartLogger.Tracef("on upstream reset invoked")
 
 	// see if we need a retry
 	if urtype != UpstreamGlobalTimeout &&
@@ -550,7 +550,7 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 
 	if reason == types.StreamOverflow || reason == types.StreamConnectionFailed ||
 		reason == types.StreamRemoteReset{
-		log.StartLogger.Debugf("on upstream reset reason %v",reason)
+		log.StartLogger.Tracef("on upstream reset reason %v",reason)
 		s.upstreamRequest.connPool.Close()
 		s.proxy.readCallbacks.Connection().RawConn().Close()
 		s.resetStream()

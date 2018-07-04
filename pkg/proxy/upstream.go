@@ -71,7 +71,7 @@ func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
 // ~~~ encode request wrapper
 
 func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream bool) {
-	log.StartLogger.Debugf("upstream request encode headers")
+	log.StartLogger.Tracef("upstream request encode headers")
 	r.encodeComplete = endStream
 	streamID := ""
 
@@ -79,7 +79,7 @@ func (r *upstreamRequest) encodeHeaders(headers map[string]string, endStream boo
 		streamID = streamid
 	}
 
-	log.StartLogger.Debugf("upstream request before conn pool new stream")
+	log.StartLogger.Tracef("upstream request before conn pool new stream")
 	r.connPool.NewStream(r.proxy.context, streamID, r, r)
 }
 
