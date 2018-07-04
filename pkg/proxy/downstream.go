@@ -223,7 +223,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	// active realize loadbalancer ctx
 	log.StartLogger.Tracef("before initializeUpstreamConnectionPool")
-	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
+	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(),s)
 
 	if err != nil {
 		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed")

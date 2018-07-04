@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/deckarep/golang-set"
-  packages = ["."]
-  revision = "1d4478f51bed434f1dadf96dcd9b43aabac66795"
-  version = "v1.7"
-
-[[projects]]
   name = "github.com/envoyproxy/go-control-plane"
   packages = [
     "envoy/api/v2",
@@ -78,12 +72,6 @@
   revision = "326bf4a7f709d263f964a6a96558676b103f3534"
 
 [[projects]]
-  name = "github.com/julienschmidt/httprouter"
-  packages = ["."]
-  revision = "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
-  version = "v1.1"
-
-[[projects]]
   branch = "master"
   name = "github.com/jwangsadinata/go-multimap"
   packages = [
@@ -114,22 +102,10 @@
   revision = "cae364899cd8c08b83bfdcabf4ce4dd4a68ca6da"
 
 [[projects]]
-  name = "github.com/magiconair/properties"
-  packages = ["."]
-  revision = "c2353362d570a7bfa228149c62842019201cfb71"
-  version = "v1.8.0"
-
-[[projects]]
   name = "github.com/markphelps/optional"
   packages = ["."]
   revision = "462a8e39a44e0c8bebfb476e131e45546eb358bf"
   version = "v0.4.2"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/nu7hatch/gouuid"
-  packages = ["."]
-  revision = "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
 
 [[projects]]
   branch = "master"
@@ -244,6 +220,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0b2d708b2ef849c20cddc02f8c8dc4f2b798b9d896c010122b46f5d941a96296"
+  inputs-digest = "a29be45841f2bd73ec4e888fe3331274693d6eda2202e05222a30a4a1d69df54"
   solver-name = "gps-cdcl"
   solver-version = 1

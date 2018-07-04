@@ -34,8 +34,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/xds"
 )
 
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
@@ -88,7 +86,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		var srv server.Server
 		if mode == config.Xds {
 			cmf := &clusterManagerFilter{}
-			cm := cluster.NewClusterManager(nil, nil, nil, true)
+			cm := cluster.NewClusterManager(nil, nil, nil, true,false)
 			srv = server.NewServer(sc, cmf, cm)
 
 		} else {
@@ -108,7 +106,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			clusters, clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
 
 			//create cluster manager
-			cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery)
+			cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery,c.ClusterManager.RegistryUseHealthCheck)
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, cm)
 

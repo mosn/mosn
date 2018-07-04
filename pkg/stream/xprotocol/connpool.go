@@ -31,7 +31,7 @@ func (p *connPool) Protocol() types.Protocol {
 func (p *connPool) DrainConnections() {}
 
 //由 PROXY 调用
-func (p *connPool) NewStream(context context.Context, streamId string, responseDecoder types.StreamDecoder,
+func (p *connPool) NewStream(context context.Context, streamId string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
 	log.StartLogger.Tracef("xprotocol conn pool new stream")
 	p.mux.Lock()
@@ -42,7 +42,7 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 	p.mux.Unlock()
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnPoolFailure(streamId, types.Overflow, nil)
+		cb.OnFailure(streamId, types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -55,7 +55,7 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 		log.StartLogger.Tracef("xprotocol conn pool codec client new stream")
 		streamEncoder := p.primaryClient.codecClient.NewStream(streamId, responseDecoder)
 		log.StartLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
-		cb.OnPoolReady(streamId, streamEncoder, p.host)
+		cb.OnReady(streamId, streamEncoder, p.host)
 	}
 
 	return nil

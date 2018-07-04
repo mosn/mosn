@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/rcrowley/go-metrics"
+    "strconv"
 )
 
 type Stats struct {

@@ -18,7 +18,6 @@ package config
 
 import (
 	"errors"
-	"fmt"
 
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"

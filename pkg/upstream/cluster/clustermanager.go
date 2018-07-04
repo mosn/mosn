@@ -312,7 +312,7 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(cluster string, protocol t
 	}
 }
 
-func (cm *clusterManager) TcpConnForCluster(cluster string, context context.Context) types.CreateConnectionData {
+func (cm *clusterManager) TcpConnForCluster(cluster string,lbCtx types.LoadBalancerContext) types.CreateConnectionData {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {

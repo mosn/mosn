@@ -84,9 +84,9 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	headers["Host"] = conn.connection.RemoteAddr().String()
 	headers["Path"] = "/"
 	log.StartLogger.Tracef("before Dispatch on decode header")
-	conn.OnDecodeHeader(streamId, headers)
+	conn.OnReceiveHeaders(streamId, headers)
 	log.StartLogger.Tracef("after Dispatch on decode header")
-	conn.OnDecodeData(streamId, buffer)
+	conn.OnReceiveData(streamId, buffer)
 	log.StartLogger.Tracef("after Dispatch on decode data")
 }
 
@@ -106,7 +106,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 	// todo
 }
 
-func (conn *streamConnection) NewStream(streamId string, responseDecoder types.StreamDecoder) types.StreamEncoder {
+func (conn *streamConnection) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
 	log.StartLogger.Tracef("xprotocol stream new stream")
 	stream := stream{
 		context:    context.WithValue(conn.context, types.ContextKeyStreamId, streamId),
@@ -120,7 +120,7 @@ func (conn *streamConnection) NewStream(streamId string, responseDecoder types.S
 	return &stream
 }
 
-func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string]string) types.FilterStatus {
+func (conn *streamConnection) OnReceiveHeaders(streamId string, headers map[string]string) types.FilterStatus {
 	log.StartLogger.Tracef("xprotocol stream on decode header")
 	if conn.serverCallbacks != nil {
 		log.StartLogger.Tracef("xprotocol stream on new stream deteced invoked")
@@ -128,16 +128,16 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 	}
 	if stream, ok := conn.activeStream.Get(streamId); ok {
 		log.StartLogger.Tracef("before stream decoder invoke on decode header")
-		stream.decoder.OnDecodeHeaders(headers, false)
+		stream.decoder.OnReceiveHeaders(headers, false)
 	}
 	log.StartLogger.Tracef("after stream decoder invoke on decode header")
 	return types.Continue
 }
 
-func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer) types.FilterStatus {
+func (conn *streamConnection) OnReceiveData(streamId string, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStream.Get(streamId); ok {
 		log.StartLogger.Tracef("xprotocol stream on decode data")
-		stream.decoder.OnDecodeData(data, true)
+		stream.decoder.OnReceiveData(data, true)
 
 		if stream.direction == ClientStream {
 			// for client stream, remove stream on response read
@@ -187,7 +187,7 @@ type stream struct {
 	direction        StreamDirection // 0: out, 1: in
 	readDisableCount int
 	connection       *streamConnection
-	decoder          types.StreamDecoder
+	decoder          types.StreamReceiver
 	streamCbs        []types.StreamEventListener
 	encodedHeaders   types.IoBuffer
 	encodedData      types.IoBuffer
@@ -228,7 +228,7 @@ func (s *stream) BufferLimit() uint32 {
 }
 
 // types.StreamEncoder
-func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
+func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
 	log.StartLogger.Tracef("EncodeHeaders,request id = %s, direction = %d", s.streamId, s.direction)
 	if endStream {
 		s.endStream()
@@ -236,7 +236,7 @@ func (s *stream) EncodeHeaders(headers interface{}, endStream bool) error {
 	return nil
 }
 
-func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
+func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
 	log.StartLogger.Tracef("EncodeData,request id = %s, direction = %d,data = %v", s.streamId, s.direction, data.String())
 	if endStream {
@@ -245,7 +245,7 @@ func (s *stream) EncodeData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *stream) EncodeTrailers(trailers map[string]string) error {
+func (s *stream) AppendTrailers(trailers map[string]string) error {
 	log.StartLogger.Tracef("EncodeTrailers,request id = %s, direction = %d", s.streamId, s.direction)
 	s.endStream()
 	return nil
@@ -282,7 +282,7 @@ type streamMap struct {
 }
 
 func newStreamMap(context context.Context) streamMap {
-	smap := str.GetMap(context, 5096)
+	smap := make(map[string]interface{}, 5096)
 
 	return streamMap{
 		smap: smap,
