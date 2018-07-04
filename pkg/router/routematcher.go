@@ -35,6 +35,7 @@ func init() {
 func NewRouteMatcher(config interface{}) (types.Routers, error) {
 	routerMatcher := &RouteMatcher{
 		virtualHosts: make(map[string]types.VirtualHost),
+		wildcardVirtualHostSuffixes: make(map[int]map[string]types.VirtualHost),
 	}
 
 	if config, ok := config.(*v2.Proxy); ok {
