@@ -549,8 +549,8 @@ func (s *activeStream) onUpstreamReset(urtype UpstreamResetType, reason types.St
 	}
 
 	if reason == types.StreamOverflow || reason == types.StreamConnectionFailed ||
-		reason == types.StreamRemoteReset{
-		log.StartLogger.Tracef("on upstream reset reason %v",reason)
+		reason == types.StreamRemoteReset {
+		log.StartLogger.Tracef("on upstream reset reason %v", reason)
 		s.upstreamRequest.connPool.Close()
 		s.proxy.readCallbacks.Connection().RawConn().Close()
 		s.resetStream()

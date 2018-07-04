@@ -368,7 +368,7 @@ func (s *clientStream) doSend() {
 	}
 }
 
-func (s *clientStream) CleanStream(){
+func (s *clientStream) CleanStream() {
 	s.connection.asMutex.Lock()
 	s.response = nil
 	s.connection.activeStreams.Remove(s.element)
