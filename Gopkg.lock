@@ -18,14 +18,24 @@
     "envoy/api/v2/listener",
     "envoy/api/v2/route",
     "envoy/config/bootstrap/v2",
+    "envoy/config/filter/accesslog/v2",
+    "envoy/config/filter/network/http_connection_manager/v2",
+    "envoy/config/filter/network/tcp_proxy/v2",
     "envoy/config/metrics/v2",
     "envoy/config/ratelimit/v2",
     "envoy/config/trace/v2",
     "envoy/service/discovery/v2",
-    "envoy/type"
+    "envoy/type",
+    "pkg/util"
   ]
   revision = "469a90e97a000f23f2ab0bf494cdc8e1480a3dfa"
   version = "v0.2"
+
+[[projects]]
+  name = "github.com/fatih/structs"
+  packages = ["."]
+  revision = "a720dfa8df582c51dee1b36feabb906bde1588bd"
+  version = "v1.0"
 
 [[projects]]
   name = "github.com/gogo/googleapis"
@@ -74,6 +84,15 @@
   version = "v1.1"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/jwangsadinata/go-multimap"
+  packages = [
+    ".",
+    "slicemultimap"
+  ]
+  revision = "599609688a40c0234f4ed5bdc005b241909dbc46"
+
+[[projects]]
   name = "github.com/lyft/protoc-gen-validate"
   packages = ["validate"]
   revision = "cae364899cd8c08b83bfdcabf4ce4dd4a68ca6da"
@@ -83,6 +102,12 @@
   packages = ["."]
   revision = "c2353362d570a7bfa228149c62842019201cfb71"
   version = "v1.8.0"
+
+[[projects]]
+  name = "github.com/markphelps/optional"
+  packages = ["."]
+  revision = "462a8e39a44e0c8bebfb476e131e45546eb358bf"
+  version = "v0.4.2"
 
 [[projects]]
   branch = "master"
@@ -187,6 +212,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "56a2d00a5021fa95452ea2f6508a9ce30ac13ece4b4f0dbf9bfe909c43247322"
+  inputs-digest = "0b2d708b2ef849c20cddc02f8c8dc4f2b798b9d896c010122b46f5d941a96296"
   solver-name = "gps-cdcl"
   solver-version = 1
