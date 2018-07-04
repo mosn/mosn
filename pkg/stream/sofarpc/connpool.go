@@ -47,8 +47,10 @@ func (p *connPool) NewStream(context context.Context, streamId string,
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(context, p)
 	}
-
-	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
+	
+	if p.activeClient == nil {
+		cb.OnFailure(streamId, types.ConnectionFailure, nil)
+	} else if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		cb.OnFailure(streamId, types.Overflow, nil)
 	} else {
 		// todo: update host stats
@@ -104,8 +106,13 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
-
+	
 	data := pool.host.CreateConnection(context)
+	
+	if err := data.Connection.Connect(true); err != nil {
+		return nil
+	}
+	
 	codecClient := pool.createCodecClient(context, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
@@ -113,9 +120,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	ac.codecClient = codecClient
 	ac.host = data.HostInfo
-
-	data.Connection.Connect(true)
-
+	
 	return ac
 }
 
