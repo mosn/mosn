@@ -73,7 +73,6 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
 
-	var xdsClient *xds.XdsClient = nil
 	//get inherit fds
 	inheritListeners := getInheritListeners()
 
@@ -83,6 +82,10 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		//1. server config prepare
 		//server config
 		sc := config.ParseServerConfig(&serverConfig)
+		
+		// init default log
+		server.InitDefaultLogger(sc)
+			
 		var srv server.Server
 		if mode == config.Xds {
 			cmf := &clusterManagerFilter{}
@@ -95,12 +98,6 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			cmf := &clusterManagerFilter{}
 			var clusters []v2.Cluster
 			clusterMap := make(map[string][]v2.Host)
-
-			//for _, cluster := range c.ClusterManager.Clusters {
-			//	parsed := config.ParseClusterConfig(&cluster)
-			//	clusters = append(clusters, parsed)
-			//	clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
-			//}
 
 			// parse cluster all in one
 			clusters, clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
@@ -134,12 +131,6 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			}
 		}
 
-		if xdsClient == nil {
-			////get xds config
-			xdsClient := &xds.XdsClient{}
-			xdsClient.Start(c, serviceCluster, serviceNode)
-		}
-
 		go func() {
 			srv.Start()
 			select {
@@ -160,12 +151,13 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		}
 	}
 
+	////get xds config
+	xdsClient := xds.XdsClient{}
+	xdsClient.Start(c, serviceCluster, serviceNode)
 	//
 	////todo: daemon running
 	wg.Wait()
-	if xdsClient != nil {
-		xdsClient.Stop()
-	}
+	xdsClient.Stop()
 }
 
 // maybe used in proxy rewrite

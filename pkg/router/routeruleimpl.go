@@ -27,6 +27,7 @@ import (
 	//"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	httpmosn "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/http"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
@@ -242,7 +243,7 @@ func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint
 	log.StartLogger.Tracef("path route rule match invoked")
 	if prri.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers[types.HeaderPath]; ok {
+		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
 
 			if prri.caseSensitive {
 				if headerPathValue == prri.path {
@@ -283,7 +284,7 @@ func (prei *PrefixRouteRuleImpl) Match(headers map[string]string, randomValue ui
 
 	if prei.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers[types.HeaderPath]; ok {
+		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
 
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
 
@@ -318,7 +319,7 @@ func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
 
 func (rrei *RegexRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	if rrei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers[types.HeaderPath]; ok {
+		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
 			if rrei.regexPattern.MatchString(headerPathValue) {
 
 				return rrei
