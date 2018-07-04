@@ -155,12 +155,12 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 		defer c.AcrMux.RUnlock()
 
 		for ar := c.ActiveRequests.Front(); ar != nil; ar = ar.Next() {
-			//reason := types.StreamConnectionFailed
+			reason := types.StreamConnectionFailed
 
 			if c.ConnectedFlag {
-				//reason = types.StreamConnectionTermination
+				reason = types.StreamConnectionTermination
 			}
-			//ar.Value.(*activeRequest).requestEncoder.GetStream().ResetStream(reason)
+			ar.Value.(*activeRequest).requestSender.GetStream().ResetStream(reason)
 		}
 	}
 }

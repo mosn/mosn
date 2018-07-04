@@ -24,11 +24,18 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 
 	"time"
 )
 
 type ConfigContentKey string
+
+var ProtocolsSupported = map[string]bool {
+	string(protocol.SofaRpc):true,
+	string(protocol.Http2):true,
+	string(protocol.Http1):true,
+}
 
 // callback when corresponding module parsed
 type ConfigParsedCallback func(data interface{}, endParsing bool) error
@@ -106,8 +113,12 @@ func ParseProxyFilterJson(c *v2.Filter) *v2.Proxy {
 
 	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
 		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Fitler")
+	} else if _,ok := ProtocolsSupported[proxyConfig.DownstreamProtocol];!ok  {
+		log.StartLogger.Fatal("Invalid Downstream Protocol = ",proxyConfig.DownstreamProtocol)
+	} else if  _,ok := ProtocolsSupported[proxyConfig.UpstreamProtocol];!ok {
+		log.StartLogger.Fatal("Invalid Upstream Protocol = ",proxyConfig.UpstreamProtocol)
 	}
-
+	
 	if !proxyConfig.SupportDynamicRoute {
 		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
 	}
@@ -532,16 +543,27 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 
 func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
 
-	return v2.HealthCheck{
-		Protocol:           c.Protocol,
-		Timeout:            c.Timeout.Duration,
-		Interval:           c.Interval.Duration,
-		IntervalJitter:     c.IntervalJitter.Duration,
-		HealthyThreshold:   c.HealthyThreshold,
-		UnhealthyThreshold: c.UnhealthyThreshold,
-		CheckPath:          c.CheckPath,
-		ServiceName:        c.ServiceName,
+	var healthcheckInstance v2.HealthCheck
+	
+	if c.Protocol == "" {
+		log.StartLogger.Warnf("healthcheck for cluster is disabled")
+		
+	}else if _,ok := ProtocolsSupported[c.Protocol];ok {
+		healthcheckInstance =  v2.HealthCheck{
+			Protocol:           c.Protocol,
+			Timeout:            c.Timeout.Duration,
+			Interval:           c.Interval.Duration,
+			IntervalJitter:     c.IntervalJitter.Duration,
+			HealthyThreshold:   c.HealthyThreshold,
+			UnhealthyThreshold: c.UnhealthyThreshold,
+			CheckPath:          c.CheckPath,
+			ServiceName:        c.ServiceName,
+		}
+	}else{
+		log.StartLogger.Fatal("unsuppoted health check protocol:", c.Protocol)
 	}
+	
+	return healthcheckInstance
 }
 
 func ParseCircuitBreakers(cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
