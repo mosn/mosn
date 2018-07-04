@@ -18,10 +18,10 @@
                 {
                   "type": "proxy",
                   "config": {
-                    "DownstreamProtocol": "http1",
+                    "DownstreamProtocol": "Http1",
                     "Name": "proxy_config",
                     "SupportDynamicRoute": true,
-                    "UpstreamProtocol": "http2",
+                    "UpstreamProtocol": "Http2",
                     "VirtualHosts": [
                       {
                         "Domains": [
