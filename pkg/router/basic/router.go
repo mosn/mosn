@@ -32,6 +32,7 @@ func init() {
 	//router.RegisteRouterConfigFactory(protocol.SofaRpc, NewRouters)
 	//router.RegisteRouterConfigFactory(protocol.Http2, NewRouters)
 	//router.RegisteRouterConfigFactory(protocol.Http1, NewRouters)
+	//router.RegisteRouterConfigFactory(protocol.Xprotocol, NewRouters)
 }
 
 // types.Routers

@@ -200,16 +200,19 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	}
 
 	//Get some route by service name
+	log.StartLogger.Tracef("before active stream route")
 	route := s.proxy.routers.Route(headers, 1)
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
+		log.StartLogger.Warnf("no route to init upstream,headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 
 		return
 	}
+	log.StartLogger.Tracef("get route : %v,clusterName=%v", route, route.RouteRule().ClusterName())
 
 	s.route = route
 
@@ -219,13 +222,15 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
 	// active realize loadbalancer ctx
-	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(), s)
+	log.StartLogger.Tracef("before initializeUpstreamConnectionPool")
+	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName())
 
 	if err != nil {
 		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed")
 		return
 	}
 
+	log.StartLogger.Tracef("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
@@ -252,6 +257,7 @@ func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) {
+	log.StartLogger.Tracef("active stream do decode data")
 	// if active stream finished the lifecycle, just ignore further data
 	if s.localProcessDone {
 		return
@@ -418,6 +424,8 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, lbCtx)
 	case protocol.Http1:
 		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http1, lbCtx)
+	case protocol.Xprotocol:
+		connPool = s.proxy.clusterManager.XprotocolConnPoolForCluster(clusterName, protocol.Xprotocol, nil)
 	default:
 		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, lbCtx)
 	}
@@ -547,6 +555,9 @@ func (s *downStream) onUpstreamResponseRecvFinished() {
 }
 
 func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
+	// todo: update stats
+	log.StartLogger.Tracef("on upstream reset invoked")
+
 	// see if we need a retry
 	if urtype != UpstreamGlobalTimeout &&
 		s.downstreamResponseStarted && s.retryState != nil {
@@ -562,6 +573,15 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 
 	// clean up all timers
 	s.cleanUp()
+
+	if reason == types.StreamOverflow || reason == types.StreamConnectionFailed ||
+		reason == types.StreamRemoteReset {
+		log.StartLogger.Tracef("on upstream reset reason %v", reason)
+		s.upstreamRequest.connPool.Close()
+		s.proxy.readCallbacks.Connection().RawConn().Close()
+		s.resetStream()
+		return
+	}
 
 	// If we have not yet sent anything downstream, send a response with an appropriate status code.
 	// Otherwise just reset the ongoing response.

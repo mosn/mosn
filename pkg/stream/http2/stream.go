@@ -143,6 +143,7 @@ type serverStreamConnection struct {
 
 func newServerStreamConnection(context context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+	connection.SetReadDisable(true)
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
 			context:       context,
@@ -185,7 +186,6 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseWriter:   responseWriter,
 		responseDoneChan: make(chan bool, 1),
 	}
-
 	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamId, stream)
 	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
@@ -246,6 +246,7 @@ type clientStream struct {
 
 // types.StreamSender
 func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error {
+	log.StartLogger.Tracef("http2 client stream encode headers")
 	headers, _ := headers_.(map[string]string)
 
 	if s.request == nil {
@@ -271,7 +272,14 @@ func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error
 		delete(headers, types.HeaderPath)
 	}
 
+	if _, ok := headers["Host"]; ok {
+		headers["Host"] = s.connection.rawConnection.RemoteAddr().String()
+		s.request.Host = s.connection.rawConnection.RemoteAddr().String()
+	}
+
 	s.request.Header = encodeHeader(headers)
+
+	log.StartLogger.Tracef("http2 client stream encode headers,headers = %v", s.request.Header)
 
 	if endStream {
 		s.endStream()
@@ -281,13 +289,17 @@ func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error
 }
 
 func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
+	log.StartLogger.Tracef("http2 client stream encode data")
 	if s.request == nil {
 		s.request = new(http.Request)
 	}
 
+	s.request.Method = http.MethodPost
 	s.request.Body = &IoBufferReadCloser{
 		buf: data,
 	}
+
+	log.StartLogger.Tracef("http2 client stream encode data,data = %v", data.String())
 
 	if endStream {
 		s.endStream()
@@ -297,6 +309,7 @@ func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
 }
 
 func (s *clientStream) AppendTrailers(trailers map[string]string) error {
+	log.StartLogger.Tracef("http2 client stream encode trailers")
 	s.request.Trailer = encodeHeader(trailers)
 	s.endStream()
 
@@ -323,14 +336,16 @@ func (s *clientStream) ReadDisable(disable bool) {
 
 func (s *clientStream) doSend() {
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
-
 	if err != nil {
+		log.StartLogger.Tracef("http2 client stream send error %v", err)
 		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
 		switch err.(type) {
 		case http2.StreamError:
 			s.ResetStream(types.StreamRemoteReset)
+			s.CleanStream()
 		case http2.GoAwayError:
 			s.connection.streamConnCallbacks.OnGoAway()
+			s.CleanStream()
 		case error:
 			// todo: target remote close event
 			if err == io.EOF {
@@ -341,6 +356,7 @@ func (s *clientStream) doSend() {
 			} else if err.Error() == "http2: client conn not usable" {
 				// raise overflow event to let conn pool taking action
 				s.ResetStream(types.StreamOverflow)
+
 			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY" {
 				s.connection.streamConnCallbacks.OnGoAway()
 			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY; some request body already written" {
@@ -353,14 +369,21 @@ func (s *clientStream) doSend() {
 				s.connection.logger.Errorf("Unknown err: %v", err)
 				s.ResetStream(types.StreamConnectionFailed)
 			}
+			s.CleanStream()
 		}
 	} else {
 		s.response = resp
-
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleResponse()
 		}
 	}
+}
+
+func (s *clientStream) CleanStream() {
+	s.connection.asMutex.Lock()
+	s.response = nil
+	s.connection.activeStreams.Remove(s.element)
+	s.connection.asMutex.Unlock()
 }
 
 func (s *clientStream) handleResponse() {
@@ -506,8 +529,21 @@ func decodeHeader(in map[string][]string) (out map[string]string) {
 	out = make(map[string]string, len(in))
 
 	for k, v := range in {
-		// convert to lower case for internal process
+		//// convert to lower case for internal process
 		out[strings.ToLower(k)] = strings.Join(v, ",")
+	}
+
+	return
+}
+
+func decodeHeaderWithOutPath(in map[string][]string) (out map[string]string) {
+	out = make(map[string]string, len(in))
+	for k, v := range in {
+		//// convert to lower case for internal process
+		out[strings.ToLower(k)] = strings.Join(v, ",")
+		if strings.ToLower(k) == "path" {
+			out["Path"] = strings.Join(v, ",")
+		}
 	}
 
 	return

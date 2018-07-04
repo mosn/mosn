@@ -17,10 +17,9 @@
 package http
 
 import (
-	"strings"
-
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"strings"
 )
 
 func ParseQueryString(query string) types.QueryParams {

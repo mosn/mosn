@@ -19,6 +19,7 @@ package proxy
 import (
 	"container/list"
 
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
@@ -86,6 +87,7 @@ func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
 // ~~~ send request wrapper
 
 func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream bool) {
+	log.StartLogger.Tracef("upstream request encode headers")
 	r.appendComplete = endStream
 	streamID := ""
 
@@ -93,16 +95,19 @@ func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream boo
 		streamID = streamid
 	}
 
+	log.StartLogger.Tracef("upstream request before conn pool new stream")
 	r.connPool.NewStream(r.proxy.context, streamID, r, r)
 }
 
 func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
+	log.DefaultLogger.Debugf("upstream request encode data")
 	r.appendComplete = endStream
 	r.dataAppended = true
 	r.requestSender.AppendData(data, endStream)
 }
 
 func (r *upstreamRequest) appendTrailers(trailers map[string]string) {
+	log.DefaultLogger.Debugf("upstream request encode trailers")
 	r.appendComplete = true
 	r.trailerAppended = true
 	r.requestSender.AppendTrailers(trailers)

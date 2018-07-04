@@ -34,22 +34,35 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/filter"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/servicediscovery/confreg"
+	_ "gitlab.alipay-inc.com/afe/mosn/pkg/xds"
 )
 
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	log.StartLogger.Infof("start by config : %+v", c)
+
+	mode := c.Mode()
+	if mode == config.Xds {
+		servers := make([]config.ServerConfig, 0, 1)
+		server := config.ServerConfig{
+			DefaultLogPath:  "stdout",
+			DefaultLogLevel: "INFO",
+		}
+		servers = append(servers, server)
+		c.Servers = servers
+	} else {
+		if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
+			if !c.ClusterManager.AutoDiscovery {
+				log.StartLogger.Fatalln("no cluster found and cluster manager doesn't support auto discovery")
+			}
+		}
+	}
 
 	srvNum := len(c.Servers)
 	if srvNum == 0 {
 		log.StartLogger.Fatalln("no server found")
 	} else if srvNum > 1 {
 		log.StartLogger.Fatalln("multiple server not supported yet, got ", srvNum)
-	}
-
-	if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
-		if !c.ClusterManager.AutoDiscovery {
-			log.StartLogger.Fatalln("no cluster found and cluster manager doesn't support auto discovery")
-		}
 	}
 
 	stopChans := make([]chan bool, srvNum)
@@ -62,6 +75,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
 
+	var xdsClient *xds.XdsClient = nil
 	//get inherit fds
 	inheritListeners := getInheritListeners()
 
@@ -71,42 +85,61 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		//1. server config prepare
 		//server config
 		sc := config.ParseServerConfig(&serverConfig)
+		var srv server.Server
+		if mode == config.Xds {
+			cmf := &clusterManagerFilter{}
+			cm := cluster.NewClusterManager(nil, nil, nil, true)
+			srv = server.NewServer(sc, cmf, cm)
 
-		// init default log
-		server.InitDefaultLogger(sc)
+		} else {
 
-		//cluster manager filter
-		cmf := &clusterManagerFilter{}
-		var clusters []v2.Cluster
-		clusterMap := make(map[string][]v2.Host)
+			//cluster manager filter
+			cmf := &clusterManagerFilter{}
+			var clusters []v2.Cluster
+			clusterMap := make(map[string][]v2.Host)
 
-		//parse cluster all in one
-		clusters, clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
+			//for _, cluster := range c.ClusterManager.Clusters {
+			//	parsed := config.ParseClusterConfig(&cluster)
+			//	clusters = append(clusters, parsed)
+			//	clusterMap[parsed.Name] = config.ParseHostConfig(&cluster)
+			//}
 
-		//create cluster manager
-		cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery,
-			c.ClusterManager.RegistryUseHealthCheck)
+			// parse cluster all in one
+			clusters, clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
 
-		//initialize server instance
-		srv := server.NewServer(sc, cmf, cm)
+			//create cluster manager
+			cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery)
+			//initialize server instance
+			srv = server.NewServer(sc, cmf, cm)
 
-		//add listener
-		if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
-			log.StartLogger.Fatalln("no listener found")
+			//add listener
+			if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
+				log.StartLogger.Fatalln("no listener found")
+			}
+
+			for _, listenerConfig := range serverConfig.Listeners {
+				// parse ListenerConfig
+				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
+
+				// network filters
+				if lc.HandOffRestoredDestinationConnections {
+					srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nil, nil)
+					continue
+				}
+				nfcf := GetNetworkFilter(&lc.FilterChains[0])
+
+				//stream filters
+				sfcf := getStreamFilters(listenerConfig.StreamFilters)
+
+				config.SetGlobalStreamFilter(sfcf)
+				srv.AddListener(lc, nfcf, sfcf)
+			}
 		}
 
-		for _, listenerConfig := range serverConfig.Listeners {
-			// parse ListenerConfig
-			lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
-
-			// network filters
-			nfcf := GetNetworkFilter(&lc.FilterChains[0])
-
-			//stream filters
-			sfcf := getStreamFilters(listenerConfig.StreamFilters)
-
-			config.SetGlobalStreamFilter(sfcf)
-			srv.AddListener(lc, nfcf, sfcf)
+		if xdsClient == nil {
+			////get xds config
+			xdsClient := &xds.XdsClient{}
+			xdsClient.Start(c, serviceCluster, serviceNode)
 		}
 
 		go func() {
@@ -128,13 +161,13 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			ln.InheritListener.Close()
 		}
 	}
-	////get xds config
-	xdsClient := xds.XdsClient{}
-	xdsClient.Start(c, serviceCluster, serviceNode)
+
 	//
 	////todo: daemon running
 	wg.Wait()
-	xdsClient.Stop()
+	if xdsClient != nil {
+		xdsClient.Stop()
+	}
 }
 
 // maybe used in proxy rewrite

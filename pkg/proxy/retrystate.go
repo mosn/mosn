@@ -18,6 +18,7 @@ package proxy
 
 import (
 	"math/rand"
+	"math/rand"
 	"strconv"
 	"time"
 
