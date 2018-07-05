@@ -77,7 +77,8 @@ func (ch *connHandler) NumConnections() uint64 {
 	return uint64(atomic.LoadInt64(&ch.numConnections))
 }
 
-func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
+func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
+	streamFiltersFactories []types.StreamFilterChainFactory)types.ListenerEventListener {
 	//TODO: connection level stop-chan usage confirm
 	listenerStopChan := make(chan bool)
 
@@ -114,6 +115,8 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 	l.SetListenerCallbacks(al)
 
 	ch.listeners = append(ch.listeners, al)
+	
+	return al
 }
 
 func (ch *connHandler) StartListener(listenerTag uint64, lctx context.Context) {
