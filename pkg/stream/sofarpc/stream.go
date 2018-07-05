@@ -164,7 +164,11 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 			if stream, ok := conn.activeStreams.Get(v); ok {
 
 				stream.decoder.OnDecodeError(err, header)
-				conn.activeStreams.Remove(v)
+
+				if stream.direction == ClientStream {
+					// for client stream, remove stream on response read
+					stream.connection.activeStreams.Remove(stream.streamId)
+				}
 			}
 		} else {
 			// if no request id found, no reason to send response, so close connection
