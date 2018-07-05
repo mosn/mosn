@@ -225,7 +225,6 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 		logger:     logger,
 		accessLogs: accessLoggers,
 	}
-	handler.listeners = append(handler.listeners, al)
 
 	listenPort := 0
 	var listenIP string
