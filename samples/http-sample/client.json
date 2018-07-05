@@ -21,14 +21,14 @@
 		  "type": "proxy", 
 		  "config":{
 		    "DownstreamProtocol": "Http1",
-		    "UpstreamProtocol": "Http1",
+		    "UpstreamProtocol": "Http2",
 		    "VirtualHosts":[
 		      {
 		        "Name":"testHttpMesher",
 			"Domains": ["*"],
 			"Routers": [
 			  {
-			    "Match":{"Path":"/testMesher"}, 
+			    "Match":{"Headers":[{"Name":"service","Value":"com.alipay.test.TestService:1.0"}]}, 
 			    "Route":{"ClusterName":"httpMesher"}
 			  }
 			]
