@@ -408,7 +408,8 @@ type ConnectionHandler interface {
 	NumConnections() uint64
 
 	// Add a listener
-	AddListener(lc *v2.ListenerConfig, networkFiltersFactory NetworkFilterChainFactory, streamFiltersFactories []StreamFilterChainFactory)
+	AddListener(lc *v2.ListenerConfig, networkFiltersFactory NetworkFilterChainFactory,
+		streamFiltersFactories []StreamFilterChainFactory)ListenerEventListener
 
 	// Start a listener by tag
 	StartListener(listenerTag uint64, lctx context.Context)
