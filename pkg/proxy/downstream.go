@@ -182,18 +182,25 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	// check if downstream is cleaned
-	if s.element != nil {
-		s.proxy.stats.DownstreamRequestReset().Inc(1)
-		s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
-		s.cleanStream()
+	// exit on downstream reset
+	if s.element == nil {
+		return
 	}
+
+	s.proxy.stats.DownstreamRequestReset().Inc(1)
+	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
+	s.cleanStream()
 }
 
 // types.StreamReceiver
 func (s *downStream) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
+
+	// exit on downstream reset
+	if s.element == nil {
+		return
+	}
 
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
@@ -260,6 +267,11 @@ func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
+	// exit on downstream reset
+	if s.element == nil {
+		return
+	}
+
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
 
@@ -311,6 +323,11 @@ func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
+	// exit on downstream reset
+	if s.element == nil {
+		return
+	}
+
 	s.downstreamRecvDone = true
 
 	s.doReceiveTrailers(nil, trailers)
@@ -318,7 +335,7 @@ func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
 
 func (s *downStream) OnDecodeError(err error, headers map[string]string) {
 	// todo: enrich headers' information to do some hijack
-	//Check headers' info to do hijack
+	// Check headers' info to do hijack
 	switch err.Error() {
 	case types.CodecException:
 		s.sendHijackReply(types.CodecExceptionCode, headers)
@@ -548,7 +565,9 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 	if s.downstreamResponseStarted {
 		s.resetStream()
 	} else {
+		// send err response if response not started
 		var code int
+
 		if urtype == UpstreamGlobalTimeout || urtype == UpstreamPerTryTimeout {
 			s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
 			code = types.TimeoutExceptionCode
