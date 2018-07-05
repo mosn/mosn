@@ -25,7 +25,9 @@ import (
 type CodecClient interface {
 	types.ConnectionEventListener
 	types.ReadFilter
-
+	
+	ClientConnection() types.ClientConnection
+	
 	Id() uint64
 
 	AddConnectionCallbacks(cb types.ConnectionEventListener)

@@ -67,6 +67,10 @@ func NewHttp1CodecClient(context context.Context, host types.HostInfo) str.Codec
 	return codecClient
 }
 
+func (c *codecClient) ClientConnection() types.ClientConnection{
+	return nil
+}
+
 func (c *codecClient) Id() uint64 {
 	return 0
 }
@@ -130,12 +134,11 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 	}
 
 	if event.IsClose() {
-		c.AcrMux.RLock()
-		defer c.AcrMux.RUnlock()
-
-		for ar := c.ActiveRequests.Front(); ar != nil; ar = ar.Next() {
+		var arNext *list.Element
+		for ar := c.ActiveRequests.Front(); ar != nil; ar = arNext {
 			reason := types.StreamConnectionFailed
-
+			arNext = ar.Next()
+			
 			if c.ConnectedFlag {
 				reason = types.StreamConnectionTermination
 			}
