@@ -41,7 +41,11 @@ func newSofaRpcHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
 
 	shc := &sofarpcHealthChecker{
 		healthChecker: *hc,
-		protocolCode:  sofarpc.ProtocolType(config.ProtocolCode),
+	}
+	
+	// use bolt v1 as default sofa health check protocol
+	if 0 == config.ProtocolCode {
+		shc.protocolCode = sofarpc.BOLT_V1
 	}
 
 	shc.sessionFactory = shc
