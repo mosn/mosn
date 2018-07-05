@@ -25,7 +25,6 @@ import (
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	//google_rpc "github.com/gogo/googleapis/google/rpc"
 	"errors"
-
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 

@@ -19,9 +19,6 @@ package v2
 import (
 	"errors"
 	"fmt"
-	"math/rand"
-	"time"
-
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
@@ -29,6 +26,8 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"math/rand"
+	"time"
 )
 
 func (c *XDSConfig) Init(dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources) error {
@@ -45,18 +44,18 @@ func (c *XDSConfig) Init(dynamicResources *bootstrap.Bootstrap_DynamicResources,
 
 func (c *XDSConfig) loadADSConfig(dynamicResources *bootstrap.Bootstrap_DynamicResources) error {
 	if dynamicResources == nil || dynamicResources.AdsConfig == nil {
-		log.DefaultLogger.Fatalf("DynamicResources is null")
+		log.DefaultLogger.Errorf("DynamicResources is null")
 		err := errors.New("null point exception")
 		return err
 	}
 	err := dynamicResources.AdsConfig.Validate()
 	if err != nil {
-		log.DefaultLogger.Fatalf("Invalid DynamicResources")
+		log.DefaultLogger.Errorf("Invalid DynamicResources")
 		return err
 	}
 	config, err := c.getApiSourceEndpoint(dynamicResources.AdsConfig)
 	if err != nil {
-		log.DefaultLogger.Fatalf("fail to get api source endpoint")
+		log.DefaultLogger.Errorf("fail to get api source endpoint")
 		return err
 	}
 	c.ADSConfig = config
@@ -66,7 +65,7 @@ func (c *XDSConfig) loadADSConfig(dynamicResources *bootstrap.Bootstrap_DynamicR
 func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConfig, error) {
 	config := &ADSConfig{}
 	if source.ApiType != core.ApiConfigSource_GRPC {
-		log.DefaultLogger.Fatalf("unsupport api type: %v", source.ApiType)
+		log.DefaultLogger.Errorf("unsupport api type: %v", source.ApiType)
 		err := errors.New("only support GRPC api type yet")
 		return nil, err
 	}
@@ -94,7 +93,7 @@ func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 			clusterName := target.EnvoyGrpc.ClusterName
 			serviceConfig.ClusterConfig = c.Clusters[clusterName]
 			if serviceConfig.ClusterConfig == nil {
-				log.DefaultLogger.Fatalf("cluster not found: %s", clusterName)
+				log.DefaultLogger.Errorf("cluster not found: %s", clusterName)
 				err := errors.New(fmt.Sprintf("cluster not found: %s", clusterName))
 				return nil, err
 			}
@@ -109,13 +108,13 @@ func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 
 func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticResources) error {
 	if staticResources == nil {
-		log.DefaultLogger.Fatalf("StaticResources is null")
+		log.DefaultLogger.Errorf("StaticResources is null")
 		err := errors.New("null point exception")
 		return err
 	}
 	err := staticResources.Validate()
 	if err != nil {
-		log.DefaultLogger.Fatalf("Invalid StaticResources")
+		log.DefaultLogger.Errorf("Invalid StaticResources")
 		return err
 	}
 	c.Clusters = make(map[string]*ClusterConfig)
@@ -171,7 +170,7 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	sc := &StreamClient{}
 
 	if c.Services == nil {
-		log.DefaultLogger.Fatalf("no available ads service")
+		log.DefaultLogger.Errorf("no available ads service")
 		return nil
 	}
 	var endpoint string
@@ -186,12 +185,12 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 		}
 	}
 	if len(endpoint) == 0 {
-		log.DefaultLogger.Fatalf("no available ads endpoint")
+		log.DefaultLogger.Errorf("no available ads endpoint")
 		return nil
 	}
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
 	if err != nil {
-		log.DefaultLogger.Fatalf("did not connect: %v", err)
+		log.DefaultLogger.Errorf("did not connect: %v", err)
 		return nil
 	}
 	sc.Conn = conn
@@ -201,7 +200,7 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	sc.Cancel = cancel
 	streamClient, err := client.StreamAggregatedResources(ctx)
 	if err != nil {
-		log.DefaultLogger.Fatalf("fail to create stream client: %v", err)
+		log.DefaultLogger.Errorf("fail to create stream client: %v", err)
 		return nil
 	}
 	sc.Client = streamClient

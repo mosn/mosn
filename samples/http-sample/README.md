@@ -3,6 +3,7 @@
 ## 简介
 
 该样例工程演示了如何配置使得Mesher作为标准Http协议的代理
+ Mesher之间的协议是HTTP2
 
 ## 准备
 
@@ -44,16 +45,15 @@ go run server.go
 ### 使用CURL进行验证
 
 + 按照默认的配置设置，HTTP Server监听本地8080端口，HTTP Client代理监听本地2046端口
-+ Mesher代理配置转发请求地址为/testMesher的请求
++ Mesher代理配置转发请求为Header中包含"service:com.alipay.test.TestService:1.0"
 
 ```
 //直接访问HTTP Sever，观察现象
-curl http://127.0.0.1:8080/testMesher
-curl http://127.0.0.1:8080/testMesher2
+curl http://127.0.0.1:8080
 //能收到HTTP Server返回的结果
-curl http://127.0.0.1:2046/testMesher 
+curl --header "service:com.alipay.test.TestService:1.0" http://127.0.0.1:2046
 //不能收到HTTP Server返回的结果(其实是返回了404 Not Found）
-curl http://127.0.0.1:2046/testMesher2
+curl http://127.0.0.1:2046
 ```
 
 + 可以按照说明修改配置，进行不同的测试与验证

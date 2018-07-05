@@ -24,8 +24,10 @@ import (
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	//"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	httpmosn "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/http"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
@@ -238,20 +240,23 @@ func (prri *PathRouteRuleImpl) MatchType() types.PathMatchType {
 // Exact Path Comparing
 func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	// match base rule first
+	log.StartLogger.Tracef("path route rule match invoked")
 	if prri.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers[types.HeaderPath]; ok {
+		if headerPathValue, ok := headers[strings.ToLower(protocol.MosnHeaderPathKey)]; ok {
 
 			if prri.caseSensitive {
 				if headerPathValue == prri.path {
 					return prri
 				}
 			} else if strings.EqualFold(headerPathValue, prri.path) {
+				log.StartLogger.Tracef("path route rule match success")
 				return prri
 			}
 		}
 	}
-
+	log.DefaultLogger.Warnf("path route rule match failed")
+	
 	return nil
 }
 
@@ -280,15 +285,17 @@ func (prei *PrefixRouteRuleImpl) Match(headers map[string]string, randomValue ui
 
 	if prei.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers[types.HeaderPath]; ok {
+		if headerPathValue, ok := headers[strings.ToLower(protocol.MosnHeaderPathKey)]; ok {
 
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
-
+				log.DefaultLogger.Warnf("prefix route rule match success")
+				
 				return prei
 			}
 		}
 	}
-
+	log.DefaultLogger.Warnf("prefix route rule match failed")
+	
 	return nil
 }
 
@@ -315,14 +322,17 @@ func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
 
 func (rrei *RegexRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	if rrei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers[types.HeaderPath]; ok {
+		if headerPathValue, ok := headers[strings.ToLower(protocol.MosnHeaderPathKey)]; ok {
+			
 			if rrei.regexPattern.MatchString(headerPathValue) {
-
+				log.DefaultLogger.Warnf("regex route rule match success")
+				
 				return rrei
 			}
 		}
 	}
-
+	log.DefaultLogger.Warnf("regex route rule match failed")
+	
 	return nil
 }
 

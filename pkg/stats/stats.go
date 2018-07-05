@@ -19,9 +19,8 @@ package stats
 import (
 	"bytes"
 	"fmt"
-	"strconv"
-
 	"github.com/rcrowley/go-metrics"
+    "strconv"
 )
 
 type Stats struct {

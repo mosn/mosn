@@ -17,10 +17,9 @@
 package cluster
 
 import (
-	"sync/atomic"
-
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"sync/atomic"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 )
 
 const (

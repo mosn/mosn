@@ -29,11 +29,13 @@ func init() {
 	RegisteRouterConfigFactory(protocol.SofaRpc, NewRouteMatcher)
 	RegisteRouterConfigFactory(protocol.Http2, NewRouteMatcher)
 	RegisteRouterConfigFactory(protocol.Http1, NewRouteMatcher)
+	RegisteRouterConfigFactory(protocol.Xprotocol, NewRouteMatcher)
 }
 
 func NewRouteMatcher(config interface{}) (types.Routers, error) {
 	routerMatcher := &RouteMatcher{
 		virtualHosts: make(map[string]types.VirtualHost),
+		wildcardVirtualHostSuffixes: make(map[int]map[string]types.VirtualHost),
 	}
 
 	if config, ok := config.(*v2.Proxy); ok {
@@ -50,6 +52,7 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 					if routerMatcher.defaultVirtualHost != nil {
 						log.StartLogger.Fatal("Only a single wildcard domain permitted")
 					}
+					log.StartLogger.Tracef("route matcher default virtual host")
 					routerMatcher.defaultVirtualHost = vh
 
 				} else if len(domain) > 1 && "*" == domain[:1] {
@@ -78,23 +81,31 @@ type RouteMatcher struct {
 // Routing with Virtual Host
 func (rm *RouteMatcher) Route(headers map[string]string, randomValue uint64) types.Route {
 	// First Step: Select VirtualHost with "host" in Headers form VirtualHost Array
+	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
 
 	if virtualHost == nil {
-		log.DefaultLogger.Warnf("No VirtualHost Found when Routing, But Use Default Virtual Host, Request Headers = %+v", headers)
+		log.DefaultLogger.Errorf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		return nil
 	}
 
 	// Second Step: Match Route from Routes in a Virtual Host
+	routerInstance := virtualHost.GetRouteFromEntries(headers, randomValue)
+	
+	if routerInstance == nil {
+		log.DefaultLogger.Errorf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+	}
+	
 	return virtualHost.GetRouteFromEntries(headers, randomValue)
 }
 
 func (rm *RouteMatcher) findVirtualHost(headers map[string]string) types.VirtualHost {
 	if len(rm.virtualHosts) == 0 && rm.defaultVirtualHost != nil {
-
+		log.StartLogger.Tracef("route matcher find virtual host return default virtual host")
 		return rm.defaultVirtualHost
 	}
 
-	host := strings.ToLower(headers[types.HeaderHost])
+	host := strings.ToLower(headers[strings.ToLower(protocol.MosnHeaderHostKey)])
 
 	// for service, header["host"] == header["service"] == servicename
 	// or use only a unique key for sofa's virtual host

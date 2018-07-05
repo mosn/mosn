@@ -66,9 +66,11 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 		PerConnBufferLimitBytes:               xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 		HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
 		AccessLogs:                            convertAccessLogs(xdsListener),
+		LogPath:                               "stdout",
+		LogLevel:                              uint8(log.INFO),
 	}
 
-	if listenerConfig.HandOffRestoredDestinationConnections {
+	if listenerConfig.Name == "virtual" {
 		return listenerConfig
 	}
 
@@ -141,7 +143,7 @@ func isSupport(xdsListener *xdsapi.Listener) bool {
 	if xdsListener == nil {
 		return false
 	}
-	if xdsListener.UseOriginalDst.GetValue() {
+	if xdsListener.Name == "virtual" {
 		return true
 	}
 	for _, filterChain := range xdsListener.GetFilterChains() {
@@ -214,7 +216,7 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 					}
 				}
 			} else {
-				log.DefaultLogger.Fatalf("unsupport filter config type, filter name: %s", xdsFilter.GetName())
+				log.DefaultLogger.Errorf("unsupport filter config type, filter name: %s", xdsFilter.GetName())
 			}
 		}
 	}
@@ -261,30 +263,34 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol: string(protocol.Http2),
-			UpstreamProtocol:   string(protocol.Http2),
-			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
+			DownstreamProtocol:  string(protocol.Http2),
+			UpstreamProtocol:    string(protocol.Http2),
+			SupportDynamicRoute: true,
+			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
 	} else if name == v2.SOFARPC_OUTBOUND_FILTER || name == v2.SOFARPC_INBOUND_FILTER {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol: string(protocol.SofaRpc),
-			UpstreamProtocol:   string(protocol.SofaRpc),
-			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
+			DownstreamProtocol:  string(protocol.SofaRpc),
+			UpstreamProtocol:    string(protocol.SofaRpc),
+			SupportDynamicRoute: true,
+			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
 	} else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
+		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol: filterConfig.GetDownstreamProtocol().String(),
-			UpstreamProtocol:   filterConfig.GetUpstreamProtocol().String(),
-			VirtualHosts:       convertVirtualHosts(filterConfig.GetRouteConfig()),
+			DownstreamProtocol:  filterConfig.GetDownstreamProtocol().String(),
+			UpstreamProtocol:    filterConfig.GetUpstreamProtocol().String(),
+			SupportDynamicRoute: true,
+			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
 	} else {
-		log.DefaultLogger.Fatalf("unsupport filter config, filter name: %s", name)
+		log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
 	}
 	return nil
 }
@@ -332,7 +338,7 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 			}
 			routes = append(routes, route)
 		} else {
-			log.DefaultLogger.Fatalf("unsupport route actin, just Route and Redirect support yet, ignore this route")
+			log.DefaultLogger.Errorf("unsupport route actin, just Route and Redirect support yet, ignore this route")
 			continue
 		}
 	}
@@ -485,13 +491,13 @@ func convertAddress(xdsAddress *xdscore.Address) net.Addr {
 			return nil
 		}
 	} else {
-		log.DefaultLogger.Fatalf("only SocketAddress supported")
+		log.DefaultLogger.Errorf("only SocketAddress supported")
 		return nil
 	}
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
-		log.DefaultLogger.Fatalf("Invalid address: %v", err)
+		log.DefaultLogger.Errorf("Invalid address: %v", err)
 		return nil
 	}
 	return tcpAddr
@@ -647,7 +653,7 @@ func convertDuration(p *types.Duration) time.Duration {
 	d := time.Duration(p.Seconds) * time.Second
 	if p.Nanos != 0 {
 		if dur := d + time.Duration(p.Nanos); (dur < 0) != (p.Nanos < 0) {
-			log.DefaultLogger.Fatalf("duration: %#v is out of range for time.Duration, ignore nanos", p)
+			log.DefaultLogger.Warnf("duration: %#v is out of range for time.Duration, ignore nanos", p)
 		}
 	}
 	return d

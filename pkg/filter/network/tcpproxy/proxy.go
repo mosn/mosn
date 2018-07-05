@@ -18,12 +18,11 @@ package tcpproxy
 
 import (
 	"context"
-	"reflect"
-
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"reflect"
 )
 
 // ReadFilter

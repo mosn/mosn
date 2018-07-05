@@ -19,17 +19,17 @@ package server
 import (
 	"container/list"
 	"context"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/accept/original_dst"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 // ConnectionHandler
@@ -199,6 +199,7 @@ type activeListener struct {
 	listener               types.Listener
 	networkFiltersFactory  types.NetworkFilterChainFactory
 	streamFiltersFactories []types.StreamFilterChainFactory
+	listenIP               string
 	listenPort             int
 	statsNamespace         string
 	conns                  *list.List
@@ -226,12 +227,15 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 	}
 
 	listenPort := 0
+	var listenIP string
 	localAddr := al.listener.Addr().String()
 
 	if temps := strings.Split(localAddr, ":"); len(temps) > 0 {
 		listenPort, _ = strconv.Atoi(temps[len(temps)-1])
+		listenIP = temps[0]
 	}
 
+	al.listenIP = listenIP
 	al.listenPort = listenPort
 	al.statsNamespace = types.ListenerStatsPrefix + strconv.Itoa(listenPort)
 	al.stats = newListenerStats(al.statsNamespace)
@@ -240,9 +244,17 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool) {
+func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr) {
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
+
+	if handOffRestoredDestinationConnections {
+		arc.acceptedFilters = append(arc.acceptedFilters, original_dst.NewOriginalDst())
+		arc.handOffRestoredDestinationConnections = true
+		log.DefaultLogger.Infof("accept restored destination connection from:%s", al.listener.Addr().String())
+	} else {
+		log.DefaultLogger.Infof("accept connection from:%s", al.listener.Addr().String())
+	}
 
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
 	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
@@ -251,6 +263,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	if oriRemoteAddr != nil {
+		ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+	}
 	arc.ContinueFilterChain(true, ctx)
 }
 
@@ -303,6 +318,10 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 
 func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 	conn := network.NewServerConnection(rawc, al.stopChan, al.logger)
+	oriRemoteAddr := ctx.Value(types.ContextOriRemoteAddr)
+	if oriRemoteAddr != nil {
+		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
+	}
 	newCtx := context.WithValue(ctx, types.ContextKeyConnectionId, conn.Id())
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
@@ -311,11 +330,15 @@ func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 }
 
 type activeRawConn struct {
-	rawc               net.Conn
-	rawcElement        *list.Element
-	activeListener     *activeListener
-	acceptedFilters    []types.ListenerFilter
-	accptedFilterIndex int
+	rawc                                  net.Conn
+	originalDstIP                         string
+	originalDstPort                       int
+	oriRemoteAddr                         net.Addr
+	handOffRestoredDestinationConnections bool
+	rawcElement                           *list.Element
+	activeListener                        *activeListener
+	acceptedFilters                       []types.ListenerFilter
+	accptedFilterIndex                    int
 }
 
 func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawConn {
@@ -323,6 +346,13 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 		rawc:           rawc,
 		activeListener: activeListener,
 	}
+}
+
+func (arc *activeRawConn) SetOrigingalAddr(ip string, port int) {
+	arc.originalDstIP = ip
+	arc.originalDstPort = port
+	arc.oriRemoteAddr, _ = net.ResolveTCPAddr("", ip+":"+strconv.Itoa(port))
+	log.DefaultLogger.Infof("conn set origin addr:%s:%d", ip, port)
 }
 
 func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context) {
@@ -336,8 +366,32 @@ func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context)
 		}
 
 		// TODO: handle hand_off_restored_destination_connections logic
+		if arc.handOffRestoredDestinationConnections {
+			var _lst, _ls2 *activeListener
 
-		arc.activeListener.newConnection(arc.rawc, ctx)
+			for _, lst := range arc.activeListener.handler.listeners {
+				if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
+					_lst = lst
+					break
+				}
+
+				if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
+					_ls2 = lst
+				}
+			}
+
+			if _lst != nil {
+				log.DefaultLogger.Infof("original dst:%s:%d", _lst.listenIP, _lst.listenPort)
+				_lst.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
+			} else if _ls2 != nil {
+				log.DefaultLogger.Infof("original dst:%s:%d", _ls2.listenIP, _ls2.listenPort)
+				_ls2.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
+			}
+
+		} else {
+			arc.activeListener.newConnection(arc.rawc, ctx)
+		}
+
 	}
 }
 

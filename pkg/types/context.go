@@ -29,6 +29,7 @@ const (
 	ContextKeyConnectionCodecMapPool     ContextKey = "ContextKeyConnectionCodecMapPool"
 	ContextKeyLogger                     ContextKey = "Logger"
 	ContextKeyAccessLogs                 ContextKey = "AccessLogs"
+	ContextOriRemoteAddr                 ContextKey = "OriRemoteAddr"
 )
 
 const (

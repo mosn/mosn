@@ -117,7 +117,7 @@ type TLSContextManager interface {
 // Callbacks invoked by a listener.
 type ListenerEventListener interface {
 	// Called on new connection accepted
-	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool)
+	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr)
 
 	// Called on new mosn connection created
 	OnNewConnection(conn Connection, ctx context.Context)
@@ -145,6 +145,9 @@ type ListenerFilterCallbacks interface {
 
 	// Continue filter chain
 	ContinueFilterChain(success bool, ctx context.Context)
+
+	// Set original addr
+	SetOrigingalAddr(ip string, port int)
 }
 
 // Note: unsupport for now
@@ -301,6 +304,9 @@ type Connection interface {
 
 	// RemoteAddr returns the remote address of the connection.
 	RemoteAddr() net.Addr
+
+	// For original_dst we need to replace remoteAddr
+	SetRemoteAddr(address net.Addr)
 
 	// Add connection level event listener, listener method will be called when connection event occur.
 	AddConnectionEventListener(cb ConnectionEventListener)

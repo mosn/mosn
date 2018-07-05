@@ -19,7 +19,6 @@ package router
 import (
 	"errors"
 	"fmt"
-
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 

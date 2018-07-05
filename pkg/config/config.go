@@ -60,6 +60,9 @@ type ListenerConfig struct {
 	LogPath  string `json:"log_path,omitempty"`
 	LogLevel string `json:"log_level,omitempty"`
 
+	//HandOffRestoredDestinationConnections
+	HandOffRestoredDestinationConnections bool `json:"handoff_restoreddestination"`
+
 	//access log
 	AccessLogs []AccessLogConfig `json:"access_logs,omitempty"`
 
@@ -177,6 +180,27 @@ type MOSNConfig struct {
 	//tracing config
 	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
+}
+
+type Mode uint8
+
+const (
+	File Mode = iota
+	Xds
+	Mix
+)
+
+func (c *MOSNConfig) Mode() Mode {
+	if len(c.Servers) > 0 {
+		if len(c.RawStaticResources) == 0 || len(c.RawDynamicResources) == 0 {
+			return File
+		} else {
+			return Mix
+		}
+	} else if len(c.RawStaticResources) > 0 && len(c.RawDynamicResources) > 0 {
+		return Xds
+	}
+	return File
 }
 
 //wrapper for time.Duration, so time config can be written in '300ms' or '1h' format

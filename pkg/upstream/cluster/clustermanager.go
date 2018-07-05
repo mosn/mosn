@@ -29,6 +29,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/xprotocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
@@ -38,6 +39,7 @@ type clusterManager struct {
 	primaryClusters        cmap.ConcurrentMap // string: *primaryCluster
 	sofaRpcConnPool        cmap.ConcurrentMap // string: types.ConnectionPool
 	http2ConnPool          cmap.ConcurrentMap // string: types.ConnectionPool
+	xProtocolConnPool cmap.ConcurrentMap // string: types.ConnectionPool
 	http1ConnPool          cmap.ConcurrentMap // string: types.ConnectionPool
 	clusterAdapter         ClusterAdapter
 	autoDiscovery          bool
@@ -57,6 +59,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 		primaryClusters: cmap.New(),
 		sofaRpcConnPool: cmap.New(),
 		http2ConnPool:   cmap.New(),
+		xProtocolConnPool: cmap.New(),
 		http1ConnPool:   cmap.New(),
 		autoDiscovery:   true, //todo delete
 	}
@@ -252,6 +255,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 
 	if host != nil {
 		addr := host.AddressString()
+		log.StartLogger.Tracef("http connection pool upstream addr : %v", addr)
 
 		switch protocol {
 		case proto.Http2:
@@ -281,7 +285,34 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 
 }
 
-func (cm *clusterManager) TcpConnForCluster(cluster string, lbCtx types.LoadBalancerContext) types.CreateConnectionData {
+func (cm *clusterManager) XprotocolConnPoolForCluster(cluster string, protocol types.Protocol,
+	lbCtx types.LoadBalancerContext) types.ConnectionPool {
+	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
+
+	if clusterSnapshot == nil {
+		return nil
+	}
+
+	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
+
+	if host != nil {
+		addr := host.AddressString()
+		log.StartLogger.Tracef("Xprotocol connection pool upstream addr : %v", addr)
+
+		if connPool, ok := cm.xProtocolConnPool.Get(addr); ok {
+			return connPool.(types.ConnectionPool)
+		} else {
+			connPool := xprotocol.NewConnPool(host)
+			cm.xProtocolConnPool.Set(addr, connPool)
+
+			return connPool
+		}
+	} else {
+		return nil
+	}
+}
+
+func (cm *clusterManager) TcpConnForCluster(cluster string,lbCtx types.LoadBalancerContext) types.CreateConnectionData {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {

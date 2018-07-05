@@ -150,7 +150,7 @@
                         "Name": "sofa",
                         "RequireTls": "no",
                         "Domains":[
-                          "*"
+                          "*testwilccard"
                         ],
                         "Routers": [
                           {

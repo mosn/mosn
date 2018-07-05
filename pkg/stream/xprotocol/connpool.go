@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package http2
+package xprotocol
 
 import (
 	"context"
 	"sync"
 
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
@@ -40,15 +41,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) Protocol() types.Protocol {
-	return protocol.Http2
-}
-
-func (p *connPool) Host() types.Host {
-	return p.host
-}
-
-func (p *connPool) InitActiveClient(context context.Context) error {
-	return nil
+	return protocol.Xprotocol
 }
 
 func (p *connPool) DrainConnections() {}
@@ -56,17 +49,11 @@ func (p *connPool) DrainConnections() {}
 //由 PROXY 调用
 func (p *connPool) NewStream(context context.Context, streamId string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
+	log.StartLogger.Tracef("xprotocol conn pool new stream")
 	p.mux.Lock()
 
 	if p.primaryClient == nil {
 		p.primaryClient = newActiveClient(context, p)
-		p.primaryClient.host.Connection.Connect(false)
-		
-		if p.primaryClient == nil {
-			cb.OnFailure(streamId, types.ConnectionFailure, nil)
-			return nil
-		}
-		
 	}
 	p.mux.Unlock()
 
@@ -81,7 +68,9 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
+		log.StartLogger.Tracef("xprotocol conn pool codec client new stream")
 		streamEncoder := p.primaryClient.codecClient.NewStream(streamId, responseDecoder)
+		log.StartLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
 		cb.OnReady(streamId, streamEncoder, p.host)
 	}
 
@@ -94,7 +83,6 @@ func (p *connPool) Close() {
 
 	if p.primaryClient != nil {
 		p.primaryClient.codecClient.Close()
-		p.primaryClient = nil
 	}
 }
 
@@ -160,7 +148,7 @@ func (p *connPool) onGoAway(client *activeClient) {
 }
 
 func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
-	return str.NewCodecClient(context, protocol.Http2, connData.Connection, connData.HostInfo)
+	return str.NewCodecClient(context, protocol.Xprotocol, connData.Connection, connData.HostInfo)
 }
 
 func (p *connPool) movePrimaryToDraining() {
@@ -182,7 +170,7 @@ func (p *connPool) movePrimaryToDraining() {
 type activeClient struct {
 	pool               *connPool
 	codecClient        str.CodecClient
-	host               types.CreateConnectionData
+	host               types.HostInfo
 	totalStream        uint64
 	closeWithActiveReq bool
 }
@@ -192,15 +180,20 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 		pool: pool,
 	}
 
+	log.StartLogger.Tracef("xprotocol new active client , try to create connection")
 	data := pool.host.CreateConnection(context)
+	data.Connection.Connect(true)
+	log.StartLogger.Tracef("xprotocol new active client , connect success %v", data)
 
+	log.StartLogger.Tracef("xprotocol new active client , try to create codec client")
 	codecClient := pool.createCodecClient(context, data)
+	log.StartLogger.Tracef("xprotocol new active client , create codec client success")
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
 
 	ac.codecClient = codecClient
-	ac.host = data
+	ac.host = data.HostInfo
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
@@ -222,6 +215,10 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
+
+func (ac *activeClient) OnAboveWriteBufferHighWatermark() {}
+
+func (ac *activeClient) OnBelowWriteBufferLowWatermark() {}
 
 func (ac *activeClient) OnStreamDestroy() {
 	ac.pool.onStreamDestroy(ac)
