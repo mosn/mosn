@@ -60,7 +60,7 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 
 	if p.primaryClient == nil {
 		p.primaryClient = newActiveClient(context, p)
-		p.primaryClient.codecClient.ClientConnection().Connect(true)
+		p.primaryClient.host.Connection.Connect(false)
 		
 		if p.primaryClient == nil {
 			cb.OnFailure(streamId, types.ConnectionFailure, nil)
@@ -181,7 +181,7 @@ func (p *connPool) movePrimaryToDraining() {
 type activeClient struct {
 	pool               *connPool
 	codecClient        str.CodecClient
-	host               types.HostInfo
+	host               types.CreateConnectionData
 	totalStream        uint64
 	closeWithActiveReq bool
 }
@@ -199,7 +199,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	codecClient.SetCodecConnectionCallbacks(ac)
 
 	ac.codecClient = codecClient
-	ac.host = data.HostInfo
+	ac.host = data
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)

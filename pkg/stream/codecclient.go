@@ -89,10 +89,6 @@ func NewBiDirectCodeClient(context context.Context, prot types.Protocol, connect
 	return codecClient
 }
 
-func (c *codecClient) ClientConnection()types.ClientConnection{
-	return c.Connection
-}
-
 func (c *codecClient) Id() uint64 {
 	return c.Connection.Id()
 }

@@ -67,10 +67,6 @@ func NewHttp1CodecClient(context context.Context, host types.HostInfo) str.Codec
 	return codecClient
 }
 
-func (c *codecClient) ClientConnection() types.ClientConnection{
-	return nil
-}
-
 func (c *codecClient) Id() uint64 {
 	return 0
 }

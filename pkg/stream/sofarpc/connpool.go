@@ -46,7 +46,8 @@ func (p *connPool) NewStream(context context.Context, streamId string,
 	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(context, p)
-		p.activeClient.codecClient.ClientConnection().Connect(true)
+		// Note: do tcp connection here
+		p.activeClient.host.Connection.Connect(true)
 		
 		if p.activeClient == nil {
 			cb.OnFailure(streamId, types.ConnectionFailure, nil)
@@ -102,7 +103,7 @@ func (p *connPool) createCodecClient(context context.Context, connData types.Cre
 type activeClient struct {
 	pool        *connPool
 	codecClient str.CodecClient
-	host        types.HostInfo
+	host        types.CreateConnectionData
 	totalStream uint64
 }
 
@@ -118,7 +119,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	codecClient.SetCodecConnectionCallbacks(ac)
 	
 	ac.codecClient = codecClient
-	ac.host = data.HostInfo
+	ac.host = data
 	
 	return ac
 }
