@@ -23,6 +23,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -85,17 +86,14 @@ type downStream struct {
 	senderFilters   []*activeStreamSenderFilter
 	receiverFilters []*activeStreamReceiverFilter
 
+	// mux for downstream-upstream flow
+	mux sync.Mutex
+
 	logger log.Logger
 }
 
 func newActiveStream(streamId string, proxy *proxy, responseSender types.StreamSender) *downStream {
-	var stream *downStream
-
-	if buf := activeStreamPool.Take(); buf == nil {
-		stream = &downStream{}
-	} else {
-		stream = buf.(*downStream)
-	}
+	stream := &downStream{}
 
 	stream.streamId = streamId
 	stream.proxy = proxy
@@ -111,14 +109,6 @@ func newActiveStream(streamId string, proxy *proxy, responseSender types.StreamS
 	proxy.listenerStats.DownstreamRequestActive().Inc(1)
 
 	return stream
-}
-
-// types.StreamEventListener
-// Called by stream layer normally
-func (s *downStream) OnResetStream(reason types.StreamResetReason) {
-	s.proxy.stats.DownstreamRequestReset().Inc(1)
-	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
-	s.cleanStream()
 }
 
 // case 1: downstream's lifecycle ends normally
@@ -186,8 +176,25 @@ func (s *downStream) cleanStream() {
 	s.proxy.deleteActiveStream(s)
 }
 
+// types.StreamEventListener
+// Called by stream layer normally
+func (s *downStream) OnResetStream(reason types.StreamResetReason) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	// check if downstream is cleaned
+	if s.element != nil {
+		s.proxy.stats.DownstreamRequestReset().Inc(1)
+		s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
+		s.cleanStream()
+	}
+}
+
 // types.StreamReceiver
 func (s *downStream) OnReceiveHeaders(headers map[string]string, endStream bool) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
 
@@ -223,10 +230,10 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	// active realize loadbalancer ctx
 	log.StartLogger.Tracef("before initializeUpstreamConnectionPool")
-	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(),s)
+	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(), s)
 
 	if err != nil {
-		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v",err)
+		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
 		return
 	}
 
@@ -236,9 +243,9 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	//Build Request
 	s.upstreamRequest = &upstreamRequest{
-		activeStream: s,
-		proxy:        s.proxy,
-		connPool:     pool,
+		downStream: s,
+		proxy:      s.proxy,
+		connPool:   pool,
 	}
 
 	//Call upstream's append header method to build upstream's request
@@ -250,6 +257,9 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 }
 
 func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
 
@@ -298,6 +308,9 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 }
 
 func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
 	s.downstreamRecvDone = true
 
 	s.doReceiveTrailers(nil, trailers)
@@ -314,7 +327,8 @@ func (s *downStream) OnDecodeError(err error, headers map[string]string) {
 	default:
 		s.sendHijackReply(types.UnknownCode, headers)
 	}
-	return
+
+	s.OnResetStream(types.StreamLocalReset)
 }
 
 func (s *downStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trailers map[string]string) {
@@ -500,60 +514,6 @@ func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers
 }
 
 // ~~~ upstream event handler
-
-func (s *downStream) onUpstreamHeaders(headers map[string]string, endStream bool) {
-	s.downstreamRespHeaders = headers
-
-	// check retry
-	if s.retryState != nil {
-		retryCheck := s.retryState.retry(headers, "", s.doRetry)
-
-		if retryCheck == types.ShouldRetry && s.setupRetry(endStream) {
-			return
-		} else if retryCheck == types.RetryOverflow {
-			s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
-		}
-
-		s.retryState.reset()
-	}
-
-	s.requestInfo.SetResponseReceivedDuration(time.Now())
-
-	s.downstreamResponseStarted = true
-
-	if endStream {
-		s.onUpstreamResponseRecvFinished()
-	}
-
-	// todo: insert proxy headers
-	s.appendHeaders(headers, endStream)
-}
-
-func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
-	if endStream {
-		s.onUpstreamResponseRecvFinished()
-	}
-
-	s.appendData(data, endStream)
-}
-
-func (s *downStream) onUpstreamTrailers(trailers map[string]string) {
-	s.onUpstreamResponseRecvFinished()
-
-	s.appendTrailers(trailers)
-}
-
-func (s *downStream) onUpstreamResponseRecvFinished() {
-	if !s.upstreamRequestSent {
-		s.upstreamRequest.resetStream()
-	}
-
-	// todo: stats
-	// todo: logs
-
-	s.cleanUp()
-}
-
 func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
 	// todo: update stats
 	log.StartLogger.Tracef("on upstream reset invoked")
@@ -602,6 +562,68 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 	}
 }
 
+func (s *downStream) onUpstreamHeaders(headers map[string]string, endStream bool) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	s.downstreamRespHeaders = headers
+
+	// check retry
+	if s.retryState != nil {
+		retryCheck := s.retryState.retry(headers, "", s.doRetry)
+
+		if retryCheck == types.ShouldRetry && s.setupRetry(endStream) {
+			return
+		} else if retryCheck == types.RetryOverflow {
+			s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
+		}
+
+		s.retryState.reset()
+	}
+
+	s.requestInfo.SetResponseReceivedDuration(time.Now())
+
+	s.downstreamResponseStarted = true
+
+	if endStream {
+		s.onUpstreamResponseRecvFinished()
+	}
+
+	// todo: insert proxy headers
+	s.appendHeaders(headers, endStream)
+}
+
+func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	if endStream {
+		s.onUpstreamResponseRecvFinished()
+	}
+
+	s.appendData(data, endStream)
+}
+
+func (s *downStream) onUpstreamTrailers(trailers map[string]string) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	s.onUpstreamResponseRecvFinished()
+
+	s.appendTrailers(trailers)
+}
+
+func (s *downStream) onUpstreamResponseRecvFinished() {
+	if !s.upstreamRequestSent {
+		s.upstreamRequest.resetStream()
+	}
+
+	// todo: stats
+	// todo: logs
+
+	s.cleanUp()
+}
+
 func (s *downStream) setupRetry(endStream bool) bool {
 	if !s.upstreamRequestSent {
 		return false
@@ -633,9 +655,9 @@ func (s *downStream) doRetry() {
 	}
 
 	s.upstreamRequest = &upstreamRequest{
-		activeStream: s,
-		proxy:        s.proxy,
-		connPool:     pool,
+		downStream: s,
+		proxy:      s.proxy,
+		connPool:   pool,
 	}
 
 	s.upstreamRequest.appendHeaders(s.downstreamReqHeaders,
@@ -735,6 +757,9 @@ func (s *downStream) reset() {
 	s.retryState = nil
 	s.requestInfo = nil
 	s.responseSender = nil
+	s.upstreamRequest.downStream = nil
+	s.upstreamRequest.proxy = nil
+	s.upstreamRequest.upstreamRespHeaders = nil
 	s.upstreamRequest = nil
 	s.perRetryTimer = nil
 	s.responseTimer = nil

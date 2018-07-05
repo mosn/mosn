@@ -65,7 +65,7 @@ type streamConnection struct {
 	protocol        types.Protocol
 	connection      types.Connection
 	protocols       types.Protocols
-	activeStream    streamMap
+	activeStreams   streamMap
 	clientCallbacks types.StreamConnectionEventListener
 	serverCallbacks types.ServerStreamConnectionEventListener
 
@@ -79,7 +79,7 @@ func newStreamConnection(context context.Context, connection types.Connection, c
 		context:         context,
 		connection:      connection,
 		protocols:       sofarpc.DefaultProtocols(),
-		activeStream:    newStreamMap(context),
+		activeStreams:   newStreamMap(context),
 		clientCallbacks: clientCallbacks,
 		serverCallbacks: serverCallbacks,
 		logger:          log.ByContext(context),
@@ -108,7 +108,7 @@ func (conn *streamConnection) NewStream(streamId string, responseDecoder types.S
 		connection: conn,
 		decoder:    responseDecoder,
 	}
-	conn.activeStream.Set(streamId, stream)
+	conn.activeStreams.Set(streamId, stream)
 
 	return &stream
 }
@@ -119,7 +119,7 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 	}
 	endStream := decodeSterilize(streamId, headers)
 
-	if stream, ok := conn.activeStream.Get(streamId); ok {
+	if stream, ok := conn.activeStreams.Get(streamId); ok {
 		stream.decoder.OnReceiveHeaders(headers, endStream)
 		if endStream {
 			return types.StopIteration
@@ -130,12 +130,12 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 }
 
 func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer) types.FilterStatus {
-	if stream, ok := conn.activeStream.Get(streamId); ok {
+	if stream, ok := conn.activeStreams.Get(streamId); ok {
 		stream.decoder.OnReceiveData(data, true)
 
 		if stream.direction == ClientStream {
 			// for client stream, remove stream on response read
-			stream.connection.activeStream.Remove(stream.streamId)
+			stream.connection.activeStreams.Remove(stream.streamId)
 		}
 	}
 
@@ -153,39 +153,28 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 		return
 	}
 
-	// for header decode error, close the connection directly
-	if err.Error() == types.UnSupportedProCode {
-		conn.connection.Close(types.NoFlush, types.LocalClose)
-	}
+	switch err.Error() {
+	case types.UnSupportedProCode, sofarpc.UnKnownCmdcode, sofarpc.UnKnownReqtype:
+		// for header decode error, close the connection directly
 
-	if err.Error() == sofarpc.UnKnownCmdcode {
-		conn.connection.Close(types.NoFlush, types.LocalClose)
-	}
-
-	if err.Error() == sofarpc.UnKnownReqtype {
-		conn.connection.Close(types.NoFlush, types.LocalClose)
-	}
-
-	// for other exception
-	if err.Error() == types.CodecException {
-		var streamId string
+	case types.CodecException:
 		if v, ok := header[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
-			streamId = v
+			conn.onNewStreamDetected(v, header)
+
+			if stream, ok := conn.activeStreams.Get(v); ok {
+
+				stream.decoder.OnDecodeError(err, header)
+				conn.activeStreams.Remove(v)
+			}
 		} else {
 			// if no request id found, no reason to send response, so close connection
 			conn.connection.Close(types.NoFlush, types.LocalClose)
-		}
-
-		conn.onNewStreamDetected(streamId, header)
-
-		if stream, ok := conn.activeStream.Get(streamId); ok {
-			stream.decoder.OnDecodeError(err, header)
 		}
 	}
 }
 
 func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[string]string) {
-	if ok := conn.activeStream.Has(streamId); ok {
+	if ok := conn.activeStreams.Has(streamId); ok {
 		log.DefaultLogger.Infof("OnReceiveHeaders, stream already exist, maybe response, StreamID = %s", streamId)
 		return
 	}
@@ -211,7 +200,7 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 	log.DefaultLogger.Infof("OnReceiveHeaders, New stream detected, Request id = %s, StreamID = %s", requestId, streamId)
 
 	stream.decoder = conn.serverCallbacks.NewStream(streamId, &stream)
-	conn.activeStream.Set(streamId, stream)
+	conn.activeStreams.Set(streamId, stream)
 }
 
 // types.Stream
@@ -306,7 +295,7 @@ func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
 		log.DefaultLogger.Infof("Write to remote, stream id = %s, direction = %d", s.streamId, s.direction)
 
-		if stream, ok := s.connection.activeStream.Get(s.streamId); ok {
+		if stream, ok := s.connection.activeStreams.Get(s.streamId); ok {
 
 			if s.encodedData != nil {
 				//	log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
@@ -324,7 +313,7 @@ func (s *stream) endStream() {
 
 	if s.direction == ServerStream {
 		// for a server stream, remove stream on response wrote
-		s.connection.activeStream.Remove(s.streamId)
+		s.connection.activeStreams.Remove(s.streamId)
 		//	log.StartLogger.Warnf("Remove Request ID = %+v",s.streamId)
 	}
 }

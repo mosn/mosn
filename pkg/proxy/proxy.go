@@ -107,13 +107,12 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 		p.stats.DownstreamConnectionDestroy().Inc(1)
 		p.stats.DownstreamConnectionActive().Dec(1)
 		var urEleNext *list.Element
-		
+
 		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEleNext {
-			
 			urEleNext = urEle.Next()
-			
-			ur := urEle.Value.(*downStream)
-			ur.OnResetStream(types.StreamConnectionTermination)
+
+			ds := urEle.Value.(*downStream)
+			ds.OnResetStream(types.StreamConnectionTermination)
 		}
 	}
 }
@@ -203,7 +202,6 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 	p.asMux.Unlock()
 
 	s.reset()
-	activeStreamPool.Give(s)
 }
 
 // ConnectionEventListener

@@ -29,7 +29,7 @@ import (
 type upstreamRequest struct {
 	proxy         *proxy
 	element       *list.Element
-	activeStream  *downStream
+	downStream    *downStream
 	host          types.Host
 	requestSender types.StreamSender
 	connPool      types.ConnectionPool
@@ -60,28 +60,44 @@ func (r *upstreamRequest) resetStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
+	ds := r.downStream
+
+	// check if downstream is reset
+	if ds == nil {
+		return
+	}
+
+	ds.mux.Lock()
+	defer ds.mux.Unlock()
+
+	// double check after get lock
+	if ds == nil {
+		return
+	}
+
 	r.requestSender = nil
 
 	// todo: check if we get a reset on encode request headers. e.g. send failed
-	r.activeStream.onUpstreamReset(UpstreamReset, reason)
+	r.downStream.onUpstreamReset(UpstreamReset, reason)
 }
 
 // types.StreamReceiver
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	r.upstreamRespHeaders = headers
-	r.activeStream.onUpstreamHeaders(headers, endStream)
+	r.downStream.onUpstreamHeaders(headers, endStream)
 }
 
 func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
-	r.activeStream.onUpstreamData(data, endStream)
+	r.downStream.onUpstreamData(data, endStream)
 }
 
 func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
-	r.activeStream.onUpstreamTrailers(trailers)
+	r.downStream.onUpstreamTrailers(trailers)
 }
 
 func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
+	r.OnResetStream(types.StreamLocalReset)
 }
 
 // ~~~ send request wrapper
@@ -132,10 +148,10 @@ func (r *upstreamRequest) OnReady(streamId string, sender types.StreamSender, ho
 	r.requestSender.GetStream().AddEventListener(r)
 
 	endStream := r.appendComplete && !r.dataAppended && !r.trailerAppended
-	r.requestSender.AppendHeaders(r.activeStream.downstreamReqHeaders, endStream)
+	r.requestSender.AppendHeaders(r.downStream.downstreamReqHeaders, endStream)
 
-	r.activeStream.requestInfo.OnUpstreamHostSelected(host)
-	r.activeStream.requestInfo.SetUpstreamLocalAddress(host.Address())
+	r.downStream.requestInfo.OnUpstreamHostSelected(host)
+	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
 
 	// todo: check if we get a reset on send headers
 }
