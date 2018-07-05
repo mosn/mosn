@@ -26,6 +26,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"strconv"
 	"sync/atomic"
+	"strings"
 )
 
 type StreamDirection int
@@ -97,8 +98,8 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	}
 	headers := make(map[string]string)
 	// support dynamic route
-	headers["Host"] = conn.connection.RemoteAddr().String()
-	headers["Path"] = "/"
+	headers[strings.ToLower(protocol.MosnHeaderHostKey)] = conn.connection.RemoteAddr().String()
+	headers[strings.ToLower(protocol.MosnHeaderPathKey)] = "/"
 	log.StartLogger.Tracef("before Dispatch on decode header")
 	conn.OnReceiveHeaders(streamId, headers)
 	log.StartLogger.Tracef("after Dispatch on decode header")

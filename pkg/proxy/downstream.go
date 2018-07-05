@@ -226,7 +226,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(),s)
 
 	if err != nil {
-		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed")
+		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v",err)
 		return
 	}
 

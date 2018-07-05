@@ -499,14 +499,14 @@ func (s *serverStream) doSend() {
 
 func (s *serverStream) handleRequest() {
 	if s.request != nil {
-		s.decoder.OnReceiveHeaders(decodeHeaderWithOutPath(s.request.Header), false)
+		s.decoder.OnReceiveHeaders(decodeHeader(s.request.Header), false)
 
 		//remove detect
 		if s.element != nil {
 			buf := &buffer.IoBuffer{}
 			buf.ReadFrom(s.request.Body)
 			s.decoder.OnReceiveData(buf, false)
-			s.decoder.OnReceiveTrailers(decodeHeaderWithOutPath(s.request.Trailer))
+			s.decoder.OnReceiveTrailers(decodeHeader(s.request.Trailer))
 		}
 	}
 }
@@ -531,19 +531,6 @@ func decodeHeader(in map[string][]string) (out map[string]string) {
 	for k, v := range in {
 		//// convert to lower case for internal process
 		out[strings.ToLower(k)] = strings.Join(v, ",")
-	}
-
-	return
-}
-
-func decodeHeaderWithOutPath(in map[string][]string) (out map[string]string) {
-	out = make(map[string]string, len(in))
-	for k, v := range in {
-		//// convert to lower case for internal process
-		out[strings.ToLower(k)] = strings.Join(v, ",")
-		if strings.ToLower(k) == "path" {
-			out["Path"] = strings.Join(v, ",")
-		}
 	}
 
 	return

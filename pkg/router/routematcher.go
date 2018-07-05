@@ -99,7 +99,7 @@ func (rm *RouteMatcher) findVirtualHost(headers map[string]string) types.Virtual
 		return rm.defaultVirtualHost
 	}
 
-	host := strings.ToLower(headers[protocol.MosnHeaderHostKey])
+	host := strings.ToLower(headers[strings.ToLower(protocol.MosnHeaderHostKey)])
 
 	// for service, header["host"] == header["service"] == servicename
 	// or use only a unique key for sofa's virtual host

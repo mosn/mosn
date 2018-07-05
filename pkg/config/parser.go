@@ -35,6 +35,7 @@ var ProtocolsSupported = map[string]bool {
 	string(protocol.SofaRpc):true,
 	string(protocol.Http2):true,
 	string(protocol.Http1):true,
+	string(protocol.Xprotocol):true,
 }
 
 // callback when corresponding module parsed
