@@ -89,6 +89,10 @@ func NewBiDirectCodeClient(context context.Context, prot types.Protocol, connect
 	return codecClient
 }
 
+func (c *codecClient) ClientConnection()types.ClientConnection{
+	return c.Connection
+}
+
 func (c *codecClient) Id() uint64 {
 	return c.Connection.Id()
 }
@@ -151,12 +155,13 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 	}
 
 	if event.IsClose() || event.ConnectFailure() {
-		c.AcrMux.RLock()
-		defer c.AcrMux.RUnlock()
-
-		for ar := c.ActiveRequests.Front(); ar != nil; ar = ar.Next() {
+		var arNext *list.Element
+		
+		for ar := c.ActiveRequests.Front(); ar != nil; ar = arNext {
 			reason := types.StreamConnectionFailed
-
+			
+			arNext = ar.Next()
+			
 			if c.ConnectedFlag {
 				reason = types.StreamConnectionTermination
 			}

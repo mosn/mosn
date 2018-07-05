@@ -106,11 +106,12 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
 		p.stats.DownstreamConnectionDestroy().Inc(1)
 		p.stats.DownstreamConnectionActive().Dec(1)
-
-		p.asMux.RLock()
-		defer p.asMux.RUnlock()
-
-		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEle.Next() {
+		var urEleNext *list.Element
+		
+		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEleNext {
+			
+			urEleNext = urEle.Next()
+			
 			ur := urEle.Value.(*downStream)
 			ur.OnResetStream(types.StreamConnectionTermination)
 		}
