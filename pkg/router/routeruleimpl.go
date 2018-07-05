@@ -255,7 +255,8 @@ func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint
 			}
 		}
 	}
-
+	log.DefaultLogger.Warnf("path route rule match failed")
+	
 	return nil
 }
 
@@ -287,12 +288,14 @@ func (prei *PrefixRouteRuleImpl) Match(headers map[string]string, randomValue ui
 		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
 
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
-
+				log.DefaultLogger.Warnf("prefix route rule match success")
+				
 				return prei
 			}
 		}
 	}
-
+	log.DefaultLogger.Warnf("prefix route rule match failed")
+	
 	return nil
 }
 
@@ -319,14 +322,18 @@ func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
 
 func (rrei *RegexRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	if rrei.matchRoute(headers, randomValue) {
+		
 		if headerPathValue, ok := headers[protocol.MosnHeaderPathKey]; ok {
+			
 			if rrei.regexPattern.MatchString(headerPathValue) {
-
+				log.DefaultLogger.Warnf("regex route rule match success")
+				
 				return rrei
 			}
 		}
 	}
-
+	log.DefaultLogger.Warnf("regex route rule match failed")
+	
 	return nil
 }
 
