@@ -85,11 +85,17 @@ func (rm *RouteMatcher) Route(headers map[string]string, randomValue uint64) typ
 	virtualHost := rm.findVirtualHost(headers)
 
 	if virtualHost == nil {
-		log.DefaultLogger.Warnf("No VirtualHost Found when Routing, But Use Default Virtual Host, Request Headers = %+v", headers)
+		log.DefaultLogger.Errorf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
 		return nil
 	}
 
 	// Second Step: Match Route from Routes in a Virtual Host
+	routerInstance := virtualHost.GetRouteFromEntries(headers, randomValue)
+	
+	if routerInstance == nil {
+		log.DefaultLogger.Errorf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+	}
+	
 	return virtualHost.GetRouteFromEntries(headers, randomValue)
 }
 
