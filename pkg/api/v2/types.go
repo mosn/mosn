@@ -24,10 +24,9 @@ import (
 type Metadata map[string]interface{}
 
 const (
-	DEFAULT_NETWORK_FILTER  = "proxy"
-	SOFARPC_INBOUND_FILTER  = "inbound_bolt"
-	SOFARPC_OUTBOUND_FILTER = "outbound_bolt"
-	X_PROXY                 = "x_proxy"
+	DEFAULT_NETWORK_FILTER = "proxy"
+	RPC_PROXY              = "rpc_proxy"
+	X_PROXY                = "x_proxy"
 )
 
 const (

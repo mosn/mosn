@@ -26,7 +26,7 @@
         "hosts": [
           {
             "socket_address": {
-              "address": "192.168.1.254",
+              "address": "10.15.233.67",
               "port_value": 15010
             }
           }
@@ -53,7 +53,7 @@
   },
   "servers": [
     {
-      "default_log_path": "/tmp/default.log",
+      "default_log_path": "./admin/mosn/default.log",
       "default_log_level": "DEBUG",
       "graceful_timeout": "10s",
       "Processor": 1,
@@ -70,10 +70,10 @@
                 {
                   "type": "proxy",
                   "config": {
-                    "DownstreamProtocol": "http1",
+                    "DownstreamProtocol": "Http1",
                     "Name": "proxy_config",
                     "SupportDynamicRoute": true,
-                    "UpstreamProtocol": "http2",
+                    "UpstreamProtocol": "Http2",
                     "VirtualHosts": [
                       {
                         "Domains": [
@@ -161,7 +161,7 @@
               }
             }
           ],
-          "log_path": "/home/admin/mosn/logs/egress.log",
+          "log_path": "./admin/mosn/logs/egress.log",
           "log_level": "DEBUG",
           "access_logs": [
             {
@@ -246,7 +246,7 @@
               }
             }
           ],
-          "log_path": "/home/admin/mosn/logs/egress.log",
+          "log_path": "./admin/mosn/logs/egress.log",
           "log_level": "DEBUG",
           "access_logs": [
             {
@@ -321,7 +321,7 @@
               }
             }
           ],
-          "log_path": "/home/admin/mosn/logs/egress.log",
+          "log_path": "./admin/mosn/logs/egress.log",
           "log_level": "DEBUG",
           "access_logs": [
             {
