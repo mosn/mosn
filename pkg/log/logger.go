@@ -125,9 +125,9 @@ func (l *logger) Start() error {
 
 selectwriter:
 	switch l.Output {
-	case "", "stderr":
+	case "", "stderr", "/dev/stderr":
 		l.writer = os.Stderr
-	case "stdout":
+	case "stdout", "/dev/stdout":
 		l.writer = os.Stdout
 	case "syslog":
 		l.writer, err = gsyslog.NewLogger(gsyslog.LOG_ERR, "LOCAL0", "mosn")

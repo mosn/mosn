@@ -43,15 +43,13 @@ import (
 
 var supportFilter map[string]bool = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
-	v2.SOFARPC_INBOUND_FILTER:     true,
-	v2.SOFARPC_OUTBOUND_FILTER:    true,
+	v2.RPC_PROXY:                  true,
 	v2.X_PROXY:                    true,
 }
 
 var httpBaseConfig map[string]bool = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
-	v2.SOFARPC_INBOUND_FILTER:     true,
-	v2.SOFARPC_OUTBOUND_FILTER:    true,
+	v2.RPC_PROXY:                  true,
 }
 
 func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
@@ -269,7 +267,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
-	} else if name == v2.SOFARPC_OUTBOUND_FILTER || name == v2.SOFARPC_INBOUND_FILTER {
+	} else if name == v2.RPC_PROXY {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
