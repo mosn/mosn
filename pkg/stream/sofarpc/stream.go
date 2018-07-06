@@ -156,7 +156,7 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 	switch err.Error() {
 	case types.UnSupportedProCode, sofarpc.UnKnownCmdcode, sofarpc.UnKnownReqtype:
 		// for header decode error, close the connection directly
-
+		conn.connection.Close(types.NoFlush, types.LocalClose)
 	case types.CodecException:
 		if v, ok := header[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
 			conn.onNewStreamDetected(v, header)

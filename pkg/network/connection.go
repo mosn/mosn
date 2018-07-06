@@ -67,7 +67,6 @@ type connection struct {
 	readBuffer          *buffer.IoBufferPoolEntry
 	writeBuffer         *buffer.IoBufferPoolEntry
 	writeBufferMux      sync.RWMutex
-	writeBufferChan     chan bool
 	internalLoopStarted bool
 	internalStopChan    chan bool
 	readerBufferPool    *buffer.IoBufferPool
@@ -94,7 +93,6 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		stopChan:         stopChan,
 		readEnabled:      true,
 		readEnabledChan:  make(chan bool, 1),
-		writeBufferChan:  make(chan bool),
 		internalStopChan: make(chan bool),
 		readerBufferPool: readerBufferPool,
 		writeBufferPool:  writeBufferPool,
@@ -289,10 +287,6 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 
 	c.writeBufferMux.Unlock()
 
-	go func() {
-		c.writeBufferChan <- true
-	}()
-
 	return nil
 }
 
@@ -307,7 +301,7 @@ func (c *connection) startWriteLoop() {
 			return
 		case <-c.internalStopChan:
 			return
-		case <-c.writeBufferChan:
+		default:
 			_, err := c.doWrite()
 
 			if err != nil {
@@ -329,6 +323,8 @@ func (c *connection) startWriteLoop() {
 				return
 			}
 		}
+
+		runtime.Gosched()
 	}
 }
 
@@ -350,11 +346,6 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 	for c.writeBufLen() > 0 {
 		c.writeBufferMux.Lock()
 		m, err = c.writeBuffer.Write()
-
-		//if c.writeBuffer.Br.Len() == 0 {
-		//	c.writeBufferPool.Give(c.writeBuffer)
-		//	c.writeBuffer = nil
-		//}
 		c.writeBufferMux.Unlock()
 
 		bytesSent += m
@@ -619,7 +610,6 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			stopChan:         stopChan,
 			readEnabled:      true,
 			readEnabledChan:  make(chan bool, 1),
-			writeBufferChan:  make(chan bool),
 			internalStopChan: make(chan bool),
 			readerBufferPool: readerBufferPool,
 			writeBufferPool:  writeBufferPool,
