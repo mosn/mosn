@@ -76,7 +76,7 @@ type downStream struct {
 	downstreamReset    bool
 	// upstream req sent
 	upstreamRequestSent bool
-	// 1. at the end of upstream response 2. by a upstream reset
+	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone      bool
 	senderFiltersStreaming   bool
 	receiverFiltersStreaming bool
@@ -485,7 +485,6 @@ func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers i
 
 func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
 	s.upstreamProcessDone = endStream
-
 	s.doAppendData(nil, data, endStream)
 }
 
@@ -505,7 +504,6 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 
 func (s *downStream) appendTrailers(trailers map[string]string) {
 	s.upstreamProcessDone = true
-
 	s.doAppendTrailers(nil, trailers)
 }
 
@@ -749,8 +747,6 @@ func (s *downStream) reset() {
 	s.route = nil
 	s.cluster = nil
 	s.element = nil
-	s.bufferLimit = 0
-	s.highWatermarkCount = 0
 	s.timeout = nil
 	s.retryState = nil
 	s.requestInfo = nil
@@ -767,13 +763,6 @@ func (s *downStream) reset() {
 	s.downstreamRespHeaders = nil
 	s.downstreamRespDataBuf = nil
 	s.downstreamRespTrailers = nil
-	s.downstreamResponseStarted = false
-	s.upstreamRequestSent = false
-	s.downstreamRecvDone = false
-	s.upstreamProcessDone = false
-	s.senderFiltersStreaming = false
-	s.receiverFiltersStreaming = false
-	s.filterStage = 0
 	s.senderFilters = s.senderFilters[:0]
 	s.receiverFilters = s.receiverFilters[:0]
 }
