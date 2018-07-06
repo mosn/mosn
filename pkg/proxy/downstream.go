@@ -262,7 +262,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 }
 
 func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
-	// if active stream finished the lifecycle, just ignore further data
+	// if active stream finished before receive data, just ignore further data
 	if s.upstreamProcessDone {
 		return
 	}
@@ -308,6 +308,11 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 	} else {
 		s.upstreamRequest.appendData(data, endStream)
 	}
+
+	// if upstream process done in the middle of receiving data, just end stream
+	if s.upstreamProcessDone {
+		s.cleanStream()
+	}
 }
 
 func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
@@ -349,6 +354,11 @@ func (s *downStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trail
 	s.downstreamReqTrailers = trailers
 	s.onUpstreamRequestSent()
 	s.upstreamRequest.appendTrailers(trailers)
+
+	// if upstream process done in the middle of receiving trailers, just end stream
+	if s.upstreamProcessDone {
+		s.cleanStream()
+	}
 }
 
 func (s *downStream) onUpstreamRequestSent() {
