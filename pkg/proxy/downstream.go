@@ -71,10 +71,11 @@ type downStream struct {
 	// ~~~ state
 	// starts to send back downstream response, set on upstream response detected
 	downstreamResponseStarted bool
-	// upstream req sent
-	upstreamRequestSent bool
 	// downstream request received done
 	downstreamRecvDone bool
+	downstreamReset    bool
+	// upstream req sent
+	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset
 	upstreamProcessDone      bool
 	senderFiltersStreaming   bool
@@ -159,7 +160,9 @@ func (s *downStream) cleanStream() {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	if s.upstreamRequest != nil && s.upstreamRequest.appendComplete && s.upstreamProcessDone {
+	if s.upstreamRequest != nil &&
+		(s.downstreamReset || s.upstreamRequest.sendComplete) &&
+		s.upstreamProcessDone {
 		// countdown metrics
 		s.proxy.stats.DownstreamRequestActive().Dec(1)
 		s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
@@ -185,6 +188,11 @@ func (s *downStream) cleanStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
+	if s.downstreamReset {
+		return
+	}
+
+	s.downstreamReset = true
 	s.proxy.stats.DownstreamRequestReset().Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
 	s.cleanStream()

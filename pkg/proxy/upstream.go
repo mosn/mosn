@@ -38,9 +38,9 @@ type upstreamRequest struct {
 	upstreamRespHeaders map[string]string
 
 	//~~~ state
-	appendComplete  bool
-	dataAppended    bool
-	trailerAppended bool
+	sendComplete bool
+	dataSent     bool
+	trailerSent  bool
 }
 
 // reset upstream request in proxy context
@@ -88,7 +88,7 @@ func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
 // ~~~ send request wrapper
 func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream bool) {
 	log.StartLogger.Tracef("upstream request encode headers")
-	r.appendComplete = endStream
+	r.sendComplete = endStream
 	streamID := ""
 
 	if streamid, ok := headers[types.HeaderStreamID]; ok {
@@ -101,15 +101,15 @@ func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream boo
 
 func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("upstream request encode data")
-	r.appendComplete = endStream
-	r.dataAppended = true
+	r.sendComplete = endStream
+	r.dataSent = true
 	r.requestSender.AppendData(data, endStream)
 }
 
 func (r *upstreamRequest) appendTrailers(trailers map[string]string) {
 	log.DefaultLogger.Debugf("upstream request encode trailers")
-	r.appendComplete = true
-	r.trailerAppended = true
+	r.sendComplete = true
+	r.trailerSent = true
 	r.requestSender.AppendTrailers(trailers)
 }
 
@@ -131,7 +131,7 @@ func (r *upstreamRequest) OnReady(streamId string, sender types.StreamSender, ho
 	r.requestSender = sender
 	r.requestSender.GetStream().AddEventListener(r)
 
-	endStream := r.appendComplete && !r.dataAppended && !r.trailerAppended
+	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
 	r.requestSender.AppendHeaders(r.downStream.downstreamReqHeaders, endStream)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
