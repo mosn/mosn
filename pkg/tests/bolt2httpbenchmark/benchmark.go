@@ -56,7 +56,7 @@ func main() {
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
 
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("stdout", log.DEBUG)
 
 	stopChan := make(chan bool)
 	meshReadyChan := make(chan bool)
@@ -224,8 +224,8 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
-		LogPath:                 "",
 		LogLevel:                uint8(log.DEBUG),
+		LogPath:                 "stdout",
 	}
 }
 

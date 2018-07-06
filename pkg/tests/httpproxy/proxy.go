@@ -48,7 +48,7 @@ func main() {
 		http.ListenAndServe("0.0.0.0:9090", nil)
 	}()
 
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("stdout", log.DEBUG)
 
 	stopChan := make(chan bool)
 	meshReadyChan := make(chan bool)
@@ -219,7 +219,7 @@ func genericProxyConfig() *v2.Proxy {
 
 	proxyConfig.VirtualHosts = append(proxyConfig.VirtualHosts, &v2.VirtualHost{
 		Name:    "testSofaRoute",
-		Domains: []string{"*"},
+		Domains: []string{"127.0.0.1:2044"},
 		Routers: []v2.Router{router3V2, router1V2, router2V2},
 	})
 	return proxyConfig
@@ -233,7 +233,7 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
-		LogPath:                 "",
+		LogPath:                 "stdout",
 		LogLevel:                uint8(log.DEBUG),
 		DisableConnIo:           true,
 	}
