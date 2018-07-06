@@ -46,9 +46,7 @@ func (p *connPool) NewStream(context context.Context, streamId string,
 	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(context, p)
-		// Note: do tcp connection here
-		p.activeClient.host.Connection.Connect(true)
-		
+
 		if p.activeClient == nil {
 			cb.OnFailure(streamId, types.ConnectionFailure, nil)
 			return nil
@@ -120,7 +118,11 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	
 	ac.codecClient = codecClient
 	ac.host = data
-	
+
+	if err := ac.host.Connection.Connect(true); err != nil {
+		return nil
+	}
+
 	return ac
 }
 
