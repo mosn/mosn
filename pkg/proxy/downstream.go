@@ -75,8 +75,8 @@ type downStream struct {
 	upstreamRequestSent bool
 	// downstream request received done
 	downstreamRecvDone bool
-	// 1. upstream response send done 2. done by a hijack response
-	streamRoundTripDone      bool
+	// 1. at the end of upstream response 2. by a upstream reset
+	upstreamProcessDone      bool
 	senderFiltersStreaming   bool
 	receiverFiltersStreaming bool
 
@@ -116,10 +116,10 @@ func newActiveStream(streamId string, proxy *proxy, responseSender types.StreamS
 func (s *downStream) endStream() {
 	var isReset bool
 	if s.responseSender != nil {
-		if !s.downstreamRecvDone || !s.streamRoundTripDone {
+		if !s.downstreamRecvDone || !s.upstreamProcessDone {
 			// if downstream req received not done, or local proxy process not done by handle upstream response,
 			// just mark it as done and reset stream as a failed case
-			s.streamRoundTripDone = true
+			s.upstreamProcessDone = true
 			s.responseSender.GetStream().ResetStream(types.StreamLocalReset)
 			isReset = true
 		}
@@ -159,7 +159,7 @@ func (s *downStream) cleanStream() {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	if s.upstreamRequest == nil || s.streamRoundTripDone {
+	if s.upstreamRequest != nil && s.upstreamRequest.appendComplete && s.upstreamProcessDone {
 		// countdown metrics
 		s.proxy.stats.DownstreamRequestActive().Dec(1)
 		s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
@@ -263,7 +263,7 @@ func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
 func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) {
 	log.StartLogger.Tracef("active stream do decode data")
 	// if active stream finished the lifecycle, just ignore further data
-	if s.streamRoundTripDone {
+	if s.upstreamProcessDone {
 		return
 	}
 
@@ -332,7 +332,7 @@ func (s *downStream) OnDecodeError(err error, headers map[string]string) {
 
 func (s *downStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trailers map[string]string) {
 	// if active stream finished the lifecycle, just ignore further data
-	if s.streamRoundTripDone {
+	if s.upstreamProcessDone {
 		return
 	}
 
@@ -458,7 +458,7 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 // ~~~ active stream sender wrapper
 
 func (s *downStream) appendHeaders(headers map[string]string, endStream bool) {
-	s.streamRoundTripDone = endStream
+	s.upstreamProcessDone = endStream
 	s.doAppendHeaders(nil, headers, endStream)
 }
 
@@ -478,7 +478,7 @@ func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers i
 }
 
 func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
-	s.streamRoundTripDone = endStream
+	s.upstreamProcessDone = endStream
 
 	s.doAppendData(nil, data, endStream)
 }
@@ -498,7 +498,7 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 }
 
 func (s *downStream) appendTrailers(trailers map[string]string) {
-	s.streamRoundTripDone = true
+	s.upstreamProcessDone = true
 
 	s.doAppendTrailers(nil, trailers)
 }
@@ -764,7 +764,7 @@ func (s *downStream) reset() {
 	s.downstreamResponseStarted = false
 	s.upstreamRequestSent = false
 	s.downstreamRecvDone = false
-	s.streamRoundTripDone = false
+	s.upstreamProcessDone = false
 	s.senderFiltersStreaming = false
 	s.receiverFiltersStreaming = false
 	s.filterStage = 0

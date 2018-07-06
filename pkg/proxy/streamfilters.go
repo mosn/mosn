@@ -174,7 +174,7 @@ func (s *downStream) runReceiveHeadersFilters(filter *activeStreamReceiverFilter
 }
 
 func (s *downStream) runReceiveDataFilters(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) bool {
-	if s.streamRoundTripDone {
+	if s.upstreamProcessDone {
 		return false
 	}
 
@@ -221,7 +221,7 @@ func (s *downStream) runReceiveDataFilters(filter *activeStreamReceiverFilter, d
 }
 
 func (s *downStream) runReceiveTrailersFilters(filter *activeStreamReceiverFilter, trailers map[string]string) bool {
-	if s.streamRoundTripDone {
+	if s.upstreamProcessDone {
 		return false
 	}
 
@@ -320,7 +320,7 @@ func (f *activeStreamReceiverFilter) ContinueDecoding() {
 }
 
 func (f *activeStreamReceiverFilter) doContinue() {
-	if f.activeStream.streamRoundTripDone {
+	if f.activeStream.upstreamProcessDone {
 		return
 	}
 
@@ -422,7 +422,7 @@ func (f *activeStreamSenderFilter) doContinue() {
 
 	if !f.headersContinued {
 		f.headersContinued = true
-		endStream := f.activeStream.streamRoundTripDone && !hasBuffedData && !hasTrailer
+		endStream := f.activeStream.upstreamProcessDone && !hasBuffedData && !hasTrailer
 		f.activeStream.doAppendHeaders(f, f.activeStream.downstreamRespHeaders, endStream)
 	}
 
