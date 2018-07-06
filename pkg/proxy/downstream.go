@@ -585,6 +585,11 @@ func (s *downStream) onUpstreamHeaders(headers map[string]string, endStream bool
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
+	// exit on downstream reset
+	if s.element == nil {
+		return
+	}
+
 	s.downstreamRespHeaders = headers
 
 	// check retry
@@ -616,6 +621,11 @@ func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
+	// exit on downstream reset
+	if s.element == nil {
+		return
+	}
+
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
@@ -626,6 +636,11 @@ func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 func (s *downStream) onUpstreamTrailers(trailers map[string]string) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
+
+	// exit on downstream reset
+	if s.element == nil {
+		return
+	}
 
 	s.onUpstreamResponseRecvFinished()
 
