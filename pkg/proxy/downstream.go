@@ -76,7 +76,7 @@ type downStream struct {
 	// downstream request received done
 	downstreamRecvDone bool
 	// 1. upstream response send done 2. done by a hijack response
-	localProcessDone         bool
+	streamRoundTripDone      bool
 	senderFiltersStreaming   bool
 	receiverFiltersStreaming bool
 
@@ -116,10 +116,10 @@ func newActiveStream(streamId string, proxy *proxy, responseSender types.StreamS
 func (s *downStream) endStream() {
 	var isReset bool
 	if s.responseSender != nil {
-		if !s.downstreamRecvDone || !s.localProcessDone {
+		if !s.downstreamRecvDone || !s.streamRoundTripDone {
 			// if downstream req received not done, or local proxy process not done by handle upstream response,
 			// just mark it as done and reset stream as a failed case
-			s.localProcessDone = true
+			s.streamRoundTripDone = true
 			s.responseSender.GetStream().ResetStream(types.StreamLocalReset)
 			isReset = true
 		}
@@ -139,9 +139,6 @@ func (s *downStream) endStream() {
 // 	+ all filters
 //  + remove stream in proxy context
 func (s *downStream) cleanStream() {
-	s.proxy.stats.DownstreamRequestActive().Dec(1)
-	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
-
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil {
 		s.upstreamRequest.resetStream()
@@ -159,34 +156,35 @@ func (s *downStream) cleanStream() {
 		ef.filter.OnDestroy()
 	}
 
-	// access log
-	if s.proxy != nil && s.proxy.accessLogs != nil {
-		var downstreamRespHeadersMap map[string]string
+	s.mux.Lock()
+	defer s.mux.Unlock()
 
-		if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-			downstreamRespHeadersMap = v
+	if s.upstreamRequest == nil || s.streamRoundTripDone {
+		// countdown metrics
+		s.proxy.stats.DownstreamRequestActive().Dec(1)
+		s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
+
+		// access log
+		if s.proxy != nil && s.proxy.accessLogs != nil {
+			var downstreamRespHeadersMap map[string]string
+
+			if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+				downstreamRespHeadersMap = v
+			}
+
+			for _, al := range s.proxy.accessLogs {
+				al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+			}
 		}
 
-		for _, al := range s.proxy.accessLogs {
-			al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
-		}
+		// delete stream
+		s.proxy.deleteActiveStream(s)
 	}
-
-	// delete stream
-	s.proxy.deleteActiveStream(s)
 }
 
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
-	// exit on downstream reset
-	if s.element == nil {
-		return
-	}
-
 	s.proxy.stats.DownstreamRequestReset().Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
 	s.cleanStream()
@@ -194,14 +192,6 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 
 // types.StreamReceiver
 func (s *downStream) OnReceiveHeaders(headers map[string]string, endStream bool) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
-	// exit on downstream reset
-	if s.element == nil {
-		return
-	}
-
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
 
@@ -264,14 +254,6 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 }
 
 func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
-	// exit on downstream reset
-	if s.element == nil {
-		return
-	}
-
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
 
@@ -281,7 +263,7 @@ func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
 func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) {
 	log.StartLogger.Tracef("active stream do decode data")
 	// if active stream finished the lifecycle, just ignore further data
-	if s.localProcessDone {
+	if s.streamRoundTripDone {
 		return
 	}
 
@@ -350,7 +332,7 @@ func (s *downStream) OnDecodeError(err error, headers map[string]string) {
 
 func (s *downStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trailers map[string]string) {
 	// if active stream finished the lifecycle, just ignore further data
-	if s.localProcessDone {
+	if s.streamRoundTripDone {
 		return
 	}
 
@@ -476,7 +458,7 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 // ~~~ active stream sender wrapper
 
 func (s *downStream) appendHeaders(headers map[string]string, endStream bool) {
-	s.localProcessDone = endStream
+	s.streamRoundTripDone = endStream
 	s.doAppendHeaders(nil, headers, endStream)
 }
 
@@ -496,7 +478,7 @@ func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers i
 }
 
 func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
-	s.localProcessDone = endStream
+	s.streamRoundTripDone = endStream
 
 	s.doAppendData(nil, data, endStream)
 }
@@ -516,7 +498,7 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 }
 
 func (s *downStream) appendTrailers(trailers map[string]string) {
-	s.localProcessDone = true
+	s.streamRoundTripDone = true
 
 	s.doAppendTrailers(nil, trailers)
 }
@@ -582,14 +564,6 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 }
 
 func (s *downStream) onUpstreamHeaders(headers map[string]string, endStream bool) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
-	// exit on downstream reset
-	if s.element == nil {
-		return
-	}
-
 	s.downstreamRespHeaders = headers
 
 	// check retry
@@ -618,14 +592,6 @@ func (s *downStream) onUpstreamHeaders(headers map[string]string, endStream bool
 }
 
 func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
-	// exit on downstream reset
-	if s.element == nil {
-		return
-	}
-
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
@@ -634,14 +600,6 @@ func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *downStream) onUpstreamTrailers(trailers map[string]string) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
-	// exit on downstream reset
-	if s.element == nil {
-		return
-	}
-
 	s.onUpstreamResponseRecvFinished()
 
 	s.appendTrailers(trailers)
@@ -806,7 +764,7 @@ func (s *downStream) reset() {
 	s.downstreamResponseStarted = false
 	s.upstreamRequestSent = false
 	s.downstreamRecvDone = false
-	s.localProcessDone = false
+	s.streamRoundTripDone = false
 	s.senderFiltersStreaming = false
 	s.receiverFiltersStreaming = false
 	s.filterStage = 0

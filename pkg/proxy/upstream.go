@@ -60,21 +60,6 @@ func (r *upstreamRequest) resetStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
-	ds := r.downStream
-
-	// check if downstream is reset
-	if ds == nil {
-		return
-	}
-
-	ds.mux.Lock()
-	defer ds.mux.Unlock()
-
-	// double check after get lock
-	if ds == nil {
-		return
-	}
-
 	r.requestSender = nil
 
 	// todo: check if we get a reset on encode request headers. e.g. send failed
@@ -101,7 +86,6 @@ func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
 }
 
 // ~~~ send request wrapper
-
 func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream bool) {
 	log.StartLogger.Tracef("upstream request encode headers")
 	r.appendComplete = endStream
