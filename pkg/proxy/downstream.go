@@ -262,6 +262,11 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 }
 
 func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
+	// if active stream finished the lifecycle, just ignore further data
+	if s.upstreamProcessDone {
+		return
+	}
+
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
 
@@ -270,10 +275,6 @@ func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
 
 func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) {
 	log.StartLogger.Tracef("active stream do decode data")
-	// if active stream finished the lifecycle, just ignore further data
-	if s.upstreamProcessDone {
-		return
-	}
 
 	if s.runReceiveDataFilters(filter, data, endStream) {
 		return
@@ -310,11 +311,8 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 }
 
 func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-
-	// exit on downstream reset
-	if s.element == nil {
+	// if active stream finished the lifecycle, just ignore further data
+	if s.upstreamProcessDone {
 		return
 	}
 
@@ -324,6 +322,11 @@ func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
 }
 
 func (s *downStream) OnDecodeError(err error, headers map[string]string) {
+	// if active stream finished the lifecycle, just ignore further data
+	if s.upstreamProcessDone {
+		return
+	}
+
 	// todo: enrich headers' information to do some hijack
 	// Check headers' info to do hijack
 	switch err.Error() {
@@ -339,11 +342,6 @@ func (s *downStream) OnDecodeError(err error, headers map[string]string) {
 }
 
 func (s *downStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trailers map[string]string) {
-	// if active stream finished the lifecycle, just ignore further data
-	if s.upstreamProcessDone {
-		return
-	}
-
 	if s.runReceiveTrailersFilters(filter, trailers) {
 		return
 	}
