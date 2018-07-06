@@ -60,13 +60,6 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 
 	if p.primaryClient == nil {
 		p.primaryClient = newActiveClient(context, p)
-		p.primaryClient.host.Connection.Connect(false)
-		
-		if p.primaryClient == nil {
-			cb.OnFailure(streamId, types.ConnectionFailure, nil)
-			return nil
-		}
-		
 	}
 	p.mux.Unlock()
 
@@ -191,8 +184,11 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
-
 	data := pool.host.CreateConnection(context)
+	
+	if err := data.Connection.Connect(false); err != nil {
+		return nil
+	}
 
 	codecClient := pool.createCodecClient(context, data)
 	codecClient.AddConnectionCallbacks(ac)

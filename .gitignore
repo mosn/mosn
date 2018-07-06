@@ -10,7 +10,6 @@ mosn_config_dump_result.json
 default.log
 logger.log
 mosn
-bolt2http
 access_egress.log
 default.log
 egress.log
