@@ -68,7 +68,7 @@ type connection struct {
 	writeBuffer         *buffer.IoBufferPoolEntry
 	writeBufferMux      sync.RWMutex
 	internalLoopStarted bool
-	internalStopChan    chan bool
+	internalStopChan    chan struct{}
 	readerBufferPool    *buffer.IoBufferPool
 	writeBufferPool     *buffer.IoBufferPool
 
@@ -93,7 +93,7 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		stopChan:         stopChan,
 		readEnabled:      true,
 		readEnabledChan:  make(chan bool, 1),
-		internalStopChan: make(chan bool),
+		internalStopChan: make(chan struct{}),
 		readerBufferPool: readerBufferPool,
 		writeBufferPool:  writeBufferPool,
 		stats: &types.ConnectionStats{
@@ -166,6 +166,13 @@ func (c *connection) startReadLoop() {
 	}()
 
 	for {
+		// exit loop asap. one receive & one default block will be optimized by go compiler
+		select {
+		case <-c.internalStopChan:
+			return
+		default:
+		}
+
 		select {
 		case <-c.stopChan:
 			return
@@ -296,6 +303,13 @@ func (c *connection) startWriteLoop() {
 	}()
 
 	for {
+		// exit loop asap. one receive & one default block will be optimized by go compiler
+		select {
+		case <-c.internalStopChan:
+			return
+		default:
+		}
+
 		select {
 		case <-c.stopChan:
 			return
@@ -430,7 +444,6 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	// wait for io loops exit, ensure single thread operate streams on the connection
 	if c.internalLoopStarted {
 		// because close function must be called by one io loop thread, notify another loop here
-		c.internalStopChan <- true
 		close(c.internalStopChan)
 	}
 
@@ -610,7 +623,7 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			stopChan:         stopChan,
 			readEnabled:      true,
 			readEnabledChan:  make(chan bool, 1),
-			internalStopChan: make(chan bool),
+			internalStopChan: make(chan struct{}),
 			readerBufferPool: readerBufferPool,
 			writeBufferPool:  writeBufferPool,
 			stats: &types.ConnectionStats{
