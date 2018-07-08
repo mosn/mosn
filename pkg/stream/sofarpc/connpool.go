@@ -22,12 +22,15 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"sync"
 )
 
 // types.ConnectionPool
 type connPool struct {
 	activeClient *activeClient
 	host         types.Host
+
+	mux sync.Mutex
 }
 
 func NewConnPool(host types.Host) types.ConnectionPool {
@@ -44,18 +47,19 @@ func (p *connPool) DrainConnections() {}
 
 func (p *connPool) NewStream(context context.Context, streamId string,
 	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
+	p.mux.Lock()
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(context, p)
-		// Note: do tcp connection here
-		p.activeClient.host.Connection.Connect(true)
-		
-		if p.activeClient == nil {
-			cb.OnFailure(streamId, types.ConnectionFailure, nil)
-			return nil
-		}
 	}
-	
-    if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
+
+	p.mux.Unlock()
+
+	if p.activeClient == nil {
+		cb.OnFailure(streamId, types.ConnectionFailure, nil)
+		return nil
+	}
+
+	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		cb.OnFailure(streamId, types.Overflow, nil)
 	} else {
 		// todo: update host stats
@@ -75,9 +79,9 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
-	if event.IsClose() || event.ConnectFailure(){
+	if event.IsClose() || event.ConnectFailure() {
 		// todo: update host stats
-			p.activeClient = nil
+		p.activeClient = nil
 	} else if event == types.ConnectTimeout {
 		// todo: update host stats
 		client.codecClient.Close()
@@ -111,16 +115,20 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
-	
+
 	data := pool.host.CreateConnection(context)
 	codecClient := pool.createCodecClient(context, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
-	
+
 	ac.codecClient = codecClient
 	ac.host = data
-	
+
+	if err := ac.host.Connection.Connect(true); err != nil {
+		return nil
+	}
+
 	return ac
 }
 

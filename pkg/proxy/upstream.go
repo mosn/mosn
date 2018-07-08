@@ -29,7 +29,7 @@ import (
 type upstreamRequest struct {
 	proxy         *proxy
 	element       *list.Element
-	activeStream  *downStream
+	downStream    *downStream
 	host          types.Host
 	requestSender types.StreamSender
 	connPool      types.ConnectionPool
@@ -38,9 +38,9 @@ type upstreamRequest struct {
 	upstreamRespHeaders map[string]string
 
 	//~~~ state
-	appendComplete  bool
-	dataAppended    bool
-	trailerAppended bool
+	sendComplete bool
+	dataSent     bool
+	trailerSent  bool
 }
 
 // reset upstream request in proxy context
@@ -63,32 +63,32 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 
 	// todo: check if we get a reset on encode request headers. e.g. send failed
-	r.activeStream.onUpstreamReset(UpstreamReset, reason)
+	r.downStream.onUpstreamReset(UpstreamReset, reason)
 }
 
 // types.StreamReceiver
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	r.upstreamRespHeaders = headers
-	r.activeStream.onUpstreamHeaders(headers, endStream)
+	r.downStream.onUpstreamHeaders(headers, endStream)
 }
 
 func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
-	r.activeStream.onUpstreamData(data, endStream)
+	r.downStream.onUpstreamData(data, endStream)
 }
 
 func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
-	r.activeStream.onUpstreamTrailers(trailers)
+	r.downStream.onUpstreamTrailers(trailers)
 }
 
 func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
+	r.OnResetStream(types.StreamLocalReset)
 }
 
 // ~~~ send request wrapper
-
 func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream bool) {
 	log.StartLogger.Tracef("upstream request encode headers")
-	r.appendComplete = endStream
+	r.sendComplete = endStream
 	streamID := ""
 
 	if streamid, ok := headers[types.HeaderStreamID]; ok {
@@ -101,15 +101,15 @@ func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream boo
 
 func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("upstream request encode data")
-	r.appendComplete = endStream
-	r.dataAppended = true
+	r.sendComplete = endStream
+	r.dataSent = true
 	r.requestSender.AppendData(data, endStream)
 }
 
 func (r *upstreamRequest) appendTrailers(trailers map[string]string) {
 	log.DefaultLogger.Debugf("upstream request encode trailers")
-	r.appendComplete = true
-	r.trailerAppended = true
+	r.sendComplete = true
+	r.trailerSent = true
 	r.requestSender.AppendTrailers(trailers)
 }
 
@@ -131,11 +131,11 @@ func (r *upstreamRequest) OnReady(streamId string, sender types.StreamSender, ho
 	r.requestSender = sender
 	r.requestSender.GetStream().AddEventListener(r)
 
-	endStream := r.appendComplete && !r.dataAppended && !r.trailerAppended
-	r.requestSender.AppendHeaders(r.activeStream.downstreamReqHeaders, endStream)
+	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
+	r.requestSender.AppendHeaders(r.downStream.downstreamReqHeaders, endStream)
 
-	r.activeStream.requestInfo.OnUpstreamHostSelected(host)
-	r.activeStream.requestInfo.SetUpstreamLocalAddress(host.Address())
+	r.downStream.requestInfo.OnUpstreamHostSelected(host)
+	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
 
 	// todo: check if we get a reset on send headers
 }
