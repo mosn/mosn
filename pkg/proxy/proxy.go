@@ -187,12 +187,12 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 	// reuse decode map
 	if p.resueCodecMaps {
 		if s.downstreamReqHeaders != nil {
-			p.codecPool.Give(s.downstreamReqHeaders)
+		//	p.codecPool.Give(s.downstreamReqHeaders)
 		}
 
 		if s.upstreamRequest != nil {
 			if s.upstreamRequest.upstreamRespHeaders != nil {
-				p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
+		//		p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
 			}
 		}
 	}
