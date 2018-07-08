@@ -61,6 +61,7 @@ var (
 	configParsedCBMaps = make(map[ConfigContentKey][]ConfigParsedCallback)
 
 	logLevelMap = map[string]log.LogLevel{
+		"TRACE": log.TRACE,
 		"DEBUG": log.DEBUG,
 		"FATAL": log.FATAL,
 		"ERROR": log.ERROR,
