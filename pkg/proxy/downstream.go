@@ -157,32 +157,32 @@ func (s *downStream) cleanStream() {
 		ef.filter.OnDestroy()
 	}
 
-	s.mux.Lock()
-	defer s.mux.Unlock()
+	// countdown metrics
+	s.proxy.stats.DownstreamRequestActive().Dec(1)
+	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
-	if s.upstreamRequest != nil &&
-		(s.downstreamReset || s.upstreamRequest.sendComplete) &&
-		s.upstreamProcessDone {
-		// countdown metrics
-		s.proxy.stats.DownstreamRequestActive().Dec(1)
-		s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
+	// access log
+	if s.proxy != nil && s.proxy.accessLogs != nil {
+		var downstreamRespHeadersMap map[string]string
 
-		// access log
-		if s.proxy != nil && s.proxy.accessLogs != nil {
-			var downstreamRespHeadersMap map[string]string
-
-			if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-				downstreamRespHeadersMap = v
-			}
-
-			for _, al := range s.proxy.accessLogs {
-				al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
-			}
+		if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+			downstreamRespHeadersMap = v
 		}
 
-		// delete stream
-		s.proxy.deleteActiveStream(s)
+		for _, al := range s.proxy.accessLogs {
+			al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+		}
 	}
+
+	// delete stream
+	s.proxy.deleteActiveStream(s)
+}
+
+// note: added before countdown metrics
+func (s *downStream) shouldDeleteStream() bool {
+	return s.upstreamRequest != nil &&
+		(s.downstreamReset || s.upstreamRequest.sendComplete) &&
+		s.upstreamProcessDone
 }
 
 // types.StreamEventListener

@@ -201,7 +201,7 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 	p.activeSteams.Remove(s.element)
 	p.asMux.Unlock()
 
-	s.reset()
+	//s.reset()
 }
 
 // ConnectionEventListener
