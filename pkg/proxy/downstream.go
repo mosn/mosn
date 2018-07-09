@@ -157,25 +157,27 @@ func (s *downStream) cleanStream() {
 		ef.filter.OnDestroy()
 	}
 
-	// countdown metrics
-	s.proxy.stats.DownstreamRequestActive().Dec(1)
-	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
+	if s.shouldDeleteStream() {
+		// countdown metrics
+		s.proxy.stats.DownstreamRequestActive().Dec(1)
+		s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
-	// access log
-	if s.proxy != nil && s.proxy.accessLogs != nil {
-		var downstreamRespHeadersMap map[string]string
+		// access log
+		//if s.proxy != nil && s.proxy.accessLogs != nil {
+		//	var downstreamRespHeadersMap map[string]string
+		//
+		//	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+		//		downstreamRespHeadersMap = v
+		//	}
+		//
+		//	for _, al := range s.proxy.accessLogs {
+		//		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+		//	}
+		//}
 
-		if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-			downstreamRespHeadersMap = v
-		}
-
-		for _, al := range s.proxy.accessLogs {
-			al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
-		}
+		// delete stream
+		s.proxy.deleteActiveStream(s)
 	}
-
-	// delete stream
-	s.proxy.deleteActiveStream(s)
 }
 
 // note: added before countdown metrics
@@ -485,7 +487,7 @@ func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers i
 
 	//Currently, just log the error
 	if err := s.responseSender.AppendHeaders(headers, endStream); err != nil {
-		s.logger.Errorf("[downstream] decode headers error, %s", err)
+		s.logger.Errorf("[downstream] append headers error, %s", err)
 	}
 
 	if endStream {
@@ -762,6 +764,7 @@ func (s *downStream) reset() {
 	s.requestInfo = nil
 	s.responseSender = nil
 	s.upstreamRequest.downStream = nil
+	s.upstreamRequest.requestSender = nil
 	s.upstreamRequest.proxy = nil
 	s.upstreamRequest.upstreamRespHeaders = nil
 	s.upstreamRequest = nil
