@@ -12,7 +12,10 @@ import (
 )
 
 func main() {
-	MeshServerAddr := "127.0.0.1:2046"
+	//MeshServerAddr := "127.0.0.1:2046"
+	//MeshServerAddr := "11.166.22.163:12200"   // c++ 的测试后台
+	MeshServerAddr := "127.0.0.1:8080"   // 直接发往server
+	
 	stopChan := make(chan bool)
 	log.InitDefaultLogger("", log.DEBUG)
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", MeshServerAddr)

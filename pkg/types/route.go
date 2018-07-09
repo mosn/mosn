@@ -318,7 +318,7 @@ type ConfigUtility interface {
 
 	// See if the query parameters specified in the config are present in a request.
 	// bool true if all the query params (and values) in the config_params are found in the query_params
-	MatchQueryParams(queryParams *QueryParams, configQueryParams []QueryParameterMatcher) bool
+	MatchQueryParams(queryParams QueryParams, configQueryParams []QueryParameterMatcher) bool
 }
 
 type LowerCaseString interface {

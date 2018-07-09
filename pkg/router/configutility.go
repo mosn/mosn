@@ -60,11 +60,11 @@ func (cu *ConfigUtility) MatchHeaders(requestHeaders map[string]string, configHe
 }
 
 // types.MatchQueryParams
-func (cu *ConfigUtility) MatchQueryParams(queryParams *types.QueryParams, configQueryParams []types.QueryParameterMatcher) bool {
+func (cu *ConfigUtility) MatchQueryParams(queryParams types.QueryParams, configQueryParams []types.QueryParameterMatcher) bool {
 
 	for _, configQueryParam := range configQueryParams {
 
-		if !configQueryParam.Matches(*queryParams) {
+		if !configQueryParam.Matches(queryParams) {
 			return false
 		}
 	}

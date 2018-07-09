@@ -34,6 +34,8 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 		delete(headerMaps, types.HeaderStreamID)
 		delete(headerMaps, types.HeaderGlobalTimeout)
 		delete(headerMaps, types.HeaderTryTimeout)
+		
+		delete(headerMaps, types.HeaderStremEnd)
 
 		if status, ok := headerMaps[types.HeaderStatus]; ok {
 			delete(headerMaps, types.HeaderStatus)
@@ -90,5 +92,11 @@ func decodeSterilize(streamId string, headers map[string]string) bool {
 			return true
 		}
 	}
+	
+	
+	if _, ok :=headers[types.HeaderStremEnd];ok {
+		return true
+	}
+	
 	return false
 }
