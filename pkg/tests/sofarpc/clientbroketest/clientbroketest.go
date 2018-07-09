@@ -67,7 +67,7 @@ const (
 // client相关配置
 const (
 	ClientNum        = 3
-	CloseClientNum   = 1
+	CloseClientNum   = 10
 	SendInterval     = 10 * time.Millisecond
 	RestartTime      = 1 * time.Second
 	ResponseTimeout  = 3000 * time.Millisecond
@@ -84,7 +84,7 @@ func Run() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
-	log.InitDefaultLogger("", log.ERROR)
+	log.InitDefaultLogger("./default.log", log.ERROR)
 
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
@@ -453,7 +453,7 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
-		LogPath:                 "",
+		LogPath:                 "default.log",
 		LogLevel:                uint8(log.ERROR),
 	}
 }
