@@ -255,6 +255,8 @@ type ClusterInfo interface {
 	TLSMng() TLSContextManager
 
 	LbSubsetInfo() LBSubsetInfo
+	
+	LBInstance() LoadBalancer
 }
 
 type ResourceManager interface {

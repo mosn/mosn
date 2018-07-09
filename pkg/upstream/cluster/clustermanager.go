@@ -149,22 +149,9 @@ func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *cluste
 		clusterSnapshot := &clusterSnapshot{
 			prioritySet: pcc.PrioritySet(),
 			clusterInfo: pcc.Info(),
+			loadbalancer:pcc.Info().LBInstance(),
 		}
-
-		var lb types.LoadBalancer
-
-		if pcc.Info().LbSubsetInfo().IsEnabled() {
-			// use subset loadbalancer
-			lb = NewSubsetLoadBalancer(pcc.Info().LbType(), pcc.PrioritySet(), pcc.Info().Stats(),
-				pcc.Info().LbSubsetInfo())
-
-		} else {
-			// use common loadbalancer
-			lb = NewLoadBalancer(pcc.Info().LbType(), pcc.PrioritySet())
-		}
-
-		clusterSnapshot.loadbalancer = lb
-
+		
 		return clusterSnapshot
 	} else {
 		return nil
