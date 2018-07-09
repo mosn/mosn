@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"sync/atomic"
 )
 
 // stream.CodecClient
@@ -152,12 +153,12 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 
 	if event.IsClose() || event.ConnectFailure() {
 		var arNext *list.Element
-		
+
 		for ar := c.ActiveRequests.Front(); ar != nil; ar = arNext {
 			reason := types.StreamConnectionFailed
-			
+
 			arNext = ar.Next()
-			
+
 			if c.ConnectedFlag {
 				reason = types.StreamConnectionTermination
 			}
@@ -193,6 +194,10 @@ func (c *codecClient) responseDecodeComplete(request *activeRequest) {
 }
 
 func (c *codecClient) deleteRequest(request *activeRequest) {
+	if !atomic.CompareAndSwapUint32(&request.deleted, 0, 1) {
+		return
+	}
+
 	c.AcrMux.Lock()
 	defer c.AcrMux.Unlock()
 
@@ -210,6 +215,7 @@ type activeRequest struct {
 	responseReceiver types.StreamReceiver
 	requestSender    types.StreamSender
 	element          *list.Element
+	deleted          uint32
 }
 
 func newActiveRequest(codecClient *codecClient, streamDecoder types.StreamReceiver) *activeRequest {

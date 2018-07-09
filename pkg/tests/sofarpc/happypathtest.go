@@ -190,35 +190,35 @@ func Run() {
 	meshReadyChan := make(chan bool)
 
 	go func() {
-		// upstream
+		//upstream
 		l, _ := net.Listen("tcp", RealRPCServerAddr)
-
+		
 		defer l.Close()
-
+		
 		for {
 			select {
 			case <-stopChan:
 				break
 			case <-time.After(2 * time.Second):
 				upstreamReadyChan <- true
-
+		
 				conn, _ := l.Accept()
-
+		
 				fmt.Printf("[REALSERVER]get connection %s..\n", conn.RemoteAddr())
 				fmt.Println()
-
+		
 				buf := make([]byte, 4*1024)
-
+		
 				for {
 					t := time.Now()
 					conn.SetReadDeadline(t.Add(3 * time.Second))
-
+		
 					if bytesRead, err := conn.Read(buf); err != nil {
-
+		
 						if err, ok := err.(net.Error); ok && err.Timeout() {
 							continue
 						}
-
+		
 						fmt.Println("[REALSERVER]failed read buf")
 						return
 					} else {
@@ -228,17 +228,18 @@ func Run() {
 						}
 					}
 				}
-
+		
 				fmt.Printf("[REALSERVER]write back data 'Got Bolt Msg'\n")
-
+		
 				conn.Write(boltV1ResBytes)
-
+		
 				select {
 				case <-stopChan:
 					conn.Close()
 				}
 			}
 		}
+		upstreamReadyChan <- true
 	}()
 
 	go func() {

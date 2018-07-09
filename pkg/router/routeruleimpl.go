@@ -186,7 +186,7 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	if len(queryParams) == 0 {
 		return true
 	} else {
-		return ConfigUtilityInst.MatchQueryParams(&queryParams, rri.configQueryParameters)
+		return ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters)
 	}
 
 	return true
@@ -210,13 +210,13 @@ func (srri *SofaRouteRuleImpl) MatchType() types.PathMatchType {
 func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	if value, ok := headers[types.SofaRouteMatchKey]; ok {
 		if value == srri.matchValue || srri.matchValue == ".*" {
-			log.DefaultLogger.Debugf("Sofa Router Matched")
+			log.DefaultLogger.Debugf("Sofa router matches success")
 			return srri
 		} else {
-			log.DefaultLogger.Warnf("No Sofa Router Matched, Service Value in Header = %s", value)
+			log.DefaultLogger.Warnf(" Sofa router matches failure, service name = %s", value)
 		}
 	} else {
-		log.DefaultLogger.Warnf("No service key found in header, sofa router matcher error")
+		log.DefaultLogger.Warnf("No service key found in header, sofa router matcher failure")
 	}
 
 	return nil
