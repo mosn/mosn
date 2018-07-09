@@ -34,7 +34,7 @@ type TrRequestProcessor struct{}
 func (b *TrRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.TrRequestCommand); ok {
 		deserializeRequestAllFieldsTR(cmd, context)
-		streamId := atomic.AddUint32(&streamIdCsounter, 1)
+		streamId := atomic.AddUint32(&streamIdCounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//for demo, invoke ctx as callback
