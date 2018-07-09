@@ -45,12 +45,17 @@ import (
 	"math/rand"
 )
 
-// 事例说明 (以下均支持可配置)
+//事例说明 (以下均支持可配置)
 
 // 当前 server 数量为一个，监听端口 "127.0.0.1:8089"
 // mosn监听端口: "127.0.0.1:2045"
 // client 数目为三个，每 SendInterval 时间，发送一个请求
-// client id = 1，会在开启后5s后，关闭连接，并1s后重启，之后连续如此
+// client id = CloseClientNum，会在开启后5s后，关闭连接，并1s后重启
+
+//使用说明 ()
+// 根据以上配置，可以通过配置CloseClientNum来决定关闭哪个连接，在CloseClientNum > 2的情况下(例如这里是10)，可用于模拟正常case，即无连接关闭的情况
+// 设置CloseClientNum = {0,1,2}等，可模拟由于client端链导致的问题
+// CloseConnUpValue = 5  表示，close 连接的interval的最大值，实际值在此之间random
 
 const (
 	UpstreamAddr      = "127.0.0.1:8089"
@@ -62,8 +67,8 @@ const (
 // client相关配置
 const (
 	ClientNum        = 3
-	CloseClientNum   = 10
-	SendInterval     = 1 * time.Millisecond
+	CloseClientNum   = 1
+	SendInterval     = 10 * time.Millisecond
 	RestartTime      = 1 * time.Second
 	ResponseTimeout  = 3000 * time.Millisecond
 	CloseConnUpValue = 5   //5s是close的上限
@@ -124,7 +129,7 @@ func Run() {
 									var resp *sofarpc.BoltResponseCommand
 
 									if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
-										fmt.Printf("%s Upstream Get Bolt Request, len = %d, request id = ", time.Now().String(), read)
+										fmt.Printf("%s Upstream Get Bolt Request, len = %d, request id = %d", time.Now().String(), read,req.ReqId)
 										fmt.Println()
 										resp = buildRespMag(req)
 									}
