@@ -67,12 +67,12 @@ const (
 // client相关配置
 const (
 	ClientNum        = 3
-	CloseClientNum   = 10
+	CloseClientNum   = 1
 	SendInterval     = 10 * time.Millisecond
 	RestartTime      = 1 * time.Second
 	ResponseTimeout  = 3000 * time.Millisecond
-	CloseConnUpValue = 5   //5s是close的上限
-	Seconds = 1000000000
+	CloseConnUpValue = 500
+	Microsecond      = 1000
 )
 
 func main() {
@@ -105,7 +105,7 @@ func Run() {
 				conn, _ := l.Accept()
 
 				iobuf := buffer.NewIoBuffer(102400)
-				
+
 				for {
 					t := time.Now()
 					conn.SetReadDeadline(t.Add(3 * time.Second))
@@ -125,11 +125,11 @@ func Run() {
 
 							//loop
 							for iobuf.Len() > 1 {
-								if read, cmd :=codec.BoltV1.GetDecoder().Decode(nil, iobuf); cmd != nil {
+								if read, cmd := codec.BoltV1.GetDecoder().Decode(nil, iobuf); cmd != nil {
 									var resp *sofarpc.BoltResponseCommand
 
 									if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
-										fmt.Printf("%s Upstream Get Bolt Request, len = %d, request id = %d", time.Now().String(), read,req.ReqId)
+										fmt.Printf("%s Upstream Get Bolt Request, len = %d, request id = %d", time.Now().String(), read, req.ReqId)
 										fmt.Println()
 										resp = buildRespMag(req)
 									}
@@ -140,8 +140,8 @@ func Run() {
 
 										respdata := iobufresp.Bytes()
 										conn.Write(respdata)
-									} else{
-										fmt.Errorf("[REALSERVER]Write Bolt Response error = %+v \n" ,err)
+									} else {
+										fmt.Errorf("[REALSERVER]Write Bolt Response error = %+v \n", err)
 									}
 								} else {
 									break
@@ -202,14 +202,14 @@ func Run() {
 		case <-meshReadyChan:
 			// client
 			var i uint32
-			
+
 			for i = 0; i < ClientNum; i++ {
-				j:= i
+				j := i
 				time.Sleep(1 * time.Second)
-				
-				go func(tid uint32, stopC chan bool){
-				 RunClientInstance(tid, stopC)
-				 }(j,stopChan)
+
+				go func(tid uint32, stopC chan bool) {
+					RunClientInstance(tid, stopC)
+				}(j, stopChan)
 			}
 		}
 	}()
@@ -267,29 +267,21 @@ func RunClientInstance(threadid uint32, stopChan chan bool) {
 				streamId: reqID,
 			}
 			requestMsg.allRequestMap = allRequestMap
-			
-			allRequestMap.Set(reqID,&requestMsg)
-			
-			requestEncoder := codecClient.NewStream(reqID, &requestMsg)
-			reqHeaders := buildRequestMsg(id)
-			requestEncoder.AppendHeaders(reqHeaders, true)
 
-			requestMsg.timer.start(ResponseTimeout)
-
-			fmt.Printf("%s Client[%d] Send Request, RequestID = %s ", time.Now().String(), clientId, reqID)
-			fmt.Println()
+			allRequestMap.Set(reqID, &requestMsg)
 
 			if CloseClientNum == clientId {
 				go func() {
-					closeClientTimer = time.NewTimer(time.Duration(rand.Intn(CloseConnUpValue)*Seconds))
+					closeClientTimer = time.NewTimer(time.Duration(rand.Intn(CloseConnUpValue) * Microsecond))
+
 					select {
 					case <-closeClientTimer.C:
 						cc.Close(types.NoFlush, types.LocalClose)
 
-						for _,key := range allRequestMap.Keys() {
-							req,_ :=allRequestMap.Get(key)
-							
-							if reqmsg,ok := req.(*RequestMsg);ok{
+						for _, key := range allRequestMap.Keys() {
+							req, _ := allRequestMap.Get(key)
+
+							if reqmsg, ok := req.(*RequestMsg); ok {
 								reqmsg.timer.stop()
 							}
 							allRequestMap.Remove(key)
@@ -300,6 +292,15 @@ func RunClientInstance(threadid uint32, stopChan chan bool) {
 					}
 				}()
 			}
+
+			fmt.Printf("%s Client[%d] Send Request, RequestID = %s ", time.Now().String(), clientId, reqID)
+			fmt.Println()
+
+			requestEncoder := codecClient.NewStream(reqID, &requestMsg)
+			reqHeaders := buildRequestMsg(id)
+			requestEncoder.AppendHeaders(reqHeaders, true)
+
+			requestMsg.timer.start(ResponseTimeout)
 
 			// 跳出内部收发循环，发起新的连接
 			if needReconnectFlag {
@@ -320,11 +321,12 @@ type RequestMsg struct {
 	timer         *timer
 	allRequestMap cmap.ConcurrentMap
 }
+
 func (s *RequestMsg) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	//bolt
 	s.timer.stop()
 	s.allRequestMap.Remove(s.streamId)
-	
+
 	if statusStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
 		if sofarpc.ConvertPropertyValue(statusStr, reflect.Int16).(int16) == 0 {
 			fmt.Printf("%s Client[%d] Get Success Response, RequestID = %s",
