@@ -143,7 +143,6 @@ func (s *downStream) cleanStream() {
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil {
 		s.upstreamRequest.resetStream()
-		s.upstreamRequest.requestSender = nil
 	}
 
 	// clean up timers
