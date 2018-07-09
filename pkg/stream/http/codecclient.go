@@ -24,6 +24,7 @@ import (
 	"github.com/valyala/fasthttp"
 	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"sync/atomic"
 )
 
 // connection management is done by fasthttp
@@ -171,6 +172,10 @@ func (c *codecClient) responseDecodeComplete(request *activeRequest) {
 }
 
 func (c *codecClient) deleteRequest(request *activeRequest) {
+	if !atomic.CompareAndSwapUint32(&request.deleted, 0, 1) {
+		return
+	}
+
 	c.AcrMux.Lock()
 	defer c.AcrMux.Unlock()
 
@@ -188,6 +193,7 @@ type activeRequest struct {
 	responseDecoder types.StreamReceiver
 	requestEncoder  types.StreamSender
 	element         *list.Element
+	deleted          uint32
 }
 
 func newActiveRequest(codecClient *codecClient, streamDecoder types.StreamReceiver) *activeRequest {
