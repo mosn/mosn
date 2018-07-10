@@ -19,6 +19,7 @@ package main
 import (
 	"github.com/urfave/cli"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/mosn"
 )
 
 var (
@@ -46,7 +47,7 @@ var (
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
 			conf := config.Load(configPath)
-			Start(conf, serviceCluster, serviceNode)
+			mosn.Start(conf, serviceCluster, serviceNode)
 			return nil
 		},
 	}

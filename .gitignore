@@ -9,12 +9,10 @@ accesslogE.log
 mosn_config_dump_result.json
 default.log
 logger.log
-mosn
 access_egress.log
 default.log
 egress.log
 ingress.log
-mosn
 mosn0428
 mosn0512
 mosnCPP0508
