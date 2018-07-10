@@ -157,27 +157,25 @@ func (s *downStream) cleanStream() {
 		ef.filter.OnDestroy()
 	}
 
-	if s.shouldDeleteStream() {
-		// countdown metrics
-		s.proxy.stats.DownstreamRequestActive().Dec(1)
-		s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
+	// countdown metrics
+	s.proxy.stats.DownstreamRequestActive().Dec(1)
+	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
-		// access log
-		//if s.proxy != nil && s.proxy.accessLogs != nil {
-		//	var downstreamRespHeadersMap map[string]string
-		//
-		//	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-		//		downstreamRespHeadersMap = v
-		//	}
-		//
-		//	for _, al := range s.proxy.accessLogs {
-		//		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
-		//	}
-		//}
+	// access log
+	//if s.proxy != nil && s.proxy.accessLogs != nil {
+	//	var downstreamRespHeadersMap map[string]string
+	//
+	//	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+	//		downstreamRespHeadersMap = v
+	//	}
+	//
+	//	for _, al := range s.proxy.accessLogs {
+	//		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+	//	}
+	//}
 
-		// delete stream
-		s.proxy.deleteActiveStream(s)
-	}
+	// delete stream
+	s.proxy.deleteActiveStream(s)
 }
 
 // note: added before countdown metrics
