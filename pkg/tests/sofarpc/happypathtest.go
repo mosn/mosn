@@ -130,6 +130,7 @@ func clustersrpc() []v2.Cluster {
 	var configs []v2.Cluster
 	configs = append(configs, v2.Cluster{
 		Name:                 TestClusterRPC,
+		LbType:               v2.LB_ROUNDROBIN,
 		ClusterType:          v2.SIMPLE_CLUSTER,
 		MaxRequestPerConn:    1024,
 		ConnBufferLimitBytes: 32 * 1024,

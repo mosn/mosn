@@ -59,6 +59,8 @@ import (
 
 const (
 	UpstreamAddr      = "127.0.0.1:8089"
+	//UpstreamAddr2      = "127.0.0.1:9099"
+	
 	MeshRPCServerAddr = "127.0.0.1:2045"
 	TestClusterRPC    = "tstCluster"
 	TestListenerRPC   = "tstListener"
@@ -84,7 +86,7 @@ func Run() {
 		// pprof server
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
-	log.InitDefaultLogger("./default.log", log.ERROR)
+	log.InitDefaultLogger("stderr", log.DEBUG)
 
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
@@ -455,8 +457,8 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
-		LogPath:                 "default.log",
-		LogLevel:                uint8(log.ERROR),
+		LogPath:                 "stderr",
+		LogLevel:                uint8(log.DEBUG),
 	}
 }
 
@@ -468,6 +470,11 @@ func rpchosts() []v2.Host {
 		Address: UpstreamAddr,
 		Weight:  100,
 	})
+	
+	//hosts = append(hosts, v2.Host{
+	//	Address: UpstreamAddr2,
+	//	Weight:  100,
+	//})
 
 	return hosts
 }
