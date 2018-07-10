@@ -31,6 +31,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"sync/atomic"
 )
 
 // types.StreamEventListener
@@ -73,7 +74,6 @@ type downStream struct {
 	downstreamResponseStarted bool
 	// downstream request received done
 	downstreamRecvDone bool
-	downstreamReset    bool
 	// upstream req sent
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
@@ -82,6 +82,10 @@ type downStream struct {
 	receiverFiltersStreaming bool
 
 	filterStage int
+
+	downstreamReset   uint32
+	downstreamCleaned uint32
+	upstreamReset     uint32
 
 	// ~~~ filters
 	senderFilters   []*activeStreamSenderFilter
@@ -140,6 +144,10 @@ func (s *downStream) endStream() {
 // 	+ all filters
 //  + remove stream in proxy context
 func (s *downStream) cleanStream() {
+	if !atomic.CompareAndSwapUint32(&s.downstreamCleaned, 0, 1) {
+		return
+	}
+
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil {
 		s.upstreamRequest.resetStream()
@@ -162,17 +170,17 @@ func (s *downStream) cleanStream() {
 	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
 
 	// access log
-	//if s.proxy != nil && s.proxy.accessLogs != nil {
-	//	var downstreamRespHeadersMap map[string]string
-	//
-	//	if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-	//		downstreamRespHeadersMap = v
-	//	}
-	//
-	//	for _, al := range s.proxy.accessLogs {
-	//		al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
-	//	}
-	//}
+	if s.proxy != nil && s.proxy.accessLogs != nil {
+		var downstreamRespHeadersMap map[string]string
+
+		if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
+			downstreamRespHeadersMap = v
+		}
+
+		for _, al := range s.proxy.accessLogs {
+			al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+		}
+	}
 
 	// delete stream
 	s.proxy.deleteActiveStream(s)
@@ -181,18 +189,17 @@ func (s *downStream) cleanStream() {
 // note: added before countdown metrics
 func (s *downStream) shouldDeleteStream() bool {
 	return s.upstreamRequest != nil &&
-		(s.downstreamReset || s.upstreamRequest.sendComplete) &&
+		(atomic.LoadUint32(&s.downstreamReset) == 1 || s.upstreamRequest.sendComplete) &&
 		s.upstreamProcessDone
 }
 
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
-	if s.downstreamReset {
+	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
 		return
 	}
 
-	s.downstreamReset = true
 	s.proxy.stats.DownstreamRequestReset().Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
 	s.cleanStream()
@@ -528,6 +535,10 @@ func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers
 
 // ~~~ upstream event handler
 func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
+	if !atomic.CompareAndSwapUint32(&s.upstreamReset, 0, 1) {
+		return
+	}
+
 	// todo: update stats
 	log.StartLogger.Tracef("on upstream reset invoked")
 
