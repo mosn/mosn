@@ -546,15 +546,17 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 
 	// clean up all timers
 	s.cleanUp()
+	/*
 
-	if reason == types.StreamOverflow || reason == types.StreamConnectionFailed ||
-		reason == types.StreamRemoteReset {
-		log.StartLogger.Tracef("on upstream reset reason %v", reason)
-		s.upstreamRequest.connPool.Close()
-		s.proxy.readCallbacks.Connection().RawConn().Close()
-		s.resetStream()
-		return
-	}
+		if reason == types.StreamOverflow || reason == types.StreamConnectionFailed ||
+			reason == types.StreamRemoteReset {
+			log.StartLogger.Tracef("on upstream reset reason %v", reason)
+			s.upstreamRequest.connPool.Close()
+			s.proxy.readCallbacks.Connection().RawConn().Close()
+			s.resetStream()
+			return
+		}
+	*/
 
 	// If we have not yet sent anything downstream, send a response with an appropriate status code.
 	// Otherwise just reset the ongoing response.
