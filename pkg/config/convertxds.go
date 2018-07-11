@@ -68,11 +68,22 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 		LogLevel:                              uint8(log.INFO),
 	}
 
+	// virtual listener need none filters
 	if listenerConfig.Name == "virtual" {
 		return listenerConfig
 	}
 
 	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
+
+	// it must be 1 filechains and 1 networkfilter by design
+	if listenerConfig.FilterChains != nil && len(listenerConfig.FilterChains) == 1 && listenerConfig.FilterChains[0].Filters != nil && len(listenerConfig.FilterChains[0].Filters) == 1 && listenerConfig.FilterChains[0].Filters[0].Config != nil {
+		if downstreamProtocol, ok := listenerConfig.FilterChains[0].Filters[0].Config["DownstreamProtocol"]; ok {
+			if value, ok := downstreamProtocol.(string); ok && value == string(protocol.Http2) {
+				listenerConfig.DisableConnIo = true
+			}
+		}
+	}
+
 	return listenerConfig
 }
 
