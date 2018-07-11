@@ -253,7 +253,7 @@ func rpchosts() []v2.Host {
 		MetaData: map[string]interface{}{
 			"stage":   "pre-release",
 			"version": "1.1",
-			"label":   "gray",
+			"label":   "gray2",
 		},
 	})
 	

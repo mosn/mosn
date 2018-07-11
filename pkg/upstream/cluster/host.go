@@ -43,7 +43,7 @@ type hostSet struct {
 func (hs *hostSet) Hosts() []types.Host {
 	hs.mux.RLock()
 	defer hs.mux.RUnlock()
-
+	
 	return hs.hosts
 }
 
@@ -70,13 +70,15 @@ func (hs *hostSet) HealthHostsPerLocality() [][]types.Host {
 
 func (hs *hostSet) UpdateHosts(hosts []types.Host, healthyHosts []types.Host, hostsPerLocality [][]types.Host,
 	healthyHostsPerLocality [][]types.Host, hostsAdded []types.Host, hostsRemoved []types.Host) {
+	
+	// todo change mutex
+	// modified because in updateCb(), there is lock condition
 	hs.mux.Lock()
-	defer hs.mux.Unlock()
-
 	hs.hosts = hosts
 	hs.healthyHosts = healthyHosts
 	hs.hostsPerLocality = hostsPerLocality
 	hs.healthyHostsPerLocality = healthyHostsPerLocality
+	hs.mux.Unlock()
 
 	for _, updateCb := range hs.updateCallbacks {
 		updateCb(hs.priority, hostsAdded, hostsRemoved)

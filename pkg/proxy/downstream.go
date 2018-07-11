@@ -792,7 +792,8 @@ func (s *downStream) reset() {
 // types.LoadBalancerContext
 // no use currently
 func (s *downStream) ComputeHashKey() types.HashedValue {
-	return [16]byte{}
+	//return [16]byte{}
+	return ""
 }
 
 func (s *downStream) MetadataMatchCriteria() types.MetadataMatchCriteria {

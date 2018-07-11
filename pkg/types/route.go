@@ -257,7 +257,12 @@ type Decorator interface {
 	getOperation() string
 }
 
-type HashedValue [16]byte // value as md5's result
+//type HashedValue [16]byte // value as md5's result
+
+// todo change hashed value to [16]string
+// currently use string for easily debug
+type HashedValue string // value as md5's result
+
 
 type HeaderFormat interface {
 	Format(info RequestInfo) string
@@ -340,8 +345,10 @@ type RouteMetaData map[string]HashedValue
 func GenerateHashedValue(input string) HashedValue {
 	data := []byte(input)
 	h := md5.Sum(data)
-
-	return h
+	_ = h
+	// return h
+	// todo use hashed value as md5
+	return HashedValue(input)
 }
 
 func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {

@@ -62,6 +62,12 @@ func TestInitSortedMap(t *testing.T) {
 		"aa":    "no",
 	}
 
+	want := []SortedPair{
+		{"aa","no"},
+		{"bb", "yes"},
+		{"hello","yes"},
+	}
+	
 	tests := []struct {
 		name string
 		args args
@@ -72,13 +78,7 @@ func TestInitSortedMap(t *testing.T) {
 			args: args{
 				input: inmap,
 			},
-			want: SortedMap{
-				Content: map[string]string{
-					"aa":    "no",
-					"bb":    "yes",
-					"hello": "yes",
-				},
-			},
+			want: want,
 		},
 	}
 	for _, tt := range tests {
