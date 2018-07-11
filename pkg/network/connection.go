@@ -67,6 +67,7 @@ type connection struct {
 	readBuffer          *buffer.IoBufferPoolEntry
 	writeBuffer         *buffer.IoBufferPoolEntry
 	writeBufferMux      sync.RWMutex
+	writeBufferChan     chan bool
 	internalLoopStarted bool
 	internalStopChan    chan struct{}
 	readerBufferPool    *buffer.IoBufferPool
@@ -94,6 +95,7 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		readEnabled:      true,
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
+		writeBufferChan:  make(chan bool, 1),
 		readerBufferPool: readerBufferPool,
 		writeBufferPool:  writeBufferPool,
 		stats: &types.ConnectionStats{
@@ -292,6 +294,10 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 	}
 
+	if len(c.writeBufferChan) ==0 {
+		c.writeBufferChan <- true
+	}
+
 	c.writeBufferMux.Unlock()
 
 	return nil
@@ -315,7 +321,7 @@ func (c *connection) startWriteLoop() {
 			return
 		case <-c.internalStopChan:
 			return
-		default:
+		case <-c.writeBufferChan:
 			_, err := c.doWrite()
 
 			if err != nil {
@@ -337,8 +343,6 @@ func (c *connection) startWriteLoop() {
 				return
 			}
 		}
-
-		runtime.Gosched()
 	}
 }
 
@@ -624,6 +628,7 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			readEnabled:      true,
 			readEnabledChan:  make(chan bool, 1),
 			internalStopChan: make(chan struct{}),
+			writeBufferChan:  make(chan bool, 1),
 			readerBufferPool: readerBufferPool,
 			writeBufferPool:  writeBufferPool,
 			stats: &types.ConnectionStats{
