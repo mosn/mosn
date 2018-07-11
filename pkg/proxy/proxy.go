@@ -107,13 +107,12 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 		p.stats.DownstreamConnectionDestroy().Inc(1)
 		p.stats.DownstreamConnectionActive().Dec(1)
 		var urEleNext *list.Element
-		
+
 		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEleNext {
-			
 			urEleNext = urEle.Next()
-			
-			ur := urEle.Value.(*downStream)
-			ur.OnResetStream(types.StreamConnectionTermination)
+
+			ds := urEle.Value.(*downStream)
+			ds.OnResetStream(types.StreamConnectionTermination)
 		}
 	}
 }
@@ -188,12 +187,12 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 	// reuse decode map
 	if p.resueCodecMaps {
 		if s.downstreamReqHeaders != nil {
-			p.codecPool.Give(s.downstreamReqHeaders)
+			//p.codecPool.Give(s.downstreamReqHeaders)
 		}
 
 		if s.upstreamRequest != nil {
 			if s.upstreamRequest.upstreamRespHeaders != nil {
-				p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
+				//p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
 			}
 		}
 	}
@@ -202,8 +201,7 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 	p.activeSteams.Remove(s.element)
 	p.asMux.Unlock()
 
-	s.reset()
-	activeStreamPool.Give(s)
+	//s.reset()
 }
 
 // ConnectionEventListener

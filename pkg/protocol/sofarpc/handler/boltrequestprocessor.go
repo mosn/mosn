@@ -31,7 +31,7 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-var streamIdCsounter uint32
+var streamIdCounter uint32
 var defaultTmpBufferSize = 1 << 6
 
 type BoltRequestProcessor struct{}
@@ -43,7 +43,7 @@ type BoltRequestProcessorV2 struct{}
 func (b *BoltRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)
-		streamId := atomic.AddUint32(&streamIdCsounter, 1)
+		streamId := atomic.AddUint32(&streamIdCounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//print tracer log
@@ -53,8 +53,12 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
+				if cmd.Content == nil {
+					cmd.RequestHeader[types.HeaderStremEnd] = "yes"
+				}
+				
 				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
-
+				
 				if status == types.StopIteration {
 					return
 				}
@@ -75,12 +79,17 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
 		deserializeRequestAllFieldsV2(cmd, context)
-		streamId := atomic.AddUint32(&streamIdCsounter, 1)
+		streamId := atomic.AddUint32(&streamIdCounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
+				
+				if cmd.Content == nil {
+					cmd.RequestHeader["x-mosn-endstream"] = "yes"
+				}
+				
 				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
 
 				if status == types.StopIteration {

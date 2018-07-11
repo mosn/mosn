@@ -69,7 +69,7 @@ type connection struct {
 	writeBufferMux      sync.RWMutex
 	writeBufferChan     chan bool
 	internalLoopStarted bool
-	internalStopChan    chan bool
+	internalStopChan    chan struct{}
 	readerBufferPool    *buffer.IoBufferPool
 	writeBufferPool     *buffer.IoBufferPool
 
@@ -94,8 +94,8 @@ func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) t
 		stopChan:         stopChan,
 		readEnabled:      true,
 		readEnabledChan:  make(chan bool, 1),
-		writeBufferChan:  make(chan bool),
-		internalStopChan: make(chan bool),
+		internalStopChan: make(chan struct{}),
+		writeBufferChan:  make(chan bool, 1),
 		readerBufferPool: readerBufferPool,
 		writeBufferPool:  writeBufferPool,
 		stats: &types.ConnectionStats{
@@ -168,6 +168,13 @@ func (c *connection) startReadLoop() {
 	}()
 
 	for {
+		// exit loop asap. one receive & one default block will be optimized by go compiler
+		select {
+		case <-c.internalStopChan:
+			return
+		default:
+		}
+
 		select {
 		case <-c.stopChan:
 			return
@@ -287,11 +294,11 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 	}
 
-	c.writeBufferMux.Unlock()
-
-	go func() {
+	if len(c.writeBufferChan) ==0 {
 		c.writeBufferChan <- true
-	}()
+	}
+
+	c.writeBufferMux.Unlock()
 
 	return nil
 }
@@ -302,6 +309,13 @@ func (c *connection) startWriteLoop() {
 	}()
 
 	for {
+		// exit loop asap. one receive & one default block will be optimized by go compiler
+		select {
+		case <-c.internalStopChan:
+			return
+		default:
+		}
+
 		select {
 		case <-c.stopChan:
 			return
@@ -350,11 +364,6 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 	for c.writeBufLen() > 0 {
 		c.writeBufferMux.Lock()
 		m, err = c.writeBuffer.Write()
-
-		//if c.writeBuffer.Br.Len() == 0 {
-		//	c.writeBufferPool.Give(c.writeBuffer)
-		//	c.writeBuffer = nil
-		//}
 		c.writeBufferMux.Unlock()
 
 		bytesSent += m
@@ -439,7 +448,6 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	// wait for io loops exit, ensure single thread operate streams on the connection
 	if c.internalLoopStarted {
 		// because close function must be called by one io loop thread, notify another loop here
-		c.internalStopChan <- true
 		close(c.internalStopChan)
 	}
 
@@ -619,8 +627,8 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			stopChan:         stopChan,
 			readEnabled:      true,
 			readEnabledChan:  make(chan bool, 1),
-			writeBufferChan:  make(chan bool),
-			internalStopChan: make(chan bool),
+			internalStopChan: make(chan struct{}),
+			writeBufferChan:  make(chan bool, 1),
 			readerBufferPool: readerBufferPool,
 			writeBufferPool:  writeBufferPool,
 			stats: &types.ConnectionStats{

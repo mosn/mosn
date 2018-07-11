@@ -93,6 +93,10 @@ type resource struct {
 func (r *resource) CanCreate() bool {
 	curValue := atomic.LoadInt64(&r.current)
 
+	if curValue < 0 {
+		return true
+	}
+
 	return uint64(curValue) < r.Max()
 }
 

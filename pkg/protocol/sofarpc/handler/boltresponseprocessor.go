@@ -42,8 +42,12 @@ func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.ResponseHeader != nil {
 				// 回调到stream中的OnDecoderHeader，回传HEADER数据
+				if cmd.Content == nil {
+					cmd.ResponseHeader[types.HeaderStremEnd] = "yes"
+				}
+				
 				status := filter.OnDecodeHeader(reqID, cmd.ResponseHeader)
-
+				
 				if status == types.StopIteration {
 					return
 				}
@@ -69,7 +73,10 @@ func (b *BoltResponseProcessorV2) Process(context context.Context, msg interface
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.ResponseHeader != nil {
-
+				if cmd.Content == nil {
+					cmd.ResponseHeader[types.HeaderStremEnd] = "yes"
+				}
+				
 				status := filter.OnDecodeHeader(reqID, cmd.ResponseHeader)
 
 				if status == types.StopIteration {

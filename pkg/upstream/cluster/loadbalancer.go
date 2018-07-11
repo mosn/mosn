@@ -22,9 +22,9 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
+// Note: Random is the default lb
 func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySet) types.LoadBalancer {
 	switch lbType {
-	
 	case types.RoundRobin:
 		return newRoundRobinLoadBalancer(prioritySet)
 	default :

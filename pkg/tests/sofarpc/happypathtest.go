@@ -100,7 +100,7 @@ func rpcProxyListener() *v2.ListenerConfig {
 		Addr:                    addr,
 		BindToPort:              true,
 		PerConnBufferLimitBytes: 1024 * 32,
-		LogPath:                 "",
+		LogPath:                 "stdout",
 		LogLevel:                uint8(log.DEBUG),
 	}
 }
@@ -130,6 +130,7 @@ func clustersrpc() []v2.Cluster {
 	var configs []v2.Cluster
 	configs = append(configs, v2.Cluster{
 		Name:                 TestClusterRPC,
+		LbType:               v2.LB_ROUNDROBIN,
 		ClusterType:          v2.SIMPLE_CLUSTER,
 		MaxRequestPerConn:    1024,
 		ConnBufferLimitBytes: 32 * 1024,
@@ -183,42 +184,42 @@ func Run() {
 		http.ListenAndServe("0.0.0.0:9099", nil)
 	}()
 
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("stdout", log.DEBUG)
 
 	stopChan := make(chan bool)
 	upstreamReadyChan := make(chan bool)
 	meshReadyChan := make(chan bool)
 
 	go func() {
-		// upstream
+		//upstream
 		l, _ := net.Listen("tcp", RealRPCServerAddr)
-
+		
 		defer l.Close()
-
+		
 		for {
 			select {
 			case <-stopChan:
 				break
 			case <-time.After(2 * time.Second):
 				upstreamReadyChan <- true
-
+		
 				conn, _ := l.Accept()
-
+		
 				fmt.Printf("[REALSERVER]get connection %s..\n", conn.RemoteAddr())
 				fmt.Println()
-
+		
 				buf := make([]byte, 4*1024)
-
+		
 				for {
 					t := time.Now()
 					conn.SetReadDeadline(t.Add(3 * time.Second))
-
+		
 					if bytesRead, err := conn.Read(buf); err != nil {
-
+		
 						if err, ok := err.(net.Error); ok && err.Timeout() {
 							continue
 						}
-
+		
 						fmt.Println("[REALSERVER]failed read buf")
 						return
 					} else {
@@ -228,17 +229,18 @@ func Run() {
 						}
 					}
 				}
-
+		
 				fmt.Printf("[REALSERVER]write back data 'Got Bolt Msg'\n")
-
+		
 				conn.Write(boltV1ResBytes)
-
+		
 				select {
 				case <-stopChan:
 					conn.Close()
 				}
 			}
 		}
+		upstreamReadyChan <- true
 	}()
 
 	go func() {

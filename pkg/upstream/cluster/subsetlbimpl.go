@@ -24,9 +24,6 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
-var SubSetsGlobal types.LbSubsetMap     // stored globally subset
-var FallbackSubsetGlobal *LBSubsetEntry // stored globally fallback subset
-
 type subSetLoadBalancer struct {
 	lbType                types.LoadBalancerType // inner LB algorithm for choosing subset's host
 	runtime               types.Loader
@@ -52,13 +49,7 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.Prio
 		originalPrioritySet:   prioritySet,
 		stats:                 stats,
 	}
-
-	if SubSetsGlobal != nil && FallbackSubsetGlobal != nil {
-		ssb.subSets = SubSetsGlobal
-		ssb.fallbackSubset = FallbackSubsetGlobal
-		return ssb
-	}
-
+	
 	ssb.subSets = make(map[string]types.ValueSubsetMap)
 
 	// foreach every priority subset
@@ -83,7 +74,6 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 
 	// step1. create or update fallback subset
 	sslb.UpdateFallbackSubset(priority, hostAdded, hostsRemoved)
-	FallbackSubsetGlobal = sslb.fallbackSubset
 
 	// step2. create or update global subset
 	sslb.ProcessSubsets(hostAdded, hostsRemoved,
@@ -109,8 +99,6 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 				sslb.stats.LBSubsetsCreated.Inc(1)
 			}
 		})
-
-	SubSetsGlobal = sslb.subSets
 }
 
 // SubSet LB Entry
@@ -528,7 +516,7 @@ func NewLBSubsetInfo(subsetCfg *v2.LBSubsetConfig) types.LBSubsetInfo {
 		fallbackPolicy: types.FallBackPolicy(subsetCfg.FallBackPolicy),
 		subSetKeys:     GenerateSubsetKeys(subsetCfg.SubsetSelectors),
 	}
-
+	
 	if len(subsetCfg.SubsetSelectors) == 0 {
 		lbSubsetInfo.enabled = false
 	} else {
@@ -543,7 +531,7 @@ func NewLBSubsetInfo(subsetCfg *v2.LBSubsetConfig) types.LBSubsetInfo {
 type LBSubsetInfoImpl struct {
 	enabled        bool
 	fallbackPolicy types.FallBackPolicy
-	defaultSubSet  types.SortedMap             //  sorted default subset
+	defaultSubSet  types.SortedMap             // sorted default subset
 	subSetKeys     []types.SortedStringSetType // sorted subset selectors
 }
 

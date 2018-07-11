@@ -26,6 +26,7 @@ const (
 	HeaderGlobalTimeout = "x-mosn-global-timeout"
 	HeaderTryTimeout    = "x-mosn-try-timeout"
 	HeaderException     = "x-mosn-exception"
+	HeaderStremEnd      = "x-mosn-endstream"
 )
 
 const (
