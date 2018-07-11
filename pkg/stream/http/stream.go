@@ -266,9 +266,9 @@ func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error
 		delete(headers, types.HeaderHost)
 	}
 
-	if path, ok := headers[types.HeaderPath]; ok {
+	if path, ok := headers[protocol.MosnHeaderPathKey]; ok {
 		s.request.SetRequestURI(fmt.Sprintf("http://%s%s", s.wrapper.client.Addr, path))
-		delete(headers, types.HeaderPath)
+		delete(headers, protocol.MosnHeaderPathKey)
 	}
 
 	encodeReqHeader(s.request, headers)
@@ -430,8 +430,8 @@ func (s *serverStream) handleRequest() {
 		header := decodeReqHeader(s.ctx.Request.Header)
 
 		//set path header if not found
-		if _, ok := header[types.HeaderPath]; !ok {
-			header[types.HeaderPath] = string(s.ctx.Path())
+		if _, ok := header[protocol.MosnHeaderPathKey]; !ok {
+			header[protocol.MosnHeaderPathKey] = string(s.ctx.Path())
 		}
 
 		//set query string header if not found
