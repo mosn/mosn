@@ -247,10 +247,11 @@ func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint
 
 			if prri.caseSensitive {
 				if headerPathValue == prri.path {
+					log.DefaultLogger.Debugf("path route rule match success in caseSensitive scene")
 					return prri
 				}
 			} else if strings.EqualFold(headerPathValue, prri.path) {
-				log.StartLogger.Tracef("path route rule match success")
+				log.DefaultLogger.Debugf("path route rule match success with exact matching ")
 				return prri
 			}
 		}

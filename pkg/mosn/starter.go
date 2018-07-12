@@ -19,6 +19,7 @@ package mosn
 import (
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strconv"
 	"sync"

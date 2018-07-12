@@ -351,7 +351,7 @@ type LBSubsetInfo interface {
 	SubsetKeys() []SortedStringSetType
 }
 
-// realize a sorted string set
+// realize a sorted string set(no duplicate)
 type SortedStringSetType struct {
 	keys []string
 }
@@ -396,26 +396,29 @@ func (ss *SortedStringSetType) Swap(i, j int) {
 	ss.keys[i], ss.keys[j] = ss.keys[j], ss.keys[i]
 }
 
-type SortedMap struct {
-	Content map[string]string
-}
+type SortedMap []SortedPair
 
+// 使用pair，避免map输出时候的无序
 func InitSortedMap(input map[string]string) SortedMap {
 	var keyset []string
-	var smap = make(map[string]string, len(input))
-
+	var sPair  []SortedPair
+	
 	for k, _ := range input {
-
 		keyset = append(keyset, k)
 	}
 
 	sort.Strings(keyset)
 
 	for _, key := range keyset {
-		smap[key] = input[key]
+		sPair = append(sPair,SortedPair{
+			key,input[key],
+		})
 	}
+	
+	return sPair
+}
 
-	return SortedMap{
-		smap,
-	}
+type SortedPair struct {
+	Key   string
+	Value string
 }

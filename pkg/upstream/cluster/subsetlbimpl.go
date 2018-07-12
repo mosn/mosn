@@ -59,7 +59,6 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.Prio
 	}
 
 	// add update callback when original priority set updated
-	
 	ssb.originalPrioritySet.AddMemberUpdateCb(
 		func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 			ssb.Update(priority, hostsAdded, hostsRemoved)
@@ -108,15 +107,27 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 		var hostChoosen = false
 		host := sslb.TryChooseHostFromContext(context, &hostChoosen)
 		if hostChoosen {
+			log.DefaultLogger.Debugf("subset load balancer: match subset entry success, " +
+				"choose hostaddr = %s",host.AddressString())
 			return host
 		}
 	}
 
 	if nil == sslb.fallbackSubset {
+		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset is nil")
 		return nil
 	}
 	sslb.stats.LBSubSetsFallBack.Inc(1)
-
+	
+	defaulthosts := sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts()
+	
+	if len(defaulthosts) > 0 {
+		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are ",defaulthosts)
+	}else {
+		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset's host is nil")
+		return nil
+	}
+	
 	return sslb.fallbackSubset.prioritySubset.LB().ChooseHost(context)
 }
 
@@ -127,12 +138,14 @@ func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalan
 	matchCriteria := context.MetadataMatchCriteria()
 
 	if nil == matchCriteria {
+		log.DefaultLogger.Errorf("subset load balancer: context is nil")
 		return nil
 	}
 
 	entry := sslb.FindSubset(matchCriteria.MetadataMatchCriteria())
 
 	if nil == entry || !entry.Active() {
+		log.DefaultLogger.Errorf("subset load balancer: match entry failure")
 		return nil
 	}
 
@@ -396,7 +409,8 @@ func (hsi *hostSubsetImpl) UpdateHostSubset(hostsAdded []types.Host, hostsRemove
 			healthyHosts = append(healthyHosts, host)
 		}
 	}
-
+	
+	//最终更新host
 	hsi.hostSubset.UpdateHosts(finalhosts, healthyHosts, nil, nil,
 		filteredAdded, filteredRemoved)
 }
@@ -577,8 +591,8 @@ func GenerateSubsetKeys(keysArray [][]string) []types.SortedStringSetType {
 
 func GenerateDftSubsetKeys(dftkeys types.SortedMap) types.SubsetMetadata {
 	var sm types.SubsetMetadata
-	for k, v := range dftkeys.Content {
-		sm = append(sm, types.Pair{k, types.GenerateHashedValue(v)})
+	for _, pair := range dftkeys {
+		sm = append(sm, types.Pair{pair.Key, types.GenerateHashedValue(pair.Value)})
 	}
 
 	return sm

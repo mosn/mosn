@@ -17,7 +17,7 @@ codecClient.SetCodecConnectionCallbacks(ac)
 ```
 codecClient := str.NewBiDirectCodeClient(protocol.Http2, connData.Connection, connData.HostInfo, SrvStreamCB)
 ```
-where `SrvStreamCB` realizes interface `SrvStreamCBServerStreamConnectionCallbacks`, and you need to realize related func by yourself
+where `SrvStreamCB` realizes interface `ServerStreamConnectionEventListener`, and you need to realize related func by yourself
 
 #### Step 2. Make a new stream
 
@@ -34,36 +34,40 @@ In stream encoder/decoder interface, we split request/response as three standard
 
 + Encode headers
 ```
-requestStreamEncoder.EncodeHeaders(requestHeaders, endStream)
+requestStreamEncoder.AppendHeaders(requestHeaders, endStream)
 ```
 
 + Encode data
 ```
-requestStreamEncoder.EncodeData(requestDataBuf, endStream)
+requestStreamEncoder.AppendData(requestDataBuf, endStream)
 ```
 
 + Encode trailers
 ```
-requestStreamEncoder.EncodeTrailers(requestHeaders)
+requestStreamEncoder.AppendTrailers(requestHeaders)
 ```
 
-+ 'endStream' means further encode is not needed. for example, if we call EncodeHeaders(requestHeaders, true), stream will handle headers and send request, data and trailers will be ignored.
++ 'endStream' means further encode is not needed. for example, if we call AppendHeaders(requestHeaders, true), stream will handle headers and send request, data and trailers will be ignored.
 
 #### Step 4. Get response
 
-+ 'responseDecoder' should implement 'types.StreamDecoder' interface
-+ When stream gets data and decode it successfully, 'types.StreamDecoder''s interface method will be called. Example:
++ 'responseDecoder' should implement 'types.StreamReceiver' interface
++ When stream gets data and decode it successfully, 'types.StreamReceiver''s interface method will be called. Example:
 ```
-func (r *responseDecoder) OnDecodeHeaders(headers map[string]string, endStream bool) {
+func (r *responseDecoder) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	// your logic
 }
 
-func (r *responseDecoder) OnDecodeData(data types.IoBuffer, endStream bool) {
+func (r *responseDecoder) OnReceiveData(data types.IoBuffer, endStream bool) {
     // your logic
 }
 
-func (r *responseDecoder) OnDecodeTrailers(trailers map[string]string) {
+func (r *responseDecoder) OnReceiveTrailers(trailers map[string]string) {
     // your logic
+}
+
+func (r *responseDecoder) OnDecodeError(err error, headers map[string]string) {
+   // your logic
 }
 ```
 

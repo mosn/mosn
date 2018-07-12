@@ -111,7 +111,7 @@ func main() {
 			tr := &http.Transport{}
 
 			httpClient := http.Client{Transport: tr}
-			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/hahaha1.htm?key1=valuex&nobody=true", MeshServerAddr), nil)
+			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/hahaha.htm?key1=valuex&nobody=true", MeshServerAddr), nil)
 			req.Header.Add("service", "com.alipay.rpc.common.service.facade.SampleService:1.0")
 			resp, err := httpClient.Do(req)
 
