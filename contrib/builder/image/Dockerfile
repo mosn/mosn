@@ -2,7 +2,7 @@ FROM acs-reg.alipay.com/alipay/alios6u2:1.0.1-4165050
 MAINTAINER  xiaodong.dxd@alibaba-inc.com
 
 ENV TMP_FOLDER      /tmp
-ENV GIT_USER        afe
+ENV GIT_USER        alipay
 ENV MOSN_PREFIX     /home/admin/mosn
 ENV PATH            $MOSN_PREFIX/sbin:$PATH
 

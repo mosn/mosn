@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/mosn"
+	"github.com/alipay/sofamosn/pkg/mosn"
 )
 
 func GetServerAddr(s *httptest.Server) string {
@@ -52,7 +52,8 @@ func TestHttpProxy(t *testing.T) {
 	//mesh config
 	cluster1 := []string{GetServerAddr(server1)}
 	cluster2 := []string{GetServerAddr(server2)}
-	meshAddr := "127.0.0.1:2045"
+	//	meshAddr := "127.0.0.1:2045"
+	meshAddr := "127.0.0.1:2048"
 	mesh_config := CreateHTTPRouteConfig(meshAddr, [][]string{cluster1, cluster2})
 	go mosn.Start(mesh_config, "", "")
 	time.Sleep(5 * time.Second) //wait mesh and server start

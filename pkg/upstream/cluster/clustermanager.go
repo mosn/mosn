@@ -23,14 +23,14 @@ import (
 	"net"
 
 	"github.com/orcaman/concurrent-map"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	proto "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/http2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream/xprotocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/log"
+	proto "github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/stream/http"
+	"github.com/alipay/sofamosn/pkg/stream/http2"
+	"github.com/alipay/sofamosn/pkg/stream/sofarpc"
+	"github.com/alipay/sofamosn/pkg/stream/xprotocol"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 // ClusterManager

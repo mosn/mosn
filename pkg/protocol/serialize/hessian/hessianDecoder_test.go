@@ -18,11 +18,10 @@ package hessian
 
 import (
 	"bytes"
-	"fmt"
 	"reflect"
 	"testing"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/log"
 )
 
 func Test_HessianCodecHeader(t *testing.T) {

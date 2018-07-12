@@ -22,8 +22,8 @@ import (
 
 	"sort"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 var ConfigUtilityInst = &ConfigUtility{}

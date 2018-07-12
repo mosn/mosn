@@ -22,7 +22,7 @@ import (
 	"sort"
 
 	"github.com/rcrowley/go-metrics"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/api/v2"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:

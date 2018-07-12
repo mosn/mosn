@@ -9,13 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/mosn"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/mosn"
+	"github.com/alipay/sofamosn/pkg/protocol"
 	"golang.org/x/net/http2"
 )
 
 func TestHttp2(t *testing.T) {
-	meshAddr := "127.0.0.1:2045"
+	//	meshAddr := "127.0.0.1:2045"
+	meshAddr := "127.0.0.1:2047"
 	http2Addr := "127.0.0.1:8080"
 	server := NewUpstreamHttp2(t, http2Addr)
 	server.GoServe()

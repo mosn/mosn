@@ -17,10 +17,10 @@
 package codec
 
 import (
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/handler"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	_ "github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc/handler"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 func init() {

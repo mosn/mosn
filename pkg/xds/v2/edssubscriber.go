@@ -22,7 +22,7 @@ import (
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	//google_rpc "github.com/gogo/googleapis/google/rpc"
 	"errors"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/log"
 )
 
 func (c *V2Client) GetEndpoints(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient, clusterNames []string) []*envoy_api_v2.ClusterLoadAssignment {

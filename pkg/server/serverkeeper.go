@@ -25,7 +25,7 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/log"
 )
 
 func init() {

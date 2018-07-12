@@ -19,11 +19,11 @@ package healthcheck
 import (
 	"time"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofamosn/pkg/stream"
+	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/upstream/cluster"
 )
 
 // use for hearth-beat starting for sofa bolt in the same codecClient

@@ -7,16 +7,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alipay/sofamosn/pkg/mosn"
+	"github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/types"
 	"github.com/orcaman/concurrent-map"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/mosn"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 //one client close should not effect others
 func TestClientClose(t *testing.T) {
 	sofaAddr := "127.0.0.1:8080"
-	meshAddr := "127.0.0.1:2045"
+	//meshAddr := "127.0.0.1:2045"
+	meshAddr := "127.0.0.1:2046"
 	server := NewUpstreamServer(t, sofaAddr, ServeBoltV1)
 	server.GoServe()
 	defer server.Close()

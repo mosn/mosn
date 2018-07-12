@@ -5,10 +5,10 @@ import (
 	"net"
 	"time"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/network"
+	"github.com/alipay/sofamosn/pkg/network/buffer"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 func main() {

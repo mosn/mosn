@@ -23,12 +23,12 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/healthcheck"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/xds"
+	_ "github.com/alipay/sofamosn/pkg/network"
+	_ "github.com/alipay/sofamosn/pkg/network/buffer"
+	_ "github.com/alipay/sofamosn/pkg/protocol"
+	_ "github.com/alipay/sofamosn/pkg/protocol/sofarpc/codec"
+	_ "github.com/alipay/sofamosn/pkg/upstream/healthcheck"
+	_ "github.com/alipay/sofamosn/pkg/xds"
 )
 
 func main() {

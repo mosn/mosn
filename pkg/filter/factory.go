@@ -17,10 +17,10 @@
 package filter
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/faultinject"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/healthcheck/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/filter/stream/faultinject"
+	"github.com/alipay/sofamosn/pkg/filter/stream/healthcheck/sofarpc"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 var creatorFactory map[string]StreamFilterFactoryCreator

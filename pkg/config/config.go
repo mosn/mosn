@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/api/v2"
 )
 
 //global instance for load & dump

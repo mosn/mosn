@@ -4,15 +4,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alipay/sofamosn/pkg/mosn"
+	"github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/types"
 	"github.com/orcaman/concurrent-map"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/mosn"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 //when a upstream server has been closed
 //the client should get a error response
 func TestServerClose(t *testing.T) {
-	meshAddr := "127.0.0.1:2045"
+	//	meshAddr := "127.0.0.1:2045"
+	meshAddr := "127.0.0.1:2049"
 	serverAddrs := []string{
 		"127.0.0.1:8080",
 		"127.0.0.1:8081",
@@ -33,6 +35,7 @@ func TestServerClose(t *testing.T) {
 		Waits:    cmap.New(),
 	}
 	client.Connect(meshAddr)
+	defer client.conn.Close(types.NoFlush, types.LocalClose)
 	//send request
 	go func() {
 		for i := 0; i < 10; i++ {

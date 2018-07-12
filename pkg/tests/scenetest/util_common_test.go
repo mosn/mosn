@@ -12,15 +12,15 @@ import (
 	"time"
 
 	"github.com/orcaman/concurrent-map"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/network"
+	"github.com/alipay/sofamosn/pkg/network/buffer"
+	"github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/protocol/serialize"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc/codec"
+	"github.com/alipay/sofamosn/pkg/stream"
+	"github.com/alipay/sofamosn/pkg/types"
 	"golang.org/x/net/http2"
 )
 
@@ -36,6 +36,8 @@ type UpstreamServer struct {
 }
 
 func NewUpstreamServer(t *testing.T, addr string, serve ServeConn) *UpstreamServer {
+	//wait resource release
+	time.Sleep(2 * time.Second)
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		t.Fatalf("listen %s failed, error: %v\n", addr, err)
@@ -195,22 +197,28 @@ func (c *RpcClient) Connect() error {
 	}
 	return nil
 }
-func (c *RpcClient) SendRequest(id uint32, req []byte) {
+
+var streamIdCounter uint32
+
+func GetStreamId() uint32 {
+	return atomic.AddUint32(&streamIdCounter, 1)
+}
+
+func (c *RpcClient) SendRequest(streamId uint32, req []byte) {
 	c.conn.Write(buffer.NewIoBufferBytes(req))
-	c.wait_reponse.Set(fmt.Sprintf("%d", id), id)
+	c.wait_reponse.Set(fmt.Sprintf("%d", streamId), streamId)
 }
 
 //BoltV1 Client
 //types.StreamReceiver
 type BoltV1Client struct {
-	t               *testing.T
-	ClientId        string
-	CurrentStreamId uint32
-	Codec           stream.CodecClient
-	Waits           cmap.ConcurrentMap
-	conn            types.ClientConnection
-	respCount       uint32
-	requestCount    uint32
+	t            *testing.T
+	ClientId     string
+	Codec        stream.CodecClient
+	Waits        cmap.ConcurrentMap
+	conn         types.ClientConnection
+	respCount    uint32
+	requestCount uint32
 }
 
 func (c *BoltV1Client) Connect(addr string) error {
@@ -226,7 +234,7 @@ func (c *BoltV1Client) Connect(addr string) error {
 	return nil
 }
 func (c *BoltV1Client) SendRequest() {
-	id := atomic.AddUint32(&c.CurrentStreamId, 1)
+	id := GetStreamId()
 	streamId := sofarpc.StreamIDConvert(id)
 	requestEncoder := c.Codec.NewStream(streamId, c)
 	headers := buildBoltV1Request(id)

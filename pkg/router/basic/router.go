@@ -21,11 +21,11 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	_ "gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/router"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/log"
+	_ "github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/router"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 func init() {

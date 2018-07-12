@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/log"
 )
 
 func init(){

@@ -20,12 +20,12 @@ import (
 	"errors"
 
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/server/config/proxy"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
-	clusterAdapter "gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/server"
+	"github.com/alipay/sofamosn/pkg/server/config/proxy"
+	"github.com/alipay/sofamosn/pkg/types"
+	clusterAdapter "github.com/alipay/sofamosn/pkg/upstream/cluster"
 )
 
 func SetGlobalStreamFilter(globalStreamFilters []types.StreamFilterChainFactory) {

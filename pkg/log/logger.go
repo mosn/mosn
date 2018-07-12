@@ -27,7 +27,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-syslog"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 var (

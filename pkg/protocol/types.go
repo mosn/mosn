@@ -16,7 +16,7 @@
  */
 package protocol
 
-import "gitlab.alipay-inc.com/afe/mosn/pkg/types"
+import "github.com/alipay/sofamosn/pkg/types"
 
 const (
 	SofaRpc   types.Protocol = "SofaRpc"

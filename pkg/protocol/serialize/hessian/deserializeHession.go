@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"reflect"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/log"
 )
 
 type DeserializeTRHessian struct {

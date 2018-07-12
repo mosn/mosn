@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/mosn"
+	"github.com/alipay/sofamosn/pkg/protocol"
 	"github.com/orcaman/concurrent-map"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/mosn"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 )
 
 func TestBolt2Http2(t *testing.T) {
@@ -31,8 +32,9 @@ func TestBolt2Http2(t *testing.T) {
 	if err := client.Connect(); err != nil {
 		t.Fatalf("client connect failed\n")
 	}
-	var Id uint32 = 1
-	for ; Id <= 20; Id++ {
+	defer client.conn.Close(types.NoFlush, types.LocalClose)
+	for i := 0; i < 20; i++ {
+		Id := GetStreamId()
 		requestIdBytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(requestIdBytes, Id)
 		copy(boltV1ReqBytes[5:], requestIdBytes)

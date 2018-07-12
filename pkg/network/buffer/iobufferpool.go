@@ -20,7 +20,7 @@ import (
 	"io"
 	"sync"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 type IoBufferPool struct {

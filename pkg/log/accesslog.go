@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 	"github.com/valyala/bytebufferpool"
 )
 

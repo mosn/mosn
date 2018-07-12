@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 func SofaPropertyHeader(name string) string {
