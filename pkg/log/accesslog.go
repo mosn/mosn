@@ -21,10 +21,13 @@ import (
 	"strings"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/valyala/bytebufferpool"
 )
 
 var (
 	RequestInfoFuncMap map[string]func(info types.RequestInfo) string
+	// currently use fasthttp's bytebufferpool impl
+	accessLogPool bytebufferpool.Pool
 )
 
 func init() {
@@ -122,16 +125,18 @@ func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHe
 		return ""
 	}
 
-	format := ""
+	buffer := accessLogPool.Get()
+	defer  accessLogPool.Put(buffer)
 	for _, key := range f.reqInfoFormat {
 
 		if vFunc, ok := RequestInfoFuncMap[key]; ok {
-			format = format + vFunc(requestInfo) + " "
+			buffer.WriteString(vFunc(requestInfo))
+			buffer.WriteString(" ")
 		} else {
 			DefaultLogger.Debugf("Invalid ReqInfo Format Keys: %s", key)
 		}
 	}
-	return format
+	return buffer.String()
 }
 
 // types.AccessLogFormatter
@@ -145,17 +150,20 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 		DefaultLogger.Debugf("No ReqHeaders Format Keys Input")
 		return ""
 	}
-	format := ""
 
+	buffer := accessLogPool.Get()
+	defer  accessLogPool.Put(buffer)
 	for _, key := range f.reqHeaderFormat {
 		if v, ok := reqHeaders[key]; ok {
-			format = format + types.ReqHeaderPrefix + v + " "
+			buffer.WriteString(types.ReqHeaderPrefix)
+			buffer.WriteString(v)
+			buffer.WriteString(" ")
 		} else {
 			//DefaultLogger.Debugf("Invalid reqHeaders format keys when print access log: %s", key)
 		}
 	}
 
-	return format
+	return buffer.String()
 }
 
 // types.AccessLogFormatter
@@ -169,17 +177,20 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 		return ""
 	}
 
-	format := ""
+	buffer := accessLogPool.Get()
+	defer  accessLogPool.Put(buffer)
 	for _, key := range f.respHeaderFormat {
 
 		if v, ok := respHeaders[key]; ok {
-			format = format + types.RespHeaderPrefix + v + " "
+			buffer.WriteString(types.RespHeaderPrefix)
+			buffer.WriteString(v)
+			buffer.WriteString(" ")
 		} else {
 			//DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
 		}
 	}
 
-	return format
+	return buffer.String()
 }
 
 // format to formatter by parsing format
@@ -228,7 +239,7 @@ func formatToFormatter(format string) []types.AccessLogFormatter {
 
 // get request's arriving time
 func StartTimeGetter(info types.RequestInfo) string {
-	return info.StartTime().String()
+	return info.StartTime().Format("2006-01-02 15:04:05.999 +800")
 }
 
 // get duration between request arriving and request resend to upstream
