@@ -18,7 +18,6 @@ package hessian
 
 import (
 	"bytes"
-	"fmt"
 	"reflect"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"

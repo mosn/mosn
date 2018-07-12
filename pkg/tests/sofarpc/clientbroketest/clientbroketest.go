@@ -72,8 +72,8 @@ const (
 	CloseClientNum   = 1
 	SendInterval     = 10 * time.Millisecond
 	RestartTime      = 1 * time.Second
-	ResponseTimeout  = 3000 * time.Millisecond
-	CloseConnUpValue = 500
+	ResponseTimeout  = 10000 * time.Millisecond
+	CloseConnUpValue = 1000
 	Microsecond      = 1000
 )
 
