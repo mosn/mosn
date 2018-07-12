@@ -87,6 +87,15 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 		cluster.info.lbType = types.RoundRobin
 	}
 	
+	// TODO: init more props: maxrequestsperconn, connecttimeout, connectionbuflimit
+
+	cluster.info.resourceManager = NewResourceManager(clusterConfig.CirBreThresholds)
+
+	cluster.prioritySet.GetOrCreateHostSet(0)
+	cluster.prioritySet.AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
+		// TODO: update cluster stats
+	})
+	
 	var lb types.LoadBalancer
 	
 	if cluster.Info().LbSubsetInfo().IsEnabled() {
@@ -101,15 +110,6 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 	
 	cluster.info.lbInstance = lb
 	
-	// TODO: init more props: maxrequestsperconn, connecttimeout, connectionbuflimit
-
-	cluster.info.resourceManager = NewResourceManager(clusterConfig.CirBreThresholds)
-
-	cluster.prioritySet.GetOrCreateHostSet(0)
-	cluster.prioritySet.AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
-		// TODO: update cluster stats
-	})
-
 	cluster.info.tlsMng = tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 
 	return cluster

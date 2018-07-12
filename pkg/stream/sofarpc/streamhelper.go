@@ -69,9 +69,9 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 					s.connection.logger.Errorf(err.Error())
 				}
 			}
+		} else{
+			headers = headerMaps
 		}
-
-		headers = headerMaps
 	}
 
 	return headers

@@ -523,6 +523,7 @@ func TestGenerateDftSubsetKeys(t *testing.T) {
 	type args struct {
 		dftkeys types.SortedMap
 	}
+	
 	tests := []struct {
 		name string
 		args args
@@ -531,12 +532,11 @@ func TestGenerateDftSubsetKeys(t *testing.T) {
 		{
 			name: "test1",
 			args: args{
-				dftkeys: types.SortedMap{
-					Content: map[string]string{
-						"stage":   "prod",
-						"type":    "std",
-						"version": "1.0",
-					},
+				dftkeys:
+					[]types.SortedPair{
+						{"stage","prod"},
+						{"type", "std",},
+						{"version", "1.0"},
 				},
 			},
 			want: InitDefaultSubsetMetadata(),
@@ -673,7 +673,8 @@ type ContextImplMock struct {
 }
 
 func (ci *ContextImplMock) ComputeHashKey() types.HashedValue {
-	return [16]byte{}
+	//return [16]byte{}
+	return ""
 }
 
 func (ci *ContextImplMock) MetadataMatchCriteria() types.MetadataMatchCriteria {

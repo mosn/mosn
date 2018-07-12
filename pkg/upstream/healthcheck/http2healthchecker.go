@@ -113,7 +113,7 @@ func (s *http2HealthCheckSession) onInterval() {
 	reqHeaders := map[string]string{
 		types.HeaderMethod: http.MethodGet,
 		types.HeaderHost:   s.healthChecker.cluster.Info().Name(),
-		types.HeaderPath:   s.healthChecker.checkPath,
+		protocol.MosnHeaderPathKey:   s.healthChecker.checkPath,
 	}
 
 	s.requestSender.AppendHeaders(reqHeaders, true)

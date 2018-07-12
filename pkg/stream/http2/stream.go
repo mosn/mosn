@@ -266,10 +266,10 @@ func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error
 		delete(headers, types.HeaderHost)
 	}
 
-	if path, ok := headers[types.HeaderPath]; ok {
+	if path, ok := headers[protocol.MosnHeaderPathKey]; ok {
 		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s%s",
 			s.connection.rawConnection.RemoteAddr().String(), path))
-		delete(headers, types.HeaderPath)
+		delete(headers, protocol.MosnHeaderPathKey)
 	}
 
 	if _, ok := headers["Host"]; ok {

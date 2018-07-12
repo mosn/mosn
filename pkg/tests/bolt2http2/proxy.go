@@ -253,7 +253,7 @@ func rpchosts() []v2.Host {
 		MetaData: map[string]interface{}{
 			"stage":   "pre-release",
 			"version": "1.1",
-			"label":   "gray",
+			"label":   "gray2",
 		},
 	})
 	
@@ -288,7 +288,7 @@ func clustersrpc() []v2.Cluster {
 		DefaultSubset: map[string]string{
 			"stage":   "pre-release",
 			"version": "1.1",
-			"label":   "gray",
+			"label":   "gray2",
 		},
 		SubsetSelectors: [][]string{{"stage", "type"},
 			{"stage", "label", "version"},
