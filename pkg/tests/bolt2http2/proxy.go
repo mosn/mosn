@@ -84,7 +84,7 @@ func main() {
 		for {
 			rwc, err := l.Accept()
 			if err != nil {
-				fmt.Println("accept err:", err)
+				log.DefaultLogger.Errorf("accept error: %+s", err)
 				continue
 			}
 			go s2.ServeConn(rwc, &http2.ServeConnOpts{BaseConfig: server})

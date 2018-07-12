@@ -17,7 +17,6 @@
 package router
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -26,10 +25,6 @@ import (
 )
 
 func TestGenerateHashedValue(t *testing.T) {
-
-	test := types.GenerateHashedValue("test")
-	fmt.Println(test)
-
 	type args struct {
 		input string
 	}
@@ -50,7 +45,6 @@ func TestGenerateHashedValue(t *testing.T) {
 }
 
 func TestGetEnvoyLBMetaData(t *testing.T) {
-
 	header := v2.HeaderMatcher{
 		Name:  "service",
 		Value: "com.alipay.rpc.common.service.facade.SampleService:1.0",

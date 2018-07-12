@@ -18,7 +18,6 @@ package hessian
 
 import (
 	"bytes"
-	"fmt"
 	"reflect"
 
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -45,10 +44,8 @@ func (d *DeserializeTRHessian) SerializeConnRequestBytes(strEchoBytes []byte) in
 	obj, err := decoder.ReadObject()
 
 	if err != nil {
-		fmt.Print(err)
+		log.DefaultLogger.Errorf("err %s", err)
 	} else {
-		fmt.Print("decode request")
-		fmt.Print(obj)
 		if so, ok := obj.(reflect.Value); ok {
 			u1 := so.Interface().(*ConnectionRequest)
 
@@ -58,7 +55,6 @@ func (d *DeserializeTRHessian) SerializeConnRequestBytes(strEchoBytes []byte) in
 
 		if so, ok := obj.(SofaRequest); ok {
 			log.DefaultLogger.Debugf("TR Request SofaRequest is: %+v", so)
-			fmt.Print(so.RequestProps)
 		}
 	}
 
@@ -79,19 +75,13 @@ func (d *DeserializeTRHessian) SerializeConnResponseBytes(strEchoBytes []byte) i
 	obj, err := decoder.ReadObject()
 
 	if err != nil {
-		fmt.Print(err)
+		log.DefaultLogger.Errorf("serialize resp bytes err %s", err)
 	} else {
-		fmt.Print("decode response")
-		fmt.Print(obj)
 		if so, ok := obj.(reflect.Value); ok {
 			u1 := so.Interface().(*ConnectionResponse)
 
 			log.DefaultLogger.Debugf("TR Response ID is: ", u1.Ctx.Id)
 			return u1.Ctx.Id
-		}
-
-		if _, ok := obj.(SofaRequest); ok {
-			//fmt.Print(so.RequestProps)
 		}
 	}
 
@@ -110,10 +100,8 @@ func (d *DeserializeTRHessian) SerializeAppRequestBytes(strEchoBytes []byte) str
 	obj, err := decoder.ReadObject()
 
 	if err != nil {
-		fmt.Print("err")
+		log.DefaultLogger.Errorf("serialize aa req bytes err %s", err)
 	} else {
-
-		fmt.Print(obj)
 		if so, ok := obj.(reflect.Value); ok {
 			u1 := so.Interface().(*SofaRequest) //
 
