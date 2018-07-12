@@ -184,12 +184,6 @@ func (s *downStream) cleanStream() {
 
 	// delete stream
 	s.proxy.deleteActiveStream(s)
-
-	//recycle codec pool
-	s.proxy.codecPool.Give(s.downstreamReqHeaders)
-	if s.upstreamRequest != nil && s.upstreamRequest.upstreamRespHeaders != nil{
-		s.proxy.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
-	}
 }
 
 // note: added before countdown metrics
