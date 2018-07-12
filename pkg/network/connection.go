@@ -163,10 +163,6 @@ func (c *connection) Start(lctx context.Context) {
 }
 
 func (c *connection) startReadLoop() {
-	defer func() {
-		_, _ = <-c.internalStopChan
-	}()
-
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
 		select {
@@ -304,10 +300,6 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 }
 
 func (c *connection) startWriteLoop() {
-	defer func() {
-		_, _ = <-c.internalStopChan
-	}()
-
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
 		select {

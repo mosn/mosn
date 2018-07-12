@@ -19,6 +19,7 @@ package main
 import (
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strconv"
 	"sync"
@@ -82,14 +83,14 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 		//1. server config prepare
 		//server config
 		sc := config.ParseServerConfig(&serverConfig)
-		
+
 		// init default log
 		server.InitDefaultLogger(sc)
-			
+
 		var srv server.Server
 		if mode == config.Xds {
 			cmf := &clusterManagerFilter{}
-			cm := cluster.NewClusterManager(nil, nil, nil, true,false)
+			cm := cluster.NewClusterManager(nil, nil, nil, true, false)
 			srv = server.NewServer(sc, cmf, cm)
 
 		} else {
@@ -103,7 +104,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			clusters, clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
 
 			//create cluster manager
-			cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery,c.ClusterManager.RegistryUseHealthCheck)
+			cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, cm)
 
