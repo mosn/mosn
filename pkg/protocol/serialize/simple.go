@@ -111,13 +111,12 @@ func (s *SimpleSerialization) DeSerializeMulti(b []byte, v []interface{}) (ret [
 	return []interface{}{rv}, err
 }
 
-func readInt32(buf *bytes.Buffer) (int, error) {
-	var i int32
-	err := binary.Read(buf, binary.BigEndian, &i)
-	if err != nil {
-		return 0, err
+func readInt32(b []byte) (int, error) {
+	if len(b) < 4 {
+		return 0, errors.New("no enough bytes")
 	}
-	return int(i), nil
+
+	return int(binary.BigEndian.Uint32(b[:4])), nil
 }
 
 func decodeString(b []byte, result *string) (int, error) {
@@ -130,76 +129,61 @@ func decodeString(b []byte, result *string) (int, error) {
 这个map是参考com.alipay.sofa.rpc.remoting.codec.SimpleMapSerializer进行实现的.
 */
 func decodeMap(b []byte, result *map[string]string) error {
-	buf := bytes.NewBuffer(b)
+	totalLen := len(b)
+	index := 0
 
-	for {
-		length, err := readInt32(buf)
-		if length == -1 || err != nil {
-			return nil
+	for index < totalLen {
+
+		length, err := readInt32(b[index:])
+		if err != nil {
+			return err
 		}
+		index += 4
 
-		key := make([]byte, length)
-		buf.Read(key)
+		key := b[index : index+length]
+		index += length
 
-		length, err = readInt32(buf)
-		if length == -1 || err != nil {
-			return nil
+		length, err = readInt32(b[index:])
+		if err != nil {
+			return err
 		}
+		index += 4
 
-		value := make([]byte, length)
-		buf.Read(value)
+		value := b[index : index+length]
+		index += length
 
-		keyStr := string(key)
-		valueStr := string(value)
-
-		(*result)[keyStr] = valueStr
+		(*result)[string(key)] = string(value)
 	}
+	return nil
 }
 
-func encodeStringMap(v string, buf *bytes.Buffer) (int32, error) {
+func encodeString(v string, buf *bytes.Buffer) (int, error) {
 	b := unsafeStrToByte(v)
-	l := int32(len(b))
-	err := binary.Write(buf, binary.BigEndian, l)
-	err = binary.Write(buf, binary.BigEndian, b)
-	if err != nil {
-		return 0, err
-	}
-	return l + 4, nil
-}
 
-func encodeString(v string, buf *bytes.Buffer) (int32, error) {
-	b := unsafeStrToByte(v)
-	l := int32(len(b))
-
-	err := binary.Write(buf, binary.BigEndian, b)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return l + 4, nil
+	return buf.Write(b)
 }
 
 func encodeMap(v map[string]string, buf *bytes.Buffer) error {
-	b := bytes.Buffer{}
+	lenBuf := make([]byte, 4)
 
-	var size, l int32
-	var err error
-	for k, v := range v {
-		l, err = encodeStringMap(k, &b)
-		size += l
-		if err != nil {
-			return err
-		}
-		l, err = encodeStringMap(v, &b)
-		size += l
-		if err != nil {
-			return err
-		}
+	for key, value := range v {
+
+		keyBytes := unsafeStrToByte(key)
+		keyLen := len(keyBytes)
+
+		binary.BigEndian.PutUint32(lenBuf, uint32(keyLen))
+		buf.Write(lenBuf)
+		buf.Write(keyBytes)
+
+		valueBytes := unsafeStrToByte(value)
+		valueLen := len(valueBytes)
+
+		binary.BigEndian.PutUint32(lenBuf, uint32(valueLen))
+		buf.Write(lenBuf)
+		buf.Write(valueBytes)
 	}
-	err = binary.Write(buf, binary.BigEndian, b.Bytes()[:size])
 
-	return err
+	return nil
 }
 
 func encodeBytes(v []uint8, buf *bytes.Buffer) error {
