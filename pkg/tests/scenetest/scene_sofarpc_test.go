@@ -4,19 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alipay/sofamosn/pkg/types"
 	"github.com/alipay/sofamosn/pkg/mosn"
 	"github.com/alipay/sofamosn/pkg/protocol"
 	"github.com/orcaman/concurrent-map"
-)
-
-import (
-	"testing"
-	"time"
-
-	"github.com/orcaman/concurrent-map"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/mosn"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 )
 
 func TestSofaRpc(t *testing.T) {
