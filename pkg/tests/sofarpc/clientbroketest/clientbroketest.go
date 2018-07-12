@@ -23,6 +23,7 @@ import (
 	_ "net/http/pprof"
 	"time"
 
+	"github.com/orcaman/concurrent-map"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
 	sf "gitlab.alipay-inc.com/afe/mosn/pkg/filter/stream/healthcheck/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
@@ -39,10 +40,9 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/upstream/cluster"
+	"math/rand"
 	"reflect"
 	"sync/atomic"
-	"github.com/orcaman/concurrent-map"
-	"math/rand"
 )
 
 //事例说明 (以下均支持可配置)
@@ -58,9 +58,9 @@ import (
 // CloseConnUpValue = 5  表示，close 连接的interval的最大值，实际值在此之间random
 
 const (
-	UpstreamAddr      = "127.0.0.1:8089"
+	UpstreamAddr = "127.0.0.1:8089"
 	//UpstreamAddr2      = "127.0.0.1:9099"
-	
+
 	MeshRPCServerAddr = "127.0.0.1:2045"
 	TestClusterRPC    = "tstCluster"
 	TestListenerRPC   = "tstListener"
@@ -270,8 +270,6 @@ func RunClientInstance(threadid uint32, stopChan chan bool) {
 			}
 			requestMsg.allRequestMap = allRequestMap
 
-			allRequestMap.Set(reqID, &requestMsg)
-
 			if CloseClientNum == clientId {
 				go func() {
 					closeClientTimer = time.NewTimer(time.Duration(rand.Intn(CloseConnUpValue) * Microsecond))
@@ -298,6 +296,7 @@ func RunClientInstance(threadid uint32, stopChan chan bool) {
 			fmt.Printf("%s Client[%d] Send Request, RequestID = %s ", time.Now().String(), clientId, reqID)
 			fmt.Println()
 
+			allRequestMap.Set(reqID, &requestMsg)
 			requestEncoder := codecClient.NewStream(reqID, &requestMsg)
 			reqHeaders := buildRequestMsg(id)
 			requestEncoder.AppendHeaders(reqHeaders, true)
@@ -470,11 +469,6 @@ func rpchosts() []v2.Host {
 		Address: UpstreamAddr,
 		Weight:  100,
 	})
-	
-	//hosts = append(hosts, v2.Host{
-	//	Address: UpstreamAddr2,
-	//	Weight:  100,
-	//})
 
 	return hosts
 }
@@ -486,12 +480,12 @@ func RespTimeout(reqid string, clientid uint32) {
 
 // timer
 type timer struct {
-	clientID   uint32
-	reqID      string
-	callback   func(string, uint32)
-	interval   time.Duration
-	innerTimer *time.Timer
-	stopChan   chan bool
+	clientID    uint32
+	reqID       string
+	callback    func(string, uint32)
+	interval    time.Duration
+	innerTimer  *time.Timer
+	startedFlag bool
 }
 
 func newTimer(callback func(reqID string, clientID uint32), reqID string, clientID uint32) *timer {
@@ -504,6 +498,7 @@ func newTimer(callback func(reqID string, clientID uint32), reqID string, client
 
 func (t *timer) start(interval time.Duration) {
 	t.innerTimer = time.NewTimer(interval)
+	t.startedFlag = true
 	go func() {
 		select {
 		case <-t.innerTimer.C:
@@ -513,6 +508,10 @@ func (t *timer) start(interval time.Duration) {
 }
 
 func (t *timer) stop() {
+	if !t.startedFlag {
+		return
+	}
+	
 	fmt.Println("stop timer")
 	t.innerTimer.Stop()
 }
