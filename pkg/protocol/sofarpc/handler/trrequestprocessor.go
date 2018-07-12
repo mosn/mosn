@@ -21,10 +21,10 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize/hessian"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/network/buffer"
+	"github.com/alipay/sofamosn/pkg/protocol/serialize/hessian"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 type TrRequestProcessor struct{}

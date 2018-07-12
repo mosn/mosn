@@ -20,8 +20,8 @@ import (
 	"reflect"
 	"strconv"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 func (s *stream) encodeSterilize(headers interface{}) interface{} {

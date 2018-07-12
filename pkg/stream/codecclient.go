@@ -21,7 +21,7 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 	"sync/atomic"
 )
 

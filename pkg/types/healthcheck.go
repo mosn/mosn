@@ -17,7 +17,7 @@
 package types
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/api/v2"
 )
 
 // Health check interfaces

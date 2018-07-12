@@ -23,12 +23,12 @@ import (
 
 	"time"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/models"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/network/buffer"
+	"github.com/alipay/sofamosn/pkg/protocol/serialize"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc/models"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 var streamIdCounter uint32

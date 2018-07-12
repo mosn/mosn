@@ -17,7 +17,7 @@
 package tcpproxy
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 // ReadFilter

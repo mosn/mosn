@@ -3,8 +3,8 @@ package original_dst
 import (
 	"errors"
 	"fmt"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/types"
 	__tl "log"
 	"net"
 	"syscall"

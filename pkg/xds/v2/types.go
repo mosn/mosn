@@ -20,7 +20,7 @@ import (
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
+	"github.com/alipay/sofamosn/pkg/config"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"time"

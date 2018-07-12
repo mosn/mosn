@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/config"
+	"github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 func CreateMeshConfig(addr string, filterChains []config.FilterChain, clusterManager config.ClusterManagerConfig) *config.MOSNConfig {

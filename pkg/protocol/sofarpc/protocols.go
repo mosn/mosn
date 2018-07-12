@@ -21,8 +21,8 @@ import (
 	"errors"
 	"reflect"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 //All of the protocolMaps

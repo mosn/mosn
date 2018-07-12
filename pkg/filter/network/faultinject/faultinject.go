@@ -17,8 +17,8 @@
 package faultinject
 
 import (
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/types"
 	"math/rand"
 	"sync/atomic"
 	"time"

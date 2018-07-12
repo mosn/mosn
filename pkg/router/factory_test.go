@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 func TestRegisteRouterConfigFactory(t *testing.T) {

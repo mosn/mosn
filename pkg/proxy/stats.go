@@ -18,7 +18,7 @@ package proxy
 
 import (
 	"github.com/rcrowley/go-metrics"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/stats"
+	"github.com/alipay/sofamosn/pkg/stats"
 )
 
 const (

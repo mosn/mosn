@@ -20,7 +20,7 @@ import (
 	"errors"
 	"io"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 const MinRead = 1 << 10

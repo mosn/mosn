@@ -19,7 +19,7 @@ package buffer
 import (
 	"io"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 type WatermarkBuffer struct {

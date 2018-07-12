@@ -20,8 +20,8 @@ import "time"
 
 import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/config"
+	"github.com/alipay/sofamosn/pkg/log"
 )
 
 func (adsClient *ADSClient) Start() {

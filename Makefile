@@ -2,8 +2,8 @@ SHELL = /bin/bash
 
 TARGET       = mosnd
 CONFIG_FILE  = mosn_config.json
-GIT_USER     = afe
-PROJECT_NAME = gitlab.alipay-inc.com/${GIT_USER}/mosn
+GIT_USER     = alipay
+PROJECT_NAME = github.com/${GIT_USER}/sofamosn
 
 MAJOR_VERSION = $(shell cat VERSION)
 GIT_VERSION   = $(shell git log -1 --pretty=format:%h)
@@ -21,7 +21,7 @@ RPM_SRC_DIR     = ${RPM_TAR_NAME}-${RPM_VERSION}
 RPM_TAR_FILE    = ${RPM_SRC_DIR}.tar.gz
 
 ut-local:
-	go test ./...
+	go test ./pkg/...
 
 unit-test:
 	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary

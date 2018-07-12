@@ -20,10 +20,10 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/protocol"
+	str "github.com/alipay/sofamosn/pkg/stream"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 // types.ConnectionPool

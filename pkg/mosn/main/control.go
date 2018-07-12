@@ -18,8 +18,8 @@ package main
 
 import (
 	"github.com/urfave/cli"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/config"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/mosn"
+	"github.com/alipay/sofamosn/pkg/config"
+	"github.com/alipay/sofamosn/pkg/mosn"
 )
 
 var (

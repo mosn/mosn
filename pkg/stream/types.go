@@ -19,7 +19,7 @@ package stream
 import (
 	"context"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 type CodecClient interface {

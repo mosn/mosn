@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 var bitSize64 = 1 << 6

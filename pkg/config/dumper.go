@@ -19,7 +19,7 @@ package config
 import (
 	"encoding/json"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/log"
 
 	"io/ioutil"
 	"sync"

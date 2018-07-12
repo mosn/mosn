@@ -20,11 +20,11 @@ import (
 	"context"
 	"sync"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
-	str "gitlab.alipay-inc.com/afe/mosn/pkg/stream"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/protocol/sofarpc"
+	str "github.com/alipay/sofamosn/pkg/stream"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 type StreamDirection int

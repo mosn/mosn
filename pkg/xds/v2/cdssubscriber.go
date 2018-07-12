@@ -21,7 +21,7 @@ import (
 	//"google.golang.org/grpc"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/log"
 	//"golang.org/x/net/context"
 	//google_rpc "github.com/gogo/googleapis/google/rpc"
 	"errors"

@@ -19,10 +19,10 @@ package network
 import (
 	"context"
 
-	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/network/faultinject"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/filter/network/tcpproxy"
-	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
+	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/filter/network/faultinject"
+	"github.com/alipay/sofamosn/pkg/filter/network/tcpproxy"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 type FaultInjectFilterConfigFactory struct {
