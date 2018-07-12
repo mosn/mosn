@@ -583,10 +583,11 @@ func (d *decoder) readType() (interface{}, error) {
 
 func (d *decoder) ReadObject() (interface{}, error) {
 	tag, err := d.readBufByte()
+
 	if err != nil {
 		return nil, newCodecError("reading tag", err)
 	}
-	//fmt.Println("tag ", tag)
+
 	switch {
 	case tag == BC_END:
 		return nil, io.EOF
@@ -640,21 +641,18 @@ func (d *decoder) ReadObject() (interface{}, error) {
 
 	case tag == BC_OBJECT_REF:
 		ref, _ := d.readInt(TAG_READ)
+
 		if ref == 0 {
-			fmt.Println("ref", ref)
+			log.DefaultLogger.Debugf("ref,%+v", ref)
 		}
 		return nil, nil
 	case tag == BC_OBJECT:
-		//fmt.Println("BC_OBJECT ")
-		//i, _ := d.readInt(TAG_READ)
-		//idx := int(i.(int32))
 		classDef, _ := d.readClassDef()
 
 		newClassDef := classDef.(ClassDef)
 
-		littleO, _ := d.ReadObject()
+		_, _ = d.ReadObject()
 
-		fmt.Print(littleO)
 		typ, ok := d.typMap[newClassDef.FullClassName]
 		if !ok {
 			return nil, newCodecError("undefine type for "+newClassDef.FullClassName, err)
@@ -769,7 +767,7 @@ func (d *decoder) ReadObject() (interface{}, error) {
 			}
 			i = int(ii.(int32))
 		}
-		//fmt.Println("list len ", i)
+
 		ary := make([]interface{}, i)
 		for j := 0; j < i; j++ {
 			it, err := d.ReadObject()
@@ -781,12 +779,13 @@ func (d *decoder) ReadObject() (interface{}, error) {
 		}
 		//read the endbyte of list
 		d.readBufByte()
-		//fmt.Println("endList", bt)
+
 		return ary, nil
 	default:
-		fmt.Println("unkonw tag", tag)
-		return nil, newCodecError("unkonw tag")
+		log.DefaultLogger.Errorf("unknown tag %s", tag)
+		return nil, newCodecError("unknown tag")
 	}
+
 	return nil, newCodecError("wrong tag")
 }
 

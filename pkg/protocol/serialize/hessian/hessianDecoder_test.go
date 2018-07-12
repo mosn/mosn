@@ -26,7 +26,6 @@ import (
 )
 
 func Test_HessianCodecHeader(t *testing.T) {
-
 	log.InitDefaultLogger("", log.INFO)
 
 	// 这是应用层对象.
@@ -39,19 +38,12 @@ func Test_HessianCodecHeader(t *testing.T) {
 	obj, err := decoder.ReadObject()
 
 	if err != nil {
-		fmt.Print("err")
+		log.DefaultLogger.Errorf("read object err: %s", err)
 	} else {
-
-		fmt.Print(obj)
 		if so, ok := obj.(reflect.Value); ok {
 			u1 := so.Interface().(*SofaRequest) //
-			fmt.Println(u1.RequestProps["rpc_trace_context"])
 
 			log.DefaultLogger.Infof("obj,%+v", u1)
-		}
-
-		if so, ok := obj.(SofaRequest); ok {
-			fmt.Print(so.RequestProps) //HEADER MAP
 		}
 	}
 }
@@ -71,19 +63,13 @@ func Test_RequestIDCodec(t *testing.T) {
 	obj, err := decoder.ReadObject()
 
 	if err != nil {
-		fmt.Print(err)
+		log.DefaultLogger.Errorf("read object err: %s", err)
 	} else {
-
-		fmt.Print(obj)
 		if so, ok := obj.(reflect.Value); ok {
 			u1 := so.Interface().(*ConnectionRequest)
 			log.DefaultLogger.Infof("obj,%+v", u1)
 
 			log.DefaultLogger.Infof(string(u1.Ctx.Id)) //GET REQUEST ID
-		}
-
-		if so, ok := obj.(SofaRequest); ok {
-			fmt.Print(so.RequestProps)
 		}
 	}
 }
@@ -103,19 +89,13 @@ func Test_ResponseIDCodec(t *testing.T) {
 	obj, err := decoder.ReadObject()
 
 	if err != nil {
-		fmt.Print(err)
+		log.DefaultLogger.Errorf("read object err: %s", err)
 	} else {
-
-		fmt.Print(obj)
 		if so, ok := obj.(reflect.Value); ok {
 			u1 := so.Interface().(*ConnectionResponse)
 			log.DefaultLogger.Infof("obj,%+v", u1)
 
 			log.DefaultLogger.Infof(string(u1.Ctx.Id)) //GET RESPONSE ID
-		}
-
-		if so, ok := obj.(SofaRequest); ok {
-			fmt.Print(so.RequestProps)
 		}
 	}
 }
