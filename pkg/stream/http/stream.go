@@ -326,8 +326,7 @@ func (s *clientStream) doSend() {
 	err := s.wrapper.client.Do(s.request, s.response)
 
 	if err != nil {
-		//TODO error handle
-		fmt.Printf("http1 client stream send error: %+v", err)
+		log.DefaultLogger.Errorf("http1 client stream send error: %+s", err)
 		s.wrapper.connCallbacks.OnEvent(types.RemoteClose)
 	} else {
 

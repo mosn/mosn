@@ -17,8 +17,6 @@
 package config
 
 import (
-	"encoding/json"
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -49,9 +47,6 @@ func Test_convertClusterHealthCheck(t *testing.T) {
 		CheckPath:          "",
 		ServiceName:        "",
 	}
-
-	value, _ := json.Marshal(wantS)
-	fmt.Print(string(value))
 
 	type args struct {
 		cchc v2.HealthCheck

@@ -17,9 +17,8 @@
 package config
 
 import (
-	"fmt"
-
 	"gitlab.alipay-inc.com/afe/mosn/pkg/api/v2"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 )
 
 // dumper provides basic operation with mosn elements, like 'cluster', to write back the config file with dynamic changes
@@ -201,7 +200,7 @@ func AddRouterConfig(clusterName string) {
 			routers = append(routers, s)
 			l.FilterChains[0].Filters[0].Config["routes"] = routers
 		} else {
-			fmt.Println(l.FilterChains[0].Filters[0].Config["routes"])
+			log.DefaultLogger.Println(l.FilterChains[0].Filters[0].Config["routes"])
 		}
 	}
 }
