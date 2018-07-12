@@ -73,8 +73,7 @@ func TestHttpProxy(t *testing.T) {
 		t.Errorf("expected %s, but got %s\n", cluster2Server.name, clustername)
 	}
 	//cluster2 path
-	if clustername := ParseHttpResponse(t, makeRequest("cluster1", "test")); clustername != cluster2Server.name {
+	if clustername := ParseHttpResponse(t, makeRequest("cluster1", "test.htm")); clustername != cluster2Server.name {
 		t.Errorf("expected %s, but got %s\n", cluster2Server.name, clustername)
 	}
-
 }

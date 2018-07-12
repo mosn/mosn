@@ -16,12 +16,12 @@ func CreateMeshConfig(addr string, filterChains []config.FilterChain, clusterMan
 		Address:      addr,
 		BindToPort:   true,
 		LogPath:      "stdout",
-		LogLevel:     "DEBUG",
+		LogLevel:     "WARN",
 		FilterChains: filterChains,
 	}
 	serverCfg := config.ServerConfig{
 		DefaultLogPath:  "stdout",
-		DefaultLogLevel: "DEBUG",
+		DefaultLogLevel: "WARN",
 		Listeners:       []config.ListenerConfig{listenerCfg},
 	}
 	return &config.MOSNConfig{
@@ -60,8 +60,7 @@ func CreateBasicClusterConfig(clusters []cluster) config.ClusterManagerConfig {
 	}
 }
 
-//最简单的Mesh转发配置
-//转发规则：DownStream和Upstream 匹配, Header有service
+//simple mesh config, based on protocol only
 func CreateSimpleMeshConfig(addr string, hosts []string, downstream, upstream types.Protocol) *config.MOSNConfig {
 	clusterName := "testCluster"
 	cmconfig := CreateBasicClusterConfig([]cluster{
@@ -91,7 +90,7 @@ func CreateSimpleMeshConfig(addr string, hosts []string, downstream, upstream ty
 	return CreateMeshConfig(addr, proxyconfig, cmconfig)
 }
 
-//HTTP 路由，基于HEADER和PATH
+//HTTP router mesh config
 func CreateHTTPRouteConfig(addr string, hosts [][]string) *config.MOSNConfig {
 	clusters := []cluster{}
 	for idx, hh := range hosts {
@@ -114,7 +113,7 @@ func CreateHTTPRouteConfig(addr string, hosts [][]string) *config.MOSNConfig {
 	routerV2_Path := v2.Router{
 		Match: v2.RouterMatch{
 			Headers: []v2.HeaderMatcher{header1},
-			Path:    "/test",
+			Path:    "/test.htm",
 		},
 		Route: v2.RouteAction{ClusterName: clusters[1].name},
 	}
@@ -122,7 +121,8 @@ func CreateHTTPRouteConfig(addr string, hosts [][]string) *config.MOSNConfig {
 		DownstreamProtocol: string(protocol.Http1),
 		UpstreamProtocol:   string(protocol.Http1),
 		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2, routerV2_header, routerV2_Path}},
+			//Notice that the order of router, the first successful matched is used
+			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2_Path, routerV2, routerV2_header}},
 		},
 	}
 	b, _ := json.Marshal(p)

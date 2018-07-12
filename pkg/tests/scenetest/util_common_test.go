@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,9 +15,11 @@ import (
 	"gitlab.alipay-inc.com/afe/mosn/pkg/log"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/network/buffer"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/serialize"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/protocol/sofarpc/codec"
+	"gitlab.alipay-inc.com/afe/mosn/pkg/stream"
 	"gitlab.alipay-inc.com/afe/mosn/pkg/types"
 	"golang.org/x/net/http2"
 )
@@ -29,6 +32,7 @@ type UpstreamServer struct {
 	conns    []net.Conn
 	mu       sync.Mutex
 	t        *testing.T
+	closed   bool
 }
 
 func NewUpstreamServer(t *testing.T, addr string, serve ServeConn) *UpstreamServer {
@@ -43,6 +47,7 @@ func NewUpstreamServer(t *testing.T, addr string, serve ServeConn) *UpstreamServ
 		mu:       sync.Mutex{},
 		Serve:    serve,
 		t:        t,
+		closed:   false,
 	}
 
 }
@@ -69,11 +74,15 @@ func (s *UpstreamServer) serve() {
 
 func (s *UpstreamServer) Close() {
 	s.mu.Lock()
+	if s.closed {
+		return
+	}
 	s.t.Logf("server %s closed\n", s.Listener.Addr().String())
 	s.Listener.Close()
 	for _, conn := range s.conns {
 		conn.Close()
 	}
+	s.closed = true
 	s.mu.Unlock()
 }
 
@@ -147,6 +156,7 @@ type ReponseFilter interface {
 }
 
 //Rpc client
+//Send Request Byte
 type RpcClient struct {
 	t               *testing.T
 	conn            types.ClientConnection
@@ -188,6 +198,62 @@ func (c *RpcClient) Connect() error {
 func (c *RpcClient) SendRequest(id uint32, req []byte) {
 	c.conn.Write(buffer.NewIoBufferBytes(req))
 	c.wait_reponse.Set(fmt.Sprintf("%d", id), id)
+}
+
+//BoltV1 Client
+//types.StreamReceiver
+type BoltV1Client struct {
+	t               *testing.T
+	ClientId        string
+	CurrentStreamId uint32
+	Codec           stream.CodecClient
+	Waits           cmap.ConcurrentMap
+	conn            types.ClientConnection
+	respCount       uint32
+	requestCount    uint32
+}
+
+func (c *BoltV1Client) Connect(addr string) error {
+	stopChan := make(chan bool)
+	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
+	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
+	c.conn = cc
+	if err := cc.Connect(true); err != nil {
+		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientId, err)
+		return err
+	}
+	c.Codec = stream.NewCodecClient(nil, protocol.SofaRpc, cc, nil)
+	return nil
+}
+func (c *BoltV1Client) SendRequest() {
+	id := atomic.AddUint32(&c.CurrentStreamId, 1)
+	streamId := sofarpc.StreamIDConvert(id)
+	requestEncoder := c.Codec.NewStream(streamId, c)
+	headers := buildBoltV1Request(id)
+	requestEncoder.AppendHeaders(headers, true)
+	atomic.AddUint32(&c.requestCount, 1)
+	c.Waits.Set(streamId, streamId)
+}
+func (c *BoltV1Client) Stats() {
+	c.t.Logf("client %s send request:%d, get reponse:%d \n", c.ClientId, c.requestCount, c.respCount)
+}
+
+//
+func (c *BoltV1Client) OnReceiveData(data types.IoBuffer, endStream bool) {
+}
+func (c *BoltV1Client) OnReceiveTrailers(trailers map[string]string) {
+}
+func (c *BoltV1Client) OnDecodeError(err error, headers map[string]string) {
+}
+func (c *BoltV1Client) OnReceiveHeaders(headers map[string]string, endStream bool) {
+	streamId, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
+	if ok {
+		if _, ok := c.Waits.Get(streamId); ok {
+			//c.t.Logf("Get Stream Response: %s ,headers: %v\n", streamId, headers)
+			atomic.AddUint32(&c.respCount, 1)
+			c.Waits.Remove(streamId)
+		}
+	}
 }
 
 //Protocols
@@ -256,7 +322,7 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 					if err != nil {
 						t.Errorf("Build response error: %v\n", err)
 					} else {
-						t.Logf("server %s write to remote: %d\n", conn.LocalAddr().String(), resp.GetReqId)
+						//t.Logf("server %s write to remote: %d\n", conn.LocalAddr().String(), resp.GetReqId)
 						respdata := iobufresp.Bytes()
 						conn.Write(respdata)
 					}
