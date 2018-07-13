@@ -21,9 +21,12 @@ import (
 	"io"
 
 	"github.com/alipay/sofamosn/pkg/types"
+	"net"
+	"time"
 )
 
 const MinRead = 1 << 10
+const MaxRead = 1 << 17
 const ResetOffMark = -1
 
 var (
@@ -59,29 +62,74 @@ func (b *IoBuffer) Read(p []byte) (n int, err error) {
 }
 
 func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
+	var conn net.Conn
+	var loop, ok, first = true, true, true
+
+	if conn, ok = r.(net.Conn); !ok {
+		loop = false
+	}
+
 	if b.off >= len(b.buf) {
 		b.Reset()
 	}
 
-	if free := cap(b.buf) - len(b.buf); free < MinRead {
-		// not enough space at end
-		newBuf := b.buf
-		if b.off+free < MinRead {
-			// not enough space using beginning of buffer;
-			// double buffer capacity
-			newBuf = makeSlice(2*cap(b.buf) + MinRead)
+	for {
+		if free := cap(b.buf) - len(b.buf); free < MinRead {
+			// not enough space at end
+			newBuf := b.buf
+			if b.off+free < MinRead {
+				// not enough space using beginning of buffer;
+				// double buffer capacity
+				newBuf = makeSlice(2*cap(b.buf) + MinRead)
+			}
+			copy(newBuf, b.buf[b.off:])
+			b.buf = newBuf[:len(b.buf)-b.off]
+			b.off = 0
 		}
-		copy(newBuf, b.buf[b.off:])
-		b.buf = newBuf[:len(b.buf)-b.off]
-		b.off = 0
+
+		l := cap(b.buf) - len(b.buf)
+
+		if !first {
+			conn.SetReadDeadline(time.Now().Add(1000 * time.Millisecond))
+		}
+
+		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
+
+		if !first {
+			conn.SetReadDeadline(time.Time{})
+		}
+
+		if e != nil {
+			if !first {
+				if te, ok := err.(net.Error); ok && te.Timeout() {
+					return n, nil
+				} else {
+					return n, e
+				}
+			} else {
+				return n, e
+			}
+		}
+
+		b.buf = b.buf[0 : len(b.buf)+m]
+		n += int64(m)
+
+		if l != m {
+			loop = false
+		}
+
+		if n > MaxRead {
+			loop = false
+		}
+
+		if !loop {
+			break;
+		}
+
+		first = false
 	}
 
-	m, err := r.Read(b.buf[len(b.buf):cap(b.buf)])
-
-	b.buf = b.buf[0 : len(b.buf)+m]
-	n += int64(m)
-
-	return
+	return n, nil
 }
 
 func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
