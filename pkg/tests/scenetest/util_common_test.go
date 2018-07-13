@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package tests
 
 import (
@@ -11,7 +27,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/orcaman/concurrent-map"
 	"github.com/alipay/sofamosn/pkg/log"
 	"github.com/alipay/sofamosn/pkg/network"
 	"github.com/alipay/sofamosn/pkg/network/buffer"
@@ -21,6 +36,7 @@ import (
 	"github.com/alipay/sofamosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofamosn/pkg/stream"
 	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/orcaman/concurrent-map"
 	"golang.org/x/net/http2"
 )
 
@@ -185,7 +201,7 @@ func (c *RpcClient) OnData(buffer types.IoBuffer) types.FilterStatus {
 func (c *RpcClient) OnEvent(event types.ConnectionEvent) {}
 
 func (c *RpcClient) Connect() error {
-	stopChan := make(chan bool)
+	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", c.addr)
 	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
 	c.conn = cc
@@ -222,7 +238,7 @@ type BoltV1Client struct {
 }
 
 func (c *BoltV1Client) Connect(addr string) error {
-	stopChan := make(chan bool)
+	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
 	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
 	c.conn = cc
