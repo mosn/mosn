@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/alipay/sofamosn/pkg/api/v2"
-
 	"github.com/alipay/sofamosn/pkg/log"
 	"github.com/alipay/sofamosn/pkg/tls"
 	"github.com/alipay/sofamosn/pkg/types"
@@ -91,11 +90,19 @@ func (l *listener) Start(lctx context.Context) {
 					l.logger.Infof("listener %s stop accepting connections by deadline", l.name)
 					return
 				} else if ope, ok := err.(*net.OpError); ok {
+					// not timeout error and not temporary, which means the error is non-recoverable
+					// stop accepting loop and log the event
 					if !(ope.Timeout() && ope.Temporary()) {
-						l.logger.Errorf("not temp-timeout error:%s", err.Error())
+						// accept error raised by sockets closing
+						if ope.Op == "accept" {
+							l.logger.Infof("listener %s %s closed", l.name, l.Addr())
+						} else {
+							l.logger.Errorf("listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
+						}
+						return
 					}
 				} else {
-					l.logger.Errorf("unknown error while listener accepting:%s", err.Error())
+					l.logger.Errorf("listener %s occurs unknown error while accepting:%s", l.name, err.Error())
 				}
 			}
 		}
