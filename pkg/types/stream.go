@@ -72,11 +72,11 @@ import "context"
 //   |								   |*					   |1				 				|1					|
 // 	 |						StreamConnectionEventListener	   |				 				|					|
 //	 |													       |*				 				|*					|
-//	 |										 	 		StreamReceiverFilter	   			StreamReceiverFilter	|
+//	 |										 	 		StreamSenderFilter	   			StreamReceiverFilter	|
 //	 |													   	   |1								|1					|
 //	 |													   	   |								|					|
 // 	 |													       |1								|1					|
-//	 |										 		StreamReceiverFilterCallbacks     StreamReceiverFilterCallbacks	|
+//	 |										 		StreamSenderFilterCallbacks     StreamReceiverFilterCallbacks	|
 //   |																												|
 //    --------------------------------------------------------------------------------------------------------------
 //
