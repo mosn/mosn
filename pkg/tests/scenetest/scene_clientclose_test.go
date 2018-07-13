@@ -16,13 +16,14 @@ import (
 //one client close should not effect others
 func TestClientClose(t *testing.T) {
 	sofaAddr := "127.0.0.1:8080"
-	//meshAddr := "127.0.0.1:2045"
-	meshAddr := "127.0.0.1:2046"
+	meshAddr := "127.0.0.1:2045"
 	server := NewUpstreamServer(t, sofaAddr, ServeBoltV1)
 	server.GoServe()
 	defer server.Close()
 	mesh_config := CreateSimpleMeshConfig(meshAddr, []string{sofaAddr}, protocol.SofaRpc, protocol.SofaRpc)
-	go mosn.Start(mesh_config, "", "")
+	mesh := mosn.NewMosn(mesh_config)
+	go mesh.Start()
+	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start
 	var stopChans []chan struct{}
 	//send request with cancel

@@ -15,14 +15,15 @@ import (
 )
 
 func TestHttp2(t *testing.T) {
-	//	meshAddr := "127.0.0.1:2045"
-	meshAddr := "127.0.0.1:2047"
+	meshAddr := "127.0.0.1:2045"
 	http2Addr := "127.0.0.1:8080"
 	server := NewUpstreamHttp2(t, http2Addr)
 	server.GoServe()
 	defer server.Close()
 	mesh_config := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.Http2, protocol.Http2)
-	go mosn.Start(mesh_config, "", "")
+	mesh := mosn.NewMosn(mesh_config)
+	go mesh.Start()
+	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start
 	//Client Run
 	tr := &http2.Transport{

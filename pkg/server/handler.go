@@ -19,17 +19,18 @@ package server
 import (
 	"container/list"
 	"context"
-	"github.com/alipay/sofamosn/pkg/api/v2"
-	"github.com/alipay/sofamosn/pkg/filter/accept/original_dst"
-	"github.com/alipay/sofamosn/pkg/log"
-	"github.com/alipay/sofamosn/pkg/network"
-	"github.com/alipay/sofamosn/pkg/types"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/filter/accept/original_dst"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/network"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 // ConnectionHandler
@@ -80,7 +81,7 @@ func (ch *connHandler) NumConnections() uint64 {
 func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
 	//TODO: connection level stop-chan usage confirm
-	listenerStopChan := make(chan bool)
+	listenerStopChan := make(chan struct{})
 
 	//use default listener path
 	if lc.LogPath == "" {
@@ -212,7 +213,7 @@ type activeListener struct {
 	conns                  *list.List
 	connsMux               sync.RWMutex
 	handler                *connHandler
-	stopChan               chan bool
+	stopChan               chan struct{}
 	stats                  *ListenerStats
 	logger                 log.Logger
 	accessLogs             []types.AccessLog
@@ -220,17 +221,17 @@ type activeListener struct {
 
 func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog,
 	networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
-	handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
+	handler *connHandler, stopChan chan struct{}, disableConnIo bool) *activeListener {
 	al := &activeListener{
 		disableConnIo:          disableConnIo,
 		listener:               listener,
 		networkFiltersFactory:  networkFiltersFactory,
 		streamFiltersFactories: streamFiltersFactories,
-		conns:                  list.New(),
-		handler:                handler,
-		stopChan:               stopChan,
-		logger:                 logger,
-		accessLogs:             accessLoggers,
+		conns:      list.New(),
+		handler:    handler,
+		stopChan:   stopChan,
+		logger:     logger,
+		accessLogs: accessLoggers,
 	}
 
 	listenPort := 0

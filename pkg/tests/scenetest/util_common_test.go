@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/orcaman/concurrent-map"
 	"github.com/alipay/sofamosn/pkg/log"
 	"github.com/alipay/sofamosn/pkg/network"
 	"github.com/alipay/sofamosn/pkg/network/buffer"
@@ -21,6 +20,7 @@ import (
 	"github.com/alipay/sofamosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofamosn/pkg/stream"
 	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/orcaman/concurrent-map"
 	"golang.org/x/net/http2"
 )
 
@@ -185,7 +185,7 @@ func (c *RpcClient) OnData(buffer types.IoBuffer) types.FilterStatus {
 func (c *RpcClient) OnEvent(event types.ConnectionEvent) {}
 
 func (c *RpcClient) Connect() error {
-	stopChan := make(chan bool)
+	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", c.addr)
 	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
 	c.conn = cc
@@ -222,7 +222,7 @@ type BoltV1Client struct {
 }
 
 func (c *BoltV1Client) Connect(addr string) error {
-	stopChan := make(chan bool)
+	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
 	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
 	c.conn = cc

@@ -4,21 +4,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofamosn/pkg/types"
 	"github.com/alipay/sofamosn/pkg/mosn"
 	"github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofamosn/pkg/types"
 	"github.com/orcaman/concurrent-map"
 )
 
 func TestSofaRpc(t *testing.T) {
 	sofaAddr := "127.0.0.1:8080"
-	//meshAddr := "127.0.0.1:2045"
-	meshAddr := "127.0.0.1:2050"
+	meshAddr := "127.0.0.1:2045"
 	server := NewUpstreamServer(t, sofaAddr, ServeBoltV1)
 	server.GoServe()
 	defer server.Close()
 	mesh_config := CreateSimpleMeshConfig(meshAddr, []string{sofaAddr}, protocol.SofaRpc, protocol.SofaRpc)
-	go mosn.Start(mesh_config, "", "")
+	mesh := mosn.NewMosn(mesh_config)
+	go mesh.Start()
+	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start
 	//client
 	client := &BoltV1Client{

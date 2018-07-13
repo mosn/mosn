@@ -18,7 +18,9 @@ func TestTr2Http2(t *testing.T) {
 	server.GoServe()
 	defer server.Close()
 	mesh_config := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.SofaRpc, protocol.Http2)
-	go mosn.Start(mesh_config, "", "")
+	mesh := mosn.NewMosn(mesh_config)
+	go mesh.Start()
+	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start
 	client := &RpcClient{
 		t:               t,
