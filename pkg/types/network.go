@@ -89,7 +89,7 @@ type Listener interface {
 	Start(lctx context.Context)
 
 	// Stop stops listener
-	// Accepted connections will not be closed
+	// Accepted connections and listening sockets will not be closed
 	Stop()
 
 	// Listener tag,
@@ -427,7 +427,8 @@ type ConnectionHandler interface {
 	StopListener(listenerTag uint64, lctx context.Context)
 
 	// Stop all listener
-	StopListeners(lctx context.Context)
+	// + close : indicates whether the listening sockets will be closed
+	StopListeners(lctx context.Context, close bool)
 
 	// List all listeners' fd
 	ListListenersFD(lctx context.Context) []uintptr

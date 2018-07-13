@@ -139,7 +139,7 @@ func (src *server) Restart() {
 
 func (srv *server) Close() {
 	// stop listener and connections
-	srv.handler.StopListeners(nil)
+	srv.handler.StopListeners(nil, true)
 
 	srv.stopChan <- true
 }
@@ -152,7 +152,7 @@ func Stop() {
 
 func StopAccept() {
 	for _, server := range servers {
-		server.handler.StopListeners(nil)
+		server.handler.StopListeners(nil, false)
 	}
 }
 

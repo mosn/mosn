@@ -26,20 +26,21 @@ import (
 
 	"github.com/alipay/sofamosn/pkg/api/v2"
 	"github.com/alipay/sofamosn/pkg/config"
+	"github.com/alipay/sofamosn/pkg/filter"
 	"github.com/alipay/sofamosn/pkg/log"
-	"github.com/alipay/sofamosn/pkg/xds"
-
 	"github.com/alipay/sofamosn/pkg/server"
 	"github.com/alipay/sofamosn/pkg/server/config/proxy"
 	"github.com/alipay/sofamosn/pkg/types"
 	"github.com/alipay/sofamosn/pkg/upstream/cluster"
-
-	"github.com/alipay/sofamosn/pkg/filter"
+	"github.com/alipay/sofamosn/pkg/xds"
 )
 
-func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
-	log.StartLogger.Infof("start by config : %+v", c)
+type Mosn struct {
+	servers []server.Server
+}
 
+func NewMosn(c *config.MOSNConfig) *Mosn {
+	m := &Mosn{}
 	mode := c.Mode()
 	if mode == config.Xds {
 		servers := make([]config.ServerConfig, 0, 1)
@@ -63,22 +64,10 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	} else if srvNum > 1 {
 		log.StartLogger.Fatalln("multiple server not supported yet, got ", srvNum)
 	}
-
-	stopChans := make([]chan bool, srvNum)
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		// pprof server
-		http.ListenAndServe("0.0.0.0:9090", nil)
-	}()
-
 	//get inherit fds
 	inheritListeners := getInheritListeners()
 
-	for i, serverConfig := range c.Servers {
-		stopChan := stopChans[i]
+	for _, serverConfig := range c.Servers {
 
 		//1. server config prepare
 		//server config
@@ -131,16 +120,8 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 				srv.AddListener(lc, nfcf, sfcf)
 			}
 		}
-
-		go func() {
-			srv.Start()
-			select {
-			case <-stopChan:
-				srv.Close()
-			}
-		}()
+		m.servers = append(m.servers, srv)
 	}
-
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 
@@ -151,7 +132,33 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 			ln.InheritListener.Close()
 		}
 	}
+	return m
+}
 
+func (m *Mosn) Start() {
+	for _, srv := range m.servers {
+		go srv.Start()
+	}
+}
+func (m *Mosn) Close() {
+	for _, srv := range m.servers {
+		srv.Close()
+	}
+}
+
+func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
+	log.StartLogger.Infof("start by config : %+v", c)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		// pprof server
+		http.ListenAndServe("0.0.0.0:9090", nil)
+	}()
+
+	Mosn := NewMosn(c)
+	Mosn.Start()
 	////get xds config
 	xdsClient := xds.XdsClient{}
 	xdsClient.Start(c, serviceCluster, serviceNode)

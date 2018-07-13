@@ -78,7 +78,7 @@ func (ch *connHandler) NumConnections() uint64 {
 }
 
 func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory)types.ListenerEventListener {
+	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
 	//TODO: connection level stop-chan usage confirm
 	listenerStopChan := make(chan bool)
 
@@ -115,7 +115,7 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 	l.SetListenerCallbacks(al)
 
 	ch.listeners = append(ch.listeners, al)
-	
+
 	return al
 }
 
@@ -162,10 +162,14 @@ func (ch *connHandler) StopListener(listenerTag uint64, lctx context.Context) {
 	}
 }
 
-func (ch *connHandler) StopListeners(lctx context.Context) {
+func (ch *connHandler) StopListeners(lctx context.Context, close bool) {
 	for _, l := range ch.listeners {
 		// stop goruntine
-		l.listener.Stop()
+		if close {
+			l.listener.Close(lctx)
+		} else {
+			l.listener.Stop()
+		}
 	}
 }
 
@@ -222,11 +226,11 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 		listener:               listener,
 		networkFiltersFactory:  networkFiltersFactory,
 		streamFiltersFactories: streamFiltersFactories,
-		conns:      list.New(),
-		handler:    handler,
-		stopChan:   stopChan,
-		logger:     logger,
-		accessLogs: accessLoggers,
+		conns:                  list.New(),
+		handler:                handler,
+		stopChan:               stopChan,
+		logger:                 logger,
+		accessLogs:             accessLoggers,
 	}
 
 	listenPort := 0
