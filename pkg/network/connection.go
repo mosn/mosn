@@ -233,11 +233,6 @@ func (c *connection) doRead() (err error) {
 
 	c.onRead(bytesRead)
 
-	if c.readBuffer.Br.Len() == 0 {
-		c.readerBufferPool.Give(c.readBuffer)
-		c.readBuffer = nil
-	}
-
 	return
 }
 
