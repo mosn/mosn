@@ -26,7 +26,7 @@ import (
 )
 
 const MinRead = 1 << 10
-const MaxRead = 1 << 18
+const MaxRead = 1 << 17
 const ResetOffMark = -1
 
 var (

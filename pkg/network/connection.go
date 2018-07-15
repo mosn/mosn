@@ -34,12 +34,12 @@ import (
 
 const (
 	ConnectionCloseDebugMsg = "Close connection %d, event %s, type %s, data read %d, data write %d"
-	DefaultBufferCapacity   = 1 << 12
+	DefaultBufferCapacity   = 1 << 17
 )
 
 var idCounter uint64
 var readerBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
-var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity * 2)
+var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
 
 type connection struct {
 	id         uint64
