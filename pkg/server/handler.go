@@ -19,17 +19,18 @@ package server
 import (
 	"container/list"
 	"context"
-	"github.com/alipay/sofamosn/pkg/api/v2"
-	"github.com/alipay/sofamosn/pkg/filter/accept/original_dst"
-	"github.com/alipay/sofamosn/pkg/log"
-	"github.com/alipay/sofamosn/pkg/network"
-	"github.com/alipay/sofamosn/pkg/types"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofamosn/pkg/filter/accept/original_dst"
+	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofamosn/pkg/network"
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 // ConnectionHandler
@@ -78,9 +79,9 @@ func (ch *connHandler) NumConnections() uint64 {
 }
 
 func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory)types.ListenerEventListener {
+	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
 	//TODO: connection level stop-chan usage confirm
-	listenerStopChan := make(chan bool)
+	listenerStopChan := make(chan struct{})
 
 	//use default listener path
 	if lc.LogPath == "" {
@@ -115,7 +116,7 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 	l.SetListenerCallbacks(al)
 
 	ch.listeners = append(ch.listeners, al)
-	
+
 	return al
 }
 
@@ -162,10 +163,14 @@ func (ch *connHandler) StopListener(listenerTag uint64, lctx context.Context) {
 	}
 }
 
-func (ch *connHandler) StopListeners(lctx context.Context) {
+func (ch *connHandler) StopListeners(lctx context.Context, close bool) {
 	for _, l := range ch.listeners {
 		// stop goruntine
-		l.listener.Stop()
+		if close {
+			l.listener.Close(lctx)
+		} else {
+			l.listener.Stop()
+		}
 	}
 }
 
@@ -208,7 +213,7 @@ type activeListener struct {
 	conns                  *list.List
 	connsMux               sync.RWMutex
 	handler                *connHandler
-	stopChan               chan bool
+	stopChan               chan struct{}
 	stats                  *ListenerStats
 	logger                 log.Logger
 	accessLogs             []types.AccessLog
@@ -216,7 +221,7 @@ type activeListener struct {
 
 func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog,
 	networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
-	handler *connHandler, stopChan chan bool, disableConnIo bool) *activeListener {
+	handler *connHandler, stopChan chan struct{}, disableConnIo bool) *activeListener {
 	al := &activeListener{
 		disableConnIo:          disableConnIo,
 		listener:               listener,

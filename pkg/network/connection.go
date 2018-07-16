@@ -26,20 +26,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rcrowley/go-metrics"
 	"github.com/alipay/sofamosn/pkg/log"
 	"github.com/alipay/sofamosn/pkg/network/buffer"
 	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/rcrowley/go-metrics"
 )
 
 const (
 	ConnectionCloseDebugMsg = "Close connection %d, event %s, type %s, data read %d, data write %d"
-	DefaultBufferCapacity   = 1 << 12
+	DefaultBufferCapacity   = 1 << 17
 )
 
 var idCounter uint64
 var readerBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
-var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity * 2)
+var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
 
 type connection struct {
 	id         uint64
@@ -62,7 +62,7 @@ type connection struct {
 	bytesSendCallbacks   []func(bytesSent uint64)
 	filterManager        types.FilterManager
 
-	stopChan            chan bool
+	stopChan            chan struct{}
 	curWriteBufferData  []types.IoBuffer
 	readBuffer          *buffer.IoBufferPoolEntry
 	writeBuffer         *buffer.IoBufferPoolEntry
@@ -83,7 +83,7 @@ type connection struct {
 	logger log.Logger
 }
 
-func NewServerConnection(rawc net.Conn, stopChan chan bool, logger log.Logger) types.Connection {
+func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logger) types.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
@@ -233,11 +233,6 @@ func (c *connection) doRead() (err error) {
 
 	c.onRead(bytesRead)
 
-	if c.readBuffer.Br.Len() == 0 {
-		c.readerBufferPool.Give(c.readBuffer)
-		c.readBuffer = nil
-	}
-
 	return
 }
 
@@ -290,7 +285,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 	}
 
-	if len(c.writeBufferChan) ==0 {
+	if len(c.writeBufferChan) == 0 {
 		c.writeBufferChan <- true
 	}
 
@@ -606,7 +601,7 @@ type clientConnection struct {
 	connectOnce sync.Once
 }
 
-func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan bool, logger log.Logger) types.ClientConnection {
+func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}, logger log.Logger) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{

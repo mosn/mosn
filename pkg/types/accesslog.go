@@ -18,7 +18,7 @@ package types
 
 //    The bunch of interfaces are used to print the access log in format designed by users.
 //    Access log format consists of three parts, which are "RequestInfoFormat", "RequestHeaderFormat"
-//    and "ResponseHeaderFormat", also you can get details by reading "access-log-details.md".
+//    and "ResponseHeaderFormat", also you can get details by reading "AccessLogDetails.md".
 
 // access log
 type AccessLog interface {
@@ -78,7 +78,7 @@ const (
 )
 
 const (
-	// Default Access Log Format, for more details please read "access-log-details.md"
+	// Default Access Log Format, for more details please read "AccessLogDetails.md"
 	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
 		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
 		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"

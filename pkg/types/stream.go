@@ -47,7 +47,7 @@ import "context"
 // 		- Decoder
 //			- StreamReceiver
 //
-//	 In order to meet the expansion requirements in the stream processing, StreamEncoderFilters and StreamDecoderFilters are introduced as a filter chain in encode/decode process.
+//	 In order to meet the expansion requirements in the stream processing, StreamSenderFilter and StreamReceiverFilter are introduced as a filter chain in encode/decode process.
 //   Filter's method will be called on corresponding stream process stage and returns a status(Continue/Stop) to effect the control flow.
 //
 //   From an abstract perspective, stream represents a virtual process on underlying connection. To make stream interactive with connection, some intermediate object can be used.
@@ -72,11 +72,11 @@ import "context"
 //   |								   |*					   |1				 				|1					|
 // 	 |						StreamConnectionEventListener	   |				 				|					|
 //	 |													       |*				 				|*					|
-//	 |										 	 		StreamReceiverFilter	   			StreamReceiverFilter	|
+//	 |										 	 		StreamSenderFilter	   			StreamReceiverFilter	|
 //	 |													   	   |1								|1					|
 //	 |													   	   |								|					|
 // 	 |													       |1								|1					|
-//	 |										 		StreamReceiverFilterCallbacks     StreamReceiverFilterCallbacks	|
+//	 |										 		StreamSenderFilterCallbacks     StreamReceiverFilterCallbacks	|
 //   |																												|
 //    --------------------------------------------------------------------------------------------------------------
 //
@@ -153,7 +153,8 @@ type StreamReceiver interface {
 // A connection runs multiple streams
 type StreamConnection interface {
 	// Dispatch incoming data
-	// On data read scenario, it connects connection and stream by dispatching read buffer to stream, stream uses protocol decode data, and popup event to controller
+	// On data read scenario, it connects connection and stream by dispatching read buffer to stream,
+	// stream uses protocol decode data, and popup event to controller
 	Dispatch(buffer IoBuffer)
 
 	// Protocol on the connection

@@ -23,10 +23,10 @@ import (
 	_ "sync"
 	"time"
 
-	"github.com/orcaman/concurrent-map"
 	"github.com/alipay/sofamosn/pkg/api/v2"
 	"github.com/alipay/sofamosn/pkg/log"
 	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/orcaman/concurrent-map"
 )
 
 func init() {
@@ -51,7 +51,7 @@ var servers []*server
 
 type server struct {
 	logger        log.Logger
-	stopChan      chan bool
+	stopChan      chan struct{}
 	handler       types.ConnectionHandler
 	ListenerInMap cmap.ConcurrentMap
 }
@@ -78,7 +78,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 
 	server := &server{
 		logger:        log.DefaultLogger,
-		stopChan:      make(chan bool),
+		stopChan:      make(chan struct{}),
 		handler:       NewHandler(cmFilter, clMng, log.DefaultLogger),
 		ListenerInMap: cmap.New(),
 	}
@@ -105,8 +105,8 @@ func (srv *server) AddListenerAndStart(lc *v2.ListenerConfig, networkFiltersFact
 	} else {
 		srv.ListenerInMap.Set(lc.Name, lc)
 		al := srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
-		
-		if activeListener,ok := al.(*activeListener); ok{
+
+		if activeListener, ok := al.(*activeListener); ok {
 			go activeListener.listener.Start(nil)
 		}
 	}
@@ -125,10 +125,8 @@ func (srv *server) Start() {
 
 	for {
 		select {
-		case stop := <-srv.stopChan:
-			if stop {
-				break
-			}
+		case <-srv.stopChan:
+			return
 		}
 	}
 }
@@ -139,9 +137,9 @@ func (src *server) Restart() {
 
 func (srv *server) Close() {
 	// stop listener and connections
-	srv.handler.StopListeners(nil)
+	srv.handler.StopListeners(nil, true)
 
-	srv.stopChan <- true
+	close(srv.stopChan)
 }
 
 func Stop() {
@@ -152,7 +150,7 @@ func Stop() {
 
 func StopAccept() {
 	for _, server := range servers {
-		server.handler.StopListeners(nil)
+		server.handler.StopListeners(nil, false)
 	}
 }
 
