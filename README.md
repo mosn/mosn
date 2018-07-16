@@ -46,11 +46,11 @@ MOSN是一款基于 Golang 实现的Service Mesh数据平面代理，旨在提�
   * [配置SOFARPC协议Mesher](samples/sofarpc-sample)
 * 基于Golang 1.9.2研发，使用dep进行依赖管理
 
-## 社区
-* [Issues](https://github.com/alipay/sofa-mosn/issues)
-
 ## 相关文档
-* [Issues](http://www.sofastack.tech/)
+* [Docs](http://www.sofastack.tech/sofa-mesh/docs/Home)
+
+## ISSUES
+* [Issues](https://github.com/alipay/sofa-mosn/issues)
 
 ## 贡献
 + [代码贡献](./CONTRIBUTING.md) 
@@ -58,8 +58,8 @@ MOSN是一款基于 Golang 实现的Service Mesh数据平面代理，旨在提�
    + 核心路由功能点补全
    + Outlier detection
    + Tracing支持
+   + HTTP/1.x, HTTP/2.0性能优化
    + 流控
-   + 性能
    
 ## 致谢
 感谢Google，Lyft创建了ServiceMesh体系，并开源了优秀的项目，使MOSN有了非常好的参考，使我们能快速落地自己的想法
