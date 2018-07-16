@@ -2,7 +2,7 @@
 
 在 MOSN 中，通过自底向上的 NET/IO, Protocol、Stream、Proxy 四层来构建高性能的转发系统，其中
 
-+ Net/IO 层是用来支撑上层功能的核心层，由 `Listener` 和 `Connection` 组成。其中 istener 对端口进行监听，接收新连接。
++ Net/IO 层是用来支撑上层功能的核心层，由 `Listener` 和 `Connection` 组成。其中 Listener 对端口进行监听，接收新连接。
   Connection 用来管理 listener 上 accept 的 tcp 连接，包括从 tcp conn 上读写数据等。
 
     + 如下为Listener和Connection的关系图:
@@ -17,7 +17,7 @@
             的函数会被调用，需要注意的是，这里的事件的执行并不会影响主流程
         + Filter
             + ListenerFilter 其中的 filter 用于定义一些钩子函数，在对应的位置触发相应的回调来与核心模型进行交互，
-            它通过调用的状态码来影响主流程的执行，当前支持两个状态码，分别是 `Continue`  继续执行 以及`StopIteration` 停止当前的执行逻
+            它通过调用的状态码来影响主流程的执行，当前支持两个状态码，分别是 `Continue`  继续执行 以及`StopIteration` 停止当前的执行逻辑
       
       + Connection:
         + Event listener

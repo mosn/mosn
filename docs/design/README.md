@@ -26,7 +26,7 @@ DUBBO, HSF 等
 
 + Starter, Server, Listener, Config, XDS 为 MOSN 启动模块，用于完成 MOSN 的运行
 + 最左侧的 Hardware, NET/IO, Protocol, Stream, Proxy 为 [MOSN 架构](architecture.md) 中介绍的 MOSN 核心模块，
-  用来完成 Serive MESH 的核心功能
+  用来完成 Service MESH 的核心功能
 + Router 为 MOSN 的核心路由模块，支持的功能包括：
     + VirtualHost 形式的路由表
     + 基于 subset 的子集群路由匹配
