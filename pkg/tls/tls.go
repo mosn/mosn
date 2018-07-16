@@ -337,11 +337,7 @@ find:
 }
 
 func (cm *contextManager) Enabled() bool {
-	if cm.defaultContext() != nil {
-		return true
-	} else {
-		return false
-	}
+	return cm.defaultContext() != nil
 }
 
 func (cm *contextManager) Conn(c net.Conn) net.Conn {
