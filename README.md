@@ -2,7 +2,9 @@
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-green.svg)
 
-MOSN是一款基于 Golang 实现的Service Mesh数据平面代理，旨在提供分布式，模块化，可观察，智能化的代理能力，由蚂蚁金服公司开源贡献。
+MOSN是一款采用 Golang 开发的Service Mesh数据平面代理，功能和定位类似Envoy，旨在提供分布式，模块化，可观察，智能化的代理能力。MOSN支持Envoy和Istio的API，可以和Istio集成。Sofa Mesh中，我们使用MOSN替代Envoy。
+
+初始版本由蚂蚁金服技术团队开源贡献，期待社区一起来参与MOSN项目的后续开发，共建一个开源精品项目。
 
 ## 核心能力
 
@@ -15,6 +17,8 @@ MOSN是一款基于 Golang 实现的Service Mesh数据平面代理，旨在提�
 + 多协议
     + 支持HTTP/1.1，HTTP/2
     + 支持SOFARPC
+    + 支持Dubbo协议（开发中）
+    + 支持HSF协议（开发中）
 + 核心路由
     + 支持virtual host路由
     + 支持headers/url/prefix路由
@@ -40,22 +44,24 @@ MOSN是一款基于 Golang 实现的Service Mesh数据平面代理，旨在提�
     + 支持自定义私有协议
     + 支持在TCP IO层，协议层面加入自定义扩展
 
+## 架构设计
+* [参考这里](docs/design/README.md)
+
 ## 快速开始
-* [样例工程](mosn-samples)
-  * [配置标准Http协议Mesher](samples/http-sample)
-  * [配置SOFARPC协议Mesher](samples/sofarpc-sample)
+* [参考这里](docs/develop/quickstart.md) 
 * 基于Golang 1.9.2研发，使用dep进行依赖管理
+
+## 文档
+* [Docs](http://www.sofastack.tech/sofa-mesh/docs/Home)
 
 ## 社区
 * [Issues](https://github.com/alipay/mosn/issues)
-
-## 相关文档
-* [Issues](http://www.sofastack.tech/)
 
 ## 贡献
 + [代码贡献](./CONTRIBUTING.md) 
 + MOSN仍处在初级阶段，有很多能力需要补全，很多bug需要修复，欢迎所有人提交代码。我们欢迎您参与但不限于如下方面：
    + 核心路由功能点补全
+   + http/http2 性能优化
    + Outlier detection
    + Tracing支持
    + 流控
