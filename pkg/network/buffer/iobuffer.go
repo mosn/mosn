@@ -19,10 +19,10 @@ package buffer
 import (
 	"errors"
 	"io"
-
-	"github.com/alipay/sofamosn/pkg/types"
 	"net"
 	"time"
+
+	"github.com/alipay/sofamosn/pkg/types"
 )
 
 const MinRead = 1 << 10
@@ -73,6 +73,13 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 		b.Reset()
 	}
 
+	if b.off > 0 && len(b.buf)-b.off < 4*MinRead {
+		newBuf := b.buf
+		copy(newBuf, b.buf[b.off:])
+		b.buf = newBuf[:len(b.buf)-b.off]
+		b.off = 0
+	}
+
 	for {
 		if free := cap(b.buf) - len(b.buf); free < MinRead {
 			// not enough space at end
@@ -90,7 +97,7 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 		l := cap(b.buf) - len(b.buf)
 
 		if !first {
-			conn.SetReadDeadline(time.Now().Add(1000 * time.Millisecond))
+			conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
 		}
 
 		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
@@ -111,7 +118,7 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 			}
 		}
 
-		b.buf = b.buf[0 : len(b.buf)+m]
+		b.buf = b.buf[0: len(b.buf)+m]
 		n += int64(m)
 
 		if l != m {
@@ -123,7 +130,7 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 		}
 
 		if !loop {
-			break;
+			break
 		}
 
 		first = false
@@ -153,7 +160,7 @@ func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 
 		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
 
-		b.buf = b.buf[0 : len(b.buf)+m]
+		b.buf = b.buf[0: len(b.buf)+m]
 		n += int64(m)
 
 		if e == io.EOF {
@@ -276,7 +283,7 @@ func (b *IoBuffer) Append(data []byte) error {
 	}
 
 	m := copy(b.buf[len(b.buf):len(b.buf)+dataLen], data)
-	b.buf = b.buf[0 : len(b.buf)+m]
+	b.buf = b.buf[0: len(b.buf)+m]
 
 	return nil
 }
@@ -292,7 +299,7 @@ func (b *IoBuffer) Peek(n int) []byte {
 		return nil
 	}
 
-	return b.buf[b.off : b.off+n]
+	return b.buf[b.off: b.off+n]
 }
 
 func (b *IoBuffer) Mark() {
