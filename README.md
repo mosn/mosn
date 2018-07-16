@@ -64,8 +64,8 @@ MOSN是一款采用 Golang 开发的Service Mesh数据平面代理，功能和�
    + http/http2 性能优化
    + Outlier detection
    + Tracing支持
+   + HTTP/1.x, HTTP/2.0性能优化
    + 流控
-   + 性能
    
 ## 致谢
 感谢Google，Lyft创建了ServiceMesh体系，并开源了优秀的项目，使MOSN有了非常好的参考，使我们能快速落地自己的想法
