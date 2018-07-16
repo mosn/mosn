@@ -15,7 +15,7 @@ MOSN 基于 Golang 1.9.2 研发，使用dep进行依赖管理
 MOSN 项目的代码托管在 [github](https://github.com/alipay/sofa-mosn)，clone 时请注意需要放在`GOPATH`下，具体如下：
 
 ```bash
-# 进入GOPATH下的scr目录
+# 进入GOPATH下的src目录
 cd $GOPATH/src
 # 创建 github.com/alipay 目录
 mkdir github.com
