@@ -30,10 +30,10 @@ type FaultInjectFilterConfigFactory struct {
 	Proxy       *v2.TcpProxy
 }
 
-func (fifcf *FaultInjectFilterConfigFactory) CreateFilterFactory(clusterManager types.ClusterManager,
-	context context.Context) types.NetworkFilterFactoryCb {
+func (fifcf *FaultInjectFilterConfigFactory) CreateFilterFactory(context context.Context,
+	clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
 		manager.AddReadFilter(faultinject.NewFaultInjecter(fifcf.FaultInject))
-		manager.AddReadFilter(tcpproxy.NewProxy(fifcf.Proxy, clusterManager, context))
+		manager.AddReadFilter(tcpproxy.NewProxy(context,fifcf.Proxy, clusterManager))
 	}
 }
