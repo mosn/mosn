@@ -44,13 +44,13 @@ type ClusterManager interface {
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
-	HttpConnPoolForCluster(cluster string, protocol Protocol, balancerContext LoadBalancerContext) ConnectionPool
+	HttpConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
 
-	XprotocolConnPoolForCluster(cluster string, protocol Protocol,balancerContext LoadBalancerContext) ConnectionPool
+	XprotocolConnPoolForCluster(balancerContext LoadBalancerContext,cluster string, protocol Protocol) ConnectionPool
 
-	TcpConnForCluster(cluster string,balancerContext LoadBalancerContext) CreateConnectionData
+	TcpConnForCluster(balancerContext LoadBalancerContext, cluster string) CreateConnectionData
 
-	SofaRpcConnPoolForCluster(cluster string, balancerContext LoadBalancerContext) ConnectionPool
+	SofaRpcConnPoolForCluster(balancerContext LoadBalancerContext, cluster string) ConnectionPool
 
 	RemovePrimaryCluster(cluster string) bool
 

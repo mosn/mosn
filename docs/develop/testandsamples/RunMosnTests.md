@@ -2,7 +2,7 @@
 
 + 目录 `mosn/pkg/tests/` 中的是将 MOSN 作为转发平面的一些示例程序，每个示例程序均集成了 Client、MOSN、Server
 + 其中，转发拓扑为：Client <---下游协议---> MOSN <---上游协议---> Server
-+ 当前，我们支持的上下游协议为 http1.x、http2.0、SOFA 协议族（bolt v1/v2、TR）等
++ 当前，我们支持的上下游协议为 http1.x、http2.0、SOFA 协议族（bolt v1/v2）等
 + 以 bolt2http2 为例，此示例表示，下游协议为bolt，上游协议为http2，其他类似
 
 ## 如何运行
