@@ -120,7 +120,7 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 	return al
 }
 
-func (ch *connHandler) StartListener(listenerTag uint64, lctx context.Context) {
+func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
 			// TODO: use goroutine pool
