@@ -123,7 +123,7 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 func (ch *connHandler) StartListener(listenerTag uint64, lctx context.Context) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
-			// TODO: use goruntine pool
+			// TODO: use goroutine pool
 			go l.listener.Start(nil)
 		}
 	}
@@ -131,7 +131,7 @@ func (ch *connHandler) StartListener(listenerTag uint64, lctx context.Context) {
 
 func (ch *connHandler) StartListeners(lctx context.Context) {
 	for _, l := range ch.listeners {
-		// start goruntine
+		// start goroutine
 		go l.listener.Start(nil)
 	}
 }
@@ -157,7 +157,7 @@ func (ch *connHandler) RemoveListeners(listenerTag uint64) {
 func (ch *connHandler) StopListener(listenerTag uint64, lctx context.Context) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
-			// stop goruntine
+			// stop goroutine
 			l.listener.Stop()
 		}
 	}
@@ -165,7 +165,7 @@ func (ch *connHandler) StopListener(listenerTag uint64, lctx context.Context) {
 
 func (ch *connHandler) StopListeners(lctx context.Context, close bool) {
 	for _, l := range ch.listeners {
-		// stop goruntine
+		// stop goroutine
 		if close {
 			l.listener.Close(lctx)
 		} else {
