@@ -16,7 +16,6 @@ MOSN 项目的代码托管在 [github](https://github.com/alipay/sofa-mosn)，�
 
 ```bash
 go get github.com/alipay/sofa-mosn
-mv sofa-mosn sofa-mosn 
 ```
 如果你的 go get 下载存在问题，请手动创建项目工程
 
@@ -29,7 +28,6 @@ cd github.com/alipay
 
 # clone mosn代码
 git clone git@github.com:alipay/sofa-mosn.git
-mv sofa-mosn sofa-mosn
 cd sofa-mosn
 ```
 
