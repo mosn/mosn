@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofamosn/pkg/mosn"
+	"github.com/alipay/sofa-mosn/pkg/mosn"
 )
 
 func GetServerAddr(s *httptest.Server) string {

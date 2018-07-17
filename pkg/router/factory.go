@@ -19,7 +19,7 @@ package router
 import (
 	"errors"
 	"fmt"
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 type configFactory func(config interface{}) (types.Routers, error)

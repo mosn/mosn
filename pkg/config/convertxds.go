@@ -35,10 +35,10 @@ import (
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/fatih/structs"
 	"github.com/gogo/protobuf/types"
-	"github.com/alipay/sofamosn/pkg/api/v2"
-	"github.com/alipay/sofamosn/pkg/log"
-	"github.com/alipay/sofamosn/pkg/protocol"
-	xdsxproxy "github.com/alipay/sofamosn/pkg/xds-config-model/filter/network/x_proxy/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	xdsxproxy "github.com/alipay/sofa-mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
 )
 
 var supportFilter map[string]bool = map[string]bool{

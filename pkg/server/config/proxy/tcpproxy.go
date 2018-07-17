@@ -19,9 +19,9 @@ package proxy
 import (
 	"context"
 
-	"github.com/alipay/sofamosn/pkg/api/v2"
-	"github.com/alipay/sofamosn/pkg/filter/network/tcpproxy"
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 type TcpProxyFilterConfigFactory struct {

@@ -23,9 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofamosn/pkg/mosn"
-	"github.com/alipay/sofamosn/pkg/protocol"
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/mosn"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/orcaman/concurrent-map"
 )
 

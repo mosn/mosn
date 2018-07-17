@@ -22,7 +22,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 const MinRead = 1 << 10

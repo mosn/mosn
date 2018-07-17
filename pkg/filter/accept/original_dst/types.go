@@ -1,7 +1,7 @@
 package original_dst
 
 import (
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 type Original_Dst interface {

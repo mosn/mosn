@@ -17,9 +17,9 @@
 package main
 
 import (
+	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/urfave/cli"
-	"github.com/alipay/sofamosn/pkg/config"
-	"github.com/alipay/sofamosn/pkg/mosn"
 )
 
 var (

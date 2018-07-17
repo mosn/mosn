@@ -17,10 +17,10 @@
 package codec
 
 import (
-	_ "github.com/alipay/sofamosn/pkg/protocol"
-	"github.com/alipay/sofamosn/pkg/protocol/sofarpc"
-	"github.com/alipay/sofamosn/pkg/protocol/sofarpc/handler"
-	"github.com/alipay/sofamosn/pkg/types"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/handler"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {

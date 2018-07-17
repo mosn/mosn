@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 func Test_HessianCodecHeader(t *testing.T) {

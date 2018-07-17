@@ -26,7 +26,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 /**

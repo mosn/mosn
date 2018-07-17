@@ -22,13 +22,13 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/alipay/sofa-mosn/pkg/network"
+	_ "github.com/alipay/sofa-mosn/pkg/network/buffer"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
+	_ "github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
+	_ "github.com/alipay/sofa-mosn/pkg/xds"
 	"github.com/urfave/cli"
-	_ "github.com/alipay/sofamosn/pkg/network"
-	_ "github.com/alipay/sofamosn/pkg/network/buffer"
-	_ "github.com/alipay/sofamosn/pkg/protocol"
-	_ "github.com/alipay/sofamosn/pkg/protocol/sofarpc/codec"
-	_ "github.com/alipay/sofamosn/pkg/upstream/healthcheck"
-	_ "github.com/alipay/sofamosn/pkg/xds"
 )
 
 func main() {

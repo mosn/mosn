@@ -6,7 +6,7 @@ License:    MIT
 Group:      Tools/Docker
 Packager:   ant-frontend <o_dept_55122@list.alibaba-inc.com>
 Vendor:     Alipay.com
-Summary:    alipay sofamosn
+Summary:    alipay sofa-mosn
 
 %define _homedir /home/admin/mosn
 
