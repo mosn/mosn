@@ -17,8 +17,8 @@
 package main
 
 import (
+	"github.com/alipay/sofa-mosn/cmd/mosn"
 	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/urfave/cli"
 )
 
@@ -40,14 +40,22 @@ var (
 				Name:   "service-node, n",
 				Usage:  "sidecar service node",
 				EnvVar: "SERVICE_NODE",
+			}, cli.BoolFlag{
+				Name:   "debug",
+				Usage:  "debug mode for pprof",
+				EnvVar: "DEBUG",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			configPath := c.String("config")
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
-			conf := config.Load(configPath)
-			mosn.Start(conf, serviceCluster, serviceNode)
+			debug := c.Bool("debug")
+			conf, err := config.Load(configPath)
+			if err != nil {
+				return err
+			}
+			mosn.Start(conf, serviceCluster, serviceNode, debug)
 			return nil
 		},
 	}

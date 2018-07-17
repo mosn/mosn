@@ -21,9 +21,11 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"strconv"
-	"sync"
+	"syscall"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
@@ -146,26 +148,39 @@ func (m *Mosn) Close() {
 	}
 }
 
-func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
-	log.StartLogger.Infof("start by config : %+v", c)
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		// pprof server
-		http.ListenAndServe("0.0.0.0:9090", nil)
-	}()
-
+//Start start
+func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string, debug bool) error {
+	//log.StartLogger.Infof("start by config : %+v", c)
+	if debug {
+		go func() {
+			// pprof server
+			http.ListenAndServe("0.0.0.0:9090", nil)
+		}()
+	}
+	var errChan = make(chan error)
 	Mosn := NewMosn(c)
 	Mosn.Start()
-	////get xds config
-	xdsClient := xds.XdsClient{}
-	xdsClient.Start(c, serviceCluster, serviceNode)
-	//
-	////todo: daemon running
-	wg.Wait()
-	xdsClient.Stop()
+	//get xds config
+	if c.RawDynamicResources != nil {
+		log.StartLogger.Infof("Start Xds client!")
+		xdsClient := xds.XdsClient{}
+		if err := xdsClient.Start(c, serviceCluster, serviceNode); err != nil {
+			log.StartLogger.Printf("start xds client error %s", err.Error())
+			return err
+		}
+		defer xdsClient.Stop()
+	}
+	//listen Signal
+	term := make(chan os.Signal)
+	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
+	select {
+	case <-term:
+		logrus.Warn("Received SIGTERM, exiting gracefully...")
+	case err := <-errChan:
+		logrus.Errorf("Received a error %s, exiting gracefully...", err.Error())
+	}
+	log.StartLogger.Infof("See you next time!")
+	return nil
 }
 
 // maybe used in proxy rewrite

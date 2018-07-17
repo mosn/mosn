@@ -16,12 +16,13 @@
  */
 package v2
 
-import "time"
-
 import (
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
+
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
 
 func (adsClient *ADSClient) Start() {
@@ -113,6 +114,7 @@ func (adsClient *ADSClient) ReceiveThread() {
 	}
 }
 
+//Stop stop
 func (adsClient *ADSClient) Stop() {
 	adsClient.SendControlChan <- 1
 	adsClient.RecvControlChan <- 1

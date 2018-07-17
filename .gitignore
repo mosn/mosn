@@ -13,6 +13,7 @@ access_egress.log
 default.log
 egress.log
 ingress.log
+logs/
 mosn0428
 mosn0512
 mosnCPP0508

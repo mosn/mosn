@@ -18,14 +18,15 @@ package xds
 
 import (
 	"errors"
+
+	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/xds/v2"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/types"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/xds/v2"
 	//"github.com/alipay/sofa-mosn/pkg/types"
 	"encoding/json"
 	"fmt"
@@ -296,7 +297,7 @@ func (c *XdsClient) Start(config *config.MOSNConfig, serviceCluster, serviceNode
 	stopChan := make(chan int)
 	sendControlChan := make(chan int)
 	recvControlChan := make(chan int)
-	adsClient := &v2.ADSClient{
+	c.adsClient = &v2.ADSClient{
 		AdsConfig:       c.v2.Config.ADSConfig,
 		StreamClient:    nil,
 		V2Client:        c.v2,
@@ -305,12 +306,12 @@ func (c *XdsClient) Start(config *config.MOSNConfig, serviceCluster, serviceNode
 		RecvControlChan: recvControlChan,
 		StopChan:        stopChan,
 	}
-	adsClient.Start()
-	c.adsClient = adsClient
+	c.adsClient.Start()
 	return nil
 }
 
 func (c *XdsClient) Stop() {
+	time.Sleep(time.Second * 20)
 	log.DefaultLogger.Infof("prepare to stop xds client")
 	c.adsClient.Stop()
 	log.DefaultLogger.Infof("xds client stop")

@@ -1,7 +1,7 @@
 {
   "servers": [
     {
-      "default_log_path": "/home/admin/mosn/logs/default.log",
+      "default_log_path": "./logs/default.log",
       "default_log_level": "DEBUG",
       "graceful_timeout": "10s",
       "Processor": 1,
@@ -109,11 +109,11 @@
               }
             }
           ],
-          "log_path": "/home/admin/mosn/logs/egress.log",
+          "log_path": "./logs/egress.log",
           "log_level": "DEBUG",
           "access_logs": [
             {
-              "log_path": "./access_egress.log",
+              "log_path": "./logs/access_egress.log",
               "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
             }
           ],
@@ -196,11 +196,11 @@
               }
             }
           ],
-          "log_path": "/home/admin/mosn/logs/egress.log",
+          "log_path": "./logs/egress.log",
           "log_level": "DEBUG",
           "access_logs": [
             {
-              "log_path": "./access_egress.log",
+              "log_path": "./logs/access_egress.log",
               "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
             }
           ],
@@ -273,7 +273,7 @@
               }
             }
           ],
-          "log_path": "/home/admin/mosn/logs/egress.log",
+          "log_path": "./logs/egress.log",
           "log_level": "DEBUG",
           "access_logs": [
             {

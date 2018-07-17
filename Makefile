@@ -44,7 +44,7 @@ build-local:
 	CGO_ENABLED=0 go build\
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION})" \
 		-v -o ${TARGET} \
-		${PROJECT_NAME}/pkg/mosn/main
+		${PROJECT_NAME}/cmd/mosn/main
 	mkdir -p bundles/${MAJOR_VERSION}/binary
 	mv ${TARGET} bundles/${MAJOR_VERSION}/binary
 	@cd bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET} | cut -d' ' -f1  > ${TARGET}.md5
