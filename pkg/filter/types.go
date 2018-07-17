@@ -16,6 +16,6 @@
  */
 package filter
 
-import "github.com/alipay/sofamosn/pkg/types"
+import "github.com/alipay/sofa-mosn/pkg/types"
 
 type StreamFilterFactoryCreator func(config map[string]interface{}) (types.StreamFilterChainFactory, error)

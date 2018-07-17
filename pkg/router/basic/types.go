@@ -16,7 +16,7 @@
  */
 package basic
 
-import "github.com/alipay/sofamosn/pkg/types"
+import "github.com/alipay/sofa-mosn/pkg/types"
 
 type RouteRuleImplAdaptor struct {
 }

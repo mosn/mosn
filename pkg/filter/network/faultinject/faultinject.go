@@ -17,8 +17,8 @@
 package faultinject
 
 import (
-	"github.com/alipay/sofamosn/pkg/api/v2"
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"math/rand"
 	"sync/atomic"
 	"time"

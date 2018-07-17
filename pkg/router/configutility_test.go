@@ -3,7 +3,7 @@ package router
 //import (
 //	"testing"
 //
-//	"github.com/alipay/sofamosn/pkg/types"
+//	"github.com/alipay/sofa-mosn/pkg/types"
 //)
 //
 //func TestConfigUtility_MatchQueryParams(t *testing.T) {

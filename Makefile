@@ -3,7 +3,7 @@ SHELL = /bin/bash
 TARGET       = mosnd
 CONFIG_FILE  = mosn_config.json
 GIT_USER     = alipay
-PROJECT_NAME = github.com/${GIT_USER}/sofamosn
+PROJECT_NAME = github.com/${GIT_USER}/sofa-mosn
 
 MAJOR_VERSION = $(shell cat VERSION)
 GIT_VERSION   = $(shell git log -1 --pretty=format:%h)

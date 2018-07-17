@@ -19,7 +19,7 @@ package cluster
 import (
 	"math/rand"
 
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // Note: Random is the default lb

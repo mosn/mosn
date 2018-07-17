@@ -19,7 +19,7 @@ package proxy
 import (
 	"time"
 
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 type Proxy interface {

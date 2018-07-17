@@ -22,8 +22,8 @@ import (
 	"sync"
 
 	"github.com/valyala/fasthttp"
-	str "github.com/alipay/sofamosn/pkg/stream"
-	"github.com/alipay/sofamosn/pkg/types"
+	str "github.com/alipay/sofa-mosn/pkg/stream"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"sync/atomic"
 )
 

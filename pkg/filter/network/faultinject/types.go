@@ -17,7 +17,7 @@
 package faultinject
 
 import (
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 type FaultInjecter interface {

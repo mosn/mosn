@@ -16,7 +16,7 @@
  */
 package server
 
-import "github.com/alipay/sofamosn/pkg/types"
+import "github.com/alipay/sofa-mosn/pkg/types"
 
 func buildFilterChain(filterManager types.FilterManager, factory types.NetworkFilterFactoryCb) bool {
 	factory(filterManager)

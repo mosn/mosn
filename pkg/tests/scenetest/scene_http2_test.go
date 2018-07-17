@@ -25,8 +25,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofamosn/pkg/mosn"
-	"github.com/alipay/sofamosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/mosn"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"golang.org/x/net/http2"
 )
 

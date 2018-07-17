@@ -2,7 +2,7 @@ package log
 //
 //import (
 //	"testing"
-//	"github.com/alipay/sofamosn/pkg/network"
+//	"github.com/alipay/sofa-mosn/pkg/network"
 //	"net"
 //	"time"
 //	"fmt"

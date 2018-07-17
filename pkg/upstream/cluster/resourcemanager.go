@@ -17,9 +17,9 @@
 package cluster
 
 import (
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"sync/atomic"
-	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
 const (

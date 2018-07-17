@@ -25,7 +25,7 @@ import (
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	//google_rpc "github.com/gogo/googleapis/google/rpc"
 	"errors"
-	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 func (c *V2Client) GetListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Listener {

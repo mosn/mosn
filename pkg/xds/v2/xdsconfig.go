@@ -23,7 +23,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/alipay/sofamosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"math/rand"

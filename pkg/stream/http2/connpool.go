@@ -20,9 +20,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/alipay/sofamosn/pkg/protocol"
-	str "github.com/alipay/sofamosn/pkg/stream"
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	str "github.com/alipay/sofa-mosn/pkg/stream"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // types.ConnectionPool

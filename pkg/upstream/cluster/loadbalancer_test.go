@@ -19,8 +19,8 @@ package cluster
 import (
 	"testing"
 
-	"github.com/alipay/sofamosn/pkg/api/v2"
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {

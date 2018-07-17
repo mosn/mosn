@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alipay/sofamosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 type retryState struct {

@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alipay/sofamosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
 //global instance for load & dump
