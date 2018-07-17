@@ -39,7 +39,7 @@ if route.Match.Prefix != "" {
 即 path prefix 匹配 -> path 完全匹配 -> path regex 匹配 
 + 对于 http 协议族，以上三者任意可满足创建条件，但是对于 SOFA，当前的处理策略是，在上述三者均不满足的情况下，会创建 。之后，根据 `virtualHosts` 中的 `domain` 的值，初始化 `RouteMatcher`，优先级顺序以及策略如下：
 ```go
-swtich domain :
+switch domain :
   case "*": defaultVirtualHost = virtualhost
   case "*xxx"：wildcardVirtualHostSuffixes = virtualhost
   other: virtualHosts[domain] = virtualhost

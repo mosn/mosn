@@ -17,7 +17,7 @@ Subset LoadBalancer 由以下的功能模块组成。
 
 - router 需要根据配置中的 metadata 生成 metadata match criteria，match criteria（匹配参数) 由许多组 key 和 value 组成，且按照 key 进行字典排序，value 为 md5 后的 hash 值，实现函数是 `NewMetadataMatchCriteriaImpl`
 - 挑选 host 的时候，需要将 router 的 metadata match criteria 作为上下文传递下去，上下文的定义: `LoadBalancerContext`
-- 其中，`activestrem` 实现了 `LoadBalancerContext` ，在建立连接池的时候，作为 ctx 传递下去
+- 其中，`activestream` 实现了 `LoadBalancerContext` ，在建立连接池的时候，作为 ctx 传递下去
 
 ###  CDS/EDS 后端生成模块
 

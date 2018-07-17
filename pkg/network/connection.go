@@ -390,9 +390,7 @@ func (c *connection) writeBufLen() int {
 		return 0
 	}
 
-	wbLen := c.writeBuffer.Br.Len()
-
-	return wbLen
+	return c.writeBuffer.Br.Len()
 }
 
 func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.ConnectionEvent) error {

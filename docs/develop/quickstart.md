@@ -21,7 +21,7 @@ mv sofa-mosn sofa-mosn
 如果你的 go get 下载存在问题，请手动创建项目工程
 
 ```bash
-# 进入GOPATH下的scr目录
+# 进入GOPATH下的src目录
 cd $GOPATH/src
 # 创建 github.com/alipay 目录
 mkdir -p github.com/alipay
