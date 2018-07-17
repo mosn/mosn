@@ -25,12 +25,16 @@ RPM_TAR_FILE    = ${RPM_SRC_DIR}.tar.gz
 ut-local:
 	go test ./pkg/...
 
-coverage-local:
-	sh ${SCRIPT_DIR}/report.sh
-
 unit-test:
 	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
 	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make ut-local
+
+coverage-local:
+	sh ${SCRIPT_DIR}/report.sh
+
+coverage:
+	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make coverage-local
 
 build:
 	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary

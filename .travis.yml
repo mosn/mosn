@@ -16,21 +16,21 @@ jobs:
   include:
     - stage: test
       script:
-        - make ut-local
-        - make coverage-local
+#        - make ut-local
+        - make coverage
     - stage: build
       script: make build
-    - stage: deploy
-    - stage: release
+#    - stage: deploy
+#    - stage: release
 
 
-stages:
-  - name: test
-  - name: build
-  - name: release
-    if: branch = master
-  - name: deploy
-    if: branch = master
+#stages:
+#  - name: test
+#  - name: build
+#  - name: release
+#    if: branch = master
+#  - name: deploy
+#    if: branch = master
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
