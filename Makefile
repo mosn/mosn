@@ -5,6 +5,8 @@ CONFIG_FILE  = mosn_config.json
 GIT_USER     = alipay
 PROJECT_NAME = github.com/${GIT_USER}/sofa-mosn
 
+SCRIPT_DIR 	 = $(shell pwd)/etc/script
+
 MAJOR_VERSION = $(shell cat VERSION)
 GIT_VERSION   = $(shell git log -1 --pretty=format:%h)
 GIT_NOTES     = $(shell git log -1 --oneline)
@@ -22,6 +24,9 @@ RPM_TAR_FILE    = ${RPM_SRC_DIR}.tar.gz
 
 ut-local:
 	go test ./pkg/...
+
+coverage-local:
+	sh ${SCRIPT_DIR}/report.sh
 
 unit-test:
 	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
