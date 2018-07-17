@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -190,6 +189,7 @@ const (
 	Mix
 )
 
+//Mode return Mode
 func (c *MOSNConfig) Mode() Mode {
 	if len(c.Servers) > 0 {
 		if len(c.RawStaticResources) == 0 || len(c.RawDynamicResources) == 0 {
@@ -203,35 +203,41 @@ func (c *MOSNConfig) Mode() Mode {
 	return File
 }
 
-//wrapper for time.Duration, so time config can be written in '300ms' or '1h' format
+//DurationConfig wrapper for time.Duration, so time config can be written in '300ms' or '1h' format
 type DurationConfig struct {
 	time.Duration
 }
 
+//UnmarshalJSON UnmarshalJSON
 func (d *DurationConfig) UnmarshalJSON(b []byte) (err error) {
 	d.Duration, err = time.ParseDuration(strings.Trim(string(b), `"`))
 	return
 }
 
+//MarshalJSON MarshalJSON
 func (d DurationConfig) MarshalJSON() (b []byte, err error) {
 	return []byte(fmt.Sprintf(`"%s"`, d.String())), nil
 }
 
-func Load(path string) *MOSNConfig {
+//Load load config from config file that define path
+func Load(path string) (*MOSNConfig, error) {
 	log.Println("load config from : ", path)
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatalln("load config failed, ", err)
-		os.Exit(1)
+		log.Println("load config failed, ", err)
+		return nil, err
 	}
-	ConfigPath, _ = filepath.Abs(path)
+	ConfigPath, err = filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
 	// todo delete
 	//ConfigPath = "../../resource/mosn_config_dump_result.json"
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		log.Fatalln("json unmarshal config failed, ", err)
-		os.Exit(1)
+		log.Println("json unmarshal config failed, ", err)
+		return nil, err
 	}
-	return &config
+	return &config, nil
 }
