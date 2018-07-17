@@ -120,10 +120,10 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 	return al
 }
 
-func (ch *connHandler) StartListener(listenerTag uint64, lctx context.Context) {
+func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
-			// TODO: use goruntine pool
+			// TODO: use goroutine pool
 			go l.listener.Start(nil)
 		}
 	}
@@ -131,7 +131,7 @@ func (ch *connHandler) StartListener(listenerTag uint64, lctx context.Context) {
 
 func (ch *connHandler) StartListeners(lctx context.Context) {
 	for _, l := range ch.listeners {
-		// start goruntine
+		// start goroutine
 		go l.listener.Start(nil)
 	}
 }
@@ -154,10 +154,10 @@ func (ch *connHandler) RemoveListeners(listenerTag uint64) {
 	}
 }
 
-func (ch *connHandler) StopListener(listenerTag uint64, lctx context.Context) {
+func (ch *connHandler) StopListener(lctx context.Context, listenerTag uint64) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
-			// stop goruntine
+			// stop goroutine
 			l.listener.Stop()
 		}
 	}
@@ -165,7 +165,7 @@ func (ch *connHandler) StopListener(listenerTag uint64, lctx context.Context) {
 
 func (ch *connHandler) StopListeners(lctx context.Context, close bool) {
 	for _, l := range ch.listeners {
-		// stop goruntine
+		// stop goroutine
 		if close {
 			l.listener.Close(lctx)
 		} else {
@@ -274,12 +274,12 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	if oriRemoteAddr != nil {
 		ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
-	arc.ContinueFilterChain(true, ctx)
+	arc.ContinueFilterChain(ctx, true)
 }
 
-func (al *activeListener) OnNewConnection(conn types.Connection, ctx context.Context) {
+func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connection) {
 	//Register Proxy's Filter
-	configFactory := al.networkFiltersFactory.CreateFilterFactory(al.handler.clusterManager, ctx)
+	configFactory := al.networkFiltersFactory.CreateFilterFactory(ctx,al.handler.clusterManager)
 	buildFilterChain(conn.FilterManager(), configFactory)
 
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
@@ -324,7 +324,7 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.logger.Debugf("close downstream connection, stats: %s", al.stats.String())
 }
 
-func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
+func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(rawc, al.stopChan, al.logger)
 	oriRemoteAddr := ctx.Value(types.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
@@ -334,7 +334,7 @@ func (al *activeListener) newConnection(rawc net.Conn, ctx context.Context) {
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
-	al.OnNewConnection(conn, newCtx)
+	al.OnNewConnection(newCtx,conn)
 }
 
 type activeRawConn struct {
@@ -363,7 +363,7 @@ func (arc *activeRawConn) SetOrigingalAddr(ip string, port int) {
 	log.DefaultLogger.Infof("conn set origin addr:%s:%d", ip, port)
 }
 
-func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context) {
+func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool) {
 	if success {
 		for ; arc.accptedFilterIndex < len(arc.acceptedFilters); arc.accptedFilterIndex++ {
 			filterStatus := arc.acceptedFilters[arc.accptedFilterIndex].OnAccept(arc)
@@ -397,7 +397,7 @@ func (arc *activeRawConn) ContinueFilterChain(success bool, ctx context.Context)
 			}
 
 		} else {
-			arc.activeListener.newConnection(arc.rawc, ctx)
+			arc.activeListener.newConnection(ctx, arc.rawc)
 		}
 
 	}

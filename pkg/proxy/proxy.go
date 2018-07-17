@@ -71,7 +71,7 @@ type proxy struct {
 	accessLogs []types.AccessLog
 }
 
-func NewProxy(config *v2.Proxy, clusterManager types.ClusterManager, ctx context.Context) Proxy {
+func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
 	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecMapPool, codecHeadersBufPool)
 
 	proxy := &proxy{

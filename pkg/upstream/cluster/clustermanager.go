@@ -230,8 +230,8 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host
 	return nil
 }
 
-func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.Protocol,
-	lbCtx types.LoadBalancerContext) types.ConnectionPool {
+func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext,cluster string,
+	protocol types.Protocol) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -272,8 +272,8 @@ func (cm *clusterManager) HttpConnPoolForCluster(cluster string, protocol types.
 
 }
 
-func (cm *clusterManager) XprotocolConnPoolForCluster(cluster string, protocol types.Protocol,
-	lbCtx types.LoadBalancerContext) types.ConnectionPool {
+func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerContext,cluster string,
+	protocol types.Protocol) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -299,7 +299,7 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(cluster string, protocol t
 	}
 }
 
-func (cm *clusterManager) TcpConnForCluster(cluster string,lbCtx types.LoadBalancerContext) types.CreateConnectionData {
+func (cm *clusterManager) TcpConnForCluster(lbCtx types.LoadBalancerContext,cluster string) types.CreateConnectionData {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -315,7 +315,7 @@ func (cm *clusterManager) TcpConnForCluster(cluster string,lbCtx types.LoadBalan
 	}
 }
 
-func (cm *clusterManager) SofaRpcConnPoolForCluster(cluster string, lbCtx types.LoadBalancerContext) types.ConnectionPool {
+func (cm *clusterManager) SofaRpcConnPoolForCluster(lbCtx types.LoadBalancerContext,cluster string) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {

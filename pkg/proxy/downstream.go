@@ -455,15 +455,15 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 	// todo: refactor
 	switch types.Protocol(s.proxy.config.UpstreamProtocol) {
 	case protocol.SofaRpc:
-		connPool = s.proxy.clusterManager.SofaRpcConnPoolForCluster(clusterName, lbCtx)
+		connPool = s.proxy.clusterManager.SofaRpcConnPoolForCluster(lbCtx, clusterName)
 	case protocol.Http2:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, lbCtx)
+		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(lbCtx, clusterName, protocol.Http2)
 	case protocol.Http1:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http1, lbCtx)
+		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(lbCtx, clusterName, protocol.Http1)
 	case protocol.Xprotocol:
-		connPool = s.proxy.clusterManager.XprotocolConnPoolForCluster(clusterName, protocol.Xprotocol, nil)
+		connPool = s.proxy.clusterManager.XprotocolConnPoolForCluster(nil, clusterName, protocol.Xprotocol)
 	default:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(clusterName, protocol.Http2, lbCtx)
+		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(lbCtx, clusterName, protocol.Http2)
 	}
 
 	if connPool == nil {
