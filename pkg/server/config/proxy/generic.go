@@ -28,8 +28,8 @@ type GenericProxyFilterConfigFactory struct {
 	Proxy *v2.Proxy
 }
 
-func (gfcf *GenericProxyFilterConfigFactory) CreateFilterFactory(clusterManager types.ClusterManager, context context.Context) types.NetworkFilterFactoryCb {
+func (gfcf *GenericProxyFilterConfigFactory) CreateFilterFactory( context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
-		manager.AddReadFilter(proxy.NewProxy(gfcf.Proxy, clusterManager, context))
+		manager.AddReadFilter(proxy.NewProxy(context, gfcf.Proxy, clusterManager))
 	}
 }

@@ -120,7 +120,7 @@ type ListenerEventListener interface {
 	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr)
 
 	// Called on new mosn connection created
-	OnNewConnection(conn Connection, ctx context.Context)
+	OnNewConnection(ctx context.Context,conn Connection)
 
 	// Called on listener close
 	OnClose()
@@ -144,7 +144,7 @@ type ListenerFilterCallbacks interface {
 	Conn() net.Conn
 
 	// Continue filter chain
-	ContinueFilterChain(success bool, ctx context.Context)
+	ContinueFilterChain(ctx context.Context, success bool)
 
 	// Set original addr
 	SetOrigingalAddr(ip string, port int)
@@ -412,7 +412,7 @@ type ConnectionHandler interface {
 		streamFiltersFactories []StreamFilterChainFactory)ListenerEventListener
 
 	// Start a listener by tag
-	StartListener(listenerTag uint64, lctx context.Context)
+	StartListener(lctx context.Context, listenerTag uint64)
 
 	// Start all listeners
 	StartListeners(lctx context.Context)
@@ -424,7 +424,7 @@ type ConnectionHandler interface {
 	RemoveListeners(listenerTag uint64)
 
 	// Stop listener by tag
-	StopListener(listenerTag uint64, lctx context.Context)
+	StopListener( lctx context.Context, listenerTag uint64)
 
 	// Stop all listener
 	// + close : indicates whether the listening sockets will be closed
@@ -501,7 +501,7 @@ type FilterChainFactory interface {
 type NetworkFilterFactoryCb func(manager FilterManager)
 
 type NetworkFilterChainFactory interface {
-	CreateFilterFactory(clusterManager ClusterManager, context context.Context) NetworkFilterFactoryCb
+	CreateFilterFactory(context context.Context, clusterManager ClusterManager) NetworkFilterFactoryCb
 }
 
 type Addresses []net.Addr
