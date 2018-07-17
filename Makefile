@@ -5,6 +5,8 @@ CONFIG_FILE  = mosn_config.json
 GIT_USER     = alipay
 PROJECT_NAME = github.com/${GIT_USER}/sofa-mosn
 
+SCRIPT_DIR 	 = $(shell pwd)/etc/script
+
 MAJOR_VERSION = $(shell cat VERSION)
 GIT_VERSION   = $(shell git log -1 --pretty=format:%h)
 GIT_NOTES     = $(shell git log -1 --oneline)
@@ -26,6 +28,13 @@ ut-local:
 unit-test:
 	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
 	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make ut-local
+
+coverage-local:
+	sh ${SCRIPT_DIR}/report.sh
+
+coverage:
+	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make coverage-local
 
 build:
 	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
