@@ -77,7 +77,7 @@ type Thresholds struct {
 }
 
 type OutlierDetection struct {
-	Consecutive_5Xx                    uint32
+	Consecutive5xx                     uint32
 	Interval                           time.Duration
 	BaseEjectionTime                   time.Duration
 	MaxEjectionPercent                 uint32

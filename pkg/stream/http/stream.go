@@ -247,8 +247,8 @@ type clientStream struct {
 }
 
 // types.StreamSender
-func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error {
-	headers, _ := headers_.(map[string]string)
+func (s *clientStream) AppendHeaders(headersIn interface{}, endStream bool) error {
+	headers, _ := headersIn.(map[string]string)
 
 	if s.request == nil {
 		s.request = fasthttp.AcquireRequest()
@@ -365,8 +365,8 @@ type serverStream struct {
 }
 
 // types.StreamSender
-func (s *serverStream) AppendHeaders(headers_ interface{}, endStream bool) error {
-	headers, _ := headers_.(map[string]string)
+func (s *serverStream) AppendHeaders(headerIn interface{}, endStream bool) error {
+	headers, _ := headerIn.(map[string]string)
 
 	if status, ok := headers[types.HeaderStatus]; ok {
 		statusCode, _ := strconv.Atoi(string(status))

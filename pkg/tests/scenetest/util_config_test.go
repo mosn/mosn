@@ -122,11 +122,11 @@ func CreateHTTPRouteConfig(addr string, hosts [][]string) *config.MOSNConfig {
 		Route: v2.RouteAction{ClusterName: clusters[0].name},
 	}
 	header2 := v2.HeaderMatcher{Name: "service", Value: "cluster2"}
-	routerV2_header := v2.Router{
+	routerV2Header := v2.Router{
 		Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{header2}},
 		Route: v2.RouteAction{ClusterName: clusters[1].name},
 	}
-	routerV2_Path := v2.Router{
+	routerV2Path := v2.Router{
 		Match: v2.RouterMatch{
 			Headers: []v2.HeaderMatcher{header1},
 			Path:    "/test.htm",
@@ -138,7 +138,7 @@ func CreateHTTPRouteConfig(addr string, hosts [][]string) *config.MOSNConfig {
 		UpstreamProtocol:   string(protocol.Http1),
 		VirtualHosts: []*v2.VirtualHost{
 			//Notice that the order of router, the first successful matched is used
-			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2_Path, routerV2, routerV2_header}},
+			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2Path, routerV2, routerV2Header}},
 		},
 	}
 	b, _ := json.Marshal(p)

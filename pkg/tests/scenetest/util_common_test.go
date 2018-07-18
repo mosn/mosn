@@ -179,8 +179,8 @@ type RpcClient struct {
 	t               *testing.T
 	conn            types.ClientConnection
 	addr            string
-	response_filter ReponseFilter
-	wait_reponse    cmap.ConcurrentMap
+	responseFilter ReponseFilter
+	waitReponse    cmap.ConcurrentMap
 }
 
 //types.ReadFilter
@@ -192,7 +192,7 @@ func (c *RpcClient) OnData(buffer types.IoBuffer) types.FilterStatus {
 	c.t.Logf("[client] receive data: \n")
 	//c.t.Logf("%s\n", buffer.String())
 	resp := buffer.String()
-	c.response_filter.Filter(resp, c.wait_reponse)
+	c.responseFilter.Filter(resp, c.waitReponse)
 	buffer.Reset()
 	return types.Continue
 }
@@ -222,7 +222,7 @@ func GetStreamId() uint32 {
 
 func (c *RpcClient) SendRequest(streamId uint32, req []byte) {
 	c.conn.Write(buffer.NewIoBufferBytes(req))
-	c.wait_reponse.Set(fmt.Sprintf("%d", streamId), streamId)
+	c.waitReponse.Set(fmt.Sprintf("%d", streamId), streamId)
 }
 
 //BoltV1 Client

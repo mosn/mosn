@@ -1,4 +1,4 @@
-package original_dst
+package originaldst
 
 import (
 	"errors"
@@ -15,14 +15,14 @@ const (
 	IP6T_SO_ORIGINAL_DST = 80
 )
 
-type original_dst struct {
+type originalDst struct {
 }
 
-func NewOriginalDst() Original_Dst {
-	return &original_dst{}
+func NewOriginalDst() OriginalDst {
+	return &originalDst{}
 }
 
-func (filter *original_dst) OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus {
+func (filter *originalDst) OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus {
 	ip, port, err := getOriginalAddr(cb.Conn())
 	if err != nil {
 		log.StartLogger.Println("get original addr failed:", err.Error())

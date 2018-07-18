@@ -457,13 +457,13 @@ type PrioritySubsetImpl struct {
 	originalPrioritySet types.PrioritySet
 	empty               bool
 	loadbalancer        types.LoadBalancer
-	predicate_          types.HostPredicate // match function for host and metadata
+	predicateFunc       types.HostPredicate // match function for host and metadata
 }
 
 func NewPrioritySubsetImpl(subsetLB *subSetLoadBalancer, predicate types.HostPredicate) types.PrioritySubset {
 	psi := &PrioritySubsetImpl{
 		originalPrioritySet: subsetLB.originalPrioritySet,
-		predicate_:          predicate,
+		predicateFunc:       predicate,
 		empty:               true,
 		prioritySubset:      &prioritySet{},
 	}
@@ -492,7 +492,7 @@ func NewPrioritySubsetImpl(subsetLB *subSetLoadBalancer, predicate types.HostPre
 
 func (psi *PrioritySubsetImpl) Update(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 
-	psi.GetOrCreateHostSubset(priority).UpdateHostSubset(hostsAdded, hostsRemoved, psi.predicate_)
+	psi.GetOrCreateHostSubset(priority).UpdateHostSubset(hostsAdded, hostsRemoved, psi.predicateFunc)
 
 	for _, hostSet := range psi.prioritySubset.HostSetsByPriority() {
 		if len(hostSet.Hosts()) > 0 {

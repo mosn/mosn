@@ -69,8 +69,8 @@ func TestHttpProxy(t *testing.T) {
 	cluster1 := []string{GetServerAddr(server1)}
 	cluster2 := []string{GetServerAddr(server2)}
 	meshAddr := "127.0.0.1:2045"
-	mesh_config := CreateHTTPRouteConfig(meshAddr, [][]string{cluster1, cluster2})
-	mesh := mosn.NewMosn(mesh_config)
+	meshConfig := CreateHTTPRouteConfig(meshAddr, [][]string{cluster1, cluster2})
+	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()
 	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start
