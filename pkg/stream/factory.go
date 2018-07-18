@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package stream
 
 import (
@@ -38,6 +39,6 @@ func CreateServerStreamConnection(context context.Context, prot types.Protocol, 
 	if ssc, ok := streamFactories[prot]; ok {
 		return ssc.CreateServerStream(context, connection, callbacks)
 	}
-	
+
 	return nil
 }

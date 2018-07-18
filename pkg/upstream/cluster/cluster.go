@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package cluster
 
 import (
@@ -21,8 +22,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/rcrowley/go-metrics"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/rcrowley/go-metrics"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/tls"
@@ -44,13 +45,13 @@ type concreteClusterInitHelper interface {
 	Init()
 }
 
-func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool) types.Cluster {
+func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool) types.Cluster {
 	var newCluster types.Cluster
 
 	switch clusterConfig.ClusterType {
 
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
-		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaApi)
+		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaAPI)
 	}
 
 	// init health check for cluster's host
@@ -63,14 +64,14 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool)
 	return newCluster
 }
 
-func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool, initHelper concreteClusterInitHelper) cluster {
+func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool, initHelper concreteClusterInitHelper) cluster {
 	cluster := cluster{
 		prioritySet: &prioritySet{},
 		info: &clusterInfo{
 			name:                 clusterConfig.Name,
 			clusterType:          clusterConfig.ClusterType,
 			sourceAddr:           sourceAddr,
-			addedViaApi:          addedViaApi,
+			addedViaAPI:          addedViaAPI,
 			maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
 			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig),
@@ -78,15 +79,15 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 		},
 		initHelper: initHelper,
 	}
-	
+
 	switch clusterConfig.LbType {
 	case v2.LB_RANDOM:
 		cluster.info.lbType = types.Random
-		
+
 	case v2.LB_ROUNDROBIN:
 		cluster.info.lbType = types.RoundRobin
 	}
-	
+
 	// TODO: init more props: maxrequestsperconn, connecttimeout, connectionbuflimit
 
 	cluster.info.resourceManager = NewResourceManager(clusterConfig.CirBreThresholds)
@@ -95,21 +96,21 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 	cluster.prioritySet.AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 		// TODO: update cluster stats
 	})
-	
+
 	var lb types.LoadBalancer
-	
+
 	if cluster.Info().LbSubsetInfo().IsEnabled() {
 		// use subset loadbalancer
 		lb = NewSubsetLoadBalancer(cluster.Info().LbType(), cluster.PrioritySet(), cluster.Info().Stats(),
 			cluster.Info().LbSubsetInfo())
-		
+
 	} else {
 		// use common loadbalancer
 		lb = NewLoadBalancer(cluster.Info().LbType(), cluster.PrioritySet())
 	}
-	
+
 	cluster.info.lbInstance = lb
-	
+
 	cluster.info.tlsMng = tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 
 	return cluster
@@ -135,9 +136,9 @@ func newClusterStats(config v2.Cluster) types.ClusterStats {
 		UpstreamConnectionTotal:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total"), nil),
 		UpstreamConnectionClose:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_close"), nil),
 		UpstreamConnectionActive:                       metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_active"), nil),
-		UpstreamConnectionTotalHttp1:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http1"), nil),
-		UpstreamConnectionTotalHttp2:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http2"), nil),
-		UpstreamConnectionTotalSofaRpc:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_sofarpc"), nil),
+		UpstreamConnectionTotalHTTP1:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http1"), nil),
+		UpstreamConnectionTotalHTTP2:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http2"), nil),
+		UpstreamConnectionTotalSofaRPC:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_sofarpc"), nil),
 		UpstreamConnectionConFail:                      metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_con_fail"), nil),
 		UpstreamConnectionRetry:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_retry"), nil),
 		UpstreamConnectionLocalClose:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_local_close"), nil),
@@ -225,13 +226,13 @@ type clusterInfo struct {
 	name                 string
 	clusterType          v2.ClusterType
 	lbType               types.LoadBalancerType
-	lbInstance           types.LoadBalancer         // load balancer used for this cluster
+	lbInstance           types.LoadBalancer // load balancer used for this cluster
 	sourceAddr           net.Addr
 	connectTimeout       int
 	connBufferLimitBytes uint32
 	features             int
 	maxRequestsPerConn   uint32
-	addedViaApi          bool
+	addedViaAPI          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
 
@@ -254,7 +255,7 @@ func (ci *clusterInfo) LbType() types.LoadBalancerType {
 }
 
 func (ci *clusterInfo) AddedViaApi() bool {
-	return ci.addedViaApi
+	return ci.addedViaAPI
 }
 
 func (ci *clusterInfo) SourceAddress() net.Addr {

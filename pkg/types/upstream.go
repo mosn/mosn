@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package types
 
 import (
@@ -204,9 +205,9 @@ type HostStats struct {
 	UpstreamConnectionTotal                        metrics.Counter
 	UpstreamConnectionClose                        metrics.Counter
 	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionTotalHttp1                   metrics.Counter
-	UpstreamConnectionTotalHttp2                   metrics.Counter
-	UpstreamConnectionTotalSofaRpc                 metrics.Counter
+	UpstreamConnectionTotalHTTP1                   metrics.Counter
+	UpstreamConnectionTotalHTTP2                   metrics.Counter
+	UpstreamConnectionTotalSofaRPC                 metrics.Counter
 	UpstreamConnectionConFail                      metrics.Counter
 	UpstreamConnectionLocalClose                   metrics.Counter
 	UpstreamConnectionRemoteClose                  metrics.Counter
@@ -285,9 +286,9 @@ type ClusterStats struct {
 	UpstreamConnectionTotal                        metrics.Counter
 	UpstreamConnectionClose                        metrics.Counter
 	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionTotalHttp1                   metrics.Counter
-	UpstreamConnectionTotalHttp2                   metrics.Counter
-	UpstreamConnectionTotalSofaRpc                 metrics.Counter
+	UpstreamConnectionTotalHTTP1                   metrics.Counter
+	UpstreamConnectionTotalHTTP2                   metrics.Counter
+	UpstreamConnectionTotalSofaRPC                 metrics.Counter
 	UpstreamConnectionConFail                      metrics.Counter
 	UpstreamConnectionRetry                        metrics.Counter
 	UpstreamConnectionLocalClose                   metrics.Counter

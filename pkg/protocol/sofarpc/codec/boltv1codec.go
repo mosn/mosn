@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package codec
 
 import (
@@ -292,7 +293,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				//	logger.Debugf("BoltV1 DECODE Request: Get Bolt HB Msg")
 				//}
 				ver2 := bytes[4]
-				requestId := binary.BigEndian.Uint32(bytes[5:9])
+				requestID := binary.BigEndian.Uint32(bytes[5:9])
 				codec := bytes[9]
 				timeout := binary.BigEndian.Uint32(bytes[10:14])
 				classLen := binary.BigEndian.Uint16(bytes[14:16])
@@ -330,7 +331,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					dataType,
 					int16(cmdCode),
 					ver2,
-					requestId,
+					requestID,
 					codec,
 					int(timeout),
 					int16(classLen),
@@ -352,7 +353,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 				ver2 := bytes[4]
-				requestId := binary.BigEndian.Uint32(bytes[5:9])
+				requestID := binary.BigEndian.Uint32(bytes[5:9])
 				codec := bytes[9]
 				status := binary.BigEndian.Uint16(bytes[10:12])
 				classLen := binary.BigEndian.Uint16(bytes[12:14])
@@ -389,7 +390,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					dataType,
 					int16(cmdCode),
 					ver2,
-					requestId,
+					requestID,
 					codec,
 					int16(status),
 					int16(classLen),

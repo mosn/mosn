@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package http2
 
 import (
@@ -122,7 +123,7 @@ func (csc *clientStreamConnection) OnGoAway() {
 func (csc *clientStreamConnection) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
-			context: context.WithValue(csc.context, types.ContextKeyStreamId, streamId),
+			context: context.WithValue(csc.context, types.ContextKeyStreamID, streamId),
 			decoder: responseDecoder,
 		},
 		connection: csc,
@@ -179,7 +180,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 
 	stream := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamId, streamId),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamId),
 			request: request,
 		},
 		connection:       ssc,

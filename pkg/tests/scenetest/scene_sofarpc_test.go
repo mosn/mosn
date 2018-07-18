@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tests
 
 import (
@@ -40,7 +41,7 @@ func TestSofaRpc(t *testing.T) {
 	//client
 	client := &BoltV1Client{
 		t:        t,
-		ClientId: "testClient",
+		ClientID: "testClient",
 		Waits:    cmap.New(),
 	}
 	client.Connect(meshAddr)

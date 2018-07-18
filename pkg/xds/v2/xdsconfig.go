@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package v2
 
 import (
@@ -70,7 +71,7 @@ func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 		err := errors.New("only support GRPC api type yet")
 		return nil, err
 	}
-	config.ApiType = source.ApiType
+	config.APIType = source.ApiType
 	if source.RefreshDelay == nil || source.RefreshDelay.Nanoseconds() <= 0 {
 		duration := time.Duration(time.Second * 10) // default refresh delay
 		config.RefreshDelay = &duration
@@ -87,7 +88,7 @@ func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 				duration := time.Duration(time.Second) // default connection timeout
 				serviceConfig.Timeout = &duration
 			} else {
-				var nanos int64 = service.Timeout.Seconds*int64(time.Second) + int64(service.Timeout.Nanos)
+				var nanos = service.Timeout.Seconds*int64(time.Second) + int64(service.Timeout.Nanos)
 				duration := time.Duration(nanos)
 				serviceConfig.Timeout = &duration
 			}

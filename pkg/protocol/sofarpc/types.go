@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package sofarpc
 
 import (
@@ -351,9 +352,9 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 	} else if pro == PROTOCOL_CODE_TR {
 		return headers, nil
 	}
-	
+
 	log.ByContext(context).Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
-	
+
 	return headers, errors.New(types.UnSupportedProCode)
 }
 

@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package healthcheck
 
 import (
 	"time"
 )
 
-func StartHttpHealthCheck(tickInterval time.Duration, timerTimeout time.Duration, checkPath string,
+func StartHTTPHealthCheck(tickInterval time.Duration, timerTimeout time.Duration, checkPath string,
 	intervalCB func(path string, successCall func()), timeoutCB func()) {
 
-	shc := Http1HealthCheck{
+	shc := HTTP1HealthCheck{
 		checkPath:  checkPath,
 		intervalCB: intervalCB,
 		timeout:    timerTimeout,
@@ -36,7 +37,7 @@ func StartHttpHealthCheck(tickInterval time.Duration, timerTimeout time.Duration
 	shc.Start()
 }
 
-type Http1HealthCheck struct {
+type HTTP1HealthCheck struct {
 	intervalTimer *timer
 	timeoutTimer  *timer
 	checkPath     string
@@ -45,17 +46,17 @@ type Http1HealthCheck struct {
 	interval      time.Duration
 }
 
-func (shc *Http1HealthCheck) Start() {
+func (shc *HTTP1HealthCheck) Start() {
 	shc.OnInterval()
 }
 
-func (shc *Http1HealthCheck) OnInterval() {
+func (shc *HTTP1HealthCheck) OnInterval() {
 	// call app's function
 	shc.intervalCB(shc.checkPath, shc.OnTimeoutTimerRest)
 	shc.timeoutTimer.start(shc.timeout)
 }
 
-func (shc *Http1HealthCheck) OnTimeoutTimerRest() {
+func (shc *HTTP1HealthCheck) OnTimeoutTimerRest() {
 	shc.timeoutTimer.stop()
 	shc.intervalTimer.start(shc.interval)
 }

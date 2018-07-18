@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package http
 
 import (
@@ -29,12 +30,12 @@ import (
 
 	"sync"
 
-	"github.com/valyala/fasthttp"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/valyala/fasthttp"
 )
 
 func init() {
@@ -131,7 +132,7 @@ func (csw *clientStreamWrapper) OnGoAway() {
 func (csw *clientStreamWrapper) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
-			context:  context.WithValue(csw.context, types.ContextKeyStreamId, streamId),
+			context:  context.WithValue(csw.context, types.ContextKeyStreamID, streamId),
 			receiver: responseDecoder,
 		},
 		wrapper: csw,
@@ -176,7 +177,7 @@ func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 
 	s := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamId, streamId),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamId),
 		},
 		ctx:              ctx,
 		connection:       ssc,

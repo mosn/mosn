@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package handler
 
 import (
@@ -43,11 +44,11 @@ type BoltRequestProcessorV2 struct{}
 func (b *BoltRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)
-		streamId := atomic.AddUint32(&streamIdCounter, 1)
-		streamIdStr := sofarpc.StreamIDConvert(streamId)
+		streamID := atomic.AddUint32(&streamIdCounter, 1)
+		streamIdStr := sofarpc.StreamIDConvert(streamID)
 
 		//print tracer log
-		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamId=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamIdStr, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
+		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamID=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamIdStr, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -56,9 +57,9 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 				if cmd.Content == nil {
 					cmd.RequestHeader[types.HeaderStremEnd] = "yes"
 				}
-				
+
 				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
-				
+
 				if status == types.StopIteration {
 					return
 				}
@@ -79,17 +80,17 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
 		deserializeRequestAllFieldsV2(context, cmd)
-		streamId := atomic.AddUint32(&streamIdCounter, 1)
-		streamIdStr := sofarpc.StreamIDConvert(streamId)
+		streamID := atomic.AddUint32(&streamIdCounter, 1)
+		streamIdStr := sofarpc.StreamIDConvert(streamID)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
-				
+
 				if cmd.Content == nil {
 					cmd.RequestHeader["x-mosn-endstream"] = "yes"
 				}
-				
+
 				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
 
 				if status == types.StopIteration {

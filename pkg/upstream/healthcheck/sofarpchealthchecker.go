@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package healthcheck
 
 import (
@@ -42,7 +43,7 @@ func newSofaRpcHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
 	shc := &sofarpcHealthChecker{
 		healthChecker: *hc,
 	}
-	
+
 	// use bolt v1 as default sofa health check protocol
 	if 0 == config.ProtocolCode {
 		shc.protocolCode = sofarpc.BOLT_V1
@@ -64,7 +65,7 @@ func newSofaRpcHealthCheckerWithBaseHealthChecker(hc *healthChecker, pro sofarpc
 	return shc
 }
 
-func (c *sofarpcHealthChecker) newSofaRpcHealthCheckSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
+func (c *sofarpcHealthChecker) newSofaRPCHealthCheckSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
 	shcs := &sofarpcHealthCheckSession{
 		client:             codecClinet,
 		healthChecker:      c,

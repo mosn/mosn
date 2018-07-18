@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package xds
 
 import (
 	"errors"
+
+	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/xds/v2"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/types"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/xds/v2"
 	//"github.com/alipay/sofa-mosn/pkg/types"
 	"encoding/json"
 	"fmt"
@@ -38,12 +40,12 @@ import (
 //var stopped chan bool = make(chan bool)
 //var started bool = false
 
-type XdsClient struct {
-	v2        *v2.V2Client
+type Client struct {
+	v2        *v2.ClientV2
 	adsClient *v2.ADSClient
 }
 
-func (c *XdsClient) getConfig(config *config.MOSNConfig) error {
+func (c *Client) getConfig(config *config.MOSNConfig) error {
 	log.DefaultLogger.Infof("start to get config from istio")
 	err := c.getListenersAndRoutes(config)
 	if err != nil {
@@ -59,7 +61,7 @@ func (c *XdsClient) getConfig(config *config.MOSNConfig) error {
 	return nil
 }
 
-func (c *XdsClient) getListenersAndRoutes(config *config.MOSNConfig) error {
+func (c *Client) getListenersAndRoutes(config *config.MOSNConfig) error {
 	log.DefaultLogger.Infof("start to get listeners from LDS")
 	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
 	listeners := c.v2.GetListeners(streamClient)
@@ -77,7 +79,7 @@ func (c *XdsClient) getListenersAndRoutes(config *config.MOSNConfig) error {
 	return nil
 }
 
-func (c *XdsClient) getClustersAndHosts(config *config.MOSNConfig) error {
+func (c *Client) getClustersAndHosts(config *config.MOSNConfig) error {
 	log.DefaultLogger.Infof("start to get clusters from CDS")
 	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
 	clusters := c.v2.GetClusters(streamClient)
@@ -268,7 +270,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 	return dynamicResources, staticResources, nil
 }
 
-func (c *XdsClient) Start(config *config.MOSNConfig, serviceCluster, serviceNode string) error {
+func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode string) error {
 	log.DefaultLogger.Infof("xds client start")
 	if c.v2 == nil {
 		dynamicResources, staticResources, err := UnmarshalResources(config)
@@ -282,7 +284,7 @@ func (c *XdsClient) Start(config *config.MOSNConfig, serviceCluster, serviceNode
 			log.DefaultLogger.Warnf("fail to init xds config, skip xds: %v", err)
 			return errors.New("fail to init xds config")
 		}
-		c.v2 = &v2.V2Client{serviceCluster, serviceNode, &xdsConfig}
+		c.v2 = &v2.ClientV2{serviceCluster, serviceNode, &xdsConfig}
 	}
 	for true {
 		err := c.getConfig(config)
@@ -310,13 +312,13 @@ func (c *XdsClient) Start(config *config.MOSNConfig, serviceCluster, serviceNode
 	return nil
 }
 
-func (c *XdsClient) Stop() {
+func (c *Client) Stop() {
 	log.DefaultLogger.Infof("prepare to stop xds client")
 	c.adsClient.Stop()
 	log.DefaultLogger.Infof("xds client stop")
 }
 
 // must be call after func start
-//func (c *XdsClient)WaitForWarmUp() {
+//func (c *Client)WaitForWarmUp() {
 //	<- warmuped
 //}

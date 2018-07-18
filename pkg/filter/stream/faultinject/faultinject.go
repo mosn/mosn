@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 //Similar to Network's damage on flow
+
 package faultinject
 
 import (
@@ -53,7 +54,7 @@ func (f *faultInjectFilter) OnDecodeHeaders(headers map[string]string, endStream
 	if atomic.LoadUint32(&f.delaying) > 0 {
 		return types.FilterHeadersStatusStopIteration
 	}
-	
+
 	return types.FilterHeadersStatusContinue
 }
 
@@ -63,7 +64,7 @@ func (f *faultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) typ
 	if atomic.LoadUint32(&f.delaying) > 0 {
 		return types.FilterDataStatusStopIterationAndBuffer
 	}
-	
+
 	return types.FilterDataStatusContinue
 }
 
@@ -73,7 +74,7 @@ func (f *faultInjectFilter) OnDecodeTrailers(trailers map[string]string) types.F
 	if atomic.LoadUint32(&f.delaying) > 0 {
 		return types.FilterTrailersStatusStopIteration
 	}
-	
+
 	return types.FilterTrailersStatusContinue
 }
 

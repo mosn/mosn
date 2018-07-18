@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tests
 
 import (
@@ -48,7 +49,7 @@ func TestServerClose(t *testing.T) {
 	time.Sleep(5 * time.Second) //wait mesh and server start
 	client := &BoltV1Client{
 		t:        t,
-		ClientId: "testClient",
+		ClientID: "testClient",
 		Waits:    cmap.New(),
 	}
 	client.Connect(meshAddr)

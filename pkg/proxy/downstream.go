@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package proxy
 
 import (
@@ -445,7 +446,7 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", clusterName)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
-		
+
 		return nil, fmt.Errorf("unkown cluster %s", clusterName)
 	}
 

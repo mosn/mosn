@@ -1,14 +1,32 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cluster
 
 import (
 	"reflect"
 	"testing"
 
+	"net"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"net"
 )
 
 // we test following cases form envoy's example
@@ -66,7 +84,7 @@ var SubsetLbExample = subSetLoadBalancer{
 // passed
 // test fallback subset creation
 func Test_subSetLoadBalancer_UpdateFallbackSubset(t *testing.T) {
-	
+
 	hostSet := InitExampleHosts()
 	type args struct {
 		priority     uint32
@@ -90,21 +108,21 @@ func Test_subSetLoadBalancer_UpdateFallbackSubset(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			
+
 			sslb := SubsetLbExample
 			sslb.UpdateFallbackSubset(tt.args.priority, tt.args.hostAdded, tt.args.hostsRemoved)
-			
+
 			for idx, host := range sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts() {
-				
+
 				if host.Hostname() != tt.want[idx].Hostname() {
 					t.Errorf("Test_subSetLoadBalancer_UpdateFallbackSubset Error, got = %v, want %v", host,
 						tt.want[idx])
 				}
 			}
-			
+
 		})
 	}
 }
@@ -523,7 +541,7 @@ func TestGenerateDftSubsetKeys(t *testing.T) {
 	type args struct {
 		dftkeys types.SortedMap
 	}
-	
+
 	tests := []struct {
 		name string
 		args args
@@ -532,11 +550,10 @@ func TestGenerateDftSubsetKeys(t *testing.T) {
 		{
 			name: "test1",
 			args: args{
-				dftkeys:
-					[]types.SortedPair{
-						{"stage","prod"},
-						{"type", "std",},
-						{"version", "1.0"},
+				dftkeys: []types.SortedPair{
+					{"stage", "prod"},
+					{"type", "std"},
+					{"version", "1.0"},
 				},
 			},
 			want: InitDefaultSubsetMetadata(),

@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tests
 
 import (
@@ -105,12 +106,12 @@ func (s *UpstreamServer) Close() {
 }
 
 //Server Implement
-type Http2Server struct {
+type HTTP2Server struct {
 	t      *testing.T
 	Server *http2.Server
 }
 
-func (s *Http2Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *HTTP2Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.t.Logf("[server] Receive request\n")
 	w.Header().Set("Content-Type", "text/plain")
 
@@ -121,23 +122,23 @@ func (s *Http2Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "\nRequestId:%s\n", r.Header.Get("Requestid"))
 
 }
-func (s *Http2Server) ServeConn(t *testing.T, conn net.Conn) {
+func (s *HTTP2Server) ServeConn(t *testing.T, conn net.Conn) {
 	s.Server.ServeConn(conn, &http2.ServeConnOpts{Handler: s})
 }
 
-func NewUpstreamHttp2(t *testing.T, addr string) *UpstreamServer {
-	s := &Http2Server{
+func NewUpstreamHTTP2(t *testing.T, addr string) *UpstreamServer {
+	s := &HTTP2Server{
 		t:      t,
 		Server: &http2.Server{IdleTimeout: 1 * time.Minute},
 	}
 	return NewUpstreamServer(t, addr, s.ServeConn)
 }
 
-type Http2Response struct {
+type HTTP2Response struct {
 	re *regexp.Regexp
 }
 
-func (resp *Http2Response) Filter(data string, records cmap.ConcurrentMap) {
+func (resp *HTTP2Response) Filter(data string, records cmap.ConcurrentMap) {
 	if resp.re == nil {
 		resp.re = regexp.MustCompile("\nRequestId:[0-9]+\n")
 	}
@@ -145,21 +146,21 @@ func (resp *Http2Response) Filter(data string, records cmap.ConcurrentMap) {
 		strings.Trim(resp.re.FindString(data), "\n"), ":",
 	)
 	if len(bodys) == 2 {
-		requestId := bodys[1]
-		if _, ok := records.Get(requestId); ok {
-			records.Remove(requestId)
+		requestID := bodys[1]
+		if _, ok := records.Get(requestID); ok {
+			records.Remove(requestID)
 		}
 	}
 }
 
 //Http Server
 //use in net/http/httptest
-type HttpServer struct {
+type HTTPServer struct {
 	t    *testing.T
 	name string
 }
 
-func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.t.Logf("server %s Receive request\n", s.name)
 	w.Header().Set("Content-Type", "text/plain")
 	for k := range r.Header {
@@ -175,7 +176,7 @@ type ReponseFilter interface {
 
 //Rpc client
 //Send Request Byte
-type RpcClient struct {
+type RPCClient struct {
 	t              *testing.T
 	conn           types.ClientConnection
 	addr           string
@@ -184,11 +185,11 @@ type RpcClient struct {
 }
 
 //types.ReadFilter
-func (c *RpcClient) OnNewConnection() types.FilterStatus {
+func (c *RPCClient) OnNewConnection() types.FilterStatus {
 	return types.Continue
 }
-func (c *RpcClient) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
-func (c *RpcClient) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (c *RPCClient) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
+func (c *RPCClient) OnData(buffer types.IoBuffer) types.FilterStatus {
 	c.t.Logf("[client] receive data: \n")
 	//c.t.Logf("%s\n", buffer.String())
 	resp := buffer.String()
@@ -198,9 +199,9 @@ func (c *RpcClient) OnData(buffer types.IoBuffer) types.FilterStatus {
 }
 
 //types.ConnectionEventListener
-func (c *RpcClient) OnEvent(event types.ConnectionEvent) {}
+func (c *RPCClient) OnEvent(event types.ConnectionEvent) {}
 
-func (c *RpcClient) Connect() error {
+func (c *RPCClient) Connect() error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", c.addr)
 	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
@@ -214,13 +215,13 @@ func (c *RpcClient) Connect() error {
 	return nil
 }
 
-var streamIdCounter uint32
+var streamIDCounter uint32
 
-func GetStreamId() uint32 {
-	return atomic.AddUint32(&streamIdCounter, 1)
+func GetStreamID() uint32 {
+	return atomic.AddUint32(&streamIDCounter, 1)
 }
 
-func (c *RpcClient) SendRequest(streamId uint32, req []byte) {
+func (c *RPCClient) SendRequest(streamId uint32, req []byte) {
 	c.conn.Write(buffer.NewIoBufferBytes(req))
 	c.waitReponse.Set(fmt.Sprintf("%d", streamId), streamId)
 }
@@ -229,7 +230,7 @@ func (c *RpcClient) SendRequest(streamId uint32, req []byte) {
 //types.StreamReceiver
 type BoltV1Client struct {
 	t            *testing.T
-	ClientId     string
+	ClientID     string
 	Codec        stream.CodecClient
 	Waits        cmap.ConcurrentMap
 	conn         types.ClientConnection
@@ -243,14 +244,14 @@ func (c *BoltV1Client) Connect(addr string) error {
 	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
 	c.conn = cc
 	if err := cc.Connect(true); err != nil {
-		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientId, err)
+		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
 	c.Codec = stream.NewCodecClient(nil, protocol.SofaRpc, cc, nil)
 	return nil
 }
 func (c *BoltV1Client) SendRequest() {
-	id := GetStreamId()
+	id := GetStreamID()
 	streamId := sofarpc.StreamIDConvert(id)
 	requestEncoder := c.Codec.NewStream(streamId, c)
 	headers := buildBoltV1Request(id)
@@ -259,7 +260,7 @@ func (c *BoltV1Client) SendRequest() {
 	c.Waits.Set(streamId, streamId)
 }
 func (c *BoltV1Client) Stats() {
-	c.t.Logf("client %s send request:%d, get reponse:%d \n", c.ClientId, c.requestCount, c.respCount)
+	c.t.Logf("client %s send request:%d, get reponse:%d \n", c.ClientID, c.requestCount, c.respCount)
 }
 
 //
@@ -281,13 +282,13 @@ func (c *BoltV1Client) OnReceiveHeaders(headers map[string]string, endStream boo
 }
 
 //Protocols
-func buildBoltV1Request(requestId uint32) *sofarpc.BoltRequestCommand {
+func buildBoltV1Request(requestID uint32) *sofarpc.BoltRequestCommand {
 	request := &sofarpc.BoltRequestCommand{
 		Protocol: sofarpc.PROTOCOL_CODE_V1,
 		CmdType:  sofarpc.REQUEST,
 		CmdCode:  sofarpc.RPC_REQUEST,
 		Version:  1,
-		ReqId:    requestId,
+		ReqId:    requestID,
 		CodecPro: sofarpc.HESSIAN_SERIALIZE, //todo: read default codec from config
 		Timeout:  -1,
 	}

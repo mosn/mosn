@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tcpproxy
 
 import (
 	"context"
+	"reflect"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"reflect"
 )
 
 // ReadFilter
@@ -105,7 +107,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 		return types.StopIteration
 	}
 
-	connectionData := p.clusterManager.TcpConnForCluster(nil,clusterName)
+	connectionData := p.clusterManager.TcpConnForCluster(nil, clusterName)
 
 	if connectionData.Connection == nil {
 		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
@@ -184,7 +186,7 @@ func (p *proxy) finalizeUpstreamConnectionStats() {
 }
 
 func (p *proxy) onConnectionSuccess() {
-	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.Id())
+	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())
 }
 
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
