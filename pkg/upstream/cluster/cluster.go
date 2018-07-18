@@ -22,7 +22,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/tls"
 	"github.com/alipay/sofa-mosn/pkg/types"

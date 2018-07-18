@@ -27,22 +27,22 @@ ut-local:
 	go test ./test/...
 
 unit-test:
-	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make ut-local
 
 coverage-local:
 	sh ${SCRIPT_DIR}/report.sh
 
 coverage:
-	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make coverage-local
 
 build:
-	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make build-local
 
 build-host:
-	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --net=host --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make build-local
 
 binary: build
@@ -62,14 +62,14 @@ build-local:
 
 image:
 	@rm -rf IMAGEBUILD
-	cp -r contrib/builder/image IMAGEBUILD && cp build/bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r resource IMAGEBUILD && cp -r etc IMAGEBUILD
+	cp -r build/contrib/builder/image IMAGEBUILD && cp build/bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r resource IMAGEBUILD && cp -r etc IMAGEBUILD
 	docker build --no-cache --rm -t ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} IMAGEBUILD
 	docker tag ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} ${REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION}
 	rm -rf IMAGEBUILD
 
 rpm:
 	@sleep 1  # sometimes device-mapper complains for a relax
-	docker build --rm -t ${RPM_BUILD_IMAGE} contrib/builder/rpm
+	docker build --rm -t ${RPM_BUILD_IMAGE} build/contrib/builder/rpm
 	docker run --rm -w /opt/${TARGET}     \
 		-v $(shell pwd):/opt/${TARGET}    \
 		-e RPM_GIT_VERSION=${GIT_VERSION} \
@@ -81,13 +81,13 @@ rpm-build-local:
 	mkdir -p build/bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
 	cp -r build/bundles/${MAJOR_VERSION}/binary/${TARGET} build/bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
 	cp -r build/bundles/${MAJOR_VERSION}/binary/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
-	cp contrib/builder/rpm/${TARGET}.spec build/bundles/${MAJOR_VERSION}/rpm
-	cp contrib/builder/rpm/${TARGET}.service build/bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
-	cp contrib/builder/rpm/${TARGET}.logrotate build/bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
+	cp build/contrib/builder/rpm/${TARGET}.spec build/bundles/${MAJOR_VERSION}/rpm
+	cp build/contrib/builder/rpm/${TARGET}.service build/bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
+	cp build/contrib/builder/rpm/${TARGET}.logrotate build/bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR}
 	cd build/bundles/${MAJOR_VERSION}/rpm && tar zcvf ${RPM_TAR_FILE} ${RPM_SRC_DIR}
 	mv build/bundles/${MAJOR_VERSION}/rpm/${RPM_TAR_FILE} ~/rpmbuild/SOURCES
 	chown -R root:root ~/rpmbuild/SOURCES/${RPM_TAR_FILE}
-	rpmbuild -bb --clean contrib/builder/rpm/${TARGET}.spec             	\
+	rpmbuild -bb --clean build/contrib/builder/rpm/${TARGET}.spec             	\
 			--define "AFENP_NAME       ${RPM_TAR_NAME}" 					\
 			--define "AFENP_VERSION    ${RPM_VERSION}"       		    	\
 			--define "AFENP_RELEASE    ${RPM_GIT_VERSION}"     				\
@@ -96,7 +96,7 @@ rpm-build-local:
 	rm -rf build/bundles/${MAJOR_VERSION}/rpm/${RPM_SRC_DIR} build/bundles/${MAJOR_VERSION}/rpm/${TARGET}.spec
 
 shell:
-	docker build --rm -t ${BUILD_IMAGE} contrib/builder/binary
+	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -ti -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} /bin/bash
 
 .PHONY: unit-test build image rpm upload shell
