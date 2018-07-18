@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package healthcheck
 
 import (
 	"math/rand"
 	"time"
 
-	"github.com/rcrowley/go-metrics"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/rcrowley/go-metrics"
 )
 
 type sessionFactory interface {
@@ -90,7 +91,7 @@ func (c *healthChecker) newSession(host types.Host) types.HealthCheckSession {
 	if c.sessionFactory != nil {
 		return c.sessionFactory.newSession(host)
 	}
-	
+
 	return &healthCheckSession{
 		healthChecker: c,
 		host:          host,

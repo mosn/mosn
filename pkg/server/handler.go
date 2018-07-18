@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package server
 
 import (
@@ -142,7 +143,7 @@ func (ch *connHandler) FindListenerByAddress(addr net.Addr) types.Listener {
 	if l == nil {
 		return nil
 	}
-	
+
 	return l.listener
 }
 

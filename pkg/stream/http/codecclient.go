@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package http
 
 import (
@@ -21,10 +22,11 @@ import (
 	"context"
 	"sync"
 
-	"github.com/valyala/fasthttp"
+	"sync/atomic"
+
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"sync/atomic"
+	"github.com/valyala/fasthttp"
 )
 
 // connection management is done by fasthttp
@@ -135,7 +137,7 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 		for ar := c.ActiveRequests.Front(); ar != nil; ar = arNext {
 			reason := types.StreamConnectionFailed
 			arNext = ar.Next()
-			
+
 			if c.ConnectedFlag {
 				reason = types.StreamConnectionTermination
 			}
@@ -193,7 +195,7 @@ type activeRequest struct {
 	responseDecoder types.StreamReceiver
 	requestEncoder  types.StreamSender
 	element         *list.Element
-	deleted          uint32
+	deleted         uint32
 }
 
 func newActiveRequest(codecClient *codecClient, streamDecoder types.StreamReceiver) *activeRequest {

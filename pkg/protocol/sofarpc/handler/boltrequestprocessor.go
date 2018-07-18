@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package handler
 
 import (
@@ -56,9 +57,9 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 				if cmd.Content == nil {
 					cmd.RequestHeader[types.HeaderStremEnd] = "yes"
 				}
-				
+
 				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
-				
+
 				if status == types.StopIteration {
 					return
 				}
@@ -85,11 +86,11 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
-				
+
 				if cmd.Content == nil {
 					cmd.RequestHeader["x-mosn-endstream"] = "yes"
 				}
-				
+
 				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
 
 				if status == types.StopIteration {

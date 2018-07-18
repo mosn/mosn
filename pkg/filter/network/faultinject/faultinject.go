@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package faultinject
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"math/rand"
 	"sync/atomic"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 type faultinjecter struct {
@@ -45,7 +47,7 @@ func (fi *faultinjecter) OnData(buffer types.IoBuffer) types.FilterStatus {
 	if atomic.LoadUint32(&fi.delaying) > 0 {
 		return types.StopIteration
 	}
-	
+
 	return types.Continue
 }
 

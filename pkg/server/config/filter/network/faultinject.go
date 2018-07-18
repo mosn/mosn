@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package network
 
 import (
@@ -34,6 +35,6 @@ func (fifcf *FaultInjectFilterConfigFactory) CreateFilterFactory(context context
 	clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
 		manager.AddReadFilter(faultinject.NewFaultInjecter(fifcf.FaultInject))
-		manager.AddReadFilter(tcpproxy.NewProxy(context,fifcf.Proxy, clusterManager))
+		manager.AddReadFilter(tcpproxy.NewProxy(context, fifcf.Proxy, clusterManager))
 	}
 }

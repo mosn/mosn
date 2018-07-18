@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package sofarpc
 
 import (
 	"context"
+	"reflect"
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"reflect"
-	"time"
 )
 
 // todo: support cached pass through
@@ -84,7 +86,7 @@ func (f *healthCheckFilter) OnDecodeHeaders(headers map[string]string, endStream
 	if f.intercept {
 		return types.FilterHeadersStatusStopIteration
 	}
-	
+
 	return types.FilterHeadersStatusContinue
 }
 
@@ -96,7 +98,7 @@ func (f *healthCheckFilter) OnDecodeData(buf types.IoBuffer, endStream bool) typ
 	if f.intercept {
 		return types.FilterDataStatusStopIterationNoBuffer
 	}
-	
+
 	return types.FilterDataStatusContinue
 }
 
@@ -108,7 +110,7 @@ func (f *healthCheckFilter) OnDecodeTrailers(trailers map[string]string) types.F
 	if f.intercept {
 		return types.FilterTrailersStatusStopIteration
 	}
-	
+
 	return types.FilterTrailersStatusContinue
 }
 
