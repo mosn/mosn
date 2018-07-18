@@ -20,7 +20,6 @@ import (
 	"errors"
 	"os"
 	"runtime"
-	_ "sync"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
