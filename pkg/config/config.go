@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/api/v2"
 )
 
 //global instance for load & dump
@@ -228,7 +228,7 @@ func Load(path string) *MOSNConfig {
 	}
 	ConfigPath, _ = filepath.Abs(path)
 	// todo delete
-	//ConfigPath = "../../resource/mosn_config_dump_result.json"
+	//ConfigPath = "../../configs/mosn_config_dump_result.json"
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
