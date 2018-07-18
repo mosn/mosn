@@ -22,7 +22,7 @@ import (
 	"net"
 	"sort"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/rcrowley/go-metrics"
 )
 

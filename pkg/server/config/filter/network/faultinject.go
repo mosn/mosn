@@ -20,7 +20,7 @@ package network
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/network/faultinject"
 	"github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
