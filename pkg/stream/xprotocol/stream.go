@@ -19,10 +19,9 @@ package xprotocol
 
 import (
 	"context"
-	"sync"
-
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/log"

@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 

@@ -17,9 +17,9 @@
 
 package v2
 
-import "time"
-
 import (
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"

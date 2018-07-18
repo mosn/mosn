@@ -20,7 +20,6 @@ package faultinject
 
 import (
 	"context"
-
 	"math/rand"
 	"sync/atomic"
 	"time"

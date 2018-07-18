@@ -24,9 +24,8 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
-	"time"
-
 	"sync/atomic"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"

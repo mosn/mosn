@@ -18,16 +18,12 @@
 package v2
 
 import (
-	//"time"
-	//"golang.org/x/net/context"
-	//"google.golang.org/grpc"
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	//google_rpc "github.com/gogo/googleapis/google/rpc"
 	"errors"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 )
 
 func (c *ClientV2) GetListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Listener {

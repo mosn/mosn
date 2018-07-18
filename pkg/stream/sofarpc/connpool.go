@@ -19,7 +19,6 @@ package sofarpc
 
 import (
 	"context"
-
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"

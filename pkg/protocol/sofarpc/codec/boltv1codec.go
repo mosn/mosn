@@ -20,10 +20,9 @@ package codec
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"reflect"
 	"time"
-
-	"errors"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"

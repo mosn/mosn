@@ -19,11 +19,10 @@ package config
 
 import (
 	"encoding/json"
-
-	"github.com/alipay/sofa-mosn/pkg/log"
-
 	"io/ioutil"
 	"sync"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 var fileMutex = new(sync.Mutex)

@@ -18,7 +18,11 @@
 package xds
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -28,11 +32,6 @@ import (
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/types"
-	//"github.com/alipay/sofa-mosn/pkg/types"
-	"encoding/json"
-	"fmt"
-	"strings"
-	"time"
 )
 
 //var warmuped chan bool = make(chan bool)

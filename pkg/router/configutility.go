@@ -20,7 +20,6 @@ package router
 import (
 	"container/list"
 	"regexp"
-
 	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/log"

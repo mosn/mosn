@@ -23,11 +23,10 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/rcrowley/go-metrics"
-
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/tls"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/rcrowley/go-metrics"
 )
 
 // Cluster

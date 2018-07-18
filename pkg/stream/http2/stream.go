@@ -20,6 +20,7 @@ package http2
 import (
 	"container/list"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -30,8 +31,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"crypto/tls"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"

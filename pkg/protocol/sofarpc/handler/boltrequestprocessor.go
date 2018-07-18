@@ -21,7 +21,6 @@ import (
 	"context"
 	"strconv"
 	"sync/atomic"
-
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
