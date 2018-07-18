@@ -34,8 +34,8 @@ func TestBolt2Http2(t *testing.T) {
 	server := NewUpstreamHttp2(t, http2Addr)
 	server.GoServe()
 	defer server.Close()
-	mesh_config := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.SofaRpc, protocol.Http2)
-	mesh := mosn.NewMosn(mesh_config)
+	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.SofaRpc, protocol.Http2)
+	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()
 	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start
@@ -44,8 +44,8 @@ func TestBolt2Http2(t *testing.T) {
 	client := &RpcClient{
 		t:               t,
 		addr:            meshAddr,
-		response_filter: &Http2Response{},
-		wait_reponse:    cmap.New(),
+		responseFilter: &Http2Response{},
+		waitReponse:    cmap.New(),
 	}
 	if err := client.Connect(); err != nil {
 		t.Fatalf("client connect failed\n")
@@ -60,8 +60,8 @@ func TestBolt2Http2(t *testing.T) {
 	}
 	//client.wait_response should empty
 	<-time.After(10 * time.Second)
-	if !client.wait_reponse.IsEmpty() {
+	if !client.waitReponse.IsEmpty() {
 		t.Errorf("exists request no response\n")
-		t.Logf("%v\n", client.wait_reponse.Keys())
+		t.Logf("%v\n", client.waitReponse.Keys())
 	}
 }

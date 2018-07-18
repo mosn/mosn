@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/filter/accept/original_dst"
+	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -257,7 +257,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	// TODO: create listener filter chain
 
 	if handOffRestoredDestinationConnections {
-		arc.acceptedFilters = append(arc.acceptedFilters, original_dst.NewOriginalDst())
+		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 		arc.handOffRestoredDestinationConnections = true
 		log.DefaultLogger.Infof("accept restored destination connection from:%s", al.listener.Addr().String())
 	} else {

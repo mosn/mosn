@@ -36,8 +36,8 @@ func TestHttp2(t *testing.T) {
 	server := NewUpstreamHttp2(t, http2Addr)
 	server.GoServe()
 	defer server.Close()
-	mesh_config := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.Http2, protocol.Http2)
-	mesh := mosn.NewMosn(mesh_config)
+	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.Http2, protocol.Http2)
+	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()
 	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start

@@ -59,19 +59,19 @@ func (spi *ShadowPolicyImpl) RuntimeKey() string {
 }
 
 type LowerCaseString struct {
-	string_ string
+	str string
 }
 
 func (lcs *LowerCaseString) Lower() {
-	lcs.string_ = strings.ToLower(lcs.string_)
+	lcs.str = strings.ToLower(lcs.str)
 }
 
 func (lcs *LowerCaseString) Equal(rhs types.LowerCaseString) bool {
-	return lcs.string_ == rhs.Get()
+	return lcs.str == rhs.Get()
 }
 
 func (lcs *LowerCaseString) Get() string {
-	return lcs.string_
+	return lcs.str
 }
 
 type HashPolicyImpl struct {

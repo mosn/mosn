@@ -22,6 +22,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	xdsxproxy "github.com/alipay/sofa-mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
@@ -35,10 +39,6 @@ import (
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/fatih/structs"
 	"github.com/gogo/protobuf/types"
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	xdsxproxy "github.com/alipay/sofa-mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
 )
 
 var supportFilter map[string]bool = map[string]bool{
@@ -613,7 +613,7 @@ func convertOutlierDetection(xdsOutlierDetection *xdscluster.OutlierDetection) v
 		return v2.OutlierDetection{}
 	}
 	return v2.OutlierDetection{
-		Consecutive_5Xx:                    xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
+		Consecutive5xx:                     xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
 		Interval:                           convertDuration(xdsOutlierDetection.GetInterval()),
 		BaseEjectionTime:                   convertDuration(xdsOutlierDetection.GetBaseEjectionTime()),
 		MaxEjectionPercent:                 xdsOutlierDetection.GetMaxEjectionPercent().GetValue(),

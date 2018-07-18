@@ -41,8 +41,8 @@ func TestServerClose(t *testing.T) {
 		defer server.Close()
 		servers = append(servers, server)
 	}
-	mesh_config := CreateSimpleMeshConfig(meshAddr, serverAddrs, protocol.SofaRpc, protocol.SofaRpc)
-	mesh := mosn.NewMosn(mesh_config)
+	meshConfig := CreateSimpleMeshConfig(meshAddr, serverAddrs, protocol.SofaRpc, protocol.SofaRpc)
+	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()
 	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start

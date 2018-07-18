@@ -245,9 +245,9 @@ type clientStream struct {
 }
 
 // types.StreamSender
-func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error {
+func (s *clientStream) AppendHeaders(headers interface{}, endStream bool) error {
 	log.StartLogger.Tracef("http2 client stream encode headers")
-	headers, _ := headers_.(map[string]string)
+	headersMap, _ := headers.(map[string]string)
 
 	if s.request == nil {
 		s.request = new(http.Request)
@@ -256,28 +256,28 @@ func (s *clientStream) AppendHeaders(headers_ interface{}, endStream bool) error
 			s.connection.rawConnection.RemoteAddr().String()))
 	}
 
-	if method, ok := headers[types.HeaderMethod]; ok {
+	if method, ok := headersMap[types.HeaderMethod]; ok {
 		s.request.Method = method
-		delete(headers, types.HeaderMethod)
+		delete(headersMap, types.HeaderMethod)
 	}
 
-	if host, ok := headers[types.HeaderHost]; ok {
+	if host, ok := headersMap[types.HeaderHost]; ok {
 		s.request.Host = host
-		delete(headers, types.HeaderHost)
+		delete(headersMap, types.HeaderHost)
 	}
 
-	if path, ok := headers[protocol.MosnHeaderPathKey]; ok {
+	if path, ok := headersMap[protocol.MosnHeaderPathKey]; ok {
 		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s%s",
 			s.connection.rawConnection.RemoteAddr().String(), path))
-		delete(headers, protocol.MosnHeaderPathKey)
+		delete(headersMap, protocol.MosnHeaderPathKey)
 	}
 
-	if _, ok := headers["Host"]; ok {
-		headers["Host"] = s.connection.rawConnection.RemoteAddr().String()
+	if _, ok := headersMap["Host"]; ok {
+		headersMap["Host"] = s.connection.rawConnection.RemoteAddr().String()
 		s.request.Host = s.connection.rawConnection.RemoteAddr().String()
 	}
 
-	s.request.Header = encodeHeader(headers)
+	s.request.Header = encodeHeader(headersMap)
 
 	log.StartLogger.Tracef("http2 client stream encode headers,headers = %v", s.request.Header)
 
@@ -414,8 +414,8 @@ type serverStream struct {
 }
 
 // types.StreamSender
-func (s *serverStream) AppendHeaders(headers_ interface{}, endStream bool) error {
-	headers, _ := headers_.(map[string]string)
+func (s *serverStream) AppendHeaders(headersIn interface{}, endStream bool) error {
+	headers, _ := headersIn.(map[string]string)
 
 	if s.response == nil {
 		s.response = new(http.Response)
