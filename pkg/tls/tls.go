@@ -20,11 +20,10 @@ package tls
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"net"
-
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"strings"
 	"sync"
 

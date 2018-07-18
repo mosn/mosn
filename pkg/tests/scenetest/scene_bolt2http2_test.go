@@ -35,7 +35,7 @@ func TestBolt2Http2(t *testing.T) {
 	server := NewUpstreamHTTP2(t, http2Addr)
 	server.GoServe()
 	defer server.Close()
-	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.SofaRpc, protocol.Http2)
+	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.SofaRPC, protocol.HTTP2)
 	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()
 	defer mesh.Close()

@@ -231,7 +231,7 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host
 	return nil
 }
 
-func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string,
+func (cm *clusterManager) HTTPConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string,
 	protocol types.Protocol) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
@@ -246,7 +246,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext
 		log.StartLogger.Tracef("http connection pool upstream addr : %v", addr)
 
 		switch protocol {
-		case proto.Http2:
+		case proto.HTTP2:
 
 			if connPool, ok := cm.http2ConnPool.Get(addr); ok {
 				return connPool.(types.ConnectionPool)
@@ -256,7 +256,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext
 			cm.http2ConnPool.Set(addr, connPool)
 
 			return connPool
-		case proto.Http1:
+		case proto.HTTP1:
 
 			if connPool, ok := cm.http1ConnPool.Get(addr); ok {
 				return connPool.(types.ConnectionPool)
@@ -299,7 +299,7 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerCo
 	return nil
 }
 
-func (cm *clusterManager) TcpConnForCluster(lbCtx types.LoadBalancerContext, cluster string) types.CreateConnectionData {
+func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, cluster string) types.CreateConnectionData {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -315,7 +315,7 @@ func (cm *clusterManager) TcpConnForCluster(lbCtx types.LoadBalancerContext, clu
 	return types.CreateConnectionData{}
 }
 
-func (cm *clusterManager) SofaRpcConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string) types.ConnectionPool {
+func (cm *clusterManager) SofaRPCConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {

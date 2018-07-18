@@ -35,7 +35,7 @@ type Matchable interface {
 	Match(headers map[string]string, randomValue uint64) types.Route
 }
 
-type RouterInfo interface {
+type Info interface {
 	GetRouterName() string
 }
 
@@ -43,7 +43,7 @@ type RouteBase interface {
 	types.Route
 	types.RouteRule
 	Matchable
-	RouterInfo
+	Info
 }
 
 type ShadowPolicyImpl struct {

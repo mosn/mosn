@@ -17,11 +17,11 @@
 
 package http
 
-type HttpCode uint32
+type Code uint32
 
 const (
-	Continue HttpCode = 100
-	OK                = 200
+	Continue Code = 100
+	OK            = 200
 
 	Created                     = 201
 	Accepted                    = 202

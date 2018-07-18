@@ -18,16 +18,12 @@
 package v2
 
 import (
-	//"time"
-	//"google.golang.org/grpc"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	//"golang.org/x/net/context"
-	//google_rpc "github.com/gogo/googleapis/google/rpc"
 	"errors"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 )
 
 func (c *ClientV2) GetClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Cluster {

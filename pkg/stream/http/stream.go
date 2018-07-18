@@ -25,10 +25,9 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
-
-	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
@@ -39,7 +38,7 @@ import (
 )
 
 func init() {
-	str.Register(protocol.Http1, &streamConnFactory{})
+	str.Register(protocol.HTTP1, &streamConnFactory{})
 }
 
 type streamConnFactory struct{}
@@ -118,7 +117,7 @@ func newClientStreamWrapper(context context.Context, client *fasthttp.HostClient
 func (csw *clientStreamWrapper) Dispatch(buffer types.IoBuffer) {}
 
 func (csw *clientStreamWrapper) Protocol() types.Protocol {
-	return protocol.Http1
+	return protocol.HTTP1
 }
 
 func (csw *clientStreamWrapper) GoAway() {
@@ -129,10 +128,10 @@ func (csw *clientStreamWrapper) OnGoAway() {
 	csw.streamConnCallbacks.OnGoAway()
 }
 
-func (csw *clientStreamWrapper) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
+func (csw *clientStreamWrapper) NewStream(streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
-			context:  context.WithValue(csw.context, types.ContextKeyStreamID, streamId),
+			context:  context.WithValue(csw.context, types.ContextKeyStreamID, streamID),
 			receiver: responseDecoder,
 		},
 		wrapper: csw,
@@ -173,18 +172,18 @@ func (ssc *serverStreamConnection) OnGoAway() {
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 	//generate stream id using timestamp
-	streamId := "streamID-" + time.Now().String()
+	streamID := "streamID-" + time.Now().String()
 
 	s := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamId),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
 		},
 		ctx:              ctx,
 		connection:       ssc,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamId, s)
+	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamID, s)
 
 	ssc.activeStream = &s.stream
 

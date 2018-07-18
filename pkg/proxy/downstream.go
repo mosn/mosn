@@ -24,9 +24,8 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
-	"time"
-
 	"sync/atomic"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
@@ -40,7 +39,7 @@ import (
 // types.FilterChainFactoryCallbacks
 // Downstream stream, as a controller to handle downstream and upstream proxy flow
 type downStream struct {
-	streamId string
+	streamID string
 	proxy    *proxy
 	route    types.Route
 	cluster  types.ClusterInfo
@@ -51,7 +50,7 @@ type downStream struct {
 	highWatermarkCount int
 
 	// ~~~ control args
-	timeout    *ProxyTimeout
+	timeout    *Timeout
 	retryState *retryState
 
 	requestInfo     types.RequestInfo
@@ -98,10 +97,10 @@ type downStream struct {
 	logger log.Logger
 }
 
-func newActiveStream(streamId string, proxy *proxy, responseSender types.StreamSender) *downStream {
+func newActiveStream(streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
 	stream := &downStream{}
 
-	stream.streamId = streamId
+	stream.streamID = streamID
 	stream.proxy = proxy
 	stream.requestInfo = network.NewRequestInfo()
 	stream.responseSender = responseSender
@@ -447,7 +446,7 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 
-		return nil, fmt.Errorf("unkown cluster %s", clusterName)
+		return nil, fmt.Errorf("unknown cluster %s", clusterName)
 	}
 
 	s.cluster = clusterSnapshot.ClusterInfo()
@@ -455,16 +454,16 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 
 	// todo: refactor
 	switch types.Protocol(s.proxy.config.UpstreamProtocol) {
-	case protocol.SofaRpc:
-		connPool = s.proxy.clusterManager.SofaRpcConnPoolForCluster(lbCtx, clusterName)
-	case protocol.Http2:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(lbCtx, clusterName, protocol.Http2)
-	case protocol.Http1:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(lbCtx, clusterName, protocol.Http1)
+	case protocol.SofaRPC:
+		connPool = s.proxy.clusterManager.SofaRPCConnPoolForCluster(lbCtx, clusterName)
+	case protocol.HTTP2:
+		connPool = s.proxy.clusterManager.HTTPConnPoolForCluster(lbCtx, clusterName, protocol.HTTP2)
+	case protocol.HTTP1:
+		connPool = s.proxy.clusterManager.HTTPConnPoolForCluster(lbCtx, clusterName, protocol.HTTP1)
 	case protocol.Xprotocol:
 		connPool = s.proxy.clusterManager.XprotocolConnPoolForCluster(nil, clusterName, protocol.Xprotocol)
 	default:
-		connPool = s.proxy.clusterManager.HttpConnPoolForCluster(lbCtx, clusterName, protocol.Http2)
+		connPool = s.proxy.clusterManager.HTTPConnPoolForCluster(lbCtx, clusterName, protocol.HTTP2)
 	}
 
 	if connPool == nil {
@@ -766,7 +765,7 @@ func (s *downStream) AddStreamSenderFilter(filter types.StreamSenderFilter) {
 }
 
 func (s *downStream) reset() {
-	s.streamId = ""
+	s.streamID = ""
 	s.proxy = nil
 	s.route = nil
 	s.cluster = nil

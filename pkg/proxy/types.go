@@ -40,7 +40,7 @@ type DownstreamCallbacks interface {
 	types.ConnectionEventListener
 }
 
-type ProxyTimeout struct {
+type Timeout struct {
 	GlobalTimeout time.Duration
 	TryTimeout    time.Duration
 }

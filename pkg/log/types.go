@@ -17,10 +17,10 @@
 
 package log
 
-type LogLevel uint8
+type Level uint8
 
 const (
-	FATAL LogLevel = iota
+	FATAL Level = iota
 	ERROR
 	WARN
 	INFO

@@ -221,9 +221,9 @@ func GetStreamID() uint32 {
 	return atomic.AddUint32(&streamIDCounter, 1)
 }
 
-func (c *RPCClient) SendRequest(streamId uint32, req []byte) {
+func (c *RPCClient) SendRequest(streamID uint32, req []byte) {
 	c.conn.Write(buffer.NewIoBufferBytes(req))
-	c.waitReponse.Set(fmt.Sprintf("%d", streamId), streamId)
+	c.waitReponse.Set(fmt.Sprintf("%d", streamID), streamID)
 }
 
 //BoltV1 Client
@@ -247,20 +247,20 @@ func (c *BoltV1Client) Connect(addr string) error {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	c.Codec = stream.NewCodecClient(nil, protocol.SofaRpc, cc, nil)
+	c.Codec = stream.NewCodecClient(nil, protocol.SofaRPC, cc, nil)
 	return nil
 }
 func (c *BoltV1Client) SendRequest() {
 	id := GetStreamID()
-	streamId := sofarpc.StreamIDConvert(id)
-	requestEncoder := c.Codec.NewStream(streamId, c)
+	streamID := sofarpc.StreamIDConvert(id)
+	requestEncoder := c.Codec.NewStream(streamID, c)
 	headers := buildBoltV1Request(id)
 	requestEncoder.AppendHeaders(headers, true)
 	atomic.AddUint32(&c.requestCount, 1)
-	c.Waits.Set(streamId, streamId)
+	c.Waits.Set(streamID, streamID)
 }
 func (c *BoltV1Client) Stats() {
-	c.t.Logf("client %s send request:%d, get reponse:%d \n", c.ClientID, c.requestCount, c.respCount)
+	c.t.Logf("client %s send request:%d, get response:%d \n", c.ClientID, c.requestCount, c.respCount)
 }
 
 //
@@ -271,12 +271,12 @@ func (c *BoltV1Client) OnReceiveTrailers(trailers map[string]string) {
 func (c *BoltV1Client) OnDecodeError(err error, headers map[string]string) {
 }
 func (c *BoltV1Client) OnReceiveHeaders(headers map[string]string, endStream bool) {
-	streamId, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
+	streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
 	if ok {
-		if _, ok := c.Waits.Get(streamId); ok {
-			//c.t.Logf("Get Stream Response: %s ,headers: %v\n", streamId, headers)
+		if _, ok := c.Waits.Get(streamID); ok {
+			//c.t.Logf("Get Stream Response: %s ,headers: %v\n", streamID, headers)
 			atomic.AddUint32(&c.respCount, 1)
-			c.Waits.Remove(streamId)
+			c.Waits.Remove(streamID)
 		}
 	}
 }
@@ -288,7 +288,7 @@ func buildBoltV1Request(requestID uint32) *sofarpc.BoltRequestCommand {
 		CmdType:  sofarpc.REQUEST,
 		CmdCode:  sofarpc.RPC_REQUEST,
 		Version:  1,
-		ReqId:    requestID,
+		ReqID:    requestID,
 		CodecPro: sofarpc.HESSIAN_SERIALIZE, //todo: read default codec from config
 		Timeout:  -1,
 	}
@@ -310,7 +310,7 @@ func buildBoltV1Resposne(req *sofarpc.BoltRequestCommand) *sofarpc.BoltResponseC
 		CmdType:        sofarpc.RESPONSE,
 		CmdCode:        sofarpc.RPC_RESPONSE,
 		Version:        req.Version,
-		ReqId:          req.ReqId,
+		ReqID:          req.ReqID,
 		CodecPro:       req.CodecPro, //todo: read default codec from config
 		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
 		HeaderLen:      req.HeaderLen,
@@ -347,7 +347,7 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 					if err != nil {
 						t.Errorf("Build response error: %v\n", err)
 					} else {
-						//t.Logf("server %s write to remote: %d\n", conn.LocalAddr().String(), resp.GetReqId)
+						//t.Logf("server %s write to remote: %d\n", conn.LocalAddr().String(), resp.GetReqID)
 						respdata := iobufresp.Bytes()
 						conn.Write(respdata)
 					}

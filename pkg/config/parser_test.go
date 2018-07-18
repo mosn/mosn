@@ -18,11 +18,10 @@
 package config
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
-
-	"encoding/json"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )

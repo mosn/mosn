@@ -53,13 +53,13 @@ type Protocols interface {
 // Filter used by Stream to receive decode events
 type DecodeFilter interface {
 	// Called on headers decoded
-	OnDecodeHeader(streamId string, headers map[string]string) FilterStatus
+	OnDecodeHeader(streamID string, headers map[string]string) FilterStatus
 
 	// Called on data decoded
-	OnDecodeData(streamId string, data IoBuffer) FilterStatus
+	OnDecodeData(streamID string, data IoBuffer) FilterStatus
 
 	// Called on trailers decoded
-	OnDecodeTrailer(streamId string, trailers map[string]string) FilterStatus
+	OnDecodeTrailer(streamID string, trailers map[string]string) FilterStatus
 
 	// Called when error occurs
 	// When error occurring, filter status = stop

@@ -49,7 +49,7 @@ type healthCheckFilter struct {
 	cb types.StreamReceiverFilterCallbacks
 }
 
-func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter) *healthCheckFilter {
+func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter) types.StreamReceiverFilter {
 	return &healthCheckFilter{
 		context:                      context,
 		passThrough:                  config.PassThrough,
@@ -66,8 +66,8 @@ func (f *healthCheckFilter) OnDecodeHeaders(headers map[string]string, endStream
 		if cmdCode == sofarpc.HEARTBEAT {
 			protocolStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]
 			f.protocol = sofarpc.ConvertPropertyValue(protocolStr, reflect.Uint8).(byte)
-			requestIdStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
-			f.requestID = sofarpc.ConvertPropertyValue(requestIdStr, reflect.Uint32).(uint32)
+			requestIDStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
+			f.requestID = sofarpc.ConvertPropertyValue(requestIDStr, reflect.Uint32).(uint32)
 			f.healthCheckReq = true
 			f.cb.RequestInfo().SetHealthCheck(true)
 

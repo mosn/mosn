@@ -20,10 +20,9 @@ package codec
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"reflect"
 	"time"
-
-	"errors"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
@@ -115,7 +114,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofar
 	data[offset] = cmd.Version
 	offset++
 
-	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ReqId))
+	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ReqID))
 	offset += 4
 
 	data[offset] = cmd.CodecPro
@@ -165,7 +164,7 @@ func (c *boltV1Codec) doEncodeResponseCommand(context context.Context, cmd *sofa
 	data[offset] = cmd.Version
 	offset++
 
-	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ReqId))
+	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ReqID))
 	offset += 4
 
 	data[offset] = cmd.CodecPro
@@ -344,7 +343,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					nil,
 				}
 				logger.Debugf("BoltV1 DECODE REQUEST, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
-					request.Protocol, request.CmdType, request.CmdCode, request.ReqId)
+					request.Protocol, request.CmdType, request.CmdCode, request.ReqID)
 				cmd = &request
 			}
 		} else {
@@ -408,7 +407,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					//logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
 				}
 				logger.Debugf("BoltV1 DECODE RESPONSE,RespStatus = %d, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
-					response.ResponseStatus, response.Protocol, response.CmdType, response.CmdCode, response.ReqId)
+					response.ResponseStatus, response.Protocol, response.CmdType, response.CmdCode, response.ReqID)
 				cmd = &response
 			}
 		}

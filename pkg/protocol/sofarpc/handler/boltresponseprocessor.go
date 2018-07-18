@@ -34,7 +34,7 @@ type BoltResponseProcessorV2 struct{}
 func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
 		deserializeResponseAllFields(context, cmd)
-		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
+		reqID := sofarpc.StreamIDConvert(cmd.ReqID)
 
 		//print tracer log
 		log.DefaultLogger.Infof("streamID=%s,protocol=%s", reqID, "bolt")
@@ -68,8 +68,8 @@ func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}
 
 func (b *BoltResponseProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2ResponseCommand); ok {
-		deserializeResponseAllFieldsV2(cmd, context)
-		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
+		deserializeResponseAllFieldsV2(context, cmd)
+		reqID := sofarpc.StreamIDConvert(cmd.ReqID)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -114,7 +114,7 @@ func deserializeResponseAllFields(context context.Context, responseCommand *sofa
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType)] = strconv.FormatUint(uint64(responseCommand.CmdType), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)] = strconv.FormatUint(uint64(responseCommand.CmdCode), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion)] = strconv.FormatUint(uint64(responseCommand.Version), 10)
-	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(responseCommand.ReqId), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(responseCommand.ReqID), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCodec)] = strconv.FormatUint(uint64(responseCommand.CodecPro), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassLen)] = strconv.FormatUint(uint64(responseCommand.ClassLen), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderHeaderLen)] = strconv.FormatUint(uint64(responseCommand.HeaderLen), 10)
@@ -138,7 +138,7 @@ func deserializeResponseAllFields(context context.Context, responseCommand *sofa
 	responseCommand.ResponseHeader = allField
 }
 
-func deserializeResponseAllFieldsV2(responseCommandV2 *sofarpc.BoltV2ResponseCommand, context context.Context) {
+func deserializeResponseAllFieldsV2(context context.Context, responseCommandV2 *sofarpc.BoltV2ResponseCommand) {
 	deserializeResponseAllFields(context, &responseCommandV2.BoltResponseCommand)
 	responseCommandV2.ResponseHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion1)] = strconv.FormatUint(uint64(responseCommandV2.Version1), 10)
 	responseCommandV2.ResponseHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderSwitchCode)] = strconv.FormatUint(uint64(responseCommandV2.SwitchCode), 10)

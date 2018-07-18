@@ -28,7 +28,7 @@ import (
 
 type FaultInjectFilterConfigFactory struct {
 	FaultInject *v2.FaultInject
-	Proxy       *v2.TcpProxy
+	Proxy       *v2.TCPProxy
 }
 
 func (fifcf *FaultInjectFilterConfigFactory) CreateFilterFactory(context context.Context,

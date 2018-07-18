@@ -40,7 +40,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) Protocol() types.Protocol {
-	return protocol.Http1
+	return protocol.HTTP1
 }
 
 func (p *connPool) DrainConnections() {}

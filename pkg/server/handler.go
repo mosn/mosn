@@ -89,7 +89,7 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 		lc.LogPath = MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
 	}
 
-	logger, err := log.NewLogger(lc.LogPath, log.LogLevel(lc.LogLevel))
+	logger, err := log.NewLogger(lc.LogPath, log.Level(lc.LogLevel))
 	if err != nil {
 		ch.logger.Fatalf("initialize listener logger failed : %v", err)
 	}

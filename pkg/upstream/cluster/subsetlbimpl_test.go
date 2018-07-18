@@ -18,10 +18,9 @@
 package cluster
 
 import (
+	"net"
 	"reflect"
 	"testing"
-
-	"net"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"

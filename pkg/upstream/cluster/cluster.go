@@ -23,11 +23,10 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/rcrowley/go-metrics"
-
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/tls"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/rcrowley/go-metrics"
 )
 
 // Cluster
@@ -242,7 +241,7 @@ type clusterInfo struct {
 	lbSubsetInfo types.LBSubsetInfo
 }
 
-func NewClusterInfo() *clusterInfo {
+func NewClusterInfo() types.ClusterInfo {
 	return &clusterInfo{}
 }
 
@@ -254,7 +253,7 @@ func (ci *clusterInfo) LbType() types.LoadBalancerType {
 	return ci.lbType
 }
 
-func (ci *clusterInfo) AddedViaApi() bool {
+func (ci *clusterInfo) AddedViaAPI() bool {
 	return ci.addedViaAPI
 }
 

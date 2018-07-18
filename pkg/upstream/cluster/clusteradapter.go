@@ -46,7 +46,7 @@ func (ca *Adapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) err
 			// for dynamically added cluster, use cluster manager's health check config
 			if ca.clusterMng.registryUseHealthCheck {
 				// todo support more default health check @boqin
-				cluster.HealthCheck = sofarpc.DefaultSofaRpcHealthCheckConf
+				cluster.HealthCheck = sofarpc.DefaultSofaRPCHealthCheckConf
 			}
 
 			ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
@@ -72,7 +72,7 @@ func (ca *Adapter) TriggerClusterAdded(cluster v2.Cluster) {
 
 		// for dynamically added cluster, use cluster manager's health check config
 		if ca.clusterMng.registryUseHealthCheck {
-			cluster.HealthCheck = sofarpc.DefaultSofaRpcHealthCheckConf
+			cluster.HealthCheck = sofarpc.DefaultSofaRPCHealthCheckConf
 		}
 
 		ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)

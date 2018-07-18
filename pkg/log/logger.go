@@ -53,7 +53,7 @@ func init() {
 	StartLogger = &logger{
 		Output:  "",
 		Level:   DEBUG,
-		Roller:  DefaultLogRoller(),
+		Roller:  DefaultRoller(),
 		fileMux: new(sync.RWMutex),
 	}
 
@@ -65,17 +65,17 @@ type logger struct {
 	*log.Logger
 
 	Output  string
-	Level   LogLevel
-	Roller  *LogRoller
+	Level   Level
+	Roller  *Roller
 	writer  io.Writer
 	fileMux *sync.RWMutex
 }
 
-func InitDefaultLogger(output string, level LogLevel) error {
+func InitDefaultLogger(output string, level Level) error {
 	DefaultLogger = &logger{
 		Output:  output,
 		Level:   level,
-		Roller:  DefaultLogRoller(),
+		Roller:  DefaultRoller(),
 		fileMux: new(sync.RWMutex),
 	}
 
@@ -98,7 +98,7 @@ func ByContext(ctx context.Context) Logger {
 	return DefaultLogger
 }
 
-func GetLoggerInstance(output string, level LogLevel) (Logger, error) {
+func GetLoggerInstance(output string, level Level) (Logger, error) {
 	for _, logger := range loggers {
 		if logger.Output == output && logger.Level == level {
 			return logger, nil
@@ -108,11 +108,11 @@ func GetLoggerInstance(output string, level LogLevel) (Logger, error) {
 	return NewLogger(output, level)
 }
 
-func NewLogger(output string, level LogLevel) (Logger, error) {
+func NewLogger(output string, level Level) (Logger, error) {
 	logger := &logger{
 		Output:  output,
 		Level:   level,
-		Roller:  DefaultLogRoller(),
+		Roller:  DefaultRoller(),
 		fileMux: new(sync.RWMutex),
 	}
 

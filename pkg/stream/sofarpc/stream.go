@@ -36,7 +36,7 @@ const (
 )
 
 func init() {
-	str.Register(protocol.SofaRpc, &streamConnFactory{})
+	str.Register(protocol.SofaRPC, &streamConnFactory{})
 }
 
 type streamConnFactory struct{}

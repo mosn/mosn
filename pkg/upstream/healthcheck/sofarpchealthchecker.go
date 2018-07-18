@@ -37,7 +37,7 @@ type sofarpcHealthChecker struct {
 	protocolCode sofarpc.ProtocolType
 }
 
-func newSofaRpcHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
+func newSofaRPCHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
 	hc := newHealthChecker(config)
 
 	shc := &sofarpcHealthChecker{
@@ -54,7 +54,7 @@ func newSofaRpcHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
 	return shc
 }
 
-func newSofaRpcHealthCheckerWithBaseHealthChecker(hc *healthChecker, pro sofarpc.ProtocolType) *sofarpcHealthChecker {
+func newSofaRPCHealthCheckerWithBaseHealthChecker(hc *healthChecker, pro sofarpc.ProtocolType) *sofarpcHealthChecker {
 	shc := &sofarpcHealthChecker{
 		healthChecker: *hc,
 		protocolCode:  pro,
@@ -92,7 +92,7 @@ func (c *sofarpcHealthChecker) newSession(host types.Host) types.HealthCheckSess
 }
 
 func (c *sofarpcHealthChecker) createCodecClient(data types.CreateConnectionData) stream.CodecClient {
-	return stream.NewCodecClient(nil, protocol.SofaRpc, data.Connection, data.HostInfo)
+	return stream.NewCodecClient(nil, protocol.SofaRPC, data.Connection, data.HostInfo)
 }
 
 // types.StreamReceiver

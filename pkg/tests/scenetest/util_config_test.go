@@ -135,8 +135,8 @@ func CreateHTTPRouteConfig(addr string, hosts [][]string) *config.MOSNConfig {
 		Route: v2.RouteAction{ClusterName: clusters[1].name},
 	}
 	p := &v2.Proxy{
-		DownstreamProtocol: string(protocol.Http1),
-		UpstreamProtocol:   string(protocol.Http1),
+		DownstreamProtocol: string(protocol.HTTP1),
+		UpstreamProtocol:   string(protocol.HTTP1),
 		VirtualHosts: []*v2.VirtualHost{
 			//Notice that the order of router, the first successful matched is used
 			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2Path, routerV2, routerV2Header}},

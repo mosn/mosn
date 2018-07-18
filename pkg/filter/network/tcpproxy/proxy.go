@@ -42,7 +42,7 @@ type proxy struct {
 	accessLogs []types.AccessLog
 }
 
-func NewProxy(ctx context.Context, config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {
+func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.ClusterManager) Proxy {
 	p := &proxy{
 		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,
@@ -107,7 +107,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 		return types.StopIteration
 	}
 
-	connectionData := p.clusterManager.TcpConnForCluster(nil, clusterName)
+	connectionData := p.clusterManager.TCPConnForCluster(nil, clusterName)
 
 	if connectionData.Connection == nil {
 		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
@@ -223,7 +223,7 @@ type route struct {
 	clusterName      string
 }
 
-func NewProxyConfig(config *v2.TcpProxy) ProxyConfig {
+func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 	var routes []*route
 
 	for _, routeConfig := range config.Routes {

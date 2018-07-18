@@ -20,7 +20,6 @@ package mosn
 import (
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"strconv"
 	"sync"
@@ -177,7 +176,7 @@ func GetNetworkFilter(c *v2.FilterChain) types.NetworkFilterChainFactory {
 	}
 
 	return &proxy.GenericProxyFilterConfigFactory{
-		Proxy: config.ParseProxyFilterJson(&c.Filters[0]),
+		Proxy: config.ParseProxyFilterJSON(&c.Filters[0]),
 	}
 }
 

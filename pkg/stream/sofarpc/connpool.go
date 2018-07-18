@@ -19,7 +19,6 @@ package sofarpc
 
 import (
 	"context"
-
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -42,7 +41,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) Protocol() types.Protocol {
-	return protocol.SofaRpc
+	return protocol.SofaRPC
 }
 
 func (p *connPool) DrainConnections() {}
@@ -100,7 +99,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 }
 
 func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
-	return str.NewCodecClient(context, protocol.SofaRpc, connData.Connection, connData.HostInfo)
+	return str.NewCodecClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
 }
 
 // stream.CodecClientCallbacks

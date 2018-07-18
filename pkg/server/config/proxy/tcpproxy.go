@@ -26,7 +26,7 @@ import (
 )
 
 type TCPProxyFilterConfigFactory struct {
-	Proxy *v2.TcpProxy
+	Proxy *v2.TCPProxy
 }
 
 func (tpcf *TCPProxyFilterConfigFactory) CreateFilterFactory(context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
