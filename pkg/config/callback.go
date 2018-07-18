@@ -52,7 +52,7 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 				for _, filter := range filterChain.Filters {
 					if filter.Name == v2.DEFAULT_NETWORK_FILTER {
 						networkFilter = &proxy.GenericProxyFilterConfigFactory{
-							Proxy: ParseProxyFilterJson(&filter),
+							Proxy: ParseProxyFilterJSON(&filter),
 						}
 					}
 				}

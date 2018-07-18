@@ -27,9 +27,9 @@ import (
 )
 
 func init() {
-	RegisteRouterConfigFactory(protocol.SofaRpc, NewRouteMatcher)
-	RegisteRouterConfigFactory(protocol.Http2, NewRouteMatcher)
-	RegisteRouterConfigFactory(protocol.Http1, NewRouteMatcher)
+	RegisteRouterConfigFactory(protocol.SofaRPC, NewRouteMatcher)
+	RegisteRouterConfigFactory(protocol.HTTP2, NewRouteMatcher)
+	RegisteRouterConfigFactory(protocol.HTTP1, NewRouteMatcher)
 	RegisteRouterConfigFactory(protocol.Xprotocol, NewRouteMatcher)
 }
 

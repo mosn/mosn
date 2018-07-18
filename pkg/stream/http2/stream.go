@@ -42,7 +42,7 @@ import (
 )
 
 func init() {
-	str.Register(protocol.Http2, &streamConnFactory{})
+	str.Register(protocol.HTTP2, &streamConnFactory{})
 }
 
 type streamConnFactory struct{}

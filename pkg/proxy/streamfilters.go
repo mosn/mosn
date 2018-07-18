@@ -287,8 +287,8 @@ func (f *activeStreamFilter) Route() types.Route {
 	return f.activeStream.route
 }
 
-func (f *activeStreamFilter) StreamId() string {
-	return f.activeStream.streamId
+func (f *activeStreamFilter) StreamID() string {
+	return f.activeStream.streamID
 }
 
 func (f *activeStreamFilter) RequestInfo() types.RequestInfo {

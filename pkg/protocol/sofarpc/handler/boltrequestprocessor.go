@@ -32,7 +32,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var streamIdCounter uint32
+var streamIDCounter uint32
 var defaultTmpBufferSize = 1 << 6
 
 type BoltRequestProcessor struct{}
@@ -44,11 +44,11 @@ type BoltRequestProcessorV2 struct{}
 func (b *BoltRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)
-		streamId := atomic.AddUint32(&streamIdCounter, 1)
-		streamIdStr := sofarpc.StreamIDConvert(streamId)
+		streamID := atomic.AddUint32(&streamIDCounter, 1)
+		streamIDStr := sofarpc.StreamIDConvert(streamID)
 
 		//print tracer log
-		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamId=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamIdStr, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
+		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamID=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamIDStr, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -58,7 +58,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 					cmd.RequestHeader[types.HeaderStremEnd] = "yes"
 				}
 
-				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(streamIDStr, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -66,7 +66,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(streamIdStr, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(streamIDStr, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return
@@ -80,8 +80,8 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
 		deserializeRequestAllFieldsV2(context, cmd)
-		streamId := atomic.AddUint32(&streamIdCounter, 1)
-		streamIdStr := sofarpc.StreamIDConvert(streamId)
+		streamID := atomic.AddUint32(&streamIDCounter, 1)
+		streamIDStr := sofarpc.StreamIDConvert(streamID)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -91,7 +91,7 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 					cmd.RequestHeader["x-mosn-endstream"] = "yes"
 				}
 
-				status := filter.OnDecodeHeader(streamIdStr, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(streamIDStr, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -99,7 +99,7 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(streamIdStr, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(streamIDStr, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return
@@ -128,7 +128,7 @@ func deserializeRequestAllFields(context context.Context, requestCommand *sofarp
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType)] = strconv.FormatUint(uint64(requestCommand.CmdType), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)] = strconv.FormatUint(uint64(requestCommand.CmdCode), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion)] = strconv.FormatUint(uint64(requestCommand.Version), 10)
-	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(requestCommand.ReqId), 10)
+	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(requestCommand.ReqID), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCodec)] = strconv.FormatUint(uint64(requestCommand.CodecPro), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)] = strconv.FormatUint(uint64(requestCommand.Timeout), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassLen)] = strconv.FormatUint(uint64(requestCommand.ClassLen), 10)

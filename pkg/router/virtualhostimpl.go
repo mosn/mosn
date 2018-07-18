@@ -29,7 +29,7 @@ import (
 func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) *VirtualHostImpl {
 	var virtualHostImpl = &VirtualHostImpl{virtualHostName: virtualHost.Name}
 
-	switch virtualHost.RequireTls {
+	switch virtualHost.RequireTLS {
 	case "EXTERNALONLY":
 		virtualHostImpl.sslRequirements = types.EXTERNALONLY
 	case "ALL":

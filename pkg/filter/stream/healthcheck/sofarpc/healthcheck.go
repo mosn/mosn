@@ -43,13 +43,13 @@ type healthCheckFilter struct {
 	// request properties
 	intercept      bool
 	protocol       byte
-	requestId      uint32
+	requestID      uint32
 	healthCheckReq bool
 	// callbacks
 	cb types.StreamReceiverFilterCallbacks
 }
 
-func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter) *healthCheckFilter {
+func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter) types.StreamReceiverFilter {
 	return &healthCheckFilter{
 		context:                      context,
 		passThrough:                  config.PassThrough,
@@ -66,8 +66,8 @@ func (f *healthCheckFilter) OnDecodeHeaders(headers map[string]string, endStream
 		if cmdCode == sofarpc.HEARTBEAT {
 			protocolStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]
 			f.protocol = sofarpc.ConvertPropertyValue(protocolStr, reflect.Uint8).(byte)
-			requestIdStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
-			f.requestId = sofarpc.ConvertPropertyValue(requestIdStr, reflect.Uint32).(uint32)
+			requestIDStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
+			f.requestID = sofarpc.ConvertPropertyValue(requestIDStr, reflect.Uint32).(uint32)
 			f.healthCheckReq = true
 			f.cb.RequestInfo().SetHealthCheck(true)
 
@@ -125,7 +125,7 @@ func (f *healthCheckFilter) handleIntercept() {
 	//resp = codec.NewTrHeartbeatAck( f.requestId)
 	case sofarpc.PROTOCOL_CODE_V1, sofarpc.PROTOCOL_CODE_V2:
 		//boltv1 and boltv2 use same heartbeat struct as BoltV1
-		resp = codec.NewBoltHeartbeatAck(f.requestId)
+		resp = codec.NewBoltHeartbeatAck(f.requestID)
 	default:
 		log.ByContext(f.context).Errorf("Unknown protocol code: [%x] while intercept healthcheck.", f.protocol)
 		//TODO: set hijack reply - codec error, actually this would happen at codec stage which is before this

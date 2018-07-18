@@ -210,7 +210,7 @@ type StreamFilterCallbacks interface {
 	Route() Route
 
 	// Get stream id
-	StreamId() string
+	StreamID() string
 
 	// Request info related to the stream
 	RequestInfo() RequestInfo

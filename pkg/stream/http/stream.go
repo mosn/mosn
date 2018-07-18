@@ -39,7 +39,7 @@ import (
 )
 
 func init() {
-	str.Register(protocol.Http1, &streamConnFactory{})
+	str.Register(protocol.HTTP1, &streamConnFactory{})
 }
 
 type streamConnFactory struct{}
@@ -118,7 +118,7 @@ func newClientStreamWrapper(context context.Context, client *fasthttp.HostClient
 func (csw *clientStreamWrapper) Dispatch(buffer types.IoBuffer) {}
 
 func (csw *clientStreamWrapper) Protocol() types.Protocol {
-	return protocol.Http1
+	return protocol.HTTP1
 }
 
 func (csw *clientStreamWrapper) GoAway() {

@@ -93,7 +93,7 @@ func NewBiDirectCodeClient(context context.Context, prot types.Protocol, connect
 }
 
 func (c *codecClient) Id() uint64 {
-	return c.Connection.Id()
+	return c.Connection.ID()
 }
 
 func (c *codecClient) AddConnectionCallbacks(cb types.ConnectionEventListener) {

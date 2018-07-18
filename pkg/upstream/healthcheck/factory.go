@@ -33,9 +33,9 @@ type healthCheckerFactory struct{}
 
 func (nhc *healthCheckerFactory) New(config v2.HealthCheck) types.HealthChecker {
 	switch config.Protocol {
-	case string(protocol.SofaRpc):
+	case string(protocol.SofaRPC):
 		return newSofaRpcHealthChecker(config)
-	case string(protocol.Http2):
+	case string(protocol.HTTP2):
 		return newHttpHealthCheck(config)
 		// todo: http1
 	default:

@@ -115,7 +115,7 @@ func (r *upstreamRequest) appendTrailers(trailers map[string]string) {
 }
 
 // types.PoolEventListener
-func (r *upstreamRequest) OnFailure(streamId string, reason types.PoolFailureReason, host types.Host) {
+func (r *upstreamRequest) OnFailure(streamID string, reason types.PoolFailureReason, host types.Host) {
 	var resetReason types.StreamResetReason
 
 	switch reason {
@@ -128,7 +128,7 @@ func (r *upstreamRequest) OnFailure(streamId string, reason types.PoolFailureRea
 	r.OnResetStream(resetReason)
 }
 
-func (r *upstreamRequest) OnReady(streamId string, sender types.StreamSender, host types.Host) {
+func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, host types.Host) {
 	r.requestSender = sender
 	r.requestSender.GetStream().AddEventListener(r)
 

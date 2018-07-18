@@ -41,7 +41,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) Protocol() types.Protocol {
-	return protocol.Http2
+	return protocol.HTTP2
 }
 
 func (p *connPool) Host() types.Host {
@@ -154,7 +154,7 @@ func (p *connPool) onGoAway(client *activeClient) {
 }
 
 func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
-	return str.NewCodecClient(context, protocol.Http2, connData.Connection, connData.HostInfo)
+	return str.NewCodecClient(context, protocol.HTTP2, connData.Connection, connData.HostInfo)
 }
 
 func (p *connPool) movePrimaryToDraining() {

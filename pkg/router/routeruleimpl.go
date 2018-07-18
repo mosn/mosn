@@ -67,7 +67,7 @@ type RouteRuleImplBase struct {
 	useWebSocket                bool
 	clusterName                 string //
 	clusterHeaderName           LowerCaseString
-	clusterNotFoundResponseCode httpmosn.HttpCode
+	clusterNotFoundResponseCode httpmosn.Code
 	timeout                     time.Duration
 	runtime                     v2.RuntimeUInt32
 	hostRedirect                string
@@ -96,7 +96,7 @@ type RouteRuleImplBase struct {
 	opaqueConfig multimap.MultiMap
 
 	decorator          *types.Decorator
-	directResponseCode httpmosn.HttpCode
+	directResponseCode httpmosn.Code
 	directResponseBody string
 	policy             *routerPolicy
 	virtualClusters    *VirtualClusterEntry

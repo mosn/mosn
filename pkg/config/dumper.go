@@ -26,7 +26,7 @@ import (
 	"sync"
 )
 
-var fileMutex *sync.Mutex = new(sync.Mutex)
+var fileMutex = new(sync.Mutex)
 
 func Dump(dirty bool) {
 	fileMutex.Lock()

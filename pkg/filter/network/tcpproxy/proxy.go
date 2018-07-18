@@ -42,7 +42,7 @@ type proxy struct {
 	accessLogs []types.AccessLog
 }
 
-func NewProxy(ctx context.Context, config *v2.TcpProxy, clusterManager types.ClusterManager) Proxy {
+func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.ClusterManager) Proxy {
 	p := &proxy{
 		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,
@@ -186,7 +186,7 @@ func (p *proxy) finalizeUpstreamConnectionStats() {
 }
 
 func (p *proxy) onConnectionSuccess() {
-	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.Id())
+	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())
 }
 
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
@@ -223,7 +223,7 @@ type route struct {
 	clusterName      string
 }
 
-func NewProxyConfig(config *v2.TcpProxy) ProxyConfig {
+func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 	var routes []*route
 
 	for _, routeConfig := range config.Routes {

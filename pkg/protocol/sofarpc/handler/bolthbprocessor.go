@@ -34,7 +34,7 @@ func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filt
 
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)
-		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
+		reqID := sofarpc.StreamIDConvert(cmd.ReqID)
 
 		//Heartbeat message only has request header
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -49,7 +49,7 @@ func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filt
 		}
 	} else if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
 		deserializeResponseAllFields(context, cmd)
-		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
+		reqID := sofarpc.StreamIDConvert(cmd.ReqID)
 		//logger := log.ByContext(context)
 
 		//Heartbeat message only has request header

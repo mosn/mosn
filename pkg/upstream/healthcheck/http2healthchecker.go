@@ -60,7 +60,7 @@ func (c *http2HealthChecker) newSession(host types.Host) types.HealthCheckSessio
 }
 
 func (c *http2HealthChecker) createCodecClient(data types.CreateConnectionData) stream.CodecClient {
-	return stream.NewCodecClient(nil, protocol.Http2, data.Connection, data.HostInfo)
+	return stream.NewCodecClient(nil, protocol.HTTP2, data.Connection, data.HostInfo)
 }
 
 // types.StreamReceiver

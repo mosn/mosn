@@ -182,7 +182,7 @@ func WaitConnectionsDone(duration time.Duration) error {
 func InitDefaultLogger(config *Config) {
 
 	var logPath string
-	var logLevel log.LogLevel
+	var logLevel log.Level
 
 	if config != nil {
 		logPath = config.LogPath
