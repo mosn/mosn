@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package proxy
 
 import (
@@ -63,7 +64,7 @@ func (s *downStream) runAppendHeaderFilters(filter *activeStreamSenderFilter, he
 
 			return true
 		}
-		
+
 		f.headersContinued = true
 
 		return false
@@ -164,9 +165,9 @@ func (s *downStream) runReceiveHeadersFilters(filter *activeStreamReceiverFilter
 
 			return true
 		}
-		
+
 		f.headersContinued = true
-		
+
 		return false
 	}
 

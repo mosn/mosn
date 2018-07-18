@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package server
 
 import (
-	"github.com/rcrowley/go-metrics"
 	"github.com/alipay/sofa-mosn/pkg/stats"
+	"github.com/rcrowley/go-metrics"
 )
 
 const (

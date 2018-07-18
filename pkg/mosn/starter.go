@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package mosn
 
 import (
 	"net"
 	"net/http"
-	_"net/http/pprof"
+	_ "net/http/pprof"
 	"os"
 	"strconv"
 	"sync"

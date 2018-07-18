@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package cluster
 
 import (
@@ -36,19 +37,18 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 	hosts3 := []types.Host{host5}
 
 	hs1 := hostSet{
-		hosts: hosts1,
-		healthyHosts:hosts1,
+		hosts:        hosts1,
+		healthyHosts: hosts1,
 	}
 
 	hs2 := hostSet{
-		hosts: hosts2,
-		healthyHosts:hosts2,
-		
+		hosts:        hosts2,
+		healthyHosts: hosts2,
 	}
 
 	hs3 := hostSet{
-		hosts: hosts3,
-		healthyHosts:hosts3,
+		hosts:        hosts3,
+		healthyHosts: hosts3,
 	}
 
 	hostset := []types.HostSet{&hs1, &hs2, &hs3}

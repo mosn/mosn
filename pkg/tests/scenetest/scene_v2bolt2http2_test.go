@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tests
 
 import (
@@ -38,8 +39,8 @@ func TestV2Bolt2Http2(t *testing.T) {
 	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start
 	client := &RpcClient{
-		t:               t,
-		addr:            meshAddr,
+		t:              t,
+		addr:           meshAddr,
 		responseFilter: &Http2Response{},
 		waitReponse:    cmap.New(),
 	}

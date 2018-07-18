@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package types
 
 import (
@@ -63,11 +64,11 @@ func TestInitSortedMap(t *testing.T) {
 	}
 
 	want := []SortedPair{
-		{"aa","no"},
+		{"aa", "no"},
 		{"bb", "yes"},
-		{"hello","yes"},
+		{"hello", "yes"},
 	}
-	
+
 	tests := []struct {
 		name string
 		args args

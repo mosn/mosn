@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package proxy
 
 import (
@@ -30,6 +31,6 @@ type TcpProxyFilterConfigFactory struct {
 
 func (tpcf *TcpProxyFilterConfigFactory) CreateFilterFactory(context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
-		manager.AddReadFilter(tcpproxy.NewProxy(context,tpcf.Proxy, clusterManager))
+		manager.AddReadFilter(tcpproxy.NewProxy(context, tpcf.Proxy, clusterManager))
 	}
 }

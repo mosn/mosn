@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package v2
 
 import (
+	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/config"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/alipay/sofa-mosn/pkg/config"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"time"
 )
 
 type V2Client struct {

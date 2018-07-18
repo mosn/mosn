@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package cluster
 
 import (
@@ -21,8 +22,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/rcrowley/go-metrics"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/rcrowley/go-metrics"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/tls"
@@ -78,15 +79,15 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 		},
 		initHelper: initHelper,
 	}
-	
+
 	switch clusterConfig.LbType {
 	case v2.LB_RANDOM:
 		cluster.info.lbType = types.Random
-		
+
 	case v2.LB_ROUNDROBIN:
 		cluster.info.lbType = types.RoundRobin
 	}
-	
+
 	// TODO: init more props: maxrequestsperconn, connecttimeout, connectionbuflimit
 
 	cluster.info.resourceManager = NewResourceManager(clusterConfig.CirBreThresholds)
@@ -95,21 +96,21 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool,
 	cluster.prioritySet.AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 		// TODO: update cluster stats
 	})
-	
+
 	var lb types.LoadBalancer
-	
+
 	if cluster.Info().LbSubsetInfo().IsEnabled() {
 		// use subset loadbalancer
 		lb = NewSubsetLoadBalancer(cluster.Info().LbType(), cluster.PrioritySet(), cluster.Info().Stats(),
 			cluster.Info().LbSubsetInfo())
-		
+
 	} else {
 		// use common loadbalancer
 		lb = NewLoadBalancer(cluster.Info().LbType(), cluster.PrioritySet())
 	}
-	
+
 	cluster.info.lbInstance = lb
-	
+
 	cluster.info.tlsMng = tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 
 	return cluster
@@ -225,7 +226,7 @@ type clusterInfo struct {
 	name                 string
 	clusterType          v2.ClusterType
 	lbType               types.LoadBalancerType
-	lbInstance           types.LoadBalancer         // load balancer used for this cluster
+	lbInstance           types.LoadBalancer // load balancer used for this cluster
 	sourceAddr           net.Addr
 	connectTimeout       int
 	connBufferLimitBytes uint32

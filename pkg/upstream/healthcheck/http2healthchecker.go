@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package healthcheck
 
 import (
@@ -111,9 +112,9 @@ func (s *http2HealthCheckSession) onInterval() {
 	s.requestSender.GetStream().AddEventListener(s)
 
 	reqHeaders := map[string]string{
-		types.HeaderMethod: http.MethodGet,
-		types.HeaderHost:   s.healthChecker.cluster.Info().Name(),
-		protocol.MosnHeaderPathKey:   s.healthChecker.checkPath,
+		types.HeaderMethod:         http.MethodGet,
+		types.HeaderHost:           s.healthChecker.cluster.Info().Name(),
+		protocol.MosnHeaderPathKey: s.healthChecker.checkPath,
 	}
 
 	s.requestSender.AppendHeaders(reqHeaders, true)

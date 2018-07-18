@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package proxy
 
 import (
@@ -28,7 +29,7 @@ type GenericProxyFilterConfigFactory struct {
 	Proxy *v2.Proxy
 }
 
-func (gfcf *GenericProxyFilterConfigFactory) CreateFilterFactory( context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
+func (gfcf *GenericProxyFilterConfigFactory) CreateFilterFactory(context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
 		manager.AddReadFilter(proxy.NewProxy(context, gfcf.Proxy, clusterManager))
 	}

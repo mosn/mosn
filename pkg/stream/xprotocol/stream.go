@@ -14,19 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package xprotocol
 
 import (
 	"context"
 	"sync"
 
+	"strconv"
+	"strings"
+	"sync/atomic"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"strconv"
-	"sync/atomic"
-	"strings"
 )
 
 type StreamDirection int
@@ -313,7 +315,7 @@ func (m *streamMap) Has(streamId string) bool {
 	if _, ok := m.smap[streamId]; ok {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -324,7 +326,7 @@ func (m *streamMap) Get(streamId string) (stream, bool) {
 	if s, ok := m.smap[streamId]; ok {
 		return s.(stream), ok
 	}
-	
+
 	return stream{}, false
 }
 

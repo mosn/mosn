@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package cluster
 
 import (
@@ -294,7 +295,7 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerCo
 
 		return connPool
 	}
-	
+
 	return nil
 }
 

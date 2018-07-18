@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package stream
 
 import (
@@ -25,7 +26,7 @@ import (
 type CodecClient interface {
 	types.ConnectionEventListener
 	types.ReadFilter
-	
+
 	Id() uint64
 
 	AddConnectionCallbacks(cb types.ConnectionEventListener)

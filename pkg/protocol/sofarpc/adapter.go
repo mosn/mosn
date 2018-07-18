@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package sofarpc
 
 import (
@@ -36,12 +37,12 @@ func GetPropertyValue(properHeaders map[string]reflect.Kind, headers map[string]
 
 		return ConvertPropertyValue(value, properHeaders[name])
 	}
-	
+
 	if value, ok := headers[name]; ok {
 
 		return ConvertPropertyValue(value, properHeaders[name])
 	}
-	
+
 	return nil
 }
 

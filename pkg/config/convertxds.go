@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package config
 
 import (
@@ -299,7 +300,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		}
 		return structs.Map(proxyConfig)
 	}
-	
+
 	log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
 	return nil
 }

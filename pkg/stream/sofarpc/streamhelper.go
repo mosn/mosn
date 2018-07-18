@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package sofarpc
 
 import (
@@ -34,7 +35,7 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 		delete(headerMaps, types.HeaderStreamID)
 		delete(headerMaps, types.HeaderGlobalTimeout)
 		delete(headerMaps, types.HeaderTryTimeout)
-		
+
 		delete(headerMaps, types.HeaderStremEnd)
 
 		if status, ok := headerMaps[types.HeaderStatus]; ok {
@@ -69,7 +70,7 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 					s.connection.logger.Errorf(err.Error())
 				}
 			}
-		} else{
+		} else {
 			headers = headerMaps
 		}
 	}
@@ -92,11 +93,10 @@ func decodeSterilize(streamId string, headers map[string]string) bool {
 			return true
 		}
 	}
-	
-	
-	if _, ok :=headers[types.HeaderStremEnd];ok {
+
+	if _, ok := headers[types.HeaderStremEnd]; ok {
 		return true
 	}
-	
+
 	return false
 }

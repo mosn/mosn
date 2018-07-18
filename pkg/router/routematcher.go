@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package router
 
 import (
@@ -34,7 +35,7 @@ func init() {
 
 func NewRouteMatcher(config interface{}) (types.Routers, error) {
 	routerMatcher := &RouteMatcher{
-		virtualHosts: make(map[string]types.VirtualHost),
+		virtualHosts:                make(map[string]types.VirtualHost),
 		wildcardVirtualHostSuffixes: make(map[int]map[string]types.VirtualHost),
 	}
 
@@ -46,7 +47,7 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 			vh := NewVirtualHostImpl(virtualHost, config.ValidateClusters)
 
 			for _, domain := range virtualHost.Domains {
-				
+
 				// Note: we use domain in lowercase
 				domain = strings.ToLower(domain)
 
@@ -93,11 +94,11 @@ func (rm *RouteMatcher) Route(headers map[string]string, randomValue uint64) typ
 
 	// Second Step: Match Route from Routes in a Virtual Host
 	routerInstance := virtualHost.GetRouteFromEntries(headers, randomValue)
-	
+
 	if routerInstance == nil {
 		log.DefaultLogger.Errorf("No Router Instance Found when Routing, Request Headers = %+v", headers)
 	}
-	
+
 	return routerInstance
 }
 

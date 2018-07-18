@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package config
 
 import (
 	"errors"
 
-	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/server/config/proxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	clusterAdapter "github.com/alipay/sofa-mosn/pkg/upstream/cluster"
+	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
 
 func SetGlobalStreamFilter(globalStreamFilters []types.StreamFilterChainFactory) {

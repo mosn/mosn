@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package types
 
 import (
@@ -95,11 +96,10 @@ type LBSubsetEntry interface {
 
 // Represents a subset of an original HostSet.
 type HostSubset interface {
-	
 	UpdateHostSubset(hostsAdded []Host, hostsRemoved []Host, predicate HostPredicate)
 	//	TriggerCallbacks()   todo
 	Empty() bool
-	
+
 	Hosts() []Host
 }
 
@@ -116,7 +116,7 @@ type PrioritySubset interface {
 	TriggerCallbacks()
 
 	CreateHostSet(priority uint32) HostSet
-	
+
 	LB() LoadBalancer
 }
 

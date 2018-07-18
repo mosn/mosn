@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package http2
 
 import (
@@ -185,7 +186,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 		pool: pool,
 	}
 	data := pool.host.CreateConnection(context)
-	
+
 	if err := data.Connection.Connect(false); err != nil {
 		return nil
 	}

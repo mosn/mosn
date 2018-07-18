@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package filter
 
 import (
@@ -47,7 +48,7 @@ func CreateStreamFilterChainFactory(filterType string, config map[string]interfa
 
 		return sfcf
 	}
-	
+
 	log.StartLogger.Fatalln("unsupport stream filter type: ", filterType)
 	return nil
 }

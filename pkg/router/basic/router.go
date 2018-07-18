@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package basic
 
 import (
@@ -155,7 +156,7 @@ func NewRouters(config interface{}) (types.Routers, error) {
 		return rc, nil
 
 	}
-	
+
 	return nil, errors.New("invalid config struct")
 }
 
@@ -176,7 +177,7 @@ func (srr *basicRouter) Match(headers map[string]string, randomValue uint64) typ
 	if srr.service == service {
 		return srr
 	}
-	
+
 	return nil
 }
 

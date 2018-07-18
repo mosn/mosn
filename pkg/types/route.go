@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package types
 
 import (
@@ -263,7 +264,6 @@ type Decorator interface {
 // currently use string for easily debug
 type HashedValue string // value as md5's result
 
-
 type HeaderFormat interface {
 	Format(info RequestInfo) string
 	Append() bool
@@ -355,6 +355,6 @@ func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {
 	if h1 == h2 {
 		return true
 	}
-	
+
 	return false
 }

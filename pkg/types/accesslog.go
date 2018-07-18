@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package types
 
 //    The bunch of interfaces are used to print the access log in format designed by users.
