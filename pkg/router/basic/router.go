@@ -29,10 +29,10 @@ import (
 )
 
 func init() {
-	//router.RegisteRouterConfigFactory(protocol.SofaRpc, NewRouters)
-	//router.RegisteRouterConfigFactory(protocol.Http2, NewRouters)
-	//router.RegisteRouterConfigFactory(protocol.Http1, NewRouters)
-	//router.RegisteRouterConfigFactory(protocol.Xprotocol, NewRouters)
+	//router.RegisterRouterConfigFactory(protocol.SofaRpc, NewRouters)
+	//router.RegisterRouterConfigFactory(protocol.Http2, NewRouters)
+	//router.RegisterRouterConfigFactory(protocol.Http1, NewRouters)
+	//router.RegisterRouterConfigFactory(protocol.Xprotocol, NewRouters)
 }
 
 // types.Routers

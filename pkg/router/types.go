@@ -137,9 +137,9 @@ type RuntimeData struct {
 }
 
 type RateLimitPolicyEntryImpl struct {
-	stage       uint64
-	disablleKey string
-	actions     RateLimitAction
+	stage      uint64
+	disableKey string
+	actions    RateLimitAction
 }
 
 func (rpei *RateLimitPolicyEntryImpl) Stage() uint64 {
@@ -147,7 +147,7 @@ func (rpei *RateLimitPolicyEntryImpl) Stage() uint64 {
 }
 
 func (rpei *RateLimitPolicyEntryImpl) DisableKey() string {
-	return rpei.disablleKey
+	return rpei.disableKey
 }
 
 func (rpei *RateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule, descriptors []types.Descriptor, localSrvCluster string,
@@ -202,7 +202,7 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	metadataMap := make(map[string]types.HashedValue)
 
-	if metadataInterface, ok := metadata[types.RouterMatadataKey]; ok {
+	if metadataInterface, ok := metadata[types.RouterMetadataKey]; ok {
 		if value, ok := metadataInterface.(map[string]interface{}); ok {
 			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
 				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
@@ -223,7 +223,7 @@ func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 
 // get mosn lb metadata from config
 func GetMosnLBMetaData(route *v2.Router) map[string]interface{} {
-	if metadataInterface, ok := route.Route.MetadataMatch[types.RouterMatadataKey]; ok {
+	if metadataInterface, ok := route.Route.MetadataMatch[types.RouterMetadataKey]; ok {
 		if value, ok := metadataInterface.(map[string]interface{}); ok {
 			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
 				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {

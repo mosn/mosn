@@ -27,10 +27,10 @@ import (
 )
 
 func init() {
-	RegisteRouterConfigFactory(protocol.SofaRPC, NewRouteMatcher)
-	RegisteRouterConfigFactory(protocol.HTTP2, NewRouteMatcher)
-	RegisteRouterConfigFactory(protocol.HTTP1, NewRouteMatcher)
-	RegisteRouterConfigFactory(protocol.Xprotocol, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.SofaRPC, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.HTTP2, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.HTTP1, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.Xprotocol, NewRouteMatcher)
 }
 
 func NewRouteMatcher(config interface{}) (types.Routers, error) {
@@ -42,8 +42,6 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 	if config, ok := config.(*v2.Proxy); ok {
 
 		for _, virtualHost := range config.VirtualHosts {
-
-			//todo 补充virtual host 其他成员
 			vh := NewVirtualHostImpl(virtualHost, config.ValidateClusters)
 
 			for _, domain := range virtualHost.Domains {
