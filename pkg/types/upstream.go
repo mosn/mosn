@@ -21,8 +21,8 @@ import (
 	"net"
 	"sort"
 
-	"github.com/rcrowley/go-metrics"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/rcrowley/go-metrics"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -46,7 +46,7 @@ type ClusterManager interface {
 
 	HttpConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
 
-	XprotocolConnPoolForCluster(balancerContext LoadBalancerContext,cluster string, protocol Protocol) ConnectionPool
+	XprotocolConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
 
 	TcpConnForCluster(balancerContext LoadBalancerContext, cluster string) CreateConnectionData
 
@@ -255,7 +255,7 @@ type ClusterInfo interface {
 	TLSMng() TLSContextManager
 
 	LbSubsetInfo() LBSubsetInfo
-	
+
 	LBInstance() LoadBalancer
 }
 
@@ -401,20 +401,20 @@ type SortedMap []SortedPair
 // 使用pair，避免map输出时候的无序
 func InitSortedMap(input map[string]string) SortedMap {
 	var keyset []string
-	var sPair  []SortedPair
-	
-	for k, _ := range input {
+	var sPair []SortedPair
+
+	for k := range input {
 		keyset = append(keyset, k)
 	}
 
 	sort.Strings(keyset)
 
 	for _, key := range keyset {
-		sPair = append(sPair,SortedPair{
-			key,input[key],
+		sPair = append(sPair, SortedPair{
+			key, input[key],
 		})
 	}
-	
+
 	return sPair
 }
 
