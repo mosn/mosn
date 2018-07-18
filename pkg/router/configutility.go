@@ -81,15 +81,19 @@ type QueryParameterMatcher struct {
 
 func (qpm *QueryParameterMatcher) Matches(requestQueryParams types.QueryParams) bool {
 	requestQueryValue, ok := requestQueryParams[qpm.name]
-	
+
 	if !ok {
 		return false
-	} else if qpm.isRegex {
+	}
+
+	if qpm.isRegex {
 		return qpm.regexPattern.MatchString(requestQueryValue)
-	} else if qpm.value == "" {
+	}
+
+	if qpm.value == "" {
 		return true
 	}
-	
+
 	return qpm.value == requestQueryValue
 }
 

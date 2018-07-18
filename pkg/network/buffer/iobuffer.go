@@ -111,9 +111,6 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 				if te, ok := err.(net.Error); ok && te.Timeout() {
 					return n, nil
 				}
-				
-				return n, e
-				
 			}
 			
 			return n, e
