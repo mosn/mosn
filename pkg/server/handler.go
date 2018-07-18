@@ -279,7 +279,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 
 func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connection) {
 	//Register Proxy's Filter
-	configFactory := al.networkFiltersFactory.CreateFilterFactory(ctx,al.handler.clusterManager)
+	configFactory := al.networkFiltersFactory.CreateFilterFactory(ctx, al.handler.clusterManager)
 	buildFilterChain(conn.FilterManager(), configFactory)
 
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
@@ -334,7 +334,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
-	al.OnNewConnection(newCtx,conn)
+	al.OnNewConnection(newCtx, conn)
 }
 
 type activeRawConn struct {
@@ -346,7 +346,7 @@ type activeRawConn struct {
 	rawcElement                           *list.Element
 	activeListener                        *activeListener
 	acceptedFilters                       []types.ListenerFilter
-	accptedFilterIndex                    int
+	acceptedFilterIndex                   int
 }
 
 func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawConn {
@@ -363,44 +363,50 @@ func (arc *activeRawConn) SetOrigingalAddr(ip string, port int) {
 	log.DefaultLogger.Infof("conn set origin addr:%s:%d", ip, port)
 }
 
-func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool) {
-	if success {
-		for ; arc.accptedFilterIndex < len(arc.acceptedFilters); arc.accptedFilterIndex++ {
-			filterStatus := arc.acceptedFilters[arc.accptedFilterIndex].OnAccept(arc)
+func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
+	var listener, localListener *activeListener
 
-			if filterStatus == types.StopIteration {
-				return
-			}
+	for _, lst := range arc.activeListener.handler.listeners {
+		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
+			listener = lst
+			break
 		}
 
-		// TODO: handle hand_off_restored_destination_connections logic
-		if arc.handOffRestoredDestinationConnections {
-			var _lst, _ls2 *activeListener
-
-			for _, lst := range arc.activeListener.handler.listeners {
-				if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
-					_lst = lst
-					break
-				}
-
-				if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
-					_ls2 = lst
-				}
-			}
-
-			if _lst != nil {
-				log.DefaultLogger.Infof("original dst:%s:%d", _lst.listenIP, _lst.listenPort)
-				_lst.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
-			} else if _ls2 != nil {
-				log.DefaultLogger.Infof("original dst:%s:%d", _ls2.listenIP, _ls2.listenPort)
-				_ls2.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
-			}
-
-		} else {
-			arc.activeListener.newConnection(ctx, arc.rawc)
+		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
+			localListener = lst
 		}
-
 	}
+
+	if listener != nil {
+		log.DefaultLogger.Infof("original dst:%s:%d", listener.listenIP, listener.listenPort)
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
+	}
+	if localListener != nil {
+		log.DefaultLogger.Infof("original dst:%s:%d", localListener.listenIP, localListener.listenPort)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
+	}
+}
+
+func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool) {
+
+	if !success {
+		return
+	}
+
+	for ; arc.acceptedFilterIndex < len(arc.acceptedFilters); arc.acceptedFilterIndex++ {
+		filterStatus := arc.acceptedFilters[arc.acceptedFilterIndex].OnAccept(arc)
+		if filterStatus == types.StopIteration {
+			return
+		}
+	}
+
+	// TODO: handle hand_off_restored_destination_connections logic
+	if arc.handOffRestoredDestinationConnections {
+		arc.HandOffRestoredDestinationConnectionsHandler()
+	} else {
+		arc.activeListener.newConnection(ctx, arc.rawc)
+	}
+
 }
 
 func (arc *activeRawConn) Conn() net.Conn {
