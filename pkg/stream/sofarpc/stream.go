@@ -100,27 +100,27 @@ func (conn *streamConnection) GoAway() {
 	// todo
 }
 
-func (conn *streamConnection) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
+func (conn *streamConnection) NewStream(streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := stream{
-		context:    context.WithValue(conn.context, types.ContextKeyStreamId, streamId),
-		streamId:   streamId,
-		requestId:  streamId,
+		context:    context.WithValue(conn.context, types.ContextKeyStreamID, streamID),
+		streamID:   streamID,
+		requestID:  streamID,
 		direction:  ClientStream,
 		connection: conn,
 		decoder:    responseDecoder,
 	}
-	conn.activeStreams.Set(streamId, stream)
+	conn.activeStreams.Set(streamID, stream)
 
 	return &stream
 }
 
-func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string]string) types.FilterStatus {
+func (conn *streamConnection) OnDecodeHeader(streamID string, headers map[string]string) types.FilterStatus {
 	if sofarpc.IsSofaRequest(headers) {
-		conn.onNewStreamDetected(streamId, headers)
+		conn.onNewStreamDetected(streamID, headers)
 	}
-	endStream := decodeSterilize(streamId, headers)
+	endStream := decodeSterilize(streamID, headers)
 
-	if stream, ok := conn.activeStreams.Get(streamId); ok {
+	if stream, ok := conn.activeStreams.Get(streamID); ok {
 		stream.decoder.OnReceiveHeaders(headers, endStream)
 		if endStream {
 			return types.StopIteration
@@ -130,20 +130,20 @@ func (conn *streamConnection) OnDecodeHeader(streamId string, headers map[string
 	return types.Continue
 }
 
-func (conn *streamConnection) OnDecodeData(streamId string, data types.IoBuffer) types.FilterStatus {
-	if stream, ok := conn.activeStreams.Get(streamId); ok {
+func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer) types.FilterStatus {
+	if stream, ok := conn.activeStreams.Get(streamID); ok {
 		stream.decoder.OnReceiveData(data, true)
 
 		if stream.direction == ClientStream {
 			// for client stream, remove stream on response read
-			stream.connection.activeStreams.Remove(stream.streamId)
+			stream.connection.activeStreams.Remove(stream.streamID)
 		}
 	}
 
 	return types.StopIteration
 }
 
-func (conn *streamConnection) OnDecodeTrailer(streamId string, trailers map[string]string) types.FilterStatus {
+func (conn *streamConnection) OnDecodeTrailer(streamID string, trailers map[string]string) types.FilterStatus {
 	// unsupported
 	return types.StopIteration
 }
@@ -168,7 +168,7 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 
 				if stream.direction == ClientStream {
 					// for client stream, remove stream on response read
-					stream.connection.activeStreams.Remove(stream.streamId)
+					stream.connection.activeStreams.Remove(stream.streamID)
 				}
 			}
 		} else {
@@ -178,34 +178,34 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 	}
 }
 
-func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[string]string) {
-	if ok := conn.activeStreams.Has(streamId); ok {
-		log.DefaultLogger.Infof("OnReceiveHeaders, stream already exist, maybe response, StreamID = %s", streamId)
+func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[string]string) {
+	if ok := conn.activeStreams.Has(streamID); ok {
+		log.DefaultLogger.Infof("OnReceiveHeaders, stream already exist, maybe response, StreamID = %s", streamID)
 		return
 	}
 
-	var requestId string
+	var requestID string
 	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
-		requestId = v
+		requestID = v
 	} else {
 		// on decode exception stream
-		requestId = streamId
+		requestID = streamID
 	}
 
-	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = streamId
+	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = streamID
 
 	stream := stream{
-		context:    context.WithValue(conn.context, types.ContextKeyStreamId, streamId),
-		streamId:   streamId,
-		requestId:  requestId,
+		context:    context.WithValue(conn.context, types.ContextKeyStreamID, streamID),
+		streamID:   streamID,
+		requestID:  requestID,
 		direction:  ServerStream,
 		connection: conn,
 	}
 
-	log.DefaultLogger.Infof("OnReceiveHeaders, New stream detected, Request id = %s, StreamID = %s", requestId, streamId)
+	log.DefaultLogger.Infof("OnReceiveHeaders, New stream detected, Request id = %s, StreamID = %s", requestID, streamID)
 
-	stream.decoder = conn.serverCallbacks.NewStream(streamId, &stream)
-	conn.activeStreams.Set(streamId, stream)
+	stream.decoder = conn.serverCallbacks.NewStream(streamID, &stream)
+	conn.activeStreams.Set(streamID, stream)
 }
 
 // types.Stream
@@ -213,8 +213,8 @@ func (conn *streamConnection) onNewStreamDetected(streamId string, headers map[s
 type stream struct {
 	context context.Context
 
-	streamId         string
-	requestId        string
+	streamID         string
+	requestID        string
 	direction        StreamDirection // 0: out, 1: in
 	readDisableCount int
 	connection       *streamConnection
@@ -266,7 +266,7 @@ func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
 		return err
 	}
 
-	log.DefaultLogger.Infof("AppendHeaders,request id = %s, direction = %d", s.streamId, s.direction)
+	log.DefaultLogger.Infof("AppendHeaders,request id = %s, direction = %d", s.streamID, s.direction)
 
 	if endStream {
 		s.endStream()
@@ -278,7 +278,7 @@ func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
 func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
 
-	log.DefaultLogger.Infof("AppendData,request id = %s, direction = %d", s.streamId, s.direction)
+	log.DefaultLogger.Infof("AppendData,request id = %s, direction = %d", s.streamID, s.direction)
 
 	if endStream {
 		s.endStream()
@@ -298,19 +298,19 @@ func (s *stream) AppendTrailers(trailers map[string]string) error {
 // For client stream, write out request
 func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
-		log.DefaultLogger.Infof("Write to remote, stream id = %s, direction = %d", s.streamId, s.direction)
+		log.DefaultLogger.Infof("Write to remote, stream id = %s, direction = %d", s.streamID, s.direction)
 
-		if stream, ok := s.connection.activeStreams.Get(s.streamId); ok {
+		if stream, ok := s.connection.activeStreams.Get(s.streamID); ok {
 
 			if s.encodedData != nil {
 				//	log.DefaultLogger.Debugf("[response data1 Response Body is full]",s.encodedHeaders.Bytes(),time.Now().String())
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)
 			} else {
-				//	s.connection.logger.Debugf("stream %s response body is void...", s.streamId)
+				//	s.connection.logger.Debugf("stream %s response body is void...", s.streamID)
 				stream.connection.connection.Write(s.encodedHeaders)
 			}
 		} else {
-			s.connection.logger.Errorf("No stream %s to end", s.streamId)
+			s.connection.logger.Errorf("No stream %s to end", s.streamID)
 		}
 	} else {
 		s.connection.logger.Debugf("Response Headers is void...")
@@ -318,8 +318,8 @@ func (s *stream) endStream() {
 
 	if s.direction == ServerStream {
 		// for a server stream, remove stream on response wrote
-		s.connection.activeStreams.Remove(s.streamId)
-		//	log.StartLogger.Warnf("Remove Request ID = %+v",s.streamId)
+		s.connection.activeStreams.Remove(s.streamID)
+		//	log.StartLogger.Warnf("Remove Request ID = %+v",s.streamID)
 	}
 }
 
@@ -340,38 +340,38 @@ func newStreamMap(context context.Context) streamMap {
 	}
 }
 
-func (m *streamMap) Has(streamId string) bool {
+func (m *streamMap) Has(streamID string) bool {
 	m.mux.RLock()
 	defer m.mux.RUnlock()
 
-	if _, ok := m.smap[streamId]; ok {
+	if _, ok := m.smap[streamID]; ok {
 		return true
 	}
 
 	return false
 }
 
-func (m *streamMap) Get(streamId string) (stream, bool) {
+func (m *streamMap) Get(streamID string) (stream, bool) {
 	m.mux.RLock()
 	defer m.mux.RUnlock()
 
-	if s, ok := m.smap[streamId]; ok {
+	if s, ok := m.smap[streamID]; ok {
 		return s.(stream), ok
 	}
 
 	return stream{}, false
 }
 
-func (m *streamMap) Remove(streamId string) {
+func (m *streamMap) Remove(streamID string) {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
-	delete(m.smap, streamId)
+	delete(m.smap, streamID)
 }
 
-func (m *streamMap) Set(streamId string, s stream) {
+func (m *streamMap) Set(streamID string, s stream) {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
-	m.smap[streamId] = s
+	m.smap[streamID] = s
 }

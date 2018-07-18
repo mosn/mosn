@@ -271,7 +271,7 @@ const (
 // Connection interface
 type Connection interface {
 	// Unique connection id
-	Id() uint64
+	ID() uint64
 
 	// Start starts connection with context.
 	// See context.go to get available keys in context

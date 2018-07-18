@@ -86,7 +86,7 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 
 	for _, cluster := range mosnClusters {
 		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
-		if err := clusterAdapter.ClusterAdap.TriggerClusterUpdate(cluster.Name, cluster.Hosts); err != nil {
+		if err := clusterAdapter.Adap.TriggerClusterUpdate(cluster.Name, cluster.Hosts); err != nil {
 			log.DefaultLogger.Errorf("xds client update cluster error ,err = %s, clustername = %s , hosts = %+v",
 				err.Error(), cluster.Name, cluster.Hosts)
 		} else {
@@ -110,7 +110,7 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 				log.DefaultLogger.Debugf("xds client update endpoint: cluster: %s, priority: %d, %+v\n", loadAssignment.ClusterName, endpoints.Priority, host)
 			}
 
-			if err := clusterAdapter.ClusterAdap.TriggerClusterUpdate(clusterName, hosts); err != nil {
+			if err := clusterAdapter.Adap.TriggerClusterUpdate(clusterName, hosts); err != nil {
 				log.DefaultLogger.Errorf("xds client update Error = %s", err.Error())
 			} else {
 				log.DefaultLogger.Debugf("xds client update host success")

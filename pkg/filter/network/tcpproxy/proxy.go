@@ -186,7 +186,7 @@ func (p *proxy) finalizeUpstreamConnectionStats() {
 }
 
 func (p *proxy) onConnectionSuccess() {
-	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.Id())
+	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())
 }
 
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {

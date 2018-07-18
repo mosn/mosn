@@ -34,7 +34,7 @@ func GetServerAddr(s *httptest.Server) string {
 	return strings.Split(s.URL, "http://")[1]
 }
 
-func ParseHttpResponse(t *testing.T, req *http.Request) string {
+func ParseHTTPResponse(t *testing.T, req *http.Request) string {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Errorf("request failed %v\n", req)
@@ -54,13 +54,13 @@ func ParseHttpResponse(t *testing.T, req *http.Request) string {
 
 func TestHttpProxy(t *testing.T) {
 	//start httptest server
-	cluster1Server := &HttpServer{
+	cluster1Server := &HTTPServer{
 		t:    t,
 		name: "server1",
 	}
 	server1 := httptest.NewServer(cluster1Server)
 	defer server1.Close()
-	cluster2Server := &HttpServer{
+	cluster2Server := &HTTPServer{
 		t:    t,
 		name: "server2",
 	}
@@ -84,15 +84,15 @@ func TestHttpProxy(t *testing.T) {
 		return req
 	}
 	//cluster1
-	if clustername := ParseHttpResponse(t, makeRequest("cluster1", "")); clustername != cluster1Server.name {
+	if clustername := ParseHTTPResponse(t, makeRequest("cluster1", "")); clustername != cluster1Server.name {
 		t.Errorf("expected %s, but got %s\n", cluster1Server.name, clustername)
 	}
 	//cluster2
-	if clustername := ParseHttpResponse(t, makeRequest("cluster2", "")); clustername != cluster2Server.name {
+	if clustername := ParseHTTPResponse(t, makeRequest("cluster2", "")); clustername != cluster2Server.name {
 		t.Errorf("expected %s, but got %s\n", cluster2Server.name, clustername)
 	}
 	//cluster2 path
-	if clustername := ParseHttpResponse(t, makeRequest("cluster1", "test.htm")); clustername != cluster2Server.name {
+	if clustername := ParseHTTPResponse(t, makeRequest("cluster1", "test.htm")); clustername != cluster2Server.name {
 		t.Errorf("expected %s, but got %s\n", cluster2Server.name, clustername)
 	}
 }

@@ -25,14 +25,14 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 )
 
-var ClusterAdap ClusterAdapter
+var Adap Adapter
 
-type ClusterAdapter struct {
+type Adapter struct {
 	clusterMng *clusterManager
 }
 
 // Called by registry module to update cluster's host info
-func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) error {
+func (ca *Adapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) error {
 	clusterExist := ca.clusterMng.ClusterExist(clusterName)
 
 	if !clusterExist {
@@ -64,7 +64,7 @@ func (ca *ClusterAdapter) TriggerClusterUpdate(clusterName string, hosts []v2.Ho
 }
 
 // Called when mesh receive subscribe info
-func (ca *ClusterAdapter) TriggerClusterAdded(cluster v2.Cluster) {
+func (ca *Adapter) TriggerClusterAdded(cluster v2.Cluster) {
 	clusterExist := ca.clusterMng.ClusterExist(cluster.Name)
 
 	if !clusterExist {
@@ -82,7 +82,7 @@ func (ca *ClusterAdapter) TriggerClusterAdded(cluster v2.Cluster) {
 }
 
 // Called when mesh receive unsubscribe info
-func (ca *ClusterAdapter) TriggerClusterDel(clusterName string) {
+func (ca *Adapter) TriggerClusterDel(clusterName string) {
 	log.DefaultLogger.Debugf("Delete Cluster %s", clusterName)
 	ca.clusterMng.RemovePrimaryCluster(clusterName)
 }

@@ -307,7 +307,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		al.stats.DownstreamConnectionTotal().Inc(1)
 		atomic.AddInt64(&al.handler.numConnections, 1)
 
-		al.logger.Debugf("new downstream connection %d accepted", conn.Id())
+		al.logger.Debugf("new downstream connection %d accepted", conn.ID())
 	}
 }
 
@@ -331,7 +331,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	newCtx := context.WithValue(ctx, types.ContextKeyConnectionId, conn.Id())
+	newCtx := context.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 

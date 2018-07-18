@@ -177,7 +177,7 @@ type ClientStreamConnection interface {
 	// Create a new outgoing request stream
 	// responseDecoder supplies the decoder listeners on decode event
 	// StreamSender supplies the encoder to write the request
-	NewStream(streamId string, responseDecoder StreamReceiver) StreamSender
+	NewStream(streamID string, responseDecoder StreamReceiver) StreamSender
 }
 
 // Stream connection event listener

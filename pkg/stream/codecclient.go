@@ -92,8 +92,8 @@ func NewBiDirectCodeClient(context context.Context, prot types.Protocol, connect
 	return codecClient
 }
 
-func (c *codecClient) Id() uint64 {
-	return c.Connection.Id()
+func (c *codecClient) ID() uint64 {
+	return c.Connection.ID()
 }
 
 func (c *codecClient) AddConnectionCallbacks(cb types.ConnectionEventListener) {
@@ -123,9 +123,9 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(streamId string, respDecoder types.StreamReceiver) types.StreamSender {
+func (c *codecClient) NewStream(streamID string, respDecoder types.StreamReceiver) types.StreamSender {
 	ar := newActiveRequest(c, respDecoder)
-	ar.requestSender = c.Codec.NewStream(streamId, ar)
+	ar.requestSender = c.Codec.NewStream(streamID, ar)
 	ar.requestSender.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()

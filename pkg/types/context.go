@@ -20,8 +20,8 @@ package types
 type ContextKey string
 
 const (
-	ContextKeyStreamId                   ContextKey = "StreamId"
-	ContextKeyConnectionId               ContextKey = "ConnectionId"
+	ContextKeyStreamID                   ContextKey = "StreamId"
+	ContextKeyConnectionID               ContextKey = "ConnectionId"
 	ContextKeyListenerPort               ContextKey = "ListenerPort"
 	ContextKeyListenerName               ContextKey = "ListenerName"
 	ContextKeyListenerStatsNameSpace     ContextKey = "ListenerStatsNameSpace"

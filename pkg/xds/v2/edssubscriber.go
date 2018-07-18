@@ -27,7 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
-func (c *V2Client) GetEndpoints(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient, clusterNames []string) []*envoy_api_v2.ClusterLoadAssignment {
+func (c *ClientV2) GetEndpoints(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient, clusterNames []string) []*envoy_api_v2.ClusterLoadAssignment {
 	err := c.ReqEndpoints(streamClient, clusterNames)
 	if err != nil {
 		log.DefaultLogger.Fatalf("get endpoints fail: %v", err)
@@ -42,7 +42,7 @@ func (c *V2Client) GetEndpoints(streamClient ads.AggregatedDiscoveryService_Stre
 	return c.HandleEndpointesResp(r)
 }
 
-func (c *V2Client) ReqEndpoints(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient, clusterNames []string) error {
+func (c *ClientV2) ReqEndpoints(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient, clusterNames []string) error {
 	if streamClient == nil {
 		return errors.New("stream client is nil")
 	}
@@ -64,7 +64,7 @@ func (c *V2Client) ReqEndpoints(streamClient ads.AggregatedDiscoveryService_Stre
 	return nil
 }
 
-func (c *V2Client) HandleEndpointesResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.ClusterLoadAssignment {
+func (c *ClientV2) HandleEndpointesResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.ClusterLoadAssignment {
 	lbAssignments := make([]*envoy_api_v2.ClusterLoadAssignment, 0)
 	for _, res := range resp.Resources {
 		lbAssignment := envoy_api_v2.ClusterLoadAssignment{}

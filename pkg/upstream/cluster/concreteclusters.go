@@ -82,8 +82,8 @@ type simpleInMemCluster struct {
 	hosts []types.Host
 }
 
-func newSimpleInMemCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool) *simpleInMemCluster {
-	cluster := newCluster(clusterConfig, sourceAddr, addedViaApi, nil)
+func newSimpleInMemCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool) *simpleInMemCluster {
+	cluster := newCluster(clusterConfig, sourceAddr, addedViaAPI, nil)
 
 	return &simpleInMemCluster{
 		dynamicClusterBase: dynamicClusterBase{

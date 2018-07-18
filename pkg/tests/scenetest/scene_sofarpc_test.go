@@ -41,7 +41,7 @@ func TestSofaRpc(t *testing.T) {
 	//client
 	client := &BoltV1Client{
 		t:        t,
-		ClientId: "testClient",
+		ClientID: "testClient",
 		Waits:    cmap.New(),
 	}
 	client.Connect(meshAddr)

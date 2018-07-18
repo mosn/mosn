@@ -32,7 +32,7 @@ func init() {
  * Request command protocol for v1
  * 0     1     2           4           6           8          10           12          14         16
  * +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
- * |proto| type| cmdcode   |ver2 |   requestId           |codec|        timeout        |  classLen |
+ * |proto| type| cmdcode   |ver2 |   requestID           |codec|        timeout        |  classLen |
  * +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
  * |headerLen  | contentLen            |                             ... ...                       |
  * +-----------+-----------+-----------+                                                                                               +
@@ -45,7 +45,7 @@ func init() {
  * type: request/response/request oneway
  * cmdcode: code for remoting command
  * ver2:version for remoting command
- * requestId: id of request
+ * requestID: id of request
  * codec: code for codec
  * headerLen: length of header
  * contentLen: length of content
@@ -53,7 +53,7 @@ func init() {
  * Response command protocol for v1
  * 0     1     2     3     4           6           8          10           12          14         16
  * +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
- * |proto| type| cmdcode   |ver2 |   requestId           |codec|respstatus |  classLen |headerLen  |
+ * |proto| type| cmdcode   |ver2 |   requestID           |codec|respstatus |  classLen |headerLen  |
  * +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
  * | contentLen            |                  ... ...                                              |
  * +-----------------------+                                                                       +
@@ -76,7 +76,7 @@ var BoltV1 = &BoltProtocol{
  * Request command protocol for v2
  * 0     1     2           4           6           8          10     11     12          14         16
  * +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+------+-----+-----+-----+-----+
- * |proto| ver1|type | cmdcode   |ver2 |   requestId           |codec|switch|   timeout             |
+ * |proto| ver1|type | cmdcode   |ver2 |   requestID           |codec|switch|   timeout             |
  * +-----------+-----------+-----------+-----------+-----------+------------+-----------+-----------+
  * |classLen   |headerLen  |contentLen             |           ...                                  |
  * +-----------+-----------+-----------+-----------+                                                +
@@ -90,7 +90,7 @@ var BoltV1 = &BoltProtocol{
  * type: request/response/request oneway
  * cmdcode: code for remoting command
  * ver2:version for remoting command
- * requestId: id of request
+ * requestID: id of request
  * codec: code for codec
  * switch: function switch for protocol
  * headerLen: length of header
@@ -100,7 +100,7 @@ var BoltV1 = &BoltProtocol{
  * Response command protocol for v2
  * 0     1     2     3     4           6           8          10     11    12          14          16
  * +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+------+-----+-----+-----+-----+
- * |proto| ver1| type| cmdcode   |ver2 |   requestId           |codec|switch|respstatus |  classLen |
+ * |proto| ver1| type| cmdcode   |ver2 |   requestID           |codec|switch|respstatus |  classLen |
  * +-----------+-----------+-----------+-----------+-----------+------------+-----------+-----------+
  * |headerLen  | contentLen            |                      ...                                   |
  * +-----------------------------------+                                                            +
@@ -150,25 +150,25 @@ func (b *BoltProtocol) GetCommandHandler() sofarpc.CommandHandler {
 	return b.commandHandler
 }
 
-func NewBoltHeartbeat(requestId uint32) *sofarpc.BoltRequestCommand {
+func NewBoltHeartbeat(requestID uint32) *sofarpc.BoltRequestCommand {
 	return &sofarpc.BoltRequestCommand{
 		Protocol: sofarpc.PROTOCOL_CODE_V1,
 		CmdType:  sofarpc.REQUEST,
 		CmdCode:  sofarpc.HEARTBEAT,
 		Version:  1,
-		ReqId:    requestId,
+		ReqId:    requestID,
 		CodecPro: sofarpc.HESSIAN_SERIALIZE, //todo: read default codec from config
 		Timeout:  -1,
 	}
 }
 
-func NewBoltHeartbeatAck(requestId uint32) *sofarpc.BoltResponseCommand {
+func NewBoltHeartbeatAck(requestID uint32) *sofarpc.BoltResponseCommand {
 	return &sofarpc.BoltResponseCommand{
 		Protocol:       sofarpc.PROTOCOL_CODE_V1,
 		CmdType:        sofarpc.RESPONSE,
 		CmdCode:        sofarpc.HEARTBEAT,
 		Version:        1,
-		ReqId:          requestId,
+		ReqId:          requestID,
 		CodecPro:       sofarpc.HESSIAN_SERIALIZE, //todo: read default codec from config
 		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
 	}

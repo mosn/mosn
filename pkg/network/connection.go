@@ -125,7 +125,7 @@ func (c *connection) OnLowWatermark() {
 
 // basic
 
-func (c *connection) Id() uint64 {
+func (c *connection) ID() uint64 {
 	return c.id
 }
 

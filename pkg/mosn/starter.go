@@ -161,7 +161,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	Mosn := NewMosn(c)
 	Mosn.Start()
 	////get xds config
-	xdsClient := xds.XdsClient{}
+	xdsClient := xds.Client{}
 	xdsClient.Start(c, serviceCluster, serviceNode)
 	//
 	////todo: daemon running
