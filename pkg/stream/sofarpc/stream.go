@@ -261,7 +261,7 @@ func (s *stream) BufferLimit() uint32 {
 func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
 	var err error
 
-	if err, s.encodedHeaders = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers)); err != nil {
+	if s.encodedHeaders, err = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers)); err != nil {
 		return err
 	}
 
@@ -346,7 +346,7 @@ func (m *streamMap) Has(streamId string) bool {
 	if _, ok := m.smap[streamId]; ok {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -357,7 +357,7 @@ func (m *streamMap) Get(streamId string) (stream, bool) {
 	if s, ok := m.smap[streamId]; ok {
 		return s.(stream), ok
 	}
-	
+
 	return stream{}, false
 }
 

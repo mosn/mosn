@@ -19,15 +19,16 @@ package v2
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"math/rand"
-	"time"
 )
 
 func (c *XDSConfig) Init(dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources) error {
@@ -94,8 +95,7 @@ func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 			serviceConfig.ClusterConfig = c.Clusters[clusterName]
 			if serviceConfig.ClusterConfig == nil {
 				log.DefaultLogger.Errorf("cluster not found: %s", clusterName)
-				err := errors.New(fmt.Sprintf("cluster not found: %s", clusterName))
-				return nil, err
+				return nil, fmt.Errorf("cluster not found: %s", clusterName)
 			}
 			config.Services = append(config.Services, &serviceConfig)
 		} else if _, ok := t.(*core.GrpcService_GoogleGrpc_); ok {

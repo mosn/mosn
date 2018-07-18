@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"errors"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
@@ -53,7 +54,7 @@ func init() {
 // types.Encoder & types.Decoder
 type boltV1Codec struct{}
 
-func (c *boltV1Codec) EncodeHeaders(context context.Context, headers interface{}) (error, types.IoBuffer) {
+func (c *boltV1Codec) EncodeHeaders(context context.Context, headers interface{}) (types.IoBuffer, error) {
 	if headerMap, ok := headers.(map[string]string); ok {
 
 		cmd := c.mapToCmd(headerMap)
@@ -63,7 +64,7 @@ func (c *boltV1Codec) EncodeHeaders(context context.Context, headers interface{}
 	return c.encodeHeaders(context, headers)
 }
 
-func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}) (error, types.IoBuffer) {
+func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}) (types.IoBuffer, error) {
 	switch headers.(type) {
 	case *sofarpc.BoltRequestCommand:
 		return c.encodeRequestCommand(context, headers.(*sofarpc.BoltRequestCommand))
@@ -74,7 +75,7 @@ func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}
 		errMsg := sofarpc.InvalidCommandType
 		err := errors.New(errMsg)
 		log.ByContext(context).Errorf("boltV1" + errMsg)
-		return err, nil
+		return nil, err
 	}
 }
 
@@ -86,14 +87,14 @@ func (c *boltV1Codec) EncodeTrailers(context context.Context, trailers map[strin
 	return nil
 }
 
-func (c *boltV1Codec) encodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) (error, types.IoBuffer) {
+func (c *boltV1Codec) encodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) (types.IoBuffer, error) {
 	result := c.doEncodeRequestCommand(context, cmd)
-	return nil, buffer.NewIoBufferBytes(result)
+	return buffer.NewIoBufferBytes(result), nil
 }
 
-func (c *boltV1Codec) encodeResponseCommand(context context.Context, cmd *sofarpc.BoltResponseCommand) (error, types.IoBuffer) {
+func (c *boltV1Codec) encodeResponseCommand(context context.Context, cmd *sofarpc.BoltResponseCommand) (types.IoBuffer, error) {
 	result := c.doEncodeResponseCommand(context, cmd)
-	return nil, buffer.NewIoBufferBytes(result)
+	return buffer.NewIoBufferBytes(result), nil
 }
 
 func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) []byte {

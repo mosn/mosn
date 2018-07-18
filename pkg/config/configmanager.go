@@ -55,7 +55,7 @@ func AddClusterConfig(clusters []v2.Cluster) {
 		clusterConfig := convertClusterConfig(cluster)
 		exist := false
 
-		for i, _ := range config.ClusterManager.Clusters {
+		for i := range config.ClusterManager.Clusters {
 			// rewrite cluster's info if exist already
 			if config.ClusterManager.Clusters[i].Name == clusterConfig.Name {
 				config.ClusterManager.Clusters[i] = clusterConfig
@@ -100,7 +100,7 @@ func AddPubInfo(pubInfoAdded map[string]string) {
 			PubData:     srvData,
 		}
 
-		for i, _ := range config.ServiceRegistry.ServicePubInfo {
+		for i := range config.ServiceRegistry.ServicePubInfo {
 			// rewrite cluster's info
 			if config.ServiceRegistry.ServicePubInfo[i].ServiceName == srvName {
 				config.ServiceRegistry.ServicePubInfo[i] = srvPubInfo

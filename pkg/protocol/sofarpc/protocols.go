@@ -46,7 +46,7 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 }
 
 //PROTOCOL LEVEL's Unified AppendHeaders for BOLTV1、BOLTV2、TR
-func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) (error, types.IoBuffer) {
+func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) (types.IoBuffer, error) {
 	var protocolCode byte
 
 	switch headers.(type) {
@@ -62,25 +62,25 @@ func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) 
 			errMsg := NoProCodeInHeader
 			log.ByContext(context).Errorf(errMsg)
 			err := errors.New(errMsg)
-			return err, nil
+			return nil, err
 		}
 	default:
 		errMsg := InvalidHeaderType
 		log.ByContext(context).Errorf(errMsg+" headers = %+v", headers)
 		err := errors.New(errMsg)
-		return err, nil
+		return nil, err
 	}
 
 	if proto, exists := p.protocolMaps[protocolCode]; exists {
 		//Return encoded data in map[string]string to stream layer
 		return proto.GetEncoder().EncodeHeaders(context, headers)
 	}
-	
+
 	errMsg := types.UnSupportedProCode
 	err := errors.New(errMsg)
-	log.ByContext(context).Errorf(errMsg + "protocolCode = %s", protocolCode)
-	
-	return err, nil
+	log.ByContext(context).Errorf(errMsg+"protocolCode = %s", protocolCode)
+
+	return nil, err
 }
 
 func (p *protocols) EncodeData(context context.Context, data types.IoBuffer) types.IoBuffer {
