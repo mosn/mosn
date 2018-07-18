@@ -52,9 +52,9 @@ func (f *faultInjectFilter) OnDecodeHeaders(headers map[string]string, endStream
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
 		return types.FilterHeadersStatusStopIteration
-	} else {
-		return types.FilterHeadersStatusContinue
 	}
+	
+	return types.FilterHeadersStatusContinue
 }
 
 func (f *faultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.FilterDataStatus {
@@ -62,9 +62,9 @@ func (f *faultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) typ
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
 		return types.FilterDataStatusStopIterationAndBuffer
-	} else {
-		return types.FilterDataStatusContinue
 	}
+	
+	return types.FilterDataStatusContinue
 }
 
 func (f *faultInjectFilter) OnDecodeTrailers(trailers map[string]string) types.FilterTrailersStatus {
@@ -72,9 +72,9 @@ func (f *faultInjectFilter) OnDecodeTrailers(trailers map[string]string) types.F
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
 		return types.FilterTrailersStatusStopIteration
-	} else {
-		return types.FilterTrailersStatusContinue
 	}
+	
+	return types.FilterTrailersStatusContinue
 }
 
 func (f *faultInjectFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {

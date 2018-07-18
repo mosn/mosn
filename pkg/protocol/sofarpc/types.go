@@ -350,10 +350,11 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 		}, nil
 	} else if pro == PROTOCOL_CODE_TR {
 		return headers, nil
-	} else {
-		log.ByContext(context).Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
-		return headers, errors.New(types.UnSupportedProCode)
 	}
+	
+	log.ByContext(context).Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
+	
+	return headers, errors.New(types.UnSupportedProCode)
 }
 
 // Sofa Rpc Default HC Parameters

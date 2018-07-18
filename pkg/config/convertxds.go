@@ -298,9 +298,9 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
 		return structs.Map(proxyConfig)
-	} else {
-		log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
 	}
+	
+	log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
 	return nil
 }
 

@@ -89,11 +89,11 @@ func (c *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 func (c *healthChecker) newSession(host types.Host) types.HealthCheckSession {
 	if c.sessionFactory != nil {
 		return c.sessionFactory.newSession(host)
-	} else {
-		return &healthCheckSession{
-			healthChecker: c,
-			host:          host,
-		}
+	}
+	
+	return &healthCheckSession{
+		healthChecker: c,
+		host:          host,
 	}
 }
 

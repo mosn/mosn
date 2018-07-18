@@ -62,11 +62,11 @@ func (s *downStream) runAppendHeaderFilters(filter *activeStreamSenderFilter, he
 			f.stopped = true
 
 			return true
-		} else {
-			f.headersContinued = true
-
-			return false
 		}
+		
+		f.headersContinued = true
+
+		return false
 	}
 
 	return false
@@ -163,11 +163,11 @@ func (s *downStream) runReceiveHeadersFilters(filter *activeStreamReceiverFilter
 			f.stopped = true
 
 			return true
-		} else {
-			f.headersContinued = true
-
-			return false
 		}
+		
+		f.headersContinued = true
+		
+		return false
 	}
 
 	return false

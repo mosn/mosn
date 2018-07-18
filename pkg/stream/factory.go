@@ -37,7 +37,7 @@ func CreateServerStreamConnection(context context.Context, prot types.Protocol, 
 
 	if ssc, ok := streamFactories[prot]; ok {
 		return ssc.CreateServerStream(context, connection, callbacks)
-	} else {
-		return nil
 	}
+	
+	return nil
 }

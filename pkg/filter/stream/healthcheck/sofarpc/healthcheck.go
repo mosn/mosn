@@ -83,9 +83,9 @@ func (f *healthCheckFilter) OnDecodeHeaders(headers map[string]string, endStream
 
 	if f.intercept {
 		return types.FilterHeadersStatusStopIteration
-	} else {
-		return types.FilterHeadersStatusContinue
 	}
+	
+	return types.FilterHeadersStatusContinue
 }
 
 func (f *healthCheckFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.FilterDataStatus {
@@ -95,9 +95,9 @@ func (f *healthCheckFilter) OnDecodeData(buf types.IoBuffer, endStream bool) typ
 
 	if f.intercept {
 		return types.FilterDataStatusStopIterationNoBuffer
-	} else {
-		return types.FilterDataStatusContinue
 	}
+	
+	return types.FilterDataStatusContinue
 }
 
 func (f *healthCheckFilter) OnDecodeTrailers(trailers map[string]string) types.FilterTrailersStatus {
@@ -107,9 +107,9 @@ func (f *healthCheckFilter) OnDecodeTrailers(trailers map[string]string) types.F
 
 	if f.intercept {
 		return types.FilterTrailersStatusStopIteration
-	} else {
-		return types.FilterTrailersStatusContinue
 	}
+	
+	return types.FilterTrailersStatusContinue
 }
 
 func (f *healthCheckFilter) handleIntercept() {
