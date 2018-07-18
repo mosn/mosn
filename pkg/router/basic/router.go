@@ -155,9 +155,9 @@ func NewRouters(config interface{}) (types.Routers, error) {
 		//router.RoutersManager.AddRoutersSet(rc)
 		return rc, nil
 
-	} else {
-		return nil, errors.New("invalid config struct")
 	}
+	
+	return nil, errors.New("invalid config struct")
 }
 
 func (srr *basicRouter) Match(headers map[string]string, randomValue uint64) types.Route {
@@ -176,10 +176,9 @@ func (srr *basicRouter) Match(headers map[string]string, randomValue uint64) typ
 
 	if srr.service == service {
 		return srr
-	} else {
-		return nil
 	}
-	return srr
+	
+	return nil
 }
 
 func (srr *basicRouter) RedirectRule() types.RedirectRule {

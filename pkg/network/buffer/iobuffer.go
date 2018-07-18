@@ -110,12 +110,13 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 			if !first {
 				if te, ok := err.(net.Error); ok && te.Timeout() {
 					return n, nil
-				} else {
-					return n, e
 				}
-			} else {
+				
 				return n, e
+				
 			}
+			
+			return n, e
 		}
 
 		b.buf = b.buf[0: len(b.buf)+m]

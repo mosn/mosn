@@ -312,9 +312,9 @@ func (m *streamMap) Has(streamId string) bool {
 
 	if _, ok := m.smap[streamId]; ok {
 		return true
-	} else {
-		return false
 	}
+	
+	return false
 }
 
 func (m *streamMap) Get(streamId string) (stream, bool) {
@@ -323,9 +323,9 @@ func (m *streamMap) Get(streamId string) (stream, bool) {
 
 	if s, ok := m.smap[streamId]; ok {
 		return s.(stream), ok
-	} else {
-		return stream{}, false
 	}
+	
+	return stream{}, false
 }
 
 func (m *streamMap) Remove(streamId string) {

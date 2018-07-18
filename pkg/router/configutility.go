@@ -80,18 +80,17 @@ type QueryParameterMatcher struct {
 }
 
 func (qpm *QueryParameterMatcher) Matches(requestQueryParams types.QueryParams) bool {
-
-	if requestQueryValue, ok := requestQueryParams[qpm.name]; !ok {
+	requestQueryValue, ok := requestQueryParams[qpm.name]
+	
+	if !ok {
 		return false
 	} else if qpm.isRegex {
 		return qpm.regexPattern.MatchString(requestQueryValue)
 	} else if qpm.value == "" {
 		return true
-	} else {
-		return qpm.value == requestQueryValue
 	}
-
-	return true
+	
+	return qpm.value == requestQueryValue
 }
 
 // Implementation of Config that reads from a proto file.

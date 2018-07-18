@@ -120,9 +120,9 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 func (cm *clusterManager) ClusterExist(clusterName string) bool {
 	if _, exist := cm.primaryClusters.Get(clusterName); exist {
 		return true
-	} else {
-		return false
 	}
+	
+	return false
 }
 
 func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaApi bool) types.Cluster {
@@ -153,9 +153,9 @@ func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *cluste
 		}
 		
 		return clusterSnapshot
-	} else {
-		return nil
 	}
+	
+	return nil
 }
 
 func (cm *clusterManager) SetInitializedCb(cb func()) {}
@@ -187,9 +187,9 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			}
 			concretedCluster.UpdateHosts(hosts)
 			return nil
-		} else {
-			return errors.New(fmt.Sprintf("cluster's hostset %s can't be update", clusterName))
 		}
+		
+		return errors.New(fmt.Sprintf("cluster's hostset %s can't be update", clusterName))
 	}
 
 	return errors.New(fmt.Sprintf("cluster %s not found", clusterName))
@@ -246,30 +246,30 @@ func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext
 
 		switch protocol {
 		case proto.Http2:
+			
 			if connPool, ok := cm.http2ConnPool.Get(addr); ok {
 				return connPool.(types.ConnectionPool)
-			} else {
-				// todo: move this to a centralized factory, remove dependency to http2 stream
-				connPool := http2.NewConnPool(host)
-				cm.http2ConnPool.Set(addr, connPool)
-
-				return connPool
 			}
+			// todo: move this to a centralized factory, remove dependency to http2 stream
+			connPool := http2.NewConnPool(host)
+			cm.http2ConnPool.Set(addr, connPool)
+
+			return connPool
 		case proto.Http1:
+			
 			if connPool, ok := cm.http1ConnPool.Get(addr); ok {
 				return connPool.(types.ConnectionPool)
-			} else {
-				// todo: move this to a centralized factory, remove dependency to http1 stream
-				connPool := http.NewConnPool(host)
-				cm.http1ConnPool.Set(addr, connPool)
-
-				return connPool
 			}
+			// todo: move this to a centralized factory, remove dependency to http1 stream
+			connPool := http.NewConnPool(host)
+			cm.http1ConnPool.Set(addr, connPool)
+
+			return connPool
 		}
 
 	}
+	
 	return nil
-
 }
 
 func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerContext,cluster string,
@@ -288,12 +288,11 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerCo
 
 		if connPool, ok := cm.xProtocolConnPool.Get(addr); ok {
 			return connPool.(types.ConnectionPool)
-		} else {
-			connPool := xprotocol.NewConnPool(host)
-			cm.xProtocolConnPool.Set(addr, connPool)
-
-			return connPool
 		}
+		connPool := xprotocol.NewConnPool(host)
+		cm.xProtocolConnPool.Set(addr, connPool)
+
+		return connPool
 	} else {
 		return nil
 	}
@@ -310,9 +309,9 @@ func (cm *clusterManager) TcpConnForCluster(lbCtx types.LoadBalancerContext,clus
 
 	if host != nil {
 		return host.CreateConnection(nil)
-	} else {
-		return types.CreateConnectionData{}
 	}
+	
+	return types.CreateConnectionData{}
 }
 
 func (cm *clusterManager) SofaRpcConnPoolForCluster(lbCtx types.LoadBalancerContext,cluster string) types.ConnectionPool {
@@ -331,17 +330,17 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(lbCtx types.LoadBalancerCont
 
 		if connPool, ok := cm.sofaRpcConnPool.Get(addr); ok {
 			return connPool.(types.ConnectionPool)
-		} else {
-			// todo: move this to a centralized factory, remove dependency to sofarpc stream
-			connPool := sofarpc.NewConnPool(host)
-			cm.sofaRpcConnPool.Set(addr, connPool)
-
-			return connPool
 		}
-	} else {
-		log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil, cluster name = %s", cluster)
-		return nil
+		// todo: move this to a centralized factory, remove dependency to sofarpc stream
+		connPool := sofarpc.NewConnPool(host)
+		cm.sofaRpcConnPool.Set(addr, connPool)
+
+		return connPool
+		
 	}
+	
+	log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil, cluster name = %s", cluster)
+	return nil
 }
 
 func (cm *clusterManager) RemovePrimaryCluster(clusterName string) bool {

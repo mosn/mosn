@@ -582,9 +582,9 @@ func (c *connection) GetWriteBuffer() []types.IoBuffer {
 func (c *connection) GetReadBuffer() types.IoBuffer {
 	if c.readBuffer != nil {
 		return c.readBuffer.Br
-	} else {
-		return nil
 	}
+	
+	return nil
 }
 
 func (c *connection) FilterManager() types.FilterManager {

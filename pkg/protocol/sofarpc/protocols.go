@@ -74,13 +74,13 @@ func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) 
 	if proto, exists := p.protocolMaps[protocolCode]; exists {
 		//Return encoded data in map[string]string to stream layer
 		return proto.GetEncoder().EncodeHeaders(context, headers)
-	} else {
-		errMsg := types.UnSupportedProCode
-		err := errors.New(errMsg)
-		log.ByContext(context).Errorf(errMsg + "protocolCode = %s", protocolCode)
-
-		return err, nil
 	}
+	
+	errMsg := types.UnSupportedProCode
+	err := errors.New(errMsg)
+	log.ByContext(context).Errorf(errMsg + "protocolCode = %s", protocolCode)
+	
+	return err, nil
 }
 
 func (p *protocols) EncodeData(context context.Context, data types.IoBuffer) types.IoBuffer {

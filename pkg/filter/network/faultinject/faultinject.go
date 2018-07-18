@@ -44,9 +44,9 @@ func (fi *faultinjecter) OnData(buffer types.IoBuffer) types.FilterStatus {
 
 	if atomic.LoadUint32(&fi.delaying) > 0 {
 		return types.StopIteration
-	} else {
-		return types.Continue
 	}
+	
+	return types.Continue
 }
 
 func (fi *faultinjecter) OnNewConnection() types.FilterStatus {

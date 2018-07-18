@@ -801,9 +801,9 @@ func (s *downStream) ComputeHashKey() types.HashedValue {
 func (s *downStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	if nil != s.requestInfo.RouteEntry() {
 		return s.requestInfo.RouteEntry().MetadataMatchCriteria()
-	} else {
-		return nil
 	}
+	
+	return nil
 }
 
 func (s *downStream) DownstreamConnection() net.Conn {

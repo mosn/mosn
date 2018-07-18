@@ -141,9 +141,9 @@ func (ch *connHandler) FindListenerByAddress(addr net.Addr) types.Listener {
 
 	if l == nil {
 		return nil
-	} else {
-		return l.listener
 	}
+	
+	return l.listener
 }
 
 func (ch *connHandler) RemoveListeners(listenerTag uint64) {

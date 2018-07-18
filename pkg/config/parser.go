@@ -84,9 +84,9 @@ func ParseLogLevel(level string) log.LogLevel {
 	if level != "" {
 		if logLevel, ok := logLevelMap[level]; ok {
 			return logLevel
-		} else {
-			log.StartLogger.Fatalln("unsupported log level: ", level)
 		}
+		
+		log.StartLogger.Fatalln("unsupported log level: ", level)
 	}
 	//use INFO as default log level
 	return log.INFO

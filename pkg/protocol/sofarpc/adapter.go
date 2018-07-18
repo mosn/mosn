@@ -35,13 +35,13 @@ func GetPropertyValue(properHeaders map[string]reflect.Kind, headers map[string]
 		delete(headers, propertyHeaderName)
 
 		return ConvertPropertyValue(value, properHeaders[name])
-	} else {
-		if value, ok := headers[name]; ok {
-
-			return ConvertPropertyValue(value, properHeaders[name])
-		}
 	}
+	
+	if value, ok := headers[name]; ok {
 
+		return ConvertPropertyValue(value, properHeaders[name])
+	}
+	
 	return nil
 }
 

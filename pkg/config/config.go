@@ -194,12 +194,13 @@ func (c *MOSNConfig) Mode() Mode {
 	if len(c.Servers) > 0 {
 		if len(c.RawStaticResources) == 0 || len(c.RawDynamicResources) == 0 {
 			return File
-		} else {
-			return Mix
 		}
+		
+		return Mix
 	} else if len(c.RawStaticResources) > 0 && len(c.RawDynamicResources) > 0 {
 		return Xds
 	}
+	
 	return File
 }
 
