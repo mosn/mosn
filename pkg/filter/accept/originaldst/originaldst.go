@@ -28,6 +28,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// OriginDST, option for syscall.GetsockoptIPv6Mreq
 const (
 	SO_ORIGINAL_DST      = 80
 	IP6T_SO_ORIGINAL_DST = 80
