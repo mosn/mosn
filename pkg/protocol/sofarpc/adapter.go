@@ -36,12 +36,12 @@ func GetPropertyValue(properHeaders map[string]reflect.Kind, headers map[string]
 
 		return ConvertPropertyValue(value, properHeaders[name])
 	}
-	
+
 	if value, ok := headers[name]; ok {
 
 		return ConvertPropertyValue(value, properHeaders[name])
 	}
-	
+
 	return nil
 }
 
@@ -51,7 +51,7 @@ func ConvertPropertyValue(strValue string, kind reflect.Kind) interface{} {
 		value, _ := strconv.ParseUint(strValue, 10, 8)
 		return byte(value)
 	case reflect.Uint16:
-		value, _ := strconv.ParseUint(strValue, 10, 8)
+		value, _ := strconv.ParseUint(strValue, 10, 16)
 		return uint16(value)
 	case reflect.Uint32:
 		value, _ := strconv.ParseUint(strValue, 10, 32)
