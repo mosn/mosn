@@ -107,7 +107,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 		return types.StopIteration
 	}
 
-	connectionData := p.clusterManager.TcpConnForCluster(nil, clusterName)
+	connectionData := p.clusterManager.TCPConnForCluster(nil, clusterName)
 
 	if connectionData.Connection == nil {
 		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)

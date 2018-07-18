@@ -55,7 +55,7 @@ func (c *XDSConfig) loadADSConfig(dynamicResources *bootstrap.Bootstrap_DynamicR
 		log.DefaultLogger.Errorf("Invalid DynamicResources")
 		return err
 	}
-	config, err := c.getApiSourceEndpoint(dynamicResources.AdsConfig)
+	config, err := c.getAPISourceEndpoint(dynamicResources.AdsConfig)
 	if err != nil {
 		log.DefaultLogger.Errorf("fail to get api source endpoint")
 		return err
@@ -64,7 +64,7 @@ func (c *XDSConfig) loadADSConfig(dynamicResources *bootstrap.Bootstrap_DynamicR
 	return nil
 }
 
-func (c *XDSConfig) getApiSourceEndpoint(source *core.ApiConfigSource) (*ADSConfig, error) {
+func (c *XDSConfig) getAPISourceEndpoint(source *core.ApiConfigSource) (*ADSConfig, error) {
 	config := &ADSConfig{}
 	if source.ApiType != core.ApiConfigSource_GRPC {
 		log.DefaultLogger.Errorf("unsupport api type: %v", source.ApiType)

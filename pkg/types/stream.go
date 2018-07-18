@@ -191,7 +191,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// return request stream decoder
-	NewStream(streamId string, responseEncoder StreamSender) StreamReceiver
+	NewStream(streamID string, responseEncoder StreamSender) StreamReceiver
 }
 
 type StreamFilterBase interface {
@@ -364,16 +364,16 @@ type ConnectionPool interface {
 
 	DrainConnections()
 
-	NewStream(context context.Context, streamId string,
+	NewStream(context context.Context, streamID string,
 		responseDecoder StreamReceiver, cb PoolEventListener) Cancellable
 
 	Close()
 }
 
 type PoolEventListener interface {
-	OnFailure(streamId string, reason PoolFailureReason, host Host)
+	OnFailure(streamID string, reason PoolFailureReason, host Host)
 
-	OnReady(streamId string, requestEncoder StreamSender, host Host)
+	OnReady(streamID string, requestEncoder StreamSender, host Host)
 }
 
 type Cancellable interface {

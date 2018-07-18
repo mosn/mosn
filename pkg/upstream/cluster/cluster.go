@@ -241,7 +241,7 @@ type clusterInfo struct {
 	lbSubsetInfo types.LBSubsetInfo
 }
 
-func NewClusterInfo() *clusterInfo {
+func NewClusterInfo() types.ClusterInfo {
 	return &clusterInfo{}
 }
 
@@ -253,7 +253,7 @@ func (ci *clusterInfo) LbType() types.LoadBalancerType {
 	return ci.lbType
 }
 
-func (ci *clusterInfo) AddedViaApi() bool {
+func (ci *clusterInfo) AddedViaAPI() bool {
 	return ci.addedViaAPI
 }
 

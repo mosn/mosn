@@ -32,7 +32,7 @@ import (
 
 type StreamDirection int
 
-var streamIdXprotocolCount uint32
+var streamIDXprotocolCount uint32
 
 const (
 	ServerStream StreamDirection = 1
@@ -94,8 +94,8 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	log.StartLogger.Tracef("stream connection dispatch data = %v", buffer.String())
 	streamID := ""
 	if conn.serverCallbacks != nil {
-		reqId := atomic.AddUint32(&streamIdXprotocolCount, 1)
-		streamID = strconv.FormatUint(uint64(reqId), 10)
+		reqID := atomic.AddUint32(&streamIDXprotocolCount, 1)
+		streamID = strconv.FormatUint(uint64(reqID), 10)
 	}
 	headers := make(map[string]string)
 	// support dynamic route

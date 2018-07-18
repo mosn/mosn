@@ -38,7 +38,7 @@ func init() {
 }
 
 // currently, only one server supported
-func GetServer() *server {
+func GetServer() Server {
 	if len(servers) == 0 {
 		log.DefaultLogger.Errorf("Server is nil and hasn't been initiated at this time")
 		return nil
