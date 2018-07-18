@@ -1,0 +1,40 @@
+dist: trusty
+sudo: required
+
+language: go
+go:
+  - 1.9.2
+
+services:
+  - docker
+
+before_script:
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - dep ensure
+
+jobs:
+  include:
+    - stage: test
+      script:
+#        - make ut-local
+        - make coverage
+    - stage: build
+      script: make build
+#    - stage: deploy
+#    - stage: release
+
+
+#stages:
+#  - name: test
+#  - name: build
+#  - name: release
+#    if: branch = master
+#  - name: deploy
+#    if: branch = master
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+notifications:
+  email:
+    - junxiong.sjx@antfin.com
