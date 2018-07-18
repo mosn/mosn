@@ -47,7 +47,7 @@ func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filt
 			}
 		}
 	} else if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
-		deserializeResponseAllFields(cmd, context)
+		deserializeResponseAllFields(context, cmd)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 		//logger := log.ByContext(context)
 

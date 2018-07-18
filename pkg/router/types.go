@@ -145,11 +145,11 @@ func (rpei *RateLimitPolicyEntryImpl) Stage() uint64 {
 	return rpei.stage
 }
 
-func (repi *RateLimitPolicyEntryImpl) DisableKey() string {
-	return repi.disablleKey
+func (rpei *RateLimitPolicyEntryImpl) DisableKey() string {
+	return rpei.disablleKey
 }
 
-func (repi *RateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule, descriptors []types.Descriptor, localSrvCluster string,
+func (rpei *RateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule, descriptors []types.Descriptor, localSrvCluster string,
 	headers map[string]string, remoteAddr string) {
 }
 

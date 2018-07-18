@@ -104,16 +104,16 @@ func (f *faultInjectFilter) tryInjectDelay() {
 	}
 }
 
-func (fi *faultInjectFilter) getDelayDuration() uint64 {
-	if fi.delayPercent == 0 {
+func (f *faultInjectFilter) getDelayDuration() uint64 {
+	if f.delayPercent == 0 {
 		return 0
 	}
 
-	if uint32(rand.Intn(100))+1 > fi.delayPercent {
+	if uint32(rand.Intn(100))+1 > f.delayPercent {
 		return 0
 	}
 
-	return fi.delayDuration
+	return f.delayDuration
 }
 
 // ~~ factory

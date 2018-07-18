@@ -130,7 +130,7 @@ func (srv *server) Start() {
 	}
 }
 
-func (src *server) Restart() {
+func (srv *server) Restart() {
 	// TODO
 }
 
