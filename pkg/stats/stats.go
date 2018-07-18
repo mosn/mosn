@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package stats
 
 import (
 	"bytes"
 	"fmt"
+	"strconv"
+
 	"github.com/rcrowley/go-metrics"
-    "strconv"
 )
 
 type Stats struct {

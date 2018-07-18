@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package codec
 
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"reflect"
 	"time"
-
-	"errors"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
@@ -161,7 +161,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 
 				cmdCode := binary.BigEndian.Uint16(bytes[3:5])
 				ver2 := bytes[5]
-				requestId := binary.BigEndian.Uint32(bytes[6:10])
+				requestID := binary.BigEndian.Uint32(bytes[6:10])
 				codec := bytes[10]
 
 				switchCode := bytes[11]
@@ -199,7 +199,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 						dataType,
 						int16(cmdCode),
 						ver2,
-						requestId,
+						requestID,
 						codec,
 						int(timeout),
 						int16(classLen),
@@ -225,7 +225,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 
 				cmdCode := binary.BigEndian.Uint16(bytes[3:5])
 				ver2 := bytes[5]
-				requestId := binary.BigEndian.Uint32(bytes[6:10])
+				requestID := binary.BigEndian.Uint32(bytes[6:10])
 				codec := bytes[10]
 				switchCode := bytes[11]
 
@@ -262,7 +262,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 						dataType,
 						int16(cmdCode),
 						ver2,
-						requestId,
+						requestID,
 						codec,
 						int16(status),
 						int16(classLen),

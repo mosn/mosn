@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package server
 
 import (
@@ -38,7 +39,7 @@ const (
 
 type Config struct {
 	LogPath         string
-	LogLevel        log.LogLevel
+	LogLevel        log.Level
 	GracefulTimeout time.Duration
 	Processor       int
 }

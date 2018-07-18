@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package proxy
 
 import (
@@ -25,8 +26,8 @@ import (
 
 var bitSize64 = 1 << 6
 
-func parseProxyTimeout(route types.Route, headers map[string]string) *ProxyTimeout {
-	timeout := &ProxyTimeout{}
+func parseProxyTimeout(route types.Route, headers map[string]string) *Timeout {
+	timeout := &Timeout{}
 	timeout.GlobalTimeout = route.RouteRule().GlobalTimeout()
 	timeout.TryTimeout = route.RouteRule().Policy().RetryPolicy().TryTimeout()
 

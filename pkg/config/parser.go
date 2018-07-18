@@ -14,53 +14,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package config
 
 import (
 	"encoding/json"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
-
-	"time"
 )
 
-type ConfigContentKey string
+type ContentKey string
 
 var ProtocolsSupported = map[string]bool{
-	string(protocol.SofaRpc):   true,
-	string(protocol.Http2):     true,
-	string(protocol.Http1):     true,
+	string(protocol.SofaRPC):   true,
+	string(protocol.HTTP2):     true,
+	string(protocol.HTTP1):     true,
 	string(protocol.Xprotocol): true,
 }
 
 // callback when corresponding module parsed
-type ConfigParsedCallback func(data interface{}, endParsing bool) error
+type ParsedCallback func(data interface{}, endParsing bool) error
 
 // notes: configcontentkey equals to the key of config file
 const (
-	ParseCallbackKeyCluster        ConfigContentKey = "clusters"
-	ParseCallbackKeyServiceRgtInfo ConfigContentKey = "service_registry"
+	ParseCallbackKeyCluster        ContentKey = "clusters"
+	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
 )
 
-func RegisterConfigParsedListener(key ConfigContentKey, cb ConfigParsedCallback) {
+func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 	if cbs, ok := configParsedCBMaps[key]; ok {
 		cbs = append(cbs, cb)
 	} else {
 		log.StartLogger.Infof(" %s added to configParsedCBMaps", key)
-		cpc := []ConfigParsedCallback{cb}
+		cpc := []ParsedCallback{cb}
 		configParsedCBMaps[key] = cpc
 	}
 }
 
 var (
-	configParsedCBMaps = make(map[ConfigContentKey][]ConfigParsedCallback)
+	configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
 
-	logLevelMap = map[string]log.LogLevel{
+	logLevelMap = map[string]log.Level{
 		"TRACE": log.TRACE,
 		"DEBUG": log.DEBUG,
 		"FATAL": log.FATAL,
@@ -80,7 +80,7 @@ var (
 	}
 )
 
-func ParseLogLevel(level string) log.LogLevel {
+func ParseLogLevel(level string) log.Level {
 	if level != "" {
 		if logLevel, ok := logLevelMap[level]; ok {
 			return logLevel
@@ -103,7 +103,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 	return sc
 }
 
-func ParseProxyFilterJson(c *v2.Filter) *v2.Proxy {
+func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 
 	proxyConfig := &v2.Proxy{}
 

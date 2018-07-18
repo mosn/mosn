@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package types
 
 import (
@@ -21,8 +22,8 @@ import (
 	"io"
 	"net"
 
-	"github.com/rcrowley/go-metrics"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/rcrowley/go-metrics"
 )
 
 //
@@ -120,7 +121,7 @@ type ListenerEventListener interface {
 	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr)
 
 	// Called on new mosn connection created
-	OnNewConnection(ctx context.Context,conn Connection)
+	OnNewConnection(ctx context.Context, conn Connection)
 
 	// Called on listener close
 	OnClose()
@@ -270,7 +271,7 @@ const (
 // Connection interface
 type Connection interface {
 	// Unique connection id
-	Id() uint64
+	ID() uint64
 
 	// Start starts connection with context.
 	// See context.go to get available keys in context
@@ -409,7 +410,7 @@ type ConnectionHandler interface {
 
 	// Add a listener
 	AddListener(lc *v2.ListenerConfig, networkFiltersFactory NetworkFilterChainFactory,
-		streamFiltersFactories []StreamFilterChainFactory)ListenerEventListener
+		streamFiltersFactories []StreamFilterChainFactory) ListenerEventListener
 
 	// Start a listener by tag
 	StartListener(lctx context.Context, listenerTag uint64)
@@ -424,7 +425,7 @@ type ConnectionHandler interface {
 	RemoveListeners(listenerTag uint64)
 
 	// Stop listener by tag
-	StopListener( lctx context.Context, listenerTag uint64)
+	StopListener(lctx context.Context, listenerTag uint64)
 
 	// Stop all listener
 	// + close : indicates whether the listening sockets will be closed

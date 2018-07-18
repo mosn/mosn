@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package types
 
 import "context"
@@ -176,7 +177,7 @@ type ClientStreamConnection interface {
 	// Create a new outgoing request stream
 	// responseDecoder supplies the decoder listeners on decode event
 	// StreamSender supplies the encoder to write the request
-	NewStream(streamId string, responseDecoder StreamReceiver) StreamSender
+	NewStream(streamID string, responseDecoder StreamReceiver) StreamSender
 }
 
 // Stream connection event listener
@@ -190,7 +191,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// return request stream decoder
-	NewStream(streamId string, responseEncoder StreamSender) StreamReceiver
+	NewStream(streamID string, responseEncoder StreamSender) StreamReceiver
 }
 
 type StreamFilterBase interface {
@@ -209,7 +210,7 @@ type StreamFilterCallbacks interface {
 	Route() Route
 
 	// Get stream id
-	StreamId() string
+	StreamID() string
 
 	// Request info related to the stream
 	RequestInfo() RequestInfo
@@ -363,16 +364,16 @@ type ConnectionPool interface {
 
 	DrainConnections()
 
-	NewStream(context context.Context, streamId string,
+	NewStream(context context.Context, streamID string,
 		responseDecoder StreamReceiver, cb PoolEventListener) Cancellable
 
 	Close()
 }
 
 type PoolEventListener interface {
-	OnFailure(streamId string, reason PoolFailureReason, host Host)
+	OnFailure(streamID string, reason PoolFailureReason, host Host)
 
-	OnReady(streamId string, requestEncoder StreamSender, host Host)
+	OnReady(streamID string, requestEncoder StreamSender, host Host)
 }
 
 type Cancellable interface {

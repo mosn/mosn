@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package log
 
 import (
@@ -126,7 +127,7 @@ func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHe
 	}
 
 	buffer := accessLogPool.Get()
-	defer  accessLogPool.Put(buffer)
+	defer accessLogPool.Put(buffer)
 	for _, key := range f.reqInfoFormat {
 
 		if vFunc, ok := RequestInfoFuncMap[key]; ok {
@@ -152,7 +153,7 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 	}
 
 	buffer := accessLogPool.Get()
-	defer  accessLogPool.Put(buffer)
+	defer accessLogPool.Put(buffer)
 	for _, key := range f.reqHeaderFormat {
 		if v, ok := reqHeaders[key]; ok {
 			buffer.WriteString(types.ReqHeaderPrefix)
@@ -178,7 +179,7 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 	}
 
 	buffer := accessLogPool.Get()
-	defer  accessLogPool.Put(buffer)
+	defer accessLogPool.Put(buffer)
 	for _, key := range f.respHeaderFormat {
 
 		if v, ok := respHeaders[key]; ok {

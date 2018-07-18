@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package v2
 
 import (
@@ -144,25 +145,25 @@ type TLSConfig struct {
 	Ticket       string
 }
 
-type TcpRoute struct {
+type TCPRoute struct {
 	Cluster          string
 	SourceAddrs      []net.Addr
 	DestinationAddrs []net.Addr
 }
 
-type TcpProxy struct {
-	Routes     []*TcpRoute
+type TCPProxy struct {
+	Routes     []*TCPRoute
 	AccessLogs []*AccessLog
 }
 
-type RpcRoute struct {
+type RPCRoute struct {
 	Name    string
 	Service string
 	Cluster string
 }
 
-type RpcProxy struct {
-	Routes []*RpcRoute
+type RPCProxy struct {
+	Routes []*RPCRoute
 }
 
 type FaultInject struct {
@@ -263,7 +264,7 @@ type VirtualHost struct {
 	Name            string
 	Domains         []string
 	Routers         []Router
-	RequireTls      string
+	RequireTLS      string
 	VirtualClusters []VirtualCluster
 }
 

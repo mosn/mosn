@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package mosn
 
 import (
 	"net"
 	"net/http"
-	_"net/http/pprof"
 	"os"
 	"strconv"
 	"sync"
@@ -160,7 +160,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	Mosn := NewMosn(c)
 	Mosn.Start()
 	////get xds config
-	xdsClient := xds.XdsClient{}
+	xdsClient := xds.Client{}
 	xdsClient.Start(c, serviceCluster, serviceNode)
 	//
 	////todo: daemon running
@@ -176,7 +176,7 @@ func GetNetworkFilter(c *v2.FilterChain) types.NetworkFilterChainFactory {
 	}
 
 	return &proxy.GenericProxyFilterConfigFactory{
-		Proxy: config.ParseProxyFilterJson(&c.Filters[0]),
+		Proxy: config.ParseProxyFilterJSON(&c.Filters[0]),
 	}
 }
 

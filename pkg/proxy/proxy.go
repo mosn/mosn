@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package proxy
 
 import (
@@ -144,8 +145,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStream(streamId string, responseSender types.StreamSender) types.StreamReceiver {
-	stream := newActiveStream(streamId, p, responseSender)
+func (p *proxy) NewStream(streamID string, responseSender types.StreamSender) types.StreamReceiver {
+	stream := newActiveStream(streamID, p, responseSender)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)

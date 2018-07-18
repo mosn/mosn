@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package http
 
 import (
 	"container/list"
 	"context"
 	"sync"
+	"sync/atomic"
 
-	"github.com/valyala/fasthttp"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"sync/atomic"
+	"github.com/valyala/fasthttp"
 )
 
 // connection management is done by fasthttp
@@ -51,7 +52,7 @@ type codecClient struct {
 	RemoteCloseFlag           bool
 }
 
-func NewHttp1CodecClient(context context.Context, host types.HostInfo) str.CodecClient {
+func NewHTTP1CodecClient(context context.Context, host types.HostInfo) str.CodecClient {
 	codecClient := &codecClient{
 		client: &fasthttp.HostClient{
 			Addr:          host.AddressString(),
@@ -68,7 +69,7 @@ func NewHttp1CodecClient(context context.Context, host types.HostInfo) str.Codec
 	return codecClient
 }
 
-func (c *codecClient) Id() uint64 {
+func (c *codecClient) ID() uint64 {
 	return 0
 }
 
@@ -99,9 +100,9 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(streamId string, respDecoder types.StreamReceiver) types.StreamSender {
+func (c *codecClient) NewStream(streamID string, respDecoder types.StreamReceiver) types.StreamSender {
 	ar := newActiveRequest(c, respDecoder)
-	ar.requestEncoder = c.Codec.NewStream(streamId, ar)
+	ar.requestEncoder = c.Codec.NewStream(streamID, ar)
 	ar.requestEncoder.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()
@@ -135,7 +136,7 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 		for ar := c.ActiveRequests.Front(); ar != nil; ar = arNext {
 			reason := types.StreamConnectionFailed
 			arNext = ar.Next()
-			
+
 			if c.ConnectedFlag {
 				reason = types.StreamConnectionTermination
 			}
@@ -193,7 +194,7 @@ type activeRequest struct {
 	responseDecoder types.StreamReceiver
 	requestEncoder  types.StreamSender
 	element         *list.Element
-	deleted          uint32
+	deleted         uint32
 }
 
 func newActiveRequest(codecClient *codecClient, streamDecoder types.StreamReceiver) *activeRequest {

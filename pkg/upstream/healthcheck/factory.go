@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package healthcheck
 
 import (
@@ -32,11 +33,10 @@ type healthCheckerFactory struct{}
 
 func (nhc *healthCheckerFactory) New(config v2.HealthCheck) types.HealthChecker {
 	switch config.Protocol {
-	case string(protocol.SofaRpc):
-		return newSofaRpcHealthChecker(config)
-	case string(protocol.Http2):
-		return newHttpHealthCheck(config)
-		// todo: http1
+	case string(protocol.SofaRPC):
+		return newSofaRPCHealthChecker(config)
+	case string(protocol.HTTP2):
+		return newHTTPHealthCheck(config)
 	default:
 		// todo: http1
 		return nil

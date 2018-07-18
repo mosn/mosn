@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package sofarpc
 
 import (
 	"context"
+	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"sync"
 )
 
 // types.ConnectionPool
@@ -40,12 +41,12 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) Protocol() types.Protocol {
-	return protocol.SofaRpc
+	return protocol.SofaRPC
 }
 
 func (p *connPool) DrainConnections() {}
 
-func (p *connPool) NewStream(context context.Context, streamId string,
+func (p *connPool) NewStream(context context.Context, streamID string,
 	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
 	p.mux.Lock()
 	if p.activeClient == nil {
@@ -55,18 +56,18 @@ func (p *connPool) NewStream(context context.Context, streamId string,
 	p.mux.Unlock()
 
 	if p.activeClient == nil {
-		cb.OnFailure(streamId, types.ConnectionFailure, nil)
+		cb.OnFailure(streamID, types.ConnectionFailure, nil)
 		return nil
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(streamId, types.Overflow, nil)
+		cb.OnFailure(streamID, types.Overflow, nil)
 	} else {
 		// todo: update host stats
 		p.activeClient.totalStream++
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := p.activeClient.codecClient.NewStream(streamId, responseDecoder)
-		cb.OnReady(streamId, streamEncoder, p.host)
+		streamEncoder := p.activeClient.codecClient.NewStream(streamID, responseDecoder)
+		cb.OnReady(streamID, streamEncoder, p.host)
 	}
 
 	return nil
@@ -98,7 +99,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 }
 
 func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
-	return str.NewCodecClient(context, protocol.SofaRpc, connData.Connection, connData.HostInfo)
+	return str.NewCodecClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
 }
 
 // stream.CodecClientCallbacks

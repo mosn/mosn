@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package config
 
 import (
 	"encoding/json"
-
-	"github.com/alipay/sofa-mosn/pkg/log"
-
 	"io/ioutil"
 	"sync"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
-var fileMutex *sync.Mutex = new(sync.Mutex)
+var fileMutex = new(sync.Mutex)
 
 func Dump(dirty bool) {
 	fileMutex.Lock()

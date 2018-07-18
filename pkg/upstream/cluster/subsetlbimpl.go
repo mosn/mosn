@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package cluster
 
 import (
@@ -49,7 +50,7 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.Prio
 		originalPrioritySet:   prioritySet,
 		stats:                 stats,
 	}
-	
+
 	ssb.subSets = make(map[string]types.ValueSubsetMap)
 
 	// foreach every priority subset
@@ -107,8 +108,8 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 		var hostChoosen = false
 		host := sslb.TryChooseHostFromContext(context, &hostChoosen)
 		if hostChoosen {
-			log.DefaultLogger.Debugf("subset load balancer: match subset entry success, " +
-				"choose hostaddr = %s",host.AddressString())
+			log.DefaultLogger.Debugf("subset load balancer: match subset entry success, "+
+				"choose hostaddr = %s", host.AddressString())
 			return host
 		}
 	}
@@ -118,16 +119,16 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 		return nil
 	}
 	sslb.stats.LBSubSetsFallBack.Inc(1)
-	
+
 	defaulthosts := sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts()
-	
+
 	if len(defaulthosts) > 0 {
-		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are ",defaulthosts)
-	}else {
+		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are ", defaulthosts)
+	} else {
 		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset's host is nil")
 		return nil
 	}
-	
+
 	return sslb.fallbackSubset.prioritySubset.LB().ChooseHost(context)
 }
 
@@ -202,9 +203,9 @@ func (sslb *subSetLoadBalancer) ProcessSubsets(hostAdded []types.Host, hostsRemo
 
 				kvs := sslb.ExtractSubsetMetadata(subSetKey.Keys(), host)
 				if len(kvs) > 0 {
-					
+
 					entry := sslb.FindOrCreateSubset(sslb.subSets, kvs, 0)
-					
+
 					if entry.Initialized() {
 						updateCB(entry)
 					} else {
@@ -409,7 +410,7 @@ func (hsi *hostSubsetImpl) UpdateHostSubset(hostsAdded []types.Host, hostsRemove
 			healthyHosts = append(healthyHosts, host)
 		}
 	}
-	
+
 	//最终更新host
 	hsi.hostSubset.UpdateHosts(finalhosts, healthyHosts, nil, nil,
 		filteredAdded, filteredRemoved)
@@ -530,7 +531,7 @@ func NewLBSubsetInfo(subsetCfg *v2.LBSubsetConfig) types.LBSubsetInfo {
 		fallbackPolicy: types.FallBackPolicy(subsetCfg.FallBackPolicy),
 		subSetKeys:     GenerateSubsetKeys(subsetCfg.SubsetSelectors),
 	}
-	
+
 	if len(subsetCfg.SubsetSelectors) == 0 {
 		lbSubsetInfo.enabled = false
 	} else {

@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 //Similar to Network's damage on flow
+
 package faultinject
 
 import (
 	"context"
-
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -39,7 +39,7 @@ type faultInjectFilter struct {
 	cb            types.StreamReceiverFilterCallbacks
 }
 
-func NewFaultInjectFilter(context context.Context, config *v2.FaultInject) *faultInjectFilter {
+func NewFaultInjectFilter(context context.Context, config *v2.FaultInject) types.StreamReceiverFilter {
 	return &faultInjectFilter{
 		context:       context,
 		delayPercent:  config.DelayPercent,
@@ -53,7 +53,7 @@ func (f *faultInjectFilter) OnDecodeHeaders(headers map[string]string, endStream
 	if atomic.LoadUint32(&f.delaying) > 0 {
 		return types.FilterHeadersStatusStopIteration
 	}
-	
+
 	return types.FilterHeadersStatusContinue
 }
 
@@ -63,7 +63,7 @@ func (f *faultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) typ
 	if atomic.LoadUint32(&f.delaying) > 0 {
 		return types.FilterDataStatusStopIterationAndBuffer
 	}
-	
+
 	return types.FilterDataStatusContinue
 }
 
@@ -73,7 +73,7 @@ func (f *faultInjectFilter) OnDecodeTrailers(trailers map[string]string) types.F
 	if atomic.LoadUint32(&f.delaying) > 0 {
 		return types.FilterTrailersStatusStopIteration
 	}
-	
+
 	return types.FilterTrailersStatusContinue
 }
 
@@ -117,17 +117,17 @@ func (f *faultInjectFilter) getDelayDuration() uint64 {
 }
 
 // ~~ factory
-type FaultInjectFilterConfigFactory struct {
+type FilterConfigFactory struct {
 	FaultInject *v2.FaultInject
 }
 
-func (f *FaultInjectFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
+func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
 	filter := NewFaultInjectFilter(context, f.FaultInject)
 	callbacks.AddStreamReceiverFilter(filter)
 }
 
 func CreateFaultInjectFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
-	return &FaultInjectFilterConfigFactory{
+	return &FilterConfigFactory{
 		FaultInject: config.ParseFaultInjectFilter(conf),
 	}, nil
 }

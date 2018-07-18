@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package sofarpc
 
 import (
@@ -60,7 +61,7 @@ const (
 	InvalidHeaderType  string = "Invalid header type, neither map nor command"
 	UnKnownReqtype     string = "Unknown request type"
 	UnKnownCmdcode     string = "Unknown cmd code"
-	NoReqIdFound       string = "No request Id found in header"
+	NoReqIDFound       string = "No request Id found in header"
 	UnKnownCmd         string = "Unknown Command"
 )
 
@@ -185,7 +186,7 @@ type RemotingProcessor interface {
 type ProtoBasicCmd interface {
 	GetProtocol() byte
 	GetCmdCode() int16
-	GetReqId() uint32
+	GetReqID() uint32
 }
 
 type BoltRequestCommand struct {
@@ -193,7 +194,7 @@ type BoltRequestCommand struct {
 	CmdType       byte  //Req:1,    Resp:0,   OneWay:2
 	CmdCode       int16 //HB:0,     Req:1,    Resp:2
 	Version       byte  //1
-	ReqId         uint32
+	ReqID         uint32
 	CodecPro      byte
 	Timeout       int
 	ClassLen      int16
@@ -212,7 +213,7 @@ type BoltResponseCommand struct {
 	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
 	CmdCode  int16 //HB:0,     Req:1,    Resp:2
 	Version  byte  //BoltV1:1  BoltV2: 1
-	ReqId    uint32
+	ReqID    uint32
 	CodecPro byte // 1
 
 	ResponseStatus int16 //Success:0 Error:1 Timeout:7
@@ -249,8 +250,8 @@ func (b *BoltRequestCommand) GetCmdCode() int16 {
 	return b.CmdCode
 }
 
-func (b *BoltRequestCommand) GetReqId() uint32 {
-	return b.ReqId
+func (b *BoltRequestCommand) GetReqID() uint32 {
+	return b.ReqID
 }
 
 func (b *BoltResponseCommand) GetProtocol() byte {
@@ -261,12 +262,12 @@ func (b *BoltResponseCommand) GetCmdCode() int16 {
 	return b.CmdCode
 }
 
-func (b *BoltResponseCommand) GetReqId() uint32 {
-	return b.ReqId
+func (b *BoltResponseCommand) GetReqID() uint32 {
+	return b.ReqID
 }
 
 const (
-	SofaRpcPropertyHeaderPrefix = "x-mosn-sofarpc-headers-property-"
+	SofaRPCPropertyHeaderPrefix = "x-mosn-sofarpc-headers-property-"
 )
 
 //tr constants
@@ -286,7 +287,7 @@ const (
 
 func BuildSofaRespMsg(context context.Context, headers map[string]string, respStatus int16) (interface{}, error) {
 	var pro, version, codec byte
-	var reqId uint32
+	var reqID uint32
 
 	if p, ok := headers[SofaPropertyHeader(HeaderProtocolCode)]; ok {
 		pr, _ := strconv.Atoi(p)
@@ -295,9 +296,9 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 
 	if r, ok := headers[SofaPropertyHeader(HeaderReqID)]; ok {
 		rd, _ := strconv.Atoi(r)
-		reqId = uint32(rd)
+		reqID = uint32(rd)
 	} else {
-		errMsg := NoReqIdFound
+		errMsg := NoReqIDFound
 		log.ByContext(context).Errorf(errMsg)
 		return headers, errors.New(errMsg)
 	}
@@ -318,7 +319,7 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 			CmdType:        RESPONSE,
 			CmdCode:        RPC_RESPONSE,
 			Version:        version,
-			ReqId:          reqId,
+			ReqID:          reqID,
 			CodecPro:       codec,
 			ResponseStatus: respStatus,
 		}, nil
@@ -341,7 +342,7 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 				CmdType:        RESPONSE,
 				CmdCode:        RPC_RESPONSE,
 				Version:        version,
-				ReqId:          reqId,
+				ReqID:          reqID,
 				CodecPro:       codec,
 				ResponseStatus: respStatus,
 			},
@@ -351,15 +352,15 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 	} else if pro == PROTOCOL_CODE_TR {
 		return headers, nil
 	}
-	
+
 	log.ByContext(context).Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
-	
+
 	return headers, errors.New(types.UnSupportedProCode)
 }
 
 // Sofa Rpc Default HC Parameters
 const (
-	SofaRpc                             = "SofaRpc"
+	SofaRPC                             = "SofaRpc"
 	DefaultBoltHeartBeatTimeout         = 6 * 15 * time.Second
 	DefaultBoltHeartBeatInterval        = 15 * time.Second
 	DefaultIntervalJitter               = 5 * time.Millisecond
@@ -367,8 +368,8 @@ const (
 	DefaultUnhealthyThreshold    uint32 = 2
 )
 
-var DefaultSofaRpcHealthCheckConf = v2.HealthCheck{
-	Protocol:           SofaRpc,
+var DefaultSofaRPCHealthCheckConf = v2.HealthCheck{
+	Protocol:           SofaRPC,
 	Timeout:            DefaultBoltHeartBeatTimeout,
 	HealthyThreshold:   DefaultHealthyThreshold,
 	UnhealthyThreshold: DefaultUnhealthyThreshold,

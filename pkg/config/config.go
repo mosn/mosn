@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package config
 
 import (
@@ -195,12 +196,12 @@ func (c *MOSNConfig) Mode() Mode {
 		if len(c.RawStaticResources) == 0 || len(c.RawDynamicResources) == 0 {
 			return File
 		}
-		
+
 		return Mix
 	} else if len(c.RawStaticResources) > 0 && len(c.RawDynamicResources) > 0 {
 		return Xds
 	}
-	
+
 	return File
 }
 

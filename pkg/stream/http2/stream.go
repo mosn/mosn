@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package http2
 
 import (
 	"container/list"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -30,8 +32,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"crypto/tls"
-
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -41,7 +41,7 @@ import (
 )
 
 func init() {
-	str.Register(protocol.Http2, &streamConnFactory{})
+	str.Register(protocol.HTTP2, &streamConnFactory{})
 }
 
 type streamConnFactory struct{}
@@ -119,10 +119,10 @@ func (csc *clientStreamConnection) OnGoAway() {
 	csc.streamConnCallbacks.OnGoAway()
 }
 
-func (csc *clientStreamConnection) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
+func (csc *clientStreamConnection) NewStream(streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
-			context: context.WithValue(csc.context, types.ContextKeyStreamId, streamId),
+			context: context.WithValue(csc.context, types.ContextKeyStreamID, streamID),
 			decoder: responseDecoder,
 		},
 		connection: csc,
@@ -175,18 +175,18 @@ func (ssc *serverStreamConnection) OnGoAway() {
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
 	//generate stream id using timestamp
-	streamId := "streamID-" + time.Now().String()
+	streamID := "streamID-" + time.Now().String()
 
 	stream := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamId, streamId),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
 			request: request,
 		},
 		connection:       ssc,
 		responseWriter:   responseWriter,
 		responseDoneChan: make(chan bool, 1),
 	}
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamId, stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamID, stream)
 	ssc.asMutex.Lock()
 	stream.element = ssc.activeStreams.PushBack(stream)
 	ssc.asMutex.Unlock()

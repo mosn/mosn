@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package config
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
-
-	"encoding/json"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )

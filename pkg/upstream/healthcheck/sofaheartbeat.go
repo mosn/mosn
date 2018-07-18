@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package healthcheck
 
 import (
@@ -44,8 +45,8 @@ func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr 
 	host := cluster.NewHost(hostV2, nil)
 	baseHc := newHealthChecker(hcV2)
 
-	hc := newSofaRpcHealthCheckerWithBaseHealthChecker(baseHc, pro)
-	hcs := hc.newSofaRpcHealthCheckSession(codecClient, host)
+	hc := newSofaRPCHealthCheckerWithBaseHealthChecker(baseHc, pro)
+	hcs := hc.newSofaRPCHealthCheckSession(codecClient, host)
 	hcs.Start()
 
 	return hcs

@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tls
 
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"net"
-
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"strings"
 	"sync"
 

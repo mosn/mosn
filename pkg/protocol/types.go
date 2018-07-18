@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package protocol
 
 import "github.com/alipay/sofa-mosn/pkg/types"
 
 const (
-	SofaRpc   types.Protocol = "SofaRpc"
-	Http1     types.Protocol = "Http1"
-	Http2     types.Protocol = "Http2"
+	SofaRPC   types.Protocol = "SofaRpc"
+	HTTP1     types.Protocol = "Http1"
+	HTTP2     types.Protocol = "Http2"
 	Xprotocol types.Protocol = "X"
 )
 

@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package v2
 
 import (
-	//"time"
-	//"google.golang.org/grpc"
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	//"golang.org/x/net/context"
-	//google_rpc "github.com/gogo/googleapis/google/rpc"
 	"errors"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 )
 
-func (c *V2Client) GetClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Cluster {
+func (c *ClientV2) GetClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Cluster {
 	err := c.ReqClusters(streamClient)
 	if err != nil {
 		log.DefaultLogger.Fatalf("get clusters fail: %v", err)
@@ -42,7 +40,7 @@ func (c *V2Client) GetClusters(streamClient ads.AggregatedDiscoveryService_Strea
 	return c.HandleClustersResp(r)
 }
 
-func (c *V2Client) ReqClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
+func (c *ClientV2) ReqClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
 	if streamClient == nil {
 		return errors.New("stream client is nil")
 	}
@@ -63,7 +61,7 @@ func (c *V2Client) ReqClusters(streamClient ads.AggregatedDiscoveryService_Strea
 	return nil
 }
 
-func (c *V2Client) HandleClustersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Cluster {
+func (c *ClientV2) HandleClustersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Cluster {
 	clusters := make([]*envoy_api_v2.Cluster, 0)
 	for _, res := range resp.Resources {
 		cluster := envoy_api_v2.Cluster{}

@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package network
 
 import (
@@ -124,7 +125,7 @@ func (c *connection) OnLowWatermark() {
 
 // basic
 
-func (c *connection) Id() uint64 {
+func (c *connection) ID() uint64 {
 	return c.id
 }
 
@@ -583,7 +584,7 @@ func (c *connection) GetReadBuffer() types.IoBuffer {
 	if c.readBuffer != nil {
 		return c.readBuffer.Br
 	}
-	
+
 	return nil
 }
 
@@ -634,16 +635,16 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 
 func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 	cc.connectOnce.Do(func() {
-		var localTcpAddr *net.TCPAddr
+		var localTCPAddr *net.TCPAddr
 
 		if cc.localAddr != nil {
-			localTcpAddr, err = net.ResolveTCPAddr("tcp", cc.localAddr.String())
+			localTCPAddr, err = net.ResolveTCPAddr("tcp", cc.localAddr.String())
 		}
 
-		var remoteTcpAddr *net.TCPAddr
-		remoteTcpAddr, err = net.ResolveTCPAddr("tcp", cc.remoteAddr.String())
+		var remoteTCPAddr *net.TCPAddr
+		remoteTCPAddr, err = net.ResolveTCPAddr("tcp", cc.remoteAddr.String())
 
-		cc.rawConnection, err = net.DialTCP("tcp", localTcpAddr, remoteTcpAddr)
+		cc.rawConnection, err = net.DialTCP("tcp", localTCPAddr, remoteTCPAddr)
 		var event types.ConnectionEvent
 
 		if err != nil {

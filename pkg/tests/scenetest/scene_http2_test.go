@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tests
 
 import (
@@ -33,10 +34,10 @@ import (
 func TestHttp2(t *testing.T) {
 	meshAddr := "127.0.0.1:2045"
 	http2Addr := "127.0.0.1:8080"
-	server := NewUpstreamHttp2(t, http2Addr)
+	server := NewUpstreamHTTP2(t, http2Addr)
 	server.GoServe()
 	defer server.Close()
-	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.Http2, protocol.Http2)
+	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{http2Addr}, protocol.HTTP2, protocol.HTTP2)
 	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()
 	defer mesh.Close()
@@ -51,25 +52,25 @@ func TestHttp2(t *testing.T) {
 
 	httpClient := http.Client{Transport: tr}
 	for i := 0; i < 20; i++ {
-		requestId := fmt.Sprintf("%d", i)
+		requestID := fmt.Sprintf("%d", i)
 		request, err := http.NewRequest("GET", fmt.Sprintf("http://%s", meshAddr), nil)
 		if err != nil {
 			t.Fatalf("create request error:%v\n", err)
 		}
 		request.Header.Add("service", "testhttp2")
-		request.Header.Add("Requestid", requestId)
+		request.Header.Add("Requestid", requestID)
 		resp, err := httpClient.Do(request)
 		if err != nil {
-			t.Errorf("request %s response error: %v\n", requestId, err)
+			t.Errorf("request %s response error: %v\n", requestID, err)
 			continue
 		}
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			t.Errorf("request %s read body error: %v\n", requestId, err)
+			t.Errorf("request %s read body error: %v\n", requestID, err)
 			continue
 		}
-		t.Logf("request %s get data: %s\n", requestId, body)
+		t.Logf("request %s get data: %s\n", requestID, body)
 	}
 
 }

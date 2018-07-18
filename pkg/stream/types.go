@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package stream
 
 import (
@@ -25,14 +26,14 @@ import (
 type CodecClient interface {
 	types.ConnectionEventListener
 	types.ReadFilter
-	
-	Id() uint64
+
+	ID() uint64
 
 	AddConnectionCallbacks(cb types.ConnectionEventListener)
 
 	ActiveRequestsNum() int
 
-	NewStream(streamId string, respDecoder types.StreamReceiver) types.StreamSender
+	NewStream(streamID string, respDecoder types.StreamReceiver) types.StreamSender
 
 	SetConnectionStats(stats *types.ConnectionStats)
 

@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package server
 
 import (
@@ -37,7 +38,7 @@ func init() {
 }
 
 // currently, only one server supported
-func GetServer() *server {
+func GetServer() Server {
 	if len(servers) == 0 {
 		log.DefaultLogger.Errorf("Server is nil and hasn't been initiated at this time")
 		return nil
@@ -181,7 +182,7 @@ func WaitConnectionsDone(duration time.Duration) error {
 func InitDefaultLogger(config *Config) {
 
 	var logPath string
-	var logLevel log.LogLevel
+	var logLevel log.Level
 
 	if config != nil {
 		logPath = config.LogPath

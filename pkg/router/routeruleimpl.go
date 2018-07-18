@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package router
 
 import (
@@ -21,13 +22,13 @@ import (
 	"strings"
 	"time"
 
-	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 	//"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	httpmosn "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
@@ -66,7 +67,7 @@ type RouteRuleImplBase struct {
 	useWebSocket                bool
 	clusterName                 string //
 	clusterHeaderName           LowerCaseString
-	clusterNotFoundResponseCode httpmosn.HttpCode
+	clusterNotFoundResponseCode httpmosn.Code
 	timeout                     time.Duration
 	runtime                     v2.RuntimeUInt32
 	hostRedirect                string
@@ -95,7 +96,7 @@ type RouteRuleImplBase struct {
 	opaqueConfig multimap.MultiMap
 
 	decorator          *types.Decorator
-	directResponseCode httpmosn.HttpCode
+	directResponseCode httpmosn.Code
 	directResponseBody string
 	policy             *routerPolicy
 	virtualClusters    *VirtualClusterEntry
@@ -186,7 +187,7 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	if len(queryParams) == 0 {
 		return true
 	}
-	
+
 	return ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters)
 }
 
@@ -211,12 +212,12 @@ func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint
 			log.DefaultLogger.Debugf("Sofa router matches success")
 			return srri
 		}
-		
+
 		log.DefaultLogger.Warnf(" Sofa router matches failure, service name = %s", value)
 	}
-	
+
 	log.DefaultLogger.Warnf("No service key found in header, sofa router matcher failure")
-	
+
 	return nil
 }
 
@@ -255,7 +256,7 @@ func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint
 		}
 	}
 	log.DefaultLogger.Warnf("path route rule match failed")
-	
+
 	return nil
 }
 
@@ -288,13 +289,13 @@ func (prei *PrefixRouteRuleImpl) Match(headers map[string]string, randomValue ui
 
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
 				log.DefaultLogger.Warnf("prefix route rule match success")
-				
+
 				return prei
 			}
 		}
 	}
 	log.DefaultLogger.Warnf("prefix route rule match failed")
-	
+
 	return nil
 }
 
@@ -322,16 +323,16 @@ func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
 func (rrei *RegexRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	if rrei.matchRoute(headers, randomValue) {
 		if headerPathValue, ok := headers[strings.ToLower(protocol.MosnHeaderPathKey)]; ok {
-			
+
 			if rrei.regexPattern.MatchString(headerPathValue) {
 				log.DefaultLogger.Warnf("regex route rule match success")
-				
+
 				return rrei
 			}
 		}
 	}
 	log.DefaultLogger.Warnf("regex route rule match failed")
-	
+
 	return nil
 }
 

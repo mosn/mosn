@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package types
 
 import (
@@ -44,13 +45,13 @@ type ClusterManager interface {
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
-	HttpConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
+	HTTPConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
 
 	XprotocolConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
 
-	TcpConnForCluster(balancerContext LoadBalancerContext, cluster string) CreateConnectionData
+	TCPConnForCluster(balancerContext LoadBalancerContext, cluster string) CreateConnectionData
 
-	SofaRpcConnPoolForCluster(balancerContext LoadBalancerContext, cluster string) ConnectionPool
+	SofaRPCConnPoolForCluster(balancerContext LoadBalancerContext, cluster string) ConnectionPool
 
 	RemovePrimaryCluster(cluster string) bool
 
@@ -204,9 +205,9 @@ type HostStats struct {
 	UpstreamConnectionTotal                        metrics.Counter
 	UpstreamConnectionClose                        metrics.Counter
 	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionTotalHttp1                   metrics.Counter
-	UpstreamConnectionTotalHttp2                   metrics.Counter
-	UpstreamConnectionTotalSofaRpc                 metrics.Counter
+	UpstreamConnectionTotalHTTP1                   metrics.Counter
+	UpstreamConnectionTotalHTTP2                   metrics.Counter
+	UpstreamConnectionTotalSofaRPC                 metrics.Counter
 	UpstreamConnectionConFail                      metrics.Counter
 	UpstreamConnectionLocalClose                   metrics.Counter
 	UpstreamConnectionRemoteClose                  metrics.Counter
@@ -227,7 +228,7 @@ type ClusterInfo interface {
 
 	LbType() LoadBalancerType
 
-	AddedViaApi() bool
+	AddedViaAPI() bool
 
 	SourceAddress() net.Addr
 
@@ -285,9 +286,9 @@ type ClusterStats struct {
 	UpstreamConnectionTotal                        metrics.Counter
 	UpstreamConnectionClose                        metrics.Counter
 	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionTotalHttp1                   metrics.Counter
-	UpstreamConnectionTotalHttp2                   metrics.Counter
-	UpstreamConnectionTotalSofaRpc                 metrics.Counter
+	UpstreamConnectionTotalHTTP1                   metrics.Counter
+	UpstreamConnectionTotalHTTP2                   metrics.Counter
+	UpstreamConnectionTotalSofaRPC                 metrics.Counter
 	UpstreamConnectionConFail                      metrics.Counter
 	UpstreamConnectionRetry                        metrics.Counter
 	UpstreamConnectionLocalClose                   metrics.Counter

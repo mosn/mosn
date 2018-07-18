@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package router
 
 import (
@@ -26,9 +27,9 @@ import (
 )
 
 func init() {
-	RegisterRouterConfigFactory(protocol.SofaRpc, NewRouteMatcher)
-	RegisterRouterConfigFactory(protocol.Http2, NewRouteMatcher)
-	RegisterRouterConfigFactory(protocol.Http1, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.SofaRPC, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.HTTP2, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.HTTP1, NewRouteMatcher)
 	RegisterRouterConfigFactory(protocol.Xprotocol, NewRouteMatcher)
 }
 
@@ -41,8 +42,6 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 	if config, ok := config.(*v2.Proxy); ok {
 
 		for _, virtualHost := range config.VirtualHosts {
-
-			//todo 补充virtual host 其他成员
 			vh := NewVirtualHostImpl(virtualHost, config.ValidateClusters)
 
 			for _, domain := range virtualHost.Domains {

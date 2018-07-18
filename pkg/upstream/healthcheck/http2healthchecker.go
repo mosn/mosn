@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package healthcheck
 
 import (
@@ -33,7 +34,7 @@ type http2HealthChecker struct {
 	serviceName string
 }
 
-func newHttpHealthCheck(config v2.HealthCheck) types.HealthChecker {
+func newHTTPHealthCheck(config v2.HealthCheck) types.HealthChecker {
 	hc := newHealthChecker(config)
 
 	hhc := &http2HealthChecker{
@@ -59,7 +60,7 @@ func (c *http2HealthChecker) newSession(host types.Host) types.HealthCheckSessio
 }
 
 func (c *http2HealthChecker) createCodecClient(data types.CreateConnectionData) stream.CodecClient {
-	return stream.NewCodecClient(nil, protocol.Http2, data.Connection, data.HostInfo)
+	return stream.NewCodecClient(nil, protocol.HTTP2, data.Connection, data.HostInfo)
 }
 
 // types.StreamReceiver
@@ -111,9 +112,9 @@ func (s *http2HealthCheckSession) onInterval() {
 	s.requestSender.GetStream().AddEventListener(s)
 
 	reqHeaders := map[string]string{
-		types.HeaderMethod: http.MethodGet,
-		types.HeaderHost:   s.healthChecker.cluster.Info().Name(),
-		protocol.MosnHeaderPathKey:   s.healthChecker.checkPath,
+		types.HeaderMethod:         http.MethodGet,
+		types.HeaderHost:           s.healthChecker.cluster.Info().Name(),
+		protocol.MosnHeaderPathKey: s.healthChecker.checkPath,
 	}
 
 	s.requestSender.AppendHeaders(reqHeaders, true)

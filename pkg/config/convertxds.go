@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package config
 
 import (
@@ -41,13 +42,13 @@ import (
 	"github.com/gogo/protobuf/types"
 )
 
-var supportFilter map[string]bool = map[string]bool{
+var supportFilter = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
 	v2.RPC_PROXY:                  true,
 	v2.X_PROXY:                    true,
 }
 
-var httpBaseConfig map[string]bool = map[string]bool{
+var httpBaseConfig = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
 	v2.RPC_PROXY:                  true,
 }
@@ -78,7 +79,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 	// it must be 1 filechains and 1 networkfilter by design
 	if listenerConfig.FilterChains != nil && len(listenerConfig.FilterChains) == 1 && listenerConfig.FilterChains[0].Filters != nil && len(listenerConfig.FilterChains[0].Filters) == 1 && listenerConfig.FilterChains[0].Filters[0].Config != nil {
 		if downstreamProtocol, ok := listenerConfig.FilterChains[0].Filters[0].Config["DownstreamProtocol"]; ok {
-			if value, ok := downstreamProtocol.(string); ok && value == string(protocol.Http2) {
+			if value, ok := downstreamProtocol.(string); ok && value == string(protocol.HTTP2) {
 				listenerConfig.DisableConnIo = true
 			}
 		}
@@ -272,8 +273,8 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  string(protocol.Http2),
-			UpstreamProtocol:    string(protocol.Http2),
+			DownstreamProtocol:  string(protocol.HTTP2),
+			UpstreamProtocol:    string(protocol.HTTP2),
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
@@ -282,8 +283,8 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  string(protocol.SofaRpc),
-			UpstreamProtocol:    string(protocol.SofaRpc),
+			DownstreamProtocol:  string(protocol.SofaRPC),
+			UpstreamProtocol:    string(protocol.SofaRPC),
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
@@ -299,7 +300,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		}
 		return structs.Map(proxyConfig)
 	}
-	
+
 	log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
 	return nil
 }
@@ -315,7 +316,7 @@ func convertVirtualHosts(xdsRouteConfig *xdsapi.RouteConfiguration) []*v2.Virtua
 			Name:            xdsVirtualHost.GetName(),
 			Domains:         xdsVirtualHost.GetDomains(),
 			Routers:         convertRoutes(xdsVirtualHost.GetRoutes()),
-			RequireTls:      xdsVirtualHost.GetRequireTls().String(),
+			RequireTLS:      xdsVirtualHost.GetRequireTls().String(),
 			VirtualClusters: convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
 		}
 		virtualHosts = append(virtualHosts, virtualHost)
@@ -668,21 +669,21 @@ func convertDuration(p *types.Duration) time.Duration {
 	return d
 }
 
-func convertTLS(xdsTlsContext interface{}) v2.TLSConfig {
+func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	var config v2.TLSConfig
 	var isDownstream bool
 	var common *xdsauth.CommonTlsContext
 
-	if xdsTlsContext == nil {
+	if xdsTLSContext == nil {
 		return config
 	}
-	if context, ok := xdsTlsContext.(*xdsauth.DownstreamTlsContext); ok {
+	if context, ok := xdsTLSContext.(*xdsauth.DownstreamTlsContext); ok {
 		if context.GetRequireClientCertificate() != nil {
 			config.VerifyClient = context.GetRequireClientCertificate().GetValue()
 		}
 		common = context.GetCommonTlsContext()
 		isDownstream = true
-	} else if context, ok := xdsTlsContext.(*xdsauth.UpstreamTlsContext); ok {
+	} else if context, ok := xdsTLSContext.(*xdsauth.UpstreamTlsContext); ok {
 		config.ServerName = context.GetSni()
 		common = context.GetCommonTlsContext()
 		isDownstream = false

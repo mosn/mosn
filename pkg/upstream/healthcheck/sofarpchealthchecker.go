@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package healthcheck
 
 import (
@@ -36,13 +37,13 @@ type sofarpcHealthChecker struct {
 	protocolCode sofarpc.ProtocolType
 }
 
-func newSofaRpcHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
+func newSofaRPCHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
 	hc := newHealthChecker(config)
 
 	shc := &sofarpcHealthChecker{
 		healthChecker: *hc,
 	}
-	
+
 	// use bolt v1 as default sofa health check protocol
 	if 0 == config.ProtocolCode {
 		shc.protocolCode = sofarpc.BOLT_V1
@@ -53,7 +54,7 @@ func newSofaRpcHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
 	return shc
 }
 
-func newSofaRpcHealthCheckerWithBaseHealthChecker(hc *healthChecker, pro sofarpc.ProtocolType) *sofarpcHealthChecker {
+func newSofaRPCHealthCheckerWithBaseHealthChecker(hc *healthChecker, pro sofarpc.ProtocolType) *sofarpcHealthChecker {
 	shc := &sofarpcHealthChecker{
 		healthChecker: *hc,
 		protocolCode:  pro,
@@ -64,7 +65,7 @@ func newSofaRpcHealthCheckerWithBaseHealthChecker(hc *healthChecker, pro sofarpc
 	return shc
 }
 
-func (c *sofarpcHealthChecker) newSofaRpcHealthCheckSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
+func (c *sofarpcHealthChecker) newSofaRPCHealthCheckSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
 	shcs := &sofarpcHealthCheckSession{
 		client:             codecClinet,
 		healthChecker:      c,
@@ -91,7 +92,7 @@ func (c *sofarpcHealthChecker) newSession(host types.Host) types.HealthCheckSess
 }
 
 func (c *sofarpcHealthChecker) createCodecClient(data types.CreateConnectionData) stream.CodecClient {
-	return stream.NewCodecClient(nil, protocol.SofaRpc, data.Connection, data.HostInfo)
+	return stream.NewCodecClient(nil, protocol.SofaRPC, data.Connection, data.HostInfo)
 }
 
 // types.StreamReceiver

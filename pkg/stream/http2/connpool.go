@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package http2
 
 import (
@@ -40,7 +41,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) Protocol() types.Protocol {
-	return protocol.Http2
+	return protocol.HTTP2
 }
 
 func (p *connPool) Host() types.Host {
@@ -54,7 +55,7 @@ func (p *connPool) InitActiveClient(context context.Context) error {
 func (p *connPool) DrainConnections() {}
 
 //由 PROXY 调用
-func (p *connPool) NewStream(context context.Context, streamId string, responseDecoder types.StreamReceiver,
+func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
 	p.mux.Lock()
 
@@ -64,7 +65,7 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 	p.mux.Unlock()
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(streamId, types.Overflow, nil)
+		cb.OnFailure(streamID, types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -74,8 +75,8 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := p.primaryClient.codecClient.NewStream(streamId, responseDecoder)
-		cb.OnReady(streamId, streamEncoder, p.host)
+		streamEncoder := p.primaryClient.codecClient.NewStream(streamID, responseDecoder)
+		cb.OnReady(streamID, streamEncoder, p.host)
 	}
 
 	return nil
@@ -153,7 +154,7 @@ func (p *connPool) onGoAway(client *activeClient) {
 }
 
 func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
-	return str.NewCodecClient(context, protocol.Http2, connData.Connection, connData.HostInfo)
+	return str.NewCodecClient(context, protocol.HTTP2, connData.Connection, connData.HostInfo)
 }
 
 func (p *connPool) movePrimaryToDraining() {
@@ -185,7 +186,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 		pool: pool,
 	}
 	data := pool.host.CreateConnection(context)
-	
+
 	if err := data.Connection.Connect(false); err != nil {
 		return nil
 	}
@@ -200,10 +201,10 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	pool.host.HostStats().UpstreamConnectionTotalHttp2.Inc(1)
+	pool.host.HostStats().UpstreamConnectionTotalHTTP2.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHttp2.Inc(1)
+	pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP2.Inc(1)
 
 	codecClient.SetConnectionStats(&types.ConnectionStats{
 		ReadTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesRead,
