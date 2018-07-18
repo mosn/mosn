@@ -364,26 +364,26 @@ func (arc *activeRawConn) SetOrigingalAddr(ip string, port int) {
 }
 
 func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
-	var _lst, _ls2 *activeListener
+	var listener, localListener *activeListener
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
-			_lst = lst
+			listener = lst
 			break
 		}
 
 		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
-			_ls2 = lst
+			localListener = lst
 		}
 	}
 
-	if _lst != nil {
-		log.DefaultLogger.Infof("original dst:%s:%d", _lst.listenIP, _lst.listenPort)
-		_lst.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
+	if listener != nil {
+		log.DefaultLogger.Infof("original dst:%s:%d", listener.listenIP, listener.listenPort)
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
 	}
-	if _ls2 != nil {
-		log.DefaultLogger.Infof("original dst:%s:%d", _ls2.listenIP, _ls2.listenPort)
-		_ls2.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
+	if localListener != nil {
+		log.DefaultLogger.Infof("original dst:%s:%d", localListener.listenIP, localListener.listenPort)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
 	}
 }
 
