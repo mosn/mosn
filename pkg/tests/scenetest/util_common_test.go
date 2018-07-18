@@ -342,7 +342,7 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 				}
 				if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
 					resp := buildBoltV1Resposne(req)
-					err, iobufresp := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
+					iobufresp, err := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
 					if err != nil {
 						t.Errorf("Build response error: %v\n", err)
 					} else {

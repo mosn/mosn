@@ -17,8 +17,8 @@
 package router
 
 import (
-	"errors"
 	"fmt"
+
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -40,6 +40,6 @@ func CreateRouteConfig(port types.Protocol, config interface{}) (types.Routers, 
 	if factory, ok := routerConfigFactories[port]; ok {
 		return factory(config) //call NewBasicRoute
 	}
-	
-	return nil, errors.New(fmt.Sprintf("Unsupported protocol %s", port))
+
+	return nil, fmt.Errorf("Unsupported protocol %s", port)
 }
