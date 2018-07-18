@@ -31,7 +31,7 @@ const (
 	GlobalTimeout                = 60 * time.Second
 	DefaultRouteTimeout          = 15 * time.Second
 	SofaRouteMatchKey            = "service"
-	RouterMatadataKey            = "filter_metadata"
+	RouterMetadataKey            = "filter_metadata"
 	RouterMetadataKeyLb          = "mosn.lb"
 )
 
@@ -263,7 +263,6 @@ type Decorator interface {
 // currently use string for easily debug
 type HashedValue string // value as md5's result
 
-
 type HeaderFormat interface {
 	Format(info RequestInfo) string
 	Append() bool
@@ -355,6 +354,6 @@ func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {
 	if h1 == h2 {
 		return true
 	}
-	
+
 	return false
 }

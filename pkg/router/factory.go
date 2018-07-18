@@ -26,7 +26,7 @@ type configFactory func(config interface{}) (types.Routers, error)
 
 var routerConfigFactories map[types.Protocol]configFactory
 
-func RegisteRouterConfigFactory(port types.Protocol, factory configFactory) {
+func RegisterRouterConfigFactory(port types.Protocol, factory configFactory) {
 	if routerConfigFactories == nil {
 		routerConfigFactories = make(map[types.Protocol]configFactory)
 	}
