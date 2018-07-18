@@ -111,7 +111,7 @@ type Http2Server struct {
 }
 
 func (s *Http2Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.t.Logf("[server] Recieve request\n")
+	s.t.Logf("[server] Receive request\n")
 	w.Header().Set("Content-Type", "text/plain")
 
 	for k, _ := range r.Header {
@@ -160,7 +160,7 @@ type HttpServer struct {
 }
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.t.Logf("server %s Recieve request\n", s.name)
+	s.t.Logf("server %s Receive request\n", s.name)
 	w.Header().Set("Content-Type", "text/plain")
 	for k, _ := range r.Header {
 		w.Header().Set(k, r.Header.Get(k))

@@ -293,9 +293,9 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerCo
 		cm.xProtocolConnPool.Set(addr, connPool)
 
 		return connPool
-	} else {
-		return nil
 	}
+	
+	return nil
 }
 
 func (cm *clusterManager) TcpConnForCluster(lbCtx types.LoadBalancerContext,cluster string) types.CreateConnectionData {
