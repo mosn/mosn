@@ -42,14 +42,14 @@ func TestServerClose(t *testing.T) {
 		defer server.Close()
 		servers = append(servers, server)
 	}
-	meshConfig := CreateSimpleMeshConfig(meshAddr, serverAddrs, protocol.SofaRpc, protocol.SofaRpc)
+	meshConfig := CreateSimpleMeshConfig(meshAddr, serverAddrs, protocol.SofaRPC, protocol.SofaRPC)
 	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()
 	defer mesh.Close()
 	time.Sleep(5 * time.Second) //wait mesh and server start
 	client := &BoltV1Client{
 		t:        t,
-		ClientId: "testClient",
+		ClientID: "testClient",
 		Waits:    cmap.New(),
 	}
 	client.Connect(meshAddr)

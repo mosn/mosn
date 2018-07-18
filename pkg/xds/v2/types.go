@@ -28,7 +28,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-type V2Client struct {
+type ClientV2 struct {
 	ServiceCluster string
 	ServiceNode    string
 	Config         *XDSConfig
@@ -46,7 +46,7 @@ type ClusterConfig struct {
 }
 
 type ADSConfig struct {
-	ApiType      core.ApiConfigSource_ApiType
+	APIType      core.ApiConfigSource_ApiType
 	RefreshDelay *time.Duration
 	Services     []*ServiceConfig
 	StreamClient *StreamClient
@@ -55,7 +55,7 @@ type ADSConfig struct {
 type ADSClient struct {
 	AdsConfig       *ADSConfig
 	StreamClient    ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient
-	V2Client        *V2Client
+	V2Client        *ClientV2
 	MosnConfig      *config.MOSNConfig
 	SendControlChan chan int
 	RecvControlChan chan int

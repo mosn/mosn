@@ -37,7 +37,7 @@ func TestClientClose(t *testing.T) {
 	server := NewUpstreamServer(t, sofaAddr, ServeBoltV1)
 	server.GoServe()
 	defer server.Close()
-	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{sofaAddr}, protocol.SofaRpc, protocol.SofaRpc)
+	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{sofaAddr}, protocol.SofaRPC, protocol.SofaRPC)
 	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()
 	defer mesh.Close()
@@ -54,7 +54,7 @@ func TestClientClose(t *testing.T) {
 				//before close, should check all request get response
 				<-time.After(time.Second)
 				if !client.Waits.IsEmpty() {
-					t.Errorf("client %s has request timeout\n", client.ClientId)
+					t.Errorf("client %s has request timeout\n", client.ClientID)
 				}
 				client.conn.Close(types.NoFlush, types.LocalClose)
 				client.Stats()
@@ -68,7 +68,7 @@ func TestClientClose(t *testing.T) {
 	makeClient := func(clientId string, stop chan struct{}) {
 		client := &BoltV1Client{
 			t:        t,
-			ClientId: clientId,
+			ClientID: clientId,
 			Waits:    cmap.New(),
 		}
 		if err := client.Connect(meshAddr); err != nil {

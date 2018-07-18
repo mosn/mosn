@@ -132,7 +132,7 @@ func (csw *clientStreamWrapper) OnGoAway() {
 func (csw *clientStreamWrapper) NewStream(streamId string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
-			context:  context.WithValue(csw.context, types.ContextKeyStreamId, streamId),
+			context:  context.WithValue(csw.context, types.ContextKeyStreamID, streamId),
 			receiver: responseDecoder,
 		},
 		wrapper: csw,
@@ -177,7 +177,7 @@ func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 
 	s := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamId, streamId),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamId),
 		},
 		ctx:              ctx,
 		connection:       ssc,

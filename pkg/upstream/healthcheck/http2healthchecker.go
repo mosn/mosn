@@ -34,7 +34,7 @@ type http2HealthChecker struct {
 	serviceName string
 }
 
-func newHttpHealthCheck(config v2.HealthCheck) types.HealthChecker {
+func newHTTPHealthCheck(config v2.HealthCheck) types.HealthChecker {
 	hc := newHealthChecker(config)
 
 	hhc := &http2HealthChecker{

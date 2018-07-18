@@ -46,7 +46,7 @@ func (p *connPool) Protocol() types.Protocol {
 func (p *connPool) DrainConnections() {}
 
 //由 PROXY 调用
-func (p *connPool) NewStream(context context.Context, streamId string, responseDecoder types.StreamReceiver,
+func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
 
 	if p.client == nil {
@@ -56,7 +56,7 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(streamId, types.Overflow, nil)
+		cb.OnFailure(streamID, types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -66,8 +66,8 @@ func (p *connPool) NewStream(context context.Context, streamId string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 
-		streamEncoder := p.client.codecClient.NewStream(streamId, responseDecoder)
-		cb.OnReady(streamId, streamEncoder, p.host)
+		streamEncoder := p.client.codecClient.NewStream(streamID, responseDecoder)
+		cb.OnReady(streamID, streamEncoder, p.host)
 	}
 
 	return nil
@@ -153,7 +153,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	//data := pool.host.CreateConnection(context)
 	//data.Connection.Connect(false)
 
-	codecClient := NewHttp1CodecClient(context, pool.host)
+	codecClient := NewHTTP1CodecClient(context, pool.host)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
@@ -163,10 +163,10 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	pool.host.HostStats().UpstreamConnectionTotalHttp1.Inc(1)
+	pool.host.HostStats().UpstreamConnectionTotalHTTP1.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHttp1.Inc(1)
+	pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP1.Inc(1)
 
 	codecClient.SetConnectionStats(&types.ConnectionStats{
 		ReadTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesRead,

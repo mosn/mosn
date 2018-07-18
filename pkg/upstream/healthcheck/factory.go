@@ -36,8 +36,7 @@ func (nhc *healthCheckerFactory) New(config v2.HealthCheck) types.HealthChecker 
 	case string(protocol.SofaRPC):
 		return newSofaRpcHealthChecker(config)
 	case string(protocol.HTTP2):
-		return newHttpHealthCheck(config)
-		// todo: http1
+		return newHTTPHealthCheck(config)
 	default:
 		// todo: http1
 		return nil

@@ -65,7 +65,7 @@ func newSofaRpcHealthCheckerWithBaseHealthChecker(hc *healthChecker, pro sofarpc
 	return shc
 }
 
-func (c *sofarpcHealthChecker) newSofaRpcHealthCheckSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
+func (c *sofarpcHealthChecker) newSofaRPCHealthCheckSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
 	shcs := &sofarpcHealthCheckSession{
 		client:             codecClinet,
 		healthChecker:      c,

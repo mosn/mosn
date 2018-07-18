@@ -447,7 +447,7 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 
-		return nil, fmt.Errorf("unkown cluster %s", clusterName)
+		return nil, fmt.Errorf("unknown cluster %s", clusterName)
 	}
 
 	s.cluster = clusterSnapshot.ClusterInfo()

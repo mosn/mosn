@@ -53,7 +53,7 @@ type codecClient struct {
 	RemoteCloseFlag           bool
 }
 
-func NewHttp1CodecClient(context context.Context, host types.HostInfo) str.CodecClient {
+func NewHTTP1CodecClient(context context.Context, host types.HostInfo) str.CodecClient {
 	codecClient := &codecClient{
 		client: &fasthttp.HostClient{
 			Addr:          host.AddressString(),
@@ -70,7 +70,7 @@ func NewHttp1CodecClient(context context.Context, host types.HostInfo) str.Codec
 	return codecClient
 }
 
-func (c *codecClient) Id() uint64 {
+func (c *codecClient) ID() uint64 {
 	return 0
 }
 
@@ -101,9 +101,9 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(streamId string, respDecoder types.StreamReceiver) types.StreamSender {
+func (c *codecClient) NewStream(streamID string, respDecoder types.StreamReceiver) types.StreamSender {
 	ar := newActiveRequest(c, respDecoder)
-	ar.requestEncoder = c.Codec.NewStream(streamId, ar)
+	ar.requestEncoder = c.Codec.NewStream(streamID, ar)
 	ar.requestEncoder.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()

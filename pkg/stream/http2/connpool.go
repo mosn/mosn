@@ -201,10 +201,10 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	pool.host.HostStats().UpstreamConnectionTotalHttp2.Inc(1)
+	pool.host.HostStats().UpstreamConnectionTotalHTTP2.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHttp2.Inc(1)
+	pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP2.Inc(1)
 
 	codecClient.SetConnectionStats(&types.ConnectionStats{
 		ReadTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesRead,

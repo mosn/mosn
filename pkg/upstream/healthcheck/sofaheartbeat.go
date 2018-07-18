@@ -46,7 +46,7 @@ func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr 
 	baseHc := newHealthChecker(hcV2)
 
 	hc := newSofaRpcHealthCheckerWithBaseHealthChecker(baseHc, pro)
-	hcs := hc.newSofaRpcHealthCheckSession(codecClient, host)
+	hcs := hc.newSofaRPCHealthCheckSession(codecClient, host)
 	hcs.Start()
 
 	return hcs

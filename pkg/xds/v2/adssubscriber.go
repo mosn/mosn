@@ -71,8 +71,8 @@ func (adsClient *ADSClient) ReceiveThread() {
 				log.DefaultLogger.Warnf("get resp timeout: %v", err)
 				continue
 			}
-			typeUrl := resp.TypeUrl
-			if typeUrl == "type.googleapis.com/envoy.api.v2.Listener" {
+			typeURL := resp.TypeUrl
+			if typeURL == "type.googleapis.com/envoy.api.v2.Listener" {
 				log.DefaultLogger.Tracef("get lds resp,handle it")
 				listeners := adsClient.V2Client.HandleListersResp(resp)
 				log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
@@ -82,7 +82,7 @@ func (adsClient *ADSClient) ReceiveThread() {
 					return
 				}
 				log.DefaultLogger.Infof("update listeners success")
-			} else if typeUrl == "type.googleapis.com/envoy.api.v2.Cluster" {
+			} else if typeURL == "type.googleapis.com/envoy.api.v2.Cluster" {
 				log.DefaultLogger.Tracef("get cds resp,handle it")
 				clusters := adsClient.V2Client.HandleClustersResp(resp)
 				log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
@@ -99,7 +99,7 @@ func (adsClient *ADSClient) ReceiveThread() {
 					}
 				}
 				adsClient.V2Client.ReqEndpoints(adsClient.StreamClient, clusterNames)
-			} else if typeUrl == "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment" {
+			} else if typeURL == "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment" {
 				log.DefaultLogger.Tracef("get eds resp,handle it ")
 				endpoints := adsClient.V2Client.HandleEndpointesResp(resp)
 				log.DefaultLogger.Tracef("get %d endpoints for cluster", len(endpoints))

@@ -25,11 +25,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type TcpProxyFilterConfigFactory struct {
+type TCPProxyFilterConfigFactory struct {
 	Proxy *v2.TCPProxy
 }
 
-func (tpcf *TcpProxyFilterConfigFactory) CreateFilterFactory(context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
+func (tpcf *TCPProxyFilterConfigFactory) CreateFilterFactory(context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
 		manager.AddReadFilter(tcpproxy.NewProxy(context, tpcf.Proxy, clusterManager))
 	}

@@ -28,7 +28,7 @@ import (
 func (s *stream) encodeSterilize(headers interface{}) interface{} {
 	if headerMaps, ok := headers.(map[string]string); ok {
 		if s.direction == ServerStream {
-			headerMaps[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = s.requestId
+			headerMaps[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = s.requestID
 		}
 
 		// remove proxy header before codec encode
@@ -80,8 +80,8 @@ func (s *stream) encodeSterilize(headers interface{}) interface{} {
 
 //added by @boqin: return value represents whether the request is HearBeat or not
 //if request is heartbeat msg, then it only has request header, so return true as endStream
-func decodeSterilize(streamId string, headers map[string]string) bool {
-	headers[types.HeaderStreamID] = streamId
+func decodeSterilize(streamID string, headers map[string]string) bool {
+	headers[types.HeaderStreamID] = streamID
 
 	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)]; ok {
 		headers[types.HeaderTryTimeout] = v

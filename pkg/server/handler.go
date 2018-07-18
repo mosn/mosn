@@ -331,7 +331,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	newCtx := context.WithValue(ctx, types.ContextKeyConnectionId, conn.ID())
+	newCtx := context.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 

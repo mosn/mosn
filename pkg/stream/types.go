@@ -27,13 +27,13 @@ type CodecClient interface {
 	types.ConnectionEventListener
 	types.ReadFilter
 
-	Id() uint64
+	ID() uint64
 
 	AddConnectionCallbacks(cb types.ConnectionEventListener)
 
 	ActiveRequestsNum() int
 
-	NewStream(streamId string, respDecoder types.StreamReceiver) types.StreamSender
+	NewStream(streamID string, respDecoder types.StreamReceiver) types.StreamSender
 
 	SetConnectionStats(stats *types.ConnectionStats)
 

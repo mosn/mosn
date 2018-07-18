@@ -30,7 +30,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
-func (c *V2Client) GetListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Listener {
+func (c *ClientV2) GetListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Listener {
 	err := c.ReqListeners(streamClient)
 	if err != nil {
 		log.DefaultLogger.Fatalf("get listener fail: %v", err)
@@ -44,7 +44,7 @@ func (c *V2Client) GetListeners(streamClient ads.AggregatedDiscoveryService_Stre
 	return c.HandleListersResp(r)
 }
 
-func (c *V2Client) ReqListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
+func (c *ClientV2) ReqListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
 	if streamClient == nil {
 		return errors.New("stream client is nil")
 	}
@@ -65,7 +65,7 @@ func (c *V2Client) ReqListeners(streamClient ads.AggregatedDiscoveryService_Stre
 	return nil
 }
 
-func (c *V2Client) HandleListersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Listener {
+func (c *ClientV2) HandleListersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Listener {
 	listeners := make([]*envoy_api_v2.Listener, 0)
 	for _, res := range resp.Resources {
 		listener := envoy_api_v2.Listener{}

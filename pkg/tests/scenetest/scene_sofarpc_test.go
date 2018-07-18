@@ -33,7 +33,7 @@ func TestSofaRpc(t *testing.T) {
 	server := NewUpstreamServer(t, sofaAddr, ServeBoltV1)
 	server.GoServe()
 	defer server.Close()
-	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{sofaAddr}, protocol.SofaRpc, protocol.SofaRpc)
+	meshConfig := CreateSimpleMeshConfig(meshAddr, []string{sofaAddr}, protocol.SofaRPC, protocol.SofaRPC)
 	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()
 	defer mesh.Close()
@@ -41,7 +41,7 @@ func TestSofaRpc(t *testing.T) {
 	//client
 	client := &BoltV1Client{
 		t:        t,
-		ClientId: "testClient",
+		ClientID: "testClient",
 		Waits:    cmap.New(),
 	}
 	client.Connect(meshAddr)

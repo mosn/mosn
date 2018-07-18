@@ -45,13 +45,13 @@ type concreteClusterInitHelper interface {
 	Init()
 }
 
-func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool) types.Cluster {
+func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool) types.Cluster {
 	var newCluster types.Cluster
 
 	switch clusterConfig.ClusterType {
 
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
-		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaApi)
+		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaAPI)
 	}
 
 	// init health check for cluster's host
@@ -64,14 +64,14 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool)
 	return newCluster
 }
 
-func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaApi bool, initHelper concreteClusterInitHelper) cluster {
+func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool, initHelper concreteClusterInitHelper) cluster {
 	cluster := cluster{
 		prioritySet: &prioritySet{},
 		info: &clusterInfo{
 			name:                 clusterConfig.Name,
 			clusterType:          clusterConfig.ClusterType,
 			sourceAddr:           sourceAddr,
-			addedViaApi:          addedViaApi,
+			addedViaAPI:          addedViaAPI,
 			maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
 			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig),
@@ -136,9 +136,9 @@ func newClusterStats(config v2.Cluster) types.ClusterStats {
 		UpstreamConnectionTotal:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total"), nil),
 		UpstreamConnectionClose:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_close"), nil),
 		UpstreamConnectionActive:                       metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_active"), nil),
-		UpstreamConnectionTotalHttp1:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http1"), nil),
-		UpstreamConnectionTotalHttp2:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http2"), nil),
-		UpstreamConnectionTotalSofaRpc:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_sofarpc"), nil),
+		UpstreamConnectionTotalHTTP1:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http1"), nil),
+		UpstreamConnectionTotalHTTP2:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http2"), nil),
+		UpstreamConnectionTotalSofaRPC:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_sofarpc"), nil),
 		UpstreamConnectionConFail:                      metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_con_fail"), nil),
 		UpstreamConnectionRetry:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_retry"), nil),
 		UpstreamConnectionLocalClose:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_local_close"), nil),
@@ -232,7 +232,7 @@ type clusterInfo struct {
 	connBufferLimitBytes uint32
 	features             int
 	maxRequestsPerConn   uint32
-	addedViaApi          bool
+	addedViaAPI          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
 
@@ -255,7 +255,7 @@ func (ci *clusterInfo) LbType() types.LoadBalancerType {
 }
 
 func (ci *clusterInfo) AddedViaApi() bool {
-	return ci.addedViaApi
+	return ci.addedViaAPI
 }
 
 func (ci *clusterInfo) SourceAddress() net.Addr {
