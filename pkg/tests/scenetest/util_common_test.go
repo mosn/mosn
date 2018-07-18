@@ -111,10 +111,10 @@ type Http2Server struct {
 }
 
 func (s *Http2Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.t.Logf("[server] Recieve request\n")
+	s.t.Logf("[server] Receive request\n")
 	w.Header().Set("Content-Type", "text/plain")
 
-	for k, _ := range r.Header {
+	for k := range r.Header {
 		w.Header().Set(k, r.Header.Get(k))
 	}
 
@@ -160,9 +160,9 @@ type HttpServer struct {
 }
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.t.Logf("server %s Recieve request\n", s.name)
+	s.t.Logf("server %s Receive request\n", s.name)
 	w.Header().Set("Content-Type", "text/plain")
-	for k, _ := range r.Header {
+	for k := range r.Header {
 		w.Header().Set(k, r.Header.Get(k))
 	}
 	fmt.Fprintf(w, "\nServerName:%s\n", s.name)
@@ -176,9 +176,9 @@ type ReponseFilter interface {
 //Rpc client
 //Send Request Byte
 type RpcClient struct {
-	t               *testing.T
-	conn            types.ClientConnection
-	addr            string
+	t              *testing.T
+	conn           types.ClientConnection
+	addr           string
 	responseFilter ReponseFilter
 	waitReponse    cmap.ConcurrentMap
 }
@@ -342,7 +342,7 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 				}
 				if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
 					resp := buildBoltV1Resposne(req)
-					err, iobufresp := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
+					iobufresp, err := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
 					if err != nil {
 						t.Errorf("Build response error: %v\n", err)
 					} else {

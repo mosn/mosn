@@ -117,7 +117,7 @@ func (f *healthCheckFilter) handleIntercept() {
 
 	var resp interface{}
 
-	//TODO add protocl-level interface for heartbeat process, like Protocols.TriggerHeartbeat(protocolCode, requestId)&Protocols.ReplyHeartbeat(protocolCode, requestId)
+	//TODO add protocol-level interface for heartbeat process, like Protocols.TriggerHeartbeat(protocolCode, requestId)&Protocols.ReplyHeartbeat(protocolCode, requestId)
 	switch f.protocol {
 	//case f.protocol == sofarpc.PROTOCOL_CODE:
 	//resp = codec.NewTrHeartbeatAck( f.requestId)

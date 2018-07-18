@@ -32,7 +32,7 @@ type BoltResponseProcessorV2 struct{}
 
 func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
-		deserializeResponseAllFields(cmd, context)
+		deserializeResponseAllFields(context, cmd)
 		reqID := sofarpc.StreamIDConvert(cmd.ReqId)
 
 		//print tracer log
@@ -95,7 +95,7 @@ func (b *BoltResponseProcessorV2) Process(context context.Context, msg interface
 		}
 	}
 }
-func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand, context context.Context) {
+func deserializeResponseAllFields(context context.Context, responseCommand *sofarpc.BoltResponseCommand) {
 	//get instance
 	serializeIns := serialize.Instance
 
@@ -138,7 +138,7 @@ func deserializeResponseAllFields(responseCommand *sofarpc.BoltResponseCommand, 
 }
 
 func deserializeResponseAllFieldsV2(responseCommandV2 *sofarpc.BoltV2ResponseCommand, context context.Context) {
-	deserializeResponseAllFields(&responseCommandV2.BoltResponseCommand, context)
+	deserializeResponseAllFields(context, &responseCommandV2.BoltResponseCommand)
 	responseCommandV2.ResponseHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion1)] = strconv.FormatUint(uint64(responseCommandV2.Version1), 10)
 	responseCommandV2.ResponseHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderSwitchCode)] = strconv.FormatUint(uint64(responseCommandV2.SwitchCode), 10)
 }

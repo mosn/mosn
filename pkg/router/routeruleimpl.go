@@ -210,9 +210,9 @@ func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint
 		if value == srri.matchValue || srri.matchValue == ".*" {
 			log.DefaultLogger.Debugf("Sofa router matches success")
 			return srri
-		} else {
-			log.DefaultLogger.Warnf(" Sofa router matches failure, service name = %s", value)
 		}
+		
+		log.DefaultLogger.Warnf(" Sofa router matches failure, service name = %s", value)
 	}
 	
 	log.DefaultLogger.Warnf("No service key found in header, sofa router matcher failure")

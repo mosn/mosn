@@ -436,7 +436,7 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 					},
 				},
 			},
-			want: hostSet[0], // defualt host: e1, e2
+			want: hostSet[0], // default host: e1, e2
 		},
 	}
 

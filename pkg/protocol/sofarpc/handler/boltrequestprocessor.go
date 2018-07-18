@@ -78,7 +78,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 // ctx = type.serverStreamConnection
 func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
-		deserializeRequestAllFieldsV2(cmd, context)
+		deserializeRequestAllFieldsV2(context, cmd)
 		streamId := atomic.AddUint32(&streamIdCounter, 1)
 		streamIdStr := sofarpc.StreamIDConvert(streamId)
 
@@ -149,7 +149,7 @@ func deserializeRequestAllFields(context context.Context, requestCommand *sofarp
 	requestCommand.RequestHeader = allField
 }
 
-func deserializeRequestAllFieldsV2(requestCommandV2 *sofarpc.BoltV2RequestCommand, context context.Context) {
+func deserializeRequestAllFieldsV2(context context.Context, requestCommandV2 *sofarpc.BoltV2RequestCommand) {
 	deserializeRequestAllFields(context, &requestCommandV2.BoltRequestCommand)
 	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion1)] = strconv.FormatUint(uint64(requestCommandV2.Version1), 10)
 	requestCommandV2.RequestHeader[sofarpc.SofaPropertyHeader(sofarpc.HeaderSwitchCode)] = strconv.FormatUint(uint64(requestCommandV2.SwitchCode), 10)

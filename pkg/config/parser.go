@@ -23,19 +23,19 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/server"
 
 	"time"
 )
 
 type ConfigContentKey string
 
-var ProtocolsSupported = map[string]bool {
-	string(protocol.SofaRpc):true,
-	string(protocol.Http2):true,
-	string(protocol.Http1):true,
-	string(protocol.Xprotocol):true,
+var ProtocolsSupported = map[string]bool{
+	string(protocol.SofaRpc):   true,
+	string(protocol.Http2):     true,
+	string(protocol.Http1):     true,
+	string(protocol.Xprotocol): true,
 }
 
 // callback when corresponding module parsed
@@ -85,7 +85,7 @@ func ParseLogLevel(level string) log.LogLevel {
 		if logLevel, ok := logLevelMap[level]; ok {
 			return logLevel
 		}
-		
+
 		log.StartLogger.Fatalln("unsupported log level: ", level)
 	}
 	//use INFO as default log level
@@ -115,12 +115,12 @@ func ParseProxyFilterJson(c *v2.Filter) *v2.Proxy {
 
 	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
 		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Fitler")
-	} else if _,ok := ProtocolsSupported[proxyConfig.DownstreamProtocol];!ok  {
-		log.StartLogger.Fatal("Invalid Downstream Protocol = ",proxyConfig.DownstreamProtocol)
-	} else if  _,ok := ProtocolsSupported[proxyConfig.UpstreamProtocol];!ok {
-		log.StartLogger.Fatal("Invalid Upstream Protocol = ",proxyConfig.UpstreamProtocol)
+	} else if _, ok := ProtocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
+		log.StartLogger.Fatal("Invalid Downstream Protocol = ", proxyConfig.DownstreamProtocol)
+	} else if _, ok := ProtocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
+		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
 	}
-	
+
 	if !proxyConfig.SupportDynamicRoute {
 		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
 	}
@@ -431,7 +431,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 	}
 
 	//try inherit legacy listener
-	var old *net.TCPListener = nil
+	var old *net.TCPListener
 
 	for _, il := range inheritListeners {
 		if il.Addr.String() == addr.String() {
@@ -546,12 +546,12 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
 
 	var healthcheckInstance v2.HealthCheck
-	
+
 	if c.Protocol == "" {
 		log.StartLogger.Warnf("healthcheck for cluster is disabled")
-		
-	}else if _,ok := ProtocolsSupported[c.Protocol];ok {
-		healthcheckInstance =  v2.HealthCheck{
+
+	} else if _, ok := ProtocolsSupported[c.Protocol]; ok {
+		healthcheckInstance = v2.HealthCheck{
 			Protocol:           c.Protocol,
 			Timeout:            c.Timeout.Duration,
 			Interval:           c.Interval.Duration,
@@ -561,10 +561,10 @@ func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
 			CheckPath:          c.CheckPath,
 			ServiceName:        c.ServiceName,
 		}
-	}else{
+	} else {
 		log.StartLogger.Fatal("unsuppoted health check protocol:", c.Protocol)
 	}
-	
+
 	return healthcheckInstance
 }
 
@@ -581,7 +581,7 @@ func ParseCircuitBreakers(cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
 
 		if 0 == cbc.MaxConnections || 0 == cbc.MaxPendingRequests ||
 			0 == cbc.MaxRequests || 0 == cbc.MaxRetries {
-				log.StartLogger.Warnf("zero is set in circuitBreakers' config")
+			log.StartLogger.Warnf("zero is set in circuitBreakers' config")
 		}
 
 		threshold := v2.Thresholds{

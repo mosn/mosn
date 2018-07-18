@@ -23,12 +23,13 @@ import (
 
 	"errors"
 	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"io/ioutil"
 	"strings"
 	"sync"
+
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var TLSdefaultMinProtocols uint16 = tls.VersionTLS10
@@ -493,15 +494,11 @@ func newTLSContext(c *v2.TLSConfig, cm *contextManager) (*context, error) {
 		if strings.Contains(c.CertChain, "-----BEGIN") &&
 			strings.Contains(c.PrivateKey, "-----BEGIN") {
 			cert, err = tls.X509KeyPair([]byte(c.CertChain), []byte(c.PrivateKey))
-			if err != nil {
-				return nil, errors.New(fmt.Sprintf("load [certchain] or [privatekey] error: %v", err))
-			}
 		} else {
 			cert, err = tls.LoadX509KeyPair(c.CertChain, c.PrivateKey)
-			if err != nil {
-				return nil, errors.New(fmt.Sprintf("load [certchain] or [privatekey] error: %v", err))
-
-			}
+		}
+		if err != nil {
+			return nil, fmt.Errorf("load [certchain] or [privatekey] error: %v", err)
 		}
 
 		tlscontext.certificates = append(tlscontext.certificates, cert)
@@ -520,7 +517,7 @@ func newTLSContext(c *v2.TLSConfig, cm *contextManager) (*context, error) {
 		} else {
 			ca, err = ioutil.ReadFile(c.CACert)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("load [cacert] error: %v", err))
+				return nil, fmt.Errorf("load [cacert] error: %v", err)
 			}
 		}
 

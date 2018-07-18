@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/orcaman/concurrent-map"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	proto "github.com/alipay/sofa-mosn/pkg/protocol"
@@ -31,6 +30,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/orcaman/concurrent-map"
 )
 
 // ClusterManager
@@ -39,7 +39,7 @@ type clusterManager struct {
 	primaryClusters        cmap.ConcurrentMap // string: *primaryCluster
 	sofaRpcConnPool        cmap.ConcurrentMap // string: types.ConnectionPool
 	http2ConnPool          cmap.ConcurrentMap // string: types.ConnectionPool
-	xProtocolConnPool cmap.ConcurrentMap // string: types.ConnectionPool
+	xProtocolConnPool      cmap.ConcurrentMap // string: types.ConnectionPool
 	http1ConnPool          cmap.ConcurrentMap // string: types.ConnectionPool
 	clusterAdapter         ClusterAdapter
 	autoDiscovery          bool
@@ -55,13 +55,13 @@ type clusterSnapshot struct {
 func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	clusterMap map[string][]v2.Host, autoDiscovery bool, useHealthCheck bool) types.ClusterManager {
 	cm := &clusterManager{
-		sourceAddr:      sourceAddr,
-		primaryClusters: cmap.New(),
-		sofaRpcConnPool: cmap.New(),
-		http2ConnPool:   cmap.New(),
+		sourceAddr:        sourceAddr,
+		primaryClusters:   cmap.New(),
+		sofaRpcConnPool:   cmap.New(),
+		http2ConnPool:     cmap.New(),
 		xProtocolConnPool: cmap.New(),
-		http1ConnPool:   cmap.New(),
-		autoDiscovery:   true, //todo delete
+		http1ConnPool:     cmap.New(),
+		autoDiscovery:     true, //todo delete
 	}
 	//init ClusterAdap when run app
 	ClusterAdap = ClusterAdapter{
@@ -121,7 +121,7 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 	if _, exist := cm.primaryClusters.Get(clusterName); exist {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -147,14 +147,14 @@ func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *cluste
 		pcc := v.(*primaryCluster).cluster
 
 		clusterSnapshot := &clusterSnapshot{
-			prioritySet: pcc.PrioritySet(),
-			clusterInfo: pcc.Info(),
-			loadbalancer:pcc.Info().LBInstance(),
+			prioritySet:  pcc.PrioritySet(),
+			clusterInfo:  pcc.Info(),
+			loadbalancer: pcc.Info().LBInstance(),
 		}
-		
+
 		return clusterSnapshot
 	}
-	
+
 	return nil
 }
 
@@ -188,11 +188,11 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			concretedCluster.UpdateHosts(hosts)
 			return nil
 		}
-		
-		return errors.New(fmt.Sprintf("cluster's hostset %s can't be update", clusterName))
-	}
+		return fmt.Errorf("cluster's hostset %s can't be update", clusterName)
 
-	return errors.New(fmt.Sprintf("cluster %s not found", clusterName))
+	}
+	return fmt.Errorf("cluster %s not found", clusterName)
+
 }
 
 func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host) error {
@@ -223,14 +223,14 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host
 			}
 
 		} else {
-			return errors.New(fmt.Sprintf("cluster's hostset %s can't be update", clusterName))
+			return fmt.Errorf("cluster's hostset %s can't be update", clusterName)
 		}
 	}
 
 	return nil
 }
 
-func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext,cluster string,
+func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string,
 	protocol types.Protocol) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
@@ -246,7 +246,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext
 
 		switch protocol {
 		case proto.Http2:
-			
+
 			if connPool, ok := cm.http2ConnPool.Get(addr); ok {
 				return connPool.(types.ConnectionPool)
 			}
@@ -256,7 +256,7 @@ func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext
 
 			return connPool
 		case proto.Http1:
-			
+
 			if connPool, ok := cm.http1ConnPool.Get(addr); ok {
 				return connPool.(types.ConnectionPool)
 			}
@@ -268,11 +268,11 @@ func (cm *clusterManager) HttpConnPoolForCluster(lbCtx types.LoadBalancerContext
 		}
 
 	}
-	
+
 	return nil
 }
 
-func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerContext,cluster string,
+func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string,
 	protocol types.Protocol) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
@@ -293,12 +293,12 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerCo
 		cm.xProtocolConnPool.Set(addr, connPool)
 
 		return connPool
-	} else {
-		return nil
 	}
+	
+	return nil
 }
 
-func (cm *clusterManager) TcpConnForCluster(lbCtx types.LoadBalancerContext,cluster string) types.CreateConnectionData {
+func (cm *clusterManager) TcpConnForCluster(lbCtx types.LoadBalancerContext, cluster string) types.CreateConnectionData {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -310,11 +310,11 @@ func (cm *clusterManager) TcpConnForCluster(lbCtx types.LoadBalancerContext,clus
 	if host != nil {
 		return host.CreateConnection(nil)
 	}
-	
+
 	return types.CreateConnectionData{}
 }
 
-func (cm *clusterManager) SofaRpcConnPoolForCluster(lbCtx types.LoadBalancerContext,cluster string) types.ConnectionPool {
+func (cm *clusterManager) SofaRpcConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string) types.ConnectionPool {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
@@ -336,9 +336,9 @@ func (cm *clusterManager) SofaRpcConnPoolForCluster(lbCtx types.LoadBalancerCont
 		cm.sofaRpcConnPool.Set(addr, connPool)
 
 		return connPool
-		
+
 	}
-	
+
 	log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil, cluster name = %s", cluster)
 	return nil
 }

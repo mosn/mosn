@@ -354,7 +354,7 @@ func GenerateHashedValue(input string) HashedValue {
 func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {
 	if h1 == h2 {
 		return true
-	} else {
-		return false
 	}
+	
+	return false
 }

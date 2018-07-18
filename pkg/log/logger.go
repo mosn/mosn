@@ -26,13 +26,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/go-syslog"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/hashicorp/go-syslog"
 )
 
 var (
-	DefaultLogger, StartLogger *logger
-
+	DefaultLogger        *logger
+	StartLogger          *logger
 	remoteSyslogPrefixes = map[string]string{
 		"syslog+tcp://": "tcp",
 		"syslog+udp://": "udp",

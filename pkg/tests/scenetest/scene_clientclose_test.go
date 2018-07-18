@@ -50,7 +50,7 @@ func TestClientClose(t *testing.T) {
 		for {
 			select {
 			case <-stop:
-				//before close, should check all request get reponse
+				//before close, should check all request get response
 				<-time.After(time.Second)
 				if !client.Waits.IsEmpty() {
 					t.Errorf("client %s has request timeout\n", client.ClientId)

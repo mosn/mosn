@@ -18,7 +18,6 @@ package proxy
 
 import (
 	"container/list"
-	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -26,12 +25,13 @@ import (
 	"sync"
 	"time"
 
+	"sync/atomic"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"sync/atomic"
 )
 
 // types.StreamEventListener
@@ -242,7 +242,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	// active realize loadbalancer ctx
 	log.StartLogger.Tracef("before initializeUpstreamConnectionPool")
-	err, pool := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(), s)
+	pool, err := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(), s)
 
 	if err != nil {
 		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
@@ -437,7 +437,7 @@ func (s *downStream) onPerReqTimeout() {
 	}
 }
 
-func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx types.LoadBalancerContext) (error, types.ConnectionPool) {
+func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx types.LoadBalancerContext) (types.ConnectionPool, error) {
 	clusterSnapshot := s.proxy.clusterManager.Get(nil, clusterName)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
@@ -445,8 +445,8 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", clusterName)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
-
-		return errors.New(fmt.Sprintf("unkown cluster %s", clusterName)), nil
+		
+		return nil, fmt.Errorf("unkown cluster %s", clusterName)
 	}
 
 	s.cluster = clusterSnapshot.ClusterInfo()
@@ -470,12 +470,12 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 
-		return errors.New(fmt.Sprintf("no healthy upstream in cluster %s", clusterName)), nil
+		return nil, fmt.Errorf("no healthy upstream in cluster %s", clusterName)
 	}
 
 	// TODO: update upstream stats
 
-	return nil, connPool
+	return connPool, nil
 }
 
 // ~~~ active stream sender wrapper
@@ -665,7 +665,7 @@ func (s *downStream) setupRetry(endStream bool) bool {
 
 // Note: retry-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
 func (s *downStream) doRetry() {
-	err, pool := s.initializeUpstreamConnectionPool(s.cluster.Name(), nil)
+	pool, err := s.initializeUpstreamConnectionPool(s.cluster.Name(), nil)
 
 	if err != nil {
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
@@ -802,7 +802,7 @@ func (s *downStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	if nil != s.requestInfo.RouteEntry() {
 		return s.requestInfo.RouteEntry().MetadataMatchCriteria()
 	}
-	
+
 	return nil
 }
 
