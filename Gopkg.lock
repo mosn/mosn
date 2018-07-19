@@ -73,6 +73,12 @@
   revision = "326bf4a7f709d263f964a6a96558676b103f3534"
 
 [[projects]]
+  name = "github.com/json-iterator/go"
+  packages = ["."]
+  revision = "ab8a2e0c74be9d3be70b3184d9acc634935ded82"
+  version = "1.1.4"
+
+[[projects]]
   branch = "master"
   name = "github.com/jwangsadinata/go-multimap"
   packages = [
@@ -107,6 +113,18 @@
   packages = ["."]
   revision = "462a8e39a44e0c8bebfb476e131e45546eb358bf"
   version = "v0.4.2"
+
+[[projects]]
+  name = "github.com/modern-go/concurrent"
+  packages = ["."]
+  revision = "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
+  version = "1.0.3"
+
+[[projects]]
+  name = "github.com/modern-go/reflect2"
+  packages = ["."]
+  revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
+  version = "1.0.1"
 
 [[projects]]
   branch = "master"
@@ -221,6 +239,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3c02431b5420d860a7101e72a398621c66ec7f13ed7bd5f054be15689db993b0"
+  inputs-digest = "2532893d4702c45632739e01a454af477453b3c66daf3381dfedbba2cd17f563"
   solver-name = "gps-cdcl"
   solver-version = 1
