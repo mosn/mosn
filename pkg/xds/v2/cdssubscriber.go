@@ -26,8 +26,9 @@ import (
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 )
 
+//GetClusters use for cds request round trip
 func (c *ClientV2) GetClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Cluster {
-	err := c.ReqClusters(streamClient)
+	err := c.reqClusters(streamClient)
 	if err != nil {
 		log.DefaultLogger.Fatalf("get clusters fail: %v", err)
 		return nil
@@ -37,10 +38,10 @@ func (c *ClientV2) GetClusters(streamClient ads.AggregatedDiscoveryService_Strea
 		log.DefaultLogger.Fatalf("get clusters fail: %v", err)
 		return nil
 	}
-	return c.HandleClustersResp(r)
+	return c.handleClustersResp(r)
 }
 
-func (c *ClientV2) ReqClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
+func (c *ClientV2) reqClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
 	if streamClient == nil {
 		return errors.New("stream client is nil")
 	}
@@ -61,7 +62,7 @@ func (c *ClientV2) ReqClusters(streamClient ads.AggregatedDiscoveryService_Strea
 	return nil
 }
 
-func (c *ClientV2) HandleClustersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Cluster {
+func (c *ClientV2) handleClustersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Cluster {
 	clusters := make([]*envoy_api_v2.Cluster, 0)
 	for _, res := range resp.Resources {
 		cluster := envoy_api_v2.Cluster{}
