@@ -35,19 +35,22 @@ type connPool struct {
 	host           types.Host
 }
 
+//NewConnPool for xprotocol upstream host
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
 		host: host,
 	}
 }
 
+//Protocol return xprotocol
 func (p *connPool) Protocol() types.Protocol {
 	return protocol.Xprotocol
 }
 
+//DrainConnections no use
 func (p *connPool) DrainConnections() {}
 
-//由 PROXY 调用
+//NewStream invoked by Proxy
 func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
 	log.StartLogger.Tracef("xprotocol conn pool new stream")
@@ -78,6 +81,7 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 	return nil
 }
 
+//Close close connection pool
 func (p *connPool) Close() {
 	p.mux.Lock()
 	defer p.mux.Unlock()
@@ -213,22 +217,28 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	return ac
 }
 
+//OnEvent handle connection event
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 
+//OnAboveWriteBufferHighWatermark no use
 func (ac *activeClient) OnAboveWriteBufferHighWatermark() {}
 
+//OnBelowWriteBufferLowWatermark no use
 func (ac *activeClient) OnBelowWriteBufferLowWatermark() {}
 
+//OnStreamDestroy destroy stream
 func (ac *activeClient) OnStreamDestroy() {
 	ac.pool.onStreamDestroy(ac)
 }
 
+//OnStreamReset reset stream
 func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
 	ac.pool.onStreamReset(ac, reason)
 }
 
+//OnGoAway handle go away event
 func (ac *activeClient) OnGoAway() {
 	ac.pool.onGoAway(ac)
 }
