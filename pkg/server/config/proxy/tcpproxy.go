@@ -20,15 +20,18 @@ package proxy
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// TCPProxyFilterConfigFactory is a class to realize function of v2.TCPProxy
 type TCPProxyFilterConfigFactory struct {
 	Proxy *v2.TCPProxy
 }
 
+// CreateFilterFactory
+// add tcp proxy in manager's read filter
 func (tpcf *TCPProxyFilterConfigFactory) CreateFilterFactory(context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
 		manager.AddReadFilter(tcpproxy.NewProxy(context, tpcf.Proxy, clusterManager))

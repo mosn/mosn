@@ -20,21 +20,24 @@ package network
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/network/faultinject"
 	"github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// FaultInjectFilterConfigFactory
 type FaultInjectFilterConfigFactory struct {
 	FaultInject *v2.FaultInject
 	Proxy       *v2.TCPProxy
 }
 
+// CreateFilterFactory
+// create NetworkFilterFactoryCb
 func (fifcf *FaultInjectFilterConfigFactory) CreateFilterFactory(context context.Context,
 	clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {
-		manager.AddReadFilter(faultinject.NewFaultInjecter(fifcf.FaultInject))
+		manager.AddReadFilter(faultinject.NewFaultInjector(fifcf.FaultInject))
 		manager.AddReadFilter(tcpproxy.NewProxy(context, fifcf.Proxy, clusterManager))
 	}
 }

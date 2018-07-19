@@ -24,7 +24,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-func TestRegisteRouterConfigFactory(t *testing.T) {
+func TestRegisterRouterConfigFactory(t *testing.T) {
 	type args struct {
 		port    types.Protocol
 		factory configFactory
@@ -33,11 +33,11 @@ func TestRegisteRouterConfigFactory(t *testing.T) {
 		name string
 		args args
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			RegisteRouterConfigFactory(tt.args.port, tt.args.factory)
+			RegisterRouterConfigFactory(tt.args.port, tt.args.factory)
 		})
 	}
 }
@@ -53,7 +53,7 @@ func TestCreateRouteConfig(t *testing.T) {
 		want    types.Routers
 		wantErr bool
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

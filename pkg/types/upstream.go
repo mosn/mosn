@@ -22,7 +22,7 @@ import (
 	"net"
 	"sort"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/rcrowley/go-metrics"
 )
 
@@ -31,7 +31,7 @@ import (
 //           1              * | 1                1 | 1                *| 1          *
 //   clusterManager --------- cluster  --------- prioritySet --------- hostSet------hosts
 
-// Manage connection pools and load balancing for upstream clusters.
+// ClusterManager manages connection pools and load balancing for upstream clusters.
 type ClusterManager interface {
 	// Add or update a cluster via API.
 	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
@@ -68,7 +68,7 @@ type ClusterManager interface {
 	RemoveClusterHosts(clusterName string, host Host) error
 }
 
-// thread-safe cluster snapshot
+// ClusterSnapshot is a thread-safe cluster snapshot
 type ClusterSnapshot interface {
 	PrioritySet() PrioritySet
 
@@ -77,7 +77,7 @@ type ClusterSnapshot interface {
 	LoadBalancer() LoadBalancer
 }
 
-// An upstream cluster (group of hosts).
+// Cluster is a group of upstream hosts
 type Cluster interface {
 	Initialize(cb func())
 
@@ -96,19 +96,22 @@ type Cluster interface {
 	OutlierDetector() Detector
 }
 
+// InitializePhase type
 type InitializePhase string
 
+// InitializePhase types
 const (
 	Primary   InitializePhase = "Primary"
 	Secondary InitializePhase = "Secondary"
 )
 
+// MemberUpdateCallback is called on create a priority set
 type MemberUpdateCallback func(priority uint32, hostsAdded []Host, hostsRemoved []Host)
 
 // PrioritySet is a hostSet grouped by priority for a given cluster, for ease of load balancing.
 type PrioritySet interface {
 
-	// Get the hostSet for this priority level, creating it if not exist.
+	// GetOrCreateHostSet returns the hostSet for this priority level, creating it if not exist.
 	GetOrCreateHostSet(priority uint32) HostSet
 
 	AddMemberUpdateCb(cb MemberUpdateCallback)
@@ -137,6 +140,7 @@ type HostSet interface {
 	Priority() uint32
 }
 
+// HealthFlag type
 type HealthFlag int
 
 const (
@@ -146,7 +150,7 @@ const (
 	FAILED_OUTLIER_CHECK HealthFlag = 0x02
 )
 
-// An upstream host
+// Host is an upstream host
 type Host interface {
 	HostInfo
 
@@ -178,6 +182,7 @@ type Host interface {
 	SetUsed(used bool)
 }
 
+// HostInfo defines a host's basic information
 type HostInfo interface {
 	Hostname() string
 
@@ -200,6 +205,7 @@ type HostInfo interface {
 	// TODO: add deploy locality
 }
 
+// HostStats defines a host's statistics information
 type HostStats struct {
 	Namespace                                      string
 	UpstreamConnectionTotal                        metrics.Counter
@@ -223,6 +229,7 @@ type HostStats struct {
 	UpstreamRequestPendingOverflow                 metrics.Counter
 }
 
+// ClusterInfo defines a cluster's information
 type ClusterInfo interface {
 	Name() string
 
@@ -260,6 +267,7 @@ type ClusterInfo interface {
 	LBInstance() LoadBalancer
 }
 
+// ResourceManager manages differenet types of Resource
 type ResourceManager interface {
 	// Connections resource to count connections in pool. Only used by protocol which has a connection pool which has multiple connections.
 	Connections() Resource
@@ -274,6 +282,7 @@ type ResourceManager interface {
 	Retries() Resource
 }
 
+// Resource is a interface to statistics information
 type Resource interface {
 	CanCreate() bool
 	Increase()
@@ -281,6 +290,7 @@ type Resource interface {
 	Max() uint64
 }
 
+// ClusterStats defines a cluster's statistics information
 type ClusterStats struct {
 	Namespace                                      string
 	UpstreamConnectionTotal                        metrics.Counter
@@ -320,15 +330,17 @@ type CreateConnectionData struct {
 	HostInfo   HostInfo
 }
 
-// a simple in mem cluster
+// SimpleCluster is a simple cluster in memory
 type SimpleCluster interface {
 	UpdateHosts(newHosts []Host)
 }
 
+// ClusterConfigFactoryCb is a callback interface
 type ClusterConfigFactoryCb interface {
 	UpdateClusterConfig(configs []v2.Cluster) error
 }
 
+// ClusterHostFactoryCb is a callback interface
 type ClusterHostFactoryCb interface {
 	UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error
 }
@@ -337,6 +349,7 @@ type ClusterManagerFilter interface {
 	OnCreated(cccb ClusterConfigFactoryCb, chcb ClusterHostFactoryCb)
 }
 
+// RegisterUpstreamUpdateMethodCb is a callback interface
 type RegisterUpstreamUpdateMethodCb interface {
 	TriggerClusterUpdate(clusterName string, hosts []v2.Host)
 	GetClusterNameByServiceName(serviceName string) string
@@ -352,11 +365,13 @@ type LBSubsetInfo interface {
 	SubsetKeys() []SortedStringSetType
 }
 
-// realize a sorted string set(no duplicate)
+// SortedStringSetType is a sorted key collection with no duplicate
 type SortedStringSetType struct {
 	keys []string
 }
 
+// InitSet returns a SortedStringSetType
+// The input key will be sorted and deduplicated
 func InitSet(input []string) SortedStringSetType {
 	var ssst SortedStringSetType
 	var keys []string
@@ -381,25 +396,31 @@ func InitSet(input []string) SortedStringSetType {
 	return ssst
 }
 
+// Keys is the keys in the collection
 func (ss *SortedStringSetType) Keys() []string {
 	return ss.keys
 }
 
+// Len is the number of elements in the collection.
 func (ss *SortedStringSetType) Len() int {
 	return len(ss.keys)
 }
 
+// Less reports whether the element with
+// index i should sort before the element with index j.
 func (ss *SortedStringSetType) Less(i, j int) bool {
 	return ss.keys[i] < ss.keys[j]
 }
 
+// Swap swaps the elements with indexes i and j.
 func (ss *SortedStringSetType) Swap(i, j int) {
 	ss.keys[i], ss.keys[j] = ss.keys[j], ss.keys[i]
 }
 
+// SortedMap is a list of key-value pair
 type SortedMap []SortedPair
 
-// 使用pair，避免map输出时候的无序
+// InitSortedMap sorts the input map, and returns it as a list of sorted key-value pair
 func InitSortedMap(input map[string]string) SortedMap {
 	var keyset []string
 	var sPair []SortedPair
@@ -419,6 +440,7 @@ func InitSortedMap(input map[string]string) SortedMap {
 	return sPair
 }
 
+// SortedPair is a key-value pair
 type SortedPair struct {
 	Key   string
 	Value string

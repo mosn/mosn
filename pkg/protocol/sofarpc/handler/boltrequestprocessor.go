@@ -34,12 +34,13 @@ import (
 var streamIDCounter uint32
 var defaultTmpBufferSize = 1 << 6
 
+// BoltRequestProcessor process bolt v1 request msg
 type BoltRequestProcessor struct{}
 
+// BoltRequestProcessorV2 process bolt v2 request msg
 type BoltRequestProcessorV2 struct{}
 
-// ctx = type.serverStreamConnection
-// CALLBACK STREAM LEVEL'S OnReceiveHeaders
+// Process boltv1 request cmd to map[string]string header
 func (b *BoltRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)
@@ -75,6 +76,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 	}
 }
 
+// Process boltv2 request cmd to map[string]string header
 // ctx = type.serverStreamConnection
 func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {

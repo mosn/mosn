@@ -19,7 +19,7 @@ package main
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/mosn"
+	"github.com/alipay/sofa-mosn/cmd/mosn"
 	"github.com/urfave/cli"
 )
 
@@ -32,7 +32,7 @@ var (
 				Name:   "config, c",
 				Usage:  "Load configuration from `FILE`",
 				EnvVar: "MOSN_CONFIG",
-				Value:  "resource/mosn_config.json",
+				Value:  "configs/mosn_config.json",
 			}, cli.StringFlag{
 				Name:   "service-cluster, s",
 				Usage:  "sidecar service cluster",

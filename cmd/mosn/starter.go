@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -35,13 +35,18 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/xds"
 )
 
+// Mosn class which wrapper server
 type Mosn struct {
 	servers []server.Server
 }
 
+// NewMosn
+// Create server from mosn config
+//
 func NewMosn(c *config.MOSNConfig) *Mosn {
 	m := &Mosn{}
 	mode := c.Mode()
+	
 	if mode == config.Xds {
 		servers := make([]config.ServerConfig, 0, 1)
 		server := config.ServerConfig{
@@ -59,6 +64,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	}
 
 	srvNum := len(c.Servers)
+	
 	if srvNum == 0 {
 		log.StartLogger.Fatalln("no server found")
 	} else if srvNum > 1 {
@@ -132,20 +138,27 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			ln.InheritListener.Close()
 		}
 	}
+	
 	return m
 }
 
+// Start mosn's server
 func (m *Mosn) Start() {
 	for _, srv := range m.servers {
 		go srv.Start()
 	}
 }
+
+// Close mosn's server
 func (m *Mosn) Close() {
 	for _, srv := range m.servers {
 		srv.Close()
 	}
 }
 
+// Start mosn project
+// stap1. NewMosn
+// step2. Start Mosn
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	log.StartLogger.Infof("start by config : %+v", c)
 
@@ -168,7 +181,8 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	xdsClient.Stop()
 }
 
-// maybe used in proxy rewrite
+// GetNetworkFilter
+// Used to parse proxy from config
 func GetNetworkFilter(c *v2.FilterChain) types.NetworkFilterChainFactory {
 
 	if len(c.Filters) != 1 || c.Filters[0].Name != v2.DEFAULT_NETWORK_FILTER {

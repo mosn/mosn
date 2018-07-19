@@ -23,6 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// NewLoadBalancer
 // Note: Random is the default lb
 func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySet) types.LoadBalancer {
 	switch lbType {
@@ -39,7 +40,6 @@ type loadbalaner struct {
 	prioritySet types.PrioritySet
 }
 
-// Random LoadBalancer
 type randomLoadBalancer struct {
 	loadbalaner
 }
@@ -90,8 +90,8 @@ func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) t
 
 	hostSets := l.prioritySet.HostSetsByPriority()
 	hostSetsNum := uint32(len(hostSets))
-	curHostSet := hostSets[l.rrIndexPriority%hostSetsNum].HealthyHosts()
-
+	curHostSet := hostSets[l.rrIndexPriority % hostSetsNum].HealthyHosts()
+ 
 	if l.rrIndex >= uint32(len(curHostSet)) {
 		l.rrIndexPriority = (l.rrIndexPriority + 1) % hostSetsNum
 		l.rrIndex = 0

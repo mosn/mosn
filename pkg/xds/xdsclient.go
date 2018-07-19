@@ -18,7 +18,6 @@
 package xds
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -32,7 +31,10 @@ import (
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/types"
+	"github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 
 type Client struct {
@@ -128,7 +130,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 
 	if len(config.RawDynamicResources) > 0 {
 		dynamicResources = &bootstrap.Bootstrap_DynamicResources{}
-		resources := map[string]json.RawMessage{}
+		resources := map[string]jsoniter.RawMessage{}
 		err = json.Unmarshal([]byte(config.RawDynamicResources), &resources)
 		if err != nil {
 			log.DefaultLogger.Errorf("fail to unmarshal dynamic_resources: %v", err)
@@ -136,7 +138,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 		}
 		if adsConfigRaw, ok := resources["ads_config"]; ok {
 			var b []byte
-			adsConfig := map[string]json.RawMessage{}
+			adsConfig := map[string]jsoniter.RawMessage{}
 			err = json.Unmarshal([]byte(adsConfigRaw), &adsConfig)
 			if err != nil {
 				log.DefaultLogger.Errorf("fail to unmarshal ads_config: %v", err)
@@ -152,14 +154,14 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 
 				d := duration2String(&refreshDelay)
 				b, err = json.Marshal(&d)
-				adsConfig["refresh_delay"] = json.RawMessage(b)
+				adsConfig["refresh_delay"] = jsoniter.RawMessage(b)
 			}
 			b, err = json.Marshal(&adsConfig)
 			if err != nil {
 				log.DefaultLogger.Errorf("fail to marshal refresh_delay: %v", err)
 				return nil, nil, err
 			}
-			resources["ads_config"] = json.RawMessage(b)
+			resources["ads_config"] = jsoniter.RawMessage(b)
 			b, err = json.Marshal(&resources)
 			if err != nil {
 				log.DefaultLogger.Errorf("fail to marshal ads_config: %v", err)
@@ -186,21 +188,21 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 	if len(config.RawStaticResources) > 0 {
 		staticResources = &bootstrap.Bootstrap_StaticResources{}
 		var b []byte
-		resources := map[string]json.RawMessage{}
+		resources := map[string]jsoniter.RawMessage{}
 		err = json.Unmarshal([]byte(config.RawStaticResources), &resources)
 		if err != nil {
 			log.DefaultLogger.Errorf("fail to unmarshal static_resources: %v", err)
 			return nil, nil, err
 		}
 		if clustersRaw, ok := resources["clusters"]; ok {
-			clusters := []json.RawMessage{}
+			clusters := []jsoniter.RawMessage{}
 			err = json.Unmarshal([]byte(clustersRaw), &clusters)
 			if err != nil {
 				log.DefaultLogger.Errorf("fail to unmarshal clusters: %v", err)
 				return nil, nil, err
 			}
 			for i, clusterRaw := range clusters {
-				cluster := map[string]json.RawMessage{}
+				cluster := map[string]jsoniter.RawMessage{}
 				err = json.Unmarshal([]byte(clusterRaw), &cluster)
 				if err != nil {
 					log.DefaultLogger.Errorf("fail to unmarshal cluster: %v", err)
@@ -212,7 +214,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 					log.DefaultLogger.Errorf("fail to marshal circuit_breakers: %v", err)
 					return nil, nil, err
 				}
-				cluster["circuit_breakers"] = json.RawMessage(b)
+				cluster["circuit_breakers"] = jsoniter.RawMessage(b)
 
 				if connectTimeoutRaw, ok := cluster["connect_timeout"]; ok {
 					connectTimeout := types.Duration{}
@@ -227,14 +229,14 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 						log.DefaultLogger.Errorf("fail to marshal connect_timeout: %v", err)
 						return nil, nil, err
 					}
-					cluster["connect_timeout"] = json.RawMessage(b)
+					cluster["connect_timeout"] = jsoniter.RawMessage(b)
 				}
 				b, err = json.Marshal(&cluster)
 				if err != nil {
 					log.DefaultLogger.Errorf("fail to marshal cluster: %v", err)
 					return nil, nil, err
 				}
-				clusters[i] = json.RawMessage(b)
+				clusters[i] = jsoniter.RawMessage(b)
 			}
 			b, err = json.Marshal(&clusters)
 			if err != nil {
@@ -242,7 +244,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 				return nil, nil, err
 			}
 		}
-		resources["clusters"] = json.RawMessage(b)
+		resources["clusters"] = jsoniter.RawMessage(b)
 		b, err = json.Marshal(&resources)
 		if err != nil {
 			log.DefaultLogger.Errorf("fail to marshal resources: %v", err)

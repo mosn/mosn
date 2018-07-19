@@ -23,7 +23,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -103,6 +103,7 @@ type host struct {
 	healthFlags uint64
 }
 
+// NewHost used to create types.Host
 func NewHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 	addr, _ := net.ResolveTCPAddr("tcp", config.Address)
 
@@ -263,6 +264,8 @@ func (hi *hostInfo) HostStats() types.HostStats {
 	return hi.stats
 }
 
+// GenerateHostMetadata
+// generate host's metadata in map[string]types.HashedValue type
 func GenerateHostMetadata(metadata v2.Metadata) types.RouteMetaData {
 	rm := make(map[string]types.HashedValue, 1)
 

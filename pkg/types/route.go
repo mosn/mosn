@@ -24,68 +24,86 @@ import (
 	"time"
 )
 
+// Priority type
 type Priority int
 
+// Priority types
 const (
-	PriorityDefault     Priority = 0
-	PriorityHigh        Priority = 1
-	GlobalTimeout                = 60 * time.Second
-	DefaultRouteTimeout          = 15 * time.Second
-	SofaRouteMatchKey            = "service"
-	RouterMatadataKey            = "filter_metadata"
-	RouterMetadataKeyLb          = "mosn.lb"
+	PriorityDefault Priority = 0
+	PriorityHigh    Priority = 1
 )
 
-// change RouterConfig -> Routers to manage all routers
-type Routers interface {
-	// routing with headers
-	Route(headers map[string]string, randomValue uint64) Route
-	// add router to Routers
-	AddRouter(routerName string)
+// Default parameters for route
+const (
+	GlobalTimeout       = 60 * time.Second
+	DefaultRouteTimeout = 15 * time.Second
+	SofaRouteMatchKey   = "service"
+	RouterMetadataKey   = "filter_metadata"
+	RouterMetadataKeyLb = "mosn.lb"
+)
 
-	// del router from Routers
+// Routers defines and manages all router
+type Routers interface {
+	// Route is used to route with headers
+	Route(headers map[string]string, randomValue uint64) Route
+	// AddRouter adds router to Routers
+	AddRouter(routerName string)
+	// DelRouter deletes router from Routers
 	DelRouter(routerName string)
 }
 
-// used to manage all routerConfigs
+// RouterConfigManager is a manager for all routers' config
 type RouterConfigManager interface {
-	// add routerConfig when generated
+	// AddRoutersSet adds router config when generated
 	AddRoutersSet(routerConfig Routers)
-	// remove Routers in routerConfig
+	// RemoveRouterInRouters removes routers
 	RemoveRouterInRouters(routerNames []string)
-	// addRouters in routerConfig
+	// AddRouterInRouters adds routers
 	AddRouterInRouters(routerNames []string)
 }
 
+// Route is a route instance
 type Route interface {
+	// RedirectRule returns the redirect rule
 	RedirectRule() RedirectRule
 
+	// RouteRule returns the route rule
 	RouteRule() RouteRule
 
+	// TraceDecorator returns the trace decorator
 	TraceDecorator() TraceDecorator
 }
 
+// RouteRule defines parameters for a route
 type RouteRule interface {
+	// ClusterName returns the route's cluster name
 	ClusterName() string
 
+	// GlobalTimeout returns the global timeout
 	GlobalTimeout() time.Duration
 
+	// Priority returns the route's priority
 	Priority() Priority
 
+	// VirtualHost returns the route's virtual host
 	VirtualHost() VirtualHost
 
+	// VirtualCluster returns the route's virtual cluster
 	VirtualCluster(headers map[string]string) VirtualCluster
 
+	// Policy returns the route's route policy
 	Policy() Policy
 
 	//MetadataMatcher() MetadataMatcher
 
+	// Metadata returns the route's route meta data
 	Metadata() RouteMetaData
 
-	// return the metadata that a subset load balancer should match when selecting an upstream host
+	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
 	MetadataMatchCriteria() MetadataMatchCriteria
 }
 
+// Policy defines a group of route policy
 type Policy interface {
 	RetryPolicy() RetryPolicy
 
@@ -96,12 +114,15 @@ type Policy interface {
 	LoadBalancerPolicy() LoadBalancerPolicy
 }
 
+/*
 type TargetCluster interface {
 	Name() string
 
 	NotFoundResponse() interface{}
 }
+*/
 
+// CorsPolicy is a type of Policy
 type CorsPolicy interface {
 	AllowOrigins() []string
 
@@ -118,16 +139,19 @@ type CorsPolicy interface {
 	Enabled() bool
 }
 
+// LoadBalancerPolicy is a type of Policy
 type LoadBalancerPolicy interface {
 	HashPolicy() HashPolicy
 }
 
 type AddCookieCallback func(key string, ttl int)
 
+// HashPolicy is a type of Policy
 type HashPolicy interface {
 	GenerateHash(downstreamAddress string, headers map[string]string, addCookieCb AddCookieCallback)
 }
 
+// RateLimitPolicy is a type of Policy
 type RateLimitPolicy interface {
 	Enabled() bool
 
@@ -141,31 +165,39 @@ type RateLimitPolicyEntry interface {
 
 	PopulateDescriptors(route RouteRule, descriptors []Descriptor, localSrvCluster string, headers map[string]string, remoteAddr string)
 }
+
+// LimitStatus type
 type LimitStatus string
 
+// LimitStatus types
 const (
 	OK        LimitStatus = "OK"
 	Error     LimitStatus = "Error"
 	OverLimit LimitStatus = "OverLimit"
 )
 
+// DescriptorEntry is a key-value pair
 type DescriptorEntry struct {
 	Key   string
 	Value string
 }
 
+// Descriptor contains a list pf DescriptorEntry
 type Descriptor struct {
 	entries []DescriptorEntry
 }
 
+// RetryCheckStatus type
 type RetryCheckStatus int
 
+// RetryCheckStatus types
 const (
 	ShouldRetry   RetryCheckStatus = 0
 	NoRetry       RetryCheckStatus = -1
 	RetryOverflow RetryCheckStatus = -2
 )
 
+// RetryPolicy is a type of Policy
 type RetryPolicy interface {
 	RetryOn() bool
 
@@ -182,6 +214,7 @@ type RetryState interface {
 	ShouldRetry(respHeaders map[string]string, resetReson string, doRetryCb DoRetryCallback) bool
 }
 
+// ShadowPolicy is a type of Policy
 type ShadowPolicy interface {
 	ClusterName() string
 
@@ -205,7 +238,7 @@ type VirtualHost interface {
 
 	RateLimitPolicy() RateLimitPolicy
 
-	// Get Matched Route
+	// GetRouteFromEntries returns a Route matched the condition
 	GetRouteFromEntries(headers map[string]string, randomValue uint64) Route
 }
 
@@ -258,19 +291,21 @@ type Decorator interface {
 	getOperation() string
 }
 
-//type HashedValue [16]byte // value as md5's result
-
-// todo change hashed value to [16]string
+// TODO: change hashed value to [16]string
 // currently use string for easily debug
-type HashedValue string // value as md5's result
+
+// HashedValue is a value as md5's result
+type HashedValue string
 
 type HeaderFormat interface {
 	Format(info RequestInfo) string
 	Append() bool
 }
 
+// PathMatchType defines the match pattern
 type PathMatchType uint32
 
+// Path match patterns
 const (
 	None PathMatchType = iota
 	Prefix
@@ -279,35 +314,36 @@ const (
 	SofaHeader
 )
 
+// SslRequirements type
 type SslRequirements uint32
 
+// SslRequirements types
 const (
 	NONE SslRequirements = iota
 	EXTERNALONLY
 	ALL
 )
 
-/**
- * The router configuration.
- */
+// Config defines the router configuration
 type Config interface {
 	Route(headers map[string]string, randomValue uint64) (Route, string)
 	InternalOnlyHeaders() *list.List
 	Name() string
 }
 
+// QueryParams is a string-string map
 type QueryParams map[string]string
 
-// match request's query parameter
+// QueryParameterMatcher match request's query parameter
 type QueryParameterMatcher interface {
-	// bool true if a match for this QueryParameterMatcher exists in request_query_params.
+	// Matches returns true if a match for this QueryParameterMatcher exists in request_query_params.
 	Matches(requestQueryParams QueryParams) bool
 }
 
+// HeaderData defines headers data.
 // An empty header value allows for matching to be only based on header presence.
 // Regex is an opt-in. Unless explicitly mentioned, the header values will be used for
 // exact string matching.
-
 type HeaderData struct {
 	Name         LowerCaseString
 	Value        string
@@ -315,17 +351,18 @@ type HeaderData struct {
 	RegexPattern regexp.Regexp
 }
 
-// Utility routines for loading route configuration and matching runtime request headers.
+// ConfigUtility is utility routines for loading route configuration and matching runtime request headers.
 type ConfigUtility interface {
-	// See if the headers specified in the config are present in a request.
-	// bool true if all the headers (and values) in the config_headers are found in the request_headers
+	// MatchHeaders check whether the headers specified in the config are present in a request.
+	// If all the headers (and values) in the config_headers are found in the request_headers, return true.
 	MatchHeaders(requestHeaders map[string]string, configHeaders []*HeaderData) bool
 
-	// See if the query parameters specified in the config are present in a request.
-	// bool true if all the query params (and values) in the config_params are found in the query_params
+	// MatchQueryParams check whether the query parameters specified in the config are present in a request.
+	// If all the query params (and values) in the config_params are found in the query_params, return true.
 	MatchQueryParams(queryParams QueryParams, configQueryParams []QueryParameterMatcher) bool
 }
 
+// LowerCaseString is a string wrapper
 type LowerCaseString interface {
 	Lower()
 	Equal(rhs LowerCaseString) bool
@@ -341,7 +378,7 @@ type Loader struct{}
 
 type RouteMetaData map[string]HashedValue
 
-// generate hashed valued with md5
+// GenerateHashedValue generates generates hashed valued with md5
 func GenerateHashedValue(input string) HashedValue {
 	data := []byte(input)
 	h := md5.Sum(data)
@@ -351,10 +388,7 @@ func GenerateHashedValue(input string) HashedValue {
 	return HashedValue(input)
 }
 
+//EqualHashValue comapres two HashedValues are equaled or not
 func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {
-	if h1 == h2 {
-		return true
-	}
-
-	return false
+	return h1 == h2
 }

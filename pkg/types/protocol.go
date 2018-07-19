@@ -41,45 +41,44 @@ import (
 
 type Protocol string
 
-// Protocols' facade used by Stream
+// Protocols is a protocols' facade used by Stream
 type Protocols interface {
-	//A encoder interface to extend various of protocols
+	// Encoder is a encoder interface to extend various of protocols
 	Encoder
 	// Decode decodes data to headers-data-trailers by Stream
 	// Stream register a DecodeFilter to receive decode event
 	Decode(context context.Context, data IoBuffer, filter DecodeFilter)
 }
 
-// Filter used by Stream to receive decode events
+// DecodeFilter is a filter used by Stream to receive decode events
 type DecodeFilter interface {
-	// Called on headers decoded
+	// OnDecodeHeader is called on headers decoded
 	OnDecodeHeader(streamID string, headers map[string]string) FilterStatus
 
-	// Called on data decoded
+	// OnDecodeData is called on data decoded
 	OnDecodeData(streamID string, data IoBuffer) FilterStatus
 
-	// Called on trailers decoded
+	// OnDecodeTrailer is called on trailers decoded
 	OnDecodeTrailer(streamID string, trailers map[string]string) FilterStatus
 
-	// Called when error occurs
+	// OnDecodeError is called when error occurs
 	// When error occurring, filter status = stop
 	OnDecodeError(err error, headers map[string]string)
 }
 
-// A encoder interface to extend various of protocols
+// Encoder is a encoder interface to extend various of protocols
 type Encoder interface {
-	// AppendHeaders encodes headers to buffer
-	// return 1. headers bytes 2. stream id if have one
+	// EncodeHeaders encodes the headers based on it's protocol
 	EncodeHeaders(context context.Context, headers interface{}) (IoBuffer, error)
 
-	// AppendData encodes data to buffer
+	// EncodeData encodes the data based on it's protocol
 	EncodeData(context context.Context, data IoBuffer) IoBuffer
 
-	// AppendTrailers encodes trailers to buffer
+	// EncodeTrailers encodes the trailers based on it's protocol
 	EncodeTrailers(context context.Context, trailers map[string]string) IoBuffer
 }
 
-// A decoder interface to extend various of protocols
+// Decoder is a decoder interface to extend various of protocols
 type Decoder interface {
 	// Decode decodes binary to a model
 	// return 1. bytes decoded 2. decoded cmd

@@ -26,6 +26,7 @@ import (
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 )
 
+// GetClusters use for cds request round trip
 func (c *ClientV2) GetClusters(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Cluster {
 	err := c.reqClusters(streamClient)
 	if err != nil {

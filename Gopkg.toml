@@ -84,6 +84,10 @@
   branch = "master"
   name = "github.com/valyala/fasthttp"
 
+[[constraint]]
+  branch = "master"
+  name = "github.com/json-iterator/go"
+
 [prune]
   go-tests = true
   unused-packages = true

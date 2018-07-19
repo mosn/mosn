@@ -20,18 +20,20 @@ package cluster
 import (
 	"errors"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 )
 
+// Adap is the instance of cluster Adapter
 var Adap Adapter
 
 type Adapter struct {
 	clusterMng *clusterManager
 }
 
-// Called by registry module to update cluster's host info
+// TriggerClusterUpdate
+// used to update cluster and its hosts
 func (ca *Adapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) error {
 	clusterExist := ca.clusterMng.ClusterExist(clusterName)
 
@@ -63,7 +65,8 @@ func (ca *Adapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) err
 	return nil
 }
 
-// Called when mesh receive subscribe info
+// TriggerClusterAdded
+// used to add cluster
 func (ca *Adapter) TriggerClusterAdded(cluster v2.Cluster) {
 	clusterExist := ca.clusterMng.ClusterExist(cluster.Name)
 
@@ -81,7 +84,8 @@ func (ca *Adapter) TriggerClusterAdded(cluster v2.Cluster) {
 	}
 }
 
-// Called when mesh receive unsubscribe info
+// TriggerClusterDel
+// used to delete cluster
 func (ca *Adapter) TriggerClusterDel(clusterName string) {
 	log.DefaultLogger.Debugf("Delete Cluster %s", clusterName)
 	ca.clusterMng.RemovePrimaryCluster(clusterName)

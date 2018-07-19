@@ -22,17 +22,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
-	//router.RegisteRouterConfigFactory(protocol.SofaRpc, NewRouters)
-	//router.RegisteRouterConfigFactory(protocol.Http2, NewRouters)
-	//router.RegisteRouterConfigFactory(protocol.Http1, NewRouters)
-	//router.RegisteRouterConfigFactory(protocol.Xprotocol, NewRouters)
+	//router.RegisterRouterConfigFactory(protocol.SofaRpc, NewRouters)
+	//router.RegisterRouterConfigFactory(protocol.Http2, NewRouters)
+	//router.RegisterRouterConfigFactory(protocol.Http1, NewRouters)
+	//router.RegisterRouterConfigFactory(protocol.Xprotocol, NewRouters)
 }
 
 // types.Routers
@@ -107,7 +107,7 @@ func (rc *Routers) DelRouter(routerName string) {
 
 // types.Route
 // types.RouteRule
-// router.Matchable
+// router.matchable
 type basicRouter struct {
 	RouteRuleImplAdaptor
 	name          string

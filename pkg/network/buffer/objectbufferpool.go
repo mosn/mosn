@@ -37,6 +37,7 @@ func (p *objectPool) Give(object interface{}) {
 	p.Put(object)
 }
 
+// NewObjectPool can create an object pool with poolSize
 func NewObjectPool(poolSize int) types.ObjectBufferPool {
 	pool := &objectPool{}
 

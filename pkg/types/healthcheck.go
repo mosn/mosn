@@ -18,40 +18,41 @@
 package types
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 )
 
-// Health check interfaces
-
+// FailureType is the type of a failure
 type FailureType string
 
+// Failure types
 const (
 	FailureNetwork FailureType = "Network"
 	FailurePassive FailureType = "Passive"
 	FailureActive  FailureType = "Active"
 )
 
+// HealthCheckCb is the health check's callback function
 type HealthCheckCb func(host Host, changedState bool)
 
-// A health checker for an upstream cluster
+// HealthChecker is a object that used to check an upstream cluster is health or not.
 type HealthChecker interface {
-	// Start starts health checking, which will continually monitor hosts in upstream cluster
+	// Start starts health checking, which will continually monitor hosts in upstream cluster.
 	Start()
 
-	// Stop stops cluster health check. Client can use it to start/stop health check as a heartbeat
+	// Stop stops cluster health check. Client can use it to start/stop health check as a heartbeat.
 	Stop()
 
-	// Add a health check callback, which will be called on a check round-trip is completed for a specified host.
+	// AddHostCheckCompleteCb is a health check callback, which will be called on a check round-trip is completed for a specified host.
 	AddHostCheckCompleteCb(cb HealthCheckCb)
 
-	// Used to update cluster's hosts for health checking
+	// OnClusterMemberUpdate updates cluster's hosts for health checking.
 	OnClusterMemberUpdate(hostsAdded []Host, hostDel []Host)
 
-	// Add cluster to healthChecker
+	// SetCluster adds a cluster to health checker.
 	SetCluster(cluster Cluster)
 }
 
-// A health check session for an upstream host
+// HealthCheckSession is a health check session for an upstream host
 type HealthCheckSession interface {
 	// Start starts host health check
 	Start()
@@ -59,14 +60,15 @@ type HealthCheckSession interface {
 	// Stop stops host health check
 	Stop()
 
-	// Set session as unhealthy for a specified reason
+	// SetUnhealthy sets session as unhealthy for a specified reason
 	SetUnhealthy(fType FailureType)
 }
 
 type HealthCheckHostMonitor interface {
 }
 
-// todo: move facotry instance to a factory package
+// TODO: move facotry instance to a factory package
+
 var HealthCheckFactoryInstance HealthCheckerFactory
 
 type HealthCheckerFactory interface {

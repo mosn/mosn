@@ -20,7 +20,7 @@ package router
 import (
 	"regexp"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/markphelps/optional"
@@ -104,9 +104,9 @@ type VirtualHostImpl struct {
 	virtualClusters       []VirtualClusterEntry
 	sslRequirements       types.SslRequirements
 	corsPolicy            types.CorsPolicy
-	globalRouteConfig     *ConfigImpl
-	requestHeadersParser  *HeaderParser
-	responseHeadersParser *HeaderParser
+	globalRouteConfig     *configImpl
+	requestHeadersParser  *headerParser
+	responseHeadersParser *headerParser
 }
 
 func (vh *VirtualHostImpl) Name() string {

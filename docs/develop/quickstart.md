@@ -48,7 +48,7 @@ make build         //使用docker编译
 make build-local   // 使用本地的go编译环境
 ```
 
-完成后可以在 `bundles/${version}/binary` 目录下找到编译好的二进制文件。
+完成后可以在 `build/bundles/${version}/binary` 目录下找到编译好的二进制文件。
 
 ## 打包
 
@@ -58,7 +58,7 @@ make build-local   // 使用本地的go编译环境
 make rpm
 ```
 
-完成后可以在 `bundles/${version}/rpm` 目录下找到打包好的文件。
+完成后可以在 `build/bundles/${version}/rpm` 目录下找到打包好的文件。
 
 
 ## 运行测试

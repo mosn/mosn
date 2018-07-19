@@ -52,7 +52,7 @@ func ConvertPropertyValue(strValue string, kind reflect.Kind) interface{} {
 		value, _ := strconv.ParseUint(strValue, 10, 8)
 		return byte(value)
 	case reflect.Uint16:
-		value, _ := strconv.ParseUint(strValue, 10, 8)
+		value, _ := strconv.ParseUint(strValue, 10, 16)
 		return uint16(value)
 	case reflect.Uint32:
 		value, _ := strconv.ParseUint(strValue, 10, 32)

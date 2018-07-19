@@ -9,7 +9,7 @@
 
 需要一个编译好的Mesher程序
 ```
-cd ${projectpath}/pkg/mosn
+cd ${projectpath}/cmd/mosn
 go build
 ```
 

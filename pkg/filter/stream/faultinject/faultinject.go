@@ -24,11 +24,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 )
+
+func init(){
+	filter.Register("fault_inject", CreateFaultInjectFilterFactory)
+}
 
 type faultInjectFilter struct {
 	context context.Context

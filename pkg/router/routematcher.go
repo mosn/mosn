@@ -20,21 +20,23 @@ package router
 import (
 	"strings"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
-	RegisteRouterConfigFactory(protocol.SofaRPC, NewRouteMatcher)
-	RegisteRouterConfigFactory(protocol.HTTP2, NewRouteMatcher)
-	RegisteRouterConfigFactory(protocol.HTTP1, NewRouteMatcher)
-	RegisteRouterConfigFactory(protocol.Xprotocol, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.SofaRPC, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.HTTP2, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.HTTP1, NewRouteMatcher)
+	RegisterRouterConfigFactory(protocol.Xprotocol, NewRouteMatcher)
 }
 
+// NewRouteMatcher
+// New 'routeMatcher' according config
 func NewRouteMatcher(config interface{}) (types.Routers, error) {
-	routerMatcher := &RouteMatcher{
+	routerMatcher := &routeMatcher{
 		virtualHosts:                make(map[string]types.VirtualHost),
 		wildcardVirtualHostSuffixes: make(map[int]map[string]types.VirtualHost),
 	}
@@ -42,8 +44,6 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 	if config, ok := config.(*v2.Proxy); ok {
 
 		for _, virtualHost := range config.VirtualHosts {
-
-			//todo 补充virtual host 其他成员
 			vh := NewVirtualHostImpl(virtualHost, config.ValidateClusters)
 
 			for _, domain := range virtualHost.Domains {
@@ -75,14 +75,14 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 }
 
 // A router wrapper used to matches an incoming request headers to a backend cluster
-type RouteMatcher struct {
+type routeMatcher struct {
 	virtualHosts                map[string]types.VirtualHost // key: host
 	defaultVirtualHost          types.VirtualHost
 	wildcardVirtualHostSuffixes map[int]map[string]types.VirtualHost
 }
 
 // Routing with Virtual Host
-func (rm *RouteMatcher) Route(headers map[string]string, randomValue uint64) types.Route {
+func (rm *routeMatcher) Route(headers map[string]string, randomValue uint64) types.Route {
 	// First Step: Select VirtualHost with "host" in Headers form VirtualHost Array
 	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
@@ -102,7 +102,7 @@ func (rm *RouteMatcher) Route(headers map[string]string, randomValue uint64) typ
 	return routerInstance
 }
 
-func (rm *RouteMatcher) findVirtualHost(headers map[string]string) types.VirtualHost {
+func (rm *routeMatcher) findVirtualHost(headers map[string]string) types.VirtualHost {
 	if len(rm.virtualHosts) == 0 && rm.defaultVirtualHost != nil {
 		log.StartLogger.Tracef("route matcher find virtual host return default virtual host")
 		return rm.defaultVirtualHost
@@ -127,7 +127,7 @@ func (rm *RouteMatcher) findVirtualHost(headers map[string]string) types.Virtual
 }
 
 // Rule: longest wildcard suffix match against the host
-func (rm *RouteMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
+func (rm *routeMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
 
 	// e.g. foo-bar.baz.com will match *-bar.baz.com
 	for wildcardLen, wildcardMap := range rm.wildcardVirtualHostSuffixes {
@@ -145,6 +145,6 @@ func (rm *RouteMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
 	return nil
 }
 
-func (rm *RouteMatcher) AddRouter(routerName string) {}
+func (rm *routeMatcher) AddRouter(routerName string) {}
 
-func (rm *RouteMatcher) DelRouter(routerName string) {}
+func (rm *routeMatcher) DelRouter(routerName string) {}

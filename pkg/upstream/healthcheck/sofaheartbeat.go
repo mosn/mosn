@@ -20,14 +20,14 @@ package healthcheck
 import (
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 )
 
-// use for hearth-beat starting for sofa bolt in the same codecClient
+// StartSofaHeartBeat use for hearth-beat starting for sofa bolt in the same codecClient
 // for bolt heartbeat, timeout: 90s interval: 15s
 func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr string,
 	codecClient stream.CodecClient, nameHB string, pro sofarpc.ProtocolType) types.HealthCheckSession {

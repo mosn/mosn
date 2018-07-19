@@ -1,4 +1,4 @@
-bundles/*
+build/bundles/*
 gitignore
 .gitignore
 .DS_Store

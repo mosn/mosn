@@ -20,7 +20,7 @@ package cluster
 import (
 	"math/rand"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -105,8 +105,7 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 
 	if nil != context {
-		var hostChoosen = false
-		host := sslb.TryChooseHostFromContext(context, &hostChoosen)
+		host, hostChoosen := sslb.TryChooseHostFromContext(context)
 		if hostChoosen {
 			log.DefaultLogger.Debugf("subset load balancer: match subset entry success, "+
 				"choose hostaddr = %s", host.AddressString())
@@ -132,27 +131,23 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 	return sslb.fallbackSubset.prioritySubset.LB().ChooseHost(context)
 }
 
-func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalancerContext,
-	hostChosen *bool) types.Host {
+func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalancerContext) (types.Host, bool) {
 
-	*hostChosen = false
 	matchCriteria := context.MetadataMatchCriteria()
 
 	if nil == matchCriteria {
 		log.DefaultLogger.Errorf("subset load balancer: context is nil")
-		return nil
+		return nil, false
 	}
 
 	entry := sslb.FindSubset(matchCriteria.MetadataMatchCriteria())
 
 	if nil == entry || !entry.Active() {
 		log.DefaultLogger.Errorf("subset load balancer: match entry failure")
-		return nil
+		return nil, false
 	}
 
-	*hostChosen = true
-
-	return entry.PrioritySubset().LB().ChooseHost(context)
+	return entry.PrioritySubset().LB().ChooseHost(context), true
 }
 
 // create or update fallback subset
