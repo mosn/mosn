@@ -36,7 +36,6 @@ func SetGlobalStreamFilter(globalStreamFilters []types.StreamFilterChainFactory)
 	}
 }
 
-// todo , no hack
 var streamFilter []types.StreamFilterChainFactory
 
 // OnUpdateListeners called by XdsClient when listeners config refresh

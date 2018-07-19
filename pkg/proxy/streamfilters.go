@@ -257,7 +257,7 @@ func (s *downStream) runReceiveTrailersFilters(filter *activeStreamReceiverFilte
 // FilterStage is the type of the filter stage
 type FilterStage int
 
-// all stages
+// Const of all stages
 const (
 	DecodeHeaders = iota
 	DecodeData
@@ -267,7 +267,6 @@ const (
 	EncodeTrailers
 )
 
-// types.StreamFilterCallbacks
 type activeStreamFilter struct {
 	index int
 

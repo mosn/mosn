@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+/* Package xds can be used to create an grpc (just support grpc and v2 api) client communicated with pilot
+   and fetch config in cycle
+*/
+
 package xds
 
 import (
@@ -33,11 +37,6 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/json-iterator/go"
 )
-
-/*
- xdsclient can be used to create an grpc (just support grpc and v2 api) client communicated with pilot
- and fetch config in cycle
-*/
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 

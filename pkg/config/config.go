@@ -49,7 +49,7 @@ type FilterConfig struct {
 	Config map[string]interface{} `json:"config,omitempty"`
 }
 
-// AccessLogConfig to make up access log
+// AccessLogConfig for making up access log
 type AccessLogConfig struct {
 	LogPath   string `json:"log_path,omitempty"`
 	LogFormat string `json:"log_format,omitempty"`
@@ -210,7 +210,7 @@ type MOSNConfig struct {
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 }
 
-// Mode is the type thant mosn starting mode
+// Mode is mosn's starting type
 type Mode uint8
 
 // File means start from config file
@@ -262,10 +262,8 @@ func Load(path string) *MOSNConfig {
 		os.Exit(1)
 	}
 	configPath, _ = filepath.Abs(path)
-	// todo delete
-	//configPath = "../../configs/mosn_config_dump_result.json"
-
 	err = json.Unmarshal(content, &config)
+	
 	if err != nil {
 		log.Fatalln("json unmarshal config failed, ", err)
 		os.Exit(1)

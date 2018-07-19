@@ -26,7 +26,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-//
 type headerParser struct {
 	headersToAdd    []types.Pair
 	headersToRemove []*lowerCaseString

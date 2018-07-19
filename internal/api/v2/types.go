@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-// The Metadata field can be used to provide additional information about the route.
+// Metadata field can be used to provide additional information about the route.
 // It can be used for configuration, stats, and logging.
 // The metadata should go under the filter namespace that will need it.
 type Metadata map[string]interface{}
@@ -37,7 +37,7 @@ const (
 // ClusterType
 type ClusterType string
 
-// the type of cluster
+// Group of cluster type
 const (
 	STATIC_CLUSTER  ClusterType = "STATIC"
 	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
@@ -47,13 +47,13 @@ const (
 // LbType
 type LbType string
 
-// type of load balancer
+// Group of load balancer type
 const (
 	LB_RANDOM     LbType = "LB_RANDOM"
 	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
 )
 
-// Cluster
+// Cluster class
 type Cluster struct {
 	Name                 string
 	ClusterType          ClusterType
@@ -69,7 +69,7 @@ type Cluster struct {
 	Hosts                []Host
 }
 
-// CircuitBreakers
+// CircuitBreakers class
 type CircuitBreakers struct {
 	Thresholds []Thresholds
 }
@@ -83,7 +83,7 @@ type Thresholds struct {
 	MaxRetries         uint32
 }
 
-// OutlierDetection for upstream
+// OutlierDetection value for upstream
 type OutlierDetection struct {
 	Consecutive5xx                     uint32
 	Interval                           time.Duration
@@ -101,13 +101,13 @@ type OutlierDetection struct {
 // RoutingPriority
 type RoutingPriority string
 
-// priority of routing
+// Group of routing priority
 const (
 	DEFAULT RoutingPriority = "DEFAULT"
 	HIGH    RoutingPriority = "HIGH"
 )
 
-// Host which has MetaData
+// Host with MetaData
 type Host struct {
 	Address  string
 	Hostname string
@@ -133,7 +133,7 @@ type ListenerConfig struct {
 	FilterChains                          []FilterChain // FilterChains
 }
 
-// AccessLog
+// AccessLog with log path and log format
 type AccessLog struct {
 	Path   string
 	Format string
@@ -326,7 +326,7 @@ type RouterMatch struct {
 }
 
 // RouteAction
-// Route request to some upstream cluster.
+// Route request to some upstream clusters.
 type RouteAction struct {
 	ClusterName      string
 	ClusterHeader    string // used for http only
@@ -360,15 +360,14 @@ type RuntimeUInt32 struct {
 	RuntimeKey   string
 }
 
-// Specifies a set of headers that the route should match on.
+// HeaderMatcher specifies a set of headers that the route should match on.
 type HeaderMatcher struct {
 	Name  string
 	Value string
 	Regex bool
 }
 
-// VirtualCluster.
-// A virtual cluster is a way of specifying a regex matching rule against certain important endpoints
+// VirtualCluster is a way of specifying a regex matching rule against certain important endpoints
 // such that statistics are generated explicitly for the matched requests
 type VirtualCluster struct {
 	Pattern string

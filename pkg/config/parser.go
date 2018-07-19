@@ -41,10 +41,11 @@ var protocolsSupported = map[string]bool{
 	string(protocol.Xprotocol): true,
 }
 
-// ParsedCallback
-// callback when corresponding module parsed
+// ParsedCallback is an
+// alias for closure func(data interface{}, endParsing bool) error
 type ParsedCallback func(data interface{}, endParsing bool) error
 
+// Group of ContentKey
 // notes: configcontentkey equals to the key of config file
 const (
 	ParseCallbackKeyCluster        ContentKey = "clusters"

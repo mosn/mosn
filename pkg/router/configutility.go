@@ -139,11 +139,11 @@ func (mmcti *MetadataMatchCriteriaImpl) MetadataMatchCriteria() []types.Metadata
 }
 
 // MergeMatchCriteria
+// No usage currently
 func (mmcti *MetadataMatchCriteriaImpl) MergeMatchCriteria(metadataMatches map[string]interface{}) types.MetadataMatchCriteria {
 	return nil
 }
 
-// realize sort.Sort
 func (mmcti *MetadataMatchCriteriaImpl) Len() int {
 	return len(mmcti.MatchCriteriaArray)
 }
@@ -157,7 +157,7 @@ func (mmcti *MetadataMatchCriteriaImpl) Swap(i, j int) {
 		mmcti.MatchCriteriaArray[i]
 }
 
-// used to generate metadata match criteria from config
+// Used to generate metadata match criteria from config
 func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *MetadataMatchCriteriaImpl,
 	metadataMatches map[string]interface{}) {
 
@@ -210,12 +210,12 @@ type MetadataMatchCriterionImpl struct {
 	Value types.HashedValue
 }
 
-// MetadataKeyName
+// MetadataKeyName return name
 func (mmci *MetadataMatchCriterionImpl) MetadataKeyName() string {
 	return mmci.Name
 }
 
-// MetadataValue
+// MetadataValue return value
 func (mmci *MetadataMatchCriterionImpl) MetadataValue() types.HashedValue {
 	return mmci.Value
 }

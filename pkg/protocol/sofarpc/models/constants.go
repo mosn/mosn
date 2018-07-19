@@ -17,9 +17,8 @@
 
 package models
 
-// tracing key const
+// Const of tracing key
 const (
-
 	// old key
 	TARGET_SERVICE_KEY = "sofa_head_target_service"
 

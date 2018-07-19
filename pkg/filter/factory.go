@@ -28,7 +28,7 @@ func init() {
 	creatorFactory = make(map[string]StreamFilterFactoryCreator)
 }
 
-// filter
+// Register filter and its creator
 func Register(filterType string, creator StreamFilterFactoryCreator) {
 	creatorFactory[filterType] = creator
 }

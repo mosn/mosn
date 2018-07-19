@@ -123,7 +123,7 @@ var BoltV2 = &boltProtocol{
 	handler.NewBoltCommandHandlerV2(),
 }
 
-// bolt protocol
+// Bolt protocol class
 type boltProtocol struct {
 	protocolCode      byte
 	requestHeaderLen  int

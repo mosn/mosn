@@ -33,7 +33,7 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
-// network const
+// Network related const
 const (
 	ConnectionCloseDebugMsg = "Close connection %d, event %s, type %s, data read %d, data write %d"
 	DefaultBufferCapacity   = 1 << 17

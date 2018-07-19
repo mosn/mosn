@@ -183,7 +183,6 @@ func convertClusterHealthCheck(cchc v2.HealthCheck) ClusterHealthCheckConfig {
 	}
 }
 
-// todo: add router config delete
 // AddRouterConfig
 // Add router from config when new cluster created
 func AddRouterConfig(clusterName string) {

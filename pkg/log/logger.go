@@ -281,8 +281,7 @@ func parseSyslogAddress(location string) *syslogAddress {
 	return nil
 }
 
-// Reopen
-// all logger
+// Reopen all logger
 func Reopen() error {
 	for _, logger := range loggers {
 		if err := logger.Reopen(); err != nil {
@@ -293,8 +292,7 @@ func Reopen() error {
 	return nil
 }
 
-// CloseAll
-// close all logger
+// CloseAll logger
 func CloseAll() error {
 	for _, logger := range loggers {
 		if err := logger.Close(); err != nil {

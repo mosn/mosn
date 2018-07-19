@@ -28,7 +28,6 @@ import (
 type boltHbProcessor struct {
 }
 
-// ctx = type.serverStreamConnection
 func (b *boltHbProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	logger := log.ByContext(context)
 

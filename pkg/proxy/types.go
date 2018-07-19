@@ -54,7 +54,7 @@ type Timeout struct {
 // UpstreamFailureReason
 type UpstreamFailureReason string
 
-// some Upstream Failure Reason
+// Group pf some Upstream Failure Reason
 const (
 	ConnectFailed         UpstreamFailureReason = "ConnectFailed"
 	NoHealthyUpstream     UpstreamFailureReason = "NoHealthyUpstream"
@@ -65,7 +65,7 @@ const (
 // UpstreamResetType
 type UpstreamResetType string
 
-// some Upstream Reset Type
+// Group of Upstream Reset Type
 const (
 	UpstreamReset         UpstreamResetType = "UpstreamReset"
 	UpstreamGlobalTimeout UpstreamResetType = "UpstreamGlobalTimeout"
