@@ -42,7 +42,6 @@ type Mosn struct {
 
 // NewMosn
 // Create server from mosn config
-//
 func NewMosn(c *config.MOSNConfig) *Mosn {
 	m := &Mosn{}
 	mode := c.Mode()
