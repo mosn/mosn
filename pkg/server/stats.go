@@ -22,8 +22,8 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
+// Stats names
 const (
-	// ~~~ stats names
 	DownstreamConnectionTotal   = "downstream_connection_total"
 	DownstreamConnectionDestroy = "downstream_connection_destroy"
 	DownstreamConnectionActive  = "downstream_connection_active"
@@ -33,6 +33,7 @@ const (
 	DownstreamBytesWriteCurrent = "downstream_bytes_write_current"
 )
 
+// ListenerStats is stats for listener
 type ListenerStats struct {
 	stats *stats.Stats
 }
@@ -50,30 +51,37 @@ func initStats(namespace string) *stats.Stats {
 		AddGauge(DownstreamBytesWriteCurrent)
 }
 
+// DownstreamConnectionTotal return downstream connection total number
 func (ls *ListenerStats) DownstreamConnectionTotal() metrics.Counter {
 	return ls.stats.Counter(DownstreamConnectionTotal)
 }
 
+// DownstreamConnectionDestroy return downstream connection destroy number
 func (ls *ListenerStats) DownstreamConnectionDestroy() metrics.Counter {
 	return ls.stats.Counter(DownstreamConnectionDestroy)
 }
 
+// DownstreamConnectionActive return downstream connection active number
 func (ls *ListenerStats) DownstreamConnectionActive() metrics.Counter {
 	return ls.stats.Counter(DownstreamConnectionActive)
 }
 
+// DownstreamBytesRead return downstream bytes read number
 func (ls *ListenerStats) DownstreamBytesRead() metrics.Counter {
 	return ls.stats.Counter(DownstreamBytesRead)
 }
 
+// DownstreamBytesReadCurrent return downstream bytes read current number
 func (ls *ListenerStats) DownstreamBytesReadCurrent() metrics.Gauge {
 	return ls.stats.Gauge(DownstreamBytesReadCurrent)
 }
 
+// DownstreamBytesWrite return downstream bytes write number
 func (ls *ListenerStats) DownstreamBytesWrite() metrics.Counter {
 	return ls.stats.Counter(DownstreamBytesWrite)
 }
 
+// DownstreamBytesWriteCurrent return downstream bytes write number
 func (ls *ListenerStats) DownstreamBytesWriteCurrent() metrics.Gauge {
 	return ls.stats.Gauge(DownstreamBytesWriteCurrent)
 }

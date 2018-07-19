@@ -17,6 +17,7 @@
 
 package types
 
+// Header key types
 const (
 	HeaderStatus        = "x-mosn-status"
 	HeaderMethod        = "x-mosn-method"
@@ -30,12 +31,14 @@ const (
 	HeaderStremEnd      = "x-mosn-endstream"
 )
 
+// Error messages
 const (
 	UnSupportedProCode   string = "Protocol Code not supported"
 	CodecException       string = "Codec exception occurs"
 	DeserializeException string = "Deserial exception occurs"
 )
 
+// Error codes
 const (
 	CodecExceptionCode    int = 0
 	UnknownCode           int = 2

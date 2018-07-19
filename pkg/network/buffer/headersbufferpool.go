@@ -47,6 +47,7 @@ func (p *headersBufferPoolV2) Give(amap map[string]string) {
 	p.Put(amap)
 }
 
+// NewHeadersBufferPool used to create buffer pool for headers
 func NewHeadersBufferPool(poolSize int) types.HeadersBufferPool {
 	return &headersBufferPoolV2{}
 }

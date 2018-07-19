@@ -25,6 +25,7 @@ import (
 	"github.com/valyala/bytebufferpool"
 )
 
+// RequestInfoFuncMap is a map which key is the , value is the func to get the request value
 var (
 	RequestInfoFuncMap map[string]func(info types.RequestInfo) string
 	// currently use fasthttp's bytebufferpool impl
@@ -57,6 +58,7 @@ type accesslog struct {
 	logger    Logger
 }
 
+// NewAccessLog new AccessLog 
 func NewAccessLog(output string, filter types.AccessLogFilter,
 	format string) (types.AccessLog, error) {
 	var err error

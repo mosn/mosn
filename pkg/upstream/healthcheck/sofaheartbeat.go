@@ -27,7 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 )
 
-// use for hearth-beat starting for sofa bolt in the same codecClient
+// StartSofaHeartBeat use for hearth-beat starting for sofa bolt in the same codecClient
 // for bolt heartbeat, timeout: 90s interval: 15s
 func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr string,
 	codecClient stream.CodecClient, nameHB string, pro sofarpc.ProtocolType) types.HealthCheckSession {

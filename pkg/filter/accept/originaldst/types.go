@@ -21,6 +21,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// todo add comment
 type OriginalDst interface {
 	OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus
 }
