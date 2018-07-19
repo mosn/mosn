@@ -114,14 +114,6 @@ type Policy interface {
 	LoadBalancerPolicy() LoadBalancerPolicy
 }
 
-/*
-type TargetCluster interface {
-	Name() string
-
-	NotFoundResponse() interface{}
-}
-*/
-
 // CorsPolicy is a type of Policy
 type CorsPolicy interface {
 	AllowOrigins() []string
