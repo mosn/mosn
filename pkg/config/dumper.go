@@ -27,18 +27,18 @@ import (
 
 var fileMutex = new(sync.Mutex)
 
-func Dump(dirty bool) {
+func dump(dirty bool) {
 	fileMutex.Lock()
 	defer fileMutex.Unlock()
 
 	if dirty {
-		//log.DefaultLogger.Println("dump config to: ", ConfigPath)
+		//log.DefaultLogger.Println("dump config to: ", configPath)
 		log.DefaultLogger.Debugf("dump config content: %+v", config)
 
 		//todo: ignore zero values in config struct @boqin
 		content, err := json.MarshalIndent(config, "", "  ")
 		if err == nil {
-			err = ioutil.WriteFile(ConfigPath, content, 0644)
+			err = ioutil.WriteFile(configPath, content, 0644)
 		}
 
 		if err != nil {

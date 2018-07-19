@@ -26,11 +26,14 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// FaultInjectFilterConfigFactory
 type FaultInjectFilterConfigFactory struct {
 	FaultInject *v2.FaultInject
 	Proxy       *v2.TCPProxy
 }
 
+// CreateFilterFactory
+// create NetworkFilterFactoryCb
 func (fifcf *FaultInjectFilterConfigFactory) CreateFilterFactory(context context.Context,
 	clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
 	return func(manager types.FilterManager) {

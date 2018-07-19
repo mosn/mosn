@@ -33,6 +33,7 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
+// network const
 const (
 	ConnectionCloseDebugMsg = "Close connection %d, event %s, type %s, data read %d, data write %d"
 	DefaultBufferCapacity   = 1 << 17
@@ -84,6 +85,8 @@ type connection struct {
 	logger log.Logger
 }
 
+// NewServerConnection
+// rawc is the raw connection from go/net
 func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logger) types.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
@@ -554,7 +557,7 @@ func (c *connection) SetBufferLimit(limit uint32) {
 	if limit > 0 {
 		c.bufferLimit = limit
 
-		//c.writeBuffer.(*buffer.WatermarkBuffer).SetWaterMark(limit)
+		//c.writeBuffer.(*buffer.watermarkBuffer).SetWaterMark(limit)
 	}
 }
 
@@ -602,7 +605,9 @@ type clientConnection struct {
 	connectOnce sync.Once
 }
 
-func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}, logger log.Logger) types.ClientConnection {
+// NewClientConnection
+func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr,
+	stopChan chan struct{}, logger log.Logger) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{

@@ -38,7 +38,7 @@ func init() {
 // types.Routers
 type Routers struct {
 	rMutex  *sync.RWMutex
-	routers []router.RouteBase
+	routers []router.routeBase
 }
 
 //Routing, use static router first， then use dynamic router if support
@@ -107,7 +107,7 @@ func (rc *Routers) DelRouter(routerName string) {
 
 // types.Route
 // types.RouteRule
-// router.Matchable
+// router.matchable
 type basicRouter struct {
 	RouteRuleImplAdaptor
 	name          string
@@ -119,7 +119,7 @@ type basicRouter struct {
 
 func NewRouters(config interface{}) (types.Routers, error) {
 	if config, ok := config.(*v2.Proxy); ok {
-		routers := make([]router.RouteBase, 0)
+		routers := make([]router.routeBase, 0)
 
 		for _, r := range config.BasicRoutes {
 			router := &basicRouter{

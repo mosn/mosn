@@ -27,6 +27,8 @@ type configFactory func(config interface{}) (types.Routers, error)
 
 var routerConfigFactories map[types.Protocol]configFactory
 
+// RegisterRouterConfigFactory
+// register router config factory for protocol
 func RegisterRouterConfigFactory(port types.Protocol, factory configFactory) {
 	if routerConfigFactories == nil {
 		routerConfigFactories = make(map[types.Protocol]configFactory)
@@ -37,6 +39,8 @@ func RegisterRouterConfigFactory(port types.Protocol, factory configFactory) {
 	}
 }
 
+// CreateRouteConfig
+// return route factory according to protocol as input
 func CreateRouteConfig(port types.Protocol, config interface{}) (types.Routers, error) {
 	if factory, ok := routerConfigFactories[port]; ok {
 		return factory(config) //call NewBasicRoute

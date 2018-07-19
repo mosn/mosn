@@ -26,137 +26,138 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type HeaderParser struct {
+//
+type headerParser struct {
 	headersToAdd    []types.Pair
-	headersToRemove []*LowerCaseString
+	headersToRemove []*lowerCaseString
 }
 
-type Matchable interface {
+type matchable interface {
 	Match(headers map[string]string, randomValue uint64) types.Route
 }
 
-type Info interface {
+type info interface {
 	GetRouterName() string
 }
 
-type RouteBase interface {
+type routeBase interface {
 	types.Route
 	types.RouteRule
-	Matchable
-	Info
+	matchable
+	info
 }
 
-type ShadowPolicyImpl struct {
+type shadowPolicyImpl struct {
 	cluster    string
 	runtimeKey string
 }
 
-func (spi *ShadowPolicyImpl) ClusterName() string {
+func (spi *shadowPolicyImpl) ClusterName() string {
 	return spi.cluster
 }
 
-func (spi *ShadowPolicyImpl) RuntimeKey() string {
+func (spi *shadowPolicyImpl) RuntimeKey() string {
 	return spi.runtimeKey
 }
 
-type LowerCaseString struct {
+type lowerCaseString struct {
 	str string
 }
 
-func (lcs *LowerCaseString) Lower() {
+func (lcs *lowerCaseString) Lower() {
 	lcs.str = strings.ToLower(lcs.str)
 }
 
-func (lcs *LowerCaseString) Equal(rhs types.LowerCaseString) bool {
+func (lcs *lowerCaseString) Equal(rhs types.LowerCaseString) bool {
 	return lcs.str == rhs.Get()
 }
 
-func (lcs *LowerCaseString) Get() string {
+func (lcs *lowerCaseString) Get() string {
 	return lcs.str
 }
 
-type HashPolicyImpl struct {
-	hashImpl []*HashMethod
+type hashPolicyImpl struct {
+	hashImpl []*hashMethod
 }
 
-type HashMethod struct {
+type hashMethod struct {
 }
 
-type DecoratorImpl struct {
+type decoratorImpl struct {
 	Operation string
 }
 
-func (di *DecoratorImpl) apply(span types.Span) {
+func (di *decoratorImpl) apply(span types.Span) {
 	if di.Operation != "" {
 		span.SetOperation(di.Operation)
 	}
 }
 
-func (di *DecoratorImpl) getOperation() string {
+func (di *decoratorImpl) getOperation() string {
 	return di.Operation
 }
 
-type RateLimitPolicyImpl struct {
+type rateLimitPolicyImpl struct {
 	rateLimitEntries []types.RateLimitPolicyEntry
 	maxStageNumber   uint64
 }
 
-func (rp *RateLimitPolicyImpl) Enabled() bool {
+func (rp *rateLimitPolicyImpl) Enabled() bool {
 
 	return true
 }
 
-func (rp *RateLimitPolicyImpl) GetApplicableRateLimit(stage string) []types.RateLimitPolicyEntry {
+func (rp *rateLimitPolicyImpl) GetApplicableRateLimit(stage string) []types.RateLimitPolicyEntry {
 
 	return rp.rateLimitEntries
 }
 
-type RetryPolicyImpl struct {
+type retryPolicyImpl struct {
 	retryOn      bool
 	retryTimeout time.Duration
 	numRetries   uint32
 }
 
-func (p *RetryPolicyImpl) RetryOn() bool {
+func (p *retryPolicyImpl) RetryOn() bool {
 	return p.retryOn
 }
 
-func (p *RetryPolicyImpl) TryTimeout() time.Duration {
+func (p *retryPolicyImpl) TryTimeout() time.Duration {
 	return p.retryTimeout
 }
 
-func (p *RetryPolicyImpl) NumRetries() uint32 {
+func (p *retryPolicyImpl) NumRetries() uint32 {
 	return p.numRetries
 }
 
 // todo implement CorsPolicy
 
-type RuntimeData struct {
+type runtimeData struct {
 	key          string
 	defaultvalue uint64
 }
 
-type RateLimitPolicyEntryImpl struct {
+type rateLimitPolicyEntryImpl struct {
 	stage      uint64
 	disableKey string
-	actions    RateLimitAction
+	actions    rateLimitAction
 }
 
-func (rpei *RateLimitPolicyEntryImpl) Stage() uint64 {
+func (rpei *rateLimitPolicyEntryImpl) Stage() uint64 {
 	return rpei.stage
 }
 
-func (rpei *RateLimitPolicyEntryImpl) DisableKey() string {
+func (rpei *rateLimitPolicyEntryImpl) DisableKey() string {
 	return rpei.disableKey
 }
 
-func (rpei *RateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule, descriptors []types.Descriptor, localSrvCluster string,
+func (rpei *rateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule, descriptors []types.Descriptor, localSrvCluster string,
 	headers map[string]string, remoteAddr string) {
 }
 
-type RateLimitAction interface{}
+type rateLimitAction interface{}
 
-type WeightedClusterEntry struct {
+type weightedClusterEntry struct {
 	runtimeKey                   string
 	loader                       types.Loader
 	clusterWeight                uint64
@@ -197,6 +198,7 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 	return nil
 }
 
+// GetClusterMosnLBMetaDataMap from v2.Metadata
 // e.g. metadata =  { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
 // 4-tier map
 func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
@@ -221,6 +223,7 @@ func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	return metadataMap
 }
 
+// GetMosnLBMetaData
 // get mosn lb metadata from config
 func GetMosnLBMetaData(route *v2.Router) map[string]interface{} {
 	if metadataInterface, ok := route.Route.MetadataMatch[types.RouterMetadataKey]; ok {

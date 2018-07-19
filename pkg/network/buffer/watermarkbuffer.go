@@ -23,7 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type WatermarkBuffer struct {
+type watermarkBuffer struct {
 	IoBuffer
 
 	highWatermark            uint32
@@ -32,75 +32,75 @@ type WatermarkBuffer struct {
 	watermarkListener        types.BufferWatermarkListener
 }
 
-func (b *WatermarkBuffer) Read(p []byte) (n int, err error) {
+func (b *watermarkBuffer) Read(p []byte) (n int, err error) {
 	n, err = b.IoBuffer.Read(p)
 	b.checkLowWatermark()
 
 	return
 }
 
-func (b *WatermarkBuffer) ReadOnce(r io.Reader) (n int64, err error) {
+func (b *watermarkBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 	n, err = b.IoBuffer.ReadOnce(r)
 	b.checkHighWatermark()
 
 	return
 }
 
-func (b *WatermarkBuffer) ReadFrom(r io.Reader) (n int64, err error) {
+func (b *watermarkBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 	n, err = b.IoBuffer.ReadFrom(r)
 	b.checkHighWatermark()
 
 	return
 }
 
-func (b *WatermarkBuffer) Write(p []byte) (n int, err error) {
+func (b *watermarkBuffer) Write(p []byte) (n int, err error) {
 	n, err = b.IoBuffer.Write(p)
 	b.checkHighWatermark()
 
 	return
 }
 
-func (b *WatermarkBuffer) WriteTo(w io.Writer) (n int64, err error) {
+func (b *watermarkBuffer) WriteTo(w io.Writer) (n int64, err error) {
 	n, err = b.IoBuffer.WriteTo(w)
 	b.checkLowWatermark()
 
 	return
 }
 
-func (b *WatermarkBuffer) Append(data []byte) (err error) {
+func (b *watermarkBuffer) Append(data []byte) (err error) {
 	err = b.IoBuffer.Append(data)
 	b.checkHighWatermark()
 
 	return
 }
 
-func (b *WatermarkBuffer) AppendByte(data byte) (err error) {
+func (b *watermarkBuffer) AppendByte(data byte) (err error) {
 	err = b.IoBuffer.AppendByte(data)
 	b.checkHighWatermark()
 
 	return
 }
 
-func (b *WatermarkBuffer) Cut(offset int) (ioBuffer types.IoBuffer) {
+func (b *watermarkBuffer) Cut(offset int) (ioBuffer types.IoBuffer) {
 	ioBuffer = b.IoBuffer.Cut(offset)
 	b.checkLowWatermark()
 
 	return
 }
 
-func (b *WatermarkBuffer) Drain(offset int) {
+func (b *watermarkBuffer) Drain(offset int) {
 	b.IoBuffer.Drain(offset)
 	b.checkLowWatermark()
 
 	return
 }
 
-func (b *WatermarkBuffer) Reset() {
+func (b *watermarkBuffer) Reset() {
 	b.IoBuffer.Reset()
 	b.checkLowWatermark()
 }
 
-func (b *WatermarkBuffer) checkLowWatermark() {
+func (b *watermarkBuffer) checkLowWatermark() {
 	if !b.aboveHighWatermarkCalled ||
 		(b.highWatermark > 0 && uint32(b.Len()) >= b.lowWatermark) {
 		return
@@ -110,7 +110,7 @@ func (b *WatermarkBuffer) checkLowWatermark() {
 	b.watermarkListener.OnLowWatermark()
 }
 
-func (b *WatermarkBuffer) checkHighWatermark() {
+func (b *watermarkBuffer) checkHighWatermark() {
 	if b.aboveHighWatermarkCalled || b.highWatermark == 0 ||
 		uint32(b.Len()) <= b.highWatermark {
 		return
@@ -120,17 +120,18 @@ func (b *WatermarkBuffer) checkHighWatermark() {
 	b.watermarkListener.OnHighWatermark()
 }
 
-func (b *WatermarkBuffer) SetWaterMark(watermark uint32) {
+func (b *watermarkBuffer) SetWaterMark(watermark uint32) {
 	b.SetWaterMarks(watermark/2, watermark)
 }
 
-func (b *WatermarkBuffer) SetWaterMarks(lowWatermark uint32, highWatermark uint32) {
+func (b *watermarkBuffer) SetWaterMarks(lowWatermark uint32, highWatermark uint32) {
 	b.lowWatermark = lowWatermark
 	b.highWatermark = highWatermark
 }
 
+// NewWatermarkBuffer
 func NewWatermarkBuffer(capacity int, listener types.BufferWatermarkListener) types.IoBuffer {
-	return &WatermarkBuffer{
+	return &watermarkBuffer{
 		IoBuffer: IoBuffer{
 			buf:     make([]byte, 0, capacity),
 			offMark: ResetOffMark,
@@ -139,8 +140,9 @@ func NewWatermarkBuffer(capacity int, listener types.BufferWatermarkListener) ty
 	}
 }
 
+// NewWatermarkBufferString
 func NewWatermarkBufferString(s string, listener types.BufferWatermarkListener) types.IoBuffer {
-	return &WatermarkBuffer{
+	return &watermarkBuffer{
 		IoBuffer: IoBuffer{
 			buf:     []byte(s),
 			offMark: ResetOffMark,
@@ -149,8 +151,9 @@ func NewWatermarkBufferString(s string, listener types.BufferWatermarkListener) 
 	}
 }
 
+// NewWatermarkBufferBytes
 func NewWatermarkBufferBytes(bytes []byte, listener types.BufferWatermarkListener) types.IoBuffer {
-	return &WatermarkBuffer{
+	return &watermarkBuffer{
 		IoBuffer: IoBuffer{
 			buf:     []byte(bytes),
 			offMark: ResetOffMark,

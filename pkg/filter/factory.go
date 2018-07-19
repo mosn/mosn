@@ -29,14 +29,16 @@ var creatorFactory map[string]StreamFilterFactoryCreator
 func init() {
 	creatorFactory = make(map[string]StreamFilterFactoryCreator)
 	//reg
-	Register("fault_inject", faultinject.CreateFaultInjectFilterFactory)
-	Register("healthcheck", sofarpc.CreateHealthCheckFilterFactory)
+	register("fault_inject", faultinject.CreateFaultInjectFilterFactory)
+	register("healthcheck", sofarpc.CreateHealthCheckFilterFactory)
 }
 
-func Register(filterType string, creator StreamFilterFactoryCreator) {
+func register(filterType string, creator StreamFilterFactoryCreator) {
 	creatorFactory[filterType] = creator
 }
 
+// CreateStreamFilterChainFactory
+// Create Stream Filter Chain Factory according to filterType
 func CreateStreamFilterChainFactory(filterType string, config map[string]interface{}) types.StreamFilterChainFactory {
 
 	if cf, ok := creatorFactory[filterType]; ok {

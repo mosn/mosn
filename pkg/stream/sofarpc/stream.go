@@ -28,11 +28,12 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type StreamDirection int
+// streamDirection represent the stream's direction
+type streamDirection int
 
 const (
-	ServerStream StreamDirection = 1
-	ClientStream StreamDirection = 0
+	serverStream streamDirection = 1
+	clientStream streamDirection = 0
 )
 
 func init() {
@@ -105,7 +106,7 @@ func (conn *streamConnection) NewStream(streamID string, responseDecoder types.S
 		context:    context.WithValue(conn.context, types.ContextKeyStreamID, streamID),
 		streamID:   streamID,
 		requestID:  streamID,
-		direction:  ClientStream,
+		direction:  clientStream,
 		connection: conn,
 		decoder:    responseDecoder,
 	}
@@ -134,7 +135,7 @@ func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer)
 	if stream, ok := conn.activeStreams.Get(streamID); ok {
 		stream.decoder.OnReceiveData(data, true)
 
-		if stream.direction == ClientStream {
+		if stream.direction == clientStream {
 			// for client stream, remove stream on response read
 			stream.connection.activeStreams.Remove(stream.streamID)
 		}
@@ -166,7 +167,7 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 
 				stream.decoder.OnDecodeError(err, header)
 
-				if stream.direction == ClientStream {
+				if stream.direction == clientStream {
 					// for client stream, remove stream on response read
 					stream.connection.activeStreams.Remove(stream.streamID)
 				}
@@ -198,7 +199,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[s
 		context:    context.WithValue(conn.context, types.ContextKeyStreamID, streamID),
 		streamID:   streamID,
 		requestID:  requestID,
-		direction:  ServerStream,
+		direction:  serverStream,
 		connection: conn,
 	}
 
@@ -215,7 +216,7 @@ type stream struct {
 
 	streamID         string
 	requestID        string
-	direction        StreamDirection // 0: out, 1: in
+	direction        streamDirection // 0: out, 1: in
 	readDisableCount int
 	connection       *streamConnection
 	decoder          types.StreamReceiver
@@ -316,7 +317,7 @@ func (s *stream) endStream() {
 		s.connection.logger.Debugf("Response Headers is void...")
 	}
 
-	if s.direction == ServerStream {
+	if s.direction == serverStream {
 		// for a server stream, remove stream on response wrote
 		s.connection.activeStreams.Remove(s.streamID)
 		//	log.StartLogger.Warnf("Remove Request ID = %+v",s.streamID)
