@@ -36,7 +36,9 @@ import (
 // 3. bridge module get biz info(like service subscribe/publish, application info) from callback invocations
 // 4. biz module(like confreg) get biz info from bridge module directly
 
-func resetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []string) {
+// ResetServiceRegistryInfo
+// called when reset service registry info received
+func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []string) {
 	// reset service info
 	config.ServiceRegistry.ServiceAppInfo = ServiceAppInfoConfig{
 		AntShareCloud: appInfo.AntShareCloud,
@@ -51,7 +53,9 @@ func resetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 	removeClusterConfig(subServiceList)
 }
 
-func addClusterConfig(clusters []v2.Cluster) {
+// AddClusterConfig
+// called when add cluster config info received
+func AddClusterConfig(clusters []v2.Cluster) {
 	for _, cluster := range clusters {
 		clusterConfig := convertClusterConfig(cluster)
 		exist := false
@@ -93,7 +97,9 @@ func removeClusterConfig(clusterNames []string) {
 	go dump(dirty)
 }
 
-func addPubInfo(pubInfoAdded map[string]string) {
+// AddPubInfo
+// called when add pub info received
+func AddPubInfo(pubInfoAdded map[string]string) {
 	for srvName, srvData := range pubInfoAdded {
 		exist := false
 		srvPubInfo := ServicePubInfoConfig{
@@ -118,7 +124,9 @@ func addPubInfo(pubInfoAdded map[string]string) {
 	go dump(true)
 }
 
-func delPubInfo(serviceName string) {
+// DelPubInfo
+// called when delete publish info received
+func DelPubInfo(serviceName string) {
 	dirty := false
 
 	for i, srvPubInfo := range config.ServiceRegistry.ServicePubInfo {
@@ -176,8 +184,9 @@ func convertClusterHealthCheck(cchc v2.HealthCheck) ClusterHealthCheckConfig {
 }
 
 // todo: add router config delete
-
-func addRouterConfig(clusterName string) {
+// AddRouterConfig
+// Add router from config when new cluster created
+func AddRouterConfig(clusterName string) {
 	routerName := clusterName[0 : len(clusterName)-8]
 
 	for _, l := range config.Servers[0].Listeners {

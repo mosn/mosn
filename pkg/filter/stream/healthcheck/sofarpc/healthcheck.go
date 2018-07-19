@@ -28,10 +28,14 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 )
 
 // todo: support cached pass through
 
+func init(){
+	filter.Register("healthcheck", CreateHealthCheckFilterFactory)
+}
 // types.StreamSenderFilter
 type healthCheckFilter struct {
 	context context.Context

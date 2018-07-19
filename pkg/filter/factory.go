@@ -18,8 +18,6 @@
 package filter
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/faultinject"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -28,12 +26,10 @@ var creatorFactory map[string]StreamFilterFactoryCreator
 
 func init() {
 	creatorFactory = make(map[string]StreamFilterFactoryCreator)
-	//reg
-	register("fault_inject", faultinject.CreateFaultInjectFilterFactory)
-	register("healthcheck", sofarpc.CreateHealthCheckFilterFactory)
 }
 
-func register(filterType string, creator StreamFilterFactoryCreator) {
+// filter
+func Register(filterType string, creator StreamFilterFactoryCreator) {
 	creatorFactory[filterType] = creator
 }
 
