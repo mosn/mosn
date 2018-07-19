@@ -32,8 +32,6 @@ func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySe
 	default:
 		return newRandomLoadbalancer(prioritySet)
 	}
-
-	return nil
 }
 
 type loadbalaner struct {
