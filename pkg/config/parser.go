@@ -51,7 +51,9 @@ const (
 	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
 )
 
-func R(key ContentKey, cb ParsedCallback) {
+// RegisterConfigParsedListener
+// used to register ParsedCallback
+func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 	if cbs, ok := configParsedCBMaps[key]; ok {
 		cbs = append(cbs, cb)
 	} else {
