@@ -2,7 +2,8 @@
 
 ## 简介
 
-该样例工程演示了如何配置使得 Mesher 作为 SOFA RPC 代理。Mesher 之间的协议是 HTTP/2。
+`sofa-mosn/examples/sofarpc-sample`
+样例工程演示了如何配置使得 Mesher 作为 SOFA RPC 代理。Mesher 之间的协议是 HTTP/2。
 
 ## 准备
 
