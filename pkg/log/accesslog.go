@@ -25,7 +25,7 @@ import (
 	"github.com/valyala/bytebufferpool"
 )
 
-// RequestInfoFuncMap is a map which key is the , value is the func to get the request value
+// RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value
 var (
 	RequestInfoFuncMap map[string]func(info types.RequestInfo) string
 	// currently use fasthttp's bytebufferpool impl
@@ -58,7 +58,7 @@ type accesslog struct {
 	logger    Logger
 }
 
-// NewAccessLog new AccessLog 
+// NewAccessLog
 func NewAccessLog(output string, filter types.AccessLogFilter,
 	format string) (types.AccessLog, error) {
 	var err error
@@ -91,6 +91,7 @@ type accesslogformatter struct {
 	formatters []types.AccessLogFormatter
 }
 
+// NewAccessLogFormatter
 func NewAccessLogFormatter(format string) types.AccessLogFormatter {
 	if format == "" {
 		format = types.DefaultAccessLogFormat
@@ -121,6 +122,7 @@ type simpleRequestInfoFormatter struct {
 	reqInfoFormat []string
 }
 
+// Format request info headers
 func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 	// todo: map fieldName to field vale string
 	if f.reqInfoFormat == nil {
@@ -139,6 +141,7 @@ func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHe
 			DefaultLogger.Debugf("Invalid ReqInfo Format Keys: %s", key)
 		}
 	}
+	
 	return buffer.String()
 }
 
@@ -147,8 +150,8 @@ type simpleReqHeadersFormatter struct {
 	reqHeaderFormat []string
 }
 
+// Format request headers format
 func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
-
 	if f.reqHeaderFormat == nil {
 		DefaultLogger.Debugf("No ReqHeaders Format Keys Input")
 		return ""
@@ -156,6 +159,7 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 
 	buffer := accessLogPool.Get()
 	defer accessLogPool.Put(buffer)
+	
 	for _, key := range f.reqHeaderFormat {
 		if v, ok := reqHeaders[key]; ok {
 			buffer.WriteString(types.ReqHeaderPrefix)
@@ -174,6 +178,7 @@ type simpleRespHeadersFormatter struct {
 	respHeaderFormat []string
 }
 
+// Format response headers format
 func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
 	if f.respHeaderFormat == nil {
 		DefaultLogger.Debugf("No RespHeaders Format Keys Input")
@@ -240,26 +245,31 @@ func formatToFormatter(format string) []types.AccessLogFormatter {
 	}
 }
 
+// StartTimeGetter
 // get request's arriving time
 func StartTimeGetter(info types.RequestInfo) string {
 	return info.StartTime().Format("2006-01-02 15:04:05.999 +800")
 }
 
+// ReceivedDurationGetter
 // get duration between request arriving and request resend to upstream
 func ReceivedDurationGetter(info types.RequestInfo) string {
 	return info.RequestReceivedDuration().String()
 }
 
+// ResponseReceivedDurationGetter
 // get duration between request arriving and response sending
 func ResponseReceivedDurationGetter(info types.RequestInfo) string {
 	return info.ResponseReceivedDuration().String()
 }
 
+// BytesSentGetter
 // get bytes sent
 func BytesSentGetter(info types.RequestInfo) string {
 	return strconv.FormatUint(info.BytesSent(), 10)
 }
 
+// BytesReceivedGetter
 // get bytes received
 func BytesReceivedGetter(info types.RequestInfo) string {
 	return strconv.FormatUint(info.BytesReceived(), 10)
@@ -270,21 +280,25 @@ func ProtocolGetter(info types.RequestInfo) string {
 	return string(info.Protocol())
 }
 
+// ResponseCodeGetter
 // get request's response code
 func ResponseCodeGetter(info types.RequestInfo) string {
 	return strconv.FormatUint(uint64(info.ResponseCode()), 10)
 }
 
+// DurationGetter
 // get duration since request's starting time
 func DurationGetter(info types.RequestInfo) string {
 	return info.Duration().String()
 }
 
+// GetResponseFlagGetter
 // get request's response flag
 func GetResponseFlagGetter(info types.RequestInfo) string {
 	return strconv.FormatBool(info.GetResponseFlag(0))
 }
 
+// UpstreamLocalAddressGetter
 // get upstream's local address
 func UpstreamLocalAddressGetter(info types.RequestInfo) string {
 	if info.UpstreamLocalAddress() != nil {
@@ -293,6 +307,7 @@ func UpstreamLocalAddressGetter(info types.RequestInfo) string {
 	return "nil"
 }
 
+// DownstreamLocalAddressGetter
 // get downstream's local address
 func DownstreamLocalAddressGetter(info types.RequestInfo) string {
 	if info.DownstreamLocalAddress() != nil {
@@ -301,6 +316,7 @@ func DownstreamLocalAddressGetter(info types.RequestInfo) string {
 	return "nil"
 }
 
+// DownstreamRemoteAddressGetter
 // get upstream's remote address
 func DownstreamRemoteAddressGetter(info types.RequestInfo) string {
 	if info.DownstreamRemoteAddress() != nil {
@@ -309,6 +325,7 @@ func DownstreamRemoteAddressGetter(info types.RequestInfo) string {
 	return "nil"
 }
 
+// UpstreamHostSelectedGetter
 // get upstream's selected host address
 func UpstreamHostSelectedGetter(info types.RequestInfo) string {
 	if info.UpstreamHost() != nil {

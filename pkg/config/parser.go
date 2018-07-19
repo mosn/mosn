@@ -31,24 +31,29 @@ import (
 
 type ContentKey string
 
+
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-var ProtocolsSupported = map[string]bool{
+var protocolsSupported = map[string]bool{
 	string(protocol.SofaRPC):   true,
 	string(protocol.HTTP2):     true,
 	string(protocol.HTTP1):     true,
 	string(protocol.Xprotocol): true,
 }
 
-// callback when corresponding module parsed
+// ParsedCallback is an
+// alias for closure func(data interface{}, endParsing bool) error
 type ParsedCallback func(data interface{}, endParsing bool) error
 
+// Group of ContentKey
 // notes: configcontentkey equals to the key of config file
 const (
 	ParseCallbackKeyCluster        ContentKey = "clusters"
 	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
 )
 
+// RegisterConfigParsedListener
+// used to register ParsedCallback
 func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 	if cbs, ok := configParsedCBMaps[key]; ok {
 		cbs = append(cbs, cb)
@@ -82,7 +87,7 @@ var (
 	}
 )
 
-func ParseLogLevel(level string) log.Level {
+func parseLogLevel(level string) log.Level {
 	if level != "" {
 		if logLevel, ok := logLevelMap[level]; ok {
 			return logLevel
@@ -94,10 +99,11 @@ func ParseLogLevel(level string) log.Level {
 	return log.INFO
 }
 
+// ParseServerConfig
 func ParseServerConfig(c *ServerConfig) *server.Config {
 	sc := &server.Config{
 		LogPath:         c.DefaultLogPath,
-		LogLevel:        ParseLogLevel(c.DefaultLogLevel),
+		LogLevel:        parseLogLevel(c.DefaultLogLevel),
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,
 	}
@@ -105,6 +111,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 	return sc
 }
 
+// ParseProxyFilterJSON
 func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 
 	proxyConfig := &v2.Proxy{}
@@ -117,9 +124,9 @@ func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 
 	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
 		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Fitler")
-	} else if _, ok := ProtocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
+	} else if _, ok := protocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
 		log.StartLogger.Fatal("Invalid Downstream Protocol = ", proxyConfig.DownstreamProtocol)
-	} else if _, ok := ProtocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
+	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
 		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
 	}
 
@@ -140,12 +147,12 @@ func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 		}
 	}
 
-	proxyConfig.BasicRoutes = ParseBasicFilter(proxyConfig)
+	proxyConfig.BasicRoutes = parseBasicFilter(proxyConfig)
 
 	return proxyConfig
 }
 
-func GetServiceFromHeader(router *v2.Router) *v2.BasicServiceRoute {
+func getServiceFromHeader(router *v2.Router) *v2.BasicServiceRoute {
 
 	if router == nil {
 		return nil
@@ -171,20 +178,20 @@ func GetServiceFromHeader(router *v2.Router) *v2.BasicServiceRoute {
 	}
 }
 
-func ParseBasicFilter(proxy *v2.Proxy) []*v2.BasicServiceRoute {
+func parseBasicFilter(proxy *v2.Proxy) []*v2.BasicServiceRoute {
 
 	var BSR []*v2.BasicServiceRoute
 
 	for _, p := range proxy.VirtualHosts {
 
 		for _, r := range p.Routers {
-			BSR = append(BSR, GetServiceFromHeader(&r))
+			BSR = append(BSR, getServiceFromHeader(&r))
 		}
 	}
 	return BSR
 }
 
-func ParseProxyFilter(c *v2.Filter) *v2.Proxy {
+func parseProxyFilter(c *v2.Filter) *v2.Proxy {
 	proxyConfig := &v2.Proxy{}
 
 	//downstream protocol
@@ -237,7 +244,7 @@ func ParseProxyFilter(c *v2.Filter) *v2.Proxy {
 	return proxyConfig
 }
 
-func ParseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
+func parseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
 	var logs []v2.AccessLog
 
 	for _, logConfig := range c {
@@ -250,7 +257,7 @@ func ParseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
 	return logs
 }
 
-func ParseFilterChains(c []FilterChain) []v2.FilterChain {
+func parseFilterChains(c []FilterChain) []v2.FilterChain {
 	var filterchains []v2.FilterChain
 
 	for _, fc := range c {
@@ -264,7 +271,7 @@ func ParseFilterChains(c []FilterChain) []v2.FilterChain {
 
 		filterchains = append(filterchains, v2.FilterChain{
 			FilterChainMatch: fc.FilterChainMatch,
-			TLS:              ParseTLSConfig(&fc.TLS),
+			TLS:              parseTLSConfig(&fc.TLS),
 			Filters:          filters,
 		})
 	}
@@ -272,7 +279,7 @@ func ParseFilterChains(c []FilterChain) []v2.FilterChain {
 	return filterchains
 }
 
-func ParseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
+func parseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
 	if tlsconfig.Status == false {
 		return v2.TLSConfig{
 			Status: false,
@@ -340,6 +347,7 @@ func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
 	return route
 }
 
+// ParseFaultInjectFilter
 func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 
 	faultInject := &v2.FaultInject{}
@@ -373,6 +381,7 @@ func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
 	return faultInject
 }
 
+// ParseHealthcheckFilter
 func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter {
 	healthcheck := &v2.HealthCheckFilter{}
 
@@ -418,6 +427,7 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 	return healthcheck
 }
 
+// ParseListenerConfig
 func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfig) *v2.ListenerConfig {
 	if c.Name == "" {
 		log.StartLogger.Fatalln("[name] is required in listener config")
@@ -451,14 +461,15 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		InheritListener:                       old,
 		PerConnBufferLimitBytes:               1 << 15,
 		LogPath:                               c.LogPath,
-		LogLevel:                              uint8(ParseLogLevel(c.LogLevel)),
-		AccessLogs:                            ParseAccessConfig(c.AccessLogs),
+		LogLevel:                              uint8(parseLogLevel(c.LogLevel)),
+		AccessLogs:                            parseAccessConfig(c.AccessLogs),
 		DisableConnIo:                         c.DisableConnIo,
 		HandOffRestoredDestinationConnections: c.HandOffRestoredDestinationConnections,
-		FilterChains:                          ParseFilterChains(c.FilterChains),
+		FilterChains:                          parseFilterChains(c.FilterChains),
 	}
 }
 
+// ParseClusterConfig
 func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2.Host) {
 	var clustersV2 []v2.Cluster
 	clusterV2Map := make(map[string][]v2.Host)
@@ -523,16 +534,16 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			MaxRequestPerConn:    c.MaxRequestPerConn,
 			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
 
-			HealthCheck:      ParseClusterHealthCheckConf(&c.HealthCheck),
-			CirBreThresholds: ParseCircuitBreakers(c.CircuitBreakers),
+			HealthCheck:      parseClusterHealthCheckConf(&c.HealthCheck),
+			CirBreThresholds: parseCircuitBreakers(c.CircuitBreakers),
 
-			Spec:           ParseConfigSpecConfig(&clusterSpec),
+			Spec:           parseConfigSpecConfig(&clusterSpec),
 			LBSubSetConfig: c.LBSubsetConfig,
-			TLS:            ParseTLSConfig(&c.TLS),
+			TLS:            parseTLSConfig(&c.TLS),
 		}
 
 		clustersV2 = append(clustersV2, clusterV2)
-		hostV2 := ParseHostConfig(&c)
+		hostV2 := parseHostConfig(&c)
 		clusterV2Map[c.Name] = hostV2
 	}
 
@@ -545,14 +556,14 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 	return clustersV2, clusterV2Map
 }
 
-func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
+func parseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
 
 	var healthcheckInstance v2.HealthCheck
 
 	if c.Protocol == "" {
 		log.StartLogger.Warnf("healthcheck for cluster is disabled")
 
-	} else if _, ok := ProtocolsSupported[c.Protocol]; ok {
+	} else if _, ok := protocolsSupported[c.Protocol]; ok {
 		healthcheckInstance = v2.HealthCheck{
 			Protocol:           c.Protocol,
 			Timeout:            c.Timeout.Duration,
@@ -570,7 +581,7 @@ func ParseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
 	return healthcheckInstance
 }
 
-func ParseCircuitBreakers(cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
+func parseCircuitBreakers(cbcs []*CircuitBreakerConfig) v2.CircuitBreakers {
 	var cb v2.CircuitBreakers
 	var rp v2.RoutingPriority
 
@@ -600,7 +611,7 @@ func ParseCircuitBreakers(cbcs []*CircuitBreakerdConfig) v2.CircuitBreakers {
 	return cb
 }
 
-func ParseConfigSpecConfig(c *ClusterSpecConfig) v2.ClusterSpecInfo {
+func parseConfigSpecConfig(c *ClusterSpecConfig) v2.ClusterSpecInfo {
 	var specs []v2.SubscribeSpec
 
 	for _, sub := range c.Subscribes {
@@ -614,7 +625,7 @@ func ParseConfigSpecConfig(c *ClusterSpecConfig) v2.ClusterSpecInfo {
 	}
 }
 
-func ParseHostConfig(c *ClusterConfig) []v2.Host {
+func parseHostConfig(c *ClusterConfig) []v2.Host {
 	// host maybe nil when rewriting config
 	//if c.Hosts == nil || len(c.Hosts) == 0 {
 	//	log.StartLogger.Debugf("[hosts] is required in cluster config")
@@ -633,6 +644,7 @@ func ParseHostConfig(c *ClusterConfig) []v2.Host {
 	return hosts
 }
 
+// ParseServiceRegistry
 func ParseServiceRegistry(src ServiceRegistryConfig) {
 	var SrvRegInfo v2.ServiceRegistryInfo
 

@@ -107,7 +107,7 @@ func (rc *Routers) DelRouter(routerName string) {
 
 // types.Route
 // types.RouteRule
-// router.Matchable
+// router.matchable
 type basicRouter struct {
 	RouteRuleImplAdaptor
 	name          string

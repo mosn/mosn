@@ -63,7 +63,9 @@ func init() {
  * +-----------------------------------------------------------------------------------------------+
  * respstatus: response status
  */
-var BoltV1 = &BoltProtocol{
+ 
+ // BoltV1 is the instance of boltProtocol of boltv1
+var BoltV1 = &boltProtocol{
 	sofarpc.PROTOCOL_CODE_V1,
 	sofarpc.REQUEST_HEADER_LEN_V1,
 	sofarpc.RESPONSE_HEADER_LEN_V1,
@@ -110,7 +112,9 @@ var BoltV1 = &BoltProtocol{
  * +------------------------------------------------------------------------------------------------+
  * respstatus: response status
  */
-var BoltV2 = &BoltProtocol{
+
+// BoltV2 is the instance of boltProtocol of boltv2
+var BoltV2 = &boltProtocol{
 	sofarpc.PROTOCOL_CODE_V2,
 	sofarpc.REQUEST_HEADER_LEN_V2,
 	sofarpc.RESPONSE_HEADER_LEN_V2,
@@ -119,7 +123,8 @@ var BoltV2 = &BoltProtocol{
 	handler.NewBoltCommandHandlerV2(),
 }
 
-type BoltProtocol struct {
+// Bolt protocol class
+type boltProtocol struct {
 	protocolCode      byte
 	requestHeaderLen  int
 	responseHeaderLen int
@@ -130,26 +135,28 @@ type BoltProtocol struct {
 	commandHandler sofarpc.CommandHandler
 }
 
-func (b *BoltProtocol) GetRequestHeaderLength() int {
+func (b *boltProtocol) GetRequestHeaderLength() int {
 	return b.requestHeaderLen
 }
 
-func (b *BoltProtocol) GetResponseHeaderLength() int {
+func (b *boltProtocol) GetResponseHeaderLength() int {
 	return b.responseHeaderLen
 }
 
-func (b *BoltProtocol) GetEncoder() types.Encoder {
+func (b *boltProtocol) GetEncoder() types.Encoder {
 	return b.encoder
 }
 
-func (b *BoltProtocol) GetDecoder() types.Decoder {
+func (b *boltProtocol) GetDecoder() types.Decoder {
 	return b.decoder
 }
 
-func (b *BoltProtocol) GetCommandHandler() sofarpc.CommandHandler {
+func (b *boltProtocol) GetCommandHandler() sofarpc.CommandHandler {
 	return b.commandHandler
 }
 
+// NewBoltHeartbeat
+// New Bolt Heartbeat with requestID as input
 func NewBoltHeartbeat(requestID uint32) *sofarpc.BoltRequestCommand {
 	return &sofarpc.BoltRequestCommand{
 		Protocol: sofarpc.PROTOCOL_CODE_V1,
@@ -162,6 +169,8 @@ func NewBoltHeartbeat(requestID uint32) *sofarpc.BoltRequestCommand {
 	}
 }
 
+// NewBoltHeartbeatAck
+// New Bolt Heartbeat Ack with requestID as input
 func NewBoltHeartbeatAck(requestID uint32) *sofarpc.BoltResponseCommand {
 	return &sofarpc.BoltResponseCommand{
 		Protocol:       sofarpc.PROTOCOL_CODE_V1,

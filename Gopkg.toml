@@ -30,7 +30,7 @@
 
 [[constraint]]
   name = "github.com/envoyproxy/go-control-plane"
-  version = "0.2.0"
+  version = "v0.4"
 
 [[constraint]]
   name = "github.com/gogo/protobuf"
@@ -83,6 +83,10 @@
 [[constraint]]
   branch = "master"
   name = "github.com/valyala/fasthttp"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/json-iterator/go"
 
 [prune]
   go-tests = true

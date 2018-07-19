@@ -31,6 +31,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// BoltV1PropertyHeaders map the cmdkey and its data type
 var (
 	BoltV1PropertyHeaders = make(map[string]reflect.Kind, 11)
 	defaultTmpBufferSize  = 1 << 6
