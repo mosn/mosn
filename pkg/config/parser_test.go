@@ -18,15 +18,17 @@
 package config
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/json-iterator/go"
 )
 
 func TestParseClusterHealthCheckConf(t *testing.T) {
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 
 	healthCheckConfigStr := `{
 	
