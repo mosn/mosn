@@ -21,117 +21,144 @@ import (
 	"net"
 )
 
+// LoadBalancerType is the load balancer's type
 type LoadBalancerType string
 
+// The load balancer's types
 const (
 	RoundRobin LoadBalancerType = "RoundRobin"
 	Random     LoadBalancerType = "Random"
 )
 
+// LoadBalancer is a upstream load balancer.
+// When a request comes, the LoadBalancer will choose a upstream cluster's host to handle the request.
 type LoadBalancer interface {
+	// ChooseHost chooses a host based on the load balancer context
 	ChooseHost(context LoadBalancerContext) Host
 }
 
+// LoadBalancerContext contains the information for choose a host
 type LoadBalancerContext interface {
-	// compute an optional hash key to use during load balancing
+	// ComputeHashKey computes an optional hash key to use during load balancing
 	ComputeHashKey() HashedValue
 
-	// get metadata match criteria used for selecting a subset of hosts
+	// MetadataMatchCriteria gets metadata match criteria used for selecting a subset of hosts
 	MetadataMatchCriteria() MetadataMatchCriteria
 
+	// DownstreamConnection returns the downstream connection.
 	DownstreamConnection() net.Conn
 
+	// DownstreamHeaders returns the downstream headers map.
 	DownstreamHeaders() map[string]string
 }
 
-// SubSetLoadBalancer
+// SubSetLoadBalancer is a subset of LoadBalancer
 type SubSetLoadBalancer interface {
 	LoadBalancer
-	// Find a host from the subsets, context is LoadBalancerContext
-	// host_chosen = false and returned host = nil if no metadata found in context, if there is no matching subset
-	// or if the matching subset contains no hosts/or no unhealthy hosts
-	TryChooseHostFromContext(context LoadBalancerContext, hostChosen *bool) Host
 
-	// used to created and update fallback subset
+	// TryChooseHostFromContext finds a host from the subsets, context is LoadBalancerContext.
+	// The bool returned true if a Host returned is not nil.
+	// If no metadata found in the context, or there is no matching subset, or the matching subset
+	// contains no available host will return a nil Host and false.
+	TryChooseHostFromContext(context LoadBalancerContext) (Host, bool)
+
+	// UpdateFallbackSubset creates and updates fallback subset.
 	UpdateFallbackSubset(priority uint32, hostAdded []Host, hostsRemoved []Host)
 
+	// HostMatches returns the host is match or not.
 	HostMatches(kvs SubsetMetadata, host Host) bool
 
-	// Iterates over the given metadata match criteria (which must be lexically sorted by key) and find
+	// FindSubset iterates over the given metadata match criteria (which must be lexically sorted by key) and find
 	// a matching LbSubsetEnryPtr, if any.
 	FindSubset(matches []MetadataMatchCriterion) LBSubsetEntry
 
-	// Given a vector of key-values (from extractSubsetMetadata), recursively finds the matching
-	// LbSubsetEntryPtr.
+	// FindOrCreateSubset recursively finds the matching LbSubsetEntry by a vector of key-values (from extractSubsetMetadata)
 	FindOrCreateSubset(subsets LbSubsetMap, kvs SubsetMetadata, idx uint32) LBSubsetEntry
 
-	// Iterates over subset_keys looking up values from the given host's metadata. Each key-value pair
+	// ExtractSubsetMetadata iterates over subset_keys looking up values from the given host's metadata. Each key-value pair
 	// is appended to kvs. Returns a non-empty value if the host has a value for each key.
 	ExtractSubsetMetadata(subsetKeys []string, host Host) SubsetMetadata
 
-	// update or create subsets for one priority level
+	// Update updates or creates subsets for one priority level.
 	Update(priority uint32, hostAdded []Host, hostsRemoved []Host)
 
-	// ProcessSubsets called when host added or removed, to:
+	// ProcessSubsets is called when host added or removed, to:
 	// update lbsubset entry by updateCB or
 	// create lbsubset entry by newCB
 	ProcessSubsets(hostAdded []Host, hostsRemoved []Host,
 		updateCB func(LBSubsetEntry), newCB func(LBSubsetEntry, HostPredicate, SubsetMetadata, bool))
 }
 
-// Entry stored in the subset hierarchy.
-// children point to next lb subset map
-// PrioritySubset point to the stored subset matched
+// LBSubsetEntry is a entry that stored in the subset hierarchy.
 type LBSubsetEntry interface {
+	// Initialized returns the entry is initialized or not.
 	Initialized() bool
 
+	// Active returns the entry is active or not.
 	Active() bool
 
+	// PrioritySubset returns the tored subset matched.
 	PrioritySubset() PrioritySubset
 
+	// SetPrioritySubset sets the entry's priority subset.
 	SetPrioritySubset(PrioritySubset)
 
+	// Children returns the next lb subset map
 	Children() LbSubsetMap
 }
 
-// Represents a subset of an original HostSet.
+// HostSubset represents a subset of an original HostSet.
 type HostSubset interface {
+	// UpdateHostSubset updates the host subset.
 	UpdateHostSubset(hostsAdded []Host, hostsRemoved []Host, predicate HostPredicate)
-	//	TriggerCallbacks()   todo
+
+	// Empty returns HostSubset is empty or not.
 	Empty() bool
 
+	//Hosts returns the Host list.
 	Hosts() []Host
+
+	//TODO:
+	// TriggerCallbacks()
 }
 
-// Represents a subset of an original PrioritySet.
+// PrioritySubset represents a subset of an original PrioritySet.
 type PrioritySubset interface {
-	//PrioritySet
-
+	// Update updates priority subset.
 	Update(priority uint32, hostsAdded []Host, hostsRemoved []Host)
 
+	// Empty returns the priority subset is empty or not.
 	Empty() bool
 
+	// GetOrCreateHostSubset returns a host subset which matches the given priority.
+	// A new host subset is created if there is no priority host subset matched.
 	GetOrCreateHostSubset(priority uint32) HostSubset
 
+	// TriggerCallbacks triggers the callback functions.
 	TriggerCallbacks()
 
+	// CreateHostSet creates a host set
 	CreateHostSet(priority uint32) HostSet
 
+	// LB returns the LoadBalancer
 	LB() LoadBalancer
 }
 
+// FallBackPolicy type
 type FallBackPolicy uint8
 
+// FallBackPolicy types
 const (
 	NoFallBack FallBackPolicy = iota
 	AnyEndPoint
 	DefaultSubsetDefaultSubset
 )
 
-// Forms a trie-like structure. Route Metadata requires lexically sorted
-// act as the root
+// LbSubsetMap is a trie-like structure. Route Metadata requires lexically sorted
+// act as the root.
 type LbSubsetMap map[string]ValueSubsetMap
 
+// ValueSubsetMap is a LBSubsetEntry map.
 type ValueSubsetMap map[HashedValue]LBSubsetEntry
 
 //type LBSubsetEntry struct {
@@ -139,15 +166,19 @@ type ValueSubsetMap map[HashedValue]LBSubsetEntry
 //	prioritySubset types.PrioritySubset
 //}
 
+// SubsetMetadata is a vector of key-values
 type SubsetMetadata []Pair
 
+// Pair is a key-value pair that contains metadata.
 type Pair struct {
 	T1 string
 	T2 HashedValue
 }
 
+// ResourcePriority type
 type ResourcePriority uint8
 
+// ResourcePriority types
 const (
 	Default ResourcePriority = 0
 	High    ResourcePriority = 1
