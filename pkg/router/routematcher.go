@@ -61,7 +61,7 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 					routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1] = domainMap
 
 				} else if _, ok := routerMatcher.virtualHosts[domain]; ok {
-					log.StartLogger.Fatal("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+					log.StartLogger.Fatalf("Only unique values for domains are permitted, get duplicate domain = %s", domain)
 				} else {
 					routerMatcher.virtualHosts[domain] = vh
 				}
