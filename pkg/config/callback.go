@@ -38,6 +38,7 @@ func SetGlobalStreamFilter(globalStreamFilters []types.StreamFilterChainFactory)
 // todo , no hack
 var streamFilter []types.StreamFilterChainFactory
 
+// OnUpdateListeners called by XdsClient when listeners config refresh
 func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 	for _, listener := range listeners {
 		mosnListener := convertListenerConfig(listener)
@@ -81,6 +82,7 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 	return nil
 }
 
+// OnUpdateListeners called by XdsClient when clusters config refresh
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	mosnClusters := convertClustersConfig(clusters)
 
@@ -98,6 +100,7 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	return nil
 }
 
+// OnUpdateListeners called by XdsClient when ClusterLoadAssignment config refresh
 func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAssignment) error {
 
 	for _, loadAssignment := range loadAssignments {

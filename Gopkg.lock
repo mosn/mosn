@@ -11,6 +11,7 @@
     "envoy/api/v2/endpoint",
     "envoy/api/v2/listener",
     "envoy/api/v2/route",
+    "envoy/config/accesslog/v2",
     "envoy/config/bootstrap/v2",
     "envoy/config/filter/accesslog/v2",
     "envoy/config/filter/network/http_connection_manager/v2",
@@ -22,8 +23,8 @@
     "envoy/type",
     "pkg/util"
   ]
-  revision = "469a90e97a000f23f2ab0bf494cdc8e1480a3dfa"
-  version = "v0.2"
+  revision = "c14704578b82128fab17743d91f870c406ef8d09"
+  version = "v0.4"
 
 [[projects]]
   name = "github.com/fatih/structs"
@@ -220,6 +221,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4b43504188acb7fb019f1bcbcd2b73496f82a10f22e79f0546ab349d8f01c382"
+  inputs-digest = "3c02431b5420d860a7101e72a398621c66ec7f13ed7bd5f054be15689db993b0"
   solver-name = "gps-cdcl"
   solver-version = 1

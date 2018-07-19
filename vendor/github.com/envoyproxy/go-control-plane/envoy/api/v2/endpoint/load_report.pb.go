@@ -6,11 +6,11 @@ package endpoint
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+import envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 import _ "github.com/lyft/protoc-gen-validate/validate"
 import _ "github.com/gogo/protobuf/gogoproto"
 
-import encoding_binary "encoding/binary"
+import binary "encoding/binary"
 
 import io "io"
 
@@ -27,7 +27,7 @@ var _ = math.Inf
 type UpstreamLocalityStats struct {
 	// Name of zone, region and optionally endpoint group these metrics were
 	// collected from. Zone and region names could be empty if unknown.
-	Locality *envoy_api_v2_core1.Locality `protobuf:"bytes,1,opt,name=locality" json:"locality,omitempty"`
+	Locality *envoy_api_v2_core.Locality `protobuf:"bytes,1,opt,name=locality" json:"locality,omitempty"`
 	// The total number of requests sent by this Envoy since the last report. A
 	// single HTTP or gRPC request or stream is counted as one request. A TCP
 	// connection is also treated as one request. There is no explicit
@@ -68,7 +68,7 @@ func (m *UpstreamLocalityStats) String() string            { return proto.Compac
 func (*UpstreamLocalityStats) ProtoMessage()               {}
 func (*UpstreamLocalityStats) Descriptor() ([]byte, []int) { return fileDescriptorLoadReport, []int{0} }
 
-func (m *UpstreamLocalityStats) GetLocality() *envoy_api_v2_core1.Locality {
+func (m *UpstreamLocalityStats) GetLocality() *envoy_api_v2_core.Locality {
 	if m != nil {
 		return m.Locality
 	}
@@ -292,7 +292,7 @@ func (m *EndpointLoadMetricStats) MarshalTo(dAtA []byte) (int, error) {
 	if m.TotalMetricValue != 0 {
 		dAtA[i] = 0x19
 		i++
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.TotalMetricValue))))
+		binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.TotalMetricValue))))
 		i += 8
 	}
 	return i, nil
@@ -480,7 +480,7 @@ func (m *UpstreamLocalityStats) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Locality == nil {
-				m.Locality = &envoy_api_v2_core1.Locality{}
+				m.Locality = &envoy_api_v2_core.Locality{}
 			}
 			if err := m.Locality.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -699,7 +699,7 @@ func (m *EndpointLoadMetricStats) Unmarshal(dAtA []byte) error {
 			if (iNdEx + 8) > l {
 				return io.ErrUnexpectedEOF
 			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			v = uint64(binary.LittleEndian.Uint64(dAtA[iNdEx:]))
 			iNdEx += 8
 			m.TotalMetricValue = float64(math.Float64frombits(v))
 		default:

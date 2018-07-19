@@ -34,7 +34,7 @@ import (
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
@@ -581,10 +581,10 @@ func convertHealthChecks(xdsHealthChecks []*xdscore.HealthCheck) v2.HealthCheck 
 	}
 
 	return v2.HealthCheck{
-		Timeout:            convertDuration(xdsHealthChecks[0].GetTimeout()),
+		Timeout:            *xdsHealthChecks[0].GetTimeout(),
 		HealthyThreshold:   xdsHealthChecks[0].GetHealthyThreshold().GetValue(),
 		UnhealthyThreshold: xdsHealthChecks[0].GetUnhealthyThreshold().GetValue(),
-		Interval:           convertDuration(xdsHealthChecks[0].GetInterval()),
+		Interval:           *xdsHealthChecks[0].GetInterval(),
 		IntervalJitter:     convertDuration(xdsHealthChecks[0].GetIntervalJitter()),
 	}
 }

@@ -32,6 +32,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+//  Init parsed ds and clusters config for xds
 func (c *XDSConfig) Init(dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources) error {
 	err := c.loadClusters(staticResources)
 	if err != nil {
@@ -152,6 +153,7 @@ func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticReso
 	return nil
 }
 
+// GetEndpoint return an endpoint address by random
 func (c *ClusterConfig) GetEndpoint() (string, *time.Duration) {
 	if c.LbPolicy != xdsapi.Cluster_RANDOM || len(c.Address) < 1 {
 		// never happen
@@ -163,6 +165,7 @@ func (c *ClusterConfig) GetEndpoint() (string, *time.Duration) {
 	return c.Address[idx], c.ConnectTimeout
 }
 
+// GetStreamClient return a grpc stream client that connected to ads
 func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient {
 	if c.StreamClient != nil && c.StreamClient.Client != nil {
 		return c.StreamClient.Client
@@ -209,11 +212,11 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	return streamClient
 }
 
-func (c *ADSConfig) GetADSRefreshDelay() *time.Duration {
+func (c *ADSConfig) getADSRefreshDelay() *time.Duration {
 	return c.RefreshDelay
 }
 
-func (c *ADSConfig) CloseADSStreamClient() {
+func (c *ADSConfig) closeADSStreamClient() {
 	if c.StreamClient == nil {
 		return
 	}
