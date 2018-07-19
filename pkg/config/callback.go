@@ -82,7 +82,7 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 	return nil
 }
 
-// OnUpdateListeners called by XdsClient when clusters config refresh
+// OnUpdateClusters called by XdsClient when clusters config refresh
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	mosnClusters := convertClustersConfig(clusters)
 
@@ -100,7 +100,7 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	return nil
 }
 
-// OnUpdateListeners called by XdsClient when ClusterLoadAssignment config refresh
+// OnUpdateEndpoints called by XdsClient when ClusterLoadAssignment config refresh
 func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAssignment) error {
 
 	for _, loadAssignment := range loadAssignments {

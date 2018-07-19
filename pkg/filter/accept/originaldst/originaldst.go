@@ -28,9 +28,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-/*
-  OriginDST filter used to find out destination address of a connection which been redirected by iptables
- */
+// OriginDST filter used to find out destination address of a connection which been redirected by iptables
 
 // OriginDST, option for syscall.GetsockoptIPv6Mreq
 const (

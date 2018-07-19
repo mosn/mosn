@@ -225,7 +225,7 @@ type HealthCheck struct {
 	ServiceName        string
 }
 
-// HealthCheck
+// HealthCheckFilter
 type HealthCheckFilter struct {
 	PassThrough                 bool
 	CacheTime                   time.Duration
