@@ -41,6 +41,7 @@ func NewOriginalDst() OriginalDst {
 	return &originalDst{}
 }
 
+// todo add comment
 func (filter *originalDst) OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus {
 	ip, port, err := getOriginalAddr(cb.Conn())
 	if err != nil {

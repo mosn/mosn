@@ -21,6 +21,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type FaultInjecter interface {
+// FaultInjector used to act as fault injector
+type FaultInjector interface {
 	types.ReadFilter
 }

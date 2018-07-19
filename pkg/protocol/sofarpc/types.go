@@ -65,16 +65,18 @@ const (
 	UnKnownCmd         string = "Unknown Command"
 )
 
+// ProtocolType used to define protocol code
 type ProtocolType byte
 
+// Define protocol code
 const (
 	BOLT_V1 ProtocolType = 1
 	BOLT_V2 ProtocolType = 2
 	SOFA_TR ProtocolType = 13
 )
 
+// protocol code value
 const (
-	//protocol code value
 	PROTOCOL_CODE_V1 byte = 1
 	PROTOCOL_CODE_V2 byte = 2
 
@@ -114,7 +116,7 @@ const (
 	RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION int16 = 18 // 0x12
 )
 
-//统一的RPC PROTOCOL抽象接口
+// Protocol's interface for getting xcode
 type Protocol interface {
 	/**
 	 * Get the encoder for the protocol.
@@ -147,28 +149,8 @@ type Protocol interface {
 	GetCommandHandler() CommandHandler
 }
 
-type Protocols interface {
-	Encode(value interface{}, data types.IoBuffer)
 
-	Decode(ctx interface{}, data types.IoBuffer, out interface{})
-
-	Handle(protocolCode byte, ctx interface{}, msg interface{})
-
-	PutProtocol(protocolCode byte, protocol Protocol)
-
-	GetProtocol(protocolCode byte) Protocol
-
-	RegisterProtocol(protocolCode byte, protocol Protocol)
-
-	UnRegisterProtocol(protocolCode byte)
-}
-
-//TODO
-type HeartbeatTrigger interface {
-	HeartbeatTriggered()
-}
-
-//TODO
+// CommandHandler for protocol to handle msg
 type CommandHandler interface {
 	HandleCommand(context context.Context, msg interface{}, filter interface{}) error
 
@@ -179,16 +161,19 @@ type CommandHandler interface {
 	//GetDefaultExecutor()
 }
 
+// RemotingProcessor to process msg
 type RemotingProcessor interface {
 	Process(context context.Context, msg interface{}, filter interface{})
 }
 
+// ProtoBasicCmd act as basic cmd for many protocol
 type ProtoBasicCmd interface {
 	GetProtocol() byte
 	GetCmdCode() int16
 	GetReqID() uint32
 }
 
+// BoltRequestCommand is the cmd struct of bolt v1 request
 type BoltRequestCommand struct {
 	Protocol      byte  //BoltV1:1, BoltV2:2, Tr:13
 	CmdType       byte  //Req:1,    Resp:0,   OneWay:2
@@ -208,6 +193,7 @@ type BoltRequestCommand struct {
 	RequestHeader map[string]string
 }
 
+// BoltResponseCommand is the cmd struct of bolt v1 response
 type BoltResponseCommand struct {
 	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
 	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
@@ -230,42 +216,51 @@ type BoltResponseCommand struct {
 	ResponseHeader     map[string]string
 }
 
+// BoltV2RequestCommand is the cmd struct of bolt v2 request
 type BoltV2RequestCommand struct {
 	BoltRequestCommand
 	Version1   byte //00
 	SwitchCode byte
 }
 
+// BoltV2RequestCommand is the cmd struct of bolt v2 response
 type BoltV2ResponseCommand struct {
 	BoltResponseCommand
 	Version1   byte //00
 	SwitchCode byte
 }
 
+// GetProtocol return BoltRequestCommand.protocol
 func (b *BoltRequestCommand) GetProtocol() byte {
 	return b.Protocol
 }
 
+// GetCmdCode return BoltRequestCommand.CmdCode
 func (b *BoltRequestCommand) GetCmdCode() int16 {
 	return b.CmdCode
 }
 
+// GetReqID return BoltRequestCommand.ReqID
 func (b *BoltRequestCommand) GetReqID() uint32 {
 	return b.ReqID
 }
 
+// GetProtocol return BoltResponseCommand.Protocol
 func (b *BoltResponseCommand) GetProtocol() byte {
 	return b.Protocol
 }
 
+// GetCmdCode return BoltResponseCommand.CmdCode
 func (b *BoltResponseCommand) GetCmdCode() int16 {
 	return b.CmdCode
 }
 
+// GetReqID return BoltResponseCommand.ReqID
 func (b *BoltResponseCommand) GetReqID() uint32 {
 	return b.ReqID
 }
 
+// mosn sofarpc headers' namespace
 const (
 	SofaRPCPropertyHeaderPrefix = "x-mosn-sofarpc-headers-property-"
 )
@@ -285,6 +280,7 @@ const (
 	PROTOCOL_HEADER_LENGTH uint32 = 14
 )
 
+// BuildSofaRespMsg build sofa response msg according to headers and respStatus
 func BuildSofaRespMsg(context context.Context, headers map[string]string, respStatus int16) (interface{}, error) {
 	var pro, version, codec byte
 	var reqID uint32
@@ -368,6 +364,7 @@ const (
 	DefaultUnhealthyThreshold    uint32 = 2
 )
 
+// DefaultSofaRPCHealthCheckConf
 var DefaultSofaRPCHealthCheckConf = v2.HealthCheck{
 	Protocol:           SofaRPC,
 	Timeout:            DefaultBoltHeartBeatTimeout,
