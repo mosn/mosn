@@ -349,8 +349,8 @@ func (cm *clusterManager) SofaRPCConnPoolForCluster(lbCtx types.LoadBalancerCont
 func (cm *clusterManager) RemovePrimaryCluster(clusterName string) bool {
 	if v, exist := cm.primaryClusters.Load(clusterName); exist {
 		if !v.(*primaryCluster).addedViaAPI {
-			return false
 			log.DefaultLogger.Warnf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaAPI", clusterName)
+			return false
 		} else {
 			cm.primaryClusters.Delete(clusterName)
 			log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)

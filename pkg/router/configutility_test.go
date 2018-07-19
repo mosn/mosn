@@ -27,11 +27,11 @@ package router
 //func TestConfigUtility_MatchQueryParams(t *testing.T) {
 //	type fields struct {
 //		HeaderData            types.HeaderData
-//		QueryParameterMatcher QueryParameterMatcher
+//		queryParameterMatcher queryParameterMatcher
 //	}
 //	type args struct {
 //		queryParams       types.QueryParams
-//		configQueryParams []types.QueryParameterMatcher
+//		configQueryParams []types.queryParameterMatcher
 //	}
 //	tests := []struct {
 //		name   string
@@ -45,12 +45,12 @@ package router
 //	}
 //	for _, tt := range tests {
 //		t.Run(tt.name, func(t *testing.T) {
-//			cu := &ConfigUtility{
+//			cu := &configUtility{
 //				HeaderData:            tt.fields.HeaderData,
-//				QueryParameterMatcher: tt.fields.QueryParameterMatcher,
+//				queryParameterMatcher: tt.fields.queryParameterMatcher,
 //			}
 //			if got := cu.MatchQueryParams(tt.args.queryParams, tt.args.configQueryParams); got != tt.want {
-//				t.Errorf("ConfigUtility.MatchQueryParams() = %v, want %v", got, tt.want)
+//				t.Errorf("configUtility.MatchQueryParams() = %v, want %v", got, tt.want)
 //			}
 //		})
 //	}

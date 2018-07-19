@@ -21,7 +21,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// todo add comment
+// OriginalDst interface contains just one method: OnAccept
 type OriginalDst interface {
 	OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus
 }

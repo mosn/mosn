@@ -29,15 +29,16 @@ import (
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
 
+// SetGlobalStreamFilter will add streamfilter to listeners
 func SetGlobalStreamFilter(globalStreamFilters []types.StreamFilterChainFactory) {
 	if streamFilter == nil {
 		streamFilter = globalStreamFilters
 	}
 }
 
-// todo , no hack
 var streamFilter []types.StreamFilterChainFactory
 
+// OnUpdateListeners called by XdsClient when listeners config refresh
 func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 	for _, listener := range listeners {
 		mosnListener := convertListenerConfig(listener)
@@ -81,6 +82,7 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 	return nil
 }
 
+// OnUpdateClusters called by XdsClient when clusters config refresh
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	mosnClusters := convertClustersConfig(clusters)
 
@@ -98,6 +100,7 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	return nil
 }
 
+// OnUpdateEndpoints called by XdsClient when ClusterLoadAssignment config refresh
 func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAssignment) error {
 
 	for _, loadAssignment := range loadAssignments {

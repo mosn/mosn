@@ -19,4 +19,6 @@ package filter
 
 import "github.com/alipay/sofa-mosn/pkg/types"
 
+// StreamFilterFactoryCreator is an
+// alias for closure func(config map[string]interface{}) (types.StreamFilterChainFactory, error)
 type StreamFilterFactoryCreator func(config map[string]interface{}) (types.StreamFilterChainFactory, error)

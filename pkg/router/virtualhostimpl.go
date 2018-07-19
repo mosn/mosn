@@ -104,9 +104,9 @@ type VirtualHostImpl struct {
 	virtualClusters       []VirtualClusterEntry
 	sslRequirements       types.SslRequirements
 	corsPolicy            types.CorsPolicy
-	globalRouteConfig     *ConfigImpl
-	requestHeadersParser  *HeaderParser
-	responseHeadersParser *HeaderParser
+	globalRouteConfig     *configImpl
+	requestHeadersParser  *headerParser
+	responseHeadersParser *headerParser
 }
 
 func (vh *VirtualHostImpl) Name() string {
