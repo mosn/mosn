@@ -27,7 +27,6 @@ import (
 	"github.com/alipay/sofa-mosn/cmd/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/orcaman/concurrent-map"
 )
 
 //one client close should not effect others
@@ -53,7 +52,7 @@ func TestClientClose(t *testing.T) {
 			case <-stop:
 				//before close, should check all request get response
 				<-time.After(time.Second)
-				if !client.Waits.IsEmpty() {
+				if !IsMapEmpty(&client.Waits) {
 					t.Errorf("client %s has request timeout\n", client.ClientID)
 				}
 				client.conn.Close(types.NoFlush, types.LocalClose)
@@ -69,7 +68,7 @@ func TestClientClose(t *testing.T) {
 		client := &BoltV1Client{
 			t:        t,
 			ClientID: clientId,
-			Waits:    cmap.New(),
+			Waits:    sync.Map{},
 		}
 		if err := client.Connect(meshAddr); err != nil {
 			t.Fatalf("client %s connect to mesh failed, error: %v\n", clientId, err)

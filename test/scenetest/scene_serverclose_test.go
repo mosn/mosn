@@ -18,13 +18,13 @@
 package tests
 
 import (
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/alipay/sofa-mosn/cmd/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/orcaman/concurrent-map"
 )
 
 //when a upstream server has been closed
@@ -50,7 +50,7 @@ func TestServerClose(t *testing.T) {
 	client := &BoltV1Client{
 		t:        t,
 		ClientID: "testClient",
-		Waits:    cmap.New(),
+		Waits:    sync.Map{},
 	}
 	client.Connect(meshAddr)
 	defer client.conn.Close(types.NoFlush, types.LocalClose)
@@ -67,7 +67,7 @@ func TestServerClose(t *testing.T) {
 		servers[0].Close()
 	}()
 	<-time.After(15 * time.Second) //wait request finish
-	if !client.Waits.IsEmpty() {
+	if !IsMapEmpty(&client.Waits) {
 		t.Errorf("some request get no response\n")
 	}
 }

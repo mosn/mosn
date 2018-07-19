@@ -20,13 +20,13 @@ package tests
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/alipay/sofa-mosn/cmd/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/orcaman/concurrent-map"
 )
 
 func TestBolt2Http2(t *testing.T) {
@@ -46,7 +46,7 @@ func TestBolt2Http2(t *testing.T) {
 		t:              t,
 		addr:           meshAddr,
 		responseFilter: &HTTP2Response{},
-		waitReponse:    cmap.New(),
+		waitReponse:    sync.Map{},
 	}
 	if err := client.Connect(); err != nil {
 		t.Fatalf("client connect failed\n")
@@ -61,8 +61,7 @@ func TestBolt2Http2(t *testing.T) {
 	}
 	//client.wait_response should empty
 	<-time.After(10 * time.Second)
-	if !client.waitReponse.IsEmpty() {
+	if !IsMapEmpty(&client.waitReponse) {
 		t.Errorf("exists request no response\n")
-		t.Logf("%v\n", client.waitReponse.Keys())
 	}
 }
