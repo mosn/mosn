@@ -74,16 +74,17 @@ import (
 //    --------------------------------------------------
 //
 
+// The prefix
 const (
 	ListenerStatsPrefix = "listener.%d."
 )
 
-// listener interface
+// Listener is a wrapper of tcp listener
 type Listener interface {
-	// Listener name
+	// Name returns the listener's name
 	Name() string
 
-	// Listener address
+	// Addr returns the listener's network address.
 	Addr() net.Addr
 
 	// Start starts listener with context
@@ -93,65 +94,67 @@ type Listener interface {
 	// Accepted connections and listening sockets will not be closed
 	Stop()
 
-	// Listener tag,
+	// ListenerTag returns the listener's tag
 	ListenerTag() uint64
 
-	// Return a copy a listener fd
+	// ListenerFD returns a copy a listener fd
 	ListenerFD() (uintptr, error)
 
-	// Limit bytes per connection
+	// PerConnBufferLimitBytes returns the limit bytes per connection
 	PerConnBufferLimitBytes() uint32
 
-	// Set listener event listener
+	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)
 
-	// Close listener, not closing connections
+	// Close closes listener, not closing connections
 	Close(lctx context.Context) error
 }
 
-// TLS ContextManager
+//
 type TLSContextManager interface {
 	Conn(c net.Conn) net.Conn
 	Enabled() bool
 }
 
-// Callbacks invoked by a listener.
+// ListenerEventListener is a Callback invoked by a listener.
 type ListenerEventListener interface {
-	// Called on new connection accepted
+	// OnAccept is called on new connection accepted
 	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr)
 
-	// Called on new mosn connection created
+	// OnNewConnection is called on new mosn connection created
 	OnNewConnection(ctx context.Context, conn Connection)
 
-	// Called on listener close
+	// OnClose is called on listener close
 	OnClose()
 }
 
+// FilterStatus type
 type FilterStatus string
 
+// FilterStatus types
 const (
 	Continue      FilterStatus = "Continue"
 	StopIteration FilterStatus = "StopIteration"
 )
 
 type ListenerFilter interface {
-	// Called when a raw connection is accepted, but before a Connection is created.
+	// OnAccept is called when a raw connection is accepted, but before a Connection is created.
 	OnAccept(cb ListenerFilterCallbacks) FilterStatus
 }
 
-// A callback handler called by listener filter to talk to listener
+// ListenerFilterCallbacks is a callback handler called by listener filter to talk to listener
 type ListenerFilterCallbacks interface {
-	// Connection reference used in callback handler
+	// Conn returns the Connection reference used in callback handler
 	Conn() net.Conn
 
-	// Continue filter chain
 	ContinueFilterChain(ctx context.Context, success bool)
 
-	// Set original addr
+	// SetOrigingalAddr sets the original ip and port
 	SetOrigingalAddr(ip string, port int)
 }
 
-// Note: unsupport for now
+// ListenerFilterManager manages the listener filter
+// Note: unsupport now
 type ListenerFilterManager interface {
 	AddListenerFilter(lf *ListenerFilter)
 }
@@ -227,7 +230,7 @@ type BufferWatermarkListener interface {
 	OnLowWatermark()
 }
 
-// A buffer pool to reuse header map.
+// HeadersBufferPool is a buffer pool to reuse header map.
 // Normally recreate a map has minor cpu/memory cost, however in a high concurrent scenario, a buffer pool is needed to recycle map
 type HeadersBufferPool interface {
 	// Take finds and returns a map from buffer pool. If no buffer available, create a new one with capacity.
@@ -238,39 +241,45 @@ type HeadersBufferPool interface {
 }
 
 type GenericMapPool interface {
+	// Take finds and returns a map from map pool.
 	Take(defaultSize int) (amap map[string]interface{})
 
+	// Give returns a map to map pool
 	Give(amap map[string]interface{})
 }
 
+// ObjectBufferPool is a object pool.
 type ObjectBufferPool interface {
+	// Take returns a pool object, such as sync.Pool.
 	Take() interface{}
-
+	// Give set a pool object into pool.
 	Give(object interface{})
 }
 
 // Connection status
 type ConnState string
 
+// Connection statuses
 const (
 	Open    ConnState = "Open"
 	Closing ConnState = "Closing"
 	Closed  ConnState = "Closed"
 )
 
-// Connection close type
+// ConnectionCloseType represent connection close type
 type ConnectionCloseType string
 
+//Connection close types
 const (
-	// Flush write buffer to underlying io then close connection
+	// FlushWrite means write buffer to underlying io then close connection
 	FlushWrite ConnectionCloseType = "FlushWrite"
-	// Close connection without flushing buffer
+	// NoFlush means close connection without flushing buffer
 	NoFlush ConnectionCloseType = "NoFlush"
 )
 
 // Connection interface
 type Connection interface {
-	// Unique connection id
+	// ID returns unique connection id
 	ID() uint64
 
 	// Start starts connection with context.
@@ -306,59 +315,62 @@ type Connection interface {
 	// RemoteAddr returns the remote address of the connection.
 	RemoteAddr() net.Addr
 
-	// For originaldst we need to replace remoteAddr
+	// SetRemoteAddr is used for originaldst we need to replace remoteAddr
 	SetRemoteAddr(address net.Addr)
 
-	// Add connection level event listener, listener method will be called when connection event occur.
+	// AddConnectionEventListener add a listener method will be called when connection event occur.
 	AddConnectionEventListener(cb ConnectionEventListener)
 
-	// Add io bytes read listener method, method will be called everytime bytes read
+	// AddBytesReadListener add a method will be called everytime bytes read
 	AddBytesReadListener(cb func(bytesRead uint64))
 
-	// Add io bytes write listener method, method will be called everytime bytes write
+	// AddBytesSentListener add a method will be called everytime bytes write
 	AddBytesSentListener(cb func(bytesSent uint64))
 
-	// Network level negotiation, such as ALPN. Returns empty string if not supported.
+	// NextProtocol returns network level negotiation, such as ALPN. Returns empty string if not supported.
 	NextProtocol() string
 
-	// Enable/disable tcp no delay
+	// SetNoDelay enable/disable tcp no delay
 	SetNoDelay(enable bool)
 
-	// Enable/disable read on the connection.
-	// If reads are enabled after disable, connection continues to read and data will be dispatched to read filter chains
+	// SetReadDisable enable/disable read on the connection.
+	// If reads are enabled after disable, connection continues to read and data will be dispatched to read filter chains.
 	SetReadDisable(disable bool)
 
-	// Whether reading is enabled on the connection
+	// ReadEnabled returns whether reading is enabled on the connection.
 	ReadEnabled() bool
 
-	// Returns a related tls connection
+	// TLS returns a related tls connection.
 	TLS() net.Conn
 
-	// Set buffer limit
+	// SetBufferLimit set the buffer limit.
 	SetBufferLimit(limit uint32)
 
-	// Return buffer limit
+	// BufferLimit returns the buffer limit.
 	BufferLimit() uint32
 
-	// Set a local address
+	// SetLocalAddress sets a local address
 	SetLocalAddress(localAddress net.Addr, restored bool)
 
-	// Inject a connection stats
+	// SetStats injects a connection stats
 	SetStats(stats *ConnectionStats)
 
-	// todo: unsupported for now
+	// LocalAddressRestored returns whether local address is restored
+	// TODO: unsupported now
 	LocalAddressRestored() bool
 
-	// Get write buffer, used by network writer filter
+	// GetWriteBuffer is used by network writer filter
 	GetWriteBuffer() []IoBuffer
 
-	// Get read buffer, used by network read filter
+	// GetReadBuffer is used by network read filter
 	GetReadBuffer() IoBuffer
 
+	// FilterManager returns the FilterManager
 	FilterManager() FilterManager
 
+	// RawConn returns the original connections.
 	// Caution: raw conn only used in io-loop disable mode
-	// todo: a better way to provide raw conn
+	// TODO: a better way to provide raw conn
 	RawConn() net.Conn
 }
 
@@ -471,25 +483,25 @@ type ReadFilterCallbacks interface {
 }
 
 type FilterManager interface {
-	// Add a read filter
+	// AddReadFilter adds a read filter
 	AddReadFilter(rf ReadFilter)
 
-	// Add a write filter
+	// AddWriteFilter adds a write filter
 	AddWriteFilter(wf WriteFilter)
 
-	// List read filters
+	// ListReadFilter returns the list of read filters
 	ListReadFilter() []ReadFilter
 
-	// List write filters
+	// ListWriteFilters returns the list of write filters
 	ListWriteFilters() []WriteFilter
 
-	// Init read filters
+	// InitializeReadFilters initialize read filters
 	InitializeReadFilters() bool
 
-	// Called on data read
+	// OnRead is called on data read
 	OnRead()
 
-	// Called before data write
+	// OnWrite is called before data write
 	OnWrite() FilterStatus
 }
 

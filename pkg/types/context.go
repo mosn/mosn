@@ -17,8 +17,10 @@
 
 package types
 
+// ContextKey type
 type ContextKey string
 
+// Context key types
 const (
 	ContextKeyStreamID                   ContextKey = "StreamId"
 	ContextKeyConnectionID               ContextKey = "ConnectionId"
@@ -34,5 +36,6 @@ const (
 )
 
 const (
+	// GlobalStatsNamespace is the stats namesapce
 	GlobalStatsNamespace = ""
 )
