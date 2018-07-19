@@ -25,17 +25,18 @@ import (
 	"unsafe"
 )
 
-//singleton
-var Instance = SimpleSerialization{}
+// Instance
+// singleton of simpleSerialization
+var Instance = simpleSerialization{}
 
-type SimpleSerialization struct {
+type simpleSerialization struct {
 }
 
-func (s *SimpleSerialization) GetSerialNum() int {
+func (s *simpleSerialization) GetSerialNum() int {
 	return 6
 }
 
-func (s *SimpleSerialization) Serialize(v interface{}) ([]byte, error) {
+func (s *simpleSerialization) Serialize(v interface{}) ([]byte, error) {
 	if v == nil {
 		return []byte{0}, nil
 	}
@@ -56,7 +57,7 @@ func (s *SimpleSerialization) Serialize(v interface{}) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (s *SimpleSerialization) DeSerialize(b []byte, v interface{}) (interface{}, error) {
+func (s *simpleSerialization) DeSerialize(b []byte, v interface{}) (interface{}, error) {
 	if len(b) == 0 {
 		return nil, nil
 	}
@@ -84,7 +85,7 @@ func (s *SimpleSerialization) DeSerialize(b []byte, v interface{}) (interface{},
 	return nil, nil
 }
 
-func (s *SimpleSerialization) SerializeMulti(v []interface{}) ([]byte, error) {
+func (s *simpleSerialization) SerializeMulti(v []interface{}) ([]byte, error) {
 	// TODO support multi value
 	if len(v) == 0 {
 		return nil, nil
@@ -92,10 +93,10 @@ func (s *SimpleSerialization) SerializeMulti(v []interface{}) ([]byte, error) {
 	if len(v) == 1 {
 		return s.Serialize(v[0])
 	}
-	return nil, errors.New("do not support multi value in SimpleSerialization")
+	return nil, errors.New("do not support multi value in simpleSerialization")
 }
 
-func (s *SimpleSerialization) DeSerializeMulti(b []byte, v []interface{}) (ret []interface{}, err error) {
+func (s *simpleSerialization) DeSerializeMulti(b []byte, v []interface{}) (ret []interface{}, err error) {
 	//TODO support multi value
 	var rv interface{}
 	if v != nil {
@@ -103,7 +104,7 @@ func (s *SimpleSerialization) DeSerializeMulti(b []byte, v []interface{}) (ret [
 			return nil, nil
 		}
 		if len(v) > 1 {
-			return nil, errors.New("do not support multi value in SimpleSerialization")
+			return nil, errors.New("do not support multi value in simpleSerialization")
 		}
 		rv, err = s.DeSerialize(b, v[0])
 	} else {

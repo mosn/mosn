@@ -30,16 +30,13 @@ import (
 // types.ReadFilter
 // types.StreamConnectionEventListener
 type codecClient struct {
-	context context.Context
-
-	Protocol   types.Protocol
-	Connection types.ClientConnection
-	Host       types.HostInfo
-	Codec      types.ClientStreamConnection
-
-	ActiveRequests *list.List
-	AcrMux         sync.RWMutex
-
+	context                   context.Context
+	Protocol                  types.Protocol
+	Connection                types.ClientConnection
+	Host                      types.HostInfo
+	Codec                     types.ClientStreamConnection
+	ActiveRequests            *list.List
+	AcrMux                    sync.RWMutex
 	CodecCallbacks            types.StreamConnectionEventListener
 	CodecClientCallbacks      CodecClientCallbacks
 	StreamConnectionCallbacks types.StreamConnectionEventListener
@@ -47,6 +44,8 @@ type codecClient struct {
 	RemoteCloseFlag           bool
 }
 
+// NewCodecClient
+// Create a codecclient used as a client to send/receive stream in a connection
 func NewCodecClient(context context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo) CodecClient {
 	codecClient := &codecClient{
 		context:        context,
@@ -69,6 +68,8 @@ func NewCodecClient(context context.Context, prot types.Protocol, connection typ
 	return codecClient
 }
 
+// NewBiDirectCodeClient
+// Create a bidirectional client used to realize bidirectional communication
 func NewBiDirectCodeClient(context context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
 	serverCallbacks types.ServerStreamConnectionEventListener) CodecClient {
 	codecClient := &codecClient{

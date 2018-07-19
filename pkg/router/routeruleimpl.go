@@ -66,32 +66,32 @@ type RouteRuleImplBase struct {
 	autoHostRewrite             bool
 	useWebSocket                bool
 	clusterName                 string //
-	clusterHeaderName           LowerCaseString
+	clusterHeaderName           lowerCaseString
 	clusterNotFoundResponseCode httpmosn.Code
 	timeout                     time.Duration
 	runtime                     v2.RuntimeUInt32
 	hostRedirect                string
 	pathRedirect                string
 	httpsRedirect               bool
-	retryPolicy                 *RetryPolicyImpl
-	rateLimitPolicy             *RateLimitPolicyImpl
+	retryPolicy                 *retryPolicyImpl
+	rateLimitPolicy             *rateLimitPolicyImpl
 
 	routerAction v2.RouteAction
 	routerMatch  v2.RouterMatch
 
-	shadowPolicy          *ShadowPolicyImpl
+	shadowPolicy          *shadowPolicyImpl
 	priority              types.ResourcePriority
 	configHeaders         []*types.HeaderData //
 	configQueryParameters []types.QueryParameterMatcher
-	weightedClusters      []*WeightedClusterEntry
+	weightedClusters      []*weightedClusterEntry
 	totalClusterWeight    uint64
-	hashPolicy            HashPolicyImpl
+	hashPolicy            hashPolicyImpl
 
 	metadataMatchCriteria *MetadataMatchCriteriaImpl
 	metaData              types.RouteMetaData
 
-	requestHeadersParser  *HeaderParser
-	responseHeadersParser *HeaderParser
+	requestHeadersParser  *headerParser
+	responseHeadersParser *headerParser
 
 	opaqueConfig multimap.MultiMap
 

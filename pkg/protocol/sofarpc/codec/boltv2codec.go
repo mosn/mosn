@@ -32,6 +32,7 @@ import (
 
 // types.Encoder & types.Decoder
 
+// BoltV2PropertyHeaders map the cmdkey and its data type
 var (
 	BoltV2PropertyHeaders = make(map[string]reflect.Kind, 14)
 )

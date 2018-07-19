@@ -22,34 +22,38 @@ import (
 	"time"
 )
 
+// The Metadata field can be used to provide additional information about the route.
+// It can be used for configuration, stats, and logging.
+// The metadata should go under the filter namespace that will need it.
 type Metadata map[string]interface{}
 
+// Network Filter's Name
 const (
 	DEFAULT_NETWORK_FILTER = "proxy"
 	RPC_PROXY              = "rpc_proxy"
 	X_PROXY                = "x_proxy"
 )
 
-const (
-	MaxRequestsPerConn  uint64 = 10000
-	ConnBufferLimitByte uint32 = 16 * 1024
-)
-
+// ClusterType
 type ClusterType string
 
+// tht type of cluster
 const (
 	STATIC_CLUSTER  ClusterType = "STATIC"
 	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
 	DYNAMIC_CLUSTER ClusterType = "DYNAMIC"
 )
 
+// LbType
 type LbType string
 
+// type of load balancer
 const (
 	LB_RANDOM     LbType = "LB_RANDOM"
 	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
 )
 
+// Cluster
 type Cluster struct {
 	Name                 string
 	ClusterType          ClusterType
@@ -65,10 +69,12 @@ type Cluster struct {
 	Hosts                []Host
 }
 
+// CircuitBreakers
 type CircuitBreakers struct {
 	Thresholds []Thresholds
 }
 
+// Thresholds of CircuitBreakers
 type Thresholds struct {
 	Priority           RoutingPriority
 	MaxConnections     uint32
@@ -77,6 +83,7 @@ type Thresholds struct {
 	MaxRetries         uint32
 }
 
+// OutlierDetection for upstream
 type OutlierDetection struct {
 	Consecutive5xx                     uint32
 	Interval                           time.Duration
@@ -91,13 +98,16 @@ type OutlierDetection struct {
 	SuccessRateStdevFactor             uint32
 }
 
+// RoutingPriority
 type RoutingPriority string
 
+// priority of routing
 const (
 	DEFAULT RoutingPriority = "DEFAULT"
 	HIGH    RoutingPriority = "HIGH"
 )
 
+// Host which has MetaData
 type Host struct {
 	Address  string
 	Hostname string
@@ -105,6 +115,7 @@ type Host struct {
 	MetaData Metadata
 }
 
+// ListenerConfig with FilterChains
 type ListenerConfig struct {
 	Name                                  string
 	Addr                                  net.Addr
@@ -122,12 +133,14 @@ type ListenerConfig struct {
 	FilterChains                          []FilterChain // FilterChains
 }
 
+// AccessLog
 type AccessLog struct {
 	Path   string
 	Format string
 	// todo: add log filters
 }
 
+// TLSConfig
 type TLSConfig struct {
 	Status       bool
 	Inspector    bool
@@ -145,27 +158,32 @@ type TLSConfig struct {
 	Ticket       string
 }
 
+// TCPRoute
 type TCPRoute struct {
 	Cluster          string
 	SourceAddrs      []net.Addr
 	DestinationAddrs []net.Addr
 }
 
+// TCPProxy
 type TCPProxy struct {
 	Routes     []*TCPRoute
 	AccessLogs []*AccessLog
 }
 
+//
 type RPCRoute struct {
 	Name    string
 	Service string
 	Cluster string
 }
 
+//
 type RPCProxy struct {
 	Routes []*RPCRoute
 }
 
+// FaultInject
 type FaultInject struct {
 	DelayPercent  uint32
 	DelayDuration uint64
@@ -194,6 +212,7 @@ type RetryPolicy struct {
 	NumRetries   uint32
 }
 
+// HealthCheck
 type HealthCheck struct {
 	Protocol           string
 	ProtocolCode       byte // used by sofa rpc
@@ -206,6 +225,7 @@ type HealthCheck struct {
 	ServiceName        string
 }
 
+// HealthCheck
 type HealthCheckFilter struct {
 	PassThrough                 bool
 	CacheTime                   time.Duration
@@ -249,17 +269,22 @@ type LBSubsetConfig struct {
 	SubsetSelectors [][]string        // {{keys,},}, used to create subsets of hosts, pre-computing, sorted
 }
 
+// FilterChain wraps a set of match criteria, an option TLS context,
+// a set of filters, and various other parameters.
 type FilterChain struct {
 	FilterChainMatch string
 	TLS              TLSConfig
 	Filters          []Filter
 }
 
+// Filter for network and stream
 type Filter struct {
 	Name   string
 	Config map[string]interface{}
 }
 
+// VirtualHost
+// An array of virtual hosts that make up the route table.
 type VirtualHost struct {
 	Name            string
 	Domains         []string
@@ -268,6 +293,8 @@ type VirtualHost struct {
 	VirtualClusters []VirtualCluster
 }
 
+// Router, the list of routes that will be matched, in order, for incoming requests.
+// The first route that matches will be used.
 type Router struct {
 	Match     RouterMatch
 	Route     RouteAction
@@ -276,14 +303,19 @@ type Router struct {
 	Decorator Decorator
 }
 
+// Decorator
 type Decorator string
 
+// RedirectAction
+// Return a redirect.
 type RedirectAction struct {
 	HostRedirect string
 	PathRedirect string
 	ResponseCode uint32
 }
 
+// RouterMatch
+// Route matching parameters
 type RouterMatch struct {
 	Prefix        string
 	Path          string
@@ -293,6 +325,8 @@ type RouterMatch struct {
 	Headers       []HeaderMatcher
 }
 
+// RouteAction
+// Route request to some upstream cluster.
 type RouteAction struct {
 	ClusterName      string
 	ClusterHeader    string // used for http only
@@ -302,28 +336,40 @@ type RouteAction struct {
 	RetryPolicy      *RetryPolicy
 }
 
+// WeightedCluster.
+// Multiple upstream clusters can be specified for a given route. The request is routed to one of the upstream
+// clusters based on weights assigned to each cluster
 type WeightedCluster struct {
 	Clusters         ClusterWeight
 	RuntimeKeyPrefix string // not used currently
 }
 
+// ClusterWeight.
+// clusters along with weights that indicate the percentage
+// of traffic to be forwarded to each cluste
 type ClusterWeight struct {
 	Name          string
 	Weight        uint32
 	MetadataMatch Metadata
 }
 
+// RuntimeUInt32
+// Indicates that the route should additionally match on a runtime key
 type RuntimeUInt32 struct {
 	DefaultValue uint32
 	RuntimeKey   string
 }
 
+// Specifies a set of headers that the route should match on.
 type HeaderMatcher struct {
 	Name  string
 	Value string
 	Regex bool
 }
 
+// VirtualCluster.
+// A virtual cluster is a way of specifying a regex matching rule against certain important endpoints
+// such that statistics are generated explicitly for the matched requests
 type VirtualCluster struct {
 	Pattern string
 	Name    string

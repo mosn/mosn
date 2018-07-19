@@ -36,17 +36,11 @@ func init() {
 }
 
 var (
-	pidFile string
-
-	onProcessExit []func()
-
-	gracefulTimeout = time.Second * 30 //default 30s
-
-	BaseFolder string
-
+	pidFile               string
+	onProcessExit         []func()
+	gracefulTimeout       = time.Second * 30 //default 30s
 	shutdownCallbacksOnce sync.Once
-
-	shutdownCallbacks []func() error
+	shutdownCallbacks     []func() error
 )
 
 func writePidFile() error {

@@ -25,11 +25,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type BoltHbProcessor struct {
+type boltHbProcessor struct {
 }
 
 // ctx = type.serverStreamConnection
-func (b *BoltHbProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
+func (b *boltHbProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	logger := log.ByContext(context)
 
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {

@@ -36,7 +36,7 @@ import (
 // 3. bridge module get biz info(like service subscribe/publish, application info) from callback invocations
 // 4. biz module(like confreg) get biz info from bridge module directly
 
-func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []string) {
+func resetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []string) {
 	// reset service info
 	config.ServiceRegistry.ServiceAppInfo = ServiceAppInfoConfig{
 		AntShareCloud: appInfo.AntShareCloud,
@@ -48,10 +48,10 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 	config.ServiceRegistry.ServicePubInfo = []ServicePubInfoConfig{}
 
 	// delete subInfo / dynamic clusters
-	RemoveClusterConfig(subServiceList)
+	removeClusterConfig(subServiceList)
 }
 
-func AddClusterConfig(clusters []v2.Cluster) {
+func addClusterConfig(clusters []v2.Cluster) {
 	for _, cluster := range clusters {
 		clusterConfig := convertClusterConfig(cluster)
 		exist := false
@@ -73,10 +73,10 @@ func AddClusterConfig(clusters []v2.Cluster) {
 		// update routes
 		//AddRouterConfig(cluster.Name)
 	}
-	go Dump(true)
+	go dump(true)
 }
 
-func RemoveClusterConfig(clusterNames []string) {
+func removeClusterConfig(clusterNames []string) {
 	dirty := false
 
 	for _, clusterName := range clusterNames {
@@ -90,10 +90,10 @@ func RemoveClusterConfig(clusterNames []string) {
 		}
 	}
 
-	go Dump(dirty)
+	go dump(dirty)
 }
 
-func AddPubInfo(pubInfoAdded map[string]string) {
+func addPubInfo(pubInfoAdded map[string]string) {
 	for srvName, srvData := range pubInfoAdded {
 		exist := false
 		srvPubInfo := ServicePubInfoConfig{
@@ -115,10 +115,10 @@ func AddPubInfo(pubInfoAdded map[string]string) {
 		}
 	}
 
-	go Dump(true)
+	go dump(true)
 }
 
-func DelPubInfo(serviceName string) {
+func delPubInfo(serviceName string) {
 	dirty := false
 
 	for i, srvPubInfo := range config.ServiceRegistry.ServicePubInfo {
@@ -130,7 +130,7 @@ func DelPubInfo(serviceName string) {
 		}
 	}
 
-	go Dump(dirty)
+	go dump(dirty)
 }
 
 // ~ convert functions, api.v2 model -> config model
@@ -177,7 +177,7 @@ func convertClusterHealthCheck(cchc v2.HealthCheck) ClusterHealthCheckConfig {
 
 // todo: add router config delete
 
-func AddRouterConfig(clusterName string) {
+func addRouterConfig(clusterName string) {
 	routerName := clusterName[0 : len(clusterName)-8]
 
 	for _, l := range config.Servers[0].Listeners {

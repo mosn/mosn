@@ -23,6 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// Proxy
 type Proxy interface {
 	types.ReadFilter
 
@@ -31,22 +32,29 @@ type Proxy interface {
 	ReadDisableDownstream(disable bool)
 }
 
+// UpstreamCallbacks
+// callback invoked when upstream event happened
 type UpstreamCallbacks interface {
 	types.ReadFilter
 	types.ConnectionEventListener
 }
 
+// DownstreamCallbacks
+// callback invoked when downstream event happened
 type DownstreamCallbacks interface {
 	types.ConnectionEventListener
 }
 
+// Timeout
 type Timeout struct {
 	GlobalTimeout time.Duration
 	TryTimeout    time.Duration
 }
 
+// UpstreamFailureReason
 type UpstreamFailureReason string
 
+// some Upstream Failure Reason
 const (
 	ConnectFailed         UpstreamFailureReason = "ConnectFailed"
 	NoHealthyUpstream     UpstreamFailureReason = "NoHealthyUpstream"
@@ -54,8 +62,10 @@ const (
 	NoRoute               UpstreamFailureReason = "NoRoute"
 )
 
+// UpstreamResetType
 type UpstreamResetType string
 
+// some Upstream Reset Type
 const (
 	UpstreamReset         UpstreamResetType = "UpstreamReset"
 	UpstreamGlobalTimeout UpstreamResetType = "UpstreamGlobalTimeout"

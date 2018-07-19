@@ -49,6 +49,7 @@ type healthCheckFilter struct {
 	cb types.StreamReceiverFilterCallbacks
 }
 
+// NewHealthCheckFilter used to create new health check filter
 func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter) types.StreamReceiverFilter {
 	return &healthCheckFilter{
 		context:                      context,
@@ -140,7 +141,7 @@ func (f *healthCheckFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFil
 
 func (f *healthCheckFilter) OnDestroy() {}
 
-// ~~ factory
+// HealthCheckFilterConfigFactory Filter Config Factory
 type HealthCheckFilterConfigFactory struct {
 	FilterConfig *v2.HealthCheckFilter
 }
@@ -150,6 +151,7 @@ func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Conte
 	callbacks.AddStreamReceiverFilter(filter)
 }
 
+// CreateHealthCheckFilterFactory
 func CreateHealthCheckFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
 	return &HealthCheckFilterConfigFactory{
 		FilterConfig: config.ParseHealthcheckFilter(conf),

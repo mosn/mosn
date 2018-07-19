@@ -27,6 +27,8 @@ import (
 )
 
 // types.ConnectionPool
+// activeClient used as connected client
+// host is the upstream
 type connPool struct {
 	activeClient *activeClient
 	host         types.Host
@@ -34,6 +36,7 @@ type connPool struct {
 	mux sync.Mutex
 }
 
+// NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
 		host: host,

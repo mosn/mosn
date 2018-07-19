@@ -254,8 +254,10 @@ func (s *downStream) runReceiveTrailersFilters(filter *activeStreamReceiverFilte
 	return false
 }
 
+// FilterStage is the type of the filter stage
 type FilterStage int
 
+// all stages
 const (
 	DecodeHeaders = iota
 	DecodeData

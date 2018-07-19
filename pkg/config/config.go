@@ -18,7 +18,6 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -28,28 +27,36 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/json-iterator/go"
 )
 
 //global instance for load & dump
-var ConfigPath string
+var configPath string
 var config MOSNConfig
 
+// FilterChain wraps a set of match criteria, an option TLS context,
+// a set of filters, and various other parameters.
 type FilterChain struct {
 	FilterChainMatch string         `json:"match,omitempty"`
 	TLS              TLSConfig      `json:"tls_context,omitempty"`
 	Filters          []FilterConfig `json:"filters"`
 }
 
+// FilterConfig is a config to make up a filter
+// Type is the filter's type
 type FilterConfig struct {
 	Type   string                 `json:"type,omitempty"`
 	Config map[string]interface{} `json:"config,omitempty"`
 }
 
+// AccessLogConfig to make up access log
 type AccessLogConfig struct {
 	LogPath   string `json:"log_path,omitempty"`
 	LogFormat string `json:"log_format,omitempty"`
 }
 
+// ListenerConfig
+// for making up a listener in mosn
 type ListenerConfig struct {
 	Name          string         `json:"name,omitempty"`
 	Address       string         `json:"address,omitempty"`
@@ -71,6 +78,8 @@ type ListenerConfig struct {
 	DisableConnIo bool `json:"disable_conn_io"`
 }
 
+// TLSConfig
+// Status is the switch to use tls or not
 type TLSConfig struct {
 	Status       bool   `json:"status,omitempty"`
 	Inspector    bool   `json:"inspector,omitempty"`
@@ -88,6 +97,7 @@ type TLSConfig struct {
 	Ticket       string `json:"ticket,omitempty"`
 }
 
+// ServerConfig for making up server for mosn
 type ServerConfig struct {
 	//default logger
 	DefaultLogPath  string `json:"default_log_path,omitempty"`
@@ -102,12 +112,14 @@ type ServerConfig struct {
 	Listeners []ListenerConfig `json:"listeners,omitempty"`
 }
 
+// HostConfig
 type HostConfig struct {
 	Address  string `json:"address,omitempty"`
 	Hostname string `json:"hostname,omitempty"`
 	Weight   uint32 `json:"weight,omitempty"`
 }
 
+// ClusterHealthCheckConfig for health checking
 type ClusterHealthCheckConfig struct {
 	Protocol           string         `json:"protocol"`
 	Timeout            DurationConfig `json:"timeout"`
@@ -119,30 +131,36 @@ type ClusterHealthCheckConfig struct {
 	ServiceName        string         `json:"service_name,omitempty"`
 }
 
+// ClusterSpecConfig
+// not used currently
 type ClusterSpecConfig struct {
 	Subscribes []SubscribeSpecConfig `json:"subscribe,omitempty"`
 }
 
+// SubscribeSpecConfig
 type SubscribeSpecConfig struct {
 	ServiceName string `json:"service_name,omitempty"`
 }
 
+// ClusterConfig for making a cluster for mosn
+// Hosts are the hosts belong to this cluster
 type ClusterConfig struct {
 	Name                 string
 	Type                 string
-	SubType              string `json:"sub_type"`
-	LbType               string `json:"lb_type"`
+	SubType              string                   `json:"sub_type"`
+	LbType               string                   `json:"lb_type"`
 	MaxRequestPerConn    uint32
 	ConnBufferLimitBytes uint32
-	CircuitBreakers      []*CircuitBreakerdConfig `json:"circuit_breakers"`
+	CircuitBreakers      []*CircuitBreakerConfig  `json:"circuit_breakers"`
 	HealthCheck          ClusterHealthCheckConfig `json:"health_check,omitempty"` //v2.HealthCheck
 	ClusterSpecConfig    ClusterSpecConfig        `json:"spec,omitempty"`         //	ClusterSpecConfig
 	Hosts                []v2.Host                `json:"hosts,omitempty"`        //v2.Host
 	LBSubsetConfig       v2.LBSubsetConfig
-	TLS                  TLSConfig `json:"tls_context,omitempty"`
+	TLS                  TLSConfig                `json:"tls_context,omitempty"`
 }
 
-type CircuitBreakerdConfig struct {
+// CircuitBreakerConfig for realizing circuit breaker for cluster
+type CircuitBreakerConfig struct {
 	Priority           string `json:"priority"`
 	MaxConnections     uint32 `json:"max_connections"`
 	MaxPendingRequests uint32 `json:"max_pending_requests"`
@@ -150,6 +168,8 @@ type CircuitBreakerdConfig struct {
 	MaxRetries         uint32 `json:"max_retries"`
 }
 
+// ClusterManagerConfig for making up cluster manager
+// Clusters is the global cluster of mosn
 type ClusterManagerConfig struct {
 	// Note: consider to use standard configure
 	AutoDiscovery bool `json:"auto_discovery"`
@@ -158,33 +178,44 @@ type ClusterManagerConfig struct {
 	Clusters               []ClusterConfig `json:"clusters,omitempty"`
 }
 
+// ServiceRegistryConfig
+// not used currently
 type ServiceRegistryConfig struct {
 	ServiceAppInfo ServiceAppInfoConfig   `json:"application"`
 	ServicePubInfo []ServicePubInfoConfig `json:"publish_info,omitempty"`
 }
 
+// ServiceAppInfoConfig
 type ServiceAppInfoConfig struct {
 	AntShareCloud bool   `json:"ant_share_cloud"`
 	DataCenter    string `json:"data_center,omitempty"`
 	AppName       string `json:"app_name,omitempty"`
 }
 
+// ServicePubInfoConfig
 type ServicePubInfoConfig struct {
 	ServiceName string `json:"service_name,omitempty"`
 	PubData     string `json:"pub_data,omitempty"`
 }
 
+// MOSNConfig make up mosn to start the mosn project
+// Servers contains the listener, filter and so on
+// ClusterManager used to manage the upstream
 type MOSNConfig struct {
 	Servers         []ServerConfig        `json:"servers,omitempty"`         //server config
 	ClusterManager  ClusterManagerConfig  `json:"cluster_manager,omitempty"` //cluster config
 	ServiceRegistry ServiceRegistryConfig `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
-	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
-	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
+	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
+	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 }
 
+// Mode is the type thant mosn starting mode
 type Mode uint8
 
+// File means start from config file
+// Xds means start from xds
+// Mix means start both from file and Xds
 const (
 	File Mode = iota
 	Xds
@@ -205,20 +236,24 @@ func (c *MOSNConfig) Mode() Mode {
 	return File
 }
 
-//wrapper for time.Duration, so time config can be written in '300ms' or '1h' format
+// DurationConfig
+// wrapper for time.Duration, so time config can be written in '300ms' or '1h' format
 type DurationConfig struct {
 	time.Duration
 }
 
+// UnmarshalJSON get DurationConfig.Duration from json file
 func (d *DurationConfig) UnmarshalJSON(b []byte) (err error) {
 	d.Duration, err = time.ParseDuration(strings.Trim(string(b), `"`))
 	return
 }
 
+// MarshalJSON
 func (d DurationConfig) MarshalJSON() (b []byte, err error) {
 	return []byte(fmt.Sprintf(`"%s"`, d.String())), nil
 }
 
+// Load config file and parse
 func Load(path string) *MOSNConfig {
 	log.Println("load config from : ", path)
 	content, err := ioutil.ReadFile(path)
@@ -226,9 +261,9 @@ func Load(path string) *MOSNConfig {
 		log.Fatalln("load config failed, ", err)
 		os.Exit(1)
 	}
-	ConfigPath, _ = filepath.Abs(path)
+	configPath, _ = filepath.Abs(path)
 	// todo delete
-	//ConfigPath = "../../configs/mosn_config_dump_result.json"
+	//configPath = "../../configs/mosn_config_dump_result.json"
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {

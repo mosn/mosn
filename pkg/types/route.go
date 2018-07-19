@@ -390,9 +390,5 @@ func GenerateHashedValue(input string) HashedValue {
 
 //EqualHashValue comapres two HashedValues are equaled or not
 func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {
-	if h1 == h2 {
-		return true
-	}
-
-	return false
+	return h1 == h2
 }

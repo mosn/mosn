@@ -44,7 +44,11 @@ type connHandler struct {
 	logger         log.Logger
 }
 
-func NewHandler(clusterManagerFilter types.ClusterManagerFilter, clMng types.ClusterManager, logger log.Logger) types.ConnectionHandler {
+// NewHandler
+// create types.ConnectionHandler's implement connHandler
+// with cluster manager and logger
+func NewHandler(clusterManagerFilter types.ClusterManagerFilter, clMng types.ClusterManager,
+	logger log.Logger) types.ConnectionHandler {
 	ch := &connHandler{
 		numConnections: 0,
 		clusterManager: clMng,
