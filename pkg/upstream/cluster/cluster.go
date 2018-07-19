@@ -44,7 +44,7 @@ type concreteClusterInitHelper interface {
 	Init()
 }
 
-func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool) types.Cluster {
+func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool) (types.Cluster, error) {
 	var newCluster types.Cluster
 
 	switch clusterConfig.ClusterType {
@@ -52,7 +52,9 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool)
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaAPI)
 	}
-
+	if newCluster == nil {
+		return nil, fmt.Errorf("ClusterType should be in(%s,%s), ClusterType=%s", v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER, clusterConfig.ClusterType)
+	}
 	// init health check for cluster's host
 	if clusterConfig.HealthCheck.Protocol != "" {
 		var hc types.HealthChecker
@@ -60,7 +62,7 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool)
 		newCluster.SetHealthChecker(hc)
 	}
 
-	return newCluster
+	return newCluster, nil
 }
 
 func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool, initHelper concreteClusterInitHelper) cluster {

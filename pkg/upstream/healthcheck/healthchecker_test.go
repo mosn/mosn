@@ -209,7 +209,7 @@ func mockEnv(mode int) types.Cluster {
 
 	hc := newMockHealthCheck(config, mode)
 
-	c := cluster.NewCluster(v2.Cluster{
+	c, _ := cluster.NewCluster(v2.Cluster{
 		Name:        "test",
 		ClusterType: v2.SIMPLE_CLUSTER,
 		LbType:      v2.LB_RANDOM,
