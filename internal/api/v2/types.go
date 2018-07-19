@@ -37,7 +37,7 @@ const (
 // ClusterType
 type ClusterType string
 
-// tht type of cluster
+// the type of cluster
 const (
 	STATIC_CLUSTER  ClusterType = "STATIC"
 	SIMPLE_CLUSTER  ClusterType = "SIMPLE"

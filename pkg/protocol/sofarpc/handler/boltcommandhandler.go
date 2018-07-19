@@ -31,7 +31,7 @@ type boltCommandHandler struct {
 
 // NewBoltCommandHandler
 // new bolt command handler
-func NewBoltCommandHandler() *boltCommandHandler {
+func NewBoltCommandHandler() sofarpc.CommandHandler {
 	return &boltCommandHandler{
 		processors: map[int16]sofarpc.RemotingProcessor{
 			sofarpc.RPC_REQUEST:  &BoltRequestProcessor{},
@@ -43,7 +43,7 @@ func NewBoltCommandHandler() *boltCommandHandler {
 
 // NewBoltCommandHandlerV2
 // Add BOLTV2's Command Handler
-func NewBoltCommandHandlerV2() *boltCommandHandler {
+func NewBoltCommandHandlerV2() sofarpc.CommandHandler {
 	return &boltCommandHandler{
 		processors: map[int16]sofarpc.RemotingProcessor{
 			sofarpc.RPC_REQUEST:  &BoltRequestProcessorV2{},
