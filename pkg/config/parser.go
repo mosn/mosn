@@ -18,7 +18,6 @@
 package config
 
 import (
-	"encoding/json"
 	"net"
 	"strings"
 	"time"
@@ -27,9 +26,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
+	"github.com/json-iterator/go"
 )
 
 type ContentKey string
+
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var protocolsSupported = map[string]bool{
 	string(protocol.SofaRPC):   true,

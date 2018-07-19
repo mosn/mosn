@@ -40,7 +40,7 @@ type info interface {
 	GetRouterName() string
 }
 
-type routeBase interface {
+type RouteBase interface {
 	types.Route
 	types.RouteRule
 	matchable

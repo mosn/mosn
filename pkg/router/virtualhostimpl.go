@@ -100,7 +100,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) *Vir
 
 type VirtualHostImpl struct {
 	virtualHostName       string
-	routes                []routeBase //route impl
+	routes                []RouteBase //route impl
 	virtualClusters       []VirtualClusterEntry
 	sslRequirements       types.SslRequirements
 	corsPolicy            types.CorsPolicy

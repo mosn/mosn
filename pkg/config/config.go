@@ -18,7 +18,6 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -28,6 +27,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/json-iterator/go"
 )
 
 //global instance for load & dump
@@ -206,8 +206,8 @@ type MOSNConfig struct {
 	ClusterManager  ClusterManagerConfig  `json:"cluster_manager,omitempty"` //cluster config
 	ServiceRegistry ServiceRegistryConfig `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
-	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
-	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
+	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
+	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 }
 
 // Mode is the type thant mosn starting mode
