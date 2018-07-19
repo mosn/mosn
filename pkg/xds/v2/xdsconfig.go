@@ -32,6 +32,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+/*
+  fit for api v2 module and ads
+ */
+
 //  Init parsed ds and clusters config for xds
 func (c *XDSConfig) Init(dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources) error {
 	err := c.loadClusters(staticResources)

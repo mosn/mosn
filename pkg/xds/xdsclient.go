@@ -34,9 +34,14 @@ import (
 	"github.com/json-iterator/go"
 )
 
+/*
+ xdsclient can be used to create an grpc (just support grpc and v2 api) client communicated with pilot
+ and fetch config in cycle
+*/
+
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-
+// Client provide an ADS client
 type Client struct {
 	v2        *v2.ClientV2
 	adsClient *v2.ADSClient

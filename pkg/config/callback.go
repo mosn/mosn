@@ -29,6 +29,7 @@ import (
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
 
+// SetGlobalStreamFilter will add streamfilter to listeners
 func SetGlobalStreamFilter(globalStreamFilters []types.StreamFilterChainFactory) {
 	if streamFilter == nil {
 		streamFilter = globalStreamFilters
