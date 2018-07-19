@@ -171,14 +171,14 @@ type TCPProxy struct {
 	AccessLogs []*AccessLog
 }
 
-//
+// RPCRoute
 type RPCRoute struct {
 	Name    string
 	Service string
 	Cluster string
 }
 
-//
+// RPCProxy
 type RPCProxy struct {
 	Routes []*RPCRoute
 }

@@ -85,7 +85,7 @@ import "context"
 // StreamResetReason defines the reason why stream reset
 type StreamResetReason string
 
-// stream reset reasons
+// Group of stream reset reasons
 const (
 	StreamConnectionTermination StreamResetReason = "ConnectionTermination"
 	StreamConnectionFailed      StreamResetReason = "ConnectionFailed"

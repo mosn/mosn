@@ -27,7 +27,7 @@ import (
 
 func (s *stream) encodeSterilize(headers interface{}) interface{} {
 	if headerMaps, ok := headers.(map[string]string); ok {
-		if s.direction == serverStream {
+		if s.direction == ServerStream {
 			headerMaps[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = s.requestID
 		}
 
