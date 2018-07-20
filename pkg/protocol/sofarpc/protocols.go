@@ -106,8 +106,8 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 					filter.OnDecodeError(err, nil)
 					break
 				}
-			} else if 0 == read {
-				// protocol type error
+			} else if -1 == read {
+				// request type error, the second byte in protocol
 				errMsg := UnKnownReqtype
 				logger.Errorf(errMsg+" "+"CmdCode = %+v", cmd)
 				filter.OnDecodeError(errors.New(errMsg), nil)

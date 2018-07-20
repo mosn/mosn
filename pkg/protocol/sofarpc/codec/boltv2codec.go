@@ -220,7 +220,7 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 
 				cmd = request
 			}
-		} else {
+		} else if dataType == sofarpc.RESPONSE {
 			//2. resposne
 			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V2 {
 
@@ -283,6 +283,9 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				logger.Debugf("[Decoder]bolt v2 decode response:%+v\n", response)
 				cmd = response
 			}
+		} else {
+			// 3. unknown type error
+			return -1, nil
 		}
 	}
 

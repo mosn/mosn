@@ -347,7 +347,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					request.Protocol, request.CmdType, request.CmdCode, request.ReqID)
 				cmd = &request
 			}
-		} else {
+		} else if dataType == sofarpc.RESPONSE{
 			//2. response
 			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V1 {
 
@@ -411,6 +411,9 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					response.ResponseStatus, response.Protocol, response.CmdType, response.CmdCode, response.ReqID)
 				cmd = &response
 			}
+		} else {
+			// 3. unknown type error
+			return -1, nil
 		}
 	}
 
