@@ -74,7 +74,10 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	//Add cluster to cm
 	//Register upstream update type
 	for _, cluster := range clusters {
-		cm.AddOrUpdatePrimaryCluster(cluster)
+		
+		if !cm.AddOrUpdatePrimaryCluster(cluster) {
+			log.DefaultLogger.Warnf("NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+		}
 	}
 
 	// Add hosts to cluster
@@ -113,9 +116,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	}
 
 	// todo for static cluster, shouldn't use this way
-	cm.loadCluster(cluster, true)
-
-	return true
+	 return cm.loadCluster(cluster, true)
 }
 
 func (cm *clusterManager) ClusterExist(clusterName string) bool {
@@ -126,10 +127,14 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 	return false
 }
 
-func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool) types.Cluster {
+func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool) bool {
 	//clusterConfig.UseHealthCheck
 	cluster := NewCluster(clusterConfig, cm.sourceAddr, addedViaAPI)
-
+	
+	if nil == cluster {
+		return false
+	}
+	
 	cluster.Initialize(func() {
 		cluster.PrioritySet().AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 		})
@@ -140,7 +145,7 @@ func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool
 		addedViaAPI: addedViaAPI,
 	})
 
-	return cluster
+	return true
 }
 
 func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *clusterSnapshot {
@@ -193,6 +198,7 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 		return fmt.Errorf("cluster's hostset %s can't be update", clusterName)
 
 	}
+	
 	return fmt.Errorf("cluster %s not found", clusterName)
 
 }

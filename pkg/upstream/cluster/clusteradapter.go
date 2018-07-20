@@ -50,8 +50,11 @@ func (ca *Adapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) err
 				// todo support more default health check @boqin
 				cluster.HealthCheck = sofarpc.DefaultSofaRPCHealthCheckConf
 			}
-
-			ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
+			
+			if !ca.clusterMng.AddOrUpdatePrimaryCluster(cluster) {
+				log.DefaultLogger.Warnf("TriggerClusterUpdate: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+			}
+			
 		} else {
 			msg := "cluster doesn't support auto discovery "
 			log.DefaultLogger.Errorf(msg)
@@ -77,8 +80,10 @@ func (ca *Adapter) TriggerClusterAdded(cluster v2.Cluster) {
 		if ca.clusterMng.registryUseHealthCheck {
 			cluster.HealthCheck = sofarpc.DefaultSofaRPCHealthCheckConf
 		}
-
-		ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
+		
+		if !ca.clusterMng.AddOrUpdatePrimaryCluster(cluster) {
+			log.DefaultLogger.Warnf("TriggerClusterAdded: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+		}
 	} else {
 		log.DefaultLogger.Debugf("Added PrimaryCluster: %s Already Exist", cluster.Name)
 	}
