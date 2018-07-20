@@ -111,12 +111,6 @@ func (s *sofarpcHealthCheckSession) OnReceiveHeaders(headers map[string]string, 
 	//log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
 	if statusStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
 		s.responseStatus = sofarpc.ConvertPropertyValue(statusStr, reflect.Int16).(int16)
-	} else if protocolStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]; ok {
-		//tr protocol, set responseStatus to 'SUCCESS'
-		protocol := sofarpc.ConvertPropertyValue(protocolStr, reflect.Uint8).(byte)
-		if protocol == sofarpc.PROTOCOL_CODE_TR {
-			s.responseStatus = sofarpc.RESPONSE_STATUS_SUCCESS
-		}
 	}
 
 	if endStream {

@@ -175,7 +175,7 @@ type ProtoBasicCmd interface {
 
 // BoltRequestCommand is the cmd struct of bolt v1 request
 type BoltRequestCommand struct {
-	Protocol      byte  //BoltV1:1, BoltV2:2, Tr:13
+	Protocol      byte  //BoltV1:1, BoltV2:2
 	CmdType       byte  //Req:1,    Resp:0,   OneWay:2
 	CmdCode       int16 //HB:0,     Req:1,    Resp:2
 	Version       byte  //1
@@ -195,7 +195,7 @@ type BoltRequestCommand struct {
 
 // BoltResponseCommand is the cmd struct of bolt v1 response
 type BoltResponseCommand struct {
-	Protocol byte  //BoltV1:1, BoltV2:2, Tr:13
+	Protocol byte  //BoltV1:1, BoltV2:2
 	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
 	CmdCode  int16 //HB:0,     Req:1,    Resp:2
 	Version  byte  //BoltV1:1  BoltV2: 1
@@ -265,9 +265,7 @@ const (
 	SofaRPCPropertyHeaderPrefix = "x-mosn-sofarpc-headers-property-"
 )
 
-//tr constants
 const (
-	PROTOCOL_CODE_TR       byte   = 13
 	HEADER_REQUEST         byte   = 0
 	HEADER_RESPONSE        byte   = 1
 	HESSIAN_SERIALIZE      byte   = 1
@@ -345,8 +343,6 @@ func BuildSofaRespMsg(context context.Context, headers map[string]string, respSt
 			Version1:   ver1,
 			SwitchCode: switchCode,
 		}, nil
-	} else if pro == PROTOCOL_CODE_TR {
-		return headers, nil
 	}
 
 	log.ByContext(context).Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
