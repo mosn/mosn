@@ -174,39 +174,40 @@ func (c *connection) startReadLoop() {
 			return
 		default:
 		}
-
+		
 		select {
 		case <-c.stopChan:
 			return
 		case <-c.internalStopChan:
 			return
 		case <-c.readEnabledChan:
+			continue
+		
 		default:
 			if c.readEnabled {
 				err := c.doRead()
-
-				if err != nil {
-
-					if err == io.EOF {
-						c.Close(types.NoFlush, types.RemoteClose)
-					} else {
-						c.Close(types.NoFlush, types.OnReadErrClose)
-					}
-
-					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
-						c.id, c.RemoteAddr().String(), err)
-
-					return
+				
+				if err == nil {
+					runtime.Gosched()
+					continue
 				}
-			} else {
-				select {
-				case <-c.readEnabledChan:
-				case <-time.After(100 * time.Millisecond):
+				
+				
+				if err == io.EOF {
+					c.Close(types.NoFlush, types.RemoteClose)
+				} else {
+					c.Close(types.NoFlush, types.OnReadErrClose)
+					
 				}
+				
+				c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
+					c.id, c.RemoteAddr().String(), err)
+				
+				return
 			}
-
-			runtime.Gosched()
 		}
+		
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
