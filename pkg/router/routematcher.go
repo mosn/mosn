@@ -18,6 +18,8 @@
 package router
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/alipay/sofa-mosn/internal/api/v2"
@@ -37,8 +39,9 @@ func init() {
 // New 'routeMatcher' according config
 func NewRouteMatcher(config interface{}) (types.Routers, error) {
 	routerMatcher := &routeMatcher{
-		virtualHosts:                make(map[string]types.VirtualHost),
-		wildcardVirtualHostSuffixes: make(map[int]map[string]types.VirtualHost),
+		virtualHosts:                             make(map[string]types.VirtualHost),
+		wildcardVirtualHostSuffixes:              make(map[int]map[string]types.VirtualHost),
+		greaterSortedWildcardVirtualHostSuffixes: []int{},
 	}
 
 	if config, ok := config.(*v2.Proxy); ok {
@@ -53,32 +56,51 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 
 				if domain == "*" {
 					if routerMatcher.defaultVirtualHost != nil {
-						log.StartLogger.Fatal("Only a single wildcard domain permitted")
+						//log.StartLogger.Fatal("Only a single wildcard domain permitted")
+						return nil, fmt.Errorf("Only a single wildcard domain permitted")
 					}
 					log.StartLogger.Tracef("route matcher default virtual host")
 					routerMatcher.defaultVirtualHost = vh
 
 				} else if len(domain) > 1 && "*" == domain[:1] {
-					domainMap := map[string]types.VirtualHost{domain[1:]: vh}
-					routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1] = domainMap
+					// fix: if there is a map exists, should insert a virtualhost, not create a new map
+					m, ok := routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1]
+					if !ok {
+						m = map[string]types.VirtualHost{}
+						routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1] = m
+					}
+					// add check, different from envoy
+					// exactly same wildcard domain is unique
+					wildcard := domain[1:]
+					if _, ok := m[wildcard]; ok {
+						return nil, fmt.Errorf("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+					}
+					m[wildcard] = vh
 
-				} else if _, ok := routerMatcher.virtualHosts[domain]; ok {
-					log.StartLogger.Fatal("Only unique values for domains are permitted, get duplicate domain = %s", domain)
 				} else {
+					if _, ok := routerMatcher.virtualHosts[domain]; ok {
+						//log.StartLogger.Fatal("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+						return nil, fmt.Errorf("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+					}
 					routerMatcher.virtualHosts[domain] = vh
 				}
 			}
 		}
 	}
+	for key := range routerMatcher.wildcardVirtualHostSuffixes {
+		routerMatcher.greaterSortedWildcardVirtualHostSuffixes = append(routerMatcher.greaterSortedWildcardVirtualHostSuffixes, key)
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(routerMatcher.greaterSortedWildcardVirtualHostSuffixes)))
 
 	return routerMatcher, nil
 }
 
 // A router wrapper used to matches an incoming request headers to a backend cluster
 type routeMatcher struct {
-	virtualHosts                map[string]types.VirtualHost // key: host
-	defaultVirtualHost          types.VirtualHost
-	wildcardVirtualHostSuffixes map[int]map[string]types.VirtualHost
+	virtualHosts                             map[string]types.VirtualHost // key: host
+	defaultVirtualHost                       types.VirtualHost
+	wildcardVirtualHostSuffixes              map[int]map[string]types.VirtualHost
+	greaterSortedWildcardVirtualHostSuffixes []int
 }
 
 // Routing with Virtual Host
@@ -130,10 +152,13 @@ func (rm *routeMatcher) findVirtualHost(headers map[string]string) types.Virtual
 func (rm *routeMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
 
 	// e.g. foo-bar.baz.com will match *-bar.baz.com
-	for wildcardLen, wildcardMap := range rm.wildcardVirtualHostSuffixes {
+	// foo-bar.baz.com should match *-bar.baz.com before matching *.baz.com
+	//for wildcardLen, wildcardMap := range rm.wildcardVirtualHostSuffixes {
+	for _, wildcardLen := range rm.greaterSortedWildcardVirtualHostSuffixes {
 		if wildcardLen >= len(host) {
 			continue
 		} else {
+			wildcardMap := rm.wildcardVirtualHostSuffixes[wildcardLen]
 			for domainKey, virtualHost := range wildcardMap {
 				if domainKey == host[len(host)-wildcardLen:] {
 					return virtualHost

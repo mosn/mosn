@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/stream"
@@ -88,7 +89,12 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
-	proxy.routers, _ = router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
+	//log fatal to exit
+	routers, err := router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
+	if err != nil {
+		log.StartLogger.Fatal(err)
+	}
+	proxy.routers = routers
 	proxy.downstreamCallbacks = &downstreamCallbacks{
 		proxy: proxy,
 	}
