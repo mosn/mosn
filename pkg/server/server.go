@@ -21,12 +21,12 @@ import (
 	"errors"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/orcaman/concurrent-map"
 )
 
 func init() {
@@ -53,7 +53,7 @@ type server struct {
 	logger        log.Logger
 	stopChan      chan struct{}
 	handler       types.ConnectionHandler
-	ListenerInMap cmap.ConcurrentMap
+	ListenerInMap sync.Map
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
@@ -80,7 +80,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		logger:        log.DefaultLogger,
 		stopChan:      make(chan struct{}),
 		handler:       NewHandler(cmFilter, clMng, log.DefaultLogger),
-		ListenerInMap: cmap.New(),
+		ListenerInMap: sync.Map{},
 	}
 
 	servers = append(servers, server)
@@ -89,10 +89,10 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 }
 
 func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
-	if srv.ListenerInMap.Has(lc.Name) {
+	if _, ok := srv.ListenerInMap.Load(lc.Name); ok {
 		log.DefaultLogger.Warnf("Listen Already Started, Listen = %+v", lc)
 	} else {
-		srv.ListenerInMap.Set(lc.Name, lc)
+		srv.ListenerInMap.Store(lc.Name, lc)
 		srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
 	}
 }
@@ -100,10 +100,10 @@ func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory type
 func (srv *server) AddListenerAndStart(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) error {
 
-	if srv.ListenerInMap.Has(lc.Name) {
+	if _, ok := srv.ListenerInMap.Load(lc.Name); ok {
 		log.DefaultLogger.Warnf("Listener Already Started, Listener Name = %+v", lc.Name)
 	} else {
-		srv.ListenerInMap.Set(lc.Name, lc)
+		srv.ListenerInMap.Store(lc.Name, lc)
 		al := srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
 
 		if activeListener, ok := al.(*activeListener); ok {

@@ -58,10 +58,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/orcaman/concurrent-map"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/rcrowley/go-metrics"
 
 [[constraint]]

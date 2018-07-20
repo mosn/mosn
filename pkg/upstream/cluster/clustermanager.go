@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -31,17 +32,16 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/orcaman/concurrent-map"
 )
 
 // ClusterManager
 type clusterManager struct {
 	sourceAddr             net.Addr
-	primaryClusters        cmap.ConcurrentMap // string: *primaryCluster
-	sofaRPCConnPool        cmap.ConcurrentMap // string: types.ConnectionPool
-	http2ConnPool          cmap.ConcurrentMap // string: types.ConnectionPool
-	xProtocolConnPool      cmap.ConcurrentMap // string: types.ConnectionPool
-	http1ConnPool          cmap.ConcurrentMap // string: types.ConnectionPool
+	primaryClusters        sync.Map // string: *primaryCluster
+	sofaRPCConnPool        sync.Map // string: types.ConnectionPool
+	http2ConnPool          sync.Map // string: types.ConnectionPool
+	xProtocolConnPool      sync.Map // string: types.ConnectionPool
+	http1ConnPool          sync.Map // string: types.ConnectionPool
 	clusterAdapter         Adapter
 	autoDiscovery          bool
 	registryUseHealthCheck bool
@@ -57,11 +57,11 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	clusterMap map[string][]v2.Host, autoDiscovery bool, useHealthCheck bool) types.ClusterManager {
 	cm := &clusterManager{
 		sourceAddr:        sourceAddr,
-		primaryClusters:   cmap.New(),
-		sofaRPCConnPool:   cmap.New(),
-		http2ConnPool:     cmap.New(),
-		xProtocolConnPool: cmap.New(),
-		http1ConnPool:     cmap.New(),
+		primaryClusters:   sync.Map{},
+		sofaRPCConnPool:   sync.Map{},
+		http2ConnPool:     sync.Map{},
+		xProtocolConnPool: sync.Map{},
+		http1ConnPool:     sync.Map{},
 		autoDiscovery:     true, //todo delete
 	}
 	//init Adap when run app
@@ -106,7 +106,7 @@ type primaryCluster struct {
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	clusterName := cluster.Name
 
-	if v, exist := cm.primaryClusters.Get(clusterName); exist {
+	if v, exist := cm.primaryClusters.Load(clusterName); exist {
 		if !v.(*primaryCluster).addedViaAPI {
 			return false
 		}
@@ -119,7 +119,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 }
 
 func (cm *clusterManager) ClusterExist(clusterName string) bool {
-	if _, exist := cm.primaryClusters.Get(clusterName); exist {
+	if _, exist := cm.primaryClusters.Load(clusterName); exist {
 		return true
 	}
 
@@ -135,7 +135,7 @@ func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool
 		})
 	})
 
-	cm.primaryClusters.Set(clusterConfig.Name, &primaryCluster{
+	cm.primaryClusters.Store(clusterConfig.Name, &primaryCluster{
 		cluster:     cluster,
 		addedViaAPI: addedViaAPI,
 	})
@@ -144,7 +144,7 @@ func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool
 }
 
 func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *clusterSnapshot {
-	if v, ok := cm.primaryClusters.Get(clusterName); ok {
+	if v, ok := cm.primaryClusters.Load(clusterName); ok {
 		pcc := v.(*primaryCluster).cluster
 
 		clusterSnapshot := &clusterSnapshot{
@@ -164,9 +164,10 @@ func (cm *clusterManager) SetInitializedCb(cb func()) {}
 func (cm *clusterManager) Clusters() map[string]types.Cluster {
 	clusterInfoMap := make(map[string]types.Cluster)
 
-	for c, pc := range cm.primaryClusters.Items() {
-		clusterInfoMap[c] = pc.(*primaryCluster).cluster
-	}
+	cm.primaryClusters.Range(func(key, value interface{}) bool {
+		clusterInfoMap[key.(string)] = value.(*primaryCluster).cluster
+		return true
+	})
 
 	return clusterInfoMap
 }
@@ -176,7 +177,7 @@ func (cm *clusterManager) Get(context context.Context, cluster string) types.Clu
 }
 
 func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32, hostConfigs []v2.Host) error {
-	if v, ok := cm.primaryClusters.Get(clusterName); ok {
+	if v, ok := cm.primaryClusters.Load(clusterName); ok {
 		pcc := v.(*primaryCluster).cluster
 
 		// todo: hack
@@ -201,7 +202,7 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host
 		return errors.New("host is nil")
 	}
 
-	if v, ok := cm.primaryClusters.Get(clusterName); ok {
+	if v, ok := cm.primaryClusters.Load(clusterName); ok {
 		pcc := v.(*primaryCluster).cluster
 
 		found := false
@@ -248,22 +249,22 @@ func (cm *clusterManager) HTTPConnPoolForCluster(lbCtx types.LoadBalancerContext
 		switch protocol {
 		case proto.HTTP2:
 
-			if connPool, ok := cm.http2ConnPool.Get(addr); ok {
+			if connPool, ok := cm.http2ConnPool.Load(addr); ok {
 				return connPool.(types.ConnectionPool)
 			}
 			// todo: move this to a centralized factory, remove dependency to http2 stream
 			connPool := http2.NewConnPool(host)
-			cm.http2ConnPool.Set(addr, connPool)
+			cm.http2ConnPool.Store(addr, connPool)
 
 			return connPool
 		case proto.HTTP1:
 
-			if connPool, ok := cm.http1ConnPool.Get(addr); ok {
+			if connPool, ok := cm.http1ConnPool.Load(addr); ok {
 				return connPool.(types.ConnectionPool)
 			}
 			// todo: move this to a centralized factory, remove dependency to http1 stream
 			connPool := http.NewConnPool(host)
-			cm.http1ConnPool.Set(addr, connPool)
+			cm.http1ConnPool.Store(addr, connPool)
 
 			return connPool
 		}
@@ -287,11 +288,11 @@ func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerCo
 		addr := host.AddressString()
 		log.StartLogger.Tracef("Xprotocol connection pool upstream addr : %v", addr)
 
-		if connPool, ok := cm.xProtocolConnPool.Get(addr); ok {
+		if connPool, ok := cm.xProtocolConnPool.Load(addr); ok {
 			return connPool.(types.ConnectionPool)
 		}
 		connPool := xprotocol.NewConnPool(host)
-		cm.xProtocolConnPool.Set(addr, connPool)
+		cm.xProtocolConnPool.Store(addr, connPool)
 
 		return connPool
 	}
@@ -329,12 +330,12 @@ func (cm *clusterManager) SofaRPCConnPoolForCluster(lbCtx types.LoadBalancerCont
 		addr := host.AddressString()
 		log.DefaultLogger.Debugf(" clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, cluster)
 
-		if connPool, ok := cm.sofaRPCConnPool.Get(addr); ok {
+		if connPool, ok := cm.sofaRPCConnPool.Load(addr); ok {
 			return connPool.(types.ConnectionPool)
 		}
 		// todo: move this to a centralized factory, remove dependency to sofarpc stream
 		connPool := sofarpc.NewConnPool(host)
-		cm.sofaRPCConnPool.Set(addr, connPool)
+		cm.sofaRPCConnPool.Store(addr, connPool)
 
 		return connPool
 
@@ -345,12 +346,12 @@ func (cm *clusterManager) SofaRPCConnPoolForCluster(lbCtx types.LoadBalancerCont
 }
 
 func (cm *clusterManager) RemovePrimaryCluster(clusterName string) bool {
-	if v, exist := cm.primaryClusters.Get(clusterName); exist {
+	if v, exist := cm.primaryClusters.Load(clusterName); exist {
 		if !v.(*primaryCluster).addedViaAPI {
 			log.DefaultLogger.Warnf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaAPI", clusterName)
 			return false
 		} else {
-			cm.primaryClusters.Remove(clusterName)
+			cm.primaryClusters.Delete(clusterName)
 			log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
 		}
 	}

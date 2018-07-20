@@ -128,12 +128,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/orcaman/concurrent-map"
-  packages = ["."]
-  revision = "a05df785d2dcc16310fb997ee1702100d047cfe1"
-
-[[projects]]
-  branch = "master"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
   revision = "e2704e165165ec55d062f5919b4b29494e9fa790"
@@ -239,6 +233,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fe66685f55394a7078685723a6ade2397dc2d0b387350dc7f0684c1347b586dd"
+  inputs-digest = "755d0560f8bcd057d66b9415e9b912509f6e4b9f3551718081c1f2f543bc8dd0"
   solver-name = "gps-cdcl"
   solver-version = 1
