@@ -78,7 +78,7 @@ package router
 //		t.Run(tt.name, func(t *testing.T) {
 //			got, err := NewRouteMatcher(tt.args.config)
 //
-//			rm,_ := got.(*RouteMatcher)
+//			rm,_ := got.(*routeMatcher)
 //
 //
 //			if (err != nil) != tt.wantErr {

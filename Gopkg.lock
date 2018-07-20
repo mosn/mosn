@@ -11,6 +11,7 @@
     "envoy/api/v2/endpoint",
     "envoy/api/v2/listener",
     "envoy/api/v2/route",
+    "envoy/config/accesslog/v2",
     "envoy/config/bootstrap/v2",
     "envoy/config/filter/accesslog/v2",
     "envoy/config/filter/network/http_connection_manager/v2",
@@ -22,8 +23,8 @@
     "envoy/type",
     "pkg/util"
   ]
-  revision = "469a90e97a000f23f2ab0bf494cdc8e1480a3dfa"
-  version = "v0.2"
+  revision = "c14704578b82128fab17743d91f870c406ef8d09"
+  version = "v0.4"
 
 [[projects]]
   name = "github.com/fatih/structs"
@@ -121,6 +122,16 @@
 
 [[projects]]
   name = "github.com/modern-go/reflect2"
+<<<<<<< HEAD
+=======
+  packages = ["."]
+  revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
+  version = "1.0.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/orcaman/concurrent-map"
+>>>>>>> master
   packages = ["."]
   revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
   version = "1.0.1"
@@ -232,6 +243,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d86e3acbef6a90628ff9f47835227204ef749920091aef311acc19881cf8f621"
+  inputs-digest = "fe66685f55394a7078685723a6ade2397dc2d0b387350dc7f0684c1347b586dd"
   solver-name = "gps-cdcl"
   solver-version = 1

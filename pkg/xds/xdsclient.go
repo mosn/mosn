@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+/* Package xds can be used to create an grpc (just support grpc and v2 api) client communicated with pilot
+   and fetch config in cycle
+*/
+
 package xds
 
 import (
@@ -36,11 +40,7 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-//var warmuped chan bool = make(chan bool)
-//var stopping chan bool = make(chan bool)
-//var stopped chan bool = make(chan bool)
-//var started bool = false
-
+// Client provide an ADS client
 type Client struct {
 	v2        *v2.ClientV2
 	adsClient *v2.ADSClient
@@ -128,9 +128,8 @@ func duration2String(duration *types.Duration) string {
 	return x + "s"
 }
 
-/*
-in order to convert bootstrap_v2 json to pb struct (go-control-plane), some fields must be exchanged format
-*/
+
+// UnmarshalResources used in order to convert bootstrap_v2 json to pb struct (go-control-plane), some fields must be exchanged format
 func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources, err error) {
 
 	if len(config.RawDynamicResources) > 0 {
@@ -271,6 +270,8 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 	return dynamicResources, staticResources, nil
 }
 
+// Start used to fetch listeners/clusters/clusterloadassignment config from pilot in cycle,
+// usually called when mosn start
 func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode string) error {
 	log.DefaultLogger.Infof("xds client start")
 	if c.v2 == nil {
@@ -313,13 +314,11 @@ func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode st
 	return nil
 }
 
+// Stop used to stop fetch listeners/clusters/clusterloadassignment config from pilot,
+// usually called when mosn quit
 func (c *Client) Stop() {
 	log.DefaultLogger.Infof("prepare to stop xds client")
 	c.adsClient.Stop()
 	log.DefaultLogger.Infof("xds client stop")
 }
 
-// must be call after func start
-//func (c *Client)WaitForWarmUp() {
-//	<- warmuped
-//}

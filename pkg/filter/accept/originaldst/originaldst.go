@@ -28,6 +28,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// OriginDST filter used to find out destination address of a connection which been redirected by iptables
+
 // OriginDST, option for syscall.GetsockoptIPv6Mreq
 const (
 	SO_ORIGINAL_DST      = 80
@@ -37,11 +39,12 @@ const (
 type originalDst struct {
 }
 
+// NewOriginalDst new an original dst filter
 func NewOriginalDst() OriginalDst {
 	return &originalDst{}
 }
 
-// todo add comment
+// OnAccept called when connection accept
 func (filter *originalDst) OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus {
 	ip, port, err := getOriginalAddr(cb.Conn())
 	if err != nil {

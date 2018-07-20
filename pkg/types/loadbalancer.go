@@ -60,7 +60,7 @@ type SubSetLoadBalancer interface {
 	// The bool returned true if a Host returned is not nil.
 	// If no metadata found in the context, or there is no matching subset, or the matching subset
 	// contains no available host will return a nil Host and false.
-	TryChooseHostFromContext(context LoadBalancerContext, hostChosen *bool) Host
+	TryChooseHostFromContext(context LoadBalancerContext) (Host, bool)
 
 	// UpdateFallbackSubset creates and updates fallback subset.
 	UpdateFallbackSubset(priority uint32, hostAdded []Host, hostsRemoved []Host)

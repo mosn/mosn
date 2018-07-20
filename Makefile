@@ -37,6 +37,13 @@ coverage:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make coverage-local
 
+integrate-local:
+	go test ./test/...
+
+integrate:
+	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
+	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make integrate-local
+
 build:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make build-local

@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+// ResponseFlag type
 type ResponseFlag int
 
 // Some Response Flags
@@ -50,82 +51,84 @@ const (
 	RateLimited ResponseFlag = 0x800
 )
 
+// RequestInfo has information for a request, include the basic information,
+// the request's downstream information, ,the request's upstream information and the router information.
 type RequestInfo interface {
-	// get request's arriving time
+	// StartTime returns the time that request arriving
 	StartTime() time.Time
 
-	// get duration between request arriving and request resend to upstream
+	// RequestReceivedDuration returns duration between request arriving and request resend to upstream
 	RequestReceivedDuration() time.Duration
 
-	// set duration between request arriving and request resend to upstream
+	// SetRequestReceivedDuration sets duration between request arriving and request resend to upstream
 	SetRequestReceivedDuration(time time.Time)
 
-	// get duration between request arriving and response sending
+	// ResponseReceivedDuration gets duration between request arriving and response sending
 	ResponseReceivedDuration() time.Duration
 
-	// set duration between request arriving and response sending
+	// SetResponseReceivedDuration sets duration between request arriving and response sending
 	SetResponseReceivedDuration(time time.Time)
 
-	// get bytes sent
+	// BytesSent reports the bytes sent
 	BytesSent() uint64
 
-	// set bytes sent
+	// SetBytesSent sets the bytes sent
 	SetBytesSent(bytesSent uint64)
 
-	// get bytes received
+	// BytesReceived reports the bytes received
 	BytesReceived() uint64
 
-	// set  bytes received
+	// SetBytesReceived sets the bytes received
 	SetBytesReceived(bytesReceived uint64)
 
-	// get request's protocol type
+	// Protocol returns the request's protocol type
 	Protocol() Protocol
 
-	// get request's response code
+	// ResponseCode reports the request's response code
 	ResponseCode() uint32
 
-	// get duration since request's starting time
+	// Duration reports the duration since request's starting time
 	Duration() time.Duration
 
-	// get request's response flag
+	// GetResponseFlag gets request's response flag
 	GetResponseFlag(flag ResponseFlag) bool
 
-	// set request's response flag
+	// SetResponseFlag sets request's response flag
 	SetResponseFlag(flag ResponseFlag)
 
-	// get upstream selected
+	//UpstreamHost reports  the selected upstream's host information
 	UpstreamHost() HostInfo
 
-	// set upstream selected
+	// OnUpstreamHostSelected sets the selected upstream's host information
 	OnUpstreamHostSelected(host HostInfo)
 
-	// get upstream's local address
+	// UpstreamLocalAddress reports the upstream's local network address
 	UpstreamLocalAddress() net.Addr
 
-	// set upstream's local address
+	// SetUpstreamLocalAddress sets upstream's local network address
 	SetUpstreamLocalAddress(localAddress net.Addr)
 
-	// is health check
+	// IsHealthCheck checks whether the request is health.
 	IsHealthCheck() bool
 
-	// set health check
+	// SetHealthCheck sets the request's health state.
 	SetHealthCheck(isHc bool)
 
-	// get downstream's local address
+	// DownstreamLocalAddress reports the downstream's local network address.
 	DownstreamLocalAddress() net.Addr
 
-	// set downstream's local address
+	// SetDownstreamLocalAddress sets the downstream's local network address.
 	SetDownstreamLocalAddress(addr net.Addr)
 
-	// get downstream's local address
+	// DownstreamRemoteAddress reports the downstream's remote network address.
 	DownstreamRemoteAddress() net.Addr
 
-	// set downstream's local address
+	// SetDownstreamRemoteAddress sets the downstream's remote network address.
 	SetDownstreamRemoteAddress(addr net.Addr)
 
-	// get route rule
+	// RouteEntry reports the route rule
 	RouteEntry() RouteRule
 
-	// set route rule
+	// SetRouteEntry sets the route rule
 	SetRouteEntry(routerRule RouteRule)
 }

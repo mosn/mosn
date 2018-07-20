@@ -42,13 +42,15 @@ type requestInfo struct {
 	routerRule               types.RouteRule
 }
 
-func NewRequestInfoWithPort(protocol types.Protocol) types.RequestInfo {
+// todo check
+func newRequestInfoWithPort(protocol types.Protocol) types.RequestInfo {
 	return &requestInfo{
 		protocol:  protocol,
 		startTime: time.Now(),
 	}
 }
 
+// NewRequestInfo
 func NewRequestInfo() types.RequestInfo {
 	return &requestInfo{
 		startTime: time.Now(),

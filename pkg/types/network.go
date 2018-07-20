@@ -374,6 +374,7 @@ type Connection interface {
 	RawConn() net.Conn
 }
 
+// ConnectionStats is a group of connection metrics
 type ConnectionStats struct {
 	ReadTotal    metrics.Counter
 	ReadCurrent  metrics.Gauge
@@ -381,6 +382,7 @@ type ConnectionStats struct {
 	WriteCurrent metrics.Gauge
 }
 
+// ClientConnection is a wrapper of Connection
 type ClientConnection interface {
 	Connection
 
@@ -388,8 +390,10 @@ type ClientConnection interface {
 	Connect(ioEnabled bool) error
 }
 
+// ConnectionEvent type
 type ConnectionEvent string
 
+// ConnectionEvent types
 const (
 	RemoteClose     ConnectionEvent = "RemoteClose"
 	LocalClose      ConnectionEvent = "LocalClose"
@@ -401,87 +405,89 @@ const (
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
 )
 
+// IsClose represents whether the event is triggered by connection close
 func (ce ConnectionEvent) IsClose() bool {
 	return ce == LocalClose || ce == RemoteClose ||
 		ce == OnReadErrClose || ce == OnWriteErrClose
 }
 
+// ConnectFailure represents whether the event is triggered by connection failure
 func (ce ConnectionEvent) ConnectFailure() bool {
 	return ce == ConnectFailed || ce == ConnectTimeout
 }
 
-// Network level callbacks that happen on a connection.
+// ConnectionEventListener is a network level callbacks that happen on a connection.
 type ConnectionEventListener interface {
-	// Called on ConnectionEvent
+	// OnEvent is called on ConnectionEvent
 	OnEvent(event ConnectionEvent)
 }
 
+// ConnectionHandler contains the listeners for a mosn server
 type ConnectionHandler interface {
-	// Num of connections
+	// NumConnections reports the connections that ConnectionHandler keeps.
 	NumConnections() uint64
 
-	// Add a listener
+	// AddListener adds a listener into the ConnectionHandler
 	AddListener(lc *v2.ListenerConfig, networkFiltersFactory NetworkFilterChainFactory,
 		streamFiltersFactories []StreamFilterChainFactory) ListenerEventListener
 
-	// Start a listener by tag
+	// StartListener starts a listener by the specified listener tag
 	StartListener(lctx context.Context, listenerTag uint64)
 
-	// Start all listeners
+	//StartListeners starts all listeners the ConnectionHandler has
 	StartListeners(lctx context.Context)
 
-	// Find a listener by address
+	// FindListenerByAddress finds and returns a listener by the specified network address
 	FindListenerByAddress(addr net.Addr) Listener
 
-	// Remove listener by tag
+	// RemoveListeners find and removes a listener by the specified listener tag.
 	RemoveListeners(listenerTag uint64)
 
-	// Stop listener by tag
+	// StopListener stops a listener  by the specified listener tag.
 	StopListener(lctx context.Context, listenerTag uint64)
 
-	// Stop all listener
-	// + close : indicates whether the listening sockets will be closed
+	// StopListeners stops all listeners the ConnectionHandler has.
+	// The close indicates whether the listening sockets will be closed.
 	StopListeners(lctx context.Context, close bool)
 
-	// List all listeners' fd
+	// ListListenersFD reports all listeners' fd
 	ListListenersFD(lctx context.Context) []uintptr
 }
 
-// Connection binary read filter
-// Registered by FilterManager.AddReadFilter
+// ReadFilter is a connection binary read filter, registered by FilterManager.AddReadFilter
 type ReadFilter interface {
-	// Called everytime bytes is read from the connection
+	// OnData is called everytime bytes is read from the connection
 	OnData(buffer IoBuffer) FilterStatus
 
-	// Called on new connection is created
+	// OnNewConnection is called on new connection is created
 	OnNewConnection() FilterStatus
 
-	// Initial read filter callbacks. It used by init read filter
+	// InitializeReadFilterCallbacks initials read filter callbacks. It used by init read filter
 	InitializeReadFilterCallbacks(cb ReadFilterCallbacks)
 }
 
-// Connection binary write filter
-// only called by conn accept loop
+// WriteFilter is a connection binary write filter, only called by conn accept loop
 type WriteFilter interface {
-	// Called before data write to raw connection
+	// OnWrite is called before data write to raw connection
 	OnWrite(buffer []IoBuffer) FilterStatus
 }
 
-// Called by read filter to talk to connection
+// ReadFilterCallbacks is called by read filter to talk to connection
 type ReadFilterCallbacks interface {
-	// Get connection
+	// Connection returns the connection triggered the callback
 	Connection() Connection
 
-	// Continue reading filter iteration on filter stopped, next filter will be called with current read buffer
+	// ContinueReading filter iteration on filter stopped, next filter will be called with current read buffer
 	ContinueReading()
 
-	// Return current selected upstream host.
+	// UpstreamHost returns current selected upstream host.
 	UpstreamHost() HostInfo
 
-	// Set currently selected upstream host.
+	// SetUpstreamHost set currently selected upstream host.
 	SetUpstreamHost(upstreamHost HostInfo)
 }
 
+// FilterManager is a groups of filters
 type FilterManager interface {
 	// AddReadFilter adds a read filter
 	AddReadFilter(rf ReadFilter)
@@ -511,14 +517,17 @@ type FilterChainFactory interface {
 	CreateListenerFilterChain(listener ListenerFilterManager)
 }
 
+// NetworkFilterFactoryCb is a callback function used in network filter factory
 type NetworkFilterFactoryCb func(manager FilterManager)
 
 type NetworkFilterChainFactory interface {
 	CreateFilterFactory(context context.Context, clusterManager ClusterManager) NetworkFilterFactoryCb
 }
 
+// Addresses defines a group of network address
 type Addresses []net.Addr
 
+// Contains reports whether the specified network address is in the group.
 func (as Addresses) Contains(addr net.Addr) bool {
 	for _, one := range as {
 		// TODO: support port wildcard

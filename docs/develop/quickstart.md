@@ -17,6 +17,7 @@ MOSN 项目的代码托管在 [github](https://github.com/alipay/sofa-mosn)，�
 ```bash
 go get github.com/alipay/sofa-mosn
 ```
+
 如果你的 go get 下载存在问题，请手动创建项目工程
 
 ```bash
@@ -42,7 +43,7 @@ cd sofa-mosn
 在项目根目录下执行如下命令编译 MOSN 的二进制文件：
 
 ```bash
-dep ensure			// dep速度较慢，耐心等待
+dep ensure	   // dep速度较慢，耐心等待
 make build         //使用docker编译
 // or
 make build-local   // 使用本地的go编译环境
@@ -71,7 +72,7 @@ make unit-test
 
 单独运行 MOSN 作为 proxy 转发的示例:
 
-+ 参考 `mosn/pkg/tests/` 下的[示例](testandsamples/RunMosnTests.md)
++ 参考 `sofa-mosn/test/` 下的[示例](testandsamples/RunMosnTests.md)
 
 ## 从配置文件[启动 MOSN](../reference/HowtoStartMosnFromConfig.md)
 
@@ -81,7 +82,7 @@ make unit-test
 
 ## 如何快速启动一个 mosn 的转发程序
 
-参考 `samples` 目录下的示例工程
+参考 `examples` 目录下的示例工程
 
 + [以sofa proxy为例](testandsamples/RunMosnSofaProxy.md)
 + [以http proxy为例](testandsamples/RunMosnHttpProxy.md)
