@@ -51,6 +51,8 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool)
 
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaAPI)
+	default:
+		return nil
 	}
 
 	// init health check for cluster's host
