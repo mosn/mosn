@@ -15,9 +15,27 @@
  * limitations under the License.
  */
 
+// Package router, VirtualHost Config rules:
+// 1. A VirtualHost should have one or more Domains, or it will be ignore
+// 2. A VritualHost has a group of Router (Routers), the first successful matched is used. Notice that the order of router
+// 3. priority: domain > '*' > wildcard-domain
+
+// From https://www.envoyproxy.io/docs/envoy/latest/api-v1/route_config/vhost
+
+// A list of domains (host/authority header) that will be matched to this virtual host.
+// Wildcard hosts are supported in the form of “*.foo.com” or “*-bar.foo.com”.
+// Note that the wildcard will not match the empty string. e.g. “*-bar.foo.com” will match “baz-bar.foo.com” but not “-bar.foo.com”.
+// Additionally, a special entry “*” is allowed which will match any host/authority header.
+// Only a single virtual host in the entire route configuration can match on “*”.
+// A domain must be unique across all virtual hosts or the config will fail to load.
+// We do a longest wildcard suffix match against the host that's passed in.
+// (e.g. foo-bar.baz.com should match *-bar.baz.com before matching *.baz.com)
+
 package router
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/alipay/sofa-mosn/internal/api/v2"
@@ -34,42 +52,64 @@ func init() {
 }
 
 // NewRouteMatcher
-// New 'routeMatcher' according config
+// New 'routeMatcher' according to config
 func NewRouteMatcher(config interface{}) (types.Routers, error) {
 	routerMatcher := &routeMatcher{
-		virtualHosts:                make(map[string]types.VirtualHost),
-		wildcardVirtualHostSuffixes: make(map[int]map[string]types.VirtualHost),
+		virtualHosts:                             make(map[string]types.VirtualHost),
+		wildcardVirtualHostSuffixes:              make(map[int]map[string]types.VirtualHost),
+		greaterSortedWildcardVirtualHostSuffixes: []int{},
 	}
-
+	
 	if config, ok := config.(*v2.Proxy); ok {
-
 		for _, virtualHost := range config.VirtualHosts {
+			if nil == virtualHost {
+				continue
+			}
+			
 			vh := NewVirtualHostImpl(virtualHost, config.ValidateClusters)
-
 			for _, domain := range virtualHost.Domains {
-
 				// Note: we use domain in lowercase
 				domain = strings.ToLower(domain)
 
 				if domain == "*" {
 					if routerMatcher.defaultVirtualHost != nil {
-						log.StartLogger.Fatal("Only a single wildcard domain permitted")
+						return nil, fmt.Errorf("Only a single wildcard domain permitted")
 					}
-					log.StartLogger.Tracef("route matcher default virtual host")
+					log.StartLogger.Tracef("add route matcher default virtual host")
 					routerMatcher.defaultVirtualHost = vh
 
 				} else if len(domain) > 1 && "*" == domain[:1] {
-					domainMap := map[string]types.VirtualHost{domain[1:]: vh}
-					routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1] = domainMap
+					// first key: wildcard's len
+					m, ok := routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1]
+					if !ok {
+						m = map[string]types.VirtualHost{}
+						routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1] = m
+					}
+					
+					// add check, different from envoy
+					// exactly same wildcard domain is unique
+					wildcard := domain[1:]
+					if _, ok := m[wildcard]; ok {
+						return nil, fmt.Errorf("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+					}
+					m[wildcard] = vh
 
-				} else if _, ok := routerMatcher.virtualHosts[domain]; ok {
-					log.StartLogger.Fatal("Only unique values for domains are permitted, get duplicate domain = %s", domain)
 				} else {
+					if _, ok := routerMatcher.virtualHosts[domain]; ok {
+						return nil, fmt.Errorf("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+					}
 					routerMatcher.virtualHosts[domain] = vh
 				}
 			}
 		}
+	} else {
+		return nil,fmt.Errorf("NewRouteMatcher failure: config is not in type of *v2.Proxy")
 	}
+	
+	for key := range routerMatcher.wildcardVirtualHostSuffixes {
+		routerMatcher.greaterSortedWildcardVirtualHostSuffixes = append(routerMatcher.greaterSortedWildcardVirtualHostSuffixes, key)
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(routerMatcher.greaterSortedWildcardVirtualHostSuffixes)))
 
 	return routerMatcher, nil
 }
@@ -79,6 +119,9 @@ type routeMatcher struct {
 	virtualHosts                map[string]types.VirtualHost // key: host
 	defaultVirtualHost          types.VirtualHost
 	wildcardVirtualHostSuffixes map[int]map[string]types.VirtualHost
+	// array member is the lens of the wildcard in descending order
+	// used for longest match
+	greaterSortedWildcardVirtualHostSuffixes []int
 }
 
 // Routing with Virtual Host
@@ -128,12 +171,13 @@ func (rm *routeMatcher) findVirtualHost(headers map[string]string) types.Virtual
 
 // Rule: longest wildcard suffix match against the host
 func (rm *routeMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
-
 	// e.g. foo-bar.baz.com will match *-bar.baz.com
-	for wildcardLen, wildcardMap := range rm.wildcardVirtualHostSuffixes {
+	// foo-bar.baz.com should match *-bar.baz.com before matching *.baz.com
+	for _, wildcardLen := range rm.greaterSortedWildcardVirtualHostSuffixes {
 		if wildcardLen >= len(host) {
 			continue
 		} else {
+			wildcardMap := rm.wildcardVirtualHostSuffixes[wildcardLen]
 			for domainKey, virtualHost := range wildcardMap {
 				if domainKey == host[len(host)-wildcardLen:] {
 					return virtualHost
