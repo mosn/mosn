@@ -32,23 +32,121 @@ var testVirutalHostConfigs = map[string]*v2.VirtualHost{
 	"domain":          &v2.VirtualHost{Name: "domain", Domains: []string{"www.sofa-mosn.test"}},
 }
 
-// VirtualHost Config rules:
-// 1. A VirtualHost should have one or more Domains, or it will be ignore
-// 2. A VritualHost has a group of Router (Routers), the first successful matched is used. Notice that the order of router
-// 3. priority: domain > '*' > wildcard-domain
+var testInvalidVirutalHostConfigs = map[string]*v2.VirtualHost{
+	"inall":             &v2.VirtualHost{Name: "all", Domains: []string{"t*t"}},
+	"inwildcard-domain": &v2.VirtualHost{Name: "wildcard-domain", Domains: []string{".*.sofa-mosn.test"}},
+	"indomain":          &v2.VirtualHost{Name: "domain", Domains: []string{"*www.sofa-mosn.test"}},
+}
 
-// From https://www.envoyproxy.io/docs/envoy/latest/api-v1/route_config/vhost
+func TestNewRouteMatcher_default(t *testing.T) {
+	
+	virtualhost := testVirutalHostConfigs["all"]
+	
+	cfg := &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{virtualhost},
+	}
+	routers, err := NewRouteMatcher(cfg)
+	if err != nil {
+		t.Errorf("%v\n", err)
+	}
+	
+	rm := routers.(*routeMatcher)
+	expected := (rm.defaultVirtualHost != nil)
+	if !expected {
+		t.Errorf("#%s : expected one virtualhost\n")
+	}
+	
+	virtualhost = testInvalidVirutalHostConfigs["inall"]
+	
+	cfg = &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{virtualhost},
+	}
+	routers, err = NewRouteMatcher(cfg)
+	if err != nil {
+		t.Errorf("%v\n", err)
+	}
+	
+	rm = routers.(*routeMatcher)
+	expected = (rm.defaultVirtualHost == nil)
+	
+	if !expected {
+		t.Errorf("#%s : expected one virtualhost\n")
+	}
+}
 
-// A list of domains (host/authority header) that will be matched to this virtual host.
-// Wildcard hosts are supported in the form of “*.foo.com” or “*-bar.foo.com”.
-// Note that the wildcard will not match the empty string. e.g. “*-bar.foo.com” will match “baz-bar.foo.com” but not “-bar.foo.com”.
-// Additionally, a special entry “*” is allowed which will match any host/authority header.
-// Only a single virtual host in the entire route configuration can match on “*”.
-// A domain must be unique across all virtual hosts or the config will fail to load.
-// We do a longest wildcard suffix match against the host that's passed in.
-// (e.g. foo-bar.baz.com should match *-bar.baz.com before matching *.baz.com)
+func TestNewRouteMatcher_wildcard(t *testing.T) {
+	
+	virtualhost := testVirutalHostConfigs["wildcard-domain"]
+	
+	cfg := &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{virtualhost},
+	}
+	routers, err := NewRouteMatcher(cfg)
+	if err != nil {
+		t.Errorf("%v\n", err)
+	}
+	
+	rm := routers.(*routeMatcher)
+	expected := (len(rm.wildcardVirtualHostSuffixes) == 1)
+	if !expected {
+		t.Errorf("#%s : expected one virtualhost\n")
+	}
+	
+	virtualhost = testInvalidVirutalHostConfigs["inwildcard-domain"]
+	
+	cfg = &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{virtualhost},
+	}
+	routers, err = NewRouteMatcher(cfg)
+	if err != nil {
+		t.Errorf("%v\n", err)
+	}
+	
+	rm = routers.(*routeMatcher)
+	expected = (len(rm.wildcardVirtualHostSuffixes) == 0)
+	
+	if !expected {
+		t.Errorf("#%s : expected one virtualhost\n")
+	}
+}
 
-func TestNewRouteMatcherSignle(t *testing.T) {
+func TestNewRouteMatcher_domain(t *testing.T) {
+	
+	virtualhost := testVirutalHostConfigs["domain"]
+	
+	cfg := &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{virtualhost},
+	}
+	routers, err := NewRouteMatcher(cfg)
+	if err != nil {
+		t.Errorf("%v\n", err)
+	}
+	
+	rm := routers.(*routeMatcher)
+	expected := (len(rm.virtualHosts) == 1)
+	if !expected {
+		t.Errorf("#%s : expected one virtualhost\n")
+	}
+	
+	virtualhost = testInvalidVirutalHostConfigs["indomain"]
+	
+	cfg = &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{virtualhost},
+	}
+	routers, err = NewRouteMatcher(cfg)
+	if err != nil {
+		t.Errorf("%v\n", err)
+	}
+	
+	rm = routers.(*routeMatcher)
+	expected = (len(rm.virtualHosts) == 0)
+	
+	if !expected {
+		t.Errorf("#%s : expected one virtualhost\n")
+	}
+}
+
+func TestNewRouteMatcherSingle(t *testing.T) {
 	// Single VirtualHost
 	for key, vhConfig := range testVirutalHostConfigs {
 		cfg := &v2.Proxy{
@@ -66,6 +164,7 @@ func TestNewRouteMatcherSignle(t *testing.T) {
 		}
 	}
 }
+
 func TestNewRouteMatcherGroup(t *testing.T) {
 	//A group of VirtualHost
 	var virtualhosts []*v2.VirtualHost
