@@ -18,7 +18,6 @@
 package http2
 
 import (
-	"container/list"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -62,7 +61,6 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 	return nil
 }
 
-var transport http2.Transport
 var server http2.Server
 
 // types.StreamConnection
@@ -73,7 +71,6 @@ type streamConnection struct {
 	protocol      types.Protocol
 	rawConnection net.Conn
 	http2Conn     *http2.ClientConn
-	activeStreams *list.List
 	asMutex       sync.Mutex
 	connCallbacks types.ConnectionEventListener
 
@@ -101,15 +98,13 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 	streamConnCallbacks types.StreamConnectionEventListener,
 	connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 
-	h2Conn, _ := transport.NewClientConn(connection.RawConn())
-
 	return &clientStreamConnection{
 		streamConnection: streamConnection{
 			context:       context,
 			rawConnection: connection.RawConn(),
-			http2Conn:     h2Conn,
-			activeStreams: list.New(),
+			http2Conn:     context.Value(H2ConnKey).(*http2.ClientConn),
 			connCallbacks: connCallbacks,
+			logger:        log.ByContext(context),
 		},
 		streamConnCallbacks: streamConnCallbacks,
 	}
@@ -128,10 +123,6 @@ func (csc *clientStreamConnection) NewStream(streamID string, responseDecoder ty
 		connection: csc,
 	}
 
-	csc.asMutex.Lock()
-	stream.element = csc.activeStreams.PushBack(stream)
-	csc.asMutex.Unlock()
-
 	return stream
 }
 
@@ -148,10 +139,10 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 		streamConnection: streamConnection{
 			context:       context,
 			rawConnection: connection.RawConn(),
-			activeStreams: list.New(),
 		},
 		serverStreamConnCallbacks: callbacks,
 	}
+
 	if tlsConn, ok := ssc.rawConnection.(*tls.Conn); ok {
 
 		if err := tlsConn.Handshake(); err != nil {
@@ -187,17 +178,12 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseDoneChan: make(chan bool, 1),
 	}
 	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamID, stream)
-	ssc.asMutex.Lock()
-	stream.element = ssc.activeStreams.PushBack(stream)
-	ssc.asMutex.Unlock()
 
 	if atomic.LoadInt32(&stream.readDisableCount) <= 0 {
 		stream.handleRequest()
 	}
 
-	select {
-	case <-stream.responseDoneChan:
-	}
+	<-stream.responseDoneChan
 }
 
 // types.Stream
@@ -209,7 +195,6 @@ type stream struct {
 	request          *http.Request
 	response         *http.Response
 	decoder          types.StreamReceiver
-	element          *list.Element
 	streamCbs        []types.StreamEventListener
 }
 
@@ -336,6 +321,7 @@ func (s *clientStream) ReadDisable(disable bool) {
 
 func (s *clientStream) doSend() {
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
+
 	if err != nil {
 		log.StartLogger.Tracef("http2 client stream send error %v", err)
 		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
@@ -367,8 +353,9 @@ func (s *clientStream) doSend() {
 				s.ResetStream(types.StreamLocalReset)
 			} else {
 				s.connection.logger.Errorf("Unknown err: %v", err)
-				s.ResetStream(types.StreamConnectionFailed)
+				s.connection.connCallbacks.OnEvent(types.RemoteClose)
 			}
+
 			s.CleanStream()
 		}
 	} else {
@@ -382,7 +369,6 @@ func (s *clientStream) doSend() {
 func (s *clientStream) CleanStream() {
 	s.connection.asMutex.Lock()
 	s.response = nil
-	s.connection.activeStreams.Remove(s.element)
 	s.connection.asMutex.Unlock()
 }
 
@@ -396,8 +382,6 @@ func (s *clientStream) handleResponse() {
 
 		s.connection.asMutex.Lock()
 		s.response = nil
-		s.connection.activeStreams.Remove(s.element)
-		s.element = nil
 		s.connection.asMutex.Unlock()
 	}
 }
@@ -460,11 +444,6 @@ func (s *serverStream) AppendTrailers(trailers map[string]string) error {
 func (s *serverStream) endStream() {
 	s.doSend()
 	s.responseDoneChan <- true
-
-	s.connection.asMutex.Lock()
-	s.connection.activeStreams.Remove(s.element)
-	s.element = nil
-	s.connection.asMutex.Unlock()
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
@@ -502,12 +481,12 @@ func (s *serverStream) handleRequest() {
 		s.decoder.OnReceiveHeaders(decodeHeader(s.request.Header), false)
 
 		//remove detect
-		if s.element != nil {
-			buf := &buffer.IoBuffer{}
-			buf.ReadFrom(s.request.Body)
-			s.decoder.OnReceiveData(buf, false)
-			s.decoder.OnReceiveTrailers(decodeHeader(s.request.Trailer))
-		}
+		//if s.element != nil {
+		buf := &buffer.IoBuffer{}
+		buf.ReadFrom(s.request.Body)
+		s.decoder.OnReceiveData(buf, false)
+		s.decoder.OnReceiveTrailers(decodeHeader(s.request.Trailer))
+		//}
 	}
 }
 
