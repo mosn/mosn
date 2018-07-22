@@ -19,7 +19,6 @@ package http2
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"sync"
 
@@ -180,7 +179,7 @@ func (p *connPool) getOrInitActiveClient(context context.Context, addr string) *
 	p.mux.Lock()
 
 	for _, ac := range p.activeClients[addr] {
-		if ac.h2Conn.CanTakeNewRequest() {
+		if ac.CanTakeNewRequest() {
 			p.mux.Unlock()
 
 			return ac
@@ -224,8 +223,6 @@ func (p *connPool) MarkDead(http2Conn *http2.ClientConn) {
 			}
 		}
 	}
-
-	fmt.Printf("MarkDead %s, %d \n", acsIdx, acIdx)
 
 	if acsIdx != "" && acIdx > -1 {
 		p.activeClients[acsIdx] = append(p.activeClients[acsIdx][:acIdx],
@@ -293,6 +290,11 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	})
 
 	return ac
+}
+
+func (ac *activeClient) CanTakeNewRequest() bool {
+	// extend this method if we need to control this in stream layer
+	return ac.h2Conn.CanTakeNewRequest()
 }
 
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
