@@ -76,7 +76,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	for _, cluster := range clusters {
 		
 		if !cm.AddOrUpdatePrimaryCluster(cluster) {
-			log.DefaultLogger.Warnf("NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+			log.DefaultLogger.Errorf("NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
 		}
 	}
 
@@ -114,7 +114,6 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 			return false
 		}
 	}
-
 	// todo for static cluster, shouldn't use this way
 	 return cm.loadCluster(cluster, true)
 }
