@@ -82,7 +82,7 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
 				err := adsClient.MosnConfig.OnUpdateListeners(listeners)
 				if err != nil {
-					log.DefaultLogger.Fatalf("fail to update listeners")
+					log.DefaultLogger.Fatalf("failed to update listeners")
 					return
 				}
 				log.DefaultLogger.Infof("update listeners success")
@@ -92,7 +92,7 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
 				err := adsClient.MosnConfig.OnUpdateClusters(clusters)
 				if err != nil {
-						log.DefaultLogger.Fatalf("fall to update clusters")
+						log.DefaultLogger.Fatalf("failed to update clusters")
 						return
 					}
 					log.DefaultLogger.Infof("update clusters success")
@@ -113,7 +113,7 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
 				err = adsClient.MosnConfig.OnUpdateEndpoints(endpoints)
 				if err != nil {
-					log.DefaultLogger.Fatalf("fail to update endpoints")
+					log.DefaultLogger.Fatalf("failed to update endpoints")
 					return
 				}
 				log.DefaultLogger.Infof("update endpoints success")
