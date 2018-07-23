@@ -1,4 +1,4 @@
-FROM acs-reg.alipay.com/alipay/alios6u2:1.0.1-4165050
+FROM centos:centos6
 MAINTAINER  xiaodong.dxd@alibaba-inc.com
 
 ENV TMP_FOLDER      /tmp
