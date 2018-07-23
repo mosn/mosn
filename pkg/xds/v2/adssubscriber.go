@@ -36,6 +36,12 @@ func (adsClient *ADSClient) Start() {
 }
 
 func (adsClient *ADSClient) sendThread() {
+	log.DefaultLogger.Tracef("send thread request cds")
+	err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
+	if err != nil {
+		log.DefaultLogger.Warnf("send thread request cds fail!auto retry next period")
+	}
+
 	refreshDelay := adsClient.AdsConfig.RefreshDelay
 	t1 := time.NewTimer(*refreshDelay)
 	for {
@@ -46,13 +52,8 @@ func (adsClient *ADSClient) sendThread() {
 			adsClient.StopChan <- 1
 			return
 		case <-t1.C:
-			log.DefaultLogger.Tracef("send thread request lds")
-			err := adsClient.V2Client.reqListeners(adsClient.StreamClient)
-			if err != nil {
-				log.DefaultLogger.Warnf("send thread request lds fail!auto retry next period")
-			}
 			log.DefaultLogger.Tracef("send thread request cds")
-			err = adsClient.V2Client.reqClusters(adsClient.StreamClient)
+			err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
 			if err != nil {
 				log.DefaultLogger.Warnf("send thread request cds fail!auto retry next period")
 			}
@@ -91,27 +92,36 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
 				err := adsClient.MosnConfig.OnUpdateClusters(clusters)
 				if err != nil {
-					log.DefaultLogger.Fatalf("fall to update clusters")
-					return
-				}
-				log.DefaultLogger.Infof("update clusters success")
-				clusterNames := make([]string, 0)
-				for _, cluster := range clusters {
-					if cluster.Type == envoy_api_v2.Cluster_EDS {
-						clusterNames = append(clusterNames, cluster.Name)
+						log.DefaultLogger.Fatalf("fall to update clusters")
+						return
 					}
+					log.DefaultLogger.Infof("update clusters success")
+					clusterNames := make([]string, 0)
+					for _, cluster := range clusters {
+						if cluster.Type == envoy_api_v2.Cluster_EDS {
+							clusterNames = append(clusterNames, cluster.Name)
+						}
 				}
-				adsClient.V2Client.reqEndpoints(adsClient.StreamClient, clusterNames)
+				log.DefaultLogger.Tracef("send thread request eds")
+				err = adsClient.V2Client.reqEndpoints(adsClient.StreamClient, clusterNames)
+				if err != nil {
+					log.DefaultLogger.Warnf("send thread request eds fail!auto retry next period")
+				}
 			} else if typeURL == "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment" {
 				log.DefaultLogger.Tracef("get eds resp,handle it ")
 				endpoints := adsClient.V2Client.handleEndpointesResp(resp)
-				log.DefaultLogger.Tracef("get %d endpoints for cluster", len(endpoints))
+				log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
 				err = adsClient.MosnConfig.OnUpdateEndpoints(endpoints)
 				if err != nil {
-					log.DefaultLogger.Fatalf("fail to update endpoints for cluster")
+					log.DefaultLogger.Fatalf("fail to update endpoints")
 					return
 				}
-				log.DefaultLogger.Tracef("update endpoints for cluster %s success")
+				log.DefaultLogger.Infof("update endpoints success")
+				log.DefaultLogger.Tracef("send thread request lds")
+				err = adsClient.V2Client.reqListeners(adsClient.StreamClient)
+				if err != nil {
+					log.DefaultLogger.Warnf("send thread request lds fail!auto retry next period")
+				}
 			}
 		}
 	}
