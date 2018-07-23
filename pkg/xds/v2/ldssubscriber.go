@@ -26,21 +26,6 @@ import (
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 )
 
-// GetListeners use for lds request round trip
-func (c *ClientV2) GetListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) []*envoy_api_v2.Listener {
-	err := c.reqListeners(streamClient)
-	if err != nil {
-		log.DefaultLogger.Fatalf("get listener fail: %v", err)
-		return nil
-	}
-	r, err := streamClient.Recv()
-	if err != nil {
-		log.DefaultLogger.Fatalf("get listener fail: %v", err)
-		return nil
-	}
-	return c.handleListersResp(r)
-}
-
 func (c *ClientV2) reqListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
 	if streamClient == nil {
 		return errors.New("stream client is nil")

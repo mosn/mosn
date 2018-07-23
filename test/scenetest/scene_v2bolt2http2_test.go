@@ -29,7 +29,7 @@ import (
 
 func TestV2Bolt2Http2(t *testing.T) {
 	http2Addr := "127.0.0.1:8080"
-	meshAddr := "127.0.0.1:2045"
+	meshAddr := CurrentMeshAddr()
 	server := NewUpstreamHTTP2(t, http2Addr)
 	server.GoServe()
 	defer server.Close()
@@ -50,8 +50,7 @@ func TestV2Bolt2Http2(t *testing.T) {
 	defer client.conn.Close(types.NoFlush, types.LocalClose)
 	client.SendRequest(GetStreamID(), boltV2ReqBytes)
 	//client.wait_response should empty
-	<-time.After(10 * time.Second)
-	if !IsMapEmpty(&client.waitReponse) {
+	if !WaitMapEmpty(client.waitReponse, 10*time.Second) {
 		t.Errorf("exists request no response\n")
 	}
 }

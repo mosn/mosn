@@ -47,9 +47,14 @@ func ParseHTTPResponse(t *testing.T, req *http.Request) string {
 		return ""
 	}
 	re := regexp.MustCompile("\nServerName:[a-zA-Z0-9]+\n")
-	return strings.Split(
+	bodys := strings.Split(
 		strings.Trim(re.FindString(string(body)), "\n"), ":",
-	)[1]
+	)
+	if len(bodys) < 2 {
+		t.Errorf("response has no server name\n")
+		return ""
+	}
+	return bodys[1]
 }
 
 func TestHttpProxy(t *testing.T) {
@@ -69,7 +74,7 @@ func TestHttpProxy(t *testing.T) {
 	//mesh config
 	cluster1 := []string{GetServerAddr(server1)}
 	cluster2 := []string{GetServerAddr(server2)}
-	meshAddr := "127.0.0.1:2045"
+	meshAddr := CurrentMeshAddr()
 	meshConfig := CreateHTTPRouteConfig(meshAddr, [][]string{cluster1, cluster2})
 	mesh := mosn.NewMosn(meshConfig)
 	go mesh.Start()

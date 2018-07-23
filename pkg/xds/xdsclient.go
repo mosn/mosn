@@ -30,7 +30,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/xds/v2"
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
@@ -44,80 +43,6 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 type Client struct {
 	v2        *v2.ClientV2
 	adsClient *v2.ADSClient
-}
-
-func (c *Client) getConfig(config *config.MOSNConfig) error {
-	log.DefaultLogger.Infof("start to get config from istio")
-	err := c.getListenersAndRoutes(config)
-	if err != nil {
-		log.DefaultLogger.Errorf("fail to get lds config from istio")
-		return err
-	}
-	err = c.getClustersAndHosts(config)
-	if err != nil {
-		log.DefaultLogger.Errorf("fail to get cds config from istio")
-		return err
-	}
-	log.DefaultLogger.Infof("get config from istio success")
-	return nil
-}
-
-func (c *Client) getListenersAndRoutes(config *config.MOSNConfig) error {
-	log.DefaultLogger.Infof("start to get listeners from LDS")
-	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
-	listeners := c.v2.GetListeners(streamClient)
-	if listeners == nil {
-		log.DefaultLogger.Errorf("get none listeners")
-		return errors.New("get none listener")
-	}
-	log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
-	err := config.OnUpdateListeners(listeners)
-	if err != nil {
-		log.DefaultLogger.Errorf("fail to update listeners")
-		return errors.New("fail to update listeners")
-	}
-	log.DefaultLogger.Infof("update listeners success")
-	return nil
-}
-
-func (c *Client) getClustersAndHosts(config *config.MOSNConfig) error {
-	log.DefaultLogger.Infof("start to get clusters from CDS")
-	streamClient := c.v2.Config.ADSConfig.GetStreamClient()
-	clusters := c.v2.GetClusters(streamClient)
-	if clusters == nil {
-		log.DefaultLogger.Errorf("get none clusters")
-		return errors.New("get none clusters")
-	}
-	log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
-	err := config.OnUpdateClusters(clusters)
-	if err != nil {
-		log.DefaultLogger.Errorf("fall to update clusters")
-		return errors.New("fail to update clusters")
-	}
-	log.DefaultLogger.Infof("update clusters success")
-
-	log.DefaultLogger.Infof("start to get clusters from EDS")
-	clusterNames := make([]string, 0)
-	for _, cluster := range clusters {
-		if cluster.Type == xdsapi.Cluster_EDS {
-			clusterNames = append(clusterNames, cluster.Name)
-		}
-	}
-	log.DefaultLogger.Debugf("start to get endpoints for cluster %v from EDS", clusterNames)
-	endpoints := c.v2.GetEndpoints(streamClient, clusterNames)
-	if endpoints == nil {
-		log.DefaultLogger.Warnf("get none endpoints for cluster %v", clusterNames)
-		return errors.New("get none endpoints for clusters")
-	}
-	log.DefaultLogger.Debugf("get %d endpoints for cluster %v", len(endpoints), clusterNames)
-	err = config.OnUpdateEndpoints(endpoints)
-	if err != nil {
-		log.DefaultLogger.Errorf("fail to update endpoints for cluster %v", clusterNames)
-		return errors.New("fail to update endpoints for clusters")
-	}
-	log.DefaultLogger.Debugf("update endpoints for cluster %v success", clusterNames)
-	log.DefaultLogger.Infof("update endpoints success")
-	return nil
 }
 
 func duration2String(duration *types.Duration) string {
@@ -287,14 +212,6 @@ func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode st
 			return errors.New("fail to init xds config")
 		}
 		c.v2 = &v2.ClientV2{serviceCluster, serviceNode, &xdsConfig}
-	}
-	for true {
-		err := c.getConfig(config)
-		if err != nil {
-			time.Sleep(time.Second)
-			continue
-		}
-		break
 	}
 
 	stopChan := make(chan int)

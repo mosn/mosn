@@ -32,7 +32,7 @@ import (
 //one client close should not effect others
 func TestClientClose(t *testing.T) {
 	sofaAddr := "127.0.0.1:8080"
-	meshAddr := "127.0.0.1:2045"
+	meshAddr := CurrentMeshAddr()
 	server := NewUpstreamServer(t, sofaAddr, ServeBoltV1)
 	server.GoServe()
 	defer server.Close()
@@ -51,8 +51,7 @@ func TestClientClose(t *testing.T) {
 			select {
 			case <-stop:
 				//before close, should check all request get response
-				<-time.After(time.Second)
-				if !IsMapEmpty(&client.Waits) {
+				if !WaitMapEmpty(client.Waits, time.Second) {
 					t.Errorf("client %s has request timeout\n", client.ClientID)
 				}
 				client.conn.Close(types.NoFlush, types.LocalClose)

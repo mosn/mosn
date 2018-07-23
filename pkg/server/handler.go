@@ -32,6 +32,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"fmt"
 )
 
 // ConnectionHandler
@@ -65,7 +66,9 @@ func NewHandler(clusterManagerFilter types.ClusterManagerFilter, clMng types.Clu
 func (ch *connHandler) UpdateClusterConfig(clusters []v2.Cluster) error {
 
 	for _, cluster := range clusters {
-		ch.clusterManager.AddOrUpdatePrimaryCluster(cluster)
+		if !ch.clusterManager.AddOrUpdatePrimaryCluster(cluster) {
+			return fmt.Errorf("UpdateClusterConfig: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+		}
 	}
 
 	// TODO: remove cluster

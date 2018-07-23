@@ -272,8 +272,8 @@ func (s *clientStream) AppendHeaders(headers interface{}, endStream bool) error 
 		delete(headersMap, protocol.MosnHeaderQueryStringKey)
 	}
 	
-	if _, ok := headersMap[protocol.HeaderMethod]; ok {
-		delete(headersMap, protocol.HeaderMethod)
+	if _, ok := headersMap[protocol.MosnHeaderMethod]; ok {
+		delete(headersMap, protocol.MosnHeaderMethod)
 	}
 	
 	if _, ok := headersMap[protocol.MosnHeaderHostKey]; ok {

@@ -29,7 +29,7 @@ import (
 
 func TestSofaRpc(t *testing.T) {
 	sofaAddr := "127.0.0.1:8080"
-	meshAddr := "127.0.0.1:2045"
+	meshAddr := CurrentMeshAddr()
 	server := NewUpstreamServer(t, sofaAddr, ServeBoltV1)
 	server.GoServe()
 	defer server.Close()
@@ -49,8 +49,7 @@ func TestSofaRpc(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		client.SendRequest()
 	}
-	<-time.After(10 * time.Second)
-	if !IsMapEmpty(&client.Waits) {
+	if !WaitMapEmpty(client.Waits, 20*time.Second) {
 		t.Errorf("exists request no response\n")
 	}
 }

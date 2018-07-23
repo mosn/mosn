@@ -109,7 +109,7 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 		log.DefaultLogger.Debugf("final host index = %d, address = %s,", i, f.AddressString())
 	}
 
-	log.DefaultLogger.Debugf("changed %s", changed)
+	log.DefaultLogger.Debugf("changed %t", changed)
 
 	if changed {
 		sc.hosts = finalHosts
