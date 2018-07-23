@@ -263,6 +263,9 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	h2Conn, err := transport.NewClientConn(data.Connection.RawConn())
 
 	if err != nil {
+		// close connection on h2 conn init failed
+		data.Connection.Close(types.NoFlush, types.LocalClose)
+
 		return nil
 	}
 
