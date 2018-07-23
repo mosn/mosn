@@ -32,7 +32,7 @@ import (
 )
 
 func TestHttp2(t *testing.T) {
-	meshAddr := "127.0.0.1:2045"
+	meshAddr := "127.0.0.1:2046"
 	http2Addr := "127.0.0.1:8080"
 	server := NewUpstreamHTTP2(t, http2Addr)
 	server.GoServe()
@@ -53,11 +53,10 @@ func TestHttp2(t *testing.T) {
 	httpClient := http.Client{Transport: tr}
 	for i := 0; i < 20; i++ {
 		requestID := fmt.Sprintf("%d", i)
-		request, err := http.NewRequest("GET", fmt.Sprintf("http://%s", meshAddr), nil)
+		request, err := http.NewRequest("GET", fmt.Sprintf("http://%s/", meshAddr), nil)
 		if err != nil {
 			t.Fatalf("create request error:%v\n", err)
 		}
-		request.Header.Add("service", "testhttp2")
 		request.Header.Add("Requestid", requestID)
 		resp, err := httpClient.Do(request)
 		if err != nil {
@@ -72,5 +71,4 @@ func TestHttp2(t *testing.T) {
 		}
 		t.Logf("request %s get data: %s\n", requestID, body)
 	}
-
 }

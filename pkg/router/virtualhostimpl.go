@@ -65,6 +65,8 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) *Vir
 				log.DefaultLogger.Errorf("Compile Regex Error")
 			}
 		} else {
+			// todo delete hack
+			// hack here to do sofa's routing policy
 			for _, header := range route.Match.Headers {
 				if header.Name == types.SofaRouteMatchKey {
 					virtualHostImpl.routes = append(virtualHostImpl.routes, &SofaRouteRuleImpl{

@@ -91,11 +91,18 @@ func CreateSimpleMeshConfig(addr string, hosts []string, downstream, upstream ty
 		Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{header}},
 		Route: v2.RouteAction{ClusterName: clusterName},
 	}
+	
+	routerV2_http2 := v2.Router{
+		Match: v2.RouterMatch{Prefix:"/"},
+		Route: v2.RouteAction{ClusterName: clusterName},
+	}
+	
 	p := &v2.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2}},
+			&v2.VirtualHost{Name: "testHost_http2", Domains: []string{"127.0.0.1:2046"}, Routers: []v2.Router{routerV2_http2}},
 		},
 	}
 	b, _ := json.Marshal(p)
