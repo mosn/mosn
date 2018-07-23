@@ -56,11 +56,10 @@ func TestHttp2(t *testing.T) {
 	records := sync.Map{}
 	for i := 0; i < 20; i++ {
 		requestID := fmt.Sprintf("%d", i)
-		request, err := http.NewRequest("GET", fmt.Sprintf("http://%s", meshAddr), nil)
+		request, err := http.NewRequest("GET", fmt.Sprintf("http://%s/", meshAddr), nil)
 		if err != nil {
 			t.Fatalf("create request error:%v\n", err)
 		}
-		request.Header.Add("service", "testhttp2")
 		request.Header.Add("Requestid", requestID)
 		resp, err := httpClient.Do(request)
 		if err != nil {
@@ -78,5 +77,4 @@ func TestHttp2(t *testing.T) {
 	if !WaitMapEmpty(records, 2*time.Second) {
 		t.Errorf("get unexpected response\n")
 	}
-
 }

@@ -337,7 +337,7 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 		if bytesRead > 0 {
 			iobuf.Write(buf[:bytesRead])
 			for iobuf.Len() > 1 {
-				_, cmd := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
+				cmd, _ := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
 				if cmd == nil {
 					break
 				}
@@ -355,7 +355,6 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 			}
 		}
 	}
-
 }
 
 //tools

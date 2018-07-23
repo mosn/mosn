@@ -255,26 +255,29 @@ func (s *clientStream) AppendHeaders(headers interface{}, endStream bool) error 
 		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s/",
 			s.connection.rawConnection.RemoteAddr().String()))
 	}
-
-	if method, ok := headersMap[types.HeaderMethod]; ok {
-		s.request.Method = method
-		delete(headersMap, types.HeaderMethod)
-	}
-
-	if host, ok := headersMap[types.HeaderHost]; ok {
-		s.request.Host = host
-		delete(headersMap, types.HeaderHost)
-	}
-
+	
 	if path, ok := headersMap[protocol.MosnHeaderPathKey]; ok {
 		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s%s",
 			s.connection.rawConnection.RemoteAddr().String(), path))
 		delete(headersMap, protocol.MosnHeaderPathKey)
 	}
-
+	
 	if _, ok := headersMap["Host"]; ok {
 		headersMap["Host"] = s.connection.rawConnection.RemoteAddr().String()
 		s.request.Host = s.connection.rawConnection.RemoteAddr().String()
+	}
+	
+	// delete inner header
+	if _, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
+		delete(headersMap, protocol.MosnHeaderQueryStringKey)
+	}
+	
+	if _, ok := headersMap[protocol.MosnHeaderMethod]; ok {
+		delete(headersMap, protocol.MosnHeaderMethod)
+	}
+	
+	if _, ok := headersMap[protocol.MosnHeaderHostKey]; ok {
+		delete(headersMap, protocol.MosnHeaderHostKey)
 	}
 
 	s.request.Header = encodeHeader(headersMap)
@@ -499,7 +502,27 @@ func (s *serverStream) doSend() {
 
 func (s *serverStream) handleRequest() {
 	if s.request != nil {
-		s.decoder.OnReceiveHeaders(decodeHeader(s.request.Header), false)
+		
+		header := decodeHeader(s.request.Header)
+		
+		// set host header if not found, just for insurance
+		if _,ok := header[protocol.MosnHeaderHostKey]; !ok {
+			header[protocol.MosnHeaderHostKey] = s.request.Host
+		}
+		
+		// set path header if not found
+		path, queryString := parsePathFromURI(s.request.RequestURI)
+		
+		if _, ok := header[protocol.MosnHeaderPathKey]; !ok {
+			header[protocol.MosnHeaderPathKey] = string(path)
+		}
+		
+		// set query string header if not found
+		if _, ok := header[protocol.MosnHeaderQueryStringKey]; !ok {
+			header[protocol.MosnHeaderQueryStringKey] = string(queryString)
+		}
+		
+		s.decoder.OnReceiveHeaders(header, false)
 
 		//remove detect
 		if s.element != nil {
@@ -549,3 +572,22 @@ func (rc *IoBufferReadCloser) Close() error {
 	rc.buf.Reset()
 	return nil
 }
+
+// GET /rest/1.0/file?fields=P_G&bz=test
+// return path and query string
+func parsePathFromURI(reuestURI string) (string,string){
+	
+	if "" == reuestURI {
+		return "",""
+	}
+	
+	queryMaps := strings.Split(reuestURI, "?")
+	if len(queryMaps) > 1 {
+		return queryMaps[0],queryMaps[1]
+	} else {
+		return queryMaps[0],""
+	}
+
+}
+
+

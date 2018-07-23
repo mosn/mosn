@@ -427,15 +427,20 @@ func (s *serverStream) handleRequest() {
 
 		// header
 		header := decodeReqHeader(s.ctx.Request.Header)
-
-		//set path header if not found
+		
+		// set host header if not found, just for insurance
+		if _, ok := header[protocol.MosnHeaderHostKey]; !ok {
+			header[protocol.MosnHeaderHostKey] = string(s.ctx.Host())
+		}
+		
+		// set path header if not found
 		if _, ok := header[protocol.MosnHeaderPathKey]; !ok {
 			header[protocol.MosnHeaderPathKey] = string(s.ctx.Path())
 		}
 
-		//set query string header if not found
-		if _, ok := header[types.HeaderQueryString]; !ok {
-			header[types.HeaderQueryString] = string(s.ctx.URI().QueryString())
+		// set query string header if not found
+		if _, ok := header[protocol.MosnHeaderQueryStringKey]; !ok {
+			header[protocol.MosnHeaderQueryStringKey] = string(s.ctx.URI().QueryString())
 		}
 
 		s.receiver.OnReceiveHeaders(header, false)
