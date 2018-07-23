@@ -18,11 +18,10 @@
 package cluster
 
 import (
-	"errors"
-
 	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
+	"fmt"
 )
 
 // Adap is the instance of cluster Adapter
@@ -50,12 +49,15 @@ func (ca *Adapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) err
 				// todo support more default health check @boqin
 				cluster.HealthCheck = sofarpc.DefaultSofaRPCHealthCheckConf
 			}
-
-			ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
+			
+			if !ca.clusterMng.AddOrUpdatePrimaryCluster(cluster) {
+				return fmt.Errorf("TriggerClusterUpdate: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+			}
+			
 		} else {
 			msg := "cluster doesn't support auto discovery "
 			log.DefaultLogger.Errorf(msg)
-			return errors.New(msg)
+			return fmt.Errorf(msg)
 		}
 	}
 
@@ -77,8 +79,10 @@ func (ca *Adapter) TriggerClusterAdded(cluster v2.Cluster) {
 		if ca.clusterMng.registryUseHealthCheck {
 			cluster.HealthCheck = sofarpc.DefaultSofaRPCHealthCheckConf
 		}
-
-		ca.clusterMng.AddOrUpdatePrimaryCluster(cluster)
+		
+		if !ca.clusterMng.AddOrUpdatePrimaryCluster(cluster) {
+			log.DefaultLogger.Errorf("TriggerClusterAdded: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+		}
 	} else {
 		log.DefaultLogger.Debugf("Added PrimaryCluster: %s Already Exist", cluster.Name)
 	}

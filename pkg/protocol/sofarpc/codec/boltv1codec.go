@@ -29,6 +29,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"fmt"
 )
 
 // BoltV1PropertyHeaders map the cmdkey and its data type
@@ -273,7 +274,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 	return nil
 }
 
-func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int, interface{}) {
+func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (interface{},error) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
@@ -322,7 +323,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 				} else { // not enough data
 
 					logger.Debugf("BoltV1 DECODE Request, no enough data for fully decode")
-					return read, nil
+					return cmd, nil
 				}
 
 				request := sofarpc.BoltRequestCommand{
@@ -347,7 +348,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					request.Protocol, request.CmdType, request.CmdCode, request.ReqID)
 				cmd = &request
 			}
-		} else {
+		} else if dataType == sofarpc.RESPONSE{
 			//2. response
 			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V1 {
 
@@ -382,7 +383,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					// not enough data
 					logger.Debugf("BoltV1 DECODE RESPONSE: no enough data for fully decode")
 
-					return read, nil
+					return cmd, nil
 				}
 
 				response := sofarpc.BoltResponseCommand{
@@ -411,8 +412,11 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (int,
 					response.ResponseStatus, response.Protocol, response.CmdType, response.CmdCode, response.ReqID)
 				cmd = &response
 			}
+		} else {
+			// 3. unknown type error
+			return nil, fmt.Errorf("Decode Error, type = %s, value = %d", sofarpc.UnKnownReqtype, dataType)
 		}
 	}
 
-	return read, cmd
+	return cmd,nil
 }
