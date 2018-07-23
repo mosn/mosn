@@ -19,6 +19,7 @@ package tests
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
@@ -28,6 +29,15 @@ import (
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+// use different mesh port to avoid "port in used" error
+var meshIndex uint32
+
+func CurrentMeshAddr() string {
+	var basic uint32 = 2044
+	atomic.AddUint32(&meshIndex, 1)
+	return fmt.Sprintf("127.0.0.1:%d", basic+meshIndex)
+}
 
 func CreateMeshConfig(addr string, filterChains []config.FilterChain, clusterManager config.ClusterManagerConfig) *config.MOSNConfig {
 	listenerCfg := config.ListenerConfig{
