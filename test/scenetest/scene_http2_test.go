@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -32,7 +33,7 @@ import (
 )
 
 func TestHttp2(t *testing.T) {
-	meshAddr := "127.0.0.1:2045"
+	meshAddr := CurrentMeshAddr()
 	http2Addr := "127.0.0.1:8080"
 	server := NewUpstreamHTTP2(t, http2Addr)
 	server.GoServe()
@@ -51,6 +52,8 @@ func TestHttp2(t *testing.T) {
 	}
 
 	httpClient := http.Client{Transport: tr}
+	verify := &HTTP2Response{}
+	records := sync.Map{}
 	for i := 0; i < 20; i++ {
 		requestID := fmt.Sprintf("%d", i)
 		request, err := http.NewRequest("GET", fmt.Sprintf("http://%s", meshAddr), nil)
@@ -70,7 +73,10 @@ func TestHttp2(t *testing.T) {
 			t.Errorf("request %s read body error: %v\n", requestID, err)
 			continue
 		}
-		t.Logf("request %s get data: %s\n", requestID, body)
+		verify.Filter(string(body), records)
+	}
+	if !WaitMapEmpty(records, 2*time.Second) {
+		t.Errorf("get unexpected response\n")
 	}
 
 }
