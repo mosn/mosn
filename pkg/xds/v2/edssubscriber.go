@@ -26,22 +26,6 @@ import (
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 )
 
-// GetEndpoints use for eds request round trip
-func (c *ClientV2) GetEndpoints(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient, clusterNames []string) []*envoy_api_v2.ClusterLoadAssignment {
-	err := c.reqEndpoints(streamClient, clusterNames)
-	if err != nil {
-		log.DefaultLogger.Fatalf("get endpoints fail: %v", err)
-		return nil
-	}
-	r, err := streamClient.Recv()
-	if err != nil {
-		log.DefaultLogger.Fatalf("get endpoints fail: %v", err)
-		return nil
-
-	}
-	return c.handleEndpointesResp(r)
-}
-
 func (c *ClientV2) reqEndpoints(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient, clusterNames []string) error {
 	if streamClient == nil {
 		return errors.New("stream client is nil")
