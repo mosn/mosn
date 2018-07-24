@@ -41,9 +41,7 @@ cd sofa-mosn
 ## 编译代码
 
 在项目根目录下，根据自己机器的类型以及欲执行二进制的环境，选择以下命令编译 MOSN 的二进制文件：
-+ 运行 `dep ensure` 保证所有依赖均OK，运行较慢，耐心等待
-+ 使用 docker 镜像编译 
-
++ 使用 docker 镜像编译
 ```bash
     make build // 编译出 linux 64bit 可运行二进制文件
 ```
@@ -60,7 +58,6 @@ cd sofa-mosn
     ```bash
         make build-linux32
     ```
-
 完成后可以在 `build/bundles/${version}/binary` 目录下找到编译好的二进制文件。
 
 ## 打包
