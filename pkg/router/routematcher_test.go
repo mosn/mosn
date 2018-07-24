@@ -26,141 +26,63 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
+func newTestSimpleRouter(name string) v2.Router {
+	return v2.Router{
+		Match: v2.RouterMatch{
+			Headers: []v2.HeaderMatcher{
+				v2.HeaderMatcher{Name: "service", Value: ".*"},
+			},
+		},
+		Route: v2.RouteAction{
+			ClusterName: name,
+		},
+	}
+}
+
 var testVirutalHostConfigs = map[string]*v2.VirtualHost{
-	"all":             &v2.VirtualHost{Name: "all", Domains: []string{"*"}},
-	"wildcard-domain": &v2.VirtualHost{Name: "wildcard-domain", Domains: []string{"*.sofa-mosn.test"}},
-	"domain":          &v2.VirtualHost{Name: "domain", Domains: []string{"www.sofa-mosn.test"}},
-}
-
-var testInvalidVirutalHostConfigs = map[string]*v2.VirtualHost{
-	"inall":             &v2.VirtualHost{Name: "all", Domains: []string{"t*t"}},
-	"inwildcard-domain": &v2.VirtualHost{Name: "wildcard-domain", Domains: []string{".*.sofa-mosn.test"}},
-	"indomain":          &v2.VirtualHost{Name: "domain", Domains: []string{"*www.sofa-mosn.test"}},
-}
-
-func TestNewRouteMatcher_default(t *testing.T) {
-	
-	virtualhost := testVirutalHostConfigs["all"]
-	
-	cfg := &v2.Proxy{
-		VirtualHosts: []*v2.VirtualHost{virtualhost},
-	}
-	routers, err := NewRouteMatcher(cfg)
-	if err != nil {
-		t.Errorf("%v\n", err)
-	}
-	
-	rm := routers.(*routeMatcher)
-	expected := (rm.defaultVirtualHost != nil)
-	if !expected {
-		t.Errorf("#%s : expected one virtualhost\n")
-	}
-	
-	virtualhost = testInvalidVirutalHostConfigs["inall"]
-	
-	cfg = &v2.Proxy{
-		VirtualHosts: []*v2.VirtualHost{virtualhost},
-	}
-	routers, err = NewRouteMatcher(cfg)
-	if err != nil {
-		t.Errorf("%v\n", err)
-	}
-	
-	rm = routers.(*routeMatcher)
-	expected = (rm.defaultVirtualHost == nil)
-	
-	if !expected {
-		t.Errorf("#%s : expected one virtualhost\n")
-	}
-}
-
-func TestNewRouteMatcher_wildcard(t *testing.T) {
-	
-	virtualhost := testVirutalHostConfigs["wildcard-domain"]
-	
-	cfg := &v2.Proxy{
-		VirtualHosts: []*v2.VirtualHost{virtualhost},
-	}
-	routers, err := NewRouteMatcher(cfg)
-	if err != nil {
-		t.Errorf("%v\n", err)
-	}
-	
-	rm := routers.(*routeMatcher)
-	expected := (len(rm.wildcardVirtualHostSuffixes) == 1)
-	if !expected {
-		t.Errorf("#%s : expected one virtualhost\n")
-	}
-	
-	virtualhost = testInvalidVirutalHostConfigs["inwildcard-domain"]
-	
-	cfg = &v2.Proxy{
-		VirtualHosts: []*v2.VirtualHost{virtualhost},
-	}
-	routers, err = NewRouteMatcher(cfg)
-	if err != nil {
-		t.Errorf("%v\n", err)
-	}
-	
-	rm = routers.(*routeMatcher)
-	expected = (len(rm.wildcardVirtualHostSuffixes) == 0)
-	
-	if !expected {
-		t.Errorf("#%s : expected one virtualhost\n")
-	}
-}
-
-func TestNewRouteMatcher_domain(t *testing.T) {
-	
-	virtualhost := testVirutalHostConfigs["domain"]
-	
-	cfg := &v2.Proxy{
-		VirtualHosts: []*v2.VirtualHost{virtualhost},
-	}
-	routers, err := NewRouteMatcher(cfg)
-	if err != nil {
-		t.Errorf("%v\n", err)
-	}
-	
-	rm := routers.(*routeMatcher)
-	expected := (len(rm.virtualHosts) == 1)
-	if !expected {
-		t.Errorf("#%s : expected one virtualhost\n")
-	}
-	
-	virtualhost = testInvalidVirutalHostConfigs["indomain"]
-	
-	cfg = &v2.Proxy{
-		VirtualHosts: []*v2.VirtualHost{virtualhost},
-	}
-	routers, err = NewRouteMatcher(cfg)
-	if err != nil {
-		t.Errorf("%v\n", err)
-	}
-	
-	rm = routers.(*routeMatcher)
-	expected = (len(rm.virtualHosts) == 0)
-	
-	if !expected {
-		t.Errorf("#%s : expected one virtualhost\n")
-	}
+	"all":             &v2.VirtualHost{Name: "all", Domains: []string{"*"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
+	"wildcard-domain": &v2.VirtualHost{Name: "wildcard-domain", Domains: []string{"*.sofa-mosn.test"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
+	"domain":          &v2.VirtualHost{Name: "domain", Domains: []string{"www.sofa-mosn.test"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
 }
 
 func TestNewRouteMatcherSingle(t *testing.T) {
 	// Single VirtualHost
-	for key, vhConfig := range testVirutalHostConfigs {
+	// Add VirtualHost type verify
+	testCases := []struct {
+		virtualHost *v2.VirtualHost
+		Expected    func(*routeMatcher) bool
+	}{
+		{
+			virtualHost: testVirutalHostConfigs["all"],
+			Expected: func(rm *routeMatcher) bool {
+				return rm.defaultVirtualHost != nil
+			},
+		},
+		{
+			virtualHost: testVirutalHostConfigs["wildcard-domain"],
+			Expected: func(rm *routeMatcher) bool {
+				return len(rm.wildcardVirtualHostSuffixes) == 1
+			},
+		},
+		{
+			virtualHost: testVirutalHostConfigs["domain"],
+			Expected: func(rm *routeMatcher) bool {
+				return len(rm.virtualHosts) == 1
+			},
+		},
+	}
+	for _, tc := range testCases {
 		cfg := &v2.Proxy{
-			VirtualHosts: []*v2.VirtualHost{vhConfig},
+			VirtualHosts: []*v2.VirtualHost{tc.virtualHost},
 		}
 		routers, err := NewRouteMatcher(cfg)
 		if err != nil {
-			t.Errorf("#%s : %v\n", key, err)
+			t.Errorf("#%s : %v\n", tc.virtualHost.Name, err)
 			continue
 		}
 		rm := routers.(*routeMatcher)
-		expected := (rm.defaultVirtualHost != nil || len(rm.virtualHosts) == 1 || len(rm.wildcardVirtualHostSuffixes) == 1)
-		if !expected {
-			t.Errorf("#%s : expected one virtualhost\n")
+		if !tc.Expected(rm) {
+			t.Errorf("#%s : expected one virtualhost\n", tc.virtualHost.Name)
 		}
 	}
 }
@@ -210,9 +132,9 @@ func TestNewRouteMatcherDuplicate(t *testing.T) {
 	// expected OK
 	if _, err := NewRouteMatcher(&v2.Proxy{
 		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Domains: []string{"*.test.com"}},
-			&v2.VirtualHost{Domains: []string{"*.test.net"}},
-			&v2.VirtualHost{Domains: []string{"*.test.com.cn"}},
+			&v2.VirtualHost{Domains: []string{"*.test.com"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
+			&v2.VirtualHost{Domains: []string{"*.test.net"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
+			&v2.VirtualHost{Domains: []string{"*.test.com.cn"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
 		},
 	}); err != nil {
 		t.Error("NewRouteMatcher with different wildcard domain failed")
@@ -220,19 +142,68 @@ func TestNewRouteMatcherDuplicate(t *testing.T) {
 
 }
 
-func newTestSimpleRouter(name string) v2.Router {
-	return v2.Router{
-		Match: v2.RouterMatch{
-			Headers: []v2.HeaderMatcher{
-				v2.HeaderMatcher{Name: "service", Value: ".*"},
-			},
-		},
-		Route: v2.RouteAction{
-			ClusterName: name,
+// match all
+func TestDefaultMatch(t *testing.T) {
+	cfg := &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{
+			testVirutalHostConfigs["all"],
 		},
 	}
+	routers, err := NewRouteMatcher(cfg)
+	if err != nil {
+		t.Errorf("create router matcher failed \n", err)
+		return
+	}
+	testCases := []string{
+		"*.test.com",
+		"*",
+		"foo.com",
+		"12345678",
+	}
+	for i, tc := range testCases {
+		if routers.Route(map[string]string{
+			strings.ToLower(protocol.MosnHeaderHostKey): tc,
+			"service": "test",
+		}, 1) == nil {
+			t.Errorf("#%d not matched\n", i)
+		}
+	}
 }
-
+func TestDomainMatch(t *testing.T) {
+	cfg := &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{
+			testVirutalHostConfigs["domain"],
+		},
+	}
+	routers, err := NewRouteMatcher(cfg)
+	if err != nil {
+		t.Errorf("create router matcher failed \n", err)
+		return
+	}
+	if routers.Route(map[string]string{
+		strings.ToLower(protocol.MosnHeaderHostKey): "www.sofa-mosn.test",
+		"service": "test",
+	}, 1) == nil {
+		t.Error("domain match failed")
+	}
+	//not matched
+	notMatched := []string{
+		"*",
+		"*www.sofa-mosn.test",
+		"sofa-mosn.test",
+		"www.sofa-mosn",
+		"www.sofa-mosn.test1",
+		"*.sofa-mosn.test",
+	}
+	for i, tc := range notMatched {
+		if routers.Route(map[string]string{
+			strings.ToLower(protocol.MosnHeaderHostKey): tc,
+			"service": "test",
+		}, 1) != nil {
+			t.Errorf("#%d expected not matched, but match a router", i)
+		}
+	}
+}
 func TestWildcardMatch(t *testing.T) {
 	testCases := []struct {
 		wildcardDomain  string
@@ -242,7 +213,7 @@ func TestWildcardMatch(t *testing.T) {
 		{
 			wildcardDomain:  "*.test.com",
 			matchedDomain:   []string{"a.test.com", "a.test.test.com", "abc.test.com", "abc-def.test.com", "a.b.test.com", "*.test.com"},
-			unmatchedDomain: []string{"a.test.net", "a-test.com", ".test.com"},
+			unmatchedDomain: []string{"a.test.net", "a-test.com", ".test.com", "*"},
 		},
 		{
 			wildcardDomain:  "*.test.net",
@@ -331,7 +302,41 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 			t.Errorf("%s expected match %s, but got %s\n", tc.Domain, tc.ExpectedRoute, route.RouteRule().ClusterName())
 		}
 	}
-
+}
+func TestInvalidConfig(t *testing.T) {
+	var testCases []interface{}
+	//1. invalid config object
+	testCases = append(testCases, "invalidconfig")
+	//2. config without router
+	case2 := &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{
+			&v2.VirtualHost{Domains: []string{"*"}},
+		},
+	}
+	//3. config without matcher
+	case3 := &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{
+			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
+				v2.Router{Route: v2.RouteAction{ClusterName: "www"}},
+			}},
+		},
+	}
+	//4. an invalid regexp matcher
+	case4 := &v2.Proxy{
+		VirtualHosts: []*v2.VirtualHost{
+			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
+				v2.Router{
+					Match: v2.RouterMatch{Regex: "/f["},
+					Route: v2.RouteAction{ClusterName: "www"},
+				}},
+			}},
+	}
+	testCases = append(testCases, case2, case3, case4)
+	for i, tc := range testCases {
+		if _, err := NewRouteMatcher(tc); err == nil {
+			t.Errorf("#%d expected error, but not", i)
+		}
+	}
 }
 
 func TestMain(m *testing.M) {

@@ -1,67 +1,105 @@
 package router
 
 import (
+	"regexp"
+	"testing"
+
 	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"testing"
 )
 
-type testCase struct {
-}
-
-func TestPrefixRouteRuleImpl_Match(t *testing.T) {
-	testCase := []string{
-		"/", "/test", "/test_", "/test_prefix",
+func TestPrefixRouteRuleImpl(t *testing.T) {
+	virtualHostImpl := &VirtualHostImpl{virtualHostName: "test"}
+	testCases := []struct {
+		prefix     string
+		headerpath string
+		expected   bool
+	}{
+		{"/", "/", true},
+		{"/", "/test", true},
+		{"/", "/test/foo", true},
+		{"/", "/foo?key=value", true},
+		{"/foo", "/foo", true},
+		{"/foo", "/footest", true},
+		{"/foo", "/foo/test", true},
+		{"/foo", "/foo?key=value", true},
+		{"/foo", "/", false},
+		{"/foo", "/test", false},
 	}
-
-	invalidTestCase := []string{
-		"./", "./test",
-	}
-
-	examplePrefix := "/"
-
-	var router types.Routers
-	var err error
-
-	if router, err = newPrefixVirtualHost(examplePrefix); err != nil {
-		t.Error(err)
-	}
-
-	for _, testcase := range testCase {
-		if r := router.Route(map[string]string{protocol.MosnHeaderPathKey: testcase}, 1); r == nil {
-			t.Errorf("want match, but got nil")
-		} else {
-			t.Log("clustername:", r.RouteRule().ClusterName())
+	for i, tc := range testCases {
+		route := &v2.Router{
+			Match: v2.RouterMatch{Prefix: tc.prefix},
+			Route: v2.RouteAction{ClusterName: "test"},
+		}
+		rr := &PrefixRouteRuleImpl{
+			NewRouteRuleImplBase(virtualHostImpl, route),
+			route.Match.Prefix,
+		}
+		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
+		result := (rr.Match(headers, 1) != nil)
+		if result != tc.expected {
+			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
 	}
+}
 
-	for _, testcase := range invalidTestCase {
-		if r := router.Route(map[string]string{protocol.MosnHeaderPathKey: testcase}, 1); r != nil {
-			t.Errorf("want no match, but got one")
+func TestPathRouteRuleImpl(t *testing.T) {
+	virtualHostImpl := &VirtualHostImpl{virtualHostName: "test"}
+	testCases := []struct {
+		path          string
+		headerpath    string
+		caseSensitive bool //no interface to set caseSensitive, need hack
+		expected      bool
+	}{
+		{"/test", "/test", false, true},
+		{"/test", "/Test", false, true},
+		{"/test", "/Test", true, false},
+		{"/test", "/test/test", false, false},
+	}
+	for i, tc := range testCases {
+		route := &v2.Router{
+			Match: v2.RouterMatch{Path: tc.path},
+			Route: v2.RouteAction{ClusterName: "test"},
 		}
-	}
+		base := NewRouteRuleImplBase(virtualHostImpl, route)
+		base.caseSensitive = tc.caseSensitive //hack case sensitive
+		rr := &PathRouteRuleImpl{base, route.Match.Path}
+		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
+		result := (rr.Match(headers, 1) != nil)
+		if result != tc.expected {
+			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
+		}
 
+	}
 }
 
-func newPrefixVirtualHost(prefix string) (types.Routers, error) {
-	virtualHosts := []*v2.VirtualHost{
-		&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{newPrefixRouter(prefix)}},
+func TestRegexRouteRuleImpl(t *testing.T) {
+	virtualHostImpl := &VirtualHostImpl{virtualHostName: "test"}
+	testCases := []struct {
+		regexp     string
+		headerpath string
+		expected   bool
+	}{
+		{".*", "/", true},
+		{".*", "/path", true},
+		{"/[0-9]+", "/12345", true},
+		{"/[0-9]+", "/test", false},
 	}
-	cfg := &v2.Proxy{
-		VirtualHosts: virtualHosts,
-	}
-
-	return NewRouteMatcher(cfg)
-}
-
-func newPrefixRouter(prefix string) v2.Router {
-	return v2.Router{
-		Match: v2.RouterMatch{
-			Prefix: prefix,
-		},
-		Route: v2.RouteAction{
-			ClusterName: prefix,
-		},
+	for i, tc := range testCases {
+		route := &v2.Router{
+			Match: v2.RouterMatch{Regex: tc.regexp},
+			Route: v2.RouteAction{ClusterName: "test"},
+		}
+		re := regexp.MustCompile(tc.regexp)
+		rr := &RegexRouteRuleImpl{
+			NewRouteRuleImplBase(virtualHostImpl, route),
+			route.Match.Regex,
+			*re,
+		}
+		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
+		result := (rr.Match(headers, 1) != nil)
+		if result != tc.expected {
+			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
+		}
 	}
 }
