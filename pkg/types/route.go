@@ -38,7 +38,7 @@ const (
 	GlobalTimeout       = 60 * time.Second
 	DefaultRouteTimeout = 15 * time.Second
 	SofaRouteMatchKey   = "service"
-	RouterMetadataKey   = "filter_metadata"
+	RouterMetadataKey   = "FilterMetadata"
 	RouterMetadataKeyLb = "mosn.lb"
 )
 

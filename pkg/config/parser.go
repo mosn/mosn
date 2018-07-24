@@ -538,7 +538,12 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			CirBreThresholds: parseCircuitBreakers(c.CircuitBreakers),
 
 			Spec:           parseConfigSpecConfig(&clusterSpec),
-			LBSubSetConfig: c.LBSubsetConfig,
+			LBSubSetConfig: v2.LBSubsetConfig{
+				c.LBSubsetConfig.FallBackPolicy,
+				c.LBSubsetConfig.DefaultSubset,
+				c.LBSubsetConfig.SubsetSelectors,
+			},
+			
 			TLS:            parseTLSConfig(&c.TLS),
 		}
 
@@ -631,14 +636,18 @@ func parseHostConfig(c *ClusterConfig) []v2.Host {
 	//	log.StartLogger.Debugf("[hosts] is required in cluster config")
 	//}
 	var hosts []v2.Host
-
 	for _, host := range c.Hosts {
 
 		if host.Address == "" {
 			log.StartLogger.Fatalln("[host.address] is required in host config")
 		}
 
-		hosts = append(hosts, host)
+		hosts = append(hosts, v2.Host{
+			host.Address,
+			host.Hostname,
+			host.Weight,
+			host.MetaData,
+		})
 	}
 
 	return hosts

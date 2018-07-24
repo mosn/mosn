@@ -63,7 +63,7 @@ func TestGetEnvoyLBMetaData(t *testing.T) {
 		Route: v2.RouteAction{
 			ClusterName: "testclustername",
 			MetadataMatch: v2.Metadata{
-				"filter_metadata": value,
+				"FilterMetadata": value,
 			},
 		},
 	}

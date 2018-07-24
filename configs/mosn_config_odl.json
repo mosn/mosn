@@ -4,7 +4,7 @@
       "default_log_path": "./log/default.log",
       "default_log_level": "DEBUG",
       "graceful_timeout": "10s",
-      "Processor": 1,
+      "processor": 1,
       "listeners": [
         {
           "name": "egress",

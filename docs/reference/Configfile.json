@@ -4,7 +4,7 @@
 	  "default_log_path": "/home/admin/mosn/logs/default.log",
 	  "default_log_level": "DEBUG",
 	  "graceful_timeout": "10s",
-	  "Processor": 1,
+	  "processor": 1,
 	  "listeners": [
 		{
 		  "name": "egress_sofa",
@@ -53,7 +53,7 @@
 							"Route": {
 							  "ClusterName": "test_cpp",
 							  "MetadataMatch": {
-								"filter_metadata": {
+								"FilterMetadata": {
 								  "mosn.lb": {
 									"version":"1.1",
 									"stage":"pre-release",

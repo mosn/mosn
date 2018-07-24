@@ -84,7 +84,7 @@ func (rm *RouteMatcher) Route(headers map[string]string, randomValue uint64) typ
         "Route": {
           "ClusterName": "test_cpp",
           "MetadataMatch": {
-            "filter_metadata": {
+            "FilterMetadata": {
               "mosn.lb": {
                 "version":"1.1",
                 "stage":"pre-release",

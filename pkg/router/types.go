@@ -198,7 +198,7 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 }
 
 // GetClusterMosnLBMetaDataMap from v2.Metadata
-// e.g. metadata =  { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
+// e.g. metadata =  { "FilterMetadata": {"mosn.lb": { "label": "gray"  } } }
 // 4-tier map
 func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	metadataMap := make(map[string]types.HashedValue)
