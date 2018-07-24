@@ -179,7 +179,7 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 
 	// 2. match query parameters
 	var queryParams types.QueryParams
-	
+
 	if QueryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
 		queryParams = httpmosn.ParseQueryString(QueryString)
 	}

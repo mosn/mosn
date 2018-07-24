@@ -59,14 +59,18 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 		wildcardVirtualHostSuffixes:              make(map[int]map[string]types.VirtualHost),
 		greaterSortedWildcardVirtualHostSuffixes: []int{},
 	}
-	
+
 	if config, ok := config.(*v2.Proxy); ok {
 		for _, virtualHost := range config.VirtualHosts {
-			if nil == virtualHost {
-				continue
+			// if virtualHost is nil, it is a invalid config, panic in NewVirtualHostImpl
+			//if nil == virtualHost {
+			//	continue
+			//}
+
+			vh, err := NewVirtualHostImpl(virtualHost, config.ValidateClusters)
+			if err != nil {
+				return nil, err
 			}
-			
-			vh := NewVirtualHostImpl(virtualHost, config.ValidateClusters)
 			for _, domain := range virtualHost.Domains {
 				// Note: we use domain in lowercase
 				domain = strings.ToLower(domain)
@@ -85,7 +89,6 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 						m = map[string]types.VirtualHost{}
 						routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1] = m
 					}
-					
 					// add check, different from envoy
 					// exactly same wildcard domain is unique
 					wildcard := domain[1:]
@@ -103,9 +106,9 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 			}
 		}
 	} else {
-		return nil,fmt.Errorf("NewRouteMatcher failure: config is not in type of *v2.Proxy")
+		return nil, fmt.Errorf("NewRouteMatcher failure: config is not in type of *v2.Proxy")
 	}
-	
+
 	for key := range routerMatcher.wildcardVirtualHostSuffixes {
 		routerMatcher.greaterSortedWildcardVirtualHostSuffixes = append(routerMatcher.greaterSortedWildcardVirtualHostSuffixes, key)
 	}
