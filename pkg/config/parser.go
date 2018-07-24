@@ -129,20 +129,18 @@ func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
 		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
 	}
-
+mm
 	if !proxyConfig.SupportDynamicRoute {
 		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
 	}
 
 	if len(proxyConfig.VirtualHosts) == 0 {
-		log.StartLogger.Warnf("No VirtualHosts Founded")
+		log.StartLogger.Fatal("No VirtualHosts Founded")
 
 	} else {
-
 		for _, vh := range proxyConfig.VirtualHosts {
-
 			if len(vh.Routers) == 0 {
-				log.StartLogger.Warnf("No Router Founded in VirtualHosts")
+				log.StartLogger.Fatal("No Router Founded in VirtualHosts")
 			}
 		}
 	}
