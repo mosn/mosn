@@ -50,8 +50,8 @@
     "sortkeys",
     "types"
   ]
-  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
-  version = "v0.5"
+  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -73,10 +73,10 @@
   revision = "326bf4a7f709d263f964a6a96558676b103f3534"
 
 [[projects]]
+  branch = "master"
   name = "github.com/json-iterator/go"
   packages = ["."]
-  revision = "ab8a2e0c74be9d3be70b3184d9acc634935ded82"
-  version = "1.1.4"
+  revision = "10a568c51178f31e41456cedaac7838e0f4f7360"
 
 [[projects]]
   branch = "master"
@@ -233,6 +233,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "755d0560f8bcd057d66b9415e9b912509f6e4b9f3551718081c1f2f543bc8dd0"
+  inputs-digest = "25cf6e80534cdc61f255af4787619afdf08e2a7f417ca88be1c0a3d948b35fb9"
   solver-name = "gps-cdcl"
   solver-version = 1
