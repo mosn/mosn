@@ -7,119 +7,6 @@
       "processor": 1,
       "listeners": [
         {
-          "name": "egress_http",
-          "address": "0.0.0.0:12221",
-          "bind_port": true,
-          "filter_chains": [
-            {
-             "match":"",
-             "tls_context":{},
-              "filters": [
-                {
-                  "type": "proxy",
-                  "config": {
-                    "DownstreamProtocol": "Http1",
-                    "Name": "proxy_config",
-                    "SupportDynamicRoute": true,
-                    "UpstreamProtocol": "Http2",
-                    "VirtualHosts": [
-                      {
-                        "Domains": [
-                          "www.antfin.com",
-                          "www.alibaba.com"
-                        ],
-                        "Name": "www",
-                        "RequireTls": "no",
-                        "Routers": [
-                          {
-                            "Match": {
-                              "Headers": [
-                                {
-                                  "Name": "x-custom-version",
-                                  "Value": "pre-release",
-                                  "Regex":false
-                                }
-                              ],
-                              "Path": "/",
-                              "Regex":".*",
-                              "Prefix":"/a"
-                            },
-                            "Route": {
-                              "ClusterName": "c1",
-                              "MetadataMatch": {
-                                "FilterMetadata": {
-                                  "mosn.lb": {
-                                    "stage": "dev",
-                                    "version": "1.2-pre"
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          {
-                            "Match": {
-                              "Prefix": "/test/"
-                            },
-                            "Route": {
-                              "WeightedCluster": {
-                                "Clusters": [
-                                  {
-                                    "MetadataMatch": {
-                                      "FilterMetadata": {
-                                        "mosn.lb": {
-                                          "version": "1.0"
-                                        }
-                                      }
-                                    },
-                                    "Name": "c1",
-                                    "Weight": 90
-                                  },
-                                  {
-                                    "MetadataMatch": {
-                                      "filter_metadmata": {
-                                        "mosn.lb": {
-                                          "version": "1.1"
-                                        }
-                                      }
-                                    },
-                                    "Name": "c2",
-                                    "Weight": 10
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ],
-          "stream_filters": [
-            {
-              "type": "healthcheck",
-              "config": {
-                "cache_time": "360s",
-                "cluster_min_healthy_percentages": {
-                  "local_service": 70
-                },
-                "passthrough": false
-              }
-            }
-          ],
-          "log_path": "/home/admin/mosn/logs/egress.log",
-          "log_level": "DEBUG",
-          "access_logs": [
-            {
-              "log_path": "./access_egress.log",
-              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
-            }
-          ],
-          "disable_conn_io": false
-        },
-        {
           "name": "egress_sofa",
           "address": "0.0.0.0:12220",
           "bind_port": true,
@@ -141,113 +28,36 @@
                 {
                   "type": "proxy",
                   "config": {
-                    "DownstreamProtocol": "SofaRpc",
-                    "Name": "proxy_config",
-                    "SupportDynamicRoute": true,
-                    "UpstreamProtocol": "SofaRpc",
-                    "VirtualHosts": [
+                    "downstream_protocol": "SofaRpc",
+                    "name": "proxy_config",
+                    "support_dynamic_route": true,
+                    "upstream_protocol": "SofaRpc",
+                    "virtual_hosts": [
                       {
-                        "Name": "sofa",
-                        "RequireTls": "no",
-                        "Domains":[
+                        "name": "sofa",
+                        "require_tls": "no",
+                        "domains":[
                           "*testwilccard"
                         ],
-                        "Routers": [
+                        "routers": [
                           {
-                            "Match": {
-                              "Headers": [
+                            "match": {
+                              "headers": [
                                 {
-                                  "Name": "service",
-                                  "Value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
-                                  "Regex":false
+                                  "name": "service",
+                                  "value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
+                                  "regex":false
                                 }
                               ]
                             },
-                            "Route": {
-                              "ClusterName": "test_cpp",
-                              "MetadataMatch": {
-                                "FilterMetadata": {
+                            "route": {
+                              "cluster_name": "test_cpp",
+                              "cluster_header": {
+                                "filter_metadata": {
                                   "mosn.lb": {
                                     "version":"1.1",
                                     "stage":"pre-release",
                                     "label": "gray"
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ],
-          "stream_filters": [
-            {
-              "type": "healthcheck",
-              "config": {
-                "cache_time": "360s",
-                "cluster_min_healthy_percentages": {
-                  "local_service": 70
-                },
-                "passthrough": false
-              }
-            }
-          ],
-          "log_path": "/home/admin/mosn/logs/egress.log",
-          "log_level": "DEBUG",
-          "access_logs": [
-            {
-              "log_path": "./access_egress.log",
-              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
-            }
-          ],
-          "disable_conn_io": false
-        },
-        {
-          "name": "ingress_sofa",
-          "address": "127.0.0.1:8888",
-          "bind_port": true,
-          "filter_chains": [
-            {
-             "match":"",
-             "tls_context":{},
-              "Filters": [
-                {
-                  "type": "proxy",
-                  "config": {
-                    "DownstreamProtocol": "SofaRpc",
-                    "Name": "proxy_config",
-                    "SupportDynamicRoute": true,
-                    "UpstreamProtocol": "SofaRpc",
-                    "VirtualHosts": [
-                      {
-                        "Name": "sofa",
-                        "RequireTls": "no",
-                        "Domains":[
-                          "*"
-                        ],
-                        "Routers": [
-                          {
-                            "Match": {
-                              "Headers": [
-                                {
-                                  "Name": "service",
-                                  "Value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
-                                  "Regex":false
-                                }
-                              ]
-                            },
-                            "Route": {
-                              "ClusterName": "c1",
-                              "MetadataMatch": {
-                                "FilterMetadata": {
-                                  "mosn.lb": {
-                                    "label": "gray",
-                                    "version":"1.1",
-                                    "stage":"pre-release"
                                   }
                                 }
                               }

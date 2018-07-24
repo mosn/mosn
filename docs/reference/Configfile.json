@@ -53,7 +53,7 @@
 							"Route": {
 							  "ClusterName": "test_cpp",
 							  "MetadataMatch": {
-								"FilterMetadata": {
+								"filter_metadata": {
 								  "mosn.lb": {
 									"version":"1.1",
 									"stage":"pre-release",

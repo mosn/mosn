@@ -99,7 +99,7 @@
                             "Route": {
                               "ClusterName": "c1",
                               "MetadataMatch": {
-                                "FilterMetadata": {
+                                "filter_metadata": {
                                   "mosn.lb": {
                                     "stage": "dev",
                                     "version": "1.2-pre"
@@ -117,7 +117,7 @@
                                 "Clusters": [
                                   {
                                     "MetadataMatch": {
-                                      "FilterMetadata": {
+                                      "filter_metadata": {
                                         "mosn.lb": {
                                           "version": "1.0"
                                         }
@@ -218,7 +218,7 @@
                             "Route": {
                               "ClusterName": "test_cpp",
                               "MetadataMatch": {
-                                "FilterMetadata": {
+                                "filter_metadata": {
                                   "mosn.lb": {
                                     "label": "gray"
                                   }
@@ -293,7 +293,7 @@
                             "Route": {
                               "ClusterName": "c1",
                               "MetadataMatch": {
-                                "FilterMetadata": {
+                                "filter_metadata": {
                                   "mosn.lb": {
                                     "label": "gray"
                                   }
