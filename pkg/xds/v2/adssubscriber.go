@@ -78,7 +78,7 @@ func (adsClient *ADSClient) receiveThread() {
 			typeURL := resp.TypeUrl
 			if typeURL == "type.googleapis.com/envoy.api.v2.Listener" {
 				log.DefaultLogger.Tracef("get lds resp,handle it")
-				listeners := adsClient.V2Client.handleListersResp(resp)
+				listeners := adsClient.V2Client.handleListenersResp(resp)
 				log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
 				err := adsClient.MosnConfig.OnUpdateListeners(listeners)
 				if err != nil {
