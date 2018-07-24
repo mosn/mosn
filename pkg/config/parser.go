@@ -129,7 +129,7 @@ func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
 		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
 	}
-mm
+	
 	if !proxyConfig.SupportDynamicRoute {
 		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
 	}
