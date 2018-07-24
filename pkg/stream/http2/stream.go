@@ -22,7 +22,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -69,7 +68,7 @@ type streamConnection struct {
 	context context.Context
 
 	protocol      types.Protocol
-	rawConnection net.Conn
+	connection    types.Connection
 	http2Conn     *http2.ClientConn
 	asMutex       sync.Mutex
 	connCallbacks types.ConnectionEventListener
@@ -101,7 +100,7 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 	return &clientStreamConnection{
 		streamConnection: streamConnection{
 			context:       context,
-			rawConnection: connection.RawConn(),
+			connection:    connection,
 			http2Conn:     context.Value(H2ConnKey).(*http2.ClientConn),
 			connCallbacks: connCallbacks,
 			logger:        log.ByContext(context),
@@ -137,17 +136,18 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 	connection.SetReadDisable(true)
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
-			context:       context,
-			rawConnection: connection.RawConn(),
+			context:    context,
+			connection: connection,
 		},
 		serverStreamConnCallbacks: callbacks,
 	}
 
-	if tlsConn, ok := ssc.rawConnection.(*tls.Conn); ok {
+	if tlsConn, ok := ssc.connection.RawConn().(*tls.Conn); ok {
 
 		if err := tlsConn.Handshake(); err != nil {
 			logger := log.ByContext(context)
-			logger.Errorf("TLS handshake error from %s: %v", ssc.rawConnection.RemoteAddr(), err)
+			logger.Errorf("TLS handshake error from %s: %v", ssc.connection.RemoteAddr(), err)
+
 			return nil
 		}
 	}
@@ -175,11 +175,17 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		},
 		connection:       ssc,
 		responseWriter:   responseWriter,
-		responseDoneChan: make(chan bool, 1),
+		responseDoneChan: make(chan struct{}),
 	}
 	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamID, stream)
 
 	if atomic.LoadInt32(&stream.readDisableCount) <= 0 {
+		defer func() {
+			if rec := recover(); rec != nil {
+				stream.responseWriter = nil
+			}
+		}()
+
 		stream.handleRequest()
 	}
 
@@ -238,7 +244,7 @@ func (s *clientStream) AppendHeaders(headers interface{}, endStream bool) error 
 		s.request = new(http.Request)
 		s.request.Method = http.MethodGet
 		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s/",
-			s.connection.rawConnection.RemoteAddr().String()))
+			s.connection.connection.RemoteAddr().String()))
 	}
 
 	if method, ok := headersMap[types.HeaderMethod]; ok {
@@ -253,13 +259,13 @@ func (s *clientStream) AppendHeaders(headers interface{}, endStream bool) error 
 
 	if path, ok := headersMap[protocol.MosnHeaderPathKey]; ok {
 		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s%s",
-			s.connection.rawConnection.RemoteAddr().String(), path))
+			s.connection.connection.RemoteAddr().String(), path))
 		delete(headersMap, protocol.MosnHeaderPathKey)
 	}
 
 	if _, ok := headersMap["Host"]; ok {
-		headersMap["Host"] = s.connection.rawConnection.RemoteAddr().String()
-		s.request.Host = s.connection.rawConnection.RemoteAddr().String()
+		headersMap["Host"] = s.connection.connection.RemoteAddr().String()
+		s.request.Host = s.connection.connection.RemoteAddr().String()
 	}
 
 	s.request.Header = encodeHeader(headersMap)
@@ -323,7 +329,8 @@ func (s *clientStream) doSend() {
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
 
 	if err != nil {
-		log.StartLogger.Tracef("http2 client stream send error %v", err)
+		log.StartLogger.Errorf("http2 client stream send error %v", err)
+
 		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
 		switch err.(type) {
 		case http2.StreamError:
@@ -335,14 +342,13 @@ func (s *clientStream) doSend() {
 		case error:
 			// todo: target remote close event
 			if err == io.EOF {
-				s.connection.connCallbacks.OnEvent(types.RemoteClose)
+				s.connection.connection.Close(types.NoFlush, types.RemoteClose)
 			} else if err.Error() == "http2: client conn is closed" {
 				// we dont use mosn io impl, so get connection state from golang h2 io read/write loop
-				s.connection.connCallbacks.OnEvent(types.LocalClose)
+				s.connection.connection.Close(types.NoFlush, types.LocalClose)
 			} else if err.Error() == "http2: client conn not usable" {
 				// raise overflow event to let conn pool taking action
 				s.ResetStream(types.StreamOverflow)
-
 			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY" {
 				s.connection.streamConnCallbacks.OnGoAway()
 			} else if err.Error() == "http2: Transport received Server's graceful shutdown GOAWAY; some request body already written" {
@@ -353,7 +359,7 @@ func (s *clientStream) doSend() {
 				s.ResetStream(types.StreamLocalReset)
 			} else {
 				s.connection.logger.Errorf("Unknown err: %v", err)
-				s.connection.connCallbacks.OnEvent(types.RemoteClose)
+				s.connection.connection.Close(types.NoFlush, types.RemoteClose)
 			}
 
 			s.CleanStream()
@@ -394,7 +400,8 @@ type serverStream struct {
 	stream
 	connection       *serverStreamConnection
 	responseWriter   http.ResponseWriter
-	responseDoneChan chan bool
+	responseDone     uint32
+	responseDoneChan chan struct{}
 }
 
 // types.StreamSender
@@ -443,7 +450,19 @@ func (s *serverStream) AppendTrailers(trailers map[string]string) error {
 
 func (s *serverStream) endStream() {
 	s.doSend()
-	s.responseDoneChan <- true
+
+	if atomic.CompareAndSwapUint32(&s.responseDone, 0, 1) {
+		close(s.responseDoneChan)
+	}
+}
+
+func (s *serverStream) ResetStream(reason types.StreamResetReason) {
+	// on stream reset
+	if atomic.CompareAndSwapUint32(&s.responseDone, 0, 1) {
+		close(s.responseDoneChan)
+	}
+
+	s.stream.ResetStream(reason)
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
@@ -461,6 +480,12 @@ func (s *serverStream) ReadDisable(disable bool) {
 }
 
 func (s *serverStream) doSend() {
+	if s.responseWriter == nil {
+		s.connection.logger.Warnf("responseWriter is nil, send stream is ignored")
+
+		return
+	}
+
 	for key, values := range s.response.Header {
 		for _, value := range values {
 			s.responseWriter.Header().Add(key, value)

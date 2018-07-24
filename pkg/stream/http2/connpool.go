@@ -21,6 +21,7 @@ import (
 	"context"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
@@ -42,7 +43,7 @@ var (
 // types.ConnectionPool
 type connPool struct {
 	activeClients map[string][]*activeClient // key is host:port
-	mux           sync.Mutex
+	mux           sync.RWMutex
 	host          types.Host
 }
 
@@ -124,10 +125,11 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 			}
 		}
 
+		host := client.host.HostInfo.AddressString()
+
 		p.mux.Lock()
 		defer p.mux.Unlock()
 
-		host := client.host.HostInfo.AddressString()
 		delete(p.activeClients, host)
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
@@ -160,6 +162,10 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 }
 
 func (p *connPool) onGoAway(client *activeClient) {
+	if !atomic.CompareAndSwapUint32(&client.isGoneAway, 0, 1) {
+		return
+	}
+
 	p.host.HostStats().UpstreamConnectionCloseNotify.Inc(1)
 	p.host.ClusterInfo().Stats().UpstreamConnectionCloseNotify.Inc(1)
 
@@ -177,10 +183,10 @@ func (p *connPool) createCodecClient(context context.Context, connData types.Cre
 // Http2 connpool interface
 func (p *connPool) getOrInitActiveClient(context context.Context, addr string) *activeClient {
 	p.mux.Lock()
+	defer p.mux.Unlock()
 
 	for _, ac := range p.activeClients[addr] {
 		if ac.CanTakeNewRequest() {
-			p.mux.Unlock()
 
 			return ac
 		}
@@ -189,12 +195,9 @@ func (p *connPool) getOrInitActiveClient(context context.Context, addr string) *
 	// If connection's stream id is out of bound, closed or 'go away', make a new one
 	if nac := newActiveClient(context, p); nac != nil {
 		p.activeClients[addr] = append(p.activeClients[addr], nac)
-		p.mux.Unlock()
 
 		return nac
 	}
-
-	p.mux.Unlock()
 
 	return nil
 }
@@ -207,11 +210,11 @@ func (p *connPool) GetClientConn(req *http.Request, addr string) (*http2.ClientC
 
 // MarkDead by golang net http2 impl
 func (p *connPool) MarkDead(http2Conn *http2.ClientConn) {
-	p.mux.Lock()
-	defer p.mux.Unlock()
-
 	acsIdx := ""
 	acIdx := -1
+	var deadAc *activeClient
+
+	p.mux.Lock()
 
 	for i, acs := range p.activeClients {
 		for j, ac := range acs {
@@ -219,14 +222,23 @@ func (p *connPool) MarkDead(http2Conn *http2.ClientConn) {
 			if ac.h2Conn == http2Conn {
 				acsIdx = i
 				acIdx = j
+				deadAc = ac
+
 				break
 			}
 		}
 	}
 
 	if acsIdx != "" && acIdx > -1 {
+		// close connection to notify watchers
 		p.activeClients[acsIdx] = append(p.activeClients[acsIdx][:acIdx],
 			p.activeClients[acsIdx][acIdx+1:]...)
+	}
+
+	p.mux.Unlock()
+
+	if deadAc != nil {
+		deadAc.host.Connection.Close(types.NoFlush, types.LocalClose)
 	}
 }
 
@@ -241,6 +253,7 @@ type activeClient struct {
 	host               types.CreateConnectionData
 	totalStream        uint64
 	closeWithActiveReq bool
+	isGoneAway         uint32
 }
 
 func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
