@@ -26,6 +26,7 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
+	"crypto/tls"
 )
 
 // connection management is done by fasthttp
@@ -53,10 +54,19 @@ type codecClient struct {
 }
 
 func NewHTTP1CodecClient(context context.Context, host types.HostInfo) str.CodecClient {
+	var isTLS bool
+	var tlsConfig *tls.Config
+	tlsMng := host.ClusterInfo().TLSMng()
+	if tlsMng != nil && tlsMng.Enabled() {
+		isTLS = true
+		tlsConfig = tlsMng.Config()
+	}
 	codecClient := &codecClient{
 		client: &fasthttp.HostClient{
 			Addr:          host.AddressString(),
 			DialDualStack: true,
+			IsTLS:         isTLS,
+			TLSConfig:     tlsConfig,
 		},
 		context:        context,
 		Host:           host,

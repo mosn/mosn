@@ -341,6 +341,13 @@ func (cm *contextManager) Enabled() bool {
 	return cm.defaultContext() != nil
 }
 
+func (cm *contextManager) Config() *tls.Config {
+	if cm.isClient {
+		return cm.defaultContext().tlsConfig
+	}
+	return nil
+}
+
 func (cm *contextManager) Conn(c net.Conn) net.Conn {
 	tlscontext := cm.defaultContext()
 
