@@ -55,7 +55,7 @@ MOSN是一款采用 Golang 开发的Service Mesh数据平面代理，功能和�
 * 基于Golang 1.9.2研发，使用dep进行依赖管理
 
 ## 文档
-* [Docs](http://www.sofastack.tech/sofa-mesh/docs/Home)
+* [Docs](http://www.sofastack.tech/sofa-mesh/docs/mosn-README)
 
 ## 社区
 * [Issues](https://github.com/alipay/sofa-mosn/issues)
