@@ -71,9 +71,14 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	}
 	//get inherit fds
 	inheritListeners := getInheritListeners()
-
+	
+	//cluster manager filter
+	cmf := &clusterManagerFilter{}
+	
+	// parse cluster all in one
+	clusters, clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
+	
 	for _, serverConfig := range c.Servers {
-
 		//1. server config prepare
 		//server config
 		sc := config.ParseServerConfig(&serverConfig)
@@ -88,15 +93,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			srv = server.NewServer(sc, cmf, cm)
 
 		} else {
-
-			//cluster manager filter
-			cmf := &clusterManagerFilter{}
-			var clusters []v2.Cluster
-			clusterMap := make(map[string][]v2.Host)
-
-			// parse cluster all in one
-			clusters, clusterMap = config.ParseClusterConfig(c.ClusterManager.Clusters)
-
 			//create cluster manager
 			cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
 			//initialize server instance

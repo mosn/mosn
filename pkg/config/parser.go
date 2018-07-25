@@ -469,6 +469,10 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 
 // ParseClusterConfig
 func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2.Host) {
+	if len(clusters) == 0 {
+		log.StartLogger.Fatalln("No Cluster provided in cluster config")
+	}
+	
 	var clustersV2 []v2.Cluster
 	clusterV2Map := make(map[string][]v2.Host)
 
