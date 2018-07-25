@@ -19,16 +19,16 @@
 		{
 		  "type": "proxy", 
 		  "config":{
-		    "DownstreamProtocol": "Http2",
-		    "UpstreamProtocol": "Http1",
-		    "VirtualHosts":[
+		    "downstream_protocol": "Http2",
+		    "upstream_protocol": "Http1",
+		    "virtual_hosts":[
 		      {
-		        "Name":"testHttp",
-			"Domains": ["*"],
-			"Routers": [
+		        "name":"testHttp",
+			"domains": ["*"],
+			"routers": [
 			  {
-			    "Match":{"Headers":[{"Name":"service","Value":"com.alipay.test.TestService:1.0"}]}, 
-			    "Route":{"ClusterName":"httpCluster"}
+			    "match":{"headers":[{"name":"service","value":"com.alipay.test.TestService:1.0"}]},
+			    "route":{"cluster_name":"httpCluster"}
 			  }
 			]
 		      }
@@ -48,12 +48,12 @@
     "clusters":[
       {
         "Name": "httpCluster",
-	"Type": "SIMPLE",
+	"type": "SIMPLE",
 	"lb_type": "LB_RANDOM",
-	"MaxRequestPerConn": 1024,
-	"ConnBufferLimitBytes":32768,
+	"max_request_per_conn": 1024,
+	"conn_buffer_limit_bytes":32768,
 	"hosts":[
-	  {"Address":"127.0.0.1:8080","Weight": 100}
+	  {"address":"127.0.0.1:8080","weight": 100}
 	]
       }
     ]

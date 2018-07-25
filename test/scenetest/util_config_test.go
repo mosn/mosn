@@ -67,9 +67,9 @@ type cluster struct {
 func CreateBasicClusterConfig(clusters []cluster) config.ClusterManagerConfig {
 	clustersConfig := []config.ClusterConfig{}
 	for _, c := range clusters {
-		var vhosts []v2.Host
+		var vhosts []config.HostConfig
 		for _, addr := range c.hosts {
-			vhosts = append(vhosts, v2.Host{
+			vhosts = append(vhosts, config.HostConfig{
 				Address: addr,
 				Weight:  100,
 			})

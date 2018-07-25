@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/network"
 	_ "github.com/alipay/sofa-mosn/pkg/network/buffer"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol"

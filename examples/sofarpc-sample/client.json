@@ -19,16 +19,16 @@
 		{
 		  "type": "proxy", 
 		  "config":{
-		    "DownstreamProtocol": "SofaRpc",
-		    "UpstreamProtocol": "Http2",
-		    "VirtualHosts":[
+		    "downstream_protocol": "SofaRpc",
+		    "upstream_protocol": "Http2",
+		    "virtual_hosts":[
 		      {
-		        "Name":"sofaClient",
-			"Domains": ["*"],
-			"Routers": [
+		        "name":"sofaClient",
+			"domains": ["*"],
+			"routers": [
 			  {
-			    "Match":{"Headers":[{"Name":"service","Value":"com.alipay.test.TestService:1.0"}]}, 
-			    "Route":{"ClusterName":"sofaMesher","MetadataMatch":{"filter_metadata":{"mosn.lb":{"stage": "pre-release", "version": "1.1", "label": "gray"}}}}
+			    "match":{"headers":[{"name":"service","value":"com.alipay.test.TestService:1.0"}]},
+			    "route":{"cluster_name":"sofaMesher","metadata_match":{"filter_metadata":{"mosn.lb":{"stage": "pre-release", "version": "1.1", "label": "gray"}}}}
 			  }
 			]
 		      }
@@ -48,18 +48,18 @@
     "clusters":[
       {
         "Name": "sofaMesher",
-	"Type": "SIMPLE",
+	"type": "SIMPLE",
 	"lb_type": "LB_RANDOM",
-	"MaxRequestPerConn": 1024,
-	"ConnBufferLimitBytes":32768,
+	"max_request_per_conn": 1024,
+	"conn_buffer_limit_bytes":32768,
 	"circuit_breakers":[],
-	"LBSubsetConfig":{
+	"lb_subset_config":{
 	  "FallBackPolicy":2,
-	  "DefaultSubset":{"stage":"pre-release","version":"1.1","label":"gray"},
-	  "SubsetSelectors":[["stage", "type"],["stage", "label", "version"],["version"]]
+	  "fall_back_policy":{"stage":"pre-release","version":"1.1","label":"gray"},
+	  "subset_selectors":[["stage", "type"],["stage", "label", "version"],["version"]]
 	},
 	"hosts":[
-	  {"Address":"127.0.0.1:2045","Weight": 100,"MetaData":{"stage":"pre-release","version":"1.1","label":"gray"}}
+	  {"address":"127.0.0.1:2045","weight": 100,"meta_data":{"stage":"pre-release","version":"1.1","label":"gray"}}
 	]
       }
     ]

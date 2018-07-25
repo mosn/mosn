@@ -56,7 +56,7 @@
       "default_log_path": "./admin/mosn/default.log",
       "default_log_level": "DEBUG",
       "graceful_timeout": "10s",
-      "Processor": 1,
+      "processor": 1,
       "listeners": [
         {
           "name": "egress_http",

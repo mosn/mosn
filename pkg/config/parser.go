@@ -129,20 +129,18 @@ func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
 		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
 	}
-
+	
 	if !proxyConfig.SupportDynamicRoute {
 		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
 	}
 
 	if len(proxyConfig.VirtualHosts) == 0 {
-		log.StartLogger.Warnf("No VirtualHosts Founded")
+		log.StartLogger.Fatal("No VirtualHosts Founded")
 
 	} else {
-
 		for _, vh := range proxyConfig.VirtualHosts {
-
 			if len(vh.Routers) == 0 {
-				log.StartLogger.Warnf("No Router Founded in VirtualHosts")
+				log.StartLogger.Fatal("No Router Founded in VirtualHosts")
 			}
 		}
 	}
@@ -470,6 +468,10 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 
 // ParseClusterConfig
 func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2.Host) {
+	if len(clusters) == 0 {
+		log.StartLogger.Fatalln("No Cluster provided in cluster config")
+	}
+	
 	var clustersV2 []v2.Cluster
 	clusterV2Map := make(map[string][]v2.Host)
 
@@ -537,7 +539,12 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			CirBreThresholds: parseCircuitBreakers(c.CircuitBreakers),
 
 			Spec:           parseConfigSpecConfig(&clusterSpec),
-			LBSubSetConfig: c.LBSubsetConfig,
+			LBSubSetConfig: v2.LBSubsetConfig{
+				c.LBSubsetConfig.FallBackPolicy,
+				c.LBSubsetConfig.DefaultSubset,
+				c.LBSubsetConfig.SubsetSelectors,
+			},
+			
 			TLS:            parseTLSConfig(&c.TLS),
 		}
 
@@ -630,14 +637,18 @@ func parseHostConfig(c *ClusterConfig) []v2.Host {
 	//	log.StartLogger.Debugf("[hosts] is required in cluster config")
 	//}
 	var hosts []v2.Host
-
 	for _, host := range c.Hosts {
 
 		if host.Address == "" {
 			log.StartLogger.Fatalln("[host.address] is required in host config")
 		}
 
-		hosts = append(hosts, host)
+		hosts = append(hosts, v2.Host{
+			host.Address,
+			host.Hostname,
+			host.Weight,
+			host.MetaData,
+		})
 	}
 
 	return hosts
