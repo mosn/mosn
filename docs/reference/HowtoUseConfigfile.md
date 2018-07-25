@@ -58,15 +58,12 @@ type ListenerConfig struct {
 	//access log
 	AccessLogs []AccessLogConfig `json:"access_logs,omitempty"`
 
-	// only used in http2 case
-	DisableConnIo bool `json:"disable_conn_io"`
 }
 
 ```
 
 1. `BindToPort` 需要设置为 true , 否则监听器将不工作
-2. `DisableConnIo` 在协议为HTTP2的时候设置为 true, 表示使用协议自带的 io
-3. `FilterConfig` 为定义的 stream filters, 当前支持 fault_inject 和 healthcheck
+2. `FilterConfig` 为定义的 stream filters, 当前支持 fault_inject 和 healthcheck
     + 其结构为: 
     ```go
     type FilterConfig struct {
@@ -85,7 +82,7 @@ type ListenerConfig struct {
         }
     }
     ```
-4. `FilterChain` 用于配置 Proxy 等，在 FilterConfig 的基础上包了一层,
+3. `FilterChain` 用于配置 Proxy 等，在 FilterConfig 的基础上包了一层,
     + 结构为：
     ```go
     type FilterChain struct {

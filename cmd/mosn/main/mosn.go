@@ -29,6 +29,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	_ "github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
 	_ "github.com/alipay/sofa-mosn/pkg/xds"
+	_"github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	"github.com/urfave/cli"
 )
 

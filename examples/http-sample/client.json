@@ -11,7 +11,6 @@
 	 "log_path":"./logs/client_mesher_listener.log",
 	 "log_level": "DEBUG",
 	 "access_logs":[],
-	 "disable_conn_io": true,
 	 "filter_chains": [
 	   {
              "match":"",

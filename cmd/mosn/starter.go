@@ -28,6 +28,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/server/config/proxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -110,17 +111,21 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			for _, listenerConfig := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
-
+				
+				nfcf,downstreamProtocol := getNetworkFilter(&lc.FilterChains[0])
+				
+				if downstreamProtocol == string(protocol.HTTP2) {
+					lc.DisableConnIo = true
+				}
+				
 				// network filters
 				if lc.HandOffRestoredDestinationConnections {
-					srv.AddListener(config.ParseListenerConfig(&listenerConfig, inheritListeners), nil, nil)
+					srv.AddListener(lc, nil, nil)
 					continue
 				}
-				nfcf := GetNetworkFilter(&lc.FilterChains[0])
-
+				
 				//stream filters
 				sfcf := getStreamFilters(listenerConfig.StreamFilters)
-
 				config.SetGlobalStreamFilter(sfcf)
 				srv.AddListener(lc, nfcf, sfcf)
 			}
@@ -180,17 +185,19 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	xdsClient.Stop()
 }
 
-// GetNetworkFilter
+// getNetworkFilter
 // Used to parse proxy from config
-func GetNetworkFilter(c *v2.FilterChain) types.NetworkFilterChainFactory {
+func getNetworkFilter(c *v2.FilterChain) (types.NetworkFilterChainFactory,string) {
 
 	if len(c.Filters) != 1 || c.Filters[0].Name != v2.DEFAULT_NETWORK_FILTER {
 		log.StartLogger.Fatalln("Currently, only Proxy Network Filter Needed!")
 	}
 
+	v2proxy := config.ParseProxyFilterJSON(&c.Filters[0])
+
 	return &proxy.GenericProxyFilterConfigFactory{
-		Proxy: config.ParseProxyFilterJSON(&c.Filters[0]),
-	}
+		Proxy: v2proxy,
+	},v2proxy.DownstreamProtocol
 }
 
 func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFactory {
