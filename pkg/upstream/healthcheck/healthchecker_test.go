@@ -28,10 +28,17 @@ import (
 )
 
 const (
-	testHealthCheckInterval = 2
-	testHealthCheckTimeout  = 5
+	testHealthCheckInterval = 200 // ms
+	testHealthCheckTimeout  = 500 // ms
 	testHealthyThreshold    = 5
 	testUnhealthyThreshold  = 5
+)
+
+var (
+	testIntervalDeadline  = time.Duration(2*testHealthCheckInterval*testUnhealthyThreshold + 50)
+	testTimeoutDeadline   = time.Duration(2*testHealthCheckTimeout*testUnhealthyThreshold + 50)
+	failureToSuccessChain bool
+	successToFailureChain bool
 )
 
 type mockHealthChecker struct {
@@ -94,20 +101,37 @@ func (s *mockHealthCheckSession) mockHealthCheckAction() {
 	case 1, 2, 3, 4:
 		go func() {
 			select {
-			case <-time.After(time.Duration(s.healthChecker.interval) * time.Second):
+			case <-time.After(s.healthChecker.interval):
 				switch s.healthChecker.mode {
 				case 1:
+					//fmt.Println("handle success")
 					s.handleSuccess()
 				case 2:
+					// fmt.Println("handle failure")
 					s.handleFailure(types.FailureActive)
 				case 3:
+					if failureToSuccessChain {
+						//fmt.Println("handle success")
+						s.handleSuccess()
+					} else {
+						// fmt.Println("handle failure")
+						s.handleFailure(types.FailureActive)
+					}
 				case 4:
+					if successToFailureChain {
+						//fmt.Println("handle failure")
+						s.handleFailure(types.FailureActive)
+					} else {
+						//fmt.Println("handle success")
+						s.handleSuccess()
+					}
 				}
-
 			}
 		}()
+
 	case 5:
 		// do nothing
+		// wait timeout
 	}
 }
 
@@ -117,7 +141,8 @@ func Test_success(t *testing.T) {
 	checkLoop := 0
 
 	for {
-		time.Sleep(time.Duration(testHealthCheckInterval*testUnhealthyThreshold+5) * time.Second)
+		// (interval + interval) * threshold
+		time.Sleep(testIntervalDeadline * time.Millisecond)
 
 		hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
 
@@ -144,7 +169,8 @@ func Test_failure(t *testing.T) {
 	checkLoop := 0
 
 	for {
-		time.Sleep(time.Duration(testHealthCheckInterval*testUnhealthyThreshold+5) * time.Second)
+		// (interval + interval) * threshold
+		time.Sleep(testIntervalDeadline * time.Millisecond)
 
 		hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
 
@@ -166,17 +192,78 @@ func Test_failure(t *testing.T) {
 }
 
 func Test_failure_2_success(t *testing.T) {
-	// todo
+	c := mockEnv(3)
+	checkLoop := 0
+
+	for {
+		checkLoop++
+		if checkLoop > 3 {
+			failureToSuccessChain = true
+		}
+
+		// (interval + interval) * threshold
+		time.Sleep(testIntervalDeadline * time.Millisecond)
+
+		hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
+		hhostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).HealthyHosts())
+
+		if hostCounter != 1 {
+			t.Fatal("err host counter")
+		}
+
+		if checkLoop > 6 {
+			break
+		} else if checkLoop > 3 {
+			if hhostCounter != 1 {
+				t.Fatal("err healthy host content")
+			}
+		} else {
+			if hhostCounter != 0 {
+				t.Fatal("err healthy host content")
+			}
+		}
+	}
 }
 
 func Test_success_2_failed(t *testing.T) {
-	// todo
+	c := mockEnv(4)
+	checkLoop := 0
+
+	for {
+		checkLoop++
+		if checkLoop > 3 {
+			successToFailureChain = true
+		}
+
+		// (interval + interval) * threshold
+		time.Sleep(testIntervalDeadline * time.Millisecond)
+
+		hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
+		hhostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).HealthyHosts())
+
+		if hostCounter != 1 {
+			t.Fatal("err host counter")
+		}
+
+		if checkLoop > 6 {
+			break
+		} else if checkLoop > 3 {
+			if hhostCounter != 0 {
+				t.Fatal("err healthy host content")
+			}
+		} else {
+			if hhostCounter != 1 {
+				t.Fatal("err healthy host content")
+			}
+		}
+	}
 }
 
 func Test_timeout(t *testing.T) {
 	c := mockEnv(5)
 
-	time.Sleep(time.Duration(testHealthCheckTimeout*testUnhealthyThreshold+5) * time.Second)
+	// (timeout + timeout) * threshold
+	time.Sleep(testTimeoutDeadline * time.Millisecond)
 
 	hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
 
@@ -196,12 +283,12 @@ func Test_cluster_modified(t *testing.T) {
 }
 
 func mockEnv(mode int) types.Cluster {
-	log.InitDefaultLogger("", log.INFO)
+	log.InitDefaultLogger("", log.DEBUG)
 
 	config := v2.HealthCheck{
 		Protocol:           "mock",
-		Timeout:            testHealthCheckTimeout,
-		Interval:           testHealthCheckInterval,
+		Timeout:            testHealthCheckTimeout * time.Millisecond,
+		Interval:           testHealthCheckInterval * time.Millisecond,
 		IntervalJitter:     1,
 		HealthyThreshold:   testHealthyThreshold,
 		UnhealthyThreshold: testUnhealthyThreshold,
