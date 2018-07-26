@@ -73,9 +73,6 @@ type ListenerConfig struct {
 
 	//access log
 	AccessLogs []AccessLogConfig `json:"access_logs,omitempty"`
-
-	// only used in http2 case
-	DisableConnIo bool `json:"disable_conn_io"`
 }
 
 // TLSConfig

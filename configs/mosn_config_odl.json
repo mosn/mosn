@@ -18,8 +18,7 @@
               "log_path": "./access_egress.log",
               "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
             }
-          ],
-          "disable_conn_io": false
+          ]
         },
         {
           "name": "ingress",
@@ -43,8 +42,7 @@
             }
           ],
           "log_path": "./log/ingress.log",
-          "log_level": "DEBUG",
-          "disable_conn_io": false
+          "log_level": "DEBUG"
         }
       ]
     }

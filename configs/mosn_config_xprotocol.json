@@ -74,8 +74,7 @@
               "log_path": "./access_egress.log",
               "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
             }
-          ],
-          "disable_conn_io": false
+          ]
         }
       ]
     }

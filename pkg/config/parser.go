@@ -461,7 +461,6 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		LogPath:                               c.LogPath,
 		LogLevel:                              uint8(parseLogLevel(c.LogLevel)),
 		AccessLogs:                            parseAccessConfig(c.AccessLogs),
-		DisableConnIo:                         c.DisableConnIo,
 		HandOffRestoredDestinationConnections: c.HandOffRestoredDestinationConnections,
 		FilterChains:                          parseFilterChains(c.FilterChains),
 	}
