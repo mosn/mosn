@@ -216,7 +216,7 @@ func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint
 		log.DefaultLogger.Warnf(" Sofa router matches failure, service name = %s", value)
 	}
 
-	log.DefaultLogger.Warnf("No service key found in header, sofa router matcher failure")
+	log.DefaultLogger.Debugf("No service key found in header, sofa router matcher failure")
 
 	return nil
 }
@@ -239,7 +239,7 @@ func (prri *PathRouteRuleImpl) MatchType() types.PathMatchType {
 // Exact Path Comparing
 func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
 	// match base rule first
-	log.StartLogger.Tracef("path route rule match invoked")
+	log.StartLogger.Debugf("path route rule match invoked")
 	if prri.matchRoute(headers, randomValue) {
 
 		if headerPathValue, ok := headers[strings.ToLower(protocol.MosnHeaderPathKey)]; ok {
@@ -255,7 +255,7 @@ func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint
 			}
 		}
 	}
-	log.DefaultLogger.Errorf("path route rule match failed")
+	log.DefaultLogger.Debugf("path route rule match failed")
 
 	return nil
 }
@@ -293,7 +293,7 @@ func (prei *PrefixRouteRuleImpl) Match(headers map[string]string, randomValue ui
 			}
 		}
 	}
-	log.DefaultLogger.Errorf("prefix route rule match failed")
+	log.DefaultLogger.Debugf("prefix route rule match failed")
 
 	return nil
 }
@@ -330,7 +330,7 @@ func (rrei *RegexRouteRuleImpl) Match(headers map[string]string, randomValue uin
 			}
 		}
 	}
-	log.DefaultLogger.Errorf("regex route rule match failed")
+	log.DefaultLogger.Debugf("regex route rule match failed")
 
 	return nil
 }
