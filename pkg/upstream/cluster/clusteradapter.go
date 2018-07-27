@@ -18,10 +18,11 @@
 package cluster
 
 import (
+	"fmt"
+	
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-	"fmt"
 )
 
 // Adap is the instance of cluster Adapter
@@ -31,47 +32,12 @@ type Adapter struct {
 	clusterMng *clusterManager
 }
 
-// TriggerClusterUpdate
-// used to update cluster and its hosts
-func (ca *Adapter) TriggerClusterUpdate(clusterName string, hosts []v2.Host) error {
-	clusterExist := ca.clusterMng.ClusterExist(clusterName)
-
-	if !clusterExist {
-		if ca.clusterMng.autoDiscovery {
-			cluster := v2.Cluster{
-				Name:        clusterName,
-				ClusterType: v2.DYNAMIC_CLUSTER,
-				LbType:      v2.LB_RANDOM,
-			}
-
-			// for dynamically added cluster, use cluster manager's health check config
-			if ca.clusterMng.registryUseHealthCheck {
-				// todo support more default health check @boqin
-				cluster.HealthCheck = sofarpc.DefaultSofaRPCHealthCheckConf
-			}
-			
-			if !ca.clusterMng.AddOrUpdatePrimaryCluster(cluster) {
-				return fmt.Errorf("TriggerClusterUpdate: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
-			}
-			
-		} else {
-			msg := "cluster doesn't support auto discovery "
-			log.DefaultLogger.Errorf(msg)
-			return fmt.Errorf(msg)
-		}
-	}
-
-	log.DefaultLogger.Debugf("triggering cluster update, cluster name = %s hosts = %+v", clusterName, hosts)
-	ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
-
-	return nil
-}
-
-// TriggerClusterAdded
-// used to add cluster
-func (ca *Adapter) TriggerClusterAdded(cluster v2.Cluster) {
+// TriggerClusterAddedOrUpdate
+// Added or Update Cluster, but not for cluster's hosts
+func (ca *Adapter) TriggerClusterAddedOrUpdate(cluster v2.Cluster) error {
 	clusterExist := ca.clusterMng.ClusterExist(cluster.Name)
 
+	// add cluster
 	if !clusterExist {
 		log.DefaultLogger.Debugf("Add PrimaryCluster: %s", cluster.Name)
 
@@ -79,13 +45,31 @@ func (ca *Adapter) TriggerClusterAdded(cluster v2.Cluster) {
 		if ca.clusterMng.registryUseHealthCheck {
 			cluster.HealthCheck = sofarpc.DefaultSofaRPCHealthCheckConf
 		}
-		
+
 		if !ca.clusterMng.AddOrUpdatePrimaryCluster(cluster) {
-			log.DefaultLogger.Errorf("TriggerClusterAdded: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+			return fmt.Errorf("TriggerClusterAdded: AddOrUpdatePrimaryCluster failure, cluster name = %s", cluster.Name)
 		}
 	} else {
-		log.DefaultLogger.Debugf("Added PrimaryCluster: %s Already Exist", cluster.Name)
+		log.DefaultLogger.Debugf("PrimaryCluster Already Exist: %s", cluster.Name)
 	}
+	
+	return nil
+}
+
+// TriggerClusterAddedOrUpdate
+// Added or Update Cluster and Cluster's hosts
+func (ca *Adapter) TriggerClusterAndHostsAddedOrUpdate(cluster v2.Cluster, hosts []v2.Host) error {
+	if err := ca.TriggerClusterAddedOrUpdate(cluster); err != nil {
+		return err
+	} else {
+		return ca.clusterMng.UpdateClusterHosts(cluster.Name, 0, hosts)
+	}
+}
+
+// TriggerClusterHostUpdate
+// Added or Update Cluster's hosts, return err if cluster not exist
+func (ca *Adapter) TriggerClusterHostUpdate(clusterName string , hosts []v2.Host) error {
+	return ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
 }
 
 // TriggerClusterDel
