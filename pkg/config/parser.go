@@ -31,7 +31,6 @@ import (
 
 type ContentKey string
 
-
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var protocolsSupported = map[string]bool{
@@ -129,7 +128,7 @@ func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
 		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
 	}
-	
+
 	if !proxyConfig.SupportDynamicRoute {
 		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
 	}
@@ -441,10 +440,14 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 	}
 
 	//try inherit legacy listener
+	currentIp := net.ParseIP(addr.String())
 	var old *net.TCPListener
 
 	for _, il := range inheritListeners {
-		if il.Addr.String() == addr.String() {
+		inheritIp := net.ParseIP(il.Addr.String())
+
+		// use ip.Equal to solve ipv4 and ipv6 case
+		if inheritIp.Equal(currentIp) {
 			log.StartLogger.Infof("inherit listener addr: %s", c.Address)
 			old = il.InheritListener
 			il.Remain = true
@@ -471,7 +474,7 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 	if len(clusters) == 0 {
 		log.StartLogger.Fatalln("No Cluster provided in cluster config")
 	}
-	
+
 	var clustersV2 []v2.Cluster
 	clusterV2Map := make(map[string][]v2.Host)
 
@@ -538,14 +541,14 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			HealthCheck:      parseClusterHealthCheckConf(&c.HealthCheck),
 			CirBreThresholds: parseCircuitBreakers(c.CircuitBreakers),
 
-			Spec:           parseConfigSpecConfig(&clusterSpec),
+			Spec: parseConfigSpecConfig(&clusterSpec),
 			LBSubSetConfig: v2.LBSubsetConfig{
 				c.LBSubsetConfig.FallBackPolicy,
 				c.LBSubsetConfig.DefaultSubset,
 				c.LBSubsetConfig.SubsetSelectors,
 			},
-			
-			TLS:            parseTLSConfig(&c.TLS),
+
+			TLS: parseTLSConfig(&c.TLS),
 		}
 
 		clustersV2 = append(clustersV2, clusterV2)
