@@ -91,6 +91,8 @@ type proxy struct {
 
 	// access logs
 	accessLogs []types.AccessLog
+
+	slabPool *buffer.SlabPool
 }
 
 func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
@@ -103,6 +105,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		stats:          globalStats,
 		resueCodecMaps: true,
 		codecPool:      codecHeadersBufPool,
+		slabPool:       buffer.NewSlabPool(),
 		context:        ctx,
 		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
@@ -214,19 +217,29 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 	// reuse decode map
 	if p.resueCodecMaps {
 		if s.downstreamReqHeaders != nil {
-			//p.codecPool.Give(s.downstreamReqHeaders)
+			p.codecPool.Give(s.downstreamReqHeaders)
 		}
 
 		if s.upstreamRequest != nil {
 			if s.upstreamRequest.upstreamRespHeaders != nil {
-				//p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
+				p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
 			}
 		}
 	}
 
-	p.asMux.Lock()
-	p.activeSteams.Remove(s.element)
-	p.asMux.Unlock()
+	if s.downstreamReqDataBuf != nil {
+		p.slabPool.Give(s.downstreamReqDataBuf)
+	}
+
+	if s.downstreamRespDataBuf != nil {
+		p.slabPool.Give(s.downstreamRespDataBuf)
+	}
+
+	if s.element != nil {
+		p.asMux.Lock()
+		p.activeSteams.Remove(s.element)
+		p.asMux.Unlock()
+	}
 
 	//s.reset()
 }

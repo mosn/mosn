@@ -29,7 +29,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -297,12 +296,14 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 }
 
 func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
+	s.downstreamReqDataBuf = s.proxy.slabPool.Clone(data)
+
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
 			streamId:  s.streamID,
 		},
-		data:      data,
+		data:      s.downstreamReqDataBuf,
 		endStream: endStream,
 	})
 }
@@ -326,34 +327,11 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 		return
 	}
 
-	shouldBufData := false
-	if s.retryState != nil && s.retryState.retryOn {
-		shouldBufData = true
-
-		// todo: set a buf limit
-	}
-
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
 
-	if shouldBufData {
-		copied := data.Clone()
-
-		if s.downstreamReqDataBuf != data {
-			// not in on decodeData continue decode context
-			if s.downstreamReqDataBuf == nil {
-				s.downstreamReqDataBuf = buffer.NewIoBuffer(data.Len())
-			}
-
-			s.downstreamReqDataBuf.ReadFrom(data)
-		}
-
-		// use a copy when we need to reuse buffer later
-		s.upstreamRequest.appendData(copied, endStream)
-	} else {
-		s.upstreamRequest.appendData(data, endStream)
-	}
+	s.upstreamRequest.appendData(data, endStream)
 
 	// if upstream process done in the middle of receiving data, just end stream
 	if s.upstreamProcessDone {
