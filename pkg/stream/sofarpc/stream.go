@@ -315,6 +315,7 @@ func (s *stream) endStream() {
 		} else {
 			s.connection.logger.Errorf("No stream %s to end", s.streamID)
 		}
+		sofarpc.ReleaseBuffer(s.context, s.encodedHeaders)
 	} else {
 		s.connection.logger.Debugf("Response Headers is void...")
 	}

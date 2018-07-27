@@ -96,7 +96,7 @@ func (r *upstreamRequest) ReceiveHeaders(headers map[string]string, endStream bo
 }
 
 func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
-	r.downStream.downstreamRespDataBuf = r.downStream.proxy.slabPool.Clone(data)
+	r.downStream.downstreamRespDataBuf = r.downStream.proxy.bytesBufferPool.Clone(data)
 
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{

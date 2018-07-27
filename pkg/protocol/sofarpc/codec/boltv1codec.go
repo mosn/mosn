@@ -24,12 +24,12 @@ import (
 	"reflect"
 	"time"
 
+	"fmt"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"fmt"
 )
 
 // BoltV1PropertyHeaders map the cmdkey and its data type
@@ -90,109 +90,108 @@ func (c *boltV1Codec) EncodeTrailers(context context.Context, trailers map[strin
 }
 
 func (c *boltV1Codec) encodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) (types.IoBuffer, error) {
-	result := c.doEncodeRequestCommand(context, cmd)
-	return buffer.NewIoBufferBytes(result), nil
+	return c.doEncodeRequestCommand(context, cmd), nil
 }
 
 func (c *boltV1Codec) encodeResponseCommand(context context.Context, cmd *sofarpc.BoltResponseCommand) (types.IoBuffer, error) {
-	result := c.doEncodeResponseCommand(context, cmd)
-	return buffer.NewIoBufferBytes(result), nil
+	return c.doEncodeResponseCommand(context, cmd), nil
 }
 
-func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) []byte {
-	offset := 0
+func (c *boltV1Codec) doEncodeRequestCommand(context context.Context, cmd *sofarpc.BoltRequestCommand) types.IoBuffer {
+	var b [4]byte
 	// todo: reuse bytes @boqin
-	data := make([]byte, 22, defaultTmpBufferSize)
+	//data := make([]byte, 22, defaultTmpBufferSize)
+	size := 22 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	buf := sofarpc.GetBuffer(context, size)
 
-	data[offset] = cmd.Protocol
-	offset++
+	b[0] = cmd.Protocol
+	buf.Write(b[0:1])
+	b[0] = cmd.CmdType
+	buf.Write(b[0:1])
 
-	data[offset] = cmd.CmdType
-	offset++
+	binary.BigEndian.PutUint16(b[0:], uint16(cmd.CmdCode))
+	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.CmdCode))
-	offset += 2
+	b[0] = cmd.Version
+	buf.Write(b[0:1])
 
-	data[offset] = cmd.Version
-	offset++
+	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ReqID))
+	buf.Write(b[0:4])
 
-	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ReqID))
-	offset += 4
+	b[0] = cmd.CodecPro
+	buf.Write(b[0:1])
 
-	data[offset] = cmd.CodecPro
-	offset++
+	binary.BigEndian.PutUint32(b[0:], uint32(cmd.Timeout))
+	buf.Write(b[0:4])
 
-	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.Timeout))
-	offset += 4
+	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
+	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.ClassLen))
-	offset += 2
+	binary.BigEndian.PutUint16(b[0:], uint16(len(cmd.HeaderMap)))
+	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint16(data[offset:], uint16(len(cmd.HeaderMap)))
-	offset += 2
-
-	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ContentLen))
-	offset += 4
+	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ContentLen))
+	buf.Write(b[0:4])
 
 	if cmd.ClassLen > 0 {
-		data = append(data, cmd.ClassName...)
+		buf.Write(cmd.ClassName)
 	}
 
 	if len(cmd.HeaderMap) > 0 {
-		data = append(data, cmd.HeaderMap...)
+		buf.Write(cmd.HeaderMap)
 	}
 
-	return data
+	return buf
 }
 
-func (c *boltV1Codec) doEncodeResponseCommand(context context.Context, cmd *sofarpc.BoltResponseCommand) []byte {
-	offset := 0
+func (c *boltV1Codec) doEncodeResponseCommand(context context.Context, cmd *sofarpc.BoltResponseCommand) types.IoBuffer {
+	var b [4]byte
 	// todo: reuse bytes @boqin
-	data := make([]byte, 20, defaultTmpBufferSize)
+	size := 20 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	buf := sofarpc.GetBuffer(context, size)
 
-	data[offset] = cmd.Protocol
-	offset++
+	b[0] = cmd.Protocol
+	buf.Write(b[0:1])
+	b[0] = cmd.CmdType
+	buf.Write(b[0:1])
 
-	data[offset] = cmd.CmdType
-	offset++
-
-	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.CmdCode))
-	offset += 2
+	binary.BigEndian.PutUint16(b[0:], uint16(cmd.CmdCode))
+	buf.Write(b[0:2])
 
 	if cmd.CmdCode == sofarpc.HEARTBEAT {
 		log.ByContext(context).Debugf("Build HeartBeat Response")
 	}
 
-	data[offset] = cmd.Version
-	offset++
+	b[0] = cmd.Version
+	buf.Write(b[0:1])
 
-	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ReqID))
-	offset += 4
+	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ReqID))
+	buf.Write(b[0:4])
 
-	data[offset] = cmd.CodecPro
-	offset++
+	b[0] = cmd.CodecPro
+	buf.Write(b[0:1])
 
-	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.ResponseStatus))
-	offset += 2
+	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ResponseStatus))
+	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint16(data[offset:], uint16(cmd.ClassLen))
-	offset += 2
+	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
+	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint16(data[offset:], uint16(len(cmd.HeaderMap)))
-	offset += 2
+	binary.BigEndian.PutUint16(b[0:], uint16(len(cmd.HeaderMap)))
+	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint32(data[offset:], uint32(cmd.ContentLen))
-	offset += 4
+	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ContentLen))
+	buf.Write(b[0:4])
 
 	if cmd.ClassLen > 0 {
-		data = append(data, cmd.ClassName...)
+		buf.Write(cmd.ClassName)
 	}
 
 	if len(cmd.HeaderMap) > 0 {
-		data = append(data, cmd.HeaderMap...)
+		buf.Write(cmd.HeaderMap)
 	}
 
-	return data
+	return buf
 }
 
 func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
@@ -274,7 +273,7 @@ func (c *boltV1Codec) mapToCmd(headers map[string]string) interface{} {
 	return nil
 }
 
-func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (interface{},error) {
+func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (interface{}, error) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
@@ -348,7 +347,7 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (inte
 					request.Protocol, request.CmdType, request.CmdCode, request.ReqID)
 				cmd = &request
 			}
-		} else if dataType == sofarpc.RESPONSE{
+		} else if dataType == sofarpc.RESPONSE {
 			//2. response
 			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V1 {
 
@@ -418,5 +417,5 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (inte
 		}
 	}
 
-	return cmd,nil
+	return cmd, nil
 }

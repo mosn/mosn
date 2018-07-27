@@ -5,7 +5,7 @@
 同时如果有需要，请注册对应的 callback 来监听连接上的事件。
 
 ```go
-codecClient := str.NewCodecClient(nil, protocol.Http2, connData.Connection, connData.HostInfo)
+codecClient := str.NewCodecClient(context.Background(), protocol.Http2, connData.Connection, connData.HostInfo)
 codecClient.AddConnectionCallbacks(ac)
 codecClient.SetCodecClientCallbacks(ac)
 codecClient.SetCodecConnectionCallbacks(ac)

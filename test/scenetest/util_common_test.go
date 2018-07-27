@@ -18,6 +18,7 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"net"
@@ -247,7 +248,7 @@ func (c *BoltV1Client) Connect(addr string) error {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	c.Codec = stream.NewCodecClient(nil, protocol.SofaRPC, cc, nil)
+	c.Codec = stream.NewCodecClient(context.Background(), protocol.SofaRPC, cc, nil)
 	return nil
 }
 func (c *BoltV1Client) SendRequest() {

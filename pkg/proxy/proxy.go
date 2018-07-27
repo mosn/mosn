@@ -92,23 +92,25 @@ type proxy struct {
 	// access logs
 	accessLogs []types.AccessLog
 
-	slabPool *buffer.SlabPool
+	bytesBufferPool *buffer.SlabPool
 }
 
 func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
 	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecMapPool, codecHeadersBufPool)
 
 	proxy := &proxy{
-		config:         config,
-		clusterManager: clusterManager,
-		activeSteams:   list.New(),
-		stats:          globalStats,
-		resueCodecMaps: true,
-		codecPool:      codecHeadersBufPool,
-		slabPool:       buffer.NewSlabPool(),
-		context:        ctx,
-		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
+		config:          config,
+		clusterManager:  clusterManager,
+		activeSteams:    list.New(),
+		stats:           globalStats,
+		resueCodecMaps:  true,
+		codecPool:       codecHeadersBufPool,
+		bytesBufferPool: buffer.NewSlabPool(),
+		context:         ctx,
+		accessLogs:      ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
+
+	proxy.context = context.WithValue(proxy.context, types.ContextKeyConnectionBytesBufferPool, proxy.bytesBufferPool)
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
@@ -228,11 +230,11 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 	}
 
 	if s.downstreamReqDataBuf != nil {
-		p.slabPool.Give(s.downstreamReqDataBuf)
+		p.bytesBufferPool.Give(s.downstreamReqDataBuf)
 	}
 
 	if s.downstreamRespDataBuf != nil {
-		p.slabPool.Give(s.downstreamRespDataBuf)
+		p.bytesBufferPool.Give(s.downstreamRespDataBuf)
 	}
 
 	if s.element != nil {

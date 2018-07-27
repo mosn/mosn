@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -110,5 +111,26 @@ func ReleaseMap(context context.Context, amap map[string]string) {
 	if context != nil && context.Value(types.ContextKeyConnectionCodecMapPool) != nil {
 		pool := context.Value(types.ContextKeyConnectionCodecMapPool).(types.HeadersBufferPool)
 		pool.Give(amap)
+	}
+}
+
+func GetBuffer(context context.Context, size int) types.IoBuffer {
+	var buf types.IoBuffer
+	if context != nil && context.Value(types.ContextKeyConnectionBytesBufferPool) != nil {
+		pool := context.Value(types.ContextKeyConnectionBytesBufferPool).(*buffer.SlabPool)
+		buf = pool.Take(size)
+	}
+
+	if buf == nil {
+		buf = buffer.NewIoBuffer(size)
+	}
+
+	return buf
+}
+
+func ReleaseBuffer(context context.Context, buf types.IoBuffer) {
+	if context != nil && context.Value(types.ContextKeyConnectionBytesBufferPool) != nil {
+		pool := context.Value(types.ContextKeyConnectionBytesBufferPool).(*buffer.SlabPool)
+		pool.Give(buf)
 	}
 }
