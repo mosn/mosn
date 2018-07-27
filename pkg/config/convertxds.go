@@ -520,7 +520,7 @@ func convertClusterType(xdsClusterType xdsapi.Cluster_DiscoveryType) v2.ClusterT
 	case xdsapi.Cluster_STRICT_DNS:
 	case xdsapi.Cluster_LOGICAL_DNS:
 	case xdsapi.Cluster_EDS:
-		return v2.DYNAMIC_CLUSTER
+		return v2.EDS_CLUSTER
 	case xdsapi.Cluster_ORIGINAL_DST:
 	}
 	//log.DefaultLogger.Fatalf("unsupported cluster type: %s, exchage to SIMPLE_CLUSTER", xdsClusterType.String())

@@ -42,6 +42,7 @@ const (
 	STATIC_CLUSTER  ClusterType = "STATIC"
 	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
 	DYNAMIC_CLUSTER ClusterType = "DYNAMIC"
+	EDS_CLUSTER     ClusterType = "EDS"
 )
 
 // LbType
