@@ -22,11 +22,14 @@ import (
 	"context"
 	"sync"
 
+	"runtime"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/stream"
+	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -34,12 +37,29 @@ var (
 	codecHeadersBufPool types.HeadersBufferPool
 	activeStreamPool    types.ObjectBufferPool
 	globalStats         *proxyStats
+
+	// global stream process status map with shard, we use this to indicate a given stream is processing or not
+	streamProcessMap []map[string]*downStream
+	workerPool       mosnsync.ShardWorkerPool
 )
 
 func init() {
 	globalStats = newProxyStats(types.GlobalStatsNamespace)
 	codecHeadersBufPool = buffer.NewHeadersBufferPool(1)
 	activeStreamPool = buffer.NewObjectPool(1)
+
+	// default shardsNum is equal to the cpu num
+	shardsNum := runtime.NumCPU()
+	// use 4096 as chan buffer length
+	poolSize := shardsNum * 4096
+
+	streamProcessMap = make([]map[string]*downStream, shardsNum)
+	for i := range streamProcessMap {
+		streamProcessMap[i] = make(map[string]*downStream, 2<<10)
+	}
+
+	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
+	workerPool.Init()
 }
 
 // types.ReadFilter

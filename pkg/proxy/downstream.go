@@ -113,6 +113,8 @@ func newActiveStream(streamID string, proxy *proxy, responseSender types.StreamS
 	proxy.listenerStats.DownstreamRequestTotal().Inc(1)
 	proxy.listenerStats.DownstreamRequestActive().Inc(1)
 
+	// start event process
+	stream.startEventProcess()
 	return stream
 }
 
@@ -182,6 +184,9 @@ func (s *downStream) cleanStream() {
 		}
 	}
 
+	// stop event process
+	s.stopEventProcess()
+
 	// delete stream
 	s.proxy.deleteActiveStream(s)
 }
@@ -196,6 +201,18 @@ func (s *downStream) shouldDeleteStream() bool {
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
+	workerPool.Offer(&resetEvent{
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamId:  s.streamID,
+		},
+		reason: reason,
+	})
+}
+
+// types.StreamEventListener
+// Called by stream layer normally
+func (s *downStream) ResetStream(reason types.StreamResetReason) {
 	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
 		return
 	}
@@ -207,6 +224,17 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 
 // types.StreamReceiver
 func (s *downStream) OnReceiveHeaders(headers map[string]string, endStream bool) {
+	workerPool.Offer(&receiveHeadersEvent{
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamId:  s.streamID,
+		},
+		headers:   headers,
+		endStream: endStream,
+	})
+}
+
+func (s *downStream) ReceiveHeaders(headers map[string]string, endStream bool) {
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
 
@@ -269,6 +297,17 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 }
 
 func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
+	workerPool.Offer(&receiveDataEvent{
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamId:  s.streamID,
+		},
+		data:      data,
+		endStream: endStream,
+	})
+}
+
+func (s *downStream) ReceiveData(data types.IoBuffer, endStream bool) {
 	// if active stream finished before receive data, just ignore further data
 	if s.upstreamProcessDone {
 		return
@@ -323,6 +362,16 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 }
 
 func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
+	workerPool.Offer(&receiveTrailerEvent{
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamId:  s.streamID,
+		},
+		trailers: trailers,
+	})
+}
+
+func (s *downStream) ReceiveTrailers(trailers map[string]string) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.upstreamProcessDone {
 		return
@@ -812,4 +861,23 @@ func (s *downStream) DownstreamConnection() net.Conn {
 
 func (s *downStream) DownstreamHeaders() map[string]string {
 	return s.downstreamReqHeaders
+}
+
+func (s *downStream) startEventProcess() {
+	// offer start event so that there is no lock contention on the streamPrcessMap[shard]
+	// all read/write operation should be abled to trace back to the ShardWorkerPool goroutine
+	workerPool.Offer(&startEvent{
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamId:  s.streamID,
+		},
+		ds: s,
+	})
+}
+
+func (s *downStream) stopEventProcess() {
+	source, _ := strconv.ParseInt(s.streamID, 10, 32)
+	shard := workerPool.Shard(int(source))
+
+	delete(streamProcessMap[shard], s.streamID)
 }

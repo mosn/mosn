@@ -61,6 +61,16 @@ func (r *upstreamRequest) resetStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
+	workerPool.Offer(&resetEvent{
+		streamEvent: streamEvent{
+			direction: Upstream,
+			streamId:  r.downStream.streamID,
+		},
+		reason: reason,
+	})
+}
+
+func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 
 	// todo: check if we get a reset on encode request headers. e.g. send failed
@@ -70,15 +80,47 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 // types.StreamReceiver
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
+	workerPool.Offer(&receiveHeadersEvent{
+		streamEvent: streamEvent{
+			direction: Upstream,
+			streamId:  r.downStream.streamID,
+		},
+		headers:   headers,
+		endStream: endStream,
+	})
+}
+
+func (r *upstreamRequest) ReceiveHeaders(headers map[string]string, endStream bool) {
 	r.upstreamRespHeaders = headers
 	r.downStream.onUpstreamHeaders(headers, endStream)
 }
 
 func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
+	workerPool.Offer(&receiveDataEvent{
+		streamEvent: streamEvent{
+			direction: Upstream,
+			streamId:  r.downStream.streamID,
+		},
+		data:      data,
+		endStream: endStream,
+	})
+}
+
+func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
 	r.downStream.onUpstreamData(data, endStream)
 }
 
 func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
+	workerPool.Offer(&receiveTrailerEvent{
+		streamEvent: streamEvent{
+			direction: Upstream,
+			streamId:  r.downStream.streamID,
+		},
+		trailers: trailers,
+	})
+}
+
+func (r *upstreamRequest) ReceiveTrailers(trailers map[string]string) {
 	r.downStream.onUpstreamTrailers(trailers)
 }
 
