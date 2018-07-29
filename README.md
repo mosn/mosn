@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/alipay/sofa-mosn)](https://goreportcard.com/report/github.com/alipay/sofa-mosn)
 ![license](https://img.shields.io/badge/license-Apache--2.0-green.svg)
 
-MOSN, the short name of Modular Observable Smart Network, is an powerful proxy acting as Service Mesh's data plane like envoy but written in golang.
+MOSN, the short name of Modular Observable Smart Network, is a powerful proxy acting as Service Mesh's data plane like Envoy but written in golang.
 MOSN supports Envoy and Istio's APIs and can be integrated with Istio, so we use MOSN instead of Envoy in SOFAMesh.
 The initial version of MOSN was jointly contributed by Ant Financial and UC Business Unit of Alibaba, and we look forward to the community to participate in the
 follow-up development and build an open source boutique project together.
@@ -59,13 +59,13 @@ follow-up development and build an open source boutique project together.
 
 ## Contribution
 + [How to contribute the code](docs/CONTRIBUTING.md)
-+ MOSN is still in its infancy with many capabilities to be completed, and many bugs need to be fixed.
-  So we welcome every to participate and submit the code in following but not limited aspect：
++ MOSN is still in its infancy with many capabilities need to be completed, and many bugs to be fixed.
+  So we welcome everyone to participate in and submit the code in following but not limited aspect：
    + Completing core routing function
    + Outlier detection
    + Tracing support
    + HTTP/1.x, HTTP/2.0 performance optimization
-   + flow control
+   + Flow control
    
 ## Thanks
 Thanks to Google, IBM, Lyft for creating the Envoy and Istio system, so that MOSN has a very good reference and we can
