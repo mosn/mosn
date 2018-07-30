@@ -19,29 +19,39 @@ package network
 
 import (
 	"context"
-	"io"
-	"net"
-	"runtime"
-	"runtime/debug"
-	"sync"
-	"sync/atomic"
-	"time"
-
+	"encoding/binary"
+	"errors"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"golang.org/x/sys/unix"
+	"io"
+	"math/rand"
+	"net"
+	"os"
+	"runtime"
+	"runtime/debug"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"syscall"
+	"time"
 )
 
 // Network related const
 const (
 	ConnectionCloseDebugMsg = "Close connection %d, event %s, type %s, data read %d, data write %d"
 	DefaultBufferCapacity   = 1 << 17
+	transferDomainSocket = "/tmp/mosn.sock"
+
 )
 
-var idCounter uint64
+var idCounter uint64 = 1
 var readerBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
 var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
+
+var TransferTimeout = time.Second * 30  //default 30s
 
 type connection struct {
 	id         uint64
@@ -72,6 +82,7 @@ type connection struct {
 	writeBufferChan     chan bool
 	internalLoopStarted bool
 	internalStopChan    chan struct{}
+	transferChan        chan uint64
 	readerBufferPool    *buffer.IoBufferPool
 	writeBufferPool     *buffer.IoBufferPool
 
@@ -87,7 +98,7 @@ type connection struct {
 
 // NewServerConnection
 // rawc is the raw connection from go/net
-func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logger) types.Connection {
+func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logger, ctx context.Context) types.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
@@ -100,6 +111,7 @@ func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logge
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
 		writeBufferChan:  make(chan bool, 1),
+		transferChan:     make(chan uint64),
 		readerBufferPool: readerBufferPool,
 		writeBufferPool:  writeBufferPool,
 		stats: &types.ConnectionStats{
@@ -111,7 +123,19 @@ func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logge
 		logger: logger,
 	}
 
+	if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
+		buf := ctx.Value(types.ContextKeyAcceptBuffer).([]byte)
+		conn.readBuffer = conn.readerBufferPool.Take(conn.rawConnection)
+		conn.readBuffer.Br.Write(buf)
+		log.DefaultLogger.Infof("NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Br.Len())
+	}
+
+	if ctx.Value(types.ContextKeyAcceptChan) != nil {
+		ch := ctx.Value(types.ContextKeyAcceptChan).(chan types.Connection)
+		ch <- conn
+	}
 	//conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)
+
 	conn.filterManager = newFilterManager(conn)
 
 	return conn
@@ -167,22 +191,34 @@ func (c *connection) Start(lctx context.Context) {
 }
 
 func (c *connection) startReadLoop() {
+	var transferTime time.Time
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
 		select {
 		case <-c.internalStopChan:
 			return
+		case <-c.stopChan:
+			if transferTime.IsZero() {
+				randTime := time.Duration(rand.Intn(int(TransferTimeout.Nanoseconds())))
+				transferTime = time.Now().Add(randTime)
+				log.DefaultLogger.Infof("transferTime: Wait %d Second", randTime/1e9)
+			}
 		default:
 		}
 
 		select {
-		case <-c.stopChan:
-			return
 		case <-c.internalStopChan:
 			return
 		case <-c.readEnabledChan:
 		default:
+			if !transferTime.IsZero() {
+				if transferTime.After(time.Now()) {
+					goto transfer
+				}
+			}
 			if c.readEnabled {
+				c.rawConnection.SetReadDeadline(time.Now().Add(3 * time.Second))
+
 				err := c.doRead()
 
 				if err != nil {
@@ -208,6 +244,11 @@ func (c *connection) startReadLoop() {
 			runtime.Gosched()
 		}
 	}
+
+transfer:
+	c.transferChan <- 0
+	id, _ := transferRead(c.rawConnection, c.readBuffer.Br.Bytes())
+	c.transferChan <- id
 }
 
 func (c *connection) doRead() (err error) {
@@ -221,7 +262,7 @@ func (c *connection) doRead() (err error) {
 
 	if err != nil {
 		if te, ok := err.(net.Error); ok && te.Timeout() {
-			return
+			return nil
 		}
 
 		c.readerBufferPool.Give(c.readBuffer)
@@ -299,6 +340,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 }
 
 func (c *connection) startWriteLoop() {
+	var id uint64
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
 		select {
@@ -308,13 +350,13 @@ func (c *connection) startWriteLoop() {
 		}
 
 		select {
-		case <-c.stopChan:
-			return
+		case <-c.transferChan:
+			id = <-c.transferChan
+			goto transfer
 		case <-c.internalStopChan:
 			return
 		case <-c.writeBufferChan:
 			_, err := c.doWrite()
-
 			if err != nil {
 				if te, ok := err.(net.Error); ok && te.Timeout() {
 					continue
@@ -332,6 +374,30 @@ func (c *connection) startWriteLoop() {
 					c.id, c.RemoteAddr().String(), err)
 
 				return
+			}
+		}
+	}
+
+transfer:
+	log.DefaultLogger.Infof("TransferWrite begin")
+	for {
+		select {
+		case <-c.writeBufferChan:
+			if id == 0 {
+				_, err := c.doWrite()
+				if err != nil {
+					c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
+						c.id, c.RemoteAddr().String(), err)
+					return
+				}
+			} else {
+				if c.writeBufLen() == 0 {
+					continue
+				}
+				c.writeBufferMux.Lock()
+				transferWrite(c.writeBuffer.Br.Bytes(), id)
+				c.writeBuffer.Br.Reset()
+				c.writeBufferMux.Unlock()
 			}
 		}
 	}
@@ -680,4 +746,423 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 	})
 
 	return
+}
+
+// transferServer is called on new mosn start
+func TransferServer(handler types.ConnectionHandler) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("transferServer panic %v", r)
+		}
+	}()
+
+	if os.Getenv("_MOSN_GRACEFUL_RESTART") != "true" {
+		return
+	}
+	if _, err := os.Stat(transferDomainSocket); err == nil {
+		os.Remove(transferDomainSocket)
+	}
+	l, err := net.Listen("unix", transferDomainSocket)
+	if err != nil {
+		log.DefaultLogger.Errorf("transfer net listen error %v", err)
+		return
+	}
+
+	defer l.Close()
+
+	log.DefaultLogger.Infof("TransferServer start")
+
+	var transferMap sync.Map
+
+	go func(handler types.ConnectionHandler) {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("TransferServer panic %v", r)
+			}
+		}()
+		for {
+			c, err := l.Accept()
+			if err != nil {
+				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+					log.DefaultLogger.Errorf("listener %s stop accepting connections by deadline", l.Addr())
+					return
+				} else if ope, ok := err.(*net.OpError); ok {
+					// not timeout error and not temporary, which means the error is non-recoverable
+					// stop accepting loop and log the event
+					if !(ope.Timeout() && ope.Temporary()) {
+						// accept error raised by sockets closing
+						if ope.Op == "accept" {
+							log.DefaultLogger.Errorf("listener %s closed", l.Addr())
+						} else {
+							log.DefaultLogger.Errorf("listener %s occurs non-recoverable error, stop listening and accepting:%s", l.Addr(), err.Error())
+						}
+						return
+					}
+				} else {
+					log.DefaultLogger.Errorf("listener %s occurs unknown error while accepting:%s", l.Addr(), err.Error())
+				}
+			}
+			log.DefaultLogger.Infof("transfer Accept")
+			go transferHandler(c, handler, &transferMap)
+		}
+	}(handler)
+
+	select {
+	case <-time.After(TransferTimeout * 2 + 10*time.Second):
+		log.DefaultLogger.Infof("TransferServer exit")
+		return
+	}
+}
+
+// transferHandler is called on recv transfer request
+func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *sync.Map) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("transferHandler panic %v", r)
+		}
+	}()
+
+	defer c.Close()
+
+	uc, ok := c.(*net.UnixConn)
+	if !ok {
+		log.DefaultLogger.Errorf("unexpected FileConn type; expected UnixConn, got %T", c)
+		return
+	}
+	// recv type
+	conn, err := transferRecvType(uc)
+	if err != nil {
+		return
+	}
+	// send ack
+	err = transferSendMsg(uc, []byte{0})
+	if err != nil {
+		return
+	}
+	// recv header
+	size, id, err := transferRecvHead(uc)
+	if err != nil {
+		return
+	}
+	// recv read/write buffer
+	buf, err := transferRecvMsg(uc, size)
+	if err != nil {
+		return
+	}
+	if conn != nil {
+		// transfer read
+		connection := transferNewConn(conn, buf, handler, transferMap)
+		if connection != nil {
+			transferSendID(uc, connection.id)
+		} else {
+			transferSendID(uc, 0)
+		}
+	} else {
+		// transfer write
+		connection := transferFindConnection(transferMap, uint64(id))
+		if connection == nil {
+			log.DefaultLogger.Errorf("transferFindConnection failed")
+			return
+		}
+		transferSendBuffer(connection, buf)
+	}
+}
+
+// old mosn transfer readloop
+func transferRead(conn net.Conn, buf []byte) (uint64, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("transferRead panic %v", r)
+		}
+	}()
+	c, err := net.Dial("unix", transferDomainSocket)
+	if err != nil {
+		log.DefaultLogger.Errorf("net Dial unix failed %v", err)
+		return 0, err
+	}
+
+	defer c.Close()
+
+	tcpconn, ok := conn.(*net.TCPConn)
+	if !ok {
+		log.DefaultLogger.Errorf("unexpected net.Conn type; expected TCPConn, got %T", conn)
+		return 0, errors.New("unexpected Conn type")
+	}
+	uc := c.(*net.UnixConn)
+	// send type and TCP FD
+	err = transferSendType(uc, tcpconn, true)
+	if err != nil {
+		return 0, err
+	}
+	// recv ack
+	_, err = transferRecvMsg(uc, 1)
+	if err != nil {
+		return 0, err
+	}
+	// send header
+	err = transferSendHead(uc, uint32(len(buf)), 0)
+	if err != nil {
+		return 0, err
+	}
+	// send read buffer
+	err = transferSendMsg(uc, buf)
+	if err != nil {
+		return 0, err
+	}
+	// recv ID
+	id := transferRecvID(uc)
+	log.DefaultLogger.Infof("TransferRead NewConn id = %d, buffer = %d", id, len(buf))
+
+	return id, nil
+}
+
+// old mosn transfer writeloop
+func transferWrite(buf []byte, id uint64) error {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("transferWrite panic %v", r)
+		}
+	}()
+	c, err := net.Dial("unix", transferDomainSocket)
+	if err != nil {
+		log.DefaultLogger.Errorf("net Dial unix failed %v", err)
+		return err
+	}
+	defer c.Close()
+
+	log.DefaultLogger.Infof("TransferWrite id = %d, buffer = %d", id, len(buf))
+	uc := c.(*net.UnixConn)
+	// send type
+	err = transferSendType(uc, nil, false)
+	if err != nil {
+		return err
+	}
+	// recv ack
+	_, err = transferRecvMsg(uc, 1)
+	if err != nil {
+		return err
+	}
+	// send header
+	err = transferSendHead(uc, uint32(len(buf)), uint32(id))
+	if err != nil {
+		return err
+	}
+	// send write buffer
+	return transferSendMsg(uc, buf)
+}
+
+func transferSendBuffer(conn *connection, buf []byte) error {
+	iobuf := buffer.NewIoBufferBytes(buf)
+	return conn.Write(iobuf)
+}
+
+func transferFindConnection(transferMap *sync.Map, id uint64) *connection {
+	conn, ok := transferMap.Load(id)
+	if !ok {
+		return nil
+	}
+	return conn.(*connection)
+}
+
+func transferSendHead(uc *net.UnixConn, size uint32, id uint32) error {
+	buf := transferBuildHead(size, id)
+	return transferSendMsg(uc, buf)
+}
+
+/**
+ * header protocol (9 bytes)
+ * 0     1                 5                       9
+ * +-----+-----+-----+-----+-----+-----+-----+-----+
+ * |     |   length        |    connetcion  ID     |
+ * +-----------+-----------+-----------+-----------+
+ *
+ **/
+func transferBuildHead(size uint32, id uint32) []byte {
+	buf := make([]byte, 9)
+	binary.BigEndian.PutUint32(buf[1:], size)
+	binary.BigEndian.PutUint32(buf[5:], id)
+	if id == 0 {
+		buf[0] = 0
+	} else {
+		buf[0] = 1
+	}
+	return buf
+}
+/**
+ * Type (1 bytes)
+ *  0 : transfer read
+ *  1 : transfer write
+ **/
+func transferSendType(uc *net.UnixConn, conn *net.TCPConn, read bool) error {
+	buf := make([]byte, 1)
+	// transfer write
+	if read == false {
+		buf[0] = 1
+		return transferSendMsg(uc, buf)
+	}
+	// transfer read, send FD
+	return transferSendFD(uc, conn)
+}
+
+func transferSendFD(uc *net.UnixConn, conn *net.TCPConn) error {
+	var rights []byte
+	buf := []byte{0}
+	if conn == nil {
+		return errors.New("transferSendFD conn is nil")
+	}
+	f, err := conn.File()
+	if err != nil {
+		log.DefaultLogger.Errorf("TCP File failed %v", err)
+		return err
+	}
+	rights = syscall.UnixRights(int(f.Fd()))
+	n, oobn, err := uc.WriteMsgUnix(buf, rights, nil)
+	if err != nil {
+		log.DefaultLogger.Errorf("WriteMsgUnix: %v", err)
+		return err
+	}
+	if n != len(buf) || oobn != len(rights) {
+		log.DefaultLogger.Errorf("WriteMsgUnix = %d, %d; want 1, %d", n, oobn, len(rights))
+		return err
+	}
+	return nil
+}
+
+func transferRecvFD(oob []byte) (net.Conn, error) {
+	scms, err := unix.ParseSocketControlMessage(oob)
+	if err != nil {
+		log.DefaultLogger.Errorf("ParseSocketControlMessage: %v", err)
+		return nil, err
+	}
+	if len(scms) != 1 {
+		log.DefaultLogger.Errorf("expected 1 SocketControlMessage; got scms = %#v", scms)
+		return nil, err
+	}
+	scm := scms[0]
+	gotFds, err := unix.ParseUnixRights(&scm)
+	if err != nil {
+		log.DefaultLogger.Errorf("unix.ParseUnixRights: %v", err)
+		return nil, err
+	}
+	if len(gotFds) != 1 {
+		log.DefaultLogger.Errorf("wanted 1 fd; got %#v", gotFds)
+		return nil, err
+	}
+	f := os.NewFile(uintptr(gotFds[0]), "fd-from-old")
+	conn, err := net.FileConn(f)
+	if err != nil {
+		log.DefaultLogger.Errorf("FileConn error :%v", gotFds)
+		return nil, err
+	}
+	return conn, nil
+}
+
+func transferRecvType(uc *net.UnixConn) (net.Conn, error) {
+	buf := make([]byte, 1)
+	oob := make([]byte, 32)
+	_, oobn, _, _, err := uc.ReadMsgUnix(buf, oob)
+	if err != nil {
+		log.DefaultLogger.Errorf("ReadMsgUnix error: %v", err)
+		return nil, err
+	}
+	// transfer write
+	if buf[0] == 1 {
+		return nil, nil
+	}
+	// transfer read, recv FD
+	conn, err := transferRecvFD(oob[0:oobn])
+	if err != nil {
+		return nil, err
+	}
+	return conn, err
+}
+
+func transferRecvHead(uc *net.UnixConn) (int, int, error) {
+	buf, err := transferRecvMsg(uc, 9)
+	if err != nil {
+		log.DefaultLogger.Errorf("ReadMsgUnix error: %v", err)
+		return 0, 0, err
+	}
+	size := int(binary.BigEndian.Uint32(buf[1:]))
+	id := int(binary.BigEndian.Uint32(buf[5:]))
+	return size, id, nil
+}
+
+func transferSendMsg(uc *net.UnixConn, b []byte) error {
+	if len(b) == 0 {
+		return nil
+	}
+	_, err := uc.Write(b)
+	if err != nil {
+		log.DefaultLogger.Errorf("transferSendMsg failed: %v", err)
+		return err
+	}
+	return nil
+}
+
+func transferRecvMsg(uc *net.UnixConn, size int) ([]byte, error) {
+	if size == 0 {
+		return nil, nil
+	}
+	b := make([]byte, size)
+	var n, off int
+	var err error
+	for {
+		n, err = uc.Read(b[off:])
+		if err != nil {
+			log.DefaultLogger.Errorf("transferRecvMsg failed: %v", err)
+			return nil, err
+		}
+		off += n
+		if off == size {
+			return b, nil
+		}
+	}
+}
+
+func transferSendID(uc *net.UnixConn, id uint64) error {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, uint32(id))
+	return transferSendMsg(uc, b)
+}
+
+func transferRecvID(uc *net.UnixConn) uint64 {
+	b, err := transferRecvMsg(uc, 4)
+	if err != nil {
+		return 0
+	}
+	return uint64(binary.BigEndian.Uint32(b))
+}
+
+func transferNewConn(conn net.Conn, buf []byte, handler types.ConnectionHandler, transferMap *sync.Map) *connection {
+	address := conn.LocalAddr().(*net.TCPAddr)
+	port := strconv.FormatInt(int64(address.Port), 10)
+	ipv4, _ := net.ResolveTCPAddr("tcp", "0.0.0.0:"+port)
+	ipv6, _ := net.ResolveTCPAddr("tcp", "[::]:"+port)
+
+	var listener types.Listener
+	listener = handler.FindListenerByAddress(ipv6)
+	if listener == nil {
+		listener = handler.FindListenerByAddress(ipv4)
+	}
+	if listener == nil {
+		log.DefaultLogger.Errorf("Find Listener failed %v", address)
+		return nil
+	}
+	ch := make(chan types.Connection)
+	go listener.GetListenerCallbacks().OnAccept(conn, false, nil, ch, buf)
+	select {
+	case rch := <-ch:
+		conn, ok := rch.(*connection)
+		if !ok {
+			log.DefaultLogger.Errorf("transfer NewConn failed %v", address)
+			return nil
+		}
+		log.DefaultLogger.Infof("transfer NewConn id: %d", conn.id)
+		transferMap.Store(conn.id, conn)
+		return conn
+	case <-time.After(1000 * time.Millisecond):
+		log.DefaultLogger.Errorf("transfer NewConn timeout %v", address)
+		return nil
+	}
 }

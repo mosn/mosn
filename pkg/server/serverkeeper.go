@@ -38,7 +38,7 @@ func init() {
 var (
 	pidFile               string
 	onProcessExit         []func()
-	gracefulTimeout       = time.Second * 30 //default 30s
+	GracefulTimeout       = time.Second * 30 //default 30s
 	shutdownCallbacksOnce sync.Once
 	shutdownCallbacks     []func() error
 )
@@ -170,11 +170,14 @@ func reconfigure() {
 
 	log.DefaultLogger.Infof("SIGHUP received: fork-exec to %d", fork)
 
+	// Wait for new mosn start
+	time.Sleep(1*time.Second)
+
 	// Stop accepting requests
 	StopAccept()
 
 	// Wait for all conections to be finished
-	WaitConnectionsDone(gracefulTimeout)
+	WaitConnectionsDone(GracefulTimeout)
 	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
 
 	// Stop the old server, all the connections have been closed and the new one is running

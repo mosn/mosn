@@ -33,6 +33,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	"github.com/alipay/sofa-mosn/pkg/xds"
+	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 // Mosn class which wrapper server
@@ -137,6 +138,11 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			ln.InheritListener.Close()
 		}
 	}
+
+	// set TransferTimeout
+	network.TransferTimeout = server.GracefulTimeout
+	// transfer old mosn connections
+	go network.TransferServer(m.servers[0].Handler())
 	
 	return m
 }

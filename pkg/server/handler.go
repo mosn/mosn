@@ -27,12 +27,12 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"fmt"
 	"github.com/alipay/sofa-mosn/internal/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"fmt"
 )
 
 // ConnectionHandler
@@ -67,7 +67,7 @@ func (ch *connHandler) UpdateClusterConfig(clusters []v2.Cluster) error {
 
 	for _, cluster := range clusters {
 		if !ch.clusterManager.AddOrUpdatePrimaryCluster(cluster) {
-			return fmt.Errorf("UpdateClusterConfig: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+			return fmt.Errorf("UpdateClusterConfig: AddOrUpdatePrimaryCluster failure, cluster name = %s", cluster.Name)
 		}
 	}
 
@@ -209,6 +209,12 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 	return nil
 }
 
+func (ch *connHandler) StopConnection() {
+	for _, l := range ch.listeners {
+		close(l.stopChan)
+	}
+}
+
 // ListenerEventListener
 type activeListener struct {
 	disableConnIo          bool
@@ -260,7 +266,7 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr) {
+func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
@@ -279,6 +285,10 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	if ch != nil {
+		ctx = context.WithValue(ctx, types.ContextKeyAcceptChan, ch)
+		ctx = context.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+	}
 	if oriRemoteAddr != nil {
 		ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
@@ -333,7 +343,7 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 }
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
-	conn := network.NewServerConnection(rawc, al.stopChan, al.logger)
+	conn := network.NewServerConnection(rawc, al.stopChan, al.logger, ctx)
 	oriRemoteAddr := ctx.Value(types.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
@@ -387,11 +397,11 @@ func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
 
 	if listener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", listener.listenIP, listener.listenPort)
-		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
 	}
 	if localListener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", localListener.listenIP, localListener.listenPort)
-		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
 	}
 }
 

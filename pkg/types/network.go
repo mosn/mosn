@@ -107,6 +107,9 @@ type Listener interface {
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)
 
+	// GetListenerCallbacks set a listener event listener
+	GetListenerCallbacks() ListenerEventListener
+
 	// Close closes listener, not closing connections
 	Close(lctx context.Context) error
 }
@@ -121,7 +124,7 @@ type TLSContextManager interface {
 // ListenerEventListener is a Callback invoked by a listener.
 type ListenerEventListener interface {
 	// OnAccept is called on new connection accepted
-	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr)
+	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr,  c chan Connection, buf []byte)
 
 	// OnNewConnection is called on new mosn connection created
 	OnNewConnection(ctx context.Context, conn Connection)
@@ -454,6 +457,9 @@ type ConnectionHandler interface {
 
 	// ListListenersFD reports all listeners' fd
 	ListListenersFD(lctx context.Context) []uintptr
+
+	// StopConnection Stop Connection
+	StopConnection()
 }
 
 // ReadFilter is a connection binary read filter, registered by FilterManager.AddReadFilter
