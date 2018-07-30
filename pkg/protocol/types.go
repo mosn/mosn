@@ -32,4 +32,5 @@ const (
 	MosnHeaderHostKey        = "host"
 	MosnHeaderPathKey        = "path"
 	MosnHeaderQueryStringKey = "querystring"
+	MosnHeaderMethod         = "method"
 )

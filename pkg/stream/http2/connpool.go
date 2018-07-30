@@ -83,6 +83,11 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		return nil
 	}
 
+	if p.primaryClient == nil {
+		cb.OnFailure(streamID, types.ConnectionFailure, nil)
+		return nil
+	}
+
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		cb.OnFailure(streamID, types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)

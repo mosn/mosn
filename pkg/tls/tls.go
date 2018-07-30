@@ -27,7 +27,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -339,6 +339,13 @@ find:
 
 func (cm *contextManager) Enabled() bool {
 	return cm.defaultContext() != nil
+}
+
+func (cm *contextManager) Config() *tls.Config {
+	if cm.isClient {
+		return cm.defaultContext().tlsConfig
+	}
+	return nil
 }
 
 func (cm *contextManager) Conn(c net.Conn) net.Conn {

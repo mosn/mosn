@@ -86,12 +86,6 @@ func IsSofaRequest(headers map[string]string) bool {
 		if cmdtype == REQUEST {
 			return true
 		}
-	} else if procode == PROTOCOL_CODE_TR {
-		requestFlage := ConvertPropertyValue(headers[SofaPropertyHeader(HeaderReqFlag)], reflect.Uint8)
-
-		if requestFlage == HEADER_REQUEST {
-			return true
-		}
 	}
 
 	return false

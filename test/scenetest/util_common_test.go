@@ -19,6 +19,7 @@ package tests
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"regexp"
@@ -336,7 +337,7 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 		if bytesRead > 0 {
 			iobuf.Write(buf[:bytesRead])
 			for iobuf.Len() > 1 {
-				_, cmd := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
+				cmd, _ := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
 				if cmd == nil {
 					break
 				}
@@ -354,11 +355,17 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 			}
 		}
 	}
-
 }
 
 //tools
-func IsMapEmpty(m *sync.Map) bool {
+func RandomDuration(min, max time.Duration) time.Duration {
+	if min > max {
+		return min
+	}
+	d := rand.Int63n(int64(max - min))
+	return time.Duration(d) * time.Nanosecond
+}
+func IsMapEmpty(m sync.Map) bool {
 	empty := true
 	//If there is a key in the map, return not empty
 	m.Range(func(key, value interface{}) bool {
@@ -366,4 +373,28 @@ func IsMapEmpty(m *sync.Map) bool {
 		return false
 	})
 	return empty
+}
+func WaitMapEmpty(m sync.Map, timeout time.Duration) bool {
+	ch := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ch:
+				return
+			default:
+				if IsMapEmpty(m) {
+					close(ch)
+					return
+				}
+				time.Sleep(500 * time.Millisecond)
+			}
+		}
+	}() //check goroutine
+	select {
+	case <-time.After(timeout):
+		close(ch)            // finish check goroutine
+		return IsMapEmpty(m) // timeout, retry again
+	case <-ch:
+		return true //map empty
+	}
 }

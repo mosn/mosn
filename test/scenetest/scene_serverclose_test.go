@@ -30,7 +30,7 @@ import (
 //when a upstream server has been closed
 //the client should get a error response
 func TestServerClose(t *testing.T) {
-	meshAddr := "127.0.0.1:2045"
+	meshAddr := CurrentMeshAddr()
 	serverAddrs := []string{
 		"127.0.0.1:8080",
 		"127.0.0.1:8081",
@@ -54,20 +54,17 @@ func TestServerClose(t *testing.T) {
 	}
 	client.Connect(meshAddr)
 	defer client.conn.Close(types.NoFlush, types.LocalClose)
-	//send request
+	//close a server after random duration
 	go func() {
-		for i := 0; i < 10; i++ {
-			client.SendRequest()
-			time.Sleep(time.Second)
-		}
-	}()
-	//close a server after 4 seconds
-	go func() {
-		<-time.After(4 * time.Second)
+		d := RandomDuration(4*time.Second, 6*time.Second)
+		<-time.After(d)
 		servers[0].Close()
 	}()
-	<-time.After(15 * time.Second) //wait request finish
-	if !IsMapEmpty(&client.Waits) {
+	for i := 0; i < 10; i++ {
+		client.SendRequest()
+		time.Sleep(RandomDuration(500*time.Millisecond, 1500*time.Millisecond))
+	}
+	if !WaitMapEmpty(client.Waits, 15*time.Second) {
 		t.Errorf("some request get no response\n")
 	}
 }

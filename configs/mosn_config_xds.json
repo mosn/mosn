@@ -56,7 +56,7 @@
       "default_log_path": "./admin/mosn/default.log",
       "default_log_level": "DEBUG",
       "graceful_timeout": "10s",
-      "Processor": 1,
+      "processor": 1,
       "listeners": [
         {
           "name": "egress_http",
@@ -168,8 +168,7 @@
               "log_path": "./access_egress.log",
               "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
             }
-          ],
-          "disable_conn_io": false
+          ]
         },
         {
           "name": "egress_sofa",
@@ -253,8 +252,7 @@
               "log_path": "./access_egress.log",
               "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
             }
-          ],
-          "disable_conn_io": false
+          ]
         },
         {
           "name": "ingress_sofa",
@@ -328,8 +326,7 @@
               "log_path": "./access_egress.log",
               "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
             }
-          ],
-          "disable_conn_io": false
+          ]
         }
       ]
     }

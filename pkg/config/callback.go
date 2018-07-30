@@ -20,7 +20,7 @@ package config
 import (
 	"errors"
 
-	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/server/config/proxy"
@@ -88,13 +88,11 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 
 	for _, cluster := range mosnClusters {
 		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
-		if err := clusterAdapter.Adap.TriggerClusterUpdate(cluster.Name, cluster.Hosts); err != nil {
-			log.DefaultLogger.Errorf("xds client update cluster error ,err = %s, clustername = %s , hosts = %+v",
-				err.Error(), cluster.Name, cluster.Hosts)
+		if cluster.ClusterType == v2.EDS_CLUSTER {
+			return clusterAdapter.Adap.TriggerClusterAddedOrUpdate(*cluster)
 		} else {
-			log.DefaultLogger.Debugf("xds client update cluster success, clustername = %s", cluster.Name)
+			return clusterAdapter.Adap.TriggerClusterAndHostsAddedOrUpdate(*cluster, cluster.Hosts)
 		}
-
 	}
 
 	return nil
@@ -113,8 +111,9 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 				log.DefaultLogger.Debugf("xds client update endpoint: cluster: %s, priority: %d, %+v\n", loadAssignment.ClusterName, endpoints.Priority, host)
 			}
 
-			if err := clusterAdapter.Adap.TriggerClusterUpdate(clusterName, hosts); err != nil {
+			if err := clusterAdapter.Adap.TriggerClusterHostUpdate(clusterName, hosts); err != nil {
 				log.DefaultLogger.Errorf("xds client update Error = %s", err.Error())
+				return err
 			} else {
 				log.DefaultLogger.Debugf("xds client update host success")
 

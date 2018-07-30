@@ -22,8 +22,9 @@ import (
 	"io"
 	"net"
 
-	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
+	"crypto/tls"
 )
 
 //
@@ -114,6 +115,7 @@ type Listener interface {
 type TLSContextManager interface {
 	Conn(c net.Conn) net.Conn
 	Enabled() bool
+	Config() *tls.Config
 }
 
 // ListenerEventListener is a Callback invoked by a listener.

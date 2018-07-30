@@ -1,4 +1,4 @@
-FROM acs-reg.alipay.com/acs/centos:centos7
+FROM centos:centos7
 MAINTAINER o_dept_55122@list.alibaba-inc.com
 
 RUN yum -y update

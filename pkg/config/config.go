@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/json-iterator/go"
 )
 
@@ -73,9 +73,6 @@ type ListenerConfig struct {
 
 	//access log
 	AccessLogs []AccessLogConfig `json:"access_logs,omitempty"`
-
-	// only used in http2 case
-	DisableConnIo bool `json:"disable_conn_io"`
 }
 
 // TLSConfig
@@ -84,15 +81,15 @@ type TLSConfig struct {
 	Status       bool   `json:"status,omitempty"`
 	Inspector    bool   `json:"inspector,omitempty"`
 	ServerName   string `json:"server_name,omitempty"`
-	CACert       string `json:"cacert,omitempty"`
-	CertChain    string `json:"certchain,omitempty"`
-	PrivateKey   string `json:"privatekey,omitempty"`
-	VerifyClient bool   `json:"verifyclient,omitempty"`
-	VerifyServer bool   `json:"verifyserver,omitempty"`
-	CipherSuites string `json:"ciphersuites,omitempty"`
-	EcdhCurves   string `json:"ecdhcurves,omitempty"`
-	MinVersion   string `json:"minversion,omitempty"`
-	MaxVersion   string `json:"maxversion,omitempty"`
+	CACert       string `json:"ca_cert,omitempty"`
+	CertChain    string `json:"cert_chain,omitempty"`
+	PrivateKey   string `json:"private_key,omitempty"`
+	VerifyClient bool   `json:"verify_client,omitempty"`
+	VerifyServer bool   `json:"verify_server,omitempty"`
+	CipherSuites string `json:"cipher_suites,omitempty"`
+	EcdhCurves   string `json:"ecdh_curves,omitempty"`
+	MinVersion   string `json:"min_version,omitempty"`
+	MaxVersion   string `json:"max_version,omitempty"`
 	ALPN         string `json:"alpn,omitempty"`
 	Ticket       string `json:"ticket,omitempty"`
 }
@@ -107,16 +104,17 @@ type ServerConfig struct {
 	GracefulTimeout DurationConfig `json:"graceful_timeout"`
 
 	//go processor number
-	Processor int
+	Processor int `json:"processor"`
 
 	Listeners []ListenerConfig `json:"listeners,omitempty"`
 }
 
 // HostConfig
 type HostConfig struct {
-	Address  string `json:"address,omitempty"`
-	Hostname string `json:"hostname,omitempty"`
-	Weight   uint32 `json:"weight,omitempty"`
+	Address  string      `json:"address,omitempty"`
+	Hostname string      `json:"hostname,omitempty"`
+	Weight   uint32      `json:"weight,omitempty"`
+	MetaData v2.Metadata `json:"meta_data"`
 }
 
 // ClusterHealthCheckConfig for health checking
@@ -145,18 +143,24 @@ type SubscribeSpecConfig struct {
 // ClusterConfig for making a cluster for mosn
 // Hosts are the hosts belong to this cluster
 type ClusterConfig struct {
-	Name                 string
-	Type                 string
+	Name                 string                   `json:"name"`
+	Type                 string                   `json:"type"`
 	SubType              string                   `json:"sub_type"`
 	LbType               string                   `json:"lb_type"`
-	MaxRequestPerConn    uint32
-	ConnBufferLimitBytes uint32
+	MaxRequestPerConn    uint32                   `json:"max_request_per_conn"`
+	ConnBufferLimitBytes uint32                   `json:"conn_buffer_limit_bytes"`
 	CircuitBreakers      []*CircuitBreakerConfig  `json:"circuit_breakers"`
 	HealthCheck          ClusterHealthCheckConfig `json:"health_check,omitempty"` //v2.HealthCheck
 	ClusterSpecConfig    ClusterSpecConfig        `json:"spec,omitempty"`         //	ClusterSpecConfig
-	Hosts                []v2.Host                `json:"hosts,omitempty"`        //v2.Host
-	LBSubsetConfig       v2.LBSubsetConfig
+	Hosts                []HostConfig             `json:"hosts,omitempty"`        //v2.Host
+	LBSubsetConfig       LBSubsetConfig        `json:"lb_subset_config"`
 	TLS                  TLSConfig                `json:"tls_context,omitempty"`
+}
+
+type LBSubsetConfig struct {
+	FallBackPolicy  uint8             `json:"fall_back_policy"`
+	DefaultSubset   map[string]string `json:"default_subset"`
+	SubsetSelectors [][]string        `json:"subset_selectors"`
 }
 
 // CircuitBreakerConfig for realizing circuit breaker for cluster
@@ -263,7 +267,7 @@ func Load(path string) *MOSNConfig {
 	}
 	configPath, _ = filepath.Abs(path)
 	err = json.Unmarshal(content, &config)
-	
+
 	if err != nil {
 		log.Fatalln("json unmarshal config failed, ", err)
 		os.Exit(1)

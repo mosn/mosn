@@ -11,7 +11,6 @@
 	 "log_path":"./logs/server_mesher.log",
 	 "log_level": "DEBUG",
 	 "access_logs":[],
-	 "disable_conn_io": true,
 	 "filter_chains": [
 	   {
              "match":"",
@@ -20,16 +19,16 @@
 		{
 		  "type": "proxy", 
 		  "config":{
-		    "DownstreamProtocol": "Http2",
-		    "UpstreamProtocol": "SofaRpc",
-		    "VirtualHosts":[
+		    "downstream_protocol": "Http2",
+		    "upstream_protocol": "SofaRpc",
+		    "virtual_hosts":[
 		      {
-		        "Name":"sofaServer",
-			"Domains": ["*"],
-			"Routers": [
+		        "name":"sofaServer",
+			"domains": ["*"],
+			"routers": [
 			  {
-			    "Match":{"Headers":[{"Name":"service","Value":"com.alipay.test.TestService:1.0"}]}, 
-			    "Route":{"ClusterName":"sofaCluster","MetadataMatch":{"filter_metadata":{"mosn.lb":{"stage": "pre-release", "version": "1.1", "label": "gray"}}}}
+			    "match":{"headers":[{"name":"service","value":"com.alipay.test.TestService:1.0"}]},
+			    "route":{"cluster_name":"sofaCluster","metadata_match":{"filter_metadata":{"mosn.lb":{"stage": "pre-release", "version": "1.1", "label": "gray"}}}}
 			  }
 			]
 		      }
@@ -49,18 +48,18 @@
     "clusters":[
       {
         "Name": "sofaCluster",
-	"Type": "SIMPLE",
+	"type": "SIMPLE",
 	"lb_type": "LB_RANDOM",
-	"MaxRequestPerConn": 1024,
-	"ConnBufferLimitBytes":32768,
+	"max_request_per_conn": 1024,
+	"conn_buffer_limit_bytes":32768,
 	"circuit_breakers":[],
-	"LBSubsetConfig":{
-	  "FallBackPolicy":2,
-	  "DefaultSubset":{"stage":"pre-release","version":"1.1","label":"gray"},
-	  "SubsetSelectors":[["stage", "type"],["stage", "label", "version"],["version"]]
+	"lb_subset_config":{
+	  "fall_back_policy":2,
+	  "default_subset":{"stage":"pre-release","version":"1.1","label":"gray"},
+	  "subset_selectors":[["stage", "type"],["stage", "label", "version"],["version"]]
 	},
 	"hosts":[
-	  {"Address":"127.0.0.1:8080","Weight": 100,"MetaData":{"stage":"pre-release","version":"1.1","label":"gray"}}
+	  {"address":"127.0.0.1:8080","weight": 100,"meta_data":{"stage":"pre-release","version":"1.1","label":"gray"}}
 	]
       }
     ]

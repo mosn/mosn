@@ -11,7 +11,6 @@
 	 "log_path":"./logs/client_mesher_listener.log",
 	 "log_level": "DEBUG",
 	 "access_logs":[],
-	 "disable_conn_io": true,
 	 "filter_chains": [
 	   {
              "match":"",
@@ -20,16 +19,16 @@
 		{
 		  "type": "proxy", 
 		  "config":{
-		    "DownstreamProtocol": "Http1",
-		    "UpstreamProtocol": "Http2",
-		    "VirtualHosts":[
+		    "downstream_protocol": "Http1",
+		    "upstream_protocol": "Http2",
+		    "virtual_hosts":[
 		      {
-		        "Name":"testHttpMesher",
-			"Domains": ["*"],
-			"Routers": [
+		        "name":"testHttpMesher",
+			"domains": ["*"],
+			"routers": [
 			  {
-			    "Match":{"Headers":[{"Name":"service","Value":"com.alipay.test.TestService:1.0"}]}, 
-			    "Route":{"ClusterName":"httpMesher"}
+			    "match":{"headers":[{"name":"service","value":"com.alipay.test.TestService:1.0"}]},
+			    "route":{"cluster_name":"httpMesher"}
 			  }
 			]
 		      }
@@ -49,12 +48,12 @@
     "clusters":[
       {
         "Name": "httpMesher",
-	"Type": "SIMPLE",
+	"type": "SIMPLE",
 	"lb_type": "LB_RANDOM",
-	"MaxRequestPerConn": 1024,
-	"ConnBufferLimitBytes":32768,
+	"max_request_per_conn": 1024,
+	"conn_buffer_limit_bytes":32768,
 	"hosts":[
-	  {"Address":"127.0.0.1:2045","Weight": 100}
+	  {"address":"127.0.0.1:2045","weight": 100}
 	]
       }
     ]

@@ -19,8 +19,9 @@ package tests
 
 import (
 	"fmt"
+	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -28,6 +29,15 @@ import (
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+// use different mesh port to avoid "port in used" error
+var meshIndex uint32
+
+func CurrentMeshAddr() string {
+	var basic uint32 = 2044
+	atomic.AddUint32(&meshIndex, 1)
+	return fmt.Sprintf("127.0.0.1:%d", basic+meshIndex)
+}
 
 func CreateMeshConfig(addr string, filterChains []config.FilterChain, clusterManager config.ClusterManagerConfig) *config.MOSNConfig {
 	listenerCfg := config.ListenerConfig{
@@ -57,9 +67,9 @@ type cluster struct {
 func CreateBasicClusterConfig(clusters []cluster) config.ClusterManagerConfig {
 	clustersConfig := []config.ClusterConfig{}
 	for _, c := range clusters {
-		var vhosts []v2.Host
+		var vhosts []config.HostConfig
 		for _, addr := range c.hosts {
-			vhosts = append(vhosts, v2.Host{
+			vhosts = append(vhosts, config.HostConfig{
 				Address: addr,
 				Weight:  100,
 			})
@@ -91,11 +101,17 @@ func CreateSimpleMeshConfig(addr string, hosts []string, downstream, upstream ty
 		Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{header}},
 		Route: v2.RouteAction{ClusterName: clusterName},
 	}
+	
+	routerV2_http2 := v2.Router{
+		Match: v2.RouterMatch{Prefix:"/"},
+		Route: v2.RouteAction{ClusterName: clusterName},
+	}
+	
 	p := &v2.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
 		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2}},
+			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2,routerV2_http2}},
 		},
 	}
 	b, _ := json.Marshal(p)

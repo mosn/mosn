@@ -67,9 +67,32 @@ build-local:
 	@cd build/bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET} | cut -d' ' -f1  > ${TARGET}.md5
 	cp configs/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/binary
 
+build-linux32:
+	@rm -rf build/bundles/${MAJOR_VERSION}/binary
+	CGO_ENABLED=0 env GOOS=linux GOARCH=386 go build\
+		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION})" \
+		-v -o ${TARGET} \
+		${PROJECT_NAME}/cmd/mosn/main
+	mkdir -p build/bundles/${MAJOR_VERSION}/binary
+	mv ${TARGET} build/bundles/${MAJOR_VERSION}/binary
+	@cd build/bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET} | cut -d' ' -f1  > ${TARGET}.md5
+	cp configs/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/binary
+
+build-linux64:
+	@rm -rf build/bundles/${MAJOR_VERSION}/binary
+	CGO_ENABLED=0 env GOOS=linux GOARCH=amd64 go build\
+		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION})" \
+		-v -o ${TARGET} \
+		${PROJECT_NAME}/cmd/mosn/main
+	mkdir -p build/bundles/${MAJOR_VERSION}/binary
+	mv ${TARGET} build/bundles/${MAJOR_VERSION}/binary
+	@cd build/bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET} | cut -d' ' -f1  > ${TARGET}.md5
+	cp configs/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/binary
+
+
 image:
 	@rm -rf IMAGEBUILD
-	cp -r build/contrib/builder/image IMAGEBUILD && cp build/bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r resource IMAGEBUILD && cp -r etc IMAGEBUILD
+	cp -r build/contrib/builder/image IMAGEBUILD && cp build/bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r configs IMAGEBUILD && cp -r etc IMAGEBUILD
 	docker build --no-cache --rm -t ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} IMAGEBUILD
 	docker tag ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} ${REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION}
 	rm -rf IMAGEBUILD

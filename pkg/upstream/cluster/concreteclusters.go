@@ -20,7 +20,7 @@ package cluster
 import (
 	"net"
 
-	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -109,7 +109,7 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 		log.DefaultLogger.Debugf("final host index = %d, address = %s,", i, f.AddressString())
 	}
 
-	log.DefaultLogger.Debugf("changed %s", changed)
+	log.DefaultLogger.Debugf("changed %t", changed)
 
 	if changed {
 		sc.hosts = finalHosts
