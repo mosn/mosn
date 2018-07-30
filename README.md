@@ -6,7 +6,7 @@
 ![license](https://img.shields.io/badge/license-Apache--2.0-green.svg)
 
 MOSN, the short name of Modular Observable Smart Network, is a powerful proxy acting as Service Mesh's data plane like Envoy but written in golang.
-MOSN supports Envoy and Istio's APIs and can be integrated with Istio, so we use MOSN instead of Envoy in SOFAMesh.
+MOSN supports Envoy and Istio's APIs and can be integrated with Istio, and we use MOSN instead of Envoy in SOFAMesh.
 The initial version of MOSN was jointly contributed by Ant Financial and UC Business Unit of Alibaba, and we look forward to the community to participate in the
 follow-up development and build an open source boutique project together.
 
@@ -19,7 +19,7 @@ follow-up development and build an open source boutique project together.
     + Support TCP proxy
     + Support TProxy mode
 + Multi-protocol support
-    + HTTP/1.1，HTTP/2
+    + HTTP/1.1，HTTP/2.0
     + SOFARPC
     + Dubbo
     + HSF(ongoing)
@@ -38,7 +38,7 @@ follow-up development and build an open source boutique project together.
     + Network layer data
     + Protocol data
 + TLS support
-    + HTTP/1.1 on TLS
+    + HTTP/1.x on TLS
     + HTTP/2 on TLS
     + SOFARPC on TLS
 + Process management
@@ -48,11 +48,14 @@ follow-up development and build an open source boutique project together.
     + Support self-defined private protocol
     + Scalable Network/IO ，stream layer
 
-## [Architecture design](docs/design/README.md)
+## Architecture design
+* [Reference](docs/design/README.md)
 
-## [Quic Start](docs/develop/quickstart.md)
-
-## [Docs](http://www.sofastack.tech/sofa-mesh/docs/mosn-README)
+## Quic Start
+* [Details](docs/develop/quickstart.md)
+   
+## Docs
+* [More here](http://www.sofastack.tech/sofa-mesh/docs/mosn-README)
 
 ## Community
 * [Issues](https://github.com/alipay/sofa-mosn/issues)
@@ -60,7 +63,7 @@ follow-up development and build an open source boutique project together.
 ## Contribution
 + [How to contribute the code](docs/CONTRIBUTING.md)
 + MOSN is still in its infancy with many capabilities need to be completed, and many bugs to be fixed.
-  So we welcome everyone to participate in and submit the code in following but not limited aspect：
+  So we welcome everyone to participate in and commit code in following but not limited aspect：
    + Completing core routing function
    + Outlier detection
    + Tracing support
