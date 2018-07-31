@@ -149,7 +149,7 @@ func TestParseFilterChainJSONFile(t *testing.T) {
 
 func TestParseProxyFilterJSONFile(t *testing.T) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	var proxy v2.Proxy
+	var proxy Proxy
 	filterchanStr := `{
                     "downstream_protocol": "SofaRpc",
                     "name": "proxy_config",
@@ -175,7 +175,7 @@ func TestParseProxyFilterJSONFile(t *testing.T) {
                             },
                             "route": {
                               "cluster_name": "test_cpp",
-                              "cluster_header": {
+                              "metadata_match": {
                                 "filter_metadata": {
                                   "mosn.lb": {
                                     "version":"1.1",

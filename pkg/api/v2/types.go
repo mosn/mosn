@@ -191,13 +191,13 @@ type FaultInject struct {
 }
 
 type Proxy struct {
-	Name                string               `json:"name"`
-	DownstreamProtocol  string               `json:"downstream_protocol"`
-	UpstreamProtocol    string               `json:"upstream_protocol"`
-	SupportDynamicRoute bool                 `json:"support_dynamic_route"`
-	BasicRoutes         []*BasicServiceRoute `json:"basic_routes"`
-	VirtualHosts        []*VirtualHost       `json:"virtual_hosts"`
-	ValidateClusters    bool                 `json:"validate_clusters"`
+	Name                string
+	DownstreamProtocol  string
+	UpstreamProtocol    string
+	SupportDynamicRoute bool
+	BasicRoutes         []*BasicServiceRoute
+	VirtualHosts        []*VirtualHost
+	ValidateClusters    bool
 }
 
 type BasicServiceRoute struct {
@@ -288,21 +288,21 @@ type Filter struct {
 // VirtualHost
 // An array of virtual hosts that make up the route table.
 type VirtualHost struct {
-	Name            string           `json:"name"`
-	Domains         []string         `json:"domains"`
-	Routers         []Router         `json:"routers"`
-	RequireTLS      string           `json:"require_tls"`
-	VirtualClusters []VirtualCluster `json:"virtual_clusters"`
+	Name            string
+	Domains         []string
+	Routers         []Router
+	RequireTLS      string
+	VirtualClusters []VirtualCluster
 }
 
 // Router, the list of routes that will be matched, in order, for incoming requests.
 // The first route that matches will be used.
 type Router struct {
-	Match     RouterMatch    `json:"match"`
-	Route     RouteAction    `json:"route"`
-	Redirect  RedirectAction `json:"redirect"`
-	Metadata  Metadata       `json:"metadata"`
-	Decorator Decorator      `json:"decorator"`
+	Match     RouterMatch
+	Route     RouteAction
+	Redirect  RedirectAction
+	Metadata  Metadata
+	Decorator Decorator
 }
 
 // Decorator
@@ -311,35 +311,36 @@ type Decorator string
 // RedirectAction
 // Return a redirect.
 type RedirectAction struct {
-	HostRedirect string `json:"host_redirect"`
-	PathRedirect string `json:"path_redirect"`
-	ResponseCode uint32 `json:"response_code"`
+	HostRedirect string
+	PathRedirect string
+	ResponseCode uint32
 }
 
 // RouterMatch
 // Route matching parameters
 type RouterMatch struct {
-	Prefix        string          `json:"prefix"`
-	Path          string          `json:"path"`
-	Regex         string          `json:"regex"`
-	CaseSensitive bool            `json:"case_sensitive"`
-	Runtime       RuntimeUInt32   `json:"runtime"`
-	Headers       []HeaderMatcher `json:"headers"`
+	Prefix        string
+	Path          string
+	Regex         string
+	CaseSensitive bool
+	Runtime       RuntimeUInt32
+	Headers       []HeaderMatcher
 }
 
 // RouteAction
 // Route request to some upstream clusters.
 type RouteAction struct {
-	ClusterName      string            `json:"cluster_name"`
-	ClusterHeader    string            `json:"cluster_header"`
-	WeightedClusters []WeightedCluster `json:"weighted_clusters"`
-	MetadataMatch    Metadata          `json:"metadata_match"`
-	Timeout          time.Duration     `json:"timeout"`
-	RetryPolicy      *RetryPolicy      `json:"retry_policy"`
+	ClusterName      string
+	ClusterHeader    string
+	WeightedClusters []WeightedCluster
+	MetadataMatch    Metadata
+	Timeout          time.Duration
+	RetryPolicy      *RetryPolicy
 }
 
 // WeightedCluster.
-// Multiple upstream clusters unsupport stream filter type:  healthcheckcan be specified for a given route. The request is routed to one of the upstream
+// Multiple upstream clusters unsupport stream filter type:  healthcheckcan be specified for a given route.
+// The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
 type WeightedCluster struct {
 	Clusters         ClusterWeight

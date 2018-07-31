@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -96,22 +95,22 @@ func CreateSimpleMeshConfig(addr string, hosts []string, downstream, upstream ty
 		cluster{name: clusterName, hosts: hosts},
 	})
 	//proxy
-	header := v2.HeaderMatcher{Name: "service", Value: ".*"}
-	routerV2 := v2.Router{
-		Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{header}},
-		Route: v2.RouteAction{ClusterName: clusterName},
+	header := config.HeaderMatcher{Name: "service", Value: ".*"}
+	routerV2 := config.Router{
+		Match: config.RouterMatch{Headers: []config.HeaderMatcher{header}},
+		Route: config.RouteAction{ClusterName: clusterName},
 	}
 	
-	routerV2_http2 := v2.Router{
-		Match: v2.RouterMatch{Prefix:"/"},
-		Route: v2.RouteAction{ClusterName: clusterName},
+	routerV2_http2 := config.Router{
+		Match: config.RouterMatch{Prefix:"/"},
+		Route: config.RouteAction{ClusterName: clusterName},
 	}
 	
-	p := &v2.Proxy{
+	p := &config.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2,routerV2_http2}},
+		VirtualHosts: []*config.VirtualHost{
+			&config.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []config.Router{routerV2,routerV2_http2}},
 		},
 	}
 	b, _ := json.Marshal(p)
@@ -135,29 +134,29 @@ func CreateHTTPRouteConfig(addr string, hosts [][]string) *config.MOSNConfig {
 	}
 	cmconfig := CreateBasicClusterConfig(clusters)
 	//proxy
-	header1 := v2.HeaderMatcher{Name: "service", Value: "cluster1"}
-	routerV2 := v2.Router{
-		Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{header1}},
-		Route: v2.RouteAction{ClusterName: clusters[0].name},
+	header1 := config.HeaderMatcher{Name: "service", Value: "cluster1"}
+	routerV2 := config.Router{
+		Match: config.RouterMatch{Headers: []config.HeaderMatcher{header1}},
+		Route: config.RouteAction{ClusterName: clusters[0].name},
 	}
-	header2 := v2.HeaderMatcher{Name: "service", Value: "cluster2"}
-	routerV2Header := v2.Router{
-		Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{header2}},
-		Route: v2.RouteAction{ClusterName: clusters[1].name},
+	header2 := config.HeaderMatcher{Name: "service", Value: "cluster2"}
+	routerV2Header := config.Router{
+		Match: config.RouterMatch{Headers: []config.HeaderMatcher{header2}},
+		Route: config.RouteAction{ClusterName: clusters[1].name},
 	}
-	routerV2Path := v2.Router{
-		Match: v2.RouterMatch{
-			Headers: []v2.HeaderMatcher{header1},
+	routerV2Path := config.Router{
+		Match: config.RouterMatch{
+			Headers: []config.HeaderMatcher{header1},
 			Path:    "/test.htm",
 		},
-		Route: v2.RouteAction{ClusterName: clusters[1].name},
+		Route: config.RouteAction{ClusterName: clusters[1].name},
 	}
-	p := &v2.Proxy{
+	p := &config.Proxy{
 		DownstreamProtocol: string(protocol.HTTP1),
 		UpstreamProtocol:   string(protocol.HTTP1),
-		VirtualHosts: []*v2.VirtualHost{
+		VirtualHosts: []*config.VirtualHost{
 			//Notice that the order of router, the first successful matched is used
-			&v2.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []v2.Router{routerV2Path, routerV2, routerV2Header}},
+			&config.VirtualHost{Name: "testHost", Domains: []string{"*"}, Routers: []config.Router{routerV2Path, routerV2, routerV2Header}},
 		},
 	}
 	b, _ := json.Marshal(p)
