@@ -50,8 +50,8 @@ func init() {
 
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
-	// use 4096 as chan buffer length
-	poolSize := shardsNum * 4096
+	// use 512 as chan buffer length
+	poolSize := shardsNum * 512
 
 	streamProcessMap = make([]map[string]*downStream, shardsNum)
 	for i := range streamProcessMap {
