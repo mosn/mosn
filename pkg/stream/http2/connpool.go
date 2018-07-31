@@ -34,11 +34,6 @@ const (
 	H2ConnKey = "h2_conn"
 )
 
-var (
-	connPoolOnce     sync.Once
-	connPoolInstance *connPool
-)
-
 // types.ConnectionPool
 type connPool struct {
 	activeClients map[string][]*activeClient // key is host:port
@@ -47,16 +42,10 @@ type connPool struct {
 }
 
 func NewConnPool(host types.Host) types.ConnectionPool {
-	connPoolOnce.Do(func() {
-		if connPoolInstance == nil {
-			connPoolInstance = &connPool{
-				host:          host,
-				activeClients: make(map[string][]*activeClient),
-			}
-		}
-	})
-
-	return connPoolInstance
+	return &connPool{
+		host:          host,
+		activeClients: make(map[string][]*activeClient),
+	}
 }
 
 func (p *connPool) Protocol() types.Protocol {
@@ -267,7 +256,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	}
 
 	transport := &http2.Transport{
-		ConnPool: connPoolInstance,
+		ConnPool: pool,
 	}
 
 	h2Conn, err := transport.NewClientConn(data.Connection.RawConn())
