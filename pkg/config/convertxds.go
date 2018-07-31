@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	xdsxproxy "github.com/alipay/sofa-mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
@@ -520,7 +520,7 @@ func convertClusterType(xdsClusterType xdsapi.Cluster_DiscoveryType) v2.ClusterT
 	case xdsapi.Cluster_STRICT_DNS:
 	case xdsapi.Cluster_LOGICAL_DNS:
 	case xdsapi.Cluster_EDS:
-		return v2.DYNAMIC_CLUSTER
+		return v2.EDS_CLUSTER
 	case xdsapi.Cluster_ORIGINAL_DST:
 	}
 	//log.DefaultLogger.Fatalf("unsupported cluster type: %s, exchage to SIMPLE_CLUSTER", xdsClusterType.String())

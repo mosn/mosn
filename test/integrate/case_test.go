@@ -53,6 +53,7 @@ func (c *testCase) StartProxy() {
 		c.appServer.Close()
 		mesh.Close()
 	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
 // client - mesh - mesh - server

@@ -18,7 +18,7 @@
 package types
 
 import (
-	"github.com/alipay/sofa-mosn/internal/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
 // FailureType is the type of a failure
