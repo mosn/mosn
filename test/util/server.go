@@ -27,7 +27,7 @@ type upstreamServer struct {
 	conns    []net.Conn
 	mu       sync.Mutex
 	t        *testing.T
-	closed   bool
+	started  bool
 }
 
 func NewUpstreamServer(t *testing.T, addr string, serve ServeConn) UpstreamServer {
@@ -37,7 +37,6 @@ func NewUpstreamServer(t *testing.T, addr string, serve ServeConn) UpstreamServe
 		conns:   []net.Conn{},
 		mu:      sync.Mutex{},
 		t:       t,
-		closed:  false,
 	}
 
 }
@@ -57,6 +56,9 @@ func (s *upstreamServer) serve() {
 	if s.Listener == nil {
 		s.t.Fatalf("listen %s failed, error : %v\n", s.Address, err)
 	}
+	s.mu.Lock()
+	s.started = true
+	s.mu.Unlock()
 	for {
 		conn, err := s.Listener.Accept()
 		if err != nil {
@@ -76,16 +78,16 @@ func (s *upstreamServer) serve() {
 
 func (s *upstreamServer) Close() {
 	s.mu.Lock()
-	if s.closed {
+	defer s.mu.Unlock()
+	if !s.started {
 		return
 	}
-	s.t.Logf("server %s closed\n", s.Listener.Addr().String())
+	s.t.Logf("server %s closed\n", s.Address)
 	s.Listener.Close()
 	for _, conn := range s.conns {
 		conn.Close()
 	}
-	s.closed = true
-	s.mu.Unlock()
+	s.started = false
 }
 func (s *upstreamServer) Addr() string {
 	return s.Address

@@ -6,6 +6,12 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// can set
+var (
+	MeshLogPath  = "stdout"
+	MeshLogLevel = "WARN"
+)
+
 // Create Mesh Config
 func newFilterChain(name string, downstream, upstream types.Protocol, routers []v2.Router) config.FilterChain {
 	proxy := &v2.Proxy{
@@ -62,8 +68,8 @@ func newListener(name, addr string, chains []config.FilterChain) config.Listener
 		Name:         name,
 		Address:      addr,
 		BindToPort:   true,
-		LogPath:      "stdout",
-		LogLevel:     "DEBUG",
+		LogPath:      MeshLogPath,
+		LogLevel:     MeshLogLevel,
 		FilterChains: chains,
 	}
 }
@@ -72,8 +78,8 @@ func newMOSNConfig(listeners []config.ListenerConfig, clusterManager config.Clus
 	return &config.MOSNConfig{
 		Servers: []config.ServerConfig{
 			config.ServerConfig{
-				DefaultLogPath:  "stdout",
-				DefaultLogLevel: "DEBUG",
+				DefaultLogPath:  MeshLogPath,
+				DefaultLogLevel: MeshLogLevel,
 				Listeners:       listeners,
 			},
 		},
