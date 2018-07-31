@@ -37,7 +37,6 @@ const (
 var (
 	connPoolOnce     sync.Once
 	connPoolInstance *connPool
-	transport        *http2.Transport
 )
 
 // types.ConnectionPool
@@ -79,11 +78,6 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 	ac := p.getOrInitActiveClient(context, p.host.AddressString())
 
 	if ac == nil {
-		cb.OnFailure(streamID, types.ConnectionFailure, nil)
-		return nil
-	}
-
-	if p.primaryClient == nil {
 		cb.OnFailure(streamID, types.ConnectionFailure, nil)
 		return nil
 	}
@@ -272,10 +266,8 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		return nil
 	}
 
-	if transport == nil {
-		transport = &http2.Transport{
-			ConnPool: connPoolInstance,
-		}
+	transport := &http2.Transport{
+		ConnPool: connPoolInstance,
 	}
 
 	h2Conn, err := transport.NewClientConn(data.Connection.RawConn())
