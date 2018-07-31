@@ -197,6 +197,9 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	}
 
 	codecClient := pool.createCodecClient(context, data)
+	if codecClient == nil {
+		return nil
+	}
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)

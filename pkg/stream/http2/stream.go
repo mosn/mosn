@@ -101,7 +101,12 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 	streamConnCallbacks types.StreamConnectionEventListener,
 	connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 
-	h2Conn, _ := transport.NewClientConn(connection.RawConn())
+	h2Conn, err := transport.NewClientConn(connection.RawConn())
+	if err != nil {
+		logger := log.ByContext(context)
+		logger.Errorf("Http2 newClientStreamConnection error: %v", err)
+        return nil
+	}
 
 	return &clientStreamConnection{
 		streamConnection: streamConnection{

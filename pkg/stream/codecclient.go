@@ -57,6 +57,9 @@ func NewCodecClient(context context.Context, prot types.Protocol, connection typ
 
 	if factory, ok := streamFactories[prot]; ok {
 		codecClient.Codec = factory.CreateClientStream(context, connection, codecClient, codecClient)
+		if codecClient.Codec == nil {
+			return nil
+		}
 	} else {
 		return nil
 	}
