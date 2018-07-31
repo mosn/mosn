@@ -47,7 +47,7 @@ func (c *ClientV2) reqListeners(streamClient ads.AggregatedDiscoveryService_Stre
 	return nil
 }
 
-func (c *ClientV2) handleListersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Listener {
+func (c *ClientV2) handleListenersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Listener {
 	listeners := make([]*envoy_api_v2.Listener, 0)
 	for _, res := range resp.Resources {
 		listener := envoy_api_v2.Listener{}
