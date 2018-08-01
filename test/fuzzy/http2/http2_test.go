@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"sync"
@@ -60,6 +61,7 @@ func (c *HTTP2Client) SendRequest() {
 	} else {
 		c.failureCount++
 	}
+	ioutil.ReadAll(resp.Body)
 }
 
 type HTTP2Server struct {
