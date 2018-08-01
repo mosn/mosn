@@ -149,7 +149,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
-
+	//
 	//data := pool.host.CreateConnection(context)
 	//data.Connection.Connect(false)
 

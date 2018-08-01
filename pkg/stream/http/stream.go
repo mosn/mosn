@@ -270,7 +270,7 @@ func (s *clientStream) AppendHeaders(headersIn interface{}, endStream bool) erro
 		s.request.SetRequestURI(fmt.Sprintf("http://%s%s", s.wrapper.client.Addr, path))
 		delete(headers, protocol.MosnHeaderPathKey)
 	}
-
+	
 	encodeReqHeader(s.request, headers)
 
 	if endStream {
@@ -488,7 +488,10 @@ func decodeRespHeader(in fasthttp.ResponseHeader) (out map[string]string) {
 		// convert to lower case for internal process
 		out[strings.ToLower(string(key))] = string(value)
 	})
-
+	
+	// inherit upstream's response status
+	out[types.HeaderStatus] = strconv.Itoa(in.StatusCode())
+	
 	return
 }
 
