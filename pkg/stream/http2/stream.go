@@ -418,14 +418,16 @@ func (s *serverStream) AppendHeaders(headersIn interface{}, endStream bool) erro
 
 	s.response.Header = encodeHeader(headers)
 
-	if status := s.response.Header.Get(types.HeaderStatus); status != "" {
+	if status, ok := headers[types.HeaderStatus]; ok {
 		s.response.StatusCode, _ = strconv.Atoi(status)
 		s.response.Header.Del(types.HeaderStatus)
+		delete(headers, types.HeaderStatus)
 	}
 
 	if endStream {
 		s.endStream()
 	}
+	
 	return nil
 }
 
