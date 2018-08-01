@@ -45,6 +45,8 @@ func (c *Client) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	if streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
 		fmt.Println(streamID)
 	}
+	
+	fmt.Println("Response Headers are:",headers)
 }
 
 func (c *Client) Request() {
