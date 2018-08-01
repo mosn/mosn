@@ -38,11 +38,13 @@ func TestServerCloseProxy(t *testing.T) {
 		"127.0.0.1:8081",
 		"127.0.0.1:8082",
 	}
-	stop := make(chan struct{})
-	meshAddr := fuzzy.CreateMeshProxy(t, stop, serverList, protocol.SofaRPC)
-	servers := CreateServers(t, serverList, stop)
-	fuzzy.FuzzyServer(stop, servers, caseDuration/5)
-	runClient(t, meshAddr, stop)
+	stopClient := make(chan struct{})
+	stopServer := make(chan struct{})
+	meshAddr := fuzzy.CreateMeshProxy(t, stopServer, serverList, protocol.SofaRPC)
+	servers := CreateServers(t, serverList, stopServer)
+	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
+	runClient(t, meshAddr, stopClient)
+	close(stopServer)
 }
 
 func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
@@ -51,11 +53,13 @@ func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 		"127.0.0.1:8081",
 		"127.0.0.1:8082",
 	}
-	stop := make(chan struct{})
-	meshAddr := fuzzy.CreateMeshCluster(t, stop, serverList, protocol.SofaRPC, proto)
-	servers := CreateServers(t, serverList, stop)
-	fuzzy.FuzzyServer(stop, servers, caseDuration/5)
-	runClient(t, meshAddr, stop)
+	stopClient := make(chan struct{})
+	stopServer := make(chan struct{})
+	meshAddr := fuzzy.CreateMeshCluster(t, stopServer, serverList, protocol.SofaRPC, proto)
+	servers := CreateServers(t, serverList, stopServer)
+	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
+	runClient(t, meshAddr, stopClient)
+	close(stopServer)
 }
 
 func TestServerCloseToHTTP1(t *testing.T) {

@@ -56,7 +56,7 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 					if err != nil {
 						fmt.Printf("[RPC Server] build response error: %v\n", err)
 					} else {
-						fmt.Printf("[RPC Server] reponse connection: %s, requestId: %d\n", conn.RemoteAddr().String(), resp.GetReqID)
+						fmt.Printf("[RPC Server] reponse connection: %s, requestId: %d\n", conn.RemoteAddr().String(), resp.GetReqID())
 						respdata := iobufresp.Bytes()
 						conn.Write(respdata)
 					}

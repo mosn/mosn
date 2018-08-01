@@ -127,10 +127,11 @@ func (c *RPCStatusClient) RandomEvent(stop chan struct{}) {
 
 type RPCServer struct {
 	util.UpstreamServer
-	t       *testing.T
-	ID      string
-	mutex   sync.Mutex
-	started bool
+	t        *testing.T
+	ID       string
+	mutex    sync.Mutex
+	started  bool
+	finished bool
 }
 
 func NewRPCServer(t *testing.T, id string, addr string) *RPCServer {
@@ -144,11 +145,19 @@ func NewRPCServer(t *testing.T, id string, addr string) *RPCServer {
 }
 
 //over write
-func (s *RPCServer) Close() {
-	s.UpstreamServer.Close()
+func (s *RPCServer) Close(finished bool) {
 	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	// once finished is set to true, it cannot be changed
+	if !s.finished {
+		s.finished = finished
+	}
+	if !s.started {
+		return
+	}
+	log.StartLogger.Infof("[FUZZY TEST] server closed %s", s.ID)
 	s.started = false
-	s.mutex.Unlock()
+	s.UpstreamServer.Close()
 }
 func (s *RPCServer) GoServe() {
 	s.mutex.Lock()
@@ -162,18 +171,18 @@ func (s *RPCServer) GoServe() {
 
 func (s *RPCServer) ReStart() {
 	s.mutex.Lock()
-	check := s.started
-	s.mutex.Unlock()
-	if check {
+	defer s.mutex.Unlock()
+	if s.started {
+		return
+	}
+	if s.finished {
 		return
 	}
 	log.StartLogger.Infof("[FUZZY TEST] server restart #%s", s.ID)
 	server := util.NewUpstreamServer(s.t, s.UpstreamServer.Addr(), util.ServeBoltV1)
 	s.UpstreamServer = server
-	s.GoServe()
-}
-func (s *RPCServer) GetID() string {
-	return s.ID
+	s.started = true
+	s.UpstreamServer.GoServe()
 }
 
 func CreateServers(t *testing.T, serverList []string, stop chan struct{}) []fuzzy.Server {
@@ -182,9 +191,10 @@ func CreateServers(t *testing.T, serverList []string, stop chan struct{}) []fuzz
 		id := fmt.Sprintf("server#%d", i)
 		server := NewRPCServer(t, id, s)
 		server.GoServe()
-		go func(server fuzzy.Server) {
+		go func(server *RPCServer) {
 			<-stop
-			server.Close()
+			log.StartLogger.Infof("[FUZZY TEST] finished fuzzy server %s", server.ID)
+			server.Close(true)
 		}(server)
 		servers = append(servers, server)
 	}
