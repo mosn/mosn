@@ -27,7 +27,7 @@ type upstreamServer struct {
 	conns    []net.Conn
 	mu       sync.Mutex
 	t        *testing.T
-	started  bool
+	closed   bool
 }
 
 func NewUpstreamServer(t *testing.T, addr string, serve ServeConn) UpstreamServer {
@@ -40,10 +40,15 @@ func NewUpstreamServer(t *testing.T, addr string, serve ServeConn) UpstreamServe
 	}
 
 }
+
+// GoServe and Close exists concurrency
+// expected action is Close should close the server, should not restart
 func (s *upstreamServer) GoServe() {
-	go s.serve()
-}
-func (s *upstreamServer) serve() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return
+	}
 	//try listen
 	var err error
 	for i := 0; i < 3; i++ {
@@ -56,9 +61,9 @@ func (s *upstreamServer) serve() {
 	if s.Listener == nil {
 		s.t.Fatalf("listen %s failed, error : %v\n", s.Address, err)
 	}
-	s.mu.Lock()
-	s.started = true
-	s.mu.Unlock()
+	go s.serve()
+}
+func (s *upstreamServer) serve() {
 	for {
 		conn, err := s.Listener.Accept()
 		if err != nil {
@@ -70,24 +75,25 @@ func (s *upstreamServer) serve() {
 		}
 		s.t.Logf("server %s Accept connection: %s\n", s.Listener.Addr().String(), conn.RemoteAddr().String())
 		s.mu.Lock()
-		s.conns = append(s.conns, conn)
+		if !s.closed {
+			s.conns = append(s.conns, conn)
+			go s.Serve(s.t, conn)
+		}
 		s.mu.Unlock()
-		go s.Serve(s.t, conn)
 	}
 }
 
 func (s *upstreamServer) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !s.started {
-		return
-	}
 	s.t.Logf("server %s closed\n", s.Address)
-	s.Listener.Close()
+	if s.Listener != nil { // Close maybe called before GoServe
+		s.Listener.Close()
+	}
 	for _, conn := range s.conns {
 		conn.Close()
 	}
-	s.started = false
+	s.closed = true
 }
 func (s *upstreamServer) Addr() string {
 	return s.Address

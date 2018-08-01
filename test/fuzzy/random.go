@@ -6,35 +6,42 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/cmd/mosn"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
 )
 
 type Server interface {
-	Close()
+	// Close closes the server
+	// If finished is true, the server cannot be restarted again.
+	Close(finished bool)
 	ReStart()
-	GetID() string
 }
 
+// Make sure server will be closed and restart
 func FuzzyServer(stop chan struct{}, servers []Server, interval time.Duration) {
+	min := interval / 10
+	max := interval / 5
 	for _, server := range servers {
 		go func(server Server) {
+			// random init state, state range [0,1]
+			// state 0 means server will close next time
+			// state 1 means server will restart next time
+			r := rand.New(rand.NewSource(time.Now().UnixNano()))
+			state := r.Intn(2)
 			t := time.NewTicker(interval)
 			defer t.Stop()
 			for {
 				select {
 				case <-stop:
-					server.Close()
 					return
 				case <-t.C:
-					time.Sleep(util.RandomDuration(100*time.Millisecond, time.Second))
-					switch rand.Intn(3) {
-					case 0:
-						log.StartLogger.Infof("[FUZZY TEST] server close #%s", server.GetID())
-						server.Close()
-					default:
+					time.Sleep(util.RandomDuration(min, max))
+					if state == 0 {
+						server.Close(false)
+						state = 1
+					} else {
 						server.ReStart()
+						state = 0
 					}
 				}
 			}

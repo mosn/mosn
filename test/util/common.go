@@ -7,11 +7,16 @@ import (
 )
 
 //tools
+var r *rand.Rand
+
+func init() {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
 func RandomDuration(min, max time.Duration) time.Duration {
 	if min > max {
 		return min
 	}
-	d := rand.Int63n(int64(max - min))
+	d := r.Int63n(int64(max - min))
 	return time.Duration(d) * time.Nanosecond
 }
 func IsMapEmpty(m *sync.Map) bool {
