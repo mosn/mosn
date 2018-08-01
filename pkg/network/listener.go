@@ -124,7 +124,7 @@ func (l *listener) ListenerFD() (uintptr, error) {
 		l.logger.Errorf(" listener %s fd not found : %v", l.name, err)
 		return 0, err
 	}
-	defer file.Close()
+	//defer file.Close()
 	return file.Fd(), nil
 }
 
@@ -134,6 +134,10 @@ func (l *listener) PerConnBufferLimitBytes() uint32 {
 
 func (l *listener) SetListenerCallbacks(cb types.ListenerEventListener) {
 	l.cb = cb
+}
+
+func (l *listener) GetListenerCallbacks() types.ListenerEventListener {
+	return l.cb
 }
 
 func (l *listener) Close(lctx context.Context) error {
@@ -175,7 +179,7 @@ func (l *listener) accept(lctx context.Context) error {
 			rawc = l.tlsMng.Conn(rawc)
 		}
 
-		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil)
+		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil, nil, nil)
 	}()
 
 	return nil

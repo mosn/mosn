@@ -97,21 +97,19 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 		l := cap(b.buf) - len(b.buf)
 
-		if !first {
+		if first {
+			conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+		} else {
 			conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
 		}
 
 		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
 
-		if !first {
-			conn.SetReadDeadline(time.Time{})
-		}
+		conn.SetReadDeadline(time.Time{})
 
 		if e != nil {
-			if !first {
-				if te, ok := err.(net.Error); ok && te.Timeout() {
-					return n, nil
-				}
+			if te, ok := e.(net.Error); ok && te.Timeout() {
+				return n, nil
 			}
 
 			return n, e
