@@ -427,7 +427,7 @@ func (s *serverStream) AppendHeaders(headersIn interface{}, endStream bool) erro
 	if endStream {
 		s.endStream()
 	}
-	
+
 	return nil
 }
 
