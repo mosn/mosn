@@ -38,7 +38,6 @@ import (
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
-	"github.com/fatih/structs"
 	"github.com/gogo/protobuf/types"
 )
 
@@ -269,40 +268,44 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 	if s == nil {
 		return nil
 	}
+	var proxyConfig v2.Proxy
 	if name == xdsutil.HTTPConnectionManager {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
-		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  string(protocol.HTTP2),
-			UpstreamProtocol:    string(protocol.HTTP2),
-			SupportDynamicRoute: true,
-			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
-		}
-		return structs.Map(proxyConfig)
+		proxyConfig.DownstreamProtocol = string(protocol.HTTP2)
+		proxyConfig.UpstreamProtocol = string(protocol.HTTP2)
+		proxyConfig.SupportDynamicRoute = true
+		proxyConfig.VirtualHosts = convertVirtualHosts(filterConfig.GetRouteConfig())
 	} else if name == v2.RPC_PROXY {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
-		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  string(protocol.SofaRPC),
-			UpstreamProtocol:    string(protocol.SofaRPC),
-			SupportDynamicRoute: true,
-			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
-		}
-		return structs.Map(proxyConfig)
+		proxyConfig.DownstreamProtocol = string(protocol.SofaRPC)
+		proxyConfig.UpstreamProtocol = string(protocol.SofaRPC)
+		proxyConfig.SupportDynamicRoute = true
+		proxyConfig.VirtualHosts = convertVirtualHosts(filterConfig.GetRouteConfig())
 	} else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
 		xdsutil.StructToMessage(s, filterConfig)
-		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  filterConfig.GetDownstreamProtocol().String(),
-			UpstreamProtocol:    filterConfig.GetUpstreamProtocol().String(),
-			SupportDynamicRoute: true,
-			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
-		}
-		return structs.Map(proxyConfig)
+		proxyConfig.DownstreamProtocol = filterConfig.GetDownstreamProtocol().String()
+		proxyConfig.UpstreamProtocol = filterConfig.GetUpstreamProtocol().String()
+		proxyConfig.SupportDynamicRoute = true
+		proxyConfig.VirtualHosts = convertVirtualHosts(filterConfig.GetRouteConfig())
+	} else {
+		log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
+		return nil
 	}
-
-	log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
-	return nil
+	jsons, err := json.Marshal(proxyConfig)
+	if err != nil {
+		log.DefaultLogger.Errorf("failed to marshal proxyConfig: %v", err)
+		return nil
+	}
+	var config map[string]interface{}
+	err = json.Unmarshal(jsons, &config)
+	if err != nil {
+		log.DefaultLogger.Errorf("failed to unmarshal proxyConfig: %v", err)
+		return nil
+	}
+	return config
 }
 
 func convertVirtualHosts(xdsRouteConfig *xdsapi.RouteConfiguration) []*v2.VirtualHost {
