@@ -63,7 +63,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	if config != nil {
 		//graceful timeout setting
 		if config.GracefulTimeout != 0 {
-			gracefulTimeout = config.GracefulTimeout
+			GracefulTimeout = config.GracefulTimeout
 		}
 
 		//processor num setting
@@ -142,6 +142,10 @@ func (srv *server) Close() {
 	close(srv.stopChan)
 }
 
+func (srv *server) Handler() types.ConnectionHandler {
+	return  srv.handler
+}
+
 func Stop() {
 	for _, server := range servers {
 		server.Close()
@@ -154,6 +158,12 @@ func StopAccept() {
 	}
 }
 
+func StopConnection() {
+	for _, server := range servers {
+		server.handler.StopConnection()
+	}
+}
+
 func ListListenerFD() []uintptr {
 	var fds []uintptr
 	for _, server := range servers {
@@ -163,11 +173,16 @@ func ListListenerFD() []uintptr {
 }
 
 func WaitConnectionsDone(duration time.Duration) error {
-	timeout := time.NewTimer(duration)
+	// one duration wait for connection to active close
+	// two duration wait for connection to transfer
+	// 5 sencond wait for read timeout
+	timeout := time.NewTimer(duration * 2 + time.Second * 5)
 	wait := make(chan struct{})
+	time.Sleep(duration)
 	go func() {
 		//todo close idle connections and wait active connections complete
-		time.Sleep(duration * 2)
+		StopConnection()
+		time.Sleep(duration + time.Second * 5)
 		wait <- struct{}{}
 	}()
 

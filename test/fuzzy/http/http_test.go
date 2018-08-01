@@ -58,11 +58,12 @@ func (c *HTTPClient) SendRequest() {
 }
 
 type HTTPServer struct {
-	server  *http.Server
-	t       *testing.T
-	ID      string
-	mutex   sync.Mutex
-	started bool
+	server   *http.Server
+	t        *testing.T
+	ID       string
+	mutex    sync.Mutex
+	started  bool
+	finished bool
 }
 
 func NewHTTPServer(t *testing.T, id string, addr string) *HTTPServer {
@@ -87,11 +88,19 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 //over write
-func (s *HTTPServer) Close() {
-	s.server.Close()
+func (s *HTTPServer) Close(finished bool) {
 	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	// once finished is set to true, it cannot be changed
+	if !s.finished {
+		s.finished = finished
+	}
+	if !s.started {
+		return
+	}
+	log.StartLogger.Infof("[FUZZY TEST] server closed %s", s.ID)
 	s.started = false
-	s.mutex.Unlock()
+	s.server.Close()
 }
 func (s *HTTPServer) GoServe() {
 	s.mutex.Lock()
@@ -104,16 +113,16 @@ func (s *HTTPServer) GoServe() {
 }
 func (s *HTTPServer) ReStart() {
 	s.mutex.Lock()
-	check := s.started
-	s.mutex.Unlock()
-	if check {
+	defer s.mutex.Unlock()
+	if s.started {
+		return
+	}
+	if s.finished {
 		return
 	}
 	log.StartLogger.Infof("[FUZZY TEST] server restart #%s", s.ID)
-	s.GoServe()
-}
-func (s *HTTPServer) GetID() string {
-	return s.ID
+	s.started = true
+	go s.server.ListenAndServe()
 }
 
 func CreateServers(t *testing.T, serverList []string, stop chan struct{}) []fuzzy.Server {
@@ -122,9 +131,10 @@ func CreateServers(t *testing.T, serverList []string, stop chan struct{}) []fuzz
 		id := fmt.Sprintf("server#%d", i)
 		server := NewHTTPServer(t, id, s)
 		server.GoServe()
-		go func(server fuzzy.Server) {
+		go func(server *HTTPServer) {
 			<-stop
-			server.Close()
+			log.StartLogger.Infof("[FUZZY TEST] finished fuzzy server %s", server.ID)
+			server.Close(true)
 		}(server)
 		servers = append(servers, server)
 	}

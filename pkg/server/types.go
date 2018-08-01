@@ -54,4 +54,6 @@ type Server interface {
 	Restart()
 
 	Close()
+
+	Handler() types.ConnectionHandler
 }
