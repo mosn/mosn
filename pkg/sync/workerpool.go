@@ -102,34 +102,31 @@ func (p *shardWorkerPool) Offer(job ShardJob) {
 
 	// put jobs to the jobChan or jobQueue, which determined by the shard workload
 	shard.Lock()
-	select {
-	case shard.jobChan <- job:
-	default:
-		shard.jobQueue = append(shard.jobQueue, job)
-		// schedule flush if
-		if atomic.CompareAndSwapUint32(&p.schedule, 0, 1) {
-			p.flush()
+	switch job.Type() {
+	case NORMAL:
+		select {
+		case shard.jobChan <- job:
+		default:
+			shard.jobQueue = append(shard.jobQueue, job)
+			// schedule flush if
+			if atomic.CompareAndSwapUint32(&p.schedule, 0, 1) {
+				p.flush()
+			}
 		}
-	}
-	shard.Unlock()
-}
-
-func (p *shardWorkerPool) Control(job ShardJob) {
-	// use shard to avoid excessive synchronization
-	i := p.Shard(job.Source())
-	shard := p.shards[i]
-
-	// put controls to the ctrlChan or ctrlQueue, which determined by the shard workload
-	shard.Lock()
-	select {
-	case shard.ctrlChan <- job:
-	default:
-		shard.ctrlQueue = append(shard.ctrlQueue, job)
-		// schedule flush if
-		if atomic.CompareAndSwapUint32(&p.schedule, 0, 1) {
-			p.flush()
+	case CONTROL:
+		select {
+		case shard.ctrlChan <- job:
+		default:
+			shard.ctrlQueue = append(shard.ctrlQueue, job)
+			// schedule flush if
+			if atomic.CompareAndSwapUint32(&p.schedule, 0, 1) {
+				p.flush()
+			}
 		}
+	default:
+		log.DefaultLogger.Errorf("Unknown job type %d", job.Type())
 	}
+
 	shard.Unlock()
 }
 
