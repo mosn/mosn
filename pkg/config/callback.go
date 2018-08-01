@@ -88,10 +88,14 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 
 	for _, cluster := range mosnClusters {
 		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
+		var err error
 		if cluster.ClusterType == v2.EDS_CLUSTER {
-			return clusterAdapter.Adap.TriggerClusterAddedOrUpdate(*cluster)
+			err = clusterAdapter.Adap.TriggerClusterAddedOrUpdate(*cluster)
 		} else {
-			return clusterAdapter.Adap.TriggerClusterAndHostsAddedOrUpdate(*cluster, cluster.Hosts)
+			err = clusterAdapter.Adap.TriggerClusterAndHostsAddedOrUpdate(*cluster, cluster.Hosts)
+		}
+		if err != nil {
+			return err
 		}
 	}
 
