@@ -129,19 +129,14 @@ func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
 		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
 	}
-	
+
 	if !proxyConfig.SupportDynamicRoute {
 		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
 	}
 
-	if len(proxyConfig.VirtualHosts) == 0 {
-		log.StartLogger.Fatal("No VirtualHosts Founded")
-
-	} else {
-		for _, vh := range proxyConfig.VirtualHosts {
-			if len(vh.Routers) == 0 {
-				log.StartLogger.Fatal("No Router Founded in VirtualHosts")
-			}
+	for _, vh := range proxyConfig.VirtualHosts {
+		if len(vh.Routers) == 0 {
+			log.StartLogger.Fatal("No Router Founded in VirtualHosts")
 		}
 	}
 
@@ -469,7 +464,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 // ParseClusterConfig
 func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2.Host) {
 	if len(clusters) == 0 {
-		log.StartLogger.Fatalln("No Cluster provided in cluster config")
+		log.StartLogger.Warnf("No Cluster provided in cluster config")
 	}
 	
 	var clustersV2 []v2.Cluster
