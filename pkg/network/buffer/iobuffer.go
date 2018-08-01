@@ -98,7 +98,7 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 		l := cap(b.buf) - len(b.buf)
 
 		if first {
-			conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+			conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 		} else {
 			conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
 		}

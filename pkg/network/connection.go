@@ -196,6 +196,10 @@ func (c *connection) startReadLoop() {
 				randTime := time.Duration(rand.Intn(int(TransferTimeout.Nanoseconds())))
 				transferTime = time.Now().Add(randTime)
 				c.logger.Infof("transferTime: Wait %d Second", randTime/1e9)
+			} else {
+				if transferTime.Before(time.Now()) {
+					goto transfer
+				}
 			}
 		default:
 		}
@@ -205,11 +209,6 @@ func (c *connection) startReadLoop() {
 			return
 		case <-c.readEnabledChan:
 		default:
-			if !transferTime.IsZero() {
-				if transferTime.After(time.Now()) {
-					goto transfer
-				}
-			}
 			if c.readEnabled {
 				err := c.doRead()
 
@@ -379,12 +378,12 @@ transfer:
 		case <-c.internalStopChan:
 			return
 		case <-c.writeBufferChan:
-				if c.writeBufLen() == 0 {
-					continue
-				}
-				c.writeBufferMux.Lock()
-				transferWrite(c.writeBuffer.Br, id, c.logger)
-				c.writeBufferMux.Unlock()
+			if c.writeBufLen() == 0 {
+				continue
+			}
+			c.writeBufferMux.Lock()
+			transferWrite(c.writeBuffer.Br, id, c.logger)
+			c.writeBufferMux.Unlock()
 		}
 	}
 }

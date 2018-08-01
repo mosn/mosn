@@ -39,7 +39,7 @@ const (
 	transferNotify = 1
 )
 
-var TransferTimeout = time.Second * 30  //default 30s
+var TransferTimeout = time.Second * 30 //default 30s
 var transferDomainSocket = filepath.Dir(os.Args[0]) + string(os.PathSeparator) + "mosn.sock"
 
 // transferServer is called on new mosn start
@@ -76,24 +76,12 @@ func TransferServer(handler types.ConnectionHandler) {
 		for {
 			c, err := l.Accept()
 			if err != nil {
-				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-					log.DefaultLogger.Errorf("listener %s stop accepting connections by deadline", l.Addr())
-					return
-				} else if ope, ok := err.(*net.OpError); ok {
-					// not timeout error and not temporary, which means the error is non-recoverable
-					// stop accepting loop and log the event
-					if !(ope.Timeout() && ope.Temporary()) {
-						// accept error raised by sockets closing
-						if ope.Op == "accept" {
-							log.DefaultLogger.Errorf("listener %s closed", l.Addr())
-						} else {
-							log.DefaultLogger.Errorf("listener %s occurs non-recoverable error, stop listening and accepting:%s", l.Addr(), err.Error())
-						}
-						return
-					}
+				if ope, ok := err.(*net.OpError); ok && (ope.Op == "accept") {
+					log.DefaultLogger.Infof("TransferServer listener %s closed", l.Addr())
 				} else {
-					log.DefaultLogger.Errorf("listener %s occurs unknown error while accepting:%s", l.Addr(), err.Error())
+					log.DefaultLogger.Errorf("TransferServer Accept error :%v", err)
 				}
+				return
 			}
 			log.DefaultLogger.Infof("transfer Accept")
 			go transferHandler(c, handler, &transferMap)

@@ -171,7 +171,7 @@ func reconfigure() {
 	log.DefaultLogger.Infof("SIGHUP received: fork-exec to %d", fork)
 
 	// Wait for new mosn start
-	time.Sleep(1*time.Second)
+	time.Sleep(3 * time.Second)
 
 	// Stop accepting requests
 	StopAccept()

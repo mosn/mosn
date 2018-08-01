@@ -173,13 +173,16 @@ func ListListenerFD() []uintptr {
 }
 
 func WaitConnectionsDone(duration time.Duration) error {
-	timeout := time.NewTimer(duration * 2)
+	// one duration wait for connection to active close
+	// two duration wait for connection to transfer
+	// 5 sencond wait for read timeout
+	timeout := time.NewTimer(duration * 2 + time.Second * 5)
 	wait := make(chan struct{})
 	time.Sleep(duration)
 	go func() {
 		//todo close idle connections and wait active connections complete
 		StopConnection()
-		time.Sleep(duration)
+		time.Sleep(duration + time.Second * 5)
 		wait <- struct{}{}
 	}()
 
