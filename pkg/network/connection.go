@@ -19,18 +19,18 @@ package network
 
 import (
 	"context"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network/buffer"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/rcrowley/go-metrics"
 	"io"
+	"math/rand"
 	"net"
 	"runtime"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
 )
 
 // Network related const
@@ -39,7 +39,7 @@ const (
 	DefaultBufferCapacity   = 1 << 17
 )
 
-var idCounter uint64
+var idCounter uint64 = 1
 var readerBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
 var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
 
@@ -72,6 +72,7 @@ type connection struct {
 	writeBufferChan     chan bool
 	internalLoopStarted bool
 	internalStopChan    chan struct{}
+	transferChan        chan uint64
 	readerBufferPool    *buffer.IoBufferPool
 	writeBufferPool     *buffer.IoBufferPool
 
@@ -87,7 +88,7 @@ type connection struct {
 
 // NewServerConnection
 // rawc is the raw connection from go/net
-func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logger) types.Connection {
+func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logger, ctx context.Context) types.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
@@ -100,6 +101,7 @@ func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logge
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
 		writeBufferChan:  make(chan bool, 1),
+		transferChan:     make(chan uint64),
 		readerBufferPool: readerBufferPool,
 		writeBufferPool:  writeBufferPool,
 		stats: &types.ConnectionStats{
@@ -111,7 +113,19 @@ func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logge
 		logger: logger,
 	}
 
+	if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
+		buf := ctx.Value(types.ContextKeyAcceptBuffer).([]byte)
+		conn.readBuffer = conn.readerBufferPool.Take(conn.rawConnection)
+		conn.readBuffer.Br.Write(buf)
+		logger.Infof("NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Br.Len())
+	}
+
+	if ctx.Value(types.ContextKeyAcceptChan) != nil {
+		ch := ctx.Value(types.ContextKeyAcceptChan).(chan types.Connection)
+		ch <- conn
+	}
 	//conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)
+
 	conn.filterManager = newFilterManager(conn)
 
 	return conn
@@ -167,6 +181,7 @@ func (c *connection) Start(lctx context.Context) {
 }
 
 func (c *connection) startReadLoop() {
+	var transferTime time.Time
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
 		select {
@@ -177,11 +192,24 @@ func (c *connection) startReadLoop() {
 
 		select {
 		case <-c.stopChan:
-			return
+			if transferTime.IsZero() {
+				randTime := time.Duration(rand.Intn(int(TransferTimeout.Nanoseconds())))
+				transferTime = time.Now().Add(randTime)
+				c.logger.Infof("transferTime: Wait %d Second", randTime/1e9)
+			}
+		default:
+		}
+
+		select {
 		case <-c.internalStopChan:
 			return
 		case <-c.readEnabledChan:
 		default:
+			if !transferTime.IsZero() {
+				if transferTime.After(time.Now()) {
+					goto transfer
+				}
+			}
 			if c.readEnabled {
 				err := c.doRead()
 
@@ -208,6 +236,11 @@ func (c *connection) startReadLoop() {
 			runtime.Gosched()
 		}
 	}
+
+transfer:
+	c.transferChan <- transferNotify
+	id, _ := transferRead(c.rawConnection, c.readBuffer.Br, c.logger)
+	c.transferChan <- id
 }
 
 func (c *connection) doRead() (err error) {
@@ -299,6 +332,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 }
 
 func (c *connection) startWriteLoop() {
+	var id uint64
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
 		select {
@@ -308,13 +342,15 @@ func (c *connection) startWriteLoop() {
 		}
 
 		select {
-		case <-c.stopChan:
-			return
 		case <-c.internalStopChan:
 			return
+		case <-c.transferChan:
+			id = <-c.transferChan
+			if id != transferErr {
+				goto transfer
+			}
 		case <-c.writeBufferChan:
 			_, err := c.doWrite()
-
 			if err != nil {
 				if te, ok := err.(net.Error); ok && te.Timeout() {
 					continue
@@ -333,6 +369,22 @@ func (c *connection) startWriteLoop() {
 
 				return
 			}
+		}
+	}
+
+transfer:
+	c.logger.Infof("TransferWrite begin")
+	for {
+		select {
+		case <-c.internalStopChan:
+			return
+		case <-c.writeBufferChan:
+				if c.writeBufLen() == 0 {
+					continue
+				}
+				c.writeBufferMux.Lock()
+				transferWrite(c.writeBuffer.Br, id, c.logger)
+				c.writeBufferMux.Unlock()
 		}
 	}
 }

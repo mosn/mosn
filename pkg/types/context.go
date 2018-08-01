@@ -33,6 +33,8 @@ const (
 	ContextKeyLogger                     ContextKey = "Logger"
 	ContextKeyAccessLogs                 ContextKey = "AccessLogs"
 	ContextOriRemoteAddr                 ContextKey = "OriRemoteAddr"
+	ContextKeyAcceptChan                 ContextKey = "ContextKeyAcceptChan"
+	ContextKeyAcceptBuffer               ContextKey = "ContextKeyAcceptBuffer"
 )
 
 const (
