@@ -3,6 +3,7 @@ package http
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	"testing"
@@ -52,6 +53,8 @@ func (c *HTTPClient) SendRequest() {
 	} else {
 		c.failureCount++
 	}
+	// Read Body
+	ioutil.ReadAll(resp.Body)
 }
 
 type HTTPServer struct {
