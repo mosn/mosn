@@ -554,10 +554,14 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 	}
 
 	//try inherit legacy listener
+	currentIp := net.ParseIP(addr.String())
 	var old *net.TCPListener
 
 	for _, il := range inheritListeners {
-		if il.Addr.String() == addr.String() {
+		inheritIp := net.ParseIP(il.Addr.String())
+
+		// use ip.Equal to solve ipv4 and ipv6 case
+		if inheritIp.Equal(currentIp) {
 			log.StartLogger.Infof("inherit listener addr: %s", c.Address)
 			old = il.InheritListener
 			il.Remain = true

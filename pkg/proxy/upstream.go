@@ -61,6 +61,19 @@ func (r *upstreamRequest) resetStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
+	workerPool.Offer(&resetEvent{
+		controlEvent: controlEvent{
+			streamEvent: streamEvent{
+				direction: Upstream,
+				streamId:  r.downStream.streamID,
+				stream:    r.downStream,
+			},
+		},
+		reason: reason,
+	})
+}
+
+func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 
 	// todo: check if we get a reset on encode request headers. e.g. send failed
@@ -70,15 +83,58 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 // types.StreamReceiver
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
+	workerPool.Offer(&receiveHeadersEvent{
+		normalEvent: normalEvent{
+			streamEvent: streamEvent{
+				direction: Upstream,
+				streamId:  r.downStream.streamID,
+				stream:    r.downStream,
+			},
+		},
+		headers:   headers,
+		endStream: endStream,
+	})
+}
+
+func (r *upstreamRequest) ReceiveHeaders(headers map[string]string, endStream bool) {
 	r.upstreamRespHeaders = headers
 	r.downStream.onUpstreamHeaders(headers, endStream)
 }
 
 func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
+	r.downStream.downstreamRespDataBuf = r.downStream.proxy.bytesBufferPool.Clone(data)
+
+	workerPool.Offer(&receiveDataEvent{
+		normalEvent: normalEvent{
+			streamEvent: streamEvent{
+				direction: Upstream,
+				streamId:  r.downStream.streamID,
+				stream:    r.downStream,
+			},
+		},
+		data:      r.downStream.downstreamRespDataBuf,
+		endStream: endStream,
+	})
+}
+
+func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
 	r.downStream.onUpstreamData(data, endStream)
 }
 
 func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
+	workerPool.Offer(&receiveTrailerEvent{
+		normalEvent: normalEvent{
+			streamEvent: streamEvent{
+				direction: Upstream,
+				streamId:  r.downStream.streamID,
+				stream:    r.downStream,
+			},
+		},
+		trailers: trailers,
+	})
+}
+
+func (r *upstreamRequest) ReceiveTrailers(trailers map[string]string) {
 	r.downStream.onUpstreamTrailers(trailers)
 }
 

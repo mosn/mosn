@@ -22,11 +22,14 @@ import (
 	"context"
 	"sync"
 
+	"runtime"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/stream"
+	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -34,12 +37,22 @@ var (
 	codecHeadersBufPool types.HeadersBufferPool
 	activeStreamPool    types.ObjectBufferPool
 	globalStats         *proxyStats
+
+	workerPool       mosnsync.ShardWorkerPool
 )
 
 func init() {
 	globalStats = newProxyStats(types.GlobalStatsNamespace)
 	codecHeadersBufPool = buffer.NewHeadersBufferPool(1)
 	activeStreamPool = buffer.NewObjectPool(1)
+
+	// default shardsNum is equal to the cpu num
+	shardsNum := runtime.NumCPU()
+	// use 512 as chan buffer length
+	poolSize := shardsNum * 512
+
+	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
+	workerPool.Init()
 }
 
 // types.ReadFilter
@@ -71,21 +84,26 @@ type proxy struct {
 
 	// access logs
 	accessLogs []types.AccessLog
+
+	bytesBufferPool *buffer.SlabPool
 }
 
 func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
 	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecMapPool, codecHeadersBufPool)
 
 	proxy := &proxy{
-		config:         config,
-		clusterManager: clusterManager,
-		activeSteams:   list.New(),
-		stats:          globalStats,
-		resueCodecMaps: true,
-		codecPool:      codecHeadersBufPool,
-		context:        ctx,
-		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
+		config:          config,
+		clusterManager:  clusterManager,
+		activeSteams:    list.New(),
+		stats:           globalStats,
+		resueCodecMaps:  true,
+		codecPool:       codecHeadersBufPool,
+		bytesBufferPool: buffer.NewSlabPool(),
+		context:         ctx,
+		accessLogs:      ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
+
+	proxy.context = context.WithValue(proxy.context, types.ContextKeyConnectionBytesBufferPool, proxy.bytesBufferPool)
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
@@ -194,19 +212,29 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 	// reuse decode map
 	if p.resueCodecMaps {
 		if s.downstreamReqHeaders != nil {
-			//p.codecPool.Give(s.downstreamReqHeaders)
+			p.codecPool.Give(s.downstreamReqHeaders)
 		}
 
 		if s.upstreamRequest != nil {
 			if s.upstreamRequest.upstreamRespHeaders != nil {
-				//p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
+				p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
 			}
 		}
 	}
 
-	p.asMux.Lock()
-	p.activeSteams.Remove(s.element)
-	p.asMux.Unlock()
+	if s.downstreamReqDataBuf != nil {
+		p.bytesBufferPool.Give(s.downstreamReqDataBuf)
+	}
+
+	if s.downstreamRespDataBuf != nil {
+		p.bytesBufferPool.Give(s.downstreamRespDataBuf)
+	}
+
+	if s.element != nil {
+		p.asMux.Lock()
+		p.activeSteams.Remove(s.element)
+		p.asMux.Unlock()
+	}
 
 	//s.reset()
 }
