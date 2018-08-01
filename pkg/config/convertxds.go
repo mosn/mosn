@@ -516,7 +516,7 @@ func convertAddress(xdsAddress *xdscore.Address) net.Addr {
 func convertClusterType(xdsClusterType xdsapi.Cluster_DiscoveryType) v2.ClusterType {
 	switch xdsClusterType {
 	case xdsapi.Cluster_STATIC:
-		return v2.STATIC_CLUSTER
+		return v2.SIMPLE_CLUSTER
 	case xdsapi.Cluster_STRICT_DNS:
 	case xdsapi.Cluster_LOGICAL_DNS:
 	case xdsapi.Cluster_EDS:

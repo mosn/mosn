@@ -191,13 +191,13 @@ type FaultInject struct {
 }
 
 type Proxy struct {
-	Name                string               `json:"name"`
-	DownstreamProtocol  string               `json:"downstream_protocol"`
-	UpstreamProtocol    string               `json:"upstream_protocol"`
-	SupportDynamicRoute bool                 `json:"support_dynamic_route"`
-	BasicRoutes         []*BasicServiceRoute `json:"basic_routes"`
-	VirtualHosts        []*VirtualHost       `json:"virtual_hosts"`
-	ValidateClusters    bool                 `json:"validate_clusters"`
+	Name                string
+	DownstreamProtocol  string
+	UpstreamProtocol    string
+	SupportDynamicRoute bool
+	BasicRoutes         []*BasicServiceRoute
+	VirtualHosts        []*VirtualHost
+	ValidateClusters    bool
 }
 
 type BasicServiceRoute struct {
