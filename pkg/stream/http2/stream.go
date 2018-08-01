@@ -383,7 +383,7 @@ func (s *clientStream) CleanStream() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		s.decoder.OnReceiveHeaders(decodeHeader(s.response.Header), false)
+		s.decoder.OnReceiveHeaders(decodeRespHeader(s.response), false)
 		buf := &buffer.IoBuffer{}
 		buf.ReadFrom(s.response.Body)
 		s.decoder.OnReceiveData(buf, false)
@@ -410,20 +410,20 @@ type serverStream struct {
 // types.StreamSender
 func (s *serverStream) AppendHeaders(headersIn interface{}, endStream bool) error {
 	headers, _ := headersIn.(map[string]string)
-
+	
 	if s.response == nil {
 		s.response = new(http.Response)
+	}
+	
+	if value,ok :=headers[types.HeaderStatus];ok {
+		s.response.StatusCode, _ = strconv.Atoi(value)
+		delete(headers,types.HeaderStatus)
+	} else {
 		s.response.StatusCode = 200
 	}
 
 	s.response.Header = encodeHeader(headers)
-
-	if status, ok := headers[types.HeaderStatus]; ok {
-		s.response.StatusCode, _ = strconv.Atoi(status)
-		s.response.Header.Del(types.HeaderStatus)
-		delete(headers, types.HeaderStatus)
-	}
-
+	
 	if endStream {
 		s.endStream()
 	}
@@ -561,8 +561,18 @@ func decodeHeader(in map[string][]string) (out map[string]string) {
 		//// convert to lower case for internal process
 		out[strings.ToLower(k)] = strings.Join(v, ",")
 	}
-
+	
+	// inherit upstream's response status
 	return
+}
+
+func decodeRespHeader(resp *http.Response) (out map[string]string) {
+	header := decodeHeader(resp.Header)
+	
+	// inherit upstream's response status
+	header[types.HeaderStatus] = strconv.Itoa(resp.StatusCode)
+	
+	return header
 }
 
 // io.ReadCloser
