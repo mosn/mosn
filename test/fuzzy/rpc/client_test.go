@@ -46,18 +46,22 @@ func TestClientCloseProxy(t *testing.T) {
 	caseIndex++
 	log.StartLogger.Infof("[FUZZY TEST] RPC ClientClose ProxyMode %d", caseIndex)
 	serverList := []string{"127.0.0.1:8081"}
-	stop := make(chan struct{})
-	meshAddr := fuzzy.CreateMeshProxy(t, stop, serverList, protocol.SofaRPC)
-	CreateServers(t, serverList, stop)
-	runClientClose(t, stop, meshAddr)
+	stopClient := make(chan struct{})
+	stopServer := make(chan struct{})
+	meshAddr := fuzzy.CreateMeshProxy(t, stopServer, serverList, protocol.SofaRPC)
+	CreateServers(t, serverList, stopServer)
+	runClientClose(t, stopClient, meshAddr)
+	close(stopServer)
 }
 
 func runClientCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 	serverList := []string{"127.0.0.1:8081"}
-	stop := make(chan struct{})
-	meshAddr := fuzzy.CreateMeshCluster(t, stop, serverList, protocol.SofaRPC, proto)
-	CreateServers(t, serverList, stop)
-	runClientClose(t, stop, meshAddr)
+	stopClient := make(chan struct{})
+	stopServer := make(chan struct{})
+	meshAddr := fuzzy.CreateMeshCluster(t, stopServer, serverList, protocol.SofaRPC, proto)
+	CreateServers(t, serverList, stopServer)
+	runClientClose(t, stopClient, meshAddr)
+	close(stopServer)
 
 }
 func TestClientCloseToHTTP1(t *testing.T) {
