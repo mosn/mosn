@@ -36,8 +36,14 @@ type shard struct {
 
 	index        int
 	respawnTimes uint32
+
+	// job
 	jobChan      chan interface{}
 	jobQueue     []interface{}
+
+	// control
+	ctrlChan      chan interface{}
+	ctrlQueue     []interface{}
 }
 
 type shardWorkerPool struct {
@@ -68,6 +74,7 @@ func NewShardWorkerPool(size int, numShards int, workerFunc WorkerFunc) (ShardWo
 		shards[i] = &shard{
 			index:   i,
 			jobChan: make(chan interface{}, shardCap),
+			ctrlChan: make(chan interface{}, shardCap),
 		}
 	}
 
@@ -107,6 +114,25 @@ func (p *shardWorkerPool) Offer(job ShardJob) {
 	shard.Unlock()
 }
 
+func (p *shardWorkerPool) Control(job ShardJob) {
+	// use shard to avoid excessive synchronization
+	i := p.Shard(job.Source())
+	shard := p.shards[i]
+
+	// put controls to the ctrlChan or ctrlQueue, which determined by the shard workload
+	shard.Lock()
+	select {
+	case shard.ctrlChan <- job:
+	default:
+		shard.ctrlQueue = append(shard.ctrlQueue, job)
+		// schedule flush if
+		if atomic.CompareAndSwapUint32(&p.schedule, 0, 1) {
+			p.flush()
+		}
+	}
+	shard.Unlock()
+}
+
 func (pool *shardWorkerPool) spawnWorker(shard *shard) {
 	go func() {
 		defer func() {
@@ -122,7 +148,7 @@ func (pool *shardWorkerPool) spawnWorker(shard *shard) {
 			}
 		}()
 
-		pool.workerFunc(shard.index, shard.jobChan)
+		pool.workerFunc(shard.index, shard.jobChan, shard.ctrlChan)
 	}()
 }
 
@@ -137,23 +163,22 @@ func (p *shardWorkerPool) flush() {
 
 				shard.Lock()
 
-				pending := len(shard.jobQueue)
-				slots := cap(shard.jobChan) - len(shard.jobChan)
+				// flush controls
+				pendingCtrl, writeCtrl := flush(&shard.ctrlQueue, shard.ctrlChan)
+				if writeCtrl > 0 {
+					log.DefaultLogger.Debugf("flush %d control to shard %d", writeCtrl, i)
+				}
 
-				if clear && pending > 0 {
+				// flush jobs
+				pendingJob, writeJob := flush(&shard.jobQueue, shard.jobChan)
+				if writeJob > 0 {
+					log.DefaultLogger.Debugf("flush %d job to shard %d", writeJob, i)
+				}
+
+				if clear && (pendingCtrl > 0 || pendingJob > 0 ){
 					clear = false
 				}
 
-				// the number we can write is determined by the minimal of pending jobs and available chan data slots
-				writable := min(pending, slots)
-
-				if writable > 0 {
-					log.DefaultLogger.Debugf("flush %d job to shard %d", writable, i)
-					for j := 0; j < writable; j++ {
-						shard.jobChan <- shard.jobQueue[j]
-					}
-					shard.jobQueue = shard.jobQueue[writable:]
-				}
 				shard.Unlock()
 			}
 
@@ -169,6 +194,23 @@ func (p *shardWorkerPool) flush() {
 		// end flush schedule
 		atomic.CompareAndSwapUint32(&p.schedule, 1, 0)
 	}()
+}
+
+
+func flush(queue *[]interface{}, ch chan interface{}) (pending, write int){
+	pending = len(*queue)
+	slots := cap(ch) - len(ch)
+
+	// the number we can write is determined by the minimal of pending jobs and available chan data slots
+	write = min(pending, slots)
+
+	if write > 0 {
+		for j := 0; j < write; j++ {
+			ch <- (*queue)[j]
+		}
+		*queue = (*queue)[write:]
+	}
+	return
 }
 
 func min(a, b int) int {

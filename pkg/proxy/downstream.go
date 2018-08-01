@@ -200,10 +200,10 @@ func (s *downStream) shouldDeleteStream() bool {
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
-	workerPool.Offer(&resetEvent{
+	workerPool.Control(&resetEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamId:  s.streamID,
+			stream:  s,
 		},
 		reason: reason,
 	})
@@ -226,7 +226,7 @@ func (s *downStream) OnReceiveHeaders(headers map[string]string, endStream bool)
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamId:  s.streamID,
+			stream:  s,
 		},
 		headers:   headers,
 		endStream: endStream,
@@ -301,7 +301,7 @@ func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamId:  s.streamID,
+			stream:  s,
 		},
 		data:      s.downstreamReqDataBuf,
 		endStream: endStream,
@@ -343,7 +343,7 @@ func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamId:  s.streamID,
+			stream:  s,
 		},
 		trailers: trailers,
 	})
@@ -844,18 +844,19 @@ func (s *downStream) DownstreamHeaders() map[string]string {
 func (s *downStream) startEventProcess() {
 	// offer start event so that there is no lock contention on the streamPrcessMap[shard]
 	// all read/write operation should be abled to trace back to the ShardWorkerPool goroutine
-	workerPool.Offer(&startEvent{
+	workerPool.Control(&startEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamId:  s.streamID,
+			stream:  s,
 		},
-		ds: s,
 	})
 }
 
 func (s *downStream) stopEventProcess() {
-	source, _ := strconv.ParseInt(s.streamID, 10, 32)
-	shard := workerPool.Shard(int(source))
-
-	delete(streamProcessMap[shard], s.streamID)
+	workerPool.Control(&stopEvent{
+		streamEvent: streamEvent{
+			direction: Downstream,
+			stream:  s,
+		},
+	})
 }

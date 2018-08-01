@@ -38,8 +38,6 @@ var (
 	activeStreamPool    types.ObjectBufferPool
 	globalStats         *proxyStats
 
-	// global stream process status map with shard, we use this to indicate a given stream is processing or not
-	streamProcessMap []map[string]*downStream
 	workerPool       mosnsync.ShardWorkerPool
 )
 
@@ -52,11 +50,6 @@ func init() {
 	shardsNum := runtime.NumCPU()
 	// use 512 as chan buffer length
 	poolSize := shardsNum * 512
-
-	streamProcessMap = make([]map[string]*downStream, shardsNum)
-	for i := range streamProcessMap {
-		streamProcessMap[i] = make(map[string]*downStream, 2<<10)
-	}
 
 	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
 	workerPool.Init()

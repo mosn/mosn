@@ -61,10 +61,10 @@ func (r *upstreamRequest) resetStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
-	workerPool.Offer(&resetEvent{
+	workerPool.Control(&resetEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
-			streamId:  r.downStream.streamID,
+			stream:  r.downStream,
 		},
 		reason: reason,
 	})
@@ -83,7 +83,7 @@ func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream 
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
-			streamId:  r.downStream.streamID,
+			stream:  r.downStream,
 		},
 		headers:   headers,
 		endStream: endStream,
@@ -101,7 +101,7 @@ func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
-			streamId:  r.downStream.streamID,
+			stream:  r.downStream,
 		},
 		data:      r.downStream.downstreamRespDataBuf,
 		endStream: endStream,
@@ -116,7 +116,7 @@ func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
-			streamId:  r.downStream.streamID,
+			stream:  r.downStream,
 		},
 		trailers: trailers,
 	})

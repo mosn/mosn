@@ -18,7 +18,7 @@
 package sync
 
 // WorkerFunc is called by the goroutine of the ShardWorkerPool and assumed never return in normal case.
-type WorkerFunc func(shard int, jobCh chan interface{})
+type WorkerFunc func(shard int, jobCh chan interface{}, ctrlCh chan interface{})
 
 // ShardJob represents a job with its shard source.
 type ShardJob interface {
@@ -45,4 +45,7 @@ type ShardWorkerPool interface {
 
 	// Offer puts the job into the corresponding shard and execute it.
 	Offer(job ShardJob)
+
+	// Control puts the control event into the corresponding shard and execute it.
+	Control(job ShardJob)
 }
