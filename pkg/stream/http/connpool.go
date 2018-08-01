@@ -43,8 +43,6 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.HTTP1
 }
 
-func (p *connPool) DrainConnections() {}
-
 //由 PROXY 调用
 func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
@@ -149,7 +147,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
-
+	//
 	//data := pool.host.CreateConnection(context)
 	//data.Connection.Connect(false)
 

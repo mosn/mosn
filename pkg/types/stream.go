@@ -374,9 +374,7 @@ const (
 type ConnectionPool interface {
 	Protocol() Protocol
 
-	DrainConnections()
-
-	NewStream(context context.Context, streamID string,
+	NewStream(context context.Context, streamId string,
 		responseDecoder StreamReceiver, cb PoolEventListener) Cancellable
 
 	Close()

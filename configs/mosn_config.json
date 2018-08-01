@@ -52,7 +52,7 @@
                             },
                             "route": {
                               "cluster_name": "test_cpp",
-                              "cluster_header": {
+                              "metadata_match": {
                                 "filter_metadata": {
                                   "mosn.lb": {
                                     "version":"1.1",

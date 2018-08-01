@@ -19,24 +19,32 @@ package http2
 
 import (
 	"context"
+	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"golang.org/x/net/http2"
+)
+
+const (
+	// H2 conn key in context
+	H2ConnKey = "h2_conn"
 )
 
 // types.ConnectionPool
 type connPool struct {
-	primaryClient  *activeClient
-	drainingClient *activeClient
-	mux            sync.Mutex
-	host           types.Host
+	activeClients map[string][]*activeClient // key is host:port
+	mux           sync.RWMutex
+	host          types.Host
 }
 
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
-		host: host,
+		host:          host,
+		activeClients: make(map[string][]*activeClient),
 	}
 }
 
@@ -52,19 +60,13 @@ func (p *connPool) InitActiveClient(context context.Context) error {
 	return nil
 }
 
-func (p *connPool) DrainConnections() {}
-
 //由 PROXY 调用
 func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
-	p.mux.Lock()
 
-	if p.primaryClient == nil {
-		p.primaryClient = newActiveClient(context, p)
-	}
-	p.mux.Unlock()
+	ac := p.getOrInitActiveClient(context, p.host.AddressString())
 
-	if p.primaryClient == nil {
+	if ac == nil {
 		cb.OnFailure(streamID, types.ConnectionFailure, nil)
 		return nil
 	}
@@ -74,13 +76,13 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
-		p.primaryClient.totalStream++
+		ac.totalStream++
 		p.host.HostStats().UpstreamRequestTotal.Inc(1)
 		p.host.HostStats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := p.primaryClient.codecClient.NewStream(streamID, responseDecoder)
+		streamEncoder := ac.codecClient.NewStream(streamID, responseDecoder)
 		cb.OnReady(streamID, streamEncoder, p.host)
 	}
 
@@ -91,9 +93,10 @@ func (p *connPool) Close() {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	if p.primaryClient != nil {
-		p.primaryClient.codecClient.Close()
-		p.primaryClient = nil
+	for _, acs := range p.activeClients {
+		for _, ac := range acs {
+			ac.codecClient.Close()
+		}
 	}
 }
 
@@ -110,12 +113,12 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 			}
 		}
 
+		host := client.host.HostInfo.AddressString()
+
 		p.mux.Lock()
 		defer p.mux.Unlock()
 
-		if p.primaryClient == client {
-			p.primaryClient = nil
-		}
+		delete(p.activeClients, host)
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
@@ -147,31 +150,83 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 }
 
 func (p *connPool) onGoAway(client *activeClient) {
+	if !atomic.CompareAndSwapUint32(&client.isGoneAway, 0, 1) {
+		return
+	}
+
 	p.host.HostStats().UpstreamConnectionCloseNotify.Inc(1)
 	p.host.ClusterInfo().Stats().UpstreamConnectionCloseNotify.Inc(1)
 
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	if p.primaryClient == client {
-		p.movePrimaryToDraining()
-	}
+	host := client.host.HostInfo.AddressString()
+	delete(p.activeClients, host)
 }
 
 func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
 	return str.NewCodecClient(context, protocol.HTTP2, connData.Connection, connData.HostInfo)
 }
 
-func (p *connPool) movePrimaryToDraining() {
-	if p.drainingClient != nil {
-		p.drainingClient.codecClient.Close()
+// Http2 connpool interface
+func (p *connPool) getOrInitActiveClient(context context.Context, addr string) *activeClient {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
+	for _, ac := range p.activeClients[addr] {
+		if ac.CanTakeNewRequest() {
+
+			return ac
+		}
 	}
 
-	if p.primaryClient.codecClient.ActiveRequestsNum() == 0 {
-		p.primaryClient.codecClient.Close()
-	} else {
-		p.drainingClient = p.primaryClient
-		p.primaryClient = nil
+	// If connection's stream id is out of bound, closed or 'go away', make a new one
+	if nac := newActiveClient(context, p); nac != nil {
+		p.activeClients[addr] = append(p.activeClients[addr], nac)
+
+		return nac
+	}
+
+	return nil
+}
+
+// GetClientConn
+func (p *connPool) GetClientConn(req *http.Request, addr string) (*http2.ClientConn, error) {
+	// GetClientConn will not be called, do nothing
+	return nil, nil
+}
+
+// MarkDead by golang net http2 impl
+func (p *connPool) MarkDead(http2Conn *http2.ClientConn) {
+	acsIdx := ""
+	acIdx := -1
+	var deadAc *activeClient
+
+	p.mux.Lock()
+
+	for i, acs := range p.activeClients {
+		for j, ac := range acs {
+
+			if ac.h2Conn == http2Conn {
+				acsIdx = i
+				acIdx = j
+				deadAc = ac
+
+				break
+			}
+		}
+	}
+
+	if acsIdx != "" && acIdx > -1 {
+		// close connection to notify watchers
+		p.activeClients[acsIdx] = append(p.activeClients[acsIdx][:acIdx],
+			p.activeClients[acsIdx][acIdx+1:]...)
+	}
+
+	p.mux.Unlock()
+
+	if deadAc != nil {
+		deadAc.host.Connection.Close(types.NoFlush, types.LocalClose)
 	}
 }
 
@@ -179,30 +234,48 @@ func (p *connPool) movePrimaryToDraining() {
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
-	pool               *connPool
+	pool *connPool
+
 	codecClient        str.CodecClient
+	h2Conn             *http2.ClientConn
 	host               types.CreateConnectionData
 	totalStream        uint64
 	closeWithActiveReq bool
+	isGoneAway         uint32
 }
 
-func newActiveClient(context context.Context, pool *connPool) *activeClient {
+func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
-	data := pool.host.CreateConnection(context)
+
+	data := pool.host.CreateConnection(ctx)
 
 	if err := data.Connection.Connect(false); err != nil {
 		return nil
 	}
 
-	codecClient := pool.createCodecClient(context, data)
+	transport := &http2.Transport{
+		ConnPool: pool,
+	}
+
+	h2Conn, err := transport.NewClientConn(data.Connection.RawConn())
+
+	if err != nil {
+		// close connection on h2 conn init failed
+		data.Connection.Close(types.NoFlush, types.LocalClose)
+
+		return nil
+	}
+
+	codecClient := pool.createCodecClient(context.WithValue(ctx, H2ConnKey, h2Conn), data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
 
-	ac.codecClient = codecClient
 	ac.host = data
+	ac.h2Conn = h2Conn
+	ac.codecClient = codecClient
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
@@ -219,6 +292,11 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	})
 
 	return ac
+}
+
+func (ac *activeClient) CanTakeNewRequest() bool {
+	// extend this method if we need to control this in stream layer
+	return ac.h2Conn.CanTakeNewRequest()
 }
 
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {

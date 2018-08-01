@@ -34,6 +34,8 @@ import (
 var configPath string
 var config MOSNConfig
 
+type Metadata map[string]interface{}
+
 // FilterChain wraps a set of match criteria, an option TLS context,
 // a set of filters, and various other parameters.
 type FilterChain struct {
@@ -42,11 +44,120 @@ type FilterChain struct {
 	Filters          []FilterConfig `json:"filters"`
 }
 
+type Proxy struct {
+	Name                string                  `json:"name"`
+	DownstreamProtocol  string                  `json:"downstream_protocol"`
+	UpstreamProtocol    string                  `json:"upstream_protocol"`
+	SupportDynamicRoute bool                    `json:"support_dynamic_route"`
+	BasicRoutes         []*v2.BasicServiceRoute `json:"basic_routes"` //not used anymore. todo: delete related logic
+	VirtualHosts        []*VirtualHost          `json:"virtual_hosts"`
+	ValidateClusters    bool                    `json:"validate_clusters"`
+}
+
+// VirtualHost
+// An array of virtual hosts that make up the route table.
+type VirtualHost struct {
+	Name            string           `json:"name"`
+	Domains         []string         `json:"domains"`
+	Routers         []Router         `json:"routers"`
+	RequireTLS      string           `json:"require_tls"`
+	VirtualClusters []VirtualCluster `json:"virtual_clusters"`
+}
+
+// VirtualCluster is a way of specifying a regex matching rule against certain important endpoints
+// such that statistics are generated explicitly for the matched requests
+type VirtualCluster struct {
+	Pattern string `json:"pattern"`
+	Name    string `json:"name"`
+	Method  string `json:"method"`
+}
+
+// Router, the list of routes that will be matched, in order, for incoming requests.
+// The first route that matches will be used.
+type Router struct {
+	Match     RouterMatch    `json:"match"`
+	Route     RouteAction    `json:"route"`
+	Redirect  RedirectAction `json:"redirect"`
+	Metadata  Metadata       `json:"metadata"`
+	Decorator Decorator      `json:"decorator"`
+}
+
+// Decorator
+type Decorator string
+
+// RedirectAction
+// Return a redirect.
+type RedirectAction struct {
+	HostRedirect string `json:"host_redirect"`
+	PathRedirect string `json:"path_redirect"`
+	ResponseCode uint32 `json:"response_code"`
+}
+
+// RouterMatch
+// Route matching parameters
+type RouterMatch struct {
+	Prefix        string          `json:"prefix"`
+	Path          string          `json:"path"`
+	Regex         string          `json:"regex"`
+	CaseSensitive bool            `json:"case_sensitive"`
+	Runtime       RuntimeUInt32   `json:"runtime"`
+	Headers       []HeaderMatcher `json:"headers"`
+}
+
+// HeaderMatcher specifies a set of headers that the route should match on.
+type HeaderMatcher struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+	Regex bool   `json:"regex"`
+}
+
+// RuntimeUInt32
+// Indicates that the route should additionally match on a runtime key
+type RuntimeUInt32 struct {
+	DefaultValue uint32 `json:"default_value"`
+	RuntimeKey   string `json:"runtime_key"`
+}
+
+// RouteAction
+// Route request to some upstream clusters.
+type RouteAction struct {
+	ClusterName      string            `json:"cluster_name"`
+	ClusterHeader    string            `json:"cluster_header"`
+	WeightedClusters []WeightedCluster `json:"weighted_clusters"`
+	MetadataMatch    Metadata          `json:"metadata_match"`
+	Timeout          time.Duration     `json:"timeout"`
+	RetryPolicy      RetryPolicy       `json:"retry_policy"`
+}
+
+// WeightedCluster.
+// Multiple upstream clusters unsupport stream filter type:  healthcheckcan be specified for a given route.
+// The request is routed to one of the upstream
+// clusters based on weights assigned to each cluster
+type WeightedCluster struct {
+	Clusters         ClusterWeight `json:"clusters`
+	RuntimeKeyPrefix string        `json:"runtime_key_prefix"` // not used currently
+}
+
+// ClusterWeight.
+// clusters along with weights that indicate the percentage
+// of traffic to be forwarded to each cluste
+type ClusterWeight struct {
+	Name          string   `json:"name"`
+	Weight        uint32   `json:"weight"`
+	MetadataMatch Metadata `json:"metadata_match"`
+}
+
 // FilterConfig is a config to make up a filter
 // Type is the filter's type
 type FilterConfig struct {
 	Type   string                 `json:"type,omitempty"`
 	Config map[string]interface{} `json:"config,omitempty"`
+}
+
+type RetryPolicy struct {
+	RetryOn      bool          `json:"retry_on"`
+	RetryTimeout time.Duration `json:"retry_timeout"`
+	NumRetries   uint32        `json:"num_retries"`
 }
 
 // AccessLogConfig for making up access log
@@ -111,10 +222,10 @@ type ServerConfig struct {
 
 // HostConfig
 type HostConfig struct {
-	Address  string      `json:"address,omitempty"`
-	Hostname string      `json:"hostname,omitempty"`
-	Weight   uint32      `json:"weight,omitempty"`
-	MetaData v2.Metadata `json:"meta_data"`
+	Address  string   `json:"address,omitempty"`
+	Hostname string   `json:"hostname,omitempty"`
+	Weight   uint32   `json:"weight,omitempty"`
+	MetaData Metadata `json:"meta_data"`
 }
 
 // ClusterHealthCheckConfig for health checking
@@ -150,10 +261,10 @@ type ClusterConfig struct {
 	MaxRequestPerConn    uint32                   `json:"max_request_per_conn"`
 	ConnBufferLimitBytes uint32                   `json:"conn_buffer_limit_bytes"`
 	CircuitBreakers      []*CircuitBreakerConfig  `json:"circuit_breakers"`
-	HealthCheck          ClusterHealthCheckConfig `json:"health_check,omitempty"` //v2.HealthCheck
-	ClusterSpecConfig    ClusterSpecConfig        `json:"spec,omitempty"`         //	ClusterSpecConfig
-	Hosts                []HostConfig             `json:"hosts,omitempty"`        //v2.Host
-	LBSubsetConfig       LBSubsetConfig        `json:"lb_subset_config"`
+	HealthCheck          ClusterHealthCheckConfig `json:"health_check,omitempty"`
+	ClusterSpecConfig    ClusterSpecConfig        `json:"spec,omitempty"` //	ClusterSpecConfig
+	Hosts                []HostConfig             `json:"hosts,omitempty"`
+	LBSubsetConfig       LBSubsetConfig           `json:"lb_subset_config"`
 	TLS                  TLSConfig                `json:"tls_context,omitempty"`
 }
 

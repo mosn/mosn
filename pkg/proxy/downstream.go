@@ -126,6 +126,8 @@ func (s *downStream) endStream() {
 			// if downstream req received not done, or local proxy process not done by handle upstream response,
 			// just mark it as done and reset stream as a failed case
 			s.upstreamProcessDone = true
+
+			// reset downstream will trigger a clean up, see OnResetStream
 			s.responseSender.GetStream().ResetStream(types.StreamLocalReset)
 			isReset = true
 		}
@@ -134,6 +136,7 @@ func (s *downStream) endStream() {
 	if !isReset {
 		s.cleanStream()
 	}
+
 	// note: if proxy logic resets the stream, there maybe some underlying data in the conn.
 	// we ignore this for now, fix as a todo
 }

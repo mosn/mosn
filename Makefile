@@ -24,7 +24,6 @@ RPM_TAR_FILE    = ${RPM_SRC_DIR}.tar.gz
 
 ut-local:
 	go test ./pkg/...
-	go test ./test/...
 
 unit-test:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
@@ -38,7 +37,7 @@ coverage:
 	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make coverage-local
 
 integrate-local:
-	go test ./test/...
+	go test ./test/integrate/...
 
 integrate:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary

@@ -25,16 +25,12 @@
 #   unused-packages = true
 
 [[constraint]]
-  name = "github.com/deckarep/golang-set"
-  version = "1.7.0"
-
-[[constraint]]
   name = "github.com/envoyproxy/go-control-plane"
-  version = "v0.4"
+  version = "0.4.0"
 
 [[constraint]]
   name = "github.com/gogo/protobuf"
-  version = "0.5.0"
+  version = "1.1.1"
 
 [[constraint]]
   name = "github.com/golang/protobuf"
@@ -43,18 +39,6 @@
 [[constraint]]
   branch = "master"
   name = "github.com/hashicorp/go-syslog"
-
-[[constraint]]
-  name = "github.com/julienschmidt/httprouter"
-  version = "1.1.0"
-
-[[constraint]]
-  name = "github.com/magiconair/properties"
-  version = "1.8.0"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/nu7hatch/gouuid"
 
 [[constraint]]
   branch = "master"
@@ -74,7 +58,7 @@
 
 [[constraint]]
   name = "github.com/fatih/structs"
-  version = "v1.0"
+  version = "1.0.0"
 
 [[constraint]]
   branch = "master"

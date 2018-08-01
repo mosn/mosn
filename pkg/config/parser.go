@@ -112,8 +112,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 
 // ParseProxyFilterJSON
 func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
-
-	proxyConfig := &v2.Proxy{}
+	proxyConfig := &Proxy{}
 
 	if data, err := json.Marshal(c.Config); err == nil {
 		json.Unmarshal(data, &proxyConfig)
@@ -133,30 +132,144 @@ func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
 	}
 
-	if len(proxyConfig.VirtualHosts) == 0 {
-		log.StartLogger.Fatal("No VirtualHosts Founded")
-
-	} else {
-		for _, vh := range proxyConfig.VirtualHosts {
-			if len(vh.Routers) == 0 {
-				log.StartLogger.Fatal("No Router Founded in VirtualHosts")
-			}
+	for _, vh := range proxyConfig.VirtualHosts {
+		if len(vh.Routers) == 0 {
+			log.StartLogger.Fatal("No Router Founded in VirtualHosts")
 		}
 	}
 
-	proxyConfig.BasicRoutes = parseBasicFilter(proxyConfig)
+	return &v2.Proxy{
+		Name:                proxyConfig.Name,
+		DownstreamProtocol:  proxyConfig.DownstreamProtocol,
+		UpstreamProtocol:    proxyConfig.UpstreamProtocol,
+		SupportDynamicRoute: proxyConfig.SupportDynamicRoute,
+		BasicRoutes:         nil,
+		VirtualHosts:        parseVirtualHost(proxyConfig.VirtualHosts),
+		ValidateClusters:    proxyConfig.ValidateClusters,
+	}
+}
 
-	return proxyConfig
+func parseVirtualHost(confighost []*VirtualHost) []*v2.VirtualHost {
+	result := []*v2.VirtualHost{}
+
+	for _, cfh := range confighost {
+		result = append(result, &v2.VirtualHost{
+			Name:            cfh.Name,
+			Domains:         cfh.Domains,
+			Routers:         parseRouters(cfh.Routers),
+			RequireTLS:      cfh.RequireTLS,
+			VirtualClusters: parseVirtualClusters(cfh.VirtualClusters),
+		})
+
+	}
+
+	return result
+}
+
+func parseRouters(Router []Router) []v2.Router {
+	result := []v2.Router{}
+	
+	for _, router := range Router {
+		result = append(result, v2.Router{
+			Match: v2.RouterMatch{
+				Prefix:        router.Match.Prefix,
+				Path:          router.Match.Path,
+				Regex:         router.Match.Regex,
+				CaseSensitive: router.Match.CaseSensitive,
+				Runtime: v2.RuntimeUInt32{
+					router.Match.Runtime.DefaultValue,
+					router.Match.Runtime.RuntimeKey,
+				},
+				Headers: parseMatchHeaders(router.Match.Headers),
+			},
+			Route: v2.RouteAction{
+				ClusterName:      router.Route.ClusterName,
+				ClusterHeader:    router.Route.ClusterHeader,
+				WeightedClusters: parseWeightClusters(router.Route.WeightedClusters),
+				MetadataMatch:    parseRouterMetadata(router.Route.MetadataMatch),
+				Timeout:          router.Route.Timeout,
+				RetryPolicy: &v2.RetryPolicy{
+					router.Route.RetryPolicy.RetryOn,
+					router.Route.RetryPolicy.RetryTimeout,
+					router.Route.RetryPolicy.NumRetries,
+				},
+			},
+			Redirect: v2.RedirectAction{
+				HostRedirect: router.Redirect.HostRedirect,
+				PathRedirect: router.Redirect.PathRedirect,
+				ResponseCode: router.Redirect.ResponseCode,
+			},
+			Metadata:  parseRouterMetadata(router.Metadata),
+			Decorator: v2.Decorator(router.Decorator),
+		})
+	}
+	
+	return result
+}
+
+func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster {
+	result := []v2.WeightedCluster{}
+	
+	for _, wc := range weightClusters {
+		result = append(result, v2.WeightedCluster{
+			Clusters: v2.ClusterWeight{
+				wc.Clusters.Name,
+				wc.Clusters.Weight,
+				parseRouterMetadata(wc.Clusters.MetadataMatch),
+			},
+			RuntimeKeyPrefix: wc.RuntimeKeyPrefix,
+		})
+	}
+	
+	return result
+}
+
+func parseRouterMetadata(metadata Metadata) v2.Metadata {
+	result := v2.Metadata{}
+
+	for key, value := range metadata {
+		result[key] = value
+	}
+
+	return result
+}
+
+func parseMatchHeaders(headerMatchers []HeaderMatcher) []v2.HeaderMatcher {
+	result := []v2.HeaderMatcher{}
+	
+	for _, hm := range headerMatchers {
+		result = append(result, v2.HeaderMatcher{
+			Name:  hm.Name,
+			Value: hm.Value,
+			Regex: hm.Regex,
+		})
+	}
+
+	return result
+}
+
+func parseVirtualClusters(VirtualClusters []VirtualCluster) []v2.VirtualCluster {
+	result := []v2.VirtualCluster{}
+	
+	for _, vc := range VirtualClusters {
+
+		result = append(result, v2.VirtualCluster{
+			Pattern: vc.Pattern,
+			Name:    vc.Name,
+			Method:  vc.Method,
+		})
+
+	}
+
+	return result
 }
 
 func getServiceFromHeader(router *v2.Router) *v2.BasicServiceRoute {
-
 	if router == nil {
 		return nil
 	}
 
 	var ServiceName, ClusterName string
-
 	for _, h := range router.Match.Headers {
 		if h.Name == "service" || h.Name == "Service" {
 			ServiceName = h.Value
@@ -164,7 +277,6 @@ func getServiceFromHeader(router *v2.Router) *v2.BasicServiceRoute {
 	}
 
 	ClusterName = router.Route.ClusterName
-
 	if ServiceName == "" || ClusterName == "" {
 		return nil
 	}
@@ -176,7 +288,6 @@ func getServiceFromHeader(router *v2.Router) *v2.BasicServiceRoute {
 }
 
 func parseBasicFilter(proxy *v2.Proxy) []*v2.BasicServiceRoute {
-
 	var BSR []*v2.BasicServiceRoute
 
 	for _, p := range proxy.VirtualHosts {
@@ -185,9 +296,11 @@ func parseBasicFilter(proxy *v2.Proxy) []*v2.BasicServiceRoute {
 			BSR = append(BSR, getServiceFromHeader(&r))
 		}
 	}
+	
 	return BSR
 }
 
+// no used currently
 func parseProxyFilter(c *v2.Filter) *v2.Proxy {
 	proxyConfig := &v2.Proxy{}
 
@@ -258,7 +371,7 @@ func parseFilterChains(c []FilterChain) []v2.FilterChain {
 	var filterchains []v2.FilterChain
 
 	for _, fc := range c {
-		filters := make([]v2.Filter, 0)
+		filters := []v2.Filter{}
 		for _, f := range fc.Filters {
 			filters = append(filters, v2.Filter{
 				Name:   f.Type,
@@ -421,6 +534,7 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 	} else {
 		log.StartLogger.Fatalln("[passthrough] is required in healthcheck filter config")
 	}
+	
 	return healthcheck
 }
 
@@ -472,7 +586,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 // ParseClusterConfig
 func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2.Host) {
 	if len(clusters) == 0 {
-		log.StartLogger.Fatalln("No Cluster provided in cluster config")
+		log.StartLogger.Warnf("No Cluster provided in cluster config")
 	}
 
 	var clustersV2 []v2.Cluster
@@ -562,6 +676,7 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			cb(clustersV2, false)
 		}
 	}
+	
 	return clustersV2, clusterV2Map
 }
 
@@ -650,7 +765,7 @@ func parseHostConfig(c *ClusterConfig) []v2.Host {
 			host.Address,
 			host.Hostname,
 			host.Weight,
-			host.MetaData,
+			parseRouterMetadata(host.MetaData),
 		})
 	}
 

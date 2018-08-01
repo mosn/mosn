@@ -1,25 +1,32 @@
-## 配置标准HTTP协议的Mesher
+## 配置标准HTTP协议的SOFAMesh
 
 ## 简介
 
-该样例工程演示了如何配置使得Mesher作为标准Http协议的代理
- Mesher之间的协议是HTTP2
++ 该样例工程演示了如何配置使得SOFAMesh作为标准Http协议的代理
++ SOFAMesh之间的协议是HTTP2
++ 为了演示方便，SOFAMesh监听两个端口,一个转发Client的请求，一个收到请求以后转发给Server
 
 ## 准备
 
-需要一个编译好的Mesher程序
+需要一个编译好的SOFAMesh程序
 ```
-cd ${projectpath}/cmd/mosn
+cd ${projectpath}/cmd/mosn/main
 go build
 ```
 
-将编译好的程序移动到当前目录，目录结构如下 
++ 将编译好的程序移动到当前目录
 
 ```
-mosn  //Mesher程序
-server.go //HTTP Server
-server.json //HTTP Server的Mesher配置
-client.json //HTTP Client的Mesher配置
+mv main ${targetpath}/
+```
+
+## 目录结构
+
+```
+main        // 编译完成的SOFAMesh程序
+server.go   // 模拟的Http Server
+config.json // 非TLS的配置
+tls.json    // TLS配置
 ```
 
 ## 运行说明
@@ -30,30 +37,23 @@ client.json //HTTP Client的Mesher配置
 go run server.go
 ```
 
-### 启动代理HTTP Server的Mesher
+### 启动SOFAMesh
+
++ 使用config.json 运行非TLS加密的SOFAMesh
 
 ```
-./mosn start -c server.json
+./main start -c config.json
 ```
 
-### 启动代理HTTP Client的Mesher
++ 使用tls.json 开启SOFAMesh之间的TLS加密
 
 ```
-./mosn start -c client.json
+./main start -c tls.json
 ```
+
 
 ### 使用CURL进行验证
 
-+ 按照默认的配置设置，HTTP Server监听本地8080端口，HTTP Client代理监听本地2046端口
-+ Mesher代理配置转发请求为Header中包含"service:com.alipay.test.TestService:1.0"
-
 ```
-//直接访问HTTP Sever，观察现象
-curl http://127.0.0.1:8080
-//能收到HTTP Server返回的结果
-curl --header "service:com.alipay.test.TestService:1.0" http://127.0.0.1:2046
-//不能收到HTTP Server返回的结果(其实是返回了404 Not Found）
-curl http://127.0.0.1:2046
+curl http://127.0.0.1:2045/
 ```
-
-+ 可以按照说明修改配置，进行不同的测试与验证
