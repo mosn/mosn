@@ -47,7 +47,6 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.SofaRPC
 }
 
-func (p *connPool) DrainConnections() {}
 
 func (p *connPool) NewStream(context context.Context, streamID string,
 	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
