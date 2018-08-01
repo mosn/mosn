@@ -38,7 +38,6 @@ func NewUpstreamServer(t *testing.T, addr string, serve ServeConn) UpstreamServe
 		mu:      sync.Mutex{},
 		t:       t,
 	}
-
 }
 func (s *upstreamServer) GoServe() {
 	go s.serve()

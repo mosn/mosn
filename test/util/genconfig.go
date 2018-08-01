@@ -1,7 +1,6 @@
 package util
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -13,12 +12,12 @@ var (
 )
 
 // Create Mesh Config
-func newFilterChain(name string, downstream, upstream types.Protocol, routers []v2.Router) config.FilterChain {
-	proxy := &v2.Proxy{
+func newFilterChain(name string, downstream, upstream types.Protocol, routers []config.Router) config.FilterChain {
+	proxy := &config.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{
+		VirtualHosts: []*config.VirtualHost{
+			&config.VirtualHost{
 				Name:    name,
 				Domains: []string{"*"},
 				Routers: routers,
@@ -34,7 +33,7 @@ func newFilterChain(name string, downstream, upstream types.Protocol, routers []
 		},
 	}
 }
-func newTLSFilterChain(name string, downstream, upstream types.Protocol, routers []v2.Router, tls config.TLSConfig) config.FilterChain {
+func newTLSFilterChain(name string, downstream, upstream types.Protocol, routers []config.Router, tls config.TLSConfig) config.FilterChain {
 	chain := newFilterChain(name, downstream, upstream, routers)
 	chain.TLS = tls
 	return chain
@@ -88,23 +87,23 @@ func newMOSNConfig(listeners []config.ListenerConfig, clusterManager config.Clus
 }
 
 // common case
-func newHeaderRouter(cluster string, value string) v2.Router {
-	header := v2.HeaderMatcher{Name: "service", Value: value}
-	return v2.Router{
-		Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{header}},
-		Route: v2.RouteAction{ClusterName: cluster},
+func newHeaderRouter(cluster string, value string) config.Router {
+	header := config.HeaderMatcher{Name: "service", Value: value}
+	return config.Router{
+		Match: config.RouterMatch{Headers: []config.HeaderMatcher{header}},
+		Route: config.RouteAction{ClusterName: cluster},
 	}
 }
-func newPrefixRouter(cluster string, prefix string) v2.Router {
-	return v2.Router{
-		Match: v2.RouterMatch{Prefix: prefix},
-		Route: v2.RouteAction{ClusterName: cluster},
+func newPrefixRouter(cluster string, prefix string) config.Router {
+	return config.Router{
+		Match: config.RouterMatch{Prefix: prefix},
+		Route: config.RouteAction{ClusterName: cluster},
 	}
 }
-func newPathRouter(cluster string, path string) v2.Router {
-	return v2.Router{
-		Match: v2.RouterMatch{Path: path},
-		Route: v2.RouteAction{ClusterName: cluster},
+func newPathRouter(cluster string, path string) config.Router {
+	return config.Router{
+		Match: config.RouterMatch{Path: path},
+		Route: config.RouteAction{ClusterName: cluster},
 	}
 }
 

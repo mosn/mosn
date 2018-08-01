@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -29,7 +28,7 @@ func CreateProxyMesh(addr string, hosts []string, proto types.Protocol) *config.
 			newBasicCluster(clusterName, hosts),
 		},
 	}
-	routers := []v2.Router{
+	routers := []config.Router{
 		newPrefixRouter(clusterName, "/"),
 		newHeaderRouter(clusterName, ".*"),
 	}
@@ -48,7 +47,7 @@ func CreateProxyMesh(addr string, hosts []string, proto types.Protocol) *config.
 func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types.Protocol, meshproto types.Protocol, hosts []string, tls bool) *config.MOSNConfig {
 	downstreamCluster := "downstream"
 	upstreamCluster := "upstream"
-	downstreamRouters := []v2.Router{
+	downstreamRouters := []config.Router{
 		newPrefixRouter(downstreamCluster, "/"),
 		newHeaderRouter(downstreamCluster, ".*"),
 	}
@@ -56,7 +55,7 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 		newFilterChain("downstreamFilter", appproto, meshproto, downstreamRouters),
 	}
 	clientListener := newListener("downstreamListener", clientaddr, clientChains)
-	upstreamRouters := []v2.Router{
+	upstreamRouters := []config.Router{
 		newPrefixRouter(upstreamCluster, "/"),
 		newHeaderRouter(upstreamCluster, ".*"),
 	}
