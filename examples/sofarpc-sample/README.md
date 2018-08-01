@@ -27,8 +27,6 @@ main        // 编译完成的SOFAMesh程序
 server.go   // 模拟的SofaRpc Server
 client.go   // 模拟的SofaRpc client
 config.json // 非TLS的配置
-config_client.json // 非TLS, client的单独配置，供单独调试时使用
-config_server.json // 非TLS, server的单独配置，供单独调试使用
 tls.json    // TLS配置
 ```
 
