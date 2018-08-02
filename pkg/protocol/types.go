@@ -17,7 +17,9 @@
 
 package protocol
 
-import "github.com/alipay/sofa-mosn/pkg/types"
+import (
+	"github.com/alipay/sofa-mosn/pkg/types"
+)
 
 // Protocol type definition
 const (
@@ -34,3 +36,4 @@ const (
 	MosnHeaderQueryStringKey = "querystring"
 	MosnHeaderMethod         = "method"
 )
+

@@ -38,12 +38,12 @@ type shard struct {
 	respawnTimes uint32
 
 	// job
-	jobChan      chan interface{}
-	jobQueue     []interface{}
+	jobChan  chan interface{}
+	jobQueue []interface{}
 
 	// control
-	ctrlChan      chan interface{}
-	ctrlQueue     []interface{}
+	ctrlChan  chan interface{}
+	ctrlQueue []interface{}
 }
 
 type shardWorkerPool struct {
@@ -72,8 +72,8 @@ func NewShardWorkerPool(size int, numShards int, workerFunc WorkerFunc) (ShardWo
 	shards := make([]*shard, numShards)
 	for i := range shards {
 		shards[i] = &shard{
-			index:   i,
-			jobChan: make(chan interface{}, shardCap),
+			index:    i,
+			jobChan:  make(chan interface{}, shardCap),
 			ctrlChan: make(chan interface{}, shardCap),
 		}
 	}
@@ -172,7 +172,7 @@ func (p *shardWorkerPool) flush() {
 					log.DefaultLogger.Debugf("flush %d job to shard %d", writeJob, i)
 				}
 
-				if clear && (pendingCtrl > 0 || pendingJob > 0 ){
+				if clear && (pendingCtrl > 0 || pendingJob > 0) {
 					clear = false
 				}
 
@@ -193,8 +193,7 @@ func (p *shardWorkerPool) flush() {
 	}()
 }
 
-
-func flush(queue *[]interface{}, ch chan interface{}) (pending, write int){
+func flush(queue *[]interface{}, ch chan interface{}) (pending, write int) {
 	pending = len(*queue)
 	slots := cap(ch) - len(ch)
 

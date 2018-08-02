@@ -20,18 +20,17 @@ package handler
 import (
 	"context"
 	"strconv"
-	"sync/atomic"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/models"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var streamIDCounter uint32
 var defaultTmpBufferSize = 1 << 6
 
 // BoltRequestProcessor process bolt v1 request msg
@@ -44,11 +43,9 @@ type BoltRequestProcessorV2 struct{}
 func (b *BoltRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)
-		streamID := atomic.AddUint32(&streamIDCounter, 1)
-		streamIDStr := sofarpc.StreamIDConvert(streamID)
-
+		streamId := protocol.GenerateIdString()
 		//print tracer log
-		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamID=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamIDStr, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
+		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamId=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamId, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -58,7 +55,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 					cmd.RequestHeader[types.HeaderStremEnd] = "yes"
 				}
 
-				status := filter.OnDecodeHeader(streamIDStr, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(streamId, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -66,7 +63,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(streamIDStr, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(streamId, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return
@@ -81,8 +78,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
 		deserializeRequestAllFieldsV2(context, cmd)
-		streamID := atomic.AddUint32(&streamIDCounter, 1)
-		streamIDStr := sofarpc.StreamIDConvert(streamID)
+		streamId := protocol.GenerateIdString()
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -92,7 +88,7 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 					cmd.RequestHeader["x-mosn-endstream"] = "yes"
 				}
 
-				status := filter.OnDecodeHeader(streamIDStr, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(streamId, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -100,7 +96,7 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(streamIDStr, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(streamId, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return

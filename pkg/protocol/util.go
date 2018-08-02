@@ -15,17 +15,42 @@
  * limitations under the License.
  */
 
-package sofarpc
+package protocol
 
 import (
 	"strconv"
-	"time"
+	"sync/atomic"
 )
 
-func GenerateExceptionStreamID(reason string) string {
-	return "exception-" + reason + "-" + time.Now().String()
+var defaultGenerator IdGenerator
+
+// IdGenerator utility to generate auto-increment ids
+type IdGenerator struct {
+	counter uint32
 }
 
-func StreamIDConvert(reqID uint32) string {
-	return strconv.FormatUint(uint64(reqID), 10)
+// Get get id
+func (g *IdGenerator) Get() uint32 {
+	return atomic.AddUint32(&g.counter, 1)
+}
+
+// Get get id in string format
+func (g *IdGenerator) GetString() string {
+	n := atomic.AddUint32(&g.counter, 1)
+	return strconv.FormatUint(uint64(n), 10)
+}
+
+// GenerateId get id by default global generator
+func GenerateId() uint32 {
+	return defaultGenerator.Get()
+}
+
+// GenerateIdString get id string by default global generator
+func GenerateIdString() string {
+	return defaultGenerator.GetString()
+}
+
+// StreamIdConv convert streamId from uint32 to string
+func StreamIdConv(streamId uint32) string {
+	return strconv.FormatUint(uint64(streamId), 10)
 }

@@ -71,7 +71,7 @@ func (c *RPCClient) Close() {
 
 func (c *RPCClient) SendRequest() {
 	ID := atomic.AddUint32(&c.streamID, 1)
-	streamID := sofarpc.StreamIDConvert(ID)
+	streamID := protocol.StreamIdConv(ID)
 	requestEncoder := c.Codec.NewStream(streamID, c)
 	var headers interface{}
 	switch c.Protocol {
