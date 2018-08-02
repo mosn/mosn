@@ -28,14 +28,17 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
-
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"golang.org/x/net/http2"
+	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
+)
+
+var (
+	 streamIDCounter uint32
 )
 
 func init() {
@@ -165,19 +168,20 @@ func (ssc *serverStreamConnection) OnGoAway() {
 
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
-	//generate stream id using timestamp
-	streamID := "streamID-" + time.Now().String()
+	//generate stream id using global counter
+	rawStreamId := atomic.AddUint32(&streamIDCounter, 1)
+	streamId := sofarpc.StreamIDConvert(rawStreamId)
 
 	stream := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamId),
 			request: request,
 		},
 		connection:       ssc,
 		responseWriter:   responseWriter,
 		responseDoneChan: make(chan struct{}),
 	}
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamID, stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamId, stream)
 
 	if atomic.LoadInt32(&stream.readDisableCount) <= 0 {
 		defer func() {

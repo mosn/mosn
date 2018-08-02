@@ -37,7 +37,10 @@ type streamEvent struct {
 }
 
 func (s *streamEvent) Source() int {
-	source, _ := strconv.ParseInt(s.streamId, 10, 32)
+	source, err := strconv.ParseInt(s.streamId, 10, 32)
+	if err != nil {
+		panic("streamId must be numeric, unexpected :" + s.streamId)
+	}
 	return int(source)
 }
 
