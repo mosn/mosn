@@ -27,7 +27,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
@@ -35,6 +34,11 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
+	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
+)
+
+var (
+	streamIDCounter uint32
 )
 
 func init() {
@@ -171,19 +175,20 @@ func (ssc *serverStreamConnection) OnGoAway() {
 
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
-	//generate stream id using timestamp
-	streamID := "streamID-" + time.Now().String()
+	//generate stream id using global counter
+	rawStreamId := atomic.AddUint32(&streamIDCounter, 1)
+	streamId := sofarpc.StreamIDConvert(rawStreamId)
 
 	s := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamId),
 		},
 		ctx:              ctx,
 		connection:       ssc,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamID, s)
+	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamId, s)
 
 	ssc.activeStream = &s.stream
 
