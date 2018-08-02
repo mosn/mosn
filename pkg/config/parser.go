@@ -168,7 +168,7 @@ func parseVirtualHost(confighost []*VirtualHost) []*v2.VirtualHost {
 
 func parseRouters(Router []Router) []v2.Router {
 	result := []v2.Router{}
-	
+
 	for _, router := range Router {
 		result = append(result, v2.Router{
 			Match: v2.RouterMatch{
@@ -203,13 +203,13 @@ func parseRouters(Router []Router) []v2.Router {
 			Decorator: v2.Decorator(router.Decorator),
 		})
 	}
-	
+
 	return result
 }
 
 func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster {
 	result := []v2.WeightedCluster{}
-	
+
 	for _, wc := range weightClusters {
 		result = append(result, v2.WeightedCluster{
 			Clusters: v2.ClusterWeight{
@@ -220,7 +220,7 @@ func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster 
 			RuntimeKeyPrefix: wc.RuntimeKeyPrefix,
 		})
 	}
-	
+
 	return result
 }
 
@@ -236,7 +236,7 @@ func parseRouterMetadata(metadata Metadata) v2.Metadata {
 
 func parseMatchHeaders(headerMatchers []HeaderMatcher) []v2.HeaderMatcher {
 	result := []v2.HeaderMatcher{}
-	
+
 	for _, hm := range headerMatchers {
 		result = append(result, v2.HeaderMatcher{
 			Name:  hm.Name,
@@ -250,7 +250,7 @@ func parseMatchHeaders(headerMatchers []HeaderMatcher) []v2.HeaderMatcher {
 
 func parseVirtualClusters(VirtualClusters []VirtualCluster) []v2.VirtualCluster {
 	result := []v2.VirtualCluster{}
-	
+
 	for _, vc := range VirtualClusters {
 
 		result = append(result, v2.VirtualCluster{
@@ -296,7 +296,7 @@ func parseBasicFilter(proxy *v2.Proxy) []*v2.BasicServiceRoute {
 			BSR = append(BSR, getServiceFromHeader(&r))
 		}
 	}
-	
+
 	return BSR
 }
 
@@ -534,7 +534,7 @@ func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter
 	} else {
 		log.StartLogger.Fatalln("[passthrough] is required in healthcheck filter config")
 	}
-	
+
 	return healthcheck
 }
 
@@ -554,14 +554,14 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 	}
 
 	//try inherit legacy listener
-	currentIp := net.ParseIP(addr.String())
+	currentIP := net.ParseIP(addr.String())
 	var old *net.TCPListener
 
 	for _, il := range inheritListeners {
-		inheritIp := net.ParseIP(il.Addr.String())
+		inheritIP := net.ParseIP(il.Addr.String())
 
 		// use ip.Equal to solve ipv4 and ipv6 case
-		if inheritIp.Equal(currentIp) {
+		if inheritIP.Equal(currentIP) {
 			log.StartLogger.Infof("inherit listener addr: %s", c.Address)
 			old = il.InheritListener
 			il.Remain = true
@@ -676,7 +676,7 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 			cb(clustersV2, false)
 		}
 	}
-	
+
 	return clustersV2, clusterV2Map
 }
 

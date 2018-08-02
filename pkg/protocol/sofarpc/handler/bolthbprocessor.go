@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -33,7 +34,7 @@ func (b *boltHbProcessor) Process(context context.Context, msg interface{}, filt
 
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)
-		reqID := sofarpc.StreamIDConvert(cmd.ReqID)
+		reqID := protocol.StreamIDConv(cmd.ReqID)
 
 		//Heartbeat message only has request header
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -48,7 +49,7 @@ func (b *boltHbProcessor) Process(context context.Context, msg interface{}, filt
 		}
 	} else if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
 		deserializeResponseAllFields(context, cmd)
-		reqID := sofarpc.StreamIDConvert(cmd.ReqID)
+		reqID := protocol.StreamIDConv(cmd.ReqID)
 		//logger := log.ByContext(context)
 
 		//Heartbeat message only has request header

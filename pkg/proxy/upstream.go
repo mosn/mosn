@@ -65,7 +65,7 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 		controlEvent: controlEvent{
 			streamEvent: streamEvent{
 				direction: Upstream,
-				streamId:  r.downStream.streamID,
+				streamID:  r.downStream.streamID,
 				stream:    r.downStream,
 			},
 		},
@@ -87,7 +87,7 @@ func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream 
 		normalEvent: normalEvent{
 			streamEvent: streamEvent{
 				direction: Upstream,
-				streamId:  r.downStream.streamID,
+				streamID:  r.downStream.streamID,
 				stream:    r.downStream,
 			},
 		},
@@ -108,7 +108,7 @@ func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
 		normalEvent: normalEvent{
 			streamEvent: streamEvent{
 				direction: Upstream,
-				streamId:  r.downStream.streamID,
+				streamID:  r.downStream.streamID,
 				stream:    r.downStream,
 			},
 		},
@@ -126,7 +126,7 @@ func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
 		normalEvent: normalEvent{
 			streamEvent: streamEvent{
 				direction: Upstream,
-				streamId:  r.downStream.streamID,
+				streamID:  r.downStream.streamID,
 				stream:    r.downStream,
 			},
 		},

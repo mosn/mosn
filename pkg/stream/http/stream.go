@@ -34,11 +34,6 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-)
-
-var (
-	streamIDCounter uint32
 )
 
 func init() {
@@ -176,19 +171,18 @@ func (ssc *serverStreamConnection) OnGoAway() {
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 	//generate stream id using global counter
-	rawStreamId := atomic.AddUint32(&streamIDCounter, 1)
-	streamId := sofarpc.StreamIDConvert(rawStreamId)
+	streamID := protocol.GenerateIDString()
 
 	s := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamId),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
 		},
 		ctx:              ctx,
 		connection:       ssc,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamId, s)
+	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamID, s)
 
 	ssc.activeStream = &s.stream
 
@@ -275,7 +269,7 @@ func (s *clientStream) AppendHeaders(headersIn interface{}, endStream bool) erro
 		s.request.SetRequestURI(fmt.Sprintf("http://%s%s", s.wrapper.client.Addr, path))
 		delete(headers, protocol.MosnHeaderPathKey)
 	}
-	
+
 	encodeReqHeader(s.request, headers)
 
 	if endStream {
@@ -306,7 +300,7 @@ func (s *clientStream) AppendTrailers(trailers map[string]string) error {
 }
 
 func (s *clientStream) endStream() {
-	s.doSend()
+	go s.doSend()
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
@@ -432,12 +426,12 @@ func (s *serverStream) handleRequest() {
 
 		// header
 		header := decodeReqHeader(s.ctx.Request.Header)
-		
+
 		// set host header if not found, just for insurance
 		if _, ok := header[protocol.MosnHeaderHostKey]; !ok {
 			header[protocol.MosnHeaderHostKey] = string(s.ctx.Host())
 		}
-		
+
 		// set path header if not found
 		if _, ok := header[protocol.MosnHeaderPathKey]; !ok {
 			header[protocol.MosnHeaderPathKey] = string(s.ctx.Path())
@@ -493,10 +487,10 @@ func decodeRespHeader(in fasthttp.ResponseHeader) (out map[string]string) {
 		// convert to lower case for internal process
 		out[strings.ToLower(string(key))] = string(value)
 	})
-	
+
 	// inherit upstream's response status
 	out[types.HeaderStatus] = strconv.Itoa(in.StatusCode())
-	
+
 	return
 }
 

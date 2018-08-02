@@ -20,9 +20,9 @@ package proxy
 import (
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 const (
@@ -32,14 +32,14 @@ const (
 
 type streamEvent struct {
 	direction int
-	streamId  string
+	streamID  string
 	stream    *downStream
 }
 
 func (s *streamEvent) Source() int {
-	source, err := strconv.ParseInt(s.streamId, 10, 32)
+	source, err := strconv.ParseInt(s.streamID, 10, 32)
 	if err != nil {
-		panic("streamId must be numeric, unexpected :" + s.streamId)
+		panic("streamID must be numeric, unexpected :" + s.streamID)
 	}
 	return int(source)
 }
@@ -75,7 +75,6 @@ type normalEvent struct {
 func (s *normalEvent) Type() int {
 	return mosnsync.NORMAL
 }
-
 
 type receiveHeadersEvent struct {
 	normalEvent
@@ -128,19 +127,19 @@ func eventProcess(streamMap map[string]bool, event interface{}) {
 	switch event.(type) {
 	case *startEvent:
 		e := event.(*startEvent)
-		//log.DefaultLogger.Debugf("[start event] direction %d, streamId %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Debugf("[start event] direction %d, streamID %s", e.direction, e.stream.streamID)
 
-		streamMap[e.streamId] = false
+		streamMap[e.streamID] = false
 	case *stopEvent:
 		e := event.(*stopEvent)
-		//log.DefaultLogger.Debugf("[stop event] direction %d, streamId %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Debugf("[stop event] direction %d, streamID %s", e.direction, e.stream.streamID)
 
-		delete(streamMap, e.streamId)
+		delete(streamMap, e.streamID)
 	case *resetEvent:
 		e := event.(*resetEvent)
-		//log.DefaultLogger.Debugf("[reset event] direction %d, streamId %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Debugf("[reset event] direction %d, streamID %s", e.direction, e.stream.streamID)
 
-		if done, ok := streamMap[e.streamId]; ok && !done {
+		if done, ok := streamMap[e.streamID]; ok && !done {
 			switch e.direction {
 			case Downstream:
 				e.stream.ResetStream(e.reason)
@@ -149,13 +148,13 @@ func eventProcess(streamMap map[string]bool, event interface{}) {
 			default:
 				e.stream.logger.Errorf("Unknown receiveTrailerEvent direction %s", e.direction)
 			}
-			streamMap[e.streamId] =  streamMap[e.streamId]  || e.stream.upstreamProcessDone
+			streamMap[e.streamID] = streamMap[e.streamID] || e.stream.upstreamProcessDone
 		}
 	case *receiveHeadersEvent:
 		e := event.(*receiveHeadersEvent)
-		//log.DefaultLogger.Debugf("[header event] direction %d, streamId %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Debugf("[header event] direction %d, streamID %s", e.direction, e.stream.streamID)
 
-		if done, ok := streamMap[e.streamId]; ok && !done {
+		if done, ok := streamMap[e.streamID]; ok && !done {
 			switch e.direction {
 			case Downstream:
 				e.stream.ReceiveHeaders(e.headers, e.endStream)
@@ -164,13 +163,13 @@ func eventProcess(streamMap map[string]bool, event interface{}) {
 			default:
 				e.stream.logger.Errorf("Unknown receiveHeadersEvent direction %s", e.direction)
 			}
-			streamMap[e.streamId] =  streamMap[e.streamId]  || e.stream.upstreamProcessDone
+			streamMap[e.streamID] = streamMap[e.streamID] || e.stream.upstreamProcessDone
 		}
 	case *receiveDataEvent:
 		e := event.(*receiveDataEvent)
-		//log.DefaultLogger.Debugf("[data event] direction %d, streamId %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Debugf("[data event] direction %d, streamID %s", e.direction, e.stream.streamID)
 
-		if done, ok := streamMap[e.streamId]; ok && !done {
+		if done, ok := streamMap[e.streamID]; ok && !done {
 			switch e.direction {
 			case Downstream:
 				e.stream.ReceiveData(e.data, e.endStream)
@@ -179,13 +178,13 @@ func eventProcess(streamMap map[string]bool, event interface{}) {
 			default:
 				e.stream.logger.Errorf("Unknown receiveDataEvent direction %s", e.direction)
 			}
-			streamMap[e.streamId] =  streamMap[e.streamId]  || e.stream.upstreamProcessDone
+			streamMap[e.streamID] = streamMap[e.streamID] || e.stream.upstreamProcessDone
 		}
 	case *receiveTrailerEvent:
 		e := event.(*receiveTrailerEvent)
-		//log.DefaultLogger.Debugf("[trailer event] direction %d, streamId %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Debugf("[trailer event] direction %d, streamID %s", e.direction, e.stream.streamID)
 
-		if done, ok := streamMap[e.streamId]; ok && !done {
+		if done, ok := streamMap[e.streamID]; ok && !done {
 			switch e.direction {
 			case Downstream:
 				e.stream.ReceiveTrailers(e.trailers)
@@ -194,7 +193,7 @@ func eventProcess(streamMap map[string]bool, event interface{}) {
 			default:
 				e.stream.logger.Errorf("Unknown receiveTrailerEvent direction %s", e.direction)
 			}
-			streamMap[e.streamId] =  streamMap[e.streamId]  || e.stream.upstreamProcessDone
+			streamMap[e.streamID] = streamMap[e.streamID] || e.stream.upstreamProcessDone
 		}
 
 	default:

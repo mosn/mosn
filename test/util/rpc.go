@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"context"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/network/buffer"
@@ -16,7 +18,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"context"
 )
 
 const (
@@ -71,7 +72,7 @@ func (c *RPCClient) Close() {
 
 func (c *RPCClient) SendRequest() {
 	ID := atomic.AddUint32(&c.streamID, 1)
-	streamID := sofarpc.StreamIDConvert(ID)
+	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(streamID, c)
 	var headers interface{}
 	switch c.Protocol {
@@ -185,9 +186,8 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 			if err != nil {
 				t.Errorf("Build response error: %v\n", err)
 				return nil, true
-			} else {
-				return iobufresp.Bytes(), true
 			}
+			return iobufresp.Bytes(), true
 		}
 		return nil, true
 	}

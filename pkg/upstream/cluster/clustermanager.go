@@ -74,9 +74,9 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	//Add cluster to cm
 	//Register upstream update type
 	for _, cluster := range clusters {
-		
+
 		if !cm.AddOrUpdatePrimaryCluster(cluster) {
-			log.DefaultLogger.Errorf("NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s",cluster.Name)
+			log.DefaultLogger.Errorf("NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s", cluster.Name)
 		}
 	}
 
@@ -115,7 +115,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 		}
 	}
 	// todo for static cluster, shouldn't use this way
-	 return cm.loadCluster(cluster, true)
+	return cm.loadCluster(cluster, true)
 }
 
 func (cm *clusterManager) ClusterExist(clusterName string) bool {
@@ -129,11 +129,11 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool) bool {
 	//clusterConfig.UseHealthCheck
 	cluster := NewCluster(clusterConfig, cm.sourceAddr, addedViaAPI)
-	
+
 	if nil == cluster {
 		return false
 	}
-	
+
 	cluster.Initialize(func() {
 		cluster.PrioritySet().AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 		})
@@ -197,7 +197,7 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 		return fmt.Errorf("cluster's hostset %s can't be update", clusterName)
 
 	}
-	
+
 	return fmt.Errorf("cluster %s not found", clusterName)
 
 }
@@ -355,10 +355,9 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterName string) bool {
 		if !v.(*primaryCluster).addedViaAPI {
 			log.DefaultLogger.Warnf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaAPI", clusterName)
 			return false
-		} else {
-			cm.primaryClusters.Delete(clusterName)
-			log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
 		}
+		cm.primaryClusters.Delete(clusterName)
+		log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
 	}
 
 	return true

@@ -374,7 +374,7 @@ const (
 type ConnectionPool interface {
 	Protocol() Protocol
 
-	NewStream(context context.Context, streamId string,
+	NewStream(context context.Context, streamID string,
 		responseDecoder StreamReceiver, cb PoolEventListener) Cancellable
 
 	Close()

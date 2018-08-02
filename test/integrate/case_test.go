@@ -125,7 +125,7 @@ func (c *testCase) RunCase(n int) {
 	case protocol.SofaRPC:
 		server, ok := c.appServer.(*util.RPCServer)
 		if !ok {
-			c.C <- fmt.Errorf("need a sofa rpc server\n")
+			c.C <- fmt.Errorf("need a sofa rpc server")
 			return
 		}
 		client := server.Client

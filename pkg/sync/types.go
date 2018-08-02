@@ -18,7 +18,7 @@
 package sync
 
 const (
-	NORMAL   = 1
+	NORMAL  = 1
 	CONTROL = 2
 )
 
