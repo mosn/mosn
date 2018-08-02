@@ -39,10 +39,11 @@ const (
 	transferNotify = 1
 )
 
+// TransferTimeout is the total transfer time
 var TransferTimeout = time.Second * 30 //default 30s
 var transferDomainSocket = filepath.Dir(os.Args[0]) + string(os.PathSeparator) + "mosn.sock"
 
-// transferServer is called on new mosn start
+// TransferServer is called on new mosn start
 func TransferServer(handler types.ConnectionHandler) {
 	defer func() {
 		if r := recover(); r != nil {

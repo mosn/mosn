@@ -88,7 +88,7 @@ type connection struct {
 
 // NewServerConnection
 // rawc is the raw connection from go/net
-func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logger, ctx context.Context) types.Connection {
+func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}, logger log.Logger) types.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
@@ -113,16 +113,17 @@ func NewServerConnection(rawc net.Conn, stopChan chan struct{}, logger log.Logge
 		logger: logger,
 	}
 
-	if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
-		buf := ctx.Value(types.ContextKeyAcceptBuffer).([]byte)
-		conn.readBuffer = conn.readerBufferPool.Take(conn.rawConnection)
-		conn.readBuffer.Br.Write(buf)
-		logger.Infof("NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Br.Len())
-	}
-
+	// transfer old mosn connection
 	if ctx.Value(types.ContextKeyAcceptChan) != nil {
+		if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
+			buf := ctx.Value(types.ContextKeyAcceptBuffer).([]byte)
+			conn.readBuffer = conn.readerBufferPool.Take(conn.rawConnection)
+			conn.readBuffer.Br.Write(buf)
+		}
+
 		ch := ctx.Value(types.ContextKeyAcceptChan).(chan types.Connection)
 		ch <- conn
+		logger.Infof("NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Br.Len())
 	}
 	//conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)
 
