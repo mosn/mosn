@@ -17,7 +17,7 @@ the ability to merge pull requests.
 None of these is essential for a pull request, but they will all help. 
 
 1. Code format
-  + With cli, run `goimports -w yourfile.go` 
+  + With cli, run `goimports -w yourfile.go` and `golint yourfile.go` to format the style
   + With ide like goland, select 'Group stdlib imports', 'Move all stdlib imports in a single group', 'Move all imports in a single declaration' in Go->imports page   
   + We would check code format when run ci test, so please ensure that you have built project before you push branch.
 
