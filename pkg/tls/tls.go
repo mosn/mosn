@@ -32,35 +32,35 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var TLSdefaultMinProtocols uint16 = tls.VersionTLS10
-var TLSdefaultMaxProtocols uint16 = tls.VersionTLS12
+var minProtocols uint16 = tls.VersionTLS10
+var maxProtocols uint16 = tls.VersionTLS12
 
-var TLSProtocols = map[string]uint16{
+var version = map[string]uint16{
 	"tls_auto": 0,
 	"tlsv1_0":  tls.VersionTLS10,
 	"tlsv1_1":  tls.VersionTLS11,
 	"tlsv1_2":  tls.VersionTLS12,
 }
 
-var TLSdefaultCurves = []tls.CurveID{
+var defaultCurves = []tls.CurveID{
 	tls.X25519,
 	tls.CurveP256,
 }
 
-var TLSALPN = map[string]bool{
+var alpn = map[string]bool{
 	"h2":       true,
 	"http/1.1": true,
 	"sofa":     true,
 }
 
-var TLSCurves = map[string]tls.CurveID{
+var allCurves = map[string]tls.CurveID{
 	"x25519": tls.X25519,
 	"p256":   tls.CurveP256,
 	"p384":   tls.CurveP384,
 	"p521":   tls.CurveP521,
 }
 
-var TLSdefaultCiphers = []uint16{
+var defaultCiphers = []uint16{
 	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 	tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
@@ -75,7 +75,7 @@ var TLSdefaultCiphers = []uint16{
 	tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 }
 
-var TLSCiphersMap = map[string]uint16{
+var ciphersMap = map[string]uint16{
 	"ECDHE-ECDSA-AES256-GCM-SHA384":      tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 	"ECDHE-RSA-AES256-GCM-SHA384":        tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 	"ECDHE-ECDSA-AES128-GCM-SHA256":      tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
@@ -168,6 +168,7 @@ func buildContextMap(cm *contextManager, tlscontext *context, index int) {
 	}
 }
 
+// NewTLSServerContextManager is called on TLS Server Manager is created
 func NewTLSServerContextManager(config []v2.FilterChain, l types.Listener, logger log.Logger) types.TLSContextManager {
 	cm := new(contextManager)
 	cm.logger = logger
@@ -195,6 +196,7 @@ func NewTLSServerContextManager(config []v2.FilterChain, l types.Listener, logge
 	return cm
 }
 
+// AddTLSServerContext is called on TLS Server is created
 func AddTLSServerContext(c *v2.TLSConfig, tlsMng types.TLSContextManager, index int) error {
 	var cm *contextManager
 
@@ -229,6 +231,7 @@ func AddTLSServerContext(c *v2.TLSConfig, tlsMng types.TLSContextManager, index 
 	return nil
 }
 
+// DelTLSServerContext is called on TLS Server is deleted
 func DelTLSServerContext(tlsMng types.TLSContextManager, index int) error {
 	var cm *contextManager
 	if tlsMng == nil {
@@ -257,6 +260,7 @@ func DelTLSServerContext(tlsMng types.TLSContextManager, index int) error {
 	return nil
 }
 
+// NewTLSClientContextManager is called on TLS Client Manager is created
 func NewTLSClientContextManager(config *v2.TLSConfig, info types.ClusterInfo) types.TLSContextManager {
 	cm := new(contextManager)
 	cm.isClient = true
@@ -422,7 +426,7 @@ func newTLSContext(c *v2.TLSConfig, cm *contextManager) (*context, error) {
 	if c.CipherSuites != "" {
 		ciphers := strings.Split(c.CipherSuites, ":")
 		for _, s := range ciphers {
-			cipher, ok := TLSCiphersMap[s]
+			cipher, ok := ciphersMap[s]
 			if !ok {
 				return nil, errors.New("error cipher name or cipher not supported")
 			}
@@ -431,14 +435,14 @@ func newTLSContext(c *v2.TLSConfig, cm *contextManager) (*context, error) {
 		}
 
 		if len(tlscontext.cipherSuites) == 0 {
-			tlscontext.cipherSuites = TLSdefaultCiphers
+			tlscontext.cipherSuites = defaultCiphers
 		}
 	}
 
 	if c.EcdhCurves != "" {
 		curves := strings.Split(c.EcdhCurves, ",")
 		for _, s := range curves {
-			curve, ok := TLSCurves[strings.ToLower(s)]
+			curve, ok := allCurves[strings.ToLower(s)]
 			if !ok {
 				return nil, errors.New("error curve name or curve not supported")
 			}
@@ -447,46 +451,46 @@ func newTLSContext(c *v2.TLSConfig, cm *contextManager) (*context, error) {
 		}
 
 		if len(tlscontext.ecdhCurves) == 0 {
-			tlscontext.ecdhCurves = TLSdefaultCurves
+			tlscontext.ecdhCurves = defaultCurves
 		}
 	}
 
 	if c.MaxVersion != "" {
-		protocol, ok := TLSProtocols[strings.ToLower(c.MaxVersion)]
+		protocol, ok := version[strings.ToLower(c.MaxVersion)]
 		if !ok {
 			return nil, errors.New("error tls protocols name or protocol not supported")
 		}
 
 		if protocol == 0 {
-			tlscontext.maxVersion = TLSdefaultMaxProtocols
+			tlscontext.maxVersion = maxProtocols
 
 		} else {
 			tlscontext.maxVersion = protocol
 		}
 	} else {
-		tlscontext.maxVersion = TLSdefaultMaxProtocols
+		tlscontext.maxVersion = maxProtocols
 	}
 
 	if c.MinVersion != "" {
-		protocol, ok := TLSProtocols[strings.ToLower(c.MinVersion)]
+		protocol, ok := version[strings.ToLower(c.MinVersion)]
 		if !ok {
 			return nil, errors.New("error tls protocols name or protocol not supported")
 		}
 
 		if protocol == 0 {
-			tlscontext.minVersion = TLSdefaultMinProtocols
+			tlscontext.minVersion = minProtocols
 
 		} else {
 			tlscontext.minVersion = protocol
 		}
 	} else {
-		tlscontext.minVersion = TLSdefaultMinProtocols
+		tlscontext.minVersion = minProtocols
 	}
 
 	if c.ALPN != "" {
 		protocols := strings.Split(c.ALPN, ",")
 		for _, p := range protocols {
-			_, ok := TLSALPN[strings.ToLower(p)]
+			_, ok := alpn[strings.ToLower(p)]
 			if !ok {
 				return nil, errors.New("error ALPN or ALPN not supported")
 			}
@@ -558,6 +562,7 @@ type conn struct {
 	haspeek bool
 }
 
+// Peek returns 1 byte from connection, without draining any buffered data.
 func (c *conn) Peek() []byte {
 	b := make([]byte, 1, 1)
 	n, err := c.Conn.Read(b)
@@ -571,6 +576,7 @@ func (c *conn) Peek() []byte {
 	return b
 }
 
+// Read reads data from the connection.
 func (c *conn) Read(b []byte) (int, error) {
 	peek := 0
 	if c.haspeek {
