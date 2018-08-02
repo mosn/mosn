@@ -171,18 +171,18 @@ func (ssc *serverStreamConnection) OnGoAway() {
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 	//generate stream id using global counter
-	streamId := protocol.GenerateIdString()
+	streamID := protocol.GenerateIDString()
 
 	s := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamId),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
 		},
 		ctx:              ctx,
 		connection:       ssc,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamId, s)
+	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamID, s)
 
 	ssc.activeStream = &s.stream
 

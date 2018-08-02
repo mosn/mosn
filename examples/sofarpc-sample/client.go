@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net"
@@ -32,7 +33,7 @@ func NewClient(addr string) *Client {
 		fmt.Println(err)
 		return nil
 	}
-	c.Codec = stream.NewCodecClient(nil, protocol.SofaRPC, conn, nil)
+	c.Codec = stream.NewCodecClient(context.Background(), protocol.SofaRPC, conn, nil)
 	c.conn = conn
 	return c
 }
@@ -45,13 +46,13 @@ func (c *Client) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	if streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
 		fmt.Println(streamID)
 	}
-	
-	fmt.Println("Response Headers are:",headers)
+
+	fmt.Println("Response Headers are:", headers)
 }
 
 func (c *Client) Request() {
 	c.Id++
-	streamID := sofarpc.StreamIDConvert(c.Id)
+	streamID := protocol.StreamIDConv(c.Id)
 	requestEncoder := c.Codec.NewStream(streamID, c)
 	headers := buildBoltV1Request(c.Id)
 	requestEncoder.AppendHeaders(headers, true)

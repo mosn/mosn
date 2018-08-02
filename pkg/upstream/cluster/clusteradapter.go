@@ -19,7 +19,7 @@ package cluster
 
 import (
 	"fmt"
-	
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
@@ -52,7 +52,7 @@ func (ca *Adapter) TriggerClusterAddedOrUpdate(cluster v2.Cluster) error {
 	} else {
 		log.DefaultLogger.Debugf("PrimaryCluster Already Exist: %s", cluster.Name)
 	}
-	
+
 	return nil
 }
 
@@ -61,14 +61,13 @@ func (ca *Adapter) TriggerClusterAddedOrUpdate(cluster v2.Cluster) error {
 func (ca *Adapter) TriggerClusterAndHostsAddedOrUpdate(cluster v2.Cluster, hosts []v2.Host) error {
 	if err := ca.TriggerClusterAddedOrUpdate(cluster); err != nil {
 		return err
-	} else {
-		return ca.clusterMng.UpdateClusterHosts(cluster.Name, 0, hosts)
 	}
+	return ca.clusterMng.UpdateClusterHosts(cluster.Name, 0, hosts)
 }
 
 // TriggerClusterHostUpdate
 // Added or Update Cluster's hosts, return err if cluster not exist
-func (ca *Adapter) TriggerClusterHostUpdate(clusterName string , hosts []v2.Host) error {
+func (ca *Adapter) TriggerClusterHostUpdate(clusterName string, hosts []v2.Host) error {
 	return ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
 }
 

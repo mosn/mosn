@@ -207,7 +207,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 		controlEvent: controlEvent{
 			streamEvent: streamEvent{
 				direction: Downstream,
-				streamId:  s.streamID,
+				streamID:  s.streamID,
 				stream:    s,
 			},
 		},
@@ -233,7 +233,7 @@ func (s *downStream) OnReceiveHeaders(headers map[string]string, endStream bool)
 		normalEvent: normalEvent{
 			streamEvent: streamEvent{
 				direction: Downstream,
-				streamId:  s.streamID,
+				streamID:  s.streamID,
 				stream:    s,
 			},
 		},
@@ -311,7 +311,7 @@ func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
 		normalEvent: normalEvent{
 			streamEvent: streamEvent{
 				direction: Downstream,
-				streamId:  s.streamID,
+				streamID:  s.streamID,
 				stream:    s,
 			},
 		},
@@ -356,7 +356,7 @@ func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
 		normalEvent: normalEvent{
 			streamEvent: streamEvent{
 				direction: Downstream,
-				streamId:  s.streamID,
+				streamID:  s.streamID,
 				stream:    s,
 			},
 		},
@@ -863,7 +863,7 @@ func (s *downStream) startEventProcess() {
 		controlEvent: controlEvent{
 			streamEvent: streamEvent{
 				direction: Downstream,
-				streamId:  s.streamID,
+				streamID:  s.streamID,
 				stream:    s,
 			},
 		},
@@ -875,7 +875,7 @@ func (s *downStream) stopEventProcess() {
 		controlEvent: controlEvent{
 			streamEvent: streamEvent{
 				direction: Downstream,
-				streamId:  s.streamID,
+				streamID:  s.streamID,
 				stream:    s,
 			},
 		},

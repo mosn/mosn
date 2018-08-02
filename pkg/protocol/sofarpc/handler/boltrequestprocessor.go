@@ -43,9 +43,9 @@ type BoltRequestProcessorV2 struct{}
 func (b *BoltRequestProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltRequestCommand); ok {
 		deserializeRequestAllFields(context, cmd)
-		streamId := protocol.GenerateIdString()
+		streamID := protocol.GenerateIDString()
 		//print tracer log
-		log.DefaultLogger.Debugf("time=%s,tracerId=%s,streamId=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamId, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
+		log.DefaultLogger.Debugf("time=%s,tracerID=%s,streamID=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamID, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -55,7 +55,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 					cmd.RequestHeader[types.HeaderStremEnd] = "yes"
 				}
 
-				status := filter.OnDecodeHeader(streamId, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(streamID, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -63,7 +63,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(streamId, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(streamID, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return
@@ -78,7 +78,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2RequestCommand); ok {
 		deserializeRequestAllFieldsV2(context, cmd)
-		streamId := protocol.GenerateIdString()
+		streamID := protocol.GenerateIDString()
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
@@ -88,7 +88,7 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 					cmd.RequestHeader["x-mosn-endstream"] = "yes"
 				}
 
-				status := filter.OnDecodeHeader(streamId, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(streamID, cmd.RequestHeader)
 
 				if status == types.StopIteration {
 					return
@@ -96,7 +96,7 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(streamId, buffer.NewIoBufferBytes(cmd.Content))
+				status := filter.OnDecodeData(streamID, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return

@@ -35,7 +35,7 @@ type BoltResponseProcessorV2 struct{}
 func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltResponseCommand); ok {
 		deserializeResponseAllFields(context, cmd)
-		reqID := protocol.StreamIdConv(cmd.ReqID)
+		reqID := protocol.StreamIDConv(cmd.ReqID)
 
 		//print tracer log
 		log.DefaultLogger.Infof("streamID=%s,protocol=%s", reqID, "bolt")
@@ -70,7 +70,7 @@ func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}
 func (b *BoltResponseProcessorV2) Process(context context.Context, msg interface{}, filter interface{}) {
 	if cmd, ok := msg.(*sofarpc.BoltV2ResponseCommand); ok {
 		deserializeResponseAllFieldsV2(context, cmd)
-		reqID := protocol.StreamIdConv(cmd.ReqID)
+		reqID := protocol.StreamIDConv(cmd.ReqID)
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {

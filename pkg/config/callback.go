@@ -118,10 +118,9 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 			if err := clusterAdapter.Adap.TriggerClusterHostUpdate(clusterName, hosts); err != nil {
 				log.DefaultLogger.Errorf("xds client update Error = %s", err.Error())
 				return err
-			} else {
-				log.DefaultLogger.Debugf("xds client update host success")
-
 			}
+			log.DefaultLogger.Debugf("xds client update host success")
+
 		}
 	}
 

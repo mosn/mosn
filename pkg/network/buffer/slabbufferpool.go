@@ -39,9 +39,8 @@ func (p *SlabPool) Take(size int) types.IoBuffer {
 	v := p.pool[slot].pool.Get()
 	if v == nil {
 		return NewIoBuffer(int(p.pool[slot].defaultSize))
-	} else {
-		return v.(*IoBuffer)
 	}
+	return v.(*IoBuffer)
 }
 
 func (p *SlabPool) Clone(old types.IoBuffer) types.IoBuffer {

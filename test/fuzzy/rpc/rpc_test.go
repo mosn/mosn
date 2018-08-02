@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
@@ -32,7 +33,7 @@ type RPCStatusClient struct {
 	addr            string
 	t               *testing.T
 	mutex           sync.Mutex
-	streamId        uint32
+	streamID        uint32
 	unexpectedCount uint32
 	successCount    uint32
 	failureCount    uint32
@@ -57,8 +58,8 @@ func (c *RPCStatusClient) SendRequest() {
 	if !check {
 		return
 	}
-	ID := atomic.AddUint32(&c.streamId, 1)
-	streamID := sofarpc.StreamIDConvert(ID)
+	ID := atomic.AddUint32(&c.streamID, 1)
+	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(streamID, c)
 	headers := util.BuildBoltV1Reuqest(ID)
 	requestEncoder.AppendHeaders(headers, true)

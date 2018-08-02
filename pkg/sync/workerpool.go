@@ -130,22 +130,22 @@ func (p *shardWorkerPool) Offer(job ShardJob) {
 	shard.Unlock()
 }
 
-func (pool *shardWorkerPool) spawnWorker(shard *shard) {
+func (p *shardWorkerPool) spawnWorker(shard *shard) {
 	go func() {
 		defer func() {
-			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("worker panic %v", p)
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("worker panic %v", r)
 				debug.PrintStack()
 
 				//try respawn worker
 				if shard.respawnTimes < maxRespwanTimes {
 					shard.respawnTimes++
-					pool.spawnWorker(shard)
+					p.spawnWorker(shard)
 				}
 			}
 		}()
 
-		pool.workerFunc(shard.index, shard.jobChan, shard.ctrlChan)
+		p.workerFunc(shard.index, shard.jobChan, shard.ctrlChan)
 	}()
 }
 

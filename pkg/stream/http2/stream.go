@@ -165,18 +165,18 @@ func (ssc *serverStreamConnection) OnGoAway() {
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
 	//generate stream id using global counter
-	streamId := protocol.GenerateIdString()
+	streamID := protocol.GenerateIDString()
 
 	stream := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamId),
+			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
 			request: request,
 		},
 		connection:       ssc,
 		responseWriter:   responseWriter,
 		responseDoneChan: make(chan struct{}),
 	}
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamId, stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamID, stream)
 
 	if atomic.LoadInt32(&stream.readDisableCount) <= 0 {
 		defer func() {
@@ -599,8 +599,7 @@ func parsePathFromURI(reuestURI string) (string, string) {
 	queryMaps := strings.Split(reuestURI, "?")
 	if len(queryMaps) > 1 {
 		return queryMaps[0], queryMaps[1]
-	} else {
-		return queryMaps[0], ""
 	}
+	return queryMaps[0], ""
 
 }

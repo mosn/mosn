@@ -22,35 +22,35 @@ import (
 	"sync/atomic"
 )
 
-var defaultGenerator IdGenerator
+var defaultGenerator IDGenerator
 
-// IdGenerator utility to generate auto-increment ids
-type IdGenerator struct {
+// IDGenerator utility to generate auto-increment ids
+type IDGenerator struct {
 	counter uint32
 }
 
 // Get get id
-func (g *IdGenerator) Get() uint32 {
+func (g *IDGenerator) Get() uint32 {
 	return atomic.AddUint32(&g.counter, 1)
 }
 
 // Get get id in string format
-func (g *IdGenerator) GetString() string {
+func (g *IDGenerator) GetString() string {
 	n := atomic.AddUint32(&g.counter, 1)
 	return strconv.FormatUint(uint64(n), 10)
 }
 
-// GenerateId get id by default global generator
-func GenerateId() uint32 {
+// GenerateID get id by default global generator
+func GenerateID() uint32 {
 	return defaultGenerator.Get()
 }
 
-// GenerateIdString get id string by default global generator
-func GenerateIdString() string {
+// GenerateIDString get id string by default global generator
+func GenerateIDString() string {
 	return defaultGenerator.GetString()
 }
 
-// StreamIdConv convert streamId from uint32 to string
-func StreamIdConv(streamId uint32) string {
-	return strconv.FormatUint(uint64(streamId), 10)
+// StreamIDConv convert streamID from uint32 to string
+func StreamIDConv(streamID uint32) string {
+	return strconv.FormatUint(uint64(streamID), 10)
 }
