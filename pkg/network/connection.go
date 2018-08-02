@@ -174,7 +174,7 @@ func (c *connection) startReadLoop() {
 			return
 		default:
 		}
-		
+
 		select {
 		case <-c.stopChan:
 			return
@@ -182,7 +182,6 @@ func (c *connection) startReadLoop() {
 			return
 		case <-c.readEnabledChan:
 			continue
-		
 		default:
 			if c.readEnabled {
 				err := c.doRead()
@@ -197,7 +196,6 @@ func (c *connection) startReadLoop() {
 					c.Close(types.NoFlush, types.RemoteClose)
 				} else {
 					c.Close(types.NoFlush, types.OnReadErrClose)
-					
 				}
 				
 				c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
