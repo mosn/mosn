@@ -343,7 +343,7 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 }
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
-	conn := network.NewServerConnection(rawc, al.stopChan, al.logger, ctx)
+	conn := network.NewServerConnection(ctx, rawc, al.stopChan, al.logger)
 	oriRemoteAddr := ctx.Value(types.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
