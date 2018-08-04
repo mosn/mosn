@@ -30,7 +30,7 @@ const (
 	ContextKeyNetworkFilterChainFactory  ContextKey = "NetworkFilterChainFactory"
 	ContextKeyStreamFilterChainFactories ContextKey = "StreamFilterChainFactory"
 	ContextKeyConnectionCodecMapPool     ContextKey = "ConnectionCodecMapPool"
-	ContextKeyConnectionBytesBufferPool  ContextKey = "ConnectionBytesBufferPool    "
+	ContextKeyConnectionBytesBufferPool  ContextKey = "ConnectionBytesBufferPool"
 	ContextKeyLogger                     ContextKey = "Logger"
 	ContextKeyAccessLogs                 ContextKey = "AccessLogs"
 	ContextOriRemoteAddr                 ContextKey = "OriRemoteAddr"
