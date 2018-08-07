@@ -12,9 +12,8 @@
 # TCP 代理性能数据
 这里，针对相同的部署模式，我们分别针对上层协议为 `"Bolt(SofaRpc相关协议)"` 与 `"HTTP1.1"` 来进行对比
 ## 部署模式
-client -> mesh(11.166.161.136) -> upstream(10.210.168.5)  
-其中，mesh 到 upstream 的网络延时为：1.6ms
-
+请求方向：client -> mesh -> upstream  
+其中，client、mesh、upstream 均处于蚂蚁局域网但不处于一个网段，且 mesh 到 upstream 的网络延时为 1.6ms
 ## 客户端
 ### bolt 协议(发送1K字符串)
 发送 Bolt 协议数据的客户端使用 "蚂蚁金服"内部开发的线上压力机，并部署 sofa rpc client。  
@@ -27,6 +26,7 @@ ab -n $RPC -c $CPC -p 1k.txt -T "text/plain" -k http://11.166.161.136:12200/tcp_
 ```
 
 ## mesh 运行机器规格
+mesh 运行在容器中，其中 CPU 为独占的一个逻辑核，具体规格如下：
 
 | 类别 | 信息 | 
 | -------- | -------- | 
@@ -34,7 +34,6 @@ ab -n $RPC -c $CPC -p 1k.txt -T "text/plain" -k http://11.166.161.136:12200/tcp_
 | CPU   | Intel(R) Xeon(R) CPU E5-2650 v2 @ 2.60GHz X 1 |
 
 ## upstream 运行机器规格
-
 | 类别 | 信息 | 
 | -------- | -------- | 
 | OS    | 2.6.32-431.17.1.el6.FASTSOCKET    |
