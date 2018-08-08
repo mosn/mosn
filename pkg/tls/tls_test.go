@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -396,20 +397,37 @@ func fail(resp *http.Response, err error) bool {
 	return false
 }
 
-// TestTLSExtensionsVerifyClient tests server allow request with certificate's common name is client only
-func TestTLSExtensionsVerifyClient(t *testing.T) {
+const testType = "test"
+
+type testExtensionFactory struct{}
+
+func (f *testExtensionFactory) CreateExtension(config map[string]interface{}) Extension {
+	c := make(map[string]string)
+	for k, v := range config {
+		if s, ok := v.(string); ok {
+			c[strings.ToLower(k)] = s
+		}
+	}
 	root := util.GetRootCA()
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM([]byte(root.CertPem))
-	// Server
-	serverExt := &testExtension{
-		Name:           "server",
-		Root:           pool,
-		PassCommonName: "client",
+	return &testExtension{
+		DefaultExtension: DefaultExtension{},
+		Name:             c["name"],
+		PassCommonName:   c["cn"],
+		Root:             pool,
 	}
-	Register(serverExt.Name, serverExt)
+}
+
+// TestTLSExtensionsVerifyClient tests server allow request with certificate's common name is client only
+func TestTLSExtensionsVerifyClient(t *testing.T) {
+	// Server
+	extend_verify := map[string]interface{}{
+		"name": "server",
+		"cn":   "client",
+	}
 	serverInfo := &certInfo{
-		CommonName: serverExt.Name,
+		CommonName: extend_verify["name"].(string),
 		Curve:      "RSA",
 	}
 	serverConfig, err := serverInfo.CreateCertConfig()
@@ -418,7 +436,8 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 		return
 	}
 	serverConfig.VerifyClient = true
-	serverConfig.Type = serverExt.Name
+	serverConfig.Type = testType
+	serverConfig.ExtendVerify = extend_verify
 	filterChains := []v2.FilterChain{
 		{
 			TLS: *serverConfig,
@@ -444,7 +463,7 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 	}{
 		{
 			Info: &certInfo{
-				CommonName: serverExt.PassCommonName,
+				CommonName: extend_verify["cn"].(string),
 				Curve:      serverInfo.Curve,
 			},
 			Pass: pass,
@@ -482,17 +501,12 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 
 // TestTestTLSExtensionsVerifyServer tests client accept server response with cerificate's common name is server only
 func TestTestTLSExtensionsVerifyServer(t *testing.T) {
-	root := util.GetRootCA()
-	pool := x509.NewCertPool()
-	pool.AppendCertsFromPEM([]byte(root.CertPem))
-	clientExt := &testExtension{
-		Name:           "client",
-		Root:           pool,
-		PassCommonName: "server",
+	extend_verify := map[string]interface{}{
+		"name": "client",
+		"cn":   "server",
 	}
-	Register(clientExt.Name, clientExt)
 	clientInfo := &certInfo{
-		CommonName: clientExt.Name,
+		CommonName: extend_verify["name"].(string),
 		Curve:      "RSA",
 	}
 	clientConfig, err := clientInfo.CreateCertConfig()
@@ -500,7 +514,8 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 		t.Errorf("create client certificate error %v", err)
 		return
 	}
-	clientConfig.Type = clientExt.Name
+	clientConfig.Type = testType
+	clientConfig.ExtendVerify = extend_verify
 	cltMng, err := NewTLSClientContextManager(clientConfig, nil)
 	if err != nil {
 		t.Errorf("create client context manager failed %v", err)
@@ -512,7 +527,7 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	}{
 		{
 			Info: &certInfo{
-				CommonName: clientExt.PassCommonName,
+				CommonName: extend_verify["cn"].(string),
 				Curve:      clientInfo.Curve,
 				DNS:        "www.pass.com",
 			},
@@ -593,4 +608,9 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 			t.Errorf("#%d skip verify failed", i)
 		}
 	}
+}
+
+func TestMain(m *testing.M) {
+	Register(testType, &testExtensionFactory{})
+	m.Run()
 }

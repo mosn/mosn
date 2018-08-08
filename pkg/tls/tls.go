@@ -30,24 +30,24 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var extensions map[string]Extension
+var extensions map[string]ExtensionFactory
 
 func init() {
-	extensions = map[string]Extension{
-		"": &DefaultExtension{}, //register default
+	extensions = map[string]ExtensionFactory{
+		"": &defaultFactory{}, //register default
 	}
 }
 
 // Register registers an extension.
-func Register(name string, extension Extension) error {
+func Register(name string, factory ExtensionFactory) error {
 	if _, ok := extensions[name]; ok {
 		return fmt.Errorf("%s extesions is already registered", name)
 	}
-	extensions[name] = extension
+	extensions[name] = factory
 	return nil
 }
 
-func extension(name string) Extension {
+func extension(name string) ExtensionFactory {
 	if ext, ok := extensions[name]; ok {
 		return ext
 	}
@@ -140,7 +140,8 @@ func NewTLSClientContextManager(config *v2.TLSConfig, info types.ClusterInfo) (t
 
 func (mgr *contextManager) newTLSConfig(c *v2.TLSConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{}
-	ext := extension(c.Type)
+	factory := extension(c.Type)
+	ext := factory.CreateExtension(c.ExtendVerify)
 	if c.CipherSuites != "" {
 		ciphers := strings.Split(c.CipherSuites, ":")
 		for _, s := range ciphers {

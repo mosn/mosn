@@ -109,6 +109,15 @@ type Extension interface {
 	// we disbale validation/verification by set InsecureSkipVerify to true.
 	VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 }
+type ExtensionFactory interface {
+	CreateExtension(config map[string]interface{}) Extension
+}
+
+type defaultFactory struct{}
+
+func (f *defaultFactory) CreateExtension(config map[string]interface{}) Extension {
+	return &DefaultExtension{}
+}
 
 type DefaultExtension struct{}
 

@@ -158,6 +158,7 @@ type TLSConfig struct {
 	MaxVersion   string
 	ALPN         string
 	Ticket       string
+	ExtendVerify map[string]interface{}
 }
 
 // TCPRoute

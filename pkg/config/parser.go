@@ -410,6 +410,7 @@ func parseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
 		MaxVersion:   tlsconfig.MaxVersion,
 		ALPN:         tlsconfig.ALPN,
 		Ticket:       tlsconfig.Ticket,
+		ExtendVerify: tlsconfig.ExtendVerify,
 	}
 }
 

@@ -70,6 +70,7 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 			CertChain:  certchain,
 			PrivateKey: privatekey,
 			EcdhCurves: "P256",
+			ServerName: "127.0.0.1",
 		}
 		meshClusterConfig = newBasicTLSCluster(downstreamCluster, []string{serveraddr}, tlsConf)
 		meshServerChain = newTLSFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters, tlsConf)
