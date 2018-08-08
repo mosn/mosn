@@ -21,7 +21,6 @@ import (
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -44,102 +43,67 @@ func (s *streamEvent) Source() int {
 	return int(source)
 }
 
-// control evnets
-type controlEvent struct {
+type startEvent struct {
 	streamEvent
 }
 
-func (s *controlEvent) Type() int {
-	return mosnsync.CONTROL
-}
-
-type startEvent struct {
-	controlEvent
-}
-
 type stopEvent struct {
-	controlEvent
+	streamEvent
 }
 
 type resetEvent struct {
-	controlEvent
+	streamEvent
 
 	reason types.StreamResetReason
 }
 
-// job events
-type normalEvent struct {
-	streamEvent
-}
-
-func (s *normalEvent) Type() int {
-	return mosnsync.NORMAL
-}
-
 type receiveHeadersEvent struct {
-	normalEvent
+	streamEvent
 
 	headers   map[string]string
 	endStream bool
 }
 
 type receiveDataEvent struct {
-	normalEvent
+	streamEvent
 
 	data      types.IoBuffer
 	endStream bool
 }
 
 type receiveTrailerEvent struct {
-	normalEvent
+	streamEvent
 
 	trailers map[string]string
 }
 
-func eventDispatch(shard int, jobChan chan interface{}, ctrlChan chan interface{}) {
+func eventDispatch(shard int, jobChan <-chan interface{}) {
 	// stream process status map with shard, we use this to indicate a given stream is processing or not
 	streamMap := make(map[string]bool, 1<<10)
 
-	for {
-		var event interface{}
-
-		// control event process first
-		select {
-		case event = <-ctrlChan:
-			eventProcess(streamMap, event)
-			// next loop
-			continue
-		default:
-		}
-
-		// job & ctrl event process
-		select {
-		case event = <-ctrlChan:
-		case event = <-jobChan:
-		}
-
-		eventProcess(streamMap, event)
+	for event := range jobChan {
+		eventProcess(shard, streamMap, event)
 	}
 }
 
-func eventProcess(streamMap map[string]bool, event interface{}) {
+func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
 	// TODO: event handles by itself. just call event.handle() here
 	switch event.(type) {
 	case *startEvent:
 		e := event.(*startEvent)
-		//log.DefaultLogger.Debugf("[start event] direction %d, streamID %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Errorf("[start] %d %d %s", shard, e.direction, e.streamID)
 
 		streamMap[e.streamID] = false
 	case *stopEvent:
 		e := event.(*stopEvent)
-		//log.DefaultLogger.Debugf("[stop event] direction %d, streamID %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Errorf("[stop] %d %d %s", shard, e.direction, e.streamID)
 
 		delete(streamMap, e.streamID)
 	case *resetEvent:
 		e := event.(*resetEvent)
-		//log.DefaultLogger.Debugf("[reset event] direction %d, streamID %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Errorf("[reset] %d %d %s", shard, e.direction, e.streamID)
 
-		if done, ok := streamMap[e.streamID]; ok && !done {
+		if done, ok := streamMap[e.streamID]; ok && !(done || streamProcessDone(e.stream)) {
 			switch e.direction {
 			case Downstream:
 				e.stream.ResetStream(e.reason)
@@ -148,13 +112,13 @@ func eventProcess(streamMap map[string]bool, event interface{}) {
 			default:
 				e.stream.logger.Errorf("Unknown receiveTrailerEvent direction %s", e.direction)
 			}
-			streamMap[e.streamID] = streamMap[e.streamID] || e.stream.upstreamProcessDone
+			streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
 		}
 	case *receiveHeadersEvent:
 		e := event.(*receiveHeadersEvent)
-		//log.DefaultLogger.Debugf("[header event] direction %d, streamID %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Errorf("[header] %d %d %s", shard, e.direction, e.streamID)
 
-		if done, ok := streamMap[e.streamID]; ok && !done {
+		if done, ok := streamMap[e.streamID]; ok && !(done || streamProcessDone(e.stream)) {
 			switch e.direction {
 			case Downstream:
 				e.stream.ReceiveHeaders(e.headers, e.endStream)
@@ -163,28 +127,31 @@ func eventProcess(streamMap map[string]bool, event interface{}) {
 			default:
 				e.stream.logger.Errorf("Unknown receiveHeadersEvent direction %s", e.direction)
 			}
-			streamMap[e.streamID] = streamMap[e.streamID] || e.stream.upstreamProcessDone
+			streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
 		}
 	case *receiveDataEvent:
 		e := event.(*receiveDataEvent)
-		//log.DefaultLogger.Debugf("[data event] direction %d, streamID %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Errorf("[data] %d %d %s", shard, e.direction, e.streamID)
 
-		if done, ok := streamMap[e.streamID]; ok && !done {
+		if done, ok := streamMap[e.streamID]; ok && !(done || streamProcessDone(e.stream)) {
 			switch e.direction {
 			case Downstream:
+				if e.stream.upstreamRequest == nil {
+					log.DefaultLogger.Errorf("data error: %d %+v", shard, e.stream)
+				}
 				e.stream.ReceiveData(e.data, e.endStream)
 			case Upstream:
 				e.stream.upstreamRequest.ReceiveData(e.data, e.endStream)
 			default:
 				e.stream.logger.Errorf("Unknown receiveDataEvent direction %s", e.direction)
 			}
-			streamMap[e.streamID] = streamMap[e.streamID] || e.stream.upstreamProcessDone
+			streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
 		}
 	case *receiveTrailerEvent:
 		e := event.(*receiveTrailerEvent)
-		//log.DefaultLogger.Debugf("[trailer event] direction %d, streamID %s", e.direction, e.stream.streamID)
+		//log.DefaultLogger.Errorf("[trailer] %d %d %s", shard, e.direction, e.stream.streamID)
 
-		if done, ok := streamMap[e.streamID]; ok && !done {
+		if done, ok := streamMap[e.streamID]; ok && !(done || streamProcessDone(e.stream)) {
 			switch e.direction {
 			case Downstream:
 				e.stream.ReceiveTrailers(e.trailers)
@@ -193,10 +160,14 @@ func eventProcess(streamMap map[string]bool, event interface{}) {
 			default:
 				e.stream.logger.Errorf("Unknown receiveTrailerEvent direction %s", e.direction)
 			}
-			streamMap[e.streamID] = streamMap[e.streamID] || e.stream.upstreamProcessDone
+			streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
 		}
 
 	default:
 		log.DefaultLogger.Errorf("Unknown event type %s", event)
 	}
+}
+
+func streamProcessDone(s *downStream) bool {
+	return s.upstreamProcessDone || s.downstreamReset == 1
 }

@@ -62,12 +62,10 @@ func (r *upstreamRequest) resetStream() {
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	workerPool.Offer(&resetEvent{
-		controlEvent: controlEvent{
-			streamEvent: streamEvent{
-				direction: Upstream,
-				streamID:  r.downStream.streamID,
-				stream:    r.downStream,
-			},
+		streamEvent: streamEvent{
+			direction: Upstream,
+			streamID:  r.downStream.streamID,
+			stream:    r.downStream,
 		},
 		reason: reason,
 	})
@@ -84,12 +82,10 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	workerPool.Offer(&receiveHeadersEvent{
-		normalEvent: normalEvent{
-			streamEvent: streamEvent{
-				direction: Upstream,
-				streamID:  r.downStream.streamID,
-				stream:    r.downStream,
-			},
+		streamEvent: streamEvent{
+			direction: Upstream,
+			streamID:  r.downStream.streamID,
+			stream:    r.downStream,
 		},
 		headers:   headers,
 		endStream: endStream,
@@ -105,12 +101,10 @@ func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
 	r.downStream.downstreamRespDataBuf = r.downStream.proxy.bytesBufferPool.Clone(data)
 
 	workerPool.Offer(&receiveDataEvent{
-		normalEvent: normalEvent{
-			streamEvent: streamEvent{
-				direction: Upstream,
-				streamID:  r.downStream.streamID,
-				stream:    r.downStream,
-			},
+		streamEvent: streamEvent{
+			direction: Upstream,
+			streamID:  r.downStream.streamID,
+			stream:    r.downStream,
 		},
 		data:      r.downStream.downstreamRespDataBuf,
 		endStream: endStream,
@@ -123,12 +117,10 @@ func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
 
 func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
 	workerPool.Offer(&receiveTrailerEvent{
-		normalEvent: normalEvent{
-			streamEvent: streamEvent{
-				direction: Upstream,
-				streamID:  r.downStream.streamID,
-				stream:    r.downStream,
-			},
+		streamEvent: streamEvent{
+			direction: Upstream,
+			streamID:  r.downStream.streamID,
+			stream:    r.downStream,
 		},
 		trailers: trailers,
 	})
