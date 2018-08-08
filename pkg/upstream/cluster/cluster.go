@@ -112,7 +112,11 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 
 	cluster.info.lbInstance = lb
 
-	cluster.info.tlsMng = tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
+	mgr, err := tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
+	if err != nil {
+		log.DefaultLogger.Fatalf("create tls context manager failed, %v", err)
+	}
+	cluster.info.tlsMng = mgr
 
 	return cluster
 }
