@@ -396,19 +396,14 @@ func parseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
 		}
 	}
 
-	if (tlsconfig.VerifyClient || tlsconfig.VerifyServer) && tlsconfig.CACert == "" {
-		log.StartLogger.Fatalln("[CaCert] is required in TLS config")
-	}
-
 	return v2.TLSConfig{
 		Status:       tlsconfig.Status,
-		Inspector:    tlsconfig.Inspector,
 		ServerName:   tlsconfig.ServerName,
 		CACert:       tlsconfig.CACert,
 		CertChain:    tlsconfig.CertChain,
 		PrivateKey:   tlsconfig.PrivateKey,
 		VerifyClient: tlsconfig.VerifyClient,
-		VerifyServer: tlsconfig.VerifyServer,
+		InsecureSkip: tlsconfig.InsecureSkip,
 		CipherSuites: tlsconfig.CipherSuites,
 		EcdhCurves:   tlsconfig.EcdhCurves,
 		MinVersion:   tlsconfig.MinVersion,
@@ -573,6 +568,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		Name:                                  c.Name,
 		Addr:                                  addr,
 		BindToPort:                            c.BindToPort,
+		Inspector:                             c.Inspector,
 		InheritListener:                       old,
 		PerConnBufferLimitBytes:               1 << 15,
 		LogPath:                               c.LogPath,

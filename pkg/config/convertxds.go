@@ -62,6 +62,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 		Name:                                  xdsListener.GetName(),
 		Addr:                                  convertAddress(&xdsListener.Address),
 		BindToPort:                            convertBindToPort(xdsListener.GetDeprecatedV1()),
+		Inspector:                             true,
 		PerConnBufferLimitBytes:               xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 		HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
 		AccessLogs:                            convertAccessLogs(xdsListener),
@@ -674,7 +675,7 @@ func convertDuration(p *types.Duration) time.Duration {
 
 func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	var config v2.TLSConfig
-	var isDownstream bool
+	//var isDownstream bool
 	var common *xdsauth.CommonTlsContext
 
 	if xdsTLSContext == nil {
@@ -685,11 +686,11 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 			config.VerifyClient = context.GetRequireClientCertificate().GetValue()
 		}
 		common = context.GetCommonTlsContext()
-		isDownstream = true
+		//	isDownstream = true
 	} else if context, ok := xdsTLSContext.(*xdsauth.UpstreamTlsContext); ok {
 		config.ServerName = context.GetSni()
 		common = context.GetCommonTlsContext()
-		isDownstream = false
+		//	isDownstream = false
 	}
 	if common == nil {
 		return config
@@ -722,13 +723,16 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 		config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
 	}
 
-	if isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
-		log.DefaultLogger.Fatalf("tls_certificates are required in downstream tls_context")
-		config.Status = false
-		return config
-	}
+	// CertChain/PrivateKey can be empty, if there is a tls extension.
+	// If a config is invalid, the error will occur at NewListener
+	//if isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
+	//	log.DefaultLogger.Fatalf("tls_certificates are required in downstream tls_context")
+	//	config.Status = false
+	//	return config
+	//}
 
 	config.Status = true
-	config.Inspector = true
+	// move inspector to listener's config
+	//config.Inspector = true
 	return config
 }

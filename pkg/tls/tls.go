@@ -213,22 +213,27 @@ func (mgr *contextManager) newTLSConfig(c *v2.TLSConfig) (*tls.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	if c.VerifyClient {
-		tlsConfig.ClientCAs = pool
-		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-	}
-	if !c.InsecureSkip {
+	// VerifyClient is valid when isClient is false
+	// InsecureSkip is valid when isClient is true
+	if mgr.isClient {
+		tlsConfig.ServerName = c.ServerName
 		tlsConfig.RootCAs = pool
 		verify := ext.VerifyPeerCertificate()
 		if verify != nil {
-			tlsConfig.VerifyPeerCertificate = verify
+			// use self verify, skip normal verify
 			tlsConfig.InsecureSkipVerify = true
+			tlsConfig.VerifyPeerCertificate = verify
 		}
-	} else {
-		tlsConfig.InsecureSkipVerify = true
-	}
-	if mgr.isClient {
-		tlsConfig.ServerName = c.ServerName
+		if c.InsecureSkip {
+			tlsConfig.InsecureSkipVerify = true
+			tlsConfig.VerifyPeerCertificate = nil
+		}
+	} else { //Server
+		if c.VerifyClient {
+			tlsConfig.ClientCAs = pool
+			tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+			tlsConfig.VerifyPeerCertificate = ext.VerifyPeerCertificate()
+		}
 	}
 	return tlsConfig, nil
 }
@@ -329,12 +334,12 @@ func (mgr *contextManager) Conn(c net.Conn) net.Conn {
 	}
 	buf := tlsconn.Peek()
 	if buf == nil {
-		return tls.Server(c, mgr.Config())
+		return tls.Server(tlsconn, mgr.Config())
 	}
 	switch buf[0] {
 	// TLS handshake
 	case 0x16:
-		return tls.Server(c, mgr.Config())
+		return tls.Server(tlsconn, mgr.Config())
 	// Non TLS
 	default:
 		return tlsconn
