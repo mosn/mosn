@@ -188,6 +188,7 @@ type ListenerConfig struct {
 // Status is the switch to use tls or not
 type TLSConfig struct {
 	Status       bool                   `json:"status,omitempty"`
+	Type         string                 `json:"type,omitempty"`
 	ServerName   string                 `json:"server_name,omitempty"`
 	CACert       string                 `json:"ca_cert,omitempty"`
 	CertChain    string                 `json:"cert_chain,omitempty"`

@@ -65,12 +65,13 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 	var meshServerChain config.FilterChain
 	if tls {
 		tlsConf := config.TLSConfig{
-			Status:     true,
-			CACert:     cacert,
-			CertChain:  certchain,
-			PrivateKey: privatekey,
-			EcdhCurves: "P256",
-			ServerName: "127.0.0.1",
+			Status:       true,
+			CACert:       cacert,
+			CertChain:    certchain,
+			PrivateKey:   privatekey,
+			EcdhCurves:   "P256",
+			VerifyClient: true,
+			ServerName:   "127.0.0.1",
 		}
 		meshClusterConfig = newBasicTLSCluster(downstreamCluster, []string{serveraddr}, tlsConf)
 		meshServerChain = newTLSFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters, tlsConf)
@@ -78,6 +79,49 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 		meshClusterConfig = newBasicCluster(downstreamCluster, []string{serveraddr})
 		meshServerChain = newFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters)
 	}
+	cmconfig := config.ClusterManagerConfig{
+		Clusters: []config.ClusterConfig{
+			meshClusterConfig,
+			newBasicCluster(upstreamCluster, hosts),
+		},
+	}
+	serverChains := []config.FilterChain{meshServerChain}
+	serverListener := newListener("upstreamListener", serveraddr, serverChains)
+	return newMOSNConfig([]config.ListenerConfig{
+		clientListener, serverListener,
+	}, cmconfig)
+
+}
+
+// TLS Extension
+type ExtendVerifyConfig struct {
+	ExtendType   string
+	VerifyConfig map[string]interface{}
+}
+
+func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto types.Protocol, meshproto types.Protocol, hosts []string, ext *ExtendVerifyConfig) *config.MOSNConfig {
+	downstreamCluster := "downstream"
+	upstreamCluster := "upstream"
+	downstreamRouters := []config.Router{
+		newPrefixRouter(downstreamCluster, "/"),
+		newHeaderRouter(downstreamCluster, ".*"),
+	}
+	clientChains := []config.FilterChain{
+		newFilterChain("downstreamFilter", appproto, meshproto, downstreamRouters),
+	}
+	clientListener := newListener("downstreamListener", clientaddr, clientChains)
+	upstreamRouters := []config.Router{
+		newPrefixRouter(upstreamCluster, "/"),
+		newHeaderRouter(upstreamCluster, ".*"),
+	}
+	tlsConf := config.TLSConfig{
+		Status:       true,
+		Type:         ext.ExtendType,
+		VerifyClient: true,
+		ExtendVerify: ext.VerifyConfig,
+	}
+	meshClusterConfig := newBasicTLSCluster(downstreamCluster, []string{serveraddr}, tlsConf)
+	meshServerChain := newTLSFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters, tlsConf)
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []config.ClusterConfig{
 			meshClusterConfig,

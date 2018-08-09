@@ -398,6 +398,7 @@ func parseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
 
 	return v2.TLSConfig{
 		Status:       tlsconfig.Status,
+		Type:         tlsconfig.Type,
 		ServerName:   tlsconfig.ServerName,
 		CACert:       tlsconfig.CACert,
 		CertChain:    tlsconfig.CertChain,
