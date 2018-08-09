@@ -26,11 +26,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	proto "github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/stream/http"
-	"github.com/alipay/sofa-mosn/pkg/stream/http2"
-	"github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
+	"github.com/alipay/sofa-mosn/pkg/proxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -38,10 +34,7 @@ import (
 type clusterManager struct {
 	sourceAddr             net.Addr
 	primaryClusters        sync.Map // string: *primaryCluster
-	sofaRPCConnPool        sync.Map // string: types.ConnectionPool
-	http2ConnPool          sync.Map // string: types.ConnectionPool
-	xProtocolConnPool      sync.Map // string: types.ConnectionPool
-	http1ConnPool          sync.Map // string: types.ConnectionPool
+	protocolConnPool       sync.Map //协议 map
 	clusterAdapter         Adapter
 	autoDiscovery          bool
 	registryUseHealthCheck bool
@@ -55,14 +48,17 @@ type clusterSnapshot struct {
 
 func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	clusterMap map[string][]v2.Host, autoDiscovery bool, useHealthCheck bool) types.ClusterManager {
+
+	protocolConnPool := sync.Map{}
+	for k, _ := range types.ConnPoolFactories {
+		protocolConnPool.Store(k, sync.Map{})
+	}
+
 	cm := &clusterManager{
-		sourceAddr:        sourceAddr,
-		primaryClusters:   sync.Map{},
-		sofaRPCConnPool:   sync.Map{},
-		http2ConnPool:     sync.Map{},
-		xProtocolConnPool: sync.Map{},
-		http1ConnPool:     sync.Map{},
-		autoDiscovery:     true, //todo delete
+		sourceAddr:       sourceAddr,
+		primaryClusters:  sync.Map{},
+		protocolConnPool: protocolConnPool,
+		autoDiscovery:    true, //todo delete
 	}
 	//init Adap when run app
 	Adap = Adapter{
@@ -237,74 +233,6 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host
 	return nil
 }
 
-func (cm *clusterManager) HTTPConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string,
-	protocol types.Protocol) types.ConnectionPool {
-	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
-
-	if clusterSnapshot == nil {
-		return nil
-	}
-
-	host := clusterSnapshot.loadbalancer.ChooseHost(lbCtx)
-
-	if host != nil {
-		addr := host.AddressString()
-		log.StartLogger.Tracef("http connection pool upstream addr : %v", addr)
-
-		switch protocol {
-		case proto.HTTP2:
-
-			if connPool, ok := cm.http2ConnPool.Load(addr); ok {
-				return connPool.(types.ConnectionPool)
-			}
-			// todo: move this to a centralized factory, remove dependency to http2 stream
-			connPool := http2.NewConnPool(host)
-			cm.http2ConnPool.Store(addr, connPool)
-
-			return connPool
-		case proto.HTTP1:
-
-			if connPool, ok := cm.http1ConnPool.Load(addr); ok {
-				return connPool.(types.ConnectionPool)
-			}
-			// todo: move this to a centralized factory, remove dependency to http1 stream
-			connPool := http.NewConnPool(host)
-			cm.http1ConnPool.Store(addr, connPool)
-
-			return connPool
-		}
-
-	}
-
-	return nil
-}
-
-func (cm *clusterManager) XprotocolConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string,
-	protocol types.Protocol) types.ConnectionPool {
-	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
-
-	if clusterSnapshot == nil {
-		return nil
-	}
-
-	host := clusterSnapshot.loadbalancer.ChooseHost(nil)
-
-	if host != nil {
-		addr := host.AddressString()
-		log.StartLogger.Tracef("Xprotocol connection pool upstream addr : %v", addr)
-
-		if connPool, ok := cm.xProtocolConnPool.Load(addr); ok {
-			return connPool.(types.ConnectionPool)
-		}
-		connPool := xprotocol.NewConnPool(host)
-		cm.xProtocolConnPool.Store(addr, connPool)
-
-		return connPool
-	}
-
-	return nil
-}
-
 func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, cluster string) types.CreateConnectionData {
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
@@ -321,29 +249,34 @@ func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, clu
 	return types.CreateConnectionData{}
 }
 
-func (cm *clusterManager) SofaRPCConnPoolForCluster(lbCtx types.LoadBalancerContext, cluster string) types.ConnectionPool {
+func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, cluster string, protocol types.Protocol) types.ConnectionPool {
+
 	clusterSnapshot := cm.getOrCreateClusterSnapshot(cluster)
 
 	if clusterSnapshot == nil {
-		log.DefaultLogger.Errorf(" Sofa Rpc ConnPool For Cluster is nil, cluster name = %s", cluster)
+		log.DefaultLogger.Errorf(" %s ConnPool For Cluster is nil, cluster name = %s", protocol, cluster)
 		return nil
 	}
 
-	host := clusterSnapshot.loadbalancer.ChooseHost(lbCtx)
+	host := clusterSnapshot.loadbalancer.ChooseHost(balancerContext)
 
 	if host != nil {
 		addr := host.AddressString()
 		log.DefaultLogger.Debugf(" clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, cluster)
 
-		if connPool, ok := cm.sofaRPCConnPool.Load(addr); ok {
+		value, _ := cm.protocolConnPool.Load(protocol)
+
+		connPool := value.(sync.Map)
+		if connPool, ok := connPool.Load(addr); ok {
 			return connPool.(types.ConnectionPool)
 		}
-		// todo: move this to a centralized factory, remove dependency to sofarpc stream
-		connPool := sofarpc.NewConnPool(host)
-		cm.sofaRPCConnPool.Store(addr, connPool)
+		if factory, ok := proxy.ConnNewPoolFactories[protocol]; ok {
+			newPool := factory(host) //call NewBasicRoute
 
-		return connPool
+			connPool.Store(addr, newPool)
 
+			return newPool
+		}
 	}
 
 	log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil, cluster name = %s", cluster)

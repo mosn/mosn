@@ -36,4 +36,3 @@ const (
 	MosnHeaderQueryStringKey = "querystring"
 	MosnHeaderMethod         = "method"
 )
-

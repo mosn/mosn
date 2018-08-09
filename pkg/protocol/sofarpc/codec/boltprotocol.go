@@ -63,8 +63,8 @@ func init() {
  * +-----------------------------------------------------------------------------------------------+
  * respstatus: response status
  */
- 
- // BoltV1 is the instance of boltProtocol of boltv1
+
+// BoltV1 is the instance of boltProtocol of boltv1
 var BoltV1 = &boltProtocol{
 	sofarpc.PROTOCOL_CODE_V1,
 	sofarpc.REQUEST_HEADER_LEN_V1,
