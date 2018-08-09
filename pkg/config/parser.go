@@ -550,7 +550,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 	addr, err := net.ResolveTCPAddr("tcp", c.Address)
 
 	if err != nil {
-		log.StartLogger.Fatalln("[Address] not valid:" + c.Address)
+		log.StartLogger.Fatalln("[Address] not valid:", c.Address)
 	}
 
 	//try inherit legacy listener

@@ -27,12 +27,12 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"fmt"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"fmt"
 )
 
 // ConnectionHandler
@@ -114,7 +114,7 @@ func (ch *connHandler) AddListener(lc *v2.ListenerConfig, networkFiltersFactory 
 		if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
 			als = append(als, al)
 		} else {
-			log.StartLogger.Fatalln("initialize listener access logger %s failed : %v", alConfig.Path, err)
+			log.StartLogger.Fatalln("initialize listener access logger ", alConfig.Path, " failed: ", err)
 		}
 	}
 
