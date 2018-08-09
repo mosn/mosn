@@ -95,8 +95,8 @@ var (
 	}
 )
 
-// Extension is a set of functions that can have multiple implementats
-type Extension interface {
+// ConfigHooks is a  set of functions used to make a tls config
+type ConfigHooks interface {
 	// GetCertificate returns the tls.Certificate by index.
 	// By default the index is the cert/key file path or cert/key pem string
 	GetCertificate(certIndex, keyIndex string) (tls.Certificate, error)
@@ -104,27 +104,24 @@ type Extension interface {
 	// By default the index is the ca certificate file path or certificate pem string
 	GetX509Pool(caIndex string) (*x509.CertPool, error)
 	// VerifyPeerCertificate returns a "VerifyPeerCertificate" defined in tls.Config.
-	// In tls.Config, if it is not nil, it is called after normal certificate verification by either a TLS client or server.
-	// In our extension, if it is not nil, we need perform certificate verification in the funciton, so
-	// we disbale validation/verification by set InsecureSkipVerify to true.
+	// If it is returns nil, the normal certificate verification will be used.
+	// Notice that we set tls.Config.InsecureSkipVerify to make sure the "VerifyPeerCertificate" is called,
+	// so an implement of "VerifyPeerCertificate" should verify the trusted ca if neccessary.
+	// If TLSConfig.InsecureSkip is true, the "VerifyPeerCertificate" will be ignored.
 	VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 }
-type ExtensionFactory interface {
-	CreateExtension(config map[string]interface{}) Extension
+
+// ConfigHooksFactory creates ConfigHooks by config
+type ConfigHooksFactory interface {
+	CreateConfigHooks(config map[string]interface{}) ConfigHooks
 }
 
-type defaultFactory struct{}
-
-func (f *defaultFactory) CreateExtension(config map[string]interface{}) Extension {
-	return &DefaultExtension{}
-}
-
-type DefaultExtension struct{}
+type DefaultConfigHooks struct{}
 
 var ErrorNoCertConfigure = errors.New("no certificate config")
 
 // GetCertificate returns certificate if the index is cert/key file or pem string
-func (e *DefaultExtension) GetCertificate(certIndex, keyIndex string) (tls.Certificate, error) {
+func (hook *DefaultConfigHooks) GetCertificate(certIndex, keyIndex string) (tls.Certificate, error) {
 	if certIndex == "" || keyIndex == "" {
 		return tls.Certificate{}, ErrorNoCertConfigure
 	}
@@ -135,7 +132,7 @@ func (e *DefaultExtension) GetCertificate(certIndex, keyIndex string) (tls.Certi
 }
 
 // GetX509Pool returns a CertPool with index's file or pem srting
-func (e *DefaultExtension) GetX509Pool(caIndex string) (*x509.CertPool, error) {
+func (hook *DefaultConfigHooks) GetX509Pool(caIndex string) (*x509.CertPool, error) {
 	if caIndex == "" {
 		return nil, nil
 	}
@@ -157,6 +154,6 @@ func (e *DefaultExtension) GetX509Pool(caIndex string) (*x509.CertPool, error) {
 }
 
 // VerifyPeerCertificate returns a nil function, which means use standard tls verification
-func (e *DefaultExtension) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func (hook *DefaultConfigHooks) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return nil
 }

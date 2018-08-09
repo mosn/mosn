@@ -13,15 +13,15 @@ import (
 	testutil "github.com/alipay/sofa-mosn/test/util"
 )
 
-// Test tls extension
+// Test tls config hooks extension
 // use tls/util to create certificate
 // just verify ca only, ignore the san(dns\ip) verify
-type tlsExtend struct {
+type tlsConfigHooks struct {
 	root *x509.CertPool
 	cert tls.Certificate
 }
 
-func (e *tlsExtend) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func (hook *tlsConfigHooks) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	var certs []*x509.Certificate
 	for _, asn1Data := range rawCerts {
 		cert, err := x509.ParseCertificate(asn1Data)
@@ -35,7 +35,7 @@ func (e *tlsExtend) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]
 		intermediates.AddCert(cert)
 	}
 	opts := x509.VerifyOptions{
-		Roots:         e.root,
+		Roots:         hook.root,
 		Intermediates: intermediates,
 	}
 	leaf := certs[0]
@@ -44,23 +44,23 @@ func (e *tlsExtend) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]
 
 }
 
-func (e *tlsExtend) GetCertificate(certIndex, keyIndex string) (tls.Certificate, error) {
-	return e.cert, nil
+func (hook *tlsConfigHooks) GetCertificate(certIndex, keyIndex string) (tls.Certificate, error) {
+	return hook.cert, nil
 }
-func (e *tlsExtend) GetX509Pool(caIndex string) (*x509.CertPool, error) {
-	return e.root, nil
+func (hook *tlsConfigHooks) GetX509Pool(caIndex string) (*x509.CertPool, error) {
+	return hook.root, nil
 }
-func (e *tlsExtend) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	return e.verifyPeerCertificate
+func (hook *tlsConfigHooks) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	return hook.verifyPeerCertificate
 }
 
-type tlsExtendFactory struct {
+type tlsConfigHooksFactory struct {
 	root *x509.CertPool
 	cert tls.Certificate
 }
 
-func (f *tlsExtendFactory) CreateExtension(config map[string]interface{}) mosntls.Extension {
-	return &tlsExtend{
+func (f *tlsConfigHooksFactory) CreateConfigHooks(config map[string]interface{}) mosntls.ConfigHooks {
+	return &tlsConfigHooks{
 		f.root,
 		f.cert,
 	}
@@ -116,7 +116,7 @@ func TestTLSExtend(t *testing.T) {
 		t.Error("create certificate failed")
 		return
 	}
-	factory := &tlsExtendFactory{pool, cert}
+	factory := &tlsConfigHooksFactory{pool, cert}
 	extendConfig := &testutil.ExtendVerifyConfig{
 		ExtendType: "test",
 	}

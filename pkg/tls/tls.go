@@ -30,28 +30,34 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var extensions map[string]ExtensionFactory
+var configHooks map[string]ConfigHooksFactory
+
+type defaultFactory struct{}
+
+func (f *defaultFactory) CreateConfigHooks(config map[string]interface{}) ConfigHooks {
+	return &DefaultConfigHooks{}
+}
 
 func init() {
-	extensions = map[string]ExtensionFactory{
+	configHooks = map[string]ConfigHooksFactory{
 		"": &defaultFactory{}, //register default
 	}
 }
 
 // Register registers an extension.
-func Register(name string, factory ExtensionFactory) error {
-	if _, ok := extensions[name]; ok {
+func Register(name string, factory ConfigHooksFactory) error {
+	if _, ok := configHooks[name]; ok {
 		return fmt.Errorf("%s extesions is already registered", name)
 	}
-	extensions[name] = factory
+	configHooks[name] = factory
 	return nil
 }
 
-func extension(name string) ExtensionFactory {
-	if ext, ok := extensions[name]; ok {
-		return ext
+func getFactory(name string) ConfigHooksFactory {
+	if factory, ok := configHooks[name]; ok {
+		return factory
 	}
-	return extensions[""] //return default
+	return configHooks[""] //return default
 }
 
 type context struct {
@@ -140,8 +146,8 @@ func NewTLSClientContextManager(config *v2.TLSConfig, info types.ClusterInfo) (t
 
 func (mgr *contextManager) newTLSConfig(c *v2.TLSConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{}
-	factory := extension(c.Type)
-	ext := factory.CreateExtension(c.ExtendVerify)
+	factory := getFactory(c.Type)
+	hooks := factory.CreateConfigHooks(c.ExtendVerify)
 	if c.CipherSuites != "" {
 		ciphers := strings.Split(c.CipherSuites, ":")
 		for _, s := range ciphers {
@@ -198,7 +204,7 @@ func (mgr *contextManager) newTLSConfig(c *v2.TLSConfig) (*tls.Config, error) {
 			tlsConfig.NextProtos = append(tlsConfig.NextProtos, p)
 		}
 	}
-	cert, err := ext.GetCertificate(c.CertChain, c.PrivateKey)
+	cert, err := hooks.GetCertificate(c.CertChain, c.PrivateKey)
 	switch err {
 	case ErrorNoCertConfigure: // cert/key config is empty string, no certificate
 		if !mgr.isClient {
@@ -210,7 +216,7 @@ func (mgr *contextManager) newTLSConfig(c *v2.TLSConfig) (*tls.Config, error) {
 		return nil, err
 	}
 	// pool can be nil, if it is nil, TLS uses the host's root CA set.
-	pool, err := ext.GetX509Pool(c.CACert)
+	pool, err := hooks.GetX509Pool(c.CACert)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +225,7 @@ func (mgr *contextManager) newTLSConfig(c *v2.TLSConfig) (*tls.Config, error) {
 	if mgr.isClient {
 		tlsConfig.ServerName = c.ServerName
 		tlsConfig.RootCAs = pool
-		verify := ext.VerifyPeerCertificate()
+		verify := hooks.VerifyPeerCertificate()
 		if verify != nil {
 			// use self verify, skip normal verify
 			tlsConfig.InsecureSkipVerify = true
@@ -233,7 +239,7 @@ func (mgr *contextManager) newTLSConfig(c *v2.TLSConfig) (*tls.Config, error) {
 		if c.VerifyClient {
 			tlsConfig.ClientCAs = pool
 			tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-			tlsConfig.VerifyPeerCertificate = ext.VerifyPeerCertificate()
+			tlsConfig.VerifyPeerCertificate = hooks.VerifyPeerCertificate()
 		}
 	}
 	return tlsConfig, nil

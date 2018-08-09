@@ -334,25 +334,25 @@ func TestInspector(t *testing.T) {
 	}
 }
 
-// test Extension
+// test ConfigHooks
 // define VerifyPeerCertificate, verify common name instead of san, ignore keyusage
-type testExtension struct {
-	DefaultExtension
+type testConfigHooks struct {
+	DefaultConfigHooks
 	Name           string
 	Root           *x509.CertPool
 	PassCommonName string
 }
 
 // over write
-func (ext *testExtension) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	return ext.verifyPeerCertificate
+func (hook *testConfigHooks) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	return hook.verifyPeerCertificate
 }
-func (ext *testExtension) GetX509Pool(caIndex string) (*x509.CertPool, error) {
-	return ext.Root, nil
+func (hook *testConfigHooks) GetX509Pool(caIndex string) (*x509.CertPool, error) {
+	return hook.Root, nil
 }
 
 // verifiedChains is always nil
-func (ext *testExtension) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func (hook *testConfigHooks) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	var certs []*x509.Certificate
 	for _, asn1Data := range rawCerts {
 		cert, err := x509.ParseCertificate(asn1Data)
@@ -366,7 +366,7 @@ func (ext *testExtension) verifyPeerCertificate(rawCerts [][]byte, verifiedChain
 		intermediates.AddCert(cert)
 	}
 	opts := x509.VerifyOptions{
-		Roots:         ext.Root,
+		Roots:         hook.Root,
 		Intermediates: intermediates,
 	}
 	leaf := certs[0]
@@ -374,7 +374,7 @@ func (ext *testExtension) verifyPeerCertificate(rawCerts [][]byte, verifiedChain
 	if err != nil {
 		return err
 	}
-	if leaf.Subject.CommonName != ext.PassCommonName {
+	if leaf.Subject.CommonName != hook.PassCommonName {
 		return errors.New("common name miss match")
 	}
 	return nil
@@ -399,9 +399,9 @@ func fail(resp *http.Response, err error) bool {
 
 const testType = "test"
 
-type testExtensionFactory struct{}
+type testConfigHooksFactory struct{}
 
-func (f *testExtensionFactory) CreateExtension(config map[string]interface{}) Extension {
+func (f *testConfigHooksFactory) CreateConfigHooks(config map[string]interface{}) ConfigHooks {
 	c := make(map[string]string)
 	for k, v := range config {
 		if s, ok := v.(string); ok {
@@ -411,11 +411,11 @@ func (f *testExtensionFactory) CreateExtension(config map[string]interface{}) Ex
 	root := util.GetRootCA()
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM([]byte(root.CertPem))
-	return &testExtension{
-		DefaultExtension: DefaultExtension{},
-		Name:             c["name"],
-		PassCommonName:   c["cn"],
-		Root:             pool,
+	return &testConfigHooks{
+		DefaultConfigHooks: DefaultConfigHooks{},
+		Name:               c["name"],
+		PassCommonName:     c["cn"],
+		Root:               pool,
 	}
 }
 
@@ -611,6 +611,6 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	Register(testType, &testExtensionFactory{})
+	Register(testType, &testConfigHooksFactory{})
 	m.Run()
 }
