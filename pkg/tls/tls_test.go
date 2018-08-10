@@ -31,7 +31,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/tls/util"
+	"github.com/alipay/sofa-mosn/pkg/tls/certtool"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -84,7 +84,7 @@ type certInfo struct {
 }
 
 func (c *certInfo) CreateCertConfig() (*v2.TLSConfig, error) {
-	priv, err := util.GeneratePrivateKey(c.Curve)
+	priv, err := certtool.GeneratePrivateKey(c.Curve)
 	if err != nil {
 		return nil, fmt.Errorf("generate key failed %v", err)
 	}
@@ -92,17 +92,17 @@ func (c *certInfo) CreateCertConfig() (*v2.TLSConfig, error) {
 	if c.DNS != "" {
 		dns = append(dns, c.DNS)
 	}
-	tmpl, err := util.CreateTemplate(c.CommonName, false, dns)
+	tmpl, err := certtool.CreateTemplate(c.CommonName, false, dns)
 	if err != nil {
 		return nil, fmt.Errorf("generate certificate template failed %v", err)
 	}
-	cert, err := util.SignCertificate(tmpl, priv)
+	cert, err := certtool.SignCertificate(tmpl, priv)
 	if err != nil {
 		return nil, fmt.Errorf("sign certificate failed %v", err)
 	}
 	return &v2.TLSConfig{
 		Status:     true,
-		CACert:     util.GetRootCA().CertPem,
+		CACert:     certtool.GetRootCA().CertPem,
 		CertChain:  cert.CertPem,
 		PrivateKey: cert.KeyPem,
 	}, nil
@@ -337,7 +337,7 @@ func TestInspector(t *testing.T) {
 // test ConfigHooks
 // define VerifyPeerCertificate, verify common name instead of san, ignore keyusage
 type testConfigHooks struct {
-	DefaultConfigHooks
+	defaultConfigHooks
 	Name           string
 	Root           *x509.CertPool
 	PassCommonName string
@@ -408,11 +408,11 @@ func (f *testConfigHooksFactory) CreateConfigHooks(config map[string]interface{}
 			c[strings.ToLower(k)] = s
 		}
 	}
-	root := util.GetRootCA()
+	root := certtool.GetRootCA()
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM([]byte(root.CertPem))
 	return &testConfigHooks{
-		DefaultConfigHooks: DefaultConfigHooks{},
+		defaultConfigHooks: defaultConfigHooks{},
 		Name:               c["name"],
 		PassCommonName:     c["cn"],
 		Root:               pool,
@@ -422,12 +422,12 @@ func (f *testConfigHooksFactory) CreateConfigHooks(config map[string]interface{}
 // TestTLSExtensionsVerifyClient tests server allow request with certificate's common name is client only
 func TestTLSExtensionsVerifyClient(t *testing.T) {
 	// Server
-	extend_verify := map[string]interface{}{
+	extendVerify := map[string]interface{}{
 		"name": "server",
 		"cn":   "client",
 	}
 	serverInfo := &certInfo{
-		CommonName: extend_verify["name"].(string),
+		CommonName: extendVerify["name"].(string),
 		Curve:      "RSA",
 	}
 	serverConfig, err := serverInfo.CreateCertConfig()
@@ -437,7 +437,7 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 	}
 	serverConfig.VerifyClient = true
 	serverConfig.Type = testType
-	serverConfig.ExtendVerify = extend_verify
+	serverConfig.ExtendVerify = extendVerify
 	filterChains := []v2.FilterChain{
 		{
 			TLS: *serverConfig,
@@ -463,7 +463,7 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 	}{
 		{
 			Info: &certInfo{
-				CommonName: extend_verify["cn"].(string),
+				CommonName: extendVerify["cn"].(string),
 				Curve:      serverInfo.Curve,
 			},
 			Pass: pass,
@@ -501,12 +501,12 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 
 // TestTestTLSExtensionsVerifyServer tests client accept server response with cerificate's common name is server only
 func TestTestTLSExtensionsVerifyServer(t *testing.T) {
-	extend_verify := map[string]interface{}{
+	extendVerify := map[string]interface{}{
 		"name": "client",
 		"cn":   "server",
 	}
 	clientInfo := &certInfo{
-		CommonName: extend_verify["name"].(string),
+		CommonName: extendVerify["name"].(string),
 		Curve:      "RSA",
 	}
 	clientConfig, err := clientInfo.CreateCertConfig()
@@ -515,7 +515,7 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 		return
 	}
 	clientConfig.Type = testType
-	clientConfig.ExtendVerify = extend_verify
+	clientConfig.ExtendVerify = extendVerify
 	cltMng, err := NewTLSClientContextManager(clientConfig, nil)
 	if err != nil {
 		t.Errorf("create client context manager failed %v", err)
@@ -527,7 +527,7 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	}{
 		{
 			Info: &certInfo{
-				CommonName: extend_verify["cn"].(string),
+				CommonName: extendVerify["cn"].(string),
 				Curve:      clientInfo.Curve,
 				DNS:        "www.pass.com",
 			},

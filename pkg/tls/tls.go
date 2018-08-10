@@ -30,36 +30,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var configHooks map[string]ConfigHooksFactory
-
-type defaultFactory struct{}
-
-func (f *defaultFactory) CreateConfigHooks(config map[string]interface{}) ConfigHooks {
-	return &DefaultConfigHooks{}
-}
-
-func init() {
-	configHooks = map[string]ConfigHooksFactory{
-		"": &defaultFactory{}, //register default
-	}
-}
-
-// Register registers an extension.
-func Register(name string, factory ConfigHooksFactory) error {
-	if _, ok := configHooks[name]; ok {
-		return fmt.Errorf("%s extesions is already registered", name)
-	}
-	configHooks[name] = factory
-	return nil
-}
-
-func getFactory(name string) ConfigHooksFactory {
-	if factory, ok := configHooks[name]; ok {
-		return factory
-	}
-	return configHooks[""] //return default
-}
-
 type context struct {
 	matches     map[string]bool
 	listener    types.Listener

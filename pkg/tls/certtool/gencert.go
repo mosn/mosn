@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-// package util used for generate certificate for test/examples
+// Package certtool used for generate certificate for test/examples
 // By default, use CreateTemplate, GeneratePrivateKey, and SignCertificate, the certificates created in same process have same root ca
-package util
+package certtool
 
 import (
 	"bytes"
@@ -34,17 +34,15 @@ import (
 	"time"
 )
 
-// Certificate contains x509 certificate information.
-type Certificate struct {
-	CertPem string
-	KeyPem  string
-	cert    *x509.Certificate
-	priv    interface{}
+type certificate struct {
+	*CertificateInfo
+	cert *x509.Certificate
+	priv interface{}
 }
 
 // RootCA is created by Initialize().
 // Certificates are signed by RootCA.
-var rootCA *Certificate
+var rootCA *certificate
 
 // GeneratePrivateKey generate a private key for certificate
 // Parameter curve support "P224","P256","P384", "P521", "RSA".
@@ -138,8 +136,16 @@ func CreateTemplate(cn string, isca bool, dns []string) (*x509.Certificate, erro
 	return template, nil
 }
 
-// CreateCertificate makes a Certificate
-func CreateCertificate(template, parent *x509.Certificate, templatePriv, parentPriv interface{}) (*Certificate, error) {
+// CreateCertificateInfo makes a CertificateInfo
+func CreateCertificateInfo(template, parent *x509.Certificate, templatePriv, parentPriv interface{}) (*CertificateInfo, error) {
+	cert, err := createCertificate(template, parent, templatePriv, parentPriv)
+	if err != nil {
+		return nil, err
+	}
+	return cert.CertificateInfo, nil
+}
+
+func createCertificate(template, parent *x509.Certificate, templatePriv, parentPriv interface{}) (*certificate, error) {
 	der, err := x509.CreateCertificate(rand.Reader, template, parent, PublicKey(templatePriv), parentPriv)
 	if err != nil {
 		return nil, err
@@ -156,11 +162,13 @@ func CreateCertificate(template, parent *x509.Certificate, templatePriv, parentP
 	if err != nil {
 		return nil, err
 	}
-	return &Certificate{
-		CertPem: certPem,
-		KeyPem:  privPem,
-		cert:    cert,
-		priv:    templatePriv,
+	return &certificate{
+		CertificateInfo: &CertificateInfo{
+			CertPem: certPem,
+			KeyPem:  privPem,
+		},
+		cert: cert,
+		priv: templatePriv,
 	}, nil
 
 }
@@ -178,7 +186,7 @@ func Initialize() error {
 	if err != nil {
 		return err
 	}
-	cert, err := CreateCertificate(ca, ca, priv, priv)
+	cert, err := createCertificate(ca, ca, priv, priv)
 	if err != nil {
 		return err
 	}
@@ -186,25 +194,25 @@ func Initialize() error {
 	return nil
 }
 
-// GetRootCA returns the RootCA's clone
-func GetRootCA() *Certificate {
+// GetRootCA returns the RootCA's certificate info
+func GetRootCA() *CertificateInfo {
 	if rootCA == nil {
 		if err := Initialize(); err != nil {
 			return nil
 		}
 	}
-	return &Certificate{
+	return &CertificateInfo{
 		CertPem: rootCA.CertPem,
 		KeyPem:  rootCA.KeyPem,
 	}
 }
 
 // SignCertificate create a Certificate based on template, signed by RootCA
-func SignCertificate(template *x509.Certificate, priv interface{}) (*Certificate, error) {
+func SignCertificate(template *x509.Certificate, priv interface{}) (*CertificateInfo, error) {
 	if rootCA == nil {
 		if err := Initialize(); err != nil {
 			return nil, err
 		}
 	}
-	return CreateCertificate(template, rootCA.cert, priv, rootCA.priv)
+	return CreateCertificateInfo(template, rootCA.cert, priv, rootCA.priv)
 }

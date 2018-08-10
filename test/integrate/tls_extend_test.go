@@ -9,7 +9,7 @@ import (
 	"github.com/alipay/sofa-mosn/cmd/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	mosntls "github.com/alipay/sofa-mosn/pkg/tls"
-	"github.com/alipay/sofa-mosn/pkg/tls/util"
+	"github.com/alipay/sofa-mosn/pkg/tls/certtool"
 	testutil "github.com/alipay/sofa-mosn/test/util"
 )
 
@@ -68,17 +68,17 @@ func (f *tlsConfigHooksFactory) CreateConfigHooks(config map[string]interface{})
 
 func createCert() (tls.Certificate, error) {
 	var cert tls.Certificate
-	priv, err := util.GeneratePrivateKey("P256")
+	priv, err := certtool.GeneratePrivateKey("P256")
 	if err != nil {
 		return cert, err
 	}
-	tmpl, err := util.CreateTemplate("test", false, nil)
+	tmpl, err := certtool.CreateTemplate("test", false, nil)
 	if err != nil {
 		return cert, err
 	}
 	// No SAN
 	tmpl.IPAddresses = nil
-	c, err := util.SignCertificate(tmpl, priv)
+	c, err := certtool.SignCertificate(tmpl, priv)
 	if err != nil {
 		return cert, err
 	}
@@ -108,7 +108,7 @@ func (c *tlsExtendCase) Start(conf *testutil.ExtendVerifyConfig) {
 
 func TestTLSExtend(t *testing.T) {
 	// init extension
-	root := util.GetRootCA()
+	root := certtool.GetRootCA()
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM([]byte(root.CertPem))
 	cert, err := createCert()

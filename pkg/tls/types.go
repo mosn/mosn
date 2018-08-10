@@ -21,9 +21,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"fmt"
-	"io/ioutil"
-	"strings"
 )
 
 // Support Protocols version
@@ -116,44 +113,5 @@ type ConfigHooksFactory interface {
 	CreateConfigHooks(config map[string]interface{}) ConfigHooks
 }
 
-type DefaultConfigHooks struct{}
-
+// ErrorNoCertConfigure represents config has no certificate
 var ErrorNoCertConfigure = errors.New("no certificate config")
-
-// GetCertificate returns certificate if the index is cert/key file or pem string
-func (hook *DefaultConfigHooks) GetCertificate(certIndex, keyIndex string) (tls.Certificate, error) {
-	if certIndex == "" || keyIndex == "" {
-		return tls.Certificate{}, ErrorNoCertConfigure
-	}
-	if strings.Contains(certIndex, "-----BEGIN") && strings.Contains(keyIndex, "-----BEGIN") {
-		return tls.X509KeyPair([]byte(certIndex), []byte(keyIndex))
-	}
-	return tls.LoadX509KeyPair(certIndex, keyIndex)
-}
-
-// GetX509Pool returns a CertPool with index's file or pem srting
-func (hook *DefaultConfigHooks) GetX509Pool(caIndex string) (*x509.CertPool, error) {
-	if caIndex == "" {
-		return nil, nil
-	}
-	var caBytes []byte
-	var err error
-	if strings.Contains(caIndex, "-----BEGIN") {
-		caBytes = []byte(caIndex)
-	} else {
-		caBytes, err = ioutil.ReadFile(caIndex)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("load ca certificate error: %v", err)
-	}
-	pool := x509.NewCertPool()
-	if ok := pool.AppendCertsFromPEM(caBytes); !ok {
-		return nil, fmt.Errorf("load ca certificate error: no certificate")
-	}
-	return pool, nil
-}
-
-// VerifyPeerCertificate returns a nil function, which means use standard tls verification
-func (hook *DefaultConfigHooks) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	return nil
-}
