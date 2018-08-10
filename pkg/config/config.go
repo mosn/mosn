@@ -172,16 +172,14 @@ type ListenerConfig struct {
 	Name          string         `json:"name,omitempty"`
 	Address       string         `json:"address,omitempty"`
 	BindToPort    bool           `json:"bind_port"`
+	Inspector     bool           `json:"inspector,omitempty"`
 	FilterChains  []FilterChain  `json:"filter_chains"`
 	StreamFilters []FilterConfig `json:"stream_filters,omitempty"`
-
 	//logger
 	LogPath  string `json:"log_path,omitempty"`
 	LogLevel string `json:"log_level,omitempty"`
-
 	//HandOffRestoredDestinationConnections
 	HandOffRestoredDestinationConnections bool `json:"handoff_restoreddestination"`
-
 	//access log
 	AccessLogs []AccessLogConfig `json:"access_logs,omitempty"`
 }
@@ -189,20 +187,21 @@ type ListenerConfig struct {
 // TLSConfig
 // Status is the switch to use tls or not
 type TLSConfig struct {
-	Status       bool   `json:"status,omitempty"`
-	Inspector    bool   `json:"inspector,omitempty"`
-	ServerName   string `json:"server_name,omitempty"`
-	CACert       string `json:"ca_cert,omitempty"`
-	CertChain    string `json:"cert_chain,omitempty"`
-	PrivateKey   string `json:"private_key,omitempty"`
-	VerifyClient bool   `json:"verify_client,omitempty"`
-	VerifyServer bool   `json:"verify_server,omitempty"`
-	CipherSuites string `json:"cipher_suites,omitempty"`
-	EcdhCurves   string `json:"ecdh_curves,omitempty"`
-	MinVersion   string `json:"min_version,omitempty"`
-	MaxVersion   string `json:"max_version,omitempty"`
-	ALPN         string `json:"alpn,omitempty"`
-	Ticket       string `json:"ticket,omitempty"`
+	Status       bool                   `json:"status,omitempty"`
+	Type         string                 `json:"type,omitempty"`
+	ServerName   string                 `json:"server_name,omitempty"`
+	CACert       string                 `json:"ca_cert,omitempty"`
+	CertChain    string                 `json:"cert_chain,omitempty"`
+	PrivateKey   string                 `json:"private_key,omitempty"`
+	VerifyClient bool                   `json:"verify_client,omitempty"`
+	InsecureSkip bool                   `json:"insecure_skip,omitempty"`
+	CipherSuites string                 `json:"cipher_suites,omitempty"`
+	EcdhCurves   string                 `json:"ecdh_curves,omitempty"`
+	MinVersion   string                 `json:"min_version,omitempty"`
+	MaxVersion   string                 `json:"max_version,omitempty"`
+	ALPN         string                 `json:"alpn,omitempty"`
+	Ticket       string                 `json:"ticket,omitempty"`
+	ExtendVerify map[string]interface{} `json:"extend_verify, omitempty"`
 }
 
 // ServerConfig for making up server for mosn

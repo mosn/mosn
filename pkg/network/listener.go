@@ -60,7 +60,11 @@ func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 		l.rawl = lc.InheritListener
 	}
 
-	l.tlsMng = tls.NewTLSServerContextManager(lc.FilterChains, l, logger)
+	mgr, err := tls.NewTLSServerContextManager(lc, l, logger)
+	if err != nil {
+		logger.Fatalf("create tls context manager failed, %v", err)
+	}
+	l.tlsMng = mgr
 
 	return l
 }
