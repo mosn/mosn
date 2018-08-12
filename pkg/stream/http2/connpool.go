@@ -24,6 +24,7 @@ import (
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"golang.org/x/net/http2"
@@ -33,6 +34,11 @@ const (
 	// H2 conn key in context
 	H2ConnKey = "h2_conn"
 )
+
+func init() {
+	proxy.RegisterNewPoolFactory(protocol.HTTP2, NewConnPool)
+	types.RegisterConnPoolFactory(protocol.HTTP2, true)
+}
 
 // types.ConnectionPool
 type connPool struct {
