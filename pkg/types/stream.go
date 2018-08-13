@@ -96,7 +96,7 @@ const (
 
 // Stream is a generic protocol stream, it is the core model in stream layer
 type Stream interface {
-	// AddEventListener adds tream event listener
+	// AddEventListener adds stream event listener
 	AddEventListener(streamEventListener StreamEventListener)
 
 	// RemoveEventListener removes stream event listener
@@ -172,7 +172,7 @@ type ServerStreamConnection interface {
 	StreamConnection
 }
 
-// ClientStreamConnection is a lient side stream connection.
+// ClientStreamConnection is a client side stream connection.
 type ClientStreamConnection interface {
 	StreamConnection
 
@@ -214,7 +214,7 @@ type StreamFilterCallbacks interface {
 	// StreamID returns stream id
 	StreamID() string
 
-	// RequestInfo returnds request info related to the stream
+	// RequestInfo returns request info related to the stream
 	RequestInfo() RequestInfo
 }
 

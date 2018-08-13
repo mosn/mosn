@@ -418,7 +418,7 @@ func (s *serverStream) ReadDisable(disable bool) {
 }
 
 func (s *serverStream) doSend() {
-	// fasthttp will automaticlly flush headers and body
+	// fasthttp will automatically flush headers and body
 }
 
 func (s *serverStream) handleRequest() {
