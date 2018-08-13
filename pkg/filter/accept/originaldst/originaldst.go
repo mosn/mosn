@@ -55,7 +55,7 @@ func (filter *originalDst) OnAccept(cb types.ListenerFilterCallbacks) types.Filt
 
 	__tl.Print("ips:", ips)
 
-	cb.SetOrigingalAddr(ips, port)
+	cb.SetOriginalAddr(ips, port)
 
 	return types.Continue
 }
