@@ -22,6 +22,7 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
+// downstream stats key
 const (
 	DownstreamConnectionTotal   = "downstream_connection_total"
 	DownstreamConnectionDestroy = "downstream_connection_destroy"

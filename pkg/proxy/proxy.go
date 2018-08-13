@@ -38,7 +38,7 @@ var (
 	activeStreamPool    types.ObjectBufferPool
 	globalStats         *proxyStats
 
-	workerPool       mosnsync.ShardWorkerPool
+	workerPool mosnsync.ShardWorkerPool
 )
 
 func init() {
@@ -88,6 +88,7 @@ type proxy struct {
 	bytesBufferPool *buffer.SlabPool
 }
 
+// NewProxy create proxy instance for given v2.Proxy config
 func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
 	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecMapPool, codecHeadersBufPool)
 

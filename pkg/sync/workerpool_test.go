@@ -1,11 +1,12 @@
 package sync
 
 import (
-	"testing"
 	"runtime"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"sync/atomic"
 	"sync"
+	"sync/atomic"
+	"testing"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 type TestJob struct {
@@ -53,7 +54,7 @@ func TestJobOrder(t *testing.T) {
 
 	// multi goroutine offer is not guaranteed FIFO order, because race condition may happen in Offer method
 	// so we let the producer and consumer to be one-to-one relation.
-	for i := 0; i < shardsNum; i ++ {
+	for i := 0; i < shardsNum; i++ {
 		wg.Add(1)
 		counter := uint32(i)
 		go func() {
@@ -101,7 +102,7 @@ func eventProcess(b *testing.B) {
 
 	// multi goroutine offer is not guaranteed FIFO order, because race condition may happen in Offer method
 	// so we let the producer and consumer to be one-to-one relation.
-	for i := 0; i < shardsNum; i ++ {
+	for i := 0; i < shardsNum; i++ {
 		wg.Add(1)
 		counter := uint32(i)
 		go func() {
@@ -117,7 +118,7 @@ func eventProcess(b *testing.B) {
 func BenchmarkShardWorkerPool(b *testing.B) {
 	log.InitDefaultLogger("stdout", log.ERROR)
 
-	for i := 0; i < b.N; i ++ {
+	for i := 0; i < b.N; i++ {
 		eventProcess(b)
 	}
 }
@@ -160,7 +161,7 @@ func MakeInfinite() (chan<- interface{}, <-chan interface{}) {
 	return in, out
 }
 
-func eventProcessWithUnboundedChannel(b *testing.B){
+func eventProcessWithUnboundedChannel(b *testing.B) {
 	shardEvents := 512
 	wg := sync.WaitGroup{}
 
@@ -192,7 +193,7 @@ func eventProcessWithUnboundedChannel(b *testing.B){
 
 	// multi goroutine offer is not guaranteed FIFO order, because race condition may happen in Offer method
 	// so we let the producer and consumer to be one-to-one relation.
-	for i := 0; i < shardsNum; i ++ {
+	for i := 0; i < shardsNum; i++ {
 		wg.Add(1)
 		counter := uint32(i)
 		in, out := MakeInfinite()
@@ -213,7 +214,7 @@ func eventProcessWithUnboundedChannel(b *testing.B){
 func BenchmarkUnboundChannel(b *testing.B) {
 	log.InitDefaultLogger("stdout", log.ERROR)
 
-	for i := 0; i < b.N; i ++ {
+	for i := 0; i < b.N; i++ {
 		eventProcessWithUnboundedChannel(b)
 	}
 }

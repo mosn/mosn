@@ -24,6 +24,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// stream direction
 const (
 	Downstream = 1
 	Upstream   = 2
