@@ -38,7 +38,7 @@ var (
 	activeStreamPool    types.ObjectBufferPool
 	globalStats         *proxyStats
 
-	workerPool       mosnsync.ShardWorkerPool
+	workerPool mosnsync.ShardWorkerPool
 )
 
 func init() {
@@ -48,8 +48,8 @@ func init() {
 
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
-	// use 512 as chan buffer length
-	poolSize := shardsNum * 512
+	// use 4096 as chan buffer length
+	poolSize := shardsNum * 4096
 
 	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
 	workerPool.Init()
@@ -88,6 +88,7 @@ type proxy struct {
 	bytesBufferPool *buffer.SlabPool
 }
 
+// NewProxy create proxy instance for given v2.Proxy config
 func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
 	ctx = context.WithValue(ctx, types.ContextKeyConnectionCodecMapPool, codecHeadersBufPool)
 

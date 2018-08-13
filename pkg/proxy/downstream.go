@@ -202,25 +202,22 @@ func (s *downStream) shouldDeleteStream() bool {
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
+	// set downstreamReset flag before real reset logic
+	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
+		return
+	}
+
 	workerPool.Offer(&resetEvent{
-		controlEvent: controlEvent{
-			streamEvent: streamEvent{
-				direction: Downstream,
-				streamID:  s.streamID,
-				stream:    s,
-			},
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamID:  s.streamID,
+			stream:    s,
 		},
 		reason: reason,
 	})
 }
 
-// types.StreamEventListener
-// Called by stream layer normally
 func (s *downStream) ResetStream(reason types.StreamResetReason) {
-	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
-		return
-	}
-
 	s.proxy.stats.DownstreamRequestReset().Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
 	s.cleanStream()
@@ -229,12 +226,10 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 // types.StreamReceiver
 func (s *downStream) OnReceiveHeaders(headers map[string]string, endStream bool) {
 	workerPool.Offer(&receiveHeadersEvent{
-		normalEvent: normalEvent{
-			streamEvent: streamEvent{
-				direction: Downstream,
-				streamID:  s.streamID,
-				stream:    s,
-			},
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamID:  s.streamID,
+			stream:    s,
 		},
 		headers:   headers,
 		endStream: endStream,
@@ -307,12 +302,10 @@ func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
 	s.downstreamReqDataBuf = s.proxy.bytesBufferPool.Clone(data)
 
 	workerPool.Offer(&receiveDataEvent{
-		normalEvent: normalEvent{
-			streamEvent: streamEvent{
-				direction: Downstream,
-				streamID:  s.streamID,
-				stream:    s,
-			},
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamID:  s.streamID,
+			stream:    s,
 		},
 		data:      s.downstreamReqDataBuf,
 		endStream: endStream,
@@ -352,12 +345,10 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 
 func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
 	workerPool.Offer(&receiveTrailerEvent{
-		normalEvent: normalEvent{
-			streamEvent: streamEvent{
-				direction: Downstream,
-				streamID:  s.streamID,
-				stream:    s,
-			},
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamID:  s.streamID,
+			stream:    s,
 		},
 		trailers: trailers,
 	})
@@ -849,24 +840,20 @@ func (s *downStream) startEventProcess() {
 	// offer start event so that there is no lock contention on the streamPrcessMap[shard]
 	// all read/write operation should be abled to trace back to the ShardWorkerPool goroutine
 	workerPool.Offer(&startEvent{
-		controlEvent: controlEvent{
-			streamEvent: streamEvent{
-				direction: Downstream,
-				streamID:  s.streamID,
-				stream:    s,
-			},
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamID:  s.streamID,
+			stream:    s,
 		},
 	})
 }
 
 func (s *downStream) stopEventProcess() {
 	workerPool.Offer(&stopEvent{
-		controlEvent: controlEvent{
-			streamEvent: streamEvent{
-				direction: Downstream,
-				streamID:  s.streamID,
-				stream:    s,
-			},
+		streamEvent: streamEvent{
+			direction: Downstream,
+			streamID:  s.streamID,
+			stream:    s,
 		},
 	})
 }
