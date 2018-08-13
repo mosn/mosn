@@ -8,11 +8,6 @@ go:
 services:
   - docker
 
-# Run dep enuser to fix the vender issue, will be removed later.
-before_script:
-  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-  - dep ensure
-
 jobs:
   include:
     - stage: test
@@ -28,8 +23,6 @@ jobs:
 stages:
   - name: test
   - name: integrate
-# only run integrate test on master branch, triggered by cron daily cron job.
-    if: branch = master AND type = cron
   - name: build
 #    if: branch = master
 #  - name: deploy
