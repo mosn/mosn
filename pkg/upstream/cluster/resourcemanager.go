@@ -46,7 +46,7 @@ func NewResourceManager(circuitBreakers v2.CircuitBreakers) types.ResourceManage
 	maxRequests := DefaultMaxRequests
 	maxRetries := DefaultMaxRetries
 
-	// note: we dont support group cb by priority
+	// note: we don't support group cb by priority
 	if circuitBreakers.Thresholds != nil && len(circuitBreakers.Thresholds) > 0 {
 		maxConnections = uint64(circuitBreakers.Thresholds[0].MaxConnections)
 		maxPendingRequests = uint64(circuitBreakers.Thresholds[0].MaxPendingRequests)

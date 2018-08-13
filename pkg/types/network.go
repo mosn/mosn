@@ -22,9 +22,9 @@ import (
 	"io"
 	"net"
 
+	"crypto/tls"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
-	"crypto/tls"
 )
 
 //
@@ -67,7 +67,7 @@ import (
 //   |         |                   |       				|
 //   |        1|     1      *      |1          			|
 // 	 |	    Listener --------- Connection      			|
-//   |        1|      [accpet]     |1          			|
+//   |        1|      [accept]     |1          			|
 //	 |         |                   |-----------         |
 //   |        *|                   |*          |*       |
 //   |	 ListenerFilter       ReadFilter  WriteFilter   |
@@ -124,7 +124,7 @@ type TLSContextManager interface {
 // ListenerEventListener is a Callback invoked by a listener.
 type ListenerEventListener interface {
 	// OnAccept is called on new connection accepted
-	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr,  c chan Connection, buf []byte)
+	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan Connection, buf []byte)
 
 	// OnNewConnection is called on new mosn connection created
 	OnNewConnection(ctx context.Context, conn Connection)
@@ -154,8 +154,8 @@ type ListenerFilterCallbacks interface {
 
 	ContinueFilterChain(ctx context.Context, success bool)
 
-	// SetOrigingalAddr sets the original ip and port
-	SetOrigingalAddr(ip string, port int)
+	// SetOriginalAddr sets the original ip and port
+	SetOriginalAddr(ip string, port int)
 }
 
 // ListenerFilterManager manages the listener filter

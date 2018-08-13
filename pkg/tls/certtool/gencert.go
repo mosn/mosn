@@ -60,7 +60,7 @@ func GeneratePrivateKey(curve string) (priv interface{}, err error) {
 	case "P521":
 		priv, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	default:
-		err = errors.New("unsupport curve type")
+		err = errors.New("unsupported curve type")
 	}
 	return
 }

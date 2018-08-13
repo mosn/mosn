@@ -77,9 +77,9 @@ func (c *RPCClient) SendRequest() {
 	var headers interface{}
 	switch c.Protocol {
 	case Bolt1:
-		headers = BuildBoltV1Reuqest(ID)
+		headers = BuildBoltV1Request(ID)
 	case Bolt2:
-		headers = BuildBoltV2Reuqest(ID)
+		headers = BuildBoltV2Request(ID)
 	default:
 		c.t.Errorf("unsupport protocol")
 		return
@@ -108,7 +108,7 @@ func (c *RPCClient) OnReceiveHeaders(headers map[string]string, endStream bool) 
 	}
 }
 
-func BuildBoltV1Reuqest(requestID uint32) *sofarpc.BoltRequestCommand {
+func BuildBoltV1Request(requestID uint32) *sofarpc.BoltRequestCommand {
 	request := &sofarpc.BoltRequestCommand{
 		Protocol: sofarpc.PROTOCOL_CODE_V1,
 		CmdType:  sofarpc.REQUEST,
@@ -131,12 +131,12 @@ func BuildBoltV1Reuqest(requestID uint32) *sofarpc.BoltRequestCommand {
 	return request
 }
 
-func BuildBoltV2Reuqest(requestID uint32) *sofarpc.BoltV2RequestCommand {
+func BuildBoltV2Request(requestID uint32) *sofarpc.BoltV2RequestCommand {
 	//TODO:
 	return nil
 }
 
-func BuildBoltV1Resposne(req *sofarpc.BoltRequestCommand) *sofarpc.BoltResponseCommand {
+func BuildBoltV1Response(req *sofarpc.BoltRequestCommand) *sofarpc.BoltResponseCommand {
 	return &sofarpc.BoltResponseCommand{
 		Protocol:       req.Protocol,
 		CmdType:        sofarpc.RESPONSE,
@@ -149,7 +149,7 @@ func BuildBoltV1Resposne(req *sofarpc.BoltRequestCommand) *sofarpc.BoltResponseC
 		HeaderMap:      req.HeaderMap,
 	}
 }
-func BuildBoltV2Resposne(req *sofarpc.BoltV2RequestCommand) *sofarpc.BoltV2ResponseCommand {
+func BuildBoltV2Response(req *sofarpc.BoltV2RequestCommand) *sofarpc.BoltV2ResponseCommand {
 	//TODO:
 	return nil
 }
@@ -181,7 +181,7 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 			return nil, false
 		}
 		if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
-			resp := BuildBoltV1Resposne(req)
+			resp := BuildBoltV1Response(req)
 			iobufresp, err := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
 			if err != nil {
 				t.Errorf("Build response error: %v\n", err)

@@ -124,7 +124,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 
 func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 	if _, exists := p.protocolMaps[protocolCode]; exists {
-		log.DefaultLogger.Warnf("protocol alreay Exist:", protocolCode)
+		log.DefaultLogger.Warnf("protocol already Exist:", protocolCode)
 	} else {
 		p.protocolMaps[protocolCode] = protocol
 		log.StartLogger.Debugf("register protocol:%x", protocolCode)

@@ -838,7 +838,7 @@ func (s *downStream) DownstreamHeaders() map[string]string {
 
 func (s *downStream) startEventProcess() {
 	// offer start event so that there is no lock contention on the streamPrcessMap[shard]
-	// all read/write operation should be abled to trace back to the ShardWorkerPool goroutine
+	// all read/write operation should be able to trace back to the ShardWorkerPool goroutine
 	workerPool.Offer(&startEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,

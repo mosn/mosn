@@ -67,7 +67,7 @@ type HealthCheckSession interface {
 type HealthCheckHostMonitor interface {
 }
 
-// TODO: move facotry instance to a factory package
+// TODO: move factory instance to a factory package
 
 var HealthCheckFactoryInstance HealthCheckerFactory
 

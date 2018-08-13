@@ -140,7 +140,7 @@ type WeightedCluster struct {
 
 // ClusterWeight.
 // clusters along with weights that indicate the percentage
-// of traffic to be forwarded to each cluste
+// of traffic to be forwarded to each cluster
 type ClusterWeight struct {
 	Name          string   `json:"name"`
 	Weight        uint32   `json:"weight"`

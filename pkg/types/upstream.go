@@ -263,7 +263,7 @@ type ClusterInfo interface {
 	LBInstance() LoadBalancer
 }
 
-// ResourceManager manages differenet types of Resource
+// ResourceManager manages different types of Resource
 type ResourceManager interface {
 	// Connections resource to count connections in pool. Only used by protocol which has a connection pool which has multiple connections.
 	Connections() Resource
@@ -373,16 +373,16 @@ func InitSet(input []string) SortedStringSetType {
 	var keys []string
 
 	for _, keyInput := range input {
-		exsit := false
+		exist := false
 
 		for _, keyIn := range keys {
 			if keyIn == keyInput {
-				exsit = true
+				exist = true
 				break
 			}
 		}
 
-		if !exsit {
+		if !exist {
 			keys = append(keys, keyInput)
 		}
 	}
@@ -448,7 +448,7 @@ func init() {
 
 var ConnPoolFactories map[Protocol]bool
 
-func RegisterConnPoolFactory(protocol Protocol, registed bool) {
+func RegisterConnPoolFactory(protocol Protocol, registered bool) {
 	//other
-	ConnPoolFactories[protocol] = registed
+	ConnPoolFactories[protocol] = registered
 }

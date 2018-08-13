@@ -305,7 +305,7 @@ func (mgr *contextManager) Conn(c net.Conn) net.Conn {
 	if !mgr.inspector {
 		return tls.Server(c, mgr.Config())
 	}
-	// do insepctor
+	// do inspector
 	tlsconn := &conn{
 		Conn: c,
 	}

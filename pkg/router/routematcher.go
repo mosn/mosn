@@ -17,7 +17,7 @@
 
 // Package router, VirtualHost Config rules:
 // 1. A VirtualHost should have one or more Domains, or it will be ignore
-// 2. A VritualHost has a group of Router (Routers), the first successful matched is used. Notice that the order of router
+// 2. A VirtualHost has a group of Router (Routers), the first successful matched is used. Notice that the order of router
 // 3. priority: domain > '*' > wildcard-domain
 
 // From https://www.envoyproxy.io/docs/envoy/latest/api-v1/route_config/vhost

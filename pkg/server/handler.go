@@ -374,7 +374,7 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 	}
 }
 
-func (arc *activeRawConn) SetOrigingalAddr(ip string, port int) {
+func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	arc.originalDstIP = ip
 	arc.originalDstPort = port
 	arc.oriRemoteAddr, _ = net.ResolveTCPAddr("", ip+":"+strconv.Itoa(port))

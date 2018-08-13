@@ -30,11 +30,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-
 var streamIDXprotocolCount uint32
 
 // StreamDirection 1: server stream 0: client stream
 type StreamDirection int
+
 const (
 	//ServerStream xprotocol as downstream
 	ServerStream StreamDirection = 1
@@ -153,7 +153,7 @@ func (conn *streamConnection) NewStream(streamID string, responseDecoder types.S
 func (conn *streamConnection) OnReceiveHeaders(streamID string, headers map[string]string) types.FilterStatus {
 	log.StartLogger.Tracef("xprotocol stream on decode header")
 	if conn.serverCallbacks != nil {
-		log.StartLogger.Tracef("xprotocol stream on new stream deteced invoked")
+		log.StartLogger.Tracef("xprotocol stream on new stream detected invoked")
 		conn.onNewStreamDetected(streamID, headers)
 	}
 	if stream, ok := conn.activeStream.Get(streamID); ok {
