@@ -45,13 +45,9 @@ type ClusterManager interface {
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
-	HTTPConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
-
-	XprotocolConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
-
 	TCPConnForCluster(balancerContext LoadBalancerContext, cluster string) CreateConnectionData
 
-	SofaRPCConnPoolForCluster(balancerContext LoadBalancerContext, cluster string) ConnectionPool
+	ConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
 
 	RemovePrimaryCluster(cluster string) bool
 
@@ -444,4 +440,15 @@ func InitSortedMap(input map[string]string) SortedMap {
 type SortedPair struct {
 	Key   string
 	Value string
+}
+
+func init() {
+	ConnPoolFactories = make(map[Protocol]bool)
+}
+
+var ConnPoolFactories map[Protocol]bool
+
+func RegisterConnPoolFactory(protocol Protocol, registed bool) {
+	//other
+	ConnPoolFactories[protocol] = registed
 }

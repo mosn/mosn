@@ -62,6 +62,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 		Name:                                  xdsListener.GetName(),
 		Addr:                                  convertAddress(&xdsListener.Address),
 		BindToPort:                            convertBindToPort(xdsListener.GetDeprecatedV1()),
+		Inspector:                             true,
 		PerConnBufferLimitBytes:               xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 		HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
 		AccessLogs:                            convertAccessLogs(xdsListener),
@@ -729,6 +730,5 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	}
 
 	config.Status = true
-	config.Inspector = true
 	return config
 }

@@ -132,6 +132,7 @@ type ListenerConfig struct {
 	AccessLogs                            []AccessLog
 	DisableConnIo                         bool          // only used in http2 case
 	FilterChains                          []FilterChain // FilterChains
+	Inspector                             bool          // TLS inspector
 }
 
 // AccessLog with log path and log format
@@ -144,19 +145,20 @@ type AccessLog struct {
 // TLSConfig
 type TLSConfig struct {
 	Status       bool
-	Inspector    bool
+	Type         string
 	ServerName   string
 	CACert       string
 	CertChain    string
 	PrivateKey   string
 	VerifyClient bool
-	VerifyServer bool
+	InsecureSkip bool
 	CipherSuites string
 	EcdhCurves   string
 	MinVersion   string
 	MaxVersion   string
 	ALPN         string
 	Ticket       string
+	ExtendVerify map[string]interface{}
 }
 
 // TCPRoute

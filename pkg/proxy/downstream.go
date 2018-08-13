@@ -29,7 +29,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -485,19 +484,9 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 	s.cluster = clusterSnapshot.ClusterInfo()
 	var connPool types.ConnectionPool
 
-	// todo: refactor
-	switch types.Protocol(s.proxy.config.UpstreamProtocol) {
-	case protocol.SofaRPC:
-		connPool = s.proxy.clusterManager.SofaRPCConnPoolForCluster(lbCtx, clusterName)
-	case protocol.HTTP2:
-		connPool = s.proxy.clusterManager.HTTPConnPoolForCluster(lbCtx, clusterName, protocol.HTTP2)
-	case protocol.HTTP1:
-		connPool = s.proxy.clusterManager.HTTPConnPoolForCluster(lbCtx, clusterName, protocol.HTTP1)
-	case protocol.Xprotocol:
-		connPool = s.proxy.clusterManager.XprotocolConnPoolForCluster(nil, clusterName, protocol.Xprotocol)
-	default:
-		connPool = s.proxy.clusterManager.HTTPConnPoolForCluster(lbCtx, clusterName, protocol.HTTP2)
-	}
+	currentProtocol := types.Protocol(s.proxy.config.UpstreamProtocol)
+
+	connPool = s.proxy.clusterManager.ConnPoolForCluster(lbCtx, clusterName, currentProtocol)
 
 	if connPool == nil {
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)

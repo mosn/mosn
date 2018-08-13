@@ -22,9 +22,16 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
+
+func init() {
+	proxy.RegisterNewPoolFactory(protocol.SofaRPC, NewConnPool)
+	types.RegisterConnPoolFactory(protocol.SofaRPC, true)
+
+}
 
 // types.ConnectionPool
 // activeClient used as connected client
@@ -46,7 +53,6 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 func (p *connPool) Protocol() types.Protocol {
 	return protocol.SofaRPC
 }
-
 
 func (p *connPool) NewStream(context context.Context, streamID string,
 	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {

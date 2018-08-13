@@ -15,24 +15,40 @@
  * limitations under the License.
  */
 
-package protocol
+package tls
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"fmt"
 )
 
-// Protocol type definition
-const (
-	SofaRPC   types.Protocol = "SofaRpc"
-	HTTP1     types.Protocol = "Http1"
-	HTTP2     types.Protocol = "Http2"
-	Xprotocol types.Protocol = "X"
-)
+const defaultFactoryName = ""
 
-// Host key for routing in MOSN Header
-const (
-	MosnHeaderHostKey        = "host"
-	MosnHeaderPathKey        = "path"
-	MosnHeaderQueryStringKey = "querystring"
-	MosnHeaderMethod         = "method"
-)
+var factories map[string]ConfigHooksFactory
+
+func init() {
+	factories = map[string]ConfigHooksFactory{
+		defaultFactoryName: &defaultFactory{},
+	}
+}
+
+// Register registers an extension.
+func Register(name string, factory ConfigHooksFactory) error {
+	if _, ok := factories[name]; ok {
+		return fmt.Errorf("%s extesions is already registered", name)
+	}
+	factories[name] = factory
+	return nil
+}
+
+func getFactory(name string) ConfigHooksFactory {
+	if factory, ok := factories[name]; ok {
+		return factory
+	}
+	return factories[defaultFactoryName]
+}
+
+type defaultFactory struct{}
+
+func (f *defaultFactory) CreateConfigHooks(config map[string]interface{}) ConfigHooks {
+	return &defaultConfigHooks{}
+}

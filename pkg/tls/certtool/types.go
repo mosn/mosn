@@ -15,24 +15,10 @@
  * limitations under the License.
  */
 
-package protocol
+package certtool
 
-import (
-	"github.com/alipay/sofa-mosn/pkg/types"
-)
-
-// Protocol type definition
-const (
-	SofaRPC   types.Protocol = "SofaRpc"
-	HTTP1     types.Protocol = "Http1"
-	HTTP2     types.Protocol = "Http2"
-	Xprotocol types.Protocol = "X"
-)
-
-// Host key for routing in MOSN Header
-const (
-	MosnHeaderHostKey        = "host"
-	MosnHeaderPathKey        = "path"
-	MosnHeaderQueryStringKey = "querystring"
-	MosnHeaderMethod         = "method"
-)
+// CertificateInfo contains x509 certificate information.
+type CertificateInfo struct {
+	CertPem string
+	KeyPem  string
+}
