@@ -32,6 +32,10 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/xds"
 	_"github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	"github.com/urfave/cli"
+	_"github.com/alipay/sofa-mosn/pkg/stream/http"
+	_"github.com/alipay/sofa-mosn/pkg/stream/http2"
+	_"github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
+	
 )
 
 func main() {
