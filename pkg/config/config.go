@@ -134,7 +134,7 @@ type RouteAction struct {
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
 type WeightedCluster struct {
-	Clusters         ClusterWeight `json:"clusters`
+	Clusters         ClusterWeight `json:"clusters"`
 	RuntimeKeyPrefix string        `json:"runtime_key_prefix"` // not used currently
 }
 
