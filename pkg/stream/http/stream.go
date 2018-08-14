@@ -82,7 +82,7 @@ func (conn *streamConnection) GoAway() {
 	// todo
 }
 
-// since we use fasthttp client, which already implements the conn-pool feature and manage the connnections itself
+// since we use fasthttp client, which already implements the conn-pool feature and manage the connections itself
 // there is no need to do the connection management. so http/1.x stream only wrap the progress for constructing request/response
 // and have no aware of the connection it would use
 
@@ -418,7 +418,7 @@ func (s *serverStream) ReadDisable(disable bool) {
 }
 
 func (s *serverStream) doSend() {
-	// fasthttp will automaticlly flush headers and body
+	// fasthttp will automatically flush headers and body
 }
 
 func (s *serverStream) handleRequest() {

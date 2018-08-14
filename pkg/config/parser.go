@@ -117,11 +117,11 @@ func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 	if data, err := json.Marshal(c.Config); err == nil {
 		json.Unmarshal(data, &proxyConfig)
 	} else {
-		log.StartLogger.Fatal("Parsing Proxy Network Fitler Error")
+		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
 	}
 
 	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
-		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Fitler")
+		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Filter")
 	} else if _, ok := protocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
 		log.StartLogger.Fatal("Invalid Downstream Protocol = ", proxyConfig.DownstreamProtocol)
 	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
@@ -638,8 +638,8 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 		if c.LBSubsetConfig.FallBackPolicy > 2 {
 			log.StartLogger.Panic("lb subset config 's fall back policy set error. " +
 				"For 0, represent NO_FALLBACK" +
-				"For 1, reprenst ANY_ENDPOINT" +
-				"For 2, reprenst DEFAULT_SUBSET")
+				"For 1, represent ANY_ENDPOINT" +
+				"For 2, represent DEFAULT_SUBSET")
 		}
 
 		//v2.Cluster
@@ -697,7 +697,7 @@ func parseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
 			ServiceName:        c.ServiceName,
 		}
 	} else {
-		log.StartLogger.Fatal("unsuppoted health check protocol:", c.Protocol)
+		log.StartLogger.Fatal("unsupported health check protocol:", c.Protocol)
 	}
 
 	return healthcheckInstance

@@ -68,7 +68,7 @@ func (c *XDSConfig) loadADSConfig(dynamicResources *bootstrap.Bootstrap_DynamicR
 func (c *XDSConfig) getAPISourceEndpoint(source *core.ApiConfigSource) (*ADSConfig, error) {
 	config := &ADSConfig{}
 	if source.ApiType != core.ApiConfigSource_GRPC {
-		log.DefaultLogger.Errorf("unsupport api type: %v", source.ApiType)
+		log.DefaultLogger.Errorf("unsupported api type: %v", source.ApiType)
 		err := errors.New("only support GRPC api type yet")
 		return nil, err
 	}

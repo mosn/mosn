@@ -51,7 +51,7 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 					break
 				}
 				if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
-					resp := buildBoltV1Resposne(req)
+					resp := buildBoltV1Response(req)
 					iobufresp, err := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
 					if err != nil {
 						fmt.Printf("[RPC Server] build response error: %v\n", err)
@@ -66,7 +66,7 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 	}
 }
 
-func buildBoltV1Resposne(req *sofarpc.BoltRequestCommand) *sofarpc.BoltResponseCommand {
+func buildBoltV1Response(req *sofarpc.BoltRequestCommand) *sofarpc.BoltResponseCommand {
 	return &sofarpc.BoltResponseCommand{
 		Protocol:       req.Protocol,
 		CmdType:        sofarpc.RESPONSE,

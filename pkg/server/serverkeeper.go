@@ -176,7 +176,7 @@ func reconfigure() {
 	// Stop accepting requests
 	StopAccept()
 
-	// Wait for all conections to be finished
+	// Wait for all connections to be finished
 	WaitConnectionsDone(GracefulTimeout)
 	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
 

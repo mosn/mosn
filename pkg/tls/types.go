@@ -103,7 +103,7 @@ type ConfigHooks interface {
 	// VerifyPeerCertificate returns a "VerifyPeerCertificate" defined in tls.Config.
 	// If it is returns nil, the normal certificate verification will be used.
 	// Notice that we set tls.Config.InsecureSkipVerify to make sure the "VerifyPeerCertificate" is called,
-	// so an implement of "VerifyPeerCertificate" should verify the trusted ca if neccessary.
+	// so an implement of "VerifyPeerCertificate" should verify the trusted ca if necessary.
 	// If TLSConfig.InsecureSkip is true, the "VerifyPeerCertificate" will be ignored.
 	VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 }

@@ -48,7 +48,7 @@ func (c *ClientV2) reqEndpoints(streamClient ads.AggregatedDiscoveryService_Stre
 	return nil
 }
 
-func (c *ClientV2) handleEndpointesResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.ClusterLoadAssignment {
+func (c *ClientV2) handleEndpointsResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.ClusterLoadAssignment {
 	lbAssignments := make([]*envoy_api_v2.ClusterLoadAssignment, 0)
 	for _, res := range resp.Resources {
 		lbAssignment := envoy_api_v2.ClusterLoadAssignment{}

@@ -78,7 +78,7 @@ func (h *boltCommandHandler) HandleCommand(context context.Context, msg interfac
 
 func (h *boltCommandHandler) RegisterProcessor(cmdCode int16, processor *sofarpc.RemotingProcessor) {
 	if _, exists := h.processors[cmdCode]; exists {
-		log.DefaultLogger.Warnf("bolt cmd handler [%x] alreay exist:", cmdCode)
+		log.DefaultLogger.Warnf("bolt cmd handler [%x] already exist:", cmdCode)
 	} else {
 		h.processors[cmdCode] = *processor
 	}

@@ -47,6 +47,6 @@ func CreateStreamFilterChainFactory(filterType string, config map[string]interfa
 		return sfcf
 	}
 
-	log.StartLogger.Fatalln("unsupport stream filter type: ", filterType)
+	log.StartLogger.Fatalln("unsupported stream filter type: ", filterType)
 	return nil
 }

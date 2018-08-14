@@ -346,7 +346,7 @@ func (s *clientStream) doSend() {
 			if err == io.EOF {
 				s.connection.connection.Close(types.NoFlush, types.RemoteClose)
 			} else if err.Error() == "http2: client conn is closed" {
-				// we dont use mosn io impl, so get connection state from golang h2 io read/write loop
+				// we don't use mosn io impl, so get connection state from golang h2 io read/write loop
 				s.connection.connection.Close(types.NoFlush, types.LocalClose)
 			} else if err.Error() == "http2: client conn not usable" {
 				// raise overflow event to let conn pool taking action
@@ -590,13 +590,13 @@ func (rc *IoBufferReadCloser) Close() error {
 
 // GET /rest/1.0/file?fields=P_G&bz=test
 // return path and query string
-func parsePathFromURI(reuestURI string) (string, string) {
+func parsePathFromURI(requestURI string) (string, string) {
 
-	if "" == reuestURI {
+	if "" == requestURI {
 		return "", ""
 	}
 
-	queryMaps := strings.Split(reuestURI, "?")
+	queryMaps := strings.Split(requestURI, "?")
 	if len(queryMaps) > 1 {
 		return queryMaps[0], queryMaps[1]
 	}

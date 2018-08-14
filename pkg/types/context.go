@@ -39,6 +39,6 @@ const (
 )
 
 const (
-	// GlobalStatsNamespace is the stats namesapce
+	// GlobalStatsNamespace is the stats namespace
 	GlobalStatsNamespace = ""
 )

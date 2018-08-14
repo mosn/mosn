@@ -92,15 +92,15 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
 				err := adsClient.MosnConfig.OnUpdateClusters(clusters)
 				if err != nil {
-						log.DefaultLogger.Fatalf("failed to update clusters")
-						return
+					log.DefaultLogger.Fatalf("failed to update clusters")
+					return
+				}
+				log.DefaultLogger.Infof("update clusters success")
+				clusterNames := make([]string, 0)
+				for _, cluster := range clusters {
+					if cluster.Type == envoy_api_v2.Cluster_EDS {
+						clusterNames = append(clusterNames, cluster.Name)
 					}
-					log.DefaultLogger.Infof("update clusters success")
-					clusterNames := make([]string, 0)
-					for _, cluster := range clusters {
-						if cluster.Type == envoy_api_v2.Cluster_EDS {
-							clusterNames = append(clusterNames, cluster.Name)
-						}
 				}
 				log.DefaultLogger.Tracef("send thread request eds")
 				err = adsClient.V2Client.reqEndpoints(adsClient.StreamClient, clusterNames)
@@ -109,7 +109,7 @@ func (adsClient *ADSClient) receiveThread() {
 				}
 			} else if typeURL == "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment" {
 				log.DefaultLogger.Tracef("get eds resp,handle it ")
-				endpoints := adsClient.V2Client.handleEndpointesResp(resp)
+				endpoints := adsClient.V2Client.handleEndpointsResp(resp)
 				log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
 				err = adsClient.MosnConfig.OnUpdateEndpoints(endpoints)
 				if err != nil {

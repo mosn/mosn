@@ -230,7 +230,7 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 					}
 				}
 			} else {
-				log.DefaultLogger.Errorf("unsupport filter config type, filter name: %s", xdsFilter.GetName())
+				log.DefaultLogger.Errorf("unsupported filter config type, filter name: %s", xdsFilter.GetName())
 			}
 		}
 	}
@@ -305,7 +305,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		return structs.Map(proxyConfig)
 	}
 
-	log.DefaultLogger.Errorf("unsupport filter config, filter name: %s", name)
+	log.DefaultLogger.Errorf("unsupported filter config, filter name: %s", name)
 	return nil
 }
 
@@ -352,7 +352,7 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 			}
 			routes = append(routes, route)
 		} else {
-			log.DefaultLogger.Errorf("unsupport route actin, just Route and Redirect support yet, ignore this route")
+			log.DefaultLogger.Errorf("unsupported route actin, just Route and Redirect support yet, ignore this route")
 			continue
 		}
 	}
@@ -527,7 +527,7 @@ func convertClusterType(xdsClusterType xdsapi.Cluster_DiscoveryType) v2.ClusterT
 		return v2.EDS_CLUSTER
 	case xdsapi.Cluster_ORIGINAL_DST:
 	}
-	//log.DefaultLogger.Fatalf("unsupported cluster type: %s, exchage to SIMPLE_CLUSTER", xdsClusterType.String())
+	//log.DefaultLogger.Fatalf("unsupported cluster type: %s, exchange to SIMPLE_CLUSTER", xdsClusterType.String())
 	return v2.SIMPLE_CLUSTER
 }
 
