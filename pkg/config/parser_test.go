@@ -192,10 +192,10 @@ func TestParseProxyFilterJSONFile(t *testing.T) {
                   }`
 
 	json.Unmarshal([]byte(filterchanStr), &proxy)
-	
+
 	if proxy.Name != "proxy_config" || len(proxy.VirtualHosts) != 1 ||
 		proxy.VirtualHosts[0].Name != "sofa" {
-			t.Errorf("TestParseProxyFilterJSON Failure")
+		t.Errorf("TestParseProxyFilterJSON Failure")
 	}
 }
 
@@ -216,5 +216,83 @@ func TestParseTlsJsonFile(t *testing.T) {
 	json.Unmarshal([]byte(test), &tlscon)
 	if tlscon.ServerName != "hello.com" {
 		t.Errorf("TestTlsParse failure, want hello.com but got %s", tlscon.ServerName)
+	}
+}
+
+func Test_parseRouters(t *testing.T) {
+
+	Router := []Router{
+		{
+			Route: RouteAction{
+				TotalClusterWeight: 100,
+				WeightedClusters: []WeightedCluster{
+					{
+						Cluster: ClusterWeight{
+							Name:   "c1",
+							Weight: 90,
+						},
+					},
+					{
+						Cluster: ClusterWeight{
+							Name:   "c2",
+							Weight: 10,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if got := parseRouters(Router); len(got) != 1 || len(got[0].Route.WeightedClusters) != 2 {
+		t.Errorf("parseRouters() = %v error", got)
+	}
+}
+
+func Test_parseWeightClusters(t *testing.T) {
+	type args struct {
+		weightClusters []WeightedCluster
+	}
+	tests := []struct {
+		name string
+		args args
+		want []v2.WeightedCluster
+	}{
+		{
+			name:"valid test for cluster",
+			args:args{
+				weightClusters:[]WeightedCluster{
+					{
+						Cluster:ClusterWeight{
+							Name:"c1",
+							Weight:90,
+							MetadataMatch:Metadata{
+								"label":"gray",
+							},
+						},
+						
+					},
+				},
+			},
+			
+			want:[]v2.WeightedCluster{
+				{
+					Cluster:v2.ClusterWeight{
+						Name:"c1",
+						Weight:90,
+						MetadataMatch:v2.Metadata{
+							"label":"gray",
+						},
+					},
+				},
+			},
+		},
+		
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := parseWeightClusters(tt.args.weightClusters); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parseWeightClusters() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

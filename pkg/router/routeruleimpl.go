@@ -29,26 +29,39 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	httpmosn "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"math/rand"
 )
 
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
 	routeRuleImplBase := RouteRuleImplBase{
-		vHost:        vHost,
-		routerMatch:  route.Match,
-		routerAction: route.Route,
-		policy: &routerPolicy{
-			retryOn:      false,
-			retryTimeout: 0,
-			numRetries:   0,
-		},
+		vHost:              vHost,
+		routerMatch:        route.Match,
+		routerAction:       route.Route,
+		clusterName:        route.Route.ClusterName,
+		totalClusterWeight: route.Route.TotalClusterWeight,
 	}
+
+	if valid,weightedClusters := getWeightedClusterEntryAndVeirfy(routeRuleImplBase.totalClusterWeight,
+		route.Route.WeightedClusters);valid {
+		routeRuleImplBase.weightedClusters = weightedClusters
+	} else {
+		log.DefaultLogger.Errorf("Sum of weights in the weighted_cluster should add up to:",
+			routeRuleImplBase.totalClusterWeight)
+	}
+	
+	routeRuleImplBase.policy = &routerPolicy{
+		retryOn:      false,
+		retryTimeout: 0,
+		numRetries:   0,
+	}
+
 	// todo add header match to route base
 	// generate metadata match criteria from router's metadata
 	if len(route.Route.MetadataMatch) > 0 {
-		envoyLBMetaData := GetMosnLBMetaData(route)
-		routeRuleImplBase.metadataMatchCriteria = NewMetadataMatchCriteriaImpl(envoyLBMetaData)
+		subsetLBMetaData := getMosnLBMetaData(route.Route.MetadataMatch)
+		routeRuleImplBase.metadataMatchCriteria = NewMetadataMatchCriteriaImpl(subsetLBMetaData)
 
-		routeRuleImplBase.metaData = GetClusterMosnLBMetaDataMap(route.Route.MetadataMatch)
+		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(route.Route.MetadataMatch)
 	}
 
 	return routeRuleImplBase
@@ -83,8 +96,8 @@ type RouteRuleImplBase struct {
 	priority              types.ResourcePriority
 	configHeaders         []*types.HeaderData //
 	configQueryParameters []types.QueryParameterMatcher
-	weightedClusters      []*weightedClusterEntry
-	totalClusterWeight    uint64
+	weightedClusters      map[string]weightedClusterEntry //key is the wcluster's name
+	totalClusterWeight    uint32
 	hashPolicy            hashPolicyImpl
 
 	metadataMatchCriteria *MetadataMatchCriteriaImpl
@@ -126,10 +139,24 @@ func (rri *RouteRuleImplBase) TraceDecorator() types.TraceDecorator {
 
 // types.RouteRule
 // Select Cluster for Routing
-// todo support weighted cluster
+// if weighted cluster is nil, return clusterName directly, else
+// select cluster from weighted-clusters
 func (rri *RouteRuleImplBase) ClusterName() string {
+	if len(rri.weightedClusters) == 0 {
+		return rri.clusterName
+	}
 
-	return rri.routerAction.ClusterName
+	selectedValue := int32(rand.Uint32() % rri.totalClusterWeight)
+	for _, weightCluster := range rri.weightedClusters {
+
+		selectedValue = selectedValue - int32(weightCluster.clusterWeight)
+		if selectedValue <= 0 {
+			return weightCluster.clusterName
+		}
+	}
+	
+	log.DefaultLogger.Errorf("Something wrong when choosing weighted cluster")
+	return rri.clusterName
 }
 
 func (rri *RouteRuleImplBase) GlobalTimeout() time.Duration {
@@ -161,7 +188,12 @@ func (rri *RouteRuleImplBase) Metadata() types.RouteMetaData {
 	return rri.metaData
 }
 
-func (rri *RouteRuleImplBase) MetadataMatchCriteria() types.MetadataMatchCriteria {
+func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.MetadataMatchCriteria {
+	// if clusterName belongs to a weighted cluster
+	if matchCriteria,ok :=rri.weightedClusters[clusterName];ok {
+		return matchCriteria.clusterMetadataMatchCriteria
+	}
+	
 	return rri.metadataMatchCriteria
 }
 
@@ -189,6 +221,10 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	}
 
 	return ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters)
+}
+
+func (rri *RouteRuleImplBase) WeightedCluster() map[string]weightedClusterEntry{
+	return rri.weightedClusters
 }
 
 type SofaRouteRuleImpl struct {

@@ -103,3 +103,125 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 		}
 	}
 }
+
+func TestWeightedClusterSelect(t *testing.T) {
+	routerMock1 := &v2.Router{
+		Route:v2.RouteAction{
+			ClusterName:"defaultCluster",
+			TotalClusterWeight:100,
+			WeightedClusters:[]v2.WeightedCluster{
+				{
+					Cluster:v2.ClusterWeight{
+						Name:"w1",
+						Weight:90,
+						MetadataMatch:v2.Metadata{
+							"version":"v1",
+						},
+					},
+				},
+				{
+					Cluster:v2.ClusterWeight{
+						Name:"w2",
+						Weight:10,
+						MetadataMatch:v2.Metadata{
+							"version":"v2",
+						},
+					}	,
+				},
+			},
+		},
+	}
+	
+	routerMock2 := &v2.Router{
+		Route:v2.RouteAction{
+			ClusterName:"defaultCluster",
+			TotalClusterWeight:100,
+			WeightedClusters:[]v2.WeightedCluster{
+				{
+					Cluster:v2.ClusterWeight{
+						Name:"w1",
+						Weight:50,
+						MetadataMatch:v2.Metadata{
+							"version":"v1",
+						},
+					},
+				},
+				{
+					Cluster:v2.ClusterWeight{
+						Name:"w2",
+						Weight:50,
+						MetadataMatch:v2.Metadata{
+							"version":"v2",
+						},
+					}	,
+				},
+			},
+		},
+	}
+	
+	routerMock3 := &v2.Router{
+		Route:v2.RouteAction{
+			ClusterName:"defaultCluster",
+			TotalClusterWeight:100,
+			WeightedClusters:[]v2.WeightedCluster{
+				{
+					Cluster:v2.ClusterWeight{
+						Name:"w1",
+						Weight:50,
+						MetadataMatch:v2.Metadata{
+							"version":"v1",
+						},
+					},
+				},
+				{
+					Cluster:v2.ClusterWeight{
+						Name:"w2",
+						Weight:40,
+						MetadataMatch:v2.Metadata{
+							"version":"v2",
+						},
+					}	,
+				},
+			},
+		},
+	}
+	
+	type testCase struct {
+		routerCase []*v2.Router
+		ratio       []uint
+	}
+	
+	testCases := testCase{
+		routerCase:[]*v2.Router{routerMock1,routerMock2},
+		ratio:[]uint{9,1},
+	}
+	
+	for index,routecase := range testCases.routerCase {
+		routeRuleImplBase := NewRouteRuleImplBase(nil,routecase)
+		var dcCount, w1Count, w2Count uint
+		
+		for i := 0; i < 1000; i++ {
+			clusterName := routeRuleImplBase.ClusterName()
+			switch clusterName {
+			case "defaultCluster":
+				dcCount += 1
+			case "w1":
+				w1Count +=1
+			case "w2":
+				w2Count += 1
+			}
+		}
+		
+		if dcCount != 0 || w1Count / w2Count < testCases.ratio[index] - 1 {
+			t.Errorf("cluster select wanted defalut cluster = 0, w1/w2 = 9, but got ,defalut = %d" +
+				"w1/w2  = %d",dcCount,w1Count/w2Count)
+			
+		}
+		t.Log("defalut = ", dcCount,"w1 = ",w1Count, "w2 =" ,w2Count)
+	}
+	
+	routeRuleImplBase := NewRouteRuleImplBase(nil,routerMock3)
+	if len(routeRuleImplBase.weightedClusters) != 0 {
+		t.Errorf("wanted invalid weighted cluster init but not")
+	}
+}

@@ -22,28 +22,7 @@ import (
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
-
-func TestGenerateHashedValue(t *testing.T) {
-	type args struct {
-		input string
-	}
-	tests := []struct {
-		name string
-		args args
-		want types.HashedValue
-	}{
-	// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := types.GenerateHashedValue(tt.args.input); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GenerateHashedValue() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestGetEnvoyLBMetaData(t *testing.T) {
 	header := v2.HeaderMatcher{
@@ -89,8 +68,8 @@ func TestGetEnvoyLBMetaData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetMosnLBMetaData(tt.args.route); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetMosnLBMetaData() = %v, want %v", got, tt.want)
+			if got := getMosnLBMetaData(tt.args.route.Route.MetadataMatch); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getMosnLBMetaData() = %v, want %v", got, tt.want)
 			}
 		})
 	}

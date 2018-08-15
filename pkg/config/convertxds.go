@@ -435,7 +435,7 @@ func convertWeightedClusters(xdsWeightedClusters *xdsroute.WeightedCluster) []v2
 	weightedClusters := make([]v2.WeightedCluster, 0, len(xdsWeightedClusters.GetClusters()))
 	for _, cluster := range xdsWeightedClusters.GetClusters() {
 		weightedCluster := v2.WeightedCluster{
-			Clusters:         convertWeightedCluster(cluster),
+			Cluster:          convertWeightedCluster(cluster),
 			RuntimeKeyPrefix: xdsWeightedClusters.GetRuntimeKeyPrefix(),
 		}
 		weightedClusters = append(weightedClusters, weightedCluster)
