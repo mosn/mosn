@@ -31,6 +31,11 @@ import (
 
 type ContentKey string
 
+const (
+	MinHostWeight = uint32(1)
+	MaxHostWeight = uint32(128)
+)
+
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var protocolsSupported = map[string]bool{
@@ -790,12 +795,24 @@ func parseHostConfig(c *ClusterConfig) []v2.Host {
 		hosts = append(hosts, v2.Host{
 			host.Address,
 			host.Hostname,
-			host.Weight,
+			getHostWeight(host.Weight),
 			parseRouterMetadata(host.MetaData),
 		})
 	}
 
 	return hosts
+}
+
+func getHostWeight(weight uint32) uint32 {
+	if weight > MaxHostWeight {
+		weight = MaxHostWeight
+	}
+
+	if weight < MinHostWeight {
+		weight = MinHostWeight
+	}
+
+	return weight
 }
 
 // ParseServiceRegistry

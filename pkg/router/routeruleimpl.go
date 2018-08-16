@@ -142,14 +142,14 @@ func (rri *RouteRuleImplBase) TraceDecorator() types.TraceDecorator {
 // if weighted cluster is nil, return clusterName directly, else
 // select cluster from weighted-clusters
 func (rri *RouteRuleImplBase) ClusterName() string {
-	if len(rri.weightedClusters) == 0 {
+	if len(rri.weightedClusters) == 0 || rri.totalClusterWeight == 0 {
 		return rri.clusterName
 	}
 
-	selectedValue := int32(rand.Uint32() % rri.totalClusterWeight)
+	selectedValue := rand.Intn(int(rri.totalClusterWeight))
 	for _, weightCluster := range rri.weightedClusters {
 
-		selectedValue = selectedValue - int32(weightCluster.clusterWeight)
+		selectedValue = selectedValue - int(weightCluster.clusterWeight)
 		if selectedValue <= 0 {
 			return weightCluster.clusterName
 		}
