@@ -475,13 +475,8 @@ func NewPrioritySubsetImpl(subsetLB *subSetLoadBalancer, predicate types.HostPre
 	for i = 0; i < uint32(len(psi.originalPrioritySet.HostSetsByPriority())); i++ {
 		psi.Update(i, subsetLB.originalPrioritySet.HostSetsByPriority()[i].Hosts(), []types.Host{})
 	}
-
-	switch subsetLB.lbType {
-	case types.Random:
-		psi.loadbalancer = newRandomLoadbalancer(psi.prioritySubset)
-	case types.RoundRobin:
-		psi.loadbalancer = newRoundRobinLoadBalancer(psi.prioritySubset)
-	}
+	
+	psi.loadbalancer = NewLoadBalancer(subsetLB.lbType,psi.prioritySubset)
 
 	return psi
 }
