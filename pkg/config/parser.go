@@ -40,6 +40,18 @@ var protocolsSupported = map[string]bool{
 	string(protocol.Xprotocol): true,
 }
 
+// RegisterProtocolParser
+// used to register parser
+func RegisterProtocolParser(key string) bool {
+	if _, ok := protocolsSupported[key]; ok {
+		return false
+	} else {
+		log.StartLogger.Infof(" %s added to protocolsSupported", key)
+		protocolsSupported[key] = true
+		return true
+	}
+}
+
 // ParsedCallback is an
 // alias for closure func(data interface{}, endParsing bool) error
 type ParsedCallback func(data interface{}, endParsing bool) error
