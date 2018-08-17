@@ -37,19 +37,25 @@ type ClusterManager interface {
 	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
 
 	SetInitializedCb(cb func())
-
+	
+	// Clusters, return all cluster belongs to this clustermng
 	Clusters() map[string]Cluster
 
+	// Get, use to get the snapshot of a cluster
 	Get(context context.Context, cluster string) ClusterSnapshot
 
+	// UpdateClusterHosts used to update cluster's hosts
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
+	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, cluster string) CreateConnectionData
 
+	// ConnPoolForCluster used to get protocol related conn pool
 	ConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
 
-	RemovePrimaryCluster(cluster string) bool
+	// RemovePrimaryCluster used to remove cluster from set
+	RemovePrimaryCluster(cluster string) error
 
 	Shutdown() error
 
@@ -59,9 +65,11 @@ type ClusterManager interface {
 
 	LocalClusterName() string
 
+	// ClusterExist, used to check whether 'clusterName' exist or not
 	ClusterExist(clusterName string) bool
 
-	RemoveClusterHosts(clusterName string, host Host) error
+	// RemoveClusterHost, used to remove cluster's hosts
+	RemoveClusterHost(clusterName string, host Host) error
 }
 
 // ClusterSnapshot is a thread-safe cluster snapshot

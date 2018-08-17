@@ -34,8 +34,7 @@ import (
 type clusterManager struct {
 	sourceAddr             net.Addr
 	primaryClusters        sync.Map // string: *primaryCluster
-	protocolConnPool       sync.Map //协议 map
-	clusterAdapter         Adapter
+	protocolConnPool       sync.Map
 	autoDiscovery          bool
 	registryUseHealthCheck bool
 }
@@ -64,9 +63,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	Adap = Adapter{
 		clusterMng: cm,
 	}
-
-	cm.clusterAdapter = Adap
-
+	
 	//Add cluster to cm
 	//Register upstream update type
 	for _, cluster := range clusters {
@@ -102,15 +99,21 @@ type primaryCluster struct {
 	addedViaAPI bool
 }
 
+// AddOrUpdatePrimaryCluster
+// used to "add" cluster if cluster not exist
+// or "update" cluster when new cluster config if cluster already exist
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	clusterName := cluster.Name
-
+	
 	if v, exist := cm.primaryClusters.Load(clusterName); exist {
 		if !v.(*primaryCluster).addedViaAPI {
 			return false
+		} else {
+			// update cluster
+			return cm.updateCluster(cluster,v.(*primaryCluster),true)
 		}
 	}
-	// todo for static cluster, shouldn't use this way
+	// add new cluster
 	return cm.loadCluster(cluster, true)
 }
 
@@ -119,6 +122,22 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 		return true
 	}
 
+	return false
+}
+
+func (cm *clusterManager) updateCluster(clusterConf v2.Cluster,pcluster *primaryCluster,addedViaAPI bool) bool {
+	if concretedCluster, ok := pcluster.cluster.(*simpleInMemCluster); ok {
+		hosts := concretedCluster.hosts
+		cluster := NewCluster(clusterConf, cm.sourceAddr, addedViaAPI)
+		cluster.(*simpleInMemCluster).UpdateHosts(hosts)
+		cm.primaryClusters.Store(clusterConf.Name, &primaryCluster{
+			cluster:     cluster,
+			addedViaAPI: addedViaAPI,
+		})
+		
+		return true
+	}
+	
 	return false
 }
 
@@ -159,6 +178,18 @@ func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *cluste
 	return nil
 }
 
+func (cm *clusterManager) RemovePrimaryCluster(clusterName string) error {
+	if v, exist := cm.primaryClusters.Load(clusterName); exist {
+		if !v.(*primaryCluster).addedViaAPI {
+			return  fmt.Errorf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaAPI", clusterName)
+		}
+		cm.primaryClusters.Delete(clusterName)
+		log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
+	}
+	
+	return nil
+}
+
 func (cm *clusterManager) SetInitializedCb(cb func()) {}
 
 func (cm *clusterManager) Clusters() map[string]types.Cluster {
@@ -195,10 +226,9 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 	}
 
 	return fmt.Errorf("cluster %s not found", clusterName)
-
 }
 
-func (cm *clusterManager) RemoveClusterHosts(clusterName string, host types.Host) error {
+func (cm *clusterManager) RemoveClusterHost(clusterName string, host types.Host) error {
 	if host == nil {
 		return errors.New("host is nil")
 	}
@@ -281,19 +311,6 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 
 	log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil, cluster name = %s", cluster)
 	return nil
-}
-
-func (cm *clusterManager) RemovePrimaryCluster(clusterName string) bool {
-	if v, exist := cm.primaryClusters.Load(clusterName); exist {
-		if !v.(*primaryCluster).addedViaAPI {
-			log.DefaultLogger.Warnf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaAPI", clusterName)
-			return false
-		}
-		cm.primaryClusters.Delete(clusterName)
-		log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
-	}
-
-	return true
 }
 
 func (cm *clusterManager) Shutdown() error {

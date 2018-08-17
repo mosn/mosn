@@ -83,6 +83,7 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 }
 
 // OnUpdateClusters called by XdsClient when clusters config refresh
+// Can be used to update and add clusters
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	mosnClusters := convertClustersConfig(clusters)
 
@@ -90,15 +91,34 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
 		var err error
 		if cluster.ClusterType == v2.EDS_CLUSTER {
-			err = clusterAdapter.Adap.TriggerClusterAddedOrUpdate(*cluster)
+			err = clusterAdapter.Adap.TriggerClusterAddOrUpdate(*cluster)
 		} else {
-			err = clusterAdapter.Adap.TriggerClusterAndHostsAddedOrUpdate(*cluster, cluster.Hosts)
+			err = clusterAdapter.Adap.TriggerClusterAndHostsAddOrUpdate(*cluster, cluster.Hosts)
 		}
 		if err != nil {
 			return err
 		}
 	}
 
+	return nil
+}
+
+// OnDeleteClusters called by XdsClient when need to delete clusters
+func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) error {
+	mosnClusters := convertClustersConfig(clusters)
+	
+	for _, cluster := range mosnClusters {
+		log.DefaultLogger.Debugf("delete cluster: %+v\n", cluster)
+		var err error
+		if cluster.ClusterType == v2.EDS_CLUSTER {
+			err = clusterAdapter.Adap.TriggerClusterDel(cluster.Name)
+		}
+		
+		if err != nil {
+			return err
+		}
+	}
+	
 	return nil
 }
 
