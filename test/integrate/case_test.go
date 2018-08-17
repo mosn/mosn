@@ -9,7 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/cmd/mosn"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
+	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"

@@ -23,6 +23,7 @@ import (
 	"net"
 
 	"crypto/tls"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
 )
@@ -433,7 +434,7 @@ type ConnectionHandler interface {
 	NumConnections() uint64
 
 	// AddListener adds a listener into the ConnectionHandler
-	AddListener(lc *v2.ListenerConfig, networkFiltersFactory NetworkFilterChainFactory,
+	AddListener(lc *v2.ListenerConfig, networkFiltersFactories []NetworkFilterChainFactory,
 		streamFiltersFactories []StreamFilterChainFactory) ListenerEventListener
 
 	// StartListener starts a listener by the specified listener tag
@@ -525,11 +526,15 @@ type FilterChainFactory interface {
 	CreateListenerFilterChain(listener ListenerFilterManager)
 }
 
-// NetworkFilterFactoryCb is a callback function used in network filter factory
-type NetworkFilterFactoryCb func(manager FilterManager)
+// NetWorkFilterChainFactoryCallbacks is a wrapper of FilterManager that called in NetworkFilterChainFactory
+type NetWorkFilterChainFactoryCallbacks interface {
+	AddReadFilter(rf ReadFilter)
+	AddWriteFilter(wf WriteFilter)
+}
 
+// NetworkFilterChainFactory adds filter into NetWorkFilterChainFactoryCallbacks
 type NetworkFilterChainFactory interface {
-	CreateFilterFactory(context context.Context, clusterManager ClusterManager) NetworkFilterFactoryCb
+	CreateFilterChain(context context.Context, clusterManager ClusterManager, callbacks NetWorkFilterChainFactoryCallbacks)
 }
 
 // Addresses defines a group of network address
