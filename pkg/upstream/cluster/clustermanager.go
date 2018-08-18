@@ -59,10 +59,8 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 		protocolConnPool: protocolConnPool,
 		autoDiscovery:    true, //todo delete
 	}
-	//init Adap when run app
-	Adap = Adapter{
-		clusterMng: cm,
-	}
+	//init clusterMngInstance when run app
+	InitClusterMngInstance(cm)
 	
 	//Add cluster to cm
 	//Register upstream update type

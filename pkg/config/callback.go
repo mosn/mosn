@@ -91,9 +91,9 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
 		var err error
 		if cluster.ClusterType == v2.EDS_CLUSTER {
-			err = clusterAdapter.Adap.TriggerClusterAddOrUpdate(*cluster)
+			err = clusterAdapter.GetClusterMngInstance().TriggerClusterAddOrUpdate(*cluster)
 		} else {
-			err = clusterAdapter.Adap.TriggerClusterAndHostsAddOrUpdate(*cluster, cluster.Hosts)
+			err =  clusterAdapter.GetClusterMngInstance().TriggerClusterAndHostsAddOrUpdate(*cluster, cluster.Hosts)
 		}
 		if err != nil {
 			return err
@@ -111,7 +111,7 @@ func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) error {
 		log.DefaultLogger.Debugf("delete cluster: %+v\n", cluster)
 		var err error
 		if cluster.ClusterType == v2.EDS_CLUSTER {
-			err = clusterAdapter.Adap.TriggerClusterDel(cluster.Name)
+			err = clusterAdapter.GetClusterMngInstance().TriggerClusterDel(cluster.Name)
 		}
 		
 		if err != nil {
@@ -135,7 +135,7 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 				log.DefaultLogger.Debugf("xds client update endpoint: cluster: %s, priority: %d, %+v\n", loadAssignment.ClusterName, endpoints.Priority, host)
 			}
 
-			if err := clusterAdapter.Adap.TriggerClusterHostUpdate(clusterName, hosts); err != nil {
+			if err :=  clusterAdapter.GetClusterMngInstance().TriggerClusterHostUpdate(clusterName, hosts); err != nil {
 				log.DefaultLogger.Errorf("xds client update Error = %s", err.Error())
 				return err
 			}
