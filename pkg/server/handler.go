@@ -33,6 +33,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/mailru/easygo/netpoll"
 )
 
 // ConnectionHandler
@@ -217,6 +218,7 @@ func (ch *connHandler) StopConnection() {
 
 // ListenerEventListener
 type activeListener struct {
+	poller                 netpoll.Poller // each listener hold one poller,  poller will create one goroutine for epoll/kqueue wait.
 	disableConnIo          bool
 	listener               types.Listener
 	networkFiltersFactory  types.NetworkFilterChainFactory
@@ -241,11 +243,11 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 		listener:               listener,
 		networkFiltersFactory:  networkFiltersFactory,
 		streamFiltersFactories: streamFiltersFactories,
-		conns:      list.New(),
-		handler:    handler,
-		stopChan:   stopChan,
-		logger:     logger,
-		accessLogs: accessLoggers,
+		conns:                  list.New(),
+		handler:                handler,
+		stopChan:               stopChan,
+		logger:                 logger,
+		accessLogs:             accessLoggers,
 	}
 
 	listenPort := 0
@@ -261,6 +263,12 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 	al.listenPort = listenPort
 	al.statsNamespace = types.ListenerStatsPrefix + strconv.Itoa(listenPort)
 	al.stats = newListenerStats(al.statsNamespace)
+
+	var err error
+	al.poller, err = netpoll.New(nil)
+	if err != nil {
+		al.logger.Errorf("create poller for listener %s failed, using IO goroutine instead.")
+	}
 
 	return al
 }
@@ -285,6 +293,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	if al.poller != nil {
+		ctx = context.WithValue(ctx, types.ContextKeyPoller, &al.poller)
+	}
 	if ch != nil {
 		ctx = context.WithValue(ctx, types.ContextKeyAcceptChan, ch)
 		ctx = context.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
@@ -292,6 +303,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	if oriRemoteAddr != nil {
 		ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
+
 	arc.ContinueFilterChain(ctx, true)
 }
 

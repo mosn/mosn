@@ -27,10 +27,12 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
+	"runtime/debug"
+	"github.com/mailru/easygo/netpoll"
+	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 )
 
 // Network related const
@@ -42,6 +44,7 @@ const (
 var idCounter uint64 = 1
 var readerBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
 var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
+var pool = mosnsync.NewSimplePool(256)
 
 type connection struct {
 	id         uint64
@@ -70,6 +73,7 @@ type connection struct {
 	writeBuffer         *buffer.IoBufferPoolEntry
 	writeBufferMux      sync.RWMutex
 	writeBufferChan     chan bool
+	writeSchedule       uint32
 	internalLoopStarted bool
 	internalStopChan    chan struct{}
 	transferChan        chan uint64
@@ -149,35 +153,91 @@ func (c *connection) ID() uint64 {
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
-		c.internalLoopStarted = true
 
-		go func() {
-			defer func() {
-				if p := recover(); p != nil {
-					c.logger.Errorf("panic %v", p)
+		if lctx != nil && lctx.Value(types.ContextKeyPoller) != nil {
+			poller := lctx.Value(types.ContextKeyPoller).(*netpoll.Poller)
 
-					debug.PrintStack()
-
-					c.startReadLoop()
+			// register read/write events
+			read, _ := netpoll.HandleReadOnce(c.RawConn())
+			(*poller).Start(read, func(e netpoll.Event) {
+				// No more calls will be made for conn until we call epoll.Resume().
+				if e&netpoll.EventReadHup != 0 {
+					(*poller).Stop(read)
+					c.Close(types.NoFlush, types.RemoteClose)
+					return
 				}
+				pool.Schedule(func() {
+					err := c.doRead()
+
+					if err != nil {
+
+						if err == io.EOF {
+							c.Close(types.NoFlush, types.RemoteClose)
+						} else {
+							c.Close(types.NoFlush, types.OnReadErrClose)
+						}
+
+						c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
+							c.id, c.RemoteAddr().String(), err)
+
+						return
+					}
+
+					(*poller).Resume(read)
+				})
+			})
+
+			//write, _ := netpoll.HandleWriteOnce(c.RawConn())
+			//
+			//poller.Start(write, func(e netpoll.Event) {
+			//	// No more calls will be made for conn until we call epoll.Resume().
+			//	if e&netpoll.EventWriteHup != 0 {
+			//		poller.Stop(write)
+			//		c.Close()
+			//		return
+			//	}
+			//
+			//	fmt.Println("epoll triggered ", time.Now())
+			//
+			//	bytesRead, _ := readBuffer.Read()
+			//	// biz logic
+			//	fmt.Println(" data received ", bytesRead)
+			//	sofarpc.DefaultProtocols().Decode(context.Background(), readBuffer.Br, &decodeFilter{})
+			//
+			//	poller.Resume(write)
+			//})
+
+		} else {
+			c.internalLoopStarted = true
+
+			go func() {
+				defer func() {
+					if p := recover(); p != nil {
+						c.logger.Errorf("panic %v", p)
+
+						debug.PrintStack()
+
+						c.startReadLoop()
+					}
+				}()
+
+				c.startReadLoop()
 			}()
 
-			c.startReadLoop()
-		}()
+			go func() {
+				defer func() {
+					if p := recover(); p != nil {
+						c.logger.Errorf("panic %v", p)
 
-		go func() {
-			defer func() {
-				if p := recover(); p != nil {
-					c.logger.Errorf("panic %v", p)
+						debug.PrintStack()
 
-					debug.PrintStack()
+						c.startWriteLoop()
+					}
+				}()
 
-					c.startWriteLoop()
-				}
+				c.startWriteLoop()
 			}()
-
-			c.startWriteLoop()
-		}()
+		}
 	})
 }
 
@@ -322,8 +382,27 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 	}
 
-	if len(c.writeBufferChan) == 0 {
-		c.writeBufferChan <- true
+	if c.internalLoopStarted {
+		if len(c.writeBufferChan) == 0 {
+			c.writeBufferChan <- true
+		}
+	} else if atomic.CompareAndSwapUint32(&c.writeSchedule, 0, 1) {
+		pool.Schedule(func() {
+			defer atomic.CompareAndSwapUint32(&c.writeSchedule, 1, 0)
+			_, err := c.doWrite()
+			if err != nil {
+				if err == io.EOF {
+					// remote conn closed
+					c.Close(types.NoFlush, types.RemoteClose)
+				} else {
+					// on non-timeout error
+					c.Close(types.NoFlush, types.OnWriteErrClose)
+				}
+
+				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
+					c.id, c.RemoteAddr().String(), err)
+			}
+		})
 	}
 
 	c.writeBufferMux.Unlock()

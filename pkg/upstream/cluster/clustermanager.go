@@ -51,7 +51,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 
 	protocolConnPool := sync.Map{}
 	for k, _ := range types.ConnPoolFactories {
-		protocolConnPool.Store(k, sync.Map{})
+		protocolConnPool.Store(k, &sync.Map{})
 	}
 
 	cm := &clusterManager{
@@ -266,7 +266,7 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 
 		value, _ := cm.protocolConnPool.Load(protocol)
 
-		connPool := value.(sync.Map)
+		connPool := value.(*sync.Map)
 		if connPool, ok := connPool.Load(addr); ok {
 			return connPool.(types.ConnectionPool)
 		}
