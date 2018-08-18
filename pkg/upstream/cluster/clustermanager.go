@@ -29,7 +29,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
-
+var once sync.Once
+var clusterMangerInstance *clusterManager
 // ClusterManager
 type clusterManager struct {
 	sourceAddr             net.Addr
@@ -47,37 +48,38 @@ type clusterSnapshot struct {
 
 func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	clusterMap map[string][]v2.Host, autoDiscovery bool, useHealthCheck bool) types.ClusterManager {
-
-	protocolConnPool := sync.Map{}
-	for k, _ := range types.ConnPoolFactories {
-		protocolConnPool.Store(k, sync.Map{})
-	}
-
-	cm := &clusterManager{
-		sourceAddr:       sourceAddr,
-		primaryClusters:  sync.Map{},
-		protocolConnPool: protocolConnPool,
-		autoDiscovery:    true, //todo delete
-	}
-	//init clusterMngInstance when run app
-	InitClusterMngInstance(cm)
-	
-	//Add cluster to cm
-	//Register upstream update type
-	for _, cluster := range clusters {
-
-		if !cm.AddOrUpdatePrimaryCluster(cluster) {
-			log.DefaultLogger.Errorf("NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s", cluster.Name)
+		once.Do(func() {
+		protocolConnPool := sync.Map{}
+		for k, _ := range types.ConnPoolFactories {
+			protocolConnPool.Store(k, sync.Map{})
 		}
-	}
-
-	// Add hosts to cluster
-	// Note: currently, use priority = 0
-	for clusterName, hosts := range clusterMap {
-		cm.UpdateClusterHosts(clusterName, 0, hosts)
-	}
-
-	return cm
+		
+		clusterMangerInstance = &clusterManager{
+			sourceAddr:       sourceAddr,
+			primaryClusters:  sync.Map{},
+			protocolConnPool: protocolConnPool,
+			autoDiscovery:    true, //todo delete
+		}
+		//init clusterMngInstance when run app
+		InitClusterMngInstance(clusterMangerInstance)
+		
+		//Add cluster to cm
+		//Register upstream update type
+		for _, cluster := range clusters {
+			
+			if !clusterMangerInstance.AddOrUpdatePrimaryCluster(cluster) {
+				log.DefaultLogger.Errorf("NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s", cluster.Name)
+			}
+		}
+		
+		// Add hosts to cluster
+		// Note: currently, use priority = 0
+		for clusterName, hosts := range clusterMap {
+			clusterMangerInstance.UpdateClusterHosts(clusterName, 0, hosts)
+		}
+	})
+	
+	return clusterMangerInstance
 }
 
 func (cs *clusterSnapshot) PrioritySet() types.PrioritySet {

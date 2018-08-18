@@ -21,18 +21,14 @@ import (
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"sync"
 )
 
 var clusterMngInstance *ClusterMngAdapter
-var once sync.Once
 
 func InitClusterMngInstance(clusterMng *clusterManager) {
-	once.Do(func() {
-		clusterMngInstance = &ClusterMngAdapter{
-			clusterMng: clusterMng,
-		}
-	})
+	clusterMngInstance = &ClusterMngAdapter{
+		clusterMng: clusterMng,
+	}
 }
 
 func GetClusterMngInstance() *ClusterMngAdapter {
