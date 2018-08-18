@@ -21,7 +21,6 @@ import (
 	"errors"
 	"os"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -53,11 +52,9 @@ type server struct {
 	logger        log.Logger
 	stopChan      chan struct{}
 	handler       types.ConnectionHandler
-	ListenerInMap sync.Map
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
-
 	procNum := runtime.NumCPU()
 
 	if config != nil {
@@ -80,42 +77,18 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		logger:        log.DefaultLogger,
 		stopChan:      make(chan struct{}),
 		handler:       NewHandler(cmFilter, clMng, log.DefaultLogger),
-		ListenerInMap: sync.Map{},
 	}
-
+	
+	InitListenerAdapterInstance(server.handler)
 	servers = append(servers, server)
 
 	return server
 }
 
-func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
-	if _, ok := srv.ListenerInMap.Load(lc.Name); ok {
-		log.DefaultLogger.Warnf("Listen Already Started, Listen = %+v", lc)
-	} else {
-		srv.ListenerInMap.Store(lc.Name, lc)
-		srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
-	}
-}
-
-func (srv *server) AddListenerAndStart(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) error {
-
-	if _, ok := srv.ListenerInMap.Load(lc.Name); ok {
-		log.DefaultLogger.Warnf("Listener Already Started, Listener Name = %+v", lc.Name)
-	} else {
-		srv.ListenerInMap.Store(lc.Name, lc)
-		al := srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
-
-		if activeListener, ok := al.(*activeListener); ok {
-			go activeListener.listener.Start(nil)
-		}
-	}
-
-	return nil
-}
-
-func (srv *server) AddOrUpdateListener(lc v2.ListenerConfig) {
-	// TODO: support add listener or update existing listener
+func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
+	streamFiltersFactories []types.StreamFilterChainFactory)types.ListenerEventListener {
+	
+	return srv.handler.AddOrUpdateListener(lc, networkFiltersFactory, streamFiltersFactories)
 }
 
 func (srv *server) Start() {

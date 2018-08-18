@@ -82,9 +82,14 @@ const (
 
 // Listener is a wrapper of tcp listener
 type Listener interface {
+	// Return config which initialize this listener
+	Config() *v2.ListenerConfig
+	
+	SetConfig(config *v2.ListenerConfig)
+	
 	// Name returns the listener's name
 	Name() string
-
+	
 	// Addr returns the listener's network address.
 	Addr() net.Addr
 
@@ -93,17 +98,23 @@ type Listener interface {
 
 	// Stop stops listener
 	// Accepted connections and listening sockets will not be closed
-	Stop()
+	Stop() error
 
-	// ListenerTag returns the listener's tag
+	// ListenerTag returns the listener's tag, whichi the listener should use for connection handler tracking.
 	ListenerTag() uint64
+	
+	SetListenerTag(tag uint64)
 
 	// ListenerFD returns a copy a listener fd
 	ListenerFD() (uintptr, error)
 
 	// PerConnBufferLimitBytes returns the limit bytes per connection
 	PerConnBufferLimitBytes() uint32
-
+	
+	SetePerConnBufferLimitBytes(limitBytes uint32)
+	
+	SethandOffRestoredDestinationConnections(restoredDestation bool)
+	
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)
 
@@ -432,8 +443,10 @@ type ConnectionHandler interface {
 	// NumConnections reports the connections that ConnectionHandler keeps.
 	NumConnections() uint64
 
-	// AddListener adds a listener into the ConnectionHandler
-	AddListener(lc *v2.ListenerConfig, networkFiltersFactory NetworkFilterChainFactory,
+	// AddOrUpdateListener
+	// adds a listener into the ConnectionHandler or
+	// update a listener
+	AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactory NetworkFilterChainFactory,
 		streamFiltersFactories []StreamFilterChainFactory) ListenerEventListener
 
 	// StartListener starts a listener by the specified listener tag
@@ -445,15 +458,15 @@ type ConnectionHandler interface {
 	// FindListenerByAddress finds and returns a listener by the specified network address
 	FindListenerByAddress(addr net.Addr) Listener
 
-	// RemoveListeners find and removes a listener by the specified listener tag.
-	RemoveListeners(listenerTag uint64)
+	// RemoveListeners find and removes a listener by listener name.
+	RemoveListeners(name string)
 
-	// StopListener stops a listener  by the specified listener tag.
-	StopListener(lctx context.Context, listenerTag uint64)
+	// StopListener stops a listener  by listener name
+	StopListener(lctx context.Context, name string, stop bool) error
 
 	// StopListeners stops all listeners the ConnectionHandler has.
 	// The close indicates whether the listening sockets will be closed.
-	StopListeners(lctx context.Context, close bool)
+	StopListeners(lctx context.Context, close bool) error
 
 	// ListListenersFD reports all listeners' fd
 	ListListenersFD(lctx context.Context) []uintptr

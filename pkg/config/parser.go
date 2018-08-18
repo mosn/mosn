@@ -27,6 +27,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/json-iterator/go"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 )
 
 type ContentKey string
@@ -401,6 +403,18 @@ func parseFilterChains(c []FilterChain) []v2.FilterChain {
 	return filterchains
 }
 
+func parseStreamFilters(filterConfigs []FilterConfig) []v2.Filter {
+	var filters []v2.Filter
+	for _, fc := range filterConfigs {
+		filters = append(filters, v2.Filter{
+			Name:   fc.Type,
+			Config: fc.Config,
+		})
+	}
+
+	return filters
+}
+
 func parseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
 	if tlsconfig.Status == false {
 		return v2.TLSConfig{
@@ -590,6 +604,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		AccessLogs:                            parseAccessConfig(c.AccessLogs),
 		HandOffRestoredDestinationConnections: c.HandOffRestoredDestinationConnections,
 		FilterChains:                          parseFilterChains(c.FilterChains),
+		StreamFilters:                         parseStreamFilters(c.StreamFilters),
 	}
 }
 
@@ -818,4 +833,14 @@ func ParseServiceRegistry(src ServiceRegistryConfig) {
 			cb(SrvRegInfo, true)
 		}
 	}
+}
+
+func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
+	var factories []types.StreamFilterChainFactory
+	
+	for _, c := range configs {
+		factories = append(factories, filter.CreateStreamFilterChainFactory(c.Name, c.Config))
+	}
+	
+	return factories
 }

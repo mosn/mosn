@@ -112,7 +112,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 				nfcf,downstreamProtocol := getNetworkFilter(&lc.FilterChains[0])
 				
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
-				// in the future, if we realize these two protocol by-self, this this hack method should be removed
+				// in the future, if we realize these two protocol by-self, this hack method should be removed
 				if downstreamProtocol == string(protocol.HTTP2) || downstreamProtocol == string(protocol.HTTP1) {
 					lc.DisableConnIo = true
 				}
@@ -124,8 +124,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 				}
 				
 				//stream filters
-				sfcf := getStreamFilters(listenerConfig.StreamFilters)
-				config.SetGlobalStreamFilter(sfcf)
+				sfcf := config.GetStreamFilters(lc.StreamFilters)
 				srv.AddListener(lc, nfcf, sfcf)
 			}
 		}
