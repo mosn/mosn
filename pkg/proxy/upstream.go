@@ -39,7 +39,6 @@ type upstreamRequest struct {
 	upstreamRespHeaders map[string]string
 
 	//~~~ state
-	reset        bool
 	sendComplete bool
 	dataSent     bool
 	trailerSent  bool
@@ -62,9 +61,6 @@ func (r *upstreamRequest) resetStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
-	// set status before real reset logic
-	r.reset = true
-
 	workerPool.Offer(&resetEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
@@ -140,10 +136,6 @@ func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
 
 // ~~~ send request wrapper
 func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream bool) {
-	if r.reset {
-		return
-	}
-
 	log.StartLogger.Tracef("upstream request encode headers")
 	r.sendComplete = endStream
 	streamID := ""
@@ -157,10 +149,6 @@ func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream boo
 }
 
 func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
-	if r.reset {
-		return
-	}
-
 	log.DefaultLogger.Debugf("upstream request encode data")
 	r.sendComplete = endStream
 	r.dataSent = true
@@ -168,10 +156,6 @@ func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 }
 
 func (r *upstreamRequest) appendTrailers(trailers map[string]string) {
-	if r.reset {
-		return
-	}
-
 	log.DefaultLogger.Debugf("upstream request encode trailers")
 	r.sendComplete = true
 	r.trailerSent = true
@@ -189,7 +173,7 @@ func (r *upstreamRequest) OnFailure(streamID string, reason types.PoolFailureRea
 		resetReason = types.StreamConnectionFailed
 	}
 
-	r.OnResetStream(resetReason)
+	r.ResetStream(resetReason)
 }
 
 func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, host types.Host) {
