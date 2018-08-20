@@ -80,6 +80,12 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 	// parse cluster all in one
 	clusters, clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
+	// create cluster manager
+	if mode == config.Xds {
+		m.clustermanager = cluster.NewClusterManager(nil, nil, nil, true, false)
+	} else {
+		m.clustermanager = cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
+	}
 
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
@@ -91,13 +97,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 		var srv server.Server
 		if mode == config.Xds {
-			cmf := &clusterManagerFilter{}
-			m.clustermanager = cluster.NewClusterManager(nil, nil, nil, true, false)
 			srv = server.NewServer(sc, cmf, m.clustermanager)
 
 		} else {
-			//create cluster manager
-			m.clustermanager = cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.clustermanager)
 
