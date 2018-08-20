@@ -37,7 +37,7 @@ type ClusterManager interface {
 	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
 
 	SetInitializedCb(cb func())
-	
+
 	// Clusters, return all cluster belongs to this clustermng
 	Clusters() map[string]Cluster
 
@@ -70,6 +70,9 @@ type ClusterManager interface {
 
 	// RemoveClusterHost, used to remove cluster's hosts
 	RemoveClusterHost(clusterName string, host Host) error
+
+	// Destory the cluster manager
+	Destory()
 }
 
 // ClusterSnapshot is a thread-safe cluster snapshot

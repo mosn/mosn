@@ -23,16 +23,16 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
-var clusterMngInstance *ClusterMngAdapter
+var clusterMngAdapterInstance *ClusterMngAdapter
 
-func InitClusterMngInstance(clusterMng *clusterManager) {
-	clusterMngInstance = &ClusterMngAdapter{
+func initClusterMngAdapterInstance(clusterMng *clusterManager) {
+	clusterMngAdapterInstance = &ClusterMngAdapter{
 		clusterMng: clusterMng,
 	}
 }
 
-func GetClusterMngInstance() *ClusterMngAdapter {
-	return clusterMngInstance
+func GetClusterMngAdapterInstance() *ClusterMngAdapter {
+	return clusterMngAdapterInstance
 }
 
 type ClusterMngAdapter struct {
