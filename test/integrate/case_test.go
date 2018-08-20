@@ -10,6 +10,7 @@ import (
 	"time"
 
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
