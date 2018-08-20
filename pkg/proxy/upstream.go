@@ -173,7 +173,7 @@ func (r *upstreamRequest) OnFailure(streamID string, reason types.PoolFailureRea
 		resetReason = types.StreamConnectionFailed
 	}
 
-	r.OnResetStream(resetReason)
+	r.ResetStream(resetReason)
 }
 
 func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, host types.Host) {
