@@ -1,20 +1,21 @@
 SHELL = /bin/bash
 
-TARGET       = mosnd
-CONFIG_FILE  = mosn_config.json
-GIT_USER     = alipay
-PROJECT_NAME = github.com/${GIT_USER}/sofa-mosn
+TARGET          = mosnd
+TARGET_SIDECAR  = mosn
+CONFIG_FILE     = mosn_config.json
+GIT_USER        = alipay
+PROJECT_NAME    = github.com/${GIT_USER}/sofa-mosn
 
-SCRIPT_DIR 	 = $(shell pwd)/etc/script
+SCRIPT_DIR      = $(shell pwd)/etc/script
 
-MAJOR_VERSION = $(shell cat VERSION)
-GIT_VERSION   = $(shell git log -1 --pretty=format:%h)
-GIT_NOTES     = $(shell git log -1 --oneline)
+MAJOR_VERSION   = $(shell cat VERSION)
+GIT_VERSION     = $(shell git log -1 --pretty=format:%h)
+GIT_NOTES       = $(shell git log -1 --oneline)
 
-BUILD_IMAGE   = godep-builder
+BUILD_IMAGE     = godep-builder
 
-IMAGE_NAME = ${GIT_USER}/mosnd
-REGISTRY = acs-reg.alipay.com
+IMAGE_NAME      = ${GIT_USER}/mosnd
+REGISTRY        = acs-reg.alipay.com
 
 RPM_BUILD_IMAGE = afenp-rpm-builder
 RPM_VERSION     = $(shell cat VERSION | tr -d '-')
@@ -65,6 +66,7 @@ build-local:
 	mv ${TARGET} build/bundles/${MAJOR_VERSION}/binary
 	@cd build/bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET} | cut -d' ' -f1  > ${TARGET}.md5
 	cp configs/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/binary
+	cp build/bundles/${MAJOR_VERSION}/binary/${TARGET}  build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR}
 
 build-linux32:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
@@ -76,6 +78,7 @@ build-linux32:
 	mv ${TARGET} build/bundles/${MAJOR_VERSION}/binary
 	@cd build/bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET} | cut -d' ' -f1  > ${TARGET}.md5
 	cp configs/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/binary
+	cp build/bundles/${MAJOR_VERSION}/binary/${TARGET}  build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR}
 
 build-linux64:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
@@ -87,6 +90,7 @@ build-linux64:
 	mv ${TARGET} build/bundles/${MAJOR_VERSION}/binary
 	@cd build/bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET} | cut -d' ' -f1  > ${TARGET}.md5
 	cp configs/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/binary
+	cp build/bundles/${MAJOR_VERSION}/binary/${TARGET}  build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR}
 
 
 image:
