@@ -600,7 +600,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e1",
 		Address:  HostAddress[0],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
 			"type":    "std",
@@ -613,7 +613,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e2",
 		Address:  HostAddress[1],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
 			"type":    "std",
@@ -625,7 +625,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e3",
 		Address:  HostAddress[2],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
 			"type":    "std",
@@ -637,7 +637,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e4",
 		Address:  HostAddress[3],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
 			"type":    "std",
@@ -649,7 +649,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e5",
 		Address:  HostAddress[4],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
 			"type":    "bigmem",
@@ -661,7 +661,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e6",
 		Address:  HostAddress[5],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
 			"type":    "bigmem",
@@ -673,7 +673,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e7",
 		Address:  HostAddress[6],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "dev",
 			"version": "1.2-pre",
 			"type":    "std",
@@ -694,60 +694,54 @@ func TestWeightedClusterRoute(t *testing.T) {
 					Cluster: v2.ClusterWeight{
 						Name:   "w1",
 						Weight: 90,
-						MetadataMatch:map[string]interface{}{
-							"filter_metadata":map[string]interface{}{"mosn.lb":
-								map[string]interface{}{
-									"version":"v1",}},
-						},
+						MetadataMatch: map[string]string{
+							"version": "v1"},
 					},
-					
 				},
+
 				{
 					Cluster: v2.ClusterWeight{
 						Name:   "w2",
 						Weight: 10,
-						MetadataMatch:map[string]interface{}{
-							"filter_metadata":map[string]interface{}{"mosn.lb":
-							map[string]interface{}{
-								"version":"v2",}},
-						},
+						MetadataMatch: map[string]string{
+							"version": "v2"},
 					},
 				},
 			},
 		},
 	}
 
-	routeRuleImplBase := router.NewRouteRuleImplBase(nil, routerMock1)
+	routeRuleImplBase,_ := router.NewRouteRuleImplBase(nil, routerMock1)
 	clustername := routeRuleImplBase.ClusterName()
-	
+
 	if clustername == "w1" {
-		if weightedClusterEntry,ok := routeRuleImplBase.WeightedCluster()[clustername];ok {
+		if weightedClusterEntry, ok := routeRuleImplBase.WeightedCluster()[clustername]; ok {
 			metadataMatchCriteria := weightedClusterEntry.GetClusterMetadataMatchCriteria()
 			sslb := NewSubsetLoadBalancer(types.RoundRobin, &priorityMock,
 				newClusterStats(v2.Cluster{Name: "w1"}), NewLBSubsetInfo(SubsetMock()))
-			
+
 			context := &ContextImplMock{
 				mmc: metadataMatchCriteria,
 			}
-			
-			if host :=sslb.ChooseHost(context); host.Hostname() != "e1" {
-				t.Errorf("routing with weighted cluster error, want e1, but got:",host.Hostname())
+
+			if host := sslb.ChooseHost(context); host.Hostname() != "e1" {
+				t.Errorf("routing with weighted cluster error, want e1, but got:", host.Hostname())
 			}
 		} else {
 			t.Errorf("routing with weighted cluster error, no clustername found")
 		}
 	} else if clustername == "w2" {
-		if weightedClusterEntry,ok := routeRuleImplBase.WeightedCluster()[clustername];ok {
+		if weightedClusterEntry, ok := routeRuleImplBase.WeightedCluster()[clustername]; ok {
 			metadataMatchCriteria := weightedClusterEntry.GetClusterMetadataMatchCriteria()
 			sslb := NewSubsetLoadBalancer(types.RoundRobin, &priorityMock,
 				newClusterStats(v2.Cluster{Name: "w2"}), NewLBSubsetInfo(SubsetMock()))
-			
+
 			context := &ContextImplMock{
 				mmc: metadataMatchCriteria,
 			}
-			
-			if host :=sslb.ChooseHost(context); host.Hostname() != "e2" {
-				t.Errorf("routing with weighted cluster error, want e1, but got:",host.Hostname())
+
+			if host := sslb.ChooseHost(context); host.Hostname() != "e2" {
+				t.Errorf("routing with weighted cluster error, want e1, but got:", host.Hostname())
 			}
 		} else {
 			t.Errorf("routing with weighted cluster error, no clustername found")
@@ -766,11 +760,11 @@ var priorityMock = prioritySet{
 }
 
 func SubsetMock() *v2.LBSubsetConfig {
-	 lbsubsetconfig := &v2.LBSubsetConfig{
-		FallBackPolicy: 2, //"DEFAULT_SUBSET"
+	lbsubsetconfig := &v2.LBSubsetConfig{
+		FallBackPolicy:  2, //"DEFAULT_SUBSET"
 		SubsetSelectors: [][]string{{"version"}},
 	}
-	
+
 	return lbsubsetconfig
 }
 
@@ -780,7 +774,7 @@ func HostsMock() []types.Host {
 	e1 := v2.Host{
 		Hostname: "e1",
 		Weight:   50,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"version": "v1",
 		},
 	}
@@ -789,7 +783,7 @@ func HostsMock() []types.Host {
 	e2 := v2.Host{
 		Hostname: "e2",
 		Weight:   50,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"version": "v2",
 		},
 	}

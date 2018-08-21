@@ -400,7 +400,7 @@ func convertMeta(xdsMeta *xdscore.Metadata) v2.Metadata {
 	if xdsMeta == nil {
 		return nil
 	}
-	meta := make(map[string]interface{}, len(xdsMeta.GetFilterMetadata()))
+	meta := make(map[string]string, len(xdsMeta.GetFilterMetadata()))
 	for key, value := range xdsMeta.GetFilterMetadata() {
 		meta[key] = value.String()
 	}

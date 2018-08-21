@@ -25,7 +25,7 @@ import (
 // Metadata field can be used to provide additional information about the route.
 // It can be used for configuration, stats, and logging.
 // The metadata should go under the filter namespace that will need it.
-type Metadata map[string]interface{}
+type Metadata map[string]string
 
 // Network Filter's Name
 const (

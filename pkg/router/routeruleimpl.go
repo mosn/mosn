@@ -30,9 +30,10 @@ import (
 	httpmosn "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"math/rand"
+	"fmt"
 )
 
-func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
+func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleImplBase,error) {
 	routeRuleImplBase := RouteRuleImplBase{
 		vHost:              vHost,
 		routerMatch:        route.Match,
@@ -45,7 +46,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImp
 		route.Route.WeightedClusters);valid {
 		routeRuleImplBase.weightedClusters = weightedClusters
 	} else {
-		log.DefaultLogger.Errorf("Sum of weights in the weighted_cluster should add up to:",
+		return routeRuleImplBase, fmt.Errorf("Sum of weights in the weighted_cluster error, should add up to:",
 			routeRuleImplBase.totalClusterWeight)
 	}
 	
@@ -58,13 +59,13 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImp
 	// todo add header match to route base
 	// generate metadata match criteria from router's metadata
 	if len(route.Route.MetadataMatch) > 0 {
-		subsetLBMetaData := getMosnLBMetaData(route.Route.MetadataMatch)
+		subsetLBMetaData := route.Route.MetadataMatch
 		routeRuleImplBase.metadataMatchCriteria = NewMetadataMatchCriteriaImpl(subsetLBMetaData)
 
 		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(route.Route.MetadataMatch)
 	}
 
-	return routeRuleImplBase
+	return routeRuleImplBase,nil
 }
 
 // Base implementation for all route entries.

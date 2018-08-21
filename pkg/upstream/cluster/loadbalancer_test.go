@@ -22,6 +22,8 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"math/rand"
+	"math"
 )
 
 func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
@@ -57,12 +59,12 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 		hostSets: hostset,
 	}
 
-	loadbalaner := loadbalaner{
+	loadbalaner := loadbalancer{
 		prioritySet: &prioritySet,
 	}
 
 	l := &roundRobinLoadBalancer{
-		loadbalaner: loadbalaner,
+		loadbalancer: loadbalaner,
 	}
 
 	want := []types.Host{host1, host2, host3, host4, host5}
@@ -83,86 +85,219 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 	host1 := NewHost(v2.Host{Address: "127.0.0.1", Hostname: "a", Weight: 5}, nil)
 	host2 := NewHost(v2.Host{Address: "127.0.0.2", Hostname: "b", Weight: 3}, nil)
 	host3 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "c", Weight: 2}, nil)
+
 	hosts1 := []types.Host{host1, host2, host3}
+	hosts2 := []types.Host{host1, host2}
+	hosts3 := []types.Host{host1}
+	hosts4 := []types.Host{}
 
 	hs1 := hostSet{
 		hosts:        hosts1,
 		healthyHosts: hosts1,
 	}
+	hs2 := hostSet{
+		hosts:        hosts2,
+		healthyHosts: hosts2,
+	}
+	hs3 := hostSet{
+		hosts:        hosts3,
+		healthyHosts: hosts3,
+	}
+	hs4 := hostSet{
+		hosts:        hosts4,
+		healthyHosts: hosts4,
+	}
+	hostset1 := []types.HostSet{&hs1}
+	hostset2 := []types.HostSet{&hs2}
+	hostset3 := []types.HostSet{&hs3}
+	hostset4 := []types.HostSet{&hs4}
 
-	hostset := []types.HostSet{&hs1}
-	ps := &prioritySet{
-		hostSets: hostset,
+	tests := []struct {
+		name string
+		args *prioritySet
+		want []float64
+	}{
+		{
+			name: "fullTest",
+			args: &prioritySet{
+				hostSets: hostset1,
+			},
+			want: []float64{0.5, 0.3, 0.2},
+		},
+		{
+			name: "case2",
+			args: &prioritySet{
+				hostSets: hostset2,
+			},
+			want: []float64{5.0 / 8.0, 3.0 / 8.0, 0},
+		},
+		{
+			name: "case3",
+			args: &prioritySet{
+				hostSets: hostset3,
+			},
+			want: []float64{1.0, 0, 0},
+		},
+		{
+			name: "zeroTest",
+			args: &prioritySet{
+				hostSets: hostset4,
+			},
+			want: []float64{0, 0, 0},
+		},
 	}
 
-	l := newSmoothWeightedRRLoadBalancer(ps)
-	var a, b, c int
+	thres := 0.01
+	
+	for _, tt := range tests {
+		var a, b, c float64
+		var i float64 = 0
 
-	for i := 0; i < 10; i++ {
-		host := l.ChooseHost(nil)
-		//	t.Log(host.Hostname())
+		l1 := newSmoothWeightedRRLoadBalancer(tt.args)
+		runningTimes := float64(rand.Int31n(1000))
+		
+		for ; i < runningTimes; i++ {
+			host := l1.ChooseHost(nil)
+			//	t.Log(host.Hostname())
+			if host == nil {
+				if tt.name == "zeroTest" {
+					return
+				} else {
+					t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
+						tt.want[0], tt.want[1], tt.want[2], tt.name)
+				}
+			}
 
-		switch host.Hostname() {
-		case "a":
-			a++
-		case "b":
-			b++
-		case "c":
-			c++
+			switch host.Hostname() {
+			case "a":
+				a++
+			case "b":
+				b++
+			case "c":
+				c++
+			}
 		}
-	}
 
-	if a != 5 || b != 3 || c != 2 {
-		t.Errorf("test sommoth loalbalancer err, want a = 5, b = 3, c = 2,  got a, b, c, ", a, b, c)
+		
+		if (a+b+c) != runningTimes || math.Abs(a/runningTimes- tt.want[0]) > thres || math.Abs(b/runningTimes- tt.want[1]) > thres || math.Abs(c/runningTimes- tt.want[2]) > thres {
+			t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
+				tt.want[0], tt.want[1], tt.want[2], tt.name)
+		}
 	}
 }
 
 func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
-	
-	type testCase struct {
-		lb types.LoadBalancer
-	}
-	
-	host1 := NewHost(v2.Host{Address: "127.0.0.1", Hostname: "a", Weight: 5}, nil)
-	host2 := NewHost(v2.Host{Address: "127.0.0.2", Hostname: "b", Weight: 3}, nil)
-	host3 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "c", Weight: 2}, nil)
+	host1 := NewHost(v2.Host{Address: "127.0.0.1", Hostname: "a", Weight: 8}, nil)
+	host2 := NewHost(v2.Host{Address: "127.0.0.2", Hostname: "b", Weight: 2}, nil)
+	host3 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "c", Weight: 5}, nil)
+	host4 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "d", Weight: 5}, nil)
+
 	hosts1 := []types.Host{host1, host2, host3}
-	
+
 	hs1 := hostSet{
 		hosts:        hosts1,
 		healthyHosts: hosts1,
 	}
-	
+
 	hostset := []types.HostSet{&hs1}
 	ps := &prioritySet{
 		hostSets: hostset,
 	}
-	
-	l := newSmoothWeightedRRLoadBalancer(ps)
-	var a, b, c int
-	
-	if ll, ok := l.(*smoothWeightedRRLoadBalancer); ok {
-		ll.UpdateHost(0, nil, []types.Host{host3})
+
+	loadbBalancer := newSmoothWeightedRRLoadBalancer(ps)
+
+	type args struct {
+		healthyHosts []types.Host
+		addedHosts   []types.Host
+		removedHosts []types.Host
 	}
 	
-	ps.hostSets = []types.HostSet{&hostSet{healthyHosts: []types.Host{host1, host2}}}
-	
-	for i := 0; i < 10; i++ {
-		host := l.ChooseHost(nil)
-		//	t.Log(host.Hostname())
+	tests := []struct {
+		name string
+		args args
+		want []float64
+	}{
+		{
+			name: "removeTest",
+			args: args{
+				healthyHosts: []types.Host{host1, host2},
+				addedHosts:   nil,
+				removedHosts: []types.Host{host3},
+			},
+			want: []float64{8.0 / 10.0, 2.0 / 10.0, 0.0, 0.0},
+		},
+		{
+			name: "addTest",
+			args: args{
+				healthyHosts: []types.Host{host1, host2, host3, host4},
+				addedHosts:   []types.Host{host3, host4},
+				removedHosts: nil,
+			},
+			want: []float64{8.0 / 20.0, 2.0 / 20.0, 5.0 / 20.0, 5.0 / 20.0},
+		},
+		{
+			name: "zeroTest",
+			args: args{
+				healthyHosts: []types.Host{},
+				addedHosts:   nil,
+				removedHosts: []types.Host{host1, host2, host3, host4},
+			},
+			want: []float64{0.0, 0.0, 0.0, 0.0},
+		},
+		{
+			name: "fullTest",
+			args: args{
+				healthyHosts: []types.Host{host1, host2, host3, host4},
+				addedHosts:   []types.Host{host1, host2, host3, host4},
+				removedHosts: nil,
+			},
+			want: []float64{8.0 / 20.0, 2.0 / 20.0, 5.0 / 20.0, 5.0 / 20.0},
+		},
 		
-		switch host.Hostname() {
-		case "a":
-			a++
-		case "b":
-			b++
-		case "c":
-			c++
+	}
+	
+	for _, tt := range tests {
+		// update healthy-hosts
+		ps.hostSets = []types.HostSet{&hostSet{healthyHosts:tt.args.healthyHosts}}
+		
+		if ll, ok := loadbBalancer.(*smoothWeightedRRLoadBalancer); ok {
+			ll.UpdateHost(0, tt.args.addedHosts, tt.args.removedHosts)
+		}
+		
+		runningTimes := float64(rand.Int31n(1000))
+		var a, b, c, d float64
+		var i float64 = 0
+		
+		for ; i < runningTimes; i++ {
+			host := loadbBalancer.ChooseHost(nil)
+			
+			if host == nil {
+				if tt.name == "zeroTest" {
+					return
+				} else {
+					t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
+						tt.want[0], tt.want[1], tt.want[2], tt.name)
+				}
+			}
+			
+			switch host.Hostname() {
+			case "a":
+				a++
+			case "b":
+				b++
+			case "c":
+				c++
+			case "d":
+				d++
+			}
+		}
+		
+		thres := 0.01
+		
+		if (a+b+c+d) != runningTimes || math.Abs(a/runningTimes- tt.want[0]) > thres || math.Abs(b/runningTimes- tt.want[1]) > thres ||
+			math.Abs(c/runningTimes- tt.want[2]) > thres  || math.Abs(d/runningTimes- tt.want[3]) > thres{
+			t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, d = %f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
+				d/runningTimes,tt.want[0], tt.want[1], tt.want[2],tt.want[3], tt.name)
 		}
 	}
-	
-	if a <= 5 || b <= 3 || c != 0 {
-		t.Errorf("test sommoth loalbalancer err, want a = 5, b = 3, c = 2,  got a, b, c, ", a, b, c)
-	}
-
 }

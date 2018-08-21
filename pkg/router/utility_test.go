@@ -24,52 +24,81 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
-func TestGetEnvoyLBMetaData(t *testing.T) {
-	header := v2.HeaderMatcher{
-		Name:  "service",
-		Value: "com.alipay.rpc.common.service.facade.SampleService:1.0",
-	}
-
-	var envoyvalue = map[string]interface{}{"label": "gray", "stage": "pre-release"}
-
-	var value = map[string]interface{}{"mosn.lb": envoyvalue}
-
-	routerV2 := v2.Router{
-		Match: v2.RouterMatch{
-			Headers: []v2.HeaderMatcher{header},
-		},
-
-		Route: v2.RouteAction{
-			ClusterName: "testclustername",
-			MetadataMatch: v2.Metadata{
-				"filter_metadata": value,
-			},
-		},
-	}
+func Test_getWeightedClusterEntryAndVeirfy(t *testing.T) {
 	type args struct {
-		route *v2.Router
+		totalClusterWeight uint32
+		weightedClusters   []v2.WeightedCluster
 	}
-
+	
+	type result struct {
+		valid  bool
+		value map[string]weightedClusterEntry
+	}
+	
 	tests := []struct {
-		name string
-		args args
-		want map[string]interface{}
+		name  string
+		args  args
+		want  result
 	}{
 		{
-			name: "testcase1",
-			args: args{
-				route: &routerV2,
+			name:"case1",
+			args:args{
+				totalClusterWeight:100,
+				weightedClusters:[]v2.WeightedCluster{
+					{Cluster:v2.ClusterWeight{Name:"c1",Weight:50,MetadataMatch:v2.Metadata{"label":"green","version":"v1"}}},
+					{Cluster:v2.ClusterWeight{Name:"c2",Weight:30,MetadataMatch:v2.Metadata{"label":"blue","version":"v2"}}},
+					{Cluster:v2.ClusterWeight{Name:"c3",Weight:20,MetadataMatch:v2.Metadata{"label":"gray","version":"v0"}}},
+				},
 			},
-			want: map[string]interface{}{
-				"label": "gray", "stage": "pre-release",
+			want:result{
+				valid:true,
+				value:map[string]weightedClusterEntry{
+					"c1":weightedClusterEntry{
+						clusterName:"c1",
+						clusterWeight:50,
+						clusterMetadataMatchCriteria:NewMetadataMatchCriteriaImpl(map[string]string{"label":"green","version":"v1"}),
+					},
+					"c2":weightedClusterEntry{
+						clusterName:"c2",
+						clusterWeight:30,
+						clusterMetadataMatchCriteria:NewMetadataMatchCriteriaImpl(map[string]string{"label":"blue","version":"v2"}),
+					},
+					"c3":weightedClusterEntry{
+						clusterName:"c3",
+						clusterWeight:20,
+						clusterMetadataMatchCriteria:NewMetadataMatchCriteriaImpl(map[string]string{"label":"gray","version":"v0"}),
+					},
+					
+				},
 			},
 		},
+		{
+			name:"case1",
+			args:args{
+				totalClusterWeight:100,
+				weightedClusters:[]v2.WeightedCluster{
+					{Cluster:v2.ClusterWeight{Name:"c1",Weight:50,MetadataMatch:v2.Metadata{"label":"green","version":"v1"}}},
+					{Cluster:v2.ClusterWeight{Name:"c2",Weight:30,MetadataMatch:v2.Metadata{"label":"blue","version":"v2"}}},
+					{Cluster:v2.ClusterWeight{Name:"c3",Weight:10,MetadataMatch:v2.Metadata{"label":"gray","version":"v0"}}},
+				},
+			},
+			want:result{
+				valid:false,
+				value:nil,
+			},
+		},
+		
+		
 	}
-
+	
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getMosnLBMetaData(tt.args.route.Route.MetadataMatch); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getMosnLBMetaData() = %v, want %v", got, tt.want)
+			got, got1 := getWeightedClusterEntryAndVeirfy(tt.args.totalClusterWeight, tt.args.weightedClusters)
+			if got != tt.want.valid {
+				t.Errorf("getWeightedClusterEntryAndVeirfy() name = %s got = %v, want %v",tt.name, got, tt.want.valid)
+			}
+			if !reflect.DeepEqual(got1, tt.want.value) {
+				t.Errorf("getWeightedClusterEntryAndVeirfy() name = %s got1 = %v, want %v",tt.want, got1, tt.want.value)
 			}
 		})
 	}

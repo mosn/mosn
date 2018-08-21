@@ -22,7 +22,6 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -119,11 +118,11 @@ func (ci *configImpl) InternalOnlyHeaders() *list.List {
 }
 
 // NewMetadataMatchCriteriaImpl
-func NewMetadataMatchCriteriaImpl(metadataMatches map[string]interface{}) *MetadataMatchCriteriaImpl {
-
+func NewMetadataMatchCriteriaImpl(metadataMatches map[string]string) *MetadataMatchCriteriaImpl {
+	
 	metadataMatchCriteriaImpl := &MetadataMatchCriteriaImpl{}
 	metadataMatchCriteriaImpl.extractMetadataMatchCriteria(nil, metadataMatches)
-
+	
 	return metadataMatchCriteriaImpl
 }
 
@@ -159,10 +158,9 @@ func (mmcti *MetadataMatchCriteriaImpl) Swap(i, j int) {
 
 // Used to generate metadata match criteria from config
 func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *MetadataMatchCriteriaImpl,
-	metadataMatches map[string]interface{}) {
+	metadataMatches map[string]string) {
 
 	var mdMatchCriteria []types.MetadataMatchCriterion
-
 	// used to record key and its index for o(1) searching
 	var existingMap = make(map[string]uint32)
 
@@ -176,29 +174,21 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 
 	// get from metadatamatch
 	for k, v := range metadataMatches {
+		mmci := &MetadataMatchCriterionImpl{
+			Name:  k,
+			Value: types.GenerateHashedValue(v),
+		}
 
-		if vs, ok := v.(string); ok {
-			mmci := &MetadataMatchCriterionImpl{
-				Name:  k,
-				Value: types.GenerateHashedValue(vs),
-			}
-
-			if index, ok := existingMap[k]; ok {
-
-				// update value
-				mdMatchCriteria[index] = mmci
-			} else {
-				// append
-				mdMatchCriteria = append(mdMatchCriteria, mmci)
-			}
-
+		if index, ok := existingMap[k]; ok {
+			// update value
+			mdMatchCriteria[index] = mmci
 		} else {
-			log.DefaultLogger.Errorf("Currently,metadata only support map[string]string type")
+			// append
+			mdMatchCriteria = append(mdMatchCriteria, mmci)
 		}
 	}
 
 	mmcti.MatchCriteriaArray = mdMatchCriteria
-
 	// sorting in lexically by name
 	sort.Sort(mmcti)
 }

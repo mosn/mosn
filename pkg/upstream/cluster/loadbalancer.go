@@ -35,17 +35,17 @@ func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySe
 	}
 }
 
-type loadbalaner struct {
+type loadbalancer struct {
 	prioritySet types.PrioritySet
 }
 
 type randomLoadBalancer struct {
-	loadbalaner
+	loadbalancer
 }
 
 func newRandomLoadbalancer(prioritySet types.PrioritySet) types.LoadBalancer {
 	return &randomLoadBalancer{
-		loadbalaner: loadbalaner{
+		loadbalancer: loadbalancer{
 			prioritySet: prioritySet,
 		},
 	}
@@ -69,7 +69,7 @@ func (l *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types
 
 // TODO: more loadbalancers@boqin
 type roundRobinLoadBalancer struct {
-	loadbalaner
+	loadbalancer
 	// rrIndex for hostSet select
 	rrIndexPriority uint32
 	// rrIndex for host select
@@ -78,7 +78,7 @@ type roundRobinLoadBalancer struct {
 
 func newRoundRobinLoadBalancer(prioritySet types.PrioritySet) types.LoadBalancer {
 	return &roundRobinLoadBalancer{
-		loadbalaner: loadbalaner{
+		loadbalancer: loadbalancer{
 			prioritySet: prioritySet,
 		},
 	}
@@ -112,7 +112,7 @@ func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) t
 }
 
 /*
-SW (Smooth Weighted) is a struct that contains weighted items and provides methods to select a weighted item.
+SW (smoothWeightedRRLoadBalancer) is a struct that contains weighted items and provides methods to select a weighted item.
 It is used for the smooth weighted round-robin balancing algorithm. This algorithm is implemented in Nginx:
 https://github.com/phusion/nginx/commit/27e94984486058d73157038f7950a0a36ecc6e35.
 Algorithm is as follows: on each peer selection we increase current_weight
@@ -120,11 +120,34 @@ of each eligible peer by its weight, select peer with greatest current_weight
 and reduce its current_weight by total number of weight points distributed
 among peers.
 In case of { 5, 1, 1 } weights this gives the following sequence of
-current_weight's: (a, a, b, a, c, a, a)
+current_weight's:
+     a  b  c
+     0  0  0  (initial state)
+
+     5  1  1  (a selected)
+    -2  1  1
+
+     3  2  2  (a selected)
+    -4  2  2
+
+     1  3  3  (b selected)
+     1 -4  3
+
+     6 -3  4  (a selected)
+    -1 -3  4
+
+     4 -2  5  (c selected)
+     4 -2 -2
+
+     9 -1 -1  (a selected)
+     2 -1 -1
+
+     7  0  0  (a selected)
+     0  0  0
 */
 
 type smoothWeightedRRLoadBalancer struct {
-	loadbalaner
+	loadbalancer
 	hostsWeighted map[string]*hostSmoothWeighted
 }
 
@@ -136,7 +159,7 @@ type hostSmoothWeighted struct {
 
 func newSmoothWeightedRRLoadBalancer(prioritySet types.PrioritySet)types.LoadBalancer {
 	smoothWRRLoadBalancer := &smoothWeightedRRLoadBalancer{
-		loadbalaner:loadbalaner{
+		loadbalancer: loadbalancer{
 			prioritySet:prioritySet,
 		},
 		hostsWeighted:make(map[string]*hostSmoothWeighted),
@@ -164,9 +187,20 @@ func newSmoothWeightedRRLoadBalancer(prioritySet types.PrioritySet)types.LoadBal
 }
 
 func (l *smoothWeightedRRLoadBalancer) UpdateHost(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
+	// add host to hostWeighted
+	for _, hostAdded := range hostsAdded {
+		if _, ok := l.hostsWeighted[hostAdded.Hostname()]; !ok {
+			// insert new health-host
+			l.hostsWeighted[hostAdded.Hostname()] = &hostSmoothWeighted{
+				weight:          int(hostAdded.Weight()),
+				effectiveWeight: int(hostAdded.Weight()),
+			}
+		}
+	}
+	
 	// remove host from hostsWeighted
-	for _,rmHost := range hostsRemoved {
-		delete(l.hostsWeighted,rmHost.Hostname())
+	for _, hostRm := range hostsRemoved {
+		delete(l.hostsWeighted, hostRm.Hostname())
 	}
 }
 
@@ -182,8 +216,7 @@ func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCont
 	for _, hosts := range hostSets {
 		for _, host := range hosts.HealthyHosts() {
 			if _, ok := l.hostsWeighted[host.Hostname()]; !ok {
-				
-				// insert new health-host
+				// insert new health-host in case UpdateHost not timely
 				l.hostsWeighted[host.Hostname()] = &hostSmoothWeighted{
 					weight:          int(host.Weight()),
 					effectiveWeight: int(host.Weight()),
@@ -191,7 +224,6 @@ func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCont
 			}
 			
 			hostW, _ := l.hostsWeighted[host.Hostname()]
-			
 			hostW.currentWeight += hostW.effectiveWeight
 			totalWeight += hostW.effectiveWeight
 			
