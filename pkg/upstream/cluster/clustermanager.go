@@ -50,7 +50,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	clusterMap map[string][]v2.Host, autoDiscovery bool, useHealthCheck bool) types.ClusterManager {
 
 	protocolConnPool := sync.Map{}
-	for k, _ := range types.ConnPoolFactories {
+	for k := range types.ConnPoolFactories {
 		protocolConnPool.Store(k, &sync.Map{})
 	}
 

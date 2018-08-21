@@ -21,10 +21,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"golang.org/x/sys/unix"
 	"net"
 	"os"
 	"path/filepath"
@@ -32,6 +28,11 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network/buffer"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"golang.org/x/sys/unix"
 )
 
 const (

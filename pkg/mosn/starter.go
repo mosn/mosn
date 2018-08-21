@@ -19,7 +19,6 @@ package mosn
 
 import (
 	"net"
-	"net/http"
 	"os"
 	"strconv"
 	"sync"
@@ -28,13 +27,12 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/alipay/sofa-mosn/pkg/server/config/proxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	"github.com/alipay/sofa-mosn/pkg/xds"
-	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 // Mosn class which wrapper server
@@ -47,7 +45,7 @@ type Mosn struct {
 func NewMosn(c *config.MOSNConfig) *Mosn {
 	m := &Mosn{}
 	mode := c.Mode()
-	
+
 	if mode == config.Xds {
 		servers := make([]config.ServerConfig, 0, 1)
 		server := config.ServerConfig{
@@ -65,7 +63,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	}
 
 	srvNum := len(c.Servers)
-	
+
 	if srvNum == 0 {
 		log.StartLogger.Fatalln("no server found")
 	} else if srvNum > 1 {
@@ -73,13 +71,13 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	}
 	//get inherit fds
 	inheritListeners := getInheritListeners()
-	
+
 	//cluster manager filter
 	cmf := &clusterManagerFilter{}
-	
+
 	// parse cluster all in one
 	clusters, clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
-	
+
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
 		//server config
@@ -108,21 +106,19 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			for _, listenerConfig := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
-				
-				nfcf,downstreamProtocol := getNetworkFilter(&lc.FilterChains[0])
-				
+
+				nfcf := getNetworkFilters(&lc.FilterChains[0])
+
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
 				// in the future, if we realize these two protocol by-self, this this hack method should be removed
-				if downstreamProtocol == string(protocol.HTTP2) || downstreamProtocol == string(protocol.HTTP1) {
-					lc.DisableConnIo = true
-				}
-				
+				lc.DisableConnIo = listenerDisableIO(&lc.FilterChains[0])
+
 				// network filters
 				if lc.HandOffRestoredDestinationConnections {
 					srv.AddListener(lc, nil, nil)
 					continue
 				}
-				
+
 				//stream filters
 				sfcf := getStreamFilters(listenerConfig.StreamFilters)
 				config.SetGlobalStreamFilter(sfcf)
@@ -146,7 +142,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	network.TransferTimeout = server.GracefulTimeout
 	// transfer old mosn connections
 	go network.TransferServer(m.servers[0].Handler())
-	
+
 	return m
 }
 
@@ -173,11 +169,6 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	go func() {
-		// pprof server
-		http.ListenAndServe("0.0.0.0:9090", nil)
-	}()
-
 	Mosn := NewMosn(c)
 	Mosn.Start()
 	////get xds config
@@ -191,24 +182,39 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 
 // getNetworkFilter
 // Used to parse proxy from config
-func getNetworkFilter(c *v2.FilterChain) (types.NetworkFilterChainFactory,string) {
-
-	if len(c.Filters) != 1 || c.Filters[0].Name != v2.DEFAULT_NETWORK_FILTER {
-		log.StartLogger.Fatalln("Currently, only Proxy Network Filter Needed!")
+func getNetworkFilters(c *v2.FilterChain) []types.NetworkFilterChainFactory {
+	var factories []types.NetworkFilterChainFactory
+	for _, f := range c.Filters {
+		factory, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config)
+		if err != nil {
+			log.StartLogger.Fatalln("network filter create failed :", err)
+		}
+		factories = append(factories, factory)
 	}
-
-	v2proxy := config.ParseProxyFilterJSON(&c.Filters[0])
-
-	return &proxy.GenericProxyFilterConfigFactory{
-		Proxy: v2proxy,
-	},v2proxy.DownstreamProtocol
+	return factories
+}
+func listenerDisableIO(c *v2.FilterChain) bool {
+	for _, f := range c.Filters {
+		if f.Name == v2.DEFAULT_NETWORK_FILTER {
+			if downstream, ok := f.Config["downstream_protocol"]; ok {
+				if downstream == string(protocol.HTTP2) || downstream == string(protocol.HTTP1) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFactory {
 	var factories []types.StreamFilterChainFactory
 
 	for _, c := range configs {
-		factories = append(factories, filter.CreateStreamFilterChainFactory(c.Type, c.Config))
+		factory, err := filter.CreateStreamFilterChainFactory(c.Type, c.Config)
+		if err != nil {
+			log.StartLogger.Fatalln("stream filter create failed :", err)
+		}
+		factories = append(factories, factory)
 	}
 	return factories
 }

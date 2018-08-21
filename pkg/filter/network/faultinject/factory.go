@@ -15,22 +15,32 @@
  * limitations under the License.
  */
 
-package proxy
+package faultinject
 
 import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/proxy"
+	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type GenericProxyFilterConfigFactory struct {
-	Proxy *v2.Proxy
+func init() {
+	filter.RegisterNetwork(v2.FAULT_INJECT_NETWORK_FILTER, CreateFaultInjectFactory)
 }
 
-func (gfcf *GenericProxyFilterConfigFactory) CreateFilterFactory(context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
-	return func(manager types.FilterManager) {
-		manager.AddReadFilter(proxy.NewProxy(context, gfcf.Proxy, clusterManager))
-	}
+type faultInjectConfigFactory struct {
+	FaultInject *v2.FaultInject
+}
+
+func (f *faultInjectConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
+	rf := NewFaultInjector(f.FaultInject)
+	callbacks.AddReadFilter(rf)
+}
+
+func CreateFaultInjectFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+	return &faultInjectConfigFactory{
+		FaultInject: config.ParseFaultInjectFilter(conf),
+	}, nil
 }
