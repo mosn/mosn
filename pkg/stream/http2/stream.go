@@ -527,6 +527,9 @@ func (s *serverStream) handleRequest() {
 			header[protocol.MosnHeaderQueryStringKey] = string(queryString)
 		}
 
+		// set stream id on headers for xprotocol
+		header[types.HeaderStreamID] = s.stream.context.Value(types.ContextKeyStreamID).(string)
+
 		s.decoder.OnReceiveHeaders(header, false)
 
 		//remove detect

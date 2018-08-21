@@ -19,18 +19,19 @@ package xprotocol
 
 import (
 	"context"
-	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	networkbuffer "github.com/alipay/sofa-mosn/pkg/network/buffer"
+	"sync/atomic"
+	"strconv"
 )
 
-var streamIDXprotocolCount uint32
+var streamIDXprotocolCount uint64
 
 // StreamDirection 1: server stream 0: client stream
 type StreamDirection int
@@ -78,13 +79,16 @@ type streamConnection struct {
 	activeStream    streamMap
 	clientCallbacks types.StreamConnectionEventListener
 	serverCallbacks types.ServerStreamConnectionEventListener
-
+	codec 			types.Multiplexing
+	streamIdMap 	sync.Map
+	reqIdMap 		sync.Map
 	logger log.Logger
 }
 
 func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
-
+	subProtocolName := context.Value("XSubProtocol").(types.SubProtocol)
+	codec := subProtocolFactories[subProtocolName].CreateSubProtocolCodec(context)
 	return &streamConnection{
 		context:         context,
 		connection:      connection,
@@ -92,6 +96,7 @@ func newStreamConnection(context context.Context, connection types.Connection, c
 		clientCallbacks: clientCallbacks,
 		serverCallbacks: serverCallbacks,
 		logger:          log.ByContext(context),
+		codec: 			 codec,
 	}
 }
 
@@ -100,23 +105,79 @@ func newStreamConnection(context context.Context, connection types.Connection, c
 // clientStreamConnection receive response
 // types.StreamConnection
 func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
-	log.StartLogger.Tracef("stream connection dispatch data = %v", buffer.String())
-	streamID := ""
-	if conn.serverCallbacks != nil {
-		reqID := atomic.AddUint32(&streamIDXprotocolCount, 1)
-		streamID = strconv.FormatUint(uint64(reqID), 10)
-	}
+	log.DefaultLogger.Tracef("stream connection dispatch data = %v", buffer.String())
 	headers := make(map[string]string)
 	// support dynamic route
 	headers[strings.ToLower(protocol.MosnHeaderHostKey)] = conn.connection.RemoteAddr().String()
 	headers[strings.ToLower(protocol.MosnHeaderPathKey)] = "/"
-	log.StartLogger.Tracef("before Dispatch on decode header")
-	conn.OnReceiveHeaders(streamID, headers)
-	log.StartLogger.Tracef("after Dispatch on decode header")
-	conn.OnReceiveData(streamID, buffer)
-	log.StartLogger.Tracef("after Dispatch on decode data")
+	log.DefaultLogger.Tracef("before Dispatch on decode header")
+
+	// get sub protocol codec
+	_,requestList := conn.codec.SplitRequest(buffer.Bytes())
+	for _,request := range requestList{
+		requestLen := len(request)
+		// ProtocolConvertor
+		// convertor first
+		convertorCodec,ok := conn.codec.(types.ProtocolConvertor)
+		if ok {
+			newHeaders , newData := convertorCodec.Convert(request)
+			request = newData
+			headers = newHeaders
+		}
+
+		// get stream id
+		streamId := ""
+		if conn.serverCallbacks != nil{
+			// replace request id
+			reqId := conn.codec.GetStreamId(request)
+			streamId = conn.changeStreamId(&request)
+			conn.reqIdMap.Store(streamId,reqId)
+			log.DefaultLogger.Tracef("Xprotocol get streamId %v, old reqId = %v",streamId,reqId)
+
+			// request route
+			requestRouteCodec,ok := conn.codec.(types.RequestRouting)
+			if ok {
+				routeHeaders := requestRouteCodec.GetMetas(request)
+				for k,v := range routeHeaders{
+					headers[k] = v
+				}
+				log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v" , headers)
+			}
+		}else if conn.clientCallbacks != nil{
+			tmpStreamId := conn.codec.GetStreamId(request)
+			value,ok := conn.streamIdMap.Load(tmpStreamId)
+			if ok{
+				streamId = value.(string)
+			}else{
+				log.DefaultLogger.Tracef("fail to get old streamid , maybe streamid is changed by upstream server?")
+			}
+		}
+		// tracing
+		tracingCodec ,ok:= conn.codec.(types.Tracing)
+		if ok {
+			serviceName := tracingCodec.GetServiceName(request)
+			methodName := tracingCodec.GetMethodName(request)
+			headers[types.HeaderRpcService] = serviceName
+			headers[types.HeaderRpcMethod] = methodName
+			log.DefaultLogger.Tracef("xprotocol handle tracing ,serviceName = %v , methodName = %v",serviceName,methodName)
+		}
+
+		reqBuf := networkbuffer.NewIoBufferBytes(request)
+		conn.OnReceiveHeaders(streamId, headers)
+		log.DefaultLogger.Tracef("after Dispatch on decode header")
+		conn.OnReceiveData(streamId, reqBuf)
+		log.DefaultLogger.Tracef("after Dispatch on decode data")
+		buffer.Drain(requestLen)
+	}
 }
 
+func (conn *streamConnection) changeStreamId(request *[]byte) string{
+	nStreamId := atomic.AddUint64(&streamIDXprotocolCount, 1)
+	streamId  := strconv.FormatUint(nStreamId, 10)
+	conn.codec.SetStreamId(request,streamId)
+	streamId = conn.codec.GetStreamId(*request)
+	return streamId
+}
 // Protocol return xprotocol
 func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
@@ -136,7 +197,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 
 // NewStream
 func (conn *streamConnection) NewStream(streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
-	log.StartLogger.Tracef("xprotocol stream new stream")
+	log.DefaultLogger.Tracef("xprotocol stream new stream,streamId =%v ", streamID)
 	stream := stream{
 		context:    context.WithValue(conn.context, types.ContextKeyStreamID, streamID),
 		streamID:   streamID,
@@ -167,7 +228,14 @@ func (conn *streamConnection) OnReceiveHeaders(streamID string, headers map[stri
 // OnReceiveData process data
 func (conn *streamConnection) OnReceiveData(streamID string, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStream.Get(streamID); ok {
-		log.StartLogger.Tracef("xprotocol stream on decode data")
+		if stream.direction == ClientStream {
+			// restore request id
+			buf := data.Bytes()
+			conn.codec.SetStreamId(&buf,stream.reqId)
+			data = networkbuffer.NewIoBufferBytes(buf)
+		}
+
+		log.DefaultLogger.Tracef("xprotocol stream on decode data")
 		stream.decoder.OnReceiveData(data, true)
 
 		if stream.direction == ClientStream {
@@ -206,6 +274,7 @@ type stream struct {
 	streamCbs        []types.StreamEventListener
 	encodedHeaders   types.IoBuffer
 	encodedData      types.IoBuffer
+	reqId 			 string
 }
 
 // AddEventListener add stream event callback
@@ -259,8 +328,27 @@ func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
 
 // AppendData process upstream request data
 func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
-	s.encodedData = data
-	log.StartLogger.Tracef("EncodeData,request id = %s, direction = %d,data = %v", s.streamID, s.direction, data.String())
+	if s.direction == ClientStream {
+		buf := data.Bytes()
+		s.reqId = s.connection.codec.GetStreamId(buf)
+		streamId := s.connection.changeStreamId(&buf)
+		reqBuf := networkbuffer.NewIoBufferBytes(buf)
+		// save streamid mapping dict
+		s.connection.streamIdMap.Store(streamId, s.streamID)
+		s.encodedData = reqBuf
+	}else if s.direction == ServerStream {
+		streamId := s.connection.codec.GetStreamId(data.Bytes())
+		value,ok := s.connection.reqIdMap.Load(streamId)
+		if ok{
+			// restore request id
+			reqId := value.(string)
+			buf := data.Bytes()
+			s.connection.codec.SetStreamId(&buf,reqId)
+			reqBuf := networkbuffer.NewIoBufferBytes(buf)
+			s.encodedData = reqBuf
+		}
+	}
+	log.DefaultLogger.Tracef("EncodeData,request id = %s, direction = %d,data = %v", s.streamID, s.direction, data.String())
 	if endStream {
 		s.endStream()
 	}
@@ -269,7 +357,7 @@ func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 
 // AppendTrailers process upstream request trailers
 func (s *stream) AppendTrailers(trailers map[string]string) error {
-	log.StartLogger.Tracef("EncodeTrailers,request id = %s, direction = %d", s.streamID, s.direction)
+	log.DefaultLogger.Tracef("EncodeTrailers,request id = %s, direction = %d", s.streamID, s.direction)
 	s.endStream()
 	return nil
 }
@@ -278,7 +366,7 @@ func (s *stream) AppendTrailers(trailers map[string]string) error {
 // For server stream, write out response
 // For client stream, write out request
 
-//TODO: x-protocol stream has encodeHeaders?
+//TODO: x-subprotocol stream has encodeHeaders?
 func (s *stream) endStream() {
 	log.StartLogger.Tracef("xprotocol stream end stream invoked , request id = %s, direction = %d", s.streamID, s.direction)
 	if stream, ok := s.connection.activeStream.Get(s.streamID); ok {
@@ -352,3 +440,4 @@ func (m *streamMap) Set(streamID string, s stream) {
 
 	m.smap[streamID] = s
 }
+
