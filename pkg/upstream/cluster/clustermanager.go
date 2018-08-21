@@ -50,8 +50,8 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	clusterMap map[string][]v2.Host, autoDiscovery bool, useHealthCheck bool) types.ClusterManager {
 
 	protocolConnPool := sync.Map{}
-	for k, _ := range types.ConnPoolFactories {
-		protocolConnPool.Store(k, sync.Map{})
+	for k := range types.ConnPoolFactories {
+		protocolConnPool.Store(k, &sync.Map{})
 	}
 
 	cm := &clusterManager{
@@ -266,14 +266,14 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 
 		value, _ := cm.protocolConnPool.Load(protocol)
 
-		connPool := value.(sync.Map)
-		if connPool, ok := connPool.Load(addr); ok {
+		connectionPool := value.(*sync.Map)
+		if connPool, ok := connectionPool.Load(addr); ok {
 			return connPool.(types.ConnectionPool)
 		}
 		if factory, ok := proxy.ConnNewPoolFactories[protocol]; ok {
 			newPool := factory(host) //call NewBasicRoute
 
-			connPool.Store(addr, newPool)
+			connectionPool.Store(addr, newPool)
 
 			return newPool
 		}

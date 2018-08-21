@@ -314,11 +314,13 @@ type StreamReceiverFilterCallbacks interface {
 	DecoderBufferLimit() uint32
 }
 
+// StreamFilterChainFactory adds filter into callbacks
 type StreamFilterChainFactory interface {
-	CreateFilterChain(context context.Context, callbacks FilterChainFactoryCallbacks)
+	CreateFilterChain(context context.Context, callbacks StreamFilterChainFactoryCallbacks)
 }
 
-type FilterChainFactoryCallbacks interface {
+// StreamFilterChainFactoryCallbacks is called in StreamFilterChainFactory
+type StreamFilterChainFactoryCallbacks interface {
 	AddStreamSenderFilter(filter StreamSenderFilter)
 
 	AddStreamReceiverFilter(filter StreamReceiverFilter)

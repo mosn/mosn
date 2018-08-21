@@ -101,7 +101,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 		logger.Debugf("Decoderprotocol code = %x, maybeProtocolVersion = %x", protocolCode, maybeProtocolVersion)
 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
-			if cmd,error := proto.GetDecoder().Decode(context, data); cmd != nil && error == nil {
+			if cmd, error := proto.GetDecoder().Decode(context, data); cmd != nil && error == nil {
 				if err := proto.GetCommandHandler().HandleCommand(context, cmd, filter); err != nil {
 					filter.OnDecodeError(err, nil)
 					break
@@ -127,7 +127,6 @@ func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 		log.DefaultLogger.Warnf("protocol already Exist:", protocolCode)
 	} else {
 		p.protocolMaps[protocolCode] = protocol
-		log.StartLogger.Debugf("register protocol:%x", protocolCode)
 	}
 }
 

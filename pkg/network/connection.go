@@ -19,10 +19,6 @@ package network
 
 import (
 	"context"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
 	"io"
 	"math/rand"
 	"net"
@@ -31,6 +27,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network/buffer"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/rcrowley/go-metrics"
 )
 
 // Network related const

@@ -88,23 +88,23 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	return server
 }
 
-func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
+func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
 	if _, ok := srv.ListenerInMap.Load(lc.Name); ok {
 		log.DefaultLogger.Warnf("Listen Already Started, Listen = %+v", lc)
 	} else {
 		srv.ListenerInMap.Store(lc.Name, lc)
-		srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
+		srv.handler.AddListener(lc, networkFiltersFactories, streamFiltersFactories)
 	}
 }
 
-func (srv *server) AddListenerAndStart(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
+func (srv *server) AddListenerAndStart(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) error {
 
 	if _, ok := srv.ListenerInMap.Load(lc.Name); ok {
 		log.DefaultLogger.Warnf("Listener Already Started, Listener Name = %+v", lc.Name)
 	} else {
 		srv.ListenerInMap.Store(lc.Name, lc)
-		al := srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
+		al := srv.handler.AddListener(lc, networkFiltersFactories, streamFiltersFactories)
 
 		if activeListener, ok := al.(*activeListener); ok {
 			go activeListener.listener.Start(nil)
@@ -143,7 +143,7 @@ func (srv *server) Close() {
 }
 
 func (srv *server) Handler() types.ConnectionHandler {
-	return  srv.handler
+	return srv.handler
 }
 
 func Stop() {
@@ -176,13 +176,13 @@ func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
 	// 5 sencond wait for read timeout
-	timeout := time.NewTimer(duration * 2 + time.Second * 5)
+	timeout := time.NewTimer(duration*2 + time.Second*5)
 	wait := make(chan struct{})
 	time.Sleep(duration)
 	go func() {
 		//todo close idle connections and wait active connections complete
 		StopConnection()
-		time.Sleep(duration + time.Second * 5)
+		time.Sleep(duration + time.Second*5)
 		wait <- struct{}{}
 	}()
 

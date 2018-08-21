@@ -67,6 +67,7 @@ func TestServerCloseToHTTP1(t *testing.T) {
 	log.StartLogger.Infof("[FUZZY TEST] RPC Server Close HTTP1 %d", caseIndex)
 	runServerCloseMeshToMesh(t, protocol.HTTP1)
 }
+
 func TestServerCloseToHTTP2(t *testing.T) {
 	caseIndex++
 	log.StartLogger.Infof("[FUZZY TEST] RPC Server Close HTTP2 %d", caseIndex)

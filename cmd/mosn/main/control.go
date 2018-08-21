@@ -18,8 +18,11 @@
 package main
 
 import (
+	"net/http"
+	_ "net/http/pprof"
+
 	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/cmd/mosn"
+	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/urfave/cli"
 )
 
@@ -44,6 +47,10 @@ var (
 			},
 		},
 		Action: func(c *cli.Context) error {
+			go func() {
+				// pprof server
+				http.ListenAndServe("0.0.0.0:9090", nil)
+			}()
 			configPath := c.String("config")
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
