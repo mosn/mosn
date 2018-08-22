@@ -23,6 +23,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"math/rand"
 )
 
 func TestPrefixRouteRuleImpl(t *testing.T) {
@@ -220,7 +221,9 @@ func TestWeightedClusterSelect(t *testing.T) {
 		routeRuleImplBase,_ := NewRouteRuleImplBase(nil,routecase)
 		var dcCount, w1Count, w2Count uint
 		
-		for i := 0; i < 1000; i++ {
+		totalTimes := rand.Int31n(10000)
+		var i int32
+		for i = 0; i < totalTimes; i++ {
 			clusterName := routeRuleImplBase.ClusterName()
 			switch clusterName {
 			case "defaultCluster":

@@ -26,30 +26,33 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 	//"github.com/alipay/sofa-mosn/pkg/protocol"
+	"fmt"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	httpmosn "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"math/rand"
-	"fmt"
 )
 
-func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleImplBase,error) {
+// NewRouteRuleImplBase
+// new routerule implement basement
+func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleImplBase, error) {
 	routeRuleImplBase := RouteRuleImplBase{
 		vHost:              vHost,
 		routerMatch:        route.Match,
 		routerAction:       route.Route,
 		clusterName:        route.Route.ClusterName,
 		totalClusterWeight: route.Route.TotalClusterWeight,
+		randInstance:       rand.New(rand.NewSource(time.Now().Unix())),
 	}
 
-	if valid,weightedClusters := getWeightedClusterEntryAndVeirfy(routeRuleImplBase.totalClusterWeight,
-		route.Route.WeightedClusters);valid {
+	if valid, weightedClusters := getWeightedClusterEntryAndVeirfy(routeRuleImplBase.totalClusterWeight,
+		route.Route.WeightedClusters); valid {
 		routeRuleImplBase.weightedClusters = weightedClusters
 	} else {
 		return routeRuleImplBase, fmt.Errorf("Sum of weights in the weighted_cluster error, should add up to:",
 			routeRuleImplBase.totalClusterWeight)
 	}
-	
+
 	routeRuleImplBase.policy = &routerPolicy{
 		retryOn:      false,
 		retryTimeout: 0,
@@ -65,7 +68,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleIm
 		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(route.Route.MetadataMatch)
 	}
 
-	return routeRuleImplBase,nil
+	return routeRuleImplBase, nil
 }
 
 // Base implementation for all route entries.
@@ -114,6 +117,7 @@ type RouteRuleImplBase struct {
 	directResponseBody string
 	policy             *routerPolicy
 	virtualClusters    *VirtualClusterEntry
+	randInstance       *rand.Rand
 }
 
 // types.RouterInfo
@@ -147,7 +151,8 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 		return rri.clusterName
 	}
 
-	selectedValue := rand.Intn(int(rri.totalClusterWeight))
+	// use randInstance to avoid global lock contention
+	selectedValue := rri.randInstance.Intn(int(rri.totalClusterWeight))
 	for _, weightCluster := range rri.weightedClusters {
 
 		selectedValue = selectedValue - int(weightCluster.clusterWeight)
@@ -155,7 +160,7 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 			return weightCluster.clusterName
 		}
 	}
-	
+
 	log.DefaultLogger.Errorf("Something wrong when choosing weighted cluster")
 	return rri.clusterName
 }
@@ -191,10 +196,10 @@ func (rri *RouteRuleImplBase) Metadata() types.RouteMetaData {
 
 func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.MetadataMatchCriteria {
 	// if clusterName belongs to a weighted cluster
-	if matchCriteria,ok :=rri.weightedClusters[clusterName];ok {
+	if matchCriteria, ok := rri.weightedClusters[clusterName]; ok {
 		return matchCriteria.clusterMetadataMatchCriteria
 	}
-	
+
 	return rri.metadataMatchCriteria
 }
 
@@ -224,7 +229,7 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	return ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters)
 }
 
-func (rri *RouteRuleImplBase) WeightedCluster() map[string]weightedClusterEntry{
+func (rri *RouteRuleImplBase) WeightedCluster() map[string]weightedClusterEntry {
 	return rri.weightedClusters
 }
 

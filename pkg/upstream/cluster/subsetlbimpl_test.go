@@ -462,9 +462,7 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			got := sslb.ChooseHost(tt.args.context)
-
 			if got.AddressString() != tt.want.AddressString() {
 				t.Errorf("subSetLoadBalancer.ChooseHost() = %v, want %v", got.AddressString(), tt.want.AddressString())
 			}

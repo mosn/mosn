@@ -164,3 +164,31 @@ func CreateTCPProxyConfig(meshaddr string, hosts []string) *config.MOSNConfig {
 		listener,
 	}, cmconfig)
 }
+
+//
+// mesh as a proxy , client and servre have same protocol
+func CreateWeightProxyMesh(addr string, hosts []string, proto types.Protocol) *config.MOSNConfig {
+	if len(hosts) < 4 {
+		return nil
+	}
+
+	clusterNames := []string{"cluster1", "cluster2"}
+
+	cmconfig := config.ClusterManagerConfig{
+		Clusters: []config.ClusterConfig{
+			newWeightedCluster(clusterNames[0], []string{hosts[0], hosts[1]}),
+			newWeightedCluster(clusterNames[1], []string{hosts[2], hosts[3]}),
+		},
+	}
+
+	routers := []config.Router{
+		newHeaderWeightedRouter(clusterNames, ".*"),
+	}
+
+	chains := []config.FilterChain{
+		newFilterChain("proxyVirtualHost", proto, proto, routers),
+	}
+	listener := newListener("proxyListener", addr, chains)
+
+	return newMOSNConfig([]config.ListenerConfig{listener}, cmconfig)
+}
