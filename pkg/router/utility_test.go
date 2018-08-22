@@ -24,7 +24,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
-func Test_getWeightedClusterEntryAndVeirfy(t *testing.T) {
+func Test_getWeightedClusterEntryAndVerify(t *testing.T) {
 	type args struct {
 		totalClusterWeight uint32
 		weightedClusters   []v2.WeightedCluster
@@ -93,12 +93,12 @@ func Test_getWeightedClusterEntryAndVeirfy(t *testing.T) {
 	
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := getWeightedClusterEntryAndVeirfy(tt.args.totalClusterWeight, tt.args.weightedClusters)
+			got, got1 := getWeightedClusterEntryAndVerify(tt.args.totalClusterWeight, tt.args.weightedClusters)
 			if got != tt.want.valid {
-				t.Errorf("getWeightedClusterEntryAndVeirfy() name = %s got = %v, want %v",tt.name, got, tt.want.valid)
+				t.Errorf("getWeightedClusterEntryAndVerify() name = %s got = %v, want %v",tt.name, got, tt.want.valid)
 			}
 			if !reflect.DeepEqual(got1, tt.want.value) {
-				t.Errorf("getWeightedClusterEntryAndVeirfy() name = %s got1 = %v, want %v",tt.want, got1, tt.want.value)
+				t.Errorf("getWeightedClusterEntryAndVerify() name = %s got1 = %v, want %v",tt.want, got1, tt.want.value)
 			}
 		})
 	}

@@ -294,7 +294,7 @@ func parseRouterMetadata(metadata Metadata) v2.Metadata {
 			}
 		}
 	}
-	log.StartLogger.Fatal("Metadata for routing format invalid, metadata =  { \"filter_metadata\": {\"mosn.lb\": { \"label\": \"gray\" } } }")
+	log.StartLogger.Fatal("Metadata for routing format invalid, metadata format such as: { \"filter_metadata\": {\"mosn.lb\": { \"label\": \"gray\" } } }")
 	
 	return result
 }

@@ -19,7 +19,7 @@ func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 
 // Note
 // "runtimeKey" and "loader" are not used currently
-func getWeightedClusterEntryAndVeirfy(totalClusterWeight uint32,weightedClusters []v2.WeightedCluster) (bool,
+func getWeightedClusterEntryAndVerify(totalClusterWeight uint32,weightedClusters []v2.WeightedCluster) (bool,
 	map[string]weightedClusterEntry){
 	var weightedClusterEntries = make(map[string]weightedClusterEntry)
 	var totalWeight uint32 = 0

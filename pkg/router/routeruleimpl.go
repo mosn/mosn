@@ -45,7 +45,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleIm
 		randInstance:       rand.New(rand.NewSource(time.Now().Unix())),
 	}
 
-	if valid, weightedClusters := getWeightedClusterEntryAndVeirfy(routeRuleImplBase.totalClusterWeight,
+	if valid, weightedClusters := getWeightedClusterEntryAndVerify(routeRuleImplBase.totalClusterWeight,
 		route.Route.WeightedClusters); valid {
 		routeRuleImplBase.weightedClusters = weightedClusters
 	} else {

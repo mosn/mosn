@@ -360,8 +360,8 @@ func MockClusterManager() types.ClusterManager{
 	host4 := v2.Host{Address: "127.0.0.4", Hostname: "h4", Weight: 5, MetaData:v2.Metadata{"label":"green"}}
 	host5 := v2.Host{Address: "127.0.0.5", Hostname: "h5", Weight: 5, MetaData:v2.Metadata{"label":"blue"}}
 	host6 := v2.Host{Address: "127.0.0.6", Hostname: "h6", Weight: 5, MetaData:v2.Metadata{"label":"blue"}}
-	host7 := v2.Host{Address: "127.0.0.7", Hostname: "h5", Weight: 5, MetaData:v2.Metadata{"label":"green"}}
-	host8 := v2.Host{Address: "127.0.0.8", Hostname: "h6", Weight: 5, MetaData:v2.Metadata{"label":"green"}}
+	host7 := v2.Host{Address: "127.0.0.7", Hostname: "h7", Weight: 5, MetaData:v2.Metadata{"label":"green"}}
+	host8 := v2.Host{Address: "127.0.0.8", Hostname: "h8", Weight: 5, MetaData:v2.Metadata{"label":"green"}}
 	
 	clusters := []v2.Cluster{
 		{
@@ -449,7 +449,6 @@ func Benchmark_RouteAndLB(b *testing.B) {
 		}
 		
 		clustername := route.RouteRule().ClusterName()
-		
 		clusterSnapshot := mockedClusterMng.getOrCreateClusterSnapshot(clustername)
 		
 		if clusterSnapshot == nil {
