@@ -24,18 +24,19 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/filter"
 )
 
 // todo: support cached pass through
 
-func init(){
-	filter.Register("healthcheck", CreateHealthCheckFilterFactory)
+func init() {
+	filter.RegisterStream("healthcheck", CreateHealthCheckFilterFactory)
 }
+
 // types.StreamSenderFilter
 type healthCheckFilter struct {
 	context context.Context
@@ -150,7 +151,7 @@ type HealthCheckFilterConfigFactory struct {
 	FilterConfig *v2.HealthCheckFilter
 }
 
-func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
+func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewHealthCheckFilter(context, f.FilterConfig)
 	callbacks.AddStreamReceiverFilter(filter)
 }

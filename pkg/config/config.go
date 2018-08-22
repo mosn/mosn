@@ -313,6 +313,18 @@ type ServicePubInfoConfig struct {
 	PubData     string `json:"pub_data,omitempty"`
 }
 
+// TCPRouteConfig
+type TCPRouteConfig struct {
+	Cluster          string   `json:"cluster,omitempty"`
+	SourceAddrs      []string `json:"source_addrs,omitempty"`
+	DestinationAddrs []string `json:"destination_addrs,omitempty"`
+}
+
+// TCPProxy
+type TCPProxyConfig struct {
+	Routes []TCPRouteConfig `json:"routes,omitempty"`
+}
+
 // MOSNConfig make up mosn to start the mosn project
 // Servers contains the listener, filter and so on
 // ClusterManager used to manage the upstream

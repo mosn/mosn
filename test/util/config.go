@@ -135,3 +135,32 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 	}, cmconfig)
 
 }
+
+// TCP Proxy
+func CreateTCPProxyConfig(meshaddr string, hosts []string) *config.MOSNConfig {
+	clusterName := "cluster"
+	tcpConfig := config.TCPProxyConfig{
+		Routes: []config.TCPRouteConfig{
+			{Cluster: clusterName},
+		},
+	}
+	chains := make(map[string]interface{})
+	b, _ := json.Marshal(tcpConfig)
+	json.Unmarshal(b, &chains)
+	filterChains := []config.FilterChain{
+		{
+			Filters: []config.FilterConfig{
+				{Type: "tcp_proxy", Config: chains},
+			},
+		},
+	}
+	cmconfig := config.ClusterManagerConfig{
+		Clusters: []config.ClusterConfig{
+			newBasicCluster(clusterName, hosts),
+		},
+	}
+	listener := newListener("listener", meshaddr, filterChains)
+	return newMOSNConfig([]config.ListenerConfig{
+		listener,
+	}, cmconfig)
+}

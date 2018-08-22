@@ -18,6 +18,7 @@
 package config
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -43,6 +44,18 @@ var protocolsSupported = map[string]bool{
 	string(protocol.HTTP2):     true,
 	string(protocol.HTTP1):     true,
 	string(protocol.Xprotocol): true,
+}
+
+// RegisterProtocolParser
+// used to register parser
+func RegisterProtocolParser(key string) bool {
+	if _, ok := protocolsSupported[key]; ok {
+		return false
+	} else {
+		log.StartLogger.Infof(" %s added to protocolsSupported", key)
+		protocolsSupported[key] = true
+		return true
+	}
 }
 
 // ParsedCallback is an
@@ -116,10 +129,10 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 }
 
 // ParseProxyFilterJSON
-func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
+func ParseProxyFilterJSON(config map[string]interface{}) *v2.Proxy {
 	proxyConfig := &Proxy{}
 
-	if data, err := json.Marshal(c.Config); err == nil {
+	if data, err := json.Marshal(config); err == nil {
 		json.Unmarshal(data, &proxyConfig)
 	} else {
 		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
@@ -851,4 +864,37 @@ func ParseServiceRegistry(src ServiceRegistryConfig) {
 			cb(SrvRegInfo, true)
 		}
 	}
+}
+
+// ParseTCPProxy transfer map to TCPProxy
+func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {
+	data, _ := json.Marshal(config)
+	cfg := &TCPProxyConfig{}
+	if err := json.Unmarshal(data, cfg); err != nil {
+		return nil, fmt.Errorf("config is not a tcp proxy config: %v", err)
+	}
+	proxy := &v2.TCPProxy{
+		Routes: []*v2.TCPRoute{},
+	}
+	for _, route := range cfg.Routes {
+		tcpRoute := &v2.TCPRoute{
+			Cluster: route.Cluster,
+		}
+		for _, addr := range route.SourceAddrs {
+			src, err := net.ResolveTCPAddr("tcp", addr)
+			if err != nil {
+				return nil, fmt.Errorf("source addrs is not a valid addr: %v", err)
+			}
+			tcpRoute.SourceAddrs = append(tcpRoute.SourceAddrs, src)
+		}
+		for _, addr := range route.DestinationAddrs {
+			dst, err := net.ResolveTCPAddr("tcp", addr)
+			if err != nil {
+				return nil, fmt.Errorf("destination addrs is not a valid addr: %v", err)
+			}
+			tcpRoute.DestinationAddrs = append(tcpRoute.DestinationAddrs, dst)
+		}
+		proxy.Routes = append(proxy.Routes, tcpRoute)
+	}
+	return proxy, nil
 }

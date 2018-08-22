@@ -21,9 +21,9 @@ import (
 	"errors"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/alipay/sofa-mosn/pkg/server/config/proxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	clusterAdapter "github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -46,20 +46,21 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 			continue
 		}
 
-		var networkFilter *proxy.GenericProxyFilterConfigFactory
+		var networkFilters []types.NetworkFilterChainFactory
 
 		if !mosnListener.HandOffRestoredDestinationConnections {
 			for _, filterChain := range mosnListener.FilterChains {
-				for _, filter := range filterChain.Filters {
-					if filter.Name == v2.DEFAULT_NETWORK_FILTER {
-						networkFilter = &proxy.GenericProxyFilterConfigFactory{
-							Proxy: ParseProxyFilterJSON(&filter),
-						}
+				for _, f := range filterChain.Filters {
+					nfcf, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config)
+					if err != nil {
+						log.DefaultLogger.Errorf("parse network filter failed %v", err)
+						return err
 					}
+					networkFilters = append(networkFilters, nfcf)
 				}
 			}
 
-			if networkFilter == nil {
+			if len(networkFilters) == 0 {
 				errMsg := "xds client update listener error: proxy needed in network filters"
 				log.DefaultLogger.Errorf(errMsg)
 				return errors.New(errMsg)
@@ -69,7 +70,7 @@ func (config *MOSNConfig) OnUpdateListeners(listeners []*pb.Listener) error {
 		if server := server.GetServer(); server == nil {
 			log.DefaultLogger.Fatal("Server is nil and hasn't been initiated at this time")
 		} else {
-			if err := server.AddListenerAndStart(mosnListener, networkFilter, streamFilter); err == nil {
+			if err := server.AddListenerAndStart(mosnListener, networkFilters, streamFilter); err == nil {
 				log.DefaultLogger.Debugf("xds client update listener success,listener = %+v\n", mosnListener)
 			} else {
 				log.DefaultLogger.Errorf("xds client update listener error,listener = %+v\n", mosnListener)
