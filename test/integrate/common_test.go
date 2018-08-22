@@ -24,6 +24,7 @@ func TestCommon(t *testing.T) {
 		newTestCase(t, protocol.SofaRPC, protocol.HTTP1, util.NewRPCServer(t, appaddr, util.Bolt1)),
 		newTestCase(t, protocol.SofaRPC, protocol.HTTP2, util.NewRPCServer(t, appaddr, util.Bolt1)),
 		newTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+		newTestCase(t, protocol.Xprotocol, protocol.HTTP2, util.NewRPCServer(t, appaddr, util.Xprotocol)),
 		//TODO:
 		//newTestCase(t, protocol.SofaRPC, protocol.HTTP1, util.NewRPCServer(t, appaddr, util.Bolt2)),
 		//newTestCase(t, protocol.SofaRPC, protocol.HTTP2, util.NewRPCServer(t, appaddr, util.Bolt2)),

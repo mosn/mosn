@@ -21,14 +21,14 @@ func newRpcExample() types.Multiplexing{
 	return &rpcExample{}
 }
 
-func (re *rpcExample) SplitRequest(data []byte) (bool,[][]byte){
-	return false,nil
+func (re *rpcExample) SplitRequest(data []byte) [][]byte{
+	return nil
 }
 
 func (re *rpcExample) GetStreamId(data []byte) string{
 	return ""
 }
 
-func (re *rpcExample) SetStreamId(data *[]byte,streamId string){
-
+func (re *rpcExample) SetStreamId(data []byte,streamId string) []byte{
+	return nil
 }

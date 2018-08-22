@@ -14,6 +14,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
 	"golang.org/x/net/http2"
+	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 )
 
 type testCase struct {
@@ -138,6 +141,34 @@ func (c *testCase) RunCase(n int) {
 			client.SendRequest()
 			if !util.WaitMapEmpty(&client.Waits, 2*time.Second) {
 				return fmt.Errorf("request get no response")
+			}
+			return nil
+		}
+
+	// TODO : add xprotocol test
+	case protocol.Xprotocol:
+		stopChan := make(chan struct{})
+		remoteAddr, _ := net.ResolveTCPAddr("tcp", c.clientMeshAddr)
+		cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
+		if err := cc.Connect(true); err != nil {
+			c.C <- fmt.Errorf("xprotocol connect fail %v\n",err)
+		}
+		call = func() error {
+			testData := []byte("0001|header:hello|body:world")
+			cc.Write(buffer.NewIoBufferBytes(testData))
+			for {
+				now := time.Now()
+				cc.RawConn().SetReadDeadline(now.Add(30 * time.Second))
+				buf := make([]byte, 10*1024)
+				bytesRead, err := cc.RawConn().Read(buf)
+				if err != nil {
+					if err, ok := err.(net.Error); ok && err.Timeout() {
+						continue
+					}
+				}
+				if bytesRead > 0 {
+					fmt.Printf("server response %v\n",string(buf))
+				}
 			}
 			return nil
 		}

@@ -18,11 +18,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"fmt"
 )
 
 const (
 	Bolt1 = "boltV1"
 	Bolt2 = "boltV2"
+	Xprotocol = "X"
 )
 
 type RPCClient struct {
@@ -167,6 +169,8 @@ func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
 		server = NewUpstreamServer(t, addr, ServeBoltV1)
 	case Bolt2:
 		server = NewUpstreamServer(t, addr, ServeBoltV2)
+	case Xprotocol:
+		server = NewUpstreamServer(t, addr, ServeXprotocol)
 	default:
 		t.Errorf("unsupport protocol")
 		return nil
@@ -195,6 +199,14 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 }
 func ServeBoltV2(t *testing.T, conn net.Conn) {
 	//TODO:
+}
+func ServeXprotocol(t *testing.T, conn net.Conn) {
+	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+		fmt.Printf("client request : %v\n",string(iobuf.Bytes()))
+		responseData :=  []byte("0001|header:hello2|body:world2")
+		return responseData, true
+	}
+	serveSofaRPC(t, conn, response)
 }
 
 func serveSofaRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {

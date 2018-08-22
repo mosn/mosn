@@ -87,7 +87,8 @@ type streamConnection struct {
 
 func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
-	subProtocolName := context.Value("XSubProtocol").(types.SubProtocol)
+	//subProtocolName := context.Value("XSubProtocol").(types.SubProtocol)
+	subProtocolName := types.SubProtocol("X-hsf")
 	codec := subProtocolFactories[subProtocolName].CreateSubProtocolCodec(context)
 	return &streamConnection{
 		context:         context,
@@ -113,7 +114,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	log.DefaultLogger.Tracef("before Dispatch on decode header")
 
 	// get sub protocol codec
-	_,requestList := conn.codec.SplitRequest(buffer.Bytes())
+	requestList := conn.codec.SplitRequest(buffer.Bytes())
 	for _,request := range requestList{
 		requestLen := len(request)
 		// ProtocolConvertor
@@ -130,7 +131,8 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		if conn.serverCallbacks != nil{
 			// replace request id
 			reqId := conn.codec.GetStreamId(request)
-			streamId = conn.changeStreamId(&request)
+			streamId,request = conn.changeStreamId(request)
+
 			conn.reqIdMap.Store(streamId,reqId)
 			log.DefaultLogger.Tracef("Xprotocol get streamId %v, old reqId = %v",streamId,reqId)
 
@@ -171,12 +173,12 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	}
 }
 
-func (conn *streamConnection) changeStreamId(request *[]byte) string{
+func (conn *streamConnection) changeStreamId(request []byte) (string,[]byte){
 	nStreamId := atomic.AddUint64(&streamIDXprotocolCount, 1)
 	streamId  := strconv.FormatUint(nStreamId, 10)
-	conn.codec.SetStreamId(request,streamId)
-	streamId = conn.codec.GetStreamId(*request)
-	return streamId
+	nReq := conn.codec.SetStreamId(request,streamId)
+	streamId = conn.codec.GetStreamId(request)
+	return streamId,nReq
 }
 // Protocol return xprotocol
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -231,7 +233,7 @@ func (conn *streamConnection) OnReceiveData(streamID string, data types.IoBuffer
 		if stream.direction == ClientStream {
 			// restore request id
 			buf := data.Bytes()
-			conn.codec.SetStreamId(&buf,stream.reqId)
+			buf = conn.codec.SetStreamId(buf,stream.reqId)
 			data = networkbuffer.NewIoBufferBytes(buf)
 		}
 
@@ -331,7 +333,7 @@ func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 	if s.direction == ClientStream {
 		buf := data.Bytes()
 		s.reqId = s.connection.codec.GetStreamId(buf)
-		streamId := s.connection.changeStreamId(&buf)
+		streamId,buf := s.connection.changeStreamId(buf)
 		reqBuf := networkbuffer.NewIoBufferBytes(buf)
 		// save streamid mapping dict
 		s.connection.streamIdMap.Store(streamId, s.streamID)
@@ -343,7 +345,7 @@ func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 			// restore request id
 			reqId := value.(string)
 			buf := data.Bytes()
-			s.connection.codec.SetStreamId(&buf,reqId)
+			buf = s.connection.codec.SetStreamId(buf,reqId)
 			reqBuf := networkbuffer.NewIoBufferBytes(buf)
 			s.encodedData = reqBuf
 		}

@@ -5,9 +5,9 @@ type SubProtocol string
 // 多路复用，Accesslog，流控，熔断能力
 type Multiplexing interface {
 	// 将Rpc数据包拆分为多个请求
-	SplitRequest(data []byte) (bool,[][]byte)
+	SplitRequest(data []byte) [][]byte
 	GetStreamId(data []byte) string
-	SetStreamId(data *[]byte,streamId string)
+	SetStreamId(data []byte,streamId string) []byte
 }
 
 // Tracing能力
