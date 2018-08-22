@@ -179,24 +179,6 @@ func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
 	return s
 }
 
-/*
-var thres float64 = 0.3
-
-	if totalRequest >= 100 {
-		ratioCluster := (host1Count + host2Count) / (host3Count + host4Count)
-		if math.Abs(ratioCluster-40.0/60.0) > thres {
-			t.Errorf("weighted cluster selected error, want:%f , but got:%f", 40.0/60.0, ratioCluster, host1Count, host2Count, host3Count, host4Count)
-		}
-
-		ratioHost1 := host1Count / host2Count
-		ratioHost2 := host3Count / host4Count
-
-		if math.Abs(ratioHost1-0.5) > thres || math.Abs(ratioHost2-0.5) > thres {
-			t.Errorf("weighted host selected error, want:%f , but got1:%f got2:%f", 1.0/2.0, ratioHost1, ratioHost2)
-		}
-	}
-*/
-
 func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
 		atomic.AddUint32(&s.Count, 1)
