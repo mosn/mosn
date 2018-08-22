@@ -28,12 +28,13 @@ import (
 	"sync/atomic"
 
 	"fmt"
+	"reflect"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"reflect"
 )
 
 // ConnectionHandler
@@ -98,8 +99,8 @@ func GenerateListenerID() string {
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
 func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener{
-	
+	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
+
 	var listenerName string
 	if lc.Name == "" {
 		listenerName = GenerateListenerID()
@@ -107,86 +108,86 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 	} else {
 		listenerName = lc.Name
 	}
-	
+
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
 		// listener already exist, update the listener
-		
+
 		// a listener with the same name must have the same configured address
 		if al.listener.Addr().String() != lc.Addr.String() ||
-			al.listener.Addr().Network() != lc.Addr.Network(){
+			al.listener.Addr().Network() != lc.Addr.Network() {
 			log.DefaultLogger.Errorf("error updating listener, listen address and listen name doesn't match")
 			return nil
 		}
-		
-		equalConfig := reflect.DeepEqual(al.listener.Config(),lc)
-		equalNetworkFilter := reflect.DeepEqual(al.networkFiltersFactory,networkFiltersFactory)
-		equalStreamFilters := reflect.DeepEqual(al.streamFiltersFactories,streamFiltersFactories)
+
+		equalConfig := reflect.DeepEqual(al.listener.Config(), lc)
+		equalNetworkFilter := reflect.DeepEqual(al.networkFiltersFactory, networkFiltersFactory)
+		equalStreamFilters := reflect.DeepEqual(al.streamFiltersFactories, streamFiltersFactories)
 		// duplicate config does nothing
 		if equalConfig && equalNetworkFilter && equalStreamFilters {
 			log.DefaultLogger.Debugf("duplicate/locked listener '{}'. no add/update", listenerName)
 			return nil
 		}
-		
+
 		// update some config, and as Address and Name doesn't change , so need't change *rawl
-	    al.updatedLabel = true
-	    if !equalConfig {
-	        al.disableConnIo = lc.DisableConnIo
-		    al.listener.SetConfig(lc)
-	        al.listener.SetePerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
-	        al.listener.SetListenerTag(lc.ListenerTag)
-	        al.listener.SethandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
-	    }
-	    
-	    // update network filter
-	    if !equalNetworkFilter {
-	    	al.networkFiltersFactory = networkFiltersFactory
-	    }
-	    
-	    // update stream filter
-	    if !equalStreamFilters {
-	    	al.streamFiltersFactories = streamFiltersFactories
-	    }
+		al.updatedLabel = true
+		if !equalConfig {
+			al.disableConnIo = lc.DisableConnIo
+			al.listener.SetConfig(lc)
+			al.listener.SetePerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
+			al.listener.SetListenerTag(lc.ListenerTag)
+			al.listener.SethandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+		}
+
+		// update network filter
+		if !equalNetworkFilter {
+			al.networkFiltersFactory = networkFiltersFactory
+		}
+
+		// update stream filter
+		if !equalStreamFilters {
+			al.streamFiltersFactories = streamFiltersFactories
+		}
 	} else {
 		// listener doesn't exist, add the listener
-		
+
 		//TODO: connection level stop-chan usage confirm
 		listenerStopChan := make(chan struct{})
-		
+
 		//use default listener path
 		if lc.LogPath == "" {
 			lc.LogPath = MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
 		}
-		
+
 		logger, err := log.NewLogger(lc.LogPath, log.Level(lc.LogLevel))
 		if err != nil {
 			ch.logger.Fatalf("initialize listener logger failed : %v", err)
 		}
-		
+
 		//initialize access log
 		var als []types.AccessLog
-		
+
 		for _, alConfig := range lc.AccessLogs {
-			
+
 			//use default listener access log path
 			if alConfig.Path == "" {
 				alConfig.Path = MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
 			}
-			
+
 			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
 				log.StartLogger.Fatalln("initialize listener access logger ", alConfig.Path, " failed: ", err)
 			}
 		}
-		
+
 		l := network.NewListener(lc, logger)
-		
+
 		al = newActiveListener(l, logger, als, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
 	}
-	
+
 	return al
 }
 
@@ -231,11 +232,11 @@ func (ch *connHandler) StopListener(lctx context.Context, name string, close boo
 			if close {
 				return l.listener.Close(lctx)
 			}
-			
+
 			return l.listener.Stop()
 		}
 	}
-	
+
 	return nil
 }
 
@@ -243,12 +244,12 @@ func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 	for _, l := range ch.listeners {
 		// stop goroutine
 		if close {
-			 l.listener.Close(lctx)
+			l.listener.Close(lctx)
 		} else {
-			 l.listener.Stop()
+			l.listener.Stop()
 		}
 	}
-	
+
 	return nil
 }
 
@@ -324,12 +325,12 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 		listener:               listener,
 		networkFiltersFactory:  networkFiltersFactory,
 		streamFiltersFactories: streamFiltersFactories,
-		conns:      list.New(),
-		handler:    handler,
-		stopChan:   stopChan,
-		logger:     logger,
-		accessLogs: accessLoggers,
-		updatedLabel:false,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		logger:       logger,
+		accessLogs:   accessLoggers,
+		updatedLabel: false,
 	}
 
 	listenPort := 0

@@ -53,8 +53,8 @@ func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 		listenerTag:                           lc.ListenerTag,
 		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
 		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
-		logger:                                logger,
-		config:                                lc,
+		logger: logger,
+		config: lc,
 	}
 
 	if lc.InheritListener != nil {
@@ -150,8 +150,8 @@ func (l *listener) PerConnBufferLimitBytes() uint32 {
 	return l.perConnBufferLimitBytes
 }
 
-func (l *listener) SetePerConnBufferLimitBytes(limitBytes uint32)  {
-   l.perConnBufferLimitBytes = limitBytes
+func (l *listener) SetePerConnBufferLimitBytes(limitBytes uint32) {
+	l.perConnBufferLimitBytes = limitBytes
 }
 
 func (l *listener) SetListenerCallbacks(cb types.ListenerEventListener) {
@@ -162,7 +162,7 @@ func (l *listener) GetListenerCallbacks() types.ListenerEventListener {
 	return l.cb
 }
 
-func (l *listener)SethandOffRestoredDestinationConnections(restoredDestation bool) {
+func (l *listener) SethandOffRestoredDestinationConnections(restoredDestation bool) {
 	l.handOffRestoredDestinationConnections = restoredDestation
 }
 

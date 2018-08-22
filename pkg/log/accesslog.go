@@ -141,7 +141,7 @@ func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHe
 			DefaultLogger.Debugf("Invalid ReqInfo Format Keys: %s", key)
 		}
 	}
-	
+
 	return buffer.String()
 }
 
@@ -159,7 +159,7 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 
 	buffer := accessLogPool.Get()
 	defer accessLogPool.Put(buffer)
-	
+
 	for _, key := range f.reqHeaderFormat {
 		if v, ok := reqHeaders[key]; ok {
 			buffer.WriteString(types.ReqHeaderPrefix)

@@ -19,24 +19,30 @@ package server
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"sync"
 )
 
 var listenerAdapterInstance *ListenerAdapter
 var once sync.Once
 
 type ListenerAdapter struct {
-	connHandler types.ConnectionHandler
+	connHandlerMap     map[string]types.ConnectionHandler // key is server's name
+	defaultConnHandler types.ConnectionHandler
 }
 
-func InitListenerAdapterInstance(connHandler types.ConnectionHandler) {
-	once.Do(func() {
+// todo consider to use singleton
+func initListenerAdapterInstance(name string, connHandler types.ConnectionHandler) {
+	if listenerAdapterInstance == nil {
 		listenerAdapterInstance = &ListenerAdapter{
-			connHandler: connHandler,
+			connHandlerMap:     make(map[string]types.ConnectionHandler),
+			defaultConnHandler: connHandler, // in this case, the first server's connHandler will be the default connHandler
 		}
-	})
+	}
+
+	listenerAdapterInstance.connHandlerMap[name] = connHandler
 }
 
 func GetListenerAdapterInstance() *ListenerAdapter {
@@ -46,9 +52,22 @@ func GetListenerAdapterInstance() *ListenerAdapter {
 // AddOrUpdateListener used to:
 // Add and start listener when listener doesn't exist
 // Update listener when listener already exist
-func (adapter *ListenerAdapter) AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) error {
-	listener := adapter.connHandler.AddOrUpdateListener(lc, networkFiltersFactory, streamFiltersFactories)
+func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.ListenerConfig,
+	networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) error {
+
+	var connHandler types.ConnectionHandler
+
+	if serverName == "" {
+		connHandler = adapter.defaultConnHandler
+	} else {
+		if ch, ok := adapter.connHandlerMap[serverName]; ok {
+			connHandler = ch
+		} else {
+			fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
+		}
+	}
+
+	listener := connHandler.AddOrUpdateListener(lc, networkFiltersFactory, streamFiltersFactories)
 	if al, ok := listener.(*activeListener); ok {
 		if !al.updatedLabel {
 			// start listener if this is new
@@ -61,17 +80,42 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(lc *v2.ListenerConfig, netwo
 	return fmt.Errorf("AddOrUpdateListener Error")
 }
 
-func (adapter *ListenerAdapter) StopListener(name string) error {
-	return adapter.connHandler.StopListener(nil, name, false)
+// StopListener
+func (adapter *ListenerAdapter) StopListener(serverName string, listenerName string) error {
+	var connHandler types.ConnectionHandler
+
+	if serverName == "" {
+		connHandler = adapter.defaultConnHandler
+	} else {
+		if ch, ok := adapter.connHandlerMap[serverName]; ok {
+			connHandler = ch
+		} else {
+			fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
+		}
+	}
+
+	return connHandler.StopListener(nil, listenerName, false)
 }
 
-func (adapter *ListenerAdapter) DeleteListener(lc v2.ListenerConfig) error {
+func (adapter *ListenerAdapter) DeleteListener(serverName string, lc v2.ListenerConfig) error {
+	var connHandler types.ConnectionHandler
+
+	if serverName == "" {
+		connHandler = adapter.defaultConnHandler
+	} else {
+		if ch, ok := adapter.connHandlerMap[serverName]; ok {
+			connHandler = ch
+		} else {
+			fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
+		}
+	}
+
 	// stop listener first
-	if err := adapter.connHandler.StopListener(nil, lc.Name, true); err != nil {
+	if err := connHandler.StopListener(nil, lc.Name, true); err != nil {
 		return err
 	}
 
 	// then remove it from array
-	adapter.connHandler.RemoveListeners(lc.Name)
+	connHandler.RemoveListeners(lc.Name)
 	return nil
 }

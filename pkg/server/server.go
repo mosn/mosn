@@ -49,9 +49,10 @@ func GetServer() Server {
 var servers []*server
 
 type server struct {
-	logger        log.Logger
-	stopChan      chan struct{}
-	handler       types.ConnectionHandler
+	serverName string
+	logger     log.Logger
+	stopChan   chan struct{}
+	handler    types.ConnectionHandler
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
@@ -74,20 +75,22 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	OnProcessShutDown(log.CloseAll)
 
 	server := &server{
-		logger:        log.DefaultLogger,
-		stopChan:      make(chan struct{}),
-		handler:       NewHandler(cmFilter, clMng, log.DefaultLogger),
+		serverName: config.ServerName,
+		logger:     log.DefaultLogger,
+		stopChan:   make(chan struct{}),
+		handler:    NewHandler(cmFilter, clMng, log.DefaultLogger),
 	}
-	
-	InitListenerAdapterInstance(server.handler)
+
+	initListenerAdapterInstance(server.serverName, server.handler)
+
 	servers = append(servers, server)
 
 	return server
 }
 
 func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory)types.ListenerEventListener {
-	
+	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
+
 	return srv.handler.AddOrUpdateListener(lc, networkFiltersFactory, streamFiltersFactories)
 }
 
@@ -116,7 +119,7 @@ func (srv *server) Close() {
 }
 
 func (srv *server) Handler() types.ConnectionHandler {
-	return  srv.handler
+	return srv.handler
 }
 
 func Stop() {
@@ -149,13 +152,13 @@ func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
 	// 5 sencond wait for read timeout
-	timeout := time.NewTimer(duration * 2 + time.Second * 5)
+	timeout := time.NewTimer(duration*2 + time.Second*5)
 	wait := make(chan struct{})
 	time.Sleep(duration)
 	go func() {
 		//todo close idle connections and wait active connections complete
 		StopConnection()
-		time.Sleep(duration + time.Second * 5)
+		time.Sleep(duration + time.Second*5)
 		wait <- struct{}{}
 	}()
 

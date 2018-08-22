@@ -23,12 +23,12 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/json-iterator/go"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/filter"
+	"github.com/json-iterator/go"
 )
 
 type ContentKey string
@@ -115,6 +115,7 @@ func parseLogLevel(level string) log.Level {
 // ParseServerConfig
 func ParseServerConfig(c *ServerConfig) *server.Config {
 	sc := &server.Config{
+		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        parseLogLevel(c.DefaultLogLevel),
 		GracefulTimeout: c.GracefulTimeout.Duration,
@@ -837,10 +838,10 @@ func ParseServiceRegistry(src ServiceRegistryConfig) {
 
 func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
 	var factories []types.StreamFilterChainFactory
-	
+
 	for _, c := range configs {
 		factories = append(factories, filter.CreateStreamFilterChainFactory(c.Name, c.Config))
 	}
-	
+
 	return factories
 }

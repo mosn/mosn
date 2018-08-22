@@ -18,14 +18,15 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/server/config/proxy"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	clusterAdapter "github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // OnAddOrUpdateListeners called by XdsClient when listeners config refresh
@@ -49,7 +50,7 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 					}
 				}
 			}
-			
+
 			streamFilters = GetStreamFilters(mosnListener.StreamFilters)
 
 			if networkFilter == nil {
@@ -58,11 +59,11 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 				return fmt.Errorf(errMsg)
 			}
 		}
-		
+
 		if listenerAdapter := server.GetListenerAdapterInstance(); listenerAdapter == nil {
 			return fmt.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
 		} else {
-			if err := listenerAdapter.AddOrUpdateListener(mosnListener, networkFilter, streamFilters); err == nil {
+			if err := listenerAdapter.AddOrUpdateListener("", mosnListener, networkFilter, streamFilters); err == nil {
 				log.DefaultLogger.Debugf("xds AddOrUpdateListener success,listener address = %s", mosnListener.Addr.String())
 			} else {
 				log.DefaultLogger.Errorf("xds AddOrUpdateListener failure,listener address = %s, mag = %s ",
@@ -81,11 +82,11 @@ func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) error {
 		if mosnListener == nil {
 			continue
 		}
-		
+
 		if listenerAdapter := server.GetListenerAdapterInstance(); listenerAdapter == nil {
 			return fmt.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
 		} else {
-			if err := listenerAdapter.DeleteListener(*mosnListener); err == nil {
+			if err := listenerAdapter.DeleteListener("", *mosnListener); err == nil {
 				log.DefaultLogger.Debugf("xds OnDeleteListeners success,listener address = %s", mosnListener.Addr.String())
 			} else {
 				log.DefaultLogger.Errorf("xds OnDeleteListeners failure,listener address = %s, mag = %s ",
@@ -94,7 +95,7 @@ func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 

@@ -26,9 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-
-func TestDeepEqual(t *testing.T){
-
+func TestDeepEqual(t *testing.T) {
 
 }
 

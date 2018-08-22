@@ -38,6 +38,7 @@ const (
 )
 
 type Config struct {
+	ServerName      string
 	LogPath         string
 	LogLevel        log.Level
 	GracefulTimeout time.Duration
@@ -47,7 +48,7 @@ type Config struct {
 type Server interface {
 	AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
 		streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener
-	
+
 	Start()
 
 	Restart()

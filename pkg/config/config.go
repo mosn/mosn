@@ -207,6 +207,7 @@ type TLSConfig struct {
 // ServerConfig for making up server for mosn
 type ServerConfig struct {
 	//default logger
+	ServerName      string `json:"mosn_server_name"`
 	DefaultLogPath  string `json:"default_log_path,omitempty"`
 	DefaultLogLevel string `json:"default_log_level,omitempty"`
 
