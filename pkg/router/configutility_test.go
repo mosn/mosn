@@ -18,9 +18,10 @@
 package router
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"reflect"
 	"testing"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
@@ -35,11 +36,9 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 		{
 			name: "case4",
 			args: args{
-				metadataMatches: map[string]string{
-				},
+				metadataMatches: map[string]string{},
 			},
-			want: &MetadataMatchCriteriaImpl{
-			},
+			want: &MetadataMatchCriteriaImpl{},
 		},
 		{
 			name: "case1",
@@ -105,13 +104,12 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				},
 			},
 		},
-
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := NewMetadataMatchCriteriaImpl(tt.args.metadataMatches); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewMetadataMatchCriteriaImpl() = %v, want %v, case = %s", got, tt.want,tt.name)
+				t.Errorf("NewMetadataMatchCriteriaImpl() = %v, want %v, case = %s", got, tt.want, tt.name)
 			}
 		})
 	}

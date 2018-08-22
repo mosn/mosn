@@ -27,8 +27,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/json-iterator/go"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/json-iterator/go"
 )
 
 type ContentKey string
@@ -277,9 +277,9 @@ func parseRouterMetadata(metadata Metadata) v2.Metadata {
 	if len(metadata) == 0 {
 		return nil
 	}
-	
+
 	result := v2.Metadata{}
-	if  metadataInterface, ok := metadata[types.RouterMetadataKey]; ok {
+	if metadataInterface, ok := metadata[types.RouterMetadataKey]; ok {
 		if value, ok := metadataInterface.(map[string]interface{}); ok {
 			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
 				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
@@ -288,14 +288,14 @@ func parseRouterMetadata(metadata Metadata) v2.Metadata {
 							result[k] = vs
 						}
 					}
-					
+
 					return result
 				}
 			}
 		}
 	}
 	log.StartLogger.Fatal("Metadata for routing format invalid, metadata format such as: { \"filter_metadata\": {\"mosn.lb\": { \"label\": \"gray\" } } }")
-	
+
 	return result
 }
 

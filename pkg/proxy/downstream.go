@@ -261,11 +261,11 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 		return
 	}
-	
+
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
-	clusterName :=  route.RouteRule().ClusterName()
-	
+	clusterName := route.RouteRule().ClusterName()
+
 	log.StartLogger.Tracef("get route : %v,clusterName=%v", route, clusterName)
 
 	s.route = route

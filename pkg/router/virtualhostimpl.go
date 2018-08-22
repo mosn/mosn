@@ -38,13 +38,13 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 	default:
 		virtualHostImpl.sslRequirements = types.NONE
 	}
-	
+
 	for _, route := range virtualHost.Routers {
-		routeRuleImplBase,err := NewRouteRuleImplBase(virtualHostImpl, &route)
+		routeRuleImplBase, err := NewRouteRuleImplBase(virtualHostImpl, &route)
 		if err != nil {
-			return nil,err
+			return nil, err
 		}
-		
+
 		if route.Match.Prefix != "" {
 			virtualHostImpl.routes = append(virtualHostImpl.routes, &PrefixRouteRuleImpl{
 				routeRuleImplBase,

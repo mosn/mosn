@@ -18,12 +18,12 @@
 package router
 
 import (
+	"math/rand"
 	"regexp"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"math/rand"
 )
 
 func TestPrefixRouteRuleImpl(t *testing.T) {
@@ -49,7 +49,7 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			Match: v2.RouterMatch{Prefix: tc.prefix},
 			Route: v2.RouteAction{ClusterName: "test"},
 		}
-		routuRule,_ := NewRouteRuleImplBase(virtualHostImpl, route)
+		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PrefixRouteRuleImpl{
 			routuRule,
 			route.Match.Prefix,
@@ -80,7 +80,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 			Match: v2.RouterMatch{Path: tc.path},
 			Route: v2.RouteAction{ClusterName: "test"},
 		}
-		base,_ := NewRouteRuleImplBase(virtualHostImpl, route)
+		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		base.caseSensitive = tc.caseSensitive //hack case sensitive
 		rr := &PathRouteRuleImpl{base, route.Match.Path}
 		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
@@ -110,8 +110,8 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 			Route: v2.RouteAction{ClusterName: "test"},
 		}
 		re := regexp.MustCompile(tc.regexp)
-		routuRule,_ := NewRouteRuleImplBase(virtualHostImpl, route)
-		
+		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
+
 		rr := &RegexRouteRuleImpl{
 			routuRule,
 			route.Match.Regex,
@@ -127,100 +127,100 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 
 func TestWeightedClusterSelect(t *testing.T) {
 	routerMock1 := &v2.Router{
-		Route:v2.RouteAction{
-			ClusterName:"defaultCluster",
-			TotalClusterWeight:100,
-			WeightedClusters:[]v2.WeightedCluster{
+		Route: v2.RouteAction{
+			ClusterName:        "defaultCluster",
+			TotalClusterWeight: 100,
+			WeightedClusters: []v2.WeightedCluster{
 				{
-					Cluster:v2.ClusterWeight{
-						Name:"w1",
-						Weight:90,
-						MetadataMatch:v2.Metadata{
-							"version":"v1",
+					Cluster: v2.ClusterWeight{
+						Name:   "w1",
+						Weight: 90,
+						MetadataMatch: v2.Metadata{
+							"version": "v1",
 						},
 					},
 				},
 				{
-					Cluster:v2.ClusterWeight{
-						Name:"w2",
-						Weight:10,
-						MetadataMatch:v2.Metadata{
-							"version":"v2",
+					Cluster: v2.ClusterWeight{
+						Name:   "w2",
+						Weight: 10,
+						MetadataMatch: v2.Metadata{
+							"version": "v2",
 						},
-					}	,
+					},
 				},
 			},
 		},
 	}
-	
+
 	routerMock2 := &v2.Router{
-		Route:v2.RouteAction{
-			ClusterName:"defaultCluster",
-			TotalClusterWeight:100,
-			WeightedClusters:[]v2.WeightedCluster{
+		Route: v2.RouteAction{
+			ClusterName:        "defaultCluster",
+			TotalClusterWeight: 100,
+			WeightedClusters: []v2.WeightedCluster{
 				{
-					Cluster:v2.ClusterWeight{
-						Name:"w1",
-						Weight:50,
-						MetadataMatch:v2.Metadata{
-							"version":"v1",
+					Cluster: v2.ClusterWeight{
+						Name:   "w1",
+						Weight: 50,
+						MetadataMatch: v2.Metadata{
+							"version": "v1",
 						},
 					},
 				},
 				{
-					Cluster:v2.ClusterWeight{
-						Name:"w2",
-						Weight:50,
-						MetadataMatch:v2.Metadata{
-							"version":"v2",
+					Cluster: v2.ClusterWeight{
+						Name:   "w2",
+						Weight: 50,
+						MetadataMatch: v2.Metadata{
+							"version": "v2",
 						},
-					}	,
+					},
 				},
 			},
 		},
 	}
-	
+
 	routerMock3 := &v2.Router{
-		Route:v2.RouteAction{
-			ClusterName:"defaultCluster",
-			TotalClusterWeight:100,
-			WeightedClusters:[]v2.WeightedCluster{
+		Route: v2.RouteAction{
+			ClusterName:        "defaultCluster",
+			TotalClusterWeight: 100,
+			WeightedClusters: []v2.WeightedCluster{
 				{
-					Cluster:v2.ClusterWeight{
-						Name:"w1",
-						Weight:50,
-						MetadataMatch:v2.Metadata{
-							"version":"v1",
+					Cluster: v2.ClusterWeight{
+						Name:   "w1",
+						Weight: 50,
+						MetadataMatch: v2.Metadata{
+							"version": "v1",
 						},
 					},
 				},
 				{
-					Cluster:v2.ClusterWeight{
-						Name:"w2",
-						Weight:40,
-						MetadataMatch:v2.Metadata{
-							"version":"v2",
+					Cluster: v2.ClusterWeight{
+						Name:   "w2",
+						Weight: 40,
+						MetadataMatch: v2.Metadata{
+							"version": "v2",
 						},
-					}	,
+					},
 				},
 			},
 		},
 	}
-	
+
 	type testCase struct {
 		routerCase []*v2.Router
-		ratio       []uint
+		ratio      []uint
 	}
-	
+
 	testCases := testCase{
-		routerCase:[]*v2.Router{routerMock1,routerMock2},
-		ratio:[]uint{9,1},
+		routerCase: []*v2.Router{routerMock1, routerMock2},
+		ratio:      []uint{9, 1},
 	}
-	
-	for index,routecase := range testCases.routerCase {
-		routeRuleImplBase,_ := NewRouteRuleImplBase(nil,routecase)
+
+	for index, routecase := range testCases.routerCase {
+		routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routecase)
 		var dcCount, w1Count, w2Count uint
-		
+
 		totalTimes := rand.Int31n(10000)
 		var i int32
 		for i = 0; i < totalTimes; i++ {
@@ -229,21 +229,21 @@ func TestWeightedClusterSelect(t *testing.T) {
 			case "defaultCluster":
 				dcCount += 1
 			case "w1":
-				w1Count +=1
+				w1Count += 1
 			case "w2":
 				w2Count += 1
 			}
 		}
-		
-		if dcCount != 0 || w1Count / w2Count < testCases.ratio[index] - 1 {
-			t.Errorf("cluster select wanted defalut cluster = 0, w1/w2 = 9, but got ,defalut = %d" +
-				"w1/w2  = %d",dcCount,w1Count/w2Count)
-			
+
+		if dcCount != 0 || w1Count/w2Count < testCases.ratio[index]-1 {
+			t.Errorf("cluster select wanted defalut cluster = 0, w1/w2 = 9, but got ,defalut = %d"+
+				"w1/w2  = %d", dcCount, w1Count/w2Count)
+
 		}
-		t.Log("defalut = ", dcCount,"w1 = ",w1Count, "w2 =" ,w2Count)
+		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
 	}
-	
-	routeRuleImplBase,_ := NewRouteRuleImplBase(nil,routerMock3)
+
+	routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routerMock3)
 	if len(routeRuleImplBase.weightedClusters) != 0 {
 		t.Errorf("wanted invalid weighted cluster init but not")
 	}

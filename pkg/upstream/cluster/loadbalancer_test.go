@@ -20,13 +20,14 @@ package cluster
 import (
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"math/rand"
 	"math"
-	"github.com/alipay/sofa-mosn/pkg/router"
+	"math/rand"
 	"strings"
+
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/router"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
@@ -151,14 +152,14 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 	}
 
 	thres := 0.01
-	
+
 	for _, tt := range tests {
 		var a, b, c float64
 		var i float64 = 0
 
 		l1 := newSmoothWeightedRRLoadBalancer(tt.args)
 		runningTimes := float64(rand.Int31n(1000))
-		
+
 		for ; i < runningTimes; i++ {
 			host := l1.ChooseHost(nil)
 			//	t.Log(host.Hostname())
@@ -181,8 +182,7 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 			}
 		}
 
-		
-		if (a+b+c) != runningTimes || math.Abs(a/runningTimes- tt.want[0]) > thres || math.Abs(b/runningTimes- tt.want[1]) > thres || math.Abs(c/runningTimes- tt.want[2]) > thres {
+		if (a+b+c) != runningTimes || math.Abs(a/runningTimes-tt.want[0]) > thres || math.Abs(b/runningTimes-tt.want[1]) > thres || math.Abs(c/runningTimes-tt.want[2]) > thres {
 			t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
 				tt.want[0], tt.want[1], tt.want[2], tt.name)
 		}
@@ -214,7 +214,7 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 		addedHosts   []types.Host
 		removedHosts []types.Host
 	}
-	
+
 	tests := []struct {
 		name string
 		args args
@@ -256,24 +256,23 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 			},
 			want: []float64{8.0 / 20.0, 2.0 / 20.0, 5.0 / 20.0, 5.0 / 20.0},
 		},
-		
 	}
-	
+
 	for _, tt := range tests {
 		// update healthy-hosts
-		ps.hostSets = []types.HostSet{&hostSet{healthyHosts:tt.args.healthyHosts}}
-		
+		ps.hostSets = []types.HostSet{&hostSet{healthyHosts: tt.args.healthyHosts}}
+
 		if ll, ok := loadbBalancer.(*smoothWeightedRRLoadBalancer); ok {
 			ll.UpdateHost(0, tt.args.addedHosts, tt.args.removedHosts)
 		}
-		
+
 		runningTimes := float64(rand.Int31n(1000))
 		var a, b, c, d float64
 		var i float64 = 0
-		
+
 		for ; i < runningTimes; i++ {
 			host := loadbBalancer.ChooseHost(nil)
-			
+
 			if host == nil {
 				if tt.name == "zeroTest" {
 					return
@@ -282,7 +281,7 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 						tt.want[0], tt.want[1], tt.want[2], tt.name)
 				}
 			}
-			
+
 			switch host.Hostname() {
 			case "a":
 				a++
@@ -294,13 +293,13 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 				d++
 			}
 		}
-		
+
 		thres := 0.1
-		
-		if (a+b+c+d) != runningTimes || math.Abs(a/runningTimes- tt.want[0]) > thres || math.Abs(b/runningTimes- tt.want[1]) > thres ||
-			math.Abs(c/runningTimes- tt.want[2]) > thres  || math.Abs(d/runningTimes- tt.want[3]) > thres{
+
+		if (a+b+c+d) != runningTimes || math.Abs(a/runningTimes-tt.want[0]) > thres || math.Abs(b/runningTimes-tt.want[1]) > thres ||
+			math.Abs(c/runningTimes-tt.want[2]) > thres || math.Abs(d/runningTimes-tt.want[3]) > thres {
 			t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,d=%f,  got a = %f, b=%f, c=%f, d = %f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
-				d/runningTimes,tt.want[0], tt.want[1], tt.want[2],tt.want[3], tt.name)
+				d/runningTimes, tt.want[0], tt.want[1], tt.want[2], tt.want[3], tt.name)
 		}
 	}
 }
@@ -309,7 +308,7 @@ func MockRouter(names []string) v2.Router {
 	if len(names) < 2 {
 		return v2.Router{}
 	}
-	
+
 	return v2.Router{
 		Match: v2.RouterMatch{
 			Headers: []v2.HeaderMatcher{
@@ -317,21 +316,21 @@ func MockRouter(names []string) v2.Router {
 			},
 		},
 		Route: v2.RouteAction{
-			ClusterName: names[0],
-			TotalClusterWeight:100,
-			WeightedClusters:[]v2.WeightedCluster{
+			ClusterName:        names[0],
+			TotalClusterWeight: 100,
+			WeightedClusters: []v2.WeightedCluster{
 				{
-					Cluster:v2.ClusterWeight{
-						Name:names[0],
-						Weight:60,
-						MetadataMatch:map[string]string{"label":"blue"},
+					Cluster: v2.ClusterWeight{
+						Name:          names[0],
+						Weight:        60,
+						MetadataMatch: map[string]string{"label": "blue"},
 					},
 				},
 				{
-					Cluster:v2.ClusterWeight{
-						Name:names[1],
-						Weight:40,
-						MetadataMatch:map[string]string{"label":"green"},
+					Cluster: v2.ClusterWeight{
+						Name:          names[1],
+						Weight:        40,
+						MetadataMatch: map[string]string{"label": "green"},
 					},
 				},
 			},
@@ -339,128 +338,121 @@ func MockRouter(names []string) v2.Router {
 	}
 }
 
-func MockRouterMatcher()(types.Routers,error){
+func MockRouterMatcher() (types.Routers, error) {
 	virtualHosts := []*v2.VirtualHost{
-		&v2.VirtualHost{Domains: []string{"www.alibaba.com"}, Routers: []v2.Router{MockRouter([]string{"c1","c2"})}},
-		&v2.VirtualHost{Domains: []string{"www.antfin.com"}, Routers: []v2.Router{MockRouter([]string{"a1","a2"})}},
-		
+		&v2.VirtualHost{Domains: []string{"www.alibaba.com"}, Routers: []v2.Router{MockRouter([]string{"c1", "c2"})}},
+		&v2.VirtualHost{Domains: []string{"www.antfin.com"}, Routers: []v2.Router{MockRouter([]string{"a1", "a2"})}},
 	}
 	cfg := &v2.Proxy{
 		VirtualHosts: virtualHosts,
 	}
-	
+
 	return router.NewRouteMatcher(cfg)
 }
 
-func MockClusterManager() types.ClusterManager{
-	
-	host1 := v2.Host{Address: "127.0.0.1", Hostname: "h1", Weight: 5, MetaData:v2.Metadata{"label":"blue"}}
-	host2 := v2.Host{Address: "127.0.0.2", Hostname: "h2", Weight: 5, MetaData:v2.Metadata{"label":"blue"}}
-	host3 := v2.Host{Address: "127.0.0.3", Hostname: "h3", Weight: 5, MetaData:v2.Metadata{"label":"green"}}
-	host4 := v2.Host{Address: "127.0.0.4", Hostname: "h4", Weight: 5, MetaData:v2.Metadata{"label":"green"}}
-	host5 := v2.Host{Address: "127.0.0.5", Hostname: "h5", Weight: 5, MetaData:v2.Metadata{"label":"blue"}}
-	host6 := v2.Host{Address: "127.0.0.6", Hostname: "h6", Weight: 5, MetaData:v2.Metadata{"label":"blue"}}
-	host7 := v2.Host{Address: "127.0.0.7", Hostname: "h7", Weight: 5, MetaData:v2.Metadata{"label":"green"}}
-	host8 := v2.Host{Address: "127.0.0.8", Hostname: "h8", Weight: 5, MetaData:v2.Metadata{"label":"green"}}
-	
+func MockClusterManager() types.ClusterManager {
+
+	host1 := v2.Host{Address: "127.0.0.1", Hostname: "h1", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
+	host2 := v2.Host{Address: "127.0.0.2", Hostname: "h2", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
+	host3 := v2.Host{Address: "127.0.0.3", Hostname: "h3", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
+	host4 := v2.Host{Address: "127.0.0.4", Hostname: "h4", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
+	host5 := v2.Host{Address: "127.0.0.5", Hostname: "h5", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
+	host6 := v2.Host{Address: "127.0.0.6", Hostname: "h6", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
+	host7 := v2.Host{Address: "127.0.0.7", Hostname: "h7", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
+	host8 := v2.Host{Address: "127.0.0.8", Hostname: "h8", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
+
 	clusters := []v2.Cluster{
 		{
-			Name:"c1",
-			ClusterType:v2.SIMPLE_CLUSTER,
-			LBSubSetConfig:v2.LBSubsetConfig{
-				FallBackPolicy:1,
-				DefaultSubset:map[string]string{"label":"blue"},
-				SubsetSelectors:[][]string{{"label"}},
+			Name:        "c1",
+			ClusterType: v2.SIMPLE_CLUSTER,
+			LBSubSetConfig: v2.LBSubsetConfig{
+				FallBackPolicy:  1,
+				DefaultSubset:   map[string]string{"label": "blue"},
+				SubsetSelectors: [][]string{{"label"}},
 			},
-			LbType:v2.LB_ROUNDROBIN,
-			Hosts:[]v2.Host{ host1,host2,},
-			
+			LbType: v2.LB_ROUNDROBIN,
+			Hosts:  []v2.Host{host1, host2},
 		},
 		{
-			Name:"c2",
-			ClusterType:v2.SIMPLE_CLUSTER,
-			LBSubSetConfig:v2.LBSubsetConfig{
-				FallBackPolicy:1,
-				DefaultSubset:map[string]string{"label":"green"},
-				SubsetSelectors:[][]string{{"label"}},
+			Name:        "c2",
+			ClusterType: v2.SIMPLE_CLUSTER,
+			LBSubSetConfig: v2.LBSubsetConfig{
+				FallBackPolicy:  1,
+				DefaultSubset:   map[string]string{"label": "green"},
+				SubsetSelectors: [][]string{{"label"}},
 			},
-			LbType:v2.LB_ROUNDROBIN,
-			Hosts:[]v2.Host{host3,host4,},
-			
+			LbType: v2.LB_ROUNDROBIN,
+			Hosts:  []v2.Host{host3, host4},
 		},
 		{
-			Name:"a1",
-			ClusterType:v2.SIMPLE_CLUSTER,
-			LBSubSetConfig:v2.LBSubsetConfig{
-				FallBackPolicy:1,
-				DefaultSubset:map[string]string{"label":"blue"},
-				SubsetSelectors:[][]string{{"label"}},
+			Name:        "a1",
+			ClusterType: v2.SIMPLE_CLUSTER,
+			LBSubSetConfig: v2.LBSubsetConfig{
+				FallBackPolicy:  1,
+				DefaultSubset:   map[string]string{"label": "blue"},
+				SubsetSelectors: [][]string{{"label"}},
 			},
-			LbType:v2.LB_ROUNDROBIN,
-			Hosts:[]v2.Host{host5,host6,
-			},
-			
+			LbType: v2.LB_ROUNDROBIN,
+			Hosts:  []v2.Host{host5, host6},
 		},
 		{
-			Name:"a2",
-			ClusterType:v2.SIMPLE_CLUSTER,
-			LBSubSetConfig:v2.LBSubsetConfig{
-				FallBackPolicy:1,
-				DefaultSubset:map[string]string{"label":"green"},
-				SubsetSelectors:[][]string{{"label"}},
+			Name:        "a2",
+			ClusterType: v2.SIMPLE_CLUSTER,
+			LBSubSetConfig: v2.LBSubsetConfig{
+				FallBackPolicy:  1,
+				DefaultSubset:   map[string]string{"label": "green"},
+				SubsetSelectors: [][]string{{"label"}},
 			},
-			LbType:v2.LB_ROUNDROBIN,
-			Hosts:[]v2.Host{host7,host8},
-			
+			LbType: v2.LB_ROUNDROBIN,
+			Hosts:  []v2.Host{host7, host8},
 		},
 	}
-	
+
 	clusterMap := map[string][]v2.Host{
-		"c1":[]v2.Host{host1,host2},
-		"c2":[]v2.Host{host3,host4},
-		"a1":[]v2.Host{host5,host6},
-		"a2":[]v2.Host{host7,host8},
+		"c1": []v2.Host{host1, host2},
+		"c2": []v2.Host{host3, host4},
+		"a1": []v2.Host{host5, host6},
+		"a2": []v2.Host{host7, host8},
 	}
-	
-	return NewClusterManager(nil,clusters,clusterMap,true,false)
+
+	return NewClusterManager(nil, clusters, clusterMap, true, false)
 }
 
-
 func Benchmark_RouteAndLB(b *testing.B) {
-	
+
 	mockedHeader := map[string]string{
-		strings.ToLower(protocol.MosnHeaderHostKey):"www.alibaba.com" ,
+		strings.ToLower(protocol.MosnHeaderHostKey): "www.alibaba.com",
 		"service": "test",
 	}
-	
+
 	mockedClusterMng := MockClusterManager().(*clusterManager)
-	mockedRouter,err := MockRouterMatcher()
+	mockedRouter, err := MockRouterMatcher()
 	if err != nil {
 		b.Errorf(err.Error())
 		return
 	}
-	
+
 	b.ResetTimer()
-	for i:=0;i<b.N;i++ {
+	for i := 0; i < b.N; i++ {
 		route := mockedRouter.Route(mockedHeader, 1)
 		if route == nil {
 			b.Errorf("%s match failed\n", "www.alibaba.com")
 			return
 		}
-		
+
 		clustername := route.RouteRule().ClusterName()
 		clusterSnapshot := mockedClusterMng.getOrCreateClusterSnapshot(clustername)
-		
+
 		if clusterSnapshot == nil {
 			b.Errorf("Cluster is nil, cluster name = %s", clustername)
 			return
 		}
-		
+
 		if mmc, ok := route.RouteRule().MetadataMatchCriteria(clustername).(*router.MetadataMatchCriteriaImpl); ok {
 			ctx := &ContextImplMock{
 				mmc: mmc,
 			}
-			
+
 			host := clusterSnapshot.LoadBalancer().ChooseHost(ctx)
 			b.Logf("host name = %s", host.Hostname())
 		} else {

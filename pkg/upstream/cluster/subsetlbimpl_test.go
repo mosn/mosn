@@ -709,7 +709,7 @@ func TestWeightedClusterRoute(t *testing.T) {
 		},
 	}
 
-	routeRuleImplBase,_ := router.NewRouteRuleImplBase(nil, routerMock1)
+	routeRuleImplBase, _ := router.NewRouteRuleImplBase(nil, routerMock1)
 	clustername := routeRuleImplBase.ClusterName()
 
 	if clustername == "w1" {
