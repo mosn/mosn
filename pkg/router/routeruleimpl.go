@@ -25,11 +25,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
+
 	//"github.com/alipay/sofa-mosn/pkg/protocol"
+	"math/rand"
+
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	httpmosn "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"math/rand"
 )
 
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
@@ -41,14 +43,14 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImp
 		totalClusterWeight: route.Route.TotalClusterWeight,
 	}
 
-	if valid,weightedClusters := getWeightedClusterEntryAndVeirfy(routeRuleImplBase.totalClusterWeight,
-		route.Route.WeightedClusters);valid {
+	if valid, weightedClusters := getWeightedClusterEntryAndVeirfy(routeRuleImplBase.totalClusterWeight,
+		route.Route.WeightedClusters); valid {
 		routeRuleImplBase.weightedClusters = weightedClusters
 	} else {
 		log.DefaultLogger.Errorf("Sum of weights in the weighted_cluster should add up to:",
 			routeRuleImplBase.totalClusterWeight)
 	}
-	
+
 	routeRuleImplBase.policy = &routerPolicy{
 		retryOn:      false,
 		retryTimeout: 0,
@@ -154,7 +156,7 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 			return weightCluster.clusterName
 		}
 	}
-	
+
 	log.DefaultLogger.Errorf("Something wrong when choosing weighted cluster")
 	return rri.clusterName
 }
@@ -190,10 +192,10 @@ func (rri *RouteRuleImplBase) Metadata() types.RouteMetaData {
 
 func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.MetadataMatchCriteria {
 	// if clusterName belongs to a weighted cluster
-	if matchCriteria,ok :=rri.weightedClusters[clusterName];ok {
+	if matchCriteria, ok := rri.weightedClusters[clusterName]; ok {
 		return matchCriteria.clusterMetadataMatchCriteria
 	}
-	
+
 	return rri.metadataMatchCriteria
 }
 
@@ -223,7 +225,7 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	return ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters)
 }
 
-func (rri *RouteRuleImplBase) WeightedCluster() map[string]weightedClusterEntry{
+func (rri *RouteRuleImplBase) WeightedCluster() map[string]weightedClusterEntry {
 	return rri.weightedClusters
 }
 

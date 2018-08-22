@@ -269,7 +269,7 @@ func Test_parseWeightClusters(t *testing.T) {
 					},
 				},
 			},
-			
+
 			want: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{

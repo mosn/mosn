@@ -23,25 +23,26 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
-var clusterMngAdapterInstance *ClusterMngAdapter
+var clusterMngAdapterInstance *MngAdapter
 
 func initClusterMngAdapterInstance(clusterMng *clusterManager) {
-	clusterMngAdapterInstance = &ClusterMngAdapter{
+	clusterMngAdapterInstance = &MngAdapter{
 		clusterMng: clusterMng,
 	}
 }
 
-func GetClusterMngAdapterInstance() *ClusterMngAdapter {
+// GetClusterMngAdapterInstance used to get clusterMngAdapterInstance
+func GetClusterMngAdapterInstance() *MngAdapter {
 	return clusterMngAdapterInstance
 }
 
-type ClusterMngAdapter struct {
+// MngAdapter is the wrapper or adapter for external caller
+type MngAdapter struct {
 	clusterMng *clusterManager
 }
 
-// TriggerClusterAddOrUpdate
-// Added or Update Cluster
-func (ca *ClusterMngAdapter) TriggerClusterAddOrUpdate(cluster v2.Cluster) error {
+// TriggerClusterAddOrUpdate used to Added or Update Cluster
+func (ca *MngAdapter) TriggerClusterAddOrUpdate(cluster v2.Cluster) error {
 	if ca.clusterMng == nil {
 		return fmt.Errorf("TriggerClusterAddOrUpdate Error: cluster manager is nil")
 	}
@@ -53,9 +54,8 @@ func (ca *ClusterMngAdapter) TriggerClusterAddOrUpdate(cluster v2.Cluster) error
 	return nil
 }
 
-// TriggerClusterAddOrUpdate
-// Added or Update Cluster and Cluster's hosts
-func (ca *ClusterMngAdapter) TriggerClusterAndHostsAddOrUpdate(cluster v2.Cluster, hosts []v2.Host) error {
+// TriggerClusterAndHostsAddOrUpdate used to Added or Update Cluster and Cluster's hosts
+func (ca *MngAdapter) TriggerClusterAndHostsAddOrUpdate(cluster v2.Cluster, hosts []v2.Host) error {
 	if err := ca.TriggerClusterAddOrUpdate(cluster); err != nil {
 		return err
 	}
@@ -63,9 +63,8 @@ func (ca *ClusterMngAdapter) TriggerClusterAndHostsAddOrUpdate(cluster v2.Cluste
 	return ca.clusterMng.UpdateClusterHosts(cluster.Name, 0, hosts)
 }
 
-// TriggerClusterHostUpdate
-// Added or Update Cluster's hosts, return err if cluster not exist
-func (ca *ClusterMngAdapter) TriggerClusterHostUpdate(clusterName string, hosts []v2.Host) error {
+// TriggerClusterHostUpdate used to Added or Update Cluster's hosts, return err if cluster not exist
+func (ca *MngAdapter) TriggerClusterHostUpdate(clusterName string, hosts []v2.Host) error {
 	if ca.clusterMng == nil {
 		return fmt.Errorf("TriggerClusterAddOrUpdate Error: cluster manager is nil")
 	}
@@ -73,9 +72,8 @@ func (ca *ClusterMngAdapter) TriggerClusterHostUpdate(clusterName string, hosts 
 	return ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
 }
 
-// TriggerClusterDel
-// used to delete cluster by clusterName
-func (ca *ClusterMngAdapter) TriggerClusterDel(clusterName string) error {
+// TriggerClusterDel :used to delete c uster by clusterName
+func (ca *MngAdapter) TriggerClusterDel(clusterName string) error {
 	if ca.clusterMng == nil {
 		return fmt.Errorf("TriggerClusterAddOrUpdate Error: cluster manager is nil")
 	}

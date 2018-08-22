@@ -190,9 +190,10 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterName string) error {
 		}
 		cm.primaryClusters.Delete(clusterName)
 		log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("Remove Primary Cluster failure, cluster name = %s doesn't exist", clusterName)
 }
 
 func (cm *clusterManager) SetInitializedCb(cb func()) {}
@@ -226,8 +227,8 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			concretedCluster.UpdateHosts(hosts)
 			return nil
 		}
-		return fmt.Errorf("cluster's hostset %s can't be update", clusterName)
 
+		return fmt.Errorf("cluster's hostset %s can't be update", clusterName)
 	}
 
 	return fmt.Errorf("cluster %s not found", clusterName)

@@ -19,8 +19,8 @@ package router
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // getClusterMosnLBMetaDataMap from v2.Metadata
@@ -28,7 +28,7 @@ import (
 // 4-tier map
 func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	metadataMap := make(map[string]types.HashedValue)
-	
+
 	if metadataInterface, ok := metadata[types.RouterMetadataKey]; ok {
 		if value, ok := metadataInterface.(map[string]interface{}); ok {
 			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
@@ -44,7 +44,7 @@ func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 			}
 		}
 	}
-	
+
 	return metadataMap
 }
 
@@ -60,33 +60,32 @@ func getMosnLBMetaData(metadata v2.Metadata) map[string]interface{} {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 // Note
 // "runtimeKey" and "loader" are not used currently
-func getWeightedClusterEntryAndVeirfy(totalClusterWeight uint32,weightedClusters []v2.WeightedCluster) (bool,
-	map[string]weightedClusterEntry){
+func getWeightedClusterEntryAndVeirfy(totalClusterWeight uint32, weightedClusters []v2.WeightedCluster) (bool,
+	map[string]weightedClusterEntry) {
 	var weightedClusterEntries = make(map[string]weightedClusterEntry)
 	var totalWeight uint32 = 0
-	
-	for _,weightedCluster := range weightedClusters{
+
+	for _, weightedCluster := range weightedClusters {
 		totalWeight = totalWeight + weightedCluster.Cluster.Weight
 		subsetLBMetaData := getMosnLBMetaData(weightedCluster.Cluster.MetadataMatch)
-		
+
 		weightedClusterEntries[weightedCluster.Cluster.Name] = weightedClusterEntry{
-			clusterName:weightedCluster.Cluster.Name,
-			clusterWeight:weightedCluster.Cluster.Weight,
-			clusterMetadataMatchCriteria:NewMetadataMatchCriteriaImpl(subsetLBMetaData),
-			
+			clusterName:                  weightedCluster.Cluster.Name,
+			clusterWeight:                weightedCluster.Cluster.Weight,
+			clusterMetadataMatchCriteria: NewMetadataMatchCriteriaImpl(subsetLBMetaData),
 		}
 	}
-	
+
 	if totalWeight == totalClusterWeight {
-		return true,weightedClusterEntries
+		return true, weightedClusterEntries
 	}
-	
-	return false,nil
-	
+
+	return false, nil
+
 }

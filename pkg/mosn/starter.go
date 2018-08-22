@@ -47,7 +47,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	m := &Mosn{}
 	mode := c.Mode()
 	log.InitDefaultLogger("./clusterManager.log", log.DEBUG)
-	
+
 	if mode == config.Xds {
 		servers := make([]config.ServerConfig, 0, 1)
 		server := config.ServerConfig{
@@ -85,7 +85,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	} else {
 		m.clustermanager = cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
 	}
-	
+
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
 		//server config
@@ -110,7 +110,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			for _, listenerConfig := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
-				
+
 				nfcf := getNetworkFilters(&lc.FilterChains[0])
 
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled

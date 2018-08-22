@@ -118,39 +118,39 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 }
 
 func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
-	
+
 	type testCase struct {
 		lb types.LoadBalancer
 	}
-	
+
 	host1 := NewHost(v2.Host{Address: "127.0.0.1", Hostname: "a", Weight: 5}, nil)
 	host2 := NewHost(v2.Host{Address: "127.0.0.2", Hostname: "b", Weight: 3}, nil)
 	host3 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "c", Weight: 2}, nil)
 	hosts1 := []types.Host{host1, host2, host3}
-	
+
 	hs1 := hostSet{
 		hosts:        hosts1,
 		healthyHosts: hosts1,
 	}
-	
+
 	hostset := []types.HostSet{&hs1}
 	ps := &prioritySet{
 		hostSets: hostset,
 	}
-	
+
 	l := newSmoothWeightedRRLoadBalancer(ps)
 	var a, b, c int
-	
+
 	if ll, ok := l.(*smoothWeightedRRLoadBalancer); ok {
 		ll.UpdateHost(0, nil, []types.Host{host3})
 	}
-	
+
 	ps.hostSets = []types.HostSet{&hostSet{healthyHosts: []types.Host{host1, host2}}}
-	
+
 	for i := 0; i < 10; i++ {
 		host := l.ChooseHost(nil)
 		//	t.Log(host.Hostname())
-		
+
 		switch host.Hostname() {
 		case "a":
 			a++
@@ -160,7 +160,7 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 			c++
 		}
 	}
-	
+
 	if a <= 5 || b <= 3 || c != 0 {
 		t.Errorf("test sommoth loalbalancer err, want a = 5, b = 3, c = 2,  got a, b, c, ", a, b, c)
 	}

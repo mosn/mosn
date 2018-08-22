@@ -162,7 +162,7 @@ type weightedClusterEntry struct {
 	clusterMetadataMatchCriteria *MetadataMatchCriteriaImpl
 }
 
-func (wc *weightedClusterEntry)GetClusterMetadataMatchCriteria()*MetadataMatchCriteriaImpl{
+func (wc *weightedClusterEntry) GetClusterMetadataMatchCriteria() *MetadataMatchCriteriaImpl {
 	return wc.clusterMetadataMatchCriteria
 }
 
