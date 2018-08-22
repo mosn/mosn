@@ -100,7 +100,8 @@ type RouteRule interface {
 	Metadata() RouteMetaData
 
 	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
-	MetadataMatchCriteria() MetadataMatchCriteria
+	// as we may use weighted cluster's metadata, so need to input cluster's name
+	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
 }
 
 // Policy defines a group of route policy
@@ -283,10 +284,9 @@ type Decorator interface {
 	getOperation() string
 }
 
+// HashedValue is a value as md5's result
 // TODO: change hashed value to [16]string
 // currently use string for easily debug
-
-// HashedValue is a value as md5's result
 type HashedValue string
 
 type HeaderFormat interface {

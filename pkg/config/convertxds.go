@@ -400,7 +400,7 @@ func convertMeta(xdsMeta *xdscore.Metadata) v2.Metadata {
 	if xdsMeta == nil {
 		return nil
 	}
-	meta := make(map[string]interface{}, len(xdsMeta.GetFilterMetadata()))
+	meta := make(map[string]string, len(xdsMeta.GetFilterMetadata()))
 	for key, value := range xdsMeta.GetFilterMetadata() {
 		meta[key] = value.String()
 	}
@@ -435,7 +435,7 @@ func convertWeightedClusters(xdsWeightedClusters *xdsroute.WeightedCluster) []v2
 	weightedClusters := make([]v2.WeightedCluster, 0, len(xdsWeightedClusters.GetClusters()))
 	for _, cluster := range xdsWeightedClusters.GetClusters() {
 		weightedCluster := v2.WeightedCluster{
-			Clusters:         convertWeightedCluster(cluster),
+			Cluster:          convertWeightedCluster(cluster),
 			RuntimeKeyPrefix: xdsWeightedClusters.GetRuntimeKeyPrefix(),
 		}
 		weightedClusters = append(weightedClusters, weightedCluster)

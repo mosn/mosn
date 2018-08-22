@@ -121,12 +121,13 @@ type RuntimeUInt32 struct {
 // RouteAction
 // Route request to some upstream clusters.
 type RouteAction struct {
-	ClusterName      string            `json:"cluster_name"`
-	ClusterHeader    string            `json:"cluster_header"`
-	WeightedClusters []WeightedCluster `json:"weighted_clusters"`
-	MetadataMatch    Metadata          `json:"metadata_match"`
-	Timeout          time.Duration     `json:"timeout"`
-	RetryPolicy      RetryPolicy       `json:"retry_policy"`
+	ClusterName        string            `json:"cluster_name"`
+	ClusterHeader      string            `json:"cluster_header"`
+	TotalClusterWeight uint32            `json:"total_cluster_weight"`
+	WeightedClusters   []WeightedCluster `json:"weighted_clusters"`
+	MetadataMatch      Metadata          `json:"metadata_match"`
+	Timeout            time.Duration     `json:"timeout"`
+	RetryPolicy        *RetryPolicy      `json:"retry_policy"`
 }
 
 // WeightedCluster.
@@ -134,7 +135,7 @@ type RouteAction struct {
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
 type WeightedCluster struct {
-	Clusters         ClusterWeight `json:"clusters"`
+	Cluster          ClusterWeight `json:"cluster"`
 	RuntimeKeyPrefix string        `json:"runtime_key_prefix"` // not used currently
 }
 
@@ -224,7 +225,7 @@ type HostConfig struct {
 	Address  string   `json:"address,omitempty"`
 	Hostname string   `json:"hostname,omitempty"`
 	Weight   uint32   `json:"weight,omitempty"`
-	MetaData Metadata `json:"meta_data"`
+	MetaData Metadata `json:"metadata"`
 }
 
 // ClusterHealthCheckConfig for health checking
@@ -283,7 +284,7 @@ type CircuitBreakerConfig struct {
 }
 
 // ClusterManagerConfig for making up cluster manager
-// Clusters is the global cluster of mosn
+// Cluster is the global cluster of mosn
 type ClusterManagerConfig struct {
 	// Note: consider to use standard configure
 	AutoDiscovery bool `json:"auto_discovery"`

@@ -25,7 +25,7 @@ import (
 // Metadata field can be used to provide additional information about the route.
 // It can be used for configuration, stats, and logging.
 // The metadata should go under the filter namespace that will need it.
-type Metadata map[string]interface{}
+type Metadata map[string]string
 
 // Network Filter's Name
 const (
@@ -333,12 +333,13 @@ type RouterMatch struct {
 // RouteAction
 // Route request to some upstream clusters.
 type RouteAction struct {
-	ClusterName      string
-	ClusterHeader    string
-	WeightedClusters []WeightedCluster
-	MetadataMatch    Metadata
-	Timeout          time.Duration
-	RetryPolicy      *RetryPolicy
+	ClusterName        string
+	ClusterHeader      string
+	TotalClusterWeight uint32 // total weight of weighted clusters, such as 100
+	WeightedClusters   []WeightedCluster
+	MetadataMatch      Metadata
+	Timeout            time.Duration
+	RetryPolicy        *RetryPolicy
 }
 
 // WeightedCluster.
@@ -346,7 +347,7 @@ type RouteAction struct {
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
 type WeightedCluster struct {
-	Clusters         ClusterWeight
+	Cluster          ClusterWeight
 	RuntimeKeyPrefix string // not used currently
 }
 

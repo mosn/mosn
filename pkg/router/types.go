@@ -21,8 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -157,10 +155,15 @@ func (rpei *rateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule,
 type rateLimitAction interface{}
 
 type weightedClusterEntry struct {
+	clusterName                  string
 	runtimeKey                   string
 	loader                       types.Loader
-	clusterWeight                uint64
+	clusterWeight                uint32
 	clusterMetadataMatchCriteria *MetadataMatchCriteriaImpl
+}
+
+func (wc *weightedClusterEntry) GetClusterMetadataMatchCriteria() *MetadataMatchCriteriaImpl {
+	return wc.clusterMetadataMatchCriteria
 }
 
 type routerPolicy struct {
@@ -194,46 +197,5 @@ func (p *routerPolicy) CorsPolicy() types.CorsPolicy {
 }
 
 func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
-	return nil
-}
-
-// GetClusterMosnLBMetaDataMap from v2.Metadata
-// e.g. metadata =  { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
-// 4-tier map
-func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
-	metadataMap := make(map[string]types.HashedValue)
-
-	if metadataInterface, ok := metadata[types.RouterMetadataKey]; ok {
-		if value, ok := metadataInterface.(map[string]interface{}); ok {
-			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
-				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
-					for k, v := range mosnLb {
-						if vs, ok := v.(string); ok {
-							metadataMap[k] = types.GenerateHashedValue(vs)
-						} else {
-							log.DefaultLogger.Fatal("Currently,only map[string]string type is supported for metadata")
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return metadataMap
-}
-
-// GetMosnLBMetaData
-// get mosn lb metadata from config
-func GetMosnLBMetaData(route *v2.Router) map[string]interface{} {
-	if metadataInterface, ok := route.Route.MetadataMatch[types.RouterMetadataKey]; ok {
-		if value, ok := metadataInterface.(map[string]interface{}); ok {
-			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
-				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
-					return mosnLb
-				}
-			}
-		}
-	}
-
 	return nil
 }

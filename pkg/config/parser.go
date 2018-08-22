@@ -27,10 +27,16 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
 )
 
 type ContentKey string
+
+const (
+	MinHostWeight = uint32(1)
+	MaxHostWeight = uint32(128)
+)
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
@@ -179,34 +185,62 @@ func parseVirtualHost(confighost []*VirtualHost) []*v2.VirtualHost {
 	return result
 }
 
+// used to check weight's validity
+func checkWeightedClusterValid(action RouteAction) bool {
+	var totalWeighted uint32 = 0
+
+	for _, weightedCluster := range action.WeightedClusters {
+		totalWeighted = totalWeighted + weightedCluster.Cluster.Weight
+	}
+
+	return totalWeighted == action.TotalClusterWeight
+}
+
+func parseRetryPolicy(action RouteAction) *v2.RetryPolicy {
+	if action.RetryPolicy == nil {
+		return nil
+	} else {
+		return &v2.RetryPolicy{
+			action.RetryPolicy.RetryOn,
+			action.RetryPolicy.RetryTimeout,
+			action.RetryPolicy.NumRetries,
+		}
+	}
+}
+
 func parseRouters(Router []Router) []v2.Router {
 	result := []v2.Router{}
 
 	for _, router := range Router {
+		if len(router.Route.WeightedClusters) > 0 && !checkWeightedClusterValid(router.Route) {
+			log.StartLogger.Fatalln("Sum of weights in the weighted_cluster should add up to:", router.Route.TotalClusterWeight)
+		}
+
+		routerMatch := v2.RouterMatch{
+			Prefix:        router.Match.Prefix,
+			Path:          router.Match.Path,
+			Regex:         router.Match.Regex,
+			CaseSensitive: router.Match.CaseSensitive,
+			Runtime: v2.RuntimeUInt32{
+				router.Match.Runtime.DefaultValue,
+				router.Match.Runtime.RuntimeKey,
+			},
+			Headers: parseMatchHeaders(router.Match.Headers),
+		}
+
+		routeAction := v2.RouteAction{
+			ClusterName:        router.Route.ClusterName,
+			ClusterHeader:      router.Route.ClusterHeader,
+			TotalClusterWeight: router.Route.TotalClusterWeight,
+			WeightedClusters:   parseWeightClusters(router.Route.WeightedClusters),
+			MetadataMatch:      parseRouterMetadata(router.Route.MetadataMatch),
+			Timeout:            router.Route.Timeout,
+			RetryPolicy:        parseRetryPolicy(router.Route),
+		}
+
 		result = append(result, v2.Router{
-			Match: v2.RouterMatch{
-				Prefix:        router.Match.Prefix,
-				Path:          router.Match.Path,
-				Regex:         router.Match.Regex,
-				CaseSensitive: router.Match.CaseSensitive,
-				Runtime: v2.RuntimeUInt32{
-					router.Match.Runtime.DefaultValue,
-					router.Match.Runtime.RuntimeKey,
-				},
-				Headers: parseMatchHeaders(router.Match.Headers),
-			},
-			Route: v2.RouteAction{
-				ClusterName:      router.Route.ClusterName,
-				ClusterHeader:    router.Route.ClusterHeader,
-				WeightedClusters: parseWeightClusters(router.Route.WeightedClusters),
-				MetadataMatch:    parseRouterMetadata(router.Route.MetadataMatch),
-				Timeout:          router.Route.Timeout,
-				RetryPolicy: &v2.RetryPolicy{
-					router.Route.RetryPolicy.RetryOn,
-					router.Route.RetryPolicy.RetryTimeout,
-					router.Route.RetryPolicy.NumRetries,
-				},
-			},
+			Match: routerMatch,
+			Route: routeAction,
 			Redirect: v2.RedirectAction{
 				HostRedirect: router.Redirect.HostRedirect,
 				PathRedirect: router.Redirect.PathRedirect,
@@ -225,10 +259,10 @@ func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster 
 
 	for _, wc := range weightClusters {
 		result = append(result, v2.WeightedCluster{
-			Clusters: v2.ClusterWeight{
-				wc.Clusters.Name,
-				wc.Clusters.Weight,
-				parseRouterMetadata(wc.Clusters.MetadataMatch),
+			Cluster: v2.ClusterWeight{
+				wc.Cluster.Name,
+				wc.Cluster.Weight,
+				parseRouterMetadata(wc.Cluster.MetadataMatch),
 			},
 			RuntimeKeyPrefix: wc.RuntimeKeyPrefix,
 		})
@@ -237,12 +271,30 @@ func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster 
 	return result
 }
 
+// metadata format:
+// { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
 func parseRouterMetadata(metadata Metadata) v2.Metadata {
-	result := v2.Metadata{}
-
-	for key, value := range metadata {
-		result[key] = value
+	if len(metadata) == 0 {
+		return nil
 	}
+
+	result := v2.Metadata{}
+	if metadataInterface, ok := metadata[types.RouterMetadataKey]; ok {
+		if value, ok := metadataInterface.(map[string]interface{}); ok {
+			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
+				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
+					for k, v := range mosnLb {
+						if vs, ok := v.(string); ok {
+							result[k] = vs
+						}
+					}
+
+					return result
+				}
+			}
+		}
+	}
+	log.StartLogger.Fatal("Metadata for routing format invalid, metadata format such as: { \"filter_metadata\": {\"mosn.lb\": { \"label\": \"gray\" } } }")
 
 	return result
 }
@@ -265,7 +317,6 @@ func parseVirtualClusters(VirtualClusters []VirtualCluster) []v2.VirtualCluster 
 	result := []v2.VirtualCluster{}
 
 	for _, vc := range VirtualClusters {
-
 		result = append(result, v2.VirtualCluster{
 			Pattern: vc.Pattern,
 			Name:    vc.Name,
@@ -775,12 +826,24 @@ func parseHostConfig(c *ClusterConfig) []v2.Host {
 		hosts = append(hosts, v2.Host{
 			host.Address,
 			host.Hostname,
-			host.Weight,
+			getHostWeight(host.Weight),
 			parseRouterMetadata(host.MetaData),
 		})
 	}
 
 	return hosts
+}
+
+func getHostWeight(weight uint32) uint32 {
+	if weight > MaxHostWeight {
+		weight = MaxHostWeight
+	}
+
+	if weight < MinHostWeight {
+		weight = MinHostWeight
+	}
+
+	return weight
 }
 
 // ParseServiceRegistry

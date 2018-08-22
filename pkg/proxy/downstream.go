@@ -261,7 +261,12 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 		return
 	}
-	log.StartLogger.Tracef("get route : %v,clusterName=%v", route, route.RouteRule().ClusterName())
+
+	// as ClusterName has random factor when choosing weighted cluster,
+	// so need determination at the first time
+	clusterName := route.RouteRule().ClusterName()
+
+	log.StartLogger.Tracef("get route : %v,clusterName=%v", route, clusterName)
 
 	s.route = route
 
@@ -272,7 +277,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	// active realize loadbalancer ctx
 	log.StartLogger.Tracef("before initializeUpstreamConnectionPool")
-	pool, err := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(), s)
+	pool, err := s.initializeUpstreamConnectionPool(clusterName, s)
 
 	if err != nil {
 		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
@@ -823,7 +828,7 @@ func (s *downStream) ComputeHashKey() types.HashedValue {
 
 func (s *downStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	if nil != s.requestInfo.RouteEntry() {
-		return s.requestInfo.RouteEntry().MetadataMatchCriteria()
+		return s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
 	}
 
 	return nil

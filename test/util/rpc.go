@@ -157,25 +157,31 @@ func BuildBoltV2Response(req *sofarpc.BoltV2RequestCommand) *sofarpc.BoltV2Respo
 type RPCServer struct {
 	UpstreamServer
 	Client *RPCClient
+	// Statistic
+	Name  string
+	Count uint32
 }
 
 func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
-	var server UpstreamServer
-	client := NewRPCClient(t, "rpcClient", proto)
+	s := &RPCServer{
+		Client: NewRPCClient(t, "rpcClient", proto),
+		Name:   addr,
+	}
 	switch proto {
 	case Bolt1:
-		server = NewUpstreamServer(t, addr, ServeBoltV1)
+		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV1)
 	case Bolt2:
-		server = NewUpstreamServer(t, addr, ServeBoltV2)
+		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV2)
 	default:
 		t.Errorf("unsupport protocol")
 		return nil
 	}
-	return &RPCServer{server, client}
+	return s
 }
 
-func ServeBoltV1(t *testing.T, conn net.Conn) {
+func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+		atomic.AddUint32(&s.Count, 1)
 		cmd, _ := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
@@ -193,7 +199,7 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 	}
 	serveSofaRPC(t, conn, response)
 }
-func ServeBoltV2(t *testing.T, conn net.Conn) {
+func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
 	//TODO:
 }
 

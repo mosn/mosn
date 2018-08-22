@@ -60,7 +60,36 @@
                                     "label": "gray"
                                   }
                                 }
-                              }
+                              },
+                              "total_cluster_weight":100,
+                              "weighted_clusters":[
+                                {
+                                  "cluster":{
+                                    "name":"serverCluster1",
+                                    "weight":90,
+                                    "metadata_match":{
+                                      "filter_metadata": {
+                                        "mosn.lb": {
+                                          "version": "v1"
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "cluster":{
+                                    "name":"serverCluster2",
+                                    "weight":10,
+                                    "metadata_match":{
+                                      "filter_metadata": {
+                                        "mosn.lb": {
+                                          "version": "v2"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
                             }
                           }
                         ]
@@ -131,7 +160,7 @@
             "address": "11.166.22.163:12200",
             "hostname": "downstream_machine1",
             "weight": 1,
-            "meta_data": {
+            "metadata": {
               "stage": "pre-release",
               "version": "1.1",
               "label": "gray"
