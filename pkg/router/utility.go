@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-
 package router
 
 import (
-"github.com/alipay/sofa-mosn/pkg/api/v2"
-"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // getClusterMosnLBMetaDataMap from v2.Metadata
@@ -31,7 +30,7 @@ func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	for key, value := range metadata {
 		metadataMap[key] = types.GenerateHashedValue(value)
 	}
-	
+
 	return metadataMap
 }
 
@@ -40,21 +39,21 @@ func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 func getWeightedClusterEntryAndVerify(totalClusterWeight uint32, weightedClusters []v2.WeightedCluster) (map[string]weightedClusterEntry, bool) {
 	var weightedClusterEntries = make(map[string]weightedClusterEntry)
 	var totalWeight uint32 = 0
-	
+
 	for _, weightedCluster := range weightedClusters {
 		totalWeight = totalWeight + weightedCluster.Cluster.Weight
 		subsetLBMetaData := weightedCluster.Cluster.MetadataMatch
-		
+
 		weightedClusterEntries[weightedCluster.Cluster.Name] = weightedClusterEntry{
 			clusterName:                  weightedCluster.Cluster.Name,
 			clusterWeight:                weightedCluster.Cluster.Weight,
 			clusterMetadataMatchCriteria: NewMetadataMatchCriteriaImpl(subsetLBMetaData),
 		}
 	}
-	
+
 	if totalWeight == totalClusterWeight {
 		return weightedClusterEntries, true
 	}
-	
+
 	return nil, false
 }

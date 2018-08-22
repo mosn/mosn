@@ -242,7 +242,7 @@ func TestWeightedClusterSelect(t *testing.T) {
 		}
 		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
 	}
-	
+
 	routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routerMock3)
 	if len(routeRuleImplBase.weightedClusters) != 0 {
 		t.Errorf("wanted invalid weighted cluster init but not")

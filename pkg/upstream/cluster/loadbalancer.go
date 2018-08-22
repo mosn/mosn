@@ -229,7 +229,7 @@ func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCont
 					effectiveWeight: int(host.Weight()),
 				}
 			}
-			
+
 			hostW, _ := l.hostsWeighted[host.AddressString()]
 			hostW.currentWeight += hostW.effectiveWeight
 			totalWeight += hostW.effectiveWeight

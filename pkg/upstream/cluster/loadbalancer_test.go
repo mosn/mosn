@@ -195,7 +195,7 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 	host2 := NewHost(v2.Host{Address: "127.0.0.2", Hostname: "b", Weight: 2}, nil)
 	host3 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "c", Weight: 5}, nil)
 	host4 := NewHost(v2.Host{Address: "127.0.0.4", Hostname: "d", Weight: 5}, nil)
-	
+
 	hosts1 := []types.Host{host1, host2, host3}
 
 	hs1 := hostSet{
@@ -207,7 +207,7 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 	ps := &prioritySet{
 		hostSets: hostset,
 	}
-	
+
 	loadbBalancer := newSmoothWeightedRRLoadBalancer(ps)
 
 	type args struct {
@@ -425,7 +425,6 @@ func Benchmark_RouteAndLB(b *testing.B) {
 		strings.ToLower(protocol.MosnHeaderHostKey): "www.alibaba.com",
 		"service": "test",
 	}
-
 
 	mockedClusterMng := mockClusterManager().(*clusterManager)
 	mockedRouter, err := MockRouterMatcher()
