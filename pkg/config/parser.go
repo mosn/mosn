@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
 )
 
@@ -270,12 +271,30 @@ func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster 
 	return result
 }
 
+// metadata format:
+// { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
 func parseRouterMetadata(metadata Metadata) v2.Metadata {
-	result := v2.Metadata{}
-
-	for key, value := range metadata {
-		result[key] = value
+	if len(metadata) == 0 {
+		return nil
 	}
+
+	result := v2.Metadata{}
+	if metadataInterface, ok := metadata[types.RouterMetadataKey]; ok {
+		if value, ok := metadataInterface.(map[string]interface{}); ok {
+			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
+				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
+					for k, v := range mosnLb {
+						if vs, ok := v.(string); ok {
+							result[k] = vs
+						}
+					}
+
+					return result
+				}
+			}
+		}
+	}
+	log.StartLogger.Fatal("Metadata for routing format invalid, metadata format such as: { \"filter_metadata\": {\"mosn.lb\": { \"label\": \"gray\" } } }")
 
 	return result
 }
@@ -298,7 +317,6 @@ func parseVirtualClusters(VirtualClusters []VirtualCluster) []v2.VirtualCluster 
 	result := []v2.VirtualCluster{}
 
 	for _, vc := range VirtualClusters {
-
 		result = append(result, v2.VirtualCluster{
 			Pattern: vc.Pattern,
 			Name:    vc.Name,

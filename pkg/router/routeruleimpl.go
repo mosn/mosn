@@ -27,6 +27,7 @@ import (
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 
 	//"github.com/alipay/sofa-mosn/pkg/protocol"
+	"fmt"
 	"math/rand"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -34,20 +35,23 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImplBase {
+// NewRouteRuleImplBase
+// new routerule implement basement
+func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleImplBase, error) {
 	routeRuleImplBase := RouteRuleImplBase{
 		vHost:              vHost,
 		routerMatch:        route.Match,
 		routerAction:       route.Route,
 		clusterName:        route.Route.ClusterName,
 		totalClusterWeight: route.Route.TotalClusterWeight,
+		randInstance:       rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-
-	if valid, weightedClusters := getWeightedClusterEntryAndVeirfy(routeRuleImplBase.totalClusterWeight,
+	
+	if weightedClusters, valid := getWeightedClusterEntryAndVerify(routeRuleImplBase.totalClusterWeight,
 		route.Route.WeightedClusters); valid {
 		routeRuleImplBase.weightedClusters = weightedClusters
 	} else {
-		log.DefaultLogger.Errorf("Sum of weights in the weighted_cluster should add up to:",
+		return routeRuleImplBase, fmt.Errorf("Sum of weights in the weighted_cluster error, should add up to:",
 			routeRuleImplBase.totalClusterWeight)
 	}
 
@@ -60,13 +64,13 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) RouteRuleImp
 	// todo add header match to route base
 	// generate metadata match criteria from router's metadata
 	if len(route.Route.MetadataMatch) > 0 {
-		subsetLBMetaData := getMosnLBMetaData(route.Route.MetadataMatch)
+		subsetLBMetaData := route.Route.MetadataMatch
 		routeRuleImplBase.metadataMatchCriteria = NewMetadataMatchCriteriaImpl(subsetLBMetaData)
 
 		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(route.Route.MetadataMatch)
 	}
 
-	return routeRuleImplBase
+	return routeRuleImplBase, nil
 }
 
 // Base implementation for all route entries.
@@ -115,6 +119,7 @@ type RouteRuleImplBase struct {
 	directResponseBody string
 	policy             *routerPolicy
 	virtualClusters    *VirtualClusterEntry
+	randInstance       *rand.Rand
 }
 
 // types.RouterInfo
@@ -148,7 +153,8 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 		return rri.clusterName
 	}
 
-	selectedValue := rand.Intn(int(rri.totalClusterWeight))
+	// use randInstance to avoid global lock contention
+	selectedValue := rri.randInstance.Intn(int(rri.totalClusterWeight))
 	for _, weightCluster := range rri.weightedClusters {
 
 		selectedValue = selectedValue - int(weightCluster.clusterWeight)

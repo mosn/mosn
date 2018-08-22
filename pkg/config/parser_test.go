@@ -246,51 +246,113 @@ func Test_parseRouters(t *testing.T) {
 }
 
 func Test_parseWeightClusters(t *testing.T) {
-	type args struct {
-		weightClusters []WeightedCluster
-	}
 	tests := []struct {
 		name string
-		args args
+		args []string
 		want []v2.WeightedCluster
 	}{
 		{
-			name: "valid test for cluster",
-			args: args{
-				weightClusters: []WeightedCluster{
-					{
-						Cluster: ClusterWeight{
-							Name:   "c1",
-							Weight: 90,
-							MetadataMatch: Metadata{
-								"label": "gray",
-							},
-						},
-					},
-				},
+			name: "validCluster",
+			args: []string{
+				`{ "name":"c1",	"weight":90,"metadata_match":{"filter_metadata": {"mosn.lb": {"version": "v1"}}}}`,
+				`{ "name":"c2",	"weight":10,"metadata_match":{"filter_metadata": {"mosn.lb": {"version": "v2"}}}}`,
 			},
-
 			want: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{
 						Name:   "c1",
 						Weight: 90,
 						MetadataMatch: v2.Metadata{
-							"label": "gray",
+							"version": "v1",
+						},
+					},
+				},
+				{
+					Cluster: v2.ClusterWeight{
+						Name:   "c2",
+						Weight: 10,
+						MetadataMatch: v2.Metadata{
+							"version": "v2",
 						},
 					},
 				},
 			},
 		},
+		{
+			name: "emptyCluster",
+			args: []string{
+				`{ "name":"c1",	"weight":90,"metadata_match":{"filter_metadata": {"mosn.lb":{} }}}`,
+				`{ "name":"c2",	"weight":10,"metadata_match":{"filter_metadata": {"mosn.lb": {}}}}`,
+			},
+			want: []v2.WeightedCluster{
+				{
+					Cluster: v2.ClusterWeight{
+						Name:          "c1",
+						Weight:        90,
+						MetadataMatch: v2.Metadata{},
+					},
+				},
+				{
+					Cluster: v2.ClusterWeight{
+						Name:          "c2",
+						Weight:        10,
+						MetadataMatch: v2.Metadata{},
+					},
+				},
+			},
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := parseWeightClusters(tt.args.weightClusters); !reflect.DeepEqual(got, tt.want) {
+
+			var weightClusters []WeightedCluster
+			for _, clusterString := range tt.args {
+				var cluster ClusterWeight
+				json.Unmarshal([]byte(clusterString), &cluster)
+				weightClusters = append(weightClusters, WeightedCluster{Cluster: cluster})
+			}
+
+			if got := parseWeightClusters(weightClusters); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseWeightClusters() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
+
+func TestParseRouterMetadata(t *testing.T) {
+	var envoyvalue = map[string]interface{}{"label": "gray", "stage": "pre-release"}
+	var lbvalue = map[string]interface{}{"mosn.lb": envoyvalue}
+
+	var envoyvalue2 = map[string]interface{}{}
+	var lbvalue2 = map[string]interface{}{"mosn.lb": envoyvalue2}
+
+	testCases := []struct {
+		name string
+		args map[string]interface{}
+		want v2.Metadata
+	}{
+		{
+			name: "validCase",
+			args: map[string]interface{}{"filter_metadata": lbvalue},
+			want: v2.Metadata{"label": "gray", "stage": "pre-release"},
+		},
+
+		{
+			name: "emptyCase",
+			args: map[string]interface{}{"filter_metadata": lbvalue2},
+			want: v2.Metadata{},
+		},
+	}
+
+	for _, tt := range testCases {
+		got := parseRouterMetadata(tt.args)
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("parse route medata  error,want = %+v, but got = %+v, case = %s", tt.want, got, tt.name)
+		}
+	}
+}
+
 func TestParseTCPProxy(t *testing.T) {
 	cfgStr := `{
 		"routes": [

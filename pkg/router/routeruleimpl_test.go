@@ -18,6 +18,7 @@
 package router
 
 import (
+	"math/rand"
 	"regexp"
 	"testing"
 
@@ -48,8 +49,9 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			Match: v2.RouterMatch{Prefix: tc.prefix},
 			Route: v2.RouteAction{ClusterName: "test"},
 		}
+		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PrefixRouteRuleImpl{
-			NewRouteRuleImplBase(virtualHostImpl, route),
+			routuRule,
 			route.Match.Prefix,
 		}
 		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
@@ -78,7 +80,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 			Match: v2.RouterMatch{Path: tc.path},
 			Route: v2.RouteAction{ClusterName: "test"},
 		}
-		base := NewRouteRuleImplBase(virtualHostImpl, route)
+		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		base.caseSensitive = tc.caseSensitive //hack case sensitive
 		rr := &PathRouteRuleImpl{base, route.Match.Path}
 		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
@@ -108,8 +110,10 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 			Route: v2.RouteAction{ClusterName: "test"},
 		}
 		re := regexp.MustCompile(tc.regexp)
+		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
+
 		rr := &RegexRouteRuleImpl{
-			NewRouteRuleImplBase(virtualHostImpl, route),
+			routuRule,
 			route.Match.Regex,
 			*re,
 		}
@@ -214,10 +218,12 @@ func TestWeightedClusterSelect(t *testing.T) {
 	}
 
 	for index, routecase := range testCases.routerCase {
-		routeRuleImplBase := NewRouteRuleImplBase(nil, routecase)
+		routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routecase)
 		var dcCount, w1Count, w2Count uint
 
-		for i := 0; i < 1000; i++ {
+		totalTimes := rand.Int31n(10000)
+		var i int32
+		for i = 0; i < totalTimes; i++ {
 			clusterName := routeRuleImplBase.ClusterName()
 			switch clusterName {
 			case "defaultCluster":
@@ -236,8 +242,8 @@ func TestWeightedClusterSelect(t *testing.T) {
 		}
 		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
 	}
-
-	routeRuleImplBase := NewRouteRuleImplBase(nil, routerMock3)
+	
+	routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routerMock3)
 	if len(routeRuleImplBase.weightedClusters) != 0 {
 		t.Errorf("wanted invalid weighted cluster init but not")
 	}

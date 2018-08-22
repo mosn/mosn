@@ -462,9 +462,7 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			got := sslb.ChooseHost(tt.args.context)
-
 			if got.AddressString() != tt.want.AddressString() {
 				t.Errorf("subSetLoadBalancer.ChooseHost() = %v, want %v", got.AddressString(), tt.want.AddressString())
 			}
@@ -600,7 +598,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e1",
 		Address:  HostAddress[0],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
 			"type":    "std",
@@ -613,7 +611,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e2",
 		Address:  HostAddress[1],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
 			"type":    "std",
@@ -625,7 +623,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e3",
 		Address:  HostAddress[2],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
 			"type":    "std",
@@ -637,7 +635,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e4",
 		Address:  HostAddress[3],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
 			"type":    "std",
@@ -649,7 +647,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e5",
 		Address:  HostAddress[4],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
 			"type":    "bigmem",
@@ -661,7 +659,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e6",
 		Address:  HostAddress[5],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
 			"type":    "bigmem",
@@ -673,7 +671,7 @@ func InitExampleHosts() []types.Host {
 		Hostname: "e7",
 		Address:  HostAddress[6],
 		Weight:   100,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"stage":   "dev",
 			"version": "1.2-pre",
 			"type":    "std",
@@ -694,27 +692,24 @@ func TestWeightedClusterRoute(t *testing.T) {
 					Cluster: v2.ClusterWeight{
 						Name:   "w1",
 						Weight: 90,
-						MetadataMatch: map[string]interface{}{
-							"filter_metadata": map[string]interface{}{"mosn.lb": map[string]interface{}{
-								"version": "v1"}},
-						},
+						MetadataMatch: map[string]string{
+							"version": "v1"},
 					},
 				},
+
 				{
 					Cluster: v2.ClusterWeight{
 						Name:   "w2",
 						Weight: 10,
-						MetadataMatch: map[string]interface{}{
-							"filter_metadata": map[string]interface{}{"mosn.lb": map[string]interface{}{
-								"version": "v2"}},
-						},
+						MetadataMatch: map[string]string{
+							"version": "v2"},
 					},
 				},
 			},
 		},
 	}
 
-	routeRuleImplBase := router.NewRouteRuleImplBase(nil, routerMock1)
+	routeRuleImplBase, _ := router.NewRouteRuleImplBase(nil, routerMock1)
 	clustername := routeRuleImplBase.ClusterName()
 
 	if clustername == "w1" {
@@ -777,7 +772,7 @@ func HostsMock() []types.Host {
 	e1 := v2.Host{
 		Hostname: "e1",
 		Weight:   50,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"version": "v1",
 		},
 	}
@@ -786,7 +781,7 @@ func HostsMock() []types.Host {
 	e2 := v2.Host{
 		Hostname: "e2",
 		Weight:   50,
-		MetaData: map[string]interface{}{
+		MetaData: map[string]string{
 			"version": "v2",
 		},
 	}

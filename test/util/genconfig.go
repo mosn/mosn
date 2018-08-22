@@ -56,6 +56,24 @@ func newBasicCluster(name string, hosts []string) config.ClusterConfig {
 	}
 }
 
+func newWeightedCluster(name string, hosts []*WeightHost) config.ClusterConfig {
+	var vhosts []config.HostConfig
+	for _, host := range hosts {
+		vhosts = append(vhosts, config.HostConfig{
+			Address: host.Addr,
+			Weight:  host.Weight,
+		})
+	}
+	return config.ClusterConfig{
+		Name:                 name,
+		Type:                 "SIMPLE",
+		LbType:               "LB_ROUNDROBIN",
+		MaxRequestPerConn:    1024,
+		ConnBufferLimitBytes: 16 * 1026,
+		Hosts:                vhosts,
+	}
+}
+
 func newBasicTLSCluster(name string, hosts []string, tls config.TLSConfig) config.ClusterConfig {
 	cfg := newBasicCluster(name, hosts)
 	cfg.TLS = tls
@@ -83,6 +101,18 @@ func newMOSNConfig(listeners []config.ListenerConfig, clusterManager config.Clus
 			},
 		},
 		ClusterManager: clusterManager,
+	}
+}
+
+// weighted cluster case
+func newHeaderWeightedRouter(clusters []config.WeightedCluster, value string) config.Router {
+	header := config.HeaderMatcher{Name: "service", Value: value}
+	return config.Router{
+		Match: config.RouterMatch{Headers: []config.HeaderMatcher{header}},
+		Route: config.RouteAction{
+			TotalClusterWeight: 100,
+			WeightedClusters:   clusters,
+		},
 	}
 }
 
