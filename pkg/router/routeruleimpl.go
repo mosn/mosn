@@ -27,10 +27,11 @@ import (
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 	//"github.com/alipay/sofa-mosn/pkg/protocol"
 	"fmt"
+	"math/rand"
+
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	httpmosn "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"math/rand"
 )
 
 // NewRouteRuleImplBase
@@ -42,7 +43,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleIm
 		routerAction:       route.Route,
 		clusterName:        route.Route.ClusterName,
 		totalClusterWeight: route.Route.TotalClusterWeight,
-		randInstance:       rand.New(rand.NewSource(time.Now().Unix())),
+		randInstance:       rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	if valid, weightedClusters := getWeightedClusterEntryAndVerify(routeRuleImplBase.totalClusterWeight,

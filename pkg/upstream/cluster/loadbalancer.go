@@ -20,8 +20,9 @@ package cluster
 import (
 	"math/rand"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // NewLoadBalancer
@@ -50,7 +51,7 @@ func newRandomLoadbalancer(prioritySet types.PrioritySet) types.LoadBalancer {
 		loadbalancer: loadbalancer{
 			prioritySet: prioritySet,
 		},
-		randInstance:rand.New(rand.NewSource(time.Now().Unix())),
+		randInstance: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -92,7 +93,7 @@ func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) t
 
 	hostSets := l.prioritySet.HostSetsByPriority()
 	hostSetsNum := uint32(len(hostSets))
-	curHostSet := hostSets[l.rrIndexPriority % hostSetsNum].HealthyHosts()
+	curHostSet := hostSets[l.rrIndexPriority%hostSetsNum].HealthyHosts()
 
 	if l.rrIndex >= uint32(len(curHostSet)) {
 		l.rrIndexPriority = (l.rrIndexPriority + 1) % hostSetsNum
@@ -160,32 +161,32 @@ type hostSmoothWeighted struct {
 	effectiveWeight int
 }
 
-func newSmoothWeightedRRLoadBalancer(prioritySet types.PrioritySet)types.LoadBalancer {
+func newSmoothWeightedRRLoadBalancer(prioritySet types.PrioritySet) types.LoadBalancer {
 	smoothWRRLoadBalancer := &smoothWeightedRRLoadBalancer{
 		loadbalancer: loadbalancer{
-			prioritySet:prioritySet,
+			prioritySet: prioritySet,
 		},
-		hostsWeighted:make(map[string]*hostSmoothWeighted),
+		hostsWeighted: make(map[string]*hostSmoothWeighted),
 	}
-	
+
 	smoothWRRLoadBalancer.prioritySet.AddMemberUpdateCb(
 		func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
 			smoothWRRLoadBalancer.UpdateHost(priority, hostsAdded, hostsRemoved)
 		},
 	)
-	
+
 	hostSets := prioritySet.HostSetsByPriority()
-	
+
 	// iterate over all hosts to init host with Weighted
 	for _, hostSet := range hostSets {
 		for _, host := range hostSet.HealthyHosts() {
 			smoothWRRLoadBalancer.hostsWeighted[host.AddressString()] = &hostSmoothWeighted{
-				weight:int(host.Weight()),
-				effectiveWeight:int(host.Weight()),
+				weight:          int(host.Weight()),
+				effectiveWeight: int(host.Weight()),
 			}
 		}
 	}
-	
+
 	return smoothWRRLoadBalancer
 }
 
@@ -200,7 +201,7 @@ func (l *smoothWeightedRRLoadBalancer) UpdateHost(priority uint32, hostsAdded []
 			}
 		}
 	}
-	
+
 	// remove host from hostsWeighted
 	for _, hostRm := range hostsRemoved {
 		delete(l.hostsWeighted, hostRm.AddressString())
@@ -214,7 +215,7 @@ func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCont
 	totalWeight := 0
 	var selectedHostWeighted *hostSmoothWeighted
 	var selectedHost types.Host
-	
+
 	hostSets := l.prioritySet.HostSetsByPriority()
 	for _, hosts := range hostSets {
 		for _, host := range hosts.HealthyHosts() {
@@ -225,26 +226,26 @@ func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCont
 					effectiveWeight: int(host.Weight()),
 				}
 			}
-			
+
 			hostW, _ := l.hostsWeighted[host.AddressString()]
 			hostW.currentWeight += hostW.effectiveWeight
 			totalWeight += hostW.effectiveWeight
-			
+
 			if hostW.effectiveWeight < hostW.weight {
 				hostW.effectiveWeight++
 			}
-			
+
 			if selectedHostWeighted == nil || hostW.currentWeight > selectedHostWeighted.currentWeight {
 				selectedHostWeighted = hostW
 				selectedHost = host
 			}
 		}
 	}
-	
+
 	if selectedHostWeighted == nil {
 		return nil
 	}
-	
+
 	selectedHostWeighted.currentWeight -= totalWeight
 	return selectedHost
 }

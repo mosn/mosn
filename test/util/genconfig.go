@@ -56,12 +56,12 @@ func newBasicCluster(name string, hosts []string) config.ClusterConfig {
 	}
 }
 
-func newWeightedCluster(name string, hosts []string) config.ClusterConfig {
+func newWeightedCluster(name string, hosts []*WeightHost) config.ClusterConfig {
 	var vhosts []config.HostConfig
-	for index, addr := range hosts {
+	for _, host := range hosts {
 		vhosts = append(vhosts, config.HostConfig{
-			Address: addr,
-			Weight:  uint32(index + 1),
+			Address: host.Addr,
+			Weight:  host.Weight,
 		})
 	}
 	return config.ClusterConfig{
@@ -105,32 +105,14 @@ func newMOSNConfig(listeners []config.ListenerConfig, clusterManager config.Clus
 }
 
 // weighted cluster case
-func newHeaderWeightedRouter(cluster []string, value string) config.Router {
-	if len(cluster) < 2 {
-		return config.Router{}
-	}
-	
+func newHeaderWeightedRouter(clusters []config.WeightedCluster, value string) config.Router {
 	header := config.HeaderMatcher{Name: "service", Value: value}
-	
 	return config.Router{
 		Match: config.RouterMatch{Headers: []config.HeaderMatcher{header}},
 		Route: config.RouteAction{
-			ClusterName:        cluster[1],
 			TotalClusterWeight: 100,
-			WeightedClusters: []config.WeightedCluster{
-				{
-					Cluster: config.ClusterWeight{
-						Name:   cluster[0],
-						Weight: 40,
-					},
-				},
-				{
-					Cluster: config.ClusterWeight{
-						Name:   cluster[1],
-						Weight: 60,
-					},
-				},
-			}},
+			WeightedClusters:   clusters,
+		},
 	}
 }
 

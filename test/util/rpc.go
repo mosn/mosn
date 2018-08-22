@@ -18,13 +18,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"math"
 )
 
 const (
 	Bolt1 = "boltV1"
 	Bolt2 = "boltV2"
-	BoltWeight = "boltWeight"
 )
 
 type RPCClient struct {
@@ -78,7 +76,7 @@ func (c *RPCClient) SendRequest() {
 	requestEncoder := c.Codec.NewStream(streamID, c)
 	var headers interface{}
 	switch c.Protocol {
-	case Bolt1, BoltWeight:
+	case Bolt1:
 		headers = BuildBoltV1Request(ID)
 	case Bolt2:
 		headers = BuildBoltV2Request(ID)
@@ -159,64 +157,49 @@ func BuildBoltV2Response(req *sofarpc.BoltV2RequestCommand) *sofarpc.BoltV2Respo
 type RPCServer struct {
 	UpstreamServer
 	Client *RPCClient
+	// Statistic
+	Name  string
+	Count uint32
 }
 
 func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
-	var server UpstreamServer
-	client := NewRPCClient(t, "rpcClient", proto)
+	s := &RPCServer{
+		Client: NewRPCClient(t, "rpcClient", proto),
+		Name:   addr,
+	}
 	switch proto {
 	case Bolt1:
-		server = NewUpstreamServer(t, addr, ServeBoltV1)
+		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV1)
 	case Bolt2:
-		server = NewUpstreamServer(t, addr, ServeBoltV2)
-	case BoltWeight:
-		server  = NewUpstreamServer(t,addr,ServeBoltV1WeightCount)
-	
+		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV2)
 	default:
 		t.Errorf("unsupport protocol")
 		return nil
 	}
-	return &RPCServer{server, client}
+	return s
 }
 
-var hostsAddress = []string{"127.0.0.1:8081","127.0.0.1:8082","127.0.0.1:8083","127.0.0.1:8084"}
-var host1Count,host2Count,host3Count,host4Count,totalRequest float64
+/*
 var thres float64 = 0.3
 
-func CountWeightHost(address string) {
-	switch address {
-	case hostsAddress[0]:
-		host1Count++
-	case hostsAddress[1]:
-		host2Count++
-	case hostsAddress[2]:
-		host3Count++
-	case hostsAddress[3]:
-		host4Count++
-	}
-}
-
-func ServeBoltV1WeightCount(t *testing.T, conn net.Conn) {
-	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		
-		totalRequest += 1
-		t.Logf("server = %s, handle the request",conn.LocalAddr().String())
-		CountWeightHost(conn.LocalAddr().String())
-		
-		if totalRequest >= 100 {
-			ratioCluster := (host1Count + host2Count) / (host3Count + host4Count)
-			if math.Abs(ratioCluster - 40.0/60.0 ) > thres {
-				t.Errorf("weighted cluster selected error, want:%f , but got:%f",40.0/60.0 ,ratioCluster,host1Count,host2Count,host3Count,host4Count)
-			}
-			
-			ratioHost1 := host1Count/host2Count
-			ratioHost2 := host3Count/host4Count
-			
-			if math.Abs(ratioHost1-0.5) >thres || math.Abs(ratioHost2-0.5) > thres {
-				t.Errorf("weighted host selected error, want:%f , but got1:%f got2:%f" ,1.0/2.0,ratioHost1,ratioHost2)
-			}
+	if totalRequest >= 100 {
+		ratioCluster := (host1Count + host2Count) / (host3Count + host4Count)
+		if math.Abs(ratioCluster-40.0/60.0) > thres {
+			t.Errorf("weighted cluster selected error, want:%f , but got:%f", 40.0/60.0, ratioCluster, host1Count, host2Count, host3Count, host4Count)
 		}
-		
+
+		ratioHost1 := host1Count / host2Count
+		ratioHost2 := host3Count / host4Count
+
+		if math.Abs(ratioHost1-0.5) > thres || math.Abs(ratioHost2-0.5) > thres {
+			t.Errorf("weighted host selected error, want:%f , but got1:%f got2:%f", 1.0/2.0, ratioHost1, ratioHost2)
+		}
+	}
+*/
+
+func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
+	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+		atomic.AddUint32(&s.Count, 1)
 		cmd, _ := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
@@ -234,31 +217,7 @@ func ServeBoltV1WeightCount(t *testing.T, conn net.Conn) {
 	}
 	serveSofaRPC(t, conn, response)
 }
-
-func ServeBoltV1(t *testing.T, conn net.Conn) {
-	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		
-		t.Logf("server = %s, handle the request",conn.LocalAddr().String())
-		CountWeightHost(conn.LocalAddr().String())
-		
-		cmd, _ := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
-		if cmd == nil {
-			return nil, false
-		}
-		if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
-			resp := BuildBoltV1Response(req)
-			iobufresp, err := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
-			if err != nil {
-				t.Errorf("Build response error: %v\n", err)
-				return nil, true
-			}
-			return iobufresp.Bytes(), true
-		}
-		return nil, true
-	}
-	serveSofaRPC(t, conn, response)
-}
-func ServeBoltV2(t *testing.T, conn net.Conn) {
+func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
 	//TODO:
 }
 
