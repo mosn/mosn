@@ -73,14 +73,13 @@ func TestNewClusterMngSingle(t *testing.T) {
 	if mockClusterMnger1 != mockClusterMnger2 {
 		t.Errorf("error")
 	}
+	mockClusterMnger1.Destory()
 }
 
 func TestGetClusterMngAdapterInstance(t *testing.T) {
-	mockClusterMnger := MockClusterManager()
-	mockClusterMnger.Destory()
 
-	mockClusterMnger1 := MockClusterManager().(*clusterManager)
-	mockClusterMnger2 := MockClusterManager().(*clusterManager)
+	mockClusterMnger := MockClusterManager().(*clusterManager)
+	defer mockClusterMnger.Destory()
 
 	tests := []struct {
 		name string
@@ -88,11 +87,11 @@ func TestGetClusterMngAdapterInstance(t *testing.T) {
 	}{
 		{
 			name: "validtest",
-			want: mockClusterMnger1,
+			want: mockClusterMnger,
 		},
 		{
 			name: "validtest2",
-			want: mockClusterMnger2,
+			want: mockClusterMnger,
 		},
 	}
 	for _, tt := range tests {
@@ -105,10 +104,9 @@ func TestGetClusterMngAdapterInstance(t *testing.T) {
 }
 
 func TestMngAdapter_TriggerClusterAddOrUpdate(t *testing.T) {
-	mockClusterMnger := MockClusterManager()
-	mockClusterMnger.Destory()
 
-	mockClusterMnger1 := MockClusterManager().(*clusterManager)
+	mockClusterMnger := MockClusterManager().(*clusterManager)
+	defer mockClusterMnger.Destory()
 	mockNewCluster := v2.Cluster{
 		Name:        "o1",
 		ClusterType: v2.DYNAMIC_CLUSTER,
@@ -155,7 +153,7 @@ func TestMngAdapter_TriggerClusterAddOrUpdate(t *testing.T) {
 	}{
 		{
 			name:   "clusterUpdateTest",
-			fields: fields{clusterMng: mockClusterMnger1},
+			fields: fields{clusterMng: mockClusterMnger},
 			args:   args{cluster: mockNewCluster},
 			wantArgs: clusterArgs{
 				hostNumber:  2,
@@ -166,7 +164,7 @@ func TestMngAdapter_TriggerClusterAddOrUpdate(t *testing.T) {
 		},
 		{
 			name:   "clusterAddTest",
-			fields: fields{clusterMng: mockClusterMnger1},
+			fields: fields{clusterMng: mockClusterMnger},
 			args:   args{cluster: mockAddedCluster},
 			wantArgs: clusterArgs{
 				hostNumber:  0,
@@ -185,7 +183,7 @@ func TestMngAdapter_TriggerClusterAddOrUpdate(t *testing.T) {
 				t.Errorf("MngAdapter.TriggerClusterAddOrUpdate() error = %v, wantArgs %v", err, tt.wantArgs)
 			}
 
-			if cluster, ok := mockClusterMnger1.primaryClusters.Load(tt.wantArgs.clusterName); ok {
+			if cluster, ok := mockClusterMnger.primaryClusters.Load(tt.wantArgs.clusterName); ok {
 
 				cInMem := cluster.(*primaryCluster).cluster.(*simpleInMemCluster)
 				if len(cInMem.hosts) != tt.wantArgs.hostNumber {
@@ -206,10 +204,8 @@ func TestMngAdapter_TriggerClusterAddOrUpdate(t *testing.T) {
 }
 
 func TestMngAdapter_TriggerClusterDel(t *testing.T) {
-	mockClusterMnger := MockClusterManager()
-	mockClusterMnger.Destory()
-
-	mockClusterMnger1 := MockClusterManager().(*clusterManager)
+	mockClusterMnger := MockClusterManager().(*clusterManager)
+	defer mockClusterMnger.Destory()
 	type fields struct {
 		clusterMng *clusterManager
 	}
@@ -225,7 +221,7 @@ func TestMngAdapter_TriggerClusterDel(t *testing.T) {
 		{
 			name: "testValid",
 			fields: fields{
-				clusterMng: mockClusterMnger1,
+				clusterMng: mockClusterMnger,
 			},
 			args: args{
 				clusterName: "o1",
@@ -235,7 +231,7 @@ func TestMngAdapter_TriggerClusterDel(t *testing.T) {
 		{
 			name: "testInvalid",
 			fields: fields{
-				clusterMng: mockClusterMnger1,
+				clusterMng: mockClusterMnger,
 			},
 			args: args{
 				clusterName: "o3",
@@ -252,7 +248,7 @@ func TestMngAdapter_TriggerClusterDel(t *testing.T) {
 				t.Errorf("MngAdapter.TriggerClusterDel() error = %v, wantArgs %v", err, tt.wantErr)
 			}
 
-			if _, ok := mockClusterMnger1.primaryClusters.Load(tt.args.clusterName); ok {
+			if _, ok := mockClusterMnger.primaryClusters.Load(tt.args.clusterName); ok {
 				t.Errorf("MngAdapter.cluster delete error")
 			}
 
@@ -261,10 +257,8 @@ func TestMngAdapter_TriggerClusterDel(t *testing.T) {
 }
 
 func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {
-	mockClusterMnger := MockClusterManager()
-	mockClusterMnger.Destory()
-
-	mockClusterMnger1 := MockClusterManager().(*clusterManager)
+	mockClusterMnger := MockClusterManager().(*clusterManager)
+	defer mockClusterMnger.Destory()
 	mockNewCluster := v2.Cluster{
 		Name:        "o1",
 		ClusterType: v2.DYNAMIC_CLUSTER,
@@ -328,7 +322,7 @@ func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {
 		{
 			name: "deleteHosts",
 			fields: fields{
-				clusterMng: mockClusterMnger1,
+				clusterMng: mockClusterMnger,
 			},
 			args: args{
 				cluster: mockNewCluster,
@@ -344,7 +338,7 @@ func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {
 		{
 			name: "addHosts",
 			fields: fields{
-				clusterMng: mockClusterMnger1,
+				clusterMng: mockClusterMnger,
 			},
 			args: args{
 				cluster: mockNewCluster2,
@@ -360,7 +354,7 @@ func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {
 		{
 			name: "clearHosts",
 			fields: fields{
-				clusterMng: mockClusterMnger1,
+				clusterMng: mockClusterMnger,
 			},
 			args: args{
 				cluster: mockNewCluster3,
@@ -385,7 +379,7 @@ func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {
 				t.Errorf("MngAdapter.TriggerClusterAndHostsAddOrUpdate() error = %v, wantArgs %v", err, nil)
 			}
 
-			if cluster, ok := mockClusterMnger1.primaryClusters.Load("o1"); ok {
+			if cluster, ok := mockClusterMnger.primaryClusters.Load("o1"); ok {
 
 				if cluster.(*primaryCluster).cluster.Info().LbType() != tt.argsWant.lbType {
 					t.Errorf("MngAdapter.update cluster error")
@@ -410,10 +404,8 @@ func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {
 }
 
 func TestMngAdapter_TriggerClusterHostUpdate(t *testing.T) {
-	mockClusterMnger := MockClusterManager()
-	mockClusterMnger.Destory()
-
-	mockClusterMnger1 := MockClusterManager().(*clusterManager)
+	mockClusterMnger := MockClusterManager().(*clusterManager)
+	defer mockClusterMnger.Destory()
 
 	type fields struct {
 		clusterMng *clusterManager
@@ -442,7 +434,7 @@ func TestMngAdapter_TriggerClusterHostUpdate(t *testing.T) {
 		{
 			name: "deleteHosts",
 			fields: fields{
-				clusterMng: mockClusterMnger1,
+				clusterMng: mockClusterMnger,
 			},
 			args: args{
 				clusterName: "o1",
@@ -458,7 +450,7 @@ func TestMngAdapter_TriggerClusterHostUpdate(t *testing.T) {
 		{
 			name: "addHosts",
 			fields: fields{
-				clusterMng: mockClusterMnger1,
+				clusterMng: mockClusterMnger,
 			},
 			args: args{
 				clusterName: "o1",
@@ -474,7 +466,7 @@ func TestMngAdapter_TriggerClusterHostUpdate(t *testing.T) {
 		{
 			name: "clearHosts",
 			fields: fields{
-				clusterMng: mockClusterMnger1,
+				clusterMng: mockClusterMnger,
 			},
 			args: args{
 				clusterName: "o1",
@@ -498,7 +490,7 @@ func TestMngAdapter_TriggerClusterHostUpdate(t *testing.T) {
 				t.Errorf("MngAdapter.TriggerClusterAndHostsAddOrUpdate() error = %v, wantArgs %v", err, nil)
 			}
 
-			if cluster, ok := mockClusterMnger1.primaryClusters.Load("o1"); ok {
+			if cluster, ok := mockClusterMnger.primaryClusters.Load("o1"); ok {
 
 				if cluster.(*primaryCluster).cluster.Info().LbType() != tt.argsWant.lbType {
 					t.Errorf("MngAdapter.update cluster error")

@@ -46,7 +46,6 @@ type Mosn struct {
 func NewMosn(c *config.MOSNConfig) *Mosn {
 	m := &Mosn{}
 	mode := c.Mode()
-	log.InitDefaultLogger("./clusterManager.log", log.DEBUG)
 
 	if mode == config.Xds {
 		servers := make([]config.ServerConfig, 0, 1)
