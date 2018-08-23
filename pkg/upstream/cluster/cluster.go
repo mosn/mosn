@@ -240,11 +240,9 @@ type clusterInfo struct {
 	addedViaAPI          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
-
-	healthCheckProtocol string
-
-	tlsMng       types.TLSContextManager
-	lbSubsetInfo types.LBSubsetInfo
+	healthCheckProtocol  string
+	tlsMng               types.TLSContextManager
+	lbSubsetInfo         types.LBSubsetInfo
 }
 
 func NewClusterInfo() types.ClusterInfo {

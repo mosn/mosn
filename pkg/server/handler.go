@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"reflect"
 
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -88,6 +89,7 @@ func (ch *connHandler) NumConnections() uint64 {
 	return uint64(atomic.LoadInt64(&ch.numConnections))
 }
 
+
 var listenerName uint32
 
 func GenerateListenerID() string {
@@ -98,7 +100,8 @@ func GenerateListenerID() string {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
+
+func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
 
 	var listenerName string
@@ -121,7 +124,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 		}
 
 		equalConfig := reflect.DeepEqual(al.listener.Config(), lc)
-		equalNetworkFilter := reflect.DeepEqual(al.networkFiltersFactory, networkFiltersFactory)
+		equalNetworkFilter := reflect.DeepEqual(al.streamFiltersFactories, streamFiltersFactories)
 		equalStreamFilters := reflect.DeepEqual(al.streamFiltersFactories, streamFiltersFactories)
 		// duplicate config does nothing
 		if equalConfig && equalNetworkFilter && equalStreamFilters {
@@ -141,7 +144,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 
 		// update network filter
 		if !equalNetworkFilter {
-			al.networkFiltersFactory = networkFiltersFactory
+			al.streamFiltersFactories = streamFiltersFactories
 		}
 
 		// update stream filter
@@ -150,10 +153,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 		}
 	} else {
 		// listener doesn't exist, add the listener
-
 		//TODO: connection level stop-chan usage confirm
 		listenerStopChan := make(chan struct{})
-
 		//use default listener path
 		if lc.LogPath == "" {
 			lc.LogPath = MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
@@ -183,7 +184,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 
 		l := network.NewListener(lc, logger)
 
-		al = newActiveListener(l, logger, als, networkFiltersFactory, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
+		al = newActiveListener(l, logger, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
 	}
@@ -310,36 +311,36 @@ func (ch *connHandler) StopConnection() {
 
 // ListenerEventListener
 type activeListener struct {
-	disableConnIo          bool
-	listener               types.Listener
-	networkFiltersFactory  types.NetworkFilterChainFactory
-	streamFiltersFactories []types.StreamFilterChainFactory
-	listenIP               string
-	listenPort             int
-	statsNamespace         string
-	conns                  *list.List
-	connsMux               sync.RWMutex
-	handler                *connHandler
-	stopChan               chan struct{}
-	stats                  *ListenerStats
-	logger                 log.Logger
-	accessLogs             []types.AccessLog
+	disableConnIo           bool
+	listener                types.Listener
+	networkFiltersFactories []types.NetworkFilterChainFactory
+	streamFiltersFactories  []types.StreamFilterChainFactory
+	listenIP                string
+	listenPort              int
+	statsNamespace          string
+	conns                   *list.List
+	connsMux                sync.RWMutex
+	handler                 *connHandler
+	stopChan                chan struct{}
+	stats                   *ListenerStats
+	logger                  log.Logger
+	accessLogs              []types.AccessLog
 	updatedLabel           bool
 }
 
 func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog,
-	networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
+	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}, disableConnIo bool) *activeListener {
 	al := &activeListener{
-		disableConnIo:          disableConnIo,
-		listener:               listener,
-		networkFiltersFactory:  networkFiltersFactory,
-		streamFiltersFactories: streamFiltersFactories,
-		conns:        list.New(),
-		handler:      handler,
-		stopChan:     stopChan,
-		logger:       logger,
-		accessLogs:   accessLoggers,
+		disableConnIo:           disableConnIo,
+		listener:                listener,
+		networkFiltersFactories: networkFiltersFactories,
+		streamFiltersFactories:  streamFiltersFactories,
+		conns:      list.New(),
+		handler:    handler,
+		stopChan:   stopChan,
+		logger:     logger,
+		accessLogs: accessLoggers,
 		updatedLabel: false,
 	}
 
@@ -376,7 +377,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
 	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = context.WithValue(ctx, types.ContextKeyListenerStatsNameSpace, al.statsNamespace)
-	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactory, al.networkFiltersFactory)
+	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
@@ -392,16 +393,17 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 
 func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connection) {
 	//Register Proxy's Filter
-	configFactory := al.networkFiltersFactory.CreateFilterFactory(ctx, al.handler.clusterManager)
-	buildFilterChain(conn.FilterManager(), configFactory)
+	filterManager := conn.FilterManager()
+	for _, nfcf := range al.networkFiltersFactories {
+		nfcf.CreateFilterChain(ctx, al.handler.clusterManager, filterManager)
+	}
+	filterManager.InitializeReadFilters()
 
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
 	if !al.disableConnIo {
 		// start conn loops first
 		conn.Start(ctx)
 	}
-
-	filterManager := conn.FilterManager()
 
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {

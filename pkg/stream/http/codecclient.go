@@ -20,11 +20,9 @@ package http
 import (
 	"container/list"
 	"context"
+	"crypto/tls"
 	"sync"
 	"sync/atomic"
-
-	"crypto/tls"
-
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"

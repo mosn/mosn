@@ -34,7 +34,7 @@ import (
 // todo: support cached pass through
 
 func init() {
-	filter.Register("healthcheck", CreateHealthCheckFilterFactory)
+	filter.RegisterStream("healthcheck", CreateHealthCheckFilterFactory)
 }
 
 // types.StreamSenderFilter
@@ -151,7 +151,7 @@ type HealthCheckFilterConfigFactory struct {
 	FilterConfig *v2.HealthCheckFilter
 }
 
-func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
+func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewHealthCheckFilter(context, f.FilterConfig)
 	callbacks.AddStreamReceiverFilter(filter)
 }

@@ -101,15 +101,7 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 	copy(curHosts, sc.hosts)
 	changed, finalHosts, hostsAdded, hostsRemoved := sc.updateDynamicHostList(newHosts, curHosts)
 
-	if len(finalHosts) == 0 {
-		log.DefaultLogger.Debugf("final host is []")
-	}
-
-	for i, f := range finalHosts {
-		log.DefaultLogger.Debugf("final host index = %d, address = %s,", i, f.AddressString())
-	}
-
-	log.DefaultLogger.Debugf("changed %t", changed)
+	log.DefaultLogger.Debugf("update host changed %t", changed)
 
 	if changed {
 		sc.hosts = finalHosts

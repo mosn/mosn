@@ -220,49 +220,13 @@ func TestListenerAdapter_DeleteListener(t *testing.T) {
 	if err := adapter.DeleteListener("", "listener1"); err != nil {
 		t.Errorf("ListenerAdapter.DeleteListener() error = %v", err.Error())
 	}
-
-	time.Sleep(1 * time.Second) // wait listener stop
+	
 	if adapter.defaultConnHandler.FindListenerByName("listener1") != nil {
 		t.Errorf("listener = %s doesn't stop ", srvAddresses[0])
 	}
+	
+	time.Sleep(1*time.Hour)
 
-	// expect connect failure
-	if conn, err := runMockClientConnect(clnAddresses[2], srvAddresses[0]); err == nil {
-		t.Errorf("listener = %s doesn't stop ", srvAddresses[0])
-		conn.Close()
-	}
-}
-
-func TestListenerAdapter_StopListener(t *testing.T) {
-	go runMockServer(t)
-	time.Sleep(1 * time.Second) // wait server start
-	
-	adapter := &ListenerAdapter{
-		connHandlerMap:     GetListenerAdapterInstance().connHandlerMap,
-		defaultConnHandler: GetListenerAdapterInstance().defaultConnHandler,
-	}
-	
-	// expect connect success
-	if adapter.defaultConnHandler.FindListenerByName("listener1") == nil {
-		t.Errorf("listener = %s doesn't start ", srvAddresses[0])
-	}
-	
-	if conn, err := runMockClientConnect(clnAddresses[1], srvAddresses[0]); err != nil {
-		t.Errorf("ListenerAdapter.DeleteListener() error = %s ", err.Error())
-	} else {
-		conn.Close()
-	}
-	
-	// delete the listener
-	if err := adapter.StopListener("", "listener1"); err != nil {
-		t.Errorf("ListenerAdapter.DeleteListener() error = %v", err.Error())
-	}
-	
-	time.Sleep(1 * time.Second) // wait listener stop
-	if adapter.defaultConnHandler.FindListenerByName("listener1") == nil {
-		t.Errorf("listener = %s need stay in the memory ", srvAddresses[0])
-	}
-	
 	// expect connect failure
 	if conn, err := runMockClientConnect(clnAddresses[2], srvAddresses[0]); err == nil {
 		t.Errorf("listener = %s doesn't stop ", srvAddresses[0])

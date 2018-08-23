@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/cmd/mosn"
+	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	mosntls "github.com/alipay/sofa-mosn/pkg/tls"
 	"github.com/alipay/sofa-mosn/pkg/tls/certtool"

@@ -32,7 +32,7 @@ import (
 )
 
 func init() {
-	filter.Register("fault_inject", CreateFaultInjectFilterFactory)
+	filter.RegisterStream("fault_inject", CreateFaultInjectFilterFactory)
 }
 
 type faultInjectFilter struct {
@@ -126,7 +126,7 @@ type FilterConfigFactory struct {
 	FaultInject *v2.FaultInject
 }
 
-func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
+func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewFaultInjectFilter(context, f.FaultInject)
 	callbacks.AddStreamReceiverFilter(filter)
 }

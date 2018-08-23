@@ -50,7 +50,7 @@ func GetListenerAdapterInstance() *ListenerAdapter {
 // Add and start listener when listener doesn't exist
 // Update listener when listener already exist
 func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.ListenerConfig,
-	networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) error {
+	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) error {
 
 	var connHandler types.ConnectionHandler
 
@@ -64,7 +64,7 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 		}
 	}
 
-	listener := connHandler.AddOrUpdateListener(lc, networkFiltersFactory, streamFiltersFactories)
+	listener := connHandler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
 	if al, ok := listener.(*activeListener); ok {
 		if !al.updatedLabel {
 			// start listener if this is new
@@ -75,23 +75,6 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 	}
 
 	return fmt.Errorf("AddOrUpdateListener Error")
-}
-
-// StopListener
-func (adapter *ListenerAdapter) StopListener(serverName string, listenerName string) error {
-	var connHandler types.ConnectionHandler
-
-	if serverName == "" {
-		connHandler = adapter.defaultConnHandler
-	} else {
-		if ch, ok := adapter.connHandlerMap[serverName]; ok {
-			connHandler = ch
-		} else {
-			fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
-		}
-	}
-
-	return connHandler.StopListener(nil, listenerName, false)
 }
 
 func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName string) error {

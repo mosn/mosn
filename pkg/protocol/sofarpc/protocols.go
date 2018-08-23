@@ -127,7 +127,6 @@ func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {
 		log.DefaultLogger.Warnf("protocol already Exist:", protocolCode)
 	} else {
 		p.protocolMaps[protocolCode] = protocol
-		log.StartLogger.Debugf("register protocol:%x", protocolCode)
 	}
 }
 

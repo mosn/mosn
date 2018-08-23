@@ -50,6 +50,6 @@ func (r *RouteRuleImplAdaptor) Metadata() types.RouteMetaData {
 	return nil
 }
 
-func (r *RouteRuleImplAdaptor) MetadataMatchCriteria() types.MetadataMatchCriteria {
+func (r *RouteRuleImplAdaptor) MetadataMatchCriteria(clusterName string) types.MetadataMatchCriteria {
 	return nil
 }

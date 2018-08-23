@@ -40,25 +40,27 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 	}
 
 	for _, route := range virtualHost.Routers {
+		routeRuleImplBase, err := NewRouteRuleImplBase(virtualHostImpl, &route)
+		if err != nil {
+			return nil, err
+		}
 
 		if route.Match.Prefix != "" {
-
 			virtualHostImpl.routes = append(virtualHostImpl.routes, &PrefixRouteRuleImpl{
-				NewRouteRuleImplBase(virtualHostImpl, &route),
+				routeRuleImplBase,
 				route.Match.Prefix,
 			})
 
 		} else if route.Match.Path != "" {
 			virtualHostImpl.routes = append(virtualHostImpl.routes, &PathRouteRuleImpl{
-				NewRouteRuleImplBase(virtualHostImpl, &route),
+				routeRuleImplBase,
 				route.Match.Path,
 			})
 
 		} else if route.Match.Regex != "" {
-
 			if regPattern, err := regexp.Compile(route.Match.Regex); err == nil {
 				virtualHostImpl.routes = append(virtualHostImpl.routes, &RegexRouteRuleImpl{
-					NewRouteRuleImplBase(virtualHostImpl, &route),
+					routeRuleImplBase,
 					route.Match.Regex,
 					*regPattern,
 				})
@@ -71,7 +73,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 			for _, header := range route.Match.Headers {
 				if header.Name == types.SofaRouteMatchKey {
 					virtualHostImpl.routes = append(virtualHostImpl.routes, &SofaRouteRuleImpl{
-						RouteRuleImplBase: NewRouteRuleImplBase(virtualHostImpl, &route),
+						RouteRuleImplBase: routeRuleImplBase,
 						matchValue:        header.Value,
 					})
 				}

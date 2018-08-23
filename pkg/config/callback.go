@@ -21,9 +21,9 @@ import (
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/alipay/sofa-mosn/pkg/server/config/proxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	clusterAdapter "github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -36,24 +36,25 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 		if mosnListener == nil {
 			continue
 		}
-
-		var networkFilter *proxy.GenericProxyFilterConfigFactory
+		
 		var streamFilters []types.StreamFilterChainFactory
+		var networkFilters []types.NetworkFilterChainFactory
 
 		if !mosnListener.HandOffRestoredDestinationConnections {
 			for _, filterChain := range mosnListener.FilterChains {
-				for _, filter := range filterChain.Filters {
-					if filter.Name == v2.DEFAULT_NETWORK_FILTER {
-						networkFilter = &proxy.GenericProxyFilterConfigFactory{
-							Proxy: ParseProxyFilterJSON(&filter),
-						}
+				for _, f := range filterChain.Filters {
+					nfcf, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config)
+					if err != nil {
+						log.DefaultLogger.Errorf("parse network filter failed %v", err)
+						return err
 					}
+					networkFilters = append(networkFilters, nfcf)
 				}
 			}
-
+			
 			streamFilters = GetStreamFilters(mosnListener.StreamFilters)
-
-			if networkFilter == nil {
+			
+			if len(networkFilters) == 0 {
 				errMsg := "xds client update listener error: proxy needed in network filters"
 				log.DefaultLogger.Errorf(errMsg)
 				return fmt.Errorf(errMsg)
@@ -63,7 +64,7 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 		if listenerAdapter := server.GetListenerAdapterInstance(); listenerAdapter == nil {
 			return fmt.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
 		} else {
-			if err := listenerAdapter.AddOrUpdateListener("", mosnListener, networkFilter, streamFilters); err == nil {
+			if err := listenerAdapter.AddOrUpdateListener("", mosnListener, networkFilters, streamFilters); err == nil {
 				log.DefaultLogger.Debugf("xds AddOrUpdateListener success,listener address = %s", mosnListener.Addr.String())
 			} else {
 				log.DefaultLogger.Errorf("xds AddOrUpdateListener failure,listener address = %s, mag = %s ",
@@ -100,6 +101,7 @@ func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) error {
 }
 
 // OnUpdateClusters called by XdsClient when clusters config refresh
+// Can be used to update and add clusters
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 	mosnClusters := convertClustersConfig(clusters)
 
@@ -107,10 +109,29 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
 		var err error
 		if cluster.ClusterType == v2.EDS_CLUSTER {
-			err = clusterAdapter.Adap.TriggerClusterAddedOrUpdate(*cluster)
+			err = clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterAddOrUpdate(*cluster)
 		} else {
-			err = clusterAdapter.Adap.TriggerClusterAndHostsAddedOrUpdate(*cluster, cluster.Hosts)
+			err = clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterAndHostsAddOrUpdate(*cluster, cluster.Hosts)
 		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// OnDeleteClusters called by XdsClient when need to delete clusters
+func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) error {
+	mosnClusters := convertClustersConfig(clusters)
+
+	for _, cluster := range mosnClusters {
+		log.DefaultLogger.Debugf("delete cluster: %+v\n", cluster)
+		var err error
+		if cluster.ClusterType == v2.EDS_CLUSTER {
+			err = clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterDel(cluster.Name)
+		}
+
 		if err != nil {
 			return err
 		}
@@ -132,7 +153,7 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 				log.DefaultLogger.Debugf("xds client update endpoint: cluster: %s, priority: %d, %+v\n", loadAssignment.ClusterName, endpoints.Priority, host)
 			}
 
-			if err := clusterAdapter.Adap.TriggerClusterHostUpdate(clusterName, hosts); err != nil {
+			if err := clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterHostUpdate(clusterName, hosts); err != nil {
 				log.DefaultLogger.Errorf("xds client update Error = %s", err.Error())
 				return err
 			}
