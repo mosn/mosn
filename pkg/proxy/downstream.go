@@ -19,17 +19,17 @@ package proxy
 
 import (
 	"container/list"
-	"fmt"
 	"net"
-	"reflect"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"context"
+	"fmt"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"reflect"
 )
 
 // types.StreamEventListener
@@ -92,17 +92,23 @@ type downStream struct {
 	// mux for downstream-upstream flow
 	mux sync.Mutex
 
+	context context.Context
+
 	logger log.Logger
 }
 
-func newActiveStream(streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
-	stream := &downStream{}
+func newActiveStream(context context.Context, streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
+	proxyBuffers := proxyBuffersByContent(context)
+
+	stream := &proxyBuffers.stream
 
 	stream.streamID = streamID
 	stream.proxy = proxy
-	stream.requestInfo = network.NewRequestInfo()
+	stream.requestInfo = &proxyBuffers.info
+	stream.requestInfo.SetStartTime()
 	stream.responseSender = responseSender
 	stream.responseSender.GetStream().AddEventListener(stream)
+	stream.context = context
 
 	stream.logger = log.ByContext(proxy.context)
 
@@ -289,11 +295,11 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
 	//Build Request
-	s.upstreamRequest = &upstreamRequest{
-		downStream: s,
-		proxy:      s.proxy,
-		connPool:   pool,
-	}
+	proxyBuffers := proxyBuffersByContent(s.context)
+	s.upstreamRequest = &proxyBuffers.request
+	s.upstreamRequest.downStream = s
+	s.upstreamRequest.proxy = s.proxy
+	s.upstreamRequest.connPool = pool
 
 	//Call upstream's append header method to build upstream's request
 	s.upstreamRequest.appendHeaders(headers, endStream)
@@ -304,7 +310,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 }
 
 func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
-	s.downstreamReqDataBuf = s.proxy.bytesBufferPool.Clone(data)
+	s.downstreamReqDataBuf = data
 
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{

@@ -135,7 +135,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 }
 
 // NewStream
-func (conn *streamConnection) NewStream(streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
+func (conn *streamConnection) NewStream(text context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	log.StartLogger.Tracef("xprotocol stream new stream")
 	stream := stream{
 		context:    context.WithValue(conn.context, types.ContextKeyStreamID, streamID),
@@ -189,7 +189,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[s
 		connection: conn,
 	}
 
-	stream.decoder = conn.serverCallbacks.NewStream(streamID, &stream)
+	stream.decoder = conn.serverCallbacks.NewStream(stream.context, streamID, &stream)
 	conn.activeStream.Set(streamID, stream)
 }
 

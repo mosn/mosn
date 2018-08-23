@@ -30,7 +30,7 @@ import (
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -112,7 +112,7 @@ func (csc *clientStreamConnection) OnGoAway() {
 	csc.streamConnCallbacks.OnGoAway()
 }
 
-func (csc *clientStreamConnection) NewStream(streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
+func (csc *clientStreamConnection) NewStream(text context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
 			context: context.WithValue(csc.context, types.ContextKeyStreamID, streamID),
@@ -176,7 +176,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseWriter:   responseWriter,
 		responseDoneChan: make(chan struct{}),
 	}
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(streamID, stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(stream.stream.context, streamID, stream)
 
 	if atomic.LoadInt32(&stream.readDisableCount) <= 0 {
 		defer func() {

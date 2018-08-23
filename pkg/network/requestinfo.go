@@ -20,12 +20,11 @@ package network
 import (
 	"net"
 	"time"
-
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // RequestInfo
-type requestInfo struct {
+type RequestInfo struct {
 	protocol                 types.Protocol
 	startTime                time.Time
 	responseFlag             types.ResponseFlag
@@ -44,119 +43,123 @@ type requestInfo struct {
 
 // todo check
 func newRequestInfoWithPort(protocol types.Protocol) types.RequestInfo {
-	return &requestInfo{
+	return &RequestInfo{
 		protocol:  protocol,
 		startTime: time.Now(),
 	}
 }
 
-// NewRequestInfo
+// NewrequestInfo
 func NewRequestInfo() types.RequestInfo {
-	return &requestInfo{
+	return &RequestInfo{
 		startTime: time.Now(),
 	}
 }
 
-func (r *requestInfo) StartTime() time.Time {
+func (r *RequestInfo) StartTime() time.Time {
 	return r.startTime
 }
 
-func (r *requestInfo) RequestReceivedDuration() time.Duration {
+func (r *RequestInfo) SetStartTime() {
+    r.startTime = time.Now()
+}
+
+func (r *RequestInfo) RequestReceivedDuration() time.Duration {
 	return r.requestReceivedDuration
 }
 
-func (r *requestInfo) SetRequestReceivedDuration(time time.Time) {
+func (r *RequestInfo) SetRequestReceivedDuration(time time.Time) {
 	r.requestReceivedDuration = time.Sub(r.startTime)
 }
 
-func (r *requestInfo) ResponseReceivedDuration() time.Duration {
+func (r *RequestInfo) ResponseReceivedDuration() time.Duration {
 	return r.responseReceivedDuration
 }
 
-func (r *requestInfo) SetResponseReceivedDuration(time time.Time) {
+func (r *RequestInfo) SetResponseReceivedDuration(time time.Time) {
 	r.responseReceivedDuration = time.Sub(r.startTime)
 }
 
-func (r *requestInfo) BytesSent() uint64 {
+func (r *RequestInfo) BytesSent() uint64 {
 	return r.bytesSent
 }
 
-func (r *requestInfo) SetBytesSent(bytesSent uint64) {
+func (r *RequestInfo) SetBytesSent(bytesSent uint64) {
 	r.bytesSent = bytesSent
 }
 
-func (r *requestInfo) BytesReceived() uint64 {
+func (r *RequestInfo) BytesReceived() uint64 {
 	return r.bytesReceived
 }
 
-func (r *requestInfo) SetBytesReceived(bytesReceived uint64) {
+func (r *RequestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *requestInfo) Protocol() types.Protocol {
+func (r *RequestInfo) Protocol() types.Protocol {
 	return r.protocol
 }
 
-func (r *requestInfo) ResponseCode() uint32 {
+func (r *RequestInfo) ResponseCode() uint32 {
 	return r.responseCode
 }
 
-func (r *requestInfo) Duration() time.Duration {
+func (r *RequestInfo) Duration() time.Duration {
 	return time.Now().Sub(r.startTime)
 }
 
-func (r *requestInfo) GetResponseFlag(flag types.ResponseFlag) bool {
+func (r *RequestInfo) GetResponseFlag(flag types.ResponseFlag) bool {
 	return r.responseFlag&flag != 0
 }
 
-func (r *requestInfo) SetResponseFlag(flag types.ResponseFlag) {
+func (r *RequestInfo) SetResponseFlag(flag types.ResponseFlag) {
 	r.responseFlag |= flag
 }
 
-func (r *requestInfo) UpstreamHost() types.HostInfo {
+func (r *RequestInfo) UpstreamHost() types.HostInfo {
 	return r.upstreamHost
 }
 
-func (r *requestInfo) OnUpstreamHostSelected(host types.HostInfo) {
+func (r *RequestInfo) OnUpstreamHostSelected(host types.HostInfo) {
 	r.upstreamHost = host
 }
 
-func (r *requestInfo) UpstreamLocalAddress() net.Addr {
+func (r *RequestInfo) UpstreamLocalAddress() net.Addr {
 	return r.localAddress
 }
 
-func (r *requestInfo) SetUpstreamLocalAddress(addr net.Addr) {
+func (r *RequestInfo) SetUpstreamLocalAddress(addr net.Addr) {
 	r.localAddress = addr
 }
 
-func (r *requestInfo) IsHealthCheck() bool {
+func (r *RequestInfo) IsHealthCheck() bool {
 	return r.isHealthCheckRequest
 }
 
-func (r *requestInfo) SetHealthCheck(isHc bool) {
+func (r *RequestInfo) SetHealthCheck(isHc bool) {
 	r.isHealthCheckRequest = isHc
 }
 
-func (r *requestInfo) DownstreamLocalAddress() net.Addr {
+func (r *RequestInfo) DownstreamLocalAddress() net.Addr {
 	return r.downstreamLocalAddress
 }
 
-func (r *requestInfo) SetDownstreamLocalAddress(addr net.Addr) {
+func (r *RequestInfo) SetDownstreamLocalAddress(addr net.Addr) {
 	r.downstreamLocalAddress = addr
 }
 
-func (r *requestInfo) DownstreamRemoteAddress() net.Addr {
+func (r *RequestInfo) DownstreamRemoteAddress() net.Addr {
 	return r.downstreamRemoteAddress
 }
 
-func (r *requestInfo) SetDownstreamRemoteAddress(addr net.Addr) {
+func (r *RequestInfo) SetDownstreamRemoteAddress(addr net.Addr) {
 	r.downstreamRemoteAddress = addr
 }
 
-func (r *requestInfo) RouteEntry() types.RouteRule {
+func (r *RequestInfo) RouteEntry() types.RouteRule {
 	return r.routerRule
 }
 
-func (r *requestInfo) SetRouteEntry(routerRule types.RouteRule) {
+func (r *RequestInfo) SetRouteEntry(routerRule types.RouteRule) {
 	r.routerRule = routerRule
 }

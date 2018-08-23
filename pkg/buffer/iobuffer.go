@@ -29,6 +29,9 @@ import (
 const MinRead = 1 << 10
 const MaxRead = 1 << 17
 const ResetOffMark = -1
+const DefaultSize = 1 << 4
+
+var nullByte []byte
 
 var (
 	ErrTooLarge          = errors.New("io buffer: too large")
@@ -42,7 +45,9 @@ type IoBuffer struct {
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
 
-	bootstrap [1 << 6]byte
+	b       *[]byte
+
+	*ByteBufferPool
 }
 
 func (b *IoBuffer) Read(p []byte) (n int, err error) {
@@ -75,24 +80,21 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 	}
 
 	if b.off > 0 && len(b.buf)-b.off < 4*MinRead {
-		newBuf := b.buf
-		copy(newBuf, b.buf[b.off:])
-		b.buf = newBuf[:len(b.buf)-b.off]
-		b.off = 0
+		b.copy(0)
 	}
 
 	for {
-		if free := cap(b.buf) - len(b.buf); free < MinRead {
-			// not enough space at end
-			newBuf := b.buf
-			if b.off+free < MinRead {
-				// not enough space using beginning of buffer;
-				// double buffer capacity
-				newBuf = makeSlice(2*cap(b.buf) + MinRead)
+		if first == false {
+			if free := cap(b.buf) - len(b.buf); free < MinRead {
+				// not enough space at end
+				if b.off+free < MinRead {
+					// not enough space using beginning of buffer;
+					// double buffer capacity
+					b.copy(MinRead)
+				} else {
+					b.copy(0)
+				}
 			}
-			copy(newBuf, b.buf[b.off:])
-			b.buf = newBuf[:len(b.buf)-b.off]
-			b.off = 0
 		}
 
 		l := cap(b.buf) - len(b.buf)
@@ -108,10 +110,6 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 		conn.SetReadDeadline(time.Time{})
 
 		if e != nil {
-			if te, ok := e.(net.Error); ok && te.Timeout() {
-				return n, nil
-			}
-
 			return n, e
 		}
 
@@ -144,15 +142,13 @@ func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 	for {
 		if free := cap(b.buf) - len(b.buf); free < MinRead {
 			// not enough space at end
-			newBuf := b.buf
 			if b.off+free < MinRead {
 				// not enough space using beginning of buffer;
 				// double buffer capacity
-				newBuf = makeSlice(2*cap(b.buf) + MinRead)
+				b.copy(MinRead)
+			} else {
+				b.copy(0)
 			}
-			copy(newBuf, b.buf[b.off:])
-			b.buf = newBuf[:len(b.buf)-b.off]
-			b.off = 0
 		}
 
 		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
@@ -209,23 +205,15 @@ func (b *IoBuffer) grow(n int) int {
 		return i
 	}
 
-	// Check if we can make use of bootstrap array.
-	if b.buf == nil && n <= len(b.bootstrap) {
-		b.buf = b.bootstrap[:n]
-		return 0
-	}
-
 	if m+n <= cap(b.buf)/2 {
 		// We can slide things down instead of allocating a new
 		// slice. We only need m+n <= cap(b.buf) to slide, but
 		// we instead let capacity get twice as large so we
 		// don't spend all our time copying.
-		copy(b.buf[:], b.buf[b.off:])
+		b.copy(0)
 	} else {
 		// Not enough space anywhere, we need to allocate.
-		buf := makeSlice(2*cap(b.buf) + n)
-		copy(buf, b.buf[b.off:])
-		b.buf = buf
+		b.copy(n)
 	}
 
 	// Restore b.off and len(b.buf).
@@ -268,15 +256,13 @@ func (b *IoBuffer) Append(data []byte) error {
 
 	if free := cap(b.buf) - len(b.buf); free < dataLen {
 		// not enough space at end
-		newBuf := b.buf
 		if b.off+free < dataLen {
 			// not enough space using beginning of buffer;
 			// double buffer capacity
-			newBuf = makeSlice(2*cap(b.buf) + dataLen)
+			b.copy(dataLen)
+		} else {
+			b.copy(0)
 		}
-		copy(newBuf, b.buf[b.off:])
-		b.buf = newBuf[:len(b.buf)-b.off]
-		b.off = 0
 	}
 
 	m := copy(b.buf[len(b.buf):len(b.buf)+dataLen], data)
@@ -363,11 +349,57 @@ func (b *IoBuffer) available() int {
 }
 
 func (b *IoBuffer) Clone() types.IoBuffer {
-	// todo: use buf pool
-	copied := make([]byte, b.Len())
-	copy(copied, b.Bytes())
+	buf := NewIoBuffer(b.Len())
+	buf.Write(b.Bytes())
 
-	return NewIoBuffer(b.Len())
+	return buf
+}
+
+func (b *IoBuffer) Free() {
+	b.Reset()
+	b.giveSlice()
+}
+
+func (b *IoBuffer) Alloc(size int) {
+	if b.buf != nil {
+		b.Free()
+	}
+	if size <= 0 {
+		size = DefaultSize
+	}
+	b.b = b.makeSlice(size)
+	b.buf = *b.b
+	b.buf = b.buf[:0]
+}
+
+func (b *IoBuffer) copy(expand int) {
+	var newBuf []byte
+	var bufp   *[]byte
+
+	if expand > 0 {
+		bufp = b.makeSlice(2*cap(b.buf) + expand)
+		newBuf = *bufp
+		copy(newBuf, b.buf[b.off:])
+		b.Give(b.b)
+		b.b = bufp
+	} else {
+		newBuf = b.buf
+		copy(newBuf, b.buf[b.off:])
+	}
+	b.buf = newBuf[:len(b.buf)-b.off]
+	b.off = 0
+}
+
+func (b *IoBuffer) makeSlice(n int) *[]byte {
+	return b.Take(n)
+}
+
+func (b *IoBuffer) giveSlice() {
+    if b.b != nil {
+		b.Give(b.b)
+		b.b = nil
+		b.buf = nullByte
+	}
 }
 
 func makeSlice(n int) []byte {
@@ -382,16 +414,21 @@ func makeSlice(n int) []byte {
 }
 
 func NewIoBuffer(capacity int) types.IoBuffer {
-	buf := make([]byte, 0, capacity)
-
-	return &IoBuffer{
-		buf:     buf,
+	buffer := &IoBuffer{
+		ByteBufferPool:    GetByteBufferPool(),
 		offMark: ResetOffMark,
 	}
+	if capacity <= 0 {
+		capacity = DefaultSize
+	}
+	buffer.b = buffer.Take(capacity)
+	buffer.buf = (*buffer.b)[:0]
+	return buffer
 }
 
 func NewIoBufferString(s string) types.IoBuffer {
 	return &IoBuffer{
+		ByteBufferPool:    GetByteBufferPool(),
 		buf:     []byte(s),
 		offMark: ResetOffMark,
 	}
@@ -399,6 +436,7 @@ func NewIoBufferString(s string) types.IoBuffer {
 
 func NewIoBufferBytes(bytes []byte) types.IoBuffer {
 	return &IoBuffer{
+		ByteBufferPool:    GetByteBufferPool(),
 		buf:     bytes,
 		offMark: ResetOffMark,
 	}

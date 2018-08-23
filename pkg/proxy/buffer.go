@@ -15,31 +15,39 @@
  * limitations under the License.
  */
 
-package buffer
+package proxy
 
 import (
-	"sync"
-
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"context"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
-type objectPool struct {
-	sync.Pool
+type proxyBufferCtx struct{}
+
+func (ctx proxyBufferCtx) Name() int {
+	return buffer.Proxy
 }
 
-func (p *objectPool) Take() (object interface{}) {
-	object = p.Get()
-
-	return
+func (ctx proxyBufferCtx) New(interface{}) interface{} {
+	return new(proxyBuffers)
 }
 
-func (p *objectPool) Give(object interface{}) {
-	p.Put(object)
+func (ctx proxyBufferCtx) Reset(i interface{}) {
+	buf, _ := i.(*proxyBuffers)
+	*buf = proxyBuffers{}
 }
 
-// NewObjectPool can create an object pool with poolSize
-func NewObjectPool(poolSize int) types.ObjectBufferPool {
-	pool := &objectPool{}
+type proxyBuffers struct {
+	stream  downStream
+	request upstreamRequest
+	info    network.RequestInfo
+}
 
-	return pool
+func proxyBuffersByContent(context context.Context) *proxyBuffers {
+	ctx := buffer.PoolContext(context)
+	if ctx == nil {
+		return nil
+	}
+	return ctx.Find(proxyBufferCtx{}, nil).(*proxyBuffers)
 }

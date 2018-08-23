@@ -71,7 +71,7 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 
-		streamEncoder := p.client.codecClient.NewStream(streamID, responseDecoder)
+		streamEncoder := p.client.codecClient.NewStream(context, streamID, responseDecoder)
 		cb.OnReady(streamID, streamEncoder, p.host)
 	}
 

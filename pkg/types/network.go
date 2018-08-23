@@ -228,38 +228,18 @@ type IoBuffer interface {
 	// String returns the contents of the unread portion of the buffer
 	// as a string. If the Buffer is a nil pointer, it returns "<nil>".
 	String() string
+
+	// Alloc alloc bytes from BytePoolBuffer
+	Alloc(int)
+
+	// Free free bytes to BytePoolBuffer
+	Free()
 }
 
 type BufferWatermarkListener interface {
 	OnHighWatermark()
 
 	OnLowWatermark()
-}
-
-// HeadersBufferPool is a buffer pool to reuse header map.
-// Normally recreate a map has minor cpu/memory cost, however in a high concurrent scenario, a buffer pool is needed to recycle map
-type HeadersBufferPool interface {
-	// Take finds and returns a map from buffer pool. If no buffer available, create a new one with capacity.
-	Take(capacity int) map[string]string
-
-	// Give returns a map to buffer pool
-	Give(amap map[string]string)
-}
-
-type GenericMapPool interface {
-	// Take finds and returns a map from map pool.
-	Take(defaultSize int) (amap map[string]interface{})
-
-	// Give returns a map to map pool
-	Give(amap map[string]interface{})
-}
-
-// ObjectBufferPool is a object pool.
-type ObjectBufferPool interface {
-	// Take returns a pool object, such as sync.Pool.
-	Take() interface{}
-	// Give set a pool object into pool.
-	Give(object interface{})
 }
 
 // Connection status

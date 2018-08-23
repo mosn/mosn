@@ -98,7 +98,7 @@ func (r *upstreamRequest) ReceiveHeaders(headers map[string]string, endStream bo
 }
 
 func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
-	r.downStream.downstreamRespDataBuf = r.downStream.proxy.bytesBufferPool.Clone(data)
+	r.downStream.downstreamRespDataBuf = data
 
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
@@ -145,7 +145,7 @@ func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream boo
 	}
 
 	log.StartLogger.Tracef("upstream request before conn pool new stream")
-	r.connPool.NewStream(r.proxy.context, streamID, r, r)
+	r.connPool.NewStream(r.downStream.context, streamID, r, r)
 }
 
 func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {

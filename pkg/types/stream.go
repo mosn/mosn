@@ -179,7 +179,7 @@ type ClientStreamConnection interface {
 	// NewStream creates a new outgoing request stream
 	// responseDecoder supplies the decoder listeners on decode event
 	// StreamSender supplies the encoder to write the request
-	NewStream(streamID string, responseDecoder StreamReceiver) StreamSender
+	NewStream(context context.Context, streamID string, responseDecoder StreamReceiver) StreamSender
 }
 
 // StreamConnectionEventListener is a stream connection event listener
@@ -193,7 +193,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// NewStream returns request stream decoder
-	NewStream(streamID string, responseEncoder StreamSender) StreamReceiver
+	NewStream(context context.Context, streamID string, responseEncoder StreamSender) StreamReceiver
 }
 
 type StreamFilterBase interface {

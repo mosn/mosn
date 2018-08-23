@@ -59,7 +59,6 @@ func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 		//inherit old process's listener
 		l.rawl = lc.InheritListener
 	}
-
 	mgr, err := tls.NewTLSServerContextManager(lc, l, logger)
 	if err != nil {
 		logger.Fatalf("create tls context manager failed, %v", err)

@@ -24,6 +24,7 @@ import (
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 // stream.CodecClient
@@ -46,17 +47,18 @@ type codecClient struct {
 
 // NewCodecClient
 // Create a codecclient used as a client to send/receive stream in a connection
-func NewCodecClient(context context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo) CodecClient {
+func NewCodecClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo) CodecClient {
 	codecClient := &codecClient{
-		context:        context,
 		Protocol:       prot,
 		Connection:     connection,
 		Host:           host,
 		ActiveRequests: list.New(),
 	}
 
+	codecClient.context = buffer.NewBufferPoolContext(ctx, false)
+
 	if factory, ok := streamFactories[prot]; ok {
-		codecClient.Codec = factory.CreateClientStream(context, connection, codecClient, codecClient)
+		codecClient.Codec = factory.CreateClientStream(codecClient.context, connection, codecClient, codecClient)
 	} else {
 		return nil
 	}
@@ -123,9 +125,9 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(streamID string, respDecoder types.StreamReceiver) types.StreamSender {
+func (c *codecClient) NewStream(context context.Context, streamID string, respDecoder types.StreamReceiver) types.StreamSender {
 	ar := newActiveRequest(c, respDecoder)
-	ar.requestSender = c.Codec.NewStream(streamID, ar)
+	ar.requestSender = c.Codec.NewStream(context, streamID, ar)
 	ar.requestSender.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()

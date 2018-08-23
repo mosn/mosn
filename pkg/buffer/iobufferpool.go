@@ -23,31 +23,33 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type headersBufferPoolV2 struct {
-	sync.Pool
+var ioBufferPools [maxPoolSize]IoBufferPool
+
+// IoBufferPool is Iobuffer Pool
+type IoBufferPool struct {
+	pool       sync.Pool
 }
 
-func (p *headersBufferPoolV2) Take(capacity int) (amap map[string]string) {
-	v := p.Get()
+// NewIoBufferPool returns IoBufferPool
+func NewIoBufferPool() *IoBufferPool {
+	i := bufferPoolIndex()
+	return &ioBufferPools[i]
+}
 
+// Take returns IoBuffer from IoBufferPool
+func (p *IoBufferPool) Take(size int) (buf types.IoBuffer) {
+	v := p.pool.Get()
 	if v == nil {
-		amap = make(map[string]string, capacity)
+		buf = NewIoBuffer(size)
 	} else {
-		amap = v.(map[string]string)
+		buf = v.(types.IoBuffer)
+		buf.Alloc(size)
 	}
-
-	return
+	return buf
 }
 
-func (p *headersBufferPoolV2) Give(amap map[string]string) {
-	for k := range amap {
-		delete(amap, k)
-	}
-
-	p.Put(amap)
-}
-
-// NewHeadersBufferPool used to create buffer pool for headers
-func NewHeadersBufferPool(poolSize int) types.HeadersBufferPool {
-	return &headersBufferPoolV2{}
+// Give returns IoBuffer to IoBufferPool
+func (p *IoBufferPool) Give(buf types.IoBuffer) {
+	buf.Free()
+	p.pool.Put(buf)
 }

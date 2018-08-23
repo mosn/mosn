@@ -109,7 +109,7 @@ func (s *http2HealthCheckSession) onInterval() {
 		s.expectReset = false
 	}
 
-	s.requestSender = s.client.NewStream("", s)
+	s.requestSender = s.client.NewStream(context.Background(),"", s)
 	s.requestSender.GetStream().AddEventListener(s)
 
 	reqHeaders := map[string]string{

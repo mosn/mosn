@@ -29,6 +29,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 // types.Encoder & types.Decoder
@@ -61,7 +62,7 @@ type boltV2Codec struct{}
 
 func (c *boltV2Codec) EncodeHeaders(context context.Context, headers interface{}) (types.IoBuffer, error) {
 	if headerMap, ok := headers.(map[string]string); ok {
-		cmd := c.mapToCmd(headerMap)
+		cmd := c.mapToCmd(context, headerMap)
 
 		return c.encodeHeaders(context, cmd)
 	}
@@ -96,7 +97,8 @@ func (c *boltV2Codec) doEncodeRequestCommand(context context.Context, cmd *sofar
 	// todo: reuse bytes @boqin
 	//data := make([]byte, 22, defaultTmpBufferSize)
 	size := 22 + int(cmd.ClassLen) + len(cmd.HeaderMap)
-	buf := sofarpc.GetBuffer(context, size)
+	protocolCtx := protocol.ProtocolBuffersByContent(context)
+	buf := protocolCtx.GetReqHeader(size)
 
 	b[0] = cmd.Protocol
 	buf.Write(b[0:1])
@@ -146,7 +148,8 @@ func (c *boltV2Codec) doEncodeResponseCommand(context context.Context, cmd *sofa
 	var b [4]byte
 	// todo: reuse bytes @boqin
 	size := 20 + int(cmd.ClassLen) + len(cmd.HeaderMap)
-	buf := sofarpc.GetBuffer(context, size)
+	protocolCtx := protocol.ProtocolBuffersByContent(context)
+	buf := protocolCtx.GetRspHeader(size)
 
 	b[0] = cmd.Protocol
 	buf.Write(b[0:1])
@@ -204,29 +207,31 @@ func (c *boltV2Codec) encodeResponseCommand(context context.Context, cmd *sofarp
 	return c.doEncodeResponseCommand(context, cmd), nil
 }
 
-func (c *boltV2Codec) mapToCmd(headers map[string]string) interface{} {
+func (c *boltV2Codec) mapToCmd(context context.Context, headers map[string]string) interface{} {
 	if len(headers) < 12 {
 		return nil
 	}
 
-	cmdV1 := boltV1.mapToCmd(headers)
+	cmdV1 := boltV1.mapToCmd(context, headers)
 
-	ver1 := sofarpc.GetPropertyValue(BoltV2PropertyHeaders, headers, "ver1")
-	switchcode := sofarpc.GetPropertyValue(BoltV2PropertyHeaders, headers, "switchcode")
+	value := sofarpc.GetPropertyValue1(BoltV2PropertyHeaders, headers, "ver1")
+	ver1 := sofarpc.ConvertPropertyValueUint8(value)
+	value = sofarpc.GetPropertyValue1(BoltV2PropertyHeaders, headers, "switchcode")
+	switchcode := sofarpc.ConvertPropertyValueUint8(value)
 
 	if cmdV2req, ok := cmdV1.(sofarpc.BoltRequestCommand); ok {
 		request := &sofarpc.BoltV2RequestCommand{
 			BoltRequestCommand: cmdV2req,
-			Version1:           ver1.(byte),
-			SwitchCode:         switchcode.(byte),
+			Version1:           ver1,
+			SwitchCode:         switchcode,
 		}
 
 		return request
 	} else if cmdV2res, ok := cmdV1.(sofarpc.BoltResponseCommand); ok {
 		response := &sofarpc.BoltV2ResponseCommand{
 			BoltResponseCommand: cmdV2res,
-			Version1:            ver1.(byte),
-			SwitchCode:          switchcode.(byte),
+			Version1:            ver1,
+			SwitchCode:          switchcode,
 		}
 
 		return response

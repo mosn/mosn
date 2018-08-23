@@ -110,9 +110,9 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(streamID string, respDecoder types.StreamReceiver) types.StreamSender {
+func (c *codecClient) NewStream(context context.Context, streamID string, respDecoder types.StreamReceiver) types.StreamSender {
 	ar := newActiveRequest(c, respDecoder)
-	ar.requestEncoder = c.Codec.NewStream(streamID, ar)
+	ar.requestEncoder = c.Codec.NewStream(context, streamID, ar)
 	ar.requestEncoder.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()

@@ -20,7 +20,6 @@ package healthcheck
 import (
 	"context"
 	"math/rand"
-	"reflect"
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -111,7 +110,7 @@ func (s *sofarpcHealthCheckSession) OnReceiveHeaders(headers map[string]string, 
 	//bolt
 	//log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
 	if statusStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
-		s.responseStatus = sofarpc.ConvertPropertyValue(statusStr, reflect.Int16).(int16)
+		s.responseStatus = sofarpc.ConvertPropertyValueInt16(statusStr)
 	}
 
 	if endStream {
@@ -156,7 +155,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	id := rand.Uint32()
 	reqID := strconv.Itoa(int(id))
 
-	s.requestSender = s.client.NewStream(reqID, s)
+	s.requestSender = s.client.NewStream(context.Background(),reqID, s)
 	s.requestSender.GetStream().AddEventListener(s)
 
 	//todo: support tr
