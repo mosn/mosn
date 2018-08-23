@@ -37,7 +37,8 @@ import (
 
 // Mosn class which wrapper server
 type Mosn struct {
-	servers []server.Server
+	servers        []server.Server
+	clustermanager types.ClusterManager
 }
 
 // NewMosn
@@ -77,6 +78,12 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 	// parse cluster all in one
 	clusters, clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
+	// create cluster manager
+	if mode == config.Xds {
+		m.clustermanager = cluster.NewClusterManager(nil, nil, nil, true, false)
+	} else {
+		m.clustermanager = cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
+	}
 
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
@@ -88,15 +95,11 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 		var srv server.Server
 		if mode == config.Xds {
-			cmf := &clusterManagerFilter{}
-			cm := cluster.NewClusterManager(nil, nil, nil, true, false)
-			srv = server.NewServer(sc, cmf, cm)
+			srv = server.NewServer(sc, cmf, m.clustermanager)
 
 		} else {
-			//create cluster manager
-			cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
 			//initialize server instance
-			srv = server.NewServer(sc, cmf, cm)
+			srv = server.NewServer(sc, cmf, m.clustermanager)
 
 			//add listener
 			if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
@@ -158,6 +161,7 @@ func (m *Mosn) Close() {
 	for _, srv := range m.servers {
 		srv.Close()
 	}
+	m.clustermanager.Destory()
 }
 
 // Start mosn project

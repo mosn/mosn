@@ -119,10 +119,10 @@ func (ci *configImpl) InternalOnlyHeaders() *list.List {
 
 // NewMetadataMatchCriteriaImpl
 func NewMetadataMatchCriteriaImpl(metadataMatches map[string]string) *MetadataMatchCriteriaImpl {
-	
+
 	metadataMatchCriteriaImpl := &MetadataMatchCriteriaImpl{}
 	metadataMatchCriteriaImpl.extractMetadataMatchCriteria(nil, metadataMatches)
-	
+
 	return metadataMatchCriteriaImpl
 }
 

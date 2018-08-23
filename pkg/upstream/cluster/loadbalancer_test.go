@@ -190,10 +190,11 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 }
 
 func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
+
 	host1 := NewHost(v2.Host{Address: "127.0.0.1", Hostname: "a", Weight: 8}, nil)
 	host2 := NewHost(v2.Host{Address: "127.0.0.2", Hostname: "b", Weight: 2}, nil)
 	host3 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "c", Weight: 5}, nil)
-	host4 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "d", Weight: 5}, nil)
+	host4 := NewHost(v2.Host{Address: "127.0.0.4", Hostname: "d", Weight: 5}, nil)
 
 	hosts1 := []types.Host{host1, host2, host3}
 
@@ -350,7 +351,7 @@ func MockRouterMatcher() (types.Routers, error) {
 	return router.NewRouteMatcher(cfg)
 }
 
-func MockClusterManager() types.ClusterManager {
+func mockClusterManager() types.ClusterManager {
 
 	host1 := v2.Host{Address: "127.0.0.1", Hostname: "h1", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
 	host2 := v2.Host{Address: "127.0.0.2", Hostname: "h2", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
@@ -425,7 +426,7 @@ func Benchmark_RouteAndLB(b *testing.B) {
 		"service": "test",
 	}
 
-	mockedClusterMng := MockClusterManager().(*clusterManager)
+	mockedClusterMng := mockClusterManager().(*clusterManager)
 	mockedRouter, err := MockRouterMatcher()
 	if err != nil {
 		b.Errorf(err.Error())
