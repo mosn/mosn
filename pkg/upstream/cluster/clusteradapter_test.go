@@ -512,3 +512,83 @@ func TestMngAdapter_TriggerClusterHostUpdate(t *testing.T) {
 		})
 	}
 }
+
+func TestMngAdapter_TriggerHostDel(t *testing.T) {
+	mockClusterMnger := MockClusterManager().(*clusterManager)
+	defer mockClusterMnger.Destory()
+
+	type fields struct {
+		clusterMng *clusterManager
+	}
+	type args struct {
+		clusterName string
+		hostAddress string
+	}
+	type argsWant struct {
+		wantErr     bool
+		hostNumber  int
+		hostAddress string
+	}
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		argsWant argsWant
+	}{
+		{
+			name: "validDel",
+			fields: fields{
+				clusterMng: mockClusterMnger,
+			},
+			args: args{
+				clusterName: "o1",
+				hostAddress: "127.0.0.1",
+			},
+			argsWant:argsWant{
+				wantErr:     false,
+				hostNumber:  1,
+				hostAddress: "127.0.0.2",
+			},
+		},
+		{
+			name: "allDel",
+			fields: fields{
+				clusterMng: mockClusterMnger,
+			},
+			args: args{
+				clusterName: "o1",
+				hostAddress: "127.0.0.2",
+			},
+			argsWant:argsWant{
+				wantErr:     false,
+				hostNumber:  0,
+				hostAddress: "",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ca := &MngAdapter{
+				clusterMng: tt.fields.clusterMng,
+			}
+			if err := ca.TriggerHostDel(tt.args.clusterName, tt.args.hostAddress); (err != nil) != tt.argsWant.wantErr {
+				t.Errorf("MngAdapter.TriggerHostDel() error = %v, wantErr %v", err,tt.argsWant.wantErr)
+			}
+			
+			if cluster, ok := mockClusterMnger.primaryClusters.Load(tt.args.clusterName); ok {
+				
+				cInMem := cluster.(*primaryCluster).cluster.(*simpleInMemCluster)
+				if len(cInMem.hosts) != tt.argsWant.hostNumber {
+					t.Errorf("MngAdapter.update cluster and host error, want %d hosts, but got = %d", tt.argsWant.hostNumber, len(cInMem.hosts))
+				}
+				
+				if len(cInMem.hosts) > 0 &&cInMem.hosts[0].AddressString() != tt.argsWant.hostAddress {
+					t.Errorf("MngAdapter.update cluster and host error, want host = &s, but got %v", tt.argsWant.hostAddress, cInMem.hosts[0].AddressString())
+				}
+				
+			} else {
+				t.Errorf("MngAdapter.TriggerClusterAndHostsAddOrUpdate() ")
+			}
+		})
+	}
+}

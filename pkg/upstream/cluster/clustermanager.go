@@ -19,7 +19,6 @@ package cluster
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -228,15 +227,15 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			return nil
 		}
 
-		return fmt.Errorf("cluster's hostset %s can't be update", clusterName)
+		return fmt.Errorf("UpdateClusterHosts failed, cluster's hostset %s can't be update", clusterName)
 	}
 
-	return fmt.Errorf("cluster %s not found", clusterName)
+	return fmt.Errorf("UpdateClusterHosts failed, cluster %s not found", clusterName)
 }
 
-func (cm *clusterManager) RemoveClusterHost(clusterName string, host types.Host) error {
-	if host == nil {
-		return errors.New("host is nil")
+func (cm *clusterManager) RemoveClusterHost(clusterName string, hostAddress string) error {
+	if hostAddress == "" {
+		return fmt.Errorf("RemoveClusterHost failed, hostAddress is nil")
 	}
 
 	if v, ok := cm.primaryClusters.Load(clusterName); ok {
@@ -244,29 +243,28 @@ func (cm *clusterManager) RemoveClusterHost(clusterName string, host types.Host)
 
 		found := false
 		if concretedCluster, ok := pcc.(*simpleInMemCluster); ok {
-			ccHosts := concretedCluster.hosts
-			for i := 0; i < len(ccHosts); i++ {
-
-				if host.AddressString() == ccHosts[i].AddressString() {
-					ccHosts = append(ccHosts[:i], ccHosts[i+1:]...)
+			//ccHosts := concretedCluster.hosts
+			for i := 0; i < len(concretedCluster.hosts); i++ {
+				if hostAddress == concretedCluster.hosts[i].AddressString() {
+					concretedCluster.hosts = append(concretedCluster.hosts[:i], concretedCluster.hosts[i+1:]...)
 					found = true
 					break
 				}
 			}
 			if found == true {
-				log.DefaultLogger.Debugf("Remove Host Success, Host Address is %s", host.AddressString())
-				concretedCluster.UpdateHosts(ccHosts)
+				log.DefaultLogger.Debugf("RemoveClusterHost success, host address = %s",hostAddress)
+			//	concretedCluster.UpdateHosts(ccHosts)
+				return nil
 			} else {
-				log.DefaultLogger.Debugf("Remove Host Failed, Host %s Doesn't Exist", host.AddressString())
+				return fmt.Errorf("RemoveClusterHost failed, host address = %s doesn't exist", hostAddress)
 
 			}
-
-		} else {
-			return fmt.Errorf("cluster's hostset %s can't be update", clusterName)
 		}
+		
+		return fmt.Errorf("RemoveClusterHost failed, cluster name = %s is not valid", clusterName)
 	}
-
-	return nil
+	
+	return fmt.Errorf("RemoveClusterHost failed, cluster name = %s doesn't exist",clusterName)
 }
 
 func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, cluster string) types.CreateConnectionData {

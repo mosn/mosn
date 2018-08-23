@@ -63,15 +63,6 @@ func (ca *MngAdapter) TriggerClusterAndHostsAddOrUpdate(cluster v2.Cluster, host
 	return ca.clusterMng.UpdateClusterHosts(cluster.Name, 0, hosts)
 }
 
-// TriggerClusterHostUpdate used to Added or Update Cluster's hosts, return err if cluster not exist
-func (ca *MngAdapter) TriggerClusterHostUpdate(clusterName string, hosts []v2.Host) error {
-	if ca.clusterMng == nil {
-		return fmt.Errorf("TriggerClusterAddOrUpdate Error: cluster manager is nil")
-	}
-
-	return ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
-}
-
 // TriggerClusterDel :used to delete c uster by clusterName
 func (ca *MngAdapter) TriggerClusterDel(clusterName string) error {
 	if ca.clusterMng == nil {
@@ -79,4 +70,18 @@ func (ca *MngAdapter) TriggerClusterDel(clusterName string) error {
 	}
 
 	return ca.clusterMng.RemovePrimaryCluster(clusterName)
+}
+
+// TriggerClusterHostUpdate used to Added or Update Cluster's hosts, return err if cluster not exist
+func (ca *MngAdapter) TriggerClusterHostUpdate(clusterName string, hosts []v2.Host) error {
+	if ca.clusterMng == nil {
+		return fmt.Errorf("TriggerClusterAddOrUpdate Error: cluster manager is nil")
+	}
+	
+	return ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
+}
+
+// TriggerHostDel used to delete
+func (ca *MngAdapter) TriggerHostDel(clusterName string, hostAddress string) error{
+	return ca.clusterMng.RemoveClusterHost(clusterName,hostAddress)
 }

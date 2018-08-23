@@ -69,7 +69,7 @@ type ClusterManager interface {
 	ClusterExist(clusterName string) bool
 
 	// RemoveClusterHost, used to remove cluster's hosts
-	RemoveClusterHost(clusterName string, host Host) error
+	RemoveClusterHost(clusterName string, hostAddress string) error
 
 	// Destory the cluster manager
 	Destory()
