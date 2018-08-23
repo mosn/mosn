@@ -56,7 +56,7 @@ func runMockServer(t *testing.T) {
 
 		mockConfig := &Config{
 			ServerName: "mock_server_1",
-			LogPath:    "./adapter_test.log",
+			LogPath:    "",
 			LogLevel:   log.DEBUG,
 		}
 
@@ -126,6 +126,18 @@ func TestListenerAdapter_AddOrUpdateListener(t *testing.T) {
 		StreamFilters:                         nil,
 	}
 
+	updateListenerConfig := &v2.ListenerConfig{
+		Name:                    "listener2",
+		Addr:                    addedAddress,
+		BindToPort:              false,
+		PerConnBufferLimitBytes: 1 << 15,
+		LogPath:                 "./test_listener1.log",
+		LogLevel:                3,
+		HandOffRestoredDestinationConnections: true,
+		FilterChains:                          nil,
+		StreamFilters:                         nil,
+	}
+
 	type fields struct {
 		connHandlerMap     map[string]types.ConnectionHandler
 		defaultConnHandler types.ConnectionHandler
@@ -133,7 +145,7 @@ func TestListenerAdapter_AddOrUpdateListener(t *testing.T) {
 	type args struct {
 		serverName             string
 		lc                     *v2.ListenerConfig
-		networkFiltersFactory  types.NetworkFilterChainFactory
+		networkFiltersFactory  []types.NetworkFilterChainFactory
 		streamFiltersFactories []types.StreamFilterChainFactory
 	}
 	tests := []struct {
@@ -156,41 +168,70 @@ func TestListenerAdapter_AddOrUpdateListener(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "testListenerUpdate",
+			fields: fields{
+				connHandlerMap:     GetListenerAdapterInstance().connHandlerMap,
+				defaultConnHandler: GetListenerAdapterInstance().defaultConnHandler,
+			},
+			args: args{
+				serverName: "",
+				lc:         updateListenerConfig,
+				networkFiltersFactory:  nil,
+				streamFiltersFactories: nil,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			adapter := &ListenerAdapter{
 				connHandlerMap:     tt.fields.connHandlerMap,
 				defaultConnHandler: tt.fields.defaultConnHandler,
 			}
 
-			// expect connect failure
-			if adapter.defaultConnHandler.FindListenerByName("listener2") != nil {
-				t.Errorf("listener = %s already in", srvAddresses[0])
+			if tt.name == "testListenerAdd" {
+				// expect connect failure
+				if adapter.defaultConnHandler.FindListenerByName("listener2") != nil {
+					t.Errorf("listener = %s already in", srvAddresses[0])
+				}
+
+				if conn, err := runMockClientConnect(localTCPAddr, srvAddresses[1]); err == nil {
+					t.Errorf("listener = %s already running, need check ", srvAddresses[1])
+					conn.Close()
+				}
+
+				// do listener start
+				if err := adapter.AddOrUpdateListener(tt.args.serverName, tt.args.lc, tt.args.networkFiltersFactory, tt.args.streamFiltersFactories); (err != nil) != tt.wantErr {
+					t.Errorf("ListenerAdapter.AddOrUpdateListener() error = %v, wantErr %v", err, tt.wantErr)
+				}
+
+				time.Sleep(1 * time.Second) // wait listener start
+
+				// expect connect success
+				if adapter.defaultConnHandler.FindListenerByName("listener2") == nil {
+					t.Errorf("listener = %s add listener error", srvAddresses[0])
+				}
+
+				if conn, err := runMockClientConnect(localTCPAddr, srvAddresses[1]); err != nil {
+					t.Errorf("ListenerAdapter.AddOrUpdateListener() error = %v, wantErr %v", err, tt.wantErr)
+
+				} else {
+					conn.Close()
+				}
 			}
 
-			if conn, err := runMockClientConnect(localTCPAddr, srvAddresses[1]); err == nil {
-				t.Errorf("listener = %s already running, need check ", srvAddresses[1])
-				conn.Close()
-			}
+			if tt.name == "testListenerUpdate" {
+				if err := adapter.AddOrUpdateListener(tt.args.serverName, tt.args.lc, tt.args.networkFiltersFactory, tt.args.streamFiltersFactories); (err != nil) != tt.wantErr {
+					t.Errorf("ListenerAdapter.AddOrUpdateListener() error = %v, wantErr %v", err, tt.wantErr)
+				}
 
-			// do listener start
-			if err := adapter.AddOrUpdateListener(tt.args.serverName, tt.args.lc, tt.args.networkFiltersFactory, tt.args.streamFiltersFactories); (err != nil) != tt.wantErr {
-				t.Errorf("ListenerAdapter.AddOrUpdateListener() error = %v, wantErr %v", err, tt.wantErr)
-			}
-
-			time.Sleep(1 * time.Second) // wait listener start
-
-			// expect connect success
-			if adapter.defaultConnHandler.FindListenerByName("listener2") == nil {
-				t.Errorf("listener = %s add listener error", srvAddresses[0])
-			}
-
-			if conn, err := runMockClientConnect(localTCPAddr, srvAddresses[1]); err != nil {
-				t.Errorf("ListenerAdapter.AddOrUpdateListener() error = %v, wantErr %v", err, tt.wantErr)
-
-			} else {
-				conn.Close()
+				if listener := adapter.defaultConnHandler.FindListenerByName("listener2"); listener == nil {
+					t.Errorf("testListenerUpdate error, listener don't exist")
+				} else if listener.Config() != updateListenerConfig {
+					t.Errorf("testListenerUpdate error, config remain the same")
+				}
 			}
 		})
 	}
@@ -220,12 +261,12 @@ func TestListenerAdapter_DeleteListener(t *testing.T) {
 	if err := adapter.DeleteListener("", "listener1"); err != nil {
 		t.Errorf("ListenerAdapter.DeleteListener() error = %v", err.Error())
 	}
-	
+
 	if adapter.defaultConnHandler.FindListenerByName("listener1") != nil {
 		t.Errorf("listener = %s doesn't stop ", srvAddresses[0])
 	}
-	
-	time.Sleep(1*time.Hour)
+
+	time.Sleep(3 * time.Second)
 
 	// expect connect failure
 	if conn, err := runMockClientConnect(clnAddresses[2], srvAddresses[0]); err == nil {

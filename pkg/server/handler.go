@@ -20,16 +20,14 @@ package server
 import (
 	"container/list"
 	"context"
+	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	"fmt"
-	"reflect"
-
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
@@ -88,7 +86,6 @@ func (ch *connHandler) UpdateClusterHost(cluster string, priority uint32, hosts 
 func (ch *connHandler) NumConnections() uint64 {
 	return uint64(atomic.LoadInt64(&ch.numConnections))
 }
-
 
 var listenerName uint32
 
@@ -178,7 +175,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
-				log.StartLogger.Fatalln("initialize listener access logger ", alConfig.Path, " failed: ", err)
+				log.StartLogger.Errorf("initialize listener access logger ", alConfig.Path, " failed: ", err)
 			}
 		}
 
@@ -220,11 +217,11 @@ func (ch *connHandler) FindListenerByAddress(addr net.Addr) types.Listener {
 
 func (ch *connHandler) FindListenerByName(name string) types.Listener {
 	l := ch.findActiveListenerByName(name)
-	
+
 	if l == nil {
 		return nil
 	}
-	
+
 	return l.listener
 }
 
@@ -252,16 +249,21 @@ func (ch *connHandler) StopListener(lctx context.Context, name string, close boo
 }
 
 func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
+	var errGlobal error
 	for _, l := range ch.listeners {
 		// stop goroutine
 		if close {
-			l.listener.Close(lctx)
+			if err := l.listener.Close(lctx); err != nil {
+				errGlobal = err
+			}
 		} else {
-			l.listener.Stop()
+			if err := l.listener.Stop(); err != nil {
+				errGlobal = err
+			}
 		}
 	}
 
-	return nil
+	return errGlobal
 }
 
 func (ch *connHandler) ListListenersFD(lctx context.Context) []uintptr {
@@ -325,7 +327,7 @@ type activeListener struct {
 	stats                   *ListenerStats
 	logger                  log.Logger
 	accessLogs              []types.AccessLog
-	updatedLabel           bool
+	updatedLabel            bool
 }
 
 func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog,
@@ -336,11 +338,11 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		conns:      list.New(),
-		handler:    handler,
-		stopChan:   stopChan,
-		logger:     logger,
-		accessLogs: accessLoggers,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		logger:       logger,
+		accessLogs:   accessLoggers,
 		updatedLabel: false,
 	}
 

@@ -443,7 +443,7 @@ type ConnectionEventListener interface {
 type ConnectionHandler interface {
 	// NumConnections reports the connections that ConnectionHandler keeps.
 	NumConnections() uint64
-	
+
 	// AddOrUpdateListener
 	// adds a listener into the ConnectionHandler or
 	// update a listener
@@ -458,7 +458,7 @@ type ConnectionHandler interface {
 
 	// FindListenerByAddress finds and returns a listener by the specified network address
 	FindListenerByAddress(addr net.Addr) Listener
-	
+
 	// FindListenerByName finds and returns a listener by the listener name
 	FindListenerByName(name string) Listener
 

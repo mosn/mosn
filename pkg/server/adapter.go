@@ -19,6 +19,7 @@ package server
 
 import (
 	"fmt"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -60,7 +61,7 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 		if ch, ok := adapter.connHandlerMap[serverName]; ok {
 			connHandler = ch
 		} else {
-			fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
+			return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
 		}
 	}
 

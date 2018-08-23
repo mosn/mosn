@@ -901,16 +901,16 @@ func ParseServiceRegistry(src ServiceRegistryConfig) {
 
 func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
 	var factories []types.StreamFilterChainFactory
-	
+
 	for _, c := range configs {
-		if sfcc,err :=  filter.CreateStreamFilterChainFactory(c.Name, c.Config); err != nil {
-		log.DefaultLogger.Errorf("")
-		
+		if sfcc, err := filter.CreateStreamFilterChainFactory(c.Name, c.Config); err != nil {
+			log.DefaultLogger.Errorf(err.Error())
+			return factories
 		} else {
 			factories = append(factories, sfcc)
 		}
 	}
-	
+
 	return factories
 }
 func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {

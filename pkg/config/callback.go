@@ -36,7 +36,7 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 		if mosnListener == nil {
 			continue
 		}
-		
+
 		var streamFilters []types.StreamFilterChainFactory
 		var networkFilters []types.NetworkFilterChainFactory
 
@@ -51,9 +51,9 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 					networkFilters = append(networkFilters, nfcf)
 				}
 			}
-			
+
 			streamFilters = GetStreamFilters(mosnListener.StreamFilters)
-			
+
 			if len(networkFilters) == 0 {
 				errMsg := "xds client update listener error: proxy needed in network filters"
 				log.DefaultLogger.Errorf(errMsg)

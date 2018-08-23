@@ -48,7 +48,7 @@ type Config struct {
 type Server interface {
 	AddListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
 		streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener
-	
+
 	Start()
 
 	Restart()

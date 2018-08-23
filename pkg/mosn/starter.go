@@ -109,6 +109,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			for _, listenerConfig := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
+				lc.DisableConnIo = listenerDisableIO(&lc.FilterChains[0])
 
 				nfcf := getNetworkFilters(&lc.FilterChains[0])
 
@@ -204,19 +205,6 @@ func listenerDisableIO(c *v2.FilterChain) bool {
 		}
 	}
 	return false
-}
-
-func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFactory {
-	var factories []types.StreamFilterChainFactory
-
-	for _, c := range configs {
-		factory, err := filter.CreateStreamFilterChainFactory(c.Type, c.Config)
-		if err != nil {
-			log.StartLogger.Fatalln("stream filter create failed :", err)
-		}
-		factories = append(factories, factory)
-	}
-	return factories
 }
 
 type clusterManagerFilter struct {

@@ -252,19 +252,19 @@ func (cm *clusterManager) RemoveClusterHost(clusterName string, hostAddress stri
 				}
 			}
 			if found == true {
-				log.DefaultLogger.Debugf("RemoveClusterHost success, host address = %s",hostAddress)
-			//	concretedCluster.UpdateHosts(ccHosts)
+				log.DefaultLogger.Debugf("RemoveClusterHost success, host address = %s", hostAddress)
+				//	concretedCluster.UpdateHosts(ccHosts)
 				return nil
 			} else {
 				return fmt.Errorf("RemoveClusterHost failed, host address = %s doesn't exist", hostAddress)
 
 			}
 		}
-		
+
 		return fmt.Errorf("RemoveClusterHost failed, cluster name = %s is not valid", clusterName)
 	}
-	
-	return fmt.Errorf("RemoveClusterHost failed, cluster name = %s doesn't exist",clusterName)
+
+	return fmt.Errorf("RemoveClusterHost failed, cluster name = %s doesn't exist", clusterName)
 }
 
 func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, cluster string) types.CreateConnectionData {

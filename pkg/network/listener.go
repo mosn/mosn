@@ -125,8 +125,7 @@ func (l *listener) Start(lctx context.Context) {
 }
 
 func (l *listener) Stop() error {
-	//return l.rawl.SetDeadline(time.Now().Add(3*time.Second))
-	return l.rawl.SetDeadline(time.Now().Add(5*time.Second))
+	return l.rawl.SetDeadline(time.Now())
 }
 
 func (l *listener) ListenerTag() uint64 {
