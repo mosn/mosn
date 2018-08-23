@@ -36,7 +36,6 @@ const (
 	ContextOriRemoteAddr                 ContextKey = "OriRemoteAddr"
 	ContextKeyAcceptChan                 ContextKey = "ContextKeyAcceptChan"
 	ContextKeyAcceptBuffer               ContextKey = "ContextKeyAcceptBuffer"
-	ContextKeyPoller                     ContextKey = "Poller"
 )
 
 const (

@@ -31,8 +31,6 @@ import (
 	"sync/atomic"
 	"time"
 	"runtime/debug"
-	"github.com/mailru/easygo/netpoll"
-	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 )
 
 // Network related const
@@ -44,7 +42,6 @@ const (
 var idCounter uint64 = 1
 var readerBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
 var writeBufferPool = buffer.NewIoBufferPool(DefaultBufferCapacity)
-var pool = mosnsync.NewSimplePool(256)
 
 type connection struct {
 	id         uint64
@@ -86,6 +83,7 @@ type connection struct {
 
 	closed    uint32
 	startOnce sync.Once
+	eventLoop *EventLoop
 
 	logger log.Logger
 }
@@ -154,19 +152,12 @@ func (c *connection) ID() uint64 {
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
 
-		if lctx != nil && lctx.Value(types.ContextKeyPoller) != nil {
-			poller := lctx.Value(types.ContextKeyPoller).(*netpoll.Poller)
+		//TODO read switch from config, and create sub method
+		if true {
 
-			// register read/write events
-			read, _ := netpoll.HandleReadOnce(c.RawConn())
-			(*poller).Start(read, func(e netpoll.Event) {
-				// No more calls will be made for conn until we call epoll.Resume().
-				if e&netpoll.EventReadHup != 0 {
-					(*poller).Stop(read)
-					c.Close(types.NoFlush, types.RemoteClose)
-					return
-				}
-				pool.Schedule(func() {
+			c.eventLoop = Attach()
+			c.eventLoop.RegisterRead(c.id, c.rawConnection, &ConnEventHandler{
+				OnRead: func() bool {
 					err := c.doRead()
 
 					if err != nil {
@@ -180,33 +171,17 @@ func (c *connection) Start(lctx context.Context) {
 						c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
 							c.id, c.RemoteAddr().String(), err)
 
-						return
+						return false
 					}
 
-					(*poller).Resume(read)
-				})
+					return true
+				},
+
+				OnHup: func() bool {
+					c.Close(types.NoFlush, types.RemoteClose)
+					return false
+				},
 			})
-
-			//write, _ := netpoll.HandleWriteOnce(c.RawConn())
-			//
-			//poller.Start(write, func(e netpoll.Event) {
-			//	// No more calls will be made for conn until we call epoll.Resume().
-			//	if e&netpoll.EventWriteHup != 0 {
-			//		poller.Stop(write)
-			//		c.Close()
-			//		return
-			//	}
-			//
-			//	fmt.Println("epoll triggered ", time.Now())
-			//
-			//	bytesRead, _ := readBuffer.Read()
-			//	// biz logic
-			//	fmt.Println(" data received ", bytesRead)
-			//	sofarpc.DefaultProtocols().Decode(context.Background(), readBuffer.Br, &decodeFilter{})
-			//
-			//	poller.Resume(write)
-			//})
-
 		} else {
 			c.internalLoopStarted = true
 
@@ -389,6 +364,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 	} else if atomic.CompareAndSwapUint32(&c.writeSchedule, 0, 1) {
 		pool.Schedule(func() {
 			defer atomic.CompareAndSwapUint32(&c.writeSchedule, 1, 0)
+
 			_, err := c.doWrite()
 			if err != nil {
 				if err == io.EOF {
@@ -569,6 +545,8 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if c.internalLoopStarted {
 		// because close function must be called by one io loop thread, notify another loop here
 		close(c.internalStopChan)
+	} else {
+		c.eventLoop.Unregister(c.id)
 	}
 
 	c.rawConnection.Close()

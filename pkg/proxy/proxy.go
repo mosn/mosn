@@ -47,7 +47,7 @@ func init() {
 	activeStreamPool = buffer.NewObjectPool(1)
 
 	// default shardsNum is equal to the cpu num
-	shardsNum := runtime.NumCPU()
+	shardsNum := runtime.NumCPU() * runtime.NumCPU()
 	// use 4096 as chan buffer length
 	poolSize := shardsNum * 4096
 
