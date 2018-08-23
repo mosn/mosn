@@ -1,0 +1,223 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package subprotocol
+
+import (
+	"testing"
+)
+
+func Test_SplitRequest_01(t *testing.T) {
+	msg := []byte{0x0e, 1, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 30}
+	rpc := NewRPCHSF()
+	reqs := rpc.SplitRequest(msg)
+	reqsLen := len(reqs)
+	if reqsLen != 0 {
+		t.Errorf("%d != 0", reqsLen)
+	} else {
+		t.Log("split response ok")
+	}
+}
+
+func Test_SplitRequest_02(t *testing.T) {
+	msg := []byte{0x0e, 1, 2, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 30}
+	rpc := NewRPCHSF()
+	reqs := rpc.SplitRequest(msg)
+	reqsLen := len(reqs)
+	if reqsLen != 0 {
+		t.Errorf("%d != 0", reqsLen)
+	} else {
+		t.Log("split illegal type msg ok")
+	}
+}
+
+func Test_SplitRequest_03(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b', 0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x79, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'c', 'd', 0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x77, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'e', 'f'}
+	rpc := NewRPCHSF()
+	reqs := rpc.SplitRequest(msg)
+	reqsLen := len(reqs)
+	if reqsLen != 3 {
+		t.Errorf("%d != 3", reqsLen)
+	} else {
+		t.Log("split mulit-request ok")
+	}
+}
+
+func Test_SplitRequest_04(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b', 0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x79, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'c'}
+	rpc := NewRPCHSF()
+	reqs := rpc.SplitRequest(msg)
+	reqsLen := len(reqs)
+	if reqsLen != 1 {
+		t.Errorf("%d != 1", reqsLen)
+	} else {
+		t.Log("split half-baked-request ok")
+	}
+}
+
+func Test_GetStreamId_01(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b'}
+	rpc := NewRPCHSF()
+	strId := rpc.GetStreamId(msg)
+	if strId != "78" {
+		t.Errorf("%s != 78", strId)
+	} else {
+		t.Log("get stream-id from request ok")
+	}
+}
+
+func Test_GetStreamId_02(t *testing.T) {
+	msg := []byte{0x0e, 1, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 0, 3, 'a', 'b', 'c'}
+	rpc := NewRPCHSF()
+	strId := rpc.GetStreamId(msg)
+	if strId != "78" {
+		t.Errorf("%s != 78", strId)
+	} else {
+		t.Log("get stream-id from response ok")
+	}
+}
+
+func Test_GetStreamId_03(t *testing.T) {
+	msg := []byte{0x0e, 1, 1, 0, 2, 0, 0, 0, 0x01, 0x02}
+	rpc := NewRPCHSF()
+	strId := rpc.GetStreamId(msg)
+	if strId != "" {
+		t.Errorf("%s != ", strId)
+	} else {
+		t.Log("illegal length data ok")
+	}
+}
+
+func Test_GetStreamId_04(t *testing.T) {
+	msg := []byte{0x0e, 1, 2, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 0, 3, 'a', 'b', 'c'}
+	rpc := NewRPCHSF()
+	strId := rpc.GetStreamId(msg)
+	if strId != "" {
+		t.Errorf("%s != ", strId)
+	} else {
+		t.Log("illegal type data ok")
+	}
+}
+
+func Test_SetStreamId_01(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b'}
+	rpc := NewRPCHSF()
+	newId := "12345678"
+	newMsg := rpc.SetStreamId(msg, newId)
+	strId := rpc.GetStreamId(newMsg)
+	if strId != newId {
+		t.Errorf("%s != %s", strId, newId)
+	} else {
+		t.Log("set stream-id for request succ ok")
+	}
+}
+
+func Test_SetStreamId_02(t *testing.T) {
+	msg := []byte{0x0e, 1, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 0, 3, 'a', 'b', 'c'}
+	rpc := NewRPCHSF()
+	newId := "9876543"
+	newMsg := rpc.SetStreamId(msg, newId)
+	strId := rpc.GetStreamId(newMsg)
+	if strId != newId {
+		t.Errorf("%s(get) != %s(set)", strId, newId)
+	} else {
+		t.Log("set stream-id for response succ ok")
+	}
+}
+
+func Test_SetStreamId_03(t *testing.T) {
+	msg := []byte{0x0e, 1, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 0, 3, 'a', 'b', 'c'}
+	rpc := NewRPCHSF()
+	newId := "ok9876543"
+	newMsg := rpc.SetStreamId(msg, newId)
+	strId := rpc.GetStreamId(newMsg)
+	if strId != "78" {
+		t.Errorf("%s != 78", strId)
+	} else {
+		t.Log("set invalid stream-id ok")
+	}
+}
+
+func Test_getHSFReqLen_01(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b'}
+	len := getHSFReqLen(msg)
+	if len != 37 {
+		t.Errorf("%d != 37", len)
+	} else {
+		t.Log("getHSFReqLen succ ok")
+	}
+}
+
+func Test_getHSFReqLen_02(t *testing.T) {
+	msg := []byte{0x0f, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b'}
+	len := getHSFReqLen(msg)
+	if len != -1 {
+		t.Errorf("%d != -1", len)
+	} else {
+		t.Log("getHSFReqLen illegal magic ok")
+	}
+}
+
+func Test_getHSFReqLen_03(t *testing.T) {
+	msg := []byte{0x0e, 2, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b'}
+	len := getHSFReqLen(msg)
+	if len != -1 {
+		t.Errorf("%d != -1", len)
+	} else {
+		t.Log("getHSFReqLen unknown version ok")
+	}
+}
+
+func Test_getHSFReqLen_04(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0}
+	len := getHSFReqLen(msg)
+	if len != -1 {
+		t.Errorf("%d != -1", len)
+	} else {
+		t.Log("getHSFReqLen illegal length ok")
+	}
+}
+
+func Test_getHSFReqLen_05(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 16, 0, 0, 0, 1, 0, 0, 0, 0, 'a', 'b', 'j', 'a', 'v', 'a', '.', 'l', 'a', 'n', 'g', '.', 'S', 't', 'r', 'i', 'n', 'g', 1}
+	len := getHSFReqLen(msg)
+	if len != 62 {
+		t.Errorf("%d != 62", len)
+	} else {
+		t.Log("getHSFReqLen with argument succ ok")
+	}
+}
+
+func Test_getHSFRspLen_01(t *testing.T) {
+	msg := []byte{0x0e, 1, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 0, 3, 'a', 'b', 'c'}
+	len := getHSFRspLen(msg)
+	if len != 23 {
+		t.Errorf("%d != 23", len)
+	} else {
+		t.Log("getHSFRspLen succ ok")
+	}
+}
+
+func Test_getHSFRspLen_02(t *testing.T) {
+	msg := []byte{0x0e, 1, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78}
+	len := getHSFRspLen(msg)
+	if len != -1 {
+		t.Errorf("%d != -1", len)
+	} else {
+		t.Log("getHSFRspLen illegal length ok")
+	}
+}

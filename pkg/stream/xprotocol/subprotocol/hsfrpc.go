@@ -105,9 +105,9 @@ func getHSFReqLen(data []byte) int {
 		paraLen += 4 + paraTypeNameLen
 	}
 	for i := uint32(0); i < paraTypeNum; i++ {
-		paraLen := binary.BigEndian.Uint32(data[idx:(idx + 4)])
+		argLen := binary.BigEndian.Uint32(data[idx:(idx + 4)])
 		idx += 4
-		paraLen += 4 + paraLen
+		paraLen += 4 + argLen
 	}
 	propsLen := binary.BigEndian.Uint32(data[idx:(idx + 4)])
 	reqLen := uint32(HSF_REQ_HEADER_LEN) + serviceNameLen + methodNameLen + paraLen + propsLen
