@@ -86,7 +86,7 @@ func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) error {
 		if listenerAdapter := server.GetListenerAdapterInstance(); listenerAdapter == nil {
 			return fmt.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
 		} else {
-			if err := listenerAdapter.DeleteListener("", *mosnListener); err == nil {
+			if err := listenerAdapter.DeleteListener("", mosnListener.Name); err == nil {
 				log.DefaultLogger.Debugf("xds OnDeleteListeners success,listener address = %s", mosnListener.Addr.String())
 			} else {
 				log.DefaultLogger.Errorf("xds OnDeleteListeners failure,listener address = %s, mag = %s ",

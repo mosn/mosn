@@ -458,6 +458,9 @@ type ConnectionHandler interface {
 
 	// FindListenerByAddress finds and returns a listener by the specified network address
 	FindListenerByAddress(addr net.Addr) Listener
+	
+	// FindListenerByName finds and returns a listener by the listener name
+	FindListenerByName(name string) Listener
 
 	// RemoveListeners find and removes a listener by listener name.
 	RemoveListeners(name string)

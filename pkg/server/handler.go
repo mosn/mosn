@@ -217,6 +217,16 @@ func (ch *connHandler) FindListenerByAddress(addr net.Addr) types.Listener {
 	return l.listener
 }
 
+func (ch *connHandler) FindListenerByName(name string) types.Listener {
+	l := ch.findActiveListenerByName(name)
+	
+	if l == nil {
+		return nil
+	}
+	
+	return l.listener
+}
+
 func (ch *connHandler) RemoveListeners(name string) {
 	for i, l := range ch.listeners {
 		if l.listener.Name() == name {

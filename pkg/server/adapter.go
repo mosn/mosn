@@ -19,14 +19,11 @@ package server
 
 import (
 	"fmt"
-	"sync"
-
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var listenerAdapterInstance *ListenerAdapter
-var once sync.Once
 
 type ListenerAdapter struct {
 	connHandlerMap     map[string]types.ConnectionHandler // key is server's name
@@ -97,7 +94,7 @@ func (adapter *ListenerAdapter) StopListener(serverName string, listenerName str
 	return connHandler.StopListener(nil, listenerName, false)
 }
 
-func (adapter *ListenerAdapter) DeleteListener(serverName string, lc v2.ListenerConfig) error {
+func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName string) error {
 	var connHandler types.ConnectionHandler
 
 	if serverName == "" {
@@ -111,11 +108,11 @@ func (adapter *ListenerAdapter) DeleteListener(serverName string, lc v2.Listener
 	}
 
 	// stop listener first
-	if err := connHandler.StopListener(nil, lc.Name, true); err != nil {
+	if err := connHandler.StopListener(nil, listenerName, true); err != nil {
 		return err
 	}
 
 	// then remove it from array
-	connHandler.RemoveListeners(lc.Name)
+	connHandler.RemoveListeners(listenerName)
 	return nil
 }
