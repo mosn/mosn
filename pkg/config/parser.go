@@ -122,6 +122,36 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 	return sc
 }
 
+// ParseProxyFilter
+func ParseProxyFilter(c *v2.Filter) *v2.Proxy {
+	proxyConfig := &v2.Proxy{}
+
+	if data, err := json.Marshal(c.Config); err == nil {
+		json.Unmarshal(data, &proxyConfig)
+	} else {
+		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
+	}
+
+	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
+		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Filter")
+	} else if _, ok := protocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
+		log.StartLogger.Fatal("Invalid Downstream Protocol = ", proxyConfig.DownstreamProtocol)
+	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
+		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
+	}
+
+	if !proxyConfig.SupportDynamicRoute {
+		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
+	}
+
+	for _, vh := range proxyConfig.VirtualHosts {
+		if len(vh.Routers) == 0 {
+			log.StartLogger.Fatal("No Router Founded in VirtualHosts")
+		}
+	}
+	return proxyConfig
+}
+
 // ParseProxyFilterJSON
 func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
 	proxyConfig := &Proxy{}

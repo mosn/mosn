@@ -39,7 +39,7 @@ func (ref *pluginHSFFactory) CreateSubProtocolCodec(context context.Context) typ
 
 type rpcHSF struct{}
 
-func NewRPCHSF() types.Multiplexing {
+func NewRPCHSF() types.Tracing {
 	return &rpcHSF{}
 }
 
@@ -71,51 +71,73 @@ func NewRPCHSF() types.Multiplexing {
  */
 
 const (
-	HSF_REQ_HEADER_LEN = 35
-	HSF_RSP_HEADER_LEN = 20
-	HSF_MAGIC_IDX      = 0
-	HSF_VERSION_IDX    = 1
-	HSF_TYPE_IDX       = 2
-	HSF_TYPE_REQ       = 0
-	HSF_TYPE_RSP       = 1
-	HSF_REQ_REQ_ID_IDX = 7
-	HSF_RSP_REQ_ID_IDX = 8
-	HSF_REQ_ID_LEN     = 8
+	HSF_REQ_HEADER_LEN   = 35
+	HSF_RSP_HEADER_LEN   = 20
+	HSF_MAGIC_IDX        = 0
+	HSF_VERSION_IDX      = 1
+	HSF_TYPE_IDX         = 2
+	HSF_TYPE_REQ         = 0
+	HSF_TYPE_RSP         = 1
+	HSF_REQ_REQ_ID_IDX   = 7
+	HSF_REQ_SVC_NAME_IDX = 19
+	HSF_REQ_MTD_NAME_IDX = 23
+	HSF_RSP_REQ_ID_IDX   = 8
+	HSF_REQ_ID_LEN       = 8
 
 	HSF_MAGIC_TAG  = 0x0e
 	HSF_VERSION_V1 = 1
 )
 
-func getHSFReqLen(data []byte) int {
+type hsfReqAttr struct {
+	headerLen      uint32
+	serviceNameLen uint32
+	methodNameLen  uint32
+	paraTypeNum    uint32
+	paraTypeLen    uint32
+	argLen         uint32
+	propsLen       uint32
+}
+
+func parseHSFReq(data []byte) (int, *hsfReqAttr) {
 	dataLen := len(data)
 	if dataLen < HSF_REQ_HEADER_LEN || data[HSF_MAGIC_IDX] != HSF_MAGIC_TAG || data[HSF_VERSION_IDX] != HSF_VERSION_V1 {
 		// illegal
-		fmt.Printf("[getHSFReqLen] illegal(len=%d): %v\n", dataLen, data)
-		return -1
+		fmt.Printf("[parseHSFReq] illegal(len=%d): %v\n", dataLen, data)
+		return -1, nil
 	}
-	serviceNameLen := binary.BigEndian.Uint32(data[19:(19 + 4)])
-	methodNameLen := binary.BigEndian.Uint32(data[23:(23 + 4)])
-	paraTypeNum := binary.BigEndian.Uint32(data[27:(27 + 4)])
+	attr := &hsfReqAttr{}
+	attr.serviceNameLen = binary.BigEndian.Uint32(data[HSF_REQ_SVC_NAME_IDX:(HSF_REQ_SVC_NAME_IDX + 4)])
+	attr.methodNameLen = binary.BigEndian.Uint32(data[HSF_REQ_MTD_NAME_IDX:(HSF_REQ_MTD_NAME_IDX + 4)])
+	attr.paraTypeNum = binary.BigEndian.Uint32(data[27:(27 + 4)])
+	attr.headerLen = uint32(HSF_REQ_HEADER_LEN)
 	idx := 31
-	paraLen := uint32(0)
-	for i := uint32(0); i < paraTypeNum; i++ {
-		paraTypeNameLen := binary.BigEndian.Uint32(data[idx:(idx + 4)])
+	attr.paraTypeLen = uint32(0)
+	for i := uint32(0); i < attr.paraTypeNum; i++ {
+		l := binary.BigEndian.Uint32(data[idx:(idx + 4)])
 		idx += 4
-		paraLen += 4 + paraTypeNameLen
+		attr.paraTypeLen += l
+		attr.headerLen += 4
 	}
-	for i := uint32(0); i < paraTypeNum; i++ {
-		paraLen := binary.BigEndian.Uint32(data[idx:(idx + 4)])
+	attr.argLen = uint32(0)
+	for i := uint32(0); i < attr.paraTypeNum; i++ {
+		l := binary.BigEndian.Uint32(data[idx:(idx + 4)])
 		idx += 4
-		paraLen += 4 + paraLen
+		attr.argLen += l
+		attr.headerLen += 4
 	}
-	propsLen := binary.BigEndian.Uint32(data[idx:(idx + 4)])
-	reqLen := uint32(HSF_REQ_HEADER_LEN) + serviceNameLen + methodNameLen + paraLen + propsLen
+	attr.propsLen = binary.BigEndian.Uint32(data[idx:(idx + 4)])
+	reqLen := attr.headerLen + attr.serviceNameLen + attr.methodNameLen + attr.paraTypeLen + attr.argLen + attr.propsLen
 	if uint32(dataLen) < reqLen {
 		// illegal
-		fmt.Printf("[getHSFReqLen] dataLen=%d < reqLen=%d\n", dataLen, reqLen)
-		return -1
+		fmt.Printf("[parseHSFReq] dataLen=%d < reqLen=%d\n", dataLen, reqLen)
+		return -1, nil
 	}
-	return int(reqLen)
+	return int(reqLen), attr
+}
+
+func getHSFReqLen(data []byte) int {
+	len, _ := parseHSFReq(data)
+	return len
 }
 
 func getHSFRspLen(data []byte) int {
@@ -240,4 +262,30 @@ func (h *rpcHSF) SetStreamId(data []byte, streamID string) []byte {
 		data[start+i] = reqIDStr[i]
 	}
 	return data
+}
+
+func (h *rpcHSF) GetServiceName(data []byte) string {
+	t := getHSFType(data)
+	if t != HSF_TYPE_REQ {
+		return ""
+	}
+	l, attr := parseHSFReq(data)
+	if l <= 0 {
+		return ""
+	}
+	idx := attr.headerLen
+	return string(data[idx:(idx + attr.serviceNameLen)])
+}
+
+func (h *rpcHSF) GetMethodName(data []byte) string {
+	t := getHSFType(data)
+	if t != HSF_TYPE_REQ {
+		return ""
+	}
+	l, attr := parseHSFReq(data)
+	if l <= 0 {
+		return ""
+	}
+	idx := attr.headerLen + attr.serviceNameLen
+	return string(data[idx:(idx + attr.methodNameLen)])
 }
