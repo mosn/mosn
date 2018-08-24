@@ -29,6 +29,8 @@ const (
 	HeaderTryTimeout    = "x-mosn-try-timeout"
 	HeaderException     = "x-mosn-exception"
 	HeaderStremEnd      = "x-mosn-endstream"
+	HeaderRpcService	= "x-mosn-rpc-service"
+	HeaderRpcMethod		= "x-mosn-rpc-method"
 )
 
 // Error messages

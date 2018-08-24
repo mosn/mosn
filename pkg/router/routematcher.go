@@ -79,7 +79,7 @@ func NewRouteMatcher(config interface{}) (types.Routers, error) {
 					if routerMatcher.defaultVirtualHost != nil {
 						return nil, fmt.Errorf("Only a single wildcard domain permitted")
 					}
-					log.StartLogger.Tracef("add route matcher default virtual host")
+					log.DefaultLogger.Tracef("add route matcher default virtual host")
 					routerMatcher.defaultVirtualHost = vh
 
 				} else if len(domain) > 1 && "*" == domain[:1] {
@@ -130,7 +130,7 @@ type routeMatcher struct {
 // Routing with Virtual Host
 func (rm *routeMatcher) Route(headers map[string]string, randomValue uint64) types.Route {
 	// First Step: Select VirtualHost with "host" in Headers form VirtualHost Array
-	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
+	log.DefaultLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
 
 	if virtualHost == nil {
@@ -150,7 +150,7 @@ func (rm *routeMatcher) Route(headers map[string]string, randomValue uint64) typ
 
 func (rm *routeMatcher) findVirtualHost(headers map[string]string) types.VirtualHost {
 	if len(rm.virtualHosts) == 0 && rm.defaultVirtualHost != nil {
-		log.StartLogger.Tracef("route matcher find virtual host return default virtual host")
+		log.DefaultLogger.Tracef("route matcher find virtual host return default virtual host")
 		return rm.defaultVirtualHost
 	}
 
