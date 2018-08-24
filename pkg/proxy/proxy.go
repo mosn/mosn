@@ -165,6 +165,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.stats.DownstreamConnectionActive().Inc(1)
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
+	log.DefaultLogger.Tracef("proxy.InitializeReadFilterCallbacks downstream protocol = %v" , types.Protocol(p.config.DownstreamProtocol))
 	p.serverCodec = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
 }
 

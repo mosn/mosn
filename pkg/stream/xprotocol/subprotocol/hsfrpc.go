@@ -24,12 +24,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
-	xprotocol.Register("X-hsf", &pluginHSFFactory{})
+	Register("X-hsf", &pluginHSFFactory{})
 }
 
 type pluginHSFFactory struct{}

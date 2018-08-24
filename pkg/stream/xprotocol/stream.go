@@ -24,14 +24,16 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	networkbuffer "github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"sync/atomic"
 	"strconv"
+	str "github.com/alipay/sofa-mosn/pkg/stream"
+	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol/subprotocol"
 )
 
 var streamIDXprotocolCount uint64
+
 
 // StreamDirection 1: server stream 0: client stream
 type StreamDirection int
@@ -42,7 +44,6 @@ const (
 	//ClientStream xprotocol as upstream
 	ClientStream StreamDirection = 0
 )
-
 func init() {
 	str.Register(protocol.Xprotocol, &streamConnFactory{})
 }
@@ -89,7 +90,9 @@ func newStreamConnection(context context.Context, connection types.Connection, c
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	//subProtocolName := context.Value("XSubProtocol").(types.SubProtocol)
 	subProtocolName := types.SubProtocol("X-hsf")
-	codec := subProtocolFactories[subProtocolName].CreateSubProtocolCodec(context)
+	log.DefaultLogger.Tracef("xprotocol subprotocol config name = %v",subProtocolName)
+	codec := subprotocol.CreateSubProtocolCodec(context,subProtocolName)
+	log.DefaultLogger.Tracef("xprotocol new stream connection, codec type = %v",subProtocolName)
 	return &streamConnection{
 		context:         context,
 		connection:      connection,
@@ -106,7 +109,8 @@ func newStreamConnection(context context.Context, connection types.Connection, c
 // clientStreamConnection receive response
 // types.StreamConnection
 func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
-	log.DefaultLogger.Tracef("stream connection dispatch data = %v", buffer.String())
+	log.DefaultLogger.Tracef("stream connection dispatch data bytes = %v", buffer.Bytes())
+	log.DefaultLogger.Tracef("stream connection dispatch data string = %v", buffer.String())
 	headers := make(map[string]string)
 	// support dynamic route
 	headers[strings.ToLower(protocol.MosnHeaderHostKey)] = conn.connection.RemoteAddr().String()

@@ -23,6 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"math/rand"
 )
 
 // Start adsClient send goroutine and receive goroutine
@@ -73,6 +74,8 @@ func (adsClient *ADSClient) receiveThread() {
 			resp, err := adsClient.StreamClient.Recv()
 			if err != nil {
 				log.DefaultLogger.Warnf("get resp timeout: %v", err)
+				refreshDelay := int(adsClient.AdsConfig.RefreshDelay.Seconds())
+				time.Sleep(time.Second * time.Duration(rand.Intn(int(refreshDelay))))
 				continue
 			}
 			typeURL := resp.TypeUrl

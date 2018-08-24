@@ -1,12 +1,11 @@
 package subprotocol
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	"context"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 func init(){
-	xprotocol.Register("rpcExample",&rpcExampleFactory{})
+	Register("rpcExample",&rpcExampleFactory{})
 }
 
 type rpcExampleFactory struct{}

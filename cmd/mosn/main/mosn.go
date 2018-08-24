@@ -35,6 +35,7 @@ import (
 	_"github.com/alipay/sofa-mosn/pkg/stream/http"
 	_"github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_"github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
+	_"github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	
 )
 

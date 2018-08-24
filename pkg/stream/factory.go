@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 var streamFactories map[types.Protocol]ProtocolStreamFactory
@@ -35,10 +36,10 @@ func Register(prot types.Protocol, factory ProtocolStreamFactory) {
 
 func CreateServerStreamConnection(context context.Context, prot types.Protocol, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
-
+	log.DefaultLogger.Tracef("create server stream connection , stream factory = %v" , streamFactories)
 	if ssc, ok := streamFactories[prot]; ok {
 		return ssc.CreateServerStream(context, connection, callbacks)
 	}
-
+	log.DefaultLogger.Warnf("unknown protocol = %v , fail to create server stream connection" , prot)
 	return nil
 }
