@@ -5,7 +5,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 func init(){
-	Register("rpcExample",&rpcExampleFactory{})
+	Register("rpc-example",&rpcExampleFactory{})
 }
 
 type rpcExampleFactory struct{}

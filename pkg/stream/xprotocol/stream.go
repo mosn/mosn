@@ -89,7 +89,7 @@ type streamConnection struct {
 func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	//subProtocolName := context.Value("XSubProtocol").(types.SubProtocol)
-	subProtocolName := types.SubProtocol("X-hsf")
+	subProtocolName := types.SubProtocol(context.Value(types.ContextSubProtocol).(string))
 	log.DefaultLogger.Tracef("xprotocol subprotocol config name = %v",subProtocolName)
 	codec := subprotocol.CreateSubProtocolCodec(context,subProtocolName)
 	log.DefaultLogger.Tracef("xprotocol new stream connection, codec type = %v",subProtocolName)

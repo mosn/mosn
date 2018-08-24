@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	Register("X-hsf", &pluginHSFFactory{})
+	Register("hsf", &pluginHSFFactory{})
 }
 
 type pluginHSFFactory struct{}
