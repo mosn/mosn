@@ -111,15 +111,16 @@ func newStreamConnection(context context.Context, connection types.Connection, c
 func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	log.DefaultLogger.Tracef("stream connection dispatch data bytes = %v", buffer.Bytes())
 	log.DefaultLogger.Tracef("stream connection dispatch data string = %v", buffer.String())
-	headers := make(map[string]string)
-	// support dynamic route
-	headers[strings.ToLower(protocol.MosnHeaderHostKey)] = conn.connection.RemoteAddr().String()
-	headers[strings.ToLower(protocol.MosnHeaderPathKey)] = "/"
-	log.DefaultLogger.Tracef("before Dispatch on decode header")
 
 	// get sub protocol codec
 	requestList := conn.codec.SplitFrame(buffer.Bytes())
 	for _,request := range requestList{
+		headers := make(map[string]string)
+		// support dynamic route
+		headers[strings.ToLower(protocol.MosnHeaderHostKey)] = conn.connection.RemoteAddr().String()
+		headers[strings.ToLower(protocol.MosnHeaderPathKey)] = "/"
+		log.DefaultLogger.Tracef("before Dispatch on decode header")
+
 		requestLen := len(request)
 		// ProtocolConvertor
 		// convertor first
@@ -154,6 +155,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 			value,ok := conn.streamIdMap.Load(tmpStreamId)
 			if ok{
 				streamId = value.(string)
+				log.DefaultLogger.Tracef("Xprotocol get streamId %v, response reqId = %v",streamId,tmpStreamId)
 			}else{
 				log.DefaultLogger.Tracef("fail to get old streamid , maybe streamid is changed by upstream server?")
 			}
@@ -181,7 +183,7 @@ func (conn *streamConnection) changeStreamId(request []byte) (string,[]byte){
 	nStreamId := atomic.AddUint64(&streamIDXprotocolCount, 1)
 	streamId  := strconv.FormatUint(nStreamId, 10)
 	nReq := conn.codec.SetStreamId(request,streamId)
-	streamId = conn.codec.GetStreamId(request)
+	streamId = conn.codec.GetStreamId(nReq)
 	return streamId,nReq
 }
 // Protocol return xprotocol
@@ -340,7 +342,9 @@ func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 		streamId,buf := s.connection.changeStreamId(buf)
 		reqBuf := networkbuffer.NewIoBufferBytes(buf)
 		// save streamid mapping dict
+		log.DefaultLogger.Tracef("client stream append data , change stream id to %v , old req id = %v",streamId,s.reqId)
 		s.connection.streamIdMap.Store(streamId, s.streamID)
+		log.DefaultLogger.Tracef("client stream append data , save stream map: src stream id = %v ,map stream id = %v",s.streamID,streamId)
 		s.encodedData = reqBuf
 	}else if s.direction == ServerStream {
 		streamId := s.connection.codec.GetStreamId(data.Bytes())

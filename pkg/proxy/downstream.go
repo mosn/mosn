@@ -256,7 +256,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
-		log.StartLogger.Warnf("no route to init upstream,headers = %v", headers)
+		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
 		s.sendHijackReply(types.RouterUnavailableCode, headers)

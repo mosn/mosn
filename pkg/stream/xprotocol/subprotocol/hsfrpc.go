@@ -25,6 +25,7 @@ import (
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 func init() {
@@ -116,7 +117,7 @@ func parseHSFReq(data []byte) (int, *hsfReqAttr) {
 	dataLen := len(data)
 	if dataLen < HSF_REQ_HEADER_LEN || data[HSF_MAGIC_IDX] != HSF_MAGIC_TAG || data[HSF_VERSION_IDX] != HSF_VERSION_V1 {
 		// illegal
-		fmt.Printf("[parseHSFReq] illegal(len=%d): %v\n", dataLen, data)
+		log.DefaultLogger.Tracef("[parseHSFReq] illegal(len=%d): %v\n", dataLen, data)
 		return -1, nil
 	}
 	attr := &hsfReqAttr{}
@@ -143,7 +144,7 @@ func parseHSFReq(data []byte) (int, *hsfReqAttr) {
 	reqLen := attr.headerLen + attr.serviceNameLen + attr.methodNameLen + attr.paraTypeLen + attr.argLen + attr.propsLen
 	if uint32(dataLen) < reqLen {
 		// illegal
-		fmt.Printf("[parseHSFReq] dataLen=%d < reqLen=%d\n", dataLen, reqLen)
+		log.DefaultLogger.Tracef("[parseHSFReq] dataLen=%d < reqLen=%d\n", dataLen, reqLen)
 		return -1, nil
 	}
 	return int(reqLen), attr
@@ -158,14 +159,14 @@ func getHSFRspLen(data []byte) int {
 	dataLen := len(data)
 	if dataLen < HSF_RSP_HEADER_LEN || data[HSF_MAGIC_IDX] != HSF_MAGIC_TAG || data[HSF_VERSION_IDX] != HSF_VERSION_V1 {
 		// illegal
-		fmt.Printf("[getHSFRspLen] illegal(len=%d): %v\n", dataLen, data)
+		log.DefaultLogger.Tracef("[getHSFRspLen] illegal(len=%d): %v\n", dataLen, data)
 		return -1
 	}
 	bodyLen := binary.BigEndian.Uint32(data[16:(16 + 4)])
 	rspLen := uint32(HSF_RSP_HEADER_LEN) + bodyLen
 	if uint32(dataLen) < rspLen {
 		// illegal
-		fmt.Printf("[getHSFRspLen] dataLen=%d < reqLen=%d\n", dataLen, rspLen)
+		log.DefaultLogger.Tracef("[getHSFRspLen] dataLen=%d < reqLen=%d\n", dataLen, rspLen)
 		return -1
 	}
 	return int(rspLen)
@@ -195,7 +196,7 @@ func (h *rpcHSF) SplitFrame(data []byte) [][]byte {
 				hsfDataLen = getHSFRspLen(data[start:])
 			} else {
 				// invalid data
-				fmt.Printf("[SplitFrame] over: type(%d) isn't request. req_cnt=%d\n", t, len(reqs))
+				log.DefaultLogger.Tracef("[SplitFrame] over: type(%d) isn't request. req_cnt=%d\n", t, len(reqs))
 				break
 			}
 		}
@@ -206,12 +207,12 @@ func (h *rpcHSF) SplitFrame(data []byte) [][]byte {
 			dataLen -= hsfDataLen
 			if dataLen == 0 {
 				// finish
-				//fmt.Printf("[SplitFrame] finish\n")
+				//log.DefaultLogger.Tracef("[SplitFrame] finish\n")
 				break
 			}
 		} else {
 			// invalid data
-			fmt.Printf("[SplitFrame] over! reqLen=%d, dataLen=%d. req_cnt=%d\n", hsfDataLen, dataLen, len(reqs))
+			log.DefaultLogger.Tracef("[SplitFrame] over! reqLen=%d, dataLen=%d. req_cnt=%d\n", hsfDataLen, dataLen, len(reqs))
 			break
 		}
 	}
@@ -290,7 +291,7 @@ func (h *rpcHSF) SetStreamId(data []byte, streamID string) []byte {
 	}
 	reqIDStr := buf.Bytes()
 	reqIDStrLen := len(reqIDStr)
-	fmt.Printf("src=%s, len=%d, reqid:%v\n", streamID, reqIDStrLen, reqIDStr)
+	log.DefaultLogger.Tracef("src=%s, len=%d, reqid:%v\n", streamID, reqIDStrLen, reqIDStr)
 
 	var start int
 	if data[HSF_MAGIC_IDX] == HSF_HB_MAGIC_TAG {

@@ -277,8 +277,8 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  string(protocol.HTTP2),
-			UpstreamProtocol:    string(protocol.HTTP2),
+			DownstreamProtocol:  string(protocol.HTTP1),
+			UpstreamProtocol:    string(protocol.HTTP1),
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
