@@ -68,6 +68,16 @@ func NewRPCHSF() types.Tracing {
  * +-----------+-----------+
  * |                               payload                                                         |
  * +-----------------------------------------------------------------------------------------------+
+ * magic: 0x0e
+ *
+ * Heartbeat:
+ * 0     1     2           4           6           8          10           12          14         16
+ * +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+ * |magic| type| ver |  externds bytes |        requst id                              | timeout   |
+ * +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+ * |  timeout  |
+ * +-----------+
+ * hb-magic: 0x0c
  */
 
 const (
@@ -86,6 +96,9 @@ const (
 
 	HSF_MAGIC_TAG  = 0x0e
 	HSF_VERSION_V1 = 1
+
+	HSF_HB_MAGIC_TAG  = 0x0c
+	HSF_HB_HEADER_LEN = 18
 )
 
 type hsfReqAttr struct {
@@ -157,15 +170,28 @@ func getHSFRspLen(data []byte) int {
 	return int(rspLen)
 }
 
+func isHSFHb(data []byte) bool {
+	if len(data) < HSF_HB_HEADER_LEN {
+		return false
+	}
+	return data[0] == HSF_HB_MAGIC_TAG
+}
+
 func (h *rpcHSF) SplitRequest(data []byte) [][]byte {
 	var reqs [][]byte
 	var start int = 0
 	dataLen := len(data)
 	for true {
+		if isHSFHb(data[start:]) {
+			// skip heart-beat msg(fixed length)
+			start += HSF_HB_HEADER_LEN
+			dataLen -= HSF_HB_HEADER_LEN
+			continue
+		}
 		t := getHSFType(data[start:])
 		if t != HSF_TYPE_REQ {
 			// invalid data
-			fmt.Printf("[SplitRequest] over: get type fail\n")
+			fmt.Printf("[SplitRequest] over: type(%d) isn't request. req_cnt=%d\n", t, len(reqs))
 			break
 		}
 		hsfDataLen := getHSFReqLen(data[start:])
@@ -176,12 +202,12 @@ func (h *rpcHSF) SplitRequest(data []byte) [][]byte {
 			dataLen -= hsfDataLen
 			if dataLen == 0 {
 				// finish
-				fmt.Printf("[SplitRequest] finish\n")
+				//fmt.Printf("[SplitRequest] finish\n")
 				break
 			}
 		} else {
 			// invalid data
-			fmt.Printf("[SplitRequest] over! reqLen=%d, dataLen=%d\n", hsfDataLen, dataLen)
+			fmt.Printf("[SplitRequest] over! reqLen=%d, dataLen=%d. req_cnt=%d\n", hsfDataLen, dataLen, len(reqs))
 			break
 		}
 	}
