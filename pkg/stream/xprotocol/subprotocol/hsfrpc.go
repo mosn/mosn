@@ -99,6 +99,7 @@ const (
 
 	HSF_HB_MAGIC_TAG  = 0x0c
 	HSF_HB_HEADER_LEN = 18
+	HSF_HB_REQ_ID_IDX = 6
 )
 
 type hsfReqAttr struct {
@@ -220,7 +221,16 @@ func (h *rpcHSF) SplitFrame(data []byte) [][]byte {
 func isValidHSFData(data []byte) bool {
 	//return true
 	dataLen := len(data)
-	if dataLen < 16 || data[HSF_MAGIC_IDX] != HSF_MAGIC_TAG || data[HSF_VERSION_IDX] != HSF_VERSION_V1 {
+	if data[HSF_MAGIC_IDX] == HSF_MAGIC_TAG {
+		if dataLen < 16 || data[HSF_VERSION_IDX] != HSF_VERSION_V1 {
+			return false
+		}
+	} else if data[HSF_MAGIC_IDX] == HSF_HB_MAGIC_TAG {
+		if dataLen < HSF_HB_HEADER_LEN {
+			return false
+		}
+		return true
+	} else {
 		return false
 	}
 	var hsfDataLen int
@@ -247,14 +257,18 @@ func (h *rpcHSF) GetStreamId(data []byte) string {
 		return ""
 	}
 	var reqIDRaw []byte
-	t := getHSFType(data)
-	if t == HSF_TYPE_REQ {
-		reqIDRaw = data[HSF_REQ_REQ_ID_IDX:(HSF_REQ_REQ_ID_IDX + HSF_REQ_ID_LEN)]
-	} else if t == HSF_TYPE_RSP {
-		reqIDRaw = data[HSF_RSP_REQ_ID_IDX:(HSF_RSP_REQ_ID_IDX + HSF_REQ_ID_LEN)]
+	if data[HSF_MAGIC_IDX] == HSF_HB_MAGIC_TAG {
+		reqIDRaw = data[HSF_HB_REQ_ID_IDX:(HSF_HB_REQ_ID_IDX + HSF_REQ_ID_LEN)]
 	} else {
-		// illegal data
-		return ""
+		t := getHSFType(data)
+		if t == HSF_TYPE_REQ {
+			reqIDRaw = data[HSF_REQ_REQ_ID_IDX:(HSF_REQ_REQ_ID_IDX + HSF_REQ_ID_LEN)]
+		} else if t == HSF_TYPE_RSP {
+			reqIDRaw = data[HSF_RSP_REQ_ID_IDX:(HSF_RSP_REQ_ID_IDX + HSF_REQ_ID_LEN)]
+		} else {
+			// illegal data
+			return ""
+		}
 	}
 	reqID := binary.BigEndian.Uint64(reqIDRaw)
 	reqIDStr := fmt.Sprintf("%d", reqID)
@@ -277,16 +291,22 @@ func (h *rpcHSF) SetStreamId(data []byte, streamID string) []byte {
 	reqIDStr := buf.Bytes()
 	reqIDStrLen := len(reqIDStr)
 	fmt.Printf("src=%s, len=%d, reqid:%v\n", streamID, reqIDStrLen, reqIDStr)
+
 	var start int
-	t := getHSFType(data)
-	if t == HSF_TYPE_REQ {
-		start = HSF_REQ_REQ_ID_IDX
-	} else if t == HSF_TYPE_RSP {
-		start = HSF_RSP_REQ_ID_IDX
+	if data[HSF_MAGIC_IDX] == HSF_HB_MAGIC_TAG {
+		start = HSF_HB_REQ_ID_IDX
 	} else {
-		// illegal data
-		return data
+		t := getHSFType(data)
+		if t == HSF_TYPE_REQ {
+			start = HSF_REQ_REQ_ID_IDX
+		} else if t == HSF_TYPE_RSP {
+			start = HSF_RSP_REQ_ID_IDX
+		} else {
+			// illegal data
+			return data
+		}
 	}
+
 	for i := 0; i < HSF_REQ_ID_LEN && i <= reqIDStrLen; i++ {
 		data[start+i] = reqIDStr[i]
 	}

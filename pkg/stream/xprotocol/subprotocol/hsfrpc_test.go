@@ -176,6 +176,19 @@ func Test_SetStreamId_03(t *testing.T) {
 	}
 }
 
+func Test_SetStreamId_04(t *testing.T) {
+	msg := []byte{12, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 11, 184}
+	rpc := NewRPCHSF()
+	newId := "126"
+	newMsg := rpc.SetStreamId(msg, newId)
+	strId := rpc.GetStreamId(newMsg)
+	if strId != newId {
+		t.Errorf("%s != %s", strId, newId)
+	} else {
+		t.Log("set for heartbeat frame ok")
+	}
+}
+
 func Test_getHSFReqLen_01(t *testing.T) {
 	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b'}
 	len := getHSFReqLen(msg)
