@@ -271,7 +271,7 @@ func GenerateHostMetadata(metadata v2.Metadata) types.RouteMetaData {
 
 	for k, v := range metadata {
 		rm[k] = types.GenerateHashedValue(v)
-		
+
 	}
 
 	return rm

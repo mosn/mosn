@@ -53,6 +53,7 @@ var httpBaseConfig = map[string]bool{
 	v2.RPC_PROXY:                  true,
 }
 
+// todo add streamfilters parse
 func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
 	if !isSupport(xdsListener) {
 		return nil

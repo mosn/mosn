@@ -134,7 +134,8 @@ type ListenerConfig struct {
 	AccessLogs                            []AccessLog
 	DisableConnIo                         bool          // only used in http2 case
 	FilterChains                          []FilterChain // FilterChains
-	Inspector                             bool          // TLS inspector
+	StreamFilters                         []Filter
+	Inspector                             bool // TLS inspector
 }
 
 // AccessLog with log path and log format

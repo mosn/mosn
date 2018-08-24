@@ -284,7 +284,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
-	// active realize loadbalancer ctx
+	// `downstream` implement loadbalancer ctx
 	log.StartLogger.Tracef("before initializeUpstreamConnectionPool")
 	pool, err := s.initializeUpstreamConnectionPool(clusterName, s)
 

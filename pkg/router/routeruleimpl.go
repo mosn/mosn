@@ -18,20 +18,18 @@
 package router
 
 import (
+	"fmt"
+	"math/rand"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
-	//"github.com/alipay/sofa-mosn/pkg/protocol"
-	"fmt"
-	"math/rand"
-
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	httpmosn "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 )
 
 // NewRouteRuleImplBase

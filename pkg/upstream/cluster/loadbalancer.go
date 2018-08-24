@@ -181,6 +181,7 @@ func newSmoothWeightedRRLoadBalancer(prioritySet types.PrioritySet) types.LoadBa
 	for _, hostSet := range hostSets {
 		for _, host := range hostSet.HealthyHosts() {
 			smoothWRRLoadBalancer.hostsWeighted[host.AddressString()] = &hostSmoothWeighted{
+
 				weight:          int(host.Weight()),
 				effectiveWeight: int(host.Weight()),
 			}
@@ -203,6 +204,7 @@ func (l *smoothWeightedRRLoadBalancer) UpdateHost(priority uint32, hostsAdded []
 	}
 
 	// remove host from hostsWeighted
+
 	for _, hostRm := range hostsRemoved {
 		delete(l.hostsWeighted, hostRm.AddressString())
 	}
@@ -219,6 +221,7 @@ func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCont
 	hostSets := l.prioritySet.HostSetsByPriority()
 	for _, hosts := range hostSets {
 		for _, host := range hosts.HealthyHosts() {
+
 			if _, ok := l.hostsWeighted[host.AddressString()]; !ok {
 				// insert new health-host in case UpdateHost not timely
 				l.hostsWeighted[host.AddressString()] = &hostSmoothWeighted{

@@ -37,7 +37,8 @@ import (
 
 // Mosn class which wrapper server
 type Mosn struct {
-	servers []server.Server
+	servers        []server.Server
+	clustermanager types.ClusterManager
 }
 
 // NewMosn
@@ -77,6 +78,12 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 	// parse cluster all in one
 	clusters, clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
+	// create cluster manager
+	if mode == config.Xds {
+		m.clustermanager = cluster.NewClusterManager(nil, nil, nil, true, false)
+	} else {
+		m.clustermanager = cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
+	}
 
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
@@ -88,15 +95,11 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 		var srv server.Server
 		if mode == config.Xds {
-			cmf := &clusterManagerFilter{}
-			cm := cluster.NewClusterManager(nil, nil, nil, true, false)
-			srv = server.NewServer(sc, cmf, cm)
+			srv = server.NewServer(sc, cmf, m.clustermanager)
 
 		} else {
-			//create cluster manager
-			cm := cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
 			//initialize server instance
-			srv = server.NewServer(sc, cmf, cm)
+			srv = server.NewServer(sc, cmf, m.clustermanager)
 
 			//add listener
 			if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
@@ -106,13 +109,11 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			for _, listenerConfig := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
+				lc.DisableConnIo = listenerDisableIO(&lc.FilterChains[0])
 
 				nfcf := getNetworkFilters(&lc.FilterChains[0])
 
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
-				// in the future, if we realize these two protocol by-self, this this hack method should be removed
-				lc.DisableConnIo = listenerDisableIO(&lc.FilterChains[0])
-
 				// network filters
 				if lc.HandOffRestoredDestinationConnections {
 					srv.AddListener(lc, nil, nil)
@@ -120,8 +121,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 				}
 
 				//stream filters
-				sfcf := getStreamFilters(listenerConfig.StreamFilters)
-				config.SetGlobalStreamFilter(sfcf)
+				sfcf := config.GetStreamFilters(lc.StreamFilters)
 				srv.AddListener(lc, nfcf, sfcf)
 			}
 		}
@@ -158,6 +158,7 @@ func (m *Mosn) Close() {
 	for _, srv := range m.servers {
 		srv.Close()
 	}
+	m.clustermanager.Destory()
 }
 
 // Start mosn project
@@ -204,19 +205,6 @@ func listenerDisableIO(c *v2.FilterChain) bool {
 		}
 	}
 	return false
-}
-
-func getStreamFilters(configs []config.FilterConfig) []types.StreamFilterChainFactory {
-	var factories []types.StreamFilterChainFactory
-
-	for _, c := range configs {
-		factory, err := filter.CreateStreamFilterChainFactory(c.Type, c.Config)
-		if err != nil {
-			log.StartLogger.Fatalln("stream filter create failed :", err)
-		}
-		factories = append(factories, factory)
-	}
-	return factories
 }
 
 type clusterManagerFilter struct {
