@@ -544,7 +544,7 @@ func TestMngAdapter_TriggerHostDel(t *testing.T) {
 				clusterName: "o1",
 				hostAddress: "127.0.0.1",
 			},
-			argsWant:argsWant{
+			argsWant: argsWant{
 				wantErr:     false,
 				hostNumber:  1,
 				hostAddress: "127.0.0.2",
@@ -559,7 +559,7 @@ func TestMngAdapter_TriggerHostDel(t *testing.T) {
 				clusterName: "o1",
 				hostAddress: "127.0.0.2",
 			},
-			argsWant:argsWant{
+			argsWant: argsWant{
 				wantErr:     false,
 				hostNumber:  0,
 				hostAddress: "",
@@ -572,20 +572,20 @@ func TestMngAdapter_TriggerHostDel(t *testing.T) {
 				clusterMng: tt.fields.clusterMng,
 			}
 			if err := ca.TriggerHostDel(tt.args.clusterName, tt.args.hostAddress); (err != nil) != tt.argsWant.wantErr {
-				t.Errorf("MngAdapter.TriggerHostDel() error = %v, wantErr %v", err,tt.argsWant.wantErr)
+				t.Errorf("MngAdapter.TriggerHostDel() error = %v, wantErr %v", err, tt.argsWant.wantErr)
 			}
-			
+
 			if cluster, ok := mockClusterMnger.primaryClusters.Load(tt.args.clusterName); ok {
-				
+
 				cInMem := cluster.(*primaryCluster).cluster.(*simpleInMemCluster)
 				if len(cInMem.hosts) != tt.argsWant.hostNumber {
 					t.Errorf("MngAdapter.update cluster and host error, want %d hosts, but got = %d", tt.argsWant.hostNumber, len(cInMem.hosts))
 				}
-				
-				if len(cInMem.hosts) > 0 &&cInMem.hosts[0].AddressString() != tt.argsWant.hostAddress {
+
+				if len(cInMem.hosts) > 0 && cInMem.hosts[0].AddressString() != tt.argsWant.hostAddress {
 					t.Errorf("MngAdapter.update cluster and host error, want host = &s, but got %v", tt.argsWant.hostAddress, cInMem.hosts[0].AddressString())
 				}
-				
+
 			} else {
 				t.Errorf("MngAdapter.TriggerClusterAndHostsAddOrUpdate() ")
 			}

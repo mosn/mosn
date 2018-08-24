@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
@@ -120,6 +121,7 @@ func parseLogLevel(level string) log.Level {
 // ParseServerConfig
 func ParseServerConfig(c *ServerConfig) *server.Config {
 	sc := &server.Config{
+		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        parseLogLevel(c.DefaultLogLevel),
 		GracefulTimeout: c.GracefulTimeout.Duration,
@@ -453,6 +455,18 @@ func parseFilterChains(c []FilterChain) []v2.FilterChain {
 	return filterchains
 }
 
+func parseStreamFilters(filterConfigs []FilterConfig) []v2.Filter {
+	var filters []v2.Filter
+	for _, fc := range filterConfigs {
+		filters = append(filters, v2.Filter{
+			Name:   fc.Type,
+			Config: fc.Config,
+		})
+	}
+
+	return filters
+}
+
 func parseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
 	if tlsconfig.Status == false {
 		return v2.TLSConfig{
@@ -642,6 +656,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		AccessLogs:                            parseAccessConfig(c.AccessLogs),
 		HandOffRestoredDestinationConnections: c.HandOffRestoredDestinationConnections,
 		FilterChains:                          parseFilterChains(c.FilterChains),
+		StreamFilters:                         parseStreamFilters(c.StreamFilters),
 	}
 }
 
@@ -884,7 +899,20 @@ func ParseServiceRegistry(src ServiceRegistryConfig) {
 	}
 }
 
-// ParseTCPProxy transfer map to TCPProxy
+func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
+	var factories []types.StreamFilterChainFactory
+
+	for _, c := range configs {
+		if sfcc, err := filter.CreateStreamFilterChainFactory(c.Name, c.Config); err != nil {
+			log.DefaultLogger.Errorf(err.Error())
+			return factories
+		} else {
+			factories = append(factories, sfcc)
+		}
+	}
+
+	return factories
+}
 func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {
 	data, _ := json.Marshal(config)
 	cfg := &TCPProxyConfig{}
