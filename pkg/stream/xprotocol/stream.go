@@ -118,7 +118,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	log.DefaultLogger.Tracef("before Dispatch on decode header")
 
 	// get sub protocol codec
-	requestList := conn.codec.SplitRequest(buffer.Bytes())
+	requestList := conn.codec.SplitFrame(buffer.Bytes())
 	for _,request := range requestList{
 		requestLen := len(request)
 		// ProtocolConvertor
@@ -218,16 +218,16 @@ func (conn *streamConnection) NewStream(streamID string, responseDecoder types.S
 
 // OnReceiveHeaders process header
 func (conn *streamConnection) OnReceiveHeaders(streamID string, headers map[string]string) types.FilterStatus {
-	log.StartLogger.Tracef("xprotocol stream on decode header")
+	log.DefaultLogger.Tracef("xprotocol stream on decode header")
 	if conn.serverCallbacks != nil {
-		log.StartLogger.Tracef("xprotocol stream on new stream detected invoked")
+		log.DefaultLogger.Tracef("xprotocol stream on new stream detected invoked")
 		conn.onNewStreamDetected(streamID, headers)
 	}
 	if stream, ok := conn.activeStream.Get(streamID); ok {
-		log.StartLogger.Tracef("before stream decoder invoke on decode header")
+		log.DefaultLogger.Tracef("before stream decoder invoke on decode header")
 		stream.decoder.OnReceiveHeaders(headers, false)
 	}
-	log.StartLogger.Tracef("after stream decoder invoke on decode header")
+	log.DefaultLogger.Tracef("after stream decoder invoke on decode header")
 	return types.Continue
 }
 
@@ -325,7 +325,7 @@ func (s *stream) BufferLimit() uint32 {
 // AppendHeaders process upstream request header
 // types.StreamEncoder
 func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
-	log.StartLogger.Tracef("EncodeHeaders,request id = %s, direction = %d", s.streamID, s.direction)
+	log.DefaultLogger.Tracef("EncodeHeaders,request id = %s, direction = %d", s.streamID, s.direction)
 	if endStream {
 		s.endStream()
 	}
@@ -374,9 +374,9 @@ func (s *stream) AppendTrailers(trailers map[string]string) error {
 
 //TODO: x-subprotocol stream has encodeHeaders?
 func (s *stream) endStream() {
-	log.StartLogger.Tracef("xprotocol stream end stream invoked , request id = %s, direction = %d", s.streamID, s.direction)
+	log.DefaultLogger.Tracef("xprotocol stream end stream invoked , request id = %s, direction = %d", s.streamID, s.direction)
 	if stream, ok := s.connection.activeStream.Get(s.streamID); ok {
-		log.StartLogger.Tracef("xprotocol stream end stream write encodedata")
+		log.DefaultLogger.Tracef("xprotocol stream end stream write encodedata")
 		stream.connection.connection.Write(s.encodedData)
 	} else {
 		s.connection.logger.Errorf("No stream %s to end", s.streamID)
@@ -385,7 +385,7 @@ func (s *stream) endStream() {
 	if s.direction == ServerStream {
 		// for a server stream, remove stream on response wrote
 		s.connection.activeStream.Remove(s.streamID)
-		log.StartLogger.Warnf("Remove Request ID = %+v", s.streamID)
+		log.DefaultLogger.Warnf("Remove Request ID = %+v", s.streamID)
 	}
 }
 

@@ -20,7 +20,7 @@ func newRpcExample() types.Multiplexing{
 	return &rpcExample{}
 }
 
-func (re *rpcExample) SplitRequest(data []byte) [][]byte{
+func (re *rpcExample) SplitFrame(data []byte) [][]byte{
 	return nil
 }
 

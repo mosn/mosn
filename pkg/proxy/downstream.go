@@ -30,6 +30,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	"runtime/debug"
 )
 
 // types.StreamEventListener
@@ -249,7 +251,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	}
 
 	//Get some route by service name
-	log.StartLogger.Tracef("before active stream route")
+	log.DefaultLogger.Tracef("before active stream route")
 	route := s.proxy.routers.Route(headers, 1)
 
 	if route == nil || route.RouteRule() == nil {
@@ -261,7 +263,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 		return
 	}
-	log.StartLogger.Tracef("get route : %v,clusterName=%v", route, route.RouteRule().ClusterName())
+	log.DefaultLogger.Tracef("get route : %v,clusterName=%v", route, route.RouteRule().ClusterName())
 
 	s.route = route
 
@@ -271,7 +273,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
 	// active realize loadbalancer ctx
-	log.StartLogger.Tracef("before initializeUpstreamConnectionPool")
+	log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
 	pool, err := s.initializeUpstreamConnectionPool(route.RouteRule().ClusterName(), s)
 
 	if err != nil {
@@ -279,7 +281,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		return
 	}
 
-	log.StartLogger.Tracef("after initializeUpstreamConnectionPool")
+	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
@@ -325,7 +327,7 @@ func (s *downStream) ReceiveData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) {
-	log.StartLogger.Tracef("active stream do decode data")
+	log.DefaultLogger.Tracef("active stream do decode data")
 
 	if s.runReceiveDataFilters(filter, data, endStream) {
 		return
@@ -562,7 +564,7 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 	}
 
 	// todo: update stats
-	log.StartLogger.Tracef("on upstream reset invoked")
+	log.DefaultLogger.Tracef("on upstream reset invoked,stack = %v",string(debug.Stack()))
 
 	// see if we need a retry
 	if urtype != UpstreamGlobalTimeout &&
@@ -583,7 +585,7 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 
 		if reason == types.StreamOverflow || reason == types.StreamConnectionFailed ||
 			reason == types.StreamRemoteReset {
-			log.StartLogger.Tracef("on upstream reset reason %v", reason)
+			log.DefaultLogger.Tracef("on upstream reset reason %v", reason)
 			s.upstreamRequest.connPool.Close()
 			s.proxy.readCallbacks.Connection().RawConn().Close()
 			s.resetStream()

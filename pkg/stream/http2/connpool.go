@@ -28,6 +28,7 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"golang.org/x/net/http2"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 const (
@@ -77,20 +78,22 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		return nil
 	}
 
-	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(streamID, types.Overflow, nil)
-		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-	} else {
+	// why downstream X , upstream http2 can't create?
+	//if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
+	//	cb.OnFailure(streamID, types.Overflow, nil)
+	//	p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+	//	p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+	//} else {
 		ac.totalStream++
 		p.host.HostStats().UpstreamRequestTotal.Inc(1)
 		p.host.HostStats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
+		log.DefaultLogger.Tracef("http2 codec client new stream , stream id = %v",streamID)
 		streamEncoder := ac.codecClient.NewStream(streamID, responseDecoder)
 		cb.OnReady(streamID, streamEncoder, p.host)
-	}
+	//}
 
 	return nil
 }

@@ -177,11 +177,14 @@ func (r *upstreamRequest) OnFailure(streamID string, reason types.PoolFailureRea
 }
 
 func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, host types.Host) {
+	log.DefaultLogger.Tracef("upstream request on ready , stream id = %v",streamID)
 	r.requestSender = sender
 	r.requestSender.GetStream().AddEventListener(r)
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
+	log.DefaultLogger.Tracef("upstream request append headers , headers = %v , endstream = %v",r.downStream.downstreamReqHeaders,endStream)
 	r.requestSender.AppendHeaders(r.downStream.downstreamReqHeaders, endStream)
+	log.DefaultLogger.Tracef("upstream request append success , stream id = %v",streamID)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())

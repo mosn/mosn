@@ -177,7 +177,7 @@ func isHSFHb(data []byte) bool {
 	return data[0] == HSF_HB_MAGIC_TAG
 }
 
-func (h *rpcHSF) SplitRequest(data []byte) [][]byte {
+func (h *rpcHSF) SplitFrame(data []byte) [][]byte {
 	var reqs [][]byte
 	var start int = 0
 	dataLen := len(data)
