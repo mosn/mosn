@@ -221,3 +221,47 @@ func Test_getHSFRspLen_02(t *testing.T) {
 		t.Log("getHSFRspLen illegal length ok")
 	}
 }
+
+func Test_GetServiceName_01(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b'}
+	rpc := NewRPCHSF()
+	name := rpc.GetServiceName(msg)
+	if name != "a" {
+		t.Errorf("%s != a", name)
+	} else {
+		t.Log("GetServiceName succ ok")
+	}
+}
+
+func Test_GetServiceName_02(t *testing.T) {
+	msg := []byte{0x0e, 1, 1, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b'}
+	rpc := NewRPCHSF()
+	name := rpc.GetServiceName(msg)
+	if name != "" {
+		t.Errorf("%s != null", name)
+	} else {
+		t.Log("GetServiceName: is not request ok")
+	}
+}
+
+func Test_GetServiceName_03(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'b'}
+	rpc := NewRPCHSF()
+	name := rpc.GetServiceName(msg)
+	if name != "" {
+		t.Errorf("%s != null", name)
+	} else {
+		t.Log("GetServiceName null service-name ok")
+	}
+}
+
+func Test_GetMethodName_01(t *testing.T) {
+	msg := []byte{0x0e, 1, 0, 2, 0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'b'}
+	rpc := NewRPCHSF()
+	name := rpc.GetMethodName(msg)
+	if name != "b" {
+		t.Errorf("%s != b", name)
+	} else {
+		t.Log("GetMethodName succ ok")
+	}
+}
