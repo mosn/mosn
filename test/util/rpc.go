@@ -18,7 +18,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"fmt"
 )
 
 const (
@@ -202,8 +201,8 @@ func ServeBoltV2(t *testing.T, conn net.Conn) {
 }
 func ServeXprotocol(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		fmt.Printf("client request : %v\n",string(iobuf.Bytes()))
-		responseData :=  []byte("0001|header:hello2|body:world2")
+		//fmt.Printf("client request : %v\n",string(iobuf.Bytes()))
+		responseData := []byte{14,1,1,20,8,0,0,0,0,0,0,0,0,0,107,200,0,0,0,11,10,104,105,32,58,32,119,111,114,108,100}
 		return responseData, true
 	}
 	serveSofaRPC(t, conn, response)
