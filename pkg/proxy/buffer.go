@@ -29,7 +29,7 @@ func (ctx proxyBufferCtx) Name() int {
 	return buffer.Proxy
 }
 
-func (ctx proxyBufferCtx) New(interface{}) interface{} {
+func (ctx proxyBufferCtx) New() interface{} {
 	return new(proxyBuffers)
 }
 

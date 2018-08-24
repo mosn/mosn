@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"context"
 
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -61,12 +62,12 @@ func (c *RPCStatusClient) SendRequest() {
 	}
 	ID := atomic.AddUint32(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
-	requestEncoder := c.Codec.NewStream(streamID, c)
+	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
 	headers := util.BuildBoltV1Request(ID)
-	requestEncoder.AppendHeaders(headers, true)
+	requestEncoder.AppendHeaders(context.Background(), headers, true)
 }
 
-func (c *RPCStatusClient) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (c *RPCStatusClient) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	status, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]
 	if !ok {
 		c.t.Errorf("unexpected headers :%v\n", headers)

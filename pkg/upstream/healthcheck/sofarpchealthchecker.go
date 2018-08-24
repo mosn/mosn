@@ -106,7 +106,7 @@ type sofarpcHealthCheckSession struct {
 	expectReset    bool
 }
 
-func (s *sofarpcHealthCheckSession) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (s *sofarpcHealthCheckSession) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	//bolt
 	//log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
 	if statusStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
@@ -163,7 +163,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	if s.healthChecker.protocolCode == sofarpc.BOLT_V1 {
 		reqHeaders := codec.NewBoltHeartbeat(id)
 
-		s.requestSender.AppendHeaders(reqHeaders, true)
+		s.requestSender.AppendHeaders(context.Background(), reqHeaders, true)
 		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat to %s,request id = %d", s.host.AddressString(), reqID)
 		s.requestSender = nil
 		// start timeout interval

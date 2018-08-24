@@ -22,7 +22,6 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
@@ -125,10 +124,7 @@ func (conn *streamConnection) OnDecodeHeader(streamID string, headers map[string
 	endStream := decodeSterilize(streamID, headers)
 
 	if stream, ok := conn.activeStreams.Get(streamID); ok {
-		if conn.clientCallbacks != nil {
-			buffer.CopyBufferPoolContext(stream.context, conn.context)
-		}
-		stream.decoder.OnReceiveHeaders(headers, endStream)
+		stream.decoder.OnReceiveHeaders(conn.context, headers, endStream)
 		if endStream {
 			return types.StopIteration
 		}
@@ -198,11 +194,9 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[s
 
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = streamID
 
-	newcontext := buffer.NewBufferPoolContext(conn.context, true)
-
-	sofabuffers := sofaBuffersByContent(newcontext)
+	sofabuffers := sofaBuffersByContent(conn.context)
     stream := &sofabuffers.server
-	stream.context = context.WithValue(newcontext, types.ContextKeyStreamID, streamID)
+	stream.context = context.WithValue(conn.context, types.ContextKeyStreamID, streamID)
 	stream.streamID = streamID
 	stream.requestID = requestID
 	stream.direction = ServerStream
@@ -210,7 +204,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[s
 
 	log.DefaultLogger.Infof("OnReceiveHeaders, New stream detected, Request id = %s, StreamID = %s", requestID, streamID)
 
-	stream.decoder = conn.serverCallbacks.NewStream(stream.context, streamID, stream)
+	stream.decoder = conn.serverCallbacks.NewStream(conn.context, streamID, stream)
 	conn.activeStreams.Set(streamID, stream)
 }
 
@@ -267,10 +261,10 @@ func (s *stream) BufferLimit() uint32 {
 }
 
 // types.StreamSender
-func (s *stream)  AppendHeaders(headers interface{}, endStream bool) error {
+func (s *stream)  AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
 	var err error
 
-	if s.encodedHeaders, err = s.connection.protocols.EncodeHeaders(s.context, s.encodeSterilize(headers)); err != nil {
+	if s.encodedHeaders, err = s.connection.protocols.EncodeHeaders(context, s.encodeSterilize(headers)); err != nil {
 		return err
 	}
 

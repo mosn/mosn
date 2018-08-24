@@ -127,10 +127,10 @@ func (csw *clientStreamWrapper) OnGoAway() {
 	csw.streamConnCallbacks.OnGoAway()
 }
 
-func (csw *clientStreamWrapper) NewStream(text context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
+func (csw *clientStreamWrapper) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
-			context:  context.WithValue(csw.context, types.ContextKeyStreamID, streamID),
+			context:  context.WithValue(ctx, types.ContextKeyStreamID, streamID),
 			receiver: responseDecoder,
 		},
 		wrapper: csw,
@@ -246,7 +246,7 @@ type clientStream struct {
 }
 
 // types.StreamSender
-func (s *clientStream) AppendHeaders(headersIn interface{}, endStream bool) error {
+func (s *clientStream) AppendHeaders(context context.Context, headersIn interface{}, endStream bool) error {
 	headers, _ := headersIn.(map[string]string)
 
 	if s.request == nil {
@@ -337,7 +337,7 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		s.receiver.OnReceiveHeaders(decodeRespHeader(s.response.Header), false)
+		s.receiver.OnReceiveHeaders(s.context, decodeRespHeader(s.response.Header), false)
 		buf := buffer.NewIoBufferBytes(s.response.Body())
 		s.receiver.OnReceiveData(buf, true)
 
@@ -364,7 +364,7 @@ type serverStream struct {
 }
 
 // types.StreamSender
-func (s *serverStream) AppendHeaders(headerIn interface{}, endStream bool) error {
+func (s *serverStream) AppendHeaders(context context.Context, headerIn interface{}, endStream bool) error {
 	headers, _ := headerIn.(map[string]string)
 
 	if status, ok := headers[types.HeaderStatus]; ok {
@@ -442,7 +442,7 @@ func (s *serverStream) handleRequest() {
 			header[protocol.MosnHeaderQueryStringKey] = string(s.ctx.URI().QueryString())
 		}
 
-		s.receiver.OnReceiveHeaders(header, false)
+		s.receiver.OnReceiveHeaders(s.context, header, false)
 
 		// data remove detect
 		if s.connection.activeStream != nil {

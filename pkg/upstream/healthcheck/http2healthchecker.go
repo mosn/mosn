@@ -76,7 +76,7 @@ type http2HealthCheckSession struct {
 }
 
 // // types.StreamReceiver
-func (s *http2HealthCheckSession) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (s *http2HealthCheckSession) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	s.responseHeaders = headers
 
 	if endStream {
@@ -118,7 +118,7 @@ func (s *http2HealthCheckSession) onInterval() {
 		protocol.MosnHeaderPathKey: s.healthChecker.checkPath,
 	}
 
-	s.requestSender.AppendHeaders(reqHeaders, true)
+	s.requestSender.AppendHeaders(context.Background(), reqHeaders, true)
 	s.requestSender = nil
 
 	s.healthCheckSession.onInterval()

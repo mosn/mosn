@@ -158,7 +158,7 @@ func (conn *streamConnection) OnReceiveHeaders(streamID string, headers map[stri
 	}
 	if stream, ok := conn.activeStream.Get(streamID); ok {
 		log.StartLogger.Tracef("before stream decoder invoke on decode header")
-		stream.decoder.OnReceiveHeaders(headers, false)
+		stream.decoder.OnReceiveHeaders(conn.context, headers, false)
 	}
 	log.StartLogger.Tracef("after stream decoder invoke on decode header")
 	return types.Continue
@@ -249,7 +249,7 @@ func (s *stream) BufferLimit() uint32 {
 
 // AppendHeaders process upstream request header
 // types.StreamEncoder
-func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
+func (s *stream) AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
 	log.StartLogger.Tracef("EncodeHeaders,request id = %s, direction = %d", s.streamID, s.direction)
 	if endStream {
 		s.endStream()

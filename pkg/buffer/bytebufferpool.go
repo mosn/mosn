@@ -22,7 +22,7 @@ import (
 	"context"
 )
 
-const minShift = 4
+const minShift = 6
 const maxShift = 15
 const errSlot = -1
 
@@ -137,7 +137,7 @@ func (ctx ByteBufferCtx) Name() int {
 	return Bytes
 }
 
-func (ctx ByteBufferCtx) New(i interface{}) interface{} {
+func (ctx ByteBufferCtx) New() interface{} {
 	return &ByteBufferPoolContainer{
 		ByteBufferPool: GetByteBufferPool(),
 	}

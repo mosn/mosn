@@ -41,7 +41,7 @@ func NewClient(addr string) *Client {
 func (c *Client) OnReceiveData(data types.IoBuffer, endStream bool)  {}
 func (c *Client) OnReceiveTrailers(trailers map[string]string)       {}
 func (c *Client) OnDecodeError(err error, headers map[string]string) {}
-func (c *Client) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (c *Client) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	fmt.Printf("[RPC Client] Receive Data:")
 	if streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
 		fmt.Println(streamID)
@@ -53,9 +53,9 @@ func (c *Client) OnReceiveHeaders(headers map[string]string, endStream bool) {
 func (c *Client) Request() {
 	c.Id++
 	streamID := protocol.StreamIDConv(c.Id)
-	requestEncoder := c.Codec.NewStream(streamID, c)
+	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
 	headers := buildBoltV1Request(c.Id)
-	requestEncoder.AppendHeaders(headers, true)
+	requestEncoder.AppendHeaders(context.Background() , headers, true)
 }
 
 func buildBoltV1Request(requestID uint32) *sofarpc.BoltRequestCommand {

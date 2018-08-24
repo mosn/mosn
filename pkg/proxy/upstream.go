@@ -18,10 +18,12 @@
 package proxy
 
 import (
+	"context"
 	"container/list"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 // types.StreamEventListener
@@ -80,7 +82,9 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 
 // types.StreamReceiver
 // Method to decode upstream's response message
-func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
+	buffer.CopyBufferPoolContext(r.downStream.context, context)
+
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
@@ -181,7 +185,7 @@ func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, ho
 	r.requestSender.GetStream().AddEventListener(r)
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
-	r.requestSender.AppendHeaders(r.downStream.downstreamReqHeaders, endStream)
+	r.requestSender.AppendHeaders(r.downStream.context, r.downStream.downstreamReqHeaders, endStream)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())

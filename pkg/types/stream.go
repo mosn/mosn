@@ -122,7 +122,7 @@ type StreamEventListener interface {
 type StreamSender interface {
 	// Append headers
 	// endStream supplies whether this is a header only request/response
-	AppendHeaders(headers interface{}, endStream bool) error
+	AppendHeaders(context context.Context, headers interface{}, endStream bool) error
 
 	// Append data
 	// endStream supplies whether this is the last data frame
@@ -140,7 +140,7 @@ type StreamSender interface {
 type StreamReceiver interface {
 	// OnReceiveHeaders is called with decoded headers
 	// endStream supplies whether this is a header only request/response
-	OnReceiveHeaders(headers map[string]string, endOfStream bool)
+	OnReceiveHeaders(context context.Context, headers map[string]string, endOfStream bool)
 
 	// OnReceiveData is called with a decoded data
 	// endStream supplies whether this is the last data

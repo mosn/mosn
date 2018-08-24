@@ -218,12 +218,12 @@ func (r *activeRequest) OnResetStream(reason types.StreamResetReason) {
 	r.codecClient.onReset(r, reason)
 }
 
-func (r *activeRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (r *activeRequest) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseDecoder.OnReceiveHeaders(headers, endStream)
+	r.responseDecoder.OnReceiveHeaders(context, headers, endStream)
 
 	if endStream {
 		r.onDecodeComplete()

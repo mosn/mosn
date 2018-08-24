@@ -28,7 +28,7 @@ func (ctx sofaBufferCtx) Name() int {
 	return buffer.SofaStream
 }
 
-func (ctx sofaBufferCtx) New(interface{}) interface{} {
+func (ctx sofaBufferCtx) New() interface{} {
 	return new(sofaBuffers)
 }
 

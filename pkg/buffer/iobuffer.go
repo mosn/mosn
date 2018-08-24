@@ -26,7 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-const MinRead = 1 << 10
+const MinRead = 1 << 9
 const MaxRead = 1 << 17
 const ResetOffMark = -1
 const DefaultSize = 1 << 4

@@ -28,7 +28,7 @@ func (ctx SofaProtocolBufferCtx) Name() int {
 	return buffer.SofaProtocol
 }
 
-func (ctx SofaProtocolBufferCtx) New(interface{}) interface{} {
+func (ctx SofaProtocolBufferCtx) New() interface{} {
 	buffer := new(SofaProtocolBuffers)
 	return buffer
 }

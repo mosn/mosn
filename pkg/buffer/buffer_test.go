@@ -19,8 +19,85 @@ package buffer
 
 import (
 	"testing"
+	"runtime"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// Test ByteBufferPool
+var bytePool = GetByteBufferPool()
+
+func testbytepool() *[]byte {
+	b := bytePool.Take(1024)
+	buf := *b
+	for i := 0; i < 1024; i++ {
+		buf[i] = 1
+	}
+	return b
+}
+
+func testbyte() []byte {
+	buf := make([]byte, 1024)
+	for i := 0; i < 1024; i++ {
+		buf[i] = 1
+	}
+	return buf
+}
+
+func BenchmarkBytePool(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		buf := testbytepool()
+		bytePool.Give(buf)
+		if i%100 == 0 {
+			runtime.GC()
+		}
+	}
+}
+
+func BenchmarkByte(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		testbyte()
+		if i%100 == 0 {
+			runtime.GC()
+		}
+	}
+}
+
+// Test IoBufferPool
+
+var ioBufferPool = NewIoBufferPool()
+
+func testiobufferpool() types.IoBuffer {
+	b := ioBufferPool.Take(1)
+	b.Read([]byte{1})
+	return b
+}
+
+func testiobuffer() types.IoBuffer {
+	b := NewIoBuffer(1)
+	b.Read([]byte{1})
+	return b
+}
+
+func BenchmarkIoBufferPool(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		buf := testiobufferpool()
+		ioBufferPool.Give(buf)
+		if i%100 == 0 {
+			runtime.GC()
+		}
+	}
+}
+
+func BenchmarkIoBuffer(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		testiobuffer()
+		if i%100 == 0 {
+			runtime.GC()
+		}
+	}
+}
+
+// Test IoBuffer
 func Test_read(t *testing.T) {
 	str := "read_test"
 	buffer := NewIoBufferString(str)

@@ -62,10 +62,10 @@ type bufferPoolCtxContainer struct {
 }
 
 // Take returns a buffer from buffer pool
-func (p *bufferPool) take(i interface{}) (value interface{}) {
+func (p *bufferPool) take() (value interface{}) {
 	value = p.Get()
 	if value == nil {
-		value = p.ctx.New(i)
+		value = p.ctx.New()
 	}
 	return
 }
@@ -80,7 +80,7 @@ func (p *bufferPool) give(value interface{}) {
 type PoolCtx struct {
 	*bufferPoolContainer
 	value [End]interface{}
-	copy [End]interface{}
+	copy  [End]interface{}
 }
 
 // NewBufferPoolContext returns a context with PoolCtx
@@ -90,15 +90,18 @@ func NewBufferPoolContext(ctx context.Context, copy bool) context.Context {
 		return context.WithValue(ctx, types.ContextKeyBufferPoolCtx, bufferCtxCopy(bufferCtx))
 	}
 
-	return context.WithValue(ctx, types.ContextKeyBufferPoolCtx, NewBufferPoolCtx())
+	return context.WithValue(ctx, types.ContextKeyBufferPoolCtx, newBufferPoolCtx())
 }
 
 // CopyBufferPoolContext copy a context
-func CopyBufferPoolContext(stream context.Context, conn context.Context) {
-	sctx := PoolContext(stream)
-	cctx := PoolContext(conn)
-	sctx.copy = cctx.value
-	cctx.value = nullBufferCtx
+func CopyBufferPoolContext(dst context.Context, src context.Context) {
+	sctx := PoolContext(src)
+	if sctx.value == nullBufferCtx {
+		return
+	}
+	dctx := PoolContext(dst)
+	dctx.copy = sctx.value
+	sctx.value = nullBufferCtx
 }
 
 func bufferPoolIndex() int {
@@ -107,8 +110,8 @@ func bufferPoolIndex() int {
 	return int(i)
 }
 
-// NewBufferPoolCtx returns PoolCtx
-func NewBufferPoolCtx() (ctx *PoolCtx) {
+// newBufferPoolCtx returns PoolCtx
+func newBufferPoolCtx() (ctx *PoolCtx) {
 	i := bufferPoolIndex()
 	value := bufferPoolCtxContainers[i].Get()
 	if value == nil {
@@ -142,13 +145,13 @@ func (ctx *PoolCtx) Find(poolCtx types.BufferPoolCtx, i interface{}) (value inte
 	if ctx.value[poolCtx.Name()] != nil {
 		return ctx.value[poolCtx.Name()]
 	}
-	return ctx.Take(poolCtx, i)
+	return ctx.Take(poolCtx)
 }
 
 // Take returns buffer from buffer pools
-func (ctx *PoolCtx) Take(poolCtx types.BufferPoolCtx, i interface{}) (value interface{}) {
+func (ctx *PoolCtx) Take(poolCtx types.BufferPoolCtx) (value interface{}) {
 	pool := ctx.getPool(poolCtx)
-	value = pool.take(i)
+	value = pool.take()
 	ctx.value[poolCtx.Name()] = value
 	return
 }
@@ -175,7 +178,7 @@ func (ctx *PoolCtx) Give() {
 }
 
 func bufferCtxCopy(ctx *PoolCtx) *PoolCtx {
-	newctx := NewBufferPoolCtx()
+	newctx := newBufferPoolCtx()
 	if ctx != nil {
 		newctx.value = ctx.value
 		ctx.value = nullBufferCtx
@@ -188,5 +191,5 @@ func PoolContext(context context.Context) *PoolCtx {
 	if context != nil && context.Value(types.ContextKeyBufferPoolCtx) != nil {
 		return context.Value(types.ContextKeyBufferPoolCtx).(*PoolCtx)
 	}
-	return NewBufferPoolCtx()
+	return newBufferPoolCtx()
 }

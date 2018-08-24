@@ -30,6 +30,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"reflect"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 // types.StreamEventListener
@@ -98,7 +99,9 @@ type downStream struct {
 }
 
 func newActiveStream(context context.Context, streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
-	proxyBuffers := proxyBuffersByContent(context)
+	newcontext := buffer.NewBufferPoolContext(context, true)
+
+	proxyBuffers := proxyBuffersByContent(newcontext)
 
 	stream := &proxyBuffers.stream
 
@@ -108,7 +111,7 @@ func newActiveStream(context context.Context, streamID string, proxy *proxy, res
 	stream.requestInfo.SetStartTime()
 	stream.responseSender = responseSender
 	stream.responseSender.GetStream().AddEventListener(stream)
-	stream.context = context
+	stream.context = newcontext
 
 	stream.logger = log.ByContext(proxy.context)
 
@@ -230,7 +233,7 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 }
 
 // types.StreamReceiver
-func (s *downStream) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (s *downStream) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
@@ -524,7 +527,7 @@ func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers i
 	}
 
 	//Currently, just log the error
-	if err := s.responseSender.AppendHeaders(headers, endStream); err != nil {
+	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
 		s.logger.Errorf("[downstream] append headers error, %s", err)
 	}
 
