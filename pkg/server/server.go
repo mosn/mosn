@@ -21,7 +21,6 @@ import (
 	"errors"
 	"os"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -50,14 +49,13 @@ func GetServer() Server {
 var servers []*server
 
 type server struct {
-	logger        log.Logger
-	stopChan      chan struct{}
-	handler       types.ConnectionHandler
-	ListenerInMap sync.Map
+	serverName string
+	logger     log.Logger
+	stopChan   chan struct{}
+	handler    types.ConnectionHandler
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
-
 	procNum := runtime.NumCPU()
 
 	if config != nil {
@@ -77,45 +75,23 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	OnProcessShutDown(log.CloseAll)
 
 	server := &server{
-		logger:        log.DefaultLogger,
-		stopChan:      make(chan struct{}),
-		handler:       NewHandler(cmFilter, clMng, log.DefaultLogger),
-		ListenerInMap: sync.Map{},
+		serverName: config.ServerName,
+		logger:     log.DefaultLogger,
+		stopChan:   make(chan struct{}),
+		handler:    NewHandler(cmFilter, clMng, log.DefaultLogger),
 	}
+
+	initListenerAdapterInstance(server.serverName, server.handler)
 
 	servers = append(servers, server)
 
 	return server
 }
 
-func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) {
-	if _, ok := srv.ListenerInMap.Load(lc.Name); ok {
-		log.DefaultLogger.Warnf("Listen Already Started, Listen = %+v", lc)
-	} else {
-		srv.ListenerInMap.Store(lc.Name, lc)
-		srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
-	}
-}
+func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
+	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
 
-func (srv *server) AddListenerAndStart(lc *v2.ListenerConfig, networkFiltersFactory types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) error {
-
-	if _, ok := srv.ListenerInMap.Load(lc.Name); ok {
-		log.DefaultLogger.Warnf("Listener Already Started, Listener Name = %+v", lc.Name)
-	} else {
-		srv.ListenerInMap.Store(lc.Name, lc)
-		al := srv.handler.AddListener(lc, networkFiltersFactory, streamFiltersFactories)
-
-		if activeListener, ok := al.(*activeListener); ok {
-			go activeListener.listener.Start(nil)
-		}
-	}
-
-	return nil
-}
-
-func (srv *server) AddOrUpdateListener(lc v2.ListenerConfig) {
-	// TODO: support add listener or update existing listener
+	return srv.handler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
 }
 
 func (srv *server) Start() {
@@ -143,7 +119,7 @@ func (srv *server) Close() {
 }
 
 func (srv *server) Handler() types.ConnectionHandler {
-	return  srv.handler
+	return srv.handler
 }
 
 func Stop() {
@@ -176,13 +152,13 @@ func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
 	// 5 sencond wait for read timeout
-	timeout := time.NewTimer(duration * 2 + time.Second * 5)
+	timeout := time.NewTimer(duration*2 + time.Second*5)
 	wait := make(chan struct{})
 	time.Sleep(duration)
 	go func() {
 		//todo close idle connections and wait active connections complete
 		StopConnection()
-		time.Sleep(duration + time.Second * 5)
+		time.Sleep(duration + time.Second*5)
 		wait <- struct{}{}
 	}()
 

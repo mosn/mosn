@@ -20,13 +20,13 @@ package http
 import (
 	"container/list"
 	"context"
+	"crypto/tls"
 	"sync"
 	"sync/atomic"
 
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
-	"crypto/tls"
 )
 
 // connection management is done by fasthttp

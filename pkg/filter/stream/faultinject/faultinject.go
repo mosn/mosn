@@ -26,13 +26,13 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/filter"
 )
 
-func init(){
-	filter.Register("fault_inject", CreateFaultInjectFilterFactory)
+func init() {
+	filter.RegisterStream("fault_inject", CreateFaultInjectFilterFactory)
 }
 
 type faultInjectFilter struct {
@@ -126,7 +126,7 @@ type FilterConfigFactory struct {
 	FaultInject *v2.FaultInject
 }
 
-func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
+func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewFaultInjectFilter(context, f.FaultInject)
 	callbacks.AddStreamReceiverFilter(filter)
 }

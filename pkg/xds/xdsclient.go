@@ -53,7 +53,6 @@ func duration2String(duration *types.Duration) string {
 	return x + "s"
 }
 
-
 // UnmarshalResources used in order to convert bootstrap_v2 json to pb struct (go-control-plane), some fields must be exchanged format
 func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources, err error) {
 
@@ -238,4 +237,3 @@ func (c *Client) Stop() {
 	c.adsClient.Stop()
 	log.DefaultLogger.Infof("xds client stop")
 }
-

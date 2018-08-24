@@ -15,29 +15,36 @@
  * limitations under the License.
  */
 
-package network
+package tcpproxy
 
 import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/filter/network/faultinject"
-	"github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
+	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// FaultInjectFilterConfigFactory
-type FaultInjectFilterConfigFactory struct {
-	FaultInject *v2.FaultInject
-	Proxy       *v2.TCPProxy
+func init() {
+	filter.RegisterNetwork(v2.TCP_PROXY, CreateTCPProxyFactory)
 }
 
-// CreateFilterFactory
-// create NetworkFilterFactoryCb
-func (fifcf *FaultInjectFilterConfigFactory) CreateFilterFactory(context context.Context,
-	clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
-	return func(manager types.FilterManager) {
-		manager.AddReadFilter(faultinject.NewFaultInjector(fifcf.FaultInject))
-		manager.AddReadFilter(tcpproxy.NewProxy(context, fifcf.Proxy, clusterManager))
+type tcpProxyFilterConfigFactory struct {
+	Proxy *v2.TCPProxy
+}
+
+func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
+	rf := NewProxy(context, f.Proxy, clusterManager)
+	callbacks.AddReadFilter(rf)
+}
+
+func CreateTCPProxyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+	p, err := config.ParseTCPProxy(conf)
+	if err != nil {
+		return nil, err
 	}
+	return &tcpProxyFilterConfigFactory{
+		Proxy: p,
+	}, nil
 }

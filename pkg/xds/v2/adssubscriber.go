@@ -83,7 +83,7 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Tracef("get lds resp,handle it")
 				listeners := adsClient.V2Client.handleListenersResp(resp)
 				log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
-				err := adsClient.MosnConfig.OnUpdateListeners(listeners)
+				err := adsClient.MosnConfig.OnAddOrUpdateListeners(listeners)
 				if err != nil {
 					log.DefaultLogger.Fatalf("failed to update listeners")
 					return

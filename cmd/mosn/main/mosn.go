@@ -19,24 +19,28 @@ package main
 
 import (
 	_ "flag"
-	_ "net/http/pprof"
 	"os"
 	"time"
 
+	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/network"
 	_ "github.com/alipay/sofa-mosn/pkg/network/buffer"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
 	_ "github.com/alipay/sofa-mosn/pkg/xds"
-	_"github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	"github.com/urfave/cli"
+
 	_"github.com/alipay/sofa-mosn/pkg/stream/http"
 	_"github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_"github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	_"github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
-	
+
 )
 
 func main() {

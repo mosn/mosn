@@ -17,41 +17,100 @@
 
 package router
 
-//
-//import (
-//	"testing"
-//
-//	"github.com/alipay/sofa-mosn/pkg/types"
-//)
-//
-//func TestConfigUtility_MatchQueryParams(t *testing.T) {
-//	type fields struct {
-//		HeaderData            types.HeaderData
-//		queryParameterMatcher queryParameterMatcher
-//	}
-//	type args struct {
-//		queryParams       types.QueryParams
-//		configQueryParams []types.queryParameterMatcher
-//	}
-//	tests := []struct {
-//		name   string
-//		fields fields
-//		args   args
-//		want   bool
-//	}{
-//		{
-//
-//		},
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			cu := &configUtility{
-//				HeaderData:            tt.fields.HeaderData,
-//				queryParameterMatcher: tt.fields.queryParameterMatcher,
-//			}
-//			if got := cu.MatchQueryParams(tt.args.queryParams, tt.args.configQueryParams); got != tt.want {
-//				t.Errorf("configUtility.MatchQueryParams() = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
+import (
+	"reflect"
+	"testing"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
+)
+
+func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
+	type args struct {
+		metadataMatches map[string]string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *MetadataMatchCriteriaImpl
+	}{
+		{
+			name: "case4",
+			args: args{
+				metadataMatches: map[string]string{},
+			},
+			want: &MetadataMatchCriteriaImpl{},
+		},
+		{
+			name: "case1",
+			args: args{
+				metadataMatches: map[string]string{
+					"label": "green", "version": "v1", "appInfo": "test",
+				},
+			},
+			want: &MetadataMatchCriteriaImpl{
+				MatchCriteriaArray: []types.MetadataMatchCriterion{
+					&MetadataMatchCriterionImpl{
+						Name:  "appInfo",
+						Value: types.GenerateHashedValue("test"),
+					},
+					&MetadataMatchCriterionImpl{
+						Name:  "label",
+						Value: types.GenerateHashedValue("green"),
+					},
+					&MetadataMatchCriterionImpl{
+						Name:  "version",
+						Value: types.GenerateHashedValue("v1"),
+					},
+				},
+			},
+		},
+		{
+			name: "case2",
+			args: args{
+				metadataMatches: map[string]string{
+					"version": "v1", "appInfo": "test", "label": "green",
+				},
+			},
+			want: &MetadataMatchCriteriaImpl{
+				MatchCriteriaArray: []types.MetadataMatchCriterion{
+					&MetadataMatchCriterionImpl{
+						Name:  "appInfo",
+						Value: types.GenerateHashedValue("test"),
+					},
+					&MetadataMatchCriterionImpl{
+						Name:  "label",
+						Value: types.GenerateHashedValue("green"),
+					},
+					&MetadataMatchCriterionImpl{
+						Name:  "version",
+						Value: types.GenerateHashedValue("v1"),
+					},
+				},
+			},
+		},
+		{
+			name: "case3",
+			args: args{
+				metadataMatches: map[string]string{
+					"version": "v1",
+				},
+			},
+			want: &MetadataMatchCriteriaImpl{
+				MatchCriteriaArray: []types.MetadataMatchCriterion{
+					&MetadataMatchCriterionImpl{
+						Name:  "version",
+						Value: types.GenerateHashedValue("v1"),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewMetadataMatchCriteriaImpl(tt.args.metadataMatches); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewMetadataMatchCriteriaImpl() = %v, want %v, case = %s", got, tt.want, tt.name)
+			}
+		})
+	}
+}
