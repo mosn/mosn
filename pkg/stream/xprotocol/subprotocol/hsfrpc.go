@@ -182,19 +182,22 @@ func (h *rpcHSF) SplitFrame(data []byte) [][]byte {
 	var start int = 0
 	dataLen := len(data)
 	for true {
+		var hsfDataLen int
 		if isHSFHb(data[start:]) {
-			// skip heart-beat msg(fixed length)
-			start += HSF_HB_HEADER_LEN
-			dataLen -= HSF_HB_HEADER_LEN
-			continue
+			// heart-beat msg(fixed length)
+			hsfDataLen = HSF_HB_HEADER_LEN
+		} else {
+			t := getHSFType(data[start:])
+			if t == HSF_TYPE_REQ {
+				hsfDataLen = getHSFReqLen(data[start:])
+			} else if t == HSF_TYPE_RSP {
+				hsfDataLen = getHSFRspLen(data[start:])
+			} else {
+				// invalid data
+				fmt.Printf("[SplitFrame] over: type(%d) isn't request. req_cnt=%d\n", t, len(reqs))
+				break
+			}
 		}
-		t := getHSFType(data[start:])
-		if t != HSF_TYPE_REQ {
-			// invalid data
-			fmt.Printf("[SplitRequest] over: type(%d) isn't request. req_cnt=%d\n", t, len(reqs))
-			break
-		}
-		hsfDataLen := getHSFReqLen(data[start:])
 		if hsfDataLen > 0 && dataLen >= hsfDataLen {
 			// there is one valid hsf request
 			reqs = append(reqs, data[start:(start+hsfDataLen)])
@@ -202,12 +205,12 @@ func (h *rpcHSF) SplitFrame(data []byte) [][]byte {
 			dataLen -= hsfDataLen
 			if dataLen == 0 {
 				// finish
-				//fmt.Printf("[SplitRequest] finish\n")
+				//fmt.Printf("[SplitFrame] finish\n")
 				break
 			}
 		} else {
 			// invalid data
-			fmt.Printf("[SplitRequest] over! reqLen=%d, dataLen=%d. req_cnt=%d\n", hsfDataLen, dataLen, len(reqs))
+			fmt.Printf("[SplitFrame] over! reqLen=%d, dataLen=%d. req_cnt=%d\n", hsfDataLen, dataLen, len(reqs))
 			break
 		}
 	}
