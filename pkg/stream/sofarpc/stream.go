@@ -195,7 +195,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[s
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = streamID
 
 	sofabuffers := sofaBuffersByContent(conn.context)
-    stream := &sofabuffers.server
+	stream := &sofabuffers.server
 	stream.context = context.WithValue(conn.context, types.ContextKeyStreamID, streamID)
 	stream.streamID = streamID
 	stream.requestID = requestID
@@ -213,7 +213,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[s
 type stream struct {
 	context context.Context
 
-	buffers          *sofaBuffers
+	buffers *sofaBuffers
 
 	streamID         string
 	requestID        string
@@ -261,7 +261,7 @@ func (s *stream) BufferLimit() uint32 {
 }
 
 // types.StreamSender
-func (s *stream)  AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
+func (s *stream) AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
 	var err error
 
 	if s.encodedHeaders, err = s.connection.protocols.EncodeHeaders(context, s.encodeSterilize(headers)); err != nil {
@@ -300,7 +300,7 @@ func (s *stream) AppendTrailers(context context.Context, trailers map[string]str
 // For client stream, write out request
 func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
-	//	log.DefaultLogger.Infof("Write to remote, stream id = %s, direction = %d", s.streamID, s.direction)
+		//	log.DefaultLogger.Infof("Write to remote, stream id = %s, direction = %d", s.streamID, s.direction)
 
 		if stream, ok := s.connection.activeStreams.Get(s.streamID); ok {
 

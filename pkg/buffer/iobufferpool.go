@@ -27,7 +27,7 @@ var ioBufferPools [maxPoolSize]IoBufferPool
 
 // IoBufferPool is Iobuffer Pool
 type IoBufferPool struct {
-	pool       sync.Pool
+	pool sync.Pool
 }
 
 // getIoBufferPool returns IoBufferPool

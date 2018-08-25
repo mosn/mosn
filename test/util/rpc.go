@@ -9,9 +9,9 @@ import (
 
 	"context"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
@@ -73,7 +73,7 @@ func (c *RPCClient) Close() {
 func (c *RPCClient) SendRequest() {
 	ID := atomic.AddUint32(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
-	requestEncoder := c.Codec.NewStream(context.Background(),streamID, c)
+	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
 	var headers interface{}
 	switch c.Protocol {
 	case Bolt1:

@@ -18,9 +18,9 @@
 package buffer
 
 import (
-	"testing"
-	"runtime"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"runtime"
+	"testing"
 )
 
 // Test byteBufferPool
@@ -61,7 +61,6 @@ func BenchmarkByte(b *testing.B) {
 }
 
 // Test IoBufferPool
-
 
 func testiobufferpool() types.IoBuffer {
 	b := GetIoBuffer(1)

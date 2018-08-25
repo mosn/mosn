@@ -18,8 +18,9 @@
 package sofarpc
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"context"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 type SofaProtocolBufferCtx struct{}
@@ -42,8 +43,8 @@ func (ctx SofaProtocolBufferCtx) Reset(i interface{}) {
 }
 
 type SofaProtocolBuffers struct {
-	BoltReq BoltRequestCommand
-	BoltRsp BoltResponseCommand
+	BoltReq       BoltRequestCommand
+	BoltRsp       BoltResponseCommand
 	BoltEncodeReq BoltRequestCommand
 	BoltEncodeRsp BoltResponseCommand
 }

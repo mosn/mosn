@@ -155,7 +155,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	id := rand.Uint32()
 	reqID := strconv.Itoa(int(id))
 
-	s.requestSender = s.client.NewStream(context.Background(),reqID, s)
+	s.requestSender = s.client.NewStream(context.Background(), reqID, s)
 	s.requestSender.GetStream().AddEventListener(s)
 
 	//todo: support tr

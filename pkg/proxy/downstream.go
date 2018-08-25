@@ -27,10 +27,11 @@ import (
 
 	"context"
 	"fmt"
+	"reflect"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"reflect"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 // types.StreamEventListener

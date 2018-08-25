@@ -23,8 +23,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // stream.CodecClient

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -9,7 +10,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	"context"
 
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
 	"github.com/alipay/sofa-mosn/pkg/log"

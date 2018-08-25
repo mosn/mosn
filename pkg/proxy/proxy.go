@@ -25,8 +25,8 @@ import (
 	"runtime"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	globalStats         *proxyStats
+	globalStats *proxyStats
 
 	workerPool mosnsync.ShardWorkerPool
 )
@@ -84,13 +84,13 @@ type proxy struct {
 // NewProxy create proxy instance for given v2.Proxy config
 func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
 	proxy := &proxy{
-		config:          config,
-		clusterManager:  clusterManager,
-		activeSteams:    list.New(),
-		stats:           globalStats,
-		resueCodecMaps:  true,
-		context:         ctx,
-		accessLogs:      ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
+		config:         config,
+		clusterManager: clusterManager,
+		activeSteams:   list.New(),
+		stats:          globalStats,
+		resueCodecMaps: true,
+		context:        ctx,
+		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
 
 	proxy.context = buffer.NewBufferPoolContext(ctx, false)

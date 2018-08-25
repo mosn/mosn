@@ -20,7 +20,6 @@ package sofarpc
 import (
 	"reflect"
 	"strconv"
-
 )
 
 func SofaPropertyHeader(name string) string {

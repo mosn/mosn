@@ -19,10 +19,11 @@ package buffer
 
 import (
 	"context"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 const maxPoolSize = 1

@@ -22,8 +22,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
@@ -46,7 +46,6 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 		streamID := protocol.GenerateIDString()
 		//print tracer log
 		log.DefaultLogger.Debugf("time=%s,tracerID=%s,streamID=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamID, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
-
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {

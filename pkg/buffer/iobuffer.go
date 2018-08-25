@@ -45,7 +45,7 @@ type IoBuffer struct {
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
 
-	b       *[]byte
+	b *[]byte
 }
 
 func (b *IoBuffer) Read(p []byte) (n int, err error) {
@@ -372,7 +372,7 @@ func (b *IoBuffer) Alloc(size int) {
 
 func (b *IoBuffer) copy(expand int) {
 	var newBuf []byte
-	var bufp   *[]byte
+	var bufp *[]byte
 
 	if expand > 0 {
 		bufp = b.makeSlice(2*cap(b.buf) + expand)
@@ -393,7 +393,7 @@ func (b *IoBuffer) makeSlice(n int) *[]byte {
 }
 
 func (b *IoBuffer) giveSlice() {
-    if b.b != nil {
+	if b.b != nil {
 		PutBytes(b.b)
 		b.b = nil
 		b.buf = nullByte

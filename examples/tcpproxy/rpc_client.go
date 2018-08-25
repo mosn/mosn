@@ -55,7 +55,7 @@ func (c *Client) Request() {
 	streamID := protocol.StreamIDConv(c.Id)
 	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
 	headers := buildBoltV1Request(c.Id)
-	requestEncoder.AppendHeaders(context.Background() , headers, true)
+	requestEncoder.AppendHeaders(context.Background(), headers, true)
 }
 
 func buildBoltV1Request(requestID uint32) *sofarpc.BoltRequestCommand {

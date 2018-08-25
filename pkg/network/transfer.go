@@ -29,8 +29,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"golang.org/x/sys/unix"
 )
@@ -223,7 +223,7 @@ func transferWrite(conn *connection, id uint64, logger log.Logger) error {
 func transferBuildIoBuffer(c *connection) types.IoBuffer {
 	buf := buffer.GetIoBuffer(c.writeBufLen())
 	for _, b := range c.writeBuffers {
-         buf.Write(b)
+		buf.Write(b)
 	}
 	c.writeBuffers = c.writeBuffers[:0]
 	c.ioBuffers = c.ioBuffers[:0]

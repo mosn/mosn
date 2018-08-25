@@ -18,9 +18,10 @@
 package protocol
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"context"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var defaultMapSize = 1 << 3

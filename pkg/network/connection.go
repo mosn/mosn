@@ -28,8 +28,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 )
@@ -65,7 +65,6 @@ type connection struct {
 
 	stopChan            chan struct{}
 	curWriteBufferData  []types.IoBuffer
-	ioBufferPool        *buffer.IoBufferPool
 	readBuffer          types.IoBuffer
 	writeBuffers        net.Buffers
 	ioBuffers           []types.IoBuffer
@@ -354,23 +353,23 @@ func (c *connection) startWriteLoop() {
 		}
 
 		/*
-		i := 0
-		timer := time.NewTimer(3 * time.Millisecond)
-		for {
-			select {
-			case buf := <-c.writeBufferChan:
-				c.appendBuffer(buf)
-				i++
-				if i > 100 {
-					_, err = c.doWriteIo()
-					goto end
+				i := 0
+				timer := time.NewTimer(3 * time.Millisecond)
+				for {
+					select {
+					case buf := <-c.writeBufferChan:
+						c.appendBuffer(buf)
+						i++
+						if i > 100 {
+							_, err = c.doWriteIo()
+							goto end
+						}
+					case <-timer.C:
+						_, err = c.doWriteIo()
+						goto end
+					}
 				}
-			case <-timer.C:
-				_, err = c.doWriteIo()
-				goto end
-			}
-		}
-	end:
+			end:
 		*/
 
 		if err != nil {

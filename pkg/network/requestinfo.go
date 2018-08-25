@@ -18,9 +18,9 @@
 package network
 
 import (
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"net"
 	"time"
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // RequestInfo
@@ -61,7 +61,7 @@ func (r *RequestInfo) StartTime() time.Time {
 }
 
 func (r *RequestInfo) SetStartTime() {
-    r.startTime = time.Now()
+	r.startTime = time.Now()
 }
 
 func (r *RequestInfo) RequestReceivedDuration() time.Duration {

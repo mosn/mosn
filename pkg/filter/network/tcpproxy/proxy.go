@@ -23,8 +23,8 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // ReadFilter
@@ -64,7 +64,6 @@ func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
-	log.DefaultLogger.Errorf("ondata %+v", buffer)
 	p.upstreamConnection.Write(buffer.Clone())
 	buffer.Drain(buffer.Len())
 	return types.StopIteration
@@ -276,7 +275,6 @@ func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 }
 
 func (uc *upstreamCallbacks) OnData(buffer types.IoBuffer) types.FilterStatus {
-	log.DefaultLogger.Errorf("upstreamcallbacks %+v", buffer)
 	uc.proxy.onUpstreamData(buffer)
 	return types.StopIteration
 }

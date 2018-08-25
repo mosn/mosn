@@ -81,7 +81,7 @@ func newBytes(size int) []byte {
 	return make([]byte, size)
 }
 
-// Take returns *[]byte from byteBufferPool
+// take returns *[]byte from byteBufferPool
 func (p *byteBufferPool) take(size int) *[]byte {
 	slot := p.slot(size)
 	if slot == errSlot {
@@ -99,7 +99,7 @@ func (p *byteBufferPool) take(size int) *[]byte {
 	return b
 }
 
-// Give returns *[]byte to byteBufferPool
+// give returns *[]byte to byteBufferPool
 func (p *byteBufferPool) give(buf *[]byte) {
 	if buf == nil {
 		return
@@ -151,7 +151,7 @@ func (ctx ByteBufferCtx) Reset(i interface{}) {
 	p.bytes = p.bytes[:0]
 }
 
-// GetBytes return []byte from byteBufferPool by context
+// GetBytesByContext returns []byte from byteBufferPool by context
 func GetBytesByContext(context context.Context, size int) *[]byte {
 	p := PoolContext(context).Find(ByteBufferCtx{}, nil).(*ByteBufferPoolContainer)
 	buf := p.take(size)
@@ -159,11 +159,13 @@ func GetBytesByContext(context context.Context, size int) *[]byte {
 	return buf
 }
 
+// GetBytes returns *[]byte from byteBufferPool
 func GetBytes(size int) *[]byte {
 	p := getByteBufferPool()
 	return p.take(size)
 }
 
+// PutBytes Put *[]byte to byteBufferPool
 func PutBytes(buf *[]byte) {
 	p := getByteBufferPool()
 	p.give(buf)
