@@ -104,7 +104,6 @@ func newActiveStream(context context.Context, streamID string, proxy *proxy, res
 	proxyBuffers := proxyBuffersByContent(newcontext)
 
 	stream := &proxyBuffers.stream
-
 	stream.streamID = streamID
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
@@ -196,7 +195,6 @@ func (s *downStream) cleanStream() {
 
 	// stop event process
 	s.stopEventProcess()
-
 	// delete stream
 	s.proxy.deleteActiveStream(s)
 }
@@ -312,8 +310,9 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	}
 }
 
-func (s *downStream) OnReceiveData(data types.IoBuffer, endStream bool) {
-	s.downstreamReqDataBuf = data
+func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
+	s.downstreamReqDataBuf = data.Clone()
+	data.Drain(data.Len())
 
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
@@ -357,7 +356,7 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 	}
 }
 
-func (s *downStream) OnReceiveTrailers(trailers map[string]string) {
+func (s *downStream) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
@@ -379,7 +378,7 @@ func (s *downStream) ReceiveTrailers(trailers map[string]string) {
 	s.doReceiveTrailers(nil, trailers)
 }
 
-func (s *downStream) OnDecodeError(err error, headers map[string]string) {
+func (s *downStream) OnDecodeError(context context.Context, err error, headers map[string]string) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.upstreamProcessDone {
 		return
@@ -546,7 +545,7 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 		return
 	}
 
-	s.responseSender.AppendData(data, endStream)
+	s.responseSender.AppendData(s.context, data, endStream)
 
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
 
@@ -565,7 +564,7 @@ func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers
 		return
 	}
 
-	s.responseSender.AppendTrailers(trailers)
+	s.responseSender.AppendTrailers(s.context, trailers)
 	s.endStream()
 }
 
@@ -720,9 +719,7 @@ func (s *downStream) doRetry() {
 
 	if s.upstreamRequest != nil {
 		if s.downstreamReqDataBuf != nil {
-			// make a data copy to retry
-			copied := s.downstreamReqDataBuf.Clone()
-			s.upstreamRequest.appendData(copied, s.downstreamReqTrailers == nil)
+			s.upstreamRequest.appendData(s.downstreamReqDataBuf, s.downstreamReqTrailers == nil)
 		}
 
 		if s.downstreamReqTrailers != nil {
@@ -849,6 +846,13 @@ func (s *downStream) DownstreamConnection() net.Conn {
 
 func (s *downStream) DownstreamHeaders() map[string]string {
 	return s.downstreamReqHeaders
+}
+
+func (s *downStream) GiveStream() {
+	// Give bufferPool
+	if ctx := buffer.PoolContext(s.context); ctx != nil {
+		ctx.Give()
+	}
 }
 
 func (s *downStream) startEventProcess() {

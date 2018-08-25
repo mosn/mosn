@@ -38,9 +38,9 @@ func NewClient(addr string) *Client {
 	return c
 }
 
-func (c *Client) OnReceiveData(data types.IoBuffer, endStream bool)  {}
-func (c *Client) OnReceiveTrailers(trailers map[string]string)       {}
-func (c *Client) OnDecodeError(err error, headers map[string]string) {}
+func (c *Client) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool)  {}
+func (c *Client) OnReceiveTrailers(context context.Context, trailers map[string]string)       {}
+func (c *Client) OnDecodeError(context context.Context, err error, headers map[string]string) {}
 func (c *Client) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	fmt.Printf("[RPC Client] Receive Data:")
 	if streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {

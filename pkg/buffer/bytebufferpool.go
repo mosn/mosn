@@ -18,23 +18,23 @@
 package buffer
 
 import (
-	"sync"
 	"context"
+	"sync"
 )
 
 const minShift = 6
 const maxShift = 15
 const errSlot = -1
 
-var byteBufferPools [maxPoolSize]*ByteBufferPool
+var byteBufferPools [maxPoolSize]*byteBufferPool
 
-// ByteBufferPool is []byte pools
-type ByteBufferPool struct {
+// byteBufferPool is []byte pools
+type byteBufferPool struct {
 	minShift int
 	minSize  int
 	maxSize  int
 
-	pool     []*bufferSlot
+	pool []*bufferSlot
 }
 
 type bufferSlot struct {
@@ -42,9 +42,9 @@ type bufferSlot struct {
 	pool        sync.Pool
 }
 
-// NewByteBufferPool returns ByteBufferPool
-func NewByteBufferPool() *ByteBufferPool {
-	p := &ByteBufferPool{
+// newByteBufferPool returns byteBufferPool
+func newByteBufferPool() *byteBufferPool {
+	p := &byteBufferPool{
 		minShift: minShift,
 		minSize:  1 << minShift,
 		maxSize:  1 << maxShift,
@@ -59,7 +59,7 @@ func NewByteBufferPool() *ByteBufferPool {
 	return p
 }
 
-func (p *ByteBufferPool) slot(size int) int {
+func (p *byteBufferPool) slot(size int) int {
 	if size > p.maxSize || size <= p.minSize {
 		return errSlot
 	}
@@ -81,8 +81,8 @@ func newBytes(size int) []byte {
 	return make([]byte, size)
 }
 
-// Take returns *[]byte from ByteBufferPool
-func (p *ByteBufferPool) Take(size int) *[]byte {
+// Take returns *[]byte from byteBufferPool
+func (p *byteBufferPool) take(size int) *[]byte {
 	slot := p.slot(size)
 	if slot == errSlot {
 		b := newBytes(size)
@@ -99,8 +99,8 @@ func (p *ByteBufferPool) Take(size int) *[]byte {
 	return b
 }
 
-// Give returns *[]byte to ByteBufferPool
-func (p *ByteBufferPool) Give(buf *[]byte) {
+// Give returns *[]byte to byteBufferPool
+func (p *byteBufferPool) give(buf *[]byte) {
 	if buf == nil {
 		return
 	}
@@ -115,22 +115,22 @@ func (p *ByteBufferPool) Give(buf *[]byte) {
 	p.pool[slot].pool.Put(buf)
 }
 
-// GetByteBufferPool returns ByteBufferPool from byteBufferPools
-func GetByteBufferPool() *ByteBufferPool {
+// getByteBufferPool returns byteBufferPool from byteBufferPools
+func getByteBufferPool() *byteBufferPool {
 	i := bufferPoolIndex()
 	p := byteBufferPools[i]
 	if p == nil {
-		byteBufferPools[i] = NewByteBufferPool()
+		byteBufferPools[i] = newByteBufferPool()
 		return byteBufferPools[i]
 	}
 	return p
 }
 
-type ByteBufferCtx struct {}
+type ByteBufferCtx struct{}
 
 type ByteBufferPoolContainer struct {
-	bytes       []*[]byte
-	*ByteBufferPool
+	bytes []*[]byte
+	*byteBufferPool
 }
 
 func (ctx ByteBufferCtx) Name() int {
@@ -139,22 +139,32 @@ func (ctx ByteBufferCtx) Name() int {
 
 func (ctx ByteBufferCtx) New() interface{} {
 	return &ByteBufferPoolContainer{
-		ByteBufferPool: GetByteBufferPool(),
+		byteBufferPool: getByteBufferPool(),
 	}
 }
 
 func (ctx ByteBufferCtx) Reset(i interface{}) {
 	p := i.(*ByteBufferPoolContainer)
 	for _, buf := range p.bytes {
-      	  p.Give(buf)
-	  }
-	  p.bytes = p.bytes[:0]
+		p.give(buf)
+	}
+	p.bytes = p.bytes[:0]
 }
 
-// GetBytes return []byte from ByteBufferPool by context
-func GetBytes(context context.Context, size int) []byte {
+// GetBytes return []byte from byteBufferPool by context
+func GetBytesByContext(context context.Context, size int) *[]byte {
 	p := PoolContext(context).Find(ByteBufferCtx{}, nil).(*ByteBufferPoolContainer)
-	buf := p.Take(size)
+	buf := p.take(size)
 	p.bytes = append(p.bytes, buf)
-	return *buf
+	return buf
+}
+
+func GetBytes(size int) *[]byte {
+	p := getByteBufferPool()
+	return p.take(size)
+}
+
+func PutBytes(buf *[]byte) {
+	p := getByteBufferPool()
+	p.give(buf)
 }

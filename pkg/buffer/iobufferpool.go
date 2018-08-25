@@ -30,14 +30,14 @@ type IoBufferPool struct {
 	pool       sync.Pool
 }
 
-// NewIoBufferPool returns IoBufferPool
-func NewIoBufferPool() *IoBufferPool {
+// getIoBufferPool returns IoBufferPool
+func getIoBufferPool() *IoBufferPool {
 	i := bufferPoolIndex()
 	return &ioBufferPools[i]
 }
 
-// Take returns IoBuffer from IoBufferPool
-func (p *IoBufferPool) Take(size int) (buf types.IoBuffer) {
+// take returns IoBuffer from IoBufferPool
+func (p *IoBufferPool) take(size int) (buf types.IoBuffer) {
 	v := p.pool.Get()
 	if v == nil {
 		buf = NewIoBuffer(size)
@@ -48,8 +48,20 @@ func (p *IoBufferPool) Take(size int) (buf types.IoBuffer) {
 	return buf
 }
 
-// Give returns IoBuffer to IoBufferPool
-func (p *IoBufferPool) Give(buf types.IoBuffer) {
+// give returns IoBuffer to IoBufferPool
+func (p *IoBufferPool) give(buf types.IoBuffer) {
 	buf.Free()
 	p.pool.Put(buf)
+}
+
+// GetIoBuffer returns IoBuffer from pool
+func GetIoBuffer(size int) types.IoBuffer {
+	pool := getIoBufferPool()
+	return pool.take(size)
+}
+
+// PutIoBuffer returns IoBuffer to pool
+func PutIoBuffer(buf types.IoBuffer) {
+	pool := getIoBufferPool()
+	pool.give(buf)
 }

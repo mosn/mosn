@@ -281,7 +281,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headers interface{
 	return nil
 }
 
-func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
+func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	log.StartLogger.Tracef("http2 client stream encode data")
 	if s.request == nil {
 		s.request = new(http.Request)
@@ -301,7 +301,7 @@ func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *clientStream) AppendTrailers(trailers map[string]string) error {
+func (s *clientStream) AppendTrailers(context context.Context, trailers map[string]string) error {
 	log.StartLogger.Tracef("http2 client stream encode trailers")
 	s.request.Trailer = encodeHeader(trailers)
 	s.endStream()
@@ -385,8 +385,8 @@ func (s *clientStream) handleResponse() {
 		s.decoder.OnReceiveHeaders(s.context, decodeRespHeader(s.response), false)
 		buf := buffer.NewIoBuffer(1024)
 		buf.ReadFrom(s.response.Body)
-		s.decoder.OnReceiveData(buf, false)
-		s.decoder.OnReceiveTrailers(decodeHeader(s.response.Trailer))
+		s.decoder.OnReceiveData(s.context, buf, false)
+		s.decoder.OnReceiveTrailers(s.context, decodeHeader(s.response.Trailer))
 
 		s.connection.asMutex.Lock()
 		s.response = nil
@@ -430,7 +430,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn interfac
 	return nil
 }
 
-func (s *serverStream) AppendData(data types.IoBuffer, endStream bool) error {
+func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	if s.response == nil {
 		s.response = new(http.Response)
 	}
@@ -445,7 +445,7 @@ func (s *serverStream) AppendData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *serverStream) AppendTrailers(trailers map[string]string) error {
+func (s *serverStream) AppendTrailers(context context.Context, trailers map[string]string) error {
 	s.response.Trailer = encodeHeader(trailers)
 
 	s.endStream()
@@ -533,8 +533,8 @@ func (s *serverStream) handleRequest() {
 		//if s.element != nil {
 		buf := buffer.NewIoBuffer(1024)
 		buf.ReadFrom(s.request.Body)
-		s.decoder.OnReceiveData(buf, false)
-		s.decoder.OnReceiveTrailers(decodeHeader(s.request.Trailer))
+		s.decoder.OnReceiveData(s.context, buf, false)
+		s.decoder.OnReceiveTrailers(s.context, decodeHeader(s.request.Trailer))
 		//}
 	}
 }

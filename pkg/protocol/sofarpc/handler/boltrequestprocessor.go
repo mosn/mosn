@@ -50,13 +50,6 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
-			var content types.IoBuffer
-			if cmd.Content != nil {
-				protocolCtx := protocol.ProtocolBuffersByContent(context)
-				content = protocolCtx.GetReqData(len(cmd.Content))
-				content.Write(cmd.Content)
-			}
-
 			if cmd.RequestHeader != nil {
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
 				if cmd.Content == nil {
@@ -71,7 +64,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 			}
 
 			if cmd.Content != nil {
-				status := filter.OnDecodeData(streamID, content)
+				status := filter.OnDecodeData(streamID, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return

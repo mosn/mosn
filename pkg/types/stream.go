@@ -126,10 +126,10 @@ type StreamSender interface {
 
 	// Append data
 	// endStream supplies whether this is the last data frame
-	AppendData(data IoBuffer, endStream bool) error
+	AppendData(context context.Context, data IoBuffer, endStream bool) error
 
 	// Append trailers, implicitly ends the stream.
-	AppendTrailers(trailers map[string]string) error
+	AppendTrailers(context context.Context, trailers map[string]string) error
 
 	// Get related stream
 	GetStream() Stream
@@ -144,13 +144,13 @@ type StreamReceiver interface {
 
 	// OnReceiveData is called with a decoded data
 	// endStream supplies whether this is the last data
-	OnReceiveData(data IoBuffer, endOfStream bool)
+	OnReceiveData(context context.Context, data IoBuffer, endOfStream bool)
 
 	// OnReceiveTrailers is called with a decoded trailers frame, implicitly ends the stream.
-	OnReceiveTrailers(trailers map[string]string)
+	OnReceiveTrailers(context context.Context, trailers map[string]string)
 
 	// OnDecodeError is called with when exception occurs
-	OnDecodeError(err error, headers map[string]string)
+	OnDecodeError(context context.Context, err error, headers map[string]string)
 }
 
 // StreamConnection is a connection runs multiple streams

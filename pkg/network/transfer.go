@@ -221,7 +221,7 @@ func transferWrite(conn *connection, id uint64, logger log.Logger) error {
 }
 
 func transferBuildIoBuffer(c *connection) types.IoBuffer {
-	buf := c.ioBufferPool.Take(c.writeBufLen())
+	buf := buffer.GetIoBuffer(c.writeBufLen())
 	for _, b := range c.writeBuffers {
          buf.Write(b)
 	}

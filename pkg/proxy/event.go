@@ -98,7 +98,7 @@ func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
 	case *stopEvent:
 		e := event.(*stopEvent)
 		//log.DefaultLogger.Errorf("[stop] %d %d %s", shard, e.direction, e.streamID)
-
+		e.stream.GiveStream()
 		delete(streamMap, e.streamID)
 	case *resetEvent:
 		e := event.(*resetEvent)
@@ -113,7 +113,7 @@ func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
 			default:
 				e.stream.logger.Errorf("Unknown receiveTrailerEvent direction %s", e.direction)
 			}
-			streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
+		//	streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
 		}
 	case *receiveHeadersEvent:
 		e := event.(*receiveHeadersEvent)

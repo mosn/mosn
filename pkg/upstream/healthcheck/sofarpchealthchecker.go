@@ -118,17 +118,17 @@ func (s *sofarpcHealthCheckSession) OnReceiveHeaders(context context.Context, he
 	}
 }
 
-func (s *sofarpcHealthCheckSession) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (s *sofarpcHealthCheckSession) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	if endStream {
 		s.onResponseComplete()
 	}
 }
 
-func (s *sofarpcHealthCheckSession) OnReceiveTrailers(trailers map[string]string) {
+func (s *sofarpcHealthCheckSession) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	s.onResponseComplete()
 }
 
-func (s *sofarpcHealthCheckSession) OnDecodeError(err error, headers map[string]string) {
+func (s *sofarpcHealthCheckSession) OnDecodeError(context context.Context, err error, headers map[string]string) {
 }
 
 // overload healthCheckSession

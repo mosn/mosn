@@ -245,25 +245,25 @@ func (r *activeRequest) OnReceiveHeaders(context context.Context, headers map[st
 	}
 }
 
-func (r *activeRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (r *activeRequest) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseReceiver.OnReceiveData(data, endStream)
+	r.responseReceiver.OnReceiveData(context, data, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
 	}
 }
 
-func (r *activeRequest) OnReceiveTrailers(trailers map[string]string) {
+func (r *activeRequest) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	r.onPreDecodeComplete()
-	r.responseReceiver.OnReceiveTrailers(trailers)
+	r.responseReceiver.OnReceiveTrailers(context, trailers)
 	r.onDecodeComplete()
 }
 
-func (r *activeRequest) OnDecodeError(err error, headers map[string]string) {
+func (r *activeRequest) OnDecodeError(context context.Context, err error, headers map[string]string) {
 }
 
 func (r *activeRequest) onPreDecodeComplete() {

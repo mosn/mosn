@@ -46,8 +46,6 @@ type IoBuffer struct {
 	offMark int
 
 	b       *[]byte
-
-	*ByteBufferPool
 }
 
 func (b *IoBuffer) Read(p []byte) (n int, err error) {
@@ -349,7 +347,7 @@ func (b *IoBuffer) available() int {
 }
 
 func (b *IoBuffer) Clone() types.IoBuffer {
-	buf := NewIoBuffer(b.Len())
+	buf := GetIoBuffer(b.Len())
 	buf.Write(b.Bytes())
 
 	return buf
@@ -380,7 +378,7 @@ func (b *IoBuffer) copy(expand int) {
 		bufp = b.makeSlice(2*cap(b.buf) + expand)
 		newBuf = *bufp
 		copy(newBuf, b.buf[b.off:])
-		b.Give(b.b)
+		PutBytes(b.b)
 		b.b = bufp
 	} else {
 		newBuf = b.buf
@@ -391,12 +389,12 @@ func (b *IoBuffer) copy(expand int) {
 }
 
 func (b *IoBuffer) makeSlice(n int) *[]byte {
-	return b.Take(n)
+	return GetBytes(n)
 }
 
 func (b *IoBuffer) giveSlice() {
     if b.b != nil {
-		b.Give(b.b)
+		PutBytes(b.b)
 		b.b = nil
 		b.buf = nullByte
 	}
@@ -415,20 +413,18 @@ func makeSlice(n int) []byte {
 
 func NewIoBuffer(capacity int) types.IoBuffer {
 	buffer := &IoBuffer{
-		ByteBufferPool:    GetByteBufferPool(),
 		offMark: ResetOffMark,
 	}
 	if capacity <= 0 {
 		capacity = DefaultSize
 	}
-	buffer.b = buffer.Take(capacity)
+	buffer.b = GetBytes(capacity)
 	buffer.buf = (*buffer.b)[:0]
 	return buffer
 }
 
 func NewIoBufferString(s string) types.IoBuffer {
 	return &IoBuffer{
-		ByteBufferPool:    GetByteBufferPool(),
 		buf:     []byte(s),
 		offMark: ResetOffMark,
 	}
@@ -436,7 +432,6 @@ func NewIoBufferString(s string) types.IoBuffer {
 
 func NewIoBufferBytes(bytes []byte) types.IoBuffer {
 	return &IoBuffer{
-		ByteBufferPool:    GetByteBufferPool(),
 		buf:     bytes,
 		offMark: ResetOffMark,
 	}

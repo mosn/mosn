@@ -279,7 +279,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn interfac
 	return nil
 }
 
-func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
+func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	if s.request == nil {
 		s.request = fasthttp.AcquireRequest()
 	}
@@ -293,7 +293,7 @@ func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *clientStream) AppendTrailers(trailers map[string]string) error {
+func (s *clientStream) AppendTrailers(context context.Context, trailers map[string]string) error {
 	s.endStream()
 
 	return nil
@@ -339,7 +339,7 @@ func (s *clientStream) handleResponse() {
 	if s.response != nil {
 		s.receiver.OnReceiveHeaders(s.context, decodeRespHeader(s.response.Header), false)
 		buf := buffer.NewIoBufferBytes(s.response.Body())
-		s.receiver.OnReceiveData(buf, true)
+		s.receiver.OnReceiveData(s.context, buf, true)
 
 		s.wrapper.asMutex.Lock()
 		s.request = nil
@@ -381,7 +381,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headerIn interface
 	return nil
 }
 
-func (s *serverStream) AppendData(data types.IoBuffer, endStream bool) error {
+func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	s.ctx.SetBody(data.Bytes())
 
 	if endStream {
@@ -391,7 +391,7 @@ func (s *serverStream) AppendData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *serverStream) AppendTrailers(trailers map[string]string) error {
+func (s *serverStream) AppendTrailers(context context.Context, trailers map[string]string) error {
 	s.endStream()
 	return nil
 }
@@ -447,7 +447,7 @@ func (s *serverStream) handleRequest() {
 		// data remove detect
 		if s.connection.activeStream != nil {
 			buf := buffer.NewIoBufferBytes(s.ctx.Request.Body())
-			s.receiver.OnReceiveData(buf, true)
+			s.receiver.OnReceiveData(s.context, buf, true)
 			//no Trailer in Http/1.x
 		}
 	}

@@ -42,13 +42,6 @@ func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {
-			var content types.IoBuffer
-			if cmd.Content != nil {
-				protocolCtx := protocol.ProtocolBuffersByContent(context)
-				content = protocolCtx.GetRspData(len(cmd.Content))
-				content.Write(cmd.Content)
-			}
-
 			if cmd.ResponseHeader != nil {
 				// 回调到stream中的OnDecoderHeader，回传HEADER数据
 				if cmd.Content == nil {
@@ -64,7 +57,7 @@ func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}
 
 			if cmd.Content != nil {
 				///回调到stream中的OnDecoderDATA，回传CONTENT数据
-				status := filter.OnDecodeData(reqID, content)
+				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.Content))
 
 				if status == types.StopIteration {
 					return

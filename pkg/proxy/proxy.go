@@ -199,40 +199,10 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 }
 
 func (p *proxy) deleteActiveStream(s *downStream) {
-	// reuse decode map
-	/*
-	if p.resueCodecMaps {
-		if s.downstreamReqHeaders != nil {
-			p.codecPool.Give(s.downstreamReqHeaders)
-		}
-
-		if s.upstreamRequest != nil {
-			if s.upstreamRequest.upstreamRespHeaders != nil {
-				p.codecPool.Give(s.upstreamRequest.upstreamRespHeaders)
-			}
-		}
-	}
-
-	if s.downstreamReqDataBuf != nil {
-		p.bytesBufferPool.Give(s.downstreamReqDataBuf)
-	}
-
-	if s.downstreamRespDataBuf != nil {
-		p.bytesBufferPool.Give(s.downstreamRespDataBuf)
-	}
-	*/
-
 	if s.element != nil {
 		p.asMux.Lock()
 		p.activeSteams.Remove(s.element)
 		p.asMux.Unlock()
-	}
-
-	//s.reset()
-
-	// Give bufferPool
-	if ctx := buffer.PoolContext(s.context); ctx != nil {
-		ctx.Give()
 	}
 }
 

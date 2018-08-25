@@ -101,8 +101,9 @@ func (r *upstreamRequest) ReceiveHeaders(headers map[string]string, endStream bo
 	r.downStream.onUpstreamHeaders(headers, endStream)
 }
 
-func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
-	r.downStream.downstreamRespDataBuf = data
+func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
+	r.downStream.downstreamRespDataBuf = data.Clone()
+	data.Drain(data.Len())
 
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
@@ -119,7 +120,7 @@ func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
 	r.downStream.onUpstreamData(data, endStream)
 }
 
-func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
+func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
@@ -134,7 +135,7 @@ func (r *upstreamRequest) ReceiveTrailers(trailers map[string]string) {
 	r.downStream.onUpstreamTrailers(trailers)
 }
 
-func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
+func (r *upstreamRequest) OnDecodeError(context context.Context, err error, headers map[string]string) {
 	r.OnResetStream(types.StreamLocalReset)
 }
 
@@ -156,14 +157,14 @@ func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("upstream request encode data")
 	r.sendComplete = endStream
 	r.dataSent = true
-	r.requestSender.AppendData(data, endStream)
+	r.requestSender.AppendData(r.downStream.context, data, endStream)
 }
 
 func (r *upstreamRequest) appendTrailers(trailers map[string]string) {
 	log.DefaultLogger.Debugf("upstream request encode trailers")
 	r.sendComplete = true
 	r.trailerSent = true
-	r.requestSender.AppendTrailers(trailers)
+	r.requestSender.AppendTrailers(r.downStream.context, trailers)
 }
 
 // types.PoolEventListener

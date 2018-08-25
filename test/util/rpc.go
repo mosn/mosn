@@ -89,11 +89,11 @@ func (c *RPCClient) SendRequest() {
 	c.Waits.Store(streamID, streamID)
 }
 
-func (c *RPCClient) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (c *RPCClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 }
-func (c *RPCClient) OnReceiveTrailers(trailers map[string]string) {
+func (c *RPCClient) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 }
-func (c *RPCClient) OnDecodeError(err error, headers map[string]string) {
+func (c *RPCClient) OnDecodeError(context context.Context, err error, headers map[string]string) {
 }
 func (c *RPCClient) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]

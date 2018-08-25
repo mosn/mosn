@@ -139,7 +139,7 @@ func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer)
 			// for client stream, remove stream on response read
 			stream.connection.activeStreams.Remove(stream.streamID)
 		}
-		stream.decoder.OnReceiveData(data, true)
+		stream.decoder.OnReceiveData(conn.context, data, true)
 	}
 
 	return types.StopIteration
@@ -169,7 +169,7 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 					// for client stream, remove stream on response read
 					stream.connection.activeStreams.Remove(stream.streamID)
 				}
-				stream.decoder.OnDecodeError(err, header)
+				stream.decoder.OnDecodeError(conn.context, err, header)
 			}
 		} else {
 			// if no request id found, no reason to send response, so close connection
@@ -277,7 +277,7 @@ func (s *stream)  AppendHeaders(context context.Context, headers interface{}, en
 	return nil
 }
 
-func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
+func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
 
 	log.DefaultLogger.Infof("AppendData,request id = %s, direction = %d", s.streamID, s.direction)
@@ -289,7 +289,7 @@ func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *stream) AppendTrailers(trailers map[string]string) error {
+func (s *stream) AppendTrailers(context context.Context, trailers map[string]string) error {
 	s.endStream()
 
 	return nil

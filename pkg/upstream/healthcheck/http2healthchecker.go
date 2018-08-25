@@ -84,17 +84,17 @@ func (s *http2HealthCheckSession) OnReceiveHeaders(context context.Context, head
 	}
 }
 
-func (s *http2HealthCheckSession) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (s *http2HealthCheckSession) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	if endStream {
 		s.onResponseComplete()
 	}
 }
 
-func (s *http2HealthCheckSession) OnReceiveTrailers(trailers map[string]string) {
+func (s *http2HealthCheckSession) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	s.onResponseComplete()
 }
 
-func (s *http2HealthCheckSession) OnDecodeError(err error, headers map[string]string) {
+func (s *http2HealthCheckSession) OnDecodeError(context context.Context, err error, headers map[string]string) {
 }
 
 // overload healthCheckSession

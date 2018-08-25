@@ -23,11 +23,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// Test ByteBufferPool
-var bytePool = GetByteBufferPool()
-
+// Test byteBufferPool
 func testbytepool() *[]byte {
-	b := bytePool.Take(1024)
+	b := GetBytes(1024)
 	buf := *b
 	for i := 0; i < 1024; i++ {
 		buf[i] = 1
@@ -46,7 +44,7 @@ func testbyte() []byte {
 func BenchmarkBytePool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buf := testbytepool()
-		bytePool.Give(buf)
+		PutBytes(buf)
 		if i%100 == 0 {
 			runtime.GC()
 		}
@@ -64,10 +62,9 @@ func BenchmarkByte(b *testing.B) {
 
 // Test IoBufferPool
 
-var ioBufferPool = NewIoBufferPool()
 
 func testiobufferpool() types.IoBuffer {
-	b := ioBufferPool.Take(1)
+	b := GetIoBuffer(1)
 	b.Read([]byte{1})
 	return b
 }
@@ -81,7 +78,7 @@ func testiobuffer() types.IoBuffer {
 func BenchmarkIoBufferPool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buf := testiobufferpool()
-		ioBufferPool.Give(buf)
+		PutIoBuffer(buf)
 		if i%100 == 0 {
 			runtime.GC()
 		}

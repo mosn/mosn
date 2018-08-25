@@ -96,7 +96,6 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		remoteAddr:       rawc.RemoteAddr(),
 		stopChan:         stopChan,
 		readEnabled:      true,
-		ioBufferPool:     buffer.NewIoBufferPool(),
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
 		writeBufferChan:  make(chan *[]types.IoBuffer, 32),
@@ -114,7 +113,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	if ctx.Value(types.ContextKeyAcceptChan) != nil {
 		if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
 			buf := ctx.Value(types.ContextKeyAcceptBuffer).([]byte)
-			conn.readBuffer = conn.ioBufferPool.Take(len(buf))
+			conn.readBuffer = buffer.GetIoBuffer(len(buf))
 			conn.readBuffer.Write(buf)
 		}
 
@@ -212,7 +211,7 @@ func (c *connection) startReadLoop() {
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
 						if c.readBuffer != nil && c.readBuffer.Len() == 0 {
-							c.ioBufferPool.Give(c.readBuffer)
+							buffer.PutIoBuffer(c.readBuffer)
 							c.readBuffer = nil
 						}
 						continue
@@ -247,7 +246,7 @@ transfer:
 
 func (c *connection) doRead() (err error) {
 	if c.readBuffer == nil {
-		c.readBuffer = c.ioBufferPool.Take(DefaultBufferReadCapacity)
+		c.readBuffer = buffer.GetIoBuffer(DefaultBufferReadCapacity)
 	}
 
 	var bytesRead int64
@@ -432,7 +431,7 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		return bytesSent, err
 	}
 	for _, buf := range c.ioBuffers {
-		c.ioBufferPool.Give(buf)
+		buffer.PutIoBuffer(buf)
 	}
 	c.ioBuffers = c.ioBuffers[:0]
 	return
@@ -676,7 +675,6 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			remoteAddr:       remoteAddr,
 			stopChan:         stopChan,
 			readEnabled:      true,
-			ioBufferPool:     buffer.NewIoBufferPool(),
 			readEnabledChan:  make(chan bool, 1),
 			internalStopChan: make(chan struct{}),
 			writeBufferChan:  make(chan *[]types.IoBuffer, 32),
