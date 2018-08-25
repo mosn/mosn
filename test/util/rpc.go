@@ -180,8 +180,12 @@ func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
 }
 
 func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
+	atomic.AddUint32(&s.Count, 1)
+	ServeBoltV1(t, conn)
+}
+
+func ServeBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		atomic.AddUint32(&s.Count, 1)
 		cmd, _ := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
@@ -198,6 +202,7 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 		return nil, true
 	}
 	serveSofaRPC(t, conn, response)
+
 }
 func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
 	//TODO:
