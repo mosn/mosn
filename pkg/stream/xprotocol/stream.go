@@ -156,6 +156,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 			value, ok := conn.streamIdMap.Load(tmpStreamId)
 			if ok {
 				streamId = value.(string)
+				conn.streamIdMap.Delete(tmpStreamId)
 				log.DefaultLogger.Tracef("Xprotocol get streamId %v, response reqId = %v", streamId, tmpStreamId)
 			} else {
 				log.DefaultLogger.Tracef("fail to get old streamid , maybe streamid is changed by upstream server?")
@@ -358,6 +359,7 @@ func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 			buf = s.connection.codec.SetStreamId(buf, reqId)
 			reqBuf := networkbuffer.NewIoBufferBytes(buf)
 			s.encodedData = reqBuf
+			s.connection.reqIdMap.Delete(streamId)
 		}
 	}
 	log.DefaultLogger.Tracef("EncodeData,request id = %s, direction = %d,data = %v", s.streamID, s.direction, data.String())
