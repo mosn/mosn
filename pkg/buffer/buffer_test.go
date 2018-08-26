@@ -25,17 +25,17 @@ import (
 
 // Test byteBufferPool
 func testbytepool() *[]byte {
-	b := GetBytes(1024)
+	b := GetBytes(10000)
 	buf := *b
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 10000; i++ {
 		buf[i] = 1
 	}
 	return b
 }
 
 func testbyte() []byte {
-	buf := make([]byte, 1024)
-	for i := 0; i < 1024; i++ {
+	buf := make([]byte, 10000)
+	for i := 0; i < 10000; i++ {
 		buf[i] = 1
 	}
 	return buf

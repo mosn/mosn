@@ -37,7 +37,7 @@ import (
 // Network related const
 const (
 	ConnectionCloseDebugMsg   = "Close connection %d, event %s, type %s, data read %d, data write %d"
-	DefaultBufferReadCapacity = 1 << 1
+	DefaultBufferReadCapacity = 1 << 0
 )
 
 var idCounter uint64 = 1
@@ -210,8 +210,8 @@ func (c *connection) startReadLoop() {
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
 						if c.readBuffer != nil && c.readBuffer.Len() == 0 {
-							buffer.PutIoBuffer(c.readBuffer)
-							c.readBuffer = nil
+							c.readBuffer.Free()
+							c.readBuffer.Alloc(DefaultBufferReadCapacity)
 						}
 						continue
 					}
