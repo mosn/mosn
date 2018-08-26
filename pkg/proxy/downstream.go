@@ -30,8 +30,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
-
-	"runtime/debug"
 )
 
 // types.StreamEventListener
@@ -275,7 +273,6 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
-
 
 	// `downstream` implement loadbalancer ctx
 	log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
@@ -569,7 +566,7 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 	}
 
 	// todo: update stats
-	log.DefaultLogger.Tracef("on upstream reset invoked,stack = %v",string(debug.Stack()))
+	log.DefaultLogger.Tracef("on upstream reset invoked")
 
 	// see if we need a retry
 	if urtype != UpstreamGlobalTimeout &&

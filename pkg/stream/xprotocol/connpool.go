@@ -73,12 +73,11 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		return nil
 	}
 
-	// why downstream http2 , upstream x can't create?
-	//if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-	//	cb.OnFailure(streamID, types.Overflow, nil)
-	//	p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-	//	p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-	//} else {
+	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
+		cb.OnFailure(streamID, types.Overflow, nil)
+		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+	} else {
 		p.primaryClient.totalStream++
 		p.host.HostStats().UpstreamRequestTotal.Inc(1)
 		p.host.HostStats().UpstreamRequestActive.Inc(1)
@@ -89,7 +88,7 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		streamEncoder := p.primaryClient.codecClient.NewStream(streamID, responseDecoder)
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
 		cb.OnReady(streamID, streamEncoder, p.host)
-	//}
+	}
 
 	return nil
 }

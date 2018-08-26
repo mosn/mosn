@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	Bolt1 = "boltV1"
-	Bolt2 = "boltV2"
+	Bolt1     = "boltV1"
+	Bolt2     = "boltV2"
 	Xprotocol = "X"
 )
 
@@ -172,9 +172,7 @@ func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
 	case Bolt1:
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV1)
 	case Bolt2:
-    s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV2)
-	case Xprotocol:
-		s.UpstreamServer = NewUpstreamServer(t, addr, ServeXprotocol)
+		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV2)
 	default:
 		t.Errorf("unsupport protocol")
 		return nil
@@ -209,14 +207,6 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 }
 func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
 	//TODO:
-}
-func ServeXprotocol(t *testing.T, conn net.Conn) {
-	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		//fmt.Printf("client request : %v\n",string(iobuf.Bytes()))
-		responseData := []byte{14,1,1,20,8,0,0,0,0,0,0,0,0,0,107,200,0,0,0,11,10,104,105,32,58,32,119,111,114,108,100}
-		return responseData, true
-	}
-	serveSofaRPC(t, conn, response)
 }
 
 func serveSofaRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {

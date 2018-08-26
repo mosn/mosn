@@ -114,7 +114,7 @@ func (csc *clientStreamConnection) OnGoAway() {
 }
 
 func (csc *clientStreamConnection) NewStream(streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
-	log.DefaultLogger.Tracef("http2 client stream connection new stream , stream id = %v",streamID)
+	log.DefaultLogger.Tracef("http2 client stream connection new stream , stream id = %v", streamID)
 	stream := &clientStream{
 		stream: stream{
 			context: context.WithValue(csc.context, types.ContextKeyStreamID, streamID),
@@ -529,9 +529,6 @@ func (s *serverStream) handleRequest() {
 		if _, ok := header[protocol.MosnHeaderQueryStringKey]; !ok {
 			header[protocol.MosnHeaderQueryStringKey] = string(queryString)
 		}
-
-		// set stream id on headers for xprotocol
-		header[types.HeaderStreamID] = s.stream.context.Value(types.ContextKeyStreamID).(string)
 
 		s.decoder.OnReceiveHeaders(header, false)
 

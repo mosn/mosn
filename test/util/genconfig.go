@@ -33,6 +33,7 @@ func newFilterChain(name string, downstream, upstream types.Protocol, routers []
 		},
 	}
 }
+
 func newTLSFilterChain(name string, downstream, upstream types.Protocol, routers []config.Router, tls config.TLSConfig) config.FilterChain {
 	chain := newFilterChain(name, downstream, upstream, routers)
 	chain.TLS = tls
@@ -130,6 +131,7 @@ func newPrefixRouter(cluster string, prefix string) config.Router {
 		Route: config.RouteAction{ClusterName: cluster},
 	}
 }
+
 func newPathRouter(cluster string, path string) config.Router {
 	return config.Router{
 		Match: config.RouterMatch{Path: path},

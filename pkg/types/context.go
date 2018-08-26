@@ -36,7 +36,7 @@ const (
 	ContextOriRemoteAddr                  ContextKey = "OriRemoteAddr"
 	ContextKeyAcceptChan                  ContextKey = "ContextKeyAcceptChan"
 	ContextKeyAcceptBuffer                ContextKey = "ContextKeyAcceptBuffer"
-  ContextSubProtocol               	    ContextKey = "SubProtocol"
+	ContextSubProtocol                    ContextKey = "SubProtocol"
 )
 
 const (

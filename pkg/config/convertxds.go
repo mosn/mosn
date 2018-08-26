@@ -313,7 +313,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 
 func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} {
 	extendConfig := &v2.XProxyExtendConfig{
-		SubProtocol:   config.XProtocol,
+		SubProtocol: config.XProtocol,
 	}
 	return structs.Map(extendConfig)
 }

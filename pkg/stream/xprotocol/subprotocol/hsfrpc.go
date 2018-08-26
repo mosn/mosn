@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
