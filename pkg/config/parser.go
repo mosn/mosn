@@ -132,6 +132,42 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 	return sc
 }
 
+// ConvertProxyFilterToV2
+func ConvertProxyFilterToV2(config map[string]interface{}) map[string]interface{} {
+	proxyConfig := &Proxy{}
+
+	if data, err := json.Marshal(config); err == nil {
+		json.Unmarshal(data, &proxyConfig)
+	} else {
+		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
+	}
+
+	proxyConfigV2 :=  &v2.Proxy{
+		Name:                proxyConfig.Name,
+		DownstreamProtocol:  proxyConfig.DownstreamProtocol,
+		UpstreamProtocol:    proxyConfig.UpstreamProtocol,
+		SupportDynamicRoute: proxyConfig.SupportDynamicRoute,
+		BasicRoutes:         nil,
+		VirtualHosts:        parseVirtualHost(proxyConfig.VirtualHosts),
+		ValidateClusters:    proxyConfig.ValidateClusters,
+	}
+
+	if proxyConfig.UpstreamProtocol == string(protocol.Xprotocol) || proxyConfig.DownstreamProtocol == string(protocol.Xprotocol) {
+		extendConfig := &XProtocolExtendConfig{}
+		if data, err := json.Marshal(proxyConfig.ExtendConfig); err == nil {
+			json.Unmarshal(data, &extendConfig)
+		} else {
+			log.StartLogger.Fatal("Parsing xprotocol extend config Error")
+		}
+		extendConfigV2 := v2.XProxyExtendConfig{
+			SubProtocol:	extendConfig.SubProtocol,
+		}
+		proxyConfigV2.ExtendConfig = structs.Map(extendConfigV2)
+	}
+
+	return structs.Map(proxyConfigV2)
+}
+
 // ParseProxyFilter
 func ParseProxyFilter(config map[string]interface{}) *v2.Proxy {
 	proxyConfig := &v2.Proxy{}
@@ -159,7 +195,6 @@ func ParseProxyFilter(config map[string]interface{}) *v2.Proxy {
 			log.StartLogger.Fatal("No Router Founded in VirtualHosts")
 		}
 	}
-
 	return proxyConfig
 }
 
@@ -372,25 +407,6 @@ func parseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
 	return logs
 }
 
-func convertProxyConfigJSON(config map[string]interface{}) map[string]interface{} {
-	proxyConfig := &Proxy{}
-	if data, err := json.Marshal(config); err == nil {
-		json.Unmarshal(data, &proxyConfig)
-	} else {
-		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
-	}
-	proxyConfigV2 := v2.Proxy{
-		Name:                proxyConfig.Name,
-		DownstreamProtocol:  proxyConfig.DownstreamProtocol,
-		UpstreamProtocol:    proxyConfig.UpstreamProtocol,
-		SupportDynamicRoute: proxyConfig.SupportDynamicRoute,
-		BasicRoutes:         nil,
-		VirtualHosts:        parseVirtualHost(proxyConfig.VirtualHosts),
-		ValidateClusters:    proxyConfig.ValidateClusters,
-	}
-	return structs.Map(proxyConfigV2)
-}
-
 func parseFilterChains(c []FilterChain) []v2.FilterChain {
 	var filterchains []v2.FilterChain
 
@@ -399,7 +415,7 @@ func parseFilterChains(c []FilterChain) []v2.FilterChain {
 		for _, f := range fc.Filters {
 			filters = append(filters, v2.Filter{
 				Name:   f.Type,
-				Config: convertProxyConfigJSON(f.Config),
+				Config: f.Config,
 			})
 		}
 
@@ -871,7 +887,8 @@ func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
 
 	return factories
 }
-func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {
+
+func ConvertTCPProxyToV2(config map[string]interface{}) (map[string]interface{}, error) {
 	data, _ := json.Marshal(config)
 	cfg := &TCPProxyConfig{}
 	if err := json.Unmarshal(data, cfg); err != nil {
@@ -899,6 +916,15 @@ func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {
 			tcpRoute.DestinationAddrs = append(tcpRoute.DestinationAddrs, dst)
 		}
 		proxy.Routes = append(proxy.Routes, tcpRoute)
+	}
+	return structs.Map(proxy), nil
+}
+
+func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {
+	data, _ := json.Marshal(config)
+	proxy := &v2.TCPProxy{}
+	if err := json.Unmarshal(data, proxy); err != nil {
+		return nil, fmt.Errorf("config is not a tcp proxy config: %v", err)
 	}
 	return proxy, nil
 }

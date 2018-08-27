@@ -39,7 +39,14 @@ func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context,
 	callbacks.AddReadFilter(rf)
 }
 
-func CreateTCPProxyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+func CreateTCPProxyFactory(conf map[string]interface{}, isV2 bool) (types.NetworkFilterChainFactory, error) {
+	var err error
+	if !isV2 {
+		conf, err = config.ConvertTCPProxyToV2(conf)
+		if err != nil {
+			return nil, err
+		}
+	}
 	p, err := config.ParseTCPProxy(conf)
 	if err != nil {
 		return nil, err

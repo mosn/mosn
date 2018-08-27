@@ -186,7 +186,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 func getNetworkFilters(c *v2.FilterChain) []types.NetworkFilterChainFactory {
 	var factories []types.NetworkFilterChainFactory
 	for _, f := range c.Filters {
-		factory, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config)
+		factory, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config, false)
 		if err != nil {
 			log.StartLogger.Fatalln("network filter create failed :", err)
 		}
