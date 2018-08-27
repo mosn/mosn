@@ -194,6 +194,11 @@ type FaultInject struct {
 	DelayDuration uint64
 }
 
+// XProxyExtendConfig
+type XProxyExtendConfig struct {
+	SubProtocol string
+}
+
 type Proxy struct {
 	Name                string
 	DownstreamProtocol  string
@@ -202,6 +207,7 @@ type Proxy struct {
 	BasicRoutes         []*BasicServiceRoute
 	VirtualHosts        []*VirtualHost
 	ValidateClusters    bool
+	ExtendConfig        map[string]interface{}
 }
 
 type BasicServiceRoute struct {

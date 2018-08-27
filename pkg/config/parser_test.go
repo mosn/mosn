@@ -196,6 +196,60 @@ func TestParseProxyFilterJSONFile(t *testing.T) {
 	}
 }
 
+func TestParseXProxyFilterJSONFile(t *testing.T) {
+	var proxy Proxy
+	filterchanStr := `{
+                    "downstream_protocol": "X",
+                    "name": "proxy_config",
+                    "support_dynamic_route": true,
+                    "upstream_protocol": "Http2",
+                    "extend_config": {
+                      "sub_protocol": "sofa"
+                    },
+                    "virtual_hosts": [
+                      {
+                        "name": "sofa",
+                        "require_tls": "no",
+                        "domains":[
+                          "*testwilccard"
+                        ],
+                        "routers": [
+                          {
+                            "match": {
+                              "headers": [
+                                {
+                                  "name": "service",
+                                  "value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
+                                  "regex":false
+                                }
+                              ]
+                            },
+                            "route": {
+                              "cluster_name": "test_cpp",
+                              "metadata_match": {
+                                "filter_metadata": {
+                                  "mosn.lb": {
+                                    "version":"1.1",
+                                    "stage":"pre-release",
+                                    "label": "gray"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }`
+
+	json.Unmarshal([]byte(filterchanStr), &proxy)
+
+	if proxy.Name != "proxy_config" || len(proxy.VirtualHosts) != 1 ||
+		proxy.VirtualHosts[0].Name != "sofa"  || proxy.ExtendConfig["sub_protocol"] != "sofa" {
+		t.Errorf("TestParseProxyFilterJSON Failure")
+	}
+}
+
 func TestParseTlsJsonFile(t *testing.T) {
 	tlscon := TLSConfig{}
 	test := `{

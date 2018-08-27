@@ -44,6 +44,10 @@ type FilterChain struct {
 	Filters          []FilterConfig `json:"filters"`
 }
 
+type XProtocolExtendConfig struct {
+	SubProtocol string	`json:"sub_protocol"`
+}
+
 type Proxy struct {
 	Name                string                  `json:"name"`
 	DownstreamProtocol  string                  `json:"downstream_protocol"`
@@ -52,6 +56,7 @@ type Proxy struct {
 	BasicRoutes         []*v2.BasicServiceRoute `json:"basic_routes"` //not used anymore. todo: delete related logic
 	VirtualHosts        []*VirtualHost          `json:"virtual_hosts"`
 	ValidateClusters    bool                    `json:"validate_clusters"`
+	ExtendConfig        map[string]interface{} `json:"extend_config"`
 }
 
 // VirtualHost
