@@ -30,6 +30,10 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 )
 
+func init() {
+	log.InitDefaultLogger("", log.DEBUG)
+}
+
 type mockClient struct {
 	t *testing.T
 }
@@ -41,21 +45,17 @@ func NewMockClient(t *testing.T) *mockClient {
 	return c
 }
 
-func (c *mockClient) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (c *mockClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("data:%v endStream:%v", data, endStream)
 }
-func (c *mockClient) OnReceiveTrailers(trailers map[string]string) {
+func (c *mockClient) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	log.DefaultLogger.Debugf("trailers:%v", trailers)
 }
-func (c *mockClient) OnDecodeError(err error, headers map[string]string) {
+func (c *mockClient) OnDecodeError(context context.Context, err error, headers map[string]string) {
 	c.t.Errorf("err:%v headers:%v", err, headers)
 }
-func (c *mockClient) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (c *mockClient) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	log.DefaultLogger.Debugf("headers:%v endStream:%v", headers, endStream)
-}
-
-func init() {
-	log.InitDefaultLogger("", log.DEBUG)
 }
 
 func checkNumbers(t *testing.T, codecClient str.CodecClient, want int) {
@@ -64,15 +64,17 @@ func checkNumbers(t *testing.T, codecClient str.CodecClient, want int) {
 		t.Fatalf("activeRequestsNum:%d want:%d", num, want)
 	}
 }
+
 func TestActiveRequests(t *testing.T) {
 	cli := NewMockClient(t)
 	host := cluster.NewHost(v2.Host{Address: "127.0.0.1", Hostname: "test", Weight: 0}, cluster.NewClusterInfo())
 	codecClient := NewHTTP1CodecClient(context.Background(), host)
+	ctx := context.Background()
 
-	codecClient.NewStream(protocol.StreamIDConv(1), cli)
+	codecClient.NewStream(ctx, protocol.StreamIDConv(1), cli)
 
 	checkNumbers(t, codecClient, 1)
-	codecClient.NewStream(protocol.StreamIDConv(2), cli)
+	codecClient.NewStream(ctx, protocol.StreamIDConv(2), cli)
 	checkNumbers(t, codecClient, 2)
 
 	codecClient.OnEvent(types.Connected)
@@ -89,7 +91,7 @@ func TestActiveRequests(t *testing.T) {
 		go func(pre int) {
 			defer wg.Done()
 			for j := 0; j < cnt; j++ {
-				codecClient.NewStream(protocol.StreamIDConv(uint32(pre*cnt+j)), cli)
+				codecClient.NewStream(ctx, protocol.StreamIDConv(uint32(pre*cnt+j)), cli)
 				codecClient.ActiveRequestsNum()
 				codecClient.OnEvent(types.LocalClose)
 			}
