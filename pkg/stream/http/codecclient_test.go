@@ -19,9 +19,8 @@ package http
 
 import (
 	"context"
-	"testing"
-
 	"sync"
+	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
