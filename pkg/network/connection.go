@@ -70,7 +70,7 @@ type connection struct {
 	writeBuffer         *buffer.IoBufferPoolEntry
 	writeBufferMux      sync.RWMutex
 	writeBufferChan     chan bool
-	writeSchedule       uint32
+	writeSchedChan      chan bool
 	internalLoopStarted bool
 	internalStopChan    chan struct{}
 	transferChan        chan uint64
@@ -103,6 +103,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
 		writeBufferChan:  make(chan bool, 1),
+		writeSchedChan:   make(chan bool, 1),
 		transferChan:     make(chan uint64),
 		readerBufferPool: readerBufferPool,
 		writeBufferPool:  writeBufferPool,
@@ -224,6 +225,25 @@ func (c *connection) startRWLoop(lctx context.Context) {
 
 		c.startWriteLoop()
 	}()
+}
+
+func (c *connection) scheduleWrite() {
+	writePool.ScheduleAlways(func() {
+		defer func() { <-c.writeSchedChan }()
+
+		_, err := c.doWrite()
+		if err != nil {
+			if err == io.EOF {
+				// remote conn closed
+				c.Close(types.NoFlush, types.RemoteClose)
+			} else {
+				// on non-timeout error
+				c.Close(types.NoFlush, types.OnWriteErrClose)
+			}
+			c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
+				c.id, c.RemoteAddr().String(), err)
+		}
+	})
 }
 
 func (c *connection) startReadLoop() {
@@ -366,32 +386,21 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 			buf.WriteTo(c.writeBuffer.Br)
 		}
 	}
+	c.writeBufferMux.Unlock()
 
 	if c.internalLoopStarted {
 		if len(c.writeBufferChan) == 0 {
 			c.writeBufferChan <- true
 		}
-	} else if atomic.CompareAndSwapUint32(&c.writeSchedule, 0, 1) {
-		writePool.ScheduleAlways(func() {
-			defer atomic.CompareAndSwapUint32(&c.writeSchedule, 1, 0)
+	} else {
 
-			_, err := c.doWrite()
-			if err != nil {
-				if err == io.EOF {
-					// remote conn closed
-					c.Close(types.NoFlush, types.RemoteClose)
-				} else {
-					// on non-timeout error
-					c.Close(types.NoFlush, types.OnWriteErrClose)
-				}
-
-				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
-					c.id, c.RemoteAddr().String(), err)
-			}
-		})
+		// Start schedule if not started
+		select {
+		case c.writeSchedChan <- true:
+			c.scheduleWrite()
+		default:
+		}
 	}
-
-	c.writeBufferMux.Unlock()
 
 	return nil
 }
@@ -739,6 +748,7 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			readEnabledChan:  make(chan bool, 1),
 			internalStopChan: make(chan struct{}),
 			writeBufferChan:  make(chan bool, 1),
+			writeSchedChan:   make(chan bool, 1),
 			readerBufferPool: readerBufferPool,
 			writeBufferPool:  writeBufferPool,
 			stats: &types.ConnectionStats{
