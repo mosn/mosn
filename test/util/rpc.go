@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	Bolt1 = "boltV1"
-	Bolt2 = "boltV2"
+	Bolt1     = "boltV1"
+	Bolt2     = "boltV2"
+	Xprotocol = "X"
 )
 
 type RPCClient struct {

@@ -143,6 +143,8 @@ func (c *testCase) RunCase(n int) {
 			}
 			return nil
 		}
+	// TODO : add xprotocol test
+
 	default:
 		c.C <- fmt.Errorf("unsupported protocol: %v", c.AppProtocol)
 		return

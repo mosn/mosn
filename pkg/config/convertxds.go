@@ -278,8 +278,8 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  string(protocol.HTTP2),
-			UpstreamProtocol:    string(protocol.HTTP2),
+			DownstreamProtocol:  string(protocol.HTTP1),
+			UpstreamProtocol:    string(protocol.HTTP1),
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
@@ -302,12 +302,20 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			UpstreamProtocol:    filterConfig.GetUpstreamProtocol().String(),
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
+			ExtendConfig:        convertXProxyExtendConfig(filterConfig),
 		}
 		return structs.Map(proxyConfig)
 	}
 
 	log.DefaultLogger.Errorf("unsupported filter config, filter name: %s", name)
 	return nil
+}
+
+func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} {
+	extendConfig := &v2.XProxyExtendConfig{
+		SubProtocol: config.XProtocol,
+	}
+	return structs.Map(extendConfig)
 }
 
 func convertVirtualHosts(xdsRouteConfig *xdsapi.RouteConfiguration) []*v2.VirtualHost {

@@ -60,7 +60,7 @@ func (p *connPool) DrainConnections() {}
 // NewStream invoked by Proxy
 func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
-	log.StartLogger.Tracef("xprotocol conn pool new stream")
+	log.DefaultLogger.Tracef("xprotocol conn pool new stream")
 	p.mux.Lock()
 
 	if p.primaryClient == nil {
@@ -84,9 +84,9 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		log.StartLogger.Tracef("xprotocol conn pool codec client new stream")
+		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream")
 		streamEncoder := p.primaryClient.codecClient.NewStream(streamID, responseDecoder)
-		log.StartLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
+		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
 		cb.OnReady(streamID, streamEncoder, p.host)
 	}
 
@@ -197,14 +197,14 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 		pool: pool,
 	}
 
-	log.StartLogger.Tracef("xprotocol new active client , try to create connection")
+	log.DefaultLogger.Tracef("xprotocol new active client , try to create connection")
 	data := pool.host.CreateConnection(context)
 	data.Connection.Connect(true)
-	log.StartLogger.Tracef("xprotocol new active client , connect success %v", data)
+	log.DefaultLogger.Tracef("xprotocol new active client , connect success %v", data)
 
-	log.StartLogger.Tracef("xprotocol new active client , try to create codec client")
+	log.DefaultLogger.Tracef("xprotocol new active client , try to create codec client")
 	codecClient := pool.createCodecClient(context, data)
-	log.StartLogger.Tracef("xprotocol new active client , create codec client success")
+	log.DefaultLogger.Tracef("xprotocol new active client , create codec client success")
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)

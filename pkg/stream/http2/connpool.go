@@ -23,6 +23,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
@@ -88,6 +89,7 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
+		log.DefaultLogger.Tracef("http2 codec client new stream , stream id = %v", streamID)
 		streamEncoder := ac.codecClient.NewStream(streamID, responseDecoder)
 		cb.OnReady(streamID, streamEncoder, p.host)
 	}
