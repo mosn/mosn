@@ -42,6 +42,6 @@ func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(context context.C
 
 func CreatePrxoyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
 	return &genericProxyFilterConfigFactory{
-		Proxy: config.ParseProxyFilterJSON(conf),
+		Proxy: config.ParseProxyFilter(conf),
 	}, nil
 }
