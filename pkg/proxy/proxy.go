@@ -67,7 +67,7 @@ type proxy struct {
 	clusterName    string
 	routers        types.Routers
 	serverCodec    types.ServerStreamConnection
-	resueCodecMaps bool
+	reuseCodecMaps bool
 	codecPool      types.HeadersBufferPool
 
 	context context.Context
@@ -97,7 +97,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		clusterManager:  clusterManager,
 		activeSteams:    list.New(),
 		stats:           globalStats,
-		resueCodecMaps:  true,
+		reuseCodecMaps:  true,
 		codecPool:       codecHeadersBufPool,
 		bytesBufferPool: buffer.NewSlabPool(),
 		context:         ctx,
@@ -211,7 +211,7 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 
 func (p *proxy) deleteActiveStream(s *downStream) {
 	// reuse decode map
-	if p.resueCodecMaps {
+	if p.reuseCodecMaps {
 		if s.downstreamReqHeaders != nil {
 			p.codecPool.Give(s.downstreamReqHeaders)
 		}
