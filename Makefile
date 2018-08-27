@@ -24,7 +24,7 @@ RPM_SRC_DIR     = ${RPM_TAR_NAME}-${RPM_VERSION}
 RPM_TAR_FILE    = ${RPM_SRC_DIR}.tar.gz
 
 ut-local:
-	go test ./pkg/...
+	go test -race ./pkg/...
 
 unit-test:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
