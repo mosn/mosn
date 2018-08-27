@@ -28,8 +28,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -127,10 +127,10 @@ func (csw *clientStreamWrapper) OnGoAway() {
 	csw.streamConnCallbacks.OnGoAway()
 }
 
-func (csw *clientStreamWrapper) NewStream(streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
+func (csw *clientStreamWrapper) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
-			context:  context.WithValue(csw.context, types.ContextKeyStreamID, streamID),
+			context:  context.WithValue(ctx, types.ContextKeyStreamID, streamID),
 			receiver: responseDecoder,
 		},
 		wrapper: csw,
@@ -182,7 +182,7 @@ func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	s.receiver = ssc.serverStreamConnCallbacks.NewStream(streamID, s)
+	s.receiver = ssc.serverStreamConnCallbacks.NewStream(s.stream.context, streamID, s)
 
 	ssc.activeStream = &s.stream
 
@@ -246,7 +246,7 @@ type clientStream struct {
 }
 
 // types.StreamSender
-func (s *clientStream) AppendHeaders(headersIn interface{}, endStream bool) error {
+func (s *clientStream) AppendHeaders(context context.Context, headersIn interface{}, endStream bool) error {
 	headers, _ := headersIn.(map[string]string)
 
 	if s.request == nil {
@@ -279,7 +279,7 @@ func (s *clientStream) AppendHeaders(headersIn interface{}, endStream bool) erro
 	return nil
 }
 
-func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
+func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	if s.request == nil {
 		s.request = fasthttp.AcquireRequest()
 	}
@@ -293,7 +293,7 @@ func (s *clientStream) AppendData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *clientStream) AppendTrailers(trailers map[string]string) error {
+func (s *clientStream) AppendTrailers(context context.Context, trailers map[string]string) error {
 	s.endStream()
 
 	return nil
@@ -337,9 +337,9 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		s.receiver.OnReceiveHeaders(decodeRespHeader(s.response.Header), false)
+		s.receiver.OnReceiveHeaders(s.context, decodeRespHeader(s.response.Header), false)
 		buf := buffer.NewIoBufferBytes(s.response.Body())
-		s.receiver.OnReceiveData(buf, true)
+		s.receiver.OnReceiveData(s.context, buf, true)
 
 		s.wrapper.asMutex.Lock()
 		s.request = nil
@@ -364,7 +364,7 @@ type serverStream struct {
 }
 
 // types.StreamSender
-func (s *serverStream) AppendHeaders(headerIn interface{}, endStream bool) error {
+func (s *serverStream) AppendHeaders(context context.Context, headerIn interface{}, endStream bool) error {
 	headers, _ := headerIn.(map[string]string)
 
 	if status, ok := headers[types.HeaderStatus]; ok {
@@ -381,7 +381,7 @@ func (s *serverStream) AppendHeaders(headerIn interface{}, endStream bool) error
 	return nil
 }
 
-func (s *serverStream) AppendData(data types.IoBuffer, endStream bool) error {
+func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	s.ctx.SetBody(data.Bytes())
 
 	if endStream {
@@ -391,7 +391,7 @@ func (s *serverStream) AppendData(data types.IoBuffer, endStream bool) error {
 	return nil
 }
 
-func (s *serverStream) AppendTrailers(trailers map[string]string) error {
+func (s *serverStream) AppendTrailers(context context.Context, trailers map[string]string) error {
 	s.endStream()
 	return nil
 }
@@ -442,12 +442,12 @@ func (s *serverStream) handleRequest() {
 			header[protocol.MosnHeaderQueryStringKey] = string(s.ctx.URI().QueryString())
 		}
 
-		s.receiver.OnReceiveHeaders(header, false)
+		s.receiver.OnReceiveHeaders(s.context, header, false)
 
 		// data remove detect
 		if s.connection.activeStream != nil {
 			buf := buffer.NewIoBufferBytes(s.ctx.Request.Body())
-			s.receiver.OnReceiveData(buf, true)
+			s.receiver.OnReceiveData(s.context, buf, true)
 			//no Trailer in Http/1.x
 		}
 	}

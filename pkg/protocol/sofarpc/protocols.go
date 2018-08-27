@@ -20,7 +20,6 @@ package sofarpc
 import (
 	"context"
 	"errors"
-	"reflect"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -57,8 +56,8 @@ func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) 
 		headersMap := headers.(map[string]string)
 
 		if proto, exist := headersMap[SofaPropertyHeader(HeaderProtocolCode)]; exist {
-			protoValue := ConvertPropertyValue(proto, reflect.Uint8)
-			protocolCode = protoValue.(byte)
+			protoValue := ConvertPropertyValueUint8(proto)
+			protocolCode = protoValue
 		} else {
 			errMsg := NoProCodeInHeader
 			log.ByContext(context).Errorf(errMsg)

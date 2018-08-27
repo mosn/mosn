@@ -19,7 +19,6 @@ package sofarpc
 
 import (
 	"context"
-	"reflect"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -66,14 +65,14 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 
 func (f *healthCheckFilter) OnDecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
 	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
-		cmdCode := sofarpc.ConvertPropertyValue(cmdCodeStr, reflect.Int16)
+		cmdCode := sofarpc.ConvertPropertyValueInt16(cmdCodeStr)
 
 		//sofarpc.HEARTBEAT(0) is equal to sofarpc.TR_HEARTBEAT(0)
 		if cmdCode == sofarpc.HEARTBEAT {
 			protocolStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]
-			f.protocol = sofarpc.ConvertPropertyValue(protocolStr, reflect.Uint8).(byte)
+			f.protocol = sofarpc.ConvertPropertyValueUint8(protocolStr)
 			requestIDStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
-			f.requestID = sofarpc.ConvertPropertyValue(requestIDStr, reflect.Uint32).(uint32)
+			f.requestID = sofarpc.ConvertPropertyValueUint32(requestIDStr)
 			f.healthCheckReq = true
 			f.cb.RequestInfo().SetHealthCheck(true)
 

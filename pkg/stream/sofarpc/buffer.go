@@ -15,31 +15,35 @@
  * limitations under the License.
  */
 
-package buffer
+package sofarpc
 
 import (
-	"sync"
+	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
-type objectPool struct {
-	sync.Pool
+type sofaBufferCtx struct{}
+
+func (ctx sofaBufferCtx) Name() int {
+	return buffer.SofaStream
 }
 
-func (p *objectPool) Take() (object interface{}) {
-	object = p.Get()
-
-	return
+func (ctx sofaBufferCtx) New() interface{} {
+	return new(sofaBuffers)
 }
 
-func (p *objectPool) Give(object interface{}) {
-	p.Put(object)
+func (ctx sofaBufferCtx) Reset(i interface{}) {
+	buf, _ := i.(*sofaBuffers)
+	*buf = sofaBuffers{}
 }
 
-// NewObjectPool can create an object pool with poolSize
-func NewObjectPool(poolSize int) types.ObjectBufferPool {
-	pool := &objectPool{}
+type sofaBuffers struct {
+	client stream
+	server stream
+}
 
-	return pool
+func sofaBuffersByContent(context context.Context) *sofaBuffers {
+	ctx := buffer.PoolContext(context)
+	return ctx.Find(sofaBufferCtx{}, nil).(*sofaBuffers)
 }

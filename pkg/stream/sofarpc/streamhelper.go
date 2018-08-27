@@ -18,7 +18,6 @@
 package sofarpc
 
 import (
-	"reflect"
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
@@ -88,7 +87,7 @@ func decodeSterilize(streamID string, headers map[string]string) bool {
 	}
 
 	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
-		cmdCode := sofarpc.ConvertPropertyValue(cmdCodeStr, reflect.Int16)
+		cmdCode := sofarpc.ConvertPropertyValueInt16(cmdCodeStr)
 		if cmdCode == sofarpc.HEARTBEAT {
 			return true
 		}

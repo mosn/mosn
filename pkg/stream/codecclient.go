@@ -23,6 +23,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -46,17 +47,18 @@ type codecClient struct {
 
 // NewCodecClient
 // Create a codecclient used as a client to send/receive stream in a connection
-func NewCodecClient(context context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo) CodecClient {
+func NewCodecClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo) CodecClient {
 	codecClient := &codecClient{
-		context:        context,
 		Protocol:       prot,
 		Connection:     connection,
 		Host:           host,
 		ActiveRequests: list.New(),
 	}
 
+	codecClient.context = buffer.NewBufferPoolContext(ctx, false)
+
 	if factory, ok := streamFactories[prot]; ok {
-		codecClient.Codec = factory.CreateClientStream(context, connection, codecClient, codecClient)
+		codecClient.Codec = factory.CreateClientStream(codecClient.context, connection, codecClient, codecClient)
 	} else {
 		return nil
 	}
@@ -123,9 +125,9 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(streamID string, respDecoder types.StreamReceiver) types.StreamSender {
+func (c *codecClient) NewStream(context context.Context, streamID string, respDecoder types.StreamReceiver) types.StreamSender {
 	ar := newActiveRequest(c, respDecoder)
-	ar.requestSender = c.Codec.NewStream(streamID, ar)
+	ar.requestSender = c.Codec.NewStream(context, streamID, ar)
 	ar.requestSender.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()
@@ -237,37 +239,37 @@ func (r *activeRequest) OnResetStream(reason types.StreamResetReason) {
 	r.codecClient.onReset(r, reason)
 }
 
-func (r *activeRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (r *activeRequest) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseReceiver.OnReceiveHeaders(headers, endStream)
+	r.responseReceiver.OnReceiveHeaders(context, headers, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
 	}
 }
 
-func (r *activeRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (r *activeRequest) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseReceiver.OnReceiveData(data, endStream)
+	r.responseReceiver.OnReceiveData(context, data, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
 	}
 }
 
-func (r *activeRequest) OnReceiveTrailers(trailers map[string]string) {
+func (r *activeRequest) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	r.onPreDecodeComplete()
-	r.responseReceiver.OnReceiveTrailers(trailers)
+	r.responseReceiver.OnReceiveTrailers(context, trailers)
 	r.onDecodeComplete()
 }
 
-func (r *activeRequest) OnDecodeError(err error, headers map[string]string) {
+func (r *activeRequest) OnDecodeError(context context.Context, err error, headers map[string]string) {
 }
 
 func (r *activeRequest) onPreDecodeComplete() {

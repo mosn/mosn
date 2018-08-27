@@ -15,37 +15,37 @@
  * limitations under the License.
  */
 
-package buffer
+package proxy
 
 import (
-	"testing"
+	"context"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
-func Test_read(t *testing.T) {
-	str := "read_test"
-	buffer := NewIoBufferString(str)
+type proxyBufferCtx struct{}
 
-	b := make([]byte, 32)
-	_, err := buffer.Read(b)
+func (ctx proxyBufferCtx) Name() int {
+	return buffer.Proxy
+}
 
-	if err != nil {
-		t.Fatal(err)
-	}
+func (ctx proxyBufferCtx) New() interface{} {
+	return new(proxyBuffers)
+}
 
-	if string(b[:len(str)]) != str {
-		t.Fatal("err read content")
-	}
+func (ctx proxyBufferCtx) Reset(i interface{}) {
+	buf, _ := i.(*proxyBuffers)
+	*buf = proxyBuffers{}
+}
 
-	buffer = NewIoBufferString(str)
+type proxyBuffers struct {
+	stream  downStream
+	request upstreamRequest
+	info    network.RequestInfo
+}
 
-	b = make([]byte, 4)
-	_, err = buffer.Read(b)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if string(b) != "read" {
-		t.Fatal("err read content")
-	}
+func proxyBuffersByContent(context context.Context) *proxyBuffers {
+	ctx := buffer.PoolContext(context)
+	return ctx.Find(proxyBufferCtx{}, nil).(*proxyBuffers)
 }

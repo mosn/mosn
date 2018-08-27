@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 )
