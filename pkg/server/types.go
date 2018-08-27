@@ -42,6 +42,7 @@ type Config struct {
 	LogLevel        log.Level
 	GracefulTimeout time.Duration
 	Processor       int
+	UseNetpollMode  bool
 }
 
 type Server interface {

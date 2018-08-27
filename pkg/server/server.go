@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 func init() {
@@ -70,6 +71,8 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		if config.Processor > 0 {
 			procNum = config.Processor
 		}
+
+		network.UseNetpollMode = config.UseNetpollMode
 	}
 
 	runtime.GOMAXPROCS(procNum)
@@ -143,7 +146,7 @@ func (srv *server) Close() {
 }
 
 func (srv *server) Handler() types.ConnectionHandler {
-	return  srv.handler
+	return srv.handler
 }
 
 func Stop() {
@@ -176,13 +179,13 @@ func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
 	// 5 sencond wait for read timeout
-	timeout := time.NewTimer(duration * 2 + time.Second * 5)
+	timeout := time.NewTimer(duration*2 + time.Second*5)
 	wait := make(chan struct{})
 	time.Sleep(duration)
 	go func() {
 		//todo close idle connections and wait active connections complete
 		StopConnection()
-		time.Sleep(duration + time.Second * 5)
+		time.Sleep(duration + time.Second*5)
 		wait <- struct{}{}
 	}()
 

@@ -8,11 +8,15 @@ import (
 	"log"
 	"sync/atomic"
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
+	"runtime"
 )
 
 var (
+	UseNetpollMode = false
+
 	// this pool if for event handle
-	pool = mosnsync.NewSimplePool(16)
+	readPool  = mosnsync.NewSimplePool(runtime.NumCPU())
+	writePool = mosnsync.NewSimplePool(runtime.NumCPU())
 
 	rrCounter                   uint32 = 0
 	poolSize                    uint32 = 1 //uint32(runtime.NumCPU())
@@ -123,8 +127,13 @@ func (el *EventLoop) RegisterWrite(id uint64, conn net.Conn, handler *ConnEventH
 func (el *EventLoop) Unregister(id uint64) {
 
 	if event, ok := el.conn[id]; ok {
-		el.poller.Stop(event.read)
-		el.poller.Stop(event.write)
+		if event.read != nil {
+			el.poller.Stop(event.read)
+		}
+
+		if event.write != nil {
+			el.poller.Stop(event.write)
+		}
 
 		delete(el.conn, id)
 	}
@@ -156,7 +165,7 @@ func (el *EventLoop) readWrapper(desc *netpoll.Desc, handler *ConnEventHandler) 
 				return
 			}
 		}
-		pool.Schedule(func() {
+		readPool.Schedule(func() {
 			if !handler.OnRead() {
 				return
 			}
@@ -174,7 +183,7 @@ func (el *EventLoop) writeWrapper(desc *netpoll.Desc, handler *ConnEventHandler)
 				return
 			}
 		}
-		pool.Schedule(func() {
+		writePool.ScheduleAlways(func() {
 			if !handler.OnWrite() {
 				return
 			}

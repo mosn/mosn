@@ -151,69 +151,79 @@ func (c *connection) ID() uint64 {
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
-
-		//TODO read switch from config, and create sub method
-		if true {
-
-			c.eventLoop = Attach()
-			c.eventLoop.RegisterRead(c.id, c.rawConnection, &ConnEventHandler{
-				OnRead: func() bool {
-					err := c.doRead()
-
-					if err != nil {
-
-						if err == io.EOF {
-							c.Close(types.NoFlush, types.RemoteClose)
-						} else {
-							c.Close(types.NoFlush, types.OnReadErrClose)
-						}
-
-						c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
-							c.id, c.RemoteAddr().String(), err)
-
-						return false
-					}
-
-					return true
-				},
-
-				OnHup: func() bool {
-					c.Close(types.NoFlush, types.RemoteClose)
-					return false
-				},
-			})
+		// read switch from config, and create sub method
+		if UseNetpollMode {
+			c.attachEventLoop(lctx)
 		} else {
-			c.internalLoopStarted = true
-
-			go func() {
-				defer func() {
-					if p := recover(); p != nil {
-						c.logger.Errorf("panic %v", p)
-
-						debug.PrintStack()
-
-						c.startReadLoop()
-					}
-				}()
-
-				c.startReadLoop()
-			}()
-
-			go func() {
-				defer func() {
-					if p := recover(); p != nil {
-						c.logger.Errorf("panic %v", p)
-
-						debug.PrintStack()
-
-						c.startWriteLoop()
-					}
-				}()
-
-				c.startWriteLoop()
-			}()
+			c.startRWLoop(lctx)
 		}
 	})
+}
+
+func (c *connection) attachEventLoop(lctx context.Context) {
+	// Choose one event loop to register, the implement is platform-dependent(epoll for linux and kqueue for bsd)
+	c.eventLoop = Attach()
+
+	// Register read only, write is supported now because it is more complex than read.
+	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
+	c.eventLoop.RegisterRead(c.id, c.rawConnection, &ConnEventHandler{
+		OnRead: func() bool {
+			err := c.doRead()
+
+			if err != nil {
+
+				if err == io.EOF {
+					c.Close(types.NoFlush, types.RemoteClose)
+				} else {
+					c.Close(types.NoFlush, types.OnReadErrClose)
+				}
+
+				c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
+					c.id, c.RemoteAddr().String(), err)
+
+				return false
+			}
+
+			return true
+		},
+
+		OnHup: func() bool {
+			c.Close(types.NoFlush, types.RemoteClose)
+			return false
+		},
+	})
+}
+
+func (c *connection) startRWLoop(lctx context.Context) {
+	c.internalLoopStarted = true
+
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				c.logger.Errorf("panic %v", p)
+
+				debug.PrintStack()
+
+				c.startReadLoop()
+			}
+		}()
+
+		c.startReadLoop()
+	}()
+
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				c.logger.Errorf("panic %v", p)
+
+				debug.PrintStack()
+
+				c.startWriteLoop()
+			}
+		}()
+
+		c.startWriteLoop()
+	}()
 }
 
 func (c *connection) startReadLoop() {
@@ -362,7 +372,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 			c.writeBufferChan <- true
 		}
 	} else if atomic.CompareAndSwapUint32(&c.writeSchedule, 0, 1) {
-		pool.Schedule(func() {
+		writePool.ScheduleAlways(func() {
 			defer atomic.CompareAndSwapUint32(&c.writeSchedule, 1, 0)
 
 			_, err := c.doWrite()

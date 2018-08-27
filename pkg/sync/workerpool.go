@@ -185,6 +185,16 @@ func (p *SimplePool) Schedule(task func()) {
 	}
 }
 
+func (p *SimplePool) ScheduleAlways(task func()) {
+	select {
+	case p.work <- task:
+	case p.sem <- struct{}{}:
+		go p.worker(task)
+	default:
+		go task()
+	}
+}
+
 func (p *SimplePool) worker(task func()) {
 	defer func() { <-p.sem }()
 	for {
