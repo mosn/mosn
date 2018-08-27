@@ -850,7 +850,11 @@ func (s *downStream) DownstreamHeaders() map[string]string {
 }
 
 func (s *downStream) GiveStream() {
-	// Give bufferPool
+	if s.upstreamReset == 1 || s.downstreamReset == 1 {
+		return
+	}
+
+	// Give buffers to bufferPool
 	if ctx := buffer.PoolContext(s.context); ctx != nil {
 		ctx.Give()
 	}

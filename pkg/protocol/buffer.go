@@ -78,6 +78,7 @@ func (ctx protocolBufferCtx) Reset(i interface{}) {
 	}
 }
 
+// GetReqData returns IoBuffer for request data
 func (p *ProtocolBuffers) GetReqData(size int) types.IoBuffer {
 	if size <= 0 {
 		size = defaultDataSize
@@ -86,6 +87,7 @@ func (p *ProtocolBuffers) GetReqData(size int) types.IoBuffer {
 	return p.reqData
 }
 
+// GetReqHeader returns IoBuffer for request header
 func (p *ProtocolBuffers) GetReqHeader(size int) types.IoBuffer {
 	if size <= 0 {
 		size = defaultHeaderSize
@@ -94,14 +96,17 @@ func (p *ProtocolBuffers) GetReqHeader(size int) types.IoBuffer {
 	return p.reqHeader
 }
 
+// GetReqHeaders returns map for request header
 func (p *ProtocolBuffers) GetReqHeaders() map[string]string {
 	return p.reqHeaders
 }
 
+// GetReqTailers returns map for request tailers
 func (p *ProtocolBuffers) GetReqTailers() map[string]string {
 	return p.reqTrailers
 }
 
+// GetRspData returns IoBuffer for response data
 func (p *ProtocolBuffers) GetRspData(size int) types.IoBuffer {
 	if size <= 0 {
 		size = defaultDataSize
@@ -110,6 +115,7 @@ func (p *ProtocolBuffers) GetRspData(size int) types.IoBuffer {
 	return p.rspData
 }
 
+// GetRspHeader returns IoBuffer for response header
 func (p *ProtocolBuffers) GetRspHeader(size int) types.IoBuffer {
 	if size <= 0 {
 		size = defaultHeaderSize
@@ -118,14 +124,17 @@ func (p *ProtocolBuffers) GetRspHeader(size int) types.IoBuffer {
 	return p.rspHeader
 }
 
+// GetRspHeaders returns map for response header
 func (p *ProtocolBuffers) GetRspHeaders() map[string]string {
 	return p.rspHeaders
 }
 
+// GetRspTailers returns IoBuffer for response tailers
 func (p *ProtocolBuffers) GetRspTailers() map[string]string {
 	return p.rspTrailers
 }
 
+// ProtocolBuffersByContent returns ProtocolBuffers by context
 func ProtocolBuffersByContent(context context.Context) *ProtocolBuffers {
 	ctx := buffer.PoolContext(context)
 	if ctx == nil {
