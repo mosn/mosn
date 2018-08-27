@@ -64,8 +64,8 @@ func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
-	p.upstreamConnection.Write(buffer)
-
+	p.upstreamConnection.Write(buffer.Clone())
+	buffer.Drain(buffer.Len())
 	return types.StopIteration
 }
 
@@ -153,7 +153,8 @@ func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
 	bytesSent := p.requestInfo.BytesSent() + uint64(buffer.Len())
 	p.requestInfo.SetBytesSent(bytesSent)
 
-	p.readCallbacks.Connection().Write(buffer)
+	p.readCallbacks.Connection().Write(buffer.Clone())
+	buffer.Drain(buffer.Len())
 }
 
 func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
@@ -275,7 +276,6 @@ func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 
 func (uc *upstreamCallbacks) OnData(buffer types.IoBuffer) types.FilterStatus {
 	uc.proxy.onUpstreamData(buffer)
-
 	return types.StopIteration
 }
 

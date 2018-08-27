@@ -19,23 +19,23 @@ package sofarpc
 
 import (
 	"context"
-	"reflect"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/filter"
 )
 
 // todo: support cached pass through
 
-func init(){
-	filter.Register("healthcheck", CreateHealthCheckFilterFactory)
+func init() {
+	filter.RegisterStream("healthcheck", CreateHealthCheckFilterFactory)
 }
+
 // types.StreamSenderFilter
 type healthCheckFilter struct {
 	context context.Context
@@ -65,14 +65,14 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 
 func (f *healthCheckFilter) OnDecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
 	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
-		cmdCode := sofarpc.ConvertPropertyValue(cmdCodeStr, reflect.Int16)
+		cmdCode := sofarpc.ConvertPropertyValueInt16(cmdCodeStr)
 
 		//sofarpc.HEARTBEAT(0) is equal to sofarpc.TR_HEARTBEAT(0)
 		if cmdCode == sofarpc.HEARTBEAT {
 			protocolStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]
-			f.protocol = sofarpc.ConvertPropertyValue(protocolStr, reflect.Uint8).(byte)
+			f.protocol = sofarpc.ConvertPropertyValueUint8(protocolStr)
 			requestIDStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
-			f.requestID = sofarpc.ConvertPropertyValue(requestIDStr, reflect.Uint32).(uint32)
+			f.requestID = sofarpc.ConvertPropertyValueUint32(requestIDStr)
 			f.healthCheckReq = true
 			f.cb.RequestInfo().SetHealthCheck(true)
 
@@ -150,7 +150,7 @@ type HealthCheckFilterConfigFactory struct {
 	FilterConfig *v2.HealthCheckFilter
 }
 
-func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.FilterChainFactoryCallbacks) {
+func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewHealthCheckFilter(context, f.FilterConfig)
 	callbacks.AddStreamReceiverFilter(filter)
 }

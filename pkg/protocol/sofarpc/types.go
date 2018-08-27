@@ -149,7 +149,6 @@ type Protocol interface {
 	GetCommandHandler() CommandHandler
 }
 
-
 // CommandHandler for protocol to handle msg
 type CommandHandler interface {
 	HandleCommand(context context.Context, msg interface{}, filter interface{}) error

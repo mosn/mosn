@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/cmd/mosn"
+	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
 )

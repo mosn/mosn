@@ -19,10 +19,10 @@ package types
 
 import (
 	"context"
-	"io"
 	"net"
 
 	"crypto/tls"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
 )
@@ -82,6 +82,11 @@ const (
 
 // Listener is a wrapper of tcp listener
 type Listener interface {
+	// Return config which initialize this listener
+	Config() *v2.ListenerConfig
+
+	SetConfig(config *v2.ListenerConfig)
+
 	// Name returns the listener's name
 	Name() string
 
@@ -93,16 +98,22 @@ type Listener interface {
 
 	// Stop stops listener
 	// Accepted connections and listening sockets will not be closed
-	Stop()
+	Stop() error
 
-	// ListenerTag returns the listener's tag
+	// ListenerTag returns the listener's tag, whichi the listener should use for connection handler tracking.
 	ListenerTag() uint64
+
+	SetListenerTag(tag uint64)
 
 	// ListenerFD returns a copy a listener fd
 	ListenerFD() (uintptr, error)
 
 	// PerConnBufferLimitBytes returns the limit bytes per connection
 	PerConnBufferLimitBytes() uint32
+
+	SetePerConnBufferLimitBytes(limitBytes uint32)
+
+	SethandOffRestoredDestinationConnections(restoredDestation bool)
 
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)
@@ -164,101 +175,10 @@ type ListenerFilterManager interface {
 	AddListenerFilter(lf *ListenerFilter)
 }
 
-type IoBuffer interface {
-	// Read reads the next len(p) bytes from the buffer or until the buffer
-	// is drained. The return value n is the number of bytes read. If the
-	// buffer has no data to return, err is io.EOF (unless len(p) is zero);
-	// otherwise it is nil.
-	Read(p []byte) (n int, err error)
-
-	// ReadOnce make a one-shot read and appends it to the buffer, growing
-	// the buffer as needed. The return value n is the number of bytes read. Any
-	// error except io.EOF encountered during the read is also returned. If the
-	// buffer becomes too large, ReadFrom will panic with ErrTooLarge.
-	ReadOnce(r io.Reader) (n int64, err error)
-
-	// ReadFrom reads data from r until EOF and appends it to the buffer, growing
-	// the buffer as needed. The return value n is the number of bytes read. Any
-	// error except io.EOF encountered during the read is also returned. If the
-	// buffer becomes too large, ReadFrom will panic with ErrTooLarge.
-	ReadFrom(r io.Reader) (n int64, err error)
-
-	// Write appends the contents of p to the buffer, growing the buffer as
-	// needed. The return value n is the length of p; err is always nil. If the
-	// buffer becomes too large, Write will panic with ErrTooLarge.
-	Write(p []byte) (n int, err error)
-
-	// WriteTo writes data to w until the buffer is drained or an error occurs.
-	// The return value n is the number of bytes written; it always fits into an
-	// int, but it is int64 to match the io.WriterTo interface. Any error
-	// encountered during the write is also returned.
-	WriteTo(w io.Writer) (n int64, err error)
-
-	// Peek returns n bytes from buffer, without draining any buffered data.
-	// If n > readable buffer, nil will be returned.
-	// It can be used in codec to check first-n-bytes magic bytes
-	// Note: do not change content in return bytes, use write instead
-	Peek(n int) []byte
-
-	// Bytes returns all bytes from buffer, without draining any buffered data.
-	// It can be used to get fixed-length content, such as headers, body.
-	// Note: do not change content in return bytes, use write instead
-	Bytes() []byte
-
-	// Drain drains a offset length of bytes in buffer.
-	// It can be used with Bytes(), after consuming a fixed-length of data
-	Drain(offset int)
-
-	// Len returns the number of bytes of the unread portion of the buffer;
-	// b.Len() == len(b.Bytes()).
-	Len() int
-
-	// Cap returns the capacity of the buffer's underlying byte slice, that is, the
-	// total space allocated for the buffer's data.
-	Cap() int
-
-	// Reset resets the buffer to be empty,
-	// but it retains the underlying storage for use by future writes.
-	Reset()
-
-	// Clone makes a copy of IoBuffer struct
-	Clone() IoBuffer
-
-	// String returns the contents of the unread portion of the buffer
-	// as a string. If the Buffer is a nil pointer, it returns "<nil>".
-	String() string
-}
-
 type BufferWatermarkListener interface {
 	OnHighWatermark()
 
 	OnLowWatermark()
-}
-
-// HeadersBufferPool is a buffer pool to reuse header map.
-// Normally recreate a map has minor cpu/memory cost, however in a high concurrent scenario, a buffer pool is needed to recycle map
-type HeadersBufferPool interface {
-	// Take finds and returns a map from buffer pool. If no buffer available, create a new one with capacity.
-	Take(capacity int) map[string]string
-
-	// Give returns a map to buffer pool
-	Give(amap map[string]string)
-}
-
-type GenericMapPool interface {
-	// Take finds and returns a map from map pool.
-	Take(defaultSize int) (amap map[string]interface{})
-
-	// Give returns a map to map pool
-	Give(amap map[string]interface{})
-}
-
-// ObjectBufferPool is a object pool.
-type ObjectBufferPool interface {
-	// Take returns a pool object, such as sync.Pool.
-	Take() interface{}
-	// Give set a pool object into pool.
-	Give(object interface{})
 }
 
 // Connection status
@@ -432,8 +352,10 @@ type ConnectionHandler interface {
 	// NumConnections reports the connections that ConnectionHandler keeps.
 	NumConnections() uint64
 
-	// AddListener adds a listener into the ConnectionHandler
-	AddListener(lc *v2.ListenerConfig, networkFiltersFactory NetworkFilterChainFactory,
+	// AddOrUpdateListener
+	// adds a listener into the ConnectionHandler or
+	// update a listener
+	AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []NetworkFilterChainFactory,
 		streamFiltersFactories []StreamFilterChainFactory) ListenerEventListener
 
 	// StartListener starts a listener by the specified listener tag
@@ -445,15 +367,18 @@ type ConnectionHandler interface {
 	// FindListenerByAddress finds and returns a listener by the specified network address
 	FindListenerByAddress(addr net.Addr) Listener
 
-	// RemoveListeners find and removes a listener by the specified listener tag.
-	RemoveListeners(listenerTag uint64)
+	// FindListenerByName finds and returns a listener by the listener name
+	FindListenerByName(name string) Listener
 
-	// StopListener stops a listener  by the specified listener tag.
-	StopListener(lctx context.Context, listenerTag uint64)
+	// RemoveListeners find and removes a listener by listener name.
+	RemoveListeners(name string)
+
+	// StopListener stops a listener  by listener name
+	StopListener(lctx context.Context, name string, stop bool) error
 
 	// StopListeners stops all listeners the ConnectionHandler has.
 	// The close indicates whether the listening sockets will be closed.
-	StopListeners(lctx context.Context, close bool)
+	StopListeners(lctx context.Context, close bool) error
 
 	// ListListenersFD reports all listeners' fd
 	ListListenersFD(lctx context.Context) []uintptr
@@ -525,11 +450,15 @@ type FilterChainFactory interface {
 	CreateListenerFilterChain(listener ListenerFilterManager)
 }
 
-// NetworkFilterFactoryCb is a callback function used in network filter factory
-type NetworkFilterFactoryCb func(manager FilterManager)
+// NetWorkFilterChainFactoryCallbacks is a wrapper of FilterManager that called in NetworkFilterChainFactory
+type NetWorkFilterChainFactoryCallbacks interface {
+	AddReadFilter(rf ReadFilter)
+	AddWriteFilter(wf WriteFilter)
+}
 
+// NetworkFilterChainFactory adds filter into NetWorkFilterChainFactoryCallbacks
 type NetworkFilterChainFactory interface {
-	CreateFilterFactory(context context.Context, clusterManager ClusterManager) NetworkFilterFactoryCb
+	CreateFilterChain(context context.Context, clusterManager ClusterManager, callbacks NetWorkFilterChainFactoryCallbacks)
 }
 
 // Addresses defines a group of network address

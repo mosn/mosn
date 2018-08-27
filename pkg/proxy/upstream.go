@@ -19,7 +19,9 @@ package proxy
 
 import (
 	"container/list"
+	"context"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -80,7 +82,9 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 
 // types.StreamReceiver
 // Method to decode upstream's response message
-func (r *upstreamRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
+	buffer.TransmitBufferPoolContext(r.downStream.context, context)
+
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
@@ -97,8 +101,9 @@ func (r *upstreamRequest) ReceiveHeaders(headers map[string]string, endStream bo
 	r.downStream.onUpstreamHeaders(headers, endStream)
 }
 
-func (r *upstreamRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
-	r.downStream.downstreamRespDataBuf = r.downStream.proxy.bytesBufferPool.Clone(data)
+func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
+	r.downStream.downstreamRespDataBuf = data.Clone()
+	data.Drain(data.Len())
 
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
@@ -115,7 +120,7 @@ func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
 	r.downStream.onUpstreamData(data, endStream)
 }
 
-func (r *upstreamRequest) OnReceiveTrailers(trailers map[string]string) {
+func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
@@ -130,7 +135,7 @@ func (r *upstreamRequest) ReceiveTrailers(trailers map[string]string) {
 	r.downStream.onUpstreamTrailers(trailers)
 }
 
-func (r *upstreamRequest) OnDecodeError(err error, headers map[string]string) {
+func (r *upstreamRequest) OnDecodeError(context context.Context, err error, headers map[string]string) {
 	r.OnResetStream(types.StreamLocalReset)
 }
 
@@ -145,21 +150,21 @@ func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream boo
 	}
 
 	log.StartLogger.Tracef("upstream request before conn pool new stream")
-	r.connPool.NewStream(r.proxy.context, streamID, r, r)
+	r.connPool.NewStream(r.downStream.context, streamID, r, r)
 }
 
 func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("upstream request encode data")
 	r.sendComplete = endStream
 	r.dataSent = true
-	r.requestSender.AppendData(data, endStream)
+	r.requestSender.AppendData(r.downStream.context, data, endStream)
 }
 
 func (r *upstreamRequest) appendTrailers(trailers map[string]string) {
 	log.DefaultLogger.Debugf("upstream request encode trailers")
 	r.sendComplete = true
 	r.trailerSent = true
-	r.requestSender.AppendTrailers(trailers)
+	r.requestSender.AppendTrailers(r.downStream.context, trailers)
 }
 
 // types.PoolEventListener
@@ -173,7 +178,7 @@ func (r *upstreamRequest) OnFailure(streamID string, reason types.PoolFailureRea
 		resetReason = types.StreamConnectionFailed
 	}
 
-	r.OnResetStream(resetReason)
+	r.ResetStream(resetReason)
 }
 
 func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, host types.Host) {
@@ -181,7 +186,7 @@ func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, ho
 	r.requestSender.GetStream().AddEventListener(r)
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
-	r.requestSender.AppendHeaders(r.downStream.downstreamReqHeaders, endStream)
+	r.requestSender.AppendHeaders(r.downStream.context, r.downStream.downstreamReqHeaders, endStream)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())

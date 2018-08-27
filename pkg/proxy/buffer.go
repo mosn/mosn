@@ -15,12 +15,37 @@
  * limitations under the License.
  */
 
-package server
+package proxy
 
-import "github.com/alipay/sofa-mosn/pkg/types"
+import (
+	"context"
 
-func buildFilterChain(filterManager types.FilterManager, factory types.NetworkFilterFactoryCb) bool {
-	factory(filterManager)
+	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/network"
+)
 
-	return filterManager.InitializeReadFilters()
+type proxyBufferCtx struct{}
+
+func (ctx proxyBufferCtx) Name() int {
+	return buffer.Proxy
+}
+
+func (ctx proxyBufferCtx) New() interface{} {
+	return new(proxyBuffers)
+}
+
+func (ctx proxyBufferCtx) Reset(i interface{}) {
+	buf, _ := i.(*proxyBuffers)
+	*buf = proxyBuffers{}
+}
+
+type proxyBuffers struct {
+	stream  downStream
+	request upstreamRequest
+	info    network.RequestInfo
+}
+
+func proxyBuffersByContent(context context.Context) *proxyBuffers {
+	ctx := buffer.PoolContext(context)
+	return ctx.Find(proxyBufferCtx{}, nil).(*proxyBuffers)
 }

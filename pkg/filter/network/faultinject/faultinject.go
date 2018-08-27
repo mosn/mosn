@@ -34,8 +34,8 @@ type faultInjector struct {
 	readCallbacks types.ReadFilterCallbacks
 }
 
-// NewFaultInjector new fault injector
-func NewFaultInjector(config *v2.FaultInject) FaultInjector {
+// NewFaultInjector makes a fault injector as types.ReadFilter
+func NewFaultInjector(config *v2.FaultInject) types.ReadFilter {
 	return &faultInjector{
 		delayPercent:  config.DelayPercent,
 		delayDuration: config.DelayDuration,

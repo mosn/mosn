@@ -9,9 +9,9 @@ import (
 
 	"context"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
@@ -73,7 +73,7 @@ func (c *RPCClient) Close() {
 func (c *RPCClient) SendRequest() {
 	ID := atomic.AddUint32(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
-	requestEncoder := c.Codec.NewStream(streamID, c)
+	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
 	var headers interface{}
 	switch c.Protocol {
 	case Bolt1:
@@ -84,18 +84,18 @@ func (c *RPCClient) SendRequest() {
 		c.t.Errorf("unsupport protocol")
 		return
 	}
-	requestEncoder.AppendHeaders(headers, true)
+	requestEncoder.AppendHeaders(context.Background(), headers, true)
 	atomic.AddUint32(&c.requestCount, 1)
 	c.Waits.Store(streamID, streamID)
 }
 
-func (c *RPCClient) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (c *RPCClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 }
-func (c *RPCClient) OnReceiveTrailers(trailers map[string]string) {
+func (c *RPCClient) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 }
-func (c *RPCClient) OnDecodeError(err error, headers map[string]string) {
+func (c *RPCClient) OnDecodeError(context context.Context, err error, headers map[string]string) {
 }
-func (c *RPCClient) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (c *RPCClient) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
 	if ok {
 		if _, ok := c.Waits.Load(streamID); ok {
@@ -157,21 +157,31 @@ func BuildBoltV2Response(req *sofarpc.BoltV2RequestCommand) *sofarpc.BoltV2Respo
 type RPCServer struct {
 	UpstreamServer
 	Client *RPCClient
+	// Statistic
+	Name  string
+	Count uint32
 }
 
 func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
-	var server UpstreamServer
-	client := NewRPCClient(t, "rpcClient", proto)
+	s := &RPCServer{
+		Client: NewRPCClient(t, "rpcClient", proto),
+		Name:   addr,
+	}
 	switch proto {
 	case Bolt1:
-		server = NewUpstreamServer(t, addr, ServeBoltV1)
+		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV1)
 	case Bolt2:
-		server = NewUpstreamServer(t, addr, ServeBoltV2)
+		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV2)
 	default:
 		t.Errorf("unsupport protocol")
 		return nil
 	}
-	return &RPCServer{server, client}
+	return s
+}
+
+func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
+	atomic.AddUint32(&s.Count, 1)
+	ServeBoltV1(t, conn)
 }
 
 func ServeBoltV1(t *testing.T, conn net.Conn) {
@@ -192,8 +202,9 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 		return nil, true
 	}
 	serveSofaRPC(t, conn, response)
+
 }
-func ServeBoltV2(t *testing.T, conn net.Conn) {
+func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
 	//TODO:
 }
 

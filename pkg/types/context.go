@@ -22,20 +22,19 @@ type ContextKey string
 
 // Context key types
 const (
-	ContextKeyStreamID                   ContextKey = "StreamId"
-	ContextKeyConnectionID               ContextKey = "ConnectionId"
-	ContextKeyListenerPort               ContextKey = "ListenerPort"
-	ContextKeyListenerName               ContextKey = "ListenerName"
-	ContextKeyListenerStatsNameSpace     ContextKey = "ListenerStatsNameSpace"
-	ContextKeyNetworkFilterChainFactory  ContextKey = "NetworkFilterChainFactory"
-	ContextKeyStreamFilterChainFactories ContextKey = "StreamFilterChainFactory"
-	ContextKeyConnectionCodecMapPool     ContextKey = "ConnectionCodecMapPool"
-	ContextKeyConnectionBytesBufferPool  ContextKey = "ConnectionBytesBufferPool"
-	ContextKeyLogger                     ContextKey = "Logger"
-	ContextKeyAccessLogs                 ContextKey = "AccessLogs"
-	ContextOriRemoteAddr                 ContextKey = "OriRemoteAddr"
-	ContextKeyAcceptChan                 ContextKey = "ContextKeyAcceptChan"
-	ContextKeyAcceptBuffer               ContextKey = "ContextKeyAcceptBuffer"
+	ContextKeyStreamID                    ContextKey = "StreamId"
+	ContextKeyConnectionID                ContextKey = "ConnectionId"
+	ContextKeyListenerPort                ContextKey = "ListenerPort"
+	ContextKeyListenerName                ContextKey = "ListenerName"
+	ContextKeyListenerStatsNameSpace      ContextKey = "ListenerStatsNameSpace"
+	ContextKeyNetworkFilterChainFactories ContextKey = "NetworkFilterChainFactory"
+	ContextKeyStreamFilterChainFactories  ContextKey = "StreamFilterChainFactory"
+	ContextKeyBufferPoolCtx               ContextKey = "ConnectionBufferPoolCtx"
+	ContextKeyLogger                      ContextKey = "Logger"
+	ContextKeyAccessLogs                  ContextKey = "AccessLogs"
+	ContextOriRemoteAddr                  ContextKey = "OriRemoteAddr"
+	ContextKeyAcceptChan                  ContextKey = "ContextKeyAcceptChan"
+	ContextKeyAcceptBuffer                ContextKey = "ContextKeyAcceptBuffer"
 )
 
 const (

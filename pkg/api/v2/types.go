@@ -25,13 +25,15 @@ import (
 // Metadata field can be used to provide additional information about the route.
 // It can be used for configuration, stats, and logging.
 // The metadata should go under the filter namespace that will need it.
-type Metadata map[string]interface{}
+type Metadata map[string]string
 
 // Network Filter's Name
 const (
-	DEFAULT_NETWORK_FILTER = "proxy"
-	RPC_PROXY              = "rpc_proxy"
-	X_PROXY                = "x_proxy"
+	DEFAULT_NETWORK_FILTER      = "proxy"
+	TCP_PROXY                   = "tcp_proxy"
+	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
+	RPC_PROXY                   = "rpc_proxy"
+	X_PROXY                     = "x_proxy"
 )
 
 // ClusterType
@@ -132,7 +134,8 @@ type ListenerConfig struct {
 	AccessLogs                            []AccessLog
 	DisableConnIo                         bool          // only used in http2 case
 	FilterChains                          []FilterChain // FilterChains
-	Inspector                             bool          // TLS inspector
+	StreamFilters                         []Filter
+	Inspector                             bool // TLS inspector
 }
 
 // AccessLog with log path and log format
@@ -170,8 +173,7 @@ type TCPRoute struct {
 
 // TCPProxy
 type TCPProxy struct {
-	Routes     []*TCPRoute
-	AccessLogs []*AccessLog
+	Routes []*TCPRoute
 }
 
 // RPCRoute
@@ -332,12 +334,13 @@ type RouterMatch struct {
 // RouteAction
 // Route request to some upstream clusters.
 type RouteAction struct {
-	ClusterName      string
-	ClusterHeader    string
-	WeightedClusters []WeightedCluster
-	MetadataMatch    Metadata
-	Timeout          time.Duration
-	RetryPolicy      *RetryPolicy
+	ClusterName        string
+	ClusterHeader      string
+	TotalClusterWeight uint32 // total weight of weighted clusters, such as 100
+	WeightedClusters   []WeightedCluster
+	MetadataMatch      Metadata
+	Timeout            time.Duration
+	RetryPolicy        *RetryPolicy
 }
 
 // WeightedCluster.
@@ -345,7 +348,7 @@ type RouteAction struct {
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
 type WeightedCluster struct {
-	Clusters         ClusterWeight
+	Cluster          ClusterWeight
 	RuntimeKeyPrefix string // not used currently
 }
 

@@ -15,37 +15,35 @@
  * limitations under the License.
  */
 
-package buffer
+package sofarpc
 
 import (
-	"testing"
+	"context"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
-func Test_read(t *testing.T) {
-	str := "read_test"
-	buffer := NewIoBufferString(str)
+type sofaBufferCtx struct{}
 
-	b := make([]byte, 32)
-	_, err := buffer.Read(b)
+func (ctx sofaBufferCtx) Name() int {
+	return buffer.SofaStream
+}
 
-	if err != nil {
-		t.Fatal(err)
-	}
+func (ctx sofaBufferCtx) New() interface{} {
+	return new(sofaBuffers)
+}
 
-	if string(b[:len(str)]) != str {
-		t.Fatal("err read content")
-	}
+func (ctx sofaBufferCtx) Reset(i interface{}) {
+	buf, _ := i.(*sofaBuffers)
+	*buf = sofaBuffers{}
+}
 
-	buffer = NewIoBufferString(str)
+type sofaBuffers struct {
+	client stream
+	server stream
+}
 
-	b = make([]byte, 4)
-	_, err = buffer.Read(b)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if string(b) != "read" {
-		t.Fatal("err read content")
-	}
+func sofaBuffersByContent(context context.Context) *sofaBuffers {
+	ctx := buffer.PoolContext(context)
+	return ctx.Find(sofaBufferCtx{}, nil).(*sofaBuffers)
 }

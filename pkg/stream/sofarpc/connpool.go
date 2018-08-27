@@ -33,16 +33,12 @@ func init() {
 
 }
 
-var maxConn =  4
-
 // types.ConnectionPool
 // activeClient used as connected client
 // host is the upstream
 type connPool struct {
-	activeClient []*activeClient
-	index        int
-
-	host types.Host
+	activeClient *activeClient
+	host         types.Host
 
 	mux sync.Mutex
 }
@@ -50,8 +46,7 @@ type connPool struct {
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
-		host:         host,
-		activeClient: make([]*activeClient, maxConn),
+		host: host,
 	}
 }
 
@@ -61,25 +56,14 @@ func (p *connPool) Protocol() types.Protocol {
 
 func (p *connPool) NewStream(context context.Context, streamID string,
 	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
-
-	var client *activeClient
 	p.mux.Lock()
-
-	client = p.activeClient[p.index]
-
-	if client == nil {
-		client = newActiveClient(context, p)
-		p.activeClient[p.index] = client
-	}
-
-	p.index++
-	if p.index >= maxConn {
-		p.index = 0
+	if p.activeClient == nil {
+		p.activeClient = newActiveClient(context, p)
 	}
 
 	p.mux.Unlock()
 
-	if client == nil {
+	if p.activeClient == nil {
 		cb.OnFailure(streamID, types.ConnectionFailure, nil)
 		return nil
 	}
@@ -88,9 +72,9 @@ func (p *connPool) NewStream(context context.Context, streamID string,
 		cb.OnFailure(streamID, types.Overflow, nil)
 	} else {
 		// todo: update host stats
-		client.totalStream++
+		p.activeClient.totalStream++
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := client.codecClient.NewStream(streamID, responseDecoder)
+		streamEncoder := p.activeClient.codecClient.NewStream(context, streamID, responseDecoder)
 		cb.OnReady(streamID, streamEncoder, p.host)
 	}
 
@@ -98,24 +82,15 @@ func (p *connPool) NewStream(context context.Context, streamID string,
 }
 
 func (p *connPool) Close() {
-
-	for i := range p.activeClient {
-		if p.activeClient[i] != nil {
-			p.activeClient[i].codecClient.Close()
-		}
+	if p.activeClient != nil {
+		p.activeClient.codecClient.Close()
 	}
-
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
 	if event.IsClose() || event.ConnectFailure() {
 		// todo: update host stats
-		for i := range p.activeClient {
-			if p.activeClient[i] == client {
-				p.activeClient[i] = nil
-				return
-			}
-		}
+		p.activeClient = nil
 	} else if event == types.ConnectTimeout {
 		// todo: update host stats
 		client.codecClient.Close()

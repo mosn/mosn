@@ -23,23 +23,45 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type objectPool struct {
-	sync.Pool
+var ioBufferPools [maxPoolSize]IoBufferPool
+
+// IoBufferPool is Iobuffer Pool
+type IoBufferPool struct {
+	pool sync.Pool
 }
 
-func (p *objectPool) Take() (object interface{}) {
-	object = p.Get()
+// getIoBufferPool returns IoBufferPool
+func getIoBufferPool() *IoBufferPool {
+	i := bufferPoolIndex()
+	return &ioBufferPools[i]
+}
 
+// take returns IoBuffer from IoBufferPool
+func (p *IoBufferPool) take(size int) (buf types.IoBuffer) {
+	v := p.pool.Get()
+	if v == nil {
+		buf = NewIoBuffer(size)
+	} else {
+		buf = v.(types.IoBuffer)
+		buf.Alloc(size)
+	}
 	return
 }
 
-func (p *objectPool) Give(object interface{}) {
-	p.Put(object)
+// give returns IoBuffer to IoBufferPool
+func (p *IoBufferPool) give(buf types.IoBuffer) {
+	buf.Free()
+	p.pool.Put(buf)
 }
 
-// NewObjectPool can create an object pool with poolSize
-func NewObjectPool(poolSize int) types.ObjectBufferPool {
-	pool := &objectPool{}
+// GetIoBuffer returns IoBuffer from pool
+func GetIoBuffer(size int) types.IoBuffer {
+	pool := getIoBufferPool()
+	return pool.take(size)
+}
 
-	return pool
+// PutIoBuffer returns IoBuffer to pool
+func PutIoBuffer(buf types.IoBuffer) {
+	pool := getIoBufferPool()
+	pool.give(buf)
 }

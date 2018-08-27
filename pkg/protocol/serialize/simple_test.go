@@ -54,7 +54,6 @@ func BenchmarkDeSerializeMap(b *testing.B) {
 
 func BenchmarkDeSerializeString(b *testing.B) {
 	className := "com.alipay.sofa.rpc.core.request.SofaRequest"
-
 	buf, _ := Instance.Serialize(className)
 	var class string
 

@@ -59,6 +59,8 @@ func init() {
 	}
 
 	StartLogger.Start()
+	// default as start before Init
+	DefaultLogger = StartLogger
 }
 
 // Logger

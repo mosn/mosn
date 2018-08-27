@@ -18,18 +18,26 @@
 package config
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
 )
 
 type ContentKey string
+
+const (
+	MinHostWeight = uint32(1)
+	MaxHostWeight = uint32(128)
+)
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
@@ -38,6 +46,18 @@ var protocolsSupported = map[string]bool{
 	string(protocol.HTTP2):     true,
 	string(protocol.HTTP1):     true,
 	string(protocol.Xprotocol): true,
+}
+
+// RegisterProtocolParser
+// used to register parser
+func RegisterProtocolParser(key string) bool {
+	if _, ok := protocolsSupported[key]; ok {
+		return false
+	} else {
+		log.StartLogger.Infof(" %s added to protocolsSupported", key)
+		protocolsSupported[key] = true
+		return true
+	}
 }
 
 // ParsedCallback is an
@@ -101,6 +121,7 @@ func parseLogLevel(level string) log.Level {
 // ParseServerConfig
 func ParseServerConfig(c *ServerConfig) *server.Config {
 	sc := &server.Config{
+		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        parseLogLevel(c.DefaultLogLevel),
 		GracefulTimeout: c.GracefulTimeout.Duration,
@@ -112,10 +133,10 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 }
 
 // ParseProxyFilterJSON
-func ParseProxyFilterJSON(c *v2.Filter) *v2.Proxy {
+func ParseProxyFilterJSON(config map[string]interface{}) *v2.Proxy {
 	proxyConfig := &Proxy{}
 
-	if data, err := json.Marshal(c.Config); err == nil {
+	if data, err := json.Marshal(config); err == nil {
 		json.Unmarshal(data, &proxyConfig)
 	} else {
 		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
@@ -167,34 +188,62 @@ func parseVirtualHost(confighost []*VirtualHost) []*v2.VirtualHost {
 	return result
 }
 
+// used to check weight's validity
+func checkWeightedClusterValid(action RouteAction) bool {
+	var totalWeighted uint32 = 0
+
+	for _, weightedCluster := range action.WeightedClusters {
+		totalWeighted = totalWeighted + weightedCluster.Cluster.Weight
+	}
+
+	return totalWeighted == action.TotalClusterWeight
+}
+
+func parseRetryPolicy(action RouteAction) *v2.RetryPolicy {
+	if action.RetryPolicy == nil {
+		return nil
+	} else {
+		return &v2.RetryPolicy{
+			action.RetryPolicy.RetryOn,
+			action.RetryPolicy.RetryTimeout,
+			action.RetryPolicy.NumRetries,
+		}
+	}
+}
+
 func parseRouters(Router []Router) []v2.Router {
 	result := []v2.Router{}
 
 	for _, router := range Router {
+		if len(router.Route.WeightedClusters) > 0 && !checkWeightedClusterValid(router.Route) {
+			log.StartLogger.Fatalln("Sum of weights in the weighted_cluster should add up to:", router.Route.TotalClusterWeight)
+		}
+
+		routerMatch := v2.RouterMatch{
+			Prefix:        router.Match.Prefix,
+			Path:          router.Match.Path,
+			Regex:         router.Match.Regex,
+			CaseSensitive: router.Match.CaseSensitive,
+			Runtime: v2.RuntimeUInt32{
+				router.Match.Runtime.DefaultValue,
+				router.Match.Runtime.RuntimeKey,
+			},
+			Headers: parseMatchHeaders(router.Match.Headers),
+		}
+
+		routeAction := v2.RouteAction{
+			ClusterName:        router.Route.ClusterName,
+			ClusterHeader:      router.Route.ClusterHeader,
+			TotalClusterWeight: router.Route.TotalClusterWeight,
+			WeightedClusters:   parseWeightClusters(router.Route.WeightedClusters),
+			MetadataMatch:      parseRouterMetadata(router.Route.MetadataMatch),
+			Timeout:            router.Route.Timeout,
+			RetryPolicy:        parseRetryPolicy(router.Route),
+		}
+
 		result = append(result, v2.Router{
-			Match: v2.RouterMatch{
-				Prefix:        router.Match.Prefix,
-				Path:          router.Match.Path,
-				Regex:         router.Match.Regex,
-				CaseSensitive: router.Match.CaseSensitive,
-				Runtime: v2.RuntimeUInt32{
-					router.Match.Runtime.DefaultValue,
-					router.Match.Runtime.RuntimeKey,
-				},
-				Headers: parseMatchHeaders(router.Match.Headers),
-			},
-			Route: v2.RouteAction{
-				ClusterName:      router.Route.ClusterName,
-				ClusterHeader:    router.Route.ClusterHeader,
-				WeightedClusters: parseWeightClusters(router.Route.WeightedClusters),
-				MetadataMatch:    parseRouterMetadata(router.Route.MetadataMatch),
-				Timeout:          router.Route.Timeout,
-				RetryPolicy: &v2.RetryPolicy{
-					router.Route.RetryPolicy.RetryOn,
-					router.Route.RetryPolicy.RetryTimeout,
-					router.Route.RetryPolicy.NumRetries,
-				},
-			},
+			Match: routerMatch,
+			Route: routeAction,
 			Redirect: v2.RedirectAction{
 				HostRedirect: router.Redirect.HostRedirect,
 				PathRedirect: router.Redirect.PathRedirect,
@@ -213,10 +262,10 @@ func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster 
 
 	for _, wc := range weightClusters {
 		result = append(result, v2.WeightedCluster{
-			Clusters: v2.ClusterWeight{
-				wc.Clusters.Name,
-				wc.Clusters.Weight,
-				parseRouterMetadata(wc.Clusters.MetadataMatch),
+			Cluster: v2.ClusterWeight{
+				wc.Cluster.Name,
+				wc.Cluster.Weight,
+				parseRouterMetadata(wc.Cluster.MetadataMatch),
 			},
 			RuntimeKeyPrefix: wc.RuntimeKeyPrefix,
 		})
@@ -225,12 +274,30 @@ func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster 
 	return result
 }
 
+// metadata format:
+// { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
 func parseRouterMetadata(metadata Metadata) v2.Metadata {
-	result := v2.Metadata{}
-
-	for key, value := range metadata {
-		result[key] = value
+	if len(metadata) == 0 {
+		return nil
 	}
+
+	result := v2.Metadata{}
+	if metadataInterface, ok := metadata[types.RouterMetadataKey]; ok {
+		if value, ok := metadataInterface.(map[string]interface{}); ok {
+			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
+				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
+					for k, v := range mosnLb {
+						if vs, ok := v.(string); ok {
+							result[k] = vs
+						}
+					}
+
+					return result
+				}
+			}
+		}
+	}
+	log.StartLogger.Fatal("Metadata for routing format invalid, metadata format such as: { \"filter_metadata\": {\"mosn.lb\": { \"label\": \"gray\" } } }")
 
 	return result
 }
@@ -253,7 +320,6 @@ func parseVirtualClusters(VirtualClusters []VirtualCluster) []v2.VirtualCluster 
 	result := []v2.VirtualCluster{}
 
 	for _, vc := range VirtualClusters {
-
 		result = append(result, v2.VirtualCluster{
 			Pattern: vc.Pattern,
 			Name:    vc.Name,
@@ -388,6 +454,18 @@ func parseFilterChains(c []FilterChain) []v2.FilterChain {
 	}
 
 	return filterchains
+}
+
+func parseStreamFilters(filterConfigs []FilterConfig) []v2.Filter {
+	var filters []v2.Filter
+	for _, fc := range filterConfigs {
+		filters = append(filters, v2.Filter{
+			Name:   fc.Type,
+			Config: fc.Config,
+		})
+	}
+
+	return filters
 }
 
 func parseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
@@ -579,6 +657,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 		AccessLogs:                            parseAccessConfig(c.AccessLogs),
 		HandOffRestoredDestinationConnections: c.HandOffRestoredDestinationConnections,
 		FilterChains:                          parseFilterChains(c.FilterChains),
+		StreamFilters:                         parseStreamFilters(c.StreamFilters),
 	}
 }
 
@@ -763,12 +842,24 @@ func parseHostConfig(c *ClusterConfig) []v2.Host {
 		hosts = append(hosts, v2.Host{
 			host.Address,
 			host.Hostname,
-			host.Weight,
+			getHostWeight(host.Weight),
 			parseRouterMetadata(host.MetaData),
 		})
 	}
 
 	return hosts
+}
+
+func getHostWeight(weight uint32) uint32 {
+	if weight > MaxHostWeight {
+		weight = MaxHostWeight
+	}
+
+	if weight < MinHostWeight {
+		weight = MinHostWeight
+	}
+
+	return weight
 }
 
 // ParseServiceRegistry
@@ -807,4 +898,50 @@ func ParseServiceRegistry(src ServiceRegistryConfig) {
 			cb(SrvRegInfo, true)
 		}
 	}
+}
+
+func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
+	var factories []types.StreamFilterChainFactory
+
+	for _, c := range configs {
+		if sfcc, err := filter.CreateStreamFilterChainFactory(c.Name, c.Config); err != nil {
+			log.DefaultLogger.Errorf(err.Error())
+			return factories
+		} else {
+			factories = append(factories, sfcc)
+		}
+	}
+
+	return factories
+}
+func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {
+	data, _ := json.Marshal(config)
+	cfg := &TCPProxyConfig{}
+	if err := json.Unmarshal(data, cfg); err != nil {
+		return nil, fmt.Errorf("config is not a tcp proxy config: %v", err)
+	}
+	proxy := &v2.TCPProxy{
+		Routes: []*v2.TCPRoute{},
+	}
+	for _, route := range cfg.Routes {
+		tcpRoute := &v2.TCPRoute{
+			Cluster: route.Cluster,
+		}
+		for _, addr := range route.SourceAddrs {
+			src, err := net.ResolveTCPAddr("tcp", addr)
+			if err != nil {
+				return nil, fmt.Errorf("source addrs is not a valid addr: %v", err)
+			}
+			tcpRoute.SourceAddrs = append(tcpRoute.SourceAddrs, src)
+		}
+		for _, addr := range route.DestinationAddrs {
+			dst, err := net.ResolveTCPAddr("tcp", addr)
+			if err != nil {
+				return nil, fmt.Errorf("destination addrs is not a valid addr: %v", err)
+			}
+			tcpRoute.DestinationAddrs = append(tcpRoute.DestinationAddrs, dst)
+		}
+		proxy.Routes = append(proxy.Routes, tcpRoute)
+	}
+	return proxy, nil
 }

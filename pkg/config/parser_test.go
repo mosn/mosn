@@ -18,25 +18,24 @@
 package config
 
 import (
+	"net"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/json-iterator/go"
 )
 
 func TestParseClusterHealthCheckConf(t *testing.T) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	healthCheckConfigStr := `{
 		  "protocol": "SofaRpc",
-          "timeout": "90s",
-          "healthy_threshold": 2,
-          "unhealthy_threshold": 2,
-          "interval": "5s",
-          "interval_jitter": 0,
-          "check_path": ""
-    }`
+		  "timeout": "90s",
+		  "healthy_threshold": 2,
+		  "unhealthy_threshold": 2,
+		  "interval": "5s",
+		  "interval_jitter": 0,
+		  "check_path": ""
+		}`
 
 	var ccc ClusterHealthCheckConfig
 
@@ -79,7 +78,6 @@ func TestParseClusterHealthCheckConf(t *testing.T) {
 }
 
 func TestParseFilterChainJSONFile(t *testing.T) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	var filterchan FilterChain
 	filterchanStr := `{
              "match":"test",
@@ -148,7 +146,6 @@ func TestParseFilterChainJSONFile(t *testing.T) {
 }
 
 func TestParseProxyFilterJSONFile(t *testing.T) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	var proxy Proxy
 	filterchanStr := `{
                     "downstream_protocol": "SofaRpc",
@@ -192,10 +189,10 @@ func TestParseProxyFilterJSONFile(t *testing.T) {
                   }`
 
 	json.Unmarshal([]byte(filterchanStr), &proxy)
-	
+
 	if proxy.Name != "proxy_config" || len(proxy.VirtualHosts) != 1 ||
 		proxy.VirtualHosts[0].Name != "sofa" {
-			t.Errorf("TestParseProxyFilterJSON Failure")
+		t.Errorf("TestParseProxyFilterJSON Failure")
 	}
 }
 
@@ -216,5 +213,238 @@ func TestParseTlsJsonFile(t *testing.T) {
 	json.Unmarshal([]byte(test), &tlscon)
 	if tlscon.ServerName != "hello.com" {
 		t.Errorf("TestTlsParse failure, want hello.com but got %s", tlscon.ServerName)
+	}
+}
+
+func Test_parseRouters(t *testing.T) {
+
+	Router := []Router{
+		{
+			Route: RouteAction{
+				TotalClusterWeight: 100,
+				WeightedClusters: []WeightedCluster{
+					{
+						Cluster: ClusterWeight{
+							Name:   "c1",
+							Weight: 90,
+						},
+					},
+					{
+						Cluster: ClusterWeight{
+							Name:   "c2",
+							Weight: 10,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if got := parseRouters(Router); len(got) != 1 || len(got[0].Route.WeightedClusters) != 2 {
+		t.Errorf("parseRouters() = %v error", got)
+	}
+}
+
+func Test_parseWeightClusters(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want []v2.WeightedCluster
+	}{
+		{
+			name: "validCluster",
+			args: []string{
+				`{ "name":"c1",	"weight":90,"metadata_match":{"filter_metadata": {"mosn.lb": {"version": "v1"}}}}`,
+				`{ "name":"c2",	"weight":10,"metadata_match":{"filter_metadata": {"mosn.lb": {"version": "v2"}}}}`,
+			},
+			want: []v2.WeightedCluster{
+				{
+					Cluster: v2.ClusterWeight{
+						Name:   "c1",
+						Weight: 90,
+						MetadataMatch: v2.Metadata{
+							"version": "v1",
+						},
+					},
+				},
+				{
+					Cluster: v2.ClusterWeight{
+						Name:   "c2",
+						Weight: 10,
+						MetadataMatch: v2.Metadata{
+							"version": "v2",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "emptyCluster",
+			args: []string{
+				`{ "name":"c1",	"weight":90,"metadata_match":{"filter_metadata": {"mosn.lb":{} }}}`,
+				`{ "name":"c2",	"weight":10,"metadata_match":{"filter_metadata": {"mosn.lb": {}}}}`,
+			},
+			want: []v2.WeightedCluster{
+				{
+					Cluster: v2.ClusterWeight{
+						Name:          "c1",
+						Weight:        90,
+						MetadataMatch: v2.Metadata{},
+					},
+				},
+				{
+					Cluster: v2.ClusterWeight{
+						Name:          "c2",
+						Weight:        10,
+						MetadataMatch: v2.Metadata{},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			var weightClusters []WeightedCluster
+			for _, clusterString := range tt.args {
+				var cluster ClusterWeight
+				json.Unmarshal([]byte(clusterString), &cluster)
+				weightClusters = append(weightClusters, WeightedCluster{Cluster: cluster})
+			}
+
+			if got := parseWeightClusters(weightClusters); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parseWeightClusters() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseRouterMetadata(t *testing.T) {
+	var envoyvalue = map[string]interface{}{"label": "gray", "stage": "pre-release"}
+	var lbvalue = map[string]interface{}{"mosn.lb": envoyvalue}
+
+	var envoyvalue2 = map[string]interface{}{}
+	var lbvalue2 = map[string]interface{}{"mosn.lb": envoyvalue2}
+
+	testCases := []struct {
+		name string
+		args map[string]interface{}
+		want v2.Metadata
+	}{
+		{
+			name: "validCase",
+			args: map[string]interface{}{"filter_metadata": lbvalue},
+			want: v2.Metadata{"label": "gray", "stage": "pre-release"},
+		},
+
+		{
+			name: "emptyCase",
+			args: map[string]interface{}{"filter_metadata": lbvalue2},
+			want: v2.Metadata{},
+		},
+	}
+
+	for _, tt := range testCases {
+		got := parseRouterMetadata(tt.args)
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("parse route medata  error,want = %+v, but got = %+v, case = %s", tt.want, got, tt.name)
+		}
+	}
+}
+
+func TestParseTCPProxy(t *testing.T) {
+	cfgStr := `{
+		"routes": [
+			{
+				"cluster": "www",
+				"source_addrs":[
+					"127.0.0.1:80",
+					"192.168.1.1:80"
+				],
+				"destination_addrs":[
+					"127.0.0.1:80",
+					"192.168.1.1:80"
+				]
+			},
+			{
+				"cluster": "www2",
+				"source_addrs":[
+					"127.0.0.1:80",
+					"192.168.1.1:80"
+				],
+				"destination_addrs":[
+					"127.0.0.1:80",
+					"192.168.1.1:80"
+				]
+			}
+		]
+	}`
+	cfgMap := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(cfgStr), &cfgMap); err != nil {
+		t.Error(err)
+		return
+	}
+	proxy, err := ParseTCPProxy(cfgMap)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	addr1 := &net.TCPAddr{
+		IP:   net.IPv4(127, 0, 0, 1),
+		Port: 80,
+	}
+	addr2 := &net.TCPAddr{
+		IP:   net.IPv4(192, 168, 1, 1),
+		Port: 80,
+	}
+	route1 := &v2.TCPRoute{
+		Cluster:          "www",
+		SourceAddrs:      []net.Addr{addr1, addr2},
+		DestinationAddrs: []net.Addr{addr1, addr2},
+	}
+	route2 := &v2.TCPRoute{
+		Cluster:          "www2",
+		SourceAddrs:      []net.Addr{addr1, addr2},
+		DestinationAddrs: []net.Addr{addr1, addr2},
+	}
+	expected := &v2.TCPProxy{
+		Routes: []*v2.TCPRoute{route1, route2},
+	}
+	compare := func(p1, p2 *v2.TCPProxy) bool {
+		if len(p1.Routes) != len(p2.Routes) {
+			return false
+		}
+		for i := range p1.Routes {
+			r1 := p1.Routes[i]
+			r2 := p2.Routes[i]
+			if r1.Cluster != r2.Cluster {
+				return false
+			}
+			if len(r1.SourceAddrs) != len(r2.SourceAddrs) {
+				return false
+			}
+			if len(r1.DestinationAddrs) != len(r2.DestinationAddrs) {
+				return false
+			}
+			for j := range r1.SourceAddrs {
+				s1 := r1.SourceAddrs[j]
+				s2 := r2.SourceAddrs[j]
+				if s1.String() != s2.String() {
+					return false
+				}
+			}
+			for j := range r1.DestinationAddrs {
+				d1 := r1.DestinationAddrs[j]
+				d2 := r2.DestinationAddrs[j]
+				if d1.String() != d2.String() {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	if !compare(expected, proxy) {
+		t.Error("generate tcp proxy unexpected")
 	}
 }

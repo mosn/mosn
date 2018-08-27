@@ -21,8 +21,8 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
@@ -104,12 +104,13 @@ func deserializeResponseAllFields(context context.Context, responseCommand *sofa
 	//logger
 	logger := log.ByContext(context)
 
-	//serialize header
-	headerMap := sofarpc.GetMap(context, defaultTmpBufferSize)
-	serializeIns.DeSerialize(responseCommand.HeaderMap, &headerMap)
-	logger.Debugf("deserialize header map: %+v", headerMap)
+	protocolCtx := protocol.ProtocolBuffersByContent(context)
+	allField := protocolCtx.GetRspHeaders()
 
-	allField := sofarpc.GetMap(context, 20+len(headerMap))
+	//serialize header
+	//headerMap := sofarpc.GetMap(context, defaultTmpBufferSize)
+	serializeIns.DeSerialize(responseCommand.HeaderMap, &allField)
+	logger.Debugf("deserialize header map: %+v", allField)
 
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(responseCommand.Protocol), 10)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType)] = strconv.FormatUint(uint64(responseCommand.CmdType), 10)
@@ -129,12 +130,6 @@ func deserializeResponseAllFields(context context.Context, responseCommand *sofa
 	serializeIns.DeSerialize(responseCommand.ClassName, &className)
 	allField[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassName)] = className
 	logger.Debugf("Response ClassName is: %s", className)
-
-	for k, v := range headerMap {
-		allField[k] = v
-	}
-
-	sofarpc.ReleaseMap(context, headerMap)
 
 	responseCommand.ResponseHeader = allField
 }

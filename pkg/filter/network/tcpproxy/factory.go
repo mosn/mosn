@@ -15,22 +15,36 @@
  * limitations under the License.
  */
 
-package proxy
+package tcpproxy
 
 import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/proxy"
+	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type GenericProxyFilterConfigFactory struct {
-	Proxy *v2.Proxy
+func init() {
+	filter.RegisterNetwork(v2.TCP_PROXY, CreateTCPProxyFactory)
 }
 
-func (gfcf *GenericProxyFilterConfigFactory) CreateFilterFactory(context context.Context, clusterManager types.ClusterManager) types.NetworkFilterFactoryCb {
-	return func(manager types.FilterManager) {
-		manager.AddReadFilter(proxy.NewProxy(context, gfcf.Proxy, clusterManager))
+type tcpProxyFilterConfigFactory struct {
+	Proxy *v2.TCPProxy
+}
+
+func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
+	rf := NewProxy(context, f.Proxy, clusterManager)
+	callbacks.AddReadFilter(rf)
+}
+
+func CreateTCPProxyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+	p, err := config.ParseTCPProxy(conf)
+	if err != nil {
+		return nil, err
 	}
+	return &tcpProxyFilterConfigFactory{
+		Proxy: p,
+	}, nil
 }

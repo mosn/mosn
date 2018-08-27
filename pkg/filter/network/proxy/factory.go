@@ -15,39 +15,33 @@
  * limitations under the License.
  */
 
-package buffer
+package proxy
 
 import (
-	"sync"
+	"context"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/filter"
+	"github.com/alipay/sofa-mosn/pkg/proxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type headersBufferPoolV2 struct {
-	sync.Pool
+func init() {
+	filter.RegisterNetwork(v2.DEFAULT_NETWORK_FILTER, CreatePrxoyFactory)
 }
 
-func (p *headersBufferPoolV2) Take(capacity int) (amap map[string]string) {
-	v := p.Get()
-
-	if v == nil {
-		amap = make(map[string]string, capacity)
-	} else {
-		amap = v.(map[string]string)
-	}
-
-	return
+type genericProxyFilterConfigFactory struct {
+	Proxy *v2.Proxy
 }
 
-func (p *headersBufferPoolV2) Give(amap map[string]string) {
-	for k := range amap {
-		delete(amap, k)
-	}
-
-	p.Put(amap)
+func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
+	p := proxy.NewProxy(context, gfcf.Proxy, clusterManager)
+	callbacks.AddReadFilter(p)
 }
 
-// NewHeadersBufferPool used to create buffer pool for headers
-func NewHeadersBufferPool(poolSize int) types.HeadersBufferPool {
-	return &headersBufferPoolV2{}
+func CreatePrxoyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+	return &genericProxyFilterConfigFactory{
+		Proxy: config.ParseProxyFilterJSON(conf),
+	}, nil
 }
