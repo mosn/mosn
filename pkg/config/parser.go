@@ -29,6 +29,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/fatih/structs"
 	"github.com/json-iterator/go"
 )
 
@@ -131,9 +132,9 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 	return sc
 }
 
-// ParseProxyFilterJSON
-func ParseProxyFilterJSON(config map[string]interface{}) *v2.Proxy {
-	proxyConfig := &Proxy{}
+// ParseProxyFilter
+func ParseProxyFilter(config map[string]interface{}) *v2.Proxy {
+	proxyConfig := &v2.Proxy{}
 
 	if data, err := json.Marshal(config); err == nil {
 		json.Unmarshal(data, &proxyConfig)
@@ -159,15 +160,7 @@ func ParseProxyFilterJSON(config map[string]interface{}) *v2.Proxy {
 		}
 	}
 
-	return &v2.Proxy{
-		Name:                proxyConfig.Name,
-		DownstreamProtocol:  proxyConfig.DownstreamProtocol,
-		UpstreamProtocol:    proxyConfig.UpstreamProtocol,
-		SupportDynamicRoute: proxyConfig.SupportDynamicRoute,
-		BasicRoutes:         nil,
-		VirtualHosts:        parseVirtualHost(proxyConfig.VirtualHosts),
-		ValidateClusters:    proxyConfig.ValidateClusters,
-	}
+	return proxyConfig
 }
 
 func parseVirtualHost(confighost []*VirtualHost) []*v2.VirtualHost {
@@ -366,60 +359,6 @@ func parseBasicFilter(proxy *v2.Proxy) []*v2.BasicServiceRoute {
 	return BSR
 }
 
-// no used currently
-func parseProxyFilter(c *v2.Filter) *v2.Proxy {
-	proxyConfig := &v2.Proxy{}
-
-	//downstream protocol
-	//TODO config(json object) extract and type convert util
-	if downstreamProtocol, ok := c.Config["downstream_protocol"]; ok {
-		if downstreamProtocol, ok := downstreamProtocol.(string); ok {
-			proxyConfig.DownstreamProtocol = downstreamProtocol
-		} else {
-			log.StartLogger.Fatalln("[downstream_protocol] in proxy filter config is not string")
-		}
-	} else {
-		log.StartLogger.Fatalln("[downstream_protocol] is required in proxy filter config")
-	}
-
-	//upstream protocol
-	if upstreamProtocol, ok := c.Config["upstream_protocol"]; ok {
-		if upstreamProtocol, ok := upstreamProtocol.(string); ok {
-			proxyConfig.UpstreamProtocol = upstreamProtocol
-		} else {
-			log.StartLogger.Fatalln("[upstream_protocol] in proxy filter config is not string")
-		}
-	} else {
-		log.StartLogger.Fatalln("[upstream_protocol] is required in proxy filter config")
-	}
-
-	//todo support dynamic route or not, save
-	if dynamicBool, ok := c.Config["support_dynamic_route"]; ok {
-		if dynamicBool, ok := dynamicBool.(bool); ok {
-			proxyConfig.SupportDynamicRoute = dynamicBool
-		} else {
-			log.StartLogger.Fatalln("support_dynamic_route in proxy filter support_dynamic_route is not bool")
-		}
-	} else {
-		log.StartLogger.Debugf("support_dynamic_route doesn't set in proxy filter config")
-	}
-
-	//routes
-	if routes, ok := c.Config["routes"]; ok {
-		if routes, ok := routes.([]interface{}); ok {
-			for _, route := range routes {
-				proxyConfig.BasicRoutes = append(proxyConfig.BasicRoutes, parseRouteConfig(route.(map[string]interface{})))
-			}
-		} else {
-			log.StartLogger.Fatalln("[routes] in proxy filter config is not list of routemap")
-		}
-	} else {
-		log.StartLogger.Fatalln("[routes] is required in proxy filter config")
-	}
-
-	return proxyConfig
-}
-
 func parseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
 	var logs []v2.AccessLog
 
@@ -433,6 +372,25 @@ func parseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
 	return logs
 }
 
+func convertProxyConfigJSON(config map[string]interface{}) map[string]interface{} {
+	proxyConfig := &Proxy{}
+	if data, err := json.Marshal(config); err == nil {
+		json.Unmarshal(data, &proxyConfig)
+	} else {
+		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
+	}
+	proxyConfigV2 := v2.Proxy{
+		Name:                proxyConfig.Name,
+		DownstreamProtocol:  proxyConfig.DownstreamProtocol,
+		UpstreamProtocol:    proxyConfig.UpstreamProtocol,
+		SupportDynamicRoute: proxyConfig.SupportDynamicRoute,
+		BasicRoutes:         nil,
+		VirtualHosts:        parseVirtualHost(proxyConfig.VirtualHosts),
+		ValidateClusters:    proxyConfig.ValidateClusters,
+	}
+	return structs.Map(proxyConfigV2)
+}
+
 func parseFilterChains(c []FilterChain) []v2.FilterChain {
 	var filterchains []v2.FilterChain
 
@@ -441,7 +399,7 @@ func parseFilterChains(c []FilterChain) []v2.FilterChain {
 		for _, f := range fc.Filters {
 			filters = append(filters, v2.Filter{
 				Name:   f.Type,
-				Config: f.Config,
+				Config: convertProxyConfigJSON(f.Config),
 			})
 		}
 
