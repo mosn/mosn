@@ -18,7 +18,7 @@
 package network
 
 import (
-	"github.com/mailru/easygo/netpoll"
+	"github.com/neverhook/easygo/netpoll"
 	"net"
 	"sync"
 	"errors"
@@ -58,7 +58,6 @@ func init() {
 func attach() *eventLoop {
 	return eventLoopPool[atomic.AddUint32(&rrCounter, 1)%poolSize]
 }
-
 
 type connEvent struct {
 	read  *netpoll.Desc
@@ -164,10 +163,9 @@ func (el *eventLoop) unregister(id uint64) {
 
 func (el *eventLoop) unregisterRead(id uint64) {
 	if event, ok := el.conn[id]; ok {
-		if event.read != nil{
+		if event.read != nil {
 			el.poller.Stop(event.read)
 		}
-
 
 		el.mu.Lock()
 		delete(el.conn, id)
@@ -177,7 +175,7 @@ func (el *eventLoop) unregisterRead(id uint64) {
 
 func (el *eventLoop) unregisterWrite(id uint64) {
 	if event, ok := el.conn[id]; ok {
-		if event.write != nil{
+		if event.write != nil {
 			el.poller.Stop(event.write)
 		}
 
