@@ -9,9 +9,9 @@ import (
 
 	"context"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
@@ -73,7 +73,7 @@ func (c *RPCClient) Close() {
 func (c *RPCClient) SendRequest() {
 	ID := atomic.AddUint32(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
-	requestEncoder := c.Codec.NewStream(streamID, c)
+	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
 	var headers interface{}
 	switch c.Protocol {
 	case Bolt1:
@@ -84,18 +84,18 @@ func (c *RPCClient) SendRequest() {
 		c.t.Errorf("unsupport protocol")
 		return
 	}
-	requestEncoder.AppendHeaders(headers, true)
+	requestEncoder.AppendHeaders(context.Background(), headers, true)
 	atomic.AddUint32(&c.requestCount, 1)
 	c.Waits.Store(streamID, streamID)
 }
 
-func (c *RPCClient) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (c *RPCClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 }
-func (c *RPCClient) OnReceiveTrailers(trailers map[string]string) {
+func (c *RPCClient) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 }
-func (c *RPCClient) OnDecodeError(err error, headers map[string]string) {
+func (c *RPCClient) OnDecodeError(context context.Context, err error, headers map[string]string) {
 }
-func (c *RPCClient) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (c *RPCClient) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
 	if ok {
 		if _, ok := c.Waits.Load(streamID); ok {

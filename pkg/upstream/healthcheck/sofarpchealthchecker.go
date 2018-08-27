@@ -20,7 +20,6 @@ package healthcheck
 import (
 	"context"
 	"math/rand"
-	"reflect"
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -107,11 +106,11 @@ type sofarpcHealthCheckSession struct {
 	expectReset    bool
 }
 
-func (s *sofarpcHealthCheckSession) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (s *sofarpcHealthCheckSession) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	//bolt
 	//log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
 	if statusStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
-		s.responseStatus = sofarpc.ConvertPropertyValue(statusStr, reflect.Int16).(int16)
+		s.responseStatus = sofarpc.ConvertPropertyValueInt16(statusStr)
 	}
 
 	if endStream {
@@ -119,17 +118,17 @@ func (s *sofarpcHealthCheckSession) OnReceiveHeaders(headers map[string]string, 
 	}
 }
 
-func (s *sofarpcHealthCheckSession) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (s *sofarpcHealthCheckSession) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	if endStream {
 		s.onResponseComplete()
 	}
 }
 
-func (s *sofarpcHealthCheckSession) OnReceiveTrailers(trailers map[string]string) {
+func (s *sofarpcHealthCheckSession) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	s.onResponseComplete()
 }
 
-func (s *sofarpcHealthCheckSession) OnDecodeError(err error, headers map[string]string) {
+func (s *sofarpcHealthCheckSession) OnDecodeError(context context.Context, err error, headers map[string]string) {
 }
 
 // overload healthCheckSession
@@ -156,7 +155,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	id := rand.Uint32()
 	reqID := strconv.Itoa(int(id))
 
-	s.requestSender = s.client.NewStream(reqID, s)
+	s.requestSender = s.client.NewStream(context.Background(), reqID, s)
 	s.requestSender.GetStream().AddEventListener(s)
 
 	//todo: support tr
@@ -164,7 +163,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	if s.healthChecker.protocolCode == sofarpc.BOLT_V1 {
 		reqHeaders := codec.NewBoltHeartbeat(id)
 
-		s.requestSender.AppendHeaders(reqHeaders, true)
+		s.requestSender.AppendHeaders(context.Background(), reqHeaders, true)
 		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat to %s,request id = %d", s.host.AddressString(), reqID)
 		s.requestSender = nil
 		// start timeout interval

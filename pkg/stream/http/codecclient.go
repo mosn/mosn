@@ -110,9 +110,9 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(streamID string, respDecoder types.StreamReceiver) types.StreamSender {
+func (c *codecClient) NewStream(context context.Context, streamID string, respDecoder types.StreamReceiver) types.StreamSender {
 	ar := newActiveRequest(c, respDecoder)
-	ar.requestEncoder = c.Codec.NewStream(streamID, ar)
+	ar.requestEncoder = c.Codec.NewStream(context, streamID, ar)
 	ar.requestEncoder.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()
@@ -218,37 +218,37 @@ func (r *activeRequest) OnResetStream(reason types.StreamResetReason) {
 	r.codecClient.onReset(r, reason)
 }
 
-func (r *activeRequest) OnReceiveHeaders(headers map[string]string, endStream bool) {
+func (r *activeRequest) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseDecoder.OnReceiveHeaders(headers, endStream)
+	r.responseDecoder.OnReceiveHeaders(context, headers, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
 	}
 }
 
-func (r *activeRequest) OnReceiveData(data types.IoBuffer, endStream bool) {
+func (r *activeRequest) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
 
-	r.responseDecoder.OnReceiveData(data, endStream)
+	r.responseDecoder.OnReceiveData(context, data, endStream)
 
 	if endStream {
 		r.onDecodeComplete()
 	}
 }
 
-func (r *activeRequest) OnReceiveTrailers(trailers map[string]string) {
+func (r *activeRequest) OnReceiveTrailers(context context.Context, trailers map[string]string) {
 	r.onPreDecodeComplete()
-	r.responseDecoder.OnReceiveTrailers(trailers)
+	r.responseDecoder.OnReceiveTrailers(context, trailers)
 	r.onDecodeComplete()
 }
 
-func (r *activeRequest) OnDecodeError(err error, headers map[string]string) {
+func (r *activeRequest) OnDecodeError(context context.Context, err error, headers map[string]string) {
 }
 
 func (r *activeRequest) onPreDecodeComplete() {

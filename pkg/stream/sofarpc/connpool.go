@@ -74,7 +74,7 @@ func (p *connPool) NewStream(context context.Context, streamID string,
 		// todo: update host stats
 		p.activeClient.totalStream++
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := p.activeClient.codecClient.NewStream(streamID, responseDecoder)
+		streamEncoder := p.activeClient.codecClient.NewStream(context, streamID, responseDecoder)
 		cb.OnReady(streamID, streamEncoder, p.host)
 	}
 
