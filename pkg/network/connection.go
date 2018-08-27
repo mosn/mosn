@@ -151,7 +151,7 @@ func (c *connection) ID() uint64 {
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
 		// read switch from config, and create sub method
-		if UseNetpollMode {
+		if true {
 			c.attachEventLoop(lctx)
 		} else {
 			c.startRWLoop(lctx)
@@ -170,6 +170,12 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 			err := c.doRead()
 
 			if err != nil {
+				if te, ok := err.(net.Error); ok && te.Timeout() {
+					if c.readBuffer != nil && c.readBuffer.Len() == 0 {
+						c.readBuffer.Free()
+						c.readBuffer.Alloc(DefaultBufferReadCapacity)
+					}
+				}
 
 				if err == io.EOF {
 					c.Close(types.NoFlush, types.RemoteClose)
