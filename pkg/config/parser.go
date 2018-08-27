@@ -137,7 +137,7 @@ func ConvertProxyFilterToV2(config map[string]interface{}) map[string]interface{
 	proxyConfig := &Proxy{}
 
 	if data, err := json.Marshal(config); err == nil {
-		json.Unmarshal(data, &proxyConfig)
+		json.Unmarshal(data, proxyConfig)
 	} else {
 		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
 	}
@@ -155,7 +155,7 @@ func ConvertProxyFilterToV2(config map[string]interface{}) map[string]interface{
 	if proxyConfig.UpstreamProtocol == string(protocol.Xprotocol) || proxyConfig.DownstreamProtocol == string(protocol.Xprotocol) {
 		extendConfig := &XProtocolExtendConfig{}
 		if data, err := json.Marshal(proxyConfig.ExtendConfig); err == nil {
-			json.Unmarshal(data, &extendConfig)
+			json.Unmarshal(data, extendConfig)
 		} else {
 			log.StartLogger.Fatal("Parsing xprotocol extend config Error")
 		}
@@ -889,7 +889,14 @@ func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
 }
 
 func ConvertTCPProxyToV2(config map[string]interface{}) (map[string]interface{}, error) {
+	// TODO: convert v1 config to v2
+	return config, nil
+}
+
+//TODO: parseTCPProxy with v2 config
+func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {
 	data, _ := json.Marshal(config)
+
 	cfg := &TCPProxyConfig{}
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("config is not a tcp proxy config: %v", err)
@@ -917,14 +924,6 @@ func ConvertTCPProxyToV2(config map[string]interface{}) (map[string]interface{},
 		}
 		proxy.Routes = append(proxy.Routes, tcpRoute)
 	}
-	return structs.Map(proxy), nil
-}
 
-func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {
-	data, _ := json.Marshal(config)
-	proxy := &v2.TCPProxy{}
-	if err := json.Unmarshal(data, proxy); err != nil {
-		return nil, fmt.Errorf("config is not a tcp proxy config: %v", err)
-	}
 	return proxy, nil
 }

@@ -439,6 +439,12 @@ func TestParseTCPProxy(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	var err error
+	cfgMap, err = ConvertTCPProxyToV2(cfgMap)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	proxy, err := ParseTCPProxy(cfgMap)
 	if err != nil {
 		t.Error(err)
