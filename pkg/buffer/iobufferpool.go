@@ -45,7 +45,7 @@ func (p *IoBufferPool) take(size int) (buf types.IoBuffer) {
 		buf = v.(types.IoBuffer)
 		buf.Alloc(size)
 	}
-	return buf
+	return
 }
 
 // give returns IoBuffer to IoBufferPool

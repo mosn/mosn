@@ -47,8 +47,5 @@ type proxyBuffers struct {
 
 func proxyBuffersByContent(context context.Context) *proxyBuffers {
 	ctx := buffer.PoolContext(context)
-	if ctx == nil {
-		return nil
-	}
 	return ctx.Find(proxyBufferCtx{}, nil).(*proxyBuffers)
 }

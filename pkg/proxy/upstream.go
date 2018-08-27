@@ -83,7 +83,7 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 // types.StreamReceiver
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
-	buffer.CopyBufferPoolContext(r.downStream.context, context)
+	buffer.TransmitBufferPoolContext(r.downStream.context, context)
 
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{

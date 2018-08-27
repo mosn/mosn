@@ -45,8 +45,5 @@ type sofaBuffers struct {
 
 func sofaBuffersByContent(context context.Context) *sofaBuffers {
 	ctx := buffer.PoolContext(context)
-	if ctx == nil {
-		return nil
-	}
 	return ctx.Find(sofaBufferCtx{}, nil).(*sofaBuffers)
 }

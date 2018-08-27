@@ -18,24 +18,27 @@
 package buffer
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"runtime"
 	"testing"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
+
+const Size = 2048
 
 // Test byteBufferPool
 func testbytepool() *[]byte {
-	b := GetBytes(10000)
+	b := GetBytes(Size)
 	buf := *b
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < Size; i++ {
 		buf[i] = 1
 	}
 	return b
 }
 
 func testbyte() []byte {
-	buf := make([]byte, 10000)
-	for i := 0; i < 10000; i++ {
+	buf := make([]byte, Size)
+	for i := 0; i < Size; i++ {
 		buf[i] = 1
 	}
 	return buf
@@ -51,7 +54,7 @@ func BenchmarkBytePool(b *testing.B) {
 	}
 }
 
-func BenchmarkByte(b *testing.B) {
+func BenchmarkByteMake(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		testbyte()
 		if i%100 == 0 {
@@ -61,16 +64,17 @@ func BenchmarkByte(b *testing.B) {
 }
 
 // Test IoBufferPool
+var Buffer [Size]byte
 
 func testiobufferpool() types.IoBuffer {
-	b := GetIoBuffer(1)
-	b.Read([]byte{1})
+	b := GetIoBuffer(Size)
+	b.Write(Buffer[:])
 	return b
 }
 
 func testiobuffer() types.IoBuffer {
-	b := NewIoBuffer(1)
-	b.Read([]byte{1})
+	b := NewIoBuffer(Size)
+	b.Write(Buffer[:])
 	return b
 }
 
@@ -93,10 +97,10 @@ func BenchmarkIoBuffer(b *testing.B) {
 	}
 }
 
-// Test IoBuffer
-func Test_read(t *testing.T) {
-	str := "read_test"
-	buffer := NewIoBufferString(str)
+func Test_IoBufferPool(t *testing.T) {
+	str := "IoBufferPool Test"
+	buffer := GetIoBuffer(len(str))
+	buffer.Write([]byte(str))
 
 	b := make([]byte, 32)
 	_, err := buffer.Read(b)
@@ -105,20 +109,75 @@ func Test_read(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	PutIoBuffer(buffer)
+
 	if string(b[:len(str)]) != str {
-		t.Fatal("err read content")
+		t.Fatal("IoBufferPool Test Failed")
 	}
+	t.Log("IoBufferPool Test Sucess")
+}
 
-	buffer = NewIoBufferString(str)
+func Test_IoBufferPool_Slice_Increase(t *testing.T) {
+	str := "IoBufferPool Test"
+	// []byte slice increase
+	buffer := GetIoBuffer(1)
+	buffer.Write([]byte(str))
 
-	b = make([]byte, 4)
-	_, err = buffer.Read(b)
+	b := make([]byte, 32)
+	_, err := buffer.Read(b)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if string(b) != "read" {
-		t.Fatal("err read content")
+	PutIoBuffer(buffer)
+
+	if string(b[:len(str)]) != str {
+		t.Fatal("IoBufferPool Test Slice Increase Failed")
 	}
+	t.Log("IoBufferPool Test Slice Increase Sucess")
+}
+
+func Test_IoBufferPool_Alloc_Free(t *testing.T) {
+	str := "IoBufferPool Test"
+	buffer := GetIoBuffer(100)
+	buffer.Free()
+	buffer.Alloc(1)
+	buffer.Write([]byte(str))
+
+	b := make([]byte, 32)
+	_, err := buffer.Read(b)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	PutIoBuffer(buffer)
+
+	if string(b[:len(str)]) != str {
+		t.Fatal("IoBufferPool Test Alloc Free Failed")
+	}
+	t.Log("IoBufferPool Test Alloc Free Sucess")
+}
+
+func Test_ByteBufferPool(t *testing.T) {
+	str := "ByteBufferPool Test"
+	b := GetBytes(len(str))
+	buf := *b
+	copy(buf, str)
+
+	if string(buf) != str {
+		t.Fatal("ByteBufferPool Test Failed")
+	}
+	PutBytes(b)
+
+	b = GetBytes(len(str))
+	buf = *b
+	copy(buf, str)
+
+	if string(buf) != str {
+		t.Fatal("ByteBufferPool Test Failed")
+	}
+	PutBytes(b)
+	t.Log("ByteBufferPool Test Sucess")
 }

@@ -51,8 +51,5 @@ type SofaProtocolBuffers struct {
 
 func SofaProtocolBuffersByContent(context context.Context) *SofaProtocolBuffers {
 	ctx := buffer.PoolContext(context)
-	if ctx == nil {
-		return nil
-	}
 	return ctx.Find(SofaProtocolBufferCtx{}, nil).(*SofaProtocolBuffers)
 }
