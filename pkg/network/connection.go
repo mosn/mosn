@@ -27,11 +27,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"runtime/debug"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"runtime/debug"
 )
 
 // Network related const
@@ -63,19 +64,19 @@ type connection struct {
 	bytesSendCallbacks   []func(bytesSent uint64)
 	filterManager        types.FilterManager
 
-	stopChan            chan struct{}
-	curWriteBufferData  []types.IoBuffer
-	readBuffer          types.IoBuffer
-	writeBuffers        net.Buffers
-	ioBuffers           []types.IoBuffer
-	writeBufferChan     chan *[]types.IoBuffer
-	transferChan        chan uint64
+	stopChan           chan struct{}
+	curWriteBufferData []types.IoBuffer
+	readBuffer         types.IoBuffer
+	writeBuffers       net.Buffers
+	ioBuffers          []types.IoBuffer
+	writeBufferChan    chan *[]types.IoBuffer
+	transferChan       chan uint64
 
 	// readLoop/writeLoop goroutine fields:
 	internalLoopStarted bool
 	internalStopChan    chan struct{}
 	// eventLoop fields:
-	writeSchedChan      chan bool // writable if not scheduled yet.
+	writeSchedChan chan bool // writable if not scheduled yet.
 
 	stats              *types.ConnectionStats
 	lastBytesSizeRead  int64
@@ -88,8 +89,7 @@ type connection struct {
 	logger log.Logger
 }
 
-// NewServerConnection
-// rawc is the raw connection from go/net
+// NewServerConnection new server-side connection, rawc is the raw connection from go/net
 func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}, logger log.Logger) types.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
@@ -774,7 +774,7 @@ type clientConnection struct {
 	connectOnce sync.Once
 }
 
-// NewClientConnection
+// NewClientConnection new client-side connection
 func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr,
 	stopChan chan struct{}, logger log.Logger) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)

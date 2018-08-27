@@ -18,27 +18,29 @@
 package network
 
 import (
-	"github.com/neverhook/easygo/netpoll"
-	"net"
-	"sync"
 	"errors"
 	"log"
-	"sync/atomic"
-	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
+	"net"
 	"runtime"
+	"sync"
+	"sync/atomic"
+
+	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
+	"github.com/neverhook/easygo/netpoll"
 )
 
 var (
+	// UseNetpollMode indicates which mode should be used for connection IO processing
 	UseNetpollMode = false
 
 	// read/write goroutine pool
-	readPool  = mosnsync.NewSimplePool(runtime.NumCPU())
-	writePool = mosnsync.NewSimplePool(runtime.NumCPU())
+	readPool  = mosnsync.NewWorkerPool(runtime.NumCPU())
+	writePool = mosnsync.NewWorkerPool(runtime.NumCPU())
 
-	rrCounter                   uint32 = 0
-	poolSize                    uint32 = 1 //uint32(runtime.NumCPU())
-	eventLoopPool                      = make([]*eventLoop, poolSize)
-	eventAlreadyRegisteredError        = errors.New("event already registered")
+	rrCounter                 uint32
+	poolSize                  uint32 = 1 //uint32(runtime.NumCPU())
+	eventLoopPool                    = make([]*eventLoop, poolSize)
+	errEventAlreadyRegistered        = errors.New("event already registered")
 )
 
 func init() {
