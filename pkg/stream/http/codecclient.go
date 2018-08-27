@@ -143,15 +143,22 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 
 	if event.IsClose() {
 		var arNext *list.Element
+
+		c.AcrMux.RLock()
+		acReqs := make([]*activeRequest, 0, c.ActiveRequests.Len())
 		for ar := c.ActiveRequests.Front(); ar != nil; ar = arNext {
-			reason := types.StreamConnectionFailed
 			arNext = ar.Next()
+			acReqs = append(acReqs, ar.Value.(*activeRequest))
+		}
+		c.AcrMux.RUnlock()
+
+		for _, ac := range acReqs {
+			reason := types.StreamConnectionFailed
 
 			if c.ConnectedFlag {
 				reason = types.StreamConnectionTermination
 			}
-
-			ar.Value.(*activeRequest).requestEncoder.GetStream().ResetStream(reason)
+			ac.requestEncoder.GetStream().ResetStream(reason)
 		}
 	}
 }
