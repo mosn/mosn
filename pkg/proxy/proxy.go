@@ -63,7 +63,6 @@ type proxy struct {
 	clusterName    string
 	routers        types.Routers
 	serverCodec    types.ServerStreamConnection
-	resueCodecMaps bool
 
 	context context.Context
 
@@ -88,7 +87,6 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		clusterManager: clusterManager,
 		activeSteams:   list.New(),
 		stats:          globalStats,
-		resueCodecMaps: true,
 		context:        ctx,
 		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
