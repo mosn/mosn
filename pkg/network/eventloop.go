@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package network
 
 import (
@@ -14,13 +31,13 @@ import (
 var (
 	UseNetpollMode = false
 
-	// this pool if for event handle
+	// read/write goroutine pool
 	readPool  = mosnsync.NewSimplePool(runtime.NumCPU())
 	writePool = mosnsync.NewSimplePool(runtime.NumCPU())
 
 	rrCounter                   uint32 = 0
 	poolSize                    uint32 = 1 //uint32(runtime.NumCPU())
-	eventLoopPool                      = make([]*EventLoop, poolSize)
+	eventLoopPool                      = make([]*eventLoop, poolSize)
 	eventAlreadyRegisteredError        = errors.New("event already registered")
 )
 
@@ -31,37 +48,38 @@ func init() {
 			log.Fatalln("create poller failed, caused by ", err)
 		}
 
-		eventLoopPool[i] = &EventLoop{
+		eventLoopPool[i] = &eventLoop{
 			poller: poller,
-			conn:   make(map[uint64]*ConnEvent), //TODO init size
+			conn:   make(map[uint64]*connEvent), //TODO init size
 		}
 	}
 }
 
-func Attach() *EventLoop {
+func attach() *eventLoop {
 	return eventLoopPool[atomic.AddUint32(&rrCounter, 1)%poolSize]
 }
 
-type ConnEvent struct {
+
+type connEvent struct {
 	read  *netpoll.Desc
 	write *netpoll.Desc
 }
 
-type ConnEventHandler struct {
-	OnHup   func() bool
-	OnRead  func() bool
-	OnWrite func() bool
+type connEventHandler struct {
+	onHup   func() bool
+	onRead  func() bool
+	onWrite func() bool
 }
 
-type EventLoop struct {
+type eventLoop struct {
 	mu sync.Mutex
 
 	poller netpoll.Poller
 
-	conn map[uint64]*ConnEvent
+	conn map[uint64]*connEvent
 }
 
-func (el *EventLoop) Register(id uint64, conn net.Conn, handler *ConnEventHandler) error {
+func (el *eventLoop) register(id uint64, conn net.Conn, handler *connEventHandler) error {
 	// handle read
 	read, err := netpoll.HandleReadOnce(conn)
 	if err != nil {
@@ -78,15 +96,17 @@ func (el *EventLoop) Register(id uint64, conn net.Conn, handler *ConnEventHandle
 	el.poller.Start(read, el.readWrapper(read, handler))
 	el.poller.Start(write, el.writeWrapper(write, handler))
 
+	el.mu.Lock()
 	//store
-	el.conn[id] = &ConnEvent{
+	el.conn[id] = &connEvent{
 		read:  read,
 		write: write,
 	}
+	el.mu.Unlock()
 	return nil
 }
 
-func (el *EventLoop) RegisterRead(id uint64, conn net.Conn, handler *ConnEventHandler) error {
+func (el *eventLoop) registerRead(id uint64, conn net.Conn, handler *connEventHandler) error {
 	// handle read
 	read, err := netpoll.HandleReadOnce(conn)
 	if err != nil {
@@ -98,15 +118,14 @@ func (el *EventLoop) RegisterRead(id uint64, conn net.Conn, handler *ConnEventHa
 
 	el.mu.Lock()
 	//store
-	el.conn[id] = &ConnEvent{
+	el.conn[id] = &connEvent{
 		read: read,
 	}
 	el.mu.Unlock()
-
 	return nil
 }
 
-func (el *EventLoop) RegisterWrite(id uint64, conn net.Conn, handler *ConnEventHandler) error {
+func (el *eventLoop) registerWrite(id uint64, conn net.Conn, handler *connEventHandler) error {
 	// handle write
 	write, err := netpoll.HandleWriteOnce(conn)
 	if err != nil {
@@ -116,15 +135,16 @@ func (el *EventLoop) RegisterWrite(id uint64, conn net.Conn, handler *ConnEventH
 	// register
 	el.poller.Start(write, el.writeWrapper(write, handler))
 
+	el.mu.Lock()
 	//store
-	el.conn[id] = &ConnEvent{
+	el.conn[id] = &connEvent{
 		write: write,
 	}
-
+	el.mu.Unlock()
 	return nil
 }
 
-func (el *EventLoop) Unregister(id uint64) {
+func (el *eventLoop) unregister(id uint64) {
 
 	if event, ok := el.conn[id]; ok {
 		if event.read != nil {
@@ -135,38 +155,49 @@ func (el *EventLoop) Unregister(id uint64) {
 			el.poller.Stop(event.write)
 		}
 
+		el.mu.Lock()
 		delete(el.conn, id)
+		el.mu.Unlock()
 	}
 
 }
 
-func (el *EventLoop) UnregisterRead(id uint64) {
+func (el *eventLoop) unregisterRead(id uint64) {
 	if event, ok := el.conn[id]; ok {
-		el.poller.Stop(event.read)
+		if event.read != nil{
+			el.poller.Stop(event.read)
+		}
 
+
+		el.mu.Lock()
 		delete(el.conn, id)
+		el.mu.Unlock()
 	}
 }
 
-func (el *EventLoop) UnregisterWrite(id uint64) {
+func (el *eventLoop) unregisterWrite(id uint64) {
 	if event, ok := el.conn[id]; ok {
-		el.poller.Stop(event.write)
+		if event.write != nil{
+			el.poller.Stop(event.write)
+		}
 
+		el.mu.Lock()
 		delete(el.conn, id)
+		el.mu.Unlock()
 	}
 }
 
-func (el *EventLoop) readWrapper(desc *netpoll.Desc, handler *ConnEventHandler) func(netpoll.Event) {
+func (el *eventLoop) readWrapper(desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
 	return func(e netpoll.Event) {
 		// No more calls will be made for conn until we call epoll.Resume().
 		if e&netpoll.EventReadHup != 0 {
 			el.poller.Stop(desc)
-			if !handler.OnHup() {
+			if !handler.onHup() {
 				return
 			}
 		}
 		readPool.Schedule(func() {
-			if !handler.OnRead() {
+			if !handler.onRead() {
 				return
 			}
 			el.poller.Resume(desc)
@@ -174,17 +205,17 @@ func (el *EventLoop) readWrapper(desc *netpoll.Desc, handler *ConnEventHandler) 
 	}
 }
 
-func (el *EventLoop) writeWrapper(desc *netpoll.Desc, handler *ConnEventHandler) func(netpoll.Event) {
+func (el *eventLoop) writeWrapper(desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
 	return func(e netpoll.Event) {
 		// No more calls will be made for conn until we call epoll.Resume().
 		if e&netpoll.EventReadHup != 0 {
 			el.poller.Stop(desc)
-			if !handler.OnHup() {
+			if !handler.onHup() {
 				return
 			}
 		}
 		writePool.ScheduleAlways(func() {
-			if !handler.OnWrite() {
+			if !handler.onWrite() {
 				return
 			}
 			el.poller.Resume(desc)

@@ -69,10 +69,13 @@ type connection struct {
 	writeBuffers        net.Buffers
 	ioBuffers           []types.IoBuffer
 	writeBufferChan     chan *[]types.IoBuffer
-	writeSchedChan      chan bool
+	transferChan        chan uint64
+
+	// readLoop/writeLoop goroutine fields:
 	internalLoopStarted bool
 	internalStopChan    chan struct{}
-	transferChan        chan uint64
+	// eventLoop fields:
+	writeSchedChan      chan bool // writable if not scheduled yet.
 
 	stats              *types.ConnectionStats
 	lastBytesSizeRead  int64
@@ -80,7 +83,7 @@ type connection struct {
 
 	closed    uint32
 	startOnce sync.Once
-	eventLoop *EventLoop
+	eventLoop *eventLoop
 
 	logger log.Logger
 }
@@ -158,12 +161,12 @@ func (c *connection) Start(lctx context.Context) {
 
 func (c *connection) attachEventLoop(lctx context.Context) {
 	// Choose one event loop to register, the implement is platform-dependent(epoll for linux and kqueue for bsd)
-	c.eventLoop = Attach()
+	c.eventLoop = attach()
 
 	// Register read only, write is supported now because it is more complex than read.
 	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
-	c.eventLoop.RegisterRead(c.id, c.rawConnection, &ConnEventHandler{
-		OnRead: func() bool {
+	c.eventLoop.registerRead(c.id, c.rawConnection, &connEventHandler{
+		onRead: func() bool {
 			err := c.doRead()
 
 			if err != nil {
@@ -183,7 +186,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 			return true
 		},
 
-		OnHup: func() bool {
+		onHup: func() bool {
 			c.Close(types.NoFlush, types.RemoteClose)
 			return false
 		},
@@ -226,13 +229,17 @@ func (c *connection) scheduleWrite() {
 	writePool.ScheduleAlways(func() {
 		defer func() { <-c.writeSchedChan }()
 
-		// at least 1 buffer need
+		// at least 1 buffer need to avoid all chan-recv missed by select.default option
 		c.appendBuffer(<-c.writeBufferChan)
 
 		//todo: dynamic set loop nums
 		//slots := len(c.writeBufferChan)
 		//if slots < 10 {
 		//	slots = 10
+		//}
+
+		//if len(c.writeBufferChan) < 10 {
+		//	runtime.Gosched()
 		//}
 
 		for i := 0; i < 10; i++ {
@@ -601,7 +608,8 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 		// because close function must be called by one io loop thread, notify another loop here
 		close(c.internalStopChan)
 	} else if c.eventLoop != nil {
-		c.eventLoop.Unregister(c.id)
+		// unregister events while connection close
+		c.eventLoop.unregister(c.id)
 	}
 
 	c.rawConnection.Close()
