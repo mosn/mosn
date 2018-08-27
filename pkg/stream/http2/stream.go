@@ -114,6 +114,7 @@ func (csc *clientStreamConnection) OnGoAway() {
 }
 
 func (csc *clientStreamConnection) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
+	log.DefaultLogger.Tracef("http2 client stream connection new stream , stream id = %v", streamID)
 	stream := &clientStream{
 		stream: stream{
 			context: context.WithValue(ctx, types.ContextKeyStreamID, streamID),
@@ -425,6 +426,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn interfac
 
 	s.response.Header = encodeHeader(headers)
 
+	log.DefaultLogger.Tracef("http2 append headers = %v", s.response.Header)
 	if endStream {
 		s.endStream()
 	}
@@ -440,6 +442,7 @@ func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, 
 	s.response.Body = &IoBufferReadCloser{
 		buf: data,
 	}
+	log.DefaultLogger.Tracef("http2 append data = %v", data)
 
 	if endStream {
 		s.endStream()
@@ -503,6 +506,7 @@ func (s *serverStream) doSend() {
 	if s.response.Body != nil {
 		buf := buffer.NewIoBuffer(1024)
 		buf.ReadFrom(s.response.Body)
+		log.DefaultLogger.Tracef("http2 server stream do send ,header = %v , body = %v", s.response.Header, buf)
 		buf.WriteTo(s.responseWriter)
 	}
 }
@@ -533,7 +537,7 @@ func (s *serverStream) handleRequest() {
 			header[types.HeaderStreamID] = s.stream.context.Value(types.ContextKeyStreamID).(string)
 		}
 
-		s.decoder.OnReceiveHeaders(s.context,header, false)
+		s.decoder.OnReceiveHeaders(s.context, header, false)
 
 		//remove detect
 		//if s.element != nil {
