@@ -61,7 +61,7 @@ func (c *RPCStatusClient) SendRequest() {
 	ID := atomic.AddUint32(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(streamID, c)
-	headers := util.BuildBoltV1Reuqest(ID)
+	headers := util.BuildBoltV1Request(ID)
 	requestEncoder.AppendHeaders(headers, true)
 }
 

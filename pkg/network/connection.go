@@ -564,7 +564,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if c.internalLoopStarted {
 		// because close function must be called by one io loop thread, notify another loop here
 		close(c.internalStopChan)
-	} else {
+	} else if c.eventLoop != nil {
 		c.eventLoop.Unregister(c.id)
 	}
 
