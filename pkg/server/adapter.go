@@ -22,6 +22,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 var listenerAdapterInstance *ListenerAdapter
@@ -41,6 +42,7 @@ func initListenerAdapterInstance(name string, connHandler types.ConnectionHandle
 	}
 
 	listenerAdapterInstance.connHandlerMap[name] = connHandler
+	log.DefaultLogger.Debugf("add server conn handler, server name = %s",name)
 }
 
 func GetListenerAdapterInstance() *ListenerAdapter {
@@ -65,17 +67,30 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 		}
 	}
 
-	listener := connHandler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
+	if connHandler == nil {
+		return fmt.Errorf("AddOrUpdateListener called error, connHandler is nil")
+	}
+	
+	listener,err:= connHandler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
+	
+	if err != nil {
+		return fmt.Errorf("connHandler.AddOrUpdateListener called error:",err.Error())
+	}
+	
+	if listener == nil {
+		return nil
+	}
+	
 	if al, ok := listener.(*activeListener); ok {
 		if !al.updatedLabel {
 			// start listener if this is new
 			go al.listener.Start(nil)
 		}
-
+		
 		return nil
 	}
 
-	return fmt.Errorf("AddOrUpdateListener Error")
+	return fmt.Errorf("AddOrUpdateListener Error, got listener is not activeListener")
 }
 
 func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName string) error {

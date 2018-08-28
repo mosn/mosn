@@ -82,7 +82,7 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
 				err := adsClient.MosnConfig.OnAddOrUpdateListeners(listeners)
 				if err != nil {
-					log.DefaultLogger.Fatalf("failed to update listeners")
+					log.DefaultLogger.Fatalf("failed to update listeners, error:",err.Error())
 					return
 				}
 				log.DefaultLogger.Infof("update listeners success")

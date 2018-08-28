@@ -110,7 +110,7 @@ func (ch *connHandler) GenerateListenerID() string {
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
 func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
+	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener,error) {
 
 	var listenerName string
 	if lc.Name == "" {
@@ -127,8 +127,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 		// a listener with the same name must have the same configured address
 		if al.listener.Addr().String() != lc.Addr.String() ||
 			al.listener.Addr().Network() != lc.Addr.Network() {
-			log.DefaultLogger.Errorf("error updating listener, listen address and listen name doesn't match")
-			return nil
+			return nil,fmt.Errorf("error updating listener, listen address and listen name doesn't match")
 		}
 
 		equalConfig := reflect.DeepEqual(al.listener.Config(), lc)
@@ -136,8 +135,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 		equalStreamFilters := reflect.DeepEqual(al.streamFiltersFactories, streamFiltersFactories)
 		// duplicate config does nothing
 		if equalConfig && equalNetworkFilter && equalStreamFilters {
-			log.DefaultLogger.Debugf("duplicate/locked listener '{}'. no add/update", listenerName)
-			return nil
+			log.DefaultLogger.Debugf("duplicate listener:%s found. no add/update", listenerName)
+			return nil,nil
 		}
 
 		// update some config, and as Address and Name doesn't change , so need't change *rawl
@@ -170,7 +169,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 
 		logger, err := log.NewLogger(lc.LogPath, log.Level(lc.LogLevel))
 		if err != nil {
-			ch.logger.Fatalf("initialize listener logger failed : %v", err)
+			return nil,fmt.Errorf("initialize listener logger failed : %v", err.Error())
 		}
 
 		//initialize access log
@@ -186,7 +185,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
-				log.StartLogger.Errorf("initialize listener access logger ", alConfig.Path, " failed: ", err)
+				return nil,fmt.Errorf("initialize listener access logger ", alConfig.Path, " failed: ", err.Error())
 			}
 		}
 
@@ -195,9 +194,10 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 		al = newActiveListener(l, logger, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
+		log.DefaultLogger.Tracef("AddOrUpdateListener success")
 	}
 
-	return al
+	return al,nil
 }
 
 func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
