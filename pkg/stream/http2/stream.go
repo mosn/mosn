@@ -76,7 +76,8 @@ type streamConnection struct {
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {}
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
+}
 
 func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
@@ -426,7 +427,6 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn interfac
 
 	s.response.Header = encodeHeader(headers)
 
-	log.DefaultLogger.Tracef("http2 append headers = %v", s.response.Header)
 	if endStream {
 		s.endStream()
 	}
@@ -442,7 +442,6 @@ func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, 
 	s.response.Body = &IoBufferReadCloser{
 		buf: data,
 	}
-	log.DefaultLogger.Tracef("http2 append data = %v", data)
 
 	if endStream {
 		s.endStream()
@@ -506,7 +505,6 @@ func (s *serverStream) doSend() {
 	if s.response.Body != nil {
 		buf := buffer.NewIoBuffer(1024)
 		buf.ReadFrom(s.response.Body)
-		log.DefaultLogger.Tracef("http2 server stream do send ,header = %v , body = %v", s.response.Header, buf)
 		buf.WriteTo(s.responseWriter)
 	}
 }
@@ -531,10 +529,6 @@ func (s *serverStream) handleRequest() {
 		// set query string header if not found
 		if _, ok := header[protocol.MosnHeaderQueryStringKey]; !ok {
 			header[protocol.MosnHeaderQueryStringKey] = string(queryString)
-		}
-
-		if _, ok := header[types.HeaderStreamID]; !ok {
-			header[types.HeaderStreamID] = s.stream.context.Value(types.ContextKeyStreamID).(string)
 		}
 
 		s.decoder.OnReceiveHeaders(s.context, header, false)
