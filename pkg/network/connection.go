@@ -175,6 +175,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 						c.readBuffer.Free()
 						c.readBuffer.Alloc(DefaultBufferReadCapacity)
 					}
+					return true
 				}
 
 				if err == io.EOF {
@@ -233,7 +234,9 @@ func (c *connection) startRWLoop(lctx context.Context) {
 }
 
 func (c *connection) scheduleWrite() {
+	c.logger.Errorf("try schedule write")
 	writePool.ScheduleAlways(func() {
+		c.logger.Errorf("write scheduled")
 		defer func() { <-c.writeSchedChan }()
 
 		// at least 1 buffer need to avoid all chan-recv missed by select.default option
@@ -257,6 +260,8 @@ func (c *connection) scheduleWrite() {
 			}
 		}
 
+		c.logger.Errorf("ready to write %d bytes", c.writeBufLen())
+
 		_, err := c.doWrite()
 		if err != nil {
 			if err == io.EOF {
@@ -269,6 +274,8 @@ func (c *connection) scheduleWrite() {
 			c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
 				c.id, c.RemoteAddr().String(), err)
 		}
+
+		c.logger.Errorf("slots ramaining %d", len(c.writeBufferChan))
 	})
 }
 
@@ -406,7 +413,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		return nil
 	}
 
-	if !c.internalLoopStarted {
+	if c.internalLoopStarted {
 		c.writeBufferChan <- &buffers
 	} else {
 		// Start schedule if not started
@@ -594,6 +601,8 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if ccType == types.FlushWrite {
 		if c.writeBufLen() > 0 {
 			c.closeWithFlush = true
+
+
 
 			for {
 

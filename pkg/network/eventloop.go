@@ -208,7 +208,7 @@ func (el *eventLoop) readWrapper(desc *netpoll.Desc, handler *connEventHandler) 
 func (el *eventLoop) writeWrapper(desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
 	return func(e netpoll.Event) {
 		// No more calls will be made for conn until we call epoll.Resume().
-		if e&netpoll.EventReadHup != 0 {
+		if e&netpoll.EventWriteHup != 0 {
 			el.poller.Stop(desc)
 			if !handler.onHup() {
 				return
