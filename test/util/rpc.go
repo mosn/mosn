@@ -214,11 +214,11 @@ func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
 
 func (s *RPCServer) ServeXprotocol(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		hsfCodec := subprotocol.NewRPCHSF()
-		streamId := hsfCodec.GetStreamID(iobuf.Bytes())
+		exampleCodec := subprotocol.NewRPCExample()
+		streamId := exampleCodec.GetStreamID(iobuf.Bytes())
 		responseData := []byte{14, 1, 1, 20, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
 		//fmt.Printf("response set stream id = %v", streamId)
-		responseData = hsfCodec.SetStreamID(responseData, streamId)
+		responseData = exampleCodec.SetStreamID(responseData, streamId)
 		iobuf.Drain(iobuf.Len())
 		return responseData, true
 	}
