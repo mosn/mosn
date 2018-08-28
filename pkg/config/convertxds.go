@@ -298,8 +298,10 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		filterConfig := &xdsxproxy.XProxy{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  filterConfig.GetDownstreamProtocol().String(),
-			UpstreamProtocol:    filterConfig.GetUpstreamProtocol().String(),
+			//DownstreamProtocol:  filterConfig.GetDownstreamProtocol().String(),
+			//UpstreamProtocol:    filterConfig.GetUpstreamProtocol().String(),
+			DownstreamProtocol:  string(protocol.Xprotocol),
+			UpstreamProtocol:    string(protocol.Xprotocol),
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 			ExtendConfig:        convertXProxyExtendConfig(filterConfig),

@@ -17,12 +17,14 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/stream"
+	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol/subprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 const (
-	Bolt1 = "boltV1"
-	Bolt2 = "boltV2"
+	Bolt1     = "boltV1"
+	Bolt2     = "boltV2"
+	Xprotocol = "X"
 )
 
 type RPCClient struct {
@@ -172,6 +174,8 @@ func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV1)
 	case Bolt2:
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV2)
+	case Xprotocol:
+		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeXprotocol)
 	default:
 		t.Errorf("unsupport protocol")
 		return nil
@@ -208,7 +212,49 @@ func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
 	//TODO:
 }
 
+func (s *RPCServer) ServeXprotocol(t *testing.T, conn net.Conn) {
+	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+		hsfCodec := subprotocol.NewRPCHSF()
+		streamId := hsfCodec.GetStreamID(iobuf.Bytes())
+		responseData := []byte{14, 1, 1, 20, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
+		//fmt.Printf("response set stream id = %v", streamId)
+		responseData = hsfCodec.SetStreamID(responseData, streamId)
+		iobuf.Drain(iobuf.Len())
+		return responseData, true
+	}
+	serveXprotocolRPC(t, conn, response)
+}
+
 func serveSofaRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {
+	iobuf := buffer.NewIoBuffer(102400)
+	for {
+		now := time.Now()
+		conn.SetReadDeadline(now.Add(30 * time.Second))
+		buf := make([]byte, 10*1024)
+		bytesRead, err := conn.Read(buf)
+		if err != nil {
+			if err, ok := err.(net.Error); ok && err.Timeout() {
+				t.Logf("Connect read error: %v\n", err)
+				continue
+			}
+			return
+		}
+		if bytesRead > 0 {
+			iobuf.Write(buf[:bytesRead])
+			for iobuf.Len() > 1 {
+				// ok means receive a full data
+				data, ok := responseHandler(iobuf)
+				if !ok {
+					break
+				}
+				if data != nil {
+					conn.Write(data)
+				}
+			}
+		}
+	}
+}
+func serveXprotocolRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {
 	iobuf := buffer.NewIoBuffer(102400)
 	for {
 		now := time.Now()
