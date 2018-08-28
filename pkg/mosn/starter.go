@@ -51,7 +51,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		servers := make([]config.ServerConfig, 0, 1)
 		server := config.ServerConfig{
 			DefaultLogPath:  "stdout",
-			DefaultLogLevel: "TRACE",
+			DefaultLogLevel: "INFO",
 		}
 		servers = append(servers, server)
 		c.Servers = servers

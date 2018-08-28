@@ -53,7 +53,7 @@ func init() {
 	//use console  as start logger
 	StartLogger = &logger{
 		Output:  "",
-		Level:   TRACE,
+		Level:   INFO,
 		Roller:  DefaultRoller(),
 		fileMux: new(sync.RWMutex),
 	}
