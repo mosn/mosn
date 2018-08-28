@@ -95,6 +95,25 @@ func Handle(conn net.Conn, event Event) (*Desc, error) {
 	return desc, nil
 }
 
+// Handle creates new Desc with given file and event.
+// Returned descriptor could be used as argument to Start(), Resume() and
+// Stop() methods of some Poller implementation.
+func HandleFile(file *os.File, event Event) (*Desc, error) {
+	desc := NewDesc(file.Fd(), event)
+
+	// Set the file back to non blocking mode since conn.File() sets underlying
+	// os.File to blocking mode. This is useful to get conn.Set{Read}Deadline
+	// methods still working on source Conn.
+	//
+	// See https://golang.org/pkg/net/#TCPConn.File
+	// See /usr/local/go/src/net/net.go: conn.File()
+	if err := setNonblock(desc.fd(), true); err != nil {
+		return nil, os.NewSyscallError("setnonblock", err)
+	}
+
+	return desc, nil
+}
+
 // HandleListener returns descriptor for a net.Listener.
 func HandleListener(ln net.Listener, event Event) (*Desc, error) {
 	return handle(ln, event)

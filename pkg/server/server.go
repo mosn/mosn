@@ -25,8 +25,8 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
@@ -71,6 +71,9 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		}
 
 		network.UseNetpollMode = config.UseNetpollMode
+		if config.UseNetpollMode {
+			log.StartLogger.Infof("Netpoll mode enabled.")
+		}
 	}
 
 	runtime.GOMAXPROCS(procNum)

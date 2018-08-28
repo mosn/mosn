@@ -29,6 +29,8 @@ import (
 
 	"runtime/debug"
 
+	"os"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -45,6 +47,7 @@ var idCounter uint64 = 1
 
 type connection struct {
 	id         uint64
+	file       *os.File //copy of origin connection fd
 	localAddr  net.Addr
 	remoteAddr net.Addr
 
@@ -114,6 +117,11 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		logger: logger,
 	}
 
+	// store fd
+	if ctx.Value(types.ContextKeyConnectionFd) != nil {
+		conn.file = ctx.Value(types.ContextKeyConnectionFd).(*os.File)
+	}
+
 	// transfer old mosn connection
 	if ctx.Value(types.ContextKeyAcceptChan) != nil {
 		if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
@@ -164,9 +172,8 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 	// Register read only, write is supported now because it is more complex than read.
 	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
-	c.eventLoop.registerRead(c.id, c.rawConnection, &connEventHandler{
+	err := c.eventLoop.registerRead(c, &connEventHandler{
 		onRead: func() bool {
-
 			if c.readEnabled {
 				err := c.doRead()
 
@@ -205,6 +212,10 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 			return false
 		},
 	})
+
+	if err != nil {
+		c.logger.Errorf("conn %d register read failed:%s", c.id, err.Error())
+	}
 }
 
 func (c *connection) startRWLoop(lctx context.Context) {
@@ -240,9 +251,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 }
 
 func (c *connection) scheduleWrite() {
-	c.logger.Errorf("try schedule write")
 	writePool.ScheduleAlways(func() {
-		c.logger.Errorf("write scheduled")
 		defer func() { <-c.writeSchedChan }()
 
 		for len(c.writeBufferChan) > 0 {
@@ -267,8 +276,6 @@ func (c *connection) scheduleWrite() {
 				}
 			}
 
-			c.logger.Errorf("ready to write %d bytes", c.writeBufLen())
-
 			_, err := c.doWrite()
 			if err != nil {
 				if err == io.EOF {
@@ -283,7 +290,6 @@ func (c *connection) scheduleWrite() {
 			}
 
 		}
-		c.logger.Errorf("slots ramaining %d", len(c.writeBufferChan))
 	})
 }
 
@@ -432,8 +438,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -854,6 +860,14 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 		} else {
 			event = types.Connected
+
+			// store fd
+			if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
+				cc.file, err = tc.File()
+				if err != nil {
+					return
+				}
+			}
 
 			if cc.tlsMng != nil && cc.tlsMng.Enabled() {
 				cc.rawConnection = cc.tlsMng.Conn(cc.rawConnection)

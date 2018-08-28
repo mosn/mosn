@@ -20,7 +20,6 @@ package network
 import (
 	"errors"
 	"log"
-	"net"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -80,15 +79,15 @@ type eventLoop struct {
 	conn map[uint64]*connEvent
 }
 
-func (el *eventLoop) register(id uint64, conn net.Conn, handler *connEventHandler) error {
+func (el *eventLoop) register(conn *connection, handler *connEventHandler) error {
 	// handle read
-	read, err := netpoll.HandleReadOnce(conn)
+	read, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
 
 	// handle write
-	write, err := netpoll.HandleWriteOnce(conn)
+	write, err := netpoll.HandleFile(conn.file, netpoll.EventWrite|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
@@ -99,7 +98,7 @@ func (el *eventLoop) register(id uint64, conn net.Conn, handler *connEventHandle
 
 	el.mu.Lock()
 	//store
-	el.conn[id] = &connEvent{
+	el.conn[conn.id] = &connEvent{
 		read:  read,
 		write: write,
 	}
@@ -107,9 +106,9 @@ func (el *eventLoop) register(id uint64, conn net.Conn, handler *connEventHandle
 	return nil
 }
 
-func (el *eventLoop) registerRead(id uint64, conn net.Conn, handler *connEventHandler) error {
+func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) error {
 	// handle read
-	read, err := netpoll.HandleReadOnce(conn)
+	read, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
@@ -119,16 +118,16 @@ func (el *eventLoop) registerRead(id uint64, conn net.Conn, handler *connEventHa
 
 	el.mu.Lock()
 	//store
-	el.conn[id] = &connEvent{
+	el.conn[conn.id] = &connEvent{
 		read: read,
 	}
 	el.mu.Unlock()
 	return nil
 }
 
-func (el *eventLoop) registerWrite(id uint64, conn net.Conn, handler *connEventHandler) error {
+func (el *eventLoop) registerWrite(conn *connection, handler *connEventHandler) error {
 	// handle write
-	write, err := netpoll.HandleWriteOnce(conn)
+	write, err := netpoll.HandleFile(conn.file, netpoll.EventWrite|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
@@ -138,7 +137,7 @@ func (el *eventLoop) registerWrite(id uint64, conn net.Conn, handler *connEventH
 
 	el.mu.Lock()
 	//store
-	el.conn[id] = &connEvent{
+	el.conn[conn.id] = &connEvent{
 		write: write,
 	}
 	el.mu.Unlock()

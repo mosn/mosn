@@ -130,7 +130,7 @@
   branch = "master"
   name = "github.com/neverhook/easygo"
   packages = ["netpoll"]
-  revision = "319e0a073c298a69786d35f9057295fae93669c3"
+  revision = "787757e6499086c1bb5dfe4ae7d3aa4aafe169d4"
 
 [[projects]]
   branch = "master"
