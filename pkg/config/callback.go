@@ -43,7 +43,7 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 		if !mosnListener.HandOffRestoredDestinationConnections {
 			for _, filterChain := range mosnListener.FilterChains {
 				for _, f := range filterChain.Filters {
-					nfcf, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config)
+					nfcf, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config, true)
 					if err != nil {
 						log.DefaultLogger.Errorf("parse network filter failed %v", err)
 						return err
