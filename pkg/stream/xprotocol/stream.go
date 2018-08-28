@@ -89,7 +89,6 @@ type streamConnection struct {
 
 func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
-	//subProtocolName := context.Value("XSubProtocol").(types.SubProtocol)
 	subProtocolName := types.SubProtocol(context.Value(types.ContextSubProtocol).(string))
 	log.DefaultLogger.Tracef("xprotocol subprotocol config name = %v", subProtocolName)
 	codec := subprotocol.CreateSubProtocolCodec(context, subProtocolName)
@@ -155,15 +154,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 				log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v", headers)
 			}
 		} else if conn.clientCallbacks != nil {
-			tmpStreamID := conn.codec.GetStreamID(request)
-			value, ok := conn.streamIDMap.Load(tmpStreamID)
-			if ok {
-				streamID = value.(string)
-				conn.streamIDMap.Delete(tmpStreamID)
-				log.DefaultLogger.Tracef("Xprotocol get streamId %v, response reqID = %v", streamID, tmpStreamID)
-			} else {
-				log.DefaultLogger.Tracef("fail to get old streamid , maybe streamid is changed by upstream server?")
-			}
+			streamID = conn.codec.GetStreamID(request)
 		}
 		// tracing
 		tracingCodec, ok := conn.codec.(types.Tracing)
@@ -242,13 +233,6 @@ func (conn *streamConnection) OnReceiveHeaders(context context.Context, streamID
 // OnReceiveData process data
 func (conn *streamConnection) OnReceiveData(context context.Context, streamID string, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStream.Get(streamID); ok {
-		if stream.direction == ClientStream {
-			// restore request id
-			buf := data.Bytes()
-			buf = conn.codec.SetStreamID(buf, stream.reqID)
-			data = networkbuffer.NewIoBufferBytes(buf)
-		}
-
 		log.DefaultLogger.Tracef("xprotocol stream on decode data")
 		stream.decoder.OnReceiveData(context, data, true)
 
@@ -343,15 +327,7 @@ func (s *stream) AppendHeaders(context context.Context, headers interface{}, end
 // AppendData process upstream request data
 func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	if s.direction == ClientStream {
-		buf := data.Bytes()
-		s.reqID = s.connection.codec.GetStreamID(buf)
-		streamID, buf := s.connection.changeStreamID(buf)
-		reqBuf := networkbuffer.NewIoBufferBytes(buf)
-		// save streamid mapping dict
-		log.DefaultLogger.Tracef("client stream append data , change stream id to %v , old req id = %v", streamID, s.reqID)
-		s.connection.streamIDMap.Store(streamID, s.streamID)
-		log.DefaultLogger.Tracef("client stream append data , save stream map: src stream id = %v ,map stream id = %v", s.streamID, streamID)
-		s.encodedData = reqBuf
+		s.encodedData = data
 	} else if s.direction == ServerStream {
 		streamID := s.streamID
 		value, ok := s.connection.reqIDMap.Load(streamID)

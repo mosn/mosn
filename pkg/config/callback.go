@@ -69,7 +69,7 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 			} else {
 				log.DefaultLogger.Errorf("xds AddOrUpdateListener failure,listener address = %s, mag = %s ",
 					mosnListener.Addr.String(), err.Error())
-				return err
+				//return err
 			}
 		}
 	}

@@ -407,6 +407,9 @@ transfer:
 
 func (c *connection) appendBuffer(iobuffers *[]types.IoBuffer) {
 	for _, buf := range *iobuffers {
+		if buf == nil {
+			continue
+		}
 		c.ioBuffers = append(c.ioBuffers, buf)
 		c.writeBuffers = append(c.writeBuffers, buf.Bytes())
 	}
