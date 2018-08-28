@@ -80,43 +80,32 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Tracef("get lds resp,handle it")
 				listeners := adsClient.V2Client.handleListenersResp(resp)
 				log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
-				err := adsClient.MosnConfig.OnAddOrUpdateListeners(listeners)
-				if err != nil {
-					log.DefaultLogger.Fatalf("failed to update listeners")
-					return
-				}
-				log.DefaultLogger.Infof("update listeners success")
+				adsClient.MosnConfig.OnAddOrUpdateListeners(listeners)
+
 			} else if typeURL == "type.googleapis.com/envoy.api.v2.Cluster" {
 				log.DefaultLogger.Tracef("get cds resp,handle it")
 				clusters := adsClient.V2Client.handleClustersResp(resp)
 				log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
-				err := adsClient.MosnConfig.OnUpdateClusters(clusters)
-				if err != nil {
-					log.DefaultLogger.Fatalf("failed to update clusters")
-					return
-				}
-				log.DefaultLogger.Infof("update clusters success")
+				adsClient.MosnConfig.OnUpdateClusters(clusters)
 				clusterNames := make([]string, 0)
+
 				for _, cluster := range clusters {
 					if cluster.Type == envoy_api_v2.Cluster_EDS {
 						clusterNames = append(clusterNames, cluster.Name)
 					}
 				}
+
 				log.DefaultLogger.Tracef("send thread request eds")
 				err = adsClient.V2Client.reqEndpoints(adsClient.StreamClient, clusterNames)
 				if err != nil {
 					log.DefaultLogger.Warnf("send thread request eds fail!auto retry next period")
 				}
+
 			} else if typeURL == "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment" {
 				log.DefaultLogger.Tracef("get eds resp,handle it ")
 				endpoints := adsClient.V2Client.handleEndpointsResp(resp)
 				log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
-				err = adsClient.MosnConfig.OnUpdateEndpoints(endpoints)
-				if err != nil {
-					log.DefaultLogger.Fatalf("failed to update endpoints")
-					return
-				}
-				log.DefaultLogger.Infof("update endpoints success")
+				adsClient.MosnConfig.OnUpdateEndpoints(endpoints)
 				log.DefaultLogger.Tracef("send thread request lds")
 				err = adsClient.V2Client.reqListeners(adsClient.StreamClient)
 				if err != nil {

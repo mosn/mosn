@@ -20,9 +20,8 @@ package proxy
 import (
 	"container/list"
 	"context"
-	"sync"
-
 	"runtime"
+	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
@@ -60,9 +59,9 @@ type proxy struct {
 	upstreamConnection  types.ClientConnection
 	downstreamCallbacks DownstreamCallbacks
 
-	clusterName    string
-	routers        types.Routers
-	serverCodec    types.ServerStreamConnection
+	clusterName string
+	routers     types.Routers
+	serverCodec types.ServerStreamConnection
 
 	context context.Context
 
