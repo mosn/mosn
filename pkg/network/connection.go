@@ -150,7 +150,6 @@ func (c *connection) ID() uint64 {
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
-		// read switch from config, and create sub method
 		if true {
 			c.attachEventLoop(lctx)
 		} else {
@@ -167,29 +166,36 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
 	c.eventLoop.registerRead(c.id, c.rawConnection, &connEventHandler{
 		onRead: func() bool {
-			err := c.doRead()
 
-			if err != nil {
-				if te, ok := err.(net.Error); ok && te.Timeout() {
-					if c.readBuffer != nil && c.readBuffer.Len() == 0 {
-						c.readBuffer.Free()
-						c.readBuffer.Alloc(DefaultBufferReadCapacity)
+			if c.readEnabled {
+				err := c.doRead()
+
+				if err != nil {
+					if te, ok := err.(net.Error); ok && te.Timeout() {
+						if c.readBuffer != nil && c.readBuffer.Len() == 0 {
+							c.readBuffer.Free()
+							c.readBuffer.Alloc(DefaultBufferReadCapacity)
+						}
+						return true
 					}
-					return true
+
+					if err == io.EOF {
+						c.Close(types.NoFlush, types.RemoteClose)
+					} else {
+						c.Close(types.NoFlush, types.OnReadErrClose)
+					}
+
+					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
+						c.id, c.RemoteAddr().String(), err)
+
+					return false
 				}
-
-				if err == io.EOF {
-					c.Close(types.NoFlush, types.RemoteClose)
-				} else {
-					c.Close(types.NoFlush, types.OnReadErrClose)
+			} else {
+				select {
+				case <-c.readEnabledChan:
+				case <-time.After(100 * time.Millisecond):
 				}
-
-				c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
-					c.id, c.RemoteAddr().String(), err)
-
-				return false
 			}
-
 			return true
 		},
 
@@ -239,42 +245,44 @@ func (c *connection) scheduleWrite() {
 		c.logger.Errorf("write scheduled")
 		defer func() { <-c.writeSchedChan }()
 
-		// at least 1 buffer need to avoid all chan-recv missed by select.default option
-		c.appendBuffer(<-c.writeBufferChan)
+		for len(c.writeBufferChan) > 0 {
+			// at least 1 buffer need to avoid all chan-recv missed by select.default option
+			c.appendBuffer(<-c.writeBufferChan)
 
-		//todo: dynamic set loop nums
-		//slots := len(c.writeBufferChan)
-		//if slots < 10 {
-		//	slots = 10
-		//}
+			//todo: dynamic set loop nums
+			//slots := len(c.writeBufferChan)
+			//if slots < 10 {
+			//	slots = 10
+			//}
 
-		//if len(c.writeBufferChan) < 10 {
-		//	runtime.Gosched()
-		//}
+			//if len(c.writeBufferChan) < 10 {
+			//	runtime.Gosched()
+			//}
 
-		for i := 0; i < 10; i++ {
-			select {
-			case buf := <-c.writeBufferChan:
-				c.appendBuffer(buf)
-			default:
+			for i := 0; i < 10; i++ {
+				select {
+				case buf := <-c.writeBufferChan:
+					c.appendBuffer(buf)
+				default:
+				}
 			}
-		}
 
-		c.logger.Errorf("ready to write %d bytes", c.writeBufLen())
+			c.logger.Errorf("ready to write %d bytes", c.writeBufLen())
 
-		_, err := c.doWrite()
-		if err != nil {
-			if err == io.EOF {
-				// remote conn closed
-				c.Close(types.NoFlush, types.RemoteClose)
-			} else {
-				// on non-timeout error
-				c.Close(types.NoFlush, types.OnWriteErrClose)
+			_, err := c.doWrite()
+			if err != nil {
+				if err == io.EOF {
+					// remote conn closed
+					c.Close(types.NoFlush, types.RemoteClose)
+				} else {
+					// on non-timeout error
+					c.Close(types.NoFlush, types.OnWriteErrClose)
+				}
+				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
+					c.id, c.RemoteAddr().String(), err)
 			}
-			c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
-				c.id, c.RemoteAddr().String(), err)
-		}
 
+		}
 		c.logger.Errorf("slots ramaining %d", len(c.writeBufferChan))
 	})
 }
@@ -601,8 +609,6 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if ccType == types.FlushWrite {
 		if c.writeBufLen() > 0 {
 			c.closeWithFlush = true
-
-
 
 			for {
 
