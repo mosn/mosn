@@ -605,7 +605,7 @@ func convertHealthChecks(xdsHealthChecks []*xdscore.HealthCheck) v2.HealthCheck 
 }
 
 func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.CircuitBreakers {
-	if xdsCircuitBreaker == nil {
+	if xdsCircuitBreaker == nil || xdsCircuitBreaker.Size() == 0 {
 		return v2.CircuitBreakers{}
 	}
 	thresholds := make([]v2.Thresholds, 0, len(xdsCircuitBreaker.GetThresholds()))
@@ -628,7 +628,7 @@ func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.Ci
 }
 
 func convertOutlierDetection(xdsOutlierDetection *xdscluster.OutlierDetection) v2.OutlierDetection {
-	if xdsOutlierDetection == nil {
+	if xdsOutlierDetection == nil || xdsOutlierDetection.Size() == 0 {
 		return v2.OutlierDetection{}
 	}
 	return v2.OutlierDetection{

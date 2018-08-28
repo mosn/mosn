@@ -19,9 +19,8 @@ package types
 
 import (
 	"context"
-	"net"
-
 	"crypto/tls"
+	"net"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
@@ -356,7 +355,7 @@ type ConnectionHandler interface {
 	// adds a listener into the ConnectionHandler or
 	// update a listener
 	AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []NetworkFilterChainFactory,
-		streamFiltersFactories []StreamFilterChainFactory) ListenerEventListener
+		streamFiltersFactories []StreamFilterChainFactory) (ListenerEventListener, error)
 
 	// StartListener starts a listener by the specified listener tag
 	StartListener(lctx context.Context, listenerTag uint64)

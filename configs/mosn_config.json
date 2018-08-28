@@ -162,9 +162,13 @@
             "hostname": "downstream_machine1",
             "weight": 1,
             "metadata": {
+              "filter_metadata": {
+                "mosn.lb": {
               "stage": "pre-release",
               "version": "1.1",
               "label": "gray"
+            }
+              }
             }
           }
         ],

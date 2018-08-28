@@ -18,9 +18,10 @@
 package network
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"net"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // RequestInfo

@@ -20,9 +20,8 @@ package proxy
 import (
 	"container/list"
 	"context"
-	"sync"
-
 	"runtime"
+	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
