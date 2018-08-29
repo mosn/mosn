@@ -19,10 +19,9 @@ package xprotocol
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"sync"
-
-	"strconv"
 	"sync/atomic"
 
 	networkbuffer "github.com/alipay/sofa-mosn/pkg/buffer"
