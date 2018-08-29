@@ -23,6 +23,8 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"sync"
+	"sync/atomic"
 )
 
 // NewLoadBalancer
@@ -44,6 +46,7 @@ type loadbalancer struct {
 type randomLoadBalancer struct {
 	loadbalancer
 	randInstance *rand.Rand
+	randMutex sync.Mutex
 }
 
 func newRandomLoadbalancer(prioritySet types.PrioritySet) types.LoadBalancer {
@@ -57,9 +60,14 @@ func newRandomLoadbalancer(prioritySet types.PrioritySet) types.LoadBalancer {
 
 func (l *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	hostSets := l.prioritySet.HostSetsByPriority()
+	if len(hostSets) == 0 {
+		return nil
+	}
+	
+	l.randMutex.Lock()
+	defer l.randMutex.Unlock()
 	idx := l.randInstance.Intn(len(hostSets))
 	hostset := hostSets[idx]
-
 	hosts := hostset.HealthyHosts()
 	//logger := log.ByContext(context)
 
@@ -67,7 +75,9 @@ func (l *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types
 		//	logger.Debugf("Choose host failed, no health host found")
 		return nil
 	}
-	hostIdx := rand.Intn(len(hosts))
+	
+	hostIdx := l.randInstance.Intn(len(hosts))
+	
 	return hosts[hostIdx]
 }
 
@@ -78,6 +88,7 @@ type roundRobinLoadBalancer struct {
 	rrIndexPriority uint32
 	// rrIndex for host select
 	rrIndex uint32
+	lbMutex sync.RWMutex
 }
 
 func newRoundRobinLoadBalancer(prioritySet types.PrioritySet) types.LoadBalancer {
@@ -96,8 +107,11 @@ func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) t
 	curHostSet := hostSets[l.rrIndexPriority%hostSetsNum].HealthyHosts()
 
 	if l.rrIndex >= uint32(len(curHostSet)) {
+		l.lbMutex.Lock()
 		l.rrIndexPriority = (l.rrIndexPriority + 1) % hostSetsNum
 		l.rrIndex = 0
+		l.lbMutex.Unlock()
+		
 		selectedHostSet = hostSets[l.rrIndexPriority].HealthyHosts()
 	} else {
 		selectedHostSet = curHostSet
@@ -110,7 +124,7 @@ func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) t
 	}
 
 	selectedHost := selectedHostSet[l.rrIndex%uint32(len(selectedHostSet))]
-	l.rrIndex++
+	atomic.AddUint32(&l.rrIndex,1)
 
 	return selectedHost
 }
