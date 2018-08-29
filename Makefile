@@ -15,7 +15,7 @@ GIT_NOTES       = $(shell git log -1 --oneline)
 BUILD_IMAGE     = godep-builder
 
 IMAGE_NAME      = ${GIT_USER}/mosnd
-REGISTRY        = acs-reg.alipay.com
+REGISTRY        = your_docker_hub_account
 
 RPM_BUILD_IMAGE = afenp-rpm-builder
 RPM_VERSION     = $(shell cat VERSION | tr -d '-')
