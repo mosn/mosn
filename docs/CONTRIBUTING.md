@@ -39,13 +39,13 @@ of the commit message (where XXXX is the issue number).
 
 8. Please ensure that code coverage will not decrease.
 
-9. Contribute a PR as the rule of Gitflow Workflow, and you should follow pull request's rules as bellow.
+9. Contribute a PR as the rule of Gitflow Workflow, and you should follow pull request's rules.
 As you may know, MOSN's version contains three digit, the first one is for compatibility; the second one is for new features and enhancement; the last one is for bug fix.
 
-### Pull Request and Review Rules
-1. Your PR should present related issues you want to solve and we will check that.
-2. You should show your solutions about the issues in your PR, including the overall solutions, details and the changes. At this time,  Chinese is allowed to describe these.
-3. Unit test description is needed, and we will check your ut, including boundary cases,  corner cases and some exception cases.
-4. Benchmark description is needed if your code involve the processing of every request, and we wil run the benchmark and make a comparision.
-5. We will discuss and pay attention to the code which make the code structure change, the usage of the global variable, the handling of the corner case and concurrency
-6. We will run golints to make your code style legal.
+### PR review policy for maintainers
+1. Check the issue with this PR
+2. Check the solution's reasonability
+3. Check UT's and Benchmark's result
+4. Pay attention to the code which make the code structure change,
+ the usage of the global variable, the handling of the corner case and concurrency
+5. Check 'goimports' and 'golint' result+ HSF(ongoing)

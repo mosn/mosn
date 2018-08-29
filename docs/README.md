@@ -22,7 +22,6 @@ follow-up development and build an open source boutique project together.
     + HTTP/1.1，HTTP/2.0
     + SOFARPC
     + Dubbo(ongoing)
-    + HSF(ongoing)
 + Routing support
     + Routing in form of virtual host
     + Routing with headers/url/prefix
