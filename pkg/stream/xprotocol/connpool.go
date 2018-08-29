@@ -85,7 +85,7 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		log.StartLogger.Tracef("xprotocol conn pool codec client new stream")
-		streamEncoder := p.primaryClient.codecClient.NewStream(streamID, responseDecoder)
+		streamEncoder := p.primaryClient.codecClient.NewStream(context, streamID, responseDecoder)
 		log.StartLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
 		cb.OnReady(streamID, streamEncoder, p.host)
 	}

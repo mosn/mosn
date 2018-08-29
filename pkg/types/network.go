@@ -19,10 +19,8 @@ package types
 
 import (
 	"context"
-	"io"
-	"net"
-
 	"crypto/tls"
+	"net"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
@@ -176,101 +174,10 @@ type ListenerFilterManager interface {
 	AddListenerFilter(lf *ListenerFilter)
 }
 
-type IoBuffer interface {
-	// Read reads the next len(p) bytes from the buffer or until the buffer
-	// is drained. The return value n is the number of bytes read. If the
-	// buffer has no data to return, err is io.EOF (unless len(p) is zero);
-	// otherwise it is nil.
-	Read(p []byte) (n int, err error)
-
-	// ReadOnce make a one-shot read and appends it to the buffer, growing
-	// the buffer as needed. The return value n is the number of bytes read. Any
-	// error except io.EOF encountered during the read is also returned. If the
-	// buffer becomes too large, ReadFrom will panic with ErrTooLarge.
-	ReadOnce(r io.Reader) (n int64, err error)
-
-	// ReadFrom reads data from r until EOF and appends it to the buffer, growing
-	// the buffer as needed. The return value n is the number of bytes read. Any
-	// error except io.EOF encountered during the read is also returned. If the
-	// buffer becomes too large, ReadFrom will panic with ErrTooLarge.
-	ReadFrom(r io.Reader) (n int64, err error)
-
-	// Write appends the contents of p to the buffer, growing the buffer as
-	// needed. The return value n is the length of p; err is always nil. If the
-	// buffer becomes too large, Write will panic with ErrTooLarge.
-	Write(p []byte) (n int, err error)
-
-	// WriteTo writes data to w until the buffer is drained or an error occurs.
-	// The return value n is the number of bytes written; it always fits into an
-	// int, but it is int64 to match the io.WriterTo interface. Any error
-	// encountered during the write is also returned.
-	WriteTo(w io.Writer) (n int64, err error)
-
-	// Peek returns n bytes from buffer, without draining any buffered data.
-	// If n > readable buffer, nil will be returned.
-	// It can be used in codec to check first-n-bytes magic bytes
-	// Note: do not change content in return bytes, use write instead
-	Peek(n int) []byte
-
-	// Bytes returns all bytes from buffer, without draining any buffered data.
-	// It can be used to get fixed-length content, such as headers, body.
-	// Note: do not change content in return bytes, use write instead
-	Bytes() []byte
-
-	// Drain drains a offset length of bytes in buffer.
-	// It can be used with Bytes(), after consuming a fixed-length of data
-	Drain(offset int)
-
-	// Len returns the number of bytes of the unread portion of the buffer;
-	// b.Len() == len(b.Bytes()).
-	Len() int
-
-	// Cap returns the capacity of the buffer's underlying byte slice, that is, the
-	// total space allocated for the buffer's data.
-	Cap() int
-
-	// Reset resets the buffer to be empty,
-	// but it retains the underlying storage for use by future writes.
-	Reset()
-
-	// Clone makes a copy of IoBuffer struct
-	Clone() IoBuffer
-
-	// String returns the contents of the unread portion of the buffer
-	// as a string. If the Buffer is a nil pointer, it returns "<nil>".
-	String() string
-}
-
 type BufferWatermarkListener interface {
 	OnHighWatermark()
 
 	OnLowWatermark()
-}
-
-// HeadersBufferPool is a buffer pool to reuse header map.
-// Normally recreate a map has minor cpu/memory cost, however in a high concurrent scenario, a buffer pool is needed to recycle map
-type HeadersBufferPool interface {
-	// Take finds and returns a map from buffer pool. If no buffer available, create a new one with capacity.
-	Take(capacity int) map[string]string
-
-	// Give returns a map to buffer pool
-	Give(amap map[string]string)
-}
-
-type GenericMapPool interface {
-	// Take finds and returns a map from map pool.
-	Take(defaultSize int) (amap map[string]interface{})
-
-	// Give returns a map to map pool
-	Give(amap map[string]interface{})
-}
-
-// ObjectBufferPool is a object pool.
-type ObjectBufferPool interface {
-	// Take returns a pool object, such as sync.Pool.
-	Take() interface{}
-	// Give set a pool object into pool.
-	Give(object interface{})
 }
 
 // Connection status
@@ -448,7 +355,7 @@ type ConnectionHandler interface {
 	// adds a listener into the ConnectionHandler or
 	// update a listener
 	AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []NetworkFilterChainFactory,
-		streamFiltersFactories []StreamFilterChainFactory) ListenerEventListener
+		streamFiltersFactories []StreamFilterChainFactory) (ListenerEventListener, error)
 
 	// StartListener starts a listener by the specified listener tag
 	StartListener(lctx context.Context, listenerTag uint64)

@@ -88,7 +88,6 @@ func (pool *shardWorkerPool) Offer(job ShardJob) {
 	shard := pool.shards[i]
 	// put jobs to the jobChan or jobQueue, which determined by the shard workload
 	shard.Lock()
-
 	if len(shard.jobQueue) == 0 && cap(shard.jobChan) > len(shard.jobChan) {
 		shard.jobChan <- job
 	} else {

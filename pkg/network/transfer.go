@@ -29,8 +29,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"golang.org/x/sys/unix"
 )
@@ -189,7 +189,7 @@ func transferRead(conn net.Conn, buf types.IoBuffer, logger log.Logger) (uint64,
 }
 
 // old mosn transfer writeloop
-func transferWrite(buf types.IoBuffer, id uint64, logger log.Logger) error {
+func transferWrite(conn *connection, id uint64, logger log.Logger) error {
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Errorf("transferWrite panic %v", r)
@@ -202,13 +202,15 @@ func transferWrite(buf types.IoBuffer, id uint64, logger log.Logger) error {
 	}
 	defer c.Close()
 
-	logger.Infof("TransferWrite id = %d, buffer = %d", id, buf.Len())
+	logger.Infof("TransferWrite id = %d, buffer = %d", id, conn.writeBufLen())
 	uc := c.(*net.UnixConn)
 	err = transferSendType(uc, nil)
 	if err != nil {
 		logger.Errorf("transferWrite failed: %v", err)
 		return err
 	}
+	// build net.Buffers to IoBuffer
+	buf := transferBuildIoBuffer(conn)
 	// send header + buffer
 	err = transferSendData(uc, int(id), buf)
 	if err != nil {
@@ -216,6 +218,16 @@ func transferWrite(buf types.IoBuffer, id uint64, logger log.Logger) error {
 		return err
 	}
 	return nil
+}
+
+func transferBuildIoBuffer(c *connection) types.IoBuffer {
+	buf := buffer.GetIoBuffer(c.writeBufLen())
+	for _, b := range c.writeBuffers {
+		buf.Write(b)
+	}
+	c.writeBuffers = c.writeBuffers[:0]
+	c.ioBuffers = c.ioBuffers[:0]
+	return buf
 }
 
 func transferWriteBuffer(conn *connection, buf []byte) error {

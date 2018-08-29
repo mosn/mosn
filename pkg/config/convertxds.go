@@ -278,8 +278,8 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  string(protocol.HTTP2),
-			UpstreamProtocol:    string(protocol.HTTP2),
+			DownstreamProtocol:  string(protocol.HTTP1),
+			UpstreamProtocol:    string(protocol.HTTP1),
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
@@ -302,12 +302,20 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			UpstreamProtocol:    filterConfig.GetUpstreamProtocol().String(),
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
+			ExtendConfig:        convertXProxyExtendConfig(filterConfig),
 		}
 		return structs.Map(proxyConfig)
 	}
 
 	log.DefaultLogger.Errorf("unsupported filter config, filter name: %s", name)
 	return nil
+}
+
+func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} {
+	extendConfig := &v2.XProxyExtendConfig{
+		SubProtocol: config.XProtocol,
+	}
+	return structs.Map(extendConfig)
 }
 
 func convertVirtualHosts(xdsRouteConfig *xdsapi.RouteConfiguration) []*v2.VirtualHost {
@@ -595,11 +603,14 @@ func convertHealthChecks(xdsHealthChecks []*xdscore.HealthCheck) v2.HealthCheck 
 }
 
 func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.CircuitBreakers {
-	if xdsCircuitBreaker == nil {
+	if xdsCircuitBreaker == nil || xdsCircuitBreaker.Size() == 0 {
 		return v2.CircuitBreakers{}
 	}
 	thresholds := make([]v2.Thresholds, 0, len(xdsCircuitBreaker.GetThresholds()))
 	for _, xdsThreshold := range xdsCircuitBreaker.GetThresholds() {
+		if xdsThreshold.Size() == 0 {
+			continue
+		}
 		threshold := v2.Thresholds{
 			Priority:           v2.RoutingPriority(xdsThreshold.GetPriority().String()),
 			MaxConnections:     xdsThreshold.GetMaxConnections().GetValue(),
@@ -615,7 +626,7 @@ func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.Ci
 }
 
 func convertOutlierDetection(xdsOutlierDetection *xdscluster.OutlierDetection) v2.OutlierDetection {
-	if xdsOutlierDetection == nil {
+	if xdsOutlierDetection == nil || xdsOutlierDetection.Size() == 0 {
 		return v2.OutlierDetection{}
 	}
 	return v2.OutlierDetection{

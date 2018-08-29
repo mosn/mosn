@@ -122,14 +122,14 @@ type StreamEventListener interface {
 type StreamSender interface {
 	// Append headers
 	// endStream supplies whether this is a header only request/response
-	AppendHeaders(headers interface{}, endStream bool) error
+	AppendHeaders(context context.Context, headers interface{}, endStream bool) error
 
 	// Append data
 	// endStream supplies whether this is the last data frame
-	AppendData(data IoBuffer, endStream bool) error
+	AppendData(context context.Context, data IoBuffer, endStream bool) error
 
 	// Append trailers, implicitly ends the stream.
-	AppendTrailers(trailers map[string]string) error
+	AppendTrailers(context context.Context, trailers map[string]string) error
 
 	// Get related stream
 	GetStream() Stream
@@ -140,17 +140,17 @@ type StreamSender interface {
 type StreamReceiver interface {
 	// OnReceiveHeaders is called with decoded headers
 	// endStream supplies whether this is a header only request/response
-	OnReceiveHeaders(headers map[string]string, endOfStream bool)
+	OnReceiveHeaders(context context.Context, headers map[string]string, endOfStream bool)
 
 	// OnReceiveData is called with a decoded data
 	// endStream supplies whether this is the last data
-	OnReceiveData(data IoBuffer, endOfStream bool)
+	OnReceiveData(context context.Context, data IoBuffer, endOfStream bool)
 
 	// OnReceiveTrailers is called with a decoded trailers frame, implicitly ends the stream.
-	OnReceiveTrailers(trailers map[string]string)
+	OnReceiveTrailers(context context.Context, trailers map[string]string)
 
 	// OnDecodeError is called with when exception occurs
-	OnDecodeError(err error, headers map[string]string)
+	OnDecodeError(context context.Context, err error, headers map[string]string)
 }
 
 // StreamConnection is a connection runs multiple streams
@@ -179,7 +179,7 @@ type ClientStreamConnection interface {
 	// NewStream creates a new outgoing request stream
 	// responseDecoder supplies the decoder listeners on decode event
 	// StreamSender supplies the encoder to write the request
-	NewStream(streamID string, responseDecoder StreamReceiver) StreamSender
+	NewStream(context context.Context, streamID string, responseDecoder StreamReceiver) StreamSender
 }
 
 // StreamConnectionEventListener is a stream connection event listener
@@ -193,7 +193,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// NewStream returns request stream decoder
-	NewStream(streamID string, responseEncoder StreamSender) StreamReceiver
+	NewStream(context context.Context, streamID string, responseEncoder StreamSender) StreamReceiver
 }
 
 type StreamFilterBase interface {

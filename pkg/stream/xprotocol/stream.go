@@ -135,7 +135,7 @@ func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark
 }
 
 // NewStream
-func (conn *streamConnection) NewStream(streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
+func (conn *streamConnection) NewStream(text context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	log.StartLogger.Tracef("xprotocol stream new stream")
 	stream := stream{
 		context:    context.WithValue(conn.context, types.ContextKeyStreamID, streamID),
@@ -158,7 +158,7 @@ func (conn *streamConnection) OnReceiveHeaders(streamID string, headers map[stri
 	}
 	if stream, ok := conn.activeStream.Get(streamID); ok {
 		log.StartLogger.Tracef("before stream decoder invoke on decode header")
-		stream.decoder.OnReceiveHeaders(headers, false)
+		stream.decoder.OnReceiveHeaders(conn.context, headers, false)
 	}
 	log.StartLogger.Tracef("after stream decoder invoke on decode header")
 	return types.Continue
@@ -168,7 +168,7 @@ func (conn *streamConnection) OnReceiveHeaders(streamID string, headers map[stri
 func (conn *streamConnection) OnReceiveData(streamID string, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStream.Get(streamID); ok {
 		log.StartLogger.Tracef("xprotocol stream on decode data")
-		stream.decoder.OnReceiveData(data, true)
+		stream.decoder.OnReceiveData(conn.context, data, true)
 
 		if stream.direction == ClientStream {
 			// for client stream, remove stream on response read
@@ -189,7 +189,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[s
 		connection: conn,
 	}
 
-	stream.decoder = conn.serverCallbacks.NewStream(streamID, &stream)
+	stream.decoder = conn.serverCallbacks.NewStream(stream.context, streamID, &stream)
 	conn.activeStream.Set(streamID, stream)
 }
 
@@ -249,7 +249,7 @@ func (s *stream) BufferLimit() uint32 {
 
 // AppendHeaders process upstream request header
 // types.StreamEncoder
-func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
+func (s *stream) AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
 	log.StartLogger.Tracef("EncodeHeaders,request id = %s, direction = %d", s.streamID, s.direction)
 	if endStream {
 		s.endStream()
@@ -258,7 +258,7 @@ func (s *stream) AppendHeaders(headers interface{}, endStream bool) error {
 }
 
 // AppendData process upstream request data
-func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
+func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	s.encodedData = data
 	log.StartLogger.Tracef("EncodeData,request id = %s, direction = %d,data = %v", s.streamID, s.direction, data.String())
 	if endStream {
@@ -268,7 +268,7 @@ func (s *stream) AppendData(data types.IoBuffer, endStream bool) error {
 }
 
 // AppendTrailers process upstream request trailers
-func (s *stream) AppendTrailers(trailers map[string]string) error {
+func (s *stream) AppendTrailers(context context.Context, trailers map[string]string) error {
 	log.StartLogger.Tracef("EncodeTrailers,request id = %s, direction = %d", s.streamID, s.direction)
 	s.endStream()
 	return nil

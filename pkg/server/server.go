@@ -91,7 +91,11 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
 
-	return srv.handler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
+	listener, err := srv.handler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
+	if err != nil {
+		log.StartLogger.Errorf("AddListener error:", err.Error())
+	}
+	return listener
 }
 
 func (srv *server) Start() {
@@ -151,7 +155,7 @@ func ListListenerFD() []uintptr {
 func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
-	// 5 sencond wait for read timeout
+	// 5 seconds wait for read timeout
 	timeout := time.NewTimer(duration*2 + time.Second*5)
 	wait := make(chan struct{})
 	time.Sleep(duration)

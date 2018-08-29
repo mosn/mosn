@@ -18,8 +18,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -30,7 +28,8 @@ import (
 )
 
 // OnAddOrUpdateListeners called by XdsClient when listeners config refresh
-func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error {
+func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
+
 	for _, listener := range listeners {
 		mosnListener := convertListenerConfig(listener)
 		if mosnListener == nil {
@@ -43,10 +42,10 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 		if !mosnListener.HandOffRestoredDestinationConnections {
 			for _, filterChain := range mosnListener.FilterChains {
 				for _, f := range filterChain.Filters {
-					nfcf, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config)
+					nfcf, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config, true)
 					if err != nil {
-						log.DefaultLogger.Errorf("parse network filter failed %v", err)
-						return err
+						log.DefaultLogger.Errorf("parse network filter failed,error:", err.Error())
+						continue
 					}
 					networkFilters = append(networkFilters, nfcf)
 				}
@@ -55,29 +54,30 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) error
 			streamFilters = GetStreamFilters(mosnListener.StreamFilters)
 
 			if len(networkFilters) == 0 {
-				errMsg := "xds client update listener error: proxy needed in network filters"
-				log.DefaultLogger.Errorf(errMsg)
-				return fmt.Errorf(errMsg)
+				log.DefaultLogger.Errorf("xds client update listener error: proxy needed in network filters")
+				continue
 			}
 		}
 
 		if listenerAdapter := server.GetListenerAdapterInstance(); listenerAdapter == nil {
-			return fmt.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
+			// if listenerAdapter is nil, return directly
+			log.DefaultLogger.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
+			return
 		} else {
+			log.DefaultLogger.Tracef("listenerAdapter.AddOrUpdateListener called, mosnListener:%+v", listeners, " networkFilters:%+v", networkFilters,
+				" streamFilters: %+v", streamFilters)
+
 			if err := listenerAdapter.AddOrUpdateListener("", mosnListener, networkFilters, streamFilters); err == nil {
 				log.DefaultLogger.Debugf("xds AddOrUpdateListener success,listener address = %s", mosnListener.Addr.String())
 			} else {
-				log.DefaultLogger.Errorf("xds AddOrUpdateListener failure,listener address = %s, mag = %s ",
+				log.DefaultLogger.Errorf("xds AddOrUpdateListener failure,listener address = %s, msg = %s ",
 					mosnListener.Addr.String(), err.Error())
-				return err
 			}
 		}
 	}
-
-	return nil
 }
 
-func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) error {
+func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) {
 	for _, listener := range listeners {
 		mosnListener := convertListenerConfig(listener)
 		if mosnListener == nil {
@@ -85,24 +85,23 @@ func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) error {
 		}
 
 		if listenerAdapter := server.GetListenerAdapterInstance(); listenerAdapter == nil {
-			return fmt.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
+			log.DefaultLogger.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
+			return
 		} else {
 			if err := listenerAdapter.DeleteListener("", mosnListener.Name); err == nil {
 				log.DefaultLogger.Debugf("xds OnDeleteListeners success,listener address = %s", mosnListener.Addr.String())
 			} else {
 				log.DefaultLogger.Errorf("xds OnDeleteListeners failure,listener address = %s, mag = %s ",
 					mosnListener.Addr.String(), err.Error())
-				return err
+
 			}
 		}
 	}
-
-	return nil
 }
 
 // OnUpdateClusters called by XdsClient when clusters config refresh
 // Can be used to update and add clusters
-func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
+func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
 	mosnClusters := convertClustersConfig(clusters)
 
 	for _, cluster := range mosnClusters {
@@ -113,16 +112,18 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) error {
 		} else {
 			err = clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterAndHostsAddOrUpdate(*cluster, cluster.Hosts)
 		}
+
 		if err != nil {
-			return err
+			log.DefaultLogger.Errorf("xds OnUpdateClusters failed,cluster name = %s, error:", cluster.Name, err.Error())
+
+		} else {
+			log.DefaultLogger.Debugf("xds OnUpdateClusters success,cluster name = %s", cluster.Name)
 		}
 	}
-
-	return nil
 }
 
 // OnDeleteClusters called by XdsClient when need to delete clusters
-func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) error {
+func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) {
 	mosnClusters := convertClustersConfig(clusters)
 
 	for _, cluster := range mosnClusters {
@@ -133,16 +134,16 @@ func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) error {
 		}
 
 		if err != nil {
-			return err
+			log.DefaultLogger.Errorf("xds OnDeleteClusters failed,cluster name = %s, error:", cluster.Name, err.Error())
+
+		} else {
+			log.DefaultLogger.Debugf("xds OnDeleteClusters success,cluster name = %s", cluster.Name)
 		}
 	}
-
-	return nil
 }
 
 // OnUpdateEndpoints called by XdsClient when ClusterLoadAssignment config refresh
-func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAssignment) error {
-
+func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAssignment) {
 	for _, loadAssignment := range loadAssignments {
 		clusterName := loadAssignment.ClusterName
 
@@ -155,12 +156,9 @@ func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAss
 
 			if err := clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterHostUpdate(clusterName, hosts); err != nil {
 				log.DefaultLogger.Errorf("xds client update Error = %s", err.Error())
-				return err
+			} else {
+				log.DefaultLogger.Debugf("xds client update host success")
 			}
-			log.DefaultLogger.Debugf("xds client update host success")
-
 		}
 	}
-
-	return nil
 }
