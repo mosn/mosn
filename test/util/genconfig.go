@@ -13,6 +13,14 @@ var (
 
 // Create Mesh Config
 func newFilterChain(name string, downstream, upstream types.Protocol, routers []config.Router) config.FilterChain {
+	// add extend config for xprotocol ,this is no harmful for other protocol
+	extendConfig := &config.XProtocolExtendConfig{
+		SubProtocol: "rpc-example",
+	}
+	exConfig := make(map[string]interface{})
+	data, _ := json.Marshal(extendConfig)
+	json.Unmarshal(data, &exConfig)
+
 	proxy := &config.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
@@ -23,6 +31,7 @@ func newFilterChain(name string, downstream, upstream types.Protocol, routers []
 				Routers: routers,
 			},
 		},
+		ExtendConfig: exConfig,
 	}
 	chains := make(map[string]interface{})
 	b, _ := json.Marshal(proxy)

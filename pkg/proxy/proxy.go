@@ -30,7 +30,10 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var (
 	globalStats *proxyStats
@@ -91,6 +94,17 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 	}
 
 	proxy.context = buffer.NewBufferPoolContext(ctx, false)
+
+	extJson, err := json.Marshal(proxy.config.ExtendConfig)
+	if err == nil {
+		log.DefaultLogger.Tracef("proxy extend config = %v", proxy.config.ExtendConfig)
+		var xProxyExtendConfig v2.XProxyExtendConfig
+		json.Unmarshal([]byte(extJson), &xProxyExtendConfig)
+		proxy.context = context.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
+		log.DefaultLogger.Tracef("proxy extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+	} else {
+		log.DefaultLogger.Errorf("get proxy extend config fail = %v", err)
+	}
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
