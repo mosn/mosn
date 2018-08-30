@@ -23,6 +23,8 @@ import (
 	"runtime/debug"
 	"time"
 
+	"os"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/tls"
@@ -190,6 +192,15 @@ func (l *listener) accept(lctx context.Context) error {
 		return err
 	}
 
+	var file *os.File
+	// store fd for further usage
+	if tc, ok := rawc.(*net.TCPConn); ok {
+		file, err = tc.File()
+		if err != nil {
+			return err
+		}
+	}
+
 	// TODO: use thread pool
 	go func() {
 		defer func() {
@@ -204,7 +215,7 @@ func (l *listener) accept(lctx context.Context) error {
 			rawc = l.tlsMng.Conn(rawc)
 		}
 
-		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil, nil, nil)
+		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil, nil, nil, file)
 	}()
 
 	return nil
