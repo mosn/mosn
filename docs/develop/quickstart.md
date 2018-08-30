@@ -70,6 +70,19 @@ make rpm
 
 完成后可以在 `build/bundles/${version}/rpm` 目录下找到打包好的文件。
 
+## 创建镜像
++ 执行如下命令进行镜像创建：
+
+```bash
+make image
+```
+
+## 获取镜像
+
+```bash
+docker pull sofastack/mosn
+```
+
 ## 运行测试
 在项目根目录下执行如下命令运行单元测试：
 

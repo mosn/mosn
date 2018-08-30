@@ -14,8 +14,8 @@ GIT_NOTES       = $(shell git log -1 --oneline)
 
 BUILD_IMAGE     = godep-builder
 
-IMAGE_NAME      = ${GIT_USER}/mosnd
-REGISTRY        = acs-reg.alipay.com
+IMAGE_NAME      = mosn
+REPOSITORY      = sofastack/${IMAGE_NAME}
 
 RPM_BUILD_IMAGE = afenp-rpm-builder
 RPM_VERSION     = $(shell cat VERSION | tr -d '-')
@@ -97,7 +97,7 @@ image:
 	@rm -rf IMAGEBUILD
 	cp -r build/contrib/builder/image IMAGEBUILD && cp build/bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r configs IMAGEBUILD && cp -r etc IMAGEBUILD
 	docker build --no-cache --rm -t ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} IMAGEBUILD
-	docker tag ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} ${REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION}
+	docker tag ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} ${REPOSITORY}:${MAJOR_VERSION}-${GIT_VERSION}
 	rm -rf IMAGEBUILD
 
 rpm:
