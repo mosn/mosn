@@ -35,6 +35,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/tls"
 )
 
 // ConnectionHandler
@@ -191,7 +192,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 
 		l := network.NewListener(lc, logger)
 
-		al = newActiveListener(l, logger, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
+		al = newActiveListener(l, lc, logger, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan)
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
 	}
@@ -338,22 +339,23 @@ type activeListener struct {
 	logger                  log.Logger
 	accessLogs              []types.AccessLog
 	updatedLabel            bool
+	tlsMng                  types.TLSContextManager
 }
 
-func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog,
+func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger log.Logger, accessLoggers []types.AccessLog,
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
-	handler *connHandler, stopChan chan struct{}, disableConnIo bool) *activeListener {
+	handler *connHandler, stopChan chan struct{}) *activeListener {
 	al := &activeListener{
-		disableConnIo:           disableConnIo,
+		disableConnIo:           lc.DisableConnIo,
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		conns:        list.New(),
-		handler:      handler,
-		stopChan:     stopChan,
-		logger:       logger,
-		accessLogs:   accessLoggers,
-		updatedLabel: false,
+		conns:                   list.New(),
+		handler:                 handler,
+		stopChan:                stopChan,
+		logger:                  logger,
+		accessLogs:              accessLoggers,
+		updatedLabel:            false,
 	}
 
 	listenPort := 0
@@ -370,12 +372,28 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 	al.statsNamespace = types.ListenerStatsPrefix + strconv.Itoa(listenPort)
 	al.stats = newListenerStats(al.statsNamespace)
 
+	mgr, err := tls.NewTLSServerContextManager(lc, listener, logger)
+	if err != nil {
+		logger.Fatalf("create tls context manager failed, %v", err)
+	}
+	al.tlsMng = mgr
+
 	return al
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte, rawf *os.File) {
-	arc := newActiveRawConn(rawc, rawf, al)
+func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
+	var rawf *os.File
+	if !al.disableConnIo && network.UseNetpollMode {
+		// store fd for further usage
+		if tc, ok := rawc.(*net.TCPConn); ok {
+			rawf, _ = tc.File()
+		}
+	}
+	if al.tlsMng != nil && al.tlsMng.Enabled() {
+		rawc = al.tlsMng.Conn(rawc)
+	}
+	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
 	if handOffRestoredDestinationConnections {
@@ -481,10 +499,9 @@ type activeRawConn struct {
 	acceptedFilterIndex                   int
 }
 
-func newActiveRawConn(rawc net.Conn, rawf *os.File, activeListener *activeListener) *activeRawConn {
+func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawConn {
 	return &activeRawConn{
 		rawc:           rawc,
-		rawf:           rawf,
 		activeListener: activeListener,
 	}
 }
@@ -512,11 +529,11 @@ func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
 
 	if listener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", listener.listenIP, listener.listenPort)
-		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil, arc.rawf)
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
 	}
 	if localListener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", localListener.listenIP, localListener.listenPort)
-		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil, arc.rawf)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
 	}
 }
 

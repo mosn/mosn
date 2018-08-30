@@ -458,14 +458,8 @@ func transferNewConn(conn net.Conn, buf []byte, handler types.ConnectionHandler,
 	}
 	ch := make(chan types.Connection)
 
-	// store fd for transfer connection
-	var file *os.File
-	if tc, ok := conn.(*net.TCPConn); ok {
-		file, _ = tc.File()
-	}
-
 	// new connection
-	go listener.GetListenerCallbacks().OnAccept(conn, false, nil, ch, buf, file)
+	go listener.GetListenerCallbacks().OnAccept(conn, false, nil, ch, buf)
 	select {
 	// recv connection
 	case rch := <-ch:

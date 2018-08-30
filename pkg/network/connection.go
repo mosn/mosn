@@ -867,11 +867,15 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 		} else {
 			event = types.Connected
 
-			// store fd
-			if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
-				cc.file, err = tc.File()
-				if err != nil {
-					return
+
+			// ensure ioEnabled and UseNetpollMode
+			if ioEnabled && UseNetpollMode {
+				// store fd
+				if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
+					cc.file, err = tc.File()
+					if err != nil {
+						return
+					}
 				}
 			}
 
