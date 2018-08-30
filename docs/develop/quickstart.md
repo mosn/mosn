@@ -77,6 +77,12 @@ make rpm
 make image
 ```
 
+## 获取镜像
+
+```bash
+docker pull sofastack/mosn
+```
+
 ## 运行测试
 
 在项目根目录下执行如下命令运行单元测试：
