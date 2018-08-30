@@ -487,7 +487,7 @@ func (c *connection) startWriteLoop() {
 				default:
 				}
 			}
-			_, err = c.doWriteIo()
+			_, err = c.doWrite()
 		}
 
 		/*
