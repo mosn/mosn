@@ -170,11 +170,11 @@ func (d *rpcDubbo) SetStreamID(data []byte, streamID string) []byte {
 }
 
 func getSerializeId(flag byte) int {
-	return int(flag >> 3)
+	return int(flag & 0x1f)
 }
 
 func getEventPing(flag byte) bool {
-	return (flag & (1 << 2)) != 0
+	return (flag & (1 << 5)) != 0
 }
 
 func unSerialize(serializeId int, data []byte) bool {
