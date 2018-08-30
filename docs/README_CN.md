@@ -18,7 +18,6 @@ MOSN是一款采用 Golang 开发的Service Mesh数据平面代理，功能和�
     + 支持HTTP/1.1，HTTP/2
     + 支持SOFARPC
     + 支持Dubbo协议（开发中）
-    + 支持HSF协议（开发中）
 + 核心路由
     + 支持virtual host路由
     + 支持headers/url/prefix路由
