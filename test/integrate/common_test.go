@@ -9,6 +9,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	"github.com/alipay/sofa-mosn/test/util"
 )
 
@@ -60,6 +61,7 @@ func TestTLS(t *testing.T) {
 		//newTestCase(t, protocol.SofaRPC, protocol.HTTP1, util.NewRPCServer(t, appaddr, util.Bolt2)),
 		//newTestCase(t, protocol.SofaRPC, protocol.HTTP2, util.NewRPCServer(t, appaddr, util.Bolt2)),
 		//newTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt2)),
+		//newTestCase(t, protocol.Xprotocol, protocol.Xprotocol, util.NewRPCServer(t, appaddr, util.Xprotocol)),
 
 	}
 	for i, tc := range testCases {
@@ -78,4 +80,32 @@ func TestTLS(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
+}
+
+func TestXprotocol(t *testing.T) {
+	appaddr := "127.0.0.1:8080"
+	testCases := []struct {
+		*testCase
+		subProtocol string
+	}{
+		{
+			testCase:    newTestCase(t, protocol.Xprotocol, protocol.Xprotocol, util.NewXProtocolServer(t, appaddr, util.XExample)),
+			subProtocol: util.XExample,
+		},
+	}
+	for i, tc := range testCases {
+		t.Logf("start case #%d\n", i)
+		tc.StartX(tc.subProtocol)
+		go tc.RunCase(1)
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v xprotocol: %s test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, tc.subProtocol, err)
+			}
+		case <-time.After(15 * time.Second):
+			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v xprotocol: %s hang\n", i, tc.AppProtocol, tc.MeshProtocol, tc.subProtocol)
+		}
+		close(tc.stop)
+		time.Sleep(time.Second)
+	}
 }

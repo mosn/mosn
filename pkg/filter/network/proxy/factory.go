@@ -28,7 +28,7 @@ import (
 )
 
 func init() {
-	filter.RegisterNetwork(v2.DEFAULT_NETWORK_FILTER, CreatePrxoyFactory)
+	filter.RegisterNetwork(v2.DEFAULT_NETWORK_FILTER, CreateProxyFactory)
 }
 
 type genericProxyFilterConfigFactory struct {
@@ -40,7 +40,7 @@ func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(context context.C
 	callbacks.AddReadFilter(p)
 }
 
-func CreatePrxoyFactory(conf map[string]interface{}, isV2 bool) (types.NetworkFilterChainFactory, error) {
+func CreateProxyFactory(conf map[string]interface{}, isV2 bool) (types.NetworkFilterChainFactory, error) {
 	if !isV2 {
 		conf = config.ConvertProxyFilterToV2(conf)
 	}

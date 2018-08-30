@@ -127,6 +127,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 		LogLevel:        parseLogLevel(c.DefaultLogLevel),
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,
+		UseNetpollMode:  c.UseNetpollMode,
 	}
 
 	return sc
@@ -142,7 +143,7 @@ func ConvertProxyFilterToV2(config map[string]interface{}) map[string]interface{
 		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
 	}
 
-	proxyConfigV2 :=  &v2.Proxy{
+	proxyConfigV2 := &v2.Proxy{
 		Name:                proxyConfig.Name,
 		DownstreamProtocol:  proxyConfig.DownstreamProtocol,
 		UpstreamProtocol:    proxyConfig.UpstreamProtocol,
@@ -160,7 +161,7 @@ func ConvertProxyFilterToV2(config map[string]interface{}) map[string]interface{
 			log.StartLogger.Fatal("Parsing xprotocol extend config Error")
 		}
 		extendConfigV2 := v2.XProxyExtendConfig{
-			SubProtocol:	extendConfig.SubProtocol,
+			SubProtocol: extendConfig.SubProtocol,
 		}
 		proxyConfigV2.ExtendConfig = structs.Map(extendConfigV2)
 	}

@@ -23,10 +23,13 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"runtime/debug"
+
+	"os"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -44,6 +47,7 @@ var idCounter uint64 = 1
 
 type connection struct {
 	id         uint64
+	file       *os.File //copy of origin connection fd
 	localAddr  net.Addr
 	remoteAddr net.Addr
 
@@ -63,15 +67,19 @@ type connection struct {
 	bytesSendCallbacks   []func(bytesSent uint64)
 	filterManager        types.FilterManager
 
-	stopChan            chan struct{}
-	curWriteBufferData  []types.IoBuffer
-	readBuffer          types.IoBuffer
-	writeBuffers        net.Buffers
-	ioBuffers           []types.IoBuffer
-	writeBufferChan     chan *[]types.IoBuffer
+	stopChan           chan struct{}
+	curWriteBufferData []types.IoBuffer
+	readBuffer         types.IoBuffer
+	writeBuffers       net.Buffers
+	ioBuffers          []types.IoBuffer
+	writeBufferChan    chan *[]types.IoBuffer
+	transferChan       chan uint64
+
+	// readLoop/writeLoop goroutine fields:
 	internalLoopStarted bool
 	internalStopChan    chan struct{}
-	transferChan        chan uint64
+	// eventLoop fields:
+	writeSchedChan chan bool // writable if not scheduled yet.
 
 	stats              *types.ConnectionStats
 	lastBytesSizeRead  int64
@@ -79,12 +87,12 @@ type connection struct {
 
 	closed    uint32
 	startOnce sync.Once
+	eventLoop *eventLoop
 
 	logger log.Logger
 }
 
-// NewServerConnection
-// rawc is the raw connection from go/net
+// NewServerConnection new server-side connection, rawc is the raw connection from go/net
 func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}, logger log.Logger) types.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
@@ -98,6 +106,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
 		writeBufferChan:  make(chan *[]types.IoBuffer, 32),
+		writeSchedChan:   make(chan bool, 1),
 		transferChan:     make(chan uint64),
 		stats: &types.ConnectionStats{
 			ReadTotal:    metrics.NewCounter(),
@@ -106,6 +115,11 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 			WriteCurrent: metrics.NewGauge(),
 		},
 		logger: logger,
+	}
+
+	// store fd
+	if ctx.Value(types.ContextKeyConnectionFd) != nil {
+		conn.file = ctx.Value(types.ContextKeyConnectionFd).(*os.File)
 	}
 
 	// transfer old mosn connection
@@ -144,35 +158,138 @@ func (c *connection) ID() uint64 {
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
-		c.internalLoopStarted = true
+		if UseNetpollMode {
+			c.attachEventLoop(lctx)
+		} else {
+			c.startRWLoop(lctx)
+		}
+	})
+}
 
-		go func() {
-			defer func() {
-				if p := recover(); p != nil {
-					c.logger.Errorf("panic %v", p)
+func (c *connection) attachEventLoop(lctx context.Context) {
+	// Choose one event loop to register, the implement is platform-dependent(epoll for linux and kqueue for bsd)
+	c.eventLoop = attach()
 
-					debug.PrintStack()
+	// Register read only, write is supported now because it is more complex than read.
+	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
+	err := c.eventLoop.registerRead(c, &connEventHandler{
+		onRead: func() bool {
+			if c.readEnabled {
+				err := c.doRead()
 
-					c.startReadLoop()
+				if err != nil {
+					if te, ok := err.(net.Error); ok && te.Timeout() {
+						if c.readBuffer != nil && c.readBuffer.Len() == 0 {
+							c.readBuffer.Free()
+							c.readBuffer.Alloc(DefaultBufferReadCapacity)
+						}
+						return true
+					}
+
+					if err == io.EOF {
+						c.Close(types.NoFlush, types.RemoteClose)
+					} else {
+						c.Close(types.NoFlush, types.OnReadErrClose)
+					}
+
+					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
+						c.id, c.RemoteAddr().String(), err)
+
+					return false
 				}
-			}()
+			} else {
+				select {
+				case <-c.readEnabledChan:
+				case <-time.After(100 * time.Millisecond):
+				}
+			}
+			return true
+		},
 
-			c.startReadLoop()
+		onHup: func() bool {
+			c.logger.Errorf("ReadHup error. Connection = %d, Remote Address = %s", c.id, c.RemoteAddr().String())
+			c.Close(types.NoFlush, types.RemoteClose)
+			return false
+		},
+	})
+
+	if err != nil {
+		c.logger.Errorf("conn %d register read failed:%s", c.id, err.Error())
+	}
+}
+
+func (c *connection) startRWLoop(lctx context.Context) {
+	c.internalLoopStarted = true
+
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				c.logger.Errorf("panic %v", p)
+
+				debug.PrintStack()
+
+				c.startReadLoop()
+			}
 		}()
 
-		go func() {
-			defer func() {
-				if p := recover(); p != nil {
-					c.logger.Errorf("panic %v", p)
+		c.startReadLoop()
+	}()
 
-					debug.PrintStack()
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				c.logger.Errorf("panic %v", p)
 
-					c.startWriteLoop()
-				}
-			}()
+				debug.PrintStack()
 
-			c.startWriteLoop()
+				c.startWriteLoop()
+			}
 		}()
+
+		c.startWriteLoop()
+	}()
+}
+
+func (c *connection) scheduleWrite() {
+	writePool.ScheduleAlways(func() {
+		defer func() { <-c.writeSchedChan }()
+
+		for len(c.writeBufferChan) > 0 {
+			// at least 1 buffer need to avoid all chan-recv missed by select.default option
+			c.appendBuffer(<-c.writeBufferChan)
+
+			//todo: dynamic set loop nums
+			//slots := len(c.writeBufferChan)
+			//if slots < 10 {
+			//	slots = 10
+			//}
+
+			//if len(c.writeBufferChan) < 10 {
+			//	runtime.Gosched()
+			//}
+
+			for i := 0; i < 10; i++ {
+				select {
+				case buf := <-c.writeBufferChan:
+					c.appendBuffer(buf)
+				default:
+				}
+			}
+
+			_, err := c.doWrite()
+			if err != nil {
+				if err == io.EOF {
+					// remote conn closed
+					c.Close(types.NoFlush, types.RemoteClose)
+				} else {
+					// on non-timeout error
+					c.Close(types.NoFlush, types.OnWriteErrClose)
+				}
+				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
+					c.id, c.RemoteAddr().String(), err)
+			}
+
+		}
 	})
 }
 
@@ -310,7 +427,28 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		return nil
 	}
 
-	c.writeBufferChan <- &buffers
+	if c.internalLoopStarted {
+		c.writeBufferChan <- &buffers
+	} else {
+		// Start schedule if not started
+		select {
+		case c.writeSchedChan <- true:
+			c.scheduleWrite()
+		default:
+		}
+
+	wait:
+	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+		for {
+			select {
+			case c.writeBufferChan <- &buffers:
+				break wait
+			case c.writeSchedChan <- true:
+				c.scheduleWrite()
+			}
+		}
+	}
 
 	return nil
 }
@@ -349,7 +487,7 @@ func (c *connection) startWriteLoop() {
 				default:
 				}
 			}
-			_, err = c.doWriteIo()
+			_, err = c.doWrite()
 		}
 
 		/*
@@ -406,7 +544,13 @@ transfer:
 }
 
 func (c *connection) appendBuffer(iobuffers *[]types.IoBuffer) {
+	if iobuffers == nil {
+		return
+	}
 	for _, buf := range *iobuffers {
+		if buf == nil {
+			continue
+		}
 		c.ioBuffers = append(c.ioBuffers, buf)
 		c.writeBuffers = append(c.writeBuffers, buf.Bytes())
 	}
@@ -499,6 +643,9 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if c.internalLoopStarted {
 		// because close function must be called by one io loop thread, notify another loop here
 		close(c.internalStopChan)
+	} else if c.eventLoop != nil {
+		// unregister events while connection close
+		c.eventLoop.unregister(c.id)
 	}
 
 	c.rawConnection.Close()
@@ -662,7 +809,7 @@ type clientConnection struct {
 	connectOnce sync.Once
 }
 
-// NewClientConnection
+// NewClientConnection new client-side connection
 func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr,
 	stopChan chan struct{}, logger log.Logger) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
@@ -677,6 +824,7 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			readEnabledChan:  make(chan bool, 1),
 			internalStopChan: make(chan struct{}),
 			writeBufferChan:  make(chan *[]types.IoBuffer, 32),
+			writeSchedChan:   make(chan bool, 1),
 			stats: &types.ConnectionStats{
 				ReadTotal:    metrics.NewCounter(),
 				ReadCurrent:  metrics.NewGauge(),
@@ -718,6 +866,14 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 		} else {
 			event = types.Connected
+
+			// store fd
+			if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
+				cc.file, err = tc.File()
+				if err != nil {
+					return
+				}
+			}
 
 			if cc.tlsMng != nil && cc.tlsMng.Enabled() {
 				cc.rawConnection = cc.tlsMng.Conn(cc.rawConnection)

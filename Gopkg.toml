@@ -72,6 +72,10 @@
   branch = "master"
   name = "golang.org/x/sys"
 
+[[constraint]]
+    branch = "master"
+    name = "github.com/neverhook/easygo"
+
 [prune]
   go-tests = true
   unused-packages = true

@@ -123,7 +123,6 @@ func readInt32(b []byte) (int, error) {
 
 func decodeString(b []byte, result *string) (int, error) {
 	*result = string(b)
-
 	return len(b), nil
 }
 

@@ -45,7 +45,7 @@ type FilterChain struct {
 }
 
 type XProtocolExtendConfig struct {
-	SubProtocol string	`json:"sub_protocol"`
+	SubProtocol string `json:"sub_protocol"`
 }
 
 type Proxy struct {
@@ -56,7 +56,7 @@ type Proxy struct {
 	BasicRoutes         []*v2.BasicServiceRoute `json:"basic_routes"` //not used anymore. todo: delete related logic
 	VirtualHosts        []*VirtualHost          `json:"virtual_hosts"`
 	ValidateClusters    bool                    `json:"validate_clusters"`
-	ExtendConfig        map[string]interface{} `json:"extend_config"`
+	ExtendConfig        map[string]interface{}  `json:"extend_config"`
 }
 
 // VirtualHost
@@ -217,6 +217,7 @@ type ServerConfig struct {
 	DefaultLogPath  string `json:"default_log_path,omitempty"`
 	DefaultLogLevel string `json:"default_log_level,omitempty"`
 
+	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
 	GracefulTimeout DurationConfig `json:"graceful_timeout"`
 

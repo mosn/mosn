@@ -245,7 +245,7 @@ func TestParseXProxyFilterJSONFile(t *testing.T) {
 	json.Unmarshal([]byte(filterchanStr), &proxy)
 
 	if proxy.Name != "proxy_config" || len(proxy.VirtualHosts) != 1 ||
-		proxy.VirtualHosts[0].Name != "sofa"  || proxy.ExtendConfig["sub_protocol"] != "sofa" {
+		proxy.VirtualHosts[0].Name != "sofa" || proxy.ExtendConfig["sub_protocol"] != "sofa" {
 		t.Errorf("TestParseProxyFilterJSON Failure")
 	}
 }

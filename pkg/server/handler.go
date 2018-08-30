@@ -110,7 +110,7 @@ func (ch *connHandler) GenerateListenerID() string {
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
 func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
+	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error) {
 
 	var listenerName string
 	if lc.Name == "" {
@@ -127,17 +127,16 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 		// a listener with the same name must have the same configured address
 		if al.listener.Addr().String() != lc.Addr.String() ||
 			al.listener.Addr().Network() != lc.Addr.Network() {
-			log.DefaultLogger.Errorf("error updating listener, listen address and listen name doesn't match")
-			return nil
+			return nil, fmt.Errorf("error updating listener, listen address and listen name doesn't match")
 		}
 
 		equalConfig := reflect.DeepEqual(al.listener.Config(), lc)
-		equalNetworkFilter := reflect.DeepEqual(al.streamFiltersFactories, streamFiltersFactories)
+		equalNetworkFilter := reflect.DeepEqual(al.networkFiltersFactories, networkFiltersFactories)
 		equalStreamFilters := reflect.DeepEqual(al.streamFiltersFactories, streamFiltersFactories)
 		// duplicate config does nothing
 		if equalConfig && equalNetworkFilter && equalStreamFilters {
-			log.DefaultLogger.Debugf("duplicate/locked listener '{}'. no add/update", listenerName)
-			return nil
+			log.DefaultLogger.Debugf("duplicate listener:%s found. no add/update", listenerName)
+			return nil, nil
 		}
 
 		// update some config, and as Address and Name doesn't change , so need't change *rawl
@@ -170,7 +169,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 
 		logger, err := log.NewLogger(lc.LogPath, log.Level(lc.LogLevel))
 		if err != nil {
-			ch.logger.Fatalf("initialize listener logger failed : %v", err)
+			return nil, fmt.Errorf("initialize listener logger failed : %v", err.Error())
 		}
 
 		//initialize access log
@@ -186,7 +185,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
-				log.StartLogger.Errorf("initialize listener access logger ", alConfig.Path, " failed: ", err)
+				return nil, fmt.Errorf("initialize listener access logger ", alConfig.Path, " failed: ", err.Error())
 			}
 		}
 
@@ -197,7 +196,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 		ch.listeners = append(ch.listeners, al)
 	}
 
-	return al
+	return al, nil
 }
 
 func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
@@ -375,8 +374,8 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
-	arc := newActiveRawConn(rawc, al)
+func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte, rawf *os.File) {
+	arc := newActiveRawConn(rawc, rawf, al)
 	// TODO: create listener filter chain
 
 	if handOffRestoredDestinationConnections {
@@ -394,6 +393,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	if rawf != nil {
+		ctx = context.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+	}
 	if ch != nil {
 		ctx = context.WithValue(ctx, types.ContextKeyAcceptChan, ch)
 		ctx = context.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
@@ -401,6 +403,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	if oriRemoteAddr != nil {
 		ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
+
 	arc.ContinueFilterChain(ctx, true)
 }
 
@@ -467,6 +470,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 
 type activeRawConn struct {
 	rawc                                  net.Conn
+	rawf                                  *os.File
 	originalDstIP                         string
 	originalDstPort                       int
 	oriRemoteAddr                         net.Addr
@@ -477,9 +481,10 @@ type activeRawConn struct {
 	acceptedFilterIndex                   int
 }
 
-func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawConn {
+func newActiveRawConn(rawc net.Conn, rawf *os.File, activeListener *activeListener) *activeRawConn {
 	return &activeRawConn{
 		rawc:           rawc,
+		rawf:           rawf,
 		activeListener: activeListener,
 	}
 }
@@ -507,11 +512,11 @@ func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
 
 	if listener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", listener.listenIP, listener.listenPort)
-		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil, arc.rawf)
 	}
 	if localListener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", localListener.listenIP, localListener.listenPort)
-		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil, arc.rawf)
 	}
 }
 

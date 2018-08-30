@@ -37,6 +37,15 @@ paragraph on what the class is for.
 you are fixing an existing issue please add Fixes gh-XXXX at the end 
 of the commit message (where XXXX is the issue number).
 
-8. Ensure that code coverage does not decrease。
+8. Please ensure that code coverage will not decrease.
 
-9. Contribute a PR as the rule of Gitflow Workflow; MOSN's version contains three digit, the first one is for compatibility; the second one is for new features and enhancement; the last one is for bug fix.
+9. Contribute a PR as the rule of Gitflow Workflow, and you should follow pull request's rules.
+As you may know, MOSN's version contains three digit, the first one is for compatibility; the second one is for new features and enhancement; the last one is for bug fix.
+
+### PR review policy for maintainers
+1. Check the issue with this PR
+2. Check the solution's reasonability
+3. Check UT's and Benchmark's result
+4. Pay attention to the code which make the code structure change,
+ the usage of the global variable, the handling of the corner case and concurrency
+5. Check 'goimports' and 'golint' result+ HSF(ongoing)

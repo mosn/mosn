@@ -25,6 +25,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -68,6 +69,11 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		if config.Processor > 0 {
 			procNum = config.Processor
 		}
+
+		network.UseNetpollMode = config.UseNetpollMode
+		if config.UseNetpollMode {
+			log.StartLogger.Infof("Netpoll mode enabled.")
+		}
 	}
 
 	runtime.GOMAXPROCS(procNum)
@@ -91,7 +97,11 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener {
 
-	return srv.handler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
+	listener, err := srv.handler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
+	if err != nil {
+		log.StartLogger.Errorf("AddListener error:", err.Error())
+	}
+	return listener
 }
 
 func (srv *server) Start() {

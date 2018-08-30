@@ -19,9 +19,10 @@ package types
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 
-	"crypto/tls"
+	"os"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/rcrowley/go-metrics"
@@ -135,7 +136,7 @@ type TLSContextManager interface {
 // ListenerEventListener is a Callback invoked by a listener.
 type ListenerEventListener interface {
 	// OnAccept is called on new connection accepted
-	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan Connection, buf []byte)
+	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan Connection, buf []byte, rawf *os.File)
 
 	// OnNewConnection is called on new mosn connection created
 	OnNewConnection(ctx context.Context, conn Connection)
@@ -356,7 +357,7 @@ type ConnectionHandler interface {
 	// adds a listener into the ConnectionHandler or
 	// update a listener
 	AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []NetworkFilterChainFactory,
-		streamFiltersFactories []StreamFilterChainFactory) ListenerEventListener
+		streamFiltersFactories []StreamFilterChainFactory) (ListenerEventListener, error)
 
 	// StartListener starts a listener by the specified listener tag
 	StartListener(lctx context.Context, listenerTag uint64)
