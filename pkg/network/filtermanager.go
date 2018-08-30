@@ -112,9 +112,8 @@ func (fm *filterManager) OnRead() {
 	fm.onContinueReading(nil)
 }
 
-func (fm *filterManager) OnWrite() types.FilterStatus {
+func (fm *filterManager) OnWrite(buffer []types.IoBuffer) types.FilterStatus {
 	for _, df := range fm.downstreamFilters {
-		buffer := fm.conn.GetWriteBuffer()
 		status := df.OnWrite(buffer)
 
 		if status == types.StopIteration {

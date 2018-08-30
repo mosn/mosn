@@ -415,16 +415,11 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	}
 	filterManager.InitializeReadFilters()
 
-	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
-	if !al.disableConnIo {
-		// start conn loops first
-		conn.Start(ctx)
-	}
-
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
 		conn.Close(types.NoFlush, types.LocalClose)
+		return
 	} else {
 		ac := newActiveConnection(al, conn)
 
@@ -438,6 +433,12 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		atomic.AddInt64(&al.handler.numConnections, 1)
 
 		al.logger.Debugf("new downstream connection %d accepted", conn.ID())
+	}
+
+	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
+	if !al.disableConnIo {
+		// start conn loops first
+		conn.Start(ctx)
 	}
 }
 

@@ -25,6 +25,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"sync/atomic"
 )
 
 func init() {
@@ -63,7 +64,8 @@ func (p *connPool) NewStream(context context.Context, streamID string,
 
 	p.mux.Unlock()
 
-	if p.activeClient == nil {
+	activeClient := p.activeClient
+	if activeClient == nil {
 		cb.OnFailure(streamID, types.ConnectionFailure, nil)
 		return nil
 	}
@@ -72,9 +74,9 @@ func (p *connPool) NewStream(context context.Context, streamID string,
 		cb.OnFailure(streamID, types.Overflow, nil)
 	} else {
 		// todo: update host stats
-		p.activeClient.totalStream++
+		atomic.AddUint64(&activeClient.totalStream, 1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := p.activeClient.codecClient.NewStream(context, streamID, responseDecoder)
+		streamEncoder := activeClient.codecClient.NewStream(context, streamID, responseDecoder)
 		cb.OnReady(streamID, streamEncoder, p.host)
 	}
 

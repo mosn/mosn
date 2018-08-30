@@ -82,7 +82,7 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
-		ac.totalStream++
+		atomic.AddUint64(&ac.totalStream, 1)
 		p.host.HostStats().UpstreamRequestTotal.Inc(1)
 		p.host.HostStats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)

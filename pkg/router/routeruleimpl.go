@@ -30,6 +30,7 @@ import (
 	httpmosn "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
+	"sync"
 )
 
 // NewRouteRuleImplBase
@@ -117,6 +118,7 @@ type RouteRuleImplBase struct {
 	policy             *routerPolicy
 	virtualClusters    *VirtualClusterEntry
 	randInstance       *rand.Rand
+	randMutex          sync.Mutex
 }
 
 // types.RouterInfo
@@ -151,7 +153,10 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 	}
 
 	// use randInstance to avoid global lock contention
+	rri.randMutex.Lock()
 	selectedValue := rri.randInstance.Intn(int(rri.totalClusterWeight))
+	rri.randMutex.Unlock()
+	
 	for _, weightCluster := range rri.weightedClusters {
 
 		selectedValue = selectedValue - int(weightCluster.clusterWeight)
