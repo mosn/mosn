@@ -569,7 +569,8 @@ func (c *connection) doWrite() (int64, error) {
 }
 
 func (c *connection) doWriteIo() (bytesSent int64, err error) {
-	bytesSent, err = c.writeBuffers.WriteTo(c.rawConnection)
+	buffers := c.writeBuffers
+	bytesSent, err = buffers.WriteTo(c.rawConnection)
 	if err != nil {
 		return bytesSent, err
 	}
@@ -577,6 +578,12 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		buffer.PutIoBuffer(buf)
 	}
 	c.ioBuffers = c.ioBuffers[:0]
+	c.writeBuffers = c.writeBuffers[:0]
+	if len(buffers) != 0 {
+		for _, buf := range buffers {
+			c.writeBuffers = append(c.writeBuffers, buf)
+		}
+	}
 	return
 }
 
