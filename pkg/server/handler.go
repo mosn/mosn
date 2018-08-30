@@ -34,8 +34,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/tls"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // ConnectionHandler
@@ -350,12 +350,12 @@ func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger lo
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		conns:                   list.New(),
-		handler:                 handler,
-		stopChan:                stopChan,
-		logger:                  logger,
-		accessLogs:              accessLoggers,
-		updatedLabel:            false,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		logger:       logger,
+		accessLogs:   accessLoggers,
+		updatedLabel: false,
 	}
 
 	listenPort := 0

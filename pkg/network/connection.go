@@ -438,8 +438,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -866,7 +866,6 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 		} else {
 			event = types.Connected
-
 
 			// ensure ioEnabled and UseNetpollMode
 			if ioEnabled && UseNetpollMode {
