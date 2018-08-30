@@ -52,6 +52,9 @@ func TestClientCloseProxy(t *testing.T) {
 	CreateServers(t, serverList, stopServer)
 	runClientClose(t, stopClient, meshAddr)
 	close(stopServer)
+	// wait server close
+	time.Sleep(time.Second)
+
 }
 
 func runClientCloseMeshToMesh(t *testing.T, proto types.Protocol) {
@@ -62,6 +65,8 @@ func runClientCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 	CreateServers(t, serverList, stopServer)
 	runClientClose(t, stopClient, meshAddr)
 	close(stopServer)
+	// wait server close
+	time.Sleep(time.Second)
 
 }
 func TestClientCloseToHTTP1(t *testing.T) {
