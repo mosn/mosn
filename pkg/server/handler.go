@@ -384,15 +384,20 @@ func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger lo
 // ListenerEventListener
 func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
 	var rawf *os.File
-	if !al.disableConnIo && network.UseNetpollMode {
-		// store fd for further usage
-		if tc, ok := rawc.(*net.TCPConn); ok {
-			rawf, _ = tc.File()
+
+	// only store fd and tls conn handshake in final working listener
+	if !handOffRestoredDestinationConnections {
+		if !al.disableConnIo && network.UseNetpollMode {
+			// store fd for further usage
+			if tc, ok := rawc.(*net.TCPConn); ok {
+				rawf, _ = tc.File()
+			}
+		}
+		if al.tlsMng != nil && al.tlsMng.Enabled() {
+			rawc = al.tlsMng.Conn(rawc)
 		}
 	}
-	if al.tlsMng != nil && al.tlsMng.Enabled() {
-		rawc = al.tlsMng.Conn(rawc)
-	}
+
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
