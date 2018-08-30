@@ -71,7 +71,6 @@ make rpm
 完成后可以在 `build/bundles/${version}/rpm` 目录下找到打包好的文件。
 
 ## 创建镜像
-+ 根据自己在 Docker Hub 上的用户名，修改 Makefile 文件中 `REGISTRY` 的值
 + 执行如下命令进行镜像创建：
 
 ```bash
