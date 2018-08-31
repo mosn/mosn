@@ -436,8 +436,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -651,6 +651,8 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	} else if c.eventLoop != nil {
 		// unregister events while connection close
 		c.eventLoop.unregister(c.id)
+		// close copied fd
+		c.file.Close()
 	}
 
 	c.rawConnection.Close()
@@ -872,11 +874,14 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 		} else {
 			event = types.Connected
 
-			// store fd
-			if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
-				cc.file, err = tc.File()
-				if err != nil {
-					return
+			// ensure ioEnabled and UseNetpollMode
+			if ioEnabled && UseNetpollMode {
+				// store fd
+				if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
+					cc.file, err = tc.File()
+					if err != nil {
+						return
+					}
 				}
 			}
 
