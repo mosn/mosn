@@ -12,7 +12,9 @@ MOSN 由 NET/IO、Protocol、Stream、Proxy 四个层次组成，其中
 + Stream 用于封装请求和响应，在一个 conn 上做连接复用
 + Proxy 做 downstream 和 upstream 之间 stream 的转发
 下图为构成 MOSN 的模块:
+
 ![modules](design/resource/MosnModules.png)
+
 + Starter, Server, Listener, Config, XDS 为 MOSN 启动模块，用于完成 MOSN 的运行
 + 最左侧的 Hardware, NET/IO, Protocol, Stream, Proxy 为MOSN 核心模块，
   用来完成 Service MESH 的核心功能，后面会专题单独介绍
@@ -27,7 +29,7 @@ MOSN 由 NET/IO、Protocol、Stream、Proxy 四个层次组成，其中
     + 熔断机制
     + CDS/EDS 对接能力
 + Metrics 模块可对协议层的数据做记录和追踪
-+ LoadBalance 当前支持 RR, Random, Subset LB, 等负载均衡算法
++ LoadBalance 当前支持 Random, RR, SWRR, Subset LB, 等负载均衡算法
 + Mixer, FlowControl, Lab, Admin 模块为待开发模块
 
 ## MOSN 工作模式
@@ -39,9 +41,9 @@ DUBBO, HSF 等
 ![MOSN 工作流程图](design/resource/MosnWorkFlow.png)
 
 + MOSN 内部数据流
-MOSN 内部数据流如下图所示
++ MOSN 内部数据流如下图所示
 
-![MOSN 内部数据流示意图](design/resource/MosnDataFlow.png)
+<img src="design/resource/MosnDataFlow.png" width = "300" height = "300" align="middle" />
 
 + NET/IO 监测连接和数据包的到来
 + Protocol 对数据包进行检测，并使用对应协议做 decode 处理
@@ -49,13 +51,13 @@ MOSN 内部数据流如下图所示
 + Protocol 对封装的 stream 做 proxy
 
 ## MOSN 协程模型
-MOSN 通过开关，约允许使用如下两种线程模型
+MOSN 通过开关，允许使用如下两种线程模型
 + epoll + 事件驱动编程模型
 + golang 默认的 epoll + 协程阻塞编程模型
 
 ## MOSN 扩展机制
 + 支持 协议扩展
-+ 支持 Networkilter 扩展
++ 支持 NetworkFilter 扩展
 + 支持 StreamFilter 扩展
 ## MOSN 历史版本
 当前发布了
@@ -67,11 +69,13 @@ MOSN 通过开关，约允许使用如下两种线程模型
 
 ## MOSN 开发团队
 + 蚂蚁金服系统部网络团队
-+ 蚂蚁中间件团队
++ 蚂蚁金服中间件团队
 + UC 大文娱团队
 
 ## MOSN 系列文章编写团队以及文章认领
 todo
 
 ## 获取相关帮助
+* [社区](https://github.com/alipay/mosn/issues)
+
 todo

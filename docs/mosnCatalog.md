@@ -19,12 +19,11 @@
     + Dubbo 实现解析
 + 协议扩展机制实现解析   
 + MOSN 路由实现解析
-    + Virtual Host与具体路由匹配机制实现解析
-    + Metadata 匹配实现解析
+    + Virtual Host 与具体路由匹配机制实现解析
+    + subset 匹配实现解析
     + 重试机制
 + MOSN 集群管理与负载均衡实现解析
     + 连接池实现机制
-    + 熔断机制实现解析
     + 心跳机制实现解析
     + 负载均衡机制实现解析
 + MOSN TLS实现机制解析
@@ -38,7 +37,7 @@
 + MOSN Filter 机制实现解析
     + Network Filter 扩展机制实现解析
     + Stream Fitler 扩展机制解析
-+ MOSN GC优化与内存复用机制实现解析
++ MOSN GC 优化与内存复用机制实现解析
 + MOSN 线程模型解析
 
 ## FAQ(相关问题)

@@ -110,12 +110,17 @@ current_weight's:
 ## XDS 能力补充
 ### CDS 相关
 + [issue](https://github.com/alipay/sofa-mosn/issues/116)
-+ 统一 cluster 的添加和更新能力
++ 提供 cluster 的添加和更新能力
+   + 外部接口：`TriggerClusterAddOrUpdate`
+   + 内部接口: `AddOrUpdatePrimaryCluster`
++ 提供 cluster 删除能力
    + 外部接口: `TriggerClusterDel`
    + 内部接口: `RemovePrimaryCluster`
-   
-+ 统一 cluster 删除能力
-
 ### LDS 相关
 + [issue](https://github.com/alipay/sofa-mosn/issues/117)
-+ 
++ 提供 Listener 的添加和更新能力
+  + 外部接口: `AddOrUpdateListener`
+  + 内部接口: `AddOrUpdateListener`
++ 提供 Listener 的删除能力
+  + 外部接口: `DeleteListener`
+  + 内部接口: `StopListener` 与 `RemoveListeners`
