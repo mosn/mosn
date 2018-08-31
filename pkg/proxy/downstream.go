@@ -257,12 +257,12 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	}
 
 	//Get some route by service name
-	log.StartLogger.Tracef("before active stream route")
+	log.DefaultLogger.Tracef("before active stream route")
 	route := s.proxy.routers.Route(headers, 1)
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
-		log.StartLogger.Warnf("no route to init upstream,headers = %v", headers)
+		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
@@ -274,7 +274,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// so need determination at the first time
 	clusterName := route.RouteRule().ClusterName()
 
-	log.StartLogger.Tracef("get route : %v,clusterName=%v", route, clusterName)
+	log.DefaultLogger.Tracef("get route : %v,clusterName=%v", route, clusterName)
 
 	s.route = route
 
@@ -284,7 +284,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
 	// `downstream` implement loadbalancer ctx
-	log.StartLogger.Tracef("before initializeUpstreamConnectionPool")
+	log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
 	pool, err := s.initializeUpstreamConnectionPool(clusterName, s)
 
 	if err != nil {
@@ -292,7 +292,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		return
 	}
 
-	log.StartLogger.Tracef("after initializeUpstreamConnectionPool")
+	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
@@ -331,6 +331,7 @@ func (s *downStream) ReceiveData(data types.IoBuffer, endStream bool) {
 	if s.upstreamProcessDone {
 		return
 	}
+	log.DefaultLogger.Tracef("downstream receive data = %v", data)
 
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
@@ -339,7 +340,7 @@ func (s *downStream) ReceiveData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) {
-	log.StartLogger.Tracef("active stream do decode data")
+	log.DefaultLogger.Tracef("active stream do decode data")
 
 	if s.runReceiveDataFilters(filter, data, endStream) {
 		return
@@ -575,7 +576,7 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 	}
 
 	// todo: update stats
-	log.StartLogger.Tracef("on upstream reset invoked")
+	log.DefaultLogger.Tracef("on upstream reset invoked")
 
 	// see if we need a retry
 	if urtype != UpstreamGlobalTimeout &&

@@ -45,6 +45,9 @@ func TestServerCloseProxy(t *testing.T) {
 	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
 	runClient(t, meshAddr, stopClient)
 	close(stopServer)
+	// wait server close
+	time.Sleep(time.Second)
+
 }
 
 func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
@@ -60,6 +63,9 @@ func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
 	runClient(t, meshAddr, stopClient)
 	close(stopServer)
+	// wait server close
+	time.Sleep(time.Second)
+
 }
 
 func TestServerCloseToHTTP1(t *testing.T) {

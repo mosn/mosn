@@ -374,8 +374,8 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
-	arc := newActiveRawConn(rawc, al)
+func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte, rawf *os.File) {
+	arc := newActiveRawConn(rawc, rawf, al)
 	// TODO: create listener filter chain
 
 	if handOffRestoredDestinationConnections {
@@ -393,6 +393,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	if rawf != nil {
+		ctx = context.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+	}
 	if ch != nil {
 		ctx = context.WithValue(ctx, types.ContextKeyAcceptChan, ch)
 		ctx = context.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
@@ -400,6 +403,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	if oriRemoteAddr != nil {
 		ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
+
 	arc.ContinueFilterChain(ctx, true)
 }
 
@@ -411,16 +415,11 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	}
 	filterManager.InitializeReadFilters()
 
-	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
-	if !al.disableConnIo {
-		// start conn loops first
-		conn.Start(ctx)
-	}
-
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
 		conn.Close(types.NoFlush, types.LocalClose)
+		return
 	} else {
 		ac := newActiveConnection(al, conn)
 
@@ -434,6 +433,12 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		atomic.AddInt64(&al.handler.numConnections, 1)
 
 		al.logger.Debugf("new downstream connection %d accepted", conn.ID())
+	}
+
+	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
+	if !al.disableConnIo {
+		// start conn loops first
+		conn.Start(ctx)
 	}
 }
 
@@ -466,6 +471,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 
 type activeRawConn struct {
 	rawc                                  net.Conn
+	rawf                                  *os.File
 	originalDstIP                         string
 	originalDstPort                       int
 	oriRemoteAddr                         net.Addr
@@ -476,9 +482,10 @@ type activeRawConn struct {
 	acceptedFilterIndex                   int
 }
 
-func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawConn {
+func newActiveRawConn(rawc net.Conn, rawf *os.File, activeListener *activeListener) *activeRawConn {
 	return &activeRawConn{
 		rawc:           rawc,
+		rawf:           rawf,
 		activeListener: activeListener,
 	}
 }
@@ -506,11 +513,11 @@ func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
 
 	if listener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", listener.listenIP, listener.listenPort)
-		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil, arc.rawf)
 	}
 	if localListener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", localListener.listenIP, localListener.listenPort)
-		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil, arc.rawf)
 	}
 }
 

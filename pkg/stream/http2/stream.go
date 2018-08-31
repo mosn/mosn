@@ -76,7 +76,8 @@ type streamConnection struct {
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {}
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
+}
 
 func (conn *streamConnection) Protocol() types.Protocol {
 	return conn.protocol
@@ -96,6 +97,7 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 	streamConnCallbacks types.StreamConnectionEventListener,
 	connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 
+	log.DefaultLogger.Tracef("new http2 client stream connection")
 	return &clientStreamConnection{
 		streamConnection: streamConnection{
 			context:       context,
@@ -113,6 +115,7 @@ func (csc *clientStreamConnection) OnGoAway() {
 }
 
 func (csc *clientStreamConnection) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
+	log.DefaultLogger.Tracef("http2 client stream connection new stream , stream id = %v", streamID)
 	stream := &clientStream{
 		stream: stream{
 			context: context.WithValue(ctx, types.ContextKeyStreamID, streamID),
@@ -132,6 +135,7 @@ type serverStreamConnection struct {
 
 func newServerStreamConnection(context context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+	log.DefaultLogger.Tracef("new http2 server stream connection")
 	connection.SetReadDisable(true)
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
@@ -236,7 +240,7 @@ type clientStream struct {
 
 // types.StreamSender
 func (s *clientStream) AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
-	log.StartLogger.Tracef("http2 client stream encode headers")
+	log.DefaultLogger.Tracef("http2 client stream encode headers")
 	headersMap, _ := headers.(map[string]string)
 
 	if s.request == nil {
@@ -272,7 +276,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headers interface{
 
 	s.request.Header = encodeHeader(headersMap)
 
-	log.StartLogger.Tracef("http2 client stream encode headers,headers = %v", s.request.Header)
+	log.DefaultLogger.Tracef("http2 client stream encode headers,headers = %v", s.request.Header)
 
 	if endStream {
 		s.endStream()
@@ -282,7 +286,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headers interface{
 }
 
 func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
-	log.StartLogger.Tracef("http2 client stream encode data")
+	log.DefaultLogger.Tracef("http2 client stream encode data")
 	if s.request == nil {
 		s.request = new(http.Request)
 	}
@@ -292,7 +296,7 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 		buf: data,
 	}
 
-	log.StartLogger.Tracef("http2 client stream encode data,data = %v", data.String())
+	log.DefaultLogger.Tracef("http2 client stream encode data,data = %v", data.String())
 
 	if endStream {
 		s.endStream()
@@ -302,7 +306,7 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 }
 
 func (s *clientStream) AppendTrailers(context context.Context, trailers map[string]string) error {
-	log.StartLogger.Tracef("http2 client stream encode trailers")
+	log.DefaultLogger.Tracef("http2 client stream encode trailers")
 	s.request.Trailer = encodeHeader(trailers)
 	s.endStream()
 

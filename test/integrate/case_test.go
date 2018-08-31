@@ -76,6 +76,25 @@ func (c *testCase) Start(tls bool) {
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
+// XProtocol CASE
+// should use subprotocol
+func (c *testCase) StartX(subprotocol string) {
+	c.appServer.GoServe()
+	appAddr := c.appServer.Addr()
+	clientMeshAddr := util.CurrentMeshAddr()
+	c.clientMeshAddr = clientMeshAddr
+	serverMeshAddr := util.CurrentMeshAddr()
+	cfg := util.CreateXProtocolMesh(clientMeshAddr, serverMeshAddr, subprotocol, []string{appAddr})
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.stop
+		c.appServer.Close()
+		mesh.Close()
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
 // mesh to mesh use tls if "istls" is true
 // client do "n" times request
 func (c *testCase) RunCase(n int) {
@@ -143,6 +162,19 @@ func (c *testCase) RunCase(n int) {
 			}
 			return nil
 		}
+	case protocol.Xprotocol:
+		server, ok := c.appServer.(*util.XProtocolServer)
+		if !ok {
+			c.C <- fmt.Errorf("need a xprotocol server")
+			return
+		}
+		client := server.Client
+		if err := client.Connect(c.clientMeshAddr); err != nil {
+			c.C <- err
+			return
+		}
+		defer client.Close()
+		call = client.RequestAndWaitReponse
 	default:
 		c.C <- fmt.Errorf("unsupported protocol: %v", c.AppProtocol)
 		return

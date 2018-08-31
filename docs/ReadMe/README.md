@@ -21,7 +21,7 @@ follow-up development and build an open source boutique project together.
 + Multi-protocol support
     + HTTP/1.1，HTTP/2.0
     + SOFARPC
-    + Dubbo
+    + Dubbo(ongoing)
 + Routing support
     + Routing in form of virtual host
     + Routing with headers/url/prefix
