@@ -24,13 +24,14 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	httpmosn "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
-	"sync"
 )
 
 // NewRouteRuleImplBase
@@ -156,7 +157,7 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 	rri.randMutex.Lock()
 	selectedValue := rri.randInstance.Intn(int(rri.totalClusterWeight))
 	rri.randMutex.Unlock()
-	
+
 	for _, weightCluster := range rri.weightedClusters {
 
 		selectedValue = selectedValue - int(weightCluster.clusterWeight)

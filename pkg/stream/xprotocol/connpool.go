@@ -21,12 +21,13 @@ import (
 	"context"
 	"sync"
 
+	"sync/atomic"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"sync/atomic"
 )
 
 func init() {
