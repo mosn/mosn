@@ -169,34 +169,22 @@ func (d *rpcDubbo) SetStreamID(data []byte, streamID string) []byte {
 	return data
 }
 
-func getSerializeId(flag byte) int {
-	return int(flag & 0x1f)
-}
+type serviceNameFuncModel func(data []byte) string
+type methodNameFuncModel func(data []byte) string
 
-func getEventPing(flag byte) bool {
-	return (flag & (1 << 5)) != 0
-}
-
-func unSerialize(serializeId int, data []byte) bool {
-	return true
-}
+var serviceNameFunc serviceNameFuncModel
+var methodNameFunc methodNameFuncModel
 
 func (d *rpcDubbo) GetServiceName(data []byte) string {
-	rslt, bodyLen := isValidDubboData(data)
-	if rslt == false || bodyLen <= 0 {
-		return ""
+	if serviceNameFunc != nil {
+		return serviceNameFunc(data)
 	}
-
-	flag := data[DUBBO_FLAG_IDX]
-	if getEventPing(flag) {
-		// heart-beat frame, there is not service-name
-		return ""
-	}
-	serializeId := getSerializeId(flag)
-	unSerialize(serializeId, data[DUBBO_HEADER_LEN:])
 	return ""
 }
 
 func (d *rpcDubbo) GetMethodName(data []byte) string {
+	if methodNameFunc != nil {
+		return methodNameFunc(data)
+	}
 	return ""
 }
