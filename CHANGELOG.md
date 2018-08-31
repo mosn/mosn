@@ -22,6 +22,7 @@
 - Support cluster update/delete, integrated with ISTIO pilot by XDS api
 - Support network filter extensions, allows config multiple filters
 - Support TLS extension, allows customized certificate acquisition
+- Support io callback mechanism based on raw epoll/kqueue, optimize support for a large number of connections through io worker pool
 - Enhance customized codec extension mechanism in protocol layer
 - Add first version of x-protocol extension mechanism
 - Add memory reuse framework, use it in io/protocol/stream/protocol layers
