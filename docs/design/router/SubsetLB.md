@@ -7,7 +7,7 @@
 Subset load balancer 用于在 cluster 内部根据 metadata 做子集群匹配，在路由匹配到 cluster 成功之后，再挑选具体的子集群。
 
 下面是带有 Subset LB 功能的 MOSN 工作流程图：
-![subsetlb 工作流程图](resources/subsetlb.png)
+![subsetlb 工作流程图](../resource/subsetlb.png)
 
 ## 功能实现模块划分
 
