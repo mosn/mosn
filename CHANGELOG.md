@@ -15,7 +15,7 @@
 - Process guard by supervisord & log managed by logrotate
 - More features...
 
-## 0.2.0
+## [0.2.0](docs/features/0.2.0/0-2-0-list.md)
 - Support wrr loadbalancer
 - Support weighted subset router
 - Support listener update/delete, integrated with ISTIO pilot by XDS api

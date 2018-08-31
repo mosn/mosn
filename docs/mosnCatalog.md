@@ -1,14 +1,5 @@
 # MOSN 系列文章
-## MOSN Introduction(考虑全用英文)
-+ MOSN 是什么
-+ MOSN 框架总览
-+ MOSN 工作模式
-+ MOSN 协程模型
-+ MOSN 扩展机制
-+ MOSN 历史版本
-+ MOSN 开发团队
-+ MOSN 系列文章编写团队以及文章认领
-+ 获取相关帮助
+## [MOSN Introduction](./Introduction.md)
 
 ## 开启 MOSN 之旅
 + 编译 MOSN 

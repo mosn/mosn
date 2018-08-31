@@ -22,9 +22,10 @@ import (
 
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"sync"
 	"sync/atomic"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // NewLoadBalancer
@@ -46,7 +47,7 @@ type loadbalancer struct {
 type randomLoadBalancer struct {
 	loadbalancer
 	randInstance *rand.Rand
-	randMutex sync.Mutex
+	randMutex    sync.Mutex
 }
 
 func newRandomLoadbalancer(prioritySet types.PrioritySet) types.LoadBalancer {
@@ -63,7 +64,7 @@ func (l *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types
 	if len(hostSets) == 0 {
 		return nil
 	}
-	
+
 	l.randMutex.Lock()
 	defer l.randMutex.Unlock()
 	idx := l.randInstance.Intn(len(hostSets))
@@ -75,9 +76,9 @@ func (l *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types
 		//	logger.Debugf("Choose host failed, no health host found")
 		return nil
 	}
-	
+
 	hostIdx := l.randInstance.Intn(len(hosts))
-	
+
 	return hosts[hostIdx]
 }
 
@@ -111,7 +112,7 @@ func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) t
 		l.rrIndexPriority = (l.rrIndexPriority + 1) % hostSetsNum
 		l.rrIndex = 0
 		l.lbMutex.Unlock()
-		
+
 		selectedHostSet = hostSets[l.rrIndexPriority].HealthyHosts()
 	} else {
 		selectedHostSet = curHostSet
@@ -124,7 +125,7 @@ func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) t
 	}
 
 	selectedHost := selectedHostSet[l.rrIndex%uint32(len(selectedHostSet))]
-	atomic.AddUint32(&l.rrIndex,1)
+	atomic.AddUint32(&l.rrIndex, 1)
 
 	return selectedHost
 }

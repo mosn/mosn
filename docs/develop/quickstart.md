@@ -103,3 +103,6 @@ make unit-test
 + [以sofa proxy为例](testandsamples/RunMosnSofaProxy.md)
 + [以http proxy为例](testandsamples/RunMosnHttpProxy.md)
 + [以tcp proxy为例](testandsamples/RunMosnTCPProxy.md)
+
+## MOSN 集成 Istio 运行事例
++ [Bookinfo 实例运行](testandsamples/RunMosnWithIstio.md)
