@@ -11,7 +11,7 @@ MOSN是一款采用 Golang 开发的Service Mesh数据平面代理，功能和�
 
 ## 核心能力
 
-+ Istio集成
++ Istio集成I
     + 集成 Istio 0.8 版本 Pilot V2 API，可基于全动态资源配置运行（即将升级到Istio 1.0版本和 V4 API）
 + 核心转发
     + 自包含的网络服务器
@@ -45,6 +45,9 @@ MOSN是一款采用 Golang 开发的Service Mesh数据平面代理，功能和�
 + 扩展能力
     + 支持自定义私有协议
     + 支持在TCP IO层，协议层面加入自定义扩展
+    
+## MOSN 迭代版本特性
+* [Changelog](CHANGELOG.md)
 
 ## 架构设计
 * [参考这里](docs/design/README.md)
@@ -60,7 +63,7 @@ MOSN是一款采用 Golang 开发的Service Mesh数据平面代理，功能和�
 * [Issues](https://github.com/alipay/sofa-mosn/issues)
 
 ## 贡献
-+ [代码贡献](docs/CONTRIBUTING.md) 
++ [代码贡献](docs/develop/CONTRIBUTING.md) 
 + MOSN仍处在初级阶段，有很多能力需要补全，很多bug需要修复，欢迎所有人提交代码。我们欢迎您参与但不限于如下方面：
    + 核心路由功能点补全
    + Outlier detection
