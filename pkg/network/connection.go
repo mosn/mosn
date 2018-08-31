@@ -646,6 +646,8 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	} else if c.eventLoop != nil {
 		// unregister events while connection close
 		c.eventLoop.unregister(c.id)
+		// close copied fd
+		c.file.Close()
 	}
 
 	c.rawConnection.Close()

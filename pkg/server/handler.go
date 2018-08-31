@@ -192,7 +192,10 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 
 		l := network.NewListener(lc, logger)
 
-		al = newActiveListener(l, lc, logger, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan)
+		al, err = newActiveListener(l, lc, logger, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan)
+		if err != nil {
+			return al, err
+		}
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
 	}
@@ -344,7 +347,7 @@ type activeListener struct {
 
 func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger log.Logger, accessLoggers []types.AccessLog,
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
-	handler *connHandler, stopChan chan struct{}) *activeListener {
+	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		disableConnIo:           lc.DisableConnIo,
 		listener:                listener,
@@ -374,11 +377,12 @@ func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger lo
 
 	mgr, err := tls.NewTLSServerContextManager(lc, listener, logger)
 	if err != nil {
-		logger.Fatalf("create tls context manager failed, %v", err)
+		logger.Errorf("create tls context manager failed, %v", err)
+		return nil, err
 	}
 	al.tlsMng = mgr
 
-	return al
+	return al, nil
 }
 
 // ListenerEventListener
