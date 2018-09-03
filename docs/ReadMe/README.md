@@ -47,11 +47,14 @@ follow-up development and build an open source boutique project together.
     + Support self-defined private protocol
     + Scalable Network/IO ，stream layer
 
-## Architecture design
-* [Reference](docs/design/README.md)
+## Feature of Iterative Version
++ [0.2.0](../features/0.2.0/0-2-0-list.md)
+
+## Architecture Design
+* [Reference](../design/README.md)
 
 ## Quic Start
-* [Details](docs/develop/quickstart.md)
+* [Details](../develop/quickstart.md)
    
 ## Docs
 * [More here](http://www.sofastack.tech/sofa-mesh/docs/mosn-README)
@@ -60,7 +63,7 @@ follow-up development and build an open source boutique project together.
 * [Issues](https://github.com/alipay/sofa-mosn/issues)
 
 ## Contribution
-+ [How to contribute the code](docs/CONTRIBUTING.md)
++ [How to contribute the code](../develop/CONTRIBUTING.md)
 + MOSN is still in its infancy with many capabilities need to be completed, and many bugs to be fixed.
   So we welcome everyone to participate in and commit code in following but not limited aspect：
    + Completing core routing function

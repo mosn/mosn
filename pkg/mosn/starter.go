@@ -111,18 +111,22 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
 				lc.DisableConnIo = listenerDisableIO(&lc.FilterChains[0])
 
-				nfcf := getNetworkFilters(&lc.FilterChains[0])
+				var nfcf []types.NetworkFilterChainFactory
+				var sfcf []types.StreamFilterChainFactory
 
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
 				// network filters
-				if lc.HandOffRestoredDestinationConnections {
-					srv.AddListener(lc, nil, nil)
-					continue
+				if !lc.HandOffRestoredDestinationConnections {
+					// network and stream filters
+					nfcf = getNetworkFilters(&lc.FilterChains[0])
+					sfcf = config.GetStreamFilters(lc.StreamFilters)
 				}
 
-				//stream filters
-				sfcf := config.GetStreamFilters(lc.StreamFilters)
-				srv.AddListener(lc, nfcf, sfcf)
+				_, err := srv.AddListener(lc, nfcf, sfcf)
+				if err != nil {
+					log.StartLogger.Fatalf("AddListener error:%s", err.Error())
+				}
+
 			}
 		}
 		m.servers = append(m.servers, srv)

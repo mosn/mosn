@@ -70,6 +70,19 @@ make rpm
 
 完成后可以在 `build/bundles/${version}/rpm` 目录下找到打包好的文件。
 
+## 创建镜像
++ 执行如下命令进行镜像创建：
+
+```bash
+make image
+```
+
+## 获取镜像
+
+```bash
+docker pull sofastack/mosn
+```
+
 ## 运行测试
 在项目根目录下执行如下命令运行单元测试：
 
@@ -90,3 +103,6 @@ make unit-test
 + [以sofa proxy为例](testandsamples/RunMosnSofaProxy.md)
 + [以http proxy为例](testandsamples/RunMosnHttpProxy.md)
 + [以tcp proxy为例](testandsamples/RunMosnTCPProxy.md)
+
+## MOSN 集成 Istio 运行事例
++ [Bookinfo 实例运行](testandsamples/RunMosnWithIstio.md)

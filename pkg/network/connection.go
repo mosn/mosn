@@ -419,9 +419,7 @@ func (c *connection) onRead(bytesRead int64) {
 }
 
 func (c *connection) Write(buffers ...types.IoBuffer) error {
-	c.curWriteBufferData = buffers
-	fs := c.filterManager.OnWrite()
-	c.curWriteBufferData = nil
+	fs := c.filterManager.OnWrite(buffers)
 
 	if fs == types.StopIteration {
 		return nil
@@ -438,8 +436,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -569,7 +567,8 @@ func (c *connection) doWrite() (int64, error) {
 }
 
 func (c *connection) doWriteIo() (bytesSent int64, err error) {
-	bytesSent, err = c.writeBuffers.WriteTo(c.rawConnection)
+	buffers := c.writeBuffers
+	bytesSent, err = buffers.WriteTo(c.rawConnection)
 	if err != nil {
 		return bytesSent, err
 	}
@@ -577,6 +576,12 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		buffer.PutIoBuffer(buf)
 	}
 	c.ioBuffers = c.ioBuffers[:0]
+	c.writeBuffers = c.writeBuffers[:0]
+	if len(buffers) != 0 {
+		for _, buf := range buffers {
+			c.writeBuffers = append(c.writeBuffers, buf)
+		}
+	}
 	return
 }
 
@@ -646,6 +651,8 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	} else if c.eventLoop != nil {
 		// unregister events while connection close
 		c.eventLoop.unregister(c.id)
+		// close copied fd
+		c.file.Close()
 	}
 
 	c.rawConnection.Close()
@@ -867,11 +874,14 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 		} else {
 			event = types.Connected
 
-			// store fd
-			if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
-				cc.file, err = tc.File()
-				if err != nil {
-					return
+			// ensure ioEnabled and UseNetpollMode
+			if ioEnabled && UseNetpollMode {
+				// store fd
+				if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
+					cc.file, err = tc.File()
+					if err != nil {
+						return
+					}
 				}
 			}
 
