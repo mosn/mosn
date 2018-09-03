@@ -152,12 +152,14 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 
 		// update network filter
 		if !equalNetworkFilter {
-			al.streamFiltersFactories = streamFiltersFactories
+			al.networkFiltersFactories = networkFiltersFactories
+			log.DefaultLogger.Debugf("AddOrUpdateListener: use new networkFiltersFactories = %+v", networkFiltersFactories)
 		}
 
 		// update stream filter
 		if !equalStreamFilters {
 			al.streamFiltersFactories = streamFiltersFactories
+			log.DefaultLogger.Debugf("AddOrUpdateListener: use new streamFiltersFactories = %+v", streamFiltersFactories)
 		}
 	} else {
 		// listener doesn't exist, add the listener
