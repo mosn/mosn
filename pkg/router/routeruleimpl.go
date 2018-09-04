@@ -18,7 +18,6 @@
 package router
 
 import (
-	"fmt"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -42,18 +41,12 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleIm
 		routerMatch:        route.Match,
 		routerAction:       route.Route,
 		clusterName:        route.Route.ClusterName,
-		totalClusterWeight: route.Route.TotalClusterWeight,
 		randInstance:       rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
-	if weightedClusters, valid := getWeightedClusterEntryAndVerify(routeRuleImplBase.totalClusterWeight,
-		route.Route.WeightedClusters); valid {
-		routeRuleImplBase.weightedClusters = weightedClusters
-	} else {
-		return routeRuleImplBase, fmt.Errorf("Sum of weights in the weighted_cluster error, should add up to:",
-			routeRuleImplBase.totalClusterWeight)
-	}
 
+	routeRuleImplBase.weightedClusters,routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
+	
 	routeRuleImplBase.policy = &routerPolicy{
 		retryOn:      false,
 		retryTimeout: 0,
@@ -149,7 +142,7 @@ func (rri *RouteRuleImplBase) TraceDecorator() types.TraceDecorator {
 // if weighted cluster is nil, return clusterName directly, else
 // select cluster from weighted-clusters
 func (rri *RouteRuleImplBase) ClusterName() string {
-	if len(rri.weightedClusters) == 0 || rri.totalClusterWeight == 0 {
+	if len(rri.weightedClusters) == 0 {
 		return rri.clusterName
 	}
 

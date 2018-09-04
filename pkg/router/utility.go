@@ -36,14 +36,13 @@ func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 
 // Note
 // "runtimeKey" and "loader" are not used currently
-func getWeightedClusterEntryAndVerify(totalClusterWeight uint32, weightedClusters []v2.WeightedCluster) (map[string]weightedClusterEntry, bool) {
+func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]weightedClusterEntry,uint32) {
 	var weightedClusterEntries = make(map[string]weightedClusterEntry)
 	var totalWeight uint32 = 0
-
 	for _, weightedCluster := range weightedClusters {
-		totalWeight = totalWeight + weightedCluster.Cluster.Weight
 		subsetLBMetaData := weightedCluster.Cluster.MetadataMatch
-
+		totalWeight= totalWeight + weightedCluster.Cluster.Weight
+		
 		weightedClusterEntries[weightedCluster.Cluster.Name] = weightedClusterEntry{
 			clusterName:                  weightedCluster.Cluster.Name,
 			clusterWeight:                weightedCluster.Cluster.Weight,
@@ -51,9 +50,5 @@ func getWeightedClusterEntryAndVerify(totalClusterWeight uint32, weightedCluster
 		}
 	}
 
-	if totalWeight == totalClusterWeight {
-		return weightedClusterEntries, true
-	}
-
-	return nil, false
+	return weightedClusterEntries,totalWeight
 }

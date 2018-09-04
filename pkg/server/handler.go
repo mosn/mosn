@@ -148,6 +148,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 			al.listener.SetePerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 			al.listener.SetListenerTag(lc.ListenerTag)
 			al.listener.SethandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+			log.DefaultLogger.Debugf("AddOrUpdateListener: use new listen config = %+v", lc)
 		}
 
 		// update network filter

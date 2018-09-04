@@ -342,7 +342,6 @@ type RouterMatch struct {
 type RouteAction struct {
 	ClusterName        string
 	ClusterHeader      string
-	TotalClusterWeight uint32 // total weight of weighted clusters, such as 100
 	WeightedClusters   []WeightedCluster
 	MetadataMatch      Metadata
 	Timeout            time.Duration

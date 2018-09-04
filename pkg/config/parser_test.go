@@ -275,7 +275,6 @@ func Test_parseRouters(t *testing.T) {
 	Router := []Router{
 		{
 			Route: RouteAction{
-				TotalClusterWeight: 100,
 				WeightedClusters: []WeightedCluster{
 					{
 						Cluster: ClusterWeight{

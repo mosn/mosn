@@ -318,7 +318,6 @@ func MockRouter(names []string) v2.Router {
 		},
 		Route: v2.RouteAction{
 			ClusterName:        names[0],
-			TotalClusterWeight: 100,
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{

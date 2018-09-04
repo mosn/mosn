@@ -128,7 +128,6 @@ type RuntimeUInt32 struct {
 type RouteAction struct {
 	ClusterName        string            `json:"cluster_name"`
 	ClusterHeader      string            `json:"cluster_header"`
-	TotalClusterWeight uint32            `json:"total_cluster_weight"`
 	WeightedClusters   []WeightedCluster `json:"weighted_clusters"`
 	MetadataMatch      Metadata          `json:"metadata_match"`
 	Timeout            time.Duration     `json:"timeout"`
