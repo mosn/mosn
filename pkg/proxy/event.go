@@ -36,12 +36,12 @@ type streamEvent struct {
 	stream    *downStream
 }
 
-func (s *streamEvent) Source() int {
-	source, err := strconv.ParseInt(s.streamID, 10, 32)
+func (s *streamEvent) Source() uint32 {
+	source, err := strconv.ParseUint(s.streamID, 10, 32)
 	if err != nil {
 		panic("streamID must be numeric, unexpected :" + s.streamID)
 	}
-	return int(source)
+	return uint32(source)
 }
 
 type startEvent struct {

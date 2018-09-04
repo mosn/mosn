@@ -23,7 +23,7 @@ type WorkerFunc func(shard int, jobCh <-chan interface{})
 // ShardJob represents a job with its shard source.
 type ShardJob interface {
 	// Source get the job identifier for sharding.
-	Source() int
+	Source() uint32
 }
 
 // ShardWorkerPool provides a pool for goroutines, the actual goroutines themselves are assumed permanent running
@@ -40,7 +40,7 @@ type ShardWorkerPool interface {
 	Init()
 
 	// Shard get the real shard of giving source, this may helps in case like global object accessing.
-	Shard(source int) int
+	Shard(source uint32) uint32
 
 	// Offer puts the job into the corresponding shard and execute it.
 	Offer(job ShardJob)
