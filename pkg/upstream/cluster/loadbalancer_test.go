@@ -317,7 +317,7 @@ func MockRouter(names []string) v2.Router {
 			},
 		},
 		Route: v2.RouteAction{
-			ClusterName:        names[0],
+			ClusterName: names[0],
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{

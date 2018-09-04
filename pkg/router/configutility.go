@@ -52,6 +52,8 @@ func (cu *configUtility) MatchHeaders(requestHeaders map[string]string, configHe
 					return false
 				}
 			}
+		} else {
+			return false
 		}
 	}
 

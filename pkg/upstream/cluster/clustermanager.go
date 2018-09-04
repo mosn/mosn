@@ -23,11 +23,12 @@ import (
 	"net"
 	"sync"
 
+	"reflect"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"reflect"
 )
 
 var instanceMutex = sync.Mutex{}
@@ -132,11 +133,11 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 }
 
 func (cm *clusterManager) updateCluster(clusterConf v2.Cluster, pcluster *primaryCluster, addedViaAPI bool) bool {
-	if reflect.DeepEqual(clusterConf,pcluster.configUsed){
+	if reflect.DeepEqual(clusterConf, pcluster.configUsed) {
 		log.DefaultLogger.Debugf("update cluster but get duplicate configure")
 		return true
 	}
-	
+
 	if concretedCluster, ok := pcluster.cluster.(*simpleInMemCluster); ok {
 		hosts := concretedCluster.hosts
 		cluster := NewCluster(clusterConf, cm.sourceAddr, addedViaAPI)
@@ -168,7 +169,7 @@ func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool
 	cm.primaryClusters.Store(clusterConfig.Name, &primaryCluster{
 		cluster:     cluster,
 		addedViaAPI: addedViaAPI,
-		configUsed:&clusterConfig,
+		configUsed:  &clusterConfig,
 	})
 
 	return true

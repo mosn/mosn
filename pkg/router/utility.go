@@ -18,7 +18,10 @@
 package router
 
 import (
+	"regexp"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -36,13 +39,13 @@ func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 
 // Note
 // "runtimeKey" and "loader" are not used currently
-func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]weightedClusterEntry,uint32) {
+func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]weightedClusterEntry, uint32) {
 	var weightedClusterEntries = make(map[string]weightedClusterEntry)
 	var totalWeight uint32 = 0
 	for _, weightedCluster := range weightedClusters {
 		subsetLBMetaData := weightedCluster.Cluster.MetadataMatch
-		totalWeight= totalWeight + weightedCluster.Cluster.Weight
-		
+		totalWeight = totalWeight + weightedCluster.Cluster.Weight
+
 		weightedClusterEntries[weightedCluster.Cluster.Name] = weightedClusterEntry{
 			clusterName:                  weightedCluster.Cluster.Name,
 			clusterWeight:                weightedCluster.Cluster.Weight,
@@ -50,5 +53,33 @@ func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]
 		}
 	}
 
-	return weightedClusterEntries,totalWeight
+	return weightedClusterEntries, totalWeight
+}
+
+func getRouterHeades(heades []v2.HeaderMatcher) []*types.HeaderData {
+	var headerDatas []*types.HeaderData
+
+	for _, header := range heades {
+		headerData := &types.HeaderData{
+			Name: &lowerCaseString{
+				header.Name,
+			},
+			Value:   header.Value,
+			IsRegex: header.Regex,
+		}
+
+		if header.Regex {
+			if pattern, err := regexp.Compile(header.Name); err != nil {
+				headerData.RegexPattern = pattern
+			} else {
+				log.DefaultLogger.Errorf("getRouterHeades compile error")
+				continue
+			}
+		}
+
+		headerDatas = append(headerDatas, headerData)
+
+	}
+
+	return headerDatas
 }

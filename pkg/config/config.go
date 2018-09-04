@@ -126,12 +126,12 @@ type RuntimeUInt32 struct {
 // RouteAction
 // Route request to some upstream clusters.
 type RouteAction struct {
-	ClusterName        string            `json:"cluster_name"`
-	ClusterHeader      string            `json:"cluster_header"`
-	WeightedClusters   []WeightedCluster `json:"weighted_clusters"`
-	MetadataMatch      Metadata          `json:"metadata_match"`
-	Timeout            time.Duration     `json:"timeout"`
-	RetryPolicy        *RetryPolicy      `json:"retry_policy"`
+	ClusterName      string            `json:"cluster_name"`
+	ClusterHeader    string            `json:"cluster_header"`
+	WeightedClusters []WeightedCluster `json:"weighted_clusters"`
+	MetadataMatch    Metadata          `json:"metadata_match"`
+	Timeout          time.Duration     `json:"timeout"`
+	RetryPolicy      *RetryPolicy      `json:"retry_policy"`
 }
 
 // WeightedCluster.

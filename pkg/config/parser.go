@@ -246,12 +246,12 @@ func parseRouters(Router []Router) []v2.Router {
 		}
 
 		routeAction := v2.RouteAction{
-			ClusterName:        router.Route.ClusterName,
-			ClusterHeader:      router.Route.ClusterHeader,
-			WeightedClusters:   parseWeightClusters(router.Route.WeightedClusters),
-			MetadataMatch:      parseRouterMetadata(router.Route.MetadataMatch),
-			Timeout:            router.Route.Timeout,
-			RetryPolicy:        parseRetryPolicy(router.Route),
+			ClusterName:      router.Route.ClusterName,
+			ClusterHeader:    router.Route.ClusterHeader,
+			WeightedClusters: parseWeightClusters(router.Route.WeightedClusters),
+			MetadataMatch:    parseRouterMetadata(router.Route.MetadataMatch),
+			Timeout:          router.Route.Timeout,
+			RetryPolicy:      parseRetryPolicy(router.Route),
 		}
 
 		result = append(result, v2.Router{

@@ -340,12 +340,12 @@ type RouterMatch struct {
 // RouteAction
 // Route request to some upstream clusters.
 type RouteAction struct {
-	ClusterName        string
-	ClusterHeader      string
-	WeightedClusters   []WeightedCluster
-	MetadataMatch      Metadata
-	Timeout            time.Duration
-	RetryPolicy        *RetryPolicy
+	ClusterName      string
+	ClusterHeader    string
+	WeightedClusters []WeightedCluster
+	MetadataMatch    Metadata
+	Timeout          time.Duration
+	RetryPolicy      *RetryPolicy
 }
 
 // WeightedCluster.
