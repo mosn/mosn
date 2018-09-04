@@ -78,8 +78,8 @@ func (pool *shardWorkerPool) Init() {
 	}
 }
 
-func (pool *shardWorkerPool) Shard(source int) int {
-	return source % pool.numShards
+func (pool *shardWorkerPool) Shard(source uint32) uint32 {
+	return source % uint32(pool.numShards)
 }
 
 func (pool *shardWorkerPool) Offer(job ShardJob) {
