@@ -39,7 +39,7 @@ MOSN 在架构设计上，为了实现可扩展，易维护等特点，将整体
 如下图所示：MOSN 对数据流做代理处理的时候，在入方向数据依次经过网络 IO 层(NET/IO)，
 二进制协议处理层(Protocol)，协议流程处理层(Streaming)，转发路由处理层(Proxy)；出向与入向过程基本相反，
 
-<img src="design/resource/MosnDataFlow.png" width = "300" height = "300" align="middle" />
+![MOSN 数据流图](design/resource/MOSNNetFlow2.png)
 
 下面我们具体介绍每一层的功能和对应的特性：
 
@@ -117,7 +117,7 @@ poll/kqueue wait协程接受到可读事件，触发回调，从协程池中挑�
 + 此模型适用于连接数较多，可读的连接数有限，例如：mosn 作为 api gateway 的场景
 
 ## MOSN 进程管理
-MOSN 除了经典的传递 listener fd 加协议层等待方式以为，还支持对存量链接进行协议无关的迁移当前来实现平滑升级，平滑 reload 等功能
+MOSN 除了经典的传递 listener fd 加协议层等待方式意外，还支持对存量链接进行协议无关的迁移来实现平滑升级，平滑 reload 等功能
 ### MOSN 连接迁移简介
 连接迁移的步骤如下图所示
 ![MOSN连接迁移](design/resource/MOSNMigration.png)
