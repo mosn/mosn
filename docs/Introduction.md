@@ -39,7 +39,7 @@ MOSN 在架构设计上，为了实现可扩展，易维护等特点，将整体
 如下图所示：MOSN 对数据流做代理处理的时候，在入方向数据依次经过网络 IO 层(NET/IO)，
 二进制协议处理层(Protocol)，协议流程处理层(Streaming)，转发路由处理层(Proxy)；出向与入向过程基本相反，
 
-<div align=center><img src="design/resource/MOSNNetFlow2.png" width = "300" height = "300" /></div>
+<div align=center><img src="design/resource/MOSNNetFlow2.png" width = "300" height = "500" /></div>
 
 下面我们具体介绍每一层的功能和对应的特性：
 
