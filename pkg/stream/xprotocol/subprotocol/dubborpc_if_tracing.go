@@ -48,7 +48,7 @@ type dubboAttr struct {
 func unSerialize(serializeId int, data []byte) *dubboAttr {
 	if serializeId != 2 {
 		// not hessian, do not support
-		fmt.Printf("unSerialize: id=%d is not hessian", serializeId)
+		fmt.Printf("unSerialize: id=%d is not hessian\n", serializeId)
 		return nil
 	}
 	attr := &dubboAttr{}
@@ -62,46 +62,46 @@ func unSerialize(serializeId int, data []byte) *dubboAttr {
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode dubbo_version fail, err=%v", err)
+		fmt.Printf("unSerialize: Decode dubbo_version fail, err=%v\n", err)
 		return nil
 	}
 	str, ok = field.(string)
 	if !ok {
-		fmt.Printf("unSerialize: Decode dubbo_version fail, illegal type")
+		fmt.Printf("unSerialize: Decode dubbo_version fail, illegal type\n")
 		return nil
 	}
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode path fail, err=%v", err)
+		fmt.Printf("unSerialize: Decode path fail, err=%v\n", err)
 		return nil
 	}
 	str, ok = field.(string)
 	if !ok {
-		fmt.Printf("unSerialize: Decode path fail, illegal type")
+		fmt.Printf("unSerialize: Decode path fail, illegal type\n")
 		return nil
 	}
 	attr.serviceName = str
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode version fail, err=%v", err)
+		fmt.Printf("unSerialize: Decode version fail, err=%v\n", err)
 		return nil
 	}
 	str, ok = field.(string)
 	if !ok {
-		fmt.Printf("unSerialize: Decode version fail, illegal type")
+		fmt.Printf("unSerialize: Decode version fail, illegal type\n")
 		return nil
 	}
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode method fail, err=%v", err)
+		fmt.Printf("unSerialize: Decode method fail, err=%v\n", err)
 		return nil
 	}
 	str, ok = field.(string)
 	if !ok {
-		fmt.Printf("unSerialize: Decode method fail, illegal type")
+		fmt.Printf("unSerialize: Decode method fail, illegal type\n")
 		return nil
 	}
 	attr.methodName = str
