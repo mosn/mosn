@@ -28,7 +28,7 @@ import (
 )
 
 func init() {
-	Register("X-dubbo", &pluginDubboFactory{})
+	Register("dubbo", &pluginDubboFactory{})
 }
 
 type pluginDubboFactory struct{}
