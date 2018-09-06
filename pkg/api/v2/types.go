@@ -112,10 +112,11 @@ const (
 
 // Host with MetaData
 type Host struct {
-	Address  string
-	Hostname string
-	Weight   uint32
-	MetaData Metadata
+	Address    string
+	Hostname   string
+	Weight     uint32
+	MetaData   Metadata
+	TLSDisable bool
 }
 
 // ListenerConfig with FilterChains

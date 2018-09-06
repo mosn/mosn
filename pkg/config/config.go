@@ -229,10 +229,11 @@ type ServerConfig struct {
 
 // HostConfig
 type HostConfig struct {
-	Address  string   `json:"address,omitempty"`
-	Hostname string   `json:"hostname,omitempty"`
-	Weight   uint32   `json:"weight,omitempty"`
-	MetaData Metadata `json:"metadata"`
+	Address    string   `json:"address,omitempty"`
+	Hostname   string   `json:"hostname,omitempty"`
+	Weight     uint32   `json:"weight,omitempty"`
+	MetaData   Metadata `json:"metadata"`
+	TLSDisable bool     `json:"tls_disable"`
 }
 
 // ClusterHealthCheckConfig for health checking

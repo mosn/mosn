@@ -818,6 +818,7 @@ func parseHostConfig(c *ClusterConfig) []v2.Host {
 			host.Hostname,
 			getHostWeight(host.Weight),
 			parseRouterMetadata(host.MetaData),
+			host.TLSDisable,
 		})
 	}
 
