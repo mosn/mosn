@@ -22,8 +22,8 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var ConfigUtilityInst = &configUtility{}
@@ -38,13 +38,12 @@ func (cu *configUtility) MatchHeaders(requestHeaders map[string]string, configHe
 
 	// step 1: match name
 	// step 2: match value, if regex true, match pattern
-	log.DefaultLogger.Debugf("MatchHeaders, request headers are:%+v",requestHeaders)
-	
-	
+	log.DefaultLogger.Debugf("MatchHeaders, request headers are:%+v", requestHeaders)
+
 	for i, cfgHeaderData := range configHeaders {
 		cfgName := cfgHeaderData.Name.Get()
 		cfgValue := cfgHeaderData.Value
-		log.DefaultLogger.Debugf("MatchHeaders, router headers %d name : %s, value %s:  ",i,cfgName,cfgValue)
+		log.DefaultLogger.Debugf("MatchHeaders, router headers %d name : %s, value %s:  ", i, cfgName, cfgValue)
 
 		if value, ok := requestHeaders[cfgName]; ok {
 
