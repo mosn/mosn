@@ -9,14 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
-	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol/subprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
 	"golang.org/x/net/http2"
@@ -70,6 +66,25 @@ func (c *testCase) Start(tls bool) {
 	c.clientMeshAddr = clientMeshAddr
 	serverMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, tls)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.stop
+		c.appServer.Close()
+		mesh.Close()
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+// XProtocol CASE
+// should use subprotocol
+func (c *testCase) StartX(subprotocol string) {
+	c.appServer.GoServe()
+	appAddr := c.appServer.Addr()
+	clientMeshAddr := util.CurrentMeshAddr()
+	c.clientMeshAddr = clientMeshAddr
+	serverMeshAddr := util.CurrentMeshAddr()
+	cfg := util.CreateXProtocolMesh(clientMeshAddr, serverMeshAddr, subprotocol, []string{appAddr})
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
@@ -147,46 +162,19 @@ func (c *testCase) RunCase(n int) {
 			}
 			return nil
 		}
-	// TODO : add xprotocol test
 	case protocol.Xprotocol:
-		stopChan := make(chan struct{})
-		remoteAddr, _ := net.ResolveTCPAddr("tcp", c.clientMeshAddr)
-		cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
-		cc.SetReadDisable(true)
-		if err := cc.Connect(true); err != nil {
-			c.C <- fmt.Errorf("xprotocol connect fail %v\n", err)
+		server, ok := c.appServer.(*util.XProtocolServer)
+		if !ok {
+			c.C <- fmt.Errorf("need a xprotocol server")
+			return
 		}
-		call = func() error {
-			testData := []byte{14, 1, 0, 8, 0, 0, 3, 0, 0, 0, 0, 0, 0, 112, 32, 0}
-			exampleCodec := subprotocol.NewRPCExample()
-			reqStreamID := exampleCodec.GetStreamID(testData)
-			//fmt.Printf("client send request,stream id = %v\n", reqStreamID)
-			cc.Write(buffer.NewIoBufferBytes(testData))
-			for {
-				now := time.Now()
-				cc.RawConn().SetReadDeadline(now.Add(30 * time.Second))
-				buf := make([]byte, 10*1024)
-				bytesRead, err := cc.RawConn().Read(buf)
-				//fmt.Printf("client try to read ,err = %v \n", err)
-				if err != nil {
-					if err, ok := err.(net.Error); ok && err.Timeout() {
-						continue
-					} else {
-						//fmt.Errorf("client read error = %v", err)
-						return err
-					}
-				}
-				if bytesRead > 0 {
-					//fmt.Printf("server response %v\n", string(buf[:bytesRead]))
-					resStreamID := exampleCodec.GetStreamID(buf[:bytesRead])
-					if resStreamID != reqStreamID {
-						return fmt.Errorf("streamID not match")
-					}
-					break
-				}
-			}
-			return nil
+		client := server.Client
+		if err := client.Connect(c.clientMeshAddr); err != nil {
+			c.C <- err
+			return
 		}
+		defer client.Close()
+		call = client.RequestAndWaitReponse
 	default:
 		c.C <- fmt.Errorf("unsupported protocol: %v", c.AppProtocol)
 		return

@@ -145,9 +145,15 @@ func convertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.H
 		}
 		host := v2.Host{
 			Address:  address,
-			Weight:   xdsHost.GetLoadBalancingWeight().GetValue(),
 			MetaData: convertMeta(xdsHost.Metadata),
 		}
+
+		if weight := xdsHost.GetLoadBalancingWeight().GetValue(); weight < MinHostWeight {
+			host.Weight = MinHostWeight
+		} else if weight > MaxHostWeight {
+			host.Weight = MaxHostWeight
+		}
+
 		hosts = append(hosts, host)
 	}
 	return hosts

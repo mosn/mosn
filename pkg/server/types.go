@@ -43,11 +43,12 @@ type Config struct {
 	LogLevel        log.Level
 	GracefulTimeout time.Duration
 	Processor       int
+	UseNetpollMode  bool
 }
 
 type Server interface {
 	AddListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
-		streamFiltersFactories []types.StreamFilterChainFactory) types.ListenerEventListener
+		streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error)
 
 	Start()
 

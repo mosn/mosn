@@ -547,9 +547,8 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 		return
 	}
 
-	s.responseSender.AppendData(s.context, data, endStream)
-
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
+	s.responseSender.AppendData(s.context, data, endStream)
 
 	if endStream {
 		s.endStream()

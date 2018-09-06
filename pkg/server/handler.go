@@ -34,6 +34,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/tls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -191,7 +192,10 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 
 		l := network.NewListener(lc, logger)
 
-		al = newActiveListener(l, logger, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan, lc.DisableConnIo)
+		al, err = newActiveListener(l, lc, logger, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan)
+		if err != nil {
+			return al, err
+		}
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
 	}
@@ -338,13 +342,14 @@ type activeListener struct {
 	logger                  log.Logger
 	accessLogs              []types.AccessLog
 	updatedLabel            bool
+	tlsMng                  types.TLSContextManager
 }
 
-func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers []types.AccessLog,
+func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger log.Logger, accessLoggers []types.AccessLog,
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
-	handler *connHandler, stopChan chan struct{}, disableConnIo bool) *activeListener {
+	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
-		disableConnIo:           disableConnIo,
+		disableConnIo:           lc.DisableConnIo,
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
@@ -370,11 +375,33 @@ func newActiveListener(listener types.Listener, logger log.Logger, accessLoggers
 	al.statsNamespace = types.ListenerStatsPrefix + strconv.Itoa(listenPort)
 	al.stats = newListenerStats(al.statsNamespace)
 
-	return al
+	mgr, err := tls.NewTLSServerContextManager(lc, listener, logger)
+	if err != nil {
+		logger.Errorf("create tls context manager failed, %v", err)
+		return nil, err
+	}
+	al.tlsMng = mgr
+
+	return al, nil
 }
 
 // ListenerEventListener
 func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
+	var rawf *os.File
+
+	// only store fd and tls conn handshake in final working listener
+	if !handOffRestoredDestinationConnections {
+		if !al.disableConnIo && network.UseNetpollMode {
+			// store fd for further usage
+			if tc, ok := rawc.(*net.TCPConn); ok {
+				rawf, _ = tc.File()
+			}
+		}
+		if al.tlsMng != nil && al.tlsMng.Enabled() {
+			rawc = al.tlsMng.Conn(rawc)
+		}
+	}
+
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
@@ -393,6 +420,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
 	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	if rawf != nil {
+		ctx = context.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+	}
 	if ch != nil {
 		ctx = context.WithValue(ctx, types.ContextKeyAcceptChan, ch)
 		ctx = context.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
@@ -400,6 +430,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	if oriRemoteAddr != nil {
 		ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
+
 	arc.ContinueFilterChain(ctx, true)
 }
 
@@ -411,16 +442,11 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	}
 	filterManager.InitializeReadFilters()
 
-	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
-	if !al.disableConnIo {
-		// start conn loops first
-		conn.Start(ctx)
-	}
-
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
 		conn.Close(types.NoFlush, types.LocalClose)
+		return
 	} else {
 		ac := newActiveConnection(al, conn)
 
@@ -434,6 +460,12 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		atomic.AddInt64(&al.handler.numConnections, 1)
 
 		al.logger.Debugf("new downstream connection %d accepted", conn.ID())
+	}
+
+	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
+	if !al.disableConnIo {
+		// start conn loops first
+		conn.Start(ctx)
 	}
 }
 
@@ -466,6 +498,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 
 type activeRawConn struct {
 	rawc                                  net.Conn
+	rawf                                  *os.File
 	originalDstIP                         string
 	originalDstPort                       int
 	oriRemoteAddr                         net.Addr

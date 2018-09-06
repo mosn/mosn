@@ -60,9 +60,9 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 		newHeaderRouter(upstreamCluster, ".*"),
 	}
 	// client mesh -> cluster need tls
-	var meshClusterConfig config.ClusterConfig
+	meshClusterConfig := newBasicCluster(downstreamCluster, []string{serveraddr})
 	//  server mesh listener need tls
-	var meshServerChain config.FilterChain
+	meshServerChain := newFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters)
 	if tls {
 		tlsConf := config.TLSConfig{
 			Status:       true,
@@ -73,11 +73,8 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 			VerifyClient: true,
 			ServerName:   "127.0.0.1",
 		}
-		meshClusterConfig = newBasicTLSCluster(downstreamCluster, []string{serveraddr}, tlsConf)
-		meshServerChain = newTLSFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters, tlsConf)
-	} else {
-		meshClusterConfig = newBasicCluster(downstreamCluster, []string{serveraddr})
-		meshServerChain = newFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters)
+		meshClusterConfig.TLS = tlsConf
+		meshServerChain.TLS = tlsConf
 	}
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []config.ClusterConfig{
@@ -91,6 +88,36 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 		clientListener, serverListener,
 	}, cmconfig)
 
+}
+
+// XProtocol must be mesh to mesh
+// currently, support Path/Prefix is "/" only
+func CreateXProtocolMesh(clientaddr string, serveraddr string, subprotocol string, hosts []string) *config.MOSNConfig {
+	downstreamCluster := "downstream"
+	upstreamCluster := "upstream"
+	downstreamRouters := []config.Router{
+		newPrefixRouter(downstreamCluster, "/"),
+	}
+	clientChains := []config.FilterChain{
+		newXProtocolFilterChain("downstreamFilter", subprotocol, downstreamRouters),
+	}
+	clientListener := newListener("downstreamListener", clientaddr, clientChains)
+	upstreamRouters := []config.Router{
+		newPrefixRouter(upstreamCluster, "/"),
+	}
+	meshClusterConfig := newBasicCluster(downstreamCluster, []string{serveraddr})
+	meshServerChain := newXProtocolFilterChain("upstreamFilter", subprotocol, upstreamRouters)
+	cmconfig := config.ClusterManagerConfig{
+		Clusters: []config.ClusterConfig{
+			meshClusterConfig,
+			newBasicCluster(upstreamCluster, hosts),
+		},
+	}
+	serverChains := []config.FilterChain{meshServerChain}
+	serverListener := newListener("upstreamListener", serveraddr, serverChains)
+	return newMOSNConfig([]config.ListenerConfig{
+		clientListener, serverListener,
+	}, cmconfig)
 }
 
 // TLS Extension
@@ -120,8 +147,10 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 		VerifyClient: true,
 		ExtendVerify: ext.VerifyConfig,
 	}
-	meshClusterConfig := newBasicTLSCluster(downstreamCluster, []string{serveraddr}, tlsConf)
-	meshServerChain := newTLSFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters, tlsConf)
+	meshClusterConfig := newBasicCluster(downstreamCluster, []string{serveraddr})
+	meshClusterConfig.TLS = tlsConf
+	meshServerChain := newFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters)
+	meshServerChain.TLS = tlsConf
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []config.ClusterConfig{
 			meshClusterConfig,

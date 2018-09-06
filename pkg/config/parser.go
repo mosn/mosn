@@ -127,6 +127,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 		LogLevel:        parseLogLevel(c.DefaultLogLevel),
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,
+		UseNetpollMode:  c.UseNetpollMode,
 	}
 
 	return sc

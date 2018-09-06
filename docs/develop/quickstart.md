@@ -1,7 +1,7 @@
 # 快速开始
 
-本文用于帮助初次接触 MOSN 项目的开发人员，快速搭建开发环境，完成构建，测试和打包。
-MOSN 基于 Golang 1.9.2 研发，使用dep进行依赖管理
+本文用于帮助初次接触 MOSN 项目的开发人员，快速搭建开发环境，完成构建，测试，打包和事例代码的运行。
+注：MOSN 基于 Golang 1.9.2 研发，使用dep进行依赖管理
 
 ## 准备运行环境
 
@@ -70,28 +70,39 @@ make rpm
 
 完成后可以在 `build/bundles/${version}/rpm` 目录下找到打包好的文件。
 
+## 创建镜像
++ 执行如下命令进行镜像创建：
+
+```bash
+make image
+```
+
+## 获取镜像
+
+```bash
+docker pull sofastack/mosn
+```
 
 ## 运行测试
-
 在项目根目录下执行如下命令运行单元测试：
 
 ```bash
 make unit-test
 ```
 
-单独运行 MOSN 作为 proxy 转发的示例:
-
-+ 参考 `sofa-mosn/test/` 下的[示例](testandsamples/RunMosnTests.md)
-
 ## 从配置文件[启动 MOSN](../reference/HowtoStartMosnFromConfig.md)
 
 ```bash
- mosn start -c '$CONFIG_FILE'
+ ./mosn start -c '$CONFIG_FILE'
 ```
 
-## 如何快速启动一个 mosn 的转发程序
+## 开启 mosn 转发事例程序
 
 参考 `examples` 目录下的示例工程
 
 + [以sofa proxy为例](testandsamples/RunMosnSofaProxy.md)
 + [以http proxy为例](testandsamples/RunMosnHttpProxy.md)
++ [以tcp proxy为例](testandsamples/RunMosnTCPProxy.md)
+
+## MOSN 集成 Istio 运行事例
++ [Bookinfo 实例运行](testandsamples/RunMosnWithIstio.md)

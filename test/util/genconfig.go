@@ -2,6 +2,7 @@ package util
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -12,16 +13,8 @@ var (
 )
 
 // Create Mesh Config
-func newFilterChain(name string, downstream, upstream types.Protocol, routers []config.Router) config.FilterChain {
-	// add extend config for xprotocol ,this is no harmful for other protocol
-	extendConfig := &config.XProtocolExtendConfig{
-		SubProtocol: "rpc-example",
-	}
-	exConfig := make(map[string]interface{})
-	data, _ := json.Marshal(extendConfig)
-	json.Unmarshal(data, &exConfig)
-
-	proxy := &config.Proxy{
+func newProxyFilter(name string, downstream, upstream types.Protocol, routers []config.Router) *config.Proxy {
+	return &config.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
 		VirtualHosts: []*config.VirtualHost{
@@ -31,8 +24,9 @@ func newFilterChain(name string, downstream, upstream types.Protocol, routers []
 				Routers: routers,
 			},
 		},
-		ExtendConfig: exConfig,
 	}
+}
+func makeFilterChain(proxy *config.Proxy) config.FilterChain {
 	chains := make(map[string]interface{})
 	b, _ := json.Marshal(proxy)
 	json.Unmarshal(b, &chains)
@@ -42,10 +36,22 @@ func newFilterChain(name string, downstream, upstream types.Protocol, routers []
 		},
 	}
 }
-func newTLSFilterChain(name string, downstream, upstream types.Protocol, routers []config.Router, tls config.TLSConfig) config.FilterChain {
-	chain := newFilterChain(name, downstream, upstream, routers)
-	chain.TLS = tls
-	return chain
+
+func newFilterChain(name string, downstream, upstream types.Protocol, routers []config.Router) config.FilterChain {
+	proxy := newProxyFilter(name, downstream, upstream, routers)
+	return makeFilterChain(proxy)
+}
+
+func newXProtocolFilterChain(name string, subproto string, routers []config.Router) config.FilterChain {
+	proxy := newProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol, routers)
+	extendConfig := &config.XProtocolExtendConfig{
+		SubProtocol: subproto,
+	}
+	extendMap := make(map[string]interface{})
+	data, _ := json.Marshal(extendConfig)
+	json.Unmarshal(data, &extendMap)
+	proxy.ExtendConfig = extendMap
+	return makeFilterChain(proxy)
 }
 
 func newBasicCluster(name string, hosts []string) config.ClusterConfig {
@@ -81,12 +87,6 @@ func newWeightedCluster(name string, hosts []*WeightHost) config.ClusterConfig {
 		ConnBufferLimitBytes: 16 * 1026,
 		Hosts:                vhosts,
 	}
-}
-
-func newBasicTLSCluster(name string, hosts []string, tls config.TLSConfig) config.ClusterConfig {
-	cfg := newBasicCluster(name, hosts)
-	cfg.TLS = tls
-	return cfg
 }
 
 func newListener(name, addr string, chains []config.FilterChain) config.ListenerConfig {

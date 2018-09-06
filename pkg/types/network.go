@@ -440,7 +440,7 @@ type FilterManager interface {
 	OnRead()
 
 	// OnWrite is called before data write
-	OnWrite() FilterStatus
+	OnWrite(buffer []IoBuffer) FilterStatus
 }
 
 type FilterChainFactory interface {

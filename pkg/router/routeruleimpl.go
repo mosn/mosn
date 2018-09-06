@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -117,6 +119,7 @@ type RouteRuleImplBase struct {
 	policy             *routerPolicy
 	virtualClusters    *VirtualClusterEntry
 	randInstance       *rand.Rand
+	randMutex          sync.Mutex
 }
 
 // types.RouterInfo
@@ -151,7 +154,10 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 	}
 
 	// use randInstance to avoid global lock contention
+	rri.randMutex.Lock()
 	selectedValue := rri.randInstance.Intn(int(rri.totalClusterWeight))
+	rri.randMutex.Unlock()
+
 	for _, weightCluster := range rri.weightedClusters {
 
 		selectedValue = selectedValue - int(weightCluster.clusterWeight)
