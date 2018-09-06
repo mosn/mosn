@@ -217,6 +217,7 @@ type ServerConfig struct {
 	DefaultLogPath  string `json:"default_log_path,omitempty"`
 	DefaultLogLevel string `json:"default_log_level,omitempty"`
 
+	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
 	GracefulTimeout DurationConfig `json:"graceful_timeout"`
 

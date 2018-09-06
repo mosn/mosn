@@ -134,10 +134,17 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 		p.stats.DownstreamConnectionActive().Dec(1)
 		var urEleNext *list.Element
 
+		p.asMux.RLock()
+		downStreams := make([]*downStream, 0, p.activeSteams.Len())
 		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEleNext {
 			urEleNext = urEle.Next()
 
 			ds := urEle.Value.(*downStream)
+			downStreams = append(downStreams, ds)
+		}
+		p.asMux.RUnlock()
+
+		for _, ds := range downStreams {
 			ds.OnResetStream(types.StreamConnectionTermination)
 		}
 	}

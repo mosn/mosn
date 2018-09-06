@@ -25,7 +25,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/tls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -40,7 +39,6 @@ type listener struct {
 	cb                                    types.ListenerEventListener
 	rawl                                  *net.TCPListener
 	logger                                log.Logger
-	tlsMng                                types.TLSContextManager
 	config                                *v2.ListenerConfig
 }
 
@@ -61,12 +59,6 @@ func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 		//inherit old process's listener
 		l.rawl = lc.InheritListener
 	}
-	mgr, err := tls.NewTLSServerContextManager(lc, l, logger)
-	if err != nil {
-		logger.Fatalf("create tls context manager failed, %v", err)
-	}
-	l.tlsMng = mgr
-
 	return l
 }
 
@@ -199,10 +191,6 @@ func (l *listener) accept(lctx context.Context) error {
 				debug.PrintStack()
 			}
 		}()
-
-		if l.tlsMng != nil && l.tlsMng.Enabled() {
-			rawc = l.tlsMng.Conn(rawc)
-		}
 
 		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil, nil, nil)
 	}()

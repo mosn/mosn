@@ -28,6 +28,10 @@ const errSlot = -1
 
 var byteBufferPools [maxPoolSize]*byteBufferPool
 
+func init() {
+	initByterBufferPool()
+}
+
 // byteBufferPool is []byte pools
 type byteBufferPool struct {
 	minShift int
@@ -115,15 +119,16 @@ func (p *byteBufferPool) give(buf *[]byte) {
 	p.pool[slot].pool.Put(buf)
 }
 
+func initByterBufferPool() {
+	for i := 0; i < maxPoolSize; i++ {
+		byteBufferPools[i] = newByteBufferPool()
+	}
+}
+
 // getByteBufferPool returns byteBufferPool from byteBufferPools
 func getByteBufferPool() *byteBufferPool {
 	i := bufferPoolIndex()
-	p := byteBufferPools[i]
-	if p == nil {
-		byteBufferPools[i] = newByteBufferPool()
-		return byteBufferPools[i]
-	}
-	return p
+	return byteBufferPools[i]
 }
 
 type ByteBufferCtx struct{}

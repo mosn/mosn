@@ -457,6 +457,7 @@ func transferNewConn(conn net.Conn, buf []byte, handler types.ConnectionHandler,
 		return nil
 	}
 	ch := make(chan types.Connection)
+
 	// new connection
 	go listener.GetListenerCallbacks().OnAccept(conn, false, nil, ch, buf)
 	select {
