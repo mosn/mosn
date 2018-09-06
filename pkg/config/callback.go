@@ -66,8 +66,8 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 			log.DefaultLogger.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
 			return
 		} else {
-			log.DefaultLogger.Tracef("listenerAdapter.AddOrUpdateListener called, mosnListener:%+v", listeners, " networkFilters:%+v", networkFilters,
-				" streamFilters: %+v", streamFilters)
+			log.DefaultLogger.Debugf("listenerAdapter.AddOrUpdateListener called, with mosn Listener:%+v, networkFilters:%+v, streamFilters: %+v",
+				listeners, networkFilters,streamFilters)
 
 			if err := listenerAdapter.AddOrUpdateListener("", mosnListener, networkFilters, streamFilters); err == nil {
 				log.DefaultLogger.Debugf("xds AddOrUpdateListener success,listener address = %s", mosnListener.Addr.String())
