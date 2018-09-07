@@ -594,9 +594,12 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 
 	for _, il := range inheritListeners {
 		inheritIP := net.ParseIP(il.Addr.String())
-
+		ilAddr, err := net.ResolveTCPAddr("tcp", il.Addr.String())
+		if err != nil {
+			log.StartLogger.Fatalln("[inheritListener] not valid:", il.Addr.String())
+		}
 		// use ip.Equal to solve ipv4 and ipv6 case
-		if inheritIP.Equal(currentIP) {
+		if inheritIP.Equal(currentIP) && addr.Port == ilAddr.Port {
 			log.StartLogger.Infof("inherit listener addr: %s", c.Address)
 			old = il.InheritListener
 			il.Remain = true
