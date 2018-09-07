@@ -30,8 +30,8 @@ type TestJob struct {
 	i uint32
 }
 
-func (t *TestJob) Source() int {
-	return int(t.i)
+func (t *TestJob) Source() uint32 {
+	return t.i
 }
 
 // TestJobOrder test worker pool's event dispatch functionality, which should ensure the FIFO order

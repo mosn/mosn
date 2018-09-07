@@ -142,8 +142,12 @@ func newHostStats(config v2.Host) types.HostStats {
 
 func (h *host) CreateConnection(context context.Context) types.CreateConnectionData {
 	logger := log.ByContext(context)
+	var tlsMng types.TLSContextManager
+	if !h.tlsDisable {
+		tlsMng = h.clusterInfo.TLSMng()
+	}
 
-	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), h.clusterInfo.TLSMng(), h.address, nil, logger)
+	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), tlsMng, h.address, nil, logger)
 	clientConn.SetBufferLimit(h.clusterInfo.ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
@@ -213,6 +217,7 @@ type hostInfo struct {
 	clusterInfo   types.ClusterInfo
 	stats         types.HostStats
 	metaData      types.RouteMetaData
+	tlsDisable    bool
 
 	// TODO: locality, outlier, healthchecker
 }
@@ -225,6 +230,7 @@ func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) h
 		clusterInfo:   clusterInfo,
 		stats:         newHostStats(config),
 		metaData:      GenerateHostMetadata(config.MetaData),
+		tlsDisable:    config.TLSDisable,
 	}
 }
 

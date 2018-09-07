@@ -28,3 +28,8 @@
 - Add memory reuse framework, use it in io/protocol/stream/protocol layers
 - Fix data race cases
 - Fix some bugs
+
+## 0.2.1
+- Add TLS disable flag in cluster's host, allows request upstream host in non-TLS mode
+- Support dubbo in Xprotocol mode
+- Fix some bugs

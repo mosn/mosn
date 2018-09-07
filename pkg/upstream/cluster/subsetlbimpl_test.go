@@ -685,8 +685,7 @@ func InitExampleHosts() []types.Host {
 func TestWeightedClusterRoute(t *testing.T) {
 	routerMock1 := &v2.Router{
 		Route: v2.RouteAction{
-			ClusterName:        "defaultCluster",
-			TotalClusterWeight: 100,
+			ClusterName: "defaultCluster",
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{

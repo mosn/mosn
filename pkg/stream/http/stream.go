@@ -255,14 +255,14 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn interfac
 		s.request.SetRequestURI(fmt.Sprintf("http://%s/", s.wrapper.client.Addr))
 	}
 
-	if method, ok := headers[types.HeaderMethod]; ok {
+	if method, ok := headers[protocol.MosnHeaderMethod]; ok {
 		s.request.Header.SetMethod(method)
-		delete(headers, types.HeaderMethod)
+		delete(headers, protocol.MosnHeaderMethod)
 	}
 
-	if host, ok := headers[types.HeaderHost]; ok {
+	if host, ok := headers[protocol.MosnHeaderHostKey]; ok {
 		s.request.SetHost(host)
-		delete(headers, types.HeaderHost)
+		delete(headers, protocol.MosnHeaderHostKey)
 	}
 
 	if path, ok := headers[protocol.MosnHeaderPathKey]; ok {
@@ -440,6 +440,11 @@ func (s *serverStream) handleRequest() {
 		// set query string header if not found
 		if _, ok := header[protocol.MosnHeaderQueryStringKey]; !ok {
 			header[protocol.MosnHeaderQueryStringKey] = string(s.ctx.URI().QueryString())
+		}
+
+		// set method string header if not found
+		if _, ok := header[protocol.MosnHeaderMethod]; !ok {
+			header[protocol.MosnHeaderMethod] = string(s.ctx.Request.Header.Method())
 		}
 
 		s.receiver.OnReceiveHeaders(s.context, header, false)
