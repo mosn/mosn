@@ -340,7 +340,7 @@ type HeaderData struct {
 	Name         LowerCaseString
 	Value        string
 	IsRegex      bool
-	RegexPattern regexp.Regexp
+	RegexPattern *regexp.Regexp
 }
 
 // ConfigUtility is utility routines for loading route configuration and matching runtime request headers.

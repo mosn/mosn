@@ -216,17 +216,6 @@ func parseVirtualHost(confighost []*VirtualHost) []*v2.VirtualHost {
 	return result
 }
 
-// used to check weight's validity
-func checkWeightedClusterValid(action RouteAction) bool {
-	var totalWeighted uint32 = 0
-
-	for _, weightedCluster := range action.WeightedClusters {
-		totalWeighted = totalWeighted + weightedCluster.Cluster.Weight
-	}
-
-	return totalWeighted == action.TotalClusterWeight
-}
-
 func parseRetryPolicy(action RouteAction) *v2.RetryPolicy {
 	if action.RetryPolicy == nil {
 		return nil
@@ -243,9 +232,6 @@ func parseRouters(Router []Router) []v2.Router {
 	result := []v2.Router{}
 
 	for _, router := range Router {
-		if len(router.Route.WeightedClusters) > 0 && !checkWeightedClusterValid(router.Route) {
-			log.StartLogger.Fatalln("Sum of weights in the weighted_cluster should add up to:", router.Route.TotalClusterWeight)
-		}
 
 		routerMatch := v2.RouterMatch{
 			Prefix:        router.Match.Prefix,
@@ -260,13 +246,12 @@ func parseRouters(Router []Router) []v2.Router {
 		}
 
 		routeAction := v2.RouteAction{
-			ClusterName:        router.Route.ClusterName,
-			ClusterHeader:      router.Route.ClusterHeader,
-			TotalClusterWeight: router.Route.TotalClusterWeight,
-			WeightedClusters:   parseWeightClusters(router.Route.WeightedClusters),
-			MetadataMatch:      parseRouterMetadata(router.Route.MetadataMatch),
-			Timeout:            router.Route.Timeout,
-			RetryPolicy:        parseRetryPolicy(router.Route),
+			ClusterName:      router.Route.ClusterName,
+			ClusterHeader:    router.Route.ClusterHeader,
+			WeightedClusters: parseWeightClusters(router.Route.WeightedClusters),
+			MetadataMatch:    parseRouterMetadata(router.Route.MetadataMatch),
+			Timeout:          router.Route.Timeout,
+			RetryPolicy:      parseRetryPolicy(router.Route),
 		}
 
 		result = append(result, v2.Router{

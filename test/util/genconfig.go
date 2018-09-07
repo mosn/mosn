@@ -119,7 +119,6 @@ func newHeaderWeightedRouter(clusters []config.WeightedCluster, value string) co
 	return config.Router{
 		Match: config.RouterMatch{Headers: []config.HeaderMatcher{header}},
 		Route: config.RouteAction{
-			TotalClusterWeight: 100,
 			WeightedClusters:   clusters,
 		},
 	}

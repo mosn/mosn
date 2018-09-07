@@ -9,7 +9,6 @@
 ```json
 
                               {
-                              "total_cluster_weight":100,
                               "weighted_clusters":[
                                 {
                                   "cluster":{
