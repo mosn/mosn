@@ -1,0 +1,67 @@
+syntax = "proto2";
+
+package gxregistry;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.gostring_all) = true;
+option (gogoproto.equal_all) = true;
+option (gogoproto.verbose_equal_all) = true;
+// option (gogoproto.goproto_stringer_all) = false;
+// option (gogoproto.stringer_all) =  true;
+// option (gogoproto.populate_all) = true;
+// option (gogoproto.testgen_all) = true;
+// option (gogoproto.benchgen_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.goproto_enum_prefix_all) = false;
+
+
+//////////////////////////////////////////
+// service role
+//////////////////////////////////////////
+enum ServiceRoleType {
+	SRT_UNKOWN = 0;
+	SRT_Provider = 1;
+	SRT_Consumer = 2;
+}
+
+message ServiceAttr {
+	optional string Group = 1 [(gogoproto.nullable) = false];
+	optional string Service = 2 [(gogoproto.nullable) = false];
+	optional string Protocol = 3 [(gogoproto.nullable) = false];
+	optional string Version = 4 [(gogoproto.nullable) = false];
+	optional ServiceRoleType Role = 5 [(gogoproto.nullable) = false];
+}
+
+message Node {
+	optional string ID = 1 [(gogoproto.nullable) = false];
+	optional string Address = 2 [(gogoproto.nullable) = false];
+	optional int32 Port = 3 [(gogoproto.nullable) = false];
+	map<string, string> Metadata = 4 [(gogoproto.nullable) = false];
+}
+
+message Service {
+	optional ServiceAttr Attr = 1 [(gogoproto.nullable) = false];
+	repeated Node Nodes = 2 [(gogoproto.nullable) = false];
+	map<string, string> Metadata = 3 [(gogoproto.nullable) = false];
+}
+
+//////////////////////////////////////////
+// service url event type
+//////////////////////////////////////////
+enum ServiceEventType {
+    SET_UNKNOWN = 0;
+    ServiceAdd = 1;
+	ServiceDel = 2;
+	ServiceUpdate = 3;
+}
+
+// Result is returned by a call to Next on
+// the watcher. Actions can be create, update, delete
+message EventResult {
+	optional ServiceEventType	Action = 1 [(gogoproto.nullable) = false];
+	optional Service Service = 2 [(gogoproto.nullable) = false];
+}
