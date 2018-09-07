@@ -405,7 +405,7 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 	for _, xdsHeader := range xdsHeaders {
 		headerMatcher := v2.HeaderMatcher{
 			Name:  xdsHeader.GetName(),
-			Value: xdsHeader.GetValue(),
+			Value: xdsHeader.GetExactMatch(),
 			Regex: xdsHeader.GetRegex().GetValue(),
 		}
 		headerMatchers = append(headerMatchers, headerMatcher)
