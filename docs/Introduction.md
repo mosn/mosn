@@ -14,12 +14,14 @@ MOSN 是一款采用 Golang 开发的Service Mesh数据平面代理，功能和�
 本文也将从如下几个方面来全面介绍 MOSN 可以带来这些收益的原因
 + MOSN 工作原理
 + MOSN 架构设计
-+ MOSN 构成模块
++ MOSN 组成模块
 + MOSN 协程模型
++ MOSN 内存模型
 + MOSN 进程管理
 + MOSN 扩展机制
 
 ## MOSN 工作原理
+// 此处以 pod 为例 加使用场景等
 + 如下图所示为 MOSN 以 sidecar 模式与服务部署在同一个 Pod 上，通过协议之间的转换，代理 Service 之间请求的工作原理图，一个正向的请求包含如下过程：
 1. Service A 通过发送 HTTP/SOFARPC 请求到本地 MOSN
 2. 本地 MOSN 将请求封装成 HTTP2 协议，转发给上游的 MOSN
