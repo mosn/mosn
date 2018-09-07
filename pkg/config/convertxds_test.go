@@ -23,6 +23,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 )
 
 // todo fill the unit test
@@ -49,6 +50,48 @@ func Test_convertEndpointsConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := convertEndpointsConfig(tt.args.xdsEndpoint); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("convertEndpointsConfig() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_convertHeaders(t *testing.T) {
+	type args struct {
+		xdsHeaders []*xdsroute.HeaderMatcher
+	}
+	tests := []struct {
+		name string
+		args args
+		want []v2.HeaderMatcher
+	}{
+		{
+			name: "case1",
+			args: args{
+				xdsHeaders: []*xdsroute.HeaderMatcher{
+					{
+						Name:  "end-user",
+						Value: "",
+						HeaderMatchSpecifier: &xdsroute.HeaderMatcher_ExactMatch{
+							ExactMatch: "jason",
+						},
+						InvertMatch: false,
+					},
+				},
+			},
+			want: []v2.HeaderMatcher{
+				{
+					Name:  "end-user",
+					Value: "jason",
+					Regex: false,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := convertHeaders(tt.args.xdsHeaders); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) = %v, want %v", got, tt.want)
 			}
 		})
 	}
