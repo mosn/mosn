@@ -151,7 +151,7 @@ func TestDefaultMatch(t *testing.T) {
 	}
 	routers, err := NewRouteMatcher(cfg)
 	if err != nil {
-		t.Errorf("create router matcher failed \n", err)
+		t.Errorf("create router matcher failed %v\n", err)
 		return
 	}
 	testCases := []string{
@@ -177,7 +177,7 @@ func TestDomainMatch(t *testing.T) {
 	}
 	routers, err := NewRouteMatcher(cfg)
 	if err != nil {
-		t.Errorf("create router matcher failed \n", err)
+		t.Errorf("create router matcher failed %v\n", err)
 		return
 	}
 	if routers.Route(map[string]string{

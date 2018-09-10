@@ -189,7 +189,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
-				return nil, fmt.Errorf("initialize listener access logger ", alConfig.Path, " failed: ", err.Error())
+				return nil, fmt.Errorf("initialize listener access logger %s failed: %v", alConfig.Path, err.Error())
 			}
 		}
 
@@ -356,12 +356,12 @@ func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger lo
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		conns:        list.New(),
-		handler:      handler,
-		stopChan:     stopChan,
-		logger:       logger,
-		accessLogs:   accessLoggers,
-		updatedLabel: false,
+		conns:                   list.New(),
+		handler:                 handler,
+		stopChan:                stopChan,
+		logger:                  logger,
+		accessLogs:              accessLoggers,
+		updatedLabel:            false,
 	}
 
 	listenPort := 0

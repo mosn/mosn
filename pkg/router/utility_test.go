@@ -89,7 +89,7 @@ func Test_getWeightedClusterEntryAndVerify(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			entry, _ := getWeightedClusterEntry(tt.args.weightedClusters)
 			if !reflect.DeepEqual(entry, tt.want.value) {
-				t.Errorf("get weighted cluster entry and verify name = %s got1 = %v, want %v", tt.want, entry, tt.want.value)
+				t.Errorf("get weighted cluster entry and verify name = %v got1 = %v, want %v", tt.want, entry, tt.want.value)
 			}
 		})
 	}
