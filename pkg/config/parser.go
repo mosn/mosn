@@ -221,9 +221,9 @@ func parseRetryPolicy(action RouteAction) *v2.RetryPolicy {
 		return nil
 	} else {
 		return &v2.RetryPolicy{
-			action.RetryPolicy.RetryOn,
-			action.RetryPolicy.RetryTimeout,
-			action.RetryPolicy.NumRetries,
+			RetryOn:      action.RetryPolicy.RetryOn,
+			RetryTimeout: action.RetryPolicy.RetryTimeout,
+			NumRetries:   action.RetryPolicy.NumRetries,
 		}
 	}
 }
@@ -239,8 +239,8 @@ func parseRouters(Router []Router) []v2.Router {
 			Regex:         router.Match.Regex,
 			CaseSensitive: router.Match.CaseSensitive,
 			Runtime: v2.RuntimeUInt32{
-				router.Match.Runtime.DefaultValue,
-				router.Match.Runtime.RuntimeKey,
+				DefaultValue: router.Match.Runtime.DefaultValue,
+				RuntimeKey:   router.Match.Runtime.RuntimeKey,
 			},
 			Headers: parseMatchHeaders(router.Match.Headers),
 		}
@@ -276,9 +276,9 @@ func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster 
 	for _, wc := range weightClusters {
 		result = append(result, v2.WeightedCluster{
 			Cluster: v2.ClusterWeight{
-				wc.Cluster.Name,
-				wc.Cluster.Weight,
-				parseRouterMetadata(wc.Cluster.MetadataMatch),
+				Name:          wc.Cluster.Name,
+				Weight:        wc.Cluster.Weight,
+				MetadataMatch: parseRouterMetadata(wc.Cluster.MetadataMatch),
 			},
 			RuntimeKeyPrefix: wc.RuntimeKeyPrefix,
 		})
@@ -694,9 +694,9 @@ func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2
 
 			Spec: parseConfigSpecConfig(&clusterSpec),
 			LBSubSetConfig: v2.LBSubsetConfig{
-				c.LBSubsetConfig.FallBackPolicy,
-				c.LBSubsetConfig.DefaultSubset,
-				c.LBSubsetConfig.SubsetSelectors,
+				FallBackPolicy:  c.LBSubsetConfig.FallBackPolicy,
+				DefaultSubset:   c.LBSubsetConfig.DefaultSubset,
+				SubsetSelectors: c.LBSubsetConfig.SubsetSelectors,
 			},
 
 			TLS: parseTLSConfig(&c.TLS),
@@ -799,11 +799,11 @@ func parseHostConfig(c *ClusterConfig) []v2.Host {
 		}
 
 		hosts = append(hosts, v2.Host{
-			host.Address,
-			host.Hostname,
-			getHostWeight(host.Weight),
-			parseRouterMetadata(host.MetaData),
-			host.TLSDisable,
+			Address:    host.Address,
+			Hostname:   host.Hostname,
+			Weight:     getHostWeight(host.Weight),
+			MetaData:   parseRouterMetadata(host.MetaData),
+			TLSDisable: host.TLSDisable,
 		})
 	}
 
@@ -848,8 +848,8 @@ func ParseServiceRegistry(src ServiceRegistryConfig) {
 	}
 
 	SrvRegInfo = v2.ServiceRegistryInfo{
-		srvappinfo,
-		SrvPubInfoArray,
+		ServiceAppInfo: srvappinfo,
+		ServicePubInfo: SrvPubInfoArray,
 	}
 
 	//trigger all callbacks

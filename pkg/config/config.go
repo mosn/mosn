@@ -206,7 +206,7 @@ type TLSConfig struct {
 	MaxVersion   string                 `json:"max_version,omitempty"`
 	ALPN         string                 `json:"alpn,omitempty"`
 	Ticket       string                 `json:"ticket,omitempty"`
-	ExtendVerify map[string]interface{} `json:"extend_verify, omitempty"`
+	ExtendVerify map[string]interface{} `json:"extend_verify,omitempty"`
 }
 
 // ServerConfig for making up server for mosn

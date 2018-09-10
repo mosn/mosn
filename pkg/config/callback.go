@@ -46,7 +46,7 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 				for _, f := range filterChain.Filters {
 					nfcf, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config, true)
 					if err != nil {
-						log.DefaultLogger.Errorf("parse network filter failed,error:", err.Error())
+						log.DefaultLogger.Errorf("parse network filter failed,error: %v", err.Error())
 						continue
 					}
 					networkFilters = append(networkFilters, nfcf)
@@ -116,7 +116,7 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
 		}
 
 		if err != nil {
-			log.DefaultLogger.Errorf("xds OnUpdateClusters failed,cluster name = %s, error:", cluster.Name, err.Error())
+			log.DefaultLogger.Errorf("xds OnUpdateClusters failed,cluster name = %s, error: %v", cluster.Name, err.Error())
 
 		} else {
 			log.DefaultLogger.Debugf("xds OnUpdateClusters success,cluster name = %s", cluster.Name)
@@ -136,7 +136,7 @@ func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) {
 		}
 
 		if err != nil {
-			log.DefaultLogger.Errorf("xds OnDeleteClusters failed,cluster name = %s, error:", cluster.Name, err.Error())
+			log.DefaultLogger.Errorf("xds OnDeleteClusters failed,cluster name = %s, error: %v", cluster.Name, err.Error())
 
 		} else {
 			log.DefaultLogger.Debugf("xds OnDeleteClusters success,cluster name = %s", cluster.Name)

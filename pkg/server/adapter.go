@@ -102,7 +102,7 @@ func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName s
 		if ch, ok := adapter.connHandlerMap[serverName]; ok {
 			connHandler = ch
 		} else {
-			fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
+			return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
 		}
 	}
 

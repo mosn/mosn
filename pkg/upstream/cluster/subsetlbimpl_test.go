@@ -166,12 +166,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("prod"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"type",
-						types.GenerateHashedValue("std"),
+						Name:  "type",
+						Value: types.GenerateHashedValue("std"),
 					},
 				},
 			},
@@ -190,12 +190,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("prod"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"type",
-						types.GenerateHashedValue("bigmem"),
+						Name:  "type",
+						Value: types.GenerateHashedValue("bigmem"),
 					},
 				},
 			},
@@ -213,12 +213,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("dev"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("dev"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"type",
-						types.GenerateHashedValue("std"),
+						Name:  "type",
+						Value: types.GenerateHashedValue("std"),
 					},
 				},
 			},
@@ -235,12 +235,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("prod"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.0"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.0"),
 					},
 				},
 			},
@@ -260,12 +260,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("prod"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.1"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.1"),
 					},
 				},
 			},
@@ -285,12 +285,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("dev"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("dev"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.2-pre"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.2-pre"),
 					},
 				},
 			},
@@ -309,8 +309,8 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.0"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.0"),
 					},
 				},
 			},
@@ -330,8 +330,8 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.1"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.1"),
 					},
 				},
 			},
@@ -351,8 +351,8 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.2-pre"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.2-pre"),
 					},
 				},
 			},
@@ -370,12 +370,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.0"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.0"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"xlarge",
-						types.GenerateHashedValue("true"),
+						Name:  "xlarge",
+						Value: types.GenerateHashedValue("true"),
 					},
 				},
 			},
@@ -421,12 +421,12 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 					mmc: &router.MetadataMatchCriteriaImpl{
 						MatchCriteriaArray: []types.MetadataMatchCriterion{
 							&router.MetadataMatchCriterionImpl{
-								"stage",
-								types.GenerateHashedValue("prod"),
+								Name:  "stage",
+								Value: types.GenerateHashedValue("prod"),
 							},
 							&router.MetadataMatchCriterionImpl{
-								"type",
-								types.GenerateHashedValue("std"),
+								Name:  "type",
+								Value: types.GenerateHashedValue("std"),
 							},
 						},
 					},
@@ -442,12 +442,12 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 					mmc: &router.MetadataMatchCriteriaImpl{
 						MatchCriteriaArray: []types.MetadataMatchCriterion{
 							&router.MetadataMatchCriterionImpl{
-								"stage",
-								types.GenerateHashedValue("prod"),
+								Name:  "stage",
+								Value: types.GenerateHashedValue("prod"),
 							},
 							&router.MetadataMatchCriterionImpl{
-								"type",
-								types.GenerateHashedValue("unknown"),
+								Name:  "type",
+								Value: types.GenerateHashedValue("unknown"),
 							},
 						},
 					},
@@ -548,9 +548,9 @@ func TestGenerateDftSubsetKeys(t *testing.T) {
 			name: "test1",
 			args: args{
 				dftkeys: []types.SortedPair{
-					{"stage", "prod"},
-					{"type", "std"},
-					{"version", "1.0"},
+					{Key: "stage", Value: "prod"},
+					{Key: "type", Value: "std"},
+					{Key: "version", Value: "1.0"},
 				},
 			},
 			want: InitDefaultSubsetMetadata(),
@@ -568,11 +568,11 @@ func TestGenerateDftSubsetKeys(t *testing.T) {
 
 func InitDefaultSubsetMetadata() types.SubsetMetadata {
 
-	p1 := types.Pair{"stage", types.GenerateHashedValue("prod")}
+	p1 := types.Pair{T1: "stage", T2: types.GenerateHashedValue("prod")}
 
-	p2 := types.Pair{"type", types.GenerateHashedValue("std")}
+	p2 := types.Pair{T1: "type", T2: types.GenerateHashedValue("std")}
 
-	p3 := types.Pair{"version", types.GenerateHashedValue("1.0")}
+	p3 := types.Pair{T1: "version", T2: types.GenerateHashedValue("1.0")}
 
 	return []types.Pair{p1, p2, p3}
 }

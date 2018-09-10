@@ -115,7 +115,7 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 		rr := &RegexRouteRuleImpl{
 			routuRule,
 			route.Match.Regex,
-			*re,
+			re,
 		}
 		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
 		result := (rr.Match(headers, 1) != nil)

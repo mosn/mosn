@@ -23,14 +23,17 @@ RPM_TAR_NAME    = afe-${TARGET}
 RPM_SRC_DIR     = ${RPM_TAR_NAME}-${RPM_VERSION}
 RPM_TAR_FILE    = ${RPM_SRC_DIR}.tar.gz
 
-ut-local:
+vet:
+	go vet ./pkg/...
+
+ut-local: vet
 	go test ./pkg/...
 
 unit-test:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make ut-local
 
-coverage-local:
+coverage-local: vet
 	sh ${SCRIPT_DIR}/report.sh
 
 coverage:

@@ -294,25 +294,25 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (inte
 				}
 
 				request := &sofarpc.BoltV2RequestCommand{
-					sofarpc.BoltRequestCommand{
-						sofarpc.PROTOCOL_CODE_V1,
-						dataType,
-						int16(cmdCode),
-						ver2,
-						requestID,
-						codec,
-						int(timeout),
-						int16(classLen),
-						int16(headerLen),
-						int(contentLen),
-						class,
-						header,
-						content,
-						nil,
-						nil,
+					BoltRequestCommand: sofarpc.BoltRequestCommand{
+						Protocol:      sofarpc.PROTOCOL_CODE_V1,
+						CmdType:       dataType,
+						CmdCode:       int16(cmdCode),
+						Version:       ver2,
+						ReqID:         requestID,
+						CodecPro:      codec,
+						Timeout:       int(timeout),
+						ClassLen:      int16(classLen),
+						HeaderLen:     int16(headerLen),
+						ContentLen:    int(contentLen),
+						ClassName:     class,
+						HeaderMap:     header,
+						Content:       content,
+						InvokeContext: nil,
+						RequestHeader: nil,
 					},
-					ver1,
-					switchCode,
+					Version1:   ver1,
+					SwitchCode: switchCode,
 				}
 
 				logger.Debugf("[Decoder]bolt v2 decode request:%+v", request)
@@ -356,27 +356,26 @@ func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (inte
 				}
 
 				response := &sofarpc.BoltV2ResponseCommand{
-					sofarpc.BoltResponseCommand{
-
-						sofarpc.PROTOCOL_CODE_V1,
-						dataType,
-						int16(cmdCode),
-						ver2,
-						requestID,
-						codec,
-						int16(status),
-						int16(classLen),
-						int16(headerLen),
-						int(contentLen),
-						class,
-						header,
-						content,
-						nil,
-						time.Now().UnixNano() / int64(time.Millisecond),
-						nil,
+					BoltResponseCommand: sofarpc.BoltResponseCommand{
+						Protocol:           sofarpc.PROTOCOL_CODE_V1,
+						CmdType:            dataType,
+						CmdCode:            int16(cmdCode),
+						Version:            ver2,
+						ReqID:              requestID,
+						CodecPro:           codec,
+						ResponseStatus:     int16(status),
+						ClassLen:           int16(classLen),
+						HeaderLen:          int16(headerLen),
+						ContentLen:         int(contentLen),
+						ClassName:          class,
+						HeaderMap:          header,
+						Content:            content,
+						InvokeContext:      nil,
+						ResponseTimeMillis: time.Now().UnixNano() / int64(time.Millisecond),
+						ResponseHeader:     nil,
 					},
-					ver1,
-					switchCode,
+					Version1:   ver1,
+					SwitchCode: switchCode,
 				}
 
 				logger.Debugf("[Decoder]bolt v2 decode response:%+v\n", response)
