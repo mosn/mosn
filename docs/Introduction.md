@@ -1,41 +1,83 @@
-# MOSN Introduction
+# SOFAMosn Introduction
 
-## MOSN 简介
-MOSN 是一款采用 Golang 开发的Service Mesh数据平面代理，功能和定位类似Envoy，旨在提供分布式，模块化，可观察，智能化的代理能力。
+## 背景介绍
+在微服务时代，Service Mesh 作为轻量级网络代理，用于处理服务间通信，可为微服务的连接、管理和监控带来巨大的便利，从而加速微服务的落地。
+而蚂蚁金服系统架构对性能，稳定性上要求较高，且部署环境多样，为了达到系统的高可用以及快速迭代，蚂蚁金服正全面拥抱微服务，云原生，因而
+Service Mesh 成为为 SOFA5，以及兼容 K8S 的容器平台 Sigma 落地的重要组件。
+而 Istio 作为 Service Mesh 的集大成者，无论在功能实现，稳定性，扩展性，以及社区关注度等都方面都是落地 Service Mesh 方案的首选，其数据
+平面 Envoy 更是具有优秀的设计，可扩展的 XDS API，以及较高的性能和稳定。然而，由于 Envoy 使用 C++ 语言开发，不符合蚂蚁技术栈的发展方向，
+且蚂蚁内部有许多定制化的业务方面的诉求，促使我们开发 golang 版本高性能的 sidecar, 因此有了本文要介绍的对象: SOFAMosn 
+
+## SOFAMosn 简介
+SOFAMosn 是一款采用 Golang 开发的Service Mesh数据平面代理，功能和定位类似Envoy，旨在提供分布式，模块化，可观察，智能化的代理能力。
 其中，模块化，分层解耦是 SOFAMosn 设计的初衷，可编程性，事件机制，扩展性，高吞吐量等是设计中重要考量的因素。
-当前， MOSN 已支持Envoy和Istio的API，可使用 MOSN 替代 Envoy 作为转发平面与 Istio 集成来实现 Service Mesh 组件，同时你也可以单独使用 MOSN 作为
-业务网关。通过使用 MOSN 你将获得如下收益：
+当前， SOFAMosn 已支持Envoy和Istio的API，可使用 SOFAMosn 替代 Envoy 作为转发平面与 Istio 集成来实现 Service Mesh 组件，同时你也可以单独使用 SOFAMosn 作为
+业务网关。通过使用 SOFAMosn 你将获得如下收益：
 
-1. MOSN 使用 golang 作为开发语言，在云原生时代可以与 k8s 等技术进行无缝对接，可以快速落地微服务，提高开发效率
-2. MOSN 可以代理 Java，C++，Go，PHP，Python 等异构语言之间组件的互相调用，目前 MOSN 已经在蚂蚁金服中作为跨语言 RPC 调用的桥梁被使用
-3. MOSN 灵活的流量调度能力可以有力的支撑运维体系，包括：蓝绿升级、容灾切换等
-4. MOSN 提供TLS、服务鉴权等能力，可满足服务加密与安全的诉求
+1. SOFAMosn 使用 golang 作为开发语言，在云原生时代可以与 k8s 等技术进行无缝对接，可以快速落地微服务，提高开发效率
+2. SOFAMosn 可以代理 Java，C++，Go，PHP，Python 等异构语言之间组件的互相调用，目前 SOFAMosn 已经在蚂蚁金服中作为跨语言 RPC 调用的桥梁被使用
+3. SOFAMosn 灵活的流量调度能力可以有力的支撑运维体系，包括：蓝绿升级、容灾切换等
+4. SOFAMosn 提供TLS、服务鉴权等能力，可满足服务加密与安全的诉求
 
-本文也将从如下几个方面来全面介绍 MOSN 可以带来这些收益的原因
-+ MOSN 工作原理
-+ MOSN 架构设计
-+ MOSN 组成模块
-+ MOSN 协程模型
-+ MOSN 内存模型
-+ MOSN 进程管理
-+ MOSN 扩展机制
+本文也将从如下几个方面来全面介绍 SOFAMosn 可以带来这些收益的原因
++ 工作原理
++ 架构设计
++ 协程模型
++ 内存使用优化
++ 进程管理
++ 扩展机制
 
-## MOSN 工作原理
-// 此处以 pod 为例 加使用场景等
-+ 如下图所示为 MOSN 以 sidecar 模式与服务部署在同一个 Pod 上，通过协议之间的转换，代理 Service 之间请求的工作原理图，一个正向的请求包含如下过程：
-1. Service A 通过发送 HTTP/SOFARPC 请求到本地 MOSN
-2. 本地 MOSN 将请求封装成 HTTP2 协议，转发给上游的 MOSN
-3. 上游 MOSN 收到请求后，将 HTTP2 协议代理到后端 Service B上进行处理
+<div align=center><img src="design/resource/MOSNIntroduction.png"  /></div>
+
+## 工作原理
+SOFAMosn 可以以独立进程的形式作为 sidecar 与用户进程部署在相同的主机或者虚拟机中，也可以以独立网关的形式单独运行在一台主机或者虚拟机中；
+以下图为例，SOFAMosn 以 sidecar 的模式与服务部署在同一个 Pod 上，通过协议之间的转换，代理 Service 之间的请求，一个正向的请求包含如下过程：
+1. Service A 通过发送 HTTP/SOFARPC 请求到本地 SOFAMosn
+2. 本地 SOFAMosn 将请求封装成 HTTP2 协议，转发给上游的 SOFAMosn
+3. 上游 SOFAMosn 收到请求后，将 HTTP2 协议代理到后端 Service B上进行处理
 
 反向链路类似。
 
-+ 同时，MOSN 上下游之间允许配置使用的协议，当前支持的协议包括 HTTP1.x, HTTP2.0, SOFARPC, Dubbo 等
++ 同时，SOFAMosn 上下游之间允许配置使用的协议，当前支持的协议包括 HTTP1.x, HTTP2.0, SOFARPC, Dubbo 等
 未来还将支持更多的协议
 
 ![MOSN 工作流程图](design/resource/MosnWorkFlow.png)
 
-## MOSN 架构设计
-MOSN 在架构设计上，为了实现可扩展，易维护等特点，将整体功能分为 "网络 IO 层"，"二进制协议处理层"，"协议流程处理层"以及"转发路由处理层" 四层进行设计，每一层
+## 架构设计
+模块化，分层解耦是 SOFAMosn 架构设计的整体原则，以实现可扩展、插件化的开发原则。
+
+### 组成模块
+SOFAMosn 由如下的模块组成
+
+![modules](design/resource/MosnModules.png)
+
++ `Starter` 用于启动 MOSN，包括从配置文件或者以 XDS 模式启动，其中`Config` 用于配置文件的解析等，`XDS` 用于和 Istio 交互，获取 Pilot 推送的配置等
++ `Server` 是 MOSN 运行时的抽象，它以 MOSN 监听的 `Listener` 为维度，对一个 Listener 下生成的 `Proxy`, `Connections` 等进行管理
++ `Hardware` 为 MOSN 后期规划的包括使用加速卡来做 TLS 加速以及 DPDK 来做协议栈加速的一些硬件技术手段
++ Router 为 MOSN 的核心路由模块，支持的功能包括：
+    + VirtualHost 形式的路由表
+    + 基于 weight 的 cluster 挑选
+    + 基于 subset 的子集群路由匹配
+    + 路由重试以及重定向功能
++ Upstream 为后端管理模块，支持的功能包括：
+    + Cluster 动态更新，添加以及删除等
+    + Host动态更新，添加以及删除等
+    + 对 Cluster 的 主动/被动 健康检查
+    + 熔断机制
++ LoadBalance 为负载均衡模块，当前实现的功能包括：
+    + 基本的负载均衡算法: Random, RR, WRR, SWRR 等
+    + 高阶的负载均衡算法 subset loadbalancer 等
+    + 此模块后期将支持更多的算法
++ Metrics 模块可对协议层的数据做记录和追踪，包括：
+    + 对 mosn 向 upstream 转发的请求数目做统计，包括成功的，不成功的
+    + 对 mosn 接收 downstream 连接数做统计
+    + 对 mosn 转发的数据量做统计等
++ Mixer 用于对请求做服务鉴权等，为开发中模块
++ FlowControl 用来对后端做流控，为开发中模块
++ lab 和 Admin 模块为待开发模块
+
+### 分层设计
+在分层上，SOFAMosn 将整体功能分为 "网络 IO 层"，"二进制协议处理层"，"协议流程处理层"以及"转发路由处理层" 四层进行设计，每一层
 实现功能的内聚可完成独立的功能，层与层之间相互配合做完整的 proxy 转发。
 
 如下图所示：MOSN 对数据流做代理处理的时候，在入方向数据依次经过网络 IO 层(NET/IO)，
@@ -69,58 +111,37 @@ MOSN 在架构设计上，为了实现可扩展，易维护等特点，将整体
     + 具备负载均衡，健康检查，熔断等后端管理能力，云端部亲和性
     + Metrics 能力，可统计上下游的路由转发指标
 
-## MOSN 组成模块
-MOSN 由如下的模块组成
+下面是将此图打开后的示意图
 
-![modules](design/resource/MosnModules.png)
+![DataFlowOpen](design/resource/DataFlowOpen.png)
 
-+ `Starter` 用于启动 MOSN，包括从配置文件或者以 XDS 模式启动，其中`Config` 用于配置文件的解析等，`XDS` 用于和 Istio 交互，获取 Pilot 推送的配置等
-+ `Server` 是 MOSN 运行时的抽象，它以 MOSN 监听的 `Listener` 为维度，对一个 Listener 下生成的 `Proxy`, `Connections` 等进行管理
-+ `Hardware` 为 MOSN 后期规划的包括使用加速卡来做 TLS 加速以及 DPDK 来做协议栈加速的一些硬件技术手段
-+ 如上述所说， `NET/IO`，`Protocl`， `Stream`, `Proxy` 为 MOSN 的核心模块，用来完成整个转发功能，这里不再赘述
-+ Router 为 MOSN 的核心路由模块，支持的功能包括：
-    + VirtualHost 形式的路由表
-    + 基于 weight 的 cluster 挑选
-    + 基于 subset 的子集群路由匹配
-    + 路由重试以及重定向功能
-+ Upstream 为后端管理模块，支持的功能包括：
-    + Cluster 动态更新，添加以及删除等
-    + Host动态更新，添加以及删除等
-    + 对 Cluster 的 主动/被动 健康检查
-    + 熔断机制
-+ LoadBalance 为负载均衡模块，当前实现的功能包括：
-    + 基本的负载均衡算法: Random, RR, WRR, SWRR 等
-    + 高阶的负载均衡算法 subset loadbalancer 等
-    + 此模块后期将支持更多的算法
-+ Metrics 模块可对协议层的数据做记录和追踪，包括：
-    + 对 mosn 向 upstream 转发的请求数目做统计，包括成功的，不成功的
-    + 对 mosn 接收 downstream 连接数做统计
-    + 对 mosn 转发的数据量做统计等
-+ Mixer 用于对请求做服务鉴权等，为开发中模块
-+ FlowControl 用来对后端做流控，为开发中模块
-+ lab 和 Admin 模块为待开发模块
-
-## MOSN 协程模型
+## 协程模型
 当前 MOSN 支持如下两种线程模型，可通过 MOSN 开关进行切换，每种线程模型都有自己适用的场景
 
 ### 模型一
 如下图所示，使用 golang 默认的 epoll 机制，对每个连接分配独立的读写协程进行阻塞读写操作， proxy层做转发时，使用常驻 worker 协程池负责处理 Stream Event
-  ![Golang协程池](design/resource/OriginModel.png)
+  ![Golang协程池](design/resource/MOSNThreadModelStage1.png)
 + 此模型在IO上使用 golang 的调度机制，适用于连接数较少等场景，例如：mosn 作为 sidecar、与 client 同机部署的场景
 
 ### 模型二
 如下图所示，基于[Netoll](https://godoc.org/github.com/mailru/easygo/netpoll)重写 epoll 机制，将 IO 和 PROXY 均进行池化，downstream connection将自身的读写事件注册到netpoll的epoll/kqueue wait协程，
 poll/kqueue wait协程接受到可读事件，触发回调，从协程池中挑选一个执行读操作
-![NetPoll协程池](design/resource/MosnThreadModelStage2.png)
+![NetPoll协程池](design/resource/MOSNThreadModelStage2.png)
 
 + 使用自定义 Netpoll IO 池化操作带来的好处是：
     + 当可读事件触发时，从协程池中获取一个goroutine来执行读处理，而不是新分配一个goroutine，以此来控制高并发下的协程数量
-    + 当收到链接可读事件时，才真正为其分配read buffer以及相应的执行协程。这样可以优化大量空闲链接场景导致的额外协程和read buffer开销
+    + 当收到链接可读事件时，才真正为其分配read buffer以及相应的执行协程。这GetBytes()样可以优化大量空闲链接场景导致的额外协程和read buffer开销
 + 此模型适用于连接数较多，可读的连接数有限，例如：mosn 作为 api gateway 的场景
 
-## MOSN 进程管理
+## 内存使用优化
++ 通过自定义的内存复用接口实现了通用的内存复用框架，可实现自定义内存的复用
++ 通过优化 []byte 的获取和回收，进一步优化全局内存的使用
++ 通过优化 socket 的读写循环以及事件触发机制，减小空闲连接对内存分配的使用，进一步减少内存使用
++ 使用 writev 替代 write, 减少内存分配和拷贝，减少锁力度
+
+## 进程管理
 MOSN 除了经典的传递 listener fd 加协议层等待方式意外，还支持对存量链接进行协议无关的迁移来实现平滑升级，平滑 reload 等功能
-### MOSN 连接迁移简介
+### 连接迁移简介
 连接迁移的步骤如下图所示
 ![MOSN连接迁移](design/resource/MOSNMigration.png)
 + mosn 通过forkexec生成New mosn
@@ -131,12 +152,11 @@ MOSN 除了经典的传递 listener fd 加协议层等待方式意外，还支�
 
 此后：
 
-+ mosn退出  readloop， 不再接受该TCP连接上的数据
++ mosn退出 readloop， 不再接受该TCP连接上的数据
 + New mosn开始 readloop，接受该TCP连接上的数据
 
-## MOSN 扩展机制
+## 扩展机制
 + 支持 协议扩展
-
     MOSN 通过使用同一的编解码引擎以及编/解码器核心接口，提供协议的 plugin 机制，包括支持
     + SofaRPC
     + http1, http2
@@ -145,29 +165,26 @@ MOSN 除了经典的传递 listener fd 加协议层等待方式意外，还支�
     等协议，后面还会支持更多的协议
   
 + 支持 NetworkFilter 扩展
-
     MOSN 通过提供 network filter 注册机制以及统一的 packet read/write filter 接口，实现了Network filter 扩展机制，当前支持：
     + tcp proxy
     + layer-7 proxy
     + Fault injection 
     
 + 支持 StreamFilter 扩展
-
     MOSN 通过提供 stream filter 注册机制以及统一的 stream send/receive filter 接口，实现了 Stream filter 扩展机制，包括支持：
     + 支持配置健康检查等
     + 支持故障注入功能
 
-## MOSN 历史版本
+##  
+
+## 历史版本
 + 0.1.0
 + [0.2.0](features/0.2.0/README.md)  
 
-## MOSN 开发团队
+## 开发团队
 + 蚂蚁金服系统部网络团队
 + 蚂蚁金服中间件团队
 + UC 大文娱团队
-
-## MOSN 系列文章编写团队以及文章认领
-在后序的文章中，我们还将详细介 Network/IO、Protocol、Stream、Proxy 层每一块的实现机制
 
 ## 获取相关帮助
 * [社区](https://github.com/alipay/mosn/issues)
