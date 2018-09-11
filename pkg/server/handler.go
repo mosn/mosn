@@ -450,20 +450,19 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		// no filter found, close connection
 		conn.Close(types.NoFlush, types.LocalClose)
 		return
-	} else {
-		ac := newActiveConnection(al, conn)
-
-		al.connsMux.Lock()
-		e := al.conns.PushBack(ac)
-		al.connsMux.Unlock()
-		ac.element = e
-
-		al.stats.DownstreamConnectionActive().Inc(1)
-		al.stats.DownstreamConnectionTotal().Inc(1)
-		atomic.AddInt64(&al.handler.numConnections, 1)
-
-		al.logger.Debugf("new downstream connection %d accepted", conn.ID())
 	}
+	ac := newActiveConnection(al, conn)
+
+	al.connsMux.Lock()
+	e := al.conns.PushBack(ac)
+	al.connsMux.Unlock()
+	ac.element = e
+
+	al.stats.DownstreamConnectionActive().Inc(1)
+	al.stats.DownstreamConnectionTotal().Inc(1)
+	atomic.AddInt64(&al.handler.numConnections, 1)
+
+	al.logger.Debugf("new downstream connection %d accepted", conn.ID())
 
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
 	if !al.disableConnIo {

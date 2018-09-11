@@ -166,7 +166,7 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 
 	for _, tt := range tests {
 		var a, b, c float64
-		var i float64 = 0
+		var i float64
 
 		l1 := newSmoothWeightedRRLoadBalancer(tt.args)
 		runningTimes := float64(rand.Int31n(1000))
@@ -177,10 +177,9 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 			if host == nil {
 				if tt.name == "zeroTest" {
 					return
-				} else {
-					t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
-						tt.want[0], tt.want[1], tt.want[2], tt.name)
 				}
+				t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
+					tt.want[0], tt.want[1], tt.want[2], tt.name)
 			}
 
 			switch host.Hostname() {
@@ -280,7 +279,7 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 
 		runningTimes := float64(rand.Int31n(1000))
 		var a, b, c, d float64
-		var i float64 = 0
+		var i float64
 
 		for ; i < runningTimes; i++ {
 			host := loadbBalancer.ChooseHost(nil)
@@ -288,10 +287,9 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 			if host == nil {
 				if tt.name == "zeroTest" {
 					return
-				} else {
-					t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
-						tt.want[0], tt.want[1], tt.want[2], tt.name)
 				}
+				t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
+					tt.want[0], tt.want[1], tt.want[2], tt.name)
 			}
 
 			switch host.Hostname() {

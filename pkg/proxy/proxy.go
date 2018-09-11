@@ -95,11 +95,11 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 
 	proxy.context = buffer.NewBufferPoolContext(ctx, false)
 
-	extJson, err := json.Marshal(proxy.config.ExtendConfig)
+	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
 	if err == nil {
 		log.DefaultLogger.Tracef("proxy extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
-		json.Unmarshal([]byte(extJson), &xProxyExtendConfig)
+		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
 		proxy.context = context.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 		log.DefaultLogger.Tracef("proxy extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
 	} else {

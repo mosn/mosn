@@ -74,7 +74,7 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 	listener, err := connHandler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
 
 	if err != nil {
-		return fmt.Errorf("connHandler.AddOrUpdateListener called error:", err.Error())
+		return fmt.Errorf("connHandler.AddOrUpdateListener called error: %s", err.Error())
 	}
 
 	if listener == nil {

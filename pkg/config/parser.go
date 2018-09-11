@@ -44,11 +44,10 @@ var protocolsSupported = map[string]bool{
 func RegisterProtocolParser(key string) bool {
 	if _, ok := protocolsSupported[key]; ok {
 		return false
-	} else {
-		log.StartLogger.Infof(" %s added to protocolsSupported", key)
-		protocolsSupported[key] = true
-		return true
 	}
+	log.StartLogger.Infof(" %s added to protocolsSupported", key)
+	protocolsSupported[key] = true
+	return true
 }
 
 // ParsedCallback is an

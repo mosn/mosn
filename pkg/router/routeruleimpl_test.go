@@ -206,37 +206,6 @@ func TestWeightedClusterSelect(t *testing.T) {
 		},
 	}
 
-	routerMock3 := &v2.Router{}
-	routerMock3.Route = v2.RouteAction{
-		RouterActionConfig: v2.RouterActionConfig{
-			ClusterName: "defaultCluster",
-			WeightedClusters: []v2.WeightedCluster{
-				{
-					Cluster: v2.ClusterWeight{
-						ClusterWeightConfig: v2.ClusterWeightConfig{
-							Name:   "w1",
-							Weight: 50,
-						},
-						MetadataMatch: v2.Metadata{
-							"version": "v1",
-						},
-					},
-				},
-				{
-					Cluster: v2.ClusterWeight{
-						ClusterWeightConfig: v2.ClusterWeightConfig{
-							Name:   "w2",
-							Weight: 40,
-						},
-						MetadataMatch: v2.Metadata{
-							"version": "v2",
-						},
-					},
-				},
-			},
-		},
-	}
-
 	type testCase struct {
 		routerCase []*v2.Router
 		ratio      []uint
@@ -257,11 +226,11 @@ func TestWeightedClusterSelect(t *testing.T) {
 			clusterName := routeRuleImplBase.ClusterName()
 			switch clusterName {
 			case "defaultCluster":
-				dcCount += 1
+				dcCount++
 			case "w1":
-				w1Count += 1
+				w1Count++
 			case "w2":
-				w2Count += 1
+				w2Count++
 			}
 		}
 
@@ -271,10 +240,5 @@ func TestWeightedClusterSelect(t *testing.T) {
 
 		}
 		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
-	}
-
-	routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routerMock3)
-	if len(routeRuleImplBase.weightedClusters) != 0 {
-		t.Errorf("wanted invalid weighted cluster init but not")
 	}
 }
