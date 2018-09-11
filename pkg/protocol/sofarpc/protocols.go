@@ -23,6 +23,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 //All of the protocolMaps
@@ -46,14 +47,14 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 }
 
 //PROTOCOL LEVEL's Unified AppendHeaders for BOLTV1、BOLTV2、TR
-func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) (types.IoBuffer, error) {
+func (p *protocols) EncodeHeaders(context context.Context, headers types.HeaderMap) (types.IoBuffer, error) {
 	var protocolCode byte
 
 	switch headers.(type) {
 	case ProtoBasicCmd:
 		protocolCode = headers.(ProtoBasicCmd).GetProtocol()
-	case map[string]string:
-		headersMap := headers.(map[string]string)
+	case protocol.CommonHeader:
+		headersMap := headers.(protocol.CommonHeader)
 
 		if proto, exist := headersMap[SofaPropertyHeader(HeaderProtocolCode)]; exist {
 			protoValue := ConvertPropertyValueUint8(proto)
@@ -87,7 +88,7 @@ func (p *protocols) EncodeData(context context.Context, data types.IoBuffer) typ
 	return data
 }
 
-func (p *protocols) EncodeTrailers(context context.Context, trailers map[string]string) types.IoBuffer {
+func (p *protocols) EncodeTrailers(context context.Context, trailers types.HeaderMap) types.IoBuffer {
 	return nil
 }
 

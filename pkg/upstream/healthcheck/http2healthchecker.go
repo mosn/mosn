@@ -76,8 +76,8 @@ type http2HealthCheckSession struct {
 }
 
 // // types.StreamReceiver
-func (s *http2HealthCheckSession) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
-	s.responseHeaders = headers
+func (s *http2HealthCheckSession) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+	s.responseHeaders = headers.(protocol.CommonHeader)
 
 	if endStream {
 		s.onResponseComplete()
@@ -90,11 +90,11 @@ func (s *http2HealthCheckSession) OnReceiveData(context context.Context, data ty
 	}
 }
 
-func (s *http2HealthCheckSession) OnReceiveTrailers(context context.Context, trailers map[string]string) {
+func (s *http2HealthCheckSession) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 	s.onResponseComplete()
 }
 
-func (s *http2HealthCheckSession) OnDecodeError(context context.Context, err error, headers map[string]string) {
+func (s *http2HealthCheckSession) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
 
 // overload healthCheckSession
@@ -118,7 +118,7 @@ func (s *http2HealthCheckSession) onInterval() {
 		protocol.MosnHeaderPathKey: s.healthChecker.checkPath,
 	}
 
-	s.requestSender.AppendHeaders(context.Background(), reqHeaders, true)
+	s.requestSender.AppendHeaders(context.Background(), protocol.CommonHeader(reqHeaders), true)
 	s.requestSender = nil
 
 	s.healthCheckSession.onInterval()

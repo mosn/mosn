@@ -26,6 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"strconv"
 )
 
 // StreamDirection represent the stream's direction
@@ -117,7 +118,7 @@ func (conn *streamConnection) NewStream(text context.Context, streamID string, r
 	return stream
 }
 
-func (conn *streamConnection) OnDecodeHeader(streamID string, headers map[string]string) types.FilterStatus {
+func (conn *streamConnection) OnDecodeHeader(streamID string, headers types.HeaderMap) types.FilterStatus {
 	if sofarpc.IsSofaRequest(headers) {
 		conn.onNewStreamDetected(streamID, headers)
 	}
@@ -145,13 +146,13 @@ func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer)
 	return types.StopIteration
 }
 
-func (conn *streamConnection) OnDecodeTrailer(streamID string, trailers map[string]string) types.FilterStatus {
+func (conn *streamConnection) OnDecodeTrailer(streamID string, trailers types.HeaderMap) types.FilterStatus {
 	// unsupported
 	return types.StopIteration
 }
 
 // todo, deal with more exception
-func (conn *streamConnection) OnDecodeError(err error, header map[string]string) {
+func (conn *streamConnection) OnDecodeError(err error, header types.HeaderMap) {
 	if err == nil {
 		return
 	}
@@ -161,38 +162,65 @@ func (conn *streamConnection) OnDecodeError(err error, header map[string]string)
 		// for header decode error, close the connection directly
 		conn.connection.Close(types.NoFlush, types.LocalClose)
 	case types.CodecException:
-		if v, ok := header[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
-			conn.onNewStreamDetected(v, header)
+		switch h := header.(type) {
+		case protocol.CommonHeader:
+			if v, ok := h[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
+				conn.onNewStreamDetected(v, header)
 
-			if stream, ok := conn.activeStreams.Get(v); ok {
-				if stream.direction == ClientStream {
-					// for client stream, remove stream on response read
-					stream.connection.activeStreams.Remove(stream.streamID)
+				if stream, ok := conn.activeStreams.Get(v); ok {
+					if stream.direction == ClientStream {
+						// for client stream, remove stream on response read
+						stream.connection.activeStreams.Remove(stream.streamID)
+					}
+					stream.decoder.OnDecodeError(conn.context, err, header)
 				}
-				stream.decoder.OnDecodeError(conn.context, err, header)
+			} else {
+				// if no request id found, no reason to send response, so close connection
+				conn.connection.Close(types.NoFlush, types.LocalClose)
 			}
-		} else {
-			// if no request id found, no reason to send response, so close connection
-			conn.connection.Close(types.NoFlush, types.LocalClose)
+		case sofarpc.ProtoBasicCmd:
+			if reqID := h.GetReqID(); reqID != 0 {
+				reqIDStr := strconv.FormatUint(uint64(reqID), 10)
+				conn.onNewStreamDetected(reqIDStr, header)
+
+				if stream, ok := conn.activeStreams.Get(reqIDStr); ok {
+					if stream.direction == ClientStream {
+						// for client stream, remove stream on response read
+						stream.connection.activeStreams.Remove(stream.streamID)
+					}
+					stream.decoder.OnDecodeError(conn.context, err, header)
+				}
+			} else {
+				// if no request id found, no reason to send response, so close connection
+				conn.connection.Close(types.NoFlush, types.LocalClose)
+			}
 		}
 	}
 }
 
-func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[string]string) {
+func (conn *streamConnection) onNewStreamDetected(streamID string, headers types.HeaderMap) {
 	if ok := conn.activeStreams.Has(streamID); ok {
 		log.DefaultLogger.Infof("OnReceiveHeaders, stream already exist, maybe response, StreamID = %s", streamID)
 		return
 	}
 
 	var requestID string
-	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
-		requestID = v
-	} else {
-		// on decode exception stream
-		requestID = streamID
-	}
 
-	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = streamID
+	switch h:= headers.(type) {
+	case protocol.CommonHeader:
+		if v := headers.Get(sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)); v != "" {
+			requestID = v
+		} else {
+			// on decode exception stream
+			requestID = streamID
+		}
+		headers.Set(sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID), streamID)
+	case sofarpc.ProtoBasicCmd:
+		requestID = strconv.FormatUint(uint64(h.GetReqID()), 10)
+		sid, _ := strconv.ParseUint(streamID, 10, 32)
+		// replace reqid, need remove
+		h.SetReqID(uint32(sid))
+	}
 
 	sofabuffers := sofaBuffersByContent(conn.context)
 	stream := &sofabuffers.server
@@ -261,7 +289,7 @@ func (s *stream) BufferLimit() uint32 {
 }
 
 // types.StreamSender
-func (s *stream) AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
+func (s *stream) AppendHeaders(context context.Context, headers types.HeaderMap, endStream bool) error {
 	var err error
 
 	if s.encodedHeaders, err = s.connection.protocols.EncodeHeaders(context, s.encodeSterilize(headers)); err != nil {
@@ -289,7 +317,7 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 	return nil
 }
 
-func (s *stream) AppendTrailers(context context.Context, trailers map[string]string) error {
+func (s *stream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
 	s.endStream()
 
 	return nil

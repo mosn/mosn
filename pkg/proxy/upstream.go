@@ -38,7 +38,7 @@ type upstreamRequest struct {
 	connPool      types.ConnectionPool
 
 	// ~~~ upstream response buf
-	upstreamRespHeaders map[string]string
+	upstreamRespHeaders types.HeaderMap
 
 	//~~~ state
 	sendComplete bool
@@ -82,7 +82,7 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 
 // types.StreamReceiver
 // Method to decode upstream's response message
-func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
+func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	buffer.TransmitBufferPoolContext(r.downStream.context, context)
 
 	workerPool.Offer(&receiveHeadersEvent{
@@ -96,7 +96,7 @@ func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers map[
 	})
 }
 
-func (r *upstreamRequest) ReceiveHeaders(headers map[string]string, endStream bool) {
+func (r *upstreamRequest) ReceiveHeaders(headers types.HeaderMap, endStream bool) {
 	r.upstreamRespHeaders = headers
 	r.downStream.onUpstreamHeaders(headers, endStream)
 }
@@ -120,7 +120,7 @@ func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
 	r.downStream.onUpstreamData(data, endStream)
 }
 
-func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers map[string]string) {
+func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
@@ -131,26 +131,21 @@ func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers ma
 	})
 }
 
-func (r *upstreamRequest) ReceiveTrailers(trailers map[string]string) {
+func (r *upstreamRequest) ReceiveTrailers(trailers types.HeaderMap) {
 	r.downStream.onUpstreamTrailers(trailers)
 }
 
-func (r *upstreamRequest) OnDecodeError(context context.Context, err error, headers map[string]string) {
+func (r *upstreamRequest) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 	r.OnResetStream(types.StreamLocalReset)
 }
 
 // ~~~ send request wrapper
-func (r *upstreamRequest) appendHeaders(headers map[string]string, endStream bool) {
+func (r *upstreamRequest) appendHeaders(headers types.HeaderMap, endStream bool) {
 	log.StartLogger.Tracef("upstream request encode headers")
 	r.sendComplete = endStream
-	streamID := ""
-
-	if streamid, ok := headers[types.HeaderStreamID]; ok {
-		streamID = streamid
-	}
 
 	log.StartLogger.Tracef("upstream request before conn pool new stream")
-	r.connPool.NewStream(r.downStream.context, streamID, r, r)
+	r.connPool.NewStream(r.downStream.context, r.downStream.streamID, r, r)
 }
 
 func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
@@ -160,7 +155,7 @@ func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 	r.requestSender.AppendData(r.downStream.context, data, endStream)
 }
 
-func (r *upstreamRequest) appendTrailers(trailers map[string]string) {
+func (r *upstreamRequest) appendTrailers(trailers types.HeaderMap) {
 	log.DefaultLogger.Debugf("upstream request encode trailers")
 	r.sendComplete = true
 	r.trailerSent = true

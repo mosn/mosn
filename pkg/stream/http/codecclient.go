@@ -225,7 +225,7 @@ func (r *activeRequest) OnResetStream(reason types.StreamResetReason) {
 	r.codecClient.onReset(r, reason)
 }
 
-func (r *activeRequest) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
+func (r *activeRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	if endStream {
 		r.onPreDecodeComplete()
 	}
@@ -249,13 +249,13 @@ func (r *activeRequest) OnReceiveData(context context.Context, data types.IoBuff
 	}
 }
 
-func (r *activeRequest) OnReceiveTrailers(context context.Context, trailers map[string]string) {
+func (r *activeRequest) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 	r.onPreDecodeComplete()
 	r.responseDecoder.OnReceiveTrailers(context, trailers)
 	r.onDecodeComplete()
 }
 
-func (r *activeRequest) OnDecodeError(context context.Context, err error, headers map[string]string) {
+func (r *activeRequest) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
 
 func (r *activeRequest) onPreDecodeComplete() {

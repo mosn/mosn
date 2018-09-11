@@ -36,3 +36,22 @@ const (
 	MosnHeaderQueryStringKey = "querystring"
 	MosnHeaderMethod         = "method"
 )
+
+// wrapper for map[string]string
+type CommonHeader map[string]string
+
+func (h CommonHeader) Get(key string) string {
+	return h[key]
+}
+
+func (h CommonHeader) Set(key string, value string) {
+	h[key] = value
+}
+
+func (h CommonHeader) Del(key string) {
+	delete(h, key)
+}
+
+func (h CommonHeader) Raw() map[string]string {
+	return h
+}

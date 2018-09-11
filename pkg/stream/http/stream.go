@@ -246,8 +246,8 @@ type clientStream struct {
 }
 
 // types.StreamSender
-func (s *clientStream) AppendHeaders(context context.Context, headersIn interface{}, endStream bool) error {
-	headers, _ := headersIn.(map[string]string)
+func (s *clientStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
+	headers, _ := headersIn.(protocol.CommonHeader)
 
 	if s.request == nil {
 		s.request = fasthttp.AcquireRequest()
@@ -293,7 +293,7 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 	return nil
 }
 
-func (s *clientStream) AppendTrailers(context context.Context, trailers map[string]string) error {
+func (s *clientStream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
 	s.endStream()
 
 	return nil
@@ -337,7 +337,7 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		s.receiver.OnReceiveHeaders(s.context, decodeRespHeader(s.response.Header), false)
+		s.receiver.OnReceiveHeaders(s.context, protocol.CommonHeader(decodeRespHeader(s.response.Header)), false)
 		buf := buffer.NewIoBufferBytes(s.response.Body())
 		s.receiver.OnReceiveData(s.context, buf, true)
 
@@ -364,8 +364,8 @@ type serverStream struct {
 }
 
 // types.StreamSender
-func (s *serverStream) AppendHeaders(context context.Context, headerIn interface{}, endStream bool) error {
-	headers, _ := headerIn.(map[string]string)
+func (s *serverStream) AppendHeaders(context context.Context, headerIn types.HeaderMap, endStream bool) error {
+	headers, _ := headerIn.(protocol.CommonHeader)
 
 	if status, ok := headers[types.HeaderStatus]; ok {
 		statusCode, _ := strconv.Atoi(string(status))
@@ -391,7 +391,7 @@ func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, 
 	return nil
 }
 
-func (s *serverStream) AppendTrailers(context context.Context, trailers map[string]string) error {
+func (s *serverStream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
 	s.endStream()
 	return nil
 }
@@ -447,7 +447,7 @@ func (s *serverStream) handleRequest() {
 			header[protocol.MosnHeaderMethod] = string(s.ctx.Request.Header.Method())
 		}
 
-		s.receiver.OnReceiveHeaders(s.context, header, false)
+		s.receiver.OnReceiveHeaders(s.context, protocol.CommonHeader(header), false)
 
 		// data remove detect
 		if s.connection.activeStream != nil {

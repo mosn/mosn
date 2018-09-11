@@ -39,7 +39,7 @@ func (b *boltHbProcessor) Process(context context.Context, msg interface{}, filt
 		//Heartbeat message only has request header
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.RequestHeader != nil {
-				status := filter.OnDecodeHeader(reqID, cmd.RequestHeader)
+				status := filter.OnDecodeHeader(reqID, protocol.CommonHeader(cmd.RequestHeader))
 				//		logger.Debugf("Process Heartbeat Request Msg")
 
 				if status == types.StopIteration {
@@ -55,7 +55,7 @@ func (b *boltHbProcessor) Process(context context.Context, msg interface{}, filt
 		//Heartbeat message only has request header
 		if filter, ok := filter.(types.DecodeFilter); ok {
 			if cmd.ResponseHeader != nil {
-				status := filter.OnDecodeHeader(reqID, cmd.ResponseHeader)
+				status := filter.OnDecodeHeader(reqID, protocol.CommonHeader(cmd.ResponseHeader))
 				//	logger.Debugf("Process Heartbeat Response Msg")
 
 				if status == types.StopIteration {

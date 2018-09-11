@@ -20,6 +20,8 @@ package sofarpc
 import (
 	"reflect"
 	"strconv"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 func SofaPropertyHeader(name string) string {
@@ -74,17 +76,23 @@ func ConvertPropertyValue(strValue string, kind reflect.Kind) interface{} {
 	}
 }
 
-func IsSofaRequest(headers map[string]string) bool {
-	procode := ConvertPropertyValueUint8(headers[SofaPropertyHeader(HeaderProtocolCode)])
+func IsSofaRequest(headers types.HeaderMap) bool {
+	switch h := headers.(type) {
+	case protocol.CommonHeader:
+		procode := ConvertPropertyValueUint8(headers.Get(SofaPropertyHeader(HeaderProtocolCode)))
 
-	if procode == PROTOCOL_CODE_V1 || procode == PROTOCOL_CODE_V2 {
-		cmdtype := ConvertPropertyValueUint8(headers[SofaPropertyHeader(HeaderCmdType)])
+		if procode == PROTOCOL_CODE_V1 || procode == PROTOCOL_CODE_V2 {
+			cmdtype := ConvertPropertyValueUint8(headers.Get(SofaPropertyHeader(HeaderCmdType)))
 
-		if cmdtype == REQUEST {
-			return true
+			if cmdtype == REQUEST {
+				return true
+			}
 		}
+	case *BoltRequestCommand:
+		return h.CmdType == REQUEST
+	case *BoltV2RequestCommand:
+		return h.CmdType == REQUEST
 	}
-
 	return false
 }
 

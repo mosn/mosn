@@ -32,6 +32,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 // types.StreamEventListener
@@ -60,14 +61,14 @@ type downStream struct {
 	responseTimer   *timer
 
 	// ~~~ downstream request buf
-	downstreamReqHeaders  map[string]string
+	downstreamReqHeaders  types.HeaderMap
 	downstreamReqDataBuf  types.IoBuffer
-	downstreamReqTrailers map[string]string
+	downstreamReqTrailers types.HeaderMap
 
 	// ~~~ downstream response buf
-	downstreamRespHeaders  interface{}
+	downstreamRespHeaders  types.HeaderMap
 	downstreamRespDataBuf  types.IoBuffer
-	downstreamRespTrailers map[string]string
+	downstreamRespTrailers types.HeaderMap
 
 	// ~~~ state
 	// starts to send back downstream response, set on upstream response detected
@@ -183,14 +184,8 @@ func (s *downStream) cleanStream() {
 
 	// access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
-		var downstreamRespHeadersMap map[string]string
-
-		if v, ok := s.downstreamRespHeaders.(map[string]string); ok {
-			downstreamRespHeadersMap = v
-		}
-
 		for _, al := range s.proxy.accessLogs {
-			al.Log(s.downstreamReqHeaders, downstreamRespHeadersMap, s.requestInfo)
+			al.Log(s.downstreamReqHeaders.Raw(), s.downstreamRespHeaders.Raw(), s.requestInfo)
 		}
 	}
 
@@ -232,7 +227,7 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 }
 
 // types.StreamReceiver
-func (s *downStream) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
+func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
@@ -244,21 +239,21 @@ func (s *downStream) OnReceiveHeaders(context context.Context, headers map[strin
 	})
 }
 
-func (s *downStream) ReceiveHeaders(headers map[string]string, endStream bool) {
+func (s *downStream) ReceiveHeaders(headers types.HeaderMap, endStream bool) {
 	s.downstreamRecvDone = endStream
 	s.downstreamReqHeaders = headers
 
 	s.doReceiveHeaders(nil, headers, endStream)
 }
 
-func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, headers map[string]string, endStream bool) {
+func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, headers types.HeaderMap, endStream bool) {
 	if s.runReceiveHeadersFilters(filter, headers, endStream) {
 		return
 	}
 
 	//Get some route by service name
 	log.DefaultLogger.Tracef("before active stream route")
-	route := s.proxy.routers.Route(headers, 1)
+	route := s.proxy.routers.Route(headers.Raw(), 1)
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
@@ -293,8 +288,8 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	}
 
 	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
-	s.timeout = parseProxyTimeout(route, headers)
-	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
+	s.timeout = parseProxyTimeout(route, headers.Raw())
+	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers.Raw(), s.cluster)
 
 	//Build Request
 	proxyBuffers := proxyBuffersByContent(s.context)
@@ -358,7 +353,7 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 	}
 }
 
-func (s *downStream) OnReceiveTrailers(context context.Context, trailers map[string]string) {
+func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
@@ -369,7 +364,7 @@ func (s *downStream) OnReceiveTrailers(context context.Context, trailers map[str
 	})
 }
 
-func (s *downStream) ReceiveTrailers(trailers map[string]string) {
+func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.upstreamProcessDone {
 		return
@@ -380,7 +375,7 @@ func (s *downStream) ReceiveTrailers(trailers map[string]string) {
 	s.doReceiveTrailers(nil, trailers)
 }
 
-func (s *downStream) OnDecodeError(context context.Context, err error, headers map[string]string) {
+func (s *downStream) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.upstreamProcessDone {
 		return
@@ -400,7 +395,7 @@ func (s *downStream) OnDecodeError(context context.Context, err error, headers m
 	s.OnResetStream(types.StreamLocalReset)
 }
 
-func (s *downStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trailers map[string]string) {
+func (s *downStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trailers types.HeaderMap) {
 	if s.runReceiveTrailersFilters(filter, trailers) {
 		return
 	}
@@ -517,12 +512,12 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 
 // ~~~ active stream sender wrapper
 
-func (s *downStream) appendHeaders(headers map[string]string, endStream bool) {
+func (s *downStream) appendHeaders(headers types.HeaderMap, endStream bool) {
 	s.upstreamProcessDone = endStream
 	s.doAppendHeaders(nil, headers, endStream)
 }
 
-func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers interface{}, endStream bool) {
+func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers types.HeaderMap, endStream bool) {
 	if s.runAppendHeaderFilters(filter, headers, endStream) {
 		return
 	}
@@ -555,12 +550,12 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 	}
 }
 
-func (s *downStream) appendTrailers(trailers map[string]string) {
+func (s *downStream) appendTrailers(trailers types.HeaderMap) {
 	s.upstreamProcessDone = true
 	s.doAppendTrailers(nil, trailers)
 }
 
-func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers map[string]string) {
+func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers types.HeaderMap) {
 	if s.runAppendTrailersFilters(filter, trailers) {
 		return
 	}
@@ -626,12 +621,12 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 	}
 }
 
-func (s *downStream) onUpstreamHeaders(headers map[string]string, endStream bool) {
+func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) {
 	s.downstreamRespHeaders = headers
 
 	// check retry
 	if s.retryState != nil {
-		retryCheck := s.retryState.retry(headers, "", s.doRetry)
+		retryCheck := s.retryState.retry(headers.Raw(), "", s.doRetry)
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(endStream) {
 			return
@@ -662,7 +657,7 @@ func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 	s.appendData(data, endStream)
 }
 
-func (s *downStream) onUpstreamTrailers(trailers map[string]string) {
+func (s *downStream) onUpstreamTrailers(trailers types.HeaderMap) {
 	s.onUpstreamResponseRecvFinished()
 
 	s.appendTrailers(trailers)
@@ -747,13 +742,14 @@ func (s *downStream) resetStream() {
 	s.endStream()
 }
 
-func (s *downStream) sendHijackReply(code int, headers map[string]string) {
+func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	s.logger.Debugf("set hijack reply, stream id = %s, code = %d", s.streamID, code)
 	if headers == nil {
-		headers = make(map[string]string, 5)
+		raw := make(map[string]string, 5)
+		headers = protocol.CommonHeader(raw)
 	}
 
-	headers[types.HeaderStatus] = strconv.Itoa(code)
+	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	s.appendHeaders(headers, true)
 }
 
@@ -846,7 +842,7 @@ func (s *downStream) DownstreamConnection() net.Conn {
 }
 
 func (s *downStream) DownstreamHeaders() map[string]string {
-	return s.downstreamReqHeaders
+	return s.downstreamReqHeaders.Raw()
 }
 
 func (s *downStream) GiveStream() {

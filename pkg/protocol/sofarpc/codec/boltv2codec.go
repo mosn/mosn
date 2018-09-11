@@ -60,44 +60,44 @@ func init() {
 
 type boltV2Codec struct{}
 
-func (c *boltV2Codec) EncodeHeaders(context context.Context, headers interface{}) (types.IoBuffer, error) {
-	if headerMap, ok := headers.(map[string]string); ok {
-		cmd := c.mapToCmd(context, headerMap)
+func (c *boltV2Codec) EncodeHeaders(ctx context.Context, headers types.HeaderMap) (types.IoBuffer, error) {
+	if headerMap, ok := headers.(protocol.CommonHeader); ok {
+		cmd := c.mapToCmd(ctx, headerMap)
 
-		return c.encodeHeaders(context, cmd)
+		return c.encodeHeaders(ctx, cmd)
 	}
 
-	return c.encodeHeaders(context, headers)
+	return c.encodeHeaders(ctx, headers)
 }
 
-func (c *boltV2Codec) encodeHeaders(context context.Context, headers interface{}) (types.IoBuffer, error) {
+func (c *boltV2Codec) encodeHeaders(ctx context.Context, headers interface{}) (types.IoBuffer, error) {
 	switch headers.(type) {
 	case *sofarpc.BoltV2RequestCommand:
-		return c.encodeRequestCommand(context, headers.(*sofarpc.BoltV2RequestCommand))
+		return c.encodeRequestCommand(ctx, headers.(*sofarpc.BoltV2RequestCommand))
 	case *sofarpc.BoltV2ResponseCommand:
-		return c.encodeResponseCommand(context, headers.(*sofarpc.BoltV2ResponseCommand))
+		return c.encodeResponseCommand(ctx, headers.(*sofarpc.BoltV2ResponseCommand))
 	default:
 		errMsg := sofarpc.InvalidCommandType
 		err := errors.New(errMsg)
-		log.ByContext(context).Errorf("boltV2" + errMsg)
+		log.ByContext(ctx).Errorf("boltV2" + errMsg)
 		return nil, err
 	}
 }
 
-func (c *boltV2Codec) EncodeData(context context.Context, data types.IoBuffer) types.IoBuffer {
+func (c *boltV2Codec) EncodeData(ctx context.Context, data types.IoBuffer) types.IoBuffer {
 	return data
 }
 
-func (c *boltV2Codec) EncodeTrailers(context context.Context, trailers map[string]string) types.IoBuffer {
+func (c *boltV2Codec) EncodeTrailers(ctx context.Context, trailers types.HeaderMap) types.IoBuffer {
 	return nil
 }
 
-func (c *boltV2Codec) doEncodeRequestCommand(context context.Context, cmd *sofarpc.BoltV2RequestCommand) types.IoBuffer {
+func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.BoltV2RequestCommand) types.IoBuffer {
 	var b [4]byte
 	// todo: reuse bytes @boqin
 	//data := make([]byte, 22, defaultTmpBufferSize)
 	size := 22 + int(cmd.ClassLen) + len(cmd.HeaderMap)
-	protocolCtx := protocol.ProtocolBuffersByContent(context)
+	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetReqHeader(size)
 
 	b[0] = cmd.Protocol
@@ -144,11 +144,11 @@ func (c *boltV2Codec) doEncodeRequestCommand(context context.Context, cmd *sofar
 	return buf
 }
 
-func (c *boltV2Codec) doEncodeResponseCommand(context context.Context, cmd *sofarpc.BoltV2ResponseCommand) types.IoBuffer {
+func (c *boltV2Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.BoltV2ResponseCommand) types.IoBuffer {
 	var b [4]byte
 	// todo: reuse bytes @boqin
 	size := 20 + int(cmd.ClassLen) + len(cmd.HeaderMap)
-	protocolCtx := protocol.ProtocolBuffersByContent(context)
+	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetRspHeader(size)
 
 	b[0] = cmd.Protocol
@@ -162,7 +162,7 @@ func (c *boltV2Codec) doEncodeResponseCommand(context context.Context, cmd *sofa
 	buf.Write(b[0:2])
 
 	if cmd.CmdCode == sofarpc.HEARTBEAT {
-		log.ByContext(context).Debugf("Build HeartBeat Response")
+		log.ByContext(ctx).Debugf("Build HeartBeat Response")
 	}
 
 	b[0] = cmd.Version
@@ -199,20 +199,20 @@ func (c *boltV2Codec) doEncodeResponseCommand(context context.Context, cmd *sofa
 	return buf
 }
 
-func (c *boltV2Codec) encodeRequestCommand(context context.Context, cmd *sofarpc.BoltV2RequestCommand) (types.IoBuffer, error) {
-	return c.doEncodeRequestCommand(context, cmd), nil
+func (c *boltV2Codec) encodeRequestCommand(ctx context.Context, cmd *sofarpc.BoltV2RequestCommand) (types.IoBuffer, error) {
+	return c.doEncodeRequestCommand(ctx, cmd), nil
 }
 
-func (c *boltV2Codec) encodeResponseCommand(context context.Context, cmd *sofarpc.BoltV2ResponseCommand) (types.IoBuffer, error) {
-	return c.doEncodeResponseCommand(context, cmd), nil
+func (c *boltV2Codec) encodeResponseCommand(ctx context.Context, cmd *sofarpc.BoltV2ResponseCommand) (types.IoBuffer, error) {
+	return c.doEncodeResponseCommand(ctx, cmd), nil
 }
 
-func (c *boltV2Codec) mapToCmd(context context.Context, headers map[string]string) interface{} {
+func (c *boltV2Codec) mapToCmd(ctx context.Context, headers map[string]string) interface{} {
 	if len(headers) < 12 {
 		return nil
 	}
 
-	cmdV1 := boltV1.mapToCmd(context, headers)
+	cmdV1 := boltV1.mapToCmd(ctx, headers)
 
 	value := sofarpc.GetPropertyValue1(BoltV2PropertyHeaders, headers, "ver1")
 	ver1 := sofarpc.ConvertPropertyValueUint8(value)
@@ -242,11 +242,11 @@ func (c *boltV2Codec) mapToCmd(context context.Context, headers map[string]strin
 	return nil
 }
 
-func (c *boltV2Codec) Decode(context context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
-	logger := log.ByContext(context)
+	logger := log.ByContext(ctx)
 
 	if readableBytes >= sofarpc.LESS_LEN_V2 {
 		bytes := data.Bytes()

@@ -135,7 +135,7 @@ func (p *ProtocolBuffers) GetRspTailers() map[string]string {
 }
 
 // ProtocolBuffersByContent returns ProtocolBuffers by context
-func ProtocolBuffersByContent(context context.Context) *ProtocolBuffers {
-	ctx := buffer.PoolContext(context)
-	return ctx.Find(protocolBufferCtx{}, nil).(*ProtocolBuffers)
+func ProtocolBuffersByContext(ctx context.Context) *ProtocolBuffers {
+	poolCtx := buffer.PoolContext(ctx)
+	return poolCtx.Find(protocolBufferCtx{}, nil).(*ProtocolBuffers)
 }
