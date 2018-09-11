@@ -52,7 +52,7 @@ func GetListenerAdapterInstance() *ListenerAdapter {
 // AddOrUpdateListener used to:
 // Add and start listener when listener doesn't exist
 // Update listener when listener already exist
-func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.ListenerConfig,
+func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Listener,
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) error {
 
 	var connHandler types.ConnectionHandler

@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -43,16 +42,9 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 
 		if !mosnListener.HandOffRestoredDestinationConnections {
 			for _, filterChain := range mosnListener.FilterChains {
-				for _, f := range filterChain.Filters {
-					nfcf, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config, true)
-					if err != nil {
-						log.DefaultLogger.Errorf("parse network filter failed,error:", err.Error())
-						continue
-					}
-					networkFilters = append(networkFilters, nfcf)
-				}
+				nf := GetNetworkFilters(&filterChain)
+				networkFilters = append(networkFilters, nf...)
 			}
-
 			streamFilters = GetStreamFilters(mosnListener.StreamFilters)
 
 			if len(networkFilters) == 0 {

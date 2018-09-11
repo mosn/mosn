@@ -39,7 +39,7 @@ func (f *faultInjectConfigFactory) CreateFilterChain(context context.Context, cl
 	callbacks.AddReadFilter(rf)
 }
 
-func CreateFaultInjectFactory(conf map[string]interface{}, isV2 bool) (types.NetworkFilterChainFactory, error) {
+func CreateFaultInjectFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
 	return &faultInjectConfigFactory{
 		FaultInject: config.ParseFaultInjectFilter(conf),
 	}, nil

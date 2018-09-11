@@ -110,7 +110,7 @@ func (ch *connHandler) GenerateListenerID() string {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
+func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error) {
 
 	var listenerName string
@@ -348,7 +348,7 @@ type activeListener struct {
 	tlsMng                  types.TLSContextManager
 }
 
-func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger log.Logger, accessLoggers []types.AccessLog,
+func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logger, accessLoggers []types.AccessLog,
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{

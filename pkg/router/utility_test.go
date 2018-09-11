@@ -43,9 +43,9 @@ func Test_getWeightedClusterEntryAndVerify(t *testing.T) {
 			name: "case1",
 			args: args{
 				weightedClusters: []v2.WeightedCluster{
-					{Cluster: v2.ClusterWeight{Name: "c1", Weight: 50, MetadataMatch: v2.Metadata{"label": "green", "version": "v1"}}},
-					{Cluster: v2.ClusterWeight{Name: "c2", Weight: 30, MetadataMatch: v2.Metadata{"label": "blue", "version": "v2"}}},
-					{Cluster: v2.ClusterWeight{Name: "c3", Weight: 20, MetadataMatch: v2.Metadata{"label": "gray", "version": "v0"}}},
+					{Cluster: v2.ClusterWeight{ClusterWeightConfig: v2.ClusterWeightConfig{Name: "c1", Weight: 50}, MetadataMatch: v2.Metadata{"label": "green", "version": "v1"}}},
+					{Cluster: v2.ClusterWeight{ClusterWeightConfig: v2.ClusterWeightConfig{Name: "c2", Weight: 30}, MetadataMatch: v2.Metadata{"label": "blue", "version": "v2"}}},
+					{Cluster: v2.ClusterWeight{ClusterWeightConfig: v2.ClusterWeightConfig{Name: "c3", Weight: 20}, MetadataMatch: v2.Metadata{"label": "gray", "version": "v0"}}},
 				},
 			},
 			want: result{
@@ -73,9 +73,9 @@ func Test_getWeightedClusterEntryAndVerify(t *testing.T) {
 			name: "case1",
 			args: args{
 				weightedClusters: []v2.WeightedCluster{
-					{Cluster: v2.ClusterWeight{Name: "c1", Weight: 50, MetadataMatch: v2.Metadata{"label": "green", "version": "v1"}}},
-					{Cluster: v2.ClusterWeight{Name: "c2", Weight: 30, MetadataMatch: v2.Metadata{"label": "blue", "version": "v2"}}},
-					{Cluster: v2.ClusterWeight{Name: "c3", Weight: 10, MetadataMatch: v2.Metadata{"label": "gray", "version": "v0"}}},
+					{Cluster: v2.ClusterWeight{ClusterWeightConfig: v2.ClusterWeightConfig{Name: "c1", Weight: 50}, MetadataMatch: v2.Metadata{"label": "green", "version": "v1"}}},
+					{Cluster: v2.ClusterWeight{ClusterWeightConfig: v2.ClusterWeightConfig{Name: "c2", Weight: 30}, MetadataMatch: v2.Metadata{"label": "blue", "version": "v2"}}},
+					{Cluster: v2.ClusterWeight{ClusterWeightConfig: v2.ClusterWeightConfig{Name: "c3", Weight: 10}, MetadataMatch: v2.Metadata{"label": "gray", "version": "v0"}}},
 				},
 			},
 			want: result{

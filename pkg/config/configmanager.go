@@ -40,14 +40,14 @@ import (
 // called when reset service registry info received
 func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []string) {
 	// reset service info
-	config.ServiceRegistry.ServiceAppInfo = ServiceAppInfoConfig{
+	config.ServiceRegistry.ServiceAppInfo = v2.ApplicationInfo{
 		AntShareCloud: appInfo.AntShareCloud,
 		DataCenter:    appInfo.DataCenter,
 		AppName:       appInfo.AppName,
 	}
 
 	// reset servicePubInfo
-	config.ServiceRegistry.ServicePubInfo = []ServicePubInfoConfig{}
+	config.ServiceRegistry.ServicePubInfo = []v2.PublishInfo{}
 
 	// delete subInfo / dynamic clusters
 	removeClusterConfig(subServiceList)
@@ -56,8 +56,7 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 // AddClusterConfig
 // called when add cluster config info received
 func AddClusterConfig(clusters []v2.Cluster) {
-	for _, cluster := range clusters {
-		clusterConfig := convertClusterConfig(cluster)
+	for _, clusterConfig := range clusters {
 		exist := false
 
 		for i := range config.ClusterManager.Clusters {
@@ -102,14 +101,15 @@ func removeClusterConfig(clusterNames []string) {
 func AddPubInfo(pubInfoAdded map[string]string) {
 	for srvName, srvData := range pubInfoAdded {
 		exist := false
-		srvPubInfo := ServicePubInfoConfig{
-			ServiceName: srvName,
-			PubData:     srvData,
+		srvPubInfo := v2.PublishInfo{
+			Pub: v2.PublishContent{
+				ServiceName: srvName,
+				PubData:     srvData,
+			},
 		}
-
 		for i := range config.ServiceRegistry.ServicePubInfo {
 			// rewrite cluster's info
-			if config.ServiceRegistry.ServicePubInfo[i].ServiceName == srvName {
+			if config.ServiceRegistry.ServicePubInfo[i].Pub.ServiceName == srvName {
 				config.ServiceRegistry.ServicePubInfo[i] = srvPubInfo
 				exist = true
 				break
@@ -130,7 +130,7 @@ func DelPubInfo(serviceName string) {
 	dirty := false
 
 	for i, srvPubInfo := range config.ServiceRegistry.ServicePubInfo {
-		if srvPubInfo.ServiceName == serviceName {
+		if srvPubInfo.Pub.ServiceName == serviceName {
 			//remove
 			config.ServiceRegistry.ServicePubInfo = append(config.ServiceRegistry.ServicePubInfo[:i], config.ServiceRegistry.ServicePubInfo[i+1:]...)
 			dirty = true
@@ -139,48 +139,6 @@ func DelPubInfo(serviceName string) {
 	}
 
 	go dump(dirty)
-}
-
-// ~ convert functions, api.v2 model -> config model
-func convertClusterConfig(cluster v2.Cluster) ClusterConfig {
-	return ClusterConfig{
-		Name:                 cluster.Name,
-		Type:                 string(cluster.ClusterType),
-		LbType:               string(cluster.LbType),
-		MaxRequestPerConn:    cluster.MaxRequestPerConn,
-		ConnBufferLimitBytes: cluster.ConnBufferLimitBytes,
-		HealthCheck:          convertClusterHealthCheck(cluster.HealthCheck),
-		ClusterSpecConfig:    convertClusterSpec(cluster.Spec),
-	}
-}
-
-func convertClusterSpec(clusterSpec v2.ClusterSpecInfo) ClusterSpecConfig {
-	var specs []SubscribeSpecConfig
-
-	for _, sub := range clusterSpec.Subscribes {
-		specs = append(specs, SubscribeSpecConfig{
-			ServiceName: sub.ServiceName,
-		})
-	}
-
-	return ClusterSpecConfig{
-		Subscribes: specs,
-	}
-}
-
-// used to convert config's hc to v2 api
-func convertClusterHealthCheck(cchc v2.HealthCheck) ClusterHealthCheckConfig {
-
-	return ClusterHealthCheckConfig{
-		Protocol:           cchc.Protocol,
-		Timeout:            DurationConfig{cchc.Timeout},
-		HealthyThreshold:   cchc.HealthyThreshold,
-		UnhealthyThreshold: cchc.HealthyThreshold,
-		Interval:           DurationConfig{cchc.Interval},
-		IntervalJitter:     DurationConfig{cchc.IntervalJitter},
-		CheckPath:          cchc.CheckPath,
-		ServiceName:        cchc.ServiceName,
-	}
 }
 
 // AddRouterConfig

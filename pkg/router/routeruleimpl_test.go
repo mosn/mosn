@@ -46,8 +46,14 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		route := &v2.Router{
-			Match: v2.RouterMatch{Prefix: tc.prefix},
-			Route: v2.RouteAction{ClusterName: "test"},
+			RouterConfig: v2.RouterConfig{
+				Match: v2.RouterMatch{Prefix: tc.prefix},
+				Route: v2.RouteAction{
+					RouterActionConfig: v2.RouterActionConfig{
+						ClusterName: "test",
+					},
+				},
+			},
 		}
 		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PrefixRouteRuleImpl{
@@ -77,8 +83,14 @@ func TestPathRouteRuleImpl(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		route := &v2.Router{
-			Match: v2.RouterMatch{Path: tc.path},
-			Route: v2.RouteAction{ClusterName: "test"},
+			RouterConfig: v2.RouterConfig{
+				Match: v2.RouterMatch{Path: tc.path},
+				Route: v2.RouteAction{
+					RouterActionConfig: v2.RouterActionConfig{
+						ClusterName: "test",
+					},
+				},
+			},
 		}
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		base.caseSensitive = tc.caseSensitive //hack case sensitive
@@ -106,8 +118,14 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		route := &v2.Router{
-			Match: v2.RouterMatch{Regex: tc.regexp},
-			Route: v2.RouteAction{ClusterName: "test"},
+			RouterConfig: v2.RouterConfig{
+				Match: v2.RouterMatch{Regex: tc.regexp},
+				Route: v2.RouteAction{
+					RouterActionConfig: v2.RouterActionConfig{
+						ClusterName: "test",
+					},
+				},
+			},
 		}
 		re := regexp.MustCompile(tc.regexp)
 		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
@@ -126,14 +144,17 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 }
 
 func TestWeightedClusterSelect(t *testing.T) {
-	routerMock1 := &v2.Router{
-		Route: v2.RouteAction{
+	routerMock1 := &v2.Router{}
+	routerMock1.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName: "defaultCluster",
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w1",
-						Weight: 90,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w1",
+							Weight: 90,
+						},
 						MetadataMatch: v2.Metadata{
 							"version": "v1",
 						},
@@ -141,8 +162,10 @@ func TestWeightedClusterSelect(t *testing.T) {
 				},
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w2",
-						Weight: 10,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w2",
+							Weight: 10,
+						},
 						MetadataMatch: v2.Metadata{
 							"version": "v2",
 						},
@@ -152,14 +175,17 @@ func TestWeightedClusterSelect(t *testing.T) {
 		},
 	}
 
-	routerMock2 := &v2.Router{
-		Route: v2.RouteAction{
+	routerMock2 := &v2.Router{}
+	routerMock2.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName: "defaultCluster",
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w1",
-						Weight: 50,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w1",
+							Weight: 50,
+						},
 						MetadataMatch: v2.Metadata{
 							"version": "v1",
 						},
@@ -167,8 +193,10 @@ func TestWeightedClusterSelect(t *testing.T) {
 				},
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w2",
-						Weight: 50,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w2",
+							Weight: 50,
+						},
 						MetadataMatch: v2.Metadata{
 							"version": "v2",
 						},
@@ -178,14 +206,17 @@ func TestWeightedClusterSelect(t *testing.T) {
 		},
 	}
 
-	routerMock3 := &v2.Router{
-		Route: v2.RouteAction{
+	routerMock3 := &v2.Router{}
+	routerMock3.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName: "defaultCluster",
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w1",
-						Weight: 50,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w1",
+							Weight: 50,
+						},
 						MetadataMatch: v2.Metadata{
 							"version": "v1",
 						},
@@ -193,8 +224,10 @@ func TestWeightedClusterSelect(t *testing.T) {
 				},
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w2",
-						Weight: 40,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w2",
+							Weight: 40,
+						},
 						MetadataMatch: v2.Metadata{
 							"version": "v2",
 						},
