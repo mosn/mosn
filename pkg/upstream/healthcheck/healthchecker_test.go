@@ -286,12 +286,14 @@ func mockEnv(mode int) types.Cluster {
 	log.InitDefaultLogger("", log.DEBUG)
 
 	config := v2.HealthCheck{
-		Protocol:           "mock",
-		Timeout:            testHealthCheckTimeout * time.Millisecond,
-		Interval:           testHealthCheckInterval * time.Millisecond,
-		IntervalJitter:     1,
-		HealthyThreshold:   testHealthyThreshold,
-		UnhealthyThreshold: testUnhealthyThreshold,
+		HealthCheckConfig: v2.HealthCheckConfig{
+			Protocol:           "mock",
+			HealthyThreshold:   testHealthyThreshold,
+			UnhealthyThreshold: testUnhealthyThreshold,
+		},
+		Timeout:        testHealthCheckTimeout * time.Millisecond,
+		Interval:       testHealthCheckInterval * time.Millisecond,
+		IntervalJitter: 1,
 	}
 
 	hc := newMockHealthCheck(config, mode)
@@ -303,9 +305,11 @@ func mockEnv(mode int) types.Cluster {
 	}, nil, true)
 
 	host := cluster.NewHost(v2.Host{
-		Address:  "127.0.0.1",
-		Hostname: "hostname",
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Address:  "127.0.0.1",
+			Hostname: "hostname",
+			Weight:   100,
+		},
 	}, nil)
 	hosts := []types.Host{host}
 	hostsPerLocality := [][]types.Host{hosts}
