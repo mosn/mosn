@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
-package tls
+package mtls
 
 import (
-	"crypto/tls"
 	"crypto/x509"
 	"errors"
+
+	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
 )
 
 // Support Protocols version

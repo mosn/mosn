@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-package tls
+package mtls
 
 import (
-	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -296,29 +296,44 @@ func (mgr *contextManager) Config() *tls.Config {
 	return mgr.server.Clone()
 }
 func (mgr *contextManager) Conn(c net.Conn) net.Conn {
+	if _, ok := c.(*net.TCPConn); !ok {
+		return c
+	}
 	if !mgr.Enabled() {
 		return c
 	}
 	if mgr.isClient {
-		return tls.Client(c, mgr.Config())
+		return getTLSConn(c, mgr.Config(), mgr.isClient)
 	}
 	if !mgr.inspector {
-		return tls.Server(c, mgr.Config())
+		return getTLSConn(c, mgr.Config(), mgr.isClient)
 	}
 	// do inspector
-	tlsconn := &conn{
+	conn := &Conn{
 		Conn: c,
 	}
-	buf := tlsconn.Peek()
+	buf := conn.Peek()
 	if buf == nil {
-		return tls.Server(tlsconn, mgr.Config())
+		return getTLSConn(conn, mgr.Config(), mgr.isClient)
 	}
 	switch buf[0] {
 	// TLS handshake
 	case 0x16:
-		return tls.Server(tlsconn, mgr.Config())
+		return getTLSConn(conn, mgr.Config(), mgr.isClient)
 	// Non TLS
 	default:
-		return tlsconn
+		return conn
+	}
+}
+
+func getTLSConn(c net.Conn, config *tls.Config, isClient bool) net.Conn {
+	if isClient {
+		return &TLSConn{
+			tls.Client(c, config),
+		}
+	}
+
+	return &TLSConn{
+		tls.Server(c, config),
 	}
 }

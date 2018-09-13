@@ -15,48 +15,40 @@
  * limitations under the License.
  */
 
-package tls
+package mtls
 
 import (
-	"net"
-
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"fmt"
 )
 
-type conn struct {
-	net.Conn
-	peek    [1]byte
-	haspeek bool
+const defaultFactoryName = ""
+
+var factories map[string]ConfigHooksFactory
+
+func init() {
+	factories = map[string]ConfigHooksFactory{
+		defaultFactoryName: &defaultFactory{},
+	}
 }
 
-// Peek returns 1 byte from connection, without draining any buffered data.
-func (c *conn) Peek() []byte {
-	b := make([]byte, 1, 1)
-	n, err := c.Conn.Read(b)
-	if n == 0 {
-		log.DefaultLogger.Infof("TLS Peek() error: %v", err)
-		return nil
+// Register registers an extension.
+func Register(name string, factory ConfigHooksFactory) error {
+	if _, ok := factories[name]; ok {
+		return fmt.Errorf("%s extesions is already registered", name)
 	}
-
-	c.peek[0] = b[0]
-	c.haspeek = true
-	return b
+	factories[name] = factory
+	return nil
 }
 
-// Read reads data from the connection.
-func (c *conn) Read(b []byte) (int, error) {
-	peek := 0
-	if c.haspeek {
-		c.haspeek = false
-		b[0] = c.peek[0]
-		if len(b) == 1 {
-			return 1, nil
-		}
-
-		peek = 1
-		b = b[peek:]
+func getFactory(name string) ConfigHooksFactory {
+	if factory, ok := factories[name]; ok {
+		return factory
 	}
+	return factories[defaultFactoryName]
+}
 
-	n, err := c.Conn.Read(b)
-	return n + peek, err
+type defaultFactory struct{}
+
+func (f *defaultFactory) CreateConfigHooks(config map[string]interface{}) ConfigHooks {
+	return &defaultConfigHooks{}
 }

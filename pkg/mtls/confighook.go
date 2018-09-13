@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 
-package tls
+package mtls
 
 import (
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"strings"
+
+	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
 )
 
 type defaultConfigHooks struct{}

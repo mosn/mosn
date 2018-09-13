@@ -19,7 +19,6 @@ package http2
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,6 +30,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -145,12 +145,11 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 		serverStreamConnCallbacks: callbacks,
 	}
 
-	if tlsConn, ok := ssc.connection.RawConn().(*tls.Conn); ok {
-
+	if tlsConn, ok := ssc.connection.RawConn().(*mtls.TLSConn); ok {
+		tlsConn.SetALPN(http2.NextProtoTLS)
 		if err := tlsConn.Handshake(); err != nil {
 			logger := log.ByContext(context)
 			logger.Errorf("TLS handshake error from %s: %v", ssc.connection.RemoteAddr(), err)
-
 			return nil
 		}
 	}

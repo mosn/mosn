@@ -68,7 +68,10 @@ func checkNumbers(t *testing.T, codecClient str.CodecClient, want int) {
 func TestActiveRequests(t *testing.T) {
 	cli := NewMockClient(t)
 	host := cluster.NewHost(v2.Host{Address: "127.0.0.1", Hostname: "test", Weight: 0}, cluster.NewClusterInfo())
-	codecClient := NewHTTP1CodecClient(context.Background(), host)
+	ac := &activeClient{
+		pool: &connPool{host: host},
+	}
+	codecClient := NewHTTP1CodecClient(context.Background(), ac)
 	ctx := context.Background()
 
 	codecClient.NewStream(ctx, protocol.StreamIDConv(1), cli)

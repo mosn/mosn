@@ -19,10 +19,10 @@ package types
 
 import (
 	"context"
-	"crypto/tls"
 	"net"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
 	"github.com/rcrowley/go-metrics"
 )
 
@@ -126,7 +126,7 @@ type Listener interface {
 
 //
 type TLSContextManager interface {
-	Conn(c net.Conn) net.Conn
+	Conn(net.Conn) net.Conn
 	Enabled() bool
 	Config() *tls.Config
 }

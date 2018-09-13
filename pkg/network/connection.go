@@ -22,7 +22,6 @@ import (
 	"io"
 	"math/rand"
 	"net"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,6 +29,8 @@ import (
 	"runtime/debug"
 
 	"os"
+
+	"runtime"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -338,8 +339,8 @@ func (c *connection) startReadLoop() {
 						c.Close(types.NoFlush, types.OnReadErrClose)
 					}
 
-					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
-						c.id, c.RemoteAddr().String(), err)
+					c.logger.Errorf("Error on read. Connection = %d, Local Address = %s, Remote Address = %s, err = %s",
+						c.id, c.rawConnection.LocalAddr().String(), c.RemoteAddr().String(), err)
 
 					return
 				}
@@ -356,7 +357,7 @@ func (c *connection) startReadLoop() {
 
 transfer:
 	c.transferChan <- transferNotify
-	id, _ := transferRead(c.rawConnection, c.readBuffer, c.logger)
+	id, _ := transferRead(c)
 	c.transferChan <- id
 }
 
@@ -517,8 +518,8 @@ func (c *connection) startWriteLoop() {
 				c.Close(types.NoFlush, types.OnWriteErrClose)
 			}
 
-			c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
-				c.id, c.RemoteAddr().String(), err)
+			c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
+				c.id, c.RemoteAddr().String(), err, c)
 
 			return
 		}
@@ -532,7 +533,7 @@ transfer:
 			return
 		case buf := <-c.writeBufferChan:
 			c.appendBuffer(buf)
-			transferWrite(c, id, c.logger)
+			transferWrite(c, id)
 		}
 	}
 }

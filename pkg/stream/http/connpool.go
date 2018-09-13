@@ -25,6 +25,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/valyala/fasthttp"
+	"net"
 )
 
 func init() {
@@ -158,7 +160,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	//data := pool.host.CreateConnection(context)
 	//data.Connection.Connect(false)
 
-	codecClient := NewHTTP1CodecClient(context, pool.host)
+	codecClient := NewHTTP1CodecClient(context, ac)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
@@ -197,4 +199,18 @@ func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
 
 func (ac *activeClient) OnGoAway() {
 	ac.pool.onGoAway(ac)
+}
+
+func (ac *activeClient) Dial(addr string) (net.Conn, error) {
+	conn, err := fasthttp.DialDualStack(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	tlsMng := ac.host.ClusterInfo().TLSMng()
+	if tlsMng != nil && tlsMng.Enabled() {
+		return tlsMng.Conn(conn), nil
+	}
+
+	return conn, nil
 }
