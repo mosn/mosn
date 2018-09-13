@@ -24,10 +24,30 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var host1 = v2.Host{Address: "127.0.0.1", Hostname: "h1", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
-var host2 = v2.Host{Address: "127.0.0.2", Hostname: "h2", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
-var host3 = v2.Host{Address: "127.0.0.3", Hostname: "h3", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
-var host4 = v2.Host{Address: "127.0.0.4", Hostname: "h4", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
+var host1 = v2.Host{
+	HostConfig: v2.HostConfig{
+		Address: "127.0.0.1", Hostname: "h1", Weight: 5,
+	},
+	MetaData: v2.Metadata{"label": "blue"},
+}
+var host2 = v2.Host{
+	HostConfig: v2.HostConfig{
+		Address: "127.0.0.2", Hostname: "h2", Weight: 5,
+	},
+	MetaData: v2.Metadata{"label": "blue"},
+}
+var host3 = v2.Host{
+	HostConfig: v2.HostConfig{
+		Address: "127.0.0.3", Hostname: "h3", Weight: 5,
+	},
+	MetaData: v2.Metadata{"label": "green"},
+}
+var host4 = v2.Host{
+	HostConfig: v2.HostConfig{
+		Address: "127.0.0.4", Hostname: "h4", Weight: 5,
+	},
+	MetaData: v2.Metadata{"label": "green"},
+}
 
 var clusterOrigin = v2.Cluster{
 	Name:        "o1",

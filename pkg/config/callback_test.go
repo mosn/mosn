@@ -20,19 +20,22 @@ package config
 import (
 	"testing"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/json-iterator/go"
 )
 
+type fields struct {
+	Servers             []ServerConfig
+	ClusterManager      ClusterManagerConfig
+	ServiceRegistry     v2.ServiceRegistryInfo
+	RawDynamicResources jsoniter.RawMessage
+	RawStaticResources  jsoniter.RawMessage
+}
+
 // todo fill the unit test
 func TestMOSNConfig_OnUpdateEndpoints(t *testing.T) {
-	type fields struct {
-		Servers             []ServerConfig
-		ClusterManager      ClusterManagerConfig
-		ServiceRegistry     ServiceRegistryConfig
-		RawDynamicResources jsoniter.RawMessage
-		RawStaticResources  jsoniter.RawMessage
-	}
+
 	type args struct {
 		loadAssignments []*pb.ClusterLoadAssignment
 	}
@@ -78,13 +81,6 @@ func TestMOSNConfig_OnUpdateEndpoints(t *testing.T) {
 }
 
 func TestMOSNConfig_OnDeleteClusters(t *testing.T) {
-	type fields struct {
-		Servers             []ServerConfig
-		ClusterManager      ClusterManagerConfig
-		ServiceRegistry     ServiceRegistryConfig
-		RawDynamicResources jsoniter.RawMessage
-		RawStaticResources  jsoniter.RawMessage
-	}
 	type args struct {
 		clusters []*pb.Cluster
 	}
@@ -110,13 +106,6 @@ func TestMOSNConfig_OnDeleteClusters(t *testing.T) {
 }
 
 func TestMOSNConfig_OnUpdateClusters(t *testing.T) {
-	type fields struct {
-		Servers             []ServerConfig
-		ClusterManager      ClusterManagerConfig
-		ServiceRegistry     ServiceRegistryConfig
-		RawDynamicResources jsoniter.RawMessage
-		RawStaticResources  jsoniter.RawMessage
-	}
 	type args struct {
 		clusters []*pb.Cluster
 	}
@@ -142,13 +131,6 @@ func TestMOSNConfig_OnUpdateClusters(t *testing.T) {
 }
 
 func TestMOSNConfig_OnDeleteListeners(t *testing.T) {
-	type fields struct {
-		Servers             []ServerConfig
-		ClusterManager      ClusterManagerConfig
-		ServiceRegistry     ServiceRegistryConfig
-		RawDynamicResources jsoniter.RawMessage
-		RawStaticResources  jsoniter.RawMessage
-	}
 	type args struct {
 		listeners []*pb.Listener
 	}
@@ -174,13 +156,6 @@ func TestMOSNConfig_OnDeleteListeners(t *testing.T) {
 }
 
 func TestMOSNConfig_OnAddOrUpdateListeners(t *testing.T) {
-	type fields struct {
-		Servers             []ServerConfig
-		ClusterManager      ClusterManagerConfig
-		ServiceRegistry     ServiceRegistryConfig
-		RawDynamicResources jsoniter.RawMessage
-		RawStaticResources  jsoniter.RawMessage
-	}
 	type args struct {
 		listeners []*pb.Listener
 	}

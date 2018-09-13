@@ -40,7 +40,7 @@ type testNetworkFilterFactory struct{}
 
 func (f *testNetworkFilterFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
 }
-func testNetworkFilterFactoryCreator(config map[string]interface{}, isV2 bool) (types.NetworkFilterChainFactory, error) {
+func testNetworkFilterFactoryCreator(config map[string]interface{}) (types.NetworkFilterChainFactory, error) {
 	if _, ok := config["error"]; ok {
 		return nil, errors.New("error")
 	}
@@ -66,14 +66,14 @@ func TestCreateNetworkFilterChainFactory(t *testing.T) {
 	name := "test"
 	RegisterNetwork(name, testNetworkFilterFactoryCreator)
 	config := make(map[string]interface{})
-	if _, err := CreateNetworkFilterChainFactory("no", config, false); err == nil {
+	if _, err := CreateNetworkFilterChainFactory("no", config); err == nil {
 		t.Error("no register type should return an error")
 	}
-	if _, err := CreateNetworkFilterChainFactory(name, config, false); err != nil {
+	if _, err := CreateNetworkFilterChainFactory(name, config); err != nil {
 		t.Error(err)
 	}
 	config["error"] = true
-	if _, err := CreateNetworkFilterChainFactory(name, config, false); err == nil {
+	if _, err := CreateNetworkFilterChainFactory(name, config); err == nil {
 		t.Error("create factory failed, expected an error")
 	}
 }

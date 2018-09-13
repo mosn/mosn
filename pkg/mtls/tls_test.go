@@ -132,8 +132,10 @@ func TestServerContextManagerWithMultipleCert(t *testing.T) {
 		}
 		filterChains = append(filterChains, fc)
 	}
-	lc := &v2.ListenerConfig{
-		FilterChains: filterChains,
+	lc := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			FilterChains: filterChains,
+		},
 	}
 	ctxMng, err := NewTLSServerContextManager(lc, nil, log.StartLogger)
 	if err != nil {
@@ -225,9 +227,8 @@ func TestVerifyClient(t *testing.T) {
 			TLS: *cfg,
 		},
 	}
-	lc := &v2.ListenerConfig{
-		FilterChains: filterChains,
-	}
+	lc := &v2.Listener{}
+	lc.FilterChains = filterChains
 	ctxMng, err := NewTLSServerContextManager(lc, nil, log.StartLogger)
 	if err != nil {
 		t.Errorf("create context manager failed %v", err)
@@ -318,9 +319,11 @@ func TestInspector(t *testing.T) {
 			TLS: *cfg,
 		},
 	}
-	lc := &v2.ListenerConfig{
-		Inspector:    true,
-		FilterChains: filterChains,
+	lc := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			Inspector:    true,
+			FilterChains: filterChains,
+		},
 	}
 	ctxMng, err := NewTLSServerContextManager(lc, nil, log.StartLogger)
 	if err != nil {
@@ -477,9 +480,8 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 			TLS: *serverConfig,
 		},
 	}
-	lc := &v2.ListenerConfig{
-		FilterChains: filterChains,
-	}
+	lc := &v2.Listener{}
+	lc.FilterChains = filterChains
 	ctxMng, err := NewTLSServerContextManager(lc, nil, log.StartLogger)
 	if err != nil {
 		t.Errorf("create context manager failed %v", err)
@@ -593,9 +595,8 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 		}
 		filterChains = append(filterChains, fc)
 	}
-	lc := &v2.ListenerConfig{
-		FilterChains: filterChains,
-	}
+	lc := &v2.Listener{}
+	lc.FilterChains = filterChains
 	ctxMng, err := NewTLSServerContextManager(lc, nil, log.StartLogger)
 	if err != nil {
 		t.Errorf("create context manager failed %v", err)

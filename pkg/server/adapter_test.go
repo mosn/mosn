@@ -66,16 +66,16 @@ func runMockServer(t *testing.T) {
 		cm := cluster.NewClusterManager(nil, nil, nil, true, false)
 		mockServer := NewServer(mockConfig, cmf, cm)
 
-		listenConfig := &v2.ListenerConfig{
-			Name:                    "listener1",
-			Addr:                    address,
-			BindToPort:              true,
+		listenConfig := &v2.Listener{
+			ListenerConfig: v2.ListenerConfig{
+				Name:       "listener1",
+				BindToPort: true,
+				LogPath:    "stdout",
+				HandOffRestoredDestinationConnections: true,
+			},
+			Addr: address,
 			PerConnBufferLimitBytes: 1 << 15,
-			LogPath:                 "stdout",
 			LogLevel:                3,
-			HandOffRestoredDestinationConnections: true,
-			FilterChains:                          nil,
-			StreamFilters:                         nil,
 		}
 
 		mockServer.AddListener(listenConfig, nil, nil)
@@ -114,28 +114,28 @@ func TestListenerAdapter_AddOrUpdateListener(t *testing.T) {
 	localTCPAddr := clnAddresses[0]
 	addedAddress, _ := net.ResolveTCPAddr("tcp", serverAddress) //added server
 
-	addedListenerConfig := &v2.ListenerConfig{
-		Name:                    "listener2",
-		Addr:                    addedAddress,
-		BindToPort:              true,
+	addedListenerConfig := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			Name:       "listener2",
+			BindToPort: true,
+			LogPath:    "stdout",
+			HandOffRestoredDestinationConnections: true,
+		},
+		Addr: addedAddress,
 		PerConnBufferLimitBytes: 1 << 15,
-		LogPath:                 "stdout",
 		LogLevel:                3,
-		HandOffRestoredDestinationConnections: true,
-		FilterChains:                          nil,
-		StreamFilters:                         nil,
 	}
 
-	updateListenerConfig := &v2.ListenerConfig{
-		Name:                    "listener2",
-		Addr:                    addedAddress,
-		BindToPort:              false,
+	updateListenerConfig := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			Name:       "listener2",
+			BindToPort: false,
+			LogPath:    "stdout",
+			HandOffRestoredDestinationConnections: true,
+		},
+		Addr: addedAddress,
 		PerConnBufferLimitBytes: 1 << 15,
-		LogPath:                 "stdout",
 		LogLevel:                3,
-		HandOffRestoredDestinationConnections: true,
-		FilterChains:                          nil,
-		StreamFilters:                         nil,
 	}
 
 	type fields struct {
@@ -144,7 +144,7 @@ func TestListenerAdapter_AddOrUpdateListener(t *testing.T) {
 	}
 	type args struct {
 		serverName             string
-		lc                     *v2.ListenerConfig
+		lc                     *v2.Listener
 		networkFiltersFactory  []types.NetworkFilterChainFactory
 		streamFiltersFactories []types.StreamFilterChainFactory
 	}

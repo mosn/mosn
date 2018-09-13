@@ -82,9 +82,9 @@ const (
 // Listener is a wrapper of tcp listener
 type Listener interface {
 	// Return config which initialize this listener
-	Config() *v2.ListenerConfig
+	Config() *v2.Listener
 
-	SetConfig(config *v2.ListenerConfig)
+	SetConfig(config *v2.Listener)
 
 	// Name returns the listener's name
 	Name() string
@@ -354,7 +354,7 @@ type ConnectionHandler interface {
 	// AddOrUpdateListener
 	// adds a listener into the ConnectionHandler or
 	// update a listener
-	AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []NetworkFilterChainFactory,
+	AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []NetworkFilterChainFactory,
 		streamFiltersFactories []StreamFilterChainFactory) (ListenerEventListener, error)
 
 	// StartListener starts a listener by the specified listener tag

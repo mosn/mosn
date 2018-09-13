@@ -38,7 +38,7 @@ type mockClient struct {
 	t *testing.T
 }
 
-func NewMockClient(t *testing.T) *mockClient {
+func newMockClient(t *testing.T) *mockClient {
 	c := &mockClient{
 		t: t,
 	}
@@ -67,7 +67,11 @@ func checkNumbers(t *testing.T, codecClient str.CodecClient, want int) {
 
 func TestActiveRequests(t *testing.T) {
 	cli := NewMockClient(t)
-	host := cluster.NewHost(v2.Host{Address: "127.0.0.1", Hostname: "test", Weight: 0}, cluster.NewClusterInfo())
+	host := cluster.NewHost(v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: "127.0.0.1", Hostname: "test", Weight: 0,
+		},
+	}, cluster.NewClusterInfo())
 	ac := &activeClient{
 		pool: &connPool{host: host},
 	}
