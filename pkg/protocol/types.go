@@ -23,10 +23,10 @@ import (
 
 // Protocol type definition
 const (
-	SofaRPC   types.Protocol = "sofarpc"
-	HTTP1     types.Protocol = "http1"
-	HTTP2     types.Protocol = "http2"
-	Xprotocol types.Protocol = "x"
+	SofaRPC   types.Protocol = "SofaRpc"
+	HTTP1     types.Protocol = "Http1"
+	HTTP2     types.Protocol = "Http2"
+	Xprotocol types.Protocol = "X"
 )
 
 // Host key for routing in MOSN Header
