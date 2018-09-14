@@ -31,6 +31,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -438,11 +439,11 @@ func (s *downStream) onUpstreamRequestSent() {
 // Note: global-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
 func (s *downStream) onResponseTimeout() {
 	s.responseTimer = nil
-	s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
+	s.cluster.Stats().Counter(stats.UpstreamRequestTimeout).Inc(1)
 
 	if s.upstreamRequest != nil {
 		if s.upstreamRequest.host != nil {
-			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
+			s.upstreamRequest.host.HostStats().Counter(stats.UpstreamRequestTimeout).Inc(1)
 		}
 
 		s.upstreamRequest.resetStream()
@@ -470,10 +471,10 @@ func (s *downStream) onPerReqTimeout() {
 		// handle timeout on response not
 
 		s.perRetryTimer = nil
-		s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
+		s.cluster.Stats().Counter(stats.UpstreamRequestTimeout).Inc(1)
 
 		if s.upstreamRequest.host != nil {
-			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
+			s.upstreamRequest.host.HostStats().Counter(stats.UpstreamRequestTimeout).Inc(1)
 		}
 
 		s.upstreamRequest.resetStream()

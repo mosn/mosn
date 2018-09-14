@@ -19,120 +19,86 @@ package proxy
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/stats"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 )
 
-// downstream stats key
-const (
-	DownstreamConnectionTotal   = "downstream_connection_total"
-	DownstreamConnectionDestroy = "downstream_connection_destroy"
-	DownstreamConnectionActive  = "downstream_connection_active"
-	DownstreamBytesRead         = "downstream_bytes_read"
-	DownstreamBytesReadCurrent  = "downstream_bytes_read_current"
-	DownstreamBytesWrite        = "downstream_bytes_write"
-	DownstreamBytesWriteCurrent = "downstream_bytes_write_current"
-	DownstreamRequestTotal      = "downstream_request_total"
-	DownstreamRequestActive     = "downstream_request_active"
-	DownstreamRequestReset      = "downstream_request_reset"
-	DownstreamRequestTime       = "downstream_request_time"
-)
-
 type proxyStats struct {
-	stats *stats.Stats
+	stats types.Metrics
 }
 
-func newProxyStats(namespace string) *proxyStats {
+func newProxyStats(proxyname string) *proxyStats {
 	return &proxyStats{
-		stats: initProxyStats(namespace),
+		stats: stats.NewProxyStats(proxyname),
 	}
-}
-
-func initProxyStats(namespace string) *stats.Stats {
-	return stats.NewStats(namespace).AddCounter(DownstreamConnectionTotal).
-		AddCounter(DownstreamConnectionDestroy).AddCounter(DownstreamConnectionActive).AddCounter(DownstreamBytesRead).
-		AddGauge(DownstreamBytesReadCurrent).AddCounter(DownstreamBytesWrite).AddGauge(DownstreamBytesWriteCurrent).
-		AddCounter(DownstreamRequestTotal).AddCounter(DownstreamRequestActive).AddCounter(DownstreamRequestReset).AddHistogram(DownstreamRequestTime)
 }
 
 func (s *proxyStats) DownstreamConnectionTotal() metrics.Counter {
-	return s.stats.Counter(DownstreamConnectionTotal)
+	return s.stats.Counter(stats.DownstreamConnectionTotal)
 }
 
 func (s *proxyStats) DownstreamConnectionDestroy() metrics.Counter {
-	return s.stats.Counter(DownstreamConnectionDestroy)
+	return s.stats.Counter(stats.DownstreamConnectionDestroy)
 }
 
 func (s *proxyStats) DownstreamConnectionActive() metrics.Counter {
-	return s.stats.Counter(DownstreamConnectionActive)
+	return s.stats.Counter(stats.DownstreamConnectionActive)
 }
 
 func (s *proxyStats) DownstreamBytesRead() metrics.Counter {
-	return s.stats.Counter(DownstreamBytesRead)
+	return s.stats.Counter(stats.DownstreamBytesRead)
 }
 
 func (s *proxyStats) DownstreamBytesReadCurrent() metrics.Gauge {
-	return s.stats.Gauge(DownstreamBytesReadCurrent)
+	return s.stats.Gauge(stats.DownstreamBytesReadCurrent)
 }
 
 func (s *proxyStats) DownstreamBytesWrite() metrics.Counter {
-	return s.stats.Counter(DownstreamBytesWrite)
+	return s.stats.Counter(stats.DownstreamBytesWrite)
 }
 
 func (s *proxyStats) DownstreamBytesWriteCurrent() metrics.Gauge {
-	return s.stats.Gauge(DownstreamBytesWriteCurrent)
+	return s.stats.Gauge(stats.DownstreamBytesWriteCurrent)
 }
 
 func (s *proxyStats) DownstreamRequestTotal() metrics.Counter {
-	return s.stats.Counter(DownstreamRequestTotal)
+	return s.stats.Counter(stats.DownstreamRequestTotal)
 }
 
 func (s *proxyStats) DownstreamRequestActive() metrics.Counter {
-	return s.stats.Counter(DownstreamRequestActive)
+	return s.stats.Counter(stats.DownstreamRequestActive)
 }
 
 func (s *proxyStats) DownstreamRequestReset() metrics.Counter {
-	return s.stats.Counter(DownstreamRequestReset)
+	return s.stats.Counter(stats.DownstreamRequestReset)
 }
 
 func (s *proxyStats) DownstreamRequestTime() metrics.Histogram {
-	return s.stats.Histogram(DownstreamRequestTime)
-}
-
-func (s *proxyStats) String() string {
-	return s.stats.String()
+	return s.stats.Histogram(stats.DownstreamRequestTime)
 }
 
 type listenerStats struct {
-	stats *stats.Stats
+	stats types.Metrics
 }
 
-func newListenerStats(namespace string) *listenerStats {
+func newListenerStats(listenername string) *listenerStats {
 	return &listenerStats{
-		stats: initListenerStats(namespace),
+		stats: stats.NewListenerStats(listenername),
 	}
 }
 
-func initListenerStats(namespace string) *stats.Stats {
-	return stats.NewStats(namespace).AddCounter(DownstreamRequestTotal).
-		AddCounter(DownstreamRequestActive).AddCounter(DownstreamRequestReset).AddHistogram(DownstreamRequestTime)
-}
-
 func (s *listenerStats) DownstreamRequestTotal() metrics.Counter {
-	return s.stats.Counter(DownstreamRequestTotal)
+	return s.stats.Counter(stats.DownstreamRequestTotal)
 }
 
 func (s *listenerStats) DownstreamRequestActive() metrics.Counter {
-	return s.stats.Counter(DownstreamRequestActive)
+	return s.stats.Counter(stats.DownstreamRequestActive)
 }
 
 func (s *listenerStats) DownstreamRequestReset() metrics.Counter {
-	return s.stats.Counter(DownstreamRequestReset)
+	return s.stats.Counter(stats.DownstreamRequestReset)
 }
 
 func (s *listenerStats) DownstreamRequestTime() metrics.Histogram {
-	return s.stats.Histogram(DownstreamRequestTime)
-}
-
-func (s *listenerStats) String() string {
-	return s.stats.String()
+	return s.stats.Histogram(stats.DownstreamRequestTime)
 }

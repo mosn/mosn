@@ -23,7 +23,6 @@ import (
 	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/rcrowley/go-metrics"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -164,10 +163,6 @@ type Host interface {
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
-	Counters() HostStats
-
-	Gauges() HostStats
-
 	ClearHealthFlag(flag HealthFlag)
 
 	ContainHealthFlag(flag HealthFlag) bool
@@ -214,26 +209,7 @@ type HostInfo interface {
 
 // HostStats defines a host's statistics information
 type HostStats struct {
-	Namespace                                      string
-	UpstreamConnectionTotal                        metrics.Counter
-	UpstreamConnectionClose                        metrics.Counter
-	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionTotalHTTP1                   metrics.Counter
-	UpstreamConnectionTotalHTTP2                   metrics.Counter
-	UpstreamConnectionTotalSofaRPC                 metrics.Counter
-	UpstreamConnectionConFail                      metrics.Counter
-	UpstreamConnectionLocalClose                   metrics.Counter
-	UpstreamConnectionRemoteClose                  metrics.Counter
-	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
-	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
-	UpstreamConnectionCloseNotify                  metrics.Counter
-	UpstreamRequestTotal                           metrics.Counter
-	UpstreamRequestActive                          metrics.Counter
-	UpstreamRequestLocalReset                      metrics.Counter
-	UpstreamRequestRemoteReset                     metrics.Counter
-	UpstreamRequestTimeout                         metrics.Counter
-	UpstreamRequestFailureEject                    metrics.Counter
-	UpstreamRequestPendingOverflow                 metrics.Counter
+	Metrics
 }
 
 // ClusterInfo defines a cluster's information
@@ -299,37 +275,7 @@ type Resource interface {
 
 // ClusterStats defines a cluster's statistics information
 type ClusterStats struct {
-	Namespace                                      string
-	UpstreamConnectionTotal                        metrics.Counter
-	UpstreamConnectionClose                        metrics.Counter
-	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionTotalHTTP1                   metrics.Counter
-	UpstreamConnectionTotalHTTP2                   metrics.Counter
-	UpstreamConnectionTotalSofaRPC                 metrics.Counter
-	UpstreamConnectionConFail                      metrics.Counter
-	UpstreamConnectionRetry                        metrics.Counter
-	UpstreamConnectionLocalClose                   metrics.Counter
-	UpstreamConnectionRemoteClose                  metrics.Counter
-	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
-	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
-	UpstreamConnectionCloseNotify                  metrics.Counter
-	UpstreamBytesRead                              metrics.Counter
-	UpstreamBytesReadCurrent                       metrics.Gauge
-	UpstreamBytesWrite                             metrics.Counter
-	UpstreamBytesWriteCurrent                      metrics.Gauge
-	UpstreamRequestTotal                           metrics.Counter
-	UpstreamRequestActive                          metrics.Counter
-	UpstreamRequestLocalReset                      metrics.Counter
-	UpstreamRequestRemoteReset                     metrics.Counter
-	UpstreamRequestRetry                           metrics.Counter
-	UpstreamRequestRetryOverflow                   metrics.Counter
-	UpstreamRequestTimeout                         metrics.Counter
-	UpstreamRequestFailureEject                    metrics.Counter
-	UpstreamRequestPendingOverflow                 metrics.Counter
-	LBSubSetsFallBack                              metrics.Counter
-	LBSubSetsActive                                metrics.Counter
-	LBSubsetsCreated                               metrics.Counter
-	LBSubsetsRemoved                               metrics.Counter
+	Metrics
 }
 
 type CreateConnectionData struct {

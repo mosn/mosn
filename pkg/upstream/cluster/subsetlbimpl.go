@@ -22,6 +22,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -82,11 +83,11 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 			entry.PrioritySubset().Update(priority, hostAdded, hostsRemoved)
 
 			if activeBefore && !entry.Active() {
-				sslb.stats.LBSubSetsActive.Dec(1)
-				sslb.stats.LBSubsetsRemoved.Inc(1)
+				sslb.stats.Counter(stats.UpstreamLBSubSetsActive).Dec(1)
+				sslb.stats.Counter(stats.UpstreamLBSubsetsRemoved).Inc(1)
 			} else if !activeBefore && entry.Active() {
-				sslb.stats.LBSubSetsActive.Inc(1)
-				sslb.stats.LBSubsetsCreated.Inc(1)
+				sslb.stats.Counter(stats.UpstreamLBSubSetsActive).Inc(1)
+				sslb.stats.Counter(stats.UpstreamLBSubsetsCreated).Inc(1)
 			}
 		},
 
@@ -95,8 +96,8 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 				prioritySubset := NewPrioritySubsetImpl(sslb, predicate)
 				log.DefaultLogger.Debugf("creating subset loadbalancing for %+v", kvs)
 				entry.SetPrioritySubset(prioritySubset)
-				sslb.stats.LBSubSetsActive.Inc(1)
-				sslb.stats.LBSubsetsCreated.Inc(1)
+				sslb.stats.Counter(stats.UpstreamLBSubSetsActive).Inc(1)
+				sslb.stats.Counter(stats.UpstreamLBSubsetsCreated).Inc(1)
 			}
 		})
 }
@@ -117,7 +118,7 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset is nil")
 		return nil
 	}
-	sslb.stats.LBSubSetsFallBack.Inc(1)
+	sslb.stats.Counter(stats.UpstreamLBSubSetsFallBack).Inc(1)
 
 	defaulthosts := sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts()
 

@@ -73,7 +73,7 @@ var SubsetSelectors = [][]string{
 
 var SubsetLbExample = subSetLoadBalancer{
 	fallBackPolicy:        2,
-	stats:                 newClusterStats(v2.Cluster{Name: "testcluster"}),
+	stats:                 newClusterStats("testcluster"),
 	lbType:                types.RoundRobin,
 	originalPrioritySet:   &prioritySetExample,
 	defaultSubSetMetadata: InitDefaultSubsetMetadata(),
@@ -458,7 +458,7 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 	}
 
 	sslb := NewSubsetLoadBalancer(types.RoundRobin, &prioritySetExample,
-		newClusterStats(v2.Cluster{Name: "testcluster"}), NewLBSubsetInfo(InitExampleLbSubsetConfig()))
+		newClusterStats("testcluster"), NewLBSubsetInfo(InitExampleLbSubsetConfig()))
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -735,7 +735,7 @@ func TestWeightedClusterRoute(t *testing.T) {
 		if weightedClusterEntry, ok := routeRuleImplBase.WeightedCluster()[clustername]; ok {
 			metadataMatchCriteria := weightedClusterEntry.GetClusterMetadataMatchCriteria()
 			sslb := NewSubsetLoadBalancer(types.RoundRobin, &priorityMock,
-				newClusterStats(v2.Cluster{Name: "w1"}), NewLBSubsetInfo(SubsetMock()))
+				newClusterStats("w1"), NewLBSubsetInfo(SubsetMock()))
 
 			context := &ContextImplMock{
 				mmc: metadataMatchCriteria,
@@ -751,7 +751,7 @@ func TestWeightedClusterRoute(t *testing.T) {
 		if weightedClusterEntry, ok := routeRuleImplBase.WeightedCluster()[clustername]; ok {
 			metadataMatchCriteria := weightedClusterEntry.GetClusterMetadataMatchCriteria()
 			sslb := NewSubsetLoadBalancer(types.RoundRobin, &priorityMock,
-				newClusterStats(v2.Cluster{Name: "w2"}), NewLBSubsetInfo(SubsetMock()))
+				newClusterStats("w2"), NewLBSubsetInfo(SubsetMock()))
 
 			context := &ContextImplMock{
 				mmc: metadataMatchCriteria,

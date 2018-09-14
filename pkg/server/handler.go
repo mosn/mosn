@@ -336,7 +336,6 @@ type activeListener struct {
 	streamFiltersFactories  []types.StreamFilterChainFactory
 	listenIP                string
 	listenPort              int
-	statsNamespace          string
 	conns                   *list.List
 	connsMux                sync.RWMutex
 	handler                 *connHandler
@@ -375,8 +374,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logg
 
 	al.listenIP = listenIP
 	al.listenPort = listenPort
-	al.statsNamespace = types.ListenerStatsPrefix + strconv.Itoa(listenPort)
-	al.stats = newListenerStats(al.statsNamespace)
+	al.stats = newListenerStats(al.listener.Name())
 
 	mgr, err := tls.NewTLSServerContextManager(lc, listener, logger)
 	if err != nil {
@@ -418,7 +416,6 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
 	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
-	ctx = context.WithValue(ctx, types.ContextKeyListenerStatsNameSpace, al.statsNamespace)
 	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
@@ -482,7 +479,7 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.stats.DownstreamConnectionDestroy().Inc(1)
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
-	al.logger.Debugf("close downstream connection, stats: %s", al.stats.String())
+	//al.logger.Debugf("close downstream connection, stats: %s", al.stats.String())
 }
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {

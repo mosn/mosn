@@ -74,11 +74,6 @@ import (
 //    --------------------------------------------------
 //
 
-// The prefix
-const (
-	ListenerStatsPrefix = "listener.%d."
-)
-
 // Listener is a wrapper of tcp listener
 type Listener interface {
 	// Return config which initialize this listener

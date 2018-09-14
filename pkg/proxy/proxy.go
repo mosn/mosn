@@ -42,7 +42,7 @@ var (
 )
 
 func init() {
-	globalStats = newProxyStats(types.GlobalStatsNamespace)
+	globalStats = newProxyStats(types.GlobalProxyName)
 
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
@@ -106,8 +106,8 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		log.DefaultLogger.Errorf("get proxy extend config fail = %v", err)
 	}
 
-	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
-	proxy.listenerStats = newListenerStats(listenStatsNamespace)
+	listenerName := ctx.Value(types.ContextKeyListenerName).(string)
+	proxy.listenerStats = newListenerStats(listenerName)
 	//log fatal to exit
 	routers, err := router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
 	if err != nil {
