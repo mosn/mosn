@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
 	"net"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 )
 
 func init() {
@@ -209,7 +210,14 @@ func (ac *activeClient) Dial(addr string) (net.Conn, error) {
 
 	tlsMng := ac.host.ClusterInfo().TLSMng()
 	if tlsMng != nil && tlsMng.Enabled() {
-		return tlsMng.Conn(conn), nil
+		tlsConn := tlsMng.Conn(conn)
+		if conn, ok := tlsConn.(*mtls.TLSConn); ok {
+			if err := conn.Handshake(); err != nil {
+				conn.Close()
+				return nil, err
+			}
+		}
+		return tlsConn, nil
 	}
 
 	return conn, nil
