@@ -31,13 +31,37 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls/certtool"
-	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"golang.org/x/net/http2"
 )
 
 type MockListener struct {
 	net.Listener
 	Mng types.TLSContextManager
+}
+
+func MockClient(t *testing.T, addr string, cltMng types.TLSContextManager) (*http.Response, error) {
+	c, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("request server error %v", err)
+	}
+	var conn net.Conn
+	var req *http.Request
+	conn = c
+	if cltMng != nil {
+		req, _ = http.NewRequest("GET", "https://"+addr, nil)
+		conn = cltMng.Conn(c)
+		tlsConn, _ := conn.(*TLSConn)
+		if err := tlsConn.Handshake(); err != nil {
+			return nil, fmt.Errorf("request tls handshake error %v", err)
+		}
+	} else {
+		req, _ = http.NewRequest("GET", "http://"+addr, nil)
+	}
+
+	transport := &http2.Transport{}
+	h2Conn, err := transport.NewClientConn(conn)
+	return h2Conn.RoundTrip(req)
 }
 
 func (ln MockListener) Accept() (net.Conn, error) {
@@ -49,32 +73,56 @@ func (ln MockListener) Accept() (net.Conn, error) {
 }
 
 type MockServer struct {
-	Mng    types.TLSContextManager
-	Addr   string
-	server *http.Server
+	Mng      types.TLSContextManager
+	Addr     string
+	server   *http2.Server
+	t        *testing.T
+	listener *MockListener
 }
 
 func (s *MockServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "mock server")
 }
+
 func (s *MockServer) GoListenAndServe(t *testing.T) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.ServeHTTP)
-	server := &http.Server{
-		Handler: mux,
-	}
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Errorf("listen failed %v", err)
 		return
 	}
 	s.Addr = ln.Addr().String()
-	s.server = server
-	listener := MockListener{ln, s.Mng}
-	go server.Serve(listener)
+	s.listener = &MockListener{ln, s.Mng}
+	go s.serve(s.listener)
 }
+
+func (s *MockServer) serve(ln *MockListener) {
+	for {
+		c, e := ln.Accept()
+		if e != nil {
+			return
+		}
+
+		go func() {
+			mux := http.NewServeMux()
+			mux.HandleFunc("/", s.ServeHTTP)
+			server := &http2.Server{}
+			s.server = server
+			if tlsConn, ok := c.(*TLSConn); ok {
+				tlsConn.SetALPN(http2.NextProtoTLS)
+				if err := tlsConn.Handshake(); err != nil {
+					s.t.Logf("Hanshake failed, %v", err)
+					return
+				}
+			}
+			server.ServeConn(c, &http2.ServeConnOpts{
+				Handler: mux,
+			})
+		}()
+	}
+}
+
 func (s *MockServer) Close() {
-	s.server.Close()
+	s.listener.Close()
 }
 
 type certInfo struct {
@@ -144,6 +192,7 @@ func TestServerContextManagerWithMultipleCert(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
+		t:   t,
 	}
 	server.GoListenAndServe(t)
 	defer server.Close()
@@ -151,62 +200,55 @@ func TestServerContextManagerWithMultipleCert(t *testing.T) {
 	// request with different "servername"
 	// context manager just find a certificate to response
 	// the certificate may be not match the client
-	url := server.Addr
 	for i, tc := range testCases {
-		trans := &http.Transport{
-			DialTLS: func(netw, addr string) (net.Conn, error) {
-				c, err := tls.Dial(netw, addr, &tls.Config{
-					ServerName:         tc.Addr,
-					InsecureSkipVerify: true,
-				})
-				if err != nil {
-					return nil, err
-				}
-				return c, c.Handshake()
-			},
+		cfg := &v2.TLSConfig{
+			Status:       true,
+			ServerName:   tc.Addr,
+			InsecureSkip: true,
 		}
-		client := &http.Client{Transport: trans}
-		resp, err := client.Get("https://" + url)
+		cltMng, err := NewTLSClientContextManager(cfg, nil)
+		if err != nil {
+			t.Errorf("create client context manager failed %v", err)
+			continue
+		}
+		resp, err := MockClient(t, server.Addr, cltMng)
 		if err != nil {
 			t.Errorf("#%d request server error %v", i, err)
 			continue
 		}
-		/*
-			serverCN := resp.TLS.PeerCertificates[0].Subject.CommonName
-			if serverCN != tc.Info.CommonName {
-				t.Errorf("#%d expected request server config %s , but got %s", i, tc.Info.CommonName, serverCN)
-			}
-		*/
+
+		serverCN := resp.TLS.PeerCertificates[0].Subject.CommonName
+		if serverCN != tc.Info.CommonName {
+			t.Errorf("#%d expected request server config %s , but got %s", i, tc.Info.CommonName, serverCN)
+		}
+
 		ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 	}
 	// request a unknown server name, return the first certificate
-	trans := &http.Transport{
-		DialTLS: func(netw, addr string) (net.Conn, error) {
-			c, err := tls.Dial(netw, addr, &tls.Config{
-				ServerName:         "www.example.net",
-				InsecureSkipVerify: true,
-			})
-			if err != nil {
-				return nil, err
-			}
-			return c, c.Handshake()
-		},
+	cfg := &v2.TLSConfig{
+		Status:       true,
+		ServerName:   "www.example.net",
+		InsecureSkip: true,
 	}
-	client := &http.Client{Transport: trans}
-	resp, err := client.Get("https://" + url)
+	cltMng, err := NewTLSClientContextManager(cfg, nil)
+	if err != nil {
+		t.Errorf("create client context manager failed %v", err)
+		return
+	}
+	resp, err := MockClient(t, server.Addr, cltMng)
 	if err != nil {
 		t.Errorf("request server error %v", err)
 		return
 	}
 	defer resp.Body.Close()
-	/*
-		serverCN := resp.TLS.PeerCertificates[0].Subject.CommonName
-		expected := testCases[0].Info.CommonName
-		if serverCN != expected {
-			t.Errorf("expected request server config  %s , but got %s", expected, serverCN)
-		}
-	*/
+
+	serverCN := resp.TLS.PeerCertificates[0].Subject.CommonName
+	expected := testCases[0].Info.CommonName
+	if serverCN != expected {
+		t.Errorf("expected request server config  %s , but got %s", expected, serverCN)
+	}
+
 	ioutil.ReadAll(resp.Body)
 }
 
@@ -236,6 +278,7 @@ func TestVerifyClient(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
+		t:   t,
 	}
 	server.GoListenAndServe(t)
 	defer server.Close()
@@ -247,6 +290,7 @@ func TestVerifyClient(t *testing.T) {
 			CACert:     cfg.CACert,
 			CertChain:  cfg.CertChain,
 			PrivateKey: cfg.PrivateKey,
+			ServerName: "127.0.0.1",
 		},
 		// Skip Verify Server
 		{
@@ -262,37 +306,29 @@ func TestVerifyClient(t *testing.T) {
 			t.Errorf("#%d create client context manager failed %v", i, err)
 			continue
 		}
-		trans := &http.Transport{
-			DialTLS: func(netw, addr string) (net.Conn, error) {
-				c, err := tls.Dial(netw, addr, cltMng.Config())
-				if err != nil {
-					return nil, err
-				}
-				return c, c.Handshake()
-			},
-		}
-		client := &http.Client{Transport: trans}
-		resp, err := client.Get("https://" + server.Addr)
+
+		resp, err := MockClient(t, server.Addr, cltMng)
 		if err != nil {
-			t.Errorf("#%d request server error %v", i, err)
+			t.Errorf("request server error %v", err)
 			continue
 		}
 		ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 	}
-	trans := &http.Transport{
-		DialTLS: func(netw, addr string) (net.Conn, error) {
-			c, err := tls.Dial(netw, addr, &tls.Config{
-				InsecureSkipVerify: true,
-			})
-			if err != nil {
-				return nil, err
-			}
-			return c, c.Handshake()
-		},
+
+	cfg = &v2.TLSConfig{
+		Status:       true,
+		ServerName:   "127.0.0.1",
+		InsecureSkip: true,
 	}
-	client := &http.Client{Transport: trans}
-	resp, err := client.Get("https://" + server.Addr)
+
+	cltMng, err := NewTLSClientContextManager(cfg, nil)
+	if err != nil {
+		t.Errorf("create client context manager failed %v", err)
+		return
+	}
+
+	resp, err := MockClient(t, server.Addr, cltMng)
 	// expected bad certificate
 	if err == nil {
 		ioutil.ReadAll(resp.Body)
@@ -300,6 +336,7 @@ func TestVerifyClient(t *testing.T) {
 		t.Errorf("server should verify client certificate")
 		return
 	}
+
 }
 
 // TestInspector tests context manager support both tls and non-tls
@@ -307,6 +344,7 @@ func TestInspector(t *testing.T) {
 	info := &certInfo{
 		CommonName: "test",
 		Curve:      "P256",
+		DNS:        "test",
 	}
 	cfg, err := info.CreateCertConfig()
 	if err != nil {
@@ -332,43 +370,39 @@ func TestInspector(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
+		t:   t,
 	}
 	server.GoListenAndServe(t)
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
-	testCases := []string{
-		"http://" + server.Addr,
-		"https://" + server.Addr,
-	}
+
 	cltMng, err := NewTLSClientContextManager(&v2.TLSConfig{
 		Status:     true,
 		CACert:     cfg.CACert,
 		CertChain:  cfg.CertChain,
 		PrivateKey: cfg.PrivateKey,
+		ServerName: "test",
 	}, nil)
 	if err != nil {
 		t.Errorf("create client context manager failed %v", err)
 		return
 	}
-	trans := &http.Transport{
-		DialTLS: func(netw, addr string) (net.Conn, error) {
-			c, err := tls.Dial(netw, addr, cltMng.Config())
-			if err != nil {
-				return nil, err
-			}
-			return c, c.Handshake()
-		},
+	// non-tls
+	resp, err := MockClient(t, server.Addr, nil)
+	if err != nil {
+		t.Errorf("request server error %v", err)
+		return
 	}
-	client := &http.Client{Transport: trans}
-	for i, tc := range testCases {
-		resp, err := client.Get(tc)
-		if err != nil {
-			t.Errorf("#%d request server error %v", i, err)
-			return
-		}
-		ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
+	ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	// tls
+	resp, err = MockClient(t, server.Addr, cltMng)
+	if err != nil {
+		t.Errorf("#%d request server error %v", err)
+		return
 	}
+	ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 }
 
 // test ConfigHooks
@@ -489,6 +523,7 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
+		t:   t,
 	}
 	server.GoListenAndServe(t)
 	defer server.Close()
@@ -512,9 +547,9 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 			Pass: fail,
 		},
 	}
-	url := "https://" + server.Addr
 	for i, tc := range testCases {
 		cfg, err := tc.Info.CreateCertConfig()
+		cfg.ServerName = "127.0.0.1"
 		if err != nil {
 			t.Errorf("#%d create client certificate error %v", i, err)
 			continue
@@ -524,16 +559,8 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 			t.Errorf("#%d create client context manager failed %v", i, err)
 			continue
 		}
-		trans := &http.Transport{
-			DialTLS: func(netw, addr string) (net.Conn, error) {
-				c, err := tls.Dial(netw, addr, cltMng.Config())
-				if err != nil {
-					return nil, err
-				}
-				return c, c.Handshake()
-			}}
-		client := &http.Client{Transport: trans}
-		resp, err := client.Get(url)
+
+		resp, err := MockClient(t, server.Addr, cltMng)
 		if !tc.Pass(resp, err) {
 			t.Errorf("#%d verify failed", i)
 		}
@@ -550,18 +577,7 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 		CommonName: extendVerify["name"].(string),
 		Curve:      "RSA",
 	}
-	clientConfig, err := clientInfo.CreateCertConfig()
-	if err != nil {
-		t.Errorf("create client certificate error %v", err)
-		return
-	}
-	clientConfig.Type = testType
-	clientConfig.ExtendVerify = extendVerify
-	cltMng, err := NewTLSClientContextManager(clientConfig, nil)
-	if err != nil {
-		t.Errorf("create client context manager failed %v", err)
-		return
-	}
+
 	testCases := []struct {
 		Info *certInfo
 		Pass func(resp *http.Response, err error) bool
@@ -604,25 +620,27 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
+		t:   t,
 	}
 	server.GoListenAndServe(t)
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
-	url := "https://" + server.Addr
+	clientConfig, err := clientInfo.CreateCertConfig()
+	if err != nil {
+		t.Errorf("create client certificate error %v", err)
+		return
+	}
+	clientConfig.Type = testType
+	clientConfig.ExtendVerify = extendVerify
 	for i, tc := range testCases {
-		cfg := cltMng.Config()
-		cfg.ServerName = tc.Info.DNS
-		trans := &http.Transport{
-			DialTLS: func(netw, addr string) (net.Conn, error) {
-				c, err := tls.Dial(netw, addr, cfg)
-				if err != nil {
-					return nil, err
-				}
-				return c, c.Handshake()
-			},
+		clientConfig.ServerName = tc.Info.DNS
+		cltMng, err := NewTLSClientContextManager(clientConfig, nil)
+		if err != nil {
+			t.Errorf("create client context manager failed %v", err)
+			return
 		}
-		client := &http.Client{Transport: trans}
-		resp, err := client.Get(url)
+
+		resp, err := MockClient(t, server.Addr, cltMng)
 		if !tc.Pass(resp, err) {
 			t.Errorf("#%d verify failed", i)
 		}
@@ -636,24 +654,14 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 		PrivateKey:   clientConfig.PrivateKey,
 		InsecureSkip: true,
 	}
-	skipMng, err := NewTLSClientContextManager(skipConfig, nil)
-	if err != nil {
-		t.Errorf("create client context manager failed %v", err)
-		return
-	}
 	for i, tc := range testCases {
-		cfg := skipMng.Config()
-		cfg.ServerName = tc.Info.DNS
-		trans := &http.Transport{
-			DialTLS: func(netw, addr string) (net.Conn, error) {
-				c, err := tls.Dial(netw, addr, cfg)
-				if err != nil {
-					return nil, err
-				}
-				return c, c.Handshake()
-			}}
-		client := &http.Client{Transport: trans}
-		resp, err := client.Get(url)
+		skipConfig.ServerName = tc.Info.DNS
+		skipMng, err := NewTLSClientContextManager(skipConfig, nil)
+		if err != nil {
+			t.Errorf("create client context manager failed %v", err)
+			return
+		}
+		resp, err := MockClient(t, server.Addr, skipMng)
 		// ignore the case, must be pass
 		if !pass(resp, err) {
 			t.Errorf("#%d skip verify failed", i)
