@@ -41,7 +41,7 @@ func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 // "runtimeKey" and "loader" are not used currently
 func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]weightedClusterEntry, uint32) {
 	var weightedClusterEntries = make(map[string]weightedClusterEntry)
-	var totalWeight uint32 = 0
+	var totalWeight uint32
 	for _, weightedCluster := range weightedClusters {
 		subsetLBMetaData := weightedCluster.Cluster.MetadataMatch
 		totalWeight = totalWeight + weightedCluster.Cluster.Weight
@@ -56,7 +56,7 @@ func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]
 	return weightedClusterEntries, totalWeight
 }
 
-func getRouterHeades(heades []v2.HeaderMatcher) []*types.HeaderData {
+func getRouterHeaders(heades []v2.HeaderMatcher) []*types.HeaderData {
 	var headerDatas []*types.HeaderData
 
 	for _, header := range heades {
@@ -72,7 +72,7 @@ func getRouterHeades(heades []v2.HeaderMatcher) []*types.HeaderData {
 			if pattern, err := regexp.Compile(header.Name); err != nil {
 				headerData.RegexPattern = pattern
 			} else {
-				log.DefaultLogger.Errorf("getRouterHeades compile error")
+				log.DefaultLogger.Errorf("getRouterHeaders compile error")
 				continue
 			}
 		}

@@ -40,10 +40,7 @@ func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(context context.C
 	callbacks.AddReadFilter(p)
 }
 
-func CreateProxyFactory(conf map[string]interface{}, isV2 bool) (types.NetworkFilterChainFactory, error) {
-	if !isV2 {
-		conf = config.ConvertProxyFilterToV2(conf)
-	}
+func CreateProxyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
 	return &genericProxyFilterConfigFactory{
 		Proxy: config.ParseProxyFilter(conf),
 	}, nil

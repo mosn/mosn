@@ -25,7 +25,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -118,7 +117,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 				// network filters
 				if !lc.HandOffRestoredDestinationConnections {
 					// network and stream filters
-					nfcf = getNetworkFilters(&lc.FilterChains[0])
+					nfcf = config.GetNetworkFilters(&lc.FilterChains[0])
 					sfcf = config.GetStreamFilters(lc.StreamFilters)
 				}
 
@@ -185,19 +184,6 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	xdsClient.Stop()
 }
 
-// getNetworkFilter
-// Used to parse proxy from config
-func getNetworkFilters(c *v2.FilterChain) []types.NetworkFilterChainFactory {
-	var factories []types.NetworkFilterChainFactory
-	for _, f := range c.Filters {
-		factory, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config, false)
-		if err != nil {
-			log.StartLogger.Fatalln("network filter create failed :", err)
-		}
-		factories = append(factories, factory)
-	}
-	return factories
-}
 func listenerDisableIO(c *v2.FilterChain) bool {
 	for _, f := range c.Filters {
 		if f.Name == v2.DEFAULT_NETWORK_FILTER {
@@ -221,10 +207,10 @@ func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, ch
 	cmf.chcb = chcb
 }
 
-func getInheritListeners() []*v2.ListenerConfig {
+func getInheritListeners() []*v2.Listener {
 	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
 		count, _ := strconv.Atoi(os.Getenv("_MOSN_INHERIT_FD"))
-		listeners := make([]*v2.ListenerConfig, count)
+		listeners := make([]*v2.Listener, count)
 
 		log.StartLogger.Infof("received %d inherit fds", count)
 
@@ -238,7 +224,7 @@ func getInheritListeners() []*v2.ListenerConfig {
 				continue
 			}
 			if listener, ok := fileListener.(*net.TCPListener); ok {
-				listeners[idx] = &v2.ListenerConfig{Addr: listener.Addr(), InheritListener: listener}
+				listeners[idx] = &v2.Listener{Addr: listener.Addr(), InheritListener: listener}
 			} else {
 				log.StartLogger.Errorf("listener recovered from fd %d is not a tcp listener", fd)
 			}

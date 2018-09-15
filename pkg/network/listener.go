@@ -39,10 +39,10 @@ type listener struct {
 	cb                                    types.ListenerEventListener
 	rawl                                  *net.TCPListener
 	logger                                log.Logger
-	config                                *v2.ListenerConfig
+	config                                *v2.Listener
 }
 
-func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
+func NewListener(lc *v2.Listener, logger log.Logger) types.Listener {
 
 	l := &listener{
 		name:                                  lc.Name,
@@ -62,11 +62,11 @@ func NewListener(lc *v2.ListenerConfig, logger log.Logger) types.Listener {
 	return l
 }
 
-func (l *listener) Config() *v2.ListenerConfig {
+func (l *listener) Config() *v2.Listener {
 	return l.config
 }
 
-func (l *listener) SetConfig(config *v2.ListenerConfig) {
+func (l *listener) SetConfig(config *v2.Listener) {
 	l.config = config
 }
 

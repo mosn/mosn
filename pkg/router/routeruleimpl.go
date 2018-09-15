@@ -42,7 +42,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleIm
 		routerAction:  route.Route,
 		clusterName:   route.Route.ClusterName,
 		randInstance:  rand.New(rand.NewSource(time.Now().UnixNano())),
-		configHeaders: getRouterHeades(route.Match.Headers),
+		configHeaders: getRouterHeaders(route.Match.Headers),
 	}
 
 	routeRuleImplBase.weightedClusters, routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
