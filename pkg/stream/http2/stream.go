@@ -241,16 +241,19 @@ type clientStream struct {
 func (s *clientStream) AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
 	log.DefaultLogger.Tracef("http2 client stream encode headers")
 	headersMap, _ := headers.(map[string]string)
-
+	scheme := "http"
+	if _, ok := s.connection.connection.RawConn().(*mtls.TLSConn); ok {
+		scheme = "https"
+	}
 	if s.request == nil {
 		s.request = new(http.Request)
 		s.request.Method = http.MethodGet
-		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s/",
+		s.request.URL, _ = url.Parse(fmt.Sprintf(scheme+"://%s/",
 			s.connection.connection.RemoteAddr().String()))
 	}
 
 	if path, ok := headersMap[protocol.MosnHeaderPathKey]; ok {
-		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s%s",
+		s.request.URL, _ = url.Parse(fmt.Sprintf(scheme+"://%s%s",
 			s.connection.connection.RemoteAddr().String(), path))
 		delete(headersMap, protocol.MosnHeaderPathKey)
 	}
