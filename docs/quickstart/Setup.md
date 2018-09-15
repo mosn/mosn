@@ -100,9 +100,9 @@ make unit-test
 
 参考 `examples` 目录下的示例工程
 
-+ [以sofa proxy为例](testandsamples/RunMosnSofaProxy.md)
-+ [以http proxy为例](testandsamples/RunMosnHttpProxy.md)
-+ [以tcp proxy为例](testandsamples/RunMosnTCPProxy.md)
++ [以sofa proxy为例](../develop/testandsamples/RunMosnSofaProxy.md)
++ [以http proxy为例](RunMosnHttpProxy.md)
++ [以tcp proxy为例](../develop/testandsamples/RunMosnTCPProxy.md)
 
 ## MOSN 集成 Istio 运行事例
-+ [Bookinfo 实例运行](testandsamples/RunMosnWithIstio.md)
++ [Bookinfo 实例运行](RunMosnWithIstio.md)

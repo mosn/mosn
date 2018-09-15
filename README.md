@@ -21,7 +21,7 @@ follow-up development and build an open source boutique project together.
 + Multi-protocol support
     + HTTP/1.1，HTTP/2.0
     + SOFARPC
-    + Dubbo
+    + Dubbo(ongoing)
 + Routing support
     + Routing in form of virtual host
     + Routing with headers/url/prefix
@@ -54,10 +54,10 @@ follow-up development and build an open source boutique project together.
 * [Reference](docs/design/README.md)
 
 ## Quic Start
-* [Details](docs/develop/quickstart.md)
+* [Details](docs/quickstart/Setup.md)
    
 ## Docs
-* [More here](docs/mosnCatalog.md)
+* [More here](docs)
 
 ## Community
 * [Issues](https://github.com/alipay/sofa-mosn/issues)

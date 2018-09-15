@@ -44,16 +44,17 @@ MOSN是一款采用 Golang 开发的Service Mesh数据平面代理，功能和�
     + 支持在TCP IO层，协议层面加入自定义扩展
     
 ## MOSN 迭代版本特性
-+ [0.2.0](../features/0.2.0/0-2-0-list.md) 
++ [0.2.0](../features/0.2.0/README.md) 
+
 ## 架构设计
 * [参考这里](../design/README.md)
-## 快速开始
 
-* [参考这里](../develop/quickstart.md) 
+## 快速开始
+* [参考这里](../quickstart/Setup.md) 
 
 ## 文档
 * [相关使用文档](../reference/README.md)
-* [部分开发文档](../develop/README.md)
+* [部分设计文档](../design/README.md)
 
 ## 社区
 * [Issues](https://github.com/alipay/mosn/issues)

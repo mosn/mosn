@@ -48,13 +48,13 @@ follow-up development and build an open source boutique project together.
     + Scalable Network/IO ，stream layer
 
 ## Feature of Iterative Version
-+ [0.2.0](../features/0.2.0/0-2-0-list.md)
++ [0.2.0](../features/0.2.0/README.md)
 
 ## Architecture Design
 * [Reference](../design/README.md)
 
 ## Quic Start
-* [Details](../develop/quickstart.md)
+* [Details](../quickstart/Setup.md)
    
 ## Docs
 * [More here](http://www.sofastack.tech/sofa-mesh/docs/mosn-README)

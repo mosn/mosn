@@ -53,11 +53,11 @@
 * [参考这里](docs/design/README.md)
 
 ## 快速开始
-* [参考这里](docs/develop/quickstart.md) 
+* [参考这里](docs/quickstart/quickstart.md) 
 * 基于Golang 1.9.2研发，使用dep进行依赖管理
 
 ## 文档
-* [Docs](docs/mosnCatalog.md)
+* [Docs](docs)
 
 ## 社区
 * [Issues](https://github.com/alipay/sofa-mosn/issues)
