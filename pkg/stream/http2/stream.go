@@ -250,11 +250,19 @@ func (s *clientStream) AppendHeaders(context context.Context, headers interface{
 			s.connection.connection.RemoteAddr().String()))
 	}
 
+	var URI string
+
 	if path, ok := headersMap[protocol.MosnHeaderPathKey]; ok {
-		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s%s",
-			s.connection.connection.RemoteAddr().String(), path))
+		URI = fmt.Sprintf("http://%s%s", s.connection.connection.RemoteAddr().String(), path)
 		delete(headersMap, protocol.MosnHeaderPathKey)
 	}
+
+	if queryString, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
+		URI += "?" + queryString
+		delete(headersMap, protocol.MosnHeaderQueryStringKey)
+	}
+
+	s.request.URL, _ = url.Parse(URI)
 
 	if _, ok := headersMap["Host"]; ok {
 		headersMap["Host"] = s.connection.connection.RemoteAddr().String()
