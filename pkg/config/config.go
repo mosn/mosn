@@ -24,6 +24,8 @@ import (
 	"path/filepath"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/json-iterator/go"
 )
 
@@ -64,6 +66,7 @@ type MOSNConfig struct {
 	ClusterManager  ClusterManagerConfig   `json:"cluster_manager,omitempty"` //cluster config
 	ServiceRegistry v2.ServiceRegistryInfo `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
+	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty""`            // admin raw message
 	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 }
@@ -98,6 +101,17 @@ var (
 	configPath string
 	config     MOSNConfig
 )
+
+func (c *MOSNConfig) GetAdmin() *xdsboot.Admin {
+	if len(c.RawAdmin) > 0 {
+		adminConfig := &xdsboot.Admin{}
+		err := jsonpb.UnmarshalString(string(config.RawAdmin), adminConfig)
+		if err == nil {
+			return adminConfig
+		}
+	}
+	return nil
+}
 
 // Load config file and parse
 func Load(path string) *MOSNConfig {

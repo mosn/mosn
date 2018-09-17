@@ -18,8 +18,6 @@
 package config
 
 import (
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/gogo/protobuf/types"
 	"reflect"
 	"strings"
 	"testing"
@@ -27,6 +25,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -34,6 +33,7 @@ import (
 	xdsfal "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
+	"github.com/gogo/protobuf/types"
 )
 
 // todo fill the unit test
@@ -339,9 +339,9 @@ func Test_convertListenerConfig(t *testing.T) {
 				DrainType: xdsapi.Listener_DEFAULT,
 			}
 
-			got := convertListenerConfig(listenerConfig);
+			got := convertListenerConfig(listenerConfig)
 			if data, err := json.Marshal(got); err == nil {
-				if (strings.Compare(tt.want, string(data)) != 0) {
+				if strings.Compare(tt.want, string(data)) != 0 {
 					t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener)\ngot=%s\nwant=%s\n", string(data), tt.want)
 				}
 			} else {
