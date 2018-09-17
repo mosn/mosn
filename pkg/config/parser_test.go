@@ -128,8 +128,8 @@ func TestParseListenerConfig(t *testing.T) {
 func TestParseProxyFilter(t *testing.T) {
 	proxyConfigStr := `{
 		"name": "proxy",
-		"downstream_protocol": "sofarpc",
-		"upstream_protocol": "http2",
+		"downstream_protocol": "SofaRpc",
+		"upstream_protocol": "Http2",
 		"virtual_hosts": [
 			{
 				"name": "vitrual",

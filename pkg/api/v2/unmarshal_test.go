@@ -26,11 +26,11 @@ import (
 func TestClusterUnmarshal(t *testing.T) {
 	clusterConfig := `{
 		"name": "test",
-		"type": "simple",
-		"lb_type": "lb_random",
+		"type": "SIMPLE",
+		"lb_type": "LB_RANDOM",
 		"circuit_breakers":[
 			{
-				"priority":"high",
+				"priority":"HIGH",
 				"max_connections":10,
 				"max_retries":1
 			}
@@ -220,8 +220,8 @@ func TestListenerUnmarshal(t *testing.T) {
 func TestProxyUnmarshal(t *testing.T) {
 	proxy := `{
 		"name": "proxy",
-		"downstream_protocol": "http1",
-		"upstream_protocol": "sofarpc",
+		"downstream_protocol": "Http1",
+		"upstream_protocol": "Sofarpc",
 		"virtual_hosts": [
 			{
 				"name": "vitrual",
@@ -305,8 +305,8 @@ func TestProxyUnmarshal(t *testing.T) {
 		return
 	}
 	if !(p.Name == "proxy" &&
-		p.DownstreamProtocol == "http1" &&
-		p.UpstreamProtocol == "sofarpc") {
+		p.DownstreamProtocol == "Http1" &&
+		p.UpstreamProtocol == "Sofarpc") {
 		t.Error("baisc failed")
 	}
 	if len(p.VirtualHosts) != 1 {
