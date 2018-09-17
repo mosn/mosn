@@ -130,7 +130,7 @@ func (conn *streamConnection) OnDecodeHeader(streamID string, headers types.Head
 		}
 
 		if stream != nil {
-			stream.decoder.OnReceiveHeaders(stream.context, headers, endStream)
+			stream.decoder.OnReceiveHeaders(conn.context, headers, endStream)
 		}
 	}
 	if endStream {
@@ -149,7 +149,7 @@ func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer,
 			// for client stream, remove stream on response read
 			conn.activeStreams.Remove(stream.streamID)
 		}
-		stream.decoder.OnReceiveData(stream.context, data, true)
+		stream.decoder.OnReceiveData(conn.context, data, true)
 	}
 
 	return types.StopIteration
