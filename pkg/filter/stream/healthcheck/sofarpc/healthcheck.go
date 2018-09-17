@@ -28,7 +28,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 // todo: support cached pass through
@@ -65,44 +64,10 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 }
 
 func (f *healthCheckFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.FilterHeadersStatus {
-	switch h := headers.(type) {
-	case protocol.CommonHeader:
-		if cmdCodeStr, ok := h[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
-			cmdCode := sofarpc.ConvertPropertyValueInt16(cmdCodeStr)
-
-			//sofarpc.HEARTBEAT(0) is equal to sofarpc.TR_HEARTBEAT(0)
-			if cmdCode == sofarpc.HEARTBEAT {
-				protocolStr := h[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]
-				f.protocol = sofarpc.ConvertPropertyValueUint8(protocolStr)
-				requestIDStr := h[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
-				f.requestID = sofarpc.ConvertPropertyValueUint32(requestIDStr)
-				f.healthCheckReq = true
-				f.cb.RequestInfo().SetHealthCheck(true)
-
-				if !f.passThrough {
-					f.intercept = true
-				}
-
-				endStream = true
-			}
-		}
-	case *sofarpc.BoltRequestCommand:
-		if h.CmdCode == sofarpc.HEARTBEAT {
-			f.protocol = h.Protocol
-			f.requestID = h.ReqID
-			f.healthCheckReq = true
-			f.cb.RequestInfo().SetHealthCheck(true)
-
-			if !f.passThrough {
-				f.intercept = true
-			}
-
-			endStream = true
-		}
-	case *sofarpc.BoltV2RequestCommand:
-		if h.CmdCode == sofarpc.HEARTBEAT {
-			f.protocol = h.Protocol
-			f.requestID = h.ReqID
+	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+		if cmd.GetCmdCode() == sofarpc.HEARTBEAT {
+			f.protocol = cmd.GetProtocol()
+			f.requestID = cmd.GetReqID()
 			f.healthCheckReq = true
 			f.cb.RequestInfo().SetHealthCheck(true)
 

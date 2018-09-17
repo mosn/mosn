@@ -248,9 +248,9 @@ func (c *boltV1Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					return cmd, nil
 				}
 
-				//sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-				//request := &sofabuffers.BoltReq
-				request := &sofarpc.BoltRequestCommand{}
+				sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+				request := &sofabuffers.BoltReq
+				//request := &sofarpc.BoltRequestCommand{}
 				request.Protocol = sofarpc.PROTOCOL_CODE_V1
 				request.CmdType = dataType
 				request.CmdCode = int16(cmdCode)
@@ -332,9 +332,9 @@ func (c *boltV1Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					return cmd, nil
 				}
 
-				//sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-				//response := &sofabuffers.BoltRsp
-				response := &sofarpc.BoltResponseCommand{}
+				sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+				response := &sofabuffers.BoltRsp
+				//response := &sofarpc.BoltResponseCommand{}
 				response.Protocol = sofarpc.PROTOCOL_CODE_V1
 				response.CmdType = dataType
 				response.CmdCode = int16(cmdCode)
