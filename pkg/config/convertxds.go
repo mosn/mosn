@@ -61,14 +61,14 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:       xdsListener.GetName(),
-			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
-			Inspector:  true,
+			Name:                                  xdsListener.GetName(),
+			BindToPort:                            convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:                             true,
 			HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:                            convertAccessLogs(xdsListener),
 			LogPath:                               "stdout",
 		},
-		Addr: convertAddress(&xdsListener.Address),
+		Addr:                    convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 		LogLevel:                uint8(log.INFO),
 	}
@@ -279,6 +279,13 @@ func convertFilters(xdsFilters []xdslistener.Filter) []v2.Filter {
 	return filters
 }
 
+func toMap(in interface{}) map[string]interface{} {
+	var out map[string]interface{}
+	data, _ := json.Marshal(in)
+	json.Unmarshal(data, &out)
+	return out
+}
+
 // TODO: more filter config support
 func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 	if s == nil {
@@ -293,7 +300,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
-		return structs.Map(proxyConfig)
+		return toMap(proxyConfig)
 	} else if name == v2.RPC_PROXY {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
@@ -303,7 +310,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
-		return structs.Map(proxyConfig)
+		return toMap(proxyConfig)
 	} else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
 		xdsutil.StructToMessage(s, filterConfig)
@@ -316,7 +323,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 			ExtendConfig:        convertXProxyExtendConfig(filterConfig),
 		}
-		return structs.Map(proxyConfig)
+		return toMap(proxyConfig)
 	}
 
 	log.DefaultLogger.Errorf("unsupported filter config, filter name: %s", name)

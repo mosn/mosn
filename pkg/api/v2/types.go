@@ -41,10 +41,10 @@ type ClusterType string
 
 // Group of cluster type
 const (
-	STATIC_CLUSTER  ClusterType = "static"
-	SIMPLE_CLUSTER  ClusterType = "simple"
-	DYNAMIC_CLUSTER ClusterType = "dynamic"
-	EDS_CLUSTER     ClusterType = "eds"
+	STATIC_CLUSTER  ClusterType = "STATIC"
+	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
+	DYNAMIC_CLUSTER ClusterType = "DYNAMIC"
+	EDS_CLUSTER     ClusterType = "EDS"
 )
 
 // LbType
@@ -52,8 +52,8 @@ type LbType string
 
 // Group of load balancer type
 const (
-	LB_RANDOM     LbType = "lb_random"
-	LB_ROUNDROBIN LbType = "lb_roundrobin"
+	LB_RANDOM     LbType = "LB_RANDOM"
+	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
 )
 
 // RoutingPriority
@@ -61,8 +61,8 @@ type RoutingPriority string
 
 // Group of routing priority
 const (
-	DEFAULT RoutingPriority = "default"
-	HIGH    RoutingPriority = "high"
+	DEFAULT RoutingPriority = "DEFAULT"
+	HIGH    RoutingPriority = "HIGH"
 )
 
 // Cluster represents a cluster's information
