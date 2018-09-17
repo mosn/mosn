@@ -16,6 +16,8 @@ import (
 	"time"
 )
 
+var errNoCertOrKeyProvided = errors.New("Cert or key has not provided")
+
 // ServeConn serves HTTP requests from the given connection
 // using the given handler.
 //
@@ -265,10 +267,21 @@ type Server struct {
 	//     * cONTENT-lenGTH -> Content-Length
 	DisableHeaderNamesNormalizing bool
 
+	// NoDefaultServerHeader, when set to true, causes the default Server header
+	// to be excluded from the Response.
+	//
+	// The default Server header value is the value of the Name field or an
+	// internal default value in its absence. With this option set to true,
+	// the only time a Server header will be sent is if a non-zero length
+	// value is explicitly provided during a request.
+	NoDefaultServerHeader bool
+
 	// Logger, which is used by RequestCtx.Logger().
 	//
 	// By default standard logger from log package is used.
 	Logger Logger
+
+	tlsConfig *tls.Config
 
 	concurrency      uint32
 	concurrencyCh    chan struct{}
@@ -280,6 +293,12 @@ type Server struct {
 	writerPool     sync.Pool
 	hijackConnPool sync.Pool
 	bytePool       sync.Pool
+
+	// We need to know our listener so we can close it in Shutdown().
+	ln net.Listener
+
+	wg   sync.WaitGroup
+	stop int32
 }
 
 // TimeoutHandler creates RequestHandler, which returns StatusRequestTimeout
@@ -598,18 +617,13 @@ func (ctx *RequestCtx) ConnID() uint64 {
 	return ctx.connID
 }
 
-// Time returns RequestHandler call time truncated to the nearest second.
-//
-// Call time.Now() at the beginning of RequestHandler in order to obtain
-// percise RequestHandler call time.
+// Time returns RequestHandler call time.
 func (ctx *RequestCtx) Time() time.Time {
 	return ctx.time
 }
 
-// ConnTime returns the time server starts serving the connection
+// ConnTime returns the time the server started serving the connection
 // the current request came from.
-//
-// The returned time is truncated to the nearest second.
 func (ctx *RequestCtx) ConnTime() time.Time {
 	return ctx.connTime
 }
@@ -825,6 +839,26 @@ func (ctx *RequestCtx) IsPut() bool {
 // IsDelete returns true if request method is DELETE.
 func (ctx *RequestCtx) IsDelete() bool {
 	return ctx.Request.Header.IsDelete()
+}
+
+// IsConnect returns true if request method is CONNECT.
+func (ctx *RequestCtx) IsConnect() bool {
+	return ctx.Request.Header.IsConnect()
+}
+
+// IsOptions returns true if request method is OPTIONS.
+func (ctx *RequestCtx) IsOptions() bool {
+	return ctx.Request.Header.IsOptions()
+}
+
+// IsTrace returns true if request method is TRACE.
+func (ctx *RequestCtx) IsTrace() bool {
+	return ctx.Request.Header.IsTrace()
+}
+
+// IsPatch returns true if request method is PATCH.
+func (ctx *RequestCtx) IsPatch() bool {
+	return ctx.Request.Header.IsPatch()
 }
 
 // Method return request method.
@@ -1192,6 +1226,9 @@ func (s *Server) ListenAndServeUNIX(addr string, mode os.FileMode) error {
 //
 // Pass custom listener to Serve if you need listening on non-TCP4 media
 // such as IPv6.
+//
+// If the certFile or keyFile has not been provided to the server structure,
+// the function will use the previously added TLS configuration.
 func (s *Server) ListenAndServeTLS(addr, certFile, keyFile string) error {
 	ln, err := net.Listen("tcp4", addr)
 	if err != nil {
@@ -1206,6 +1243,9 @@ func (s *Server) ListenAndServeTLS(addr, certFile, keyFile string) error {
 //
 // Pass custom listener to Serve if you need listening on arbitrary media
 // such as IPv6.
+//
+// If the certFile or keyFile has not been provided the server structure,
+// the function will use previously added TLS configuration.
 func (s *Server) ListenAndServeTLSEmbed(addr string, certData, keyData []byte) error {
 	ln, err := net.Listen("tcp4", addr)
 	if err != nil {
@@ -1217,48 +1257,93 @@ func (s *Server) ListenAndServeTLSEmbed(addr string, certData, keyData []byte) e
 // ServeTLS serves HTTPS requests from the given listener.
 //
 // certFile and keyFile are paths to TLS certificate and key files.
+//
+// If the certFile or keyFile has not been provided the server structure,
+// the function will use previously added TLS configuration.
 func (s *Server) ServeTLS(ln net.Listener, certFile, keyFile string) error {
-	lnTLS, err := newTLSListener(ln, certFile, keyFile)
-	if err != nil {
+	err := s.AppendCert(certFile, keyFile)
+	if err != nil && err != errNoCertOrKeyProvided {
 		return err
 	}
-	return s.Serve(lnTLS)
+	if s.tlsConfig == nil {
+		return errNoCertOrKeyProvided
+	}
+	s.tlsConfig.BuildNameToCertificate()
+
+	return s.Serve(
+		tls.NewListener(ln, s.tlsConfig),
+	)
 }
 
 // ServeTLSEmbed serves HTTPS requests from the given listener.
 //
 // certData and keyData must contain valid TLS certificate and key data.
+//
+// If the certFile or keyFile has not been provided the server structure,
+// the function will use previously added TLS configuration.
 func (s *Server) ServeTLSEmbed(ln net.Listener, certData, keyData []byte) error {
-	lnTLS, err := newTLSListenerEmbed(ln, certData, keyData)
-	if err != nil {
+	err := s.AppendCertEmbed(certData, keyData)
+	if err != nil && err != errNoCertOrKeyProvided {
 		return err
 	}
-	return s.Serve(lnTLS)
+	if s.tlsConfig == nil {
+		return errNoCertOrKeyProvided
+	}
+	s.tlsConfig.BuildNameToCertificate()
+
+	return s.Serve(
+		tls.NewListener(ln, s.tlsConfig),
+	)
 }
 
-func newTLSListener(ln net.Listener, certFile, keyFile string) (net.Listener, error) {
+// AppendCert appends certificate and keyfile to TLS Configuration.
+//
+// This function allows programmer to handle multiple domains
+// in one server structure. See examples/multidomain
+func (s *Server) AppendCert(certFile, keyFile string) error {
+	if len(certFile) == 0 && len(keyFile) == 0 {
+		return errNoCertOrKeyProvided
+	}
+
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load TLS key pair from certFile=%q and keyFile=%q: %s", certFile, keyFile, err)
+		return fmt.Errorf("cannot load TLS key pair from certFile=%q and keyFile=%q: %s", certFile, keyFile, err)
 	}
-	return newCertListener(ln, &cert), nil
+
+	if s.tlsConfig == nil {
+		s.tlsConfig = &tls.Config{
+			Certificates:             []tls.Certificate{cert},
+			PreferServerCipherSuites: true,
+		}
+		return nil
+	}
+
+	s.tlsConfig.Certificates = append(s.tlsConfig.Certificates, cert)
+	return nil
 }
 
-func newTLSListenerEmbed(ln net.Listener, certData, keyData []byte) (net.Listener, error) {
+// AppendCertEmbed does the same as AppendCert but using in-memory data.
+func (s *Server) AppendCertEmbed(certData, keyData []byte) error {
+	if len(certData) == 0 && len(keyData) == 0 {
+		return errNoCertOrKeyProvided
+	}
+
 	cert, err := tls.X509KeyPair(certData, keyData)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load TLS key pair from the provided certData(%d) and keyData(%d): %s",
+		return fmt.Errorf("cannot load TLS key pair from the provided certData(%d) and keyData(%d): %s",
 			len(certData), len(keyData), err)
 	}
-	return newCertListener(ln, &cert), nil
-}
 
-func newCertListener(ln net.Listener, cert *tls.Certificate) net.Listener {
-	tlsConfig := &tls.Config{
-		Certificates:             []tls.Certificate{*cert},
-		PreferServerCipherSuites: true,
+	if s.tlsConfig == nil {
+		s.tlsConfig = &tls.Config{
+			Certificates:             []tls.Certificate{cert},
+			PreferServerCipherSuites: true,
+		}
+		return nil
 	}
-	return tls.NewListener(ln, tlsConfig)
+
+	s.tlsConfig.Certificates = append(s.tlsConfig.Certificates, cert)
+	return nil
 }
 
 // DefaultConcurrency is the maximum number of concurrent connections
@@ -1273,6 +1358,14 @@ func (s *Server) Serve(ln net.Listener) error {
 	var lastPerIPErrorTime time.Time
 	var c net.Conn
 	var err error
+
+	s.ln = ln
+	defer func() {
+		// Don't keep a reference to the listener if we don't need to.
+		s.ln = nil
+	}()
+
+	atomic.StoreInt32(&s.stop, 0)
 
 	maxWorkersCount := s.getConcurrency()
 	s.concurrencyCh = make(chan struct{}, maxWorkersCount)
@@ -1292,14 +1385,16 @@ func (s *Server) Serve(ln net.Listener) error {
 			}
 			return err
 		}
+		s.wg.Add(1)
 		if !wp.Serve(c) {
+			s.wg.Done()
 			s.writeFastError(c, StatusServiceUnavailable,
 				"The connection cannot be served because Server.Concurrency limit exceeded")
 			c.Close()
 			if time.Since(lastOverflowErrorTime) > time.Minute {
 				s.logger().Printf("The incoming connection cannot be served, because %d concurrent connections are served. "+
 					"Try increasing Server.Concurrency", maxWorkersCount)
-				lastOverflowErrorTime = CoarseTimeNow()
+				lastOverflowErrorTime = time.Now()
 			}
 
 			// The current server reached concurrency limit,
@@ -1312,6 +1407,27 @@ func (s *Server) Serve(ln net.Listener) error {
 		}
 		c = nil
 	}
+}
+
+// Shutdown gracefully shuts down the server without interrupting any active connections.
+// Shutdown works by first closing all open listeners and then waiting indefinitely for all connections to return to idle and then shut down.
+//
+// When Shutdown is called, Serve, ListenAndServe, and ListenAndServeTLS immediately return nil.
+// Make sure the program doesn't exit and waits instead for Shutdown to return.
+//
+// Shutdown does not close keepalive connections so its recommended to set ReadTimeout to something else than 0.
+func (s *Server) Shutdown() error {
+	if s.ln != nil {
+		if err := s.ln.Close(); err != nil {
+			return err
+		}
+	}
+	atomic.StoreInt32(&s.stop, 1)
+	// Closing the listener will make Serve() call Stop on the worker pool.
+	// Setting .stop to 1 will make serveConn() break out of its loop.
+	// Now we just have to wait until all workers are done.
+	s.wg.Wait()
+	return nil
 }
 
 func acceptConn(s *Server, ln net.Listener, lastPerIPErrorTime *time.Time) (net.Conn, error) {
@@ -1341,7 +1457,7 @@ func acceptConn(s *Server, ln net.Listener, lastPerIPErrorTime *time.Time) (net.
 				if time.Since(*lastPerIPErrorTime) > time.Minute {
 					s.logger().Printf("The number of connections from %s exceeds MaxConnsPerIP=%d",
 						getConnIP4(c), s.MaxConnsPerIP)
-					*lastPerIPErrorTime = CoarseTimeNow()
+					*lastPerIPErrorTime = time.Now()
 				}
 				continue
 			}
@@ -1381,8 +1497,8 @@ var (
 	ErrPerIPConnLimit = errors.New("too many connections per ip")
 
 	// ErrConcurrencyLimit may be returned from ServeConn if the number
-	// of concurrenty served connections exceeds Server.Concurrency.
-	ErrConcurrencyLimit = errors.New("canot serve the connection because Server.Concurrency concurrent connections are served")
+	// of concurrently served connections exceeds Server.Concurrency.
+	ErrConcurrencyLimit = errors.New("cannot serve the connection because Server.Concurrency concurrent connections are served")
 
 	// ErrKeepaliveTimeout is returned from ServeConn
 	// if the connection lifetime exceeds MaxKeepaliveDuration.
@@ -1414,6 +1530,8 @@ func (s *Server) ServeConn(c net.Conn) error {
 		c.Close()
 		return ErrConcurrencyLimit
 	}
+
+	s.wg.Add(1)
 
 	err := s.serveConn(c)
 
@@ -1453,10 +1571,15 @@ func nextConnID() uint64 {
 const DefaultMaxRequestBodySize = 4 * 1024 * 1024
 
 func (s *Server) serveConn(c net.Conn) error {
-	serverName := s.getServerName()
+	defer s.wg.Done()
+
+	var serverName []byte
+	if !s.NoDefaultServerHeader {
+		serverName = s.getServerName()
+	}
 	connRequestNum := uint64(0)
 	connID := nextConnID()
-	currentTime := CoarseTimeNow()
+	currentTime := time.Now()
 	connTime := currentTime
 	maxRequestBodySize := s.MaxRequestBodySize
 	if maxRequestBodySize <= 0 {
@@ -1481,6 +1604,11 @@ func (s *Server) serveConn(c net.Conn) error {
 		isHTTP11        bool
 	)
 	for {
+		if atomic.LoadInt32(&s.stop) == 1 {
+			err = nil
+			break
+		}
+
 		connRequestNum++
 		ctx.time = currentTime
 
@@ -1506,6 +1634,7 @@ func (s *Server) serveConn(c net.Conn) error {
 				ctx.Request.Header.DisableNormalizing()
 				ctx.Response.Header.DisableNormalizing()
 			}
+			// reading Headers and Body
 			err = ctx.Request.readLimitBody(br, maxRequestBodySize, s.GetOnly)
 			if br.Buffered() == 0 || err != nil {
 				releaseReader(s, br)
@@ -1513,21 +1642,21 @@ func (s *Server) serveConn(c net.Conn) error {
 			}
 		}
 
-		currentTime = CoarseTimeNow()
+		currentTime = time.Now()
 		ctx.lastReadDuration = currentTime.Sub(ctx.time)
 
 		if err != nil {
 			if err == io.EOF {
 				err = nil
 			} else {
-				bw = writeErrorResponse(bw, ctx, err)
+				bw = writeErrorResponse(bw, ctx, serverName, err)
 			}
 			break
 		}
 
 		// 'Expect: 100-continue' request handling.
 		// See http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html for details.
-		if !ctx.Request.Header.noBody() && ctx.Request.MayContinue() {
+		if !ctx.Request.Header.ignoreBody() && ctx.Request.MayContinue() {
 			// Send 'HTTP/1.1 100 Continue' response.
 			if bw == nil {
 				bw = acquireWriter(ctx)
@@ -1550,7 +1679,7 @@ func (s *Server) serveConn(c net.Conn) error {
 				br = nil
 			}
 			if err != nil {
-				bw = writeErrorResponse(bw, ctx, err)
+				bw = writeErrorResponse(bw, ctx, serverName, err)
 				break
 			}
 		}
@@ -1558,10 +1687,11 @@ func (s *Server) serveConn(c net.Conn) error {
 		connectionClose = s.DisableKeepalive || ctx.Request.Header.connectionCloseFast()
 		isHTTP11 = ctx.Request.Header.IsHTTP11()
 
-		ctx.Response.Header.SetServerBytes(serverName)
+		if serverName != nil {
+			ctx.Response.Header.SetServerBytes(serverName)
+		}
 		ctx.connID = connID
 		ctx.connRequestNum = connRequestNum
-		ctx.connTime = connTime
 		ctx.time = currentTime
 		s.Handler(ctx)
 
@@ -1605,7 +1735,7 @@ func (s *Server) serveConn(c net.Conn) error {
 			ctx.Response.Header.SetCanonical(strConnection, strKeepAlive)
 		}
 
-		if len(ctx.Response.Header.Server()) == 0 {
+		if serverName != nil && len(ctx.Response.Header.Server()) == 0 {
 			ctx.Response.Header.SetServerBytes(serverName)
 		}
 
@@ -1654,7 +1784,7 @@ func (s *Server) serveConn(c net.Conn) error {
 			break
 		}
 
-		currentTime = CoarseTimeNow()
+		currentTime = time.Now()
 	}
 
 	if br != nil {
@@ -1710,7 +1840,7 @@ func (s *Server) updateWriteDeadline(c net.Conn, ctx *RequestCtx, lastDeadlineTi
 	// Optimization: update write deadline only if more than 25%
 	// of the last write deadline exceeded.
 	// See https://github.com/golang/go/issues/15133 for details.
-	currentTime := CoarseTimeNow()
+	currentTime := time.Now()
 	if currentTime.Sub(lastDeadlineTime) > (writeTimeout >> 2) {
 		if err := c.SetWriteDeadline(currentTime.Add(writeTimeout)); err != nil {
 			panic(fmt.Sprintf("BUG: error in SetWriteDeadline(%s): %s", writeTimeout, err))
@@ -1864,9 +1994,8 @@ func releaseWriter(s *Server, w *bufio.Writer) {
 	s.writerPool.Put(w)
 }
 
-func (s *Server) acquireCtx(c net.Conn) *RequestCtx {
+func (s *Server) acquireCtx(c net.Conn) (ctx *RequestCtx) {
 	v := s.ctxPool.Get()
-	var ctx *RequestCtx
 	if v == nil {
 		ctx = &RequestCtx{
 			s: s,
@@ -1878,7 +2007,7 @@ func (s *Server) acquireCtx(c net.Conn) *RequestCtx {
 		ctx = v.(*RequestCtx)
 	}
 	ctx.c = c
-	return ctx
+	return
 }
 
 // Init2 prepares ctx for passing to RequestHandler.
@@ -1893,7 +2022,7 @@ func (ctx *RequestCtx) Init2(conn net.Conn, logger Logger, reduceMemoryUsage boo
 	ctx.connID = nextConnID()
 	ctx.s = fakeServer
 	ctx.connRequestNum = 0
-	ctx.connTime = CoarseTimeNow()
+	ctx.connTime = time.Now()
 	ctx.time = ctx.connTime
 
 	keepBodyBuffer := !reduceMemoryUsage
@@ -1978,21 +2107,30 @@ func (s *Server) getServerName() []byte {
 
 func (s *Server) writeFastError(w io.Writer, statusCode int, msg string) {
 	w.Write(statusLine(statusCode))
+
+	server := ""
+	if !s.NoDefaultServerHeader {
+		server = fmt.Sprintf("Server: %s\r\n", s.getServerName())
+	}
+
 	fmt.Fprintf(w, "Connection: close\r\n"+
-		"Server: %s\r\n"+
+		server+
 		"Date: %s\r\n"+
 		"Content-Type: text/plain\r\n"+
 		"Content-Length: %d\r\n"+
 		"\r\n"+
 		"%s",
-		s.getServerName(), serverDate.Load(), len(msg), msg)
+		serverDate.Load(), len(msg), msg)
 }
 
-func writeErrorResponse(bw *bufio.Writer, ctx *RequestCtx, err error) *bufio.Writer {
+func writeErrorResponse(bw *bufio.Writer, ctx *RequestCtx, serverName []byte, err error) *bufio.Writer {
 	if _, ok := err.(*ErrSmallBuffer); ok {
 		ctx.Error("Too big request header", StatusRequestHeaderFieldsTooLarge)
 	} else {
 		ctx.Error("Error when parsing request", StatusBadRequest)
+	}
+	if serverName != nil {
+		ctx.Response.Header.SetServerBytes(serverName)
 	}
 	ctx.SetConnectionClose()
 	if bw == nil {
