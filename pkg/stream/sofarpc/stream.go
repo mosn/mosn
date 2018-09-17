@@ -106,6 +106,7 @@ func (conn *streamConnection) GoAway() {
 func (conn *streamConnection) NewStream(text context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	sofabuffers := sofaBuffersByContent(text)
 	stream := &sofabuffers.client
+	//stream := &stream{}
 	stream.context = context.WithValue(text, types.ContextKeyStreamID, streamID)
 	stream.streamID = streamID
 	stream.requestID = streamID
@@ -202,6 +203,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers types
 	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
 		sofabuffers := sofaBuffersByContent(conn.context)
 		stream := &sofabuffers.server
+		//stream := &stream{}
 		stream.context = context.WithValue(conn.context, types.ContextKeyStreamID, streamID)
 		stream.streamID = streamID
 		stream.requestID = protocol.StreamIDConv(cmd.GetReqID())
@@ -311,9 +313,9 @@ func (s *stream) AppendTrailers(context context.Context, trailers types.HeaderMa
 // For client stream, write out request
 func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
-		//	log.DefaultLogger.Infof("Write to remote, stream id = %s, direction = %d", s.streamID, s.direction)
-
 		if stream, ok := s.connection.activeStreams.Get(s.streamID); ok {
+			s.connection.logger.Infof("Write to remote, stream id = %s, direction = %d", s.streamID, s.direction)
+
 
 			if s.encodedData != nil {
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)

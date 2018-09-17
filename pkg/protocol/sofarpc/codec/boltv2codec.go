@@ -67,6 +67,17 @@ func (c *boltV2Codec) encodeResponseCommand(ctx context.Context, cmd *sofarpc.Bo
 }
 
 func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.BoltV2RequestCommand) types.IoBuffer {
+	// serialize classname and header
+	if cmd.RequestClass != "" {
+		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
+		cmd.ClassLen = int16(len(cmd.ClassName))
+	}
+
+	if cmd.RequestHeader != nil {
+		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
+		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	}
+
 	var b [4]byte
 	// todo: reuse bytes @boqin
 	//data := make([]byte, 22, defaultTmpBufferSize)
@@ -98,17 +109,6 @@ func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.Timeout))
 	buf.Write(b[0:4])
 
-	// serialize classname and header
-	if cmd.RequestClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
-		cmd.ClassLen = int16(len(cmd.ClassName))
-	}
-
-	if cmd.RequestHeader != nil {
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
-	}
-
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
 	buf.Write(b[0:2])
 
@@ -130,6 +130,17 @@ func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 }
 
 func (c *boltV2Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.BoltV2ResponseCommand) types.IoBuffer {
+	// serialize classname and header
+	if cmd.ResponseClass != "" {
+		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
+		cmd.ClassLen = int16(len(cmd.ClassName))
+	}
+
+	if cmd.ResponseHeader != nil {
+		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.ResponseHeader)
+		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	}
+
 	var b [4]byte
 	// todo: reuse bytes @boqin
 	size := 20 + int(cmd.ClassLen) + len(cmd.HeaderMap)
@@ -163,17 +174,6 @@ func (c *boltV2Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ResponseStatus))
 	buf.Write(b[0:2])
-
-	// serialize classname and header
-	if cmd.ResponseClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
-		cmd.ClassLen = int16(len(cmd.ClassName))
-	}
-
-	if cmd.ResponseHeader != nil {
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.ResponseHeader)
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
-	}
 
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
 	buf.Write(b[0:2])

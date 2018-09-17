@@ -66,6 +66,17 @@ func (c *boltV1Codec) encodeResponseCommand(ctx context.Context, cmd *sofarpc.Bo
 }
 
 func (c *boltV1Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.BoltRequestCommand) types.IoBuffer {
+	// serialize classname and header
+	if cmd.RequestClass != "" {
+		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
+		cmd.ClassLen = int16(len(cmd.ClassName))
+	}
+
+	if cmd.RequestHeader != nil {
+		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
+		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	}
+
 	var b [4]byte
 	// todo: reuse bytes @boqin
 	//data := make([]byte, 22, defaultTmpBufferSize)
@@ -74,6 +85,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetReqHeader(size)
+	//buf := make([]byte, 22, size)
 
 	b[0] = cmd.Protocol
 	buf.Write(b[0:1])
@@ -95,17 +107,6 @@ func (c *boltV1Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.Timeout))
 	buf.Write(b[0:4])
 
-	// serialize classname and header
-	if cmd.RequestClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
-		cmd.ClassLen = int16(len(cmd.ClassName))
-	}
-
-	if cmd.RequestHeader != nil {
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
-	}
-
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
 	buf.Write(b[0:2])
 
@@ -123,10 +124,24 @@ func (c *boltV1Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 		buf.Write(cmd.HeaderMap)
 	}
 
+	log.ByContext(ctx).Debugf("BoltV1 ENCODE REQUEST, CmdType = %d, CmdCode = %d, ReqID = %d, Bytes = %d",
+		cmd.CmdType, cmd.CmdCode, cmd.ReqID, sofarpc.REQUEST_HEADER_LEN_V1 + int(cmd.ClassLen)+int(cmd.HeaderLen)+int(cmd.ContentLen) )
+
 	return buf
 }
 
 func (c *boltV1Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.BoltResponseCommand) types.IoBuffer {
+	// serialize classname and header
+	if cmd.ResponseClass != "" {
+		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
+		cmd.ClassLen = int16(len(cmd.ClassName))
+	}
+
+	if cmd.ResponseHeader != nil {
+		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.ResponseHeader)
+		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	}
+
 	var b [4]byte
 	// todo: reuse bytes @boqin
 	size := 20 + int(cmd.ClassLen) + len(cmd.HeaderMap)
@@ -158,17 +173,6 @@ func (c *boltV1Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ResponseStatus))
 	buf.Write(b[0:2])
 
-	// serialize classname and header
-	if cmd.ResponseClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
-		cmd.ClassLen = int16(len(cmd.ClassName))
-	}
-
-	if cmd.ResponseHeader != nil {
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.ResponseHeader)
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
-	}
-
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
 	buf.Write(b[0:2])
 
@@ -185,6 +189,9 @@ func (c *boltV1Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 	if cmd.HeaderLen > 0 {
 		buf.Write(cmd.HeaderMap)
 	}
+
+	log.ByContext(ctx).Debugf("BoltV1 ENCODE RESPONSE,RespStatus = %d, CmdType = %d, CmdCode = %d, ReqID = %d, Bytes = %d",
+		cmd.ResponseStatus, cmd.CmdType, cmd.CmdCode, cmd.ReqID, sofarpc.RESPONSE_HEADER_LEN_V1 + int(cmd.ClassLen)+int(cmd.HeaderLen)+int(cmd.ContentLen) )
 
 	return buf
 }
@@ -241,8 +248,9 @@ func (c *boltV1Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					return cmd, nil
 				}
 
-				sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-				request := &sofabuffers.BoltReq
+				//sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+				//request := &sofabuffers.BoltReq
+				request := &sofarpc.BoltRequestCommand{}
 				request.Protocol = sofarpc.PROTOCOL_CODE_V1
 				request.CmdType = dataType
 				request.CmdCode = int16(cmdCode)
@@ -257,6 +265,9 @@ func (c *boltV1Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 				request.HeaderMap = header
 				request.Content = content
 				cmd = request
+
+				logger.Debugf("BoltV1 DECODE REQUEST, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d, Bytes = %d",
+					request.Protocol, request.CmdType, request.CmdCode, request.ReqID, sofarpc.REQUEST_HEADER_LEN_V1 + int(classLen)+int(headerLen)+int(contentLen) )
 
 				/*
 					request := sofarpc.BoltRequestCommand{
@@ -321,8 +332,9 @@ func (c *boltV1Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					return cmd, nil
 				}
 
-				sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-				response := &sofabuffers.BoltRsp
+				//sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+				//response := &sofabuffers.BoltRsp
+				response := &sofarpc.BoltResponseCommand{}
 				response.Protocol = sofarpc.PROTOCOL_CODE_V1
 				response.CmdType = dataType
 				response.CmdCode = int16(cmdCode)
@@ -339,6 +351,8 @@ func (c *boltV1Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 				response.ResponseTimeMillis = time.Now().UnixNano() / int64(time.Millisecond)
 				cmd = response
 
+				logger.Debugf("BoltV1 DECODE RESPONSE,RespStatus = %d, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d, Bytes = %d",
+					response.ResponseStatus, response.Protocol, response.CmdType, response.CmdCode, response.ReqID, sofarpc.RESPONSE_HEADER_LEN_V1 + int(classLen)+int(headerLen)+int(contentLen) )
 				/*
 					response := sofarpc.BoltResponseCommand{
 						sofarpc.PROTOCOL_CODE_V1,
