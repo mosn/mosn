@@ -26,48 +26,15 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"reflect"
+	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 )
-
-// BoltV1PropertyHeaders map the cmdkey and its data type
-var (
-	BoltV1PropertyHeaders = make(map[string]reflect.Kind, 11)
-	defaultTmpBufferSize  = 1 << 6
-)
-
-func init() {
-	BoltV1PropertyHeaders[sofarpc.HeaderProtocolCode] = reflect.Uint8
-	BoltV1PropertyHeaders[sofarpc.HeaderCmdType] = reflect.Uint8
-	BoltV1PropertyHeaders[sofarpc.HeaderCmdCode] = reflect.Int16
-	BoltV1PropertyHeaders[sofarpc.HeaderVersion] = reflect.Uint8
-	BoltV1PropertyHeaders[sofarpc.HeaderReqID] = reflect.Uint32
-	BoltV1PropertyHeaders[sofarpc.HeaderCodec] = reflect.Uint8
-	BoltV1PropertyHeaders[sofarpc.HeaderClassLen] = reflect.Int16
-	BoltV1PropertyHeaders[sofarpc.HeaderHeaderLen] = reflect.Int16
-	BoltV1PropertyHeaders[sofarpc.HeaderContentLen] = reflect.Int
-	BoltV1PropertyHeaders[sofarpc.HeaderTimeout] = reflect.Int
-	BoltV1PropertyHeaders[sofarpc.HeaderRespStatus] = reflect.Int16
-	BoltV1PropertyHeaders[sofarpc.HeaderRespTimeMills] = reflect.Int64
-}
-
 
 // types.Encoder & types.Decoder
 type boltV1Codec struct{}
 
 func (c *boltV1Codec) EncodeHeaders(ctx context.Context, headers types.HeaderMap) (types.IoBuffer, error) {
-	if headerMap, ok := headers.(protocol.CommonHeader); ok {
-
-		cmd := c.mapToCmd(ctx, headerMap)
-		return c.encodeHeaders(ctx, cmd)
-	}
-
-	return c.encodeHeaders(ctx, headers)
-}
-
-func (c *boltV1Codec) encodeHeaders(ctx context.Context, headers interface{}) (types.IoBuffer, error) {
 	switch headers.(type) {
 	case *sofarpc.BoltRequestCommand:
 		return c.encodeRequestCommand(ctx, headers.(*sofarpc.BoltRequestCommand))
@@ -128,10 +95,21 @@ func (c *boltV1Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.Timeout))
 	buf.Write(b[0:4])
 
+	// serialize classname and header
+	if cmd.RequestClass != "" {
+		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
+		cmd.ClassLen = int16(len(cmd.ClassName))
+	}
+
+	if cmd.RequestHeader != nil {
+		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
+		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	}
+
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
 	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint16(b[0:], uint16(len(cmd.HeaderMap)))
+	binary.BigEndian.PutUint16(b[0:], uint16(cmd.HeaderLen))
 	buf.Write(b[0:2])
 
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ContentLen))
@@ -141,7 +119,7 @@ func (c *boltV1Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 		buf.Write(cmd.ClassName)
 	}
 
-	if len(cmd.HeaderMap) > 0 {
+	if cmd.HeaderLen > 0 {
 		buf.Write(cmd.HeaderMap)
 	}
 
@@ -180,10 +158,21 @@ func (c *boltV1Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ResponseStatus))
 	buf.Write(b[0:2])
 
+	// serialize classname and header
+	if cmd.ResponseClass != "" {
+		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
+		cmd.ClassLen = int16(len(cmd.ClassName))
+	}
+
+	if cmd.ResponseHeader != nil {
+		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.ResponseHeader)
+		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	}
+
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
 	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint16(b[0:], uint16(len(cmd.HeaderMap)))
+	binary.BigEndian.PutUint16(b[0:], uint16(cmd.HeaderLen))
 	buf.Write(b[0:2])
 
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ContentLen))
@@ -193,139 +182,11 @@ func (c *boltV1Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 		buf.Write(cmd.ClassName)
 	}
 
-	if len(cmd.HeaderMap) > 0 {
+	if cmd.HeaderLen > 0 {
 		buf.Write(cmd.HeaderMap)
 	}
 
 	return buf
-}
-
-func (c *boltV1Codec) mapToCmd(ctx context.Context, headers map[string]string) interface{} {
-	if len(headers) < 10 {
-		return nil
-	}
-
-	var value string
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderProtocolCode)
-	protocolCode := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderCmdType)
-	cmdType := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderCmdCode)
-	cmdCode := sofarpc.ConvertPropertyValueInt16(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderVersion)
-	version := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderReqID)
-	requestID := sofarpc.ConvertPropertyValueUint32(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderCodec)
-	codec := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderClassLen)
-	classLength := sofarpc.ConvertPropertyValueInt16(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderHeaderLen)
-	headerLength := sofarpc.ConvertPropertyValueInt16(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderContentLen)
-	contentLength := sofarpc.ConvertPropertyValueInt(value)
-
-	//class
-	className := sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, "classname")
-	class, _ := serialize.Instance.Serialize(className)
-
-	//RPC Request
-	if cmdCode == sofarpc.RPC_REQUEST {
-		value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderTimeout)
-		timeout := sofarpc.ConvertPropertyValueInt(value)
-		//serialize header
-		header, _ := serialize.Instance.Serialize(headers)
-
-		sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-		request := &sofabuffers.BoltEncodeReq
-		request.Protocol = protocolCode
-		request.CmdType = cmdType
-		request.CmdCode = cmdCode
-		request.Version = version
-		request.ReqID = requestID
-		request.CodecPro = codec
-		request.Timeout = timeout
-		request.ClassLen = classLength
-		request.HeaderLen = headerLength
-		request.ContentLen = contentLength
-		request.ClassName = class
-		request.HeaderMap = header
-		return request
-		/*
-			request := sofarpc.BoltRequestCommand{
-				protocolCode.(byte),
-				cmdType.(byte),
-				cmdCode.(int16),
-				version.(byte),
-				requestID.(uint32),
-				codec.(byte),
-				timeout.(int),
-				classLength.(int16),
-				//int16(len(class)),
-				headerLength.(int16),
-				//int16(len(header)),
-				contentLength.(int),
-				class,
-				header,
-				nil,
-				nil,
-				nil,
-			}
-
-			return &request
-		*/
-	} else if cmdCode == sofarpc.RPC_RESPONSE || cmdCode == sofarpc.HEARTBEAT {
-		//todo : review
-		value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderRespStatus)
-		responseStatus := sofarpc.ConvertPropertyValueInt16(value)
-		value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderRespTimeMills)
-		responseTime := sofarpc.ConvertPropertyValueInt64(value)
-
-		//serialize header
-		header, _ := serialize.Instance.Serialize(headers)
-
-		sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-		response := &sofabuffers.BoltEncodeRsp
-		response.Protocol = protocolCode
-		response.CmdType = cmdType
-		response.CmdCode = cmdCode
-		response.Version = version
-		response.ReqID = requestID
-		response.CodecPro = codec
-		response.ResponseStatus = responseStatus
-		response.ClassLen = classLength
-		response.HeaderLen = headerLength
-		response.ContentLen = contentLength
-		response.ClassName = class
-		response.HeaderMap = header
-		response.ResponseTimeMillis = responseTime
-		return response
-
-		/*
-			response := sofarpc.BoltResponseCommand{
-				protocolCode.(byte),
-				cmdType.(byte),
-				cmdCode.(int16),
-				version.(byte),
-				requestID.(uint32),
-				codec.(byte),
-				responseStatus.(int16),
-				classLength.(int16),
-				headerLength.(int16),
-				contentLength.(int),
-				class,
-				header,
-				nil,
-				nil,
-				responseTime.(int64),
-				nil,
-			}
-
-			return &response
-		*/
-	}
-
-	return nil
 }
 
 func (c *boltV1Codec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {

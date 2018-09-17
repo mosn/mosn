@@ -110,8 +110,7 @@ func (s *sofarpcHealthCheckSession) OnReceiveHeaders(context context.Context, he
 	//bolt
 	//log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
 
-
-	if statusStr:= headers.Get(sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)); statusStr != "" {
+	if statusStr, ok := headers.Get(sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)); ok {
 		s.responseStatus = sofarpc.ConvertPropertyValueInt16(statusStr)
 	}
 

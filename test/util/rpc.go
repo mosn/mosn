@@ -16,6 +16,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
+	_"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/conv"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -74,7 +75,7 @@ func (c *RPCClient) SendRequest() {
 	ID := atomic.AddUint32(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
-	var headers interface{}
+	var headers sofarpc.ProtoBasicCmd
 	switch c.Protocol {
 	case Bolt1:
 		headers = BuildBoltV1Request(ID)
@@ -91,13 +92,14 @@ func (c *RPCClient) SendRequest() {
 
 func (c *RPCClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 }
-func (c *RPCClient) OnReceiveTrailers(context context.Context, trailers map[string]string) {
+func (c *RPCClient) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 }
-func (c *RPCClient) OnDecodeError(context context.Context, err error, headers map[string]string) {
+func (c *RPCClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
-func (c *RPCClient) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
-	streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
-	if ok {
+func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+		streamID := protocol.StreamIDConv(cmd.GetReqID())
+
 		if _, ok := c.Waits.Load(streamID); ok {
 			c.t.Logf("RPC client receive streamId:%s \n", streamID)
 			atomic.AddUint32(&c.respCount, 1)
@@ -105,6 +107,8 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers map[string
 		} else {
 			c.t.Errorf("get a unexpected stream ID")
 		}
+	} else {
+		c.t.Errorf("get a unexpected header type")
 	}
 }
 

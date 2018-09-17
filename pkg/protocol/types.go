@@ -40,8 +40,9 @@ const (
 // wrapper for map[string]string
 type CommonHeader map[string]string
 
-func (h CommonHeader) Get(key string) string {
-	return h[key]
+func (h CommonHeader) Get(key string) (value string, ok bool) {
+	value, ok = h[key]
+	return
 }
 
 func (h CommonHeader) Set(key string, value string) {
@@ -52,6 +53,11 @@ func (h CommonHeader) Del(key string) {
 	delete(h, key)
 }
 
-func (h CommonHeader) Raw() map[string]string {
-	return h
+func (h CommonHeader) Range(f func(key, value string) bool) {
+	for k, v := range h {
+		// stop if f return false
+		if !f(k, v) {
+			break
+		}
+	}
 }

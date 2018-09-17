@@ -26,7 +26,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"strconv"
 )
 
 // StreamDirection represent the stream's direction
@@ -113,40 +112,49 @@ func (conn *streamConnection) NewStream(text context.Context, streamID string, r
 	stream.direction = ClientStream
 	stream.connection = conn
 	stream.decoder = responseDecoder
-	conn.activeStreams.Set(streamID, stream)
 
+	conn.activeStreams.Set(streamID, stream)
 	return stream
 }
 
-func (conn *streamConnection) OnDecodeHeader(streamID string, headers types.HeaderMap) types.FilterStatus {
-	if sofarpc.IsSofaRequest(headers) {
-		conn.onNewStreamDetected(streamID, headers)
-	}
-	endStream := decodeSterilize(streamID, headers)
+func (conn *streamConnection) OnDecodeHeader(streamID string, headers types.HeaderMap, endStream bool) types.FilterStatus {
+	var stream *stream
 
-	if stream, ok := conn.activeStreams.Get(streamID); ok {
-		stream.decoder.OnReceiveHeaders(conn.context, headers, endStream)
-		if endStream {
-			return types.StopIteration
+	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+		switch cmd.GetCmdType() {
+		case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
+			stream = conn.onNewStreamDetected(streamID, headers)
+		case sofarpc.RESPONSE:
+			stream, _ = conn.activeStreams.Get(streamID)
+		}
+
+		if stream != nil {
+			stream.decoder.OnReceiveHeaders(stream.context, headers, endStream)
 		}
 	}
-
+	if endStream {
+		if stream != nil && stream.direction == ClientStream {
+			// for client stream, remove stream on response end
+			conn.activeStreams.Remove(stream.streamID)
+		}
+		return types.StopIteration
+	}
 	return types.Continue
 }
 
-func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer) types.FilterStatus {
+func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer, endStream bool) types.FilterStatus {
 	if stream, ok := conn.activeStreams.Get(streamID); ok {
 		if stream.direction == ClientStream {
 			// for client stream, remove stream on response read
-			stream.connection.activeStreams.Remove(stream.streamID)
+			conn.activeStreams.Remove(stream.streamID)
 		}
-		stream.decoder.OnReceiveData(conn.context, data, true)
+		stream.decoder.OnReceiveData(stream.context, data, true)
 	}
 
 	return types.StopIteration
 }
 
-func (conn *streamConnection) OnDecodeTrailer(streamID string, trailers types.HeaderMap) types.FilterStatus {
+func (conn *streamConnection) OnDecodeTrailer(streamID string, trailers types.HeaderMap, endStream bool) types.FilterStatus {
 	// unsupported
 	return types.StopIteration
 }
@@ -162,33 +170,25 @@ func (conn *streamConnection) OnDecodeError(err error, header types.HeaderMap) {
 		// for header decode error, close the connection directly
 		conn.connection.Close(types.NoFlush, types.LocalClose)
 	case types.CodecException:
-		switch h := header.(type) {
-		case protocol.CommonHeader:
-			if v, ok := h[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
-				conn.onNewStreamDetected(v, header)
+		if cmd, ok := header.(sofarpc.ProtoBasicCmd); ok {
 
-				if stream, ok := conn.activeStreams.Get(v); ok {
-					if stream.direction == ClientStream {
-						// for client stream, remove stream on response read
-						stream.connection.activeStreams.Remove(stream.streamID)
-					}
-					stream.decoder.OnDecodeError(conn.context, err, header)
+			if reqID := cmd.GetReqID(); reqID > 0 {
+				streamID := protocol.StreamIDConv(reqID)
+
+				var stream *stream
+				switch cmd.GetCmdType() {
+				case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
+					stream = conn.onNewStreamDetected(streamID, header)
+				case sofarpc.RESPONSE:
+					stream, _ = conn.activeStreams.Get(streamID)
 				}
-			} else {
-				// if no request id found, no reason to send response, so close connection
-				conn.connection.Close(types.NoFlush, types.LocalClose)
-			}
-		case sofarpc.ProtoBasicCmd:
-			if reqID := h.GetReqID(); reqID != 0 {
-				reqIDStr := strconv.FormatUint(uint64(reqID), 10)
-				conn.onNewStreamDetected(reqIDStr, header)
 
-				if stream, ok := conn.activeStreams.Get(reqIDStr); ok {
+				if stream != nil {
 					if stream.direction == ClientStream {
 						// for client stream, remove stream on response read
 						stream.connection.activeStreams.Remove(stream.streamID)
 					}
-					stream.decoder.OnDecodeError(conn.context, err, header)
+					stream.decoder.OnDecodeError(stream.context, err, header)
 				}
 			} else {
 				// if no request id found, no reason to send response, so close connection
@@ -198,42 +198,25 @@ func (conn *streamConnection) OnDecodeError(err error, header types.HeaderMap) {
 	}
 }
 
-func (conn *streamConnection) onNewStreamDetected(streamID string, headers types.HeaderMap) {
-	if ok := conn.activeStreams.Has(streamID); ok {
-		log.DefaultLogger.Infof("OnReceiveHeaders, stream already exist, maybe response, StreamID = %s", streamID)
-		return
+func (conn *streamConnection) onNewStreamDetected(streamID string, headers types.HeaderMap) *stream {
+	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+		sofabuffers := sofaBuffersByContent(conn.context)
+		stream := &sofabuffers.server
+		stream.context = context.WithValue(conn.context, types.ContextKeyStreamID, streamID)
+		stream.streamID = streamID
+		stream.requestID = protocol.StreamIDConv(cmd.GetReqID())
+		stream.direction = ServerStream
+		stream.connection = conn
+
+		log.DefaultLogger.Infof("OnReceiveHeaders, New stream detected, Request id = %s, StreamID = %s", stream.requestID, streamID)
+
+		stream.decoder = conn.serverCallbacks.NewStream(conn.context, streamID, stream)
+		conn.activeStreams.Set(streamID, stream)
+
+		return stream
 	}
 
-	var requestID string
-
-	switch h:= headers.(type) {
-	case protocol.CommonHeader:
-		if v := headers.Get(sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)); v != "" {
-			requestID = v
-		} else {
-			// on decode exception stream
-			requestID = streamID
-		}
-		headers.Set(sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID), streamID)
-	case sofarpc.ProtoBasicCmd:
-		requestID = strconv.FormatUint(uint64(h.GetReqID()), 10)
-		sid, _ := strconv.ParseUint(streamID, 10, 32)
-		// replace reqid, need remove
-		h.SetReqID(uint32(sid))
-	}
-
-	sofabuffers := sofaBuffersByContent(conn.context)
-	stream := &sofabuffers.server
-	stream.context = context.WithValue(conn.context, types.ContextKeyStreamID, streamID)
-	stream.streamID = streamID
-	stream.requestID = requestID
-	stream.direction = ServerStream
-	stream.connection = conn
-
-	log.DefaultLogger.Infof("OnReceiveHeaders, New stream detected, Request id = %s, StreamID = %s", requestID, streamID)
-
-	stream.decoder = conn.serverCallbacks.NewStream(conn.context, streamID, stream)
-	conn.activeStreams.Set(streamID, stream)
+	return nil
 }
 
 // types.Stream
@@ -357,12 +340,12 @@ func (s *stream) GetStream() types.Stream {
 }
 
 type streamMap struct {
-	smap map[string]interface{}
+	smap map[string]*stream
 	mux  sync.RWMutex
 }
 
 func newStreamMap(context context.Context) streamMap {
-	smap := make(map[string]interface{}, 32)
+	smap := make(map[string]*stream, 32)
 
 	return streamMap{
 		smap: smap,
@@ -379,16 +362,11 @@ func (m *streamMap) Has(streamID string) bool {
 	return false
 }
 
-func (m *streamMap) Get(streamID string) (*stream, bool) {
+func (m *streamMap) Get(streamID string) (s *stream, ok bool) {
 	m.mux.RLock()
-
-	if s, ok := m.smap[streamID]; ok {
-		m.mux.RUnlock()
-		return s.(*stream), ok
-	}
+	s, ok = m.smap[streamID]
 	m.mux.RUnlock()
-
-	return &stream{}, false
+	return
 }
 
 func (m *streamMap) Remove(streamID string) {

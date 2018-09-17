@@ -41,19 +41,21 @@ import (
 
 type Protocol string
 
-
+// HeaderMap is a interface to provide operation facade with user-value headers
 type HeaderMap interface {
+	// Get value of key
+	Get(key string) (string, bool)
 
-	Get(key string) string
+	// Set key-value pair in header map, the previous pair will be replaced if exists
+	Set(key, value string)
 
-	Set(key string, value string)
-
+	// Delete pair of specified key
 	Del(key string)
 
-	// wait clear, just for compatibility at begining
-	Raw() map[string]string
+	// Range calls f sequentially for each key and value present in the map.
+	// If f returns false, range stops the iteration.
+	Range(f func(key, value string) bool)
 }
-
 
 // Protocols is a protocols' facade used by Stream
 type Protocols interface {
@@ -67,13 +69,13 @@ type Protocols interface {
 // DecodeFilter is a filter used by Stream to receive decode events
 type DecodeFilter interface {
 	// OnDecodeHeader is called on headers decoded
-	OnDecodeHeader(streamID string, headers HeaderMap) FilterStatus
+	OnDecodeHeader(streamID string, headers HeaderMap, endStream bool) FilterStatus
 
 	// OnDecodeData is called on data decoded
-	OnDecodeData(streamID string, data IoBuffer) FilterStatus
+	OnDecodeData(streamID string, data IoBuffer, endStream bool) FilterStatus
 
 	// OnDecodeTrailer is called on trailers decoded
-	OnDecodeTrailer(streamID string, trailers HeaderMap) FilterStatus
+	OnDecodeTrailer(streamID string, trailers HeaderMap, endStream bool) FilterStatus
 
 	// OnDecodeError is called when error occurs
 	// When error occurring, filter status = stop

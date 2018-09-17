@@ -24,6 +24,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 // types.StreamEventListener
@@ -148,18 +149,64 @@ func (r *upstreamRequest) appendHeaders(headers types.HeaderMap, endStream bool)
 	r.connPool.NewStream(r.downStream.context, r.downStream.streamID, r, r)
 }
 
+func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap {
+	dp := types.Protocol(r.proxy.config.DownstreamProtocol)
+	up := types.Protocol(r.proxy.config.UpstreamProtocol)
+
+	// need protocol convert
+	if dp != up {
+		if convHeader, err := protocol.ConvertHeader(r.downStream.context, dp, up, headers); err == nil {
+			return convHeader
+		} else {
+			r.downStream.logger.Errorf("convert header from %s to %s failed, %s", dp, up, err.Error())
+		}
+	}
+	return headers
+}
+
 func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("upstream request encode data")
 	r.sendComplete = endStream
 	r.dataSent = true
-	r.requestSender.AppendData(r.downStream.context, data, endStream)
+	r.requestSender.AppendData(r.downStream.context, r.convertData(data), endStream)
 }
+
+func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
+	dp := types.Protocol(r.proxy.config.DownstreamProtocol)
+	up := types.Protocol(r.proxy.config.UpstreamProtocol)
+
+	// need protocol convert
+	if dp != up {
+		if convData, err := protocol.ConvertData(r.downStream.context, dp, up, data); err == nil {
+			return convData
+		} else {
+			r.downStream.logger.Errorf("convert data from %s to %s failed, %s", dp, up, err.Error())
+		}
+	}
+	return data
+}
+
 
 func (r *upstreamRequest) appendTrailers(trailers types.HeaderMap) {
 	log.DefaultLogger.Debugf("upstream request encode trailers")
 	r.sendComplete = true
 	r.trailerSent = true
 	r.requestSender.AppendTrailers(r.downStream.context, trailers)
+}
+
+func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
+	dp := types.Protocol(r.proxy.config.DownstreamProtocol)
+	up := types.Protocol(r.proxy.config.UpstreamProtocol)
+
+	// need protocol convert
+	if dp != up {
+		if convTrailer, err := protocol.ConvertTrailer(r.downStream.context, dp, up, trailers); err == nil {
+			return convTrailer
+		} else {
+			r.downStream.logger.Errorf("convert header from %s to %s failed, %s", dp, up, err.Error())
+		}
+	}
+	return trailers
 }
 
 // types.PoolEventListener
@@ -181,7 +228,7 @@ func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, ho
 	r.requestSender.GetStream().AddEventListener(r)
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
-	r.requestSender.AppendHeaders(r.downStream.context, r.downStream.downstreamReqHeaders, endStream)
+	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())

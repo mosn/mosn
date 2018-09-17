@@ -185,7 +185,7 @@ func (s *downStream) cleanStream() {
 	// access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
 		for _, al := range s.proxy.accessLogs {
-			al.Log(s.downstreamReqHeaders.Raw(), s.downstreamRespHeaders.Raw(), s.requestInfo)
+			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 		}
 	}
 
@@ -253,7 +253,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	//Get some route by service name
 	log.DefaultLogger.Tracef("before active stream route")
-	route := s.proxy.routers.Route(headers.Raw(), 1)
+	route := s.proxy.routers.Route(headers, 1)
 
 	if route == nil || route.RouteRule() == nil {
 		// no route
@@ -288,8 +288,8 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	}
 
 	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
-	s.timeout = parseProxyTimeout(route, headers.Raw())
-	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers.Raw(), s.cluster)
+	s.timeout = parseProxyTimeout(route, headers)
+	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
 	//Build Request
 	proxyBuffers := proxyBuffersByContent(s.context)
@@ -514,8 +514,24 @@ func (s *downStream) initializeUpstreamConnectionPool(clusterName string, lbCtx 
 
 func (s *downStream) appendHeaders(headers types.HeaderMap, endStream bool) {
 	s.upstreamProcessDone = endStream
-	s.doAppendHeaders(nil, headers, endStream)
+	s.doAppendHeaders(nil, s.convertHeader(headers), endStream)
 }
+
+func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
+	dp := types.Protocol(s.proxy.config.DownstreamProtocol)
+	up := types.Protocol(s.proxy.config.UpstreamProtocol)
+
+	// need protocol convert
+	if dp != up {
+		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
+			return convHeader
+		} else {
+			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
+		}
+	}
+	return headers
+}
+
 
 func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers types.HeaderMap, endStream bool) {
 	if s.runAppendHeaderFilters(filter, headers, endStream) {
@@ -534,7 +550,22 @@ func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers t
 
 func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
 	s.upstreamProcessDone = endStream
-	s.doAppendData(nil, data, endStream)
+	s.doAppendData(nil, s.convertData(data), endStream)
+}
+
+func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
+	dp := types.Protocol(s.proxy.config.DownstreamProtocol)
+	up := types.Protocol(s.proxy.config.UpstreamProtocol)
+
+	// need protocol convert
+	if dp != up {
+		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
+			return convData
+		} else {
+			s.logger.Errorf("convert data from %s to %s failed, %s", up, dp, err.Error())
+		}
+	}
+	return data
 }
 
 func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.IoBuffer, endStream bool) {
@@ -552,8 +583,24 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 
 func (s *downStream) appendTrailers(trailers types.HeaderMap) {
 	s.upstreamProcessDone = true
-	s.doAppendTrailers(nil, trailers)
+	s.doAppendTrailers(nil, s.convertTrailer(trailers))
 }
+
+func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
+	dp := types.Protocol(s.proxy.config.DownstreamProtocol)
+	up := types.Protocol(s.proxy.config.UpstreamProtocol)
+
+	// need protocol convert
+	if dp != up {
+		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
+			return convTrailer
+		} else {
+			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
+		}
+	}
+	return trailers
+}
+
 
 func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers types.HeaderMap) {
 	if s.runAppendTrailersFilters(filter, trailers) {
@@ -626,7 +673,7 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 
 	// check retry
 	if s.retryState != nil {
-		retryCheck := s.retryState.retry(headers.Raw(), "", s.doRetry)
+		retryCheck := s.retryState.retry(headers, "", s.doRetry)
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(endStream) {
 			return
@@ -745,6 +792,7 @@ func (s *downStream) resetStream() {
 func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	s.logger.Debugf("set hijack reply, stream id = %s, code = %d", s.streamID, code)
 	if headers == nil {
+		s.logger.Warnf("hijack with no headers, stream id = %s", s.streamID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
@@ -841,8 +889,8 @@ func (s *downStream) DownstreamConnection() net.Conn {
 	return s.proxy.readCallbacks.Connection().RawConn()
 }
 
-func (s *downStream) DownstreamHeaders() map[string]string {
-	return s.downstreamReqHeaders.Raw()
+func (s *downStream) DownstreamHeaders() types.HeaderMap {
+	return s.downstreamReqHeaders
 }
 
 func (s *downStream) GiveStream() {

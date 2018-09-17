@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"reflect"
 	"time"
 
 	"fmt"
@@ -30,47 +29,14 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 )
 
 // types.Encoder & types.Decoder
 
-// BoltV2PropertyHeaders map the cmdkey and its data type
-var (
-	BoltV2PropertyHeaders = make(map[string]reflect.Kind, 14)
-)
-
-var boltV1 = &boltV1Codec{}
-
-func init() {
-	BoltV2PropertyHeaders[sofarpc.HeaderProtocolCode] = reflect.Uint8
-	BoltV2PropertyHeaders[sofarpc.HeaderCmdType] = reflect.Uint8
-	BoltV2PropertyHeaders[sofarpc.HeaderCmdCode] = reflect.Int16
-	BoltV2PropertyHeaders[sofarpc.HeaderVersion] = reflect.Uint8
-	BoltV2PropertyHeaders[sofarpc.HeaderReqID] = reflect.Uint32
-	BoltV2PropertyHeaders[sofarpc.HeaderCodec] = reflect.Uint8
-	BoltV2PropertyHeaders[sofarpc.HeaderClassLen] = reflect.Int16
-	BoltV2PropertyHeaders[sofarpc.HeaderHeaderLen] = reflect.Int16
-	BoltV2PropertyHeaders[sofarpc.HeaderContentLen] = reflect.Int
-	BoltV2PropertyHeaders[sofarpc.HeaderTimeout] = reflect.Int
-	BoltV2PropertyHeaders[sofarpc.HeaderRespStatus] = reflect.Int16
-	BoltV2PropertyHeaders[sofarpc.HeaderRespTimeMills] = reflect.Int64
-	BoltV2PropertyHeaders[sofarpc.HeaderVersion1] = reflect.Uint8
-	BoltV2PropertyHeaders[sofarpc.HeaderSwitchCode] = reflect.Uint8
-}
-
 type boltV2Codec struct{}
 
 func (c *boltV2Codec) EncodeHeaders(ctx context.Context, headers types.HeaderMap) (types.IoBuffer, error) {
-	if headerMap, ok := headers.(protocol.CommonHeader); ok {
-		cmd := c.mapToCmd(ctx, headerMap)
-
-		return c.encodeHeaders(ctx, cmd)
-	}
-
-	return c.encodeHeaders(ctx, headers)
-}
-
-func (c *boltV2Codec) encodeHeaders(ctx context.Context, headers interface{}) (types.IoBuffer, error) {
 	switch headers.(type) {
 	case *sofarpc.BoltV2RequestCommand:
 		return c.encodeRequestCommand(ctx, headers.(*sofarpc.BoltV2RequestCommand))
@@ -90,6 +56,14 @@ func (c *boltV2Codec) EncodeData(ctx context.Context, data types.IoBuffer) types
 
 func (c *boltV2Codec) EncodeTrailers(ctx context.Context, trailers types.HeaderMap) types.IoBuffer {
 	return nil
+}
+
+func (c *boltV2Codec) encodeRequestCommand(ctx context.Context, cmd *sofarpc.BoltV2RequestCommand) (types.IoBuffer, error) {
+	return c.doEncodeRequestCommand(ctx, cmd), nil
+}
+
+func (c *boltV2Codec) encodeResponseCommand(ctx context.Context, cmd *sofarpc.BoltV2ResponseCommand) (types.IoBuffer, error) {
+	return c.doEncodeResponseCommand(ctx, cmd), nil
 }
 
 func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.BoltV2RequestCommand) types.IoBuffer {
@@ -124,10 +98,21 @@ func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.Timeout))
 	buf.Write(b[0:4])
 
+	// serialize classname and header
+	if cmd.RequestClass != "" {
+		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
+		cmd.ClassLen = int16(len(cmd.ClassName))
+	}
+
+	if cmd.RequestHeader != nil {
+		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
+		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	}
+
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
 	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint16(b[0:], uint16(len(cmd.HeaderMap)))
+	binary.BigEndian.PutUint16(b[0:], uint16(cmd.HeaderLen))
 	buf.Write(b[0:2])
 
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ContentLen))
@@ -137,7 +122,7 @@ func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 		buf.Write(cmd.ClassName)
 	}
 
-	if len(cmd.HeaderMap) > 0 {
+	if cmd.HeaderLen > 0 {
 		buf.Write(cmd.HeaderMap)
 	}
 
@@ -179,10 +164,21 @@ func (c *boltV2Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ResponseStatus))
 	buf.Write(b[0:2])
 
+	// serialize classname and header
+	if cmd.ResponseClass != "" {
+		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
+		cmd.ClassLen = int16(len(cmd.ClassName))
+	}
+
+	if cmd.ResponseHeader != nil {
+		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.ResponseHeader)
+		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	}
+
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.ClassLen))
 	buf.Write(b[0:2])
 
-	binary.BigEndian.PutUint16(b[0:], uint16(len(cmd.HeaderMap)))
+	binary.BigEndian.PutUint16(b[0:], uint16(cmd.HeaderLen))
 	buf.Write(b[0:2])
 
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ContentLen))
@@ -192,54 +188,11 @@ func (c *boltV2Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 		buf.Write(cmd.ClassName)
 	}
 
-	if len(cmd.HeaderMap) > 0 {
+	if cmd.HeaderLen > 0 {
 		buf.Write(cmd.HeaderMap)
 	}
 
 	return buf
-}
-
-func (c *boltV2Codec) encodeRequestCommand(ctx context.Context, cmd *sofarpc.BoltV2RequestCommand) (types.IoBuffer, error) {
-	return c.doEncodeRequestCommand(ctx, cmd), nil
-}
-
-func (c *boltV2Codec) encodeResponseCommand(ctx context.Context, cmd *sofarpc.BoltV2ResponseCommand) (types.IoBuffer, error) {
-	return c.doEncodeResponseCommand(ctx, cmd), nil
-}
-
-func (c *boltV2Codec) mapToCmd(ctx context.Context, headers map[string]string) interface{} {
-	if len(headers) < 12 {
-		return nil
-	}
-
-	cmdV1 := boltV1.mapToCmd(ctx, headers)
-
-	value := sofarpc.GetPropertyValue1(BoltV2PropertyHeaders, headers, "ver1")
-	ver1 := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(BoltV2PropertyHeaders, headers, "switchcode")
-	switchcode := sofarpc.ConvertPropertyValueUint8(value)
-
-	if cmdV2req, ok := cmdV1.(sofarpc.BoltRequestCommand); ok {
-		request := &sofarpc.BoltV2RequestCommand{
-			BoltRequestCommand: cmdV2req,
-			Version1:           ver1,
-			SwitchCode:         switchcode,
-		}
-
-		return request
-	} else if cmdV2res, ok := cmdV1.(sofarpc.BoltResponseCommand); ok {
-		response := &sofarpc.BoltV2ResponseCommand{
-			BoltResponseCommand: cmdV2res,
-			Version1:            ver1,
-			SwitchCode:          switchcode,
-		}
-
-		return response
-	} else {
-		// todo RPC_HB
-	}
-
-	return nil
 }
 
 func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
@@ -309,7 +262,7 @@ func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						header,
 						content,
 						nil,
-						nil,
+						"",
 					},
 					ver1,
 					switchCode,
@@ -371,9 +324,9 @@ func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						class,
 						header,
 						content,
-						nil,
 						time.Now().UnixNano() / int64(time.Millisecond),
 						nil,
+						"",
 					},
 					ver1,
 					switchCode,

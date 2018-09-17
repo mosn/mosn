@@ -242,7 +242,7 @@ type clientStream struct {
 func (s *clientStream) AppendHeaders(context context.Context, headers types.HeaderMap, endStream bool) error {
 	log.DefaultLogger.Tracef("http2 client stream encode headers")
 	//headersMap, _ := headers.(map[string]string)
-	headersMap := headers.Raw()
+	headersMap := headers.(protocol.CommonHeader)
 
 	if s.request == nil {
 		s.request = new(http.Request)
@@ -413,7 +413,7 @@ type serverStream struct {
 
 // types.StreamSender
 func (s *serverStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
-	headers := headersIn.Raw()
+	headers := headersIn.(protocol.CommonHeader)
 
 	if s.response == nil {
 		s.response = new(http.Response)

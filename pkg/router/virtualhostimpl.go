@@ -132,7 +132,7 @@ func (vh *VirtualHostImpl) RateLimitPolicy() types.RateLimitPolicy {
 	return nil
 }
 
-func (vh *VirtualHostImpl) GetRouteFromEntries(headers map[string]string, randomValue uint64) types.Route {
+func (vh *VirtualHostImpl) GetRouteFromEntries(headers types.HeaderMap, randomValue uint64) types.Route {
 	// todo check tls
 	for _, route := range vh.routes {
 		if routeEntry := route.Match(headers, randomValue); routeEntry != nil {
