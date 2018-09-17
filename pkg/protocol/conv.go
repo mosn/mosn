@@ -2,8 +2,8 @@ package protocol
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/kataras/iris/core/errors"
 	"context"
+	"errors"
 )
 
 func init() {
@@ -24,7 +24,7 @@ type ProtocolConv interface {
 var (
 	protoConvFactory = make(map[types.Protocol]map[types.Protocol]ProtocolConv)
 
-	ErrNotFound = errors.New("No convert function found for given protocol pair")
+	ErrNotFound = errors.New("no convert function found for given protocol pair")
 )
 
 func RegisterConv(src, dst types.Protocol, f ProtocolConv) {

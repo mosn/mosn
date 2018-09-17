@@ -103,11 +103,10 @@ func (conn *streamConnection) GoAway() {
 	// todo
 }
 
-func (conn *streamConnection) NewStream(text context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
-	sofabuffers := sofaBuffersByContent(text)
-	stream := &sofabuffers.client
-	//stream := &stream{}
-	stream.context = context.WithValue(text, types.ContextKeyStreamID, streamID)
+func (conn *streamConnection) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
+	sofaBuffers := sofaBuffersByContext(ctx)
+	stream := &sofaBuffers.client
+	stream.context = context.WithValue(ctx, types.ContextKeyStreamID, streamID)
 	stream.streamID = streamID
 	stream.requestID = streamID
 	stream.direction = ClientStream
@@ -155,7 +154,7 @@ func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer,
 	return types.StopIteration
 }
 
-func (conn *streamConnection) OnDecodeTrailer(streamID string, trailers types.HeaderMap, endStream bool) types.FilterStatus {
+func (conn *streamConnection) OnDecodeTrailer(streamID string, trailers types.HeaderMap) types.FilterStatus {
 	// unsupported
 	return types.StopIteration
 }
@@ -201,8 +200,8 @@ func (conn *streamConnection) OnDecodeError(err error, header types.HeaderMap) {
 
 func (conn *streamConnection) onNewStreamDetected(streamID string, headers types.HeaderMap) *stream {
 	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
-		sofabuffers := sofaBuffersByContent(conn.context)
-		stream := &sofabuffers.server
+		sofaBuffers := sofaBuffersByContext(conn.context)
+		stream := &sofaBuffers.server
 		//stream := &stream{}
 		stream.context = context.WithValue(conn.context, types.ContextKeyStreamID, streamID)
 		stream.streamID = streamID
@@ -314,8 +313,6 @@ func (s *stream) AppendTrailers(context context.Context, trailers types.HeaderMa
 func (s *stream) endStream() {
 	if s.encodedHeaders != nil {
 		if stream, ok := s.connection.activeStreams.Get(s.streamID); ok {
-			s.connection.logger.Infof("Write to remote, stream id = %s, direction = %d", s.streamID, s.direction)
-
 
 			if s.encodedData != nil {
 				stream.connection.connection.Write(s.encodedHeaders, s.encodedData)

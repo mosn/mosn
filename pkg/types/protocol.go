@@ -75,7 +75,7 @@ type DecodeFilter interface {
 	OnDecodeData(streamID string, data IoBuffer, endStream bool) FilterStatus
 
 	// OnDecodeTrailer is called on trailers decoded
-	OnDecodeTrailer(streamID string, trailers HeaderMap, endStream bool) FilterStatus
+	OnDecodeTrailer(streamID string, trailers HeaderMap) FilterStatus
 
 	// OnDecodeError is called when error occurs
 	// When error occurring, filter status = stop

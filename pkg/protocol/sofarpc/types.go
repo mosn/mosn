@@ -300,6 +300,7 @@ func (b *BoltResponseCommand) SetReqID(reqId uint32) {
 	b.ReqID = reqId
 }
 
+// ~ HeaderMap
 func (b *BoltRequestCommand) Get(key string) (value string, ok bool) {
 	value, ok = b.RequestHeader[key]
 	return
@@ -322,6 +323,7 @@ func (b *BoltRequestCommand) Range(f func(key, value string) bool) {
 	}
 }
 
+// ~ HeaderMap
 func (b *BoltResponseCommand) Get(key string) (value string, ok bool) {
 	value, ok = b.ResponseHeader[key]
 	return

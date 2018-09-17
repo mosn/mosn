@@ -23,7 +23,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 //All of the protocolMaps
@@ -53,18 +52,6 @@ func (p *protocols) EncodeHeaders(context context.Context, headers types.HeaderM
 	switch headers.(type) {
 	case ProtoBasicCmd:
 		protocolCode = headers.(ProtoBasicCmd).GetProtocol()
-	case protocol.CommonHeader:
-		headersMap := headers.(protocol.CommonHeader)
-
-		if proto, exist := headersMap[SofaPropertyHeader(HeaderProtocolCode)]; exist {
-			protoValue := ConvertPropertyValueUint8(proto)
-			protocolCode = protoValue
-		} else {
-			errMsg := NoProCodeInHeader
-			log.ByContext(context).Errorf(errMsg)
-			err := errors.New(errMsg)
-			return nil, err
-		}
 	default:
 		errMsg := InvalidHeaderType
 		log.ByContext(context).Errorf(errMsg+" headers = %+v", headers)

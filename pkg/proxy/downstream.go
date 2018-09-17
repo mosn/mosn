@@ -100,10 +100,10 @@ type downStream struct {
 	logger log.Logger
 }
 
-func newActiveStream(context context.Context, streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
-	newcontext := buffer.NewBufferPoolContext(context, true)
+func newActiveStream(ctx context.Context, streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
+	newCtx := buffer.NewBufferPoolContext(ctx, true)
 
-	proxyBuffers := proxyBuffersByContent(newcontext)
+	proxyBuffers := proxyBuffersByContext(newCtx)
 
 	stream := &proxyBuffers.stream
 	stream.streamID = streamID
@@ -112,7 +112,7 @@ func newActiveStream(context context.Context, streamID string, proxy *proxy, res
 	stream.requestInfo.SetStartTime()
 	stream.responseSender = responseSender
 	stream.responseSender.GetStream().AddEventListener(stream)
-	stream.context = newcontext
+	stream.context = newCtx
 
 	stream.logger = log.ByContext(proxy.context)
 
@@ -292,7 +292,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
 
 	//Build Request
-	proxyBuffers := proxyBuffersByContent(s.context)
+	proxyBuffers := proxyBuffersByContext(s.context)
 	s.upstreamRequest = &proxyBuffers.request
 	s.upstreamRequest.downStream = s
 	s.upstreamRequest.proxy = s.proxy

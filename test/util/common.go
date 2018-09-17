@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"sync"
 	"time"
-	"fmt"
 )
 
 //tools
@@ -48,11 +47,7 @@ func WaitMapEmpty(m *sync.Map, timeout time.Duration) bool {
 	select {
 	case <-time.After(timeout):
 		close(ch)            // finish check goroutine
-		empty := IsMapEmpty(m) // timeout, retry again
-		if !empty {
-			fmt.Printf("rpc wait map not empty:%+v\n", m)
-		}
- 		return empty
+		return IsMapEmpty(m) // timeout, retry again
 	case <-ch:
 		return true //map empty
 	}

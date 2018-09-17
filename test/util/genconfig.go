@@ -9,7 +9,7 @@ import (
 // can set
 var (
 	MeshLogPath  = "stdout"
-	MeshLogLevel = "DEBUG"
+	MeshLogLevel = "WARN"
 )
 
 // Create Mesh Config

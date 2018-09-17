@@ -37,11 +37,11 @@ import (
 type boltV2Codec struct{}
 
 func (c *boltV2Codec) EncodeHeaders(ctx context.Context, headers types.HeaderMap) (types.IoBuffer, error) {
-	switch headers.(type) {
+	switch cmd := headers.(type) {
 	case *sofarpc.BoltV2RequestCommand:
-		return c.encodeRequestCommand(ctx, headers.(*sofarpc.BoltV2RequestCommand))
+		return c.encodeRequestCommand(ctx, cmd)
 	case *sofarpc.BoltV2ResponseCommand:
-		return c.encodeResponseCommand(ctx, headers.(*sofarpc.BoltV2ResponseCommand))
+		return c.encodeResponseCommand(ctx, cmd)
 	default:
 		errMsg := sofarpc.InvalidCommandType
 		err := errors.New(errMsg)

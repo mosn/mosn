@@ -3,8 +3,8 @@ package sofarpc
 import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"context"
-	"github.com/kataras/iris/core/errors"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"errors"
 )
 
 var (
