@@ -254,7 +254,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[s
 		connection: conn,
 	}
 
-	stream.decoder = conn.serverCallbacks.NewStream(conn.context, streamID, &stream)
+	stream.decoder = conn.serverCallbacks.NewStream(conn.context, streamID, &stream, nil) // TODO 传入 XProtocol 的 SpanBuilder
 	conn.activeStream.Set(streamID, stream)
 }
 

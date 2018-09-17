@@ -177,8 +177,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStream(context context.Context, streamID string, responseSender types.StreamSender) types.StreamReceiver {
-	stream := newActiveStream(context, streamID, p, responseSender)
+func (p *proxy) NewStream(context context.Context, streamID string, responseSender types.StreamSender, spanBuilder types.SpanBuilder) types.StreamReceiver {
+	stream := newActiveStream(context, streamID, p, responseSender, spanBuilder)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)

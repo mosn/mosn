@@ -48,6 +48,8 @@ type Protocols interface {
 	// Decode decodes data to headers-data-trailers by Stream
 	// Stream register a DecodeFilter to receive decode event
 	Decode(context context.Context, data IoBuffer, filter DecodeFilter)
+
+	SpanBuilder
 }
 
 // DecodeFilter is a filter used by Stream to receive decode events
@@ -83,6 +85,11 @@ type Decoder interface {
 	// Decode decodes binary to a model
 	// return 1. bytes decoded 2. decoded cmd
 	Decode(context context.Context, data IoBuffer) (interface{}, error)
+}
+
+// Build the span for a specific protocol
+type SpanBuilder interface {
+	BuildSpan(context context.Context) Span
 }
 
 // SubProtocol Name

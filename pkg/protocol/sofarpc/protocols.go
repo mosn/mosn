@@ -20,6 +20,9 @@ package sofarpc
 import (
 	"context"
 	"errors"
+	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/models"
+	"github.com/alipay/sofa-mosn/pkg/trace"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -119,6 +122,17 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 			break
 		}
 	}
+}
+
+func (p *protocols) BuildSpan(context context.Context) types.Span {
+	sofabuffers := SofaProtocolBuffersByContent(context)
+	request := &sofabuffers.BoltReq
+	span := trace.Driver().Start(map[string]string{}, "", time.Now())
+	span.SetTag(trace.TRACE_ID, request.RequestHeader[models.TRACER_ID_KEY])
+	span.SetTag(trace.SPAN_ID, request.RequestHeader[models.RPC_ID_KEY])
+	span.SetTag(trace.PROTOCOL, "bolt")
+	span.SetTag(trace.SERVICE_NAME, request.RequestHeader[models.SERVICE_KEY])
+	return span
 }
 
 func (p *protocols) RegisterProtocol(protocolCode byte, protocol Protocol) {

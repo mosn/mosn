@@ -26,11 +26,11 @@ type Span interface {
 
 	FinishSpan()
 
-	InjectContext()
+	InjectContext(requestHeaders map[string]string)
 
-	SpawnChild() Span
+	SpawnChild(operationName string, startTime time.Time) Span
 }
 
 type Driver interface {
-	start(requestHeaders map[string]string, operationName string, startTime time.Time) Span
+	Start(requestHeaders map[string]string, operationName string, startTime time.Time) Span
 }

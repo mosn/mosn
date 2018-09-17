@@ -193,7 +193,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// NewStream returns request stream decoder
-	NewStream(context context.Context, streamID string, responseEncoder StreamSender) StreamReceiver
+	NewStream(context context.Context, streamID string, responseEncoder StreamSender, spanBuilder SpanBuilder) StreamReceiver
 }
 
 type StreamFilterBase interface {

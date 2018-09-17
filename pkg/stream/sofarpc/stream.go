@@ -204,7 +204,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[s
 
 	log.DefaultLogger.Infof("OnReceiveHeaders, New stream detected, Request id = %s, StreamID = %s", requestID, streamID)
 
-	stream.decoder = conn.serverCallbacks.NewStream(conn.context, streamID, stream)
+	stream.decoder = conn.serverCallbacks.NewStream(conn.context, streamID, stream, conn.protocols)
 	conn.activeStreams.Set(streamID, stream)
 }
 

@@ -73,7 +73,6 @@ func (c *boltV1Codec) encodeHeaders(context context.Context, headers interface{}
 	case *sofarpc.BoltResponseCommand:
 		return c.encodeResponseCommand(context, headers.(*sofarpc.BoltResponseCommand))
 	default:
-
 		errMsg := sofarpc.InvalidCommandType
 		err := errors.New(errMsg)
 		log.ByContext(context).Errorf("boltV1" + errMsg)
@@ -250,29 +249,6 @@ func (c *boltV1Codec) mapToCmd(context context.Context, headers map[string]strin
 		request.ClassName = class
 		request.HeaderMap = header
 		return request
-		/*
-			request := sofarpc.BoltRequestCommand{
-				protocolCode.(byte),
-				cmdType.(byte),
-				cmdCode.(int16),
-				version.(byte),
-				requestID.(uint32),
-				codec.(byte),
-				timeout.(int),
-				classLength.(int16),
-				//int16(len(class)),
-				headerLength.(int16),
-				//int16(len(header)),
-				contentLength.(int),
-				class,
-				header,
-				nil,
-				nil,
-				nil,
-			}
-
-			return &request
-		*/
 	} else if cmdCode == sofarpc.RPC_RESPONSE || cmdCode == sofarpc.HEARTBEAT {
 		//todo : review
 		value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderRespStatus)
@@ -299,29 +275,6 @@ func (c *boltV1Codec) mapToCmd(context context.Context, headers map[string]strin
 		response.HeaderMap = header
 		response.ResponseTimeMillis = responseTime
 		return response
-
-		/*
-			response := sofarpc.BoltResponseCommand{
-				protocolCode.(byte),
-				cmdType.(byte),
-				cmdCode.(int16),
-				version.(byte),
-				requestID.(uint32),
-				codec.(byte),
-				responseStatus.(int16),
-				classLength.(int16),
-				headerLength.(int16),
-				contentLength.(int),
-				class,
-				header,
-				nil,
-				nil,
-				responseTime.(int64),
-				nil,
-			}
-
-			return &response
-		*/
 	}
 
 	return nil
@@ -343,9 +296,6 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (inte
 
 				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
 
-				//if cmdCode == uint16(sofarpc.HEARTBEAT) {
-				//	logger.Debugf("BoltV1 DECODE Request: Get Bolt HB Msg")
-				//}
 				ver2 := bytes[4]
 				requestID := binary.BigEndian.Uint32(bytes[5:9])
 				codec := bytes[9]
@@ -395,31 +345,6 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (inte
 				request.HeaderMap = header
 				request.Content = content
 				cmd = request
-
-				/*
-					request := sofarpc.BoltRequestCommand{
-
-						sofarpc.PROTOCOL_CODE_V1,
-						dataType,
-						int16(cmdCode),
-						ver2,
-						requestID,
-						codec,
-						int(timeout),
-						int16(classLen),
-						int16(headerLen),
-						int(contentLen),
-						class,
-						header,
-						content,
-						nil,
-						nil,
-					}
-					logger.Debugf("BoltV1 DECODE REQUEST, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
-						request.Protocol, request.CmdType, request.CmdCode, request.ReqID)
-					cmd = &request
-				*/
-
 			}
 		} else if dataType == sofarpc.RESPONSE {
 			//2. response
@@ -476,34 +401,6 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (inte
 				response.Content = content
 				response.ResponseTimeMillis = time.Now().UnixNano() / int64(time.Millisecond)
 				cmd = response
-
-				/*
-					response := sofarpc.BoltResponseCommand{
-						sofarpc.PROTOCOL_CODE_V1,
-						dataType,
-						int16(cmdCode),
-						ver2,
-						requestID,
-						codec,
-						int16(status),
-						int16(classLen),
-						int16(headerLen),
-						int(contentLen),
-						class,
-						header,
-						content,
-						nil,
-						time.Now().UnixNano() / int64(time.Millisecond),
-						nil,
-					}
-
-					if cmdCode == uint16(sofarpc.HEARTBEAT) {
-						//logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
-					}
-					logger.Debugf("BoltV1 DECODE RESPONSE,RespStatus = %d, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
-						response.ResponseStatus, response.Protocol, response.CmdType, response.CmdCode, response.ReqID)
-					cmd = &response
-				*/
 			}
 		} else {
 			// 3. unknown type error
@@ -512,4 +409,8 @@ func (c *boltV1Codec) Decode(context context.Context, data types.IoBuffer) (inte
 	}
 
 	return cmd, nil
+}
+
+func (c *boltV1Codec) BuildSpan(context context.Context) {
+
 }

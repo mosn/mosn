@@ -31,8 +31,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var defaultTmpBufferSize = 1 << 6
-
 // BoltRequestProcessor process bolt v1 request msg
 type BoltRequestProcessor struct{}
 

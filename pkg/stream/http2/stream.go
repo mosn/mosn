@@ -180,7 +180,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseWriter:   responseWriter,
 		responseDoneChan: make(chan struct{}),
 	}
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(stream.stream.context, streamID, stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(stream.stream.context, streamID, stream, nil) // TODO 实现 HTTP2 的 SpanBuilder
 
 	if atomic.LoadInt32(&stream.readDisableCount) <= 0 {
 		defer func() {

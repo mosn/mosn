@@ -19,6 +19,7 @@ package proxy
 
 import (
 	"container/list"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 	"net"
 	"strconv"
 	"sync"
@@ -99,8 +100,13 @@ type downStream struct {
 	logger log.Logger
 }
 
-func newActiveStream(context context.Context, streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
-	newcontext := buffer.NewBufferPoolContext(context, true)
+func newActiveStream(ctx context.Context, streamID string, proxy *proxy, responseSender types.StreamSender, spanBuilder types.SpanBuilder) *downStream {
+	if spanBuilder != nil {
+		span := spanBuilder.BuildSpan(ctx)
+		ctx = context.WithValue(ctx, trace.ActiveSpanKey, span)
+	}
+
+	newcontext := buffer.NewBufferPoolContext(ctx, true)
 
 	proxyBuffers := proxyBuffersByContent(newcontext)
 
@@ -660,6 +666,15 @@ func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 	}
 
 	s.appendData(data, endStream)
+
+	span := trace.SpanFromContext(s.context)
+
+	if span != nil {
+		span.SetTag(trace.RESPONSE_SIZE, strconv.FormatInt(int64(s.requestInfo.BytesReceived()), 10))
+		span.SetTag(trace.UPSTREAM_HOST_ADDRESS, s.requestInfo.UpstreamHost().AddressString())
+		span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
+		span.FinishSpan()
+	}
 }
 
 func (s *downStream) onUpstreamTrailers(trailers map[string]string) {

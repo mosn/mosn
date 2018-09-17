@@ -182,7 +182,7 @@ func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	s.receiver = ssc.serverStreamConnCallbacks.NewStream(s.stream.context, streamID, s)
+	s.receiver = ssc.serverStreamConnCallbacks.NewStream(s.stream.context, streamID, s, nil) // TODO 实现 HTTP1 的 Builder
 
 	ssc.activeStream = &s.stream
 
