@@ -1,6 +1,10 @@
 package stats
 
-import "github.com/alipay/sofa-mosn/pkg/types"
+import (
+	"fmt"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
+)
 
 // HeathCheckType represents health check metrics type
 const HealthCheckType = "healthcheck"
@@ -17,5 +21,6 @@ const (
 )
 
 func NewHealthStats(servicename string) types.Metrics {
-	return NewStats(HealthCheckType, servicename)
+	namespace := fmt.Sprintf("service_%s", servicename)
+	return NewStats(HealthCheckType, namespace)
 }

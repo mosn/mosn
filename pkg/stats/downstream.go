@@ -25,11 +25,11 @@ const (
 )
 
 func NewProxyStats(proxyname string) types.Metrics {
-	namespace := fmt.Sprintf("proxy.%s", proxyname)
+	namespace := fmt.Sprintf("proxy_%s", proxyname)
 	return NewStats(DownstreamType, namespace)
 }
 
 func NewListenerStats(listenername string) types.Metrics {
-	namespace := fmt.Sprintf("listener.%s", listenername)
+	namespace := fmt.Sprintf("listener_%s", listenername)
 	return NewStats(DownstreamType, namespace)
 }

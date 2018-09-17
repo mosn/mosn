@@ -45,11 +45,11 @@ const (
 )
 
 func NewHostStats(clustername string, addr string) types.Metrics {
-	namespace := fmt.Sprintf("cluster.%s.host.%s", clustername, addr)
+	namespace := fmt.Sprintf("cluster_%s_host_%s", clustername, addr)
 	return NewStats(UpstreamType, namespace)
 }
 
 func NewClusterStats(clustername string) types.Metrics {
-	namespace := fmt.Sprintf("cluster.%s", clustername)
+	namespace := fmt.Sprintf("cluster_%s", clustername)
 	return NewStats(UpstreamType, namespace)
 }
