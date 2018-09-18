@@ -340,7 +340,7 @@ func Test_convertListenerConfig(t *testing.T) {
 
 			got := convertListenerConfig(listenerConfig)
 			if data, err := json.Marshal(got); err == nil {
-				if (strings.Compare(tt.want, string(data)) != 0) {
+				if strings.Compare(tt.want, string(data)) != 0 {
 					t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener)\ngot=%s\nwant=%s\n", string(data), tt.want)
 				}
 			} else {

@@ -61,7 +61,7 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			route.Match.Prefix,
 		}
 		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
-		result := (rr.Match(headers, 1) != nil)
+		result := rr.Match(headers, 1) != nil
 		if result != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
@@ -96,7 +96,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 		base.caseSensitive = tc.caseSensitive //hack case sensitive
 		rr := &PathRouteRuleImpl{base, route.Match.Path}
 		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
-		result := (rr.Match(headers, 1) != nil)
+		result := rr.Match(headers, 1) != nil
 		if result != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
@@ -136,7 +136,7 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 			*re,
 		}
 		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
-		result := (rr.Match(headers, 1) != nil)
+		result := rr.Match(headers, 1) != nil
 		if result != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}

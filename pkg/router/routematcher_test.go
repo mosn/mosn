@@ -104,7 +104,7 @@ func TestNewRouteMatcherGroup(t *testing.T) {
 		return
 	}
 	rm := routers.(*routeMatcher)
-	expected := (rm.defaultVirtualHost != nil && len(rm.virtualHosts) == 1 && len(rm.wildcardVirtualHostSuffixes) == 1)
+	expected := rm.defaultVirtualHost != nil && len(rm.virtualHosts) == 1 && len(rm.wildcardVirtualHostSuffixes) == 1
 	if !expected {
 		t.Error("create routematcher not match")
 	}
