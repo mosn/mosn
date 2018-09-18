@@ -49,7 +49,7 @@ type HeaderMap interface {
 	// Set key-value pair in header map, the previous pair will be replaced if exists
 	Set(key, value string)
 
-	// Delete pair of specified key
+	// Del delete pair of specified key
 	Del(key string)
 
 	// Range calls f sequentially for each key and value present in the map.

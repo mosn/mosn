@@ -142,6 +142,7 @@ func (conn *streamConnection) OnDecodeHeader(streamID string, headers types.Head
 	return types.Continue
 }
 
+// ~ HeaderMap
 func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer, endStream bool) types.FilterStatus {
 	if stream, ok := conn.activeStreams.Get(streamID); ok {
 		if stream.direction == ClientStream {

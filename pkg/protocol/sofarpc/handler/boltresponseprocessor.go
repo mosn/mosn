@@ -19,6 +19,7 @@ package handler
 
 import (
 	"context"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -104,11 +105,11 @@ func deserializeResponse(context context.Context, responseCommand *sofarpc.BoltR
 	logger := log.ByContext(context)
 
 	protocolCtx := protocol.ProtocolBuffersByContext(context)
-	responseCommand.ResponseHeader  = protocolCtx.GetRspHeaders()
+	responseCommand.ResponseHeader = protocolCtx.GetRspHeaders()
 
 	//serialize header
-	serializeIns.DeSerialize(responseCommand.HeaderMap, &responseCommand.ResponseHeader )
-	logger.Debugf("Deserialize response header map: %+v", responseCommand.ResponseHeader )
+	serializeIns.DeSerialize(responseCommand.HeaderMap, &responseCommand.ResponseHeader)
+	logger.Debugf("Deserialize response header map: %+v", responseCommand.ResponseHeader)
 
 	//serialize class name
 	serializeIns.DeSerialize(responseCommand.ClassName, &responseCommand.ResponseClass)

@@ -20,9 +20,9 @@ package sofarpc
 import (
 	"strconv"
 
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 func (s *stream) encodeSterilize(headers types.HeaderMap) types.HeaderMap {

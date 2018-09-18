@@ -1,10 +1,28 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sofarpc
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"context"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"errors"
+
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var (
@@ -26,12 +44,17 @@ func init() {
 	protocol.RegisterConv(SofaRPC, protocol.HTTP2, sofa2http)
 }
 
+// SofaConv extract common methods for protocol conversion between sofarpc protocols(bolt/boltv2/tr) and others
 type SofaConv interface {
+
+	// MapToCmd maps given header map(must contains necessary sofarpc protocol fields) to corresponding sofarpc command struct
 	MapToCmd(ctx context.Context, headerMap map[string]string) (ProtoBasicCmd, error)
 
+	// MapToFields maps given sofarpc command struct to corresponding key-value header map(contains necessary sofarpc protocol fields)
 	MapToFields(ctx context.Context, cmd ProtoBasicCmd) (map[string]string, error)
 }
 
+// RegisterConv for sub protocol registry
 func RegisterConv(protocol byte, conv SofaConv) {
 	sofaConvFactory[protocol] = conv
 }
@@ -61,7 +84,7 @@ func MapToFields(ctx context.Context, cmd ProtoBasicCmd) (map[string]string, err
 	return nil, ErrUnsupportedProtocol
 }
 
-// http/x -> sofarpc
+// http/x -> sofarpc converter
 type http2sofa struct{}
 
 func (c *http2sofa) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
@@ -79,7 +102,7 @@ func (c *http2sofa) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) 
 	return headerMap, nil
 }
 
-// sofarpc -> http/x
+// sofarpc -> http/x converter
 type sofa2http struct{}
 
 func (c *sofa2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {

@@ -1,17 +1,36 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package conv
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-	"strconv"
-	"reflect"
 	"context"
-	"github.com/kataras/iris/core/errors"
+	"reflect"
+	"strconv"
+
+	"errors"
+
+	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 )
 
 // BoltV1PropertyHeaders map the cmdkey and its data type
 var (
 	BoltV1PropertyHeaders = make(map[string]reflect.Kind, 11)
-	boltv1 = new(boltv1conv)
+	boltv1                = new(boltv1conv)
 )
 
 func init() {
@@ -34,7 +53,7 @@ func init() {
 type boltv1conv struct{}
 
 func (b *boltv1conv) MapToCmd(ctx context.Context, headers map[string]string) (sofarpc.ProtoBasicCmd, error) {
-	if len(headers) < 10 {
+	if len(headers) < 8 {
 		return nil, errors.New("headers count not enough")
 	}
 
@@ -124,8 +143,8 @@ func (b *boltv1conv) MapToFields(ctx context.Context, cmd sofarpc.ProtoBasicCmd)
 func mapReqToFields(ctx context.Context, req *sofarpc.BoltRequestCommand) (map[string]string, error) {
 	// TODO: map reuse
 	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
-
-	headers := make(map[string]string, 11)
+	//headers := make(map[string]string, 9+len(req.RequestHeader))
+	headers := req.RequestHeader
 
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(req.Protocol), 10)
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType)] = strconv.FormatUint(uint64(req.CmdType), 10)
@@ -141,13 +160,16 @@ func mapReqToFields(ctx context.Context, req *sofarpc.BoltRequestCommand) (map[s
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderContentLen)] = strconv.FormatUint(uint64(req.ContentLen), 10)
 
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassName)] = req.RequestClass
+
 	return headers, nil
 }
 
 func mapRespToFields(ctx context.Context, resp *sofarpc.BoltResponseCommand) (map[string]string, error) {
 	// TODO: map reuse
 	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
-	headers := make(map[string]string, 12)
+	//headers := make(map[string]string, 12)
+
+	headers := resp.ResponseHeader
 
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)] = strconv.FormatUint(uint64(resp.Protocol), 10)
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdType)] = strconv.FormatUint(uint64(resp.CmdType), 10)

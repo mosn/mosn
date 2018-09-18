@@ -266,7 +266,6 @@ func (b *BoltRequestCommand) GetRespStatus() uint32 {
 	return uint32(RESPONSE_STATUS_SUCCESS)
 }
 
-
 func (b *BoltRequestCommand) SetReqID(reqId uint32) {
 	b.ReqID = reqId
 }
