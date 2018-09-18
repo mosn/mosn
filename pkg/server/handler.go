@@ -189,7 +189,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
-				return nil, fmt.Errorf("initialize listener access logger ", alConfig.Path, " failed: ", err.Error())
+				return nil, fmt.Errorf("initialize listener access logger %s failed: %s", alConfig.Path, err.Error())
 			}
 		}
 
