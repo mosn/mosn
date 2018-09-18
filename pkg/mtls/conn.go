@@ -118,6 +118,35 @@ func (c *TLSConn) SetALPN(alpn string) {
 	c.Conn.SetALPN(alpn)
 }
 
+// WriteTo writes data
+func (c *TLSConn) WriteTo(v *net.Buffers) (int64, error) {
+	buffers := (*[][]byte)(v)
+	size := 0
+	for _, b := range *buffers {
+		size += len(b)
+	}
+
+	buf := buffer.GetBytes(size)
+	off := 0
+	for _, b := range *buffers {
+		copy((*buf)[off:], b)
+		off += len(b)
+	}
+	*buffers = (*buffers)[:0]
+
+	off = 0
+	for off < size {
+		l, err := c.Conn.Write((*buf)[off:])
+		if err != nil {
+			buffer.PutBytes(buf)
+			return int64(off), err
+		}
+		off += l
+	}
+	buffer.PutBytes(buf)
+	return int64(off), nil
+}
+
 // GetTLSConn return TLSConn
 func GetTLSConn(c net.Conn, b []byte) (net.Conn, error) {
 	var info tls.TransferTLSInfo

@@ -36,6 +36,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 )
 
 // Network related const
@@ -565,7 +566,11 @@ func (c *connection) doWrite() (int64, error) {
 
 func (c *connection) doWriteIo() (bytesSent int64, err error) {
 	buffers := c.writeBuffers
-	bytesSent, err = buffers.WriteTo(c.rawConnection)
+	if tlsConn, ok := c.rawConnection.(*mtls.TLSConn); ok {
+		bytesSent, err = tlsConn.WriteTo(&buffers)
+	} else {
+		bytesSent, err = buffers.WriteTo(c.rawConnection)
+	}
 	if err != nil {
 		return bytesSent, err
 	}
