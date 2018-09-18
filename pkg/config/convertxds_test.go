@@ -79,8 +79,7 @@ func Test_convertHeaders(t *testing.T) {
 			args: args{
 				xdsHeaders: []*xdsroute.HeaderMatcher{
 					{
-						Name:  "end-user",
-						Value: "",
+						Name: "end-user",
 						HeaderMatchSpecifier: &xdsroute.HeaderMatcher_ExactMatch{
 							ExactMatch: "jason",
 						},
@@ -285,14 +284,14 @@ func Test_convertListenerConfig(t *testing.T) {
 						Filter: nil,
 						Config: accessLogFilterConfig,
 					}},
-					UseRemoteAddress:            NewBoolValue(false),
-					XffNumTrustedHops:           0,
-					SkipXffAppend:               false,
-					Via:                         "",
-					GenerateRequestId:           NewBoolValue(true),
-					ForwardClientCertDetails:    xdshttp.SANITIZE,
-					SetCurrentClientCertDetails: nil,
-					Proxy_100Continue:           false,
+					UseRemoteAddress:                           NewBoolValue(false),
+					XffNumTrustedHops:                          0,
+					SkipXffAppend:                              false,
+					Via:                                        "",
+					GenerateRequestId:                          NewBoolValue(true),
+					ForwardClientCertDetails:                   xdshttp.SANITIZE,
+					SetCurrentClientCertDetails:                nil,
+					Proxy_100Continue:                          false,
 					RepresentIpv4RemoteAddressAsIpv4MappedIpv6: false,
 				},
 				filterName: "envoy.http_connection_manager",
@@ -339,7 +338,7 @@ func Test_convertListenerConfig(t *testing.T) {
 				DrainType: xdsapi.Listener_DEFAULT,
 			}
 
-			got := convertListenerConfig(listenerConfig);
+			got := convertListenerConfig(listenerConfig)
 			if data, err := json.Marshal(got); err == nil {
 				if (strings.Compare(tt.want, string(data)) != 0) {
 					t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener)\ngot=%s\nwant=%s\n", string(data), tt.want)
