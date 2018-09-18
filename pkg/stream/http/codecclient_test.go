@@ -48,13 +48,13 @@ func NewMockClient(t *testing.T) *mockClient {
 func (c *mockClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("data:%v endStream:%v", data, endStream)
 }
-func (c *mockClient) OnReceiveTrailers(context context.Context, trailers map[string]string) {
+func (c *mockClient) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 	log.DefaultLogger.Debugf("trailers:%v", trailers)
 }
-func (c *mockClient) OnDecodeError(context context.Context, err error, headers map[string]string) {
+func (c *mockClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 	c.t.Errorf("err:%v headers:%v", err, headers)
 }
-func (c *mockClient) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
+func (c *mockClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	log.DefaultLogger.Debugf("headers:%v endStream:%v", headers, endStream)
 }
 

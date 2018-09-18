@@ -807,6 +807,6 @@ func (ci *ContextImplMock) DownstreamConnection() net.Conn {
 	return nil
 }
 
-func (ci *ContextImplMock) DownstreamHeaders() map[string]string {
+func (ci *ContextImplMock) DownstreamHeaders() types.HeaderMap {
 	return nil
 }

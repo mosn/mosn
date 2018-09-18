@@ -42,7 +42,7 @@ type Routers struct {
 }
 
 //Routing, use static router first， then use dynamic router if support
-func (rc *Routers) Route(headers map[string]string, randomValue uint64) types.Route {
+func (rc *Routers) Route(headers types.HeaderMap, randomValue uint64) types.Route {
 	//use static router first, then use dynamic router
 	for _, r := range rc.routers {
 		if rule := r.Match(headers, randomValue); rule != nil {
@@ -160,7 +160,7 @@ func NewRouters(config interface{}) (types.Routers, error) {
 	return nil, errors.New("invalid config struct")
 }
 
-func (srr *basicRouter) Match(headers map[string]string, randomValue uint64) types.Route {
+func (srr *basicRouter) Match(headers types.HeaderMap, randomValue uint64) types.Route {
 	if headers == nil {
 		return nil
 	}
@@ -168,8 +168,8 @@ func (srr *basicRouter) Match(headers map[string]string, randomValue uint64) typ
 	var ok bool
 	var service string
 
-	if service, ok = headers["Service"]; !ok {
-		if service, ok = headers["service"]; !ok {
+	if service, ok = headers.Get("Service"); !ok {
+		if service, ok = headers.Get("service"); !ok {
 			return nil
 		}
 	}
