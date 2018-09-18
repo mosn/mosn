@@ -47,12 +47,14 @@ type Stats struct {
 	registry  metrics.Registry
 }
 
+const sep = "@"
+
 // NewStats returns a Stats
 // metrics key prefix is "${type}.${namespace}"
-// "." is the reserved sep, any "." in type and namespace will be dropped
+// "@" is the reserved sep, any "@" in type and namespace will be dropped
 func NewStats(typ, namespace string) *Stats {
-	typ = strings.Replace(typ, ".", "", -1)
-	namespace = strings.Replace(namespace, ".", "", -1)
+	typ = strings.Replace(typ, sep, "", -1)
+	namespace = strings.Replace(namespace, sep, "", -1)
 	reg.mutex.Lock()
 	defer reg.mutex.Unlock()
 	if _, ok := reg.registries[typ]; !ok {
@@ -69,21 +71,21 @@ func NewStats(typ, namespace string) *Stats {
 // Counter creates or returns a go-metrics counter by key
 // if the key is registered by other interface, it will be panic
 func (s *Stats) Counter(key string) metrics.Counter {
-	metricsKey := fmt.Sprintf("%s.%s.%s", s.typ, s.namespace, key)
+	metricsKey := strings.Join([]string{s.typ, s.namespace, key}, sep)
 	return s.registry.GetOrRegister(metricsKey, metrics.NewCounter()).(metrics.Counter)
 }
 
 // Gauge creates or returns a go-metrics gauge by key
 // if the key is registered by other interface, it will be panic
 func (s *Stats) Gauge(key string) metrics.Gauge {
-	metricsKey := fmt.Sprintf("%s.%s.%s", s.typ, s.namespace, key)
+	metricsKey := strings.Join([]string{s.typ, s.namespace, key}, sep)
 	return s.registry.GetOrRegister(metricsKey, metrics.NewGauge()).(metrics.Gauge)
 }
 
 // Histogram creates or returns a go-metrics histogram by key
 // if the key is registered by other interface, it will be panic
 func (s *Stats) Histogram(key string) metrics.Histogram {
-	metricsKey := fmt.Sprintf("%s.%s.%s", s.typ, s.namespace, key)
+	metricsKey := strings.Join([]string{s.typ, s.namespace, key}, sep)
 	return s.registry.GetOrRegister(metricsKey, metrics.NewHistogram(metrics.NewUniformSample(100))).(metrics.Histogram)
 }
 
@@ -115,7 +117,7 @@ func GetMetricsData(typ string) map[string]NamespaceData {
 	}
 	res := make(map[string]NamespaceData)
 	r.Each(func(key string, i interface{}) {
-		values := strings.SplitN(key, ".", 3)
+		values := strings.SplitN(key, sep, 3)
 		if len(values) != 3 { // unexepcted metrics, ignore
 			return
 		}

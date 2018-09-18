@@ -34,11 +34,11 @@ func testClear() {
 
 func TestTrimKey(t *testing.T) {
 	testClear()
-	typ := "test.type"
-	namespace := "test.namespace"
+	typ := "test@type"
+	namespace := "test@namespace"
 	s := NewStats(typ, namespace)
 	if !(s.typ == "testtype" && s.namespace == "testnamespace") {
-		t.Error("type/namespace have dot, it is not allowed")
+		t.Error("type/namespace have at, it is not allowed")
 	}
 }
 
