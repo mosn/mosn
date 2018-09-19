@@ -85,7 +85,7 @@ type Decoder interface {
 	Decode(context context.Context, data IoBuffer) (interface{}, error)
 }
 
-// SubProtocol Name
+// SubProtocol Type
 type SubProtocol string
 
 // Multiplexing Accesslog Rate limit Curcuit Breakers

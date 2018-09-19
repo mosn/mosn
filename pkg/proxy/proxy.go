@@ -61,25 +61,15 @@ type proxy struct {
 	readCallbacks       types.ReadFilterCallbacks
 	upstreamConnection  types.ClientConnection
 	downstreamCallbacks DownstreamCallbacks
-
-	clusterName string
-	routers     types.Routers
-	serverCodec types.ServerStreamConnection
-
-	context context.Context
-
-	// downstream requests
-	activeSteams *list.List
-	asMux        sync.RWMutex
-
-	// stats
-	stats *proxyStats
-
-	// listener stats
-	listenerStats *listenerStats
-
-	// access logs
-	accessLogs []types.AccessLog
+	clusterName         string
+	routersWrapper      types.RouterWapper
+	serverCodec         types.ServerStreamConnection
+	context             context.Context
+	activeSteams        *list.List // downstream requests
+	asMux               sync.RWMutex
+	stats               *proxyStats
+	listenerStats       *listenerStats
+	accessLogs          []types.AccessLog
 }
 
 // NewProxy create proxy instance for given v2.Proxy config
@@ -109,11 +99,18 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
 	//log fatal to exit
-	routers, err := router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
+	//
+
 	if err != nil {
 		log.StartLogger.Fatal(err)
 	}
-	proxy.routers = routers
+
+	if routersWrapper := router.GetRoutersMangerInstance().GetRouterByListenerName(proxy.config.RouterConfigName); routersWrapper != nil {
+		proxy.routersWrapper = routersWrapper
+	} else {
+		log.DefaultLogger.Errorf("RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
+	}
+
 	proxy.downstreamCallbacks = &downstreamCallbacks{
 		proxy: proxy,
 	}

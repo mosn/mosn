@@ -10,41 +10,60 @@ import (
 // can set
 var (
 	MeshLogPath  = "stdout"
-	MeshLogLevel = "WARN"
+	MeshLogLevel = "DEBUG"
 )
 
 // Create Mesh Config
-func newProxyFilter(name string, downstream, upstream types.Protocol, routers []v2.Router) *v2.Proxy {
+func newProxyFilter(name string, downstream, upstream types.Protocol, cfgname string) *v2.Proxy {
 	return &v2.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
+		RouterConfigName:   cfgname,
+	}
+}
+func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.FilterChain {
+	chains := make(map[string]interface{})
+	b, _ := json.Marshal(proxy)
+	json.Unmarshal(b, &chains)
+
+	routerConfig := v2.RouterConfiguration{
+		RouterConfigName: cfgName,
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{
-				Name:    name,
+				Name:    "test",
 				Domains: []string{"*"},
 				Routers: routers,
 			},
 		},
 	}
-}
-func makeFilterChain(proxy *v2.Proxy) v2.FilterChain {
-	chains := make(map[string]interface{})
-	b, _ := json.Marshal(proxy)
-	json.Unmarshal(b, &chains)
+
+	chainsConnMng := make(map[string]interface{})
+	b2, _ := json.Marshal(routerConfig)
+	json.Unmarshal(b2, &chainsConnMng)
+
 	return v2.FilterChain{
 		Filters: []v2.Filter{
-			v2.Filter{Name: "proxy", Config: chains},
+			v2.Filter{Type: "proxy", Config: chains},
+			{Type: "connection_manager", Config: chainsConnMng},
 		},
 	}
 }
 
 func newFilterChain(name string, downstream, upstream types.Protocol, routers []v2.Router) v2.FilterChain {
-	proxy := newProxyFilter(name, downstream, upstream, routers)
-	return makeFilterChain(proxy)
+
+	routerConfigName := "test_router_config_name"
+
+	proxy := newProxyFilter(name, downstream, upstream, routerConfigName)
+
+	return makeFilterChain(proxy, routers, routerConfigName)
+
 }
 
 func newXProtocolFilterChain(name string, subproto string, routers []v2.Router) v2.FilterChain {
-	proxy := newProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol, routers)
+	
+	routerConfigName := "xprotocol_test_router_config_name"
+	
+	proxy := newProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol, routerConfigName)
 	extendConfig := &v2.XProxyExtendConfig{
 		SubProtocol: subproto,
 	}
@@ -52,7 +71,7 @@ func newXProtocolFilterChain(name string, subproto string, routers []v2.Router) 
 	data, _ := json.Marshal(extendConfig)
 	json.Unmarshal(data, &extendMap)
 	proxy.ExtendConfig = extendMap
-	return makeFilterChain(proxy)
+	return makeFilterChain(proxy,routers,routerConfigName)
 }
 
 func newBasicCluster(name string, hosts []string) v2.Cluster {

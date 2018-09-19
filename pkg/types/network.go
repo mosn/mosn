@@ -86,7 +86,7 @@ type Listener interface {
 
 	SetConfig(config *v2.Listener)
 
-	// Name returns the listener's name
+	// Type returns the listener's name
 	Name() string
 
 	// Addr returns the listener's network address.

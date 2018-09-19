@@ -357,7 +357,7 @@ func MockRouterMatcher() (types.Routers, error) {
 		&v2.VirtualHost{Domains: []string{"www.alibaba.com"}, Routers: []v2.Router{MockRouter([]string{"c1", "c2"})}},
 		&v2.VirtualHost{Domains: []string{"www.antfin.com"}, Routers: []v2.Router{MockRouter([]string{"a1", "a2"})}},
 	}
-	cfg := &v2.Proxy{
+	cfg := &v2.RouterConfiguration{
 		VirtualHosts: virtualHosts,
 	}
 

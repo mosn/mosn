@@ -22,11 +22,25 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	clusterAdapter "github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
+
+// OnRouterUpdate used to add or update routers
+func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration) {
+
+	if routersMngIns := router.GetRoutersMangerInstance(); routersMngIns == nil {
+		log.DefaultLogger.Errorf("xds OnAddOrUpdateRouters error: router manager in nil")
+	} else {
+
+		for _, router := range routers {
+			routersMngIns.AddOrUpdateRouters(convertVirtualHosts(router))
+		}
+	}
+}
 
 // OnAddOrUpdateListeners called by XdsClient when listeners config refresh
 func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
