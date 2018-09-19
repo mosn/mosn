@@ -164,7 +164,12 @@ func TransferServer(gracefultime time.Duration, ch chan<- bool) {
 			log.DefaultLogger.Infof("transfer metrics accept")
 			go func() {
 				serveConn(conn)
-				ch <- true
+				if ch != nil {
+					select {
+					case ch <- true:
+					case <-time.After(10 * time.Second): // write timeout
+					}
+				}
 			}()
 		}
 	}()

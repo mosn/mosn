@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
+	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -36,13 +37,13 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var (
-	globalStats *proxyStats
+	globalStats types.Metrics
 
 	workerPool mosnsync.ShardWorkerPool
 )
 
 func init() {
-	globalStats = newProxyStats(types.GlobalProxyName)
+	globalStats = stats.NewProxyStats(types.GlobalProxyName)
 
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
@@ -73,10 +74,10 @@ type proxy struct {
 	asMux        sync.RWMutex
 
 	// stats
-	stats *proxyStats
+	stats types.Metrics
 
 	// listener stats
-	listenerStats *listenerStats
+	listenerStats types.Metrics
 
 	// access logs
 	accessLogs []types.AccessLog
@@ -107,7 +108,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 	}
 
 	listenerName := ctx.Value(types.ContextKeyListenerName).(string)
-	proxy.listenerStats = newListenerStats(listenerName)
+	proxy.listenerStats = stats.NewListenerStats(listenerName)
 	//log fatal to exit
 	routers, err := router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
 	if err != nil {
@@ -130,8 +131,10 @@ func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 //rpc realize upstream on event
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
-		p.stats.DownstreamConnectionDestroy().Inc(1)
-		p.stats.DownstreamConnectionActive().Dec(1)
+		p.stats.Counter(stats.DownstreamConnectionDestroy).Inc(1)
+		p.stats.Counter(stats.DownstreamConnectionActive).Dec(1)
+		p.listenerStats.Counter(stats.DownstreamConnectionDestroy).Inc(1)
+		p.listenerStats.Counter(stats.DownstreamConnectionActive).Dec(1)
 		var urEleNext *list.Element
 
 		p.asMux.RLock()
@@ -162,14 +165,16 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 
 	cb.Connection().SetStats(&types.ConnectionStats{
-		ReadTotal:    p.stats.DownstreamBytesRead(),
-		ReadCurrent:  p.stats.DownstreamBytesReadCurrent(),
-		WriteTotal:   p.stats.DownstreamBytesWrite(),
-		WriteCurrent: p.stats.DownstreamBytesWriteCurrent(),
+		ReadTotal:    p.stats.Counter(stats.DownstreamBytesRead),
+		ReadCurrent:  p.stats.Gauge(stats.DownstreamBytesReadCurrent),
+		WriteTotal:   p.stats.Counter(stats.DownstreamBytesWrite),
+		WriteCurrent: p.stats.Gauge(stats.DownstreamBytesWriteCurrent),
 	})
 
-	p.stats.DownstreamConnectionTotal().Inc(1)
-	p.stats.DownstreamConnectionActive().Inc(1)
+	p.stats.Counter(stats.DownstreamConnectionTotal).Inc(1)
+	p.stats.Counter(stats.DownstreamConnectionActive).Inc(1)
+	p.listenerStats.Counter(stats.DownstreamConnectionTotal).Inc(1)
+	p.listenerStats.Counter(stats.DownstreamConnectionActive).Inc(1)
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
 	p.serverCodec = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)

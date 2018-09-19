@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/stats"
 )
 
 func init() {
@@ -178,6 +179,8 @@ func reconfigure() {
 
 	// Wait for all connections to be finished
 	WaitConnectionsDone(GracefulTimeout)
+	// Transfer metrcis data, non-block
+	stats.TransferMetrics(false, 0)
 	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
 
 	// Stop the old server, all the connections have been closed and the new one is running

@@ -116,10 +116,10 @@ func newActiveStream(context context.Context, streamID string, proxy *proxy, res
 
 	stream.logger = log.ByContext(proxy.context)
 
-	proxy.stats.DownstreamRequestTotal().Inc(1)
-	proxy.stats.DownstreamRequestActive().Inc(1)
-	proxy.listenerStats.DownstreamRequestTotal().Inc(1)
-	proxy.listenerStats.DownstreamRequestActive().Inc(1)
+	proxy.stats.Counter(stats.DownstreamRequestTotal).Inc(1)
+	proxy.stats.Counter(stats.DownstreamRequestActive).Inc(1)
+	proxy.listenerStats.Counter(stats.DownstreamRequestTotal).Inc(1)
+	proxy.listenerStats.Counter(stats.DownstreamRequestActive).Inc(1)
 
 	// start event process
 	stream.startEventProcess()
@@ -179,8 +179,8 @@ func (s *downStream) cleanStream() {
 	}
 
 	// countdown metrics
-	s.proxy.stats.DownstreamRequestActive().Dec(1)
-	s.proxy.listenerStats.DownstreamRequestActive().Dec(1)
+	s.proxy.stats.Counter(stats.DownstreamRequestActive).Dec(1)
+	s.proxy.listenerStats.Counter(stats.DownstreamRequestActive).Dec(1)
 
 	// access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
@@ -227,8 +227,8 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 }
 
 func (s *downStream) ResetStream(reason types.StreamResetReason) {
-	s.proxy.stats.DownstreamRequestReset().Inc(1)
-	s.proxy.listenerStats.DownstreamRequestReset().Inc(1)
+	s.proxy.stats.Counter(stats.DownstreamRequestReset).Inc(1)
+	s.proxy.listenerStats.Counter(stats.DownstreamRequestReset).Inc(1)
 	s.cleanStream()
 }
 

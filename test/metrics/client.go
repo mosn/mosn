@@ -88,7 +88,7 @@ func (s *streamReceiver) OnReceiveHeaders(context context.Context, headers map[s
 		return
 	}
 	code, err := strconv.Atoi(status)
-	if err != nil || int16(code) == sofarpc.RESPONSE_STATUS_SUCCESS {
+	if err != nil || int16(code) != sofarpc.RESPONSE_STATUS_SUCCESS {
 		s.ch <- errors.New(status)
 		return
 	}
