@@ -83,16 +83,18 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) (*v2.Listener) {
 	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
 
 	// it must be 1 filechains and 1 networkfilter by design
-	if len(listenerConfig.FilterChains) == 1 && len(listenerConfig.FilterChains[0].Filters) == 1 && listenerConfig.FilterChains[0].Filters[0].Config != nil {
-		if downstreamProtocol, ok := listenerConfig.FilterChains[0].Filters[0].Config["DownstreamProtocol"]; ok {
-			// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
-			// in the future, if we realize these two protocol by-self, this this hack method should be removed
-			if value, ok := downstreamProtocol.(string); ok && (value == string(protocol.HTTP2) ||
-				value == string(protocol.HTTP1)) {
-				listenerConfig.DisableConnIo = true
-			}
-		}
-	}
+	//if len(listenerConfig.FilterChains) == 1 && len(listenerConfig.FilterChains[0].Filters) == 1 && listenerConfig.FilterChains[0].Filters[0].Config != nil {
+	//	if downstreamProtocol, ok := listenerConfig.FilterChains[0].Filters[0].Config["DownstreamProtocol"]; ok {
+	//		// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
+	//		// in the future, if we realize these two protocol by-self, this this hack method should be removed
+	//		if value, ok := downstreamProtocol.(string); ok && (value == string(protocol.HTTP2) ||
+	//			value == string(protocol.HTTP1)) {
+	//			listenerConfig.DisableConnIo = true
+	//		}
+	//	}
+	//}
+	
+	listenerConfig.DisableConnIo = GetListenerDisableIO(&listenerConfig.FilterChains[0])
 
 	return listenerConfig
 }
