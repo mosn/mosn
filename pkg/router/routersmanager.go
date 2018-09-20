@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"fmt"
 )
 
 var instanceMutex = sync.Mutex{}
@@ -69,34 +70,48 @@ func NewRouterManager() types.RouterManager {
 
 // AddOrUpdateRouters used to add or update router
 func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error {
-
-	if routers, err := NewRouteMatcher(routerConfig); err != nil {
-		log.DefaultLogger.Errorf("AddOrUpdateRouters Error,  When NewRouteMatcher:", err.Error())
-		return err
+	
+	if routerConfig == nil {
+		log.DefaultLogger.Errorf("AddOrUpdateRouters Error,routerConfig is nil ")
+		return fmt.Errorf("AddOrUpdateRouters Error,routerConfig is nil ")
+	}
+	
+	routers, err := NewRouteMatcher(routerConfig);
+	
+	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
+		// NewRouteMatcher has error, doesn't update
+		if err != nil {
+			return err
+		}
+		
+		// else : update a router
+		if primaryRouters, ok := v.(*RoutersWrapper); ok {
+			primaryRouters.routers = routers
+		}
+		
 	} else {
-		if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
-			// update a router
-			if primaryRouters, ok := v.(*RoutersWrapper); ok {
-				primaryRouters.routers = routers
-			}
-
+		// NewRouteMatcher has error, use nil routers
+		if err != nil {
+			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
+				routers: nil,
+			})
+			return fmt.Errorf("Store RoutersWrapper %s with routers is nil",routerConfig.RouterConfigName)
+		// new routers
 		} else {
-			// new a router
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
 				routers: routers,
 			})
 		}
 	}
-
 	return nil
 }
 
 // AddOrUpdateRouters used to add or update router
-func (rm *routersManager) GetRouterByListenerName(routerConfigName string) types.RouterWapper {
+func (rm *routersManager) GetRouterWrapperByListenerName(routerConfigName string) types.RouterWapper {
 
 	if value, ok := rm.routersMap.Load(routerConfigName); ok {
-		if router, ok := value.(*RoutersWrapper); ok {
-			return router
+		if routerWapper, ok := value.(*RoutersWrapper); ok {
+			return routerWapper
 		}
 	}
 
