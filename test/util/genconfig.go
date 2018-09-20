@@ -10,15 +10,15 @@ import (
 // can set
 var (
 	MeshLogPath  = "stdout"
-	MeshLogLevel = "DEBUG"
+	MeshLogLevel = "info"
 )
 
 // Create Mesh Config
-func newProxyFilter(name string, downstream, upstream types.Protocol, cfgname string) *v2.Proxy {
+func newProxyFilter(routerfgname string, downstream, upstream types.Protocol) *v2.Proxy {
 	return &v2.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
-		RouterConfigName:   cfgname,
+		RouterConfigName:   routerfgname,
 	}
 }
 func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.FilterChain {
@@ -49,21 +49,17 @@ func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.Fi
 	}
 }
 
-func newFilterChain(name string, downstream, upstream types.Protocol, routers []v2.Router) v2.FilterChain {
-
-	routerConfigName := "test_router_config_name"
-
-	proxy := newProxyFilter(name, downstream, upstream, routerConfigName)
+func newFilterChain(routerConfigName string, downstream, upstream types.Protocol, routers []v2.Router) v2.FilterChain {
+	proxy := newProxyFilter(routerConfigName, downstream, upstream)
 
 	return makeFilterChain(proxy, routers, routerConfigName)
-
 }
 
 func newXProtocolFilterChain(name string, subproto string, routers []v2.Router) v2.FilterChain {
 	
 	routerConfigName := "xprotocol_test_router_config_name"
 	
-	proxy := newProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol, routerConfigName)
+	proxy := newProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol)
 	extendConfig := &v2.XProxyExtendConfig{
 		SubProtocol: subproto,
 	}

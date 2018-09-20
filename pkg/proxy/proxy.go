@@ -62,7 +62,7 @@ type proxy struct {
 	upstreamConnection  types.ClientConnection
 	downstreamCallbacks DownstreamCallbacks
 	clusterName         string
-	routersWrapper      types.RouterWapper
+	routersWrapper      types.RouterWapper // wrapper used to point to the routers instance
 	serverCodec         types.ServerStreamConnection
 	context             context.Context
 	activeSteams        *list.List // downstream requests
@@ -105,7 +105,8 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		log.StartLogger.Fatal(err)
 	}
 
-	if routersWrapper := router.GetRoutersMangerInstance().GetRouterByListenerName(proxy.config.RouterConfigName); routersWrapper != nil {
+	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByListenerName(proxy.config.RouterConfigName);
+	routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
 	} else {
 		log.DefaultLogger.Errorf("RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)

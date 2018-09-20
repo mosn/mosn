@@ -227,7 +227,7 @@ func Test_routersManager_AddOrUpdateRouters(t *testing.T) {
 	}
 }
 
-func Test_routersManager_GetRouterByListenerName(t *testing.T) {
+func Test_routersManager_GetRouterWrapperByListenerName(t *testing.T) {
 	bytes1 := []byte(routerConfig)
 	router1 := &v2.RouterConfiguration{}
 
@@ -248,12 +248,12 @@ func Test_routersManager_GetRouterByListenerName(t *testing.T) {
 
 	// add routers1 to "test_router"
 	routerManager.AddOrUpdateRouters(router1)
-	routerWrapper1 := routerManager.GetRouterByListenerName(routerConfigName)
+	routerWrapper1 := routerManager.GetRouterWrapperByListenerName(routerConfigName)
 	routers1 := routerWrapper1.GetRouters()
 
 	// update "test_router" with router2
 	routerManager.AddOrUpdateRouters(router2)
-	routerWrapper2 := routerManager.GetRouterByListenerName(routerConfigName)
+	routerWrapper2 := routerManager.GetRouterWrapperByListenerName(routerConfigName)
 	routers2 := routerWrapper2.GetRouters()
 
 	// expect routers has been updated

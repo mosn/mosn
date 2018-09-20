@@ -37,7 +37,7 @@ func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration)
 	} else {
 
 		for _, router := range routers {
-			routersMngIns.AddOrUpdateRouters(convertVirtualHosts(router))
+			routersMngIns.AddOrUpdateRouters(convertRouterConf(router))
 		}
 	}
 }
