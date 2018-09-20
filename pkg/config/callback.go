@@ -43,13 +43,15 @@ func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration)
 }
 
 // OnAddOrUpdateListeners called by XdsClient when listeners config refresh
-func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
+func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) []string {
 
+	rdsRouteNames := make([]string, 0)
 	for _, listener := range listeners {
-		mosnListener := convertListenerConfig(listener)
+		mosnListener, rdsNames := convertListenerConfig(listener)
 		if mosnListener == nil {
 			continue
 		}
+		rdsRouteNames = append(rdsRouteNames, rdsNames...)
 
 		var streamFilters []types.StreamFilterChainFactory
 		var networkFilters []types.NetworkFilterChainFactory
@@ -71,7 +73,7 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 		if listenerAdapter == nil {
 			// if listenerAdapter is nil, return directly
 			log.DefaultLogger.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
-			return
+			return rdsRouteNames
 		}
 		log.DefaultLogger.Debugf("listenerAdapter.AddOrUpdateListener called, with mosn Listener:%+v, networkFilters:%+v, streamFilters: %+v",
 			listeners, networkFilters, streamFilters)
@@ -83,11 +85,12 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 				mosnListener.Addr.String(), err.Error())
 		}
 	}
+	return rdsRouteNames
 }
 
 func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) {
 	for _, listener := range listeners {
-		mosnListener := convertListenerConfig(listener)
+		mosnListener, _ := convertListenerConfig(listener)
 		if mosnListener == nil {
 			continue
 		}
