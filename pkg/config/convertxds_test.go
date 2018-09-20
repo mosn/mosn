@@ -340,7 +340,7 @@ func Test_convertListenerConfig(t *testing.T) {
 				DrainType: xdsapi.Listener_DEFAULT,
 			}
 
-			got,_:= convertListenerConfig(listenerConfig)
+			got := convertListenerConfig(listenerConfig)
 			if data, err := json.Marshal(got); err == nil {
 				if strings.Compare(tt.want, string(data)) != 0 {
 					t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener)\ngot=%s\nwant=%s\n", string(data), tt.want)
