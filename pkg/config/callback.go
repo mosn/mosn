@@ -37,7 +37,9 @@ func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration)
 	} else {
 
 		for _, router := range routers {
+			log.DefaultLogger.Tracef("raw router config: %+v", router)
 			mosnRouter, _ := convertRouterConf("", router)
+			log.DefaultLogger.Tracef("mosnRouter config: %+v", mosnRouter)
 			routersMngIns.AddOrUpdateRouters(mosnRouter)
 		}
 	}
@@ -47,6 +49,7 @@ func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration)
 func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 
 	for _, listener := range listeners {
+		log.DefaultLogger.Tracef("raw listener config: %+v", listener)
 		mosnListener := convertListenerConfig(listener)
 		if mosnListener == nil {
 			continue

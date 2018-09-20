@@ -35,8 +35,10 @@ func (c *ClientV2) reqRoutes(streamClient ads.AggregatedDiscoveryService_StreamA
 	}
 	routerNames := rds.GetRouterNames()
 	if len(routerNames) < 1 {
+		log.DefaultLogger.Tracef("0 routers, skip rds request")
 		return nil
 	}
+	log.DefaultLogger.Tracef("routers to subcriber: %+v", routerNames)
 	err := streamClient.Send(&envoy_api_v2.DiscoveryRequest{
 		VersionInfo:   "",
 		ResourceNames: routerNames,
@@ -49,7 +51,7 @@ func (c *ClientV2) reqRoutes(streamClient ads.AggregatedDiscoveryService_StreamA
 		},
 	})
 	if err != nil {
-		log.DefaultLogger.Fatalf("get routes fail: %v", err)
+		log.DefaultLogger.Fatalf("get routers fail: %v", err)
 		return err
 	}
 	return nil
