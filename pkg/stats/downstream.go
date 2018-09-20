@@ -28,17 +28,17 @@ const DownstreamType = "downstream"
 
 // metrics key in listener/proxy
 const (
-	DownstreamConnectionTotal   = "downstream_connection_total"
-	DownstreamConnectionDestroy = "downstream_connection_destroy"
-	DownstreamConnectionActive  = "downstream_connection_active"
-	DownstreamBytesRead         = "downstream_bytes_read"
-	DownstreamBytesReadCurrent  = "downstream_bytes_read_current"
-	DownstreamBytesWrite        = "downstream_bytes_write"
-	DownstreamBytesWriteCurrent = "downstream_bytes_write_current"
-	DownstreamRequestTotal      = "downstream_request_total"
-	DownstreamRequestActive     = "downstream_request_active"
-	DownstreamRequestReset      = "downstream_request_reset"
-	DownstreamRequestTime       = "downstream_request_time"
+	DownstreamConnectionTotal    = "downstream_connection_total"
+	DownstreamConnectionDestroy  = "downstream_connection_destroy"
+	DownstreamConnectionActive   = "downstream_connection_active"
+	DownstreamBytesReadTotal     = "downstream_bytes_read_total"
+	DownstreamBytesReadBuffered  = "downstream_bytes_read_buffered"
+	DownstreamBytesWriteTotal    = "downstream_bytes_write_total"
+	DownstreamBytesWriteBuffered = "downstream_bytes_write_buffered"
+	DownstreamRequestTotal       = "downstream_request_total"
+	DownstreamRequestActive      = "downstream_request_active"
+	DownstreamRequestReset       = "downstream_request_reset"
+	DownstreamRequestTime        = "downstream_request_time"
 )
 
 // NewProxyStats returns a stats with namespace prefix proxy

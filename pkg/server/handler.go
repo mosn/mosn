@@ -591,17 +591,15 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 	ac.conn.SetNoDelay(true)
 	ac.conn.AddConnectionEventListener(ac)
 	ac.conn.AddBytesReadListener(func(bytesRead uint64) {
-		listener.stats.Gauge(stats.DownstreamBytesReadCurrent).Update(int64(bytesRead))
 
 		if bytesRead > 0 {
-			listener.stats.Counter(stats.DownstreamBytesRead).Inc(int64(bytesRead))
+			listener.stats.Counter(stats.DownstreamBytesReadTotal).Inc(int64(bytesRead))
 		}
 	})
 	ac.conn.AddBytesSentListener(func(bytesSent uint64) {
-		listener.stats.Gauge(stats.DownstreamBytesWriteCurrent).Update(int64(bytesSent))
 
 		if bytesSent > 0 {
-			listener.stats.Counter(stats.DownstreamBytesWrite).Inc(int64(bytesSent))
+			listener.stats.Counter(stats.DownstreamBytesWriteTotal).Inc(int64(bytesSent))
 		}
 	})
 

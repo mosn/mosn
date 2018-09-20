@@ -32,6 +32,7 @@ import (
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -164,11 +165,12 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 
+	// bytes total adds all connections data together, but buffered data not
 	cb.Connection().SetStats(&types.ConnectionStats{
-		ReadTotal:    p.stats.Counter(stats.DownstreamBytesRead),
-		ReadCurrent:  p.stats.Gauge(stats.DownstreamBytesReadCurrent),
-		WriteTotal:   p.stats.Counter(stats.DownstreamBytesWrite),
-		WriteCurrent: p.stats.Gauge(stats.DownstreamBytesWriteCurrent),
+		ReadTotal:     p.stats.Counter(stats.DownstreamBytesReadTotal),
+		ReadBuffered:  metrics.NewGauge(),
+		WriteTotal:    p.stats.Counter(stats.DownstreamBytesWriteTotal),
+		WriteBuffered: metrics.NewGauge(),
 	})
 
 	p.stats.Counter(stats.DownstreamConnectionTotal).Inc(1)

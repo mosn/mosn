@@ -55,10 +55,10 @@ const (
 	UpstreamLBSubSetsActive      = "upstream_lb_subsets_active"
 	UpstreamLBSubsetsCreated     = "upstream_lb_subsets_created"
 	UpstreamLBSubsetsRemoved     = "upstream_lb_subsets_removed"
-	UpstreamBytesRead            = "upstream_connection_bytes_read"
-	UpstreamBytesReadCurrent     = "upstream_connection_bytes_read_current"
-	UpstreamBytesWrite           = "upstream_connection_bytes_write"
-	UpstreamBytesWriteCurrent    = "upstream_connection_bytes_write_current"
+	UpstreamBytesReadTotal       = "upstream_connection_bytes_read_total"
+	UpstreamBytesReadBuffered    = "upstream_connection_bytes_read_buffered"
+	UpstreamBytesWriteTotal      = "upstream_connection_bytes_write"
+	UpstreamBytesWriteBuffered   = "upstream_connection_bytes_write_buffered"
 )
 
 // NewHostStats returns a stats that namespace contains cluster and host address

@@ -28,6 +28,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/stats"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	metrics "github.com/rcrowley/go-metrics"
 	"golang.org/x/net/http2"
 )
 
@@ -291,11 +292,12 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	pool.host.ClusterInfo().Stats().Counter(stats.UpstreamConnectionActive).Inc(1)
 	//pool.host.ClusterInfo().Stats().Counter(UpstreamConnectionTotalHTTP2).Inc(1)
 
+	// bytes total adds all connections data together, but buffered data not
 	codecClient.SetConnectionStats(&types.ConnectionStats{
-		ReadTotal:    pool.host.ClusterInfo().Stats().Counter(stats.UpstreamBytesRead),
-		ReadCurrent:  pool.host.ClusterInfo().Stats().Gauge(stats.UpstreamBytesReadCurrent),
-		WriteTotal:   pool.host.ClusterInfo().Stats().Counter(stats.UpstreamBytesWrite),
-		WriteCurrent: pool.host.ClusterInfo().Stats().Gauge(stats.UpstreamBytesWriteCurrent),
+		ReadTotal:     pool.host.ClusterInfo().Stats().Counter(stats.UpstreamBytesReadTotal),
+		ReadBuffered:  metrics.NewGauge(),
+		WriteTotal:    pool.host.ClusterInfo().Stats().Counter(stats.UpstreamBytesWriteTotal),
+		WriteBuffered: metrics.NewGauge(),
 	})
 
 	return ac
