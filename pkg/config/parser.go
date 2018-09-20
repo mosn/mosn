@@ -140,12 +140,12 @@ func transHostWeight(weight uint32) uint32 {
 }
 
 var logLevelMap = map[string]log.Level{
-	"trace": log.TRACE,
-	"debug": log.DEBUG,
-	"fatal": log.FATAL,
-	"error": log.ERROR,
-	"warn":  log.WARN,
-	"info":  log.INFO,
+	"TRACE": log.TRACE,
+	"DEBUG": log.DEBUG,
+	"FATAL": log.FATAL,
+	"ERROR": log.ERROR,
+	"WARN":  log.WARN,
+	"INFO":  log.INFO,
 }
 
 func parseLogLevel(level string) log.Level {
