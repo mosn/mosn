@@ -37,7 +37,8 @@ func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration)
 	} else {
 
 		for _, router := range routers {
-			routersMngIns.AddOrUpdateRouters(convertRouterConf(router))
+			mosnRouter, _ := convertRouterConf("", router)
+			routersMngIns.AddOrUpdateRouters(mosnRouter)
 		}
 	}
 }
