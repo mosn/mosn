@@ -271,11 +271,6 @@ type RouterConfiguration struct {
 	VirtualHosts     []*VirtualHost `json:"virtual_hosts"`
 }
 
-// VirtualHost is used to make up the route table
-type RouterConfiguration struct {
-	RouterConfigName string         `json:"router_config_name"`
-	VirtualHosts     []*VirtualHost `json:"virtual_hosts"`
-}
 
 type VirtualHost struct {
 	Name            string           `json:"name"`

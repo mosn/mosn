@@ -26,6 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/router"
 	xdsxproxy "github.com/alipay/sofa-mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -343,6 +344,12 @@ func convertFilterConfig(name string, s *types.Struct, rdsRouteNames []string) m
 		routerConfigName = routerConfig.RouterConfigName
 		if isRds {
 			rdsRouteNames = append(rdsRouteNames, routerConfigName)
+		}else{
+			if routersMngIns := router.GetRoutersMangerInstance(); routersMngIns == nil {
+				log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: router manager in nil")
+			} else {
+				routersMngIns.AddOrUpdateRouters(routerConfig)
+			}
 		}
 		filtersConfigParsed[v2.Connection_Manager] = toMap(routerConfig)
 	} else {
