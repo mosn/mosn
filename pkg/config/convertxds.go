@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
+	"github.com/alipay/sofa-mosn/pkg/xds/v2/rds"
 	xdsxproxy "github.com/alipay/sofa-mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -55,9 +56,9 @@ var httpBaseConfig = map[string]bool{
 }
 
 // todo add streamfilters parse
-func convertListenerConfig(xdsListener *xdsapi.Listener) (*v2.Listener, []string) {
+func convertListenerConfig(xdsListener *xdsapi.Listener) (*v2.Listener) {
 	if !isSupport(xdsListener) {
-		return nil, nil
+		return nil
 	}
 
 	listenerConfig := &v2.Listener{
@@ -76,11 +77,10 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) (*v2.Listener, []string
 
 	// virtual listener need none filters
 	if listenerConfig.Name == "virtual" {
-		return listenerConfig, nil
+		return listenerConfig
 	}
 
-	rdsRouteNames := make([]string, 0)
-	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains(), rdsRouteNames)
+	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
 
 	// it must be 1 filechains and 1 networkfilter by design
 	//if len(listenerConfig.FilterChains) == 1 && len(listenerConfig.FilterChains[0].Filters) == 1 && listenerConfig.FilterChains[0].Filters[0].Config != nil {
@@ -96,7 +96,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) (*v2.Listener, []string
 	
 	listenerConfig.DisableConnIo = GetListenerDisableIO(&listenerConfig.FilterChains[0])
 
-	return listenerConfig, rdsRouteNames
+	return listenerConfig
 }
 
 func convertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
@@ -252,7 +252,7 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 	return accessLogs
 }
 
-func convertFilterChains(xdsFilterChains []xdslistener.FilterChain, resRouteNames []string) []v2.FilterChain {
+func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) []v2.FilterChain {
 	if xdsFilterChains == nil {
 		return nil
 	}
@@ -261,21 +261,21 @@ func convertFilterChains(xdsFilterChains []xdslistener.FilterChain, resRouteName
 		filterChain := v2.FilterChain{
 			FilterChainMatch: xdsFilterChain.GetFilterChainMatch().String(),
 			TLS:              convertTLS(xdsFilterChain.GetTlsContext()),
-			Filters:          convertFilters(xdsFilterChain.GetFilters(), resRouteNames),
+			Filters:          convertFilters(xdsFilterChain.GetFilters()),
 		}
 		filterChains = append(filterChains, filterChain)
 	}
 	return filterChains
 }
 
-func convertFilters(xdsFilters []xdslistener.Filter, rdsRouteNames []string) []v2.Filter {
+func convertFilters(xdsFilters []xdslistener.Filter) []v2.Filter {
 	if xdsFilters == nil {
 		return nil
 	}
 
 	filters := make([]v2.Filter, 0, len(xdsFilters))
 	for _, xdsFilter := range xdsFilters {
-		filterMaps := convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig(), rdsRouteNames)
+		filterMaps := convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig())
 		for typeKey, configValue := range filterMaps {
 			filters = append(filters, v2.Filter{
 				typeKey,
@@ -295,7 +295,7 @@ func toMap(in interface{}) map[string]interface{} {
 }
 
 // TODO: more filter config support
-func convertFilterConfig(name string, s *types.Struct, rdsRouteNames []string) map[string]map[string]interface{} {
+func convertFilterConfig(name string, s *types.Struct) map[string]map[string]interface{} {
 	if s == nil {
 		return nil
 	}
@@ -345,7 +345,7 @@ func convertFilterConfig(name string, s *types.Struct, rdsRouteNames []string) m
 	if routerConfig != nil {
 		routerConfigName = routerConfig.RouterConfigName
 		if isRds {
-			rdsRouteNames = append(rdsRouteNames, routerConfigName)
+			rds.AppendRouterName(routerConfigName)
 		}else{
 			if routersMngIns := router.GetRoutersMangerInstance(); routersMngIns == nil {
 				log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: router manager in nil")

@@ -79,13 +79,11 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Tracef("get lds resp,handle it")
 				listeners := adsClient.V2Client.handleListenersResp(resp)
 				log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
-				routeNames := adsClient.MosnConfig.OnAddOrUpdateListeners(listeners)
+				adsClient.MosnConfig.OnAddOrUpdateListeners(listeners)
 
-				if len(routeNames) > 0 {
-					err = adsClient.V2Client.reqRoutes(adsClient.StreamClient, routeNames)
-					if err != nil {
-						log.DefaultLogger.Warnf("send thread request rds fail!auto retry next period")
-					}
+				err = adsClient.V2Client.reqRoutes(adsClient.StreamClient)
+				if err != nil {
+					log.DefaultLogger.Warnf("send thread request rds fail!auto retry next period")
 				}
 
 			} else if typeURL == "type.googleapis.com/envoy.api.v2.Cluster" {
