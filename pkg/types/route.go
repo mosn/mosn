@@ -22,6 +22,8 @@ import (
 	"crypto/md5"
 	"regexp"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
 // Priority type
@@ -46,20 +48,17 @@ const (
 type Routers interface {
 	// Route is used to route with headers
 	Route(headers map[string]string, randomValue uint64) Route
-	// AddRouter adds router to Routers
-	AddRouter(routerName string)
-	// DelRouter deletes router from Routers
-	DelRouter(routerName string)
 }
 
-// RouterConfigManager is a manager for all routers' config
-type RouterConfigManager interface {
+// RouterManager is a manager for all routers' config
+type RouterManager interface {
 	// AddRoutersSet adds router config when generated
-	AddRoutersSet(routerConfig Routers)
-	// RemoveRouterInRouters removes routers
-	RemoveRouterInRouters(routerNames []string)
-	// AddRouterInRouters adds routers
-	AddRouterInRouters(routerNames []string)
+	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
+
+	GetRouterByListenerName(routerConfigName string) RouterWapper
+}
+type RouterWapper interface {
+	GetRouters() Routers
 }
 
 // Route is a route instance

@@ -74,9 +74,11 @@ func TestNewRouteMatcherSingle(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		cfg := &v2.Proxy{
+
+		cfg := &v2.RouterConfiguration{
 			VirtualHosts: []*v2.VirtualHost{tc.virtualHost},
 		}
+
 		routers, err := NewRouteMatcher(cfg)
 		if err != nil {
 			t.Errorf("#%s : %v\n", tc.virtualHost.Name, err)
@@ -95,7 +97,7 @@ func TestNewRouteMatcherGroup(t *testing.T) {
 	for _, vhConfig := range testVirutalHostConfigs {
 		virtualhosts = append(virtualhosts, vhConfig)
 	}
-	cfg := &v2.Proxy{
+	cfg := &v2.RouterConfiguration{
 		VirtualHosts: virtualhosts,
 	}
 	routers, err := NewRouteMatcher(cfg)
@@ -112,19 +114,19 @@ func TestNewRouteMatcherGroup(t *testing.T) {
 
 func TestNewRouteMatcherDuplicate(t *testing.T) {
 	// two virtualhosts, both domain is "*", expected failed
-	if _, err := NewRouteMatcher(&v2.Proxy{
+	if _, err := NewRouteMatcher(&v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{testVirutalHostConfigs["all"], testVirutalHostConfigs["all"]},
 	}); err == nil {
 		t.Error("expected an error occur, but not")
 	}
 	//two virtualhosts, both domain is "www.sofa-mosn.test", expected failed
-	if _, err := NewRouteMatcher(&v2.Proxy{
+	if _, err := NewRouteMatcher(&v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{testVirutalHostConfigs["domain"], testVirutalHostConfigs["domain"]},
 	}); err == nil {
 		t.Error("expected an error occur, but not")
 	}
 	// wildcard domain with same suffix, expected failed
-	if _, err := NewRouteMatcher(&v2.Proxy{
+	if _, err := NewRouteMatcher(&v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{testVirutalHostConfigs["wildcard-domain"], testVirutalHostConfigs["wildcard-domain"]},
 	}); err == nil {
 		t.Error("expected an error occur, but not")
@@ -132,7 +134,7 @@ func TestNewRouteMatcherDuplicate(t *testing.T) {
 	// wildcard domain with different suffix:
 	// *.test.com, *.test.net, *.test.com.cn
 	// expected OK
-	if _, err := NewRouteMatcher(&v2.Proxy{
+	if _, err := NewRouteMatcher(&v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{Domains: []string{"*.test.com"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
 			&v2.VirtualHost{Domains: []string{"*.test.net"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
@@ -146,7 +148,7 @@ func TestNewRouteMatcherDuplicate(t *testing.T) {
 
 // match all
 func TestDefaultMatch(t *testing.T) {
-	cfg := &v2.Proxy{
+	cfg := &v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{
 			testVirutalHostConfigs["all"],
 		},
@@ -172,7 +174,7 @@ func TestDefaultMatch(t *testing.T) {
 	}
 }
 func TestDomainMatch(t *testing.T) {
-	cfg := &v2.Proxy{
+	cfg := &v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{
 			testVirutalHostConfigs["domain"],
 		},
@@ -239,7 +241,7 @@ func TestWildcardMatch(t *testing.T) {
 			Domains: []string{tc.wildcardDomain},
 			Routers: []v2.Router{simpleRouter},
 		}
-		cfg := &v2.Proxy{
+		cfg := &v2.RouterConfiguration{
 			VirtualHosts: []*v2.VirtualHost{vh},
 		}
 		routers, err := NewRouteMatcher(cfg)
@@ -274,7 +276,7 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 		&v2.VirtualHost{Domains: []string{"*-bar.baz.com"}, Routers: []v2.Router{newTestSimpleRouter("long")}},
 		&v2.VirtualHost{Domains: []string{"*.foo.com"}, Routers: []v2.Router{newTestSimpleRouter("foo")}},
 	}
-	cfg := &v2.Proxy{
+	cfg := &v2.RouterConfiguration{
 		VirtualHosts: virtualHosts,
 	}
 	routers, err := NewRouteMatcher(cfg)
@@ -306,17 +308,17 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 	}
 }
 func TestInvalidConfig(t *testing.T) {
-	var testCases []interface{}
+	var testCases []*v2.RouterConfiguration
 	//1. invalid config object
-	testCases = append(testCases, "invalidconfig")
+	testCases = append(testCases, nil)
 	//2. config without router
-	case2 := &v2.Proxy{
+	case2 := &v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{Domains: []string{"*"}},
 		},
 	}
 	//3. config without matcher
-	case3 := &v2.Proxy{
+	case3 := &v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
 				v2.Router{
@@ -332,7 +334,7 @@ func TestInvalidConfig(t *testing.T) {
 		},
 	}
 	//4. an invalid regexp matcher
-	case4 := &v2.Proxy{
+	case4 := &v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
 				v2.Router{

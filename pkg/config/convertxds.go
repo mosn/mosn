@@ -61,14 +61,14 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:                                  xdsListener.GetName(),
-			BindToPort:                            convertBindToPort(xdsListener.GetDeprecatedV1()),
-			Inspector:                             true,
+			Name:       xdsListener.GetName(),
+			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:  true,
 			HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:                            convertAccessLogs(xdsListener),
 			LogPath:                               "stdout",
 		},
-		Addr:                    convertAddress(&xdsListener.Address),
+		Addr: convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 		LogLevel:                uint8(log.INFO),
 	}
@@ -268,12 +268,24 @@ func convertFilters(xdsFilters []xdslistener.Filter) []v2.Filter {
 	if xdsFilters == nil {
 		return nil
 	}
+
 	filters := make([]v2.Filter, 0, len(xdsFilters))
 	for _, xdsFilter := range xdsFilters {
-		filter := v2.Filter{
-			Name:   v2.DEFAULT_NETWORK_FILTER,
-			Config: convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig()),
+		var filter v2.Filter
+		switch xdsFilter.GetName() {
+		case xdsutil.HTTPConnectionManager:
+			filter = v2.Filter{
+				Type:   v2.Connection_Manager,
+				Config: convertConnMngConfig(xdsFilter.GetConfig()),
+			}
+		default:
+			filter = v2.Filter{
+				Type:   v2.DEFAULT_NETWORK_FILTER,
+				Config: convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig()),
+			}
+
 		}
+
 		filters = append(filters, filter)
 	}
 	return filters
@@ -286,30 +298,30 @@ func toMap(in interface{}) map[string]interface{} {
 	return out
 }
 
+// convertConnMngConfig used to convert connectionManagerConfig
+func convertConnMngConfig(s *types.Struct) map[string]interface{} {
+	filterConfig := &xdshttp.HttpConnectionManager{}
+	xdsutil.StructToMessage(s, filterConfig)
+	proxyConfig := convertVirtualHosts(filterConfig.GetRouteConfig())
+
+	return toMap(*proxyConfig)
+}
+
 // TODO: more filter config support
 func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 	if s == nil {
 		return nil
 	}
-	if name == xdsutil.HTTPConnectionManager {
+
+	if name == v2.RPC_PROXY {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
 		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  string(protocol.HTTP1),
-			UpstreamProtocol:    string(protocol.HTTP1),
-			SupportDynamicRoute: true,
-			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
+			DownstreamProtocol: string(protocol.SofaRPC),
+			UpstreamProtocol:   string(protocol.SofaRPC),
+			RouterConfigName:   convertVirtualHosts(filterConfig.GetRouteConfig()).RouterConfigName,
 		}
-		return toMap(proxyConfig)
-	} else if name == v2.RPC_PROXY {
-		filterConfig := &xdshttp.HttpConnectionManager{}
-		xdsutil.StructToMessage(s, filterConfig)
-		proxyConfig := v2.Proxy{
-			DownstreamProtocol:  string(protocol.SofaRPC),
-			UpstreamProtocol:    string(protocol.SofaRPC),
-			SupportDynamicRoute: true,
-			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
-		}
+
 		return toMap(proxyConfig)
 	} else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
@@ -317,12 +329,12 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 		proxyConfig := v2.Proxy{
 			//DownstreamProtocol:  filterConfig.GetDownstreamProtocol().String(),
 			//UpstreamProtocol:    filterConfig.GetUpstreamProtocol().String(),
-			DownstreamProtocol:  string(protocol.Xprotocol),
-			UpstreamProtocol:    string(protocol.Xprotocol),
-			SupportDynamicRoute: true,
-			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
-			ExtendConfig:        convertXProxyExtendConfig(filterConfig),
+			DownstreamProtocol: string(protocol.Xprotocol),
+			UpstreamProtocol:   string(protocol.Xprotocol),
+			RouterConfigName:   convertVirtualHosts(filterConfig.GetRouteConfig()).RouterConfigName,
+			ExtendConfig:       convertXProxyExtendConfig(filterConfig),
 		}
+
 		return toMap(proxyConfig)
 	}
 
@@ -337,10 +349,13 @@ func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} 
 	return structs.Map(extendConfig)
 }
 
-func convertVirtualHosts(xdsRouteConfig *xdsapi.RouteConfiguration) []*v2.VirtualHost {
+// todo , downstream protocol need here
+// listener's name need here
+func convertVirtualHosts(xdsRouteConfig *xdsapi.RouteConfiguration) *v2.RouterConfiguration {
 	if xdsRouteConfig == nil {
 		return nil
 	}
+
 	virtualHosts := make([]*v2.VirtualHost, 0)
 
 	for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
@@ -354,7 +369,10 @@ func convertVirtualHosts(xdsRouteConfig *xdsapi.RouteConfiguration) []*v2.Virtua
 		virtualHosts = append(virtualHosts, virtualHost)
 	}
 
-	return virtualHosts
+	return &v2.RouterConfiguration{
+		RouterConfigName: xdsRouteConfig.GetName(),
+		VirtualHosts:     virtualHosts,
+	}
 }
 
 func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
