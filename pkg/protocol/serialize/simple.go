@@ -150,6 +150,9 @@ func decodeMap(b []byte, result *map[string]string) error {
 		if err != nil {
 			return err
 		}
+		if length < 0 {
+			length = 0
+		}
 		index += 4
 
 		value := b[index : index+length]
