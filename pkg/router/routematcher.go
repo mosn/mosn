@@ -51,6 +51,11 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 		return nil, fmt.Errorf("NewRouteMatcher Error, routerConfig is nil")
 	}
 
+	if len(routerConfig.VirtualHosts) == 0 {
+		return nil, fmt.Errorf("NewRouteMatcher Error, virtualhosts is nil")
+
+	}
+
 	routerMatcher := &routeMatcher{
 		virtualHosts:                             make(map[string]types.VirtualHost),
 		wildcardVirtualHostSuffixes:              make(map[int]map[string]types.VirtualHost),
@@ -142,9 +147,9 @@ func (rm *routeMatcher) Route(headers map[string]string, randomValue uint64) typ
 }
 
 func (rm *routeMatcher) findVirtualHost(headers map[string]string) types.VirtualHost {
-	if len(rm.virtualHosts) == 0 && rm.defaultVirtualHost != nil {
+	if len(rm.virtualHosts) == 0 {
 		log.StartLogger.Tracef("route matcher find virtual host return default virtual host")
-		return rm.defaultVirtualHost
+		return rm.defaultVirtualHost // Note default virtualhost maybe nil
 	}
 
 	host := strings.ToLower(headers[strings.ToLower(protocol.MosnHeaderHostKey)])

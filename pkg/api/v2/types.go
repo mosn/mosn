@@ -271,7 +271,6 @@ type RouterConfiguration struct {
 	VirtualHosts     []*VirtualHost `json:"virtual_hosts"`
 }
 
-
 type VirtualHost struct {
 	Name            string           `json:"name"`
 	Domains         []string         `json:"domains"`

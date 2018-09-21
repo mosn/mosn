@@ -24,10 +24,11 @@ package router
 import (
 	"sync"
 
+	"fmt"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"fmt"
 )
 
 var instanceMutex = sync.Mutex{}
@@ -43,10 +44,14 @@ type routersManager struct {
 }
 
 type RoutersWrapper struct {
+	mux     sync.RWMutex
 	routers types.Routers
 }
 
 func (rw *RoutersWrapper) GetRouters() types.Routers {
+	rw.mux.RLock()
+	defer rw.mux.RUnlock()
+
 	return rw.routers
 }
 
@@ -70,39 +75,37 @@ func NewRouterManager() types.RouterManager {
 
 // AddOrUpdateRouters used to add or update router
 func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error {
-	
+
 	if routerConfig == nil {
 		log.DefaultLogger.Errorf("AddOrUpdateRouters Error,routerConfig is nil ")
 		return fmt.Errorf("AddOrUpdateRouters Error,routerConfig is nil ")
 	}
-	
-	routers, err := NewRouteMatcher(routerConfig);
-	
+
+	routers, err := NewRouteMatcher(routerConfig)
+
 	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
 		// NewRouteMatcher has error, doesn't update
 		if err != nil {
 			return err
 
-		} else {
-			// new a router
-			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
-				routers: routers,
-			})
 		}
-		
+
 		// else : update a router
 		if primaryRouters, ok := v.(*RoutersWrapper); ok {
+			primaryRouters.mux.Lock()
+			defer primaryRouters.mux.Unlock()
+
 			primaryRouters.routers = routers
 		}
-		
+
 	} else {
 		// NewRouteMatcher has error, use nil routers
 		if err != nil {
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
 				routers: nil,
 			})
-			return fmt.Errorf("Store RoutersWrapper %s with routers is nil",routerConfig.RouterConfigName)
-		// new routers
+			return fmt.Errorf("Store RoutersWrapper %s with routers is nil", routerConfig.RouterConfigName)
+			// new routers
 		} else {
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
 				routers: routers,
@@ -113,11 +116,11 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 }
 
 // AddOrUpdateRouters used to add or update router
-func (rm *routersManager) GetRouterWrapperByListenerName(routerConfigName string) types.RouterWapper {
+func (rm *routersManager) GetRouterWrapperByListenerName(routerConfigName string) types.RouterWrapper {
 
 	if value, ok := rm.routersMap.Load(routerConfigName); ok {
-		if routerWapper, ok := value.(*RoutersWrapper); ok {
-			return routerWapper
+		if routerWrapper, ok := value.(*RoutersWrapper); ok {
+			return routerWrapper
 		}
 	}
 

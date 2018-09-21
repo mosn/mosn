@@ -228,6 +228,7 @@ func Test_routersManager_AddOrUpdateRouters(t *testing.T) {
 }
 
 func Test_routersManager_GetRouterWrapperByListenerName(t *testing.T) {
+
 	bytes1 := []byte(routerConfig)
 	router1 := &v2.RouterConfiguration{}
 
@@ -235,6 +236,10 @@ func Test_routersManager_GetRouterWrapperByListenerName(t *testing.T) {
 	router2 := &v2.RouterConfiguration{}
 
 	routerConfigName := "test_router"
+
+	router0 := &v2.RouterConfiguration{
+		RouterConfigName: routerConfigName,
+	}
 
 	if err := json.Unmarshal(bytes1, router1); err != nil {
 		t.Errorf(err.Error())
@@ -245,6 +250,9 @@ func Test_routersManager_GetRouterWrapperByListenerName(t *testing.T) {
 	}
 
 	routerManager := NewRouterManager()
+	routerManager.AddOrUpdateRouters(router0)
+	routeWrapper0 := routerManager.GetRouterWrapperByListenerName(routerConfigName)
+	routers0 := routeWrapper0.GetRouters()
 
 	// add routers1 to "test_router"
 	routerManager.AddOrUpdateRouters(router1)
@@ -256,19 +264,22 @@ func Test_routersManager_GetRouterWrapperByListenerName(t *testing.T) {
 	routerWrapper2 := routerManager.GetRouterWrapperByListenerName(routerConfigName)
 	routers2 := routerWrapper2.GetRouters()
 
+	routers0_ := routeWrapper0.GetRouters()
+	routers1_ := routerWrapper1.GetRouters()
+
 	// expect routers has been updated
-	if routers1 == routers2 {
+	if routers0 == routers1 || routers1 == routers2 {
 		t.Error("expect routers has been updated but not")
 	}
 
 	// expect wrapper still the same
-	if routerWrapper1 != routerWrapper2 {
+	if routeWrapper0 != routerWrapper1 || routerWrapper1 != routerWrapper2 {
 		t.Error("expect wrapper still the same but not")
 	}
 
 	// expect router has been updated for origin wrapper
-	routers3 := routerWrapper1.GetRouters()
-	if routers2 != routers3 {
+
+	if routers0_ != routers2 || routers1_ != routers2 {
 		t.Error("expect wrapper still the same but not ")
 	}
 }

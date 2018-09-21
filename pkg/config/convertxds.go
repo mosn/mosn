@@ -27,8 +27,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
-	"github.com/alipay/sofa-mosn/pkg/xds/v2/rds"
 	xdsxproxy "github.com/alipay/sofa-mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
+	"github.com/alipay/sofa-mosn/pkg/xds/v2/rds"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
@@ -55,7 +55,7 @@ var httpBaseConfig = map[string]bool{
 }
 
 // todo add streamfilters parse
-func convertListenerConfig(xdsListener *xdsapi.Listener) (*v2.Listener) {
+func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 	if !isSupport(xdsListener) {
 		return nil
 	}
@@ -92,7 +92,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) (*v2.Listener) {
 	//		}
 	//	}
 	//}
-	
+
 	listenerConfig.DisableConnIo = GetListenerDisableIO(&listenerConfig.FilterChains[0])
 
 	return listenerConfig
@@ -345,7 +345,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 		routerConfigName = routerConfig.RouterConfigName
 		if isRds {
 			rds.AppendRouterName(routerConfigName)
-		}else{
+		} else {
 			if routersMngIns := router.GetRoutersMangerInstance(); routersMngIns == nil {
 				log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: router manager in nil")
 			} else {
@@ -370,7 +370,7 @@ func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} 
 	return toMap(extendConfig)
 }
 
-func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfiguration) (*v2.RouterConfiguration, bool){
+func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfiguration) (*v2.RouterConfiguration, bool) {
 	if routeConfigName != "" {
 		return &v2.RouterConfiguration{
 			RouterConfigName: routeConfigName,

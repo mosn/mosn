@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-var(
+var (
 	mu          sync.Mutex
 	routerNames map[string]bool
 )

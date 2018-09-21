@@ -39,5 +39,5 @@ const (
 
 // Header with special meaning in istio
 const (
-	IstioHeaderHostKey       = ":authority"
+	IstioHeaderHostKey = ":authority"
 )
