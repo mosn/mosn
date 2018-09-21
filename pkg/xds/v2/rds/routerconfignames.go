@@ -4,6 +4,10 @@ import (
 	"sync"
 )
 
+/*
+rds store the router config names which need to fetch virtualhosts configuration from RDS
+ */
+
 var (
 	mu          sync.Mutex
 	routerNames map[string]bool
