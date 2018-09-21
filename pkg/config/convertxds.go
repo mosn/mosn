@@ -345,12 +345,11 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 		routerConfigName = routerConfig.RouterConfigName
 		if isRds {
 			rds.AppendRouterName(routerConfigName)
+		}
+		if routersMngIns := router.GetRoutersMangerInstance(); routersMngIns == nil {
+			log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: router manager in nil")
 		} else {
-			if routersMngIns := router.GetRoutersMangerInstance(); routersMngIns == nil {
-				log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: router manager in nil")
-			} else {
-				routersMngIns.AddOrUpdateRouters(routerConfig)
-			}
+			routersMngIns.AddOrUpdateRouters(routerConfig)
 		}
 		filtersConfigParsed[v2.Connection_Manager] = toMap(routerConfig)
 	} else {
