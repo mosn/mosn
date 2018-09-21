@@ -469,7 +469,7 @@ func Benchmark_RouteAndLB(b *testing.B) {
 			host := clusterSnapshot.LoadBalancer().ChooseHost(ctx)
 			b.Logf("host name = %s", host.Hostname())
 		} else {
-			b.Errorf(" host select error", clustername)
+			b.Errorf(" host select error, clusterName=%s", clustername)
 		}
 	}
 }

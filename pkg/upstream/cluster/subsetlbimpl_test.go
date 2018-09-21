@@ -742,7 +742,7 @@ func TestWeightedClusterRoute(t *testing.T) {
 			}
 
 			if host := sslb.ChooseHost(context); host.Hostname() != "e1" {
-				t.Errorf("routing with weighted cluster error, want e1, but got:", host.Hostname())
+				t.Errorf("routing with weighted cluster error, want e1, but got:%s", host.Hostname())
 			}
 		} else {
 			t.Errorf("routing with weighted cluster error, no clustername found")
@@ -758,7 +758,7 @@ func TestWeightedClusterRoute(t *testing.T) {
 			}
 
 			if host := sslb.ChooseHost(context); host.Hostname() != "e2" {
-				t.Errorf("routing with weighted cluster error, want e1, but got:", host.Hostname())
+				t.Errorf("routing with weighted cluster error, want e1, but got:%s", host.Hostname())
 			}
 		} else {
 			t.Errorf("routing with weighted cluster error, no clustername found")
