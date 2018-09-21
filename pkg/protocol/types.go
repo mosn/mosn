@@ -36,3 +36,8 @@ const (
 	MosnHeaderQueryStringKey = "querystring"
 	MosnHeaderMethod         = "method"
 )
+
+// Header with special meaning in istio
+const (
+	IstioHeaderHostKey       = ":authority"
+)

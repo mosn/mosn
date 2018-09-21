@@ -441,6 +441,11 @@ func (s *serverStream) handleRequest() {
 			header[protocol.MosnHeaderHostKey] = string(s.ctx.Host())
 		}
 
+		// set :authority header if not found
+		if _, ok := header[protocol.IstioHeaderHostKey]; !ok {
+			header[protocol.IstioHeaderHostKey] = string(s.ctx.Host())
+		}
+
 		// set path header if not found
 		if _, ok := header[protocol.MosnHeaderPathKey]; !ok {
 			header[protocol.MosnHeaderPathKey] = string(s.ctx.Path())
