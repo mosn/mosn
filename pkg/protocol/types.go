@@ -38,6 +38,7 @@ const (
 )
 
 // Header with special meaning in istio
+// todo maybe use ":authority"
 const (
-	IstioHeaderHostKey = ":authority"
+	IstioHeaderHostKey = "authority"
 )
