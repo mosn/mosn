@@ -40,7 +40,6 @@ import (
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
-	"github.com/fatih/structs"
 	"github.com/gogo/protobuf/types"
 )
 
@@ -368,7 +367,7 @@ func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} 
 	extendConfig := &v2.XProxyExtendConfig{
 		SubProtocol: config.XProtocol,
 	}
-	return structs.Map(extendConfig)
+	return toMap(extendConfig)
 }
 
 func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfiguration) (*v2.RouterConfiguration, bool){
