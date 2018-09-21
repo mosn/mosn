@@ -20,6 +20,7 @@ package sofarpc
 import (
 	"context"
 	"errors"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/models"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"time"
@@ -127,11 +128,44 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 func (p *protocols) BuildSpan(context context.Context) types.Span {
 	sofabuffers := SofaProtocolBuffersByContent(context)
 	request := &sofabuffers.BoltReq
+
+	if request.CmdCode == CMD_CODE_HEARTBEAT {
+		return nil
+	}
+	
 	span := trace.Driver().Start(map[string]string{}, "", time.Now())
-	span.SetTag(trace.TRACE_ID, request.RequestHeader[models.TRACER_ID_KEY])
-	span.SetTag(trace.SPAN_ID, request.RequestHeader[models.RPC_ID_KEY])
+
+	traceId := request.RequestHeader[models.TRACER_ID_KEY]
+	if traceId == "" {
+		traceId = trace.IdGen().GenerateTraceId()
+	}
+	span.SetTag(trace.TRACE_ID, traceId)
+	lType := context.Value(types.ContextKeyListenerType)
+
+	spanId := request.RequestHeader[models.RPC_ID_KEY]
+	if spanId == "" {
+		spanId = "0" // Generate a new span id
+	} else {
+		if lType == v2.INGRESS {
+			trace.AddSpanIdGenerator(trace.NewSpanIdGenerator(traceId, spanId))
+		} else if lType == v2.EGRESS {
+			span.SetTag(trace.PARENT_SPAN_ID, spanId)
+			spanKey := &trace.SpanKey{TraceId: traceId, SpanId: spanId}
+			if spanIdGenerator := trace.GetSpanIdGenerator(spanKey); spanIdGenerator != nil {
+				spanId = spanIdGenerator.GenerateNextChildIndex()
+			}
+		}
+	}
+	span.SetTag(trace.SPAN_ID, spanId)
+
+	if lType == v2.EGRESS {
+		span.SetTag(trace.APP_NAME, request.RequestHeader[models.APP_NAME])
+	}
+	span.SetTag(trace.SPAN_TYPE, string(lType.(v2.ListenerType)))
+	span.SetTag(trace.METHOD_NAME, request.RequestHeader[models.TARGET_METHOD])
 	span.SetTag(trace.PROTOCOL, "bolt")
 	span.SetTag(trace.SERVICE_NAME, request.RequestHeader[models.SERVICE_KEY])
+	span.SetTag(trace.BAGGAGE_DATA, request.RequestHeader[models.SOFA_TRACE_BAGGAGE_DATA])
 	return span
 }
 

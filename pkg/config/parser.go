@@ -606,6 +606,7 @@ func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfi
 
 	return &v2.ListenerConfig{
 		Name:                                  c.Name,
+		Type:                                  c.Type,
 		Addr:                                  addr,
 		BindToPort:                            c.BindToPort,
 		Inspector:                             c.Inspector,

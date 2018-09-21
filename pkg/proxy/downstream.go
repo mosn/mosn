@@ -19,6 +19,7 @@ package proxy
 
 import (
 	"container/list"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"net"
 	"strconv"
@@ -101,9 +102,12 @@ type downStream struct {
 }
 
 func newActiveStream(ctx context.Context, streamID string, proxy *proxy, responseSender types.StreamSender, spanBuilder types.SpanBuilder) *downStream {
-	if spanBuilder != nil {
+	if spanBuilder != nil && trace.IsTracingEnabled() {
 		span := spanBuilder.BuildSpan(ctx)
-		ctx = context.WithValue(ctx, trace.ActiveSpanKey, span)
+		if span != nil {
+			ctx = context.WithValue(ctx, trace.ActiveSpanKey, span)
+			ctx = context.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.ParentSpanId()})
+		}
 	}
 
 	newcontext := buffer.NewBufferPoolContext(ctx, true)
@@ -667,13 +671,20 @@ func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 
 	s.appendData(data, endStream)
 
-	span := trace.SpanFromContext(s.context)
+	if trace.IsTracingEnabled() {
+		span := trace.SpanFromContext(s.context)
 
-	if span != nil {
-		span.SetTag(trace.RESPONSE_SIZE, strconv.FormatInt(int64(s.requestInfo.BytesReceived()), 10))
-		span.SetTag(trace.UPSTREAM_HOST_ADDRESS, s.requestInfo.UpstreamHost().AddressString())
-		span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
-		span.FinishSpan()
+		if span != nil {
+			span.SetTag(trace.REQUEST_SIZE, strconv.FormatInt(int64(s.requestInfo.BytesSent()), 10))
+			span.SetTag(trace.RESPONSE_SIZE, strconv.FormatInt(int64(s.requestInfo.BytesReceived()), 10))
+			span.SetTag(trace.UPSTREAM_HOST_ADDRESS, s.requestInfo.UpstreamHost().AddressString())
+			span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
+			span.FinishSpan()
+
+			if s.context.Value(types.ContextKeyListenerType) == v2.INGRESS {
+				trace.DeleteSpanIdGenerator(s.context.Value(types.ContextKeyTraceSpanKey).(*trace.SpanKey))
+			}
+		}
 	}
 }
 

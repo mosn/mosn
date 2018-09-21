@@ -7,8 +7,13 @@ import (
 
 type contextKey struct{}
 
+type traceHolder struct {
+	enableTracing bool
+	driver        types.Driver
+}
+
 var ActiveSpanKey = contextKey{}
-var driver = &OpenTracingDriver{}
+var holder = traceHolder{}
 
 func SpanFromContext(ctx context.Context) types.Span {
 	val := ctx.Value(ActiveSpanKey)
@@ -18,6 +23,22 @@ func SpanFromContext(ctx context.Context) types.Span {
 	return nil
 }
 
+func SetDriver(driver types.Driver) {
+	holder.driver = driver
+}
+
 func Driver() types.Driver {
-	return driver
+	return holder.driver
+}
+
+func EnableTracing() {
+	holder.enableTracing = true
+}
+
+func DisableTracing() {
+	holder.enableTracing = false
+}
+
+func IsTracingEnabled() bool {
+	return holder.enableTracing
 }

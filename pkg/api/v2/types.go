@@ -119,9 +119,16 @@ type Host struct {
 	TLSDisable bool
 }
 
+// ListenerType: Ingress or Egress
+type ListenerType string
+
+const EGRESS ListenerType = "egress"
+const INGRESS ListenerType = "ingress"
+
 // ListenerConfig with FilterChains
 type ListenerConfig struct {
 	Name                                  string
+	Type                                  ListenerType
 	Addr                                  net.Addr
 	ListenerTag                           uint64
 	ListenerScope                         string

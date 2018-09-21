@@ -26,6 +26,7 @@ const (
 	ContextKeyConnectionID                ContextKey = "ConnectionId"
 	ContextKeyListenerPort                ContextKey = "ListenerPort"
 	ContextKeyListenerName                ContextKey = "ListenerName"
+	ContextKeyListenerType                ContextKey = "ListenerType"
 	ContextKeyListenerStatsNameSpace      ContextKey = "ListenerStatsNameSpace"
 	ContextKeyNetworkFilterChainFactories ContextKey = "NetworkFilterChainFactory"
 	ContextKeyStreamFilterChainFactories  ContextKey = "StreamFilterChainFactory"
@@ -37,6 +38,7 @@ const (
 	ContextKeyAcceptBuffer                ContextKey = "ContextKeyAcceptBuffer"
 	ContextKeyConnectionFd                ContextKey = "ConnectionFd"
 	ContextSubProtocol                    ContextKey = "ContextSubProtocol"
+	ContextKeyTraceSpanKey                ContextKey = "TraceSpanKey"
 )
 
 const (

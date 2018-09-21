@@ -8,7 +8,22 @@ import (
 )
 
 type OpenTracingSpan struct {
-	span opentracing.Span
+	span         opentracing.Span
+	traceId      string
+	spanId       string
+	parentSpanId string
+}
+
+func (s *OpenTracingSpan) TraceId() string {
+	return s.traceId
+}
+
+func (s *OpenTracingSpan) SpanId() string {
+	return s.spanId
+}
+
+func (s *OpenTracingSpan) ParentSpanId() string {
+	return s.parentSpanId
 }
 
 func (s *OpenTracingSpan) SetOperation(operation string) {
@@ -16,6 +31,14 @@ func (s *OpenTracingSpan) SetOperation(operation string) {
 }
 
 func (s *OpenTracingSpan) SetTag(key string, value string) {
+	if key == TRACE_ID {
+		s.traceId = value
+	} else if key == SPAN_ID {
+		s.spanId = value
+	} else if key == PARENT_SPAN_ID {
+		s.parentSpanId = value
+	}
+
 	s.span.SetTag(key, value)
 }
 

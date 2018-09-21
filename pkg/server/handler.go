@@ -356,12 +356,12 @@ func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger lo
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		conns:        list.New(),
-		handler:      handler,
-		stopChan:     stopChan,
-		logger:       logger,
-		accessLogs:   accessLoggers,
-		updatedLabel: false,
+		conns:                   list.New(),
+		handler:                 handler,
+		stopChan:                stopChan,
+		logger:                  logger,
+		accessLogs:              accessLoggers,
+		updatedLabel:            false,
 	}
 
 	listenPort := 0
@@ -417,7 +417,8 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	}
 
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
-	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
+	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Config().Name)
+	ctx = context.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
 	ctx = context.WithValue(ctx, types.ContextKeyListenerStatsNameSpace, al.statsNamespace)
 	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)

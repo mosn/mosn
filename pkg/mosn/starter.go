@@ -18,6 +18,7 @@
 package mosn
 
 import (
+	"github.com/alipay/sofa-mosn/pkg/trace"
 	"net"
 	"os"
 	"strconv"
@@ -96,7 +97,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		var srv server.Server
 		if mode == config.Xds {
 			srv = server.NewServer(sc, cmf, m.clustermanager)
-
 		} else {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.clustermanager)
@@ -169,6 +169,7 @@ func (m *Mosn) Close() {
 // stap1. NewMosn
 // step2. Start Mosn
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
+	initializeTracing(c.Tracing)
 	log.StartLogger.Infof("start by config : %+v", c)
 
 	wg := sync.WaitGroup{}
@@ -209,6 +210,15 @@ func listenerDisableIO(c *v2.FilterChain) bool {
 		}
 	}
 	return false
+}
+
+func initializeTracing(config config.TracingConfig) {
+	if config.Enable {
+		trace.EnableTracing()
+		trace.SetDriver(&trace.OpenTracingDriver{})
+	} else {
+		trace.DisableTracing()
+	}
 }
 
 type clusterManagerFilter struct {

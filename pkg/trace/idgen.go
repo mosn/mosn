@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-var instance = newIdGenerator()
+var traceIdGenerator = newIdGenerator()
+var spanIdGeneratorMap = map[*SpanKey]*SpanIdGenerator{}
 
 type IdGenerator struct {
 	index int64
@@ -18,8 +19,46 @@ type IdGenerator struct {
 	hexIp string
 }
 
+type SpanKey struct {
+	TraceId string
+	SpanId  string
+}
+
+// A span ID generator that generate a span ID like 0.1, 0.1.1, 0.1.2 etc.
+type SpanIdGenerator struct {
+	key        SpanKey // A combination of traceId and spanId
+	childIndex int64
+}
+
+func (generator *SpanIdGenerator) GenerateNextChildIndex() string {
+	atomic.AddInt64(&generator.childIndex, 1)
+	return generator.key.SpanId + "." + strconv.FormatInt(generator.childIndex, 10)
+}
+
 func IdGen() IdGenerator {
-	return *instance
+	return *traceIdGenerator
+}
+
+func NewSpanIdGenerator(traceId, spanId string) *SpanIdGenerator {
+	return &SpanIdGenerator{
+		key: SpanKey{
+			TraceId: traceId,
+			SpanId:  spanId,
+		},
+		childIndex: 1,
+	}
+}
+
+func AddSpanIdGenerator(generator *SpanIdGenerator) {
+	spanIdGeneratorMap[&generator.key] = generator
+}
+
+func GetSpanIdGenerator(key *SpanKey) *SpanIdGenerator {
+	return spanIdGeneratorMap[key]
+}
+
+func DeleteSpanIdGenerator(key *SpanKey) {
+	delete(spanIdGeneratorMap, key)
 }
 
 func newIdGenerator() *IdGenerator {

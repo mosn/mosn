@@ -172,6 +172,12 @@ type ProtoBasicCmd interface {
 	GetReqID() uint32
 }
 
+const (
+	CMD_CODE_HEARTBEAT int16 = 0
+	CMD_CODE_REQUEST   int16 = 1
+	CMD_CODE_RESPONSE  int16 = 2
+)
+
 // BoltRequestCommand is the cmd struct of bolt v1 request
 type BoltRequestCommand struct {
 	Protocol      byte  //BoltV1:1, BoltV2:2

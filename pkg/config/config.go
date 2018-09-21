@@ -174,12 +174,13 @@ type AccessLogConfig struct {
 // ListenerConfig
 // for making up a listener in mosn
 type ListenerConfig struct {
-	Name          string         `json:"name,omitempty"`
-	Address       string         `json:"address,omitempty"`
-	BindToPort    bool           `json:"bind_port"`
-	Inspector     bool           `json:"inspector,omitempty"`
-	FilterChains  []FilterChain  `json:"filter_chains"`
-	StreamFilters []FilterConfig `json:"stream_filters,omitempty"`
+	Name          string          `json:"name,omitempty"`
+	Type          v2.ListenerType `json:"type,omitempty"`
+	Address       string          `json:"address,omitempty"`
+	BindToPort    bool            `json:"bind_port"`
+	Inspector     bool            `json:"inspector,omitempty"`
+	FilterChains  []FilterChain   `json:"filter_chains"`
+	StreamFilters []FilterConfig  `json:"stream_filters,omitempty"`
 	//logger
 	LogPath  string `json:"log_path,omitempty"`
 	LogLevel string `json:"log_level,omitempty"`
@@ -224,6 +225,11 @@ type ServerConfig struct {
 	Processor int `json:"processor"`
 
 	Listeners []ListenerConfig `json:"listeners,omitempty"`
+}
+
+// Tracing configuration for a server
+type TracingConfig struct {
+	Enable bool `json:"enable"`
 }
 
 // HostConfig
@@ -338,7 +344,8 @@ type TCPProxyConfig struct {
 type MOSNConfig struct {
 	Servers         []ServerConfig        `json:"servers,omitempty"`         //server config
 	ClusterManager  ClusterManagerConfig  `json:"cluster_manager,omitempty"` //cluster config
-	ServiceRegistry ServiceRegistryConfig `json:"service_registry"`          //service registry config, used by service discovery module
+	Tracing         TracingConfig         `json:"tracing"`
+	ServiceRegistry ServiceRegistryConfig `json:"service_registry"` //service registry config, used by service discovery module
 	//tracing config
 	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message

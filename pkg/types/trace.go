@@ -20,6 +20,12 @@ package types
 import "time"
 
 type Span interface {
+	TraceId() string
+
+	SpanId() string
+
+	ParentSpanId() string
+
 	SetOperation(operation string)
 
 	SetTag(key string, value string)
