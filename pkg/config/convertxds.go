@@ -465,6 +465,10 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 			Value: xdsHeader.GetExactMatch(),
 			Regex: xdsHeader.GetRegex().GetValue(),
 		}
+
+		if strings.HasPrefix(headerMatcher.Name, ":") {
+			headerMatcher.Name = headerMatcher.Name[1:]
+		}
 		headerMatchers = append(headerMatchers, headerMatcher)
 	}
 	return headerMatchers
