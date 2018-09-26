@@ -52,7 +52,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		servers := make([]config.ServerConfig, 0, 1)
 		server := config.ServerConfig{
 			DefaultLogPath:  "stdout",
-			DefaultLogLevel: "info",
+			DefaultLogLevel: "INFO",
 		}
 		servers = append(servers, server)
 		c.Servers = servers
@@ -115,7 +115,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
 				lc.DisableConnIo = config.GetListenerDisableIO(&lc.FilterChains[0])
 
-				// parse routers from conenection_manager fitler and add it the routerManager
+				// parse routers from connection_manager filter and add it the routerManager
 				if routerConfig := config.ParseRouterConfiguration(&lc.FilterChains[0]); routerConfig.RouterConfigName != "" {
 					m.routerManager.AddOrUpdateRouters(routerConfig)
 				}

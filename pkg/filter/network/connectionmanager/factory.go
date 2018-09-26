@@ -8,9 +8,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// todo may used in the future
+// todo this filter may use in the future
 func init() {
-	filter.RegisterNetwork(v2.Connection_Manager, CreateProxyFactory)
+	filter.RegisterNetwork(v2.CONNECTION_MANAGER, CreateProxyFactory)
 }
 
 type connectionManagerFilterConfigFactory struct {

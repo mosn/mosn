@@ -19,7 +19,7 @@ func Test_handleRoutesResp(t *testing.T) {
 		{
 			name: "case1",
 			args: args{
-				resp:   &envoy_api_v2.DiscoveryResponse{},
+				resp: &envoy_api_v2.DiscoveryResponse{},
 			},
 			want: []*envoy_api_v2.RouteConfiguration{},
 		},

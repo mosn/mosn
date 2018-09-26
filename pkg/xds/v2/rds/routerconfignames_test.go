@@ -7,7 +7,7 @@ import (
 
 func Test_AppendRouterName(t *testing.T) {
 	type args struct {
-		routerName  string
+		routerName string
 	}
 	tests := []struct {
 		name string
@@ -17,9 +17,9 @@ func Test_AppendRouterName(t *testing.T) {
 		{
 			name: "case1",
 			args: args{
-				routerName:   "http.80",
+				routerName: "http.80",
 			},
-			want: map[string]bool{"http.80":true},
+			want: map[string]bool{"http.80": true},
 		},
 	}
 	for _, tt := range tests {

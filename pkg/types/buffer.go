@@ -23,7 +23,7 @@ import (
 
 // BufferPoolCtx is the bufferpool's context
 type BufferPoolCtx interface {
-	// Type returns the bufferpool's name
+	// Name returns the bufferpool's name
 	Name() int
 
 	// New returns the buffer
