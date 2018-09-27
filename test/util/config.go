@@ -184,7 +184,7 @@ func CreateTCPProxyConfig(meshaddr string, hosts []string) *config.MOSNConfig {
 	filterChains := []v2.FilterChain{
 		{
 			Filters: []v2.Filter{
-				{Name: "tcp_proxy", Config: chains},
+				{Type: "tcp_proxy", Config: chains},
 			},
 		},
 	}

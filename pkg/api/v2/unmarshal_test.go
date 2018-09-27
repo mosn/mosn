@@ -26,11 +26,11 @@ import (
 func TestClusterUnmarshal(t *testing.T) {
 	clusterConfig := `{
 		"name": "test",
-		"type": "simple",
-		"lb_type": "lb_random",
+		"type": "SIMPLE",
+		"lb_type": "LB_RANDOM",
 		"circuit_breakers":[
 			{
-				"priority":"high",
+				"priority":"HIGH",
 				"max_connections":10,
 				"max_retries":1
 			}
@@ -205,23 +205,21 @@ func TestListenerUnmarshal(t *testing.T) {
 			fc.TLS.Status == true) {
 			t.Error("listener filterchains failed")
 		}
-		if len(fc.Filters) != 1 || fc.Filters[0].Name != "proxy" {
+		if len(fc.Filters) != 1 || fc.Filters[0].Type != "proxy" {
 			t.Error("listener filterchains failed")
 		}
 	}
 	if len(ln.StreamFilters) != 1 {
 		sf := ln.StreamFilters[0]
-		if sf.Name != "test" {
+		if sf.Type != "test" {
 			t.Error("listener stream filter failed")
 		}
 	}
 }
 
-func TestProxyUnmarshal(t *testing.T) {
-	proxy := `{
-		"name": "proxy",
-		"downstream_protocol": "http1",
-		"upstream_protocol": "sofarpc",
+func TestRouterConfigUmaeshal(t *testing.T) {
+	routerConfig := `{
+		"router_config_name":"test_router",
 		"virtual_hosts": [
 			{
 				"name": "vitrual",
@@ -293,26 +291,21 @@ func TestProxyUnmarshal(t *testing.T) {
 					}
 				]
 			}
-		],
-		"extend_config":{
-			"sub_protocol":"example"
-		}
+		]
 	}`
-	b := []byte(proxy)
-	p := &Proxy{}
-	if err := json.Unmarshal(b, p); err != nil {
+
+	bytes := []byte(routerConfig)
+	router := &RouterConfiguration{}
+
+	if err := json.Unmarshal(bytes, router); err != nil {
 		t.Error(err)
 		return
 	}
-	if !(p.Name == "proxy" &&
-		p.DownstreamProtocol == "http1" &&
-		p.UpstreamProtocol == "sofarpc") {
-		t.Error("baisc failed")
-	}
-	if len(p.VirtualHosts) != 1 {
+
+	if len(router.VirtualHosts) != 1 {
 		t.Error("virtual host failed")
 	} else {
-		vh := p.VirtualHosts[0]
+		vh := router.VirtualHosts[0]
 		if !(vh.Name != "virtual" &&
 			len(vh.Domains) == 1 &&
 			vh.Domains[0] == "*" &&
@@ -361,6 +354,29 @@ func TestProxyUnmarshal(t *testing.T) {
 			}
 
 		}
+	}
+
+}
+
+func TestProxyUnmarshal(t *testing.T) {
+	proxy := `{
+		"name": "proxy",
+		"downstream_protocol": "Http1",
+		"upstream_protocol": "Sofarpc",
+		"extend_config":{
+			"sub_protocol":"example"
+		}
+	}`
+	b := []byte(proxy)
+	p := &Proxy{}
+	if err := json.Unmarshal(b, p); err != nil {
+		t.Error(err)
+		return
+	}
+	if !(p.Name == "proxy" &&
+		p.DownstreamProtocol == "Http1" &&
+		p.UpstreamProtocol == "Sofarpc") {
+		t.Error("baisc failed")
 	}
 }
 func TestFaultInjectUnmarshal(t *testing.T) {

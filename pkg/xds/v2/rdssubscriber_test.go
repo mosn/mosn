@@ -15,55 +15,37 @@
  * limitations under the License.
  */
 
-package router
+package v2
 
 import (
 	"reflect"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
 
-func TestRegisterRouterConfigFactory(t *testing.T) {
+func Test_handleRoutesResp(t *testing.T) {
 	type args struct {
-		port    types.Protocol
-		factory configFactory
+		resp *envoy_api_v2.DiscoveryResponse
 	}
 	tests := []struct {
 		name string
 		args args
+		want []*envoy_api_v2.RouteConfiguration
 	}{
-	// TODO: Add test cases.
+		{
+			name: "case1",
+			args: args{
+				resp: &envoy_api_v2.DiscoveryResponse{},
+			},
+			want: []*envoy_api_v2.RouteConfiguration{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			RegisterRouterConfigFactory(tt.args.port, tt.args.factory)
-		})
-	}
-}
-
-func TestCreateRouteConfig(t *testing.T) {
-	type args struct {
-		port   types.Protocol
-		config interface{}
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    types.Routers
-		wantErr bool
-	}{
-	// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := CreateRouteConfig(tt.args.port, tt.args.config)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CreateRouteConfig() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CreateRouteConfig() = %v, want %v", got, tt.want)
+			var client ClientV2
+			if got := client.handleRoutesResp(tt.args.resp); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("handleRoutesResp() = %v, want %v", got, tt.want)
 			}
 		})
 	}

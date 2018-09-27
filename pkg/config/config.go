@@ -18,14 +18,13 @@
 package config
 
 import (
-	"bytes"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 )
 
 type ContentKey string
@@ -110,7 +109,7 @@ func Load(path string) *MOSNConfig {
 	}
 	configPath, _ = filepath.Abs(path)
 	// translate to lower case
-	err = json.Unmarshal(bytes.ToLower(content), &config)
+	err = json.Unmarshal(content, &config)
 	if err != nil {
 		log.Fatalln("json unmarshal config failed, ", err)
 		os.Exit(1)

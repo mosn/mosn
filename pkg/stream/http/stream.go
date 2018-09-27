@@ -265,9 +265,21 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn interfac
 		delete(headers, protocol.MosnHeaderHostKey)
 	}
 
+	var URI string
+
 	if path, ok := headers[protocol.MosnHeaderPathKey]; ok {
-		s.request.SetRequestURI(fmt.Sprintf("http://%s%s", s.wrapper.client.Addr, path))
+		URI = fmt.Sprintf("http://%s%s", s.wrapper.client.Addr, path)
 		delete(headers, protocol.MosnHeaderPathKey)
+	}
+
+	if URI != "" {
+
+		if queryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
+			URI += "?" + queryString
+			delete(headers, protocol.MosnHeaderQueryStringKey)
+		}
+
+		s.request.SetRequestURI(URI)
 	}
 
 	encodeReqHeader(s.request, headers)
@@ -430,6 +442,11 @@ func (s *serverStream) handleRequest() {
 		// set host header if not found, just for insurance
 		if _, ok := header[protocol.MosnHeaderHostKey]; !ok {
 			header[protocol.MosnHeaderHostKey] = string(s.ctx.Host())
+		}
+
+		// set :authority header if not found
+		if _, ok := header[protocol.IstioHeaderHostKey]; !ok {
+			header[protocol.IstioHeaderHostKey] = string(s.ctx.Host())
 		}
 
 		// set path header if not found

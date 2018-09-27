@@ -27,8 +27,9 @@ import (
 // The metadata should go under the filter namespace that will need it.
 type Metadata map[string]string
 
-// Network Filter's Name
+// Network Filter's Type
 const (
+	CONNECTION_MANAGER          = "connection_manager"
 	DEFAULT_NETWORK_FILTER      = "proxy"
 	TCP_PROXY                   = "tcp_proxy"
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
@@ -41,10 +42,10 @@ type ClusterType string
 
 // Group of cluster type
 const (
-	STATIC_CLUSTER  ClusterType = "static"
-	SIMPLE_CLUSTER  ClusterType = "simple"
-	DYNAMIC_CLUSTER ClusterType = "dynamic"
-	EDS_CLUSTER     ClusterType = "eds"
+	STATIC_CLUSTER  ClusterType = "STATIC"
+	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
+	DYNAMIC_CLUSTER ClusterType = "DYNAMIC"
+	EDS_CLUSTER     ClusterType = "EDS"
 )
 
 // LbType
@@ -52,8 +53,8 @@ type LbType string
 
 // Group of load balancer type
 const (
-	LB_RANDOM     LbType = "lb_random"
-	LB_ROUNDROBIN LbType = "lb_roundrobin"
+	LB_RANDOM     LbType = "LB_RANDOM"
+	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
 )
 
 // RoutingPriority
@@ -61,8 +62,8 @@ type RoutingPriority string
 
 // Group of routing priority
 const (
-	DEFAULT RoutingPriority = "default"
-	HIGH    RoutingPriority = "high"
+	DEFAULT RoutingPriority = "DEFAULT"
+	HIGH    RoutingPriority = "HIGH"
 )
 
 // Cluster represents a cluster's information
@@ -237,12 +238,12 @@ type AccessLog struct {
 type FilterChain struct {
 	FilterChainMatch string    `json:"match,omitempty"`
 	TLS              TLSConfig `json:"tls_context,omitempty"`
-	Filters          []Filter  `json:"filters"`
+	Filters          []Filter  `json:"filters"` // "proxy" and "connection_manager" used at this time
 }
 
 // Filter is a config to make up a filter
 type Filter struct {
-	Name   string                 `json:"type,omitempty"`
+	Type   string                 `json:"type,omitempty"`
 	Config map[string]interface{} `json:"config,omitempty"`
 }
 
@@ -255,13 +256,19 @@ type TCPProxy struct {
 
 // Proxy
 type Proxy struct {
-	Name                string                 `json:"name"`
-	DownstreamProtocol  string                 `json:"downstream_protocol"`
-	UpstreamProtocol    string                 `json:"upstream_protocol"`
-	SupportDynamicRoute bool                   `json:"support_dynamic_route"`
-	VirtualHosts        []*VirtualHost         `json:"virtual_hosts"`
-	ValidateClusters    bool                   `json:"validate_clusters"`
-	ExtendConfig        map[string]interface{} `json:"extend_config"`
+	Name               string                 `json:"name"`
+	DownstreamProtocol string                 `json:"downstream_protocol"`
+	UpstreamProtocol   string                 `json:"upstream_protocol"`
+	RouterConfigName   string                 `json:"router_config_name"`
+	ValidateClusters   bool                   `json:"validate_clusters"`
+	ExtendConfig       map[string]interface{} `json:"extend_config"`
+}
+
+// RouterConfiguration is a filter for routers
+// Filter type is:  "CONNECTION_MANAGER"
+type RouterConfiguration struct {
+	RouterConfigName string         `json:"router_config_name"`
+	VirtualHosts     []*VirtualHost `json:"virtual_hosts"`
 }
 
 // VirtualHost is used to make up the route table
