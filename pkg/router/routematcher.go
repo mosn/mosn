@@ -64,11 +64,11 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 
 	for _, virtualHost := range routerConfig.VirtualHosts {
 		vh, err := NewVirtualHostImpl(virtualHost, false)
-		
+
 		if err != nil {
 			return nil, err
 		}
-		
+
 		for _, domain := range virtualHost.Domains {
 			// Note: we use domain in lowercase
 			domain = strings.ToLower(domain)

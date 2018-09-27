@@ -17,24 +17,35 @@
                   "verify_client": true,
                   "ecdh_curves": "P256"
 	       },
-	       "filters": [{
-	           "type": "proxy",
-		   "config": {
-		      "downstream_protocol": "Http2",
-		      "upstream_protocol": "SofaRpc",
-		      "virtual_hosts":[{
-		         "name":"serverHost",
-			 "domains": ["*"],
-			 "routers": [
-			    {
-			      "match":{"headers":[{"name":"service","value":".*"}]},
-			      "route":{"cluster_name":"serverCluster"}
-			    }
-			 ]
-		      }]
-		   }
-	       }]
-	    }]
+		  "filters": [
+			{
+			  "type": "proxy",
+			  "config": {
+				"downstream_protocol": "Http2",
+				"upstream_protocol": "SofaRpc",
+				"router_config_name":"server_router"
+			  }
+			},
+			{
+			  "type":"connection_manager",
+			  "config":{
+				"router_config_name":"server_router",
+				"virtual_hosts":[{
+				  "name":"serverHost",
+				  "domains": ["*"],
+				  "routers": [
+					{
+					  "match":{"headers":[{"name":"service","value":".*"}]},
+					  "route":{"cluster_name":"serverCluster"}
+					}
+				  ]
+				}]
+			  }
+		  
+		  
+			}]
+	  
+		}]
 	  },
 	  {
 	    "name":"clientListener",
@@ -43,24 +54,34 @@
 	    "log_path": "stdout",
 	    "filter_chains": [{
 	       "tls_context":{},
-	       "filters": [{
-	           "type": "proxy",
-		   "config": {
-		      "downstream_protocol": "SofaRpc",
-		      "upstream_protocol": "Http2",
-		      "virtual_hosts":[{
-		         "name":"clientHost",
-			 "domains": ["*"],
-			 "routers": [
-			    {
-			      "match":{"headers":[{"name":"service","value":".*"}]},
-			      "route":{"cluster_name":"clientCluster"}
-			    }
-			 ]
-		      }]
-		   } 
-	       }]
-	    }]
+		  "filters": [
+			{
+			  "type": "proxy",
+			  "config": {
+				"downstream_protocol": "SofaRpc",
+				"upstream_protocol": "Http2",
+				"router_config_name":"client_router"
+			  }
+			},
+			{
+			  "type":"connection_manager",
+			  "config":{
+				"router_config_name":"client_router",
+				"virtual_hosts":[{
+				  "name":"clientHost",
+				  "domains": ["*"],
+				  "routers": [
+					{
+					  "match":{"headers":[{"name":"service","value":".*"}]},
+					  "route":{"cluster_name":"clientCluster"}
+					}
+				  ]
+				}]
+			  }
+		  
+			}]
+	  
+		}]
 	  }
        ]
      }

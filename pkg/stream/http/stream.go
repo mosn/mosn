@@ -272,12 +272,15 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn interfac
 		delete(headers, protocol.MosnHeaderPathKey)
 	}
 
-	if queryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
-		URI += "?" + queryString
-		delete(headers, protocol.MosnHeaderQueryStringKey)
-	}
+	if URI != "" {
 
-	s.request.SetRequestURI(URI)
+		if queryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
+			URI += "?" + queryString
+			delete(headers, protocol.MosnHeaderQueryStringKey)
+		}
+
+		s.request.SetRequestURI(URI)
+	}
 
 	encodeReqHeader(s.request, headers)
 

@@ -36,14 +36,6 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 				},
 			},
 		},
-		{
-			request: fasthttp.AcquireRequest(),
-			wrapper: &clientStreamWrapper{
-				client: &fasthttp.HostClient{
-					Addr: addr,
-				},
-			},
-		},
 	}
 
 	queryString := "name=biz&passwd=bar"
@@ -55,14 +47,10 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
 		},
-		{
-			protocol.MosnHeaderQueryStringKey: queryString,
-		},
 	}
 
 	wantedURI := []string{
 		"http://www.antfin.com/pic?name=biz&passwd=bar",
-		"http://www.antfin.com/pic",
 	}
 
 	for i := 0; i < len(ClientStreamsMocked); i++ {
