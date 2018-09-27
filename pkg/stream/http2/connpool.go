@@ -25,7 +25,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/proxy"
-	"github.com/alipay/sofa-mosn/pkg/stats"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	metrics "github.com/rcrowley/go-metrics"
@@ -81,14 +80,14 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		cb.OnFailure(streamID, types.Overflow, nil)
-		p.host.HostStats().Counter(stats.UpstreamRequestPendingOverflow).Inc(1)
-		p.host.ClusterInfo().Stats().Counter(stats.UpstreamRequestPendingOverflow).Inc(1)
+		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
 		atomic.AddUint64(&ac.totalStream, 1)
-		p.host.HostStats().Counter(stats.UpstreamRequestTotal).Inc(1)
-		p.host.HostStats().Counter(stats.UpstreamRequestActive).Inc(1)
-		p.host.ClusterInfo().Stats().Counter(stats.UpstreamRequestTotal).Inc(1)
-		p.host.ClusterInfo().Stats().Counter(stats.UpstreamRequestActive).Inc(1)
+		p.host.HostStats().UpstreamRequestTotal.Inc(1)
+		p.host.HostStats().UpstreamRequestActive.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		streamEncoder := ac.codecClient.NewStream(context, streamID, responseDecoder)
 		cb.OnReady(streamID, streamEncoder, p.host)
@@ -113,11 +112,11 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 
 		if client.closeWithActiveReq {
 			if event == types.LocalClose {
-				p.host.HostStats().Counter(stats.UpstreamConnectionLocalCloseWithActiveRequest).Inc(1)
-				p.host.ClusterInfo().Stats().Counter(stats.UpstreamConnectionLocalCloseWithActiveRequest).Inc(1)
+				p.host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
+				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 			} else if event == types.RemoteClose {
-				p.host.HostStats().Counter(stats.UpstreamConnectionRemoteCloseWithActiveRequest).Inc(1)
-				p.host.ClusterInfo().Stats().Counter(stats.UpstreamConnectionRemoteCloseWithActiveRequest).Inc(1)
+				p.host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 			}
 		}
 
@@ -128,32 +127,32 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 
 		delete(p.activeClients, host)
 	} else if event == types.ConnectTimeout {
-		p.host.HostStats().Counter(stats.UpstreamRequestTimeout).Inc(1)
-		p.host.ClusterInfo().Stats().Counter(stats.UpstreamRequestTimeout).Inc(1)
+		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		client.codecClient.Close()
 	} else if event == types.ConnectFailed {
-		p.host.HostStats().Counter(stats.UpstreamConnectionConFail).Inc(1)
-		p.host.ClusterInfo().Stats().Counter(stats.UpstreamConnectionConFail).Inc(1)
+		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
 	}
 }
 
 func (p *connPool) onStreamDestroy(client *activeClient) {
-	p.host.HostStats().Counter(stats.UpstreamRequestActive).Dec(1)
-	p.host.ClusterInfo().Stats().Counter(stats.UpstreamRequestActive).Dec(1)
+	p.host.HostStats().UpstreamRequestActive.Dec(1)
+	p.host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	p.host.ClusterInfo().ResourceManager().Requests().Decrease()
 }
 
 func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetReason) {
 	if reason == types.StreamConnectionTermination || reason == types.StreamConnectionFailed {
-		p.host.HostStats().Counter(stats.UpstreamRequestFailureEject).Inc(1)
-		p.host.ClusterInfo().Stats().Counter(stats.UpstreamRequestFailureEject).Inc(1)
+		p.host.HostStats().UpstreamRequestFailureEject.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamRequestFailureEject.Inc(1)
 		client.closeWithActiveReq = true
 	} else if reason == types.StreamLocalReset {
-		p.host.HostStats().Counter(stats.UpstreamRequestLocalReset).Inc(1)
-		p.host.ClusterInfo().Stats().Counter(stats.UpstreamRequestLocalReset).Inc(1)
+		p.host.HostStats().UpstreamRequestLocalReset.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamRequestLocalReset.Inc(1)
 	} else if reason == types.StreamRemoteReset {
-		p.host.HostStats().Counter(stats.UpstreamRequestRemoteReset).Inc(1)
-		p.host.ClusterInfo().Stats().Counter(stats.UpstreamRequestRemoteReset).Inc(1)
+		p.host.HostStats().UpstreamRequestRemoteReset.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamRequestRemoteReset.Inc(1)
 	}
 }
 
@@ -162,9 +161,8 @@ func (p *connPool) onGoAway(client *activeClient) {
 		return
 	}
 
-	p.host.HostStats().Counter(stats.UpstreamConnectionCloseNotify).Inc(1)
-	p.host.ClusterInfo().Stats().Counter(stats.UpstreamConnectionCloseNotify).Inc(1)
-
+	p.host.HostStats().UpstreamConnectionCloseNotify.Inc(1)
+	p.host.ClusterInfo().Stats().UpstreamConnectionCloseNotify.Inc(1)
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -285,18 +283,18 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac.h2Conn = h2Conn
 	ac.codecClient = codecClient
 
-	pool.host.HostStats().Counter(stats.UpstreamConnectionTotal).Inc(1)
-	pool.host.HostStats().Counter(stats.UpstreamConnectionActive).Inc(1)
-	//pool.host.HostStats().Counter(UpstreamConnectionTotalHTTP2).Inc(1)
-	pool.host.ClusterInfo().Stats().Counter(stats.UpstreamConnectionTotal).Inc(1)
-	pool.host.ClusterInfo().Stats().Counter(stats.UpstreamConnectionActive).Inc(1)
-	//pool.host.ClusterInfo().Stats().Counter(UpstreamConnectionTotalHTTP2).Inc(1)
+	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
+	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
+	//pool.host.HostStats().UpstreamConnectionTotalHTTP2.Inc(1)
+	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
+	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
+	//pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP2.Inc(1)
 
 	// bytes total adds all connections data together, but buffered data not
 	codecClient.SetConnectionStats(&types.ConnectionStats{
-		ReadTotal:     pool.host.ClusterInfo().Stats().Counter(stats.UpstreamBytesReadTotal),
+		ReadTotal:     pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal,
 		ReadBuffered:  metrics.NewGauge(),
-		WriteTotal:    pool.host.ClusterInfo().Stats().Counter(stats.UpstreamBytesWriteTotal),
+		WriteTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal,
 		WriteBuffered: metrics.NewGauge(),
 	})
 

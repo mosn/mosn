@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	metrics "github.com/rcrowley/go-metrics"
 )
 
@@ -132,7 +133,7 @@ func TransferServer(gracefultime time.Duration, ch chan<- bool) {
 			log.DefaultLogger.Errorf("transfer metrics server panic %v", r)
 		}
 	}()
-	if os.Getenv("_MOSN_GRACEFUL_RESTART") != "true" {
+	if os.Getenv(types.GracefulRestart) != "true" {
 		return
 	}
 	if _, err := os.Stat(TransferDomainSocket); err == nil {

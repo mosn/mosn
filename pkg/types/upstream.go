@@ -23,6 +23,7 @@ import (
 	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -209,7 +210,22 @@ type HostInfo interface {
 
 // HostStats defines a host's statistics information
 type HostStats struct {
-	Metrics
+	UpstreamConnectionTotal                        metrics.Counter
+	UpstreamConnectionClose                        metrics.Counter
+	UpstreamConnectionActive                       metrics.Counter
+	UpstreamConnectionConFail                      metrics.Counter
+	UpstreamConnectionLocalClose                   metrics.Counter
+	UpstreamConnectionRemoteClose                  metrics.Counter
+	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
+	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
+	UpstreamConnectionCloseNotify                  metrics.Counter
+	UpstreamRequestTotal                           metrics.Counter
+	UpstreamRequestActive                          metrics.Counter
+	UpstreamRequestLocalReset                      metrics.Counter
+	UpstreamRequestRemoteReset                     metrics.Counter
+	UpstreamRequestTimeout                         metrics.Counter
+	UpstreamRequestFailureEject                    metrics.Counter
+	UpstreamRequestPendingOverflow                 metrics.Counter
 }
 
 // ClusterInfo defines a cluster's information
@@ -275,7 +291,31 @@ type Resource interface {
 
 // ClusterStats defines a cluster's statistics information
 type ClusterStats struct {
-	Metrics
+	UpstreamConnectionTotal                        metrics.Counter
+	UpstreamConnectionClose                        metrics.Counter
+	UpstreamConnectionActive                       metrics.Counter
+	UpstreamConnectionConFail                      metrics.Counter
+	UpstreamConnectionRetry                        metrics.Counter
+	UpstreamConnectionLocalClose                   metrics.Counter
+	UpstreamConnectionRemoteClose                  metrics.Counter
+	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
+	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
+	UpstreamConnectionCloseNotify                  metrics.Counter
+	UpstreamBytesReadTotal                         metrics.Counter
+	UpstreamBytesWriteTotal                        metrics.Counter
+	UpstreamRequestTotal                           metrics.Counter
+	UpstreamRequestActive                          metrics.Counter
+	UpstreamRequestLocalReset                      metrics.Counter
+	UpstreamRequestRemoteReset                     metrics.Counter
+	UpstreamRequestRetry                           metrics.Counter
+	UpstreamRequestRetryOverflow                   metrics.Counter
+	UpstreamRequestTimeout                         metrics.Counter
+	UpstreamRequestFailureEject                    metrics.Counter
+	UpstreamRequestPendingOverflow                 metrics.Counter
+	LBSubSetsFallBack                              metrics.Counter
+	LBSubSetsActive                                metrics.Counter
+	LBSubsetsCreated                               metrics.Counter
+	LBSubsetsRemoved                               metrics.Counter
 }
 
 type CreateConnectionData struct {

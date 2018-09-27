@@ -62,13 +62,13 @@ const (
 )
 
 // NewHostStats returns a stats that namespace contains cluster and host address
-func NewHostStats(clustername string, addr string) types.Metrics {
-	namespace := fmt.Sprintf("cluster.%s.host.%s", clustername, addr)
+func NewHostStats(clusterName string, addr string) types.Metrics {
+	namespace := fmt.Sprintf("cluster.%s.host.%s", clusterName, addr)
 	return NewStats(UpstreamType, namespace)
 }
 
 // NewClusterStats returns a stats with namespace prefix cluster
-func NewClusterStats(clustername string) types.Metrics {
-	namespace := fmt.Sprintf("cluster.%s", clustername)
+func NewClusterStats(clusterName string) types.Metrics {
+	namespace := fmt.Sprintf("cluster.%s", clusterName)
 	return NewStats(UpstreamType, namespace)
 }

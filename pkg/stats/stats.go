@@ -18,8 +18,8 @@
 package stats
 
 import (
-	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -72,21 +72,21 @@ func NewStats(typ, namespace string) *Stats {
 // if the key is registered by other interface, it will be panic
 func (s *Stats) Counter(key string) metrics.Counter {
 	metricsKey := strings.Join([]string{s.typ, s.namespace, key}, sep)
-	return s.registry.GetOrRegister(metricsKey, metrics.NewCounter()).(metrics.Counter)
+	return s.registry.GetOrRegister(metricsKey, metrics.NewCounter).(metrics.Counter)
 }
 
 // Gauge creates or returns a go-metrics gauge by key
 // if the key is registered by other interface, it will be panic
 func (s *Stats) Gauge(key string) metrics.Gauge {
 	metricsKey := strings.Join([]string{s.typ, s.namespace, key}, sep)
-	return s.registry.GetOrRegister(metricsKey, metrics.NewGauge()).(metrics.Gauge)
+	return s.registry.GetOrRegister(metricsKey, metrics.NewGauge).(metrics.Gauge)
 }
 
 // Histogram creates or returns a go-metrics histogram by key
 // if the key is registered by other interface, it will be panic
 func (s *Stats) Histogram(key string) metrics.Histogram {
 	metricsKey := strings.Join([]string{s.typ, s.namespace, key}, sep)
-	return s.registry.GetOrRegister(metricsKey, metrics.NewHistogram(metrics.NewUniformSample(100))).(metrics.Histogram)
+	return s.registry.GetOrRegister(metricsKey, func() metrics.Histogram { return metrics.NewHistogram(metrics.NewUniformSample(100)) }).(metrics.Histogram)
 }
 
 // LisTypes returns all registered types, sorted by dictionary order
@@ -99,6 +99,9 @@ func LisTypes() (ts []string) {
 	sort.Strings(ts)
 	return
 }
+
+// histogram output percents
+var percents = []float64{0.5, 0.75, 0.95, 0.99, 0.999}
 
 // NamespaceData represents a namespace's metrics data in string format
 type NamespaceData map[string]string
@@ -129,22 +132,21 @@ func GetMetricsData(typ string) map[string]NamespaceData {
 		}
 		switch metric := i.(type) {
 		case metrics.Counter:
-			data[metricsKey] = fmt.Sprintf("%d", metric.Count())
+			data[metricsKey] = strconv.FormatInt(metric.Count(), 10)
 		case metrics.Gauge:
-			data[metricsKey] = fmt.Sprintf("%d", metric.Value())
+			data[metricsKey] = strconv.FormatInt(metric.Value(), 10)
 		case metrics.Histogram:
 			h := metric.Snapshot()
-			percents := []float64{0.5, 0.75, 0.95, 0.99, 0.999}
 			ps := h.Percentiles(percents)
 			for index := range percents {
-				key := fmt.Sprintf("%s.%.2f%%", metricsKey, percents[index]*100)
-				data[key] = fmt.Sprintf("%12.2f", ps[index])
+				key := metricsKey + "." + strconv.FormatFloat(percents[index]*100, 'f', 2, 64) + "%"
+				data[key] = strconv.FormatFloat(ps[index], 'f', 2, 64)
 			}
-			data[fmt.Sprintf("%s.count", metricsKey)] = fmt.Sprintf("%d", h.Count())
-			data[fmt.Sprintf("%s.min", metricsKey)] = fmt.Sprintf("%d", h.Min())
-			data[fmt.Sprintf("%s.max", metricsKey)] = fmt.Sprintf("%d", h.Max())
-			data[fmt.Sprintf("%s.mean", metricsKey)] = fmt.Sprintf("%12.2f", h.Mean())
-			data[fmt.Sprintf("%s.stddev", metricsKey)] = fmt.Sprintf("%12.2f", h.StdDev())
+			data[metricsKey+".count"] = strconv.FormatInt(h.Count(), 10)
+			data[metricsKey+".min"] = strconv.FormatInt(h.Min(), 10)
+			data[metricsKey+".max"] = strconv.FormatInt(h.Max(), 10)
+			data[metricsKey+".mean"] = strconv.FormatFloat(h.Mean(), 'f', 2, 64)
+			data[metricsKey+".stddev"] = strconv.FormatFloat(h.StdDev(), 'f', 2, 64)
 
 		default: //unsupport metrics, ignore
 			return

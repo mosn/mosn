@@ -134,3 +134,34 @@ func TestMetrics(t *testing.T) {
 	}
 
 }
+
+func BenchmarkGetMetrics(b *testing.B) {
+	testClear()
+	// init metrics data
+	testCases := []struct {
+		typ       string
+		namespace string
+	}{
+		{DownstreamType, "proxyname"},
+		{DownstreamType, "listener1"},
+		{DownstreamType, "listener2"},
+		{UpstreamType, "cluster1"},
+		{UpstreamType, "cluster2"},
+		{UpstreamType, "cluster1.host1"},
+		{UpstreamType, "cluster1.host2"},
+		{UpstreamType, "cluster2.host1"},
+		{UpstreamType, "cluster2.host2"},
+	}
+	for _, tc := range testCases {
+		s := NewStats(tc.typ, tc.namespace)
+		s.Counter("key1").Inc(100)
+		s.Counter("key2").Inc(100)
+		s.Gauge("key3").Update(100)
+		for i := 0; i < 5; i++ {
+			s.Histogram("key4").Update(1)
+		}
+	}
+	for i := 0; i < b.N; i++ {
+		GetAllMetricsData()
+	}
+}

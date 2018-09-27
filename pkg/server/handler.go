@@ -34,7 +34,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/tls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -341,7 +340,7 @@ type activeListener struct {
 	connsMux                sync.RWMutex
 	handler                 *connHandler
 	stopChan                chan struct{}
-	stats                   types.Metrics
+	stats                   *listenerStats
 	logger                  log.Logger
 	accessLogs              []types.AccessLog
 	updatedLabel            bool
@@ -375,7 +374,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logg
 
 	al.listenIP = listenIP
 	al.listenPort = listenPort
-	al.stats = stats.NewListenerStats(al.listener.Name())
+	al.stats = newListenerStats(al.listener.Name())
 
 	mgr, err := tls.NewTLSServerContextManager(lc, listener, logger)
 	if err != nil {
@@ -456,8 +455,6 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	al.connsMux.Unlock()
 	ac.element = e
 
-	//al.stats.DownstreamConnectionActive().Inc(1)
-	//al.stats.DownstreamConnectionTotal().Inc(1)
 	atomic.AddInt64(&al.handler.numConnections, 1)
 
 	al.logger.Debugf("new downstream connection %d accepted", conn.ID())
@@ -476,11 +473,8 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.conns.Remove(ac.element)
 	al.connsMux.Unlock()
 
-	//al.stats.DownstreamConnectionActive().Dec(1)
-	//al.stats.DownstreamConnectionDestroy().Inc(1)
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
-	//al.logger.Debugf("close downstream connection, stats: %s", al.stats.String())
 }
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
@@ -593,13 +587,13 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 	ac.conn.AddBytesReadListener(func(bytesRead uint64) {
 
 		if bytesRead > 0 {
-			listener.stats.Counter(stats.DownstreamBytesReadTotal).Inc(int64(bytesRead))
+			listener.stats.DownstreamBytesReadTotal.Inc(int64(bytesRead))
 		}
 	})
 	ac.conn.AddBytesSentListener(func(bytesSent uint64) {
 
 		if bytesSent > 0 {
-			listener.stats.Counter(stats.DownstreamBytesWriteTotal).Inc(int64(bytesSent))
+			listener.stats.DownstreamBytesWriteTotal.Inc(int64(bytesSent))
 		}
 	})
 

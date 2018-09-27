@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/types"
 	metrics "github.com/rcrowley/go-metrics"
 )
 
@@ -79,7 +80,7 @@ func TestTransferData(t *testing.T) {
 
 func TestTransferWithSocket(t *testing.T) {
 	// set env to run TransferServer
-	os.Setenv("_MOSN_GRACEFUL_RESTART", "true")
+	os.Setenv(types.GracefulRestart, "true")
 	// set domain socket path
 	TransferDomainSocket = "/tmp/stats.sock"
 	clear()

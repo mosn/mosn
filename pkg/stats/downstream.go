@@ -42,13 +42,13 @@ const (
 )
 
 // NewProxyStats returns a stats with namespace prefix proxy
-func NewProxyStats(proxyname string) types.Metrics {
-	namespace := fmt.Sprintf("proxy.%s", proxyname)
+func NewProxyStats(proxyName string) types.Metrics {
+	namespace := fmt.Sprintf("proxy.%s", proxyName)
 	return NewStats(DownstreamType, namespace)
 }
 
 // NewListenerStats returns a stats with namespace prefix listsener
-func NewListenerStats(listenername string) types.Metrics {
-	namespace := fmt.Sprintf("listener.%s", listenername)
+func NewListenerStats(listenerName string) types.Metrics {
+	namespace := fmt.Sprintf("listener.%s", listenerName)
 	return NewStats(DownstreamType, namespace)
 }

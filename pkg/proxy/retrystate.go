@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -79,7 +78,7 @@ func (r *retryState) shouldRetry(headers map[string]string, reason types.StreamR
 	}
 
 	if r.cluster.ResourceManager().Retries().CanCreate() {
-		r.cluster.Stats().Counter(stats.UpstreamRequestRetryOverflow).Inc(1)
+		r.cluster.Stats().UpstreamRequestRetryOverflow.Inc(1)
 
 		return types.RetryOverflow
 	}
@@ -90,7 +89,7 @@ func (r *retryState) shouldRetry(headers map[string]string, reason types.StreamR
 func (r *retryState) scheduleRetry(doRetry func()) *timer {
 	r.retryFunc = doRetry
 	r.cluster.ResourceManager().Retries().Increase()
-	r.cluster.Stats().Counter(stats.UpstreamRequestRetry).Inc(1)
+	r.cluster.Stats().UpstreamRequestRetry.Inc(1)
 
 	// todo: use backoff alth
 	timeout := rand.Intn(10)
