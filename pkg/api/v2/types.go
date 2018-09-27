@@ -27,8 +27,9 @@ import (
 // The metadata should go under the filter namespace that will need it.
 type Metadata map[string]string
 
-// Network Filter's Name
+// Network Filter's Type
 const (
+	CONNECTION_MANAGER          = "connection_manager"
 	DEFAULT_NETWORK_FILTER      = "proxy"
 	TCP_PROXY                   = "tcp_proxy"
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
@@ -237,12 +238,12 @@ type AccessLog struct {
 type FilterChain struct {
 	FilterChainMatch string    `json:"match,omitempty"`
 	TLS              TLSConfig `json:"tls_context,omitempty"`
-	Filters          []Filter  `json:"filters"`
+	Filters          []Filter  `json:"filters"` // "proxy" and "connection_manager" used at this time
 }
 
 // Filter is a config to make up a filter
 type Filter struct {
-	Name   string                 `json:"type,omitempty"`
+	Type   string                 `json:"type,omitempty"`
 	Config map[string]interface{} `json:"config,omitempty"`
 }
 
@@ -255,13 +256,19 @@ type TCPProxy struct {
 
 // Proxy
 type Proxy struct {
-	Name                string                 `json:"name"`
-	DownstreamProtocol  string                 `json:"downstream_protocol"`
-	UpstreamProtocol    string                 `json:"upstream_protocol"`
-	SupportDynamicRoute bool                   `json:"support_dynamic_route"`
-	VirtualHosts        []*VirtualHost         `json:"virtual_hosts"`
-	ValidateClusters    bool                   `json:"validate_clusters"`
-	ExtendConfig        map[string]interface{} `json:"extend_config"`
+	Name               string                 `json:"name"`
+	DownstreamProtocol string                 `json:"downstream_protocol"`
+	UpstreamProtocol   string                 `json:"upstream_protocol"`
+	RouterConfigName   string                 `json:"router_config_name"`
+	ValidateClusters   bool                   `json:"validate_clusters"`
+	ExtendConfig       map[string]interface{} `json:"extend_config"`
+}
+
+// RouterConfiguration is a filter for routers
+// Filter type is:  "CONNECTION_MANAGER"
+type RouterConfiguration struct {
+	RouterConfigName string         `json:"router_config_name"`
+	VirtualHosts     []*VirtualHost `json:"virtual_hosts"`
 }
 
 // VirtualHost is used to make up the route table

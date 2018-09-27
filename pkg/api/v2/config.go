@@ -44,7 +44,7 @@ type ListenerConfig struct {
 	LogPath                               string        `json:"log_path,omitempty"`
 	LogLevelConfig                        string        `json:"log_level,omitempty"`
 	AccessLogs                            []AccessLog   `json:"access_logs,omitempty"`
-	FilterChains                          []FilterChain `json:"filter_chains"`
+	FilterChains                          []FilterChain `json:"filter_chains"` // only one filterchains at this time
 	StreamFilters                         []Filter      `json:"stream_filters,omitempty"`
 	Inspector                             bool          `json:"inspector,omitempty"`
 }

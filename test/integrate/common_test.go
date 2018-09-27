@@ -17,7 +17,7 @@ import (
 // because SofaRPC is a group of protocols,such as boltV1, boltV2.
 func TestCommon(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
-	testCases := []*testCase{
+ 	testCases := []*testCase{
 		newTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t)),
 		newTestCase(t, protocol.HTTP1, protocol.HTTP2, util.NewHTTPServer(t)),
 		newTestCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr)),

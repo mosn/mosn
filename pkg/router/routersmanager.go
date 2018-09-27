@@ -15,89 +15,113 @@
  * limitations under the License.
  */
 
+// "routersMap" in "routersMangerInstance" stored all routers with "RouterConfigureName" as the unique identifier
+// when update, update wrapper's routes
+// when use, proxy's get wrapper's routers
+
 package router
 
 import (
 	"sync"
 
+	"fmt"
+
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var RoutersManager = routersManager{
-	rMutex: new(sync.RWMutex),
+var instanceMutex = sync.Mutex{}
+var routersMangerInstance *routersManager
+
+// GetClusterMngAdapterInstance used to get clusterMngAdapterInstance
+func GetRoutersMangerInstance() *routersManager {
+	return routersMangerInstance
 }
 
 type routersManager struct {
-	routersSet  []types.Routers
-	rMutex      *sync.RWMutex
-	routerNames []string
+	routersMap sync.Map // key is router's name used to associated to the listener, value's type is: RoutersWrapper
 }
 
-func (rm *routersManager) AddRoutersSet(routers types.Routers) {
-	rm.rMutex.RLock()
-	defer rm.rMutex.RUnlock()
-	//log.StartLogger.Debugf("[RouterManager RoutersSet]Add RoutersSet Called, routers is %+v",routers)
-
-	for _, name := range rm.routerNames {
-		routers.AddRouter(name)
-	}
-
-	rm.routersSet = append(rm.routersSet, routers)
+type RoutersWrapper struct {
+	mux     sync.RWMutex
+	routers types.Routers
 }
 
-func (rm *routersManager) RemoveRouterInRouters(routerNames []string) {
-	log.DefaultLogger.Debugf("[RouterManager]RemoveRouterInRouters Called, routerNames is", routerNames)
+func (rw *RoutersWrapper) GetRouters() types.Routers {
+	rw.mux.RLock()
+	defer rw.mux.RUnlock()
 
-	rm.DeleteRouterNameInList(routerNames)
-	for _, rn := range routerNames {
-		for _, r := range rm.routersSet {
-			r.DelRouter(rn)
-		}
-	}
+	return rw.routers
 }
 
-func (rm *routersManager) AddRouterInRouters(routerNames []string) {
+func NewRouterManager() types.RouterManager {
+	instanceMutex.Lock()
+	defer instanceMutex.Unlock()
 
-	log.DefaultLogger.Debugf("[RouterManager]AddRouterInRouters Called, routerNames is", routerNames)
-	rm.AddRouterNameInList(routerNames)
-
-	for _, rn := range routerNames {
-		for _, r := range rm.routersSet {
-			//	log.StartLogger.Debugf("[RouterManager]Add Routers to Basic Router %+v", r)
-			r.AddRouter(rn)
-		}
+	if routersMangerInstance != nil {
+		return routersMangerInstance
 	}
+
+	routersMap := sync.Map{}
+
+	routersMangerInstance = &routersManager{
+		routersMap: routersMap,
+	}
+
+	return routersMangerInstance
 }
 
-func (rm *routersManager) AddRouterNameInList(routerNames []string) {
-	rm.rMutex.Lock()
-	defer rm.rMutex.Unlock()
+// AddOrUpdateRouters used to add or update router
+func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error {
 
-	for _, name := range routerNames {
-		in := false
-		for _, n := range rm.routerNames {
-			if name == n {
-				in = true
-				break
-			}
+	if routerConfig == nil {
+		log.DefaultLogger.Errorf("AddOrUpdateRouters Error,routerConfig is nil ")
+		return fmt.Errorf("AddOrUpdateRouters Error,routerConfig is nil ")
+	}
+
+	routers, err := NewRouteMatcher(routerConfig)
+
+	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
+		// NewRouteMatcher has error, doesn't update
+		if err != nil {
+			return err
+
 		}
-		if !in {
-			rm.routerNames = append(rm.routerNames, name)
+
+		// else : update a router
+		if primaryRouters, ok := v.(*RoutersWrapper); ok {
+			primaryRouters.mux.Lock()
+			defer primaryRouters.mux.Unlock()
+
+			primaryRouters.routers = routers
+		}
+
+	} else {
+		// NewRouteMatcher has error, use nil routers
+		if err != nil {
+			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
+				routers: nil,
+			})
+			return fmt.Errorf("Store RoutersWrapper %s with routers is nil", routerConfig.RouterConfigName)
+			// new routers
+		} else {
+			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
+				routers: routers,
+			})
 		}
 	}
+	return nil
 }
 
-func (rm *routersManager) DeleteRouterNameInList(rNames []string) {
-	rm.rMutex.Lock()
-	defer rm.rMutex.Unlock()
+// AddOrUpdateRouters used to add or update router
+func (rm *routersManager) GetRouterWrapperByListenerName(routerConfigName string) types.RouterWrapper {
 
-	for _, name := range rNames {
-		for i, n := range rm.routerNames {
-			if name == n {
-				rm.routerNames = append(rm.routerNames[:i], rm.routerNames[i+1:]...)
-				break
-			}
+	if value, ok := rm.routersMap.Load(routerConfigName); ok {
+		if routerWrapper, ok := value.(*RoutersWrapper); ok {
+			return routerWrapper
 		}
 	}
+
+	return nil
 }
