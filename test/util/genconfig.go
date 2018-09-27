@@ -1,6 +1,7 @@
 package util
 
 import (
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -13,12 +14,12 @@ var (
 )
 
 // Create Mesh Config
-func newProxyFilter(name string, downstream, upstream types.Protocol, routers []config.Router) *config.Proxy {
-	return &config.Proxy{
+func newProxyFilter(name string, downstream, upstream types.Protocol, routers []v2.Router) *v2.Proxy {
+	return &v2.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
-		VirtualHosts: []*config.VirtualHost{
-			&config.VirtualHost{
+		VirtualHosts: []*v2.VirtualHost{
+			&v2.VirtualHost{
 				Name:    name,
 				Domains: []string{"*"},
 				Routers: routers,
@@ -26,25 +27,25 @@ func newProxyFilter(name string, downstream, upstream types.Protocol, routers []
 		},
 	}
 }
-func makeFilterChain(proxy *config.Proxy) config.FilterChain {
+func makeFilterChain(proxy *v2.Proxy) v2.FilterChain {
 	chains := make(map[string]interface{})
 	b, _ := json.Marshal(proxy)
 	json.Unmarshal(b, &chains)
-	return config.FilterChain{
-		Filters: []config.FilterConfig{
-			config.FilterConfig{Type: "proxy", Config: chains},
+	return v2.FilterChain{
+		Filters: []v2.Filter{
+			v2.Filter{Name: "proxy", Config: chains},
 		},
 	}
 }
 
-func newFilterChain(name string, downstream, upstream types.Protocol, routers []config.Router) config.FilterChain {
+func newFilterChain(name string, downstream, upstream types.Protocol, routers []v2.Router) v2.FilterChain {
 	proxy := newProxyFilter(name, downstream, upstream, routers)
 	return makeFilterChain(proxy)
 }
 
-func newXProtocolFilterChain(name string, subproto string, routers []config.Router) config.FilterChain {
+func newXProtocolFilterChain(name string, subproto string, routers []v2.Router) v2.FilterChain {
 	proxy := newProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol, routers)
-	extendConfig := &config.XProtocolExtendConfig{
+	extendConfig := &v2.XProxyExtendConfig{
 		SubProtocol: subproto,
 	}
 	extendMap := make(map[string]interface{})
@@ -54,53 +55,59 @@ func newXProtocolFilterChain(name string, subproto string, routers []config.Rout
 	return makeFilterChain(proxy)
 }
 
-func newBasicCluster(name string, hosts []string) config.ClusterConfig {
-	var vhosts []config.HostConfig
+func newBasicCluster(name string, hosts []string) v2.Cluster {
+	var vhosts []v2.Host
 	for _, addr := range hosts {
-		vhosts = append(vhosts, config.HostConfig{
-			Address: addr,
+		vhosts = append(vhosts, v2.Host{
+			HostConfig: v2.HostConfig{
+				Address: addr,
+			},
 		})
 	}
-	return config.ClusterConfig{
+	return v2.Cluster{
 		Name:                 name,
-		Type:                 "SIMPLE",
-		LbType:               "LB_ROUNDROBIN",
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_ROUNDROBIN,
 		MaxRequestPerConn:    1024,
 		ConnBufferLimitBytes: 16 * 1026,
 		Hosts:                vhosts,
 	}
 }
 
-func newWeightedCluster(name string, hosts []*WeightHost) config.ClusterConfig {
-	var vhosts []config.HostConfig
+func newWeightedCluster(name string, hosts []*WeightHost) v2.Cluster {
+	var vhosts []v2.Host
 	for _, host := range hosts {
-		vhosts = append(vhosts, config.HostConfig{
-			Address: host.Addr,
-			Weight:  host.Weight,
+		vhosts = append(vhosts, v2.Host{
+			HostConfig: v2.HostConfig{
+				Address: host.Addr,
+				Weight:  host.Weight,
+			},
 		})
 	}
-	return config.ClusterConfig{
+	return v2.Cluster{
 		Name:                 name,
-		Type:                 "SIMPLE",
-		LbType:               "LB_ROUNDROBIN",
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_ROUNDROBIN,
 		MaxRequestPerConn:    1024,
 		ConnBufferLimitBytes: 16 * 1026,
 		Hosts:                vhosts,
 	}
 }
 
-func newListener(name, addr string, chains []config.FilterChain) config.ListenerConfig {
-	return config.ListenerConfig{
-		Name:         name,
-		Address:      addr,
-		BindToPort:   true,
-		LogPath:      MeshLogPath,
-		LogLevel:     MeshLogLevel,
-		FilterChains: chains,
+func newListener(name, addr string, chains []v2.FilterChain) v2.Listener {
+	return v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			Name:           name,
+			AddrConfig:     addr,
+			BindToPort:     true,
+			LogPath:        MeshLogPath,
+			LogLevelConfig: MeshLogLevel,
+			FilterChains:   chains,
+		},
 	}
 }
 
-func newMOSNConfig(listeners []config.ListenerConfig, clusterManager config.ClusterManagerConfig) *config.MOSNConfig {
+func newMOSNConfig(listeners []v2.Listener, clusterManager config.ClusterManagerConfig) *config.MOSNConfig {
 	return &config.MOSNConfig{
 		Servers: []config.ServerConfig{
 			config.ServerConfig{
@@ -114,35 +121,56 @@ func newMOSNConfig(listeners []config.ListenerConfig, clusterManager config.Clus
 }
 
 // weighted cluster case
-func newHeaderWeightedRouter(clusters []config.WeightedCluster, value string) config.Router {
-	header := config.HeaderMatcher{Name: "service", Value: value}
-	return config.Router{
-		Match: config.RouterMatch{Headers: []config.HeaderMatcher{header}},
-		Route: config.RouteAction{
-			TotalClusterWeight: 100,
-			WeightedClusters:   clusters,
+func newHeaderWeightedRouter(clusters []v2.WeightedCluster, value string) v2.Router {
+	header := v2.HeaderMatcher{Name: "service", Value: value}
+	return v2.Router{
+		RouterConfig: v2.RouterConfig{
+			Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{header}},
+			Route: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					WeightedClusters: clusters,
+				},
+			},
 		},
 	}
 }
 
 // common case
-func newHeaderRouter(cluster string, value string) config.Router {
-	header := config.HeaderMatcher{Name: "service", Value: value}
-	return config.Router{
-		Match: config.RouterMatch{Headers: []config.HeaderMatcher{header}},
-		Route: config.RouteAction{ClusterName: cluster},
+func newHeaderRouter(cluster string, value string) v2.Router {
+	header := v2.HeaderMatcher{Name: "service", Value: value}
+	return v2.Router{
+		RouterConfig: v2.RouterConfig{
+			Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{header}},
+			Route: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterName: cluster,
+				},
+			},
+		},
 	}
 }
-func newPrefixRouter(cluster string, prefix string) config.Router {
-	return config.Router{
-		Match: config.RouterMatch{Prefix: prefix},
-		Route: config.RouteAction{ClusterName: cluster},
+func newPrefixRouter(cluster string, prefix string) v2.Router {
+	return v2.Router{
+		RouterConfig: v2.RouterConfig{
+			Match: v2.RouterMatch{Prefix: prefix},
+			Route: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterName: cluster,
+				},
+			},
+		},
 	}
 }
-func newPathRouter(cluster string, path string) config.Router {
-	return config.Router{
-		Match: config.RouterMatch{Path: path},
-		Route: config.RouteAction{ClusterName: cluster},
+func newPathRouter(cluster string, path string) v2.Router {
+	return v2.Router{
+		RouterConfig: v2.RouterConfig{
+			Match: v2.RouterMatch{Path: path},
+			Route: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterName: cluster,
+				},
+			},
+		},
 	}
 }
 

@@ -26,8 +26,7 @@ import (
 
 func Test_getWeightedClusterEntryAndVerify(t *testing.T) {
 	type args struct {
-		totalClusterWeight uint32
-		weightedClusters   []v2.WeightedCluster
+		weightedClusters []v2.WeightedCluster
 	}
 
 	type result struct {
@@ -43,11 +42,10 @@ func Test_getWeightedClusterEntryAndVerify(t *testing.T) {
 		{
 			name: "case1",
 			args: args{
-				totalClusterWeight: 100,
 				weightedClusters: []v2.WeightedCluster{
-					{Cluster: v2.ClusterWeight{Name: "c1", Weight: 50, MetadataMatch: v2.Metadata{"label": "green", "version": "v1"}}},
-					{Cluster: v2.ClusterWeight{Name: "c2", Weight: 30, MetadataMatch: v2.Metadata{"label": "blue", "version": "v2"}}},
-					{Cluster: v2.ClusterWeight{Name: "c3", Weight: 20, MetadataMatch: v2.Metadata{"label": "gray", "version": "v0"}}},
+					{Cluster: v2.ClusterWeight{ClusterWeightConfig: v2.ClusterWeightConfig{Name: "c1", Weight: 50}, MetadataMatch: v2.Metadata{"label": "green", "version": "v1"}}},
+					{Cluster: v2.ClusterWeight{ClusterWeightConfig: v2.ClusterWeightConfig{Name: "c2", Weight: 30}, MetadataMatch: v2.Metadata{"label": "blue", "version": "v2"}}},
+					{Cluster: v2.ClusterWeight{ClusterWeightConfig: v2.ClusterWeightConfig{Name: "c3", Weight: 20}, MetadataMatch: v2.Metadata{"label": "gray", "version": "v0"}}},
 				},
 			},
 			want: result{
@@ -71,31 +69,13 @@ func Test_getWeightedClusterEntryAndVerify(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "case1",
-			args: args{
-				totalClusterWeight: 100,
-				weightedClusters: []v2.WeightedCluster{
-					{Cluster: v2.ClusterWeight{Name: "c1", Weight: 50, MetadataMatch: v2.Metadata{"label": "green", "version": "v1"}}},
-					{Cluster: v2.ClusterWeight{Name: "c2", Weight: 30, MetadataMatch: v2.Metadata{"label": "blue", "version": "v2"}}},
-					{Cluster: v2.ClusterWeight{Name: "c3", Weight: 10, MetadataMatch: v2.Metadata{"label": "gray", "version": "v0"}}},
-				},
-			},
-			want: result{
-				valid: false,
-				value: nil,
-			},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			entry, ok := getWeightedClusterEntryAndVerify(tt.args.totalClusterWeight, tt.args.weightedClusters)
-			if ok != tt.want.valid {
-				t.Errorf("get weighted cluster entry and verify name = %s got = %v, want %v", tt.name, ok, tt.want.valid)
-			}
+			entry, _ := getWeightedClusterEntry(tt.args.weightedClusters)
 			if !reflect.DeepEqual(entry, tt.want.value) {
-				t.Errorf("get weighted cluster entry and verify name = %s got1 = %v, want %v", tt.want, entry, tt.want.value)
+				t.Errorf("get weighted cluster entry and verify name = %s got1 = %v, want %v", tt.name, entry, tt.want.value)
 			}
 		})
 	}

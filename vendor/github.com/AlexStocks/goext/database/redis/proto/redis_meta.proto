@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package gxredis;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/mwitkow/go-proto-validators/validator.proto";
+
+option (gogoproto.gostring_all) = true;
+option (gogoproto.equal_all) = true;
+option (gogoproto.verbose_equal_all) = true;
+// option (gogoproto.goproto_stringer_all) = false;
+// option (gogoproto.stringer_all) =  true;
+// option (gogoproto.populate_all) = true;
+// option (gogoproto.testgen_all) = true;
+// option (gogoproto.benchgen_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.goproto_getters_all) = false;
+
+enum RedisRole {
+    RR_Default = 0;
+	RR_Master = 1;
+	RR_Slave = 2;
+	RR_Sentinel = 3;
+}
+
+// TCPAddr represents the address of a TCP end point.
+message IPAddr {
+    string IP = 1 [(validator.field) = {regex: "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$"}];
+    uint32 Port = 2 [(validator.field) = {int_gt: 1, int_lt: 65535}];
+}
+
+// Slave represents a Redis slave instance which is known by Sentinel.
+message Slave {
+	IPAddr Addr = 1;
+    string Flags = 2;
+}
+
+message Instance {
+    string  Name = 1;
+	IPAddr Master = 2;
+	repeated Slave Slaves = 3;
+}
+
+message RawInstance {
+	string Name = 1 [(validator.field) = {msg_exists : true}]; // instance name
+	IPAddr Addr = 2 [(validator.field) = {msg_exists : true}];  // master address
+	int32 Epoch = 3 [(validator.field) = {int_gt: 0}];  // sentinel epoch
+	int32 Sdowntime = 4 [(validator.field) = {int_gt: 0}]; // sdown time in second
+	int32 FailoverTimeout = 5 [(validator.field) = {int_gt: 0}]; // failover time in second
+	string NotifyScript = 6; // notify script, can be empty string if it does not exist
+}
+

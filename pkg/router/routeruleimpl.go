@@ -18,7 +18,6 @@
 package router
 
 import (
-	"fmt"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -38,21 +37,15 @@ import (
 // new routerule implement basement
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleImplBase, error) {
 	routeRuleImplBase := RouteRuleImplBase{
-		vHost:              vHost,
-		routerMatch:        route.Match,
-		routerAction:       route.Route,
-		clusterName:        route.Route.ClusterName,
-		totalClusterWeight: route.Route.TotalClusterWeight,
-		randInstance:       rand.New(rand.NewSource(time.Now().UnixNano())),
+		vHost:         vHost,
+		routerMatch:   route.Match,
+		routerAction:  route.Route,
+		clusterName:   route.Route.ClusterName,
+		randInstance:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		configHeaders: getRouterHeaders(route.Match.Headers),
 	}
 
-	if weightedClusters, valid := getWeightedClusterEntryAndVerify(routeRuleImplBase.totalClusterWeight,
-		route.Route.WeightedClusters); valid {
-		routeRuleImplBase.weightedClusters = weightedClusters
-	} else {
-		return routeRuleImplBase, fmt.Errorf("Sum of weights in the weighted_cluster error, should add up to:",
-			routeRuleImplBase.totalClusterWeight)
-	}
+	routeRuleImplBase.weightedClusters, routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
 
 	routeRuleImplBase.policy = &routerPolicy{
 		retryOn:      false,
@@ -149,7 +142,7 @@ func (rri *RouteRuleImplBase) TraceDecorator() types.TraceDecorator {
 // if weighted cluster is nil, return clusterName directly, else
 // select cluster from weighted-clusters
 func (rri *RouteRuleImplBase) ClusterName() string {
-	if len(rri.weightedClusters) == 0 || rri.totalClusterWeight == 0 {
+	if len(rri.weightedClusters) == 0 {
 		return rri.clusterName
 	}
 
@@ -217,6 +210,7 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	// todo check runtime
 	// 1. match headers' KV
 	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
+		log.DefaultLogger.Errorf("RouteRuleImplBase matchRoute, match headers error")
 		return false
 	}
 
@@ -231,7 +225,12 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 		return true
 	}
 
-	return ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters)
+	if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
+		log.DefaultLogger.Errorf("RouteRuleImplBase matchRoute, match query params error")
+		return false
+	}
+
+	return true
 }
 
 func (rri *RouteRuleImplBase) WeightedCluster() map[string]weightedClusterEntry {

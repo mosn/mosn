@@ -23,6 +23,8 @@ import (
 	"net"
 	"sync"
 
+	"reflect"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/proxy"
@@ -101,6 +103,7 @@ func (cs *clusterSnapshot) LoadBalancer() types.LoadBalancer {
 type primaryCluster struct {
 	cluster     types.Cluster
 	addedViaAPI bool
+	configUsed  *v2.Cluster // used for update
 }
 
 // AddOrUpdatePrimaryCluster
@@ -112,10 +115,9 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	if v, exist := cm.primaryClusters.Load(clusterName); exist {
 		if !v.(*primaryCluster).addedViaAPI {
 			return false
-		} else {
-			// update cluster
-			return cm.updateCluster(cluster, v.(*primaryCluster), true)
 		}
+		// update cluster
+		return cm.updateCluster(cluster, v.(*primaryCluster), true)
 	}
 	// add new cluster
 	return cm.loadCluster(cluster, true)
@@ -130,6 +132,11 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 }
 
 func (cm *clusterManager) updateCluster(clusterConf v2.Cluster, pcluster *primaryCluster, addedViaAPI bool) bool {
+	if reflect.DeepEqual(clusterConf, pcluster.configUsed) {
+		log.DefaultLogger.Debugf("update cluster but get duplicate configure")
+		return true
+	}
+
 	if concretedCluster, ok := pcluster.cluster.(*simpleInMemCluster); ok {
 		hosts := concretedCluster.hosts
 		cluster := NewCluster(clusterConf, cm.sourceAddr, addedViaAPI)
@@ -161,6 +168,7 @@ func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool
 	cm.primaryClusters.Store(clusterConfig.Name, &primaryCluster{
 		cluster:     cluster,
 		addedViaAPI: addedViaAPI,
+		configUsed:  &clusterConfig,
 	})
 
 	return true
@@ -255,10 +263,9 @@ func (cm *clusterManager) RemoveClusterHost(clusterName string, hostAddress stri
 				log.DefaultLogger.Debugf("RemoveClusterHost success, host address = %s", hostAddress)
 				//	concretedCluster.UpdateHosts(ccHosts)
 				return nil
-			} else {
-				return fmt.Errorf("RemoveClusterHost failed, host address = %s doesn't exist", hostAddress)
-
 			}
+			return fmt.Errorf("RemoveClusterHost failed, host address = %s doesn't exist", hostAddress)
+
 		}
 
 		return fmt.Errorf("RemoveClusterHost failed, cluster name = %s is not valid", clusterName)

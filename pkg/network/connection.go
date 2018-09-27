@@ -470,10 +470,6 @@ func (c *connection) startWriteLoop() {
 			if id != transferErr {
 				goto transfer
 			}
-		default:
-		}
-
-		select {
 		case buf := <-c.writeBufferChan:
 			c.appendBuffer(buf)
 

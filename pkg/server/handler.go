@@ -110,7 +110,7 @@ func (ch *connHandler) GenerateListenerID() string {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
+func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error) {
 
 	var listenerName string
@@ -148,16 +148,19 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.ListenerConfig, networkFilters
 			al.listener.SetePerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 			al.listener.SetListenerTag(lc.ListenerTag)
 			al.listener.SethandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+			log.DefaultLogger.Debugf("AddOrUpdateListener: use new listen config = %+v", lc)
 		}
 
 		// update network filter
 		if !equalNetworkFilter {
-			al.streamFiltersFactories = streamFiltersFactories
+			al.networkFiltersFactories = networkFiltersFactories
+			log.DefaultLogger.Debugf("AddOrUpdateListener: use new networkFiltersFactories = %+v", networkFiltersFactories)
 		}
 
 		// update stream filter
 		if !equalStreamFilters {
 			al.streamFiltersFactories = streamFiltersFactories
+			log.DefaultLogger.Debugf("AddOrUpdateListener: use new streamFiltersFactories = %+v", streamFiltersFactories)
 		}
 	} else {
 		// listener doesn't exist, add the listener
@@ -345,7 +348,7 @@ type activeListener struct {
 	tlsMng                  types.TLSContextManager
 }
 
-func newActiveListener(listener types.Listener, lc *v2.ListenerConfig, logger log.Logger, accessLoggers []types.AccessLog,
+func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logger, accessLoggers []types.AccessLog,
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
@@ -447,20 +450,19 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		// no filter found, close connection
 		conn.Close(types.NoFlush, types.LocalClose)
 		return
-	} else {
-		ac := newActiveConnection(al, conn)
-
-		al.connsMux.Lock()
-		e := al.conns.PushBack(ac)
-		al.connsMux.Unlock()
-		ac.element = e
-
-		al.stats.DownstreamConnectionActive().Inc(1)
-		al.stats.DownstreamConnectionTotal().Inc(1)
-		atomic.AddInt64(&al.handler.numConnections, 1)
-
-		al.logger.Debugf("new downstream connection %d accepted", conn.ID())
 	}
+	ac := newActiveConnection(al, conn)
+
+	al.connsMux.Lock()
+	e := al.conns.PushBack(ac)
+	al.connsMux.Unlock()
+	ac.element = e
+
+	al.stats.DownstreamConnectionActive().Inc(1)
+	al.stats.DownstreamConnectionTotal().Inc(1)
+	atomic.AddInt64(&al.handler.numConnections, 1)
+
+	al.logger.Debugf("new downstream connection %d accepted", conn.ID())
 
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
 	if !al.disableConnIo {

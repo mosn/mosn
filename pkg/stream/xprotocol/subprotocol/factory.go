@@ -27,11 +27,14 @@ import (
 var subProtocolFactories map[types.SubProtocol]CodecFactory
 
 func init() {
-	subProtocolFactories = make(map[types.SubProtocol]CodecFactory)
+	//subProtocolFactories = make(map[types.SubProtocol]CodecFactory)
 }
 
 // Register SubProtocol Plugin
 func Register(prot types.SubProtocol, factory CodecFactory) {
+	if subProtocolFactories == nil {
+		subProtocolFactories = make(map[types.SubProtocol]CodecFactory)
+	}
 	subProtocolFactories[prot] = factory
 }
 

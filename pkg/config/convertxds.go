@@ -54,21 +54,23 @@ var httpBaseConfig = map[string]bool{
 }
 
 // todo add streamfilters parse
-func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.ListenerConfig {
+func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 	if !isSupport(xdsListener) {
 		return nil
 	}
 
-	listenerConfig := &v2.ListenerConfig{
-		Name:                                  xdsListener.GetName(),
-		Addr:                                  convertAddress(&xdsListener.Address),
-		BindToPort:                            convertBindToPort(xdsListener.GetDeprecatedV1()),
-		Inspector:                             true,
-		PerConnBufferLimitBytes:               xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
-		HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
-		AccessLogs:                            convertAccessLogs(xdsListener),
-		LogPath:                               "stdout",
-		LogLevel:                              uint8(log.INFO),
+	listenerConfig := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			Name:                                  xdsListener.GetName(),
+			BindToPort:                            convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:                             true,
+			HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
+			AccessLogs:                            convertAccessLogs(xdsListener),
+			LogPath:                               "stdout",
+		},
+		Addr:                    convertAddress(&xdsListener.Address),
+		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
+		LogLevel:                uint8(log.INFO),
 	}
 
 	// virtual listener need none filters
@@ -144,7 +146,9 @@ func convertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.H
 			continue
 		}
 		host := v2.Host{
-			Address:  address,
+			HostConfig: v2.HostConfig{
+				Address: address,
+			},
 			MetaData: convertMeta(xdsHost.Metadata),
 		}
 
@@ -275,6 +279,13 @@ func convertFilters(xdsFilters []xdslistener.Filter) []v2.Filter {
 	return filters
 }
 
+func toMap(in interface{}) map[string]interface{} {
+	var out map[string]interface{}
+	data, _ := json.Marshal(in)
+	json.Unmarshal(data, &out)
+	return out
+}
+
 // TODO: more filter config support
 func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 	if s == nil {
@@ -289,7 +300,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
-		return structs.Map(proxyConfig)
+		return toMap(proxyConfig)
 	} else if name == v2.RPC_PROXY {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
@@ -299,7 +310,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			SupportDynamicRoute: true,
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 		}
-		return structs.Map(proxyConfig)
+		return toMap(proxyConfig)
 	} else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
 		xdsutil.StructToMessage(s, filterConfig)
@@ -312,7 +323,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]interface{} {
 			VirtualHosts:        convertVirtualHosts(filterConfig.GetRouteConfig()),
 			ExtendConfig:        convertXProxyExtendConfig(filterConfig),
 		}
-		return structs.Map(proxyConfig)
+		return toMap(proxyConfig)
 	}
 
 	log.DefaultLogger.Errorf("unsupported filter config, filter name: %s", name)
@@ -354,18 +365,22 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 	for _, xdsRoute := range xdsRoutes {
 		if xdsRouteAction := xdsRoute.GetRoute(); xdsRouteAction != nil {
 			route := v2.Router{
-				Match:     convertRouteMatch(xdsRoute.GetMatch()),
-				Route:     convertRouteAction(xdsRouteAction),
-				Metadata:  convertMeta(xdsRoute.GetMetadata()),
-				Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
+				RouterConfig: v2.RouterConfig{
+					Match:     convertRouteMatch(xdsRoute.GetMatch()),
+					Route:     convertRouteAction(xdsRouteAction),
+					Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
+				},
+				Metadata: convertMeta(xdsRoute.GetMetadata()),
 			}
 			routes = append(routes, route)
 		} else if xdsRouteAction := xdsRoute.GetRedirect(); xdsRouteAction != nil {
 			route := v2.Router{
-				Match:     convertRouteMatch(xdsRoute.GetMatch()),
-				Redirect:  convertRedirectAction(xdsRouteAction),
-				Metadata:  convertMeta(xdsRoute.GetMetadata()),
-				Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
+				RouterConfig: v2.RouterConfig{
+					Match:     convertRouteMatch(xdsRoute.GetMatch()),
+					Redirect:  convertRedirectAction(xdsRouteAction),
+					Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
+				},
+				Metadata: convertMeta(xdsRoute.GetMetadata()),
 			}
 			routes = append(routes, route)
 		} else {
@@ -405,7 +420,7 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 	for _, xdsHeader := range xdsHeaders {
 		headerMatcher := v2.HeaderMatcher{
 			Name:  xdsHeader.GetName(),
-			Value: xdsHeader.GetValue(),
+			Value: xdsHeader.GetExactMatch(),
 			Regex: xdsHeader.GetRegex().GetValue(),
 		}
 		headerMatchers = append(headerMatchers, headerMatcher)
@@ -429,12 +444,14 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 		return v2.RouteAction{}
 	}
 	return v2.RouteAction{
-		ClusterName:      xdsRouteAction.GetCluster(),
-		ClusterHeader:    xdsRouteAction.GetClusterHeader(),
-		WeightedClusters: convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
-		MetadataMatch:    convertMeta(xdsRouteAction.GetMetadataMatch()),
-		Timeout:          convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),
-		RetryPolicy:      convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
+		RouterActionConfig: v2.RouterActionConfig{
+			ClusterName:      xdsRouteAction.GetCluster(),
+			ClusterHeader:    xdsRouteAction.GetClusterHeader(),
+			WeightedClusters: convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
+			RetryPolicy:      convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
+		},
+		MetadataMatch: convertMeta(xdsRouteAction.GetMetadataMatch()),
+		Timeout:       convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),
 	}
 }
 
@@ -465,8 +482,10 @@ func convertWeightedCluster(xdsWeightedCluster *xdsroute.WeightedCluster_Cluster
 		return v2.ClusterWeight{}
 	}
 	return v2.ClusterWeight{
-		Name:          xdsWeightedCluster.GetName(),
-		Weight:        xdsWeightedCluster.GetWeight().GetValue(),
+		ClusterWeightConfig: v2.ClusterWeightConfig{
+			Name:   xdsWeightedCluster.GetName(),
+			Weight: xdsWeightedCluster.GetWeight().GetValue(),
+		},
 		MetadataMatch: convertMeta(xdsWeightedCluster.GetMetadataMatch()),
 	}
 }
@@ -476,9 +495,11 @@ func convertRetryPolicy(xdsRetryPolicy *xdsroute.RouteAction_RetryPolicy) *v2.Re
 		return &v2.RetryPolicy{}
 	}
 	return &v2.RetryPolicy{
-		RetryOn:      len(xdsRetryPolicy.GetRetryOn()) > 0,
+		RetryPolicyConfig: v2.RetryPolicyConfig{
+			RetryOn:    len(xdsRetryPolicy.GetRetryOn()) > 0,
+			NumRetries: xdsRetryPolicy.GetNumRetries().GetValue(),
+		},
 		RetryTimeout: convertTimeDurPoint2TimeDur(xdsRetryPolicy.GetPerTryTimeout()),
-		NumRetries:   xdsRetryPolicy.GetNumRetries().GetValue(),
 	}
 }
 
@@ -602,11 +623,13 @@ func convertHealthChecks(xdsHealthChecks []*xdscore.HealthCheck) v2.HealthCheck 
 	}
 
 	return v2.HealthCheck{
-		Timeout:            *xdsHealthChecks[0].GetTimeout(),
-		HealthyThreshold:   xdsHealthChecks[0].GetHealthyThreshold().GetValue(),
-		UnhealthyThreshold: xdsHealthChecks[0].GetUnhealthyThreshold().GetValue(),
-		Interval:           *xdsHealthChecks[0].GetInterval(),
-		IntervalJitter:     convertDuration(xdsHealthChecks[0].GetIntervalJitter()),
+		HealthCheckConfig: v2.HealthCheckConfig{
+			HealthyThreshold:   xdsHealthChecks[0].GetHealthyThreshold().GetValue(),
+			UnhealthyThreshold: xdsHealthChecks[0].GetUnhealthyThreshold().GetValue(),
+		},
+		Timeout:        *xdsHealthChecks[0].GetTimeout(),
+		Interval:       *xdsHealthChecks[0].GetInterval(),
+		IntervalJitter: convertDuration(xdsHealthChecks[0].GetIntervalJitter()),
 	}
 }
 
@@ -673,7 +696,9 @@ func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.Host {
 	hostsWithMetaData := make([]v2.Host, 0, len(xdsHosts))
 	for _, xdsHost := range xdsHosts {
 		hostWithMetaData := v2.Host{
-			Address: convertAddress(xdsHost).String(),
+			HostConfig: v2.HostConfig{
+				Address: convertAddress(xdsHost).String(),
+			},
 		}
 		hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
 	}
