@@ -29,7 +29,7 @@ type Metadata map[string]string
 
 // Network Filter's Type
 const (
-	Connection_Manager          = "connection_manager"
+	CONNECTION_MANAGER          = "connection_manager"
 	DEFAULT_NETWORK_FILTER      = "proxy"
 	TCP_PROXY                   = "tcp_proxy"
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
@@ -265,12 +265,13 @@ type Proxy struct {
 }
 
 // RouterConfiguration is a filter for routers
-// Filter type is:  "Connection_Manager"
+// Filter type is:  "CONNECTION_MANAGER"
 type RouterConfiguration struct {
 	RouterConfigName string         `json:"router_config_name"`
 	VirtualHosts     []*VirtualHost `json:"virtual_hosts"`
 }
 
+// VirtualHost is used to make up the route table
 type VirtualHost struct {
 	Name            string           `json:"name"`
 	Domains         []string         `json:"domains"`

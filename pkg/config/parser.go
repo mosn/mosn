@@ -190,7 +190,7 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []*v2.Listener) *v2.L
 func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
 	routerConfiguration := &v2.RouterConfiguration{}
 	for _, f := range c.Filters {
-		if f.Type == v2.Connection_Manager {
+		if f.Type == v2.CONNECTION_MANAGER {
 
 			if data, err := json.Marshal(f.Config); err == nil {
 				if err := json.Unmarshal(data, routerConfiguration); err != nil {

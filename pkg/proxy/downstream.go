@@ -264,7 +264,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		return
 	}
 
-	//
+	// get router instance and do routing
 	route := s.proxy.routersWrapper.GetRouters().Route(headers, 1)
 	if route == nil || route.RouteRule() == nil {
 		// no route

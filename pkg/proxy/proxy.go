@@ -98,12 +98,6 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
-	//log fatal to exit
-	//
-
-	if err != nil {
-		log.StartLogger.Fatal(err)
-	}
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByListenerName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper

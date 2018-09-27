@@ -72,3 +72,29 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 		}
 	}
 }
+
+func Test_serverStream_handleRequest(t *testing.T) {
+	type fields struct {
+		stream           stream
+		ctx              *fasthttp.RequestCtx
+		connection       *serverStreamConnection
+		responseDoneChan chan bool
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+	// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &serverStream{
+				stream:           tt.fields.stream,
+				ctx:              tt.fields.ctx,
+				connection:       tt.fields.connection,
+				responseDoneChan: tt.fields.responseDoneChan,
+			}
+			s.handleRequest()
+		})
+	}
+}

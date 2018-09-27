@@ -69,7 +69,7 @@ follow-up development and build an open source boutique project together.
    + Completing core routing function
    + Outlier detection
    + Tracing support
-   + HTTP/1.x, HTTP/2.0 performance optimization
+   + HTTP/1.x, HTTP/2.0 performance optimizationAddRouterConfig(cluster.Name)
    + Flow control
    
 ## Thanks

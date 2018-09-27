@@ -140,7 +140,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 			return nil, nil
 		}
 
-		// update some config, and as Address and Type doesn't change , so need't change *rawl
+		// update some config, and as Address and Name doesn't change , so need't change *rawl
 		al.updatedLabel = true
 		if !equalConfig {
 			al.disableConnIo = lc.DisableConnIo

@@ -193,10 +193,10 @@ func (cm *clusterManager) getOrCreateClusterSnapshot(clusterName string) *cluste
 func (cm *clusterManager) RemovePrimaryCluster(clusterName string) error {
 	if v, exist := cm.primaryClusters.Load(clusterName); exist {
 		if !v.(*primaryCluster).addedViaAPI {
-			return fmt.Errorf("Remove Primary Cluster Failed, Cluster Type = %s not addedViaAPI", clusterName)
+			return fmt.Errorf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaAPI", clusterName)
 		}
 		cm.primaryClusters.Delete(clusterName)
-		log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Type = %s", clusterName)
+		log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
 		return nil
 	}
 

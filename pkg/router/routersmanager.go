@@ -40,7 +40,7 @@ func GetRoutersMangerInstance() *routersManager {
 }
 
 type routersManager struct {
-	routersMap sync.Map // key is router's name used to associated to the listener, value's type is: type.Routers
+	routersMap sync.Map // key is router's name used to associated to the listener, value's type is: RoutersWrapper
 }
 
 type RoutersWrapper struct {
@@ -56,7 +56,6 @@ func (rw *RoutersWrapper) GetRouters() types.Routers {
 }
 
 func NewRouterManager() types.RouterManager {
-
 	instanceMutex.Lock()
 	defer instanceMutex.Unlock()
 

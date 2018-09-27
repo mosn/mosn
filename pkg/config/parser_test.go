@@ -70,7 +70,7 @@ var mockedFilterChains = `
                   }
                 },
                 {
-                  "type":"http_connection_manager",
+                  "type":"connection_manager",
                   "config":{
                     "router_config_name":"test_router",
                     "virtual_hosts": [
@@ -250,20 +250,7 @@ func TestParseProxyFilter(t *testing.T) {
 		"name": "proxy",
 		"downstream_protocol": "SofaRpc",
 		"upstream_protocol": "Http2",
-		"virtual_hosts": [
-			{
-				"name": "vitrual",
-				"domains":["*"],
-				"routers":[
-					{
-						"match": {"prefix":"/"},
-					 	"route":{
-							 "cluster_name":"cluster"
-					 	}
-					}
-				]
-			}
-		],
+		"router_config_name":"test_router",
 		"extend_config":{
 			"sub_protocol":"example"
 		}
@@ -276,7 +263,7 @@ func TestParseProxyFilter(t *testing.T) {
 	proxy := ParseProxyFilter(m)
 	if !(proxy.Name == "proxy" &&
 		proxy.DownstreamProtocol == string(protocol.SofaRPC) &&
-		proxy.UpstreamProtocol == string(protocol.HTTP2)) {
+		proxy.UpstreamProtocol == string(protocol.HTTP2) && proxy.RouterConfigName == "test_router") {
 		t.Error("parse proxy filter failed")
 	}
 }
