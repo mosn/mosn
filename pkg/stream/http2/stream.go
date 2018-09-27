@@ -257,12 +257,15 @@ func (s *clientStream) AppendHeaders(context context.Context, headers interface{
 		delete(headersMap, protocol.MosnHeaderPathKey)
 	}
 
-	if queryString, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
-		URI += "?" + queryString
-		delete(headersMap, protocol.MosnHeaderQueryStringKey)
-	}
+	if URI != "" {
 
-	s.request.URL, _ = url.Parse(URI)
+		if queryString, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
+			URI += "?" + queryString
+			delete(headersMap, protocol.MosnHeaderQueryStringKey)
+		}
+
+		s.request.URL, _ = url.Parse(URI)
+	}
 
 	if _, ok := headersMap["Host"]; ok {
 		headersMap["Host"] = s.connection.connection.RemoteAddr().String()

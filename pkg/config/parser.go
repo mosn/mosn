@@ -140,12 +140,12 @@ func transHostWeight(weight uint32) uint32 {
 }
 
 var logLevelMap = map[string]log.Level{
-	"trace": log.TRACE,
-	"debug": log.DEBUG,
-	"fatal": log.FATAL,
-	"error": log.ERROR,
-	"warn":  log.WARN,
-	"info":  log.INFO,
+	"TRACE": log.TRACE,
+	"DEBUG": log.DEBUG,
+	"FATAL": log.FATAL,
+	"ERROR": log.ERROR,
+	"WARN":  log.WARN,
+	"INFO":  log.INFO,
 }
 
 func parseLogLevel(level string) log.Level {
@@ -186,6 +186,39 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []*v2.Listener) *v2.L
 	return lc
 }
 
+// ParseRouterConfiguration used to get virtualhosts from filter
+func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
+	routerConfiguration := &v2.RouterConfiguration{}
+	for _, f := range c.Filters {
+		if f.Type == v2.CONNECTION_MANAGER {
+
+			if data, err := json.Marshal(f.Config); err == nil {
+				if err := json.Unmarshal(data, routerConfiguration); err != nil {
+					log.StartLogger.Fatal("Parsing Virtual Host Error:", err)
+				}
+			} else {
+				log.StartLogger.Fatal("Parsing Virtual Host Error")
+			}
+		}
+	}
+
+	return routerConfiguration
+}
+
+// GetListenerDisableIO used to check downstream protocol and return ListenerDisableIO
+func GetListenerDisableIO(c *v2.FilterChain) bool {
+	for _, f := range c.Filters {
+		if f.Type == v2.DEFAULT_NETWORK_FILTER {
+			if downstream, ok := f.Config["downstream_protocol"]; ok {
+				if downstream == string(protocol.HTTP2) || downstream == string(protocol.HTTP1) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // ParseProxyFilter
 func ParseProxyFilter(cfg map[string]interface{}) *v2.Proxy {
 	proxyConfig := &v2.Proxy{}
@@ -194,6 +227,7 @@ func ParseProxyFilter(cfg map[string]interface{}) *v2.Proxy {
 	} else {
 		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
 	}
+
 	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
 		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Filter")
 	} else if _, ok := protocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
@@ -201,11 +235,7 @@ func ParseProxyFilter(cfg map[string]interface{}) *v2.Proxy {
 	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
 		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
 	}
-	for _, vh := range proxyConfig.VirtualHosts {
-		if len(vh.Routers) == 0 {
-			log.StartLogger.Fatal("No Router Founded in VirtualHosts")
-		}
-	}
+
 	return proxyConfig
 }
 
@@ -265,12 +295,12 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 	return sc
 }
 
-// GetStreamFilters returns a stream filter factory by filter.Name
+// GetStreamFilters returns a stream filter factory by filter.Type
 func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
 	var factories []types.StreamFilterChainFactory
 
 	for _, c := range configs {
-		sfcc, err := filter.CreateStreamFilterChainFactory(c.Name, c.Config)
+		sfcc, err := filter.CreateStreamFilterChainFactory(c.Type, c.Config)
 		if err != nil {
 			log.DefaultLogger.Errorf(err.Error())
 			continue
@@ -281,11 +311,11 @@ func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
 	return factories
 }
 
-// GetNetworkFilters returns a network filter factory by filter.Name
+// GetNetworkFilters returns a network filter factory by filter.Type
 func GetNetworkFilters(c *v2.FilterChain) []types.NetworkFilterChainFactory {
 	var factories []types.NetworkFilterChainFactory
 	for _, f := range c.Filters {
-		factory, err := filter.CreateNetworkFilterChainFactory(f.Name, f.Config)
+		factory, err := filter.CreateNetworkFilterChainFactory(f.Type, f.Config)
 		if err != nil {
 			log.StartLogger.Errorf("network filter create failed :", err)
 			continue

@@ -256,10 +256,16 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		return
 	}
 
-	//Get some route by service name
 	log.DefaultLogger.Tracef("before active stream route")
-	route := s.proxy.routers.Route(headers, 1)
+	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
+		log.DefaultLogger.Errorf("doReceiveHeaders error: routersWrapper or routers in routersWrapper is nil")
+		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		return
+	}
 
+	// get router instance and do routing
+	route := s.proxy.routersWrapper.GetRouters().Route(headers, 1)
 	if route == nil || route.RouteRule() == nil {
 		// no route
 		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)

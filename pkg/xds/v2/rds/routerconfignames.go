@@ -15,30 +15,40 @@
  * limitations under the License.
  */
 
-package protocol
+package rds
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sync"
 )
 
-// Protocol type definition
-const (
-	SofaRPC   types.Protocol = "SofaRpc"
-	HTTP1     types.Protocol = "Http1"
-	HTTP2     types.Protocol = "Http2"
-	Xprotocol types.Protocol = "X"
+/*
+rds store the router config names which need to fetch virtualhosts configuration from RDS
+*/
+
+var (
+	mu          sync.Mutex
+	routerNames map[string]bool
 )
 
-// Host key for routing in MOSN Header
-const (
-	MosnHeaderHostKey        = "host"
-	MosnHeaderPathKey        = "path"
-	MosnHeaderQueryStringKey = "querystring"
-	MosnHeaderMethod         = "method"
-)
+// AppendRouterName use to append rds router configname to subscript
+func AppendRouterName(name string) {
+	mu.Lock()
+	defer mu.Unlock()
+	if routerNames == nil {
+		routerNames = make(map[string]bool)
+	}
+	routerNames[name] = true
+}
 
-// Header with special meaning in istio
-// todo maybe use ":authority"
-const (
-	IstioHeaderHostKey = "authority"
-)
+// GetRouterNames return disctict router config names
+func GetRouterNames() []string {
+	mu.Lock()
+	defer mu.Unlock()
+	names := make([]string, len(routerNames))
+	i := 0
+	for name, _ := range routerNames {
+		names[i] = name
+		i++
+	}
+	return names
+}
