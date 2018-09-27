@@ -1,18 +1,20 @@
 # SOFAMosn Introduction
 
-## 背景介绍
-在微服务时代，Service Mesh 作为轻量级网络代理，用于处理服务间通信，可为微服务的连接、管理和监控带来巨大的便利，从而加速微服务的落地。
-而蚂蚁金服系统架构对性能，稳定性上要求较高，且部署环境多样，为了达到系统的高可用以及快速迭代，蚂蚁金服正全面拥抱微服务，云原生，因而
-Service Mesh 成为为 SOFA5，以及兼容 K8S 的容器平台 Sigma 落地的重要组件。
-而 Istio 作为 Service Mesh 的集大成者，无论在功能实现，稳定性，扩展性，以及社区关注度等都方面都是落地 Service Mesh 方案的首选，其数据
-平面 Envoy 更是具有优秀的设计，可扩展的 XDS API，以及较高的性能和稳定。然而，由于 Envoy 使用 C++ 语言开发，不符合蚂蚁技术栈的发展方向，
-且蚂蚁内部有许多定制化的业务方面的诉求，促使我们开发 golang 版本高性能的 sidecar, 因此有了本文要介绍的对象: SOFAMosn 
+## SOFAMosn 诞生背景
+云原生时代，Service Mesh 作为一个专用的基础设施层，用于提供安全、快速、可靠、智能的服务间通讯，可为微服务的连接、管理和监控带来巨大的便利，从而加速微服务的落地。关于 Service Mesh 的更多介绍，请移步蚂蚁金服大规模微服务架构下的Service Mesh探索之路
+
+作为国内领先的金融服务提供商，蚂蚁金服对系统架构的性能、稳定性、安全性要求较高，且运维架构复杂，为了达到高可用和快速迭代的目的，蚂蚁金服正全面拥抱微服务，云原生， 而 Service Mesh 成为助力蚂蚁 SOFA5，以及兼容 K8S 的容器平台 Sigma等微服务化关键组件落地的重要推手。
+
+在 Service Mesh 落地的方案挑选中， Istio 作为 Service Mesh 的集大成者，无论在功能实现，稳定性，扩展性，以及社区关注度等方面都是不二选择，其数据平面 Envoy 更是具有优秀的设计，可扩展的 XDS API，以及较高的性能等特点，蚂蚁一开始便将 Istio 作为重点的关注对象。
+
+然而，由于 Envoy 使用 C++ 语言开发，不符合蚂蚁技术栈的发展方向且无法兼容现在的运维体系，以及蚂蚁内部有许多业务定制化的诉求，导致我们无法直接使用 Istio。经过调研发现，作为云计算时代主流语言的 Golang 同样具有较高的转发性能，这促使我们考虑开发 golang 版本高性能的 
+sidecar 来替换 Envoy 与 Istio 做集成， 因而有了本文要介绍的对象: “SOFAMosn” 
 
 ## SOFAMosn 简介
-SOFAMosn 是一款采用 Golang 开发的Service Mesh数据平面代理，功能和定位类似Envoy，旨在提供分布式，模块化，可观察，智能化的代理能力。
-其中，模块化，分层解耦是 SOFAMosn 设计的初衷，可编程性，事件机制，扩展性，高吞吐量等是设计中重要考量的因素。
-当前， SOFAMosn 已支持Envoy和Istio的API，可使用 SOFAMosn 替代 Envoy 作为转发平面与 Istio 集成来实现 Service Mesh 组件，同时你也可以单独使用 SOFAMosn 作为
-业务网关。通过使用 SOFAMosn 你将获得如下收益：
+简单来说，SOFAMosn 是一款采用 Golang 开发的 Service Mesh 数据平面代理，由蚂蚁金服系统部网络团队、蚂蚁金服中间件团队、UC 大文娱团队共同开发，功能和定位类似 Envoy，旨在提供分布式，模块化，可观察，智能化的代理能力；她通过模块化，分层解耦的设计，提供了可编程，事件机制，扩展性，高吞吐量的能力。
+
+当前， SOFAMosn 已支持 Envoy 和 Istio 的 API，实现并验证了 Envoy 的常用功能(全量功能在开发中)，通过 XDS API 与 Pilot 对接，SOFAMosn 可获取控制面推送的配置信息，来完成代理的功能。在实践中，你可以使用 SOFAMosn 替代 Envoy 作为转发平面与 Istio 集成来实现 Service Mesh 组件，也可以单独使用 SOFAMosn 
+作为业务网关，通过使用 SOFAMosn 你将在如下几个方面获得收益：
 
 1. SOFAMosn 使用 golang 作为开发语言，在云原生时代可以与 k8s 等技术进行无缝对接，可以快速落地微服务，提高开发效率
 2. SOFAMosn 可以代理 Java，C++，Go，PHP，Python 等异构语言之间组件的互相调用，目前 SOFAMosn 已经在蚂蚁金服中作为跨语言 RPC 调用的桥梁被使用
@@ -30,16 +32,19 @@ SOFAMosn 是一款采用 Golang 开发的Service Mesh数据平面代理，功能
 <div align=center><img src="design/resource/MOSNIntroduction.png"  /></div>
 
 ## 工作原理
-SOFAMosn 可以以独立进程的形式作为 sidecar 与用户进程部署在相同的主机或者虚拟机中，也可以以独立网关的形式单独运行在一台主机或者虚拟机中；
-以下图为例，SOFAMosn 以 sidecar 的模式与服务部署在同一个 Pod 上，通过协议之间的转换，代理 Service 之间的请求，一个正向的请求包含如下过程：
-1. Service A 通过发送 HTTP/SOFARPC 请求到本地 SOFAMosn
-2. 本地 SOFAMosn 将请求封装成 HTTP2 协议，转发给上游的 SOFAMosn
-3. 上游 SOFAMosn 收到请求后，将 HTTP2 协议代理到后端 Service B上进行处理
+SOFAMosn 本质是一个 4-7 层代理，所以她可以以独立进程的形式作为 sidecar 与用户程序部署在相同的物理机或者VM中，当然也可以以独立网关的形式单独运行在一台主机或者虚拟机中；
+ 
+以下图为例，MOSN （注: SOFAMosn 有时也简称为 MOSN） 与 Service 部署在同一个 Pod 上，MOSN 监听在固定的端口，一个正向的请求链路包括如下步骤：
 
-反向链路类似。
++ ServiceA 作为客户端可使用任意语言实现，可使用目前支持的任意的协议类型，比如HTTP1.x，HTTP2.0，SOFARPC 等，将 sub/pub、request 信息等发送给MOSN
++ MOSN 可代理 ServiceA 的服务发现，路由，负载均衡等能力，通过协议转换，转发 ServiceA 的请求信息到上游的 MOSN
++ 上游 MOSN 将接收到的请求通过协议转换，发送到代理的 ServiceB 上 
 
-+ 同时，SOFAMosn 上下游之间允许配置使用的协议，当前支持的协议包括 HTTP1.x, HTTP2.0, SOFARPC, Dubbo 等
-未来还将支持更多的协议
+反向链路类似。通过上述的代理流程，MOSN 代理了 Service A 与 Service B 之间的请求。
+
+这里有一些需要注意的是：
+1. 你可以使用 MOSN 只代理 Client 的请求，MOSN 可以直接访问 Server，链路：Client -> MOSN -> Server，反之亦然
+2. MOSN 上下游协议可配置为当前支持的协议中的任意一种
 
 ![MOSN 工作流程图](design/resource/MosnWorkFlow.png)
 
@@ -111,7 +116,12 @@ SOFAMosn 由如下的模块组成
     + 具备负载均衡，健康检查，熔断等后端管理能力，云端部亲和性
     + Metrics 能力，可统计上下游的路由转发指标
 
-下面是将此图打开后的示意图
+下面是打开后的数据流转示意图
++ MOSN 在 IO 层读取数据，通过 read filter 将数据发送到 Protocol 层进行 Decode
++ Decode 出来的数据，根据不同的协议，回调到 stream 层，进行 stream 的创建和封装
++ stream 创建完毕后，会回调到 Proxy 层做路由和转发，Proxy 层会关联上下游间的转发关系
++ Proxy 挑选到后端后，会根据后端使用的协议，将数据发送到对应协议的 Protocol 层，对数据重新做 Encode
++ Encode 后的数据会发经过 write filter 并最终使用 IO 的 write 发送出去
 
 ![DataFlowOpen](design/resource/DataFlowOpen.png)
 
@@ -134,6 +144,7 @@ poll/kqueue wait协程接受到可读事件，触发回调，从协程池中挑�
 + 此模型适用于连接数较多，可读的连接数有限，例如：mosn 作为 api gateway 的场景
 
 ## 内存使用优化
+Golang 相比于 C++，在内存使用效率上依赖于GC，为了提高 Golang 的内存使用率，MOSN 做了如下的尝试来减少内存的使用，优化 GC 的效率
 + 通过自定义的内存复用接口实现了通用的内存复用框架，可实现自定义内存的复用
 + 通过优化 []byte 的获取和回收，进一步优化全局内存的使用
 + 通过优化 socket 的读写循环以及事件触发机制，减小空闲连接对内存分配的使用，进一步减少内存使用

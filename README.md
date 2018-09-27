@@ -47,20 +47,20 @@ follow-up development and build an open source boutique project together.
     + Support self-defined private protocol
     + Scalable Network/IO ，stream layer
     
-## Feature of Iterative Version
-* [Changelog](CHANGELOG.md)
- 
-## Architecture Design
-* [Reference](docs/design/README.md)
+## More Introduction
+* [MOSN Introduction](docs/Introduction.md)
 
 ## Quic Start
-* [Details](docs/quickstart/Setup.md)
+* [Reference](docs/quickstart/Setup.md)
    
 ## Docs
-* [More here](docs)
+* [Catalog](docs/Catalog.md)
 
 ## Community
 * [Issues](https://github.com/alipay/sofa-mosn/issues)
+
+## Version
+* [Changelog](CHANGELOG.md)
 
 ## Contribution
 + [How to contribute the code](docs/develop/CONTRIBUTING.md)

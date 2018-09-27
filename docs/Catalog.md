@@ -53,6 +53,9 @@
 + MOSN GC 优化与内存复用机制实现解析
 + MOSN 线程模型解析
 
+## 压测报告
++ [0.1.0 压测报告](./reference/PerformanceReport010.md)
+
 ## FAQ(相关问题)
 + MOSN 性能如何？
 + MOSN 在蚂蚁内部的使用情况？

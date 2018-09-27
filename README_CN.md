@@ -46,21 +46,20 @@
     + 支持自定义私有协议
     + 支持在TCP IO层，协议层面加入自定义扩展
     
-## MOSN 迭代版本特性
-* [Changelog](CHANGELOG.md)
-
-## 架构设计
-* [参考这里](docs/design/README.md)
+## 更多介绍
+* [MOSN介绍](docs/Introduction.md)
 
 ## 快速开始
 * [参考这里](docs/quickstart/quickstart.md) 
-* 基于Golang 1.9.2研发，使用dep进行依赖管理
 
 ## 文档
-* [Docs](docs)
+* [目录](docs/Catalog.md)
 
 ## 社区
 * [Issues](https://github.com/alipay/sofa-mosn/issues)
+
+## 版本
+* [Changelog](CHANGELOG.md)
 
 ## 贡献
 + [代码贡献](docs/develop/CONTRIBUTING.md) 
