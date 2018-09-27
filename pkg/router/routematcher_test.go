@@ -27,16 +27,18 @@ import (
 )
 
 func newTestSimpleRouter(name string) v2.Router {
-	return v2.Router{
-		Match: v2.RouterMatch{
-			Headers: []v2.HeaderMatcher{
-				v2.HeaderMatcher{Name: "service", Value: ".*"},
-			},
+	r := v2.Router{}
+	r.Match = v2.RouterMatch{
+		Headers: []v2.HeaderMatcher{
+			v2.HeaderMatcher{Name: "service", Value: ".*"},
 		},
-		Route: v2.RouteAction{
+	}
+	r.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName: name,
 		},
 	}
+	return r
 }
 
 var testVirutalHostConfigs = map[string]*v2.VirtualHost{
@@ -317,7 +319,15 @@ func TestInvalidConfig(t *testing.T) {
 	case3 := &v2.Proxy{
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
-				v2.Router{Route: v2.RouteAction{ClusterName: "www"}},
+				v2.Router{
+					RouterConfig: v2.RouterConfig{
+						Route: v2.RouteAction{
+							RouterActionConfig: v2.RouterActionConfig{
+								ClusterName: "www",
+							},
+						},
+					},
+				},
 			}},
 		},
 	}
@@ -326,8 +336,14 @@ func TestInvalidConfig(t *testing.T) {
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
 				v2.Router{
-					Match: v2.RouterMatch{Regex: "/f["},
-					Route: v2.RouteAction{ClusterName: "www"},
+					RouterConfig: v2.RouterConfig{
+						Match: v2.RouterMatch{Regex: "/f["},
+						Route: v2.RouteAction{
+							RouterActionConfig: v2.RouterActionConfig{
+								ClusterName: "www",
+							},
+						},
+					},
 				}},
 			}},
 	}

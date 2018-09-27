@@ -116,10 +116,9 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	if v, exist := cm.primaryClusters.Load(clusterName); exist {
 		if !v.(*primaryCluster).addedViaAPI {
 			return false
-		} else {
-			// update cluster
-			return cm.updateCluster(cluster, v.(*primaryCluster), true)
 		}
+		// update cluster
+		return cm.updateCluster(cluster, v.(*primaryCluster), true)
 	}
 	// add new cluster
 	return cm.loadCluster(cluster, true)
@@ -265,10 +264,9 @@ func (cm *clusterManager) RemoveClusterHost(clusterName string, hostAddress stri
 				log.DefaultLogger.Debugf("RemoveClusterHost success, host address = %s", hostAddress)
 				//	concretedCluster.UpdateHosts(ccHosts)
 				return nil
-			} else {
-				return fmt.Errorf("RemoveClusterHost failed, host address = %s doesn't exist", hostAddress)
-
 			}
+			return fmt.Errorf("RemoveClusterHost failed, host address = %s doesn't exist", hostAddress)
+
 		}
 
 		return fmt.Errorf("RemoveClusterHost failed, cluster name = %s is not valid", clusterName)

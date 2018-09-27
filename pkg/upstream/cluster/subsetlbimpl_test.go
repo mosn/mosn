@@ -595,9 +595,11 @@ func InitExampleHosts() []types.Host {
 	var hosts []types.Host
 
 	e1 := v2.Host{
-		Hostname: "e1",
-		Address:  HostAddress[0],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e1",
+			Address:  HostAddress[0],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
@@ -608,9 +610,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e1, nil)})
 
 	e2 := v2.Host{
-		Hostname: "e2",
-		Address:  HostAddress[1],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e2",
+			Address:  HostAddress[1],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
@@ -620,9 +624,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e2, nil)})
 
 	e3 := v2.Host{
-		Hostname: "e3",
-		Address:  HostAddress[2],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e3",
+			Address:  HostAddress[2],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
@@ -632,9 +638,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e3, nil)})
 
 	e4 := v2.Host{
-		Hostname: "e4",
-		Address:  HostAddress[3],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e4",
+			Address:  HostAddress[3],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
@@ -644,9 +652,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e4, nil)})
 
 	e5 := v2.Host{
-		Hostname: "e5",
-		Address:  HostAddress[4],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e5",
+			Address:  HostAddress[4],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
@@ -656,9 +666,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e5, nil)})
 
 	e6 := v2.Host{
-		Hostname: "e6",
-		Address:  HostAddress[5],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e6",
+			Address:  HostAddress[5],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
@@ -668,9 +680,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e6, nil)})
 
 	e7 := v2.Host{
-		Hostname: "e7",
-		Address:  HostAddress[6],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e7",
+			Address:  HostAddress[6],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "dev",
 			"version": "1.2-pre",
@@ -683,14 +697,18 @@ func InitExampleHosts() []types.Host {
 }
 
 func TestWeightedClusterRoute(t *testing.T) {
-	routerMock1 := &v2.Router{
-		Route: v2.RouteAction{
+	routerMock1 := &v2.Router{}
+
+	routerMock1.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName: "defaultCluster",
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w1",
-						Weight: 90,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w1",
+							Weight: 90,
+						},
 						MetadataMatch: map[string]string{
 							"version": "v1"},
 					},
@@ -698,8 +716,10 @@ func TestWeightedClusterRoute(t *testing.T) {
 
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w2",
-						Weight: 10,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w2",
+							Weight: 10,
+						},
 						MetadataMatch: map[string]string{
 							"version": "v2"},
 					},
@@ -769,8 +789,10 @@ func HostsMock() []types.Host {
 	var hosts []types.Host
 
 	e1 := v2.Host{
-		Hostname: "e1",
-		Weight:   50,
+		HostConfig: v2.HostConfig{
+			Hostname: "e1",
+			Weight:   50,
+		},
 		MetaData: map[string]string{
 			"version": "v1",
 		},
@@ -778,8 +800,10 @@ func HostsMock() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e1, nil)})
 
 	e2 := v2.Host{
-		Hostname: "e2",
-		Weight:   50,
+		HostConfig: v2.HostConfig{
+			Hostname: "e2",
+			Weight:   50,
+		},
 		MetaData: map[string]string{
 			"version": "v2",
 		},
