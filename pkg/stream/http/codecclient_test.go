@@ -72,7 +72,10 @@ func TestActiveRequests(t *testing.T) {
 			Address: "127.0.0.1", Hostname: "test", Weight: 0,
 		},
 	}, cluster.NewClusterInfo())
-	codecClient := NewHTTP1CodecClient(context.Background(), host)
+	ac := &activeClient{
+		pool: &connPool{host: host},
+	}
+	codecClient := NewHTTP1CodecClient(context.Background(), ac)
 	ctx := context.Background()
 
 	codecClient.NewStream(ctx, protocol.StreamIDConv(1), cli)
