@@ -26,7 +26,7 @@ import (
 )
 
 type dynamicClusterBase struct {
-	cluster
+	*cluster
 }
 
 func (dc *dynamicClusterBase) updateDynamicHostList(newHosts []types.Host, currentHosts []types.Host) (

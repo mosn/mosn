@@ -63,7 +63,7 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool)
 	return newCluster
 }
 
-func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool, initHelper concreteClusterInitHelper) cluster {
+func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool, initHelper concreteClusterInitHelper) *cluster {
 	cluster := cluster{
 		prioritySet: &prioritySet{},
 		info: &clusterInfo{
@@ -116,7 +116,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 	}
 	cluster.info.tlsMng = mgr
 
-	return cluster
+	return &cluster
 }
 
 func (c *cluster) Initialize(cb func()) {

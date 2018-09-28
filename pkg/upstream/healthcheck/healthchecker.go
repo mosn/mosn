@@ -107,7 +107,7 @@ func (c *healthChecker) addHosts(hosts []types.Host) {
 			var ns types.HealthCheckSession
 
 			if ns = c.newSession(h); ns == nil {
-				log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", host.AddressString())
+				log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", h.AddressString())
 				return
 			}
 

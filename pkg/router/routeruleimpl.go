@@ -35,7 +35,7 @@ import (
 
 // NewRouteRuleImplBase
 // new routerule implement basement
-func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleImplBase, error) {
+func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleImplBase, error) {
 	routeRuleImplBase := RouteRuleImplBase{
 		vHost:         vHost,
 		routerMatch:   route.Match,
@@ -62,7 +62,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleIm
 		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(route.Route.MetadataMatch)
 	}
 
-	return routeRuleImplBase, nil
+	return &routeRuleImplBase, nil
 }
 
 // Base implementation for all route entries.
@@ -238,7 +238,7 @@ func (rri *RouteRuleImplBase) WeightedCluster() map[string]weightedClusterEntry 
 }
 
 type SofaRouteRuleImpl struct {
-	RouteRuleImplBase
+	*RouteRuleImplBase
 	matchValue string
 }
 
@@ -268,7 +268,7 @@ func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint
 }
 
 type PathRouteRuleImpl struct {
-	RouteRuleImplBase
+	*RouteRuleImplBase
 	path string
 }
 
@@ -312,7 +312,7 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string,
 }
 
 type PrefixRouteRuleImpl struct {
-	RouteRuleImplBase
+	*RouteRuleImplBase
 	prefix string
 }
 
@@ -350,9 +350,9 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers map[string]strin
 
 //
 type RegexRouteRuleImpl struct {
-	RouteRuleImplBase
+	*RouteRuleImplBase
 	regexStr     string
-	regexPattern regexp.Regexp
+	regexPattern *regexp.Regexp
 }
 
 func (rrei *RegexRouteRuleImpl) Matcher() string {

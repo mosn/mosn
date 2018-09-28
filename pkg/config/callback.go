@@ -125,7 +125,7 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
 		}
 
 		if err != nil {
-			log.DefaultLogger.Errorf("xds OnUpdateClusters failed,cluster name = %s, error:", cluster.Name, err.Error())
+			log.DefaultLogger.Errorf("xds OnUpdateClusters failed,cluster name = %s, error: %v", cluster.Name, err.Error())
 
 		} else {
 			log.DefaultLogger.Debugf("xds OnUpdateClusters success,cluster name = %s", cluster.Name)
@@ -145,7 +145,7 @@ func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) {
 		}
 
 		if err != nil {
-			log.DefaultLogger.Errorf("xds OnDeleteClusters failed,cluster name = %s, error:", cluster.Name, err.Error())
+			log.DefaultLogger.Errorf("xds OnDeleteClusters failed,cluster name = %s, error: %v", cluster.Name, err.Error())
 
 		} else {
 			log.DefaultLogger.Debugf("xds OnDeleteClusters success,cluster name = %s", cluster.Name)

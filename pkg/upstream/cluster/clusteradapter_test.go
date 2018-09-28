@@ -412,7 +412,7 @@ func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {
 
 				if tt.name == "deleteHosts" {
 					if cInMem.hosts[0].Hostname() != tt.argsWant.hostName {
-						t.Errorf("MngAdapter.update cluster and host error, want host = &s, but got %v", tt.argsWant.hostName, cInMem.hosts[0].Hostname())
+						t.Errorf("MngAdapter.update cluster and host error, want host = %s, but got %v", tt.argsWant.hostName, cInMem.hosts[0].Hostname())
 					}
 				}
 			} else {
@@ -523,7 +523,7 @@ func TestMngAdapter_TriggerClusterHostUpdate(t *testing.T) {
 
 				if tt.name == "deleteHosts" {
 					if cInMem.hosts[0].Hostname() != tt.argsWant.hostName {
-						t.Errorf("MngAdapter.update cluster and host error, want host = &s, but got %v", tt.argsWant.hostName, cInMem.hosts[0].Hostname())
+						t.Errorf("MngAdapter.update cluster and host error, want host = %s, but got %v", tt.argsWant.hostName, cInMem.hosts[0].Hostname())
 					}
 				}
 			} else {
@@ -603,7 +603,7 @@ func TestMngAdapter_TriggerHostDel(t *testing.T) {
 				}
 
 				if len(cInMem.hosts) > 0 && cInMem.hosts[0].AddressString() != tt.argsWant.hostAddress {
-					t.Errorf("MngAdapter.update cluster and host error, want host = &s, but got %v", tt.argsWant.hostAddress, cInMem.hosts[0].AddressString())
+					t.Errorf("MngAdapter.update cluster and host error, want host = %s, but got %v", tt.argsWant.hostAddress, cInMem.hosts[0].AddressString())
 				}
 
 			} else {

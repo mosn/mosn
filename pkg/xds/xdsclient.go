@@ -210,7 +210,11 @@ func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode st
 			log.DefaultLogger.Warnf("fail to init xds config, skip xds: %v", err)
 			return errors.New("fail to init xds config")
 		}
-		c.v2 = &v2.ClientV2{serviceCluster, serviceNode, &xdsConfig}
+		c.v2 = &v2.ClientV2{
+			ServiceCluster: serviceCluster,
+			ServiceNode:    serviceNode,
+			Config:         &xdsConfig,
+		}
 	}
 
 	stopChan := make(chan int)

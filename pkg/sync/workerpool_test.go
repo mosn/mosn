@@ -220,9 +220,9 @@ func eventProcessWithUnboundedChannel(b *testing.B) {
 				in <- &TestJob{i: atomic.AddUint32(&counter, uint32(shardsNum))}
 			}
 		}()
-		go func() {
-			consumer(i, out)
-		}()
+		go func(shard int) {
+			consumer(shard, out)
+		}(i)
 	}
 
 	wg.Wait()
