@@ -28,7 +28,11 @@ import (
 )
 
 func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*VirtualHostImpl, error) {
-	var virtualHostImpl = &VirtualHostImpl{virtualHostName: virtualHost.Name}
+	var virtualHostImpl = &VirtualHostImpl{
+		virtualHostName:       virtualHost.Name,
+		requestHeadersParser:  getHeaderParser(virtualHost.RequestHeadersToAdd, nil),
+		responseHeadersParser: getHeaderParser(virtualHost.ResponseHeadersToAdd, virtualHost.ResponseHeadersToRemove),
+	}
 
 	switch virtualHost.RequireTLS {
 	case "EXTERNALONLY":

@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"sort"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -100,6 +101,14 @@ func (qpm *queryParameterMatcher) Matches(requestQueryParams types.QueryParams) 
 	}
 
 	return qpm.value == requestQueryValue
+}
+
+// NewConfigImpl return an configImpl instance contains requestHeadersParser and responseHeadersParser
+func NewConfigImpl(routerConfig *v2.RouterConfiguration) *configImpl {
+	return &configImpl{
+		requestHeadersParser:  getHeaderParser(routerConfig.RequestHeadersToAdd, nil),
+		responseHeadersParser: getHeaderParser(routerConfig.ResponseHeadersToAdd, routerConfig.ResponseHeadersToRemove),
+	}
 }
 
 // Implementation of Config that reads from a proto file.

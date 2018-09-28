@@ -62,12 +62,15 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 		greaterSortedWildcardVirtualHostSuffixes: []int{},
 	}
 
+	configImpl := NewConfigImpl(routerConfig)
+
 	for _, virtualHost := range routerConfig.VirtualHosts {
 		vh, err := NewVirtualHostImpl(virtualHost, false)
 		
 		if err != nil {
 			return nil, err
 		}
+		vh.globalRouteConfig = configImpl
 		
 		for _, domain := range virtualHost.Domains {
 			// Note: we use domain in lowercase
