@@ -33,8 +33,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/tls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"net/http"
 )
@@ -379,7 +379,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logg
 	al.statsNamespace = types.ListenerStatsPrefix + strconv.Itoa(listenPort)
 	al.stats = newListenerStats(al.statsNamespace)
 
-	mgr, err := tls.NewTLSServerContextManager(lc, listener, logger)
+	mgr, err := mtls.NewTLSServerContextManager(lc, listener, logger)
 	if err != nil {
 		logger.Errorf("create tls context manager failed, %v", err)
 		return nil, err

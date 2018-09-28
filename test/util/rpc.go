@@ -19,6 +19,7 @@ import (
 	_"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/conv"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"fmt"
 )
 
 const (
@@ -57,6 +58,10 @@ func (c *RPCClient) Connect(addr string) error {
 		return err
 	}
 	c.Codec = stream.NewCodecClient(context.Background(), protocol.SofaRPC, cc, nil)
+	if c.Codec == nil {
+		return fmt.Errorf("NewCodecClient error %v, %v", protocol.SofaRPC, cc)
+	}
+
 	return nil
 }
 

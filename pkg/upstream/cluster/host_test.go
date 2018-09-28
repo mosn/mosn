@@ -19,12 +19,11 @@ package cluster
 
 import (
 	"context"
-	"crypto/tls"
 	"net"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	mosntls "github.com/alipay/sofa-mosn/pkg/tls"
+	 "github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -44,7 +43,7 @@ func TestHostDisableTLS(t *testing.T) {
 		name:                 "test",
 		connBufferLimitBytes: 16 * 1026,
 	}
-	tlsMng, err := mosntls.NewTLSClientContextManager(tlsConfig, info)
+	tlsMng, err := mtls.NewTLSClientContextManager(tlsConfig, info)
 	if err != nil {
 		t.Error(err)
 		return
@@ -71,7 +70,7 @@ func TestHostDisableTLS(t *testing.T) {
 			t.Errorf("#%d %v", i, err)
 			continue
 		}
-		if _, ok := conn.RawConn().(*tls.Conn); ok == host.TLSDisable {
+		if _, ok := conn.RawConn().(*mtls.TLSConn); ok == host.TLSDisable {
 			t.Errorf("#%d  tlsdisable: %v, conn is tls: %v", i, host.TLSDisable, ok)
 		}
 		conn.Close(types.NoFlush, types.LocalClose)

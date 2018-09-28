@@ -28,6 +28,7 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"golang.org/x/net/http2"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 )
 
 const (
@@ -263,6 +264,13 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	transport := &http2.Transport{
 		ConnPool: pool,
+	}
+
+	if tlsConn, ok := data.Connection.RawConn().(*mtls.TLSConn); ok {
+		if err := tlsConn.Handshake(); err != nil {
+			data.Connection.Close(types.NoFlush, types.ConnectFailed)
+			return nil
+		}
 	}
 
 	h2Conn, err := transport.NewClientConn(data.Connection.RawConn())
