@@ -158,7 +158,7 @@ type ClusterWeight struct {
 // RetryPolicy represents the retry parameters
 type RetryPolicy struct {
 	RetryPolicyConfig
-	RetryTimeout time.Duration `json:"-""`
+	RetryTimeout time.Duration `json:"-"`
 }
 
 // CircuitBreakers is a configuration of circuit breakers
@@ -223,7 +223,7 @@ type TLSConfig struct {
 	MaxVersion   string                 `json:"max_version,omitempty"`
 	ALPN         string                 `json:"alpn,omitempty"`
 	Ticket       string                 `json:"ticket,omitempty"`
-	ExtendVerify map[string]interface{} `json:"extend_verify, omitempty"`
+	ExtendVerify map[string]interface{} `json:"extend_verify,omitempty"`
 }
 
 // AccessLog for making up access log
