@@ -15,65 +15,58 @@
  * limitations under the License.
  */
 
-package config
+package rds
 
 import (
 	"reflect"
 	"testing"
-	"time"
-
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
-func Test_convertClusterHealthCheck(t *testing.T) {
-
-	argS := v2.HealthCheck{
-		Protocol:           "SofaRpc",
-		Timeout:            90 * time.Second,
-		Interval:           5 * time.Second,
-		IntervalJitter:     0,
-		HealthyThreshold:   2,
-		UnhealthyThreshold: 2,
-		CheckPath:          "",
-		ServiceName:        "",
-	}
-
-	wantS := ClusterHealthCheckConfig{
-		Protocol:           "SofaRpc",
-		Timeout:            DurationConfig{90 * time.Second},
-		HealthyThreshold:   2,
-		UnhealthyThreshold: 2,
-		Interval:           DurationConfig{5 * time.Second},
-		IntervalJitter:     DurationConfig{0},
-		CheckPath:          "",
-		ServiceName:        "",
-	}
-
+func Test_AppendRouterName(t *testing.T) {
 	type args struct {
-		cchc v2.HealthCheck
+		routerName string
 	}
-
 	tests := []struct {
 		name string
 		args args
-		want ClusterHealthCheckConfig
+		want map[string]bool
 	}{
 		{
-			name: "test1",
+			name: "case1",
 			args: args{
-				argS,
+				routerName: "http.80",
 			},
-			want: wantS,
+			want: map[string]bool{"http.80": true},
 		},
-
-		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := convertClusterHealthCheck(tt.args.cchc); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("convertClusterHealthCheck() = %v, want %v", got, tt.want)
+			AppendRouterName(tt.args.routerName)
+			if got := routerNames; !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("AppendRouterName() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
 
+func Test_GetRouterNames(t *testing.T) {
+	routerNames = make(map[string]bool)
+	routerNames["http.80"] = true
+
+	tests := []struct {
+		name string
+		want []string
+	}{
+		{
+			name: "case1",
+			want: []string{"http.80"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GetRouterNames(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetRouterNames() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

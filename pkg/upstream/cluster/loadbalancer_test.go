@@ -30,13 +30,24 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+func newHostV2(addr string, name string, weight uint32, meta v2.Metadata) v2.Host {
+	return v2.Host{
+		HostConfig: v2.HostConfig{
+			Address:  addr,
+			Hostname: name,
+			Weight:   weight,
+		},
+		MetaData: meta,
+	}
+}
+
 func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 
-	host1 := NewHost(v2.Host{Address: "127.0.0.1", Hostname: "test", Weight: 0}, nil)
-	host2 := NewHost(v2.Host{Address: "127.0.0.2", Hostname: "test2", Weight: 0}, nil)
-	host3 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "test", Weight: 0}, nil)
-	host4 := NewHost(v2.Host{Address: "127.0.0.4", Hostname: "test2", Weight: 0}, nil)
-	host5 := NewHost(v2.Host{Address: "127.0.0.5", Hostname: "test2", Weight: 0}, nil)
+	host1 := NewHost(newHostV2("127.0.0.1", "test", 0, nil), nil)
+	host2 := NewHost(newHostV2("127.0.0.2", "test2", 0, nil), nil)
+	host3 := NewHost(newHostV2("127.0.0.3", "test", 0, nil), nil)
+	host4 := NewHost(newHostV2("127.0.0.4", "test2", 0, nil), nil)
+	host5 := NewHost(newHostV2("127.0.0.5", "test2", 0, nil), nil)
 
 	hosts1 := []types.Host{host1, host2}
 	hosts2 := []types.Host{host3, host4}
@@ -86,9 +97,9 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 		lb types.LoadBalancer
 	}
 
-	host1 := NewHost(v2.Host{Address: "127.0.0.1", Hostname: "a", Weight: 5}, nil)
-	host2 := NewHost(v2.Host{Address: "127.0.0.2", Hostname: "b", Weight: 3}, nil)
-	host3 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "c", Weight: 2}, nil)
+	host1 := NewHost(newHostV2("127.0.0.1", "a", 5, nil), nil)
+	host2 := NewHost(newHostV2("127.0.0.2", "b", 3, nil), nil)
+	host3 := NewHost(newHostV2("127.0.0.3", "c", 2, nil), nil)
 
 	hosts1 := []types.Host{host1, host2, host3}
 	hosts2 := []types.Host{host1, host2}
@@ -155,7 +166,7 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 
 	for _, tt := range tests {
 		var a, b, c float64
-		var i float64 = 0
+		var i float64
 
 		l1 := newSmoothWeightedRRLoadBalancer(tt.args)
 		runningTimes := float64(rand.Int31n(1000))
@@ -166,10 +177,9 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 			if host == nil {
 				if tt.name == "zeroTest" {
 					return
-				} else {
-					t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
-						tt.want[0], tt.want[1], tt.want[2], tt.name)
 				}
+				t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
+					tt.want[0], tt.want[1], tt.want[2], tt.name)
 			}
 
 			switch host.Hostname() {
@@ -191,10 +201,10 @@ func TestSmoothWeightedRRLoadBalancer_ChooseHost(t *testing.T) {
 
 func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 
-	host1 := NewHost(v2.Host{Address: "127.0.0.1", Hostname: "a", Weight: 8}, nil)
-	host2 := NewHost(v2.Host{Address: "127.0.0.2", Hostname: "b", Weight: 2}, nil)
-	host3 := NewHost(v2.Host{Address: "127.0.0.3", Hostname: "c", Weight: 5}, nil)
-	host4 := NewHost(v2.Host{Address: "127.0.0.4", Hostname: "d", Weight: 5}, nil)
+	host1 := NewHost(newHostV2("127.0.0.1", "a", 8, nil), nil)
+	host2 := NewHost(newHostV2("127.0.0.2", "b", 2, nil), nil)
+	host3 := NewHost(newHostV2("127.0.0.3", "c", 5, nil), nil)
+	host4 := NewHost(newHostV2("127.0.0.4", "d", 5, nil), nil)
 
 	hosts1 := []types.Host{host1, host2, host3}
 
@@ -269,7 +279,7 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 
 		runningTimes := float64(rand.Int31n(1000))
 		var a, b, c, d float64
-		var i float64 = 0
+		var i float64
 
 		for ; i < runningTimes; i++ {
 			host := loadbBalancer.ChooseHost(nil)
@@ -277,10 +287,9 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 			if host == nil {
 				if tt.name == "zeroTest" {
 					return
-				} else {
-					t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
-						tt.want[0], tt.want[1], tt.want[2], tt.name)
 				}
+				t.Errorf("test sommoth loalbalancer err, want a = %f, b = %f, c = %f,  got a = %f, b=%f, c=%f, case = %s", a/runningTimes, b/runningTimes, c/runningTimes,
+					tt.want[0], tt.want[1], tt.want[2], tt.name)
 			}
 
 			switch host.Hostname() {
@@ -306,36 +315,41 @@ func TestSmoothWeightedRRLoadBalancer_UpdateHost(t *testing.T) {
 }
 
 func MockRouter(names []string) v2.Router {
+	r := v2.Router{}
 	if len(names) < 2 {
-		return v2.Router{}
+		return r
 	}
-
-	return v2.Router{
-		Match: v2.RouterMatch{
-			Headers: []v2.HeaderMatcher{
-				v2.HeaderMatcher{Name: "service", Value: ".*"},
-			},
+	r.Match = v2.RouterMatch{
+		Headers: []v2.HeaderMatcher{
+			v2.HeaderMatcher{Name: "service", Value: ".*"},
 		},
-		Route: v2.RouteAction{
+	}
+	r.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName: names[0],
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{
-						Name:          names[0],
-						Weight:        60,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   names[0],
+							Weight: 60,
+						},
 						MetadataMatch: map[string]string{"label": "blue"},
 					},
 				},
 				{
 					Cluster: v2.ClusterWeight{
-						Name:          names[1],
-						Weight:        40,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   names[1],
+							Weight: 40,
+						},
 						MetadataMatch: map[string]string{"label": "green"},
 					},
 				},
 			},
 		},
 	}
+	return r
 }
 
 func MockRouterMatcher() (types.Routers, error) {
@@ -343,7 +357,7 @@ func MockRouterMatcher() (types.Routers, error) {
 		&v2.VirtualHost{Domains: []string{"www.alibaba.com"}, Routers: []v2.Router{MockRouter([]string{"c1", "c2"})}},
 		&v2.VirtualHost{Domains: []string{"www.antfin.com"}, Routers: []v2.Router{MockRouter([]string{"a1", "a2"})}},
 	}
-	cfg := &v2.Proxy{
+	cfg := &v2.RouterConfiguration{
 		VirtualHosts: virtualHosts,
 	}
 
@@ -351,15 +365,14 @@ func MockRouterMatcher() (types.Routers, error) {
 }
 
 func mockClusterManager() types.ClusterManager {
-
-	host1 := v2.Host{Address: "127.0.0.1", Hostname: "h1", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
-	host2 := v2.Host{Address: "127.0.0.2", Hostname: "h2", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
-	host3 := v2.Host{Address: "127.0.0.3", Hostname: "h3", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
-	host4 := v2.Host{Address: "127.0.0.4", Hostname: "h4", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
-	host5 := v2.Host{Address: "127.0.0.5", Hostname: "h5", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
-	host6 := v2.Host{Address: "127.0.0.6", Hostname: "h6", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
-	host7 := v2.Host{Address: "127.0.0.7", Hostname: "h7", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
-	host8 := v2.Host{Address: "127.0.0.8", Hostname: "h8", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
+	host1 := newHostV2("127.0.0.1", "h1", 5, v2.Metadata{"label": "blue"})
+	host2 := newHostV2("127.0.0.2", "h2", 5, v2.Metadata{"label": "blue"})
+	host3 := newHostV2("127.0.0.3", "h3", 5, v2.Metadata{"label": "green"})
+	host4 := newHostV2("127.0.0.4", "h4", 5, v2.Metadata{"label": "green"})
+	host5 := newHostV2("127.0.0.5", "h5", 5, v2.Metadata{"label": "blue"})
+	host6 := newHostV2("127.0.0.6", "h6", 5, v2.Metadata{"label": "blue"})
+	host7 := newHostV2("127.0.0.7", "h7", 5, v2.Metadata{"label": "green"})
+	host8 := newHostV2("127.0.0.8", "h8", 5, v2.Metadata{"label": "green"})
 
 	clusters := []v2.Cluster{
 		{

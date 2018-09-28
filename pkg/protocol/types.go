@@ -37,6 +37,12 @@ const (
 	MosnHeaderMethod         = "method"
 )
 
+// Hseader with special meaning in istio
+// todo maybe use ":authority"
+const (
+	IstioHeaderHostKey = "authority"
+)
+
 // CommonHeader wrapper for map[string]string
 type CommonHeader map[string]string
 

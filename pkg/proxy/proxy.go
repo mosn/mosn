@@ -61,25 +61,15 @@ type proxy struct {
 	readCallbacks       types.ReadFilterCallbacks
 	upstreamConnection  types.ClientConnection
 	downstreamCallbacks DownstreamCallbacks
-
-	clusterName string
-	routers     types.Routers
-	serverCodec types.ServerStreamConnection
-
-	context context.Context
-
-	// downstream requests
-	activeSteams *list.List
-	asMux        sync.RWMutex
-
-	// stats
-	stats *proxyStats
-
-	// listener stats
-	listenerStats *listenerStats
-
-	// access logs
-	accessLogs []types.AccessLog
+	clusterName         string
+	routersWrapper      types.RouterWrapper // wrapper used to point to the routers instance
+	serverCodec         types.ServerStreamConnection
+	context             context.Context
+	activeSteams        *list.List // downstream requests
+	asMux               sync.RWMutex
+	stats               *proxyStats
+	listenerStats       *listenerStats
+	accessLogs          []types.AccessLog
 }
 
 // NewProxy create proxy instance for given v2.Proxy config
@@ -95,11 +85,11 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 
 	proxy.context = buffer.NewBufferPoolContext(ctx, false)
 
-	extJson, err := json.Marshal(proxy.config.ExtendConfig)
+	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
 	if err == nil {
 		log.DefaultLogger.Tracef("proxy extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
-		json.Unmarshal([]byte(extJson), &xProxyExtendConfig)
+		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
 		proxy.context = context.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 		log.DefaultLogger.Tracef("proxy extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
 	} else {
@@ -108,12 +98,13 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 
 	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
 	proxy.listenerStats = newListenerStats(listenStatsNamespace)
-	//log fatal to exit
-	routers, err := router.CreateRouteConfig(types.Protocol(config.DownstreamProtocol), config)
-	if err != nil {
-		log.StartLogger.Fatal(err)
+
+	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByListenerName(proxy.config.RouterConfigName); routersWrapper != nil {
+		proxy.routersWrapper = routersWrapper
+	} else {
+		log.DefaultLogger.Errorf("RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
 	}
-	proxy.routers = routers
+
 	proxy.downstreamCallbacks = &downstreamCallbacks{
 		proxy: proxy,
 	}

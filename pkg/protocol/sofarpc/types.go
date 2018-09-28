@@ -409,10 +409,12 @@ const (
 
 // DefaultSofaRPCHealthCheckConf
 var DefaultSofaRPCHealthCheckConf = v2.HealthCheck{
-	Protocol:           SofaRPC,
-	Timeout:            DefaultBoltHeartBeatTimeout,
-	HealthyThreshold:   DefaultHealthyThreshold,
-	UnhealthyThreshold: DefaultUnhealthyThreshold,
-	Interval:           DefaultBoltHeartBeatInterval,
-	IntervalJitter:     DefaultIntervalJitter,
+	HealthCheckConfig: v2.HealthCheckConfig{
+		Protocol:           SofaRPC,
+		HealthyThreshold:   DefaultHealthyThreshold,
+		UnhealthyThreshold: DefaultUnhealthyThreshold,
+	},
+	Timeout:        DefaultBoltHeartBeatTimeout,
+	Interval:       DefaultBoltHeartBeatInterval,
+	IntervalJitter: DefaultIntervalJitter,
 }

@@ -153,6 +153,6 @@ func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Conte
 // CreateHealthCheckFilterFactory
 func CreateHealthCheckFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
 	return &HealthCheckFilterConfigFactory{
-		FilterConfig: config.ParseHealthcheckFilter(conf),
+		FilterConfig: config.ParseHealthCheckFilter(conf),
 	}, nil
 }

@@ -15,41 +15,40 @@
  * limitations under the License.
  */
 
-package basic
+package rds
 
-import "github.com/alipay/sofa-mosn/pkg/types"
+import (
+	"sync"
+)
 
-type RouteRuleImplAdaptor struct {
+/*
+rds store the router config names which need to fetch virtualhosts configuration from RDS
+*/
+
+var (
+	mu          sync.Mutex
+	routerNames map[string]bool
+)
+
+// AppendRouterName use to append rds router configname to subscript
+func AppendRouterName(name string) {
+	mu.Lock()
+	defer mu.Unlock()
+	if routerNames == nil {
+		routerNames = make(map[string]bool)
+	}
+	routerNames[name] = true
 }
 
-func (r *RouteRuleImplAdaptor) ClusterName() string {
-	return ""
-}
-
-func (r *RouteRuleImplAdaptor) Priority() types.Priority {
-	return types.PriorityDefault
-}
-
-func (r *RouteRuleImplAdaptor) VirtualCluster(headers map[string]string) types.VirtualCluster {
-	return nil
-}
-
-func (r *RouteRuleImplAdaptor) Policy() types.Policy {
-	return nil
-}
-
-//func (r *RouteRuleImplAdaptor) MetadataMatcher() types.MetadataMatcher {
-//	return nil
-//}
-
-func (r *RouteRuleImplAdaptor) VirtualHost() types.VirtualHost {
-	return nil
-}
-
-func (r *RouteRuleImplAdaptor) Metadata() types.RouteMetaData {
-	return nil
-}
-
-func (r *RouteRuleImplAdaptor) MetadataMatchCriteria(clusterName string) types.MetadataMatchCriteria {
-	return nil
+// GetRouterNames return disctict router config names
+func GetRouterNames() []string {
+	mu.Lock()
+	defer mu.Unlock()
+	names := make([]string, len(routerNames))
+	i := 0
+	for name, _ := range routerNames {
+		names[i] = name
+		i++
+	}
+	return names
 }

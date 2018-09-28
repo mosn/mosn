@@ -54,9 +54,9 @@ func CreateStreamFilterChainFactory(filterType string, config map[string]interfa
 }
 
 // CreateNetworkFilterChainFactory creates a StreamFilterChainFactory according to filterType
-func CreateNetworkFilterChainFactory(filterType string, config map[string]interface{}, isV2 bool) (types.NetworkFilterChainFactory, error) {
+func CreateNetworkFilterChainFactory(filterType string, config map[string]interface{}) (types.NetworkFilterChainFactory, error) {
 	if cf, ok := creatorNetworkFactory[filterType]; ok {
-		nfcf, err := cf(config, isV2)
+		nfcf, err := cf(config)
 		if err != nil {
 			return nil, fmt.Errorf("create network filter chain factory failed: %v", err)
 		}

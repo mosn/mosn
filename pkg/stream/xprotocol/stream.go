@@ -160,8 +160,8 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		if ok {
 			serviceName := tracingCodec.GetServiceName(request)
 			methodName := tracingCodec.GetMethodName(request)
-			headers[types.HeaderRpcService] = serviceName
-			headers[types.HeaderRpcMethod] = methodName
+			headers[types.HeaderRPCService] = serviceName
+			headers[types.HeaderRPCMethod] = methodName
 			log.DefaultLogger.Tracef("xprotocol handle tracing ,serviceName = %v , methodName = %v", serviceName, methodName)
 		}
 
