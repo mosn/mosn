@@ -36,7 +36,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"net/http"
 )
 
 // ConnectionHandler
@@ -539,8 +538,6 @@ func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
 			localListener = lst
 		}
 	}
-
-	http.ListenAndServe()
 
 	if listener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", listener.listenIP, listener.listenPort)
