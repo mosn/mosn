@@ -159,11 +159,11 @@ type ClusterWeight struct {
 // RetryPolicy represents the retry parameters
 type RetryPolicy struct {
 	RetryPolicyConfig
-	RetryTimeout time.Duration `json:"-""`
+	RetryTimeout time.Duration `json:"-"`
 }
 
 // CircuitBreakers is a configuration of circuit breakers
-// CircuitBreakers implements json.Marshaler and json.Unmarshaler
+// CircuitBreakers implements json.Marshaller and json.Unmarshaller
 type CircuitBreakers struct {
 	Thresholds []Thresholds
 }

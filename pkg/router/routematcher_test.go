@@ -106,7 +106,7 @@ func TestNewRouteMatcherGroup(t *testing.T) {
 		return
 	}
 	rm := routers.(*routeMatcher)
-	expected := (rm.defaultVirtualHost != nil && len(rm.virtualHosts) == 1 && len(rm.wildcardVirtualHostSuffixes) == 1)
+	expected := rm.defaultVirtualHost != nil && len(rm.virtualHosts) == 1 && len(rm.wildcardVirtualHostSuffixes) == 1
 	if !expected {
 		t.Error("create routematcher not match")
 	}
@@ -155,7 +155,7 @@ func TestDefaultMatch(t *testing.T) {
 	}
 	routers, err := NewRouteMatcher(cfg)
 	if err != nil {
-		t.Errorf("create router matcher failed \n", err)
+		t.Errorf("create router matcher failed %v", err)
 		return
 	}
 	testCases := []string{
@@ -181,7 +181,7 @@ func TestDomainMatch(t *testing.T) {
 	}
 	routers, err := NewRouteMatcher(cfg)
 	if err != nil {
-		t.Errorf("create router matcher failed \n", err)
+		t.Errorf("create router matcher failed %v", err)
 		return
 	}
 	if routers.Route(map[string]string{

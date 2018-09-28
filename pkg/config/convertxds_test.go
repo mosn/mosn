@@ -80,8 +80,7 @@ func Test_convertHeaders(t *testing.T) {
 			args: args{
 				xdsHeaders: []*xdsroute.HeaderMatcher{
 					{
-						Name:  "end-user",
-						Value: "",
+						Name: "end-user",
 						HeaderMatchSpecifier: &xdsroute.HeaderMatcher_ExactMatch{
 							ExactMatch: "jason",
 						},
