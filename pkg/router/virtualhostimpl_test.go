@@ -113,9 +113,9 @@ func TestRouterOrder(t *testing.T) {
 		Routers: routers,
 	}, false)
 	for i, tc := range testCases {
-		headers := map[string]string{
+		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
-		}
+		})
 		rt := virtualHost.GetRouteFromEntries(headers, 1)
 		if rt == nil || rt.RouteRule().ClusterName() != tc.clustername {
 			t.Errorf("#%d route unexpected result\n", i)
@@ -128,9 +128,9 @@ func TestRouterOrder(t *testing.T) {
 		Routers: []v2.Router{prefixrouter, regrouter, pathrouter},
 	}, false)
 	for i, tc := range testCases {
-		headers := map[string]string{
+		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
-		}
+		})
 		rt := prefixVirtualHost.GetRouteFromEntries(headers, 1)
 		if rt == nil || rt.RouteRule().ClusterName() != "prefix" {
 			t.Errorf("#%d route unexpected result\n", i)

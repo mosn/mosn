@@ -54,3 +54,9 @@ func GenerateIDString() string {
 func StreamIDConv(streamID uint32) string {
 	return strconv.FormatUint(uint64(streamID), 10)
 }
+
+// RequestIDConv convert streamID from string to uint32
+func RequestIDConv(streamID string) uint32 {
+	reqID, _ := strconv.ParseUint(streamID, 10, 32)
+	return uint32(reqID)
+}

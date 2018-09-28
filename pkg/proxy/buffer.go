@@ -45,7 +45,7 @@ type proxyBuffers struct {
 	info    network.RequestInfo
 }
 
-func proxyBuffersByContent(context context.Context) *proxyBuffers {
-	ctx := buffer.PoolContext(context)
-	return ctx.Find(proxyBufferCtx{}, nil).(*proxyBuffers)
+func proxyBuffersByContext(ctx context.Context) *proxyBuffers {
+	poolCtx := buffer.PoolContext(ctx)
+	return poolCtx.Find(proxyBufferCtx{}, nil).(*proxyBuffers)
 }

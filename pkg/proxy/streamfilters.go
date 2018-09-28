@@ -44,7 +44,7 @@ func (s *downStream) addDecodedData(filter *activeStreamReceiverFilter, data typ
 	}
 }
 
-func (s *downStream) runAppendHeaderFilters(filter *activeStreamSenderFilter, headers interface{}, endStream bool) bool {
+func (s *downStream) runAppendHeaderFilters(filter *activeStreamSenderFilter, headers types.HeaderMap, endStream bool) bool {
 	var index int
 	var f *activeStreamSenderFilter
 
@@ -116,7 +116,7 @@ func (s *downStream) runAppendDataFilters(filter *activeStreamSenderFilter, data
 	return false
 }
 
-func (s *downStream) runAppendTrailersFilters(filter *activeStreamSenderFilter, trailers map[string]string) bool {
+func (s *downStream) runAppendTrailersFilters(filter *activeStreamSenderFilter, trailers types.HeaderMap) bool {
 	var index int
 	var f *activeStreamSenderFilter
 
@@ -145,7 +145,7 @@ func (s *downStream) runAppendTrailersFilters(filter *activeStreamSenderFilter, 
 	return false
 }
 
-func (s *downStream) runReceiveHeadersFilters(filter *activeStreamReceiverFilter, headers map[string]string, endStream bool) bool {
+func (s *downStream) runReceiveHeadersFilters(filter *activeStreamReceiverFilter, headers types.HeaderMap, endStream bool) bool {
 	var index int
 	var f *activeStreamReceiverFilter
 
@@ -221,7 +221,7 @@ func (s *downStream) runReceiveDataFilters(filter *activeStreamReceiverFilter, d
 	return false
 }
 
-func (s *downStream) runReceiveTrailersFilters(filter *activeStreamReceiverFilter, trailers map[string]string) bool {
+func (s *downStream) runReceiveTrailersFilters(filter *activeStreamReceiverFilter, trailers types.HeaderMap) bool {
 	if s.upstreamProcessDone {
 		return false
 	}
@@ -369,7 +369,7 @@ func (f *activeStreamReceiverFilter) AddDecodedData(buf types.IoBuffer, streamin
 	f.activeStream.addDecodedData(f, buf, streamingFilter)
 }
 
-func (f *activeStreamReceiverFilter) AppendHeaders(headers interface{}, endStream bool) {
+func (f *activeStreamReceiverFilter) AppendHeaders(headers types.HeaderMap, endStream bool) {
 	f.activeStream.downstreamRespHeaders = headers
 	f.activeStream.doAppendHeaders(nil, headers, endStream)
 }
@@ -378,7 +378,7 @@ func (f *activeStreamReceiverFilter) AppendData(buf types.IoBuffer, endStream bo
 	f.activeStream.doAppendData(nil, buf, endStream)
 }
 
-func (f *activeStreamReceiverFilter) AppendTrailers(trailers map[string]string) {
+func (f *activeStreamReceiverFilter) AppendTrailers(trailers types.HeaderMap) {
 	f.activeStream.downstreamRespTrailers = trailers
 	f.activeStream.doAppendTrailers(nil, trailers)
 }

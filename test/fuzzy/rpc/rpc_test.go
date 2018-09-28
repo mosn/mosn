@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -21,6 +20,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/fuzzy"
 	"github.com/alipay/sofa-mosn/test/util"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var (
@@ -67,23 +67,17 @@ func (c *RPCStatusClient) SendRequest() {
 	requestEncoder.AppendHeaders(context.Background(), headers, true)
 }
 
-func (c *RPCStatusClient) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
-	status, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]
-	if !ok {
-		c.t.Errorf("unexpected headers :%v\n", headers)
-		c.unexpectedCount++
-		return
-	}
-	code, err := strconv.Atoi(status)
-	if err != nil {
-		c.t.Errorf("unexpected status code: %s\n", status)
-		c.unexpectedCount++
-		return
-	}
-	if int16(code) == sofarpc.RESPONSE_STATUS_SUCCESS {
-		c.successCount++
+func (c *RPCStatusClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+		status := cmd.GetRespStatus()
+
+		if int16(status) == sofarpc.RESPONSE_STATUS_SUCCESS {
+			c.successCount++
+		} else {
+			c.failureCount++
+		}
 	} else {
-		c.failureCount++
+		c.t.Errorf("unexpected headers type:%v\n", headers)
 	}
 }
 func (c *RPCStatusClient) Connect() error {

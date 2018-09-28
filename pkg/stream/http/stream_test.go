@@ -42,7 +42,7 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 
 	path := "/pic"
 
-	headers := []map[string]string{
+	headers := []protocol.CommonHeader{
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,

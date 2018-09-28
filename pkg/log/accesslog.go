@@ -76,7 +76,7 @@ func NewAccessLog(output string, filter types.AccessLogFilter,
 	}, nil
 }
 
-func (l *accesslog) Log(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) {
+func (l *accesslog) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	if l.filter != nil {
 		if !l.filter.Decide(reqHeaders, requestInfo) {
 			return
@@ -102,7 +102,7 @@ func NewAccessLogFormatter(format string) types.AccessLogFormatter {
 	}
 }
 
-func (f *accesslogformatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
+func (f *accesslogformatter) Format(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) string {
 	var log string
 
 	for _, formatter := range f.formatters {
@@ -123,7 +123,7 @@ type simpleRequestInfoFormatter struct {
 }
 
 // Format request info headers
-func (f *simpleRequestInfoFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
+func (f *simpleRequestInfoFormatter) Format(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) string {
 	// todo: map fieldName to field vale string
 	if f.reqInfoFormat == nil {
 		DefaultLogger.Debugf("No ReqInfo Format Keys Input")
@@ -151,7 +151,7 @@ type simpleReqHeadersFormatter struct {
 }
 
 // Format request headers format
-func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
+func (f *simpleReqHeadersFormatter) Format(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) string {
 	if f.reqHeaderFormat == nil {
 		DefaultLogger.Debugf("No ReqHeaders Format Keys Input")
 		return ""
@@ -161,7 +161,7 @@ func (f *simpleReqHeadersFormatter) Format(reqHeaders map[string]string, respHea
 	defer accessLogPool.Put(buffer)
 
 	for _, key := range f.reqHeaderFormat {
-		if v, ok := reqHeaders[key]; ok {
+		if v, ok := reqHeaders.Get(key); ok {
 			buffer.WriteString(types.ReqHeaderPrefix)
 			buffer.WriteString(v)
 			buffer.WriteString(" ")
@@ -179,7 +179,7 @@ type simpleRespHeadersFormatter struct {
 }
 
 // Format response headers format
-func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo types.RequestInfo) string {
+func (f *simpleRespHeadersFormatter) Format(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) string {
 	if f.respHeaderFormat == nil {
 		DefaultLogger.Debugf("No RespHeaders Format Keys Input")
 		return ""
@@ -189,7 +189,7 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders map[string]string, respHe
 	defer accessLogPool.Put(buffer)
 	for _, key := range f.respHeaderFormat {
 
-		if v, ok := respHeaders[key]; ok {
+		if v, ok := respHeaders.Get(key); ok {
 			buffer.WriteString(types.RespHeaderPrefix)
 			buffer.WriteString(v)
 			buffer.WriteString(" ")

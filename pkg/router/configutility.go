@@ -34,7 +34,7 @@ type configUtility struct {
 }
 
 // types.MatchHeaders
-func (cu *configUtility) MatchHeaders(requestHeaders map[string]string, configHeaders []*types.HeaderData) bool {
+func (cu *configUtility) MatchHeaders(requestHeaders types.HeaderMap, configHeaders []*types.HeaderData) bool {
 
 	// step 1: match name
 	// step 2: match value, if regex true, match pattern
@@ -45,7 +45,7 @@ func (cu *configUtility) MatchHeaders(requestHeaders map[string]string, configHe
 		cfgValue := cfgHeaderData.Value
 		log.DefaultLogger.Debugf("MatchHeaders, router headers %d name : %s, value %s:  ", i, cfgName, cfgValue)
 
-		if value, ok := requestHeaders[cfgName]; ok {
+		if value, ok := requestHeaders.Get(cfgName); ok {
 
 			if !cfgHeaderData.IsRegex {
 				if cfgValue != value {
@@ -115,7 +115,7 @@ func (ci *configImpl) Name() string {
 	return ci.name
 }
 
-func (ci *configImpl) Route(headers map[string]string, randomValue uint64) types.Route {
+func (ci *configImpl) Route(headers types.HeaderMap, randomValue uint64) types.Route {
 	return ci.routeMatcher.Route(headers, randomValue)
 }
 

@@ -61,7 +61,7 @@ type resetEvent struct {
 type receiveHeadersEvent struct {
 	streamEvent
 
-	headers   map[string]string
+	headers   types.HeaderMap
 	endStream bool
 }
 
@@ -75,7 +75,7 @@ type receiveDataEvent struct {
 type receiveTrailerEvent struct {
 	streamEvent
 
-	trailers map[string]string
+	trailers types.HeaderMap
 }
 
 func eventDispatch(shard int, jobChan <-chan interface{}) {
