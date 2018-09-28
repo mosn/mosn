@@ -15,22 +15,14 @@
  * limitations under the License.
  */
 
-package server
+package types
 
-import (
-	"github.com/alipay/sofa-mosn/pkg/stats"
-	metrics "github.com/rcrowley/go-metrics"
-)
+import metrics "github.com/rcrowley/go-metrics"
 
-type listenerStats struct {
-	DownstreamBytesReadTotal  metrics.Counter
-	DownstreamBytesWriteTotal metrics.Counter
-}
-
-func newListenerStats(listenerName string) *listenerStats {
-	s := stats.NewListenerStats(listenerName)
-	return &listenerStats{
-		DownstreamBytesReadTotal:  s.Counter(stats.DownstreamBytesReadTotal),
-		DownstreamBytesWriteTotal: s.Counter(stats.DownstreamBytesWriteTotal),
-	}
+// Metrics is a wrapper interface for go-metrics
+// support Counter, Gauge Histogram
+type Metrics interface {
+	Counter(key string) metrics.Counter
+	Gauge(key string) metrics.Gauge
+	Histogram(key string) metrics.Histogram
 }

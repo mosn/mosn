@@ -28,6 +28,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 func init() {
@@ -216,16 +217,15 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	pool.host.HostStats().UpstreamConnectionTotalHTTP2.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP2.Inc(1)
 
+	// bytes total adds all connections data together, but buffered data not
 	codecClient.SetConnectionStats(&types.ConnectionStats{
-		ReadTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesRead,
-		ReadCurrent:  pool.host.ClusterInfo().Stats().UpstreamBytesReadCurrent,
-		WriteTotal:   pool.host.ClusterInfo().Stats().UpstreamBytesWrite,
-		WriteCurrent: pool.host.ClusterInfo().Stats().UpstreamBytesWriteCurrent,
+		ReadTotal:     pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal,
+		ReadBuffered:  metrics.NewGauge(),
+		WriteTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal,
+		WriteBuffered: metrics.NewGauge(),
 	})
 
 	return ac
