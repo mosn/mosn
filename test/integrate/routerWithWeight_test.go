@@ -28,14 +28,14 @@ import (
 )
 
 type weightCase struct {
-	*testCase
+	*TestCase
 	appServers map[string]testutil.UpstreamServer
 	clusters   []*testutil.WeightCluster
 }
 
 // support SofaRPC only
 func newWeightCase(t *testing.T, clusters []*testutil.WeightCluster) *weightCase {
-	tc := newTestCase(t, protocol.SofaRPC, protocol.SofaRPC, testutil.NewRPCServer(t, "", testutil.Bolt1))
+	tc := NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, testutil.NewRPCServer(t, "", testutil.Bolt1))
 	appServers := make(map[string]testutil.UpstreamServer)
 	for _, cluster := range clusters {
 		for _, host := range cluster.Hosts {
@@ -43,7 +43,7 @@ func newWeightCase(t *testing.T, clusters []*testutil.WeightCluster) *weightCase
 		}
 	}
 	return &weightCase{
-		testCase:   tc,
+		TestCase:   tc,
 		appServers: appServers,
 		clusters:   clusters,
 	}
@@ -55,12 +55,12 @@ func (c *weightCase) Start() {
 	}
 
 	meshAddr := testutil.CurrentMeshAddr()
-	c.clientMeshAddr = meshAddr
+	c.ClientMeshAddr = meshAddr
 	cfg := testutil.CreateWeightProxyMesh(meshAddr, protocol.SofaRPC, c.clusters)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.stop
+		<-c.Stop
 		for _, appserver := range c.appServers {
 			appserver.Close()
 		}
@@ -131,7 +131,7 @@ func TestWeightProxy(t *testing.T) {
 	tc := newWeightCase(t, []*testutil.WeightCluster{cluster1, cluster2})
 	pass := false
 	tc.Start()
-	go tc.RunCase(100)
+	go tc.RunCase(100, 0)
 	select {
 	case err := <-tc.C:
 		if err != nil {
@@ -141,7 +141,7 @@ func TestWeightProxy(t *testing.T) {
 	case <-time.After(100 * time.Second):
 		t.Error("[ERROR MESSAGE] weighted proxy hangn")
 	}
-	close(tc.stop)
+	close(tc.Stop)
 	time.Sleep(time.Second)
 	// Verify Weight
 	if pass {

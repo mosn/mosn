@@ -19,7 +19,6 @@ package http2
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,6 +30,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -145,12 +145,11 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 		serverStreamConnCallbacks: callbacks,
 	}
 
-	if tlsConn, ok := ssc.connection.RawConn().(*tls.Conn); ok {
-
+	if tlsConn, ok := ssc.connection.RawConn().(*mtls.TLSConn); ok {
+		tlsConn.SetALPN(http2.NextProtoTLS)
 		if err := tlsConn.Handshake(); err != nil {
 			logger := log.ByContext(context)
 			logger.Errorf("TLS handshake error from %s: %v", ssc.connection.RemoteAddr(), err)
-
 			return nil
 		}
 	}
@@ -241,20 +240,22 @@ type clientStream struct {
 // types.StreamSender
 func (s *clientStream) AppendHeaders(context context.Context, headers types.HeaderMap, endStream bool) error {
 	log.DefaultLogger.Tracef("http2 client stream encode headers")
-	//headersMap, _ := headers.(map[string]string)
-	headersMap := headers.(protocol.CommonHeader)
-
+	headersMap, _ := headers.(protocol.CommonHeader)
+	scheme := "http"
+	if _, ok := s.connection.connection.RawConn().(*mtls.TLSConn); ok {
+		scheme = "https"
+	}
 	if s.request == nil {
 		s.request = new(http.Request)
 		s.request.Method = http.MethodGet
-		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s/",
+		s.request.URL, _ = url.Parse(fmt.Sprintf(scheme+"://%s/",
 			s.connection.connection.RemoteAddr().String()))
 	}
 
 	var URI string
 
 	if path, ok := headersMap[protocol.MosnHeaderPathKey]; ok {
-		URI = fmt.Sprintf("http://%s%s", s.connection.connection.RemoteAddr().String(), path)
+		URI = fmt.Sprintf(scheme+"://%s%s", s.connection.connection.RemoteAddr().String(), path)
 		delete(headersMap, protocol.MosnHeaderPathKey)
 	}
 
