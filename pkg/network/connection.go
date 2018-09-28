@@ -111,10 +111,10 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		writeSchedChan:   make(chan bool, 1),
 		transferChan:     make(chan uint64),
 		stats: &types.ConnectionStats{
-			ReadTotal:    metrics.NewCounter(),
-			ReadCurrent:  metrics.NewGauge(),
-			WriteTotal:   metrics.NewCounter(),
-			WriteCurrent: metrics.NewGauge(),
+			ReadTotal:     metrics.NewCounter(),
+			ReadBuffered:  metrics.NewGauge(),
+			WriteTotal:    metrics.NewCounter(),
+			WriteBuffered: metrics.NewGauge(),
 		},
 		logger: logger,
 	}
@@ -381,13 +381,12 @@ func (c *connection) doRead() (err error) {
 		}
 	}
 
-	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Len()))
-
 	for _, cb := range c.bytesReadCallbacks {
 		cb(uint64(bytesRead))
 	}
 
 	c.onRead(bytesRead)
+	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Len()))
 
 	return
 }
@@ -403,7 +402,7 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 
 	if bytesBufSize != c.lastBytesSizeRead {
 		// todo: fix: when read blocks, ReadCurrent is out-of-date
-		c.stats.ReadCurrent.Update(bytesBufSize)
+		c.stats.ReadBuffered.Update(bytesBufSize)
 		c.lastBytesSizeRead = bytesBufSize
 	}
 }
@@ -597,7 +596,7 @@ func (c *connection) updateWriteBuffStats(bytesWrite int64, bytesBufSize int64) 
 	}
 
 	if bytesBufSize != c.lastWriteSizeWrite {
-		c.stats.WriteCurrent.Update(bytesBufSize)
+		c.stats.WriteBuffered.Update(bytesBufSize)
 		c.lastWriteSizeWrite = bytesBufSize
 	}
 }
@@ -835,10 +834,10 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			writeBufferChan:  make(chan *[]types.IoBuffer, 32),
 			writeSchedChan:   make(chan bool, 1),
 			stats: &types.ConnectionStats{
-				ReadTotal:    metrics.NewCounter(),
-				ReadCurrent:  metrics.NewGauge(),
-				WriteTotal:   metrics.NewCounter(),
-				WriteCurrent: metrics.NewGauge(),
+				ReadTotal:     metrics.NewCounter(),
+				ReadBuffered:  metrics.NewGauge(),
+				WriteTotal:    metrics.NewCounter(),
+				WriteBuffered: metrics.NewGauge(),
 			},
 			logger: logger,
 			tlsMng: tlsMng,

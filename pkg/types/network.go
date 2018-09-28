@@ -74,11 +74,6 @@ import (
 //    --------------------------------------------------
 //
 
-// The prefix
-const (
-	ListenerStatsPrefix = "listener.%d."
-)
-
 // Listener is a wrapper of tcp listener
 type Listener interface {
 	// Return config which initialize this listener
@@ -300,10 +295,10 @@ type Connection interface {
 
 // ConnectionStats is a group of connection metrics
 type ConnectionStats struct {
-	ReadTotal    metrics.Counter
-	ReadCurrent  metrics.Gauge
-	WriteTotal   metrics.Counter
-	WriteCurrent metrics.Gauge
+	ReadTotal     metrics.Counter
+	ReadBuffered  metrics.Gauge
+	WriteTotal    metrics.Counter
+	WriteBuffered metrics.Gauge
 }
 
 // ClientConnection is a wrapper of Connection

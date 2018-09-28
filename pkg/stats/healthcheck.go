@@ -15,22 +15,30 @@
  * limitations under the License.
  */
 
-package server
+package stats
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/stats"
-	metrics "github.com/rcrowley/go-metrics"
+	"fmt"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type listenerStats struct {
-	DownstreamBytesReadTotal  metrics.Counter
-	DownstreamBytesWriteTotal metrics.Counter
-}
+// HealthCheckType represents health check metrics type
+const HealthCheckType = "healthcheck"
 
-func newListenerStats(listenerName string) *listenerStats {
-	s := stats.NewListenerStats(listenerName)
-	return &listenerStats{
-		DownstreamBytesReadTotal:  s.Counter(stats.DownstreamBytesReadTotal),
-		DownstreamBytesWriteTotal: s.Counter(stats.DownstreamBytesWriteTotal),
-	}
+// health check metrics key
+const (
+	HealthCheckAttempt        = "health_check_attempt"
+	HealthCheckSuccess        = "health_check_success"
+	HealthCheckFailure        = "health_check_failure"
+	HealthCheckPassiveFailure = "health_check_passive_failure"
+	HealthCheckNetworkFailure = "health_check_network_failure"
+	HealthCheckVeirfyCluster  = "health_check_verify_cluster"
+	HealthCheckHealthy        = "health_check_healty"
+)
+
+// NewHealthStats returns a stats with namespace prefix service
+func NewHealthStats(serviceName string) types.Metrics {
+	namespace := fmt.Sprintf("service.%s", serviceName)
+	return NewStats(HealthCheckType, namespace)
 }
