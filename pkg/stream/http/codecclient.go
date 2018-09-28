@@ -20,13 +20,13 @@ package http
 import (
 	"container/list"
 	"context"
-	"crypto/tls"
 	"sync"
 	"sync/atomic"
 
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
+	"time"
 )
 
 // connection management is done by fasthttp
@@ -53,27 +53,18 @@ type codecClient struct {
 	RemoteCloseFlag           bool
 }
 
-func NewHTTP1CodecClient(context context.Context, host types.HostInfo) str.CodecClient {
-	var isTLS bool
-	var tlsConfig *tls.Config
-	tlsMng := host.ClusterInfo().TLSMng()
-	if tlsMng != nil && tlsMng.Enabled() {
-		isTLS = true
-		tlsConfig = tlsMng.Config()
-	}
+func NewHTTP1CodecClient(context context.Context, ac *activeClient) str.CodecClient {
 	codecClient := &codecClient{
 		client: &fasthttp.HostClient{
-			Addr:          host.AddressString(),
-			DialDualStack: true,
-			IsTLS:         isTLS,
-			TLSConfig:     tlsConfig,
+			Addr:                ac.pool.host.AddressString(),
+			DialDualStack:       true,
+			Dial:                ac.Dial,
+			MaxIdleConnDuration: 60 * time.Second,
 		},
 		context:        context,
-		Host:           host,
+		Host:           ac.pool.host,
 		ActiveRequests: list.New(),
 	}
-
-	//codecClient.client.Dial = pool.createConnection
 
 	codecClient.Codec = newClientStreamWrapper(context, codecClient.client, codecClient, codecClient)
 	return codecClient

@@ -23,7 +23,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/tls"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -110,7 +110,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 
 	cluster.info.lbInstance = lb
 
-	mgr, err := tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
+	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 	if err != nil {
 		log.DefaultLogger.Fatalf("create tls context manager failed, %v", err)
 	}
