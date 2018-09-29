@@ -335,7 +335,10 @@ func (sslb *subSetLoadBalancer) ExtractSubsetMetadata(subsetKeys []string, host 
 		if !exist {
 			break
 		} else {
-			v := types.Pair{key, value}
+			v := types.Pair{
+				T1: key,
+				T2: value,
+			}
 			kvs = append(kvs, v)
 		}
 	}
@@ -583,7 +586,10 @@ func GenerateSubsetKeys(keysArray [][]string) []types.SortedStringSetType {
 func GenerateDftSubsetKeys(dftkeys types.SortedMap) types.SubsetMetadata {
 	var sm types.SubsetMetadata
 	for _, pair := range dftkeys {
-		sm = append(sm, types.Pair{pair.Key, types.GenerateHashedValue(pair.Value)})
+		sm = append(sm, types.Pair{
+			T1: pair.Key,
+			T2: types.GenerateHashedValue(pair.Value),
+		})
 	}
 
 	return sm

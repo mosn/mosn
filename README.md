@@ -21,7 +21,7 @@ follow-up development and build an open source boutique project together.
 + Multi-protocol support
     + HTTP/1.1，HTTP/2.0
     + SOFARPC
-    + Dubbo
+    + Dubbo(ongoing)
 + Routing support
     + Routing in form of virtual host
     + Routing with headers/url/prefix
@@ -47,20 +47,20 @@ follow-up development and build an open source boutique project together.
     + Support self-defined private protocol
     + Scalable Network/IO ，stream layer
     
-## Feature of Iterative Version
-* [Changelog](CHANGELOG.md)
- 
-## Architecture Design
-* [Reference](docs/design/README.md)
+## More Introduction
+* [MOSN Introduction](docs/Introduction.md)
 
 ## Quic Start
-* [Details](docs/develop/quickstart.md)
+* [Reference](docs/quickstart/Setup.md)
    
 ## Docs
-* [More here](docs/mosnCatalog.md)
+* [Catalog](docs/Catalog.md)
 
 ## Community
 * [Issues](https://github.com/alipay/sofa-mosn/issues)
+
+## Version
+* [Changelog](CHANGELOG.md)
 
 ## Contribution
 + [How to contribute the code](docs/develop/CONTRIBUTING.md)
@@ -69,7 +69,7 @@ follow-up development and build an open source boutique project together.
    + Completing core routing function
    + Outlier detection
    + Tracing support
-   + HTTP/1.x, HTTP/2.0 performance optimization
+   + HTTP/1.x, HTTP/2.0 performance optimizationAddRouterConfig(cluster.Name)
    + Flow control
    
 ## Thanks

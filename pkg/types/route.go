@@ -47,7 +47,7 @@ const (
 // Routers defines and manages all router
 type Routers interface {
 	// Route is used to route with headers
-	Route(headers map[string]string, randomValue uint64) Route
+	Route(headers HeaderMap, randomValue uint64) Route
 }
 
 // RouterManager is a manager for all routers' config
@@ -237,7 +237,7 @@ type VirtualHost interface {
 	RateLimitPolicy() RateLimitPolicy
 
 	// GetRouteFromEntries returns a Route matched the condition
-	GetRouteFromEntries(headers map[string]string, randomValue uint64) Route
+	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
 }
 
 type MetadataMatcher interface {

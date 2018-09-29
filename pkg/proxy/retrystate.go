@@ -27,7 +27,7 @@ import (
 
 type retryState struct {
 	retryPolicy     types.RetryPolicy
-	requestHeaders  map[string]string
+	requestHeaders  types.HeaderMap
 	cluster         types.ClusterInfo
 	retryOn         bool
 	retiesRemaining uint32
@@ -36,7 +36,7 @@ type retryState struct {
 }
 
 func newRetryState(retryPolicy types.RetryPolicy,
-	requestHeaders map[string]string, cluster types.ClusterInfo) *retryState {
+	requestHeaders types.HeaderMap, cluster types.ClusterInfo) *retryState {
 	rs := &retryState{
 		retryPolicy:     retryPolicy,
 		requestHeaders:  requestHeaders,
@@ -52,7 +52,7 @@ func newRetryState(retryPolicy types.RetryPolicy,
 	return rs
 }
 
-func (r *retryState) retry(headers map[string]string, reason types.StreamResetReason, doRetry func()) types.RetryCheckStatus {
+func (r *retryState) retry(headers types.HeaderMap, reason types.StreamResetReason, doRetry func()) types.RetryCheckStatus {
 	r.reset()
 
 	check := r.shouldRetry(headers, reason)
@@ -66,7 +66,7 @@ func (r *retryState) retry(headers map[string]string, reason types.StreamResetRe
 	return 0
 }
 
-func (r *retryState) shouldRetry(headers map[string]string, reason types.StreamResetReason) types.RetryCheckStatus {
+func (r *retryState) shouldRetry(headers types.HeaderMap, reason types.StreamResetReason) types.RetryCheckStatus {
 	if r.retiesRemaining == 0 {
 		return types.NoRetry
 	}
@@ -99,13 +99,13 @@ func (r *retryState) scheduleRetry(doRetry func()) *timer {
 	return timer
 }
 
-func (r *retryState) doRetryCheck(headers map[string]string, reason types.StreamResetReason) bool {
+func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamResetReason) bool {
 	if reason == types.StreamOverflow {
 		return false
 	}
 
 	if r.retryOn {
-		if code, ok := headers[types.HeaderStatus]; ok {
+		if code, ok := headers.Get(types.HeaderStatus); ok {
 			codeValue, _ := strconv.Atoi(code)
 
 			return codeValue >= 500

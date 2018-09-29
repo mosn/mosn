@@ -63,16 +63,11 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 	}
 }
 
-func (f *healthCheckFilter) OnDecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
-	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
-		cmdCode := sofarpc.ConvertPropertyValueInt16(cmdCodeStr)
-
-		//sofarpc.HEARTBEAT(0) is equal to sofarpc.TR_HEARTBEAT(0)
-		if cmdCode == sofarpc.HEARTBEAT {
-			protocolStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderProtocolCode)]
-			f.protocol = sofarpc.ConvertPropertyValueUint8(protocolStr)
-			requestIDStr := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]
-			f.requestID = sofarpc.ConvertPropertyValueUint32(requestIDStr)
+func (f *healthCheckFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.FilterHeadersStatus {
+	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+		if cmd.GetCmdCode() == sofarpc.HEARTBEAT {
+			f.protocol = cmd.GetProtocol()
+			f.requestID = cmd.GetReqID()
 			f.healthCheckReq = true
 			f.cb.RequestInfo().SetHealthCheck(true)
 
@@ -107,7 +102,7 @@ func (f *healthCheckFilter) OnDecodeData(buf types.IoBuffer, endStream bool) typ
 	return types.FilterDataStatusContinue
 }
 
-func (f *healthCheckFilter) OnDecodeTrailers(trailers map[string]string) types.FilterTrailersStatus {
+func (f *healthCheckFilter) OnDecodeTrailers(trailers types.HeaderMap) types.FilterTrailersStatus {
 	if f.intercept {
 		f.handleIntercept()
 	}
@@ -122,7 +117,7 @@ func (f *healthCheckFilter) OnDecodeTrailers(trailers map[string]string) types.F
 func (f *healthCheckFilter) handleIntercept() {
 	// todo: cal status based on cluster healthy host stats and f.clusterMinHealthyPercentages
 
-	var resp interface{}
+	var resp types.HeaderMap
 
 	//TODO add protocol-level interface for heartbeat process, like Protocols.TriggerHeartbeat(protocolCode, requestID)&Protocols.ReplyHeartbeat(protocolCode, requestID)
 	switch f.protocol {

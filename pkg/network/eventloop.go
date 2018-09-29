@@ -19,10 +19,11 @@ package network
 
 import (
 	"errors"
-	"log"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"log"
 
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/neverhook/easygo/netpoll"

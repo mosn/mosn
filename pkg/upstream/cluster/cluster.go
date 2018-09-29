@@ -18,15 +18,13 @@
 package cluster
 
 import (
-	"fmt"
 	"net"
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/tls"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
 )
 
 // Cluster
@@ -65,7 +63,7 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool)
 	return newCluster
 }
 
-func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool, initHelper concreteClusterInitHelper) cluster {
+func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool, initHelper concreteClusterInitHelper) *cluster {
 	cluster := cluster{
 		prioritySet: &prioritySet{},
 		info: &clusterInfo{
@@ -75,7 +73,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 			addedViaAPI:          addedViaAPI,
 			maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
 			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
-			stats:                newClusterStats(clusterConfig),
+			stats:                newClusterStats(clusterConfig.Name),
 			lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
 		},
 		initHelper: initHelper,
@@ -112,13 +110,13 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 
 	cluster.info.lbInstance = lb
 
-	mgr, err := tls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
+	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 	if err != nil {
 		log.DefaultLogger.Fatalf("create tls context manager failed, %v", err)
 	}
 	cluster.info.tlsMng = mgr
 
-	return cluster
+	return &cluster
 }
 
 func (c *cluster) Initialize(cb func()) {
@@ -130,42 +128,6 @@ func (c *cluster) Initialize(cb func()) {
 
 	if c.initializationCompleteCallback != nil {
 		c.initializationCompleteCallback()
-	}
-}
-
-func newClusterStats(config v2.Cluster) types.ClusterStats {
-	nameSpace := fmt.Sprintf("cluster.%s", config.Name)
-
-	return types.ClusterStats{
-		Namespace:                                      nameSpace,
-		UpstreamConnectionTotal:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total"), nil),
-		UpstreamConnectionClose:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_close"), nil),
-		UpstreamConnectionActive:                       metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_active"), nil),
-		UpstreamConnectionTotalHTTP1:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http1"), nil),
-		UpstreamConnectionTotalHTTP2:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_http2"), nil),
-		UpstreamConnectionTotalSofaRPC:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_total_sofarpc"), nil),
-		UpstreamConnectionConFail:                      metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_con_fail"), nil),
-		UpstreamConnectionRetry:                        metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_retry"), nil),
-		UpstreamConnectionLocalClose:                   metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_local_close"), nil),
-		UpstreamConnectionRemoteClose:                  metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_remote_close"), nil),
-		UpstreamConnectionLocalCloseWithActiveRequest:  metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_local_close_with_active_request"), nil),
-		UpstreamConnectionRemoteCloseWithActiveRequest: metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_remote_close_with_active_request"), nil),
-		UpstreamConnectionCloseNotify:                  metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_close_notify"), nil),
-		UpstreamBytesRead:                              metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_bytes_read"), nil),
-		UpstreamBytesReadCurrent:                       metrics.GetOrRegisterGauge(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_bytes_read_current"), nil),
-		UpstreamBytesWrite:                             metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_bytes_write"), nil),
-		UpstreamBytesWriteCurrent:                      metrics.GetOrRegisterGauge(fmt.Sprintf("%s.%s", nameSpace, "upstream_connection_bytes_write_current"), nil),
-		UpstreamRequestTotal:                           metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_total"), nil),
-		UpstreamRequestActive:                          metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_active"), nil),
-		UpstreamRequestLocalReset:                      metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_local_reset"), nil),
-		UpstreamRequestRemoteReset:                     metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_remote_reset"), nil),
-		UpstreamRequestTimeout:                         metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_request_timeout"), nil),
-		UpstreamRequestFailureEject:                    metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_failure_eject"), nil),
-		UpstreamRequestPendingOverflow:                 metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_request_pending_overflow"), nil),
-		LBSubSetsFallBack:                              metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubSetsFallBack"), nil),
-		LBSubSetsActive:                                metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubSetsActive"), nil),
-		LBSubsetsCreated:                               metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubsetsCreated"), nil),
-		LBSubsetsRemoved:                               metrics.GetOrRegisterCounter(fmt.Sprintf("%s.%s", nameSpace, "upstream_LBSubsetsRemoved"), nil),
 	}
 }
 

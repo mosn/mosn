@@ -34,7 +34,7 @@ import (
 
 // NewRouteRuleImplBase
 // new routerule implement basement
-func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleImplBase, error) {
+func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleImplBase, error) {
 	routeRuleImplBase := RouteRuleImplBase{
 		vHost:                 vHost,
 		routerMatch:           route.Match,
@@ -66,7 +66,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (RouteRuleIm
 		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(route.Route.MetadataMatch)
 	}
 
-	return routeRuleImplBase, nil
+	return &routeRuleImplBase, nil
 }
 
 // Base implementation for all route entries.
@@ -205,7 +205,7 @@ func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.Me
 	return rri.metadataMatchCriteria
 }
 
-func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue uint64) bool {
+func (rri *RouteRuleImplBase) matchRoute(headers types.HeaderMap, randomValue uint64) bool {
 	// todo check runtime
 	// 1. match headers' KV
 	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
@@ -216,7 +216,7 @@ func (rri *RouteRuleImplBase) matchRoute(headers map[string]string, randomValue 
 	// 2. match query parameters
 	var queryParams types.QueryParams
 
-	if QueryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
+	if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
 		queryParams = httpmosn.ParseQueryString(QueryString)
 	}
 
@@ -269,7 +269,7 @@ func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers map[string]string,
 }
 
 type SofaRouteRuleImpl struct {
-	RouteRuleImplBase
+	*RouteRuleImplBase
 	matchValue string
 }
 
@@ -283,8 +283,8 @@ func (srri *SofaRouteRuleImpl) MatchType() types.PathMatchType {
 	return types.SofaHeader
 }
 
-func (srri *SofaRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
-	if value, ok := headers[types.SofaRouteMatchKey]; ok {
+func (srri *SofaRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
+	if value, ok := headers.Get(types.SofaRouteMatchKey); ok {
 		if value == srri.matchValue || srri.matchValue == ".*" {
 			log.DefaultLogger.Debugf("Sofa router matches success")
 			return srri
@@ -307,7 +307,7 @@ func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string,
 }
 
 type PathRouteRuleImpl struct {
-	RouteRuleImplBase
+	*RouteRuleImplBase
 	path string
 }
 
@@ -322,12 +322,12 @@ func (prri *PathRouteRuleImpl) MatchType() types.PathMatchType {
 }
 
 // Exact Path Comparing
-func (prri *PathRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
+func (prri *PathRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
 	// match base rule first
 	log.StartLogger.Debugf("path route rule match invoked")
 	if prri.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers[strings.ToLower(protocol.MosnHeaderPathKey)]; ok {
+		if headerPathValue, ok := headers.Get(strings.ToLower(protocol.MosnHeaderPathKey)); ok {
 
 			if prri.caseSensitive {
 				if headerPathValue == prri.path {
@@ -355,7 +355,7 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string,
 }
 
 type PrefixRouteRuleImpl struct {
-	RouteRuleImplBase
+	*RouteRuleImplBase
 	prefix string
 }
 
@@ -370,11 +370,11 @@ func (prei *PrefixRouteRuleImpl) MatchType() types.PathMatchType {
 }
 
 // Compare Path's Prefix
-func (prei *PrefixRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
+func (prei *PrefixRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
 
 	if prei.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers[strings.ToLower(protocol.MosnHeaderPathKey)]; ok {
+		if headerPathValue, ok := headers.Get(strings.ToLower(protocol.MosnHeaderPathKey)); ok {
 
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
 				log.DefaultLogger.Debugf("prefix route rule match success")
@@ -398,9 +398,9 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers map[string]strin
 
 //
 type RegexRouteRuleImpl struct {
-	RouteRuleImplBase
+	*RouteRuleImplBase
 	regexStr     string
-	regexPattern regexp.Regexp
+	regexPattern *regexp.Regexp
 }
 
 func (rrei *RegexRouteRuleImpl) Matcher() string {
@@ -413,9 +413,9 @@ func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
 	return types.Regex
 }
 
-func (rrei *RegexRouteRuleImpl) Match(headers map[string]string, randomValue uint64) types.Route {
+func (rrei *RegexRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
 	if rrei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers[strings.ToLower(protocol.MosnHeaderPathKey)]; ok {
+		if headerPathValue, ok := headers.Get(strings.ToLower(protocol.MosnHeaderPathKey)); ok {
 
 			if rrei.regexPattern.MatchString(headerPathValue) {
 				log.DefaultLogger.Debugf("regex route rule match success")

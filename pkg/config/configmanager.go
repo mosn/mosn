@@ -74,7 +74,7 @@ func AddClusterConfig(clusters []v2.Cluster) {
 		}
 
 		// update routes
-		//AddRouterConfig(cluster.Type)
+		//AddRouterConfig(cluster.Name)
 	}
 	go dump(true)
 }

@@ -74,20 +74,6 @@ func ConvertPropertyValue(strValue string, kind reflect.Kind) interface{} {
 	}
 }
 
-func IsSofaRequest(headers map[string]string) bool {
-	procode := ConvertPropertyValueUint8(headers[SofaPropertyHeader(HeaderProtocolCode)])
-
-	if procode == PROTOCOL_CODE_V1 || procode == PROTOCOL_CODE_V2 {
-		cmdtype := ConvertPropertyValueUint8(headers[SofaPropertyHeader(HeaderCmdType)])
-
-		if cmdtype == REQUEST {
-			return true
-		}
-	}
-
-	return false
-}
-
 func GetPropertyValue1(properHeaders map[string]reflect.Kind, headers map[string]string, name string) string {
 	propertyHeaderName := SofaPropertyHeader(name)
 

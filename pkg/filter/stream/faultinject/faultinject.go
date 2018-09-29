@@ -52,7 +52,7 @@ func NewFaultInjectFilter(context context.Context, config *v2.FaultInject) types
 	}
 }
 
-func (f *faultInjectFilter) OnDecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
+func (f *faultInjectFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.FilterHeadersStatus {
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
@@ -72,7 +72,7 @@ func (f *faultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) typ
 	return types.FilterDataStatusContinue
 }
 
-func (f *faultInjectFilter) OnDecodeTrailers(trailers map[string]string) types.FilterTrailersStatus {
+func (f *faultInjectFilter) OnDecodeTrailers(trailers types.HeaderMap) types.FilterTrailersStatus {
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {

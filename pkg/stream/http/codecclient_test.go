@@ -48,13 +48,13 @@ func newMockClient(t *testing.T) *mockClient {
 func (c *mockClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("data:%v endStream:%v", data, endStream)
 }
-func (c *mockClient) OnReceiveTrailers(context context.Context, trailers map[string]string) {
+func (c *mockClient) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 	log.DefaultLogger.Debugf("trailers:%v", trailers)
 }
-func (c *mockClient) OnDecodeError(context context.Context, err error, headers map[string]string) {
+func (c *mockClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 	c.t.Errorf("err:%v headers:%v", err, headers)
 }
-func (c *mockClient) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
+func (c *mockClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	log.DefaultLogger.Debugf("headers:%v endStream:%v", headers, endStream)
 }
 
@@ -72,7 +72,10 @@ func TestActiveRequests(t *testing.T) {
 			Address: "127.0.0.1", Hostname: "test", Weight: 0,
 		},
 	}, cluster.NewClusterInfo())
-	codecClient := NewHTTP1CodecClient(context.Background(), host)
+	ac := &activeClient{
+		pool: &connPool{host: host},
+	}
+	codecClient := NewHTTP1CodecClient(context.Background(), ac)
 	ctx := context.Background()
 
 	codecClient.NewStream(ctx, protocol.StreamIDConv(1), cli)

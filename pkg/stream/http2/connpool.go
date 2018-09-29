@@ -27,7 +27,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	metrics "github.com/rcrowley/go-metrics"
 	"golang.org/x/net/http2"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 )
 
 const (
@@ -162,7 +164,6 @@ func (p *connPool) onGoAway(client *activeClient) {
 
 	p.host.HostStats().UpstreamConnectionCloseNotify.Inc(1)
 	p.host.ClusterInfo().Stats().UpstreamConnectionCloseNotify.Inc(1)
-
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -265,6 +266,13 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		ConnPool: pool,
 	}
 
+	if tlsConn, ok := data.Connection.RawConn().(*mtls.TLSConn); ok {
+		if err := tlsConn.Handshake(); err != nil {
+			data.Connection.Close(types.NoFlush, types.ConnectFailed)
+			return nil
+		}
+	}
+
 	h2Conn, err := transport.NewClientConn(data.Connection.RawConn())
 
 	if err != nil {
@@ -285,16 +293,17 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	pool.host.HostStats().UpstreamConnectionTotalHTTP2.Inc(1)
+	//pool.host.HostStats().UpstreamConnectionTotalHTTP2.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP2.Inc(1)
+	//pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP2.Inc(1)
 
+	// bytes total adds all connections data together, but buffered data not
 	codecClient.SetConnectionStats(&types.ConnectionStats{
-		ReadTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesRead,
-		ReadCurrent:  pool.host.ClusterInfo().Stats().UpstreamBytesReadCurrent,
-		WriteTotal:   pool.host.ClusterInfo().Stats().UpstreamBytesWrite,
-		WriteCurrent: pool.host.ClusterInfo().Stats().UpstreamBytesWriteCurrent,
+		ReadTotal:     pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal,
+		ReadBuffered:  metrics.NewGauge(),
+		WriteTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal,
+		WriteBuffered: metrics.NewGauge(),
 	})
 
 	return ac

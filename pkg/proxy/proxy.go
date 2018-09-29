@@ -31,18 +31,19 @@ import (
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var (
-	globalStats *proxyStats
+	globalStats *Stats
 
 	workerPool mosnsync.ShardWorkerPool
 )
 
 func init() {
-	globalStats = newProxyStats(types.GlobalStatsNamespace)
+	globalStats = newProxyStats(types.GlobalProxyName)
 
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
@@ -67,8 +68,8 @@ type proxy struct {
 	context             context.Context
 	activeSteams        *list.List // downstream requests
 	asMux               sync.RWMutex
-	stats               *proxyStats
-	listenerStats       *listenerStats
+	stats               *Stats
+	listenerStats       *Stats
 	accessLogs          []types.AccessLog
 }
 
@@ -96,8 +97,8 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		log.DefaultLogger.Errorf("get proxy extend config fail = %v", err)
 	}
 
-	listenStatsNamespace := ctx.Value(types.ContextKeyListenerStatsNameSpace).(string)
-	proxy.listenerStats = newListenerStats(listenStatsNamespace)
+	listenerName := ctx.Value(types.ContextKeyListenerName).(string)
+	proxy.listenerStats = newListenerStats(listenerName)
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByListenerName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
@@ -121,8 +122,10 @@ func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 //rpc realize upstream on event
 func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
-		p.stats.DownstreamConnectionDestroy().Inc(1)
-		p.stats.DownstreamConnectionActive().Dec(1)
+		p.stats.DownstreamConnectionDestroy.Inc(1)
+		p.stats.DownstreamConnectionActive.Dec(1)
+		p.listenerStats.DownstreamConnectionDestroy.Inc(1)
+		p.listenerStats.DownstreamConnectionActive.Dec(1)
 		var urEleNext *list.Element
 
 		p.asMux.RLock()
@@ -152,15 +155,18 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 
+	// bytes total adds all connections data together, but buffered data not
 	cb.Connection().SetStats(&types.ConnectionStats{
-		ReadTotal:    p.stats.DownstreamBytesRead(),
-		ReadCurrent:  p.stats.DownstreamBytesReadCurrent(),
-		WriteTotal:   p.stats.DownstreamBytesWrite(),
-		WriteCurrent: p.stats.DownstreamBytesWriteCurrent(),
+		ReadTotal:     p.stats.DownstreamBytesReadTotal,
+		ReadBuffered:  metrics.NewGauge(),
+		WriteTotal:    p.stats.DownstreamBytesWriteTotal,
+		WriteBuffered: metrics.NewGauge(),
 	})
 
-	p.stats.DownstreamConnectionTotal().Inc(1)
-	p.stats.DownstreamConnectionActive().Inc(1)
+	p.stats.DownstreamConnectionTotal.Inc(1)
+	p.stats.DownstreamConnectionActive.Inc(1)
+	p.listenerStats.DownstreamConnectionTotal.Inc(1)
+	p.listenerStats.DownstreamConnectionActive.Inc(1)
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
 	p.serverCodec = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)

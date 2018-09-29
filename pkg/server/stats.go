@@ -19,73 +19,18 @@ package server
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/stats"
-	"github.com/rcrowley/go-metrics"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
-// Stats names
-const (
-	DownstreamConnectionTotal   = "downstream_connection_total"
-	DownstreamConnectionDestroy = "downstream_connection_destroy"
-	DownstreamConnectionActive  = "downstream_connection_active"
-	DownstreamBytesRead         = "downstream_bytes_read"
-	DownstreamBytesReadCurrent  = "downstream_bytes_read_current"
-	DownstreamBytesWrite        = "downstream_bytes_write"
-	DownstreamBytesWriteCurrent = "downstream_bytes_write_current"
-)
-
-// ListenerStats is stats for listener
-type ListenerStats struct {
-	stats *stats.Stats
+type listenerStats struct {
+	DownstreamBytesReadTotal  metrics.Counter
+	DownstreamBytesWriteTotal metrics.Counter
 }
 
-func newListenerStats(namespace string) *ListenerStats {
-	return &ListenerStats{
-		stats: initStats(namespace),
+func newListenerStats(listenerName string) *listenerStats {
+	s := stats.NewListenerStats(listenerName)
+	return &listenerStats{
+		DownstreamBytesReadTotal:  s.Counter(stats.DownstreamBytesReadTotal),
+		DownstreamBytesWriteTotal: s.Counter(stats.DownstreamBytesWriteTotal),
 	}
-}
-
-func initStats(namespace string) *stats.Stats {
-	return stats.NewStats(namespace).AddCounter(DownstreamConnectionTotal).AddCounter(DownstreamConnectionDestroy).
-		AddCounter(DownstreamConnectionActive).AddCounter(DownstreamBytesRead).
-		AddGauge(DownstreamBytesReadCurrent).AddCounter(DownstreamBytesWrite).
-		AddGauge(DownstreamBytesWriteCurrent)
-}
-
-// DownstreamConnectionTotal return downstream connection total number
-func (ls *ListenerStats) DownstreamConnectionTotal() metrics.Counter {
-	return ls.stats.Counter(DownstreamConnectionTotal)
-}
-
-// DownstreamConnectionDestroy return downstream connection destroy number
-func (ls *ListenerStats) DownstreamConnectionDestroy() metrics.Counter {
-	return ls.stats.Counter(DownstreamConnectionDestroy)
-}
-
-// DownstreamConnectionActive return downstream connection active number
-func (ls *ListenerStats) DownstreamConnectionActive() metrics.Counter {
-	return ls.stats.Counter(DownstreamConnectionActive)
-}
-
-// DownstreamBytesRead return downstream bytes read number
-func (ls *ListenerStats) DownstreamBytesRead() metrics.Counter {
-	return ls.stats.Counter(DownstreamBytesRead)
-}
-
-// DownstreamBytesReadCurrent return downstream bytes read current number
-func (ls *ListenerStats) DownstreamBytesReadCurrent() metrics.Gauge {
-	return ls.stats.Gauge(DownstreamBytesReadCurrent)
-}
-
-// DownstreamBytesWrite return downstream bytes write number
-func (ls *ListenerStats) DownstreamBytesWrite() metrics.Counter {
-	return ls.stats.Counter(DownstreamBytesWrite)
-}
-
-// DownstreamBytesWriteCurrent return downstream bytes write number
-func (ls *ListenerStats) DownstreamBytesWriteCurrent() metrics.Gauge {
-	return ls.stats.Gauge(DownstreamBytesWriteCurrent)
-}
-
-func (ls *ListenerStats) String() string {
-	return ls.stats.String()
 }

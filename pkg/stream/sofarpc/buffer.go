@@ -43,7 +43,7 @@ type sofaBuffers struct {
 	server stream
 }
 
-func sofaBuffersByContent(context context.Context) *sofaBuffers {
+func sofaBuffersByContext(context context.Context) *sofaBuffers {
 	ctx := buffer.PoolContext(context)
 	return ctx.Find(sofaBufferCtx{}, nil).(*sofaBuffers)
 }

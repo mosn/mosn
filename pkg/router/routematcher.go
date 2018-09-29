@@ -66,6 +66,7 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 
 	for _, virtualHost := range routerConfig.VirtualHosts {
 		vh, err := NewVirtualHostImpl(virtualHost, false)
+
 		
 		if err != nil {
 			return nil, err
@@ -126,7 +127,7 @@ type routeMatcher struct {
 }
 
 // Routing with Virtual Host
-func (rm *routeMatcher) Route(headers map[string]string, randomValue uint64) types.Route {
+func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types.Route {
 	// First Step: Select VirtualHost with "host" in Headers form VirtualHost Array
 	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
@@ -146,13 +147,14 @@ func (rm *routeMatcher) Route(headers map[string]string, randomValue uint64) typ
 	return routerInstance
 }
 
-func (rm *routeMatcher) findVirtualHost(headers map[string]string) types.VirtualHost {
+func (rm *routeMatcher) findVirtualHost(headers types.HeaderMap) types.VirtualHost {
 	if len(rm.virtualHosts) == 0 {
 		log.StartLogger.Tracef("route matcher find virtual host return default virtual host")
 		return rm.defaultVirtualHost // Note default virtualhost maybe nil
 	}
 
-	host := strings.ToLower(headers[strings.ToLower(protocol.MosnHeaderHostKey)])
+	hostHeader, _ := headers.Get(strings.ToLower(protocol.MosnHeaderHostKey))
+	host := strings.ToLower(hostHeader)
 
 	// for service, header["host"] == header["service"] == servicename
 	// or use only a unique key for sofa's virtual host

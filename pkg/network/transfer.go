@@ -29,8 +29,11 @@ import (
 	"syscall"
 	"time"
 
+	"runtime/debug"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"golang.org/x/sys/unix"
 )
@@ -42,7 +45,7 @@ const (
 
 // TransferTimeout is the total transfer time
 var TransferTimeout = time.Second * 30 //default 30s
-var transferDomainSocket = filepath.Dir(os.Args[0]) + string(os.PathSeparator) + "mosn.sock"
+var TransferDomainSocket = filepath.Dir(os.Args[0]) + string(os.PathSeparator) + "mosn.sock"
 
 // TransferServer is called on new mosn start
 func TransferServer(handler types.ConnectionHandler) {
@@ -55,10 +58,10 @@ func TransferServer(handler types.ConnectionHandler) {
 	if os.Getenv("_MOSN_GRACEFUL_RESTART") != "true" {
 		return
 	}
-	if _, err := os.Stat(transferDomainSocket); err == nil {
-		os.Remove(transferDomainSocket)
+	if _, err := os.Stat(TransferDomainSocket); err == nil {
+		os.Remove(TransferDomainSocket)
 	}
-	l, err := net.Listen("unix", transferDomainSocket)
+	l, err := net.Listen("unix", TransferDomainSocket)
 	if err != nil {
 		log.DefaultLogger.Errorf("transfer net listen error %v", err)
 		return
@@ -118,15 +121,16 @@ func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *s
 		log.DefaultLogger.Errorf("transferRecvType error :%v", err)
 		return
 	}
-	// recv header + buffer
-	id, buf, err := transferRecvData(uc)
-	if err != nil {
-		log.DefaultLogger.Errorf("transferRecvData error :%v", err)
-	}
 
 	if conn != nil {
 		// transfer read
-		connection := transferNewConn(conn, buf, handler, transferMap)
+		// recv header + buffer
+		dataBuf, tlsBuf, err := transferReadRecvData(uc)
+		if err != nil {
+			log.DefaultLogger.Errorf("transferRecvData error :%v", err)
+			return
+		}
+		connection := transferNewConn(conn, dataBuf, tlsBuf, handler, transferMap)
 		if connection != nil {
 			transferSendID(uc, connection.id)
 		} else {
@@ -134,12 +138,17 @@ func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *s
 		}
 	} else {
 		// transfer write
+		// recv header + buffer
+		id, buf, err := transferWriteRecvData(uc)
+		if err != nil {
+			log.DefaultLogger.Errorf("transferRecvData error :%v", err)
+		}
 		connection := transferFindConnection(transferMap, uint64(id))
 		if connection == nil {
-			log.DefaultLogger.Errorf("transferFindConnection failed")
+			log.DefaultLogger.Errorf("transferFindConnection failed, id = %d", id)
 			return
 		}
-		err := transferWriteBuffer(connection, buf)
+		err = transferWriteBuffer(connection, buf)
 		if err != nil {
 			log.DefaultLogger.Errorf("transferWriteBuffer error :%v", err)
 			return
@@ -148,76 +157,109 @@ func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *s
 }
 
 // old mosn transfer readloop
-func transferRead(conn net.Conn, buf types.IoBuffer, logger log.Logger) (uint64, error) {
+func transferRead(c *connection) (uint64, error) {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Errorf("transferRead panic %v", r)
+			c.logger.Errorf("transferRead panic %v", r)
+			debug.PrintStack()
 		}
 	}()
-	c, err := net.Dial("unix", transferDomainSocket)
+	unixConn, err := net.Dial("unix", TransferDomainSocket)
 	if err != nil {
-		logger.Errorf("net Dial unix failed %v", err)
+		c.logger.Errorf("net Dial unix failed c:%p, id:%d, err:%v", c, c.id, err)
+		return transferErr, err
+	}
+	defer unixConn.Close()
+
+	file, tlsConn, err := transferGetFile(c)
+	if err != nil {
 		return transferErr, err
 	}
 
-	defer c.Close()
-
-	size := buf.Len()
-	tcpconn, ok := conn.(*net.TCPConn)
-	if !ok {
-		logger.Errorf("unexpected net.Conn type; expected TCPConn, got %T", conn)
-		return transferErr, errors.New("unexpected Conn type")
-	}
-	uc := c.(*net.UnixConn)
+	uc := unixConn.(*net.UnixConn)
 	// send type and TCP FD
-	err = transferSendType(uc, tcpconn)
+	err = transferSendType(uc, file)
 	if err != nil {
-		logger.Errorf("transferRead failed: %v", err)
+		c.logger.Errorf("transferRead failed: %v", err)
 		return transferErr, err
 	}
-	// send header + buffer
-	err = transferSendData(uc, 0, buf)
+	// send header + buffer + TLS
+	err = transferReadSendData(uc, tlsConn, c.readBuffer, c.logger)
 	if err != nil {
-		logger.Errorf("transferRead failed: %v", err)
+		c.logger.Errorf("transferRead failed: %v", err)
 		return transferErr, err
 	}
 	// recv ID
 	id := transferRecvID(uc)
-	logger.Infof("TransferRead NewConn id = %d, buffer = %d", id, size)
+	c.logger.Infof("TransferRead NewConn Id = %d, oldId = %d, %p, addrass = %s", id, c.id, c, c.RemoteAddr().String())
 
 	return id, nil
 }
 
 // old mosn transfer writeloop
-func transferWrite(conn *connection, id uint64, logger log.Logger) error {
+func transferWrite(c *connection, id uint64) error {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Errorf("transferWrite panic %v", r)
+			c.logger.Errorf("transferWrite panic %v", r)
 		}
 	}()
-	c, err := net.Dial("unix", transferDomainSocket)
+	unixConn, err := net.Dial("unix", TransferDomainSocket)
 	if err != nil {
-		logger.Errorf("net Dial unix failed %v", err)
+		c.logger.Errorf("net Dial unix failed %v", err)
 		return err
 	}
-	defer c.Close()
+	defer unixConn.Close()
 
-	logger.Infof("TransferWrite id = %d, buffer = %d", id, conn.writeBufLen())
-	uc := c.(*net.UnixConn)
+	c.logger.Infof("TransferWrite id = %d, dataBuf = %d", id, c.writeBufLen())
+	uc := unixConn.(*net.UnixConn)
 	err = transferSendType(uc, nil)
 	if err != nil {
-		logger.Errorf("transferWrite failed: %v", err)
+		c.logger.Errorf("transferWrite failed: %v", err)
 		return err
 	}
 	// build net.Buffers to IoBuffer
-	buf := transferBuildIoBuffer(conn)
+	buf := transferBuildIoBuffer(c)
 	// send header + buffer
-	err = transferSendData(uc, int(id), buf)
+	err = transferWriteSendData(uc, int(id), buf)
 	if err != nil {
-		logger.Errorf("transferWrite failed: %v", err)
+		c.logger.Errorf("transferWrite failed: %v", err)
 		return err
 	}
 	return nil
+}
+
+func transferGetFile(c *connection) (file *os.File, tlsConn *mtls.TLSConn, err error) {
+	switch conn := c.rawConnection.(type) {
+	case *net.TCPConn:
+		file, err = conn.File()
+		if err != nil {
+			return nil, nil, fmt.Errorf("TCP File failed %v", err)
+		}
+	case *mtls.TLSConn:
+		tlsConn = conn
+		netConn := conn.GetRawConn()
+		switch conn := netConn.(type) {
+		case *mtls.Conn:
+			mtlsConn, ok := conn.Conn.(*net.TCPConn)
+			if !ok {
+				return nil, nil, errors.New("unexpected Conn type")
+			}
+			file, err = mtlsConn.File()
+			if err != nil {
+				return nil, nil, fmt.Errorf("mtls.Conn File failed %v", err)
+			}
+		case *net.TCPConn:
+			file, err = conn.File()
+			if err != nil {
+				return nil, nil, fmt.Errorf("TCPConn File failed %v", err)
+			}
+		default:
+			return nil, nil, errors.New("unexpected Conn type")
+		}
+	default:
+		return nil, nil, fmt.Errorf("unexpected net.Conn type; expected TCPConn or mtls.TLSConn, got %T", conn)
+	}
+	return
 }
 
 func transferBuildIoBuffer(c *connection) types.IoBuffer {
@@ -244,8 +286,21 @@ func transferFindConnection(transferMap *sync.Map, id uint64) *connection {
 }
 
 /**
- *  transfer protocol
- *  header (8 bytes) + data (data length)
+ *  transfer read protocol
+ *  header (8 bytes) + (readBuffer data) + TLS
+ *
+ * 0                       4                       8
+ * +-----+-----+-----+-----+-----+-----+-----+-----+
+ * |      data length      |     TLS length        |
+ * +-----+-----+-----+-----+-----+-----+-----+-----+
+ * |                     data                      |
+ * +-----+-----+-----+-----+-----+-----+-----+-----+
+ * |                     TLS                       |
+ * +-----+-----+-----+-----+-----+-----+-----+-----+
+ *
+*
+ *  transfer write protocol
+ *  header (8 bytes) + (writeBuffer data)
  *
  * 0                       4                       8
  * +-----+-----+-----+-----+-----+-----+-----+-----+
@@ -254,16 +309,16 @@ func transferFindConnection(transferMap *sync.Map, id uint64) *connection {
  * |                     data                      |
  * +-----+-----+-----+-----+-----+-----+-----+-----+
  *
- **/
-func transferBuildHead(size uint32, id uint32) []byte {
+**/
+func transferBuildHead(s1 uint32, s2 uint32) []byte {
 	buf := make([]byte, 8)
-	binary.BigEndian.PutUint32(buf[0:], size)
-	binary.BigEndian.PutUint32(buf[4:], id)
+	binary.BigEndian.PutUint32(buf[0:], s1)
+	binary.BigEndian.PutUint32(buf[4:], s2)
 	return buf
 }
 
-func transferSendHead(uc *net.UnixConn, size uint32, id uint32) error {
-	buf := transferBuildHead(size, id)
+func transferSendHead(uc *net.UnixConn, s1 uint32, s2 uint32) error {
+	buf := transferBuildHead(s1, s2)
 	return transferSendMsg(uc, buf)
 }
 
@@ -272,30 +327,26 @@ func transferSendHead(uc *net.UnixConn, size uint32, id uint32) error {
  *  0 : transfer read and FD
  *  1 : transfer write
  **/
-func transferSendType(uc *net.UnixConn, conn *net.TCPConn) error {
+func transferSendType(uc *net.UnixConn, file *os.File) error {
 	buf := make([]byte, 1)
 	// transfer write
-	if conn == nil {
+	if file == nil {
 		buf[0] = 1
 		return transferSendMsg(uc, buf)
 	}
 	// transfer read, send FD
-	return transferSendFD(uc, conn)
+	return transferSendFD(uc, file)
 }
 
-func transferSendFD(uc *net.UnixConn, conn *net.TCPConn) error {
+func transferSendFD(uc *net.UnixConn, file *os.File) error {
 	buf := make([]byte, 1)
 	// transfer read
 	buf[0] = 0
-	if conn == nil {
+	if file == nil {
 		return errors.New("transferSendFD conn is nil")
 	}
-	f, err := conn.File()
-	if err != nil {
-		return fmt.Errorf("TCP File failed %v", err)
-	}
-	defer f.Close()
-	rights := syscall.UnixRights(int(f.Fd()))
+	defer file.Close()
+	rights := syscall.UnixRights(int(file.Fd()))
 	n, oobn, err := uc.WriteMsgUnix(buf, rights, nil)
 	if err != nil {
 		return fmt.Errorf("WriteMsgUnix: %v", err)
@@ -350,7 +401,20 @@ func transferRecvType(uc *net.UnixConn) (net.Conn, error) {
 	return conn, nil
 }
 
-func transferSendData(uc *net.UnixConn, id int, buf types.IoBuffer) error {
+func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer, logger log.Logger) error {
+	// send header
+	s1 := buf.Len()
+	s2 := c.GetTLSInfo(buf)
+	err := transferSendHead(uc, uint32(s1), uint32(s2))
+	if err != nil {
+		return err
+	}
+	logger.Infof("TransferRead dataBuf = %d, tlsBuf = %d", s1, s2)
+	// send read/write buffer
+	return transferSendIoBuffer(uc, buf)
+}
+
+func transferWriteSendData(uc *net.UnixConn, id int, buf types.IoBuffer) error {
 	// send header
 	err := transferSendHead(uc, uint32(buf.Len()), uint32(id))
 	if err != nil {
@@ -360,13 +424,28 @@ func transferSendData(uc *net.UnixConn, id int, buf types.IoBuffer) error {
 	return transferSendIoBuffer(uc, buf)
 }
 
-func transferRecvData(uc *net.UnixConn) (int, []byte, error) {
+func transferReadRecvData(uc *net.UnixConn) ([]byte, []byte, error) {
+	// recv header
+	dataSize, tlsSize, err := transferRecvHead(uc)
+	if err != nil {
+		return nil, nil, err
+	}
+	// recv read buffer and TLS
+	buf, err := transferRecvMsg(uc, dataSize+tlsSize)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return buf[0:dataSize], buf[dataSize:], nil
+}
+
+func transferWriteRecvData(uc *net.UnixConn) (int, []byte, error) {
 	// recv header
 	size, id, err := transferRecvHead(uc)
 	if err != nil {
 		return 0, nil, err
 	}
-	// recv read/write buffer
+	// recv write buffer
 	buf, err := transferRecvMsg(uc, size)
 	if err != nil {
 		return 0, nil, err
@@ -396,12 +475,12 @@ func transferSendIoBuffer(uc *net.UnixConn, buf types.IoBuffer) error {
 	return nil
 }
 
-func transferSendMsg(uc *net.UnixConn, buf []byte) error {
-	if len(buf) == 0 {
+func transferSendMsg(uc *net.UnixConn, b []byte) error {
+	if len(b) == 0 {
 		return nil
 	}
-	iobuf := buffer.NewIoBufferBytes(buf)
-	err := transferSendIoBuffer(uc, iobuf)
+	buf := buffer.NewIoBufferBytes(b)
+	err := transferSendIoBuffer(uc, buf)
 	if err != nil {
 		return fmt.Errorf("transferSendMsg failed: %v", err)
 	}
@@ -441,38 +520,59 @@ func transferRecvID(uc *net.UnixConn) uint64 {
 	return uint64(binary.BigEndian.Uint32(b))
 }
 
-func transferNewConn(conn net.Conn, buf []byte, handler types.ConnectionHandler, transferMap *sync.Map) *connection {
-	address := conn.LocalAddr().(*net.TCPAddr)
-	port := strconv.FormatInt(int64(address.Port), 10)
-	ipv4, _ := net.ResolveTCPAddr("tcp", "0.0.0.0:"+port)
-	ipv6, _ := net.ResolveTCPAddr("tcp", "[::]:"+port)
+func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.ConnectionHandler, transferMap *sync.Map) *connection {
 
-	var listener types.Listener
-	listener = handler.FindListenerByAddress(ipv6)
+	listener := transferFindListen(conn.LocalAddr(), handler)
 	if listener == nil {
-		listener = handler.FindListenerByAddress(ipv4)
-	}
-	if listener == nil {
-		log.DefaultLogger.Errorf("Find Listener failed %v", address)
 		return nil
 	}
-	ch := make(chan types.Connection)
 
+	log.DefaultLogger.Infof("transferNewConn dataBuf = %d, tlsBuf = %d", len(dataBuf), len(tlsBuf))
+
+	var err error
+	if len(tlsBuf) != 0 {
+		conn, err = mtls.GetTLSConn(conn, tlsBuf)
+		if err != nil {
+			log.DefaultLogger.Errorf("transferTLSConn error: %v", err)
+			return nil
+		}
+	}
+
+	ch := make(chan types.Connection)
 	// new connection
-	go listener.GetListenerCallbacks().OnAccept(conn, false, nil, ch, buf)
+	go listener.GetListenerCallbacks().OnAccept(conn, false, nil, ch, dataBuf)
 	select {
 	// recv connection
 	case rch := <-ch:
 		conn, ok := rch.(*connection)
 		if !ok {
-			log.DefaultLogger.Errorf("transfer NewConn failed %v", address)
+			log.DefaultLogger.Errorf("transfer NewConn failed %v", conn.LocalAddr().String())
 			return nil
 		}
 		log.DefaultLogger.Infof("transfer NewConn id: %d", conn.id)
 		transferMap.Store(conn.id, conn)
 		return conn
 	case <-time.After(3000 * time.Millisecond):
-		log.DefaultLogger.Errorf("transfer NewConn timeout %v", address)
+		log.DefaultLogger.Errorf("transfer NewConn timeout, localAddress %v, remoteAddress %v", conn.LocalAddr().String(), conn.RemoteAddr().String())
 		return nil
 	}
+}
+
+func transferFindListen(addr net.Addr, handler types.ConnectionHandler) types.Listener {
+	address := addr.(*net.TCPAddr)
+	port := strconv.FormatInt(int64(address.Port), 10)
+	ipv4, _ := net.ResolveTCPAddr("tcp", "0.0.0.0:"+port)
+	ipv6, _ := net.ResolveTCPAddr("tcp", "[::]:"+port)
+
+	var listener types.Listener
+	if listener = handler.FindListenerByAddress(address); listener != nil {
+		return listener
+	} else if listener = handler.FindListenerByAddress(ipv4); listener != nil {
+		return listener
+	} else if listener = handler.FindListenerByAddress(ipv6); listener != nil {
+		return listener
+	}
+
+	log.DefaultLogger.Errorf("Find Listener failed %v", address)
+	return nil
 }

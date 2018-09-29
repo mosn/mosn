@@ -19,7 +19,6 @@ package http2
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,6 +30,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -145,12 +145,11 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 		serverStreamConnCallbacks: callbacks,
 	}
 
-	if tlsConn, ok := ssc.connection.RawConn().(*tls.Conn); ok {
-
+	if tlsConn, ok := ssc.connection.RawConn().(*mtls.TLSConn); ok {
+		tlsConn.SetALPN(http2.NextProtoTLS)
 		if err := tlsConn.Handshake(); err != nil {
 			logger := log.ByContext(context)
 			logger.Errorf("TLS handshake error from %s: %v", ssc.connection.RemoteAddr(), err)
-
 			return nil
 		}
 	}
@@ -239,30 +238,36 @@ type clientStream struct {
 }
 
 // types.StreamSender
-func (s *clientStream) AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
+func (s *clientStream) AppendHeaders(context context.Context, headers types.HeaderMap, endStream bool) error {
 	log.DefaultLogger.Tracef("http2 client stream encode headers")
-	headersMap, _ := headers.(map[string]string)
-
+	headersMap, _ := headers.(protocol.CommonHeader)
+	scheme := "http"
+	if _, ok := s.connection.connection.RawConn().(*mtls.TLSConn); ok {
+		scheme = "https"
+	}
 	if s.request == nil {
 		s.request = new(http.Request)
 		s.request.Method = http.MethodGet
-		s.request.URL, _ = url.Parse(fmt.Sprintf("http://%s/",
+		s.request.URL, _ = url.Parse(fmt.Sprintf(scheme+"://%s/",
 			s.connection.connection.RemoteAddr().String()))
 	}
 
 	var URI string
 
 	if path, ok := headersMap[protocol.MosnHeaderPathKey]; ok {
-		URI = fmt.Sprintf("http://%s%s", s.connection.connection.RemoteAddr().String(), path)
+		URI = fmt.Sprintf(scheme+"://%s%s", s.connection.connection.RemoteAddr().String(), path)
 		delete(headersMap, protocol.MosnHeaderPathKey)
 	}
 
-	if queryString, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
-		URI += "?" + queryString
-		delete(headersMap, protocol.MosnHeaderQueryStringKey)
-	}
+	if URI != "" {
 
-	s.request.URL, _ = url.Parse(URI)
+		if queryString, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
+			URI += "?" + queryString
+			delete(headersMap, protocol.MosnHeaderQueryStringKey)
+		}
+
+		s.request.URL, _ = url.Parse(URI)
+	}
 
 	if _, ok := headersMap["Host"]; ok {
 		headersMap["Host"] = s.connection.connection.RemoteAddr().String()
@@ -313,9 +318,9 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 	return nil
 }
 
-func (s *clientStream) AppendTrailers(context context.Context, trailers map[string]string) error {
+func (s *clientStream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
 	log.DefaultLogger.Tracef("http2 client stream encode trailers")
-	s.request.Trailer = encodeHeader(trailers)
+	s.request.Trailer = encodeHeader(trailers.(protocol.CommonHeader))
 	s.endStream()
 
 	return nil
@@ -394,11 +399,11 @@ func (s *clientStream) CleanStream() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		s.decoder.OnReceiveHeaders(s.context, decodeRespHeader(s.response), false)
+		s.decoder.OnReceiveHeaders(s.context, protocol.CommonHeader(decodeRespHeader(s.response)), false)
 		buf := buffer.NewIoBuffer(1024)
 		buf.ReadFrom(s.response.Body)
 		s.decoder.OnReceiveData(s.context, buf, false)
-		s.decoder.OnReceiveTrailers(s.context, decodeHeader(s.response.Trailer))
+		s.decoder.OnReceiveTrailers(s.context, protocol.CommonHeader(decodeHeader(s.response.Trailer)))
 
 		s.connection.asMutex.Lock()
 		s.response = nil
@@ -419,8 +424,8 @@ type serverStream struct {
 }
 
 // types.StreamSender
-func (s *serverStream) AppendHeaders(context context.Context, headersIn interface{}, endStream bool) error {
-	headers, _ := headersIn.(map[string]string)
+func (s *serverStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
+	headers := headersIn.(protocol.CommonHeader)
 
 	if s.response == nil {
 		s.response = new(http.Response)
@@ -457,8 +462,8 @@ func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, 
 	return nil
 }
 
-func (s *serverStream) AppendTrailers(context context.Context, trailers map[string]string) error {
-	s.response.Trailer = encodeHeader(trailers)
+func (s *serverStream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
+	s.response.Trailer = encodeHeader(trailers.(protocol.CommonHeader))
 
 	s.endStream()
 	return nil
@@ -539,14 +544,14 @@ func (s *serverStream) handleRequest() {
 			header[protocol.MosnHeaderQueryStringKey] = string(queryString)
 		}
 
-		s.decoder.OnReceiveHeaders(s.context, header, false)
+		s.decoder.OnReceiveHeaders(s.context, protocol.CommonHeader(header), false)
 
 		//remove detect
 		//if s.element != nil {
 		buf := buffer.NewIoBuffer(1024)
 		buf.ReadFrom(s.request.Body)
 		s.decoder.OnReceiveData(s.context, buf, false)
-		s.decoder.OnReceiveTrailers(s.context, decodeHeader(s.request.Trailer))
+		s.decoder.OnReceiveTrailers(s.context, protocol.CommonHeader(decodeHeader(s.request.Trailer)))
 		//}
 	}
 }

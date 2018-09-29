@@ -56,17 +56,18 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	if clusterMangerInstance != nil {
 		return clusterMangerInstance
 	}
-	protocolConnPool := sync.Map{}
-	for k := range types.ConnPoolFactories {
-		protocolConnPool.Store(k, &sync.Map{})
-	}
 
 	clusterMangerInstance = &clusterManager{
 		sourceAddr:       sourceAddr,
 		primaryClusters:  sync.Map{},
-		protocolConnPool: protocolConnPool,
+		protocolConnPool: sync.Map{},
 		autoDiscovery:    true, //todo delete
 	}
+
+	for k := range types.ConnPoolFactories {
+		clusterMangerInstance.protocolConnPool.Store(k, &sync.Map{})
+	}
+
 	//init clusterMngInstance when run app
 	initClusterMngAdapterInstance(clusterMangerInstance)
 
