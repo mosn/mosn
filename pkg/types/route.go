@@ -103,10 +103,10 @@ type RouteRule interface {
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
 
 	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
-	FinalizeRequestHeaders(headers map[string]string, requestInfo RequestInfo)
+	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)
 
 	// FinalizeResponseHeaders do potentially destructive header transforms on response headers prior to forwarding
-	FinalizeResponseHeaders(headers map[string]string, requestInfo RequestInfo)
+	FinalizeResponseHeaders(headers HeaderMap, requestInfo RequestInfo)
 }
 
 // Policy defines a group of route policy

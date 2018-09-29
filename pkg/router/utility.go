@@ -110,8 +110,8 @@ func getHeaderPair(headersToAdd []*v2.HeaderValueOption) []*headerPair {
 			continue
 		}
 		headerPairs = append(headerPairs, &headerPair{
-			key,
-			value,
+			headerName:      key,
+			headerFormatter: value,
 		})
 	}
 	return headerPairs

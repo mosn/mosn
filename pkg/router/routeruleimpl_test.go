@@ -250,30 +250,30 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		prefixRewrite: "/abc/",
 	}
 	type args struct {
-		headers map[string]string
+		headers types.HeaderMap
 		matchedPath string
 	}
 
 	tests := []struct {
 		name string
 		args args
-		want map[string]string
+		want types.HeaderMap
 	}{
 		{
 			name: "case1",
 			args: args{
-				headers: map[string]string{"path": "/"},
+				headers: protocol.CommonHeader{"path": "/"},
 				matchedPath: "/",
 			},
-			want: map[string]string{"path":"/abc/", "x-mosn-original-path":"/"},
+			want: protocol.CommonHeader{"path":"/abc/", "x-mosn-original-path":"/"},
 		},
 		{
 			name: "case2",
 			args: args{
-				headers: map[string]string{"path": "/index/page/"},
+				headers: protocol.CommonHeader{"path": "/index/page/"},
 				matchedPath: "/index/",
 			},
-			want: map[string]string{"path":"/abc/page", "x-mosn-original-path":"/index/page/"},
+			want: protocol.CommonHeader{"path":"/abc/page", "x-mosn-original-path":"/index/page/"},
 		},
 	}
 
@@ -291,14 +291,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 
 	type args struct {
 		rri         *RouteRuleImplBase
-		headers     map[string]string
+		headers     types.HeaderMap
 		requestInfo types.RequestInfo
 	}
 
 	tests := []struct {
 		name string
 		args args
-		want map[string]string
+		want types.HeaderMap
 	}{
 		{
 			name: "case1",
@@ -364,10 +364,10 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 						},
 					},
 				},
-				headers:     map[string]string{"host": "xxx.default.svc.cluster.local"},
+				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
 				requestInfo: nil,
 			},
-			want: map[string]string{"host": "xxx.default.svc.cluster.local", "authority": "www.xxx.com", "level": "1,2,3", "route": "true", "vhost": "true", "global": "ture"},
+			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "authority": "www.xxx.com", "level": "1,2,3", "route": "true", "vhost": "true", "global": "ture"},
 		},
 		{
 			name: "case2",
@@ -414,10 +414,10 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 						},
 					},
 				},
-				headers:     map[string]string{"host": "xxx.default.svc.cluster.local"},
+				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
 				requestInfo: nil,
 			},
-			want: map[string]string{"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "ture"},
+			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "ture"},
 		},
 	}
 
@@ -435,14 +435,14 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 
 	type args struct {
 		rri         *RouteRuleImplBase
-		headers     map[string]string
+		headers     types.HeaderMap
 		requestInfo types.RequestInfo
 	}
 
 	tests := []struct {
 		name string
 		args args
-		want map[string]string
+		want types.HeaderMap
 	}{
 		{
 			name: "case1",
@@ -510,10 +510,10 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 						},
 					},
 				},
-				headers:     map[string]string{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
+				headers:     protocol.CommonHeader{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
 				requestInfo: nil,
 			},
-			want: map[string]string{"level": "1,2,3", "route": "true", "vhost": "true", "global": "ture"},
+			want: protocol.CommonHeader{"level": "1,2,3", "route": "true", "vhost": "true", "global": "ture"},
 		},
 		{
 			name: "case2",
@@ -562,10 +562,10 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 						},
 					},
 				},
-				headers:     map[string]string{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
+				headers:     protocol.CommonHeader{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
 				requestInfo: nil,
 			},
-			want: map[string]string{"ver": "0.1", "level": "1,3", "route": "true", "global": "ture"},
+			want: protocol.CommonHeader{"ver": "0.1", "level": "1,3", "route": "true", "global": "ture"},
 		},
 	}
 

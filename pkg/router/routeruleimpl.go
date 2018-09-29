@@ -236,33 +236,34 @@ func (rri *RouteRuleImplBase) WeightedCluster() map[string]weightedClusterEntry 
 	return rri.weightedClusters
 }
 
-func (rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) {
+func (rri *RouteRuleImplBase) finalizePathHeader(headers types.HeaderMap, matchedPath string) {
 	if len(rri.prefixRewrite) < 1 {
 		return
 	}
-	path := headers[protocol.MosnHeaderPathKey]
-	if !strings.HasPrefix(path, matchedPath) {
-		log.DefaultLogger.Errorf("expect the Path %s has prefix %s but not", path, matchedPath)
-		return
+	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+		if !strings.HasPrefix(path, matchedPath) {
+			log.DefaultLogger.Errorf("expect the Path %s has prefix %s but not", path, matchedPath)
+			return
+		}
+		headers.Set(protocol.MosnOriginalHeaderPathKey, path)
+		headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite + path[len(matchedPath):])
 	}
-	headers[protocol.MosnOriginalHeaderPathKey] = path
-	headers[protocol.MosnHeaderPathKey] = rri.prefixRewrite + path[len(matchedPath):]
 }
 
-func (rri *RouteRuleImplBase) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (rri *RouteRuleImplBase) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	rri.finalizeRequestHeaders(headers, requestInfo)
 }
 
-func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
-		headers[protocol.IstioHeaderHostKey] = rri.hostRewrite
+		headers.Set(protocol.IstioHeaderHostKey, rri.hostRewrite)
 	}
 }
 
-func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	rri.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
@@ -302,7 +303,7 @@ func (srri *SofaRouteRuleImpl) RouteRule() types.RouteRule {
 	return srri
 }
 
-func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 
 }
 
@@ -349,7 +350,7 @@ func (prri *PathRouteRuleImpl) RouteRule() types.RouteRule {
 	return prri
 }
 
-func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	prri.finalizeRequestHeaders(headers, requestInfo)
 	prri.finalizePathHeader(headers, prri.path)
 }
@@ -391,7 +392,7 @@ func (prei *PrefixRouteRuleImpl) RouteRule() types.RouteRule {
 	return prei
 }
 
-func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	prei.finalizeRequestHeaders(headers, requestInfo)
 	prei.finalizePathHeader(headers, prei.prefix)
 }
@@ -433,7 +434,7 @@ func (rrei *RegexRouteRuleImpl) RouteRule() types.RouteRule {
 	return rrei
 }
 
-func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	rrei.finalizeRequestHeaders(headers, requestInfo)
 	rrei.finalizePathHeader(headers, rrei.regexStr)
 }

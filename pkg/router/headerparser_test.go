@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -20,21 +21,22 @@ func Test_headerParser_evaluateHeaders(t *testing.T) {
 		headersToRemove: []*lowerCaseString{&lowerCaseString{"status"}},
 	}
 	type args struct {
-		headers     map[string]string
+		headers     types.HeaderMap
 		requestInfo types.RequestInfo
 	}
+
 	tests := []struct {
 		name string
 		args args
-		want map[string]string
+		want types.HeaderMap
 	}{
 		{
 			name: "case1",
 			args: args{
-				headers:     map[string]string{"status": "normal"},
+				headers:     protocol.CommonHeader{"status": "normal"},
 				requestInfo: nil,
 			},
-			want: map[string]string{"level": "1"},
+			want: protocol.CommonHeader{"level": "1"},
 		},
 	}
 
