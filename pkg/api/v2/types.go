@@ -264,20 +264,38 @@ type Proxy struct {
 	ExtendConfig       map[string]interface{} `json:"extend_config"`
 }
 
+// HeaderValueOption is header name/value pair plus option to control append behavior.
+type HeaderValueOption struct {
+	Header *HeaderValue `json:"header"`
+	Append bool         `json:"append"`
+}
+
+// HeaderValue is header name/value pair.
+type HeaderValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 // RouterConfiguration is a filter for routers
 // Filter type is:  "CONNECTION_MANAGER"
 type RouterConfiguration struct {
-	RouterConfigName string         `json:"router_config_name"`
-	VirtualHosts     []*VirtualHost `json:"virtual_hosts"`
+	RouterConfigName        string               `json:"router_config_name"`
+	VirtualHosts            []*VirtualHost       `json:"virtual_hosts"`
+	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add"`
+	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add"`
+	ResponseHeadersToRemove []string             `json:"response_headers_to_remove"`
 }
 
 // VirtualHost is used to make up the route table
 type VirtualHost struct {
-	Name            string           `json:"name"`
-	Domains         []string         `json:"domains"`
-	VirtualClusters []VirtualCluster `json:"virtual_clusters"`
-	Routers         []Router         `json:"routers"`
-	RequireTLS      string           `json:"require_tls"` // not used yet
+	Name                    string               `json:"name"`
+	Domains                 []string             `json:"domains"`
+	VirtualClusters         []VirtualCluster     `json:"virtual_clusters"`
+	Routers                 []Router             `json:"routers"`
+	RequireTLS              string               `json:"require_tls"` // not used yet
+	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add"`
+	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add"`
+	ResponseHeadersToRemove []string             `json:"response_headers_to_remove"`
 }
 
 // VirtualCluster is a way of specifying a regex matching rule against certain important endpoints
