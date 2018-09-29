@@ -6,10 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
+	"github.com/alipay/sofa-mosn/pkg/stats"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
@@ -37,6 +39,7 @@ func forkTransferMesh(tc *integrate.TestCase) int {
 func startTransferMesh(tc *integrate.TestCase) {
 	server.GracefulTimeout = 5 * time.Second
 	network.TransferDomainSocket = "/tmp/mosn.sock"
+	stats.TransferDomainSocket = "/tmp/stats.sock"
 	cfg := util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
 	mesh := mosn.NewMosn(cfg)
 	/*
@@ -75,6 +78,7 @@ func TestTransfer(t *testing.T) {
 		t.Fatal("fork error")
 		return
 	}
+	log.InitDefaultLogger("", log.ERROR)
 	startTransferServer(tc)
 
 	// wait server and mesh start

@@ -38,16 +38,15 @@ func NewClient(addr string) *Client {
 	return c
 }
 
-func (c *Client) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool)  {}
-func (c *Client) OnReceiveTrailers(context context.Context, trailers map[string]string)       {}
-func (c *Client) OnDecodeError(context context.Context, err error, headers map[string]string) {}
-func (c *Client) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
+func (c *Client) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {}
+func (c *Client) OnReceiveTrailers(context context.Context, trailers types.HeaderMap)        {}
+func (c *Client) OnDecodeError(context context.Context, err error, headers types.HeaderMap)  {}
+func (c *Client) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	fmt.Printf("[RPC Client] Receive Data:")
-	if streamID, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)]; ok {
-		fmt.Println(streamID)
+	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+		streamID := protocol.StreamIDConv(cmd.GetReqID())
+		fmt.Println("stream:", streamID, " status:", cmd.GetRespStatus())
 	}
-
-	fmt.Println("Response Headers are:", headers)
 }
 
 func (c *Client) Request() {
