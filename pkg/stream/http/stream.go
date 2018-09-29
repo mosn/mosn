@@ -255,16 +255,6 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 		s.request.SetRequestURI(fmt.Sprintf("http://%s/", s.wrapper.client.Addr))
 	}
 
-	if method, ok := headers[protocol.MosnHeaderMethod]; ok {
-		s.request.Header.SetMethod(method)
-		delete(headers, protocol.MosnHeaderMethod)
-	}
-
-	if host, ok := headers[protocol.MosnHeaderHostKey]; ok {
-		s.request.SetHost(host)
-		delete(headers, protocol.MosnHeaderHostKey)
-	}
-
 	var URI string
 
 	if path, ok := headers[protocol.MosnHeaderPathKey]; ok {
@@ -280,6 +270,21 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 		}
 
 		s.request.SetRequestURI(URI)
+	}
+
+	if method, ok := headers[protocol.MosnHeaderMethod]; ok {
+		s.request.Header.SetMethod(method)
+		delete(headers, protocol.MosnHeaderMethod)
+	}
+
+	if host, ok := headers[protocol.MosnHeaderHostKey]; ok {
+		s.request.SetHost(host)
+		delete(headers, protocol.MosnHeaderHostKey)
+	}
+
+	if host, ok := headers[protocol.IstioHeaderHostKey]; ok {
+		s.request.SetHost(host)
+		delete(headers, protocol.IstioHeaderHostKey)
 	}
 
 	encodeReqHeader(s.request, headers)
