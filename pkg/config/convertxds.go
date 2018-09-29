@@ -371,18 +371,24 @@ func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 
 	for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
 		virtualHost := &v2.VirtualHost{
-			Name:            xdsVirtualHost.GetName(),
-			Domains:         xdsVirtualHost.GetDomains(),
-			Routers:         convertRoutes(xdsVirtualHost.GetRoutes()),
-			RequireTLS:      xdsVirtualHost.GetRequireTls().String(),
-			VirtualClusters: convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
+			Name:                    xdsVirtualHost.GetName(),
+			Domains:                 xdsVirtualHost.GetDomains(),
+			Routers:                 convertRoutes(xdsVirtualHost.GetRoutes()),
+			RequireTLS:              xdsVirtualHost.GetRequireTls().String(),
+			VirtualClusters:         convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
+			RequestHeadersToAdd:     convertHeadersToAdd(xdsVirtualHost.GetRequestHeadersToAdd()),
+			ResponseHeadersToAdd:    convertHeadersToAdd(xdsVirtualHost.GetResponseHeadersToAdd()),
+			ResponseHeadersToRemove: xdsVirtualHost.GetResponseHeadersToRemove(),
 		}
 		virtualHosts = append(virtualHosts, virtualHost)
 	}
 
 	return &v2.RouterConfiguration{
-		RouterConfigName: xdsRouteConfig.GetName(),
-		VirtualHosts:     virtualHosts,
+		RouterConfigName:        xdsRouteConfig.GetName(),
+		VirtualHosts:            virtualHosts,
+		RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteConfig.GetRequestHeadersToAdd()),
+		ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteConfig.GetResponseHeadersToAdd()),
+		ResponseHeadersToRemove: xdsRouteConfig.GetResponseHeadersToRemove(),
 	}, false
 }
 
@@ -478,14 +484,37 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 	}
 	return v2.RouteAction{
 		RouterActionConfig: v2.RouterActionConfig{
-			ClusterName:      xdsRouteAction.GetCluster(),
-			ClusterHeader:    xdsRouteAction.GetClusterHeader(),
-			WeightedClusters: convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
-			RetryPolicy:      convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
+			ClusterName:             xdsRouteAction.GetCluster(),
+			ClusterHeader:           xdsRouteAction.GetClusterHeader(),
+			WeightedClusters:        convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
+			RetryPolicy:             convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
+			PrefixRewrite:           xdsRouteAction.GetPrefixRewrite(),
+			HostRewrite:             xdsRouteAction.GetHostRewrite(),
+			AutoHostRewrite:         xdsRouteAction.GetAutoHostRewrite().GetValue(),
+			RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteAction.GetRequestHeadersToAdd()),
+			ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteAction.GetResponseHeadersToAdd()),
+			ResponseHeadersToRemove: xdsRouteAction.GetResponseHeadersToRemove(),
 		},
 		MetadataMatch: convertMeta(xdsRouteAction.GetMetadataMatch()),
 		Timeout:       convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),
 	}
+}
+
+func convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) []*v2.HeaderValueOption {
+	if len(headerValueOption) < 1 {
+		return nil
+	}
+	valueOptions := make([]*v2.HeaderValueOption, 0, len(headerValueOption))
+	for _, opt := range headerValueOption {
+		valueOptions = append(valueOptions, &v2.HeaderValueOption{
+			Header:  &v2.HeaderValue{
+				Key:  opt.GetHeader().GetKey(),
+				Value:  opt.GetHeader().GetValue(),
+			},
+			Append:  opt.GetAppend().GetValue(),
+		})
+	}
+	return valueOptions
 }
 
 func convertTimeDurPoint2TimeDur(duration *time.Duration) time.Duration {

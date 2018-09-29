@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -110,6 +111,79 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := NewMetadataMatchCriteriaImpl(tt.args.metadataMatches); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewMetadataMatchCriteriaImpl() = %v, want %v, case = %s", got, tt.want, tt.name)
+			}
+		})
+	}
+}
+
+func Test_NewConfigImpl(t *testing.T) {
+
+	type args struct {
+		routerConfig *v2.RouterConfiguration
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want *configImpl
+	}{
+		{
+			name: "case1",
+			args: args{
+				routerConfig: &v2.RouterConfiguration{
+					RequestHeadersToAdd: []*v2.HeaderValueOption{
+						{
+							Header: &v2.HeaderValue{
+								Key: "LEVEL",
+								Value: "1",
+							},
+							Append: false,
+						},
+					},
+					ResponseHeadersToAdd:[]*v2.HeaderValueOption{
+						{
+							Header: &v2.HeaderValue{
+								Key: "Random",
+								Value: "123456",
+							},
+							Append: false,
+						},
+					},
+					ResponseHeadersToRemove: []string{"status"},
+				},
+			},
+			want: &configImpl{
+				requestHeadersParser: &headerParser{
+					headersToAdd: []*headerPair{
+						{
+							headerName: &lowerCaseString{"level"},
+							headerFormatter: &plainHeaderFormatter{
+								isAppend:    false,
+								staticValue: "1",
+							},
+						},
+					},
+				},
+				responseHeadersParser:&headerParser{
+					headersToAdd: []*headerPair{
+						{
+							headerName: &lowerCaseString{"random"},
+							headerFormatter: &plainHeaderFormatter{
+								isAppend:    false,
+								staticValue: "123456",
+							},
+						},
+					},
+					headersToRemove: []*lowerCaseString{{"status"}},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewConfigImpl(tt.args.routerConfig); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewConfigImpl(routerConfig *v2.RouterConfiguration) = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -303,6 +303,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.upstreamRequest.downStream = s
 	s.upstreamRequest.proxy = s.proxy
 	s.upstreamRequest.connPool = pool
+	route.RouteRule().FinalizeRequestHeaders(headers, s.requestInfo)
 
 	//Call upstream's append header method to build upstream's request
 	s.upstreamRequest.appendHeaders(headers, endStream)
@@ -694,6 +695,7 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 
 	s.downstreamResponseStarted = true
 
+	s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}

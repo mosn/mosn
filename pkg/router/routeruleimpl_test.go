@@ -19,11 +19,13 @@ package router
 
 import (
 	"math/rand"
+	"reflect"
 	"regexp"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func TestPrefixRouteRuleImpl(t *testing.T) {
@@ -240,5 +242,339 @@ func TestWeightedClusterSelect(t *testing.T) {
 
 		}
 		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
+	}
+}
+
+func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
+	rri := &RouteRuleImplBase{
+		prefixRewrite: "/abc/",
+	}
+	type args struct {
+		headers map[string]string
+		matchedPath string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want map[string]string
+	}{
+		{
+			name: "case1",
+			args: args{
+				headers: map[string]string{"path": "/"},
+				matchedPath: "/",
+			},
+			want: map[string]string{"path":"/abc/", "x-mosn-original-path":"/"},
+		},
+		{
+			name: "case2",
+			args: args{
+				headers: map[string]string{"path": "/index/page/"},
+				matchedPath: "/index/",
+			},
+			want: map[string]string{"path":"/abc/page", "x-mosn-original-path":"/index/page/"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rri.finalizePathHeader(tt.args.headers, tt.args.matchedPath)
+			if !reflect.DeepEqual(tt.args.headers, tt.want) {
+				t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
+			}
+		})
+	}
+}
+
+func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
+
+	type args struct {
+		rri         *RouteRuleImplBase
+		headers     map[string]string
+		requestInfo types.RequestInfo
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want map[string]string
+	}{
+		{
+			name: "case1",
+			args: args{
+				rri: &RouteRuleImplBase{
+					hostRewrite: "www.xxx.com",
+					requestHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+					},
+					vHost: &VirtualHostImpl{
+						responseHeadersParser: &headerParser{
+							headersToAdd: []*headerPair{
+								{
+									headerName: &lowerCaseString{"level"},
+									headerFormatter: &plainHeaderFormatter{
+										isAppend:    true,
+										staticValue: "2",
+									},
+								},
+								{
+									headerName: &lowerCaseString{"vhost"},
+									headerFormatter: &plainHeaderFormatter{
+										isAppend:    true,
+										staticValue: "true",
+									},
+								},
+							},
+						},
+						globalRouteConfig: &configImpl{
+							responseHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				headers:     map[string]string{"host": "xxx.default.svc.cluster.local"},
+				requestInfo: nil,
+			},
+			want: map[string]string{"host": "xxx.default.svc.cluster.local", "authority": "www.xxx.com", "level": "1,2,3", "route": "true", "vhost": "true", "global": "ture"},
+		},
+		{
+			name: "case2",
+			args: args{
+				rri: &RouteRuleImplBase{
+					requestHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+					},
+					vHost: &VirtualHostImpl{
+						globalRouteConfig: &configImpl{
+							responseHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				headers:     map[string]string{"host": "xxx.default.svc.cluster.local"},
+				requestInfo: nil,
+			},
+			want: map[string]string{"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "ture"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.args.rri.FinalizeRequestHeaders(tt.args.headers, tt.args.requestInfo)
+			if !reflect.DeepEqual(tt.args.headers, tt.want) {
+				t.Errorf("(rri *RouteRuleImplBase) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
+			}
+		})
+	}
+}
+
+func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
+
+	type args struct {
+		rri         *RouteRuleImplBase
+		headers     map[string]string
+		requestInfo types.RequestInfo
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want map[string]string
+	}{
+		{
+			name: "case1",
+			args: args{
+				rri: &RouteRuleImplBase{
+					responseHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+						headersToRemove: []*lowerCaseString{{"status"}, {"username"}},
+					},
+					vHost: &VirtualHostImpl{
+						responseHeadersParser: &headerParser{
+							headersToAdd: []*headerPair{
+								{
+									headerName: &lowerCaseString{"level"},
+									headerFormatter: &plainHeaderFormatter{
+										isAppend:    true,
+										staticValue: "2",
+									},
+								},
+								{
+									headerName: &lowerCaseString{"vhost"},
+									headerFormatter: &plainHeaderFormatter{
+										isAppend:    true,
+										staticValue: "true",
+									},
+								},
+							},
+							headersToRemove: []*lowerCaseString{{"ver"}},
+						},
+						globalRouteConfig: &configImpl{
+							responseHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+								headersToRemove: []*lowerCaseString{{"x-mosn"}},
+							},
+						},
+					},
+				},
+				headers:     map[string]string{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
+				requestInfo: nil,
+			},
+			want: map[string]string{"level": "1,2,3", "route": "true", "vhost": "true", "global": "ture"},
+		},
+		{
+			name: "case2",
+			args: args{
+				rri: &RouteRuleImplBase{
+					responseHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+						headersToRemove: []*lowerCaseString{{"status"}, {"username"}},
+					},
+					vHost: &VirtualHostImpl{
+						globalRouteConfig: &configImpl{
+							responseHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+								headersToRemove: []*lowerCaseString{{"x-mosn"}},
+							},
+						},
+					},
+				},
+				headers:     map[string]string{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
+				requestInfo: nil,
+			},
+			want: map[string]string{"ver": "0.1", "level": "1,3", "route": "true", "global": "ture"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.args.rri.FinalizeResponseHeaders(tt.args.headers, tt.args.requestInfo)
+			if !reflect.DeepEqual(tt.args.headers, tt.want) {
+				t.Errorf("(rri *RouteRuleImplBase) FinalizeResponseHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
+			}
+		})
 	}
 }
