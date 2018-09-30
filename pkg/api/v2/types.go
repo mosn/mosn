@@ -123,7 +123,7 @@ type TCPRoute struct {
 
 // CidrRange
 type CidrRange struct {
-	Address net.Addr
+	Address string
 	Length  uint32
 }
 
@@ -261,7 +261,6 @@ type Filter struct {
 type TCPProxy struct {
 	StatPrefix         string
 	IdleTimeout        time.Duration
-	AccessLog          []AccessLog
 	MaxConnectAttempts uint32
 	Routes             []*TCPRoute `json:"routes,omitempty"`
 }

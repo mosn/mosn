@@ -45,6 +45,7 @@ import (
 
 var supportFilter = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
+	xdsutil.TCPProxy:              true,
 	v2.RPC_PROXY:                  true,
 	v2.X_PROXY:                    true,
 }
@@ -319,6 +320,18 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 			UpstreamProtocol:   string(protocol.Xprotocol),
 			ExtendConfig:       convertXProxyExtendConfig(filterConfig),
 		}
+	} else if name == xdsutil.TCPProxy {
+		filterConfig := &xdstcp.TcpProxy{}
+		xdsutil.StructToMessage(s, filterConfig)
+
+		tcpProxyConfig := v2.TCPProxy{
+			StatPrefix:         filterConfig.GetStatPrefix(),
+			IdleTimeout:        *filterConfig.GetIdleTimeout(),
+			MaxConnectAttempts: filterConfig.GetMaxConnectAttempts().GetValue(),
+			Routes:             convertTCPRoute(filterConfig.GetDeprecatedV1()),
+		}
+		filtersConfigParsed[v2.TCP_PROXY] = toMap(tcpProxyConfig)
+		return filtersConfigParsed
 
 	} else {
 		log.DefaultLogger.Errorf("unsupported filter config, filter name: %s", name)
@@ -347,6 +360,38 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 	proxyConfig.RouterConfigName = routerConfigName
 	filtersConfigParsed[v2.DEFAULT_NETWORK_FILTER] = toMap(proxyConfig)
 	return filtersConfigParsed
+}
+
+func convertTCPRoute(deprecatedV1 *xdstcp.TcpProxy_DeprecatedV1) []*v2.TCPRoute {
+	if deprecatedV1 == nil {
+		return nil
+	}
+
+	tcpRoutes := make([]*v2.TCPRoute, 0, len(deprecatedV1.Routes))
+	for _, router := range deprecatedV1.Routes {
+		tcpRoutes = append(tcpRoutes, &v2.TCPRoute{
+			Cluster:          router.GetCluster(),
+			SourceAddrs:      convertCidrRange(router.GetSourceIpList()),
+			DestinationAddrs: convertCidrRange(router.GetDestinationIpList()),
+			SourcePort:       router.GetSourcePorts(),
+			DestinationPort:  router.GetDestinationPorts(),
+		})
+	}
+	return tcpRoutes
+}
+
+func convertCidrRange(cidr []*xdscore.CidrRange) []v2.CidrRange {
+	if cidr == nil {
+		return nil
+	}
+	cidrRanges := make([]v2.CidrRange, 0, len(cidr))
+	for _, cidrRange := range cidr {
+		cidrRanges = append(cidrRanges, v2.CidrRange{
+			Address: cidrRange.GetAddressPrefix(),
+			Length:  cidrRange.GetPrefixLen().GetValue(),
+		})
+	}
+	return cidrRanges
 }
 
 func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} {
