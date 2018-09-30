@@ -114,9 +114,17 @@ type Listener struct {
 
 // TCPRoute
 type TCPRoute struct {
-	TCPRouteConfig
-	SourceAddrs      []net.Addr `json:"-"`
-	DestinationAddrs []net.Addr `json:"-"`
+	Cluster          string
+	SourceAddrs      []CidrRange
+	DestinationAddrs []CidrRange
+	SourcePort       string
+	DestinationPort  string
+}
+
+// CidrRange
+type CidrRange struct {
+	Address net.Addr
+	Length  uint32
 }
 
 // HealthCheckFilter
@@ -251,7 +259,11 @@ type Filter struct {
 
 // TCPProxy
 type TCPProxy struct {
-	Routes []*TCPRoute `json:"routes,omitempty"`
+	StatPrefix         string
+	IdleTimeout        time.Duration
+	AccessLog          []AccessLog
+	MaxConnectAttempts uint32
+	Routes             []*TCPRoute `json:"routes,omitempty"`
 }
 
 // Proxy
