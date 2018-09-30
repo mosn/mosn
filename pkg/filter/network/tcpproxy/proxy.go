@@ -21,6 +21,14 @@ import (
 	"context"
 	"reflect"
 
+	"time"
+
+	"net"
+
+	"strings"
+
+	"strconv"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
@@ -215,13 +223,85 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 }
 
 type proxyConfig struct {
-	routes []*route
+	statPrefix         string
+	idleTimeout        time.Duration
+	maxConnectAttempts uint32
+	routes             []*route
+}
+
+type IpRangeList struct {
+	cidrRanges []v2.CidrRange
+}
+
+func (ipList *IpRangeList) Contains(address net.Addr) bool {
+	ipv4 := net.ParseIP(address.String()).To4()
+	if ipv4 != nil {
+		ip := strings.Split(address.String(), ":")[0]
+		for _, cidrRange := range ipList.cidrRanges {
+			if cidrRange.IsInRange(ip) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+type PortRangeList struct {
+	portList []PortRange
+}
+
+func (pr *PortRangeList) Contains(address net.Addr) bool {
+	ipv4 := net.ParseIP(address.String()).To4()
+	if ipv4 != nil {
+		port, err := strconv.Atoi(strings.Split(address.String(), ":")[1])
+		if err != nil {
+			log.DefaultLogger.Errorf("parse port fail , address = %v", address)
+			return false
+		}
+		for _, portRange := range pr.portList {
+			if port >= portRange.min && port <= portRange.max {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+type PortRange struct {
+	min int
+	max int
+}
+
+func ParsePortRangeList(ports string) PortRangeList {
+	var portList []PortRange
+	for _, portItem := range strings.Split(ports, ",") {
+		if strings.Contains(portItem, "-") {
+			pieces := strings.Split(portItem, "-")
+			min, err := strconv.Atoi(pieces[0])
+			max, err := strconv.Atoi(pieces[1])
+			if err != nil {
+				log.DefaultLogger.Errorf("parse port range list fail, invalid port %v", portItem)
+			}
+			pRange := PortRange{min: min, max: max}
+			portList = append(portList, pRange)
+		} else {
+			port, err := strconv.Atoi(portItem)
+			if err != nil {
+				log.DefaultLogger.Errorf("parse port range list fail, invalid port %v", portItem)
+			}
+			pRange := PortRange{min: port, max: port}
+			portList = append(portList, pRange)
+		}
+	}
+	return PortRangeList{portList}
 }
 
 type route struct {
-	sourceAddrs      types.Addresses
-	destinationAddrs types.Addresses
 	clusterName      string
+	sourceAddrs      IpRangeList
+	destinationAddrs IpRangeList
+	sourcePort       PortRangeList
+	destinationPort  PortRangeList
 }
 
 func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
@@ -230,8 +310,10 @@ func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 	for _, routeConfig := range config.Routes {
 		route := &route{
 			clusterName:      routeConfig.Cluster,
-			sourceAddrs:      routeConfig.SourceAddrs,
-			destinationAddrs: routeConfig.DestinationAddrs,
+			sourceAddrs:      IpRangeList{routeConfig.SourceAddrs},
+			destinationAddrs: IpRangeList{routeConfig.DestinationAddrs},
+			sourcePort:       ParsePortRangeList(routeConfig.SourcePort),
+			destinationPort:  ParsePortRangeList(routeConfig.DestinationPort),
 		}
 
 		routes = append(routes, route)
@@ -244,14 +326,18 @@ func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 
 func (pc *proxyConfig) GetRouteFromEntries(connection types.Connection) string {
 	for _, r := range pc.routes {
-		if len(r.sourceAddrs) != 0 && !r.sourceAddrs.Contains(connection.RemoteAddr()) {
+		if !r.sourceAddrs.Contains(connection.RemoteAddr()) {
 			continue
 		}
-
-		if len(r.destinationAddrs) != 0 && r.destinationAddrs.Contains(connection.LocalAddr()) {
+		if !r.sourcePort.Contains(connection.RemoteAddr()) {
 			continue
 		}
-
+		if !r.destinationAddrs.Contains(connection.LocalAddr()) {
+			continue
+		}
+		if !r.destinationPort.Contains(connection.LocalAddr()) {
+			continue
+		}
 		return r.clusterName
 	}
 

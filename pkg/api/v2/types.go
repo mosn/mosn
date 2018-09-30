@@ -123,7 +123,7 @@ type TCPRoute struct {
 
 // CidrRange
 type CidrRange struct {
-	Address net.Addr
+	Address string
 	Length  uint32
 }
 
