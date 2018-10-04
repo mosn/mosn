@@ -63,7 +63,7 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 	}
 }
 
-func (f *healthCheckFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.FilterHeadersStatus {
+func (f *healthCheckFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
 		if cmd.GetCmdCode() == sofarpc.HEARTBEAT {
 			f.protocol = cmd.GetProtocol()
@@ -84,34 +84,34 @@ func (f *healthCheckFilter) OnDecodeHeaders(headers types.HeaderMap, endStream b
 	}
 
 	if f.intercept {
-		return types.FilterHeadersStatusStopIteration
+		return types.StreamHeadersFilterStop
 	}
 
-	return types.FilterHeadersStatusContinue
+	return types.StreamHeadersFilterContinue
 }
 
-func (f *healthCheckFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.FilterDataStatus {
+func (f *healthCheckFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	if endStream && f.intercept {
 		f.handleIntercept()
 	}
 
 	if f.intercept {
-		return types.FilterDataStatusStopIterationNoBuffer
+		return types.StreamDataFilterStop
 	}
 
-	return types.FilterDataStatusContinue
+	return types.StreamDataFilterContinue
 }
 
-func (f *healthCheckFilter) OnDecodeTrailers(trailers types.HeaderMap) types.FilterTrailersStatus {
+func (f *healthCheckFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	if f.intercept {
 		f.handleIntercept()
 	}
 
 	if f.intercept {
-		return types.FilterTrailersStatusStopIteration
+		return types.StreamTrailersFilterStop
 	}
 
-	return types.FilterTrailersStatusContinue
+	return types.StreamTrailersFilterContinue
 }
 
 func (f *healthCheckFilter) handleIntercept() {

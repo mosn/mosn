@@ -224,14 +224,14 @@ type StreamSenderFilter interface {
 
 	// AppendHeaders encodes headers
 	// endStream supplies whether this is a header only request/response
-	AppendHeaders(headers HeaderMap, endStream bool) FilterHeadersStatus
+	AppendHeaders(headers HeaderMap, endStream bool) StreamHeadersFilterStatus
 
 	// AppendData encodes data
 	// endStream supplies whether this is the last data
-	AppendData(buf IoBuffer, endStream bool) FilterDataStatus
+	AppendData(buf IoBuffer, endStream bool) StreamDataFilterStatus
 
 	// AppendTrailers encodes trailers, implicitly ending the stream
-	AppendTrailers(trailers HeaderMap) FilterTrailersStatus
+	AppendTrailers(trailers HeaderMap) StreamTrailersFilterStatus
 
 	// SetEncoderFilterCallbacks sets the StreamSenderFilterCallbacks
 	SetEncoderFilterCallbacks(cb StreamSenderFilterCallbacks)
@@ -263,14 +263,14 @@ type StreamReceiverFilter interface {
 
 	// OnDecodeHeaders is called with decoded headers
 	// endStream supplies whether this is a header only request/response
-	OnDecodeHeaders(headers HeaderMap, endStream bool) FilterHeadersStatus
+	OnDecodeHeaders(headers HeaderMap, endStream bool) StreamHeadersFilterStatus
 
 	// OnDecodeData is called with a decoded data
 	// endStream supplies whether this is the last data
-	OnDecodeData(buf IoBuffer, endStream bool) FilterDataStatus
+	OnDecodeData(buf IoBuffer, endStream bool) StreamDataFilterStatus
 
 	// OnDecodeTrailers is called with decoded trailers, implicitly ending the stream
-	OnDecodeTrailers(trailers HeaderMap) FilterTrailersStatus
+	OnDecodeTrailers(trailers HeaderMap) StreamTrailersFilterStatus
 
 	// SetDecoderFilterCallbacks sets decoder filter callbacks
 	SetDecoderFilterCallbacks(cb StreamReceiverFilterCallbacks)
@@ -326,41 +326,39 @@ type StreamFilterChainFactoryCallbacks interface {
 	AddStreamReceiverFilter(filter StreamReceiverFilter)
 }
 
-// FilterHeadersStatus type
-type FilterHeadersStatus string
+// StreamHeadersFilterStatus type
+type StreamHeadersFilterStatus string
 
-// FilterHeadersStatus types
+// StreamHeadersFilterStatus types
 const (
 	// Continue filter chain iteration.
-	FilterHeadersStatusContinue FilterHeadersStatus = "Continue"
+	StreamHeadersFilterContinue StreamHeadersFilterStatus = "Continue"
 	// Do not iterate to next iterator. Filter calls continueDecoding to continue.
-	FilterHeadersStatusStopIteration FilterHeadersStatus = "StopIteration"
+	StreamHeadersFilterStop StreamHeadersFilterStatus = "Stop"
 )
 
-// FilterDataStatus type
-type FilterDataStatus string
+// StreamDataFilterStatus type
+type StreamDataFilterStatus string
 
-// FilterDataStatus types
+// StreamDataFilterStatus types
 const (
 	// Continue filter chain iteration
-	FilterDataStatusContinue FilterDataStatus = "Continue"
+	StreamDataFilterContinue StreamDataFilterStatus = "Continue"
 	// Do not iterate to next iterator, and buffer body data in controller for later use
-	FilterDataStatusStopIterationAndBuffer FilterDataStatus = "StopIterationAndBuffer"
+	StreamDataFilterStop StreamDataFilterStatus = "Stop"
 	// Do not iterate to next iterator, and buffer body data in controller for later use
-	FilterDataStatusStopIterationAndWatermark FilterDataStatus = "StopIterationAndWatermark"
-	// Do not iterate to next iterator, but do not buffer any of the body data in controller for later use
-	FilterDataStatusStopIterationNoBuffer FilterDataStatus = "StopIterationNoBuffer"
+	StreamDataFilterStopAndBuffer StreamDataFilterStatus = "StopAndBuffer"
 )
 
-// FilterTrailersStatus type
-type FilterTrailersStatus string
+// StreamTrailersFilterStatus type
+type StreamTrailersFilterStatus string
 
-// FilterTrailersStatus types
+// StreamTrailersFilterStatus types
 const (
 	// Continue filter chain iteration
-	FilterTrailersStatusContinue FilterTrailersStatus = "Continue"
+	StreamTrailersFilterContinue StreamTrailersFilterStatus = "Continue"
 	// Do not iterate to next iterator. Filter calls continueDecoding to continue.
-	FilterTrailersStatusStopIteration FilterTrailersStatus = "StopIteration"
+	StreamTrailersFilterStop StreamTrailersFilterStatus = "Stop"
 )
 
 // PoolFailureReason type

@@ -106,7 +106,6 @@ type RouteRuleImplBase struct {
 
 	opaqueConfig multimap.MultiMap
 
-	decorator          *types.Decorator
 	directResponseCode httpmosn.Code
 	directResponseBody string
 	policy             *routerPolicy
@@ -130,11 +129,6 @@ func (rri *RouteRuleImplBase) RedirectRule() types.RedirectRule {
 func (rri *RouteRuleImplBase) RouteRule() types.RouteRule {
 
 	return rri
-}
-
-func (rri *RouteRuleImplBase) TraceDecorator() types.TraceDecorator {
-
-	return nil
 }
 
 // types.RouteRule
@@ -166,11 +160,6 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 func (rri *RouteRuleImplBase) GlobalTimeout() time.Duration {
 
 	return rri.routerAction.Timeout
-}
-
-func (rri *RouteRuleImplBase) Priority() types.Priority {
-
-	return 0
 }
 
 func (rri *RouteRuleImplBase) VirtualHost() types.VirtualHost {

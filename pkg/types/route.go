@@ -26,15 +26,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
-// Priority type
-type Priority int
-
-// Priority types
-const (
-	PriorityDefault Priority = 0
-	PriorityHigh    Priority = 1
-)
-
 // Default parameters for route
 const (
 	GlobalTimeout       = 60 * time.Second
@@ -68,9 +59,6 @@ type Route interface {
 
 	// RouteRule returns the route rule
 	RouteRule() RouteRule
-
-	// TraceDecorator returns the trace decorator
-	TraceDecorator() TraceDecorator
 }
 
 // RouteRule defines parameters for a route
@@ -80,9 +68,6 @@ type RouteRule interface {
 
 	// GlobalTimeout returns the global timeout
 	GlobalTimeout() time.Duration
-
-	// Priority returns the route's priority
-	Priority() Priority
 
 	// VirtualHost returns the route's virtual host
 	VirtualHost() VirtualHost
@@ -256,12 +241,6 @@ type RedirectRule interface {
 	ResponseBody() string
 }
 
-type TraceDecorator interface {
-	operate(span Span)
-
-	getOperation() string
-}
-
 type MetadataMatchCriterion interface {
 	// the name of the metadata key
 	MetadataKeyName() string
@@ -276,11 +255,6 @@ type MetadataMatchCriteria interface {
 	MetadataMatchCriteria() []MetadataMatchCriterion
 
 	MergeMatchCriteria(metadataMatches map[string]interface{}) MetadataMatchCriteria
-}
-
-type Decorator interface {
-	apply(span Span)
-	getOperation() string
 }
 
 // HashedValue is a value as md5's result

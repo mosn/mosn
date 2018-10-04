@@ -158,11 +158,6 @@ func (c *cluster) HealthChecker() types.HealthChecker {
 	return c.healthChecker
 }
 
-func (c *cluster) OutlierDetector() types.Detector {
-	// TODO
-	return nil
-}
-
 // update health-hostSet for only one hostSet, reduce update times
 func (c *cluster) refreshHealthHosts(host types.Host) {
 	if host.Health() {

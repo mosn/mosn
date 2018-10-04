@@ -240,7 +240,7 @@ func (conn *streamConnection) OnReceiveData(context context.Context, streamID st
 			stream.connection.activeStream.Remove(stream.streamID)
 		}
 	}
-	return types.StopIteration
+	return types.Stop
 }
 
 func (conn *streamConnection) onNewStreamDetected(streamID string, headers types.HeaderMap) {

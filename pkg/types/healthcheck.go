@@ -64,9 +64,6 @@ type HealthCheckSession interface {
 	SetUnhealthy(fType FailureType)
 }
 
-type HealthCheckHostMonitor interface {
-}
-
 // TODO: move factory instance to a factory package
 
 var HealthCheckFactoryInstance HealthCheckerFactory

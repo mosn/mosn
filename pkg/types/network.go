@@ -43,7 +43,7 @@ import (
 //   Core model in network layer are listener and connection. Listener listens specified port, waiting for new connections.
 //   Both listener and connection have a extension mechanism, implemented as listener and filter chain, which are used to fill in customized logic.
 //   Event listeners are used to subscribe important event of Listener and Connection. Method in listener will be called on event occur, but not effect the control flow.
-//   Filters are called on event occurs, it also returns a status to effect control flow. Currently 2 states are used: Continue to let it go, StopIteration to stop the control flow.
+//   Filters are called on event occurs, it also returns a status to effect control flow. Currently 2 states are used: Continue to let it go, Stop to stop the control flow.
 //   Filter has a callback handler to interactive with core model. For example, ReadFilterCallbacks can be used to continue filter chain in connection, on which is in a stopped state.
 //
 //   Listener:
@@ -143,8 +143,8 @@ type FilterStatus string
 
 // FilterStatus types
 const (
-	Continue      FilterStatus = "Continue"
-	StopIteration FilterStatus = "StopIteration"
+	Continue FilterStatus = "Continue"
+	Stop     FilterStatus = "Stop"
 )
 
 type ListenerFilter interface {
@@ -167,12 +167,6 @@ type ListenerFilterCallbacks interface {
 // Note: unsupport now
 type ListenerFilterManager interface {
 	AddListenerFilter(lf *ListenerFilter)
-}
-
-type BufferWatermarkListener interface {
-	OnHighWatermark()
-
-	OnLowWatermark()
 }
 
 // Connection status

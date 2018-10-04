@@ -422,7 +422,7 @@ func (c *connection) onRead(bytesRead int64) {
 func (c *connection) Write(buffers ...types.IoBuffer) error {
 	fs := c.filterManager.OnWrite(buffers)
 
-	if fs == types.StopIteration {
+	if fs == types.Stop {
 		return nil
 	}
 
