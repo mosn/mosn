@@ -181,7 +181,7 @@ func (c *codecClient) OnEvent(event types.ConnectionEvent) {
 func (c *codecClient) OnData(buffer types.IoBuffer) types.FilterStatus {
 	c.Codec.Dispatch(buffer)
 
-	return types.StopIteration
+	return types.Stop
 }
 
 func (c *codecClient) OnNewConnection() types.FilterStatus {

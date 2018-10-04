@@ -149,12 +149,6 @@ func (h *host) Health() bool {
 	return h.healthFlags == 0
 }
 
-func (h *host) SetHealthChecker(healthCheck types.HealthCheckHostMonitor) {
-}
-
-func (h *host) SetOutlierDetector(outlierDetector types.DetectorHostMonitor) {
-}
-
 func (h *host) Weight() uint32 {
 	return h.weight
 }
@@ -215,14 +209,6 @@ func (hi *hostInfo) Metadata() types.RouteMetaData {
 
 func (hi *hostInfo) ClusterInfo() types.ClusterInfo {
 	return hi.clusterInfo
-}
-
-func (hi *hostInfo) OutlierDetector() types.DetectorHostMonitor {
-	return nil
-}
-
-func (hi *hostInfo) HealthChecker() types.HealthCheckHostMonitor {
-	return nil
 }
 
 func (hi *hostInfo) Address() net.Addr {

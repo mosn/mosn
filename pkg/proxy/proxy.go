@@ -116,7 +116,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 	p.serverCodec.Dispatch(buf)
 
-	return types.StopIteration
+	return types.Stop
 }
 
 //rpc realize upstream on event

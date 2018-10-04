@@ -549,7 +549,7 @@ func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool)
 
 	for ; arc.acceptedFilterIndex < len(arc.acceptedFilters); arc.acceptedFilterIndex++ {
 		filterStatus := arc.acceptedFilters[arc.acceptedFilterIndex].OnAccept(arc)
-		if filterStatus == types.StopIteration {
+		if filterStatus == types.Stop {
 			return
 		}
 	}
