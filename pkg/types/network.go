@@ -109,6 +109,8 @@ type Listener interface {
 
 	SethandOffRestoredDestinationConnections(restoredDestation bool)
 
+	HandOffRestoredDestinationConnections() bool
+
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)
 

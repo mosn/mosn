@@ -172,14 +172,21 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []*v2.Listener) *v2.L
 		if err != nil {
 			log.StartLogger.Fatalln("[inheritListener] not valid:", il.Addr.String())
 		}
-		// use ip.Equal to solve ipv4 and ipv6 case
-		if addr.IP.Equal(ilAddr.IP) && addr.Port == ilAddr.Port {
+
+		if addr.Port != ilAddr.Port {
+			continue
+		}
+
+		if (addr.IP.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
+			(addr.IP.IsLoopback() && ilAddr.IP.IsLoopback()) ||
+			addr.IP.Equal(ilAddr.IP) {
 			log.StartLogger.Infof("inherit listener addr: %s", lc.AddrConfig)
 			old = il.InheritListener
 			il.Remain = true
 			break
 		}
 	}
+
 	lc.Addr = addr
 	lc.PerConnBufferLimitBytes = 1 << 15
 	lc.InheritListener = old
