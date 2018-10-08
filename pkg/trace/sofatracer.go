@@ -91,18 +91,18 @@ type SofaTracer struct {
 }
 
 func newSofaTracer() *SofaTracer {
-	instance := &SofaTracer{
-	}
+	instance := &SofaTracer{}
 	instance.spanChan = make(chan *SofaTracerSpan)
 
 	userHome := os.Getenv("HOME")
 	var err error
-	instance.ingressLogger, err = log.NewLogger(userHome+"/tracelog/mosn/rpc-server-digest.log", log.INFO)
+	logRoot := userHome + "logs/tracelog/mosn/"
+	instance.ingressLogger, err = log.NewLogger(logRoot+"rpc-server-digest.log", log.INFO)
 	if err != nil {
 		// TODO when error is not nil
 	}
 
-	instance.egressLogger, err = log.NewLogger(userHome+"/tracelog/mosn/rpc-client-digest.log", log.INFO)
+	instance.egressLogger, err = log.NewLogger(logRoot+"rpc-client-digest.log", log.INFO)
 	if err != nil {
 		// TODO when error is not nil
 	}
