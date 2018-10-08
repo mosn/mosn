@@ -160,13 +160,13 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		if ok {
 			serviceName := tracingCodec.GetServiceName(request)
 			methodName := tracingCodec.GetMethodName(request)
-			headers[types.HeaderRpcService] = serviceName
-			headers[types.HeaderRpcMethod] = methodName
+			headers[types.HeaderRPCService] = serviceName
+			headers[types.HeaderRPCMethod] = methodName
 			log.DefaultLogger.Tracef("xprotocol handle tracing ,serviceName = %v , methodName = %v", serviceName, methodName)
 		}
 
 		reqBuf := networkbuffer.NewIoBufferBytes(request)
-		conn.OnReceiveHeaders(conn.context, streamID, headers)
+		conn.OnReceiveHeaders(conn.context, streamID, protocol.CommonHeader(headers))
 		log.DefaultLogger.Tracef("after Dispatch on decode header")
 		conn.OnReceiveData(conn.context, streamID, reqBuf)
 		log.DefaultLogger.Tracef("after Dispatch on decode data")
@@ -215,7 +215,7 @@ func (conn *streamConnection) NewStream(ctx context.Context, streamID string, re
 }
 
 // OnReceiveHeaders process header
-func (conn *streamConnection) OnReceiveHeaders(context context.Context, streamID string, headers map[string]string) types.FilterStatus {
+func (conn *streamConnection) OnReceiveHeaders(context context.Context, streamID string, headers types.HeaderMap) types.FilterStatus {
 	log.DefaultLogger.Tracef("xprotocol stream on decode header")
 	if conn.serverCallbacks != nil {
 		log.DefaultLogger.Tracef("xprotocol stream on new stream detected invoked")
@@ -240,10 +240,10 @@ func (conn *streamConnection) OnReceiveData(context context.Context, streamID st
 			stream.connection.activeStream.Remove(stream.streamID)
 		}
 	}
-	return types.StopIteration
+	return types.Stop
 }
 
-func (conn *streamConnection) onNewStreamDetected(streamID string, headers map[string]string) {
+func (conn *streamConnection) onNewStreamDetected(streamID string, headers types.HeaderMap) {
 	if ok := conn.activeStream.Has(streamID); ok {
 		return
 	}
@@ -315,7 +315,7 @@ func (s *stream) BufferLimit() uint32 {
 
 // AppendHeaders process upstream request header
 // types.StreamEncoder
-func (s *stream) AppendHeaders(context context.Context, headers interface{}, endStream bool) error {
+func (s *stream) AppendHeaders(context context.Context, headers types.HeaderMap, endStream bool) error {
 	log.DefaultLogger.Tracef("EncodeHeaders,request id = %s, direction = %d", s.streamID, s.direction)
 	if endStream {
 		s.endStream()
@@ -352,7 +352,7 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 }
 
 // AppendTrailers process upstream request trailers
-func (s *stream) AppendTrailers(context context.Context, trailers map[string]string) error {
+func (s *stream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
 	log.DefaultLogger.Tracef("EncodeTrailers,request id = %s, direction = %d", s.streamID, s.direction)
 	s.endStream()
 	return nil

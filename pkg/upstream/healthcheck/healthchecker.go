@@ -23,6 +23,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 )
@@ -106,7 +107,7 @@ func (c *healthChecker) addHosts(hosts []types.Host) {
 			var ns types.HealthCheckSession
 
 			if ns = c.newSession(h); ns == nil {
-				log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", host.AddressString())
+				log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", h.AddressString())
 				return
 			}
 
@@ -299,13 +300,14 @@ type healthCheckStats struct {
 }
 
 func newHealthCheckStats(namespace string) *healthCheckStats {
+	m := stats.NewHealthStats(namespace)
 	return &healthCheckStats{
-		attempt:        metrics.GetOrRegisterCounter(namespace+"attempt", nil),
-		success:        metrics.GetOrRegisterCounter(namespace+"success", nil),
-		failure:        metrics.GetOrRegisterCounter(namespace+"failure", nil),
-		passiveFailure: metrics.GetOrRegisterCounter(namespace+"passiveFailure", nil),
-		networkFailure: metrics.GetOrRegisterCounter(namespace+"networkFailure", nil),
-		verifyCluster:  metrics.GetOrRegisterCounter(namespace+"verifyCluster", nil),
-		healthy:        metrics.GetOrRegisterGauge(namespace+"healty", nil),
+		attempt:        m.Counter(stats.HealthCheckAttempt),
+		success:        m.Counter(stats.HealthCheckSuccess),
+		failure:        m.Counter(stats.HealthCheckFailure),
+		passiveFailure: m.Counter(stats.HealthCheckPassiveFailure),
+		networkFailure: m.Counter(stats.HealthCheckNetworkFailure),
+		verifyCluster:  m.Counter(stats.HealthCheckVeirfyCluster),
+		healthy:        m.Gauge(stats.HealthCheckHealthy),
 	}
 }

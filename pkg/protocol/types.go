@@ -36,3 +36,39 @@ const (
 	MosnHeaderQueryStringKey = "querystring"
 	MosnHeaderMethod         = "method"
 )
+
+// Hseader with special meaning in istio
+// todo maybe use ":authority"
+const (
+	IstioHeaderHostKey = "authority"
+)
+
+// CommonHeader wrapper for map[string]string
+type CommonHeader map[string]string
+
+// Get value of key
+func (h CommonHeader) Get(key string) (value string, ok bool) {
+	value, ok = h[key]
+	return
+}
+
+// Set key-value pair in header map, the previous pair will be replaced if exists
+func (h CommonHeader) Set(key string, value string) {
+	h[key] = value
+}
+
+// Del delete pair of specified key
+func (h CommonHeader) Del(key string) {
+	delete(h, key)
+}
+
+// Range calls f sequentially for each key and value present in the map.
+// If f returns false, range stops the iteration.
+func (h CommonHeader) Range(f func(key, value string) bool) {
+	for k, v := range h {
+		// stop if f return false
+		if !f(k, v) {
+			break
+		}
+	}
+}

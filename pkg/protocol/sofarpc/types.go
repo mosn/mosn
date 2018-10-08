@@ -20,7 +20,6 @@ package sofarpc
 import (
 	"context"
 	"errors"
-	"strconv"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -167,9 +166,20 @@ type RemotingProcessor interface {
 
 // ProtoBasicCmd act as basic cmd for many protocol
 type ProtoBasicCmd interface {
+	types.HeaderMap
+
 	GetProtocol() byte
+
+	GetCmdType() byte
+
 	GetCmdCode() int16
+
 	GetReqID() uint32
+
+	GetRespStatus() uint32
+
+	// TODO remove this method
+	SetReqID(uint32)
 }
 
 const (
@@ -180,22 +190,23 @@ const (
 
 // BoltRequestCommand is the cmd struct of bolt v1 request
 type BoltRequestCommand struct {
-	Protocol      byte  //BoltV1:1, BoltV2:2
-	CmdType       byte  //Req:1,    Resp:0,   OneWay:2
-	CmdCode       int16 //HB:0,     Req:1,    Resp:2
-	Version       byte  //1
-	ReqID         uint32
-	CodecPro      byte
-	Timeout       int
-	ClassLen      int16
-	HeaderLen     int16
-	ContentLen    int
-	ClassName     []byte
-	HeaderMap     []byte
-	Content       []byte
-	InvokeContext interface{}
+	Protocol   byte  //BoltV1:1, BoltV2:2
+	CmdType    byte  //Req:1,    Resp:0,   OneWay:2
+	CmdCode    int16 //HB:0,     Req:1,    Resp:2
+	Version    byte  //1
+	ReqID      uint32
+	CodecPro   byte
+	Timeout    int
+	ClassLen   int16
+	HeaderLen  int16
+	ContentLen int
+	ClassName  []byte
+	HeaderMap  []byte
+	Content    []byte
+	//InvokeContext interface{}
 
 	RequestHeader map[string]string
+	RequestClass  string
 }
 
 // BoltResponseCommand is the cmd struct of bolt v1 response
@@ -209,16 +220,17 @@ type BoltResponseCommand struct {
 
 	ResponseStatus int16 //Success:0 Error:1 Timeout:7
 
-	ClassLen      int16
-	HeaderLen     int16
-	ContentLen    int
-	ClassName     []byte
-	HeaderMap     []byte
-	Content       []byte
-	InvokeContext interface{}
+	ClassLen   int16
+	HeaderLen  int16
+	ContentLen int
+	ClassName  []byte
+	HeaderMap  []byte
+	Content    []byte
+	//InvokeContext interface{}
 
 	ResponseTimeMillis int64 //ResponseTimeMillis is not the field of the header
 	ResponseHeader     map[string]string
+	ResponseClass      string
 }
 
 // BoltV2RequestCommand is the cmd struct of bolt v2 request
@@ -240,6 +252,11 @@ func (b *BoltRequestCommand) GetProtocol() byte {
 	return b.Protocol
 }
 
+// GetCmdType return BoltRequestCommand.CmdType
+func (b *BoltRequestCommand) GetCmdType() byte {
+	return b.CmdType
+}
+
 // GetCmdCode return BoltRequestCommand.CmdCode
 func (b *BoltRequestCommand) GetCmdCode() int16 {
 	return b.CmdCode
@@ -250,9 +267,23 @@ func (b *BoltRequestCommand) GetReqID() uint32 {
 	return b.ReqID
 }
 
+// GetRespStatus return RESPONSE_STATUS_SUCCESS for request command
+func (b *BoltRequestCommand) GetRespStatus() uint32 {
+	return uint32(RESPONSE_STATUS_SUCCESS)
+}
+
+func (b *BoltRequestCommand) SetReqID(reqId uint32) {
+	b.ReqID = reqId
+}
+
 // GetProtocol return BoltResponseCommand.Protocol
 func (b *BoltResponseCommand) GetProtocol() byte {
 	return b.Protocol
+}
+
+// GetProtocol return BoltResponseCommand.CmdType
+func (b *BoltResponseCommand) GetCmdType() byte {
+	return b.CmdType
 }
 
 // GetCmdCode return BoltResponseCommand.CmdCode
@@ -263,6 +294,61 @@ func (b *BoltResponseCommand) GetCmdCode() int16 {
 // GetReqID return BoltResponseCommand.ReqID
 func (b *BoltResponseCommand) GetReqID() uint32 {
 	return b.ReqID
+}
+
+// GetRespStatus return BoltResponseCommand.ResponseStatus
+func (b *BoltResponseCommand) GetRespStatus() uint32 {
+	return uint32(b.ResponseStatus)
+}
+
+func (b *BoltResponseCommand) SetReqID(reqId uint32) {
+	b.ReqID = reqId
+}
+
+// ~ HeaderMap
+func (b *BoltRequestCommand) Get(key string) (value string, ok bool) {
+	value, ok = b.RequestHeader[key]
+	return
+}
+
+func (b *BoltRequestCommand) Set(key string, value string) {
+	b.RequestHeader[key] = value
+}
+
+func (b *BoltRequestCommand) Del(key string) {
+	delete(b.RequestHeader, key)
+}
+
+func (b *BoltRequestCommand) Range(f func(key, value string) bool) {
+	for k, v := range b.RequestHeader {
+		// stop if f return false
+		if !f(k, v) {
+			break
+		}
+	}
+}
+
+// ~ HeaderMap
+func (b *BoltResponseCommand) Get(key string) (value string, ok bool) {
+	value, ok = b.ResponseHeader[key]
+	return
+}
+
+func (b *BoltResponseCommand) Set(key string, value string) {
+	b.ResponseHeader[key] = value
+}
+
+func (b *BoltResponseCommand) Del(key string) {
+	delete(b.ResponseHeader, key)
+}
+
+func (b *BoltResponseCommand) Range(f func(key, value string) bool) {
+	for k, v := range b.ResponseHeader {
+		// stop if f return false
+		if !f(k, v) {
+			break
+		}
+	}
 }
 
 // mosn sofarpc headers' namespace
@@ -284,75 +370,37 @@ const (
 )
 
 // BuildSofaRespMsg build sofa response msg according to headers and respStatus
-func BuildSofaRespMsg(context context.Context, headers map[string]string, respStatus int16) (interface{}, error) {
-	var pro, version, codec byte
-	var reqID uint32
-
-	if p, ok := headers[SofaPropertyHeader(HeaderProtocolCode)]; ok {
-		pr, _ := strconv.Atoi(p)
-		pro = byte(pr)
-	}
-
-	if r, ok := headers[SofaPropertyHeader(HeaderReqID)]; ok {
-		rd, _ := strconv.Atoi(r)
-		reqID = uint32(rd)
-	} else {
-		errMsg := NoReqIDFound
-		log.ByContext(context).Errorf(errMsg)
-		return headers, errors.New(errMsg)
-	}
-
-	if v, ok := headers[SofaPropertyHeader(HeaderVersion)]; ok {
-		ver, _ := strconv.Atoi(v)
-		version = byte(ver)
-	}
-
-	if c, ok := headers[SofaPropertyHeader(HeaderCodec)]; ok {
-		ver, _ := strconv.Atoi(c)
-		codec = byte(ver)
-	}
-
-	if pro == PROTOCOL_CODE_V1 {
+func BuildSofaRespMsg(ctx context.Context, cmd ProtoBasicCmd, respStatus int16) (ProtoBasicCmd, error) {
+	switch c := cmd.(type) {
+	case *BoltRequestCommand:
 		return &BoltResponseCommand{
-			Protocol:       PROTOCOL_CODE_V1,
+			Protocol:       c.Protocol,
 			CmdType:        RESPONSE,
 			CmdCode:        RPC_RESPONSE,
-			Version:        version,
-			ReqID:          reqID,
-			CodecPro:       codec,
+			Version:        c.Version,
+			ReqID:          c.ReqID,
+			CodecPro:       c.CodecPro,
 			ResponseStatus: respStatus,
 		}, nil
-	} else if pro == PROTOCOL_CODE_V2 {
-		var ver1, switchCode byte
 
-		if v, ok := headers[SofaPropertyHeader("ver1")]; ok {
-			ver, _ := strconv.Atoi(v)
-			ver1 = byte(ver)
-		}
-
-		if s, ok := headers[SofaPropertyHeader("switchcode")]; ok {
-			sw, _ := strconv.Atoi(s)
-			switchCode = byte(sw)
-		}
-
+	case *BoltV2RequestCommand:
 		return &BoltV2ResponseCommand{
 			BoltResponseCommand: BoltResponseCommand{
-				Protocol:       PROTOCOL_CODE_V1,
+				Protocol:       c.Protocol,
 				CmdType:        RESPONSE,
 				CmdCode:        RPC_RESPONSE,
-				Version:        version,
-				ReqID:          reqID,
-				CodecPro:       codec,
+				Version:        c.Version,
+				ReqID:          c.ReqID,
+				CodecPro:       c.CodecPro,
 				ResponseStatus: respStatus,
 			},
-			Version1:   ver1,
-			SwitchCode: switchCode,
+			Version1:   c.Version1,
+			SwitchCode: c.SwitchCode,
 		}, nil
 	}
 
-	log.ByContext(context).Errorf("[BuildSofaRespMsg Error]Unknown Protocol Code")
-
-	return headers, errors.New(types.UnSupportedProCode)
+	log.ByContext(ctx).Errorf("[BuildSofaRespMsg Error]Unknown cmd type")
+	return cmd, errors.New(types.UnSupportedProCode)
 }
 
 // Sofa Rpc Default HC Parameters
@@ -367,10 +415,12 @@ const (
 
 // DefaultSofaRPCHealthCheckConf
 var DefaultSofaRPCHealthCheckConf = v2.HealthCheck{
-	Protocol:           SofaRPC,
-	Timeout:            DefaultBoltHeartBeatTimeout,
-	HealthyThreshold:   DefaultHealthyThreshold,
-	UnhealthyThreshold: DefaultUnhealthyThreshold,
-	Interval:           DefaultBoltHeartBeatInterval,
-	IntervalJitter:     DefaultIntervalJitter,
+	HealthCheckConfig: v2.HealthCheckConfig{
+		Protocol:           SofaRPC,
+		HealthyThreshold:   DefaultHealthyThreshold,
+		UnhealthyThreshold: DefaultUnhealthyThreshold,
+	},
+	Timeout:        DefaultBoltHeartBeatTimeout,
+	Interval:       DefaultBoltHeartBeatInterval,
+	IntervalJitter: DefaultIntervalJitter,
 }

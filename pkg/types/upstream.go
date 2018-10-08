@@ -23,7 +23,7 @@ import (
 	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/rcrowley/go-metrics"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -99,8 +99,6 @@ type Cluster interface {
 
 	// return the cluster's health checker
 	HealthChecker() HealthChecker
-
-	OutlierDetector() Detector
 }
 
 // InitializePhase type
@@ -164,10 +162,6 @@ type Host interface {
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
-	Counters() HostStats
-
-	Gauges() HostStats
-
 	ClearHealthFlag(flag HealthFlag)
 
 	ContainHealthFlag(flag HealthFlag) bool
@@ -175,10 +169,6 @@ type Host interface {
 	SetHealthFlag(flag HealthFlag)
 
 	Health() bool
-
-	SetHealthChecker(healthCheck HealthCheckHostMonitor)
-
-	SetOutlierDetector(outlierDetector DetectorHostMonitor)
 
 	Weight() uint32
 
@@ -199,10 +189,6 @@ type HostInfo interface {
 
 	ClusterInfo() ClusterInfo
 
-	OutlierDetector() DetectorHostMonitor
-
-	HealthChecker() HealthCheckHostMonitor
-
 	Address() net.Addr
 
 	AddressString() string
@@ -214,13 +200,9 @@ type HostInfo interface {
 
 // HostStats defines a host's statistics information
 type HostStats struct {
-	Namespace                                      string
 	UpstreamConnectionTotal                        metrics.Counter
 	UpstreamConnectionClose                        metrics.Counter
 	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionTotalHTTP1                   metrics.Counter
-	UpstreamConnectionTotalHTTP2                   metrics.Counter
-	UpstreamConnectionTotalSofaRPC                 metrics.Counter
 	UpstreamConnectionConFail                      metrics.Counter
 	UpstreamConnectionLocalClose                   metrics.Counter
 	UpstreamConnectionRemoteClose                  metrics.Counter
@@ -299,13 +281,9 @@ type Resource interface {
 
 // ClusterStats defines a cluster's statistics information
 type ClusterStats struct {
-	Namespace                                      string
 	UpstreamConnectionTotal                        metrics.Counter
 	UpstreamConnectionClose                        metrics.Counter
 	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionTotalHTTP1                   metrics.Counter
-	UpstreamConnectionTotalHTTP2                   metrics.Counter
-	UpstreamConnectionTotalSofaRPC                 metrics.Counter
 	UpstreamConnectionConFail                      metrics.Counter
 	UpstreamConnectionRetry                        metrics.Counter
 	UpstreamConnectionLocalClose                   metrics.Counter
@@ -313,10 +291,8 @@ type ClusterStats struct {
 	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
 	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
 	UpstreamConnectionCloseNotify                  metrics.Counter
-	UpstreamBytesRead                              metrics.Counter
-	UpstreamBytesReadCurrent                       metrics.Gauge
-	UpstreamBytesWrite                             metrics.Counter
-	UpstreamBytesWriteCurrent                      metrics.Gauge
+	UpstreamBytesReadTotal                         metrics.Counter
+	UpstreamBytesWriteTotal                        metrics.Counter
 	UpstreamRequestTotal                           metrics.Counter
 	UpstreamRequestActive                          metrics.Counter
 	UpstreamRequestLocalReset                      metrics.Counter

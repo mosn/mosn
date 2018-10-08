@@ -22,15 +22,8 @@ import (
 	"crypto/md5"
 	"regexp"
 	"time"
-)
 
-// Priority type
-type Priority int
-
-// Priority types
-const (
-	PriorityDefault Priority = 0
-	PriorityHigh    Priority = 1
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
 // Default parameters for route
@@ -45,21 +38,18 @@ const (
 // Routers defines and manages all router
 type Routers interface {
 	// Route is used to route with headers
-	Route(headers map[string]string, randomValue uint64) Route
-	// AddRouter adds router to Routers
-	AddRouter(routerName string)
-	// DelRouter deletes router from Routers
-	DelRouter(routerName string)
+	Route(headers HeaderMap, randomValue uint64) Route
 }
 
-// RouterConfigManager is a manager for all routers' config
-type RouterConfigManager interface {
+// RouterManager is a manager for all routers' config
+type RouterManager interface {
 	// AddRoutersSet adds router config when generated
-	AddRoutersSet(routerConfig Routers)
-	// RemoveRouterInRouters removes routers
-	RemoveRouterInRouters(routerNames []string)
-	// AddRouterInRouters adds routers
-	AddRouterInRouters(routerNames []string)
+	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
+
+	GetRouterWrapperByListenerName(routerConfigName string) RouterWrapper
+}
+type RouterWrapper interface {
+	GetRouters() Routers
 }
 
 // Route is a route instance
@@ -69,9 +59,6 @@ type Route interface {
 
 	// RouteRule returns the route rule
 	RouteRule() RouteRule
-
-	// TraceDecorator returns the trace decorator
-	TraceDecorator() TraceDecorator
 }
 
 // RouteRule defines parameters for a route
@@ -81,9 +68,6 @@ type RouteRule interface {
 
 	// GlobalTimeout returns the global timeout
 	GlobalTimeout() time.Duration
-
-	// Priority returns the route's priority
-	Priority() Priority
 
 	// VirtualHost returns the route's virtual host
 	VirtualHost() VirtualHost
@@ -232,7 +216,7 @@ type VirtualHost interface {
 	RateLimitPolicy() RateLimitPolicy
 
 	// GetRouteFromEntries returns a Route matched the condition
-	GetRouteFromEntries(headers map[string]string, randomValue uint64) Route
+	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
 }
 
 type MetadataMatcher interface {
@@ -257,12 +241,6 @@ type RedirectRule interface {
 	ResponseBody() string
 }
 
-type TraceDecorator interface {
-	operate(span Span)
-
-	getOperation() string
-}
-
 type MetadataMatchCriterion interface {
 	// the name of the metadata key
 	MetadataKeyName() string
@@ -277,11 +255,6 @@ type MetadataMatchCriteria interface {
 	MetadataMatchCriteria() []MetadataMatchCriterion
 
 	MergeMatchCriteria(metadataMatches map[string]interface{}) MetadataMatchCriteria
-}
-
-type Decorator interface {
-	apply(span Span)
-	getOperation() string
 }
 
 // HashedValue is a value as md5's result

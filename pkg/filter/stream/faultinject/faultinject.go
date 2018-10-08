@@ -52,34 +52,34 @@ func NewFaultInjectFilter(context context.Context, config *v2.FaultInject) types
 	}
 }
 
-func (f *faultInjectFilter) OnDecodeHeaders(headers map[string]string, endStream bool) types.FilterHeadersStatus {
+func (f *faultInjectFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
-		return types.FilterHeadersStatusStopIteration
+		return types.StreamHeadersFilterStop
 	}
 
-	return types.FilterHeadersStatusContinue
+	return types.StreamHeadersFilterContinue
 }
 
-func (f *faultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.FilterDataStatus {
+func (f *faultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
-		return types.FilterDataStatusStopIterationAndBuffer
+		return types.StreamDataFilterStopAndBuffer
 	}
 
-	return types.FilterDataStatusContinue
+	return types.StreamDataFilterContinue
 }
 
-func (f *faultInjectFilter) OnDecodeTrailers(trailers map[string]string) types.FilterTrailersStatus {
+func (f *faultInjectFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	f.tryInjectDelay()
 
 	if atomic.LoadUint32(&f.delaying) > 0 {
-		return types.FilterTrailersStatusStopIteration
+		return types.StreamTrailersFilterStop
 	}
 
-	return types.FilterTrailersStatusContinue
+	return types.StreamTrailersFilterContinue
 }
 
 func (f *faultInjectFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {

@@ -28,17 +28,17 @@ import (
 // Prefix > Path > Regex
 func TestRouterPriority(t *testing.T) {
 	// only prefix is valid
+	prefixRouter := v2.Router{}
+	prefixRouter.Match = v2.RouterMatch{
+		Prefix: "/foo",
+		Path:   "/foo.html",
+		Regex:  ".*",
+	}
+	prefixRouter.Route = v2.RouteAction{RouterActionConfig: v2.RouterActionConfig{ClusterName: "test"}}
 	prefixVitrualHost, _ := NewVirtualHostImpl(&v2.VirtualHost{
 		Name:    "test",
 		Domains: []string{"*"},
-		Routers: []v2.Router{v2.Router{
-			Match: v2.RouterMatch{
-				Prefix: "/foo",
-				Path:   "/foo.html",
-				Regex:  ".*",
-			},
-			Route: v2.RouteAction{ClusterName: "test"},
-		}},
+		Routers: []v2.Router{prefixRouter},
 	}, false)
 	if len(prefixVitrualHost.routes) != 1 {
 		t.Errorf("routes should have only one, but got :%v\n", len(prefixVitrualHost.routes))
@@ -47,16 +47,16 @@ func TestRouterPriority(t *testing.T) {
 		t.Error("cannot get a prefix route rule")
 	}
 	// only path is valid
+	pathRouter := v2.Router{}
+	pathRouter.Match = v2.RouterMatch{
+		Path:  "/foo.html",
+		Regex: ".*",
+	}
+	pathRouter.Route = v2.RouteAction{RouterActionConfig: v2.RouterActionConfig{ClusterName: "test"}}
 	pathVirtualHost, _ := NewVirtualHostImpl(&v2.VirtualHost{
 		Name:    "test",
 		Domains: []string{"*"},
-		Routers: []v2.Router{v2.Router{
-			Match: v2.RouterMatch{
-				Path:  "/foo.html",
-				Regex: ".*",
-			},
-			Route: v2.RouteAction{ClusterName: "test"},
-		}},
+		Routers: []v2.Router{pathRouter},
 	}, false)
 	if len(pathVirtualHost.routes) != 1 {
 		t.Errorf("routes should have only one, but got :%v\n", len(pathVirtualHost.routes))
@@ -68,23 +68,32 @@ func TestRouterPriority(t *testing.T) {
 
 // the first matched route will be used
 func TestRouterOrder(t *testing.T) {
-	prefixrouter := v2.Router{
-		Match: v2.RouterMatch{
-			Prefix: "/foo",
-		},
-		Route: v2.RouteAction{ClusterName: "prefix"},
+	prefixrouter := v2.Router{}
+	prefixrouter.Match = v2.RouterMatch{
+		Prefix: "/foo",
 	}
-	pathrouter := v2.Router{
-		Match: v2.RouterMatch{
-			Path: "/foo1",
+	prefixrouter.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
+			ClusterName: "prefix",
 		},
-		Route: v2.RouteAction{ClusterName: "path"},
 	}
-	regrouter := v2.Router{
-		Match: v2.RouterMatch{
-			Regex: "/foo[0-9]+",
+	pathrouter := v2.Router{}
+	pathrouter.Match = v2.RouterMatch{
+		Path: "/foo1",
+	}
+	pathrouter.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
+			ClusterName: "path",
 		},
-		Route: v2.RouteAction{ClusterName: "regexp"},
+	}
+	regrouter := v2.Router{}
+	regrouter.Match = v2.RouterMatch{
+		Regex: "/foo[0-9]+",
+	}
+	regrouter.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
+			ClusterName: "regexp",
+		},
 	}
 	// path "/foo1" match all of the router, the path router should be matched
 	// path "/foo11" match prefix and regexp router, the regexp router should be matched
@@ -104,9 +113,9 @@ func TestRouterOrder(t *testing.T) {
 		Routers: routers,
 	}, false)
 	for i, tc := range testCases {
-		headers := map[string]string{
+		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
-		}
+		})
 		rt := virtualHost.GetRouteFromEntries(headers, 1)
 		if rt == nil || rt.RouteRule().ClusterName() != tc.clustername {
 			t.Errorf("#%d route unexpected result\n", i)
@@ -119,9 +128,9 @@ func TestRouterOrder(t *testing.T) {
 		Routers: []v2.Router{prefixrouter, regrouter, pathrouter},
 	}, false)
 	for i, tc := range testCases {
-		headers := map[string]string{
+		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
-		}
+		})
 		rt := prefixVirtualHost.GetRouteFromEntries(headers, 1)
 		if rt == nil || rt.RouteRule().ClusterName() != "prefix" {
 			t.Errorf("#%d route unexpected result\n", i)

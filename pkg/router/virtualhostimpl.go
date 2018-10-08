@@ -62,7 +62,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 				virtualHostImpl.routes = append(virtualHostImpl.routes, &RegexRouteRuleImpl{
 					routeRuleImplBase,
 					route.Match.Regex,
-					*regPattern,
+					regPattern,
 				})
 			} else {
 				log.DefaultLogger.Errorf("Compile Regex Error")
@@ -96,7 +96,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 				VirtualClusterEntry{
 					name:    vc.Name,
 					method:  optional.NewString(vc.Method),
-					pattern: *regxPattern,
+					pattern: regxPattern,
 				})
 		} else {
 			log.DefaultLogger.Errorf("Compile Error")
@@ -132,7 +132,7 @@ func (vh *VirtualHostImpl) RateLimitPolicy() types.RateLimitPolicy {
 	return nil
 }
 
-func (vh *VirtualHostImpl) GetRouteFromEntries(headers map[string]string, randomValue uint64) types.Route {
+func (vh *VirtualHostImpl) GetRouteFromEntries(headers types.HeaderMap, randomValue uint64) types.Route {
 	// todo check tls
 	for _, route := range vh.routes {
 		if routeEntry := route.Match(headers, randomValue); routeEntry != nil {
@@ -144,7 +144,7 @@ func (vh *VirtualHostImpl) GetRouteFromEntries(headers map[string]string, random
 }
 
 type VirtualClusterEntry struct {
-	pattern regexp.Regexp
+	pattern *regexp.Regexp
 	method  optional.String
 	name    string
 }

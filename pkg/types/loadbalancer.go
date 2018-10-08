@@ -49,7 +49,7 @@ type LoadBalancerContext interface {
 	DownstreamConnection() net.Conn
 
 	// DownstreamHeaders returns the downstream headers map.
-	DownstreamHeaders() map[string]string
+	DownstreamHeaders() HeaderMap
 }
 
 // SubSetLoadBalancer is a subset of LoadBalancer

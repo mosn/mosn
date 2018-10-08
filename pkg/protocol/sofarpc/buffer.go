@@ -49,7 +49,7 @@ type SofaProtocolBuffers struct {
 	BoltEncodeRsp BoltResponseCommand
 }
 
-func SofaProtocolBuffersByContent(context context.Context) *SofaProtocolBuffers {
-	ctx := buffer.PoolContext(context)
-	return ctx.Find(SofaProtocolBufferCtx{}, nil).(*SofaProtocolBuffers)
+func SofaProtocolBuffersByContext(ctx context.Context) *SofaProtocolBuffers {
+	poolCtx := buffer.PoolContext(ctx)
+	return poolCtx.Find(SofaProtocolBufferCtx{}, nil).(*SofaProtocolBuffers)
 }

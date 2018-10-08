@@ -106,10 +106,11 @@ type sofarpcHealthCheckSession struct {
 	expectReset    bool
 }
 
-func (s *sofarpcHealthCheckSession) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
+func (s *sofarpcHealthCheckSession) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	//bolt
 	//log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
-	if statusStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]; ok {
+
+	if statusStr, ok := headers.Get(sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)); ok {
 		s.responseStatus = sofarpc.ConvertPropertyValueInt16(statusStr)
 	}
 
@@ -124,11 +125,11 @@ func (s *sofarpcHealthCheckSession) OnReceiveData(context context.Context, data 
 	}
 }
 
-func (s *sofarpcHealthCheckSession) OnReceiveTrailers(context context.Context, trailers map[string]string) {
+func (s *sofarpcHealthCheckSession) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 	s.onResponseComplete()
 }
 
-func (s *sofarpcHealthCheckSession) OnDecodeError(context context.Context, err error, headers map[string]string) {
+func (s *sofarpcHealthCheckSession) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
 
 // overload healthCheckSession

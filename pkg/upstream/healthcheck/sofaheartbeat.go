@@ -33,14 +33,13 @@ func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr 
 	codecClient stream.CodecClient, nameHB string, pro sofarpc.ProtocolType) types.HealthCheckSession {
 
 	hcV2 := v2.HealthCheck{
-		Timeout:     timeout,
-		Interval:    interval,
-		ServiceName: nameHB,
+		Timeout:  timeout,
+		Interval: interval,
 	}
+	hcV2.ServiceName = nameHB
 
-	hostV2 := v2.Host{
-		Address: hostAddr,
-	}
+	hostV2 := v2.Host{}
+	hostV2.Address = hostAddr
 
 	host := cluster.NewHost(hostV2, nil)
 	baseHc := newHealthChecker(hcV2)

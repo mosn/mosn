@@ -46,15 +46,21 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		route := &v2.Router{
-			Match: v2.RouterMatch{Prefix: tc.prefix},
-			Route: v2.RouteAction{ClusterName: "test"},
+			RouterConfig: v2.RouterConfig{
+				Match: v2.RouterMatch{Prefix: tc.prefix},
+				Route: v2.RouteAction{
+					RouterActionConfig: v2.RouterActionConfig{
+						ClusterName: "test",
+					},
+				},
+			},
 		}
 		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PrefixRouteRuleImpl{
 			routuRule,
 			route.Match.Prefix,
 		}
-		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
+		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
 		result := (rr.Match(headers, 1) != nil)
 		if result != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
@@ -77,13 +83,19 @@ func TestPathRouteRuleImpl(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		route := &v2.Router{
-			Match: v2.RouterMatch{Path: tc.path},
-			Route: v2.RouteAction{ClusterName: "test"},
+			RouterConfig: v2.RouterConfig{
+				Match: v2.RouterMatch{Path: tc.path},
+				Route: v2.RouteAction{
+					RouterActionConfig: v2.RouterActionConfig{
+						ClusterName: "test",
+					},
+				},
+			},
 		}
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		base.caseSensitive = tc.caseSensitive //hack case sensitive
 		rr := &PathRouteRuleImpl{base, route.Match.Path}
-		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
+		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
 		result := (rr.Match(headers, 1) != nil)
 		if result != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
@@ -106,8 +118,14 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		route := &v2.Router{
-			Match: v2.RouterMatch{Regex: tc.regexp},
-			Route: v2.RouteAction{ClusterName: "test"},
+			RouterConfig: v2.RouterConfig{
+				Match: v2.RouterMatch{Regex: tc.regexp},
+				Route: v2.RouteAction{
+					RouterActionConfig: v2.RouterActionConfig{
+						ClusterName: "test",
+					},
+				},
+			},
 		}
 		re := regexp.MustCompile(tc.regexp)
 		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
@@ -115,9 +133,9 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 		rr := &RegexRouteRuleImpl{
 			routuRule,
 			route.Match.Regex,
-			*re,
+			re,
 		}
-		headers := map[string]string{protocol.MosnHeaderPathKey: tc.headerpath}
+		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
 		result := (rr.Match(headers, 1) != nil)
 		if result != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
@@ -126,14 +144,17 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 }
 
 func TestWeightedClusterSelect(t *testing.T) {
-	routerMock1 := &v2.Router{
-		Route: v2.RouteAction{
+	routerMock1 := &v2.Router{}
+	routerMock1.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName: "defaultCluster",
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w1",
-						Weight: 90,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w1",
+							Weight: 90,
+						},
 						MetadataMatch: v2.Metadata{
 							"version": "v1",
 						},
@@ -141,8 +162,10 @@ func TestWeightedClusterSelect(t *testing.T) {
 				},
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w2",
-						Weight: 10,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w2",
+							Weight: 10,
+						},
 						MetadataMatch: v2.Metadata{
 							"version": "v2",
 						},
@@ -152,14 +175,17 @@ func TestWeightedClusterSelect(t *testing.T) {
 		},
 	}
 
-	routerMock2 := &v2.Router{
-		Route: v2.RouteAction{
+	routerMock2 := &v2.Router{}
+	routerMock2.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName: "defaultCluster",
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w1",
-						Weight: 50,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w1",
+							Weight: 50,
+						},
 						MetadataMatch: v2.Metadata{
 							"version": "v1",
 						},
@@ -167,34 +193,10 @@ func TestWeightedClusterSelect(t *testing.T) {
 				},
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w2",
-						Weight: 50,
-						MetadataMatch: v2.Metadata{
-							"version": "v2",
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w2",
+							Weight: 50,
 						},
-					},
-				},
-			},
-		},
-	}
-
-	routerMock3 := &v2.Router{
-		Route: v2.RouteAction{
-			ClusterName: "defaultCluster",
-			WeightedClusters: []v2.WeightedCluster{
-				{
-					Cluster: v2.ClusterWeight{
-						Name:   "w1",
-						Weight: 50,
-						MetadataMatch: v2.Metadata{
-							"version": "v1",
-						},
-					},
-				},
-				{
-					Cluster: v2.ClusterWeight{
-						Name:   "w2",
-						Weight: 40,
 						MetadataMatch: v2.Metadata{
 							"version": "v2",
 						},
@@ -224,11 +226,11 @@ func TestWeightedClusterSelect(t *testing.T) {
 			clusterName := routeRuleImplBase.ClusterName()
 			switch clusterName {
 			case "defaultCluster":
-				dcCount += 1
+				dcCount++
 			case "w1":
-				w1Count += 1
+				w1Count++
 			case "w2":
-				w2Count += 1
+				w2Count++
 			}
 		}
 
@@ -238,10 +240,5 @@ func TestWeightedClusterSelect(t *testing.T) {
 
 		}
 		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
-	}
-
-	routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routerMock3)
-	if len(routeRuleImplBase.weightedClusters) != 0 {
-		t.Errorf("wanted invalid weighted cluster init but not")
 	}
 }

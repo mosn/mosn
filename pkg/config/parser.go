@@ -20,8 +20,6 @@ package config
 import (
 	"fmt"
 	"net"
-	"strings"
-	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter"
@@ -29,15 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/fatih/structs"
 	"github.com/json-iterator/go"
-)
-
-type ContentKey string
-
-const (
-	MinHostWeight = uint32(1)
-	MaxHostWeight = uint32(128)
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -54,16 +44,17 @@ var protocolsSupported = map[string]bool{
 func RegisterProtocolParser(key string) bool {
 	if _, ok := protocolsSupported[key]; ok {
 		return false
-	} else {
-		log.StartLogger.Infof(" %s added to protocolsSupported", key)
-		protocolsSupported[key] = true
-		return true
 	}
+	log.StartLogger.Infof(" %s added to protocolsSupported", key)
+	protocolsSupported[key] = true
+	return true
 }
 
 // ParsedCallback is an
 // alias for closure func(data interface{}, endParsing bool) error
 type ParsedCallback func(data interface{}, endParsing bool) error
+
+var configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
 
 // Group of ContentKey
 // notes: configcontentkey equals to the key of config file
@@ -84,39 +75,212 @@ func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 	}
 }
 
-var (
-	configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
-
-	logLevelMap = map[string]log.Level{
-		"TRACE": log.TRACE,
-		"DEBUG": log.DEBUG,
-		"FATAL": log.FATAL,
-		"ERROR": log.ERROR,
-		"WARN":  log.WARN,
-		"INFO":  log.INFO,
+// ParseClusterConfig parses config data to api data, verify whether the config is valid
+func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Host) {
+	if len(clusters) == 0 {
+		log.StartLogger.Warnf("No Cluster provided in cluster config")
 	}
-
-	clusterTypeMap = map[string]v2.ClusterType{
-		"SIMPLE":  v2.SIMPLE_CLUSTER,
-		"DYNAMIC": v2.DYNAMIC_CLUSTER,
+	var pClusters []v2.Cluster
+	clusterV2Map := make(map[string][]v2.Host)
+	for _, c := range clusters {
+		if c.Name == "" {
+			log.StartLogger.Fatalln("[name] is required in cluster config")
+		}
+		if c.MaxRequestPerConn == 0 {
+			c.MaxRequestPerConn = 1024
+			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d", 1024)
+		}
+		if c.ConnBufferLimitBytes == 0 {
+			c.ConnBufferLimitBytes = 16 * 1026
+			log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value %d", 1024*16)
+		}
+		if c.LBSubSetConfig.FallBackPolicy > 2 {
+			log.StartLogger.Fatalln("lb subset config 's fall back policy set error. ",
+				"For 0, represent NO_FALLBACK",
+				"For 1, represent ANY_ENDPOINT",
+				"For 2, represent DEFAULT_SUBSET")
+		}
+		if _, ok := protocolsSupported[c.HealthCheck.Protocol]; !ok && c.HealthCheck.Protocol != "" {
+			log.StartLogger.Fatal("unsupported health check protocol:", c.HealthCheck.Protocol)
+		}
+		c.Hosts = parseHostConfig(c.Hosts)
+		clusterV2Map[c.Name] = c.Hosts
+		pClusters = append(pClusters, c)
 	}
-
-	lbTypeMap = map[string]v2.LbType{
-		"LB_RANDOM":     v2.LB_RANDOM,
-		"LB_ROUNDROBIN": v2.LB_ROUNDROBIN,
+	// trigger all callbacks
+	if cbs, ok := configParsedCBMaps[ParseCallbackKeyCluster]; ok {
+		for _, cb := range cbs {
+			cb(pClusters, false)
+		}
 	}
+	return pClusters, clusterV2Map
+}
+
+func parseHostConfig(hosts []v2.Host) (hs []v2.Host) {
+	for _, host := range hosts {
+		host.Weight = transHostWeight(host.Weight)
+		hs = append(hs, host)
+	}
+	return
+}
+
+const (
+	MinHostWeight = uint32(1)
+	MaxHostWeight = uint32(128)
 )
 
-func parseLogLevel(level string) log.Level {
-	if level != "" {
-		if logLevel, ok := logLevelMap[level]; ok {
-			return logLevel
-		}
-
-		log.StartLogger.Fatalln("unsupported log level: ", level)
+func transHostWeight(weight uint32) uint32 {
+	if weight > MaxHostWeight {
+		return MaxHostWeight
 	}
-	//use INFO as default log level
+	if weight < MinHostWeight {
+		return MinHostWeight
+	}
+	return weight
+}
+
+var logLevelMap = map[string]log.Level{
+	"TRACE": log.TRACE,
+	"DEBUG": log.DEBUG,
+	"FATAL": log.FATAL,
+	"ERROR": log.ERROR,
+	"WARN":  log.WARN,
+	"INFO":  log.INFO,
+}
+
+func parseLogLevel(level string) log.Level {
+	if logLevel, ok := logLevelMap[level]; ok {
+		return logLevel
+	}
 	return log.INFO
+}
+
+// ParseListenerConfig
+func ParseListenerConfig(lc *v2.Listener, inheritListeners []*v2.Listener) *v2.Listener {
+	if lc.AddrConfig == "" {
+		log.StartLogger.Fatalln("[Address] is required in listener config")
+	}
+	addr, err := net.ResolveTCPAddr("tcp", lc.AddrConfig)
+	if err != nil {
+		log.StartLogger.Fatalln("[Address] not valid:", lc.AddrConfig)
+	}
+	//try inherit legacy listener
+	var old *net.TCPListener
+
+	for _, il := range inheritListeners {
+		ilAddr, err := net.ResolveTCPAddr("tcp", il.Addr.String())
+		if err != nil {
+			log.StartLogger.Fatalln("[inheritListener] not valid:", il.Addr.String())
+		}
+		// use ip.Equal to solve ipv4 and ipv6 case
+		if addr.IP.Equal(ilAddr.IP) && addr.Port == ilAddr.Port {
+			log.StartLogger.Infof("inherit listener addr: %s", lc.AddrConfig)
+			old = il.InheritListener
+			il.Remain = true
+			break
+		}
+	}
+
+	lc.Addr = addr
+	lc.PerConnBufferLimitBytes = 1 << 15
+	lc.InheritListener = old
+	lc.LogLevel = uint8(parseLogLevel(lc.LogLevelConfig))
+	return lc
+}
+
+// ParseRouterConfiguration used to get virtualhosts from filter
+func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
+	routerConfiguration := &v2.RouterConfiguration{}
+	for _, f := range c.Filters {
+		if f.Type == v2.CONNECTION_MANAGER {
+
+			if data, err := json.Marshal(f.Config); err == nil {
+				if err := json.Unmarshal(data, routerConfiguration); err != nil {
+					log.StartLogger.Fatal("Parsing Virtual Host Error:", err)
+				}
+			} else {
+				log.StartLogger.Fatal("Parsing Virtual Host Error")
+			}
+		}
+	}
+
+	return routerConfiguration
+}
+
+// GetListenerDisableIO used to check downstream protocol and return ListenerDisableIO
+func GetListenerDisableIO(c *v2.FilterChain) bool {
+	for _, f := range c.Filters {
+		if f.Type == v2.DEFAULT_NETWORK_FILTER {
+			if downstream, ok := f.Config["downstream_protocol"]; ok {
+				if downstream == string(protocol.HTTP2) || downstream == string(protocol.HTTP1) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// ParseProxyFilter
+func ParseProxyFilter(cfg map[string]interface{}) *v2.Proxy {
+	proxyConfig := &v2.Proxy{}
+	if data, err := json.Marshal(cfg); err == nil {
+		json.Unmarshal(data, proxyConfig)
+	} else {
+		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
+	}
+
+	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
+		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Filter")
+	} else if _, ok := protocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
+		log.StartLogger.Fatal("Invalid Downstream Protocol = ", proxyConfig.DownstreamProtocol)
+	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
+		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
+	}
+
+	return proxyConfig
+}
+
+// ParseFaultInjectFilter
+func ParseFaultInjectFilter(cfg map[string]interface{}) *v2.FaultInject {
+	filterConfig := &v2.FaultInject{}
+	if data, err := json.Marshal(cfg); err == nil {
+		json.Unmarshal(data, filterConfig)
+	} else {
+		log.StartLogger.Fatal("parsing fault inject filter error")
+	}
+	return filterConfig
+}
+
+// ParseHealthCheckFilter
+func ParseHealthCheckFilter(cfg map[string]interface{}) *v2.HealthCheckFilter {
+	filterConfig := &v2.HealthCheckFilter{}
+	if data, err := json.Marshal(cfg); err == nil {
+		json.Unmarshal(data, filterConfig)
+	} else {
+		log.StartLogger.Fatalln("parsing health check failed")
+	}
+	return filterConfig
+}
+
+// ParseTCPProxy
+func ParseTCPProxy(cfg map[string]interface{}) (*v2.TCPProxy, error) {
+	proxy := &v2.TCPProxy{}
+	if data, err := json.Marshal(cfg); err == nil {
+		json.Unmarshal(data, proxy)
+	} else {
+		return nil, fmt.Errorf("config is not a tcp proxy config: %v", err)
+	}
+	return proxy, nil
+}
+
+func ParseServiceRegistry(src v2.ServiceRegistryInfo) {
+	//trigger all callbacks
+	if cbs, ok := configParsedCBMaps[ParseCallbackKeyServiceRgtInfo]; ok {
+		for _, cb := range cbs {
+			cb(src, true)
+		}
+	}
 }
 
 // ParseServerConfig
@@ -133,785 +297,32 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 	return sc
 }
 
-// ConvertProxyFilterToV2
-func ConvertProxyFilterToV2(config map[string]interface{}) map[string]interface{} {
-	proxyConfig := &Proxy{}
-
-	if data, err := json.Marshal(config); err == nil {
-		json.Unmarshal(data, proxyConfig)
-	} else {
-		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
-	}
-
-	proxyConfigV2 := &v2.Proxy{
-		Name:                proxyConfig.Name,
-		DownstreamProtocol:  proxyConfig.DownstreamProtocol,
-		UpstreamProtocol:    proxyConfig.UpstreamProtocol,
-		SupportDynamicRoute: proxyConfig.SupportDynamicRoute,
-		BasicRoutes:         nil,
-		VirtualHosts:        parseVirtualHost(proxyConfig.VirtualHosts),
-		ValidateClusters:    proxyConfig.ValidateClusters,
-	}
-
-	if proxyConfig.UpstreamProtocol == string(protocol.Xprotocol) || proxyConfig.DownstreamProtocol == string(protocol.Xprotocol) {
-		extendConfig := &XProtocolExtendConfig{}
-		if data, err := json.Marshal(proxyConfig.ExtendConfig); err == nil {
-			json.Unmarshal(data, extendConfig)
-		} else {
-			log.StartLogger.Fatal("Parsing xprotocol extend config Error")
-		}
-		extendConfigV2 := v2.XProxyExtendConfig{
-			SubProtocol: extendConfig.SubProtocol,
-		}
-		proxyConfigV2.ExtendConfig = structs.Map(extendConfigV2)
-	}
-
-	return structs.Map(proxyConfigV2)
-}
-
-// ParseProxyFilter
-func ParseProxyFilter(config map[string]interface{}) *v2.Proxy {
-	proxyConfig := &v2.Proxy{}
-
-	if data, err := json.Marshal(config); err == nil {
-		json.Unmarshal(data, &proxyConfig)
-	} else {
-		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
-	}
-
-	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
-		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Filter")
-	} else if _, ok := protocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
-		log.StartLogger.Fatal("Invalid Downstream Protocol = ", proxyConfig.DownstreamProtocol)
-	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
-		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
-	}
-
-	if !proxyConfig.SupportDynamicRoute {
-		log.StartLogger.Warnf("Mesh Doesn't Support Dynamic Router")
-	}
-
-	for _, vh := range proxyConfig.VirtualHosts {
-		if len(vh.Routers) == 0 {
-			log.StartLogger.Fatal("No Router Founded in VirtualHosts")
-		}
-	}
-	return proxyConfig
-}
-
-func parseVirtualHost(confighost []*VirtualHost) []*v2.VirtualHost {
-	result := []*v2.VirtualHost{}
-
-	for _, cfh := range confighost {
-		result = append(result, &v2.VirtualHost{
-			Name:            cfh.Name,
-			Domains:         cfh.Domains,
-			Routers:         parseRouters(cfh.Routers),
-			RequireTLS:      cfh.RequireTLS,
-			VirtualClusters: parseVirtualClusters(cfh.VirtualClusters),
-		})
-
-	}
-
-	return result
-}
-
-func parseRetryPolicy(action RouteAction) *v2.RetryPolicy {
-	if action.RetryPolicy == nil {
-		return nil
-	} else {
-		return &v2.RetryPolicy{
-			action.RetryPolicy.RetryOn,
-			action.RetryPolicy.RetryTimeout,
-			action.RetryPolicy.NumRetries,
-		}
-	}
-}
-
-func parseRouters(Router []Router) []v2.Router {
-	result := []v2.Router{}
-
-	for _, router := range Router {
-
-		routerMatch := v2.RouterMatch{
-			Prefix:        router.Match.Prefix,
-			Path:          router.Match.Path,
-			Regex:         router.Match.Regex,
-			CaseSensitive: router.Match.CaseSensitive,
-			Runtime: v2.RuntimeUInt32{
-				router.Match.Runtime.DefaultValue,
-				router.Match.Runtime.RuntimeKey,
-			},
-			Headers: parseMatchHeaders(router.Match.Headers),
-		}
-
-		routeAction := v2.RouteAction{
-			ClusterName:      router.Route.ClusterName,
-			ClusterHeader:    router.Route.ClusterHeader,
-			WeightedClusters: parseWeightClusters(router.Route.WeightedClusters),
-			MetadataMatch:    parseRouterMetadata(router.Route.MetadataMatch),
-			Timeout:          router.Route.Timeout,
-			RetryPolicy:      parseRetryPolicy(router.Route),
-		}
-
-		result = append(result, v2.Router{
-			Match: routerMatch,
-			Route: routeAction,
-			Redirect: v2.RedirectAction{
-				HostRedirect: router.Redirect.HostRedirect,
-				PathRedirect: router.Redirect.PathRedirect,
-				ResponseCode: router.Redirect.ResponseCode,
-			},
-			Metadata:  parseRouterMetadata(router.Metadata),
-			Decorator: v2.Decorator(router.Decorator),
-		})
-	}
-
-	return result
-}
-
-func parseWeightClusters(weightClusters []WeightedCluster) []v2.WeightedCluster {
-	result := []v2.WeightedCluster{}
-
-	for _, wc := range weightClusters {
-		result = append(result, v2.WeightedCluster{
-			Cluster: v2.ClusterWeight{
-				wc.Cluster.Name,
-				wc.Cluster.Weight,
-				parseRouterMetadata(wc.Cluster.MetadataMatch),
-			},
-			RuntimeKeyPrefix: wc.RuntimeKeyPrefix,
-		})
-	}
-
-	return result
-}
-
-// metadata format:
-// { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
-func parseRouterMetadata(metadata Metadata) v2.Metadata {
-	if len(metadata) == 0 {
-		return nil
-	}
-
-	result := v2.Metadata{}
-	if metadataInterface, ok := metadata[types.RouterMetadataKey]; ok {
-		if value, ok := metadataInterface.(map[string]interface{}); ok {
-			if mosnLbInterface, ok := value[types.RouterMetadataKeyLb]; ok {
-				if mosnLb, ok := mosnLbInterface.(map[string]interface{}); ok {
-					for k, v := range mosnLb {
-						if vs, ok := v.(string); ok {
-							result[k] = vs
-						}
-					}
-
-					return result
-				}
-			}
-		}
-	}
-	log.StartLogger.Fatal("Metadata for routing format invalid, metadata format such as: { \"filter_metadata\": {\"mosn.lb\": { \"label\": \"gray\" } } }")
-
-	return result
-}
-
-func parseMatchHeaders(headerMatchers []HeaderMatcher) []v2.HeaderMatcher {
-	result := []v2.HeaderMatcher{}
-
-	for _, hm := range headerMatchers {
-		result = append(result, v2.HeaderMatcher{
-			Name:  hm.Name,
-			Value: hm.Value,
-			Regex: hm.Regex,
-		})
-	}
-
-	return result
-}
-
-func parseVirtualClusters(VirtualClusters []VirtualCluster) []v2.VirtualCluster {
-	result := []v2.VirtualCluster{}
-
-	for _, vc := range VirtualClusters {
-		result = append(result, v2.VirtualCluster{
-			Pattern: vc.Pattern,
-			Name:    vc.Name,
-			Method:  vc.Method,
-		})
-
-	}
-
-	return result
-}
-
-func getServiceFromHeader(router *v2.Router) *v2.BasicServiceRoute {
-	if router == nil {
-		return nil
-	}
-
-	var ServiceName, ClusterName string
-	for _, h := range router.Match.Headers {
-		if h.Name == "service" || h.Name == "Service" {
-			ServiceName = h.Value
-		}
-	}
-
-	ClusterName = router.Route.ClusterName
-	if ServiceName == "" || ClusterName == "" {
-		return nil
-	}
-
-	return &v2.BasicServiceRoute{
-		Service: ServiceName,
-		Cluster: ClusterName,
-	}
-}
-
-func parseBasicFilter(proxy *v2.Proxy) []*v2.BasicServiceRoute {
-	var BSR []*v2.BasicServiceRoute
-
-	for _, p := range proxy.VirtualHosts {
-
-		for _, r := range p.Routers {
-			BSR = append(BSR, getServiceFromHeader(&r))
-		}
-	}
-
-	return BSR
-}
-
-func parseAccessConfig(c []AccessLogConfig) []v2.AccessLog {
-	var logs []v2.AccessLog
-
-	for _, logConfig := range c {
-		logs = append(logs, v2.AccessLog{
-			Path:   logConfig.LogPath,
-			Format: logConfig.LogFormat,
-		})
-	}
-
-	return logs
-}
-
-func parseFilterChains(c []FilterChain) []v2.FilterChain {
-	var filterchains []v2.FilterChain
-
-	for _, fc := range c {
-		filters := []v2.Filter{}
-		for _, f := range fc.Filters {
-			filters = append(filters, v2.Filter{
-				Name:   f.Type,
-				Config: f.Config,
-			})
-		}
-
-		filterchains = append(filterchains, v2.FilterChain{
-			FilterChainMatch: fc.FilterChainMatch,
-			TLS:              parseTLSConfig(&fc.TLS),
-			Filters:          filters,
-		})
-	}
-
-	return filterchains
-}
-
-func parseStreamFilters(filterConfigs []FilterConfig) []v2.Filter {
-	var filters []v2.Filter
-	for _, fc := range filterConfigs {
-		filters = append(filters, v2.Filter{
-			Name:   fc.Type,
-			Config: fc.Config,
-		})
-	}
-
-	return filters
-}
-
-func parseTLSConfig(tlsconfig *TLSConfig) v2.TLSConfig {
-	if tlsconfig.Status == false {
-		return v2.TLSConfig{
-			Status: false,
-		}
-	}
-
-	return v2.TLSConfig{
-		Status:       tlsconfig.Status,
-		Type:         tlsconfig.Type,
-		ServerName:   tlsconfig.ServerName,
-		CACert:       tlsconfig.CACert,
-		CertChain:    tlsconfig.CertChain,
-		PrivateKey:   tlsconfig.PrivateKey,
-		VerifyClient: tlsconfig.VerifyClient,
-		InsecureSkip: tlsconfig.InsecureSkip,
-		CipherSuites: tlsconfig.CipherSuites,
-		EcdhCurves:   tlsconfig.EcdhCurves,
-		MinVersion:   tlsconfig.MinVersion,
-		MaxVersion:   tlsconfig.MaxVersion,
-		ALPN:         tlsconfig.ALPN,
-		Ticket:       tlsconfig.Ticket,
-		ExtendVerify: tlsconfig.ExtendVerify,
-	}
-}
-
-func parseRouteConfig(config map[string]interface{}) *v2.BasicServiceRoute {
-	route := &v2.BasicServiceRoute{}
-
-	//name
-	if name, ok := config["name"]; ok {
-		if name, ok := name.(string); ok {
-			route.Name = name
-		} else {
-			log.StartLogger.Fatalln("[name] in proxy filter route config is not string")
-		}
-	} else {
-		log.StartLogger.Fatalln("[name] is required in proxy filter route config")
-	}
-
-	//service
-	if service, ok := config["service"]; ok {
-		if service, ok := service.(string); ok {
-			route.Service = service
-		} else {
-			log.StartLogger.Fatalln("[service] in proxy filter route config is not string")
-		}
-	} else {
-		log.StartLogger.Fatalln("[service] is required in proxy filter route config")
-	}
-
-	//cluster
-	if cluster, ok := config["cluster"]; ok {
-		if cluster, ok := cluster.(string); ok {
-			route.Cluster = cluster
-		} else {
-			log.StartLogger.Fatalln("[cluster] in proxy filter route config is not string")
-		}
-	} else {
-		log.StartLogger.Fatalln("[cluster] is required in proxy filter route config")
-	}
-
-	return route
-}
-
-// ParseFaultInjectFilter
-func ParseFaultInjectFilter(config map[string]interface{}) *v2.FaultInject {
-
-	faultInject := &v2.FaultInject{}
-
-	//percent
-	if percent, ok := config["delay_percent"]; ok {
-		if percent, ok := percent.(float64); ok {
-			faultInject.DelayPercent = uint32(percent)
-		} else {
-			log.StartLogger.Fatalln("[delay_percent] in fault inject filter config is not integer")
-		}
-	} else {
-		log.StartLogger.Fatalln("[delay_percent] is required in fault inject filter config")
-	}
-
-	//duration
-	if duration, ok := config["delay_duration"]; ok {
-		if duration, ok := duration.(string); ok {
-			if duration, error := time.ParseDuration(strings.Trim(duration, `"`)); error == nil {
-				faultInject.DelayDuration = uint64(duration)
-			} else {
-				log.StartLogger.Fatalln("[delay_duration] in fault inject filter config is not valid ,", error)
-			}
-		} else {
-			log.StartLogger.Fatalln("[delay_duration] in fault inject filter config is not a numeric string, like '30s'")
-		}
-	} else {
-		log.StartLogger.Fatalln("[delay_duration] is required in fault inject filter config")
-	}
-
-	return faultInject
-}
-
-// ParseHealthcheckFilter
-func ParseHealthcheckFilter(config map[string]interface{}) *v2.HealthCheckFilter {
-	healthcheck := &v2.HealthCheckFilter{}
-
-	//passthrough
-	if passthrough, ok := config["passthrough"]; ok {
-		if passthrough, ok := passthrough.(bool); ok {
-			healthcheck.PassThrough = passthrough
-		} else {
-			log.StartLogger.Fatalln("[passthrough] in health check filter config is not bool")
-		}
-	} else {
-		log.StartLogger.Fatalln("[passthrough] is required in healthcheck filter config")
-	}
-
-	//cache time
-	if cacheTime, ok := config["cache_time"]; ok {
-		if cacheTime, ok := cacheTime.(string); ok {
-			if duration, error := time.ParseDuration(strings.Trim(cacheTime, `"`)); error == nil {
-				healthcheck.CacheTime = duration
-			} else {
-				log.StartLogger.Fatalln("[cache_time] in health check filter is not valid ,", error)
-			}
-		} else {
-			log.StartLogger.Fatalln("[cache_time] in health check filter config is not a numeric string")
-		}
-	} else {
-		log.StartLogger.Fatalln("[cache_time] is required in healthcheck filter config")
-	}
-
-	//cluster_min_healthy_percentagesp
-	if clusterMinHealthyPercentage, ok := config["cluster_min_healthy_percentages"]; ok {
-		if clusterMinHealthyPercentage, ok := clusterMinHealthyPercentage.(map[string]interface{}); ok {
-			healthcheck.ClusterMinHealthyPercentage = make(map[string]float32)
-			for cluster, percent := range clusterMinHealthyPercentage {
-				healthcheck.ClusterMinHealthyPercentage[cluster] = float32(percent.(float64))
-			}
-		} else {
-			log.StartLogger.Fatalln("[passthrough] in health check filter config is not bool")
-		}
-	} else {
-		log.StartLogger.Fatalln("[passthrough] is required in healthcheck filter config")
-	}
-
-	return healthcheck
-}
-
-// ParseListenerConfig
-func ParseListenerConfig(c *ListenerConfig, inheritListeners []*v2.ListenerConfig) *v2.ListenerConfig {
-	if c.Name == "" {
-		log.StartLogger.Fatalln("[name] is required in listener config")
-	}
-
-	if c.Address == "" {
-		log.StartLogger.Fatalln("[Address] is required in listener config")
-	}
-	addr, err := net.ResolveTCPAddr("tcp", c.Address)
-
-	if err != nil {
-		log.StartLogger.Fatalln("[Address] not valid:", c.Address)
-	}
-
-	//try inherit legacy listener
-	currentIP := net.ParseIP(addr.String())
-	var old *net.TCPListener
-
-	for _, il := range inheritListeners {
-		inheritIP := net.ParseIP(il.Addr.String())
-
-		// use ip.Equal to solve ipv4 and ipv6 case
-		if inheritIP.Equal(currentIP) {
-			log.StartLogger.Infof("inherit listener addr: %s", c.Address)
-			old = il.InheritListener
-			il.Remain = true
-			break
-		}
-	}
-
-	return &v2.ListenerConfig{
-		Name:                                  c.Name,
-		Type:                                  c.Type,
-		Addr:                                  addr,
-		BindToPort:                            c.BindToPort,
-		Inspector:                             c.Inspector,
-		InheritListener:                       old,
-		PerConnBufferLimitBytes:               1 << 15,
-		LogPath:                               c.LogPath,
-		LogLevel:                              uint8(parseLogLevel(c.LogLevel)),
-		AccessLogs:                            parseAccessConfig(c.AccessLogs),
-		HandOffRestoredDestinationConnections: c.HandOffRestoredDestinationConnections,
-		FilterChains:                          parseFilterChains(c.FilterChains),
-		StreamFilters:                         parseStreamFilters(c.StreamFilters),
-	}
-}
-
-// ParseClusterConfig
-func ParseClusterConfig(clusters []ClusterConfig) ([]v2.Cluster, map[string][]v2.Host) {
-	if len(clusters) == 0 {
-		log.StartLogger.Warnf("No Cluster provided in cluster config")
-	}
-
-	var clustersV2 []v2.Cluster
-	clusterV2Map := make(map[string][]v2.Host)
-
-	for _, c := range clusters {
-		// cluster name
-		if c.Name == "" {
-			log.StartLogger.Fatalln("[name] is required in cluster config")
-		}
-
-		var clusterType v2.ClusterType
-
-		//cluster type
-		if c.Type == "" {
-			log.StartLogger.Fatalln("[type] is required in cluster config")
-		} else {
-			if ct, ok := clusterTypeMap[c.Type]; ok {
-				clusterType = ct
-			} else {
-				log.StartLogger.Fatalln("unknown cluster type:", c.Type)
-			}
-		}
-
-		var lbType v2.LbType
-
-		if c.LbType == "" {
-			log.StartLogger.Fatalln("[lb_type] is required in cluster config")
-		} else {
-			if lt, ok := lbTypeMap[c.LbType]; ok {
-				lbType = lt
-			} else {
-				log.StartLogger.Fatalln("unknown lb type:", c.LbType)
-			}
-		}
-
-		if c.MaxRequestPerConn == 0 {
-			c.MaxRequestPerConn = 1024
-			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d", 1024)
-		}
-
-		if c.ConnBufferLimitBytes == 0 {
-			c.ConnBufferLimitBytes = 16 * 1026
-			log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value %d", 1024*16)
-		}
-
-		//clusterSpec := c.ClusterSpecConfig.(ClusterSpecConfig)
-		clusterSpec := c.ClusterSpecConfig
-
-		// checkout LBSubsetConfig
-		if c.LBSubsetConfig.FallBackPolicy > 2 {
-			log.StartLogger.Panic("lb subset config 's fall back policy set error. " +
-				"For 0, represent NO_FALLBACK" +
-				"For 1, represent ANY_ENDPOINT" +
-				"For 2, represent DEFAULT_SUBSET")
-		}
-
-		//v2.Cluster
-		clusterV2 := v2.Cluster{
-			Name:                 c.Name,
-			ClusterType:          clusterType,
-			LbType:               lbType,
-			MaxRequestPerConn:    c.MaxRequestPerConn,
-			ConnBufferLimitBytes: c.ConnBufferLimitBytes,
-
-			HealthCheck:      parseClusterHealthCheckConf(&c.HealthCheck),
-			CirBreThresholds: parseCircuitBreakers(c.CircuitBreakers),
-
-			Spec: parseConfigSpecConfig(&clusterSpec),
-			LBSubSetConfig: v2.LBSubsetConfig{
-				c.LBSubsetConfig.FallBackPolicy,
-				c.LBSubsetConfig.DefaultSubset,
-				c.LBSubsetConfig.SubsetSelectors,
-			},
-
-			TLS: parseTLSConfig(&c.TLS),
-		}
-
-		clustersV2 = append(clustersV2, clusterV2)
-		hostV2 := parseHostConfig(&c)
-		clusterV2Map[c.Name] = hostV2
-	}
-
-	// trigger all callbacks
-	if cbs, ok := configParsedCBMaps[ParseCallbackKeyCluster]; ok {
-		for _, cb := range cbs {
-			cb(clustersV2, false)
-		}
-	}
-
-	return clustersV2, clusterV2Map
-}
-
-func parseClusterHealthCheckConf(c *ClusterHealthCheckConfig) v2.HealthCheck {
-
-	var healthcheckInstance v2.HealthCheck
-
-	if c.Protocol == "" {
-		log.StartLogger.Warnf("healthcheck for cluster is disabled")
-
-	} else if _, ok := protocolsSupported[c.Protocol]; ok {
-		healthcheckInstance = v2.HealthCheck{
-			Protocol:           c.Protocol,
-			Timeout:            c.Timeout.Duration,
-			Interval:           c.Interval.Duration,
-			IntervalJitter:     c.IntervalJitter.Duration,
-			HealthyThreshold:   c.HealthyThreshold,
-			UnhealthyThreshold: c.UnhealthyThreshold,
-			CheckPath:          c.CheckPath,
-			ServiceName:        c.ServiceName,
-		}
-	} else {
-		log.StartLogger.Fatal("unsupported health check protocol:", c.Protocol)
-	}
-
-	return healthcheckInstance
-}
-
-func parseCircuitBreakers(cbcs []*CircuitBreakerConfig) v2.CircuitBreakers {
-	var cb v2.CircuitBreakers
-	var rp v2.RoutingPriority
-
-	for _, cbc := range cbcs {
-		if strings.ToLower(cbc.Priority) == "default" {
-			rp = v2.DEFAULT
-		} else {
-			rp = v2.HIGH
-		}
-
-		if 0 == cbc.MaxConnections || 0 == cbc.MaxPendingRequests ||
-			0 == cbc.MaxRequests || 0 == cbc.MaxRetries {
-			log.StartLogger.Warnf("zero is set in circuitBreakers' config")
-		}
-
-		threshold := v2.Thresholds{
-			Priority:           rp,
-			MaxConnections:     cbc.MaxConnections,
-			MaxPendingRequests: cbc.MaxPendingRequests,
-			MaxRequests:        cbc.MaxRequests,
-			MaxRetries:         cbc.MaxRetries,
-		}
-
-		cb.Thresholds = append(cb.Thresholds, threshold)
-	}
-
-	return cb
-}
-
-func parseConfigSpecConfig(c *ClusterSpecConfig) v2.ClusterSpecInfo {
-	var specs []v2.SubscribeSpec
-
-	for _, sub := range c.Subscribes {
-		specs = append(specs, v2.SubscribeSpec{
-			ServiceName: sub.ServiceName,
-		})
-	}
-
-	return v2.ClusterSpecInfo{
-		Subscribes: specs,
-	}
-}
-
-func parseHostConfig(c *ClusterConfig) []v2.Host {
-	// host maybe nil when rewriting config
-	//if c.Hosts == nil || len(c.Hosts) == 0 {
-	//	log.StartLogger.Debugf("[hosts] is required in cluster config")
-	//}
-	var hosts []v2.Host
-	for _, host := range c.Hosts {
-
-		if host.Address == "" {
-			log.StartLogger.Fatalln("[host.address] is required in host config")
-		}
-
-		hosts = append(hosts, v2.Host{
-			host.Address,
-			host.Hostname,
-			getHostWeight(host.Weight),
-			parseRouterMetadata(host.MetaData),
-			host.TLSDisable,
-		})
-	}
-
-	return hosts
-}
-
-func getHostWeight(weight uint32) uint32 {
-	if weight > MaxHostWeight {
-		weight = MaxHostWeight
-	}
-
-	if weight < MinHostWeight {
-		weight = MinHostWeight
-	}
-
-	return weight
-}
-
-// ParseServiceRegistry
-func ParseServiceRegistry(src ServiceRegistryConfig) {
-	var SrvRegInfo v2.ServiceRegistryInfo
-
-	if src.ServiceAppInfo.AppName == "" {
-		//log.StartLogger.Debugf("[ParseServiceRegistry] appname is nil")
-	}
-
-	srvappinfo := v2.ApplicationInfo{
-		AntShareCloud: src.ServiceAppInfo.AntShareCloud,
-		DataCenter:    src.ServiceAppInfo.DataCenter,
-		AppName:       src.ServiceAppInfo.AppName,
-	}
-
-	var SrvPubInfoArray []v2.PublishInfo
-
-	for _, pubs := range src.ServicePubInfo {
-		SrvPubInfoArray = append(SrvPubInfoArray, v2.PublishInfo{
-			Pub: v2.PublishContent{
-				ServiceName: pubs.ServiceName,
-				PubData:     pubs.PubData,
-			},
-		})
-	}
-
-	SrvRegInfo = v2.ServiceRegistryInfo{
-		srvappinfo,
-		SrvPubInfoArray,
-	}
-
-	//trigger all callbacks
-	if cbs, ok := configParsedCBMaps[ParseCallbackKeyServiceRgtInfo]; ok {
-		for _, cb := range cbs {
-			cb(SrvRegInfo, true)
-		}
-	}
-}
-
+// GetStreamFilters returns a stream filter factory by filter.Type
 func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
 	var factories []types.StreamFilterChainFactory
 
 	for _, c := range configs {
-		if sfcc, err := filter.CreateStreamFilterChainFactory(c.Name, c.Config); err != nil {
+		sfcc, err := filter.CreateStreamFilterChainFactory(c.Type, c.Config)
+		if err != nil {
 			log.DefaultLogger.Errorf(err.Error())
-			return factories
-		} else {
-			factories = append(factories, sfcc)
+			continue
 		}
+		factories = append(factories, sfcc)
 	}
 
 	return factories
 }
 
-func ConvertTCPProxyToV2(config map[string]interface{}) (map[string]interface{}, error) {
-	// TODO: convert v1 config to v2
-	return config, nil
-}
-
-//TODO: parseTCPProxy with v2 config
-func ParseTCPProxy(config map[string]interface{}) (*v2.TCPProxy, error) {
-	data, _ := json.Marshal(config)
-
-	cfg := &TCPProxyConfig{}
-	if err := json.Unmarshal(data, cfg); err != nil {
-		return nil, fmt.Errorf("config is not a tcp proxy config: %v", err)
-	}
-	proxy := &v2.TCPProxy{
-		Routes: []*v2.TCPRoute{},
-	}
-	for _, route := range cfg.Routes {
-		tcpRoute := &v2.TCPRoute{
-			Cluster: route.Cluster,
+// GetNetworkFilters returns a network filter factory by filter.Type
+func GetNetworkFilters(c *v2.FilterChain) []types.NetworkFilterChainFactory {
+	var factories []types.NetworkFilterChainFactory
+	for _, f := range c.Filters {
+		factory, err := filter.CreateNetworkFilterChainFactory(f.Type, f.Config)
+		if err != nil {
+			log.StartLogger.Errorf("network filter create failed :", err)
+			continue
 		}
-		for _, addr := range route.SourceAddrs {
-			src, err := net.ResolveTCPAddr("tcp", addr)
-			if err != nil {
-				return nil, fmt.Errorf("source addrs is not a valid addr: %v", err)
-			}
-			tcpRoute.SourceAddrs = append(tcpRoute.SourceAddrs, src)
-		}
-		for _, addr := range route.DestinationAddrs {
-			dst, err := net.ResolveTCPAddr("tcp", addr)
-			if err != nil {
-				return nil, fmt.Errorf("destination addrs is not a valid addr: %v", err)
-			}
-			tcpRoute.DestinationAddrs = append(tcpRoute.DestinationAddrs, dst)
-		}
-		proxy.Routes = append(proxy.Routes, tcpRoute)
+		factories = append(factories, factory)
 	}
-
-	return proxy, nil
+	return factories
 }

@@ -50,24 +50,12 @@ func NewProtocols(protocolMaps map[byte]Protocol) types.Protocols {
 }
 
 //PROTOCOL LEVEL's Unified AppendHeaders for BOLTV1、BOLTV2、TR
-func (p *protocols) EncodeHeaders(context context.Context, headers interface{}) (types.IoBuffer, error) {
+func (p *protocols) EncodeHeaders(context context.Context, headers types.HeaderMap) (types.IoBuffer, error) {
 	var protocolCode byte
 
 	switch headers.(type) {
 	case ProtoBasicCmd:
 		protocolCode = headers.(ProtoBasicCmd).GetProtocol()
-	case map[string]string:
-		headersMap := headers.(map[string]string)
-
-		if proto, exist := headersMap[SofaPropertyHeader(HeaderProtocolCode)]; exist {
-			protoValue := ConvertPropertyValueUint8(proto)
-			protocolCode = protoValue
-		} else {
-			errMsg := NoProCodeInHeader
-			log.ByContext(context).Errorf(errMsg)
-			err := errors.New(errMsg)
-			return nil, err
-		}
 	default:
 		errMsg := InvalidHeaderType
 		log.ByContext(context).Errorf(errMsg+" headers = %+v", headers)
@@ -91,7 +79,7 @@ func (p *protocols) EncodeData(context context.Context, data types.IoBuffer) typ
 	return data
 }
 
-func (p *protocols) EncodeTrailers(context context.Context, trailers map[string]string) types.IoBuffer {
+func (p *protocols) EncodeTrailers(context context.Context, trailers types.HeaderMap) types.IoBuffer {
 	return nil
 }
 
@@ -106,7 +94,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 		if proto, exists := p.protocolMaps[protocolCode]; exists {
 			if cmd, error := proto.GetDecoder().Decode(context, data); cmd != nil && error == nil {
 				if err := proto.GetCommandHandler().HandleCommand(context, cmd, filter); err != nil {
-					filter.OnDecodeError(err, nil)
+					filter.OnDecodeError(err, cmd.(ProtoBasicCmd))
 					break
 				}
 			} else if error != nil {
@@ -126,7 +114,7 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 }
 
 func (p *protocols) BuildSpan(context context.Context) types.Span {
-	sofabuffers := SofaProtocolBuffersByContent(context)
+	sofabuffers := SofaProtocolBuffersByContext(context)
 	request := &sofabuffers.BoltReq
 
 	if request.CmdCode == CMD_CODE_HEARTBEAT {

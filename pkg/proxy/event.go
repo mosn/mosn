@@ -61,7 +61,7 @@ type resetEvent struct {
 type receiveHeadersEvent struct {
 	streamEvent
 
-	headers   map[string]string
+	headers   types.HeaderMap
 	endStream bool
 }
 
@@ -75,7 +75,7 @@ type receiveDataEvent struct {
 type receiveTrailerEvent struct {
 	streamEvent
 
-	trailers map[string]string
+	trailers types.HeaderMap
 }
 
 func eventDispatch(shard int, jobChan <-chan interface{}) {
@@ -111,7 +111,7 @@ func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
 			case Upstream:
 				e.stream.upstreamRequest.ResetStream(e.reason)
 			default:
-				e.stream.logger.Errorf("Unknown receiveTrailerEvent direction %s", e.direction)
+				e.stream.logger.Errorf("Unknown receiveTrailerEvent direction %d", e.direction)
 			}
 			//	streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
 		}
@@ -126,7 +126,7 @@ func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
 			case Upstream:
 				e.stream.upstreamRequest.ReceiveHeaders(e.headers, e.endStream)
 			default:
-				e.stream.logger.Errorf("Unknown receiveHeadersEvent direction %s", e.direction)
+				e.stream.logger.Errorf("Unknown receiveHeadersEvent direction %d", e.direction)
 			}
 			streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
 		}
@@ -144,7 +144,7 @@ func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
 			case Upstream:
 				e.stream.upstreamRequest.ReceiveData(e.data, e.endStream)
 			default:
-				e.stream.logger.Errorf("Unknown receiveDataEvent direction %s", e.direction)
+				e.stream.logger.Errorf("Unknown receiveDataEvent direction %d", e.direction)
 			}
 			streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
 		}
@@ -159,7 +159,7 @@ func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
 			case Upstream:
 				e.stream.upstreamRequest.ReceiveTrailers(e.trailers)
 			default:
-				e.stream.logger.Errorf("Unknown receiveTrailerEvent direction %s", e.direction)
+				e.stream.logger.Errorf("Unknown receiveTrailerEvent direction %d", e.direction)
 			}
 			streamMap[e.streamID] = streamMap[e.streamID] || streamProcessDone(e.stream)
 		}

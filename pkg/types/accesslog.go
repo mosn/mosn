@@ -26,19 +26,19 @@ type AccessLog interface {
 	// Log write the access info.
 	// The "reqHeaders" contains the request header's information, "respHeader" contains the response header's information
 	// and "requestInfo" contains some request information
-	Log(reqHeaders map[string]string, respHeaders map[string]string, requestInfo RequestInfo)
+	Log(reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo)
 }
 
 // AccessLogFilter is a filter of access log to do some filters to access log info
 type AccessLogFilter interface {
 	// Decide can make a decision about how to filter the request headers and requestInfo
-	Decide(reqHeaders map[string]string, requestInfo RequestInfo) bool
+	Decide(reqHeaders HeaderMap, requestInfo RequestInfo) bool
 }
 
 // AccessLogFormatter is a object that format the request info to string
 type AccessLogFormatter interface {
 	// Format makes the request headers, response headers and request info to string for printing according to log formatter
-	Format(reqHeaders map[string]string, respHeaders map[string]string, requestInfo RequestInfo) string
+	Format(reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo) string
 }
 
 // The identification of a request info's content

@@ -29,6 +29,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/network"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"

@@ -94,7 +94,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	return server
 }
 
-func (srv *server) AddListener(lc *v2.ListenerConfig, networkFiltersFactories []types.NetworkFilterChainFactory,
+func (srv *server) AddListener(lc *v2.Listener, networkFiltersFactories []types.NetworkFilterChainFactory,
 	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error) {
 
 	return srv.handler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
@@ -157,14 +157,15 @@ func ListListenerFD() []uintptr {
 func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
-	// 5 seconds wait for read timeout
-	timeout := time.NewTimer(duration*2 + time.Second*5)
+	// 10 seconds wait for read timeout
+	timeout := time.NewTimer(duration*2 + time.Second*10)
 	wait := make(chan struct{})
 	time.Sleep(duration)
 	go func() {
 		//todo close idle connections and wait active connections complete
 		StopConnection()
-		time.Sleep(duration + time.Second*5)
+		log.DefaultLogger.Infof("StopConnection")
+		time.Sleep(duration + time.Second*10)
 		wait <- struct{}{}
 	}()
 

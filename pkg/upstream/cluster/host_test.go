@@ -1,13 +1,29 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cluster
 
 import (
 	"context"
-	"crypto/tls"
 	"net"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	mosntls "github.com/alipay/sofa-mosn/pkg/tls"
+	 "github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -27,7 +43,7 @@ func TestHostDisableTLS(t *testing.T) {
 		name:                 "test",
 		connBufferLimitBytes: 16 * 1026,
 	}
-	tlsMng, err := mosntls.NewTLSClientContextManager(tlsConfig, info)
+	tlsMng, err := mtls.NewTLSClientContextManager(tlsConfig, info)
 	if err != nil {
 		t.Error(err)
 		return
@@ -35,11 +51,15 @@ func TestHostDisableTLS(t *testing.T) {
 	info.tlsMng = tlsMng
 	hosts := []v2.Host{
 		{
-			Address: addr,
+			HostConfig: v2.HostConfig{
+				Address: addr,
+			},
 		},
 		{
-			Address:    addr,
-			TLSDisable: true,
+			HostConfig: v2.HostConfig{
+				Address:    addr,
+				TLSDisable: true,
+			},
 		},
 	}
 	for i, host := range hosts {
@@ -50,7 +70,7 @@ func TestHostDisableTLS(t *testing.T) {
 			t.Errorf("#%d %v", i, err)
 			continue
 		}
-		if _, ok := conn.RawConn().(*tls.Conn); ok == host.TLSDisable {
+		if _, ok := conn.RawConn().(*mtls.TLSConn); ok == host.TLSDisable {
 			t.Errorf("#%d  tlsdisable: %v, conn is tls: %v", i, host.TLSDisable, ok)
 		}
 		conn.Close(types.NoFlush, types.LocalClose)

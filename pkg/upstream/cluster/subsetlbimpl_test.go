@@ -73,7 +73,7 @@ var SubsetSelectors = [][]string{
 
 var SubsetLbExample = subSetLoadBalancer{
 	fallBackPolicy:        2,
-	stats:                 newClusterStats(v2.Cluster{Name: "testcluster"}),
+	stats:                 newClusterStats("testcluster"),
 	lbType:                types.RoundRobin,
 	originalPrioritySet:   &prioritySetExample,
 	defaultSubSetMetadata: InitDefaultSubsetMetadata(),
@@ -166,12 +166,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("prod"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"type",
-						types.GenerateHashedValue("std"),
+						Name:  "type",
+						Value: types.GenerateHashedValue("std"),
 					},
 				},
 			},
@@ -190,12 +190,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("prod"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"type",
-						types.GenerateHashedValue("bigmem"),
+						Name:  "type",
+						Value: types.GenerateHashedValue("bigmem"),
 					},
 				},
 			},
@@ -213,12 +213,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("dev"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("dev"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"type",
-						types.GenerateHashedValue("std"),
+						Name:  "type",
+						Value: types.GenerateHashedValue("std"),
 					},
 				},
 			},
@@ -235,12 +235,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("prod"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.0"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.0"),
 					},
 				},
 			},
@@ -260,12 +260,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("prod"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.1"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.1"),
 					},
 				},
 			},
@@ -285,12 +285,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"stage",
-						types.GenerateHashedValue("dev"),
+						Name:  "stage",
+						Value: types.GenerateHashedValue("dev"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.2-pre"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.2-pre"),
 					},
 				},
 			},
@@ -309,8 +309,8 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.0"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.0"),
 					},
 				},
 			},
@@ -330,8 +330,8 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.1"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.1"),
 					},
 				},
 			},
@@ -351,8 +351,8 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.2-pre"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.2-pre"),
 					},
 				},
 			},
@@ -370,12 +370,12 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				newCB:        newCb,
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
-						"version",
-						types.GenerateHashedValue("1.0"),
+						Name:  "version",
+						Value: types.GenerateHashedValue("1.0"),
 					},
 					&router.MetadataMatchCriterionImpl{
-						"xlarge",
-						types.GenerateHashedValue("true"),
+						Name:  "xlarge",
+						Value: types.GenerateHashedValue("true"),
 					},
 				},
 			},
@@ -421,12 +421,12 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 					mmc: &router.MetadataMatchCriteriaImpl{
 						MatchCriteriaArray: []types.MetadataMatchCriterion{
 							&router.MetadataMatchCriterionImpl{
-								"stage",
-								types.GenerateHashedValue("prod"),
+								Name:  "stage",
+								Value: types.GenerateHashedValue("prod"),
 							},
 							&router.MetadataMatchCriterionImpl{
-								"type",
-								types.GenerateHashedValue("std"),
+								Name:  "type",
+								Value: types.GenerateHashedValue("std"),
 							},
 						},
 					},
@@ -442,12 +442,12 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 					mmc: &router.MetadataMatchCriteriaImpl{
 						MatchCriteriaArray: []types.MetadataMatchCriterion{
 							&router.MetadataMatchCriterionImpl{
-								"stage",
-								types.GenerateHashedValue("prod"),
+								Name:  "stage",
+								Value: types.GenerateHashedValue("prod"),
 							},
 							&router.MetadataMatchCriterionImpl{
-								"type",
-								types.GenerateHashedValue("unknown"),
+								Name:  "type",
+								Value: types.GenerateHashedValue("unknown"),
 							},
 						},
 					},
@@ -458,7 +458,7 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 	}
 
 	sslb := NewSubsetLoadBalancer(types.RoundRobin, &prioritySetExample,
-		newClusterStats(v2.Cluster{Name: "testcluster"}), NewLBSubsetInfo(InitExampleLbSubsetConfig()))
+		newClusterStats("testcluster"), NewLBSubsetInfo(InitExampleLbSubsetConfig()))
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -548,9 +548,9 @@ func TestGenerateDftSubsetKeys(t *testing.T) {
 			name: "test1",
 			args: args{
 				dftkeys: []types.SortedPair{
-					{"stage", "prod"},
-					{"type", "std"},
-					{"version", "1.0"},
+					{Key: "stage", Value: "prod"},
+					{Key: "type", Value: "std"},
+					{Key: "version", Value: "1.0"},
 				},
 			},
 			want: InitDefaultSubsetMetadata(),
@@ -568,11 +568,11 @@ func TestGenerateDftSubsetKeys(t *testing.T) {
 
 func InitDefaultSubsetMetadata() types.SubsetMetadata {
 
-	p1 := types.Pair{"stage", types.GenerateHashedValue("prod")}
+	p1 := types.Pair{T1: "stage", T2: types.GenerateHashedValue("prod")}
 
-	p2 := types.Pair{"type", types.GenerateHashedValue("std")}
+	p2 := types.Pair{T1: "type", T2: types.GenerateHashedValue("std")}
 
-	p3 := types.Pair{"version", types.GenerateHashedValue("1.0")}
+	p3 := types.Pair{T1: "version", T2: types.GenerateHashedValue("1.0")}
 
 	return []types.Pair{p1, p2, p3}
 }
@@ -595,9 +595,11 @@ func InitExampleHosts() []types.Host {
 	var hosts []types.Host
 
 	e1 := v2.Host{
-		Hostname: "e1",
-		Address:  HostAddress[0],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e1",
+			Address:  HostAddress[0],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
@@ -608,9 +610,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e1, nil)})
 
 	e2 := v2.Host{
-		Hostname: "e2",
-		Address:  HostAddress[1],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e2",
+			Address:  HostAddress[1],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
@@ -620,9 +624,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e2, nil)})
 
 	e3 := v2.Host{
-		Hostname: "e3",
-		Address:  HostAddress[2],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e3",
+			Address:  HostAddress[2],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
@@ -632,9 +638,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e3, nil)})
 
 	e4 := v2.Host{
-		Hostname: "e4",
-		Address:  HostAddress[3],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e4",
+			Address:  HostAddress[3],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
@@ -644,9 +652,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e4, nil)})
 
 	e5 := v2.Host{
-		Hostname: "e5",
-		Address:  HostAddress[4],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e5",
+			Address:  HostAddress[4],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
@@ -656,9 +666,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e5, nil)})
 
 	e6 := v2.Host{
-		Hostname: "e6",
-		Address:  HostAddress[5],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e6",
+			Address:  HostAddress[5],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
@@ -668,9 +680,11 @@ func InitExampleHosts() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e6, nil)})
 
 	e7 := v2.Host{
-		Hostname: "e7",
-		Address:  HostAddress[6],
-		Weight:   100,
+		HostConfig: v2.HostConfig{
+			Hostname: "e7",
+			Address:  HostAddress[6],
+			Weight:   100,
+		},
 		MetaData: map[string]string{
 			"stage":   "dev",
 			"version": "1.2-pre",
@@ -683,14 +697,18 @@ func InitExampleHosts() []types.Host {
 }
 
 func TestWeightedClusterRoute(t *testing.T) {
-	routerMock1 := &v2.Router{
-		Route: v2.RouteAction{
+	routerMock1 := &v2.Router{}
+
+	routerMock1.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName: "defaultCluster",
 			WeightedClusters: []v2.WeightedCluster{
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w1",
-						Weight: 90,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w1",
+							Weight: 90,
+						},
 						MetadataMatch: map[string]string{
 							"version": "v1"},
 					},
@@ -698,8 +716,10 @@ func TestWeightedClusterRoute(t *testing.T) {
 
 				{
 					Cluster: v2.ClusterWeight{
-						Name:   "w2",
-						Weight: 10,
+						ClusterWeightConfig: v2.ClusterWeightConfig{
+							Name:   "w2",
+							Weight: 10,
+						},
 						MetadataMatch: map[string]string{
 							"version": "v2"},
 					},
@@ -715,14 +735,14 @@ func TestWeightedClusterRoute(t *testing.T) {
 		if weightedClusterEntry, ok := routeRuleImplBase.WeightedCluster()[clustername]; ok {
 			metadataMatchCriteria := weightedClusterEntry.GetClusterMetadataMatchCriteria()
 			sslb := NewSubsetLoadBalancer(types.RoundRobin, &priorityMock,
-				newClusterStats(v2.Cluster{Name: "w1"}), NewLBSubsetInfo(SubsetMock()))
+				newClusterStats("w1"), NewLBSubsetInfo(SubsetMock()))
 
 			context := &ContextImplMock{
 				mmc: metadataMatchCriteria,
 			}
 
 			if host := sslb.ChooseHost(context); host.Hostname() != "e1" {
-				t.Errorf("routing with weighted cluster error, want e1, but got:", host.Hostname())
+				t.Errorf("routing with weighted cluster error, want e1, but got:%s", host.Hostname())
 			}
 		} else {
 			t.Errorf("routing with weighted cluster error, no clustername found")
@@ -731,14 +751,14 @@ func TestWeightedClusterRoute(t *testing.T) {
 		if weightedClusterEntry, ok := routeRuleImplBase.WeightedCluster()[clustername]; ok {
 			metadataMatchCriteria := weightedClusterEntry.GetClusterMetadataMatchCriteria()
 			sslb := NewSubsetLoadBalancer(types.RoundRobin, &priorityMock,
-				newClusterStats(v2.Cluster{Name: "w2"}), NewLBSubsetInfo(SubsetMock()))
+				newClusterStats("w2"), NewLBSubsetInfo(SubsetMock()))
 
 			context := &ContextImplMock{
 				mmc: metadataMatchCriteria,
 			}
 
 			if host := sslb.ChooseHost(context); host.Hostname() != "e2" {
-				t.Errorf("routing with weighted cluster error, want e1, but got:", host.Hostname())
+				t.Errorf("routing with weighted cluster error, want e1, but got:%s", host.Hostname())
 			}
 		} else {
 			t.Errorf("routing with weighted cluster error, no clustername found")
@@ -769,8 +789,10 @@ func HostsMock() []types.Host {
 	var hosts []types.Host
 
 	e1 := v2.Host{
-		Hostname: "e1",
-		Weight:   50,
+		HostConfig: v2.HostConfig{
+			Hostname: "e1",
+			Weight:   50,
+		},
 		MetaData: map[string]string{
 			"version": "v1",
 		},
@@ -778,8 +800,10 @@ func HostsMock() []types.Host {
 	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e1, nil)})
 
 	e2 := v2.Host{
-		Hostname: "e2",
-		Weight:   50,
+		HostConfig: v2.HostConfig{
+			Hostname: "e2",
+			Weight:   50,
+		},
 		MetaData: map[string]string{
 			"version": "v2",
 		},
@@ -807,6 +831,6 @@ func (ci *ContextImplMock) DownstreamConnection() net.Conn {
 	return nil
 }
 
-func (ci *ContextImplMock) DownstreamHeaders() map[string]string {
+func (ci *ContextImplMock) DownstreamHeaders() types.HeaderMap {
 	return nil
 }

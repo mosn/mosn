@@ -52,7 +52,6 @@ func (adsClient *ADSClient) sendThread() {
 			adsClient.StopChan <- 1
 			return
 		case <-t1.C:
-			log.DefaultLogger.Tracef("send thread request cds")
 			err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
 			if err != nil {
 				log.DefaultLogger.Warnf("send thread request cds fail!auto retry next period")
@@ -82,6 +81,11 @@ func (adsClient *ADSClient) receiveThread() {
 				log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
 				adsClient.MosnConfig.OnAddOrUpdateListeners(listeners)
 
+				err = adsClient.V2Client.reqRoutes(adsClient.StreamClient)
+				if err != nil {
+					log.DefaultLogger.Warnf("send thread request rds fail!auto retry next period")
+				}
+
 			} else if typeURL == "type.googleapis.com/envoy.api.v2.Cluster" {
 				log.DefaultLogger.Tracef("get cds resp,handle it")
 				clusters := adsClient.V2Client.handleClustersResp(resp)
@@ -95,7 +99,6 @@ func (adsClient *ADSClient) receiveThread() {
 					}
 				}
 
-				log.DefaultLogger.Tracef("send thread request eds")
 				err = adsClient.V2Client.reqEndpoints(adsClient.StreamClient, clusterNames)
 				if err != nil {
 					log.DefaultLogger.Warnf("send thread request eds fail!auto retry next period")
@@ -106,11 +109,17 @@ func (adsClient *ADSClient) receiveThread() {
 				endpoints := adsClient.V2Client.handleEndpointsResp(resp)
 				log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
 				adsClient.MosnConfig.OnUpdateEndpoints(endpoints)
-				log.DefaultLogger.Tracef("send thread request lds")
+
 				err = adsClient.V2Client.reqListeners(adsClient.StreamClient)
 				if err != nil {
 					log.DefaultLogger.Warnf("send thread request lds fail!auto retry next period")
 				}
+
+			} else if typeURL == "type.googleapis.com/envoy.api.v2.RouteConfiguration" {
+				log.DefaultLogger.Tracef("get rds resp,handle it")
+				routes := adsClient.V2Client.handleRoutesResp(resp)
+				log.DefaultLogger.Infof("get %d routes from RDS", len(routes))
+				adsClient.MosnConfig.OnAddOrUpdateRouters(routes)
 			}
 		}
 	}

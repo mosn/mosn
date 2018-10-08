@@ -1,0 +1,43 @@
+mtls/crypto/tls
+
+1. mtls/crypto/tls is based on Golang's standard library crypto/tls
+2. Add transfer_tls.go that support smooth upgrade on TLS
+3. modify import paths
+4. Call TransferSetTLSInfo() to set transfer info when TLS handshake is successful
+
+diff Golang cyrpto/tls
+diff -N pkg/mtls/crypto/tls/   /usr/local/go/src/crypto/tls/
+diff -N pkg/mtls/crypto/tls/cipher_suites.go /usr/local/go/src/crypto/tls/cipher_suites.go
+18c18
+< 	"golang.org/x/crypto/chacha20poly1305"
+---
+> 	"golang_org/x/crypto/chacha20poly1305"
+Common subdirectories: pkg/mtls/crypto/tls/cipherhw and /usr/local/go/src/crypto/tls/cipherhw
+diff -N pkg/mtls/crypto/tls/common.go /usr/local/go/src/crypto/tls/common.go
+9a10
+> 	"crypto/internal/cipherhw"
+21,22d21
+<
+< 	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls/cipherhw"
+diff -N pkg/mtls/crypto/tls/conn.go /usr/local/go/src/crypto/tls/conn.go
+103,105d102
+<
+< 	// transfer tls conn
+< 	info *TransferTLSInfo
+diff -N pkg/mtls/crypto/tls/handshake_server.go /usr/local/go/src/crypto/tls/handshake_server.go
+108,109d107
+< 	TransferSetTLSInfo(hs)
+<
+diff -N pkg/mtls/crypto/tls/key_agreement.go /usr/local/go/src/crypto/tls/key_agreement.go
+20c20
+< 	"golang.org/x/crypto/curve25519"
+---
+> 	"golang_org/x/crypto/curve25519"
+Common subdirectories: pkg/mtls/crypto/tls/testdata and /usr/local/go/src/crypto/tls/testdata
+Common subdirectories: pkg/mtls/crypto/tls/testenv and /usr/local/go/src/crypto/tls/testenv
+diff -N pkg/mtls/crypto/tls/tls_test.go /usr/local/go/src/crypto/tls/tls_test.go
+11a12
+> 	"internal/testenv"
+21,22d21
+<
+< 	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls/testenv"

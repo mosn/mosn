@@ -20,82 +20,55 @@ package sofarpc
 import (
 	"strconv"
 
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-func (s *stream) encodeSterilize(headers interface{}) interface{} {
-	if headerMaps, ok := headers.(map[string]string); ok {
-		if s.direction == ServerStream {
-			headerMaps[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = s.requestID
+func (s *stream) encodeSterilize(headers types.HeaderMap) types.HeaderMap {
+	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+		switch s.direction {
+		case ClientStream:
+			cmd.SetReqID(protocol.RequestIDConv(s.streamID))
+		case ServerStream:
+			cmd.SetReqID(protocol.RequestIDConv(s.requestID))
 		}
 
-		// remove proxy header before codec encode
-		delete(headerMaps, types.HeaderStreamID)
-		delete(headerMaps, types.HeaderGlobalTimeout)
-		delete(headerMaps, types.HeaderTryTimeout)
-
-		delete(headerMaps, types.HeaderStremEnd)
-
-		if status, ok := headerMaps[types.HeaderStatus]; ok {
-			delete(headerMaps, types.HeaderStatus)
+		// hijack scene
+		// TODO: distinguish proxy response / hijack replay by origin response judgement
+		if status, ok := headers.Get(types.HeaderStatus); ok {
+			headers.Del(types.HeaderStatus)
 			statusCode, _ := strconv.Atoi(status)
 
 			if statusCode != types.SuccessCode {
 				var err error
-				var respHeaders interface{}
+				var resp sofarpc.ProtoBasicCmd
 
 				//Build Router Unavailable Response Msg
 				switch statusCode {
 				case types.RouterUnavailableCode, types.NoHealthUpstreamCode, types.UpstreamOverFlowCode:
 					//No available path
-					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
+					resp, err = sofarpc.BuildSofaRespMsg(s.context, cmd, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
 				case types.CodecExceptionCode:
 					//Decode or Encode Error
-					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
+					resp, err = sofarpc.BuildSofaRespMsg(s.context, cmd, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
 				case types.DeserialExceptionCode:
 					//Hessian Exception
-					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
+					resp, err = sofarpc.BuildSofaRespMsg(s.context, cmd, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
 				case types.TimeoutExceptionCode:
 					//Response Timeout
-					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_TIMEOUT)
+					resp, err = sofarpc.BuildSofaRespMsg(s.context, cmd, sofarpc.RESPONSE_STATUS_TIMEOUT)
 				default:
-					respHeaders, err = sofarpc.BuildSofaRespMsg(s.context, headerMaps, sofarpc.RESPONSE_STATUS_UNKNOWN)
+					resp, err = sofarpc.BuildSofaRespMsg(s.context, cmd, sofarpc.RESPONSE_STATUS_UNKNOWN)
 				}
 
 				if err == nil {
-					headers = respHeaders
+					headers = resp
 				} else {
 					s.connection.logger.Errorf(err.Error())
 				}
 			}
-		} else {
-			headers = headerMaps
 		}
 	}
-
 	return headers
-}
-
-//added by @boqin: return value represents whether the request is HearBeat or not
-//if request is heartbeat msg, then it only has request header, so return true as endStream
-func decodeSterilize(streamID string, headers map[string]string) bool {
-	headers[types.HeaderStreamID] = streamID
-
-	if v, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)]; ok {
-		headers[types.HeaderTryTimeout] = v
-	}
-
-	if cmdCodeStr, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)]; ok {
-		cmdCode := sofarpc.ConvertPropertyValueInt16(cmdCodeStr)
-		if cmdCode == sofarpc.HEARTBEAT {
-			return true
-		}
-	}
-
-	if _, ok := headers[types.HeaderStremEnd]; ok {
-		return true
-	}
-
-	return false
 }

@@ -19,12 +19,16 @@ package http
 
 import (
 	"context"
+	"net"
 	"sync"
 
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	metrics "github.com/rcrowley/go-metrics"
+	"github.com/valyala/fasthttp"
 )
 
 func init() {
@@ -158,7 +162,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	//data := pool.host.CreateConnection(context)
 	//data.Connection.Connect(false)
 
-	codecClient := NewHTTP1CodecClient(context, pool.host)
+	codecClient := NewHTTP1CodecClient(context, ac)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
@@ -168,16 +172,17 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	pool.host.HostStats().UpstreamConnectionTotalHTTP1.Inc(1)
+	//pool.host.HostStats().UpstreamConnectionTotalHTTP1.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP1.Inc(1)
+	//pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP1.Inc(1)
 
+	// bytes total adds all connections data together, but buffered data not
 	codecClient.SetConnectionStats(&types.ConnectionStats{
-		ReadTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesRead,
-		ReadCurrent:  pool.host.ClusterInfo().Stats().UpstreamBytesReadCurrent,
-		WriteTotal:   pool.host.ClusterInfo().Stats().UpstreamBytesWrite,
-		WriteCurrent: pool.host.ClusterInfo().Stats().UpstreamBytesWriteCurrent,
+		ReadTotal:     pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal,
+		ReadBuffered:  metrics.NewGauge(),
+		WriteTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal,
+		WriteBuffered: metrics.NewGauge(),
 	})
 
 	return ac
@@ -197,4 +202,25 @@ func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
 
 func (ac *activeClient) OnGoAway() {
 	ac.pool.onGoAway(ac)
+}
+
+func (ac *activeClient) Dial(addr string) (net.Conn, error) {
+	conn, err := fasthttp.DialDualStack(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	tlsMng := ac.host.ClusterInfo().TLSMng()
+	if tlsMng != nil && tlsMng.Enabled() {
+		tlsConn := tlsMng.Conn(conn)
+		if conn, ok := tlsConn.(*mtls.TLSConn); ok {
+			if err := conn.Handshake(); err != nil {
+				conn.Close()
+				return nil, err
+			}
+		}
+		return tlsConn, nil
+	}
+
+	return conn, nil
 }

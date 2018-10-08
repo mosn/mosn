@@ -27,8 +27,9 @@ import (
 // The metadata should go under the filter namespace that will need it.
 type Metadata map[string]string
 
-// Network Filter's Name
+// Network Filter's Type
 const (
+	CONNECTION_MANAGER          = "connection_manager"
 	DEFAULT_NETWORK_FILTER      = "proxy"
 	TCP_PROXY                   = "tcp_proxy"
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
@@ -56,37 +57,126 @@ const (
 	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
 )
 
-// Cluster class
+// RoutingPriority
+type RoutingPriority string
+
+// Group of routing priority
+const (
+	DEFAULT RoutingPriority = "DEFAULT"
+	HIGH    RoutingPriority = "HIGH"
+)
+
+// Cluster represents a cluster's information
 type Cluster struct {
-	Name                 string
-	ClusterType          ClusterType
-	LbType               LbType
-	MaxRequestPerConn    uint32
-	ConnBufferLimitBytes uint32
-	CirBreThresholds     CircuitBreakers
-	OutlierDetection     OutlierDetection
-	HealthCheck          HealthCheck
-	Spec                 ClusterSpecInfo
-	LBSubSetConfig       LBSubsetConfig
-	TLS                  TLSConfig
-	Hosts                []Host
+	Name                 string           `json:"name"`
+	ClusterType          ClusterType      `json:"type"`
+	SubType              string           `json:"sub_type"` //not used yet
+	LbType               LbType           `json:"lb_type"`
+	MaxRequestPerConn    uint32           `json:"max_request_per_conn"`
+	ConnBufferLimitBytes uint32           `json:"conn_buffer_limit_bytes"`
+	CirBreThresholds     CircuitBreakers  `json:"circuit_breakers,omitempty"`
+	OutlierDetection     OutlierDetection `json:"outlier_detection,omitempty"` //not used yet
+	HealthCheck          HealthCheck      `json:"health_check,omitempty"`
+	Spec                 ClusterSpecInfo  `json:"spec,omitempty"`
+	LBSubSetConfig       LBSubsetConfig   `json:"lb_subset_config,omitempty"`
+	TLS                  TLSConfig        `json:"tls_context,omitempty"`
+	Hosts                []Host           `json:"hosts"`
 }
 
-// CircuitBreakers class
+// HealthCheck is a configuration of health check
+// use DurationConfig to parse string to time.Duration
+type HealthCheck struct {
+	HealthCheckConfig
+	ProtocolCode   byte          `json:"-"`
+	Timeout        time.Duration `json:"-"`
+	Interval       time.Duration `json:"-"`
+	IntervalJitter time.Duration `json:"-"`
+}
+
+// Host represenets a host information
+type Host struct {
+	HostConfig
+	MetaData Metadata `json:"-"`
+}
+
+// Listener contains the listener's information
+type Listener struct {
+	ListenerConfig
+	Addr                    net.Addr         `json:"-"`
+	ListenerTag             uint64           `json:"-"`
+	ListenerScope           string           `json:"-"`
+	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
+	InheritListener         *net.TCPListener `json:"-"`
+	Remain                  bool             `json:"-"`
+	LogLevel                uint8            `json:"-"`
+	DisableConnIo           bool             `json:"-"`
+}
+
+// TCPRoute
+type TCPRoute struct {
+	TCPRouteConfig
+	SourceAddrs      []net.Addr `json:"-"`
+	DestinationAddrs []net.Addr `json:"-"`
+}
+
+// HealthCheckFilter
+type HealthCheckFilter struct {
+	HealthCheckFilterConfig
+	CacheTime time.Duration `json:"-"`
+}
+
+// FaultInject
+type FaultInject struct {
+	FaultInjectConfig
+	DelayDuration uint64 `json:"-"`
+}
+
+// Router, the list of routes that will be matched, in order, for incoming requests.
+// The first route that matches will be used.
+type Router struct {
+	RouterConfig
+	Metadata Metadata `json:"-"`
+}
+
+// RouteAction represents the information of route request to upstream clusters
+type RouteAction struct {
+	RouterActionConfig
+	MetadataMatch Metadata      `json:"-"`
+	Timeout       time.Duration `json:"-"`
+}
+
+// Decorator
+type Decorator string
+
+// ClusterWeight.
+// clusters along with weights that indicate the percentage
+// of traffic to be forwarded to each cluster
+type ClusterWeight struct {
+	ClusterWeightConfig
+	MetadataMatch Metadata `json:"-"`
+}
+
+// RetryPolicy represents the retry parameters
+type RetryPolicy struct {
+	RetryPolicyConfig
+	RetryTimeout time.Duration `json:"-"`
+}
+
+// CircuitBreakers is a configuration of circuit breakers
+// CircuitBreakers implements json.Marshaler and json.Unmarshaler
 type CircuitBreakers struct {
 	Thresholds []Thresholds
 }
 
-// Thresholds of CircuitBreakers
 type Thresholds struct {
-	Priority           RoutingPriority
-	MaxConnections     uint32
-	MaxPendingRequests uint32
-	MaxRequests        uint32
-	MaxRetries         uint32
+	Priority           RoutingPriority `json:"priority"`
+	MaxConnections     uint32          `json:"max_connections"`
+	MaxPendingRequests uint32          `json:"max_pending_requests"`
+	MaxRequests        uint32          `json:"max_requests"`
+	MaxRetries         uint32          `json:"max_retries"`
 }
 
-// OutlierDetection value for upstream
+// OutlierDetection not used yet
 type OutlierDetection struct {
 	Consecutive5xx                     uint32
 	Interval                           time.Duration
@@ -101,259 +191,118 @@ type OutlierDetection struct {
 	SuccessRateStdevFactor             uint32
 }
 
-// RoutingPriority
-type RoutingPriority string
-
-// Group of routing priority
-const (
-	DEFAULT RoutingPriority = "DEFAULT"
-	HIGH    RoutingPriority = "HIGH"
-)
-
-// Host with MetaData
-type Host struct {
-	Address    string
-	Hostname   string
-	Weight     uint32
-	MetaData   Metadata
-	TLSDisable bool
-}
-
-// ListenerType: Ingress or Egress
-type ListenerType string
-
-const EGRESS ListenerType = "egress"
-const INGRESS ListenerType = "ingress"
-
-// ListenerConfig with FilterChains
-type ListenerConfig struct {
-	Name                                  string
-	Type                                  ListenerType
-	Addr                                  net.Addr
-	ListenerTag                           uint64
-	ListenerScope                         string
-	BindToPort                            bool
-	PerConnBufferLimitBytes               uint32
-	HandOffRestoredDestinationConnections bool
-	InheritListener                       *net.TCPListener // used in inherit case
-	Remain                                bool
-	LogPath                               string // log
-	LogLevel                              uint8
-	AccessLogs                            []AccessLog
-	DisableConnIo                         bool          // only used in http2 case
-	FilterChains                          []FilterChain // FilterChains
-	StreamFilters                         []Filter
-	Inspector                             bool // TLS inspector
-}
-
-// AccessLog with log path and log format
-type AccessLog struct {
-	Path   string
-	Format string
-	// todo: add log filters
-}
-
-// TLSConfig
-type TLSConfig struct {
-	Status       bool
-	Type         string
-	ServerName   string
-	CACert       string
-	CertChain    string
-	PrivateKey   string
-	VerifyClient bool
-	InsecureSkip bool
-	CipherSuites string
-	EcdhCurves   string
-	MinVersion   string
-	MaxVersion   string
-	ALPN         string
-	Ticket       string
-	ExtendVerify map[string]interface{}
-}
-
-// TCPRoute
-type TCPRoute struct {
-	Cluster          string
-	SourceAddrs      []net.Addr
-	DestinationAddrs []net.Addr
-}
-
-// TCPProxy
-type TCPProxy struct {
-	Routes []*TCPRoute
-}
-
-// RPCRoute
-type RPCRoute struct {
-	Name    string
-	Service string
-	Cluster string
-}
-
-// RPCProxy
-type RPCProxy struct {
-	Routes []*RPCRoute
-}
-
-// FaultInject
-type FaultInject struct {
-	DelayPercent  uint32
-	DelayDuration uint64
-}
-
-// XProxyExtendConfig
-type XProxyExtendConfig struct {
-	SubProtocol string
-}
-
-type Proxy struct {
-	Name                string
-	DownstreamProtocol  string
-	UpstreamProtocol    string
-	SupportDynamicRoute bool
-	BasicRoutes         []*BasicServiceRoute
-	VirtualHosts        []*VirtualHost
-	ValidateClusters    bool
-	ExtendConfig        map[string]interface{}
-}
-
-type BasicServiceRoute struct {
-	Name          string
-	Service       string
-	Cluster       string
-	GlobalTimeout time.Duration
-	RetryPolicy   *RetryPolicy
-}
-
-type RetryPolicy struct {
-	RetryOn      bool
-	RetryTimeout time.Duration
-	NumRetries   uint32
-}
-
-// HealthCheck
-type HealthCheck struct {
-	Protocol           string
-	ProtocolCode       byte // used by sofa rpc
-	Timeout            time.Duration
-	Interval           time.Duration
-	IntervalJitter     time.Duration
-	HealthyThreshold   uint32
-	UnhealthyThreshold uint32
-	CheckPath          string
-	ServiceName        string
-}
-
-// HealthCheckFilter
-type HealthCheckFilter struct {
-	PassThrough                 bool
-	CacheTime                   time.Duration
-	Endpoint                    string
-	ClusterMinHealthyPercentage map[string]float32
-}
-
-// currently only one subscribe allowed
+// ClusterSpecInfo is a configuration of subscribe
 type ClusterSpecInfo struct {
-	Subscribes []SubscribeSpec
+	Subscribes []SubscribeSpec `json:"subscribe,omitempty"`
 }
 
+// SubscribeSpec describes the subscribe server
 type SubscribeSpec struct {
-	ServiceName string
+	ServiceName string `json:"service_name,omitempty"`
 }
 
-type ServiceRegistryInfo struct {
-	ServiceAppInfo ApplicationInfo
-	ServicePubInfo []PublishInfo
-}
-
-type ApplicationInfo struct {
-	AntShareCloud bool
-	DataCenter    string
-	AppName       string
-	Zone          string
-}
-
-type PublishInfo struct {
-	Pub PublishContent
-}
-
-type PublishContent struct {
-	ServiceName string
-	PubData     string
-}
-
+// LBSubsetConfig is a configuration of load balance subset
 type LBSubsetConfig struct {
-	FallBackPolicy  uint8             // NoFallBack,...
-	DefaultSubset   map[string]string // {e1,e2,e3}
-	SubsetSelectors [][]string        // {{keys,},}, used to create subsets of hosts, pre-computing, sorted
+	FallBackPolicy  uint8             `json:"fall_back_policy"`
+	DefaultSubset   map[string]string `json:"default_subset"`
+	SubsetSelectors [][]string        `json:"subset_selectors"`
+}
+
+// TLSConfig is a configuration of tls context
+type TLSConfig struct {
+	Status       bool                   `json:"status"`
+	Type         string                 `json:"type"`
+	ServerName   string                 `json:"server_name,omitempty"`
+	CACert       string                 `json:"ca_cert,omitempty"`
+	CertChain    string                 `json:"cert_chain,omitempty"`
+	PrivateKey   string                 `json:"private_key,omitempty"`
+	VerifyClient bool                   `json:"verify_client,omitempty"`
+	InsecureSkip bool                   `json:"insecure_skip,omitempty"`
+	CipherSuites string                 `json:"cipher_suites,omitempty"`
+	EcdhCurves   string                 `json:"ecdh_curves,omitempty"`
+	MinVersion   string                 `json:"min_version,omitempty"`
+	MaxVersion   string                 `json:"max_version,omitempty"`
+	ALPN         string                 `json:"alpn,omitempty"`
+	Ticket       string                 `json:"ticket,omitempty"`
+	ExtendVerify map[string]interface{} `json:"extend_verify,omitempty"`
+}
+
+// AccessLog for making up access log
+type AccessLog struct {
+	Path   string `json:"log_path,omitempty"`
+	Format string `json:"log_format,omitempty"`
 }
 
 // FilterChain wraps a set of match criteria, an option TLS context,
 // a set of filters, and various other parameters.
 type FilterChain struct {
-	FilterChainMatch string
-	TLS              TLSConfig
-	Filters          []Filter
+	FilterChainMatch string    `json:"match,omitempty"`
+	TLS              TLSConfig `json:"tls_context,omitempty"`
+	Filters          []Filter  `json:"filters"` // "proxy" and "connection_manager" used at this time
 }
 
-// Filter for network and stream
+// Filter is a config to make up a filter
 type Filter struct {
-	Name   string
-	Config map[string]interface{}
+	Type   string                 `json:"type,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
 }
 
-// VirtualHost
-// An array of virtual hosts that make up the route table.
+// Implements of filter config
+
+// TCPProxy
+type TCPProxy struct {
+	Routes []*TCPRoute `json:"routes,omitempty"`
+}
+
+// Proxy
+type Proxy struct {
+	Name               string                 `json:"name"`
+	DownstreamProtocol string                 `json:"downstream_protocol"`
+	UpstreamProtocol   string                 `json:"upstream_protocol"`
+	RouterConfigName   string                 `json:"router_config_name"`
+	ValidateClusters   bool                   `json:"validate_clusters"`
+	ExtendConfig       map[string]interface{} `json:"extend_config"`
+}
+
+// RouterConfiguration is a filter for routers
+// Filter type is:  "CONNECTION_MANAGER"
+type RouterConfiguration struct {
+	RouterConfigName string         `json:"router_config_name"`
+	VirtualHosts     []*VirtualHost `json:"virtual_hosts"`
+}
+
+// VirtualHost is used to make up the route table
 type VirtualHost struct {
-	Name            string
-	Domains         []string
-	Routers         []Router
-	RequireTLS      string
-	VirtualClusters []VirtualCluster
+	Name            string           `json:"name"`
+	Domains         []string         `json:"domains"`
+	VirtualClusters []VirtualCluster `json:"virtual_clusters"`
+	Routers         []Router         `json:"routers"`
+	RequireTLS      string           `json:"require_tls"` // not used yet
 }
 
-// Router, the list of routes that will be matched, in order, for incoming requests.
-// The first route that matches will be used.
-type Router struct {
-	Match     RouterMatch
-	Route     RouteAction
-	Redirect  RedirectAction
-	Metadata  Metadata
-	Decorator Decorator
+// VirtualCluster is a way of specifying a regex matching rule against certain important endpoints
+// such that statistics are generated explicitly for the matched requests
+type VirtualCluster struct {
+	Pattern string `json:"pattern"`
+	Name    string `json:"name"`
+	Method  string `json:"method"`
 }
 
-// Decorator
-type Decorator string
-
-// RedirectAction
-// Return a redirect.
-type RedirectAction struct {
-	HostRedirect string
-	PathRedirect string
-	ResponseCode uint32
-}
-
-// RouterMatch
-// Route matching parameters
+// RouterMatch represents the route matching parameters
 type RouterMatch struct {
-	Prefix        string
-	Path          string
-	Regex         string
-	CaseSensitive bool
-	Runtime       RuntimeUInt32
-	Headers       []HeaderMatcher
+	Prefix        string          `json:"prefix"`
+	Path          string          `json:"path"`
+	Regex         string          `json:"regex"`
+	CaseSensitive bool            `json:"case_sensitive"`
+	Runtime       RuntimeUInt32   `json:"runtime"`
+	Headers       []HeaderMatcher `json:"headers"`
 }
 
-// RouteAction
-// Route request to some upstream clusters.
-type RouteAction struct {
-	ClusterName      string
-	ClusterHeader    string
-	WeightedClusters []WeightedCluster
-	MetadataMatch    Metadata
-	Timeout          time.Duration
-	RetryPolicy      *RetryPolicy
+// RedirectAction represents the redirect parameters
+type RedirectAction struct {
+	HostRedirect string `json:"host_redirect"`
+	PathRedirect string `json:"path_redirect"`
+	ResponseCode uint32 `json:"response_code"`
 }
 
 // WeightedCluster.
@@ -361,37 +310,46 @@ type RouteAction struct {
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
 type WeightedCluster struct {
-	Cluster          ClusterWeight
-	RuntimeKeyPrefix string // not used currently
+	Cluster          ClusterWeight `json:"cluster"`
+	RuntimeKeyPrefix string        `json:"runtime_key_prefix"` // not used currently
 }
 
-// ClusterWeight.
-// clusters along with weights that indicate the percentage
-// of traffic to be forwarded to each cluste
-type ClusterWeight struct {
-	Name          string
-	Weight        uint32
-	MetadataMatch Metadata
-}
-
-// RuntimeUInt32
-// Indicates that the route should additionally match on a runtime key
+// RuntimeUInt32 indicates that the route should additionally match on a runtime key
 type RuntimeUInt32 struct {
-	DefaultValue uint32
-	RuntimeKey   string
+	DefaultValue uint32 `json:"default_value"`
+	RuntimeKey   string `json:"runtime_key"`
 }
 
 // HeaderMatcher specifies a set of headers that the route should match on.
 type HeaderMatcher struct {
-	Name  string
-	Value string
-	Regex bool
+	Name  string `json:"name"`
+	Value string `json:"value"`
+	Regex bool   `json:"regex"`
 }
 
-// VirtualCluster is a way of specifying a regex matching rule against certain important endpoints
-// such that statistics are generated explicitly for the matched requests
-type VirtualCluster struct {
-	Pattern string
-	Name    string
-	Method  string // http.Request.Method
+// XProxyExtendConfig
+type XProxyExtendConfig struct {
+	SubProtocol string `json:"sub_protocol"`
+}
+
+// ServiceRegistryInfo
+type ServiceRegistryInfo struct {
+	ServiceAppInfo ApplicationInfo `json:"application"`
+	ServicePubInfo []PublishInfo   `json:"publish_info,omitempty"`
+}
+type ApplicationInfo struct {
+	AntShareCloud bool   `json:"ant_share_cloud"`
+	DataCenter    string `json:"data_center,omitempty"`
+	AppName       string `json:"app_name,omitempty"`
+	Zone          string `json:"zone"`
+}
+
+// PublishInfo implements json.Marshaler and json.Unmarshaler
+type PublishInfo struct {
+	Pub PublishContent
+}
+
+type PublishContent struct {
+	ServiceName string `json:"service_name,omitempty"`
+	PubData     string `json:"pub_data,omitempty"`
 }

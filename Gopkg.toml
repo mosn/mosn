@@ -76,6 +76,10 @@
     branch = "master"
     name = "github.com/neverhook/easygo"
 
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+
 [prune]
   go-tests = true
   unused-packages = true

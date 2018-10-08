@@ -24,10 +24,30 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var host1 = v2.Host{Address: "127.0.0.1", Hostname: "h1", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
-var host2 = v2.Host{Address: "127.0.0.2", Hostname: "h2", Weight: 5, MetaData: v2.Metadata{"label": "blue"}}
-var host3 = v2.Host{Address: "127.0.0.3", Hostname: "h3", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
-var host4 = v2.Host{Address: "127.0.0.4", Hostname: "h4", Weight: 5, MetaData: v2.Metadata{"label": "green"}}
+var host1 = v2.Host{
+	HostConfig: v2.HostConfig{
+		Address: "127.0.0.1", Hostname: "h1", Weight: 5,
+	},
+	MetaData: v2.Metadata{"label": "blue"},
+}
+var host2 = v2.Host{
+	HostConfig: v2.HostConfig{
+		Address: "127.0.0.2", Hostname: "h2", Weight: 5,
+	},
+	MetaData: v2.Metadata{"label": "blue"},
+}
+var host3 = v2.Host{
+	HostConfig: v2.HostConfig{
+		Address: "127.0.0.3", Hostname: "h3", Weight: 5,
+	},
+	MetaData: v2.Metadata{"label": "green"},
+}
+var host4 = v2.Host{
+	HostConfig: v2.HostConfig{
+		Address: "127.0.0.4", Hostname: "h4", Weight: 5,
+	},
+	MetaData: v2.Metadata{"label": "green"},
+}
 
 var clusterOrigin = v2.Cluster{
 	Name:        "o1",
@@ -392,7 +412,7 @@ func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {
 
 				if tt.name == "deleteHosts" {
 					if cInMem.hosts[0].Hostname() != tt.argsWant.hostName {
-						t.Errorf("MngAdapter.update cluster and host error, want host = &s, but got %v", tt.argsWant.hostName, cInMem.hosts[0].Hostname())
+						t.Errorf("MngAdapter.update cluster and host error, want host = %s, but got %v", tt.argsWant.hostName, cInMem.hosts[0].Hostname())
 					}
 				}
 			} else {
@@ -503,7 +523,7 @@ func TestMngAdapter_TriggerClusterHostUpdate(t *testing.T) {
 
 				if tt.name == "deleteHosts" {
 					if cInMem.hosts[0].Hostname() != tt.argsWant.hostName {
-						t.Errorf("MngAdapter.update cluster and host error, want host = &s, but got %v", tt.argsWant.hostName, cInMem.hosts[0].Hostname())
+						t.Errorf("MngAdapter.update cluster and host error, want host = %s, but got %v", tt.argsWant.hostName, cInMem.hosts[0].Hostname())
 					}
 				}
 			} else {
@@ -583,7 +603,7 @@ func TestMngAdapter_TriggerHostDel(t *testing.T) {
 				}
 
 				if len(cInMem.hosts) > 0 && cInMem.hosts[0].AddressString() != tt.argsWant.hostAddress {
-					t.Errorf("MngAdapter.update cluster and host error, want host = &s, but got %v", tt.argsWant.hostAddress, cInMem.hosts[0].AddressString())
+					t.Errorf("MngAdapter.update cluster and host error, want host = %s, but got %v", tt.argsWant.hostAddress, cInMem.hosts[0].AddressString())
 				}
 
 			} else {

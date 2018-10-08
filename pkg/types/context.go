@@ -41,7 +41,7 @@ const (
 	ContextKeyTraceSpanKey                ContextKey = "TraceSpanKey"
 )
 
+// GlobalProxyName represents proxy name for metrics
 const (
-	// GlobalStatsNamespace is the stats namespace
-	GlobalStatsNamespace = ""
+	GlobalProxyName = "global"
 )
