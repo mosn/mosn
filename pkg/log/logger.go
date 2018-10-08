@@ -194,6 +194,12 @@ func (l *logger) Printf(format string, args ...interface{}) {
 	l.fileMux.RUnlock()
 }
 
+func (l *logger) SetFlags(flag int) {
+	l.fileMux.RLock()
+	defer l.fileMux.RUnlock()
+	l.Logger.SetFlags(flag)
+}
+
 func (l *logger) Infof(format string, args ...interface{}) {
 	if l.Level >= INFO {
 		l.Printf(InfoPre+format, args...)

@@ -213,9 +213,15 @@ func listenerDisableIO(c *v2.FilterChain) bool {
 }
 
 func initializeTracing(config config.TracingConfig) {
-	if config.Enable {
+	if config.Enable && config.Tracer != "" {
+		if config.Tracer == "SOFATracer" {
+			trace.SetTracer(trace.SofaTracerInstance)
+		} else {
+			log.DefaultLogger.Errorf("Unable to recognise tracing implementation %s, tracing functionality is turned off.", config.Tracer)
+			trace.DisableTracing()
+			return
+		}
 		trace.EnableTracing()
-		trace.SetDriver(&trace.OpenTracingDriver{})
 	} else {
 		trace.DisableTracing()
 	}

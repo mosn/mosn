@@ -229,7 +229,8 @@ type ServerConfig struct {
 
 // Tracing configuration for a server
 type TracingConfig struct {
-	Enable bool `json:"enable"`
+	Enable bool   `json:"enable"`
+	Tracer string `json:"tracer"`
 }
 
 // HostConfig

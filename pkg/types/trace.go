@@ -37,6 +37,6 @@ type Span interface {
 	SpawnChild(operationName string, startTime time.Time) Span
 }
 
-type Driver interface {
-	Start(requestHeaders map[string]string, operationName string, startTime time.Time) Span
+type Tracer interface {
+	Start(startTime time.Time) Span
 }

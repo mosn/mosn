@@ -10,7 +10,7 @@ func TestIdGenerator_GenerateTraceId(t *testing.T) {
 }
 
 func TestIdGenerator_ipToHexString(t *testing.T) {
-	ipHex := ipToHexString()
+	ipHex := ipToHexString(GetIp())
 
 	if ipHex == "" {
 		t.Error("IP to Hex is empty.")

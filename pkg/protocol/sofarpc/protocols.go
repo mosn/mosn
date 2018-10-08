@@ -132,8 +132,8 @@ func (p *protocols) BuildSpan(context context.Context) types.Span {
 	if request.CmdCode == CMD_CODE_HEARTBEAT {
 		return nil
 	}
-	
-	span := trace.Driver().Start(map[string]string{}, "", time.Now())
+
+	span := trace.Tracer().Start(time.Now())
 
 	traceId := request.RequestHeader[models.TRACER_ID_KEY]
 	if traceId == "" {

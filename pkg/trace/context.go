@@ -9,7 +9,7 @@ type contextKey struct{}
 
 type traceHolder struct {
 	enableTracing bool
-	driver        types.Driver
+	tracer        types.Tracer
 }
 
 var ActiveSpanKey = contextKey{}
@@ -23,12 +23,12 @@ func SpanFromContext(ctx context.Context) types.Span {
 	return nil
 }
 
-func SetDriver(driver types.Driver) {
-	holder.driver = driver
+func SetTracer(tracer types.Tracer) {
+	holder.tracer = tracer
 }
 
-func Driver() types.Driver {
-	return holder.driver
+func Tracer() types.Tracer {
+	return holder.tracer
 }
 
 func EnableTracing() {
