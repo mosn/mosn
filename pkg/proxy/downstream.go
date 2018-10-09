@@ -714,20 +714,28 @@ func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 	}
 
 	s.appendData(data, endStream)
+	s.finishTracing(strconv.Itoa(types.SuccessCode))
+}
 
+func (s *downStream) finishTracing(status string) {
 	if trace.IsTracingEnabled() {
 		span := trace.SpanFromContext(s.context)
 
 		if span != nil {
 			span.SetTag(trace.REQUEST_SIZE, strconv.FormatInt(int64(s.requestInfo.BytesSent()), 10))
 			span.SetTag(trace.RESPONSE_SIZE, strconv.FormatInt(int64(s.requestInfo.BytesReceived()), 10))
-			span.SetTag(trace.UPSTREAM_HOST_ADDRESS, s.requestInfo.UpstreamHost().AddressString())
+			if s.requestInfo.UpstreamHost() != nil {
+				span.SetTag(trace.UPSTREAM_HOST_ADDRESS, s.requestInfo.UpstreamHost().AddressString())
+			}
 			span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
+			span.SetTag(trace.RESULT_STATUS, status)
 			span.FinishSpan()
 
 			if s.context.Value(types.ContextKeyListenerType) == v2.INGRESS {
 				trace.DeleteSpanIdGenerator(s.context.Value(types.ContextKeyTraceSpanKey).(*trace.SpanKey))
 			}
+		} else {
+			log.DefaultLogger.Debugf("Span is null")
 		}
 	}
 }
@@ -827,6 +835,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	s.appendHeaders(headers, true)
+	s.finishTracing(strconv.Itoa(code))
 }
 
 func (s *downStream) cleanUp() {

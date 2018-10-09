@@ -96,7 +96,7 @@ func newSofaTracer() *SofaTracer {
 
 	userHome := os.Getenv("HOME")
 	var err error
-	logRoot := userHome + "logs/tracelog/mosn/"
+	logRoot := userHome + "/logs/tracelog/mosn/"
 	instance.ingressLogger, err = log.NewLogger(logRoot+"rpc-server-digest.log", log.INFO)
 	if err != nil {
 		// TODO when error is not nil
@@ -121,10 +121,21 @@ func newSofaTracer() *SofaTracer {
 			printData["service"] = span.tags[SERVICE_NAME]
 			printData["method"] = span.tags[METHOD_NAME]
 			printData["protocol"] = span.tags[PROTOCOL]
-			printData["result.code"] = "" // TODO
 			printData["resp.size"] = span.tags[RESPONSE_SIZE]
 			printData["req.size"] = span.tags[REQUEST_SIZE]
 			printData["baggage"] = span.tags[BAGGAGE_DATA]
+
+			// Set status code. TODO can not get the result code if server throw an exception.
+			statusCode, _ := strconv.Atoi(span.tags[RESULT_STATUS])
+			if statusCode == types.SuccessCode {
+				printData["result.code"] = "00"
+			} else if statusCode == types.TimeoutExceptionCode {
+				printData["result.code"] = "03"
+			} else if statusCode == types.RouterUnavailableCode || statusCode == types.NoHealthUpstreamCode {
+				printData["result.code"] = "04"
+			} else {
+				printData["result.code"] = "02"
+			}
 
 			if span.tags[SPAN_TYPE] == "ingress" {
 				printData["span.kind"] = "server"

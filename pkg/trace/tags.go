@@ -7,7 +7,7 @@ const (
 	SERVICE_NAME           string = "serviceName"
 	METHOD_NAME            string = "methodName"
 	PROTOCOL               string = "protocol"
-	RESULT                 string = "result"
+	RESULT_STATUS          string = "resultStatus"
 	REQUEST_SIZE           string = "requestSize"
 	RESPONSE_SIZE          string = "responseSize"
 	UPSTREAM_HOST_ADDRESS  string = "upstreamHostAddress"
