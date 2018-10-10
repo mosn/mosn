@@ -191,14 +191,6 @@ func (conn *streamConnection) GoAway() {
 	// todo
 }
 
-func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
-	// todo
-}
-
-func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark() {
-	// todo
-}
-
 // NewStream
 func (conn *streamConnection) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	log.DefaultLogger.Tracef("xprotocol stream new stream,streamId =%v ", streamID)

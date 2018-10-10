@@ -331,8 +331,6 @@ func (s *clientStream) endStream() {
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
-	s.connection.logger.Debugf("high watermark on h2 stream client")
-
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
@@ -348,8 +346,6 @@ func (s *clientStream) doSend() {
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
 
 	if err != nil {
-		log.StartLogger.Errorf("http2 client stream send error %v", err)
-
 		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
 		switch err.(type) {
 		case http2.StreamError:
@@ -487,8 +483,6 @@ func (s *serverStream) ResetStream(reason types.StreamResetReason) {
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
-	s.connection.logger.Debugf("high watermark on h2 stream server")
-
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
