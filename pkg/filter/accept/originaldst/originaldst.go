@@ -72,6 +72,13 @@ func getOriginalAddr(conn net.Conn) ([]byte, int, error) {
 	fd := int(f.Fd())
 	addr, err := syscall.GetsockoptIPv6Mreq(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST)
 
+	if err := syscall.SetNonblock(fd, true); err != nil {
+		return nil, 0, fmt.Errorf("setnonblock %v", err)
+	}
+	if err := f.Close(); err != nil {
+		return nil, 0, fmt.Errorf("socket close %v", err)
+	}
+
 	p0 := int(addr.Multiaddr[2])
 	p1 := int(addr.Multiaddr[3])
 
