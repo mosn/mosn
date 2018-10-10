@@ -21,6 +21,17 @@ import (
 	"testing"
 )
 
+func TestNotEnoughBytes(t *testing.T) {
+	b := make([]byte, 3)
+	b[0] = 255
+	b[1] = 255
+	b[2] = 255
+	_, err := readInt32(b)
+	if err.Error() != "no enough bytes" {
+		t.Error("Expect error")
+	}
+}
+
 func TestReadIntMinusOne(t *testing.T) {
 	b := make([]byte, 4)
 	b[0] = 255
