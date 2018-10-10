@@ -141,7 +141,7 @@ func (tracer *SofaTracer) printSpan(span *SofaTracerSpan) {
 	printData["protocol"] = span.tags[PROTOCOL]
 	printData["resp.size"] = span.tags[RESPONSE_SIZE]
 	printData["req.size"] = span.tags[REQUEST_SIZE]
-	printData["baggage"] = span.tags[BAGGAGE_DATA] // TODO 这部分的数据现在有吗?
+	printData["baggage"] = span.tags[BAGGAGE_DATA]
 
 	// Set status code. TODO can not get the result code if server throw an exception.
 	statusCode, _ := strconv.Atoi(span.tags[RESULT_STATUS])
