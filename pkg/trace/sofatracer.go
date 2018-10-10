@@ -172,8 +172,13 @@ func (tracer *SofaTracer) printSpan(span *SofaTracerSpan) {
 		printData["invoke.type"] = "sync" // TODO
 		printData["router.record"] = ""   // TODO
 		printData["remote.ip"] = span.tags[UPSTREAM_HOST_ADDRESS]
-		printData["local.client.ip"] = strings.Split(span.tags[DOWNSTEAM_HOST_ADDRESS], ":")[0]
-		printData["local.client.port"] = strings.Split(span.tags[DOWNSTEAM_HOST_ADDRESS], ":")[1]
+		downStreamHostAddress := strings.Split(span.tags[DOWNSTEAM_HOST_ADDRESS], ":")
+		if len(downStreamHostAddress) > 0 {
+			printData["local.client.ip"] = strings.Split(span.tags[DOWNSTEAM_HOST_ADDRESS], ":")[0]
+		}
+		if len(downStreamHostAddress) > 1 {
+			printData["local.client.port"] = strings.Split(span.tags[DOWNSTEAM_HOST_ADDRESS], ":")[1]
+		}
 		printData["client.elapse.time"] = strconv.FormatInt(span.endTime.Sub(span.startTime).Nanoseconds()/1000000, 10)
 		result, _ := jsoniter.MarshalToString(printData)
 		tracer.egressLogger.Println(result)
