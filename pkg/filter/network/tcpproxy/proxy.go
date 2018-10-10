@@ -69,6 +69,7 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.Clu
 }
 
 func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
+	log.DefaultLogger.Tracef("Tcp Proxy :: read data , len = %v", buffer.Len())
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
@@ -78,6 +79,7 @@ func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
 }
 
 func (p *proxy) OnNewConnection() types.FilterStatus {
+	log.DefaultLogger.Tracef("Tcp Proxy :: accept new connection")
 	return p.initializeUpstreamConnection()
 }
 
@@ -158,6 +160,7 @@ func (p *proxy) onInitFailure(reason UpstreamFailureReason) {
 }
 
 func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
+	log.DefaultLogger.Tracef("Tcp Proxy :: read upstream data , len = %v", buffer.Len())
 	bytesSent := p.requestInfo.BytesSent() + uint64(buffer.Len())
 	p.requestInfo.SetBytesSent(bytesSent)
 
@@ -235,9 +238,11 @@ type IpRangeList struct {
 
 func (ipList *IpRangeList) Contains(address net.Addr) bool {
 	ipv4 := net.ParseIP(address.String()).To4()
+	log.DefaultLogger.Tracef("IpRangeList check ipv4 = %v,address = %v", ipv4, address)
 	if ipv4 != nil {
 		ip := strings.Split(address.String(), ":")[0]
 		for _, cidrRange := range ipList.cidrRanges {
+			log.DefaultLogger.Tracef("check CidrRange = %v,ip = %v", cidrRange, ip)
 			if cidrRange.IsInRange(ip) {
 				return true
 			}
@@ -253,12 +258,14 @@ type PortRangeList struct {
 func (pr *PortRangeList) Contains(address net.Addr) bool {
 	ipv4 := net.ParseIP(address.String()).To4()
 	if ipv4 != nil {
+		log.DefaultLogger.Tracef("PortRangeList check containe , address = %v", address)
 		port, err := strconv.Atoi(strings.Split(address.String(), ":")[1])
 		if err != nil {
 			log.DefaultLogger.Errorf("parse port fail , address = %v", address)
 			return false
 		}
 		for _, portRange := range pr.portList {
+			log.DefaultLogger.Tracef("check port range , port range = %v , port = %v", portRange, port)
 			if port >= portRange.min && port <= portRange.max {
 				return true
 			}
@@ -307,6 +314,7 @@ type route struct {
 func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 	var routes []*route
 
+	log.DefaultLogger.Tracef("Tcp Proxy :: New Proxy Config = %v", config)
 	for _, routeConfig := range config.Routes {
 		route := &route{
 			clusterName:      routeConfig.Cluster,
@@ -315,6 +323,7 @@ func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 			sourcePort:       ParsePortRangeList(routeConfig.SourcePort),
 			destinationPort:  ParsePortRangeList(routeConfig.DestinationPort),
 		}
+		log.DefaultLogger.Tracef("Tcp Proxy add one route : %v", route)
 
 		routes = append(routes, route)
 	}
@@ -325,7 +334,9 @@ func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 }
 
 func (pc *proxyConfig) GetRouteFromEntries(connection types.Connection) string {
+	log.DefaultLogger.Tracef("Tcp Proxy get route from entries , connection = %v", connection)
 	for _, r := range pc.routes {
+		log.DefaultLogger.Tracef("Tcp Proxy check one route = %v", r)
 		if !r.sourceAddrs.Contains(connection.RemoteAddr()) {
 			continue
 		}
@@ -340,6 +351,7 @@ func (pc *proxyConfig) GetRouteFromEntries(connection types.Connection) string {
 		}
 		return r.clusterName
 	}
+	log.DefaultLogger.Warnf("Tcp Proxy find no cluster , connection = %v", connection)
 
 	return ""
 }

@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-
-	"github.com/alipay/sofa-mosn/pkg/log"
+	//"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 func Create(address string, length uint32) CidrRange {
@@ -35,7 +34,7 @@ func (c *CidrRange) truncateIpAddressAndLength() {
 		truncateIp := c.inetAtoN(c.Address) & (^(uint32(0)) << (32 - c.Length))
 		c.Address = c.inetNtoA(truncateIp)
 	} else {
-		log.DefaultLogger.Errorf("CidrRange truncate fail,currently only support ipv4,address = %v", c.Address)
+		//log.DefaultLogger.Errorf("CidrRange truncate fail,currently only support ipv4,address = %v", c.Address)
 	}
 }
 

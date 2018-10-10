@@ -323,10 +323,11 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 	} else if name == xdsutil.TCPProxy {
 		filterConfig := &xdstcp.TcpProxy{}
 		xdsutil.StructToMessage(s, filterConfig)
+		log.DefaultLogger.Infof("TCPProxy:filter config = %v,v1-config = %v", filterConfig, filterConfig.GetDeprecatedV1())
 
 		tcpProxyConfig := v2.TCPProxy{
 			StatPrefix:         filterConfig.GetStatPrefix(),
-			IdleTimeout:        *filterConfig.GetIdleTimeout(),
+			IdleTimeout:        filterConfig.GetIdleTimeout(),
 			MaxConnectAttempts: filterConfig.GetMaxConnectAttempts().GetValue(),
 			Routes:             convertTCPRoute(filterConfig.GetDeprecatedV1()),
 		}

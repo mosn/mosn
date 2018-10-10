@@ -19,7 +19,6 @@ package v2
 
 import (
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
@@ -105,26 +104,26 @@ func (f *FaultInject) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (r *TCPRoute) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &r.TCPRouteConfig); err != nil {
-		return err
-	}
-	for _, addr := range r.Sources {
-		src, err := net.ResolveTCPAddr("tcp", addr)
-		if err != nil {
-			return err
-		}
-		r.SourceAddrs = append(r.SourceAddrs, src)
-	}
-	for _, addr := range r.Dests {
-		dst, err := net.ResolveTCPAddr("tcp", addr)
-		if err != nil {
-			return err
-		}
-		r.DestinationAddrs = append(r.DestinationAddrs, dst)
-	}
-	return nil
-}
+//func (r *TCPRoute) UnmarshalJSON(b []byte) error {
+//	if err := json.Unmarshal(b, &r.TCPRouteConfig); err != nil {
+//		return err
+//	}
+//	for _, addr := range r.Sources {
+//		src, err := net.ResolveTCPAddr("tcp", addr)
+//		if err != nil {
+//			return err
+//		}
+//		r.SourceAddrs = append(r.SourceAddrs, src)
+//	}
+//	for _, addr := range r.Dests {
+//		dst, err := net.ResolveTCPAddr("tcp", addr)
+//		if err != nil {
+//			return err
+//		}
+//		r.DestinationAddrs = append(r.DestinationAddrs, dst)
+//	}
+//	return nil
+//}
 
 func (r *Router) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &r.RouterConfig); err != nil {

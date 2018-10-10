@@ -260,7 +260,7 @@ type Filter struct {
 // TCPProxy
 type TCPProxy struct {
 	StatPrefix         string
-	IdleTimeout        time.Duration
+	IdleTimeout        *time.Duration
 	MaxConnectAttempts uint32
 	Routes             []*TCPRoute `json:"routes,omitempty"`
 }

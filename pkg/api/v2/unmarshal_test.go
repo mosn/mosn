@@ -394,39 +394,40 @@ func TestFaultInjectUnmarshal(t *testing.T) {
 		t.Error("fault inject failed")
 	}
 }
-func TestTCPProxyUnmarshal(t *testing.T) {
-	tcpproxy := `{
-		"routes":[
-			{
-				"cluster": "test",
-				"source_addrs": [
-					"127.0.0.1:80"
-				],
-				"destination_addrs":[
-					"127.0.0.1:8080"
-				]
-			}
-		]
-	}`
-	b := []byte(tcpproxy)
-	p := &TCPProxy{}
-	if err := json.Unmarshal(b, p); err != nil {
-		t.Error(err)
-		return
-	}
-	if len(p.Routes) != 1 {
-		t.Error("route failed")
-	} else {
-		r := p.Routes[0]
-		if !(r.Cluster == "test" &&
-			len(r.SourceAddrs) == 1 &&
-			r.SourceAddrs[0].String() == "127.0.0.1:80" &&
-			len(r.DestinationAddrs) == 1 &&
-			r.DestinationAddrs[0].String() == "127.0.0.1:8080") {
-			t.Error("route failed")
-		}
-	}
-}
+
+//func TestTCPProxyUnmarshal(t *testing.T) {
+//	tcpproxy := `{
+//		"routes":[
+//			{
+//				"cluster": "test",
+//				"source_addrs": [
+//					"127.0.0.1:80"
+//				],
+//				"destination_addrs":[
+//					"127.0.0.1:8080"
+//				]
+//			}
+//		]
+//	}`
+//	b := []byte(tcpproxy)
+//	p := &TCPProxy{}
+//	if err := json.Unmarshal(b, p); err != nil {
+//		t.Error(err)
+//		return
+//	}
+//	if len(p.Routes) != 1 {
+//		t.Error("route failed")
+//	} else {
+//		r := p.Routes[0]
+//		if !(r.Cluster == "test" &&
+//			len(r.SourceAddrs) == 1 &&
+//			r.SourceAddrs[0].String() == "127.0.0.1:80" &&
+//			len(r.DestinationAddrs) == 1 &&
+//			r.DestinationAddrs[0].String() == "127.0.0.1:8080") {
+//			t.Error("route failed")
+//		}
+//	}
+//}
 func TestHealthCheckFilterUnmarshal(t *testing.T) {
 	hc := `{
 		"passthrough":true,
