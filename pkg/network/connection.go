@@ -420,6 +420,12 @@ func (c *connection) onRead(bytesRead int64) {
 }
 
 func (c *connection) Write(buffers ...types.IoBuffer) error {
+	defer func() {
+		if r := recover(); r != nil {
+			c.logger.Errorf("Write panic %v", r)
+		}
+	}()
+
 	fs := c.filterManager.OnWrite(buffers)
 
 	if fs == types.Stop {
@@ -649,6 +655,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if c.internalLoopStarted {
 		// because close function must be called by one io loop thread, notify another loop here
 		close(c.internalStopChan)
+		close(c.writeBufferChan)
 	} else if c.eventLoop != nil {
 		// unregister events while connection close
 		c.eventLoop.unregister(c.id)
