@@ -31,8 +31,8 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // types.StreamEventListener
@@ -78,7 +78,7 @@ type downStream struct {
 	// upstream req sent
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
-	upstreamProcessDone      bool
+	upstreamProcessDone bool
 
 	filterStage int
 
@@ -536,7 +536,6 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 	return headers
 }
 
-
 func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers types.HeaderMap, endStream bool) {
 	if s.runAppendHeaderFilters(filter, headers, endStream) {
 		return
@@ -604,7 +603,6 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 	}
 	return trailers
 }
-
 
 func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers types.HeaderMap) {
 	if s.runAppendTrailersFilters(filter, trailers) {
@@ -729,6 +727,7 @@ func (s *downStream) setupRetry(endStream bool) bool {
 	if !s.upstreamRequestSent {
 		return false
 	}
+	s.upstreamRequest.setupRetry = true
 
 	if !endStream {
 		s.upstreamRequest.resetStream()
@@ -761,8 +760,9 @@ func (s *downStream) doRetry() {
 		connPool:   pool,
 	}
 
+	// if Data or Trailer exists, endStream should be false, else should be true
 	s.upstreamRequest.appendHeaders(s.downstreamReqHeaders,
-		s.downstreamReqDataBuf != nil && s.downstreamReqTrailers != nil)
+		s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
 	if s.upstreamRequest != nil {
 		if s.downstreamReqDataBuf != nil {

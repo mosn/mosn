@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -77,7 +78,7 @@ func (r *retryState) shouldRetry(headers types.HeaderMap, reason types.StreamRes
 		return types.NoRetry
 	}
 
-	if r.cluster.ResourceManager().Retries().CanCreate() {
+	if !r.cluster.ResourceManager().Retries().CanCreate() {
 		r.cluster.Stats().UpstreamRequestRetryOverflow.Inc(1)
 
 		return types.RetryOverflow
@@ -92,8 +93,8 @@ func (r *retryState) scheduleRetry(doRetry func()) *timer {
 	r.cluster.Stats().UpstreamRequestRetry.Inc(1)
 
 	// todo: use backoff alth
-	timeout := rand.Intn(10)
-	timer := newTimer(doRetry, time.Duration(timeout)*time.Second)
+	timeout := 1 + rand.Intn(10)
+	timer := newTimer(doRetry, time.Duration(timeout)*time.Millisecond)
 	timer.start()
 
 	return timer
@@ -105,13 +106,19 @@ func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamRe
 	}
 
 	if r.retryOn {
+		// http status
 		if code, ok := headers.Get(types.HeaderStatus); ok {
 			codeValue, _ := strconv.Atoi(code)
 
 			return codeValue >= 500
 		}
+		// rpc status
+		// TODO: some error code should not retry
+		if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+			status := cmd.GetRespStatus()
+			return int16(status) != sofarpc.RESPONSE_STATUS_SUCCESS
+		}
 
-		// todo: more conditions
 	}
 
 	return false

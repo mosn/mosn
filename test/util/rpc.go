@@ -215,14 +215,14 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 		}
 		return nil, true
 	}
-	serveSofaRPC(t, conn, response)
+	ServeSofaRPC(t, conn, response)
 
 }
 func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
 	//TODO:
 }
 
-func serveSofaRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {
+func ServeSofaRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {
 	iobuf := buffer.NewIoBuffer(102400)
 	for {
 		now := time.Now()
