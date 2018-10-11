@@ -15,15 +15,36 @@
  * limitations under the License.
  */
 
-package subprotocol
+package xprotocol
 
 import (
 	"context"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
-// CodecFactory subprotocol plugin factory
-type CodecFactory interface {
-	CreateSubProtocolCodec(context context.Context) rpc.Multiplexing
+var subProtocolFactories map[rpc.SubProtocol]CodecFactory
+
+func init() {
+	//subProtocolFactories = make(map[types.SubProtocol]CodecFactory)
+}
+
+// Register SubProtocol Plugin
+func Register(prot rpc.SubProtocol, factory CodecFactory) {
+	if subProtocolFactories == nil {
+		subProtocolFactories = make(map[rpc.SubProtocol]CodecFactory)
+	}
+	subProtocolFactories[prot] = factory
+}
+
+// CreateSubProtocolCodec return SubProtocol Codec
+func CreateSubProtocolCodec(context context.Context, prot rpc.SubProtocol) rpc.Multiplexing {
+
+	if spc, ok := subProtocolFactories[prot]; ok {
+		log.DefaultLogger.Tracef("create sub protocol codec %v success", prot)
+		return spc.CreateSubProtocolCodec(context)
+	}
+	log.DefaultLogger.Errorf("unknown sub protocol = %v", prot)
+	return nil
 }

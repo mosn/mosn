@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package subprotocol
+package dubbo
 
 import (
 	"bytes"
@@ -25,10 +25,11 @@ import (
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
 )
 
 func init() {
-	Register("dubbo", &pluginDubboFactory{})
+	xprotocol.Register("dubbo", &pluginDubboFactory{})
 }
 
 type pluginDubboFactory struct{}
@@ -95,7 +96,7 @@ func (d *rpcDubbo) SplitFrame(data []byte) [][]byte {
 		frameLen := getDubboLen(data[start:])
 		if frameLen > 0 && dataLen >= frameLen {
 			// there is one valid dubbo request
-			frames = append(frames, data[start:(start+frameLen)])
+			frames = append(frames, data[start:(start + frameLen)])
 			start += frameLen
 			dataLen -= frameLen
 			if dataLen == 0 {

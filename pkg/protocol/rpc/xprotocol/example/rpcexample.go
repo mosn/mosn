@@ -26,10 +26,11 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
 )
 
 func init() {
-	Register("rpc-example", &rpcExampleFactory{})
+	xprotocol.Register("rpc-example", &rpcExampleFactory{})
 }
 
 type rpcExampleFactory struct{}
@@ -61,7 +62,7 @@ func (re *rpcExample) SplitFrame(data []byte) [][]byte {
 	for true {
 		if dataLen >= ReqDataLen {
 			// there is one valid rpc-example request
-			reqs = append(reqs, data[start:(start+ReqDataLen)])
+			reqs = append(reqs, data[start:(start + ReqDataLen)])
 			start += ReqDataLen
 			dataLen -= ReqDataLen
 			if dataLen == 0 {
