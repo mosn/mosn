@@ -48,6 +48,7 @@ var supportFilter = map[string]bool{
 	xdsutil.TCPProxy:              true,
 	v2.RPC_PROXY:                  true,
 	v2.X_PROXY:                    true,
+	v2.MIXER:                      true,
 }
 
 var httpBaseConfig = map[string]bool{
@@ -231,6 +232,9 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 						accessLogs = append(accessLogs, accessLog)
 					}
 				}
+			} else if xdsFilter.GetName() == v2.MIXER {
+				// support later
+				return nil
 			} else {
 				log.DefaultLogger.Errorf("unsupported filter config type, filter name: %s", xdsFilter.GetName())
 			}
@@ -323,17 +327,21 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 	} else if name == xdsutil.TCPProxy {
 		filterConfig := &xdstcp.TcpProxy{}
 		xdsutil.StructToMessage(s, filterConfig)
-		log.DefaultLogger.Infof("TCPProxy:filter config = %v,v1-config = %v", filterConfig, filterConfig.GetDeprecatedV1())
+		log.DefaultLogger.Tracef("TCPProxy:filter config = %v,v1-config = %v", filterConfig, filterConfig.GetDeprecatedV1())
 
 		tcpProxyConfig := v2.TCPProxy{
 			StatPrefix:         filterConfig.GetStatPrefix(),
+			Cluster:            filterConfig.GetCluster(),
 			IdleTimeout:        filterConfig.GetIdleTimeout(),
 			MaxConnectAttempts: filterConfig.GetMaxConnectAttempts().GetValue(),
 			Routes:             convertTCPRoute(filterConfig.GetDeprecatedV1()),
 		}
 		filtersConfigParsed[v2.TCP_PROXY] = toMap(tcpProxyConfig)
-		return filtersConfigParsed
 
+		return filtersConfigParsed
+	} else if name == v2.MIXER {
+		// support later
+		return nil
 	} else {
 		log.DefaultLogger.Errorf("unsupported filter config, filter name: %s", name)
 		return nil
@@ -378,6 +386,7 @@ func convertTCPRoute(deprecatedV1 *xdstcp.TcpProxy_DeprecatedV1) []*v2.TCPRoute 
 			DestinationPort:  router.GetDestinationPorts(),
 		})
 	}
+
 	return tcpRoutes
 }
 

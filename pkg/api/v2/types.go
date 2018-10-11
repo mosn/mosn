@@ -35,6 +35,7 @@ const (
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
 	RPC_PROXY                   = "rpc_proxy"
 	X_PROXY                     = "x_proxy"
+	MIXER                       = "mixer"
 )
 
 // ClusterType
@@ -259,10 +260,11 @@ type Filter struct {
 
 // TCPProxy
 type TCPProxy struct {
-	StatPrefix         string
-	IdleTimeout        *time.Duration
-	MaxConnectAttempts uint32
-	Routes             []*TCPRoute `json:"routes,omitempty"`
+	StatPrefix         string         `json:"stat_prefix,omitempty"`
+	Cluster            string         `json:"cluster,omitempty"`
+	IdleTimeout        *time.Duration `json:"idle_timeout,omitempty"`
+	MaxConnectAttempts uint32         `json:"max_connect_attempts,omitempty"`
+	Routes             []*TCPRoute    `json:"routes,omitempty"`
 }
 
 // Proxy
