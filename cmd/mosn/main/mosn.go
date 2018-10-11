@@ -39,10 +39,12 @@ import (
 	"github.com/urfave/cli"
 )
 
+var Version = "0.0.1"
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "mosn"
-	app.Version = "0.0.1"
+	app.Version = Version
 	app.Compiled = time.Now()
 	app.Copyright = "(c) 2018 Ant Financial"
 	app.Usage = "MOSN is modular observable smart netstub."
