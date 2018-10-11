@@ -265,6 +265,13 @@ type TCPProxy struct {
 	Routes             []*TCPRoute `json:"routes,omitempty"`
 }
 
+// WebSocketProxy
+type WebSocketProxy struct {
+	StatPrefix         string
+	IdleTimeout        *time.Duration
+	MaxConnectAttempts uint32
+}
+
 // Proxy
 type Proxy struct {
 	Name               string                 `json:"name"`

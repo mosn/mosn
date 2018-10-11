@@ -329,7 +329,10 @@ func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 	}
 
 	return &proxyConfig{
-		routes: routes,
+		statPrefix:         config.StatPrefix,
+		idleTimeout:        *config.IdleTimeout,
+		maxConnectAttempts: config.MaxConnectAttempts,
+		routes:             routes,
 	}
 }
 
