@@ -177,7 +177,7 @@ func (m *Mosn) Close() {
 }
 
 // Start mosn project
-// stap1. NewMosn
+// step1. NewMosn
 // step2. Start Mosn
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	log.StartLogger.Infof("start by config : %+v", c)
