@@ -28,7 +28,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 func init() {
@@ -61,7 +61,7 @@ func (p *connPool) Protocol() types.Protocol {
 func (p *connPool) DrainConnections() {}
 
 // NewStream invoked by Proxy
-func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
+func (p *connPool) NewStream(context context.Context, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
 	log.DefaultLogger.Tracef("xprotocol conn pool new stream")
 	p.mux.Lock()
@@ -72,12 +72,12 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 	p.mux.Unlock()
 
 	if p.primaryClient == nil {
-		cb.OnFailure(streamID, types.ConnectionFailure, nil)
+		cb.OnFailure(types.ConnectionFailure, nil)
 		return nil
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(streamID, types.Overflow, nil)
+		cb.OnFailure(types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -88,9 +88,9 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream")
-		streamEncoder := p.primaryClient.codecClient.NewStream(context, streamID, responseDecoder)
+		streamEncoder := p.primaryClient.codecClient.NewStream(context, responseDecoder)
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
-		cb.OnReady(streamID, streamEncoder, p.host)
+		cb.OnReady(streamEncoder, p.host)
 	}
 
 	return nil

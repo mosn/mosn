@@ -15,58 +15,49 @@
  * limitations under the License.
  */
 
-package codec
+package v2
 
 import (
 	"context"
 	"encoding/binary"
-	"errors"
 	"time"
 
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/bolt"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 )
 
-// types.Encoder & types.Decoder
+var (
+	Codec = &codec{}
+)
 
-type boltV2Codec struct{}
+func init() {
+	sofarpc.Register(bolt.PROTOCOL_CODE_V2, Codec, Codec)
+}
 
-func (c *boltV2Codec) EncodeHeaders(ctx context.Context, headers types.HeaderMap) (types.IoBuffer, error) {
-	switch cmd := headers.(type) {
-	case *sofarpc.BoltV2RequestCommand:
-		return c.encodeRequestCommand(ctx, cmd)
-	case *sofarpc.BoltV2ResponseCommand:
-		return c.encodeResponseCommand(ctx, cmd)
+// ~~ types.Encoder
+// ~~ types.Decoder
+type codec struct{}
+
+func (c *codec) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+	switch cmd := model.(type) {
+	case *bolt.RequestV2:
+		return encodeRequest(ctx, cmd)
+	case *bolt.ResponseV2:
+		return encodeResponse(ctx, cmd)
 	default:
-		errMsg := sofarpc.InvalidCommandType
-		err := errors.New(errMsg)
-		log.ByContext(ctx).Errorf("boltV2" + errMsg)
-		return nil, err
+		log.ByContext(ctx).Errorf("unknown model : %+v", model)
+		return nil, rpc.ErrUnknownType
 	}
 }
 
-func (c *boltV2Codec) EncodeData(ctx context.Context, data types.IoBuffer) types.IoBuffer {
-	return data
-}
-
-func (c *boltV2Codec) EncodeTrailers(ctx context.Context, trailers types.HeaderMap) types.IoBuffer {
-	return nil
-}
-
-func (c *boltV2Codec) encodeRequestCommand(ctx context.Context, cmd *sofarpc.BoltV2RequestCommand) (types.IoBuffer, error) {
-	return c.doEncodeRequestCommand(ctx, cmd), nil
-}
-
-func (c *boltV2Codec) encodeResponseCommand(ctx context.Context, cmd *sofarpc.BoltV2ResponseCommand) (types.IoBuffer, error) {
-	return c.doEncodeResponseCommand(ctx, cmd), nil
-}
-
-func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.BoltV2RequestCommand) types.IoBuffer {
+func encodeRequest(ctx context.Context, cmd *bolt.RequestV2) (types.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.RequestClass != "" {
 		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
@@ -81,7 +72,7 @@ func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 	var b [4]byte
 	// todo: reuse bytes @boqin
 	//data := make([]byte, 22, defaultTmpBufferSize)
-	size := 22 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	size := bolt.REQUEST_HEADER_LEN_V2 + int(cmd.ClassLen) + len(cmd.HeaderMap)
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetReqHeader(size)
 
@@ -101,7 +92,7 @@ func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ReqID))
 	buf.Write(b[0:4])
 
-	b[0] = cmd.CodecPro
+	b[0] = cmd.Codec
 	buf.Write(b[0:1])
 	b[0] = cmd.SwitchCode
 	buf.Write(b[0:1])
@@ -126,10 +117,10 @@ func (c *boltV2Codec) doEncodeRequestCommand(ctx context.Context, cmd *sofarpc.B
 		buf.Write(cmd.HeaderMap)
 	}
 
-	return buf
+	return buf, nil
 }
 
-func (c *boltV2Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.BoltV2ResponseCommand) types.IoBuffer {
+func encodeResponse(ctx context.Context, cmd *bolt.ResponseV2) (types.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.ResponseClass != "" {
 		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
@@ -143,7 +134,7 @@ func (c *boltV2Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 
 	var b [4]byte
 	// todo: reuse bytes @boqin
-	size := 20 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	size := bolt.RESPONSE_HEADER_LEN_V2 + int(cmd.ClassLen) + len(cmd.HeaderMap)
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetRspHeader(size)
 
@@ -157,17 +148,13 @@ func (c *boltV2Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 	binary.BigEndian.PutUint16(b[0:], uint16(cmd.CmdCode))
 	buf.Write(b[0:2])
 
-	if cmd.CmdCode == sofarpc.HEARTBEAT {
-		log.ByContext(ctx).Debugf("Build HeartBeat Response")
-	}
-
 	b[0] = cmd.Version
 	buf.Write(b[0:1])
 
 	binary.BigEndian.PutUint32(b[0:], uint32(cmd.ReqID))
 	buf.Write(b[0:4])
 
-	b[0] = cmd.CodecPro
+	b[0] = cmd.Codec
 	buf.Write(b[0:1])
 	b[0] = cmd.SwitchCode
 	buf.Write(b[0:1])
@@ -192,25 +179,25 @@ func (c *boltV2Codec) doEncodeResponseCommand(ctx context.Context, cmd *sofarpc.
 		buf.Write(cmd.HeaderMap)
 	}
 
-	return buf
+	return buf, nil
 }
 
-func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *codec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
 	logger := log.ByContext(ctx)
 
-	if readableBytes >= sofarpc.LESS_LEN_V2 {
+	if readableBytes >= bolt.LESS_LEN_V2 {
 		bytes := data.Bytes()
 
 		ver1 := bytes[1]
 
-		dataType := bytes[2]
+		cmdType := bytes[2]
 
 		//1. request
-		if dataType == sofarpc.REQUEST || dataType == sofarpc.REQUEST_ONEWAY {
-			if readableBytes >= sofarpc.REQUEST_HEADER_LEN_V2 {
+		if cmdType == bolt.REQUEST || cmdType == bolt.REQUEST_ONEWAY {
+			if readableBytes >= bolt.REQUEST_HEADER_LEN_V2 {
 
 				cmdCode := binary.BigEndian.Uint16(bytes[3:5])
 				ver2 := bytes[5]
@@ -224,7 +211,7 @@ func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 				headerLen := binary.BigEndian.Uint16(bytes[18:20])
 				contentLen := binary.BigEndian.Uint32(bytes[20:24])
 
-				read = sofarpc.REQUEST_HEADER_LEN_V2
+				read = bolt.REQUEST_HEADER_LEN_V2
 				var class, header, content []byte
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
@@ -246,33 +233,37 @@ func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					return cmd, nil
 				}
 
-				request := &sofarpc.BoltV2RequestCommand{
-					BoltRequestCommand: sofarpc.BoltRequestCommand{
-						Protocol:   sofarpc.PROTOCOL_CODE_V1,
-						CmdType:    dataType,
-						CmdCode:    int16(cmdCode),
-						Version:    ver2,
-						ReqID:      requestID,
-						CodecPro:   codec,
-						Timeout:    int(timeout),
-						ClassLen:   int16(classLen),
-						HeaderLen:  int16(headerLen),
-						ContentLen: int(contentLen),
-						ClassName:  class,
-						HeaderMap:  header,
-						Content:    content,
+				request := &bolt.RequestV2{
+					Request: bolt.Request{
+						bolt.PROTOCOL_CODE_V2,
+						cmdType,
+						int16(cmdCode),
+						ver2,
+						requestID,
+						codec,
+						int(timeout),
+						int16(classLen),
+						int16(headerLen),
+						int(contentLen),
+						class,
+						header,
+						content,
+						"",
+						nil,
 					},
 					Version1:   ver1,
 					SwitchCode: switchCode,
 				}
 
+				bolt.DeserializeRequest(ctx, &request.Request)
+
 				logger.Debugf("[Decoder]bolt v2 decode request:%+v", request)
 
 				cmd = request
 			}
-		} else if dataType == sofarpc.RESPONSE {
-			//2. response
-			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V2 {
+		} else if cmdType == bolt.RESPONSE {
+			//2. bolt.ResponseV2
+			if readableBytes >= bolt.RESPONSE_HEADER_LEN_V2 {
 
 				cmdCode := binary.BigEndian.Uint16(bytes[3:5])
 				ver2 := bytes[5]
@@ -285,7 +276,7 @@ func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 				headerLen := binary.BigEndian.Uint16(bytes[16:18])
 				contentLen := binary.BigEndian.Uint32(bytes[18:22])
 
-				read = sofarpc.RESPONSE_HEADER_LEN_V2
+				read = bolt.RESPONSE_HEADER_LEN_V2
 				var class, header, content []byte
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
@@ -306,33 +297,37 @@ func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					return cmd, nil
 				}
 
-				response := &sofarpc.BoltV2ResponseCommand{
-					BoltResponseCommand: sofarpc.BoltResponseCommand{
-						Protocol:           sofarpc.PROTOCOL_CODE_V1,
-						CmdType:            dataType,
-						CmdCode:            int16(cmdCode),
-						Version:            ver2,
-						ReqID:              requestID,
-						CodecPro:           codec,
-						ResponseStatus:     int16(status),
-						ClassLen:           int16(classLen),
-						HeaderLen:          int16(headerLen),
-						ContentLen:         int(contentLen),
-						ClassName:          class,
-						HeaderMap:          header,
-						Content:            content,
-						ResponseTimeMillis: time.Now().UnixNano() / int64(time.Millisecond),
+				response := &bolt.ResponseV2{
+					Response: bolt.Response{
+						bolt.PROTOCOL_CODE_V2,
+						cmdType,
+						int16(cmdCode),
+						ver2,
+						requestID,
+						codec,
+						int16(status),
+						int16(classLen),
+						int16(headerLen),
+						int(contentLen),
+						class,
+						header,
+						content,
+						"",
+						nil,
+						time.Now().UnixNano() / int64(time.Millisecond),
 					},
 					Version1:   ver1,
 					SwitchCode: switchCode,
 				}
 
-				logger.Debugf("[Decoder]bolt v2 decode response:%+v\n", response)
+				bolt.DeserializeResponse(ctx, &response.Response)
+
+				logger.Debugf("[Decoder]bolt v2 decode bolt.ResponseV2:%+v\n", response)
 				cmd = response
 			}
 		} else {
 			// 3. unknown type error
-			return nil, fmt.Errorf("Decode Error, type = %s, value = %d", sofarpc.UnKnownReqtype, dataType)
+			return nil, fmt.Errorf("Decode Error, type = %s, value = %d", sofarpc.UnKnownCmdType, cmdType)
 
 		}
 	}
@@ -340,7 +335,7 @@ func (c *boltV2Codec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 	return cmd, nil
 }
 
-func (c *boltV2Codec) insertToBytes(slice []byte, idx int, b byte) {
+func insertToBytes(slice []byte, idx int, b byte) {
 	slice = append(slice, 0)
 	copy(slice[idx+1:], slice[idx:])
 	slice[idx] = b

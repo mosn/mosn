@@ -127,11 +127,10 @@ func (csw *clientStreamWrapper) OnGoAway() {
 	csw.streamConnCallbacks.OnGoAway()
 }
 
-func (csw *clientStreamWrapper) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
+func (csw *clientStreamWrapper) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
 	stream := &clientStream{
 		stream: stream{
-			context:  context.WithValue(ctx, types.ContextKeyStreamID, streamID),
-			receiver: responseDecoder,
+			receiver: receiver,
 		},
 		wrapper: csw,
 	}
@@ -170,19 +169,16 @@ func (ssc *serverStreamConnection) OnGoAway() {
 
 //作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
-	//generate stream id using global counter
-	streamID := protocol.GenerateIDString()
-
 	s := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
+			context: ssc.context,
 		},
 		ctx:              ctx,
 		connection:       ssc,
 		responseDoneChan: make(chan bool, 1),
 	}
 
-	s.receiver = ssc.serverStreamConnCallbacks.NewStream(s.stream.context, streamID, s)
+	s.receiver = ssc.serverStreamConnCallbacks.NewStreamDetect(s.stream.context, s)
 
 	ssc.activeStream = &s.stream
 

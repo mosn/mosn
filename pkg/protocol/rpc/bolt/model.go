@@ -1,32 +1,4 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package codec
-
-import (
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/handler"
-	"github.com/alipay/sofa-mosn/pkg/types"
-)
-
-func init() {
-	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V1, BoltV1)
-	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltV2)
-}
+package bolt
 
 /**
  * Request command protocol for v1
@@ -64,14 +36,172 @@ func init() {
  * respstatus: response status
  */
 
-// BoltV1 is the instance of boltProtocol of boltv1
-var BoltV1 = &boltProtocol{
-	sofarpc.PROTOCOL_CODE_V1,
-	sofarpc.REQUEST_HEADER_LEN_V1,
-	sofarpc.RESPONSE_HEADER_LEN_V1,
-	&boltV1Codec{},
-	&boltV1Codec{},
-	handler.NewBoltCommandHandler(),
+// Request is the cmd struct of bolt v1 request
+type Request struct {
+	Protocol byte  //BoltV1:1, BoltV2:2
+	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
+	CmdCode  int16 //HB:0,     Req:1,    Resp:2
+	Version  byte  //1
+	ReqID    uint32
+	Codec    byte
+
+	Timeout int
+
+	ClassLen   int16
+	HeaderLen  int16
+	ContentLen int
+	ClassName  []byte
+	HeaderMap  []byte
+	Content    []byte
+
+	RequestClass  string // deserialize fields
+	RequestHeader map[string]string
+}
+
+// ~ RpcCmd
+func (b *Request) ProtocolCode() byte {
+	return b.Protocol
+}
+
+func (b *Request) RequestID() uint32 {
+	return b.ReqID
+}
+
+func (b *Request) Header() map[string]string {
+	return b.RequestHeader
+}
+
+func (b *Request) Data() []byte {
+	return b.Content
+}
+
+func (b *Request) SetRequestID(requestID uint32) {
+	b.ReqID = requestID
+}
+
+func (b *Request) SetHeader(header map[string]string) {
+	b.RequestHeader = header
+}
+
+func (b *Request) SetData(data []byte) {
+	b.Content = data
+}
+
+// ~ SofaRpcCmd
+func (b *Request) CommandType() byte {
+	return b.CmdType
+}
+
+func (b *Request) CommandCode() int16 {
+	return b.CmdCode
+}
+
+// ~ HeaderMap
+func (b *Request) Get(key string) (value string, ok bool) {
+	value, ok = b.RequestHeader[key]
+	return
+}
+
+func (b *Request) Set(key string, value string) {
+	b.RequestHeader[key] = value
+}
+
+func (b *Request) Del(key string) {
+	delete(b.RequestHeader, key)
+}
+
+func (b *Request) Range(f func(key, value string) bool) {
+	for k, v := range b.RequestHeader {
+		// stop if f return false
+		if !f(k, v) {
+			break
+		}
+	}
+}
+
+// Response is the cmd struct of bolt v1 response
+type Response struct {
+	Protocol byte  //BoltV1:1, BoltV2:2
+	CmdType  byte  //Req:1,    Resp:0,   OneWay:2
+	CmdCode  int16 //HB:0,     Req:1,    Resp:2
+	Version  byte  //BoltV1:1  BoltV2: 1
+	ReqID    uint32
+	Codec    byte // 1
+
+	ResponseStatus int16 //Success:0 Error:1 Timeout:7
+
+	ClassLen   int16
+	HeaderLen  int16
+	ContentLen int
+	ClassName  []byte
+	HeaderMap  []byte
+	Content    []byte
+
+	ResponseClass  string // deserialize fields
+	ResponseHeader map[string]string
+
+	ResponseTimeMillis int64 //ResponseTimeMillis is not the field of the header
+}
+
+// ~ RpcCmd
+func (b *Response) ProtocolCode() byte {
+	return b.Protocol
+}
+
+func (b *Response) RequestID() uint32 {
+	return b.ReqID
+}
+
+func (b *Response) Header() map[string]string {
+	return b.ResponseHeader
+}
+
+func (b *Response) Data() []byte {
+	return b.Content
+}
+
+func (b *Response) SetRequestID(requestID uint32) {
+	b.ReqID = requestID
+}
+
+func (b *Response) SetHeader(header map[string]string) {
+	b.ResponseHeader = header
+}
+
+func (b *Response) SetData(data []byte) {
+	b.Content = data
+}
+
+// ~ SofaRpcCmd
+func (b *Response) CommandType() byte {
+	return b.CmdType
+}
+
+func (b *Response) CommandCode() int16 {
+	return b.CmdCode
+}
+
+// ~ HeaderMap
+func (b *Response) Get(key string) (value string, ok bool) {
+	value, ok = b.ResponseHeader[key]
+	return
+}
+
+func (b *Response) Set(key string, value string) {
+	b.ResponseHeader[key] = value
+}
+
+func (b *Response) Del(key string) {
+	delete(b.ResponseHeader, key)
+}
+
+func (b *Response) Range(f func(key, value string) bool) {
+	for k, v := range b.ResponseHeader {
+		// stop if f return false
+		if !f(k, v) {
+			break
+		}
+	}
 }
 
 /**
@@ -113,72 +243,16 @@ var BoltV1 = &boltProtocol{
  * respstatus: response status
  */
 
-// BoltV2 is the instance of boltProtocol of boltv2
-var BoltV2 = &boltProtocol{
-	sofarpc.PROTOCOL_CODE_V2,
-	sofarpc.REQUEST_HEADER_LEN_V2,
-	sofarpc.RESPONSE_HEADER_LEN_V2,
-	&boltV2Codec{},
-	&boltV2Codec{},
-	handler.NewBoltCommandHandlerV2(),
+// Request is the cmd struct of bolt v2 request
+type RequestV2 struct {
+	Request
+	Version1   byte //00
+	SwitchCode byte
 }
 
-// Bolt protocol class
-type boltProtocol struct {
-	protocolCode      byte
-	requestHeaderLen  int
-	responseHeaderLen int
-
-	encoder types.Encoder
-	decoder types.Decoder
-	//heartbeatTrigger			protocol.HeartbeatTrigger todo
-	commandHandler sofarpc.CommandHandler
-}
-
-func (b *boltProtocol) GetRequestHeaderLength() int {
-	return b.requestHeaderLen
-}
-
-func (b *boltProtocol) GetResponseHeaderLength() int {
-	return b.responseHeaderLen
-}
-
-func (b *boltProtocol) GetEncoder() types.Encoder {
-	return b.encoder
-}
-
-func (b *boltProtocol) GetDecoder() types.Decoder {
-	return b.decoder
-}
-
-func (b *boltProtocol) GetCommandHandler() sofarpc.CommandHandler {
-	return b.commandHandler
-}
-
-// NewBoltHeartbeat
-// New Bolt Heartbeat with requestID as input
-func NewBoltHeartbeat(requestID uint32) *sofarpc.BoltRequestCommand {
-	return &sofarpc.BoltRequestCommand{
-		Protocol: sofarpc.PROTOCOL_CODE_V1,
-		CmdType:  sofarpc.REQUEST,
-		CmdCode:  sofarpc.HEARTBEAT,
-		Version:  1,
-		ReqID:    requestID,
-		CodecPro: sofarpc.HESSIAN_SERIALIZE, //todo: read default codec from config
-		Timeout:  -1,
-	}
-}
-
-// NewBoltHeartbeatAck
-// New Bolt Heartbeat Ack with requestID as input
-func NewBoltHeartbeatAck(requestID uint32) *sofarpc.BoltResponseCommand {
-	return &sofarpc.BoltResponseCommand{
-		Protocol:       sofarpc.PROTOCOL_CODE_V1,
-		CmdType:        sofarpc.RESPONSE,
-		CmdCode:        sofarpc.HEARTBEAT,
-		Version:        1,
-		ReqID:          requestID,
-		CodecPro:       sofarpc.HESSIAN_SERIALIZE, //todo: read default codec from config
-		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
-	}
+// Response is the cmd struct of bolt v2 response
+type ResponseV2 struct {
+	Response
+	Version1   byte //00
+	SwitchCode byte
 }

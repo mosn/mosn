@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
-package sofarpc
+package v1
 
 import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/bolt"
 )
 
 type SofaProtocolBufferCtx struct{}
@@ -36,17 +37,17 @@ func (ctx SofaProtocolBufferCtx) New() interface{} {
 
 func (ctx SofaProtocolBufferCtx) Reset(i interface{}) {
 	buf, _ := i.(*SofaProtocolBuffers)
-	buf.BoltReq = BoltRequestCommand{}
-	buf.BoltRsp = BoltResponseCommand{}
-	buf.BoltEncodeReq = BoltRequestCommand{}
-	buf.BoltEncodeRsp = BoltResponseCommand{}
+	buf.BoltReq = bolt.Request{}
+	buf.BoltRsp = bolt.Response{}
+	buf.BoltEncodeReq = bolt.Request{}
+	buf.BoltEncodeRsp = bolt.Response{}
 }
 
 type SofaProtocolBuffers struct {
-	BoltReq       BoltRequestCommand
-	BoltRsp       BoltResponseCommand
-	BoltEncodeReq BoltRequestCommand
-	BoltEncodeRsp BoltResponseCommand
+	BoltReq       bolt.Request
+	BoltRsp       bolt.Response
+	BoltEncodeReq bolt.Request
+	BoltEncodeRsp bolt.Response
 }
 
 func SofaProtocolBuffersByContext(ctx context.Context) *SofaProtocolBuffers {

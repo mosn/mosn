@@ -21,25 +21,25 @@ import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
-var subProtocolFactories map[types.SubProtocol]CodecFactory
+var subProtocolFactories map[rpc.SubProtocol]CodecFactory
 
 func init() {
 	//subProtocolFactories = make(map[types.SubProtocol]CodecFactory)
 }
 
 // Register SubProtocol Plugin
-func Register(prot types.SubProtocol, factory CodecFactory) {
+func Register(prot rpc.SubProtocol, factory CodecFactory) {
 	if subProtocolFactories == nil {
-		subProtocolFactories = make(map[types.SubProtocol]CodecFactory)
+		subProtocolFactories = make(map[rpc.SubProtocol]CodecFactory)
 	}
 	subProtocolFactories[prot] = factory
 }
 
 // CreateSubProtocolCodec return SubProtocol Codec
-func CreateSubProtocolCodec(context context.Context, prot types.SubProtocol) types.Multiplexing {
+func CreateSubProtocolCodec(context context.Context, prot rpc.SubProtocol) rpc.Multiplexing {
 
 	if spc, ok := subProtocolFactories[prot]; ok {
 		log.DefaultLogger.Tracef("create sub protocol codec %v success", prot)

@@ -31,7 +31,7 @@ import (
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -71,6 +71,8 @@ type proxy struct {
 	stats               *Stats
 	listenerStats       *Stats
 	accessLogs          []types.AccessLog
+
+	currID uint32
 }
 
 // NewProxy create proxy instance for given v2.Proxy config
@@ -174,8 +176,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStream(context context.Context, streamID string, responseSender types.StreamSender) types.StreamReceiver {
-	stream := newActiveStream(context, streamID, p, responseSender)
+func (p *proxy) NewStreamDetect(context context.Context, responseSender types.StreamSender) types.StreamReceiver {
+	stream := newActiveStream(context, p, responseSender)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)

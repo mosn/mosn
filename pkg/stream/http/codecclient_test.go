@@ -24,7 +24,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
@@ -78,10 +77,10 @@ func TestActiveRequests(t *testing.T) {
 	codecClient := NewHTTP1CodecClient(context.Background(), ac)
 	ctx := context.Background()
 
-	codecClient.NewStream(ctx, protocol.StreamIDConv(1), cli)
+	codecClient.NewStream(ctx, cli)
 
 	checkNumbers(t, codecClient, 1)
-	codecClient.NewStream(ctx, protocol.StreamIDConv(2), cli)
+	codecClient.NewStream(ctx, cli)
 	checkNumbers(t, codecClient, 2)
 
 	codecClient.OnEvent(types.Connected)
@@ -98,7 +97,7 @@ func TestActiveRequests(t *testing.T) {
 		go func(pre int) {
 			defer wg.Done()
 			for j := 0; j < cnt; j++ {
-				codecClient.NewStream(ctx, protocol.StreamIDConv(uint32(pre*cnt+j)), cli)
+				codecClient.NewStream(ctx, cli)
 				codecClient.ActiveRequestsNum()
 				codecClient.OnEvent(types.LocalClose)
 			}

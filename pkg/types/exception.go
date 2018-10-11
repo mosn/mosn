@@ -17,6 +17,8 @@
 
 package types
 
+import "errors"
+
 // Header key types
 const (
 	HeaderStatus        = "x-mosn-status"
@@ -35,12 +37,19 @@ const (
 
 // Error messages
 const (
-	UnSupportedProCode   string = "Protocol Code not supported"
-	CodecException       string = "Codec exception occurs"
-	DeserializeException string = "Deserial exception occurs"
+	CodecException       string = "codec exception occurs"
+	SerializeException   string = "serialize exception occurs"
+	DeserializeException string = "deserialize exception occurs"
 )
 
-// Error codes
+// Errors
+var (
+	ErrCodecException       = errors.New(CodecException)
+	ErrSerializeException   = errors.New(SerializeException)
+	ErrDeserializeException = errors.New(DeserializeException)
+)
+
+// Error codes, used by top level logic code(like proxy logic).
 const (
 	CodecExceptionCode    int = 0
 	UnknownCode           int = 2

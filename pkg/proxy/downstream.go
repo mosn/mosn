@@ -40,11 +40,11 @@ import (
 // types.FilterChainFactoryCallbacks
 // Downstream stream, as a controller to handle downstream and upstream proxy flow
 type downStream struct {
-	streamID string
-	proxy    *proxy
-	route    types.Route
-	cluster  types.ClusterInfo
-	element  *list.Element
+	ID      uint32
+	proxy   *proxy
+	route   types.Route
+	cluster types.ClusterInfo
+	element *list.Element
 
 	// flow control
 	bufferLimit        uint32
@@ -78,7 +78,7 @@ type downStream struct {
 	// upstream req sent
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
-	upstreamProcessDone      bool
+	upstreamProcessDone bool
 
 	filterStage int
 
@@ -98,13 +98,13 @@ type downStream struct {
 	logger log.Logger
 }
 
-func newActiveStream(ctx context.Context, streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
+func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender) *downStream {
 	newCtx := buffer.NewBufferPoolContext(ctx, true)
 
 	proxyBuffers := proxyBuffersByContext(newCtx)
 
 	stream := &proxyBuffers.stream
-	stream.streamID = streamID
+	stream.ID = atomic.AddUint32(&proxy.currID, 1)
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
@@ -211,7 +211,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	workerPool.Offer(&resetEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 		reason: reason,
@@ -229,7 +229,7 @@ func (s *downStream) OnReceiveHeaders(context context.Context, headers types.Hea
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 		headers:   headers,
@@ -317,7 +317,7 @@ func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer,
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 		data:      s.downstreamReqDataBuf,
@@ -361,7 +361,7 @@ func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.H
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 		trailers: trailers,
@@ -527,7 +527,7 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 
 	// need protocol convert
 	if dp != up {
-		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
+		if convHeader, err := protocol.ConvertHeader(s.upstreamRequest.ctx, up, dp, headers); err == nil {
 			return convHeader
 		} else {
 			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
@@ -536,14 +536,13 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 	return headers
 }
 
-
 func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers types.HeaderMap, endStream bool) {
 	if s.runAppendHeaderFilters(filter, headers, endStream) {
 		return
 	}
 
 	//Currently, just log the error
-	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
+	if err := s.responseSender.AppendHeaders(s.upstreamRequest.ctx, headers, endStream); err != nil {
 		s.logger.Errorf("[downstream] append headers error, %s", err)
 	}
 
@@ -563,7 +562,7 @@ func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 
 	// need protocol convert
 	if dp != up {
-		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
+		if convData, err := protocol.ConvertData(s.upstreamRequest.ctx, up, dp, data); err == nil {
 			return convData
 		} else {
 			s.logger.Errorf("convert data from %s to %s failed, %s", up, dp, err.Error())
@@ -578,7 +577,7 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 	}
 
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
-	s.responseSender.AppendData(s.context, data, endStream)
+	s.responseSender.AppendData(s.upstreamRequest.ctx, data, endStream)
 
 	if endStream {
 		s.endStream()
@@ -596,7 +595,7 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 
 	// need protocol convert
 	if dp != up {
-		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
+		if convTrailer, err := protocol.ConvertTrailer(s.upstreamRequest.ctx, up, dp, trailers); err == nil {
 			return convTrailer
 		} else {
 			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
@@ -605,13 +604,12 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 	return trailers
 }
 
-
 func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers types.HeaderMap) {
 	if s.runAppendTrailersFilters(filter, trailers) {
 		return
 	}
 
-	s.responseSender.AppendTrailers(s.context, trailers)
+	s.responseSender.AppendTrailers(s.upstreamRequest.ctx, trailers)
 	s.endStream()
 }
 
@@ -794,9 +792,9 @@ func (s *downStream) resetStream() {
 }
 
 func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
-	s.logger.Debugf("set hijack reply, stream id = %s, code = %d", s.streamID, code)
+	s.logger.Debugf("set hijack reply, conn = %d, id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
 	if headers == nil {
-		s.logger.Warnf("hijack with no headers, stream id = %s", s.streamID)
+		s.logger.Warnf("hijack with no headers, conn = %d, id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
@@ -848,7 +846,7 @@ func (s *downStream) AddStreamSenderFilter(filter types.StreamSenderFilter) {
 }
 
 func (s *downStream) reset() {
-	s.streamID = ""
+	s.ID = 0
 	s.proxy = nil
 	s.route = nil
 	s.cluster = nil
@@ -914,7 +912,7 @@ func (s *downStream) startEventProcess() {
 	workerPool.Offer(&startEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 	})
@@ -924,7 +922,7 @@ func (s *downStream) stopEventProcess() {
 	workerPool.Offer(&stopEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 	})

@@ -13,6 +13,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol/subprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 // XProtocol needs subprotocol for rpc
@@ -20,8 +21,8 @@ import (
 type XProtocolClient struct {
 	t           *testing.T
 	ClientID    string
-	SubProtocol types.SubProtocol
-	Codec       types.Multiplexing
+	SubProtocol rpc.SubProtocol
+	Codec       rpc.Multiplexing
 	conn        types.ClientConnection
 	streamID    uint64
 }
@@ -35,7 +36,7 @@ func NewXClient(t *testing.T, id string, subproto string) *XProtocolClient {
 	return &XProtocolClient{
 		t:           t,
 		ClientID:    id,
-		SubProtocol: types.SubProtocol(subproto),
+		SubProtocol: rpc.SubProtocol(subproto),
 	}
 }
 

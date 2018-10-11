@@ -20,6 +20,7 @@ package proxy
 import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"strconv"
 )
 
 func (s *downStream) addEncodedData(filter *activeStreamSenderFilter, data types.IoBuffer, streaming bool) {
@@ -283,7 +284,7 @@ func (f *activeStreamFilter) Route() types.Route {
 }
 
 func (f *activeStreamFilter) StreamID() string {
-	return f.activeStream.streamID
+	return strconv.Itoa(int(f.activeStream.ID))
 }
 
 func (f *activeStreamFilter) RequestInfo() types.RequestInfo {

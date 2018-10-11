@@ -25,9 +25,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/bolt"
 )
 
 // todo: support cached pass through
@@ -64,10 +64,10 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 }
 
 func (f *healthCheckFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
-	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
-		if cmd.GetCmdCode() == sofarpc.HEARTBEAT {
-			f.protocol = cmd.GetProtocol()
-			f.requestID = cmd.GetReqID()
+	if cmd, ok := headers.(rpc.SofaRpcCmd); ok {
+		if cmd.CommandCode() == bolt.HEARTBEAT {
+			f.protocol = cmd.ProtocolCode()
+			f.requestID = cmd.RequestID()
 			f.healthCheckReq = true
 			f.cb.RequestInfo().SetHealthCheck(true)
 
@@ -123,9 +123,9 @@ func (f *healthCheckFilter) handleIntercept() {
 	switch f.protocol {
 	//case f.protocol == sofarpc.PROTOCOL_CODE:
 	//resp = codec.NewTrHeartbeatAck( f.requestID)
-	case sofarpc.PROTOCOL_CODE_V1, sofarpc.PROTOCOL_CODE_V2:
+	case bolt.PROTOCOL_CODE_V1, bolt.PROTOCOL_CODE_V2:
 		//boltv1 and boltv2 use same heartbeat struct as BoltV1
-		resp = codec.NewBoltHeartbeatAck(f.requestID)
+		resp = bolt.NewHeartbeatAck(f.requestID)
 	default:
 		log.ByContext(f.context).Errorf("Unknown protocol code: [%x] while intercept healthcheck.", f.protocol)
 		//TODO: set hijack reply - codec error, actually this would happen at codec stage which is before this

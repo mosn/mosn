@@ -20,10 +20,10 @@ package subprotocol
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 // CodecFactory subprotocol plugin factory
 type CodecFactory interface {
-	CreateSubProtocolCodec(context context.Context) types.Multiplexing
+	CreateSubProtocolCodec(context context.Context) rpc.Multiplexing
 }
