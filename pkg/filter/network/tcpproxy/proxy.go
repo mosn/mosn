@@ -227,7 +227,8 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 
 type proxyConfig struct {
 	statPrefix         string
-	idleTimeout        time.Duration
+	cluster            string
+	idleTimeout        *time.Duration
 	maxConnectAttempts uint32
 	routes             []*route
 }
@@ -330,13 +331,19 @@ func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 
 	return &proxyConfig{
 		statPrefix:         config.StatPrefix,
-		idleTimeout:        *config.IdleTimeout,
+		cluster:            config.Cluster,
+		idleTimeout:        config.IdleTimeout,
 		maxConnectAttempts: config.MaxConnectAttempts,
 		routes:             routes,
 	}
 }
 
 func (pc *proxyConfig) GetRouteFromEntries(connection types.Connection) string {
+	if pc.cluster != "" {
+		log.DefaultLogger.Tracef("Tcp Proxy get cluster from config , cluster name = %v", pc.cluster)
+		return pc.cluster
+	}
+
 	log.DefaultLogger.Tracef("Tcp Proxy get route from entries , connection = %v", connection)
 	for _, r := range pc.routes {
 		log.DefaultLogger.Tracef("Tcp Proxy check one route = %v", r)
