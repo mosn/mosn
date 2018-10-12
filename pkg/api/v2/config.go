@@ -67,6 +67,10 @@ type FaultInjectConfig struct {
 	DelayDurationConfig DurationConfig `json:"delay_duration"`
 }
 
+type MixerConfig struct {
+
+}
+
 type RouterConfig struct {
 	Match          RouterMatch    `json:"match"`
 	Route          RouteAction    `json:"route"`

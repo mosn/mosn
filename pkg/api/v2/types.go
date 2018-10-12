@@ -131,6 +131,10 @@ type FaultInject struct {
 	DelayDuration uint64 `json:"-"`
 }
 
+type Mixer struct {
+	MixerConfig
+}
+
 // Router, the list of routes that will be matched, in order, for incoming requests.
 // The first route that matches will be used.
 type Router struct {

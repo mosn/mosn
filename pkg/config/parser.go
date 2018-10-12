@@ -258,6 +258,17 @@ func ParseFaultInjectFilter(cfg map[string]interface{}) *v2.FaultInject {
 	return filterConfig
 }
 
+// ParseMixerFilter
+func ParseMixerFilter(cfg map[string]interface{}) *v2.Mixer {
+	mixerFilter := &v2.Mixer{}
+	if data, err := json.Marshal(cfg); err == nil {
+		json.Unmarshal(data, mixerFilter)
+	} else {
+		log.StartLogger.Fatal("parsing mixer filter error")
+	}
+	return mixerFilter
+}
+
 // ParseHealthCheckFilter
 func ParseHealthCheckFilter(cfg map[string]interface{}) *v2.HealthCheckFilter {
 	filterConfig := &v2.HealthCheckFilter{}
