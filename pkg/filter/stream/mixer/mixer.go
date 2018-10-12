@@ -23,7 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/istio/control/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -37,6 +37,7 @@ type FilterConfigFactory struct {
 
 type mixerFilter struct {
 	context context.Context
+	handler http.RequestHandler
 }
 
 func NewMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
@@ -45,33 +46,20 @@ func NewMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
 	}
 }
 
-/*
-func (m *mixerFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
-	return types.StreamHeadersFilterContinue
-}
-
-func (m *mixerFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
-	return types.StreamDataFilterContinue
-}
-
-func (m *mixerFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
-	return types.StreamTrailersFilterContinue
-}
-
-func (m *mixerFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
-
-}
-
-func (m *mixerFilter) OnDestroy() {}
-*/
-
 func (m *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
-	log.DefaultLogger.Infof("in process")
+	if m.handler == nil {
+		m.handler = http.NewRequestHandler()
+	}
+
+	checkData := http.NewCheckData(reqHeaders, requestInfo)
+
+	reportData := http.NewReportData(respHeaders, requestInfo)
+
+	m.handler.Report(checkData, reportData)
 }
 
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewMixerFilter(context, f.MixerConfig)
-	//callbacks.AddStreamReceiverFilter(filter)
 	callbacks.AddAccessLog(filter)
 }
 

@@ -17,6 +17,8 @@
 
 package v2
 
+import istio_mixer_v1 "istio.io/api/mixer/v1"
+
 type HealthCheckConfig struct {
 	Protocol             string         `json:"protocol"`
 	TimeoutConfig        DurationConfig `json:"timeout"`
@@ -68,7 +70,14 @@ type FaultInjectConfig struct {
 }
 
 type MixerConfig struct {
+	// Default attributes to send to Mixer in both Check and
+	// Report. This typically includes "destination.ip" and
+	// "destination.uid" attributes.
+	MixerAttributes *istio_mixer_v1.Attributes `protobuf:"bytes,3,opt,name=mixer_attributes,json=mixerAttributes" json:"mixer_attributes,omitempty"`
 
+	// Default attributes to forward to upstream. This typically
+	// includes the "source.ip" and "source.uid" attributes.
+	ForwardAttributes *istio_mixer_v1.Attributes `protobuf:"bytes,5,opt,name=forward_attributes,json=forwardAttributes" json:"forward_attributes,omitempty"`
 }
 
 type RouterConfig struct {
