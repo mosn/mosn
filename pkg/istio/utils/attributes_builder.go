@@ -17,7 +17,16 @@
 
 package utils
 
-import "istio.io/api/mixer/v1"
+import (
+	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
+
+	google_protobuf2 "github.com/gogo/protobuf/types"
+
+	"istio.io/api/mixer/v1"
+)
 
 type AttributesBuilder struct {
 	attributes *v1.Attributes
@@ -46,6 +55,61 @@ func (a *AttributesBuilder) AddInt64(key string, data int64) {
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
 		Value:&v1.Attributes_AttributeValue_Int64Value{
 			Int64Value:data,
+		},
+	}
+}
+
+func (a *AttributesBuilder) AddStringMap(key string, stringMap types.HeaderMap) {
+	c, ok := stringMap.(protocol.CommonHeader)
+	if !ok || len(c) == 0 {
+		return
+	}
+
+	entries := &v1.Attributes_AttributeValue_StringMapValue{
+		StringMapValue: &v1.Attributes_StringMap{
+			Entries:make(map[string]string, 0),
+		},
+	}
+
+	for k, v := range c {
+		entries.StringMapValue.Entries[k] = v
+	}
+
+	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
+		Value:entries,
+	}
+}
+
+func (a *AttributesBuilder) AddTimestamp(key string, t time.Time) {
+	nano := t.UnixNano()
+
+	timeStamp := &v1.Attributes_AttributeValue_TimestampValue{
+		TimestampValue:&google_protobuf2.Timestamp{
+
+		},
+	}
+
+	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
+		Value:timeStamp,
+	}
+}
+
+func (a *AttributesBuilder) AddDuration(key string, value time.Duration) {
+	/*
+	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
+		Value:&v1.Attributes_AttributeValue_DurationValue{
+			DurationValue:google_protobuf2.Timestamp{
+
+			}
+		},
+	}
+	*/
+}
+
+func (a *AttributesBuilder) AddString(key string, value string) {
+	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
+		Value:&v1.Attributes_AttributeValue_StringValue{
+			StringValue:value,
 		},
 	}
 }

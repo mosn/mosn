@@ -17,17 +17,22 @@
 
 package utils
 
-const (
-	KDestinationIp = "destination.ip"
-	KDestinationPort = "destination.port"
-
-	KRequestBodySize = "request.size"
-	KRequestTotalSize = "request.total_size"
-
-	KResponseCode = "response.code"
-	KResponseDuration = "response.duration"
-	KResponseHeaders = "response.headers"
-	KResponseBodySize = "response.size"
-	KResponseTotalSize = "response.total_size"
-	KResponseTime = "response.time"
+import (
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
+
+const (
+	kPerHostMetadataKey = "istio"
+)
+
+func GetDestinationUID(metadata types.RouteMetaData) (uid string, err error) {
+	// TODO
+	return "", nil
+	/*
+	v, exist := metadata[kPerHostMetadataKey]
+	if !exist {
+		err = fmt.Errorf("cannot find %s metadata", kPerHostMetadataKey)
+		return
+	}
+	*/
+}

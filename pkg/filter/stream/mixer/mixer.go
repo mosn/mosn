@@ -46,6 +46,23 @@ func NewMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
 	}
 }
 
+func (f *mixerFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+	return types.StreamHeadersFilterContinue
+}
+
+func (f *mixerFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+	return types.StreamDataFilterContinue
+}
+
+func (f *mixerFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+	return types.StreamTrailersFilterContinue
+}
+
+func (f *mixerFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
+}
+
+func (f *mixerFilter) OnDestroy() {}
+
 func (m *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	if m.handler == nil {
 		m.handler = http.NewRequestHandler()
@@ -60,6 +77,7 @@ func (m *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMa
 
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewMixerFilter(context, f.MixerConfig)
+	callbacks.AddStreamReceiverFilter(filter)
 	callbacks.AddAccessLog(filter)
 }
 

@@ -139,10 +139,9 @@ func CompressByDict(attributes *v1.Attributes, dict *MessageDictionary, pb *v1.C
 		index := dict.GetIndex(k)
 		value := v.Value
 
-		str, ok := value.(*v1.Attributes_AttributeValue_StringValue)
-		if ok {
-			pb.Strings[index] = dict.GetIndex(str.StringValue)
-			continue
+		switch val := value.(type) {
+		case *v1.Attributes_AttributeValue_StringValue:
+			pb.Strings[index] = dict.GetIndex(val.StringValue)
 		}
 
 		bs, ok := value.(*v1.Attributes_AttributeValue_BytesValue)

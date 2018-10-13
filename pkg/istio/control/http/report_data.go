@@ -21,9 +21,21 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/istio/utils"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
+
+type ReportInfo struct {
+	responseTotalSize uint64
+	requestTotalSize uint64
+	duration time.Duration
+	responseCode uint32
+	requestBodySize uint64
+	responseBodySize uint64
+	responseFlag types.ResponseFlag
+}
 
 type ReportData struct {
 	respHeaders types.HeaderMap
@@ -35,6 +47,14 @@ func NewReportData(respHeaders types.HeaderMap, requestInfo types.RequestInfo) *
 		respHeaders:respHeaders,
 		requestInfo:requestInfo,
 	}
+}
+
+func (r *ReportData) GetReportInfo() (data ReportInfo) {
+	data.requestBodySize = r.requestInfo.BytesReceived()
+	data.responseBodySize = r.requestInfo.BytesSent()
+	data.duration = r.requestInfo.Duration()
+	data.responseCode = r.requestInfo.ResponseCode()
+	return
 }
 
 func (r *ReportData) GetDestinationIpPort()(ip string, port int, err error){
@@ -54,4 +74,14 @@ func (r *ReportData) GetDestinationIpPort()(ip string, port int, err error){
 	portStr := array[1]
 	port, err = strconv.Atoi(portStr)
 	return
+}
+
+func (r *ReportData) GetDestinationUID() (uid string, err error) {
+	hostInfo := r.requestInfo.UpstreamHost()
+	if hostInfo == nil {
+		err = fmt.Errorf("no host info")
+		return
+	}
+
+	return utils.GetDestinationUID(hostInfo.Metadata())
 }

@@ -18,6 +18,8 @@
 package http
 
 import (
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/istio/control"
 	"github.com/alipay/sofa-mosn/pkg/istio/utils"
 )
@@ -48,4 +50,28 @@ func (b *attributesBuilder) ExtractReportAttributes(reportData *ReportData) {
 			builder.AddInt64(utils.KDestinationIp, int64(despPort))
 		}
 	}
+
+	headers := reportData.respHeaders
+	builder.AddStringMap(utils.KResponseHeaders, headers)
+
+	builder.AddTimestamp(utils.KResponseTime, time.Now())
+
+	reportInfo := reportData.GetReportInfo()
+
+	builder.AddInt64(utils.KRequestBodySize, int64(reportInfo.requestBodySize))
+	builder.AddInt64(utils.KResponseBodySize, int64(reportInfo.responseBodySize))
+	builder.AddInt64(utils.KRequestTotalSize, int64(reportInfo.requestTotalSize))
+	builder.AddInt64(utils.KResponseTotalSize, int64(reportInfo.responseTotalSize))
+	builder.AddDuration(utils.KResponseDuration, reportInfo.duration)
+
+	// TODO: add check status code
+	builder.AddInt64(utils.KResponseCode, int64(reportInfo.responseCode))
+
+	// TODO: add grpc status report
+
+	// TODO: add response flag
+	//builder.AddString()
+
+	// TODO: add rabc info
 }
+
