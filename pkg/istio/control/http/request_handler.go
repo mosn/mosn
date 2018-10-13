@@ -25,11 +25,13 @@ type RequestHandler interface {
 
 type requestHandler struct {
 	requestContext *control.RequestContext
+	serviceContext *ServiceContext
 }
 
 func NewRequestHandler() RequestHandler {
 	return &requestHandler{
 		requestContext:control.NewRequestContext(),
+		serviceContext:NewServiceContext(),
 	}
 }
 
@@ -39,6 +41,8 @@ func (h *requestHandler) Report(checkData *CheckData, reportData *ReportData) {
 
 	builder := newAttributesBuilder(h.requestContext)
 	builder.ExtractReportAttributes(reportData)
+
+	h.serviceContext.ClientContext.SendReport(h.requestContext)
 }
 
 func (h *requestHandler) addForwardAttributes(checkData *CheckData) {

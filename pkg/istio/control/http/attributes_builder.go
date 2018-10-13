@@ -20,7 +20,6 @@ package http
 import (
 	"github.com/alipay/sofa-mosn/pkg/istio/control"
 	"github.com/alipay/sofa-mosn/pkg/istio/utils"
-	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 type attributesBuilder struct {
