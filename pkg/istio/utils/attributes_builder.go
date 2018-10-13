@@ -23,6 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 
+	google_protobuf1 "github.com/gogo/protobuf/types"
 	google_protobuf2 "github.com/gogo/protobuf/types"
 
 	"istio.io/api/mixer/v1"
@@ -83,27 +84,25 @@ func (a *AttributesBuilder) AddStringMap(key string, stringMap types.HeaderMap) 
 func (a *AttributesBuilder) AddTimestamp(key string, t time.Time) {
 	nano := t.UnixNano()
 
-	timeStamp := &v1.Attributes_AttributeValue_TimestampValue{
-		TimestampValue:&google_protobuf2.Timestamp{
-
-		},
-	}
-
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
-		Value:timeStamp,
+		Value:&v1.Attributes_AttributeValue_TimestampValue{
+			TimestampValue:&google_protobuf2.Timestamp{
+				Seconds: nano / int64(time.Second),
+				Nanos: int32(nano % int64(time.Second)),
+			},
+		},
 	}
 }
 
 func (a *AttributesBuilder) AddDuration(key string, value time.Duration) {
-	/*
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
 		Value:&v1.Attributes_AttributeValue_DurationValue{
-			DurationValue:google_protobuf2.Timestamp{
-
-			}
+			DurationValue:&google_protobuf1.Duration{
+				Seconds:int64(value / time.Second),
+				Nanos:int32(value % time.Second),
+			},
 		},
 	}
-	*/
 }
 
 func (a *AttributesBuilder) AddString(key string, value string) {

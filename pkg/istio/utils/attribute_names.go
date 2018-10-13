@@ -18,9 +18,14 @@
 package utils
 
 const (
+	KContextProtocol = "context.protocol"
+
 	KDestinationIp = "destination.ip"
 	KDestinationPort = "destination.port"
 
+	KOriginIp = "origin.ip"
+
+	KRequestTime = "request.time"
 	KRequestBodySize = "request.size"
 	KRequestTotalSize = "request.total_size"
 

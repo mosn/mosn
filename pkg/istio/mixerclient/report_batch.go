@@ -18,7 +18,6 @@
 package mixerclient
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"istio.io/api/mixer/v1"
 )
 
@@ -33,6 +32,5 @@ func newReportBatch(compressor *AttributeCompressor) *reportBatch {
 }
 
 func (r *reportBatch) report(attributes *v1.Attributes) {
-	log.DefaultLogger.Infof("report")
 	r.batchCompressor.Add(attributes)
 }

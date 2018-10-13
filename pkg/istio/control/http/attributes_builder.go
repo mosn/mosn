@@ -22,6 +22,8 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/istio/control"
 	"github.com/alipay/sofa-mosn/pkg/istio/utils"
+	"github.com/gogo/protobuf/proto"
+	"istio.io/api/mixer/v1"
 )
 
 type attributesBuilder struct {
@@ -35,6 +37,34 @@ func newAttributesBuilder(requestContext *control.RequestContext) *attributesBui
 }
 
 func (b *attributesBuilder) ExtractForwardedAttributes(checkData *CheckData) {
+	d, ret := checkData.ExtractIstioAttributes()
+	if !ret {
+		return
+	}
+	var attibutes v1.Attributes
+	err := proto.Unmarshal([]byte(d), &attibutes)
+	if err != nil {
+		return
+	}
+
+	proto.Merge(&b.requestContext.Attributes, &attibutes)
+}
+
+func (b *attributesBuilder) ExtractCheckAttributes(checkData *CheckData) {
+	builder := utils.NewAttributesBuilder(&b.requestContext.Attributes)
+
+	srcIp, _, ret := checkData.GetSourceIpPort()
+	if ret {
+		builder.AddBytes(utils.KOriginIp, []byte(srcIp))
+	}
+
+	// TODO: add IsMutualTLS、requested_server_name
+
+	builder.AddTimestamp(utils.KRequestTime, time.Now())
+
+	// TODO: add grpc protocol check
+	protocol := "http"
+	builder.AddString(utils.KContextProtocol, protocol)
 
 }
 

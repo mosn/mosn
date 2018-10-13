@@ -17,43 +17,6 @@
 
 package utils
 
-import (
-	"net"
-	"strconv"
-	"strings"
-
-	"github.com/alipay/sofa-mosn/pkg/types"
-)
-
 const (
-	kPerHostMetadataKey = "istio"
+	KIstioAttributeHeader = "x-istio-attributes"
 )
-
-func GetDestinationUID(metadata types.RouteMetaData) (uid string, err error) {
-	// TODO
-	return "", nil
-	/*
-	v, exist := metadata[kPerHostMetadataKey]
-	if !exist {
-		err = fmt.Errorf("cannot find %s metadata", kPerHostMetadataKey)
-		return
-	}
-	*/
-}
-
-func GetIpPort(address net.Addr) (ip string, port int32, ret bool) {
-	ret = false
-	array := strings.Split(address.String(), ":")
-	if len(array) != 2 {
-		return
-	}
-	p, err := strconv.Atoi(array[1])
-	if err != nil {
-		return
-	}
-
-	ip = array[0]
-	port = int32(p)
-	ret = true
-	return
-}

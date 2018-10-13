@@ -51,5 +51,7 @@ func (h *requestHandler) addForwardAttributes(checkData *CheckData) {
 }
 
 func (h *requestHandler) addCheckAttributes(checkData *CheckData) {
-
+	builder := newAttributesBuilder(h.requestContext)
+	builder.ExtractCheckAttributes(checkData)
+	// TODO: AddApiAttributes
 }

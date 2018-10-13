@@ -38,6 +38,7 @@ type FilterConfigFactory struct {
 type mixerFilter struct {
 	context context.Context
 	handler http.RequestHandler
+	callback types.StreamReceiverFilterCallbacks
 }
 
 func NewMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
@@ -59,6 +60,7 @@ func (f *mixerFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTra
 }
 
 func (f *mixerFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
+	f.callback = cb
 }
 
 func (f *mixerFilter) OnDestroy() {}
@@ -68,7 +70,7 @@ func (m *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMa
 		m.handler = http.NewRequestHandler()
 	}
 
-	checkData := http.NewCheckData(reqHeaders, requestInfo)
+	checkData := http.NewCheckData(reqHeaders, requestInfo, m.callback.Connection())
 
 	reportData := http.NewReportData(respHeaders, requestInfo)
 

@@ -142,50 +142,23 @@ func CompressByDict(attributes *v1.Attributes, dict *MessageDictionary, pb *v1.C
 		switch val := value.(type) {
 		case *v1.Attributes_AttributeValue_StringValue:
 			pb.Strings[index] = dict.GetIndex(val.StringValue)
+		case *v1.Attributes_AttributeValue_BytesValue:
+			pb.Bytes[index] = val.BytesValue
+		case *v1.Attributes_AttributeValue_Int64Value:
+			pb.Int64S[index] = val.Int64Value
+		case *v1.Attributes_AttributeValue_DoubleValue:
+			pb.Doubles[index] = val.DoubleValue
+		case *v1.Attributes_AttributeValue_BoolValue:
+			pb.Bools[index] = val.BoolValue
+		case *v1.Attributes_AttributeValue_TimestampValue:
+			pb.Timestamps[index] = time.Unix(val.TimestampValue.Seconds, int64(val.TimestampValue.Nanos))
+		case *v1.Attributes_AttributeValue_DurationValue:
+			pb.Durations[index] = time.Duration(val.DurationValue.Seconds * int64(time.Second) + int64(val.DurationValue.Nanos))
+		case *v1.Attributes_AttributeValue_StringMapValue:
+			pb.StringMaps[index] = CreateStringMap(val.StringMapValue, dict)
+		default:
 		}
 
-		bs, ok := value.(*v1.Attributes_AttributeValue_BytesValue)
-		if ok {
-			pb.Bytes[index] = bs.BytesValue
-			continue
-		}
-
-		i64, ok := value.(*v1.Attributes_AttributeValue_Int64Value)
-		if ok {
-			pb.Int64S[index] = i64.Int64Value
-			continue
-		}
-
-		d, ok := value.(*v1.Attributes_AttributeValue_DoubleValue)
-		if ok {
-			pb.Doubles[index] = d.DoubleValue
-			continue
-		}
-
-		b, ok := value.(*v1.Attributes_AttributeValue_BoolValue)
-		if ok {
-			pb.Bools[index] = b.BoolValue
-			continue
-		}
-
-		/*
-		_, ok := value.(*v1.Attributes_AttributeValue_TimestampValue)
-		if ok {
-			//pb.Timestamps[index] = ts.TimestampValue.
-			continue
-		}
-
-		dv, ok := value.(*v1.Attributes_AttributeValue_DurationValue)
-		if ok {
-			pb.Durations[index] = dv.DurationValue
-			continue
-		}
-		*/
-		sm, ok := value.(*v1.Attributes_AttributeValue_StringMapValue)
-		if ok {
-			pb.StringMaps[index] = CreateStringMap(sm.StringMapValue, dict)
-			continue
-		}
 	}
 }
 
