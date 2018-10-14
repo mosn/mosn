@@ -17,26 +17,62 @@
 
 package mixerclient
 
-import "istio.io/api/mixer/v1"
+import (
+	"context"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
+	"google.golang.org/grpc"
+	"istio.io/api/mixer/v1"
+)
+
+const (
+	mixClusterName = "mixer_server"
+)
 
 type MixerClient interface {
 	Report(attributes *v1.Attributes)
+
+	SendReport(request *v1.ReportRequest) *v1.ReportResponse
 }
 
 type mixerClient struct {
 	reportBatch *reportBatch
 	attributeCompressor *AttributeCompressor
+	client v1.MixerClient
 }
 
 func NewMixerClient() MixerClient {
-	client := &mixerClient{
-		attributeCompressor:NewAttributeCompressor(),
+	snapshot := cluster.GetClusterMngAdapterInstance().GetCluster(mixClusterName)
+	if snapshot == nil {
+		log.DefaultLogger.Errorf("get mixer server cluster config error")
+		return nil
 	}
 
-	client.reportBatch = newReportBatch(client.attributeCompressor)
+	mixerAddress := snapshot.PrioritySet().GetOrCreateHostSet(0).Hosts()[0].Address().String()
+	conn, err := grpc.Dial(mixerAddress, grpc.WithInsecure())
+	if err != nil {
+		log.DefaultLogger.Errorf("grpc dial to mixserver %s error %v", mixerAddress, err)
+	}
+	mixClient := v1.NewMixerClient(conn)
+
+	client := &mixerClient{
+		attributeCompressor:NewAttributeCompressor(),
+		client:mixClient,
+	}
+
+	client.reportBatch = newReportBatch(client.attributeCompressor, client)
 	return client
 }
 
 func (c *mixerClient) Report(attributes *v1.Attributes) {
 	c.reportBatch.report(attributes)
+}
+
+func (c *mixerClient) SendReport(request *v1.ReportRequest) *v1.ReportResponse {
+	response, err := c.client.Report(context.Background(), request)
+	if err != nil {
+		log.DefaultLogger.Errorf("send report error: %v", err)
+	}
+	return response
 }

@@ -23,14 +23,23 @@ import (
 
 type reportBatch struct {
 	batchCompressor BatchCompressor
+	mixerClient MixerClient
 }
 
-func newReportBatch(compressor *AttributeCompressor) *reportBatch {
+func newReportBatch(compressor *AttributeCompressor, client MixerClient) *reportBatch {
 	return &reportBatch{
 		batchCompressor:compressor.CreateBatchCompressor(),
+		mixerClient:client,
 	}
 }
 
 func (r *reportBatch) report(attributes *v1.Attributes) {
 	r.batchCompressor.Add(attributes)
+
+	r.FlushWithLock()
+}
+
+func (r *reportBatch) FlushWithLock() {
+	request := r.batchCompressor.Finish()
+	r.mixerClient.SendReport(request)
 }

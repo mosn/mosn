@@ -25,6 +25,7 @@ import (
 
 type BatchCompressor interface {
 	Add(attributes *v1.Attributes)
+	Finish() *v1.ReportRequest
 }
 
 type AttributeCompressor struct {
@@ -77,12 +78,23 @@ func NewBatchCompressor(globalDict *GlobalDictionary) BatchCompressor {
 		Bytes:make(map[int32][]byte, 0),
 		StringMaps:make(map[int32]v1.StringMap, 0),
 	})
+	b.report.DefaultWords = make([]string, 0)
 
 	return b
 }
 
 func (b *batchCompressor) Add(attributes *v1.Attributes) {
 	CompressByDict(attributes, b.dict, &b.report.Attributes[0])
+}
+
+func (b *batchCompressor) Finish() *v1.ReportRequest {
+	words := b.dict.GetWords()
+	for _, word := range words {
+		b.report.DefaultWords = append(b.report.DefaultWords, word)
+	}
+	b.report.GlobalWordCount = uint32(len(b.globalDict.globalDict))
+
+	return &b.report
 }
 
 func NewMessageDictionary(globalDict *GlobalDictionary) *MessageDictionary {
@@ -109,6 +121,10 @@ func (m *MessageDictionary) GetIndex(key string) int32 {
 	m.messageDict[key] = int32(index)
 
 	return index
+}
+
+func (m *MessageDictionary) GetWords() []string {
+	return m.messageWords
 }
 
 func NewGlobalDictionary() *GlobalDictionary {
