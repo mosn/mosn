@@ -94,3 +94,5 @@ type Decoder interface {
 	// return 1. decoded model(nil if no enough data) 2. decode error
 	Decode(ctx context.Context, data IoBuffer) (interface{}, error)
 }
+
+

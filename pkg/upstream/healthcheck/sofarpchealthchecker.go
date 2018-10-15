@@ -24,7 +24,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/bolt"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 )
 
@@ -43,7 +42,7 @@ func newSofaRPCHealthChecker(config v2.HealthCheck) *sofarpcHealthChecker {
 
 	// use bolt v1 as default sofa health check protocol
 	if 0 == config.ProtocolCode {
-		shc.protocolCode = bolt.PROTOCOL_CODE_V1
+		shc.protocolCode = sofarpc.PROTOCOL_CODE_V1
 	}
 
 	shc.sessionFactory = shc
@@ -107,8 +106,16 @@ func (s *sofarpcHealthCheckSession) OnReceiveHeaders(context context.Context, he
 	//bolt
 	//log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
 
-	if statusStr, ok := headers.Get(sofarpc.SofaPropertyHeader(bolt.HeaderRespStatus)); ok {
-		s.responseStatus = sofarpc.ConvertPropertyValueInt16(statusStr)
+	switch cmd := headers.(type) {
+	case *sofarpc.BoltResponse:
+		s.responseStatus = cmd.ResponseStatus
+	case *sofarpc.BoltResponseV2:
+		s.responseStatus = cmd.ResponseStatus
+	case protocol.CommonHeader:
+		if statusStr, ok := headers.Get(sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)); ok {
+			s.responseStatus = sofarpc.ConvertPropertyValueInt16(statusStr)
+		}
+
 	}
 
 	if endStream {
@@ -155,8 +162,8 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 
 	//todo: support tr
 	//create protocol specified heartbeat packet
-	if s.healthChecker.protocolCode == bolt.PROTOCOL_CODE_V1 {
-		reqHeaders := bolt.NewHeartbeat(0)
+	if s.healthChecker.protocolCode == sofarpc.PROTOCOL_CODE_V1 {
+		reqHeaders := sofarpc.NewBoltHeartbeat(0)
 
 		s.requestSender.AppendHeaders(context.Background(), reqHeaders, true)
 		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat to %s", s.host.AddressString())
@@ -191,7 +198,7 @@ func (s *sofarpcHealthCheckSession) onResponseComplete() {
 
 func (s *sofarpcHealthCheckSession) isHealthCheckSucceeded() bool {
 	// -1 or other value considered as failure
-	return s.responseStatus == bolt.RESPONSE_STATUS_SUCCESS
+	return s.responseStatus == sofarpc.RESPONSE_STATUS_SUCCESS
 }
 
 func (s *sofarpcHealthCheckSession) OnResetStream(reason types.StreamResetReason) {

@@ -28,9 +28,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol/subprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
 )
 
 var streamIDXprotocolCount uint64
@@ -81,7 +80,7 @@ type streamConnection struct {
 	activeStream    streamMap
 	clientCallbacks types.StreamConnectionEventListener
 	serverCallbacks types.ServerStreamConnectionEventListener
-	codec           rpc.Multiplexing
+	codec           xprotocol.Multiplexing
 	streamIDMap     sync.Map
 	reqIDMap        sync.Map
 	logger          log.Logger
@@ -89,9 +88,9 @@ type streamConnection struct {
 
 func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
-	subProtocolName := rpc.SubProtocol(context.Value(types.ContextSubProtocol).(string))
+	subProtocolName := xprotocol.SubProtocol(context.Value(types.ContextSubProtocol).(string))
 	log.DefaultLogger.Tracef("xprotocol subprotocol config name = %v", subProtocolName)
-	codec := subprotocol.CreateSubProtocolCodec(context, subProtocolName)
+	codec := xprotocol.CreateSubProtocolCodec(context, subProtocolName)
 	log.DefaultLogger.Tracef("xprotocol new stream connection, codec type = %v", subProtocolName)
 	return &streamConnection{
 		context:         context,
@@ -124,7 +123,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		requestLen := len(request)
 		// ProtocolConvertor
 		// convertor first
-		convertorCodec, ok := conn.codec.(rpc.ProtocolConvertor)
+		convertorCodec, ok := conn.codec.(xprotocol.ProtocolConvertor)
 		if ok {
 			newHeaders, newData := convertorCodec.Convert(request)
 			request = newData
@@ -145,7 +144,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 			log.DefaultLogger.Tracef("Xprotocol get streamId %v, old reqID = %v", streamID, reqID)
 
 			// request route
-			requestRouteCodec, ok := conn.codec.(rpc.RequestRouting)
+			requestRouteCodec, ok := conn.codec.(xprotocol.RequestRouting)
 			if ok {
 				routeHeaders := requestRouteCodec.GetMetas(request)
 				for k, v := range routeHeaders {
@@ -157,7 +156,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 			streamID = conn.codec.GetStreamID(request)
 		}
 		// tracing
-		tracingCodec, ok := conn.codec.(rpc.Tracing)
+		tracingCodec, ok := conn.codec.(xprotocol.Tracing)
 		if ok {
 			serviceName := tracingCodec.GetServiceName(request)
 			methodName := tracingCodec.GetMethodName(request)

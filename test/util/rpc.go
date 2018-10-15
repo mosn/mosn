@@ -16,12 +16,10 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/bolt/v2"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/bolt"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/bolt/v1"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 )
 
 const (
@@ -82,7 +80,7 @@ func (c *RPCClient) SendRequest() {
 	ID := atomic.AddUint32(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
-	var headers rpc.SofaRpcCmd
+	var headers sofarpc.SofaRpcCmd
 	switch c.Protocol {
 	case Bolt1:
 		headers = BuildBoltV1Request(ID)
@@ -104,7 +102,7 @@ func (c *RPCClient) OnReceiveTrailers(context context.Context, trailers types.He
 func (c *RPCClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
 func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	if cmd, ok := headers.(rpc.SofaRpcCmd); ok {
+	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		streamID := protocol.StreamIDConv(cmd.RequestID())
 
 		if _, ok := c.Waits.Load(streamID); ok {
@@ -112,12 +110,12 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 			atomic.AddUint32(&c.respCount, 1)
 			// add status check
 			switch b := cmd.(type) {
-			case *bolt.Response:
-				if int16(b.ResponseStatus) == bolt.RESPONSE_STATUS_SUCCESS {
+			case *sofarpc.BoltResponse:
+				if int16(b.ResponseStatus) == sofarpc.RESPONSE_STATUS_SUCCESS {
 					c.Waits.Delete(streamID)
 				}
-			case *bolt.ResponseV2:
-				if int16(b.ResponseStatus) == bolt.RESPONSE_STATUS_SUCCESS {
+			case *sofarpc.BoltResponseV2:
+				if int16(b.ResponseStatus) == sofarpc.RESPONSE_STATUS_SUCCESS {
 					c.Waits.Delete(streamID)
 				}
 			}
@@ -129,14 +127,14 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 	}
 }
 
-func BuildBoltV1Request(requestID uint32) *bolt.Request {
-	request := &bolt.Request{
-		Protocol: bolt.PROTOCOL_CODE_V1,
-		CmdType:  bolt.REQUEST,
-		CmdCode:  bolt.RPC_REQUEST,
+func BuildBoltV1Request(requestID uint32) *sofarpc.BoltRequest {
+	request := &sofarpc.BoltRequest{
+		Protocol: sofarpc.PROTOCOL_CODE_V1,
+		CmdType:  sofarpc.REQUEST,
+		CmdCode:  sofarpc.RPC_REQUEST,
 		Version:  1,
 		ReqID:    requestID,
-		Codec:    bolt.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
 		Timeout:  -1,
 	}
 
@@ -152,25 +150,25 @@ func BuildBoltV1Request(requestID uint32) *bolt.Request {
 	return request
 }
 
-func BuildBoltV2Request(requestID uint32) *bolt.RequestV2 {
+func BuildBoltV2Request(requestID uint32) *sofarpc.BoltRequestV2 {
 	//TODO:
 	return nil
 }
 
-func BuildBoltV1Response(req *bolt.Request) *bolt.Response {
-	return &bolt.Response{
+func BuildBoltV1Response(req *sofarpc.BoltRequest) *sofarpc.BoltResponse {
+	return &sofarpc.BoltResponse{
 		Protocol:       req.Protocol,
-		CmdType:        bolt.RESPONSE,
-		CmdCode:        bolt.RPC_RESPONSE,
+		CmdType:        sofarpc.RESPONSE,
+		CmdCode:        sofarpc.RPC_RESPONSE,
 		Version:        req.Version,
 		ReqID:          req.ReqID,
 		Codec:          req.Codec, //todo: read default codec from config
-		ResponseStatus: bolt.RESPONSE_STATUS_SUCCESS,
+		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
 		HeaderLen:      req.HeaderLen,
 		HeaderMap:      req.HeaderMap,
 	}
 }
-func BuildBoltV2Response(req *bolt.RequestV2) *bolt.ResponseV2 {
+func BuildBoltV2Response(req *sofarpc.BoltRequestV2) *sofarpc.BoltResponseV2 {
 	//TODO:
 	return nil
 }
@@ -207,13 +205,13 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 
 func ServeBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		cmd, _ := v1.Codec.Decode(nil, iobuf)
+		cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
 		}
-		if req, ok := cmd.(*bolt.Request); ok {
+		if req, ok := cmd.(*sofarpc.BoltRequest); ok {
 			resp := BuildBoltV1Response(req)
-			iobufresp, err := v1.Codec.Encode(nil, resp)
+			iobufresp, err := codec.BoltCodec.Encode(nil, resp)
 			if err != nil {
 				t.Errorf("Build response error: %v\n", err)
 				return nil, true

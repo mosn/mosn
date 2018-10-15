@@ -36,8 +36,6 @@ const (
 	ContextKeyAcceptBuffer                ContextKey = "ContextKeyAcceptBuffer"
 	ContextKeyConnectionFd                ContextKey = "ConnectionFd"
 	ContextSubProtocol                    ContextKey = "ContextSubProtocol"
-	ContextKeyOriginRequest               ContextKey = "OriginRequest"
-	ContextKeyOriginResponse              ContextKey = "OriginResponse"
 )
 
 // GlobalProxyName represents proxy name for metrics

@@ -27,7 +27,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/bolt"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"errors"
 	"sync/atomic"
@@ -145,30 +144,24 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 
 	var stream *stream
 
-	cmd, ok := model.(rpc.SofaRpcCmd)
+	cmd, ok := model.(sofarpc.SofaRpcCmd)
 
 	if !ok {
 		conn.handleError(model, ErrNotSofarpcCmd)
 		return
 	}
 
-	switch cmd.CommandCode() {
-	case bolt.RPC_REQUEST:
+	switch cmd.CommandType() {
+	case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
 		stream = conn.onNewStreamDetect(cmd)
 
-		req := cmd.(*bolt.Request)
-		conn.logger.Debugf("Decode conn %d streamID %d sofarpc command, length %d", conn.conn.ID(), stream.ID, 22+int(req.ClassLen)+int(req.HeaderLen)+req.ContentLen)
-	case bolt.RPC_RESPONSE:
+		//req := cmd.(*sofarpc.BoltRequest)
+		//conn.logger.Debugf("Decode conn %d streamID %d sofarpc command, length %d", conn.conn.ID(), stream.ID, 22+int(req.ClassLen)+int(req.HeaderLen)+req.ContentLen)
+	case sofarpc.RESPONSE:
 		stream = conn.onStreamRecv(cmd)
 
-		resp := cmd.(*bolt.Response)
-		conn.logger.Debugf("Decode conn %d streamID %d sofarpc command, length %d", conn.conn.ID(), stream.ID, 20+int(resp.ClassLen)+int(resp.HeaderLen)+resp.ContentLen)
-	case bolt.HEARTBEAT:
-
-		ack, _ := conn.codecEngine.Encode(conn.ctx, bolt.NewHeartbeatAck(cmd.RequestID()))
-		conn.conn.Write(ack)
-		//TODO stream filter refactor, or just pop-up to proxy level
-		//TODO need to check cmdType, hb req or hb resp
+		//resp := cmd.(*sofarpc.BoltResponse)
+		//conn.logger.Debugf("Decode conn %d streamID %d sofarpc command, length %d", conn.conn.ID(), stream.ID, 20+int(resp.ClassLen)+int(resp.HeaderLen)+resp.ContentLen)
 	}
 
 	// header, data notify
@@ -179,7 +172,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 		if header != nil {
 			// special logic: set protocol code into header map
 			//header[sofarpc.HeaderProtocolCode] = strconv.FormatUint(uint64(cmd.GetProtocol()), 10)
-			stream.receiver.OnReceiveHeaders(stream.ctx, protocol.CommonHeader(header), data == nil)
+			stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
 		}
 
 		if data != nil {
@@ -196,15 +189,15 @@ func (conn *streamConnection) handleError(cmd interface{}, err error) {
 		//protocol decode error, close the connection directly
 		conn.conn.Close(types.NoFlush, types.LocalClose)
 	case types.ErrCodecException, types.ErrDeserializeException:
-		if cmd, ok := cmd.(rpc.SofaRpcCmd); ok {
+		if cmd, ok := cmd.(sofarpc.SofaRpcCmd); ok {
 			if reqID := cmd.RequestID(); reqID > 0 {
 
 				// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
 				var stream *stream
 				switch cmd.CommandType() {
-				case bolt.REQUEST, bolt.REQUEST_ONEWAY:
+				case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
 					stream = conn.onNewStreamDetect(cmd)
-				case bolt.RESPONSE:
+				case sofarpc.RESPONSE:
 					stream, _ = conn.streams.Get(reqID)
 				}
 
@@ -224,12 +217,11 @@ func (conn *streamConnection) handleError(cmd interface{}, err error) {
 	}
 }
 
-func (conn *streamConnection) onNewStreamDetect(cmd rpc.SofaRpcCmd) *stream {
+func (conn *streamConnection) onNewStreamDetect(cmd sofarpc.SofaRpcCmd) *stream {
 	buffers := sofaBuffersByContext(conn.ctx)
 	stream := &buffers.server
 	stream.ID = cmd.RequestID()
 	stream.ctx = context.WithValue(conn.ctx, types.ContextKeyStreamID, stream.ID)
-	stream.ctx = context.WithValue(stream.ctx, types.ContextKeyOriginRequest, cmd)
 	stream.direction = ServerStream
 	stream.sc = conn
 
@@ -239,12 +231,11 @@ func (conn *streamConnection) onNewStreamDetect(cmd rpc.SofaRpcCmd) *stream {
 	return stream
 }
 
-func (conn *streamConnection) onStreamRecv(cmd rpc.SofaRpcCmd) *stream {
+func (conn *streamConnection) onStreamRecv(cmd sofarpc.SofaRpcCmd) *stream {
 	requestID := cmd.RequestID()
 
 	// for client stream, remove stream on response read
 	if stream, ok := conn.streams.Get(requestID); ok {
-		stream.ctx = context.WithValue(stream.ctx, types.ContextKeyOriginResponse, cmd)
 		conn.streams.Remove(requestID)
 		return stream
 	}
@@ -264,7 +255,7 @@ type stream struct {
 	streamCbs []types.StreamEventListener
 
 	encodedData types.IoBuffer // for current impl, need removed
-	sendCmd     rpc.SofaRpcCmd
+	sendCmd     sofarpc.SofaRpcCmd
 	sendBuf     types.IoBuffer
 }
 
@@ -304,67 +295,26 @@ func (s *stream) BufferLimit() uint32 {
 
 // types.StreamSender
 func (s *stream) AppendHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) error {
+	cmd, ok := headers.(sofarpc.SofaRpcCmd)
+
+	if !ok {
+		return ErrNotSofarpcCmd
+	}
+
+	var err error
 
 	switch s.direction {
 	case ClientStream:
-		// 1. see if we were in proxy scene
-		if origin := ctx.Value(types.ContextKeyOriginRequest); origin != nil {
-			s.sendCmd, _ = bolt.Prepare(s.ctx, origin.(rpc.SofaRpcCmd))
-		}
-
-		// 2. see if header were sofarpc cmd
-		switch h := headers.(type) {
-		case protocol.CommonHeader:
-			if s.sendCmd == nil {
-				// log error
-				s.sc.logger.Errorf("cannot append headers, cmd not ready.request id = %d, direction = %d", s.ID, s.direction)
-				return errors.New("cannot append headers, cmd not ready")
-			}
-			s.sendCmd.SetHeader(h)
-		case rpc.SofaRpcCmd:
-			if s.sendCmd != nil {
-				// log unexpected
-				s.sc.logger.Errorf("dup cmd set.request id = %d, direction = %d", s.ID, s.direction)
-			}
-			s.sendCmd = h
-		}
+		// copy origin request from downstream
+		s.sendCmd, err = sofarpc.Clone(s.ctx, cmd)
 	case ServerStream:
-		// 1. see if we were in proxy scene(response or hijack)
-		if origin := ctx.Value(types.ContextKeyOriginResponse); origin != nil {
-			s.sendCmd, _ = bolt.Prepare(s.ctx, origin.(rpc.SofaRpcCmd))
-		} else {
-			// hijack scene, headers must be sofarpc cmd
-			if status, ok := headers.Get(types.HeaderStatus); ok {
-				headers.Del(types.HeaderStatus)
-				statusCode, _ := strconv.Atoi(status)
-				cmd := headers.(rpc.SofaRpcCmd)
-
-				if statusCode != types.SuccessCode {
-					var err error
-
-					//Build Router Unavailable Response Msg
-					switch statusCode {
-					case types.RouterUnavailableCode, types.NoHealthUpstreamCode, types.UpstreamOverFlowCode:
-						//No available path
-						s.sendCmd, err = bolt.NewResponse(s.ctx, cmd, bolt.RESPONSE_STATUS_CLIENT_SEND_ERROR)
-					case types.CodecExceptionCode:
-						//Decode or Encode Error
-						s.sendCmd, err = bolt.NewResponse(s.ctx, cmd, bolt.RESPONSE_STATUS_CODEC_EXCEPTION)
-					case types.DeserialExceptionCode:
-						//Hessian Exception
-						s.sendCmd, err = bolt.NewResponse(s.ctx, cmd, bolt.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
-					case types.TimeoutExceptionCode:
-						//Response Timeout
-						s.sendCmd, err = bolt.NewResponse(s.ctx, cmd, bolt.RESPONSE_STATUS_TIMEOUT)
-					default:
-						s.sendCmd, err = bolt.NewResponse(s.ctx, cmd, bolt.RESPONSE_STATUS_UNKNOWN)
-					}
-
-					if err != nil {
-						s.sc.logger.Errorf(err.Error())
-					}
-				}
-			}
+		switch cmd.CommandType() {
+		case sofarpc.RESPONSE:
+			// copy origin response from upstream
+			s.sendCmd, err = sofarpc.Clone(s.ctx, cmd)
+		case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
+			// the command type is request, indicates the invocation is under hijack scene
+			s.sendCmd, err = s.buildHijackResp(cmd)
 		}
 	}
 
@@ -374,7 +324,37 @@ func (s *stream) AppendHeaders(ctx context.Context, headers types.HeaderMap, end
 		s.endStream()
 	}
 
-	return nil
+	return err
+}
+
+func (s *stream) buildHijackResp(request sofarpc.SofaRpcCmd) (sofarpc.SofaRpcCmd, error) {
+	if status, ok := request.Get(types.HeaderStatus); ok {
+		request.Del(types.HeaderStatus)
+		statusCode, _ := strconv.Atoi(status)
+
+		if statusCode != types.SuccessCode {
+
+			//Build Router Unavailable Response Msg
+			switch statusCode {
+			case types.RouterUnavailableCode, types.NoHealthUpstreamCode, types.UpstreamOverFlowCode:
+				//No available path
+				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
+			case types.CodecExceptionCode:
+				//Decode or Encode Error
+				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
+			case types.DeserialExceptionCode:
+				//Hessian Exception
+				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
+			case types.TimeoutExceptionCode:
+				//Response Timeout
+				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_TIMEOUT)
+			default:
+				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_UNKNOWN)
+			}
+		}
+	}
+
+	return request, types.ErrNoErrorCodeForHijack
 }
 
 func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {

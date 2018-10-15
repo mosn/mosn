@@ -1,18 +1,19 @@
-package bolt
+package sofarpc
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"context"
-	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 )
 
 // NewResponse build sofa response msg according to original cmd and respStatus
-func NewResponse(ctx context.Context, cmd rpc.SofaRpcCmd, respStatus int16) (rpc.SofaRpcCmd, error) {
+func NewResponse(ctx context.Context, cmd SofaRpcCmd, respStatus int16) (SofaRpcCmd, error) {
 	switch c := cmd.(type) {
-	case *Request:
-		return &Response{
+	case *BoltRequest:
+		return &BoltResponse{
 			Protocol:       c.Protocol,
 			CmdType:        RESPONSE,
 			CmdCode:        RPC_RESPONSE,
@@ -21,9 +22,9 @@ func NewResponse(ctx context.Context, cmd rpc.SofaRpcCmd, respStatus int16) (rpc
 			Codec:          c.Codec,
 			ResponseStatus: respStatus,
 		}, nil
-	case *RequestV2:
-		return &ResponseV2{
-			Response: Response{
+	case *BoltRequestV2:
+		return &BoltResponseV2{
+			BoltResponse: BoltResponse{
 				Protocol:       c.Protocol,
 				CmdType:        RESPONSE,
 				CmdCode:        RPC_RESPONSE,
@@ -41,23 +42,23 @@ func NewResponse(ctx context.Context, cmd rpc.SofaRpcCmd, respStatus int16) (rpc
 	return cmd, rpc.ErrUnknownType
 }
 
-func Prepare(ctx context.Context, origin rpc.SofaRpcCmd) (rpc.SofaRpcCmd, error) {
+func Clone(ctx context.Context, origin SofaRpcCmd) (SofaRpcCmd, error) {
 	//TODO: reuse req/resp struct
 	switch c := origin.(type) {
-	case *Request:
-		copy := &Request{}
+	case *BoltRequest:
+		copy := &BoltRequest{}
 		*copy = *c
 		return copy, nil
-	case *RequestV2:
-		copy := &RequestV2{}
+	case *BoltRequestV2:
+		copy := &BoltRequestV2{}
 		*copy = *c
 		return copy, nil
-	case *Response:
-		copy := &Response{}
+	case *BoltResponse:
+		copy := &BoltResponse{}
 		*copy = *c
 		return copy, nil
-	case *ResponseV2:
-		copy := &ResponseV2{}
+	case *BoltResponseV2:
+		copy := &BoltResponseV2{}
 		*copy = *c
 		return copy, nil
 	}
@@ -66,10 +67,10 @@ func Prepare(ctx context.Context, origin rpc.SofaRpcCmd) (rpc.SofaRpcCmd, error)
 	return origin, rpc.ErrUnknownType
 }
 
-// NewHeartbeat
+// NewBoltHeartbeat
 // New Bolt Heartbeat with requestID as input
-func NewHeartbeat(requestID uint32) *Request {
-	return &Request{
+func NewBoltHeartbeat(requestID uint32) *BoltRequest {
+	return &BoltRequest{
 		Protocol: PROTOCOL_CODE_V1,
 		CmdType:  REQUEST,
 		CmdCode:  HEARTBEAT,
@@ -80,10 +81,10 @@ func NewHeartbeat(requestID uint32) *Request {
 	}
 }
 
-// NewHeartbeatAck
-// New Heartbeat Ack with requestID as input
-func NewHeartbeatAck(requestID uint32) *Response {
-	return &Response{
+// NewBoltHeartbeatAck
+// New Bolt Heartbeat Ack with requestID as input
+func NewBoltHeartbeatAck(requestID uint32) *BoltResponse {
+	return &BoltResponse{
 		Protocol:       PROTOCOL_CODE_V1,
 		CmdType:        RESPONSE,
 		CmdCode:        HEARTBEAT,
@@ -94,7 +95,7 @@ func NewHeartbeatAck(requestID uint32) *Response {
 	}
 }
 
-func DeserializeRequest(ctx context.Context, request *Request) {
+func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {
 	//get instance
 	serializeIns := serialize.Instance
 
@@ -113,7 +114,7 @@ func DeserializeRequest(ctx context.Context, request *Request) {
 	logger.Debugf("Request class name is:%s", request.RequestClass)
 }
 
-func DeserializeResponse(ctx context.Context, response *Response) {
+func DeserializeBoltResponse(ctx context.Context, response *BoltResponse) {
 	//get instance
 	serializeIns := serialize.Instance
 

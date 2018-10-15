@@ -21,12 +21,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"reflect"
 	"strconv"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/bolt"
+
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var (
@@ -50,10 +50,10 @@ func init() {
 // at runtime, using protocol code recognition. And that's the exact job done by SofaConv.
 type SofaConv interface {
 	// MapToCmd maps given header map(must contains necessary sofarpc protocol fields) to corresponding sofarpc command struct
-	MapToCmd(ctx context.Context, headerMap map[string]string) (rpc.SofaRpcCmd, error)
+	MapToCmd(ctx context.Context, headerMap map[string]string) (SofaRpcCmd, error)
 
 	// MapToFields maps given sofarpc command struct to corresponding key-value header map(contains necessary sofarpc protocol fields)
-	MapToFields(ctx context.Context, cmd rpc.SofaRpcCmd) (map[string]string, error)
+	MapToFields(ctx context.Context, cmd SofaRpcCmd) (map[string]string, error)
 }
 
 // RegisterConv for sub protocol registry
@@ -62,10 +62,10 @@ func RegisterConv(protocol byte, conv SofaConv) {
 }
 
 // MapToCmd  expect src header data type as `protocol.CommonHeader`
-func MapToCmd(ctx context.Context, headerMap map[string]string) (rpc.SofaRpcCmd, error) {
+func MapToCmd(ctx context.Context, headerMap map[string]string) (SofaRpcCmd, error) {
 
 	// TODO: temporary use bolt.HeaderProtocolCode, need to use common definition
-	if proto, exist := headerMap[SofaPropertyHeader(bolt.HeaderProtocolCode)]; exist {
+	if proto, exist := headerMap[SofaPropertyHeader(HeaderProtocolCode)]; exist {
 		protoValue := ConvertPropertyValueUint8(proto)
 		protocolCode := protoValue
 
@@ -78,7 +78,7 @@ func MapToCmd(ctx context.Context, headerMap map[string]string) (rpc.SofaRpcCmd,
 }
 
 // MapToFields expect src header data type as `ProtoBasicCmd`
-func MapToFields(ctx context.Context, cmd rpc.SofaRpcCmd) (map[string]string, error) {
+func MapToFields(ctx context.Context, cmd SofaRpcCmd) (map[string]string, error) {
 	protocol := cmd.ProtocolCode()
 
 	if conv, ok := sofaConvFactory[protocol]; ok {
@@ -109,7 +109,7 @@ func (c *http2sofa) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) 
 type sofa2http struct{}
 
 func (c *sofa2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
-	if cmd, ok := headerMap.(rpc.SofaRpcCmd); ok {
+	if cmd, ok := headerMap.(SofaRpcCmd); ok {
 		header, err := MapToFields(ctx, cmd)
 		return protocol.CommonHeader(header), err
 	}

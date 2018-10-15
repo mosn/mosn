@@ -40,6 +40,8 @@ const (
 	CodecException       string = "codec exception occurs"
 	SerializeException   string = "serialize exception occurs"
 	DeserializeException string = "deserialize exception occurs"
+
+	NoErrorCodeForHijack string = "no error code found for hijack reply"
 )
 
 // Errors
@@ -47,6 +49,8 @@ var (
 	ErrCodecException       = errors.New(CodecException)
 	ErrSerializeException   = errors.New(SerializeException)
 	ErrDeserializeException = errors.New(DeserializeException)
+
+	ErrNoErrorCodeForHijack = errors.New(NoErrorCodeForHijack)
 )
 
 // Error codes, used by top level logic code(like proxy logic).

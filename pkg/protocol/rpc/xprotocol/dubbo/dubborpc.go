@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
 )
 
@@ -34,13 +33,13 @@ func init() {
 
 type pluginDubboFactory struct{}
 
-func (ref *pluginDubboFactory) CreateSubProtocolCodec(context context.Context) rpc.Multiplexing {
+func (ref *pluginDubboFactory) CreateSubProtocolCodec(context context.Context) xprotocol.Multiplexing {
 	return NewRPCDubbo()
 }
 
 type rpcDubbo struct{}
 
-func NewRPCDubbo() rpc.Tracing {
+func NewRPCDubbo() xprotocol.Tracing {
 	return &rpcDubbo{}
 }
 
