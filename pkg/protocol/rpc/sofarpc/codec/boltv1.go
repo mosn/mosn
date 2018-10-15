@@ -331,7 +331,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 					if cmdCode == uint16(sofarpc.HEARTBEAT) {
 						//logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
 					}
-					logger.Debugf("BoltV1 DECODE RESPONSE,RespStatus = %d, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
+					logger.Debugf("BoltV1 DECODE RESPONSE,ResponseStatus = %d, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
 						response.ResponseStatus, response.Protocol, response.CmdType, response.CmdCode, response.ReqID)
 					cmd = &response
 				*/

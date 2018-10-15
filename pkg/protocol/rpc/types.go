@@ -36,3 +36,8 @@ type RpcCmd interface {
 
 	SetData(data []byte)
 }
+
+// ResponseStatus describe that the model has the [response status] information
+type RespStatus interface {
+	RespStatus() uint32
+}

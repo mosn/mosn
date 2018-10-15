@@ -12,15 +12,15 @@ import (
 
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/fuzzy"
 	"github.com/alipay/sofa-mosn/test/util"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 var (
@@ -61,17 +61,16 @@ func (c *RPCStatusClient) SendRequest() {
 		return
 	}
 	ID := atomic.AddUint32(&c.streamID, 1)
-	streamID := protocol.StreamIDConv(ID)
-	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
+	requestEncoder := c.Codec.NewStream(context.Background(), c)
 	headers := util.BuildBoltV1Request(ID)
 	requestEncoder.AppendHeaders(context.Background(), headers, true)
 }
 
 func (c *RPCStatusClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
-		status := cmd.GetRespStatus()
+	if cmd, ok := headers.(rpc.RespStatus); ok {
+		status := int16(cmd.RespStatus())
 
-		if int16(status) == sofarpc.RESPONSE_STATUS_SUCCESS {
+		if status == sofarpc.RESPONSE_STATUS_SUCCESS {
 			c.successCount++
 		} else {
 			c.failureCount++

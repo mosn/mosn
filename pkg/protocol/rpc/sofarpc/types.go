@@ -283,6 +283,11 @@ func (b *BoltResponse) SetData(data []byte) {
 	b.Content = data
 }
 
+// ~ ResponseStatus
+func (b *BoltResponse) RespStatus() uint32 {
+	return uint32(b.ResponseStatus)
+}
+
 // ~ SofaRpcCmd
 func (b *BoltResponse) CommandType() byte {
 	return b.CmdType

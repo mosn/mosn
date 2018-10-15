@@ -104,7 +104,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	proxyBuffers := proxyBuffersByContext(newCtx)
 
 	stream := &proxyBuffers.stream
-	stream.ID = atomic.AddUint32(&proxy.currID, 1)
+	stream.ID = atomic.AddUint32(&currProxyID, 1)
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()

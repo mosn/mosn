@@ -39,6 +39,7 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 var (
 	globalStats *Stats
 
+	currProxyID uint32
 	workerPool mosnsync.ShardWorkerPool
 )
 
@@ -71,8 +72,6 @@ type proxy struct {
 	stats               *Stats
 	listenerStats       *Stats
 	accessLogs          []types.AccessLog
-
-	currID uint32
 }
 
 // NewProxy create proxy instance for given v2.Proxy config

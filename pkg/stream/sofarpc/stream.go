@@ -170,8 +170,6 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 		data := cmd.Data()
 
 		if header != nil {
-			// special logic: set protocol code into header map
-			//header[sofarpc.HeaderProtocolCode] = strconv.FormatUint(uint64(cmd.GetProtocol()), 10)
 			stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
 		}
 
@@ -237,6 +235,8 @@ func (conn *streamConnection) onStreamRecv(cmd sofarpc.SofaRpcCmd) *stream {
 	// for client stream, remove stream on response read
 	if stream, ok := conn.streams.Get(requestID); ok {
 		conn.streams.Remove(requestID)
+
+		conn.logger.Debugf("stream recv, id = %d", stream.ID)
 		return stream
 	}
 	return nil

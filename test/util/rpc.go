@@ -20,6 +20,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 const (
@@ -109,13 +110,9 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 			c.t.Logf("RPC client receive streamId:%s \n", streamID)
 			atomic.AddUint32(&c.respCount, 1)
 			// add status check
-			switch b := cmd.(type) {
-			case *sofarpc.BoltResponse:
-				if int16(b.ResponseStatus) == sofarpc.RESPONSE_STATUS_SUCCESS {
-					c.Waits.Delete(streamID)
-				}
-			case *sofarpc.BoltResponseV2:
-				if int16(b.ResponseStatus) == sofarpc.RESPONSE_STATUS_SUCCESS {
+			if resp, ok := cmd.(rpc.RespStatus); ok {
+				status := int16(resp.RespStatus())
+				if status == sofarpc.RESPONSE_STATUS_SUCCESS {
 					c.Waits.Delete(streamID)
 				}
 			}

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
 	"golang.org/x/net/http2"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 )
 
 type Server interface {
@@ -76,13 +76,13 @@ func (s *RPCServer) ServeConn(conn net.Conn) {
 	}
 }
 func (s *RPCServer) serveBoltV1(iobuf types.IoBuffer) ([]byte, bool) {
-	cmd, _ := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
+	cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
 	if cmd == nil {
 		return nil, false
 	}
-	if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
+	if req, ok := cmd.(*sofarpc.BoltRequest); ok {
 		resp := util.BuildBoltV1Response(req)
-		iobufresp, err := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
+		iobufresp, err := codec.BoltCodec.Encode(nil, resp)
 		if err != nil {
 			return nil, true
 		}

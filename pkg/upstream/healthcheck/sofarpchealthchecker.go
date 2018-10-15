@@ -25,6 +25,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 type sofarpcHealthChecker struct {
@@ -106,16 +107,13 @@ func (s *sofarpcHealthCheckSession) OnReceiveHeaders(context context.Context, he
 	//bolt
 	//log.DefaultLogger.Debugf("BoltHealthCheck get heartbeat message")
 
-	switch cmd := headers.(type) {
-	case *sofarpc.BoltResponse:
-		s.responseStatus = cmd.ResponseStatus
-	case *sofarpc.BoltResponseV2:
-		s.responseStatus = cmd.ResponseStatus
+	switch resp := headers.(type) {
+	case rpc.RespStatus:
+		s.responseStatus = int16(resp.RespStatus())
 	case protocol.CommonHeader:
 		if statusStr, ok := headers.Get(sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)); ok {
 			s.responseStatus = sofarpc.ConvertPropertyValueInt16(statusStr)
 		}
-
 	}
 
 	if endStream {
