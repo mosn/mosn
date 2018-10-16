@@ -46,8 +46,7 @@
     + 支持自定义私有协议
     + 支持在TCP IO层，协议层面加入自定义扩展
     
-## 更多介绍
-* [MOSN介绍](docs/Introduction.md)
+## [MOSN介绍](docs/Introduction.md)
 
 ## 快速开始
 * [参考这里](docs/quickstart/quickstart.md) 
@@ -63,12 +62,7 @@
 
 ## 贡献
 + [代码贡献](docs/develop/CONTRIBUTING.md) 
-+ MOSN仍处在初级阶段，有很多能力需要补全，很多bug需要修复，欢迎所有人提交代码。我们欢迎您参与但不限于如下方面：
-   + 核心路由功能点补全
-   + Outlier detection
-   + Tracing支持
-   + HTTP/1.x, HTTP/2.0性能优化
-   + 流控
++ MOSN仍处在初级阶段，有很多能力需要补全，所以我们欢迎所有人参与进来与我们一起共建。
    
 ## 致谢
 感谢Google、IBM、Lyft创建了Envoy、Istio体系，并开源了优秀的项目，使MOSN有了非常好的参考，使我们能快速落地自己的想法。
