@@ -37,7 +37,11 @@ func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration)
 	} else {
 
 		for _, router := range routers {
-			log.DefaultLogger.Tracef("raw router config: %+v", router)
+			json_str, err := json.Marshal(router)
+			if err == nil {
+				log.DefaultLogger.Tracef("raw router config: %s", string(json_str))
+			}
+
 			mosnRouter, _ := convertRouterConf("", router)
 			log.DefaultLogger.Tracef("mosnRouter config: %+v", mosnRouter)
 			routersMngIns.AddOrUpdateRouters(mosnRouter)
@@ -49,7 +53,11 @@ func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration)
 func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 
 	for _, listener := range listeners {
-		log.DefaultLogger.Tracef("raw listener config: %+v", listener)
+		json_str, err := json.Marshal(listener)
+		if err == nil {
+			log.DefaultLogger.Tracef("raw listener config: %s", string(json_str))
+		}
+
 		mosnListener := convertListenerConfig(listener)
 		if mosnListener == nil {
 			continue
@@ -113,11 +121,18 @@ func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) {
 // OnUpdateClusters called by XdsClient when clusters config refresh
 // Can be used to update and add clusters
 func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
+	for _, cluster := range clusters {
+		json_str, err := json.Marshal(cluster)
+		if err == nil {
+			log.DefaultLogger.Tracef("raw cluster config: %s", string(json_str))
+		}
+	}
+
 	mosnClusters := convertClustersConfig(clusters)
 
 	for _, cluster := range mosnClusters {
-		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
 		var err error
+		log.DefaultLogger.Debugf("update cluster: %+v\n", cluster)
 		if cluster.ClusterType == v2.EDS_CLUSTER {
 			err = clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterAddOrUpdate(*cluster)
 		} else {
