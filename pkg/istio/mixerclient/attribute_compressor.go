@@ -23,9 +23,12 @@ import (
 	"istio.io/api/mixer/v1"
 )
 
+// BatchCompressor
 type BatchCompressor interface {
 	Add(attributes *v1.Attributes)
 	Finish() *v1.ReportRequest
+	Size() int
+	Clear()
 }
 
 type AttributeCompressor struct {
@@ -35,7 +38,7 @@ type AttributeCompressor struct {
 type batchCompressor struct {
 	globalDict *GlobalDictionary
 	dict       *MessageDictionary
-	report 		v1.ReportRequest
+	report 			v1.ReportRequest
 }
 
 type MessageDictionary struct {
@@ -97,6 +100,15 @@ func (b *batchCompressor) Finish() *v1.ReportRequest {
 	return &b.report
 }
 
+func (b *batchCompressor) Size() int {
+	return b.report.Size()
+}
+
+func (b *batchCompressor) Clear() {
+	b.report.Reset()
+	b.dict.Clear()
+}
+
 func NewMessageDictionary(globalDict *GlobalDictionary) *MessageDictionary {
 	return &MessageDictionary{
 		globalDict:globalDict,
@@ -125,6 +137,11 @@ func (m *MessageDictionary) GetIndex(key string) int32 {
 
 func (m *MessageDictionary) GetWords() []string {
 	return m.messageWords
+}
+
+func (m *MessageDictionary) Clear() {
+	m.messageWords = make([]string, 0)
+	m.messageDict = make(map[string]int32, 0)
 }
 
 func NewGlobalDictionary() *GlobalDictionary {

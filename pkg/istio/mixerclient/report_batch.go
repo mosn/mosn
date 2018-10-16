@@ -18,28 +18,70 @@
 package mixerclient
 
 import (
+	"sync"
+	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"istio.io/api/mixer/v1"
+)
+
+const (
+	// the size of attribute channel
+	kAttributeChannelSize	= 1024
+
+	// flush time out
+	kFlushTimeout = time.Second * 1
+
+	// max entries before flush
+	kFlushMaxEntries = 100
 )
 
 type reportBatch struct {
 	batchCompressor BatchCompressor
 	mixerClient MixerClient
+
+	attributesChan chan *v1.Attributes
 }
 
 func newReportBatch(compressor *AttributeCompressor, client MixerClient) *reportBatch {
-	return &reportBatch{
+	batch := &reportBatch{
 		batchCompressor:compressor.CreateBatchCompressor(),
 		mixerClient:client,
+		attributesChan:make(chan *v1.Attributes, kAttributeChannelSize),
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go batch.main(&wg)
+	wg.Wait()
+
+	return batch
+}
+
+func (r *reportBatch) main(wg *sync.WaitGroup) {
+	timer := time.NewTimer(kFlushTimeout).C
+
+	wg.Done()
+
+	select {
+		case attributes := <-r.attributesChan:
+			r.batchCompressor.Add(attributes)
+			if r.batchCompressor.Size() > kFlushMaxEntries {
+				r.flush()
+			}
+		case <-timer:
+			log.DefaultLogger.Infof("timeout")
+			r.flush()
 	}
 }
 
 func (r *reportBatch) report(attributes *v1.Attributes) {
-	r.batchCompressor.Add(attributes)
-
-	r.FlushWithLock()
+	r.attributesChan <- attributes
 }
 
-func (r *reportBatch) FlushWithLock() {
+func (r *reportBatch) flush() {
+	log.DefaultLogger.Infof("reportbatch flush")
 	request := r.batchCompressor.Finish()
 	r.mixerClient.SendReport(request)
+	r.batchCompressor.Clear()
 }
