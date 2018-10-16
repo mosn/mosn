@@ -141,7 +141,7 @@ func (l *listener) PerConnBufferLimitBytes() uint32 {
 	return l.perConnBufferLimitBytes
 }
 
-func (l *listener) SetePerConnBufferLimitBytes(limitBytes uint32) {
+func (l *listener) SetPerConnBufferLimitBytes(limitBytes uint32) {
 	l.perConnBufferLimitBytes = limitBytes
 }
 
@@ -153,8 +153,12 @@ func (l *listener) GetListenerCallbacks() types.ListenerEventListener {
 	return l.cb
 }
 
-func (l *listener) SethandOffRestoredDestinationConnections(restoredDestation bool) {
+func (l *listener) SetHandOffRestoredDestinationConnections(restoredDestation bool) {
 	l.handOffRestoredDestinationConnections = restoredDestation
+}
+
+func (l *listener) HandOffRestoredDestinationConnections() bool {
+	return l.handOffRestoredDestinationConnections
 }
 
 func (l *listener) Close(lctx context.Context) error {

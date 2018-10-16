@@ -236,12 +236,6 @@ func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 
-// OnAboveWriteBufferHighWatermark no use
-func (ac *activeClient) OnAboveWriteBufferHighWatermark() {}
-
-// OnBelowWriteBufferLowWatermark no use
-func (ac *activeClient) OnBelowWriteBufferLowWatermark() {}
-
 // OnStreamDestroy destroy stream
 func (ac *activeClient) OnStreamDestroy() {
 	ac.pool.onStreamDestroy(ac)

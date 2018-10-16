@@ -48,7 +48,6 @@ type downStream struct {
 
 	// flow control
 	bufferLimit        uint32
-	highWatermarkCount int
 
 	// ~~~ control args
 	timeout    *Timeout
@@ -79,8 +78,6 @@ type downStream struct {
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone      bool
-	senderFiltersStreaming   bool
-	receiverFiltersStreaming bool
 
 	filterStage int
 
@@ -780,14 +777,6 @@ func (s *downStream) doRetry() {
 		// setup per try timeout timer
 		s.setupPerReqTimeout()
 	}
-}
-
-func (s *downStream) onUpstreamAboveWriteBufferHighWatermark() {
-	s.responseSender.GetStream().ReadDisable(true)
-}
-
-func (s *downStream) onUpstreamBelowWriteBufferHighWatermark() {
-	s.responseSender.GetStream().ReadDisable(false)
 }
 
 // Downstream got reset in proxy context on scenario below:

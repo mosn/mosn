@@ -145,9 +145,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		if !equalConfig {
 			al.disableConnIo = lc.DisableConnIo
 			al.listener.SetConfig(lc)
-			al.listener.SetePerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
+			al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 			al.listener.SetListenerTag(lc.ListenerTag)
-			al.listener.SethandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+			al.listener.SetHandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
 			log.DefaultLogger.Debugf("AddOrUpdateListener: use new listen config = %+v", lc)
 		}
 
@@ -355,12 +355,12 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logg
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		conns:                   list.New(),
-		handler:                 handler,
-		stopChan:                stopChan,
-		logger:                  logger,
-		accessLogs:              accessLoggers,
-		updatedLabel:            false,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		logger:       logger,
+		accessLogs:   accessLoggers,
+		updatedLabel: false,
 	}
 
 	listenPort := 0
@@ -517,7 +517,7 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	log.DefaultLogger.Infof("conn set origin addr:%s:%d", ip, port)
 }
 
-func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
+func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler(ctx context.Context) {
 	var listener, localListener *activeListener
 
 	for _, lst := range arc.activeListener.handler.listeners {
@@ -531,13 +531,22 @@ func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
 		}
 	}
 
+	var ch chan types.Connection
+	var buf []byte
+	if ctx.Value(types.ContextKeyAcceptChan) != nil {
+		ch = ctx.Value(types.ContextKeyAcceptChan).(chan types.Connection)
+		if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
+			buf = ctx.Value(types.ContextKeyAcceptBuffer).([]byte)
+		}
+	}
+
 	if listener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", listener.listenIP, listener.listenPort)
-		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 	if localListener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", localListener.listenIP, localListener.listenPort)
-		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 }
 
@@ -549,14 +558,14 @@ func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool)
 
 	for ; arc.acceptedFilterIndex < len(arc.acceptedFilters); arc.acceptedFilterIndex++ {
 		filterStatus := arc.acceptedFilters[arc.acceptedFilterIndex].OnAccept(arc)
-		if filterStatus == types.StopIteration {
+		if filterStatus == types.Stop {
 			return
 		}
 	}
 
 	// TODO: handle hand_off_restored_destination_connections logic
 	if arc.handOffRestoredDestinationConnections {
-		arc.HandOffRestoredDestinationConnectionsHandler()
+		arc.HandOffRestoredDestinationConnectionsHandler(ctx)
 	} else {
 		arc.activeListener.newConnection(ctx, arc.rawc)
 	}

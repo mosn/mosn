@@ -15,7 +15,7 @@
 - Process guard by supervisord & log managed by logrotate
 - More features...
 
-## [0.2.0](docs/features/0.2.0/0-2-0-list.md)
+## 0.2.0
 - Support wrr loadbalancer
 - Support weighted subset router
 - Support listener update/delete, integrated with ISTIO pilot by XDS api
@@ -32,4 +32,11 @@
 ## 0.2.1
 - Add TLS disable flag in cluster's host, allows request upstream host in non-TLS mode
 - Support dubbo in Xprotocol mode
+- Fix some bugs
+
+## 0.3.0
+- Support router mode 
+- Optimize statistic, support smooth upgrade statistic data 
+- Support smooth upgrade on TLS
+- Optimize cpu usage and memory footprint in SofaRPC
 - Fix some bugs

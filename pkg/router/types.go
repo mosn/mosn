@@ -90,20 +90,6 @@ type hashPolicyImpl struct {
 type hashMethod struct {
 }
 
-type decoratorImpl struct {
-	Operation string
-}
-
-func (di *decoratorImpl) apply(span types.Span) {
-	if di.Operation != "" {
-		span.SetOperation(di.Operation)
-	}
-}
-
-func (di *decoratorImpl) getOperation() string {
-	return di.Operation
-}
-
 type rateLimitPolicyImpl struct {
 	rateLimitEntries []types.RateLimitPolicyEntry
 	maxStageNumber   uint64

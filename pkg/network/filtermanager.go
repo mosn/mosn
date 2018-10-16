@@ -90,7 +90,7 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 
 			status := uf.filter.OnNewConnection()
 
-			if status == types.StopIteration {
+			if status == types.Stop {
 				return
 			}
 		}
@@ -100,7 +100,7 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 		if buffer != nil && buffer.Len() > 0 {
 			status := uf.filter.OnData(buffer)
 
-			if status == types.StopIteration {
+			if status == types.Stop {
 				//fm.conn.Write("your data")
 				return
 			}
@@ -116,8 +116,8 @@ func (fm *filterManager) OnWrite(buffer []types.IoBuffer) types.FilterStatus {
 	for _, df := range fm.downstreamFilters {
 		status := df.OnWrite(buffer)
 
-		if status == types.StopIteration {
-			return types.StopIteration
+		if status == types.Stop {
+			return types.Stop
 		}
 	}
 

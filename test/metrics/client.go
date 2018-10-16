@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"strconv"
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -77,23 +77,22 @@ type streamReceiver struct {
 
 func (s *streamReceiver) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 }
-func (s *streamReceiver) OnReceiveTrailers(context context.Context, trailers map[string]string) {
+func (s *streamReceiver) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 }
-func (s *streamReceiver) OnDecodeError(context context.Context, err error, headers map[string]string) {
+func (s *streamReceiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
-func (s *streamReceiver) OnReceiveHeaders(context context.Context, headers map[string]string, endStream bool) {
-	status, ok := headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespStatus)]
-	if !ok {
-		s.ch <- errors.New("no response status")
+func (s *streamReceiver) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+		status := cmd.GetRespStatus()
+		if int16(status) != sofarpc.RESPONSE_STATUS_SUCCESS {
+			s.ch <- errors.New(fmt.Sprintf("%d", status))
+			return
+		}
+		s.ch <- nil
 		return
 	}
-	code, err := strconv.Atoi(status)
-	if err != nil || int16(code) != sofarpc.RESPONSE_STATUS_SUCCESS {
-		s.ch <- errors.New(status)
-		return
-	}
-	s.ch <- nil
-	return
+
+	s.ch <- errors.New("no response status")
 }
 
 type RPCClient struct {

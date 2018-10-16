@@ -42,7 +42,7 @@ func (b *boltHbProcessor) Process(context context.Context, msg interface{}, filt
 				status := filter.OnDecodeHeader(reqID, cmd, true)
 				//		logger.Debugf("Process Heartbeat Request Msg")
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}
@@ -58,7 +58,7 @@ func (b *boltHbProcessor) Process(context context.Context, msg interface{}, filt
 				status := filter.OnDecodeHeader(reqID, cmd, true)
 				//	logger.Debugf("Process Heartbeat Response Msg")
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}

@@ -191,14 +191,6 @@ func (conn *streamConnection) GoAway() {
 	// todo
 }
 
-func (conn *streamConnection) OnUnderlyingConnectionAboveWriteBufferHighWatermark() {
-	// todo
-}
-
-func (conn *streamConnection) OnUnderlyingConnectionBelowWriteBufferLowWatermark() {
-	// todo
-}
-
 // NewStream
 func (conn *streamConnection) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
 	log.DefaultLogger.Tracef("xprotocol stream new stream,streamId =%v ", streamID)
@@ -240,7 +232,7 @@ func (conn *streamConnection) OnReceiveData(context context.Context, streamID st
 			stream.connection.activeStream.Remove(stream.streamID)
 		}
 	}
-	return types.StopIteration
+	return types.Stop
 }
 
 func (conn *streamConnection) onNewStreamDetected(streamID string, headers types.HeaderMap) {

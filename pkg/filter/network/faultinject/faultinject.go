@@ -46,7 +46,7 @@ func (fi *faultInjector) OnData(buffer types.IoBuffer) types.FilterStatus {
 	fi.tryInjectDelay()
 
 	if atomic.LoadUint32(&fi.delaying) > 0 {
-		return types.StopIteration
+		return types.Stop
 	}
 
 	return types.Continue

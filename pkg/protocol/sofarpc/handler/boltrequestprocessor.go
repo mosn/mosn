@@ -51,7 +51,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 				//CALLBACK STREAM LEVEL'S ONDECODEHEADER
 				status := filter.OnDecodeHeader(streamID, cmd, cmd.Content == nil)
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}
@@ -59,7 +59,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 			if cmd.Content != nil {
 				status := filter.OnDecodeData(streamID, buffer.NewIoBufferBytes(cmd.Content), true)
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}
@@ -80,7 +80,7 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 			if cmd.RequestHeader != nil {
 				status := filter.OnDecodeHeader(streamID, cmd, cmd.Content == nil)
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}
@@ -88,7 +88,7 @@ func (b *BoltRequestProcessorV2) Process(context context.Context, msg interface{
 			if cmd.Content != nil {
 				status := filter.OnDecodeData(streamID, buffer.NewIoBufferBytes(cmd.Content), true)
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}

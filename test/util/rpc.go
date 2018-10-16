@@ -9,6 +9,8 @@ import (
 
 	"context"
 
+	"fmt"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
@@ -16,10 +18,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
-	_"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/conv"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/conv"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"fmt"
 )
 
 const (
@@ -108,7 +109,11 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 		if _, ok := c.Waits.Load(streamID); ok {
 			c.t.Logf("RPC client receive streamId:%s \n", streamID)
 			atomic.AddUint32(&c.respCount, 1)
-			c.Waits.Delete(streamID)
+			// add status check
+			status := cmd.GetRespStatus()
+			if int16(status) == sofarpc.RESPONSE_STATUS_SUCCESS {
+				c.Waits.Delete(streamID)
+			}
 		} else {
 			c.t.Errorf("get a unexpected stream ID")
 		}
