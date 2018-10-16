@@ -72,3 +72,12 @@ func (h CommonHeader) Range(f func(key, value string) bool) {
 		}
 	}
 }
+
+func (h CommonHeader) ByteSize() uint64 {
+	var size uint64
+
+	for k, v := range h {
+		size += uint64(len(k) + len(v))
+	}
+	return size
+}

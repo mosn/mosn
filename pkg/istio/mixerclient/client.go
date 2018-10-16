@@ -70,9 +70,11 @@ func (c *mixerClient) Report(attributes *v1.Attributes) {
 }
 
 func (c *mixerClient) SendReport(request *v1.ReportRequest) *v1.ReportResponse {
+	log.DefaultLogger.Infof("sendreport start")
 	response, err := c.client.Report(context.Background(), request)
 	if err != nil {
 		log.DefaultLogger.Errorf("send report error: %v", err)
 	}
+	log.DefaultLogger.Infof("sendreport end")
 	return response
 }

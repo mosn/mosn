@@ -24,6 +24,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/istio/control/http"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -39,6 +40,7 @@ type mixerFilter struct {
 	context context.Context
 	handler http.RequestHandler
 	callback types.StreamReceiverFilterCallbacks
+	requestTotalSize uint64
 }
 
 func NewMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
@@ -48,14 +50,17 @@ func NewMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
 }
 
 func (f *mixerFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+	f.requestTotalSize += headers.ByteSize()
 	return types.StreamHeadersFilterContinue
 }
 
 func (f *mixerFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+	f.requestTotalSize += uint64(buf.Len())
 	return types.StreamDataFilterContinue
 }
 
 func (f *mixerFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+	f.requestTotalSize += trailers.ByteSize()
 	return types.StreamTrailersFilterContinue
 }
 
@@ -72,7 +77,7 @@ func (m *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMa
 
 	checkData := http.NewCheckData(reqHeaders, requestInfo, m.callback.Connection())
 
-	reportData := http.NewReportData(respHeaders, requestInfo)
+	reportData := http.NewReportData(respHeaders, requestInfo, m.requestTotalSize)
 
 	m.handler.Report(checkData, reportData)
 }
@@ -84,7 +89,10 @@ func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbac
 }
 
 func CreateMixerFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
-	return &FilterConfigFactory{
+	factory := &FilterConfigFactory{
 		MixerConfig: config.ParseMixerFilter(conf),
-	}, nil
+	}
+
+	//log.DefaultLogger.Errorf("mix config:%v", factory.MixerConfig.MixerAttributes.Attributes)
+	return factory, nil
 }

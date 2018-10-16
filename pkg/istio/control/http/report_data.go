@@ -40,18 +40,24 @@ type ReportInfo struct {
 type ReportData struct {
 	respHeaders types.HeaderMap
 	requestInfo types.RequestInfo
+	requestTotalSize uint64
+	responseTotalSize uint64
 }
 
-func NewReportData(respHeaders types.HeaderMap, requestInfo types.RequestInfo) *ReportData {
+func NewReportData(respHeaders types.HeaderMap, requestInfo types.RequestInfo, requestTotalSize uint64) *ReportData {
 	return &ReportData{
 		respHeaders:respHeaders,
 		requestInfo:requestInfo,
+		requestTotalSize: requestTotalSize,
+		responseTotalSize:requestInfo.BytesSent() + respHeaders.ByteSize(),
 	}
 }
 
 func (r *ReportData) GetReportInfo() (data ReportInfo) {
 	data.requestBodySize = r.requestInfo.BytesReceived()
 	data.responseBodySize = r.requestInfo.BytesSent()
+	data.requestTotalSize = r.requestTotalSize
+	data.responseTotalSize = r.responseTotalSize
 	data.duration = r.requestInfo.Duration()
 	data.responseCode = r.requestInfo.ResponseCode()
 	return
