@@ -23,6 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/json-iterator/go"
 )
@@ -147,23 +148,6 @@ func TestMOSNConfig_OnUpdateClusters(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		{
-			name: "test",
-			fields: fields{
-				Servers: []ServerConfig{
-					{
-						ServerName: "testUpdate",
-					},
-				},
-			},
-			args: args{
-				clusters: []*pb.Cluster{
-					{
-						Name: "testCluster",
-					},
-				},
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -225,7 +209,17 @@ func TestMOSNConfig_OnAddOrUpdateListeners(t *testing.T) {
 			args: args{
 				listeners: []*pb.Listener{
 					{
-						Name: "testListener",
+						Name: "virtual",
+						Address: core.Address{
+							Address: &core.Address_SocketAddress{
+								SocketAddress: &core.SocketAddress{
+									Address: "0.0.0.0",
+									PortSpecifier: &core.SocketAddress_PortValue{
+										PortValue: 15001,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
