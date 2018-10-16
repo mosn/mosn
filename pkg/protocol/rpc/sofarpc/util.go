@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 )
@@ -99,8 +98,10 @@ func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {
 	//get instance
 	serializeIns := serialize.Instance
 
-	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
-	request.RequestHeader = protocolCtx.GetReqHeaders()
+	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
+	//request.RequestHeader = protocolCtx.GetReqHeaders()
+
+	request.RequestHeader = make(map[string]string, 8)
 
 	//logger
 	logger := log.ByContext(ctx)
@@ -121,8 +122,10 @@ func DeserializeBoltResponse(ctx context.Context, response *BoltResponse) {
 	//logger
 	logger := log.ByContext(ctx)
 
-	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
-	response.ResponseHeader = protocolCtx.GetRspHeaders()
+	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
+	//response.ResponseHeader = protocolCtx.GetRspHeaders()
+
+	response.ResponseHeader = make(map[string]string, 8)
 
 	//deserialize header
 	serializeIns.DeSerialize(response.HeaderMap, &response.ResponseHeader)

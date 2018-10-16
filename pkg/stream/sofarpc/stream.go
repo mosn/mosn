@@ -110,7 +110,14 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 
 // types.StreamConnection
 func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
+	// 1. pre alloc stream-level ctx, and bufferCtx
+
+	// 2. pass protocol level
+
+	// 3. ctx
+
 	conn.codecEngine.Process(conn.ctx, buf, conn.handleCommand)
+
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -122,9 +129,10 @@ func (conn *streamConnection) GoAway() {
 }
 
 func (conn *streamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
-	buffers := sofaBuffersByContext(ctx)
+	//buffers := sofaBuffersByContext(ctx)
+	//stream = buffers.client
 
-	stream := &buffers.client
+	stream := &stream{}
 
 	stream.ID = atomic.AddUint32(&conn.currStreamID, 1)
 	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.ID)
@@ -216,8 +224,10 @@ func (conn *streamConnection) handleError(cmd interface{}, err error) {
 }
 
 func (conn *streamConnection) onNewStreamDetect(cmd sofarpc.SofaRpcCmd) *stream {
-	buffers := sofaBuffersByContext(conn.ctx)
-	stream := &buffers.server
+	//buffers := sofaBuffersByContext(conn.ctx)
+	//stream := &buffers.server
+
+	stream := &stream{}
 	stream.ID = cmd.RequestID()
 	stream.ctx = context.WithValue(conn.ctx, types.ContextKeyStreamID, stream.ID)
 	stream.direction = ServerStream
