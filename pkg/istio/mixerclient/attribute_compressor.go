@@ -149,7 +149,7 @@ func NewGlobalDictionary() *GlobalDictionary {
 		globalDict:make(map[string]int32, 0),
 	}
 
-	for i, v := range KGlobalWords {
+	for i, v := range GlobalList() {
 		g.globalDict[v] = int32(i)
 	}
 
