@@ -79,8 +79,6 @@ type downStream struct {
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone      bool
-	senderFiltersStreaming   bool
-	receiverFiltersStreaming bool
 
 	filterStage int
 

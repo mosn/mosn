@@ -75,7 +75,7 @@ func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
 
 	p.upstreamConnection.Write(buffer.Clone())
 	buffer.Drain(buffer.Len())
-	return types.StopIteration
+	return types.Stop
 }
 
 func (p *proxy) OnNewConnection() types.FilterStatus {
@@ -104,7 +104,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 		p.requestInfo.SetResponseFlag(types.NoRouteFound)
 		p.onInitFailure(NoRoute)
 
-		return types.StopIteration
+		return types.Stop
 	}
 
 	clusterInfo := clusterSnapshot.ClusterInfo()
@@ -114,7 +114,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 		p.requestInfo.SetResponseFlag(types.UpstreamOverflow)
 		p.onInitFailure(ResourceLimitExceeded)
 
-		return types.StopIteration
+		return types.Stop
 	}
 
 	connectionData := p.clusterManager.TCPConnForCluster(nil, clusterName)
@@ -123,7 +123,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		p.onInitFailure(NoHealthyUpstream)
 
-		return types.StopIteration
+		return types.Stop
 	}
 
 	p.readCallbacks.SetUpstreamHost(connectionData.HostInfo)
@@ -389,7 +389,7 @@ func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 
 func (uc *upstreamCallbacks) OnData(buffer types.IoBuffer) types.FilterStatus {
 	uc.proxy.onUpstreamData(buffer)
-	return types.StopIteration
+	return types.Stop
 }
 
 func (uc *upstreamCallbacks) OnNewConnection() types.FilterStatus {

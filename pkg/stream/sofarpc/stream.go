@@ -137,7 +137,7 @@ func (conn *streamConnection) OnDecodeHeader(streamID string, headers types.Head
 			// for client stream, remove stream on response end
 			conn.activeStreams.Remove(stream.streamID)
 		}
-		return types.StopIteration
+		return types.Stop
 	}
 	return types.Continue
 }
@@ -152,12 +152,12 @@ func (conn *streamConnection) OnDecodeData(streamID string, data types.IoBuffer,
 		stream.decoder.OnReceiveData(conn.context, data, true)
 	}
 
-	return types.StopIteration
+	return types.Stop
 }
 
 func (conn *streamConnection) OnDecodeTrailer(streamID string, trailers types.HeaderMap) types.FilterStatus {
 	// unsupported
-	return types.StopIteration
+	return types.Stop
 }
 
 // todo, deal with more exception

@@ -99,8 +99,6 @@ type Cluster interface {
 
 	// return the cluster's health checker
 	HealthChecker() HealthChecker
-
-	OutlierDetector() Detector
 }
 
 // InitializePhase type
@@ -172,10 +170,6 @@ type Host interface {
 
 	Health() bool
 
-	SetHealthChecker(healthCheck HealthCheckHostMonitor)
-
-	SetOutlierDetector(outlierDetector DetectorHostMonitor)
-
 	Weight() uint32
 
 	SetWeight(weight uint32)
@@ -194,10 +188,6 @@ type HostInfo interface {
 	Metadata() RouteMetaData
 
 	ClusterInfo() ClusterInfo
-
-	OutlierDetector() DetectorHostMonitor
-
-	HealthChecker() HealthCheckHostMonitor
 
 	Address() net.Addr
 

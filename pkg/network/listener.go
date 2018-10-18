@@ -157,6 +157,10 @@ func (l *listener) SethandOffRestoredDestinationConnections(restoredDestation bo
 	l.handOffRestoredDestinationConnections = restoredDestation
 }
 
+func (l *listener) HandOffRestoredDestinationConnections() bool {
+	return l.handOffRestoredDestinationConnections
+}
+
 func (l *listener) Close(lctx context.Context) error {
 	l.cb.OnClose()
 	return l.rawl.Close()

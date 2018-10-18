@@ -49,7 +49,7 @@ func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}
 
 				status := filter.OnDecodeHeader(reqID, cmd, cmd.Content == nil)
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}
@@ -58,7 +58,7 @@ func (b *BoltResponseProcessor) Process(context context.Context, msg interface{}
 				///回调到stream中的OnDecoderDATA，回传CONTENT数据
 				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.Content), true)
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}
@@ -80,7 +80,7 @@ func (b *BoltResponseProcessorV2) Process(context context.Context, msg interface
 
 				status := filter.OnDecodeHeader(reqID, cmd, cmd.Content == nil)
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}
@@ -89,7 +89,7 @@ func (b *BoltResponseProcessorV2) Process(context context.Context, msg interface
 				///回调到stream中的OnDecoderDATA，回传CONTENT数据
 				status := filter.OnDecodeData(reqID, buffer.NewIoBufferBytes(cmd.Content), true)
 
-				if status == types.StopIteration {
+				if status == types.Stop {
 					return
 				}
 			}
