@@ -48,7 +48,6 @@ type downStream struct {
 
 	// flow control
 	bufferLimit        uint32
-	highWatermarkCount int
 
 	// ~~~ control args
 	timeout    *Timeout
@@ -776,14 +775,6 @@ func (s *downStream) doRetry() {
 		// setup per try timeout timer
 		s.setupPerReqTimeout()
 	}
-}
-
-func (s *downStream) onUpstreamAboveWriteBufferHighWatermark() {
-	s.responseSender.GetStream().ReadDisable(true)
-}
-
-func (s *downStream) onUpstreamBelowWriteBufferHighWatermark() {
-	s.responseSender.GetStream().ReadDisable(false)
 }
 
 // Downstream got reset in proxy context on scenario below:

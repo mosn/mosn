@@ -145,9 +145,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		if !equalConfig {
 			al.disableConnIo = lc.DisableConnIo
 			al.listener.SetConfig(lc)
-			al.listener.SetePerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
+			al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 			al.listener.SetListenerTag(lc.ListenerTag)
-			al.listener.SethandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+			al.listener.SetHandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
 			log.DefaultLogger.Debugf("AddOrUpdateListener: use new listen config = %+v", lc)
 		}
 
