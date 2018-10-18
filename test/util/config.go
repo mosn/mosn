@@ -170,11 +170,14 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 func CreateTCPProxyConfig(meshaddr string, hosts []string) *config.MOSNConfig {
 	clusterName := "cluster"
 	tcpConfig := v2.TCPProxy{
+		Cluster: clusterName,
 		Routes: []*v2.TCPRoute{
 			&v2.TCPRoute{
-				TCPRouteConfig: v2.TCPRouteConfig{
-					Cluster: clusterName,
-				},
+				Cluster:          clusterName,
+				SourceAddrs:      nil,
+				DestinationAddrs: nil,
+				SourcePort:       "",
+				DestinationPort:  "",
 			},
 		},
 	}

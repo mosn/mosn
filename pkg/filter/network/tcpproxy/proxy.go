@@ -282,6 +282,9 @@ type PortRange struct {
 
 func ParsePortRangeList(ports string) PortRangeList {
 	var portList []PortRange
+	if ports == "" {
+		return PortRangeList{portList}
+	}
 	for _, portItem := range strings.Split(ports, ",") {
 		if strings.Contains(portItem, "-") {
 			pieces := strings.Split(portItem, "-")
@@ -289,6 +292,7 @@ func ParsePortRangeList(ports string) PortRangeList {
 			max, err := strconv.Atoi(pieces[1])
 			if err != nil {
 				log.DefaultLogger.Errorf("parse port range list fail, invalid port %v", portItem)
+				continue
 			}
 			pRange := PortRange{min: min, max: max}
 			portList = append(portList, pRange)
@@ -296,6 +300,7 @@ func ParsePortRangeList(ports string) PortRangeList {
 			port, err := strconv.Atoi(portItem)
 			if err != nil {
 				log.DefaultLogger.Errorf("parse port range list fail, invalid port %v", portItem)
+				continue
 			}
 			pRange := PortRange{min: port, max: port}
 			portList = append(portList, pRange)
