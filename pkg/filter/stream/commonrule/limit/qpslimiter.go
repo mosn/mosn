@@ -19,7 +19,6 @@ package limit
 
 import (
 	"sync"
-	"github.com/uber/jaeger-lib/metrics"
 	"errors"
 	"time"
 )
@@ -30,7 +29,7 @@ type QpsLimiter struct {
 	nextPeriodMicros int64
 	currentPermits int64
 
-	stopwatch metrics.Stopwatch
+    start time.Time
 	mutex sync.Mutex
 }
 
@@ -42,9 +41,9 @@ func NewQpsLimiter(maxAllows int64, periodMs int64) (*QpsLimiter, error) {
 	l :=  &QpsLimiter{
 		maxAllows: maxAllows,
 		periodMicros: periodMs * int64(time.Millisecond),
-		stopwatch: metrics.StartStopwatch(metrics.NullTimer),
+        start: time.Now(),
 	}
-	l.nextPeriodMicros = int64(l.stopwatch.ElapsedTime()) + l.periodMicros
+	l.nextPeriodMicros = int64(time.Since(l.start)) + l.periodMicros
 	return l, nil
 }
 
@@ -54,7 +53,7 @@ func (l *QpsLimiter) TryAcquire() bool {
 	}
 
 	l.mutex.Lock()
-	var nowMicros = int64(l.stopwatch.ElapsedTime())
+	var nowMicros = int64(time.Since(l.start))
 	if nowMicros >= l.nextPeriodMicros {
 		l.nextPeriodMicros = ((nowMicros - l.nextPeriodMicros) / l.periodMicros + 1) * l.periodMicros + l.nextPeriodMicros;
 		l.currentPermits = 0;

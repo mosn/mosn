@@ -18,7 +18,6 @@
 package limit
 
 import (
-	"github.com/uber/jaeger-lib/metrics"
 	"sync"
 	"errors"
 	"math"
@@ -32,7 +31,7 @@ type RateLimiter struct {
 	storedPermits float64
 	nextFreeTicketMicros int64
 
-	stopwatch metrics.Stopwatch
+	start time.Time
 	mutex sync.Mutex
 }
 
@@ -50,9 +49,9 @@ func NewRateLimiter(maxAllows int64, periodMs int64, maxBurstTimes float64) (*Ra
 		maxAllows: maxAllows,
 		maxPermits: maxBurstTimes * float64(maxAllows),
 		stableIntervalMicros: interval,
-		stopwatch: metrics.StartStopwatch(metrics.NullTimer),
+        start: time.Now(),
 	}
-	l.nextFreeTicketMicros = int64(l.stopwatch.ElapsedTime())
+	l.nextFreeTicketMicros = int64(time.Since(l.start))
 
 	return l, nil
 }
@@ -62,7 +61,7 @@ func (l *RateLimiter) TryAcquire() bool {
 		return false;
 	}
 	l.mutex.Lock()
-	nowMicros := int64(l.stopwatch.ElapsedTime())
+	nowMicros := int64(time.Since(l.start))
 	defer l.mutex.Unlock()
 	if nowMicros < l.nextFreeTicketMicros {
 		return false;
