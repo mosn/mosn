@@ -17,43 +17,49 @@
 
 package model
 
+// RunMode
 const (
-	RUNMODE_CONTROL = "CONTROL"
-	RUNMODE_MONITOR = "MONITOR"
+	RunModeControl = "CONTROL"
+	RunModeMonitor = "MONITOR"
 )
 
+// CommonRuleConfig config
 type CommonRuleConfig struct {
 	RuleConfigs []RuleConfig
 }
 
+// RuleConfig config
 type RuleConfig struct {
-	Id  int  `json:"id"`
-	Index  int  `json:"index"`
-	Name       string `json:"name"`
-	AppName	string `json:"appName"`
-	Enable bool `json:"enable"`
+	Id      int    `json:"id"`
+	Index   int    `json:"index"`
+	Name    string `json:"name"`
+	AppName string `json:"appName"`
+	Enable  bool   `json:"enable"`
 	RunMode string `json:"runMode"`
 
-	LimitConfig  LimitConfig `json:"limit"`
-	ResourceConfigs    []ResourceConfig `json:"resources"`
+	LimitConfig     LimitConfig      `json:"limit"`
+	ResourceConfigs []ResourceConfig `json:"resources"`
 }
 
+// ComparisonCofig config
 type ComparisonCofig struct {
 	CompareType string `json:"compareType"`
 	Key         string `json:"key"`
 	Value       string `json:"value"`
 }
 
+// ResourceConfig config
 type ResourceConfig struct {
 	Headers         []ComparisonCofig `json:"headers"`
-	HeadersRelation string `json:"headersRelation"`
+	HeadersRelation string            `json:"headersRelation"`
 	Params          []ComparisonCofig `json:"params"`
-	ParamsRelation  string `json:"paramsRelation"`
+	ParamsRelation  string            `json:"paramsRelation"`
 }
 
+// LimitConfig config
 type LimitConfig struct {
-	LimitStrategy string `json:"limitStrategy"`
-	MaxBurstRatio float64    `json:"maxBurstRatio"`
-	PeriodMs      int    `json:"periodMs"`
-	MaxAllows     int    `json:"maxAllows"`
+	LimitStrategy string  `json:"limitStrategy"`
+	MaxBurstRatio float64 `json:"maxBurstRatio"`
+	PeriodMs      int     `json:"periodMs"`
+	MaxAllows     int     `json:"maxAllows"`
 }

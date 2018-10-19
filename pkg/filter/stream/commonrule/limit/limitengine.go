@@ -18,43 +18,45 @@
 package limit
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"errors"
+
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
+// LimitEngine limit
 type LimitEngine struct {
 	RuleConfig *model.RuleConfig
-	limiter Limiter
+	limiter    Limiter
 }
 
+// NewLimitEngine limit
 func NewLimitEngine(ruleConfig *model.RuleConfig) (*LimitEngine, error) {
 	l := &LimitEngine{
-		RuleConfig:ruleConfig,
+		RuleConfig: ruleConfig,
 	}
 	config := ruleConfig.LimitConfig
-	if config.LimitStrategy == QpsStrategy {
-		limiter, err := NewQpsLimiter(int64(config.MaxAllows), int64(config.PeriodMs))
+	if config.LimitStrategy == QPSStrategy {
+		limiter, err := NewQPSLimiter(int64(config.MaxAllows), int64(config.PeriodMs))
 		if err != nil {
-			log.DefaultLogger.Errorf("create NewQpsLimiter error, err: %s", err)
+			log.DefaultLogger.Errorf("create NewQPSLimiter error, err: %s", err)
 			return nil, err
-		} else {
-			l.limiter = limiter
-			return l, nil
 		}
+		l.limiter = limiter
+		return l, nil
 	} else if config.LimitStrategy == RateLimiterStrategy {
 		limiter, err := NewRateLimiter(int64(config.MaxBurstRatio), int64(config.PeriodMs), float64(config.MaxBurstRatio))
 		if err != nil {
 			log.DefaultLogger.Errorf("create NewRateLimiter error, err: %s", err)
 			return nil, err
-		} else {
-			l.limiter = limiter
-			return l, nil
 		}
+		l.limiter = limiter
+		return l, nil
 	}
 	return nil, errors.New("Unknown LimitStrategy type:" + config.LimitStrategy)
 }
 
+// OverLimit check limit
 func (engine *LimitEngine) OverLimit() bool {
 	return !engine.limiter.TryAcquire()
 }

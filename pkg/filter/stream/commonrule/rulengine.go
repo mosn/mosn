@@ -15,26 +15,28 @@
  * limitations under the License.
  */
 
- package commonrule
+package commonrule
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/resource"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/limit"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/metrix"
+	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/resource"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// RuleEngine as
 type RuleEngine struct {
-	ruleConfig *model.RuleConfig
+	ruleConfig    *model.RuleConfig
 	matcherEngine resource.MatcherEngine
-	limitEngine *limit.LimitEngine
-	stat *metrix.Stat
+	limitEngine   *limit.LimitEngine
+	stat          *metrix.Stat
 }
 
-func NewRuleEngine(config *model.RuleConfig) (*RuleEngine) {
+// NewRuleEngine new
+func NewRuleEngine(config *model.RuleConfig) *RuleEngine {
 	ruleEngine := &RuleEngine{
-		ruleConfig:config,
+		ruleConfig: config,
 	}
 
 	limitEngine, err := limit.NewLimitEngine(config)
@@ -52,7 +54,7 @@ func (e *RuleEngine) invoke(headers types.HeaderMap) bool {
 		e.stat.Counter(metrix.INVOKE).Inc(1)
 		if e.limitEngine.OverLimit() {
 			e.stat.Counter(metrix.BLOCK).Inc(1)
-			if e.ruleConfig.RunMode == model.RUNMODE_CONTROL {
+			if e.ruleConfig.RunMode == model.RunModeControl {
 				return false
 			}
 		}
@@ -65,6 +67,6 @@ func (e RuleEngine) match(headers types.HeaderMap) bool {
 }
 
 //stop timer
-func (e RuleEngine) stop()  {
+func (e RuleEngine) stop() {
 	e.stat.Stop()
 }

@@ -19,33 +19,34 @@ package resource
 
 import (
 	"testing"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
+
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 var params = []model.ComparisonCofig{
 	{
-		Key: "aa",
-		Value: "va",
-		CompareType: COMPARE_EQUALS,
+		Key:         "aa",
+		Value:       "va",
+		CompareType: CompareEquals,
 	},
 	{
-		Key: "bb",
-		Value: "vb",
-		CompareType: COMPARE_EQUALS,
+		Key:         "bb",
+		Value:       "vb",
+		CompareType: CompareEquals,
 	},
 }
 
 var params2 = []model.ComparisonCofig{
 	{
-		Key: "aa",
-		Value: "va",
-		CompareType: COMPARE_NOT_EQUALS,
+		Key:         "aa",
+		Value:       "va",
+		CompareType: CompareNotEquals,
 	},
 	{
-		Key: "bb",
-		Value: "vb",
-		CompareType: COMPARE_NOT_EQUALS,
+		Key:         "bb",
+		Value:       "vb",
+		CompareType: CompareNotEquals,
 	},
 }
 
@@ -53,17 +54,17 @@ func TestDefaultMatcher_Match(t *testing.T) {
 	matcher := &DefaultMatcher{}
 	resourceConfig := model.ResourceConfig{
 		Headers: []model.ComparisonCofig{
-		    {
-                CompareType:COMPARE_EQUALS,
-                Key: protocol.MosnHeaderPathKey,
-                Value:"/serverlist/xx.do",
-            },
-        },
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+		},
 		Params: params,
 	}
 
-	headers := protocol.CommonHeader {
-		protocol.MosnHeaderPathKey: "/serverlist/xx.do",
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
 		protocol.MosnHeaderQueryStringKey: "aa=va&&bb=vb",
 	}
 
@@ -76,18 +77,18 @@ func TestDefaultMatcher_Match(t *testing.T) {
 func TestDefaultMatcher_Match1(t *testing.T) {
 	matcher := &DefaultMatcher{}
 	resourceConfig := model.ResourceConfig{
-        Headers: []model.ComparisonCofig{
-            {
-                CompareType:COMPARE_EQUALS,
-                Key: protocol.MosnHeaderPathKey,
-                Value:"/serverlist/xx.do",
-            },
-        },
+		Headers: []model.ComparisonCofig{
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+		},
 		Params: params,
 	}
 
-	headers := protocol.CommonHeader {
-		protocol.MosnHeaderPathKey: "/serverlist/xx.do",
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
 		protocol.MosnHeaderQueryStringKey: "aa=va&&bb=vb1",
 	}
 
@@ -96,23 +97,22 @@ func TestDefaultMatcher_Match1(t *testing.T) {
 		t.Errorf("false")
 	}
 }
-
 
 func TestDefaultMatcher_Match2(t *testing.T) {
 	matcher := &DefaultMatcher{}
 	resourceConfig := model.ResourceConfig{
-        Headers: []model.ComparisonCofig{
-            {
-                CompareType:COMPARE_EQUALS,
-                Key: protocol.MosnHeaderPathKey,
-                Value:"/serverlist/xx.do",
-            },
-        },
+		Headers: []model.ComparisonCofig{
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+		},
 		Params: params,
 	}
 
-	headers := protocol.CommonHeader {
-		protocol.MosnHeaderPathKey: "/serverlist/xx.do1",
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do1",
 		protocol.MosnHeaderQueryStringKey: "aa=va&&bb=vb",
 	}
 
@@ -121,23 +121,22 @@ func TestDefaultMatcher_Match2(t *testing.T) {
 		t.Errorf("false")
 	}
 }
-
 
 func TestDefaultMatcher_Match3(t *testing.T) {
 	matcher := &DefaultMatcher{}
 	resourceConfig := model.ResourceConfig{
-        Headers: []model.ComparisonCofig{
-            {
-                CompareType:COMPARE_EQUALS,
-                Key: protocol.MosnHeaderPathKey,
-                Value:"/serverlist/xx.do",
-            },
-        },
+		Headers: []model.ComparisonCofig{
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+		},
 		Params: params,
 	}
 
-	headers := protocol.CommonHeader {
-		protocol.MosnHeaderPathKey: "/serverlist/xx.do",
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
 		protocol.MosnHeaderQueryStringKey: "aa=va",
 	}
 
@@ -147,23 +146,22 @@ func TestDefaultMatcher_Match3(t *testing.T) {
 	}
 }
 
-
 func TestDefaultMatcher_Match4(t *testing.T) {
 	matcher := &DefaultMatcher{}
 	resourceConfig := model.ResourceConfig{
-        Headers: []model.ComparisonCofig{
-            {
-                CompareType:COMPARE_EQUALS,
-                Key: protocol.MosnHeaderPathKey,
-                Value:"/serverlist/xx.do",
-            },
-        },
-		Params: params,
-		ParamsRelation: RELATION_OR,
+		Headers: []model.ComparisonCofig{
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+		},
+		Params:         params,
+		ParamsRelation: RelationOr,
 	}
 
-	headers := protocol.CommonHeader {
-		protocol.MosnHeaderPathKey: "/serverlist/xx.do",
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
 		protocol.MosnHeaderQueryStringKey: "aa=va",
 	}
 
@@ -173,23 +171,22 @@ func TestDefaultMatcher_Match4(t *testing.T) {
 	}
 }
 
-
 func TestDefaultMatcher_Match5(t *testing.T) {
 	matcher := &DefaultMatcher{}
 	resourceConfig := model.ResourceConfig{
-        Headers: []model.ComparisonCofig{
-            {
-                CompareType:COMPARE_EQUALS,
-                Key: protocol.MosnHeaderPathKey,
-                Value:"/serverlist/xx.do",
-            },
-        },
-		Params: params,
-		ParamsRelation: RELATION_OR,
+		Headers: []model.ComparisonCofig{
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+		},
+		Params:         params,
+		ParamsRelation: RelationOr,
 	}
 
-	headers := protocol.CommonHeader {
-		protocol.MosnHeaderPathKey: "/serverlist/xx.do",
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
 		protocol.MosnHeaderQueryStringKey: "aa=va&&bb=vb1",
 	}
 
@@ -199,22 +196,21 @@ func TestDefaultMatcher_Match5(t *testing.T) {
 	}
 }
 
-
 func TestDefaultMatcher_Match11(t *testing.T) {
 	matcher := &DefaultMatcher{}
 	resourceConfig := model.ResourceConfig{
-        Headers: []model.ComparisonCofig{
-            {
-                CompareType:COMPARE_EQUALS,
-                Key: protocol.MosnHeaderPathKey,
-                Value:"/serverlist/xx.do",
-            },
-        },
+		Headers: []model.ComparisonCofig{
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+		},
 		Params: params2,
 	}
 
-	headers := protocol.CommonHeader {
-		protocol.MosnHeaderPathKey: "/serverlist/xx.do",
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
 		protocol.MosnHeaderQueryStringKey: "aa=va&&bb=vb",
 	}
 
@@ -224,22 +220,21 @@ func TestDefaultMatcher_Match11(t *testing.T) {
 	}
 }
 
-
 func TestDefaultMatcher_Match12(t *testing.T) {
 	matcher := &DefaultMatcher{}
 	resourceConfig := model.ResourceConfig{
-        Headers: []model.ComparisonCofig{
-            {
-                CompareType:COMPARE_EQUALS,
-                Key: protocol.MosnHeaderPathKey,
-                Value:"/serverlist/xx.do",
-            },
-        },
+		Headers: []model.ComparisonCofig{
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+		},
 		Params: params2,
 	}
 
-	headers := protocol.CommonHeader {
-		protocol.MosnHeaderPathKey: "/serverlist/xx.do",
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
 		protocol.MosnHeaderQueryStringKey: "aa=va&&bb=vb1",
 	}
 
@@ -249,22 +244,21 @@ func TestDefaultMatcher_Match12(t *testing.T) {
 	}
 }
 
-
 func TestDefaultMatcher_Match13(t *testing.T) {
 	matcher := &DefaultMatcher{}
 	resourceConfig := model.ResourceConfig{
-        Headers: []model.ComparisonCofig{
-            {
-                CompareType:COMPARE_EQUALS,
-                Key: protocol.MosnHeaderPathKey,
-                Value:"/serverlist/xx.do",
-            },
-        },
+		Headers: []model.ComparisonCofig{
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+		},
 		Params: params2,
 	}
 
-	headers := protocol.CommonHeader {
-		protocol.MosnHeaderPathKey: "/serverlist/xx.do",
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
 		protocol.MosnHeaderQueryStringKey: "aa=va1&&bb=vb1",
 	}
 

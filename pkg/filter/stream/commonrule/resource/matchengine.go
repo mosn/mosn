@@ -18,16 +18,18 @@
 package resource
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// MatcherEngine match
 type MatcherEngine struct {
 	matcher Matcher
 }
 
-func NewMatcherEnine(matcher Matcher) (MatcherEngine) {
-	m := MatcherEngine {
+// NewMatcherEnine new
+func NewMatcherEnine(matcher Matcher) MatcherEngine {
+	m := MatcherEngine{
 		matcher: matcher,
 	}
 	if m.matcher == nil {
@@ -40,9 +42,10 @@ func (e MatcherEngine) registryResourceMatcher(matcher Matcher) {
 	e.matcher = matcher
 }
 
-func (me MatcherEngine) Match(headers types.HeaderMap, ruleConfig *model.RuleConfig) (bool) {
+// Match match
+func (e MatcherEngine) Match(headers types.HeaderMap, ruleConfig *model.RuleConfig) bool {
 	for _, resourceConfig := range ruleConfig.ResourceConfigs {
-		if me.matcher.Match(headers, &resourceConfig) {
+		if e.matcher.Match(headers, &resourceConfig) {
 			return true
 		}
 	}

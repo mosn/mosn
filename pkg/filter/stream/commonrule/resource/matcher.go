@@ -18,18 +18,20 @@
 package resource
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// Matcher match
 type Matcher interface {
 	Match(headers types.HeaderMap, resourceConfig *model.ResourceConfig) bool
 }
 
+// const
 const (
-	COMPARE_EQUALS = "EQUALS"
-	COMPARE_NOT_EQUALS = "NOTEQUALS"
+	CompareEquals    = "EQUALS"
+	CompareNotEquals = "NOTEQUALS"
 
-	RELATION_AND = "AND"
-	RELATION_OR = "OR"
+	RelationAnd = "AND"
+	RelationOr  = "OR"
 )

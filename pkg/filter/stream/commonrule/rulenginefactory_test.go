@@ -19,10 +19,11 @@ package commonrule
 
 import (
 	"testing"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"time"
-	"gitlab.alipay-inc.com/ant-mesh/mosn/pkg/common"
+
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"gitlab.alipay-inc.com/ant-mesh/mosn/pkg/common"
 )
 
 func TestNewRuleEngineFactory(t *testing.T) {
@@ -38,15 +39,15 @@ func TestNewRuleEngineFactory(t *testing.T) {
 	{
 		log.DefaultLogger.Infof("start ticker")
 		ticker := common.NewTicker(func() {
-			total ++
+			total++
 			if ruleEngineFactory.invoke(headers) {
-				success ++
+				success++
 			} else {
-				fail ++
+				fail++
 			}
 		})
 		ticker.Start(time.Millisecond * 10)
-		time.Sleep(5* time.Second)
+		time.Sleep(5 * time.Second)
 		ticker.Stop()
 		log.DefaultLogger.Infof("stop ticker")
 	}

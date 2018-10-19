@@ -18,30 +18,34 @@
 package metrix
 
 import (
-	"github.com/rcrowley/go-metrics"
 	"bytes"
 	"fmt"
 	"strconv"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/rcrowley/go-metrics"
 )
 
+// namespace
 const (
 	NAMESPACE = "CommonRule"
-	INVOKE = "INVOKE"
-	BLOCK = "BLOCK"
+	INVOKE    = "INVOKE"
+	BLOCK     = "BLOCK"
 )
 
+// Stat as
 type Stat struct {
 	ruleConfig *model.RuleConfig
 	counters   map[string]metrics.Counter
-	ticker *ticker
+	ticker     *ticker
 }
 
+// NewStat new
 func NewStat(ruleConfig *model.RuleConfig) *Stat {
 	s := &Stat{
-		ruleConfig:  ruleConfig,
+		ruleConfig: ruleConfig,
 		counters:   make(map[string]metrics.Counter),
 	}
 	s.AddCounter(INVOKE)
@@ -50,24 +54,25 @@ func NewStat(ruleConfig *model.RuleConfig) *Stat {
 	return s
 }
 
-//ticker
-func (e *Stat) Start() {
-	e.ticker = NewTicker(e.callback)
-	e.ticker.Start(time.Millisecond * time.Duration(e.ruleConfig.LimitConfig.PeriodMs))
+// Start ticker
+func (s *Stat) Start() {
+	s.ticker = NewTicker(s.callback)
+	s.ticker.Start(time.Millisecond * time.Duration(s.ruleConfig.LimitConfig.PeriodMs))
 }
 
-func (e *Stat) Stop()  {
-	e.ticker.Stop()
+// Stop ticker
+func (s *Stat) Stop() {
+	s.ticker.Stop()
 }
 
-func (e *Stat) callback() {
-	if e.Counter(INVOKE).Count() > 0 {
-		log.DefaultLogger.Infof(e.String())
-		e.clear()
+func (s *Stat) callback() {
+	if s.Counter(INVOKE).Count() > 0 {
+		log.DefaultLogger.Infof(s.String())
+		s.clear()
 	}
 }
-//end ticker
 
+//end ticker
 
 // AddCounter add counter = name in Stats.counters
 func (s *Stat) AddCounter(name string) *Stat {
@@ -87,7 +92,7 @@ func (s *Stat) Counter(name string) metrics.Counter {
 	return s.counters[name]
 }
 
-func (s *Stat) clear()  {
+func (s *Stat) clear() {
 	s.counters[INVOKE].Clear()
 	s.counters[BLOCK].Clear()
 }
@@ -112,7 +117,7 @@ func (s *Stat) String() string {
 
 		buffer.WriteString(strconv.FormatInt(int64(s.counters[INVOKE].Count()), 10))
 		buffer.WriteString(",")
-		buffer.WriteString(strconv.FormatInt(int64(s.counters[INVOKE].Count() - s.counters[BLOCK].Count()), 10))
+		buffer.WriteString(strconv.FormatInt(int64(s.counters[INVOKE].Count()-s.counters[BLOCK].Count()), 10))
 		buffer.WriteString(",")
 		buffer.WriteString(strconv.FormatInt(int64(s.counters[BLOCK].Count()), 10))
 		buffer.WriteString(",")
@@ -120,4 +125,3 @@ func (s *Stat) String() string {
 
 	return buffer.String()
 }
-

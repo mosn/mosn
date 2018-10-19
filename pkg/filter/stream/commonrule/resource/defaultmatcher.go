@@ -19,24 +19,28 @@ package resource
 
 import (
 	"strings"
+
+	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-    "github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 )
 
+// DefaultMatcher macher
 type DefaultMatcher struct {
 }
 
-func NewDefaultMatcher() (*DefaultMatcher) {
+// NewDefaultMatcher mew
+func NewDefaultMatcher() *DefaultMatcher {
 	return &DefaultMatcher{}
 }
 
+// Match match
 func (m *DefaultMatcher) Match(headers types.HeaderMap, resourceConfig *model.ResourceConfig) bool {
 	if resourceConfig.Headers != nil && len(resourceConfig.Headers) > 0 && !m.matchHeaders(headers, resourceConfig) {
-	    return false
-    }
+		return false
+	}
 
-    value, _ := headers.Get(protocol.MosnHeaderQueryStringKey)
+	value, _ := headers.Get(protocol.MosnHeaderQueryStringKey)
 	if resourceConfig.Params != nil && len(resourceConfig.Params) > 0 && !m.matchQueryParams(value, resourceConfig) {
 		return false
 	}
@@ -45,17 +49,17 @@ func (m *DefaultMatcher) Match(headers types.HeaderMap, resourceConfig *model.Re
 }
 
 func (*DefaultMatcher) matchHeaders(headers types.HeaderMap, resourceConfig *model.ResourceConfig) bool {
-    matched := resourceConfig.ParamsRelation != RELATION_OR
-    for _, comparison := range resourceConfig.Headers {
+	matched := resourceConfig.ParamsRelation != RelationOr
+	for _, comparison := range resourceConfig.Headers {
 		value, _ := headers.Get(comparison.Key)
-        flag := compare(comparison, value)
-        if resourceConfig.ParamsRelation != RELATION_OR {
-            matched = matched && flag
-        } else {
-            matched = matched || flag
-        }
-    }
-    return matched
+		flag := compare(comparison, value)
+		if resourceConfig.ParamsRelation != RelationOr {
+			matched = matched && flag
+		} else {
+			matched = matched || flag
+		}
+	}
+	return matched
 }
 
 func (*DefaultMatcher) matchQueryParams(queryString string, resourceConfig *model.ResourceConfig) bool {
@@ -68,27 +72,27 @@ func (*DefaultMatcher) matchQueryParams(queryString string, resourceConfig *mode
 		}
 	}
 
-	matched := resourceConfig.ParamsRelation != RELATION_OR
-    for _, param := range resourceConfig.Params {
-        flag := compares(param, queryParams[param.Key])
-        if resourceConfig.ParamsRelation != RELATION_OR {
-            matched = matched && flag
-        } else {
-            matched = matched || flag
-        }
-    }
+	matched := resourceConfig.ParamsRelation != RelationOr
+	for _, param := range resourceConfig.Params {
+		flag := compares(param, queryParams[param.Key])
+		if resourceConfig.ParamsRelation != RelationOr {
+			matched = matched && flag
+		} else {
+			matched = matched || flag
+		}
+	}
 	return matched
 }
 
 func compares(config model.ComparisonCofig, targets []string) bool {
-	if config.CompareType == COMPARE_EQUALS {
+	if config.CompareType == CompareEquals {
 		for _, target := range targets {
 			if config.Value == target {
 				return true
 			}
 		}
 		return false
-	} else if config.CompareType == COMPARE_NOT_EQUALS {
+	} else if config.CompareType == CompareNotEquals {
 		for _, target := range targets {
 			if config.Value == target {
 				return false
@@ -101,9 +105,9 @@ func compares(config model.ComparisonCofig, targets []string) bool {
 
 func compare(config model.ComparisonCofig, target string) bool {
 	switch config.CompareType {
-	case COMPARE_EQUALS:
-		return  config.Value == target
-	case COMPARE_NOT_EQUALS:
+	case CompareEquals:
+		return config.Value == target
+	case CompareNotEquals:
 		return config.Value != target
 	default:
 		return true

@@ -20,58 +20,58 @@ package commonrule
 import (
 	"testing"
 	"time"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"gitlab.alipay-inc.com/ant-mesh/mosn/pkg/common"
+
+	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/limit"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/resource"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/limit"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"gitlab.alipay-inc.com/ant-mesh/mosn/pkg/common"
 )
-
 
 var params = []model.ComparisonCofig{
 	{
-		Key: "aa",
-		Value: "va",
-		CompareType: resource.COMPARE_EQUALS,
+		Key:         "aa",
+		Value:       "va",
+		CompareType: resource.CompareEquals,
 	},
 	{
-		Key: "bb",
-		Value: "vb",
-		CompareType: resource.COMPARE_EQUALS,
+		Key:         "bb",
+		Value:       "vb",
+		CompareType: resource.CompareEquals,
 	},
 }
 
 var resourceConfig = model.ResourceConfig{
-    Headers: []model.ComparisonCofig{
-        {
-            CompareType:resource.COMPARE_EQUALS,
-            Key: protocol.MosnHeaderPathKey,
-            Value:"/serverlist/xx.do",
-        },
-    },
+	Headers: []model.ComparisonCofig{
+		{
+			CompareType: resource.CompareEquals,
+			Key:         protocol.MosnHeaderPathKey,
+			Value:       "/serverlist/xx.do",
+		},
+	},
 	Params: params,
 }
 
 var limitConfig = model.LimitConfig{
-	LimitStrategy:limit.QpsStrategy,
-	MaxBurstRatio : 1.0,
-	PeriodMs: 1000,
-	MaxAllows: 10,
+	LimitStrategy: limit.QPSStrategy,
+	MaxBurstRatio: 1.0,
+	PeriodMs:      1000,
+	MaxAllows:     10,
 }
 
 var ruleConfig = model.RuleConfig{
-	Id: 9,
-	Name: "test_666",
-	Enable: true,
-	RunMode: model.RUNMODE_CONTROL,
+	Id:              9,
+	Name:            "test_666",
+	Enable:          true,
+	RunMode:         model.RunModeControl,
 	ResourceConfigs: []model.ResourceConfig{resourceConfig},
-	LimitConfig:limitConfig,
+	LimitConfig:     limitConfig,
 }
 
-var headers = protocol.CommonHeader {
-    protocol.MosnHeaderPathKey: "/serverlist/xx.do",
-    protocol.MosnHeaderQueryStringKey: "aa=va&&bb=vb",
+var headers = protocol.CommonHeader{
+	protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
+	protocol.MosnHeaderQueryStringKey: "aa=va&&bb=vb",
 }
 
 func TestNewRuleEngine(t *testing.T) {
@@ -83,7 +83,7 @@ func TestNewRuleEngine(t *testing.T) {
 			ruleEngine.invoke(headers)
 		})
 		ticker.Start(time.Millisecond * 10)
-		time.Sleep(5* time.Second)
+		time.Sleep(5 * time.Second)
 		ticker.Stop()
 		log.DefaultLogger.Infof("stop ticker")
 	}

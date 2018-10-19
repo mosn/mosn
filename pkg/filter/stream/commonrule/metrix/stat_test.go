@@ -20,37 +20,38 @@ package metrix
 import (
 	"testing"
 	"time"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/limit"
+	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 )
 
 func TestNewStat(t *testing.T) {
 	limitConfig := model.LimitConfig{
-		LimitStrategy:limit.QpsStrategy,
-		MaxBurstRatio : 1.0,
-		PeriodMs: 1000,
-		MaxAllows: 10,
+		LimitStrategy: limit.QPSStrategy,
+		MaxBurstRatio: 1.0,
+		PeriodMs:      1000,
+		MaxAllows:     10,
 	}
 	ruleConfig := &model.RuleConfig{
-		LimitConfig:limitConfig,
-		Id: 99,
-		Name: "test_rule",
-		RunMode: model.RUNMODE_CONTROL,
+		LimitConfig: limitConfig,
+		Id:          99,
+		Name:        "test_rule",
+		RunMode:     model.RunModeControl,
 	}
 	stat := NewStat(ruleConfig)
 	countPlus(stat)
 
-	time.Sleep(5* time.Second)
+	time.Sleep(5 * time.Second)
 
 	countPlus(stat)
 }
 
-func countPlus(stat *Stat)  {
+func countPlus(stat *Stat) {
 	ticker := NewTicker(func() {
 		stat.Counter(INVOKE).Inc(2)
 		stat.Counter(BLOCK).Inc(1)
 	})
 	ticker.Start(time.Millisecond * 100)
-	time.Sleep(5* time.Second)
+	time.Sleep(5 * time.Second)
 	ticker.Stop()
 }

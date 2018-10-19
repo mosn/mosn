@@ -19,18 +19,19 @@ package limit
 
 import (
 	"testing"
+
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 )
 
 func TestNewLimitEngine(t *testing.T) {
 	limitConfig := model.LimitConfig{
-		LimitStrategy:QpsStrategy,
-		MaxBurstRatio : 1.0,
-		PeriodMs: 1000,
-		MaxAllows: 10,
+		LimitStrategy: QPSStrategy,
+		MaxBurstRatio: 1.0,
+		PeriodMs:      1000,
+		MaxAllows:     10,
 	}
 	ruleConfig := &model.RuleConfig{
-		LimitConfig:limitConfig,
+		LimitConfig: limitConfig,
 	}
 
 	limitEngine, err := NewLimitEngine(ruleConfig)
@@ -38,13 +39,13 @@ func TestNewLimitEngine(t *testing.T) {
 		t.Errorf("err=%s", err)
 	}
 
-	for i:=0; i< 10; i++ {
+	for i := 0; i < 10; i++ {
 		ret := limitEngine.OverLimit()
 		if ret {
 			t.Errorf("false")
 		}
 	}
-	for i:=0; i< 10; i++ {
+	for i := 0; i < 10; i++ {
 		ret := limitEngine.OverLimit()
 		if !ret {
 			t.Errorf("false")
@@ -53,7 +54,7 @@ func TestNewLimitEngine(t *testing.T) {
 
 	limitConfig.MaxAllows = 0
 	ruleConfig = &model.RuleConfig{
-		LimitConfig:limitConfig,
+		LimitConfig: limitConfig,
 	}
 	limitEngine, err = NewLimitEngine(ruleConfig)
 	ret := limitEngine.OverLimit()
@@ -61,5 +62,3 @@ func TestNewLimitEngine(t *testing.T) {
 		t.Errorf("false")
 	}
 }
-
-

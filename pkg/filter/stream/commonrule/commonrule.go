@@ -18,20 +18,21 @@
 package commonrule
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/filter"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"context"
 	"encoding/json"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"strconv"
-    "github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+
+	"github.com/alipay/sofa-mosn/pkg/filter"
+	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-func init()  {
+func init() {
 	filter.RegisterStream("commonrule", CreateCommonRuleFilterFactory)
 }
 
-func ParseCommonRuleConfig(config map[string]interface{}) *model.CommonRuleConfig {
+func parseCommonRuleConfig(config map[string]interface{}) *model.CommonRuleConfig {
 	commonRuleConfig := &model.CommonRuleConfig{}
 
 	if data, err := json.Marshal(config); err == nil {
@@ -39,26 +40,28 @@ func ParseCommonRuleConfig(config map[string]interface{}) *model.CommonRuleConfi
 	} else {
 		log.StartLogger.Fatalln("[commonrule] parsing commonRule filter check failed")
 	}
-	return commonRuleConfig;
+	return commonRuleConfig
 }
 
 type commmonRuleFilter struct {
-	context        context.Context
-	cb types.StreamReceiverFilterCallbacks
-	commonRuleConfig *model.CommonRuleConfig
+	context           context.Context
+	cb                types.StreamReceiverFilterCallbacks
+	commonRuleConfig  *model.CommonRuleConfig
 	RuleEngineFactory *RuleEngineFactory
 }
 
 var factoryInstance *RuleEngineFactory
 
+// NewFacatoryInstance as
 func NewFacatoryInstance(config *model.CommonRuleConfig) {
 	factoryInstance = NewRuleEngineFactory(config)
 	log.DefaultLogger.Infof("newFacatoryInstance:", factoryInstance)
 }
 
+// NewCommonRuleFilter as
 func NewCommonRuleFilter(context context.Context, config *model.CommonRuleConfig) types.StreamReceiverFilter {
 	f := &commmonRuleFilter{
-		context:context,
+		context:          context,
 		commonRuleConfig: config,
 	}
 	f.RuleEngineFactory = factoryInstance
@@ -70,11 +73,10 @@ func (f *commmonRuleFilter) OnDecodeHeaders(headers types.HeaderMap, endStream b
 	// do filter
 	if f.RuleEngineFactory.invoke(headers) {
 		return types.StreamHeadersFilterContinue
-	} else {
-		headers.Set(types.HeaderStatus, strconv.Itoa(types.LimitExceededCode))
-		f.cb.AppendHeaders(headers, true)
-		return types.StreamHeadersFilterStop
 	}
+	headers.Set(types.HeaderStatus, strconv.Itoa(types.LimitExceededCode))
+	f.cb.AppendHeaders(headers, true)
+	return types.StreamHeadersFilterStop
 }
 
 func (f *commmonRuleFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
@@ -92,21 +94,21 @@ func (f *commmonRuleFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFil
 }
 
 func (f *commmonRuleFilter) OnDestroy() {}
-//end implement StreamReceiverFilter
 
-type CommonRuleFilterFactory struct {
-	CommonRuleConfig *model.CommonRuleConfig
+type commonRuleFilterFactory struct {
+	commonRuleConfig *model.CommonRuleConfig
 }
 
-func (f *CommonRuleFilterFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
-	filter := NewCommonRuleFilter(context, f.CommonRuleConfig)
+func (f *commonRuleFilterFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+	filter := NewCommonRuleFilter(context, f.commonRuleConfig)
 	callbacks.AddStreamReceiverFilter(filter)
 }
 
+// CreateCommonRuleFilterFactory as
 func CreateCommonRuleFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
-	f := &CommonRuleFilterFactory{
-		CommonRuleConfig: ParseCommonRuleConfig(conf),
+	f := &commonRuleFilterFactory{
+		commonRuleConfig: parseCommonRuleConfig(conf),
 	}
-	NewFacatoryInstance(f.CommonRuleConfig)
+	NewFacatoryInstance(f.commonRuleConfig)
 	return f, nil
 }

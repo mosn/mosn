@@ -18,18 +18,20 @@
 package commonrule
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// RuleEngineFactory as
 type RuleEngineFactory struct {
 	CommonRuleConfig *model.CommonRuleConfig
-	ruleEngines []RuleEngine
+	ruleEngines      []RuleEngine
 }
 
-func NewRuleEngineFactory(config *model.CommonRuleConfig) (*RuleEngineFactory) {
+// NewRuleEngineFactory new
+func NewRuleEngineFactory(config *model.CommonRuleConfig) *RuleEngineFactory {
 	f := &RuleEngineFactory{
-		CommonRuleConfig:config,
+		CommonRuleConfig: config,
 	}
 
 	for _, ruleConfig := range config.RuleConfigs {
@@ -53,7 +55,7 @@ func (f *RuleEngineFactory) invoke(headers types.HeaderMap) bool {
 	return true
 }
 
-func (f *RuleEngineFactory) stop()  {
+func (f *RuleEngineFactory) stop() {
 	for _, ruleEngine := range f.ruleEngines {
 		ruleEngine.stop()
 	}

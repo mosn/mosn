@@ -17,11 +17,13 @@
 
 package limit
 
+// Limiter limit
 type Limiter interface {
 	TryAcquire() bool
 }
 
+// limit strategy
 const (
-	QpsStrategy = "QPS"
+	QPSStrategy         = "QPS"
 	RateLimiterStrategy = "RateLimiter"
 )

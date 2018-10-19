@@ -18,47 +18,50 @@
 package limit
 
 import (
-	"sync"
 	"errors"
+	"sync"
 	"time"
 )
 
-type QpsLimiter struct {
-	maxAllows int64
-	periodMicros int64
+// QPSLimiter limiter
+type QPSLimiter struct {
+	maxAllows        int64
+	periodMicros     int64
 	nextPeriodMicros int64
-	currentPermits int64
+	currentPermits   int64
 
-    start time.Time
+	start time.Time
 	mutex sync.Mutex
 }
 
-func NewQpsLimiter(maxAllows int64, periodMs int64) (*QpsLimiter, error) {
+// NewQPSLimiter new
+func NewQPSLimiter(maxAllows int64, periodMs int64) (*QPSLimiter, error) {
 	if maxAllows < 0 || periodMs <= 0 {
 		return nil, errors.New("maxAllows must not be negtive, and periodMs be positive")
 	}
 
-	l :=  &QpsLimiter{
-		maxAllows: maxAllows,
+	l := &QPSLimiter{
+		maxAllows:    maxAllows,
 		periodMicros: periodMs * int64(time.Millisecond),
-        start: time.Now(),
+		start:        time.Now(),
 	}
 	l.nextPeriodMicros = int64(time.Since(l.start)) + l.periodMicros
 	return l, nil
 }
 
-func (l *QpsLimiter) TryAcquire() bool {
+// TryAcquire limit
+func (l *QPSLimiter) TryAcquire() bool {
 	if l.maxAllows <= 0 {
-		return false;
+		return false
 	}
 
 	l.mutex.Lock()
 	var nowMicros = int64(time.Since(l.start))
 	if nowMicros >= l.nextPeriodMicros {
-		l.nextPeriodMicros = ((nowMicros - l.nextPeriodMicros) / l.periodMicros + 1) * l.periodMicros + l.nextPeriodMicros;
-		l.currentPermits = 0;
+		l.nextPeriodMicros = ((nowMicros-l.nextPeriodMicros)/l.periodMicros+1)*l.periodMicros + l.nextPeriodMicros
+		l.currentPermits = 0
 	}
-	l.currentPermits ++
+	l.currentPermits++
 	defer l.mutex.Unlock()
 	return l.currentPermits <= l.maxAllows
 }
