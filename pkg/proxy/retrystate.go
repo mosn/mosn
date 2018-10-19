@@ -106,18 +106,25 @@ func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamRe
 	}
 
 	if r.retryOn {
-		// http status
-		if code, ok := headers.Get(types.HeaderStatus); ok {
-			codeValue, _ := strconv.Atoi(code)
+		// TODO: add retry policy to decide retry or not. use default policy now
+		if headers != nil {
+			// http status
+			if code, ok := headers.Get(types.HeaderStatus); ok {
+				codeValue, _ := strconv.Atoi(code)
 
-			return codeValue >= 500
+				return codeValue >= 500
+			}
+			// rpc status
+			// TODO: some error code should not retry
+			if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
+				status := cmd.GetRespStatus()
+				return int16(status) != sofarpc.RESPONSE_STATUS_SUCCESS
+			}
 		}
-		// rpc status
-		// TODO: some error code should not retry
-		if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
-			status := cmd.GetRespStatus()
-			return int16(status) != sofarpc.RESPONSE_STATUS_SUCCESS
+		if reason == types.StreamConnectionFailed {
+			return true
 		}
+		// more policy
 
 	}
 

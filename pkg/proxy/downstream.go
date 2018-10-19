@@ -47,7 +47,7 @@ type downStream struct {
 	element  *list.Element
 
 	// flow control
-	bufferLimit        uint32
+	bufferLimit uint32
 
 	// ~~~ control args
 	timeout    *Timeout
@@ -311,6 +311,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	s.downstreamReqDataBuf = data.Clone()
+	s.downstreamReqDataBuf.Count(1)
 	data.Drain(data.Len())
 
 	workerPool.Offer(&receiveDataEvent{
@@ -623,7 +624,7 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 
 	// see if we need a retry
 	if urtype != UpstreamGlobalTimeout &&
-		s.downstreamResponseStarted && s.retryState != nil {
+		!s.downstreamResponseStarted && s.retryState != nil {
 		retryCheck := s.retryState.retry(nil, reason, s.doRetry)
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(true) {
@@ -765,6 +766,7 @@ func (s *downStream) doRetry() {
 
 	if s.upstreamRequest != nil {
 		if s.downstreamReqDataBuf != nil {
+			s.downstreamReqDataBuf.Count(1)
 			s.upstreamRequest.appendData(s.downstreamReqDataBuf, s.downstreamReqTrailers == nil)
 		}
 
@@ -819,6 +821,10 @@ func (s *downStream) cleanUp() {
 	if s.responseTimer != nil {
 		s.responseTimer.stop()
 		s.responseTimer = nil
+	}
+	// reset downstreamReqBuf
+	if s.downstreamReqDataBuf != nil {
+		buffer.PutIoBuffer(s.downstreamReqDataBuf)
 	}
 }
 
