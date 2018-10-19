@@ -7,6 +7,7 @@ import (
 	//"github.com/alipay/sofa-mosn/pkg/log"
 )
 
+// Create CidrRange
 func Create(address string, length uint32) CidrRange {
 	ipRange := CidrRange{}
 	ipRange.create(address, length)
@@ -47,6 +48,8 @@ func (c *CidrRange) inetNtoA(ip uint32) string {
 	return fmt.Sprintf("%d.%d.%d.%d",
 		byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip))
 }
+
+// IsInRange
 func (c *CidrRange) IsInRange(ip string) bool {
 	ipv4 := net.ParseIP(c.Address).To4()
 	if ipv4 != nil {
