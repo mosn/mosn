@@ -20,7 +20,6 @@ package config
 import (
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
