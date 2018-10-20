@@ -105,14 +105,12 @@ func Load(path string) *MOSNConfig {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatalln("load config failed, ", err)
-		os.Exit(1)
 	}
 	configPath, _ = filepath.Abs(path)
 	// translate to lower case
 	err = json.Unmarshal(content, &config)
 	if err != nil {
 		log.Fatalln("json unmarshal config failed, ", err)
-		os.Exit(1)
 	}
 	return &config
 }
