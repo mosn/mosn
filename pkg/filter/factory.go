@@ -21,14 +21,17 @@ import (
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
+	protobuf_types "github.com/gogo/protobuf/types"
 )
 
 var creatorStreamFactory map[string]StreamFilterFactoryCreator
 var creatorNetworkFactory map[string]NetworkFilterFactoryCreator
+var namedHttpFilterConfigFactory map[string]NamedHttpFilterConfigFactoryCreator
 
 func init() {
 	creatorStreamFactory = make(map[string]StreamFilterFactoryCreator)
 	creatorNetworkFactory = make(map[string]NetworkFilterFactoryCreator)
+	namedHttpFilterConfigFactory = make(map[string]NamedHttpFilterConfigFactoryCreator)
 }
 
 // RegisterStream registers the filterType as StreamFilterFactoryCreator
@@ -63,4 +66,21 @@ func CreateNetworkFilterChainFactory(filterType string, config map[string]interf
 		return nfcf, nil
 	}
 	return nil, fmt.Errorf("unsupported network filter type: %v", filterType)
+}
+
+// RegisterNamedHttpFilterConfigFactory register http filter named config factory
+func RegisterNamedHttpFilterConfigFactory(name string, factory NamedHttpFilterConfigFactoryCreator) {
+	namedHttpFilterConfigFactory[name] = factory
+}
+
+// CreateStreamFilterChainFactory creates a StreamFilterChainFactory according to http filter name
+func CreateNamedHttpFilterFactory(name string, config *protobuf_types.Struct) (types.NamedHttpFilterConfigFactory, error) {
+	if cf, ok := namedHttpFilterConfigFactory[name]; ok {
+		sfcf, err := cf(config)
+		if err != nil {
+			return nil, fmt.Errorf("create http filter stream filter chain factory failed: %v", err)
+		}
+		return sfcf, nil
+	}
+	return nil, fmt.Errorf("unsupported http filter name: %v", name)
 }

@@ -19,16 +19,30 @@ package mixer
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/istio/control/http"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/envoyproxy/go-control-plane/pkg/util"
+	"github.com/gogo/protobuf/jsonpb"
+	"istio.io/api/mixer/v1/config/client"
+
+	protobuf_types "github.com/gogo/protobuf/types"
+)
+
+const (
+	mixerFilterName = "mixer"
 )
 
 func init() {
-	filter.RegisterStream("mixer", CreateMixerFilterFactory)
+	// static mixer stream filter factory
+	filter.RegisterStream(mixerFilterName, CreateMixerFilterFactory)
+	// dynamic http_filter mixer config factory
+	filter.RegisterNamedHttpFilterConfigFactory(mixerFilterName, CreateMixerConfigFactory)
 }
 
 type FilterConfigFactory struct {
@@ -36,25 +50,63 @@ type FilterConfigFactory struct {
 }
 
 type mixerFilter struct {
-	context context.Context
-	handler http.RequestHandler
-	callback types.StreamReceiverFilterCallbacks
+	context          context.Context
+	config           *v2.Mixer
+	serviceContext	 *http.ServiceContext
+	clientContext 	 *http.ClientContext
+	handler          http.RequestHandler
+	decodeCallback   types.StreamReceiverFilterCallbacks
 	requestTotalSize uint64
 }
 
 func NewMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
 	return &mixerFilter{
-		context:       context,
+		context:      context,
+		config:				config,
+		clientContext:http.NewClientContext(config),
 	}
+}
+
+func (f *mixerFilter) ReadPerRouteConfig(perFilterConfig map[string]*v2.PerRouterConfig) {
+	mixerConfig, exist := perFilterConfig[mixerFilterName]
+	if !exist {
+		return
+	}
+
+	var serviceConfig client.ServiceConfig
+	err := util.StructToMessage(mixerConfig.Struct, &serviceConfig)
+	if err != nil {
+		return
+	}
+
+	f.serviceContext = http.NewServiceContext(f.clientContext, &serviceConfig)
+}
+
+func (f *mixerFilter) createRequestHandler() {
+	if f.handler != nil {
+		return
+	}
+
+	perFilterConfig := f.decodeCallback.Route().RouteRule().PerFilterConfig()
+
+	if perFilterConfig != nil {
+		f.ReadPerRouteConfig(perFilterConfig)
+	}
+
+	f.handler = http.NewRequestHandler(f.serviceContext)
 }
 
 func (f *mixerFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	f.requestTotalSize += headers.ByteSize()
+
+	f.createRequestHandler()
+
 	return types.StreamHeadersFilterContinue
 }
 
 func (f *mixerFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	f.requestTotalSize += uint64(buf.Len())
+
 	return types.StreamDataFilterContinue
 }
 
@@ -64,17 +116,17 @@ func (f *mixerFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTra
 }
 
 func (f *mixerFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
-	f.callback = cb
+	f.decodeCallback = cb
 }
 
 func (f *mixerFilter) OnDestroy() {}
 
 func (m *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
-	if m.handler == nil {
-		m.handler = http.NewRequestHandler()
-	}
+	log.DefaultLogger.Infof("in mixer log, config: %v", m.config)
 
-	checkData := http.NewCheckData(reqHeaders, requestInfo, m.callback.Connection())
+	m.createRequestHandler()
+
+	checkData := http.NewCheckData(reqHeaders, requestInfo, m.decodeCallback.Connection())
 
 	reportData := http.NewReportData(respHeaders, requestInfo, m.requestTotalSize)
 
@@ -88,10 +140,40 @@ func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbac
 }
 
 func CreateMixerFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
-	factory := &FilterConfigFactory{
+	return &FilterConfigFactory{
 		MixerConfig: config.ParseMixerFilter(conf),
+	}, nil
+}
+
+// MixerConfigFactory handle dynamic http filter mixer config
+type MixerConfigFactory struct {
+	Config map[string]interface{}
+	MixerConfig v2.Mixer
+}
+
+func (m *MixerConfigFactory) CreateFilter() v2.Filter {
+	return v2.Filter{
+		Type:mixerFilterName,
+		Config:m.Config,
+	}
+}
+
+func CreateMixerConfigFactory(config *protobuf_types.Struct) (types.NamedHttpFilterConfigFactory, error) {
+	factory := &MixerConfigFactory {
 	}
 
-	//log.DefaultLogger.Errorf("mix config:%v", factory.MixerConfig.MixerAttributes.Attributes)
-	return factory, nil
+	err := util.StructToMessage(config, &factory.MixerConfig.HttpClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	marshaler := jsonpb.Marshaler{}
+	str, err := marshaler.MarshalToString(&factory.MixerConfig.HttpClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal([]byte(str), &factory.Config)
+
+	return factory, err
 }

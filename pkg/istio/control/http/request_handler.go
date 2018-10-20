@@ -17,7 +17,9 @@
 
 package http
 
-import "github.com/alipay/sofa-mosn/pkg/istio/control"
+import (
+	"github.com/alipay/sofa-mosn/pkg/istio/control"
+)
 
 type RequestHandler interface {
 	Report(checkData *CheckData, reportData *ReportData)
@@ -28,10 +30,10 @@ type requestHandler struct {
 	serviceContext *ServiceContext
 }
 
-func NewRequestHandler() RequestHandler {
+func NewRequestHandler(serviceContext *ServiceContext) RequestHandler {
 	return &requestHandler{
 		requestContext:control.NewRequestContext(),
-		serviceContext:NewServiceContext(),
+		serviceContext:serviceContext,
 	}
 }
 
@@ -51,6 +53,8 @@ func (h *requestHandler) addForwardAttributes(checkData *CheckData) {
 }
 
 func (h *requestHandler) addCheckAttributes(checkData *CheckData) {
+	h.serviceContext.AddStaticAttributes(h.requestContext)
+
 	builder := newAttributesBuilder(h.requestContext)
 	builder.ExtractCheckAttributes(checkData)
 	// TODO: AddApiAttributes

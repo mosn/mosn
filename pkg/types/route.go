@@ -86,6 +86,9 @@ type RouteRule interface {
 	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
 	// as we may use weighted cluster's metadata, so need to input cluster's name
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
+
+	// PerFilterConfig returns per filter config from xds
+	PerFilterConfig() map[string]*v2.PerRouterConfig
 }
 
 // Policy defines a group of route policy

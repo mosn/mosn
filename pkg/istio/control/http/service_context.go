@@ -17,15 +17,38 @@
 
 package http
 
-import "github.com/alipay/sofa-mosn/pkg/istio/control"
+import (
+	"github.com/alipay/sofa-mosn/pkg/istio/control"
+	"github.com/gogo/protobuf/proto"
+	"istio.io/api/mixer/v1/config/client"
+)
 
 // ServiceContext hold service config for HTTP
 type ServiceContext struct {
-	ClientContext *control.ClientContext
+	ClientContext *ClientContext
+
+	// service config come from per filter config key "mixer"
+	ServiceConfig *client.ServiceConfig
 }
 
-func NewServiceContext() *ServiceContext {
+func NewServiceContext(clientContext *ClientContext, config *client.ServiceConfig) *ServiceContext {
 	return &ServiceContext{
-		ClientContext:control.NewClientContext(),
+		ClientContext:clientContext,
+		ServiceConfig:config,
 	}
+}
+
+func (s *ServiceContext) AddStaticAttributes(requestContext *control.RequestContext) {
+	s.ClientContext.AddLocalNodeAttributes(&requestContext.Attributes)
+
+	if s.ClientContext.HasMixerConfig() {
+		proto.Merge(&requestContext.Attributes, s.ClientContext.MixerAttributes())
+	}
+	if s.HasMixerConfig() {
+		proto.Merge(&requestContext.Attributes, s.ServiceConfig.MixerAttributes)
+	}
+}
+
+func (s *ServiceContext) HasMixerConfig() bool {
+	return s.ServiceConfig != nil && s.ServiceConfig.MixerAttributes != nil && len(s.ServiceConfig.MixerAttributes.Attributes) > 0
 }

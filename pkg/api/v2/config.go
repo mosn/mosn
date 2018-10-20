@@ -17,7 +17,10 @@
 
 package v2
 
-import istio_mixer_v1 "istio.io/api/mixer/v1"
+import (
+	"istio.io/api/mixer/v1/config/client"
+	google_protobuf "github.com/gogo/protobuf/types"
+)
 
 type HealthCheckConfig struct {
 	Protocol             string         `json:"protocol"`
@@ -70,14 +73,11 @@ type FaultInjectConfig struct {
 }
 
 type MixerConfig struct {
-	// Default attributes to send to Mixer in both Check and
-	// Report. This typically includes "destination.ip" and
-	// "destination.uid" attributes.
-	MixerAttributes *istio_mixer_v1.Attributes `protobuf:"bytes,3,opt,name=mixer_attributes,json=mixerAttributes" json:"mixer_attributes,omitempty"`
+	client.ServiceConfig
+}
 
-	// Default attributes to forward to upstream. This typically
-	// includes the "source.ip" and "source.uid" attributes.
-	ForwardAttributes *istio_mixer_v1.Attributes `protobuf:"bytes,5,opt,name=forward_attributes,json=forwardAttributes" json:"forward_attributes,omitempty"`
+type PerRouterConfig struct {
+	*google_protobuf.Struct
 }
 
 type RouterConfig struct {
@@ -86,6 +86,7 @@ type RouterConfig struct {
 	Redirect       RedirectAction `json:"redirect"`
 	MetadataConfig MetadataConfig `json:"metadata"`
 	Decorator      Decorator      `json:"decorator"`
+	PerFilterConfig map[string]*PerRouterConfig
 }
 
 type RouterActionConfig struct {

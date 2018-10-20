@@ -26,10 +26,6 @@ import (
 	"istio.io/api/mixer/v1"
 )
 
-const (
-	mixClusterName = "mixer_server"
-)
-
 type MixerClient interface {
 	Report(attributes *v1.Attributes)
 
@@ -42,12 +38,14 @@ type mixerClient struct {
 	client v1.MixerClient
 }
 
-func NewMixerClient() MixerClient {
-	snapshot := cluster.GetClusterMngAdapterInstance().GetCluster(mixClusterName)
+func NewMixerClient(reportCluster string) MixerClient {
+	snapshot := cluster.GetClusterMngAdapterInstance().GetCluster(reportCluster)
 	if snapshot == nil {
-		log.DefaultLogger.Errorf("get mixer server cluster config error")
+		log.DefaultLogger.Errorf("get mixer server cluster config error, report cluster: %s", reportCluster)
 		return nil
 	}
+
+	log.DefaultLogger.Infof("snapshot: %v", snapshot.ClusterInfo().SourceAddress().String())
 
 	mixerAddress := snapshot.PrioritySet().GetOrCreateHostSet(0).Hosts()[0].Address().String()
 	conn, err := grpc.Dial(mixerAddress, grpc.WithInsecure())

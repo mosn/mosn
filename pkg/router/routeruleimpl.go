@@ -43,6 +43,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		clusterName:   route.Route.ClusterName,
 		randInstance:  rand.New(rand.NewSource(time.Now().UnixNano())),
 		configHeaders: getRouterHeaders(route.Match.Headers),
+		perFilterConfig: route.PerFilterConfig,
 	}
 
 	routeRuleImplBase.weightedClusters, routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
@@ -112,6 +113,8 @@ type RouteRuleImplBase struct {
 	virtualClusters    *VirtualClusterEntry
 	randInstance       *rand.Rand
 	randMutex          sync.Mutex
+
+	perFilterConfig map[string]*v2.PerRouterConfig
 }
 
 // types.RouterInfo
@@ -188,6 +191,10 @@ func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.Me
 	}
 
 	return rri.metadataMatchCriteria
+}
+
+func (rri *RouteRuleImplBase) PerFilterConfig() map[string]*v2.PerRouterConfig {
+	return rri.perFilterConfig
 }
 
 // todo

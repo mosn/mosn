@@ -15,23 +15,13 @@
  * limitations under the License.
  */
 
-package control
+package types
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/istio/mixerclient"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
-// ClientContext hold mixer client
-type ClientContext struct {
-	mixerClient mixerclient.MixerClient
-}
-
-func NewClientContext() *ClientContext {
-	return &ClientContext{
-		mixerClient:mixerclient.NewMixerClient(),
-	}
-}
-
-func (c *ClientContext) SendReport(context *RequestContext) {
-	c.mixerClient.Report(&context.Attributes)
+// NamedHttpFilterConfigFactory create a named http filter config
+type NamedHttpFilterConfigFactory interface {
+	CreateFilter()v2.Filter
 }

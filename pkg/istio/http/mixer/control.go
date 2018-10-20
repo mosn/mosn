@@ -15,18 +15,17 @@
  * limitations under the License.
  */
 
-package filter
+package mixer
 
-import (
-	"github.com/alipay/sofa-mosn/pkg/types"
-	protobuf_types "github.com/gogo/protobuf/types"
-)
+import "github.com/alipay/sofa-mosn/pkg/api/v2"
 
-// StreamFilterFactoryCreator creates a StreamFilterChainFactory according to config
-type StreamFilterFactoryCreator func(config map[string]interface{}) (types.StreamFilterChainFactory, error)
+type Control struct {
+	Config *v2.Mixer
+}
 
-// NetworkFilterFactoryCreator creates a NetworkFilterChainFactory according to config
-type NetworkFilterFactoryCreator func(config map[string]interface{}) (types.NetworkFilterChainFactory, error)
+func NewControl(config *v2.Mixer) *Control {
+	return &Control{
+		Config:config,
+	}
+}
 
-// NamedHttpFilterConfigFactoryCreator creates a NamedHttpFilterConfigFactory according to config
-type NamedHttpFilterConfigFactoryCreator func(config *protobuf_types.Struct) (types.NamedHttpFilterConfigFactory, error)

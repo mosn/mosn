@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
@@ -79,7 +80,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 		return listenerConfig
 	}
 
-	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
+	listenerConfig.FilterChains, listenerConfig.StreamFilters = convertFilterChains(xdsListener.GetFilterChains())
 	listenerConfig.DisableConnIo = GetListenerDisableIO(&listenerConfig.FilterChains[0])
 
 	return listenerConfig
@@ -238,30 +239,40 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 	return accessLogs
 }
 
-func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) []v2.FilterChain {
+func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) ([]v2.FilterChain, []v2.Filter) {
 	if xdsFilterChains == nil {
-		return nil
+		return nil, nil
 	}
 	filterChains := make([]v2.FilterChain, 0, len(xdsFilterChains))
+	streamFilters := make([]v2.Filter, 0)
+
 	for _, xdsFilterChain := range xdsFilterChains {
 		filterChain := v2.FilterChain{
 			FilterChainMatch: xdsFilterChain.GetFilterChainMatch().String(),
 			TLS:              convertTLS(xdsFilterChain.GetTlsContext()),
-			Filters:          convertFilters(xdsFilterChain.GetFilters()),
 		}
+		f, streamFilter := convertFilters(xdsFilterChain.GetFilters())
+
+		filterChain.Filters = f
+		streamFilters = append([]v2.Filter(streamFilters), []v2.Filter(streamFilter)...)
+
 		filterChains = append(filterChains, filterChain)
 	}
-	return filterChains
+	return filterChains, streamFilters
 }
 
-func convertFilters(xdsFilters []xdslistener.Filter) []v2.Filter {
+func convertFilters(xdsFilters []xdslistener.Filter) ([]v2.Filter, []v2.Filter) {
 	if xdsFilters == nil {
-		return nil
+		return nil, nil
 	}
 
 	filters := make([]v2.Filter, 0, len(xdsFilters))
+	streamFilters := make([]v2.Filter, 0)
+
 	for _, xdsFilter := range xdsFilters {
-		filterMaps := convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig())
+		filterMaps, streamFilter := convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig())
+		streamFilters = append([]v2.Filter(streamFilters), []v2.Filter(streamFilter)...)
+
 		for typeKey, configValue := range filterMaps {
 			filters = append(filters, v2.Filter{
 				typeKey,
@@ -270,7 +281,7 @@ func convertFilters(xdsFilters []xdslistener.Filter) []v2.Filter {
 		}
 	}
 
-	return filters
+	return filters, streamFilters
 }
 
 func toMap(in interface{}) map[string]interface{} {
@@ -281,12 +292,13 @@ func toMap(in interface{}) map[string]interface{} {
 }
 
 // TODO: more filter config support
-func convertFilterConfig(name string, s *types.Struct) map[string]map[string]interface{} {
+func convertFilterConfig(name string, s *types.Struct) (map[string]map[string]interface{}, []v2.Filter) {
 	if s == nil {
-		return nil
+		return nil, nil
 	}
 
 	filtersConfigParsed := make(map[string]map[string]interface{})
+	streamFilters := make([]v2.Filter, 0)
 
 	var proxyConfig v2.Proxy
 	var routerConfig *v2.RouterConfiguration
@@ -303,6 +315,15 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 				UpstreamProtocol:   string(protocol.HTTP1),
 			}
 
+			// add http filter parse in HTTPConnectionManager case
+			for _, httpFilter := range filterConfig.HttpFilters {
+				f, err := filter.CreateNamedHttpFilterFactory(httpFilter.Name, httpFilter.Config)
+				if err != nil {
+					continue
+				}
+				filter := f.CreateFilter()
+				streamFilters = append(streamFilters, filter)
+			}
 		} else {
 			proxyConfig = v2.Proxy{
 				DownstreamProtocol: string(protocol.SofaRPC),
@@ -322,7 +343,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 
 	} else {
 		log.DefaultLogger.Errorf("unsupported filter config, filter name: %s", name)
-		return nil
+		return nil, nil
 	}
 
 	var routerConfigName string
@@ -346,7 +367,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 	// get proxy
 	proxyConfig.RouterConfigName = routerConfigName
 	filtersConfigParsed[v2.DEFAULT_NETWORK_FILTER] = toMap(proxyConfig)
-	return filtersConfigParsed
+	return filtersConfigParsed, streamFilters
 }
 
 func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} {
@@ -401,6 +422,7 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
 			}
+			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.PerFilterConfig)
 			routes = append(routes, route)
 		} else if xdsRouteAction := xdsRoute.GetRedirect(); xdsRouteAction != nil {
 			route := v2.Router{
@@ -411,6 +433,7 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
 			}
+			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.PerFilterConfig)
 			routes = append(routes, route)
 		} else {
 			log.DefaultLogger.Errorf("unsupported route actin, just Route and Redirect support yet, ignore this route")
@@ -418,6 +441,19 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 		}
 	}
 	return routes
+}
+
+func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[string]*v2.PerRouterConfig {
+	perRouteConfig := make(map[string]*v2.PerRouterConfig, 0)
+
+	for key, config := range xdsPerRouteConfig {
+
+		perRouteConfig[key] = &v2.PerRouterConfig{
+			Struct:config,
+		}
+	}
+
+	return perRouteConfig
 }
 
 func convertRouteMatch(xdsRouteMatch xdsroute.RouteMatch) v2.RouterMatch {
