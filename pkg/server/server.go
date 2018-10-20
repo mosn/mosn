@@ -159,7 +159,7 @@ func WaitConnectionsDone(duration time.Duration) error {
 	// two duration wait for connection to transfer
 	// 10 seconds wait for read timeout
 	timeout := time.NewTimer(duration*2 + time.Second*10)
-	wait := make(chan struct{})
+	wait := make(chan struct{}, 1)
 	time.Sleep(duration)
 	go func() {
 		//todo close idle connections and wait active connections complete
