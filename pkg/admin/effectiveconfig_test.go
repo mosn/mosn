@@ -18,10 +18,14 @@
 package admin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/juju/errors"
 )
+
+type checkFunction func() error
 
 func setupSubTest(t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
@@ -29,11 +33,11 @@ func setupSubTest(t *testing.T) func(t *testing.T) {
 	}
 }
 
-func TestSetListenerConfig_And_Dump(t *testing.T) {
+func TestSetListenerConfig(t *testing.T) {
 	cases := []struct {
 		name      string
 		listeners []v2.Listener
-		expect    string
+		expect    checkFunction
 	}{
 		{
 			name: "add",
@@ -46,7 +50,15 @@ func TestSetListenerConfig_And_Dump(t *testing.T) {
 					},
 				},
 			},
-			expect: `{"listener":{"test":{"name":"test","address":"","bind_port":false,"handoff_restoreddestination":false,"log_path":"stdout","filter_chains":null}}}`,
+			expect: func() error {
+				if len(conf.Listener) != 1 && conf.Listener["test"].Name != "test" {
+					return errors.New("listener add failed")
+				}
+				if len(conf.Listener["test"].FilterChains) != 0 {
+					return errors.New("listener add failed, FilterChains should be empty")
+				}
+				return nil
+			},
 		},
 		{
 			name: "update",
@@ -77,7 +89,15 @@ func TestSetListenerConfig_And_Dump(t *testing.T) {
 					},
 				},
 			},
-			expect: `{"listener":{"test":{"name":"test","address":"","bind_port":false,"handoff_restoreddestination":false,"log_path":"stdout","filter_chains":[{"tls_context":{"status":false,"type":""},"filters":[{"type":"xxx"}]}]}}}`,
+			expect: func() error {
+				if len(conf.Listener) != 1 && conf.Listener["test"].Name != "test" {
+					return errors.New("listener add failed")
+				}
+				if len(conf.Listener["test"].FilterChains) != 1 {
+					return errors.New("listener add failed, FilterChains count should be one")
+				}
+				return nil
+			},
 		},
 	}
 
@@ -89,13 +109,8 @@ func TestSetListenerConfig_And_Dump(t *testing.T) {
 			for _, listener := range tc.listeners {
 				SetListenerConfig(listener.ListenerConfig.Name, listener)
 			}
-			if buf, err := Dump(); err != nil {
+			if err := tc.expect(); err != nil {
 				t.Error(err)
-			} else {
-				actual := string(buf)
-				if actual != tc.expect {
-					t.Errorf("ListenerConfig set/dump failed\nexpect: %s\nactual: %s", tc.expect, actual)
-				}
 			}
 		})
 	}
@@ -106,7 +121,7 @@ func TestSetClusterAndHosts(t *testing.T) {
 		name     string
 		clusters []v2.Cluster
 		hosts    map[string][]v2.Host
-		expect   string
+		expect   checkFunction
 	}{
 		{
 			name: "Add Cluster & Hosts",
@@ -134,7 +149,16 @@ func TestSetClusterAndHosts(t *testing.T) {
 					},
 				},
 			},
-			expect: `{"cluster":{"outbound|9080||productpage.default.svc.cluster.local":{"name":"outbound|9080||productpage.default.svc.cluster.local","type":"EDS","sub_type":"","lb_type":"LB_ROUNDROBIN","max_request_per_conn":0,"conn_buffer_limit_bytes":0,"circuit_breakers":null,"outlier_detection":{"Consecutive5xx":0,"Interval":0,"BaseEjectionTime":0,"MaxEjectionPercent":0,"ConsecutiveGatewayFailure":0,"EnforcingConsecutive5xx":0,"EnforcingConsecutiveGatewayFailure":0,"EnforcingSuccessRate":0,"SuccessRateMinimumHosts":0,"SuccessRateRequestVolume":0,"SuccessRateStdevFactor":0},"health_check":{"protocol":"","timeout":"0s","interval":"0s","interval_jitter":"0s","healthy_threshold":0,"unhealthy_threshold":0},"spec":{},"lb_subset_config":{"fall_back_policy":0,"default_subset":null,"subset_selectors":null},"tls_context":{"status":false,"type":""},"hosts":[{"address":"172.16.1.154:9080","weight":1,"metadata":{"filter_metadata":{"mosn.lb":null}}}]}}}`,
+			expect: func() error {
+				if len(conf.Cluster) != 1 || len(conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].Hosts) != 1 {
+					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] not exists or empty")
+				}
+				hosts := conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].Hosts
+				if hosts[0].Address != "172.16.1.154:9080" {
+					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] host address should be 172.16.1.154:9080, but got " + hosts[0].Address)
+				}
+				return nil
+			},
 		},
 		{
 			name: "Update Cluster",
@@ -154,8 +178,18 @@ func TestSetClusterAndHosts(t *testing.T) {
 					Hosts:       nil,
 				},
 			},
-			hosts:  map[string][]v2.Host{},
-			expect: `{"cluster":{"outbound|9080||productpage.default.svc.cluster.local":{"name":"outbound|9080||productpage.default.svc.cluster.local","type":"EDS","sub_type":"","lb_type":"LB_RANDOM","max_request_per_conn":0,"conn_buffer_limit_bytes":0,"circuit_breakers":null,"outlier_detection":{"Consecutive5xx":0,"Interval":0,"BaseEjectionTime":0,"MaxEjectionPercent":0,"ConsecutiveGatewayFailure":0,"EnforcingConsecutive5xx":0,"EnforcingConsecutiveGatewayFailure":0,"EnforcingSuccessRate":0,"SuccessRateMinimumHosts":0,"SuccessRateRequestVolume":0,"SuccessRateStdevFactor":0},"health_check":{"protocol":"","timeout":"0s","interval":"0s","interval_jitter":"0s","healthy_threshold":0,"unhealthy_threshold":0},"spec":{},"lb_subset_config":{"fall_back_policy":0,"default_subset":null,"subset_selectors":null},"tls_context":{"status":false,"type":""},"hosts":null}}}`,
+			hosts: map[string][]v2.Host{},
+			expect: func() error {
+				if len(conf.Cluster) != 1 {
+					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] not exists or empty")
+				}
+				lbType := conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].LbType
+				if lbType != v2.LB_RANDOM {
+					return errors.New(fmt.Sprintf("[outbound|9080||productpage.default.svc.cluster.local] lbType should be LB_RANDOM, but got %s", lbType))
+				}
+				return nil
+
+			},
 		},
 		{
 			name: "Update Hosts",
@@ -206,7 +240,19 @@ func TestSetClusterAndHosts(t *testing.T) {
 					},
 				},
 			},
-			expect: `{"cluster":{"outbound|9080||productpage.default.svc.cluster.local":{"name":"outbound|9080||productpage.default.svc.cluster.local","type":"EDS","sub_type":"","lb_type":"LB_ROUNDROBIN","max_request_per_conn":0,"conn_buffer_limit_bytes":0,"circuit_breakers":null,"outlier_detection":{"Consecutive5xx":0,"Interval":0,"BaseEjectionTime":0,"MaxEjectionPercent":0,"ConsecutiveGatewayFailure":0,"EnforcingConsecutive5xx":0,"EnforcingConsecutiveGatewayFailure":0,"EnforcingSuccessRate":0,"SuccessRateMinimumHosts":0,"SuccessRateRequestVolume":0,"SuccessRateStdevFactor":0},"health_check":{"protocol":"","timeout":"0s","interval":"0s","interval_jitter":"0s","healthy_threshold":0,"unhealthy_threshold":0},"spec":{},"lb_subset_config":{"fall_back_policy":0,"default_subset":null,"subset_selectors":null},"tls_context":{"status":false,"type":""},"hosts":[{"address":"172.16.1.154:9080","weight":1,"metadata":{"filter_metadata":{"mosn.lb":null}}},{"address":"172.16.1.155:9080","weight":3,"metadata":{"filter_metadata":{"mosn.lb":null}}}]}}}`,
+			expect: func() error {
+				if len(conf.Cluster) != 1 || len(conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].Hosts) != 2 {
+					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] not exists or hosts number error")
+				}
+				hosts := conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].Hosts
+				if hosts[0].Address != "172.16.1.154:9080" {
+					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] hosts[0] address should be 172.16.1.154:9080, but got " + hosts[0].Address)
+				}
+				if hosts[1].Address != "172.16.1.155:9080" {
+					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] hosts[1] address should be 172.16.1.155:9080, but got " + hosts[1].Address)
+				}
+				return nil
+			},
 		},
 	}
 
@@ -222,13 +268,8 @@ func TestSetClusterAndHosts(t *testing.T) {
 				SetHosts(clusterName, host)
 			}
 
-			if buf, err := Dump(); err != nil {
+			if err := tc.expect(); err != nil {
 				t.Error(err)
-			} else {
-				actual := string(buf)
-				if actual != tc.expect {
-					t.Errorf("ListenerConfig set/dump failed\nexpect: %s\nactual: %s", tc.expect, actual)
-				}
 			}
 		})
 	}
