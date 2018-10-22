@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/metrix"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"gitlab.alipay-inc.com/ant-mesh/mosn/pkg/common"
 )
 
 func TestNewRuleEngineFactory(t *testing.T) {
@@ -38,7 +38,7 @@ func TestNewRuleEngineFactory(t *testing.T) {
 
 	{
 		log.DefaultLogger.Infof("start ticker")
-		ticker := common.NewTicker(func() {
+		ticker := metrix.NewTicker(func() {
 			total++
 			if ruleEngineFactory.invoke(headers) {
 				success++
