@@ -296,6 +296,7 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 		s.request = fasthttp.AcquireRequest()
 	}
 
+	s.request.Header.SetMethod(http.MethodPost) // should set to post if there is a body
 	s.request.SetBody(data.Bytes())
 
 	if endStream {

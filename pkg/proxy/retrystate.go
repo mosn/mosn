@@ -135,5 +135,6 @@ func (r *retryState) reset() {
 	if r.retryFunc != nil {
 		r.cluster.ResourceManager().Retries().Decrease()
 		r.retryFunc = nil
+		r.retryTimer.stop()
 	}
 }

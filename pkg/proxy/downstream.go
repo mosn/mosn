@@ -822,10 +822,7 @@ func (s *downStream) cleanUp() {
 		s.responseTimer.stop()
 		s.responseTimer = nil
 	}
-	// reset downstreamReqBuf
-	if s.downstreamReqDataBuf != nil {
-		buffer.PutIoBuffer(s.downstreamReqDataBuf)
-	}
+
 }
 
 func (s *downStream) setBufferLimit(bufferLimit uint32) {
@@ -897,6 +894,10 @@ func (s *downStream) DownstreamHeaders() types.HeaderMap {
 func (s *downStream) GiveStream() {
 	if s.upstreamReset == 1 || s.downstreamReset == 1 {
 		return
+	}
+	// reset downstreamReqBuf
+	if s.downstreamReqDataBuf != nil {
+		buffer.PutIoBuffer(s.downstreamReqDataBuf)
 	}
 
 	// Give buffers to bufferPool

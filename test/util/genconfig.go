@@ -13,6 +13,7 @@ import (
 var (
 	MeshLogPath  = "stdout"
 	MeshLogLevel = "WARN"
+	StartRetry   = false
 )
 
 // Create Mesh Config
@@ -148,7 +149,7 @@ func newHeaderWeightedRouter(clusters []v2.WeightedCluster, value string) v2.Rou
 					WeightedClusters: clusters,
 					RetryPolicy: &v2.RetryPolicy{
 						RetryPolicyConfig: v2.RetryPolicyConfig{
-							RetryOn:    true,
+							RetryOn:    StartRetry,
 							NumRetries: 3,
 						},
 						RetryTimeout: 5 * time.Second,
@@ -170,7 +171,7 @@ func newHeaderRouter(cluster string, value string) v2.Router {
 					ClusterName: cluster,
 					RetryPolicy: &v2.RetryPolicy{
 						RetryPolicyConfig: v2.RetryPolicyConfig{
-							RetryOn:    true,
+							RetryOn:    StartRetry,
 							NumRetries: 3,
 						},
 						RetryTimeout: 5 * time.Second,
@@ -189,7 +190,7 @@ func newPrefixRouter(cluster string, prefix string) v2.Router {
 					ClusterName: cluster,
 					RetryPolicy: &v2.RetryPolicy{
 						RetryPolicyConfig: v2.RetryPolicyConfig{
-							RetryOn:    true,
+							RetryOn:    StartRetry,
 							NumRetries: 3,
 						},
 						RetryTimeout: 5 * time.Second,
@@ -208,7 +209,7 @@ func newPathRouter(cluster string, path string) v2.Router {
 					ClusterName: cluster,
 					RetryPolicy: &v2.RetryPolicy{
 						RetryPolicyConfig: v2.RetryPolicyConfig{
-							RetryOn:    true,
+							RetryOn:    StartRetry,
 							NumRetries: 3,
 						},
 						RetryTimeout: 5 * time.Second,

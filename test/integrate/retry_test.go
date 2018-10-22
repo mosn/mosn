@@ -19,9 +19,10 @@ type RetryCase struct {
 	*TestCase
 	GoodServer util.UpstreamServer
 	BadServer  util.UpstreamServer
+	BadIsClose bool
 }
 
-func NewRetryCase(t *testing.T, serverProto, meshProto types.Protocol) *RetryCase {
+func NewRetryCase(t *testing.T, serverProto, meshProto types.Protocol, isClose bool) *RetryCase {
 	app1 := "127.0.0.1:8080"
 	app2 := "127.0.0.1:8081"
 	var good, bad util.UpstreamServer
@@ -42,10 +43,35 @@ func NewRetryCase(t *testing.T, serverProto, meshProto types.Protocol) *RetryCas
 	}
 	tc := NewTestCase(t, serverProto, meshProto, util.NewRPCServer(t, "", util.Bolt1)) // Empty RPC server for get rpc client
 	return &RetryCase{
-		tc,
-		good,
-		bad,
+		TestCase:   tc,
+		GoodServer: good,
+		BadServer:  bad,
+		BadIsClose: isClose,
 	}
+}
+func (c *RetryCase) StartProxy() {
+	c.GoodServer.GoServe()
+	c.BadServer.GoServe()
+	app1 := c.GoodServer.Addr()
+	app2 := c.BadServer.Addr()
+	if c.BadIsClose {
+		c.BadServer.Close()
+	}
+	clientMeshAddr := util.CurrentMeshAddr()
+	c.ClientMeshAddr = clientMeshAddr
+	cfg := util.CreateProxyMesh(clientMeshAddr, []string{app1, app2}, c.AppProtocol)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Stop
+		c.GoodServer.Close()
+		if !c.BadIsClose {
+			c.BadServer.Close()
+		}
+		mesh.Close()
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+
 }
 
 func (c *RetryCase) Start(tls bool) {
@@ -53,6 +79,9 @@ func (c *RetryCase) Start(tls bool) {
 	c.BadServer.GoServe()
 	app1 := c.GoodServer.Addr()
 	app2 := c.BadServer.Addr()
+	if c.BadIsClose {
+		c.BadServer.Close()
+	}
 	clientMeshAddr := util.CurrentMeshAddr()
 	c.ClientMeshAddr = clientMeshAddr
 	serverMeshAddr := util.CurrentMeshAddr()
@@ -62,7 +91,9 @@ func (c *RetryCase) Start(tls bool) {
 	go func() {
 		<-c.Stop
 		c.GoodServer.Close()
-		c.BadServer.Close()
+		if !c.BadIsClose {
+			c.BadServer.Close()
+		}
 		mesh.Close()
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
@@ -102,14 +133,32 @@ func ServeBadBoltV1(t *testing.T, conn net.Conn) {
 }
 
 func TestRetry(t *testing.T) {
+	util.StartRetry = true
+	defer func() {
+		util.StartRetry = false
+	}()
 	testCases := []*RetryCase{
-		NewRetryCase(t, protocol.HTTP1, protocol.HTTP1),
-		NewRetryCase(t, protocol.HTTP1, protocol.HTTP2),
-		NewRetryCase(t, protocol.HTTP2, protocol.HTTP1),
-		NewRetryCase(t, protocol.HTTP2, protocol.HTTP2),
-		NewRetryCase(t, protocol.SofaRPC, protocol.HTTP1),
-		NewRetryCase(t, protocol.SofaRPC, protocol.HTTP2),
-		NewRetryCase(t, protocol.SofaRPC, protocol.SofaRPC),
+		NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, true),
+		// A server reponse not success
+		NewRetryCase(t, protocol.HTTP1, protocol.HTTP1, false),
+		NewRetryCase(t, protocol.HTTP1, protocol.HTTP2, false),
+		NewRetryCase(t, protocol.HTTP2, protocol.HTTP1, false),
+		NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, false),
+		NewRetryCase(t, protocol.SofaRPC, protocol.HTTP1, false),
+		NewRetryCase(t, protocol.SofaRPC, protocol.HTTP2, false),
+		NewRetryCase(t, protocol.SofaRPC, protocol.SofaRPC, false),
+		// A server is shutdown
+		NewRetryCase(t, protocol.HTTP1, protocol.HTTP1, true),
+		NewRetryCase(t, protocol.HTTP1, protocol.HTTP2, true),
+		// HTTP2 and SofaRPC will create connection to upstream before send request to upstream
+		// If upstream is closed, it will failed directly, and we cannot do a retry before we send a request to upstream
+		/*
+			NewRetryCase(t, protocol.HTTP2, protocol.HTTP1, true),
+			NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, true),
+			NewRetryCase(t, protocol.SofaRPC, protocol.HTTP1, true),
+			NewRetryCase(t, protocol.SofaRPC, protocol.HTTP2, true),
+			NewRetryCase(t, protocol.SofaRPC, protocol.SofaRPC, true),
+		*/
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
@@ -126,5 +175,37 @@ func TestRetry(t *testing.T) {
 		}
 		close(tc.Stop)
 		time.Sleep(time.Second)
+	}
+}
+
+func TestRetryProxy(t *testing.T) {
+	util.StartRetry = true
+	defer func() {
+		util.StartRetry = false
+	}()
+	testCases := []*RetryCase{
+		NewRetryCase(t, protocol.HTTP1, protocol.HTTP1, false),
+		NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, false),
+		NewRetryCase(t, protocol.SofaRPC, protocol.SofaRPC, false),
+		NewRetryCase(t, protocol.HTTP1, protocol.HTTP1, true),
+		//NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, true),
+		//NewRetryCase(t, protocol.SofaRPC, protocol.SofaRPC, true),
+	}
+	for i, tc := range testCases {
+		t.Logf("start case #%d\n", i)
+		tc.StartProxy()
+		// at least run twice
+		go tc.RunCase(2, 0)
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, err)
+			}
+		case <-time.After(15 * time.Second):
+			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
+		}
+		close(tc.Stop)
+		time.Sleep(time.Second)
+
 	}
 }
