@@ -18,6 +18,7 @@
 package integrate
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -30,7 +31,6 @@ import (
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/gogo/protobuf/proto"
 	"github.com/json-iterator/go"
-	"github.com/juju/errors"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

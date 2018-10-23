@@ -18,11 +18,11 @@
 package admin
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/juju/errors"
 )
 
 type checkFunction func() error
