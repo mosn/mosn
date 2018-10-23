@@ -83,5 +83,7 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 // Dump
 // Dump all config
 func Dump() ([]byte, error) {
+	mutex.RLock()
+	defer mutex.RUnlock()
 	return json.Marshal(conf)
 }

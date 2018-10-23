@@ -20,7 +20,6 @@ package integrate
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -105,6 +104,7 @@ func handleXdsData(mosnConfig *config.MOSNConfig, xdsFiles []string) error {
 
 func TestConfigAddAndUpdate(t *testing.T) {
 	mosnConfig := config.Load(filepath.Join("testdata", "envoy.json"))
+	admin.Reset()
 	admin.SetMOSNConfig(mosnConfig)
 	Mosn := mosn.NewMosn(mosnConfig)
 	Mosn.Start()
@@ -153,11 +153,16 @@ func TestConfigAddAndUpdate(t *testing.T) {
 			t.Fatalf("error listener[0.0.0.0_9080] config: %v", listener)
 		}
 
-		if len(listener.FilterChains[0].Filters) != 2 || listener.FilterChains[0].Filters[0].Type != "connection_manager" {
+		if len(listener.FilterChains[0].Filters) != 2 {
 			t.Fatalf("error listener[0.0.0.0_9080] config: %v", listener)
 		}
 
-		filter := listener.FilterChains[0].Filters[0]
+		var filter v2.Filter
+		for _, data := range listener.FilterChains[0].Filters {
+			if data.Type == "connection_manager" {
+				filter = data
+			}
+		}
 		if data, ok := filter.Config["virtual_hosts"]; !ok {
 			t.Fatalf("listener[0.0.0.0_9080] missing virtual_hosts")
 		} else {
@@ -230,9 +235,15 @@ func TestConfigAddAndUpdate(t *testing.T) {
 			t.Fatalf("error listener config: %v", listener)
 		}
 
-		filter := listener.FilterChains[0].Filters[0]
+		var filter v2.Filter
+		for _, data := range listener.FilterChains[0].Filters {
+			if data.Type == "connection_manager" {
+				filter = data
+			}
+		}
+
 		if data, ok := filter.Config["virtual_hosts"]; !ok {
-			t.Fatalf("listener[0.0.0.0_9080] missing virtual_hosts")
+			t.Fatalf("listener[0.0.0.0_9080] missing virtual_hosts, %v", filter)
 		} else {
 			hosts := data.([]interface{})
 			host := hosts[3].(map[string]interface{})
@@ -277,9 +288,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 			t.Fatalf("error host: %v", cluster.Hosts[0])
 		}
 	}
-}
 
-func TestMain(m *testing.M) {
-	code := m.Run()
-	os.Exit(code)
+	Mosn.Close()
+	admin.Reset()
 }
