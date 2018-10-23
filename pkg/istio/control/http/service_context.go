@@ -25,30 +25,37 @@ import (
 
 // ServiceContext hold service config for HTTP
 type ServiceContext struct {
-	ClientContext *ClientContext
+	clientContext *ClientContext
 
 	// service config come from per filter config key "mixer"
-	ServiceConfig *client.ServiceConfig
+	serviceConfig *client.ServiceConfig
 }
 
-func NewServiceContext(clientContext *ClientContext, config *client.ServiceConfig) *ServiceContext {
+func NewServiceContext(clientContext *ClientContext) *ServiceContext {
 	return &ServiceContext{
-		ClientContext:clientContext,
-		ServiceConfig:config,
+		clientContext:clientContext,
 	}
+}
+
+func (s *ServiceContext) GetClientContext() *ClientContext {
+	return s.clientContext
+}
+
+func (s *ServiceContext) SetServiceConfig(config *client.ServiceConfig) {
+	s.serviceConfig = config
 }
 
 func (s *ServiceContext) AddStaticAttributes(requestContext *control.RequestContext) {
-	s.ClientContext.AddLocalNodeAttributes(&requestContext.Attributes)
+	s.clientContext.AddLocalNodeAttributes(&requestContext.Attributes)
 
-	if s.ClientContext.HasMixerConfig() {
-		proto.Merge(&requestContext.Attributes, s.ClientContext.MixerAttributes())
+	if s.clientContext.HasMixerConfig() {
+		proto.Merge(&requestContext.Attributes, s.clientContext.MixerAttributes())
 	}
 	if s.HasMixerConfig() {
-		proto.Merge(&requestContext.Attributes, s.ServiceConfig.MixerAttributes)
+		proto.Merge(&requestContext.Attributes, s.serviceConfig.MixerAttributes)
 	}
 }
 
 func (s *ServiceContext) HasMixerConfig() bool {
-	return s.ServiceConfig != nil && s.ServiceConfig.MixerAttributes != nil && len(s.ServiceConfig.MixerAttributes.Attributes) > 0
+	return s.serviceConfig != nil && s.serviceConfig.MixerAttributes != nil && len(s.serviceConfig.MixerAttributes.Attributes) > 0
 }

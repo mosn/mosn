@@ -21,7 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"istio.io/api/mixer/v1"
 )
 
@@ -59,7 +58,7 @@ func newReportBatch(compressor *AttributeCompressor, client MixerClient) *report
 }
 
 func (r *reportBatch) main(wg *sync.WaitGroup) {
-	timer := time.NewTimer(kFlushTimeout).C
+	timer := time.NewTicker(kFlushTimeout).C
 
 	wg.Done()
 
@@ -70,7 +69,6 @@ func (r *reportBatch) main(wg *sync.WaitGroup) {
 				r.flush()
 			}
 		case <-timer:
-			log.DefaultLogger.Infof("timeout")
 			r.flush()
 	}
 }
@@ -80,7 +78,9 @@ func (r *reportBatch) report(attributes *v1.Attributes) {
 }
 
 func (r *reportBatch) flush() {
-	log.DefaultLogger.Infof("reportbatch flush")
+	if r.batchCompressor.Size() == 0 {
+		return
+	}
 	request := r.batchCompressor.Finish()
 	r.mixerClient.SendReport(request)
 	r.batchCompressor.Clear()

@@ -19,11 +19,18 @@ package mixerclient
 
 import (
 	"context"
+	"fmt"
+	"runtime/debug"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	"google.golang.org/grpc"
 	"istio.io/api/mixer/v1"
+)
+
+const (
+	kQueryTimeout = time.Second * 2
 )
 
 type MixerClient interface {
@@ -36,41 +43,73 @@ type mixerClient struct {
 	reportBatch *reportBatch
 	attributeCompressor *AttributeCompressor
 	client v1.MixerClient
+	mixerAddress string
+	lastConnectTime time.Time
+	reportCluster string
 }
 
 func NewMixerClient(reportCluster string) MixerClient {
-	snapshot := cluster.GetClusterMngAdapterInstance().GetCluster(reportCluster)
-	if snapshot == nil {
-		log.DefaultLogger.Errorf("get mixer server cluster config error, report cluster: %s", reportCluster)
-		return nil
+	attributeCompressor := NewAttributeCompressor()
+	client := &mixerClient{
+		attributeCompressor:attributeCompressor,
+		reportCluster:reportCluster,
+		lastConnectTime: time.Now(),
+	}
+	client.reportBatch = newReportBatch(client.attributeCompressor, client)
+
+	client.tryConnect(false)
+
+	return client
+}
+
+func (c *mixerClient) tryConnect(retry bool) error {
+	if retry {
+		now := time.Now()
+		diff := now.Sub(c.lastConnectTime)
+		if diff < time.Second * 10 {
+			return fmt.Errorf("re-connect too often")
+		}
+		// update last connect time
+		c.lastConnectTime =  now
 	}
 
-	log.DefaultLogger.Infof("snapshot: %v", snapshot.ClusterInfo().SourceAddress().String())
+	snapshot := cluster.GetClusterMngAdapterInstance().GetCluster(c.reportCluster)
+	if snapshot == nil {
+		err := fmt.Errorf("get mixer server cluster config error, report cluster: %s", c.reportCluster)
+		log.DefaultLogger.Errorf("%s", err.Error())
+		return err
+	}
 
 	mixerAddress := snapshot.PrioritySet().GetOrCreateHostSet(0).Hosts()[0].Address().String()
 	conn, err := grpc.Dial(mixerAddress, grpc.WithInsecure())
 	if err != nil {
-		log.DefaultLogger.Errorf("grpc dial to mixserver %s error %v", mixerAddress, err)
+		err := fmt.Errorf("grpc dial to mixer server %s error %v", mixerAddress, err)
+		log.DefaultLogger.Errorf("%s", err.Error())
+		return err
 	}
-	mixClient := v1.NewMixerClient(conn)
-
-	client := &mixerClient{
-		attributeCompressor:NewAttributeCompressor(),
-		client:mixClient,
-	}
-
-	client.reportBatch = newReportBatch(client.attributeCompressor, client)
-	return client
+	c.client = v1.NewMixerClient(conn)
+	c.mixerAddress = mixerAddress
+	return nil
 }
 
 func (c *mixerClient) Report(attributes *v1.Attributes) {
+	if c.client == nil {
+		err := c.tryConnect(true)
+		if err != nil {
+			log.DefaultLogger.Errorf("mixer client nil, retry error:%v")
+			return
+		}
+	}
+
 	c.reportBatch.report(attributes)
 }
 
 func (c *mixerClient) SendReport(request *v1.ReportRequest) *v1.ReportResponse {
-	response, err := c.client.Report(context.Background(), request)
+	ctx, cancel := context.WithTimeout(context.Background(), kQueryTimeout)
+	response, err := c.client.Report(ctx, request)
+	defer cancel()
 	if err != nil {
-		log.DefaultLogger.Errorf("send report error: %v", err)
+		log.DefaultLogger.Errorf("send report error: %v, stack: %s\n\n", err, string(debug.Stack()))
 	}
 	return response
 }

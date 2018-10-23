@@ -112,3 +112,19 @@ func (a *AttributesBuilder) AddString(key string, value string) {
 		},
 	}
 }
+
+func (a *AttributesBuilder) AddDouble(key string, value float64) {
+	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
+		Value:&v1.Attributes_AttributeValue_DoubleValue{
+			DoubleValue:value,
+		},
+	}
+}
+
+func (a *AttributesBuilder) AddBool(key string, value bool) {
+	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
+		Value:&v1.Attributes_AttributeValue_BoolValue{
+			BoolValue:value,
+		},
+	}
+}

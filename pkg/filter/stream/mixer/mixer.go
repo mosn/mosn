@@ -60,11 +60,13 @@ type mixerFilter struct {
 }
 
 func NewMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
-	return &mixerFilter{
+	filter := &mixerFilter{
 		context:      context,
 		config:				config,
 		clientContext:http.NewClientContext(config),
 	}
+	filter.serviceContext = http.NewServiceContext(filter.clientContext)
+	return filter
 }
 
 func (f *mixerFilter) ReadPerRouteConfig(perFilterConfig map[string]*v2.PerRouterConfig) {
@@ -79,15 +81,27 @@ func (f *mixerFilter) ReadPerRouteConfig(perFilterConfig map[string]*v2.PerRoute
 		return
 	}
 
-	f.serviceContext = http.NewServiceContext(f.clientContext, &serviceConfig)
+	f.serviceContext.SetServiceConfig(&serviceConfig)
 }
 
 func (f *mixerFilter) createRequestHandler() {
 	if f.handler != nil {
+		log.DefaultLogger.Infof("handler not nil, return")
 		return
 	}
 
-	perFilterConfig := f.decodeCallback.Route().RouteRule().PerFilterConfig()
+	route := f.decodeCallback.Route()
+	if route == nil {
+		log.DefaultLogger.Infof("no route, return")
+		return
+	}
+	rule := route.RouteRule()
+	if rule == nil {
+		log.DefaultLogger.Infof("no route rule, return")
+		return
+	}
+
+	perFilterConfig := rule.PerFilterConfig()
 
 	if perFilterConfig != nil {
 		f.ReadPerRouteConfig(perFilterConfig)
@@ -122,7 +136,7 @@ func (f *mixerFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCal
 func (f *mixerFilter) OnDestroy() {}
 
 func (m *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
-	log.DefaultLogger.Infof("in mixer log, config: %v", m.config)
+	//log.DefaultLogger.Infof("in mixer log, config: %v", m.config)
 
 	m.createRequestHandler()
 

@@ -25,12 +25,20 @@ import (
 
 // BatchCompressor
 type BatchCompressor interface {
+	// Add an attribute set to the batch
 	Add(attributes *v1.Attributes)
+
+	// Finish the batch and create the batched report request
 	Finish() *v1.ReportRequest
+
+	// Get the batched size
 	Size() int
+
+	// Reset the object data
 	Clear()
 }
 
+// AttributeCompressor for compress attributes
 type AttributeCompressor struct {
  	globalDict *GlobalDictionary
 }
@@ -50,6 +58,9 @@ type MessageDictionary struct {
 // GlobalDictionary store global dictionary
 type GlobalDictionary struct {
 	globalDict map[string]int32
+
+	// the last index of the global dictionary.
+	// If mis-matched with server, it will set to base
 	topIndex int32
 }
 
@@ -63,6 +74,15 @@ func (a *AttributeCompressor) CreateBatchCompressor() BatchCompressor {
 	return NewBatchCompressor(a.globalDict)
 }
 
+func (a *AttributeCompressor) Compress(attributes *v1.Attributes, pb *v1.CompressedAttributes) {
+	dict := NewMessageDictionary(a.globalDict)
+	CompressByDict(attributes, dict, pb)
+
+	for _, word := range dict.GetWords() {
+		pb.Words = append(pb.Words, word)
+	}
+}
+
 func NewBatchCompressor(globalDict *GlobalDictionary) BatchCompressor {
 	b := &batchCompressor{
 		globalDict:globalDict,
@@ -70,24 +90,16 @@ func NewBatchCompressor(globalDict *GlobalDictionary) BatchCompressor {
 	}
 
 	b.report.Attributes = make([]v1.CompressedAttributes, 0)
-	b.report.Attributes = append(b.report.Attributes, v1.CompressedAttributes{
-		Words:make([]string, 0),
-		Strings:make(map[int32]int32, 0),
-		Int64S:make(map[int32]int64, 0),
-		Doubles:make(map[int32]float64, 0),
-		Bools:make(map[int32]bool, 0),
-		Timestamps:make(map[int32]time.Time, 0),
-		Durations:make(map[int32]time.Duration, 0),
-		Bytes:make(map[int32][]byte, 0),
-		StringMaps:make(map[int32]v1.StringMap, 0),
-	})
 	b.report.DefaultWords = make([]string, 0)
-
 	return b
 }
 
 func (b *batchCompressor) Add(attributes *v1.Attributes) {
-	CompressByDict(attributes, b.dict, &b.report.Attributes[0])
+	addAttributes := NewCompressAttributes()
+
+	CompressByDict(attributes, b.dict, &addAttributes)
+
+	b.report.Attributes = append(b.report.Attributes, addAttributes)
 }
 
 func (b *batchCompressor) Finish() *v1.ReportRequest {
@@ -105,7 +117,9 @@ func (b *batchCompressor) Size() int {
 }
 
 func (b *batchCompressor) Clear() {
-	b.report.Reset()
+	b.report.Attributes = make([]v1.CompressedAttributes, 0)
+	b.report.DefaultWords = make([]string, 0)
+
 	b.dict.Clear()
 }
 
@@ -205,4 +219,18 @@ func CreateStringMap(sm *v1.Attributes_StringMap, dict *MessageDictionary) v1.St
 	}
 
 	return compressedMap
+}
+
+func NewCompressAttributes() v1.CompressedAttributes {
+	return v1.CompressedAttributes{
+		Words:make([]string, 0),
+		Strings:make(map[int32]int32, 0),
+		Int64S:make(map[int32]int64, 0),
+		Doubles:make(map[int32]float64, 0),
+		Bools:make(map[int32]bool, 0),
+		Timestamps:make(map[int32]time.Time, 0),
+		Durations:make(map[int32]time.Duration, 0),
+		Bytes:make(map[int32][]byte, 0),
+		StringMaps:make(map[int32]v1.StringMap, 0),
+	}
 }

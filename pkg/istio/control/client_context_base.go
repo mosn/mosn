@@ -26,20 +26,18 @@ import (
 
 // ClientContextBase hold mixer client
 type ClientContextBase struct {
-	mixerClient mixerclient.MixerClient
 	config *v2.Mixer
 }
 
 func NewClientContextBase(config *v2.Mixer) *ClientContextBase {
 	log.DefaultLogger.Infof("report cluster: %s", config.Transport.ReportCluster)
 	return &ClientContextBase{
-		mixerClient:mixerclient.NewMixerClient(config.Transport.ReportCluster),
 		config:config,
 	}
 }
 
 func (c *ClientContextBase) SendReport(context *RequestContext) {
-	c.mixerClient.Report(&context.Attributes)
+	mixerclient.Report(c.config.Transport.ReportCluster, &context.Attributes)
 }
 
 func (c *ClientContextBase) HasMixerConfig() bool {
@@ -50,6 +48,7 @@ func (c *ClientContextBase) MixerAttributes() *v1.Attributes {
 	return c.config.MixerAttributes
 }
 
+// TODO
 func (c *ClientContextBase) AddLocalNodeAttributes(attributes *v1.Attributes) {
 
 }

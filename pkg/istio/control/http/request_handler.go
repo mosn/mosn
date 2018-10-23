@@ -28,6 +28,8 @@ type RequestHandler interface {
 type requestHandler struct {
 	requestContext *control.RequestContext
 	serviceContext *ServiceContext
+	forwardAttributesAdded  bool
+	checkAttributesAdded bool
 }
 
 func NewRequestHandler(serviceContext *ServiceContext) RequestHandler {
@@ -38,21 +40,32 @@ func NewRequestHandler(serviceContext *ServiceContext) RequestHandler {
 }
 
 func (h *requestHandler) Report(checkData *CheckData, reportData *ReportData) {
+	if h.serviceContext != nil && h.serviceContext.serviceConfig.DisableReportCalls {
+		return
+	}
 	h.addForwardAttributes(checkData)
 	h.addCheckAttributes(checkData)
 
 	builder := newAttributesBuilder(h.requestContext)
 	builder.ExtractReportAttributes(reportData)
 
-	h.serviceContext.ClientContext.SendReport(h.requestContext)
+	h.serviceContext.GetClientContext().SendReport(h.requestContext)
 }
 
 func (h *requestHandler) addForwardAttributes(checkData *CheckData) {
+	if h.forwardAttributesAdded {
+		return
+	}
+	h.forwardAttributesAdded = true
 	builder := newAttributesBuilder(h.requestContext)
 	builder.ExtractForwardedAttributes(checkData)
 }
 
 func (h *requestHandler) addCheckAttributes(checkData *CheckData) {
+	if h.checkAttributesAdded {
+		 return
+	}
+	h.checkAttributesAdded = true
 	h.serviceContext.AddStaticAttributes(h.requestContext)
 
 	builder := newAttributesBuilder(h.requestContext)
