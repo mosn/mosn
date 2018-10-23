@@ -21,6 +21,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
+	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/urfave/cli"
@@ -55,6 +56,9 @@ var (
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
 			conf := config.Load(configPath)
+			// start admin server
+			adminServer := admin.Server{}
+			adminServer.Start(conf)
 			mosn.Start(conf, serviceCluster, serviceNode)
 			return nil
 		},
