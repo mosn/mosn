@@ -18,5 +18,6 @@
 package utils
 
 const (
+	// KIstioAttributeHeader is the istio attribute name
 	KIstioAttributeHeader = "x-istio-attributes"
 )

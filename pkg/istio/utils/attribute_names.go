@@ -17,22 +17,38 @@
 
 package utils
 
+// Define attribute names
 const (
+	// KContextProtocol const string
 	KContextProtocol = "context.protocol"
 
-	KDestinationIp = "destination.ip"
+	// KDestinationIP const string
+	KDestinationIP = "destination.ip"
+
+	// KDestinationPort const string
 	KDestinationPort = "destination.port"
 
-	KOriginIp = "origin.ip"
+	// KOriginIP const string
+	KOriginIP = "origin.ip"
 
+	// KRequestTime const string
 	KRequestTime = "request.time"
+	// KRequestBodySize const string
 	KRequestBodySize = "request.size"
+
+	// const string
 	KRequestTotalSize = "request.total_size"
 
+	// KResponseCode const string
 	KResponseCode = "response.code"
+	// KResponseDuration const string
 	KResponseDuration = "response.duration"
+	// KResponseHeaders const string
 	KResponseHeaders = "response.headers"
+	// KResponseBodySize const string
 	KResponseBodySize = "response.size"
+	// KResponseTotalSize const string
 	KResponseTotalSize = "response.total_size"
+	// KResponseTime const string
 	KResponseTime = "response.time"
 )

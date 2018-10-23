@@ -26,27 +26,27 @@ import (
 
 const (
 	// the size of attribute channel
-	kAttributeChannelSize	= 1024
+	attributeChannelSize = 1024
 
 	// flush time out
-	kFlushTimeout = time.Second * 1
+	flushTimeout = time.Second * 1
 
 	// max entries before flush
-	kFlushMaxEntries = 100
+	flushMaxEntries = 100
 )
 
 type reportBatch struct {
 	batchCompressor BatchCompressor
-	mixerClient MixerClient
+	mixerClient     MixerClient
 
 	attributesChan chan *v1.Attributes
 }
 
 func newReportBatch(compressor *AttributeCompressor, client MixerClient) *reportBatch {
 	batch := &reportBatch{
-		batchCompressor:compressor.CreateBatchCompressor(),
-		mixerClient:client,
-		attributesChan:make(chan *v1.Attributes, kAttributeChannelSize),
+		batchCompressor: compressor.CreateBatchCompressor(),
+		mixerClient:     client,
+		attributesChan:  make(chan *v1.Attributes, attributeChannelSize),
 	}
 
 	wg := sync.WaitGroup{}
@@ -58,18 +58,18 @@ func newReportBatch(compressor *AttributeCompressor, client MixerClient) *report
 }
 
 func (r *reportBatch) main(wg *sync.WaitGroup) {
-	timer := time.NewTicker(kFlushTimeout).C
+	timer := time.NewTicker(flushTimeout).C
 
 	wg.Done()
 
 	select {
-		case attributes := <-r.attributesChan:
-			r.batchCompressor.Add(attributes)
-			if r.batchCompressor.Size() > kFlushMaxEntries {
-				r.flush()
-			}
-		case <-timer:
+	case attributes := <-r.attributesChan:
+		r.batchCompressor.Add(attributes)
+		if r.batchCompressor.Size() > flushMaxEntries {
 			r.flush()
+		}
+	case <-timer:
+		r.flush()
 	}
 }
 

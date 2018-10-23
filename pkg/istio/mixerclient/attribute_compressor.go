@@ -23,7 +23,7 @@ import (
 	"istio.io/api/mixer/v1"
 )
 
-// BatchCompressor
+// BatchCompressor is attribute batch compressor for report
 type BatchCompressor interface {
 	// Add an attribute set to the batch
 	Add(attributes *v1.Attributes)
@@ -40,18 +40,18 @@ type BatchCompressor interface {
 
 // AttributeCompressor for compress attributes
 type AttributeCompressor struct {
- 	globalDict *GlobalDictionary
+	globalDict *GlobalDictionary
 }
 
 type batchCompressor struct {
 	globalDict *GlobalDictionary
-	dict       *MessageDictionary
-	report 			v1.ReportRequest
+	dict       *messageDictionary
+	report     v1.ReportRequest
 }
 
-type MessageDictionary struct {
-	globalDict *GlobalDictionary
-	messageDict map[string]int32
+type messageDictionary struct {
+	globalDict   *GlobalDictionary
+	messageDict  map[string]int32
 	messageWords []string
 }
 
@@ -64,29 +64,33 @@ type GlobalDictionary struct {
 	topIndex int32
 }
 
+// NewAttributeCompressor return AttributeCompressor
 func NewAttributeCompressor() *AttributeCompressor {
 	return &AttributeCompressor{
-		globalDict:NewGlobalDictionary(),
+		globalDict: newGlobalDictionary(),
 	}
 }
 
+// CreateBatchCompressor for create BatchCompressor
 func (a *AttributeCompressor) CreateBatchCompressor() BatchCompressor {
 	return NewBatchCompressor(a.globalDict)
 }
 
+// Compress attributes into CompressedAttributes
 func (a *AttributeCompressor) Compress(attributes *v1.Attributes, pb *v1.CompressedAttributes) {
-	dict := NewMessageDictionary(a.globalDict)
-	CompressByDict(attributes, dict, pb)
+	dict := newMessageDictionary(a.globalDict)
+	compressByDict(attributes, dict, pb)
 
-	for _, word := range dict.GetWords() {
+	for _, word := range dict.getWords() {
 		pb.Words = append(pb.Words, word)
 	}
 }
 
+// NewBatchCompressor return BatchCompressor
 func NewBatchCompressor(globalDict *GlobalDictionary) BatchCompressor {
 	b := &batchCompressor{
-		globalDict:globalDict,
-		dict:NewMessageDictionary(globalDict),
+		globalDict: globalDict,
+		dict:       newMessageDictionary(globalDict),
 	}
 
 	b.report.Attributes = make([]v1.CompressedAttributes, 0)
@@ -94,16 +98,18 @@ func NewBatchCompressor(globalDict *GlobalDictionary) BatchCompressor {
 	return b
 }
 
+// Add Attributes
 func (b *batchCompressor) Add(attributes *v1.Attributes) {
-	addAttributes := NewCompressAttributes()
+	addAttributes := newCompressAttributes()
 
-	CompressByDict(attributes, b.dict, &addAttributes)
+	compressByDict(attributes, b.dict, &addAttributes)
 
 	b.report.Attributes = append(b.report.Attributes, addAttributes)
 }
 
+// Finish the batch and create the batched report request
 func (b *batchCompressor) Finish() *v1.ReportRequest {
-	words := b.dict.GetWords()
+	words := b.dict.getWords()
 	for _, word := range words {
 		b.report.DefaultWords = append(b.report.DefaultWords, word)
 	}
@@ -112,26 +118,28 @@ func (b *batchCompressor) Finish() *v1.ReportRequest {
 	return &b.report
 }
 
+// Size return the batched size
 func (b *batchCompressor) Size() int {
 	return b.report.Size()
 }
 
+// Clear reset the object data
 func (b *batchCompressor) Clear() {
 	b.report.Attributes = make([]v1.CompressedAttributes, 0)
 	b.report.DefaultWords = make([]string, 0)
 
-	b.dict.Clear()
+	b.dict.clear()
 }
 
-func NewMessageDictionary(globalDict *GlobalDictionary) *MessageDictionary {
-	return &MessageDictionary{
-		globalDict:globalDict,
-		messageDict:make(map[string]int32, 0),
-		messageWords:make([]string, 0),
+func newMessageDictionary(globalDict *GlobalDictionary) *messageDictionary {
+	return &messageDictionary{
+		globalDict:   globalDict,
+		messageDict:  make(map[string]int32, 0),
+		messageWords: make([]string, 0),
 	}
 }
 
-func (m *MessageDictionary) GetIndex(key string) int32 {
+func (m *messageDictionary) getIndex(key string) int32 {
 	index, exist := m.globalDict.GetIndex(key)
 	if exist {
 		return index
@@ -149,18 +157,18 @@ func (m *MessageDictionary) GetIndex(key string) int32 {
 	return index
 }
 
-func (m *MessageDictionary) GetWords() []string {
+func (m *messageDictionary) getWords() []string {
 	return m.messageWords
 }
 
-func (m *MessageDictionary) Clear() {
+func (m *messageDictionary) clear() {
 	m.messageWords = make([]string, 0)
 	m.messageDict = make(map[string]int32, 0)
 }
 
-func NewGlobalDictionary() *GlobalDictionary {
+func newGlobalDictionary() *GlobalDictionary {
 	g := &GlobalDictionary{
-		globalDict:make(map[string]int32, 0),
+		globalDict: make(map[string]int32, 0),
 	}
 
 	for i, v := range GlobalList() {
@@ -172,6 +180,7 @@ func NewGlobalDictionary() *GlobalDictionary {
 	return g
 }
 
+// GetIndex return key index
 func (g *GlobalDictionary) GetIndex(key string) (index int32, exist bool) {
 	index, exist = g.globalDict[key]
 	if exist && index < g.topIndex {
@@ -181,14 +190,14 @@ func (g *GlobalDictionary) GetIndex(key string) (index int32, exist bool) {
 	return
 }
 
-func CompressByDict(attributes *v1.Attributes, dict *MessageDictionary, pb *v1.CompressedAttributes) {
-	for k,v := range attributes.Attributes {
-		index := dict.GetIndex(k)
+func compressByDict(attributes *v1.Attributes, dict *messageDictionary, pb *v1.CompressedAttributes) {
+	for k, v := range attributes.Attributes {
+		index := dict.getIndex(k)
 		value := v.Value
 
 		switch val := value.(type) {
 		case *v1.Attributes_AttributeValue_StringValue:
-			pb.Strings[index] = dict.GetIndex(val.StringValue)
+			pb.Strings[index] = dict.getIndex(val.StringValue)
 		case *v1.Attributes_AttributeValue_BytesValue:
 			pb.Bytes[index] = val.BytesValue
 		case *v1.Attributes_AttributeValue_Int64Value:
@@ -200,37 +209,37 @@ func CompressByDict(attributes *v1.Attributes, dict *MessageDictionary, pb *v1.C
 		case *v1.Attributes_AttributeValue_TimestampValue:
 			pb.Timestamps[index] = time.Unix(val.TimestampValue.Seconds, int64(val.TimestampValue.Nanos))
 		case *v1.Attributes_AttributeValue_DurationValue:
-			pb.Durations[index] = time.Duration(val.DurationValue.Seconds * int64(time.Second) + int64(val.DurationValue.Nanos))
+			pb.Durations[index] = time.Duration(val.DurationValue.Seconds*int64(time.Second) + int64(val.DurationValue.Nanos))
 		case *v1.Attributes_AttributeValue_StringMapValue:
-			pb.StringMaps[index] = CreateStringMap(val.StringMapValue, dict)
+			pb.StringMaps[index] = createStringMap(val.StringMapValue, dict)
 		default:
 		}
 
 	}
 }
 
-func CreateStringMap(sm *v1.Attributes_StringMap, dict *MessageDictionary) v1.StringMap {
+func createStringMap(sm *v1.Attributes_StringMap, dict *messageDictionary) v1.StringMap {
 	var compressedMap v1.StringMap
 	compressedMap.Entries = make(map[int32]int32, 0)
 	entries := compressedMap.Entries
 
-	for k, v := range(sm.Entries) {
-		entries[dict.GetIndex(k)] = dict.GetIndex(v)
+	for k, v := range sm.Entries {
+		entries[dict.getIndex(k)] = dict.getIndex(v)
 	}
 
 	return compressedMap
 }
 
-func NewCompressAttributes() v1.CompressedAttributes {
+func newCompressAttributes() v1.CompressedAttributes {
 	return v1.CompressedAttributes{
-		Words:make([]string, 0),
-		Strings:make(map[int32]int32, 0),
-		Int64S:make(map[int32]int64, 0),
-		Doubles:make(map[int32]float64, 0),
-		Bools:make(map[int32]bool, 0),
-		Timestamps:make(map[int32]time.Time, 0),
-		Durations:make(map[int32]time.Duration, 0),
-		Bytes:make(map[int32][]byte, 0),
-		StringMaps:make(map[int32]v1.StringMap, 0),
+		Words:      make([]string, 0),
+		Strings:    make(map[int32]int32, 0),
+		Int64S:     make(map[int32]int64, 0),
+		Doubles:    make(map[int32]float64, 0),
+		Bools:      make(map[int32]bool, 0),
+		Timestamps: make(map[int32]time.Time, 0),
+		Durations:  make(map[int32]time.Duration, 0),
+		Bytes:      make(map[int32][]byte, 0),
+		StringMaps: make(map[int32]v1.StringMap, 0),
 	}
 }

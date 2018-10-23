@@ -19,13 +19,14 @@ package control
 
 import "istio.io/api/mixer/v1"
 
+// RequestContext is the context to hold request data for both HTTP and TCP.
 type RequestContext struct {
 	Attributes v1.Attributes
 }
 
+// NewRequestContext return RequestContext
 func NewRequestContext() *RequestContext {
-	requestCtx := &RequestContext{
-	}
+	requestCtx := &RequestContext{}
 
 	requestCtx.Attributes.Attributes = make(map[string]*v1.Attributes_AttributeValue, 0)
 	return requestCtx

@@ -25,37 +25,36 @@ import (
 )
 
 const (
-	kReportChannelSize = 1024
+	reportChannelSize = 1024
 )
 
 type mixerClientArrayInfo struct {
 	clients []MixerClient
-	index int32
+	index   int32
 }
 
 type reportInfo struct {
 	reportCluster string
-	attributes *v1.Attributes
+	attributes    *v1.Attributes
 }
 
-// MixerClientManager for mixer client manage
-type MixerClientManager struct {
-	clientMap map[string]*mixerClientArrayInfo
-	cpuNum int32
+type mixerClientManager struct {
+	clientMap      map[string]*mixerClientArrayInfo
+	cpuNum         int32
 	reportInfoChan chan *reportInfo
 }
 
-var gMixerClientManager *MixerClientManager
+var gMixerClientManager *mixerClientManager
 
-func init () {
-	gMixerClientManager = NewMixerClientManager()
+func init() {
+	gMixerClientManager = newMixerClientManager()
 }
 
-func NewMixerClientManager() *MixerClientManager {
-	mg := &MixerClientManager{
-		clientMap:make(map[string]*mixerClientArrayInfo, 0),
-		cpuNum: int32(runtime.NumCPU()),
-		reportInfoChan: make(chan *reportInfo, kReportChannelSize),
+func newMixerClientManager() *mixerClientManager {
+	mg := &mixerClientManager{
+		clientMap:      make(map[string]*mixerClientArrayInfo, 0),
+		cpuNum:         int32(runtime.NumCPU()),
+		reportInfoChan: make(chan *reportInfo, reportChannelSize),
 	}
 
 	var wg sync.WaitGroup
@@ -66,21 +65,21 @@ func NewMixerClientManager() *MixerClientManager {
 	return mg
 }
 
-func (m *MixerClientManager) mainLoop(wg *sync.WaitGroup) {
+func (m *mixerClientManager) mainLoop(wg *sync.WaitGroup) {
 	wg.Done()
 
 	for {
 		select {
-		case reportInfo := <- m.reportInfoChan:
+		case reportInfo := <-m.reportInfoChan:
 			m.doreport(reportInfo.reportCluster, reportInfo.attributes)
 		}
 	}
 }
 
-func (m *MixerClientManager) newClientArray(reportCluster string) *mixerClientArrayInfo {
+func (m *mixerClientManager) newClientArray(reportCluster string) *mixerClientArrayInfo {
 	clientArray := &mixerClientArrayInfo{
-		clients:make([]MixerClient, 0),
-		index: 0,
+		clients: make([]MixerClient, 0),
+		index:   0,
 	}
 
 	var i int32
@@ -91,7 +90,7 @@ func (m *MixerClientManager) newClientArray(reportCluster string) *mixerClientAr
 	return clientArray
 }
 
-func (m *MixerClientManager) doreport(reportCluster string, attributes *v1.Attributes) {
+func (m *mixerClientManager) doreport(reportCluster string, attributes *v1.Attributes) {
 	clientArray, exist := m.clientMap[reportCluster]
 	if !exist {
 		clientArray = m.newClientArray(reportCluster)
@@ -102,13 +101,14 @@ func (m *MixerClientManager) doreport(reportCluster string, attributes *v1.Attri
 	clientArray.clients[index].Report(attributes)
 }
 
-func (m *MixerClientManager) report(reportCluster string, attributes *v1.Attributes) {
+func (m *mixerClientManager) report(reportCluster string, attributes *v1.Attributes) {
 	m.reportInfoChan <- &reportInfo{
-		reportCluster:reportCluster,
-		attributes:attributes,
+		reportCluster: reportCluster,
+		attributes:    attributes,
 	}
 }
 
+// Report attributes to mixer server
 func Report(reportCluster string, attributes *v1.Attributes) {
 	gMixerClientManager.report(reportCluster, attributes)
 }

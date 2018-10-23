@@ -31,20 +31,24 @@ type ServiceContext struct {
 	serviceConfig *client.ServiceConfig
 }
 
+// NewServiceContext return ServiceContext
 func NewServiceContext(clientContext *ClientContext) *ServiceContext {
 	return &ServiceContext{
-		clientContext:clientContext,
+		clientContext: clientContext,
 	}
 }
 
+// GetClientContext return ClientContext
 func (s *ServiceContext) GetClientContext() *ClientContext {
 	return s.clientContext
 }
 
+// SetServiceConfig set ServiceConfig
 func (s *ServiceContext) SetServiceConfig(config *client.ServiceConfig) {
 	s.serviceConfig = config
 }
 
+// AddStaticAttributes add static mixer attributes.
 func (s *ServiceContext) AddStaticAttributes(requestContext *control.RequestContext) {
 	s.clientContext.AddLocalNodeAttributes(&requestContext.Attributes)
 
@@ -56,6 +60,7 @@ func (s *ServiceContext) AddStaticAttributes(requestContext *control.RequestCont
 	}
 }
 
+// HasMixerConfig return if or not has mixer config
 func (s *ServiceContext) HasMixerConfig() bool {
 	return s.serviceConfig != nil && s.serviceConfig.MixerAttributes != nil && len(s.serviceConfig.MixerAttributes.Attributes) > 0
 }

@@ -26,22 +26,24 @@ import (
 )
 
 const (
-	kPerHostMetadataKey = "istio"
+//kPerHostMetadataKey = "istio"
 )
 
+// GetDestinationUID function
 func GetDestinationUID(metadata types.RouteMetaData) (uid string, err error) {
 	// TODO
 	return "", nil
 	/*
-	v, exist := metadata[kPerHostMetadataKey]
-	if !exist {
-		err = fmt.Errorf("cannot find %s metadata", kPerHostMetadataKey)
-		return
-	}
+		v, exist := metadata[kPerHostMetadataKey]
+		if !exist {
+			err = fmt.Errorf("cannot find %s metadata", kPerHostMetadataKey)
+			return
+		}
 	*/
 }
 
-func GetIpPort(address net.Addr) (ip string, port int32, ret bool) {
+// GetIPPort return ip and port of address
+func GetIPPort(address net.Addr) (ip string, port int32, ret bool) {
 	ret = false
 	array := strings.Split(address.String(), ":")
 	if len(array) != 2 {

@@ -35,56 +35,56 @@ func init() {
 }
 
 const (
-	kAttributes = `{ "words":["JWT-Token"],"strings":{"2":127,"6":101},"int64s":{"1":"35","8":"8080"},"doubles":{"78":99.9},"bools":{"71":true},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"50":0,"58":104}}}}`
-	kReportAttributes = `{"attributes":[{"words":[],"strings":{"2":127,"6":101},"int64s":{"1":"35","8":"8080"},"doubles":{"78":99.9},"bools":{"71":true},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"50":0,"58":104}}}},{"words":[],"strings":{"2":127,"6":101},"int64s":{"1":"135","8":"8080","27":"111"},"doubles":{"78":123.99},"bools":{"71":false},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"32":90,"58":104}}}},{"words":[],"strings":{"2":127,"6":101},"int64s":{"1":"135","8":"8080"},"doubles":{"78":123.99},"bools":{"71":false},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"32":90,"58":104}}}}],"defaultWords":["JWT-Token"],"globalWordCount":202}`
+	attributes       = `{ "words":["JWT-Token"],"strings":{"2":127,"6":101},"int64s":{"1":"35","8":"8080"},"doubles":{"78":99.9},"bools":{"71":true},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"50":0,"58":104}}}}`
+	reportAttributes = `{"attributes":[{"words":[],"strings":{"2":127,"6":101},"int64s":{"1":"35","8":"8080"},"doubles":{"78":99.9},"bools":{"71":true},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"50":0,"58":104}}}},{"words":[],"strings":{"2":127,"6":101},"int64s":{"1":"135","8":"8080","27":"111"},"doubles":{"78":123.99},"bools":{"71":false},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"32":90,"58":104}}}},{"words":[],"strings":{"2":127,"6":101},"int64s":{"1":"135","8":"8080"},"doubles":{"78":123.99},"bools":{"71":false},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"32":90,"58":104}}}}],"defaultWords":["JWT-Token"],"globalWordCount":202}`
 )
 
 func initTestAttributes(attributes *v1.Attributes) {
 	builder := utils.NewAttributesBuilder(attributes)
 
-	builder.AddString("source.name", "connection.received.bytes_total");
-	builder.AddBytes("source.ip", []byte("text/html; charset=utf-8"));
-	builder.AddDouble("range", 99.9);
-	builder.AddInt64("source.port", 35);
-	builder.AddBool("keep-alive", true);
-	builder.AddString("source.user", "x-http-method-override");
-	builder.AddInt64("target.port", 8080);
+	builder.AddString("source.name", "connection.received.bytes_total")
+	builder.AddBytes("source.ip", []byte("text/html; charset=utf-8"))
+	builder.AddDouble("range", 99.9)
+	builder.AddInt64("source.port", 35)
+	builder.AddBool("keep-alive", true)
+	builder.AddString("source.user", "x-http-method-override")
+	builder.AddInt64("target.port", 8080)
 
 	builder.AddTimestamp("context.timestamp", time.Time{})
-	builder.AddDuration("response.duration", time.Second * 5)
+	builder.AddDuration("response.duration", time.Second*5)
 
 	// JWT-token is only word not in the global dictionary.
-	string_map := map[string]string {
+	stringMap := map[string]string{
 		"authorization": "JWT-Token",
-		"content-type": "application/json",
+		"content-type":  "application/json",
 	}
 
-	builder.AddStringMap("request.headers", protocol.CommonHeader(string_map));
+	builder.AddStringMap("request.headers", protocol.CommonHeader(stringMap))
 }
 
 func TestCompress(t *testing.T) {
-	attributes := v1.Attributes {
-		Attributes:make(map[string]*v1.Attributes_AttributeValue, 0),
+	attrs := v1.Attributes{
+		Attributes: make(map[string]*v1.Attributes_AttributeValue, 0),
 	}
 
-	initTestAttributes(&attributes)
+	initTestAttributes(&attrs)
 
 	compressor := NewAttributeCompressor()
-	pb := NewCompressAttributes()
-	compressor.Compress(&attributes, &pb)
+	pb := newCompressAttributes()
+	compressor.Compress(&attrs, &pb)
 
 	mar := jsonpb.Marshaler{}
 	str, _ := mar.MarshalToString(&pb)
 	fmt.Printf("attributes: %s\n", string(str))
-	fmt.Printf("attributes1: %s\n", strings.TrimSpace(kAttributes))
-	if str != strings.TrimSpace(kAttributes) {
+	fmt.Printf("attributes1: %s\n", strings.TrimSpace(attributes))
+	if str != strings.TrimSpace(attributes) {
 		t.Fatalf("not equal")
 	}
 }
 
 func TestBatchCompress(t *testing.T) {
-	attributes := v1.Attributes {
-		Attributes:make(map[string]*v1.Attributes_AttributeValue, 0),
+	attributes := v1.Attributes{
+		Attributes: make(map[string]*v1.Attributes_AttributeValue, 0),
 	}
 
 	compressor := NewAttributeCompressor()
@@ -95,15 +95,15 @@ func TestBatchCompress(t *testing.T) {
 
 	// modify some attributes
 	builder := utils.NewAttributesBuilder(&attributes)
-	builder.AddDouble("range", 123.99);
-	builder.AddInt64("source.port", 135);
-	builder.AddInt64("response.size", 111);
-	builder.AddBool("keep-alive", false);
-	string_map := protocol.CommonHeader{
+	builder.AddDouble("range", 123.99)
+	builder.AddInt64("source.port", 135)
+	builder.AddInt64("response.size", 111)
+	builder.AddBool("keep-alive", false)
+	stringMap := protocol.CommonHeader{
 		"content-type": "application/json",
-		":method": "GET",
+		":method":      "GET",
 	}
-	builder.AddStringMap("request.headers", string_map)
+	builder.AddStringMap("request.headers", stringMap)
 
 	// Batch the second one with added attributes
 	batchCompressor.Add(&attributes)
@@ -119,7 +119,7 @@ func TestBatchCompress(t *testing.T) {
 	str, _ := mar.MarshalToString(pb)
 
 	fmt.Printf("attributes: %s\n", string(str))
-	if str != kReportAttributes {
+	if str != reportAttributes {
 		t.Fatalf("not equal")
 	}
 }

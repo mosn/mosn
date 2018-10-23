@@ -21,24 +21,31 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/istio/control"
 )
 
+// RequestHandler handle a HTTP request
 type RequestHandler interface {
 	Report(checkData *CheckData, reportData *ReportData)
 }
 
 type requestHandler struct {
-	requestContext *control.RequestContext
-	serviceContext *ServiceContext
-	forwardAttributesAdded  bool
-	checkAttributesAdded bool
+	requestContext         *control.RequestContext
+	serviceContext         *ServiceContext
+	forwardAttributesAdded bool
+	checkAttributesAdded   bool
 }
 
+// NewRequestHandler return RequestHandler
 func NewRequestHandler(serviceContext *ServiceContext) RequestHandler {
 	return &requestHandler{
-		requestContext:control.NewRequestContext(),
-		serviceContext:serviceContext,
+		requestContext: control.NewRequestContext(),
+		serviceContext: serviceContext,
 	}
 }
 
+// Report Make a Report call. It will:
+// * check service config to see if Report is required
+// * extract check attributes if not done yet.
+// * extract more report attributes
+// * make a Report call.
 func (h *requestHandler) Report(checkData *CheckData, reportData *ReportData) {
 	if h.serviceContext != nil && h.serviceContext.serviceConfig.DisableReportCalls {
 		return
@@ -63,7 +70,7 @@ func (h *requestHandler) addForwardAttributes(checkData *CheckData) {
 
 func (h *requestHandler) addCheckAttributes(checkData *CheckData) {
 	if h.checkAttributesAdded {
-		 return
+		return
 	}
 	h.checkAttributesAdded = true
 	h.serviceContext.AddStaticAttributes(h.requestContext)

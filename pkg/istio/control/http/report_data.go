@@ -27,32 +27,37 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// ReportInfo get additional report info.
 type ReportInfo struct {
 	responseTotalSize uint64
-	requestTotalSize uint64
-	duration time.Duration
-	responseCode uint32
-	requestBodySize uint64
-	responseBodySize uint64
-	responseFlag types.ResponseFlag
+	requestTotalSize  uint64
+	duration          time.Duration
+	responseCode      uint32
+	requestBodySize   uint64
+	responseBodySize  uint64
+	responseFlag      types.ResponseFlag
 }
 
+// ReportData extract HTTP data for Mixer report.
+// Implemented by the environment (Envoy) and used by the library.
 type ReportData struct {
-	respHeaders types.HeaderMap
-	requestInfo types.RequestInfo
-	requestTotalSize uint64
+	respHeaders       types.HeaderMap
+	requestInfo       types.RequestInfo
+	requestTotalSize  uint64
 	responseTotalSize uint64
 }
 
+// NewReportData return ReportData
 func NewReportData(respHeaders types.HeaderMap, requestInfo types.RequestInfo, requestTotalSize uint64) *ReportData {
 	return &ReportData{
-		respHeaders:respHeaders,
-		requestInfo:requestInfo,
-		requestTotalSize: requestTotalSize,
-		responseTotalSize:requestInfo.BytesSent() + respHeaders.ByteSize(),
+		respHeaders:       respHeaders,
+		requestInfo:       requestInfo,
+		requestTotalSize:  requestTotalSize,
+		responseTotalSize: requestInfo.BytesSent() + respHeaders.ByteSize(),
 	}
 }
 
+// GetReportInfo return ReportInfo
 func (r *ReportData) GetReportInfo() (data ReportInfo) {
 	data.requestBodySize = r.requestInfo.BytesReceived()
 	data.responseBodySize = r.requestInfo.BytesSent()
@@ -63,7 +68,8 @@ func (r *ReportData) GetReportInfo() (data ReportInfo) {
 	return
 }
 
-func (r *ReportData) GetDestinationIpPort()(ip string, port int, err error){
+// GetDestinationIPPort return destination ip and port
+func (r *ReportData) GetDestinationIPPort() (ip string, port int, err error) {
 	hostInfo := r.requestInfo.UpstreamHost()
 	if hostInfo == nil {
 		err = fmt.Errorf("no host info")
@@ -82,6 +88,7 @@ func (r *ReportData) GetDestinationIpPort()(ip string, port int, err error){
 	return
 }
 
+// GetDestinationUID return destination UID
 func (r *ReportData) GetDestinationUID() (uid string, err error) {
 	hostInfo := r.requestInfo.UpstreamHost()
 	if hostInfo == nil {

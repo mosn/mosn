@@ -32,7 +32,7 @@ type attributesBuilder struct {
 
 func newAttributesBuilder(requestContext *control.RequestContext) *attributesBuilder {
 	return &attributesBuilder{
-		requestContext:requestContext,
+		requestContext: requestContext,
 	}
 }
 
@@ -53,9 +53,9 @@ func (b *attributesBuilder) ExtractForwardedAttributes(checkData *CheckData) {
 func (b *attributesBuilder) ExtractCheckAttributes(checkData *CheckData) {
 	builder := utils.NewAttributesBuilder(&b.requestContext.Attributes)
 
-	srcIp, _, ret := checkData.GetSourceIpPort()
+	srcIP, _, ret := checkData.GetSourceIPPort()
 	if ret {
-		builder.AddBytes(utils.KOriginIp, []byte(srcIp))
+		builder.AddBytes(utils.KOriginIP, []byte(srcIP))
 	}
 
 	// TODO: add IsMutualTLS、requested_server_name
@@ -65,19 +65,18 @@ func (b *attributesBuilder) ExtractCheckAttributes(checkData *CheckData) {
 	// TODO: add grpc protocol check
 	protocol := "http"
 	builder.AddString(utils.KContextProtocol, protocol)
-
 }
 
 func (b *attributesBuilder) ExtractReportAttributes(reportData *ReportData) {
 	builder := utils.NewAttributesBuilder(&b.requestContext.Attributes)
 
-	destIp, despPort, err := reportData.GetDestinationIpPort()
+	destIP, despPort, err := reportData.GetDestinationIPPort()
 	if err == nil {
-		if !builder.HasAttribute(utils.KDestinationIp) {
-			builder.AddBytes(utils.KDestinationIp, []byte(destIp))
+		if !builder.HasAttribute(utils.KDestinationIP) {
+			builder.AddBytes(utils.KDestinationIP, []byte(destIP))
 		}
 		if !builder.HasAttribute(utils.KDestinationPort) {
-			builder.AddInt64(utils.KDestinationIp, int64(despPort))
+			builder.AddInt64(utils.KDestinationIP, int64(despPort))
 		}
 	}
 
@@ -104,4 +103,3 @@ func (b *attributesBuilder) ExtractReportAttributes(reportData *ReportData) {
 
 	// TODO: add rabc info
 }
-

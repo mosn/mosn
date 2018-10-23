@@ -45,6 +45,7 @@ func init() {
 	filter.RegisterNamedHttpFilterConfigFactory(mixerFilterName, CreateMixerConfigFactory)
 }
 
+// FilterConfigFactory filter config factory
 type FilterConfigFactory struct {
 	MixerConfig *v2.Mixer
 }
@@ -52,18 +53,19 @@ type FilterConfigFactory struct {
 type mixerFilter struct {
 	context          context.Context
 	config           *v2.Mixer
-	serviceContext	 *http.ServiceContext
-	clientContext 	 *http.ClientContext
+	serviceContext   *http.ServiceContext
+	clientContext    *http.ClientContext
 	handler          http.RequestHandler
 	decodeCallback   types.StreamReceiverFilterCallbacks
 	requestTotalSize uint64
 }
 
-func NewMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
+// newMixerFilter used to create new mixer filter
+func newMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
 	filter := &mixerFilter{
-		context:      context,
-		config:				config,
-		clientContext:http.NewClientContext(config),
+		context:       context,
+		config:        config,
+		clientContext: http.NewClientContext(config),
 	}
 	filter.serviceContext = http.NewServiceContext(filter.clientContext)
 	return filter
@@ -135,46 +137,49 @@ func (f *mixerFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCal
 
 func (f *mixerFilter) OnDestroy() {}
 
-func (m *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	//log.DefaultLogger.Infof("in mixer log, config: %v", m.config)
 
-	m.createRequestHandler()
+	f.createRequestHandler()
 
-	checkData := http.NewCheckData(reqHeaders, requestInfo, m.decodeCallback.Connection())
+	checkData := http.NewCheckData(reqHeaders, requestInfo, f.decodeCallback.Connection())
 
-	reportData := http.NewReportData(respHeaders, requestInfo, m.requestTotalSize)
+	reportData := http.NewReportData(respHeaders, requestInfo, f.requestTotalSize)
 
-	m.handler.Report(checkData, reportData)
+	f.handler.Report(checkData, reportData)
 }
 
+// CreateFilterChain for create mixer filter
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
-	filter := NewMixerFilter(context, f.MixerConfig)
+	filter := newMixerFilter(context, f.MixerConfig)
 	callbacks.AddStreamReceiverFilter(filter)
 	callbacks.AddAccessLog(filter)
 }
 
+// CreateMixerFilterFactory for create mixer filter factory
 func CreateMixerFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
 	return &FilterConfigFactory{
 		MixerConfig: config.ParseMixerFilter(conf),
 	}, nil
 }
 
-// MixerConfigFactory handle dynamic http filter mixer config
-type MixerConfigFactory struct {
-	Config map[string]interface{}
+// ConfigFactory handle dynamic http filter mixer config
+type ConfigFactory struct {
+	Config      map[string]interface{}
 	MixerConfig v2.Mixer
 }
 
-func (m *MixerConfigFactory) CreateFilter() v2.Filter {
+// CreateFilter for create v2.Filter type of mixer
+func (m *ConfigFactory) CreateFilter() v2.Filter {
 	return v2.Filter{
-		Type:mixerFilterName,
-		Config:m.Config,
+		Type:   mixerFilterName,
+		Config: m.Config,
 	}
 }
 
+// CreateMixerConfigFactory for create mixer config factory
 func CreateMixerConfigFactory(config *protobuf_types.Struct) (types.NamedHttpFilterConfigFactory, error) {
-	factory := &MixerConfigFactory {
-	}
+	factory := &ConfigFactory{}
 
 	err := util.StructToMessage(config, &factory.MixerConfig.HttpClientConfig)
 	if err != nil {

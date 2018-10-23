@@ -3,14 +3,14 @@
 
 package mixerclient
 
-func GlobalList() ([]string) { 
-    tmp := make([]string, len(globalList))
-    copy(tmp, globalList)
-    return tmp
+func GlobalList() []string {
+	tmp := make([]string, len(globalList))
+	copy(tmp, globalList)
+	return tmp
 }
 
-var ( 
-    globalList = []string{
+var (
+	globalList = []string{
 		"source.ip",
 		"source.port",
 		"source.name",
@@ -213,5 +213,5 @@ var (
 		"response.grpc_message",
 		"context.reporter.type",
 		"context.reporter.kind",
-    }
+	}
 )

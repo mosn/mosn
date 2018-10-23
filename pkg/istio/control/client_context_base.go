@@ -29,25 +29,30 @@ type ClientContextBase struct {
 	config *v2.Mixer
 }
 
+// NewClientContextBase for create ClientContextBase
 func NewClientContextBase(config *v2.Mixer) *ClientContextBase {
 	log.DefaultLogger.Infof("report cluster: %s", config.Transport.ReportCluster)
 	return &ClientContextBase{
-		config:config,
+		config: config,
 	}
 }
 
+// SendReport for send report attributes
 func (c *ClientContextBase) SendReport(context *RequestContext) {
 	mixerclient.Report(c.config.Transport.ReportCluster, &context.Attributes)
 }
 
+// HasMixerConfig return if or not has mixer config
 func (c *ClientContextBase) HasMixerConfig() bool {
 	return c.config != nil && c.config.MixerAttributes != nil && len(c.config.MixerAttributes.Attributes) > 0
 }
 
+// MixerAttributes return mixer attributes
 func (c *ClientContextBase) MixerAttributes() *v1.Attributes {
 	return c.config.MixerAttributes
 }
 
+// AddLocalNodeAttributes for add local node info into attributes
 // TODO
 func (c *ClientContextBase) AddLocalNodeAttributes(attributes *v1.Attributes) {
 

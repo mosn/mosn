@@ -29,37 +29,43 @@ import (
 	"istio.io/api/mixer/v1"
 )
 
+// AttributesBuilder to add attribute to protobuf Attributes.
 type AttributesBuilder struct {
 	attributes *v1.Attributes
 }
 
+// NewAttributesBuilder return AttributesBuilder
 func NewAttributesBuilder(attributes *v1.Attributes) *AttributesBuilder {
 	return &AttributesBuilder{
-		attributes:attributes,
+		attributes: attributes,
 	}
 }
 
+// HasAttribute function
 func (a *AttributesBuilder) HasAttribute(key string) bool {
 	_, exist := a.attributes.Attributes[key]
 	return exist
 }
 
+// AddBytes function
 func (a *AttributesBuilder) AddBytes(key string, data []byte) {
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
-		Value:&v1.Attributes_AttributeValue_BytesValue{
-			BytesValue:data,
+		Value: &v1.Attributes_AttributeValue_BytesValue{
+			BytesValue: data,
 		},
 	}
 }
 
+// AddInt64 function
 func (a *AttributesBuilder) AddInt64(key string, data int64) {
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
-		Value:&v1.Attributes_AttributeValue_Int64Value{
-			Int64Value:data,
+		Value: &v1.Attributes_AttributeValue_Int64Value{
+			Int64Value: data,
 		},
 	}
 }
 
+// AddStringMap function
 func (a *AttributesBuilder) AddStringMap(key string, stringMap types.HeaderMap) {
 	c, ok := stringMap.(protocol.CommonHeader)
 	if !ok || len(c) == 0 {
@@ -68,7 +74,7 @@ func (a *AttributesBuilder) AddStringMap(key string, stringMap types.HeaderMap) 
 
 	entries := &v1.Attributes_AttributeValue_StringMapValue{
 		StringMapValue: &v1.Attributes_StringMap{
-			Entries:make(map[string]string, 0),
+			Entries: make(map[string]string, 0),
 		},
 	}
 
@@ -77,54 +83,59 @@ func (a *AttributesBuilder) AddStringMap(key string, stringMap types.HeaderMap) 
 	}
 
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
-		Value:entries,
+		Value: entries,
 	}
 }
 
+// AddTimestamp function
 func (a *AttributesBuilder) AddTimestamp(key string, t time.Time) {
 	nano := t.UnixNano()
 
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
-		Value:&v1.Attributes_AttributeValue_TimestampValue{
-			TimestampValue:&google_protobuf2.Timestamp{
+		Value: &v1.Attributes_AttributeValue_TimestampValue{
+			TimestampValue: &google_protobuf2.Timestamp{
 				Seconds: nano / int64(time.Second),
-				Nanos: int32(nano % int64(time.Second)),
+				Nanos:   int32(nano % int64(time.Second)),
 			},
 		},
 	}
 }
 
+// AddDuration function
 func (a *AttributesBuilder) AddDuration(key string, value time.Duration) {
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
-		Value:&v1.Attributes_AttributeValue_DurationValue{
-			DurationValue:&google_protobuf1.Duration{
-				Seconds:int64(value / time.Second),
-				Nanos:int32(value % time.Second),
+		Value: &v1.Attributes_AttributeValue_DurationValue{
+			DurationValue: &google_protobuf1.Duration{
+				Seconds: int64(value / time.Second),
+				Nanos:   int32(value % time.Second),
 			},
 		},
 	}
 }
 
+// AddString function
 func (a *AttributesBuilder) AddString(key string, value string) {
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
-		Value:&v1.Attributes_AttributeValue_StringValue{
-			StringValue:value,
+		Value: &v1.Attributes_AttributeValue_StringValue{
+			StringValue: value,
 		},
 	}
 }
 
+// AddDouble function
 func (a *AttributesBuilder) AddDouble(key string, value float64) {
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
-		Value:&v1.Attributes_AttributeValue_DoubleValue{
-			DoubleValue:value,
+		Value: &v1.Attributes_AttributeValue_DoubleValue{
+			DoubleValue: value,
 		},
 	}
 }
 
+// AddBool function
 func (a *AttributesBuilder) AddBool(key string, value bool) {
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{
-		Value:&v1.Attributes_AttributeValue_BoolValue{
-			BoolValue:value,
+		Value: &v1.Attributes_AttributeValue_BoolValue{
+			BoolValue: value,
 		},
 	}
 }

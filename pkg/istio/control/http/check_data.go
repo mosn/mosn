@@ -24,20 +24,24 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// CheckData extract HTTP data for Mixer check
 type CheckData struct {
-	reqHeaders types.HeaderMap
+	reqHeaders  types.HeaderMap
 	requestInfo types.RequestInfo
-	connection types.Connection
+	connection  types.Connection
 }
 
+// NewCheckData return CheckData
 func NewCheckData(reqHeaders types.HeaderMap, requestInfo types.RequestInfo, connection types.Connection) *CheckData {
 	return &CheckData{
-		reqHeaders:reqHeaders,
-		requestInfo:requestInfo,
-		connection:connection,
+		reqHeaders:  reqHeaders,
+		requestInfo: requestInfo,
+		connection:  connection,
 	}
 }
 
+// ExtractIstioAttributes Find "x-istio-attributes" HTTP header.
+// If found, base64 decode its value,  pass it out
 func (c *CheckData) ExtractIstioAttributes() (data string, ret bool) {
 	val, ret := c.reqHeaders.Get(utils.KIstioAttributeHeader)
 	if ret {
@@ -47,9 +51,10 @@ func (c *CheckData) ExtractIstioAttributes() (data string, ret bool) {
 	return
 }
 
-func (c *CheckData) GetSourceIpPort() (ip string, port int32, ret bool) {
+// GetSourceIPPort get downstream tcp connection ip and port.
+func (c *CheckData) GetSourceIPPort() (ip string, port int32, ret bool) {
 	if c.connection != nil {
-		ip, port, ret = utils.GetIpPort(c.connection.RemoteAddr())
+		ip, port, ret = utils.GetIPPort(c.connection.RemoteAddr())
 		return
 	}
 

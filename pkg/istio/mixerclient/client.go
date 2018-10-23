@@ -30,30 +30,34 @@ import (
 )
 
 const (
-	kQueryTimeout = time.Second * 2
+	queryTimeout = time.Second * 2
 )
 
+// MixerClient for communicate with mixer server
 type MixerClient interface {
+	// Report RPC
 	Report(attributes *v1.Attributes)
 
+	// SendReport
 	SendReport(request *v1.ReportRequest) *v1.ReportResponse
 }
 
 type mixerClient struct {
-	reportBatch *reportBatch
+	reportBatch         *reportBatch
 	attributeCompressor *AttributeCompressor
-	client v1.MixerClient
-	mixerAddress string
-	lastConnectTime time.Time
-	reportCluster string
+	client              v1.MixerClient
+	mixerAddress        string
+	lastConnectTime     time.Time
+	reportCluster       string
 }
 
+// NewMixerClient return MixerClient
 func NewMixerClient(reportCluster string) MixerClient {
 	attributeCompressor := NewAttributeCompressor()
 	client := &mixerClient{
-		attributeCompressor:attributeCompressor,
-		reportCluster:reportCluster,
-		lastConnectTime: time.Now(),
+		attributeCompressor: attributeCompressor,
+		reportCluster:       reportCluster,
+		lastConnectTime:     time.Now(),
 	}
 	client.reportBatch = newReportBatch(client.attributeCompressor, client)
 
@@ -66,11 +70,11 @@ func (c *mixerClient) tryConnect(retry bool) error {
 	if retry {
 		now := time.Now()
 		diff := now.Sub(c.lastConnectTime)
-		if diff < time.Second * 10 {
+		if diff < time.Second*10 {
 			return fmt.Errorf("re-connect too often")
 		}
 		// update last connect time
-		c.lastConnectTime =  now
+		c.lastConnectTime = now
 	}
 
 	snapshot := cluster.GetClusterMngAdapterInstance().GetCluster(c.reportCluster)
@@ -92,6 +96,7 @@ func (c *mixerClient) tryConnect(retry bool) error {
 	return nil
 }
 
+// Report RPC call
 func (c *mixerClient) Report(attributes *v1.Attributes) {
 	if c.client == nil {
 		err := c.tryConnect(true)
@@ -104,8 +109,9 @@ func (c *mixerClient) Report(attributes *v1.Attributes) {
 	c.reportBatch.report(attributes)
 }
 
+// SendReport send report request
 func (c *mixerClient) SendReport(request *v1.ReportRequest) *v1.ReportResponse {
-	ctx, cancel := context.WithTimeout(context.Background(), kQueryTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
 	response, err := c.client.Report(ctx, request)
 	defer cancel()
 	if err != nil {

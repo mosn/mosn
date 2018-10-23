@@ -22,12 +22,16 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/istio/control"
 )
 
+// ClientContext is the global context object to hold:
+// * the mixer client config
+// * the mixer client object to call Check/Report with cache.
 type ClientContext struct {
 	*control.ClientContextBase
 }
 
+// NewClientContext return ClientContext
 func NewClientContext(config *v2.Mixer) *ClientContext {
 	return &ClientContext{
-		ClientContextBase:control.NewClientContextBase(config),
+		ClientContextBase: control.NewClientContextBase(config),
 	}
 }
