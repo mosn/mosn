@@ -98,32 +98,24 @@ $ kubectl apply -f install/kubernetes/helm/istio/charts/certmanager/templates/cr
 之后 使用 Helm 安装 ISTIO 有两种方式，这里推荐使用第一种，如果第一种不 work，可以尝试第二种
 
    + 方式一：使用  `helm template` 安装
-    
-    ```bash
+   
     $ helm template install/kubernetes/helm/istio --name istio --namespace istio-system > $HOME/istio.yaml
     $ kubectl create namespace istio-system
     $ kubectl apply -f $HOME/istio.yaml
-    ```
 
    + 如果安装成功后，需要卸载的话：
     
-    ```bash
     $ kubectl delete -f $HOME/istio.yaml
-    ```
-
+    
    + 方式二：使用  `helm install 安装`
 
-    ```bash
     $ kubectl apply -f install/kubernetes/helm/helm-service-account.yaml
     $ helm init --service-account tiller
     $ helm install install/kubernetes/helm/istio --name istio --namespace istio-system
-    ```
 
    + 如果安装成功后，需要卸载的话：
-    
-    ```bash
+   
     $ helm delete --purge istio
-    ```
 
 ### 3. 验证安装
 
@@ -216,35 +208,41 @@ reviews-v3-1813607990-8ch52                 2/2       Running   0          6m
 
 ```powershell
 $ kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
-$ kubectl get gateway    // 查看 gateway 是否运行起来
+$ kubectl get gateway        // 查看 gateway 是否运行起来
 NAME               AGE
 bookinfo-gateway   24m
+```
 
-$ kubectl get svc istio-ingressgateway -n istio-system   // 查看 EXTERNAL-IP 是否存在
+* 查看 EXTERNAL-IP 是否存在
+```powershell
+$ kubectl get svc istio-ingressgateway -n istio-system
 NAME                   TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)                                                                                                     AGE
 istio-ingressgateway   LoadBalancer   172.19.8.162   161.117.70.217   80:31380/TCP,443:31390/TCP,31400:31400/TCP,15011:32393/TCP,8060:30940/TCP,15030:31601/TCP,15031:31392/TCP   48m
+```
 
-// 设置 ingress IP 与 ports
+* 设置 ingress IP 与 ports
+```powershell
 $ export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 $ export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
 $ export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
 ```
 
-* 验证 gateway 是否生效
-
+* 设置 gateway 地址
 ```powershell
 $ export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT
 $ echo $GATEWAY_URL   //例如我这里的地址是 161.117.70.217:80
 161.117.70.217:80
-
-// GATEWAY_URL 换成你自己的地址，然后执行，这里输出 200 表示连接成功
-$ curl -o /dev/null -s -w "%{http_code}\n"  http://$GATEWAY_URL/productpage   
-200
 ```
+
+* 验证 gateway 是否生效 
+```
+$ curl -o /dev/null -s -w "%{http_code}\n"  http://$GATEWAY_URL/productpage   //输出 200 表示成功 
+200
+``` 
 
 * 观察页面情况
 
-访问 http://$GATEWAY_URL/productpage 正常的话通过刷新会看到如下所示 BookInfo 的界面，其中 Book Reviews 有三个版本，
+访问 http://$GATEWAY_URL/productpage (注意： $GATEWAY_URL 需要替换成你设置的地址)，正常的话通过刷新会看到如下所示 BookInfo 的界面，其中 Book Reviews 有三个版本，
 刷新后依次会看到(可以查看 samples/bookinfo/platform/kube/bookinfo.yaml 中的配置发现为什么是这三个版本)
 
 + 版本一 的界面
@@ -296,5 +294,4 @@ $ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.y
 ![](../images/login.png)
 
 + 以其他身份登录，始终在 v1 版本
-
 ![](../images/v1.png)

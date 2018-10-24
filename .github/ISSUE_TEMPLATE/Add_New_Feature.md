@@ -1,3 +1,9 @@
+---
+name: Feature request
+about: Suggest an idea to improve SOFAMosn
+
+---
+
 ### The New Feature
 
 describe the new feature you want to support clearly
