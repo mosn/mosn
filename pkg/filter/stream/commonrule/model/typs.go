@@ -25,7 +25,7 @@ const (
 
 // CommonRuleConfig config
 type CommonRuleConfig struct {
-	RuleConfigs []RuleConfig
+	RuleConfigs []RuleConfig `json:"rule_configs"`
 }
 
 // RuleConfig config
@@ -35,7 +35,7 @@ type RuleConfig struct {
 	Name    string `json:"name"`
 	AppName string `json:"appName"`
 	Enable  bool   `json:"enable"`
-	RunMode string `json:"runMode"`
+	RunMode string `json:"run_mode"`
 
 	LimitConfig     LimitConfig      `json:"limit"`
 	ResourceConfigs []ResourceConfig `json:"resources"`
@@ -43,7 +43,7 @@ type RuleConfig struct {
 
 // ComparisonCofig config
 type ComparisonCofig struct {
-	CompareType string `json:"compareType"`
+	CompareType string `json:"compare_type"`
 	Key         string `json:"key"`
 	Value       string `json:"value"`
 }
@@ -51,15 +51,15 @@ type ComparisonCofig struct {
 // ResourceConfig config
 type ResourceConfig struct {
 	Headers         []ComparisonCofig `json:"headers"`
-	HeadersRelation string            `json:"headersRelation"`
+	HeadersRelation string            `json:"headers_relation"`
 	Params          []ComparisonCofig `json:"params"`
-	ParamsRelation  string            `json:"paramsRelation"`
+	ParamsRelation  string            `json:"params_relation"`
 }
 
 // LimitConfig config
 type LimitConfig struct {
-	LimitStrategy string  `json:"limitStrategy"`
-	MaxBurstRatio float64 `json:"maxBurstRatio"`
-	PeriodMs      int     `json:"periodMs"`
-	MaxAllows     int     `json:"maxAllows"`
+	LimitStrategy string  `json:"limit_strategy"`
+	MaxBurstRatio float64 `json:"max_burst_ratio"`
+	PeriodMs      int     `json:"period_ms"`
+	MaxAllows     int     `json:"max_allows"`
 }

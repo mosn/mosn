@@ -77,42 +77,42 @@
           {
             "type": "commonrule",
             "config": {
-              "ruleConfigs": [
+              "rule_configs": [
                 {
                   "enable": true,
                   "id": 1,
                   "index": 3,
                   "limit": {
-                    "limitStrategy": "QPS",
-                    "maxBurstRatio": 1.0,
-                    "periodMs": 1000,
-                    "maxAllows": 5
+                    "limit_strategy": "QPS",
+                    "max_burst_ratio": 1.0,
+                    "period_ms": 1000,
+                    "max_allows": 5
                   },
                   "name": "rule1",
                   "resources": [
                     {
                       "headers": [
                         {
-                          "compareType": "EQUALS",
+                          "compare_type": "EQUALS",
                           "key": "path",
                           "value": "/serverlist"
                         },
                         {
-                          "compareType": "EQUALS",
+                          "compare_type": "EQUALS",
                           "key": "method",
                           "value": "GET"
                         }
                       ],
                       "params": [
                         {
-                          "compareType": "EQUALS",
+                          "compare_type": "EQUALS",
                           "key": "aa",
                           "value": "a1"
                         }
                       ]
                     }
                   ],
-                  "runMode": "CONTROL"
+                  "run_mode": "CONTROL"
                 }
               ]
             }
