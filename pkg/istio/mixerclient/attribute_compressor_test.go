@@ -35,7 +35,7 @@ func init() {
 }
 
 const (
-	attributes       = `{ "words":["JWT-Token"],"strings":{"2":127,"6":101},"int64s":{"1":"35","8":"8080"},"doubles":{"78":99.9},"bools":{"71":true},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"50":0,"58":104}}}}`
+	attributes       = `{"words":["JWT-Token"],"strings":{"2":127,"6":101},"int64s":{"1":"35","8":"8080"},"doubles":{"78":99.9},"bools":{"71":true},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"50":0,"58":104}}}}`
 	reportAttributes = `{"attributes":[{"words":[],"strings":{"2":127,"6":101},"int64s":{"1":"35","8":"8080"},"doubles":{"78":99.9},"bools":{"71":true},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"50":0,"58":104}}}},{"words":[],"strings":{"2":127,"6":101},"int64s":{"1":"135","8":"8080","27":"111"},"doubles":{"78":123.99},"bools":{"71":false},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"32":90,"58":104}}}},{"words":[],"strings":{"2":127,"6":101},"int64s":{"1":"135","8":"8080"},"doubles":{"78":123.99},"bools":{"71":false},"timestamps":{"132":"1754-08-30T22:43:41.128654848Z"},"durations":{"29":"5s"},"bytes":{"0":"dGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04"},"stringMaps":{"15":{"entries":{"32":90,"58":104}}}}],"defaultWords":["JWT-Token"],"globalWordCount":202}`
 )
 
