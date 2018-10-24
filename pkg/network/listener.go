@@ -128,13 +128,18 @@ func (l *listener) SetListenerTag(tag uint64) {
 }
 
 func (l *listener) ListenerFD() (uintptr, error) {
-	file, err := l.rawl.File()
+	sc, err := l.rawl.SyscallConn()
 	if err != nil {
-		l.logger.Errorf(" listener %s fd not found : %v", l.name, err)
+		l.logger.Errorf("listener %s get raw network connection failed: %v", l.name, err)
 		return 0, err
 	}
-	//defer file.Close()
-	return file.Fd(), nil
+
+	fd := uintptr(0)
+	sc.Control(func(rawfd uintptr) {
+		fd = rawfd
+	})
+
+	return fd, nil
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {
