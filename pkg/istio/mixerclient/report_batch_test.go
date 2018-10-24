@@ -63,13 +63,13 @@ func TestBatchReport(t *testing.T) {
 }
 
 func TestBatchReportWithTimeout(t *testing.T) {
-	client := newMockMixerClient(100, time.Second*1)
+	client := newMockMixerClient(100, time.Second*4)
 	var report v1.Attributes
 
 	client.Report(&report)
 
 	// sleep until timeout
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	mockClient, _ := client.(*mockMixerClient)
 	if mockClient.reportSent != 1 {
