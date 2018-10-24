@@ -48,7 +48,7 @@ func init() {
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
 	// use 4096 as chan buffer length
-	poolSize := shardsNum * 8096
+	poolSize := shardsNum * 4096
 
 	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
 	workerPool.Init()
