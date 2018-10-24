@@ -123,3 +123,34 @@ func TestBatchCompress(t *testing.T) {
 		t.Fatalf("not equal")
 	}
 }
+
+func BenchmarkCompress(b *testing.B) {
+	b.ResetTimer()
+
+	attrs := v1.Attributes{
+		Attributes: make(map[string]*v1.Attributes_AttributeValue, 0),
+	}
+	initTestAttributes(&attrs)
+
+	for i := 0; i < b.N; i++ {
+		compressor := NewAttributeCompressor()
+		pb := newCompressAttributes()
+		compressor.Compress(&attrs, &pb)
+	}
+}
+
+func BenchmarkBatchCompress(b *testing.B) {
+	b.ResetTimer()
+
+	attributes := v1.Attributes{
+		Attributes: make(map[string]*v1.Attributes_AttributeValue, 0),
+	}
+	compressor := NewAttributeCompressor()
+	initTestAttributes(&attributes)
+
+	for i := 0; i < b.N; i++ {
+		batchCompressor := NewBatchCompressor(compressor.globalDict)
+
+		batchCompressor.Add(&attributes)
+	}
+}
