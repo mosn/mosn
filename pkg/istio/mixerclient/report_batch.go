@@ -27,25 +27,36 @@ import (
 const (
 	// the size of attribute channel
 	attributeChannelSize = 1024
-
-	// flush time out
-	flushTimeout = time.Second * 1
-
-	// max entries before flush
-	flushMaxEntries = 100
 )
+
+// Options controlling report batch.
+type reportOptions struct {
+	// Maximum number of reports to be batched.
+	maxBatchEntries int
+
+	// Maximum time a report item stayed in the buffer for batching.
+	maxBatchTime time.Duration
+}
 
 type reportBatch struct {
 	batchCompressor BatchCompressor
 	mixerClient     MixerClient
-
-	attributesChan chan *v1.Attributes
+	options         *reportOptions
+	attributesChan  chan *v1.Attributes
 }
 
-func newReportBatch(compressor *AttributeCompressor, client MixerClient) *reportBatch {
+func newReportOptions(maxEntries int, maxBatchTimeMs time.Duration) *reportOptions {
+	return &reportOptions{
+		maxBatchEntries: maxEntries,
+		maxBatchTime:    maxBatchTimeMs,
+	}
+}
+
+func newReportBatch(compressor *AttributeCompressor, options *reportOptions, client MixerClient) *reportBatch {
 	batch := &reportBatch{
 		batchCompressor: compressor.CreateBatchCompressor(),
 		mixerClient:     client,
+		options:         options,
 		attributesChan:  make(chan *v1.Attributes, attributeChannelSize),
 	}
 
@@ -58,18 +69,22 @@ func newReportBatch(compressor *AttributeCompressor, client MixerClient) *report
 }
 
 func (r *reportBatch) main(wg *sync.WaitGroup) {
-	timer := time.NewTicker(flushTimeout).C
+	timer := time.NewTicker(r.options.maxBatchTime).C
 
 	wg.Done()
 
-	select {
-	case attributes := <-r.attributesChan:
-		r.batchCompressor.Add(attributes)
-		if r.batchCompressor.Size() > flushMaxEntries {
-			r.flush()
+	for {
+		select {
+		case attributes := <-r.attributesChan:
+			r.batchCompressor.Add(attributes)
+			if r.batchCompressor.Size() >= r.options.maxBatchEntries {
+				r.flush()
+			}
+		case <-timer:
+			if r.batchCompressor.Size() > 0 {
+				r.flush()
+			}
 		}
-	case <-timer:
-		r.flush()
 	}
 }
 
@@ -78,9 +93,6 @@ func (r *reportBatch) report(attributes *v1.Attributes) {
 }
 
 func (r *reportBatch) flush() {
-	if r.batchCompressor.Size() == 0 {
-		return
-	}
 	request := r.batchCompressor.Finish()
 	r.mixerClient.SendReport(request)
 	r.batchCompressor.Clear()

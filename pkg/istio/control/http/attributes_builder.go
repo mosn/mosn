@@ -18,10 +18,12 @@
 package http
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/istio/control"
 	"github.com/alipay/sofa-mosn/pkg/istio/utils"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"istio.io/api/mixer/v1"
 )
@@ -36,21 +38,22 @@ func newAttributesBuilder(requestContext *control.RequestContext) *attributesBui
 	}
 }
 
-func (b *attributesBuilder) ExtractForwardedAttributes(checkData *CheckData) {
+func (b *attributesBuilder) ExtractForwardedAttributes(checkData CheckData) error {
 	d, ret := checkData.ExtractIstioAttributes()
 	if !ret {
-		return
+		return fmt.Errorf("no istio attributes")
 	}
 	var attibutes v1.Attributes
-	err := proto.Unmarshal([]byte(d), &attibutes)
+	err := jsonpb.UnmarshalString(d, &attibutes)
 	if err != nil {
-		return
+		return err
 	}
 
 	proto.Merge(&b.requestContext.Attributes, &attibutes)
+	return nil
 }
 
-func (b *attributesBuilder) ExtractCheckAttributes(checkData *CheckData) {
+func (b *attributesBuilder) ExtractCheckAttributes(checkData CheckData) {
 	builder := utils.NewAttributesBuilder(&b.requestContext.Attributes)
 
 	srcIP, _, ret := checkData.GetSourceIPPort()

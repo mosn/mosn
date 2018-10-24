@@ -24,16 +24,25 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// CheckData extract HTTP data for Mixer check
-type CheckData struct {
+// checkData extract HTTP data for Mixer check
+type CheckData interface {
+	// Find "x-istio-attributes" HTTP header.
+	// If found, base64 decode its value,  pass it out
+	ExtractIstioAttributes() (data string, ret bool)
+
+	// Get downstream tcp connection ip and port.
+	GetSourceIPPort() (ip string, port int32, ret bool)
+}
+
+type checkData struct {
 	reqHeaders  types.HeaderMap
 	requestInfo types.RequestInfo
 	connection  types.Connection
 }
 
-// NewCheckData return CheckData
-func NewCheckData(reqHeaders types.HeaderMap, requestInfo types.RequestInfo, connection types.Connection) *CheckData {
-	return &CheckData{
+// NewCheckData return checkData
+func NewCheckData(reqHeaders types.HeaderMap, requestInfo types.RequestInfo, connection types.Connection) CheckData {
+	return &checkData{
 		reqHeaders:  reqHeaders,
 		requestInfo: requestInfo,
 		connection:  connection,
@@ -42,7 +51,7 @@ func NewCheckData(reqHeaders types.HeaderMap, requestInfo types.RequestInfo, con
 
 // ExtractIstioAttributes Find "x-istio-attributes" HTTP header.
 // If found, base64 decode its value,  pass it out
-func (c *CheckData) ExtractIstioAttributes() (data string, ret bool) {
+func (c *checkData) ExtractIstioAttributes() (data string, ret bool) {
 	val, ret := c.reqHeaders.Get(utils.KIstioAttributeHeader)
 	if ret {
 		d, _ := base64.StdEncoding.DecodeString(val)
@@ -52,7 +61,7 @@ func (c *CheckData) ExtractIstioAttributes() (data string, ret bool) {
 }
 
 // GetSourceIPPort get downstream tcp connection ip and port.
-func (c *CheckData) GetSourceIPPort() (ip string, port int32, ret bool) {
+func (c *checkData) GetSourceIPPort() (ip string, port int32, ret bool) {
 	if c.connection != nil {
 		ip, port, ret = utils.GetIPPort(c.connection.RemoteAddr())
 		return

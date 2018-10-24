@@ -23,7 +23,7 @@ import (
 
 // RequestHandler handle a HTTP request
 type RequestHandler interface {
-	Report(checkData *CheckData, reportData *ReportData)
+	Report(checkData CheckData, reportData *ReportData)
 }
 
 type requestHandler struct {
@@ -46,7 +46,7 @@ func NewRequestHandler(serviceContext *ServiceContext) RequestHandler {
 // * extract check attributes if not done yet.
 // * extract more report attributes
 // * make a Report call.
-func (h *requestHandler) Report(checkData *CheckData, reportData *ReportData) {
+func (h *requestHandler) Report(checkData CheckData, reportData *ReportData) {
 	if h.serviceContext != nil && h.serviceContext.serviceConfig.DisableReportCalls {
 		return
 	}
@@ -59,7 +59,7 @@ func (h *requestHandler) Report(checkData *CheckData, reportData *ReportData) {
 	h.serviceContext.GetClientContext().SendReport(h.requestContext)
 }
 
-func (h *requestHandler) addForwardAttributes(checkData *CheckData) {
+func (h *requestHandler) addForwardAttributes(checkData CheckData) {
 	if h.forwardAttributesAdded {
 		return
 	}
@@ -68,7 +68,7 @@ func (h *requestHandler) addForwardAttributes(checkData *CheckData) {
 	builder.ExtractForwardedAttributes(checkData)
 }
 
-func (h *requestHandler) addCheckAttributes(checkData *CheckData) {
+func (h *requestHandler) addCheckAttributes(checkData CheckData) {
 	if h.checkAttributesAdded {
 		return
 	}

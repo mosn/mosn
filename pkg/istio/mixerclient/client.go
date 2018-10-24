@@ -31,6 +31,12 @@ import (
 
 const (
 	queryTimeout = time.Second * 2
+
+	// flush time out
+	flushTimeout = time.Second * 1
+
+	// max entries before flush
+	flushMaxEntries = 100
 )
 
 // MixerClient for communicate with mixer server
@@ -59,7 +65,7 @@ func NewMixerClient(reportCluster string) MixerClient {
 		reportCluster:       reportCluster,
 		lastConnectTime:     time.Now(),
 	}
-	client.reportBatch = newReportBatch(client.attributeCompressor, client)
+	client.reportBatch = newReportBatch(client.attributeCompressor, newReportOptions(flushMaxEntries, flushTimeout), client)
 
 	client.tryConnect(false)
 
