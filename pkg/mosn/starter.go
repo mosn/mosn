@@ -217,6 +217,12 @@ func getInheritListeners() []*v2.Listener {
 			//because passed listeners fd's index starts from 3
 			fd := uintptr(3 + idx)
 			file := os.NewFile(fd, "")
+			if file == nil {
+				log.StartLogger.Errorf("create new file from fd %d failed", fd)
+				continue
+			}
+			defer file.Close()
+
 			fileListener, err := net.FileListener(file)
 			if err != nil {
 				log.StartLogger.Errorf("recover listener from fd %d failed: %s", fd, err)
