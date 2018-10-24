@@ -73,13 +73,16 @@ func (l *RateLimiter) TryAcquire() bool {
 	return true
 }
 
+// calculate nextFreeTicket time and storedPermits
 func (l *RateLimiter) reserveEarliestAvailable(nowMicros int64) {
 	{
+		//calculate new permits and update storedPermits
 		newPermits := float64(nowMicros-l.nextFreeTicketMicros) / l.stableIntervalMicros
 		l.storedPermits = math.Min(l.maxPermits, l.storedPermits+newPermits)
 		l.nextFreeTicketMicros = nowMicros
 	}
 
+	//calculate next free ticket timestamp
 	storedPermitsToSpend := math.Min(1, l.storedPermits)
 	freshPermits := 1 - storedPermitsToSpend
 	waitMicros := int64(freshPermits * l.stableIntervalMicros)
