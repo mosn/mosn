@@ -102,5 +102,5 @@ make unit-test
 
 + [运行Samples](RunSamples.md)
 
-## MOSN 集成 Istio 运行事例
-+ [Istio集成](RunWithIstio.md)
+## 使用 MOSN 搭建 ServiceMesh 平台
++ [Istio集成](RunWithSOFAMesh.md)
