@@ -64,8 +64,8 @@ func (l *RateLimiter) TryAcquire() bool {
 		return false
 	}
 	l.mutex.Lock()
-	nowMicros := int64(time.Since(l.start))
 	defer l.mutex.Unlock()
+	nowMicros := int64(time.Since(l.start))
 	if nowMicros < l.nextFreeTicketMicros {
 		return false
 	}

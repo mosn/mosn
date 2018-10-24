@@ -56,12 +56,12 @@ func (l *QPSLimiter) TryAcquire() bool {
 	}
 
 	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	var nowMicros = int64(time.Since(l.start))
 	if nowMicros >= l.nextPeriodMicros {
 		l.nextPeriodMicros = ((nowMicros-l.nextPeriodMicros)/l.periodMicros+1)*l.periodMicros + l.nextPeriodMicros
 		l.currentPermits = 0
 	}
 	l.currentPermits++
-	defer l.mutex.Unlock()
 	return l.currentPermits <= l.maxAllows
 }
