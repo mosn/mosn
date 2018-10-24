@@ -8,15 +8,17 @@
 
 在 Service Mesh 落地的方案挑选中，Istio 作为 Service Mesh 的集大成者，无论在功能实现、稳定性，扩展性以及社区关注度等方面都是不二选择。其数据平面 Envoy 更是具有优秀的设计、可扩展的 xDS API 以及较高的性能等特点，蚂蚁一开始便将 Istio 作为重点的关注对象。
 
-Envoy 使用 C++ 语言开发，不符合蚂蚁技术栈的发展方向，无法兼容现在的运维体系，另外蚂蚁内部有许多业务定制化的诉求，种种原因导致我们无法直接使用 Istio。经过调研发现，作为云计算时代主流语言的 GoLang 同样具有较高的转发性能，这促使我们考虑开发 GoLang 版本的高性能 Sidecar 代替 Envoy 与 Istio 做集成，因而有了本文要介绍的对象：SOFAMosn
+Envoy 使用 C++ 语言开发，不符合蚂蚁技术栈的发展方向，无法兼容现在的运维体系，另外蚂蚁内部有许多业务定制化的诉求，种种原因导致我们无法直接使用 Istio。经过调研发现，作为云计算时代主流语言的 GoLang 同样具有较高的转发性能，这促使我们考虑开发 GoLang 版本的高性能 Sidecar 与 Istio 做集成，因而有了本文要介绍的对象：SOFAMosn
 
 ## 初识 SOFAMosn
 
 <div align=center><img src="images/MOSNIntroduction.png" width = "450" height = "400"  /></div>
 
-简单来说，SOFAMosn 是一款采用 GoLang 开发的 Service Mesh 数据平面代理，由蚂蚁金服系统部网络团队、蚂蚁金服中间件团队、UC 大文娱团队共同开发，功能和定位类似 Envoy，旨在提供分布式，模块化，可观察，智能化的代理能力；她通过模块化，分层解耦的设计，提供了可编程，事件机制，扩展性，高吞吐量的能力。
+简单来说，SOFAMosn 是一款采用 GoLang 开发的 Service Mesh 数据平面代理，由蚂蚁金服系统部网络团队、蚂蚁金服中间件团队、UC 大文娱团队共同开发，旨在提供分布式，模块化，可观察，智能化的代理能力；她通过模块化，分层解耦的设计，提供了可编程，事件机制，扩展性，高吞吐量的能力。
   
-当前， SOFAMosn 已支持 Envoy 和 Istio 的 API，实现并验证了 Envoy 的常用功能(全量功能在开发中)，通过 XDS API 与 Pilot 对接，SOFAMosn 可获取控制面推送的配置信息，来完成代理的功能。在实践中，你可以使用 SOFAMosn 替代 Envoy 作为转发平面与 Istio 集成来实现 Service Mesh 组件，也可以单独使用 SOFAMosn 作为业务网关，通过使用 SOFAMosn 你将在如下几个方面获得收益：
+当前， SOFAMosn 已支持 Istio 的 API，通过 XDS API 与 Pilot 对接，SOFAMosn 可获取控制面推送的配置信息，来完成代理的功能。在实践中，你可以使用 SOFAMosn 与 Istio 集成来实现 Service Mesh 组件(比如，我们的整体落地实践 [SOFAMesh](https://github.com/alipay/sofa-mesh) 项目)，也可以单独使用 SOFAMosn 作为业务网关，通过使用 SOFAMosn 你将在如下几个方面获得收益：
+
+
 
 1. SOFAMosn 使用 GoLang 作为开发语言，开发效率高，在云原生时代可与 k8s 等技术无缝对接，有利于加速微服务的落地
 2. SOFAMosn 可代理 Java，C++，GoLang，PHP，Python 等异构语言之间组件的互相调用，避免多语言版本组件的重复开发，可提高业务开发效率，目前 SOFAMosn 已经在蚂蚁金服中作为跨语言 RPC 调用的桥梁被使用

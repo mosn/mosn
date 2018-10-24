@@ -8,10 +8,9 @@
 
 ## SOFAMosn 与 SOFAMesh 的关系
 
-我们曾在 《SOFAMosn Introduction》 介绍过，SOFAMosn 是一款采用 Golang 开发的 Service Mesh 数据平面代理，功能定位类似于 Envoy，而 SOFAMesh 则是基于 Istio
-改进和扩展而来的 Service Mesh 大规模落地实践方案， SOFAMosn 是 SOFAMesh 的关键组件。目前由于 SOFAMosn 相比 Envoy 做了一些改造，无法在 Istio 下直接使用，
-所以本文的实验需要在 SOFAMesh 体系中进行。
-下图是 SOFAMesh 整体框架下，SOFAMosn 的工作示意图。
+我们曾在 [《SOFAMosn Introduction》](../Introduction.md) 一文中介绍过，SOFAMosn 是一款采用 Golang 开发的 Service Mesh 数据平面代理。而 SOFAMesh 则是基于 Istio
+改进和扩展而来的 Service Mesh 大规模落地实践方案，SOFAMosn 作为 SOFAMesh 的关键组件用来完成数据面的转发。
+下图是 SOFAMesh 整体框架下，SOFAMosn 的工作示意图。[注：当前 SOFAMosn 不支持在原生的 Istio 中直接使用]
 <div align=center><img src="../images/MOSNIntroduction.png" width = "450" height = "400" /></div>
 
 ## 准备工作
