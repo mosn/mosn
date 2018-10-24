@@ -37,8 +37,8 @@ type RateLimiter struct {
 }
 
 // NewRateLimiter new
-func NewRateLimiter(maxAllows int64, periodMs int64, maxBurstTimes float64) (*RateLimiter, error) {
-	if maxAllows < 0 || periodMs <= 0 || maxBurstTimes <= 0 {
+func NewRateLimiter(maxAllows int64, periodMs int64, MaxBurstRatio float64) (*RateLimiter, error) {
+	if maxAllows < 0 || periodMs <= 0 || MaxBurstRatio <= 0 {
 		return nil, errors.New("maxAllows must not be negtive, and periodMs be positive, and maxBurstTimes be positive")
 	}
 	var interval float64
@@ -49,7 +49,7 @@ func NewRateLimiter(maxAllows int64, periodMs int64, maxBurstTimes float64) (*Ra
 	}
 	l := &RateLimiter{
 		maxAllows:            maxAllows,
-		maxPermits:           maxBurstTimes * float64(maxAllows),
+		maxPermits:           MaxBurstRatio * float64(maxAllows),
 		stableIntervalMicros: interval,
 		start:                time.Now(),
 	}
@@ -66,7 +66,7 @@ func (l *RateLimiter) TryAcquire() bool {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	nowMicros := int64(time.Since(l.start))
-	if nowMicros < l.nextFreeTicketMicros {
+	if nowMicros <= l.nextFreeTicketMicros {
 		return false
 	}
 	l.reserveEarliestAvailable(nowMicros)
@@ -75,12 +75,10 @@ func (l *RateLimiter) TryAcquire() bool {
 
 // calculate nextFreeTicket time and storedPermits
 func (l *RateLimiter) reserveEarliestAvailable(nowMicros int64) {
-	{
-		//calculate new permits and update storedPermits
-		newPermits := float64(nowMicros-l.nextFreeTicketMicros) / l.stableIntervalMicros
-		l.storedPermits = math.Min(l.maxPermits, l.storedPermits+newPermits)
-		l.nextFreeTicketMicros = nowMicros
-	}
+	//calculate new permits and update storedPermits
+	newPermits := float64(nowMicros-l.nextFreeTicketMicros) / l.stableIntervalMicros
+	l.storedPermits = math.Min(l.maxPermits, l.storedPermits+newPermits)
+	l.nextFreeTicketMicros = nowMicros
 
 	//calculate next free ticket timestamp
 	storedPermitsToSpend := math.Min(1, l.storedPermits)

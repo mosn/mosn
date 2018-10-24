@@ -45,7 +45,7 @@ func NewLimitEngine(ruleConfig *model.RuleConfig) (*LimitEngine, error) {
 		l.limiter = limiter
 		return l, nil
 	} else if config.LimitStrategy == RateLimiterStrategy {
-		limiter, err := NewRateLimiter(int64(config.MaxBurstRatio), int64(config.PeriodMs), float64(config.MaxBurstRatio))
+		limiter, err := NewRateLimiter(int64(config.MaxAllows), int64(config.PeriodMs), float64(config.MaxBurstRatio))
 		if err != nil {
 			log.DefaultLogger.Errorf("create NewRateLimiter error, err: %s", err)
 			return nil, err
