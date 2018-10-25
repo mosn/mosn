@@ -42,6 +42,7 @@ type reportBatch struct {
 	batchCompressor BatchCompressor
 	mixerClient     MixerClient
 	options         *reportOptions
+	batchSize       int
 	attributesChan  chan *v1.Attributes
 }
 
@@ -77,11 +78,12 @@ func (r *reportBatch) main(wg *sync.WaitGroup) {
 		select {
 		case attributes := <-r.attributesChan:
 			r.batchCompressor.Add(attributes)
-			if r.batchCompressor.Size() >= r.options.maxBatchEntries {
+			r.batchSize = r.batchCompressor.Size()
+			if r.batchSize >= r.options.maxBatchEntries {
 				r.flush()
 			}
 		case <-timer:
-			if r.batchCompressor.Size() > 0 {
+			if r.batchSize > 0 {
 				r.flush()
 			}
 		}
@@ -96,4 +98,5 @@ func (r *reportBatch) flush() {
 	request := r.batchCompressor.Finish()
 	r.mixerClient.SendReport(request)
 	r.batchCompressor.Clear()
+	r.batchSize = 0
 }

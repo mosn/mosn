@@ -22,7 +22,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	protobuf_types "github.com/gogo/protobuf/types"
 )
 
 type testStreamFilterFactory struct{}
@@ -75,5 +78,39 @@ func TestCreateNetworkFilterChainFactory(t *testing.T) {
 	config["error"] = true
 	if _, err := CreateNetworkFilterChainFactory(name, config); err == nil {
 		t.Error("create factory failed, expected an error")
+	}
+}
+
+type testNamedHTTPConfigFactory struct {}
+
+func (m *testNamedHTTPConfigFactory) CreateFilter() v2.Filter {
+	return v2.Filter{
+		Type:   "test",
+		Config: nil,
+	}
+}
+
+func testCreateNamedHTTPConfigFactory(config *protobuf_types.Struct) (types.NamedHTTPFilterConfigFactory, error) {
+	return &testNamedHTTPConfigFactory{}, nil
+}
+
+func TestCreateNamedHttpFilterChainFactory(t *testing.T) {
+	name := "mixer"
+	RegisterNamedHTTPFilterConfigFactory(name, testCreateNamedHTTPConfigFactory)
+	config := make(map[string]interface{})
+
+	if _, err := CreateNetworkFilterChainFactory("no", config); err == nil {
+		t.Error("no register type should return an error")
+	}
+	if _, err := CreateNetworkFilterChainFactory(name, config); err == nil {
+		t.Error(err)
+	}
+	config["error"] = true
+	if _, err := CreateNetworkFilterChainFactory(name, config); err == nil {
+		t.Error("create factory failed, expected an error")
+	}
+
+	if _, err := CreateNamedHTTPFilterFactory(name, nil); err != nil {
+		t.Error("no register type should return an error")
 	}
 }

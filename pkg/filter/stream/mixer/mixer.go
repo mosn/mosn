@@ -42,7 +42,7 @@ func init() {
 	// static mixer stream filter factory
 	filter.RegisterStream(mixerFilterName, CreateMixerFilterFactory)
 	// dynamic http_filter mixer config factory
-	filter.RegisterNamedHttpFilterConfigFactory(mixerFilterName, CreateMixerConfigFactory)
+	filter.RegisterNamedHTTPFilterConfigFactory(mixerFilterName, CreateMixerConfigFactory)
 }
 
 // FilterConfigFactory filter config factory
@@ -178,7 +178,7 @@ func (m *ConfigFactory) CreateFilter() v2.Filter {
 }
 
 // CreateMixerConfigFactory for create mixer config factory
-func CreateMixerConfigFactory(config *protobuf_types.Struct) (types.NamedHttpFilterConfigFactory, error) {
+func CreateMixerConfigFactory(config *protobuf_types.Struct) (types.NamedHTTPFilterConfigFactory, error) {
 	factory := &ConfigFactory{}
 
 	err := util.StructToMessage(config, &factory.MixerConfig.HttpClientConfig)

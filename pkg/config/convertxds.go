@@ -317,7 +317,7 @@ func convertFilterConfig(name string, s *types.Struct) (map[string]map[string]in
 
 			// add http filter parse in HTTPConnectionManager case
 			for _, httpFilter := range filterConfig.HttpFilters {
-				f, err := filter.CreateNamedHttpFilterFactory(httpFilter.Name, httpFilter.Config)
+				f, err := filter.CreateNamedHTTPFilterFactory(httpFilter.Name, httpFilter.Config)
 				if err != nil {
 					continue
 				}

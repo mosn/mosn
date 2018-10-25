@@ -71,7 +71,7 @@ func (m *mixerClientManager) mainLoop(wg *sync.WaitGroup) {
 	for {
 		select {
 		case reportInfo := <-m.reportInfoChan:
-			m.doreport(reportInfo.reportCluster, reportInfo.attributes)
+			m.doReport(reportInfo.reportCluster, reportInfo.attributes)
 		}
 	}
 }
@@ -90,7 +90,7 @@ func (m *mixerClientManager) newClientArray(reportCluster string) *mixerClientAr
 	return clientArray
 }
 
-func (m *mixerClientManager) doreport(reportCluster string, attributes *v1.Attributes) {
+func (m *mixerClientManager) doReport(reportCluster string, attributes *v1.Attributes) {
 	clientArray, exist := m.clientMap[reportCluster]
 	if !exist {
 		clientArray = m.newClientArray(reportCluster)

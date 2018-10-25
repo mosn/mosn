@@ -28,5 +28,5 @@ type StreamFilterFactoryCreator func(config map[string]interface{}) (types.Strea
 // NetworkFilterFactoryCreator creates a NetworkFilterChainFactory according to config
 type NetworkFilterFactoryCreator func(config map[string]interface{}) (types.NetworkFilterChainFactory, error)
 
-// NamedHttpFilterConfigFactoryCreator creates a NamedHttpFilterConfigFactory according to config
-type NamedHttpFilterConfigFactoryCreator func(config *protobuf_types.Struct) (types.NamedHttpFilterConfigFactory, error)
+// NamedHTTPFilterConfigFactoryCreator creates a NamedHTTPFilterConfigFactory according to config
+type NamedHTTPFilterConfigFactoryCreator func(config *protobuf_types.Struct) (types.NamedHTTPFilterConfigFactory, error)

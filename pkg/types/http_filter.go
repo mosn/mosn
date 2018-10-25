@@ -21,7 +21,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
-// NamedHttpFilterConfigFactory create a named http filter config
-type NamedHttpFilterConfigFactory interface {
-	CreateFilter()v2.Filter
+// NamedHTTPFilterConfigFactory create a named http filter config
+type NamedHTTPFilterConfigFactory interface {
+	CreateFilter() v2.Filter
 }
