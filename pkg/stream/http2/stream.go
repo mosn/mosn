@@ -247,11 +247,18 @@ func (s *clientStream) AppendHeaders(context context.Context, headers types.Head
 	}
 	if s.request == nil {
 		s.request = new(http.Request)
-		s.request.Method = http.MethodGet
+		s.request.Method = http.MethodPut // if the request contains body, use "Put" as default, the http request method will be setted by MosnHeaderMethod
 		s.request.URL, _ = url.Parse(fmt.Sprintf(scheme+"://%s/",
 			s.connection.connection.RemoteAddr().String()))
 	}
-
+	if method, ok := headersMap[protocol.MosnHeaderMethod]; ok {
+		s.request.Method = method
+		delete(headersMap, protocol.MosnHeaderMethod)
+	}
+	if host, ok := headersMap[protocol.MosnHeaderHostKey]; ok {
+		s.request.Host = host
+		delete(headersMap, protocol.MosnHeaderHostKey)
+	}
 	var URI string
 
 	if path, ok := headersMap[protocol.MosnHeaderPathKey]; ok {
@@ -263,28 +270,14 @@ func (s *clientStream) AppendHeaders(context context.Context, headers types.Head
 
 		if queryString, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
 			URI += "?" + queryString
-			delete(headersMap, protocol.MosnHeaderQueryStringKey)
 		}
 
 		s.request.URL, _ = url.Parse(URI)
 	}
 
-	if _, ok := headersMap["Host"]; ok {
-		headersMap["Host"] = s.connection.connection.RemoteAddr().String()
-		s.request.Host = s.connection.connection.RemoteAddr().String()
-	}
-
 	// delete inner header
 	if _, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
 		delete(headersMap, protocol.MosnHeaderQueryStringKey)
-	}
-
-	if _, ok := headersMap[protocol.MosnHeaderMethod]; ok {
-		delete(headersMap, protocol.MosnHeaderMethod)
-	}
-
-	if _, ok := headersMap[protocol.MosnHeaderHostKey]; ok {
-		delete(headersMap, protocol.MosnHeaderHostKey)
 	}
 
 	s.request.Header = encodeHeader(headersMap)
@@ -304,7 +297,6 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 		s.request = new(http.Request)
 	}
 
-	s.request.Method = http.MethodPost
 	s.request.Body = &IoBufferReadCloser{
 		buf: data,
 	}
@@ -536,6 +528,10 @@ func (s *serverStream) handleRequest() {
 		// set query string header if not found
 		if _, ok := header[protocol.MosnHeaderQueryStringKey]; !ok {
 			header[protocol.MosnHeaderQueryStringKey] = string(queryString)
+		}
+		// set method string header if not found
+		if _, ok := header[protocol.MosnHeaderMethod]; !ok {
+			header[protocol.MosnHeaderMethod] = s.request.Method
 		}
 
 		s.decoder.OnReceiveHeaders(s.context, protocol.CommonHeader(header), false)

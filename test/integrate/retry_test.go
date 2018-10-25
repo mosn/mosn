@@ -32,7 +32,7 @@ func NewRetryCase(t *testing.T, serverProto, meshProto types.Protocol, isClose b
 		bad = util.NewHTTPServer(t, &BadHTTPHandler{})
 	case protocol.HTTP2:
 		good = util.NewUpstreamHTTP2(t, app1, nil)
-		bad = util.NewUpstreamHTTP2(t, app2, nil)
+		bad = util.NewUpstreamHTTP2(t, app2, &BadHTTPHandler{})
 	case protocol.SofaRPC:
 		good = util.NewRPCServer(t, app1, util.Bolt1)
 		bad = util.RPCServer{
@@ -138,7 +138,6 @@ func TestRetry(t *testing.T) {
 		util.StartRetry = false
 	}()
 	testCases := []*RetryCase{
-		NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, true),
 		// A server reponse not success
 		NewRetryCase(t, protocol.HTTP1, protocol.HTTP1, false),
 		NewRetryCase(t, protocol.HTTP1, protocol.HTTP2, false),

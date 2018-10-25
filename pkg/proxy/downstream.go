@@ -292,7 +292,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
-	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
+	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster, types.Protocol(s.proxy.config.UpstreamProtocol))
 
 	//Build Request
 	proxyBuffers := proxyBuffersByContext(s.context)
@@ -629,6 +629,8 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(true) {
 			// setup retry timer and return
+			// clear reset flag
+			atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 			return
 		} else if retryCheck == types.RetryOverflow {
 			s.requestInfo.SetResponseFlag(types.UpstreamOverflow)

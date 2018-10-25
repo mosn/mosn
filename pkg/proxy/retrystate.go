@@ -19,31 +19,32 @@ package proxy
 
 import (
 	"math/rand"
-	"strconv"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 type retryState struct {
-	retryPolicy     types.RetryPolicy
-	requestHeaders  types.HeaderMap
-	cluster         types.ClusterInfo
-	retryOn         bool
-	retiesRemaining uint32
-	retryFunc       func()
-	retryTimer      *timer
+	retryPolicy      types.RetryPolicy
+	requestHeaders   types.HeaderMap // TODO: support retry policy by header
+	cluster          types.ClusterInfo
+	retryOn          bool
+	retiesRemaining  uint32
+	retryFunc        func()
+	retryTimer       *timer
+	upstreamProtocol types.Protocol
 }
 
 func newRetryState(retryPolicy types.RetryPolicy,
-	requestHeaders types.HeaderMap, cluster types.ClusterInfo) *retryState {
+	requestHeaders types.HeaderMap, cluster types.ClusterInfo, proto types.Protocol) *retryState {
 	rs := &retryState{
-		retryPolicy:     retryPolicy,
-		requestHeaders:  requestHeaders,
-		cluster:         cluster,
-		retryOn:         retryPolicy.RetryOn(),
-		retiesRemaining: 3,
+		retryPolicy:      retryPolicy,
+		requestHeaders:   requestHeaders,
+		cluster:          cluster,
+		retryOn:          retryPolicy.RetryOn(),
+		retiesRemaining:  3,
+		upstreamProtocol: proto,
 	}
 
 	if retryPolicy.NumRetries() > rs.retiesRemaining {
@@ -108,17 +109,10 @@ func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamRe
 	if r.retryOn {
 		// TODO: add retry policy to decide retry or not. use default policy now
 		if headers != nil {
-			// http status
-			if code, ok := headers.Get(types.HeaderStatus); ok {
-				codeValue, _ := strconv.Atoi(code)
-
-				return codeValue >= 500
-			}
-			// rpc status
-			// TODO: some error code should not retry
-			if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
-				status := cmd.GetRespStatus()
-				return int16(status) != sofarpc.RESPONSE_STATUS_SUCCESS
+			// default policy , mapping all headers to http status code
+			code, err := protocol.MappingHeaderStatusCode(r.upstreamProtocol, headers)
+			if err == nil {
+				return code >= 500
 			}
 		}
 		if reason == types.StreamConnectionFailed {
