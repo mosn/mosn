@@ -20,7 +20,6 @@ package control
 import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/istio/mixerclient"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"istio.io/api/mixer/v1"
 )
 
@@ -31,7 +30,6 @@ type ClientContextBase struct {
 
 // NewClientContextBase for create ClientContextBase
 func NewClientContextBase(config *v2.Mixer) *ClientContextBase {
-	log.DefaultLogger.Infof("report cluster: %s", config.Transport.ReportCluster)
 	return &ClientContextBase{
 		config: config,
 	}

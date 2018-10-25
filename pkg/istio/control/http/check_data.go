@@ -24,7 +24,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// checkData extract HTTP data for Mixer check
+// CheckData extract HTTP data for Mixer check
 type CheckData interface {
 	// Find "x-istio-attributes" HTTP header.
 	// If found, base64 decode its value,  pass it out

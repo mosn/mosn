@@ -59,4 +59,7 @@ func TestExtractForwardedAttributes(t *testing.T) {
 	if compareData(&attributes, &requestContext.Attributes) != true {
 		t.Errorf("attributes not equal")
 	}
+	if mockCheckData.extractIstioAttributes != 1 {
+		t.Errorf("callttime not equal")
+	}
 }

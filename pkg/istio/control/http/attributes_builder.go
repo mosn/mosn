@@ -70,7 +70,7 @@ func (b *attributesBuilder) ExtractCheckAttributes(checkData CheckData) {
 	builder.AddString(utils.KContextProtocol, protocol)
 }
 
-func (b *attributesBuilder) ExtractReportAttributes(reportData *ReportData) {
+func (b *attributesBuilder) ExtractReportAttributes(reportData ReportData) {
 	builder := utils.NewAttributesBuilder(&b.requestContext.Attributes)
 
 	destIP, despPort, err := reportData.GetDestinationIPPort()
@@ -83,7 +83,7 @@ func (b *attributesBuilder) ExtractReportAttributes(reportData *ReportData) {
 		}
 	}
 
-	headers := reportData.respHeaders
+	headers := reportData.GetResponseHeaders()
 	builder.AddStringMap(utils.KResponseHeaders, headers)
 
 	builder.AddTimestamp(utils.KResponseTime, time.Now())

@@ -23,7 +23,7 @@ import (
 
 // RequestHandler handle a HTTP request
 type RequestHandler interface {
-	Report(checkData CheckData, reportData *ReportData)
+	Report(checkData CheckData, reportData ReportData)
 }
 
 type requestHandler struct {
@@ -46,7 +46,7 @@ func NewRequestHandler(serviceContext *ServiceContext) RequestHandler {
 // * extract check attributes if not done yet.
 // * extract more report attributes
 // * make a Report call.
-func (h *requestHandler) Report(checkData CheckData, reportData *ReportData) {
+func (h *requestHandler) Report(checkData CheckData, reportData ReportData) {
 	if h.serviceContext != nil && h.serviceContext.serviceConfig.DisableReportCalls {
 		return
 	}

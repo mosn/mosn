@@ -23,7 +23,9 @@ import (
 )
 
 type mockCheckData struct {
-	istioAtttibutes *v1.Attributes
+	istioAtttibutes        *v1.Attributes
+	extractIstioAttributes int
+	getSourceIPPort        int
 }
 
 func newMockCheckData() CheckData {
@@ -33,6 +35,7 @@ func newMockCheckData() CheckData {
 // ExtractIstioAttributes Find ex-istio-attributes" HTTP header.
 // If found, base64 decode its value,  pass it out
 func (c *mockCheckData) ExtractIstioAttributes() (data string, ret bool) {
+	c.extractIstioAttributes++
 	mar := jsonpb.Marshaler{}
 	data, _ = mar.MarshalToString(c.istioAtttibutes)
 	ret = true
@@ -41,5 +44,6 @@ func (c *mockCheckData) ExtractIstioAttributes() (data string, ret bool) {
 
 // GetSourceIPPort get downstream tcp connection ip and port.
 func (c *mockCheckData) GetSourceIPPort() (ip string, port int32, ret bool) {
+	c.getSourceIPPort++
 	return
 }
