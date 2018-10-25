@@ -56,11 +56,11 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.SofaRPC
 }
 
-func (p *connPool) NewStream(context context.Context,
+func (p *connPool) NewStream(ctx context.Context,
 	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
 	p.mux.Lock()
 	if p.activeClient == nil {
-		p.activeClient = newActiveClient(context, p)
+		p.activeClient = newActiveClient(ctx, p)
 	}
 
 	p.mux.Unlock()
@@ -82,7 +82,7 @@ func (p *connPool) NewStream(context context.Context,
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := activeClient.codecClient.NewStream(context, responseDecoder)
+		streamEncoder := activeClient.codecClient.NewStream(ctx, responseDecoder)
 		cb.OnReady(streamEncoder, p.host)
 	}
 
@@ -155,13 +155,14 @@ type activeClient struct {
 	totalStream        uint64
 }
 
-func newActiveClient(context context.Context, pool *connPool) *activeClient {
+func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
 
-	data := pool.host.CreateConnection(context)
-	codecClient := pool.createCodecClient(context, data)
+	data := pool.host.CreateConnection(ctx)
+	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
+	codecClient := pool.createCodecClient(connCtx, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)

@@ -282,7 +282,8 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		return nil
 	}
 
-	codecClient := pool.createCodecClient(context.WithValue(ctx, H2ConnKey, h2Conn), data)
+	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
+	codecClient := pool.createCodecClient(context.WithValue(connCtx, H2ConnKey, h2Conn), data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)

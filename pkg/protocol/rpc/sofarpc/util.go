@@ -6,6 +6,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 // NewResponse build sofa response msg according to original cmd and respStatus
@@ -43,27 +44,29 @@ func NewResponse(ctx context.Context, cmd SofaRpcCmd, respStatus int16) (SofaRpc
 
 func Clone(ctx context.Context, origin SofaRpcCmd) (SofaRpcCmd, error) {
 	//TODO: reuse req/resp struct
-	switch c := origin.(type) {
-	case *BoltRequest:
-		copy := &BoltRequest{}
-		*copy = *c
-		return copy, nil
-	case *BoltRequestV2:
-		copy := &BoltRequestV2{}
-		*copy = *c
-		return copy, nil
-	case *BoltResponse:
-		copy := &BoltResponse{}
-		*copy = *c
-		return copy, nil
-	case *BoltResponseV2:
-		copy := &BoltResponseV2{}
-		*copy = *c
-		return copy, nil
-	}
-
-	log.ByContext(ctx).Errorf("[Prepare Error]Unknown model type")
-	return origin, rpc.ErrUnknownType
+	//FIXME: comment clone logic, cause currently there was no need
+	//switch c := origin.(type) {
+	//case *BoltRequest:
+	//	copy := &BoltRequest{}
+	//	*copy = *c
+	//	return copy, nil
+	//case *BoltRequestV2:
+	//	copy := &BoltRequestV2{}
+	//	*copy = *c
+	//	return copy, nil
+	//case *BoltResponse:
+	//	copy := &BoltResponse{}
+	//	*copy = *c
+	//	return copy, nil
+	//case *BoltResponseV2:
+	//	copy := &BoltResponseV2{}
+	//	*copy = *cx
+	//	return copy, nil
+	//}
+	//
+	//log.ByContext(ctx).Errorf("[Prepare Error]Unknown model type")
+	//return origin, rpc.ErrUnknownType
+	return origin, nil
 }
 
 // NewBoltHeartbeat
@@ -98,10 +101,10 @@ func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {
 	//get instance
 	serializeIns := serialize.Instance
 
-	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
-	//request.RequestHeader = protocolCtx.GetReqHeaders()
+	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
+	request.RequestHeader = protocolCtx.GetReqHeaders()
 
-	request.RequestHeader = make(map[string]string, 8)
+	//request.RequestHeader = make(map[string]string, 8)
 
 	//logger
 	logger := log.ByContext(ctx)
@@ -122,10 +125,10 @@ func DeserializeBoltResponse(ctx context.Context, response *BoltResponse) {
 	//logger
 	logger := log.ByContext(ctx)
 
-	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
-	//response.ResponseHeader = protocolCtx.GetRspHeaders()
+	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
+	response.ResponseHeader = protocolCtx.GetRspHeaders()
 
-	response.ResponseHeader = make(map[string]string, 8)
+	//response.ResponseHeader = make(map[string]string, 8)
 
 	//deserialize header
 	serializeIns.DeSerialize(response.HeaderMap, &response.ResponseHeader)

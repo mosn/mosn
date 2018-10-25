@@ -24,7 +24,6 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/stream"
@@ -84,8 +83,6 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		context:        ctx,
 		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
-
-	proxy.context = buffer.NewBufferPoolContext(ctx, false)
 
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
 	if err == nil {
@@ -175,8 +172,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStreamDetect(context context.Context, responseSender types.StreamSender) types.StreamReceiver {
-	stream := newActiveStream(context, p, responseSender)
+func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender) types.StreamReceiver {
+	stream := newActiveStream(ctx, p, responseSender)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)

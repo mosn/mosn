@@ -30,7 +30,7 @@ const maxPoolSize = 1
 
 // Register the bufferpool's name
 const (
-	Protocol = iota
+	Protocol     = iota
 	SofaProtocol
 	Stream
 	SofaStream
@@ -85,12 +85,7 @@ type PoolCtx struct {
 }
 
 // NewBufferPoolContext returns a context with PoolCtx
-func NewBufferPoolContext(ctx context.Context, copy bool) context.Context {
-	if copy {
-		bufferCtx := PoolContext(ctx)
-		return context.WithValue(ctx, types.ContextKeyBufferPoolCtx, bufferCtxCopy(bufferCtx))
-	}
-
+func NewBufferPoolContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, types.ContextKeyBufferPoolCtx, newBufferPoolCtx())
 }
 
@@ -192,5 +187,5 @@ func PoolContext(context context.Context) *PoolCtx {
 	if context != nil && context.Value(types.ContextKeyBufferPoolCtx) != nil {
 		return context.Value(types.ContextKeyBufferPoolCtx).(*PoolCtx)
 	}
-	return newBufferPoolCtx()
+	return nil
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 var (
@@ -55,9 +55,9 @@ func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffe
 	size := sofarpc.REQUEST_HEADER_LEN_V1 + int(cmd.ClassLen) + len(cmd.HeaderMap)
 	//buf := sofarpc.GetBuffer(context, size)
 
-	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
-	//buf := protocolCtx.GetReqHeader(size)
-	buf := buffer.NewIoBuffer(size)
+	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
+	buf := protocolCtx.GetReqHeader(size)
+	//buf := buffer.NewIoBuffer(size)
 
 	b[0] = cmd.Protocol
 	buf.Write(b[0:1])
@@ -114,9 +114,9 @@ func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (types.IoBuf
 	// todo: reuse bytes @boqin
 	size := sofarpc.RESPONSE_HEADER_LEN_V1 + int(cmd.ClassLen) + len(cmd.HeaderMap)
 	//buf := sofarpc.GetBuffer(context, size)
-	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
-	//buf := protocolCtx.GetRspHeader(size)
-	buf := buffer.NewIoBuffer(size)
+	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
+	buf := protocolCtx.GetRspHeader(size)
+	//buf := buffer.GetIoBuffer(size)
 
 	b[0] = cmd.Protocol
 	buf.Write(b[0:1])
@@ -161,7 +161,6 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
-	logger := log.ByContext(ctx)
 
 	if readableBytes >= sofarpc.LESS_LEN_V1 {
 		bytes := data.Bytes()
@@ -201,13 +200,13 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 
 				} else { // not enough data
 
-					logger.Debugf("BoltV1 DECODE Request, no enough data for fully decode")
+					log.ByContext(ctx).Debugf("BoltV1 DECODE Request, no enough data for fully decode")
 					return cmd, nil
 				}
 
-				//sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-				//request := &sofabuffers.BoltReq
-				request := &sofarpc.BoltRequest{}
+				buffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+				request := &buffers.BoltReq
+				//request := &sofarpc.BoltRequest{}
 				request.Protocol = sofarpc.PROTOCOL_CODE_V1
 				request.CmdType = cmdType
 				request.CmdCode = int16(cmdCode)
@@ -282,14 +281,14 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 					data.Drain(read)
 				} else {
 					// not enough data
-					logger.Debugf("BoltV1 DECODE RESPONSE: no enough data for fully decode")
+					log.ByContext(ctx).Debugf("BoltV1 DECODE RESPONSE: no enough data for fully decode")
 
 					return cmd, nil
 				}
 
-				//sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-				//response := &sofabuffers.BoltRsp
-				response := &sofarpc.BoltResponse{}
+				buffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+				response := &buffers.BoltRsp
+				//response := &sofarpc.BoltResponse{}
 				response.Protocol = sofarpc.PROTOCOL_CODE_V1
 				response.CmdType = cmdType
 				response.CmdCode = int16(cmdCode)

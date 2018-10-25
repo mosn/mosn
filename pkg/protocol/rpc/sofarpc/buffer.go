@@ -6,6 +6,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
+var ins = SofaProtocolBufferCtx{}
+
 type SofaProtocolBufferCtx struct{}
 
 func (ctx SofaProtocolBufferCtx) Name() int {
@@ -18,6 +20,8 @@ func (ctx SofaProtocolBufferCtx) New() interface{} {
 }
 
 func (ctx SofaProtocolBufferCtx) Reset(i interface{}) {
+	// TODO All fields of these will be assigned every time. So we can remove reset logic to avoid duffcopy
+
 	buf, _ := i.(*SofaProtocolBuffers)
 	buf.BoltReq = BoltRequest{}
 	buf.BoltRsp = BoltResponse{}
@@ -34,5 +38,5 @@ type SofaProtocolBuffers struct {
 
 func SofaProtocolBuffersByContext(ctx context.Context) *SofaProtocolBuffers {
 	poolCtx := buffer.PoolContext(ctx)
-	return poolCtx.Find(SofaProtocolBufferCtx{}, nil).(*SofaProtocolBuffers)
+	return poolCtx.Find(ins, nil).(*SofaProtocolBuffers)
 }

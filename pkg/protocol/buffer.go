@@ -24,9 +24,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var defaultMapSize = 1 << 3
-var defaultDataSize = 1 << 10
-var defaultHeaderSize = 1 << 5
+var (
+	ins = protocolBufferCtx{}
+
+	defaultMapSize    = 1 << 3
+	defaultDataSize   = 1 << 10
+	defaultHeaderSize = 1 << 5
+)
 
 type ProtocolBuffers struct {
 	reqData     types.IoBuffer
@@ -137,5 +141,5 @@ func (p *ProtocolBuffers) GetRspTailers() map[string]string {
 // ProtocolBuffersByContext returns ProtocolBuffers by context
 func ProtocolBuffersByContext(ctx context.Context) *ProtocolBuffers {
 	poolCtx := buffer.PoolContext(ctx)
-	return poolCtx.Find(protocolBufferCtx{}, nil).(*ProtocolBuffers)
+	return poolCtx.Find(ins, nil).(*ProtocolBuffers)
 }

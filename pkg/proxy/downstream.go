@@ -99,9 +99,7 @@ type downStream struct {
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender) *downStream {
-	newCtx := buffer.NewBufferPoolContext(ctx, true)
-
-	proxyBuffers := proxyBuffersByContext(newCtx)
+	proxyBuffers := proxyBuffersByContext(ctx)
 
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
@@ -110,7 +108,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.requestInfo.SetStartTime()
 	stream.responseSender = responseSender
 	stream.responseSender.GetStream().AddEventListener(stream)
-	stream.context = newCtx
+	stream.context = ctx
 
 	stream.logger = log.ByContext(proxy.context)
 
@@ -527,7 +525,7 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 
 	// need protocol convert
 	if dp != up {
-		if convHeader, err := protocol.ConvertHeader(s.upstreamRequest.ctx, up, dp, headers); err == nil {
+		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
 			return convHeader
 		} else {
 			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
@@ -542,7 +540,7 @@ func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers t
 	}
 
 	//Currently, just log the error
-	if err := s.responseSender.AppendHeaders(s.upstreamRequest.ctx, headers, endStream); err != nil {
+	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
 		s.logger.Errorf("[downstream] append headers error, %s", err)
 	}
 
@@ -562,7 +560,7 @@ func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 
 	// need protocol convert
 	if dp != up {
-		if convData, err := protocol.ConvertData(s.upstreamRequest.ctx, up, dp, data); err == nil {
+		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
 			return convData
 		} else {
 			s.logger.Errorf("convert data from %s to %s failed, %s", up, dp, err.Error())
@@ -577,7 +575,7 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 	}
 
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
-	s.responseSender.AppendData(s.upstreamRequest.ctx, data, endStream)
+	s.responseSender.AppendData(s.context, data, endStream)
 
 	if endStream {
 		s.endStream()
@@ -595,7 +593,7 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 
 	// need protocol convert
 	if dp != up {
-		if convTrailer, err := protocol.ConvertTrailer(s.upstreamRequest.ctx, up, dp, trailers); err == nil {
+		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
 			return convTrailer
 		} else {
 			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
@@ -609,7 +607,7 @@ func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers
 		return
 	}
 
-	s.responseSender.AppendTrailers(s.upstreamRequest.ctx, trailers)
+	s.responseSender.AppendTrailers(s.context, trailers)
 	s.endStream()
 }
 

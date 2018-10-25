@@ -67,8 +67,8 @@ func (b *boltv1conv) MapToCmd(ctx context.Context, headers map[string]string) (s
 		value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderTimeout)
 		timeout := sofarpc.ConvertPropertyValueInt(value)
 
-		sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-		request := &sofabuffers.BoltEncodeReq
+		buffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+		request := &buffers.BoltEncodeReq
 		request.Protocol = protocolCode
 		request.CmdType = cmdType
 		request.CmdCode = cmdCode
@@ -88,8 +88,8 @@ func (b *boltv1conv) MapToCmd(ctx context.Context, headers map[string]string) (s
 		value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderRespTimeMills)
 		responseTime := sofarpc.ConvertPropertyValueInt64(value)
 
-		sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-		response := &sofabuffers.BoltEncodeRsp
+		buffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+		response := &buffers.BoltEncodeRsp
 		response.Protocol = protocolCode
 		response.CmdType = cmdType
 		response.CmdCode = cmdCode

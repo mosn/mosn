@@ -24,6 +24,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
+var ins = proxyBufferCtx{}
+
 type proxyBufferCtx struct{}
 
 func (ctx proxyBufferCtx) Name() int {
@@ -47,5 +49,5 @@ type proxyBuffers struct {
 
 func proxyBuffersByContext(ctx context.Context) *proxyBuffers {
 	poolCtx := buffer.PoolContext(ctx)
-	return poolCtx.Find(proxyBufferCtx{}, nil).(*proxyBuffers)
+	return poolCtx.Find(ins, nil).(*proxyBuffers)
 }
