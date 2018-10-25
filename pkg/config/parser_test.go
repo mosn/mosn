@@ -18,7 +18,6 @@
 package config
 
 import (
-	"encoding/json"
 	"net"
 	"reflect"
 	"testing"
