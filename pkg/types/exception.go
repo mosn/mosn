@@ -50,4 +50,5 @@ const (
 	NoHealthUpstreamCode  int = 500
 	UpstreamOverFlowCode  int = 503
 	TimeoutExceptionCode  int = 504
+	LimitExceededCode     int = 509
 )
