@@ -31,11 +31,11 @@ const (
 
 // Host key for routing in MOSN Header
 const (
-	MosnHeaderHostKey        = "host"
-	MosnHeaderPathKey        = "path"
-	MosnHeaderQueryStringKey = "querystring"
-	MosnHeaderMethod         = "method"
-	MosnOriginalHeaderPathKey      = "x-mosn-original-path"
+	MosnHeaderHostKey         = "host"
+	MosnHeaderPathKey         = "path"
+	MosnHeaderQueryStringKey  = "querystring"
+	MosnHeaderMethod          = "method"
+	MosnOriginalHeaderPathKey = "x-mosn-original-path"
 )
 
 // Hseader with special meaning in istio

@@ -273,7 +273,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				headers: protocol.CommonHeader{"path": "/index/page/"},
 				matchedPath: "/index/",
 			},
-			want: protocol.CommonHeader{"path":"/abc/page", "x-mosn-original-path":"/index/page/"},
+			want: protocol.CommonHeader{"path":"/abc/page/", "x-mosn-original-path":"/index/page/"},
 		},
 	}
 
@@ -324,7 +324,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 						},
 					},
 					vHost: &VirtualHostImpl{
-						responseHeadersParser: &headerParser{
+						requestHeadersParser: &headerParser{
 							headersToAdd: []*headerPair{
 								{
 									headerName: &lowerCaseString{"level"},
@@ -343,7 +343,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 							},
 						},
 						globalRouteConfig: &configImpl{
-							responseHeadersParser: &headerParser{
+							requestHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
 										headerName: &lowerCaseString{"level"},
@@ -367,7 +367,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
 				requestInfo: nil,
 			},
-			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "authority": "www.xxx.com", "level": "1,2,3", "route": "true", "vhost": "true", "global": "ture"},
+			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "authority": "www.xxx.com", "level": "1,2,3", "route": "true", "vhost": "true", "global": "true"},
 		},
 		{
 			name: "case2",
@@ -393,7 +393,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 					},
 					vHost: &VirtualHostImpl{
 						globalRouteConfig: &configImpl{
-							responseHeadersParser: &headerParser{
+							requestHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
 										headerName: &lowerCaseString{"level"},
@@ -417,7 +417,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
 				requestInfo: nil,
 			},
-			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "ture"},
+			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "true"},
 		},
 	}
 
@@ -513,7 +513,7 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 				headers:     protocol.CommonHeader{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
 				requestInfo: nil,
 			},
-			want: protocol.CommonHeader{"level": "1,2,3", "route": "true", "vhost": "true", "global": "ture"},
+			want: protocol.CommonHeader{"level": "1,2,3", "route": "true", "vhost": "true", "global": "true"},
 		},
 		{
 			name: "case2",
@@ -565,7 +565,7 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 				headers:     protocol.CommonHeader{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
 				requestInfo: nil,
 			},
-			want: protocol.CommonHeader{"ver": "0.1", "level": "1,3", "route": "true", "global": "ture"},
+			want: protocol.CommonHeader{"ver": "0.1", "level": "1,3", "route": "true", "global": "true"},
 		},
 	}
 
