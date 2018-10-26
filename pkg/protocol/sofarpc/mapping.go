@@ -37,10 +37,18 @@ func (m *sofaMapping) MappingHeaderStatusCode(headers types.HeaderMap) (int, err
 		return 0, errors.New("headers is not a sofa header")
 	}
 	code := int16(cmd.GetRespStatus())
-	// TODO: mapping rpc status to different http status code
+	// TODO: more accurate mapping
 	switch code {
 	case RESPONSE_STATUS_SUCCESS:
 		return http.StatusOK, nil
+	case RESPONSE_STATUS_SERVER_THREADPOOL_BUSY:
+		return http.StatusServiceUnavailable, nil
+	case RESPONSE_STATUS_TIMEOUT:
+		return http.StatusGatewayTimeout, nil
+	case RESPONSE_STATUS_CLIENT_SEND_ERROR:
+		return http.StatusNotFound, nil
+	case RESPONSE_STATUS_CONNECTION_CLOSED:
+		return http.StatusBadGateway, nil
 	default:
 		return http.StatusInternalServerError, nil
 	}
