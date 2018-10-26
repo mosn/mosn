@@ -19,15 +19,14 @@ package proxy
 
 import (
 	"container/list"
+	"context"
+	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"context"
-	"fmt"
-	"reflect"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"

@@ -247,7 +247,13 @@ func (s *clientStream) AppendHeaders(context context.Context, headers types.Head
 	}
 	if s.request == nil {
 		s.request = new(http.Request)
-		s.request.Method = http.MethodPut // if the request contains body, use "Put" as default, the http request method will be setted by MosnHeaderMethod
+		// TODO: protocol convert in protocol
+		// if the request contains body, use "Put" as default, the http request method will be setted by MosnHeaderMethod
+		if endStream {
+			s.request.Method = http.MethodGet
+		} else {
+			s.request.Method = http.MethodPost
+		}
 		s.request.URL, _ = url.Parse(fmt.Sprintf(scheme+"://%s/",
 			s.connection.connection.RemoteAddr().String()))
 	}
