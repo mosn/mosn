@@ -124,7 +124,7 @@ func getHeadersToRemove(headersToRemove []string) []*lowerCaseString {
 	lowerCaseHeaders := make([]*lowerCaseString, 0, len(headersToRemove))
 	for _, header := range headersToRemove {
 		lowerCaseHeader := &lowerCaseString{
-			str:  header,
+			str: header,
 		}
 		lowerCaseHeader.Lower()
 		lowerCaseHeaders = append(lowerCaseHeaders, lowerCaseHeader)

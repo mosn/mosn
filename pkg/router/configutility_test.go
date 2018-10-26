@@ -134,16 +134,16 @@ func Test_NewConfigImpl(t *testing.T) {
 					RequestHeadersToAdd: []*v2.HeaderValueOption{
 						{
 							Header: &v2.HeaderValue{
-								Key: "LEVEL",
+								Key:   "LEVEL",
 								Value: "1",
 							},
 							Append: false,
 						},
 					},
-					ResponseHeadersToAdd:[]*v2.HeaderValueOption{
+					ResponseHeadersToAdd: []*v2.HeaderValueOption{
 						{
 							Header: &v2.HeaderValue{
-								Key: "Random",
+								Key:   "Random",
 								Value: "123456",
 							},
 							Append: false,
@@ -164,7 +164,7 @@ func Test_NewConfigImpl(t *testing.T) {
 						},
 					},
 				},
-				responseHeadersParser:&headerParser{
+				responseHeadersParser: &headerParser{
 					headersToAdd: []*headerPair{
 						{
 							headerName: &lowerCaseString{"random"},

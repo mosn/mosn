@@ -250,7 +250,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		prefixRewrite: "/abc/",
 	}
 	type args struct {
-		headers types.HeaderMap
+		headers     types.HeaderMap
 		matchedPath string
 	}
 
@@ -262,18 +262,18 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		{
 			name: "case1",
 			args: args{
-				headers: protocol.CommonHeader{"path": "/"},
+				headers:     protocol.CommonHeader{"path": "/"},
 				matchedPath: "/",
 			},
-			want: protocol.CommonHeader{"path":"/abc/", "x-mosn-original-path":"/"},
+			want: protocol.CommonHeader{"path": "/abc/", "x-mosn-original-path": "/"},
 		},
 		{
 			name: "case2",
 			args: args{
-				headers: protocol.CommonHeader{"path": "/index/page/"},
+				headers:     protocol.CommonHeader{"path": "/index/page/"},
 				matchedPath: "/index/",
 			},
-			want: protocol.CommonHeader{"path":"/abc/page/", "x-mosn-original-path":"/index/page/"},
+			want: protocol.CommonHeader{"path": "/abc/page/", "x-mosn-original-path": "/index/page/"},
 		},
 	}
 

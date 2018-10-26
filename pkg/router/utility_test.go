@@ -123,7 +123,7 @@ func Test_getHeaderParser(t *testing.T) {
 		{
 			name: "case2",
 			args: args{
-				headersToAdd: nil,
+				headersToAdd:    nil,
 				headersToRemove: nil,
 			},
 			want: nil,

@@ -30,8 +30,8 @@ type headerFormatter interface {
 }
 
 type headerPair struct {
-	headerName       *lowerCaseString
-	headerFormatter  headerFormatter
+	headerName      *lowerCaseString
+	headerFormatter headerFormatter
 }
 
 type headerParser struct {

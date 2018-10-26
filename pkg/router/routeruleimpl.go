@@ -235,7 +235,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers types.HeaderMap, matche
 			return
 		}
 		headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-		headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite + path[len(matchedPath):])
+		headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
 	}
 }
 
