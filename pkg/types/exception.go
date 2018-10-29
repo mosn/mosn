@@ -47,7 +47,7 @@ const (
 	DeserialExceptionCode int = 3
 	SuccessCode           int = 200
 	RouterUnavailableCode int = 404
-	NoHealthUpstreamCode  int = 500
+	NoHealthUpstreamCode  int = 502
 	UpstreamOverFlowCode  int = 503
 	TimeoutExceptionCode  int = 504
 	LimitExceededCode     int = 509

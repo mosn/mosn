@@ -23,8 +23,8 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // types.StreamEventListener
@@ -45,6 +45,7 @@ type upstreamRequest struct {
 	sendComplete bool
 	dataSent     bool
 	trailerSent  bool
+	setupRetry   bool
 }
 
 // reset upstream request in proxy context
@@ -118,7 +119,9 @@ func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBu
 }
 
 func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
-	r.downStream.onUpstreamData(data, endStream)
+	if !r.setupRetry {
+		r.downStream.onUpstreamData(data, endStream)
+	}
 }
 
 func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
@@ -133,7 +136,9 @@ func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers ty
 }
 
 func (r *upstreamRequest) ReceiveTrailers(trailers types.HeaderMap) {
-	r.downStream.onUpstreamTrailers(trailers)
+	if !r.setupRetry {
+		r.downStream.onUpstreamTrailers(trailers)
+	}
 }
 
 func (r *upstreamRequest) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
@@ -185,7 +190,6 @@ func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
 	}
 	return data
 }
-
 
 func (r *upstreamRequest) appendTrailers(trailers types.HeaderMap) {
 	log.DefaultLogger.Debugf("upstream request encode trailers")
