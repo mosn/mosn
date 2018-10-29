@@ -46,7 +46,7 @@ type RouterManager interface {
 	// AddRoutersSet adds router config when generated
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
-	GetRouterWrapperByListenerName(routerConfigName string) RouterWrapper
+	GetRouterWrapperByName(routerConfigName string) RouterWrapper
 }
 type RouterWrapper interface {
 	GetRouters() Routers

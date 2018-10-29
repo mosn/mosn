@@ -256,6 +256,8 @@ func (srri *SofaRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64
 	return nil
 }
 
+
+// PathRouteRuleImpl used to "match path" with "exact comparing"
 type PathRouteRuleImpl struct {
 	*RouteRuleImplBase
 	path string
@@ -271,7 +273,6 @@ func (prri *PathRouteRuleImpl) MatchType() types.PathMatchType {
 	return types.Exact
 }
 
-// Exact Path Comparing
 func (prri *PathRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
 	// match base rule first
 	log.StartLogger.Debugf("path route rule match invoked")
@@ -295,11 +296,11 @@ func (prri *PathRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64
 	return nil
 }
 
-// todo
 func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
 	prri.finalizePathHeader(headers, prri.path)
 }
 
+// PrefixRouteRuleImpl used to "match path" with "prefix match"
 type PrefixRouteRuleImpl struct {
 	*RouteRuleImplBase
 	prefix string
@@ -315,7 +316,6 @@ func (prei *PrefixRouteRuleImpl) MatchType() types.PathMatchType {
 	return types.Prefix
 }
 
-// Compare Path's Prefix
 func (prei *PrefixRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
 
 	if prei.matchRoute(headers, randomValue) {
@@ -337,7 +337,7 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers map[string]strin
 	prei.finalizePathHeader(headers, prei.prefix)
 }
 
-//
+// RegexRouteRuleImpl used to "match path" with "regex match"
 type RegexRouteRuleImpl struct {
 	*RouteRuleImplBase
 	regexStr     string

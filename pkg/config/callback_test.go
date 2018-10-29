@@ -43,7 +43,7 @@ func TestMOSNConfig_OnAddOrUpdateRouters(t *testing.T) {
 	router.NewRouterManager()
 	instance := router.GetRoutersMangerInstance()
 
-	if rt := instance.GetRouterWrapperByListenerName(routerConfigName); rt != nil {
+	if rt := instance.GetRouterWrapperByName(routerConfigName); rt != nil {
 		t.Errorf("TestMOSNConfig_OnAddOrUpdateRouters error, want nil but got:%v", rt)
 	}
 
@@ -61,7 +61,7 @@ func TestMOSNConfig_OnAddOrUpdateRouters(t *testing.T) {
 
 	mockConfig.OnAddOrUpdateRouters(routerMocked)
 
-	if rt := instance.GetRouterWrapperByListenerName(routerConfigName); rt == nil {
+	if rt := instance.GetRouterWrapperByName(routerConfigName); rt == nil {
 		t.Errorf("TestMOSNConfig_OnAddOrUpdateRouters error, want nil but got:%v", rt)
 	}
 }

@@ -290,12 +290,12 @@ type VirtualCluster struct {
 
 // RouterMatch represents the route matching parameters
 type RouterMatch struct {
-	Prefix        string          `json:"prefix"`
-	Path          string          `json:"path"`
-	Regex         string          `json:"regex"`
+	Prefix        string          `json:"prefix"`    // Match request's Path with Prefix Comparing
+	Path          string          `json:"path"`      // Match request's Path with Exact Comparing
+	Regex         string          `json:"regex"`     // Match request's Path with Regex Comparing
 	CaseSensitive bool            `json:"case_sensitive"`
 	Runtime       RuntimeUInt32   `json:"runtime"`
-	Headers       []HeaderMatcher `json:"headers"`
+	Headers       []HeaderMatcher `json:"headers"`   // Match request's Headers
 }
 
 // RedirectAction represents the redirect parameters

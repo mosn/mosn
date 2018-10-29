@@ -115,7 +115,7 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 }
 
 // AddOrUpdateRouters used to add or update router
-func (rm *routersManager) GetRouterWrapperByListenerName(routerConfigName string) types.RouterWrapper {
+func (rm *routersManager) GetRouterWrapperByName(routerConfigName string) types.RouterWrapper {
 
 	if value, ok := rm.routersMap.Load(routerConfigName); ok {
 		if routerWrapper, ok := value.(*RoutersWrapper); ok {
