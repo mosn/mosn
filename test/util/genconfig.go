@@ -1,6 +1,8 @@
 package util
 
 import (
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -11,6 +13,7 @@ import (
 var (
 	MeshLogPath  = "stdout"
 	MeshLogLevel = "WARN"
+	StartRetry   = false
 )
 
 // Create Mesh Config
@@ -144,6 +147,13 @@ func newHeaderWeightedRouter(clusters []v2.WeightedCluster, value string) v2.Rou
 			Route: v2.RouteAction{
 				RouterActionConfig: v2.RouterActionConfig{
 					WeightedClusters: clusters,
+					RetryPolicy: &v2.RetryPolicy{
+						RetryPolicyConfig: v2.RetryPolicyConfig{
+							RetryOn:    StartRetry,
+							NumRetries: 3,
+						},
+						RetryTimeout: 5 * time.Second,
+					},
 				},
 			},
 		},
@@ -159,6 +169,13 @@ func newHeaderRouter(cluster string, value string) v2.Router {
 			Route: v2.RouteAction{
 				RouterActionConfig: v2.RouterActionConfig{
 					ClusterName: cluster,
+					RetryPolicy: &v2.RetryPolicy{
+						RetryPolicyConfig: v2.RetryPolicyConfig{
+							RetryOn:    StartRetry,
+							NumRetries: 3,
+						},
+						RetryTimeout: 5 * time.Second,
+					},
 				},
 			},
 		},
@@ -171,6 +188,13 @@ func newPrefixRouter(cluster string, prefix string) v2.Router {
 			Route: v2.RouteAction{
 				RouterActionConfig: v2.RouterActionConfig{
 					ClusterName: cluster,
+					RetryPolicy: &v2.RetryPolicy{
+						RetryPolicyConfig: v2.RetryPolicyConfig{
+							RetryOn:    StartRetry,
+							NumRetries: 3,
+						},
+						RetryTimeout: 5 * time.Second,
+					},
 				},
 			},
 		},
@@ -183,6 +207,13 @@ func newPathRouter(cluster string, path string) v2.Router {
 			Route: v2.RouteAction{
 				RouterActionConfig: v2.RouterActionConfig{
 					ClusterName: cluster,
+					RetryPolicy: &v2.RetryPolicy{
+						RetryPolicyConfig: v2.RetryPolicyConfig{
+							RetryOn:    StartRetry,
+							NumRetries: 3,
+						},
+						RetryTimeout: 5 * time.Second,
+					},
 				},
 			},
 		},

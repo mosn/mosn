@@ -126,10 +126,10 @@ func TestTLSExtend(t *testing.T) {
 	}
 	appaddr := "127.0.0.1:8080"
 	testCases := []*tlsExtendCase{
-		&tlsExtendCase{NewTestCase(t, protocol.HTTP1, protocol.HTTP1, testutil.NewHTTPServer(t))},
-		&tlsExtendCase{NewTestCase(t, protocol.HTTP1, protocol.HTTP2, testutil.NewHTTPServer(t))},
-		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.HTTP1, testutil.NewUpstreamHTTP2(t, appaddr))},
-		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.HTTP2, testutil.NewUpstreamHTTP2(t, appaddr))},
+		&tlsExtendCase{NewTestCase(t, protocol.HTTP1, protocol.HTTP1, testutil.NewHTTPServer(t, nil))},
+		&tlsExtendCase{NewTestCase(t, protocol.HTTP1, protocol.HTTP2, testutil.NewHTTPServer(t, nil))},
+		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.HTTP1, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
+		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.HTTP2, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
 		&tlsExtendCase{NewTestCase(t, protocol.SofaRPC, protocol.HTTP1, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},
 		&tlsExtendCase{NewTestCase(t, protocol.SofaRPC, protocol.HTTP2, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},
 		&tlsExtendCase{NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},

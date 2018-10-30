@@ -1,0 +1,128 @@
+{
+  "node": {
+    "id": "sidecar~172.16.1.154~productpage-v1-54b8b9f55-fzmnh.default~default.svc.cluster.local",
+    "cluster": "productpage",
+
+    "metadata": {
+      "INTERCEPTION_MODE": "REDIRECT",
+      "ISTIO_PROXY_SHA": "istio-proxy:6166ae7ebac7f630206b2fe4e6767516bf198313",
+      "ISTIO_PROXY_VERSION": "1.0.0",
+      "ISTIO_VERSION": "1.0-dev",
+      "POD_NAME": "productpage-v1-54b8b9f55-fzmnh",
+      "istio": "sidecar"
+    }
+  },
+  "stats_config": {
+    "use_all_default_tags": false
+  },
+  "admin": {
+    "access_log_path": "/dev/stdout",
+    "address": {
+      "socket_address": {
+        "address": "127.0.0.1",
+        "port_value": 15000
+      }
+    }
+  },
+  "dynamic_resources": {
+    "lds_config": {
+      "ads": {}
+    },
+    "cds_config": {
+      "ads": {}
+    },
+    "ads_config": {
+      "api_type": "GRPC",
+      "refresh_delay": {
+        "seconds": 1,
+        "nanos": 0
+      },
+      "grpc_services": [{
+        "envoy_grpc": {
+          "cluster_name": "xds-grpc"
+        }
+      }]
+    }
+  },
+  "static_resources": {
+    "clusters": [{
+        "name": "xds-grpc",
+        "type": "STRICT_DNS",
+        "connect_timeout": {
+          "seconds": 10,
+          "nanos": 0
+        },
+        "lb_policy": "ROUND_ROBIN",
+
+        "hosts": [{
+          "socket_address": {
+            "address": "161.117.71.101",
+            "port_value": 15010
+          }
+        }],
+        "circuit_breakers": {
+          "thresholds": [{
+              "priority": "default",
+              "max_connections": "100000",
+              "max_pending_requests": "100000",
+              "max_requests": "100000"
+            },
+            {
+              "priority": "high",
+              "max_connections": "100000",
+              "max_pending_requests": "100000",
+              "max_requests": "100000"
+            }
+          ]
+        },
+        "upstream_connection_options": {
+          "tcp_keepalive": {
+            "keepalive_time": 300
+          }
+        },
+        "http2_protocol_options": {}
+      }
+
+
+      ,
+      {
+        "name": "zipkin",
+        "type": "STRICT_DNS",
+        "connect_timeout": {
+          "seconds": 1
+        },
+        "lb_policy": "ROUND_ROBIN",
+        "hosts": [{
+          "socket_address": {
+            "address": "zipkin.istio-system",
+            "port_value": 9411
+          }
+        }]
+      }
+
+    ]
+  },
+
+  "tracing": {
+    "http": {
+      "name": "envoy.zipkin",
+      "config": {
+        "collector_cluster": "zipkin"
+      }
+    }
+  },
+
+
+  "stats_sinks": [{
+    "name": "envoy.statsd",
+    "config": {
+      "address": {
+        "socket_address": {
+          "address": "172.19.15.164",
+          "port_value": 9125
+        }
+      }
+    }
+  }]
+
+}

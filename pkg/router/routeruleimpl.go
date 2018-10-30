@@ -47,14 +47,14 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		autoHostRewrite:       route.Route.AutoHostRewrite,
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
+		policy:        &routerPolicy{},
 	}
 
 	routeRuleImplBase.weightedClusters, routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
-
-	routeRuleImplBase.policy = &routerPolicy{
-		retryOn:      false,
-		retryTimeout: 0,
-		numRetries:   0,
+	if route.Route.RetryPolicy != nil {
+		routeRuleImplBase.policy.retryOn = route.Route.RetryPolicy.RetryOn
+		routeRuleImplBase.policy.retryTimeout = route.Route.RetryPolicy.RetryTimeout
+		routeRuleImplBase.policy.numRetries = route.Route.RetryPolicy.NumRetries
 	}
 
 	// todo add header match to route base
