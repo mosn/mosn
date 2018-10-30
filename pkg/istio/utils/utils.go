@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1"
