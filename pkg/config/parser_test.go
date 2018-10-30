@@ -229,7 +229,7 @@ func TestParseListenerConfig(t *testing.T) {
 	lc := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			AddrConfig:     tcpListener.Addr().String(),
-			LogLevelConfig: "debug",
+			LogLevelConfig: "DEBUG",
 		},
 	}
 	ln := ParseListenerConfig(lc, []*v2.Listener{inherit})

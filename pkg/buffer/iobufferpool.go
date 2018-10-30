@@ -44,6 +44,7 @@ func (p *IoBufferPool) take(size int) (buf types.IoBuffer) {
 	} else {
 		buf = v.(types.IoBuffer)
 		buf.Alloc(size)
+		buf.Count(1)
 	}
 	return
 }
@@ -62,6 +63,9 @@ func GetIoBuffer(size int) types.IoBuffer {
 
 // PutIoBuffer returns IoBuffer to pool
 func PutIoBuffer(buf types.IoBuffer) {
+	if buf.Count(-1) != 0 {
+		return
+	}
 	pool := getIoBufferPool()
 	pool.give(buf)
 }

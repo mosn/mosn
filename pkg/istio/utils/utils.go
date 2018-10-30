@@ -22,7 +22,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/gogo/protobuf/jsonpb"
+	"istio.io/api/mixer/v1"
 )
 
 const (
@@ -57,5 +60,13 @@ func GetIPPort(address net.Addr) (ip string, port int32, ret bool) {
 	ip = array[0]
 	port = int32(p)
 	ret = true
+	return
+}
+
+// FormatAttributesString return attributes json string
+func FormatAttributesString(attributes *v1.Attributes) (str string, err error) {
+	var mar jsonpb.Marshaler
+	str, err = mar.MarshalToString(attributes)
+
 	return
 }

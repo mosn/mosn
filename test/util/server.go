@@ -99,13 +99,9 @@ func (s *upstreamServer) Addr() string {
 }
 
 //Server Implement
-type HTTP2Server struct {
-	t      *testing.T
-	Server *http2.Server
-}
+type HTTPHandler struct{}
 
-func (s *HTTP2Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//s.t.Logf("[server] Receive request : %s\n", r.Header.Get("Requestid"))
+func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
 	for k := range r.Header {
@@ -115,22 +111,34 @@ func (s *HTTP2Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "\nRequestId:%s\n", r.Header.Get("Requestid"))
 
 }
-func (s *HTTP2Server) ServeConn(t *testing.T, conn net.Conn) {
-	s.Server.ServeConn(conn, &http2.ServeConnOpts{Handler: s})
+
+type HTTP2Server struct {
+	t       *testing.T
+	Server  *http2.Server
+	Handler http.Handler
 }
 
-func NewUpstreamHTTP2(t *testing.T, addr string) UpstreamServer {
+func (s *HTTP2Server) ServeConn(t *testing.T, conn net.Conn) {
+	s.Server.ServeConn(conn, &http2.ServeConnOpts{Handler: s.Handler})
+}
+
+func NewUpstreamHTTP2(t *testing.T, addr string, h http.Handler) UpstreamServer {
+	if h == nil {
+		h = &HTTPHandler{}
+	}
 	s := &HTTP2Server{
-		t:      t,
-		Server: &http2.Server{IdleTimeout: 1 * time.Minute},
+		t:       t,
+		Server:  &http2.Server{IdleTimeout: 1 * time.Minute},
+		Handler: h,
 	}
 	return NewUpstreamServer(t, addr, s.ServeConn)
 }
 
 //Http Server
 type HTTPServer struct {
-	t      *testing.T
-	server *httptest.Server
+	t       *testing.T
+	server  *httptest.Server
+	Handler http.Handler
 }
 
 func (s *HTTPServer) GoServe() {
@@ -147,16 +155,11 @@ func (s *HTTPServer) Addr() string {
 	return ""
 }
 
-func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//s.t.Log("HTTP server receive data")
-	for k := range r.Header {
-		w.Header().Set(k, r.Header.Get(k))
+func NewHTTPServer(t *testing.T, h http.Handler) UpstreamServer {
+	if h == nil {
+		h = &HTTPHandler{}
 	}
-	fmt.Fprintf(w, "\nRequestId:%s\n", r.Header.Get("Requestid"))
-}
-
-func NewHTTPServer(t *testing.T) UpstreamServer {
-	s := &HTTPServer{t: t}
-	s.server = httptest.NewUnstartedServer(s)
+	s := &HTTPServer{t: t, Handler: h}
+	s.server = httptest.NewUnstartedServer(s.Handler)
 	return s
 }

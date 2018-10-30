@@ -251,7 +251,13 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 
 	if s.request == nil {
 		s.request = fasthttp.AcquireRequest()
-		s.request.Header.SetMethod(http.MethodGet)
+		// TODO: protocol convert in pkg/protocol
+		// f the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
+		if endStream {
+			s.request.Header.SetMethod(http.MethodGet)
+		} else {
+			s.request.Header.SetMethod(http.MethodPost)
+		}
 		s.request.SetRequestURI(fmt.Sprintf("http://%s/", s.wrapper.client.Addr))
 	}
 
@@ -276,10 +282,14 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 
 		if queryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
 			URI += "?" + queryString
-			delete(headers, protocol.MosnHeaderQueryStringKey)
 		}
 
 		s.request.SetRequestURI(URI)
+	}
+
+	if _, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
+		delete(headers, protocol.MosnHeaderQueryStringKey)
+
 	}
 
 	encodeReqHeader(s.request, headers)
@@ -440,7 +450,7 @@ func (s *serverStream) handleRequest() {
 			header[protocol.MosnHeaderHostKey] = string(s.ctx.Host())
 		}
 
-		// set :authority header if not found
+		// todo: this is a hack for set ":authority" header if not found
 		if _, ok := header[protocol.IstioHeaderHostKey]; !ok {
 			header[protocol.IstioHeaderHostKey] = string(s.ctx.Host())
 		}
