@@ -361,6 +361,9 @@ func Test_convertHeadersToAdd(t *testing.T) {
 	type args struct {
 		headerValueOption []*xdscore.HeaderValueOption
 	}
+
+	FALSE := false
+
 	tests := []struct {
 		name string
 		args args
@@ -385,7 +388,7 @@ func Test_convertHeadersToAdd(t *testing.T) {
 						Key:   "namespace",
 						Value: "demo",
 					},
-					Append: false,
+					Append: &FALSE,
 				},
 			},
 		},
