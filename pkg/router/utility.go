@@ -105,7 +105,13 @@ func getHeaderPair(headersToAdd []*v2.HeaderValueOption) []*headerPair {
 			option.Header.Key,
 		}
 		key.Lower()
-		value := getHeaderFormatter(option.Header.Value, option.Append)
+
+		// set true to Append as default
+		isAppend := true
+		if option.Append != nil {
+			isAppend = *option.Append
+		}
+		value := getHeaderFormatter(option.Header.Value, isAppend)
 		if value == nil {
 			continue
 		}

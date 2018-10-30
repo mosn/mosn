@@ -459,6 +459,8 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 			Regex: xdsHeader.GetRegex().GetValue(),
 		}
 
+		// as pseudo headers not support when Http1.x upgrade to Http2, change pseudo headers to normal headers
+		// this would be fix soon
 		if strings.HasPrefix(headerMatcher.Name, ":") {
 			headerMatcher.Name = headerMatcher.Name[1:]
 		}
@@ -506,12 +508,17 @@ func convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) []*v2.H
 	}
 	valueOptions := make([]*v2.HeaderValueOption, 0, len(headerValueOption))
 	for _, opt := range headerValueOption {
+		var isAppend *bool
+		if opt.Append != nil {
+			append := opt.GetAppend().GetValue()
+			isAppend = &append
+		}
 		valueOptions = append(valueOptions, &v2.HeaderValueOption{
 			Header: &v2.HeaderValue{
 				Key:   opt.GetHeader().GetKey(),
 				Value: opt.GetHeader().GetValue(),
 			},
-			Append: opt.GetAppend().GetValue(),
+			Append: isAppend,
 		})
 	}
 	return valueOptions

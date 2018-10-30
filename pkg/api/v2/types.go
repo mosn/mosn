@@ -267,7 +267,7 @@ type Proxy struct {
 // HeaderValueOption is header name/value pair plus option to control append behavior.
 type HeaderValueOption struct {
 	Header *HeaderValue `json:"header"`
-	Append bool         `json:"append"`
+	Append *bool         `json:"append"`
 }
 
 // HeaderValue is header name/value pair.

@@ -88,6 +88,8 @@ func Test_getHeaderParser(t *testing.T) {
 		headersToRemove []string
 	}
 
+	FALSE := false
+
 	tests := []struct {
 		name string
 		args args
@@ -102,7 +104,7 @@ func Test_getHeaderParser(t *testing.T) {
 							Key:   "LEVEL",
 							Value: "1",
 						},
-						Append: false,
+						Append: &FALSE,
 					},
 				},
 				headersToRemove: []string{"STATUS"},
@@ -145,6 +147,8 @@ func Test_getHeaderPair(t *testing.T) {
 		headersToAdd []*v2.HeaderValueOption
 	}
 
+	FALSE := false
+
 	tests := []struct {
 		name string
 		args args
@@ -159,7 +163,7 @@ func Test_getHeaderPair(t *testing.T) {
 							Key:   "LEVEL",
 							Value: "1",
 						},
-						Append: false,
+						Append: &FALSE,
 					},
 				},
 			},

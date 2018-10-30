@@ -122,6 +122,8 @@ func Test_NewConfigImpl(t *testing.T) {
 		routerConfig *v2.RouterConfiguration
 	}
 
+	FALSE := false
+
 	tests := []struct {
 		name string
 		args args
@@ -137,7 +139,7 @@ func Test_NewConfigImpl(t *testing.T) {
 								Key:   "LEVEL",
 								Value: "1",
 							},
-							Append: false,
+							Append: &FALSE,
 						},
 					},
 					ResponseHeadersToAdd: []*v2.HeaderValueOption{
@@ -146,7 +148,7 @@ func Test_NewConfigImpl(t *testing.T) {
 								Key:   "Random",
 								Value: "123456",
 							},
-							Append: false,
+							Append: &FALSE,
 						},
 					},
 					ResponseHeadersToRemove: []string{"status"},
