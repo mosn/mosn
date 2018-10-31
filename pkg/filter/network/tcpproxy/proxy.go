@@ -88,7 +88,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	clusterName := p.getUpstreamCluster()
 
-	clusterSnapshot := p.clusterManager.Get(nil, clusterName)
+	clusterSnapshot := p.clusterManager.Get(context.Background(), clusterName)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		p.requestInfo.SetResponseFlag(types.NoRouteFound)
@@ -107,7 +107,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 		return types.Stop
 	}
 
-	connectionData := p.clusterManager.TCPConnForCluster(nil, clusterName)
+	connectionData := p.clusterManager.TCPConnForCluster(nil, clusterSnapshot)
 
 	if connectionData.Connection == nil {
 		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
@@ -128,6 +128,8 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
 	p.requestInfo.SetUpstreamLocalAddress(upstreamConnection.LocalAddr())
+	// TODO: snapshot lifecycle
+	p.clusterManager.PutClusterSnapshot(clusterSnapshot)
 
 	// TODO: update upstream stats
 
