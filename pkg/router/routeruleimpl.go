@@ -21,9 +21,8 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
-	"time"
-
 	"sync"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -37,12 +36,17 @@ import (
 // new routerule implement basement
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleImplBase, error) {
 	routeRuleImplBase := RouteRuleImplBase{
-		vHost:         vHost,
-		routerMatch:   route.Match,
-		routerAction:  route.Route,
-		clusterName:   route.Route.ClusterName,
-		randInstance:  rand.New(rand.NewSource(time.Now().UnixNano())),
-		configHeaders: getRouterHeaders(route.Match.Headers),
+		vHost:                 vHost,
+		routerMatch:           route.Match,
+		routerAction:          route.Route,
+		clusterName:           route.Route.ClusterName,
+		randInstance:          rand.New(rand.NewSource(time.Now().UnixNano())),
+		configHeaders:         getRouterHeaders(route.Match.Headers),
+		prefixRewrite:         route.Route.PrefixRewrite,
+		hostRewrite:           route.Route.HostRewrite,
+		autoHostRewrite:       route.Route.AutoHostRewrite,
+		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
+		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		policy:        &routerPolicy{},
 	}
 
@@ -190,11 +194,6 @@ func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.Me
 	return rri.metadataMatchCriteria
 }
 
-// todo
-func (rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) {
-
-}
-
 func (rri *RouteRuleImplBase) matchRoute(headers types.HeaderMap, randomValue uint64) bool {
 	// todo check runtime
 	// 1. match headers' KV
@@ -226,6 +225,39 @@ func (rri *RouteRuleImplBase) WeightedCluster() map[string]weightedClusterEntry 
 	return rri.weightedClusters
 }
 
+func (rri *RouteRuleImplBase) finalizePathHeader(headers types.HeaderMap, matchedPath string) {
+	if len(rri.prefixRewrite) < 1 {
+		return
+	}
+	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+		if !strings.HasPrefix(path, matchedPath) {
+			log.DefaultLogger.Errorf("expect the Path %s has prefix %s but not", path, matchedPath)
+			return
+		}
+		headers.Set(protocol.MosnOriginalHeaderPathKey, path)
+		headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
+	}
+}
+
+func (rri *RouteRuleImplBase) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+	rri.finalizeRequestHeaders(headers, requestInfo)
+}
+
+func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.vHost.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	if len(rri.hostRewrite) > 0 {
+		headers.Set(protocol.IstioHeaderHostKey, rri.hostRewrite)
+	}
+}
+
+func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+	rri.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.vHost.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.vHost.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+}
+
 type SofaRouteRuleImpl struct {
 	*RouteRuleImplBase
 	matchValue string
@@ -254,6 +286,14 @@ func (srri *SofaRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64
 	log.DefaultLogger.Debugf("No service key found in header, sofa router matcher failure")
 
 	return nil
+}
+
+func (srri *SofaRouteRuleImpl) RouteRule() types.RouteRule {
+	return srri
+}
+
+func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+
 }
 
 type PathRouteRuleImpl struct {
@@ -295,8 +335,12 @@ func (prri *PathRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64
 	return nil
 }
 
-// todo
-func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (prri *PathRouteRuleImpl) RouteRule() types.RouteRule {
+	return prri
+}
+
+func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+	prri.finalizeRequestHeaders(headers, requestInfo)
 	prri.finalizePathHeader(headers, prri.path)
 }
 
@@ -333,7 +377,12 @@ func (prei *PrefixRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint
 	return nil
 }
 
-func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (prei *PrefixRouteRuleImpl) RouteRule() types.RouteRule {
+	return prei
+}
+
+func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+	prei.finalizeRequestHeaders(headers, requestInfo)
 	prei.finalizePathHeader(headers, prei.prefix)
 }
 
@@ -370,6 +419,11 @@ func (rrei *RegexRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint6
 	return nil
 }
 
-func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) {
+func (rrei *RegexRouteRuleImpl) RouteRule() types.RouteRule {
+	return rrei
+}
+
+func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+	rrei.finalizeRequestHeaders(headers, requestInfo)
 	rrei.finalizePathHeader(headers, rrei.regexStr)
 }

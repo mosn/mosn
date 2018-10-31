@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	 "github.com/alipay/sofa-mosn/pkg/mtls"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 

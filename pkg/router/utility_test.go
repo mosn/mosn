@@ -80,3 +80,153 @@ func Test_getWeightedClusterEntryAndVerify(t *testing.T) {
 		})
 	}
 }
+
+func Test_getHeaderParser(t *testing.T) {
+
+	type args struct {
+		headersToAdd    []*v2.HeaderValueOption
+		headersToRemove []string
+	}
+
+	FALSE := false
+
+	tests := []struct {
+		name string
+		args args
+		want *headerParser
+	}{
+		{
+			name: "case1",
+			args: args{
+				headersToAdd: []*v2.HeaderValueOption{
+					{
+						Header: &v2.HeaderValue{
+							Key:   "LEVEL",
+							Value: "1",
+						},
+						Append: &FALSE,
+					},
+				},
+				headersToRemove: []string{"STATUS"},
+			},
+			want: &headerParser{
+				headersToAdd: []*headerPair{
+					{
+						headerName: &lowerCaseString{"level"},
+						headerFormatter: &plainHeaderFormatter{
+							isAppend:    false,
+							staticValue: "1",
+						},
+					},
+				},
+				headersToRemove: []*lowerCaseString{{"status"}},
+			},
+		},
+		{
+			name: "case2",
+			args: args{
+				headersToAdd:    nil,
+				headersToRemove: nil,
+			},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getHeaderParser(tt.args.headersToAdd, tt.args.headersToRemove); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getHeaderParser(headersToAdd []*v2.HeaderValueOption, headersToRemove []string) = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getHeaderPair(t *testing.T) {
+
+	type args struct {
+		headersToAdd []*v2.HeaderValueOption
+	}
+
+	FALSE := false
+
+	tests := []struct {
+		name string
+		args args
+		want []*headerPair
+	}{
+		{
+			name: "case1",
+			args: args{
+				headersToAdd: []*v2.HeaderValueOption{
+					{
+						Header: &v2.HeaderValue{
+							Key:   "LEVEL",
+							Value: "1",
+						},
+						Append: &FALSE,
+					},
+				},
+			},
+			want: []*headerPair{
+				{
+					headerName: &lowerCaseString{"level"},
+					headerFormatter: &plainHeaderFormatter{
+						isAppend:    false,
+						staticValue: "1",
+					},
+				},
+			},
+		},
+		{
+			name: "case2",
+			args: args{
+				headersToAdd: nil,
+			},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getHeaderPair(tt.args.headersToAdd); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getHeaderPair(headersToAdd []*v2.HeaderValueOption) = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getHeadersToRemove(t *testing.T) {
+
+	type args struct {
+		headersToRemove []string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want []*lowerCaseString
+	}{
+		{
+			name: "case1",
+			args: args{
+				headersToRemove: []string{"STATUS"},
+			},
+			want: []*lowerCaseString{{"status"}},
+		},
+		{
+			name: "case2",
+			args: args{
+				headersToRemove: nil,
+			},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getHeadersToRemove(tt.args.headersToRemove); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getHeadersToRemove(headersToRemove []string) = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
