@@ -26,7 +26,9 @@ import (
 	"github.com/gogo/protobuf/types"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -34,6 +36,7 @@ import (
 	xdsfal "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
+	google_protobuf1 "github.com/gogo/protobuf/types"
 )
 
 // todo fill the unit test
@@ -352,4 +355,50 @@ func Test_convertListenerConfig(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_convertHeadersToAdd(t *testing.T) {
+	type args struct {
+		headerValueOption []*xdscore.HeaderValueOption
+	}
+
+	FALSE := false
+
+	tests := []struct {
+		name string
+		args args
+		want []*v2.HeaderValueOption
+	}{
+		{
+			name: "case1",
+			args: args{
+				headerValueOption: []*xdscore.HeaderValueOption{
+					{
+						Header: &xdscore.HeaderValue{
+							Key:   "namespace",
+							Value: "demo",
+						},
+						Append: &google_protobuf1.BoolValue{Value: false},
+					},
+				},
+			},
+			want: []*v2.HeaderValueOption{
+				{
+					Header: &v2.HeaderValue{
+						Key:   "namespace",
+						Value: "demo",
+					},
+					Append: &FALSE,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := convertHeadersToAdd(tt.args.headerValueOption); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

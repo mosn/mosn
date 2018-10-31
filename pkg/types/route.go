@@ -86,6 +86,12 @@ type RouteRule interface {
 	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
 	// as we may use weighted cluster's metadata, so need to input cluster's name
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
+
+	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
+	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)
+
+	// FinalizeResponseHeaders do potentially destructive header transforms on response headers prior to forwarding
+	FinalizeResponseHeaders(headers HeaderMap, requestInfo RequestInfo)
 }
 
 // Policy defines a group of route policy

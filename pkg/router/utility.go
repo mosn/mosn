@@ -83,3 +83,57 @@ func getRouterHeaders(heades []v2.HeaderMatcher) []*types.HeaderData {
 
 	return headerDatas
 }
+
+func getHeaderParser(headersToAdd []*v2.HeaderValueOption, headersToRemove []string) *headerParser {
+	if headersToAdd == nil && headersToRemove == nil {
+		return nil
+	}
+
+	return &headerParser{
+		headersToAdd:    getHeaderPair(headersToAdd),
+		headersToRemove: getHeadersToRemove(headersToRemove),
+	}
+}
+
+func getHeaderPair(headersToAdd []*v2.HeaderValueOption) []*headerPair {
+	if headersToAdd == nil {
+		return nil
+	}
+	headerPairs := make([]*headerPair, 0, len(headersToAdd))
+	for _, option := range headersToAdd {
+		key := &lowerCaseString{
+			option.Header.Key,
+		}
+		key.Lower()
+
+		// set true to Append as default
+		isAppend := true
+		if option.Append != nil {
+			isAppend = *option.Append
+		}
+		value := getHeaderFormatter(option.Header.Value, isAppend)
+		if value == nil {
+			continue
+		}
+		headerPairs = append(headerPairs, &headerPair{
+			headerName:      key,
+			headerFormatter: value,
+		})
+	}
+	return headerPairs
+}
+
+func getHeadersToRemove(headersToRemove []string) []*lowerCaseString {
+	if headersToRemove == nil {
+		return nil
+	}
+	lowerCaseHeaders := make([]*lowerCaseString, 0, len(headersToRemove))
+	for _, header := range headersToRemove {
+		lowerCaseHeader := &lowerCaseString{
+			str: header,
+		}
+		lowerCaseHeader.Lower()
+		lowerCaseHeaders = append(lowerCaseHeaders, lowerCaseHeader)
+	}
+	return lowerCaseHeaders
+}
