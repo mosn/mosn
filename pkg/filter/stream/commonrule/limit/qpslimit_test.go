@@ -66,10 +66,10 @@ func TestQpsLimiter_TryAcquire1(t *testing.T) {
 }
 
 func TestQpsLimiter_TryAcquire2(t *testing.T) {
-	maxAllowsList := []int64{1, 5, 10, 100, 500}
-	periodMsList := []int64{1000, 5000}
-	intervals := []time.Duration{1000, 100, 10}
-	sleepDuration := 5 * time.Second
+	maxAllowsList := []int64{1, 20, 500}
+	periodMsList := []int64{1000, 3000}
+	intervals := []time.Duration{500, 10}
+	sleepSec := time.Duration(3)
 
 	log.DefaultLogger.Infof("start")
 	for _, maxAllow := range maxAllowsList {
@@ -88,9 +88,9 @@ func TestQpsLimiter_TryAcquire2(t *testing.T) {
 					}
 				})
 				ticker.Start(time.Millisecond * interval)
-				time.Sleep(sleepDuration)
+				time.Sleep(sleepSec * time.Second)
 				ticker.Stop()
-				threshold := math.Min(float64(maxAllow*1000*5)/float64(periodMs), float64(5*1000/interval))
+				threshold := math.Min(float64(maxAllow*1000*int64(sleepSec))/float64(periodMs), float64(sleepSec*1000/interval))
 				log.DefaultLogger.Infof("total=%d, success=%d, threshold=%f", total, success, threshold)
 				if math.Abs(float64(success)-threshold) > 1 {
 					t.Errorf("false, success=%d", success)
