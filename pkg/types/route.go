@@ -28,11 +28,15 @@ import (
 
 // Default parameters for route
 const (
-	GlobalTimeout       = 60 * time.Second
-	DefaultRouteTimeout = 15 * time.Second
-	SofaRouteMatchKey   = "service"
+	GlobalTimeout        = 60 * time.Second
+	DefaultRouteTimeout  = 15 * time.Second
+	SofaRouteMatchKey    = "service"
+	SofaRouteMatchVipKey = "vip"
+
 	RouterMetadataKey   = "filter_metadata"
 	RouterMetadataKeyLb = "mosn.lb"
+
+	SofaRouterType = "sofa"
 )
 
 // Routers defines and manages all router
@@ -86,6 +90,9 @@ type RouteRule interface {
 	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
 	// as we may use weighted cluster's metadata, so need to input cluster's name
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
+
+	// UpdateMetaDataMatchCriteria used to update RouteRuleImplBase's metadata match criteria
+	UpdateMetaDataMatchCriteria(metadata map[string]string) error
 
 	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
 	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)
@@ -362,4 +369,12 @@ func GenerateHashedValue(input string) HashedValue {
 //EqualHashValue comapres two HashedValues are equaled or not
 func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {
 	return h1 == h2
+}
+
+func UseSofaRoute(routerType string) bool {
+	if routerType == SofaRouteMatchKey || routerType == SofaRouteMatchVipKey {
+		return true
+	}
+
+	return false
 }

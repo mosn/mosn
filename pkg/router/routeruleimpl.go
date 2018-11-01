@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"fmt"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -31,6 +32,10 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 )
+
+func init() {
+	Register(types.SofaRouterType, &SofaRouteFactory{})
+}
 
 // NewRouteRuleImplBase
 // new routerule implement basement
@@ -47,7 +52,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		autoHostRewrite:       route.Route.AutoHostRewrite,
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
-		policy:        &routerPolicy{},
+		policy:                &routerPolicy{},
 	}
 
 	routeRuleImplBase.weightedClusters, routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
@@ -63,7 +68,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		subsetLBMetaData := route.Route.MetadataMatch
 		routeRuleImplBase.metadataMatchCriteria = NewMetadataMatchCriteriaImpl(subsetLBMetaData)
 
-		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(route.Route.MetadataMatch)
+		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(subsetLBMetaData)
 	}
 
 	return &routeRuleImplBase, nil
@@ -98,12 +103,12 @@ type RouteRuleImplBase struct {
 	priority              types.ResourcePriority
 	configHeaders         []*types.HeaderData //
 	configQueryParameters []types.QueryParameterMatcher
-	weightedClusters      map[string]weightedClusterEntry //key is the wcluster's name
+	weightedClusters      map[string]weightedClusterEntry //key is the weighted cluster's name
 	totalClusterWeight    uint32
 	hashPolicy            hashPolicyImpl
 
-	metadataMatchCriteria *MetadataMatchCriteriaImpl
-	metaData              types.RouteMetaData
+	metadataMatchCriteria *MetadataMatchCriteriaImpl // sorted and unique metadata
+	metaData              types.RouteMetaData        // not sorted, only value in hashed
 
 	requestHeadersParser  *headerParser
 	responseHeadersParser *headerParser
@@ -194,6 +199,22 @@ func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.Me
 	return rri.metadataMatchCriteria
 }
 
+func (rri *RouteRuleImplBase) UpdateMetaDataMatchCriteria(metadata map[string]string) error {
+	if len(metadata) == 0 {
+		return fmt.Errorf("UpdateMetaDataMatchCriteria fail: metadata is nil")
+	}
+
+	mmc := NewMetadataMatchCriteriaImpl(metadata)
+	if mmc == nil {
+		return fmt.Errorf("UpdateMetaDataMatchCriteria fail: NewMetadataMatchCriteriaImpl error")
+	}
+
+	rri.metadataMatchCriteria = mmc
+	rri.metaData = getClusterMosnLBMetaDataMap(metadata)
+
+	return nil
+}
+
 func (rri *RouteRuleImplBase) matchRoute(headers types.HeaderMap, randomValue uint64) bool {
 	// todo check runtime
 	// 1. match headers' KV
@@ -258,9 +279,23 @@ func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers types.HeaderMap, r
 	rri.vHost.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 }
 
+type SofaRouteFactory struct{}
+
+func (srf *SofaRouteFactory) InitRouter() RouteBase {
+	return &SofaRouteRuleImpl{}
+}
+
 type SofaRouteRuleImpl struct {
 	*RouteRuleImplBase
+	matchName  string
 	matchValue string
+}
+
+func (ssri *SofaRouteRuleImpl) SetMatcher(matcher interface{}) {
+	if matchData, ok := matcher.(v2.HeaderMatcher); ok {
+		ssri.matchName = matchData.Name
+		ssri.matchValue = matchData.Value
+	}
 }
 
 func (srri *SofaRouteRuleImpl) Matcher() string {
@@ -290,6 +325,10 @@ func (srri *SofaRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64
 
 func (srri *SofaRouteRuleImpl) RouteRule() types.RouteRule {
 	return srri
+}
+
+func (srri *SofaRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
+	srri.RouteRuleImplBase = routerRuleImplBase
 }
 
 func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
@@ -344,6 +383,13 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, r
 	prri.finalizePathHeader(headers, prri.path)
 }
 
+func (ssri *PathRouteRuleImpl) SetMatcher(matcher interface{}) {
+}
+
+func (ssri *PathRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
+	ssri.RouteRuleImplBase = routerRuleImplBase
+}
+
 // PrefixRouteRuleImpl used to "match path" with "prefix match"
 type PrefixRouteRuleImpl struct {
 	*RouteRuleImplBase
@@ -386,6 +432,13 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap,
 	prei.finalizePathHeader(headers, prei.prefix)
 }
 
+func (prei *PrefixRouteRuleImpl) SetMatcher(matcher interface{}) {
+}
+
+func (prei *PrefixRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
+	prei.RouteRuleImplBase = routerRuleImplBase
+}
+
 // RegexRouteRuleImpl used to "match path" with "regex match"
 type RegexRouteRuleImpl struct {
 	*RouteRuleImplBase
@@ -426,4 +479,11 @@ func (rrei *RegexRouteRuleImpl) RouteRule() types.RouteRule {
 func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	rrei.finalizeRequestHeaders(headers, requestInfo)
 	rrei.finalizePathHeader(headers, rrei.regexStr)
+}
+
+func (rrei *RegexRouteRuleImpl) SetMatcher(matcher interface{}) {
+}
+
+func (rrei *RegexRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
+	rrei.RouteRuleImplBase = routerRuleImplBase
 }

@@ -41,6 +41,8 @@ type headerParser struct {
 
 type matchable interface {
 	Match(headers types.HeaderMap, randomValue uint64) types.Route
+    SetMatcher(matcher interface{})
+	SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase)
 }
 
 type info interface {
@@ -194,4 +196,9 @@ func (p *routerPolicy) CorsPolicy() types.CorsPolicy {
 
 func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 	return nil
+}
+
+
+type RouterFactory interface {
+	InitRouter()RouteBase
 }

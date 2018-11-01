@@ -82,6 +82,10 @@ func (l *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types
 	return hosts[hostIdx]
 }
 
+func (l *randomLoadBalancer) GetHostsNumber(metadata interface{}) uint32 {
+	return 0
+}
+
 // TODO: more loadbalancers@boqin
 type roundRobinLoadBalancer struct {
 	loadbalancer
@@ -128,6 +132,10 @@ func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) t
 	atomic.AddUint32(&l.rrIndex, 1)
 
 	return selectedHost
+}
+
+func (l *roundRobinLoadBalancer) GetHostsNumber(metadata interface{}) uint32 {
+	return 0
 }
 
 /*
@@ -266,4 +274,9 @@ func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCont
 
 	selectedHostWeighted.currentWeight -= totalWeight
 	return selectedHost
+}
+
+
+func (l *smoothWeightedRRLoadBalancer) GetHostsNumber(metadata interface{}) uint32 {
+	return 0
 }

@@ -186,6 +186,9 @@ type HostInfo interface {
 	Canary() bool
 
 	Metadata() RouteMetaData
+	
+	// OriginMetaData used to get origin metadata, currently in map[string]string
+	OriginMetaData() v2.Metadata
 
 	ClusterInfo() ClusterInfo
 

@@ -35,6 +35,9 @@ const (
 type LoadBalancer interface {
 	// ChooseHost chooses a host based on the load balancer context
 	ChooseHost(context LoadBalancerContext) Host
+	
+	// GetHostsNumber
+	GetHostsNumber(metadata interface{}) uint32
 }
 
 // LoadBalancerContext contains the information for choose a host
