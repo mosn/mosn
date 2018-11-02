@@ -207,8 +207,8 @@ func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, ch
 }
 
 func getInheritListeners() []*v2.Listener {
-	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
-		count, _ := strconv.Atoi(os.Getenv("_MOSN_INHERIT_FD"))
+	if os.Getenv(types.GracefulRestart) == "true" {
+		count, _ := strconv.Atoi(os.Getenv(types.InheritFd))
 		listeners := make([]*v2.Listener, count)
 
 		log.StartLogger.Infof("received %d inherit fds", count)

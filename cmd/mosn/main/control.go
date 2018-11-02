@@ -24,6 +24,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
+	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/urfave/cli"
 )
 
@@ -50,7 +51,9 @@ var (
 		Action: func(c *cli.Context) error {
 			go func() {
 				// pprof server
-				http.ListenAndServe("0.0.0.0:9090", nil)
+				s := &http.Server{Addr: "0.0.0.0:9090", Handler: nil}
+				server.AddStoppable(s)
+				s.ListenAndServe()
 			}()
 			configPath := c.String("config")
 			serviceCluster := c.String("service-cluster")
