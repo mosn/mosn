@@ -89,6 +89,12 @@ type RouteRule interface {
 
 	// PerFilterConfig returns per filter config from xds
 	PerFilterConfig() map[string]*v2.PerRouterConfig
+
+	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
+	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)
+
+	// FinalizeResponseHeaders do potentially destructive header transforms on response headers prior to forwarding
+	FinalizeResponseHeaders(headers HeaderMap, requestInfo RequestInfo)
 }
 
 // Policy defines a group of route policy
