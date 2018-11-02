@@ -27,7 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 	"github.com/valyala/fasthttp"
 )
 
@@ -39,9 +39,10 @@ func init() {
 
 // types.ConnectionPool
 type connPool struct {
-	host       types.Host
-	client     *activeClient
-	initClient sync.Once
+	host types.Host
+
+	clientLock sync.Mutex
+	clients    []*activeClient
 }
 
 func NewConnPool(host types.Host) types.ConnectionPool {

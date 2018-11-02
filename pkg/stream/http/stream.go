@@ -18,14 +18,11 @@
 package http
 
 import (
-	"container/list"
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
@@ -34,6 +31,7 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
+	"bufio"
 )
 
 func init() {
@@ -44,7 +42,7 @@ type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
-	return nil
+	return newClientStreamConnection(context, connection, streamConnCallbacks, connCallbacks)
 }
 
 func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
@@ -63,89 +61,119 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 type streamConnection struct {
 	context context.Context
 
-	protocol      types.Protocol
-	rawConnection net.Conn
-	activeStream  *stream //concurrent stream not supported in HTTP/1.X, so list storage for active stream is not required
+	conn          types.Connection
 	connCallbacks types.ConnectionEventListener
+
+	bufChan chan types.IoBuffer
+	br      *bufio.Reader
+	bw      *bufio.Writer
 
 	logger log.Logger
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {}
+func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
+	conn.bufChan <- buffer
+	<-conn.bufChan
+}
 
 func (conn *streamConnection) Protocol() types.Protocol {
-	return conn.protocol
+	return protocol.HTTP1
 }
 
 func (conn *streamConnection) GoAway() {
 	// todo
 }
 
-// since we use fasthttp client, which already implements the conn-pool feature and manage the connections itself
-// there is no need to do the connection management. so http/1.x stream only wrap the progress for constructing request/response
-// and have no aware of the connection it would use
+func (conn *streamConnection) Read(p []byte) (n int, err error) {
+	data := <-conn.bufChan
+	n = copy(p, data.Bytes())
+	data.Drain(n)
+	fmt.Printf("http1 Read : %v\n", p)
+	conn.bufChan <- nil
+	return
+}
+
+func (conn *streamConnection) Write(p []byte) (n int, err error) {
+	n = len(p)
+	err = conn.conn.Write(buffer.NewIoBufferBytes(p))
+	return
+}
 
 // types.ClientStreamConnection
-type clientStreamWrapper struct {
-	context context.Context
+type clientStreamConnection struct {
+	streamConnection
 
-	client *fasthttp.HostClient
-
-	activeStreams *list.List
-	asMutex       sync.Mutex
-
+	stream              *clientStream
 	connCallbacks       types.ConnectionEventListener
 	streamConnCallbacks types.StreamConnectionEventListener
 }
 
-func newClientStreamWrapper(context context.Context, client *fasthttp.HostClient,
+func newClientStreamConnection(context context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener,
 	connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 
-	return &clientStreamWrapper{
-		context:             context,
-		client:              client,
-		activeStreams:       list.New(),
+	csc := &clientStreamConnection{
+		streamConnection: streamConnection{
+			context: context,
+			conn:    connection,
+			bufChan: make(chan types.IoBuffer),
+		},
 		connCallbacks:       connCallbacks,
 		streamConnCallbacks: streamConnCallbacks,
 	}
+
+	csc.br = bufio.NewReader(csc)
+	csc.bw = bufio.NewWriter(csc)
+
+	go csc.serve()
+
+	return csc
 }
 
-// types.StreamConnection
-func (csw *clientStreamWrapper) Dispatch(buffer types.IoBuffer) {}
+func (csc *clientStreamConnection) serve() {
+	for {
+		// 1. blocking read using fasthttp.Request.Read
+		response := fasthttp.AcquireResponse()
+		response.Read(csc.br)
 
-func (csw *clientStreamWrapper) Protocol() types.Protocol {
-	return protocol.HTTP1
+		// 2. response processing
+		s := csc.stream
+		s.response = response
+
+		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+			s.handleResponse()
+		}
+	}
 }
 
-func (csw *clientStreamWrapper) GoAway() {
+func (csc *clientStreamConnection) GoAway() {
 	// todo
 }
 
-func (csw *clientStreamWrapper) OnGoAway() {
-	csw.streamConnCallbacks.OnGoAway()
+func (csc *clientStreamConnection) OnGoAway() {
+	csc.streamConnCallbacks.OnGoAway()
 }
 
-func (csw *clientStreamWrapper) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
-	stream := &clientStream{
+func (csc *clientStreamConnection) NewStream(ctx context.Context, streamID string, receiver types.StreamReceiver) types.StreamSender {
+	s := &clientStream{
 		stream: stream{
 			context:  context.WithValue(ctx, types.ContextKeyStreamID, streamID),
-			receiver: responseDecoder,
+			receiver: receiver,
 		},
-		wrapper: csw,
+		connection: csc,
 	}
 
-	csw.asMutex.Lock()
-	stream.element = csw.activeStreams.PushBack(stream)
-	csw.asMutex.Unlock()
+	csc.stream = s
 
-	return stream
+	return s
 }
 
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
+
+	stream                    *serverStream
 	serverStreamConnCallbacks types.ServerStreamConnectionEventListener
 }
 
@@ -153,15 +181,55 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
-			context:       context,
-			rawConnection: connection.RawConn(),
+			context: context,
+			conn:    connection,
+			bufChan: make(chan types.IoBuffer),
 		},
 		serverStreamConnCallbacks: callbacks,
 	}
 
-	fasthttp.ServeConn(connection.RawConn(), ssc.ServeHTTP)
+	ssc.br = bufio.NewReader(ssc)
+	ssc.bw = bufio.NewWriter(ssc)
+
+	//fasthttp.ServeConn(connection.RawConn(), ssc.ServeHTTP)
+	go ssc.serve()
 
 	return ssc
+}
+
+func (ssc *serverStreamConnection) serve() {
+	for {
+		// 1. blocking read using fasthttp.Request.Read
+		request := fasthttp.AcquireRequest()
+		request.Read(ssc.br)
+
+		// 2. request processing
+
+		// generate stream id using global counter
+		streamID := protocol.GenerateIDString()
+
+		s := &serverStream{
+			stream: stream{
+				request:  request,
+				response: fasthttp.AcquireResponse(),
+				context:  context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
+			},
+			connection:       ssc,
+			responseDoneChan: make(chan bool, 1),
+		}
+
+		s.receiver = ssc.serverStreamConnCallbacks.NewStream(s.stream.context, streamID, s)
+
+		ssc.stream = s
+
+		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+			s.handleRequest()
+		}
+
+		select {
+		case <-s.responseDoneChan:
+		}
+	}
 }
 
 func (ssc *serverStreamConnection) OnGoAway() {
@@ -169,33 +237,33 @@ func (ssc *serverStreamConnection) OnGoAway() {
 }
 
 //作为PROXY的STREAM SERVER
-func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
-	//generate stream id using global counter
-	streamID := protocol.GenerateIDString()
-
-	s := &serverStream{
-		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
-		},
-		ctx:              ctx,
-		connection:       ssc,
-		responseDoneChan: make(chan bool, 1),
-	}
-
-	s.receiver = ssc.serverStreamConnCallbacks.NewStream(s.stream.context, streamID, s)
-
-	ssc.activeStream = &s.stream
-
-	if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-		s.handleRequest()
-	}
-
-	select {
-	case <-s.responseDoneChan:
-		s.ctx = nil
-		ssc.activeStream = nil
-	}
-}
+//func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
+//	//generate stream id using global counter
+//	streamID := protocol.GenerateIDString()
+//
+//	s := &serverStream{
+//		stream: stream{
+//			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
+//		},
+//		ctx:              ctx,
+//		connection:       ssc,
+//		responseDoneChan: make(chan bool, 1),
+//	}
+//
+//	s.receiver = ssc.serverStreamConnCallbacks.NewStream(s.stream.context, streamID, s)
+//
+//	ssc.activeStream = &s.stream
+//
+//	if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+//		s.handleRequest()
+//	}
+//
+//	select {
+//	case <-s.responseDoneChan:
+//		s.ctx = nil
+//		ssc.activeStream = nil
+//	}
+//}
 
 // types.Stream
 // types.StreamSender
@@ -203,6 +271,10 @@ type stream struct {
 	context context.Context
 
 	readDisableCount int32
+
+	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
+	request  *fasthttp.Request
+	response *fasthttp.Response
 
 	receiver  types.StreamReceiver
 	streamCbs []types.StreamEventListener
@@ -237,12 +309,7 @@ func (s *stream) ResetStream(reason types.StreamResetReason) {
 type clientStream struct {
 	stream
 
-	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
-	request  *fasthttp.Request
-	response *fasthttp.Response
-
-	element *list.Element
-	wrapper *clientStreamWrapper
+	connection *clientStreamConnection
 }
 
 // types.StreamSender
@@ -258,7 +325,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 		} else {
 			s.request.Header.SetMethod(http.MethodPost)
 		}
-		s.request.SetRequestURI(fmt.Sprintf("http://%s/", s.wrapper.client.Addr))
+		s.request.SetRequestURI(fmt.Sprintf("http://%s/", s.connection.conn.RemoteAddr()))
 	}
 
 	if method, ok := headers[protocol.MosnHeaderMethod]; ok {
@@ -274,7 +341,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	var URI string
 
 	if path, ok := headers[protocol.MosnHeaderPathKey]; ok {
-		URI = fmt.Sprintf("http://%s%s", s.wrapper.client.Addr, path)
+		URI = fmt.Sprintf("http://%s%s", s.connection.conn.RemoteAddr(), path)
 		delete(headers, protocol.MosnHeaderPathKey)
 	}
 
@@ -322,7 +389,7 @@ func (s *clientStream) AppendTrailers(context context.Context, trailers types.He
 }
 
 func (s *clientStream) endStream() {
-	go s.doSend()
+	s.doSend()
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
@@ -338,20 +405,11 @@ func (s *clientStream) ReadDisable(disable bool) {
 }
 
 func (s *clientStream) doSend() {
-	if s.response == nil {
-		s.response = fasthttp.AcquireResponse()
-	}
-
-	err := s.wrapper.client.Do(s.request, s.response)
-
-	if err != nil {
+	if _, err := s.request.WriteTo(s.connection); err != nil {
 		log.DefaultLogger.Errorf("http1 client stream send error: %+s", err)
-		s.wrapper.connCallbacks.OnEvent(types.RemoteClose)
-	} else {
 
-		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-			s.handleResponse()
-		}
+		//TODO
+		s.connection.connCallbacks.OnEvent(types.RemoteClose)
 	}
 }
 
@@ -361,11 +419,9 @@ func (s *clientStream) handleResponse() {
 		buf := buffer.NewIoBufferBytes(s.response.Body())
 		s.receiver.OnReceiveData(s.context, buf, true)
 
-		s.wrapper.asMutex.Lock()
+		//TODO cannot recycle immediately, headers might be used by proxy logic
 		s.request = nil
 		s.response = nil
-		s.wrapper.activeStreams.Remove(s.element)
-		s.wrapper.asMutex.Unlock()
 	}
 }
 
@@ -375,9 +431,6 @@ func (s *clientStream) GetStream() types.Stream {
 
 type serverStream struct {
 	stream
-
-	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
-	ctx *fasthttp.RequestCtx
 
 	connection       *serverStreamConnection
 	responseDoneChan chan bool
@@ -389,11 +442,11 @@ func (s *serverStream) AppendHeaders(context context.Context, headerIn types.Hea
 
 	if status, ok := headers[types.HeaderStatus]; ok {
 		statusCode, _ := strconv.Atoi(string(status))
-		s.ctx.SetStatusCode(statusCode)
+		s.response.SetStatusCode(statusCode)
 		delete(headers, types.HeaderStatus)
 	}
 
-	encodeRespHeader(&s.ctx.Response, headers)
+	encodeRespHeader(s.response, headers)
 
 	if endStream {
 		s.endStream()
@@ -402,7 +455,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headerIn types.Hea
 }
 
 func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
-	s.ctx.SetBody(data.Bytes())
+	s.response.SetBody(data.Bytes())
 
 	if endStream {
 		s.endStream()
@@ -420,7 +473,14 @@ func (s *serverStream) endStream() {
 	s.doSend()
 	s.responseDoneChan <- true
 
-	s.connection.activeStream = nil
+	// clean up & recycle
+	s.connection.stream = nil
+	if s.request != nil {
+		fasthttp.ReleaseRequest(s.request)
+	}
+	if s.response != nil {
+		fasthttp.ReleaseResponse(s.response)
+	}
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
@@ -436,47 +496,45 @@ func (s *serverStream) ReadDisable(disable bool) {
 }
 
 func (s *serverStream) doSend() {
-	// fasthttp will automatically flush headers and body
+	s.response.WriteTo(s.connection)
 }
 
 func (s *serverStream) handleRequest() {
-	if s.ctx != nil {
+	if s.request != nil {
 
 		// header
-		header := decodeReqHeader(s.ctx.Request.Header)
+		header := decodeReqHeader(s.request.Header)
 
 		// set host header if not found, just for insurance
 		if _, ok := header[protocol.MosnHeaderHostKey]; !ok {
-			header[protocol.MosnHeaderHostKey] = string(s.ctx.Host())
+			header[protocol.MosnHeaderHostKey] = string(s.request.Host())
 		}
 
 		// todo: this is a hack for set ":authority" header if not found
 		if _, ok := header[protocol.IstioHeaderHostKey]; !ok {
-			header[protocol.IstioHeaderHostKey] = string(s.ctx.Host())
+			header[protocol.IstioHeaderHostKey] = string(s.request.Host())
 		}
 
 		// set path header if not found
 		if _, ok := header[protocol.MosnHeaderPathKey]; !ok {
-			header[protocol.MosnHeaderPathKey] = string(s.ctx.Path())
+			header[protocol.MosnHeaderPathKey] = string(s.request.URI().Path())
 		}
 
 		// set query string header if not found
 		if _, ok := header[protocol.MosnHeaderQueryStringKey]; !ok {
-			header[protocol.MosnHeaderQueryStringKey] = string(s.ctx.URI().QueryString())
+			header[protocol.MosnHeaderQueryStringKey] = string(s.request.URI().QueryString())
 		}
 
 		// set method string header if not found
 		if _, ok := header[protocol.MosnHeaderMethod]; !ok {
-			header[protocol.MosnHeaderMethod] = string(s.ctx.Request.Header.Method())
+			header[protocol.MosnHeaderMethod] = string(s.request.Header.Method())
 		}
 
 		s.receiver.OnReceiveHeaders(s.context, protocol.CommonHeader(header), false)
 
 		// data remove detect
-		if s.connection.activeStream != nil {
-			buf := buffer.NewIoBufferBytes(s.ctx.Request.Body())
-			s.receiver.OnReceiveData(s.context, buf, true)
-			//no Trailer in Http/1.x
+		if s.connection.stream != nil {
+			s.receiver.OnReceiveData(s.context, buffer.NewIoBufferBytes(s.request.Body()), true)
 		}
 	}
 }
@@ -520,18 +578,4 @@ func decodeRespHeader(in fasthttp.ResponseHeader) (out map[string]string) {
 	out[types.HeaderStatus] = strconv.Itoa(in.StatusCode())
 
 	return
-}
-
-// io.ReadCloser
-type IoBufferReadCloser struct {
-	buf types.IoBuffer
-}
-
-func (rc *IoBufferReadCloser) Read(p []byte) (n int, err error) {
-	return rc.buf.Read(p)
-}
-
-func (rc *IoBufferReadCloser) Close() error {
-	rc.buf.Reset()
-	return nil
 }

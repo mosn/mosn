@@ -22,17 +22,23 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/valyala/fasthttp"
+	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"net"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
+	streamMocked := stream{
+		request: fasthttp.AcquireRequest(),
+	}
+	remoteAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:12200")
 
-	addr := "www.antfin.com"
 	ClientStreamsMocked := []clientStream{
 		{
-			request: fasthttp.AcquireRequest(),
-			wrapper: &clientStreamWrapper{
-				client: &fasthttp.HostClient{
-					Addr: addr,
+			stream: streamMocked,
+			connection: &clientStreamConnection{
+				streamConnection: streamConnection{
+					conn: network.NewClientConnection(nil, nil, remoteAddr, nil, log.DefaultLogger),
 				},
 			},
 		},
@@ -50,7 +56,7 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 	}
 
 	wantedURI := []string{
-		"http://www.antfin.com/pic?name=biz&passwd=bar",
+		"http://127.0.0.1:12200/pic?name=biz&passwd=bar",
 	}
 
 	for i := 0; i < len(ClientStreamsMocked); i++ {
@@ -64,7 +70,7 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 func Test_serverStream_handleRequest(t *testing.T) {
 	type fields struct {
 		stream           stream
-		ctx              *fasthttp.RequestCtx
+		request          *fasthttp.Request
 		connection       *serverStreamConnection
 		responseDoneChan chan bool
 	}
@@ -78,7 +84,6 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &serverStream{
 				stream:           tt.fields.stream,
-				ctx:              tt.fields.ctx,
 				connection:       tt.fields.connection,
 				responseDoneChan: tt.fields.responseDoneChan,
 			}
