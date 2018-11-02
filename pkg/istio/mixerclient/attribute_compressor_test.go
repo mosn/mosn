@@ -18,7 +18,6 @@
 package mixerclient
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -75,8 +74,10 @@ func TestCompress(t *testing.T) {
 
 	mar := jsonpb.Marshaler{}
 	str, _ := mar.MarshalToString(&pb)
+	/*
 	fmt.Printf("attributes: %s\n", string(str))
 	fmt.Printf("attributes1: %s\n", strings.TrimSpace(attributes))
+	*/
 	if str != strings.TrimSpace(attributes) {
 		t.Fatalf("not equal")
 	}
@@ -118,7 +119,7 @@ func TestBatchCompress(t *testing.T) {
 	mar := jsonpb.Marshaler{}
 	str, _ := mar.MarshalToString(pb)
 
-	fmt.Printf("attributes: %s\n", string(str))
+	//fmt.Printf("attributes: %s\n", string(str))
 	if str != reportAttributes {
 		t.Fatalf("not equal")
 	}

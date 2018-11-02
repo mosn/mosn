@@ -83,7 +83,11 @@ func (c *mixerClient) tryConnect(retry bool) error {
 		c.lastConnectTime = now
 	}
 
-	snapshot := cluster.GetClusterMngAdapterInstance().GetCluster(c.reportCluster)
+	mngAdaper := cluster.GetClusterMngAdapterInstance()
+	if mngAdaper == nil {
+		return fmt.Errorf("mng adapter nil")
+	}
+	snapshot := mngAdaper.GetCluster(c.reportCluster)
 	if snapshot == nil {
 		err := fmt.Errorf("get mixer server cluster config error, report cluster: %s", c.reportCluster)
 		log.DefaultLogger.Errorf("%s", err.Error())

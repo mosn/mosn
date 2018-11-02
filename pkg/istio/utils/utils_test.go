@@ -18,6 +18,7 @@
 package utils
 
 import (
+	"fmt"
 	"testing"
 
 	"istio.io/api/mixer/v1"
@@ -38,5 +39,5 @@ func TestFormatAttributesString(t *testing.T) {
 	if err != nil {
 		t.Errorf("format error: %v", err)
 	}
-	t.Errorf("str: %s", str)
+	fmt.Printf("str: %s", str)
 }
