@@ -4,7 +4,7 @@
 ## 开启 MOSN 之旅
 + 编译 MOSN 
 + 运行 MOSN 事例代码
-+ 了解并修改 MOSN 配置文件
++ 了解并使用 MOSN 配置文件
 + 使用 MOSN Docker Image
 + [使用 MOSN 搭建 Service Mesh 平台](quickstart/RunWithSOFAMesh.md)
 
