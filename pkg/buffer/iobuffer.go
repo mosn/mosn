@@ -44,6 +44,7 @@ type IoBuffer struct {
 	buf     []byte // contents: buf[off : len(buf)]
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
+	count   int
 
 	b *[]byte
 }
@@ -370,6 +371,11 @@ func (b *IoBuffer) Alloc(size int) {
 	b.buf = b.buf[:0]
 }
 
+func (b *IoBuffer) Count(count int) int {
+	b.count += count
+	return b.count
+}
+
 func (b *IoBuffer) copy(expand int) {
 	var newBuf []byte
 	var bufp *[]byte
@@ -414,6 +420,7 @@ func makeSlice(n int) []byte {
 func NewIoBuffer(capacity int) types.IoBuffer {
 	buffer := &IoBuffer{
 		offMark: ResetOffMark,
+		count:   1,
 	}
 	if capacity <= 0 {
 		capacity = DefaultSize
@@ -427,6 +434,7 @@ func NewIoBufferString(s string) types.IoBuffer {
 	return &IoBuffer{
 		buf:     []byte(s),
 		offMark: ResetOffMark,
+		count:   1,
 	}
 }
 
@@ -434,5 +442,6 @@ func NewIoBufferBytes(bytes []byte) types.IoBuffer {
 	return &IoBuffer{
 		buf:     bytes,
 		offMark: ResetOffMark,
+		count:   1,
 	}
 }

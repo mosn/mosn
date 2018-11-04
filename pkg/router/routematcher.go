@@ -62,12 +62,15 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 		greaterSortedWildcardVirtualHostSuffixes: []int{},
 	}
 
+	configImpl := NewConfigImpl(routerConfig)
+
 	for _, virtualHost := range routerConfig.VirtualHosts {
 		vh, err := NewVirtualHostImpl(virtualHost, false)
 
 		if err != nil {
 			return nil, err
 		}
+		vh.globalRouteConfig = configImpl
 
 		for _, domain := range virtualHost.Domains {
 			// Note: we use domain in lowercase
@@ -144,9 +147,9 @@ func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types
 }
 
 func (rm *routeMatcher) findVirtualHost(headers types.HeaderMap) types.VirtualHost {
-	if len(rm.virtualHosts) == 0 {
+	if len(rm.virtualHosts) == 0 && rm.defaultVirtualHost != nil {
 		log.StartLogger.Tracef("route matcher find virtual host return default virtual host")
-		return rm.defaultVirtualHost // Note default virtualhost maybe nil
+		return rm.defaultVirtualHost
 	}
 
 	hostHeader, _ := headers.Get(strings.ToLower(protocol.MosnHeaderHostKey))

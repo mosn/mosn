@@ -26,6 +26,7 @@ import (
 	"github.com/gogo/protobuf/types"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -452,6 +453,52 @@ func Test_convertTCPRoute(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := convertTCPRoute(tt.args.deprecatedV1); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("convertTCPRoute(deprecatedV1 *xdstcp.TcpProxy_DeprecatedV1) = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_convertHeadersToAdd(t *testing.T) {
+	type args struct {
+		headerValueOption []*xdscore.HeaderValueOption
+	}
+
+	FALSE := false
+
+	tests := []struct {
+		name string
+		args args
+		want []*v2.HeaderValueOption
+	}{
+		{
+			name: "case1",
+			args: args{
+				headerValueOption: []*xdscore.HeaderValueOption{
+					{
+						Header: &xdscore.HeaderValue{
+							Key:   "namespace",
+							Value: "demo",
+						},
+						Append: &google_protobuf1.BoolValue{Value: false},
+					},
+				},
+			},
+			want: []*v2.HeaderValueOption{
+				{
+					Header: &v2.HeaderValue{
+						Key:   "namespace",
+						Value: "demo",
+					},
+					Append: &FALSE,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := convertHeadersToAdd(tt.args.headerValueOption); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -127,5 +127,5 @@ func (s *XProtocolServer) ServeXExample(t *testing.T, conn net.Conn) {
 		return resp, true
 	}
 	// can reuse
-	serveSofaRPC(t, conn, response)
+	ServeSofaRPC(t, conn, response)
 }

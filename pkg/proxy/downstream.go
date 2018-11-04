@@ -19,20 +19,19 @@ package proxy
 
 import (
 	"container/list"
+	"context"
+	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"context"
-	"fmt"
-	"reflect"
-
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // types.StreamEventListener
@@ -47,8 +46,7 @@ type downStream struct {
 	element  *list.Element
 
 	// flow control
-	bufferLimit        uint32
-	highWatermarkCount int
+	bufferLimit uint32
 
 	// ~~~ control args
 	timeout    *Timeout
@@ -78,7 +76,7 @@ type downStream struct {
 	// upstream req sent
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
-	upstreamProcessDone      bool
+	upstreamProcessDone bool
 
 	filterStage int
 
@@ -293,7 +291,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
-	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster)
+	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster, types.Protocol(s.proxy.config.UpstreamProtocol))
 
 	//Build Request
 	proxyBuffers := proxyBuffersByContext(s.context)
@@ -301,6 +299,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.upstreamRequest.downStream = s
 	s.upstreamRequest.proxy = s.proxy
 	s.upstreamRequest.connPool = pool
+	route.RouteRule().FinalizeRequestHeaders(headers, s.requestInfo)
 
 	//Call upstream's append header method to build upstream's request
 	s.upstreamRequest.appendHeaders(headers, endStream)
@@ -312,6 +311,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 	s.downstreamReqDataBuf = data.Clone()
+	s.downstreamReqDataBuf.Count(1)
 	data.Drain(data.Len())
 
 	workerPool.Offer(&receiveDataEvent{
@@ -536,7 +536,6 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 	return headers
 }
 
-
 func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers types.HeaderMap, endStream bool) {
 	if s.runAppendHeaderFilters(filter, headers, endStream) {
 		return
@@ -605,7 +604,6 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 	return trailers
 }
 
-
 func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers types.HeaderMap) {
 	if s.runAppendTrailersFilters(filter, trailers) {
 		return
@@ -626,11 +624,13 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 
 	// see if we need a retry
 	if urtype != UpstreamGlobalTimeout &&
-		s.downstreamResponseStarted && s.retryState != nil {
+		!s.downstreamResponseStarted && s.retryState != nil {
 		retryCheck := s.retryState.retry(nil, reason, s.doRetry)
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(true) {
 			// setup retry timer and return
+			// clear reset flag
+			atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 			return
 		} else if retryCheck == types.RetryOverflow {
 			s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
@@ -692,6 +692,7 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 
 	s.downstreamResponseStarted = true
 
+	s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
@@ -729,6 +730,7 @@ func (s *downStream) setupRetry(endStream bool) bool {
 	if !s.upstreamRequestSent {
 		return false
 	}
+	s.upstreamRequest.setupRetry = true
 
 	if !endStream {
 		s.upstreamRequest.resetStream()
@@ -761,11 +763,13 @@ func (s *downStream) doRetry() {
 		connPool:   pool,
 	}
 
+	// if Data or Trailer exists, endStream should be false, else should be true
 	s.upstreamRequest.appendHeaders(s.downstreamReqHeaders,
-		s.downstreamReqDataBuf != nil && s.downstreamReqTrailers != nil)
+		s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
 	if s.upstreamRequest != nil {
 		if s.downstreamReqDataBuf != nil {
+			s.downstreamReqDataBuf.Count(1)
 			s.upstreamRequest.appendData(s.downstreamReqDataBuf, s.downstreamReqTrailers == nil)
 		}
 
@@ -776,14 +780,6 @@ func (s *downStream) doRetry() {
 		// setup per try timeout timer
 		s.setupPerReqTimeout()
 	}
-}
-
-func (s *downStream) onUpstreamAboveWriteBufferHighWatermark() {
-	s.responseSender.GetStream().ReadDisable(true)
-}
-
-func (s *downStream) onUpstreamBelowWriteBufferHighWatermark() {
-	s.responseSender.GetStream().ReadDisable(false)
 }
 
 // Downstream got reset in proxy context on scenario below:
@@ -829,6 +825,7 @@ func (s *downStream) cleanUp() {
 		s.responseTimer.stop()
 		s.responseTimer = nil
 	}
+
 }
 
 func (s *downStream) setBufferLimit(bufferLimit uint32) {
@@ -900,6 +897,10 @@ func (s *downStream) DownstreamHeaders() types.HeaderMap {
 func (s *downStream) GiveStream() {
 	if s.upstreamReset == 1 || s.downstreamReset == 1 {
 		return
+	}
+	// reset downstreamReqBuf
+	if s.downstreamReqDataBuf != nil {
+		buffer.PutIoBuffer(s.downstreamReqDataBuf)
 	}
 
 	// Give buffers to bufferPool

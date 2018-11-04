@@ -177,7 +177,7 @@ func (m *Mosn) Close() {
 }
 
 // Start mosn project
-// stap1. NewMosn
+// step1. NewMosn
 // step2. Start Mosn
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	log.StartLogger.Infof("start by config : %+v", c)
@@ -207,8 +207,8 @@ func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, ch
 }
 
 func getInheritListeners() []*v2.Listener {
-	if os.Getenv("_MOSN_GRACEFUL_RESTART") == "true" {
-		count, _ := strconv.Atoi(os.Getenv("_MOSN_INHERIT_FD"))
+	if os.Getenv(types.GracefulRestart) == "true" {
+		count, _ := strconv.Atoi(os.Getenv(types.InheritFd))
 		listeners := make([]*v2.Listener, count)
 
 		log.StartLogger.Infof("received %d inherit fds", count)
@@ -217,6 +217,12 @@ func getInheritListeners() []*v2.Listener {
 			//because passed listeners fd's index starts from 3
 			fd := uintptr(3 + idx)
 			file := os.NewFile(fd, "")
+			if file == nil {
+				log.StartLogger.Errorf("create new file from fd %d failed", fd)
+				continue
+			}
+			defer file.Close()
+
 			fileListener, err := net.FileListener(file)
 			if err != nil {
 				log.StartLogger.Errorf("recover listener from fd %d failed: %s", fd, err)

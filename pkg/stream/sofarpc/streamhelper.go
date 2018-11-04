@@ -46,9 +46,13 @@ func (s *stream) encodeSterilize(headers types.HeaderMap) types.HeaderMap {
 
 				//Build Router Unavailable Response Msg
 				switch statusCode {
-				case types.RouterUnavailableCode, types.NoHealthUpstreamCode, types.UpstreamOverFlowCode:
+				case types.RouterUnavailableCode:
 					//No available path
 					resp, err = sofarpc.BuildSofaRespMsg(s.context, cmd, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
+				case types.NoHealthUpstreamCode:
+					resp, err = sofarpc.BuildSofaRespMsg(s.context, cmd, sofarpc.RESPONSE_STATUS_CONNECTION_CLOSED)
+				case types.UpstreamOverFlowCode:
+					resp, err = sofarpc.BuildSofaRespMsg(s.context, cmd, sofarpc.RESPONSE_STATUS_SERVER_THREADPOOL_BUSY)
 				case types.CodecExceptionCode:
 					//Decode or Encode Error
 					resp, err = sofarpc.BuildSofaRespMsg(s.context, cmd, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)

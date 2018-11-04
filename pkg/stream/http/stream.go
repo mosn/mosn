@@ -251,18 +251,14 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 
 	if s.request == nil {
 		s.request = fasthttp.AcquireRequest()
-		s.request.Header.SetMethod(http.MethodGet)
+		// TODO: protocol convert in pkg/protocol
+		// f the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
+		if endStream {
+			s.request.Header.SetMethod(http.MethodGet)
+		} else {
+			s.request.Header.SetMethod(http.MethodPost)
+		}
 		s.request.SetRequestURI(fmt.Sprintf("http://%s/", s.wrapper.client.Addr))
-	}
-
-	if method, ok := headers[protocol.MosnHeaderMethod]; ok {
-		s.request.Header.SetMethod(method)
-		delete(headers, protocol.MosnHeaderMethod)
-	}
-
-	if host, ok := headers[protocol.MosnHeaderHostKey]; ok {
-		s.request.SetHost(host)
-		delete(headers, protocol.MosnHeaderHostKey)
 	}
 
 	var URI string
@@ -276,10 +272,29 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 
 		if queryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
 			URI += "?" + queryString
-			delete(headers, protocol.MosnHeaderQueryStringKey)
 		}
 
 		s.request.SetRequestURI(URI)
+	}
+
+	if _, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
+		delete(headers, protocol.MosnHeaderQueryStringKey)
+
+	}
+
+	if method, ok := headers[protocol.MosnHeaderMethod]; ok {
+		s.request.Header.SetMethod(method)
+		delete(headers, protocol.MosnHeaderMethod)
+	}
+
+	if host, ok := headers[protocol.MosnHeaderHostKey]; ok {
+		s.request.SetHost(host)
+		delete(headers, protocol.MosnHeaderHostKey)
+	}
+
+	if host, ok := headers[protocol.IstioHeaderHostKey]; ok {
+		s.request.SetHost(host)
+		delete(headers, protocol.IstioHeaderHostKey)
 	}
 
 	encodeReqHeader(s.request, headers)
@@ -316,8 +331,6 @@ func (s *clientStream) endStream() {
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
-	//s.connection.logger.Debugf("high watermark on h2 stream client")
-
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
@@ -416,8 +429,6 @@ func (s *serverStream) endStream() {
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
-	s.connection.logger.Debugf("high watermark on h2 stream server")
-
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
@@ -444,7 +455,7 @@ func (s *serverStream) handleRequest() {
 			header[protocol.MosnHeaderHostKey] = string(s.ctx.Host())
 		}
 
-		// set :authority header if not found
+		// todo: this is a hack for set ":authority" header if not found
 		if _, ok := header[protocol.IstioHeaderHostKey]; !ok {
 			header[protocol.IstioHeaderHostKey] = string(s.ctx.Host())
 		}

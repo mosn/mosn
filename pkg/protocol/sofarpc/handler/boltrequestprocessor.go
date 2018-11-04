@@ -42,7 +42,7 @@ func (b *BoltRequestProcessor) Process(context context.Context, msg interface{},
 		deserializeRequest(context, cmd)
 		streamID := protocol.GenerateIDString()
 		//print tracer log
-		log.DefaultLogger.Debugf("time=%s,tracerID=%s,streamID=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamID, cmd.RequestHeader[models.SERVICE_KEY], "bolt", cmd.RequestHeader[models.CALLER_IP_KEY])
+		log.DefaultLogger.Debugf("time=%s,tracerID=%s,streamID=%s,protocol=%s,service=%s,callerIp=%s", time.Now(), cmd.RequestHeader[models.TRACER_ID_KEY], streamID, "bolt", cmd.RequestHeader[models.SERVICE_KEY], cmd.RequestHeader[models.CALLER_IP_KEY])
 
 		//for demo, invoke ctx as callback
 		if filter, ok := filter.(types.DecodeFilter); ok {

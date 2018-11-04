@@ -24,8 +24,18 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+type headerFormatter interface {
+	format(requestInfo types.RequestInfo) string
+	append() bool
+}
+
+type headerPair struct {
+	headerName      *lowerCaseString
+	headerFormatter headerFormatter
+}
+
 type headerParser struct {
-	headersToAdd    []types.Pair
+	headersToAdd    []*headerPair
 	headersToRemove []*lowerCaseString
 }
 

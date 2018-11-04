@@ -247,11 +247,24 @@ func (s *clientStream) AppendHeaders(context context.Context, headers types.Head
 	}
 	if s.request == nil {
 		s.request = new(http.Request)
-		s.request.Method = http.MethodGet
+		// TODO: protocol convert in protocol
+		// if the request contains body, use "Put" as default, the http request method will be setted by MosnHeaderMethod
+		if endStream {
+			s.request.Method = http.MethodGet
+		} else {
+			s.request.Method = http.MethodPost
+		}
 		s.request.URL, _ = url.Parse(fmt.Sprintf(scheme+"://%s/",
 			s.connection.connection.RemoteAddr().String()))
 	}
-
+	if method, ok := headersMap[protocol.MosnHeaderMethod]; ok {
+		s.request.Method = method
+		delete(headersMap, protocol.MosnHeaderMethod)
+	}
+	if host, ok := headersMap[protocol.MosnHeaderHostKey]; ok {
+		s.request.Host = host
+		delete(headersMap, protocol.MosnHeaderHostKey)
+	}
 	var URI string
 
 	if path, ok := headersMap[protocol.MosnHeaderPathKey]; ok {
@@ -263,28 +276,14 @@ func (s *clientStream) AppendHeaders(context context.Context, headers types.Head
 
 		if queryString, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
 			URI += "?" + queryString
-			delete(headersMap, protocol.MosnHeaderQueryStringKey)
 		}
 
 		s.request.URL, _ = url.Parse(URI)
 	}
 
-	if _, ok := headersMap["Host"]; ok {
-		headersMap["Host"] = s.connection.connection.RemoteAddr().String()
-		s.request.Host = s.connection.connection.RemoteAddr().String()
-	}
-
 	// delete inner header
 	if _, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
 		delete(headersMap, protocol.MosnHeaderQueryStringKey)
-	}
-
-	if _, ok := headersMap[protocol.MosnHeaderMethod]; ok {
-		delete(headersMap, protocol.MosnHeaderMethod)
-	}
-
-	if _, ok := headersMap[protocol.MosnHeaderHostKey]; ok {
-		delete(headersMap, protocol.MosnHeaderHostKey)
 	}
 
 	s.request.Header = encodeHeader(headersMap)
@@ -304,7 +303,6 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 		s.request = new(http.Request)
 	}
 
-	s.request.Method = http.MethodPost
 	s.request.Body = &IoBufferReadCloser{
 		buf: data,
 	}
@@ -331,8 +329,6 @@ func (s *clientStream) endStream() {
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
-	s.connection.logger.Debugf("high watermark on h2 stream client")
-
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
@@ -348,8 +344,6 @@ func (s *clientStream) doSend() {
 	resp, err := s.connection.http2Conn.RoundTrip(s.request)
 
 	if err != nil {
-		log.StartLogger.Errorf("http2 client stream send error %v", err)
-
 		// due to we use golang h2 conn impl, we need to do some adapt to some things observable
 		switch err.(type) {
 		case http2.StreamError:
@@ -487,8 +481,6 @@ func (s *serverStream) ResetStream(reason types.StreamResetReason) {
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
-	s.connection.logger.Debugf("high watermark on h2 stream server")
-
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
 	} else {
@@ -542,6 +534,10 @@ func (s *serverStream) handleRequest() {
 		// set query string header if not found
 		if _, ok := header[protocol.MosnHeaderQueryStringKey]; !ok {
 			header[protocol.MosnHeaderQueryStringKey] = string(queryString)
+		}
+		// set method string header if not found
+		if _, ok := header[protocol.MosnHeaderMethod]; !ok {
+			header[protocol.MosnHeaderMethod] = s.request.Method
 		}
 
 		s.decoder.OnReceiveHeaders(s.context, protocol.CommonHeader(header), false)

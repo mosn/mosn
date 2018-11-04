@@ -34,9 +34,9 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/mtls"
 )
 
 // Network related const
@@ -59,8 +59,7 @@ type connection struct {
 	readEnabledChan      chan bool
 	readDisableCount     int
 	localAddressRestored bool
-	aboveHighWatermark   bool
-	bufferLimit          uint32
+	bufferLimit          uint32 // todo: support soft buffer limit
 	rawConnection        net.Conn
 	tlsMng               types.TLSContextManager
 	closeWithFlush       bool
@@ -136,20 +135,10 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		ch <- conn
 		logger.Infof("NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Len())
 	}
-	//conn.writeBuffer = buffer.NewWatermarkBuffer(DefaultWriteBufferCapacity, conn)
 
 	conn.filterManager = newFilterManager(conn)
 
 	return conn
-}
-
-// watermark listener
-func (c *connection) OnHighWatermark() {
-	c.aboveHighWatermark = true
-}
-
-func (c *connection) OnLowWatermark() {
-	c.aboveHighWatermark = false
 }
 
 // basic
@@ -779,8 +768,6 @@ func (c *connection) TLS() net.Conn {
 func (c *connection) SetBufferLimit(limit uint32) {
 	if limit > 0 {
 		c.bufferLimit = limit
-
-		//c.writeBuffer.(*buffer.watermarkBuffer).SetWaterMark(limit)
 	}
 }
 
