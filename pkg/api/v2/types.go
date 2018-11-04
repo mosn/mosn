@@ -126,6 +126,7 @@ type TCPRoute struct {
 type CidrRange struct {
 	Address string
 	Length  uint32
+	IpNet   *net.IPNet
 }
 
 // HealthCheckFilter

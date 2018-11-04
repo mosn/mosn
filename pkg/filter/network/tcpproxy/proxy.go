@@ -19,15 +19,11 @@ package tcpproxy
 
 import (
 	"context"
-	"reflect"
-
-	"time"
-
 	"net"
-
-	"strings"
-
+	"reflect"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -238,10 +234,10 @@ type IpRangeList struct {
 }
 
 func (ipList *IpRangeList) Contains(address net.Addr) bool {
-	ipv4 := net.ParseIP(address.String()).To4()
-	log.DefaultLogger.Tracef("IpRangeList check ipv4 = %v,address = %v", ipv4, address)
-	if ipv4 != nil {
-		ip := strings.Split(address.String(), ":")[0]
+	tcpAddr, ok := address.(*net.TCPAddr)
+	log.DefaultLogger.Tracef("IpRangeList check ip = %v,address = %v", tcpAddr, address)
+	if ok {
+		ip := tcpAddr.IP
 		for _, cidrRange := range ipList.cidrRanges {
 			log.DefaultLogger.Tracef("check CidrRange = %v,ip = %v", cidrRange, ip)
 			if cidrRange.IsInRange(ip) {
@@ -257,14 +253,10 @@ type PortRangeList struct {
 }
 
 func (pr *PortRangeList) Contains(address net.Addr) bool {
-	ipv4 := net.ParseIP(address.String()).To4()
-	if ipv4 != nil {
-		log.DefaultLogger.Tracef("PortRangeList check containe , address = %v", address)
-		port, err := strconv.Atoi(strings.Split(address.String(), ":")[1])
-		if err != nil {
-			log.DefaultLogger.Errorf("parse port fail , address = %v", address)
-			return false
-		}
+	tcpAddr, ok := address.(*net.TCPAddr)
+	if ok {
+		port := tcpAddr.Port
+		log.DefaultLogger.Tracef("PortRangeList check port = %v , address = %v", port, address)
 		for _, portRange := range pr.portList {
 			log.DefaultLogger.Tracef("check port range , port range = %v , port = %v", portRange, port)
 			if port >= portRange.min && port <= portRange.max {
