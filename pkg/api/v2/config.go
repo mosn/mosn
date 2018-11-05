@@ -18,7 +18,6 @@
 package v2
 
 import (
-	"istio.io/api/mixer/v1/config/client"
 	google_protobuf "github.com/gogo/protobuf/types"
 )
 
@@ -70,10 +69,6 @@ type HealthCheckFilterConfig struct {
 type FaultInjectConfig struct {
 	DelayPercent        uint32         `json:"delay_percent"`
 	DelayDurationConfig DurationConfig `json:"delay_duration"`
-}
-
-type MixerConfig struct {
-	client.ServiceConfig
 }
 
 type PerRouterConfig struct {

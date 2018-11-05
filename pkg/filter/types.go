@@ -19,7 +19,6 @@ package filter
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/types"
-	protobuf_types "github.com/gogo/protobuf/types"
 )
 
 // StreamFilterFactoryCreator creates a StreamFilterChainFactory according to config
@@ -27,6 +26,3 @@ type StreamFilterFactoryCreator func(config map[string]interface{}) (types.Strea
 
 // NetworkFilterFactoryCreator creates a NetworkFilterChainFactory according to config
 type NetworkFilterFactoryCreator func(config map[string]interface{}) (types.NetworkFilterChainFactory, error)
-
-// NamedHTTPFilterConfigFactoryCreator creates a NamedHTTPFilterConfigFactory according to config
-type NamedHTTPFilterConfigFactoryCreator func(config *protobuf_types.Struct) (types.NamedHTTPFilterConfigFactory, error)
