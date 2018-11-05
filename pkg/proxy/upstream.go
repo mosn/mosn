@@ -78,8 +78,10 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 
-	// todo: check if we get a reset on encode request headers. e.g. send failed
-	r.downStream.onUpstreamReset(UpstreamReset, reason)
+	if !r.setupRetry {
+		// todo: check if we get a reset on encode request headers. e.g. send failed
+		r.downStream.onUpstreamReset(UpstreamReset, reason)
+	}
 }
 
 // types.StreamReceiver

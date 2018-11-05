@@ -224,6 +224,7 @@ type TLSConfig struct {
 	MaxVersion   string                 `json:"max_version,omitempty"`
 	ALPN         string                 `json:"alpn,omitempty"`
 	Ticket       string                 `json:"ticket,omitempty"`
+	Fallback     bool                   `json:"fall_back, omitempty"`
 	ExtendVerify map[string]interface{} `json:"extend_verify,omitempty"`
 }
 
@@ -267,7 +268,7 @@ type Proxy struct {
 // HeaderValueOption is header name/value pair plus option to control append behavior.
 type HeaderValueOption struct {
 	Header *HeaderValue `json:"header"`
-	Append *bool         `json:"append"`
+	Append *bool        `json:"append"`
 }
 
 // HeaderValue is header name/value pair.

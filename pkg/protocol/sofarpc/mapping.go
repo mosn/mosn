@@ -45,8 +45,8 @@ func (m *sofaMapping) MappingHeaderStatusCode(headers types.HeaderMap) (int, err
 		return http.StatusServiceUnavailable, nil
 	case RESPONSE_STATUS_TIMEOUT:
 		return http.StatusGatewayTimeout, nil
-	case RESPONSE_STATUS_CLIENT_SEND_ERROR:
-		return http.StatusNotFound, nil
+	//case RESPONSE_STATUS_CLIENT_SEND_ERROR: // CLIENT_SEND_ERROR maybe triggered by network problem, 404 is not match
+	//	return http.StatusNotFound, nil
 	case RESPONSE_STATUS_CONNECTION_CLOSED:
 		return http.StatusBadGateway, nil
 	default:

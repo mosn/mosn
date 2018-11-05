@@ -52,7 +52,7 @@ func TestSofaMapping(t *testing.T) {
 			Header: &BoltResponseCommand{
 				ResponseStatus: RESPONSE_STATUS_CLIENT_SEND_ERROR,
 			},
-			Expected: 404,
+			Expected: 500,
 		},
 		{
 			Header: &BoltResponseCommand{
