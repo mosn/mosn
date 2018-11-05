@@ -35,6 +35,7 @@ import (
 	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	xdsfal "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	google_protobuf1 "github.com/gogo/protobuf/types"
 )
@@ -355,6 +356,106 @@ func Test_convertListenerConfig(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_convertCidrRange(t *testing.T) {
+	type args struct {
+		cidr []*xdscore.CidrRange
+	}
+	tests := []struct {
+		name string
+		args args
+		want []v2.CidrRange
+	}{
+		{
+			name: "case1",
+			args: args{
+				cidr: []*xdscore.CidrRange{
+					{
+						AddressPrefix: "192.168.1.1",
+						PrefixLen:     &google_protobuf1.UInt32Value{Value: 32},
+					},
+				},
+			},
+			want: []v2.CidrRange{
+				{
+					Address: "192.168.1.1",
+					Length: 32,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := convertCidrRange(tt.args.cidr); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("convertCidrRange(cidr []*xdscore.CidrRange) = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_convertTCPRoute(t *testing.T) {
+	type args struct {
+		deprecatedV1 *xdstcp.TcpProxy_DeprecatedV1
+	}
+	tests := []struct {
+		name string
+		args args
+		want []*v2.TCPRoute
+	}{
+		{
+			name: "case1",
+			args: args{
+				deprecatedV1: &xdstcp.TcpProxy_DeprecatedV1{
+					Routes: []*xdstcp.TcpProxy_DeprecatedV1_TCPRoute{
+						{
+							Cluster: "tcp",
+							DestinationIpList: []*xdscore.CidrRange{
+								{
+									AddressPrefix: "192.168.1.1",
+									PrefixLen:     &google_protobuf1.UInt32Value{Value: 32},
+								},
+							},
+							DestinationPorts: "50",
+							SourceIpList: []*xdscore.CidrRange{
+								{
+									AddressPrefix: "192.168.1.2",
+									PrefixLen:     &google_protobuf1.UInt32Value{Value: 32},
+								},
+							},
+							SourcePorts: "40",
+						},
+					},
+				},
+			},
+			want: []*v2.TCPRoute{
+				{
+					Cluster: "tcp",
+					DestinationAddrs: []v2.CidrRange{
+						{
+							Address: "192.168.1.1",
+							Length:  32,
+						},
+					},
+					DestinationPort: "50",
+					SourceAddrs: []v2.CidrRange{
+						{
+							Address: "192.168.1.2",
+							Length:  32,
+						},
+					},
+					SourcePort: "40",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := convertTCPRoute(tt.args.deprecatedV1); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("convertTCPRoute(deprecatedV1 *xdstcp.TcpProxy_DeprecatedV1) = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
 func Test_convertHeadersToAdd(t *testing.T) {
