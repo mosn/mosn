@@ -90,7 +90,7 @@ func TestQpsLimiter_TryAcquire2(t *testing.T) {
 				ticker.Start(time.Millisecond * interval)
 				time.Sleep(sleepSec * time.Second)
 				ticker.Stop()
-				threshold := math.Min(float64(maxAllow*1000*int64(sleepSec))/float64(periodMs), float64(sleepSec*1000/interval))
+				threshold := math.Min(float64(maxAllow*1000*int64(sleepSec))/float64(periodMs), float64(total))
 				log.DefaultLogger.Infof("total=%d, success=%d, threshold=%f", total, success, threshold)
 				if math.Abs(float64(success)-threshold) > 1 {
 					t.Errorf("false, success=%d", success)

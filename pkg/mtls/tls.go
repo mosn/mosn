@@ -178,12 +178,12 @@ func (mgr *contextManager) newTLSConfig(c *v2.TLSConfig) (*tls.Config, error) {
 	switch err {
 	case ErrorNoCertConfigure: // cert/key config is empty string, no certificate
 		if !mgr.isClient {
-			return nil, fmt.Errorf("certificate is required")
+			return nil, ErrorGetCertificateFailed
 		}
 	case nil:
 		tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
 	default: //other error
-		return nil, err
+		return nil, ErrorGetCertificateFailed
 	}
 	// pool can be nil, if it is nil, TLS uses the host's root CA set.
 	pool, err := hooks.GetX509Pool(c.CACert)
@@ -224,6 +224,10 @@ func (mgr *contextManager) AddContext(c *v2.TLSConfig) error {
 	}
 	tlsConfig, err := mgr.newTLSConfig(c)
 	if err != nil {
+		if c.Fallback && err == ErrorGetCertificateFailed {
+			mgr.logger.Warnf("something wrong with certificate/key, trigger fallback")
+			return nil
+		}
 		return err
 	}
 	ctx := &context{
