@@ -316,17 +316,14 @@ func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) ([]v2.Filter
 		filterChain := v2.FilterChain{
 			FilterChainMatch: xdsFilterChain.GetFilterChainMatch().String(),
 			TLS:              convertTLS(xdsFilterChain.GetTlsContext()),
+			Filters:          convertFilters(xdsFilterChain.GetFilters()),
 		}
-		f := convertFilters(xdsFilterChain.GetFilters())
-
-		filterChain.Filters = f
-
 		filterChains = append(filterChains, filterChain)
 	}
 	return filterChains
 }
 
-func convertFilters(xdsFilters []xdslistener.Filter) ([]v2.Filter) {
+func convertFilters(xdsFilters []xdslistener.Filter) []v2.Filter {
 	if xdsFilters == nil {
 		return nil
 	}
@@ -355,7 +352,7 @@ func toMap(in interface{}) map[string]interface{} {
 }
 
 // TODO: more filter config support
-func convertFilterConfig(name string, s *types.Struct) (map[string]map[string]interface{}) {
+func convertFilterConfig(name string, s *types.Struct) map[string]map[string]interface{} {
 	if s == nil {
 		return nil
 	}
@@ -444,18 +441,24 @@ func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 
 	for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
 		virtualHost := &v2.VirtualHost{
-			Name:            xdsVirtualHost.GetName(),
-			Domains:         xdsVirtualHost.GetDomains(),
-			Routers:         convertRoutes(xdsVirtualHost.GetRoutes()),
-			RequireTLS:      xdsVirtualHost.GetRequireTls().String(),
-			VirtualClusters: convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
+			Name:                    xdsVirtualHost.GetName(),
+			Domains:                 xdsVirtualHost.GetDomains(),
+			Routers:                 convertRoutes(xdsVirtualHost.GetRoutes()),
+			RequireTLS:              xdsVirtualHost.GetRequireTls().String(),
+			VirtualClusters:         convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
+			RequestHeadersToAdd:     convertHeadersToAdd(xdsVirtualHost.GetRequestHeadersToAdd()),
+			ResponseHeadersToAdd:    convertHeadersToAdd(xdsVirtualHost.GetResponseHeadersToAdd()),
+			ResponseHeadersToRemove: xdsVirtualHost.GetResponseHeadersToRemove(),
 		}
 		virtualHosts = append(virtualHosts, virtualHost)
 	}
 
 	return &v2.RouterConfiguration{
-		RouterConfigName: xdsRouteConfig.GetName(),
-		VirtualHosts:     virtualHosts,
+		RouterConfigName:        xdsRouteConfig.GetName(),
+		VirtualHosts:            virtualHosts,
+		RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteConfig.GetRequestHeadersToAdd()),
+		ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteConfig.GetResponseHeadersToAdd()),
+		ResponseHeadersToRemove: xdsRouteConfig.GetResponseHeadersToRemove(),
 	}, false
 }
 
@@ -541,6 +544,8 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 			Regex: xdsHeader.GetRegex().GetValue(),
 		}
 
+		// as pseudo headers not support when Http1.x upgrade to Http2, change pseudo headers to normal headers
+		// this would be fix soon
 		if strings.HasPrefix(headerMatcher.Name, ":") {
 			headerMatcher.Name = headerMatcher.Name[1:]
 		}
@@ -566,14 +571,42 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 	}
 	return v2.RouteAction{
 		RouterActionConfig: v2.RouterActionConfig{
-			ClusterName:      xdsRouteAction.GetCluster(),
-			ClusterHeader:    xdsRouteAction.GetClusterHeader(),
-			WeightedClusters: convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
-			RetryPolicy:      convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
+			ClusterName:             xdsRouteAction.GetCluster(),
+			ClusterHeader:           xdsRouteAction.GetClusterHeader(),
+			WeightedClusters:        convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
+			RetryPolicy:             convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
+			PrefixRewrite:           xdsRouteAction.GetPrefixRewrite(),
+			HostRewrite:             xdsRouteAction.GetHostRewrite(),
+			AutoHostRewrite:         xdsRouteAction.GetAutoHostRewrite().GetValue(),
+			RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteAction.GetRequestHeadersToAdd()),
+			ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteAction.GetResponseHeadersToAdd()),
+			ResponseHeadersToRemove: xdsRouteAction.GetResponseHeadersToRemove(),
 		},
 		MetadataMatch: convertMeta(xdsRouteAction.GetMetadataMatch()),
 		Timeout:       convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),
 	}
+}
+
+func convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) []*v2.HeaderValueOption {
+	if len(headerValueOption) < 1 {
+		return nil
+	}
+	valueOptions := make([]*v2.HeaderValueOption, 0, len(headerValueOption))
+	for _, opt := range headerValueOption {
+		var isAppend *bool
+		if opt.Append != nil {
+			append := opt.GetAppend().GetValue()
+			isAppend = &append
+		}
+		valueOptions = append(valueOptions, &v2.HeaderValueOption{
+			Header: &v2.HeaderValue{
+				Key:   opt.GetHeader().GetKey(),
+				Value: opt.GetHeader().GetValue(),
+			},
+			Append: isAppend,
+		})
+	}
+	return valueOptions
 }
 
 func convertTimeDurPoint2TimeDur(duration *time.Duration) time.Duration {
