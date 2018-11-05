@@ -19,7 +19,6 @@ package mixer
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
@@ -28,10 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/envoyproxy/go-control-plane/pkg/util"
-	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
-
-	protobuf_types "github.com/gogo/protobuf/types"
 )
 
 const (
@@ -41,8 +37,6 @@ const (
 func init() {
 	// static mixer stream filter factory
 	filter.RegisterStream(mixerFilterName, CreateMixerFilterFactory)
-	// dynamic http_filter mixer config factory
-	filter.RegisterNamedHTTPFilterConfigFactory(mixerFilterName, CreateMixerConfigFactory)
 }
 
 // FilterConfigFactory filter config factory
@@ -138,8 +132,9 @@ func (f *mixerFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCal
 func (f *mixerFilter) OnDestroy() {}
 
 func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
-	//log.DefaultLogger.Infof("in mixer log, config: %v", m.config)
-
+	if (reqHeaders == nil || respHeaders == nil || requestInfo == nil) {
+		return
+	}
 	f.createRequestHandler()
 
 	checkData := http.NewCheckData(reqHeaders, requestInfo, f.decodeCallback.Connection())
@@ -161,38 +156,4 @@ func CreateMixerFilterFactory(conf map[string]interface{}) (types.StreamFilterCh
 	return &FilterConfigFactory{
 		MixerConfig: config.ParseMixerFilter(conf),
 	}, nil
-}
-
-// ConfigFactory handle dynamic http filter mixer config
-type ConfigFactory struct {
-	Config      map[string]interface{}
-	MixerConfig v2.Mixer
-}
-
-// CreateFilter for create v2.Filter type of mixer
-func (m *ConfigFactory) CreateFilter() v2.Filter {
-	return v2.Filter{
-		Type:   mixerFilterName,
-		Config: m.Config,
-	}
-}
-
-// CreateMixerConfigFactory for create mixer config factory
-func CreateMixerConfigFactory(config *protobuf_types.Struct) (types.NamedHTTPFilterConfigFactory, error) {
-	factory := &ConfigFactory{}
-
-	err := util.StructToMessage(config, &factory.MixerConfig.HttpClientConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	marshaler := jsonpb.Marshaler{}
-	str, err := marshaler.MarshalToString(&factory.MixerConfig.HttpClientConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal([]byte(str), &factory.Config)
-
-	return factory, err
 }

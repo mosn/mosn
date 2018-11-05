@@ -37,6 +37,7 @@ const (
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
 	RPC_PROXY                   = "rpc_proxy"
 	X_PROXY                     = "x_proxy"
+	MIXER												= "mixer"
 )
 
 // ClusterType

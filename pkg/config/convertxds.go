@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
@@ -42,6 +41,7 @@ import (
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/jsonpb"
 )
 
 var supportFilter = map[string]bool{
@@ -80,7 +80,14 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 		return listenerConfig
 	}
 
-	listenerConfig.FilterChains, listenerConfig.StreamFilters = convertFilterChains(xdsListener.GetFilterChains())
+	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
+
+	if listenerConfig.FilterChains != nil &&
+		 len(listenerConfig.FilterChains) == 1 &&
+	 	listenerConfig.FilterChains[0].Filters != nil {
+		listenerConfig.StreamFilters = convertStreamFilters(&xdsListener.FilterChains[0].Filters[0])
+	}
+
 	listenerConfig.DisableConnIo = GetListenerDisableIO(&listenerConfig.FilterChains[0])
 
 	return listenerConfig
@@ -239,39 +246,95 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 	return accessLogs
 }
 
-func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) ([]v2.FilterChain, []v2.Filter) {
+func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
+	filters := make([]v2.Filter, 0)
+	name := networkFilter.GetName()
+	if httpBaseConfig[name] {
+		filterConfig := &xdshttp.HttpConnectionManager{}
+		xdsutil.StructToMessage(networkFilter.GetConfig(), filterConfig)
+
+		for _, filter := range filterConfig.GetHttpFilters() {
+			streamFilter := convertStreamFilter(filter.GetName(), filter.GetConfig())
+			filters = append(filters, streamFilter)
+		}
+	} else if name == v2.X_PROXY {
+		filterConfig := &xdsxproxy.XProxy{}
+		xdsutil.StructToMessage(networkFilter.GetConfig(), filterConfig)
+		for _, filter := range filterConfig.GetStreamFilters() {
+			streamFilter := convertStreamFilter(filter.GetName(), filter.GetConfig())
+			filters = append(filters, streamFilter)
+		}
+	}
+	return filters
+}
+
+func convertStreamFilter(name string, s *types.Struct) v2.Filter {
+	filter := v2.Filter{}
+	var err error
+
+	switch name{
+	case v2.MIXER:
+		filter.Type = name
+		filter.Config, err = convertMixerConfig(s)
+		if err != nil {
+			log.DefaultLogger.Errorf("convertMixerConfig error: %v", err)
+		}
+	default:
+	}
+
+	return filter
+}
+
+func convertMixerConfig(s *types.Struct) (map[string]interface{}, error) {
+	mixerConfig := v2.Mixer{}
+	err := xdsutil.StructToMessage(s, &mixerConfig.HttpClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	marshaler := jsonpb.Marshaler{}
+	str, err := marshaler.MarshalToString(&mixerConfig.HttpClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	var config map[string]interface{}
+	err = json.Unmarshal([]byte(str), &config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) ([]v2.FilterChain) {
 	if xdsFilterChains == nil {
-		return nil, nil
+		return nil
 	}
 	filterChains := make([]v2.FilterChain, 0, len(xdsFilterChains))
-	streamFilters := make([]v2.Filter, 0)
 
 	for _, xdsFilterChain := range xdsFilterChains {
 		filterChain := v2.FilterChain{
 			FilterChainMatch: xdsFilterChain.GetFilterChainMatch().String(),
 			TLS:              convertTLS(xdsFilterChain.GetTlsContext()),
 		}
-		f, streamFilter := convertFilters(xdsFilterChain.GetFilters())
+		f := convertFilters(xdsFilterChain.GetFilters())
 
 		filterChain.Filters = f
-		streamFilters = append([]v2.Filter(streamFilters), []v2.Filter(streamFilter)...)
 
 		filterChains = append(filterChains, filterChain)
 	}
-	return filterChains, streamFilters
+	return filterChains
 }
 
-func convertFilters(xdsFilters []xdslistener.Filter) ([]v2.Filter, []v2.Filter) {
+func convertFilters(xdsFilters []xdslistener.Filter) ([]v2.Filter) {
 	if xdsFilters == nil {
-		return nil, nil
+		return nil
 	}
 
 	filters := make([]v2.Filter, 0, len(xdsFilters))
-	streamFilters := make([]v2.Filter, 0)
 
 	for _, xdsFilter := range xdsFilters {
-		filterMaps, streamFilter := convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig())
-		streamFilters = append([]v2.Filter(streamFilters), []v2.Filter(streamFilter)...)
+		filterMaps := convertFilterConfig(xdsFilter.GetName(), xdsFilter.GetConfig())
 
 		for typeKey, configValue := range filterMaps {
 			filters = append(filters, v2.Filter{
@@ -281,7 +344,7 @@ func convertFilters(xdsFilters []xdslistener.Filter) ([]v2.Filter, []v2.Filter) 
 		}
 	}
 
-	return filters, streamFilters
+	return filters
 }
 
 func toMap(in interface{}) map[string]interface{} {
@@ -292,13 +355,12 @@ func toMap(in interface{}) map[string]interface{} {
 }
 
 // TODO: more filter config support
-func convertFilterConfig(name string, s *types.Struct) (map[string]map[string]interface{}, []v2.Filter) {
+func convertFilterConfig(name string, s *types.Struct) (map[string]map[string]interface{}) {
 	if s == nil {
-		return nil, nil
+		return nil
 	}
 
 	filtersConfigParsed := make(map[string]map[string]interface{})
-	streamFilters := make([]v2.Filter, 0)
 
 	var proxyConfig v2.Proxy
 	var routerConfig *v2.RouterConfiguration
@@ -313,16 +375,6 @@ func convertFilterConfig(name string, s *types.Struct) (map[string]map[string]in
 			proxyConfig = v2.Proxy{
 				DownstreamProtocol: string(protocol.HTTP1),
 				UpstreamProtocol:   string(protocol.HTTP1),
-			}
-
-			// add http filter parse in HTTPConnectionManager case
-			for _, httpFilter := range filterConfig.HttpFilters {
-				f, err := filter.CreateNamedHTTPFilterFactory(httpFilter.Name, httpFilter.Config)
-				if err != nil {
-					continue
-				}
-				filter := f.CreateFilter()
-				streamFilters = append(streamFilters, filter)
 			}
 		} else {
 			proxyConfig = v2.Proxy{
@@ -343,7 +395,7 @@ func convertFilterConfig(name string, s *types.Struct) (map[string]map[string]in
 
 	} else {
 		log.DefaultLogger.Errorf("unsupported filter config, filter name: %s", name)
-		return nil, nil
+		return nil
 	}
 
 	var routerConfigName string
@@ -367,7 +419,7 @@ func convertFilterConfig(name string, s *types.Struct) (map[string]map[string]in
 	// get proxy
 	proxyConfig.RouterConfigName = routerConfigName
 	filtersConfigParsed[v2.DEFAULT_NETWORK_FILTER] = toMap(proxyConfig)
-	return filtersConfigParsed, streamFilters
+	return filtersConfigParsed
 }
 
 func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} {
@@ -392,24 +444,18 @@ func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 
 	for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
 		virtualHost := &v2.VirtualHost{
-			Name:                    xdsVirtualHost.GetName(),
-			Domains:                 xdsVirtualHost.GetDomains(),
-			Routers:                 convertRoutes(xdsVirtualHost.GetRoutes()),
-			RequireTLS:              xdsVirtualHost.GetRequireTls().String(),
-			VirtualClusters:         convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
-			RequestHeadersToAdd:     convertHeadersToAdd(xdsVirtualHost.GetRequestHeadersToAdd()),
-			ResponseHeadersToAdd:    convertHeadersToAdd(xdsVirtualHost.GetResponseHeadersToAdd()),
-			ResponseHeadersToRemove: xdsVirtualHost.GetResponseHeadersToRemove(),
+			Name:            xdsVirtualHost.GetName(),
+			Domains:         xdsVirtualHost.GetDomains(),
+			Routers:         convertRoutes(xdsVirtualHost.GetRoutes()),
+			RequireTLS:      xdsVirtualHost.GetRequireTls().String(),
+			VirtualClusters: convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
 		}
 		virtualHosts = append(virtualHosts, virtualHost)
 	}
 
 	return &v2.RouterConfiguration{
-		RouterConfigName:        xdsRouteConfig.GetName(),
-		VirtualHosts:            virtualHosts,
-		RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteConfig.GetRequestHeadersToAdd()),
-		ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteConfig.GetResponseHeadersToAdd()),
-		ResponseHeadersToRemove: xdsRouteConfig.GetResponseHeadersToRemove(),
+		RouterConfigName: xdsRouteConfig.GetName(),
+		VirtualHosts:     virtualHosts,
 	}, false
 }
 
@@ -495,8 +541,6 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 			Regex: xdsHeader.GetRegex().GetValue(),
 		}
 
-		// as pseudo headers not support when Http1.x upgrade to Http2, change pseudo headers to normal headers
-		// this would be fix soon
 		if strings.HasPrefix(headerMatcher.Name, ":") {
 			headerMatcher.Name = headerMatcher.Name[1:]
 		}
@@ -522,42 +566,14 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 	}
 	return v2.RouteAction{
 		RouterActionConfig: v2.RouterActionConfig{
-			ClusterName:             xdsRouteAction.GetCluster(),
-			ClusterHeader:           xdsRouteAction.GetClusterHeader(),
-			WeightedClusters:        convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
-			RetryPolicy:             convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
-			PrefixRewrite:           xdsRouteAction.GetPrefixRewrite(),
-			HostRewrite:             xdsRouteAction.GetHostRewrite(),
-			AutoHostRewrite:         xdsRouteAction.GetAutoHostRewrite().GetValue(),
-			RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteAction.GetRequestHeadersToAdd()),
-			ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteAction.GetResponseHeadersToAdd()),
-			ResponseHeadersToRemove: xdsRouteAction.GetResponseHeadersToRemove(),
+			ClusterName:      xdsRouteAction.GetCluster(),
+			ClusterHeader:    xdsRouteAction.GetClusterHeader(),
+			WeightedClusters: convertWeightedClusters(xdsRouteAction.GetWeightedClusters()),
+			RetryPolicy:      convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
 		},
 		MetadataMatch: convertMeta(xdsRouteAction.GetMetadataMatch()),
 		Timeout:       convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),
 	}
-}
-
-func convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) []*v2.HeaderValueOption {
-	if len(headerValueOption) < 1 {
-		return nil
-	}
-	valueOptions := make([]*v2.HeaderValueOption, 0, len(headerValueOption))
-	for _, opt := range headerValueOption {
-		var isAppend *bool
-		if opt.Append != nil {
-			append := opt.GetAppend().GetValue()
-			isAppend = &append
-		}
-		valueOptions = append(valueOptions, &v2.HeaderValueOption{
-			Header: &v2.HeaderValue{
-				Key:   opt.GetHeader().GetKey(),
-				Value: opt.GetHeader().GetValue(),
-			},
-			Append: isAppend,
-		})
-	}
-	return valueOptions
 }
 
 func convertTimeDurPoint2TimeDur(duration *time.Duration) time.Duration {
