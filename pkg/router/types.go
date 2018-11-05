@@ -41,7 +41,7 @@ type headerParser struct {
 
 type matchable interface {
 	Match(headers types.HeaderMap, randomValue uint64) types.Route
-    SetMatcher(matcher interface{})
+	SetMatcher(matcher interface{})
 	SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase)
 }
 
@@ -198,7 +198,6 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 	return nil
 }
 
-
 type RouterFactory interface {
-	InitRouter()RouteBase
+	InitRouter() RouteBase
 }

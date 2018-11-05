@@ -80,6 +80,57 @@ var SubsetLbExample = subSetLoadBalancer{
 	subSetKeys:            GenerateSubsetKeys(SubsetSelectors),
 }
 
+func TestSubSetLoadBalancer_GetHostsNumber(t *testing.T) {
+
+	sslb := NewSubsetLoadBalancer(types.RoundRobin, &prioritySetExample,
+		newClusterStats("testcluster"), NewLBSubsetInfo(InitExampleLbSubsetConfig()))
+
+	testCase := []struct {
+		name            string
+		matchCriteria   *router.MetadataMatchCriteriaImpl
+		wantHostsNumber uint32
+	}{
+		{
+			name: "common case",
+			matchCriteria: &router.MetadataMatchCriteriaImpl{
+				MatchCriteriaArray: []types.MetadataMatchCriterion{
+					&router.MetadataMatchCriterionImpl{
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
+					},
+					&router.MetadataMatchCriterionImpl{
+						Name:  "type",
+						Value: types.GenerateHashedValue("std"),
+					},
+				},
+			},
+			wantHostsNumber: 4,
+		},
+		{
+			name: "corner case",
+			matchCriteria: &router.MetadataMatchCriteriaImpl{
+				MatchCriteriaArray: []types.MetadataMatchCriterion{
+					&router.MetadataMatchCriterionImpl{
+						Name:  "stage",
+						Value: types.GenerateHashedValue("prod"),
+					},
+					&router.MetadataMatchCriterionImpl{
+						Name:  "type",
+						Value: types.GenerateHashedValue("unknown"),
+					},
+				},
+			},
+			wantHostsNumber: 0,
+		},
+	}
+
+	for _, tt := range testCase {
+		if result := sslb.GetHostsNumber(tt.matchCriteria); result != tt.wantHostsNumber {
+			t.Errorf("TestGetHostsNumber error, want %d, but got %d ", tt.wantHostsNumber, result)
+		}
+	}
+}
+
 // passed
 // test fallback subset creation
 func Test_subSetLoadBalancer_UpdateFallbackSubset(t *testing.T) {

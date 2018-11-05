@@ -27,9 +27,7 @@ import (
 	"github.com/markphelps/optional"
 )
 
-
 var routerFactories map[string]RouterFactory
-
 
 func init() {
 	if routerFactories == nil {
@@ -41,7 +39,7 @@ func Register(routerType string, factory RouterFactory) {
 	if routerFactories == nil {
 		routerFactories = make(map[string]RouterFactory)
 	}
-	
+
 	routerFactories[routerType] = factory
 }
 
@@ -63,25 +61,25 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 
 	for _, route := range virtualHost.Routers {
 		routeRuleImplBase, err := NewRouteRuleImplBase(virtualHostImpl, &route)
-		var router  RouteBase
-		
+		var router RouteBase
+
 		if err != nil {
 			return nil, err
 		}
 
 		if route.Match.Prefix != "" {
 			router = &PrefixRouteRuleImpl{
-				prefix:route.Match.Prefix,
+				prefix: route.Match.Prefix,
 			}
 		} else if route.Match.Path != "" {
 			router = &PathRouteRuleImpl{
-				path:route.Match.Path,
+				path: route.Match.Path,
 			}
 		} else if route.Match.Regex != "" {
 			if regPattern, err := regexp.Compile(route.Match.Regex); err == nil {
 				router = &RegexRouteRuleImpl{
-					regexStr:route.Match.Regex,
-					regexPattern:regPattern,
+					regexStr:     route.Match.Regex,
+					regexPattern: regPattern,
 				}
 			} else {
 				log.DefaultLogger.Errorf("Compile Regex Error")
@@ -91,7 +89,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 			// do sofa's routing policy
 			for _, header := range route.Match.Headers {
 				if types.UseSofaRoute(header.Name) {
-					if factory,ok := routerFactories[types.SofaRouterType];ok {
+					if factory, ok := routerFactories[types.SofaRouterType]; ok {
 						router = factory.InitRouter()
 						router.SetMatcher(header)
 					} else {
@@ -100,14 +98,14 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 				}
 			}
 		}
-		
+
 		if router != nil {
 			router.SetRouterRuleImplBase(routeRuleImplBase)
-			virtualHostImpl.routes = append(virtualHostImpl.routes,router)
+			virtualHostImpl.routes = append(virtualHostImpl.routes, router)
 		}
 
 	}
-	
+
 	if len(virtualHostImpl.routes) == 0 {
 		return nil, errors.New("routes must specify one of prefix/path/regex/header")
 	}
@@ -181,5 +179,3 @@ func (vce *VirtualClusterEntry) VirtualClusterName() string {
 
 	return vce.name
 }
-
-

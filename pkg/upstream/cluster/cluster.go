@@ -59,7 +59,7 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool)
 		hc = types.HealthCheckFactoryInstance.New(clusterConfig.HealthCheck)
 		newCluster.SetHealthChecker(hc)
 	}
-	
+
 	return newCluster
 }
 
@@ -109,7 +109,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 	}
 
 	cluster.info.lbInstance = lb
-	
+
 	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 	if err != nil {
 		log.DefaultLogger.Fatalf("create tls context manager failed, %v", err)
@@ -187,8 +187,8 @@ func (c *cluster) refreshHealthHostsGlobal() {
 type clusterInfo struct {
 	name                 string
 	clusterType          v2.ClusterType
-	lbType               types.LoadBalancerType  // if use subset lb , lbType is used as inner LB algorithm for choosing subset's host
-	lbInstance           types.LoadBalancer // load balancer used for this cluster
+	lbType               types.LoadBalancerType // if use subset lb , lbType is used as inner LB algorithm for choosing subset's host
+	lbInstance           types.LoadBalancer     // load balancer used for this cluster
 	sourceAddr           net.Addr
 	connectTimeout       int
 	connBufferLimitBytes uint32

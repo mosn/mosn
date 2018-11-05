@@ -70,7 +70,7 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.Prio
 
 // SubSet LB Entry
 func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	
+
 	if nil != context {
 		host, hostChoosen := sslb.TryChooseHostFromContext(context)
 		if hostChoosen {
@@ -79,41 +79,41 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 			return host
 		}
 	}
-	
+
 	if nil == sslb.fallbackSubset {
 		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset is nil")
 		return nil
 	}
 	sslb.stats.LBSubSetsFallBack.Inc(1)
-	
+
 	defaulthosts := sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts()
-	
+
 	if len(defaulthosts) > 0 {
 		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are ", defaulthosts)
 	} else {
 		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset's host is nil")
 		return nil
 	}
-	
+
 	return sslb.fallbackSubset.prioritySubset.LB().ChooseHost(context)
 }
 
 // GetHostsNumber used to get hosts' number for given matchCriterias
 func (sslb *subSetLoadBalancer) GetHostsNumber(metadata interface{}) uint32 {
-	
-	if metadataMatchCriteria,ok := metadata.(types.MetadataMatchCriteria);ok {
+
+	if metadataMatchCriteria, ok := metadata.(types.MetadataMatchCriteria); ok {
 		matchCriteria := metadataMatchCriteria.MetadataMatchCriteria()
-		
+
 		if len(matchCriteria) == 0 {
 			return 0
 		}
-		
+
 		entry := sslb.FindSubset(matchCriteria)
-		
+
 		if entry == nil || !entry.Active() {
 			return 0
 		}
-		
+
 		return uint32(len(entry.PrioritySubset().GetOrCreateHostSubset(0).Hosts()))
 	}
 
@@ -170,9 +170,6 @@ func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalan
 
 	return entry.PrioritySubset().LB().ChooseHost(context), true
 }
-
-
-
 
 // create or update fallback subset
 func (sslb *subSetLoadBalancer) UpdateFallbackSubset(priority uint32, hostAdded []types.Host,

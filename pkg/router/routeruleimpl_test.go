@@ -578,3 +578,92 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 		})
 	}
 }
+
+func TestRouteRuleImplBase_UpdateMetaDataMatchCriteria(t *testing.T) {
+	originMetadatas := []struct {
+		originMetadata map[string]string
+	}{
+		{
+			originMetadata: map[string]string{"origin": "test"},
+		},
+		{
+			originMetadata: map[string]string{},
+		},
+	}
+
+	updatedMetadatas := []struct {
+		updatedMetadata map[string]string
+	}{
+		{
+			updatedMetadata: map[string]string{
+				"label": "green", "version": "v1", "appInfo": "test",
+			},
+		},
+		{
+			updatedMetadata: map[string]string{},
+		},
+	}
+
+	tests := []struct {
+		name            string
+		updatedMetadata map[string]string
+		origin          *RouteRuleImplBase
+		want            *RouteRuleImplBase
+	}{
+		{
+			name: "common case",
+			origin: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[0].originMetadata),
+				metaData:              getClusterMosnLBMetaDataMap(originMetadatas[0].originMetadata),
+			},
+			updatedMetadata: updatedMetadatas[0].updatedMetadata,
+			want: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[0].updatedMetadata),
+				metaData:              getClusterMosnLBMetaDataMap(updatedMetadatas[0].updatedMetadata),
+			},
+		},
+		{
+			name: "corner case1",
+			origin: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[0].originMetadata),
+				metaData:              getClusterMosnLBMetaDataMap(originMetadatas[0].originMetadata),
+			},
+			updatedMetadata: updatedMetadatas[1].updatedMetadata,
+			want: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[1].updatedMetadata),
+				metaData:              getClusterMosnLBMetaDataMap(updatedMetadatas[1].updatedMetadata),
+			},
+		},
+		{
+			name: "corner case2",
+			origin: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[1].originMetadata),
+				metaData:              getClusterMosnLBMetaDataMap(originMetadatas[1].originMetadata),
+			},
+			updatedMetadata: updatedMetadatas[1].updatedMetadata,
+			want: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[0].updatedMetadata),
+				metaData:              getClusterMosnLBMetaDataMap(updatedMetadatas[0].updatedMetadata),
+			},
+		},
+		{
+			name: "corner case3",
+			origin: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[1].originMetadata),
+				metaData:              getClusterMosnLBMetaDataMap(originMetadatas[1].originMetadata),
+			},
+			updatedMetadata: updatedMetadatas[1].updatedMetadata,
+			want: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[1].updatedMetadata),
+				metaData:              getClusterMosnLBMetaDataMap(updatedMetadatas[1].updatedMetadata),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		if reflect.DeepEqual(tt.origin.UpdateMetaDataMatchCriteria(tt.updatedMetadata), tt.want) {
+			t.Errorf("TestRouteRuleImplBase_UpdateMetaDataMatchCriteria,error!")
+		}
+
+	}
+}
