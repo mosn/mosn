@@ -112,25 +112,24 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 
 		return types.Stop
 	}
-
 	connectionData := p.clusterManager.TCPConnForCluster(nil, clusterName)
-
 	if connectionData.Connection == nil {
 		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		p.onInitFailure(NoHealthyUpstream)
 
 		return types.Stop
 	}
-
 	p.readCallbacks.SetUpstreamHost(connectionData.HostInfo)
 	clusterConnectionResource.Increase()
-
 	upstreamConnection := connectionData.Connection
 	upstreamConnection.AddConnectionEventListener(p.upstreamCallbacks)
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
 	p.upstreamConnection = upstreamConnection
-
-	upstreamConnection.Connect(true)
+	if err := upstreamConnection.Connect(true); err != nil {
+		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
+		p.onInitFailure(NoHealthyUpstream)
+		return types.Stop
+	}
 
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
 	p.requestInfo.SetUpstreamLocalAddress(upstreamConnection.LocalAddr())
