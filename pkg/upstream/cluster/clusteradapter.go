@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var clusterMngAdapterInstance *MngAdapter
@@ -84,4 +85,9 @@ func (ca *MngAdapter) TriggerClusterHostUpdate(clusterName string, hosts []v2.Ho
 // TriggerHostDel used to delete
 func (ca *MngAdapter) TriggerHostDel(clusterName string, hostAddress string) error {
 	return ca.clusterMng.RemoveClusterHost(clusterName, hostAddress)
+}
+
+// GetCluster used to get cluster by name
+func (ca *MngAdapter) GetCluster(clusterName string) types.ClusterSnapshot {
+	return ca.clusterMng.Get(nil, clusterName)
 }

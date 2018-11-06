@@ -87,6 +87,9 @@ type RouteRule interface {
 	// as we may use weighted cluster's metadata, so need to input cluster's name
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
 
+	// PerFilterConfig returns per filter config from xds
+	PerFilterConfig() map[string]*v2.PerRouterConfig
+
 	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
 	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)
 

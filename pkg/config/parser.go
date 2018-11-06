@@ -20,6 +20,7 @@ package config
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter"
@@ -27,6 +28,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/gogo/protobuf/jsonpb"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -256,6 +258,26 @@ func ParseFaultInjectFilter(cfg map[string]interface{}) *v2.FaultInject {
 		log.StartLogger.Fatal("parsing fault inject filter error")
 	}
 	return filterConfig
+}
+
+// ParseMixerFilter
+func ParseMixerFilter(cfg map[string]interface{}) *v2.Mixer {
+	mixerFilter := &v2.Mixer{}
+
+	data, err := json.Marshal(cfg); if err != nil {
+		log.StartLogger.Errorf("parsing mixer filter error, err: %v, cfg: %v", err, cfg)
+		return nil
+	}
+
+	var un jsonpb.Unmarshaler
+	err = un.Unmarshal(strings.NewReader(string(data)), &mixerFilter.HttpClientConfig)
+	if err != nil {
+		log.StartLogger.Errorf("parsing mixer filter error, err: %v, cfg: %v", err, cfg)
+		return nil
+	}
+
+	log.DefaultLogger.Infof("mixconfig: %v", mixerFilter)
+	return mixerFilter
 }
 
 // ParseHealthCheckFilter

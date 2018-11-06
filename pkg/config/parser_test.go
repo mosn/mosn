@@ -26,6 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"istio.io/api/mixer/v1"
 )
 
 type testCallback struct {
@@ -350,5 +351,38 @@ func TestParseServiceRegistry(t *testing.T) {
 	ParseServiceRegistry(v2.ServiceRegistryInfo{})
 	if cb.Count != 1 {
 		t.Error("no callback")
+	}
+}
+
+func TestParseMixerFilter(t *testing.T) {
+	m := map[string]interface{}{
+		"mixer_attributes": map[string]interface{}{
+			"attributes": map[string]interface{}{
+				"context.reporter.kind": map[string]interface{}{
+					"string_value": "outbound",
+				},
+			},
+		},
+	}
+
+	mixer := ParseMixerFilter(m)
+	if mixer == nil {
+		t.Errorf("parse mixer config error")
+	}
+
+	if mixer.MixerAttributes == nil {
+		t.Errorf("parse mixer config error")
+	}
+	val, exist := mixer.MixerAttributes.Attributes["context.reporter.kind"]
+	if !exist {
+		t.Errorf("parse mixer config error")
+	}
+
+	strVal, ok := val.Value.(*v1.Attributes_AttributeValue_StringValue)
+	if !ok {
+		t.Errorf("parse mixer config error")
+	}
+	if strVal.StringValue != "outbound" {
+		t.Errorf("parse mixer config error")
 	}
 }

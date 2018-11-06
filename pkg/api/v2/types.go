@@ -20,6 +20,8 @@ package v2
 import (
 	"net"
 	"time"
+
+	"istio.io/api/mixer/v1/config/client"
 )
 
 // Metadata field can be used to provide additional information about the route.
@@ -139,6 +141,10 @@ type HealthCheckFilter struct {
 type FaultInject struct {
 	FaultInjectConfig
 	DelayDuration uint64 `json:"-"`
+}
+
+type Mixer struct {
+	client.HttpClientConfig
 }
 
 // Router, the list of routes that will be matched, in order, for incoming requests.
