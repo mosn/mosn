@@ -99,23 +99,20 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 }
 
 // GetHostsNumber used to get hosts' number for given matchCriterias
-func (sslb *subSetLoadBalancer) GetHostsNumber(metadata interface{}) uint32 {
+func (sslb *subSetLoadBalancer) GetHostsNumber(metadata types.MetadataMatchCriteria) uint32 {
+	matchCriteria := metadata.MetadataMatchCriteria()
 
-	if metadataMatchCriteria, ok := metadata.(types.MetadataMatchCriteria); ok {
-		matchCriteria := metadataMatchCriteria.MetadataMatchCriteria()
-
-		if len(matchCriteria) == 0 {
-			return 0
-		}
-
-		entry := sslb.FindSubset(matchCriteria)
-
-		if entry == nil || !entry.Active() {
-			return 0
-		}
-
-		return uint32(len(entry.PrioritySubset().GetOrCreateHostSubset(0).Hosts()))
+	if len(matchCriteria) == 0 {
+		return 0
 	}
+
+	entry := sslb.FindSubset(matchCriteria)
+
+	if entry == nil || !entry.Active() {
+		return 0
+	}
+
+	return uint32(len(entry.PrioritySubset().GetOrCreateHostSubset(0).Hosts()))
 
 	return 0
 }

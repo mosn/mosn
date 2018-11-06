@@ -19,11 +19,9 @@ package cluster
 
 import (
 	"math/rand"
-
-	"time"
-
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -82,15 +80,6 @@ func (l *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types
 	return hosts[hostIdx]
 }
 
-func (r *randomLoadBalancer) GetHostsNumber(metadata interface{}) uint32 {
-	hostNumber := 0
-	for _, hostSet := range r.prioritySet.HostSetsByPriority() {
-		hostNumber += len(hostSet.Hosts())
-	}
-
-	return uint32(hostNumber)
-}
-
 // TODO: more loadbalancers@boqin
 type roundRobinLoadBalancer struct {
 	loadbalancer
@@ -137,15 +126,6 @@ func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) t
 	atomic.AddUint32(&l.rrIndex, 1)
 
 	return selectedHost
-}
-
-func (r *roundRobinLoadBalancer) GetHostsNumber(metadata interface{}) uint32 {
-	hostNumber := 0
-	for _, hostSet := range r.prioritySet.HostSetsByPriority() {
-		hostNumber += len(hostSet.Hosts())
-	}
-
-	return uint32(hostNumber)
 }
 
 /*
@@ -284,8 +264,4 @@ func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCont
 
 	selectedHostWeighted.currentWeight -= totalWeight
 	return selectedHost
-}
-
-func (s *smoothWeightedRRLoadBalancer) GetHostsNumber(metadata interface{}) uint32 {
-	return uint32(len(s.prioritySet.HostSetsByPriority()))
 }

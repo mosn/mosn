@@ -77,38 +77,6 @@ func MockPrioritySet() *prioritySet {
 	return prioritySet
 }
 
-func TestRandomLoadBalancer_GetHostsNumber(t *testing.T) {
-	loadbalaner := loadbalancer{
-		prioritySet: MockPrioritySet(),
-	}
-
-	l := &randomLoadBalancer{
-		loadbalancer: loadbalaner,
-	}
-
-	var wantNumner uint32 = 5
-
-	if num := l.GetHostsNumber(nil); num != wantNumner {
-		t.Errorf("TestRandomLoadBalancer_GetHostsNumber error, want: %d, but got: %d", wantNumner, num)
-	}
-}
-
-func TestRoundRobinLoadBalancer_GetHostsNumber(t *testing.T) {
-	loadbalaner := loadbalancer{
-		prioritySet: MockPrioritySet(),
-	}
-
-	l := &roundRobinLoadBalancer{
-		loadbalancer: loadbalaner,
-	}
-
-	var wantNumner uint32 = 5
-
-	if num := l.GetHostsNumber(nil); num != wantNumner {
-		t.Errorf("TestRandomLoadBalancer_GetHostsNumber error, want: %d, but got: %d", wantNumner, num)
-	}
-}
-
 func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 
 	host1 := NewHost(newHostV2("127.0.0.1", "test", 0, nil), nil)

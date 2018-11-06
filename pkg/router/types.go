@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -41,7 +42,6 @@ type headerParser struct {
 
 type matchable interface {
 	Match(headers types.HeaderMap, randomValue uint64) types.Route
-	SetMatcher(matcher interface{})
 	SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase)
 }
 
@@ -198,6 +198,4 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 	return nil
 }
 
-type RouterFactory interface {
-	InitRouter() RouteBase
-}
+type RoutersFactory func(header []v2.HeaderMatcher) RouteBase

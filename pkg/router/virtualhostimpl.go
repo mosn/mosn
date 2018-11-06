@@ -27,17 +27,17 @@ import (
 	"github.com/markphelps/optional"
 )
 
-var routerFactories map[string]RouterFactory
+var routerFactories map[types.RouterType]RoutersFactory
 
 func init() {
 	if routerFactories == nil {
-		routerFactories = make(map[string]RouterFactory)
+		routerFactories = make(map[types.RouterType]RoutersFactory)
 	}
 }
 
-func Register(routerType string, factory RouterFactory) {
+func RegisterRouter(routerType types.RouterType, factory RoutersFactory) {
 	if routerFactories == nil {
-		routerFactories = make(map[string]RouterFactory)
+		routerFactories = make(map[types.RouterType]RoutersFactory)
 	}
 
 	routerFactories[routerType] = factory
@@ -87,21 +87,20 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 		} else {
 			// todo delete hack
 			// do sofa's routing policy
-			for _, header := range route.Match.Headers {
-				if types.UseSofaRoute(header.Name) {
-					if factory, ok := routerFactories[types.SofaRouterType]; ok {
-						router = factory.InitRouter()
-						router.SetMatcher(header)
-					} else {
-						log.DefaultLogger.Errorf("NewVirtualHostImpl failed, no SofaRouterType found in routerFactories")
-					}
+			for _, factory := range routerFactories {
+				if newRouter := factory(route.Match.Headers); newRouter != nil {
+					router = newRouter
+					break
 				}
+
 			}
 		}
 
 		if router != nil {
 			router.SetRouterRuleImplBase(routeRuleImplBase)
 			virtualHostImpl.routes = append(virtualHostImpl.routes, router)
+		} else {
+			log.DefaultLogger.Errorf("NewVirtualHostImpl failed, no router type matched")
 		}
 
 	}

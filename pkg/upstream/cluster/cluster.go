@@ -21,6 +21,8 @@ import (
 	"net"
 	"sync"
 
+	"math/rand"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
@@ -75,6 +77,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig.Name),
 			lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
+			hostsNumber:          getHostsNumberOfCluster(clusterConfig),
 		},
 		initHelper: initHelper,
 	}
@@ -200,6 +203,7 @@ type clusterInfo struct {
 	healthCheckProtocol  string
 	tlsMng               types.TLSContextManager
 	lbSubsetInfo         types.LBSubsetInfo
+	hostsNumber          uint32
 }
 
 func NewClusterInfo() types.ClusterInfo {
@@ -274,6 +278,19 @@ func (ci *clusterInfo) LBInstance() types.LoadBalancer {
 	return ci.lbInstance
 }
 
+func (ci *clusterInfo) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+	if metadata == nil {
+		return ci.hostsNumber > 0
+	}
+
+	if subsetLB, ok := ci.lbInstance.(*subSetLoadBalancer); ok {
+		return subsetLB.GetHostsNumber(metadata) > 0
+	}
+
+	log.DefaultLogger.Errorf("Call IsExistsHosts error,metadata isn't nil, but subsetLB doesn't exist")
+	return false
+}
+
 type prioritySet struct {
 	hostSets        []types.HostSet // Note: index is the priority
 	updateCallbacks []types.MemberUpdateCallback
@@ -305,6 +322,29 @@ func (ps *prioritySet) createHostSet(priority uint32) *hostSet {
 	return &hostSet{
 		priority: priority,
 	}
+}
+
+// Note：a host may have more than one key
+func (ps *prioritySet) GetValueFromExistHostWithKey(keyIn string) string {
+	var values []string // Note: values is not distinct here
+
+	for _, hostset := range ps.hostSets {
+		for _, host := range hostset.Hosts() {
+			metadata := host.OriginMetaData()
+			for key, value := range metadata {
+				if key == keyIn {
+					values = append(values, value)
+					break
+				}
+			}
+		}
+	}
+
+	if len(values) < 1 {
+		return ""
+	}
+
+	return values[rand.Intn(len(values)-1)]
 }
 
 func (ps *prioritySet) AddMemberUpdateCb(cb types.MemberUpdateCallback) {
@@ -415,4 +455,8 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 			break
 		}
 	}
+}
+
+func getHostsNumberOfCluster(clusterConfig v2.Cluster) uint32 {
+	return uint32(len(clusterConfig.Hosts))
 }

@@ -35,7 +35,7 @@ import (
 )
 
 func init() {
-	Register(types.SofaRouterType, &SofaRouteFactory{})
+	RegisterRouter(types.SofaRouterType, SofaRouterFactory)
 }
 
 // NewRouteRuleImplBase
@@ -280,23 +280,23 @@ func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers types.HeaderMap, r
 	rri.vHost.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 }
 
-type SofaRouteFactory struct{}
+func SofaRouterFactory(headers []v2.HeaderMatcher) RouteBase {
+	for _, header := range headers {
+		if header.Name == types.SofaRouteMatchKey {
+			return &SofaRouteRuleImpl{
+				matchName:  header.Name,
+				matchValue: header.Value,
+			}
+		}
+	}
 
-func (srf *SofaRouteFactory) InitRouter() RouteBase {
-	return &SofaRouteRuleImpl{}
+	return nil
 }
 
 type SofaRouteRuleImpl struct {
 	*RouteRuleImplBase
 	matchName  string
 	matchValue string
-}
-
-func (ssri *SofaRouteRuleImpl) SetMatcher(matcher interface{}) {
-	if matchData, ok := matcher.(v2.HeaderMatcher); ok {
-		ssri.matchName = matchData.Name
-		ssri.matchValue = matchData.Value
-	}
 }
 
 func (srri *SofaRouteRuleImpl) Matcher() string {
@@ -384,9 +384,6 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, r
 	prri.finalizePathHeader(headers, prri.path)
 }
 
-func (ssri *PathRouteRuleImpl) SetMatcher(matcher interface{}) {
-}
-
 func (ssri *PathRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
 	ssri.RouteRuleImplBase = routerRuleImplBase
 }
@@ -433,9 +430,6 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap,
 	prei.finalizePathHeader(headers, prei.prefix)
 }
 
-func (prei *PrefixRouteRuleImpl) SetMatcher(matcher interface{}) {
-}
-
 func (prei *PrefixRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
 	prei.RouteRuleImplBase = routerRuleImplBase
 }
@@ -480,9 +474,6 @@ func (rrei *RegexRouteRuleImpl) RouteRule() types.RouteRule {
 func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	rrei.finalizeRequestHeaders(headers, requestInfo)
 	rrei.finalizePathHeader(headers, rrei.regexStr)
-}
-
-func (rrei *RegexRouteRuleImpl) SetMatcher(matcher interface{}) {
 }
 
 func (rrei *RegexRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {

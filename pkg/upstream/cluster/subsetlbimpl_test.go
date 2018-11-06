@@ -82,8 +82,10 @@ var SubsetLbExample = subSetLoadBalancer{
 
 func TestSubSetLoadBalancer_GetHostsNumber(t *testing.T) {
 
-	sslb := NewSubsetLoadBalancer(types.RoundRobin, &prioritySetExample,
+	lb := NewSubsetLoadBalancer(types.RoundRobin, &prioritySetExample,
 		newClusterStats("testcluster"), NewLBSubsetInfo(InitExampleLbSubsetConfig()))
+
+	sslb, _ := lb.(*subSetLoadBalancer)
 
 	testCase := []struct {
 		name            string

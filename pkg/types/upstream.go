@@ -122,6 +122,8 @@ type PrioritySet interface {
 	AddMemberUpdateCb(cb MemberUpdateCallback)
 
 	HostSetsByPriority() []HostSet
+
+	GetValueFromExistHostWithKey(key string) string
 }
 
 type HostPredicate func(Host) bool
@@ -186,7 +188,7 @@ type HostInfo interface {
 	Canary() bool
 
 	Metadata() RouteMetaData
-	
+
 	// OriginMetaData used to get origin metadata, currently in map[string]string
 	OriginMetaData() v2.Metadata
 
@@ -257,6 +259,8 @@ type ClusterInfo interface {
 	LbSubsetInfo() LBSubsetInfo
 
 	LBInstance() LoadBalancer
+
+	IsExistsHosts(metadata MetadataMatchCriteria) bool
 }
 
 // ResourceManager manages different types of Resource

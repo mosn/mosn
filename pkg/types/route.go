@@ -27,16 +27,16 @@ import (
 )
 
 // Default parameters for route
+
+type RouterType string
+
 const (
-	GlobalTimeout        = 60 * time.Second
-	DefaultRouteTimeout  = 15 * time.Second
-	SofaRouteMatchKey    = "service"
-	SofaRouteMatchVipKey = "vip"
-
-	RouterMetadataKey   = "filter_metadata"
-	RouterMetadataKeyLb = "mosn.lb"
-
-	SofaRouterType = "sofa"
+	GlobalTimeout                  = 60 * time.Second
+	DefaultRouteTimeout            = 15 * time.Second
+	SofaRouteMatchKey              = "service"
+	RouterMetadataKey              = "filter_metadata"
+	RouterMetadataKeyLb            = "mosn.lb"
+	SofaRouterType      RouterType = "sofa"
 )
 
 // Routers defines and manages all router
@@ -369,12 +369,4 @@ func GenerateHashedValue(input string) HashedValue {
 //EqualHashValue comapres two HashedValues are equaled or not
 func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {
 	return h1 == h2
-}
-
-func UseSofaRoute(routerType string) bool {
-	if routerType == SofaRouteMatchKey || routerType == SofaRouteMatchVipKey {
-		return true
-	}
-
-	return false
 }
