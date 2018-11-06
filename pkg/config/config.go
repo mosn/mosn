@@ -67,7 +67,7 @@ type MOSNConfig struct {
 	//tracing config
 	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
-	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty""`            // admin raw message
+	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty"`             // admin raw message
 }
 
 // Mode is mosn's starting type
