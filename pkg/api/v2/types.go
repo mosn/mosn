@@ -37,7 +37,7 @@ const (
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
 	RPC_PROXY                   = "rpc_proxy"
 	X_PROXY                     = "x_proxy"
-	MIXER												= "mixer"
+	MIXER                       = "mixer"
 )
 
 // ClusterType
@@ -117,9 +117,18 @@ type Listener struct {
 
 // TCPRoute
 type TCPRoute struct {
-	TCPRouteConfig
-	SourceAddrs      []net.Addr `json:"-"`
-	DestinationAddrs []net.Addr `json:"-"`
+	Cluster          string
+	SourceAddrs      []CidrRange
+	DestinationAddrs []CidrRange
+	SourcePort       string
+	DestinationPort  string
+}
+
+// CidrRange
+type CidrRange struct {
+	Address string
+	Length  uint32
+	IpNet   *net.IPNet
 }
 
 // HealthCheckFilter
@@ -259,7 +268,18 @@ type Filter struct {
 
 // TCPProxy
 type TCPProxy struct {
-	Routes []*TCPRoute `json:"routes,omitempty"`
+	StatPrefix         string         `json:"stat_prefix,omitempty"`
+	Cluster            string         `json:"cluster,omitempty"`
+	IdleTimeout        *time.Duration `json:"idle_timeout,omitempty"`
+	MaxConnectAttempts uint32         `json:"max_connect_attempts,omitempty"`
+	Routes             []*TCPRoute    `json:"routes,omitempty"`
+}
+
+// WebSocketProxy
+type WebSocketProxy struct {
+	StatPrefix         string
+	IdleTimeout        *time.Duration
+	MaxConnectAttempts uint32
 }
 
 // Proxy
