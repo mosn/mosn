@@ -394,17 +394,29 @@ func TestFaultInjectUnmarshal(t *testing.T) {
 		t.Error("fault inject failed")
 	}
 }
+
 func TestTCPProxyUnmarshal(t *testing.T) {
 	tcpproxy := `{
+		"stat_prefix":"tcp_proxy",
+		"cluster":"cluster",
+		"max_connect_attempts":1000,
 		"routes":[
 			{
 				"cluster": "test",
-				"source_addrs": [
-					"127.0.0.1:80"
+				"SourceAddrs": [
+					{
+						"address":"127.0.0.1",
+						"length":32
+					}
 				],
-				"destination_addrs":[
-					"127.0.0.1:8080"
-				]
+				"DestinationAddrs":[
+					{
+						"address":"127.0.0.1",
+						"length":32
+					}
+				],
+				"SourcePort":"8080",
+				"DestinationPort":"8080"
 			}
 		]
 	}`
@@ -420,9 +432,13 @@ func TestTCPProxyUnmarshal(t *testing.T) {
 		r := p.Routes[0]
 		if !(r.Cluster == "test" &&
 			len(r.SourceAddrs) == 1 &&
-			r.SourceAddrs[0].String() == "127.0.0.1:80" &&
+			r.SourceAddrs[0].Address == "127.0.0.1" &&
+			r.SourceAddrs[0].Length == 32 &&
 			len(r.DestinationAddrs) == 1 &&
-			r.DestinationAddrs[0].String() == "127.0.0.1:8080") {
+			r.DestinationAddrs[0].Address == "127.0.0.1" &&
+			r.DestinationAddrs[0].Length == 32 &&
+			r.SourcePort == "8080" &&
+			r.DestinationPort == "8080") {
 			t.Error("route failed")
 		}
 	}

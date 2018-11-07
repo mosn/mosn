@@ -17,6 +17,10 @@
 
 package v2
 
+import (
+	google_protobuf "github.com/gogo/protobuf/types"
+)
+
 type HealthCheckConfig struct {
 	Protocol             string         `json:"protocol"`
 	TimeoutConfig        DurationConfig `json:"timeout"`
@@ -67,12 +71,17 @@ type FaultInjectConfig struct {
 	DelayDurationConfig DurationConfig `json:"delay_duration"`
 }
 
+type PerRouterConfig struct {
+	*google_protobuf.Struct
+}
+
 type RouterConfig struct {
 	Match          RouterMatch    `json:"match"`
 	Route          RouteAction    `json:"route"`
 	Redirect       RedirectAction `json:"redirect"`
 	MetadataConfig MetadataConfig `json:"metadata"`
 	Decorator      Decorator      `json:"decorator"`
+	PerFilterConfig map[string]*PerRouterConfig
 }
 
 type RouterActionConfig struct {

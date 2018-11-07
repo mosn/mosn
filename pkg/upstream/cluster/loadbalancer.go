@@ -19,11 +19,9 @@ package cluster
 
 import (
 	"math/rand"
-
-	"time"
-
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 )

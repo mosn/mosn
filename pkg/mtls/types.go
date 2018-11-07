@@ -116,3 +116,6 @@ type ConfigHooksFactory interface {
 
 // ErrorNoCertConfigure represents config has no certificate
 var ErrorNoCertConfigure = errors.New("no certificate config")
+
+// ErrorGetCertificateFailed represents get certificate from config failed
+var ErrorGetCertificateFailed = errors.New("get certificate failed")

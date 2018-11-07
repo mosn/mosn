@@ -26,6 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"istio.io/api/mixer/v1"
 )
 
 type testCallback struct {
@@ -300,11 +301,26 @@ func TestParseHealthCheckFilter(t *testing.T) {
 
 func TestParseTCPProxy(t *testing.T) {
 	m := map[string]interface{}{
+		"stat_prefix":          "tcp_proxy",
+		"cluster":              "cluster",
+		"max_connect_attempts": 1000,
 		"routes": []interface{}{
 			map[string]interface{}{
-				"cluster":           "test",
-				"source_addrs":      []string{"127.0.0.1:80"},
-				"destination_addrs": []string{"127.0.0.1:8080"},
+				"cluster": "test",
+				"SourceAddrs": []interface{}{
+					map[string]interface{}{
+						"address": "127.0.0.1",
+						"length":  32,
+					},
+				},
+				"DestinationAddrs": []interface{}{
+					map[string]interface{}{
+						"address": "127.0.0.1",
+						"length":  32,
+					},
+				},
+				"SourcePort":      "8080",
+				"DestinationPort": "8080",
 			},
 		},
 	}
@@ -319,10 +335,14 @@ func TestParseTCPProxy(t *testing.T) {
 		r := tcpproxy.Routes[0]
 		if !(r.Cluster == "test" &&
 			len(r.SourceAddrs) == 1 &&
-			r.SourceAddrs[0].String() == "127.0.0.1:80" &&
+			r.SourceAddrs[0].Address == "127.0.0.1" &&
+			r.SourceAddrs[0].Length == 32 &&
 			len(r.DestinationAddrs) == 1 &&
-			r.DestinationAddrs[0].String() == "127.0.0.1:8080") {
-			t.Error("parse tcpproxy failed")
+			r.DestinationAddrs[0].Address == "127.0.0.1" &&
+			r.DestinationAddrs[0].Length == 32 &&
+			r.SourcePort == "8080" &&
+			r.DestinationPort == "8080") {
+			t.Error("route failed")
 		}
 	}
 }
@@ -331,5 +351,38 @@ func TestParseServiceRegistry(t *testing.T) {
 	ParseServiceRegistry(v2.ServiceRegistryInfo{})
 	if cb.Count != 1 {
 		t.Error("no callback")
+	}
+}
+
+func TestParseMixerFilter(t *testing.T) {
+	m := map[string]interface{}{
+		"mixer_attributes": map[string]interface{}{
+			"attributes": map[string]interface{}{
+				"context.reporter.kind": map[string]interface{}{
+					"string_value": "outbound",
+				},
+			},
+		},
+	}
+
+	mixer := ParseMixerFilter(m)
+	if mixer == nil {
+		t.Errorf("parse mixer config error")
+	}
+
+	if mixer.MixerAttributes == nil {
+		t.Errorf("parse mixer config error")
+	}
+	val, exist := mixer.MixerAttributes.Attributes["context.reporter.kind"]
+	if !exist {
+		t.Errorf("parse mixer config error")
+	}
+
+	strVal, ok := val.Value.(*v1.Attributes_AttributeValue_StringValue)
+	if !ok {
+		t.Errorf("parse mixer config error")
+	}
+	if strVal.StringValue != "outbound" {
+		t.Errorf("parse mixer config error")
 	}
 }

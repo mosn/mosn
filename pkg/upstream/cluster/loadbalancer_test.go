@@ -42,6 +42,42 @@ func newHostV2(addr string, name string, weight uint32, meta v2.Metadata) v2.Hos
 	}
 }
 
+func MockPrioritySet() *prioritySet {
+
+	host1 := NewHost(newHostV2("127.0.0.1", "test", 0, nil), nil)
+	host2 := NewHost(newHostV2("127.0.0.2", "test2", 0, nil), nil)
+	host3 := NewHost(newHostV2("127.0.0.3", "test", 0, nil), nil)
+	host4 := NewHost(newHostV2("127.0.0.4", "test2", 0, nil), nil)
+	host5 := NewHost(newHostV2("127.0.0.5", "test2", 0, nil), nil)
+
+	hosts1 := []types.Host{host1, host2}
+	hosts2 := []types.Host{host3, host4}
+	hosts3 := []types.Host{host5}
+
+	hs1 := hostSet{
+		hosts:        hosts1,
+		healthyHosts: hosts1,
+	}
+
+	hs2 := hostSet{
+		hosts:        hosts2,
+		healthyHosts: hosts2,
+	}
+
+	hs3 := hostSet{
+		hosts:        hosts3,
+		healthyHosts: hosts3,
+	}
+
+	hostset := []types.HostSet{&hs1, &hs2, &hs3}
+
+	prioritySet := &prioritySet{
+		hostSets: hostset,
+	}
+
+	return prioritySet
+}
+
 func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 
 	host1 := NewHost(newHostV2("127.0.0.1", "test", 0, nil), nil)

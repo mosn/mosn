@@ -27,12 +27,16 @@ import (
 )
 
 // Default parameters for route
+
+type RouterType string
+
 const (
-	GlobalTimeout       = 60 * time.Second
-	DefaultRouteTimeout = 15 * time.Second
-	SofaRouteMatchKey   = "service"
-	RouterMetadataKey   = "filter_metadata"
-	RouterMetadataKeyLb = "mosn.lb"
+	GlobalTimeout                  = 60 * time.Second
+	DefaultRouteTimeout            = 15 * time.Second
+	SofaRouteMatchKey              = "service"
+	RouterMetadataKey              = "filter_metadata"
+	RouterMetadataKeyLb            = "mosn.lb"
+	SofaRouterType      RouterType = "sofa"
 )
 
 // Routers defines and manages all router
@@ -46,7 +50,7 @@ type RouterManager interface {
 	// AddRoutersSet adds router config when generated
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
-	GetRouterWrapperByListenerName(routerConfigName string) RouterWrapper
+	GetRouterWrapperByName(routerConfigName string) RouterWrapper
 }
 type RouterWrapper interface {
 	GetRouters() Routers
@@ -86,6 +90,12 @@ type RouteRule interface {
 	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
 	// as we may use weighted cluster's metadata, so need to input cluster's name
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
+	
+	// UpdateMetaDataMatchCriteria used to update RouteRuleImplBase's metadata match criteria
+	UpdateMetaDataMatchCriteria(metadata map[string]string) error
+
+	// PerFilterConfig returns per filter config from xds
+	PerFilterConfig() map[string]*v2.PerRouterConfig
 
 	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
 	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)

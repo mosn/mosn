@@ -28,6 +28,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/stats"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
@@ -86,6 +87,8 @@ func catchSignalsCrossPlatform() {
 				// reopen
 				log.Reopen()
 			case syscall.SIGHUP:
+				// stop stoppable before reload
+				stopStoppable()
 				// reload
 				reconfigure()
 			case syscall.SIGUSR2:
@@ -154,8 +157,8 @@ func reconfigure() {
 	}
 
 	// Set a flag for the new process start process
-	os.Setenv("_MOSN_GRACEFUL_RESTART", "true")
-	os.Setenv("_MOSN_INHERIT_FD", strconv.Itoa(len(listenerFD)))
+	os.Setenv(types.GracefulRestart, "true")
+	os.Setenv(types.InheritFd, strconv.Itoa(len(listenerFD)))
 
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),

@@ -25,7 +25,9 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/buffer"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/faultinject"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/mixer"
 	_ "github.com/alipay/sofa-mosn/pkg/network"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
@@ -36,6 +38,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	_ "github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
 	_ "github.com/alipay/sofa-mosn/pkg/xds"
+	_"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/urfave/cli"
 )
 

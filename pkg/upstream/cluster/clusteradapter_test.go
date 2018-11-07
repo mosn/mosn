@@ -612,3 +612,15 @@ func TestMngAdapter_TriggerHostDel(t *testing.T) {
 		})
 	}
 }
+
+func TestMngAdapter_GetCluster(t *testing.T) {
+	mockClusterMnger := MockClusterManager().(*clusterManager)
+	ca := &MngAdapter{
+		clusterMng: mockClusterMnger,
+	}
+
+	cluster := ca.GetCluster("o1")
+	if cluster == nil {
+		t.Errorf("get cluster error")
+	}
+}

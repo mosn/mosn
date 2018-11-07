@@ -187,8 +187,8 @@ func (c *cluster) refreshHealthHostsGlobal() {
 type clusterInfo struct {
 	name                 string
 	clusterType          v2.ClusterType
-	lbType               types.LoadBalancerType
-	lbInstance           types.LoadBalancer // load balancer used for this cluster
+	lbType               types.LoadBalancerType // if use subset lb , lbType is used as inner LB algorithm for choosing subset's host
+	lbInstance           types.LoadBalancer     // load balancer used for this cluster
 	sourceAddr           net.Addr
 	connectTimeout       int
 	connBufferLimitBytes uint32
@@ -305,6 +305,19 @@ func (ps *prioritySet) createHostSet(priority uint32) *hostSet {
 	return &hostSet{
 		priority: priority,
 	}
+}
+
+func (ps *prioritySet) GetHostsInfo(priority uint32) []types.HostInfo {
+	var hostinfos []types.HostInfo
+	if uint32(len(ps.hostSets)) > priority {
+		hostset := ps.hostSets[priority]
+		for _, host := range hostset.Hosts() {
+			// host is an implement of hostinfo
+			hostinfos = append(hostinfos, host)
+		}
+	}
+	return hostinfos
+
 }
 
 func (ps *prioritySet) AddMemberUpdateCb(cb types.MemberUpdateCallback) {

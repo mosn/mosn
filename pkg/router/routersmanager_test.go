@@ -227,7 +227,7 @@ func Test_routersManager_AddOrUpdateRouters(t *testing.T) {
 	}
 }
 
-func Test_routersManager_GetRouterWrapperByListenerName(t *testing.T) {
+func Test_routersManager_GetRouterWrapperByName(t *testing.T) {
 
 	bytes1 := []byte(routerConfig)
 	router1 := &v2.RouterConfiguration{}
@@ -251,17 +251,17 @@ func Test_routersManager_GetRouterWrapperByListenerName(t *testing.T) {
 
 	routerManager := NewRouterManager()
 	routerManager.AddOrUpdateRouters(router0)
-	routeWrapper0 := routerManager.GetRouterWrapperByListenerName(routerConfigName)
+	routeWrapper0 := routerManager.GetRouterWrapperByName(routerConfigName)
 	routers0 := routeWrapper0.GetRouters()
 
 	// add routers1 to "test_router"
 	routerManager.AddOrUpdateRouters(router1)
-	routerWrapper1 := routerManager.GetRouterWrapperByListenerName(routerConfigName)
+	routerWrapper1 := routerManager.GetRouterWrapperByName(routerConfigName)
 	routers1 := routerWrapper1.GetRouters()
 
 	// update "test_router" with router2
 	routerManager.AddOrUpdateRouters(router2)
-	routerWrapper2 := routerManager.GetRouterWrapperByListenerName(routerConfigName)
+	routerWrapper2 := routerManager.GetRouterWrapperByName(routerConfigName)
 	routers2 := routerWrapper2.GetRouters()
 
 	routers0_ := routeWrapper0.GetRouters()
@@ -278,7 +278,6 @@ func Test_routersManager_GetRouterWrapperByListenerName(t *testing.T) {
 	}
 
 	// expect router has been updated for origin wrapper
-
 	if routers0_ != routers2 || routers1_ != routers2 {
 		t.Error("expect wrapper still the same but not ")
 	}
