@@ -18,8 +18,6 @@ Envoy 使用 C++ 语言开发，不符合蚂蚁技术栈的发展方向，无法
   
 当前， SOFAMosn 已支持 Istio 的 API，通过 XDS API 与 Pilot 对接，SOFAMosn 可获取控制面推送的配置信息，来完成代理的功能。在实践中，你可以使用 SOFAMosn 与 Istio 集成来实现 Service Mesh 组件(比如，我们的整体落地实践 [SOFAMesh](https://github.com/alipay/sofa-mesh) 项目)，也可以单独使用 SOFAMosn 作为业务网关，通过使用 SOFAMosn 你将在如下几个方面获得收益：
 
-
-
 1. SOFAMosn 使用 GoLang 作为开发语言，开发效率高，在云原生时代可与 k8s 等技术无缝对接，有利于加速微服务的落地
 2. SOFAMosn 可代理 Java，C++，GoLang，PHP，Python 等异构语言之间组件的互相调用，避免多语言版本组件的重复开发，可提高业务开发效率，目前 SOFAMosn 已经在蚂蚁金服中作为跨语言 RPC 调用的桥梁被使用
 3. SOFAMosn 可提供灵活的流量调度能力，有助于运维体系的支撑，包括：蓝绿升级、容灾切换等

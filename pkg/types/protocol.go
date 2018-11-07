@@ -55,6 +55,9 @@ type HeaderMap interface {
 	// Range calls f sequentially for each key and value present in the map.
 	// If f returns false, range stops the iteration.
 	Range(f func(key, value string) bool)
+
+	// ByteSize return size of HeaderMap
+	ByteSize() uint64
 }
 
 // Protocols is a protocols' facade used by Stream

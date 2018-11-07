@@ -22,6 +22,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -609,7 +610,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	// connection failed in client mode
-	if c.rawConnection == nil {
+	if reflect.ValueOf(c.rawConnection).IsNil() {
 		return nil
 	}
 

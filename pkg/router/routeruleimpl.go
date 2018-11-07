@@ -53,6 +53,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		autoHostRewrite:       route.Route.AutoHostRewrite,
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
+		perFilterConfig:       route.PerFilterConfig,
 		policy:                &routerPolicy{},
 	}
 
@@ -122,6 +123,8 @@ type RouteRuleImplBase struct {
 	virtualClusters    *VirtualClusterEntry
 	randInstance       *rand.Rand
 	randMutex          sync.Mutex
+
+	perFilterConfig map[string]*v2.PerRouterConfig
 }
 
 // types.RouterInfo
@@ -214,6 +217,11 @@ func (rri *RouteRuleImplBase) UpdateMetaDataMatchCriteria(metadata map[string]st
 	rri.metaData = getClusterMosnLBMetaDataMap(metadata)
 
 	return nil
+}
+
+func (rri *RouteRuleImplBase) PerFilterConfig() map[string]*v2.PerRouterConfig {
+
+	return rri.perFilterConfig
 }
 
 func (rri *RouteRuleImplBase) matchRoute(headers types.HeaderMap, randomValue uint64) bool {

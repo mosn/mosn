@@ -24,7 +24,6 @@
 #### 1.1 安装 docker 
 
 * 下载软件包安装，或者使用如下的命令安装
-
 ```bash
 $ brew cask install docker
 ```
@@ -205,7 +204,6 @@ reviews-v3-1813607990-8ch52                 2/2       Running   0          6m
 ### 2. 访问 BookInfo 服务
 
 * 开启 gateway 模式
-
 ```powershell
 $ kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 $ kubectl get gateway        // 查看 gateway 是否运行起来
@@ -234,7 +232,7 @@ $ echo $GATEWAY_URL   //例如我这里的地址是 161.117.70.217:80
 161.117.70.217:80
 ```
 
-* 验证 gateway 是否生效 
+* 验证 gateway 是否生效
 ```
 $ curl -o /dev/null -s -w "%{http_code}\n"  http://$GATEWAY_URL/productpage   //输出 200 表示成功 
 200

@@ -844,6 +844,16 @@ func (s *downStream) AddStreamSenderFilter(filter types.StreamSenderFilter) {
 	s.senderFilters = append(s.senderFilters, sf)
 }
 
+func (s *downStream) AddAccessLog(accessLog types.AccessLog) {
+	if s.proxy != nil {
+		if s.proxy.accessLogs == nil {
+			s.proxy.accessLogs = make([]types.AccessLog, 0)
+		}
+		s.proxy.accessLogs = append(s.proxy.accessLogs, accessLog)
+	}
+
+}
+
 func (s *downStream) reset() {
 	s.streamID = ""
 	s.proxy = nil

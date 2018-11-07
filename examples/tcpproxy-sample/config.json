@@ -13,6 +13,7 @@
 	       "filters": [{
 	           "type": "tcp_proxy",
 		   "config": {
+			  "cluster": "serverCluster",
 		      "routes":[
 		         {
 			   "cluster":"serverCluster"
