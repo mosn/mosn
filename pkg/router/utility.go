@@ -26,8 +26,7 @@ import (
 )
 
 // getClusterMosnLBMetaDataMap from v2.Metadata
-// e.g. metadata =  { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
-// 4-tier map
+// Value maybe hashed
 func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	metadataMap := make(map[string]types.HashedValue)
 	for key, value := range metadata {

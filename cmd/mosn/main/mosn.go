@@ -38,6 +38,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	_ "github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
 	_ "github.com/alipay/sofa-mosn/pkg/xds"
+	_"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/urfave/cli"
 )
 
