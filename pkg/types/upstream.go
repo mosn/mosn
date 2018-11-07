@@ -124,7 +124,7 @@ type PrioritySet interface {
 
 	HostSetsByPriority() []HostSet
 
-	GetValueFromExistHostWithKey(key string) string
+	GetHostsInfo(priority uint32) []HostInfo
 }
 
 type HostPredicate func(Host) bool
