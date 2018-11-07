@@ -77,7 +77,6 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig.Name),
 			lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
-			hostsNumber:          getHostsNumberOfCluster(clusterConfig),
 		},
 		initHelper: initHelper,
 	}
@@ -203,7 +202,6 @@ type clusterInfo struct {
 	healthCheckProtocol  string
 	tlsMng               types.TLSContextManager
 	lbSubsetInfo         types.LBSubsetInfo
-	hostsNumber          uint32
 }
 
 func NewClusterInfo() types.ClusterInfo {
@@ -276,19 +274,6 @@ func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 
 func (ci *clusterInfo) LBInstance() types.LoadBalancer {
 	return ci.lbInstance
-}
-
-func (ci *clusterInfo) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
-	if metadata == nil {
-		return ci.hostsNumber > 0
-	}
-
-	if subsetLB, ok := ci.lbInstance.(*subSetLoadBalancer); ok {
-		return subsetLB.GetHostsNumber(metadata) > 0
-	}
-
-	log.DefaultLogger.Errorf("Call IsExistsHosts error,metadata isn't nil, but subsetLB doesn't exist")
-	return false
 }
 
 type prioritySet struct {
@@ -419,7 +404,7 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 	for i, hostSet := range hostSets {
 		// Note: currently, one host only belong to a hostSet
 		found := false
-
+		
 		for _, h := range hostSet.Hosts() {
 			if h.AddressString() == host.AddressString() {
 				log.DefaultLogger.Debugf("del healthy host = %s, in priority = %d", host.AddressString(), i)
@@ -427,11 +412,11 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 				break
 			}
 		}
-
+		
 		if found {
 			newHealthHost := hostSet.HealthyHosts()
 			newHealthyHostPerLocality := hostSet.HealthHostsPerLocality()
-
+			
 			for i, hh := range newHealthHost {
 				if host.Hostname() == hh.Hostname() {
 					//remove
@@ -439,24 +424,20 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 					break
 				}
 			}
-
+			
 			for i := range newHealthyHostPerLocality {
 				for j := range newHealthyHostPerLocality[i] {
-
+					
 					if host.Hostname() == newHealthyHostPerLocality[i][j].Hostname() {
 						newHealthyHostPerLocality[i] = append(newHealthyHostPerLocality[i][:j], newHealthyHostPerLocality[i][j+1:]...)
 						break
 					}
 				}
 			}
-
+			
 			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, hostSet.HostsPerLocality(),
 				newHealthyHostPerLocality, nil, nil)
 			break
 		}
 	}
-}
-
-func getHostsNumberOfCluster(clusterConfig v2.Cluster) uint32 {
-	return uint32(len(clusterConfig.Hosts))
 }

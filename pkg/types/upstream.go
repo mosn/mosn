@@ -82,6 +82,8 @@ type ClusterSnapshot interface {
 	ClusterInfo() ClusterInfo
 
 	LoadBalancer() LoadBalancer
+	
+	IsExistsHosts(metadata MetadataMatchCriteria) bool
 }
 
 // Cluster is a group of upstream hosts
@@ -115,7 +117,6 @@ type MemberUpdateCallback func(priority uint32, hostsAdded []Host, hostsRemoved 
 
 // PrioritySet is a hostSet grouped by priority for a given cluster, for ease of load balancing.
 type PrioritySet interface {
-
 	// GetOrCreateHostSet returns the hostSet for this priority level, creating it if not exist.
 	GetOrCreateHostSet(priority uint32) HostSet
 
@@ -260,7 +261,7 @@ type ClusterInfo interface {
 
 	LBInstance() LoadBalancer
 
-	IsExistsHosts(metadata MetadataMatchCriteria) bool
+	
 }
 
 // ResourceManager manages different types of Resource
