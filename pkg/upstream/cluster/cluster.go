@@ -21,8 +21,6 @@ import (
 	"net"
 	"sync"
 
-	"math/rand"
-
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
@@ -309,27 +307,17 @@ func (ps *prioritySet) createHostSet(priority uint32) *hostSet {
 	}
 }
 
-// Note：a host may have more than one key
-func (ps *prioritySet) GetValueFromExistHostWithKey(keyIn string) string {
-	var values []string // Note: values is not distinct here
-
-	for _, hostset := range ps.hostSets {
+func (ps *prioritySet) GetHostsInfo(priority uint32) []types.HostInfo {
+	var hostinfos []types.HostInfo
+	if uint32(len(ps.hostSets)) > priority {
+		hostset := ps.hostSets[priority]
 		for _, host := range hostset.Hosts() {
-			metadata := host.OriginMetaData()
-			for key, value := range metadata {
-				if key == keyIn {
-					values = append(values, value)
-					break
-				}
-			}
+			// host is an implement of hostinfo
+			hostinfos = append(hostinfos, host)
 		}
 	}
+	return hostinfos
 
-	if len(values) < 1 {
-		return ""
-	}
-
-	return values[rand.Intn(len(values)-1)]
 }
 
 func (ps *prioritySet) AddMemberUpdateCb(cb types.MemberUpdateCallback) {
@@ -404,7 +392,7 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 	for i, hostSet := range hostSets {
 		// Note: currently, one host only belong to a hostSet
 		found := false
-		
+
 		for _, h := range hostSet.Hosts() {
 			if h.AddressString() == host.AddressString() {
 				log.DefaultLogger.Debugf("del healthy host = %s, in priority = %d", host.AddressString(), i)
@@ -412,11 +400,11 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 				break
 			}
 		}
-		
+
 		if found {
 			newHealthHost := hostSet.HealthyHosts()
 			newHealthyHostPerLocality := hostSet.HealthHostsPerLocality()
-			
+
 			for i, hh := range newHealthHost {
 				if host.Hostname() == hh.Hostname() {
 					//remove
@@ -424,17 +412,17 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 					break
 				}
 			}
-			
+
 			for i := range newHealthyHostPerLocality {
 				for j := range newHealthyHostPerLocality[i] {
-					
+
 					if host.Hostname() == newHealthyHostPerLocality[i][j].Hostname() {
 						newHealthyHostPerLocality[i] = append(newHealthyHostPerLocality[i][:j], newHealthyHostPerLocality[i][j+1:]...)
 						break
 					}
 				}
 			}
-			
+
 			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, hostSet.HostsPerLocality(),
 				newHealthyHostPerLocality, nil, nil)
 			break
