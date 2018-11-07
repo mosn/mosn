@@ -35,7 +35,7 @@ import (
 )
 
 func init() {
-	RegisterRouter(types.SofaRouterType, SofaRouterFactory)
+	RegisterRouter(SofaRouterFactory)
 }
 
 // NewRouteRuleImplBase

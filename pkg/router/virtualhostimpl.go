@@ -27,20 +27,10 @@ import (
 	"github.com/markphelps/optional"
 )
 
-var routerFactories map[types.RouterType]RoutersFactory
+var defaultRouter RouterFactory
 
-func init() {
-	if routerFactories == nil {
-		routerFactories = make(map[types.RouterType]RoutersFactory)
-	}
-}
-
-func RegisterRouter(routerType types.RouterType, factory RoutersFactory) {
-	if routerFactories == nil {
-		routerFactories = make(map[types.RouterType]RoutersFactory)
-	}
-
-	routerFactories[routerType] = factory
+func RegisterRouter(factory RouterFactory) {
+	defaultRouter = factory
 }
 
 func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*VirtualHostImpl, error) {
@@ -87,12 +77,8 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 		} else {
 			// todo delete hack
 			// do sofa's routing policy
-			for _, factory := range routerFactories {
-				if newRouter := factory(route.Match.Headers); newRouter != nil {
-					router = newRouter
-					break
-				}
-
+			if router = defaultRouter(route.Match.Headers); router == nil {
+				log.DefaultLogger.Errorf("NewVirtualHostImpl failed, match default router error")
 			}
 		}
 
@@ -102,7 +88,6 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 		} else {
 			log.DefaultLogger.Errorf("NewVirtualHostImpl failed, no router type matched")
 		}
-
 	}
 
 	if len(virtualHostImpl.routes) == 0 {

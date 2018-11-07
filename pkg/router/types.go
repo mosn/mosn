@@ -198,4 +198,4 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 	return nil
 }
 
-type RoutersFactory func(header []v2.HeaderMatcher) RouteBase
+type RouterFactory func(header []v2.HeaderMatcher) RouteBase
