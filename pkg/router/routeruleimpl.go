@@ -34,10 +34,6 @@ import (
 	multimap "github.com/jwangsadinata/go-multimap/slicemultimap"
 )
 
-func init() {
-	RegisterRouter(SofaRouterFactory)
-}
-
 // NewRouteRuleImplBase
 // new routerule implement basement
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleImplBase, error) {
@@ -336,10 +332,6 @@ func (srri *SofaRouteRuleImpl) RouteRule() types.RouteRule {
 	return srri
 }
 
-func (srri *SofaRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
-	srri.RouteRuleImplBase = routerRuleImplBase
-}
-
 func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 
 }
@@ -392,10 +384,6 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, r
 	prri.finalizePathHeader(headers, prri.path)
 }
 
-func (ssri *PathRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
-	ssri.RouteRuleImplBase = routerRuleImplBase
-}
-
 // PrefixRouteRuleImpl used to "match path" with "prefix match"
 type PrefixRouteRuleImpl struct {
 	*RouteRuleImplBase
@@ -438,10 +426,6 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap,
 	prei.finalizePathHeader(headers, prei.prefix)
 }
 
-func (prei *PrefixRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
-	prei.RouteRuleImplBase = routerRuleImplBase
-}
-
 // RegexRouteRuleImpl used to "match path" with "regex match"
 type RegexRouteRuleImpl struct {
 	*RouteRuleImplBase
@@ -482,8 +466,4 @@ func (rrei *RegexRouteRuleImpl) RouteRule() types.RouteRule {
 func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	rrei.finalizeRequestHeaders(headers, requestInfo)
 	rrei.finalizePathHeader(headers, rrei.regexStr)
-}
-
-func (rrei *RegexRouteRuleImpl) SetRouterRuleImplBase(routerRuleImplBase *RouteRuleImplBase) {
-	rrei.RouteRuleImplBase = routerRuleImplBase
 }

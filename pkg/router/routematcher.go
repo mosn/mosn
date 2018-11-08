@@ -146,6 +146,21 @@ func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types
 	return routerInstance
 }
 
+// GetAllRoutes returns all route that matched
+func (rm *routeMatcher) GetAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
+	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
+	virtualHost := rm.findVirtualHost(headers)
+	if virtualHost == nil {
+		log.DefaultLogger.Errorf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		return nil
+	}
+	routers := virtualHost.GetAllRoutesFromEntries(headers, randomValue)
+	if routers == nil {
+		log.DefaultLogger.Errorf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+	}
+	return routers
+}
+
 func (rm *routeMatcher) findVirtualHost(headers types.HeaderMap) types.VirtualHost {
 	if len(rm.virtualHosts) == 0 && rm.defaultVirtualHost != nil {
 		log.StartLogger.Tracef("route matcher find virtual host return default virtual host")

@@ -258,7 +258,16 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	}
 
 	// get router instance and do routing
-	route := s.proxy.routersWrapper.GetRouters().Route(headers, 1)
+	routers := s.proxy.routersWrapper.GetRouters()
+	// do handler chain
+	handlerChain := makeHandlerChain(headers, routers)
+	if handlerChain == nil {
+		log.DefaultLogger.Warnf("no route to make handler chain, headers = %v", headers)
+		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		return
+	}
+	route := handlerChain.DoNextHandler()
 	if route == nil || route.RouteRule() == nil {
 		// no route
 		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
@@ -272,7 +281,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
 	clusterName := route.RouteRule().ClusterName()
-	clusterSnapshot := s.proxy.clusterManager.Get(nil, clusterName)
+	clusterSnapshot := s.proxy.clusterManager.Get(context.Background(), clusterName)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
