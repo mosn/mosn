@@ -30,7 +30,7 @@ const maxPoolSize = 1
 
 // Register the bufferpool's name
 const (
-	Protocol = iota
+	Protocol     = iota
 	SofaProtocol
 	Stream
 	SofaStream
@@ -187,5 +187,5 @@ func PoolContext(context context.Context) *PoolCtx {
 	if context != nil && context.Value(types.ContextKeyBufferPoolCtx) != nil {
 		return context.Value(types.ContextKeyBufferPoolCtx).(*PoolCtx)
 	}
-	return nil
+	return newBufferPoolCtx()
 }
