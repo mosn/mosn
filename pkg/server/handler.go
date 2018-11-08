@@ -211,7 +211,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
 			// TODO: use goroutine pool
-			go l.listener.Start(nil)
+			go l.listener.Start(lctx)
 		}
 	}
 }
@@ -219,7 +219,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 func (ch *connHandler) StartListeners(lctx context.Context) {
 	for _, l := range ch.listeners {
 		// start goroutine
-		go l.listener.Start(nil)
+		go l.listener.Start(lctx)
 	}
 }
 
