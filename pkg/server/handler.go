@@ -138,7 +138,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		// duplicate config does nothing
 		if equalConfig && equalNetworkFilter && equalStreamFilters {
 			log.DefaultLogger.Debugf("duplicate listener:%s found. no add/update", listenerName)
-			return nil, nil
+			return al, nil
 		}
 
 		// update some config, and as Address and Name doesn't change , so need't change *rawl
