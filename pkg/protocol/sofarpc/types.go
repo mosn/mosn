@@ -362,6 +362,7 @@ func (b *BoltResponseCommand) ByteSize() uint64 {
 	}
 	return size
 }
+
 // mosn sofarpc headers' namespace
 const (
 	SofaRPCPropertyHeaderPrefix = "x-mosn-sofarpc-headers-property-"

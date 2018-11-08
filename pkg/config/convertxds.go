@@ -85,8 +85,8 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
 
 	if listenerConfig.FilterChains != nil &&
-		 len(listenerConfig.FilterChains) == 1 &&
-	 	listenerConfig.FilterChains[0].Filters != nil {
+		len(listenerConfig.FilterChains) == 1 &&
+		listenerConfig.FilterChains[0].Filters != nil {
 		listenerConfig.StreamFilters = convertStreamFilters(&xdsListener.FilterChains[0].Filters[0])
 	}
 
@@ -277,7 +277,7 @@ func convertStreamFilter(name string, s *types.Struct) v2.Filter {
 	filter := v2.Filter{}
 	var err error
 
-	switch name{
+	switch name {
 	case v2.MIXER:
 		filter.Type = name
 		filter.Config, err = convertMixerConfig(s)
@@ -311,7 +311,7 @@ func convertMixerConfig(s *types.Struct) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) ([]v2.FilterChain) {
+func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) []v2.FilterChain {
 	if xdsFilterChains == nil {
 		return nil
 	}
@@ -559,7 +559,7 @@ func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[strin
 	for key, config := range xdsPerRouteConfig {
 
 		perRouteConfig[key] = &v2.PerRouterConfig{
-			Struct:config,
+			Struct: config,
 		}
 	}
 

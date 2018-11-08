@@ -264,7 +264,8 @@ func ParseFaultInjectFilter(cfg map[string]interface{}) *v2.FaultInject {
 func ParseMixerFilter(cfg map[string]interface{}) *v2.Mixer {
 	mixerFilter := &v2.Mixer{}
 
-	data, err := json.Marshal(cfg); if err != nil {
+	data, err := json.Marshal(cfg)
+	if err != nil {
 		log.StartLogger.Errorf("parsing mixer filter error, err: %v, cfg: %v", err, cfg)
 		return nil
 	}
