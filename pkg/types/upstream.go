@@ -82,7 +82,7 @@ type ClusterSnapshot interface {
 	ClusterInfo() ClusterInfo
 
 	LoadBalancer() LoadBalancer
-	
+
 	IsExistsHosts(metadata MetadataMatchCriteria) bool
 }
 
@@ -201,6 +201,8 @@ type HostInfo interface {
 
 	HostStats() HostStats
 
+	Config() v2.Host
+
 	// TODO: add deploy locality
 }
 
@@ -260,8 +262,6 @@ type ClusterInfo interface {
 	LbSubsetInfo() LBSubsetInfo
 
 	LBInstance() LoadBalancer
-
-	
 }
 
 // ResourceManager manages different types of Resource

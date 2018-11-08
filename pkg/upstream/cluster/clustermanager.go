@@ -149,8 +149,9 @@ func (pc *primaryCluster) UpdateCluster(cluster types.Cluster, config *v2.Cluste
 	if config == nil {
 		config = pc.configUsed
 	}
+	pc.configUsed = deepCopyCluster(config)
 	pc.addedViaAPI = addedViaAPI
-	if err := pc.configLock.Update(config, 0); err == rcu.Block {
+	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
 		return err
 	}
 	return nil
@@ -161,10 +162,38 @@ func (pc *primaryCluster) UpdateHosts(hosts []types.Host) error {
 	if c, ok := pc.cluster.(*simpleInMemCluster); ok {
 		c.UpdateHosts(hosts)
 	}
+	config := deepCopyCluster(pc.configUsed)
+	var hostConfig []v2.Host
+	for _, h := range hosts {
+		hostConfig = append(hostConfig, h.Config())
+	}
+	config.Hosts = hostConfig
+	pc.configUsed = config
 	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
 		return err
 	}
 	return nil
+}
+
+func deepCopyCluster(cluster *v2.Cluster) *v2.Cluster {
+	if cluster == nil {
+		return nil
+	}
+	return &v2.Cluster{
+		Name:                 cluster.Name,
+		ClusterType:          cluster.ClusterType,
+		SubType:              cluster.SubType,
+		LbType:               cluster.LbType,
+		MaxRequestPerConn:    cluster.MaxRequestPerConn,
+		ConnBufferLimitBytes: cluster.ConnBufferLimitBytes,
+		CirBreThresholds:     cluster.CirBreThresholds,
+		OutlierDetection:     cluster.OutlierDetection,
+		HealthCheck:          cluster.HealthCheck,
+		Spec:                 cluster.Spec,
+		LBSubSetConfig:       cluster.LBSubSetConfig,
+		TLS:                  cluster.TLS,
+		Hosts:                cluster.Hosts,
+	}
 }
 
 // AddOrUpdatePrimaryCluster
