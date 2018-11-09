@@ -362,13 +362,13 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		out := protocol.CommonHeader(decodeRespHeader(s.response.Header))
+		decodeRespHeader := protocol.CommonHeader(decodeRespHeader(s.response.Header))
 		// save response code in context
-		status, exist := out.Get(types.HeaderStatus); if exist {
+		if status, exist := decodeRespHeader.Get(types.HeaderStatus); exist {
 			s.context = context.WithValue(s.context, types.ContextKeyStatusCode, status)
 		}
 
-		s.receiver.OnReceiveHeaders(s.context, protocol.CommonHeader(out), false)
+		s.receiver.OnReceiveHeaders(s.context, decodeRespHeader, false)
 		buf := buffer.NewIoBufferBytes(s.response.Body())
 		s.receiver.OnReceiveData(s.context, buf, true)
 

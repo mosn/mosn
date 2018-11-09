@@ -89,7 +89,7 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	// save response code
-	status, ok := context.Value(types.ContextKeyStatusCode).(string); if ok {
+	if status, ok := context.Value(types.ContextKeyStatusCode).(string); ok {
 		if code, err := strconv.Atoi(status); err == nil {
 			r.downStream.requestInfo.SetResponseCode(uint32(code))
 		}
