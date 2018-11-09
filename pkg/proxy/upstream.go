@@ -20,6 +20,7 @@ package proxy
 import (
 	"container/list"
 	"context"
+	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -87,6 +88,13 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 // types.StreamReceiver
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+	// save response code
+	status, ok := context.Value(types.ContextKeyStatusCode).(string); if ok {
+		if code, err := strconv.Atoi(status); err == nil {
+			r.downStream.requestInfo.SetResponseCode(uint32(code))
+		}
+	}
+
 	buffer.TransmitBufferPoolContext(r.downStream.context, context)
 
 	workerPool.Offer(&receiveHeadersEvent{

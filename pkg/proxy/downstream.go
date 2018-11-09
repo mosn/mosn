@@ -675,11 +675,6 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) {
 	s.downstreamRespHeaders = headers
 
-	status, _ := s.downstreamRespHeaders.Get(types.HeaderStatus)
-	if code, err := strconv.Atoi(status); err == nil {
-		s.requestInfo.SetResponseCode(uint32(code))
-	}
-
 	// check retry
 	if s.retryState != nil {
 		retryCheck := s.retryState.retry(headers, "", s.doRetry)
