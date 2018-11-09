@@ -179,21 +179,8 @@ func deepCopyCluster(cluster *v2.Cluster) *v2.Cluster {
 	if cluster == nil {
 		return nil
 	}
-	return &v2.Cluster{
-		Name:                 cluster.Name,
-		ClusterType:          cluster.ClusterType,
-		SubType:              cluster.SubType,
-		LbType:               cluster.LbType,
-		MaxRequestPerConn:    cluster.MaxRequestPerConn,
-		ConnBufferLimitBytes: cluster.ConnBufferLimitBytes,
-		CirBreThresholds:     cluster.CirBreThresholds,
-		OutlierDetection:     cluster.OutlierDetection,
-		HealthCheck:          cluster.HealthCheck,
-		Spec:                 cluster.Spec,
-		LBSubSetConfig:       cluster.LBSubSetConfig,
-		TLS:                  cluster.TLS,
-		Hosts:                cluster.Hosts,
-	}
+	clusterCopy := *cluster
+	return &clusterCopy
 }
 
 // AddOrUpdatePrimaryCluster
