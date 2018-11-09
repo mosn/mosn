@@ -101,6 +101,25 @@ func (cs *clusterSnapshot) LoadBalancer() types.LoadBalancer {
 	return cs.loadbalancer
 }
 
+func (cs *clusterSnapshot) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+	if metadata == nil {
+		for _, hostSet := range cs.PrioritySet().HostSetsByPriority() {
+			if len(hostSet.Hosts()) > 0 {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	if subsetLB, ok := cs.loadbalancer.(*subSetLoadBalancer); ok {
+		return subsetLB.GetHostsNumber(metadata) > 0
+	}
+
+	log.DefaultLogger.Errorf("Call IsExistsHosts error,metadata isn't nil, but subsetLB doesn't exist")
+	return false
+}
+
 type primaryCluster struct {
 	cluster     types.Cluster
 	addedViaAPI bool

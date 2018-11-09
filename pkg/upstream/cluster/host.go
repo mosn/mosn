@@ -167,14 +167,15 @@ func (h *host) SetUsed(used bool) {
 
 // HostInfo
 type hostInfo struct {
-	hostname      string
-	address       net.Addr
-	addressString string
-	canary        bool
-	clusterInfo   types.ClusterInfo
-	stats         types.HostStats
-	metaData      types.RouteMetaData
-	tlsDisable    bool
+	hostname       string
+	address        net.Addr
+	addressString  string
+	canary         bool
+	clusterInfo    types.ClusterInfo
+	stats          types.HostStats
+	metaData       types.RouteMetaData
+	originMetaData v2.Metadata
+	tlsDisable     bool
 
 	// TODO: locality, outlier, healthchecker
 }
@@ -185,13 +186,14 @@ func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) h
 		name = clusterInfo.Name()
 	}
 	return hostInfo{
-		address:       addr,
-		addressString: config.Address,
-		hostname:      config.Hostname,
-		clusterInfo:   clusterInfo,
-		stats:         newHostStats(name, config.Address),
-		metaData:      GenerateHostMetadata(config.MetaData),
-		tlsDisable:    config.TLSDisable,
+		address:        addr,
+		addressString:  config.Address,
+		hostname:       config.Hostname,
+		clusterInfo:    clusterInfo,
+		stats:          newHostStats(name, config.Address),
+		metaData:       GenerateHostMetadata(config.MetaData),
+		originMetaData: config.MetaData,
+		tlsDisable:     config.TLSDisable,
 	}
 }
 
@@ -205,6 +207,10 @@ func (hi *hostInfo) Canary() bool {
 
 func (hi *hostInfo) Metadata() types.RouteMetaData {
 	return hi.metaData
+}
+
+func (hi *hostInfo) OriginMetaData() v2.Metadata {
+	return hi.originMetaData
 }
 
 func (hi *hostInfo) ClusterInfo() types.ClusterInfo {
