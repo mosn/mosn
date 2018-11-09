@@ -650,8 +650,8 @@ func convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) []*v2.H
 	for _, opt := range headerValueOption {
 		var isAppend *bool
 		if opt.Append != nil {
-			append := opt.GetAppend().GetValue()
-			isAppend = &append
+			appendVal := opt.GetAppend().GetValue()
+			isAppend = &appendVal
 		}
 		valueOptions = append(valueOptions, &v2.HeaderValueOption{
 			Header: &v2.HeaderValue{
