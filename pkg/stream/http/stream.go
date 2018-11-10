@@ -89,7 +89,7 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 	data := <-conn.bufChan
 	n = copy(p, data.Bytes())
 	data.Drain(n)
-	fmt.Printf("http1 Read : %v\n", p)
+	//fmt.Printf("http1 Read : %v\n", p)
 	conn.bufChan <- nil
 	return
 }
