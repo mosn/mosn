@@ -132,7 +132,7 @@ func (f *mixerFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCal
 func (f *mixerFilter) OnDestroy() {}
 
 func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
-	if (reqHeaders == nil || respHeaders == nil || requestInfo == nil) {
+	if reqHeaders == nil || respHeaders == nil || requestInfo == nil {
 		return
 	}
 	f.createRequestHandler()

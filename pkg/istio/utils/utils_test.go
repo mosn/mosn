@@ -26,10 +26,10 @@ import (
 
 func TestFormatAttributesString(t *testing.T) {
 	attributes := v1.Attributes{
-		Attributes: map[string]*v1.Attributes_AttributeValue {
+		Attributes: map[string]*v1.Attributes_AttributeValue{
 			"ip": &v1.Attributes_AttributeValue{
 				Value: &v1.Attributes_AttributeValue_StringValue{
-					StringValue:"127.0.0.1",
+					StringValue: "127.0.0.1",
 				},
 			},
 		},

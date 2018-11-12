@@ -82,4 +82,3 @@ func (h CommonHeader) ByteSize() uint64 {
 	}
 	return size
 }
-

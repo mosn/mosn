@@ -356,12 +356,12 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logg
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		conns:                   list.New(),
-		handler:                 handler,
-		stopChan:                stopChan,
-		logger:                  logger,
-		accessLogs:              accessLoggers,
-		updatedLabel:            false,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		logger:       logger,
+		accessLogs:   accessLoggers,
+		updatedLabel: false,
 	}
 
 	listenPort := 0

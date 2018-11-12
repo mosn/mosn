@@ -76,11 +76,11 @@ type PerRouterConfig struct {
 }
 
 type RouterConfig struct {
-	Match          RouterMatch    `json:"match"`
-	Route          RouteAction    `json:"route"`
-	Redirect       RedirectAction `json:"redirect"`
-	MetadataConfig MetadataConfig `json:"metadata"`
-	Decorator      Decorator      `json:"decorator"`
+	Match           RouterMatch    `json:"match"`
+	Route           RouteAction    `json:"route"`
+	Redirect        RedirectAction `json:"redirect"`
+	MetadataConfig  MetadataConfig `json:"metadata"`
+	Decorator       Decorator      `json:"decorator"`
 	PerFilterConfig map[string]*PerRouterConfig
 }
 

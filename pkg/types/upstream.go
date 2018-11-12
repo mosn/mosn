@@ -82,7 +82,7 @@ type ClusterSnapshot interface {
 	ClusterInfo() ClusterInfo
 
 	LoadBalancer() LoadBalancer
-	
+
 	IsExistsHosts(metadata MetadataMatchCriteria) bool
 }
 
@@ -260,8 +260,6 @@ type ClusterInfo interface {
 	LbSubsetInfo() LBSubsetInfo
 
 	LBInstance() LoadBalancer
-
-	
 }
 
 // ResourceManager manages different types of Resource

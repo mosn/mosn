@@ -380,7 +380,7 @@ func Test_convertCidrRange(t *testing.T) {
 			want: []v2.CidrRange{
 				{
 					Address: "192.168.1.1",
-					Length: 32,
+					Length:  32,
 				},
 			},
 		},
