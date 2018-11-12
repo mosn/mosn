@@ -282,9 +282,7 @@ func (b *IoBuffer) Append(data []byte) error {
 }
 
 func (b *IoBuffer) AppendByte(data byte) error {
-	datas := makeSlice(1)
-	return b.Append(datas)
-
+	return b.Append([]byte{data})
 }
 
 func (b *IoBuffer) Peek(n int) []byte {
