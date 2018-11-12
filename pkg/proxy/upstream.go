@@ -89,10 +89,11 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	// save response code
-	if status, ok := context.Value(types.ContextKeyStatusCode).(string); ok {
+	if status, ok := headers.Get(protocol.MosnResponseStatusCode); ok {
 		if code, err := strconv.Atoi(status); err == nil {
 			r.downStream.requestInfo.SetResponseCode(uint32(code))
 		}
+		headers.Del(protocol.MosnResponseStatusCode)
 	}
 
 	buffer.TransmitBufferPoolContext(r.downStream.context, context)

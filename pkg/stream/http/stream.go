@@ -365,7 +365,7 @@ func (s *clientStream) handleResponse() {
 		decodeRespHeader := protocol.CommonHeader(decodeRespHeader(s.response.Header))
 		// save response code in context
 		if status, exist := decodeRespHeader.Get(types.HeaderStatus); exist {
-			s.context = context.WithValue(s.context, types.ContextKeyStatusCode, status)
+			decodeRespHeader.Set(protocol.MosnResponseStatusCode, status)
 		}
 
 		s.receiver.OnReceiveHeaders(s.context, decodeRespHeader, false)
