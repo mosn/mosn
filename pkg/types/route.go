@@ -95,7 +95,7 @@ type RouteRule interface {
 	UpdateMetaDataMatchCriteria(metadata map[string]string) error
 
 	// PerFilterConfig returns per filter config from xds
-	PerFilterConfig() map[string]*v2.PerRouterConfig
+	PerFilterConfig() map[string]interface{}
 
 	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
 	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)

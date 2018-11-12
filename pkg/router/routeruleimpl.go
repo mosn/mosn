@@ -124,7 +124,7 @@ type RouteRuleImplBase struct {
 	randInstance       *rand.Rand
 	randMutex          sync.Mutex
 
-	perFilterConfig map[string]*v2.PerRouterConfig
+	perFilterConfig map[string]interface{}
 }
 
 // types.RouterInfo
@@ -140,7 +140,6 @@ func (rri *RouteRuleImplBase) RedirectRule() types.RedirectRule {
 }
 
 func (rri *RouteRuleImplBase) RouteRule() types.RouteRule {
-
 	return rri
 }
 
@@ -219,8 +218,7 @@ func (rri *RouteRuleImplBase) UpdateMetaDataMatchCriteria(metadata map[string]st
 	return nil
 }
 
-func (rri *RouteRuleImplBase) PerFilterConfig() map[string]*v2.PerRouterConfig {
-
+func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {
 	return rri.perFilterConfig
 }
 

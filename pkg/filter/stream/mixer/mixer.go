@@ -26,7 +26,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/istio/control/http"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/envoyproxy/go-control-plane/pkg/util"
 	"istio.io/api/mixer/v1/config/client"
 )
 
@@ -65,15 +64,14 @@ func newMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
 	return filter
 }
 
-func (f *mixerFilter) ReadPerRouteConfig(perFilterConfig map[string]*v2.PerRouterConfig) {
+func (f *mixerFilter) ReadPerRouteConfig(perFilterConfig map[string]interface{}) {
 	mixerConfig, exist := perFilterConfig[mixerFilterName]
 	if !exist {
 		return
 	}
 
-	var serviceConfig client.ServiceConfig
-	err := util.StructToMessage(mixerConfig.Struct, &serviceConfig)
-	if err != nil {
+	serviceConfig, ok := mixerConfig.(client.ServiceConfig)
+	if !ok {
 		return
 	}
 
