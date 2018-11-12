@@ -90,7 +90,7 @@ type RouteRule interface {
 	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
 	// as we may use weighted cluster's metadata, so need to input cluster's name
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
-	
+
 	// UpdateMetaDataMatchCriteria used to update RouteRuleImplBase's metadata match criteria
 	UpdateMetaDataMatchCriteria(metadata map[string]string) error
 

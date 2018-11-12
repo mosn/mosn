@@ -75,8 +75,8 @@ func TestCompress(t *testing.T) {
 	mar := jsonpb.Marshaler{}
 	str, _ := mar.MarshalToString(&pb)
 	/*
-	fmt.Printf("attributes: %s\n", string(str))
-	fmt.Printf("attributes1: %s\n", strings.TrimSpace(attributes))
+		fmt.Printf("attributes: %s\n", string(str))
+		fmt.Printf("attributes1: %s\n", strings.TrimSpace(attributes))
 	*/
 	if str != strings.TrimSpace(attributes) {
 		t.Fatalf("not equal")
