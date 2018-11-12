@@ -88,8 +88,8 @@ func TestFuzz(t *testing.T) {
 		m := iface.(testMessage)
 
 		for j := 0; j < 1000; j++ {
-			len := rand.Intn(100)
-			bytes := randomBytes(len, rand)
+			length := rand.Intn(100)
+			bytes := randomBytes(length, rand)
 			// This just looks for crashes due to bounds errors etc.
 			m.unmarshal(bytes)
 		}

@@ -210,6 +210,15 @@ func TestParseClusterConfig(t *testing.T) {
 		t.Error("no callback")
 	}
 
+	if c.MaxRequestPerConn != DefaultMaxRequestPerConn {
+		t.Errorf("Expect cluster.MaxRequestPerConn default value %d but got %d",
+			DefaultMaxRequestPerConn, c.MaxRequestPerConn)
+	}
+
+	if c.ConnBufferLimitBytes != DefaultConnBufferLimitBytes {
+		t.Errorf("Expect cluster.ConnBufferLimitBytes default value%d, but got %d",
+			DefaultConnBufferLimitBytes, c.ConnBufferLimitBytes)
+	}
 }
 func TestParseListenerConfig(t *testing.T) {
 	// test listener inherit replace exists

@@ -398,7 +398,7 @@ func TestInspector(t *testing.T) {
 	// tls
 	resp, err = MockClient(t, server.Addr, cltMng)
 	if err != nil {
-		t.Errorf("#%d request server error %v", err)
+		t.Errorf("request server error %v", err)
 		return
 	}
 	ioutil.ReadAll(resp.Body)

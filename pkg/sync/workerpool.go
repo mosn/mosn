@@ -40,7 +40,6 @@ type shard struct {
 }
 
 type shardWorkerPool struct {
-	sync.Mutex
 	// workerFunc should never exit, always try to acquire jobs from jobs channel
 	workerFunc WorkerFunc
 	shards     []*shard
