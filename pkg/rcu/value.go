@@ -90,7 +90,7 @@ func (v *Value) Update(i interface{}, wait time.Duration) error {
 	e = old.(*element)
 
 	interval := 10 * time.Millisecond
-	// Get() 赋值和计数有间隔，非原子操作
+	// element load and element count add are two options, use sleep to wait
 	time.Sleep(interval)
 
 	if wait <= 0 {
