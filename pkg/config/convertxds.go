@@ -42,6 +42,7 @@ import (
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
+	"istio.io/api/mixer/v1/config/client"
 )
 
 var supportFilter = map[string]bool{
@@ -553,14 +554,17 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 	return routes
 }
 
-func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[string]*v2.PerRouterConfig {
-	perRouteConfig := make(map[string]*v2.PerRouterConfig, 0)
+func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[string]interface{}{
+	perRouteConfig := make(map[string]interface{}, 0)
 
 	for key, config := range xdsPerRouteConfig {
-
-		perRouteConfig[key] = &v2.PerRouterConfig{
-			Struct: config,
+		var serviceConfig client.ServiceConfig
+		err := xdsutil.StructToMessage(config, &serviceConfig)
+		if err != nil {
+			log.DefaultLogger.Infof("convertPerRouteConfig error: %v", err)
+			continue
 		}
+		perRouteConfig[key] = serviceConfig
 	}
 
 	return perRouteConfig

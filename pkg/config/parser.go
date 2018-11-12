@@ -281,7 +281,7 @@ func ParseMixerFilter(cfg map[string]interface{}) *v2.Mixer {
 		return nil
 	}
 
-	log.DefaultLogger.Infof("mixconfig: %v", mixerFilter)
+	//log.DefaultLogger.Infof("mixconfig: %v", mixerFilter)
 	return mixerFilter
 }
 
