@@ -36,6 +36,7 @@ const (
 	MosnHeaderQueryStringKey  = "querystring"
 	MosnHeaderMethod          = "method"
 	MosnOriginalHeaderPathKey = "x-mosn-original-path"
+	MosnResponseStatusCode    = "response-code"
 )
 
 // Hseader with special meaning in istio

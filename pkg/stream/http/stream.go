@@ -362,7 +362,13 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		s.receiver.OnReceiveHeaders(s.context, protocol.CommonHeader(decodeRespHeader(s.response.Header)), false)
+		decodeRespHeader := protocol.CommonHeader(decodeRespHeader(s.response.Header))
+		// save response code in context
+		if status, exist := decodeRespHeader.Get(types.HeaderStatus); exist {
+			decodeRespHeader.Set(protocol.MosnResponseStatusCode, status)
+		}
+
+		s.receiver.OnReceiveHeaders(s.context, decodeRespHeader, false)
 		buf := buffer.NewIoBufferBytes(s.response.Body())
 		s.receiver.OnReceiveData(s.context, buf, true)
 

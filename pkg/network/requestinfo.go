@@ -105,6 +105,10 @@ func (r *RequestInfo) ResponseCode() uint32 {
 	return r.responseCode
 }
 
+func (r *RequestInfo) SetResponseCode(code uint32) {
+	r.responseCode = code
+}
+
 func (r *RequestInfo) Duration() time.Duration {
 	return time.Now().Sub(r.startTime)
 }
