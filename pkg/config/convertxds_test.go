@@ -24,6 +24,8 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/gogo/protobuf/types"
+	"istio.io/api/mixer/v1"
+	"istio.io/api/mixer/v1/config/client"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 
@@ -501,5 +503,66 @@ func Test_convertHeadersToAdd(t *testing.T) {
 				t.Errorf("convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func Test_convertPerRouteConfig(t *testing.T) {
+	type args struct {
+		perFilterConfig *client.ServiceConfig
+	}
+
+	tests := []struct {
+		name string
+		typeStr string
+		exist bool
+		args args
+	}{
+		{
+			name:"mixer",
+			typeStr: reflect.TypeOf(client.ServiceConfig{}).String(),
+			exist:true,
+			args: args{
+				perFilterConfig: &client.ServiceConfig{
+					DisableReportCalls: false,
+					DisableCheckCalls:  true,
+					MixerAttributes: &v1.Attributes{
+						Attributes: map[string]*v1.Attributes_AttributeValue{
+							"test": &v1.Attributes_AttributeValue{
+								Value: &v1.Attributes_AttributeValue_StringValue{
+									StringValue: "test_value",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:"test",
+			typeStr:"",
+			exist:false,
+		},
+	}
+
+	for _, test := range tests {
+		conf, _ := xdsutil.MessageToStruct(test.args.perFilterConfig)
+		confMap := map[string]*types.Struct {
+			test.name : conf,
+		}
+		perRouteConfig := convertPerRouteConfig(confMap)
+
+		perConfig, exist := perRouteConfig[test.name]
+		if exist != test.exist {
+			t.Errorf("config %s exist error", test.name)
+		}
+
+		if !exist {
+			continue
+		}
+
+		typeStr := reflect.TypeOf(perConfig).String()
+		if typeStr != test.typeStr {
+			t.Errorf("type %s error, expect %s", typeStr, test.typeStr)
+		}
 	}
 }

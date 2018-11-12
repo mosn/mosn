@@ -558,13 +558,18 @@ func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[strin
 	perRouteConfig := make(map[string]interface{}, 0)
 
 	for key, config := range xdsPerRouteConfig {
-		var serviceConfig client.ServiceConfig
-		err := xdsutil.StructToMessage(config, &serviceConfig)
-		if err != nil {
-			log.DefaultLogger.Infof("convertPerRouteConfig error: %v", err)
-			continue
+		switch key {
+		case v2.MIXER:
+			var serviceConfig client.ServiceConfig
+			err := xdsutil.StructToMessage(config, &serviceConfig)
+			if err != nil {
+				log.DefaultLogger.Infof("convertPerRouteConfig error: %v", err)
+				continue
+			}
+			perRouteConfig[key] = serviceConfig
+		default:
+			log.DefaultLogger.Warnf("unknown per route config: %s", key)
 		}
-		perRouteConfig[key] = serviceConfig
 	}
 
 	return perRouteConfig
