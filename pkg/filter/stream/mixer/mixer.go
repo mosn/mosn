@@ -24,6 +24,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/istio/control/http"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"istio.io/api/mixer/v1/config/client"
 )
@@ -79,18 +80,18 @@ func (f *mixerFilter) ReadPerRouteConfig(perFilterConfig map[string]interface{})
 
 func (f *mixerFilter) createRequestHandler() {
 	if f.handler != nil {
-		//log.DefaultLogger.Infof("handler not nil, return")
+		log.DefaultLogger.Tracef("handler not nil, return")
 		return
 	}
 
 	route := f.decodeCallback.Route()
 	if route == nil {
-		//log.DefaultLogger.Infof("no route, return")
+		log.DefaultLogger.Tracef("no route, return")
 		return
 	}
 	rule := route.RouteRule()
 	if rule == nil {
-		//log.DefaultLogger.Infof("no route rule, return")
+		log.DefaultLogger.Tracef("no route rule, return")
 		return
 	}
 
