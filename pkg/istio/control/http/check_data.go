@@ -65,7 +65,6 @@ func (c *checkData) GetSourceIPPort() (ip string, port int32, ret bool) {
 		ret = false
 		return
 	}
-	ret = true
 	ip, port, ret = utils.GetIPPort(addr)
 	return
 }
