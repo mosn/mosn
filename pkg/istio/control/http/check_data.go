@@ -37,15 +37,13 @@ type CheckData interface {
 type checkData struct {
 	reqHeaders  types.HeaderMap
 	requestInfo types.RequestInfo
-	connection  types.Connection
 }
 
 // NewCheckData return checkData
-func NewCheckData(reqHeaders types.HeaderMap, requestInfo types.RequestInfo, connection types.Connection) CheckData {
+func NewCheckData(reqHeaders types.HeaderMap, requestInfo types.RequestInfo) CheckData {
 	return &checkData{
 		reqHeaders:  reqHeaders,
 		requestInfo: requestInfo,
-		connection:  connection,
 	}
 }
 
@@ -62,11 +60,12 @@ func (c *checkData) ExtractIstioAttributes() (data string, ret bool) {
 
 // GetSourceIPPort get downstream tcp connection ip and port.
 func (c *checkData) GetSourceIPPort() (ip string, port int32, ret bool) {
-	if c.connection != nil {
-		ip, port, ret = utils.GetIPPort(c.connection.RemoteAddr())
+	addr := c.requestInfo.DownstreamLocalAddress()
+	if addr == nil {
+		ret = false
 		return
 	}
-
-	ret = false
+	ret = true
+	ip, port, ret = utils.GetIPPort(addr)
 	return
 }
