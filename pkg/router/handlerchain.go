@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package proxy
+package router
 
 import (
 	"context"
@@ -27,6 +27,7 @@ func init() {
 	RegisterMakeHandlerChain(DefaultMakeHandlerChain)
 }
 
+// RouteHandlerChain returns first available handler's router
 type RouteHandlerChain struct {
 	ctx      context.Context
 	handlers []types.RouteHandler
@@ -58,31 +59,4 @@ func (hc *RouteHandlerChain) Next() types.RouteHandler {
 	h := hc.handlers[hc.index]
 	hc.index++
 	return h
-}
-
-type MakeHandlerChain func(types.HeaderMap, types.Routers) *RouteHandlerChain
-
-var makeHandlerChain MakeHandlerChain
-
-func RegisterMakeHandlerChain(f MakeHandlerChain) {
-	makeHandlerChain = f
-}
-
-type simpleHandler struct {
-	route types.Route
-}
-
-func (h *simpleHandler) IsAvailable(ctx context.Context) bool {
-	return true
-}
-func (h *simpleHandler) Route() types.Route {
-	return h.route
-}
-func DefaultMakeHandlerChain(headers types.HeaderMap, routers types.Routers) *RouteHandlerChain {
-	if r := routers.Route(headers, 1); r != nil {
-		return NewRouteHandlerChain(context.Background(), []types.RouteHandler{
-			&simpleHandler{route: r},
-		})
-	}
-	return nil
 }

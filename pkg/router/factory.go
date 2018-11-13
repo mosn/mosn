@@ -18,12 +18,15 @@
 package router
 
 import (
+	"context"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
 	RegisterRouterRule(DefaultSofaRouterRuleFactory)
+	RegisterMakeHandlerChain(DefaultMakeHandlerChain)
 }
 
 var defaultRouterRuleFactory RouterRuleFactory
@@ -42,4 +45,33 @@ func DefaultSofaRouterRuleFactory(base *RouteRuleImplBase, headers []v2.HeaderMa
 		}
 	}
 	return nil
+}
+
+var makeHandlerChain MakeHandlerChain
+
+func RegisterMakeHandlerChain(f MakeHandlerChain) {
+	makeHandlerChain = f
+}
+
+type simpleHandler struct {
+	route types.Route
+}
+
+func (h *simpleHandler) IsAvailable(ctx context.Context) bool {
+	return true
+}
+func (h *simpleHandler) Route() types.Route {
+	return h.route
+}
+func DefaultMakeHandlerChain(headers types.HeaderMap, routers types.Routers) *RouteHandlerChain {
+	if r := routers.Route(headers, 1); r != nil {
+		return NewRouteHandlerChain(context.Background(), []types.RouteHandler{
+			&simpleHandler{route: r},
+		})
+	}
+	return nil
+}
+
+func CallMakeHandlerChain(headers types.HeaderMap, routers types.Routers) *RouteHandlerChain {
+	return makeHandlerChain(headers, routers)
 }

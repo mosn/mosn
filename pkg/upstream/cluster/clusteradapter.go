@@ -90,7 +90,7 @@ func (ca *MngAdapter) TriggerHostDel(clusterName string, hostAddress string) err
 
 // GetCluster used to get cluster by name
 func (ca *MngAdapter) GetClusterSnapshot(context context.Context, clusterName string) types.ClusterSnapshot {
-	return ca.clusterMng.Get(context, clusterName)
+	return ca.clusterMng.GetClusterSnapshot(context, clusterName)
 }
 
 // PutClusterSnapshot used to put cluster snapshot, release rcu

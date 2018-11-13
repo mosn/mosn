@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package proxy
+package router
 
 import (
 	"reflect"
@@ -56,7 +56,10 @@ func TestDefaultMakeHandlerChain(t *testing.T) {
 		},
 		header: header_match,
 	}
-	if hc := DefaultMakeHandlerChain(header_match, routers); hc == nil {
+	//
+	makeHandlerChain = DefaultMakeHandlerChain
+	//
+	if hc := CallMakeHandlerChain(header_match, routers); hc == nil {
 		t.Fatal("make handler chain failed")
 	} else {
 		if r := hc.DoNextHandler(); r == nil {
@@ -64,7 +67,7 @@ func TestDefaultMakeHandlerChain(t *testing.T) {
 		}
 	}
 	header_notmatch := protocol.CommonHeader(map[string]string{})
-	if hc := DefaultMakeHandlerChain(header_notmatch, routers); hc != nil {
+	if hc := CallMakeHandlerChain(header_notmatch, routers); hc != nil {
 		t.Fatal("make handler chain unexpected")
 	}
 

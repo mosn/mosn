@@ -56,6 +56,7 @@ type RouterManager interface {
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
 }
 
+// RouteHandler is an external check handler for a route
 type RouteHandler interface {
 	IsAvailable(context.Context) bool
 	Route() Route

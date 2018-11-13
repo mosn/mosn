@@ -491,7 +491,7 @@ func Benchmark_RouteAndLB(b *testing.B) {
 		}
 
 		clustername := route.RouteRule().ClusterName()
-		clusterSnapshot := mockedClusterMng.Get(context.Background(), clustername)
+		clusterSnapshot := mockedClusterMng.GetClusterSnapshot(context.Background(), clustername)
 
 		if clusterSnapshot == nil {
 			b.Errorf("Cluster is nil, cluster name = %s", clustername)

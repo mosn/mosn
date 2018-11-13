@@ -94,7 +94,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	clusterName := p.getUpstreamCluster()
 
-	clusterSnapshot := p.clusterManager.Get(context.Background(), clusterName)
+	clusterSnapshot := p.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		p.requestInfo.SetResponseFlag(types.NoRouteFound)
@@ -113,7 +113,10 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 		return types.Stop
 	}
 
-	connectionData := p.clusterManager.TCPConnForCluster(nil, clusterSnapshot)
+	ctx := &LbContext{
+		conn: p.readCallbacks,
+	}
+	connectionData := p.clusterManager.TCPConnForCluster(ctx, clusterSnapshot)
 	if connectionData.Connection == nil {
 		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		p.onInitFailure(NoHealthyUpstream)
@@ -399,4 +402,26 @@ type downstreamCallbacks struct {
 
 func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	dc.proxy.onDownstreamEvent(event)
+}
+
+// LbContext is a types.LoadBalancerContext implementation
+type LbContext struct {
+	conn types.ReadFilterCallbacks
+}
+
+func (c *LbContext) ComputeHashKey() types.HashedValue {
+	return ""
+}
+
+func (c *LbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
+	return nil
+}
+
+func (c *LbContext) DownstreamConnection() net.Conn {
+	return c.conn.Connection().RawConn()
+}
+
+// TCP Proxy have no header
+func (c *LbContext) DownstreamHeaders() types.HeaderMap {
+	return nil
 }

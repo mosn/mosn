@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -141,14 +142,12 @@ func NewPrimaryCluster(cluster types.Cluster, config *v2.Cluster, addedViaAPI bo
 	}
 }
 func (pc *primaryCluster) UpdateCluster(cluster types.Cluster, config *v2.Cluster, addedViaAPI bool) error {
+	if cluster == nil || config == nil {
+		return errors.New("cannot update nil cluster or cluster config")
+	}
 	pc.updateLock.Lock()
 	defer pc.updateLock.Unlock()
-	if cluster != nil {
-		pc.cluster = cluster
-	}
-	if config == nil {
-		config = pc.configUsed
-	}
+	pc.cluster = cluster
 	pc.configUsed = deepCopyCluster(config)
 	pc.addedViaAPI = addedViaAPI
 	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
@@ -251,12 +250,18 @@ func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool
 }
 
 func (cm *clusterManager) PutClusterSnapshot(snapshot types.ClusterSnapshot) {
+	if snapshot == nil {
+		return
+	}
 	if s, ok := snapshot.(*clusterSnapshot); ok {
 		s.value.Put(s.config)
+	} else {
+		log.DefaultLogger.Errorf("snapshot is not clusterSnapshot, clustername=%s", snapshot.ClusterInfo().Name())
 	}
+
 }
 
-func (cm *clusterManager) Get(context context.Context, clusterName string) types.ClusterSnapshot {
+func (cm *clusterManager) GetClusterSnapshot(context context.Context, clusterName string) types.ClusterSnapshot {
 	if v, ok := cm.primaryClusters.Load(clusterName); ok {
 		pc := v.(*primaryCluster)
 		pcc := pc.cluster

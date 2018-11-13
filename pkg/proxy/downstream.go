@@ -31,6 +31,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -260,7 +261,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// get router instance and do routing
 	routers := s.proxy.routersWrapper.GetRouters()
 	// do handler chain
-	handlerChain := makeHandlerChain(headers, routers)
+	handlerChain := router.CallMakeHandlerChain(headers, routers)
 	if handlerChain == nil {
 		log.DefaultLogger.Warnf("no route to make handler chain, headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
@@ -281,7 +282,8 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
 	clusterName := route.RouteRule().ClusterName()
-	clusterSnapshot := s.proxy.clusterManager.Get(context.Background(), clusterName)
+	clusterSnapshot := s.proxy.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
+	// TODO : verify cluster snapshot is valid
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster

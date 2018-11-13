@@ -197,4 +197,8 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 	return nil
 }
 
+// RouterRuleFactory creates a RouteBase
 type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) RouteBase
+
+// MakeHandlerChain creates a RouteHandlerChain
+type MakeHandlerChain func(types.HeaderMap, types.Routers) *RouteHandlerChain

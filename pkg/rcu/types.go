@@ -24,8 +24,8 @@ import (
 
 // rcu errors
 var (
-	Timeout = errors.New("Update Timeout")
-	Block   = errors.New("Update is Running, try again")
+	Timeout = errors.New("update timeout")
+	Block   = errors.New("update is running, try again")
 )
 
 type element struct {
