@@ -65,7 +65,7 @@ func TestValue(t *testing.T) {
 	putback := make(chan struct{})
 	if d, ok := v.Load().(*testData); assertTrue(t, ok) {
 		if d.data != 2 {
-			t.Error("data  is not expected, expected: 2 , got: %d", d.data)
+			t.Error("data is not expected, expected: 2, got: ", d.data)
 		}
 		// delay put back
 		wg.Add(1)
@@ -108,7 +108,7 @@ Check:
 			time.Sleep(10 * time.Millisecond) // wait Update sleep passed
 			if d, ok := v.Load().(*testData); assertTrue(t, ok) {
 				if d.data != 3 {
-					t.Error("data  is not expected, expected: 3 , got: %d", d.data)
+					t.Error("data is not expected, expected: 3, got: ", d.data)
 				}
 				v.Put(d)
 			}
@@ -132,7 +132,7 @@ func TestUpdateTimeout(t *testing.T) {
 	// Update timeout, but value is updated
 	if d, ok := v.Load().(*testData); assertTrue(t, ok) {
 		if d.data != 2 {
-			t.Error("data  is not expected, expected: 2 , got: %d", d.data)
+			t.Error("data is not expected, expected: 2, got: ", d.data)
 		}
 	}
 }
