@@ -37,9 +37,8 @@ func (c *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration) {
 	} else {
 
 		for _, router := range routers {
-			json_str, err := json.Marshal(router)
-			if err == nil {
-				log.DefaultLogger.Tracef("raw router config: %s", string(json_str))
+			if jsonStr, err := json.Marshal(router); err == nil {
+				log.DefaultLogger.Tracef("raw router config: %s", string(jsonStr))
 			}
 
 			mosnRouter, _ := convertRouterConf("", router)
@@ -53,9 +52,8 @@ func (c *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration) {
 func (c *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 
 	for _, listener := range listeners {
-		json_str, err := json.Marshal(listener)
-		if err == nil {
-			log.DefaultLogger.Tracef("raw listener config: %s", string(json_str))
+		if jsonStr, err := json.Marshal(listener); err == nil {
+			log.DefaultLogger.Tracef("raw listener config: %s", string(jsonStr))
 		}
 
 		mosnListener := convertListenerConfig(listener)
@@ -122,9 +120,8 @@ func (c *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) {
 // Can be used to update and add clusters
 func (c *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
 	for _, cluster := range clusters {
-		json_str, err := json.Marshal(cluster)
-		if err == nil {
-			log.DefaultLogger.Tracef("raw cluster config: %s", string(json_str))
+		if jsonStr, err := json.Marshal(cluster); err == nil {
+			log.DefaultLogger.Tracef("raw cluster config: %s", string(jsonStr))
 		}
 	}
 
