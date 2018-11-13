@@ -303,7 +303,7 @@ func TestRejectEmptySCTList(t *testing.T) {
 
 	// Update the extensions length
 	serverHelloEmptySCT[42] = byte((len(serverHelloEmptySCT) - 44) >> 8)
-	serverHelloEmptySCT[43] = byte((len(serverHelloEmptySCT) - 44))
+	serverHelloEmptySCT[43] = byte(len(serverHelloEmptySCT) - 44)
 
 	if serverHelloCopy.unmarshal(serverHelloEmptySCT) {
 		t.Fatal("Unmarshaled ServerHello with empty SCT list")
