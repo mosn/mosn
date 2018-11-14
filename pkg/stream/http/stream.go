@@ -175,7 +175,6 @@ func (ssc *serverStreamConnection) OnGoAway() {
 	ssc.serverStreamConnCallbacks.OnGoAway()
 }
 
-//作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
 	// generate stream id using global counter
 	streamID := protocol.GenerateIDString()
