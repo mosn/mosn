@@ -436,6 +436,10 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 }
 
 func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connection) {
+	atomic.AddInt64(&al.handler.numConnections, 1)
+
+	al.logger.Debugf("new downstream connection %d accepted", conn.ID())
+
 	//Register Proxy's Filter
 	filterManager := conn.FilterManager()
 	for _, nfcf := range al.networkFiltersFactories {
@@ -449,6 +453,14 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		conn.Close(types.NoFlush, types.LocalClose)
 		return
 	}
+
+	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
+	if al.disableConnIo {
+		atomic.AddInt64(&al.handler.numConnections, -1)
+		al.logger.Debugf("new downstream connection %d closed", conn.ID())
+		return
+	}
+
 	ac := newActiveConnection(al, conn)
 
 	al.connsMux.Lock()
@@ -456,15 +468,8 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	al.connsMux.Unlock()
 	ac.element = e
 
-	atomic.AddInt64(&al.handler.numConnections, 1)
-
-	al.logger.Debugf("new downstream connection %d accepted", conn.ID())
-
-	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
-	if !al.disableConnIo {
-		// start conn loops first
-		conn.Start(ctx)
-	}
+	// start conn loops first
+	conn.Start(ctx)
 }
 
 func (al *activeListener) OnClose() {}
