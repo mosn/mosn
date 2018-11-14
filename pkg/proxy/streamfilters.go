@@ -385,6 +385,10 @@ func (f *activeStreamReceiverFilter) DecoderBufferLimit() uint32 {
 	return f.activeStream.bufferLimit
 }
 
+func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.HeaderMap) {
+	f.activeStream.sendHijackReply(code, headers)
+}
+
 // types.StreamSenderFilterCallbacks
 type activeStreamSenderFilter struct {
 	activeStreamFilter
