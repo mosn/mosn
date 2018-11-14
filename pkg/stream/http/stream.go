@@ -20,7 +20,6 @@ package http
 import (
 	"container/list"
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -164,7 +163,7 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 	}
 
 	server := fasthttp.Server{
-		Handler: ssc.ServeHTTP,
+		Handler:                       ssc.ServeHTTP,
 		DisableHeaderNamesNormalizing: true,
 	}
 	server.ServeConn(connection.RawConn())
@@ -258,29 +257,29 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	headers, _ := headersIn.(protocol.CommonHeader)
 
 	// TODO: protocol convert in pkg/protocol
-	// f the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
+	// if the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
 	if endStream {
 		s.request.Header.SetMethod(http.MethodGet)
 	} else {
 		s.request.Header.SetMethod(http.MethodPost)
 	}
-	s.request.SetRequestURI(fmt.Sprintf("http://%s/", s.wrapper.client.Addr))
 
-	var URI string
+	// assemble uri
+	uri := "http://" + s.wrapper.client.Addr
 
 	if path, ok := headers[protocol.MosnHeaderPathKey]; ok {
-		URI = fmt.Sprintf("http://%s%s", s.wrapper.client.Addr, path)
+		uri += path
 		delete(headers, protocol.MosnHeaderPathKey)
+	} else {
+		uri += "/"
 	}
 
-	if URI != "" {
-
-		if queryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
-			URI += "?" + queryString
-		}
-
-		s.request.SetRequestURI(URI)
+	if queryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
+		uri += "?" + queryString
 	}
+
+	s.request.SetRequestURI(uri)
+
 
 	if _, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
 		delete(headers, protocol.MosnHeaderQueryStringKey)

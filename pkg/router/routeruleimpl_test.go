@@ -262,18 +262,18 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		{
 			name: "case1",
 			args: args{
-				headers:     protocol.CommonHeader{"path": "/"},
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/"},
 				matchedPath: "/",
 			},
-			want: protocol.CommonHeader{"path": "/abc/", "x-mosn-original-path": "/"},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/", protocol.MosnOriginalHeaderPathKey: "/"},
 		},
 		{
 			name: "case2",
 			args: args{
-				headers:     protocol.CommonHeader{"path": "/index/page/"},
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/index/page/"},
 				matchedPath: "/index/",
 			},
-			want: protocol.CommonHeader{"path": "/abc/page/", "x-mosn-original-path": "/index/page/"},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/page/", protocol.MosnOriginalHeaderPathKey: "/index/page/"},
 		},
 	}
 
@@ -284,6 +284,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
 			}
 		})
+
 	}
 }
 
