@@ -35,7 +35,6 @@ func StartServer(addr string, serve ServeConn) error {
 		}
 		go serve(conn)
 	}
-	return nil
 }
 
 type RPCServer struct {

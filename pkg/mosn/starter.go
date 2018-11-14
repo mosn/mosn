@@ -214,25 +214,27 @@ func getInheritListeners() []*v2.Listener {
 		log.StartLogger.Infof("received %d inherit fds", count)
 
 		for idx := 0; idx < count; idx++ {
-			//because passed listeners fd's index starts from 3
-			fd := uintptr(3 + idx)
-			file := os.NewFile(fd, "")
-			if file == nil {
-				log.StartLogger.Errorf("create new file from fd %d failed", fd)
-				continue
-			}
-			defer file.Close()
+			func() {
+				//because passed listeners fd's index starts from 3
+				fd := uintptr(3 + idx)
+				file := os.NewFile(fd, "")
+				if file == nil {
+					log.StartLogger.Errorf("create new file from fd %d failed", fd)
+					return
+				}
+				defer file.Close()
 
-			fileListener, err := net.FileListener(file)
-			if err != nil {
-				log.StartLogger.Errorf("recover listener from fd %d failed: %s", fd, err)
-				continue
-			}
-			if listener, ok := fileListener.(*net.TCPListener); ok {
-				listeners[idx] = &v2.Listener{Addr: listener.Addr(), InheritListener: listener}
-			} else {
-				log.StartLogger.Errorf("listener recovered from fd %d is not a tcp listener", fd)
-			}
+				fileListener, err := net.FileListener(file)
+				if err != nil {
+					log.StartLogger.Errorf("recover listener from fd %d failed: %s", fd, err)
+					return
+				}
+				if listener, ok := fileListener.(*net.TCPListener); ok {
+					listeners[idx] = &v2.Listener{Addr: listener.Addr(), InheritListener: listener}
+				} else {
+					log.StartLogger.Errorf("listener recovered from fd %d is not a tcp listener", fd)
+				}
+			}()
 		}
 		return listeners
 	}

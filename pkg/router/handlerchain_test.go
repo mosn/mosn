@@ -47,27 +47,27 @@ func (routers *mockRouters) GetAllRoutes(headers types.HeaderMap, randomValue ui
 }
 
 func TestDefaultMakeHandlerChain(t *testing.T) {
-	header_match := protocol.CommonHeader(map[string]string{
+	headerMatch := protocol.CommonHeader(map[string]string{
 		"test": "test",
 	})
 	routers := &mockRouters{
 		r: []types.Route{
 			&mockRouter{},
 		},
-		header: header_match,
+		header: headerMatch,
 	}
 	//
 	makeHandlerChain = DefaultMakeHandlerChain
 	//
-	if hc := CallMakeHandlerChain(header_match, routers); hc == nil {
+	if hc := CallMakeHandlerChain(headerMatch, routers); hc == nil {
 		t.Fatal("make handler chain failed")
 	} else {
 		if r := hc.DoNextHandler(); r == nil {
 			t.Fatal("do next handler failed")
 		}
 	}
-	header_notmatch := protocol.CommonHeader(map[string]string{})
-	if hc := CallMakeHandlerChain(header_notmatch, routers); hc != nil {
+	headerNotMatch := protocol.CommonHeader(map[string]string{})
+	if hc := CallMakeHandlerChain(headerNotMatch, routers); hc != nil {
 		t.Fatal("make handler chain unexpected")
 	}
 
