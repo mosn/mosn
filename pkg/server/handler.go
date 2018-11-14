@@ -461,7 +461,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	// and we can return directly.
 	if al.disableConnIo {
 		atomic.AddInt64(&al.handler.numConnections, -1)
-		al.logger.Debugf("new downstream connection %d closed", conn.ID())
+		al.logger.Debugf("downstream connection %d was closed", conn.ID())
 		return
 	}
 
