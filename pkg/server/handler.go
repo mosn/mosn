@@ -454,7 +454,11 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		return
 	}
 
-	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
+	// TODO(detailyang): bind the close|reset event to OnEvent
+	// Since the fasthttp and http2 will hijack the io loop.
+	// We have no chance to bind the close|reset event to our event callback.
+	// We could think when we yield from the fasthttp and http2 io loop, the connection is finalized
+	// and we can return directly.
 	if al.disableConnIo {
 		atomic.AddInt64(&al.handler.numConnections, -1)
 		al.logger.Debugf("new downstream connection %d closed", conn.ID())
