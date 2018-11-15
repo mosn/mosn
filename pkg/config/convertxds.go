@@ -37,6 +37,7 @@ import (
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
+	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
@@ -285,10 +286,48 @@ func convertStreamFilter(name string, s *types.Struct) v2.Filter {
 		if err != nil {
 			log.DefaultLogger.Errorf("convertMixerConfig error: %v", err)
 		}
+	case v2.FaultStream:
+		filter.Type = name
+		filter.Config, err = convertStreamFaultInjectConfig(s)
+		if err != nil {
+			log.DefaultLogger.Errorf("convertMixerConfig error: %v", err)
+		}
 	default:
 	}
 
 	return filter
+}
+
+func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, error) {
+	faultConfig := &xdshttpfault.HTTPFault{}
+	if err := xdsutil.StructToMessage(s, faultConfig); err != nil {
+		return nil, err
+	}
+	streamFault := &v2.StreamFaultInject{
+		Delay: &v2.DelayInject{
+			DelayInjectConfig: v2.DelayInjectConfig{
+				Percent: faultConfig.Delay.GetPercent(),
+				DelayDurationConfig: v2.DurationConfig{
+					Duration: *(faultConfig.Delay.GetFixedDelay()),
+				},
+			},
+		},
+		Abort: &v2.AbortInject{
+			Percent: faultConfig.Abort.GetPercent(),
+			Status:  int(faultConfig.Abort.GetHttpStatus()),
+		},
+		UpstreamCluster: faultConfig.UpstreamCluster,
+		Headers:         convertHeaders(faultConfig.GetHeaders()),
+	}
+	b, err := json.Marshal(streamFault)
+	if err != nil {
+		return nil, err
+	}
+	var cfg map[string]interface{}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
 }
 
 func convertMixerConfig(s *types.Struct) (map[string]interface{}, error) {
@@ -560,13 +599,21 @@ func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[strin
 	for key, config := range xdsPerRouteConfig {
 		switch key {
 		case v2.MIXER:
+			// TODO: use convertMixerConfig
 			var serviceConfig client.ServiceConfig
 			err := xdsutil.StructToMessage(config, &serviceConfig)
 			if err != nil {
-				log.DefaultLogger.Infof("convertPerRouteConfig error: %v", err)
+				log.DefaultLogger.Infof("convertPerRouteConfig[%s] error: %v", v2.MIXER, err)
 				continue
 			}
 			perRouteConfig[key] = serviceConfig
+		case v2.FaultStream:
+			cfg, err := convertStreamFaultInjectConfig(config)
+			if err != nil {
+				log.DefaultLogger.Infof("convertPerRouteConfig[%s] error: %v", v2.FaultStream, err)
+				continue
+			}
+			perRouteConfig[key] = cfg
 		default:
 			log.DefaultLogger.Warnf("unknown per route config: %s", key)
 		}

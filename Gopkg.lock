@@ -14,6 +14,8 @@
     "envoy/config/accesslog/v2",
     "envoy/config/bootstrap/v2",
     "envoy/config/filter/accesslog/v2",
+    "envoy/config/filter/fault/v2",
+    "envoy/config/filter/http/fault/v2",
     "envoy/config/filter/network/http_connection_manager/v2",
     "envoy/config/filter/network/tcp_proxy/v2",
     "envoy/config/metrics/v2",
@@ -145,10 +147,10 @@
   version = "v1.20.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/valyala/bytebufferpool"
   packages = ["."]
   revision = "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"

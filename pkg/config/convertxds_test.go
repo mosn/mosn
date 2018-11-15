@@ -36,6 +36,8 @@ import (
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	xdsfal "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	xdsfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/fault/v2"
+	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
@@ -507,62 +509,102 @@ func Test_convertHeadersToAdd(t *testing.T) {
 }
 
 func Test_convertPerRouteConfig(t *testing.T) {
-	type args struct {
-		perFilterConfig *client.ServiceConfig
-	}
-
-	tests := []struct {
-		name    string
-		typeStr string
-		exist   bool
-		args    args
-	}{
-		{
-			name:    "mixer",
-			typeStr: reflect.TypeOf(client.ServiceConfig{}).String(),
-			exist:   true,
-			args: args{
-				perFilterConfig: &client.ServiceConfig{
-					DisableReportCalls: false,
-					DisableCheckCalls:  true,
-					MixerAttributes: &v1.Attributes{
-						Attributes: map[string]*v1.Attributes_AttributeValue{
-							"test": &v1.Attributes_AttributeValue{
-								Value: &v1.Attributes_AttributeValue_StringValue{
-									StringValue: "test_value",
-								},
-							},
-						},
+	mixerFilterConfig := &client.ServiceConfig{
+		DisableReportCalls: false,
+		DisableCheckCalls:  true,
+		MixerAttributes: &v1.Attributes{
+			Attributes: map[string]*v1.Attributes_AttributeValue{
+				"test": &v1.Attributes_AttributeValue{
+					Value: &v1.Attributes_AttributeValue_StringValue{
+						StringValue: "test_value",
 					},
 				},
 			},
 		},
-		{
-			name:    "test",
-			typeStr: "",
-			exist:   false,
+	}
+	mixerStruct, err := xdsutil.MessageToStruct(mixerFilterConfig)
+	if err != nil {
+		t.Fatal("make mixer struct failed")
+	}
+	fixedDelay := time.Second
+	faultInjectConfig := &xdshttpfault.HTTPFault{
+		Delay: &xdsfault.FaultDelay{
+			Percent: 100,
+			FaultDelaySecifier: &xdsfault.FaultDelay_FixedDelay{
+				FixedDelay: &fixedDelay,
+			},
+		},
+		Abort: &xdshttpfault.FaultAbort{
+			Percent: 100,
+			ErrorType: &xdshttpfault.FaultAbort_HttpStatus{
+				HttpStatus: 500,
+			},
+		},
+		UpstreamCluster: "testupstream",
+		Headers: []*xdsroute.HeaderMatcher{
+			{
+				Name:  "end-user",
+				Value: "",
+				HeaderMatchSpecifier: &xdsroute.HeaderMatcher_ExactMatch{
+					ExactMatch: "jason",
+				},
+				InvertMatch: false,
+			},
 		},
 	}
-
-	for _, test := range tests {
-		conf, _ := xdsutil.MessageToStruct(test.args.perFilterConfig)
-		confMap := map[string]*types.Struct{
-			test.name: conf,
-		}
-		perRouteConfig := convertPerRouteConfig(confMap)
-
-		perConfig, exist := perRouteConfig[test.name]
-		if exist != test.exist {
-			t.Errorf("config %s exist error", test.name)
-		}
-
-		if !exist {
-			continue
-		}
-
-		typeStr := reflect.TypeOf(perConfig).String()
-		if typeStr != test.typeStr {
-			t.Errorf("type %s error, expect %s", typeStr, test.typeStr)
+	faultStruct, err := xdsutil.MessageToStruct(faultInjectConfig)
+	if err != nil {
+		t.Fatal("make fault inject struct failed")
+	}
+	configs := map[string]*types.Struct{
+		v2.MIXER:       mixerStruct,
+		v2.FaultStream: faultStruct,
+	}
+	perRouteConfig := convertPerRouteConfig(configs)
+	if len(perRouteConfig) != 2 {
+		t.Fatalf("want to get %d configs, but got %d", 2, len(perRouteConfig))
+	}
+	// verify
+	if mixerPer, ok := perRouteConfig[v2.MIXER]; !ok {
+		t.Error("no mixer config found")
+	} else {
+		// TODO: mixer config needs to fix
+		if rawMixer, ok := mixerPer.(client.ServiceConfig); !ok {
+			t.Error("mixer config is not expected")
+		} else {
+			if !reflect.DeepEqual(&rawMixer, mixerFilterConfig) {
+				t.Error("mixer config is not expected")
+			}
 		}
 	}
+	if faultPer, ok := perRouteConfig[v2.FaultStream]; !ok {
+		t.Error("no fault inject config found")
+	} else {
+		b, err := json.Marshal(faultPer)
+		if err != nil {
+			t.Fatal("marshal fault inject config failed")
+		}
+		conf := make(map[string]interface{})
+		json.Unmarshal(b, &conf)
+		rawFault, err := ParseStreamFaultInjectFilter(conf)
+		if err != nil {
+			t.Fatal("fault config is not expected")
+		}
+		expectedHeader := v2.HeaderMatcher{
+			Name:  "end-user",
+			Value: "jason",
+			Regex: false,
+		}
+		if !(rawFault.Abort.Status == 500 &&
+			rawFault.Abort.Percent == 100 &&
+			rawFault.Delay.Delay == time.Second &&
+			rawFault.Delay.Percent == 100 &&
+			rawFault.UpstreamCluster == "testupstream" &&
+			len(rawFault.Headers) == 1 &&
+			reflect.DeepEqual(rawFault.Headers[0], expectedHeader)) {
+			t.Errorf("fault config is not expected, %v", rawFault)
+		}
+
+	}
+
 }
