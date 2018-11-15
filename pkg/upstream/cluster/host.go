@@ -176,6 +176,7 @@ type hostInfo struct {
 	metaData       types.RouteMetaData
 	originMetaData v2.Metadata
 	tlsDisable     bool
+	config         v2.Host
 
 	// TODO: locality, outlier, healthchecker
 }
@@ -194,6 +195,7 @@ func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) h
 		metaData:       GenerateHostMetadata(config.MetaData),
 		originMetaData: config.MetaData,
 		tlsDisable:     config.TLSDisable,
+		config:         config,
 	}
 }
 
@@ -227,6 +229,9 @@ func (hi *hostInfo) AddressString() string {
 
 func (hi *hostInfo) HostStats() types.HostStats {
 	return hi.stats
+}
+func (hi *hostInfo) Config() v2.Host {
+	return hi.config
 }
 
 // GenerateHostMetadata

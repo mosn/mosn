@@ -27,12 +27,6 @@ import (
 	"github.com/markphelps/optional"
 )
 
-var defaultRouter RouterFactory
-
-func RegisterRouter(factory RouterFactory) {
-	defaultRouter = factory
-}
-
 func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*VirtualHostImpl, error) {
 	var virtualHostImpl = &VirtualHostImpl{
 		virtualHostName:       virtualHost.Name,
@@ -59,31 +53,32 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 
 		if route.Match.Prefix != "" {
 			router = &PrefixRouteRuleImpl{
-				prefix: route.Match.Prefix,
+				RouteRuleImplBase: routeRuleImplBase,
+				prefix:            route.Match.Prefix,
 			}
 		} else if route.Match.Path != "" {
 			router = &PathRouteRuleImpl{
-				path: route.Match.Path,
+				RouteRuleImplBase: routeRuleImplBase,
+				path:              route.Match.Path,
 			}
 		} else if route.Match.Regex != "" {
 			if regPattern, err := regexp.Compile(route.Match.Regex); err == nil {
 				router = &RegexRouteRuleImpl{
-					regexStr:     route.Match.Regex,
-					regexPattern: regPattern,
+					RouteRuleImplBase: routeRuleImplBase,
+					regexStr:          route.Match.Regex,
+					regexPattern:      regPattern,
 				}
 			} else {
 				log.DefaultLogger.Errorf("Compile Regex Error")
 			}
 		} else {
 			// todo delete hack
-			// do sofa's routing policy
-			if router = defaultRouter(route.Match.Headers); router == nil {
+			if router = defaultRouterRuleFactory(routeRuleImplBase, route.Match.Headers); router == nil {
 				log.DefaultLogger.Errorf("NewVirtualHostImpl failed, match default router error")
 			}
 		}
 
 		if router != nil {
-			router.SetRouterRuleImplBase(routeRuleImplBase)
 			virtualHostImpl.routes = append(virtualHostImpl.routes, router)
 		} else {
 			log.DefaultLogger.Errorf("NewVirtualHostImpl failed, no router type matched")
@@ -151,6 +146,15 @@ func (vh *VirtualHostImpl) GetRouteFromEntries(headers types.HeaderMap, randomVa
 	}
 
 	return nil
+}
+func (vh *VirtualHostImpl) GetAllRoutesFromEntries(headers types.HeaderMap, randomValue uint64) []types.Route {
+	var routes []types.Route
+	for _, route := range vh.routes {
+		if r := route.Match(headers, randomValue); r != nil {
+			routes = append(routes, r)
+		}
+	}
+	return routes
 }
 
 type VirtualClusterEntry struct {

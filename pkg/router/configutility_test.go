@@ -19,6 +19,7 @@ package router
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -188,5 +189,27 @@ func Test_NewConfigImpl(t *testing.T) {
 				t.Errorf("NewConfigImpl(routerConfig *v2.RouterConfiguration) = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// test MetadataMatchCriteriaImpl's sort.Interface
+func TestMetadataMatchCriteriaImplSort(t *testing.T) {
+	keys := []string{"1", "3", "2", "0"}
+	values := []string{"b", "d", "c", "a"}
+	var mciArray []types.MetadataMatchCriterion
+	for i := range keys {
+		mmci := &MetadataMatchCriterionImpl{
+			Name:  keys[i],
+			Value: types.GenerateHashedValue(values[i]),
+		}
+		mciArray = append(mciArray, mmci)
+	}
+	m := &MetadataMatchCriteriaImpl{mciArray}
+	sort.Sort(m)
+	expected := []string{"0", "1", "2", "3"}
+	for i, mmci := range m.MatchCriteriaArray {
+		if mmci.MetadataKeyName() != expected[i] {
+			t.Error("sort unexpected")
+		}
 	}
 }

@@ -38,21 +38,21 @@ type ClusterManager interface {
 
 	SetInitializedCb(cb func())
 
-	// Clusters, return all cluster belongs to this clustermng
-	Clusters() map[string]Cluster
-
 	// Get, use to get the snapshot of a cluster
-	Get(context context.Context, cluster string) ClusterSnapshot
+	GetClusterSnapshot(context context.Context, cluster string) ClusterSnapshot
+
+	// PutClusterSnapshot release snapshot lock
+	PutClusterSnapshot(snapshot ClusterSnapshot)
 
 	// UpdateClusterHosts used to update cluster's hosts
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
 	// Get or Create tcp conn pool for a cluster
-	TCPConnForCluster(balancerContext LoadBalancerContext, cluster string) CreateConnectionData
+	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
 	// ConnPoolForCluster used to get protocol related conn pool
-	ConnPoolForCluster(balancerContext LoadBalancerContext, cluster string, protocol Protocol) ConnectionPool
+	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol Protocol) ConnectionPool
 
 	// RemovePrimaryCluster used to remove cluster from set
 	RemovePrimaryCluster(cluster string) error
@@ -200,6 +200,8 @@ type HostInfo interface {
 	AddressString() string
 
 	HostStats() HostStats
+
+	Config() v2.Host
 
 	// TODO: add deploy locality
 }

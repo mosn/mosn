@@ -512,15 +512,15 @@ func Test_convertPerRouteConfig(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
+		name    string
 		typeStr string
-		exist bool
-		args args
+		exist   bool
+		args    args
 	}{
 		{
-			name:"mixer",
+			name:    "mixer",
 			typeStr: reflect.TypeOf(client.ServiceConfig{}).String(),
-			exist:true,
+			exist:   true,
 			args: args{
 				perFilterConfig: &client.ServiceConfig{
 					DisableReportCalls: false,
@@ -538,16 +538,16 @@ func Test_convertPerRouteConfig(t *testing.T) {
 			},
 		},
 		{
-			name:"test",
-			typeStr:"",
-			exist:false,
+			name:    "test",
+			typeStr: "",
+			exist:   false,
 		},
 	}
 
 	for _, test := range tests {
 		conf, _ := xdsutil.MessageToStruct(test.args.perFilterConfig)
-		confMap := map[string]*types.Struct {
-			test.name : conf,
+		confMap := map[string]*types.Struct{
+			test.name: conf,
 		}
 		perRouteConfig := convertPerRouteConfig(confMap)
 

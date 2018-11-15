@@ -98,7 +98,6 @@ func TestRouterOrder(t *testing.T) {
 	// path "/foo1" match all of the router, the path router should be matched
 	// path "/foo11" match prefix and regexp router, the regexp router should be matched
 	// path "/foo" match prefix router only
-	routers := []v2.Router{pathrouter, regrouter, prefixrouter}
 	testCases := []struct {
 		path        string
 		clustername string
@@ -110,7 +109,7 @@ func TestRouterOrder(t *testing.T) {
 	virtualHost, _ := NewVirtualHostImpl(&v2.VirtualHost{
 		Name:    "test",
 		Domains: []string{"*"},
-		Routers: routers,
+		Routers: []v2.Router{pathrouter, regrouter, prefixrouter},
 	}, false)
 	for i, tc := range testCases {
 		headers := protocol.CommonHeader(map[string]string{
@@ -137,4 +136,62 @@ func TestRouterOrder(t *testing.T) {
 		}
 	}
 
+}
+
+// All Matched Router will be returned
+func TestAllRouter(t *testing.T) {
+	prefixrouter := v2.Router{}
+	prefixrouter.Match = v2.RouterMatch{
+		Prefix: "/foo",
+	}
+	prefixrouter.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
+			ClusterName: "prefix",
+		},
+	}
+	pathrouter := v2.Router{}
+	pathrouter.Match = v2.RouterMatch{
+		Path: "/foo1",
+	}
+	pathrouter.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
+			ClusterName: "path",
+		},
+	}
+	regrouter := v2.Router{}
+	regrouter.Match = v2.RouterMatch{
+		Regex: "/foo[0-9]+",
+	}
+	regrouter.Route = v2.RouteAction{
+		RouterActionConfig: v2.RouterActionConfig{
+			ClusterName: "regexp",
+		},
+	}
+	// path "/foo1" match all of the router
+	// path "/foo11" match prefix and regexp router
+	// path "/foo" match prefix router only
+	routers := []v2.Router{pathrouter, regrouter, prefixrouter}
+	testCases := []struct {
+		path        string
+		clustername string
+		matched     int
+	}{
+		{"/foo1", "path", 3},
+		{"/foo11", "regexp", 2},
+		{"/foo", "prefix", 1},
+	}
+	virtualHost, _ := NewVirtualHostImpl(&v2.VirtualHost{
+		Name:    "test",
+		Domains: []string{"*"},
+		Routers: routers,
+	}, false)
+	for i, tc := range testCases {
+		headers := protocol.CommonHeader(map[string]string{
+			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
+		})
+		rts := virtualHost.GetAllRoutesFromEntries(headers, 1)
+		if len(rts) != tc.matched {
+			t.Errorf("#%d route unexpected result\n", i)
+		}
+	}
 }

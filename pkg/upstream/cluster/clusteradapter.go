@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -88,6 +89,12 @@ func (ca *MngAdapter) TriggerHostDel(clusterName string, hostAddress string) err
 }
 
 // GetCluster used to get cluster by name
-func (ca *MngAdapter) GetCluster(clusterName string) types.ClusterSnapshot {
-	return ca.clusterMng.Get(nil, clusterName)
+func (ca *MngAdapter) GetClusterSnapshot(context context.Context, clusterName string) types.ClusterSnapshot {
+	return ca.clusterMng.GetClusterSnapshot(context, clusterName)
+}
+
+// PutClusterSnapshot used to put cluster snapshot, release rcu
+func (ca *MngAdapter) PutClusterSnapshot(snapshot types.ClusterSnapshot) {
+	ca.clusterMng.PutClusterSnapshot(snapshot)
+	return
 }

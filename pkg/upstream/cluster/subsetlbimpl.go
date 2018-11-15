@@ -113,8 +113,6 @@ func (sslb *subSetLoadBalancer) GetHostsNumber(metadata types.MetadataMatchCrite
 	}
 
 	return uint32(len(entry.PrioritySubset().GetOrCreateHostSubset(0).Hosts()))
-
-	return 0
 }
 
 // create or update subsets for this priority
