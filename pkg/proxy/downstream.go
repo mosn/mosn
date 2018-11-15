@@ -93,6 +93,8 @@ type downStream struct {
 
 	context context.Context
 
+	// stream access logs
+	streamAccessLogs  []types.AccessLog
 	logger log.Logger
 }
 
@@ -178,9 +180,16 @@ func (s *downStream) cleanStream() {
 	s.proxy.stats.DownstreamRequestActive.Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
 
-	// access log
+	// proxy access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
 		for _, al := range s.proxy.accessLogs {
+			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
+		}
+	}
+
+	// per-stream access log
+	if s.streamAccessLogs != nil {
+		for _, al := range s.streamAccessLogs {
 			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 		}
 	}
@@ -845,14 +854,13 @@ func (s *downStream) AddStreamSenderFilter(filter types.StreamSenderFilter) {
 	s.senderFilters = append(s.senderFilters, sf)
 }
 
-func (s *downStream) AddAccessLog(accessLog types.AccessLog) {
+func (s *downStream) AddStreamAccessLog(accessLog types.AccessLog) {
 	if s.proxy != nil {
-		if s.proxy.accessLogs == nil {
-			s.proxy.accessLogs = make([]types.AccessLog, 0)
+		if s.streamAccessLogs == nil {
+			s.streamAccessLogs = make([]types.AccessLog, 0)
 		}
-		s.proxy.accessLogs = append(s.proxy.accessLogs, accessLog)
+		s.streamAccessLogs = append(s.streamAccessLogs, accessLog)
 	}
-
 }
 
 func (s *downStream) reset() {
