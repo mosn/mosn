@@ -554,7 +554,7 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 	return routes
 }
 
-func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[string]interface{}{
+func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[string]interface{} {
 	perRouteConfig := make(map[string]interface{}, 0)
 
 	for key, config := range xdsPerRouteConfig {

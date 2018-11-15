@@ -20,11 +20,9 @@ package http
 import (
 	"container/list"
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -133,8 +131,13 @@ func (csw *clientStreamWrapper) NewStream(ctx context.Context, streamID string, 
 			context:  context.WithValue(ctx, types.ContextKeyStreamID, streamID),
 			receiver: responseDecoder,
 		},
-		wrapper: csw,
+		request:  fasthttp.AcquireRequest(),
+		response: fasthttp.AcquireResponse(),
+		wrapper:  csw,
 	}
+
+	stream.request.Header.DisableNormalizing()
+	stream.response.Header.DisableNormalizing()
 
 	csw.asMutex.Lock()
 	stream.element = csw.activeStreams.PushBack(stream)
@@ -159,7 +162,11 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 		serverStreamConnCallbacks: callbacks,
 	}
 
-	fasthttp.ServeConn(connection.RawConn(), ssc.ServeHTTP)
+	server := fasthttp.Server{
+		Handler:                       ssc.ServeHTTP,
+		DisableHeaderNamesNormalizing: true,
+	}
+	server.ServeConn(connection.RawConn())
 
 	return ssc
 }
@@ -168,9 +175,8 @@ func (ssc *serverStreamConnection) OnGoAway() {
 	ssc.serverStreamConnCallbacks.OnGoAway()
 }
 
-//作为PROXY的STREAM SERVER
 func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
-	//generate stream id using global counter
+	// generate stream id using global counter
 	streamID := protocol.GenerateIDString()
 
 	s := &serverStream{
@@ -249,33 +255,30 @@ type clientStream struct {
 func (s *clientStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
 	headers, _ := headersIn.(protocol.CommonHeader)
 
-	if s.request == nil {
-		s.request = fasthttp.AcquireRequest()
-		// TODO: protocol convert in pkg/protocol
-		// f the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
-		if endStream {
-			s.request.Header.SetMethod(http.MethodGet)
-		} else {
-			s.request.Header.SetMethod(http.MethodPost)
-		}
-		s.request.SetRequestURI(fmt.Sprintf("http://%s/", s.wrapper.client.Addr))
+	// TODO: protocol convert in pkg/protocol
+	// if the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
+	if endStream {
+		s.request.Header.SetMethod(http.MethodGet)
+	} else {
+		s.request.Header.SetMethod(http.MethodPost)
 	}
 
-	var URI string
+	// assemble uri
+	uri := "http://" + s.wrapper.client.Addr
 
 	if path, ok := headers[protocol.MosnHeaderPathKey]; ok {
-		URI = fmt.Sprintf("http://%s%s", s.wrapper.client.Addr, path)
+		uri += path
 		delete(headers, protocol.MosnHeaderPathKey)
+	} else {
+		uri += "/"
 	}
 
-	if URI != "" {
-
-		if queryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
-			URI += "?" + queryString
-		}
-
-		s.request.SetRequestURI(URI)
+	if queryString, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
+		uri += "?" + queryString
 	}
+
+	s.request.SetRequestURI(uri)
+
 
 	if _, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
 		delete(headers, protocol.MosnHeaderQueryStringKey)
@@ -343,10 +346,6 @@ func (s *clientStream) ReadDisable(disable bool) {
 }
 
 func (s *clientStream) doSend() {
-	if s.response == nil {
-		s.response = fasthttp.AcquireResponse()
-	}
-
 	err := s.wrapper.client.Do(s.request, s.response)
 
 	if err != nil {
@@ -363,6 +362,10 @@ func (s *clientStream) doSend() {
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
 		decodeRespHeader := protocol.CommonHeader(decodeRespHeader(s.response.Header))
+
+		// inherit upstream's response status
+		decodeRespHeader[types.HeaderStatus] = strconv.Itoa(s.response.StatusCode())
+
 		// save response code in context
 		if status, exist := decodeRespHeader.Get(types.HeaderStatus); exist {
 			decodeRespHeader.Set(protocol.MosnResponseStatusCode, status)
@@ -456,30 +459,17 @@ func (s *serverStream) handleRequest() {
 		// header
 		header := decodeReqHeader(s.ctx.Request.Header)
 
-		// set host header if not found, just for insurance
-		if _, ok := header[protocol.MosnHeaderHostKey]; !ok {
-			header[protocol.MosnHeaderHostKey] = string(s.ctx.Host())
-		}
-
-		// todo: this is a hack for set ":authority" header if not found
-		if _, ok := header[protocol.IstioHeaderHostKey]; !ok {
-			header[protocol.IstioHeaderHostKey] = string(s.ctx.Host())
-		}
-
-		// set path header if not found
-		if _, ok := header[protocol.MosnHeaderPathKey]; !ok {
-			header[protocol.MosnHeaderPathKey] = string(s.ctx.Path())
-		}
-
-		// set query string header if not found
-		if _, ok := header[protocol.MosnHeaderQueryStringKey]; !ok {
-			header[protocol.MosnHeaderQueryStringKey] = string(s.ctx.URI().QueryString())
-		}
-
-		// set method string header if not found
-		if _, ok := header[protocol.MosnHeaderMethod]; !ok {
-			header[protocol.MosnHeaderMethod] = string(s.ctx.Request.Header.Method())
-		}
+		// set non-header info in request-line, like method, uri
+		// 1. host
+		header[protocol.MosnHeaderHostKey] = string(s.ctx.Host())
+		// 2. :authority
+		header[protocol.IstioHeaderHostKey] = string(s.ctx.Host())
+		// 3. path
+		header[protocol.MosnHeaderPathKey] = string(s.ctx.Path())
+		// 4. querystring
+		header[protocol.MosnHeaderQueryStringKey] = string(s.ctx.URI().QueryString())
+		// 5. method
+		header[protocol.MosnHeaderMethod] = string(s.ctx.Request.Header.Method())
 
 		s.receiver.OnReceiveHeaders(s.context, protocol.CommonHeader(header), false)
 
@@ -512,8 +502,7 @@ func decodeReqHeader(in fasthttp.RequestHeader) (out map[string]string) {
 	out = make(map[string]string, in.Len())
 
 	in.VisitAll(func(key, value []byte) {
-		// convert to lower case for internal process
-		out[strings.ToLower(string(key))] = string(value)
+		out[string(key)] = string(value)
 	})
 
 	return
@@ -523,26 +512,8 @@ func decodeRespHeader(in fasthttp.ResponseHeader) (out map[string]string) {
 	out = make(map[string]string, in.Len())
 
 	in.VisitAll(func(key, value []byte) {
-		// convert to lower case for internal process
-		out[strings.ToLower(string(key))] = string(value)
+		out[string(key)] = string(value)
 	})
 
-	// inherit upstream's response status
-	out[types.HeaderStatus] = strconv.Itoa(in.StatusCode())
-
 	return
-}
-
-// io.ReadCloser
-type IoBufferReadCloser struct {
-	buf types.IoBuffer
-}
-
-func (rc *IoBufferReadCloser) Read(p []byte) (n int, err error) {
-	return rc.buf.Read(p)
-}
-
-func (rc *IoBufferReadCloser) Close() error {
-	rc.buf.Reset()
-	return nil
 }

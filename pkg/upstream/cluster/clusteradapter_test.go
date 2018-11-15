@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"context"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -619,8 +620,9 @@ func TestMngAdapter_GetCluster(t *testing.T) {
 		clusterMng: mockClusterMnger,
 	}
 
-	cluster := ca.GetCluster("o1")
+	cluster := ca.GetClusterSnapshot(context.Background(), "o1")
 	if cluster == nil {
 		t.Errorf("get cluster error")
 	}
+	ca.PutClusterSnapshot(cluster)
 }

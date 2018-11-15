@@ -19,6 +19,7 @@ package types
 
 import (
 	"container/list"
+	"context"
 	"crypto/md5"
 	"regexp"
 	"time"
@@ -41,8 +42,10 @@ const (
 
 // Routers defines and manages all router
 type Routers interface {
-	// Route is used to route with headers
+	// Route return first route with headers
 	Route(headers HeaderMap, randomValue uint64) Route
+	// GetAllRoutes returns all routes with headers
+	GetAllRoutes(headers HeaderMap, randomValue uint64) []Route
 }
 
 // RouterManager is a manager for all routers' config
@@ -51,6 +54,12 @@ type RouterManager interface {
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
+}
+
+// RouteHandler is an external check handler for a route
+type RouteHandler interface {
+	IsAvailable(context.Context) bool
+	Route() Route
 }
 type RouterWrapper interface {
 	GetRouters() Routers
@@ -233,6 +242,8 @@ type VirtualHost interface {
 
 	// GetRouteFromEntries returns a Route matched the condition
 	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
+	// GetAllRoutesFromEntries returns all Route matched the condition
+	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
 }
 
 type MetadataMatcher interface {

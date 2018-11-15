@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"context"
 	"testing"
 
 	"math"
@@ -490,7 +491,7 @@ func Benchmark_RouteAndLB(b *testing.B) {
 		}
 
 		clustername := route.RouteRule().ClusterName()
-		clusterSnapshot := mockedClusterMng.getOrCreateClusterSnapshot(clustername)
+		clusterSnapshot := mockedClusterMng.GetClusterSnapshot(context.Background(), clustername)
 
 		if clusterSnapshot == nil {
 			b.Errorf("Cluster is nil, cluster name = %s", clustername)
@@ -507,5 +508,6 @@ func Benchmark_RouteAndLB(b *testing.B) {
 		} else {
 			b.Errorf("cluster name = %s host select error", clustername)
 		}
+		mockedClusterMng.PutClusterSnapshot(clusterSnapshot)
 	}
 }
