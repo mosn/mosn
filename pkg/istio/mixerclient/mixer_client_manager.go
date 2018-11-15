@@ -94,6 +94,7 @@ func (m *mixerClientManager) doReport(reportCluster string, attributes *v1.Attri
 	clientArray, exist := m.clientMap[reportCluster]
 	if !exist {
 		clientArray = m.newClientArray(reportCluster)
+		m.clientMap[reportCluster] = clientArray
 	}
 
 	index := clientArray.index

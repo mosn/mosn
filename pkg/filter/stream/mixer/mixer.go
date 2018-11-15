@@ -80,18 +80,18 @@ func (f *mixerFilter) ReadPerRouteConfig(perFilterConfig map[string]interface{})
 
 func (f *mixerFilter) createRequestHandler() {
 	if f.handler != nil {
-		log.DefaultLogger.Infof("handler not nil, return")
+		log.DefaultLogger.Tracef("handler not nil, return")
 		return
 	}
 
 	route := f.decodeCallback.Route()
 	if route == nil {
-		log.DefaultLogger.Infof("no route, return")
+		log.DefaultLogger.Tracef("no route, return")
 		return
 	}
 	rule := route.RouteRule()
 	if rule == nil {
-		log.DefaultLogger.Infof("no route rule, return")
+		log.DefaultLogger.Tracef("no route rule, return")
 		return
 	}
 
@@ -133,9 +133,11 @@ func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMa
 	if reqHeaders == nil || respHeaders == nil || requestInfo == nil {
 		return
 	}
+
 	f.createRequestHandler()
 
-	checkData := http.NewCheckData(reqHeaders, requestInfo, f.decodeCallback.Connection())
+	// TODO: use f.decodeCallback.Connection() to get address instead of requestInfo
+	checkData := http.NewCheckData(reqHeaders, requestInfo)
 
 	reportData := http.NewReportData(respHeaders, requestInfo, f.requestTotalSize)
 
