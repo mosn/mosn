@@ -25,6 +25,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// GetClusterMosnLBMetaDataMap exports getClusterMosnLBMetaDataMap
+func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
+	return getClusterMosnLBMetaDataMap(metadata)
+}
+
 // getClusterMosnLBMetaDataMap from v2.Metadata
 // Value maybe hashed
 func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {

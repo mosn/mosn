@@ -56,9 +56,18 @@ type RouterManager interface {
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
 }
 
+// HandlerStatus returns the Handler's available status
+type HandlerStatus int
+
+const (
+	HandlerAvailable HandlerStatus = iota
+	HandlerNotAvailable
+	HandlerStop
+)
+
 // RouteHandler is an external check handler for a route
 type RouteHandler interface {
-	IsAvailable(context.Context) bool
+	IsAvailable(context.Context, ClusterSnapshot) HandlerStatus
 	Route() Route
 }
 type RouterWrapper interface {
@@ -111,6 +120,9 @@ type RouteRule interface {
 
 	// FinalizeResponseHeaders do potentially destructive header transforms on response headers prior to forwarding
 	FinalizeResponseHeaders(headers HeaderMap, requestInfo RequestInfo)
+
+	// PathMatchCriterion returns the route's PathMatchCriterion
+	PathMatchCriterion() PathMatchCriterion
 }
 
 // Policy defines a group of route policy

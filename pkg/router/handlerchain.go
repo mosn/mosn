@@ -29,26 +29,39 @@ func init() {
 
 // RouteHandlerChain returns first available handler's router
 type RouteHandlerChain struct {
-	ctx      context.Context
-	handlers []types.RouteHandler
-	index    int
+	ctx            context.Context
+	handlers       []types.RouteHandler
+	clusterManager types.ClusterManager
+	index          int
 }
 
-func NewRouteHandlerChain(ctx context.Context, handlers []types.RouteHandler) *RouteHandlerChain {
+func NewRouteHandlerChain(ctx context.Context, clusterManager types.ClusterManager, handlers []types.RouteHandler) *RouteHandlerChain {
 	return &RouteHandlerChain{
-		ctx:      ctx,
-		handlers: handlers,
-		index:    0,
+		ctx:            ctx,
+		handlers:       handlers,
+		clusterManager: clusterManager,
+		index:          0,
 	}
 }
 
-func (hc *RouteHandlerChain) DoNextHandler() types.Route {
+func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, types.Route) {
 	handler := hc.Next()
 	if handler == nil {
-		return nil
+		return nil, nil
 	}
-	if handler.IsAvailable(hc.ctx) {
-		return handler.Route()
+	clusterName := handler.Route().RouteRule().ClusterName()
+	snapshot := hc.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
+	status := handler.IsAvailable(hc.ctx, snapshot)
+	switch status {
+	case types.HandlerAvailable:
+		return snapshot, handler.Route()
+	case types.HandlerNotAvailable:
+		hc.clusterManager.PutClusterSnapshot(snapshot)
+		return hc.DoNextHandler()
+	case types.HandlerStop:
+		return nil, nil
+	default:
+		panic("unexpected handler status")
 	}
 	return hc.DoNextHandler()
 }

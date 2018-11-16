@@ -132,11 +132,15 @@ func (rri *RouteRuleImplBase) GetRouterName() string {
 // types.Route
 func (rri *RouteRuleImplBase) RedirectRule() types.RedirectRule {
 
-	return rri.RedirectRule()
+	return nil
 }
 
 func (rri *RouteRuleImplBase) RouteRule() types.RouteRule {
 	return rri
+}
+
+func (rri *RouteRuleImplBase) PathMatchCriterion() types.PathMatchCriterion {
+	return nil
 }
 
 // types.RouteRule
@@ -301,6 +305,10 @@ type SofaRouteRuleImpl struct {
 	matchValue string
 }
 
+func (srri *SofaRouteRuleImpl) PathMatchCriterion() types.PathMatchCriterion {
+	return srri
+}
+
 func (srri *SofaRouteRuleImpl) Matcher() string {
 
 	return srri.matchValue
@@ -337,6 +345,10 @@ func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, r
 type PathRouteRuleImpl struct {
 	*RouteRuleImplBase
 	path string
+}
+
+func (prri *PathRouteRuleImpl) PathMatchCriterion() types.PathMatchCriterion {
+	return prri
 }
 
 func (prri *PathRouteRuleImpl) Matcher() string {
@@ -388,6 +400,10 @@ type PrefixRouteRuleImpl struct {
 	prefix string
 }
 
+func (prei *PrefixRouteRuleImpl) PathMatchCriterion() types.PathMatchCriterion {
+	return prei
+}
+
 func (prei *PrefixRouteRuleImpl) Matcher() string {
 
 	return prei.prefix
@@ -429,6 +445,10 @@ type RegexRouteRuleImpl struct {
 	*RouteRuleImplBase
 	regexStr     string
 	regexPattern *regexp.Regexp
+}
+
+func (rrei *RegexRouteRuleImpl) PathMatchCriterion() types.PathMatchCriterion {
+	return rrei
 }
 
 func (rrei *RegexRouteRuleImpl) Matcher() string {
