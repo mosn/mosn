@@ -375,9 +375,10 @@ func (s *clientStream) handleResponse() {
 		buf := buffer.NewIoBufferBytes(s.response.Body())
 		s.receiver.OnReceiveData(s.context, buf, true)
 
-		s.wrapper.asMutex.Lock()
 		s.request = nil
 		s.response = nil
+
+		s.wrapper.asMutex.Lock()
 		s.wrapper.activeStreams.Remove(s.element)
 		s.wrapper.asMutex.Unlock()
 	}
