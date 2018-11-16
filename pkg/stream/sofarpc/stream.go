@@ -21,16 +21,17 @@ import (
 	"context"
 	"sync"
 
+	"errors"
+	"strconv"
+	"sync/atomic"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"errors"
-	"sync/atomic"
-	"strconv"
 )
 
 // StreamDirection represent the stream's direction
@@ -85,8 +86,8 @@ type streamConnection struct {
 	cm contextManager
 
 	slock        sync.RWMutex
-	streams      map[uint32]*stream // client conn fields
-	currStreamID uint32
+	streams      map[uint64]*stream // client conn fields
+	currStreamID uint64
 
 	logger log.Logger
 }
@@ -110,7 +111,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 	sc.cm.next()
 
 	if sc.clientCallbacks != nil {
-		sc.streams = make(map[uint32]*stream, 32)
+		sc.streams = make(map[uint64]*stream, 32)
 	}
 
 	return sc
@@ -123,10 +124,10 @@ func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 		ctx := conn.cm.curr
 
 		// 2. decode process
-		cmd, err := conn.codecEngine.Decode(ctx, buf);
+		cmd, err := conn.codecEngine.Decode(ctx, buf)
 		// No enough data
 		if cmd == nil && err == nil {
-			break;
+			break
 		}
 
 		// Do handle staff. Error would also be passed to this function.
@@ -153,7 +154,7 @@ func (conn *streamConnection) NewStream(ctx context.Context, receiver types.Stre
 
 	//stream := &stream{}
 
-	stream.ID = atomic.AddUint32(&conn.currStreamID, 1)
+	stream.ID = atomic.AddUint64(&conn.currStreamID, 1)
 	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.ID)
 	stream.direction = ClientStream
 	stream.sc = conn
@@ -274,7 +275,7 @@ type stream struct {
 	ctx context.Context
 	sc  *streamConnection
 
-	ID        uint32
+	ID        uint64
 	direction StreamDirection // 0: out, 1: in
 
 	receiver  types.StreamReceiver

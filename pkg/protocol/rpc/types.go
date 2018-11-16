@@ -41,9 +41,9 @@ type RpcCmd interface {
 
 	ProtocolCode() byte
 
-	RequestID() uint32
+	RequestID() uint64
 
-	SetRequestID(requestID uint32)
+	SetRequestID(requestID uint64)
 
 	Header() map[string]string
 

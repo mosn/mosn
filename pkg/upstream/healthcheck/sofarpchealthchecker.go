@@ -19,13 +19,14 @@ package healthcheck
 
 import (
 	"context"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 type sofarpcHealthChecker struct {
@@ -158,18 +159,16 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 	s.requestSender = s.client.NewStream(context.Background(), s)
 	s.requestSender.GetStream().AddEventListener(s)
 
-	//todo: support tr
 	//create protocol specified heartbeat packet
-	if s.healthChecker.protocolCode == sofarpc.PROTOCOL_CODE_V1 {
-		reqHeaders := sofarpc.NewBoltHeartbeat(0)
-
-		s.requestSender.AppendHeaders(context.Background(), reqHeaders, true)
-		log.DefaultLogger.Debugf("BoltHealthCheck Sending Heart Beat to %s", s.host.AddressString())
+	hbPacket := sofarpc.NewHeartbeat(s.healthChecker.protocolCode)
+	if hbPacket != nil {
+		s.requestSender.AppendHeaders(context.Background(), hbPacket, true)
+		log.DefaultLogger.Debugf("SofaRpc HealthCheck Sending Heart Beat to %s", s.host.AddressString())
 		s.requestSender = nil
 		// start timeout interval
 		s.healthCheckSession.onInterval()
 	} else {
-		log.DefaultLogger.Errorf("For health check, only support bolt v1 currently")
+		log.DefaultLogger.Errorf("Unknown protocol code: [%x] while sending heartbeat for healthcheck.", s.healthChecker.protocolCode)
 	}
 }
 

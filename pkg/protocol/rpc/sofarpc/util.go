@@ -86,32 +86,22 @@ func Clone(ctx context.Context, origin SofaRpcCmd) (SofaRpcCmd, error) {
 	return origin, nil
 }
 
-// NewBoltHeartbeat
-// New Bolt Heartbeat with requestID as input
-func NewBoltHeartbeat(requestID uint32) *BoltRequest {
-	return &BoltRequest{
-		Protocol: PROTOCOL_CODE_V1,
-		CmdType:  REQUEST,
-		CmdCode:  HEARTBEAT,
-		Version:  1,
-		ReqID:    requestID,
-		Codec:    HESSIAN2_SERIALIZE, //todo: read default codec from config
-		Timeout:  -1,
+// NewHeartbeat
+// New Heartbeat for given protocol, requestID should be specified by caller's own logic
+func NewHeartbeat(protocolCode byte) SofaRpcCmd {
+	if builder, ok := heartbeatFactory[protocolCode]; ok {
+		return builder.Trigger()
 	}
+	return nil
 }
 
-// NewBoltHeartbeatAck
-// New Bolt Heartbeat Ack with requestID as input
-func NewBoltHeartbeatAck(requestID uint32) *BoltResponse {
-	return &BoltResponse{
-		Protocol:       PROTOCOL_CODE_V1,
-		CmdType:        RESPONSE,
-		CmdCode:        HEARTBEAT,
-		Version:        1,
-		ReqID:          requestID,
-		Codec:          HESSIAN2_SERIALIZE, //todo: read default codec from config
-		ResponseStatus: RESPONSE_STATUS_SUCCESS,
+// NewHeartbeatAck
+// New Heartbeat ack for given protocol, requestID should be specified by caller's own logic
+func NewHeartbeatAck(protocolCode byte) SofaRpcCmd {
+	if builder, ok := heartbeatFactory[protocolCode]; ok {
+		return builder.Reply()
 	}
+	return nil
 }
 
 func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {

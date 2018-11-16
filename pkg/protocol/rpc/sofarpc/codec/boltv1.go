@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package codec
 
 import (
@@ -36,7 +36,8 @@ var (
 )
 
 func init() {
-	sofarpc.Register(sofarpc.PROTOCOL_CODE_V1, BoltCodec, BoltCodec)
+	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V1, BoltCodec, BoltCodec)
+	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V1, BoltCodec)
 }
 
 // ~~ types.Encoder
@@ -360,4 +361,29 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 	}
 
 	return cmd, nil
+}
+
+// ~ HeartbeatBuilder
+func (c *boltCodec) Trigger() sofarpc.SofaRpcCmd {
+	return &sofarpc.BoltRequest{
+		Protocol: sofarpc.PROTOCOL_CODE_V1,
+		CmdType:  sofarpc.REQUEST,
+		CmdCode:  sofarpc.HEARTBEAT,
+		Version:  1,
+		ReqID:    0,                          // this would be overwrite by stream layer
+		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		Timeout:  -1,
+	}
+}
+
+func (c *boltCodec) Reply() sofarpc.SofaRpcCmd {
+	return &sofarpc.BoltResponse{
+		Protocol:       sofarpc.PROTOCOL_CODE_V1,
+		CmdType:        sofarpc.RESPONSE,
+		CmdCode:        sofarpc.HEARTBEAT,
+		Version:        1,
+		ReqID:          0,                          // this would be overwrite by stream layer
+		Codec:          sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
+	}
 }

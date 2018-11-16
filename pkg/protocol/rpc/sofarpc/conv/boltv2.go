@@ -59,35 +59,35 @@ func (b *boltv2conv) MapToCmd(ctx context.Context, headers map[string]string) (s
 		return nil, errors.New("headers count not enough")
 	}
 
-	value := sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderProtocolCode)
+	value := sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderProtocolCode)
 	protocolCode := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderVersion1)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderVersion1)
 	ver1 := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderCmdType)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderCmdType)
 	cmdType := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderCmdCode)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderCmdCode)
 	cmdCode := sofarpc.ConvertPropertyValueInt16(value)
-	value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderVersion)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderVersion)
 	version := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderReqID)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderReqID)
 	requestID := sofarpc.ConvertPropertyValueUint32(value)
-	value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderCodec)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderCodec)
 	codec := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderSwitchCode)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderSwitchCode)
 	switchcode := sofarpc.ConvertPropertyValueUint8(value)
-	//value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderClassLen)
+	//value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderClassLen)
 	//classLength := sofarpc.ConvertPropertyValueInt16(value)
-	//value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderHeaderLen)
+	//value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderHeaderLen)
 	//headerLength := sofarpc.ConvertPropertyValueInt16(value)
-	value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderContentLen)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderContentLen)
 	contentLength := sofarpc.ConvertPropertyValueInt(value)
 
 	//class
-	className := sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderClassName)
+	className := sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderClassName)
 
 	//RPC Request
 	if cmdType == sofarpc.REQUEST || cmdType == sofarpc.REQUEST_ONEWAY {
-		value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderTimeout)
+		value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderTimeout)
 		timeout := sofarpc.ConvertPropertyValueInt(value)
 
 		//TODO: reuse cmd
@@ -112,9 +112,9 @@ func (b *boltv2conv) MapToCmd(ctx context.Context, headers map[string]string) (s
 		request.RequestHeader = headers
 		return request, nil
 	} else if cmdType == sofarpc.RESPONSE {
-		value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderRespStatus)
+		value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderRespStatus)
 		responseStatus := sofarpc.ConvertPropertyValueInt16(value)
-		value = sofarpc.GetPropertyValue1(PropertyHeaders, headers, sofarpc.HeaderRespTimeMills)
+		value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderRespTimeMills)
 		responseTime := sofarpc.ConvertPropertyValueInt64(value)
 
 		//sofabuffers := SofaProtocolBuffersByContext(ctx)

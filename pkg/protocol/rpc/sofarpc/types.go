@@ -29,9 +29,20 @@ import (
 type SofaRpcCmd interface {
 	rpc.RpcCmd
 
+	// CommandType returns the command type, request/request_oneway/response
 	CommandType() byte
 
+	// CommandCode return the command code, rpc_request/rpc_response/heartbeat
 	CommandCode() int16
+}
+
+// HeartbeatBuilder provides interface to construct proper heartbeat command for sofarpc sub-protocols
+type HeartbeatBuilder interface {
+	// Trigger builds an active heartbeat command
+	Trigger() SofaRpcCmd
+
+	// Reply builds heartbeat command corresponding to the given requestID
+	Reply() SofaRpcCmd
 }
 
 // bolt constants
@@ -191,8 +202,8 @@ func (b *BoltRequest) ProtocolCode() byte {
 	return b.Protocol
 }
 
-func (b *BoltRequest) RequestID() uint32 {
-	return b.ReqID
+func (b *BoltRequest) RequestID() uint64 {
+	return uint64(b.ReqID)
 }
 
 func (b *BoltRequest) Header() map[string]string {
@@ -203,8 +214,8 @@ func (b *BoltRequest) Data() []byte {
 	return b.Content
 }
 
-func (b *BoltRequest) SetRequestID(requestID uint32) {
-	b.ReqID = requestID
+func (b *BoltRequest) SetRequestID(requestID uint64) {
+	b.ReqID = uint32(requestID)
 }
 
 func (b *BoltRequest) SetHeader(header map[string]string) {
@@ -276,8 +287,8 @@ func (b *BoltResponse) ProtocolCode() byte {
 	return b.Protocol
 }
 
-func (b *BoltResponse) RequestID() uint32 {
-	return b.ReqID
+func (b *BoltResponse) RequestID() uint64 {
+	return uint64(b.ReqID)
 }
 
 func (b *BoltResponse) Header() map[string]string {
@@ -288,8 +299,8 @@ func (b *BoltResponse) Data() []byte {
 	return b.Content
 }
 
-func (b *BoltResponse) SetRequestID(requestID uint32) {
-	b.ReqID = requestID
+func (b *BoltResponse) SetRequestID(requestID uint64) {
+	b.ReqID = uint32(requestID)
 }
 
 func (b *BoltResponse) SetHeader(header map[string]string) {
