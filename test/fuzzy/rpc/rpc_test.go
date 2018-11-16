@@ -35,7 +35,7 @@ type RPCStatusClient struct {
 	addr            string
 	t               *testing.T
 	mutex           sync.Mutex
-	streamID        uint32
+	streamID        uint64
 	unexpectedCount uint32
 	successCount    uint32
 	failureCount    uint32
@@ -60,7 +60,7 @@ func (c *RPCStatusClient) SendRequest() {
 	if !check {
 		return
 	}
-	ID := atomic.AddUint32(&c.streamID, 1)
+	ID := atomic.AddUint64(&c.streamID, 1)
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
 	headers := util.BuildBoltV1Request(ID)
 	requestEncoder.AppendHeaders(context.Background(), headers, true)

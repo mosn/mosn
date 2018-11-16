@@ -35,7 +35,7 @@ type RPCClient struct {
 	Codec        stream.CodecClient
 	Waits        sync.Map
 	conn         types.ClientConnection
-	streamID     uint32
+	streamID     uint64
 	respCount    uint32
 	requestCount uint32
 }
@@ -78,7 +78,7 @@ func (c *RPCClient) Close() {
 }
 
 func (c *RPCClient) SendRequest() {
-	ID := atomic.AddUint32(&c.streamID, 1)
+	ID := atomic.AddUint64(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
 	var headers sofarpc.SofaRpcCmd
@@ -124,13 +124,13 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 	}
 }
 
-func BuildBoltV1Request(requestID uint32) *sofarpc.BoltRequest {
+func BuildBoltV1Request(requestID uint64) *sofarpc.BoltRequest {
 	request := &sofarpc.BoltRequest{
 		Protocol: sofarpc.PROTOCOL_CODE_V1,
 		CmdType:  sofarpc.REQUEST,
 		CmdCode:  sofarpc.RPC_REQUEST,
 		Version:  1,
-		ReqID:    requestID,
+		ReqID:    uint32(requestID),
 		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
 		Timeout:  -1,
 	}
@@ -147,7 +147,7 @@ func BuildBoltV1Request(requestID uint32) *sofarpc.BoltRequest {
 	return request
 }
 
-func BuildBoltV2Request(requestID uint32) *sofarpc.BoltRequestV2 {
+func BuildBoltV2Request(requestID uint64) *sofarpc.BoltRequestV2 {
 	//TODO:
 	return nil
 }
