@@ -184,7 +184,7 @@ func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("upstream request encode data")
 	r.sendComplete = endStream
 	r.dataSent = true
-	r.requestSender.AppendData(r.downStream.context, r.convertData(data) , endStream)
+	r.requestSender.AppendData(r.downStream.context, r.convertData(data), endStream)
 }
 
 func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
@@ -208,7 +208,6 @@ func (r *upstreamRequest) appendTrailers(trailers types.HeaderMap) {
 	r.trailerSent = true
 	r.requestSender.AppendTrailers(r.downStream.context, trailers)
 }
-
 
 func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 	dp := types.Protocol(r.proxy.config.DownstreamProtocol)
@@ -245,9 +244,7 @@ func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, ho
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
 	r.downStream.finalUpRequestHeader = r.convertHeader(r.downStream.downstreamReqHeaders)
-	
-	
-	
+
 	r.requestSender.AppendHeaders(r.downStream.context, r.downStream.finalUpRequestHeader, endStream)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)

@@ -50,12 +50,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		perFilterConfig:       route.PerFilterConfig,
-		policy: &routerPolicy{
-			shadowPolicy: &shadowPolicyImpl{
-				cluster: route.Route.ShadowPolicy.ShadowClusterName,
-				ratio:   route.Route.ShadowPolicy.ShadowRatio,
-			},
-		},
+		policy:                &routerPolicy{},
 	}
 
 	routeRuleImplBase.weightedClusters, routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
@@ -66,9 +61,9 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			route.Route.RetryPolicy.NumRetries,
 		}
 	}
-	
+
 	if route.Route.ShadowPolicy != nil {
-		routeRuleImplBase.policy.shadowPolicy =  &shadowPolicyImpl{
+		routeRuleImplBase.policy.shadowPolicy = &shadowPolicyImpl{
 			cluster: route.Route.ShadowPolicy.ShadowClusterName,
 			ratio:   route.Route.ShadowPolicy.ShadowRatio,
 		}

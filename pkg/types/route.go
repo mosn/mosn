@@ -220,8 +220,8 @@ type RetryState interface {
 type ShadowPolicy interface {
 	// Get shadow cluster's  name
 	ClusterName() string
-	
-	ShadowRatio()uint32
+
+	ShadowRatio() uint32
 }
 
 type VirtualServer interface {

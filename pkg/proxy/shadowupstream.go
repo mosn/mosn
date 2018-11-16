@@ -81,7 +81,6 @@ func (r *shadowUpstreamRequest) appendHeaders(headers types.HeaderMap, endStream
 	r.connPool.NewStream(r.context, r.downstreamID, r, r)
 }
 
-
 func (r *shadowUpstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 	log.DefaultLogger.Debugf("upstream request encode data")
 	r.sendComplete = endStream
@@ -115,7 +114,7 @@ func (r *shadowUpstreamRequest) OnReady(streamID string, sender types.StreamSend
 	r.requestSender.GetStream().AddEventListener(r)
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
-	
+
 	// we use converted header
 	r.requestSender.AppendHeaders(r.context, r.downStream.downstreamReqHeaders, endStream)
 
@@ -135,7 +134,7 @@ func (r *shadowUpstreamRequest) ResetStream(reason types.StreamResetReason) {
 		r.requestSender.GetStream().RemoveEventListener(r)
 		r.requestSender.GetStream().ResetStream(types.StreamLocalReset)
 	}
-	
+
 	r.requestSender = nil
 	r.downStream.cleanUp()
 	r.downStream = nil

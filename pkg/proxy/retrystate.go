@@ -26,8 +26,8 @@ import (
 )
 
 type retryState struct {
-	retryPolicy      types.RetryPolicy
-	requestHeaders   types.HeaderMap // TODO: support retry policy by header
+	retryPolicy      types.RetryPolicy // retryPolicy is not used ??
+	requestHeaders   types.HeaderMap   // TODO: support retry policy by header
 	cluster          types.ClusterInfo
 	retryOn          bool
 	retiesRemaining  uint32

@@ -23,10 +23,11 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"time"
+
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
-	"time"
 )
 
 // connection management is done by fasthttp

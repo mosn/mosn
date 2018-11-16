@@ -46,7 +46,6 @@ type matchable interface {
 
 type info interface {
 	GetRouterName() string
-	
 }
 
 type RouteBase interface {
@@ -66,7 +65,7 @@ func (spi *shadowPolicyImpl) ClusterName() string {
 	return spi.cluster
 }
 
-func (spi *shadowPolicyImpl) ShadowRatio()uint32 {
+func (spi *shadowPolicyImpl) ShadowRatio() uint32 {
 	return spi.ratio
 }
 
@@ -166,10 +165,9 @@ func (wc *weightedClusterEntry) GetClusterMetadataMatchCriteria() *MetadataMatch
 }
 
 type routerPolicy struct {
-	retryPolicy    *retryPolicyImpl
+	retryPolicy  *retryPolicyImpl
 	shadowPolicy *shadowPolicyImpl
 }
-
 
 func (p *routerPolicy) RetryPolicy() types.RetryPolicy {
 	return p.retryPolicy
