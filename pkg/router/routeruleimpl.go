@@ -50,14 +50,28 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		perFilterConfig:       route.PerFilterConfig,
-		policy:                &routerPolicy{},
+		policy: &routerPolicy{
+			shadowPolicy: &shadowPolicyImpl{
+				cluster: route.Route.ShadowPolicy.ShadowClusterName,
+				ratio:   route.Route.ShadowPolicy.ShadowRatio,
+			},
+		},
 	}
 
 	routeRuleImplBase.weightedClusters, routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
 	if route.Route.RetryPolicy != nil {
-		routeRuleImplBase.policy.retryOn = route.Route.RetryPolicy.RetryOn
-		routeRuleImplBase.policy.retryTimeout = route.Route.RetryPolicy.RetryTimeout
-		routeRuleImplBase.policy.numRetries = route.Route.RetryPolicy.NumRetries
+		routeRuleImplBase.policy.retryPolicy = &retryPolicyImpl{
+			route.Route.RetryPolicy.RetryOn,
+			route.Route.RetryPolicy.RetryTimeout,
+			route.Route.RetryPolicy.NumRetries,
+		}
+	}
+	
+	if route.Route.ShadowPolicy != nil {
+		routeRuleImplBase.policy.shadowPolicy =  &shadowPolicyImpl{
+			cluster: route.Route.ShadowPolicy.ShadowClusterName,
+			ratio:   route.Route.ShadowPolicy.ShadowRatio,
+		}
 	}
 
 	// todo add header match to route base
@@ -97,7 +111,7 @@ type RouteRuleImplBase struct {
 	routerAction v2.RouteAction
 	routerMatch  v2.RouterMatch
 
-	shadowPolicy          *shadowPolicyImpl
+	//shadowPolicy          *shadowPolicyImpl
 	priority              types.ResourcePriority
 	configHeaders         []*types.HeaderData //
 	configQueryParameters []types.QueryParameterMatcher

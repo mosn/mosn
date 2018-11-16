@@ -83,3 +83,25 @@ func (h CommonHeader) ByteSize() uint64 {
 	}
 	return size
 }
+
+func (h CommonHeader)CopyHeaderMap() types.HeaderMap {
+	var header = make(map[string]string, len(h))
+	for k, v := range h {
+		header[k] = v
+	}
+	
+	return CommonHeader(header)
+}
+
+type ShadowRequestHeader struct {
+	types.HeaderMap
+	ShadowHostName string
+}
+
+func (s *ShadowRequestHeader)Get(key string) (string, bool) {
+	if key == MosnHeaderHostKey {
+		return s.ShadowHostName,true
+	}
+	
+	return s.HeaderMap.Get(key)
+}

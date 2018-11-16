@@ -58,6 +58,9 @@ type HeaderMap interface {
 
 	// ByteSize return size of HeaderMap
 	ByteSize() uint64
+
+	// CopyHeaderMap used to deep copy header's map
+    CopyHeaderMap() HeaderMap
 }
 
 // Protocols is a protocols' facade used by Stream

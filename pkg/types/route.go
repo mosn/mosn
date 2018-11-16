@@ -216,11 +216,12 @@ type RetryState interface {
 	ShouldRetry(respHeaders map[string]string, resetReson string, doRetryCb DoRetryCallback) bool
 }
 
-// ShadowPolicy is a type of Policy
+// ShadowPolicy used to define the policy of traffic shadow
 type ShadowPolicy interface {
+	// Get shadow cluster's  name
 	ClusterName() string
-
-	RuntimeKey() string
+	
+	ShadowRatio()uint32
 }
 
 type VirtualServer interface {

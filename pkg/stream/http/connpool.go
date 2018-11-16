@@ -54,7 +54,6 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.HTTP1
 }
 
-//由 PROXY 调用
 func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
 

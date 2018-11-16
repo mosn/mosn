@@ -33,6 +33,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"math/rand"
 )
 
 // types.StreamEventListener
@@ -53,17 +54,21 @@ type downStream struct {
 	timeout    *Timeout
 	retryState *retryState
 
-	requestInfo     types.RequestInfo
-	responseSender  types.StreamSender
-	upstreamRequest *upstreamRequest
-	perRetryTimer   *timer
-	responseTimer   *timer
+	requestInfo           types.RequestInfo
+	responseSender        types.StreamSender
+	upstreamRequest       *upstreamRequest
+	shadowUpstreamRequest *shadowUpstreamRequest
+	perRetryTimer         *timer
+	responseTimer         *timer
 
 	// ~~~ downstream request buf
 	downstreamReqHeaders  types.HeaderMap
 	downstreamReqDataBuf  types.IoBuffer
 	downstreamReqTrailers types.HeaderMap
 
+	// final converted request buf to upstream
+	finalUpRequestHeader types.HeaderMap
+	
 	// ~~~ downstream response buf
 	downstreamRespHeaders  types.HeaderMap
 	downstreamRespDataBuf  types.IoBuffer
@@ -97,9 +102,18 @@ type downStream struct {
 	logger log.Logger
 
 	snapshot types.ClusterSnapshot
+	
+	doShadowing bool
+	randInstance       *rand.Rand
+	
 }
 
 func newActiveStream(ctx context.Context, streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
+	if proxy == nil || responseSender == nil {
+		log.DefaultLogger.Errorf("newActiveStream error, proxy or responseSender is ninl")
+		return nil
+	}
+	
 	newCtx := buffer.NewBufferPoolContext(ctx, true)
 
 	proxyBuffers := proxyBuffersByContext(newCtx)
@@ -112,7 +126,8 @@ func newActiveStream(ctx context.Context, streamID string, proxy *proxy, respons
 	stream.responseSender = responseSender
 	stream.responseSender.GetStream().AddEventListener(stream)
 	stream.context = newCtx
-
+	// used to judge shadow traffic
+	stream.randInstance = rand.New(rand.NewSource(time.Now().UnixNano()))
 	stream.logger = log.ByContext(proxy.context)
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
@@ -300,8 +315,13 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	s.route = route
 
+	// detect whether do shadow request or not
+	s.doShadowing = s.shouldShadow(route.RouteRule().Policy().ShadowPolicy())
+	s.logger.Debugf("Detect doshadowing get: %t",s.doShadowing)
+	
 	s.requestInfo.SetRouteEntry(route.RouteRule())
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
+	
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
@@ -444,6 +464,9 @@ func (s *downStream) onUpstreamRequestSent() {
 	s.requestInfo.SetRequestReceivedDuration(time.Now())
 
 	if s.upstreamRequest != nil {
+		// send shadow request
+		s.maybeDoShadowing()
+		
 		// setup per req timeout timer
 		s.setupPerReqTimeout()
 
@@ -528,7 +551,6 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 }
 
 // ~~~ active stream sender wrapper
-
 func (s *downStream) appendHeaders(headers types.HeaderMap, endStream bool) {
 	s.upstreamProcessDone = endStream
 	s.doAppendHeaders(nil, s.convertHeader(headers), endStream)
@@ -892,6 +914,7 @@ func (s *downStream) reset() {
 	s.downstreamRespTrailers = nil
 	s.senderFilters = s.senderFilters[:0]
 	s.receiverFilters = s.receiverFilters[:0]
+	s.shadowUpstreamRequest = nil
 }
 
 // types.LoadBalancerContext
@@ -956,4 +979,119 @@ func (s *downStream) stopEventProcess() {
 			stream:    s,
 		},
 	})
+}
+
+func (s *downStream) shouldShadow(policy types.ShadowPolicy) bool {
+	if policy.ClusterName() == "" {
+		log.DefaultLogger.Debugf("call shouldShadow get false, as shadow cluster is empty")
+		return false
+	}
+	
+	if policy.ShadowRatio() == 0 {
+		log.DefaultLogger.Debugf("call shouldShadow get false, as shadow ratio is zero")
+		return false
+	}
+	
+	// according to shadow ratio, for [0--ratio%--100%], 0-ratio% will be shadowed
+	selectedValue := uint32(s.randInstance.Intn(int(100)))
+	if selectedValue < policy.ShadowRatio() {
+		return true
+	}
+	
+	return false
+}
+
+func (s *downStream) maybeDoShadowing() {
+	if !s.doShadowing {
+		return
+	}
+	
+	route := s.route
+	if route == nil {
+		log.DefaultLogger.Errorf("call maybeDoShadowing error, router is nil")
+		return
+	}
+	
+	if route.RouteRule().Policy() == nil || route.RouteRule().Policy().ShadowPolicy() == nil {
+		log.DefaultLogger.Errorf("call maybeDoShadowing error, policy is nil")
+		
+	}
+	
+	sStream := newShadowActiveStream(context.Background(), s.streamID,s.proxy)
+	
+	// copy and modify origin headers
+	if s.finalUpRequestHeader != nil {
+		sStream.downstreamReqHeaders = CopyAndModRequestHeaders(s.finalUpRequestHeader)
+	}
+	
+	// get data
+	if s.downstreamReqDataBuf != nil {
+		sStream.downstreamReqDataBuf = s.downstreamReqDataBuf
+	}
+	
+	// get trailer
+	if s.downstreamReqTrailers != nil {
+		sStream.downstreamReqTrailers = s.downstreamReqTrailers
+	}
+	
+	// get shadow cluster
+	shadowClusterName := route.RouteRule().Policy().ShadowPolicy().ClusterName()
+	clusterSnapshot := sStream.proxy.clusterManager.GetClusterSnapshot(context.Background(), shadowClusterName)
+	
+	// TODO : verify cluster snapshot is valid
+	if reflect.ValueOf(clusterSnapshot).IsNil() {
+		// no available cluster
+		// return directly, no need to send hijack and response
+		log.DefaultLogger.Errorf("shadow cluster snapshot is nil, cluster name is: %s", shadowClusterName)
+		return
+	}
+	
+	sStream.snapshot = clusterSnapshot
+	sStream.cluster = clusterSnapshot.ClusterInfo()
+	log.DefaultLogger.Tracef("get shadow trafic's route : %v,clusterName=%v", route, shadowClusterName)
+	
+	sStream.route = route
+	
+	// `downstream` implement loadbalancer ctx
+	log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
+	pool, err := sStream.initializeUpstreamConnectionPool(sStream)
+	
+	if err != nil {
+		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
+		return
+	}
+	
+	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
+	
+	// in case that the shadow request may hang which will effect the main request, shadow request still need timeout
+	sStream.timeout = parseProxyTimeout(route, sStream.downstreamReqHeaders)
+	
+	
+	//Build Request
+	sUpRequest := &shadowUpstreamRequest{
+		context:            s.context,
+		DownstreamProtocol: s.proxy.config.DownstreamProtocol,
+		UpstreamProtocol:   s.proxy.config.UpstreamProtocol,
+		connPool:           pool,
+		downStream:         sStream,
+		logger:             log.ByContext(sStream.context),
+	}
+	
+	sStream.shadowUpstreamRequest = sUpRequest
+	
+	route.RouteRule().FinalizeRequestHeaders(sStream.downstreamReqHeaders, sStream.requestInfo)
+	
+	// send request to upstream
+	if sStream.downstreamReqHeaders != nil {
+		sUpRequest.appendHeaders(sStream.downstreamReqHeaders, sStream.downstreamReqDataBuf == nil && sStream.downstreamReqTrailers == nil)
+	} else if sStream.downstreamReqDataBuf == nil {
+		sUpRequest.appendData(sStream.downstreamReqDataBuf, sStream.downstreamReqTrailers == nil)
+	} else {
+		sUpRequest.appendTrailers(sStream.downstreamReqTrailers)
+	}
+	
+	
+	// setup per req timeout timer
+	sStream.perRetryTimer = newTimer(s.shadowUpstreamRequest.resetStream, sStream.timeout.TryTimeout*time.Second)
+	sStream.perRetryTimer.start()
 }

@@ -46,6 +46,7 @@ type matchable interface {
 
 type info interface {
 	GetRouterName() string
+	
 }
 
 type RouteBase interface {
@@ -58,14 +59,15 @@ type RouteBase interface {
 type shadowPolicyImpl struct {
 	cluster    string
 	runtimeKey string
+	ratio      uint32
 }
 
 func (spi *shadowPolicyImpl) ClusterName() string {
 	return spi.cluster
 }
 
-func (spi *shadowPolicyImpl) RuntimeKey() string {
-	return spi.runtimeKey
+func (spi *shadowPolicyImpl) ShadowRatio()uint32 {
+	return spi.ratio
 }
 
 type lowerCaseString struct {
@@ -164,29 +166,17 @@ func (wc *weightedClusterEntry) GetClusterMetadataMatchCriteria() *MetadataMatch
 }
 
 type routerPolicy struct {
-	retryOn      bool
-	retryTimeout time.Duration
-	numRetries   uint32
+	retryPolicy    *retryPolicyImpl
+	shadowPolicy *shadowPolicyImpl
 }
 
-func (p *routerPolicy) RetryOn() bool {
-	return p.retryOn
-}
-
-func (p *routerPolicy) TryTimeout() time.Duration {
-	return p.retryTimeout
-}
-
-func (p *routerPolicy) NumRetries() uint32 {
-	return p.numRetries
-}
 
 func (p *routerPolicy) RetryPolicy() types.RetryPolicy {
-	return p
+	return p.retryPolicy
 }
 
 func (p *routerPolicy) ShadowPolicy() types.ShadowPolicy {
-	return nil
+	return p.shadowPolicy
 }
 
 func (p *routerPolicy) CorsPolicy() types.CorsPolicy {

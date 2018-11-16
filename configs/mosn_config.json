@@ -59,6 +59,10 @@
                             },
                             "route": {
                               "cluster_name": "test_cpp",
+                              "shadow_policy":{
+                                "shadow_cluster_name":"minorCluster",
+                                "shadow_ratio":20
+                              },
                               "metadata_match": {
                                 "filter_metadata": {
                                   "mosn.lb": {

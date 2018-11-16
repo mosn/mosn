@@ -331,6 +331,21 @@ func (b *BoltRequestCommand) ByteSize() uint64 {
 	return size
 }
 
+func (b *BoltRequestCommand) CopyHeaderMap() types.HeaderMap {
+	var newBoltReq BoltRequestCommand
+	newBoltReq = *b
+	
+	// deep copy header
+	var requestHeader = make(map[string]string, len(b.RequestHeader))
+	for k, v := range b.RequestHeader {
+		requestHeader[k] = v
+	}
+	
+	newBoltReq.RequestHeader = requestHeader
+	
+	return &newBoltReq
+}
+
 // ~ HeaderMap
 func (b *BoltResponseCommand) Get(key string) (value string, ok bool) {
 	value, ok = b.ResponseHeader[key]
@@ -361,6 +376,23 @@ func (b *BoltResponseCommand) ByteSize() uint64 {
 		size += uint64(len(k) + len(v))
 	}
 	return size
+}
+
+
+func (b *BoltResponseCommand) CopyHeaderMap() types.HeaderMap {
+	var newBoltResp BoltResponseCommand
+	newBoltResp = *b
+	
+	// deep copy header
+	var requestHeader = make(map[string]string, len(b.ResponseHeader))
+	for k, v := range b.ResponseHeader {
+		requestHeader[k] = v
+	}
+	
+	newBoltResp.ResponseHeader = requestHeader
+	
+	
+	return &newBoltResp
 }
 
 // mosn sofarpc headers' namespace

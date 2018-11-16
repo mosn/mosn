@@ -89,6 +89,7 @@ type RouterActionConfig struct {
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove"`
+	ShadowPolicy            *shadowPolicyConfig   `json:"shadow_policy"`
 }
 
 type ClusterWeightConfig struct {
@@ -101,4 +102,9 @@ type RetryPolicyConfig struct {
 	RetryOn            bool           `json:"retry_on"`
 	RetryTimeoutConfig DurationConfig `json:"retry_timeout"`
 	NumRetries         uint32         `json:"num_retries"`
+}
+
+type shadowPolicyConfig struct {
+	ShadowClusterName string `json:"shadow_cluster_name"`
+	ShadowRatio uint32 `json:"shadow_ratio"`
 }
