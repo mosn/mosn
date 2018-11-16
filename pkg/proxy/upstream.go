@@ -20,10 +20,11 @@ package proxy
 import (
 	"container/list"
 	"context"
+	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // types.StreamEventListener
@@ -44,6 +45,7 @@ type upstreamRequest struct {
 	sendComplete bool
 	dataSent     bool
 	trailerSent  bool
+	setupRetry   bool
 }
 
 // reset upstream request in proxy context
@@ -76,13 +78,23 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 
-	// todo: check if we get a reset on encode request headers. e.g. send failed
-	r.downStream.onUpstreamReset(UpstreamReset, reason)
+	if !r.setupRetry {
+		// todo: check if we get a reset on encode request headers. e.g. send failed
+		r.downStream.onUpstreamReset(UpstreamReset, reason)
+	}
 }
 
 // types.StreamReceiver
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+	// save response code
+	if status, ok := headers.Get(protocol.MosnResponseStatusCode); ok {
+		if code, err := strconv.Atoi(status); err == nil {
+			r.downStream.requestInfo.SetResponseCode(uint32(code))
+		}
+		headers.Del(protocol.MosnResponseStatusCode)
+	}
+
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
@@ -115,7 +127,9 @@ func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBu
 }
 
 func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
-	r.downStream.onUpstreamData(data, endStream)
+	if !r.setupRetry {
+		r.downStream.onUpstreamData(data, endStream)
+	}
 }
 
 func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
@@ -130,7 +144,9 @@ func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers ty
 }
 
 func (r *upstreamRequest) ReceiveTrailers(trailers types.HeaderMap) {
-	r.downStream.onUpstreamTrailers(trailers)
+	if !r.setupRetry {
+		r.downStream.onUpstreamTrailers(trailers)
+	}
 }
 
 func (r *upstreamRequest) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {

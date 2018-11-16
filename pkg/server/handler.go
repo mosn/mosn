@@ -30,6 +30,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -145,9 +146,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		if !equalConfig {
 			al.disableConnIo = lc.DisableConnIo
 			al.listener.SetConfig(lc)
-			al.listener.SetePerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
+			al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 			al.listener.SetListenerTag(lc.ListenerTag)
-			al.listener.SethandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+			al.listener.SetHandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
 			log.DefaultLogger.Debugf("AddOrUpdateListener: use new listen config = %+v", lc)
 		}
 
@@ -202,7 +203,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
 	}
-
+	admin.SetListenerConfig(listenerName, *lc)
 	return al, nil
 }
 
@@ -210,7 +211,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
 			// TODO: use goroutine pool
-			go l.listener.Start(nil)
+			go l.listener.Start(lctx)
 		}
 	}
 }
@@ -218,7 +219,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 func (ch *connHandler) StartListeners(lctx context.Context) {
 	for _, l := range ch.listeners {
 		// start goroutine
-		go l.listener.Start(nil)
+		go l.listener.Start(lctx)
 	}
 }
 

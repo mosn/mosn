@@ -74,48 +74,49 @@ func NewRouterManager() types.RouterManager {
 
 // AddOrUpdateRouters used to add or update router
 func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error {
-
 	if routerConfig == nil {
-		log.DefaultLogger.Errorf("AddOrUpdateRouters Error,routerConfig is nil ")
-		return fmt.Errorf("AddOrUpdateRouters Error,routerConfig is nil ")
+		errMsg := "AddOrUpdateRouters Error,routerConfig is nil "
+		log.DefaultLogger.Errorf(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	routers, err := NewRouteMatcher(routerConfig)
-
 	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
 		// NewRouteMatcher has error, doesn't update
 		if err != nil {
+			log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: " + err.Error(),routerConfig.RouterConfigName)
 			return err
-
 		}
 
 		// else : update a router
 		if primaryRouters, ok := v.(*RoutersWrapper); ok {
 			primaryRouters.mux.Lock()
 			defer primaryRouters.mux.Unlock()
-
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success ",routerConfig.RouterConfigName)
 			primaryRouters.routers = routers
 		}
-
 	} else {
 		// NewRouteMatcher has error, use nil routers
 		if err != nil {
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
 				routers: nil,
 			})
-			return fmt.Errorf("Store RoutersWrapper %s with routers is nil", routerConfig.RouterConfigName)
+			log.DefaultLogger.Errorf("AddOrUpdateRouters, add router %s error:"+err.Error(),routerConfig.RouterConfigName)
+			return err
 			// new routers
 		} else {
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s success:",routerConfig.RouterConfigName)
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
 				routers: routers,
 			})
 		}
 	}
+	
 	return nil
 }
 
 // AddOrUpdateRouters used to add or update router
-func (rm *routersManager) GetRouterWrapperByListenerName(routerConfigName string) types.RouterWrapper {
+func (rm *routersManager) GetRouterWrapperByName(routerConfigName string) types.RouterWrapper {
 
 	if value, ok := rm.routersMap.Load(routerConfigName); ok {
 		if routerWrapper, ok := value.(*RoutersWrapper); ok {

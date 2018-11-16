@@ -18,9 +18,11 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var clusterMngAdapterInstance *MngAdapter
@@ -84,4 +86,15 @@ func (ca *MngAdapter) TriggerClusterHostUpdate(clusterName string, hosts []v2.Ho
 // TriggerHostDel used to delete
 func (ca *MngAdapter) TriggerHostDel(clusterName string, hostAddress string) error {
 	return ca.clusterMng.RemoveClusterHost(clusterName, hostAddress)
+}
+
+// GetCluster used to get cluster by name
+func (ca *MngAdapter) GetClusterSnapshot(context context.Context, clusterName string) types.ClusterSnapshot {
+	return ca.clusterMng.GetClusterSnapshot(context, clusterName)
+}
+
+// PutClusterSnapshot used to put cluster snapshot, release rcu
+func (ca *MngAdapter) PutClusterSnapshot(snapshot types.ClusterSnapshot) {
+	ca.clusterMng.PutClusterSnapshot(snapshot)
+	return
 }

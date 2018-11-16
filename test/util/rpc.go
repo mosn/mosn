@@ -82,16 +82,18 @@ func (c *RPCClient) SendRequest() {
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
 	var headers sofarpc.SofaRpcCmd
+	data := buffer.NewIoBufferString("testdata")
 	switch c.Protocol {
 	case Bolt1:
-		headers = BuildBoltV1Request(ID)
+		headers = BuildBoltV1RequestWithContent(ID, data)
 	case Bolt2:
 		headers = BuildBoltV2Request(ID)
 	default:
 		c.t.Errorf("unsupport protocol")
 		return
 	}
-	requestEncoder.AppendHeaders(context.Background(), headers, true)
+	requestEncoder.AppendHeaders(context.Background(), headers, false)
+	requestEncoder.AppendData(context.Background(), data, true)
 	atomic.AddUint32(&c.requestCount, 1)
 	c.Waits.Store(streamID, streamID)
 }
@@ -124,6 +126,21 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 	}
 }
 
+func BuildBoltV1RequestWithContent(requestID uint64, data types.IoBuffer) *sofarpc.BoltRequest {
+	request := &sofarpc.BoltRequest{
+		Protocol:   sofarpc.PROTOCOL_CODE_V1,
+		CmdType:    sofarpc.REQUEST,
+		CmdCode:    sofarpc.RPC_REQUEST,
+		Version:    1,
+		ReqID:      uint32(requestID),
+		Codec:      sofarpc.HESSIAN2_SERIALIZE,
+		Timeout:    -1,
+		ContentLen: data.Len(),
+	}
+	return buildBoltV1Request(request)
+
+}
+
 func BuildBoltV1Request(requestID uint64) *sofarpc.BoltRequest {
 	request := &sofarpc.BoltRequest{
 		Protocol: sofarpc.PROTOCOL_CODE_V1,
@@ -134,6 +151,10 @@ func BuildBoltV1Request(requestID uint64) *sofarpc.BoltRequest {
 		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
 		Timeout:  -1,
 	}
+	return buildBoltV1Request(request)
+}
+
+func buildBoltV1Request(request *sofarpc.BoltRequest) *sofarpc.BoltRequest {
 
 	headers := map[string]string{"service": "testSofa"} // used for sofa routing
 
@@ -217,14 +238,14 @@ func ServeBoltV1(t *testing.T, conn net.Conn) {
 		}
 		return nil, true
 	}
-	serveSofaRPC(t, conn, response)
+	ServeSofaRPC(t, conn, response)
 
 }
 func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
 	//TODO:
 }
 
-func serveSofaRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {
+func ServeSofaRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {
 	iobuf := buffer.NewIoBuffer(102400)
 	for {
 		now := time.Now()

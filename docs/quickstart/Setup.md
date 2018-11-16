@@ -1,13 +1,13 @@
 # 快速开始
 
 本文用于帮助初次接触 MOSN 项目的开发人员，快速搭建开发环境，完成构建，测试，打包和事例代码的运行。
-注：MOSN 基于 Golang 1.9.2 研发，使用dep进行依赖管理
+注：MOSN 基于 GoLang 1.9.2 研发，使用 dep 进行依赖管理
 
 ## 准备运行环境
 
-+ 如果你使用容器运行MOSN, 请先 [安装docker](https://docs.docker.com/install/)
-+ 如果你使用本地机器，请使用类unix环境
-+ 安装 go 的编译环境 
++ 如果你使用容器运行MOSN, 请先 [安装 docker](https://docs.docker.com/install/)
++ 如果你使用本地机器，请使用类 Unix 环境
++ 安装 GoLang 的编译环境 
 + 安装 dep : 参考[官方安装文档](https://golang.github.io/dep/docs/installation.html)
 
 ## 获取代码
@@ -90,17 +90,17 @@ docker pull sofastack/mosn
 make unit-test
 ```
 
-## 从配置文件[启动 MOSN](../reference/HowtoStartMosnFromConfig.md)
+## 从配置文件启动 MOSN
 
 ```bash
  ./mosn start -c '$CONFIG_FILE'
 ```
 
-## 开启 mosn 转发事例程序
+## 开启 MOSN 转发事例程序
 
 参考 `examples` 目录下的示例工程
 
 + [运行Samples](RunSamples.md)
 
-## MOSN 集成 Istio 运行事例
-+ [Istio集成](RunWithIstio.md)
+## 使用 MOSN 搭建 ServiceMesh 平台
++ [Istio集成](RunWithSOFAMesh.md)

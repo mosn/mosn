@@ -30,14 +30,17 @@ import (
 )
 
 // OnRouterUpdate used to add or update routers
-func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration) {
+func (c *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration) {
 
 	if routersMngIns := router.GetRoutersMangerInstance(); routersMngIns == nil {
 		log.DefaultLogger.Errorf("xds OnAddOrUpdateRouters error: router manager in nil")
 	} else {
 
 		for _, router := range routers {
-			log.DefaultLogger.Tracef("raw router config: %+v", router)
+			if jsonStr, err := json.Marshal(router); err == nil {
+				log.DefaultLogger.Tracef("raw router config: %s", string(jsonStr))
+			}
+
 			mosnRouter, _ := convertRouterConf("", router)
 			log.DefaultLogger.Tracef("mosnRouter config: %+v", mosnRouter)
 			routersMngIns.AddOrUpdateRouters(mosnRouter)
@@ -46,10 +49,13 @@ func (config *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration)
 }
 
 // OnAddOrUpdateListeners called by XdsClient when listeners config refresh
-func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
+func (c *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 
 	for _, listener := range listeners {
-		log.DefaultLogger.Tracef("raw listener config: %+v", listener)
+		if jsonStr, err := json.Marshal(listener); err == nil {
+			log.DefaultLogger.Tracef("raw listener config: %s", string(jsonStr))
+		}
+
 		mosnListener := convertListenerConfig(listener)
 		if mosnListener == nil {
 			continue
@@ -88,7 +94,7 @@ func (config *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 	}
 }
 
-func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) {
+func (c *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) {
 	for _, listener := range listeners {
 		mosnListener := convertListenerConfig(listener)
 		if mosnListener == nil {
@@ -112,12 +118,18 @@ func (config *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) {
 
 // OnUpdateClusters called by XdsClient when clusters config refresh
 // Can be used to update and add clusters
-func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
+func (c *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
+	for _, cluster := range clusters {
+		if jsonStr, err := json.Marshal(cluster); err == nil {
+			log.DefaultLogger.Tracef("raw cluster config: %s", string(jsonStr))
+		}
+	}
+
 	mosnClusters := convertClustersConfig(clusters)
 
 	for _, cluster := range mosnClusters {
-		log.DefaultLogger.Debugf("cluster: %+v\n", cluster)
 		var err error
+		log.DefaultLogger.Debugf("update cluster: %+v\n", cluster)
 		if cluster.ClusterType == v2.EDS_CLUSTER {
 			err = clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterAddOrUpdate(*cluster)
 		} else {
@@ -134,7 +146,7 @@ func (config *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
 }
 
 // OnDeleteClusters called by XdsClient when need to delete clusters
-func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) {
+func (c *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) {
 	mosnClusters := convertClustersConfig(clusters)
 
 	for _, cluster := range mosnClusters {
@@ -154,7 +166,7 @@ func (config *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) {
 }
 
 // OnUpdateEndpoints called by XdsClient when ClusterLoadAssignment config refresh
-func (config *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAssignment) error {
+func (c *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAssignment) error {
 	var errGlobal error
 
 	for _, loadAssignment := range loadAssignments {

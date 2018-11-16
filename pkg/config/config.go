@@ -20,10 +20,11 @@ package config
 import (
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/json-iterator/go"
 )
 
@@ -66,6 +67,7 @@ type MOSNConfig struct {
 	//tracing config
 	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
+	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty"`             // admin raw message
 }
 
 // Mode is mosn's starting type
@@ -99,20 +101,29 @@ var (
 	config     MOSNConfig
 )
 
+func (c *MOSNConfig) GetAdmin() *xdsboot.Admin {
+	if len(c.RawAdmin) > 0 {
+		adminConfig := &xdsboot.Admin{}
+		err := jsonpb.UnmarshalString(string(config.RawAdmin), adminConfig)
+		if err == nil {
+			return adminConfig
+		}
+	}
+	return nil
+}
+
 // Load config file and parse
 func Load(path string) *MOSNConfig {
 	log.Println("load config from : ", path)
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatalln("load config failed, ", err)
-		os.Exit(1)
 	}
 	configPath, _ = filepath.Abs(path)
 	// translate to lower case
 	err = json.Unmarshal(content, &config)
 	if err != nil {
 		log.Fatalln("json unmarshal config failed, ", err)
-		os.Exit(1)
 	}
 	return &config
 }

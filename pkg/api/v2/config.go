@@ -68,20 +68,27 @@ type FaultInjectConfig struct {
 }
 
 type RouterConfig struct {
-	Match          RouterMatch    `json:"match"`
-	Route          RouteAction    `json:"route"`
-	Redirect       RedirectAction `json:"redirect"`
-	MetadataConfig MetadataConfig `json:"metadata"`
-	Decorator      Decorator      `json:"decorator"`
+	Match           RouterMatch            `json:"match"`
+	Route           RouteAction            `json:"route"`
+	Redirect        RedirectAction         `json:"redirect"`
+	MetadataConfig  MetadataConfig         `json:"metadata"`
+	Decorator       Decorator              `json:"decorator"`
+	PerFilterConfig map[string]interface{} `json:"per_filter_config"`
 }
 
 type RouterActionConfig struct {
-	ClusterName      string            `json:"cluster_name"`
-	ClusterHeader    string            `json:"cluster_header"`
-	WeightedClusters []WeightedCluster `json:"weighted_clusters"`
-	MetadataConfig   MetadataConfig    `json:"metadata_match"`
-	TimeoutConfig    DurationConfig    `json:"timeout"`
-	RetryPolicy      *RetryPolicy      `json:"retry_policy"`
+	ClusterName             string               `json:"cluster_name"`
+	ClusterHeader           string               `json:"cluster_header"`
+	WeightedClusters        []WeightedCluster    `json:"weighted_clusters"`
+	MetadataConfig          MetadataConfig       `json:"metadata_match"`
+	TimeoutConfig           DurationConfig       `json:"timeout"`
+	RetryPolicy             *RetryPolicy         `json:"retry_policy"`
+	PrefixRewrite           string               `json:"prefix_rewrite"`
+	HostRewrite             string               `json:"host_rewrite"`
+	AutoHostRewrite         bool                 `json:"auto_host_rewrite"`
+	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add"`
+	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add"`
+	ResponseHeadersToRemove []string             `json:"response_headers_to_remove"`
 }
 
 type ClusterWeightConfig struct {

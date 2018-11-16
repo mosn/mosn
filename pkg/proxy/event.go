@@ -98,7 +98,7 @@ func eventProcess(shard int, streamMap map[uint32]bool, event interface{}) {
 		e := event.(*resetEvent)
 		//log.DefaultLogger.Errorf("[reset] %d %d %s", shard, e.direction, e.streamID)
 
-		if done, ok := streamMap[e.streamID]; ok && !(done || streamProcessDone(e.stream)) {
+		if _, ok := streamMap[e.streamID]; ok {
 			switch e.direction {
 			case Downstream:
 				e.stream.ResetStream(e.reason)

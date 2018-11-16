@@ -363,9 +363,13 @@ func (s *stream) buildHijackResp(request sofarpc.SofaRpcCmd) (sofarpc.SofaRpcCmd
 
 			//Build Router Unavailable Response Msg
 			switch statusCode {
-			case types.RouterUnavailableCode, types.NoHealthUpstreamCode, types.UpstreamOverFlowCode:
+			case types.RouterUnavailableCode:
 				//No available path
 				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
+			case types.NoHealthUpstreamCode:
+				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_CONNECTION_CLOSED)
+			case types.UpstreamOverFlowCode:
+				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_SERVER_THREADPOOL_BUSY)
 			case types.CodecExceptionCode:
 				//Decode or Encode Error
 				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)

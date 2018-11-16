@@ -75,7 +75,7 @@ type HTTP2Server struct {
 }
 
 func NewHTTP2Server(t *testing.T, id string, addr string) *HTTP2Server {
-	server := util.NewUpstreamHTTP2(t, addr)
+	server := util.NewUpstreamHTTP2(t, addr, nil)
 	return &HTTP2Server{
 		UpstreamServer: server,
 		t:              t,
@@ -119,7 +119,7 @@ func (s *HTTP2Server) ReStart() {
 		return
 	}
 	log.StartLogger.Infof("[FUZZY TEST] server restart %s", s.ID)
-	server := util.NewUpstreamHTTP2(s.t, s.UpstreamServer.Addr())
+	server := util.NewUpstreamHTTP2(s.t, s.UpstreamServer.Addr(), nil)
 	s.UpstreamServer = server
 	s.started = true
 	s.UpstreamServer.GoServe()

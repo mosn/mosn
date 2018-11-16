@@ -70,7 +70,15 @@ func MapToCmd(ctx context.Context, headerMap map[string]string) (SofaRpcCmd, err
 		protocolCode := protoValue
 
 		if conv, ok := sofaConvFactory[protocolCode]; ok {
-			return conv.MapToCmd(ctx, headerMap)
+			//TODO:  delete this copy
+			// proxy downstream maybe retry, use the headerMap many times
+			// if proxy downstream can keep a encoded header(iobuf)
+			// map to cmd will be called only once, so we can modify the map without a copy
+			headerCopy := make(map[string]string, len(headerMap))
+			for k, v := range headerMap {
+				headerCopy[k] = v
+			}
+			return conv.MapToCmd(ctx, headerCopy)
 		}
 		return nil, rpc.ErrUnrecognizedCode
 	}

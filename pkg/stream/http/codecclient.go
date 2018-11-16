@@ -23,10 +23,11 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"time"
+
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
-	"time"
 )
 
 // connection management is done by fasthttp
@@ -56,10 +57,11 @@ type codecClient struct {
 func NewHTTP1CodecClient(context context.Context, ac *activeClient) str.CodecClient {
 	codecClient := &codecClient{
 		client: &fasthttp.HostClient{
-			Addr:                ac.pool.host.AddressString(),
-			DialDualStack:       true,
-			Dial:                ac.Dial,
-			MaxIdleConnDuration: 60 * time.Second,
+			Addr:                          ac.pool.host.AddressString(),
+			DialDualStack:                 true,
+			Dial:                          ac.Dial,
+			MaxIdleConnDuration:           60 * time.Second,
+			DisableHeaderNamesNormalizing: true,
 		},
 		context:        context,
 		Host:           ac.pool.host,

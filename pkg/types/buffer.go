@@ -102,4 +102,7 @@ type IoBuffer interface {
 
 	// Free free bytes to BytePoolBuffer
 	Free()
+
+	// Count sets and returns reference count
+	Count(int) int
 }

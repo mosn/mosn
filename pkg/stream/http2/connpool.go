@@ -23,13 +23,13 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/http2"
-	"github.com/alipay/sofa-mosn/pkg/mtls"
 )
 
 const (

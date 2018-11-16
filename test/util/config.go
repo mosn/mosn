@@ -167,14 +167,21 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 }
 
 // TCP Proxy
-func CreateTCPProxyConfig(meshaddr string, hosts []string) *config.MOSNConfig {
+func CreateTCPProxyConfig(meshaddr string, hosts []string, isRouteEntryMode bool) *config.MOSNConfig {
 	clusterName := "cluster"
+	cluster := clusterName
+	if isRouteEntryMode {
+		cluster = ""
+	}
 	tcpConfig := v2.TCPProxy{
+		Cluster: cluster,
 		Routes: []*v2.TCPRoute{
 			&v2.TCPRoute{
-				TCPRouteConfig: v2.TCPRouteConfig{
-					Cluster: clusterName,
-				},
+				Cluster:          "cluster",
+				SourceAddrs:      []v2.CidrRange{v2.CidrRange{Address: "127.0.0.1", Length: 24}},
+				DestinationAddrs: []v2.CidrRange{v2.CidrRange{Address: "127.0.0.1", Length: 24}},
+				SourcePort:       "1-65535",
+				DestinationPort:  "1-65535",
 			},
 		},
 	}

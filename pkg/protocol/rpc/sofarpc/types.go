@@ -258,6 +258,13 @@ func (b *BoltRequest) Range(f func(key, value string) bool) {
 	}
 }
 
+func (b *BoltRequest) ByteSize() (size uint64) {
+	for k, v := range b.RequestHeader {
+		size += uint64(len(k) + len(v))
+	}
+	return
+}
+
 // BoltResponse is the cmd struct of bolt v1 response
 type BoltResponse struct {
 	Protocol byte  //BoltV1:1, BoltV2:2
@@ -346,6 +353,13 @@ func (b *BoltResponse) Range(f func(key, value string) bool) {
 			break
 		}
 	}
+}
+
+func (b *BoltResponse) ByteSize() (size uint64) {
+	for k, v := range b.ResponseHeader {
+		size += uint64(len(k) + len(v))
+	}
+	return
 }
 
 /**

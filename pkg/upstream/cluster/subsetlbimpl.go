@@ -38,7 +38,6 @@ type subSetLoadBalancer struct {
 	subSets               types.LbSubsetMap // final trie-like structure used to stored easily searched subset
 }
 
-//
 func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySet, stats types.ClusterStats,
 	subsets types.LBSubsetInfo) types.SubSetLoadBalancer {
 
@@ -67,6 +66,53 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, prioritySet types.Prio
 	)
 
 	return ssb
+}
+
+// SubSet LB Entry
+func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+
+	if nil != context {
+		host, hostChoosen := sslb.TryChooseHostFromContext(context)
+		if hostChoosen {
+			log.DefaultLogger.Debugf("subset load balancer: match subset entry success, "+
+				"choose hostaddr = %s", host.AddressString())
+			return host
+		}
+	}
+
+	if nil == sslb.fallbackSubset {
+		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset is nil")
+		return nil
+	}
+	sslb.stats.LBSubSetsFallBack.Inc(1)
+
+	defaulthosts := sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts()
+
+	if len(defaulthosts) > 0 {
+		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are ", defaulthosts)
+	} else {
+		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset's host is nil")
+		return nil
+	}
+
+	return sslb.fallbackSubset.prioritySubset.LB().ChooseHost(context)
+}
+
+// GetHostsNumber used to get hosts' number for given matchCriterias
+func (sslb *subSetLoadBalancer) GetHostsNumber(metadata types.MetadataMatchCriteria) uint32 {
+	matchCriteria := metadata.MetadataMatchCriteria()
+
+	if len(matchCriteria) == 0 {
+		return 0
+	}
+
+	entry := sslb.FindSubset(matchCriteria)
+
+	if entry == nil || !entry.Active() {
+		return 0
+	}
+
+	return uint32(len(entry.PrioritySubset().GetOrCreateHostSubset(0).Hosts()))
 }
 
 // create or update subsets for this priority
@@ -101,36 +147,6 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 		})
 }
 
-// SubSet LB Entry
-func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-
-	if nil != context {
-		host, hostChoosen := sslb.TryChooseHostFromContext(context)
-		if hostChoosen {
-			log.DefaultLogger.Debugf("subset load balancer: match subset entry success, "+
-				"choose hostaddr = %s", host.AddressString())
-			return host
-		}
-	}
-
-	if nil == sslb.fallbackSubset {
-		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset is nil")
-		return nil
-	}
-	sslb.stats.LBSubSetsFallBack.Inc(1)
-
-	defaulthosts := sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts()
-
-	if len(defaulthosts) > 0 {
-		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are ", defaulthosts)
-	} else {
-		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset's host is nil")
-		return nil
-	}
-
-	return sslb.fallbackSubset.prioritySubset.LB().ChooseHost(context)
-}
-
 func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalancerContext) (types.Host, bool) {
 
 	matchCriteria := context.MetadataMatchCriteria()
@@ -142,7 +158,7 @@ func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalan
 
 	entry := sslb.FindSubset(matchCriteria.MetadataMatchCriteria())
 
-	if nil == entry || !entry.Active() {
+	if entry == nil || !entry.Active() {
 		log.DefaultLogger.Errorf("subset load balancer: match entry failure")
 		return nil, false
 	}

@@ -324,6 +324,9 @@ type StreamFilterChainFactoryCallbacks interface {
 	AddStreamSenderFilter(filter StreamSenderFilter)
 
 	AddStreamReceiverFilter(filter StreamReceiverFilter)
+
+	// add access log per stream
+	AddStreamAccessLog(accessLog AccessLog)
 }
 
 // StreamHeadersFilterStatus type

@@ -185,7 +185,7 @@ func (c *TestCase) RunCase(n int, interval int) {
 			c.C <- err
 			return
 		}
-		time.Sleep(time.Duration(interval)*time.Millisecond)
+		time.Sleep(time.Duration(interval) * time.Millisecond)
 	}
 	c.C <- nil
 }
