@@ -23,6 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -40,6 +41,7 @@ func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbac
 }
 
 func CreateFaultInjectFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+	log.DefaultLogger.Debugf("create fault inject stream filter factory")
 	cfg, err := config.ParseStreamFaultInjectFilter(conf)
 	if err != nil {
 		return nil, err

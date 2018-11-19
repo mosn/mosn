@@ -270,6 +270,7 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 
 		for _, filter := range filterConfig.GetHttpFilters() {
 			streamFilter := convertStreamFilter(filter.GetName(), filter.GetConfig())
+			log.DefaultLogger.Debugf("add a new stream filter, %v", streamFilter.Type)
 			filters = append(filters, streamFilter)
 		}
 	} else if name == v2.X_PROXY {
@@ -636,6 +637,7 @@ func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[strin
 				log.DefaultLogger.Infof("convertPerRouteConfig[%s] error: %v", v2.FaultStream, err)
 				continue
 			}
+			log.DefaultLogger.Debugf("add a fault inject stream filter in router")
 			perRouteConfig[v2.FaultStream] = cfg
 		default:
 			log.DefaultLogger.Warnf("unknown per route config: %s", key)
