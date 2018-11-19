@@ -37,8 +37,6 @@ import (
 //	 Stream layer leverages protocol's ability to do binary-model conversation. In detail, Stream uses Protocols's encode/decode facade method and DecodeFilter to receive decode event call.
 //
 
-// TODO: support error case: add error as return value in EncodeX method; add OnError(error) in DecodeFilter @wugou
-
 type Protocol string
 
 // HeaderMap is a interface to provide operation facade with user-value headers
@@ -72,11 +70,6 @@ type ProtocolEngine interface {
 	// Register encoder and decoder for the specified protocol code
 	// TODO: use recognize interface instead of protocol code
 	Register(protocolCode byte, encoder Encoder, decoder Decoder) error
-
-	// Process is an alternative method which integrates decode data and model(request/response...)
-	// handler. The built-in biz loop(deocde - handle) of this method will break if there is no enough
-	// data to deal with.
-	Process(ctx context.Context, data IoBuffer, handleFunc func(ctx2 context.Context, model interface{}, err error))
 }
 
 // Encoder is a encoder interface to extend various of protocols

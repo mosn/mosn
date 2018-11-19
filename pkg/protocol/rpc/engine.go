@@ -63,21 +63,6 @@ func (eg *engine) Register(protocolCode byte, encoder types.Encoder, decoder typ
 	return nil
 }
 
-func (eg *engine) Process(ctx context.Context, data types.IoBuffer, handleFunc func(ctx2 context.Context, model interface{}, err error)) {
-
-	for {
-		cmd, err := eg.decoder.Decode(ctx, data)
-
-		// No enough data
-		if cmd == nil && err == nil {
-			break
-		}
-
-		// Do handle staff. Error would also be passed to this function.
-		handleFunc(ctx, cmd, err)
-	}
-}
-
 func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
 	switch cmd := model.(type) {
 	case RpcCmd:
@@ -138,30 +123,4 @@ func (m *mixedEngine) Register(protocolCode byte, encoder types.Encoder, decoder
 		}
 	}
 	return nil
-}
-
-func (m *mixedEngine) Process(ctx context.Context, data types.IoBuffer, handleFunc func(ctx2 context.Context, model interface{}, err error)) {
-	// at least 1 byte for protocol code recognize
-	for data.Len() > 1 {
-		logger := log.ByContext(ctx)
-		code := data.Bytes()[0]
-		logger.Debugf("mixed protocol engine process, protocol code = %x", code)
-
-		if eg, exists := m.engineMap[code]; exists {
-			cmd, err := eg.Decode(ctx, data)
-			// No enough data
-			if cmd == nil && err == nil {
-				break
-			}
-
-			// Do handle staff. Error would also be passed to this function.
-			handleFunc(ctx, cmd, err)
-			if err != nil {
-				return
-			}
-		} else {
-			handleFunc(ctx, nil, ErrUnrecognizedCode)
-			return
-		}
-	}
 }
