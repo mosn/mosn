@@ -130,12 +130,16 @@ func (r *shadowUpstreamRequest) OnReady(streamID string, sender types.StreamSend
 // 3 requeset success, got response header
 func (r *shadowUpstreamRequest) ResetStream(reason types.StreamResetReason) {
 	r.logger.Debugf("shadowUpstreamRequest resetStream:", reason)
+
 	if r.requestSender != nil {
 		r.requestSender.GetStream().RemoveEventListener(r)
 		r.requestSender.GetStream().ResetStream(types.StreamLocalReset)
 	}
 
 	r.requestSender = nil
-	r.downStream.cleanUp()
-	r.downStream = nil
+
+	if r.downStream != nil {
+		r.downStream.cleanUp()
+		r.downStream = nil
+	}
 }

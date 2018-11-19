@@ -1084,18 +1084,22 @@ func (s *downStream) maybeDoShadowing() {
 
 	sStream.shadowUpstreamRequest = sUpRequest
 
-	route.RouteRule().FinalizeRequestHeaders(sStream.downstreamReqHeaders, sStream.requestInfo)
-
 	// send request to upstream
 	if sStream.downstreamReqHeaders != nil {
 		sUpRequest.appendHeaders(sStream.downstreamReqHeaders, sStream.downstreamReqDataBuf == nil && sStream.downstreamReqTrailers == nil)
-	} else if sStream.downstreamReqDataBuf == nil {
+	}
+
+	if sStream.downstreamReqDataBuf != nil {
 		sUpRequest.appendData(sStream.downstreamReqDataBuf, sStream.downstreamReqTrailers == nil)
-	} else {
+	}
+
+	if sStream.downstreamReqTrailers != nil {
 		sUpRequest.appendTrailers(sStream.downstreamReqTrailers)
 	}
 
-	// setup per req timeout timer
-	sStream.perRetryTimer = newTimer(s.shadowUpstreamRequest.resetStream, sStream.timeout.TryTimeout*time.Second)
-	sStream.perRetryTimer.start()
+	//// setup per req timeout timer
+	if sStream.timeout.TryTimeout > 0 {
+		sStream.perRetryTimer = newTimer(s.shadowUpstreamRequest.resetStream, sStream.timeout.TryTimeout*time.Second)
+		sStream.perRetryTimer.start()
+	}
 }

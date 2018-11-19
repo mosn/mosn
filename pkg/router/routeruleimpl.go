@@ -50,7 +50,9 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		perFilterConfig:       route.PerFilterConfig,
-		policy:                &routerPolicy{},
+		policy:                &routerPolicy{
+			retryPolicy:&retryPolicyImpl{},    // todo:delete hack
+		},
 	}
 
 	routeRuleImplBase.weightedClusters, routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)

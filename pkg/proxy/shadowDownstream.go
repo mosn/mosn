@@ -17,7 +17,8 @@ func newShadowActiveStream(ctx context.Context, streamID string, proxy *proxy) *
 	proxyBuffers := proxyBuffersByContext(newCtx)
 
 	stream := &proxyBuffers.stream
-
+	stream.requestInfo = &proxyBuffers.info
+	stream.proxy = proxy
 	stream.streamID = streamID
 	stream.context = newCtx
 
@@ -29,14 +30,16 @@ func newShadowActiveStream(ctx context.Context, streamID string, proxy *proxy) *
 
 func CopyAndModRequestHeaders(header types.HeaderMap) types.HeaderMap {
 
-	//newHeaderMap := header.CopyHeaderMap()
-	newHeaderMap := &protocol.ShadowRequestHeader{
-		HeaderMap: header,
-	}
+	newHeaderMap := header.CopyHeaderMap()
+	//newHeaderMap := &protocol.ShadowRequestHeader{
+	//	HeaderMap: header,
+	//}
 
 	if value, ok := header.Get(protocol.MosnHeaderHostKey); ok {
 		value += ShadowTrafficpostfix
-		newHeaderMap.ShadowHostName = value
+		//newHeaderMap.ShadowHostName = value
+
+		newHeaderMap.Set(protocol.MosnHeaderQueryStringKey, value)
 	}
 
 	return newHeaderMap
