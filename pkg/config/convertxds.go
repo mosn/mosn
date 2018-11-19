@@ -325,12 +325,17 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 	if err := xdsutil.StructToMessage(s, faultConfig); err != nil {
 		return nil, err
 	}
+
+	var fixed_delay time.Duration
+	if d := faultConfig.Delay.GetFixedDelay(); d != nil {
+		fixed_delay = *d
+	}
 	streamFault := &v2.StreamFaultInject{
 		Delay: &v2.DelayInject{
 			DelayInjectConfig: v2.DelayInjectConfig{
 				Percent: faultConfig.Delay.GetPercent(),
 				DelayDurationConfig: v2.DurationConfig{
-					Duration: *(faultConfig.Delay.GetFixedDelay()),
+					Duration: fixed_delay,
 				},
 			},
 		},

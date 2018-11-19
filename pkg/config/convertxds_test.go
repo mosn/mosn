@@ -510,13 +510,10 @@ func Test_convertHeadersToAdd(t *testing.T) {
 
 // Test stream filters convert for envoy.fault
 func Test_convertStreamFilter_IsitoFault(t *testing.T) {
-	fixedDelay := time.Second
 	faultInjectConfig := &xdshttpfault.HTTPFault{
 		Delay: &xdsfault.FaultDelay{
-			Percent: 100,
-			FaultDelaySecifier: &xdsfault.FaultDelay_FixedDelay{
-				FixedDelay: &fixedDelay,
-			},
+			Percent:            100,
+			FaultDelaySecifier: &xdsfault.FaultDelay_FixedDelay{},
 		},
 		Abort: &xdshttpfault.FaultAbort{
 			Percent: 100,
@@ -549,7 +546,7 @@ func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 			config: faultStruct,
 			expected: &v2.StreamFaultInject{
 				Delay: &v2.DelayInject{
-					Delay: time.Second,
+					Delay: 0,
 					DelayInjectConfig: v2.DelayInjectConfig{
 						Percent: 100,
 					},
