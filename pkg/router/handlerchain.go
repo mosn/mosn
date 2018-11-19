@@ -20,6 +20,7 @@ package router
 import (
 	"context"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -57,11 +58,10 @@ func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, types.Route
 		return snapshot, handler.Route()
 	case types.HandlerNotAvailable:
 		hc.clusterManager.PutClusterSnapshot(snapshot)
-		return hc.DoNextHandler()
 	case types.HandlerStop:
 		return nil, nil
 	default:
-		panic("unexpected handler status")
+		log.DefaultLogger.Errorf("unexpected handler status, do next handler....")
 	}
 	return hc.DoNextHandler()
 }

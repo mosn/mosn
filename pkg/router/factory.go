@@ -60,9 +60,11 @@ type simpleHandler struct {
 func (h *simpleHandler) IsAvailable(ctx context.Context, snapshot types.ClusterSnapshot) types.HandlerStatus {
 	return types.HandlerAvailable
 }
+
 func (h *simpleHandler) Route() types.Route {
 	return h.route
 }
+
 func DefaultMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	if r := routers.Route(headers, 1); r != nil {
 		return NewRouteHandlerChain(context.Background(), clusterManager, []types.RouteHandler{
