@@ -268,6 +268,11 @@ type stream struct {
 
 // AddEventListener add stream event callback
 // types.Stream
+func (s *stream) ID() uint64 {
+	id, _ := strconv.ParseUint(s.streamID, 10, 64)
+	return id
+}
+
 func (s *stream) AddEventListener(cb types.StreamEventListener) {
 	s.streamCbs = append(s.streamCbs, cb)
 }

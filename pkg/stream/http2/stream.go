@@ -203,6 +203,10 @@ type stream struct {
 }
 
 // types.Stream
+func (s *stream) ID() uint64 {
+	return 0
+}
+
 func (s *stream) AddEventListener(streamCb types.StreamEventListener) {
 	s.streamCbs = append(s.streamCbs, streamCb)
 }

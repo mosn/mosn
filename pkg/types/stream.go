@@ -96,6 +96,9 @@ const (
 
 // Stream is a generic protocol stream, it is the core model in stream layer
 type Stream interface {
+	// ID returns unique stream id during one connection life-cycle
+	ID() uint64
+
 	// AddEventListener adds stream event listener
 	AddEventListener(streamEventListener StreamEventListener)
 

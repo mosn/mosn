@@ -154,14 +154,14 @@ func (conn *streamConnection) NewStream(ctx context.Context, receiver types.Stre
 
 	//stream := &stream{}
 
-	stream.ID = atomic.AddUint64(&conn.currStreamID, 1)
+	stream.id = atomic.AddUint64(&conn.currStreamID, 1)
 	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.ID)
 	stream.direction = ClientStream
 	stream.sc = conn
 	stream.receiver = receiver
 
 	conn.slock.Lock()
-	conn.streams[stream.ID] = stream
+	conn.streams[stream.id] = stream
 	conn.slock.Unlock()
 	return stream
 }
@@ -240,7 +240,7 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 	stream := &buffers.server
 
 	//stream := &stream{}
-	stream.ID = cmd.RequestID()
+	stream.id = cmd.RequestID()
 	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.ID)
 	stream.direction = ServerStream
 	stream.sc = conn
@@ -275,7 +275,7 @@ type stream struct {
 	ctx context.Context
 	sc  *streamConnection
 
-	ID        uint64
+	id        uint64
 	direction StreamDirection // 0: out, 1: in
 
 	receiver  types.StreamReceiver
@@ -287,6 +287,10 @@ type stream struct {
 }
 
 // ~~ types.Stream
+func (s *stream) ID() uint64 {
+	return s.id
+}
+
 func (s *stream) AddEventListener(cb types.StreamEventListener) {
 	s.streamCbs = append(s.streamCbs, cb)
 }
@@ -418,7 +422,7 @@ func (s *stream) endStream() {
 	if s.sendCmd != nil {
 
 		// replace requestID
-		s.sendCmd.SetRequestID(s.ID)
+		s.sendCmd.SetRequestID(s.id)
 
 		// TODO: replaced with EncodeTo, and pre-alloc send buf
 		buf, err := s.sc.codecEngine.Encode(s.ctx, s.sendCmd)

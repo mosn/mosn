@@ -245,5 +245,8 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
 
+	// debug message for upstream
+	r.downStream.logger.Debugf("client conn id %d, proxy id %d, upstream id %d", r.proxy.readCallbacks.Connection().ID(), r.downStream.ID, sender.GetStream().ID())
+
 	// todo: check if we get a reset on send headers
 }

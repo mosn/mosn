@@ -95,8 +95,8 @@ type downStream struct {
 	context context.Context
 
 	// stream access logs
-	streamAccessLogs  []types.AccessLog
-	logger log.Logger
+	streamAccessLogs []types.AccessLog
+	logger           log.Logger
 
 	snapshot types.ClusterSnapshot
 }
@@ -122,6 +122,9 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	// start event process
 	stream.startEventProcess()
+
+	// debug message for downstream
+	stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
 	return stream
 }
 
