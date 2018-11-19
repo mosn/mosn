@@ -25,23 +25,23 @@ import (
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
 )
 
 func init() {
-	Register("rpc-example", &rpcExampleFactory{})
+	xprotocol.Register("rpc-example", &rpcExampleFactory{})
 }
 
 type rpcExampleFactory struct{}
 
-func (ref *rpcExampleFactory) CreateSubProtocolCodec(context context.Context) types.Multiplexing {
+func (ref *rpcExampleFactory) CreateSubProtocolCodec(context context.Context) xprotocol.Multiplexing {
 	return NewRPCExample()
 }
 
 type rpcExample struct{}
 
 // NewRPCExample create rpc-example codec
-func NewRPCExample() types.Multiplexing {
+func NewRPCExample() xprotocol.Multiplexing {
 	return &rpcExample{}
 }
 

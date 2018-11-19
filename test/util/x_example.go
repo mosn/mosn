@@ -11,8 +11,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol/subprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol/example"
 )
 
 // XProtocol needs subprotocol for rpc
@@ -20,8 +21,8 @@ import (
 type XProtocolClient struct {
 	t           *testing.T
 	ClientID    string
-	SubProtocol types.SubProtocol
-	Codec       types.Multiplexing
+	SubProtocol xprotocol.SubProtocol
+	Codec       xprotocol.Multiplexing
 	conn        types.ClientConnection
 	streamID    uint64
 }
@@ -35,7 +36,7 @@ func NewXClient(t *testing.T, id string, subproto string) *XProtocolClient {
 	return &XProtocolClient{
 		t:           t,
 		ClientID:    id,
-		SubProtocol: types.SubProtocol(subproto),
+		SubProtocol: xprotocol.SubProtocol(subproto),
 	}
 }
 
@@ -49,7 +50,7 @@ func (c *XProtocolClient) Connect(addr string) error {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	c.Codec = subprotocol.CreateSubProtocolCodec(context.Background(), c.SubProtocol)
+	c.Codec = xprotocol.CreateSubProtocolCodec(context.Background(), c.SubProtocol)
 	return nil
 }
 

@@ -18,6 +18,8 @@
 package proxy
 
 import (
+	"strconv"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -283,7 +285,7 @@ func (f *activeStreamFilter) Route() types.Route {
 }
 
 func (f *activeStreamFilter) StreamID() string {
-	return f.activeStream.streamID
+	return strconv.FormatUint(uint64(f.activeStream.ID), 10)
 }
 
 func (f *activeStreamFilter) RequestInfo() types.RequestInfo {

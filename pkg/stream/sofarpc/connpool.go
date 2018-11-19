@@ -26,7 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 func init() {
@@ -56,23 +56,23 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.SofaRPC
 }
 
-func (p *connPool) NewStream(context context.Context, streamID string,
+func (p *connPool) NewStream(ctx context.Context,
 	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
 	p.mux.Lock()
 	if p.activeClient == nil {
-		p.activeClient = newActiveClient(context, p)
+		p.activeClient = newActiveClient(ctx, p)
 	}
 
 	p.mux.Unlock()
 
 	activeClient := p.activeClient
 	if activeClient == nil {
-		cb.OnFailure(streamID, types.ConnectionFailure, nil)
+		cb.OnFailure(types.ConnectionFailure, nil)
 		return nil
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(streamID, types.Overflow, nil)
+		cb.OnFailure(types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -82,8 +82,8 @@ func (p *connPool) NewStream(context context.Context, streamID string,
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := activeClient.codecClient.NewStream(context, streamID, responseDecoder)
-		cb.OnReady(streamID, streamEncoder, p.host)
+		streamEncoder := activeClient.codecClient.NewStream(ctx, responseDecoder)
+		cb.OnReady(streamEncoder, p.host)
 	}
 
 	return nil
@@ -155,13 +155,14 @@ type activeClient struct {
 	totalStream        uint64
 }
 
-func newActiveClient(context context.Context, pool *connPool) *activeClient {
+func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
 
-	data := pool.host.CreateConnection(context)
-	codecClient := pool.createCodecClient(context, data)
+	data := pool.host.CreateConnection(ctx)
+	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
+	codecClient := pool.createCodecClient(connCtx, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)

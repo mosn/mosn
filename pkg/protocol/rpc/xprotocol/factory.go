@@ -15,39 +15,35 @@
  * limitations under the License.
  */
 
-package proxy
+package xprotocol
 
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
-var ins = proxyBufferCtx{}
+var subProtocolFactories map[SubProtocol]CodecFactory
 
-type proxyBufferCtx struct{}
-
-func (ctx proxyBufferCtx) Name() int {
-	return buffer.Proxy
+func init() {
+	//subProtocolFactories = make(map[types.SubProtocol]CodecFactory)
 }
 
-func (ctx proxyBufferCtx) New() interface{} {
-	return new(proxyBuffers)
+// Register SubProtocol Plugin
+func Register(prot SubProtocol, factory CodecFactory) {
+	if subProtocolFactories == nil {
+		subProtocolFactories = make(map[SubProtocol]CodecFactory)
+	}
+	subProtocolFactories[prot] = factory
 }
 
-func (ctx proxyBufferCtx) Reset(i interface{}) {
-	buf, _ := i.(*proxyBuffers)
-	*buf = proxyBuffers{}
-}
+// CreateSubProtocolCodec return SubProtocol Codec
+func CreateSubProtocolCodec(context context.Context, prot SubProtocol) Multiplexing {
 
-type proxyBuffers struct {
-	stream  downStream
-	request upstreamRequest
-	info    network.RequestInfo
-}
-
-func proxyBuffersByContext(ctx context.Context) *proxyBuffers {
-	poolCtx := buffer.PoolContext(ctx)
-	return poolCtx.Find(ins, nil).(*proxyBuffers)
+	if spc, ok := subProtocolFactories[prot]; ok {
+		log.DefaultLogger.Tracef("create sub protocol codec %v success", prot)
+		return spc.CreateSubProtocolCodec(context)
+	}
+	log.DefaultLogger.Errorf("unknown sub protocol = %v", prot)
+	return nil
 }

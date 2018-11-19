@@ -33,7 +33,7 @@ type CodecClient interface {
 
 	ActiveRequestsNum() int
 
-	NewStream(context context.Context, streamID string, respDecoder types.StreamReceiver) types.StreamSender
+	NewStream(context context.Context, respDecoder types.StreamReceiver) types.StreamSender
 
 	SetConnectionStats(stats *types.ConnectionStats)
 

@@ -22,7 +22,6 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -69,7 +68,7 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	workerPool.Offer(&resetEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
-			streamID:  r.downStream.streamID,
+			streamID:  r.downStream.ID,
 			stream:    r.downStream,
 		},
 		reason: reason,
@@ -96,12 +95,10 @@ func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers type
 		headers.Del(protocol.MosnResponseStatusCode)
 	}
 
-	buffer.TransmitBufferPoolContext(r.downStream.context, context)
-
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
-			streamID:  r.downStream.streamID,
+			streamID:  r.downStream.ID,
 			stream:    r.downStream,
 		},
 		headers:   headers,
@@ -121,7 +118,7 @@ func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBu
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
-			streamID:  r.downStream.streamID,
+			streamID:  r.downStream.ID,
 			stream:    r.downStream,
 		},
 		data:      r.downStream.downstreamRespDataBuf,
@@ -139,7 +136,7 @@ func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers ty
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Upstream,
-			streamID:  r.downStream.streamID,
+			streamID:  r.downStream.ID,
 			stream:    r.downStream,
 		},
 		trailers: trailers,
@@ -162,7 +159,7 @@ func (r *upstreamRequest) appendHeaders(headers types.HeaderMap, endStream bool)
 	r.sendComplete = endStream
 
 	log.StartLogger.Tracef("upstream request before conn pool new stream")
-	r.connPool.NewStream(r.downStream.context, r.downStream.streamID, r, r)
+	r.connPool.NewStream(r.downStream.context, r, r)
 }
 
 func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap {
@@ -225,7 +222,7 @@ func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderM
 }
 
 // types.PoolEventListener
-func (r *upstreamRequest) OnFailure(streamID string, reason types.PoolFailureReason, host types.Host) {
+func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.Host) {
 	var resetReason types.StreamResetReason
 
 	switch reason {
@@ -238,7 +235,7 @@ func (r *upstreamRequest) OnFailure(streamID string, reason types.PoolFailureRea
 	r.ResetStream(resetReason)
 }
 
-func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, host types.Host) {
+func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.requestSender = sender
 	r.requestSender.GetStream().AddEventListener(r)
 

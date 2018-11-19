@@ -18,8 +18,6 @@
 package proxy
 
 import (
-	"strconv"
-
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -32,16 +30,12 @@ const (
 
 type streamEvent struct {
 	direction int
-	streamID  string
+	streamID  uint32
 	stream    *downStream
 }
 
 func (s *streamEvent) Source() uint32 {
-	source, err := strconv.ParseUint(s.streamID, 10, 32)
-	if err != nil {
-		panic("streamID must be numeric, unexpected :" + s.streamID)
-	}
-	return uint32(source)
+	return s.streamID
 }
 
 type startEvent struct {
@@ -80,14 +74,14 @@ type receiveTrailerEvent struct {
 
 func eventDispatch(shard int, jobChan <-chan interface{}) {
 	// stream process status map with shard, we use this to indicate a given stream is processing or not
-	streamMap := make(map[string]bool, 1<<10)
+	streamMap := make(map[uint32]bool, 1<<10)
 
 	for event := range jobChan {
 		eventProcess(shard, streamMap, event)
 	}
 }
 
-func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
+func eventProcess(shard int, streamMap map[uint32]bool, event interface{}) {
 	// TODO: event handles by itself. just call event.handle() here
 	switch event.(type) {
 	case *startEvent:

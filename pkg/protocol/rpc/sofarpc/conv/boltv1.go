@@ -19,79 +19,79 @@ package conv
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"strconv"
 
-	"errors"
-
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 )
 
-// BoltV1PropertyHeaders map the cmdkey and its data type
+// PropertyHeaders map the cmdkey and its data type
 var (
-	BoltV1PropertyHeaders = make(map[string]reflect.Kind, 11)
-	boltv1                = new(boltv1conv)
+	PropertyHeaders = make(map[string]reflect.Kind, 11)
+	boltv1          = new(boltv1conv)
 )
 
 func init() {
-	BoltV1PropertyHeaders[sofarpc.HeaderProtocolCode] = reflect.Uint8
-	BoltV1PropertyHeaders[sofarpc.HeaderCmdType] = reflect.Uint8
-	BoltV1PropertyHeaders[sofarpc.HeaderCmdCode] = reflect.Int16
-	BoltV1PropertyHeaders[sofarpc.HeaderVersion] = reflect.Uint8
-	BoltV1PropertyHeaders[sofarpc.HeaderReqID] = reflect.Uint32
-	BoltV1PropertyHeaders[sofarpc.HeaderCodec] = reflect.Uint8
-	BoltV1PropertyHeaders[sofarpc.HeaderClassLen] = reflect.Int16
-	BoltV1PropertyHeaders[sofarpc.HeaderHeaderLen] = reflect.Int16
-	BoltV1PropertyHeaders[sofarpc.HeaderContentLen] = reflect.Int
-	BoltV1PropertyHeaders[sofarpc.HeaderTimeout] = reflect.Int
-	BoltV1PropertyHeaders[sofarpc.HeaderRespStatus] = reflect.Int16
-	BoltV1PropertyHeaders[sofarpc.HeaderRespTimeMills] = reflect.Int64
+	PropertyHeaders[sofarpc.HeaderProtocolCode] = reflect.Uint8
+	PropertyHeaders[sofarpc.HeaderCmdType] = reflect.Uint8
+	PropertyHeaders[sofarpc.HeaderCmdCode] = reflect.Int16
+	PropertyHeaders[sofarpc.HeaderVersion] = reflect.Uint8
+	PropertyHeaders[sofarpc.HeaderReqID] = reflect.Uint32
+	PropertyHeaders[sofarpc.HeaderCodec] = reflect.Uint8
+	PropertyHeaders[sofarpc.HeaderClassLen] = reflect.Int16
+	PropertyHeaders[sofarpc.HeaderHeaderLen] = reflect.Int16
+	PropertyHeaders[sofarpc.HeaderContentLen] = reflect.Int
+	PropertyHeaders[sofarpc.HeaderTimeout] = reflect.Int
+	PropertyHeaders[sofarpc.HeaderRespStatus] = reflect.Int16
+	PropertyHeaders[sofarpc.HeaderRespTimeMills] = reflect.Int64
 
 	sofarpc.RegisterConv(sofarpc.PROTOCOL_CODE_V1, boltv1)
 }
 
 type boltv1conv struct{}
 
-func (b *boltv1conv) MapToCmd(ctx context.Context, headers map[string]string) (sofarpc.ProtoBasicCmd, error) {
+func (b *boltv1conv) MapToCmd(ctx context.Context, headers map[string]string) (sofarpc.SofaRpcCmd, error) {
 	if len(headers) < 8 {
 		return nil, errors.New("headers count not enough")
 	}
 
-	value := sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderProtocolCode)
+	value := sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderProtocolCode)
 	protocolCode := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderCmdType)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderCmdType)
 	cmdType := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderCmdCode)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderCmdCode)
 	cmdCode := sofarpc.ConvertPropertyValueInt16(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderVersion)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderVersion)
 	version := sofarpc.ConvertPropertyValueUint8(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderReqID)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderReqID)
 	requestID := sofarpc.ConvertPropertyValueUint32(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderCodec)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderCodec)
 	codec := sofarpc.ConvertPropertyValueUint8(value)
-	//value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderClassLen)
+	//value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderClassLen)
 	//classLength := sofarpc.ConvertPropertyValueInt16(value)
-	//value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderHeaderLen)
+	//value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderHeaderLen)
 	//headerLength := sofarpc.ConvertPropertyValueInt16(value)
-	value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderContentLen)
+	value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderContentLen)
 	contentLength := sofarpc.ConvertPropertyValueInt(value)
 
 	//class
-	className := sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderClassName)
+	className := sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderClassName)
 
 	//RPC Request
 	if cmdType == sofarpc.REQUEST || cmdType == sofarpc.REQUEST_ONEWAY {
-		value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderTimeout)
+		value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderTimeout)
 		timeout := sofarpc.ConvertPropertyValueInt(value)
 
-		sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-		request := &sofabuffers.BoltEncodeReq
+		buffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+		request := &buffers.BoltEncodeReq
 		request.Protocol = protocolCode
 		request.CmdType = cmdType
 		request.CmdCode = cmdCode
 		request.Version = version
 		request.ReqID = requestID
-		request.CodecPro = codec
+		request.Codec = codec
 		request.Timeout = timeout
 		//request.ClassLen = classLength
 		//request.HeaderLen = headerLength
@@ -100,20 +100,19 @@ func (b *boltv1conv) MapToCmd(ctx context.Context, headers map[string]string) (s
 		request.RequestHeader = headers
 		return request, nil
 	} else if cmdType == sofarpc.RESPONSE {
-		//todo : review
-		value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderRespStatus)
+		value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderRespStatus)
 		responseStatus := sofarpc.ConvertPropertyValueInt16(value)
-		value = sofarpc.GetPropertyValue1(BoltV1PropertyHeaders, headers, sofarpc.HeaderRespTimeMills)
+		value = sofarpc.GetPropertyValue(PropertyHeaders, headers, sofarpc.HeaderRespTimeMills)
 		responseTime := sofarpc.ConvertPropertyValueInt64(value)
 
-		sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-		response := &sofabuffers.BoltEncodeRsp
+		buffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+		response := &buffers.BoltEncodeRsp
 		response.Protocol = protocolCode
 		response.CmdType = cmdType
 		response.CmdCode = cmdCode
 		response.Version = version
 		response.ReqID = requestID
-		response.CodecPro = codec
+		response.Codec = codec
 		response.ResponseStatus = responseStatus
 		//response.ClassLen = classLength
 		//response.HeaderLen = headerLength
@@ -124,23 +123,22 @@ func (b *boltv1conv) MapToCmd(ctx context.Context, headers map[string]string) (s
 		return response, nil
 	}
 
-	return nil, errors.New(sofarpc.InvalidCommandType)
+	return nil, rpc.ErrUnknownType
 }
 
 //Convert BoltV1's Protocol Header  and Content Header to Map[string]string
-func (b *boltv1conv) MapToFields(ctx context.Context, cmd sofarpc.ProtoBasicCmd) (map[string]string, error) {
+func (b *boltv1conv) MapToFields(ctx context.Context, cmd sofarpc.SofaRpcCmd) (map[string]string, error) {
 	switch c := cmd.(type) {
-	case *sofarpc.BoltRequestCommand:
+	case *sofarpc.BoltRequest:
 		return mapReqToFields(ctx, c)
-
-	case *sofarpc.BoltResponseCommand:
+	case *sofarpc.BoltResponse:
 		return mapRespToFields(ctx, c)
 	}
 
-	return nil, errors.New(sofarpc.InvalidCommandType)
+	return nil, rpc.ErrUnknownType
 }
 
-func mapReqToFields(ctx context.Context, req *sofarpc.BoltRequestCommand) (map[string]string, error) {
+func mapReqToFields(ctx context.Context, req *sofarpc.BoltRequest) (map[string]string, error) {
 	// TODO: map reuse
 	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	//headers := make(map[string]string, 9+len(req.RequestHeader))
@@ -151,7 +149,7 @@ func mapReqToFields(ctx context.Context, req *sofarpc.BoltRequestCommand) (map[s
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)] = strconv.FormatUint(uint64(req.CmdCode), 10)
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion)] = strconv.FormatUint(uint64(req.Version), 10)
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(req.ReqID), 10)
-	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCodec)] = strconv.FormatUint(uint64(req.CodecPro), 10)
+	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCodec)] = strconv.FormatUint(uint64(req.Codec), 10)
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderTimeout)] = strconv.FormatUint(uint64(req.Timeout), 10)
 
 	// TODO: bypass length header
@@ -164,7 +162,7 @@ func mapReqToFields(ctx context.Context, req *sofarpc.BoltRequestCommand) (map[s
 	return headers, nil
 }
 
-func mapRespToFields(ctx context.Context, resp *sofarpc.BoltResponseCommand) (map[string]string, error) {
+func mapRespToFields(ctx context.Context, resp *sofarpc.BoltResponse) (map[string]string, error) {
 	// TODO: map reuse
 	//protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	//headers := make(map[string]string, 12)
@@ -176,7 +174,7 @@ func mapRespToFields(ctx context.Context, resp *sofarpc.BoltResponseCommand) (ma
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCmdCode)] = strconv.FormatUint(uint64(resp.CmdCode), 10)
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderVersion)] = strconv.FormatUint(uint64(resp.Version), 10)
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)] = strconv.FormatUint(uint64(resp.ReqID), 10)
-	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCodec)] = strconv.FormatUint(uint64(resp.CodecPro), 10)
+	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderCodec)] = strconv.FormatUint(uint64(resp.Codec), 10)
 
 	// TODO: bypass length header
 	//headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassLen)] = strconv.FormatUint(uint64(resp.ClassLen), 10)
