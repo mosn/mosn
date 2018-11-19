@@ -144,7 +144,7 @@ func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMa
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := newMixerFilter(context, f.MixerConfig)
 	callbacks.AddStreamReceiverFilter(filter)
-	callbacks.AddAccessLog(filter)
+	callbacks.AddStreamAccessLog(filter)
 }
 
 // CreateMixerFilterFactory for create mixer filter factory

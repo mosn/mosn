@@ -270,8 +270,11 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 
 		for _, filter := range filterConfig.GetHttpFilters() {
 			streamFilter := convertStreamFilter(filter.GetName(), filter.GetConfig())
-			log.DefaultLogger.Debugf("add a new stream filter, %v", streamFilter.Type)
-			filters = append(filters, streamFilter)
+			// only support mixer now, so ignore unsupport filter
+			if streamFilter.Type != "" {
+				log.DefaultLogger.Debugf("add a new stream filter, %v", streamFilter.Type)
+				filters = append(filters, streamFilter)
+			}
 		}
 	} else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
