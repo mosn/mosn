@@ -162,6 +162,11 @@ func TestExtendHandler(t *testing.T) {
 	} else {
 		if _, route := hc.DoNextHandler(); route == nil {
 			t.Fatal("want to get a available router")
+		} else {
+			// verify the router
+			if route.(*mockRouter).status != types.HandlerAvailable {
+				t.Error("handler chain get router unexpected")
+			}
 		}
 	}
 	// Test HandlerChain: all of the handlers are NotAvailable
