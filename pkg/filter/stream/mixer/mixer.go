@@ -29,13 +29,9 @@ import (
 	"istio.io/api/mixer/v1/config/client"
 )
 
-const (
-	mixerFilterName = "mixer"
-)
-
 func init() {
 	// static mixer stream filter factory
-	filter.RegisterStream(mixerFilterName, CreateMixerFilterFactory)
+	filter.RegisterStream(v2.MIXER, CreateMixerFilterFactory)
 }
 
 // FilterConfigFactory filter config factory
@@ -65,7 +61,7 @@ func newMixerFilter(context context.Context, config *v2.Mixer) *mixerFilter {
 }
 
 func (f *mixerFilter) ReadPerRouteConfig(perFilterConfig map[string]interface{}) {
-	mixerConfig, exist := perFilterConfig[mixerFilterName]
+	mixerConfig, exist := perFilterConfig[v2.MIXER]
 	if !exist {
 		return
 	}

@@ -508,6 +508,108 @@ func Test_convertHeadersToAdd(t *testing.T) {
 	}
 }
 
+// Test stream filters convert for envoy.fault
+func Test_convertStreamFilter_IsitoFault(t *testing.T) {
+	fixedDelay := time.Second
+	faultInjectConfig := &xdshttpfault.HTTPFault{
+		Delay: &xdsfault.FaultDelay{
+			Percent: 100,
+			FaultDelaySecifier: &xdsfault.FaultDelay_FixedDelay{
+				FixedDelay: &fixedDelay,
+			},
+		},
+		Abort: &xdshttpfault.FaultAbort{
+			Percent: 100,
+			ErrorType: &xdshttpfault.FaultAbort_HttpStatus{
+				HttpStatus: 500,
+			},
+		},
+		UpstreamCluster: "testupstream",
+		Headers: []*xdsroute.HeaderMatcher{
+			{
+				Name:  "end-user",
+				Value: "",
+				HeaderMatchSpecifier: &xdsroute.HeaderMatcher_ExactMatch{
+					ExactMatch: "jason",
+				},
+				InvertMatch: false,
+			},
+		},
+	}
+	faultStruct, err := xdsutil.MessageToStruct(faultInjectConfig)
+	if err != nil {
+		t.Fatal("make fault inject struct failed")
+	}
+	// empty types.Struct will makes a default empty filter
+	testCases := []struct {
+		config   *types.Struct
+		expected *v2.StreamFaultInject
+	}{
+		{
+			config: faultStruct,
+			expected: &v2.StreamFaultInject{
+				Delay: &v2.DelayInject{
+					Delay: time.Second,
+					DelayInjectConfig: v2.DelayInjectConfig{
+						Percent: 100,
+					},
+				},
+				Abort: &v2.AbortInject{
+					Status:  500,
+					Percent: 100,
+				},
+				Headers: []v2.HeaderMatcher{
+					{
+						Name:  "end-user",
+						Value: "jason",
+						Regex: false,
+					},
+				},
+				UpstreamCluster: "testupstream",
+			},
+		},
+		{
+			config:   nil,
+			expected: &v2.StreamFaultInject{},
+		},
+	}
+	for i, tc := range testCases {
+		convertFilter := convertStreamFilter(IstioFault, tc.config)
+		if convertFilter.Type != v2.FaultStream {
+			t.Errorf("#%d convert to mosn stream filter not expected, want %s, got %s", i, v2.FaultStream, convertFilter.Type)
+			continue
+		}
+		rawFault := &v2.StreamFaultInject{}
+		b, _ := json.Marshal(convertFilter.Config)
+		if err := json.Unmarshal(b, rawFault); err != nil {
+			t.Errorf("#%d unexpected config for fault", i)
+			continue
+		}
+		if tc.expected.Abort == nil {
+			if rawFault.Abort != nil {
+				t.Errorf("#%d abort check unexpected", i)
+			}
+		} else {
+			if rawFault.Abort.Status != tc.expected.Abort.Status || rawFault.Abort.Percent != tc.expected.Abort.Percent {
+				t.Errorf("#%d abort check unexpected", i)
+			}
+		}
+		if tc.expected.Delay == nil {
+			if rawFault.Delay != nil {
+				t.Errorf("#%d delay check unexpected", i)
+			}
+		} else {
+			if rawFault.Delay.Delay != tc.expected.Delay.Delay || rawFault.Delay.Percent != tc.expected.Delay.Percent {
+				t.Errorf("#%d delay check unexpected", i)
+			}
+		}
+		if rawFault.UpstreamCluster != tc.expected.UpstreamCluster || !reflect.DeepEqual(rawFault.Headers, tc.expected.Headers) {
+			t.Errorf("#%d fault config is not expected, %v", i, rawFault)
+		}
+
+	}
+}
+
 func Test_convertPerRouteConfig(t *testing.T) {
 	mixerFilterConfig := &client.ServiceConfig{
 		DisableReportCalls: false,
