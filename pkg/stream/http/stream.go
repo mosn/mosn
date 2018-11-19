@@ -32,7 +32,10 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
 	"bufio"
+	"errors"
 )
+
+var errConnClose = errors.New("connection closed")
 
 func init() {
 	str.Register(protocol.HTTP1, &streamConnFactory{})
@@ -86,7 +89,14 @@ func (conn *streamConnection) GoAway() {
 }
 
 func (conn *streamConnection) Read(p []byte) (n int, err error) {
-	data := <-conn.bufChan
+	data, ok := <-conn.bufChan
+
+	// Connection close
+	if !ok {
+		err = errConnClose
+		return
+	}
+
 	n = copy(p, data.Bytes())
 	data.Drain(n)
 	//fmt.Printf("http1 Read : %v\n", p)
@@ -98,6 +108,13 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	n = len(p)
 	err = conn.conn.Write(buffer.NewIoBufferBytes(p))
 	return
+}
+
+// conn callbacks
+func (conn *streamConnection) OnEvent(event types.ConnectionEvent) {
+	if event.IsClose() || event.ConnectFailure() {
+		close(conn.bufChan)
+	}
 }
 
 // types.ClientStreamConnection
@@ -123,6 +140,8 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 		streamConnCallbacks: streamConnCallbacks,
 	}
 
+	connection.AddConnectionEventListener(csc)
+
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
 
@@ -135,7 +154,13 @@ func (csc *clientStreamConnection) serve() {
 	for {
 		// 1. blocking read using fasthttp.Request.Read
 		response := fasthttp.AcquireResponse()
-		response.Read(csc.br)
+		err := response.Read(csc.br)
+		if err != nil {
+			if err != errConnClose {
+				log.DefaultLogger.Errorf("Http client codec goroutine error: %s", err)
+			}
+			return
+		}
 
 		// 2. response processing
 		s := csc.stream
@@ -201,7 +226,13 @@ func (ssc *serverStreamConnection) serve() {
 	for {
 		// 1. blocking read using fasthttp.Request.Read
 		request := fasthttp.AcquireRequest()
-		request.Read(ssc.br)
+		err := request.Read(ssc.br)
+		if err != nil {
+			if err != errConnClose {
+				log.DefaultLogger.Errorf("Http server codec goroutine error: %s", err)
+			}
+			return
+		}
 
 		// 2. request processing
 
@@ -235,35 +266,6 @@ func (ssc *serverStreamConnection) serve() {
 func (ssc *serverStreamConnection) OnGoAway() {
 	ssc.serverStreamConnCallbacks.OnGoAway()
 }
-
-//作为PROXY的STREAM SERVER
-//func (ssc *serverStreamConnection) ServeHTTP(ctx *fasthttp.RequestCtx) {
-//	//generate stream id using global counter
-//	streamID := protocol.GenerateIDString()
-//
-//	s := &serverStream{
-//		stream: stream{
-//			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
-//		},
-//		ctx:              ctx,
-//		connection:       ssc,
-//		responseDoneChan: make(chan bool, 1),
-//	}
-//
-//	s.receiver = ssc.serverStreamConnCallbacks.NewStream(s.stream.context, streamID, s)
-//
-//	ssc.activeStream = &s.stream
-//
-//	if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-//		s.handleRequest()
-//	}
-//
-//	select {
-//	case <-s.responseDoneChan:
-//		s.ctx = nil
-//		ssc.activeStream = nil
-//	}
-//}
 
 // types.Stream
 // types.StreamSender
