@@ -78,7 +78,7 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 
 			if domain == "*" {
 				if routerMatcher.defaultVirtualHost != nil {
-					return nil, fmt.Errorf("Only a single wildcard domain permitted")
+					return nil, fmt.Errorf("NewRouteMatcher Error, only a single wildcard domain permitted")
 				}
 				log.StartLogger.Tracef("add route matcher default virtual host")
 				routerMatcher.defaultVirtualHost = vh
@@ -94,13 +94,13 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 				// exactly same wildcard domain is unique
 				wildcard := domain[1:]
 				if _, ok := m[wildcard]; ok {
-					return nil, fmt.Errorf("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+					return nil, fmt.Errorf("NewRouteMatcher Error, only unique wildcard are permitted, but get duplicate: %s", domain)
 				}
 				m[wildcard] = vh
 
 			} else {
 				if _, ok := routerMatcher.virtualHosts[domain]; ok {
-					return nil, fmt.Errorf("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+					return nil, fmt.Errorf("NewRouteMatcher Error, only unique values for domains are permitted,but get duplicate:%s", domain)
 				}
 				routerMatcher.virtualHosts[domain] = vh
 			}
