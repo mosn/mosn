@@ -100,7 +100,9 @@ type downStream struct {
 
 	context context.Context
 
-	logger log.Logger
+	// stream access logs
+	streamAccessLogs []types.AccessLog
+	logger           log.Logger
 
 	snapshot types.ClusterSnapshot
 
@@ -196,9 +198,16 @@ func (s *downStream) cleanStream() {
 	s.proxy.stats.DownstreamRequestActive.Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
 
-	// access log
+	// proxy access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
 		for _, al := range s.proxy.accessLogs {
+			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
+		}
+	}
+
+	// per-stream access log
+	if s.streamAccessLogs != nil {
+		for _, al := range s.streamAccessLogs {
 			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 		}
 	}
@@ -276,14 +285,14 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// get router instance and do routing
 	routers := s.proxy.routersWrapper.GetRouters()
 	// do handler chain
-	handlerChain := router.CallMakeHandlerChain(headers, routers)
+	handlerChain := router.CallMakeHandlerChain(headers, routers, s.proxy.clusterManager)
 	if handlerChain == nil {
 		log.DefaultLogger.Warnf("no route to make handler chain, headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
 	}
-	route := handlerChain.DoNextHandler()
+	clusterSnapshot, route := handlerChain.DoNextHandler()
 	if route == nil || route.RouteRule() == nil {
 		// no route
 		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
@@ -294,19 +303,15 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		return
 	}
 
-	// as ClusterName has random factor when choosing weighted cluster,
-	// so need determination at the first time
-	clusterName := route.RouteRule().ClusterName()
-	clusterSnapshot := s.proxy.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
-	// TODO : verify cluster snapshot is valid
-
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
-		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", clusterName)
+		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", route.RouteRule().ClusterName())
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
+	clusterName := clusterSnapshot.ClusterInfo().Name()
+
 	s.snapshot = clusterSnapshot
 
 	s.cluster = clusterSnapshot.ClusterInfo()
@@ -880,14 +885,13 @@ func (s *downStream) AddStreamSenderFilter(filter types.StreamSenderFilter) {
 	s.senderFilters = append(s.senderFilters, sf)
 }
 
-func (s *downStream) AddAccessLog(accessLog types.AccessLog) {
+func (s *downStream) AddStreamAccessLog(accessLog types.AccessLog) {
 	if s.proxy != nil {
-		if s.proxy.accessLogs == nil {
-			s.proxy.accessLogs = make([]types.AccessLog, 0)
+		if s.streamAccessLogs == nil {
+			s.streamAccessLogs = make([]types.AccessLog, 0)
 		}
-		s.proxy.accessLogs = append(s.proxy.accessLogs, accessLog)
+		s.streamAccessLogs = append(s.streamAccessLogs, accessLog)
 	}
-
 }
 
 func (s *downStream) reset() {

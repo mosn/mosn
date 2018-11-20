@@ -57,10 +57,11 @@ type codecClient struct {
 func NewHTTP1CodecClient(context context.Context, ac *activeClient) str.CodecClient {
 	codecClient := &codecClient{
 		client: &fasthttp.HostClient{
-			Addr:                ac.pool.host.AddressString(),
-			DialDualStack:       true,
-			Dial:                ac.Dial,
-			MaxIdleConnDuration: 60 * time.Second,
+			Addr:                          ac.pool.host.AddressString(),
+			DialDualStack:                 true,
+			Dial:                          ac.Dial,
+			MaxIdleConnDuration:           60 * time.Second,
+			DisableHeaderNamesNormalizing: true,
 		},
 		context:        context,
 		Host:           ac.pool.host,

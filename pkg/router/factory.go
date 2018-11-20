@@ -57,21 +57,23 @@ type simpleHandler struct {
 	route types.Route
 }
 
-func (h *simpleHandler) IsAvailable(ctx context.Context) bool {
-	return true
+func (h *simpleHandler) IsAvailable(ctx context.Context, snapshot types.ClusterSnapshot) types.HandlerStatus {
+	return types.HandlerAvailable
 }
+
 func (h *simpleHandler) Route() types.Route {
 	return h.route
 }
-func DefaultMakeHandlerChain(headers types.HeaderMap, routers types.Routers) *RouteHandlerChain {
+
+func DefaultMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	if r := routers.Route(headers, 1); r != nil {
-		return NewRouteHandlerChain(context.Background(), []types.RouteHandler{
+		return NewRouteHandlerChain(context.Background(), clusterManager, []types.RouteHandler{
 			&simpleHandler{route: r},
 		})
 	}
 	return nil
 }
 
-func CallMakeHandlerChain(headers types.HeaderMap, routers types.Routers) *RouteHandlerChain {
-	return makeHandlerChain(headers, routers)
+func CallMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
+	return makeHandlerChain(headers, routers, clusterManager)
 }
