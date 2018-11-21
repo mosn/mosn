@@ -18,6 +18,7 @@
 package router
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -31,6 +32,19 @@ type mockRouters struct {
 }
 type mockRouter struct {
 	types.Route
+	status types.HandlerStatus
+}
+
+func (r *mockRouter) RouteRule() types.RouteRule {
+	return &mockRouteRule{}
+}
+
+type mockRouteRule struct {
+	types.RouteRule
+}
+
+func (r *mockRouteRule) ClusterName() string {
+	return ""
 }
 
 func (routers *mockRouters) Route(headers types.HeaderMap, randomValue uint64) types.Route {
@@ -46,6 +60,16 @@ func (routers *mockRouters) GetAllRoutes(headers types.HeaderMap, randomValue ui
 	return nil
 }
 
+type mockManager struct {
+	types.ClusterManager
+}
+
+func (m *mockManager) GetClusterSnapshot(ctx context.Context, name string) types.ClusterSnapshot {
+	return nil
+}
+func (m *mockManager) PutClusterSnapshot(snapshot types.ClusterSnapshot) {
+}
+
 func TestDefaultMakeHandlerChain(t *testing.T) {
 	headerMatch := protocol.CommonHeader(map[string]string{
 		"test": "test",
@@ -58,17 +82,107 @@ func TestDefaultMakeHandlerChain(t *testing.T) {
 	}
 	//
 	makeHandlerChain = DefaultMakeHandlerChain
-	//
-	if hc := CallMakeHandlerChain(headerMatch, routers); hc == nil {
+	clusterManager := &mockManager{}
+	// router match, handler available
+	if hc := CallMakeHandlerChain(headerMatch, routers, clusterManager); hc == nil {
 		t.Fatal("make handler chain failed")
 	} else {
-		if r := hc.DoNextHandler(); r == nil {
+		if _, r := hc.DoNextHandler(); r == nil {
 			t.Fatal("do next handler failed")
 		}
 	}
+	// header not match, no handlers
 	headerNotMatch := protocol.CommonHeader(map[string]string{})
-	if hc := CallMakeHandlerChain(headerNotMatch, routers); hc != nil {
+	if hc := CallMakeHandlerChain(headerNotMatch, routers, clusterManager); hc != nil {
 		t.Fatal("make handler chain unexpected")
 	}
 
+}
+
+type mockStatusHandler struct {
+	status types.HandlerStatus
+	router types.Route
+}
+
+func (h *mockStatusHandler) IsAvailable(ctx context.Context, snapshot types.ClusterSnapshot) types.HandlerStatus {
+	return h.status
+}
+func (h *mockStatusHandler) Route() types.Route {
+	return h.router
+}
+
+func _TestMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
+	rs := routers.GetAllRoutes(headers, 1)
+	var handlers []types.RouteHandler
+	for _, r := range rs {
+		mockr := r.(*mockRouter)
+		handler := &mockStatusHandler{
+			status: mockr.status,
+			router: r,
+		}
+		handlers = append(handlers, handler)
+	}
+	return NewRouteHandlerChain(context.Background(), clusterManager, handlers)
+}
+
+func TestExtendHandler(t *testing.T) {
+	headerMatch := protocol.CommonHeader(map[string]string{
+		"test": "test",
+	})
+	// Test HandlerChain: 1. NotAvailable 2. Stop
+	routers := &mockRouters{
+		r: []types.Route{
+			&mockRouter{status: types.HandlerNotAvailable},
+			&mockRouter{status: types.HandlerStop},
+		},
+		header: headerMatch,
+	}
+	// register
+	makeHandlerChain = _TestMakeHandlerChain
+	clusterManager := &mockManager{}
+	//1.
+	if hc := CallMakeHandlerChain(headerMatch, routers, clusterManager); hc == nil {
+		t.Fatal("make extend handler chain failed")
+	} else {
+		if _, route := hc.DoNextHandler(); route != nil {
+			t.Fatal("unexpected Handler result")
+		}
+	}
+	// Test HandlerChain: 1. NotAvailable 2. Unexpected(as NotAvailable) 3. Available (checked)
+	routers2 := &mockRouters{
+		r: []types.Route{
+			&mockRouter{status: types.HandlerNotAvailable},
+			&mockRouter{status: types.HandlerStatus(-1)}, // Unexpected
+			&mockRouter{},                                //Available
+		},
+		header: headerMatch,
+	}
+	if hc := CallMakeHandlerChain(headerMatch, routers2, clusterManager); hc == nil {
+		t.Fatal("make extend handler chain failed")
+	} else {
+		if _, route := hc.DoNextHandler(); route == nil {
+			t.Fatal("want to get a available router")
+		} else {
+			// verify the router
+			if route.(*mockRouter).status != types.HandlerAvailable {
+				t.Error("handler chain get router unexpected")
+			}
+		}
+	}
+	// Test HandlerChain: all of the handlers are NotAvailable
+	routers3 := &mockRouters{
+		r: []types.Route{
+			&mockRouter{status: types.HandlerNotAvailable},
+			&mockRouter{status: types.HandlerNotAvailable},
+			&mockRouter{status: types.HandlerNotAvailable},
+		},
+		header: headerMatch,
+	}
+	if hc := CallMakeHandlerChain(headerMatch, routers3, clusterManager); hc == nil {
+		t.Fatal("make extend handler chain failed")
+	} else {
+		if _, route := hc.DoNextHandler(); route != nil {
+			t.Fatal("unexpected Handler result")
+		}
+	}
 }
