@@ -103,6 +103,13 @@ func (f *FaultInject) UnmarshalJSON(b []byte) error {
 	f.DelayDuration = uint64(f.DelayDurationConfig.Duration)
 	return nil
 }
+func (d *DelayInject) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &d.DelayInjectConfig); err != nil {
+		return err
+	}
+	d.Delay = d.DelayDurationConfig.Duration
+	return nil
+}
 
 func (r *Router) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &r.RouterConfig); err != nil {

@@ -256,10 +256,6 @@ func (s *downStream) ReceiveHeaders(headers types.HeaderMap, endStream bool) {
 }
 
 func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, headers types.HeaderMap, endStream bool) {
-	if s.runReceiveHeadersFilters(filter, headers, endStream) {
-		return
-	}
-
 	log.DefaultLogger.Tracef("before active stream route")
 	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
 		log.DefaultLogger.Errorf("doReceiveHeaders error: routersWrapper or routers in routersWrapper is nil")
@@ -271,14 +267,14 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// get router instance and do routing
 	routers := s.proxy.routersWrapper.GetRouters()
 	// do handler chain
-	handlerChain := router.CallMakeHandlerChain(headers, routers)
+	handlerChain := router.CallMakeHandlerChain(headers, routers, s.proxy.clusterManager)
 	if handlerChain == nil {
 		log.DefaultLogger.Warnf("no route to make handler chain, headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
 	}
-	route := handlerChain.DoNextHandler()
+	clusterSnapshot, route := handlerChain.DoNextHandler()
 	if route == nil || route.RouteRule() == nil {
 		// no route
 		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
@@ -288,27 +284,27 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 		return
 	}
-
-	// as ClusterName has random factor when choosing weighted cluster,
-	// so need determination at the first time
-	clusterName := route.RouteRule().ClusterName()
-	clusterSnapshot := s.proxy.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
-	// TODO : verify cluster snapshot is valid
-
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
-		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", clusterName)
+		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", route.RouteRule().ClusterName())
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
+	s.route = route
+	// as ClusterName has random factor when choosing weighted cluster,
+	// so need determination at the first time
+	clusterName := route.RouteRule().ClusterName()
+	log.DefaultLogger.Tracef("get route : %v,clusterName=%v", route, clusterName)
+
+	// run stream filters after route is choosed
+	if s.runReceiveHeadersFilters(filter, headers, endStream) {
+		return
+	}
+
 	s.snapshot = clusterSnapshot
 
 	s.cluster = clusterSnapshot.ClusterInfo()
-
-	log.DefaultLogger.Tracef("get route : %v,clusterName=%v", route, clusterName)
-
-	s.route = route
 
 	s.requestInfo.SetRouteEntry(route.RouteRule())
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())

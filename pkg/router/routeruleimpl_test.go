@@ -63,9 +63,14 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			route.Match.Prefix,
 		}
 		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := rr.Match(headers, 1) != nil
-		if result != tc.expected {
+		result := rr.Match(headers, 1)
+		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
+		}
+		if result != nil {
+			if result.RouteRule().PathMatchCriterion().MatchType() != types.Prefix {
+				t.Errorf("#%d match type is not expected", i)
+			}
 		}
 	}
 }
@@ -98,9 +103,14 @@ func TestPathRouteRuleImpl(t *testing.T) {
 		base.caseSensitive = tc.caseSensitive //hack case sensitive
 		rr := &PathRouteRuleImpl{base, route.Match.Path}
 		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := rr.Match(headers, 1) != nil
-		if result != tc.expected {
+		result := rr.Match(headers, 1)
+		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
+		}
+		if result != nil {
+			if result.RouteRule().PathMatchCriterion().MatchType() != types.Exact {
+				t.Errorf("#%d match type is not expected", i)
+			}
 		}
 
 	}
@@ -138,9 +148,14 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 			re,
 		}
 		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := rr.Match(headers, 1) != nil
-		if result != tc.expected {
+		result := rr.Match(headers, 1)
+		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
+		}
+		if result != nil {
+			if result.RouteRule().PathMatchCriterion().MatchType() != types.Regex {
+				t.Errorf("#%d match type is not expected", i)
+			}
 		}
 	}
 }
@@ -615,48 +630,48 @@ func TestRouteRuleImplBase_UpdateMetaDataMatchCriteria(t *testing.T) {
 			name: "common case",
 			origin: &RouteRuleImplBase{
 				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[0].originMetadata),
-				metaData:              getClusterMosnLBMetaDataMap(originMetadatas[0].originMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(originMetadatas[0].originMetadata),
 			},
 			updatedMetadata: updatedMetadatas[0].updatedMetadata,
 			want: &RouteRuleImplBase{
 				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[0].updatedMetadata),
-				metaData:              getClusterMosnLBMetaDataMap(updatedMetadatas[0].updatedMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(updatedMetadatas[0].updatedMetadata),
 			},
 		},
 		{
 			name: "corner case1",
 			origin: &RouteRuleImplBase{
 				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[0].originMetadata),
-				metaData:              getClusterMosnLBMetaDataMap(originMetadatas[0].originMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(originMetadatas[0].originMetadata),
 			},
 			updatedMetadata: updatedMetadatas[1].updatedMetadata,
 			want: &RouteRuleImplBase{
 				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[1].updatedMetadata),
-				metaData:              getClusterMosnLBMetaDataMap(updatedMetadatas[1].updatedMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(updatedMetadatas[1].updatedMetadata),
 			},
 		},
 		{
 			name: "corner case2",
 			origin: &RouteRuleImplBase{
 				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[1].originMetadata),
-				metaData:              getClusterMosnLBMetaDataMap(originMetadatas[1].originMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(originMetadatas[1].originMetadata),
 			},
 			updatedMetadata: updatedMetadatas[1].updatedMetadata,
 			want: &RouteRuleImplBase{
 				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[0].updatedMetadata),
-				metaData:              getClusterMosnLBMetaDataMap(updatedMetadatas[0].updatedMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(updatedMetadatas[0].updatedMetadata),
 			},
 		},
 		{
 			name: "corner case3",
 			origin: &RouteRuleImplBase{
 				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[1].originMetadata),
-				metaData:              getClusterMosnLBMetaDataMap(originMetadatas[1].originMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(originMetadatas[1].originMetadata),
 			},
 			updatedMetadata: updatedMetadatas[1].updatedMetadata,
 			want: &RouteRuleImplBase{
 				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[1].updatedMetadata),
-				metaData:              getClusterMosnLBMetaDataMap(updatedMetadatas[1].updatedMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(updatedMetadatas[1].updatedMetadata),
 			},
 		},
 	}

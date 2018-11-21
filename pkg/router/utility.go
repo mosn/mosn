@@ -25,6 +25,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// GetClusterMosnLBMetaDataMap exports getClusterMosnLBMetaDataMap
+func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
+	return getClusterMosnLBMetaDataMap(metadata)
+}
+
 // getClusterMosnLBMetaDataMap from v2.Metadata
 // Value maybe hashed
 func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
@@ -55,10 +60,15 @@ func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]
 	return weightedClusterEntries, totalWeight
 }
 
-func getRouterHeaders(heades []v2.HeaderMatcher) []*types.HeaderData {
+// GetRouterHeaders exports getRouterHeaders
+func GetRouterHeaders(headers []v2.HeaderMatcher) []*types.HeaderData {
+	return getRouterHeaders(headers)
+}
+
+func getRouterHeaders(headers []v2.HeaderMatcher) []*types.HeaderData {
 	var headerDatas []*types.HeaderData
 
-	for _, header := range heades {
+	for _, header := range headers {
 		headerData := &types.HeaderData{
 			Name: &lowerCaseString{
 				header.Name,

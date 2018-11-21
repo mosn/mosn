@@ -51,6 +51,7 @@ type info interface {
 type RouteBase interface {
 	types.Route
 	types.RouteRule
+	types.PathMatchCriterion
 	matchable
 	info
 }
@@ -201,4 +202,4 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) RouteBase
 
 // MakeHandlerChain creates a RouteHandlerChain
-type MakeHandlerChain func(types.HeaderMap, types.Routers) *RouteHandlerChain
+type MakeHandlerChain func(types.HeaderMap, types.Routers, types.ClusterManager) *RouteHandlerChain

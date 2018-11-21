@@ -14,125 +14,213 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-//Similar to Network's damage on flow
 
 package faultinject
 
 import (
 	"context"
 	"math/rand"
-	"sync/atomic"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	jsoniter "github.com/json-iterator/go"
 )
 
-func init() {
-	filter.RegisterStream("fault_inject", CreateFaultInjectFilterFactory)
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+// faultInjectConfig is parsed from v2.StreamFaultInject
+type faultInjectConfig struct {
+	fixedDelay   time.Duration
+	delayPercent uint32
+	abortStatus  int
+	abortPercent uint32
+	upstream     string
+	headers      []*types.HeaderData
 }
 
-type faultInjectFilter struct {
-	context context.Context
-
-	delayPercent  uint32
-	delayDuration uint64
-	delaying      uint32
-	cb            types.StreamReceiverFilterCallbacks
+func makefaultInjectConfig(cfg *v2.StreamFaultInject) *faultInjectConfig {
+	faultConfig := &faultInjectConfig{
+		upstream: cfg.UpstreamCluster,
+		headers:  router.GetRouterHeaders(cfg.Headers),
+	}
+	if cfg.Delay != nil {
+		faultConfig.fixedDelay = cfg.Delay.Delay
+		faultConfig.delayPercent = cfg.Delay.Percent
+	}
+	if cfg.Abort != nil {
+		faultConfig.abortStatus = cfg.Abort.Status
+		faultConfig.abortPercent = cfg.Abort.Percent
+	}
+	return faultConfig
 }
 
-func NewFaultInjectFilter(context context.Context, config *v2.FaultInject) types.StreamReceiverFilter {
-	return &faultInjectFilter{
-		context:       context,
-		delayPercent:  config.DelayPercent,
-		delayDuration: config.DelayDuration,
+// TODO: this is a hack for per route config parse
+// delete it later, when per route config changes to map[string]interface{}
+func parseStreamFaultInjectConfig(c interface{}) (*faultInjectConfig, bool) {
+	conf := make(map[string]interface{})
+	b, err := json.Marshal(c)
+	if err != nil {
+		log.DefaultLogger.Errorf("config is not a json, %v", err)
+		return nil, false
+	}
+	json.Unmarshal(b, &conf)
+	cfg, err := config.ParseStreamFaultInjectFilter(conf)
+	if err != nil {
+		log.DefaultLogger.Errorf("config is not stream fault inject", err)
+		return nil, false
+	}
+	return makefaultInjectConfig(cfg), true
+}
+
+// streamFaultInjectFilter is an implement of types.StreamReceiverFilter
+type streamFaultInjectFilter struct {
+	ctx       context.Context
+	isDelayed bool
+	cb        types.StreamReceiverFilterCallbacks
+	config    *faultInjectConfig
+	stop      chan struct{}
+	rander    *rand.Rand
+	headers   types.HeaderMap
+}
+
+func NewFilter(ctx context.Context, cfg *v2.StreamFaultInject) types.StreamReceiverFilter {
+	log.DefaultLogger.Debugf("create a new fault inject filter")
+	return &streamFaultInjectFilter{
+		ctx:       ctx,
+		isDelayed: false,
+		config:    makefaultInjectConfig(cfg),
+		stop:      make(chan struct{}),
+		rander:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
-func (f *faultInjectFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
-	f.tryInjectDelay()
-
-	if atomic.LoadUint32(&f.delaying) > 0 {
-		return types.StreamHeadersFilterStop
-	}
-
-	return types.StreamHeadersFilterContinue
-}
-
-func (f *faultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
-	f.tryInjectDelay()
-
-	if atomic.LoadUint32(&f.delaying) > 0 {
-		return types.StreamDataFilterStopAndBuffer
-	}
-
-	return types.StreamDataFilterContinue
-}
-
-func (f *faultInjectFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
-	f.tryInjectDelay()
-
-	if atomic.LoadUint32(&f.delaying) > 0 {
-		return types.StreamTrailersFilterStop
-	}
-
-	return types.StreamTrailersFilterContinue
-}
-
-func (f *faultInjectFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
-	f.cb = cb
-}
-
-func (f *faultInjectFilter) OnDestroy() {}
-
-func (f *faultInjectFilter) tryInjectDelay() {
-	if atomic.LoadUint32(&f.delaying) > 0 {
+// ReadPerRouteConfig makes route-level configuration override filter-level configuration
+func (f *streamFaultInjectFilter) ReadPerRouteConfig(cfg map[string]interface{}) {
+	if cfg == nil {
 		return
 	}
-
-	duration := f.getDelayDuration()
-
-	if duration > 0 {
-		if atomic.CompareAndSwapUint32(&f.delaying, 0, 1) {
-			go func() {
-				select {
-				case <-time.After(time.Duration(duration) * time.Millisecond):
-					atomic.StoreUint32(&f.delaying, 0)
-					log.ByContext(f.context).Debugf("[FaultInject] Continue after delay")
-					f.cb.ContinueDecoding()
-				}
-			}()
+	if fault, ok := cfg[v2.FaultStream]; ok {
+		if config, ok := parseStreamFaultInjectConfig(fault); ok {
+			log.DefaultLogger.Debugf("use router config to replace stream filter config, config: %v", fault)
+			f.config = config
 		}
 	}
 }
 
-func (f *faultInjectFilter) getDelayDuration() uint64 {
-	if f.delayPercent == 0 {
+func (f *streamFaultInjectFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
+	f.cb = cb
+}
+func (f *streamFaultInjectFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+	log.DefaultLogger.Debugf("fault inject filter do receive headers")
+	if route := f.cb.Route(); route != nil {
+		// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
+		f.ReadPerRouteConfig(route.RouteRule().PerFilterConfig())
+	}
+	if !f.matchUpstream() {
+		log.DefaultLogger.Debugf("upstream is not matched")
+		return types.StreamHeadersFilterContinue
+	}
+	// TODO: check downstream nodes, support later
+	//if !f.downstreamNodes() {
+	//	return types.StreamHeadersFilterContinue
+	//}
+	if !router.ConfigUtilityInst.MatchHeaders(headers, f.config.headers) {
+		log.DefaultLogger.Debugf("header is not matched, request headers: %v, config headers: %v", headers, f.config.headers)
+		return types.StreamHeadersFilterContinue
+	}
+	// TODO: some parameters can get from request header
+	if delay := f.getDelayDuration(); delay > 0 {
+		f.isDelayed = true
+		go func() { // start a timer
+			log.DefaultLogger.Debugf("start a delay timer")
+			select {
+			case <-time.After(delay):
+				f.doDelayInject(headers)
+			case <-f.stop:
+				log.DefaultLogger.Debugf("timer is stopped")
+				return
+			}
+		}()
+		// TODO: stats
+		f.cb.RequestInfo().SetResponseFlag(types.DelayInjected)
+		return types.StreamHeadersFilterStop
+	}
+	if f.isAbort() {
+		f.abort(headers)
+		return types.StreamHeadersFilterStop
+	}
+	return types.StreamHeadersFilterContinue
+}
+func (f *streamFaultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+	if !f.isDelayed {
+		return types.StreamDataFilterContinue
+	}
+	return types.StreamDataFilterStopAndBuffer
+}
+func (f *streamFaultInjectFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+	if !f.isDelayed {
+		return types.StreamTrailersFilterContinue
+	}
+	return types.StreamTrailersFilterStop
+}
+func (f *streamFaultInjectFilter) OnDestroy() {
+	close(f.stop)
+}
+
+// matches and inject
+
+func (f *streamFaultInjectFilter) matchUpstream() bool {
+	if f.config.upstream != "" {
+		if route := f.cb.Route(); route != nil {
+			log.DefaultLogger.Debugf("current cluster name %s, fault inject cluster name %s", route.RouteRule().ClusterName(), f.config.upstream)
+			return route.RouteRule().ClusterName() == f.config.upstream
+		}
+	}
+	log.DefaultLogger.Debugf("no upstream in config, returns true")
+	return true
+}
+func (f *streamFaultInjectFilter) getDelayDuration() time.Duration {
+	// percent is 0 or delay is 0 means no delay
+	if f.config.delayPercent == 0 || f.config.fixedDelay == 0 {
+		log.DefaultLogger.Debugf("no delay inject")
 		return 0
 	}
-
-	if uint32(rand.Intn(100))+1 > f.delayPercent {
+	// rander generates 0~99, if greater than percent means no delay
+	if (f.rander.Uint32() % 100) >= f.config.delayPercent {
+		log.DefaultLogger.Debugf("delay percent is not matched")
 		return 0
 	}
+	return f.config.fixedDelay
 
-	return f.delayDuration
+}
+func (f *streamFaultInjectFilter) doDelayInject(headers types.HeaderMap) {
+	// abort maybe called after delay
+	if f.isAbort() {
+		f.abort(headers)
+	} else {
+		f.cb.ContinueDecoding()
+	}
+}
+func (f *streamFaultInjectFilter) isAbort() bool {
+	// percent is 0 means no abort
+	if f.config.abortPercent == 0 {
+		log.DefaultLogger.Debugf("no abort inject")
+		return false
+	}
+	if (f.rander.Uint32() % 100) >= f.config.abortPercent {
+		log.DefaultLogger.Debugf("abort percent is not matched")
+		return false
+	}
+	return true
 }
 
-// ~~ factory
-type FilterConfigFactory struct {
-	FaultInject *v2.FaultInject
-}
-
-func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
-	filter := NewFaultInjectFilter(context, f.FaultInject)
-	callbacks.AddStreamReceiverFilter(filter)
-}
-
-func CreateFaultInjectFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
-	return &FilterConfigFactory{
-		FaultInject: config.ParseFaultInjectFilter(conf),
-	}, nil
+// TODO: make a header
+func (f *streamFaultInjectFilter) abort(headers types.HeaderMap) {
+	log.DefaultLogger.Debugf("abort inject")
+	f.cb.RequestInfo().SetResponseFlag(types.FaultInjected)
+	f.cb.SendHijackReply(f.config.abortStatus, headers)
 }

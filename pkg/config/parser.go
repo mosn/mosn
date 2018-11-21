@@ -264,6 +264,19 @@ func ParseFaultInjectFilter(cfg map[string]interface{}) *v2.FaultInject {
 	return filterConfig
 }
 
+// ParseStreamFaultInjectFilter
+func ParseStreamFaultInjectFilter(cfg map[string]interface{}) (*v2.StreamFaultInject, error) {
+	filterConfig := &v2.StreamFaultInject{}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, filterConfig); err != nil {
+		return nil, err
+	}
+	return filterConfig, nil
+}
+
 // ParseMixerFilter
 func ParseMixerFilter(cfg map[string]interface{}) *v2.Mixer {
 	mixerFilter := &v2.Mixer{}
