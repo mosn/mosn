@@ -37,7 +37,12 @@ const (
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
 	RPC_PROXY                   = "rpc_proxy"
 	X_PROXY                     = "x_proxy"
-	MIXER                       = "mixer"
+)
+
+// Stream Filter's Type
+const (
+	MIXER       = "mixer"
+	FaultStream = "fault"
 )
 
 // ClusterType
@@ -141,6 +146,23 @@ type HealthCheckFilter struct {
 type FaultInject struct {
 	FaultInjectConfig
 	DelayDuration uint64 `json:"-"`
+}
+
+// StreamFaultInject
+type StreamFaultInject struct {
+	Delay           *DelayInject    `json:"delay"`
+	Abort           *AbortInject    `json:"abort"`
+	UpstreamCluster string          `json:"upstream_cluster"`
+	Headers         []HeaderMatcher `json:"headers"`
+}
+
+type DelayInject struct {
+	DelayInjectConfig
+	Delay time.Duration `json:"-"`
+}
+type AbortInject struct {
+	Status  int    `json:"status"`
+	Percent uint32 `json:"percentage"`
 }
 
 type Mixer struct {

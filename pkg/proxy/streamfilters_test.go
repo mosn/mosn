@@ -97,7 +97,12 @@ func TestRunReiverFilters(t *testing.T) {
 		},
 	}
 	for i, tc := range testCases {
-		s := &downStream{}
+		s := &downStream{
+			proxy: &proxy{
+				routersWrapper: &mockRouterWrapper{},
+				clusterManager: &mockClusterManager{},
+			},
+		}
 		for _, f := range tc.filters {
 			s.AddStreamReceiverFilter(f)
 		}
@@ -179,7 +184,12 @@ func TestRunSenderFilters(t *testing.T) {
 		},
 	}
 	for i, tc := range testCases {
-		s := &downStream{}
+		s := &downStream{
+			proxy: &proxy{
+				routersWrapper: &mockRouterWrapper{},
+				clusterManager: &mockClusterManager{},
+			},
+		}
 		for _, f := range tc.filters {
 			s.AddStreamSenderFilter(f)
 		}

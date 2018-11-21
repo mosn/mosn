@@ -67,6 +67,11 @@ type FaultInjectConfig struct {
 	DelayDurationConfig DurationConfig `json:"delay_duration"`
 }
 
+type DelayInjectConfig struct {
+	Percent             uint32         `json:"percentage"`
+	DelayDurationConfig DurationConfig `json:"fixed_delay"`
+}
+
 type RouterConfig struct {
 	Match           RouterMatch            `json:"match"`
 	Route           RouteAction            `json:"route"`

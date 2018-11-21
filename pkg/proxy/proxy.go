@@ -179,6 +179,7 @@ func (p *proxy) NewStream(context context.Context, streamID string, responseSend
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
+		log.DefaultLogger.Debugf("there is %d stream filters in config", len(ffs))
 
 		for _, f := range ffs {
 			f.CreateFilterChain(p.context, stream)
