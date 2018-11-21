@@ -394,6 +394,52 @@ func TestFaultInjectUnmarshal(t *testing.T) {
 		t.Error("fault inject failed")
 	}
 }
+func TestDelayInjectUnmarshal(t *testing.T) {
+	inject := `{
+		"fixed_delay": "15s",
+		"percentage": 100
+	}`
+	b := []byte(inject)
+	di := &DelayInject{}
+	if err := json.Unmarshal(b, di); err != nil {
+		t.Error(err)
+		return
+	}
+	if !(di.Delay == 15*time.Second && di.Percent == 100) {
+		t.Error("delay inject failed")
+	}
+}
+func TestStreamFaultInject(t *testing.T) {
+	streamfilter := `{
+		"delay": {
+			"fixed_delay":"1s",
+			"percentage": 100
+		},
+		"abort": {
+			"status": 500,
+			"percentage": 100
+		},
+		"upstream_cluster": "clustername",
+		"headers": [
+			{"name":"service","value":"test","regex":false},
+			{"name":"user","value":"bob", "regex":false}
+		]
+	}`
+	b := []byte(streamfilter)
+	sfi := &StreamFaultInject{}
+	if err := json.Unmarshal(b, sfi); err != nil {
+		t.Error(err)
+		return
+	}
+	if !(sfi.Delay.Delay == time.Second &&
+		sfi.Delay.Percent == 100 &&
+		sfi.Abort.Status == 500 &&
+		sfi.Abort.Percent == 100 &&
+		sfi.UpstreamCluster == "clustername" &&
+		len(sfi.Headers) == 2) {
+		t.Error("unexpected stream fault inject")
+	}
+}
 
 func TestTCPProxyUnmarshal(t *testing.T) {
 	tcpproxy := `{

@@ -37,6 +37,7 @@ import (
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
+	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
@@ -45,6 +46,7 @@ import (
 	"istio.io/api/mixer/v1/config/client"
 )
 
+// support network filter list
 var supportFilter = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
 	xdsutil.TCPProxy:              true,
@@ -57,6 +59,13 @@ var httpBaseConfig = map[string]bool{
 	xdsutil.HTTPConnectionManager: true,
 	v2.RPC_PROXY:                  true,
 }
+
+// istio stream filter names, which is quite different from mosn
+const (
+	IstioFault  = "envoy.fault"
+	IstioRouter = "envoy.router"
+	IstioCors   = "envoy.cors"
+)
 
 // todo add streamfilters parse
 func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
@@ -263,6 +272,7 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 			streamFilter := convertStreamFilter(filter.GetName(), filter.GetConfig())
 			// only support mixer now, so ignore unsupport filter
 			if streamFilter.Type != "" {
+				log.DefaultLogger.Debugf("add a new stream filter, %v", streamFilter.Type)
 				filters = append(filters, streamFilter)
 			}
 		}
@@ -288,10 +298,68 @@ func convertStreamFilter(name string, s *types.Struct) v2.Filter {
 		if err != nil {
 			log.DefaultLogger.Errorf("convertMixerConfig error: %v", err)
 		}
+	case v2.FaultStream, IstioFault:
+		filter.Type = v2.FaultStream
+		// istio maybe do not contain this config, but have configs in router
+		// in this case, we create a fault inject filter that do nothing
+		if s == nil {
+			streamFault := &v2.StreamFaultInject{}
+			filter.Config, err = makeJsonMap(streamFault)
+			if err != nil {
+				log.DefaultLogger.Errorf("convert fault inject config error: %v", err)
+			}
+		} else { // common case
+			filter.Config, err = convertStreamFaultInjectConfig(s)
+			if err != nil {
+				log.DefaultLogger.Errorf("convert fault inject config error: %v", err)
+			}
+		}
 	default:
 	}
 
 	return filter
+}
+
+func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, error) {
+	faultConfig := &xdshttpfault.HTTPFault{}
+	if err := xdsutil.StructToMessage(s, faultConfig); err != nil {
+		return nil, err
+	}
+
+	var fixed_delay time.Duration
+	if d := faultConfig.Delay.GetFixedDelay(); d != nil {
+		fixed_delay = *d
+	}
+	streamFault := &v2.StreamFaultInject{
+		Delay: &v2.DelayInject{
+			DelayInjectConfig: v2.DelayInjectConfig{
+				Percent: faultConfig.Delay.GetPercent(),
+				DelayDurationConfig: v2.DurationConfig{
+					Duration: fixed_delay,
+				},
+			},
+		},
+		Abort: &v2.AbortInject{
+			Percent: faultConfig.Abort.GetPercent(),
+			Status:  int(faultConfig.Abort.GetHttpStatus()),
+		},
+		UpstreamCluster: faultConfig.UpstreamCluster,
+		Headers:         convertHeaders(faultConfig.GetHeaders()),
+	}
+	return makeJsonMap(streamFault)
+}
+
+func makeJsonMap(v interface{}) (map[string]interface{}, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var cfg map[string]interface{}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
+
 }
 
 func convertMixerConfig(s *types.Struct) (map[string]interface{}, error) {
@@ -563,13 +631,22 @@ func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[strin
 	for key, config := range xdsPerRouteConfig {
 		switch key {
 		case v2.MIXER:
+			// TODO: use convertMixerConfig
 			var serviceConfig client.ServiceConfig
 			err := xdsutil.StructToMessage(config, &serviceConfig)
 			if err != nil {
-				log.DefaultLogger.Infof("convertPerRouteConfig error: %v", err)
+				log.DefaultLogger.Infof("convertPerRouteConfig[%s] error: %v", v2.MIXER, err)
 				continue
 			}
 			perRouteConfig[key] = serviceConfig
+		case v2.FaultStream, IstioFault:
+			cfg, err := convertStreamFaultInjectConfig(config)
+			if err != nil {
+				log.DefaultLogger.Infof("convertPerRouteConfig[%s] error: %v", v2.FaultStream, err)
+				continue
+			}
+			log.DefaultLogger.Debugf("add a fault inject stream filter in router")
+			perRouteConfig[v2.FaultStream] = cfg
 		default:
 			log.DefaultLogger.Warnf("unknown per route config: %s", key)
 		}
