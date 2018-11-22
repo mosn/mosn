@@ -27,6 +27,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 	"time"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"fmt"
 )
 
 const defaultMaxConn = 512
@@ -44,15 +46,23 @@ type connPool struct {
 
 	host types.Host
 
+	statReport bool
+
 	clientMux   sync.Mutex
 	clients     []*activeClient // available clients
 	clientCount int             // total clients
 }
 
 func NewConnPool(host types.Host) types.ConnectionPool {
-	return &connPool{
+	pool := &connPool{
 		host: host,
 	}
+
+	if pool.statReport {
+		pool.report()
+	}
+
+	return pool
 }
 
 func (p *connPool) Protocol() types.Protocol {
@@ -146,6 +156,7 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 			if c == client {
 				p.clients[i] = nil
 				p.clients = append(p.clients[:i], p.clients[i+1:]...)
+				break
 			}
 		}
 	} else if event == types.ConnectTimeout {
@@ -165,9 +176,8 @@ func (p *connPool) onStreamDestroy(client *activeClient) {
 
 	// return to pool
 	p.clientMux.Lock()
-	defer p.clientMux.Unlock()
-
 	p.clients = append(p.clients, client)
+	p.clientMux.Unlock()
 }
 
 func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetReason) {
@@ -199,10 +209,24 @@ func (p *connPool) createCodecClient(context context.Context, connData types.Cre
 	return str.NewCodecClient(context, protocol.HTTP1, connData.Connection, connData.HostInfo)
 }
 
+func (p *connPool) report() {
+	// report
+	go func() {
+		for {
+			p.clientMux.Lock()
+			fmt.Printf("pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.clients), p.clientCount)
+			p.clientMux.Unlock()
+			time.Sleep(time.Second)
+		}
+	}()
+}
+
 // stream.CodecClientCallbacks
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
+	index int //only for troubleshooting
+
 	pool               *connPool
 	codecClient        str.CodecClient
 	host               types.CreateConnectionData
@@ -212,7 +236,8 @@ type activeClient struct {
 
 func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
-		pool: pool,
+		index: pool.clientCount,
+		pool:  pool,
 	}
 
 	data := pool.host.CreateConnection(context)
@@ -227,6 +252,9 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	if err := ac.host.Connection.Connect(true); err != nil {
 		return nil
 	}
+
+	//debug
+	log.DefaultLogger.Errorf("newActiveClient, host = %s, local addr = %s, index = %d", pool.host.Address(), ac.host.Connection.RawConn().LocalAddr(), ac.index)
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)

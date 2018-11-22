@@ -99,14 +99,18 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 
 	n = copy(p, data.Bytes())
 	data.Drain(n)
-	//fmt.Printf("http1 Read : %v\n", p)
 	conn.bufChan <- nil
 	return
 }
 
 func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	n = len(p)
-	err = conn.conn.Write(buffer.NewIoBufferBytes(p))
+
+	// TODO avoid copy
+	buffer := buffer.GetIoBuffer(n)
+	buffer.Write(p)
+
+	err = conn.conn.Write(buffer)
 	return
 }
 
@@ -152,7 +156,7 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 
 func (csc *clientStreamConnection) serve() {
 	for {
-		// 1. blocking read using fasthttp.Request.Read
+		// 1. blocking read using fasthttp.Response.Read
 		response := fasthttp.AcquireResponse()
 		err := response.Read(csc.br)
 		if err != nil {
@@ -216,7 +220,8 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
 
-	//fasthttp.ServeConn(connection.RawConn(), ssc.ServeHTTP)
+	connection.AddConnectionEventListener(ssc)
+
 	go ssc.serve()
 
 	return ssc
