@@ -273,7 +273,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headers types.Head
 
 	if URI != "" {
 
-		if queryString, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok {
+		if queryString, ok := headersMap[protocol.MosnHeaderQueryStringKey]; ok && queryString != "" {
 			URI += "?" + queryString
 		}
 

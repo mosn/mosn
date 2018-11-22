@@ -36,7 +36,7 @@ const (
 	SofaStream
 	Proxy
 	Bytes
-	shadowProxy
+	Shadow
 	End
 )
 

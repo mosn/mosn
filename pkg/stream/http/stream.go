@@ -163,7 +163,7 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 	}
 
 	server := fasthttp.Server{
-		Handler:                       ssc.ServeHTTP,
+		Handler: ssc.ServeHTTP,
 		DisableHeaderNamesNormalizing: true,
 	}
 	server.ServeConn(connection.RawConn())
@@ -278,7 +278,6 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	}
 
 	s.request.SetRequestURI(uri)
-
 
 	if _, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
 		delete(headers, protocol.MosnHeaderQueryStringKey)

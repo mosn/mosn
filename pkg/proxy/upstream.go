@@ -206,7 +206,7 @@ func (r *upstreamRequest) appendTrailers(trailers types.HeaderMap) {
 	log.DefaultLogger.Debugf("upstream request encode trailers")
 	r.sendComplete = true
 	r.trailerSent = true
-	r.requestSender.AppendTrailers(r.downStream.context, trailers)
+	r.requestSender.AppendTrailers(r.downStream.context, r.convertTrailer(trailers))
 }
 
 func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
@@ -243,9 +243,8 @@ func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, ho
 	r.requestSender.GetStream().AddEventListener(r)
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
-	r.downStream.finalUpRequestHeader = r.convertHeader(r.downStream.downstreamReqHeaders)
 
-	r.requestSender.AppendHeaders(r.downStream.context, r.downStream.finalUpRequestHeader, endStream)
+	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())

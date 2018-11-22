@@ -92,16 +92,3 @@ func (h CommonHeader) CopyHeaderMap() types.HeaderMap {
 
 	return CommonHeader(header)
 }
-
-type ShadowRequestHeader struct {
-	types.HeaderMap
-	ShadowHostName string
-}
-
-func (s *ShadowRequestHeader) Get(key string) (string, bool) {
-	if key == MosnHeaderHostKey {
-		return s.ShadowHostName, true
-	}
-
-	return s.HeaderMap.Get(key)
-}

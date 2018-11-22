@@ -55,20 +55,16 @@ type downStream struct {
 	timeout    *Timeout
 	retryState *retryState
 
-	requestInfo           types.RequestInfo
-	responseSender        types.StreamSender
-	upstreamRequest       *upstreamRequest
-	shadowUpstreamRequest *shadowUpstreamRequest
-	perRetryTimer         *timer
-	responseTimer         *timer
+	requestInfo     types.RequestInfo
+	responseSender  types.StreamSender
+	upstreamRequest *upstreamRequest
+	perRetryTimer   *timer
+	responseTimer   *timer
 
 	// ~~~ downstream request buf
 	downstreamReqHeaders  types.HeaderMap
 	downstreamReqDataBuf  types.IoBuffer
 	downstreamReqTrailers types.HeaderMap
-
-	// final converted request buf to upstream
-	finalUpRequestHeader types.HeaderMap
 
 	// ~~~ downstream response buf
 	downstreamRespHeaders  types.HeaderMap
@@ -911,7 +907,7 @@ func (s *downStream) reset() {
 	s.upstreamRequest = nil
 	s.perRetryTimer = nil
 	s.responseTimer = nil
-	s.downstreamRespHeaders = nil
+	s.downstreamReqHeaders = nil
 	s.downstreamReqDataBuf = nil
 	s.downstreamReqTrailers = nil
 	s.downstreamRespHeaders = nil
@@ -919,7 +915,7 @@ func (s *downStream) reset() {
 	s.downstreamRespTrailers = nil
 	s.senderFilters = s.senderFilters[:0]
 	s.receiverFilters = s.receiverFilters[:0]
-	s.shadowUpstreamRequest = nil
+
 }
 
 // types.LoadBalancerContext
@@ -1016,94 +1012,10 @@ func (s *downStream) maybeDoShadowing() {
 		return
 	}
 
-	route := s.route
-	if route == nil {
-		log.DefaultLogger.Errorf("call maybeDoShadowing error, router is nil")
+	shadowStream := newShadowDownstream(s)
+	if shadowStream == nil {
+		log.DefaultLogger.Errorf("no shadow stream created, streamID = %s", s.streamID)
 		return
 	}
-
-	if route.RouteRule().Policy() == nil || route.RouteRule().Policy().ShadowPolicy() == nil {
-		log.DefaultLogger.Errorf("call maybeDoShadowing error, policy is nil")
-		return
-	}
-
-	sStream := newShadowActiveStream(context.Background(), s.streamID, s.proxy)
-
-	// copy and modify origin headers
-	if s.finalUpRequestHeader != nil {
-		sStream.downstreamReqHeaders = CopyAndModRequestHeaders(s.finalUpRequestHeader)
-	}
-
-	// get data
-	if s.downstreamReqDataBuf != nil {
-		sStream.downstreamReqDataBuf = s.downstreamReqDataBuf
-	}
-
-	// get trailer
-	if s.downstreamReqTrailers != nil {
-		sStream.downstreamReqTrailers = s.downstreamReqTrailers
-	}
-
-	// get shadow cluster
-	shadowClusterName := route.RouteRule().Policy().ShadowPolicy().ClusterName()
-	clusterSnapshot := sStream.proxy.clusterManager.GetClusterSnapshot(context.Background(), shadowClusterName)
-
-	// TODO : verify cluster snapshot is valid
-	if reflect.ValueOf(clusterSnapshot).IsNil() {
-		// no available cluster
-		// return directly, no need to send hijack and response
-		log.DefaultLogger.Errorf("shadow cluster snapshot is nil, cluster name is: %s", shadowClusterName)
-		return
-	}
-
-	sStream.snapshot = clusterSnapshot
-	sStream.cluster = clusterSnapshot.ClusterInfo()
-	log.DefaultLogger.Tracef("get shadow trafic's route : %v,clusterName=%v", route, shadowClusterName)
-
-	sStream.route = route
-
-	// `downstream` implement loadbalancer ctx
-	log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
-	pool, err := sStream.initializeUpstreamConnectionPool(sStream)
-
-	if err != nil {
-		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
-		return
-	}
-
-	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
-
-	// in case that the shadow request may hang which will effect the main request, shadow request still need timeout
-	sStream.timeout = parseProxyTimeout(route, sStream.downstreamReqHeaders)
-
-	//Build Request
-	sUpRequest := &shadowUpstreamRequest{
-		context:            s.context,
-		DownstreamProtocol: s.proxy.config.DownstreamProtocol,
-		UpstreamProtocol:   s.proxy.config.UpstreamProtocol,
-		connPool:           pool,
-		downStream:         sStream,
-		logger:             log.ByContext(sStream.context),
-	}
-
-	sStream.shadowUpstreamRequest = sUpRequest
-
-	// send request to upstream
-	if sStream.downstreamReqHeaders != nil {
-		sUpRequest.appendHeaders(sStream.downstreamReqHeaders, sStream.downstreamReqDataBuf == nil && sStream.downstreamReqTrailers == nil)
-	}
-
-	if sStream.downstreamReqDataBuf != nil {
-		sUpRequest.appendData(sStream.downstreamReqDataBuf, sStream.downstreamReqTrailers == nil)
-	}
-
-	if sStream.downstreamReqTrailers != nil {
-		sUpRequest.appendTrailers(sStream.downstreamReqTrailers)
-	}
-
-	//// setup per req timeout timer
-	if sStream.timeout.TryTimeout > 0 {
-		sStream.perRetryTimer = newTimer(s.shadowUpstreamRequest.resetStream, sStream.timeout.TryTimeout*time.Second)
-		sStream.perRetryTimer.start()
-	}
+	shadowStream.sendRequest()
 }
