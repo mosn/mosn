@@ -322,6 +322,15 @@ func (b *BoltRequestCommand) Range(f func(key, value string) bool) {
 	}
 }
 
+func (b *BoltRequestCommand) ByteSize() uint64 {
+	var size uint64
+
+	for k, v := range b.RequestHeader {
+		size += uint64(len(k) + len(v))
+	}
+	return size
+}
+
 // ~ HeaderMap
 func (b *BoltResponseCommand) Get(key string) (value string, ok bool) {
 	value, ok = b.ResponseHeader[key]
@@ -343,6 +352,15 @@ func (b *BoltResponseCommand) Range(f func(key, value string) bool) {
 			break
 		}
 	}
+}
+
+func (b *BoltResponseCommand) ByteSize() uint64 {
+	var size uint64
+
+	for k, v := range b.ResponseHeader {
+		size += uint64(len(k) + len(v))
+	}
+	return size
 }
 
 // mosn sofarpc headers' namespace

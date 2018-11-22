@@ -211,7 +211,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
 			// TODO: use goroutine pool
-			go l.listener.Start(nil)
+			go l.listener.Start(lctx)
 		}
 	}
 }
@@ -219,7 +219,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 func (ch *connHandler) StartListeners(lctx context.Context) {
 	for _, l := range ch.listeners {
 		// start goroutine
-		go l.listener.Start(nil)
+		go l.listener.Start(lctx)
 	}
 }
 
@@ -356,12 +356,12 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logg
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		conns:                   list.New(),
-		handler:                 handler,
-		stopChan:                stopChan,
-		logger:                  logger,
-		accessLogs:              accessLoggers,
-		updatedLabel:            false,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		logger:       logger,
+		accessLogs:   accessLoggers,
+		updatedLabel: false,
 	}
 
 	listenPort := 0

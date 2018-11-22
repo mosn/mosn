@@ -19,11 +19,13 @@ package router
 
 import (
 	"math/rand"
+	"reflect"
 	"regexp"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func TestPrefixRouteRuleImpl(t *testing.T) {
@@ -61,9 +63,14 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			route.Match.Prefix,
 		}
 		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := (rr.Match(headers, 1) != nil)
-		if result != tc.expected {
+		result := rr.Match(headers, 1)
+		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
+		}
+		if result != nil {
+			if result.RouteRule().PathMatchCriterion().MatchType() != types.Prefix {
+				t.Errorf("#%d match type is not expected", i)
+			}
 		}
 	}
 }
@@ -96,9 +103,14 @@ func TestPathRouteRuleImpl(t *testing.T) {
 		base.caseSensitive = tc.caseSensitive //hack case sensitive
 		rr := &PathRouteRuleImpl{base, route.Match.Path}
 		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := (rr.Match(headers, 1) != nil)
-		if result != tc.expected {
+		result := rr.Match(headers, 1)
+		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
+		}
+		if result != nil {
+			if result.RouteRule().PathMatchCriterion().MatchType() != types.Exact {
+				t.Errorf("#%d match type is not expected", i)
+			}
 		}
 
 	}
@@ -136,9 +148,14 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 			re,
 		}
 		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := (rr.Match(headers, 1) != nil)
-		if result != tc.expected {
+		result := rr.Match(headers, 1)
+		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
+		}
+		if result != nil {
+			if result.RouteRule().PathMatchCriterion().MatchType() != types.Regex {
+				t.Errorf("#%d match type is not expected", i)
+			}
 		}
 	}
 }
@@ -240,5 +257,429 @@ func TestWeightedClusterSelect(t *testing.T) {
 
 		}
 		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
+	}
+}
+
+func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
+	rri := &RouteRuleImplBase{
+		prefixRewrite: "/abc/",
+	}
+	type args struct {
+		headers     types.HeaderMap
+		matchedPath string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want types.HeaderMap
+	}{
+		{
+			name: "case1",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/"},
+				matchedPath: "/",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/", protocol.MosnOriginalHeaderPathKey: "/"},
+		},
+		{
+			name: "case2",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/index/page/"},
+				matchedPath: "/index/",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/page/", protocol.MosnOriginalHeaderPathKey: "/index/page/"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rri.finalizePathHeader(tt.args.headers, tt.args.matchedPath)
+			if !reflect.DeepEqual(tt.args.headers, tt.want) {
+				t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
+			}
+		})
+
+	}
+}
+
+func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
+
+	type args struct {
+		rri         *RouteRuleImplBase
+		headers     types.HeaderMap
+		requestInfo types.RequestInfo
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want types.HeaderMap
+	}{
+		{
+			name: "case1",
+			args: args{
+				rri: &RouteRuleImplBase{
+					hostRewrite: "www.xxx.com",
+					requestHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+					},
+					vHost: &VirtualHostImpl{
+						requestHeadersParser: &headerParser{
+							headersToAdd: []*headerPair{
+								{
+									headerName: &lowerCaseString{"level"},
+									headerFormatter: &plainHeaderFormatter{
+										isAppend:    true,
+										staticValue: "2",
+									},
+								},
+								{
+									headerName: &lowerCaseString{"vhost"},
+									headerFormatter: &plainHeaderFormatter{
+										isAppend:    true,
+										staticValue: "true",
+									},
+								},
+							},
+						},
+						globalRouteConfig: &configImpl{
+							requestHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
+				requestInfo: nil,
+			},
+			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "authority": "www.xxx.com", "level": "1,2,3", "route": "true", "vhost": "true", "global": "true"},
+		},
+		{
+			name: "case2",
+			args: args{
+				rri: &RouteRuleImplBase{
+					requestHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+					},
+					vHost: &VirtualHostImpl{
+						globalRouteConfig: &configImpl{
+							requestHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
+				requestInfo: nil,
+			},
+			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "true"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.args.rri.FinalizeRequestHeaders(tt.args.headers, tt.args.requestInfo)
+			if !reflect.DeepEqual(tt.args.headers, tt.want) {
+				t.Errorf("(rri *RouteRuleImplBase) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
+			}
+		})
+	}
+}
+
+func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
+
+	type args struct {
+		rri         *RouteRuleImplBase
+		headers     types.HeaderMap
+		requestInfo types.RequestInfo
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want types.HeaderMap
+	}{
+		{
+			name: "case1",
+			args: args{
+				rri: &RouteRuleImplBase{
+					responseHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+						headersToRemove: []*lowerCaseString{{"status"}, {"username"}},
+					},
+					vHost: &VirtualHostImpl{
+						responseHeadersParser: &headerParser{
+							headersToAdd: []*headerPair{
+								{
+									headerName: &lowerCaseString{"level"},
+									headerFormatter: &plainHeaderFormatter{
+										isAppend:    true,
+										staticValue: "2",
+									},
+								},
+								{
+									headerName: &lowerCaseString{"vhost"},
+									headerFormatter: &plainHeaderFormatter{
+										isAppend:    true,
+										staticValue: "true",
+									},
+								},
+							},
+							headersToRemove: []*lowerCaseString{{"ver"}},
+						},
+						globalRouteConfig: &configImpl{
+							responseHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+								headersToRemove: []*lowerCaseString{{"x-mosn"}},
+							},
+						},
+					},
+				},
+				headers:     protocol.CommonHeader{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
+				requestInfo: nil,
+			},
+			want: protocol.CommonHeader{"level": "1,2,3", "route": "true", "vhost": "true", "global": "true"},
+		},
+		{
+			name: "case2",
+			args: args{
+				rri: &RouteRuleImplBase{
+					responseHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+						headersToRemove: []*lowerCaseString{{"status"}, {"username"}},
+					},
+					vHost: &VirtualHostImpl{
+						globalRouteConfig: &configImpl{
+							responseHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+								headersToRemove: []*lowerCaseString{{"x-mosn"}},
+							},
+						},
+					},
+				},
+				headers:     protocol.CommonHeader{"status": "ready", "username": "xx", "ver": "0.1", "x-mosn": "100"},
+				requestInfo: nil,
+			},
+			want: protocol.CommonHeader{"ver": "0.1", "level": "1,3", "route": "true", "global": "true"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.args.rri.FinalizeResponseHeaders(tt.args.headers, tt.args.requestInfo)
+			if !reflect.DeepEqual(tt.args.headers, tt.want) {
+				t.Errorf("(rri *RouteRuleImplBase) FinalizeResponseHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
+			}
+		})
+	}
+}
+
+func TestRouteRuleImplBase_UpdateMetaDataMatchCriteria(t *testing.T) {
+	originMetadatas := []struct {
+		originMetadata map[string]string
+	}{
+		{
+			originMetadata: map[string]string{"origin": "test"},
+		},
+		{
+			originMetadata: map[string]string{},
+		},
+	}
+
+	updatedMetadatas := []struct {
+		updatedMetadata map[string]string
+	}{
+		{
+			updatedMetadata: map[string]string{
+				"label": "green", "version": "v1", "appInfo": "test",
+			},
+		},
+		{
+			updatedMetadata: map[string]string{},
+		},
+	}
+
+	tests := []struct {
+		name            string
+		updatedMetadata map[string]string
+		origin          *RouteRuleImplBase
+		want            *RouteRuleImplBase
+	}{
+		{
+			name: "common case",
+			origin: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[0].originMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(originMetadatas[0].originMetadata),
+			},
+			updatedMetadata: updatedMetadatas[0].updatedMetadata,
+			want: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[0].updatedMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(updatedMetadatas[0].updatedMetadata),
+			},
+		},
+		{
+			name: "corner case1",
+			origin: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[0].originMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(originMetadatas[0].originMetadata),
+			},
+			updatedMetadata: updatedMetadatas[1].updatedMetadata,
+			want: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[1].updatedMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(updatedMetadatas[1].updatedMetadata),
+			},
+		},
+		{
+			name: "corner case2",
+			origin: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[1].originMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(originMetadatas[1].originMetadata),
+			},
+			updatedMetadata: updatedMetadatas[1].updatedMetadata,
+			want: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[0].updatedMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(updatedMetadatas[0].updatedMetadata),
+			},
+		},
+		{
+			name: "corner case3",
+			origin: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(originMetadatas[1].originMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(originMetadatas[1].originMetadata),
+			},
+			updatedMetadata: updatedMetadatas[1].updatedMetadata,
+			want: &RouteRuleImplBase{
+				metadataMatchCriteria: NewMetadataMatchCriteriaImpl(updatedMetadatas[1].updatedMetadata),
+				metaData:              GetClusterMosnLBMetaDataMap(updatedMetadatas[1].updatedMetadata),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		if reflect.DeepEqual(tt.origin.UpdateMetaDataMatchCriteria(tt.updatedMetadata), tt.want) {
+			t.Errorf("TestRouteRuleImplBase_UpdateMetaDataMatchCriteria,error!")
+		}
+
 	}
 }

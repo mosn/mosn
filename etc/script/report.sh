@@ -6,7 +6,7 @@ echo "" > coverage.txt
 for d in $(go list ./pkg/...); do
     output="$(go test -v -coverprofile=profile.out -covermode=atomic $d)"
     echo "$output"
-    fail=$(echo "$output" | grep FAIL | wc -l)
+    fail=$(echo "$output" | grep "\-\-\- FAIL:" | wc -l)
     if [ $fail -ne 0 ]; then
 	    exit 1
     fi

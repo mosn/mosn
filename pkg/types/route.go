@@ -19,6 +19,7 @@ package types
 
 import (
 	"container/list"
+	"context"
 	"crypto/md5"
 	"regexp"
 	"time"
@@ -27,18 +28,24 @@ import (
 )
 
 // Default parameters for route
+
+type RouterType string
+
 const (
-	GlobalTimeout       = 60 * time.Second
-	DefaultRouteTimeout = 15 * time.Second
-	SofaRouteMatchKey   = "service"
-	RouterMetadataKey   = "filter_metadata"
-	RouterMetadataKeyLb = "mosn.lb"
+	GlobalTimeout                  = 60 * time.Second
+	DefaultRouteTimeout            = 15 * time.Second
+	SofaRouteMatchKey              = "service"
+	RouterMetadataKey              = "filter_metadata"
+	RouterMetadataKeyLb            = "mosn.lb"
+	SofaRouterType      RouterType = "sofa"
 )
 
 // Routers defines and manages all router
 type Routers interface {
-	// Route is used to route with headers
+	// Route return first route with headers
 	Route(headers HeaderMap, randomValue uint64) Route
+	// GetAllRoutes returns all routes with headers
+	GetAllRoutes(headers HeaderMap, randomValue uint64) []Route
 }
 
 // RouterManager is a manager for all routers' config
@@ -46,7 +53,25 @@ type RouterManager interface {
 	// AddRoutersSet adds router config when generated
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
-	GetRouterWrapperByListenerName(routerConfigName string) RouterWrapper
+	GetRouterWrapperByName(routerConfigName string) RouterWrapper
+}
+
+// HandlerStatus returns the Handler's available status
+type HandlerStatus int
+
+// HandlerStatus enum
+const (
+	HandlerAvailable HandlerStatus = iota
+	HandlerNotAvailable
+	HandlerStop
+)
+
+// RouteHandler is an external check handler for a route
+type RouteHandler interface {
+	// IsAvailable returns HandlerStatus represents the handler will be used/not used/stop next handler check
+	IsAvailable(context.Context, ClusterSnapshot) HandlerStatus
+	// Route returns handler's route
+	Route() Route
 }
 type RouterWrapper interface {
 	GetRouters() Routers
@@ -86,6 +111,21 @@ type RouteRule interface {
 	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
 	// as we may use weighted cluster's metadata, so need to input cluster's name
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
+
+	// UpdateMetaDataMatchCriteria used to update RouteRuleImplBase's metadata match criteria
+	UpdateMetaDataMatchCriteria(metadata map[string]string) error
+
+	// PerFilterConfig returns per filter config from xds
+	PerFilterConfig() map[string]interface{}
+
+	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
+	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)
+
+	// FinalizeResponseHeaders do potentially destructive header transforms on response headers prior to forwarding
+	FinalizeResponseHeaders(headers HeaderMap, requestInfo RequestInfo)
+
+	// PathMatchCriterion returns the route's PathMatchCriterion
+	PathMatchCriterion() PathMatchCriterion
 }
 
 // Policy defines a group of route policy
@@ -217,6 +257,8 @@ type VirtualHost interface {
 
 	// GetRouteFromEntries returns a Route matched the condition
 	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
+	// GetAllRoutesFromEntries returns all Route matched the condition
+	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
 }
 
 type MetadataMatcher interface {

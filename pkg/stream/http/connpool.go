@@ -27,7 +27,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 	"time"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"fmt"
 )
 
@@ -252,9 +251,6 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	if err := ac.host.Connection.Connect(true); err != nil {
 		return nil
 	}
-
-	//debug
-	log.DefaultLogger.Errorf("newActiveClient, host = %s, local addr = %s, index = %d", pool.host.Address(), ac.host.Connection.RawConn().LocalAddr(), ac.index)
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)

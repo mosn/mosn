@@ -29,23 +29,25 @@ const (
 )
 
 type RPCClient struct {
-	t            *testing.T
-	ClientID     string
-	Protocol     string //bolt1, bolt2
-	Codec        stream.CodecClient
-	Waits        sync.Map
-	conn         types.ClientConnection
-	streamID     uint32
-	respCount    uint32
-	requestCount uint32
+	t              *testing.T
+	ClientID       string
+	Protocol       string //bolt1, bolt2
+	Codec          stream.CodecClient
+	Waits          sync.Map
+	conn           types.ClientConnection
+	streamID       uint32
+	respCount      uint32
+	requestCount   uint32
+	ExpectedStatus int16
 }
 
 func NewRPCClient(t *testing.T, id string, proto string) *RPCClient {
 	return &RPCClient{
-		t:        t,
-		ClientID: id,
-		Protocol: proto,
-		Waits:    sync.Map{},
+		t:              t,
+		ClientID:       id,
+		Protocol:       proto,
+		Waits:          sync.Map{},
+		ExpectedStatus: sofarpc.RESPONSE_STATUS_SUCCESS, // default expected success
 	}
 }
 
@@ -113,7 +115,7 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 			atomic.AddUint32(&c.respCount, 1)
 			// add status check
 			status := cmd.GetRespStatus()
-			if int16(status) == sofarpc.RESPONSE_STATUS_SUCCESS {
+			if int16(status) == c.ExpectedStatus {
 				c.Waits.Delete(streamID)
 			}
 		} else {

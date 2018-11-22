@@ -20,6 +20,7 @@ package proxy
 import (
 	"container/list"
 	"context"
+	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -78,13 +79,23 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 
-	// todo: check if we get a reset on encode request headers. e.g. send failed
-	r.downStream.onUpstreamReset(UpstreamReset, reason)
+	if !r.setupRetry {
+		// todo: check if we get a reset on encode request headers. e.g. send failed
+		r.downStream.onUpstreamReset(UpstreamReset, reason)
+	}
 }
 
 // types.StreamReceiver
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+	// save response code
+	if status, ok := headers.Get(protocol.MosnResponseStatusCode); ok {
+		if code, err := strconv.Atoi(status); err == nil {
+			r.downStream.requestInfo.SetResponseCode(uint32(code))
+		}
+		headers.Del(protocol.MosnResponseStatusCode)
+	}
+
 	buffer.TransmitBufferPoolContext(r.downStream.context, context)
 
 	workerPool.Offer(&receiveHeadersEvent{

@@ -27,6 +27,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/faultinject"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/mixer"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/gogo/protobuf/proto"
@@ -142,7 +145,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
 	}
-	if len(m.Listener) != 13 {
+	if len(m.Listener) != 35 {
 		t.Fatalf("should have 35 listeners, but got %d", len(m.Listener))
 	}
 
@@ -224,7 +227,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
 	}
-	if len(m.Listener) != 13 {
+	if len(m.Listener) != 35 {
 		t.Fatalf("should have 35 listeners, but got %d", len(m.Listener))
 	}
 

@@ -157,9 +157,9 @@ func Test_dubbo_SetStreamID_04(t *testing.T) {
 
 func Test_isValidDubboData_01(t *testing.T) {
 	msg := []byte{0xda, 0xbb, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 0, 2, 'a', 'b'}
-	rslt, len := isValidDubboData(msg)
-	if rslt != true || len != 2 {
-		t.Errorf("rslt(%v) != true, len=%d", rslt, len)
+	rslt, length := isValidDubboData(msg)
+	if rslt != true || length != 2 {
+		t.Errorf("rslt(%v) != true, len=%d", rslt, length)
 	} else {
 		t.Log("isValidDubboData succ ok")
 	}
@@ -167,9 +167,9 @@ func Test_isValidDubboData_01(t *testing.T) {
 
 func Test_isValidDubboData_02(t *testing.T) {
 	msg := []byte{0xda, 0xb0, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 0, 2, 'a', 'b'}
-	rslt, len := isValidDubboData(msg)
-	if rslt != false || len != -1 {
-		t.Errorf("rslt(%v) != false, len=%d", rslt, len)
+	rslt, length := isValidDubboData(msg)
+	if rslt != false || length != -1 {
+		t.Errorf("rslt(%v) != false, len=%d", rslt, length)
 	} else {
 		t.Log("isValidDubboData illegal magic ok")
 	}
@@ -177,9 +177,9 @@ func Test_isValidDubboData_02(t *testing.T) {
 
 func Test_isValidDubboData_03(t *testing.T) {
 	msg := []byte{0xda, 0xbb, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78}
-	rslt, len := isValidDubboData(msg)
-	if rslt != false || len != -1 {
-		t.Errorf("rslt(%v) != false, len=%d", rslt, len)
+	rslt, length := isValidDubboData(msg)
+	if rslt != false || length != -1 {
+		t.Errorf("rslt(%v) != false, len=%d", rslt, length)
 	} else {
 		t.Log("isValidDubboData illegal header length ok")
 	}
@@ -187,9 +187,9 @@ func Test_isValidDubboData_03(t *testing.T) {
 
 func Test_isValidDubboData_04(t *testing.T) {
 	msg := []byte{0xda, 0xbb, 0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 78, 0, 0, 0, 3, 'a', 'b'}
-	rslt, len := isValidDubboData(msg)
-	if rslt != false || len != -1 {
-		t.Errorf("rslt(%v) != false, len=%d", rslt, len)
+	rslt, length := isValidDubboData(msg)
+	if rslt != false || length != -1 {
+		t.Errorf("rslt(%v) != false, len=%d", rslt, length)
 	} else {
 		t.Log("isValidDubboData illegal length ok")
 	}

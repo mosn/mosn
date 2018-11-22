@@ -394,17 +394,75 @@ func TestFaultInjectUnmarshal(t *testing.T) {
 		t.Error("fault inject failed")
 	}
 }
+func TestDelayInjectUnmarshal(t *testing.T) {
+	inject := `{
+		"fixed_delay": "15s",
+		"percentage": 100
+	}`
+	b := []byte(inject)
+	di := &DelayInject{}
+	if err := json.Unmarshal(b, di); err != nil {
+		t.Error(err)
+		return
+	}
+	if !(di.Delay == 15*time.Second && di.Percent == 100) {
+		t.Error("delay inject failed")
+	}
+}
+func TestStreamFaultInject(t *testing.T) {
+	streamfilter := `{
+		"delay": {
+			"fixed_delay":"1s",
+			"percentage": 100
+		},
+		"abort": {
+			"status": 500,
+			"percentage": 100
+		},
+		"upstream_cluster": "clustername",
+		"headers": [
+			{"name":"service","value":"test","regex":false},
+			{"name":"user","value":"bob", "regex":false}
+		]
+	}`
+	b := []byte(streamfilter)
+	sfi := &StreamFaultInject{}
+	if err := json.Unmarshal(b, sfi); err != nil {
+		t.Error(err)
+		return
+	}
+	if !(sfi.Delay.Delay == time.Second &&
+		sfi.Delay.Percent == 100 &&
+		sfi.Abort.Status == 500 &&
+		sfi.Abort.Percent == 100 &&
+		sfi.UpstreamCluster == "clustername" &&
+		len(sfi.Headers) == 2) {
+		t.Error("unexpected stream fault inject")
+	}
+}
+
 func TestTCPProxyUnmarshal(t *testing.T) {
 	tcpproxy := `{
+		"stat_prefix":"tcp_proxy",
+		"cluster":"cluster",
+		"max_connect_attempts":1000,
 		"routes":[
 			{
 				"cluster": "test",
-				"source_addrs": [
-					"127.0.0.1:80"
+				"SourceAddrs": [
+					{
+						"address":"127.0.0.1",
+						"length":32
+					}
 				],
-				"destination_addrs":[
-					"127.0.0.1:8080"
-				]
+				"DestinationAddrs":[
+					{
+						"address":"127.0.0.1",
+						"length":32
+					}
+				],
+				"SourcePort":"8080",
+				"DestinationPort":"8080"
 			}
 		]
 	}`
@@ -420,9 +478,13 @@ func TestTCPProxyUnmarshal(t *testing.T) {
 		r := p.Routes[0]
 		if !(r.Cluster == "test" &&
 			len(r.SourceAddrs) == 1 &&
-			r.SourceAddrs[0].String() == "127.0.0.1:80" &&
+			r.SourceAddrs[0].Address == "127.0.0.1" &&
+			r.SourceAddrs[0].Length == 32 &&
 			len(r.DestinationAddrs) == 1 &&
-			r.DestinationAddrs[0].String() == "127.0.0.1:8080") {
+			r.DestinationAddrs[0].Address == "127.0.0.1" &&
+			r.DestinationAddrs[0].Length == 32 &&
+			r.SourcePort == "8080" &&
+			r.DestinationPort == "8080") {
 			t.Error("route failed")
 		}
 	}
