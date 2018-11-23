@@ -127,9 +127,9 @@ func (r *shadowUpstreamRequest) OnReady(streamID string, sender types.StreamSend
 
 	// headers must deep copy.  becasue the AppendHeaders maybe modify the original headers
 	// and we may add a shadow key for shadow copy
-	headers := r.convertHeader(r.downStream.downstreamReqHeaders).Clone()
+	headers := r.downStream.downstreamReqHeaders.Clone()
 	// TODO: Add ShadowHeaderKey into headers. value is ?
-	r.requestSender.AppendHeaders(r.downStream.context, headers, endStream)
+	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(headers), endStream)
 
 	// todo: check if we get a reset on send headers
 }

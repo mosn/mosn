@@ -983,7 +983,7 @@ func (s *downStream) stopEventProcess() {
 }
 
 func (s *downStream) shouldShadow(policy types.ShadowPolicy) bool {
-	if reflect.ValueOf(policy).IsNil() {
+	if policy == nil {
 		log.DefaultLogger.Debugf("call shouldShadow get false, as shadow policy is nil")
 		return false
 	}
@@ -999,7 +999,7 @@ func (s *downStream) shouldShadow(policy types.ShadowPolicy) bool {
 	}
 
 	// according to shadow ratio, for [0--ratio%--100%], 0-ratio% will be shadowed
-	selectedValue := uint32(s.randInstance.Intn(int(100)))
+	selectedValue := s.randInstance.Uint32() % 100
 	if selectedValue < policy.ShadowRatio() {
 		return true
 	}

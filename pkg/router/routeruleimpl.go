@@ -50,25 +50,22 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		perFilterConfig:       route.PerFilterConfig,
-		policy:                &routerPolicy{
-			retryPolicy:&retryPolicyImpl{},    // todo:delete hack
+		policy: &routerPolicy{
+			retryPolicy:  &retryPolicyImpl{},
+			shadowPolicy: &shadowPolicyImpl{},
 		},
 	}
 
 	routeRuleImplBase.weightedClusters, routeRuleImplBase.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
 	if route.Route.RetryPolicy != nil {
-		routeRuleImplBase.policy.retryPolicy = &retryPolicyImpl{
-			route.Route.RetryPolicy.RetryOn,
-			route.Route.RetryPolicy.RetryTimeout,
-			route.Route.RetryPolicy.NumRetries,
-		}
+		routeRuleImplBase.policy.retryPolicy.retryOn = route.Route.RetryPolicy.RetryOn
+		routeRuleImplBase.policy.retryPolicy.retryTimeout = route.Route.RetryPolicy.RetryTimeout
+		routeRuleImplBase.policy.retryPolicy.numRetries = route.Route.RetryPolicy.NumRetries
 	}
 
 	if route.Route.ShadowPolicy != nil {
-		routeRuleImplBase.policy.shadowPolicy = &shadowPolicyImpl{
-			cluster: route.Route.ShadowPolicy.ShadowClusterName,
-			ratio:   route.Route.ShadowPolicy.ShadowRatio,
-		}
+		routeRuleImplBase.policy.shadowPolicy.cluster = route.Route.ShadowPolicy.ShadowClusterName
+		routeRuleImplBase.policy.shadowPolicy.ratio = route.Route.ShadowPolicy.ShadowRatio
 	}
 
 	// todo add header match to route base
