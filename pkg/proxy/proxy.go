@@ -20,8 +20,10 @@ package proxy
 import (
 	"container/list"
 	"context"
+	"math/rand"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
@@ -71,6 +73,7 @@ type proxy struct {
 	stats               *Stats
 	listenerStats       *Stats
 	accessLogs          []types.AccessLog
+	rander              *rand.Rand
 }
 
 // NewProxy create proxy instance for given v2.Proxy config
@@ -82,6 +85,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		stats:          globalStats,
 		context:        ctx,
 		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
+		rander:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	proxy.context = buffer.NewBufferPoolContext(ctx, false)

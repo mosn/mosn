@@ -1,6 +1,7 @@
 package sofarpc
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -11,6 +12,9 @@ func TestReqCommandClone(t *testing.T) {
 		RequestHeader: headers,
 	}
 	reqClone := reqCmd.Clone()
+	if !reflect.DeepEqual(reqCmd, reqClone) {
+		t.Error("clone data not equal")
+	}
 	// modify clone header
 	reqClone.Set("testclone", "test")
 	reqClone.Set("service", "clone")
@@ -37,6 +41,9 @@ func TestRespCommandClone(t *testing.T) {
 		ResponseHeader: headers,
 	}
 	respClone := respCmd.Clone()
+	if !reflect.DeepEqual(respCmd, respClone) {
+		t.Error("clone data not equal")
+	}
 	// modify clone header
 	respClone.Set("testclone", "test")
 	respClone.Set("service", "clone")

@@ -28,8 +28,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"math/rand"
-
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -102,8 +100,7 @@ type downStream struct {
 
 	snapshot types.ClusterSnapshot
 
-	doShadowing  bool
-	randInstance *rand.Rand
+	doShadowing bool
 }
 
 func newActiveStream(ctx context.Context, streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
@@ -125,7 +122,6 @@ func newActiveStream(ctx context.Context, streamID string, proxy *proxy, respons
 	stream.responseSender.GetStream().AddEventListener(stream)
 	stream.context = newCtx
 	// used to judge shadow traffic
-	stream.randInstance = rand.New(rand.NewSource(time.Now().UnixNano()))
 	stream.logger = log.ByContext(proxy.context)
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
@@ -999,7 +995,7 @@ func (s *downStream) shouldShadow(policy types.ShadowPolicy) bool {
 	}
 
 	// according to shadow ratio, for [0--ratio%--100%], 0-ratio% will be shadowed
-	selectedValue := s.randInstance.Uint32() % 100
+	selectedValue := s.proxy.rander.Uint32() % 100
 	if selectedValue < policy.ShadowRatio() {
 		return true
 	}

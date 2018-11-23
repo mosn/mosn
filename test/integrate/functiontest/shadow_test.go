@@ -148,7 +148,7 @@ func (h *ShadowHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		h.t.Error("read body failed")
+		h.t.Errorf("read body failed", err)
 	}
 	if string(b) != postData {
 		h.t.Error("shadow receive data not expected")

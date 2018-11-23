@@ -206,7 +206,8 @@ func TestFaultInject_AllWithDelay(t *testing.T) {
 		},
 		called: make(chan int, 1),
 	}
-	f := NewFilter(context.Background(), cfg)
+	rander := rand.New(rand.NewSource(time.Now().UnixNano()))
+	f := NewFilter(context.Background(), cfg, rander)
 	f.SetDecoderFilterCallbacks(cb)
 	start := time.Now()
 	if status := f.OnDecodeHeaders(nil, true); status != types.StreamHeadersFilterStop {
@@ -241,7 +242,8 @@ func TestFaultInject_AllAbortWithoutDelay(t *testing.T) {
 		},
 		called: make(chan int, 1),
 	}
-	f := NewFilter(context.Background(), cfg)
+	rander := rand.New(rand.NewSource(time.Now().UnixNano()))
+	f := NewFilter(context.Background(), cfg, rander)
 	f.SetDecoderFilterCallbacks(cb)
 	if status := f.OnDecodeHeaders(nil, true); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
@@ -276,7 +278,8 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 		},
 		called: make(chan int, 1),
 	}
-	f := NewFilter(context.Background(), cfg)
+	rander := rand.New(rand.NewSource(time.Now().UnixNano()))
+	f := NewFilter(context.Background(), cfg, rander)
 	f.SetDecoderFilterCallbacks(cb)
 	start := time.Now()
 	if status := f.OnDecodeHeaders(nil, true); status != types.StreamHeadersFilterStop {
@@ -299,7 +302,7 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 			},
 		},
 	}
-	f2 := NewFilter(context.Background(), cfg)
+	f2 := NewFilter(context.Background(), cfg, rander)
 	f2.SetDecoderFilterCallbacks(notmatched)
 	if status := f2.OnDecodeHeaders(nil, true); status != types.StreamHeadersFilterContinue {
 		t.Error("unmatched upstream not returns continue")
@@ -329,7 +332,8 @@ func TestFaultInject_MatchedHeader(t *testing.T) {
 		},
 		called: make(chan int, 1),
 	}
-	f := NewFilter(context.Background(), cfg)
+	rander := rand.New(rand.NewSource(time.Now().UnixNano()))
+	f := NewFilter(context.Background(), cfg, rander)
 	f.SetDecoderFilterCallbacks(cb)
 	headers := protocol.CommonHeader(map[string]string{
 		"User": "Alice",
@@ -351,7 +355,7 @@ func TestFaultInject_MatchedHeader(t *testing.T) {
 	notmatched := protocol.CommonHeader(map[string]string{
 		"User": "Bob",
 	})
-	f2 := NewFilter(context.Background(), cfg)
+	f2 := NewFilter(context.Background(), cfg, rander)
 	f2.SetDecoderFilterCallbacks(cb)
 	if status := f2.OnDecodeHeaders(notmatched, true); status != types.StreamHeadersFilterContinue {
 		t.Error("unmatched headers not return continue")
@@ -381,7 +385,8 @@ func TestFaultInject_RouteConfigOverride(t *testing.T) {
 		},
 		called: make(chan int, 1),
 	}
-	f := NewFilter(context.Background(), cfg)
+	rander := rand.New(rand.NewSource(time.Now().UnixNano()))
+	f := NewFilter(context.Background(), cfg, rander)
 	f.SetDecoderFilterCallbacks(cb)
 	if status := f.OnDecodeHeaders(nil, false); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")

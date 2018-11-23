@@ -101,7 +101,6 @@ func (s *shadowDownstream) fillWithDownstream(down *downStream) bool {
 	}
 	s.logger.Tracef("after choose conn pool")
 	s.downstreamReqHeaders = down.downstreamReqHeaders
-	// needs clone
 	if down.downstreamReqDataBuf != nil {
 		s.downstreamReqDataBuf = down.downstreamReqDataBuf.Clone()
 	}

@@ -83,18 +83,18 @@ type streamFaultInjectFilter struct {
 	cb        types.StreamReceiverFilterCallbacks
 	config    *faultInjectConfig
 	stop      chan struct{}
-	rander    *rand.Rand
 	headers   types.HeaderMap
+	rander    *rand.Rand
 }
 
-func NewFilter(ctx context.Context, cfg *v2.StreamFaultInject) types.StreamReceiverFilter {
+func NewFilter(ctx context.Context, cfg *v2.StreamFaultInject, rander *rand.Rand) types.StreamReceiverFilter {
 	log.DefaultLogger.Debugf("create a new fault inject filter")
 	return &streamFaultInjectFilter{
 		ctx:       ctx,
 		isDelayed: false,
 		config:    makefaultInjectConfig(cfg),
 		stop:      make(chan struct{}),
-		rander:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		rander:    rander,
 	}
 }
 

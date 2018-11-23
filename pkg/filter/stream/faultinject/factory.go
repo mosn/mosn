@@ -19,6 +19,8 @@ package faultinject
 
 import (
 	"context"
+	"math/rand"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
@@ -33,10 +35,11 @@ func init() {
 
 type FilterConfigFactory struct {
 	Config *v2.StreamFaultInject
+	rander *rand.Rand
 }
 
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
-	filter := NewFilter(context, f.Config)
+	filter := NewFilter(context, f.Config, f.rander)
 	callbacks.AddStreamReceiverFilter(filter)
 }
 
@@ -46,5 +49,6 @@ func CreateFaultInjectFilterFactory(conf map[string]interface{}) (types.StreamFi
 	if err != nil {
 		return nil, err
 	}
-	return &FilterConfigFactory{cfg}, nil
+	rander := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return &FilterConfigFactory{cfg, rander}, nil
 }
