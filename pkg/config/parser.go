@@ -35,6 +35,7 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var protocolsSupported = map[string]bool{
+	string(protocol.Auto):      true,
 	string(protocol.SofaRPC):   true,
 	string(protocol.HTTP2):     true,
 	string(protocol.HTTP1):     true,

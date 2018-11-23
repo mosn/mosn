@@ -23,6 +23,7 @@ import (
 
 // Protocol type definition
 const (
+	Auto      types.Protocol = "Auto"
 	SofaRPC   types.Protocol = "SofaRpc"
 	HTTP1     types.Protocol = "Http1"
 	HTTP2     types.Protocol = "Http2"

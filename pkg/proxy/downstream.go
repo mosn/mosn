@@ -322,7 +322,13 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
-	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster, types.Protocol(s.proxy.config.UpstreamProtocol))
+	var prot types.Protocol
+	if s.proxy.config.UpstreamProtocol == string(protocol.Auto) {
+		prot = s.proxy.serverCodec.Protocol()
+	} else {
+		prot = types.Protocol(s.proxy.config.UpstreamProtocol)
+	}
+	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster, prot)
 
 	//Build Request
 	proxyBuffers := proxyBuffersByContext(s.context)
@@ -516,8 +522,13 @@ func (s *downStream) onPerReqTimeout() {
 
 func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerContext) (types.ConnectionPool, error) {
 	var connPool types.ConnectionPool
+	var currentProtocol types.Protocol
 
-	currentProtocol := types.Protocol(s.proxy.config.UpstreamProtocol)
+	if s.proxy.config.UpstreamProtocol == string(protocol.Auto) {
+		currentProtocol = s.proxy.serverCodec.Protocol()
+	} else {
+		currentProtocol = types.Protocol(s.proxy.config.UpstreamProtocol)
+	}
 
 	connPool = s.proxy.clusterManager.ConnPoolForCluster(lbCtx, s.snapshot, currentProtocol)
 
@@ -541,8 +552,11 @@ func (s *downStream) appendHeaders(headers types.HeaderMap, endStream bool) {
 }
 
 func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
-	dp := types.Protocol(s.proxy.config.DownstreamProtocol)
+	dp := s.proxy.serverCodec.Protocol()
 	up := types.Protocol(s.proxy.config.UpstreamProtocol)
+	if up == protocol.Auto {
+		up = dp
+	}
 
 	// need protocol convert
 	if dp != up {
@@ -576,8 +590,11 @@ func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
-	dp := types.Protocol(s.proxy.config.DownstreamProtocol)
+	dp := s.proxy.serverCodec.Protocol()
 	up := types.Protocol(s.proxy.config.UpstreamProtocol)
+	if up == protocol.Auto {
+		up = dp
+	}
 
 	// need protocol convert
 	if dp != up {
@@ -609,8 +626,11 @@ func (s *downStream) appendTrailers(trailers types.HeaderMap) {
 }
 
 func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
-	dp := types.Protocol(s.proxy.config.DownstreamProtocol)
+	dp := s.proxy.serverCodec.Protocol()
 	up := types.Protocol(s.proxy.config.UpstreamProtocol)
+	if up == protocol.Auto {
+		up = dp
+	}
 
 	// need protocol convert
 	if dp != up {

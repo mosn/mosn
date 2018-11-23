@@ -31,6 +31,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
 	"github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -112,6 +114,28 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 }
 
 func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
+	if p.serverCodec == nil {
+		var prot string
+		if conn, ok := p.readCallbacks.Connection().RawConn().(*mtls.TLSConn); ok {
+			prot = conn.ConnectionState().NegotiatedProtocol
+		}
+		protocol, err := stream.SelectStreamFactoryProtocol(prot, buf.Bytes())
+		if err == stream.EAGAIN {
+			return types.Stop
+		} else if err == stream.FAILED {
+			var size int
+			if buf.Len() > 10 {
+				size = 10
+			} else {
+				size = buf.Len()
+			}
+			log.DefaultLogger.Errorf("Protocol Auto error magic :%v", buf.Bytes()[:size])
+			p.readCallbacks.Connection().Close(types.NoFlush, types.OnReadErrClose)
+			return types.Stop
+		}
+		log.DefaultLogger.Debugf("Protoctol Auto: %v", protocol)
+		p.serverCodec = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
+	}
 	p.serverCodec.Dispatch(buf)
 
 	return types.Stop
@@ -167,7 +191,9 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.listenerStats.DownstreamConnectionActive.Inc(1)
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
-	p.serverCodec = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+	if p.config.DownstreamProtocol != string(protocol.Auto) {
+		p.serverCodec = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+	}
 }
 
 func (p *proxy) OnGoAway() {}

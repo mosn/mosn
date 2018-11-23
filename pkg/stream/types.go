@@ -19,9 +19,13 @@ package stream
 
 import (
 	"context"
+	"errors"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
+
+var FAILED = errors.New("FAILED")
+var EAGAIN = errors.New("AGAIN")
 
 type CodecClient interface {
 	types.ConnectionEventListener
@@ -63,4 +67,6 @@ type ProtocolStreamFactory interface {
 	CreateBiDirectStream(context context.Context, connection types.ClientConnection,
 		clientCallbacks types.StreamConnectionEventListener,
 		serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection
+
+	ProtocolMatch(prot string, magic []byte) error
 }

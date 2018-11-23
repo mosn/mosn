@@ -35,11 +35,16 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/mhttp2"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"bytes"
 )
 
 func init() {
 	str.Register(protocol.MHTTP2, &streamConnFactory{})
 }
+
+var (
+	clientPreface = []byte(http2.ClientPreface)
+)
 
 type streamConnFactory struct{}
 
@@ -57,6 +62,27 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
+}
+
+func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
+	var size int
+	var again bool
+	if len(magic) >= len(clientPreface) {
+		size = len(clientPreface)
+	} else {
+		size = len(magic)
+		again = true
+	}
+
+	if bytes.Equal(magic[:size], clientPreface[:size]) {
+		if again {
+			return str.EAGAIN
+		} else {
+			return nil
+		}
+	} else {
+		return str.FAILED
+	}
 }
 
 // types.DecodeFilter

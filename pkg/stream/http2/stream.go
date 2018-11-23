@@ -59,6 +59,10 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 	return nil
 }
 
+func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
+	return str.FAILED
+}
+
 var server http2.Server
 
 // types.StreamConnection
