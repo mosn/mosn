@@ -26,6 +26,7 @@ const (
 	SofaRPC   types.Protocol = "SofaRpc"
 	HTTP1     types.Protocol = "Http1"
 	HTTP2     types.Protocol = "Http2"
+	MHTTP2    types.Protocol = "Mhttp2"
 	Xprotocol types.Protocol = "X"
 )
 
