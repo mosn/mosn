@@ -84,7 +84,7 @@ func (h CommonHeader) ByteSize() uint64 {
 	return size
 }
 
-func (h CommonHeader) CopyHeaderMap() types.HeaderMap {
+func (h CommonHeader) Clone() types.HeaderMap {
 	var header = make(map[string]string, len(h))
 	for k, v := range h {
 		header[k] = v

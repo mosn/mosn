@@ -331,7 +331,7 @@ func (b *BoltRequestCommand) ByteSize() uint64 {
 	return size
 }
 
-func (b *BoltRequestCommand) CopyHeaderMap() types.HeaderMap {
+func (b *BoltRequestCommand) Clone() types.HeaderMap {
 	var newBoltReq BoltRequestCommand
 	newBoltReq = *b
 
@@ -378,7 +378,7 @@ func (b *BoltResponseCommand) ByteSize() uint64 {
 	return size
 }
 
-func (b *BoltResponseCommand) CopyHeaderMap() types.HeaderMap {
+func (b *BoltResponseCommand) Clone() types.HeaderMap {
 	var newBoltResp BoltResponseCommand
 	newBoltResp = *b
 

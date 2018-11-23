@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package proxy
 
 import (
@@ -10,8 +27,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
-
-const ShadowTrafficpostfix = "-mosn-shadow"
 
 // A shadow stream is a created by downstream, but will never write response
 // A shadow stream is created when a upstream request is sent, so the stream filters is not in shadow
@@ -85,11 +100,7 @@ func (s *shadowDownstream) fillWithDownstream(down *downStream) bool {
 		return false
 	}
 	s.logger.Tracef("after choose conn pool")
-	// TODO: Switch authority to add a shadow postfix. This allows upstream logging to make more sense.
-	// add shadow should clone so it will not change the original header
-	// shadowHeader := down.downstreamReqHeaders.CopyHeaderMap()
-	shadowHeader := down.downstreamReqHeaders
-	s.downstreamReqHeaders = shadowHeader
+	s.downstreamReqHeaders = down.downstreamReqHeaders
 	// needs clone
 	if down.downstreamReqDataBuf != nil {
 		s.downstreamReqDataBuf = down.downstreamReqDataBuf.Clone()
@@ -98,7 +109,7 @@ func (s *shadowDownstream) fillWithDownstream(down *downStream) bool {
 		// TODO: also do a copy
 		s.downstreamReqTrailers = down.downstreamReqTrailers
 	}
-	s.timeout = parseProxyTimeout(s.route, shadowHeader)
+	s.timeout = parseProxyTimeout(s.route, s.downstreamReqHeaders)
 	// Build upstream request
 	shadowBuffers := shadowBuffersByContext(s.context)
 	s.upstreamRequest = &shadowBuffers.request
@@ -168,11 +179,13 @@ func (s *shadowDownstream) OnDecodeError(context context.Context, err error, hea
 
 func (s *shadowDownstream) onUpstreamRequestSent() {
 	s.upstreamRequestSent = true
-	if s.timeout.GlobalTimeout > 0 {
-		if s.reqTimer != nil {
-			s.reqTimer.stop()
+	if s.upstreamRequest != nil {
+		if s.timeout.GlobalTimeout > 0 {
+			if s.reqTimer != nil {
+				s.reqTimer.stop()
+			}
+			s.reqTimer = newTimer(s.onTimeout, s.timeout.GlobalTimeout)
 		}
-		s.reqTimer = newTimer(s.onTimeout, s.timeout.GlobalTimeout)
 	}
 }
 

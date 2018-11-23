@@ -244,7 +244,11 @@ func (r *upstreamRequest) OnReady(streamID string, sender types.StreamSender, ho
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
 
-	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)
+	// headers must deep copy. becasue the AppendHeaders maybe modify the original headers
+	// for retry/shadow, we need the original header
+	// TODO: fix it to store the encoded header(iobuffer) to avoid deep copy
+	headers := r.convertHeader(r.downStream.downstreamReqHeaders).Clone()
+	r.requestSender.AppendHeaders(r.downStream.context, headers, endStream)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
