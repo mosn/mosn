@@ -79,12 +79,12 @@ func (c *RPCClient) Close() {
 	}
 }
 
-func (c *RPCClient) SendRequest() {
+func (c *RPCClient) SendRequestWithData(in string) {
 	ID := atomic.AddUint32(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
 	var headers sofarpc.ProtoBasicCmd
-	data := buffer.NewIoBufferString("testdata")
+	data := buffer.NewIoBufferString(in)
 	switch c.Protocol {
 	case Bolt1:
 		headers = BuildBoltV1RequestWithContent(ID, data)
@@ -98,6 +98,11 @@ func (c *RPCClient) SendRequest() {
 	requestEncoder.AppendData(context.Background(), data, true)
 	atomic.AddUint32(&c.requestCount, 1)
 	c.Waits.Store(streamID, streamID)
+
+}
+
+func (c *RPCClient) SendRequest() {
+	c.SendRequestWithData("testdata")
 }
 
 func (c *RPCClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
@@ -117,6 +122,8 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 			status := cmd.GetRespStatus()
 			if int16(status) == c.ExpectedStatus {
 				c.Waits.Delete(streamID)
+			} else {
+				c.t.Errorf("get a unexpected status: %d", status)
 			}
 		} else {
 			c.t.Errorf("get a unexpected stream ID")
@@ -254,9 +261,9 @@ func ServeSofaRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.
 		bytesRead, err := conn.Read(buf)
 		if err != nil {
 			if err, ok := err.(net.Error); ok && err.Timeout() {
-				t.Logf("Connect read error: %v\n", err)
 				continue
 			}
+			t.Logf("read error : %v", err)
 			return
 		}
 		if bytesRead > 0 {

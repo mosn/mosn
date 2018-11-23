@@ -26,9 +26,6 @@ func (h *MethodHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m := r.Method
 	mm := strings.Trim(r.URL.Path, "/")
 	w.Header().Set("Content-Type", "text/plain")
-	for k := range r.Header {
-		w.Header().Set(k, r.Header.Get(k))
-	}
 	if m != mm {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
