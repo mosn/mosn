@@ -342,13 +342,13 @@ func runCase(t *testing.T, cases []*ShadowCase, foo func(tc *ShadowCase)) {
 	for i, tc := range cases {
 		t.Logf("start case #%d\n", i)
 		foo(tc)
-		go tc.RunCase(1, 0)
+		go tc.RunCase(10, 0)
 		select {
 		case err := <-tc.C:
 			if err != nil {
 				t.Errorf("%v [ERROR MESSAGE] #%d %v to mesh %v test failed, error: %v\n", time.Now(), i, tc.AppProtocol, tc.MeshProtocol, err)
 			}
-		case <-time.After(150 * time.Second):
+		case <-time.After(60 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
 		}
 		close(tc.Stop)

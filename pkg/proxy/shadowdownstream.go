@@ -103,6 +103,7 @@ func (s *shadowDownstream) fillWithDownstream(down *downStream) bool {
 	s.downstreamReqHeaders = down.downstreamReqHeaders
 	if down.downstreamReqDataBuf != nil {
 		s.downstreamReqDataBuf = down.downstreamReqDataBuf.Clone()
+		s.downstreamReqDataBuf.Count(1)
 	}
 	if down.downstreamReqTrailers != nil {
 		// TODO: also do a copy
