@@ -70,6 +70,11 @@ func (m *mockManager) GetClusterSnapshot(ctx context.Context, name string) types
 func (m *mockManager) PutClusterSnapshot(snapshot types.ClusterSnapshot) {
 }
 
+func resetHandlerChain() {
+	makeHandlerChainOrder.makeHandlerChain = DefaultMakeHandlerChain
+	makeHandlerChainOrder.order = 1
+}
+
 func TestDefaultMakeHandlerChain(t *testing.T) {
 	headerMatch := protocol.CommonHeader(map[string]string{
 		"test": "test",
@@ -80,8 +85,10 @@ func TestDefaultMakeHandlerChain(t *testing.T) {
 		},
 		header: headerMatch,
 	}
-	//
-	makeHandlerChain = DefaultMakeHandlerChain
+	// test register
+	RegisterMakeHandlerChain(DefaultMakeHandlerChain, 10) // Register success
+	RegisterMakeHandlerChain(_TestMakeHandlerChain, 1)    // Register faile
+	defer resetHandlerChain()
 	clusterManager := &mockManager{}
 	// router match, handler available
 	if hc := CallMakeHandlerChain(headerMatch, routers, clusterManager); hc == nil {
@@ -137,8 +144,10 @@ func TestExtendHandler(t *testing.T) {
 		},
 		header: headerMatch,
 	}
-	// register
-	makeHandlerChain = _TestMakeHandlerChain
+	// test register
+	RegisterMakeHandlerChain(_TestMakeHandlerChain, 10)  // Register success
+	RegisterMakeHandlerChain(DefaultMakeHandlerChain, 1) // Register failed
+	defer resetHandlerChain()
 	clusterManager := &mockManager{}
 	//1.
 	if hc := CallMakeHandlerChain(headerMatch, routers, clusterManager); hc == nil {

@@ -203,3 +203,13 @@ type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) 
 
 // MakeHandlerChain creates a RouteHandlerChain
 type MakeHandlerChain func(types.HeaderMap, types.Routers, types.ClusterManager) *RouteHandlerChain
+
+// reigister order
+type routerRuleFactoryOrder struct {
+	factory RouterRuleFactory
+	order   uint32
+}
+type handlerChainOrder struct {
+	makeHandlerChain MakeHandlerChain
+	order            uint32
+}
