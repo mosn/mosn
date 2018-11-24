@@ -48,6 +48,10 @@ func (r *mockRoute) RouteRule() types.RouteRule {
 	return &mockRouteRule{}
 }
 
+func (r *mockRoute) DirectResponseRule() types.DirectResponseRule {
+	return nil
+}
+
 type mockRouteRule struct {
 	types.RouteRule
 }

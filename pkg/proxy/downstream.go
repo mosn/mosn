@@ -291,6 +291,18 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		return
 	}
 	s.route = route
+	// check if route have direct response
+	// direct response will response now
+	if resp := s.route.DirectResponseRule(); !(resp == nil || reflect.ValueOf(resp).IsNil()) {
+		log.DefaultLogger.Infof("direct response for stream , id = %s", s.streamID)
+		if resp.Body() != "" {
+			s.sendHijackReplyWithBody(resp.StatusCode(), headers, resp.Body())
+		} else {
+			s.sendHijackReply(resp.StatusCode(), headers)
+		}
+		return
+	}
+
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
 	clusterName := route.RouteRule().ClusterName()
@@ -817,6 +829,21 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	s.appendHeaders(headers, true)
+}
+
+// TODO: rpc status code may be not matched
+// TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
+func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
+	s.logger.Debugf("set hijack reply, stream id = %s, code = %d, body=%s", s.streamID, code, body)
+	if headers == nil {
+		s.logger.Warnf("hijack with no headers, stream id = %s", s.streamID)
+		raw := make(map[string]string, 5)
+		headers = protocol.CommonHeader(raw)
+	}
+	headers.Set(types.HeaderStatus, strconv.Itoa(code))
+	s.appendHeaders(headers, false)
+	data := buffer.NewIoBufferString(body)
+	s.appendData(data, true)
 }
 
 func (s *downStream) cleanUp() {

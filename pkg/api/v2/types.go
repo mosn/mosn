@@ -373,6 +373,12 @@ type RedirectAction struct {
 	ResponseCode uint32 `json:"response_code"`
 }
 
+// DirectResponseAction represents the direct response parameters
+type DirectResponseAction struct {
+	StatusCode int    `json:"status"`
+	Body       string `json:"body"`
+}
+
 // WeightedCluster.
 // Multiple upstream clusters unsupport stream filter type:  healthcheckcan be specified for a given route.
 // The request is routed to one of the upstream

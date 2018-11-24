@@ -84,6 +84,9 @@ type Route interface {
 
 	// RouteRule returns the route rule
 	RouteRule() RouteRule
+
+	// DirectResponseRule returns direct response rile
+	DirectResponseRule() DirectResponseRule
 }
 
 // RouteRule defines parameters for a route
@@ -281,6 +284,15 @@ type RedirectRule interface {
 	ResponseCode() interface{}
 
 	ResponseBody() string
+}
+
+// DirectResponseRule contains direct response info
+type DirectResponseRule interface {
+
+	// StatusCode returns the repsonse status code
+	StatusCode() int
+	// Body returns the response body string
+	Body() string
 }
 
 type MetadataMatchCriterion interface {
