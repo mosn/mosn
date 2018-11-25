@@ -19,11 +19,31 @@ package xprotocol
 
 import (
 	"context"
+
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 // CodecFactory subprotocol plugin factory
 type CodecFactory interface {
 	CreateSubProtocolCodec(context context.Context) Multiplexing
+}
+
+type XCmd interface {
+	rpc.RpcCmd
+	//Multiplexing
+	SplitFrame(data []byte) [][]byte
+	GetStreamID(data []byte) string
+	SetStreamID(data []byte, streamID string) []byte
+
+	//Tracing
+	GetServiceName(data []byte) string
+	GetMethodName(data []byte) string
+
+	//RequestRouting
+	GetMetas(data []byte) map[string]string
+
+	//ProtocolConvertor
+	Convert(data []byte) (map[string]string, []byte)
 }
 
 // SubProtocol Name

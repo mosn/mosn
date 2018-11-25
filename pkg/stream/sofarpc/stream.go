@@ -124,7 +124,8 @@ func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 		ctx := conn.cm.curr
 
 		// 2. decode process
-		cmd, err := conn.codecEngine.Decode(ctx, buf)
+		// TODO: maybe pass sub protocol type
+		cmd, err := conn.codecEngine.Decode(ctx, buf, "")
 		// No enough data
 		if cmd == nil && err == nil {
 			break

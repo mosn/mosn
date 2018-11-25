@@ -87,8 +87,7 @@ type Encoder interface {
 // Decoder is a decoder interface to extend various of protocols
 type Decoder interface {
 	// Decode decodes binary data to a model
+	// pass sub protocol type to identify protocol format
 	// return 1. decoded model(nil if no enough data) 2. decode error
-	Decode(ctx context.Context, data IoBuffer) (interface{}, error)
+	Decode(ctx context.Context, data IoBuffer, subProtocolType string) (interface{}, error)
 }
-
-
