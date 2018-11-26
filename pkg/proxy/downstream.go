@@ -283,13 +283,6 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 		return
 	}
-	if reflect.ValueOf(clusterSnapshot).IsNil() {
-		// no available cluster
-		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", route.RouteRule().ClusterName())
-		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
-		return
-	}
 	s.route = route
 	// check if route have direct response
 	// direct response will response now
@@ -302,7 +295,14 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		}
 		return
 	}
-
+	// not direct response, needs a cluster snapshot
+	if reflect.ValueOf(clusterSnapshot).IsNil() {
+		// no available cluster
+		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", route.RouteRule().ClusterName())
+		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
+		return
+	}
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
 	clusterName := route.RouteRule().ClusterName()
