@@ -1013,5 +1013,6 @@ func (s *downStream) maybeDoShadowing() {
 		log.DefaultLogger.Errorf("no shadow stream created, streamID = %s", s.streamID)
 		return
 	}
-	shadowStream.sendRequest()
+
+	shadowStream.doShadow()
 }

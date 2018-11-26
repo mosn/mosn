@@ -73,6 +73,8 @@ func newShadowDownstream(down *downStream) *shadowDownstream {
 	if !stream.fillWithDownstream(down) {
 		return nil
 	}
+	// start event process
+	stream.startEventProcess()
 	return stream
 }
 
@@ -132,7 +134,8 @@ func (s *shadowDownstream) cleanStream() {
 		s.upstreamRequest.resetStream()
 	}
 	s.cleanUp()
-	s.GiveStream()
+	// stop event process
+	s.stopEventProcess()
 }
 
 func (s *shadowDownstream) cleanUp() {
@@ -213,6 +216,32 @@ func (s *shadowDownstream) onUpstreamReset(urtype UpstreamResetType, reason type
 		return
 	}
 	s.endStream()
+}
+
+// work pool caller
+func (s *shadowDownstream) startEventProcess() {
+	shadowWorkerPool.Offer(&startShadow{
+		shadowEvent: shadowEvent{
+			streamID: s.streamID,
+			stream:   s,
+		},
+	})
+}
+func (s *shadowDownstream) stopEventProcess() {
+	shadowWorkerPool.Offer(&stopShadow{
+		shadowEvent: shadowEvent{
+			streamID: s.streamID,
+			stream:   s,
+		},
+	})
+}
+func (s *shadowDownstream) doShadow() {
+	shadowWorkerPool.Offer(&doShadow{
+		shadowEvent: shadowEvent{
+			streamID: s.streamID,
+			stream:   s,
+		},
+	})
 }
 
 // LoadBalancerContext implement

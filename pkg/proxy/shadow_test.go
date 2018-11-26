@@ -20,6 +20,7 @@ package proxy
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
@@ -51,9 +52,9 @@ func TestShadowStream(t *testing.T) {
 	if shadowStream == nil {
 		t.Fatal("create shadow stream failed")
 	}
-	shadowStream.sendRequest()
-	// mock send is sync call, sendRequest returns means response finished
-	// response finished will release all the downstream resource
+	shadowStream.doShadow()
+	// wait event process done
+	time.Sleep(time.Second)
 	if !(shadowStream.proxy == nil &&
 		shadowStream.route == nil &&
 		shadowStream.cluster == nil &&

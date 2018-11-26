@@ -42,6 +42,8 @@ var (
 	globalStats *Stats
 
 	workerPool mosnsync.ShardWorkerPool
+
+	shadowWorkerPool mosnsync.ShardWorkerPool
 )
 
 func init() {
@@ -54,6 +56,9 @@ func init() {
 
 	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
 	workerPool.Init()
+
+	shadowWorkerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, shadowDispatch)
+	shadowWorkerPool.Init()
 }
 
 // types.ReadFilter
