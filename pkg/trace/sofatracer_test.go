@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+func init() {
+	CreateInstance()
+}
+
 func TestSofaTracerStartFinish(t *testing.T) {
 	span := SofaTracerInstance.Start(time.Now())
 	span.SetTag(TRACE_ID, IdGen().GenerateTraceId())
