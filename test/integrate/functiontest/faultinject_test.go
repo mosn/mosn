@@ -18,7 +18,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 	"golang.org/x/net/http2"
 )
 
@@ -75,7 +75,7 @@ func (c *faultInjectCase) StartProxy() {
 	appAddr := c.AppServer.Addr()
 	clientMeshAddr := util.CurrentMeshAddr()
 	c.ClientMeshAddr = clientMeshAddr
-	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol)
+	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol, false, "")
 	faultstr := MakeFaultStr(c.abortstatus, c.delay)
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	mesh := mosn.NewMosn(cfg)
