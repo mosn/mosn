@@ -274,8 +274,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		return
 	}
 	clusterSnapshot, route := handlerChain.DoNextHandler()
-	if route == nil || route.RouteRule() == nil {
-		// no route
+	if route == nil {
 		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
@@ -295,7 +294,13 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		}
 		return
 	}
-	// not direct response, needs a cluster snapshot
+	// not direct response, needs a cluster snapshot and route rule
+	if rule := route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
+		log.DefaultLogger.Warnf("no route rule to init upstream, headers = %v", headers)
+		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		return
+	}
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
 		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", route.RouteRule().ClusterName())
