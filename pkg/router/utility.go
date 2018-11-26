@@ -25,9 +25,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// GetClusterMosnLBMetaDataMap exports getClusterMosnLBMetaDataMap
+func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
+	return getClusterMosnLBMetaDataMap(metadata)
+}
+
 // getClusterMosnLBMetaDataMap from v2.Metadata
-// e.g. metadata =  { "filter_metadata": {"mosn.lb": { "label": "gray"  } } }
-// 4-tier map
+// Value maybe hashed
 func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	metadataMap := make(map[string]types.HashedValue)
 	for key, value := range metadata {
@@ -56,10 +60,15 @@ func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]
 	return weightedClusterEntries, totalWeight
 }
 
-func getRouterHeaders(heades []v2.HeaderMatcher) []*types.HeaderData {
+// GetRouterHeaders exports getRouterHeaders
+func GetRouterHeaders(headers []v2.HeaderMatcher) []*types.HeaderData {
+	return getRouterHeaders(headers)
+}
+
+func getRouterHeaders(headers []v2.HeaderMatcher) []*types.HeaderData {
 	var headerDatas []*types.HeaderData
 
-	for _, header := range heades {
+	for _, header := range headers {
 		headerData := &types.HeaderData{
 			Name: &lowerCaseString{
 				header.Name,
@@ -82,4 +91,58 @@ func getRouterHeaders(heades []v2.HeaderMatcher) []*types.HeaderData {
 	}
 
 	return headerDatas
+}
+
+func getHeaderParser(headersToAdd []*v2.HeaderValueOption, headersToRemove []string) *headerParser {
+	if headersToAdd == nil && headersToRemove == nil {
+		return nil
+	}
+
+	return &headerParser{
+		headersToAdd:    getHeaderPair(headersToAdd),
+		headersToRemove: getHeadersToRemove(headersToRemove),
+	}
+}
+
+func getHeaderPair(headersToAdd []*v2.HeaderValueOption) []*headerPair {
+	if headersToAdd == nil {
+		return nil
+	}
+	headerPairs := make([]*headerPair, 0, len(headersToAdd))
+	for _, option := range headersToAdd {
+		key := &lowerCaseString{
+			option.Header.Key,
+		}
+		key.Lower()
+
+		// set true to Append as default
+		isAppend := true
+		if option.Append != nil {
+			isAppend = *option.Append
+		}
+		value := getHeaderFormatter(option.Header.Value, isAppend)
+		if value == nil {
+			continue
+		}
+		headerPairs = append(headerPairs, &headerPair{
+			headerName:      key,
+			headerFormatter: value,
+		})
+	}
+	return headerPairs
+}
+
+func getHeadersToRemove(headersToRemove []string) []*lowerCaseString {
+	if headersToRemove == nil {
+		return nil
+	}
+	lowerCaseHeaders := make([]*lowerCaseString, 0, len(headersToRemove))
+	for _, header := range headersToRemove {
+		lowerCaseHeader := &lowerCaseString{
+			str: header,
+		}
+		lowerCaseHeader.Lower()
+		lowerCaseHeaders = append(lowerCaseHeaders, lowerCaseHeader)
+	}
+	return lowerCaseHeaders
 }

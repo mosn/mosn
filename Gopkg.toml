@@ -80,6 +80,14 @@
   branch = "master"
   name = "golang.org/x/crypto"
 
+[[constraint]]
+  name = "github.com/gogo/googleapis"
+  version = "1.1.1"
+
+[[constraint]]
+  name = "istio.io/api"
+  version = "1.0.2"
+
 [prune]
   go-tests = true
   unused-packages = true

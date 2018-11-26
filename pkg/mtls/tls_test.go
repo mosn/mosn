@@ -398,7 +398,7 @@ func TestInspector(t *testing.T) {
 	// tls
 	resp, err = MockClient(t, server.Addr, cltMng)
 	if err != nil {
-		t.Errorf("#%d request server error %v", err)
+		t.Errorf("request server error %v", err)
 		return
 	}
 	ioutil.ReadAll(resp.Body)
@@ -666,6 +666,40 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 		if !pass(resp, err) {
 			t.Errorf("#%d skip verify failed", i)
 		}
+	}
+}
+
+func TestFallback(t *testing.T) {
+	cfg := v2.TLSConfig{
+		Status:     true,
+		CertChain:  "invalid_certificate",
+		PrivateKey: "invalid_key",
+		Fallback:   true,
+	}
+	filterChains := []v2.FilterChain{
+		{
+			TLS: cfg,
+		},
+	}
+	lc := &v2.Listener{}
+	lc.FilterChains = filterChains
+	serverMgr, err := NewTLSServerContextManager(lc, nil, log.StartLogger)
+	if err != nil {
+		t.Errorf("create context manager failed %v", err)
+		return
+	}
+	if serverMgr.Enabled() {
+		t.Error("tls maanger is not fallabck")
+		return
+	}
+	clientMgr, err := NewTLSClientContextManager(&cfg, nil)
+	if err != nil {
+		t.Errorf("create client context manager failed %v", err)
+		return
+	}
+	if clientMgr.Enabled() {
+		t.Error("tls maanger is not fallabck")
+		return
 	}
 }
 

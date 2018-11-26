@@ -312,6 +312,8 @@ type StreamReceiverFilterCallbacks interface {
 
 	// DecoderBufferLimit returns the decoder buffer limit
 	DecoderBufferLimit() uint32
+	// SendHijackReply is called when the filter will response directly
+	SendHijackReply(code int, headers HeaderMap)
 }
 
 // StreamFilterChainFactory adds filter into callbacks
@@ -324,6 +326,9 @@ type StreamFilterChainFactoryCallbacks interface {
 	AddStreamSenderFilter(filter StreamSenderFilter)
 
 	AddStreamReceiverFilter(filter StreamReceiverFilter)
+
+	// add access log per stream
+	AddStreamAccessLog(accessLog AccessLog)
 }
 
 // StreamHeadersFilterStatus type

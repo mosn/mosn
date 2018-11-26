@@ -21,11 +21,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+type headerFormatter interface {
+	format(requestInfo types.RequestInfo) string
+	append() bool
+}
+
+type headerPair struct {
+	headerName      *lowerCaseString
+	headerFormatter headerFormatter
+}
+
 type headerParser struct {
-	headersToAdd    []types.Pair
+	headersToAdd    []*headerPair
 	headersToRemove []*lowerCaseString
 }
 
@@ -40,6 +51,7 @@ type info interface {
 type RouteBase interface {
 	types.Route
 	types.RouteRule
+	types.PathMatchCriterion
 	matchable
 	info
 }
@@ -185,3 +197,9 @@ func (p *routerPolicy) CorsPolicy() types.CorsPolicy {
 func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 	return nil
 }
+
+// RouterRuleFactory creates a RouteBase
+type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) RouteBase
+
+// MakeHandlerChain creates a RouteHandlerChain
+type MakeHandlerChain func(types.HeaderMap, types.Routers, types.ClusterManager) *RouteHandlerChain

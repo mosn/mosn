@@ -23,6 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/json-iterator/go"
 )
@@ -43,8 +44,8 @@ func TestMOSNConfig_OnAddOrUpdateRouters(t *testing.T) {
 	router.NewRouterManager()
 	instance := router.GetRoutersMangerInstance()
 
-	if rt := instance.GetRouterWrapperByListenerName(routerConfigName); rt != nil {
-		t.Errorf("TestMOSNConfig_OnAddOrUpdateRouters error, want nil but got:", rt)
+	if rt := instance.GetRouterWrapperByName(routerConfigName); rt != nil {
+		t.Errorf("TestMOSNConfig_OnAddOrUpdateRouters error, want nil but got:%v", rt)
 	}
 
 	routerMocked := []*pb.RouteConfiguration{
@@ -61,8 +62,8 @@ func TestMOSNConfig_OnAddOrUpdateRouters(t *testing.T) {
 
 	mockConfig.OnAddOrUpdateRouters(routerMocked)
 
-	if rt := instance.GetRouterWrapperByListenerName(routerConfigName); rt == nil {
-		t.Errorf("TestMOSNConfig_OnAddOrUpdateRouters error, want nil but got:", rt)
+	if rt := instance.GetRouterWrapperByName(routerConfigName); rt == nil {
+		t.Errorf("TestMOSNConfig_OnAddOrUpdateRouters error, want nil but got:%v", rt)
 	}
 }
 
@@ -97,6 +98,7 @@ func TestMOSNConfig_OnUpdateEndpoints(t *testing.T) {
 			wantError: true,
 		},
 	}
+	
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := &MOSNConfig{
@@ -122,7 +124,7 @@ func TestMOSNConfig_OnDeleteClusters(t *testing.T) {
 		fields fields
 		args   args
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -146,9 +148,7 @@ func TestMOSNConfig_OnUpdateClusters(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-	}{
-	// TODO: Add test cases.
-	}
+	}{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := &MOSNConfig{
@@ -172,7 +172,7 @@ func TestMOSNConfig_OnDeleteListeners(t *testing.T) {
 		fields fields
 		args   args
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -197,7 +197,33 @@ func TestMOSNConfig_OnAddOrUpdateListeners(t *testing.T) {
 		fields fields
 		args   args
 	}{
-	// TODO: Add test cases.
+		{
+			name: "test",
+			fields: fields{
+				Servers: []ServerConfig{
+					{
+						ServerName: "testUpdate",
+					},
+				},
+			},
+			args: args{
+				listeners: []*pb.Listener{
+					{
+						Name: "virtual",
+						Address: core.Address{
+							Address: &core.Address_SocketAddress{
+								SocketAddress: &core.SocketAddress{
+									Address: "0.0.0.0",
+									PortSpecifier: &core.SocketAddress_PortValue{
+										PortValue: 15001,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

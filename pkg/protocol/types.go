@@ -31,10 +31,12 @@ const (
 
 // Host key for routing in MOSN Header
 const (
-	MosnHeaderHostKey        = "host"
-	MosnHeaderPathKey        = "path"
-	MosnHeaderQueryStringKey = "querystring"
-	MosnHeaderMethod         = "method"
+	MosnHeaderHostKey         = "x-mosn-host"
+	MosnHeaderPathKey         = "x-mosn-path"
+	MosnHeaderQueryStringKey  = "x-mosn-querystring"
+	MosnHeaderMethod          = "x-mosn-method"
+	MosnOriginalHeaderPathKey = "x-mosn-original-path"
+	MosnResponseStatusCode    = "x-mosn-response-code"
 )
 
 // Hseader with special meaning in istio
@@ -71,4 +73,13 @@ func (h CommonHeader) Range(f func(key, value string) bool) {
 			break
 		}
 	}
+}
+
+func (h CommonHeader) ByteSize() uint64 {
+	var size uint64
+
+	for k, v := range h {
+		size += uint64(len(k) + len(v))
+	}
+	return size
 }

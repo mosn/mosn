@@ -17,7 +17,9 @@
 
 package filter
 
-import "github.com/alipay/sofa-mosn/pkg/types"
+import (
+	"github.com/alipay/sofa-mosn/pkg/types"
+)
 
 // StreamFilterFactoryCreator creates a StreamFilterChainFactory according to config
 type StreamFilterFactoryCreator func(config map[string]interface{}) (types.StreamFilterChainFactory, error)

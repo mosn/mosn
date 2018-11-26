@@ -48,7 +48,7 @@ func init() {
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
 	// use 4096 as chan buffer length
-	poolSize := shardsNum * 8096
+	poolSize := shardsNum * 4096
 
 	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
 	workerPool.Init()
@@ -100,7 +100,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 	listenerName := ctx.Value(types.ContextKeyListenerName).(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
-	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByListenerName(proxy.config.RouterConfigName); routersWrapper != nil {
+	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
 	} else {
 		log.DefaultLogger.Errorf("RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
@@ -179,6 +179,7 @@ func (p *proxy) NewStream(context context.Context, streamID string, responseSend
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
+		log.DefaultLogger.Debugf("there is %d stream filters in config", len(ffs))
 
 		for _, f := range ffs {
 			f.CreateFilterChain(p.context, stream)

@@ -90,6 +90,9 @@ type RequestInfo interface {
 	// ResponseCode reports the request's response code
 	ResponseCode() uint32
 
+	// SetResponseCode set request's response code
+	SetResponseCode(code uint32)
+
 	// Duration reports the duration since request's starting time
 	Duration() time.Duration
 

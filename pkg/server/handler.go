@@ -30,6 +30,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -145,9 +146,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		if !equalConfig {
 			al.disableConnIo = lc.DisableConnIo
 			al.listener.SetConfig(lc)
-			al.listener.SetePerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
+			al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 			al.listener.SetListenerTag(lc.ListenerTag)
-			al.listener.SethandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+			al.listener.SetHandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
 			log.DefaultLogger.Debugf("AddOrUpdateListener: use new listen config = %+v", lc)
 		}
 
@@ -202,7 +203,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
 	}
-
+	admin.SetListenerConfig(listenerName, *lc)
 	return al, nil
 }
 
@@ -210,7 +211,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
 			// TODO: use goroutine pool
-			go l.listener.Start(nil)
+			go l.listener.Start(lctx)
 		}
 	}
 }
@@ -218,7 +219,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 func (ch *connHandler) StartListeners(lctx context.Context) {
 	for _, l := range ch.listeners {
 		// start goroutine
-		go l.listener.Start(nil)
+		go l.listener.Start(lctx)
 	}
 }
 
@@ -355,12 +356,12 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logg
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		conns:                   list.New(),
-		handler:                 handler,
-		stopChan:                stopChan,
-		logger:                  logger,
-		accessLogs:              accessLoggers,
-		updatedLabel:            false,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		logger:       logger,
+		accessLogs:   accessLoggers,
+		updatedLabel: false,
 	}
 
 	listenPort := 0
@@ -518,7 +519,7 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	log.DefaultLogger.Infof("conn set origin addr:%s:%d", ip, port)
 }
 
-func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
+func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler(ctx context.Context) {
 	var listener, localListener *activeListener
 
 	for _, lst := range arc.activeListener.handler.listeners {
@@ -532,13 +533,22 @@ func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler() {
 		}
 	}
 
+	var ch chan types.Connection
+	var buf []byte
+	if ctx.Value(types.ContextKeyAcceptChan) != nil {
+		ch = ctx.Value(types.ContextKeyAcceptChan).(chan types.Connection)
+		if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
+			buf = ctx.Value(types.ContextKeyAcceptBuffer).([]byte)
+		}
+	}
+
 	if listener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", listener.listenIP, listener.listenPort)
-		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 	if localListener != nil {
 		log.DefaultLogger.Infof("original dst:%s:%d", localListener.listenIP, localListener.listenPort)
-		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, nil, nil)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 }
 
@@ -557,7 +567,7 @@ func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool)
 
 	// TODO: handle hand_off_restored_destination_connections logic
 	if arc.handOffRestoredDestinationConnections {
-		arc.HandOffRestoredDestinationConnectionsHandler()
+		arc.HandOffRestoredDestinationConnectionsHandler(ctx)
 	} else {
 		arc.activeListener.newConnection(ctx, arc.rawc)
 	}

@@ -79,6 +79,7 @@ type Listener interface {
 	// Return config which initialize this listener
 	Config() *v2.Listener
 
+	// Set listener config
 	SetConfig(config *v2.Listener)
 
 	// Name returns the listener's name
@@ -97,6 +98,7 @@ type Listener interface {
 	// ListenerTag returns the listener's tag, whichi the listener should use for connection handler tracking.
 	ListenerTag() uint64
 
+	// Set listener tag
 	SetListenerTag(tag uint64)
 
 	// ListenerFD returns a copy a listener fd
@@ -105,9 +107,14 @@ type Listener interface {
 	// PerConnBufferLimitBytes returns the limit bytes per connection
 	PerConnBufferLimitBytes() uint32
 
-	SetePerConnBufferLimitBytes(limitBytes uint32)
+	// Set limit bytes per connection
+	SetPerConnBufferLimitBytes(limitBytes uint32)
 
-	SethandOffRestoredDestinationConnections(restoredDestation bool)
+	// Set if listener should hand off restored destination connections
+	SetHandOffRestoredDestinationConnections(restoredDestation bool)
+
+	// Get if listener hand off restored destination connections
+	HandOffRestoredDestinationConnections() bool
 
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)

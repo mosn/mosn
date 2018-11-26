@@ -88,8 +88,8 @@ func TestFuzz(t *testing.T) {
 		m := iface.(testMessage)
 
 		for j := 0; j < 1000; j++ {
-			len := rand.Intn(100)
-			bytes := randomBytes(len, rand)
+			length := rand.Intn(100)
+			bytes := randomBytes(length, rand)
 			// This just looks for crashes due to bounds errors etc.
 			m.unmarshal(bytes)
 		}
@@ -303,7 +303,7 @@ func TestRejectEmptySCTList(t *testing.T) {
 
 	// Update the extensions length
 	serverHelloEmptySCT[42] = byte((len(serverHelloEmptySCT) - 44) >> 8)
-	serverHelloEmptySCT[43] = byte((len(serverHelloEmptySCT) - 44))
+	serverHelloEmptySCT[43] = byte(len(serverHelloEmptySCT) - 44)
 
 	if serverHelloCopy.unmarshal(serverHelloEmptySCT) {
 		t.Fatal("Unmarshaled ServerHello with empty SCT list")

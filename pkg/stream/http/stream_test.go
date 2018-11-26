@@ -61,6 +61,91 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 	}
 }
 
+func Test_header_capitalization(t *testing.T) {
+
+	addr := "www.antfin.com"
+	ClientStreamsMocked := []clientStream{
+		{
+			request: fasthttp.AcquireRequest(),
+			wrapper: &clientStreamWrapper{
+				client: &fasthttp.HostClient{
+					Addr: addr,
+				},
+			},
+		},
+	}
+
+	queryString := "name=biz&passwd=bar"
+
+	path := "/pic"
+
+	headers := []protocol.CommonHeader{
+		{
+			protocol.MosnHeaderQueryStringKey: queryString,
+			protocol.MosnHeaderPathKey:        path,
+			"Args": "Hello, world!",
+		},
+	}
+
+	wantedURI := []string{
+		"http://www.antfin.com/pic?name=biz&passwd=bar",
+	}
+
+	for i := 0; i < len(ClientStreamsMocked); i++ {
+		ClientStreamsMocked[i].AppendHeaders(nil, headers[i], false)
+		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
+			t.Errorf("clientStream AppendHeaders() error")
+		}
+
+		if len(headers[i]) != 0 && ClientStreamsMocked[i].request.Header.Peek("args") != nil &&
+			ClientStreamsMocked[i].request.Header.Peek("Args") == nil {
+			t.Errorf("clientStream header capitalization error")
+		}
+	}
+}
+
+func Test_header_conflict(t *testing.T) {
+
+	addr := "www.antfin.com"
+	ClientStreamsMocked := []clientStream{
+		{
+			request: fasthttp.AcquireRequest(),
+			wrapper: &clientStreamWrapper{
+				client: &fasthttp.HostClient{
+					Addr: addr,
+				},
+			},
+		},
+	}
+
+	queryString := "name=biz&passwd=bar"
+
+	path := "/pic"
+
+	headers := []protocol.CommonHeader{
+		{
+			protocol.MosnHeaderQueryStringKey: queryString,
+			protocol.MosnHeaderPathKey:        path,
+			"Method":                          "com.alipay.test.rpc.sample",
+		},
+	}
+
+	wantedURI := []string{
+		"http://www.antfin.com/pic?name=biz&passwd=bar",
+	}
+
+	for i := 0; i < len(ClientStreamsMocked); i++ {
+		ClientStreamsMocked[i].AppendHeaders(nil, headers[i], false)
+		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
+			t.Errorf("clientStream AppendHeaders() error")
+		}
+
+		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.Method()) == "com.alipay.test.rpc.sample" {
+			t.Errorf("clientStream header key conflicts")
+		}
+	}
+}
+
 func Test_serverStream_handleRequest(t *testing.T) {
 	type fields struct {
 		stream           stream

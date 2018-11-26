@@ -104,7 +104,7 @@ func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
 		e := event.(*resetEvent)
 		//log.DefaultLogger.Errorf("[reset] %d %d %s", shard, e.direction, e.streamID)
 
-		if done, ok := streamMap[e.streamID]; ok && !(done || streamProcessDone(e.stream)) {
+		if _, ok := streamMap[e.streamID]; ok {
 			switch e.direction {
 			case Downstream:
 				e.stream.ResetStream(e.reason)
@@ -138,7 +138,11 @@ func eventProcess(shard int, streamMap map[string]bool, event interface{}) {
 			switch e.direction {
 			case Downstream:
 				if e.stream.upstreamRequest == nil {
-					log.DefaultLogger.Errorf("data error: %d %+v", shard, e.stream)
+					// Sometimes runReceiveHeaderFilters will return doReceiveHeaders early,
+					// but will not block OnReceiveData, at this scene the upstreamRequest is nil.
+					// even if the upstreamRequest is nil, the ReceiveData->doReceiveData will return by runReceiveDataFilters
+					// it is ok.
+					log.DefaultLogger.Debugf("data error: %d %+v", shard, e.stream)
 				}
 				e.stream.ReceiveData(e.data, e.endStream)
 			case Upstream:

@@ -106,7 +106,7 @@ func TestNewRouteMatcherGroup(t *testing.T) {
 		return
 	}
 	rm := routers.(*routeMatcher)
-	expected := (rm.defaultVirtualHost != nil && len(rm.virtualHosts) == 1 && len(rm.wildcardVirtualHostSuffixes) == 1)
+	expected := rm.defaultVirtualHost != nil && len(rm.virtualHosts) == 1 && len(rm.wildcardVirtualHostSuffixes) == 1
 	if !expected {
 		t.Error("create routematcher not match")
 	}
@@ -165,10 +165,14 @@ func TestDefaultMatch(t *testing.T) {
 		"12345678",
 	}
 	for i, tc := range testCases {
-		if routers.Route(protocol.CommonHeader(map[string]string{
+		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderHostKey): tc,
 			"service": "test",
-		}), 1) == nil {
+		})
+		if routers.Route(headers, 1) == nil {
+			t.Errorf("#%d not matched\n", i)
+		}
+		if routers.GetAllRoutes(headers, 1) == nil {
 			t.Errorf("#%d not matched\n", i)
 		}
 	}
@@ -184,10 +188,14 @@ func TestDomainMatch(t *testing.T) {
 		t.Errorf("create router matcher failed %v\n", err)
 		return
 	}
-	if routers.Route(protocol.CommonHeader(map[string]string{
+	headers := protocol.CommonHeader(map[string]string{
 		strings.ToLower(protocol.MosnHeaderHostKey): "www.sofa-mosn.test",
 		"service": "test",
-	}), 1) == nil {
+	})
+	if routers.Route(headers, 1) == nil {
+		t.Error("domain match failed")
+	}
+	if routers.GetAllRoutes(headers, 1) == nil {
 		t.Error("domain match failed")
 	}
 	//not matched
@@ -200,10 +208,14 @@ func TestDomainMatch(t *testing.T) {
 		"*.sofa-mosn.test",
 	}
 	for i, tc := range notMatched {
-		if routers.Route(protocol.CommonHeader(map[string]string{
+		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderHostKey): tc,
 			"service": "test",
-		}), 1) != nil {
+		})
+		if routers.Route(headers, 1) != nil {
+			t.Errorf("#%d expected not matched, but match a router", i)
+		}
+		if routers.GetAllRoutes(headers, 1) != nil {
 			t.Errorf("#%d expected not matched, but match a router", i)
 		}
 	}
@@ -250,18 +262,26 @@ func TestWildcardMatch(t *testing.T) {
 			continue
 		}
 		for _, match := range tc.matchedDomain {
-			if routers.Route(protocol.CommonHeader(map[string]string{
+			headers := protocol.CommonHeader(map[string]string{
 				strings.ToLower(protocol.MosnHeaderHostKey): match,
 				"service": "test",
-			}), 1) == nil {
+			})
+			if routers.Route(headers, 1) == nil {
+				t.Errorf("%s expected matched: #%d, but return nil\n", match, i)
+			}
+			if routers.GetAllRoutes(headers, 1) == nil {
 				t.Errorf("%s expected matched: #%d, but return nil\n", match, i)
 			}
 		}
 		for _, unmatch := range tc.unmatchedDomain {
-			if routers.Route(protocol.CommonHeader(map[string]string{
+			headers := protocol.CommonHeader(map[string]string{
 				strings.ToLower(protocol.MosnHeaderHostKey): unmatch,
 				"service": "test",
-			}), 1) != nil {
+			})
+			if routers.Route(headers, 1) != nil {
+				t.Errorf("%s expected unmatched: #%d, but matched\n", unmatch, i)
+			}
+			if routers.GetAllRoutes(headers, 1) != nil {
 				t.Errorf("%s expected unmatched: #%d, but matched\n", unmatch, i)
 			}
 		}

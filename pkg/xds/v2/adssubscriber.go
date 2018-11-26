@@ -40,6 +40,7 @@ func (adsClient *ADSClient) sendThread() {
 	err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
 	if err != nil {
 		log.DefaultLogger.Warnf("send thread request cds fail!auto retry next period")
+		adsClient.reconnect()
 	}
 
 	refreshDelay := adsClient.AdsConfig.RefreshDelay
@@ -55,6 +56,7 @@ func (adsClient *ADSClient) sendThread() {
 			err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
 			if err != nil {
 				log.DefaultLogger.Warnf("send thread request cds fail!auto retry next period")
+				adsClient.reconnect()
 			}
 			t1.Reset(*refreshDelay)
 		}
@@ -69,9 +71,15 @@ func (adsClient *ADSClient) receiveThread() {
 			adsClient.StopChan <- 2
 			return
 		default:
+			if adsClient.StreamClient == nil {
+				log.DefaultLogger.Warnf("stream client closed, sleep 1s and wait for reconnect")
+				time.Sleep(time.Second)
+				continue
+			}
 			resp, err := adsClient.StreamClient.Recv()
 			if err != nil {
-				log.DefaultLogger.Warnf("get resp timeout: %v", err)
+				log.DefaultLogger.Warnf("get resp timeout: %v, retry after 1s", err)
+				time.Sleep(time.Second)
 				continue
 			}
 			typeURL := resp.TypeUrl
@@ -122,6 +130,24 @@ func (adsClient *ADSClient) receiveThread() {
 				adsClient.MosnConfig.OnAddOrUpdateRouters(routes)
 			}
 		}
+	}
+}
+
+func (adsClient *ADSClient) reconnect() {
+
+	adsClient.AdsConfig.closeADSStreamClient()
+	adsClient.StreamClient = nil
+	log.DefaultLogger.Infof("stream client closed")
+
+	for {
+		adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
+		if adsClient.StreamClient == nil {
+			log.DefaultLogger.Warnf("stream client reconnect failed, retry after 1s")
+			time.Sleep(time.Second)
+			continue
+		}
+		log.DefaultLogger.Infof("stream client reconnected")
+		break
 	}
 }
 

@@ -62,12 +62,15 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 		greaterSortedWildcardVirtualHostSuffixes: []int{},
 	}
 
+	configImpl := NewConfigImpl(routerConfig)
+
 	for _, virtualHost := range routerConfig.VirtualHosts {
 		vh, err := NewVirtualHostImpl(virtualHost, false)
 
 		if err != nil {
 			return nil, err
 		}
+		vh.globalRouteConfig = configImpl
 
 		for _, domain := range virtualHost.Domains {
 			// Note: we use domain in lowercase
@@ -75,7 +78,7 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 
 			if domain == "*" {
 				if routerMatcher.defaultVirtualHost != nil {
-					return nil, fmt.Errorf("Only a single wildcard domain permitted")
+					return nil, fmt.Errorf("NewRouteMatcher Error, only a single wildcard domain permitted")
 				}
 				log.StartLogger.Tracef("add route matcher default virtual host")
 				routerMatcher.defaultVirtualHost = vh
@@ -91,13 +94,13 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 				// exactly same wildcard domain is unique
 				wildcard := domain[1:]
 				if _, ok := m[wildcard]; ok {
-					return nil, fmt.Errorf("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+					return nil, fmt.Errorf("NewRouteMatcher Error, only unique wildcard are permitted, but get duplicate: %s", domain)
 				}
 				m[wildcard] = vh
 
 			} else {
 				if _, ok := routerMatcher.virtualHosts[domain]; ok {
-					return nil, fmt.Errorf("Only unique values for domains are permitted, get duplicate domain = %s", domain)
+					return nil, fmt.Errorf("NewRouteMatcher Error, only unique values for domains are permitted,but get duplicate:%s", domain)
 				}
 				routerMatcher.virtualHosts[domain] = vh
 			}
@@ -143,10 +146,25 @@ func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types
 	return routerInstance
 }
 
+// GetAllRoutes returns all route that matched
+func (rm *routeMatcher) GetAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
+	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
+	virtualHost := rm.findVirtualHost(headers)
+	if virtualHost == nil {
+		log.DefaultLogger.Errorf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		return nil
+	}
+	routers := virtualHost.GetAllRoutesFromEntries(headers, randomValue)
+	if routers == nil {
+		log.DefaultLogger.Errorf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+	}
+	return routers
+}
+
 func (rm *routeMatcher) findVirtualHost(headers types.HeaderMap) types.VirtualHost {
-	if len(rm.virtualHosts) == 0 {
+	if len(rm.virtualHosts) == 0 && rm.defaultVirtualHost != nil {
 		log.StartLogger.Tracef("route matcher find virtual host return default virtual host")
-		return rm.defaultVirtualHost // Note default virtualhost maybe nil
+		return rm.defaultVirtualHost
 	}
 
 	hostHeader, _ := headers.Get(strings.ToLower(protocol.MosnHeaderHostKey))

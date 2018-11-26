@@ -25,11 +25,14 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/buffer"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/tcpproxy"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/faultinject"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
+	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/mixer"
 	_ "github.com/alipay/sofa-mosn/pkg/network"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/conv"
+	_ "github.com/alipay/sofa-mosn/pkg/router"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
@@ -39,10 +42,12 @@ import (
 	"github.com/urfave/cli"
 )
 
+var Version = "0.0.1"
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "mosn"
-	app.Version = "0.0.1"
+	app.Version = Version
 	app.Compiled = time.Now()
 	app.Copyright = "(c) 2018 Ant Financial"
 	app.Usage = "MOSN is modular observable smart netstub."
