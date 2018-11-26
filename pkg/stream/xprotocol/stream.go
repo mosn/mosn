@@ -120,12 +120,12 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		log.DefaultLogger.Errorf("dispatch decode fail")
 		return
 	}
-	xRpcCmd, ok := cmd.(xprotocol.XRpcCmd)
+	xRpcCmd, ok := cmd.(*xprotocol.XRpcCmd)
 	if !ok {
 		log.DefaultLogger.Errorf("dispatch buffer to XRpcCmd fail")
 		return
 	}
-	conn.xRpcCmd = &xRpcCmd
+	conn.xRpcCmd = xRpcCmd
 	// get sub protocol codec
 	requestList := xRpcCmd.SplitFrame(buffer.Bytes())
 	for _, request := range requestList {
@@ -136,15 +136,13 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		log.DefaultLogger.Tracef("before Dispatch on decode header")
 
 		requestLen := len(request)
+
 		// ProtocolConvertor
 		// convertor first
-		convertorCodec, ok := conn.xRpcCmd.(xprotocol.ProtocolConvertor)
-		if ok {
-			newHeaders, newData := convertorCodec.Convert(request)
-			if newHeaders != nil && newData != nil {
-				request = newData
-				headers = newHeaders
-			}
+		newHeaders, newData := xRpcCmd.Convert(request)
+		if newHeaders != nil && newData != nil {
+			request = newData
+			headers = newHeaders
 		}
 
 		// get stream id
@@ -161,29 +159,24 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 			log.DefaultLogger.Tracef("Xprotocol get streamId %v, old reqID = %v", streamID, reqID)
 
 			// request route
-			requestRouteCodec, ok := conn.xRpcCmd.(xprotocol.RequestRouting)
-			if ok {
-				routeHeaders := requestRouteCodec.GetMetas(request)
-				if routeHeaders != nil {
-					for k, v := range routeHeaders {
-						headers[k] = v
-					}
-					log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v", headers)
+			routeHeaders := xRpcCmd.GetMetas(request)
+			if routeHeaders != nil {
+				for k, v := range routeHeaders {
+					headers[k] = v
 				}
+				log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v", headers)
 			}
 		} else if conn.clientCallbacks != nil {
 			streamID = conn.xRpcCmd.GetStreamID(request)
 		}
+
 		// tracing
-		tracingCodec, ok := conn.xRpcCmd.(xprotocol.Tracing)
-		if ok {
-			serviceName := tracingCodec.GetServiceName(request)
-			methodName := tracingCodec.GetMethodName(request)
-			if serviceName != "" && methodName != "" {
-				headers[types.HeaderRPCService] = serviceName
-				headers[types.HeaderRPCMethod] = methodName
-				log.DefaultLogger.Tracef("xprotocol handle tracing ,serviceName = %v , methodName = %v", serviceName, methodName)
-			}
+		serviceName := xRpcCmd.GetServiceName(request)
+		methodName := xRpcCmd.GetMethodName(request)
+		if serviceName != "" && methodName != "" {
+			headers[types.HeaderRPCService] = serviceName
+			headers[types.HeaderRPCMethod] = methodName
+			log.DefaultLogger.Tracef("xprotocol handle tracing ,serviceName = %v , methodName = %v", serviceName, methodName)
 		}
 
 		reqBuf := networkbuffer.NewIoBufferBytes(request)

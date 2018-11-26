@@ -59,13 +59,10 @@ func (coder *Coder) Decode(ctx context.Context, data types.IoBuffer, subProtocol
 		err := errors.New("create sub protocol fail")
 		return nil, err
 	}
-	frames := codec.SplitFrame(data.Bytes())
 	xRpcCmd := &XRpcCmd{
 		ctx:    ctx,
 		codec:  codec,
 		data:   nil,
-		frames: frames,
-		offset: 0,
 		header: make(map[string]string),
 	}
 	return xRpcCmd, nil
@@ -90,20 +87,23 @@ func CreateSubProtocolCodec(context context.Context, prot SubProtocol) Multiplex
 	return nil
 }
 
+// TODO should change the multiplexing interface to support decode into a data and header
+// XRpcCmd In XProtocol Mode , XRpcCmd is a codec wrapper , so data and header is useless currently
 type XRpcCmd struct {
 	ctx    context.Context
 	codec  Multiplexing
 	data   []byte
-	frames [][]byte
-	offset uint32
 	header map[string]string
 }
 
+// ProtocolEngine no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) ProtocolCode() byte {
 	// xprotocol unsupport protocol code ,so always return 0
 	// xprotocol need sub protocol name
 	return 0
 }
+
+// RequestID no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) RequestID() uint64 {
 	streamId := xRpcCmd.codec.GetStreamID(xRpcCmd.data)
 	requestId, err := strconv.ParseUint(streamId, 10, 64)
@@ -113,22 +113,29 @@ func (xRpcCmd *XRpcCmd) RequestID() uint64 {
 	}
 	return requestId
 }
+
+// SetRequestID no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) SetRequestID(requestID uint64) {
 	streamId := strconv.FormatUint(requestID, 10)
 	xRpcCmd.codec.SetStreamID(xRpcCmd.data, streamId)
 }
+
+// Header no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) Header() map[string]string {
 	return xRpcCmd.header
 }
 
+// Data no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) Data() []byte {
 	return xRpcCmd.data
 }
 
+// SetHeader no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) SetHeader(header map[string]string) {
 	xRpcCmd.header = header
 }
 
+// SetData no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) SetData(data []byte) {
 	xRpcCmd.data = data
 }
