@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package subprotocol
+package example
 
 import (
 	"bytes"

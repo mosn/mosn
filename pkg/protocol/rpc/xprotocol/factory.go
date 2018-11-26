@@ -45,7 +45,7 @@ type Coder struct {
 }
 
 func (coder *Coder) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
-	xRpcCmd, ok := model.(XRpcCmd)
+	xRpcCmd, ok := model.(*XRpcCmd)
 	if ok {
 		return networkbuffer.NewIoBufferBytes(xRpcCmd.data), nil
 	}
