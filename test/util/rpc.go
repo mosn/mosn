@@ -225,7 +225,7 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 
 func ServeBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		cmd, _ := codec.BoltCodec.Decode(nil, iobuf, "")
+		cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
 		}

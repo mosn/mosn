@@ -182,7 +182,7 @@ func encodeResponseV2(ctx context.Context, cmd *sofarpc.BoltResponseV2) (types.I
 	return buf, nil
 }
 
-func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer, subProtocol string) (interface{}, error) {
+func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}

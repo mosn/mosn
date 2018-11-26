@@ -113,7 +113,7 @@ func (h *BadHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func ServeBadBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		cmd, _ := codec.BoltCodec.Decode(nil, iobuf, "")
+		cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
 		}

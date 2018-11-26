@@ -54,8 +54,8 @@ func (eg *engine) Encode(ctx context.Context, model interface{}) (types.IoBuffer
 //	return eg.encoder.EncodeTo(ctx, model, buf)
 //}
 
-func (eg *engine) Decode(ctx context.Context, data types.IoBuffer, subProtocol string) (interface{}, error) {
-	return eg.decoder.Decode(ctx, data, subProtocol)
+func (eg *engine) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+	return eg.decoder.Decode(ctx, data)
 }
 
 func (eg *engine) Register(protocolCode byte, encoder types.Encoder, decoder types.Decoder) error {
@@ -96,7 +96,7 @@ func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (types.IoBu
 //	}
 //}
 
-func (m *mixedEngine) Decode(ctx context.Context, data types.IoBuffer, subProtocol string) (interface{}, error) {
+func (m *mixedEngine) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	// at least 1 byte for protocol code recognize
 	if data.Len() > 1 {
 		logger := log.ByContext(ctx)
@@ -104,7 +104,7 @@ func (m *mixedEngine) Decode(ctx context.Context, data types.IoBuffer, subProtoc
 		logger.Debugf("mixed protocol engine decode, protocol code = %x", code)
 
 		if eg, exists := m.engineMap[code]; exists {
-			return eg.Decode(ctx, data, subProtocol)
+			return eg.Decode(ctx, data)
 		} else {
 			return nil, ErrUnrecognizedCode
 		}

@@ -115,7 +115,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	log.DefaultLogger.Tracef("stream connection dispatch data string = %v", buffer.String())
 
 	// get XRpcCmd
-	cmd, err := conn.engine.Decode(conn.context, buffer, string(conn.subProtocolName))
+	cmd, err := conn.engine.Decode(conn.context, buffer)
 	if err != nil {
 		log.DefaultLogger.Errorf("dispatch decode fail")
 		return
