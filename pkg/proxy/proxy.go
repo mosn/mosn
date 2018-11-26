@@ -31,7 +31,7 @@ import (
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

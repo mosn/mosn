@@ -113,8 +113,17 @@ func (p *protocols) Decode(context context.Context, data types.IoBuffer, filter 
 	}
 }
 
-func (p *protocols) BuildSpan(context context.Context) types.Span {
-	sofabuffers := SofaProtocolBuffersByContext(context)
+func (p *protocols) BuildSpan(args ...interface{}) types.Span {
+	if len(args) == 0 {
+		return nil
+	}
+
+	if _, ok := args[0].(context.Context); !ok {
+		return nil
+	}
+
+	ctx, _ := args[0].(context.Context)
+	sofabuffers := SofaProtocolBuffersByContext(ctx)
 	request := &sofabuffers.BoltReq
 
 	if request.CmdCode == CMD_CODE_HEARTBEAT {
@@ -128,7 +137,7 @@ func (p *protocols) BuildSpan(context context.Context) types.Span {
 		traceId = trace.IdGen().GenerateTraceId()
 	}
 	span.SetTag(trace.TRACE_ID, traceId)
-	lType := context.Value(types.ContextKeyListenerType)
+	lType := ctx.Value(types.ContextKeyListenerType)
 
 	spanId := request.RequestHeader[models.RPC_ID_KEY]
 	if spanId == "" {

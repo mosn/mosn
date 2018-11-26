@@ -104,7 +104,7 @@ type Decoder interface {
 
 // Build the span for a specific protocol
 type SpanBuilder interface {
-	BuildSpan(context context.Context) Span
+	BuildSpan(args ...interface{}) Span
 }
 
 // SubProtocol Name
