@@ -79,8 +79,9 @@ func (s *SofaTracerSpan) String() string {
 
 // -------- SofaTracer --------
 var SofaTracerInstance *SofaTracer
+var PrintLog = true
 
-func init() {
+func CreateInstance() {
 	SofaTracerInstance = newSofaTracer()
 }
 
@@ -94,29 +95,31 @@ func newSofaTracer() *SofaTracer {
 	instance := &SofaTracer{}
 	instance.spanChan = make(chan *SofaTracerSpan)
 
-	userHome := os.Getenv("HOME")
-	var err error
-	logRoot := userHome + "/logs/tracelog/mosn/"
-	instance.ingressLogger, err = log.NewLogger(logRoot+"rpc-server-digest.log", log.INFO)
-	if err != nil {
-		// TODO when error is not nil
-	}
-
-	instance.egressLogger, err = log.NewLogger(logRoot+"rpc-client-digest.log", log.INFO)
-	if err != nil {
-		// TODO when error is not nil
-	}
-
-	// Do not print any timestamp prefix
-	instance.ingressLogger.SetFlags(0)
-	instance.egressLogger.SetFlags(0)
-
-	go func() {
-		for {
-			span := <-instance.spanChan
-			instance.printSpan(span)
+	if PrintLog {
+		userHome := os.Getenv("HOME")
+		var err error
+		logRoot := userHome + "/logs/tracelog/mosn/"
+		instance.ingressLogger, err = log.NewLogger(logRoot+"rpc-server-digest.log", log.INFO)
+		if err != nil {
+			// TODO when error is not nil
 		}
-	}()
+
+		instance.egressLogger, err = log.NewLogger(logRoot+"rpc-client-digest.log", log.INFO)
+		if err != nil {
+			// TODO when error is not nil
+		}
+
+		// Do not print any timestamp prefix
+		instance.ingressLogger.SetFlags(0)
+		instance.egressLogger.SetFlags(0)
+
+		go func() {
+			for {
+				span := <-instance.spanChan
+				instance.printSpan(span)
+			}
+		}()
+	}
 
 	return instance
 }
@@ -129,6 +132,15 @@ func (tracer *SofaTracer) Start(startTime time.Time) types.Span {
 	}
 
 	return span
+}
+
+func (tracer *SofaTracer) GetSpan() types.Span {
+	select {
+	case span := <-tracer.spanChan:
+		return span
+	default:
+		return nil
+	}
 }
 
 func (tracer *SofaTracer) printSpan(span *SofaTracerSpan) {

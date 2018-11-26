@@ -125,7 +125,7 @@ func newListener(name, addr string, chains []v2.FilterChain) v2.Listener {
 	}
 }
 
-func newMOSNConfig(listeners []v2.Listener, clusterManager config.ClusterManagerConfig) *config.MOSNConfig {
+func newMOSNConfig(listeners []v2.Listener, clusterManager config.ClusterManagerConfig, tracingConfig config.TracingConfig) *config.MOSNConfig {
 	return &config.MOSNConfig{
 		Servers: []config.ServerConfig{
 			config.ServerConfig{
@@ -135,6 +135,7 @@ func newMOSNConfig(listeners []v2.Listener, clusterManager config.ClusterManager
 			},
 		},
 		ClusterManager: clusterManager,
+		Tracing:        tracingConfig,
 	}
 }
 

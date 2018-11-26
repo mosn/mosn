@@ -47,6 +47,7 @@ type Mosn struct {
 // NewMosn
 // Create server from mosn config
 func NewMosn(c *config.MOSNConfig) *Mosn {
+	initializeTracing(c.Tracing)
 	m := &Mosn{}
 	mode := c.Mode()
 
@@ -200,6 +201,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 func initializeTracing(config config.TracingConfig) {
 	if config.Enable && config.Tracer != "" {
 		if config.Tracer == "SOFATracer" {
+			trace.CreateInstance()
 			trace.SetTracer(trace.SofaTracerInstance)
 		} else {
 			log.DefaultLogger.Errorf("Unable to recognise tracing implementation %s, tracing functionality is turned off.", config.Tracer)

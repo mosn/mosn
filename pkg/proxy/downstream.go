@@ -748,7 +748,9 @@ func (s *downStream) finishTracing(status string) {
 			if s.requestInfo.UpstreamHost() != nil {
 				span.SetTag(trace.UPSTREAM_HOST_ADDRESS, s.requestInfo.UpstreamHost().AddressString())
 			}
-			span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
+			if s.requestInfo.DownstreamLocalAddress() != nil {
+				span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
+			}
 			span.SetTag(trace.RESULT_STATUS, status)
 			span.FinishSpan()
 

@@ -26,6 +26,8 @@ type TestCase struct {
 	AppServer      util.UpstreamServer
 	ClientMeshAddr string
 	ServerMeshAddr string
+	EnableTracing  bool
+	Tracer         string
 	Stop           chan struct{}
 }
 
@@ -48,7 +50,7 @@ func (c *TestCase) StartProxy() {
 	appAddr := c.AppServer.Addr()
 	clientMeshAddr := util.CurrentMeshAddr()
 	c.ClientMeshAddr = clientMeshAddr
-	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol)
+	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol, c.EnableTracing, c.Tracer)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
@@ -66,7 +68,7 @@ func (c *TestCase) Start(tls bool) {
 	clientMeshAddr := util.CurrentMeshAddr()
 	c.ClientMeshAddr = clientMeshAddr
 	serverMeshAddr := util.CurrentMeshAddr()
-	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, tls)
+	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, tls, c.EnableTracing, c.Tracer)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
