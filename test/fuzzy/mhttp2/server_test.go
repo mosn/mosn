@@ -1,4 +1,4 @@
-package rpc
+package http2
 
 import (
 	"testing"
@@ -8,14 +8,10 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/fuzzy"
-	"github.com/alipay/sofa-mosn/test/util"
 )
 
 func runClient(t *testing.T, meshAddr string, stop chan struct{}) {
-	client := NewRPCClient(t, "rpcclient", util.Bolt1, meshAddr)
-	if err := client.Connect(); err != nil {
-		t.Fatalf("client connect to mesh failed, %v", err)
-	}
+	client := NewHTTP2Client(t, meshAddr)
 	fuzzy.FuzzyClient(stop, client)
 	<-time.After(caseDuration)
 	close(stop)
@@ -27,12 +23,11 @@ func runClient(t *testing.T, meshAddr string, stop chan struct{}) {
 		t.Errorf("case%d client suucess count: %d, failure count: %d\n", caseIndex, client.successCount, client.failureCount)
 	}
 	log.StartLogger.Infof("[FUZZY TEST] client suucess count: %d, failure count: %d\n", client.successCount, client.failureCount)
-
 }
 
 func TestServerCloseProxy(t *testing.T) {
 	caseIndex++
-	log.StartLogger.Infof("[FUZZY TEST] RPC Server Close In ProxyMode %d", caseIndex)
+	log.StartLogger.Infof("[FUZZY TEST] HTTP2 Server Close In ProxyMode %d", caseIndex)
 	serverList := []string{
 		"127.0.0.1:8080",
 		"127.0.0.1:8081",
@@ -40,7 +35,7 @@ func TestServerCloseProxy(t *testing.T) {
 	}
 	stopClient := make(chan struct{})
 	stopServer := make(chan struct{})
-	meshAddr := fuzzy.CreateMeshProxy(t, stopServer, serverList, protocol.SofaRPC)
+	meshAddr := fuzzy.CreateMeshProxy(t, stopServer, serverList, protocol.MHTTP2)
 	servers := CreateServers(t, serverList, stopServer)
 	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
 	runClient(t, meshAddr, stopClient)
@@ -58,7 +53,7 @@ func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 	}
 	stopClient := make(chan struct{})
 	stopServer := make(chan struct{})
-	meshAddr := fuzzy.CreateMeshCluster(t, stopServer, serverList, protocol.SofaRPC, proto)
+	meshAddr := fuzzy.CreateMeshCluster(t, stopServer, serverList, protocol.MHTTP2, proto)
 	servers := CreateServers(t, serverList, stopServer)
 	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
 	runClient(t, meshAddr, stopClient)
@@ -68,25 +63,8 @@ func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 
 }
 
-func TestServerCloseToHTTP1(t *testing.T) {
-	caseIndex++
-	log.StartLogger.Infof("[FUZZY TEST] RPC Server Close HTTP1 %d", caseIndex)
-	runServerCloseMeshToMesh(t, protocol.HTTP1)
-}
-
 func TestServerCloseToHTTP2(t *testing.T) {
 	caseIndex++
-	log.StartLogger.Infof("[FUZZY TEST] RPC Server Close HTTP2 %d", caseIndex)
-	runServerCloseMeshToMesh(t, protocol.HTTP2)
-}
-func TestServerCloseToSofaRPC(t *testing.T) {
-	caseIndex++
-	log.StartLogger.Infof("[FUZZY TEST] RPC Server Close SofaRPC %d", caseIndex)
-	runServerCloseMeshToMesh(t, protocol.SofaRPC)
-}
-
-func TestServerCloseToMHTTP2(t *testing.T) {
-	caseIndex++
-	log.StartLogger.Infof("[FUZZY TEST] RPC Server Close MHTTP2 %d", caseIndex)
+	log.StartLogger.Infof("[FUZZY TEST] HTTP2 Server Close HTTP2 %d", caseIndex)
 	runServerCloseMeshToMesh(t, protocol.MHTTP2)
 }

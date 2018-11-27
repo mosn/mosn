@@ -13,6 +13,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/stats"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
@@ -31,6 +32,10 @@ func main() {
 		server = NewHTTP1Server(serverAddr)
 		client = NewHTTP1Client(meshAddr)
 		proto = protocol.HTTP1
+	case "mhttp2":
+		server = NewHTTP2Server(serverAddr)
+		client = NewHTTP2Client(meshAddr)
+		proto = protocol.MHTTP2
 	case "http2":
 		server = NewHTTP2Server(serverAddr)
 		client = NewHTTP2Client(meshAddr)
