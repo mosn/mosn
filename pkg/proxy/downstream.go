@@ -840,9 +840,9 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 // TODO: rpc status code may be not matched
 // TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
 func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
-	s.logger.Debugf("set hijack reply with body, stream id = %d, code = %d", s.ID, code)
+	s.logger.Debugf("set hijack reply with body, conn = %d, stream id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
 	if headers == nil {
-		s.logger.Warnf("hijack with no headers, stream id = %d", s.ID)
+		s.logger.Warnf("hijack with no headers, conn = %d, stream id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}

@@ -136,3 +136,19 @@ type mockStream struct {
 func (s *mockStream) ResetStream(reason types.StreamResetReason) {
 	// do nothing
 }
+
+type mockReadFilterCallbacks struct {
+	types.ReadFilterCallbacks
+}
+
+func (cb *mockReadFilterCallbacks) Connection() types.Connection {
+	return &mockConnection{}
+}
+
+type mockConnection struct {
+	types.Connection
+}
+
+func (c *mockConnection) ID() uint64 {
+	return 0
+}
