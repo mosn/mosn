@@ -80,11 +80,14 @@ func (c *RPCClient) Close() {
 }
 
 func (c *RPCClient) SendRequest() {
+	c.SendRequestWithData("testdata")
+}
+func (c *RPCClient) SendRequestWithData(in string) {
 	ID := atomic.AddUint32(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
 	var headers sofarpc.ProtoBasicCmd
-	data := buffer.NewIoBufferString("testdata")
+	data := buffer.NewIoBufferString(in)
 	switch c.Protocol {
 	case Bolt1:
 		headers = BuildBoltV1RequestWithContent(ID, data)

@@ -104,9 +104,6 @@ type BadHTTPHandler struct{}
 
 func (h *BadHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
-	for k := range r.Header {
-		w.Header().Set(k, r.Header.Get(k))
-	}
 	w.WriteHeader(http.StatusInternalServerError)
 	fmt.Fprintf(w, "\nRequestId:%s\n", r.Header.Get("Requestid"))
 }
