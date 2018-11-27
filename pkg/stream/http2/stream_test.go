@@ -20,6 +20,7 @@ package http2
 import (
 	"net"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -28,14 +29,14 @@ import (
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
-	streamMocked := stream{
-		request: new(http.Request),
-	}
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:12200")
+	URL, _ := url.Parse("http://127.0.0.1:12200")
 
 	clientStreamsMocked := []clientStream{
 		{
-			stream: streamMocked,
+			stream: stream{
+				request: new(http.Request),
+			},
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
 					connection: network.NewClientConnection(nil, nil, remoteAddr, nil, log.DefaultLogger),
@@ -43,7 +44,21 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 			},
 		},
 		{
-			stream: streamMocked,
+			stream: stream{
+				request: &http.Request{
+					URL: URL,
+				},
+			},
+			connection: &clientStreamConnection{
+				streamConnection: streamConnection{
+					connection: network.NewClientConnection(nil, nil, remoteAddr, nil, log.DefaultLogger),
+				},
+			},
+		},
+		{
+			stream: stream{
+				request: new(http.Request),
+			},
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
 					connection: network.NewClientConnection(nil, nil, remoteAddr, nil, log.DefaultLogger),
@@ -64,18 +79,26 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 		},
+		{
+			protocol.MosnHeaderQueryStringKey: "",
+			protocol.MosnHeaderPathKey:        path,
+		},
 	}
 
 	wantedURL := []string{
 		"name=biz&passwd=bar",
 		"",
+		"",
 	}
 
 	for i := 0; i < len(clientStreamsMocked); i++ {
 		clientStreamsMocked[i].AppendHeaders(nil, headers[i], false)
-		if len(headers[i]) != 0 && clientStreamsMocked[i].request.URL.RawQuery != wantedURL[i] {
-			t.Errorf("clientStream AppendHeaders() error")
+		if len(headers[i]) != 0 || clientStreamsMocked[i].request.URL.RawQuery != wantedURL[i] {
+			t.Errorf("clientStream AppendHeaders() error, num: %d,  actual RawQuery: %s, expect Query: %s",
+				i, clientStreamsMocked[i].request.URL.RawQuery, wantedURL[i])
+		}
+		if clientStreamsMocked[i].request.URL.ForceQuery {
+			t.Errorf("ForceQuery should be false")
 		}
 	}
-
 }

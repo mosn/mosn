@@ -15,12 +15,12 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 const (
