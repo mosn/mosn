@@ -11,17 +11,18 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 type Client struct {
 	Codec stream.CodecClient
 	conn  types.ClientConnection
-	Id    uint32
+	Id    uint64
 }
 
 func NewClient(addr string) *Client {
@@ -43,28 +44,30 @@ func (c *Client) OnReceiveTrailers(context context.Context, trailers types.Heade
 func (c *Client) OnDecodeError(context context.Context, err error, headers types.HeaderMap)  {}
 func (c *Client) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	fmt.Printf("[RPC Client] Receive Data:")
-	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
-		streamID := protocol.StreamIDConv(cmd.GetReqID())
-		fmt.Println("stream:", streamID, " status:", cmd.GetRespStatus())
+	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
+		streamID := protocol.StreamIDConv(cmd.RequestID())
+
+		if resp, ok := cmd.(rpc.RespStatus); ok {
+			fmt.Println("stream:", streamID, " status:", resp.RespStatus())
+		}
 	}
 }
 
 func (c *Client) Request() {
 	c.Id++
-	streamID := protocol.StreamIDConv(c.Id)
-	requestEncoder := c.Codec.NewStream(context.Background(), streamID, c)
+	requestEncoder := c.Codec.NewStream(context.Background(), c)
 	headers := buildBoltV1Request(c.Id)
 	requestEncoder.AppendHeaders(context.Background(), headers, true)
 }
 
-func buildBoltV1Request(requestID uint32) *sofarpc.BoltRequestCommand {
-	request := &sofarpc.BoltRequestCommand{
+func buildBoltV1Request(requestID uint64) *sofarpc.BoltRequest {
+	request := &sofarpc.BoltRequest{
 		Protocol: sofarpc.PROTOCOL_CODE_V1,
 		CmdType:  sofarpc.REQUEST,
 		CmdCode:  sofarpc.RPC_REQUEST,
 		Version:  1,
-		ReqID:    requestID,
-		CodecPro: sofarpc.HESSIAN_SERIALIZE, //todo: read default codec from config
+		ReqID:    uint32(requestID),
+		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
 		Timeout:  -1,
 	}
 

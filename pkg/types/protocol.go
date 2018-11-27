@@ -37,8 +37,6 @@ import (
 //	 Stream layer leverages protocol's ability to do binary-model conversation. In detail, Stream uses Protocols's encode/decode facade method and DecodeFilter to receive decode event call.
 //
 
-// TODO: support error case: add error as return value in EncodeX method; add OnError(error) in DecodeFilter @wugou
-
 type Protocol string
 
 // HeaderMap is a interface to provide operation facade with user-value headers
@@ -60,75 +58,36 @@ type HeaderMap interface {
 	ByteSize() uint64
 }
 
-// Protocols is a protocols' facade used by Stream
-type Protocols interface {
+// ProtocolEngine is a protocols' facade used by Stream, it provides
+// auto protocol detection by the first byte recognition(called protocol code)
+type ProtocolEngine interface {
 	// Encoder is a encoder interface to extend various of protocols
 	Encoder
-	// Decode decodes data to headers-data-trailers by Stream
-	// Stream register a DecodeFilter to receive decode event
-	Decode(ctx context.Context, data IoBuffer, filter DecodeFilter)
-}
 
-// DecodeFilter is a filter used by Stream to receive decode events
-type DecodeFilter interface {
-	// OnDecodeHeader is called on headers decoded
-	OnDecodeHeader(streamID string, headers HeaderMap, endStream bool) FilterStatus
+	// Decoder is a decoder interface to extend various of protocols
+	Decoder
 
-	// OnDecodeData is called on data decoded
-	OnDecodeData(streamID string, data IoBuffer, endStream bool) FilterStatus
-
-	// OnDecodeTrailer is called on trailers decoded
-	OnDecodeTrailer(streamID string, trailers HeaderMap) FilterStatus
-
-	// OnDecodeError is called when error occurs
-	// When error occurring, filter status = stop
-	OnDecodeError(err error, headers HeaderMap)
+	// Register encoder and decoder for the specified protocol code
+	// TODO: use recognize interface instead of protocol code
+	Register(protocolCode byte, encoder Encoder, decoder Decoder) error
 }
 
 // Encoder is a encoder interface to extend various of protocols
 type Encoder interface {
-	// EncodeHeaders encodes the headers based on it's protocol
-	EncodeHeaders(ctx context.Context, headers HeaderMap) (IoBuffer, error)
+	// Encode encodes a model to binary data
+	// return 1. encoded bytes 2. encode error
+	Encode(ctx context.Context, model interface{}) (IoBuffer, error)
 
-	// EncodeData encodes the data based on it's protocol
-	EncodeData(ctx context.Context, data IoBuffer) IoBuffer
-
-	// EncodeTrailers encodes the trailers based on it's protocol
-	EncodeTrailers(ctx context.Context, trailers HeaderMap) IoBuffer
+	// EncodeTo encodes a model to binary data, and append into the given buffer
+	// This method should be used in term of performance
+	// return 1. encoded bytes number 2. encode error
+	//EncodeTo(ctx context.Context, model interface{}, buf IoBuffer) (int, error)
 }
 
 // Decoder is a decoder interface to extend various of protocols
 type Decoder interface {
-	// Decode decodes binary to a model
-	// return 1. bytes decoded 2. decoded cmd
+	// Decode decodes binary data to a model
+	// pass sub protocol type to identify protocol format
+	// return 1. decoded model(nil if no enough data) 2. decode error
 	Decode(ctx context.Context, data IoBuffer) (interface{}, error)
-}
-
-// SubProtocol Name
-type SubProtocol string
-
-// Multiplexing Accesslog Rate limit Curcuit Breakers
-type Multiplexing interface {
-	SplitFrame(data []byte) [][]byte
-	GetStreamID(data []byte) string
-	SetStreamID(data []byte, streamID string) []byte
-}
-
-// Tracing base on Multiplexing
-type Tracing interface {
-	Multiplexing
-	GetServiceName(data []byte) string
-	GetMethodName(data []byte) string
-}
-
-// RequestRouting RequestAccessControl RequesstFaultInjection base on Multiplexing
-type RequestRouting interface {
-	Multiplexing
-	GetMetas(data []byte) map[string]string
-}
-
-// ProtocolConvertor change protocol base on Multiplexing
-type ProtocolConvertor interface {
-	Multiplexing
-	Convert(data []byte) (map[string]string, []byte)
 }

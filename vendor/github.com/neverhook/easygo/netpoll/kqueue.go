@@ -361,6 +361,10 @@ func (k *Kqueue) wait(onError func(error)) {
 			return
 		}
 
+		if n > maxWaitEventsBegin {
+			continue
+		}
+
 		cbs = cbs[:n]
 		k.mu.RLock()
 		for i := 0; i < n; i++ {

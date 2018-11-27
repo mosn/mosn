@@ -40,11 +40,11 @@ import (
 // types.FilterChainFactoryCallbacks
 // Downstream stream, as a controller to handle downstream and upstream proxy flow
 type downStream struct {
-	streamID string
-	proxy    *proxy
-	route    types.Route
-	cluster  types.ClusterInfo
-	element  *list.Element
+	ID      uint32
+	proxy   *proxy
+	route   types.Route
+	cluster types.ClusterInfo
+	element *list.Element
 
 	// flow control
 	bufferLimit uint32
@@ -101,19 +101,17 @@ type downStream struct {
 	snapshot types.ClusterSnapshot
 }
 
-func newActiveStream(ctx context.Context, streamID string, proxy *proxy, responseSender types.StreamSender) *downStream {
-	newCtx := buffer.NewBufferPoolContext(ctx, true)
-
-	proxyBuffers := proxyBuffersByContext(newCtx)
+func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender) *downStream {
+	proxyBuffers := proxyBuffersByContext(ctx)
 
 	stream := &proxyBuffers.stream
-	stream.streamID = streamID
+	stream.ID = atomic.AddUint32(&currProxyID, 1)
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
 	stream.responseSender = responseSender
 	stream.responseSender.GetStream().AddEventListener(stream)
-	stream.context = newCtx
+	stream.context = ctx
 
 	stream.logger = log.ByContext(proxy.context)
 
@@ -124,6 +122,9 @@ func newActiveStream(ctx context.Context, streamID string, proxy *proxy, respons
 
 	// start event process
 	stream.startEventProcess()
+
+	// debug message for downstream
+	stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
 	return stream
 }
 
@@ -221,7 +222,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	workerPool.Offer(&resetEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 		reason: reason,
@@ -239,7 +240,7 @@ func (s *downStream) OnReceiveHeaders(context context.Context, headers types.Hea
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 		headers:   headers,
@@ -286,7 +287,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// check if route have direct response
 	// direct response will response now
 	if resp := s.route.DirectResponseRule(); !(resp == nil || reflect.ValueOf(resp).IsNil()) {
-		log.DefaultLogger.Infof("direct response for stream , id = %s", s.streamID)
+		log.DefaultLogger.Infof("direct response for stream , id = %s", s.ID)
 		if resp.Body() != "" {
 			s.sendHijackReplyWithBody(resp.StatusCode(), headers, resp.Body())
 		} else {
@@ -364,7 +365,7 @@ func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer,
 	workerPool.Offer(&receiveDataEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 		data:      s.downstreamReqDataBuf,
@@ -408,7 +409,7 @@ func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.H
 	workerPool.Offer(&receiveTrailerEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 		trailers: trailers,
@@ -825,9 +826,9 @@ func (s *downStream) resetStream() {
 }
 
 func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
-	s.logger.Debugf("set hijack reply, stream id = %s, code = %d", s.streamID, code)
+	s.logger.Debugf("set hijack reply, conn = %d, id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
 	if headers == nil {
-		s.logger.Warnf("hijack with no headers, stream id = %s", s.streamID)
+		s.logger.Warnf("hijack with no headers, conn = %d, id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
@@ -839,9 +840,9 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 // TODO: rpc status code may be not matched
 // TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
 func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
-	s.logger.Debugf("set hijack reply with body, stream id = %s, code = %d", s.streamID, code)
+	s.logger.Debugf("set hijack reply with body, stream id = %d, code = %d", s.ID, code)
 	if headers == nil {
-		s.logger.Warnf("hijack with no headers, stream id = %s", s.streamID)
+		s.logger.Warnf("hijack with no headers, stream id = %d", s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
@@ -904,7 +905,7 @@ func (s *downStream) AddStreamAccessLog(accessLog types.AccessLog) {
 }
 
 func (s *downStream) reset() {
-	s.streamID = ""
+	s.ID = 0
 	s.proxy = nil
 	s.route = nil
 	s.cluster = nil
@@ -978,7 +979,7 @@ func (s *downStream) startEventProcess() {
 	workerPool.Offer(&startEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 	})
@@ -988,7 +989,7 @@ func (s *downStream) stopEventProcess() {
 	workerPool.Offer(&stopEvent{
 		streamEvent: streamEvent{
 			direction: Downstream,
-			streamID:  s.streamID,
+			streamID:  s.ID,
 			stream:    s,
 		},
 	})

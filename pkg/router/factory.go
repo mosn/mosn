@@ -21,18 +21,25 @@ import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
-	RegisterRouterRule(DefaultSofaRouterRuleFactory)
-	RegisterMakeHandlerChain(DefaultMakeHandlerChain)
+	RegisterRouterRule(DefaultSofaRouterRuleFactory, 1)
+	RegisterMakeHandlerChain(DefaultMakeHandlerChain, 1)
 }
 
-var defaultRouterRuleFactory RouterRuleFactory
+var defaultRouterRuleFactoryOrder routerRuleFactoryOrder
 
-func RegisterRouterRule(f RouterRuleFactory) {
-	defaultRouterRuleFactory = f
+func RegisterRouterRule(f RouterRuleFactory, order uint32) {
+	if defaultRouterRuleFactoryOrder.order < order {
+		log.DefaultLogger.Infof("register router rule, order %d", order)
+		defaultRouterRuleFactoryOrder.factory = f
+		defaultRouterRuleFactoryOrder.order = order
+	} else {
+		log.DefaultLogger.Warnf("current register order is %d, order %d register failed", defaultRouterRuleFactoryOrder.order, order)
+	}
 }
 
 func DefaultSofaRouterRuleFactory(base *RouteRuleImplBase, headers []v2.HeaderMatcher) RouteBase {
@@ -47,10 +54,16 @@ func DefaultSofaRouterRuleFactory(base *RouteRuleImplBase, headers []v2.HeaderMa
 	return nil
 }
 
-var makeHandlerChain MakeHandlerChain
+var makeHandlerChainOrder handlerChainOrder
 
-func RegisterMakeHandlerChain(f MakeHandlerChain) {
-	makeHandlerChain = f
+func RegisterMakeHandlerChain(f MakeHandlerChain, order uint32) {
+	if makeHandlerChainOrder.order < order {
+		log.DefaultLogger.Infof("register make handler chain, order %d", order)
+		makeHandlerChainOrder.makeHandlerChain = f
+		makeHandlerChainOrder.order = order
+	} else {
+		log.DefaultLogger.Warnf("current register order is %d, order %d register failed", makeHandlerChainOrder.order, order)
+	}
 }
 
 type simpleHandler struct {
@@ -75,5 +88,5 @@ func DefaultMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clu
 }
 
 func CallMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
-	return makeHandlerChain(headers, routers, clusterManager)
+	return makeHandlerChainOrder.makeHandlerChain(headers, routers, clusterManager)
 }

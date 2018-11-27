@@ -27,7 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 	"github.com/valyala/fasthttp"
 )
 
@@ -55,7 +55,7 @@ func (p *connPool) Protocol() types.Protocol {
 }
 
 //由 PROXY 调用
-func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
+func (p *connPool) NewStream(context context.Context, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
 
 	if p.client == nil {
@@ -65,7 +65,7 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(streamID, types.Overflow, nil)
+		cb.OnFailure(types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -75,8 +75,8 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 
-		streamEncoder := p.client.codecClient.NewStream(context, streamID, responseDecoder)
-		cb.OnReady(streamID, streamEncoder, p.host)
+		streamEncoder := p.client.codecClient.NewStream(context, responseDecoder)
+		cb.OnReady(streamEncoder, p.host)
 	}
 
 	return nil
@@ -154,7 +154,7 @@ type activeClient struct {
 	closeWithActiveReq bool
 }
 
-func newActiveClient(context context.Context, pool *connPool) *activeClient {
+func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
@@ -162,7 +162,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	//data := pool.host.CreateConnection(context)
 	//data.Connection.Connect(false)
 
-	codecClient := NewHTTP1CodecClient(context, ac)
+	codecClient := NewHTTP1CodecClient(context.Background(), ac)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)

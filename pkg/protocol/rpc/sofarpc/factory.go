@@ -15,36 +15,31 @@
  * limitations under the License.
  */
 
-package subprotocol
+package sofarpc
 
 import (
-	"context"
-
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var subProtocolFactories map[types.SubProtocol]CodecFactory
+var (
+	sofarpcEngine = rpc.NewMixedEngine()
 
-func init() {
-	//subProtocolFactories = make(map[types.SubProtocol]CodecFactory)
+	// Consider the use case of heartbeat construction: an individual scene which can't get the reference
+	// of the protocol engine instance(usually it held by the stream connection), like upstream/healthcheck.
+	// So we need a separate factory to achieve this goal.
+	heartbeatFactory = make(map[byte]HeartbeatBuilder)
+)
+
+func RegisterProtocol(protocolCode byte, encoder types.Encoder, decoder types.Decoder) {
+	sofarpcEngine.Register(protocolCode, encoder, decoder)
 }
 
-// Register SubProtocol Plugin
-func Register(prot types.SubProtocol, factory CodecFactory) {
-	if subProtocolFactories == nil {
-		subProtocolFactories = make(map[types.SubProtocol]CodecFactory)
-	}
-	subProtocolFactories[prot] = factory
+func RegisterHeartbeatBuilder(protocolCode byte, builder HeartbeatBuilder) {
+	heartbeatFactory[protocolCode] = builder
 }
 
-// CreateSubProtocolCodec return SubProtocol Codec
-func CreateSubProtocolCodec(context context.Context, prot types.SubProtocol) types.Multiplexing {
-
-	if spc, ok := subProtocolFactories[prot]; ok {
-		log.DefaultLogger.Tracef("create sub protocol codec %v success", prot)
-		return spc.CreateSubProtocolCodec(context)
-	}
-	log.DefaultLogger.Errorf("unknown sub protocol = %v", prot)
-	return nil
+// TODO: should be replaced with configure specify(e.g. downstream_protocol: rpc, sub_protocol:[boltv1])
+func Engine() types.ProtocolEngine {
+	return sofarpcEngine
 }

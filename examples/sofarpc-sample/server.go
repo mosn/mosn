@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 )
 
 type SofaRPCServer struct {
@@ -46,17 +46,17 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 		if bytesRead > 0 {
 			iobuf.Write(buf[:bytesRead])
 			for iobuf.Len() > 1 {
-				cmd, _ := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
+				cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
 				if cmd == nil {
 					break
 				}
-				if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
+				if req, ok := cmd.(*sofarpc.BoltRequest); ok {
 					resp := buildBoltV1Response(req)
-					iobufresp, err := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
+					iobufresp, err := codec.BoltCodec.Encode(nil, resp)
 					if err != nil {
 						fmt.Printf("[RPC Server] build response error: %v\n", err)
 					} else {
-						fmt.Printf("[RPC Server] reponse connection: %s, requestId: %d\n", conn.RemoteAddr().String(), resp.GetReqID())
+						fmt.Printf("[RPC Server] reponse connection: %s, requestId: %d\n", conn.RemoteAddr().String(), resp.RequestID())
 						respdata := iobufresp.Bytes()
 						conn.Write(respdata)
 					}
@@ -66,14 +66,14 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 	}
 }
 
-func buildBoltV1Response(req *sofarpc.BoltRequestCommand) *sofarpc.BoltResponseCommand {
-	return &sofarpc.BoltResponseCommand{
+func buildBoltV1Response(req *sofarpc.BoltRequest) *sofarpc.BoltResponse {
+	return &sofarpc.BoltResponse{
 		Protocol:       req.Protocol,
 		CmdType:        sofarpc.RESPONSE,
 		CmdCode:        sofarpc.RPC_RESPONSE,
 		Version:        req.Version,
 		ReqID:          req.ReqID,
-		CodecPro:       req.CodecPro,
+		Codec:          req.Codec,
 		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
 		HeaderLen:      req.HeaderLen,
 		HeaderMap:      req.HeaderMap,
