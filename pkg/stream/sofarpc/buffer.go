@@ -23,6 +23,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
+var ins = sofaBufferCtx{}
+
 type sofaBufferCtx struct{}
 
 func (ctx sofaBufferCtx) Name() int {
@@ -45,5 +47,5 @@ type sofaBuffers struct {
 
 func sofaBuffersByContext(context context.Context) *sofaBuffers {
 	ctx := buffer.PoolContext(context)
-	return ctx.Find(sofaBufferCtx{}, nil).(*sofaBuffers)
+	return ctx.Find(ins, nil).(*sofaBuffers)
 }

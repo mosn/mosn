@@ -96,6 +96,9 @@ const (
 
 // Stream is a generic protocol stream, it is the core model in stream layer
 type Stream interface {
+	// ID returns unique stream id during one connection life-cycle
+	ID() uint64
+
 	// AddEventListener adds stream event listener
 	AddEventListener(streamEventListener StreamEventListener)
 
@@ -179,7 +182,7 @@ type ClientStreamConnection interface {
 	// NewStream creates a new outgoing request stream
 	// responseDecoder supplies the decoder listeners on decode event
 	// StreamSender supplies the encoder to write the request
-	NewStream(ctx context.Context, streamID string, responseDecoder StreamReceiver) StreamSender
+	NewStream(ctx context.Context, receiver StreamReceiver) StreamSender
 }
 
 // StreamConnectionEventListener is a stream connection event listener
@@ -192,8 +195,8 @@ type StreamConnectionEventListener interface {
 type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
-	// NewStream returns request stream decoder
-	NewStream(context context.Context, streamID string, responseEncoder StreamSender) StreamReceiver
+	// NewStreamDetect returns stream event receiver
+	NewStreamDetect(context context.Context, sender StreamSender) StreamReceiver
 }
 
 type StreamFilterBase interface {
@@ -379,16 +382,15 @@ const (
 type ConnectionPool interface {
 	Protocol() Protocol
 
-	NewStream(ctx context.Context, streamID string,
-		responseDecoder StreamReceiver, cb PoolEventListener) Cancellable
+	NewStream(ctx context.Context, receiver StreamReceiver, cb PoolEventListener) Cancellable
 
 	Close()
 }
 
 type PoolEventListener interface {
-	OnFailure(streamID string, reason PoolFailureReason, host Host)
+	OnFailure(reason PoolFailureReason, host Host)
 
-	OnReady(streamID string, requestEncoder StreamSender, host Host)
+	OnReady(sender StreamSender, host Host)
 }
 
 type Cancellable interface {

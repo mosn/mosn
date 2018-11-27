@@ -114,11 +114,11 @@ func (csc *clientStreamConnection) OnGoAway() {
 	csc.streamConnCallbacks.OnGoAway()
 }
 
-func (csc *clientStreamConnection) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver) types.StreamSender {
-	log.DefaultLogger.Tracef("http2 client stream connection new stream , stream id = %v", streamID)
+func (csc *clientStreamConnection) NewStream(ctx context.Context, responseDecoder types.StreamReceiver) types.StreamSender {
+	log.DefaultLogger.Tracef("http2 client stream connection new stream")
 	stream := &clientStream{
 		stream: stream{
-			context: context.WithValue(ctx, types.ContextKeyStreamID, streamID),
+			context: ctx,
 			decoder: responseDecoder,
 		},
 		connection: csc,
@@ -166,19 +166,16 @@ func (ssc *serverStreamConnection) OnGoAway() {
 }
 
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
-	//generate stream id using global counter
-	streamID := protocol.GenerateIDString()
-
 	stream := &serverStream{
 		stream: stream{
-			context: context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
+			context: ssc.context,
 			request: request,
 		},
 		connection:       ssc,
 		responseWriter:   responseWriter,
 		responseDoneChan: make(chan struct{}),
 	}
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStream(stream.stream.context, streamID, stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStreamDetect(stream.stream.context, stream)
 
 	if atomic.LoadInt32(&stream.readDisableCount) <= 0 {
 		defer func() {
@@ -206,6 +203,10 @@ type stream struct {
 }
 
 // types.Stream
+func (s *stream) ID() uint64 {
+	return 0
+}
+
 func (s *stream) AddEventListener(streamCb types.StreamEventListener) {
 	s.streamCbs = append(s.streamCbs, streamCb)
 }

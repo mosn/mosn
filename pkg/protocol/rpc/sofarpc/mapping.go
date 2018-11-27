@@ -23,6 +23,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 func init() {
@@ -32,11 +33,11 @@ func init() {
 type sofaMapping struct{}
 
 func (m *sofaMapping) MappingHeaderStatusCode(headers types.HeaderMap) (int, error) {
-	cmd, ok := headers.(ProtoBasicCmd)
+	cmd, ok := headers.(rpc.RespStatus)
 	if !ok {
 		return 0, errors.New("headers is not a sofa header")
 	}
-	code := int16(cmd.GetRespStatus())
+	code := int16(cmd.RespStatus())
 	// TODO: more accurate mapping
 	switch code {
 	case RESPONSE_STATUS_SUCCESS:
