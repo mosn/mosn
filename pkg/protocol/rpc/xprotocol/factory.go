@@ -206,6 +206,11 @@ func (xRpcCmd *XRpcCmd) Range(f func(key, value string) bool) {
 	//current unsupport
 }
 
+// Clone used to deep copy header's map
+func (xRpcCmd *XRpcCmd) Clone() types.HeaderMap {
+	return nil
+}
+
 // ByteSize return size of HeaderMap
 func (xRpcCmd *XRpcCmd) ByteSize() uint64 {
 	//current unsupport

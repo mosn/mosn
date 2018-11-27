@@ -22,68 +22,15 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 )
 
-// NewResponse build sofa response msg according to original cmd and respStatus
-func NewResponse(ctx context.Context, cmd SofaRpcCmd, respStatus int16) (SofaRpcCmd, error) {
-	switch c := cmd.(type) {
-	case *BoltRequest:
-		return &BoltResponse{
-			Protocol:       c.Protocol,
-			CmdType:        RESPONSE,
-			CmdCode:        RPC_RESPONSE,
-			Version:        c.Version,
-			ReqID:          c.ReqID,
-			Codec:          c.Codec,
-			ResponseStatus: respStatus,
-		}, nil
-	case *BoltRequestV2:
-		return &BoltResponseV2{
-			BoltResponse: BoltResponse{
-				Protocol:       c.Protocol,
-				CmdType:        RESPONSE,
-				CmdCode:        RPC_RESPONSE,
-				Version:        c.Version,
-				ReqID:          c.ReqID,
-				Codec:          c.Codec,
-				ResponseStatus: respStatus,
-			},
-			Version1:   c.Version1,
-			SwitchCode: c.SwitchCode,
-		}, nil
+// NewResponse build sofa response msg according to given protocol code and respStatus
+func NewResponse(protocolCode byte, respStatus int16) SofaRpcCmd {
+	if builder, ok := responseFactory[protocolCode]; ok {
+		return builder.BuildResponse(respStatus)
 	}
-
-	log.ByContext(ctx).Errorf("[NewResponse Error]Unknown model type")
-	return cmd, rpc.ErrUnknownType
-}
-
-func Clone(ctx context.Context, origin SofaRpcCmd) (SofaRpcCmd, error) {
-	//TODO: reuse req/resp struct
-	//FIXME: comment clone logic, cause currently there was no need
-	//switch c := origin.(type) {
-	//case *BoltRequest:
-	//	copy := &BoltRequest{}
-	//	*copy = *c
-	//	return copy, nil
-	//case *BoltRequestV2:
-	//	copy := &BoltRequestV2{}
-	//	*copy = *c
-	//	return copy, nil
-	//case *BoltResponse:
-	//	copy := &BoltResponse{}
-	//	*copy = *c
-	//	return copy, nil
-	//case *BoltResponseV2:
-	//	copy := &BoltResponseV2{}
-	//	*copy = *cx
-	//	return copy, nil
-	//}
-	//
-	//log.ByContext(ctx).Errorf("[Prepare Error]Unknown model type")
-	//return origin, rpc.ErrUnknownType
-	return origin, nil
+	return nil
 }
 
 // NewHeartbeat

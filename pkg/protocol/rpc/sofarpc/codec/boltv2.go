@@ -37,6 +37,7 @@ var (
 
 func init() {
 	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2, BoltCodecV2)
+	sofarpc.RegisterResponseBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2)
 	// the heartbeat processing is same with boltV1
 	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodec)
 }
@@ -335,8 +336,19 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 	return cmd, nil
 }
 
-func insertToBytes(slice []byte, idx int, b byte) {
-	slice = append(slice, 0)
-	copy(slice[idx+1:], slice[idx:])
-	slice[idx] = b
+// ~ ResponseBuilder
+func (c *boltCodecV2) BuildResponse(respStatus int16) sofarpc.SofaRpcCmd {
+	return &sofarpc.BoltResponseV2{
+		BoltResponse: sofarpc.BoltResponse{
+			Protocol:       sofarpc.PROTOCOL_CODE_V2,
+			CmdType:        sofarpc.RESPONSE,
+			CmdCode:        sofarpc.RPC_RESPONSE,
+			Version:        1,
+			ReqID:          0,                          // this would be overwrite by stream layer
+			Codec:          sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+			ResponseStatus: respStatus,
+		},
+		Version1:   sofarpc.PROTOCOL_VERSION_2,
+		SwitchCode: 0,
+	}
 }

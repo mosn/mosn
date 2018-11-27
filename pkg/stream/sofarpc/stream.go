@@ -45,7 +45,8 @@ const (
 )
 
 var (
-	ErrNotSofarpcCmd = errors.New("not sofarpc command")
+	ErrNotSofarpcCmd      = errors.New("not sofarpc command")
+	ErrNotResponseBuilder = errors.New("no response builder")
 )
 
 func init() {
@@ -337,13 +338,13 @@ func (s *stream) AppendHeaders(ctx context.Context, headers types.HeaderMap, end
 
 	switch s.direction {
 	case ClientStream:
-		// copy origin request from downstream
-		s.sendCmd, err = sofarpc.Clone(s.ctx, cmd)
+		// use origin request from downstream
+		s.sendCmd = cmd
 	case ServerStream:
 		switch cmd.CommandType() {
 		case sofarpc.RESPONSE:
-			// copy origin response from upstream
-			s.sendCmd, err = sofarpc.Clone(s.ctx, cmd)
+			// use origin response from upstream
+			s.sendCmd = cmd
 		case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
 			// the command type is request, indicates the invocation is under hijack scene
 			s.sendCmd, err = s.buildHijackResp(cmd)
@@ -364,33 +365,14 @@ func (s *stream) buildHijackResp(request sofarpc.SofaRpcCmd) (sofarpc.SofaRpcCmd
 		request.Del(types.HeaderStatus)
 		statusCode, _ := strconv.Atoi(status)
 
-		if statusCode != types.SuccessCode {
-
-			//Build Router Unavailable Response Msg
-			switch statusCode {
-			case types.RouterUnavailableCode:
-				//No available path
-				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_CLIENT_SEND_ERROR)
-			case types.NoHealthUpstreamCode:
-				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_CONNECTION_CLOSED)
-			case types.UpstreamOverFlowCode:
-				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_SERVER_THREADPOOL_BUSY)
-			case types.CodecExceptionCode:
-				//Decode or Encode Error
-				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_CODEC_EXCEPTION)
-			case types.DeserialExceptionCode:
-				//Hessian Exception
-				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION)
-			case types.TimeoutExceptionCode:
-				//Response Timeout
-				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_TIMEOUT)
-			default:
-				return sofarpc.NewResponse(s.ctx, request, sofarpc.RESPONSE_STATUS_UNKNOWN)
-			}
+		hijackResp := sofarpc.NewResponse(request.ProtocolCode(), sofarpc.MappingFromHttpStatus(statusCode))
+		if hijackResp != nil {
+			return hijackResp, nil
 		}
+		return nil, ErrNotResponseBuilder
 	}
 
-	return request, types.ErrNoErrorCodeForHijack
+	return nil, types.ErrNoStatusCodeForHijack
 }
 
 func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
