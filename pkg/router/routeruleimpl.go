@@ -69,6 +69,13 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(subsetLBMetaData)
 	}
 
+	if route.DirectResponse != nil {
+		routeRuleImplBase.directResponseRule = &directResponseImpl{
+			status: route.DirectResponse.StatusCode,
+			body:   route.DirectResponse.Body,
+		}
+	}
+
 	return &routeRuleImplBase, nil
 }
 
@@ -88,9 +95,6 @@ type RouteRuleImplBase struct {
 	clusterNotFoundResponseCode httpmosn.Code
 	timeout                     time.Duration
 	runtime                     v2.RuntimeUInt32
-	hostRedirect                string
-	pathRedirect                string
-	httpsRedirect               bool
 	retryPolicy                 *retryPolicyImpl
 	rateLimitPolicy             *rateLimitPolicyImpl
 
@@ -113,14 +117,13 @@ type RouteRuleImplBase struct {
 
 	opaqueConfig multimap.MultiMap
 
-	directResponseCode httpmosn.Code
-	directResponseBody string
-	policy             *routerPolicy
-	virtualClusters    *VirtualClusterEntry
-	randInstance       *rand.Rand
-	randMutex          sync.Mutex
+	policy          *routerPolicy
+	virtualClusters *VirtualClusterEntry
+	randInstance    *rand.Rand
+	randMutex       sync.Mutex
 
-	perFilterConfig map[string]interface{}
+	perFilterConfig    map[string]interface{}
+	directResponseRule *directResponseImpl
 }
 
 // types.RouterInfo
@@ -133,6 +136,10 @@ func (rri *RouteRuleImplBase) GetRouterName() string {
 func (rri *RouteRuleImplBase) RedirectRule() types.RedirectRule {
 
 	return nil
+}
+
+func (rri *RouteRuleImplBase) DirectResponseRule() types.DirectResponseRule {
+	return rri.directResponseRule
 }
 
 func (rri *RouteRuleImplBase) RouteRule() types.RouteRule {
