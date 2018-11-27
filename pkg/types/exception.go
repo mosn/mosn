@@ -41,7 +41,7 @@ const (
 	SerializeException   string = "serialize exception occurs"
 	DeserializeException string = "deserialize exception occurs"
 
-	NoErrorCodeForHijack string = "no error code found for hijack reply"
+	NoStatusCodeForHijack string = "no status code found for hijack reply"
 )
 
 // Errors
@@ -50,7 +50,7 @@ var (
 	ErrSerializeException   = errors.New(SerializeException)
 	ErrDeserializeException = errors.New(DeserializeException)
 
-	ErrNoErrorCodeForHijack = errors.New(NoErrorCodeForHijack)
+	ErrNoStatusCodeForHijack = errors.New(NoStatusCodeForHijack)
 )
 
 // Error codes, used by top level logic code(like proxy logic).

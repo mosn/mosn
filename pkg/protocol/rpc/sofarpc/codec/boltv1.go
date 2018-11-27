@@ -37,6 +37,7 @@ var (
 
 func init() {
 	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V1, BoltCodec, BoltCodec)
+	sofarpc.RegisterResponseBuilder(sofarpc.PROTOCOL_CODE_V1, BoltCodec)
 	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V1, BoltCodec)
 }
 
@@ -385,5 +386,18 @@ func (c *boltCodec) Reply() sofarpc.SofaRpcCmd {
 		ReqID:          0,                          // this would be overwrite by stream layer
 		Codec:          sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
 		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
+	}
+}
+
+// ~ ResponseBuilder
+func (c *boltCodec) BuildResponse(respStatus int16) sofarpc.SofaRpcCmd {
+	return &sofarpc.BoltResponse{
+		Protocol:       sofarpc.PROTOCOL_CODE_V1,
+		CmdType:        sofarpc.RESPONSE,
+		CmdCode:        sofarpc.RPC_RESPONSE,
+		Version:        1,
+		ReqID:          0,                          // this would be overwrite by stream layer
+		Codec:          sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		ResponseStatus: respStatus,
 	}
 }

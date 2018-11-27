@@ -118,7 +118,7 @@ func (xRpcCmd *XRpcCmd) RequestID() uint64 {
 // SetRequestID no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) SetRequestID(requestID uint64) {
 	streamId := strconv.FormatUint(requestID, 10)
-	xRpcCmd.codec.SetStreamID(xRpcCmd.data, streamId)
+	xRpcCmd.data = xRpcCmd.codec.SetStreamID(xRpcCmd.data, streamId)
 }
 
 // Header no use util we change multiplexing interface
@@ -185,29 +185,42 @@ func (xRpcCmd *XRpcCmd) Convert(data []byte) (map[string]string, []byte) {
 	}
 	return nil, nil
 }
-func (xRpcCmd *XRpcCmd) Get(key string) (string, bool) {
-	//current unsupport
-	return "", false
+
+func (xRpcCmd *XRpcCmd) Get(key string) (value string, ok bool) {
+	value, ok = xRpcCmd.header[key]
+	return
 }
 
 // Set key-value pair in header map, the previous pair will be replaced if exists
-func (xRpcCmd *XRpcCmd) Set(key, value string) {
-	//current unsupport
+func (xRpcCmd *XRpcCmd) Set(key string, value string) {
+	xRpcCmd.header[key] = value
 }
 
 // Del delete pair of specified key
 func (xRpcCmd *XRpcCmd) Del(key string) {
-	//current unsupport
+	delete(xRpcCmd.header, key)
 }
 
 // Range calls f sequentially for each key and value present in the map.
 // If f returns false, range stops the iteration.
 func (xRpcCmd *XRpcCmd) Range(f func(key, value string) bool) {
-	//current unsupport
+	for k, v := range xRpcCmd.header {
+		// stop if f return false
+		if !f(k, v) {
+			break
+		}
+	}
+}
+
+// Clone used to deep copy header's map
+func (xRpcCmd *XRpcCmd) Clone() types.HeaderMap {
+	return nil
 }
 
 // ByteSize return size of HeaderMap
-func (xRpcCmd *XRpcCmd) ByteSize() uint64 {
-	//current unsupport
-	return 0
+func (xRpcCmd *XRpcCmd) ByteSize() (size uint64) {
+	for k, v := range xRpcCmd.header {
+		size += uint64(len(k) + len(v))
+	}
+	return size
 }
