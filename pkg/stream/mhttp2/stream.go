@@ -329,8 +329,14 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 		case http2.StreamError:
 			conn.logger.Errorf("Http2 server handleError stream error: %v", err)
 			conn.slock.Lock()
-			delete(conn.streams, err.StreamID)
+			s := conn.streams[err.StreamID]
+			if s != nil {
+				delete(conn.streams, err.StreamID)
+			}
 			conn.slock.Unlock()
+			if s != nil {
+				s.ResetStream(types.StreamRemoteReset)
+			}
 		case http2.ConnectionError:
 			conn.logger.Errorf("Http2 server handleError conn err: %v", err)
 			conn.conn.Close(types.NoFlush, types.OnReadErrClose)
