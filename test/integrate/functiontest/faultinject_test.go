@@ -14,7 +14,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/faultinject"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
@@ -211,6 +211,10 @@ func TestFaultInject(t *testing.T) {
 			delay:    time.Second,
 		},
 		&faultInjectCase{
+			TestCase: integrate.NewTestCase(t, protocol.HTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			delay:    time.Second,
+		},
+		&faultInjectCase{
 			TestCase: integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
 			delay:    time.Second,
 		},
@@ -235,6 +239,11 @@ func TestFaultInject(t *testing.T) {
 		},
 		&faultInjectCase{
 			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			delay:       time.Second,
+			abortstatus: 500,
+		},
+		&faultInjectCase{
+			TestCase:    integrate.NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
 			delay:       time.Second,
 			abortstatus: 500,
 		},
