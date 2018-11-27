@@ -37,6 +37,8 @@ func RegisterRouterRule(f RouterRuleFactory, order uint32) {
 		log.DefaultLogger.Infof("register router rule, order %d", order)
 		defaultRouterRuleFactoryOrder.factory = f
 		defaultRouterRuleFactoryOrder.order = order
+	} else {
+		log.DefaultLogger.Warnf("current register order is %d, order %d register failed", defaultRouterRuleFactoryOrder.order, order)
 	}
 }
 
@@ -59,6 +61,8 @@ func RegisterMakeHandlerChain(f MakeHandlerChain, order uint32) {
 		log.DefaultLogger.Infof("register make handler chain, order %d", order)
 		makeHandlerChainOrder.makeHandlerChain = f
 		makeHandlerChainOrder.order = order
+	} else {
+		log.DefaultLogger.Warnf("current register order is %d, order %d register failed", makeHandlerChainOrder.order, order)
 	}
 }
 

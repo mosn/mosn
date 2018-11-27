@@ -204,7 +204,9 @@ type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) 
 // MakeHandlerChain creates a RouteHandlerChain
 type MakeHandlerChain func(types.HeaderMap, types.Routers, types.ClusterManager) *RouteHandlerChain
 
-// reigister order
+// The reigister order, is a wrapper of registered factory
+// We register a factory with order, a new factory can replace old registered factory only if the register order
+// ig greater than the old one.
 type routerRuleFactoryOrder struct {
 	factory RouterRuleFactory
 	order   uint32
