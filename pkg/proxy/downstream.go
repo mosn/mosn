@@ -758,6 +758,9 @@ func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 
 func (s *downStream) finishTracing(status string) {
 	if trace.IsTracingEnabled() {
+		if s.context == nil {
+			return
+		}
 		span := trace.SpanFromContext(s.context)
 
 		if span != nil {
