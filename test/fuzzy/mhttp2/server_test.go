@@ -63,6 +63,12 @@ func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 
 }
 
+func TestServerCloseToHTTP1(t *testing.T) {
+	caseIndex++
+	log.StartLogger.Infof("[FUZZY TEST] HTTP2 Server Close HTTP1 %d", caseIndex)
+	runServerCloseMeshToMesh(t, protocol.HTTP1)
+}
+
 func TestServerCloseToHTTP2(t *testing.T) {
 	caseIndex++
 	log.StartLogger.Infof("[FUZZY TEST] HTTP2 Server Close HTTP2 %d", caseIndex)

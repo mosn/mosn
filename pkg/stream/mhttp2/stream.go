@@ -326,6 +326,7 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 	conn.sc.HandleError(ctx, f, err)
 	if err != nil {
 		switch err := err.(type) {
+		// todo: other error scenes
 		case http2.StreamError:
 			conn.logger.Errorf("Http2 server handleError stream error: %v", err)
 			conn.slock.Lock()
@@ -388,43 +389,33 @@ type serverStream struct {
 // types.StreamSender
 func (s *serverStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) error {
 	var rsp *http.Response
-	var isCommon, isHijack bool
-
-	switch header := headers.(type) {
-	case *mhttp2.RspHeader:
-		rsp = header.Rsp
-	case protocol.CommonHeader:
-		rsp = new(http.Response)
-		isCommon = true
-	case *mhttp2.ReqHeader:
-		//sendHijack
-		rsp = new(http.Response)
-		isHijack = true
-	default:
-		log.DefaultLogger.Errorf("http2 Server AppendHeaders error type :%v", reflect.TypeOf(headers))
-		return errors.New("header type error")
-	}
-
-	s.h2s.Response = rsp
 
 	var status int
-	if value, ok := headers.Get(types.HeaderStatus); ok {
+	if value, _ := headers.Get(types.HeaderStatus); value != "" {
 		headers.Del(types.HeaderStatus)
 		status, _ = strconv.Atoi(value)
 	} else {
 		status = 200
 	}
 
-	if isCommon {
+	switch header := headers.(type) {
+	case *mhttp2.RspHeader:
+		rsp = header.Rsp
+	case protocol.CommonHeader:
+		rsp = new(http.Response)
 		rsp.StatusCode = status
 		rsp.Header = mhttp2.EncodeHeader(headers.(protocol.CommonHeader))
-	}
-
-	if isHijack {
+	case *mhttp2.ReqHeader:
+		// indicates the invocation is under hijack scene
+		rsp = new(http.Response)
 		rsp.StatusCode = status
 		rsp.Header = s.h2s.Request.Header
-
+	default:
+		log.DefaultLogger.Errorf("http2 Server AppendHeaders error type :%v", reflect.TypeOf(headers))
+		return errors.New("header type error")
 	}
+
+	s.h2s.Response = rsp
 
 	s.sc.logger.Debugf("http2 server ApppendHeaders id = %d, headers = %+v", s.id, rsp.Header)
 
@@ -465,6 +456,7 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 func (s *serverStream) endStream() {
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
 	if err != nil {
+		// todo: other error scenes
 		s.sc.logger.Errorf("http2 server SendResponse  error :%v", err)
 		s.stream.ResetStream(types.StreamLocalReset)
 		return
@@ -637,6 +629,7 @@ func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Fra
 	conn.cc.HandleError(ctx, f, err)
 	if err != nil {
 		switch err := err.(type) {
+		// todo: other error scenes
 		case http2.StreamError:
 			conn.logger.Errorf("Http2 client handleError stream err: %v", err)
 			conn.slock.Lock()

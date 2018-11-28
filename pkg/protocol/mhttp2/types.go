@@ -97,6 +97,22 @@ func (h *ReqHeader) Clone() types.HeaderMap {
 	return h2
 }
 
+func (h *ReqHeader) Get(key string) (string, bool) {
+	if len(key) > 0 && key[0] == ':' {
+		switch key {
+		case ":authority":
+			return h.Req.Host, true
+		case ":path":
+			return h.Req.RequestURI, true
+		case ":method":
+			return h.Req.Method, true
+		default:
+			return "", false
+		}
+	}
+	return h.HeaderMap.Get(key)
+}
+
 func (h *RspHeader) Clone() types.HeaderMap {
 	h2 := new(RspHeader)
 	h2.HeaderMap = h.HeaderMap.Clone().(*HeaderMap)
