@@ -38,6 +38,21 @@ func init() {
 	str.Register(protocol.HTTP1, &streamConnFactory{})
 }
 
+var (
+	minMethodLengh = len("GET")
+	maxMethodLengh = len("CONNECT")
+	httpMethod     = map[string]struct{}{
+		"OPTIONS": struct{}{},
+		"GET":     struct{}{},
+		"HEAD":    struct{}{},
+		"POST":    struct{}{},
+		"PUT":     struct{}{},
+		"DELETE":  struct{}{},
+		"TRACE":   struct{}{},
+		"CONNECT": struct{}{},
+	}
+)
+
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
@@ -57,7 +72,25 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 }
 
 func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
-    return str.FAILED
+	if len(magic) < minMethodLengh {
+		return str.EAGAIN
+	}
+	size := len(magic)
+	if len(magic) > maxMethodLengh {
+		size = maxMethodLengh
+	}
+
+	for i := minMethodLengh; i <= size; i++ {
+		if _, ok := httpMethod[string(magic[0:i])]; ok {
+			return nil
+		}
+	}
+
+	if size < maxMethodLengh {
+		return str.EAGAIN
+	} else {
+		return str.FAILED
+	}
 }
 
 // types.StreamConnection
@@ -166,7 +199,7 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 	}
 
 	server := fasthttp.Server{
-		Handler:                       ssc.ServeHTTP,
+		Handler: ssc.ServeHTTP,
 		DisableHeaderNamesNormalizing: true,
 	}
 	server.ServeConn(connection.RawConn())
@@ -282,7 +315,6 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	}
 
 	s.request.SetRequestURI(uri)
-
 
 	if _, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
 		delete(headers, protocol.MosnHeaderQueryStringKey)
