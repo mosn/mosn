@@ -24,10 +24,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-func init() {
-	RegisterMakeHandlerChain(DefaultMakeHandlerChain)
-}
-
 // RouteHandlerChain returns first available handler's router
 type RouteHandlerChain struct {
 	ctx            context.Context

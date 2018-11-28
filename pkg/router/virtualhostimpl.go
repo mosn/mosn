@@ -73,7 +73,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 			}
 		} else {
 			// todo delete hack
-			if router = defaultRouterRuleFactory(routeRuleImplBase, route.Match.Headers); router == nil {
+			if router = defaultRouterRuleFactoryOrder.factory(routeRuleImplBase, route.Match.Headers); router == nil {
 				log.DefaultLogger.Errorf("NewVirtualHostImpl failed, match default router error")
 			}
 		}

@@ -19,14 +19,16 @@ package commonrule
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	jsoniter "github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func init() {
 	filter.RegisterStream("commonrule", CreateCommonRuleFilterFactory)

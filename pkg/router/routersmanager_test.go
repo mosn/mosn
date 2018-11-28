@@ -24,7 +24,6 @@
 package router
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"

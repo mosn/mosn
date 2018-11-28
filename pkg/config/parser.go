@@ -39,6 +39,7 @@ var protocolsSupported = map[string]bool{
 	string(protocol.HTTP2):     true,
 	string(protocol.HTTP1):     true,
 	string(protocol.Xprotocol): true,
+	string(protocol.MHTTP2):    true,
 }
 
 const (

@@ -23,17 +23,19 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"github.com/alipay/sofa-mosn/pkg/protocol/mhttp2"
 )
 
 func init() {
 	// TODO: remove while h2 branch is merged
-	protocol.RegisterCommonConv(protocol.HTTP2, &common2http{}, &http2common{})
+	protocol.RegisterCommonConv(protocol.HTTP2, &common2httpOld{}, &http2commonOld{})
+	protocol.RegisterCommonConv(protocol.MHTTP2, &common2httpOld{}, &http2common{})
 }
 
 // common -> http2 converter
-type common2http struct{}
+type common2httpOld struct{}
 
-func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *common2httpOld) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
 		cheader := make(map[string]string, len(header))
 
@@ -49,18 +51,18 @@ func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *common2http) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *common2httpOld) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
 	return buffer, nil
 }
 
-func (c *common2http) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *common2httpOld) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	return headerMap, nil
 }
 
 // http2 -> common converter
-type http2common struct{}
+type http2commonOld struct{}
 
-func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *http2commonOld) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
 
 		cheader := make(map[string]string, len(header))
@@ -79,6 +81,40 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 		return protocol.CommonHeader(cheader), nil
 	}
 	return nil, errors.New("header type not supported")
+}
+
+func (c *http2commonOld) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+	return buffer, nil
+}
+
+func (c *http2commonOld) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+	return headerMap, nil
+}
+
+// http2 -> common converter
+type http2common struct{}
+
+func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+
+	return mhttp2.DecodeHeader(headerMap), nil
+	//if header, ok := headerMap.(protocol.CommonHeader); ok {
+	//
+	//	cheader := make(map[string]string, len(header))
+	//
+	//	// copy headers
+	//	for k, v := range header {
+	//		cheader[strings.ToLower(k)] = v
+	//	}
+	//
+	//	if _, ok := header[types.HeaderStatus]; ok {
+	//		cheader[protocol.MosnHeaderDirection] = protocol.Response
+	//	} else {
+	//		cheader[protocol.MosnHeaderDirection] = protocol.Request
+	//	}
+	//
+	//	return protocol.CommonHeader(cheader), nil
+	//}
+	//return nil, errors.New("header type not supported")
 }
 
 func (c *http2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
