@@ -203,4 +203,5 @@ func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
 	ac.pool.onStreamReset(ac, reason)
 }
 
+// todo: support http2 goaway
 func (ac *activeClient) OnGoAway() {}

@@ -1,4 +1,4 @@
-package http
+package http2
 
 import (
 	"testing"
@@ -11,7 +11,7 @@ import (
 )
 
 func runClient(t *testing.T, meshAddr string, stop chan struct{}) {
-	client := NewHTTPClient(t, meshAddr)
+	client := NewHTTP2Client(t, meshAddr)
 	fuzzy.FuzzyClient(stop, client)
 	<-time.After(caseDuration)
 	close(stop)
@@ -27,7 +27,7 @@ func runClient(t *testing.T, meshAddr string, stop chan struct{}) {
 
 func TestServerCloseProxy(t *testing.T) {
 	caseIndex++
-	log.StartLogger.Infof("[FUZZY TEST] HTTP Server Close In ProxyMode  %d", caseIndex)
+	log.StartLogger.Infof("[FUZZY TEST] HTTP2 Server Close In ProxyMode %d", caseIndex)
 	serverList := []string{
 		"127.0.0.1:8080",
 		"127.0.0.1:8081",
@@ -35,13 +35,14 @@ func TestServerCloseProxy(t *testing.T) {
 	}
 	stopClient := make(chan struct{})
 	stopServer := make(chan struct{})
-	meshAddr := fuzzy.CreateMeshProxy(t, stopServer, serverList, protocol.HTTP1)
+	meshAddr := fuzzy.CreateMeshProxy(t, stopServer, serverList, protocol.MHTTP2)
 	servers := CreateServers(t, serverList, stopServer)
 	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
 	runClient(t, meshAddr, stopClient)
 	close(stopServer)
 	// wait server close
 	time.Sleep(time.Second)
+
 }
 
 func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
@@ -52,7 +53,7 @@ func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 	}
 	stopClient := make(chan struct{})
 	stopServer := make(chan struct{})
-	meshAddr := fuzzy.CreateMeshCluster(t, stopServer, serverList, protocol.HTTP1, proto)
+	meshAddr := fuzzy.CreateMeshCluster(t, stopServer, serverList, protocol.MHTTP2, proto)
 	servers := CreateServers(t, serverList, stopServer)
 	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
 	runClient(t, meshAddr, stopClient)
@@ -64,12 +65,12 @@ func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 
 func TestServerCloseToHTTP1(t *testing.T) {
 	caseIndex++
-	log.StartLogger.Infof("[FUZZY TEST] HTTP Server Close HTTP1 %d", caseIndex)
+	log.StartLogger.Infof("[FUZZY TEST] HTTP2 Server Close HTTP1 %d", caseIndex)
 	runServerCloseMeshToMesh(t, protocol.HTTP1)
 }
 
 func TestServerCloseToHTTP2(t *testing.T) {
 	caseIndex++
-	log.StartLogger.Infof("[FUZZY TEST] HTTP Server Close HTTP2 %d", caseIndex)
-	runServerCloseMeshToMesh(t, protocol.HTTP2)
+	log.StartLogger.Infof("[FUZZY TEST] HTTP2 Server Close HTTP2 %d", caseIndex)
+	runServerCloseMeshToMesh(t, protocol.MHTTP2)
 }

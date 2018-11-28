@@ -19,13 +19,14 @@ package mhttp2
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -41,10 +42,6 @@ import (
 func init() {
 	str.Register(protocol.MHTTP2, &streamConnFactory{})
 }
-
-var (
-	clientPreface = []byte(http2.ClientPreface)
-)
 
 type streamConnFactory struct{}
 
@@ -67,14 +64,14 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
 	var size int
 	var again bool
-	if len(magic) >= len(clientPreface) {
-		size = len(clientPreface)
+	if len(magic) >= len(http2.ClientPreface) {
+		size = len(http2.ClientPreface)
 	} else {
 		size = len(magic)
 		again = true
 	}
 
-	if bytes.Equal(magic[:size], clientPreface[:size]) {
+	if bytes.Equal(magic[:size], []byte(http2.ClientPreface[:size])) {
 		if again {
 			return str.EAGAIN
 		} else {
@@ -160,7 +157,7 @@ func (s *stream) ID() uint64 {
 	return uint64(s.id)
 }
 
-func (s *stream) BuildData() types.IoBuffer {
+func (s *stream) buildData() types.IoBuffer {
 	if s.sendData == nil {
 		return buffer.NewIoBuffer(0)
 	} else if len(s.sendData) == 1 {
@@ -223,6 +220,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	sc.cm.next()
 
 	sc.streams = make(map[uint32]*serverStream, 32)
+	sc.logger.Tracef("new http2 server stream connection")
 
 	return sc
 }
@@ -281,27 +279,32 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 			return
 		}
 
-		header := decodeHeader(h2s.Request.Header)
+		header := mhttp2.NewReqHeader(h2s.Request)
 
-		if _, ok := header[types.HeaderMethod]; !ok {
-			header[types.HeaderMethod] = h2s.Request.Method
+		scheme := "http"
+		if _, ok := conn.conn.RawConn().(*mtls.TLSConn); ok {
+			scheme = "https"
+		}
+		var URI string
+		if h2s.Request.URL.RawQuery == "" {
+			URI = fmt.Sprintf(scheme+"://%s%s", h2s.Request.Host, h2s.Request.URL.Path)
+		} else {
+			URI = fmt.Sprintf(scheme+"://%s%s?%s", h2s.Request.Host, h2s.Request.URL.Path, h2s.Request.URL.RawQuery)
+
+		}
+		URL, _ := url.Parse(URI)
+		h2s.Request.URL = URL
+
+		header.Set(protocol.MosnHeaderMethod, h2s.Request.Method)
+		header.Set(protocol.MosnHeaderHostKey, h2s.Request.Host)
+		header.Set(protocol.MosnHeaderPathKey, h2s.Request.URL.Path)
+		if h2s.Request.URL.RawQuery != "" {
+			header.Set(protocol.MosnHeaderQueryStringKey, h2s.Request.URL.RawQuery)
 		}
 
-		if _, ok := header[types.HeaderHost]; !ok {
-			header[types.HeaderHost] = h2s.Request.Host
-		}
+		conn.logger.Debugf("http2 server header: %d, %+v", id, h2s.Request.Header)
 
-		if _, ok := header[types.HeaderPath]; !ok {
-			header[types.HeaderPath] = h2s.Request.RequestURI
-		}
-
-		if _, ok := header[types.HeaderStreamID]; !ok {
-			header[types.HeaderStreamID] = strconv.Itoa(int(id))
-		}
-
-		conn.logger.Debugf("http2 server header: %d, %v", id, header)
-
-		stream.receiver.OnReceiveHeaders(ctx, protocol.CommonHeader(header), endStream)
+		stream.receiver.OnReceiveHeaders(ctx, header, endStream)
 		return
 	}
 
@@ -317,7 +320,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		stream.sendData = append(stream.sendData, buffer.NewIoBufferBytes(data).Clone())
 		if endStream {
 			conn.logger.Debugf("http2 server data: %d", id)
-			stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), endStream)
+			stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), endStream)
 		}
 		return
 	}
@@ -326,18 +329,18 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 	if hasTrailer {
 		if len(stream.sendData) > 0 {
 			conn.logger.Debugf("http2 server data: %d", id)
-			stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), false)
+			stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), false)
 		}
-		trailer := decodeHeader(h2s.Request.Trailer)
-		conn.logger.Debugf("http2 server trailer: %d, %v", id, trailer)
-		stream.receiver.OnReceiveTrailers(ctx, protocol.CommonHeader(trailer))
+		trailer := mhttp2.NewHeaderMap(h2s.Request.Trailer)
+		conn.logger.Debugf("http2 server trailer: %d, %v", id, h2s.Request.Trailer)
+		stream.receiver.OnReceiveTrailers(ctx, trailer)
 		return
 	}
 
 	// nil data
 	if endStream {
 		conn.logger.Debugf("http2 server data: %d", id)
-		stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), endStream)
+		stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), endStream)
 	}
 }
 
@@ -345,11 +348,18 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 	conn.sc.HandleError(ctx, f, err)
 	if err != nil {
 		switch err := err.(type) {
+		// todo: other error scenes
 		case http2.StreamError:
 			conn.logger.Errorf("Http2 server handleError stream error: %v", err)
 			conn.slock.Lock()
-			delete(conn.streams, err.StreamID)
+			s := conn.streams[err.StreamID]
+			if s != nil {
+				delete(conn.streams, err.StreamID)
+			}
 			conn.slock.Unlock()
+			if s != nil {
+				s.ResetStream(types.StreamRemoteReset)
+			}
 		case http2.ConnectionError:
 			conn.logger.Errorf("Http2 server handleError conn err: %v", err)
 			conn.conn.Close(types.NoFlush, types.OnReadErrClose)
@@ -399,21 +409,37 @@ type serverStream struct {
 }
 
 // types.StreamSender
-func (s *serverStream) AppendHeaders(ctx context.Context, headersIn types.HeaderMap, endStream bool) error {
-	headers := headersIn.(protocol.CommonHeader)
-	s.sc.logger.Debugf("http2 server ApppendHeaders id = %d, headers = %v", s.id, headers)
+func (s *serverStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) error {
+	var rsp *http.Response
 
-	rsp := new(http.Response)
-	s.h2s.Response = rsp
-
-	if value, ok := headers[types.HeaderStatus]; ok {
-		rsp.StatusCode, _ = strconv.Atoi(value)
-		delete(headers, types.HeaderStatus)
+	var status int
+	if value, _ := headers.Get(types.HeaderStatus); value != "" {
+		headers.Del(types.HeaderStatus)
+		status, _ = strconv.Atoi(value)
 	} else {
-		rsp.StatusCode = 200
+		status = 200
 	}
 
-	rsp.Header = encodeHeader(headers)
+	switch header := headers.(type) {
+	case *mhttp2.RspHeader:
+		rsp = header.Rsp
+	case protocol.CommonHeader:
+		rsp = new(http.Response)
+		rsp.StatusCode = status
+		rsp.Header = mhttp2.EncodeHeader(headers.(protocol.CommonHeader))
+	case *mhttp2.ReqHeader:
+		// indicates the invocation is under hijack scene
+		rsp = new(http.Response)
+		rsp.StatusCode = status
+		rsp.Header = s.h2s.Request.Header
+	default:
+		log.DefaultLogger.Errorf("http2 Server AppendHeaders error type :%v", reflect.TypeOf(headers))
+		return errors.New("header type error")
+	}
+
+	s.h2s.Response = rsp
+
+	s.sc.logger.Debugf("http2 server ApppendHeaders id = %d, headers = %+v", s.id, rsp.Header)
 
 	if endStream {
 		s.endStream()
@@ -434,9 +460,16 @@ func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, 
 }
 
 func (s *serverStream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
-	headers := trailers.(protocol.CommonHeader)
-	s.sc.logger.Debugf("http2 server ApppendTrailers id = %d, trailers = %v", s.id, headers)
-	s.h2s.Response.Trailer = encodeHeader(headers)
+	switch trailer := trailers.(type) {
+	case protocol.CommonHeader:
+		s.h2s.Response.Trailer = mhttp2.EncodeHeader(trailer)
+	case *mhttp2.HeaderMap:
+		s.h2s.Response.Trailer = trailer.H
+	default:
+		log.DefaultLogger.Errorf("h2 AppendTrailers error type :%v", reflect.TypeOf(trailers))
+		return errors.New("trailers type error")
+	}
+	s.sc.logger.Debugf("http2 server ApppendTrailers id = %d, trailers = %+v", s.id, s.h2s.Response.Trailer)
 	s.endStream()
 
 	return nil
@@ -445,8 +478,9 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 func (s *serverStream) endStream() {
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
 	if err != nil {
+		// todo: other error scenes
 		s.sc.logger.Errorf("http2 server SendResponse  error :%v", err)
-		s.stream.ResetStream(types.StreamLocalReset)
+		s.stream.ResetStream(types.StreamRemoteReset)
 		return
 	}
 	s.sc.logger.Debugf("http2 server SendResponse id = %d", s.id)
@@ -495,7 +529,7 @@ func newClientStreamConnection(ctx context.Context, connection types.Connection,
 	sc.cm.next()
 
 	sc.streams = make(map[uint32]*clientStream, 32)
-
+	sc.logger.Tracef("new http2 client stream connection")
 	return sc
 }
 
@@ -572,14 +606,14 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	}
 
 	if rsp != nil {
-		header := decodeHeader(rsp.Header)
+		header := mhttp2.NewRspHeader(rsp)
 
-		header[types.HeaderStatus] = strconv.Itoa(rsp.StatusCode)
+		header.Set(types.HeaderStatus, strconv.Itoa(rsp.StatusCode))
 
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
-		stream.logger.Debugf("http2 client header: id = %d, headers = %v", id, header)
-		stream.receiver.OnReceiveHeaders(ctx, protocol.CommonHeader(header), endStream)
+		stream.logger.Debugf("http2 client header: id = %d, headers = %+v", id, rsp.Header)
+		stream.receiver.OnReceiveHeaders(ctx, header, endStream)
 		return
 	}
 
@@ -589,7 +623,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		stream.sendData = append(stream.sendData, buffer.NewIoBufferBytes(data).Clone())
 		if endStream {
 			stream.logger.Debugf("http2 client data: id = %d", id)
-			stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), endStream)
+			stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), endStream)
 		}
 		return
 	}
@@ -598,18 +632,18 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	if trailer != nil {
 		if len(stream.sendData) > 0 {
 			stream.logger.Debugf("http2 client data: id = %d", id)
-			stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), false)
+			stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), false)
 		}
-		trailers := decodeHeader(trailer)
-		stream.logger.Debugf("http2 client trailer: id = %d, trailers = %v", id, trailers)
-		stream.receiver.OnReceiveTrailers(ctx, protocol.CommonHeader(trailers))
+		trailers := mhttp2.NewHeaderMap(trailer)
+		stream.logger.Debugf("http2 client trailer: id = %d, trailers = %+v", id, trailer)
+		stream.receiver.OnReceiveTrailers(ctx, trailers)
 		return
 	}
 
 	// nil data
 	if endStream {
 		stream.logger.Debugf("http2 client data: id = %d", id)
-		stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), endStream)
+		stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), endStream)
 	}
 }
 
@@ -617,6 +651,7 @@ func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Fra
 	conn.cc.HandleError(ctx, f, err)
 	if err != nil {
 		switch err := err.(type) {
+		// todo: other error scenes
 		case http2.StreamError:
 			conn.logger.Errorf("Http2 client handleError stream err: %v", err)
 			conn.slock.Lock()
@@ -646,49 +681,76 @@ type clientStream struct {
 }
 
 func (s *clientStream) AppendHeaders(ctx context.Context, headersIn types.HeaderMap, endStream bool) error {
-	headersMap, _ := headersIn.(protocol.CommonHeader)
+	var req *http.Request
+	var isReqHeader bool
 
-	req := new(http.Request)
+	switch header := headersIn.(type) {
+	case protocol.CommonHeader:
+		req = new(http.Request)
+	case *mhttp2.ReqHeader:
+		req = header.Req
+		isReqHeader = true
+	default:
+		log.DefaultLogger.Errorf("http2 client AppendHeaders error type :%v", reflect.TypeOf(headersIn))
+		return errors.New("header type error")
+	}
 
 	scheme := "http"
 	if _, ok := s.conn.RawConn().(*mtls.TLSConn); ok {
 		scheme = "https"
 	}
 
-	if method, ok := headersMap[types.HeaderMethod]; ok {
-		delete(headersMap, types.HeaderMethod)
-		req.Method = method
+	var method string
+	if m, ok := headersIn.Get(protocol.MosnHeaderMethod); ok {
+		headersIn.Del(protocol.MosnHeaderMethod)
+		method = m
 	} else {
 		if endStream {
-			req.Method = http.MethodGet
+			method = http.MethodGet
 		} else {
-			req.Method = http.MethodPost
+			method = http.MethodPost
 		}
 	}
 
-	if host, ok := headersMap[types.HeaderHost]; ok {
-		delete(headersMap, types.HeaderHost)
-		req.Host = host
-	} else if host, ok := headersMap["Host"]; ok {
-		req.Host = host
+	var host string
+	if h, ok := headersIn.Get(protocol.MosnHeaderHostKey); ok {
+		headersIn.Del(protocol.MosnHeaderHostKey)
+		host = h
+	} else if h, ok := headersIn.Get("Host"); ok {
+		host = h
 	} else {
-		req.Host = s.conn.RemoteAddr().String()
+		host = s.conn.RemoteAddr().String()
 	}
 
-	var URI string
-	if path, ok := headersMap[types.HeaderPath]; ok {
-		delete(headersMap, types.HeaderPath)
-		URI = fmt.Sprintf(scheme+"://%s%s", req.Host, path)
-		req.URL, _ = url.Parse(URI)
+	var query string
+	if q, ok := headersIn.Get(protocol.MosnHeaderQueryStringKey); ok {
+		headersIn.Del(protocol.MosnHeaderQueryStringKey)
+		query = q
 	}
 
-	if _, ok := headersMap[types.HeaderStreamID]; ok {
-		delete(headersMap, types.HeaderStreamID)
+	var URL *url.URL
+	if path, ok := headersIn.Get(protocol.MosnHeaderPathKey); ok {
+		headersIn.Del(protocol.MosnHeaderPathKey)
+		if query != "" {
+			URI := fmt.Sprintf(scheme+"://%s%s?", req.Host, path, query)
+			URL, _ = url.Parse(URI)
+		} else {
+			URI := fmt.Sprintf(scheme+"://%s%s", req.Host, path)
+			URL, _ = url.Parse(URI)
+		}
+	} else {
+		URI := fmt.Sprintf(scheme+"://%s/", req.Host)
+		URL, _ = url.Parse(URI)
 	}
 
-	req.Header = encodeHeader(headersMap)
+	if !isReqHeader {
+		req.Method = method
+		req.Host = host
+		req.URL = URL
+		req.Header = mhttp2.EncodeHeader(headersIn.(protocol.CommonHeader))
+	}
 
-	s.logger.Debugf("http2 client AppendHeaders: id = %d, headers = %v", s.id, req.Header)
+	s.logger.Debugf("http2 client AppendHeaders: id = %d, headers = %+v", s.id, req.Header)
 
 	s.h2s = http2.NewMClientStream(s.sc.cc, req)
 
@@ -709,9 +771,16 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 }
 
 func (s *clientStream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
-	trailer := trailers.(protocol.CommonHeader)
-	s.logger.Debugf("http2 client AppendTrailers: id = %d, trailers = %v", s.id, trailer)
-	s.h2s.Request.Trailer = encodeHeader(trailer)
+	switch trailer := trailers.(type) {
+	case protocol.CommonHeader:
+		s.h2s.Request.Trailer = mhttp2.EncodeHeader(trailer)
+	case *mhttp2.HeaderMap:
+		s.h2s.Request.Trailer = trailer.H
+	default:
+		log.DefaultLogger.Errorf("h2 AppendTrailers error type :%v", reflect.TypeOf(trailers))
+		return errors.New("trailers type error")
+	}
+	s.logger.Debugf("http2 client AppendTrailers: id = %d, trailers = %+v", s.id, s.h2s.Request.Trailer)
 	s.endStream()
 
 	return nil
@@ -723,8 +792,9 @@ func (s *clientStream) endStream() {
 
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
 	if err != nil {
+		// todo: other error scenes
 		s.sc.logger.Errorf("http2 client endStream error = :%v", err)
-		s.ResetStream(types.StreamLocalReset)
+		s.ResetStream(types.StreamRemoteReset)
 		return
 	}
 	s.id = s.h2s.GetID()
@@ -735,21 +805,4 @@ func (s *clientStream) endStream() {
 
 func (s *clientStream) GetStream() types.Stream {
 	return s
-}
-
-func encodeHeader(in map[string]string) (header http.Header) {
-	header = http.Header((make(map[string][]string, len(in))))
-	for k, v := range in {
-		header.Add(k, v)
-	}
-	return header
-}
-
-func decodeHeader(in map[string][]string) (out map[string]string) {
-	out = make(map[string]string, len(in))
-
-	for k, v := range in {
-		out[k] = strings.Join(v, ",")
-	}
-	return
 }

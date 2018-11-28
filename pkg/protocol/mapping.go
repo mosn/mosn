@@ -33,6 +33,7 @@ var (
 func init() {
 	RegisterMapping(HTTP1, &httpMapping{})
 	RegisterMapping(HTTP2, &httpMapping{})
+	RegisterMapping(MHTTP2, &httpMapping{})
 }
 
 // HTTPMapping maps the contents of protocols to HTTP standard

@@ -256,9 +256,14 @@ func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 }
 
 func (p *proxy) convertProtocol() (dp, up types.Protocol) {
-	dp = p.serverCodec.Protocol()
+	if p.serverCodec == nil {
+		dp = types.Protocol(p.config.DownstreamProtocol)
+	} else {
+		dp = p.serverCodec.Protocol()
+	}
 	up = types.Protocol(p.config.UpstreamProtocol)
 	if up == protocol.Auto {
 		up = dp
 	}
+	return
 }

@@ -341,7 +341,11 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.timeout = parseProxyTimeout(route, headers)
 	var prot types.Protocol
 	if s.proxy.config.UpstreamProtocol == string(protocol.Auto) {
-		prot = s.proxy.serverCodec.Protocol()
+		if s.proxy.serverCodec == nil {
+			prot = types.Protocol(s.proxy.config.DownstreamProtocol)
+		} else {
+			prot = s.proxy.serverCodec.Protocol()
+		}
 	} else {
 		prot = types.Protocol(s.proxy.config.UpstreamProtocol)
 	}
@@ -542,7 +546,11 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 	var currentProtocol types.Protocol
 
 	if s.proxy.config.UpstreamProtocol == string(protocol.Auto) {
-		currentProtocol = s.proxy.serverCodec.Protocol()
+		if s.proxy.serverCodec == nil {
+			currentProtocol = types.Protocol(s.proxy.config.DownstreamProtocol)
+		} else {
+			currentProtocol = s.proxy.serverCodec.Protocol()
+		}
 	} else {
 		currentProtocol = types.Protocol(s.proxy.config.UpstreamProtocol)
 	}

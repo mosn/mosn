@@ -37,6 +37,7 @@ func TestTCPProxy(t *testing.T) {
 	testCases := []*tcpExtendCase{
 		&tcpExtendCase{NewTestCase(t, protocol.HTTP1, _NIL, testutil.NewHTTPServer(t, nil))},
 		&tcpExtendCase{NewTestCase(t, protocol.HTTP2, _NIL, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
+		&tcpExtendCase{NewTestCase(t, protocol.MHTTP2, _NIL, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
 		&tcpExtendCase{NewTestCase(t, protocol.SofaRPC, _NIL, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},
 	}
 	for i, tc := range testCases {
@@ -60,6 +61,7 @@ func TestTCPProxyRouteEntry(t *testing.T) {
 	testCases := []*tcpExtendCase{
 		&tcpExtendCase{NewTestCase(t, protocol.HTTP1, _NIL, testutil.NewHTTPServer(t, nil))},
 		&tcpExtendCase{NewTestCase(t, protocol.HTTP2, _NIL, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
+		&tcpExtendCase{NewTestCase(t, protocol.MHTTP2, _NIL, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
 		&tcpExtendCase{NewTestCase(t, protocol.SofaRPC, _NIL, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},
 	}
 	for i, tc := range testCases {
