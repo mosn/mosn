@@ -162,7 +162,7 @@ func TestExtendHandler(t *testing.T) {
 		r: []types.Route{
 			&mockRouter{status: types.HandlerNotAvailable},
 			&mockRouter{status: types.HandlerStatus(-1)}, // Unexpected
-			&mockRouter{},                                //Available
+			&mockRouter{}, //Available
 		},
 		header: headerMatch,
 	}

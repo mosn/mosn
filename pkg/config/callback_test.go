@@ -98,7 +98,7 @@ func TestMOSNConfig_OnUpdateEndpoints(t *testing.T) {
 			wantError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := &MOSNConfig{

@@ -39,7 +39,7 @@ var (
 	globalStats *Stats
 
 	currProxyID uint32
-	workerPool mosnsync.ShardWorkerPool
+	workerPool  mosnsync.ShardWorkerPool
 )
 
 func init() {

@@ -75,14 +75,14 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:       xdsListener.GetName(),
-			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
-			Inspector:  true,
+			Name:                                  xdsListener.GetName(),
+			BindToPort:                            convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:                             true,
 			HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:                            convertAccessLogs(xdsListener),
 			LogPath:                               "stdout",
 		},
-		Addr: convertAddress(&xdsListener.Address),
+		Addr:                    convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 		LogLevel:                uint8(log.INFO),
 	}

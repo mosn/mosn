@@ -51,8 +51,8 @@ func NewListener(lc *v2.Listener, logger log.Logger) types.Listener {
 		listenerTag:                           lc.ListenerTag,
 		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
 		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
-		logger: logger,
-		config: lc,
+		logger:                                logger,
+		config:                                lc,
 	}
 
 	if lc.InheritListener != nil {

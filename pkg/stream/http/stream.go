@@ -279,7 +279,6 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 
 	s.request.SetRequestURI(uri)
 
-
 	if _, ok := headers[protocol.MosnHeaderQueryStringKey]; ok {
 		delete(headers, protocol.MosnHeaderQueryStringKey)
 

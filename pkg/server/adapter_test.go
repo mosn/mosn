@@ -68,12 +68,12 @@ func runMockServer(t *testing.T) {
 
 		listenConfig := &v2.Listener{
 			ListenerConfig: v2.ListenerConfig{
-				Name:       "listener1",
-				BindToPort: true,
-				LogPath:    "stdout",
+				Name:                                  "listener1",
+				BindToPort:                            true,
+				LogPath:                               "stdout",
 				HandOffRestoredDestinationConnections: true,
 			},
-			Addr: address,
+			Addr:                    address,
 			PerConnBufferLimitBytes: 1 << 15,
 			LogLevel:                3,
 		}
@@ -116,24 +116,24 @@ func TestListenerAdapter_AddOrUpdateListener(t *testing.T) {
 
 	addedListenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:       "listener2",
-			BindToPort: true,
-			LogPath:    "stdout",
+			Name:                                  "listener2",
+			BindToPort:                            true,
+			LogPath:                               "stdout",
 			HandOffRestoredDestinationConnections: true,
 		},
-		Addr: addedAddress,
+		Addr:                    addedAddress,
 		PerConnBufferLimitBytes: 1 << 15,
 		LogLevel:                3,
 	}
 
 	updateListenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:       "listener2",
-			BindToPort: false,
-			LogPath:    "stdout",
+			Name:                                  "listener2",
+			BindToPort:                            false,
+			LogPath:                               "stdout",
 			HandOffRestoredDestinationConnections: true,
 		},
-		Addr: addedAddress,
+		Addr:                    addedAddress,
 		PerConnBufferLimitBytes: 1 << 15,
 		LogLevel:                3,
 	}
@@ -161,8 +161,8 @@ func TestListenerAdapter_AddOrUpdateListener(t *testing.T) {
 				defaultConnHandler: GetListenerAdapterInstance().defaultConnHandler,
 			},
 			args: args{
-				serverName: "",
-				lc:         addedListenerConfig,
+				serverName:             "",
+				lc:                     addedListenerConfig,
 				networkFiltersFactory:  nil,
 				streamFiltersFactories: nil,
 			},
@@ -175,8 +175,8 @@ func TestListenerAdapter_AddOrUpdateListener(t *testing.T) {
 				defaultConnHandler: GetListenerAdapterInstance().defaultConnHandler,
 			},
 			args: args{
-				serverName: "",
-				lc:         updateListenerConfig,
+				serverName:             "",
+				lc:                     updateListenerConfig,
 				networkFiltersFactory:  nil,
 				streamFiltersFactories: nil,
 			},
