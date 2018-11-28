@@ -254,3 +254,11 @@ type downstreamCallbacks struct {
 func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	dc.proxy.onDownstreamEvent(event)
 }
+
+func (p *proxy) convertProtocol() (dp, up types.Protocol) {
+	dp = p.serverCodec.Protocol()
+	up = types.Protocol(p.config.UpstreamProtocol)
+	if up == protocol.Auto {
+		up = dp
+	}
+}

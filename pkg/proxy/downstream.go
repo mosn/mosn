@@ -569,11 +569,7 @@ func (s *downStream) appendHeaders(headers types.HeaderMap, endStream bool) {
 }
 
 func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
-	dp := s.proxy.serverCodec.Protocol()
-	up := types.Protocol(s.proxy.config.UpstreamProtocol)
-	if up == protocol.Auto {
-		up = dp
-	}
+	dp, up := s.proxy.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
@@ -607,11 +603,7 @@ func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
-	dp := s.proxy.serverCodec.Protocol()
-	up := types.Protocol(s.proxy.config.UpstreamProtocol)
-	if up == protocol.Auto {
-		up = dp
-	}
+	dp, up := s.proxy.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
@@ -643,11 +635,7 @@ func (s *downStream) appendTrailers(trailers types.HeaderMap) {
 }
 
 func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
-	dp := s.proxy.serverCodec.Protocol()
-	up := types.Protocol(s.proxy.config.UpstreamProtocol)
-	if up == protocol.Auto {
-		up = dp
-	}
+	dp, up := s.proxy.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
