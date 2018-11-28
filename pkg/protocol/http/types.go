@@ -141,13 +141,12 @@ type ResponseHeader struct {
 }
 
 // Get value of key
-func (h ResponseHeader) Get(key string) (value string, ok bool) {
+func (h ResponseHeader) Get(key string) (string, bool) {
 	result := h.Peek(key)
 	if result != nil {
-		value = string(result)
-		return
+		return string(result), true
 	}
-	return
+	return "", false
 }
 
 // Set key-value pair in header map, the previous pair will be replaced if exists

@@ -25,6 +25,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"net"
+	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -56,13 +57,13 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 	}
 
 	wantedURI := []string{
-		"http://127.0.0.1:12200/pic?name=biz&passwd=bar",
+		"/pic?name=biz&passwd=bar",
 	}
 
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		ClientStreamsMocked[i].AppendHeaders(nil, headers[i], false)
+		ClientStreamsMocked[i].AppendHeaders(nil, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
-			t.Errorf("clientStream AppendHeaders() error")
+			t.Errorf("clientStream AppendHeaders() error, uri:%s", string(ClientStreamsMocked[i].request.Header.RequestURI()))
 		}
 	}
 }
@@ -97,11 +98,11 @@ func Test_header_capitalization(t *testing.T) {
 	}
 
 	wantedURI := []string{
-		"http://127.0.0.1:12200/pic?name=biz&passwd=bar",
+		"/pic?name=biz&passwd=bar",
 	}
 
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		ClientStreamsMocked[i].AppendHeaders(nil, headers[i], false)
+		ClientStreamsMocked[i].AppendHeaders(nil, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
 		}
@@ -143,11 +144,11 @@ func Test_header_conflict(t *testing.T) {
 	}
 
 	wantedURI := []string{
-		"http://127.0.0.1:12200/pic?name=biz&passwd=bar",
+		"/pic?name=biz&passwd=bar",
 	}
 
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		ClientStreamsMocked[i].AppendHeaders(nil, headers[i], false)
+		ClientStreamsMocked[i].AppendHeaders(nil, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
 		}
@@ -181,4 +182,14 @@ func Test_serverStream_handleRequest(t *testing.T) {
 			s.handleRequest()
 		})
 	}
+}
+
+func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
+	headerImpl := &fasthttp.RequestHeader{}
+
+	for k, v := range payload {
+		headerImpl.Set(k, v)
+	}
+
+	return http.RequestHeader{headerImpl}
 }

@@ -21,13 +21,13 @@ import (
 func TestCommon(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
 	testCases := []*TestCase{
-		//NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-		//NewTestCase(t, protocol.HTTP1, protocol.HTTP2, util.NewHTTPServer(t, nil)),
-		//NewTestCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		//NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+		NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
+		NewTestCase(t, protocol.HTTP1, protocol.HTTP2, util.NewHTTPServer(t, nil)),
+		NewTestCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, nil)),
+		NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
 		NewTestCase(t, protocol.SofaRPC, protocol.HTTP1, util.NewRPCServer(t, appaddr, util.Bolt1)),
-		//NewTestCase(t, protocol.SofaRPC, protocol.HTTP2, util.NewRPCServer(t, appaddr, util.Bolt1)),
-		//NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+		NewTestCase(t, protocol.SofaRPC, protocol.HTTP2, util.NewRPCServer(t, appaddr, util.Bolt1)),
+		NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
 
 		//TODO:
 		//NewTestCase(T, protocol.SofaRPC, protocol.HTTP1, util.NewRPCServer(T, appaddr, util.Bolt2)),

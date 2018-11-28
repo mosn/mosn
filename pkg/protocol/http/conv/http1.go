@@ -24,6 +24,7 @@ import (
 	"errors"
 	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/valyala/fasthttp"
+	"strings"
 )
 
 func init() {
@@ -80,7 +81,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 
 		// copy headers
 		header.VisitAll(func(key, value []byte) {
-			cheader[string(key)] = string(value)
+			cheader[strings.ToLower(string(key))] = string(value)
 		})
 
 		cheader[protocol.MosnHeaderDirection] = protocol.Request
@@ -91,7 +92,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 
 		// copy headers
 		header.VisitAll(func(key, value []byte) {
-			cheader[string(key)] = string(value)
+			cheader[strings.ToLower(string(key))] = string(value)
 		})
 
 		cheader[protocol.MosnHeaderDirection] = protocol.Response

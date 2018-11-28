@@ -188,8 +188,11 @@ func (csc *clientStreamConnection) OnGoAway() {
 }
 
 func (csc *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
+	id := protocol.GenerateID()
 	s := &clientStream{
 		stream: stream{
+			id:       id,
+			ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
 			request:  fasthttp.AcquireRequest(),
 			receiver: receiver,
 		},
@@ -242,9 +245,12 @@ func (ssc *serverStreamConnection) serve() {
 			return
 		}
 
+		id := protocol.GenerateID()
 		// 2. request processing
 		s := &serverStream{
 			stream: stream{
+				id:       id,
+				ctx:      context.WithValue(ssc.context, types.ContextKeyStreamID, id),
 				request:  request,
 				response: fasthttp.AcquireResponse(),
 			},
@@ -252,7 +258,7 @@ func (ssc *serverStreamConnection) serve() {
 			responseDoneChan: make(chan bool, 1),
 		}
 
-		s.receiver = ssc.serverStreamConnCallbacks.NewStreamDetect(s.stream.context, s)
+		s.receiver = ssc.serverStreamConnCallbacks.NewStreamDetect(s.stream.ctx, s)
 
 		ssc.stream = s
 
@@ -272,7 +278,8 @@ func (ssc *serverStreamConnection) OnGoAway() {
 // types.Stream
 // types.StreamSender
 type stream struct {
-	context context.Context
+	id  uint64
+	ctx context.Context
 
 	readDisableCount int32
 
@@ -286,7 +293,7 @@ type stream struct {
 
 // types.Stream
 func (s *stream) ID() uint64 {
-	return 0
+	return s.id
 }
 
 func (s *stream) AddEventListener(streamCb types.StreamEventListener) {
@@ -389,6 +396,7 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 }
 
 func (s *clientStream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
+	s.endStream()
 	return nil
 }
 
@@ -428,8 +436,10 @@ func (s *clientStream) handleResponse() {
 		// save response code
 		header.Set(protocol.MosnResponseStatusCode, status)
 
-		s.receiver.OnReceiveHeaders(s.context, header, false)
-		s.receiver.OnReceiveData(s.context, buffer.NewIoBufferBytes(s.response.Body()), true)
+		log.DefaultLogger.Debugf("remote:%s, status:%s", s.connection.conn.RemoteAddr(), status)
+
+		s.receiver.OnReceiveHeaders(s.ctx, header, false)
+		s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.response.Body()), true)
 
 		//TODO cannot recycle immediately, headers might be used by proxy logic
 		s.request = nil
@@ -540,8 +550,8 @@ func (s *serverStream) handleRequest() {
 		// 5. querystring
 		header.Set(protocol.MosnHeaderQueryStringKey, string(uri.QueryString()))
 
-		s.receiver.OnReceiveHeaders(s.context, header, false)
-		s.receiver.OnReceiveData(s.context, buffer.NewIoBufferBytes(s.request.Body()), true)
+		s.receiver.OnReceiveHeaders(s.ctx, header, false)
+		s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.request.Body()), true)
 	}
 }
 

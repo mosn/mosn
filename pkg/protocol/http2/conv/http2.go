@@ -22,6 +22,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"context"
 	"errors"
+	"strings"
 )
 
 func init() {
@@ -34,8 +35,16 @@ type common2http struct{}
 
 func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
+		cheader := make(map[string]string, len(header))
+
 		delete(header, protocol.MosnHeaderDirection)
-		return header, nil
+
+		// copy headers
+		for k, v := range header {
+			cheader[k] = v
+		}
+
+		return protocol.CommonHeader(cheader), nil
 	}
 	return nil, errors.New("header type not supported")
 }
@@ -54,13 +63,20 @@ type http2common struct{}
 func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
 
-		if _, ok := header[types.HeaderStatus]; ok {
-			header[protocol.MosnHeaderDirection] = protocol.Response
-		} else {
-			header[protocol.MosnHeaderDirection] = protocol.Request
+		cheader := make(map[string]string, len(header))
+
+		// copy headers
+		for k, v := range header {
+			cheader[strings.ToLower(k)] = v
 		}
 
-		return header, nil
+		if _, ok := header[types.HeaderStatus]; ok {
+			cheader[protocol.MosnHeaderDirection] = protocol.Response
+		} else {
+			cheader[protocol.MosnHeaderDirection] = protocol.Request
+		}
+
+		return protocol.CommonHeader(cheader), nil
 	}
 	return nil, errors.New("header type not supported")
 }

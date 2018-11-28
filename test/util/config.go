@@ -100,7 +100,7 @@ func CreateXProtocolMesh(clientaddr string, serveraddr string, subprotocol strin
 		newPrefixRouter(downstreamCluster, "/"),
 	}
 	clientChains := []v2.FilterChain{
-		newXProtocolFilterChain("downstreamFilter", subprotocol, downstreamRouters),
+		newXProtocolFilterChain("xprotocol_test_router_config_name", subprotocol, downstreamRouters),
 	}
 	clientListener := newListener("downstreamListener", clientaddr, clientChains)
 	upstreamRouters := []v2.Router{
