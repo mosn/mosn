@@ -23,9 +23,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"time"
-
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"time"
 )
 
 type TestJob struct {

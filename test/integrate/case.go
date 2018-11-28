@@ -26,8 +26,6 @@ type TestCase struct {
 	AppServer      util.UpstreamServer
 	ClientMeshAddr string
 	ServerMeshAddr string
-	EnableTracing  bool
-	Tracer         string
 	Stop           chan struct{}
 }
 

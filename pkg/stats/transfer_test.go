@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 // clear all metrics for test
