@@ -135,7 +135,7 @@ func (s *stream) ID() uint64 {
 	return uint64(s.id)
 }
 
-func (s *stream) BuildData() types.IoBuffer {
+func (s *stream) buildData() types.IoBuffer {
 	if s.sendData == nil {
 		return buffer.NewIoBuffer(0)
 	} else if len(s.sendData) == 1 {
@@ -298,7 +298,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		stream.sendData = append(stream.sendData, buffer.NewIoBufferBytes(data).Clone())
 		if endStream {
 			conn.logger.Debugf("http2 server data: %d", id)
-			stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), endStream)
+			stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), endStream)
 		}
 		return
 	}
@@ -307,7 +307,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 	if hasTrailer {
 		if len(stream.sendData) > 0 {
 			conn.logger.Debugf("http2 server data: %d", id)
-			stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), false)
+			stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), false)
 		}
 		trailer := mhttp2.NewHeaderMap(h2s.Request.Trailer)
 		conn.logger.Debugf("http2 server trailer: %d, %v", id, h2s.Request.Trailer)
@@ -318,7 +318,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 	// nil data
 	if endStream {
 		conn.logger.Debugf("http2 server data: %d", id)
-		stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), endStream)
+		stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), endStream)
 	}
 }
 
@@ -601,7 +601,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		stream.sendData = append(stream.sendData, buffer.NewIoBufferBytes(data).Clone())
 		if endStream {
 			stream.logger.Debugf("http2 client data: id = %d", id)
-			stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), endStream)
+			stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), endStream)
 		}
 		return
 	}
@@ -610,7 +610,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	if trailer != nil {
 		if len(stream.sendData) > 0 {
 			stream.logger.Debugf("http2 client data: id = %d", id)
-			stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), false)
+			stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), false)
 		}
 		trailers := mhttp2.NewHeaderMap(trailer)
 		stream.logger.Debugf("http2 client trailer: id = %d, trailers = %+v", id, trailer)
@@ -621,7 +621,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	// nil data
 	if endStream {
 		stream.logger.Debugf("http2 client data: id = %d", id)
-		stream.receiver.OnReceiveData(stream.ctx, stream.BuildData(), endStream)
+		stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), endStream)
 	}
 }
 
@@ -770,6 +770,7 @@ func (s *clientStream) endStream() {
 
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
 	if err != nil {
+		// todo: other error scenes
 		s.sc.logger.Errorf("http2 client endStream error = :%v", err)
 		s.ResetStream(types.StreamLocalReset)
 		return
