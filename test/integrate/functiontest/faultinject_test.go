@@ -75,7 +75,7 @@ func (c *faultInjectCase) StartProxy() {
 	appAddr := c.AppServer.Addr()
 	clientMeshAddr := util.CurrentMeshAddr()
 	c.ClientMeshAddr = clientMeshAddr
-	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol, false, "")
+	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol)
 	faultstr := MakeFaultStr(c.abortstatus, c.delay)
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	mesh := mosn.NewMosn(cfg)
