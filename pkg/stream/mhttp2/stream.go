@@ -458,7 +458,7 @@ func (s *serverStream) endStream() {
 	if err != nil {
 		// todo: other error scenes
 		s.sc.logger.Errorf("http2 server SendResponse  error :%v", err)
-		s.stream.ResetStream(types.StreamLocalReset)
+		s.stream.ResetStream(types.StreamRemoteReset)
 		return
 	}
 	s.sc.logger.Debugf("http2 server SendResponse id = %d", s.id)
@@ -772,7 +772,7 @@ func (s *clientStream) endStream() {
 	if err != nil {
 		// todo: other error scenes
 		s.sc.logger.Errorf("http2 client endStream error = :%v", err)
-		s.ResetStream(types.StreamLocalReset)
+		s.ResetStream(types.StreamRemoteReset)
 		return
 	}
 	s.id = s.h2s.GetID()
