@@ -1,7 +1,6 @@
 package network
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -11,10 +10,6 @@ import (
 type MyEventListener struct{}
 
 func (el *MyEventListener) OnEvent(event types.ConnectionEvent) {}
-
-func randN() int {
-	return rand.Intn(1024) + 1
-}
 
 func TestAddConnectionEventListener(t *testing.T) {
 	logger, err := log.NewLogger("stdout", log.INFO)
@@ -26,7 +21,7 @@ func TestAddConnectionEventListener(t *testing.T) {
 		logger: logger,
 	}
 
-	n := randN()
+	n := 1024
 	for i := 0; i < n; i++ {
 		el0 := &MyEventListener{}
 		c.AddConnectionEventListener(el0)
@@ -47,7 +42,7 @@ func TestAddBytesReadListener(t *testing.T) {
 		logger: logger,
 	}
 
-	n := randN()
+	n := 1024
 	for i := 0; i < n; i++ {
 		fn1 := func(bytesRead uint64) {}
 		c.AddBytesReadListener(fn1)
@@ -68,7 +63,7 @@ func TestAddBytesSendListener(t *testing.T) {
 		logger: logger,
 	}
 
-	n := randN()
+	n := 1024
 	for i := 0; i < n; i++ {
 		fn1 := func(bytesSent uint64) {}
 		c.AddBytesSentListener(fn1)
