@@ -15,7 +15,9 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/fuzzy"
 	"github.com/alipay/sofa-mosn/test/util"
@@ -200,8 +202,8 @@ func CreateServers(t *testing.T, serverList []string, stop chan struct{}) []fuzz
 //main
 func TestMain(m *testing.M) {
 	util.MeshLogPath = "./logs/rpc.log"
-	util.MeshLogLevel = "INFO"
-	log.InitDefaultLogger(util.MeshLogPath, log.INFO)
+	util.MeshLogLevel = "DEBUG"
+	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG)
 	casetime := flag.Int64("casetime", 1, "-casetime=1(min)")
 	flag.Parse()
 	caseDuration = time.Duration(*casetime) * time.Minute

@@ -13,6 +13,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
@@ -46,7 +47,7 @@ func NewHTTPCase(t *testing.T, serverProto, meshProto types.Protocol, server uti
 
 func (c *HTTPCase) RunCase(n int, interval int) {
 	client := http.DefaultClient
-	if c.AppProtocol == protocol.HTTP2 {
+	if c.AppProtocol == protocol.HTTP2 || c.AppProtocol == protocol.MHTTP2 {
 		tr := &http2.Transport{
 			AllowHTTP: true,
 			DialTLS: func(netw, addr string, cfg *tls.Config) (net.Conn, error) {
@@ -109,7 +110,9 @@ func TestHTTPMethod(t *testing.T) {
 			NewHTTPCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, &MethodHTTPHandler{})),
 			NewHTTPCase(t, protocol.HTTP1, protocol.HTTP2, util.NewHTTPServer(t, &MethodHTTPHandler{})),
 			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
+			NewHTTPCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
 			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
+			NewHTTPCase(t, protocol.MHTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
 		}
 		for i, tc := range testCases {
 			t.Logf("start case #%d\n", i)

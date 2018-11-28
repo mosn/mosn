@@ -119,7 +119,8 @@ func (c *faultInjectCase) RunCase(n int, interval int) {
 			c.T.Logf("HTTP client receive data: %s\n", string(b))
 			return nil
 		}
-
+	case protocol.MHTTP2:
+		fallthrough
 	case protocol.HTTP2:
 		expectedCode := http.StatusOK
 		if c.abortstatus != 0 {
@@ -210,6 +211,10 @@ func TestFaultInject(t *testing.T) {
 			delay:    time.Second,
 		},
 		&faultInjectCase{
+			TestCase: integrate.NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			delay:    time.Second,
+		},
+		&faultInjectCase{
 			TestCase: integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
 			delay:    time.Second,
 		},
@@ -220,6 +225,10 @@ func TestFaultInject(t *testing.T) {
 		},
 		&faultInjectCase{
 			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			abortstatus: 500,
+		},
+		&faultInjectCase{
+			TestCase:    integrate.NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
 			abortstatus: 500,
 		},
 		&faultInjectCase{
@@ -234,6 +243,11 @@ func TestFaultInject(t *testing.T) {
 		},
 		&faultInjectCase{
 			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			delay:       time.Second,
+			abortstatus: 500,
+		},
+		&faultInjectCase{
+			TestCase:    integrate.NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
 			delay:       time.Second,
 			abortstatus: 500,
 		},
