@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

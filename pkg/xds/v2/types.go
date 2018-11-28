@@ -22,7 +22,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/config"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"

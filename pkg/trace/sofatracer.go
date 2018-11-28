@@ -2,13 +2,14 @@ package trace
 
 import (
 	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/json-iterator/go"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/json-iterator/go"
 )
 
 // -------- SofaTracerSpan --------

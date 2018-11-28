@@ -19,7 +19,7 @@ package server
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/stats"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 type listenerStats struct {

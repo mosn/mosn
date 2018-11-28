@@ -23,7 +23,7 @@ import (
 	"strings"
 	"sync"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 type registry struct {

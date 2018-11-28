@@ -20,7 +20,7 @@ package proxy
 import (
 	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 type Stats struct {

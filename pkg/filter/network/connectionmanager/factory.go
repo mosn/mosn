@@ -19,6 +19,7 @@ package connectionmanager
 
 import (
 	"context"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/types"

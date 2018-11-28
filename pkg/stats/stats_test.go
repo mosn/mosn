@@ -21,7 +21,7 @@ import (
 	"sync"
 	"testing"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 // testClear cleans the registry for test

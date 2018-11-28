@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

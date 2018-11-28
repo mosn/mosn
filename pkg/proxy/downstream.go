@@ -21,14 +21,15 @@ import (
 	"container/list"
 	"context"
 	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/trace"
 	"net"
 	"reflect"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"

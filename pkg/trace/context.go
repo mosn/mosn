@@ -2,6 +2,7 @@ package trace
 
 import (
 	"context"
+
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 

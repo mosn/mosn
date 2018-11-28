@@ -14,19 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package proxy
 
 import (
 	"context"
+	"strconv"
+	"testing"
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"strconv"
-	"testing"
-	"time"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
@@ -45,8 +46,7 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	trace.CreateInstance()
 	span := trace.SofaTracerInstance.Start(time.Now())
 	ctx := context.WithValue(context.Background(), trace.ActiveSpanKey, span)
-	requestInfo := &network.RequestInfo{
-	}
+	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
 	ds.finishTracing(strconv.Itoa(types.SuccessCode))
 }

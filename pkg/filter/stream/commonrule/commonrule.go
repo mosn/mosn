@@ -25,7 +25,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

@@ -18,11 +18,12 @@
 package mosn
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/trace"
 	"net"
 	"os"
 	"strconv"
 	"sync"
+
+	"github.com/alipay/sofa-mosn/pkg/trace"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"

@@ -1,10 +1,11 @@
 package http
 
 import (
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
-	"time"
 )
 
 var spanBuilder = &SpanBuilder{}

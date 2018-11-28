@@ -25,7 +25,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 func doNothing() {}

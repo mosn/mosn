@@ -18,13 +18,14 @@
 package config
 
 import (
+	"io/ioutil"
+	"log"
+	"path/filepath"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/json-iterator/go"
-	"io/ioutil"
-	"log"
-	"path/filepath"
 )
 
 type ContentKey string
