@@ -115,6 +115,7 @@ func TestHTTPMethod(t *testing.T) {
 			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
 			NewHTTPCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
 			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
+			NewHTTPCase(t, protocol.MHTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
 		}
 		for i, tc := range testCases {
 			t.Logf("start case #%d\n", i)
