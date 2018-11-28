@@ -362,7 +362,7 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 		conn.slock.Unlock()
 	}
 
-	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream)
+	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
 	return stream, nil
 }
 
