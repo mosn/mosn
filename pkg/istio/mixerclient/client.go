@@ -95,8 +95,13 @@ func (c *mixerClient) tryConnect(retry bool) error {
 	}
 	defer mngAdaper.PutClusterSnapshot(snapshot)
 
+	hosts := snapshot.PrioritySet().GetOrCreateHostSet(0).Hosts()
+	if len(hosts) == 0 {
+		return fmt.Errorf("no hosts for reportCluster %s", c.reportCluster)
+	}
+
 	// TODO: use lb
-	mixerAddress := snapshot.PrioritySet().GetOrCreateHostSet(0).Hosts()[0].Address().String()
+	mixerAddress := hosts[0].Address().String()
 	conn, err := grpc.Dial(mixerAddress, grpc.WithInsecure())
 	if err != nil {
 		err := fmt.Errorf("grpc dial to mixer server %s error %v", mixerAddress, err)
