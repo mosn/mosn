@@ -29,8 +29,15 @@ const (
 	Xprotocol types.Protocol = "X"
 )
 
+// header direction definition
+const (
+	Request  = "Request"
+	Response = "Response"
+)
+
 // Host key for routing in MOSN Header
 const (
+	MosnHeaderDirection       = "x-mosn-direction" // for protocol convert
 	MosnHeaderHostKey         = "x-mosn-host"
 	MosnHeaderPathKey         = "x-mosn-path"
 	MosnHeaderQueryStringKey  = "x-mosn-querystring"
@@ -73,6 +80,17 @@ func (h CommonHeader) Range(f func(key, value string) bool) {
 			break
 		}
 	}
+}
+
+// Clone used to deep copy header's map
+func (h CommonHeader) Clone() types.HeaderMap {
+	copy := make(map[string]string)
+
+	for k, v := range h {
+		copy[k] = v
+	}
+
+	return CommonHeader(copy)
 }
 
 func (h CommonHeader) ByteSize() uint64 {

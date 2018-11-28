@@ -69,18 +69,17 @@ func (p *connPool) Protocol() types.Protocol {
 }
 
 //由 PROXY 调用
-func (p *connPool) NewStream(ctx context.Context, streamID string, responseDecoder types.StreamReceiver,
-	cb types.PoolEventListener) types.Cancellable {
+func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
 
 	c := p.getAvailableClient(ctx)
 
 	if c == nil {
-		cb.OnFailure(streamID, types.ConnectionFailure, nil)
+		cb.OnFailure(types.ConnectionFailure, nil)
 		return nil
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(streamID, types.Overflow, nil)
+		cb.OnFailure(types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -90,8 +89,8 @@ func (p *connPool) NewStream(ctx context.Context, streamID string, responseDecod
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 
-		streamEncoder := c.codecClient.NewStream(ctx, streamID, responseDecoder)
-		cb.OnReady(streamID, streamEncoder, p.host)
+		streamEncoder := c.codecClient.NewStream(ctx, receiver)
+		cb.OnReady(streamEncoder, p.host)
 	}
 
 	return nil
@@ -233,14 +232,14 @@ type activeClient struct {
 	closeWithActiveReq bool
 }
 
-func newActiveClient(context context.Context, pool *connPool) *activeClient {
+func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		index: pool.clientCount,
 		pool:  pool,
 	}
 
-	data := pool.host.CreateConnection(context)
-	codecClient := pool.createCodecClient(context, data)
+	data := pool.host.CreateConnection(ctx)
+	codecClient := pool.createCodecClient(ctx, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)

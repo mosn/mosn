@@ -23,7 +23,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -31,7 +30,6 @@ import (
 // types.ReadFilter
 // types.StreamConnectionEventListener
 type codecClient struct {
-	context                   context.Context
 	Protocol                  types.Protocol
 	Connection                types.ClientConnection
 	Host                      types.HostInfo
@@ -55,10 +53,8 @@ func NewCodecClient(ctx context.Context, prot types.Protocol, connection types.C
 		ActiveRequests: list.New(),
 	}
 
-	codecClient.context = buffer.NewBufferPoolContext(ctx, false)
-
 	if factory, ok := streamFactories[prot]; ok {
-		codecClient.Codec = factory.CreateClientStream(codecClient.context, connection, codecClient, codecClient)
+		codecClient.Codec = factory.CreateClientStream(ctx, connection, codecClient, codecClient)
 	} else {
 		return nil
 	}
@@ -72,7 +68,7 @@ func NewCodecClient(ctx context.Context, prot types.Protocol, connection types.C
 
 // NewBiDirectCodeClient
 // Create a bidirectional client used to realize bidirectional communication
-func NewBiDirectCodeClient(context context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
+func NewBiDirectCodeClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
 	serverCallbacks types.ServerStreamConnectionEventListener) CodecClient {
 	codecClient := &codecClient{
 		Protocol:       prot,
@@ -82,7 +78,7 @@ func NewBiDirectCodeClient(context context.Context, prot types.Protocol, connect
 	}
 
 	if factory, ok := streamFactories[prot]; ok {
-		codecClient.Codec = factory.CreateBiDirectStream(context, connection, codecClient, serverCallbacks)
+		codecClient.Codec = factory.CreateBiDirectStream(ctx, connection, codecClient, serverCallbacks)
 	} else {
 		return nil
 	}
@@ -125,9 +121,9 @@ func (c *codecClient) RemoteClose() bool {
 	return c.RemoteCloseFlag
 }
 
-func (c *codecClient) NewStream(context context.Context, streamID string, respDecoder types.StreamReceiver) types.StreamSender {
+func (c *codecClient) NewStream(context context.Context, respDecoder types.StreamReceiver) types.StreamSender {
 	ar := newActiveRequest(c, respDecoder)
-	ar.requestSender = c.Codec.NewStream(context, streamID, ar)
+	ar.requestSender = c.Codec.NewStream(context, ar)
 	ar.requestSender.GetStream().AddEventListener(ar)
 
 	c.AcrMux.Lock()

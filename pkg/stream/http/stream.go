@@ -29,9 +29,10 @@ import (
 	"github.com/valyala/fasthttp"
 	"bufio"
 	"errors"
-	"strconv"
 	"io"
+	"strconv"
 	"net/http"
+	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
 )
 
 var errConnClose = errors.New("connection closed")
@@ -67,8 +68,9 @@ type streamConnection struct {
 	connCallbacks types.ConnectionEventListener
 
 	bufChan chan types.IoBuffer
-	br      *bufio.Reader
-	bw      *bufio.Writer
+
+	br *bufio.Reader
+	bw *bufio.Writer
 
 	logger log.Logger
 }
@@ -185,10 +187,9 @@ func (csc *clientStreamConnection) OnGoAway() {
 	csc.streamConnCallbacks.OnGoAway()
 }
 
-func (csc *clientStreamConnection) NewStream(ctx context.Context, streamID string, receiver types.StreamReceiver) types.StreamSender {
+func (csc *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
 	s := &clientStream{
 		stream: stream{
-			context:  context.WithValue(ctx, types.ContextKeyStreamID, streamID),
 			request:  fasthttp.AcquireRequest(),
 			receiver: receiver,
 		},
@@ -196,8 +197,6 @@ func (csc *clientStreamConnection) NewStream(ctx context.Context, streamID strin
 	}
 
 	csc.stream = s
-
-	//s.request.Header.DisableNormalizing()
 
 	return s
 }
@@ -235,8 +234,6 @@ func (ssc *serverStreamConnection) serve() {
 	for {
 		// 1. blocking read using fasthttp.Request.Read
 		request := fasthttp.AcquireRequest()
-		//request.Header.DisableNormalizing()
-
 		err := request.Read(ssc.br)
 		if err != nil {
 			if err != errConnClose && err != io.EOF {
@@ -246,23 +243,16 @@ func (ssc *serverStreamConnection) serve() {
 		}
 
 		// 2. request processing
-
-		// generate stream id using global counter
-		streamID := protocol.GenerateIDString()
-
 		s := &serverStream{
 			stream: stream{
 				request:  request,
 				response: fasthttp.AcquireResponse(),
-				context:  context.WithValue(ssc.context, types.ContextKeyStreamID, streamID),
 			},
 			connection:       ssc,
 			responseDoneChan: make(chan bool, 1),
 		}
 
-		//s.response.Header.DisableNormalizing()
-
-		s.receiver = ssc.serverStreamConnCallbacks.NewStream(s.stream.context, streamID, s)
+		s.receiver = ssc.serverStreamConnCallbacks.NewStreamDetect(s.stream.context, s)
 
 		ssc.stream = s
 
@@ -295,6 +285,10 @@ type stream struct {
 }
 
 // types.Stream
+func (s *stream) ID() uint64 {
+	return 0
+}
+
 func (s *stream) AddEventListener(streamCb types.StreamEventListener) {
 	s.streamCbs = append(s.streamCbs, streamCb)
 }
@@ -328,7 +322,7 @@ type clientStream struct {
 
 // types.StreamSender
 func (s *clientStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
-	headers := headersIn.(requestHeader)
+	headers := headersIn.(mosnhttp.RequestHeader)
 
 	// TODO: protocol convert in pkg/protocol
 	//if the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
@@ -365,6 +359,8 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	if host, ok := headers.Get(protocol.MosnHeaderHostKey); ok {
 		headers.Del(protocol.MosnHeaderHostKey)
 		headers.SetHost(host)
+	} else {
+		headers.SetHost(s.connection.conn.RemoteAddr().String())
 	}
 
 	if host, ok := headers.Get(protocol.IstioHeaderHostKey); ok {
@@ -423,13 +419,13 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		header := responseHeader{&s.response.Header}
+		header := mosnhttp.ResponseHeader{&s.response.Header}
 
 		statusCode := header.StatusCode()
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
 		header.Set(types.HeaderStatus, status)
-		// save response code in context
+		// save response code
 		header.Set(protocol.MosnResponseStatusCode, status)
 
 		s.receiver.OnReceiveHeaders(s.context, header, false)
@@ -455,14 +451,14 @@ type serverStream struct {
 // types.StreamSender
 func (s *serverStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
 	switch headers := headersIn.(type) {
-	case requestHeader:
+	case mosnhttp.RequestHeader:
 		if status, ok := headers.Get(types.HeaderStatus); ok {
 			headers.Del(types.HeaderStatus)
 
 			statusCode, _ := strconv.Atoi(status)
 			s.response.SetStatusCode(statusCode)
 		}
-	case responseHeader:
+	case mosnhttp.ResponseHeader:
 		if status, ok := headers.Get(types.HeaderStatus); ok {
 			headers.Del(types.HeaderStatus)
 
@@ -472,7 +468,6 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 
 		headers.CopyTo(&s.response.Header)
 	}
-
 
 	if endStream {
 		s.endStream()
@@ -530,7 +525,7 @@ func (s *serverStream) handleRequest() {
 	if s.request != nil {
 
 		// header
-		header := requestHeader{&s.request.Header}
+		header := mosnhttp.RequestHeader{&s.request.Header}
 
 		// set non-header info in request-line, like method, uri
 		uri := s.request.URI()
@@ -553,35 +548,3 @@ func (s *serverStream) handleRequest() {
 func (s *serverStream) GetStream() types.Stream {
 	return s
 }
-
-//func encodeReqHeader(req *fasthttp.Request, in map[string]string) {
-//	for k, v := range in {
-//		req.Header.Set(k, v)
-//	}
-//}
-//
-//func encodeRespHeader(resp *fasthttp.Response, in map[string]string) {
-//	for k, v := range in {
-//		resp.Header.Set(k, v)
-//	}
-//}
-//
-//func decodeReqHeader(in fasthttp.RequestHeader) (out map[string]string) {
-//	out = make(map[string]string, in.Len())
-//
-//	in.VisitAll(func(key, value []byte) {
-//		out[string(key)] = string(value)
-//	})
-//
-//	return
-//}
-//
-//func decodeRespHeader(in fasthttp.ResponseHeader) (out map[string]string) {
-//	out = make(map[string]string, in.Len())
-//
-//	in.VisitAll(func(key, value []byte) {
-//		out[string(key)] = string(value)
-//	})
-//
-//	return
-//}

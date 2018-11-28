@@ -13,11 +13,12 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
 	"golang.org/x/net/http2"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 )
 
 type Client interface {
@@ -82,8 +83,8 @@ func (s *streamReceiver) OnReceiveTrailers(context context.Context, trailers typ
 func (s *streamReceiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
 func (s *streamReceiver) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	if cmd, ok := headers.(sofarpc.ProtoBasicCmd); ok {
-		status := cmd.GetRespStatus()
+	if resp, ok := headers.(rpc.RespStatus); ok {
+		status := resp.RespStatus()
 		if int16(status) != sofarpc.RESPONSE_STATUS_SUCCESS {
 			s.ch <- errors.New(fmt.Sprintf("%d", status))
 			return
@@ -99,7 +100,7 @@ type RPCClient struct {
 	Addr     string
 	conn     types.ClientConnection
 	codec    stream.CodecClient
-	streamID uint32
+	streamID uint64
 }
 
 func NewRPCClient(addr string) Client {
@@ -129,9 +130,8 @@ func (c *RPCClient) Send() <-chan error {
 			}
 			c.codec = stream.NewCodecClient(context.Background(), protocol.SofaRPC, c.conn, nil)
 		}
-		id := atomic.AddUint32(&c.streamID, 1)
-		streamID := protocol.StreamIDConv(id)
-		encoder := c.codec.NewStream(context.Background(), streamID, &streamReceiver{ch})
+		id := atomic.AddUint64(&c.streamID, 1)
+		encoder := c.codec.NewStream(context.Background(), &streamReceiver{ch})
 		headers := util.BuildBoltV1Request(id)
 		encoder.AppendHeaders(context.Background(), headers, true)
 	}(ch)

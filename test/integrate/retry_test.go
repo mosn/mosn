@@ -9,8 +9,8 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
 )
@@ -113,14 +113,14 @@ func (h *BadHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func ServeBadBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		cmd, _ := codec.BoltV1.GetDecoder().Decode(nil, iobuf)
+		cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
 		}
-		if req, ok := cmd.(*sofarpc.BoltRequestCommand); ok {
+		if req, ok := cmd.(*sofarpc.BoltRequest); ok {
 			resp := util.BuildBoltV1Response(req)
 			resp.ResponseStatus = sofarpc.RESPONSE_STATUS_SERVER_EXCEPTION
-			iobufresp, err := codec.BoltV1.GetEncoder().EncodeHeaders(nil, resp)
+			iobufresp, err := codec.BoltCodec.Encode(nil, resp)
 			if err != nil {
 				t.Errorf("Build response error: %v\n", err)
 				return nil, true

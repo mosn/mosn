@@ -28,7 +28,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/http2"
 )
 
@@ -69,18 +69,18 @@ func (p *connPool) InitActiveClient(context context.Context) error {
 }
 
 //由 PROXY 调用
-func (p *connPool) NewStream(context context.Context, streamID string, responseDecoder types.StreamReceiver,
+func (p *connPool) NewStream(context context.Context, responseDecoder types.StreamReceiver,
 	cb types.PoolEventListener) types.Cancellable {
 
 	ac := p.getOrInitActiveClient(context, p.host.AddressString())
 
 	if ac == nil {
-		cb.OnFailure(streamID, types.ConnectionFailure, nil)
+		cb.OnFailure(types.ConnectionFailure, nil)
 		return nil
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(streamID, types.Overflow, nil)
+		cb.OnFailure(types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -90,8 +90,8 @@ func (p *connPool) NewStream(context context.Context, streamID string, responseD
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := ac.codecClient.NewStream(context, streamID, responseDecoder)
-		cb.OnReady(streamID, streamEncoder, p.host)
+		streamEncoder := ac.codecClient.NewStream(context, responseDecoder)
+		cb.OnReady(streamEncoder, p.host)
 	}
 
 	return nil
@@ -282,7 +282,8 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		return nil
 	}
 
-	codecClient := pool.createCodecClient(context.WithValue(ctx, H2ConnKey, h2Conn), data)
+	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
+	codecClient := pool.createCodecClient(context.WithValue(connCtx, H2ConnKey, h2Conn), data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
