@@ -18,7 +18,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 	"golang.org/x/net/http2"
 )
 
