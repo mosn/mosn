@@ -11,9 +11,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol/example"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // XProtocol needs subprotocol for rpc
@@ -118,7 +118,7 @@ func NewXProtocolServer(t *testing.T, addr string, subproto string) UpstreamServ
 
 func (s *XProtocolServer) ServeXExample(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		codec := subprotocol.NewRPCExample()
+		codec := example.NewRPCExample()
 		streamID := codec.GetStreamID(iobuf.Bytes())
 		resp := make([]byte, 16)
 		data := []byte{14, 1, 1, 20, 8, 0, 0, 0}

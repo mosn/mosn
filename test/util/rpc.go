@@ -15,12 +15,12 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 const (
@@ -80,11 +80,14 @@ func (c *RPCClient) Close() {
 }
 
 func (c *RPCClient) SendRequest() {
+	c.SendRequestWithData("testdata")
+}
+func (c *RPCClient) SendRequestWithData(in string) {
 	ID := atomic.AddUint64(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
 	var headers sofarpc.SofaRpcCmd
-	data := buffer.NewIoBufferString("testdata")
+	data := buffer.NewIoBufferString(in)
 	switch c.Protocol {
 	case Bolt1:
 		headers = BuildBoltV1RequestWithContent(ID, data)

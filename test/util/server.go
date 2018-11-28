@@ -104,10 +104,6 @@ type HTTPHandler struct{}
 func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
-	for k := range r.Header {
-		w.Header().Set(k, r.Header.Get(k))
-	}
-
 	fmt.Fprintf(w, "\nRequestId:%s\n", r.Header.Get("Requestid"))
 
 }

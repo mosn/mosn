@@ -29,6 +29,8 @@ var (
 	// of the protocol engine instance(usually it held by the stream connection), like upstream/healthcheck.
 	// So we need a separate factory to achieve this goal.
 	heartbeatFactory = make(map[byte]HeartbeatBuilder)
+
+	responseFactory = make(map[byte]ResponseBuilder)
 )
 
 func RegisterProtocol(protocolCode byte, encoder types.Encoder, decoder types.Decoder) {
@@ -37,6 +39,10 @@ func RegisterProtocol(protocolCode byte, encoder types.Encoder, decoder types.De
 
 func RegisterHeartbeatBuilder(protocolCode byte, builder HeartbeatBuilder) {
 	heartbeatFactory[protocolCode] = builder
+}
+
+func RegisterResponseBuilder(protocolCode byte, builder ResponseBuilder) {
+	responseFactory[protocolCode] = builder
 }
 
 // TODO: should be replaced with configure specify(e.g. downstream_protocol: rpc, sub_protocol:[boltv1])

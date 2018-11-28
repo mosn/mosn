@@ -275,13 +275,31 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		return
 	}
 	clusterSnapshot, route := handlerChain.DoNextHandler()
-	if route == nil || route.RouteRule() == nil {
-		// no route
+	if route == nil {
 		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 
+		return
+	}
+	s.route = route
+	// check if route have direct response
+	// direct response will response now
+	if resp := s.route.DirectResponseRule(); !(resp == nil || reflect.ValueOf(resp).IsNil()) {
+		log.DefaultLogger.Infof("direct response for stream , id = %s", s.ID)
+		if resp.Body() != "" {
+			s.sendHijackReplyWithBody(resp.StatusCode(), headers, resp.Body())
+		} else {
+			s.sendHijackReply(resp.StatusCode(), headers)
+		}
+		return
+	}
+	// not direct response, needs a cluster snapshot and route rule
+	if rule := route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
+		log.DefaultLogger.Warnf("no route rule to init upstream, headers = %v", headers)
+		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
 	}
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
@@ -291,7 +309,6 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
-	s.route = route
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
 	clusterName := route.RouteRule().ClusterName()
@@ -838,6 +855,21 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	s.appendHeaders(headers, true)
+}
+
+// TODO: rpc status code may be not matched
+// TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
+func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
+	s.logger.Debugf("set hijack reply with body, conn = %d, stream id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
+	if headers == nil {
+		s.logger.Warnf("hijack with no headers, conn = %d, stream id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
+		raw := make(map[string]string, 5)
+		headers = protocol.CommonHeader(raw)
+	}
+	headers.Set(types.HeaderStatus, strconv.Itoa(code))
+	s.appendHeaders(headers, false)
+	data := buffer.NewIoBufferString(body)
+	s.appendData(data, true)
 }
 
 func (s *downStream) cleanUp() {

@@ -23,6 +23,7 @@ import (
 
 	apiv2 "github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // SofaRpcCmd  act as basic model for sofa protocols
@@ -43,6 +44,13 @@ type HeartbeatBuilder interface {
 
 	// Reply builds heartbeat command corresponding to the given requestID
 	Reply() SofaRpcCmd
+}
+
+// HeartbeatBuilder provides interface to construct proper response command for sofarpc sub-protocols
+type ResponseBuilder interface {
+
+	// BuildResponse build response with given status code
+	BuildResponse(status int16) SofaRpcCmd
 }
 
 // bolt constants
@@ -258,6 +266,20 @@ func (b *BoltRequest) Range(f func(key, value string) bool) {
 	}
 }
 
+func (b *BoltRequest) Clone() types.HeaderMap {
+	copy := &BoltRequest{}
+	*copy = *b
+
+	// deep copy
+	requestHeader := make(map[string]string, len(b.RequestHeader))
+	for k, v := range b.RequestHeader {
+		requestHeader[k] = v
+	}
+	copy.RequestHeader = requestHeader
+
+	return copy
+}
+
 func (b *BoltRequest) ByteSize() (size uint64) {
 	for k, v := range b.RequestHeader {
 		size += uint64(len(k) + len(v))
@@ -353,6 +375,20 @@ func (b *BoltResponse) Range(f func(key, value string) bool) {
 			break
 		}
 	}
+}
+
+func (b *BoltResponse) Clone() types.HeaderMap {
+	copy := &BoltResponse{}
+	*copy = *b
+
+	// deep copy
+	responseHeader := make(map[string]string, len(b.ResponseHeader))
+	for k, v := range b.ResponseHeader {
+		responseHeader[k] = v
+	}
+	copy.ResponseHeader = responseHeader
+
+	return copy
 }
 
 func (b *BoltResponse) ByteSize() (size uint64) {
