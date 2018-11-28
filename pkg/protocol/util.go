@@ -26,22 +26,22 @@ var defaultGenerator IDGenerator
 
 // IDGenerator utility to generate auto-increment ids
 type IDGenerator struct {
-	counter uint32
+	counter uint64
 }
 
 // Get get id
-func (g *IDGenerator) Get() uint32 {
-	return atomic.AddUint32(&g.counter, 1)
+func (g *IDGenerator) Get() uint64 {
+	return atomic.AddUint64(&g.counter, 1)
 }
 
 // Get get id in string format
 func (g *IDGenerator) GetString() string {
-	n := atomic.AddUint32(&g.counter, 1)
-	return strconv.FormatUint(uint64(n), 10)
+	n := atomic.AddUint64(&g.counter, 1)
+	return strconv.FormatUint(n, 10)
 }
 
 // GenerateID get id by default global generator
-func GenerateID() uint32 {
+func GenerateID() uint64 {
 	return defaultGenerator.Get()
 }
 
@@ -50,13 +50,13 @@ func GenerateIDString() string {
 	return defaultGenerator.GetString()
 }
 
-// StreamIDConv convert streamID from uint32 to string
-func StreamIDConv(streamID uint32) string {
-	return strconv.FormatUint(uint64(streamID), 10)
+// StreamIDConv convert streamID from uint64 to string
+func StreamIDConv(streamID uint64) string {
+	return strconv.FormatUint(streamID, 10)
 }
 
-// RequestIDConv convert streamID from string to uint32
-func RequestIDConv(streamID string) uint32 {
-	reqID, _ := strconv.ParseUint(streamID, 10, 32)
-	return uint32(reqID)
+// RequestIDConv convert streamID from string to uint64
+func RequestIDConv(streamID string) uint64 {
+	reqID, _ := strconv.ParseUint(streamID, 10, 64)
+	return reqID
 }

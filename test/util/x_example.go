@@ -11,7 +11,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/stream/xprotocol/subprotocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol/example"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -20,8 +21,8 @@ import (
 type XProtocolClient struct {
 	t           *testing.T
 	ClientID    string
-	SubProtocol types.SubProtocol
-	Codec       types.Multiplexing
+	SubProtocol xprotocol.SubProtocol
+	Codec       xprotocol.Multiplexing
 	conn        types.ClientConnection
 	streamID    uint64
 }
@@ -35,7 +36,7 @@ func NewXClient(t *testing.T, id string, subproto string) *XProtocolClient {
 	return &XProtocolClient{
 		t:           t,
 		ClientID:    id,
-		SubProtocol: types.SubProtocol(subproto),
+		SubProtocol: xprotocol.SubProtocol(subproto),
 	}
 }
 
@@ -49,7 +50,7 @@ func (c *XProtocolClient) Connect(addr string) error {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	c.Codec = subprotocol.CreateSubProtocolCodec(context.Background(), c.SubProtocol)
+	c.Codec = xprotocol.CreateSubProtocolCodec(context.Background(), c.SubProtocol)
 	return nil
 }
 
@@ -117,7 +118,7 @@ func NewXProtocolServer(t *testing.T, addr string, subproto string) UpstreamServ
 
 func (s *XProtocolServer) ServeXExample(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		codec := subprotocol.NewRPCExample()
+		codec := example.NewRPCExample()
 		streamID := codec.GetStreamID(iobuf.Bytes())
 		resp := make([]byte, 16)
 		data := []byte{14, 1, 1, 20, 8, 0, 0, 0}

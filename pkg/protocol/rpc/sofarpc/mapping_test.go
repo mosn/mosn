@@ -31,37 +31,37 @@ func TestSofaMapping(t *testing.T) {
 		Expected int
 	}{
 		{
-			Header: &BoltResponseCommand{
+			Header: &BoltResponse{
 				ResponseStatus: RESPONSE_STATUS_SUCCESS,
 			},
 			Expected: 200,
 		},
 		{
-			Header: &BoltResponseCommand{
+			Header: &BoltResponse{
 				ResponseStatus: RESPONSE_STATUS_SERVER_THREADPOOL_BUSY,
 			},
 			Expected: 503,
 		},
 		{
-			Header: &BoltResponseCommand{
+			Header: &BoltResponse{
 				ResponseStatus: RESPONSE_STATUS_TIMEOUT,
 			},
 			Expected: 504,
 		},
 		{
-			Header: &BoltResponseCommand{
+			Header: &BoltResponse{
 				ResponseStatus: RESPONSE_STATUS_CLIENT_SEND_ERROR,
 			},
 			Expected: 500,
 		},
 		{
-			Header: &BoltResponseCommand{
+			Header: &BoltResponse{
 				ResponseStatus: RESPONSE_STATUS_CONNECTION_CLOSED,
 			},
 			Expected: 502,
 		},
 		{
-			Header: &BoltResponseCommand{
+			Header: &BoltResponse{
 				ResponseStatus: RESPONSE_STATUS_ERROR,
 			},
 			Expected: 500,

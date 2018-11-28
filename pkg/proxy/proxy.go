@@ -24,7 +24,6 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/stream"
@@ -39,7 +38,8 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 var (
 	globalStats *Stats
 
-	workerPool mosnsync.ShardWorkerPool
+	currProxyID uint32
+	workerPool  mosnsync.ShardWorkerPool
 )
 
 func init() {
@@ -83,8 +83,6 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		context:        ctx,
 		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
-
-	proxy.context = buffer.NewBufferPoolContext(ctx, false)
 
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
 	if err == nil {
@@ -174,8 +172,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStream(context context.Context, streamID string, responseSender types.StreamSender, spanBuilder types.SpanBuilder) types.StreamReceiver {
-	stream := newActiveStream(context, streamID, p, responseSender, spanBuilder)
+func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, spanBuilder types.SpanBuilder) types.StreamReceiver {
+	stream := newActiveStream(ctx, p, responseSender, spanBuilder)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)

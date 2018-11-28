@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/codec"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
@@ -63,7 +64,6 @@ func TestTLS(t *testing.T) {
 		//NewTestCase(T, protocol.SofaRPC, protocol.HTTP2, util.NewRPCServer(T, appaddr, util.Bolt2)),
 		//NewTestCase(T, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(T, appaddr, util.Bolt2)),
 		//NewTestCase(T, protocol.Xprotocol, protocol.Xprotocol, util.NewRPCServer(T, appaddr, util.Xprotocol)),
-
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)

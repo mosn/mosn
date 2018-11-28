@@ -82,9 +82,6 @@ func NewHTTPServer(t *testing.T, id string, addr string) *HTTPServer {
 }
 
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	for k := range r.Header {
-		w.Header().Set(k, r.Header.Get(k))
-	}
 	fmt.Fprintf(w, "\nRequestId:%s\n", r.Header.Get("Requestid"))
 }
 
