@@ -18,6 +18,7 @@
 package network
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -28,7 +29,7 @@ type MyEventListener struct{}
 
 func (el *MyEventListener) OnEvent(event types.ConnectionEvent) {}
 
-func TestAddConnectionEventListener(t *testing.T) {
+func testAddConnectionEventListener(n int, t *testing.T) {
 	logger, err := log.NewLogger("stdout", log.INFO)
 	if err != nil {
 		t.Fatal(err)
@@ -38,7 +39,6 @@ func TestAddConnectionEventListener(t *testing.T) {
 		logger: logger,
 	}
 
-	n := 1024
 	for i := 0; i < n; i++ {
 		el0 := &MyEventListener{}
 		c.AddConnectionEventListener(el0)
@@ -49,7 +49,7 @@ func TestAddConnectionEventListener(t *testing.T) {
 	}
 }
 
-func TestAddBytesReadListener(t *testing.T) {
+func testAddBytesReadListener(n int, t *testing.T) {
 	logger, err := log.NewLogger("stdout", log.INFO)
 	if err != nil {
 		t.Fatal(err)
@@ -59,7 +59,6 @@ func TestAddBytesReadListener(t *testing.T) {
 		logger: logger,
 	}
 
-	n := 1024
 	for i := 0; i < n; i++ {
 		fn1 := func(bytesRead uint64) {}
 		c.AddBytesReadListener(fn1)
@@ -70,7 +69,7 @@ func TestAddBytesReadListener(t *testing.T) {
 	}
 }
 
-func TestAddBytesSendListener(t *testing.T) {
+func testAddBytesSendListener(n int, t *testing.T) {
 	logger, err := log.NewLogger("stdout", log.INFO)
 	if err != nil {
 		t.Fatal(err)
@@ -80,7 +79,6 @@ func TestAddBytesSendListener(t *testing.T) {
 		logger: logger,
 	}
 
-	n := 1024
 	for i := 0; i < n; i++ {
 		fn1 := func(bytesSent uint64) {}
 		c.AddBytesSentListener(fn1)
@@ -88,5 +86,32 @@ func TestAddBytesSendListener(t *testing.T) {
 
 	if len(c.bytesSendCallbacks) != n {
 		t.Errorf("Expect %d, but got %d after AddBytesSentListener(fn1)", n, len(c.bytesSendCallbacks))
+	}
+}
+
+func TestAddConnectionEventListener(t *testing.T) {
+	for i := 0; i < 1024; i++ {
+		name := fmt.Sprintf("AddConnectionEventListener(%d)", i)
+		t.Run(name, func(t *testing.T) {
+			testAddConnectionEventListener(i, t)
+		})
+	}
+}
+
+func TestAddBytesReadListener(t *testing.T) {
+	for i := 0; i < 1024; i++ {
+		name := fmt.Sprintf("AddBytesReadListener(%d)", i)
+		t.Run(name, func(t *testing.T) {
+			testAddBytesReadListener(i, t)
+		})
+	}
+}
+
+func TestAddBytesSendListener(t *testing.T) {
+	for i := 0; i < 1024; i++ {
+		name := fmt.Sprintf("AddBytesSendListener(%d)", i)
+		t.Run(name, func(t *testing.T) {
+			testAddBytesSendListener(i, t)
+		})
 	}
 }
