@@ -161,7 +161,7 @@ func (conn *streamConnection) NewStream(ctx context.Context, receiver types.Stre
 	//stream := &stream{}
 
 	stream.id = atomic.AddUint64(&conn.currStreamID, 1)
-	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.ID)
+	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.id)
 	stream.direction = ClientStream
 	stream.sc = conn
 	stream.receiver = receiver
@@ -247,11 +247,11 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 
 	//stream := &stream{}
 	stream.id = cmd.RequestID()
-	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.ID)
+	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.id)
 	stream.direction = ServerStream
 	stream.sc = conn
 
-	conn.logger.Debugf("new stream detect, id = %d", stream.ID)
+	conn.logger.Debugf("new stream detect, id = %d", stream.id)
 
 	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream)
 	return stream
@@ -269,7 +269,7 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		// transmit buffer ctx
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
-		conn.logger.Debugf("stream recv, id = %d", stream.ID)
+		conn.logger.Debugf("stream recv, id = %d", stream.id)
 		return stream
 	}
 	return nil

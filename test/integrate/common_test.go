@@ -7,6 +7,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/http/conv"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/http2/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"

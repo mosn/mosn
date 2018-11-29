@@ -31,8 +31,15 @@ const (
 	Xprotocol types.Protocol = "X"
 )
 
+// header direction definition
+const (
+	Request  = "Request"
+	Response = "Response"
+)
+
 // Host key for routing in MOSN Header
 const (
+	MosnHeaderDirection       = "x-mosn-direction" // for protocol convert
 	MosnHeaderHostKey         = "x-mosn-host"
 	MosnHeaderPathKey         = "x-mosn-path"
 	MosnHeaderQueryStringKey  = "x-mosn-querystring"

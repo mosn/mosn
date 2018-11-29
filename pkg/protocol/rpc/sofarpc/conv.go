@@ -25,7 +25,6 @@ import (
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/mhttp2"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -35,18 +34,7 @@ var (
 )
 
 func init() {
-	http2sofa := new(http2sofa)
-	sofa2http := new(sofa2http)
-
-	protocol.RegisterConv(protocol.HTTP1, protocol.SofaRPC, http2sofa)
-	protocol.RegisterConv(protocol.HTTP2, protocol.SofaRPC, http2sofa)
-
-	protocol.RegisterConv(protocol.SofaRPC, protocol.HTTP1, sofa2http)
-	protocol.RegisterConv(protocol.SofaRPC, protocol.HTTP2, sofa2http)
-
-	mhttp2sofa := new(mhttp2sofa)
-	protocol.RegisterConv(protocol.MHTTP2, protocol.SofaRPC, mhttp2sofa)
-	protocol.RegisterConv(protocol.SofaRPC, protocol.MHTTP2, sofa2http)
+	protocol.RegisterCommonConv(protocol.SofaRPC, &common2sofa{}, &sofa2common{})
 }
 
 // SofaConv extract common methods for protocol conversion between sofarpc protocols(bolt/boltv2/tr) and others
@@ -100,28 +88,28 @@ func MapToFields(ctx context.Context, cmd SofaRpcCmd) (map[string]string, error)
 	return nil, rpc.ErrUnrecognizedCode
 }
 
-// http/x -> sofarpc converter
-type http2sofa struct{}
+// common -> sofarpc converter
+type common2sofa struct{}
 
-func (c *http2sofa) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *common2sofa) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
 		return MapToCmd(ctx, header)
 	}
 	return nil, errors.New("header type not supported")
 }
 
-func (c *http2sofa) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *common2sofa) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
 	return buffer, nil
 }
 
-func (c *http2sofa) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *common2sofa) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	return headerMap, nil
 }
 
-// sofarpc -> http/x converter
-type sofa2http struct{}
+// sofarpc -> common converter
+type sofa2common struct{}
 
-func (c *sofa2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *sofa2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if cmd, ok := headerMap.(SofaRpcCmd); ok {
 		header, err := MapToFields(ctx, cmd)
 		return protocol.CommonHeader(header), err
@@ -129,11 +117,11 @@ func (c *sofa2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (
 	return nil, errors.New("header type not supported")
 }
 
-func (c *sofa2http) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *sofa2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
 	return buffer, nil
 }
 
-func (c *sofa2http) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *sofa2common) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	return headerMap, nil
 }
 
@@ -197,22 +185,4 @@ func ConvertPropertyValueInt(strValue string) int {
 func ConvertPropertyValueInt64(strValue string) int64 {
 	value, _ := strconv.ParseInt(strValue, 10, 64)
 	return int64(value)
-}
-
-type mhttp2sofa struct{}
-
-func (c *mhttp2sofa) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
-	h := mhttp2.DecodeHeader(headerMap)
-	if header, ok := h.(protocol.CommonHeader); ok {
-		return MapToCmd(ctx, header)
-	}
-	return nil, errors.New("header type not supported")
-}
-
-func (c *mhttp2sofa) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
-	return buffer, nil
-}
-
-func (c *mhttp2sofa) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
-	return headerMap, nil
 }
