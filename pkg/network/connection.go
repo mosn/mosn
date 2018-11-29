@@ -681,47 +681,15 @@ func (c *connection) SetRemoteAddr(address net.Addr) {
 }
 
 func (c *connection) AddConnectionEventListener(cb types.ConnectionEventListener) {
-	exist := false
-
-	for _, ccb := range c.connCallbacks {
-		if &ccb == &cb {
-			exist = true
-			c.logger.Debugf("AddConnectionEventListener Failed, %+v Already Exist", cb)
-		}
-	}
-
-	if !exist {
-		c.logger.Debugf("AddConnectionEventListener Success, cb = %+v", cb)
-		c.connCallbacks = append(c.connCallbacks, cb)
-	}
+	c.connCallbacks = append(c.connCallbacks, cb)
 }
 
 func (c *connection) AddBytesReadListener(cb func(bytesRead uint64)) {
-	exist := false
-
-	for _, brcb := range c.bytesReadCallbacks {
-		if &brcb == &cb {
-			exist = true
-		}
-	}
-
-	if !exist {
-		c.bytesReadCallbacks = append(c.bytesReadCallbacks, cb)
-	}
+	c.bytesReadCallbacks = append(c.bytesReadCallbacks, cb)
 }
 
 func (c *connection) AddBytesSentListener(cb func(bytesSent uint64)) {
-	exist := false
-
-	for _, bscb := range c.bytesSendCallbacks {
-		if &bscb == &cb {
-			exist = true
-		}
-	}
-
-	if !exist {
-		c.bytesSendCallbacks = append(c.bytesSendCallbacks, cb)
-	}
+	c.bytesSendCallbacks = append(c.bytesSendCallbacks, cb)
 }
 
 func (c *connection) NextProtocol() string {
