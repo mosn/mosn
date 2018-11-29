@@ -32,16 +32,10 @@ var (
 	subProtocolFactories map[SubProtocol]CodecFactory
 	xProtocolCoder       = &Coder{}
 	xProtocolEngine      = rpc.NewEngine(xProtocolCoder, xProtocolCoder)
-
-	engineFactories = make(map[SubProtocol]types.ProtocolEngine)
 )
 
 func Engine() types.ProtocolEngine {
 	return xProtocolEngine
-}
-
-func SubProtocolEngine(sub SubProtocol) types.ProtocolEngine {
-	return engineFactories[sub]
 }
 
 // Coder
@@ -229,11 +223,4 @@ func (xRpcCmd *XRpcCmd) ByteSize() (size uint64) {
 		size += uint64(len(k) + len(v))
 	}
 	return size
-}
-
-// ~~ protocol engine pattern
-
-// Register SubProtocol Plugin
-func RegisterEngine(prot SubProtocol, engine types.ProtocolEngine) {
-	engineFactories[prot] = engine
 }
