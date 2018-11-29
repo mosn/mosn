@@ -116,5 +116,21 @@ func (m *mixedEngine) Register(protocolCode byte, encoder types.Encoder, decoder
 }
 
 func (m *mixedEngine) BuildSpan(args ...interface{}) types.Span {
-	return nil
+	if len(args) == 0 {
+		return nil
+	}
+
+	if _, ok := args[0].(context.Context); !ok {
+		return nil
+	}
+
+	ctx := args[0].(context.Context)
+
+	engine := m.engineMap[ctx.Value(types.ContextSubProtocol).(byte)]
+
+	if engine == nil {
+		return nil
+	}
+
+	return engine.BuildSpan(args)
 }
