@@ -55,7 +55,11 @@ func (s *SofaTracerSpan) SetTag(key string, value string) {
 
 func (s *SofaTracerSpan) FinishSpan() {
 	s.endTime = time.Now()
-	s.tracer.spanChan <- s
+	select {
+	case s.tracer.spanChan <- s:
+	default:
+		log.DefaultLogger.Warnf("Channel is full, discard span, trace id is " + s.traceId + ", span id is " + s.spanId)
+	}
 }
 
 func (s *SofaTracerSpan) InjectContext(requestHeaders map[string]string) {
@@ -94,7 +98,7 @@ type SofaTracer struct {
 
 func newSofaTracer() *SofaTracer {
 	instance := &SofaTracer{}
-	instance.spanChan = make(chan *SofaTracerSpan)
+	instance.spanChan = make(chan *SofaTracerSpan, 1000)
 
 	if PrintLog {
 		userHome := os.Getenv("HOME")
