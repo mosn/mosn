@@ -96,7 +96,17 @@ func (c *http2commonOld) ConvTrailer(ctx context.Context, headerMap types.Header
 type http2common struct{}
 
 func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
-	return mhttp2.DecodeHeader(headerMap), nil
+	headers := mhttp2.DecodeHeader(headerMap)
+	direction := ""
+	switch  headerMap.(type) {
+	case *mhttp2.ReqHeader:
+		direction = protocol.Request
+	case *mhttp2.RspHeader:
+		direction = protocol.Response
+	}
+
+	headers.Set(protocol.MosnHeaderDirection, direction)
+	return headers, nil
 }
 
 func (c *http2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
