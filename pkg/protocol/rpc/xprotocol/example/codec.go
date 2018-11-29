@@ -1,12 +1,13 @@
 package example
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"context"
 	"errors"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {

@@ -18,8 +18,8 @@
 package http
 
 import (
-	"github.com/valyala/fasthttp"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/valyala/fasthttp"
 )
 
 type Code uint32

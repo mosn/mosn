@@ -20,12 +20,13 @@ package http
 import (
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/valyala/fasthttp"
-	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"net"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/http"
+	"github.com/valyala/fasthttp"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -93,7 +94,7 @@ func Test_header_capitalization(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
-			"Args":                            "Hello, world!",
+			"Args": "Hello, world!",
 		},
 	}
 

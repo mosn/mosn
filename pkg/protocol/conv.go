@@ -32,8 +32,13 @@ var (
 	ErrHeaderDirection = errors.New("no header direction info")
 
 	// Only for internal usage. This protocol is represent for those non-protocol-related data structure, like CommonHeader.
+	//
 	// For those protocols which have shared properties, like http1 and http2, we prefer to use an common way
-	// instead of writing specific impl-aware convert functions.
+	// instead of writing specific impl-aware convert functions.So we can avoid too many convert functions.
+	// If we have N protocols, and each need to be able to convert from/to each other, then we need N*(N-1)*2
+	// convert functions(N protocols, each need to consider N-1 targets with from/to).
+	// But if we use 'common' protocol as bridge, we can decrease the function count to N*2.(N protocols, each one
+	// define from/to with 'common' protocol).
 	//
 	// More complicated, supposed that we have 4 protocols here, http1/http2/sofarpc/dubbo. All of them
 	// have their own header impl, and some properties are necessary while convert from/to CommonHeader(e.g.
@@ -43,8 +48,8 @@ var (
 	// sofarpc <-> 'c', 'd', 'e'
 	// dubbo <-> 'c', 'd', 'f'
 	//
-	// The common way not works if we want to convert from sofarpc to dubbo. We get 'c', 'd', 'e' properties while
-	// convert from sofarpc to common, and need 'c', 'd', 'f' for converting from common to dubbo. In this case,
+	// The common way not works if we want to convert from sofarpc to dubbo. We get ['c', 'd', 'e'] properties while
+	// convert from 'sofarpc' to 'common', and need ['c', 'd', 'f'] for converting from 'common' to 'dubbo'. In this case,
 	// write specific impl-aware convert functions for src and dst protocol.
 	common types.Protocol = "common"
 )

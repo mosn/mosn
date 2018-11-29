@@ -95,7 +95,7 @@ func (d *rpcDubbo) SplitFrame(data []byte) [][]byte {
 		frameLen := getDubboLen(data[start:])
 		if frameLen > 0 && dataLen >= frameLen {
 			// there is one valid dubbo request
-			frames = append(frames, data[start:(start + frameLen)])
+			frames = append(frames, data[start:(start+frameLen)])
 			start += frameLen
 			dataLen -= frameLen
 			if dataLen == 0 {

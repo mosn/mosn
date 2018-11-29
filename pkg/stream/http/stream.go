@@ -21,18 +21,20 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	str "github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/valyala/fasthttp"
 	"bufio"
 	"errors"
 	"io"
-	"strconv"
 	"net/http"
+	"runtime/debug"
+	"strconv"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
+	str "github.com/alipay/sofa-mosn/pkg/stream"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/valyala/fasthttp"
 )
 
 var errConnClose = errors.New("connection closed")
@@ -106,10 +108,10 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	n = len(p)
 
 	// TODO avoid copy
-	buffer := buffer.GetIoBuffer(n)
-	buffer.Write(p)
+	buf := buffer.GetIoBuffer(n)
+	buf.Write(p)
 
-	err = conn.conn.Write(buffer)
+	err = conn.conn.Write(buf)
 	return
 }
 
@@ -148,7 +150,18 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
 
-	go csc.serve()
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				log.DefaultLogger.Errorf("http client serve goroutine panic %v", p)
+				debug.PrintStack()
+
+				csc.serve()
+			}
+		}()
+
+		csc.serve()
+	}()
 
 	return csc
 }
@@ -220,7 +233,18 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 
 	connection.AddConnectionEventListener(ssc)
 
-	go ssc.serve()
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				log.DefaultLogger.Errorf("http server serve goroutine panic %v", p)
+				debug.PrintStack()
+
+				ssc.serve()
+			}
+		}()
+
+		ssc.serve()
+	}()
 
 	return ssc
 }

@@ -18,12 +18,13 @@
 package conv
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"context"
 	"errors"
 	"strings"
+
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/mhttp2"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
@@ -95,26 +96,7 @@ func (c *http2commonOld) ConvTrailer(ctx context.Context, headerMap types.Header
 type http2common struct{}
 
 func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
-
 	return mhttp2.DecodeHeader(headerMap), nil
-	//if header, ok := headerMap.(protocol.CommonHeader); ok {
-	//
-	//	cheader := make(map[string]string, len(header))
-	//
-	//	// copy headers
-	//	for k, v := range header {
-	//		cheader[strings.ToLower(k)] = v
-	//	}
-	//
-	//	if _, ok := header[types.HeaderStatus]; ok {
-	//		cheader[protocol.MosnHeaderDirection] = protocol.Response
-	//	} else {
-	//		cheader[protocol.MosnHeaderDirection] = protocol.Request
-	//	}
-	//
-	//	return protocol.CommonHeader(cheader), nil
-	//}
-	//return nil, errors.New("header type not supported")
 }
 
 func (c *http2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
