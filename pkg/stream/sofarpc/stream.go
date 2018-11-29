@@ -243,7 +243,7 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 	//stream := &stream{}
 	stream.id = cmd.RequestID()
 	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.ID)
-	stream.ctx = context.WithValue(ctx, types.ContextSubProtocol, stream.sendCmd.ProtocolCode())
+	stream.ctx = context.WithValue(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
 	stream.direction = ServerStream
 	stream.sc = conn
 

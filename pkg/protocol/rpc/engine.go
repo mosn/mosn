@@ -61,7 +61,7 @@ func (eg *engine) Decode(ctx context.Context, data types.IoBuffer) (interface{},
 }
 
 func (eg *engine) BuildSpan(args ...interface{}) types.Span {
-	return eg.spanBuilder.BuildSpan(args)
+	return eg.spanBuilder.BuildSpan(args...)
 }
 
 func (eg *engine) Register(protocolCode byte, encoder types.Encoder, decoder types.Decoder, spanBuilder types.SpanBuilder) error {
@@ -132,5 +132,5 @@ func (m *mixedEngine) BuildSpan(args ...interface{}) types.Span {
 		return nil
 	}
 
-	return engine.BuildSpan(args)
+	return engine.BuildSpan(args...)
 }
