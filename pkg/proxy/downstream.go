@@ -754,10 +754,9 @@ func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
 	}
 
 	s.appendData(data, endStream)
-	s.finishTracing(strconv.Itoa(types.SuccessCode))
 }
 
-func (s *downStream) finishTracing(status string) {
+func (s *downStream) finishTracing() {
 	if trace.IsTracingEnabled() {
 		if s.context == nil {
 			return
@@ -773,7 +772,7 @@ func (s *downStream) finishTracing(status string) {
 			if s.requestInfo.DownstreamLocalAddress() != nil {
 				span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
 			}
-			span.SetTag(trace.RESULT_STATUS, status)
+			span.SetTag(trace.RESULT_STATUS, fmt.Sprint(s.requestInfo.ResponseCode()))
 			span.FinishSpan()
 
 			if s.context.Value(types.ContextKeyListenerType) == v2.INGRESS {
@@ -800,6 +799,7 @@ func (s *downStream) onUpstreamResponseRecvFinished() {
 	// todo: logs
 
 	s.cleanUp()
+	s.finishTracing()
 }
 
 func (s *downStream) setupRetry(endStream bool) bool {
@@ -875,7 +875,6 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	s.appendHeaders(headers, true)
-	s.finishTracing(strconv.Itoa(code))
 }
 
 // TODO: rpc status code may be not matched
