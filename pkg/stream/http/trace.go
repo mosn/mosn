@@ -23,7 +23,7 @@ func (spanBuilder *SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 		span.SetTag(trace.PROTOCOL, "http")
 		span.SetTag(trace.METHOD_NAME, string(requestCtx.Method()))
 		span.SetTag(trace.REQUEST_URL, string(requestCtx.Host())+string(requestCtx.Path()))
-		span.SetTag(trace.REQUEST_SIZE, "0") // TODO 如何获得
+		span.SetTag(trace.REQUEST_SIZE, "0") // TODO
 		return span
 	}
 
