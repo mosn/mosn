@@ -188,7 +188,7 @@ func TestRetryProxy(t *testing.T) {
 		NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, false),
 		NewRetryCase(t, protocol.MHTTP2, protocol.MHTTP2, false),
 		NewRetryCase(t, protocol.SofaRPC, protocol.SofaRPC, false),
-		NewRetryCase(t, protocol.HTTP1, protocol.HTTP1, true),
+		//NewRetryCase(t, protocol.HTTP1, protocol.HTTP1, true),
 		//NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, true),
 		//NewRetryCase(t, protocol.SofaRPC, protocol.SofaRPC, true),
 	}

@@ -28,18 +28,34 @@ var (
 	protoConvFactory = make(map[types.Protocol]map[types.Protocol]ProtocolConv)
 
 	ErrNotFound = errors.New("no convert function found for given protocol pair")
+
+	ErrHeaderDirection = errors.New("no header direction info")
+
+	// Only for internal usage. This protocol is represent for those non-protocol-related data structure, like CommonHeader.
+	//
+	// For those protocols which have shared properties, like http1 and http2, we prefer to use an common way
+	// instead of writing specific impl-aware convert functions.So we can avoid too many convert functions.
+	// If we have N protocols, and each need to be able to convert from/to each other, then we need N*(N-1)*2
+	// convert functions(N protocols, each need to consider N-1 targets with from/to).
+	// But if we use 'common' protocol as bridge, we can decrease the function count to N*2.(N protocols, each one
+	// define from/to with 'common' protocol).
+	//
+	// More complicated, supposed that we have 4 protocols here, http1/http2/sofarpc/dubbo. All of them
+	// have their own header impl, and some properties are necessary while convert from/to CommonHeader(e.g.
+	// 'protocol' for sofarpc).We abstract the protocol-properties just as 'a','b','c' and so on.
+	// http1 <-> 'a', 'b'
+	// http2 <-> 'a', 'b'
+	// sofarpc <-> 'c', 'd', 'e'
+	// dubbo <-> 'c', 'd', 'f'
+	//
+	// The common way not works if we want to convert from sofarpc to dubbo. We get ['c', 'd', 'e'] properties while
+	// convert from 'sofarpc' to 'common', and need ['c', 'd', 'f'] for converting from 'common' to 'dubbo'. In this case,
+	// write specific impl-aware convert functions for src and dst protocol.
+	common types.Protocol = "common"
 )
-
-func init() {
-	identity := new(identity)
-
-	RegisterConv(HTTP1, HTTP2, identity)
-	RegisterConv(HTTP2, HTTP1, identity)
-}
 
 // ProtocolConv extract common methods for protocol conversion(header, data, trailer)
 type ProtocolConv interface {
-
 	// ConvHeader convert header part represents in `types.HeaderMap`
 	ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error)
 
@@ -59,11 +75,32 @@ func RegisterConv(src, dst types.Protocol, f ProtocolConv) {
 	protoConvFactory[src][dst] = f
 }
 
+// RegisterCommonConv register concrete protocol convert function for specified protocol and common representation.
+// e.g. SofaRpcCmd <-> CommonHeader, which both implements the types.HeaderMap interface
+func RegisterCommonConv(protocol types.Protocol, from, to ProtocolConv) {
+	RegisterConv(common, protocol, from)
+	RegisterConv(protocol, common, to)
+}
+
 // ConvertHeader convert header from source protocol format to destination protocol format
 func ConvertHeader(ctx context.Context, src, dst types.Protocol, srcHeader types.HeaderMap) (types.HeaderMap, error) {
+	// 1. try direct path
 	if sub, subOk := protoConvFactory[src]; subOk {
 		if f, ok := sub[dst]; ok {
 			return f.ConvHeader(ctx, srcHeader)
+		}
+	}
+
+	// 2. try common path
+	if src != common && dst != common {
+		if src2Common, serr := ConvertHeader(ctx, src, common, srcHeader); serr == nil {
+			if common2dst, derr := ConvertHeader(ctx, common, dst, src2Common); derr == nil {
+				return common2dst, derr
+			} else {
+				return nil, derr
+			}
+		} else {
+			return nil, serr
 		}
 	}
 	return nil, ErrNotFound
@@ -71,35 +108,42 @@ func ConvertHeader(ctx context.Context, src, dst types.Protocol, srcHeader types
 
 // ConvertData convert data from source protocol format to destination protocol format
 func ConvertData(ctx context.Context, src, dst types.Protocol, srcData types.IoBuffer) (types.IoBuffer, error) {
+	// 1. try direct path
 	if sub, subOk := protoConvFactory[src]; subOk {
 		if f, ok := sub[dst]; ok {
 			return f.ConvData(ctx, srcData)
 		}
 	}
+
+	// 2. try common path
+	if src != common && dst != common {
+		if src2Common, serr := ConvertData(ctx, src, common, srcData); serr == nil {
+			if common2dst, derr := ConvertData(ctx, common, dst, src2Common); derr == nil {
+				return common2dst, derr
+			}
+		}
+	}
+
 	return nil, ErrNotFound
 }
 
 // ConvertTrailer convert trailer from source protocol format to destination protocol format
 func ConvertTrailer(ctx context.Context, src, dst types.Protocol, srcTrailer types.HeaderMap) (types.HeaderMap, error) {
+	// 1. try direct path
 	if sub, subOk := protoConvFactory[src]; subOk {
 		if f, ok := sub[dst]; ok {
 			return f.ConvTrailer(ctx, srcTrailer)
 		}
 	}
+
+	// 2. try common path
+	if src != common && dst != common {
+		if src2Common, serr := ConvertTrailer(ctx, src, common, srcTrailer); serr == nil {
+			if common2dst, derr := ConvertTrailer(ctx, common, dst, src2Common); derr == nil {
+				return common2dst, derr
+			}
+		}
+	}
+
 	return nil, ErrNotFound
-}
-
-// identity conversion, keeps no change
-type identity struct{}
-
-func (c *identity) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
-	return headerMap, nil
-}
-
-func (c *identity) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
-	return buffer, nil
-}
-
-func (c *identity) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
-	return headerMap, nil
 }

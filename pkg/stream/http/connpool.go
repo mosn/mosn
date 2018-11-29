@@ -19,35 +19,48 @@ package http
 
 import (
 	"context"
-	"net"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/mtls"
+	"fmt"
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"github.com/valyala/fasthttp"
 )
+
+//const defaultIdleTimeout = time.Second * 60 // not used yet
 
 func init() {
 	proxy.RegisterNewPoolFactory(protocol.HTTP1, NewConnPool)
 	types.RegisterConnPoolFactory(protocol.HTTP1, true)
-
 }
 
 // types.ConnectionPool
 type connPool struct {
-	host       types.Host
-	client     *activeClient
-	initClient sync.Once
+	MaxConn int
+
+	host types.Host
+
+	statReport bool
+
+	clientMux        sync.Mutex
+	availableClients []*activeClient // available clients
+	totalClientCount uint64          // total clients
 }
 
 func NewConnPool(host types.Host) types.ConnectionPool {
-	return &connPool{
+	pool := &connPool{
 		host: host,
 	}
+
+	if pool.statReport {
+		pool.report()
+	}
+
+	return pool
 }
 
 func (p *connPool) Protocol() types.Protocol {
@@ -55,13 +68,13 @@ func (p *connPool) Protocol() types.Protocol {
 }
 
 //由 PROXY 调用
-func (p *connPool) NewStream(context context.Context, responseDecoder types.StreamReceiver,
-	cb types.PoolEventListener) types.Cancellable {
+func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
 
-	if p.client == nil {
-		p.initClient.Do(func() {
-			p.client = newActiveClient(context, p)
-		})
+	c, reason := p.getAvailableClient(ctx)
+
+	if c == nil {
+		cb.OnFailure(reason, nil)
+		return nil
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
@@ -75,15 +88,45 @@ func (p *connPool) NewStream(context context.Context, responseDecoder types.Stre
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 
-		streamEncoder := p.client.codecClient.NewStream(context, responseDecoder)
+		streamEncoder := c.codecClient.NewStream(ctx, receiver)
 		cb.OnReady(streamEncoder, p.host)
 	}
 
 	return nil
 }
 
+func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types.PoolFailureReason) {
+	p.clientMux.Lock()
+	defer p.clientMux.Unlock()
+
+	n := len(p.availableClients)
+	// no available client
+	if n == 0 {
+		maxConns := p.host.ClusterInfo().ResourceManager().Connections().Max()
+		if p.totalClientCount < maxConns {
+			p.totalClientCount++
+			return newActiveClient(ctx, p)
+		} else {
+			p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+			p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+			return nil, types.Overflow
+		}
+	} else {
+		n--
+		c := p.availableClients[n]
+		p.availableClients[n] = nil
+		p.availableClients = p.availableClients[:n]
+		return c, ""
+	}
+}
+
 func (p *connPool) Close() {
-	p.client = nil
+	p.clientMux.Lock()
+	defer p.clientMux.Unlock()
+
+	for _, c := range p.availableClients {
+		c.codecClient.Close()
+	}
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
@@ -99,8 +142,18 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 			}
 		}
 
-		if p.client == client {
-			p.client = nil
+		// check if closed connection is available
+		p.clientMux.Lock()
+		defer p.clientMux.Unlock()
+
+		p.totalClientCount--
+
+		for i, c := range p.availableClients {
+			if c == client {
+				p.availableClients[i] = nil
+				p.availableClients = append(p.availableClients[:i], p.availableClients[i+1:]...)
+				break
+			}
 		}
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
@@ -116,6 +169,11 @@ func (p *connPool) onStreamDestroy(client *activeClient) {
 	p.host.HostStats().UpstreamRequestActive.Dec(1)
 	p.host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	p.host.ClusterInfo().ResourceManager().Requests().Decrease()
+
+	// return to pool
+	p.clientMux.Lock()
+	p.availableClients = append(p.availableClients, client)
+	p.clientMux.Unlock()
 }
 
 func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetReason) {
@@ -132,15 +190,20 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 	}
 }
 
-func (p *connPool) onGoAway(client *activeClient) {
-	p.host.HostStats().UpstreamConnectionCloseNotify.Inc(1)
-	p.host.ClusterInfo().Stats().UpstreamConnectionCloseNotify.Inc(1)
+func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
+	return str.NewCodecClient(context, protocol.HTTP1, connData.Connection, connData.HostInfo)
+}
 
-	// http/1.x should not enter this branch
-	//
-	//if p.primaryClient == client {
-	//	p.movePrimaryToDraining()
-	//}
+func (p *connPool) report() {
+	// report
+	go func() {
+		for {
+			p.clientMux.Lock()
+			fmt.Printf("pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
+			p.clientMux.Unlock()
+			time.Sleep(time.Second)
+		}
+	}()
 }
 
 // stream.CodecClientCallbacks
@@ -149,33 +212,33 @@ func (p *connPool) onGoAway(client *activeClient) {
 type activeClient struct {
 	pool               *connPool
 	codecClient        str.CodecClient
-	host               types.HostInfo
+	host               types.CreateConnectionData
 	totalStream        uint64
 	closeWithActiveReq bool
 }
 
-func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
+func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.PoolFailureReason) {
 	ac := &activeClient{
 		pool: pool,
 	}
-	//
-	//data := pool.host.CreateConnection(context)
-	//data.Connection.Connect(false)
 
-	codecClient := NewHTTP1CodecClient(context.Background(), ac)
+	data := pool.host.CreateConnection(ctx)
+	codecClient := pool.createCodecClient(ctx, data)
 	codecClient.AddConnectionCallbacks(ac)
 	codecClient.SetCodecClientCallbacks(ac)
 	codecClient.SetCodecConnectionCallbacks(ac)
 
 	ac.codecClient = codecClient
-	ac.host = pool.host
+	ac.host = data
+
+	if err := ac.host.Connection.Connect(true); err != nil {
+		return nil, types.ConnectionFailure
+	}
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	//pool.host.HostStats().UpstreamConnectionTotalHTTP1.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
-	//pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP1.Inc(1)
 
 	// bytes total adds all connections data together, but buffered data not
 	codecClient.SetConnectionStats(&types.ConnectionStats{
@@ -185,7 +248,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		WriteBuffered: metrics.NewGauge(),
 	})
 
-	return ac
+	return ac, ""
 }
 
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
@@ -200,27 +263,4 @@ func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
 	ac.pool.onStreamReset(ac, reason)
 }
 
-func (ac *activeClient) OnGoAway() {
-	ac.pool.onGoAway(ac)
-}
-
-func (ac *activeClient) Dial(addr string) (net.Conn, error) {
-	conn, err := fasthttp.DialDualStack(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	tlsMng := ac.host.ClusterInfo().TLSMng()
-	if tlsMng != nil && tlsMng.Enabled() {
-		tlsConn := tlsMng.Conn(conn)
-		if conn, ok := tlsConn.(*mtls.TLSConn); ok {
-			if err := conn.Handshake(); err != nil {
-				conn.Close()
-				return nil, err
-			}
-		}
-		return tlsConn, nil
-	}
-
-	return conn, nil
-}
+func (ac *activeClient) OnGoAway() {}

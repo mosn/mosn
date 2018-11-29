@@ -17,6 +17,11 @@
 
 package http
 
+import (
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/valyala/fasthttp"
+)
+
 type Code uint32
 
 const (
@@ -81,3 +86,100 @@ const (
 	NotExtended                   = 510
 	NetworkAuthenticationRequired = 511
 )
+
+//
+type RequestHeader struct {
+	*fasthttp.RequestHeader
+}
+
+// Get value of key
+func (h RequestHeader) Get(key string) (string, bool) {
+	result := h.Peek(key)
+	if result != nil {
+		return string(result), true
+	}
+	return "", false
+}
+
+// Set key-value pair in header map, the previous pair will be replaced if exists
+func (h RequestHeader) Set(key string, value string) {
+	h.RequestHeader.Set(key, value)
+}
+
+// Del delete pair of specified key
+func (h RequestHeader) Del(key string) {
+	h.RequestHeader.Del(key)
+}
+
+// Range calls f sequentially for each key and value present in the map.
+// If f returns false, range stops the iteration.
+func (h RequestHeader) Range(f func(key, value string) bool) {
+	stopped := false
+	h.VisitAll(func(key, value []byte) {
+		if stopped {
+			return
+		}
+		stopped = !f(string(key), string(value))
+	})
+}
+
+func (h RequestHeader) Clone() types.HeaderMap {
+	copy := &fasthttp.RequestHeader{}
+	h.CopyTo(copy)
+	return RequestHeader{copy}
+}
+
+func (h RequestHeader) ByteSize() (size uint64) {
+	h.VisitAll(func(key, value []byte) {
+		size += uint64(len(key) + len(value))
+	})
+	return size
+}
+
+type ResponseHeader struct {
+	*fasthttp.ResponseHeader
+}
+
+// Get value of key
+func (h ResponseHeader) Get(key string) (string, bool) {
+	result := h.Peek(key)
+	if result != nil {
+		return string(result), true
+	}
+	return "", false
+}
+
+// Set key-value pair in header map, the previous pair will be replaced if exists
+func (h ResponseHeader) Set(key string, value string) {
+	h.ResponseHeader.Set(key, value)
+}
+
+// Del delete pair of specified key
+func (h ResponseHeader) Del(key string) {
+	h.ResponseHeader.Del(key)
+}
+
+// Range calls f sequentially for each key and value present in the map.
+// If f returns false, range stops the iteration.
+func (h ResponseHeader) Range(f func(key, value string) bool) {
+	stopped := false
+	h.VisitAll(func(key, value []byte) {
+		if stopped {
+			return
+		}
+		stopped = !f(string(key), string(value))
+	})
+}
+
+func (h ResponseHeader) Clone() types.HeaderMap {
+	copy := &fasthttp.ResponseHeader{}
+	h.CopyTo(copy)
+	return ResponseHeader{copy}
+}
+
+func (h ResponseHeader) ByteSize() (size uint64) {
+	h.VisitAll(func(key, value []byte) {
+		size += uint64(len(key) + len(value))
+	})
+	return size
+}
