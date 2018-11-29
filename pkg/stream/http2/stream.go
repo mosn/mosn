@@ -114,10 +114,6 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 	}
 }
 
-func (csc *clientStreamConnection) OnGoAway() {
-	csc.streamConnCallbacks.OnGoAway()
-}
-
 func (csc *clientStreamConnection) NewStream(ctx context.Context, responseDecoder types.StreamReceiver) types.StreamSender {
 	log.DefaultLogger.Tracef("http2 client stream connection new stream")
 	stream := &clientStream{
@@ -163,10 +159,6 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 	})
 
 	return ssc
-}
-
-func (ssc *serverStreamConnection) OnGoAway() {
-	ssc.serverStreamConnCallbacks.OnGoAway()
 }
 
 func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {

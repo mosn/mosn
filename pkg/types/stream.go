@@ -73,7 +73,7 @@ import "context"
 //   |								   |*					   |1				 				|1					|
 // 	 |						StreamConnectionEventListener	   |				 				|					|
 //	 |													       |*				 				|*					|
-//	 |										 	 		StreamSenderFilter	   			StreamReceiverFilter	|
+//	 |										 	 		StreamSenderFilter	   			StreamReceiverFilter	    |
 //	 |													   	   |1								|1					|
 //	 |													   	   |								|					|
 // 	 |													       |1								|1					|

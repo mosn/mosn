@@ -23,9 +23,9 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 // PropertyHeaders map the cmdkey and its data type

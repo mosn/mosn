@@ -21,18 +21,20 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	str "github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/valyala/fasthttp"
 	"bufio"
 	"errors"
 	"io"
-	"strconv"
 	"net/http"
+	"runtime/debug"
+	"strconv"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
+	str "github.com/alipay/sofa-mosn/pkg/stream"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/valyala/fasthttp"
 )
 
 var errConnClose = errors.New("connection closed")
@@ -122,9 +124,7 @@ func (conn *streamConnection) Protocol() types.Protocol {
 	return protocol.HTTP1
 }
 
-func (conn *streamConnection) GoAway() {
-	// todo
-}
+func (conn *streamConnection) GoAway() {}
 
 func (conn *streamConnection) Read(p []byte) (n int, err error) {
 	data, ok := <-conn.bufChan
@@ -145,10 +145,10 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	n = len(p)
 
 	// TODO avoid copy
-	buffer := buffer.GetIoBuffer(n)
-	buffer.Write(p)
+	buf := buffer.GetIoBuffer(n)
+	buf.Write(p)
 
-	err = conn.conn.Write(buffer)
+	err = conn.conn.Write(buf)
 	return
 }
 
@@ -187,7 +187,18 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
 
-	go csc.serve()
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				log.DefaultLogger.Errorf("http client serve goroutine panic %v", p)
+				debug.PrintStack()
+
+				csc.serve()
+			}
+		}()
+
+		csc.serve()
+	}()
 
 	return csc
 }
@@ -216,13 +227,7 @@ func (csc *clientStreamConnection) serve() {
 	}
 }
 
-func (csc *clientStreamConnection) GoAway() {
-	// todo
-}
-
-func (csc *clientStreamConnection) OnGoAway() {
-	csc.streamConnCallbacks.OnGoAway()
-}
+func (csc *clientStreamConnection) GoAway() {}
 
 func (csc *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
 	id := protocol.GenerateID()
@@ -265,7 +270,18 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 
 	connection.AddConnectionEventListener(ssc)
 
-	go ssc.serve()
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				log.DefaultLogger.Errorf("http server serve goroutine panic %v", p)
+				debug.PrintStack()
+
+				ssc.serve()
+			}
+		}()
+
+		ssc.serve()
+	}()
 
 	return ssc
 }
@@ -306,10 +322,6 @@ func (ssc *serverStreamConnection) serve() {
 		// wait for proxy done
 		<-s.responseDoneChan
 	}
-}
-
-func (ssc *serverStreamConnection) OnGoAway() {
-	ssc.serverStreamConnCallbacks.OnGoAway()
 }
 
 // types.Stream
