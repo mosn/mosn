@@ -30,10 +30,6 @@ type CodecFactory interface {
 
 type XCmd interface {
 	rpc.RpcCmd
-	//Multiplexing
-	SplitFrame(data []byte) [][]byte
-	GetStreamID(data []byte) string
-	SetStreamID(data []byte, streamID string) []byte
 
 	//Tracing
 	GetServiceName(data []byte) string
