@@ -487,8 +487,15 @@ func (s *clientStream) handleResponse() {
 
 		log.DefaultLogger.Debugf("remote:%s, status:%s", s.connection.conn.RemoteAddr(), status)
 
-		s.receiver.OnReceiveHeaders(s.ctx, header, false)
-		s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.response.Body()), true)
+		hasData := true
+		if len(s.response.Body()) == 0 {
+			hasData = false
+		}
+		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
+
+		if hasData{
+			s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.response.Body()), true)
+		}
 
 		//TODO cannot recycle immediately, headers might be used by proxy logic
 		s.request = nil
@@ -599,8 +606,15 @@ func (s *serverStream) handleRequest() {
 		// 5. querystring
 		header.Set(protocol.MosnHeaderQueryStringKey, string(uri.QueryString()))
 
-		s.receiver.OnReceiveHeaders(s.ctx, header, false)
-		s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.request.Body()), true)
+		hasData := true
+		if len(s.response.Body()) == 0 {
+			hasData = false
+		}
+		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
+
+		if hasData{
+			s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.request.Body()), true)
+		}
 	}
 }
 
