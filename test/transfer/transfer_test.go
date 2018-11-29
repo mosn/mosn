@@ -42,13 +42,11 @@ func startTransferMesh(tc *integrate.TestCase) {
 	stats.TransferDomainSocket = "/tmp/stats.sock"
 	cfg := util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
 	mesh := mosn.NewMosn(cfg)
-	/*
-		util.MeshLogPath = "./logs/transfer_test.log"
-		util.MeshLogLevel = "DEBUG"
-		log.InitDefaultLogger(util.MeshLogPath, log.INFO)
-		config, _ := json.MarshalIndent(cfg, "", "  ")
-		tc.T.Logf("mosn config :%s", string(config))
-	*/
+
+	util.MeshLogPath = ""
+	util.MeshLogLevel = "DEBUG"
+	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG)
+
 	mesh.Start()
 	time.Sleep(30 * time.Second)
 }
@@ -78,7 +76,7 @@ func TestTransfer(t *testing.T) {
 		t.Fatal("fork error")
 		return
 	}
-	log.InitDefaultLogger("", log.ERROR)
+	log.InitDefaultLogger("", log.DEBUG)
 	startTransferServer(tc)
 
 	// wait server and mesh start
@@ -86,17 +84,12 @@ func TestTransfer(t *testing.T) {
 
 	// run test cases
 	internal := 100 // ms
-	for i := 0; i < 10; i++ {
-		go tc.RunCase(1000, internal)
-	}
+	go tc.RunCase(1000, internal)
 
 	// reload Mosn Server
 	time.Sleep(3 * time.Second)
 	syscall.Kill(pid, syscall.SIGHUP)
 
-	// test new connection (listen fd transfer)
-	time.Sleep(5 * time.Second)
-	go tc.RunCase(1000, internal)
 	select {
 	case err := <-tc.C:
 		if err != nil {
