@@ -144,11 +144,11 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 			}
 		}
 
-		p.clientCount--
-
 		// check if closed connection is available
 		p.clientMux.Lock()
 		defer p.clientMux.Unlock()
+
+		p.clientCount--
 
 		for i, c := range p.clients {
 			if c == client {
@@ -190,17 +190,6 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 		p.host.HostStats().UpstreamRequestRemoteReset.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestRemoteReset.Inc(1)
 	}
-}
-
-func (p *connPool) onGoAway(client *activeClient) {
-	p.host.HostStats().UpstreamConnectionCloseNotify.Inc(1)
-	p.host.ClusterInfo().Stats().UpstreamConnectionCloseNotify.Inc(1)
-
-	// http/1.x should not enter this branch
-	//
-	//if p.primaryClient == client {
-	//	p.movePrimaryToDraining()
-	//}
 }
 
 func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
@@ -281,6 +270,4 @@ func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
 	ac.pool.onStreamReset(ac, reason)
 }
 
-func (ac *activeClient) OnGoAway() {
-	ac.pool.onGoAway(ac)
-}
+func (ac *activeClient) OnGoAway() {}

@@ -36,7 +36,6 @@ type codecClient struct {
 	Codec                     types.ClientStreamConnection
 	ActiveRequests            *list.List
 	AcrMux                    sync.RWMutex
-	CodecCallbacks            types.StreamConnectionEventListener
 	CodecClientCallbacks      CodecClientCallbacks
 	StreamConnectionCallbacks types.StreamConnectionEventListener
 	ConnectedFlag             bool
@@ -139,7 +138,7 @@ func (c *codecClient) Close() {
 
 // types.StreamConnectionEventListener
 func (c *codecClient) OnGoAway() {
-	c.CodecCallbacks.OnGoAway()
+	c.StreamConnectionCallbacks.OnGoAway()
 }
 
 // conn callbacks

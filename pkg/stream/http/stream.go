@@ -85,9 +85,7 @@ func (conn *streamConnection) Protocol() types.Protocol {
 	return protocol.HTTP1
 }
 
-func (conn *streamConnection) GoAway() {
-	// todo
-}
+func (conn *streamConnection) GoAway() {}
 
 func (conn *streamConnection) Read(p []byte) (n int, err error) {
 	data, ok := <-conn.bufChan
@@ -179,13 +177,7 @@ func (csc *clientStreamConnection) serve() {
 	}
 }
 
-func (csc *clientStreamConnection) GoAway() {
-	// todo
-}
-
-func (csc *clientStreamConnection) OnGoAway() {
-	csc.streamConnCallbacks.OnGoAway()
-}
+func (csc *clientStreamConnection) GoAway() {}
 
 func (csc *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
 	id := protocol.GenerateID()
@@ -269,10 +261,6 @@ func (ssc *serverStreamConnection) serve() {
 		// wait for proxy done
 		<-s.responseDoneChan
 	}
-}
-
-func (ssc *serverStreamConnection) OnGoAway() {
-	ssc.serverStreamConnCallbacks.OnGoAway()
 }
 
 // types.Stream
