@@ -37,10 +37,36 @@ func TestAuto(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
 	testCases := []*TestCase{
 		NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+		NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
+
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
 		tc.StartAuto(false)
+		go tc.RunCase(5, 0)
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, err)
+			}
+		case <-time.After(15 * time.Second):
+			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
+		}
+		close(tc.Stop)
+		time.Sleep(time.Second)
+	}
+}
+
+func TestAutoTLS(t *testing.T) {
+	appaddr := "127.0.0.1:8080"
+	testCases := []*TestCase{
+		NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+		NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
+
+	}
+	for i, tc := range testCases {
+		t.Logf("start case #%d\n", i)
+		tc.StartAuto(true)
 		go tc.RunCase(5, 0)
 		select {
 		case err := <-tc.C:
