@@ -67,8 +67,13 @@ func (b *IoBuffer) Read(p []byte) (n int, err error) {
 }
 
 func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
-	var conn net.Conn
-	var loop, ok, first = true, true, true
+	var (
+		m               int
+		e               error
+		zeroTime        time.Time
+		conn            net.Conn
+		loop, ok, first = true, true, true
+	)
 
 	if conn, ok = r.(net.Conn); !ok {
 		loop = false
@@ -98,15 +103,21 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 		l := cap(b.buf) - len(b.buf)
 
-		if first {
-			conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+		if conn != nil {
+			if first {
+				conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+			} else {
+				conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
+			}
+
+			m, e = r.Read(b.buf[len(b.buf):cap(b.buf)])
+
+			// Reset read deadline
+			conn.SetReadDeadline(zeroTime)
+
 		} else {
-			conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
+			m, e = r.Read(b.buf[len(b.buf):cap(b.buf)])
 		}
-
-		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
-
-		conn.SetReadDeadline(time.Time{})
 
 		if e != nil {
 			return n, e
@@ -271,9 +282,7 @@ func (b *IoBuffer) Append(data []byte) error {
 }
 
 func (b *IoBuffer) AppendByte(data byte) error {
-	datas := makeSlice(1)
-	return b.Append(datas)
-
+	return b.Append([]byte{data})
 }
 
 func (b *IoBuffer) Peek(n int) []byte {
