@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 )
@@ -159,6 +160,9 @@ func mapReqToFields(ctx context.Context, req *sofarpc.BoltRequest) (map[string]s
 
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassName)] = req.RequestClass
 
+	// for conv
+	headers[protocol.MosnHeaderDirection] = protocol.Request
+
 	return headers, nil
 }
 
@@ -186,6 +190,9 @@ func mapRespToFields(ctx context.Context, resp *sofarpc.BoltResponse) (map[strin
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderRespTimeMills)] = strconv.FormatUint(uint64(resp.ResponseTimeMillis), 10)
 
 	headers[sofarpc.SofaPropertyHeader(sofarpc.HeaderClassName)] = resp.ResponseClass
+
+	// for conv
+	headers[protocol.MosnHeaderDirection] = protocol.Response
 
 	return headers, nil
 }

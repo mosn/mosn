@@ -374,7 +374,7 @@ func (prri *PathRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64
 	log.StartLogger.Debugf("path route rule match invoked")
 	if prri.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers.Get(strings.ToLower(protocol.MosnHeaderPathKey)); ok {
+		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
 
 			if prri.caseSensitive {
 				if headerPathValue == prri.path {
@@ -425,7 +425,7 @@ func (prei *PrefixRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint
 
 	if prei.matchRoute(headers, randomValue) {
 
-		if headerPathValue, ok := headers.Get(strings.ToLower(protocol.MosnHeaderPathKey)); ok {
+		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
 
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
 				log.DefaultLogger.Debugf("prefix route rule match success")
@@ -470,7 +470,7 @@ func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
 
 func (rrei *RegexRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
 	if rrei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(strings.ToLower(protocol.MosnHeaderPathKey)); ok {
+		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
 
 			if rrei.regexPattern.MatchString(headerPathValue) {
 				log.DefaultLogger.Debugf("regex route rule match success")
