@@ -2,6 +2,7 @@ package dubbo
 
 import (
 	"encoding/binary"
+
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 

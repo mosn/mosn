@@ -21,17 +21,17 @@ import (
 	"context"
 	"sync"
 
+	"fmt"
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"time"
-	"fmt"
 )
 
-const defaultMaxConn = 512
-const defaultIdleTimeout = time.Second * 60
+//const defaultIdleTimeout = time.Second * 60 // not used yet
 
 func init() {
 	proxy.RegisterNewPoolFactory(protocol.HTTP1, NewConnPool)
@@ -47,9 +47,9 @@ type connPool struct {
 
 	statReport bool
 
-	clientMux   sync.Mutex
-	clients     []*activeClient // available clients
-	clientCount int             // total clients
+	clientMux        sync.Mutex
+	availableClients []*activeClient // available clients
+	totalClientCount uint64          // total clients
 }
 
 func NewConnPool(host types.Host) types.ConnectionPool {
@@ -71,10 +71,10 @@ func (p *connPool) Protocol() types.Protocol {
 //由 PROXY 调用
 func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
 
-	c := p.getAvailableClient(ctx)
+	c, reason := p.getAvailableClient(ctx)
 
 	if c == nil {
-		cb.OnFailure(types.ConnectionFailure, nil)
+		cb.OnFailure(reason, nil)
 		return nil
 	}
 
@@ -96,37 +96,36 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiver,
 	return nil
 }
 
-func (p *connPool) getAvailableClient(ctx context.Context) *activeClient {
+func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types.PoolFailureReason) {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
-	n := len(p.clients)
+	n := len(p.availableClients)
 	// no available client
 	if n == 0 {
-		maxConns := p.MaxConn
-		if maxConns <= 0 {
-			maxConns = defaultMaxConn
-		}
-		if p.clientCount < maxConns {
-			p.clientCount++
+		maxConns := p.host.ClusterInfo().ResourceManager().Connections().Max()
+		if p.totalClientCount < maxConns {
+			p.totalClientCount++
 			return newActiveClient(ctx, p)
+		} else {
+			p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+			p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+			return nil, types.Overflow
 		}
 	} else {
 		n--
-		c := p.clients[n]
-		p.clients[n] = nil
-		p.clients = p.clients[:n]
-		return c
+		c := p.availableClients[n]
+		p.availableClients[n] = nil
+		p.availableClients = p.availableClients[:n]
+		return c, ""
 	}
-
-	return nil
 }
 
 func (p *connPool) Close() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
-	for _, c := range p.clients {
+	for _, c := range p.availableClients {
 		c.codecClient.Close()
 	}
 }
@@ -144,16 +143,16 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 			}
 		}
 
-		p.clientCount--
+		p.totalClientCount--
 
 		// check if closed connection is available
 		p.clientMux.Lock()
 		defer p.clientMux.Unlock()
 
-		for i, c := range p.clients {
+		for i, c := range p.availableClients {
 			if c == client {
-				p.clients[i] = nil
-				p.clients = append(p.clients[:i], p.clients[i+1:]...)
+				p.availableClients[i] = nil
+				p.availableClients = append(p.availableClients[:i], p.availableClients[i+1:]...)
 				break
 			}
 		}
@@ -174,7 +173,7 @@ func (p *connPool) onStreamDestroy(client *activeClient) {
 
 	// return to pool
 	p.clientMux.Lock()
-	p.clients = append(p.clients, client)
+	p.availableClients = append(p.availableClients, client)
 	p.clientMux.Unlock()
 }
 
@@ -212,7 +211,7 @@ func (p *connPool) report() {
 	go func() {
 		for {
 			p.clientMux.Lock()
-			fmt.Printf("pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.clients), p.clientCount)
+			fmt.Printf("pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}
@@ -223,8 +222,6 @@ func (p *connPool) report() {
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
-	index int //only for troubleshooting
-
 	pool               *connPool
 	codecClient        str.CodecClient
 	host               types.CreateConnectionData
@@ -232,10 +229,9 @@ type activeClient struct {
 	closeWithActiveReq bool
 }
 
-func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
+func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.PoolFailureReason) {
 	ac := &activeClient{
-		index: pool.clientCount,
-		pool:  pool,
+		pool: pool,
 	}
 
 	data := pool.host.CreateConnection(ctx)
@@ -248,15 +244,13 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac.host = data
 
 	if err := ac.host.Connection.Connect(true); err != nil {
-		return nil
+		return nil, types.ConnectionFailure
 	}
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	//pool.host.HostStats().UpstreamConnectionTotalHTTP1.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
-	//pool.host.ClusterInfo().Stats().UpstreamConnectionTotalHTTP1.Inc(1)
 
 	// bytes total adds all connections data together, but buffered data not
 	codecClient.SetConnectionStats(&types.ConnectionStats{
@@ -266,7 +260,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		WriteBuffered: metrics.NewGauge(),
 	})
 
-	return ac
+	return ac, ""
 }
 
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {

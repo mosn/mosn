@@ -18,13 +18,14 @@
 package conv
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"context"
 	"errors"
-	"github.com/alipay/sofa-mosn/pkg/protocol/http"
-	"github.com/valyala/fasthttp"
 	"strings"
+
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/http"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/valyala/fasthttp"
 )
 
 func init() {
