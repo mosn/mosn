@@ -71,6 +71,10 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 	return newStreamConnection(context, connection, clientCallbacks, serverCallbacks)
 }
 
+func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
+	return str.FAILED
+}
+
 // types.DecodeFilter
 // types.StreamConnection
 // types.ClientStreamConnection
