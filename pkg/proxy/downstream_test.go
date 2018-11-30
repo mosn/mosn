@@ -19,7 +19,6 @@ package proxy
 
 import (
 	"context"
-	"strconv"
 	"testing"
 	"time"
 
@@ -31,14 +30,22 @@ import (
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
-	ds := downStream{}
-	ds.finishTracing(strconv.Itoa(types.SuccessCode))
+	ds := downStream{context: context.Background()}
+	ds.finishTracing()
+	span := trace.SpanFromContext(context.Background())
+	if span != nil {
+		t.Error("Span is not nil")
+	}
 }
 
 func TestDownstream_FinishTracing_Enable(t *testing.T) {
 	trace.EnableTracing()
 	ds := downStream{context: context.Background()}
-	ds.finishTracing(strconv.Itoa(types.SuccessCode))
+	ds.finishTracing()
+	span := trace.SpanFromContext(context.Background())
+	if span != nil {
+		t.Error("Span is not nil")
+	}
 }
 
 func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
@@ -48,7 +55,17 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	ctx := context.WithValue(context.Background(), trace.ActiveSpanKey, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
-	ds.finishTracing(strconv.Itoa(types.SuccessCode))
+	ds.finishTracing()
+
+	span = trace.SpanFromContext(ctx)
+	if span == nil {
+		t.Error("Span is nil")
+	}
+	sofaTracerSpan := span.(*trace.SofaTracerSpan)
+	zeroTime := time.Time{}
+	if sofaTracerSpan.EndTime() == zeroTime {
+		t.Error("Span is not finish")
+	}
 }
 
 func TestDirectResponse(t *testing.T) {

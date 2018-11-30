@@ -99,6 +99,10 @@ func (s *SofaTracerSpan) String() string {
 		s.tags[DOWNSTEAM_HOST_ADDRESS])
 }
 
+func (s *SofaTracerSpan) EndTime() time.Time {
+	return s.endTime
+}
+
 // -------- SofaTracer --------
 var SofaTracerInstance *SofaTracer
 var PrintLog = true
