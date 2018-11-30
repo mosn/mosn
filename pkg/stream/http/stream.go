@@ -468,9 +468,6 @@ func (s *clientStream) ReadDisable(disable bool) {
 func (s *clientStream) doSend() {
 	if _, err := s.request.WriteTo(s.connection); err != nil {
 		log.DefaultLogger.Errorf("http1 client stream send error: %+s", err)
-
-		//TODO
-		s.connection.connCallbacks.OnEvent(types.RemoteClose)
 	}
 }
 
@@ -518,11 +515,17 @@ type serverStream struct {
 func (s *serverStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
 	switch headers := headersIn.(type) {
 	case mosnhttp.RequestHeader:
+		// hijack scene
 		if status, ok := headers.Get(types.HeaderStatus); ok {
 			headers.Del(types.HeaderStatus)
 
 			statusCode, _ := strconv.Atoi(status)
 			s.response.SetStatusCode(statusCode)
+
+			// need to echo all request headers for protocol convert
+			headers.VisitAll(func(key, value []byte) {
+				s.response.Header.SetBytesKV(key, value)
+			})
 		}
 	case mosnhttp.ResponseHeader:
 		if status, ok := headers.Get(types.HeaderStatus); ok {
