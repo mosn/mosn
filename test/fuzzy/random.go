@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/mosn"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/http/conv"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/http2/conv"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
 )
