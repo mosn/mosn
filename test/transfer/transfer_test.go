@@ -84,6 +84,7 @@ func TestTransfer(t *testing.T) {
 
 	// run test cases
 	internal := 100 // ms
+	// todo: support concurrency
 	go tc.RunCase(1000, internal)
 
 	// reload Mosn Server
