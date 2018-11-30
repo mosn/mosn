@@ -15,18 +15,22 @@
  * limitations under the License.
  */
 
-package mhttp2
+package trace
 
-import (
-	"github.com/alipay/sofa-mosn/pkg/module/http2"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
+const (
+	TRACE_ID               string = "traceId"
+	SPAN_ID                string = "spanId"
+	PARENT_SPAN_ID         string = "parentSpanId"
+	SERVICE_NAME           string = "serviceName"
+	METHOD_NAME            string = "methodName"
+	PROTOCOL               string = "protocol"
+	RESULT_STATUS          string = "resultStatus"
+	REQUEST_SIZE           string = "requestSize"
+	RESPONSE_SIZE          string = "responseSize"
+	UPSTREAM_HOST_ADDRESS  string = "upstreamHostAddress"
+	DOWNSTEAM_HOST_ADDRESS string = "downstreamHostAddress"
+	APP_NAME               string = "appName"
+	SPAN_TYPE              string = "spanType"
+	BAGGAGE_DATA           string = "baggageData"
+	REQUEST_URL string = "requestURL"
 )
-
-func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc}, nil)
-}
-
-func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc}, nil)
-}

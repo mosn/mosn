@@ -189,7 +189,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 
 	switch cmd.CommandType() {
 	case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
-		stream = conn.onNewStreamDetect(ctx, cmd)
+		stream = conn.onNewStreamDetect(ctx, cmd, conn.codecEngine)
 	case sofarpc.RESPONSE:
 		stream = conn.onStreamRecv(ctx, cmd)
 	}
@@ -210,7 +210,6 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 }
 
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
-
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
 		conn.logger.Errorf("error occurs while proceeding codec logic: %s", err.Error())
@@ -224,7 +223,7 @@ func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, 
 				var stream *stream
 				switch cmd.CommandType() {
 				case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
-					stream = conn.onNewStreamDetect(ctx, cmd)
+					stream = conn.onNewStreamDetect(ctx, cmd, conn.codecEngine)
 				case sofarpc.RESPONSE:
 					stream = conn.onStreamRecv(ctx, cmd)
 				}
@@ -241,19 +240,20 @@ func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, 
 	}
 }
 
-func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc.SofaRpcCmd) *stream {
+func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc.SofaRpcCmd, spanBuilder types.SpanBuilder) *stream {
 	buffers := sofaBuffersByContext(ctx)
 	stream := &buffers.server
 
 	//stream := &stream{}
 	stream.id = cmd.RequestID()
 	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = context.WithValue(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
 	stream.direction = ServerStream
 	stream.sc = conn
 
 	conn.logger.Debugf("new stream detect, id = %d", stream.id)
 
-	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream)
+	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, spanBuilder)
 	return stream
 }
 

@@ -15,18 +15,34 @@
  * limitations under the License.
  */
 
-package mhttp2
+package http
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/module/http2"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/valyala/fasthttp"
 )
 
-func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc}, nil)
+var spanBuilder = &SpanBuilder{}
+
+type SpanBuilder struct {
 }
 
-func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc}, nil)
+func (spanBuilder *SpanBuilder) BuildSpan(args ...interface{}) types.Span {
+	if len(args) == 0 {
+		return nil
+	}
+
+	if requestCtx, ok := args[0].(fasthttp.RequestCtx); ok {
+		span := trace.Tracer().Start(time.Now())
+		span.SetTag(trace.PROTOCOL, "http")
+		span.SetTag(trace.METHOD_NAME, string(requestCtx.Method()))
+		span.SetTag(trace.REQUEST_URL, string(requestCtx.Host())+string(requestCtx.Path()))
+		span.SetTag(trace.REQUEST_SIZE, "0") // TODO
+		return span
+	}
+
+	return nil
 }

@@ -41,7 +41,7 @@ var (
 	globalStats *Stats
 
 	currProxyID uint32
-	workerPool mosnsync.ShardWorkerPool
+	workerPool  mosnsync.ShardWorkerPool
 )
 
 func init() {
@@ -198,8 +198,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender) types.StreamReceiver {
-	stream := newActiveStream(ctx, p, responseSender)
+func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, spanBuilder types.SpanBuilder) types.StreamReceiver {
+	stream := newActiveStream(ctx, p, responseSender, spanBuilder)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)

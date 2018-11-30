@@ -188,13 +188,14 @@ func (f *simpleRespHeadersFormatter) Format(reqHeaders types.HeaderMap, respHead
 	buffer := accessLogPool.Get()
 	defer accessLogPool.Put(buffer)
 	for _, key := range f.respHeaderFormat {
-
-		if v, ok := respHeaders.Get(key); ok {
-			buffer.WriteString(types.RespHeaderPrefix)
-			buffer.WriteString(v)
-			buffer.WriteString(" ")
-		} else {
-			//DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
+		if respHeaders != nil {
+			if v, ok := respHeaders.Get(key); ok {
+				buffer.WriteString(types.RespHeaderPrefix)
+				buffer.WriteString(v)
+				buffer.WriteString(" ")
+			} else {
+				//DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
+			}
 		}
 	}
 

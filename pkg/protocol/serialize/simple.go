@@ -118,7 +118,9 @@ func readInt32(b []byte) (int, error) {
 		return 0, errors.New("no enough bytes")
 	}
 
-	return int(binary.BigEndian.Uint32(b[:4])), nil
+	ba := b[:4]
+
+	return int(int8(ba[0])<<24 | int8(ba[1])<<16 | int8(ba[2])<<8 | int8(ba[3])), nil
 }
 
 func decodeString(b []byte, result *string) (int, error) {
@@ -147,6 +149,9 @@ func decodeMap(b []byte, result *map[string]string) error {
 		length, err = readInt32(b[index:])
 		if err != nil {
 			return err
+		}
+		if length < 0 {
+			length = 0
 		}
 		index += 4
 

@@ -232,7 +232,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers types
 		connection: conn,
 	}
 
-	stream.decoder = conn.serverCallbacks.NewStreamDetect(conn.context, &stream)
+	stream.decoder = conn.serverCallbacks.NewStreamDetect(conn.context, &stream, nil)
 	conn.activeStream.Set(streamID, stream)
 }
 

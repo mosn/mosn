@@ -36,8 +36,15 @@ type HostConfig struct {
 	TLSDisable     bool           `json:"tls_disable,omitempty"`
 }
 
+// ListenerType: Ingress or Egress
+type ListenerType string
+
+const EGRESS ListenerType = "egress"
+const INGRESS ListenerType = "ingress"
+
 type ListenerConfig struct {
 	Name                                  string        `json:"name"`
+	Type                                  ListenerType  `json:"type"`
 	AddrConfig                            string        `json:"address"`
 	BindToPort                            bool          `json:"bind_port"`
 	HandOffRestoredDestinationConnections bool          `json:"handoff_restoreddestination"`

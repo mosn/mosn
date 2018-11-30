@@ -36,7 +36,7 @@ var (
 )
 
 func init() {
-	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2, BoltCodecV2)
+	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2, BoltCodecV2,nil)
 	sofarpc.RegisterResponseBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2)
 	// the heartbeat processing is same with boltV1
 	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodec)

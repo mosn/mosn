@@ -171,7 +171,7 @@ func (ssc *serverStreamConnection) ServeHTTP(responseWriter http.ResponseWriter,
 		responseWriter:   responseWriter,
 		responseDoneChan: make(chan struct{}),
 	}
-	stream.decoder = ssc.serverStreamConnCallbacks.NewStreamDetect(stream.stream.context, stream)
+	stream.decoder = ssc.serverStreamConnCallbacks.NewStreamDetect(stream.stream.context, stream, nil)
 
 	if atomic.LoadInt32(&stream.readDisableCount) <= 0 {
 		defer func() {

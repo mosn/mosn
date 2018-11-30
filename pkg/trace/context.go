@@ -15,18 +15,48 @@
  * limitations under the License.
  */
 
-package mhttp2
+package trace
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/module/http2"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"context"
+
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc}, nil)
+type contextKey struct{}
+
+type traceHolder struct {
+	enableTracing bool
+	tracer        types.Tracer
 }
 
-func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc}, nil)
+var ActiveSpanKey = contextKey{}
+var holder = traceHolder{}
+
+func SpanFromContext(ctx context.Context) types.Span {
+	val := ctx.Value(ActiveSpanKey)
+	if sp, ok := val.(types.Span); ok {
+		return sp
+	}
+	return nil
+}
+
+func SetTracer(tracer types.Tracer) {
+	holder.tracer = tracer
+}
+
+func Tracer() types.Tracer {
+	return holder.tracer
+}
+
+func EnableTracing() {
+	holder.enableTracing = true
+}
+
+func DisableTracing() {
+	holder.enableTracing = false
+}
+
+func IsTracingEnabled() bool {
+	return holder.enableTracing
 }

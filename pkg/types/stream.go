@@ -196,7 +196,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// NewStreamDetect returns stream event receiver
-	NewStreamDetect(context context.Context, sender StreamSender) StreamReceiver
+	NewStreamDetect(context context.Context, sender StreamSender, spanBuilder SpanBuilder) StreamReceiver
 }
 
 type StreamFilterBase interface {

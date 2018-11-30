@@ -23,6 +23,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/alipay/sofa-mosn/pkg/trace"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
@@ -46,6 +48,7 @@ type Mosn struct {
 // NewMosn
 // Create server from mosn config
 func NewMosn(c *config.MOSNConfig) *Mosn {
+	initializeTracing(c.Tracing)
 	m := &Mosn{}
 	mode := c.Mode()
 
@@ -101,7 +104,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		var srv server.Server
 		if mode == config.Xds {
 			srv = server.NewServer(sc, cmf, m.clustermanager)
-
 		} else {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.clustermanager)
@@ -180,6 +182,7 @@ func (m *Mosn) Close() {
 // step1. NewMosn
 // step2. Start Mosn
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
+	initializeTracing(c.Tracing)
 	log.StartLogger.Infof("start by config : %+v", c)
 
 	wg := sync.WaitGroup{}
@@ -194,6 +197,22 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	////todo: daemon running
 	wg.Wait()
 	xdsClient.Stop()
+}
+
+func initializeTracing(config config.TracingConfig) {
+	if config.Enable && config.Tracer != "" {
+		if config.Tracer == "SOFATracer" {
+			trace.CreateInstance()
+			trace.SetTracer(trace.SofaTracerInstance)
+		} else {
+			log.DefaultLogger.Errorf("Unable to recognise tracing implementation %s, tracing functionality is turned off.", config.Tracer)
+			trace.DisableTracing()
+			return
+		}
+		trace.EnableTracing()
+	} else {
+		trace.DisableTracing()
+	}
 }
 
 type clusterManagerFilter struct {

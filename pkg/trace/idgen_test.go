@@ -15,18 +15,25 @@
  * limitations under the License.
  */
 
-package mhttp2
+package trace
 
-import (
-	"github.com/alipay/sofa-mosn/pkg/module/http2"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
-)
+import "testing"
 
-func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc}, nil)
+func TestIdGenerator_GenerateTraceId(t *testing.T) {
+	traceId := IdGen().GenerateTraceId()
+	if traceId == "" {
+		t.Error("Generate traceId is empty")
+	}
 }
 
-func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc}, nil)
+func TestIdGenerator_ipToHexString(t *testing.T) {
+	ipHex := ipToHexString(GetIp())
+
+	if ipHex == "" {
+		t.Error("IP to Hex is empty.")
+	}
+
+	if len(ipHex) != 8 {
+		t.Error("Wrong format of IP to Hex, the length should be 8")
+	}
 }

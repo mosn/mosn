@@ -33,8 +33,8 @@ var (
 	responseFactory = make(map[byte]ResponseBuilder)
 )
 
-func RegisterProtocol(protocolCode byte, encoder types.Encoder, decoder types.Decoder) {
-	sofarpcEngine.Register(protocolCode, encoder, decoder)
+func RegisterProtocol(protocolCode byte, encoder types.Encoder, decoder types.Decoder, spanBuilder types.SpanBuilder) {
+	sofarpcEngine.Register(protocolCode, encoder, decoder, spanBuilder)
 }
 
 func RegisterHeartbeatBuilder(protocolCode byte, builder HeartbeatBuilder) {

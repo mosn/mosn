@@ -21,6 +21,53 @@ import (
 	"testing"
 )
 
+func TestNotEnoughBytes(t *testing.T) {
+	b := make([]byte, 3)
+	b[0] = 255
+	b[1] = 255
+	b[2] = 255
+	_, err := readInt32(b)
+	if err.Error() != "no enough bytes" {
+		t.Error("Expect error")
+	}
+}
+
+func TestReadIntMinusOne(t *testing.T) {
+	b := make([]byte, 4)
+	b[0] = 255
+	b[1] = 255
+	b[2] = 255
+	b[3] = 255
+	result, _ := readInt32(b)
+	if result != -1 {
+		t.Error("Decode error")
+	}
+}
+
+func TestReadIntZero(t *testing.T) {
+	b := make([]byte, 4)
+	b[0] = 0
+	b[1] = 0
+	b[2] = 0
+	b[3] = 0
+	result, _ := readInt32(b)
+	if result != 0 {
+		t.Error("Decode error")
+	}
+}
+
+func TestReadIntOne(t *testing.T) {
+	b := make([]byte, 4)
+	b[0] = 0
+	b[1] = 0
+	b[2] = 0
+	b[3] = 1
+	result, _ := readInt32(b)
+	if result != 1 {
+		t.Error("Decode error")
+	}
+}
+
 func BenchmarkSerializeMap(b *testing.B) {
 	headers := map[string]string{
 		"service": "com.alipay.test.TestService:1.0",

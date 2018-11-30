@@ -416,6 +416,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	}
 
 	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
+	ctx = context.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
 	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
 	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)

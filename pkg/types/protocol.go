@@ -66,13 +66,14 @@ type HeaderMap interface {
 type ProtocolEngine interface {
 	// Encoder is a encoder interface to extend various of protocols
 	Encoder
-
 	// Decoder is a decoder interface to extend various of protocols
 	Decoder
+	// Build Span
+	SpanBuilder
 
 	// Register encoder and decoder for the specified protocol code
 	// TODO: use recognize interface instead of protocol code
-	Register(protocolCode byte, encoder Encoder, decoder Decoder) error
+	Register(protocolCode byte, encoder Encoder, decoder Decoder, spanBuilder SpanBuilder) error
 }
 
 // Encoder is a encoder interface to extend various of protocols
@@ -93,4 +94,9 @@ type Decoder interface {
 	// pass sub protocol type to identify protocol format
 	// return 1. decoded model(nil if no enough data) 2. decode error
 	Decode(ctx context.Context, data IoBuffer) (interface{}, error)
+}
+
+// Build the span for a specific protocol
+type SpanBuilder interface {
+	BuildSpan(args ...interface{}) Span
 }

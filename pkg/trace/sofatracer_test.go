@@ -15,18 +15,40 @@
  * limitations under the License.
  */
 
-package mhttp2
+package trace
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/module/http2"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"testing"
+	"time"
 )
 
-func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc}, nil)
+func init() {
+	CreateInstance()
 }
 
-func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc}, nil)
+func TestSofaTracerStartFinish(t *testing.T) {
+	span := SofaTracerInstance.Start(time.Now())
+	span.SetTag(TRACE_ID, IdGen().GenerateTraceId())
+	span.FinishSpan()
+}
+
+func TestSofaTracerPrintSpan(t *testing.T) {
+	SofaTracerInstance.printSpan(&SofaTracerSpan{})
+}
+
+func TestSofaTracerPrintIngressSpan(t *testing.T) {
+	span := &SofaTracerSpan{
+		tags: map[string]string{},
+	}
+	span.tags[DOWNSTEAM_HOST_ADDRESS] = "127.0.0.1:43"
+	span.tags[SPAN_TYPE] = "ingress"
+	SofaTracerInstance.printSpan(span)
+}
+
+func TestSofaTracerPrintEgressSpan(t *testing.T) {
+	span := &SofaTracerSpan{
+		tags: map[string]string{},
+	}
+	span.tags[SPAN_TYPE] = "egress"
+	SofaTracerInstance.printSpan(span)
 }

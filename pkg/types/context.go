@@ -26,6 +26,8 @@ const (
 	ContextKeyConnectionID                ContextKey = "ConnectionId"
 	ContextKeyListenerPort                ContextKey = "ListenerPort"
 	ContextKeyListenerName                ContextKey = "ListenerName"
+	ContextKeyListenerType                ContextKey = "ListenerType"
+	ContextKeyListenerStatsNameSpace      ContextKey = "ListenerStatsNameSpace"
 	ContextKeyNetworkFilterChainFactories ContextKey = "NetworkFilterChainFactory"
 	ContextKeyStreamFilterChainFactories  ContextKey = "StreamFilterChainFactory"
 	ContextKeyBufferPoolCtx               ContextKey = "ConnectionBufferPoolCtx"
@@ -36,6 +38,7 @@ const (
 	ContextKeyAcceptBuffer                ContextKey = "ContextKeyAcceptBuffer"
 	ContextKeyConnectionFd                ContextKey = "ConnectionFd"
 	ContextSubProtocol                    ContextKey = "ContextSubProtocol"
+	ContextKeyTraceSpanKey                ContextKey = "TraceSpanKey"
 )
 
 // GlobalProxyName represents proxy name for metrics

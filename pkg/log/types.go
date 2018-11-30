@@ -57,4 +57,6 @@ type Logger interface {
 	Close() error
 
 	Reopen() error
+
+	SetFlags(flag int)
 }

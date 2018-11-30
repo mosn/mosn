@@ -18,13 +18,55 @@
 package proxy
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
+
+func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
+	ds := downStream{context: context.Background()}
+	ds.finishTracing()
+	span := trace.SpanFromContext(context.Background())
+	if span != nil {
+		t.Error("Span is not nil")
+	}
+}
+
+func TestDownstream_FinishTracing_Enable(t *testing.T) {
+	trace.EnableTracing()
+	ds := downStream{context: context.Background()}
+	ds.finishTracing()
+	span := trace.SpanFromContext(context.Background())
+	if span != nil {
+		t.Error("Span is not nil")
+	}
+}
+
+func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
+	trace.EnableTracing()
+	trace.CreateInstance()
+	span := trace.SofaTracerInstance.Start(time.Now())
+	ctx := context.WithValue(context.Background(), trace.ActiveSpanKey, span)
+	requestInfo := &network.RequestInfo{}
+	ds := downStream{context: ctx, requestInfo: requestInfo}
+	ds.finishTracing()
+
+	span = trace.SpanFromContext(ctx)
+	if span == nil {
+		t.Error("Span is nil")
+	}
+	sofaTracerSpan := span.(*trace.SofaTracerSpan)
+	zeroTime := time.Time{}
+	if sofaTracerSpan.EndTime() == zeroTime {
+		t.Error("Span is not finish")
+	}
+}
 
 func TestDirectResponse(t *testing.T) {
 	testCases := []struct {

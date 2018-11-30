@@ -23,6 +23,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/models"
+	"github.com/alipay/sofa-mosn/pkg/trace"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
@@ -36,7 +40,7 @@ var (
 )
 
 func init() {
-	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V1, BoltCodec, BoltCodec)
+	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V1, BoltCodec, BoltCodec, &BoltV1SpanBuilder{})
 	sofarpc.RegisterResponseBuilder(sofarpc.PROTOCOL_CODE_V1, BoltCodec)
 	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V1, BoltCodec)
 }
@@ -239,33 +243,9 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 				request.ClassName = class
 				request.HeaderMap = header
 				request.Content = content
-
 				sofarpc.DeserializeBoltRequest(ctx, request)
 
 				cmd = request
-				/*
-					request := sofarpc.BoltRequestCommand{
-
-						sofarpc.PROTOCOL_CODE_V1,
-						dataType,
-						int16(cmdCode),
-						ver2,
-						requestID,
-						codec,
-						int(timeout),
-						int16(classLen),
-						int16(headerLen),
-						int(contentLen),
-						class,
-						header,
-						content,
-						nil,
-						nil,
-					}
-					logger.Debugf("BoltV1 DECODE REQUEST, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
-						request.Protocol, request.CmdType, request.CmdCode, request.ReqID)
-					cmd = &request
-				*/
 			}
 		} else if cmdType == sofarpc.RESPONSE {
 			//2. response
@@ -323,37 +303,9 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 				response.Content = content
 
 				response.ResponseTimeMillis = time.Now().UnixNano() / int64(time.Millisecond)
-
 				sofarpc.DeserializeBoltResponse(ctx, response)
 
 				cmd = response
-				/*
-					response := sofarpc.BoltResponseCommand{
-						sofarpc.PROTOCOL_CODE_V1,
-						dataType,
-						int16(cmdCode),
-						ver2,
-						requestID,
-						codec,
-						int16(status),
-						int16(classLen),
-						int16(headerLen),
-						int(contentLen),
-						class,
-						header,
-						content,
-						nil,
-						time.Now().UnixNano() / int64(time.Millisecond),
-						nil,
-					}
-
-					if cmdCode == uint16(sofarpc.HEARTBEAT) {
-						//logger.Debugf("BoltV1 DECODE RESPONSE: Get Bolt HB Msg")
-					}
-					logger.Debugf("BoltV1 DECODE RESPONSE,ResponseStatus = %d, Protocol = %d, CmdType = %d, CmdCode = %d, ReqID = %d",
-						response.ResponseStatus, response.Protocol, response.CmdType, response.CmdCode, response.ReqID)
-					cmd = &response
-				*/
 			}
 		} else {
 			// 3. unknown type error
@@ -400,4 +352,60 @@ func (c *boltCodec) BuildResponse(respStatus int16) sofarpc.SofaRpcCmd {
 		Codec:          sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
 		ResponseStatus: respStatus,
 	}
+}
+
+type BoltV1SpanBuilder struct {
+}
+
+func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
+	if len(args) == 0 {
+		return nil
+	}
+
+	if _, ok := args[0].(context.Context); !ok {
+		return nil
+	}
+
+	ctx, _ := args[0].(context.Context)
+	sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
+	request := &sofabuffers.BoltReq
+
+	if request.CmdCode == sofarpc.HEARTBEAT {
+		return nil
+	}
+
+	span := trace.Tracer().Start(time.Now())
+
+	traceId := request.RequestHeader[models.TRACER_ID_KEY]
+	if traceId == "" {
+		traceId = trace.IdGen().GenerateTraceId()
+	}
+	span.SetTag(trace.TRACE_ID, traceId)
+	lType := ctx.Value(types.ContextKeyListenerType)
+
+	spanId := request.RequestHeader[models.RPC_ID_KEY]
+	if spanId == "" {
+		spanId = "0" // Generate a new span id
+	} else {
+		if lType == v2.INGRESS {
+			trace.AddSpanIdGenerator(trace.NewSpanIdGenerator(traceId, spanId))
+		} else if lType == v2.EGRESS {
+			span.SetTag(trace.PARENT_SPAN_ID, spanId)
+			spanKey := &trace.SpanKey{TraceId: traceId, SpanId: spanId}
+			if spanIdGenerator := trace.GetSpanIdGenerator(spanKey); spanIdGenerator != nil {
+				spanId = spanIdGenerator.GenerateNextChildIndex()
+			}
+		}
+	}
+	span.SetTag(trace.SPAN_ID, spanId)
+
+	if lType == v2.EGRESS {
+		span.SetTag(trace.APP_NAME, request.RequestHeader[models.APP_NAME])
+	}
+	span.SetTag(trace.SPAN_TYPE, string(lType.(v2.ListenerType)))
+	span.SetTag(trace.METHOD_NAME, request.RequestHeader[models.TARGET_METHOD])
+	span.SetTag(trace.PROTOCOL, "bolt")
+	span.SetTag(trace.SERVICE_NAME, request.RequestHeader[models.SERVICE_KEY])
+	span.SetTag(trace.BAGGAGE_DATA, request.RequestHeader[models.SOFA_TRACE_BAGGAGE_DATA])
+	return span
 }

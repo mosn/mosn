@@ -311,7 +311,7 @@ func (ssc *serverStreamConnection) serve() {
 			responseDoneChan: make(chan bool, 1),
 		}
 
-		s.receiver = ssc.serverStreamConnCallbacks.NewStreamDetect(s.stream.ctx, s)
+		s.receiver = ssc.serverStreamConnCallbacks.NewStreamDetect(s.stream.ctx, s, spanBuilder)
 
 		ssc.stream = s
 
@@ -493,7 +493,7 @@ func (s *clientStream) handleResponse() {
 		}
 		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
 
-		if hasData{
+		if hasData {
 			s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.response.Body()), true)
 		}
 
@@ -612,7 +612,7 @@ func (s *serverStream) handleRequest() {
 		}
 		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
 
-		if hasData{
+		if hasData {
 			s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.request.Body()), true)
 		}
 	}

@@ -2,6 +2,30 @@
 
 
 [[projects]]
+  name = "github.com/AlexStocks/dubbogo"
+  packages = [
+    "codec",
+    "codec/hessian"
+  ]
+  revision = "d706e009647c54fe93b3a0b8f8c15fe56cc85cf7"
+  version = "v0.2.0"
+
+[[projects]]
+  name = "github.com/AlexStocks/goext"
+  packages = [
+    "os",
+    "strings"
+  ]
+  revision = "6b0b549c4960950cbd1dec0df8a01403deb08cb3"
+  version = "v0.3.0"
+
+[[projects]]
+  name = "github.com/AlexStocks/log4go"
+  packages = ["."]
+  revision = "39cc8511d507bcf4d1716205f765973d967868eb"
+  version = "v3.1.0"
+
+[[projects]]
   name = "github.com/envoyproxy/go-control-plane"
   packages = [
     "envoy/api/v2",
@@ -82,6 +106,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/juju/errors"
+  packages = ["."]
+  revision = "22422dad46e14561a0854ad42497a75af9b61909"
+
+[[projects]]
+  branch = "master"
   name = "github.com/jwangsadinata/go-multimap"
   packages = [
     ".",
@@ -111,10 +141,27 @@
   revision = "cae364899cd8c08b83bfdcabf4ce4dd4a68ca6da"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/mailru/easyjson"
+  packages = [
+    ".",
+    "buffer",
+    "jlexer",
+    "jwriter"
+  ]
+  revision = "60711f1a8329503b04e1c88535f419d0bb440bff"
+
+[[projects]]
   name = "github.com/markphelps/optional"
   packages = ["."]
   revision = "462a8e39a44e0c8bebfb476e131e45546eb358bf"
   version = "v0.4.2"
+
+[[projects]]
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
+  version = "v0.0.4"
 
 [[projects]]
   name = "github.com/modern-go/concurrent"
@@ -133,6 +180,15 @@
   name = "github.com/neverhook/easygo"
   packages = ["netpoll"]
   revision = "787757e6499086c1bb5dfe4ae7d3aa4aafe169d4"
+
+[[projects]]
+  name = "github.com/opentracing/opentracing-go"
+  packages = [
+    ".",
+    "log"
+  ]
+  revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
+  version = "v1.0.2"
 
 [[projects]]
   branch = "master"
@@ -247,6 +303,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "563699dcd519fcf4de542288e11e3e7982905c6822ab59bf6cd99710b649ec4b"
+  inputs-digest = "cc6dfefd6d1029105c65af5a4316083b77374600a66960c1a6627bd116427ca1"
   solver-name = "gps-cdcl"
   solver-version = 1

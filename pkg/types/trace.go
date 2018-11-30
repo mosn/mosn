@@ -15,18 +15,28 @@
  * limitations under the License.
  */
 
-package mhttp2
+package types
 
-import (
-	"github.com/alipay/sofa-mosn/pkg/module/http2"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
-)
+import "time"
 
-func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc}, nil)
+type Span interface {
+	TraceId() string
+
+	SpanId() string
+
+	ParentSpanId() string
+
+	SetOperation(operation string)
+
+	SetTag(key string, value string)
+
+	FinishSpan()
+
+	InjectContext(requestHeaders map[string]string)
+
+	SpawnChild(operationName string, startTime time.Time) Span
 }
 
-func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc}, nil)
+type Tracer interface {
+	Start(startTime time.Time) Span
 }
