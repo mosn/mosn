@@ -136,6 +136,10 @@ func TestTLSExtend(t *testing.T) {
 		&tlsExtendCase{NewTestCase(t, protocol.SofaRPC, protocol.HTTP2, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},
 		&tlsExtendCase{NewTestCase(t, protocol.SofaRPC, protocol.MHTTP2, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},
 		&tlsExtendCase{NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},
+
+		// protocol auto
+		&tlsExtendCase{NewTestCase(t, protocol.MHTTP2, protocol.Auto, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
+
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)

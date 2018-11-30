@@ -971,7 +971,7 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) error {
 	}
 
 	hasTrailers := trailers != ""
-	hasBody := cc.SendData != nil
+	hasBody := cc.SendData != nil && cc.SendData.Len() != 0
 
 	if hasBody {
 		cc.Request.ContentLength = int64(cc.SendData.Len())

@@ -8,7 +8,7 @@ import (
 	"github.com/alipay/sofa-mosn/test/util"
 )
 
-// Prxoy Mode
+// Proxy Mode
 func TestProxy(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
 	testCases := []*TestCase{

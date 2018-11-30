@@ -43,6 +43,21 @@ func init() {
 	str.Register(protocol.HTTP1, &streamConnFactory{})
 }
 
+var (
+	minMethodLengh = len("GET")
+	maxMethodLengh = len("CONNECT")
+	httpMethod     = map[string]struct{}{
+		"OPTIONS": struct{}{},
+		"GET":     struct{}{},
+		"HEAD":    struct{}{},
+		"POST":    struct{}{},
+		"PUT":     struct{}{},
+		"DELETE":  struct{}{},
+		"TRACE":   struct{}{},
+		"CONNECT": struct{}{},
+	}
+)
+
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
@@ -59,6 +74,28 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
+}
+
+func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
+	if len(magic) < minMethodLengh {
+		return str.EAGAIN
+	}
+	size := len(magic)
+	if len(magic) > maxMethodLengh {
+		size = maxMethodLengh
+	}
+
+	for i := minMethodLengh; i <= size; i++ {
+		if _, ok := httpMethod[string(magic[0:i])]; ok {
+			return nil
+		}
+	}
+
+	if size < maxMethodLengh {
+		return str.EAGAIN
+	} else {
+		return str.FAILED
+	}
 }
 
 // types.StreamConnection
@@ -570,7 +607,7 @@ func (s *serverStream) handleRequest() {
 		header.Set(protocol.MosnHeaderQueryStringKey, string(uri.QueryString()))
 
 		hasData := true
-		if len(s.response.Body()) == 0 {
+		if len(s.request.Body()) == 0 {
 			hasData = false
 		}
 		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
