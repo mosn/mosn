@@ -55,7 +55,7 @@ func TransferServer(handler types.ConnectionHandler) {
 		}
 	}()
 
-	if os.Getenv("_MOSN_GRACEFUL_RESTART") != "true" {
+	if os.Getenv(types.GracefulRestart) != "true" {
 		return
 	}
 	if _, err := os.Stat(TransferDomainSocket); err == nil {
