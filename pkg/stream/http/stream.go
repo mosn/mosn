@@ -607,7 +607,7 @@ func (s *serverStream) handleRequest() {
 		header.Set(protocol.MosnHeaderQueryStringKey, string(uri.QueryString()))
 
 		hasData := true
-		if len(s.response.Body()) == 0 {
+		if len(s.request.Body()) == 0 {
 			hasData = false
 		}
 		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)

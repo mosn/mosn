@@ -104,7 +104,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	case *mhttp2.RspHeader:
 		direction = protocol.Response
 	default:
-		return headerMap, nil
+		return nil, errors.New("header type not supported")
 	}
 
 	headers.Set(protocol.MosnHeaderDirection, direction)
