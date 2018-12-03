@@ -77,18 +77,21 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	}
 }
 
-func (server *Server) Start(config Config) {
-	addr := ":8888"
+func (s *Server) Start(config Config) {
+	var addr string
 	if config != nil {
 		// merge MOSNConfig into global context
 		SetMOSNConfig(config)
 		// get admin config
 		adminConfig := config.GetAdmin()
-		if adminConfig != nil {
-			address := adminConfig.GetAddress()
-			if xdsPort, ok := address.GetSocketAddress().GetPortSpecifier().(*core.SocketAddress_PortValue); ok {
-				addr = fmt.Sprintf("%s:%d", address.GetSocketAddress().GetAddress(), xdsPort.PortValue)
-			}
+		if adminConfig == nil {
+			// no admin config, no admin start
+			log.DefaultLogger.Warnf("no admin config, no admin api served")
+			return
+		}
+		address := adminConfig.GetAddress()
+		if xdsPort, ok := address.GetSocketAddress().GetPortSpecifier().(*core.SocketAddress_PortValue); ok {
+			addr = fmt.Sprintf("%s:%d", address.GetSocketAddress().GetAddress(), xdsPort.PortValue)
 		}
 	}
 
@@ -98,25 +101,27 @@ func (server *Server) Start(config Config) {
 	}
 
 	ln, err := net.Listen("tcp4", addr)
-	log.DefaultLogger.Infof("Admin server serve on %s\n", addr)
-	server.ln = ln
-
 	if err != nil {
 		log.DefaultLogger.Errorf("Admin server: Listen on %s with error: %s\n", addr, err)
-	} else {
-		go func() {
-			if err := srv.Serve(ln); err != nil {
-				log.DefaultLogger.Errorf("Admin server: Served) with error: %s\n", err)
-			}
-
-		}()
+		return
 	}
+	log.DefaultLogger.Infof("Admin server serve on %s\n", addr)
+	s.ln = ln
+	go func() {
+		AddStoppable(s)
+		if err := srv.Serve(ln); err != nil {
+			log.DefaultLogger.Errorf("Admin server: Served) with error: %s\n", err)
+		}
+
+	}()
 }
 
-func (server *Server) Close() {
-	if server.ln != nil {
-		server.ln.Close()
+func (s *Server) Close() error {
+	ln := s.ln
+	if ln != nil {
+		s.ln = nil
 		log.DefaultLogger.Infof("Admin server stopped\n")
+		return ln.Close()
 	}
-	server.ln = nil
+	return nil
 }

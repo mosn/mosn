@@ -15,19 +15,23 @@
  * limitations under the License.
  */
 
-package server
+package admin
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/admin"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// stoppable implementation is moved to admin
-// keeps wraaper of admin to compatible
+var stoppables []types.Stoppable
+
 func AddStoppable(s types.Stoppable) {
-	admin.AddStoppable(s)
+	stoppables = append(stoppables, s)
 }
 
-func stopStoppable() {
-	admin.StopStoppable()
+func StopStoppable() {
+	for _, s := range stoppables {
+		if err := s.Close(); err != nil {
+			log.DefaultLogger.Infof("close stoppable error: %v", err)
+		}
+	}
 }

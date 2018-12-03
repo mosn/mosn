@@ -182,7 +182,6 @@ func (m *Mosn) Close() {
 // step1. NewMosn
 // step2. Start Mosn
 func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
-	initializeTracing(c.Tracing)
 	log.StartLogger.Infof("start by config : %+v", c)
 
 	wg := sync.WaitGroup{}
