@@ -75,6 +75,13 @@ type MOSNConfig struct {
 	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty"`             // admin raw message
+	Debug               PProfConfig         `json:"pprof,omitempty"`
+}
+
+// PProfConfig is used to start a pprof server for debug
+type PProfConfig struct {
+	StartDebug bool `json:"debug"`      // If StartDebug is true, start a pprof, default is false
+	Port       int  `json:"port_value"` // If port value is 0, will use 9090 as default
 }
 
 // Mode is mosn's starting type
