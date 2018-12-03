@@ -90,7 +90,7 @@ func testAddBytesSendListener(n int, t *testing.T) {
 }
 
 func TestAddConnectionEventListener(t *testing.T) {
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 3; i++ {
 		name := fmt.Sprintf("AddConnectionEventListener(%d)", i)
 		t.Run(name, func(t *testing.T) {
 			testAddConnectionEventListener(i, t)
@@ -99,7 +99,7 @@ func TestAddConnectionEventListener(t *testing.T) {
 }
 
 func TestAddBytesReadListener(t *testing.T) {
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 3; i++ {
 		name := fmt.Sprintf("AddBytesReadListener(%d)", i)
 		t.Run(name, func(t *testing.T) {
 			testAddBytesReadListener(i, t)
@@ -108,7 +108,7 @@ func TestAddBytesReadListener(t *testing.T) {
 }
 
 func TestAddBytesSendListener(t *testing.T) {
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 3; i++ {
 		name := fmt.Sprintf("AddBytesSendListener(%d)", i)
 		t.Run(name, func(t *testing.T) {
 			testAddBytesSendListener(i, t)
