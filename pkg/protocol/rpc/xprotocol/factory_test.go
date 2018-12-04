@@ -122,7 +122,7 @@ func Test_XRpcCmd_0(t *testing.T) {
 	xRpcCmd := &XRpcCmd{
 		ctx:    nil,
 		codec:  CreateSubProtocolCodec(nil, SubProtocol("ut-example")),
-		data:   []byte{14, 1, 0, 8, 0, 0, 3, 0},
+		data:   networkbuffer.NewIoBufferBytes([]byte{14, 1, 0, 8, 0, 0, 3, 0}),
 		header: header,
 	}
 
@@ -140,7 +140,7 @@ func Test_XRpcCmd_0(t *testing.T) {
 		t.Errorf("data should be nil, set data fail")
 	}
 
-	xRpcCmd.SetData([]byte{0, 0, 0, 0, 0, 0, 0, 0})
+	xRpcCmd.SetData(networkbuffer.NewIoBufferBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0}))
 	xRpcCmd.SetRequestID(1)
 	if xRpcCmd.RequestID() != 1 {
 		t.Errorf("set request id fail,should be 1")
@@ -152,7 +152,7 @@ func Test_XRpcCmd_1(t *testing.T) {
 	xRpcCmd := &XRpcCmd{
 		ctx:    nil,
 		codec:  CreateSubProtocolCodec(nil, SubProtocol("ut-example")),
-		data:   []byte{14, 1, 0, 8, 0, 0, 3, 0},
+		data:   networkbuffer.NewIoBufferBytes([]byte{14, 1, 0, 8, 0, 0, 3, 0}),
 		header: header,
 	}
 	// Xprotocol plugin test
@@ -187,7 +187,7 @@ func Test_XRpcCmd_2(t *testing.T) {
 	xRpcCmd := &XRpcCmd{
 		ctx:    nil,
 		codec:  CreateSubProtocolCodec(nil, SubProtocol("ut-example")),
-		data:   []byte{14, 1, 0, 8, 0, 0, 3, 0},
+		data:   networkbuffer.NewIoBufferBytes([]byte{14, 1, 0, 8, 0, 0, 3, 0}),
 		header: header,
 	}
 	// HeaderMap test

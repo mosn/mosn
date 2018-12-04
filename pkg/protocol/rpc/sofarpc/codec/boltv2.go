@@ -29,6 +29,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 var (
@@ -36,7 +37,7 @@ var (
 )
 
 func init() {
-	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2, BoltCodecV2,nil)
+	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2, BoltCodecV2, nil)
 	sofarpc.RegisterResponseBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2)
 	// the heartbeat processing is same with boltV1
 	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodec)
@@ -248,7 +249,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						int(contentLen),
 						class,
 						header,
-						content,
+						buffer.NewIoBufferBytes(content),
 						"",
 						nil,
 					},
@@ -312,7 +313,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						int(contentLen),
 						class,
 						header,
-						content,
+						buffer.NewIoBufferBytes(content),
 						"",
 						nil,
 						time.Now().UnixNano() / int64(time.Millisecond),

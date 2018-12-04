@@ -33,6 +33,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 var (
@@ -242,7 +243,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 				request.ContentLen = int(contentLen)
 				request.ClassName = class
 				request.HeaderMap = header
-				request.Content = content
+				request.Content = buffer.NewIoBufferBytes(content)
 				sofarpc.DeserializeBoltRequest(ctx, request)
 
 				cmd = request
@@ -300,7 +301,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 				response.ContentLen = int(contentLen)
 				response.ClassName = class
 				response.HeaderMap = header
-				response.Content = content
+				response.Content = buffer.NewIoBufferBytes(content)
 
 				response.ResponseTimeMillis = time.Now().UnixNano() / int64(time.Millisecond)
 				sofarpc.DeserializeBoltResponse(ctx, response)

@@ -48,7 +48,6 @@ type HeartbeatBuilder interface {
 
 // HeartbeatBuilder provides interface to construct proper response command for sofarpc sub-protocols
 type ResponseBuilder interface {
-
 	// BuildResponse build response with given status code
 	BuildResponse(status int16) SofaRpcCmd
 }
@@ -199,7 +198,7 @@ type BoltRequest struct {
 	ContentLen int
 	ClassName  []byte
 	HeaderMap  []byte
-	Content    []byte
+	Content    types.IoBuffer
 
 	RequestClass  string // deserialize fields
 	RequestHeader map[string]string
@@ -218,7 +217,7 @@ func (b *BoltRequest) Header() map[string]string {
 	return b.RequestHeader
 }
 
-func (b *BoltRequest) Data() []byte {
+func (b *BoltRequest) Data() types.IoBuffer {
 	return b.Content
 }
 
@@ -230,7 +229,7 @@ func (b *BoltRequest) SetHeader(header map[string]string) {
 	b.RequestHeader = header
 }
 
-func (b *BoltRequest) SetData(data []byte) {
+func (b *BoltRequest) SetData(data types.IoBuffer) {
 	b.Content = data
 }
 
@@ -303,7 +302,7 @@ type BoltResponse struct {
 	ContentLen int
 	ClassName  []byte
 	HeaderMap  []byte
-	Content    []byte
+	Content    types.IoBuffer
 
 	ResponseClass  string // deserialize fields
 	ResponseHeader map[string]string
@@ -324,7 +323,7 @@ func (b *BoltResponse) Header() map[string]string {
 	return b.ResponseHeader
 }
 
-func (b *BoltResponse) Data() []byte {
+func (b *BoltResponse) Data() types.IoBuffer {
 	return b.Content
 }
 
@@ -336,7 +335,7 @@ func (b *BoltResponse) SetHeader(header map[string]string) {
 	b.ResponseHeader = header
 }
 
-func (b *BoltResponse) SetData(data []byte) {
+func (b *BoltResponse) SetData(data types.IoBuffer) {
 	b.Content = data
 }
 
