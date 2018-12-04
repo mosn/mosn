@@ -204,7 +204,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 		}
 
 		if data != nil {
-			stream.receiver.OnReceiveData(stream.ctx, buffer.NewIoBufferBytes(data), true)
+			stream.receiver.OnReceiveData(stream.ctx, data, true)
 		}
 	}
 }
@@ -287,9 +287,8 @@ type stream struct {
 	receiver  types.StreamReceiver
 	streamCbs []types.StreamEventListener
 
-	encodedData types.IoBuffer // for current impl, need removed
-	sendCmd     sofarpc.SofaRpcCmd
-	sendBuf     types.IoBuffer
+	sendCmd sofarpc.SofaRpcCmd
+	sendBuf types.IoBuffer
 }
 
 // ~~ types.Stream
@@ -380,12 +379,12 @@ func (s *stream) buildHijackResp(request sofarpc.SofaRpcCmd) (sofarpc.SofaRpcCmd
 }
 
 func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
-	//if s.sendCmd != nil {
-	//	// TODO: may affect buffer reuse
-	//	s.sendCmd.SetData(data.Bytes())
-	//}
+	if s.sendCmd != nil {
+		// TODO: may affect buffer reuse
+		s.sendCmd.SetData(data)
+	}
 
-	s.encodedData = data
+	//s.encodedData = data
 
 	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID, s.direction)
 
@@ -419,8 +418,8 @@ func (s *stream) endStream() {
 			return
 		}
 
-		if s.encodedData != nil {
-			s.sc.conn.Write(buf, s.encodedData)
+		if dataBuf := s.sendCmd.Data(); dataBuf != nil {
+			s.sc.conn.Write(buf, dataBuf)
 		} else {
 			s.sc.conn.Write(buf)
 		}
