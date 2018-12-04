@@ -47,11 +47,11 @@ type RpcCmd interface {
 
 	Header() map[string]string
 
-	Data() []byte
+	Data() types.IoBuffer
 
 	SetHeader(header map[string]string)
 
-	SetData(data []byte)
+	SetData(data types.IoBuffer)
 }
 
 // ResponseStatus describe that the model has the [response status] information

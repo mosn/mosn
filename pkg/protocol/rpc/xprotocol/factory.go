@@ -47,7 +47,7 @@ type Coder struct {
 func (coder *Coder) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
 	xRpcCmd, ok := model.(*XRpcCmd)
 	if ok {
-		return networkbuffer.NewIoBufferBytes(xRpcCmd.data), nil
+		return xRpcCmd.data, nil
 	}
 	err := errors.New("fail to convert to XRpcCmd")
 	return nil, err
@@ -93,7 +93,7 @@ func CreateSubProtocolCodec(context context.Context, prot SubProtocol) Multiplex
 type XRpcCmd struct {
 	ctx    context.Context
 	codec  Multiplexing
-	data   []byte
+	data   types.IoBuffer
 	header map[string]string
 }
 
@@ -106,7 +106,7 @@ func (xRpcCmd *XRpcCmd) ProtocolCode() byte {
 
 // RequestID no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) RequestID() uint64 {
-	streamId := xRpcCmd.codec.GetStreamID(xRpcCmd.data)
+	streamId := xRpcCmd.codec.GetStreamID(xRpcCmd.data.Bytes())
 	requestId, err := strconv.ParseUint(streamId, 10, 64)
 	if err != nil {
 		log.DefaultLogger.Errorf("get request id fail,streamId = %v", streamId)
@@ -118,7 +118,7 @@ func (xRpcCmd *XRpcCmd) RequestID() uint64 {
 // SetRequestID no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) SetRequestID(requestID uint64) {
 	streamId := strconv.FormatUint(requestID, 10)
-	xRpcCmd.data = xRpcCmd.codec.SetStreamID(xRpcCmd.data, streamId)
+	xRpcCmd.data = networkbuffer.NewIoBufferBytes(xRpcCmd.codec.SetStreamID(xRpcCmd.data.Bytes(), streamId))
 }
 
 // Header no use util we change multiplexing interface
@@ -127,7 +127,7 @@ func (xRpcCmd *XRpcCmd) Header() map[string]string {
 }
 
 // Data no use util we change multiplexing interface
-func (xRpcCmd *XRpcCmd) Data() []byte {
+func (xRpcCmd *XRpcCmd) Data() types.IoBuffer {
 	return xRpcCmd.data
 }
 
@@ -137,7 +137,7 @@ func (xRpcCmd *XRpcCmd) SetHeader(header map[string]string) {
 }
 
 // SetData no use util we change multiplexing interface
-func (xRpcCmd *XRpcCmd) SetData(data []byte) {
+func (xRpcCmd *XRpcCmd) SetData(data types.IoBuffer) {
 	xRpcCmd.data = data
 }
 
