@@ -201,7 +201,7 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 // RouterRuleFactory creates a RouteBase
 type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) RouteBase
 
-// MakeHandlerChain creates a RouteHandlerChain
+// MakeHandlerChain creates a RouteHandlerChain, should not returns a nil handler chain, or the stream filters will be ignored
 type MakeHandlerChain func(types.HeaderMap, types.Routers, types.ClusterManager) *RouteHandlerChain
 
 // The reigister order, is a wrapper of registered factory

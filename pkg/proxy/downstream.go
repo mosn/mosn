@@ -279,8 +279,9 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	routers := s.proxy.routersWrapper.GetRouters()
 	// do handler chain
 	handlerChain := router.CallMakeHandlerChain(headers, routers, s.proxy.clusterManager)
+	// handlerChain should never be nil
 	if handlerChain == nil {
-		log.DefaultLogger.Warnf("no route to make handler chain, headers = %v", headers)
+		log.DefaultLogger.Errorf("no route to make handler chain, headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return

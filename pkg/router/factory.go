@@ -79,12 +79,11 @@ func (h *simpleHandler) Route() types.Route {
 }
 
 func DefaultMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
+	var handlers []types.RouteHandler
 	if r := routers.Route(headers, 1); r != nil {
-		return NewRouteHandlerChain(context.Background(), clusterManager, []types.RouteHandler{
-			&simpleHandler{route: r},
-		})
+		handlers = append(handlers, &simpleHandler{route: r})
 	}
-	return nil
+	return NewRouteHandlerChain(context.Background(), clusterManager, handlers)
 }
 
 func CallMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
