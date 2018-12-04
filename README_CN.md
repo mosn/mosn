@@ -23,7 +23,7 @@ MOSN 初始版本由蚂蚁金服和阿里大文娱UC事业部携手贡献，期�
 + 多协议
     + 支持 HTTP/1.1，HTTP/2
     + 支持 SOFARPC
-    + 支持 Dubbo 协议（开发中）
+    + 支持 Dubbo 协议（基于XProtocol支持）
 + 核心路由
     + 支持 Virtual Host 路由
     + 支持 Headers/URL/Prefix 路由

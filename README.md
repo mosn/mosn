@@ -23,7 +23,7 @@ follow-up development and build an open source excellent project together.
 + Multi-protocol support
     + HTTP/1.1，HTTP/2.0
     + SOFARPC
-    + Dubbo(ongoing)
+    + Dubbo(based on XProtocol)
 + Routing support
     + Routing in form of virtual host
     + Routing with headers/url/prefix
