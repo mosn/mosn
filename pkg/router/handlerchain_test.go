@@ -100,8 +100,12 @@ func TestDefaultMakeHandlerChain(t *testing.T) {
 	}
 	// header not match, no handlers
 	headerNotMatch := protocol.CommonHeader(map[string]string{})
-	if hc := CallMakeHandlerChain(headerNotMatch, routers, clusterManager); hc != nil {
+	if hc := CallMakeHandlerChain(headerNotMatch, routers, clusterManager); hc == nil {
 		t.Fatal("make handler chain unexpected")
+	} else {
+		if _, r := hc.DoNextHandler(); r != nil {
+			t.Fatal("do next handler failed")
+		}
 	}
 
 }

@@ -279,13 +279,22 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	routers := s.proxy.routersWrapper.GetRouters()
 	// do handler chain
 	handlerChain := router.CallMakeHandlerChain(headers, routers, s.proxy.clusterManager)
+	// handlerChain should never be nil
 	if handlerChain == nil {
-		log.DefaultLogger.Warnf("no route to make handler chain, headers = %v", headers)
+		log.DefaultLogger.Errorf("no route to make handler chain, headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
 	}
 	clusterSnapshot, route := handlerChain.DoNextHandler()
+	s.route = route
+	// run stream filters after route is choosed
+	// the route maybe nil, but the stream filter should also be run
+	// stream filter maybe send a hijack reply ignore the route
+	if s.runReceiveHeadersFilters(filter, headers, endStream) {
+		return
+	}
+	// after stream filters run, check the route
 	if route == nil {
 		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
@@ -294,11 +303,10 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 		return
 	}
-	s.route = route
 	// check if route have direct response
 	// direct response will response now
 	if resp := s.route.DirectResponseRule(); !(resp == nil || reflect.ValueOf(resp).IsNil()) {
-		log.DefaultLogger.Infof("direct response for stream , id = %s", s.ID)
+		log.DefaultLogger.Infof("direct response for stream , id = %d", s.ID)
 		if resp.Body() != "" {
 			s.sendHijackReplyWithBody(resp.StatusCode(), headers, resp.Body())
 		} else {
@@ -324,11 +332,6 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// so need determination at the first time
 	clusterName := route.RouteRule().ClusterName()
 	log.DefaultLogger.Tracef("get route : %v,clusterName=%v", route, clusterName)
-
-	// run stream filters after route is choosed
-	if s.runReceiveHeadersFilters(filter, headers, endStream) {
-		return
-	}
 
 	s.snapshot = clusterSnapshot
 
