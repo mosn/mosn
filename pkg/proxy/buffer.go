@@ -39,6 +39,7 @@ func (ctx proxyBufferCtx) New() interface{} {
 func (ctx proxyBufferCtx) Reset(i interface{}) {
 	buf, _ := i.(*proxyBuffers)
 	*buf = proxyBuffers{}
+
 }
 
 type proxyBuffers struct {

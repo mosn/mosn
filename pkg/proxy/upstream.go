@@ -46,6 +46,9 @@ type upstreamRequest struct {
 	dataSent     bool
 	trailerSent  bool
 	setupRetry   bool
+
+	// ~~~ events, separate events from each connection to avoid excessive synchronization
+	eventSet
 }
 
 // reset upstream request in proxy context
@@ -65,13 +68,11 @@ func (r *upstreamRequest) resetStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
-	workerPool.Offer(&resetEvent{
-		streamEvent: streamEvent{
-			direction: Upstream,
-			streamID:  r.downStream.ID,
-			stream:    r.downStream,
+	r.eventSet.Reset(event{
+		reset,
+		func() {
+			r.ResetStream(reason)
 		},
-		reason: reason,
 	})
 }
 
@@ -95,14 +96,11 @@ func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers type
 		headers.Del(protocol.MosnResponseStatusCode)
 	}
 
-	workerPool.Offer(&receiveHeadersEvent{
-		streamEvent: streamEvent{
-			direction: Upstream,
-			streamID:  r.downStream.ID,
-			stream:    r.downStream,
+	r.eventSet.Append(event{
+		recvHeader,
+		func() {
+			r.ReceiveHeaders(headers, endStream)
 		},
-		headers:   headers,
-		endStream: endStream,
 	})
 }
 
@@ -115,14 +113,11 @@ func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBu
 	r.downStream.downstreamRespDataBuf = data.Clone()
 	data.Drain(data.Len())
 
-	workerPool.Offer(&receiveDataEvent{
-		streamEvent: streamEvent{
-			direction: Upstream,
-			streamID:  r.downStream.ID,
-			stream:    r.downStream,
+	r.eventSet.Append(event{
+		recvData,
+		func() {
+			r.ReceiveData(r.downStream.downstreamReqDataBuf, endStream)
 		},
-		data:      r.downStream.downstreamRespDataBuf,
-		endStream: endStream,
 	})
 }
 
@@ -133,13 +128,11 @@ func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
 }
 
 func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-	workerPool.Offer(&receiveTrailerEvent{
-		streamEvent: streamEvent{
-			direction: Upstream,
-			streamID:  r.downStream.ID,
-			stream:    r.downStream,
+	r.eventSet.Append(event{
+		recvTrailer,
+		func() {
+			r.ReceiveTrailers(trailers)
 		},
-		trailers: trailers,
 	})
 }
 

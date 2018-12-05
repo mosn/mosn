@@ -24,7 +24,6 @@ import (
 	"net"
 	"reflect"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -43,6 +42,8 @@ import (
 // types.FilterChainFactoryCallbacks
 // Downstream stream, as a controller to handle downstream and upstream proxy flow
 type downStream struct {
+	context context.Context
+
 	ID      uint32
 	proxy   *proxy
 	route   types.Route
@@ -72,6 +73,9 @@ type downStream struct {
 	downstreamRespDataBuf  types.IoBuffer
 	downstreamRespTrailers types.HeaderMap
 
+	// ~~~ events, separate events from each connection to avoid excessive synchronization
+	eventSet
+
 	// ~~~ state
 	// starts to send back downstream response, set on upstream response detected
 	downstreamResponseStarted bool
@@ -82,20 +86,15 @@ type downStream struct {
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone bool
 
-	filterStage int
-
 	downstreamReset   uint32
 	downstreamCleaned uint32
 	upstreamReset     uint32
 
+	filterStage int
+
 	// ~~~ filters
 	senderFilters   []*activeStreamSenderFilter
 	receiverFilters []*activeStreamReceiverFilter
-
-	// mux for downstream-upstream flow
-	mux sync.Mutex
-
-	context context.Context
 
 	// stream access logs
 	streamAccessLogs []types.AccessLog
@@ -126,13 +125,12 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	stream.logger = log.ByContext(proxy.context)
 
+	stream.eventSet.Init(stream.ID)
+
 	proxy.stats.DownstreamRequestTotal.Inc(1)
 	proxy.stats.DownstreamRequestActive.Inc(1)
 	proxy.listenerStats.DownstreamRequestTotal.Inc(1)
 	proxy.listenerStats.DownstreamRequestActive.Inc(1)
-
-	// start event process
-	stream.startEventProcess()
 
 	// debug message for downstream
 	stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
@@ -209,8 +207,11 @@ func (s *downStream) cleanStream() {
 		}
 	}
 
-	// stop event process
-	s.stopEventProcess()
+	// recycle if no events
+	if s.eventSet.Size() == 0 {
+		s.GiveStream()
+	}
+
 	// delete stream
 	s.proxy.deleteActiveStream(s)
 }
@@ -225,22 +226,19 @@ func (s *downStream) shouldDeleteStream() bool {
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
-	// set downstreamReset flag before real reset logic
-	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
-		return
-	}
-
-	workerPool.Offer(&resetEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
+	s.eventSet.Reset(event{
+		reset,
+		func() {
+			s.ResetStream(reason)
 		},
-		reason: reason,
 	})
 }
 
 func (s *downStream) ResetStream(reason types.StreamResetReason) {
+	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
+		return
+	}
+
 	s.proxy.stats.DownstreamRequestReset.Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset.Inc(1)
 	s.cleanStream()
@@ -248,14 +246,11 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 
 // types.StreamReceiver
 func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	workerPool.Offer(&receiveHeadersEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
+	s.eventSet.Append(event{
+		recvHeader,
+		func() {
+			s.ReceiveHeaders(headers, endStream)
 		},
-		headers:   headers,
-		endStream: endStream,
 	})
 }
 
@@ -368,6 +363,8 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.upstreamRequest.downStream = s
 	s.upstreamRequest.proxy = s.proxy
 	s.upstreamRequest.connPool = pool
+	s.upstreamRequest.eventSet.Init(s.ID)
+
 	route.RouteRule().FinalizeRequestHeaders(headers, s.requestInfo)
 
 	//Call upstream's append header method to build upstream's request
@@ -383,14 +380,11 @@ func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer,
 	s.downstreamReqDataBuf.Count(1)
 	data.Drain(data.Len())
 
-	workerPool.Offer(&receiveDataEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
+	s.eventSet.Append(event{
+		recvData,
+		func() {
+			s.ReceiveData(s.downstreamReqDataBuf, endStream)
 		},
-		data:      s.downstreamReqDataBuf,
-		endStream: endStream,
 	})
 }
 
@@ -427,13 +421,11 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 }
 
 func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-	workerPool.Offer(&receiveTrailerEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
+	s.eventSet.Append(event{
+		recvTrailer,
+		func() {
+			s.ReceiveTrailers(trailers)
 		},
-		trailers: trailers,
 	})
 }
 
@@ -1027,26 +1019,4 @@ func (s *downStream) GiveStream() {
 		ctx.Give()
 	}
 
-}
-
-func (s *downStream) startEventProcess() {
-	// offer start event so that there is no lock contention on the streamPrcessMap[shard]
-	// all read/write operation should be able to trace back to the ShardWorkerPool goroutine
-	workerPool.Offer(&startEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
-		},
-	})
-}
-
-func (s *downStream) stopEventProcess() {
-	workerPool.Offer(&stopEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
-		},
-	})
 }
