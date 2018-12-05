@@ -73,9 +73,6 @@ type downStream struct {
 	downstreamRespDataBuf  types.IoBuffer
 	downstreamRespTrailers types.HeaderMap
 
-	// ~~~ events, separate events from each connection to avoid excessive synchronization
-	eventSet
-
 	// ~~~ state
 	// starts to send back downstream response, set on upstream response detected
 	downstreamResponseStarted bool
@@ -124,8 +121,6 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.context = ctx
 
 	stream.logger = log.ByContext(proxy.context)
-
-	stream.eventSet.Init(stream.ID)
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
 	proxy.stats.DownstreamRequestActive.Inc(1)
@@ -207,10 +202,8 @@ func (s *downStream) cleanStream() {
 		}
 	}
 
-	// recycle if no events
-	if s.eventSet.Size() == 0 {
-		s.GiveStream()
-	}
+	// recycle if no reset events
+	s.GiveStream()
 
 	// delete stream
 	s.proxy.deleteActiveStream(s)
@@ -226,9 +219,11 @@ func (s *downStream) shouldDeleteStream() bool {
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
-	s.eventSet.Reset(event{
-		reset,
-		func() {
+	workerPool.Offer(&event{
+		id:  s.ID,
+		dir: downstream,
+		evt: reset,
+		handle: func() {
 			s.ResetStream(reason)
 		},
 	})
@@ -246,9 +241,11 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 
 // types.StreamReceiver
 func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	s.eventSet.Append(event{
-		recvHeader,
-		func() {
+	workerPool.Offer(&event{
+		id:  s.ID,
+		dir: downstream,
+		evt: recvHeader,
+		handle: func() {
 			s.ReceiveHeaders(headers, endStream)
 		},
 	})
@@ -363,7 +360,6 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.upstreamRequest.downStream = s
 	s.upstreamRequest.proxy = s.proxy
 	s.upstreamRequest.connPool = pool
-	s.upstreamRequest.eventSet.Init(s.ID)
 
 	route.RouteRule().FinalizeRequestHeaders(headers, s.requestInfo)
 
@@ -380,9 +376,11 @@ func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer,
 	s.downstreamReqDataBuf.Count(1)
 	data.Drain(data.Len())
 
-	s.eventSet.Append(event{
-		recvData,
-		func() {
+	workerPool.Offer(&event{
+		id:  s.ID,
+		dir: downstream,
+		evt: recvData,
+		handle: func() {
 			s.ReceiveData(s.downstreamReqDataBuf, endStream)
 		},
 	})
@@ -390,7 +388,7 @@ func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer,
 
 func (s *downStream) ReceiveData(data types.IoBuffer, endStream bool) {
 	// if active stream finished before receive data, just ignore further data
-	if s.upstreamProcessDone {
+	if s.processDone() {
 		return
 	}
 	log.DefaultLogger.Tracef("downstream receive data = %v", data)
@@ -421,9 +419,11 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 }
 
 func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-	s.eventSet.Append(event{
-		recvTrailer,
-		func() {
+	workerPool.Offer(&event{
+		id:  s.ID,
+		dir: downstream,
+		evt: recvTrailer,
+		handle: func() {
 			s.ReceiveTrailers(trailers)
 		},
 	})
@@ -431,7 +431,7 @@ func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.H
 
 func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
 	// if active stream finished the lifecycle, just ignore further data
-	if s.upstreamProcessDone {
+	if s.processDone() {
 		return
 	}
 
@@ -1019,4 +1019,8 @@ func (s *downStream) GiveStream() {
 		ctx.Give()
 	}
 
+}
+
+func (s *downStream) processDone() bool {
+	return s.upstreamProcessDone || atomic.LoadUint32(&s.downstreamReset) == 1
 }
