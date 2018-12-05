@@ -289,9 +289,12 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	clusterSnapshot, route := handlerChain.DoNextHandler()
 	s.route = route
 	// run stream filters after route is choosed
+	// the route maybe nil, but the stream filter should also be run
+	// stream filter maybe send a hijack reply ignore the route
 	if s.runReceiveHeadersFilters(filter, headers, endStream) {
 		return
 	}
+	// after stream filters run, check the route
 	if route == nil {
 		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
