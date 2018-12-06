@@ -202,11 +202,11 @@ func (s *downStream) cleanStream() {
 		}
 	}
 
-	// recycle if no reset events
-	s.GiveStream()
-
 	// delete stream
 	s.proxy.deleteActiveStream(s)
+
+	// recycle if no reset events
+	s.GiveStream()
 }
 
 // note: added before countdown metrics
@@ -219,6 +219,10 @@ func (s *downStream) shouldDeleteStream() bool {
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
+	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
+		return
+	}
+
 	workerPool.Offer(&event{
 		id:  s.ID,
 		dir: downstream,
@@ -230,10 +234,6 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 }
 
 func (s *downStream) ResetStream(reason types.StreamResetReason) {
-	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
-		return
-	}
-
 	s.proxy.stats.DownstreamRequestReset.Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset.Inc(1)
 	s.cleanStream()

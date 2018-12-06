@@ -123,7 +123,7 @@ func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBu
 		dir: upstream,
 		evt: recvData,
 		handle: func() {
-			r.ReceiveData(r.downStream.downstreamReqDataBuf, endStream)
+			r.ReceiveData(r.downStream.downstreamRespDataBuf, endStream)
 		},
 	})
 }
