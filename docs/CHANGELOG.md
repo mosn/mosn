@@ -2,33 +2,37 @@
 
 ## 0.4.0
 
-### protocol
-- Refatcored HTTP1, using MOSN's IO goroutine
-- Refatcored HTTP2, using MOSN's IO goroutine
+
+### Protocol
+- Refatcored HTTP1, using MOSN's IO goroutine, 30% performance improvement
+- Refatcored HTTP2, using MOSN's IO goroutine, 100% performance improvement
 - Support GRPC in HTTP2, support pesudo header query
-- Improve performance
 - Refatcored protocol framework
 - Support HTTP1/HTTP2 protocol automatic identification
 - Support tracing in SofaRPC
 
-### stream filters
-- Support rate limit
-- Support fault inject
-- Support mixer as stream filter
-  - report request/response info
-
-### routing
+### Traffic Management
 - Support retry policy
 - Support direct response policy
 - Support HTTP header rewrite, rewrite the Host and URI
 - Support HTTP custom headers add/delete
-
-### others
 - Optimize tcp proxy
-- add admin APIs, support update default logger level and get mosn's config
-- Support more extensions
+- Support rate limit and qps limit
+- Support fault inject
 
-### bug ifx
+### Telemetry
+- Support mixer report request/response info
+
+### Extension
+- Support more extensions
+  - Support a scalable chain routing
+  - SofaRPC Protocol support extension
+
+### Others
+- Add admin APIs, support update default logger level and get mosn's config
+- Use RCU lock to update cluster
+
+### Bug Fix
 - Fix some memory leak bugs
 - Fix some smooth upgrade bugs
 - Fix some HTTP1/HTTP2 bugs
