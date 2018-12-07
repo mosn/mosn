@@ -138,13 +138,13 @@ GoLang 的转发性能比起 C++ 肯定是稍有逊色的，为了尽可能的�
 
 ### 模型二
 
-如下图所示，基于 [Netoll](https://godoc.org/github.com/mailru/easygo/netpoll) 重写 epoll 机制，将 IO 和 PROXY 均进行池化，downstream connection 将自身的读写事件注册到 netpoll 的 epoll/kqueue wait 协程，poll/kqueue wait 协程接受到可读事件，触发回调，从协程池中挑选一个执行读操作。
+如下图所示，基于 [Netpoll](https://godoc.org/github.com/mailru/easygo/netpoll) 重写 epoll 机制，将 IO 和 PROXY 均进行池化，downstream connection 将自身的读写事件注册到 netpoll 的 epoll/kqueue wait 协程，epoll/kqueue wait 协程接受到可读事件，触发回调，从协程池中挑选一个执行读操作。
 
 ![NetPoll 协程池](design/resource/MOSNThreadModelStage2.png)
 
 + 使用自定义 Netpoll IO 池化操作带来的好处是：
     + 当可读事件触发时，从协程池中获取一个 goroutine 来执行读处理，而不是新分配一个 goroutine，以此来控制高并发下的协程数量
-    + 当收到链接可读事件时，才真正为其分配 read buffer 以及相应的执行协程。这样 GetBytes（）可以降低因为大量空闲链接场景导致的额外协程和 read buffer 开销
+    + 当收到链接可读事件时，才真正为其分配 read buffer 以及相应的执行协程。这样 GetBytes()可以降低因为大量空闲链接场景导致的额外协程和 read buffer 开销
 + 此模型适用于连接数较多、可读连接数量受限的情况，例如：mosn 作为 api gateway 的场景
 
 ## SOFAMosn 做了哪些内存优化
