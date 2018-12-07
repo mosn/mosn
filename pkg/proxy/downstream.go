@@ -42,8 +42,6 @@ import (
 // types.FilterChainFactoryCallbacks
 // Downstream stream, as a controller to handle downstream and upstream proxy flow
 type downStream struct {
-	context context.Context
-
 	ID      uint32
 	proxy   *proxy
 	route   types.Route
@@ -83,15 +81,17 @@ type downStream struct {
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone bool
 
+	filterStage int
+
 	downstreamReset   uint32
 	downstreamCleaned uint32
 	upstreamReset     uint32
 
-	filterStage int
-
 	// ~~~ filters
 	senderFilters   []*activeStreamSenderFilter
 	receiverFilters []*activeStreamReceiverFilter
+
+	context context.Context
 
 	// stream access logs
 	streamAccessLogs []types.AccessLog
@@ -360,7 +360,6 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.upstreamRequest.downStream = s
 	s.upstreamRequest.proxy = s.proxy
 	s.upstreamRequest.connPool = pool
-
 	route.RouteRule().FinalizeRequestHeaders(headers, s.requestInfo)
 
 	//Call upstream's append header method to build upstream's request
@@ -1021,6 +1020,7 @@ func (s *downStream) GiveStream() {
 
 }
 
+// check if proxy process done
 func (s *downStream) processDone() bool {
 	return s.upstreamProcessDone || atomic.LoadUint32(&s.downstreamReset) == 1
 }
