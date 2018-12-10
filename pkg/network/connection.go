@@ -22,16 +22,13 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"os"
 	"reflect"
+	"runtime"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"runtime/debug"
-
-	"os"
-
-	"runtime"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
