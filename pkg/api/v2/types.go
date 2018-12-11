@@ -95,7 +95,6 @@ type Cluster struct {
 // use DurationConfig to parse string to time.Duration
 type HealthCheck struct {
 	HealthCheckConfig
-	ProtocolCode   byte          `json:"-"`
 	Timeout        time.Duration `json:"-"`
 	Interval       time.Duration `json:"-"`
 	IntervalJitter time.Duration `json:"-"`

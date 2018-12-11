@@ -96,11 +96,8 @@ type Cluster interface {
 
 	PrioritySet() PrioritySet
 
-	// set the cluster's health checker
-	SetHealthChecker(hc HealthChecker)
-
-	// return the cluster's health checker
-	HealthChecker() HealthChecker
+	// Add health check callbacks in health checker
+	AddHealthCheckCallbacks(cb HealthCheckCb)
 }
 
 // InitializePhase type
@@ -138,12 +135,7 @@ type HostSet interface {
 
 	HealthyHosts() []Host
 
-	HostsPerLocality() [][]Host
-
-	HealthHostsPerLocality() [][]Host
-
-	UpdateHosts(hosts []Host, healthyHost []Host, hostsPerLocality [][]Host,
-		healthyHostPerLocality [][]Host, hostsAdded []Host, hostsRemoved []Host)
+	UpdateHosts(hosts []Host, healthyHost []Host, hostsAdded []Host, hostsRemoved []Host)
 
 	Priority() uint32
 }

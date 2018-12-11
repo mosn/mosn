@@ -17,10 +17,6 @@
 
 package types
 
-import (
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-)
-
 // FailureType is the type of a failure
 type FailureType string
 
@@ -32,42 +28,20 @@ const (
 )
 
 // HealthCheckCb is the health check's callback function
-type HealthCheckCb func(host Host, changedState bool)
+type HealthCheckCb func(host Host, changedState bool, isHealthy bool)
 
-// HealthChecker is a object that used to check an upstream cluster is health or not.
 type HealthChecker interface {
-	// Start starts health checking, which will continually monitor hosts in upstream cluster.
 	Start()
-
-	// Stop stops cluster health check. Client can use it to start/stop health check as a heartbeat.
 	Stop()
-
-	// AddHostCheckCompleteCb is a health check callback, which will be called on a check round-trip is completed for a specified host.
 	AddHostCheckCompleteCb(cb HealthCheckCb)
-
-	// OnClusterMemberUpdate updates cluster's hosts for health checking.
 	OnClusterMemberUpdate(hostsAdded []Host, hostDel []Host)
-
-	// SetCluster adds a cluster to health checker.
-	SetCluster(cluster Cluster)
 }
 
-// HealthCheckSession is a health check session for an upstream host
 type HealthCheckSession interface {
-	// Start starts host health check
-	Start()
-
-	// Stop stops host health check
-	Stop()
-
-	// SetUnhealthy sets session as unhealthy for a specified reason
-	SetUnhealthy(fType FailureType)
+	CheckHealth() bool
+	OnTimeout()
 }
 
-// TODO: move factory instance to a factory package
-
-var HealthCheckFactoryInstance HealthCheckerFactory
-
-type HealthCheckerFactory interface {
-	New(config v2.HealthCheck) HealthChecker
+type HealthCheckSessionFactory interface {
+	NewSession(cfg map[string]interface{}, host Host) HealthCheckSession
 }

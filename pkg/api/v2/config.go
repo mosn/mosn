@@ -18,14 +18,14 @@
 package v2
 
 type HealthCheckConfig struct {
-	Protocol             string         `json:"protocol"`
-	TimeoutConfig        DurationConfig `json:"timeout"`
-	IntervalConfig       DurationConfig `json:"interval"`
-	IntervalJitterConfig DurationConfig `json:"interval_jitter"`
-	HealthyThreshold     uint32         `json:"healthy_threshold"`
-	UnhealthyThreshold   uint32         `json:"unhealthy_threshold"`
-	CheckPath            string         `json:"check_path,omitempty"`
-	ServiceName          string         `json:"service_name,omitempty"`
+	Protocol             string                 `json:"protocol"`
+	TimeoutConfig        DurationConfig         `json:"timeout"`
+	IntervalConfig       DurationConfig         `json:"interval"`
+	IntervalJitterConfig DurationConfig         `json:"interval_jitter"`
+	HealthyThreshold     uint32                 `json:"healthy_threshold"`
+	UnhealthyThreshold   uint32                 `json:"unhealthy_threshold"`
+	ServiceName          string                 `json:"service_name"`
+	SessionConfig        map[string]interface{} `json:"check_config"`
 }
 
 type HostConfig struct {

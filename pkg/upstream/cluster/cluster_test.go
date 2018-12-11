@@ -36,7 +36,7 @@ func TestPrioritySet_GetHostInfo(t *testing.T) {
 	for _, cfg := range hostscfg {
 		hosts = append(hosts, NewHost(cfg, info))
 	}
-	hs.UpdateHosts(hosts, nil, nil, nil, nil, nil)
+	hs.UpdateHosts(hosts, nil, nil, nil)
 	hostinfo := ps.GetHostsInfo(0)
 	if len(hostinfo) != len(hostscfg) {
 		t.Error("hostinfo length not expected")

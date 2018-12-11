@@ -31,6 +31,7 @@ const (
 	HealthCheckAttempt        = "health_check_attempt"
 	HealthCheckSuccess        = "health_check_success"
 	HealthCheckFailure        = "health_check_failure"
+	HealthCheckActiveFailure  = "health_check_active_failure"
 	HealthCheckPassiveFailure = "health_check_passive_failure"
 	HealthCheckNetworkFailure = "health_check_network_failure"
 	HealthCheckVeirfyCluster  = "health_check_verify_cluster"
