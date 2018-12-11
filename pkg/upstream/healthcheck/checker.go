@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package healthcheck
 
 import (
@@ -41,6 +58,7 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *ch
 
 func (c *checker) Start() {
 	defer func() {
+		// stop all the timer when start is finished
 		c.checkTimer.stop()
 		c.checkTimeout.stop()
 	}()
@@ -56,7 +74,7 @@ func (c *checker) Start() {
 			case <-c.stop:
 				return
 			case resp := <-c.resp:
-				// check the ID, ignore the timeout resp
+				// if the ID is not equal, means we receive a timeout for this ID, ignore the response
 				if resp.ID == c.checkID {
 					c.checkTimeout.stop()
 					if resp.Healthy {
@@ -64,12 +82,14 @@ func (c *checker) Start() {
 					} else {
 						c.HandleFailure(types.FailureActive)
 					}
+					// next health checker
 					c.checkTimer.start(c.HealthChecker.getCheckInterval())
 				}
 			case <-c.timeout:
 				c.checkTimer.stop()
 				c.Session.OnTimeout() // session timeout callbacks
 				c.HandleFailure(types.FailureNetwork)
+				// next health checker
 				c.checkTimer.start(c.HealthChecker.getCheckInterval())
 			}
 		}
@@ -85,6 +105,7 @@ func (c *checker) HandleSuccess() {
 	changed := false
 	if c.Host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
 		c.healthCount++
+		// check the threshold
 		if c.healthCount == c.HealthChecker.healthyThreshold {
 			changed = true
 			c.Host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
@@ -98,6 +119,7 @@ func (c *checker) HandleFailure(reason types.FailureType) {
 	changed := false
 	if !c.Host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
 		c.unHealthCount++
+		// check the threshold
 		if c.unHealthCount == c.HealthChecker.unhealthyThreshold {
 			changed = true
 			c.Host.SetHealthFlag(types.FAILED_ACTIVE_HC)

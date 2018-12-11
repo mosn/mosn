@@ -425,7 +425,7 @@ func (hsi *hostSubsetImpl) UpdateHostSubset(hostsAdded []types.Host, hostsRemove
 		}
 	}
 
-	//最终更新host
+	// update final hosts
 	hsi.hostSubset.UpdateHosts(finalhosts, healthyHosts, filteredAdded, filteredRemoved)
 }
 
