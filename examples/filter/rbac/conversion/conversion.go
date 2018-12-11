@@ -9,7 +9,9 @@ import (
 )
 
 func pb2json(rbac *envoy_config_v2.RBAC) (string, error) {
-	var m jsonpb.Marshaler
+	m := jsonpb.Marshaler{
+		EmitDefaults: true,
+	}
 	if js, err := m.MarshalToString(rbac); err != nil {
 		return "", err
 	} else {
