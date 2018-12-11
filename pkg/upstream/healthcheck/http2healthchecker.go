@@ -60,15 +60,15 @@ func (c *http2HealthChecker) newSession(host types.Host) types.HealthCheckSessio
 	return hhcs
 }
 
-func (c *http2HealthChecker) createCodecClient(data types.CreateConnectionData) stream.CodecClient {
-	return stream.NewCodecClient(context.Background(), protocol.HTTP2, data.Connection, data.HostInfo)
+func (c *http2HealthChecker) createCodecClient(data types.CreateConnectionData) stream.Client {
+	return stream.NewStreamClient(context.Background(), protocol.HTTP2, data.Connection, data.HostInfo)
 }
 
 // types.StreamReceiver
 type http2HealthCheckSession struct {
 	healthCheckSession
 
-	client          stream.CodecClient
+	client          stream.Client
 	requestSender   types.StreamSender
 	responseHeaders map[string]string
 	healthChecker   *http2HealthChecker

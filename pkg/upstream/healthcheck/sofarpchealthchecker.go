@@ -63,7 +63,7 @@ func newSofaRPCHealthCheckerWithBaseHealthChecker(hc *healthChecker, protocolCod
 	return shc
 }
 
-func (c *sofarpcHealthChecker) newSofaRPCHealthCheckSession(codecClinet stream.CodecClient, host types.Host) types.HealthCheckSession {
+func (c *sofarpcHealthChecker) newSofaRPCHealthCheckSession(codecClinet stream.Client, host types.Host) types.HealthCheckSession {
 	shcs := &sofarpcHealthCheckSession{
 		client:             codecClinet,
 		healthChecker:      c,
@@ -89,15 +89,15 @@ func (c *sofarpcHealthChecker) newSession(host types.Host) types.HealthCheckSess
 	return shcs
 }
 
-func (c *sofarpcHealthChecker) createCodecClient(data types.CreateConnectionData) stream.CodecClient {
-	return stream.NewCodecClient(context.Background(), protocol.SofaRPC, data.Connection, data.HostInfo)
+func (c *sofarpcHealthChecker) createCodecClient(data types.CreateConnectionData) stream.Client {
+	return stream.NewStreamClient(context.Background(), protocol.SofaRPC, data.Connection, data.HostInfo)
 }
 
 // types.StreamReceiver
 type sofarpcHealthCheckSession struct {
 	healthCheckSession
 
-	client         stream.CodecClient
+	client         stream.Client
 	requestSender  types.StreamSender
 	responseStatus int16
 	healthChecker  *sofarpcHealthChecker

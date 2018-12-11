@@ -82,7 +82,7 @@ func (p *connPool) NewStream(ctx context.Context,
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := activeClient.codecClient.NewStream(ctx, responseDecoder)
+		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
 		cb.OnReady(streamEncoder, p.host)
 	}
 
@@ -91,7 +91,7 @@ func (p *connPool) NewStream(ctx context.Context,
 
 func (p *connPool) Close() {
 	if p.activeClient != nil {
-		p.activeClient.codecClient.Close()
+		p.activeClient.client.Close()
 	}
 }
 
@@ -111,7 +111,7 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		client.codecClient.Close()
+		client.client.Close()
 		p.activeClient = nil
 	} else if event == types.ConnectFailed {
 		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
@@ -140,16 +140,16 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 	}
 }
 
-func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
-	return str.NewCodecClient(context, protocol.MHTTP2, connData.Connection, connData.HostInfo)
+func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.Client {
+	return str.NewStreamClient(context, protocol.MHTTP2, connData.Connection, connData.HostInfo)
 }
 
-// stream.CodecClientCallbacks
+// stream.ClientListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connPool
-	codecClient        str.CodecClient
+	client             str.Client
 	host               types.CreateConnectionData
 	closeWithActiveReq bool
 	totalStream        uint64
@@ -169,11 +169,11 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createCodecClient(connCtx, data)
-	codecClient.AddConnectionCallbacks(ac)
-	codecClient.SetCodecClientCallbacks(ac)
-	codecClient.SetCodecConnectionCallbacks(ac)
+	codecClient.AddConnectionEventListener(ac)
+	codecClient.SetClientListener(ac)
+	codecClient.SetConnectionEventListener(ac)
 
-	ac.codecClient = codecClient
+	ac.client = codecClient
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)

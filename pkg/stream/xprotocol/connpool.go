@@ -88,7 +88,7 @@ func (p *connPool) NewStream(context context.Context, responseDecoder types.Stre
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream")
-		streamEncoder := p.primaryClient.codecClient.NewStream(context, responseDecoder)
+		streamEncoder := p.primaryClient.client.NewStream(context, responseDecoder)
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
 		cb.OnReady(streamEncoder, p.host)
 	}
@@ -102,7 +102,7 @@ func (p *connPool) Close() {
 	defer p.mux.Unlock()
 
 	if p.primaryClient != nil {
-		p.primaryClient.codecClient.Close()
+		p.primaryClient.client.Close()
 	}
 }
 
@@ -128,7 +128,7 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		client.codecClient.Close()
+		client.client.Close()
 	} else if event == types.ConnectFailed {
 		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
@@ -167,29 +167,29 @@ func (p *connPool) onGoAway(client *activeClient) {
 	}
 }
 
-func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
-	return str.NewCodecClient(context, protocol.Xprotocol, connData.Connection, connData.HostInfo)
+func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.Client {
+	return str.NewStreamClient(context, protocol.Xprotocol, connData.Connection, connData.HostInfo)
 }
 
 func (p *connPool) movePrimaryToDraining() {
 	if p.drainingClient != nil {
-		p.drainingClient.codecClient.Close()
+		p.drainingClient.client.Close()
 	}
 
-	if p.primaryClient.codecClient.ActiveRequestsNum() == 0 {
-		p.primaryClient.codecClient.Close()
+	if p.primaryClient.client.ActiveRequestsNum() == 0 {
+		p.primaryClient.client.Close()
 	} else {
 		p.drainingClient = p.primaryClient
 		p.primaryClient = nil
 	}
 }
 
-// stream.CodecClientCallbacks
+// stream.ClientListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connPool
-	codecClient        str.CodecClient
+	client             str.Client
 	host               types.HostInfo
 	totalStream        uint64
 	closeWithActiveReq bool
@@ -208,11 +208,11 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create codec client")
 	codecClient := pool.createCodecClient(context, data)
 	log.DefaultLogger.Tracef("xprotocol new active client , create codec client success")
-	codecClient.AddConnectionCallbacks(ac)
-	codecClient.SetCodecClientCallbacks(ac)
-	codecClient.SetCodecConnectionCallbacks(ac)
+	codecClient.AddConnectionEventListener(ac)
+	codecClient.SetClientListener(ac)
+	codecClient.SetConnectionEventListener(ac)
 
-	ac.codecClient = codecClient
+	ac.client = codecClient
 	ac.host = data.HostInfo
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)

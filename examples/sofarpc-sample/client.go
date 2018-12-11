@@ -20,7 +20,7 @@ import (
 )
 
 type Client struct {
-	Codec stream.CodecClient
+	Codec stream.Client
 	conn  types.ClientConnection
 	Id    uint64
 }
@@ -34,7 +34,7 @@ func NewClient(addr string) *Client {
 		fmt.Println(err)
 		return nil
 	}
-	c.Codec = stream.NewCodecClient(context.Background(), protocol.SofaRPC, conn, nil)
+	c.Codec = stream.NewStreamClient(context.Background(), protocol.SofaRPC, conn, nil)
 	c.conn = conn
 	return c
 }

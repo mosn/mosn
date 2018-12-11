@@ -29,7 +29,7 @@ import (
 // StartSofaHeartBeat use for hearth-beat starting for sofa bolt in the same codecClient
 // for bolt heartbeat, timeout: 90s interval: 15s
 func StartSofaHeartBeat(timeout time.Duration, interval time.Duration, hostAddr string,
-	codecClient stream.CodecClient, nameHB string, protocolCode byte) types.HealthCheckSession {
+	codecClient stream.Client, nameHB string, protocolCode byte) types.HealthCheckSession {
 
 	hcV2 := v2.HealthCheck{
 		Timeout:  timeout,

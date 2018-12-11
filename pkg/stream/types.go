@@ -27,30 +27,28 @@ import (
 var FAILED = errors.New("FAILED")
 var EAGAIN = errors.New("AGAIN")
 
-type CodecClient interface {
+type Client interface {
 	types.ConnectionEventListener
 	types.ReadFilter
 
-	ID() uint64
-
-	AddConnectionCallbacks(cb types.ConnectionEventListener)
+	ConnID() uint64
 
 	ActiveRequestsNum() int
 
-	NewStream(context context.Context, respDecoder types.StreamReceiver) types.StreamSender
+	AddConnectionEventListener(listener types.ConnectionEventListener)
 
 	SetConnectionStats(stats *types.ConnectionStats)
 
-	SetCodecClientCallbacks(cb CodecClientCallbacks)
+	SetClientListener(listener ClientListener)
 
-	SetCodecConnectionCallbacks(cb types.StreamConnectionEventListener)
+	SetConnectionEventListener(listener types.StreamConnectionEventListener)
+
+	NewStream(context context.Context, respDecoder types.StreamReceiver) types.StreamSender
 
 	Close()
-
-	RemoteClose() bool
 }
 
-type CodecClientCallbacks interface {
+type ClientListener interface {
 	OnStreamDestroy()
 
 	OnStreamReset(reason types.StreamResetReason)

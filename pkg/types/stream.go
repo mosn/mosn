@@ -108,9 +108,6 @@ type Stream interface {
 	// ResetStream rests stream
 	// Any registered StreamEventListener.OnResetStream should be called.
 	ResetStream(reason StreamResetReason)
-
-	// ReadDisable enable/disable further stream data
-	ReadDisable(disable bool)
 }
 
 // StreamEventListener is a stream event listener
