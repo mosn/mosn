@@ -4,7 +4,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoy_config_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2"
 	. "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2alpha"
-	"github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 )
 
 var rbacExp = &envoy_config_v2.RBAC{
@@ -20,20 +19,12 @@ var rbacExp = &envoy_config_v2.RBAC{
 				Principals: []*Principal{
 					{
 						Identifier: &Principal_Authenticated_{
-							Authenticated: &Principal_Authenticated{
-								PrincipalName: &matcher.StringMatcher{
-									MatchPattern: &matcher.StringMatcher_Exact{Exact: "cluster.local/ns/default/sa/admin"},
-								},
-							},
+							Authenticated: &Principal_Authenticated{Name: "cluster.local/ns/default/sa/admin"},
 						},
 					},
 					{
 						Identifier: &Principal_Authenticated_{
-							Authenticated: &Principal_Authenticated{
-								PrincipalName: &matcher.StringMatcher{
-									MatchPattern: &matcher.StringMatcher_Exact{Exact: "cluster.local/ns/default/sa/superuser"},
-								},
-							},
+							Authenticated: &Principal_Authenticated{Name: "cluster.local/ns/default/sa/superuser"},
 						},
 					},
 				},

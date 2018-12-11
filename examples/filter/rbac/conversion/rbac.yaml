@@ -7,11 +7,9 @@ rbac:
         - any: true
         principals:
         - authenticated:
-            principal_name:
-              exact: "cluster.local/ns/default/sa/admin"
+            name: "cluster.local/ns/default/sa/admin"
         - authenticated:
-            principal_name:
-              exact: "cluster.local/ns/default/sa/superuser"
+            name: "cluster.local/ns/default/sa/superuser"
   shadow_rules:
     action: DENY
       "product-viewer":
