@@ -41,6 +41,12 @@ type PrincipalAny struct {
 	Any bool
 }
 
+func NewPrincipalAny(principal *v2alpha.Principal_Any) (*PrincipalAny, error) {
+	return &PrincipalAny{
+		Any: principal.Any,
+	}, nil
+}
+
 func (principal *PrincipalAny) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
 	return principal.Any
 }
@@ -50,8 +56,10 @@ type PrincipalSourceIp struct {
 	CidrRange *net.IPNet
 }
 
-func NewPrincipalSourceIp(ipAddress string, maskLen int) (*PrincipalSourceIp, error) {
-	if _, ipNet, err := net.ParseCIDR(ipAddress + "/" + strconv.Itoa(maskLen)); err != nil {
+func NewPrincipalSourceIp(principal *v2alpha.Principal_SourceIp) (*PrincipalSourceIp, error) {
+	addressPrefix := principal.SourceIp.AddressPrefix
+	prefixLen := principal.SourceIp.PrefixLen.GetValue()
+	if _, ipNet, err := net.ParseCIDR(addressPrefix + "/" + strconv.Itoa(int(prefixLen))); err != nil {
 		return nil, err
 	} else {
 		inheritPrincipal := &PrincipalSourceIp{
@@ -87,18 +95,9 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 	//	*Principal_Metadata
 	switch principal.Identifier.(type) {
 	case *v2alpha.Principal_Any:
-		inheritPrincipal := &PrincipalAny{
-			Any: principal.Identifier.(*v2alpha.Principal_Any).Any,
-		}
-		return inheritPrincipal, nil
+		return NewPrincipalAny(principal.Identifier.(*v2alpha.Principal_Any))
 	case *v2alpha.Principal_SourceIp:
-		addressPrefix := principal.Identifier.(*v2alpha.Principal_SourceIp).SourceIp.AddressPrefix
-		prefixLen := principal.Identifier.(*v2alpha.Principal_SourceIp).SourceIp.PrefixLen.GetValue()
-		if inheritPrincipal, err := NewPrincipalSourceIp(addressPrefix, int(prefixLen)); err != nil {
-			return nil, err
-		} else {
-			return inheritPrincipal, nil
-		}
+		return NewPrincipalSourceIp(principal.Identifier.(*v2alpha.Principal_SourceIp))
 	default:
 		return nil, fmt.Errorf("not supported principal type found, detail: %v", reflect.TypeOf(principal.Identifier))
 	}

@@ -37,6 +37,12 @@ type PermissionAny struct {
 	Any bool
 }
 
+func NewPermissionAny(permission *v2alpha.Permission_Any) (*PermissionAny, error) {
+	return &PermissionAny{
+		Any: permission.Any,
+	}, nil
+}
+
 func (permission *PermissionAny) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
 	return permission.Any
 }
@@ -53,10 +59,7 @@ func NewInheritPermission(permission *v2alpha.Permission) (InheritPermission, er
 	//	*Permission_Metadata
 	switch permission.Rule.(type) {
 	case *v2alpha.Permission_Any:
-		inheritPermission := &PermissionAny{
-			Any: permission.Rule.(*v2alpha.Permission_Any).Any,
-		}
-		return inheritPermission, nil
+		return NewPermissionAny(permission.Rule.(*v2alpha.Permission_Any))
 	default:
 		return nil, fmt.Errorf("not supported permission type found, detail: %v", reflect.TypeOf(permission.Rule))
 	}
