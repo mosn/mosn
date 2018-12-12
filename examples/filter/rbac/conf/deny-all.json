@@ -55,7 +55,7 @@
                 "rules": {
                   "action": "DENY",
                   "policies": {
-                    "deny-post-request": {
+                    "deny-all": {
                       "permissions": [
                         {
                           "any": true
@@ -63,10 +63,7 @@
                       ],
                       "principals": [
                         {
-                          "header": {
-                            "name": ":method",
-                            "exactMatch": "POST"
-                          }
+                          "any": true
                         }
                       ]
                     }

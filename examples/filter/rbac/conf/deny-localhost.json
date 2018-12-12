@@ -55,7 +55,7 @@
                 "rules": {
                   "action": "DENY",
                   "policies": {
-                    "deny-post-request": {
+                    "deny-localhost": {
                       "permissions": [
                         {
                           "any": true
@@ -63,9 +63,9 @@
                       ],
                       "principals": [
                         {
-                          "header": {
-                            "name": ":method",
-                            "exactMatch": "POST"
+                          "sourceIp": {
+                            "addressPrefix": "127.0.0.1",
+                            "prefixLen": 32
                           }
                         }
                       ]
