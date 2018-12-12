@@ -246,6 +246,8 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 	s.cleanStream()
 }
 
+func (s *downStream) OnDestroyStream() {}
+
 // types.StreamReceiver
 func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	workerPool.Offer(&receiveHeadersEvent{

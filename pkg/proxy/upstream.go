@@ -75,6 +75,8 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	})
 }
 
+func (r *upstreamRequest) OnDestroyStream() {}
+
 func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 

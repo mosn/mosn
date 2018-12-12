@@ -222,18 +222,6 @@ func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
 
 // GetListenerDisableIO used to check downstream protocol and return ListenerDisableIO
 func GetListenerDisableIO(c *v2.FilterChain) bool {
-	for _, f := range c.Filters {
-		if f.Type == v2.DEFAULT_NETWORK_FILTER {
-			if downstream, ok := f.Config["downstream_protocol"]; ok {
-				//if downstream == string(protocol.HTTP2) || downstream == string(protocol.HTTP1) {
-				//	return true
-				//}
-				if downstream == string(protocol.HTTP2) {
-					return true
-				}
-			}
-		}
-	}
 	return false
 }
 

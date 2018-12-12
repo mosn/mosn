@@ -88,6 +88,7 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiver,
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 
 		streamEncoder := c.client.NewStream(ctx, receiver)
+		streamEncoder.GetStream().AddEventListener(c)
 		listener.OnReady(streamEncoder, p.host)
 	}
 
@@ -189,7 +190,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 	}
 }
 
-func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.Client {
+func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
 	return str.NewStreamClient(context, protocol.HTTP1, connData.Connection, connData.HostInfo)
 }
 
@@ -205,7 +206,7 @@ func (p *connPool) report() {
 	}()
 }
 
-// stream.ClientListener
+// types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
@@ -222,10 +223,9 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 	}
 
 	data := pool.host.CreateConnection(ctx)
-	codecClient := pool.createCodecClient(ctx, data)
+	codecClient := pool.createStreamClient(ctx, data)
 	codecClient.AddConnectionEventListener(ac)
-	codecClient.SetClientListener(ac)
-	codecClient.SetConnectionEventListener(ac)
+	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient
 	ac.host = data
@@ -250,16 +250,19 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 	return ac, ""
 }
 
+// types.ConnectionEventListener
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 
-func (ac *activeClient) OnStreamDestroy() {
+// types.StreamEventListener
+func (ac *activeClient) OnDestroyStream() {
 	ac.pool.onStreamDestroy(ac)
 }
 
-func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
+func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 	ac.pool.onStreamReset(ac, reason)
 }
 
+// types.StreamConnectionEventListener
 func (ac *activeClient) OnGoAway() {}

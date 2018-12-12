@@ -34,7 +34,6 @@ import (
 func init() {
 	proxy.RegisterNewPoolFactory(protocol.Xprotocol, NewConnPool)
 	types.RegisterConnPoolFactory(protocol.Xprotocol, true)
-
 }
 
 // types.ConnectionPool
@@ -88,9 +87,11 @@ func (p *connPool) NewStream(context context.Context, responseDecoder types.Stre
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream")
-		streamEncoder := p.primaryClient.client.NewStream(context, responseDecoder)
+		streamSender := p.primaryClient.client.NewStream(context, responseDecoder)
+		streamSender.GetStream().AddEventListener(p.primaryClient)
+
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
-		listener.OnReady(streamEncoder, p.host)
+		listener.OnReady(streamSender, p.host)
 	}
 
 	return
@@ -167,7 +168,7 @@ func (p *connPool) onGoAway(client *activeClient) {
 	}
 }
 
-func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.Client {
+func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
 	return str.NewStreamClient(context, protocol.Xprotocol, connData.Connection, connData.HostInfo)
 }
 
@@ -184,7 +185,7 @@ func (p *connPool) movePrimaryToDraining() {
 	}
 }
 
-// stream.ClientListener
+// types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
@@ -206,11 +207,10 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	log.DefaultLogger.Tracef("xprotocol new active client , connect success %v", data)
 
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create codec client")
-	codecClient := pool.createCodecClient(context, data)
+	codecClient := pool.createStreamClient(context, data)
 	log.DefaultLogger.Tracef("xprotocol new active client , create codec client success")
 	codecClient.AddConnectionEventListener(ac)
-	codecClient.SetClientListener(ac)
-	codecClient.SetConnectionEventListener(ac)
+	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient
 	ac.host = data.HostInfo
@@ -231,21 +231,22 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	return ac
 }
 
+// types.ConnectionEventListener
 // OnEvent handle connection event
 func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 
-// OnStreamDestroy destroy stream
-func (ac *activeClient) OnStreamDestroy() {
+// types.StreamEventListener
+func (ac *activeClient) OnDestroyStream() {
 	ac.pool.onStreamDestroy(ac)
 }
 
-// OnStreamReset reset stream
-func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
+func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 	ac.pool.onStreamReset(ac, reason)
 }
 
+// types.StreamConnectionEventListener
 // OnGoAway handle go away event
 func (ac *activeClient) OnGoAway() {
 	ac.pool.onGoAway(ac)

@@ -20,7 +20,7 @@ package types
 import "context"
 
 //
-//   The bunch of interfaces are structure skeleton to build a extensible protocol stream architecture.
+//   The bunch of interfaces are structure skeleton to build a extensible stream multiplexing architecture. The core concept is mainly refer to golang HTTP2 and envoy.
 //
 //   In mosn, we have 4 layers to build a mesh, stream is the inheritance layer to bond protocol layer and proxy layer together.
 //	 -----------------------
@@ -41,12 +41,14 @@ import "context"
 //	 	- Stream does not have a predetermined direction, so StreamSender could be a request encoder as a client or a response encoder as a server. It's just about the scenario, so does StreamReceiver.
 //
 //   Stream:
-//   	- Event listener
-// 			- StreamEventListener
 //      - Encoder
 // 			- StreamSender
 // 		- Decoder
 //			- StreamReceiver
+//
+//   Event listeners:
+//		- StreamEventListener: listen stream event: reset, destroy.
+//		- StreamConnectionEventListener: listen stream connection event: goaway.
 //
 //	 In order to meet the expansion requirements in the stream processing, StreamSenderFilter and StreamReceiverFilter are introduced as a filter chain in encode/decode process.
 //   Filter's method will be called on corresponding stream process stage and returns a status(Continue/Stop) to effect the control flow.
@@ -66,7 +68,7 @@ import "context"
 //   |                                 |*                                                                           |
 //   |                               Client                                                                         |
 //   |                                 |1                                                                           |
-//   | 	  EventListener   			   |					EventListener											|
+//   | 	  EventListener   			   |				StreamEventListener											|
 //   |        *|                       |                       |*													|
 //   |         |                       |                       |													|
 //   |        1|        1    1  	   |1 		1        *     |1													|
@@ -120,6 +122,9 @@ type Stream interface {
 type StreamEventListener interface {
 	// OnResetStream is called on a stream is been reset
 	OnResetStream(reason StreamResetReason)
+
+	// OnDestroyStream is called on stream destroy
+	OnDestroyStream()
 }
 
 // StreamSender encodes protocol stream

@@ -60,7 +60,7 @@ func (c *http2HealthChecker) newSession(host types.Host) types.HealthCheckSessio
 	return hhcs
 }
 
-func (c *http2HealthChecker) createCodecClient(data types.CreateConnectionData) stream.Client {
+func (c *http2HealthChecker) createStreamClient(data types.CreateConnectionData) stream.Client {
 	return stream.NewStreamClient(context.Background(), protocol.HTTP2, data.Connection, data.HostInfo)
 }
 
@@ -105,7 +105,7 @@ func (s *http2HealthCheckSession) Start() {
 func (s *http2HealthCheckSession) onInterval() {
 	if s.client == nil {
 		connData := s.host.CreateConnection(nil)
-		s.client = s.healthChecker.createCodecClient(connData)
+		s.client = s.healthChecker.createStreamClient(connData)
 		s.expectReset = false
 	}
 
@@ -166,3 +166,5 @@ func (s *http2HealthCheckSession) OnResetStream(reason types.StreamResetReason) 
 
 	s.handleFailure(types.FailureNetwork)
 }
+
+func (s *http2HealthCheckSession) OnDestroyStream() {}

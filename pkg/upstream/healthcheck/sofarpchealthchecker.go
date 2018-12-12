@@ -89,7 +89,7 @@ func (c *sofarpcHealthChecker) newSession(host types.Host) types.HealthCheckSess
 	return shcs
 }
 
-func (c *sofarpcHealthChecker) createCodecClient(data types.CreateConnectionData) stream.Client {
+func (c *sofarpcHealthChecker) createStreamClient(data types.CreateConnectionData) stream.Client {
 	return stream.NewStreamClient(context.Background(), protocol.SofaRPC, data.Connection, data.HostInfo)
 }
 
@@ -151,7 +151,7 @@ func (s *sofarpcHealthCheckSession) onInterval() {
 			return
 		}
 
-		s.client = s.healthChecker.createCodecClient(connData)
+		s.client = s.healthChecker.createStreamClient(connData)
 
 		s.expectReset = false
 	}
@@ -198,6 +198,7 @@ func (s *sofarpcHealthCheckSession) isHealthCheckSucceeded() bool {
 	return s.responseStatus == sofarpc.RESPONSE_STATUS_SUCCESS
 }
 
+// types.StreamEventListener
 func (s *sofarpcHealthCheckSession) OnResetStream(reason types.StreamResetReason) {
 	if s.expectReset {
 		return
@@ -205,3 +206,5 @@ func (s *sofarpcHealthCheckSession) OnResetStream(reason types.StreamResetReason
 
 	s.handleFailure(types.FailureNetwork)
 }
+
+func (s *sofarpcHealthCheckSession) OnDestroyStream() {}

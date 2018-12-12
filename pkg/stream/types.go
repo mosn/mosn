@@ -35,23 +35,15 @@ type Client interface {
 
 	ActiveRequestsNum() int
 
-	AddConnectionEventListener(listener types.ConnectionEventListener)
+	NewStream(context context.Context, respDecoder types.StreamReceiver) types.StreamSender
 
 	SetConnectionStats(stats *types.ConnectionStats)
 
-	SetClientListener(listener ClientListener)
+	AddConnectionEventListener(listener types.ConnectionEventListener)
 
-	SetConnectionEventListener(listener types.StreamConnectionEventListener)
-
-	NewStream(context context.Context, respDecoder types.StreamReceiver) types.StreamSender
+	SetStreamConnectionEventListener(listener types.StreamConnectionEventListener)
 
 	Close()
-}
-
-type ClientListener interface {
-	OnStreamDestroy()
-
-	OnStreamReset(reason types.StreamResetReason)
 }
 
 type ProtocolStreamFactory interface {

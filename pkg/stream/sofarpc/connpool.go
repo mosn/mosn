@@ -32,7 +32,6 @@ import (
 func init() {
 	proxy.RegisterNewPoolFactory(protocol.SofaRPC, NewConnPool)
 	types.RegisterConnPoolFactory(protocol.SofaRPC, true)
-
 }
 
 // types.ConnectionPool
@@ -83,6 +82,8 @@ func (p *connPool) NewStream(ctx context.Context,
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
+		streamEncoder.GetStream().AddEventListener(activeClient)
+
 		listener.OnReady(streamEncoder, p.host)
 	}
 
@@ -140,11 +141,11 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 	}
 }
 
-func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.Client {
+func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
 	return str.NewStreamClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
 }
 
-// stream.ClientListener
+// types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
@@ -162,10 +163,9 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	data := pool.host.CreateConnection(ctx)
 	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
-	codecClient := pool.createCodecClient(connCtx, data)
+	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
-	codecClient.SetClientListener(ac)
-	codecClient.SetConnectionEventListener(ac)
+	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient
 	ac.host = data
@@ -193,12 +193,14 @@ func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 
-func (ac *activeClient) OnStreamDestroy() {
+// types.StreamEventListener
+func (ac *activeClient) OnDestroyStream() {
 	ac.pool.onStreamDestroy(ac)
 }
 
-func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
+func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 	ac.pool.onStreamReset(ac, reason)
 }
 
+// types.StreamConnectionEventListener
 func (ac *activeClient) OnGoAway() {}

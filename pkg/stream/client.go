@@ -27,13 +27,12 @@ import (
 // types.ReadFilter
 // types.StreamConnectionEventListener
 type client struct {
-	Protocol                 types.Protocol
-	Connection               types.ClientConnection
-	Host                     types.HostInfo
-	ClientListener           ClientListener
-	ClientStreamConnection   types.ClientStreamConnection
-	StreamConnectionListener types.StreamConnectionEventListener
-	ConnectedFlag            bool
+	Protocol                      types.Protocol
+	Connection                    types.ClientConnection
+	Host                          types.HostInfo
+	ClientStreamConnection        types.ClientStreamConnection
+	StreamConnectionEventListener types.StreamConnectionEventListener
+	ConnectedFlag                 bool
 }
 
 // NewStreamClient
@@ -81,6 +80,7 @@ func NewBiDirectStreamClient(ctx context.Context, prot types.Protocol, connectio
 	return client
 }
 
+// Client
 func (c *client) ConnID() uint64 {
 	return c.Connection.ID()
 }
@@ -97,22 +97,12 @@ func (c *client) SetConnectionStats(stats *types.ConnectionStats) {
 	c.Connection.SetStats(stats)
 }
 
-func (c *client) SetClientListener(listener ClientListener) {
-	c.ClientListener = listener
-}
-
-func (c *client) SetConnectionEventListener(listener types.StreamConnectionEventListener) {
-	c.StreamConnectionListener = listener
+func (c *client) SetStreamConnectionEventListener(listener types.StreamConnectionEventListener) {
+	c.StreamConnectionEventListener = listener
 }
 
 func (c *client) NewStream(context context.Context, respReceiver types.StreamReceiver) types.StreamSender {
-	streamSender := c.ClientStreamConnection.NewStream(context, &clientStreamWrapper{
-		client:         c,
-		streamReceiver: respReceiver,
-	})
-	streamSender.GetStream().AddEventListener(c)
-
-	return streamSender
+	return c.ClientStreamConnection.NewStream(context, respReceiver)
 }
 
 func (c *client) Close() {
@@ -121,7 +111,7 @@ func (c *client) Close() {
 
 // types.StreamConnectionEventListener
 func (c *client) OnGoAway() {
-	c.StreamConnectionListener.OnGoAway()
+	c.StreamConnectionEventListener.OnGoAway()
 }
 
 // types.ConnectionEventListener
@@ -156,45 +146,3 @@ func (c *client) OnNewConnection() types.FilterStatus {
 }
 
 func (c *client) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
-
-// types.StreamEventListener
-func (c *client) OnResetStream(reason types.StreamResetReason) {
-	if c.ClientListener != nil {
-		c.ClientListener.OnStreamReset(reason)
-		c.ClientListener.OnStreamDestroy()
-	}
-}
-
-// wrapper for stream context extension
-type clientStreamWrapper struct {
-	client         *client
-	streamReceiver types.StreamReceiver
-}
-
-func (s *clientStreamWrapper) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	if s.client.ClientListener != nil {
-		s.client.ClientListener.OnStreamDestroy()
-	}
-
-	s.streamReceiver.OnReceiveHeaders(context, headers, endStream)
-}
-
-func (s *clientStreamWrapper) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
-	if s.client.ClientListener != nil {
-		s.client.ClientListener.OnStreamDestroy()
-	}
-
-	s.streamReceiver.OnReceiveData(context, data, endStream)
-}
-
-func (s *clientStreamWrapper) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-	if s.client.ClientListener != nil {
-		s.client.ClientListener.OnStreamDestroy()
-	}
-
-	s.streamReceiver.OnReceiveTrailers(context, trailers)
-}
-
-func (s *clientStreamWrapper) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
-	s.streamReceiver.OnDecodeError(ctx, err, headers)
-}

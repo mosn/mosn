@@ -20,9 +20,9 @@ import (
 )
 
 type Client struct {
-	Codec stream.Client
-	conn  types.ClientConnection
-	Id    uint64
+	Client stream.Client
+	conn   types.ClientConnection
+	Id     uint64
 }
 
 func NewClient(addr string) *Client {
@@ -34,7 +34,7 @@ func NewClient(addr string) *Client {
 		fmt.Println(err)
 		return nil
 	}
-	c.Codec = stream.NewStreamClient(context.Background(), protocol.SofaRPC, conn, nil)
+	c.Client = stream.NewStreamClient(context.Background(), protocol.SofaRPC, conn, nil)
 	c.conn = conn
 	return c
 }
@@ -55,7 +55,7 @@ func (c *Client) OnReceiveHeaders(context context.Context, headers types.HeaderM
 
 func (c *Client) Request() {
 	c.Id++
-	requestEncoder := c.Codec.NewStream(context.Background(), c)
+	requestEncoder := c.Client.NewStream(context.Background(), c)
 	headers := buildBoltV1Request(c.Id)
 	requestEncoder.AppendHeaders(context.Background(), headers, true)
 }

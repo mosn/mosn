@@ -153,7 +153,7 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	return
 }
 
-// conn callbacks
+// types.ConnectionEventListener
 func (conn *streamConnection) OnEvent(event types.ConnectionEvent) {
 	if event.IsClose() || event.ConnectFailure() {
 		close(conn.bufChan)
@@ -383,8 +383,8 @@ type stream struct {
 	request  *fasthttp.Request
 	response *fasthttp.Response
 
-	receiver  types.StreamReceiver
-	streamCbs []types.StreamEventListener
+	receiver        types.StreamReceiver
+	streamListeners []types.StreamEventListener
 }
 
 // types.Stream
@@ -393,13 +393,13 @@ func (s *stream) ID() uint64 {
 }
 
 func (s *stream) AddEventListener(streamCb types.StreamEventListener) {
-	s.streamCbs = append(s.streamCbs, streamCb)
+	s.streamListeners = append(s.streamListeners, streamCb)
 }
 
 func (s *stream) RemoveEventListener(streamCb types.StreamEventListener) {
 	cbIdx := -1
 
-	for i, streamCb := range s.streamCbs {
+	for i, streamCb := range s.streamListeners {
 		if streamCb == streamCb {
 			cbIdx = i
 			break
@@ -407,12 +407,12 @@ func (s *stream) RemoveEventListener(streamCb types.StreamEventListener) {
 	}
 
 	if cbIdx > -1 {
-		s.streamCbs = append(s.streamCbs[:cbIdx], s.streamCbs[cbIdx+1:]...)
+		s.streamListeners = append(s.streamListeners[:cbIdx], s.streamListeners[cbIdx+1:]...)
 	}
 }
 
 func (s *stream) ResetStream(reason types.StreamResetReason) {
-	for _, cb := range s.streamCbs {
+	for _, cb := range s.streamListeners {
 		cb.OnResetStream(reason)
 	}
 }
