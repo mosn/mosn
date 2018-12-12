@@ -19,11 +19,13 @@ package common
 
 import (
 	"fmt"
+	"net"
+	"reflect"
+	"strconv"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2alpha"
-	"net"
-	"strconv"
 )
 
 type InheritPrincipal interface {
@@ -72,7 +74,7 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 	//	*Principal_SourceIp
 	//	*Principal_Header
 	//	*Principal_Metadata
-	switch v := principal.Identifier.(type) {
+	switch principal.Identifier.(type) {
 	case *v2alpha.Principal_Any:
 		inheritPrincipal := new(PrincipalAny)
 		inheritPrincipal.Any = principal.Identifier.(*v2alpha.Principal_Any).Any
@@ -88,6 +90,6 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 			return inheritPrincipal, nil
 		}
 	default:
-		return nil, fmt.Errorf("not supported principal type found, detail: %v", v)
+		return nil, fmt.Errorf("not supported principal type found, detail: %v", reflect.TypeOf(principal.Identifier))
 	}
 }
