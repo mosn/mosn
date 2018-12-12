@@ -68,17 +68,16 @@ func (p *connPool) Protocol() types.Protocol {
 }
 
 //由 PROXY 调用
-func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
-
+func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiver, listener types.PoolEventListener) {
 	c, reason := p.getAvailableClient(ctx)
 
 	if c == nil {
-		cb.OnFailure(reason, nil)
-		return nil
+		listener.OnFailure(reason, nil)
+		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -89,10 +88,10 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiver,
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 
 		streamEncoder := c.client.NewStream(ctx, receiver)
-		cb.OnReady(streamEncoder, p.host)
+		listener.OnReady(streamEncoder, p.host)
 	}
 
-	return nil
+	return
 }
 
 func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types.PoolFailureReason) {

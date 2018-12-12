@@ -18,10 +18,7 @@
 package stream
 
 import (
-	"container/list"
 	"context"
-	"sync"
-	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -29,14 +26,12 @@ import (
 // stream.Client
 // types.ReadFilter
 // types.StreamConnectionEventListener
-type streamClient struct {
+type client struct {
 	Protocol                 types.Protocol
 	Connection               types.ClientConnection
 	Host                     types.HostInfo
-	ClientStreamConn         types.ClientStreamConnection
-	ActiveRequests           *list.List
-	AcrMux                   sync.RWMutex
 	ClientListener           ClientListener
+	ClientStreamConnection   types.ClientStreamConnection
 	StreamConnectionListener types.StreamConnectionEventListener
 	ConnectedFlag            bool
 }
@@ -44,15 +39,14 @@ type streamClient struct {
 // NewStreamClient
 // Create a codecclient used as a client to send/receive stream in a connection
 func NewStreamClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo) Client {
-	client := &streamClient{
-		Protocol:       prot,
-		Connection:     connection,
-		Host:           host,
-		ActiveRequests: list.New(),
+	client := &client{
+		Protocol:   prot,
+		Connection: connection,
+		Host:       host,
 	}
 
 	if factory, ok := streamFactories[prot]; ok {
-		client.ClientStreamConn = factory.CreateClientStream(ctx, connection, client, client)
+		client.ClientStreamConnection = factory.CreateClientStream(ctx, connection, client, client)
 	} else {
 		return nil
 	}
@@ -68,15 +62,14 @@ func NewStreamClient(ctx context.Context, prot types.Protocol, connection types.
 // Create a bidirectional client used to realize bidirectional communication
 func NewBiDirectStreamClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
 	serverCallbacks types.ServerStreamConnectionEventListener) Client {
-	client := &streamClient{
-		Protocol:       prot,
-		Connection:     connection,
-		Host:           host,
-		ActiveRequests: list.New(),
+	client := &client{
+		Protocol:   prot,
+		Connection: connection,
+		Host:       host,
 	}
 
 	if factory, ok := streamFactories[prot]; ok {
-		client.ClientStreamConn = factory.CreateBiDirectStream(ctx, connection, client, serverCallbacks)
+		client.ClientStreamConnection = factory.CreateBiDirectStream(ctx, connection, client, serverCallbacks)
 	} else {
 		return nil
 	}
@@ -88,180 +81,120 @@ func NewBiDirectStreamClient(ctx context.Context, prot types.Protocol, connectio
 	return client
 }
 
-func (c *streamClient) ConnID() uint64 {
+func (c *client) ConnID() uint64 {
 	return c.Connection.ID()
 }
 
-func (c *streamClient) AddConnectionEventListener(listener types.ConnectionEventListener) {
+func (c *client) AddConnectionEventListener(listener types.ConnectionEventListener) {
 	c.Connection.AddConnectionEventListener(listener)
 }
 
-func (c *streamClient) ActiveRequestsNum() int {
-	c.AcrMux.RLock()
-	defer c.AcrMux.RUnlock()
-
-	return c.ActiveRequests.Len()
+func (c *client) ActiveRequestsNum() int {
+	return c.ClientStreamConnection.ActiveStreamsNum()
 }
 
-func (c *streamClient) SetConnectionStats(stats *types.ConnectionStats) {
+func (c *client) SetConnectionStats(stats *types.ConnectionStats) {
 	c.Connection.SetStats(stats)
 }
 
-func (c *streamClient) SetClientListener(listener ClientListener) {
+func (c *client) SetClientListener(listener ClientListener) {
 	c.ClientListener = listener
 }
 
-func (c *streamClient) SetConnectionEventListener(listener types.StreamConnectionEventListener) {
+func (c *client) SetConnectionEventListener(listener types.StreamConnectionEventListener) {
 	c.StreamConnectionListener = listener
 }
 
-func (c *streamClient) NewStream(context context.Context, respDecoder types.StreamReceiver) types.StreamSender {
-	ar := newActiveRequest(c, respDecoder)
-	ar.requestSender = c.ClientStreamConn.NewStream(context, ar)
-	ar.requestSender.GetStream().AddEventListener(ar)
+func (c *client) NewStream(context context.Context, respReceiver types.StreamReceiver) types.StreamSender {
+	streamSender := c.ClientStreamConnection.NewStream(context, &clientStreamWrapper{
+		client:         c,
+		streamReceiver: respReceiver,
+	})
+	streamSender.GetStream().AddEventListener(c)
 
-	c.AcrMux.Lock()
-	ar.element = c.ActiveRequests.PushBack(ar)
-	c.AcrMux.Unlock()
-
-	return ar.requestSender
+	return streamSender
 }
 
-func (c *streamClient) Close() {
+func (c *client) Close() {
 	c.Connection.Close(types.NoFlush, types.LocalClose)
 }
 
 // types.StreamConnectionEventListener
-func (c *streamClient) OnGoAway() {
+func (c *client) OnGoAway() {
 	c.StreamConnectionListener.OnGoAway()
 }
 
+// types.ConnectionEventListener
 // conn callbacks
-func (c *streamClient) OnEvent(event types.ConnectionEvent) {
+func (c *client) OnEvent(event types.ConnectionEvent) {
 	switch event {
 	case types.Connected:
 		c.ConnectedFlag = true
 	}
 
 	if event.IsClose() || event.ConnectFailure() {
-		var arNext *list.Element
+		reason := types.StreamConnectionFailed
 
-		c.AcrMux.RLock()
-		acReqs := make([]*activeRequest, 0, c.ActiveRequests.Len())
-		for ar := c.ActiveRequests.Front(); ar != nil; ar = arNext {
-			arNext = ar.Next()
-			acReqs = append(acReqs, ar.Value.(*activeRequest))
+		if c.ConnectedFlag {
+			reason = types.StreamConnectionTermination
 		}
-		c.AcrMux.RUnlock()
 
-		for _, ac := range acReqs {
-			reason := types.StreamConnectionFailed
-
-			if c.ConnectedFlag {
-				reason = types.StreamConnectionTermination
-			}
-			ac.requestSender.GetStream().ResetStream(reason)
-		}
+		c.ClientStreamConnection.Reset(reason)
 	}
 }
 
+// types.ReadFilter
 // read filter, recv upstream data
-func (c *streamClient) OnData(buffer types.IoBuffer) types.FilterStatus {
-	c.ClientStreamConn.Dispatch(buffer)
+func (c *client) OnData(buffer types.IoBuffer) types.FilterStatus {
+	c.ClientStreamConnection.Dispatch(buffer)
 
 	return types.Stop
 }
 
-func (c *streamClient) OnNewConnection() types.FilterStatus {
+func (c *client) OnNewConnection() types.FilterStatus {
 	return types.Continue
 }
 
-func (c *streamClient) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
+func (c *client) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
 
-func (c *streamClient) onReset(request *activeRequest, reason types.StreamResetReason) {
+// types.StreamEventListener
+func (c *client) OnResetStream(reason types.StreamResetReason) {
 	if c.ClientListener != nil {
 		c.ClientListener.OnStreamReset(reason)
-	}
-
-	c.deleteRequest(request)
-}
-
-func (c *streamClient) responseDecodeComplete(request *activeRequest) {
-	c.deleteRequest(request)
-	request.requestSender.GetStream().RemoveEventListener(request)
-}
-
-func (c *streamClient) deleteRequest(request *activeRequest) {
-	if !atomic.CompareAndSwapUint32(&request.deleted, 0, 1) {
-		return
-	}
-
-	c.AcrMux.Lock()
-	defer c.AcrMux.Unlock()
-
-	c.ActiveRequests.Remove(request.element)
-
-	if c.ClientListener != nil {
 		c.ClientListener.OnStreamDestroy()
 	}
 }
 
-// types.StreamEventListener
-// types.StreamDecoderWrapper
-type activeRequest struct {
-	client           *streamClient
-	responseReceiver types.StreamReceiver
-	requestSender    types.StreamSender
-	element          *list.Element
-	deleted          uint32
+// wrapper for stream context extension
+type clientStreamWrapper struct {
+	client         *client
+	streamReceiver types.StreamReceiver
 }
 
-func newActiveRequest(codecClient *streamClient, streamDecoder types.StreamReceiver) *activeRequest {
-	return &activeRequest{
-		client:           codecClient,
-		responseReceiver: streamDecoder,
-	}
-}
-
-func (r *activeRequest) OnResetStream(reason types.StreamResetReason) {
-	r.client.onReset(r, reason)
-}
-
-func (r *activeRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	if endStream {
-		r.onPreDecodeComplete()
+func (s *clientStreamWrapper) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+	if s.client.ClientListener != nil {
+		s.client.ClientListener.OnStreamDestroy()
 	}
 
-	r.responseReceiver.OnReceiveHeaders(context, headers, endStream)
-
-	if endStream {
-		r.onDecodeComplete()
-	}
+	s.streamReceiver.OnReceiveHeaders(context, headers, endStream)
 }
 
-func (r *activeRequest) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
-	if endStream {
-		r.onPreDecodeComplete()
+func (s *clientStreamWrapper) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
+	if s.client.ClientListener != nil {
+		s.client.ClientListener.OnStreamDestroy()
 	}
 
-	r.responseReceiver.OnReceiveData(context, data, endStream)
+	s.streamReceiver.OnReceiveData(context, data, endStream)
+}
 
-	if endStream {
-		r.onDecodeComplete()
+func (s *clientStreamWrapper) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
+	if s.client.ClientListener != nil {
+		s.client.ClientListener.OnStreamDestroy()
 	}
+
+	s.streamReceiver.OnReceiveTrailers(context, trailers)
 }
 
-func (r *activeRequest) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-	r.onPreDecodeComplete()
-	r.responseReceiver.OnReceiveTrailers(context, trailers)
-	r.onDecodeComplete()
+func (s *clientStreamWrapper) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
+	s.streamReceiver.OnDecodeError(ctx, err, headers)
 }
-
-func (r *activeRequest) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
-}
-
-func (r *activeRequest) onPreDecodeComplete() {
-	r.client.responseDecodeComplete(r)
-}
-
-func (r *activeRequest) onDecodeComplete() {}

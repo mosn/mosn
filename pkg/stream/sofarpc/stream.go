@@ -80,42 +80,38 @@ func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
 // types.ClientStreamConnection
 // types.ServerStreamConnection
 type streamConnection struct {
-	ctx  context.Context
-	conn types.Connection
+	ctx                                 context.Context
+	conn                                types.Connection
+	contextManager                      contextManager
+	mutex                               sync.RWMutex
+	currStreamID                        uint64
+	streams                             map[uint64]*stream // client conn fields
+	codecEngine                         types.ProtocolEngine
+	streamConnectionEventListener       types.StreamConnectionEventListener
+	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 
-	codecEngine types.ProtocolEngine
-
-	clientCallbacks types.StreamConnectionEventListener
-	serverCallbacks types.ServerStreamConnectionEventListener
-
-	cm contextManager
-
-	slock        sync.RWMutex
-	streams      map[uint64]*stream // client conn fields
-	currStreamID uint64
-
-	logger log.Logger
+	logger 			log.Logger
 }
 
 func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	sc := &streamConnection{
-		ctx:             ctx,
-		conn:            connection,
-		codecEngine:     sofarpc.Engine(),
-		clientCallbacks: clientCallbacks,
-		serverCallbacks: serverCallbacks,
+		ctx:                                 ctx,
+		conn:                                connection,
+		codecEngine:                         sofarpc.Engine(),
+		streamConnectionEventListener:       clientCallbacks,
+		serverStreamConnectionEventListener: serverCallbacks,
 
-		cm: contextManager{base: ctx},
+		contextManager: contextManager{base: ctx},
 
 		logger: log.ByContext(ctx),
 	}
 
 	// init first context
-	sc.cm.next()
+	sc.contextManager.next()
 
-	if sc.clientCallbacks != nil {
+	if sc.streamConnectionEventListener != nil {
 		sc.streams = make(map[uint64]*stream, 32)
 	}
 
@@ -126,7 +122,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
-		ctx := conn.cm.curr
+		ctx := conn.contextManager.curr
 
 		// 2. decode process
 		// TODO: maybe pass sub protocol type
@@ -142,7 +138,7 @@ func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 			break
 		}
 
-		conn.cm.next()
+		conn.contextManager.next()
 	}
 }
 
@@ -151,7 +147,23 @@ func (conn *streamConnection) Protocol() types.Protocol {
 }
 
 func (conn *streamConnection) GoAway() {
-	// todo
+	// unsupported
+}
+
+func (conn *streamConnection) ActiveStreamsNum() int {
+	conn.mutex.RLock()
+	defer conn.mutex.RUnlock()
+
+	return len(conn.streams)
+}
+
+func (conn *streamConnection) Reset(reason types.StreamResetReason) {
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+
+	for _, stream := range conn.streams {
+		stream.ResetStream(reason)
+	}
 }
 
 func (conn *streamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
@@ -166,9 +178,10 @@ func (conn *streamConnection) NewStream(ctx context.Context, receiver types.Stre
 	stream.sc = conn
 	stream.receiver = receiver
 
-	conn.slock.Lock()
+	conn.mutex.Lock()
 	conn.streams[stream.id] = stream
-	conn.slock.Unlock()
+	conn.mutex.Unlock()
+
 	return stream
 }
 
@@ -253,7 +266,7 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 
 	conn.logger.Debugf("new stream detect, id = %d", stream.id)
 
-	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, spanBuilder)
+	stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, stream, spanBuilder)
 	return stream
 }
 
@@ -261,8 +274,9 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 	requestID := cmd.RequestID()
 
 	// for client stream, remove stream on response read
-	conn.slock.Lock()
-	defer conn.slock.Unlock()
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+
 	if stream, ok := conn.streams[requestID]; ok {
 		delete(conn.streams, requestID)
 
@@ -272,6 +286,7 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		conn.logger.Debugf("stream recv, id = %d", stream.id)
 		return stream
 	}
+
 	return nil
 }
 

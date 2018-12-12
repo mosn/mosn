@@ -62,7 +62,7 @@ func (p *connPool) DrainConnections() {}
 
 // NewStream invoked by Proxy
 func (p *connPool) NewStream(context context.Context, responseDecoder types.StreamReceiver,
-	cb types.PoolEventListener) types.Cancellable {
+	listener types.PoolEventListener) {
 	log.DefaultLogger.Tracef("xprotocol conn pool new stream")
 	p.mux.Lock()
 
@@ -72,12 +72,12 @@ func (p *connPool) NewStream(context context.Context, responseDecoder types.Stre
 	p.mux.Unlock()
 
 	if p.primaryClient == nil {
-		cb.OnFailure(types.ConnectionFailure, nil)
-		return nil
+		listener.OnFailure(types.ConnectionFailure, nil)
+		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -90,10 +90,10 @@ func (p *connPool) NewStream(context context.Context, responseDecoder types.Stre
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream")
 		streamEncoder := p.primaryClient.client.NewStream(context, responseDecoder)
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
-		cb.OnReady(streamEncoder, p.host)
+		listener.OnReady(streamEncoder, p.host)
 	}
 
-	return nil
+	return
 }
 
 // Close close connection pool

@@ -52,7 +52,7 @@ func TestMatchUpstream(t *testing.T) {
 			config: &faultInjectConfig{
 				upstream: faultUpstream,
 			},
-			cb: &mockStreamReceiverFilterCallbacks{
+			handler: &mockStreamReceiverFilterCallbacks{
 				route: &mockRoute{
 					rule: tc.rule,
 				},
@@ -207,9 +207,9 @@ func TestFaultInject_AllWithDelay(t *testing.T) {
 		called: make(chan int, 1),
 	}
 	f := NewFilter(context.Background(), cfg)
-	f.SetDecoderFilterCallbacks(cb)
+	f.SetReceiveFilterHandler(cb)
 	start := time.Now()
-	if status := f.OnDecodeHeaders(nil, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceiveHeaders(nil, true); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -242,8 +242,8 @@ func TestFaultInject_AllAbortWithoutDelay(t *testing.T) {
 		called: make(chan int, 1),
 	}
 	f := NewFilter(context.Background(), cfg)
-	f.SetDecoderFilterCallbacks(cb)
-	if status := f.OnDecodeHeaders(nil, true); status != types.StreamHeadersFilterStop {
+	f.SetReceiveFilterHandler(cb)
+	if status := f.OnReceiveHeaders(nil, true); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -277,9 +277,9 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 		called: make(chan int, 1),
 	}
 	f := NewFilter(context.Background(), cfg)
-	f.SetDecoderFilterCallbacks(cb)
+	f.SetReceiveFilterHandler(cb)
 	start := time.Now()
-	if status := f.OnDecodeHeaders(nil, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceiveHeaders(nil, true); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -300,8 +300,8 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 		},
 	}
 	f2 := NewFilter(context.Background(), cfg)
-	f2.SetDecoderFilterCallbacks(notmatched)
-	if status := f2.OnDecodeHeaders(nil, true); status != types.StreamHeadersFilterContinue {
+	f2.SetReceiveFilterHandler(notmatched)
+	if status := f2.OnReceiveHeaders(nil, true); status != types.StreamHeadersFilterContinue {
 		t.Error("unmatched upstream not returns continue")
 	}
 
@@ -330,12 +330,12 @@ func TestFaultInject_MatchedHeader(t *testing.T) {
 		called: make(chan int, 1),
 	}
 	f := NewFilter(context.Background(), cfg)
-	f.SetDecoderFilterCallbacks(cb)
+	f.SetReceiveFilterHandler(cb)
 	headers := protocol.CommonHeader(map[string]string{
 		"User": "Alice",
 	})
 	start := time.Now()
-	if status := f.OnDecodeHeaders(headers, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceiveHeaders(headers, true); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -352,8 +352,8 @@ func TestFaultInject_MatchedHeader(t *testing.T) {
 		"User": "Bob",
 	})
 	f2 := NewFilter(context.Background(), cfg)
-	f2.SetDecoderFilterCallbacks(cb)
-	if status := f2.OnDecodeHeaders(notmatched, true); status != types.StreamHeadersFilterContinue {
+	f2.SetReceiveFilterHandler(cb)
+	if status := f2.OnReceiveHeaders(notmatched, true); status != types.StreamHeadersFilterContinue {
 		t.Error("unmatched headers not return continue")
 	}
 }
@@ -382,8 +382,8 @@ func TestFaultInject_RouteConfigOverride(t *testing.T) {
 		called: make(chan int, 1),
 	}
 	f := NewFilter(context.Background(), cfg)
-	f.SetDecoderFilterCallbacks(cb)
-	if status := f.OnDecodeHeaders(nil, false); status != types.StreamHeadersFilterStop {
+	f.SetReceiveFilterHandler(cb)
+	if status := f.OnReceiveHeaders(nil, false); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}

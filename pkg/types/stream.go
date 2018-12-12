@@ -54,22 +54,28 @@ import "context"
 //   From an abstract perspective, stream represents a virtual process on underlying connection. To make stream interactive with connection, some intermediate object can be used.
 //	 StreamConnection is the core model to connect connection system to stream system. As a example, when proxy reads binary data from connection, it dispatches data to StreamConnection to do protocol decode.
 //   Specifically, ClientStreamConnection uses a NewStream to exchange StreamReceiver with StreamSender.
-//   Engine provides a callbacks(StreamSenderFilterCallbacks/StreamReceiverFilterCallbacks) to let filter interact with stream engine.
-// 	 As a example, a encoder filter stopped the encode process, it can continue it by StreamSenderFilterCallbacks.ContinueEncoding later. Actually, a filter engine is a encoder/decoder itself.
+//   Engine provides a callbacks(StreamSenderFilterHandler/StreamReceiverFilterHandler) to let filter interact with stream engine.
+// 	 As a example, a encoder filter stopped the encode process, it can continue it by StreamSenderFilterHandler.ContinueSending later. Actually, a filter engine is a encoder/decoder itself.
 //
 //   Below is the basic relation on stream and connection:
 //    --------------------------------------------------------------------------------------------------------------
 //   |																												|
-//   | 	  EventListener   								EventListener												|
-//   |        *|                                               |*													|
-//   |         |                                               |													|
-//   |        1|        1    1  	    		1     *        |1													|
+//   |                              ConnPool                                                                        |
+//   |                                 |1                                                                           |
+//   |                                 |                                                                            |
+//   |                                 |*                                                                           |
+//   |                               Client                                                                         |
+//   |                                 |1                                                                           |
+//   | 	  EventListener   			   |					EventListener											|
+//   |        *|                       |                       |*													|
+//   |         |                       |                       |													|
+//   |        1|        1    1  	   |1 		1        *     |1													|
 // 	 |	    Connection -------- StreamConnection ---------- Stream													|
 //   |        1|                   	   |1				   	   |1                                                   |
 // 	 |		   |					   |				   	   |                                                    |
 //	 |         |                   	   |					   |--------------------------------					|
 //   |        *|                   	   |					   |*           	 				|*					|
-//   |	 ConnectionFilter    		   |			    StreamSender[sender]  		     StreamReceiver[receiver]	|
+//   |	 ConnectionFilter    		   |			      StreamSender      		        StreamReceiver	        |
 //   |								   |*					   |1				 				|1					|
 // 	 |						StreamConnectionEventListener	   |				 				|					|
 //	 |													       |*				 				|*					|
@@ -77,7 +83,7 @@ import "context"
 //	 |													   	   |1								|1					|
 //	 |													   	   |								|					|
 // 	 |													       |1								|1					|
-//	 |										 		StreamSenderFilterCallbacks     StreamReceiverFilterCallbacks	|
+//	 |										 		StreamSenderFilterHandler     StreamReceiverFilterHandler	    |
 //   |																												|
 //    --------------------------------------------------------------------------------------------------------------
 //
@@ -160,11 +166,17 @@ type StreamConnection interface {
 	// stream uses protocol decode data, and popup event to controller
 	Dispatch(buffer IoBuffer)
 
+	// Active streams count
+	ActiveStreamsNum() int
+
 	// Protocol on the connection
 	Protocol() Protocol
 
 	// GoAway sends go away to remote for graceful shutdown
 	GoAway()
+
+	// Reset underlying streams
+	Reset(reason StreamResetReason)
 }
 
 // ServerStreamConnection is a server side stream connection.
@@ -200,19 +212,10 @@ type StreamFilterBase interface {
 	OnDestroy()
 }
 
-// StreamFilterCallbacks is called by stream filter to interact with underlying stream
-type StreamFilterCallbacks interface {
-	// Connection returns the originating connection
-	Connection() Connection
-
-	// ResetStream resets the underlying stream
-	ResetStream()
-
+// StreamFilterHandler is called by stream filter to interact with underlying stream
+type StreamFilterHandler interface {
 	// Route returns a route for current stream
 	Route() Route
-
-	// StreamID returns stream id
-	StreamID() string
 
 	// RequestInfo returns request info related to the stream
 	RequestInfo() RequestInfo
@@ -233,65 +236,46 @@ type StreamSenderFilter interface {
 	// AppendTrailers encodes trailers, implicitly ending the stream
 	AppendTrailers(trailers HeaderMap) StreamTrailersFilterStatus
 
-	// SetEncoderFilterCallbacks sets the StreamSenderFilterCallbacks
-	SetEncoderFilterCallbacks(cb StreamSenderFilterCallbacks)
+	// SetSenderFilterHandler sets the StreamSenderFilterHandler
+	SetSenderFilterHandler(handler StreamSenderFilterHandler)
 }
 
-// StreamSenderFilterCallbacks is a StreamFilterCallbacks wrapper
-type StreamSenderFilterCallbacks interface {
-	StreamFilterCallbacks
+// StreamSenderFilterHandler is a StreamFilterHandler wrapper
+type StreamSenderFilterHandler interface {
+	StreamFilterHandler
 
-	// ContinueEncoding continue iterating through the filter chain with buffered headers and body data
-	ContinueEncoding()
-
-	// EncodingBuffer returns data buffered by this filter or previous ones in the filter chain
-	EncodingBuffer() IoBuffer
-
-	// AddEncodedData adds buffered body data
-	AddEncodedData(buf IoBuffer, streamingFilter bool)
-
-	// SetEncoderBufferLimit sets the buffer limit
-	SetEncoderBufferLimit(limit uint32)
-
-	// EncoderBufferLimit returns buffer limit
-	EncoderBufferLimit() uint32
+	// ContinueSending continue iterating through the filter chain with buffered headers and body data
+	ContinueSending()
 }
 
 // StreamReceiverFilter is a StreamFilterBase wrapper
 type StreamReceiverFilter interface {
 	StreamFilterBase
 
-	// OnDecodeHeaders is called with decoded headers
+	// OnReceiveHeaders is called with decoded headers
 	// endStream supplies whether this is a header only request/response
-	OnDecodeHeaders(headers HeaderMap, endStream bool) StreamHeadersFilterStatus
+	OnReceiveHeaders(headers HeaderMap, endStream bool) StreamHeadersFilterStatus
 
-	// OnDecodeData is called with a decoded data
+	// OnReceiveData is called with a decoded data
 	// endStream supplies whether this is the last data
-	OnDecodeData(buf IoBuffer, endStream bool) StreamDataFilterStatus
+	OnReceiveData(buf IoBuffer, endStream bool) StreamDataFilterStatus
 
-	// OnDecodeTrailers is called with decoded trailers, implicitly ending the stream
-	OnDecodeTrailers(trailers HeaderMap) StreamTrailersFilterStatus
+	// OnReceiveTrailers is called with decoded trailers, implicitly ending the stream
+	OnReceiveTrailers(trailers HeaderMap) StreamTrailersFilterStatus
 
-	// SetDecoderFilterCallbacks sets decoder filter callbacks
-	SetDecoderFilterCallbacks(cb StreamReceiverFilterCallbacks)
+	// SetReceiveFilterHandler sets decoder filter callbacks
+	SetReceiveFilterHandler(handler StreamReceiverFilterHandler)
 }
 
-// StreamReceiverFilterCallbacks add additional callbacks that allow a decoding filter to restart
+// StreamReceiverFilterHandler add additional callbacks that allow a decoding filter to restart
 // decoding if they decide to hold data
-type StreamReceiverFilterCallbacks interface {
-	StreamFilterCallbacks
+type StreamReceiverFilterHandler interface {
+	StreamFilterHandler
 
-	// ContinueDecoding continue iterating through the filter chain with buffered headers and body data
+	// ContinueReceiving continue iterating through the filter chain with buffered headers and body data
 	// It can only be called if decode process has been stopped by current filter, using StopIteration from decodeHeaders() or StopIterationAndBuffer or StopIterationNoBuffer from decodeData()
 	// The controller will dispatch headers and any buffered body data to the next filter in the chain.
-	ContinueDecoding()
-
-	// DecodingBuffer returns data buffered by this filter or previous ones in the filter chain,
-	// if nothing has been buffered, returns nil
-	DecodingBuffer() IoBuffer
-
-	// AddDecodedData add s buffered body data
-	AddDecodedData(buf IoBuffer, streamingFilter bool)
+	ContinueReceiving()
 
 	// AppendHeaders is called with headers to be encoded, optionally indicating end of stream
 	// Filter uses this function to send out request/response headers of the stream
@@ -307,11 +291,6 @@ type StreamReceiverFilterCallbacks interface {
 	// Filter uses this function to send out request/response trailers of the stream
 	AppendTrailers(trailers HeaderMap)
 
-	// SetDecoderBufferLimit sets the buffer limit for decoder filters
-	SetDecoderBufferLimit(limit uint32)
-
-	// DecoderBufferLimit returns the decoder buffer limit
-	DecoderBufferLimit() uint32
 	// SendHijackReply is called when the filter will response directly
 	SendHijackReply(code int, headers HeaderMap)
 }
@@ -338,7 +317,7 @@ type StreamHeadersFilterStatus string
 const (
 	// Continue filter chain iteration.
 	StreamHeadersFilterContinue StreamHeadersFilterStatus = "Continue"
-	// Do not iterate to next iterator. Filter calls continueDecoding to continue.
+	// Do not iterate to next iterator. Filter calls ContinueReceiving to continue.
 	StreamHeadersFilterStop StreamHeadersFilterStatus = "Stop"
 )
 
@@ -362,7 +341,7 @@ type StreamTrailersFilterStatus string
 const (
 	// Continue filter chain iteration
 	StreamTrailersFilterContinue StreamTrailersFilterStatus = "Continue"
-	// Do not iterate to next iterator. Filter calls continueDecoding to continue.
+	// Do not iterate to next iterator. Filter calls ContinueReceiving to continue.
 	StreamTrailersFilterStop StreamTrailersFilterStatus = "Stop"
 )
 
@@ -379,7 +358,7 @@ const (
 type ConnectionPool interface {
 	Protocol() Protocol
 
-	NewStream(ctx context.Context, receiver StreamReceiver, cb PoolEventListener) Cancellable
+	NewStream(ctx context.Context, receiver StreamReceiver, listener PoolEventListener)
 
 	Close()
 }
@@ -388,8 +367,4 @@ type PoolEventListener interface {
 	OnFailure(reason PoolFailureReason, host Host)
 
 	OnReady(sender StreamSender, host Host)
-}
-
-type Cancellable interface {
-	Cancel()
 }

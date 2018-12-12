@@ -57,7 +57,7 @@ func (p *connPool) Protocol() types.Protocol {
 }
 
 func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
+	responseDecoder types.StreamReceiver, listener types.PoolEventListener) {
 	p.mux.Lock()
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(ctx, p)
@@ -67,12 +67,12 @@ func (p *connPool) NewStream(ctx context.Context,
 
 	activeClient := p.activeClient
 	if activeClient == nil {
-		cb.OnFailure(types.ConnectionFailure, nil)
-		return nil
+		listener.OnFailure(types.ConnectionFailure, nil)
+		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -83,10 +83,10 @@ func (p *connPool) NewStream(ctx context.Context,
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
-		cb.OnReady(streamEncoder, p.host)
+		listener.OnReady(streamEncoder, p.host)
 	}
 
-	return nil
+	return
 }
 
 func (p *connPool) Close() {
