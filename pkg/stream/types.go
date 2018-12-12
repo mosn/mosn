@@ -35,7 +35,7 @@ type Client interface {
 
 	ActiveRequestsNum() int
 
-	NewStream(context context.Context, respDecoder types.StreamReceiver) types.StreamSender
+	NewStream(context context.Context, respDecoder types.StreamReceiveListener) types.StreamSender
 
 	SetConnectionStats(stats *types.ConnectionStats)
 

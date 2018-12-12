@@ -106,9 +106,10 @@ func (conn *streamConnection) GoAway() {
 // types.Stream
 // types.StreamSender
 type stream struct {
+	str.BaseStream
+
 	ctx                 context.Context
-	receiver            types.StreamReceiver
-	streamEventListener []types.StreamEventListener
+	receiver            types.StreamReceiveListener
 
 	id       uint32
 	sendData []types.IoBuffer
@@ -116,29 +117,8 @@ type stream struct {
 }
 
 // ~~ types.Stream
-func (s *stream) AddEventListener(cb types.StreamEventListener) {
-	s.streamEventListener = append(s.streamEventListener, cb)
-}
-
-func (s *stream) RemoveEventListener(cb types.StreamEventListener) {
-	cbIdx := -1
-
-	for i, streamCb := range s.streamEventListener {
-		if streamCb == cb {
-			cbIdx = i
-			break
-		}
-	}
-
-	if cbIdx > -1 {
-		s.streamEventListener = append(s.streamEventListener[:cbIdx], s.streamEventListener[cbIdx+1:]...)
-	}
-}
-
-func (s *stream) ResetStream(reason types.StreamResetReason) {
-	for _, cb := range s.streamEventListener {
-		cb.OnResetStream(reason)
-	}
+func (s *stream) ID() uint64 {
+	return uint64(s.id)
 }
 
 func (s *stream) ReadDisable(disable bool) {
@@ -151,10 +131,6 @@ func (s *stream) BufferLimit() uint32 {
 
 func (s *stream) GetStream() types.Stream {
 	return s
-}
-
-func (s *stream) ID() uint64 {
-	return uint64(s.id)
 }
 
 func (s *stream) buildData() types.IoBuffer {
@@ -492,6 +468,8 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 }
 
 func (s *serverStream) endStream() {
+	defer s.DestroyStream()
+
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
 	if err != nil {
 		// todo: other error scenes
@@ -499,8 +477,8 @@ func (s *serverStream) endStream() {
 		s.stream.ResetStream(types.StreamRemoteReset)
 		return
 	}
-	s.sc.logger.Debugf("http2 server SendResponse id = %d", s.id)
 
+	s.sc.logger.Debugf("http2 server SendResponse id = %d", s.id)
 }
 
 func (s *serverStream) ResetStream(reason types.StreamResetReason) {
@@ -588,7 +566,7 @@ func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 	}
 }
 
-func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
+func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiveListener) types.StreamSender {
 	stream := &clientStream{}
 
 	stream.ctx = ctx
@@ -706,6 +684,7 @@ func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Fra
 
 type clientStream struct {
 	stream
+
 	logger log.Logger
 	h2s    *http2.MClientStream
 	sc     *clientStreamConnection

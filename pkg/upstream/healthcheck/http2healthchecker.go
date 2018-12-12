@@ -64,7 +64,7 @@ func (c *http2HealthChecker) createStreamClient(data types.CreateConnectionData)
 	return stream.NewStreamClient(context.Background(), protocol.HTTP2, data.Connection, data.HostInfo)
 }
 
-// types.StreamReceiver
+// types.StreamReceiveListener
 type http2HealthCheckSession struct {
 	healthCheckSession
 
@@ -75,7 +75,7 @@ type http2HealthCheckSession struct {
 	expectReset     bool
 }
 
-// // types.StreamReceiver
+// // types.StreamReceiveListener
 func (s *http2HealthCheckSession) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	s.responseHeaders = headers.(protocol.CommonHeader)
 

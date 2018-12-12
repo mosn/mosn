@@ -93,7 +93,7 @@ func (c *sofarpcHealthChecker) createStreamClient(data types.CreateConnectionDat
 	return stream.NewStreamClient(context.Background(), protocol.SofaRPC, data.Connection, data.HostInfo)
 }
 
-// types.StreamReceiver
+// types.StreamReceiveListener
 type sofarpcHealthCheckSession struct {
 	healthCheckSession
 

@@ -37,14 +37,14 @@ import "context"
 // 	 Event listeners can be installed into a stream to monitor event.
 //	 Stream has two related models, encoder and decoder:
 // 		- StreamSender: a sender encodes request/response to binary and sends it out, flag 'endStream' means data is ready to sendout, no need to wait for further input.
-//		- StreamReceiver: It's more like a decode listener to get called on a receiver receives binary and decodes to a request/response.
-//	 	- Stream does not have a predetermined direction, so StreamSender could be a request encoder as a client or a response encoder as a server. It's just about the scenario, so does StreamReceiver.
+//		- StreamReceiveListener: It's more like a decode listener to get called on a receiver receives binary and decodes to a request/response.
+//	 	- Stream does not have a predetermined direction, so StreamSender could be a request encoder as a client or a response encoder as a server. It's just about the scenario, so does StreamReceiveListener.
 //
 //   Stream:
 //      - Encoder
 // 			- StreamSender
 // 		- Decoder
-//			- StreamReceiver
+//			- StreamReceiveListener
 //
 //   Event listeners:
 //		- StreamEventListener: listen stream event: reset, destroy.
@@ -55,7 +55,7 @@ import "context"
 //
 //   From an abstract perspective, stream represents a virtual process on underlying connection. To make stream interactive with connection, some intermediate object can be used.
 //	 StreamConnection is the core model to connect connection system to stream system. As a example, when proxy reads binary data from connection, it dispatches data to StreamConnection to do protocol decode.
-//   Specifically, ClientStreamConnection uses a NewStream to exchange StreamReceiver with StreamSender.
+//   Specifically, ClientStreamConnection uses a NewStream to exchange StreamReceiveListener with StreamSender.
 //   Engine provides a callbacks(StreamSenderFilterHandler/StreamReceiverFilterHandler) to let filter interact with stream engine.
 // 	 As a example, a encoder filter stopped the encode process, it can continue it by StreamSenderFilterHandler.ContinueSending later. Actually, a filter engine is a encoder/decoder itself.
 //
@@ -77,7 +77,7 @@ import "context"
 // 	 |		   |					   |				   	   |                                                    |
 //	 |         |                   	   |					   |--------------------------------					|
 //   |        *|                   	   |					   |*           	 				|*					|
-//   |	 ConnectionFilter    		   |			      StreamSender      		        StreamReceiver	        |
+//   |	 ConnectionFilter    		   |			      StreamSender      		        StreamReceiveListener	        |
 //   |								   |*					   |1				 				|1					|
 // 	 |						StreamConnectionEventListener	   |				 				|					|
 //	 |													       |*				 				|*					|
@@ -113,9 +113,13 @@ type Stream interface {
 	// RemoveEventListener removes stream event listener
 	RemoveEventListener(streamEventListener StreamEventListener)
 
-	// ResetStream rests stream
-	// Any registered StreamEventListener.OnResetStream should be called.
+	// ResetStream rests and destroys stream, called on exception cases like connection close.
+	// Any registered StreamEventListener.OnResetStream and OnDestroyStream will be called.
 	ResetStream(reason StreamResetReason)
+
+	// DestroyStream destroys stream, called after stream process in client/server cases.
+	// Any registered StreamEventListener.OnDestroyStream will be called.
+	DestroyStream()
 }
 
 // StreamEventListener is a stream event listener
@@ -127,9 +131,9 @@ type StreamEventListener interface {
 	OnDestroyStream()
 }
 
-// StreamSender encodes protocol stream
-// On server scenario, StreamSender handles response
-// On client scenario, StreamSender handles request
+// StreamSender encodes and sends protocol stream
+// On server scenario, StreamSender sends response
+// On client scenario, StreamSender sends request
 type StreamSender interface {
 	// Append headers
 	// endStream supplies whether this is a header only request/response
@@ -146,9 +150,10 @@ type StreamSender interface {
 	GetStream() Stream
 }
 
-// StreamReceiver handles request on server scenario, handles response on client scenario.
-// Listeners called on decode stream event
-type StreamReceiver interface {
+// StreamReceiveListener is called on data received and decoded
+// On server scenario, StreamReceiveListener is called to handle request
+// On client scenario, StreamReceiveListener is called to handle response
+type StreamReceiveListener interface {
 	// OnReceiveHeaders is called with decoded headers
 	// endStream supplies whether this is a header only request/response
 	OnReceiveHeaders(ctx context.Context, headers HeaderMap, endOfStream bool)
@@ -171,11 +176,11 @@ type StreamConnection interface {
 	// stream uses protocol decode data, and popup event to controller
 	Dispatch(buffer IoBuffer)
 
-	// Active streams count
-	ActiveStreamsNum() int
-
 	// Protocol on the connection
 	Protocol() Protocol
+
+	// Active streams count
+	ActiveStreamsNum() int
 
 	// GoAway sends go away to remote for graceful shutdown
 	GoAway()
@@ -193,10 +198,10 @@ type ServerStreamConnection interface {
 type ClientStreamConnection interface {
 	StreamConnection
 
-	// NewStream creates a new outgoing request stream
-	// responseDecoder supplies the decoder listeners on decode event
-	// StreamSender supplies the encoder to write the request
-	NewStream(ctx context.Context, receiver StreamReceiver) StreamSender
+	// NewStream starts to create a new outgoing request stream and returns a sender to write data
+	// responseReceiveListener supplies the response listener on decode event
+	// StreamSender supplies the sender to write request data
+	NewStream(ctx context.Context, responseReceiveListener StreamReceiveListener) StreamSender
 }
 
 // StreamConnectionEventListener is a stream connection event listener
@@ -210,7 +215,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// NewStreamDetect returns stream event receiver
-	NewStreamDetect(context context.Context, sender StreamSender, spanBuilder SpanBuilder) StreamReceiver
+	NewStreamDetect(context context.Context, sender StreamSender, spanBuilder SpanBuilder) StreamReceiveListener
 }
 
 type StreamFilterBase interface {
@@ -363,7 +368,7 @@ const (
 type ConnectionPool interface {
 	Protocol() Protocol
 
-	NewStream(ctx context.Context, receiver StreamReceiver, listener PoolEventListener)
+	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
 
 	Close()
 }

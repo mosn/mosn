@@ -56,7 +56,7 @@ func (p *connPool) Protocol() types.Protocol {
 }
 
 func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiver, listener types.PoolEventListener) {
+	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
 	p.mux.Lock()
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(ctx, p)

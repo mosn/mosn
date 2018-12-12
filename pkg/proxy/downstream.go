@@ -39,7 +39,7 @@ import (
 )
 
 // types.StreamEventListener
-// types.StreamReceiver
+// types.StreamReceiveListener
 // types.FilterChainFactoryCallbacks
 // Downstream stream, as a controller to handle downstream and upstream proxy flow
 type downStream struct {
@@ -248,7 +248,7 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 
 func (s *downStream) OnDestroyStream() {}
 
-// types.StreamReceiver
+// types.StreamReceiveListener
 func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	workerPool.Offer(&receiveHeadersEvent{
 		streamEvent: streamEvent{

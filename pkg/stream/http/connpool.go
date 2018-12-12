@@ -68,7 +68,7 @@ func (p *connPool) Protocol() types.Protocol {
 }
 
 //由 PROXY 调用
-func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiver, listener types.PoolEventListener) {
+func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
 	c, reason := p.getAvailableClient(ctx)
 
 	if c == nil {

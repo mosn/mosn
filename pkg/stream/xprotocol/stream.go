@@ -189,7 +189,7 @@ func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 }
 
 // NewStream
-func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder types.StreamReceiver) types.StreamSender {
+func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener) types.StreamSender {
 	nStreamID := atomic.AddUint64(&streamIDXprotocolCount, 1)
 	streamID := strconv.FormatUint(nStreamID, 10)
 
@@ -252,17 +252,17 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers types
 // types.Stream
 // types.StreamEncoder
 type stream struct {
-	context context.Context
+	str.BaseStream
 
+	reqID               string
 	streamID            string
 	direction           StreamDirection // 0: out, 1: in
 	readDisableCount    int
+	context 			context.Context
 	connection          *streamConnection
-	streamReceiver      types.StreamReceiver
-	streamEventListener []types.StreamEventListener
+	streamReceiver      types.StreamReceiveListener
 	encodedHeaders      types.IoBuffer
 	encodedData         types.IoBuffer
-	reqID               string
 }
 
 // AddEventListener add stream event callback
@@ -270,33 +270,6 @@ type stream struct {
 func (s *stream) ID() uint64 {
 	id, _ := strconv.ParseUint(s.streamID, 10, 64)
 	return id
-}
-
-func (s *stream) AddEventListener(cb types.StreamEventListener) {
-	s.streamEventListener = append(s.streamEventListener, cb)
-}
-
-// RemoveEventListener remove stream event callback
-func (s *stream) RemoveEventListener(cb types.StreamEventListener) {
-	cbIdx := -1
-
-	for i, streamCb := range s.streamEventListener {
-		if streamCb == cb {
-			cbIdx = i
-			break
-		}
-	}
-
-	if cbIdx > -1 {
-		s.streamEventListener = append(s.streamEventListener[:cbIdx], s.streamEventListener[cbIdx+1:]...)
-	}
-}
-
-// ResetStream reset stream
-func (s *stream) ResetStream(reason types.StreamResetReason) {
-	for _, cb := range s.streamEventListener {
-		cb.OnResetStream(reason)
-	}
 }
 
 // ReadDisable disable the read loop goroutine on connection
@@ -344,6 +317,12 @@ func (s *stream) AppendTrailers(context context.Context, trailers types.HeaderMa
 
 //TODO: x-subprotocol stream has encodeHeaders?
 func (s *stream) endStream() {
+	defer func() {
+		if s.direction == ServerStream {
+			s.DestroyStream()
+		}
+	}()
+
 	log.DefaultLogger.Tracef("xprotocol stream end stream invoked , request id = %s, direction = %d", s.streamID, s.direction)
 	if stream, ok := s.connection.activeStream.Get(s.streamID); ok {
 		log.DefaultLogger.Tracef("xprotocol stream end stream write encodedata = %v", s.encodedData)

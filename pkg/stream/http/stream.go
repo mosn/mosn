@@ -231,7 +231,7 @@ func (conn *clientStreamConnection) serve() {
 
 func (conn *clientStreamConnection) GoAway() {}
 
-func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
+func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiveListener) types.StreamSender {
 	id := protocol.GenerateID()
 	s := &clientStream{
 		stream: stream{
@@ -374,17 +374,17 @@ func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
 // types.Stream
 // types.StreamSender
 type stream struct {
-	id  uint64
-	ctx context.Context
+	str.BaseStream
 
+	id               uint64
 	readDisableCount int32
+	ctx              context.Context
 
 	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
 	request  *fasthttp.Request
 	response *fasthttp.Response
 
-	receiver        types.StreamReceiver
-	streamListeners []types.StreamEventListener
+	receiver types.StreamReceiveListener
 }
 
 // types.Stream
@@ -392,31 +392,7 @@ func (s *stream) ID() uint64 {
 	return s.id
 }
 
-func (s *stream) AddEventListener(streamCb types.StreamEventListener) {
-	s.streamListeners = append(s.streamListeners, streamCb)
-}
-
-func (s *stream) RemoveEventListener(streamCb types.StreamEventListener) {
-	cbIdx := -1
-
-	for i, streamCb := range s.streamListeners {
-		if streamCb == streamCb {
-			cbIdx = i
-			break
-		}
-	}
-
-	if cbIdx > -1 {
-		s.streamListeners = append(s.streamListeners[:cbIdx], s.streamListeners[cbIdx+1:]...)
-	}
-}
-
-func (s *stream) ResetStream(reason types.StreamResetReason) {
-	for _, cb := range s.streamListeners {
-		cb.OnResetStream(reason)
-	}
-}
-
+// types.StreamSender for request
 type clientStream struct {
 	stream
 
@@ -551,6 +527,7 @@ func (s *clientStream) GetStream() types.Stream {
 	return s
 }
 
+// types.StreamSender for response
 type serverStream struct {
 	stream
 
@@ -608,6 +585,8 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 }
 
 func (s *serverStream) endStream() {
+	defer s.DestroyStream()
+
 	s.doSend()
 	s.responseDoneChan <- true
 

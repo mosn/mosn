@@ -166,7 +166,7 @@ func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 	}
 }
 
-func (conn *streamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
+func (conn *streamConnection) NewStream(ctx context.Context, receiver types.StreamReceiveListener) types.StreamSender {
 	buffers := sofaBuffersByContext(ctx)
 	stream := &buffers.client
 
@@ -293,47 +293,21 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 // types.Stream
 // types.StreamSender
 type stream struct {
+	str.BaseStream
+
 	ctx context.Context
 	sc  *streamConnection
 
-	id        uint64
-	direction StreamDirection // 0: out, 1: in
-
-	receiver  types.StreamReceiver
-	streamCbs []types.StreamEventListener
-
-	sendCmd sofarpc.SofaRpcCmd
-	sendBuf types.IoBuffer
+	id        	uint64
+	direction 	StreamDirection // 0: out, 1: in
+	receiver	types.StreamReceiveListener
+	sendCmd 	sofarpc.SofaRpcCmd
+	sendBuf 	types.IoBuffer
 }
 
 // ~~ types.Stream
 func (s *stream) ID() uint64 {
 	return s.id
-}
-
-func (s *stream) AddEventListener(cb types.StreamEventListener) {
-	s.streamCbs = append(s.streamCbs, cb)
-}
-
-func (s *stream) RemoveEventListener(cb types.StreamEventListener) {
-	cbIdx := -1
-
-	for i, streamCb := range s.streamCbs {
-		if streamCb == cb {
-			cbIdx = i
-			break
-		}
-	}
-
-	if cbIdx > -1 {
-		s.streamCbs = append(s.streamCbs[:cbIdx], s.streamCbs[cbIdx+1:]...)
-	}
-}
-
-func (s *stream) ResetStream(reason types.StreamResetReason) {
-	for _, cb := range s.streamCbs {
-		cb.OnResetStream(reason)
-	}
 }
 
 func (s *stream) ReadDisable(disable bool) {
@@ -399,8 +373,6 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 		s.sendCmd.SetData(data)
 	}
 
-	//s.encodedData = data
-
 	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID, s.direction)
 
 	if endStream {
@@ -420,8 +392,13 @@ func (s *stream) AppendTrailers(context context.Context, trailers types.HeaderMa
 // For server stream, write out response
 // For client stream, write out request
 func (s *stream) endStream() {
-	if s.sendCmd != nil {
+	defer func() {
+		if s.direction == ServerStream {
+			s.DestroyStream()
+		}
+	}()
 
+	if s.sendCmd != nil {
 		// replace requestID
 		s.sendCmd.SetRequestID(s.id)
 
@@ -438,7 +415,6 @@ func (s *stream) endStream() {
 		} else {
 			s.sc.conn.Write(buf)
 		}
-
 	}
 }
 
@@ -449,7 +425,6 @@ func (s *stream) GetStream() types.Stream {
 // contextManager
 type contextManager struct {
 	base context.Context
-
 	curr context.Context
 }
 

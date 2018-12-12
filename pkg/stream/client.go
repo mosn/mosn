@@ -101,8 +101,15 @@ func (c *client) SetStreamConnectionEventListener(listener types.StreamConnectio
 	c.StreamConnectionEventListener = listener
 }
 
-func (c *client) NewStream(context context.Context, respReceiver types.StreamReceiver) types.StreamSender {
-	return c.ClientStreamConnection.NewStream(context, respReceiver)
+func (c *client) NewStream(context context.Context, respReceiver types.StreamReceiveListener) types.StreamSender {
+	wrapper := &clientStreamReceiverWrapper{
+		streamReceiver: respReceiver,
+	}
+
+	streamSender := c.ClientStreamConnection.NewStream(context, wrapper)
+	wrapper.stream = streamSender.GetStream()
+
+	return streamSender
 }
 
 func (c *client) Close() {
@@ -146,3 +153,35 @@ func (c *client) OnNewConnection() types.FilterStatus {
 }
 
 func (c *client) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
+
+// uniform wrapper to destroy stream at client side
+type clientStreamReceiverWrapper struct {
+	stream         types.Stream
+	streamReceiver types.StreamReceiveListener
+}
+
+func (w *clientStreamReceiverWrapper) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endOfStream bool) {
+	if endOfStream {
+		w.stream.DestroyStream()
+	}
+
+	w.streamReceiver.OnReceiveHeaders(ctx, headers, endOfStream)
+}
+
+func (w *clientStreamReceiverWrapper) OnReceiveData(ctx context.Context, data types.IoBuffer, endOfStream bool) {
+	if endOfStream {
+		w.stream.DestroyStream()
+	}
+
+	w.streamReceiver.OnReceiveData(ctx, data, endOfStream)
+}
+
+func (w *clientStreamReceiverWrapper) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) {
+	w.stream.DestroyStream()
+
+	w.streamReceiver.OnReceiveTrailers(ctx, trailers)
+}
+
+func (w *clientStreamReceiverWrapper) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
+	w.streamReceiver.OnDecodeError(ctx, err, headers)
+}

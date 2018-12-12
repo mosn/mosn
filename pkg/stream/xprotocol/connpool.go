@@ -60,7 +60,7 @@ func (p *connPool) Protocol() types.Protocol {
 func (p *connPool) DrainConnections() {}
 
 // NewStream invoked by Proxy
-func (p *connPool) NewStream(context context.Context, responseDecoder types.StreamReceiver,
+func (p *connPool) NewStream(context context.Context, responseDecoder types.StreamReceiveListener,
 	listener types.PoolEventListener) {
 	log.DefaultLogger.Tracef("xprotocol conn pool new stream")
 	p.mux.Lock()
