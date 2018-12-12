@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"regexp"
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -31,6 +32,8 @@ import (
 
 type InheritPrincipal interface {
 	InheritPrincipal()
+	// A policy matches if and only if at least one of InheritPermission.Match return true
+	// AND at least one of InheritPrincipal.Match return true
 	Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool
 }
 
@@ -75,7 +78,8 @@ func (principal *PrincipalSourceIp) Match(cb types.StreamReceiverFilterCallbacks
 	remoteAddr := cb.Connection().RemoteAddr().String()
 	remoteIP, _, err := parseAddr(remoteAddr)
 	if err != nil {
-		log.DefaultLogger.Errorf("failed to parse remote address in rbac filter, err: ", err)
+		log.DefaultLogger.Errorf(
+			"[PrincipalSourceIp.Match] failed to parse remote address in rbac filter, err: ", err)
 		return false
 	}
 	if principal.CidrRange.Contains(remoteIP) {
@@ -109,8 +113,18 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 		inheritPrincipal.Matcher = &HeaderMatcherSuffixMatch{
 			SuffixMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_SuffixMatch).SuffixMatch,
 		}
+	case *route.HeaderMatcher_RegexMatch:
+		if rePattern, err := regexp.Compile(
+			principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RegexMatch).RegexMatch); err != nil {
+			return nil, fmt.Errorf("[NewPrincipalHeader] failed not build regex, error: %v", err)
+		} else {
+			inheritPrincipal.Matcher = &HeaderMatcherRegexMatch{
+				RegexMatch: rePattern,
+			}
+		}
 	default:
-		return nil, fmt.Errorf("not support Principal_Header.Header.HeaderMatchSpecifier type found, detail: %v",
+		return nil, fmt.Errorf(
+			"[NewPrincipalHeader] not support Principal_Header.Header.HeaderMatchSpecifier type found, detail: %v",
 			reflect.TypeOf(principal.Header.HeaderMatchSpecifier))
 	}
 	return inheritPrincipal, nil
@@ -119,10 +133,18 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 func (principal *PrincipalHeader) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
 	targetValue := headerMapper(principal.Target, headers)
 	if targetValue == nil {
-		log.DefaultLogger.Errorf("failed to fetch header info with target: `%s`", principal.Target)
+		log.DefaultLogger.Errorf(
+			"[NewPrincipalHeader] failed to fetch header info with target: `%s`", principal.Target)
 		return false
 	}
-	isMatch := principal.Matcher.Equal(targetValue)
+
+	isMatch, err := principal.Matcher.Equal(targetValue)
+	if err != nil {
+		log.DefaultLogger.Errorf(
+			"[NewPrincipalHeader] failed to perform `PrincipalHeader.Matcher.Equal`, error: %v", err)
+		return false
+	}
+
 	if principal.InvertMatch {
 		return !isMatch
 	} else {
@@ -148,7 +170,7 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 	case *v2alpha.Principal_Header:
 		return NewPrincipalHeader(principal.Identifier.(*v2alpha.Principal_Header))
 	default:
-		return nil, fmt.Errorf("not supported Principal.Identifier type found, detail: %v",
+		return nil, fmt.Errorf("[NewInheritPrincipal] not supported Principal.Identifier type found, detail: %v",
 			reflect.TypeOf(principal.Identifier))
 	}
 }

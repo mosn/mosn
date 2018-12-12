@@ -27,6 +27,8 @@ import (
 
 type InheritPermission interface {
 	InheritPermission()
+	// A policy matches if and only if at least one of InheritPermission.Match return true
+	// AND at least one of InheritPrincipal.Match return true
 	Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool
 }
 
@@ -61,7 +63,7 @@ func NewInheritPermission(permission *v2alpha.Permission) (InheritPermission, er
 	case *v2alpha.Permission_Any:
 		return NewPermissionAny(permission.Rule.(*v2alpha.Permission_Any))
 	default:
-		return nil, fmt.Errorf("not supported Permission.Rule type found, detail: %v",
+		return nil, fmt.Errorf("[NewInheritPermission] not supported Permission.Rule type found, detail: %v",
 			reflect.TypeOf(permission.Rule))
 	}
 }

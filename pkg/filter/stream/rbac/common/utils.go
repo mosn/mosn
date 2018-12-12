@@ -35,18 +35,18 @@ const (
 func parseAddr(addr string) (ipAddr net.IP, port int, err error) {
 	s := strings.Split(addr, ":")
 	if len(s) != 2 {
-		return nil, 0, fmt.Errorf("%s is not a valid address, address must in ip:port format", addr)
+		return nil, 0, fmt.Errorf("[parseAddr] %s is not a valid address, address must in ip:port format", addr)
 	}
 
 	if ipAddr = net.ParseIP(s[0]); ipAddr == nil {
-		return nil, 0, fmt.Errorf("%s is not a valid ip address", s[0])
+		return nil, 0, fmt.Errorf("[parseAddr] %s is not a valid ip address", s[0])
 	}
 
 	if port, err = strconv.Atoi(s[1]); err != nil {
-		return nil, 0, fmt.Errorf("parse port failed, err: %v", err)
+		return nil, 0, fmt.Errorf("[parseAddr] parse port failed, err: %v", err)
 	} else {
 		if port <= 0 || port > 65535 {
-			return nil, 0, fmt.Errorf("%d not like a valid port", port)
+			return nil, 0, fmt.Errorf("[parseAddr] %d not like a valid port", port)
 		}
 	}
 

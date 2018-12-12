@@ -43,7 +43,7 @@ func NewInheritPolicy(policy *v2alpha.Policy) (*InheritPolicy, error) {
 	// fill permission
 	for _, permission := range policy.Permissions {
 		if inheritPermission, err := NewInheritPermission(permission); err != nil {
-			log.DefaultLogger.Errorf("convert rbac policy failed, err msg: %v", err)
+			log.DefaultLogger.Errorf("[NewInheritPolicy] convert permission failed, error: %v", err)
 			return nil, err
 		} else {
 			inheritPolicy.InheritPermissions = append(inheritPolicy.InheritPermissions, inheritPermission)
@@ -53,7 +53,7 @@ func NewInheritPolicy(policy *v2alpha.Policy) (*InheritPolicy, error) {
 	// fill principal
 	for _, principal := range policy.Principals {
 		if inheritPrincipal, err := NewInheritPrincipal(principal); err != nil {
-			log.DefaultLogger.Errorf("convert rbac policy failed, err msg: %v", err)
+			log.DefaultLogger.Errorf("[NewInheritPolicy] convert principal failed, error: %v", err)
 			return nil, err
 		} else {
 			inheritPolicy.InheritPrincipals = append(inheritPolicy.InheritPrincipals, inheritPrincipal)
