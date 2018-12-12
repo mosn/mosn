@@ -67,18 +67,18 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 	// rbac shadow engine handle
 	_, matchPolicyName := f.shadowEngine.Allowed(f.cb, headers)
 	if matchPolicyName != "" {
+		// TODO: record metric log
 		log.DefaultLogger.Debugf("shoadow engine hit, policy name: %s", matchPolicyName)
 	}
 
 	// rbac engine handle
 	allowed, matchPolicyName := f.engine.Allowed(f.cb, headers)
-	if !allowed {
-		// TODO: engine handler
-		//return types.StreamHeadersFilterStop
-		return types.StreamHeadersFilterContinue
-	}
 	if matchPolicyName != "" {
+		// TODO: record metric log
 		log.DefaultLogger.Debugf("shoadow engine hit, policy name: %s", matchPolicyName)
+	}
+	if !allowed {
+		return types.StreamHeadersFilterStop
 	}
 
 	return types.StreamHeadersFilterContinue

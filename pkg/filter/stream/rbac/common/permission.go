@@ -28,7 +28,7 @@ type InheritPermission interface {
 	Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool
 }
 
-// PermissionAny
+// Permission_Any
 type PermissionAny struct {
 	Any bool
 }
@@ -39,6 +39,14 @@ func (permission *PermissionAny) Match(cb types.StreamReceiverFilterCallbacks, h
 
 // Receive the v2alpha.Permission input and convert it to mosn rbac permission
 func NewInheritPermission(permission *v2alpha.Permission) (InheritPermission, error) {
+	// Types that are valid to be assigned to Rule:
+	//	*Permission_AndRules
+	//	*Permission_OrRules
+	//	*Permission_Any
+	//	*Permission_Header
+	//	*Permission_DestinationIp
+	//	*Permission_DestinationPort
+	//	*Permission_Metadata
 	switch v := permission.Rule.(type) {
 	case *v2alpha.Permission_Any:
 		inheritPermission := new(PermissionAny)

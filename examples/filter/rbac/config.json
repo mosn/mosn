@@ -53,7 +53,7 @@
               "type": "rbac",
               "config": {
                 "rules": {
-                  "action": "ALLOW",
+                  "action": "DENY",
                   "policies": {
                     "service-admin": {
                       "permissions": [
@@ -73,11 +73,26 @@
                           }
                         }
                       ]
+                    },
+                    "deny-localhost": {
+                      "permissions": [
+                        {
+                          "any": true
+                        }
+                      ],
+                      "principals": [
+                        {
+                          "sourceIp": {
+                            "addressPrefix": "127.0.0.1",
+                            "prefixLen": 32
+                          }
+                        }
+                      ]
                     }
                   }
                 },
                 "shadowRules": {
-                  "action": "DENY",
+                  "action": "ALLOW",
                   "policies": {
                     "product-viewer": {
                       "permissions": [
@@ -116,18 +131,6 @@
                               }
                             ]
                           }
-                        }
-                      ],
-                      "principals": [
-                        {
-                          "any": true
-                        }
-                      ]
-                    },
-                    "deny-all": {
-                      "permissions": [
-                        {
-                          "any": true
                         }
                       ],
                       "principals": [
