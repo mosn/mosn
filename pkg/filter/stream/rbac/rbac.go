@@ -54,6 +54,12 @@ func (f *rbacFilter) ReadPerRouteConfig(cfg map[string]interface{}) {
 
 // filter implementation
 func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+	defer func() {
+		if err := recover(); err != nil {
+			log.DefaultLogger.Errorf("recover from rbac filter, error: %v", err)
+		}
+	}()
+
 	// print http header
 	headers.Range(func(key, value string) bool {
 		log.DefaultLogger.Debugf("Key: %s, Value: %s\n", key, value)

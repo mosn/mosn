@@ -22,6 +22,13 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
+)
+
+const (
+	HeaderMapMethod = ":method"
+	HeaderMapPath   = ":path"
 )
 
 // parse address like "192.0.2.1:25", "[2001:db8::1]:80" into ip & port
@@ -35,7 +42,6 @@ func parseAddr(addr string) (ipAddr net.IP, port int, err error) {
 		return nil, 0, fmt.Errorf("%s is not a valid ip address", s[0])
 	}
 
-
 	if port, err = strconv.Atoi(s[1]); err != nil {
 		return nil, 0, fmt.Errorf("parse port failed, err: %v", err)
 	} else {
@@ -45,4 +51,24 @@ func parseAddr(addr string) (ipAddr net.IP, port int, err error) {
 	}
 
 	return ipAddr, port, nil
+}
+
+// fetch target value from header, return nil if not found
+func headerMapper(target string, headers types.HeaderMap) interface{} {
+	switch strings.ToLower(target) {
+	case HeaderMapMethod:
+		if method, ok := headers.Get("X-Mosn-Method"); ok {
+			return method
+		} else {
+			return nil
+		}
+	case HeaderMapPath:
+		if path, ok := headers.Get("X-Mosn-Path"); ok {
+			return path
+		} else {
+			return nil
+		}
+	default:
+		return nil
+	}
 }

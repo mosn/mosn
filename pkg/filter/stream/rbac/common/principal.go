@@ -25,6 +25,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2alpha"
 )
 
@@ -35,6 +36,7 @@ type InheritPrincipal interface {
 
 func (*PrincipalAny) InheritPrincipal()      {}
 func (*PrincipalSourceIp) InheritPrincipal() {}
+func (*PrincipalHeader) InheritPrincipal()   {}
 
 // Principal_Any
 type PrincipalAny struct {
@@ -83,14 +85,48 @@ func (principal *PrincipalSourceIp) Match(cb types.StreamReceiverFilterCallbacks
 	}
 }
 
+// Principal_Header
+type PrincipalHeader struct {
+	Target      string
+	Matcher     HeaderMatcher
+	InvertMatch bool
+}
+
+func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, error) {
+	inheritPrincipal := &PrincipalHeader{}
+	inheritPrincipal.Target = principal.Header.Name
+	inheritPrincipal.InvertMatch = principal.Header.InvertMatch
+	switch principal.Header.HeaderMatchSpecifier.(type) {
+	case *route.HeaderMatcher_ExactMatch:
+		inheritPrincipal.Matcher = &HeaderMatcherExactMatch{
+			ExactMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_ExactMatch).ExactMatch,
+		}
+	}
+	return inheritPrincipal, nil
+}
+
+func (principal *PrincipalHeader) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+	targetValue := headerMapper(principal.Target, headers)
+	if targetValue == nil {
+		log.DefaultLogger.Errorf("failed to fetch header info with target: `%s`", principal.Target)
+		return false
+	}
+	isMatch := principal.Matcher.Equal(targetValue)
+	if principal.InvertMatch {
+		return !isMatch
+	} else {
+		return isMatch
+	}
+}
+
 // Receive the v2alpha.Principal input and convert it to mosn rbac principal
 func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error) {
 	// Types that are valid to be assigned to Identifier:
 	//	*Principal_AndIds
 	//	*Principal_OrIds
-	//	*Principal_Any
+	//	*Principal_Any (supported)
 	//	*Principal_Authenticated_
-	//	*Principal_SourceIp
+	//	*Principal_SourceIp (supported)
 	//	*Principal_Header
 	//	*Principal_Metadata
 	switch principal.Identifier.(type) {
@@ -98,6 +134,8 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 		return NewPrincipalAny(principal.Identifier.(*v2alpha.Principal_Any))
 	case *v2alpha.Principal_SourceIp:
 		return NewPrincipalSourceIp(principal.Identifier.(*v2alpha.Principal_SourceIp))
+	case *v2alpha.Principal_Header:
+		return NewPrincipalHeader(principal.Identifier.(*v2alpha.Principal_Header))
 	default:
 		return nil, fmt.Errorf("not supported principal type found, detail: %v", reflect.TypeOf(principal.Identifier))
 	}
