@@ -101,6 +101,17 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 		inheritPrincipal.Matcher = &HeaderMatcherExactMatch{
 			ExactMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_ExactMatch).ExactMatch,
 		}
+	case *route.HeaderMatcher_PrefixMatch:
+		inheritPrincipal.Matcher = &HeaderMatcherPrefixMatch{
+			PrefixMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_PrefixMatch).PrefixMatch,
+		}
+	case *route.HeaderMatcher_SuffixMatch:
+		inheritPrincipal.Matcher = &HeaderMatcherSuffixMatch{
+			SuffixMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_SuffixMatch).SuffixMatch,
+		}
+	default:
+		return nil, fmt.Errorf("not support Principal_Header.Header.HeaderMatchSpecifier type found, detail: %v",
+			reflect.TypeOf(principal.Header.HeaderMatchSpecifier))
 	}
 	return inheritPrincipal, nil
 }
@@ -137,6 +148,7 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 	case *v2alpha.Principal_Header:
 		return NewPrincipalHeader(principal.Identifier.(*v2alpha.Principal_Header))
 	default:
-		return nil, fmt.Errorf("not supported principal type found, detail: %v", reflect.TypeOf(principal.Identifier))
+		return nil, fmt.Errorf("not supported Principal.Identifier type found, detail: %v",
+			reflect.TypeOf(principal.Identifier))
 	}
 }

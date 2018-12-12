@@ -72,26 +72,7 @@
                     }
                   }
                 },
-                "shadowRules": {
-                  "action": "DENY",
-                  "policies": {
-                    "deny-indicated-resources": {
-                      "permissions": [
-                        {
-                          "any": true
-                        }
-                      ],
-                      "principals": [
-                        {
-                          "header": {
-                            "name": ":path",
-                            "suffixMatch": ".java"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                }
+                "shadowRules": {}
               }
             }
           ]

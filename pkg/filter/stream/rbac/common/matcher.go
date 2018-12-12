@@ -17,6 +17,8 @@
 
 package common
 
+import "strings"
+
 // HeaderMatcher
 type HeaderMatcher interface {
 	//	*HeaderMatcher_ExactMatch
@@ -29,12 +31,33 @@ type HeaderMatcher interface {
 	Equal(interface{}) bool
 }
 
-func (matcher *HeaderMatcherExactMatch) HeaderMatcher() {}
+func (matcher *HeaderMatcherExactMatch) HeaderMatcher()  {}
+func (matcher *HeaderMatcherPrefixMatch) HeaderMatcher() {}
+func (matcher *HeaderMatcherSuffixMatch) HeaderMatcher() {}
 
+// HeaderMatcher_ExactMatch
 type HeaderMatcherExactMatch struct {
 	ExactMatch string
 }
 
 func (matcher *HeaderMatcherExactMatch) Equal(targetValue interface{}) bool {
 	return matcher.ExactMatch == targetValue.(string)
+}
+
+// HeaderMatcher_PrefixMatch
+type HeaderMatcherPrefixMatch struct {
+	PrefixMatch string
+}
+
+func (matcher *HeaderMatcherPrefixMatch) Equal(targetValue interface{}) bool {
+	return strings.HasPrefix(targetValue.(string), matcher.PrefixMatch)
+}
+
+// HeaderMatcher_SuffixMatch
+type HeaderMatcherSuffixMatch struct {
+	SuffixMatch string
+}
+
+func (matcher *HeaderMatcherSuffixMatch) Equal(targetValue interface{}) bool {
+	return strings.HasSuffix(targetValue.(string), matcher.SuffixMatch)
 }
