@@ -25,8 +25,11 @@ import (
 )
 
 type InheritPermission interface {
+	InheritPermission()
 	Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool
 }
+
+func (*PermissionAny) InheritPermission() {}
 
 // Permission_Any
 type PermissionAny struct {

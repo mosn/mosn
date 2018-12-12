@@ -27,8 +27,12 @@ import (
 )
 
 type InheritPrincipal interface {
+	InheritPrincipal()
 	Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool
 }
+
+func (*PrincipalAny) InheritPrincipal()      {}
+func (*PrincipalSourceIp) InheritPrincipal() {}
 
 // Principal_Any
 type PrincipalAny struct {
