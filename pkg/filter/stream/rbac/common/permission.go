@@ -53,8 +53,9 @@ func NewInheritPermission(permission *v2alpha.Permission) (InheritPermission, er
 	//	*Permission_Metadata
 	switch permission.Rule.(type) {
 	case *v2alpha.Permission_Any:
-		inheritPermission := new(PermissionAny)
-		inheritPermission.Any = permission.Rule.(*v2alpha.Permission_Any).Any
+		inheritPermission := &PermissionAny{
+			Any: permission.Rule.(*v2alpha.Permission_Any).Any,
+		}
 		return inheritPermission, nil
 	default:
 		return nil, fmt.Errorf("not supported permission type found, detail: %v", reflect.TypeOf(permission.Rule))

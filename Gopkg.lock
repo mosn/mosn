@@ -2,30 +2,37 @@
 
 
 [[projects]]
+  digest = "1:5db342e03532ae5e12cdb4f25118788c1e550b18bca25c4f03be9ba38fbcacd3"
   name = "github.com/AlexStocks/dubbogo"
   packages = [
     "codec",
-    "codec/hessian"
+    "codec/hessian",
   ]
+  pruneopts = "UT"
   revision = "d706e009647c54fe93b3a0b8f8c15fe56cc85cf7"
   version = "v0.2.0"
 
 [[projects]]
+  digest = "1:8b0c4511d138ccbc13153c304ea59b7b556e4b1e753707cb6245f24a650191dc"
   name = "github.com/AlexStocks/goext"
   packages = [
     "os",
-    "strings"
+    "strings",
   ]
-  revision = "6b0b549c4960950cbd1dec0df8a01403deb08cb3"
-  version = "v0.3.0"
+  pruneopts = "UT"
+  revision = "c9a8c4e55fe01ebef9a4afbc6b6835bf0b5dc11e"
+  version = "v0.3.1"
 
 [[projects]]
+  digest = "1:fefbceecbd591dd9de81717bb4424eb55984db9977cea2ab0004ef118d23f526"
   name = "github.com/AlexStocks/log4go"
   packages = ["."]
-  revision = "39cc8511d507bcf4d1716205f765973d967868eb"
-  version = "v3.1.0"
+  pruneopts = "UT"
+  revision = "6e63e9ec87e318f2f4314f4d7546733fcfbc9e8e"
+  version = "v1.0.0"
 
 [[projects]]
+  digest = "1:486c52155a6f08ef028ffab8d9df311edd8a7a6d6be056adc4e30d5134304e1a"
   name = "github.com/envoyproxy/go-control-plane"
   packages = [
     "envoy/api/v2",
@@ -40,33 +47,35 @@
     "envoy/config/filter/accesslog/v2",
     "envoy/config/filter/fault/v2",
     "envoy/config/filter/http/fault/v2",
+    "envoy/config/filter/http/rbac/v2",
     "envoy/config/filter/network/http_connection_manager/v2",
     "envoy/config/filter/network/tcp_proxy/v2",
     "envoy/config/metrics/v2",
     "envoy/config/ratelimit/v2",
+    "envoy/config/rbac/v2alpha",
     "envoy/config/trace/v2",
     "envoy/service/discovery/v2",
     "envoy/type",
-    "pkg/util"
+    "envoy/type/matcher",
+    "pkg/util",
   ]
+  pruneopts = "UT"
   revision = "c14704578b82128fab17743d91f870c406ef8d09"
   version = "v0.4"
 
 [[projects]]
-  name = "github.com/fatih/structs"
-  packages = ["."]
-  revision = "a720dfa8df582c51dee1b36feabb906bde1588bd"
-  version = "v1.0"
-
-[[projects]]
+  digest = "1:b6866b08184222995bf9347b648e11dc252317b809ee9f72c8724c07a016b303"
   name = "github.com/gogo/googleapis"
   packages = [
     "google/api",
-    "google/rpc"
+    "google/rpc",
   ]
-  revision = "0cd9801be74a10d5ac39d69626eac8255ffcd502"
+  pruneopts = "UT"
+  revision = "8558fb44d2f1fc223118afc694129d2c2d2924d1"
+  version = "v1.1.0"
 
 [[projects]]
+  digest = "1:35621fe20f140f05a0c4ef662c26c0ab4ee50bca78aa30fe87d33120bd28165e"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -74,151 +83,198 @@
     "proto",
     "protoc-gen-gogo/descriptor",
     "sortkeys",
-    "types"
+    "types",
   ]
+  pruneopts = "UT"
   revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:fa5e9e1af8a8645086811ec5ab003806026babc57c8bb3a6f7e1ab34b80e2ff1"
   name = "github.com/golang/protobuf"
   packages = [
+    "jsonpb",
     "proto",
     "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/timestamp"
+    "ptypes/struct",
+    "ptypes/timestamp",
   ]
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
+  pruneopts = "UT"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:4d9d876a856ada3b553062ac8e50331a9a539e12893c0c4a50d8ae2af4242685"
   name = "github.com/hashicorp/go-syslog"
   packages = ["."]
+  pruneopts = "UT"
   revision = "326bf4a7f709d263f964a6a96558676b103f3534"
 
 [[projects]]
   branch = "master"
+  digest = "1:68e630b976378fa76e494b826d651267f48aa1d61b1fa4cff360b9f37e9f8b03"
   name = "github.com/json-iterator/go"
   packages = ["."]
-  revision = "10a568c51178f31e41456cedaac7838e0f4f7360"
+  pruneopts = "UT"
+  revision = "d05f387f50c0c406889b62cb5ec51c76a64d89ee"
 
 [[projects]]
   branch = "master"
+  digest = "1:7d1a655e1f16ccaf1adb026bdeece28499ecb0ead32d32accc6ed6f2c40cacee"
   name = "github.com/juju/errors"
   packages = ["."]
-  revision = "22422dad46e14561a0854ad42497a75af9b61909"
+  pruneopts = "UT"
+  revision = "089d3ea4e4d597bd98acac068193d341983326a3"
 
 [[projects]]
   branch = "master"
+  digest = "1:4f07b78e99af843e12de8dfc1b68e39c3cbbba37b5be782a763c38ef031cd4d6"
   name = "github.com/jwangsadinata/go-multimap"
   packages = [
     ".",
-    "slicemultimap"
+    "slicemultimap",
   ]
+  pruneopts = "UT"
   revision = "599609688a40c0234f4ed5bdc005b241909dbc46"
 
 [[projects]]
+  digest = "1:aaa8e0e7e35d92e21daed3f241832cee73d15ca1cd3302ba3843159a959a7eac"
   name = "github.com/klauspost/compress"
   packages = [
     "flate",
     "gzip",
-    "zlib"
+    "zlib",
   ]
-  revision = "5fb1f31b0a61e9858f12f39266e059848a5f1cea"
-  version = "v1.3.0"
+  pruneopts = "UT"
+  revision = "30be6041bed523c18e269a700ebd9c2ea9328574"
+  version = "v1.4.1"
 
 [[projects]]
+  digest = "1:2d643962fac133904694fffa959bc3c5dcfdcee38c6f5ffdd99a3c93eb9c835c"
   name = "github.com/klauspost/cpuid"
   packages = ["."]
-  revision = "ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da"
-  version = "v1.1"
+  pruneopts = "UT"
+  revision = "e7e905edc00ea8827e58662220139109efea09db"
+  version = "v1.2.0"
 
 [[projects]]
+  digest = "1:e0634682fffd776e09ffe332c37ac2c5996bdee5a8a6160d8a3ab3393a02163a"
   name = "github.com/lyft/protoc-gen-validate"
   packages = ["validate"]
-  revision = "cae364899cd8c08b83bfdcabf4ce4dd4a68ca6da"
+  pruneopts = "UT"
+  revision = "1ffd5e8db575ed8a61c7e0d415af263c39cef1ab"
+  version = "v0.0.11"
 
 [[projects]]
   branch = "master"
+  digest = "1:aa3d8d42865c42626b5c1add193692d045b3188b1479f0a0a88690d21fe20083"
   name = "github.com/mailru/easyjson"
   packages = [
     ".",
     "buffer",
     "jlexer",
-    "jwriter"
+    "jwriter",
   ]
+  pruneopts = "UT"
   revision = "60711f1a8329503b04e1c88535f419d0bb440bff"
 
 [[projects]]
+  digest = "1:3aa5a708a67572cb344a7732a0c2a9417b788c4b139914b3049fa590709298e6"
   name = "github.com/markphelps/optional"
   packages = ["."]
-  revision = "462a8e39a44e0c8bebfb476e131e45546eb358bf"
-  version = "v0.4.2"
+  pruneopts = "UT"
+  revision = "e0a8e47d128d0cbbdd59fa01866009db9b2cb09d"
+  version = "v0.6.0"
 
 [[projects]]
+  digest = "1:0981502f9816113c9c8c4ac301583841855c8cf4da8c72f696b3ebedf6d0e4e5"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
+  pruneopts = "UT"
   revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
   version = "v0.0.4"
 
 [[projects]]
+  digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
   name = "github.com/modern-go/concurrent"
   packages = ["."]
+  pruneopts = "UT"
   revision = "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
   version = "1.0.3"
 
 [[projects]]
+  digest = "1:e32bdbdb7c377a07a9a46378290059822efdce5c8d96fe71940d87cb4f918855"
   name = "github.com/modern-go/reflect2"
   packages = ["."]
+  pruneopts = "UT"
   revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
   version = "1.0.1"
 
 [[projects]]
   branch = "master"
+  digest = "1:b58f342fbae279c37a5c5d7016b9c9ff91036b9a0365ca1c89b2a5ec151bda14"
   name = "github.com/neverhook/easygo"
   packages = ["netpoll"]
+  pruneopts = "UT"
   revision = "787757e6499086c1bb5dfe4ae7d3aa4aafe169d4"
 
 [[projects]]
-  name = "github.com/opentracing/opentracing-go"
-  packages = [
-    ".",
-    "log"
-  ]
-  revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
-  version = "v1.0.2"
-
-[[projects]]
   branch = "master"
+  digest = "1:d38f81081a389f1466ec98192cf9115a82158854d6f01e1c23e2e7554b97db71"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
-  revision = "e2704e165165ec55d062f5919b4b29494e9fa790"
+  pruneopts = "UT"
+  revision = "3113b8401b8a98917cde58f8bbd42a1b1c03b1fd"
 
 [[projects]]
+  digest = "1:b24d38b282bacf9791408a080f606370efa3d364e4b5fd9ba0f7b87786d3b679"
   name = "github.com/urfave/cli"
   packages = ["."]
+  pruneopts = "UT"
   revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
   version = "v1.20.0"
 
 [[projects]]
+  digest = "1:c468422f334a6b46a19448ad59aaffdfc0a36b08fdcc1c749a0b29b6453d7e59"
   name = "github.com/valyala/bytebufferpool"
   packages = ["."]
+  pruneopts = "UT"
   revision = "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
   version = "v1.0.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:c911cc6a838b0d6be5de154aaea7b36530d5c97e019c3bb56b67fa8531aa17df"
   name = "github.com/valyala/fasthttp"
   packages = [
     ".",
     "fasthttputil",
-    "stackless"
+    "stackless",
   ]
-  revision = "77385190fb15120cc639fca46bf51a76c5e29ebd"
+  pruneopts = "UT"
+  revision = "1d2d99cba311e04b8d58f5d113ee07086c3e64f6"
 
 [[projects]]
+  branch = "master"
+  digest = "1:21f61a6141eccda5da6dc7ff184cac826a3361989b62f8b18d446b038be63a70"
+  name = "golang.org/x/crypto"
+  packages = [
+    "chacha20poly1305",
+    "curve25519",
+    "internal/chacha20",
+    "internal/subtle",
+    "poly1305",
+  ]
+  pruneopts = "UT"
+  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
+
+[[projects]]
+  branch = "release-branch.go1.10"
+  digest = "1:677a5d026fcc0c1e764f2d688a363316e3b157cec39b8fbaa0c1a1796aac3643"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -227,17 +283,24 @@
     "idna",
     "internal/timeseries",
     "lex/httplex",
-    "trace"
+    "trace",
   ]
-  revision = "5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec"
+  pruneopts = "UT"
+  revision = "0ed95abb35c445290478a5348a7b38bb154135fd"
 
 [[projects]]
   branch = "master"
+  digest = "1:0799b586aeed41a4fb7a1bd1c8d95ee98c08bdec022fea5bf2d746a72752400b"
   name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "4910a1d54f876d7b22162a85f4d066d3ee649450"
+  packages = [
+    "cpu",
+    "unix",
+  ]
+  pruneopts = "UT"
+  revision = "2a47403f2ae58167c4d75973960ccc62b28cb0d8"
 
 [[projects]]
+  digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -253,32 +316,45 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable"
+    "unicode/rangetable",
   ]
+  pruneopts = "UT"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:077c1c599507b3b3e9156d17d36e1e61928ee9b53a5b420f10f28ebd4a0b275c"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "32ee49c4dd805befd833990acba36cb75042378c"
+  pruneopts = "UT"
+  revision = "bd91e49a0898e27abb88c339b432fa53d7497ac0"
 
 [[projects]]
+  digest = "1:9edd250a3c46675d0679d87540b30c9ed253b19bd1fd1af08f4f5fb3c79fc487"
   name = "google.golang.org/grpc"
   packages = [
     ".",
     "balancer",
     "balancer/base",
     "balancer/roundrobin",
+    "binarylog/grpc_binarylog_v1",
     "codes",
     "connectivity",
     "credentials",
+    "credentials/internal",
     "encoding",
     "encoding/proto",
-    "grpclb/grpc_lb_v1/messages",
     "grpclog",
     "internal",
+    "internal/backoff",
+    "internal/binarylog",
+    "internal/channelz",
+    "internal/envconfig",
+    "internal/grpcrand",
+    "internal/grpcsync",
+    "internal/syscall",
+    "internal/transport",
     "keepalive",
     "metadata",
     "naming",
@@ -289,20 +365,83 @@
     "stats",
     "status",
     "tap",
-    "transport"
   ]
-  revision = "1e2570b1b19ade82d8dbb31bba4e65e9f9ef5b34"
-  version = "v1.11.1"
+  pruneopts = "UT"
+  revision = "df014850f6dee74ba2fc94874043a9f3f75fbfd8"
+  version = "v1.17.0"
 
 [[projects]]
+  digest = "1:c805e517269b0ba4c21ded5836019ed7d16953d4026cb7d00041d039c7906be9"
   name = "gopkg.in/natefinch/lumberjack.v2"
   packages = ["."]
+  pruneopts = "UT"
   revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
   version = "v2.1"
+
+[[projects]]
+  digest = "1:33e0466967faff478a0233191f12eb09f35f7b344a1d88afd49ffc5476e3b9c1"
+  name = "istio.io/api"
+  packages = [
+    "mixer/v1",
+    "mixer/v1/config/client",
+  ]
+  pruneopts = "UT"
+  revision = "6bf9d6613f65c2754a3d90ae916e1806e9d74175"
+  version = "1.0.5"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cc6dfefd6d1029105c65af5a4316083b77374600a66960c1a6627bd116427ca1"
+  input-imports = [
+    "github.com/AlexStocks/dubbogo/codec/hessian",
+    "github.com/envoyproxy/go-control-plane/envoy/api/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth",
+    "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster",
+    "github.com/envoyproxy/go-control-plane/envoy/api/v2/core",
+    "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint",
+    "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener",
+    "github.com/envoyproxy/go-control-plane/envoy/api/v2/route",
+    "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/config/filter/fault/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2alpha",
+    "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2",
+    "github.com/envoyproxy/go-control-plane/envoy/type",
+    "github.com/envoyproxy/go-control-plane/envoy/type/matcher",
+    "github.com/envoyproxy/go-control-plane/pkg/util",
+    "github.com/gogo/protobuf/gogoproto",
+    "github.com/gogo/protobuf/jsonpb",
+    "github.com/gogo/protobuf/proto",
+    "github.com/gogo/protobuf/types",
+    "github.com/golang/protobuf/jsonpb",
+    "github.com/golang/protobuf/ptypes/duration",
+    "github.com/hashicorp/go-syslog",
+    "github.com/json-iterator/go",
+    "github.com/jwangsadinata/go-multimap/slicemultimap",
+    "github.com/lyft/protoc-gen-validate/validate",
+    "github.com/markphelps/optional",
+    "github.com/neverhook/easygo/netpoll",
+    "github.com/rcrowley/go-metrics",
+    "github.com/urfave/cli",
+    "github.com/valyala/bytebufferpool",
+    "github.com/valyala/fasthttp",
+    "golang.org/x/crypto/chacha20poly1305",
+    "golang.org/x/crypto/curve25519",
+    "golang.org/x/net/context",
+    "golang.org/x/net/http2",
+    "golang.org/x/net/http2/hpack",
+    "golang.org/x/net/idna",
+    "golang.org/x/net/lex/httplex",
+    "golang.org/x/sys/unix",
+    "google.golang.org/grpc",
+    "gopkg.in/natefinch/lumberjack.v2",
+    "istio.io/api/mixer/v1",
+    "istio.io/api/mixer/v1/config/client",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

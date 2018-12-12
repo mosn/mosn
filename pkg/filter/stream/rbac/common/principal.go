@@ -50,6 +50,17 @@ type PrincipalSourceIp struct {
 	CidrRange *net.IPNet
 }
 
+func NewPrincipalSourceIp(ipAddress string, maskLen int) (*PrincipalSourceIp, error) {
+	if _, ipNet, err := net.ParseCIDR(ipAddress + "/" + strconv.Itoa(maskLen)); err != nil {
+		return nil, err
+	} else {
+		inheritPrincipal := &PrincipalSourceIp{
+			CidrRange: ipNet,
+		}
+		return inheritPrincipal, nil
+	}
+}
+
 func (principal *PrincipalSourceIp) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
 	remoteAddr := cb.Connection().RemoteAddr().String()
 	remoteIP, _, err := parseAddr(remoteAddr)
@@ -76,17 +87,16 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 	//	*Principal_Metadata
 	switch principal.Identifier.(type) {
 	case *v2alpha.Principal_Any:
-		inheritPrincipal := new(PrincipalAny)
-		inheritPrincipal.Any = principal.Identifier.(*v2alpha.Principal_Any).Any
+		inheritPrincipal := &PrincipalAny{
+			Any: principal.Identifier.(*v2alpha.Principal_Any).Any,
+		}
 		return inheritPrincipal, nil
 	case *v2alpha.Principal_SourceIp:
-		inheritPrincipal := new(PrincipalSourceIp)
 		addressPrefix := principal.Identifier.(*v2alpha.Principal_SourceIp).SourceIp.AddressPrefix
 		prefixLen := principal.Identifier.(*v2alpha.Principal_SourceIp).SourceIp.PrefixLen.GetValue()
-		if _, ipNet, err := net.ParseCIDR(addressPrefix + "/" + strconv.Itoa(int(prefixLen))); err != nil {
+		if inheritPrincipal, err := NewPrincipalSourceIp(addressPrefix, int(prefixLen)); err != nil {
 			return nil, err
 		} else {
-			inheritPrincipal.CidrRange = ipNet
 			return inheritPrincipal, nil
 		}
 	default:
