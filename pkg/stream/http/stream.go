@@ -220,8 +220,15 @@ func (conn *clientStreamConnection) serve() {
 		}
 
 		// 2. response processing
+		conn.mutex.RLock()
 		s := conn.stream
+
+		if s == nil {
+			continue
+		}
+
 		s.response = response
+		conn.mutex.RUnlock()
 
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleResponse()
