@@ -520,6 +520,10 @@ func (s *clientStream) handleResponse() {
 		//TODO cannot recycle immediately, headers might be used by proxy logic
 		s.request = nil
 		s.response = nil
+
+		s.connection.mutex.Lock()
+		s.connection.stream = nil
+		s.connection.mutex.Unlock()
 	}
 }
 
