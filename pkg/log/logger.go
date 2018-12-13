@@ -401,38 +401,45 @@ func CloseAll() error {
 }
 
 func logTime(t time.Time, ms bool) string {
+	var s string
 	now := time.Now().Unix()
-	if !ms {
-		value := lastTime.Load()
-		if value != nil {
-			last := value.(*timeCache)
-			if now <= last.t {
-				return last.s
-			}
+	value := lastTime.Load()
+	if value != nil {
+		last := value.(*timeCache)
+		if now <= last.t {
+			s = last.s
 		}
 	}
-	b := make([]byte, 36)
-	buf := &b
-	year, month, day := t.Date()
-	itoa(buf, year, 4)
-	*buf = append(*buf, '/')
-	itoa(buf, int(month), 2)
-	*buf = append(*buf, '/')
-	itoa(buf, day, 2)
-	*buf = append(*buf, ' ')
-	hour, min, sec := t.Clock()
-	itoa(buf, hour, 2)
-	*buf = append(*buf, ':')
-	itoa(buf, min, 2)
-	*buf = append(*buf, ':')
-	itoa(buf, sec, 2)
+	if s == "" {
+		b := make([]byte, 36)
+		buf := &b
+		year, month, day := t.Date()
+		itoa(buf, year, 4)
+		*buf = append(*buf, '/')
+		itoa(buf, int(month), 2)
+		*buf = append(*buf, '/')
+		itoa(buf, day, 2)
+		*buf = append(*buf, ' ')
+		hour, min, sec := t.Clock()
+		itoa(buf, hour, 2)
+		*buf = append(*buf, ':')
+		itoa(buf, min, 2)
+		*buf = append(*buf, ':')
+		itoa(buf, sec, 2)
+		s = string(*buf)
+
+		lastTime.Store(&timeCache{now, s})
+	}
+
 	if ms {
+		b := make([]byte, 4)
+		buf := &b
 		*buf = append(*buf, '.')
 		itoa(buf, t.Nanosecond()/1e6, 3)
+		return s + string(*buf)
 	} else {
-		lastTime.Store(&timeCache{now, string(*buf)})
+		return s
 	}
-	return string(*buf)
 }
 
 // Cheap integer to fixed-width decimal ASCII. Give a negative width to avoid zero-padding.

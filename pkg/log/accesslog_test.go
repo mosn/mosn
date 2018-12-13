@@ -19,12 +19,13 @@ package log
 
 import (
 	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"net"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func BenchmarkAccessLog(b *testing.B) {
