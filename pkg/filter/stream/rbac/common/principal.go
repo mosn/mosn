@@ -40,6 +40,8 @@ type InheritPrincipal interface {
 func (*PrincipalAny) InheritPrincipal()      {}
 func (*PrincipalSourceIp) InheritPrincipal() {}
 func (*PrincipalHeader) InheritPrincipal()   {}
+func (*PrincipalAndIds) InheritPrincipal()   {}
+func (*PrincipalOrIds) InheritPrincipal()    {}
 
 // Principal_Any
 type PrincipalAny struct {
@@ -129,7 +131,7 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 	case *route.HeaderMatcher_RangeMatch:
 		inheritPrincipal.Matcher = &HeaderMatcherRangeMatch{
 			Start: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RangeMatch).RangeMatch.Start,
-			End: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RangeMatch).RangeMatch.End,
+			End:   principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RangeMatch).RangeMatch.End,
 		}
 	default:
 		return nil, fmt.Errorf(
@@ -159,15 +161,73 @@ func (principal *PrincipalHeader) Match(cb types.StreamReceiverFilterCallbacks, 
 	}
 }
 
+// Principal_AndIds
+type PrincipalAndIds struct {
+	AndIds []InheritPrincipal
+}
+
+func NewPrincipalAndIds(principal *v2alpha.Principal_AndIds) (*PrincipalAndIds, error) {
+	inheritPrincipal := &PrincipalAndIds{}
+	inheritPrincipal.AndIds = make([]InheritPrincipal, len(principal.AndIds.Ids))
+	for idx, subPrincipal := range principal.AndIds.Ids {
+		if subInheritPrincipal, err := NewInheritPrincipal(subPrincipal); err != nil {
+			return nil, err
+		} else {
+			inheritPrincipal.AndIds[idx] = subInheritPrincipal
+		}
+	}
+	return inheritPrincipal, nil
+}
+
+func (principal *PrincipalAndIds) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+	for _, ids := range principal.AndIds {
+		if isMatch := ids.Match(cb, headers); isMatch {
+			continue
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+// Principal_OrIds
+type PrincipalOrIds struct {
+	OrIds []InheritPrincipal
+}
+
+func NewPrincipalOrIds(principal *v2alpha.Principal_OrIds) (*PrincipalOrIds, error) {
+	inheritPrincipal := &PrincipalOrIds{}
+	inheritPrincipal.OrIds = make([]InheritPrincipal, len(principal.OrIds.Ids))
+	for idx, subPrincipal := range principal.OrIds.Ids {
+		if subInheritPrincipal, err := NewInheritPrincipal(subPrincipal); err != nil {
+			return nil, err
+		} else {
+			inheritPrincipal.OrIds[idx] = subInheritPrincipal
+		}
+	}
+	return inheritPrincipal, nil
+}
+
+func (principal *PrincipalOrIds) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+	for _, ids := range principal.OrIds {
+		if isMatch := ids.Match(cb, headers); isMatch {
+			return true
+		} else {
+			continue
+		}
+	}
+	return false
+}
+
 // Receive the v2alpha.Principal input and convert it to mosn rbac principal
 func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error) {
 	// Types that are valid to be assigned to Identifier:
-	//	*Principal_AndIds
-	//	*Principal_OrIds
+	//	*Principal_AndIds (supported)
+	//	*Principal_OrIds (supported)
 	//	*Principal_Any (supported)
 	//	*Principal_Authenticated_
 	//	*Principal_SourceIp (supported)
-	//	*Principal_Header
+	//	*Principal_Header (supported)
 	//	*Principal_Metadata
 	switch principal.Identifier.(type) {
 	case *v2alpha.Principal_Any:
@@ -176,6 +236,10 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 		return NewPrincipalSourceIp(principal.Identifier.(*v2alpha.Principal_SourceIp))
 	case *v2alpha.Principal_Header:
 		return NewPrincipalHeader(principal.Identifier.(*v2alpha.Principal_Header))
+	case *v2alpha.Principal_AndIds:
+		return NewPrincipalAndIds(principal.Identifier.(*v2alpha.Principal_AndIds))
+	case *v2alpha.Principal_OrIds:
+		return NewPrincipalOrIds(principal.Identifier.(*v2alpha.Principal_OrIds))
 	default:
 		return nil, fmt.Errorf("[NewInheritPrincipal] not supported Principal.Identifier type found, detail: %v",
 			reflect.TypeOf(principal.Identifier))

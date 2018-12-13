@@ -81,7 +81,7 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 	allowed, matchPolicyName := f.engine.Allowed(f.cb, headers)
 	if matchPolicyName != "" {
 		// TODO: record metric log
-		log.DefaultLogger.Debugf("shoadow engine hit, policy name: %s", matchPolicyName)
+		log.DefaultLogger.Debugf("engine hit, policy name: %s", matchPolicyName)
 	}
 	if !allowed {
 		return types.StreamHeadersFilterStop
