@@ -23,6 +23,51 @@ import (
 	"strings"
 )
 
+// StringMatcher
+type StringMatcher interface {
+	//	*StringMatcher_Exact
+	//	*StringMatcher_Prefix
+	//	*StringMatcher_Suffix
+	//	*StringMatcher_Regex
+	Equal(string) bool
+}
+
+// StringMatcher_Exact
+type ExactStringMatcher struct {
+	ExactMatch string
+}
+
+func (matcher *ExactStringMatcher) Equal(targetValue string) bool {
+	return matcher.ExactMatch == targetValue
+}
+
+// StringMatcher_Prefix
+type PrefixStringMatcher struct {
+	PrefixMatch string
+}
+
+func (matcher *PrefixStringMatcher) Equal(targetValue string) bool {
+	return strings.HasPrefix(targetValue, matcher.PrefixMatch)
+}
+
+// StringMatcher_Suffix
+type SuffixStringMatcher struct {
+	SuffixMatch string
+}
+
+func (matcher *SuffixStringMatcher) Equal(targetValue string) bool {
+	return strings.HasSuffix(targetValue, matcher.SuffixMatch)
+}
+
+// StringMatcher_Regex
+type RegexStringMatcher struct {
+	RegexMatch *regexp.Regexp
+}
+
+func (matcher *RegexStringMatcher) Equal(targetValue string) bool {
+	return matcher.RegexMatch.MatchString(targetValue)
+}
+
 // HeaderMatcher
 type HeaderMatcher interface {
 	//	*HeaderMatcher_ExactMatch (supported)
@@ -31,52 +76,16 @@ type HeaderMatcher interface {
 	//	*HeaderMatcher_PresentMatch (supported)
 	//	*HeaderMatcher_PrefixMatch (supported)
 	//	*HeaderMatcher_SuffixMatch (supported)
-	HeaderMatcher()
+	isHeaderMatcher()
 	Equal(string) bool
 }
 
-func (matcher *HeaderMatcherExactMatch) HeaderMatcher()   {}
-func (matcher *HeaderMatcherPrefixMatch) HeaderMatcher()  {}
-func (matcher *HeaderMatcherSuffixMatch) HeaderMatcher()  {}
-func (matcher *HeaderMatcherRegexMatch) HeaderMatcher()   {}
-func (matcher *HeaderMatcherPresentMatch) HeaderMatcher() {}
-func (matcher *HeaderMatcherRangeMatch) HeaderMatcher()   {}
-
-// HeaderMatcher_ExactMatch
-type HeaderMatcherExactMatch struct {
-	ExactMatch string
-}
-
-func (matcher *HeaderMatcherExactMatch) Equal(targetValue string) bool {
-	return matcher.ExactMatch == targetValue
-}
-
-// HeaderMatcher_PrefixMatch
-type HeaderMatcherPrefixMatch struct {
-	PrefixMatch string
-}
-
-func (matcher *HeaderMatcherPrefixMatch) Equal(targetValue string) bool {
-	return strings.HasPrefix(targetValue, matcher.PrefixMatch)
-}
-
-// HeaderMatcher_SuffixMatch
-type HeaderMatcherSuffixMatch struct {
-	SuffixMatch string
-}
-
-func (matcher *HeaderMatcherSuffixMatch) Equal(targetValue string) bool {
-	return strings.HasSuffix(targetValue, matcher.SuffixMatch)
-}
-
-// HeaderMatcher_RegexMatch
-type HeaderMatcherRegexMatch struct {
-	RegexMatch *regexp.Regexp
-}
-
-func (matcher *HeaderMatcherRegexMatch) Equal(targetValue string) bool {
-	return matcher.RegexMatch.MatchString(targetValue)
-}
+func (matcher *ExactStringMatcher) isHeaderMatcher()        {}
+func (matcher *PrefixStringMatcher) isHeaderMatcher()       {}
+func (matcher *SuffixStringMatcher) isHeaderMatcher()       {}
+func (matcher *RegexStringMatcher) isHeaderMatcher()        {}
+func (matcher *HeaderMatcherPresentMatch) isHeaderMatcher() {}
+func (matcher *HeaderMatcherRangeMatch) isHeaderMatcher()   {}
 
 // HeaderMatcher_PresentMatch
 type HeaderMatcherPresentMatch struct {

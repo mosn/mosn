@@ -31,17 +31,17 @@ import (
 )
 
 type InheritPrincipal interface {
-	InheritPrincipal()
+	isInheritPrincipal()
 	// A policy matches if and only if at least one of InheritPermission.Match return true
 	// AND at least one of InheritPrincipal.Match return true
 	Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool
 }
 
-func (*PrincipalAny) InheritPrincipal()      {}
-func (*PrincipalSourceIp) InheritPrincipal() {}
-func (*PrincipalHeader) InheritPrincipal()   {}
-func (*PrincipalAndIds) InheritPrincipal()   {}
-func (*PrincipalOrIds) InheritPrincipal()    {}
+func (*PrincipalAny) isInheritPrincipal()      {}
+func (*PrincipalSourceIp) isInheritPrincipal() {}
+func (*PrincipalHeader) isInheritPrincipal()   {}
+func (*PrincipalAndIds) isInheritPrincipal()   {}
+func (*PrincipalOrIds) isInheritPrincipal()    {}
 
 // Principal_Any
 type PrincipalAny struct {
@@ -104,15 +104,15 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 	inheritPrincipal.InvertMatch = principal.Header.InvertMatch
 	switch principal.Header.HeaderMatchSpecifier.(type) {
 	case *route.HeaderMatcher_ExactMatch:
-		inheritPrincipal.Matcher = &HeaderMatcherExactMatch{
+		inheritPrincipal.Matcher = &ExactStringMatcher{
 			ExactMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_ExactMatch).ExactMatch,
 		}
 	case *route.HeaderMatcher_PrefixMatch:
-		inheritPrincipal.Matcher = &HeaderMatcherPrefixMatch{
+		inheritPrincipal.Matcher = &PrefixStringMatcher{
 			PrefixMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_PrefixMatch).PrefixMatch,
 		}
 	case *route.HeaderMatcher_SuffixMatch:
-		inheritPrincipal.Matcher = &HeaderMatcherSuffixMatch{
+		inheritPrincipal.Matcher = &SuffixStringMatcher{
 			SuffixMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_SuffixMatch).SuffixMatch,
 		}
 	case *route.HeaderMatcher_RegexMatch:
@@ -120,7 +120,7 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 			principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RegexMatch).RegexMatch); err != nil {
 			return nil, fmt.Errorf("[NewPrincipalHeader] failed not build regex, error: %v", err)
 		} else {
-			inheritPrincipal.Matcher = &HeaderMatcherRegexMatch{
+			inheritPrincipal.Matcher = &RegexStringMatcher{
 				RegexMatch: rePattern,
 			}
 		}
@@ -225,10 +225,11 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 	//	*Principal_AndIds (supported)
 	//	*Principal_OrIds (supported)
 	//	*Principal_Any (supported)
-	//	*Principal_Authenticated_
 	//	*Principal_SourceIp (supported)
 	//	*Principal_Header (supported)
-	//	*Principal_Metadata
+	// TODO: Principal_Authenticated_ & Principal_Metadata support
+	//	*Principal_Authenticated_ (unsupported)
+	//	*Principal_Metadata (unsupported)
 	switch principal.Identifier.(type) {
 	case *v2alpha.Principal_Any:
 		return NewPrincipalAny(principal.Identifier.(*v2alpha.Principal_Any))
