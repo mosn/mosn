@@ -126,6 +126,11 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 		inheritPrincipal.Matcher = &HeaderMatcherPresentMatch{
 			PresentMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_PresentMatch).PresentMatch,
 		}
+	case *route.HeaderMatcher_RangeMatch:
+		inheritPrincipal.Matcher = &HeaderMatcherRangeMatch{
+			Start: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RangeMatch).RangeMatch.Start,
+			End: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RangeMatch).RangeMatch.End,
+		}
 	default:
 		return nil, fmt.Errorf(
 			"[NewPrincipalHeader] not support Principal_Header.Header.HeaderMatchSpecifier type found, detail: %v",
@@ -147,17 +152,11 @@ func (principal *PrincipalHeader) Match(cb types.StreamReceiverFilterCallbacks, 
 	// return false when targetValue is not found, except matcher is `HeaderMatcherPresentMatch`
 	if !found {
 		return false
+	} else {
+		isMatch := principal.Matcher.Equal(targetValue)
+		// principal.InvertMatch xor isMatch
+		return principal.InvertMatch != isMatch
 	}
-
-	isMatch, err := principal.Matcher.Equal(targetValue)
-	if err != nil {
-		log.DefaultLogger.Errorf(
-			"[NewPrincipalHeader] failed to perform `PrincipalHeader.Matcher.Equal`, error: %v", err)
-		return false
-	}
-
-	// principal.InvertMatch xor isMatch
-	return principal.InvertMatch != isMatch
 }
 
 // Receive the v2alpha.Principal input and convert it to mosn rbac principal

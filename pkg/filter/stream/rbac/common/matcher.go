@@ -19,6 +19,7 @@ package common
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -26,12 +27,12 @@ import (
 type HeaderMatcher interface {
 	//	*HeaderMatcher_ExactMatch (supported)
 	//	*HeaderMatcher_RegexMatch (supported)
-	//	*HeaderMatcher_RangeMatch
+	//	*HeaderMatcher_RangeMatch (supported)
 	//	*HeaderMatcher_PresentMatch (supported)
 	//	*HeaderMatcher_PrefixMatch (supported)
 	//	*HeaderMatcher_SuffixMatch (supported)
 	HeaderMatcher()
-	Equal(string) (bool, error)
+	Equal(string) bool
 }
 
 func (matcher *HeaderMatcherExactMatch) HeaderMatcher()   {}
@@ -39,14 +40,15 @@ func (matcher *HeaderMatcherPrefixMatch) HeaderMatcher()  {}
 func (matcher *HeaderMatcherSuffixMatch) HeaderMatcher()  {}
 func (matcher *HeaderMatcherRegexMatch) HeaderMatcher()   {}
 func (matcher *HeaderMatcherPresentMatch) HeaderMatcher() {}
+func (matcher *HeaderMatcherRangeMatch) HeaderMatcher()   {}
 
 // HeaderMatcher_ExactMatch
 type HeaderMatcherExactMatch struct {
 	ExactMatch string
 }
 
-func (matcher *HeaderMatcherExactMatch) Equal(targetValue string) (bool, error) {
-	return matcher.ExactMatch == targetValue, nil
+func (matcher *HeaderMatcherExactMatch) Equal(targetValue string) bool {
+	return matcher.ExactMatch == targetValue
 }
 
 // HeaderMatcher_PrefixMatch
@@ -54,8 +56,8 @@ type HeaderMatcherPrefixMatch struct {
 	PrefixMatch string
 }
 
-func (matcher *HeaderMatcherPrefixMatch) Equal(targetValue string) (bool, error) {
-	return strings.HasPrefix(targetValue, matcher.PrefixMatch), nil
+func (matcher *HeaderMatcherPrefixMatch) Equal(targetValue string) bool {
+	return strings.HasPrefix(targetValue, matcher.PrefixMatch)
 }
 
 // HeaderMatcher_SuffixMatch
@@ -63,8 +65,8 @@ type HeaderMatcherSuffixMatch struct {
 	SuffixMatch string
 }
 
-func (matcher *HeaderMatcherSuffixMatch) Equal(targetValue string) (bool, error) {
-	return strings.HasSuffix(targetValue, matcher.SuffixMatch), nil
+func (matcher *HeaderMatcherSuffixMatch) Equal(targetValue string) bool {
+	return strings.HasSuffix(targetValue, matcher.SuffixMatch)
 }
 
 // HeaderMatcher_RegexMatch
@@ -72,8 +74,8 @@ type HeaderMatcherRegexMatch struct {
 	RegexMatch *regexp.Regexp
 }
 
-func (matcher *HeaderMatcherRegexMatch) Equal(targetValue string) (bool, error) {
-	return matcher.RegexMatch.MatchString(targetValue), nil
+func (matcher *HeaderMatcherRegexMatch) Equal(targetValue string) bool {
+	return matcher.RegexMatch.MatchString(targetValue)
 }
 
 // HeaderMatcher_PresentMatch
@@ -81,6 +83,20 @@ type HeaderMatcherPresentMatch struct {
 	PresentMatch bool
 }
 
-func (matcher *HeaderMatcherPresentMatch) Equal(targetValue string) (bool, error) {
-	return matcher.PresentMatch, nil
+func (matcher *HeaderMatcherPresentMatch) Equal(targetValue string) bool {
+	return matcher.PresentMatch
+}
+
+// HeaderMatcher_RangeMatch
+type HeaderMatcherRangeMatch struct {
+	Start int64 // inclusive
+	End   int64 // exclusive
+}
+
+func (matcher *HeaderMatcherRangeMatch) Equal(targetValue string) bool {
+	if intValue, err := strconv.ParseInt(targetValue, 10, 64); err != nil {
+		return false
+	} else {
+		return intValue >= matcher.Start && intValue < matcher.End
+	}
 }
