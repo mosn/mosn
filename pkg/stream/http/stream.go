@@ -267,10 +267,7 @@ func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 
 	if conn.stream != nil {
 		conn.stream.ResetStream(reason)
-
-		conn.mutex.Lock()
 		conn.stream = nil
-		conn.mutex.Unlock()
 	}
 }
 
