@@ -199,8 +199,16 @@ func (l *logger) handler() {
 			l.reopen()
 			return
 		case <-l.closeChan:
-			l.close()
-			return
+			for {
+				select {
+				case buf := <-l.writeBufferChan:
+					buf.WriteTo(l.writer)
+					buffer.PutIoBuffer(buf)
+				default:
+					l.close()
+					return
+				}
+			}
 		case buf = <-l.writeBufferChan:
 			for i := 0; i < 20; i++ {
 				select {
