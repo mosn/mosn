@@ -21,16 +21,16 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/valyala/bytebufferpool"
 )
 
 // RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value
 var (
 	RequestInfoFuncMap map[string]func(info types.RequestInfo) string
-	// currently use fasthttp's bytebufferpool impl
-	accessLogPool bytebufferpool.Pool
 )
+
+const AccessLogLen = 1 << 8
 
 func init() {
 	RequestInfoFuncMap = map[string]func(info types.RequestInfo) string{
@@ -64,16 +64,18 @@ func NewAccessLog(output string, filter types.AccessLogFilter,
 	var err error
 	var logger Logger
 
-	if logger, err = GetLoggerInstance(output, 0); err != nil {
+	if logger, err = GetLoggerInstance(output, RAW); err != nil {
 		return nil, err
 	}
 
-	return &accesslog{
+	l := &accesslog{
 		output:    output,
 		filter:    filter,
 		formatter: NewAccessLogFormatter(format),
 		logger:    logger,
-	}, nil
+	}
+
+	return l, nil
 }
 
 func (l *accesslog) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
@@ -83,7 +85,14 @@ func (l *accesslog) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap,
 		}
 	}
 
-	l.logger.Println(l.formatter.Format(reqHeaders, respHeaders, requestInfo))
+	buf := buffer.GetIoBuffer(AccessLogLen)
+	l.formatter.Format(buf, reqHeaders, respHeaders, requestInfo)
+	// delete first " "
+	if buf.Len() > 0 {
+		buf.Drain(1)
+	}
+	buf.WriteString("\n")
+	l.logger.Print(buf, true)
 }
 
 // types.AccessLogFormatter
@@ -102,47 +111,29 @@ func NewAccessLogFormatter(format string) types.AccessLogFormatter {
 	}
 }
 
-func (f *accesslogformatter) Format(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) string {
-	var log string
-
+func (f *accesslogformatter) Format(buf types.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	for _, formatter := range f.formatters {
-		log += formatter.Format(reqHeaders, respHeaders, requestInfo)
+		formatter.Format(buf, reqHeaders, respHeaders, requestInfo)
 	}
-
-	//delete the final " "
-	if len(log) > 0 {
-		log = log[:len(log)-1]
-	}
-
-	return log
 }
 
 // types.AccessLogFormatter
 type simpleRequestInfoFormatter struct {
-	reqInfoFormat []string
+	reqInfoFunc []func(info types.RequestInfo) string
 }
 
 // Format request info headers
-func (f *simpleRequestInfoFormatter) Format(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) string {
+func (f *simpleRequestInfoFormatter) Format(buf types.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	// todo: map fieldName to field vale string
-	if f.reqInfoFormat == nil {
+	if f.reqInfoFunc == nil {
 		DefaultLogger.Debugf("No ReqInfo Format Keys Input")
-		return ""
+		return
 	}
 
-	buffer := accessLogPool.Get()
-	defer accessLogPool.Put(buffer)
-	for _, key := range f.reqInfoFormat {
-
-		if vFunc, ok := RequestInfoFuncMap[key]; ok {
-			buffer.WriteString(vFunc(requestInfo))
-			buffer.WriteString(" ")
-		} else {
-			DefaultLogger.Debugf("Invalid ReqInfo Format Keys: %s", key)
-		}
+	for _, vFunc := range f.reqInfoFunc {
+		buf.WriteString(" ")
+		buf.WriteString(vFunc(requestInfo))
 	}
-
-	return buffer.String()
 }
 
 // types.AccessLogFormatter
@@ -151,26 +142,21 @@ type simpleReqHeadersFormatter struct {
 }
 
 // Format request headers format
-func (f *simpleReqHeadersFormatter) Format(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) string {
+func (f *simpleReqHeadersFormatter) Format(buf types.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	if f.reqHeaderFormat == nil {
 		DefaultLogger.Debugf("No ReqHeaders Format Keys Input")
-		return ""
+		return
 	}
-
-	buffer := accessLogPool.Get()
-	defer accessLogPool.Put(buffer)
 
 	for _, key := range f.reqHeaderFormat {
 		if v, ok := reqHeaders.Get(key); ok {
-			buffer.WriteString(types.ReqHeaderPrefix)
-			buffer.WriteString(v)
-			buffer.WriteString(" ")
+			buf.WriteString(" ")
+			buf.WriteString(types.ReqHeaderPrefix)
+			buf.WriteString(v)
 		} else {
 			//DefaultLogger.Debugf("Invalid reqHeaders format keys when print access log: %s", key)
 		}
 	}
-
-	return buffer.String()
 }
 
 // types.AccessLogFormatter
@@ -179,27 +165,23 @@ type simpleRespHeadersFormatter struct {
 }
 
 // Format response headers format
-func (f *simpleRespHeadersFormatter) Format(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) string {
+func (f *simpleRespHeadersFormatter) Format(buf types.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	if f.respHeaderFormat == nil {
 		DefaultLogger.Debugf("No RespHeaders Format Keys Input")
-		return ""
+		return
 	}
 
-	buffer := accessLogPool.Get()
-	defer accessLogPool.Put(buffer)
 	for _, key := range f.respHeaderFormat {
 		if respHeaders != nil {
 			if v, ok := respHeaders.Get(key); ok {
-				buffer.WriteString(types.RespHeaderPrefix)
-				buffer.WriteString(v)
-				buffer.WriteString(" ")
+				buf.WriteString(" ")
+				buf.WriteString(types.RespHeaderPrefix)
+				buf.WriteString(v)
 			} else {
 				//DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
 			}
 		}
 	}
-
-	return buffer.String()
 }
 
 // format to formatter by parsing format
@@ -239,8 +221,18 @@ func formatToFormatter(format string) []types.AccessLogFormatter {
 		}
 	}
 
+	// set info function
+	var infoFunc []func(info types.RequestInfo) string
+	for _, key := range reqInfoArray {
+		if vFunc, ok := RequestInfoFuncMap[key]; ok {
+			infoFunc = append(infoFunc, vFunc)
+		} else {
+			DefaultLogger.Debugf("Invalid ReqInfo Format Keys: %s", key)
+		}
+	}
+
 	return []types.AccessLogFormatter{
-		&simpleRequestInfoFormatter{reqInfoFormat: reqInfoArray},
+		&simpleRequestInfoFormatter{reqInfoFunc: infoFunc},
 		&simpleReqHeadersFormatter{reqHeaderFormat: reqHeaderArray},
 		&simpleRespHeadersFormatter{respHeaderFormat: respHeaderArray},
 	}
@@ -249,7 +241,7 @@ func formatToFormatter(format string) []types.AccessLogFormatter {
 // StartTimeGetter
 // get request's arriving time
 func StartTimeGetter(info types.RequestInfo) string {
-	return info.StartTime().Format("2006-01-02 15:04:05.999 +800")
+	return logTime(info.StartTime(), true)
 }
 
 // ReceivedDurationGetter
