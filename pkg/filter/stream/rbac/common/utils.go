@@ -27,8 +27,10 @@ import (
 )
 
 const (
-	HeaderMapMethod = ":method"
-	HeaderMapPath   = ":path"
+	PseudoHeaderMethod    = ":method"
+	PseudoHeaderPath      = ":path"		// indicate method name in rpc protocol
+	PseudoHeaderScheme    = ":scheme"
+	PseudoHeaderAuthority = ":authority"
 )
 
 // parse address like "192.0.2.1:25", "[2001:db8::1]:80" into ip & port
@@ -53,22 +55,20 @@ func parseAddr(addr string) (ipAddr net.IP, port int, err error) {
 	return ipAddr, port, nil
 }
 
-// fetch target value from header, return nil if not found
-func headerMapper(target string, headers types.HeaderMap) interface{} {
+// fetch target value from header, return "" if not found
+func headerMapper(target string, headers types.HeaderMap) (string, bool) {
+	// TODO: make sure pseudo-header parsing is correct
 	switch strings.ToLower(target) {
-	case HeaderMapMethod:
-		if method, ok := headers.Get("X-Mosn-Method"); ok {
-			return method
-		} else {
-			return nil
-		}
-	case HeaderMapPath:
-		if path, ok := headers.Get("X-Mosn-Path"); ok {
-			return path
-		} else {
-			return nil
-		}
+	case PseudoHeaderMethod:
+		return headers.Get("X-Mosn-Method")
+	case PseudoHeaderPath:
+		return headers.Get("X-Mosn-Path")
+	case PseudoHeaderScheme:
+		// TODO: parse `:scheme` here
+		return "", false
+	case PseudoHeaderAuthority:
+		return headers.Get("Authority")
 	default:
-		return nil
+		return headers.Get(target)
 	}
 }

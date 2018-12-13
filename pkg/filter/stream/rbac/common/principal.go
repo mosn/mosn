@@ -122,6 +122,10 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 				RegexMatch: rePattern,
 			}
 		}
+	case *route.HeaderMatcher_PresentMatch:
+		inheritPrincipal.Matcher = &HeaderMatcherPresentMatch{
+			PresentMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_PresentMatch).PresentMatch,
+		}
 	default:
 		return nil, fmt.Errorf(
 			"[NewPrincipalHeader] not support Principal_Header.Header.HeaderMatchSpecifier type found, detail: %v",
@@ -131,10 +135,17 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 }
 
 func (principal *PrincipalHeader) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
-	targetValue := headerMapper(principal.Target, headers)
-	if targetValue == nil {
-		log.DefaultLogger.Errorf(
-			"[NewPrincipalHeader] failed to fetch header info with target: `%s`", principal.Target)
+	targetValue, found := headerMapper(principal.Target, headers)
+
+	// HeaderMatcherPresentMatch is a little special
+	if matcher, ok := principal.Matcher.(*HeaderMatcherPresentMatch); ok {
+		// HeaderMatcherPresentMatch matches if and only if header found and PresentMatch is true
+		isMatch := found && matcher.PresentMatch
+		return principal.InvertMatch != isMatch
+	}
+
+	// return false when targetValue is not found, except matcher is `HeaderMatcherPresentMatch`
+	if !found {
 		return false
 	}
 
@@ -145,11 +156,8 @@ func (principal *PrincipalHeader) Match(cb types.StreamReceiverFilterCallbacks, 
 		return false
 	}
 
-	if principal.InvertMatch {
-		return !isMatch
-	} else {
-		return isMatch
-	}
+	// principal.InvertMatch xor isMatch
+	return principal.InvertMatch != isMatch
 }
 
 // Receive the v2alpha.Principal input and convert it to mosn rbac principal

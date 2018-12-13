@@ -18,7 +18,6 @@
 package common
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -28,30 +27,26 @@ type HeaderMatcher interface {
 	//	*HeaderMatcher_ExactMatch (supported)
 	//	*HeaderMatcher_RegexMatch (supported)
 	//	*HeaderMatcher_RangeMatch
-	//	*HeaderMatcher_PresentMatch
+	//	*HeaderMatcher_PresentMatch (supported)
 	//	*HeaderMatcher_PrefixMatch (supported)
 	//	*HeaderMatcher_SuffixMatch (supported)
 	HeaderMatcher()
-	Equal(interface{}) (bool, error)
+	Equal(string) (bool, error)
 }
 
-func (matcher *HeaderMatcherExactMatch) HeaderMatcher()  {}
-func (matcher *HeaderMatcherPrefixMatch) HeaderMatcher() {}
-func (matcher *HeaderMatcherSuffixMatch) HeaderMatcher() {}
-func (matcher *HeaderMatcherRegexMatch) HeaderMatcher()  {}
+func (matcher *HeaderMatcherExactMatch) HeaderMatcher()   {}
+func (matcher *HeaderMatcherPrefixMatch) HeaderMatcher()  {}
+func (matcher *HeaderMatcherSuffixMatch) HeaderMatcher()  {}
+func (matcher *HeaderMatcherRegexMatch) HeaderMatcher()   {}
+func (matcher *HeaderMatcherPresentMatch) HeaderMatcher() {}
 
 // HeaderMatcher_ExactMatch
 type HeaderMatcherExactMatch struct {
 	ExactMatch string
 }
 
-func (matcher *HeaderMatcherExactMatch) Equal(targetValue interface{}) (bool, error) {
-	if target, ok := targetValue.(string); ok {
-		return matcher.ExactMatch == target, nil
-	} else {
-		return false, fmt.Errorf(
-			"[HeaderMatcherExactMatch.Equal] targetValue must be string, received %v", targetValue)
-	}
+func (matcher *HeaderMatcherExactMatch) Equal(targetValue string) (bool, error) {
+	return matcher.ExactMatch == targetValue, nil
 }
 
 // HeaderMatcher_PrefixMatch
@@ -59,13 +54,8 @@ type HeaderMatcherPrefixMatch struct {
 	PrefixMatch string
 }
 
-func (matcher *HeaderMatcherPrefixMatch) Equal(targetValue interface{}) (bool, error) {
-	if target, ok := targetValue.(string); ok {
-		return strings.HasPrefix(target, matcher.PrefixMatch), nil
-	} else {
-		return false, fmt.Errorf(
-			"[HeaderMatcherPrefixMatch.Equal] targetValue must be string, received %v", targetValue)
-	}
+func (matcher *HeaderMatcherPrefixMatch) Equal(targetValue string) (bool, error) {
+	return strings.HasPrefix(targetValue, matcher.PrefixMatch), nil
 }
 
 // HeaderMatcher_SuffixMatch
@@ -73,13 +63,8 @@ type HeaderMatcherSuffixMatch struct {
 	SuffixMatch string
 }
 
-func (matcher *HeaderMatcherSuffixMatch) Equal(targetValue interface{}) (bool, error) {
-	if target, ok := targetValue.(string); ok {
-		return strings.HasSuffix(target, matcher.SuffixMatch), nil
-	} else {
-		return false, fmt.Errorf(
-			"[HeaderMatcherSuffixMatch.Equal] targetValue must be string, received %v", targetValue)
-	}
+func (matcher *HeaderMatcherSuffixMatch) Equal(targetValue string) (bool, error) {
+	return strings.HasSuffix(targetValue, matcher.SuffixMatch), nil
 }
 
 // HeaderMatcher_RegexMatch
@@ -87,12 +72,15 @@ type HeaderMatcherRegexMatch struct {
 	RegexMatch *regexp.Regexp
 }
 
-func (matcher *HeaderMatcherRegexMatch) Equal(targetValue interface{}) (bool, error) {
-	if target, ok := targetValue.(string); ok {
-		return matcher.RegexMatch.MatchString(target), nil
-	} else {
-		return false, fmt.Errorf(
-			"[HeaderMatcherRegexMatch.Equal] targetValue must be string, received %v", targetValue)
-	}
+func (matcher *HeaderMatcherRegexMatch) Equal(targetValue string) (bool, error) {
+	return matcher.RegexMatch.MatchString(targetValue), nil
+}
 
+// HeaderMatcher_PresentMatch
+type HeaderMatcherPresentMatch struct {
+	PresentMatch bool
+}
+
+func (matcher *HeaderMatcherPresentMatch) Equal(targetValue string) (bool, error) {
+	return matcher.PresentMatch, nil
 }
