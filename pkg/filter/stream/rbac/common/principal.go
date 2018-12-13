@@ -21,12 +21,10 @@ import (
 	"fmt"
 	"net"
 	"reflect"
-	"regexp"
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2alpha"
 )
 
@@ -102,43 +100,12 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 	inheritPrincipal := &PrincipalHeader{}
 	inheritPrincipal.Target = principal.Header.Name
 	inheritPrincipal.InvertMatch = principal.Header.InvertMatch
-	switch principal.Header.HeaderMatchSpecifier.(type) {
-	case *route.HeaderMatcher_ExactMatch:
-		inheritPrincipal.Matcher = &ExactStringMatcher{
-			ExactMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_ExactMatch).ExactMatch,
-		}
-	case *route.HeaderMatcher_PrefixMatch:
-		inheritPrincipal.Matcher = &PrefixStringMatcher{
-			PrefixMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_PrefixMatch).PrefixMatch,
-		}
-	case *route.HeaderMatcher_SuffixMatch:
-		inheritPrincipal.Matcher = &SuffixStringMatcher{
-			SuffixMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_SuffixMatch).SuffixMatch,
-		}
-	case *route.HeaderMatcher_RegexMatch:
-		if rePattern, err := regexp.Compile(
-			principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RegexMatch).RegexMatch); err != nil {
-			return nil, fmt.Errorf("[NewPrincipalHeader] failed not build regex, error: %v", err)
-		} else {
-			inheritPrincipal.Matcher = &RegexStringMatcher{
-				RegexMatch: rePattern,
-			}
-		}
-	case *route.HeaderMatcher_PresentMatch:
-		inheritPrincipal.Matcher = &HeaderMatcherPresentMatch{
-			PresentMatch: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_PresentMatch).PresentMatch,
-		}
-	case *route.HeaderMatcher_RangeMatch:
-		inheritPrincipal.Matcher = &HeaderMatcherRangeMatch{
-			Start: principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RangeMatch).RangeMatch.Start,
-			End:   principal.Header.HeaderMatchSpecifier.(*route.HeaderMatcher_RangeMatch).RangeMatch.End,
-		}
-	default:
-		return nil, fmt.Errorf(
-			"[NewPrincipalHeader] not support Principal_Header.Header.HeaderMatchSpecifier type found, detail: %v",
-			reflect.TypeOf(principal.Header.HeaderMatchSpecifier))
+	if headerMatcher, err := NewHeaderMatcher(principal.Header); err != nil {
+		return nil, err
+	} else {
+		inheritPrincipal.Matcher = headerMatcher
+		return inheritPrincipal, nil
 	}
-	return inheritPrincipal, nil
 }
 
 func (principal *PrincipalHeader) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {

@@ -18,9 +18,13 @@
 package common
 
 import (
+	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 )
 
 // StringMatcher
@@ -107,5 +111,44 @@ func (matcher *HeaderMatcherRangeMatch) Equal(targetValue string) bool {
 		return false
 	} else {
 		return intValue >= matcher.Start && intValue < matcher.End
+	}
+}
+
+func NewHeaderMatcher(header *route.HeaderMatcher) (HeaderMatcher, error) {
+	switch header.HeaderMatchSpecifier.(type) {
+	case *route.HeaderMatcher_ExactMatch:
+		return &ExactStringMatcher{
+			ExactMatch: header.HeaderMatchSpecifier.(*route.HeaderMatcher_ExactMatch).ExactMatch,
+		}, nil
+	case *route.HeaderMatcher_PrefixMatch:
+		return &PrefixStringMatcher{
+			PrefixMatch: header.HeaderMatchSpecifier.(*route.HeaderMatcher_PrefixMatch).PrefixMatch,
+		}, nil
+	case *route.HeaderMatcher_SuffixMatch:
+		return &SuffixStringMatcher{
+			SuffixMatch: header.HeaderMatchSpecifier.(*route.HeaderMatcher_SuffixMatch).SuffixMatch,
+		}, nil
+	case *route.HeaderMatcher_RegexMatch:
+		if rePattern, err := regexp.Compile(
+			header.HeaderMatchSpecifier.(*route.HeaderMatcher_RegexMatch).RegexMatch); err != nil {
+			return nil, fmt.Errorf("[NewHeaderMatcher] failed to build regex, error: %v", err)
+		} else {
+			return &RegexStringMatcher{
+				RegexMatch: rePattern,
+			}, nil
+		}
+	case *route.HeaderMatcher_PresentMatch:
+		return &HeaderMatcherPresentMatch{
+			PresentMatch: header.HeaderMatchSpecifier.(*route.HeaderMatcher_PresentMatch).PresentMatch,
+		}, nil
+	case *route.HeaderMatcher_RangeMatch:
+		return &HeaderMatcherRangeMatch{
+			Start: header.HeaderMatchSpecifier.(*route.HeaderMatcher_RangeMatch).RangeMatch.Start,
+			End:   header.HeaderMatchSpecifier.(*route.HeaderMatcher_RangeMatch).RangeMatch.End,
+		}, nil
+	default:
+		return nil, fmt.Errorf(
+			"[NewHeaderMatcher] not support HeaderMatchSpecifier type found, detail: %v",
+			reflect.TypeOf(header.HeaderMatchSpecifier))
 	}
 }
