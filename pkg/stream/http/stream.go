@@ -220,15 +220,8 @@ func (conn *clientStreamConnection) serve() {
 		}
 
 		// 2. response processing
-		conn.mutex.RLock()
 		s := conn.stream
-
-		if s == nil {
-			continue
-		}
-
 		s.response = response
-		conn.mutex.RUnlock()
 
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleResponse()
@@ -519,6 +512,11 @@ func (s *clientStream) handleResponse() {
 		if len(s.response.Body()) == 0 {
 			hasData = false
 		}
+
+		s.connection.mutex.Lock()
+		s.connection.stream = nil
+		s.connection.mutex.Unlock()
+
 		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
 
 		if hasData {
@@ -528,10 +526,6 @@ func (s *clientStream) handleResponse() {
 		//TODO cannot recycle immediately, headers might be used by proxy logic
 		s.request = nil
 		s.response = nil
-
-		s.connection.mutex.Lock()
-		s.connection.stream = nil
-		s.connection.mutex.Unlock()
 	}
 }
 
