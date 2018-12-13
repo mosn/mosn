@@ -174,6 +174,16 @@ func (pc *primaryCluster) UpdateHosts(hosts []types.Host) error {
 	return nil
 }
 
+func (pc *primaryCluster) AddHosts(hosts []types.Host) error {
+	if c, ok := pc.cluster.(*simpleInMemCluster); ok {
+		finalHosts := append(c.hosts, hosts...)
+		if err := pc.UpdateHosts(finalHosts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func deepCopyCluster(cluster *v2.Cluster) *v2.Cluster {
 	if cluster == nil {
 		return nil
@@ -306,6 +316,23 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			return fmt.Errorf("UpdateClusterHosts failed, cluster's hostset %s can't be update", clusterName)
 		}
 		admin.SetHosts(clusterName, hostConfigs)
+		return nil
+	}
+
+	return fmt.Errorf("UpdateClusterHosts failed, cluster %s not found", clusterName)
+}
+
+func (cm *clusterManager) AddClusterHosts(clusterName string, priority uint32, hostConfigs []v2.Host) error {
+	if v, ok := cm.primaryClusters.Load(clusterName); ok {
+		pc := v.(*primaryCluster)
+		var hosts []types.Host
+		for _, hc := range hostConfigs {
+			hosts = append(hosts, NewHost(hc, pc.cluster.Info()))
+		}
+		if err := pc.AddHosts(hosts); err != nil {
+			return fmt.Errorf("UpdateClusterHosts failed, cluster's hostset %s can't be update", clusterName)
+		}
+		admin.AddHosts(clusterName, hostConfigs)
 		return nil
 	}
 

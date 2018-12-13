@@ -80,6 +80,15 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 	mutex.Unlock()
 }
 
+func AddHosts(clusterName string, hostConfigs []v2.Host) {
+	mutex.Lock()
+	if cluster, ok := conf.Cluster[clusterName]; ok {
+		cluster.Hosts = append(cluster.Hosts, hostConfigs...)
+		conf.Cluster[clusterName] = cluster
+	}
+	mutex.Unlock()
+}
+
 // Dump
 // Dump all config
 func Dump() ([]byte, error) {

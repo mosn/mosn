@@ -262,6 +262,8 @@ type VirtualHost interface {
 	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
 	// GetAllRoutesFromEntries returns all Route matched the condition
 	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
+
+	AddRouter(router v2.Router)
 }
 
 type MetadataMatcher interface {

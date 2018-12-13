@@ -53,6 +53,17 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 	removeClusterConfig(subServiceList)
 }
 
+func AddRouterAndClusterConfigAndDump(clusters []v2.Cluster, clusterName string, matchName string) {
+	AddClusterConfig(clusters)
+	AddRouterConfig(clusterName, matchName)
+	go dump(true)
+}
+
+func AddClusterConfigAndDump(clusters []v2.Cluster) {
+	AddClusterConfig(clusters)
+	go dump(true)
+}
+
 // AddClusterConfig
 // called when add cluster config info received
 func AddClusterConfig(clusters []v2.Cluster) {
@@ -76,7 +87,6 @@ func AddClusterConfig(clusters []v2.Cluster) {
 		// update routes
 		//AddRouterConfig(cluster.Name)
 	}
-	go dump(true)
 }
 
 func removeClusterConfig(clusterNames []string) {
@@ -141,33 +151,75 @@ func DelPubInfo(serviceName string) {
 	go dump(dirty)
 }
 
+func AddRouterConfigAndDump(clusterName string, matchName string) {
+	AddRouterConfig(clusterName, matchName)
+	go dump(true)
+
+}
+
 // AddRouterConfig
 // Add router from config when new cluster created
-func AddRouterConfig(clusterName string) {
-	routerName := clusterName[0 : len(clusterName)-8]
+func AddRouterConfig(clusterName string, matchName string) {
+	matchValue := clusterName
 
-	for _, l := range config.Servers[0].Listeners {
-		if routers, ok := l.FilterChains[0].Filters[0].Config["routes"].([]interface{}); ok {
-			// remove repetition
-			for _, route := range routers {
-				if r, ok := route.(map[string]interface{}); ok {
-					if n, ok := r["name"].(string); ok {
-						if n == routerName {
-							return
+	l := config.Servers[0].Listeners[0]
+	vhosts := l.FilterChains[0].Filters[1].Config["virtual_hosts"]
+
+	log.DefaultLogger.Infof("AddRouterConfig start, clusterName=%s,matchName=%s", clusterName, matchName)
+
+	if virtual_hosts, ok := vhosts.([]interface{}); ok {
+		if vh, ok := virtual_hosts[0].(map[string]interface{}); ok {
+			allRouters := vh["routers"]
+			if isExistRouterConfig(allRouters, matchName, matchValue) {
+				return
+			}
+			newRouter := make(map[string]interface{})
+			matchMap := make(map[string]interface{})
+			newRouter["match"] = matchMap
+
+			matchHeaders := make([]interface{}, 0)
+			header := make(map[string]interface{})
+			header["name"] = matchName
+			header["regex"] = false
+			header["value"] = matchValue
+			matchHeaders = append(matchHeaders, header)
+			matchMap["headers"] = matchHeaders
+
+			routerMap := make(map[string]interface{})
+			newRouter["route"] = routerMap
+			routerMap["cluster_name"] = matchValue
+
+			if list, ok := allRouters.([]interface{}); ok {
+				list := append(list, newRouter)
+				vh["routers"] = list
+			}
+			log.DefaultLogger.Infof("AddRouterConfig success, clusterName=%s,matchName=%s", clusterName, matchName)
+		} else {
+			log.DefaultLogger.Errorf("AddRouterConfig error,first vhost is not map. vhosts=%+v", vhosts)
+		}
+	} else {
+		log.DefaultLogger.Errorf("AddRouterConfig error,vhosts is not interface array. vhosts=%+v", vhosts)
+	}
+}
+
+func isExistRouterConfig(routersConfig interface{}, matchName string, matchValue string) bool {
+	if routers, ok := routersConfig.([]interface{}); ok {
+		for _, routerConfig := range routers {
+			if router, ok := routerConfig.(map[string]interface{}); ok {
+				matchConfig := router["match"]
+				if match, ok := matchConfig.(map[string]interface{}); ok {
+					headersConfig := match["headers"]
+					if headers, ok := headersConfig.([]interface{}); ok {
+						headerConfig := headers[0]
+						if header, ok := headerConfig.(map[string]interface{}); ok {
+							if matchName == header["name"] && matchValue == header["value"] {
+								return true
+							}
 						}
 					}
 				}
 			}
-
-			// append router
-			var s = make(map[string]interface{}, 4)
-			s["name"] = routerName
-			s["service"] = routerName
-			s["cluster"] = clusterName
-			routers = append(routers, s)
-			l.FilterChains[0].Filters[0].Config["routes"] = routers
-		} else {
-			log.DefaultLogger.Println(l.FilterChains[0].Filters[0].Config["routes"])
 		}
 	}
+	return false
 }

@@ -83,6 +83,14 @@ func (ca *MngAdapter) TriggerClusterHostUpdate(clusterName string, hosts []v2.Ho
 	return ca.clusterMng.UpdateClusterHosts(clusterName, 0, hosts)
 }
 
+func (ca *MngAdapter) TriggerClusterHostAdd(clusterName string, hosts []v2.Host) error {
+	if ca.clusterMng == nil {
+		return fmt.Errorf("TriggerClusterAddOrUpdate Error: cluster manager is nil")
+	}
+
+	return ca.clusterMng.AddClusterHosts(clusterName, 0, hosts)
+}
+
 // TriggerHostDel used to delete
 func (ca *MngAdapter) TriggerHostDel(clusterName string, hostAddress string) error {
 	return ca.clusterMng.RemoveClusterHost(clusterName, hostAddress)

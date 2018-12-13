@@ -115,6 +115,10 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 	return routerMatcher, nil
 }
 
+func (rm *routeMatcher) AddRouteForDefaultVirualHost(router v2.Router) {
+	rm.defaultVirtualHost.AddRouter(router)
+}
+
 // A router wrapper used to matches an incoming request headers to a backend cluster
 type routeMatcher struct {
 	virtualHosts                map[string]types.VirtualHost // key: host

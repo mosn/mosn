@@ -157,6 +157,13 @@ func (vh *VirtualHostImpl) GetAllRoutesFromEntries(headers types.HeaderMap, rand
 	return routes
 }
 
+func (vh *VirtualHostImpl) AddRouter(v2Router v2.Router) {
+	if routeRuleImplBase, err := NewRouteRuleImplBase(vh, &v2Router); err == nil {
+		router := defaultRouterRuleFactoryOrder.factory(routeRuleImplBase, v2Router.Match.Headers)
+		vh.routes = append(vh.routes, router)
+	}
+}
+
 type VirtualClusterEntry struct {
 	pattern *regexp.Regexp
 	method  optional.String

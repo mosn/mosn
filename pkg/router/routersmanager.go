@@ -84,7 +84,7 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
 		// NewRouteMatcher has error, doesn't update
 		if err != nil {
-			log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: " + err.Error(),routerConfig.RouterConfigName)
+			log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: "+err.Error(), routerConfig.RouterConfigName)
 			return err
 		}
 
@@ -92,7 +92,7 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 		if primaryRouters, ok := v.(*RoutersWrapper); ok {
 			primaryRouters.mux.Lock()
 			defer primaryRouters.mux.Unlock()
-			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success ",routerConfig.RouterConfigName)
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success ", routerConfig.RouterConfigName)
 			primaryRouters.routers = routers
 		}
 	} else {
@@ -101,17 +101,17 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
 				routers: nil,
 			})
-			log.DefaultLogger.Errorf("AddOrUpdateRouters, add router %s error:"+err.Error(),routerConfig.RouterConfigName)
+			log.DefaultLogger.Errorf("AddOrUpdateRouters, add router %s error:"+err.Error(), routerConfig.RouterConfigName)
 			return err
 			// new routers
 		} else {
-			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s success:",routerConfig.RouterConfigName)
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s success:", routerConfig.RouterConfigName)
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
 				routers: routers,
 			})
 		}
 	}
-	
+
 	return nil
 }
 
@@ -125,4 +125,14 @@ func (rm *routersManager) GetRouterWrapperByName(routerConfigName string) types.
 	}
 
 	return nil
+}
+
+func (rm *routersManager) AddRouteOfRouterConfig(routerConfigName string, router v2.Router) {
+	if value, ok := rm.routersMap.Load(routerConfigName); ok {
+		if routerWrapper, ok := value.(*RoutersWrapper); ok {
+			if routerMatcher, ok := routerWrapper.routers.(*routeMatcher); ok {
+				routerMatcher.AddRouteForDefaultVirualHost(router)
+			}
+		}
+	}
 }
