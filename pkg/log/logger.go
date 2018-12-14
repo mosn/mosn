@@ -19,7 +19,6 @@ package log
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -50,8 +49,6 @@ var (
 	// AccessLog y(path:/home/a, format:bar) -> RealLog a
 	// AccessLog z(path:/home/b)             -> RealLog b
 	loggers []*logger
-
-	ErrChanFull = errors.New("CHANFULL")
 
 	lastTime atomic.Value
 )
@@ -125,8 +122,8 @@ func NewLogger(output string, level Level) (*logger, error) {
 		Level:           level,
 		Roller:          DefaultRoller(),
 		writeBufferChan: make(chan types.IoBuffer, 1000),
-		reopenChan:      make(chan struct{}, 1),
-		closeChan:       make(chan struct{}, 1),
+		reopenChan:      make(chan struct{}),
+		closeChan:       make(chan struct{}),
 	}
 
 	loggers = append(loggers, logger)
@@ -201,7 +198,7 @@ func (l *logger) handler() {
 		case <-l.closeChan:
 			for {
 				select {
-				case buf := <-l.writeBufferChan:
+				case buf = <-l.writeBufferChan:
 					buf.WriteTo(l.writer)
 					buffer.PutIoBuffer(buf)
 				default:
@@ -216,6 +213,7 @@ func (l *logger) handler() {
 					buf.Write(b.Bytes())
 					buffer.PutIoBuffer(b)
 				default:
+					break
 				}
 			}
 		}
@@ -230,7 +228,7 @@ func (l *logger) Print(buf types.IoBuffer, discard bool) error {
 	default:
 		// todo: configurable
 		if discard {
-			return ErrChanFull
+			return types.ErrChanFull
 		} else {
 			l.writeBufferChan <- buf
 		}
