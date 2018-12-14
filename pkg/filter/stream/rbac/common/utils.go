@@ -18,17 +18,21 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/gogo/protobuf/jsonpb"
 )
 
 const (
 	PseudoHeaderMethod    = ":method"
-	PseudoHeaderPath      = ":path"		// indicate method name in rpc protocol
+	PseudoHeaderPath      = ":path" // indicate method name in rpc protocol
 	PseudoHeaderScheme    = ":scheme"
 	PseudoHeaderAuthority = ":authority"
 )
@@ -71,4 +75,24 @@ func headerMapper(target string, headers types.HeaderMap) (string, bool) {
 	default:
 		return headers.Get(target)
 	}
+}
+
+// parse rbac filter config to v2.RBAC struct
+func ParseRbacFilterConfig(cfg map[string]interface{}) (*v2.RBAC, error) {
+	filterConfig := new(v2.RBAC)
+
+	jsonConf, err := json.Marshal(cfg)
+	if err != nil {
+		log.StartLogger.Errorf("parsing rabc filter configuration failed, err: %v, cfg: %v", err, cfg)
+		return nil, err
+	}
+
+	// parse rules
+	var un jsonpb.Unmarshaler
+	if err = un.Unmarshal(strings.NewReader(string(jsonConf)), &filterConfig.RBAC); err != nil {
+		log.StartLogger.Errorf("parsing rabc filter configuration failed, err: %v, cfg: %v", err, string(jsonConf))
+		return nil, err
+	}
+
+	return filterConfig, nil
 }

@@ -314,26 +314,6 @@ func ParseHealthCheckFilter(cfg map[string]interface{}) *v2.HealthCheckFilter {
 	return filterConfig
 }
 
-// ParseRbacFilter
-func ParseRbacFilter(cfg map[string]interface{}) (*v2.RBAC, error) {
-	filterConfig := new(v2.RBAC)
-
-	jsonConf, err := json.Marshal(cfg)
-	if err != nil {
-		log.StartLogger.Errorf("parsing rabc filter configuration failed, err: %v, cfg: %v", err, cfg)
-		return nil, err
-	}
-
-	// parse rules
-	var un jsonpb.Unmarshaler
-	if err = un.Unmarshal(strings.NewReader(string(jsonConf)), &filterConfig.RBAC); err != nil {
-		log.StartLogger.Errorf("parsing rabc filter configuration failed, err: %v, cfg: %v", err, string(jsonConf))
-		return nil, err
-	}
-
-	return filterConfig, nil
-}
-
 // ParseTCPProxy
 func ParseTCPProxy(cfg map[string]interface{}) (*v2.TCPProxy, error) {
 	proxy := &v2.TCPProxy{}

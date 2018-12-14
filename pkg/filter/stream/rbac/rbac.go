@@ -21,9 +21,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	rbac_common "github.com/alipay/sofa-mosn/pkg/filter/stream/rbac/common"
+	"github.com/alipay/sofa-mosn/pkg/filter/stream/rbac/common"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -31,18 +31,17 @@ import (
 type rbacFilter struct {
 	context      context.Context
 	cb           types.StreamReceiverFilterCallbacks
-	config       *v2.RBAC
-	engine       *rbac_common.RoleBasedAccessControlEngine
-	shadowEngine *rbac_common.RoleBasedAccessControlEngine
+	status       *common.RbacStatus
+	engine       *common.RoleBasedAccessControlEngine
+	shadowEngine *common.RoleBasedAccessControlEngine
 }
 
-func NewFilter(context context.Context, config *v2.RBAC, engine *rbac_common.RoleBasedAccessControlEngine,
-	shadowEngine *rbac_common.RoleBasedAccessControlEngine) types.StreamReceiverFilter {
+func NewFilter(context context.Context, filterConfigFactory *FilterConfigFactory) types.StreamReceiverFilter {
 	return &rbacFilter{
 		context:      context,
-		config:       config,
-		engine:       engine,
-		shadowEngine: shadowEngine,
+		status:       filterConfigFactory.Status,
+		engine:       filterConfigFactory.Engine,
+		shadowEngine: filterConfigFactory.ShadowEngine,
 	}
 }
 
@@ -67,13 +66,14 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 	})
 
 	// print RBAC configuration
-	rbacConf, _ := json.Marshal(f.config)
+	rbacConf, _ := json.Marshal(f.status.RawConfig)
 	log.DefaultLogger.Debugf(string(rbacConf))
 
 	// rbac shadow engine handle
 	_, matchPolicyName := f.shadowEngine.Allowed(f.cb, headers)
 	if matchPolicyName != "" {
 		// TODO: record metric log
+		f.status.ShadowEngineMetrics.Counter(matchPolicyName).Inc(1)
 		log.DefaultLogger.Debugf("shoadow engine hit, policy name: %s", matchPolicyName)
 	}
 
@@ -81,11 +81,14 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 	allowed, matchPolicyName := f.engine.Allowed(f.cb, headers)
 	if matchPolicyName != "" {
 		// TODO: record metric log
+		f.status.EngineMetrics.Counter(matchPolicyName).Inc(1)
 		log.DefaultLogger.Debugf("engine hit, policy name: %s", matchPolicyName)
 	}
 	if !allowed {
 		return types.StreamHeadersFilterStop
 	}
+
+	log.DefaultLogger.Debugf("Metrics: %v", stats.GetMetricsData(common.FilterMetricsType)[common.RbacEngineMetricsNamespace])
 
 	return types.StreamHeadersFilterContinue
 }

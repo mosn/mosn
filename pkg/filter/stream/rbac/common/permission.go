@@ -222,6 +222,7 @@ func NewInheritPermission(permission *v2alpha.Permission) (InheritPermission, er
 	//	*Permission_Header (supported)
 	//	*Permission_DestinationIp (supported)
 	//	*Permission_DestinationPort (supported)
+	// TODO: Permission_Metadata support
 	//	*Permission_Metadata
 	switch permission.Rule.(type) {
 	case *v2alpha.Permission_Any:

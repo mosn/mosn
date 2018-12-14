@@ -21,7 +21,6 @@ import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/rbac/common"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -34,7 +33,7 @@ func init() {
 
 // FilterConfigFactory is an implement of types.StreamFilterChainFactory
 type FilterConfigFactory struct {
-	FilterConfig *v2.RBAC
+	Status       *common.RbacStatus
 	Engine       *common.RoleBasedAccessControlEngine
 	ShadowEngine *common.RoleBasedAccessControlEngine
 }
@@ -42,7 +41,7 @@ type FilterConfigFactory struct {
 // CreateFilterChain will be invoked in echo request in proxy.NewStreamDetect function if filter has been injected
 func (factory *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	log.DefaultLogger.Debugf("create a new rbac filter")
-	filter := NewFilter(context, factory.FilterConfig, factory.Engine, factory.ShadowEngine)
+	filter := NewFilter(context, factory)
 	callbacks.AddStreamReceiverFilter(filter)
 }
 
@@ -53,13 +52,14 @@ func CreateRbacFilterFactory(conf map[string]interface{}) (types.StreamFilterCha
 	sfcf := new(FilterConfigFactory)
 
 	// parse rabc filter conf from mosn conf
-	filterConfig, err := config.ParseRbacFilter(conf)
+	filterConfig, err := common.ParseRbacFilterConfig(conf)
 	if err != nil {
 		log.DefaultLogger.Errorf("failed to parse rabc filter configuration, rbac filter will not be registered, err: %v", err)
 		return nil, err
-	} else {
-		sfcf.FilterConfig = filterConfig
 	}
+
+	// build rnac status
+	sfcf.Status = common.NewRbacStatus(filterConfig)
 
 	// build rbac engine
 	if engine, err := common.NewRoleBasedAccessControlEngine(filterConfig.GetRules()); err != nil {

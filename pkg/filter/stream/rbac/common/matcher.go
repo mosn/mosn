@@ -29,10 +29,10 @@ import (
 
 // StringMatcher
 type StringMatcher interface {
-	//	*StringMatcher_Exact
-	//	*StringMatcher_Prefix
-	//	*StringMatcher_Suffix
-	//	*StringMatcher_Regex
+	//	*StringMatcher_Exact (supported)
+	//	*StringMatcher_Prefix (supported)
+	//	*StringMatcher_Suffix (supported)
+	//	*StringMatcher_Regex (supported)
 	Equal(string) bool
 }
 
