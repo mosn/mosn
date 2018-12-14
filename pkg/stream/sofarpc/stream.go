@@ -354,7 +354,7 @@ func (s *stream) AppendHeaders(ctx context.Context, headers types.HeaderMap, end
 		}
 	}
 
-	s.sc.logger.Debugf("AppendHeaders,request id = %d, direction = %d", s.ID, s.direction)
+	s.sc.logger.Debugf("AppendHeaders,request id = %d, direction = %d", s.ID(), s.direction)
 
 	if endStream {
 		s.endStream()
@@ -386,7 +386,7 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 
 	//s.encodedData = data
 
-	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID, s.direction)
+	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
 
 	if endStream {
 		s.endStream()

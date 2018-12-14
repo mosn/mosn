@@ -27,7 +27,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/upstream/keepalive"
 	"github.com/rcrowley/go-metrics"
 )
 
@@ -188,13 +187,16 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		return nil
 	}
 	// Add Keep Alive
-	protocolValue := ctx.Value(types.ContextSubProtocol) // protocol is from onNewDetectStream
+	// protocol is from onNewDetectStream
+	// TODO: support protocol convert
+	protocolValue := ctx.Value(types.ContextSubProtocol)
 	if proto, ok := protocolValue.(byte); ok {
 		// TODO: support config
 		ac.keepAlive = &keepAliveListener{
-			keepAlive: keepalive.NewSofaRPCKeepAlive(codecClient, proto, time.Second, 6),
+			keepAlive: NewSofaRPCKeepAlive(codecClient, proto, time.Second, 6),
 		}
 		ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
+		go ac.keepAlive.keepAlive.Start()
 	}
 	// stats
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)

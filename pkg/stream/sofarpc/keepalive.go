@@ -1,4 +1,4 @@
-package keepalive
+package sofarpc
 
 import (
 	"context"
@@ -9,13 +9,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	"github.com/alipay/sofa-mosn/pkg/stream"
+	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // StreamReceiver to receive keep alive response
 type sofaRPCKeepAlive struct {
-	Codec        stream.CodecClient
+	Codec        str.CodecClient
 	ProtocolByte byte
 	Timeout      time.Duration
 	Threshold    uint32
@@ -23,13 +23,15 @@ type sofaRPCKeepAlive struct {
 	// runtime
 	timeoutCount uint32
 	try          chan bool
+	// stop channel will stop all keep alive action
+	stop chan struct{}
 	// requests records all running request
 	// a request is handled once: response or timeout
 	requests map[uint64]*keepAliveTimeout
 	mutex    sync.Mutex
 }
 
-func NewSofaRPCKeepAlive(codec stream.CodecClient, proto byte, timeout time.Duration, thres uint32) types.KeepAlive {
+func NewSofaRPCKeepAlive(codec str.CodecClient, proto byte, timeout time.Duration, thres uint32) types.KeepAlive {
 	kp := &sofaRPCKeepAlive{
 		Codec:        codec,
 		ProtocolByte: proto,
@@ -38,6 +40,7 @@ func NewSofaRPCKeepAlive(codec stream.CodecClient, proto byte, timeout time.Dura
 		Callbacks:    []types.KeepAliveCallback{},
 		timeoutCount: 0,
 		try:          make(chan bool, thres),
+		stop:         make(chan struct{}),
 		requests:     make(map[uint64]*keepAliveTimeout),
 		mutex:        sync.Mutex{},
 	}
@@ -47,6 +50,8 @@ func NewSofaRPCKeepAlive(codec stream.CodecClient, proto byte, timeout time.Dura
 func (kp *sofaRPCKeepAlive) Start() {
 	for {
 		select {
+		case <-kp.stop:
+			return
 		case <-kp.try:
 			kp.sendKeepAlive()
 			// TODO: other action
@@ -68,6 +73,8 @@ func (kp *sofaRPCKeepAlive) runCallback(status types.KeepAliveStatus) {
 // use channel, do not block
 func (kp *sofaRPCKeepAlive) SendKeepAlive() {
 	select {
+	case <-kp.stop:
+		return
 	case kp.try <- true:
 	default:
 		log.DefaultLogger.Warnf("keep alive too much")
@@ -93,28 +100,39 @@ func (kp *sofaRPCKeepAlive) GetTimeout() time.Duration {
 }
 
 func (kp *sofaRPCKeepAlive) HandleTimeout(id uint64) {
-	kp.mutex.Lock()
-	defer kp.mutex.Unlock()
-	if _, ok := kp.requests[id]; ok {
-		delete(kp.requests, id)
-		atomic.AddUint32(&kp.timeoutCount, 1)
-		// close the connection
-		if kp.timeoutCount > kp.Threshold {
-			kp.Codec.Close()
+	select {
+	case <-kp.stop:
+		return
+	default:
+		kp.mutex.Lock()
+		defer kp.mutex.Unlock()
+		if _, ok := kp.requests[id]; ok {
+			delete(kp.requests, id)
+			atomic.AddUint32(&kp.timeoutCount, 1)
+			// close the connection, stop keep alive
+			if kp.timeoutCount >= kp.Threshold {
+				kp.Codec.Close()
+				close(kp.stop)
+			}
+			kp.runCallback(types.KeepAliveTimeout)
 		}
-		kp.runCallback(types.KeepAliveTimeout)
 	}
 }
 
 func (kp *sofaRPCKeepAlive) HandleSuccess(id uint64) {
-	kp.mutex.Lock()
-	defer kp.mutex.Unlock()
-	if timeout, ok := kp.requests[id]; ok {
-		delete(kp.requests, id)
-		timeout.timer.stop()
-		// reset the tiemout count
-		atomic.StoreUint32(&kp.timeoutCount, 0)
-		kp.runCallback(types.KeepAliveSuccess)
+	select {
+	case <-kp.stop:
+		return
+	default:
+		kp.mutex.Lock()
+		defer kp.mutex.Unlock()
+		if timeout, ok := kp.requests[id]; ok {
+			delete(kp.requests, id)
+			timeout.timer.stop()
+			// reset the tiemout count
+			atomic.StoreUint32(&kp.timeoutCount, 0)
+			kp.runCallback(types.KeepAliveSuccess)
+		}
 	}
 }
 

@@ -14,7 +14,7 @@
 			 {
 	           "type": "proxy",
 		   "config": {
-		      "downstream_protocol": "Http2",
+		      "downstream_protocol": "SofaRpc",
 		      "upstream_protocol": "SofaRpc",
 			 "router_config_name":"server_router"
 		  	 }
@@ -51,7 +51,7 @@
 	           "type": "proxy",
 			   "config": {
 				  "downstream_protocol": "SofaRpc",
-				  "upstream_protocol": "Http2",
+				  "upstream_protocol": "SofaRpc",
 				 "router_config_name":"client_router"
 			   }
 	       },

@@ -1,4 +1,4 @@
-package keepalive
+package sofarpc
 
 import (
 	"context"
@@ -9,8 +9,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/stream"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
+	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 )
@@ -60,7 +59,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 	if err := conn.Connection.Connect(true); err != nil {
 		t.Fatalf("create conenction failed", err)
 	}
-	codec := stream.NewCodecClient(ctx, protocol.SofaRPC, conn.Connection, host)
+	codec := str.NewCodecClient(ctx, protocol.SofaRPC, conn.Connection, host)
 	if codec == nil {
 		t.Fatal("codec is nil")
 	}
@@ -93,14 +92,14 @@ func TestKeepAliveTimeout(t *testing.T) {
 	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond, 6)
 	stats := &stats{}
 	tc.KeepAlive.AddCallback(stats.Record)
-	// after 6 times, the connection will be closed
+	// after 6 times, the connection will be closed and stop all keep alive action
 	for i := 0; i < 10; i++ {
 		tc.KeepAlive.SendKeepAlive()
 		time.Sleep(80 * time.Millisecond)
 	}
 	// wait all response
 	time.Sleep(time.Second)
-	if stats.timeout != 10 {
+	if stats.timeout != 6 { // 6 is the max try times
 		t.Error("keep alive handle failure not enough", stats)
 	}
 }
