@@ -618,11 +618,12 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	if ccType == types.FlushWrite {
+		// FIXME: maybe some buffer remaining in writeBufferChan, which should be flushed
+
 		if c.writeBufLen() > 0 {
 			c.closeWithFlush = true
 
 			for {
-
 				bytesSent, err := c.doWrite()
 
 				if err != nil {

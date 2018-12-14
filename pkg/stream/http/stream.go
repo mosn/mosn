@@ -38,8 +38,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var errConnClose = errors.New("connection closed")
-
 func init() {
 	str.Register(protocol.HTTP1, &streamConnFactory{})
 }
@@ -57,6 +55,12 @@ var (
 		"TRACE":   {},
 		"CONNECT": {},
 	}
+
+	errConnClose = errors.New("connection closed")
+
+	HKConnection = []byte("Connection") // header key 'Connection'
+	HVClose      = []byte("close")      // header value 'close'
+	HVKeepAlive  = []byte("keep-alive") // header value 'keep-alive'
 )
 
 type streamConnFactory struct{}
@@ -106,6 +110,7 @@ type streamConnection struct {
 
 	conn              types.Connection
 	connEventListener types.ConnectionEventListener
+	connClosed        uint32
 
 	bufChan chan types.IoBuffer
 
@@ -153,13 +158,6 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	return
 }
 
-// types.ConnectionEventListener
-func (conn *streamConnection) OnEvent(event types.ConnectionEvent) {
-	if event.IsClose() || event.ConnectFailure() {
-		close(conn.bufChan)
-	}
-}
-
 // types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection
@@ -184,8 +182,6 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 		streamConnectionEventListener: streamConnCallbacks,
 	}
 
-	connection.AddConnectionEventListener(csc)
-
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
 
@@ -209,11 +205,11 @@ func (conn *clientStreamConnection) serve() {
 	for {
 		// 1. blocking read using fasthttp.Response.Read
 		response := fasthttp.AcquireResponse()
-		//response.Header.DisableNormalizing()
 
 		err := response.Read(conn.br)
 		if err != nil {
-			if err != errConnClose && err != io.EOF {
+			if conn.stream != nil {
+				conn.stream.ResetStream(types.StreamRemoteReset)
 				log.DefaultLogger.Errorf("Http client codec goroutine error: %s", err)
 			}
 			return
@@ -223,8 +219,20 @@ func (conn *clientStreamConnection) serve() {
 		s := conn.stream
 		s.response = response
 
+		resetConn := false
+		if s.response.ConnectionClose() {
+			resetConn = true
+		}
+
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleResponse()
+		}
+
+		// local reset
+		if atomic.LoadUint32(&s.connection.connClosed) == 0 && resetConn {
+			// close connection
+			s.connection.conn.Close(types.NoFlush, types.LocalClose)
+			return
 		}
 	}
 }
@@ -262,13 +270,8 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 }
 
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
-	conn.mutex.Lock()
-	defer conn.mutex.Unlock()
-
-	if conn.stream != nil {
-		conn.stream.ResetStream(reason)
-		conn.stream = nil
-	}
+	close(conn.bufChan)
+	atomic.CompareAndSwapUint32(&conn.connClosed, 0, 1)
 }
 
 // types.ServerStreamConnection
@@ -293,8 +296,6 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
-
-	connection.AddConnectionEventListener(ssc)
 
 	go func() {
 		defer func() {
@@ -364,12 +365,8 @@ func (conn *serverStreamConnection) ActiveStreamsNum() int {
 }
 
 func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
-	conn.mutex.Lock()
-	defer conn.mutex.Unlock()
-
-	if conn.stream != nil {
-		conn.stream.ResetStream(reason)
-	}
+	close(conn.bufChan)
+	atomic.CompareAndSwapUint32(&conn.connClosed, 0, 1)
 }
 
 // types.Stream
@@ -384,6 +381,8 @@ type stream struct {
 	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
 	request  *fasthttp.Request
 	response *fasthttp.Response
+
+	resetConn bool // close the connection after endStream
 
 	receiver types.StreamReceiveListener
 }
@@ -593,6 +592,18 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 func (s *serverStream) endStream() {
 	defer s.DestroyStream()
 
+	resetConn := false
+	// check if we need close connection
+	if s.request.Header.ConnectionClose() {
+		s.response.SetConnectionClose()
+		resetConn = true
+	} else if !s.request.Header.IsHTTP11() {
+		// Set 'Connection: keep-alive' response header for non-HTTP/1.1 request.
+		// There is no need in setting this header for http/1.1, since in http/1.1
+		// connections are keep-alive by default.
+		s.response.Header.SetCanonical(HKConnection, HVKeepAlive)
+	}
+
 	s.doSend()
 	s.responseDoneChan <- true
 
@@ -600,6 +611,13 @@ func (s *serverStream) endStream() {
 	s.connection.mutex.Lock()
 	s.connection.stream = nil
 	s.connection.mutex.Unlock()
+
+
+	// TODO: wait for flush write fixed
+	if resetConn {
+		// close connection
+		s.connection.conn.Close(types.FlushWrite, types.LocalClose)
+	}
 
 	if s.request != nil {
 		fasthttp.ReleaseRequest(s.request)
