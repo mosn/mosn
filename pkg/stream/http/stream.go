@@ -511,6 +511,11 @@ func (s *clientStream) handleResponse() {
 		if len(s.response.Body()) == 0 {
 			hasData = false
 		}
+
+		s.connection.mutex.Lock()
+		s.connection.stream = nil
+		s.connection.mutex.Unlock()
+
 		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
 
 		if hasData {
@@ -520,10 +525,6 @@ func (s *clientStream) handleResponse() {
 		//TODO cannot recycle immediately, headers might be used by proxy logic
 		s.request = nil
 		s.response = nil
-
-		s.connection.mutex.Lock()
-		s.connection.stream = nil
-		s.connection.mutex.Unlock()
 	}
 }
 
