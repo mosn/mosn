@@ -363,6 +363,9 @@ func (c *connection) doRead() (err error) {
 
 	if err != nil {
 		if te, ok := err.(net.Error); ok && te.Timeout() {
+			for _, cb := range c.connCallbacks {
+				cb.OnEvent(types.OnReadTimeout) // run read timeout callback, for keep alive if configured
+			}
 			if bytesRead == 0 {
 				return err
 			}

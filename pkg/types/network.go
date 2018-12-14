@@ -323,6 +323,7 @@ const (
 	Connected       ConnectionEvent = "ConnectedFlag"
 	ConnectTimeout  ConnectionEvent = "ConnectTimeout"
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
+	OnReadTimeout   ConnectionEvent = "OnReadTimeout"
 )
 
 // IsClose represents whether the event is triggered by connection close
