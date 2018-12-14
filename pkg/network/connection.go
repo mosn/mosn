@@ -430,8 +430,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -618,24 +618,19 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	if ccType == types.FlushWrite {
-		// FIXME: maybe some buffer remaining in writeBufferChan, which should be flushed
-
-		if c.writeBufLen() > 0 {
+		// wait write finish
+		if len(c.writeBufferChan) > 0 || c.writeBufLen() > 0 {
 			c.closeWithFlush = true
 
+			// FIXME: Not precisely. The problem is how to know the exact state of potential writing operation without lock semantic
+			// wait loop
 			for {
-				bytesSent, err := c.doWrite()
-
-				if err != nil {
-					if te, ok := err.(net.Error); !(ok && te.Timeout()) {
-						break
-					}
-				}
-
-				if bytesSent == 0 {
+				time.Sleep(50 * time.Millisecond)
+				if len(c.writeBufferChan) == 0 && c.writeBufLen() == 0 {
 					break
 				}
 			}
+
 		}
 	}
 
