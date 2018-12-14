@@ -409,7 +409,7 @@ func logTime(t time.Time, ms bool) string {
 		}
 	}
 	if s == "" {
-		b := make([]byte, 36)
+		b := make([]byte, 0, 36)
 		buf := &b
 		year, month, day := t.Date()
 		itoa(buf, year, 4)
@@ -430,7 +430,7 @@ func logTime(t time.Time, ms bool) string {
 	}
 
 	if ms {
-		b := make([]byte, 4)
+		b := make([]byte, 0, 4)
 		buf := &b
 		*buf = append(*buf, '.')
 		itoa(buf, t.Nanosecond()/1e6, 3)

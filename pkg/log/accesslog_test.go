@@ -26,7 +26,57 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"os"
+	"regexp"
 )
+
+func TestAccessLog(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	format := "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
+		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
+		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
+	logName := "/tmp/mosn_bench/benchmark_access.log"
+	os.Remove(logName)
+	accessLog, err := NewAccessLog(logName, nil, format)
+
+	if err != nil {
+		fmt.Errorf(err.Error())
+	}
+	reqHeaders := map[string]string{
+		"service": "test",
+	}
+
+	respHeaders := map[string]string{
+		"Server": "MOSN",
+	}
+	requestInfo := newRequestInfo()
+	requestInfo.SetRequestReceivedDuration(time.Now())
+	requestInfo.SetResponseReceivedDuration(time.Now().Add(time.Second * 2))
+	requestInfo.SetBytesSent(2048)
+	requestInfo.SetBytesReceived(2048)
+
+	requestInfo.SetResponseFlag(0)
+	requestInfo.SetUpstreamLocalAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 23456, ""})
+	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{net.ParseIP("2001:db8::68"), 12200, ""})
+	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 53242, ""})
+	requestInfo.OnUpstreamHostSelected(nil)
+
+	accessLog.Log(protocol.CommonHeader(reqHeaders), protocol.CommonHeader(respHeaders), requestInfo)
+	l := "2018/12/14 18:08:33.054 1.329µs 2.00000227s 2048 2048 - 0 126.868µs false 0 127.0.0.1:23456 [2001:db8::68]:12200 127.0.0.1:53242 -\n"
+	time.Sleep(2*time.Second)
+	f, _ := os.Open(logName)
+	b := make([]byte, 1024)
+	_, err = f.Read(b)
+	f.Close()
+	if err != nil {
+		t.Errorf("test accesslog error")
+	}
+	ok, err := regexp.Match( "\\d\\d\\d\\d/\\d\\d/\\d\\d .* .* .* 2048 2048 \\- 0 .* false 0 127.0.0.1:23456 \\[2001:db8::68\\]:12200 127.0.0.1:53242 \\-\n", []byte(l))
+
+	if !ok {
+		t.Errorf("test accesslog error %v", err)
+	}
+}
 
 func BenchmarkAccessLog(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())

@@ -132,7 +132,11 @@ func (f *simpleRequestInfoFormatter) Format(buf types.IoBuffer, reqHeaders types
 
 	for _, vFunc := range f.reqInfoFunc {
 		buf.WriteString(" ")
-		buf.WriteString(vFunc(requestInfo))
+		s := vFunc(requestInfo)
+		if s == "" {
+			s = "-"
+		}
+		buf.WriteString(s)
 	}
 }
 
@@ -152,6 +156,9 @@ func (f *simpleReqHeadersFormatter) Format(buf types.IoBuffer, reqHeaders types.
 		if v, ok := reqHeaders.Get(key); ok {
 			buf.WriteString(" ")
 			buf.WriteString(types.ReqHeaderPrefix)
+			if v == "" {
+				v = "-"
+			}
 			buf.WriteString(v)
 		} else {
 			//DefaultLogger.Debugf("Invalid reqHeaders format keys when print access log: %s", key)
@@ -176,6 +183,9 @@ func (f *simpleRespHeadersFormatter) Format(buf types.IoBuffer, reqHeaders types
 			if v, ok := respHeaders.Get(key); ok {
 				buf.WriteString(" ")
 				buf.WriteString(types.RespHeaderPrefix)
+				if v == "" {
+					v = "-"
+				}
 				buf.WriteString(v)
 			} else {
 				//DefaultLogger.Debugf("Invalid RespHeaders Format Keys:%s", key)
@@ -297,7 +307,7 @@ func UpstreamLocalAddressGetter(info types.RequestInfo) string {
 	if info.UpstreamLocalAddress() != nil {
 		return info.UpstreamLocalAddress().String()
 	}
-	return "nil"
+	return ""
 }
 
 // DownstreamLocalAddressGetter
@@ -306,7 +316,7 @@ func DownstreamLocalAddressGetter(info types.RequestInfo) string {
 	if info.DownstreamLocalAddress() != nil {
 		return info.DownstreamLocalAddress().String()
 	}
-	return "nil"
+	return ""
 }
 
 // DownstreamRemoteAddressGetter
@@ -315,7 +325,7 @@ func DownstreamRemoteAddressGetter(info types.RequestInfo) string {
 	if info.DownstreamRemoteAddress() != nil {
 		return info.DownstreamRemoteAddress().String()
 	}
-	return "nil"
+	return ""
 }
 
 // UpstreamHostSelectedGetter
@@ -324,5 +334,5 @@ func UpstreamHostSelectedGetter(info types.RequestInfo) string {
 	if info.UpstreamHost() != nil {
 		return info.UpstreamHost().Hostname()
 	}
-	return "nil"
+	return ""
 }
