@@ -34,6 +34,7 @@ const DefaultSize = 1 << 4
 var nullByte []byte
 
 var (
+	EOF                  = errors.New("EOF")
 	ErrTooLarge          = errors.New("io buffer: too large")
 	ErrNegativeCount     = errors.New("io buffer: negative count")
 	ErrInvalidWriteCount = errors.New("io buffer: invalid write count")
@@ -45,6 +46,7 @@ type IoBuffer struct {
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
 	count   int
+	eof     bool
 
 	b *[]byte
 }
@@ -350,6 +352,7 @@ func (b *IoBuffer) Reset() {
 	b.buf = b.buf[:0]
 	b.off = 0
 	b.offMark = ResetOffMark
+	b.eof = false
 }
 
 func (b *IoBuffer) available() int {
@@ -359,6 +362,8 @@ func (b *IoBuffer) available() int {
 func (b *IoBuffer) Clone() types.IoBuffer {
 	buf := GetIoBuffer(b.Len())
 	buf.Write(b.Bytes())
+
+	buf.SetEOF(b.EOF())
 
 	return buf
 }
@@ -383,6 +388,14 @@ func (b *IoBuffer) Alloc(size int) {
 func (b *IoBuffer) Count(count int) int {
 	b.count += count
 	return b.count
+}
+
+func (b *IoBuffer) EOF() bool {
+	return b.eof
+}
+
+func (b *IoBuffer) SetEOF(eof bool) {
+	b.eof = eof
 }
 
 func (b *IoBuffer) copy(expand int) {
@@ -415,17 +428,6 @@ func (b *IoBuffer) giveSlice() {
 	}
 }
 
-func makeSlice(n int) []byte {
-	// TODO: handle large buffer
-	defer func() {
-		if recover() != nil {
-			panic(ErrTooLarge)
-		}
-	}()
-
-	return make([]byte, n)
-}
-
 func NewIoBuffer(capacity int) types.IoBuffer {
 	buffer := &IoBuffer{
 		offMark: ResetOffMark,
@@ -440,6 +442,9 @@ func NewIoBuffer(capacity int) types.IoBuffer {
 }
 
 func NewIoBufferString(s string) types.IoBuffer {
+	if s == "" {
+		return NewIoBuffer(0)
+	}
 	return &IoBuffer{
 		buf:     []byte(s),
 		offMark: ResetOffMark,
@@ -448,9 +453,18 @@ func NewIoBufferString(s string) types.IoBuffer {
 }
 
 func NewIoBufferBytes(bytes []byte) types.IoBuffer {
+	if bytes == nil {
+		return NewIoBuffer(0)
+	}
 	return &IoBuffer{
 		buf:     bytes,
 		offMark: ResetOffMark,
 		count:   1,
 	}
+}
+
+func NewIoBufferEOF() types.IoBuffer {
+	buf := NewIoBuffer(0)
+	buf.SetEOF(true)
+	return buf
 }
