@@ -136,8 +136,6 @@ func newSofaTracer() *SofaTracer {
 		}
 
 		// Do not print any timestamp prefix
-		instance.ingressLogger.SetFlags(0)
-		instance.egressLogger.SetFlags(0)
 
 		go func() {
 			for {
