@@ -618,19 +618,23 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	if ccType == types.FlushWrite {
-		// wait write finish
-		if len(c.writeBufferChan) > 0 || c.writeBufLen() > 0 {
+		if c.writeBufLen() > 0 {
 			c.closeWithFlush = true
 
-			// FIXME: Not precisely. The problem is how to know the exact state of potential writing operation without lock semantic
-			// wait loop
 			for {
-				time.Sleep(50 * time.Millisecond)
-				if len(c.writeBufferChan) == 0 && c.writeBufLen() == 0 {
+
+				bytesSent, err := c.doWrite()
+
+				if err != nil {
+					if te, ok := err.(net.Error); !(ok && te.Timeout()) {
+						break
+					}
+				}
+
+				if bytesSent == 0 {
 					break
 				}
 			}
-
 		}
 	}
 
