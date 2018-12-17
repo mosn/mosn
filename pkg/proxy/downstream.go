@@ -206,14 +206,7 @@ func (s *downStream) cleanStream() {
 	s.proxy.deleteActiveStream(s)
 
 	// recycle if no reset events
-	s.GiveStream()
-}
-
-// note: added before countdown metrics
-func (s *downStream) shouldDeleteStream() bool {
-	return s.upstreamRequest != nil &&
-		(atomic.LoadUint32(&s.downstreamReset) == 1 || s.upstreamRequest.sendComplete) &&
-		s.upstreamProcessDone
+	s.giveStream()
 }
 
 // types.StreamEventListener
@@ -1001,11 +994,11 @@ func (s *downStream) DownstreamHeaders() types.HeaderMap {
 	return s.downstreamReqHeaders
 }
 
-func (s *downStream) GiveStream() {
+func (s *downStream) giveStream() {
 	if s.snapshot != nil {
 		s.proxy.clusterManager.PutClusterSnapshot(s.snapshot)
 	}
-	if s.upstreamReset == 1 || s.downstreamReset == 1 {
+	if atomic.LoadUint32(&s.upstreamReset) == 1 || atomic.LoadUint32(&s.downstreamReset) == 1 {
 		return
 	}
 	// reset downstreamReqBuf
