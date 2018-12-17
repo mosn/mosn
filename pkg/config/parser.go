@@ -72,6 +72,7 @@ var configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
 const (
 	ParseCallbackKeyCluster        ContentKey = "clusters"
 	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
+	ParseCallbackKeyMetrics        ContentKey = "metrics"
 )
 
 // RegisterConfigParsedListener
@@ -80,7 +81,7 @@ func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 	if cbs, ok := configParsedCBMaps[key]; ok {
 		cbs = append(cbs, cb)
 	} else {
-		log.StartLogger.Infof(" %s added to configParsedCBMaps", key)
+		log.StartLogger.Infof("%s added to configParsedCBMaps", key)
 		cpc := []ParsedCallback{cb}
 		configParsedCBMaps[key] = cpc
 	}
@@ -328,6 +329,15 @@ func ParseTCPProxy(cfg map[string]interface{}) (*v2.TCPProxy, error) {
 func ParseServiceRegistry(src v2.ServiceRegistryInfo) {
 	//trigger all callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyServiceRgtInfo]; ok {
+		for _, cb := range cbs {
+			cb(src, true)
+		}
+	}
+}
+
+func ParseMetrics(src MetricsConfig) {
+	//trigger all callbacks
+	if cbs, ok := configParsedCBMaps[ParseCallbackKeyMetrics]; ok {
 		for _, cb := range cbs {
 			cb(src, true)
 		}

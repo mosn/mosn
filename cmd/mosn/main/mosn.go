@@ -41,11 +41,13 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	_ "github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
+	_ "github.com/alipay/sofa-mosn/pkg/stats/sink"
+	_ "github.com/alipay/sofa-mosn/pkg/stats/sink/prometheus"
 	_ "github.com/alipay/sofa-mosn/pkg/xds"
 	"github.com/urfave/cli"
 )
 
-var Version = "0.0.1"
+var Version = "0.4.0"
 
 func main() {
 	app := cli.NewApp()

@@ -49,6 +49,7 @@ type Mosn struct {
 // Create server from mosn config
 func NewMosn(c *config.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
+	config.ParseMetrics(c.Metrics)
 	m := &Mosn{}
 	mode := c.Mode()
 

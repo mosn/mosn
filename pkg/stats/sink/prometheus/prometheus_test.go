@@ -1,4 +1,4 @@
-package sink
+package prometheus
 
 import (
 	"testing"
@@ -66,7 +66,8 @@ func TestPrometheusMetrics(t *testing.T) {
 	//init prom
 	flushInteval := time.Millisecond * 500
 	sink := NewPromeSink(&PromConfig{
-		FlushInterval: flushInteval,
+		Port:     8088,
+		Endpoint: "/metrics",
 	})
 
 	times := 0
@@ -83,7 +84,7 @@ func TestPrometheusMetrics(t *testing.T) {
 					sink.Flush(reg)
 				}
 
-				resp, _ := tc.Get("http://127.0.0.1:8080/metrics")
+				resp, _ := tc.Get("http://127.0.0.1:8088/metrics")
 				body, _ := ioutil.ReadAll(resp.Body)
 				times++
 				log.Printf("========= %d times prom metrics pull =========\n", times)
@@ -93,7 +94,6 @@ func TestPrometheusMetrics(t *testing.T) {
 			}
 		}
 	}()
-
 
 	wg.Wait()
 	stopChan <- true
