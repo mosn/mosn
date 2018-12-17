@@ -23,7 +23,7 @@ import (
 	"strings"
 	"sync"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 type registry struct {
@@ -166,4 +166,22 @@ func GetAllMetricsData() map[string]map[string]NamespaceData {
 		res[typ] = GetMetricsData(typ)
 	}
 	return res
+}
+
+// GetAllRegistries returns all registries
+func GetAllRegistries() (regs []metrics.Registry) {
+	reg.mutex.RLock()
+	for _, reg := range reg.registries {
+		regs = append(regs, reg)
+	}
+	reg.mutex.RUnlock()
+	return
+}
+
+func KeySplit(key string) (statsType, namespace, name string) {
+	values := strings.SplitN(key, sep, 3)
+	if len(values) != 3 { // unexepcted metrics, ignore
+		return
+	}
+	return values[0], values[1], values[2]
 }

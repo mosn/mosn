@@ -25,7 +25,7 @@ import (
 )
 
 // testClear cleans the registry for test
-func testClear() {
+func ClearTestStats() {
 	reg = &registry{
 		registries: make(map[string]metrics.Registry),
 		mutex:      sync.RWMutex{},
@@ -33,7 +33,7 @@ func testClear() {
 }
 
 func TestTrimKey(t *testing.T) {
-	testClear()
+	ClearTestStats()
 	typ := "test@type"
 	namespace := "test@namespace"
 	s := NewStats(typ, namespace)
@@ -54,7 +54,7 @@ const (
 // test concurrently add statisic data
 // should get the right data
 func TestMetrics(t *testing.T) {
-	testClear()
+	ClearTestStats()
 	testCases := []struct {
 		typ         string
 		namespace   string
@@ -136,7 +136,7 @@ func TestMetrics(t *testing.T) {
 }
 
 func BenchmarkGetMetrics(b *testing.B) {
-	testClear()
+	ClearTestStats()
 	// init metrics data
 	testCases := []struct {
 		typ       string
