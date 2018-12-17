@@ -150,7 +150,9 @@ func (c *cluster) PrioritySet() types.PrioritySet {
 }
 
 func (c *cluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
-	c.healthChecker.AddHostCheckCompleteCb(cb)
+	if c.healthChecker != nil {
+		c.healthChecker.AddHostCheckCompleteCb(cb)
+	}
 }
 
 // update health-hostSet for only one hostSet, reduce update times

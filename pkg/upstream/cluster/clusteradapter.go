@@ -98,3 +98,7 @@ func (ca *MngAdapter) PutClusterSnapshot(snapshot types.ClusterSnapshot) {
 	ca.clusterMng.PutClusterSnapshot(snapshot)
 	return
 }
+
+func (ca *MngAdapter) AddClusterHealthCheckCallbacks(clusterName string, cb types.HealthCheckCb) bool {
+	return ca.clusterMng.AddClusterHealthCheckCallbacks(clusterName, cb)
+}

@@ -36,6 +36,9 @@ type ClusterManager interface {
 	// Add or update a cluster via API.
 	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
 
+	// Add Cluster health check callbacks
+	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) bool
+
 	SetInitializedCb(cb func())
 
 	// Get, use to get the snapshot of a cluster

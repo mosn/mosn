@@ -205,6 +205,17 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	return ok
 }
 
+// AddClusterHealthCheckCallbacks add a callback for clustrer
+func (cm *clusterManager) AddClusterHealthCheckCallbacks(name string, cb types.HealthCheckCb) bool {
+	if v, ok := cm.primaryClusters.Load(name); ok {
+		if cluster, ok := v.(*primaryCluster); ok {
+			cluster.cluster.AddHealthCheckCallbacks(cb)
+			return true
+		}
+	}
+	return false
+}
+
 func (cm *clusterManager) ClusterExist(clusterName string) bool {
 	if _, exist := cm.primaryClusters.Load(clusterName); exist {
 		return true
