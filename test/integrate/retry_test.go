@@ -30,8 +30,6 @@ func NewRetryCase(t *testing.T, serverProto, meshProto types.Protocol, isClose b
 	case protocol.HTTP1:
 		good = util.NewHTTPServer(t, nil)
 		bad = util.NewHTTPServer(t, &BadHTTPHandler{})
-	case protocol.MHTTP2:
-		fallthrough
 	case protocol.HTTP2:
 		good = util.NewUpstreamHTTP2(t, app1, nil)
 		bad = util.NewUpstreamHTTP2(t, app2, &BadHTTPHandler{})

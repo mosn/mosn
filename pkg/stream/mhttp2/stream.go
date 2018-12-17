@@ -106,9 +106,10 @@ func (conn *streamConnection) GoAway() {
 // types.Stream
 // types.StreamSender
 type stream struct {
-	ctx       context.Context
-	receiver  types.StreamReceiver
-	streamCbs []types.StreamEventListener
+	str.BaseStream
+
+	ctx                 context.Context
+	receiver            types.StreamReceiveListener
 
 	id       uint32
 	sendData []types.IoBuffer
@@ -116,29 +117,8 @@ type stream struct {
 }
 
 // ~~ types.Stream
-func (s *stream) AddEventListener(cb types.StreamEventListener) {
-	s.streamCbs = append(s.streamCbs, cb)
-}
-
-func (s *stream) RemoveEventListener(cb types.StreamEventListener) {
-	cbIdx := -1
-
-	for i, streamCb := range s.streamCbs {
-		if streamCb == cb {
-			cbIdx = i
-			break
-		}
-	}
-
-	if cbIdx > -1 {
-		s.streamCbs = append(s.streamCbs[:cbIdx], s.streamCbs[cbIdx+1:]...)
-	}
-}
-
-func (s *stream) ResetStream(reason types.StreamResetReason) {
-	for _, cb := range s.streamCbs {
-		cb.OnResetStream(reason)
-	}
+func (s *stream) ID() uint64 {
+	return uint64(s.id)
 }
 
 func (s *stream) ReadDisable(disable bool) {
@@ -151,10 +131,6 @@ func (s *stream) BufferLimit() uint32 {
 
 func (s *stream) GetStream() types.Stream {
 	return s
-}
-
-func (s *stream) ID() uint64 {
-	return uint64(s.id)
 }
 
 func (s *stream) buildData() types.IoBuffer {
@@ -190,7 +166,7 @@ func (cm *contextManager) next() {
 
 type serverStreamConnection struct {
 	streamConnection
-	slock   sync.Mutex
+	mutex   sync.RWMutex
 	streams map[uint32]*serverStream
 	sc      *http2.MServerConn
 
@@ -245,6 +221,22 @@ func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
 		}
 
 		conn.cm.next()
+	}
+}
+
+func (conn *serverStreamConnection) ActiveStreamsNum() int {
+	conn.mutex.RLock()
+	defer conn.mutex.Unlock()
+
+	return len(conn.streams)
+}
+
+func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
+	conn.mutex.RLock()
+	defer conn.mutex.Unlock()
+
+	for _, stream := range conn.streams {
+		stream.ResetStream(reason)
 	}
 }
 
@@ -351,12 +343,12 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 		// todo: other error scenes
 		case http2.StreamError:
 			conn.logger.Errorf("Http2 server handleError stream error: %v", err)
-			conn.slock.Lock()
+			conn.mutex.Lock()
 			s := conn.streams[err.StreamID]
 			if s != nil {
 				delete(conn.streams, err.StreamID)
 			}
-			conn.slock.Unlock()
+			conn.mutex.Unlock()
 			if s != nil {
 				s.ResetStream(types.StreamRemoteReset)
 			}
@@ -379,9 +371,9 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	stream.conn = conn.conn
 
 	if !endStream {
-		conn.slock.Lock()
+		conn.mutex.Lock()
 		conn.streams[stream.id] = stream
-		conn.slock.Unlock()
+		conn.mutex.Unlock()
 	}
 
 	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
@@ -389,8 +381,8 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 }
 
 func (conn *serverStreamConnection) onStreamRecv(ctx context.Context, id uint32, endStream bool) *serverStream {
-	conn.slock.Lock()
-	defer conn.slock.Unlock()
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
 	if stream, ok := conn.streams[id]; ok {
 		if endStream {
 			delete(conn.streams, id)
@@ -476,6 +468,8 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 }
 
 func (s *serverStream) endStream() {
+	defer s.DestroyStream()
+
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
 	if err != nil {
 		// todo: other error scenes
@@ -483,8 +477,8 @@ func (s *serverStream) endStream() {
 		s.stream.ResetStream(types.StreamRemoteReset)
 		return
 	}
-	s.sc.logger.Debugf("http2 server SendResponse id = %d", s.id)
 
+	s.sc.logger.Debugf("http2 server SendResponse id = %d", s.id)
 }
 
 func (s *serverStream) ResetStream(reason types.StreamResetReason) {
@@ -500,14 +494,14 @@ func (s *serverStream) GetStream() types.Stream {
 
 type clientStreamConnection struct {
 	streamConnection
-	slock   sync.Mutex
-	streams map[uint32]*clientStream
-	cc      *http2.MClientConn
-
-	clientCallbacks types.StreamConnectionEventListener
+	mutex                         sync.RWMutex
+	streams                       map[uint32]*clientStream
+	mClientConn                   *http2.MClientConn
+	streamConnectionEventListener types.StreamConnectionEventListener
 }
 
-func newClientStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener) types.ClientStreamConnection {
+func newClientStreamConnection(ctx context.Context, connection types.Connection,
+	clientCallbacks types.StreamConnectionEventListener) types.ClientStreamConnection {
 
 	h2cc := http2.NewClientConn(connection)
 
@@ -521,8 +515,8 @@ func newClientStreamConnection(ctx context.Context, connection types.Connection,
 
 			logger: log.ByContext(ctx),
 		},
-		cc:              h2cc,
-		clientCallbacks: clientCallbacks,
+		mClientConn:                   h2cc,
+		streamConnectionEventListener: clientCallbacks,
 	}
 
 	// init first context
@@ -554,10 +548,25 @@ func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 
 		conn.cm.next()
 	}
-
 }
 
-func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
+func (conn *clientStreamConnection) ActiveStreamsNum() int {
+	conn.mutex.RLock()
+	defer conn.mutex.RUnlock()
+
+	return len(conn.streams)
+}
+
+func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+
+	for _, stream := range conn.streams {
+		stream.ResetStream(reason)
+	}
+}
+
+func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiveListener) types.StreamSender {
 	stream := &clientStream{}
 
 	stream.ctx = ctx
@@ -580,7 +589,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	var trailer http.Header
 	var rsp *http.Response
 
-	rsp, data, trailer, endStream, err = conn.cc.HandleFrame(ctx, f)
+	rsp, data, trailer, endStream, err = conn.mClientConn.HandleFrame(ctx, f)
 
 	if err != nil {
 		conn.handleError(ctx, f, err)
@@ -593,12 +602,12 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 
 	id := f.Header().StreamID
 
-	conn.slock.Lock()
+	conn.mutex.Lock()
 	stream := conn.streams[id]
 	if endStream && stream != nil {
 		delete(conn.streams, id)
 	}
-	conn.slock.Unlock()
+	conn.mutex.Unlock()
 
 	if stream == nil {
 		conn.logger.Errorf("http2 client invaild steamID :%v", f)
@@ -648,18 +657,18 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 }
 
 func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Frame, err error) {
-	conn.cc.HandleError(ctx, f, err)
+	conn.mClientConn.HandleError(ctx, f, err)
 	if err != nil {
 		switch err := err.(type) {
 		// todo: other error scenes
 		case http2.StreamError:
 			conn.logger.Errorf("Http2 client handleError stream err: %v", err)
-			conn.slock.Lock()
+			conn.mutex.Lock()
 			s := conn.streams[err.StreamID]
 			if s != nil {
 				delete(conn.streams, err.StreamID)
 			}
-			conn.slock.Unlock()
+			conn.mutex.Unlock()
 			if s != nil {
 				s.ResetStream(types.StreamRemoteReset)
 			}
@@ -675,6 +684,7 @@ func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Fra
 
 type clientStream struct {
 	stream
+
 	logger log.Logger
 	h2s    *http2.MClientStream
 	sc     *clientStreamConnection
@@ -752,7 +762,7 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn types.Header
 
 	s.logger.Debugf("http2 client AppendHeaders: id = %d, headers = %+v", s.id, req.Header)
 
-	s.h2s = http2.NewMClientStream(s.sc.cc, req)
+	s.h2s = http2.NewMClientStream(s.sc.mClientConn, req)
 
 	if endStream {
 		s.endStream()
@@ -787,8 +797,8 @@ func (s *clientStream) AppendTrailers(context context.Context, trailers types.He
 }
 
 func (s *clientStream) endStream() {
-	s.sc.slock.Lock()
-	defer s.sc.slock.Unlock()
+	s.sc.mutex.Lock()
+	defer s.sc.mutex.Unlock()
 
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
 	if err != nil {

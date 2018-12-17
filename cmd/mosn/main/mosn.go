@@ -36,7 +36,6 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/http2/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/router"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"

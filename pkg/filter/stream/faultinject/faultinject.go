@@ -80,7 +80,7 @@ func parseStreamFaultInjectConfig(c interface{}) (*faultInjectConfig, bool) {
 type streamFaultInjectFilter struct {
 	ctx       context.Context
 	isDelayed bool
-	cb        types.StreamReceiverFilterCallbacks
+	handler   types.StreamReceiverFilterHandler
 	config    *faultInjectConfig
 	stop      chan struct{}
 	rander    *rand.Rand
@@ -111,12 +111,13 @@ func (f *streamFaultInjectFilter) ReadPerRouteConfig(cfg map[string]interface{})
 	}
 }
 
-func (f *streamFaultInjectFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
-	f.cb = cb
+func (f *streamFaultInjectFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+	f.handler = handler
 }
-func (f *streamFaultInjectFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+
+func (f *streamFaultInjectFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	log.DefaultLogger.Debugf("fault inject filter do receive headers")
-	if route := f.cb.Route(); route != nil {
+	if route := f.handler.Route(); route != nil {
 		// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
 		f.ReadPerRouteConfig(route.RouteRule().PerFilterConfig())
 	}
@@ -146,7 +147,7 @@ func (f *streamFaultInjectFilter) OnDecodeHeaders(headers types.HeaderMap, endSt
 			}
 		}()
 		// TODO: stats
-		f.cb.RequestInfo().SetResponseFlag(types.DelayInjected)
+		f.handler.RequestInfo().SetResponseFlag(types.DelayInjected)
 		return types.StreamHeadersFilterStop
 	}
 	if f.isAbort() {
@@ -155,18 +156,21 @@ func (f *streamFaultInjectFilter) OnDecodeHeaders(headers types.HeaderMap, endSt
 	}
 	return types.StreamHeadersFilterContinue
 }
-func (f *streamFaultInjectFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+
+func (f *streamFaultInjectFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	if !f.isDelayed {
 		return types.StreamDataFilterContinue
 	}
 	return types.StreamDataFilterStopAndBuffer
 }
-func (f *streamFaultInjectFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+
+func (f *streamFaultInjectFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	if !f.isDelayed {
 		return types.StreamTrailersFilterContinue
 	}
 	return types.StreamTrailersFilterStop
 }
+
 func (f *streamFaultInjectFilter) OnDestroy() {
 	close(f.stop)
 }
@@ -175,7 +179,7 @@ func (f *streamFaultInjectFilter) OnDestroy() {
 
 func (f *streamFaultInjectFilter) matchUpstream() bool {
 	if f.config.upstream != "" {
-		if route := f.cb.Route(); route != nil {
+		if route := f.handler.Route(); route != nil {
 			log.DefaultLogger.Debugf("current cluster name %s, fault inject cluster name %s", route.RouteRule().ClusterName(), f.config.upstream)
 			return route.RouteRule().ClusterName() == f.config.upstream
 		}
@@ -183,6 +187,7 @@ func (f *streamFaultInjectFilter) matchUpstream() bool {
 	log.DefaultLogger.Debugf("no upstream in config, returns true")
 	return true
 }
+
 func (f *streamFaultInjectFilter) getDelayDuration() time.Duration {
 	// percent is 0 or delay is 0 means no delay
 	if f.config.delayPercent == 0 || f.config.fixedDelay == 0 {
@@ -195,16 +200,17 @@ func (f *streamFaultInjectFilter) getDelayDuration() time.Duration {
 		return 0
 	}
 	return f.config.fixedDelay
-
 }
+
 func (f *streamFaultInjectFilter) doDelayInject(headers types.HeaderMap) {
 	// abort maybe called after delay
 	if f.isAbort() {
 		f.abort(headers)
 	} else {
-		f.cb.ContinueDecoding()
+		f.handler.ContinueReceiving()
 	}
 }
+
 func (f *streamFaultInjectFilter) isAbort() bool {
 	// percent is 0 means no abort
 	if f.config.abortPercent == 0 {
@@ -221,6 +227,6 @@ func (f *streamFaultInjectFilter) isAbort() bool {
 // TODO: make a header
 func (f *streamFaultInjectFilter) abort(headers types.HeaderMap) {
 	log.DefaultLogger.Debugf("abort inject")
-	f.cb.RequestInfo().SetResponseFlag(types.FaultInjected)
-	f.cb.SendHijackReply(f.config.abortStatus, headers)
+	f.handler.RequestInfo().SetResponseFlag(types.FaultInjected)
+	f.handler.SendHijackReply(f.config.abortStatus, headers)
 }
