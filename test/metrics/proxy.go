@@ -12,7 +12,6 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/stats"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
