@@ -31,7 +31,7 @@ import (
 type rbacFilter struct {
 	context      context.Context
 	cb           types.StreamReceiverFilterCallbacks
-	status       *common.RbacStatus
+	status       *RbacStatus
 	engine       *common.RoleBasedAccessControlEngine
 	shadowEngine *common.RoleBasedAccessControlEngine
 }
@@ -70,25 +70,36 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 	log.DefaultLogger.Debugf(string(rbacConf))
 
 	// rbac shadow engine handle
-	_, matchPolicyName := f.shadowEngine.Allowed(f.cb, headers)
+	allowed, matchPolicyName := f.shadowEngine.Allowed(f.cb, headers)
 	if matchPolicyName != "" {
+		log.DefaultLogger.Debugf("shoadow engine hit, policy name: %s", matchPolicyName)
 		// TODO: record metric log
 		f.status.ShadowEngineMetrics.Counter(matchPolicyName).Inc(1)
-		log.DefaultLogger.Debugf("shoadow engine hit, policy name: %s", matchPolicyName)
+		if allowed {
+			f.status.ShadowEngineMetrics.Counter(AllowedMetricsNamespace).Inc(1)
+		} else {
+			f.status.ShadowEngineMetrics.Counter(DeniedMetricsNamespace).Inc(1)
+		}
 	}
 
 	// rbac engine handle
-	allowed, matchPolicyName := f.engine.Allowed(f.cb, headers)
+	allowed, matchPolicyName = f.engine.Allowed(f.cb, headers)
 	if matchPolicyName != "" {
+		log.DefaultLogger.Debugf("engine hit, policy name: %s", matchPolicyName)
 		// TODO: record metric log
 		f.status.EngineMetrics.Counter(matchPolicyName).Inc(1)
-		log.DefaultLogger.Debugf("engine hit, policy name: %s", matchPolicyName)
+		if allowed {
+			f.status.EngineMetrics.Counter(AllowedMetricsNamespace).Inc(1)
+		} else {
+			f.status.EngineMetrics.Counter(DeniedMetricsNamespace).Inc(1)
+		}
 	}
 	if !allowed {
 		return types.StreamHeadersFilterStop
 	}
 
-	log.DefaultLogger.Debugf("Metrics: %v", stats.GetMetricsData(common.FilterMetricsType)[common.RbacEngineMetricsNamespace])
+	log.DefaultLogger.Debugf("Metrics: %v", stats.GetMetricsData(FilterMetricsType)[EngineMetricsNamespace])
+	log.DefaultLogger.Debugf("Metrics: %v", stats.GetMetricsData(FilterMetricsType)[ShadowEngineMetricsNamespace])
 
 	return types.StreamHeadersFilterContinue
 }

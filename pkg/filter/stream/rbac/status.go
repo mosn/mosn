@@ -15,16 +15,38 @@
  * limitations under the License.
  */
 
-package common
+package rbac
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/stats"
 )
 
+/*
+ Metric:
+	"filter.rbac.engine": {
+		"allowed": Counter, 		  // total allowed count in engine
+		"denied": Counter, 			  // total denied count in engine
+		"${policy1_name}": Counter,   // policy1 hit count in engine
+		"${policy2_name}": Counter,   // policy2 hit count in engine
+		"${policy3_name}": Counter,   // policy3 hit count in engine
+		...
+	},
+	"filter.rbac.shadow_engine": {
+		"allowed": Counter, 		  // total allowed count in shadow engine
+		"denied": Counter, 			  // total denied count in shadow engine
+		"${policy1_name}": Counter,   // policy1 hit count in shadow engine
+		"${policy2_name}": Counter,   // policy2 hit count in shadow engine
+		"${policy3_name}": Counter,   // policy3 hit count in shadow engine
+		...
+	}
+ */
+
 const FilterMetricsType = "filter"
-const RbacEngineMetricsNamespace = "rbac.engine"
-const RbacShadowEngineMetricsNamespace = "rbac.shadow_engine"
+const EngineMetricsNamespace = "rbac.engine"
+const ShadowEngineMetricsNamespace = "rbac.shadow_engine"
+const AllowedMetricsNamespace = "allowed"
+const DeniedMetricsNamespace = "denied"
 
 type RbacStatus struct {
 	RawConfig           *v2.RBAC
@@ -35,7 +57,7 @@ type RbacStatus struct {
 func NewRbacStatus(rawConfig *v2.RBAC) *RbacStatus {
 	return &RbacStatus{
 		RawConfig:           rawConfig,
-		EngineMetrics:       stats.NewStats(FilterMetricsType, RbacEngineMetricsNamespace),
-		ShadowEngineMetrics: stats.NewStats(FilterMetricsType, RbacShadowEngineMetricsNamespace),
+		EngineMetrics:       stats.NewStats(FilterMetricsType, EngineMetricsNamespace),
+		ShadowEngineMetrics: stats.NewStats(FilterMetricsType, ShadowEngineMetricsNamespace),
 	}
 }

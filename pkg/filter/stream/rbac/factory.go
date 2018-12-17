@@ -33,7 +33,7 @@ func init() {
 
 // FilterConfigFactory is an implement of types.StreamFilterChainFactory
 type FilterConfigFactory struct {
-	Status       *common.RbacStatus
+	Status       *RbacStatus
 	Engine       *common.RoleBasedAccessControlEngine
 	ShadowEngine *common.RoleBasedAccessControlEngine
 }
@@ -59,7 +59,7 @@ func CreateRbacFilterFactory(conf map[string]interface{}) (types.StreamFilterCha
 	}
 
 	// build rnac status
-	sfcf.Status = common.NewRbacStatus(filterConfig)
+	sfcf.Status = NewRbacStatus(filterConfig)
 
 	// build rbac engine
 	if engine, err := common.NewRoleBasedAccessControlEngine(filterConfig.GetRules()); err != nil {
