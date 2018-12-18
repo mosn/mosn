@@ -125,11 +125,6 @@ func (p *byteBufferPool) give(buf *[]byte) {
 	p.pool[slot].pool.Put(buf)
 }
 
-// getByteBufferPool returns byteBufferPool from byteBufferPools
-func getByteBufferPool() *byteBufferPool {
-	return bbPool
-}
-
 type ByteBufferCtx struct {
 	TempBufferCtx
 }
@@ -141,7 +136,7 @@ type ByteBufferPoolContainer struct {
 
 func (ctx ByteBufferCtx) New() interface{} {
 	return &ByteBufferPoolContainer{
-		byteBufferPool: getByteBufferPool(),
+		byteBufferPool: bbPool,
 	}
 }
 
@@ -163,12 +158,10 @@ func GetBytesByContext(context context.Context, size int) *[]byte {
 
 // GetBytes returns *[]byte from byteBufferPool
 func GetBytes(size int) *[]byte {
-	p := getByteBufferPool()
-	return p.take(size)
+	return bbPool.take(size)
 }
 
 // PutBytes Put *[]byte to byteBufferPool
 func PutBytes(buf *[]byte) {
-	p := getByteBufferPool()
-	p.give(buf)
+	bbPool.give(buf)
 }
