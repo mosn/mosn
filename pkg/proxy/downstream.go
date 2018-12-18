@@ -944,33 +944,6 @@ func (s *downStream) AddStreamAccessLog(accessLog types.AccessLog) {
 	}
 }
 
-func (s *downStream) reset() {
-	s.ID = 0
-	s.proxy = nil
-	s.route = nil
-	s.cluster = nil
-	s.element = nil
-	s.timeout = nil
-	s.retryState = nil
-	s.requestInfo = nil
-	s.responseSender = nil
-	s.upstreamRequest.downStream = nil
-	s.upstreamRequest.requestSender = nil
-	s.upstreamRequest.proxy = nil
-	s.upstreamRequest.upstreamRespHeaders = nil
-	s.upstreamRequest = nil
-	s.perRetryTimer = nil
-	s.responseTimer = nil
-	s.downstreamRespHeaders = nil
-	s.downstreamReqDataBuf = nil
-	s.downstreamReqTrailers = nil
-	s.downstreamRespHeaders = nil
-	s.downstreamRespDataBuf = nil
-	s.downstreamRespTrailers = nil
-	s.senderFilters = s.senderFilters[:0]
-	s.receiverFilters = s.receiverFilters[:0]
-}
-
 // types.LoadBalancerContext
 // no use currently
 func (s *downStream) ComputeHashKey() types.HashedValue {
