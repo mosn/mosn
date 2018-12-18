@@ -113,9 +113,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 				log.StartLogger.Fatalln("no listener found")
 			}
 
-			for idx, _ := range serverConfig.Listeners {
+			for _, listenerConfig := range serverConfig.Listeners {
 				// parse ListenerConfig
-				lc := config.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
+				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
 				lc.DisableConnIo = config.GetListenerDisableIO(&lc.FilterChains[0])
 
 				// parse routers from connection_manager filter and add it the routerManager
