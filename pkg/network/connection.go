@@ -606,7 +606,7 @@ func (c *connection) writeBufLen() (bufLen int) {
 
 func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.ConnectionEvent) error {
 	if ccType == types.FlushWrite {
-        c.Write(buffer.NewIoBufferEOF())
+		c.Write(buffer.NewIoBufferEOF())
 		return nil
 	}
 
