@@ -23,17 +23,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var ioBufferPools [maxPoolSize]IoBufferPool
+var ibPool IoBufferPool
 
 // IoBufferPool is Iobuffer Pool
 type IoBufferPool struct {
 	pool sync.Pool
-}
-
-// getIoBufferPool returns IoBufferPool
-func getIoBufferPool() *IoBufferPool {
-	i := bufferPoolIndex()
-	return &ioBufferPools[i]
 }
 
 // take returns IoBuffer from IoBufferPool
@@ -57,8 +51,7 @@ func (p *IoBufferPool) give(buf types.IoBuffer) {
 
 // GetIoBuffer returns IoBuffer from pool
 func GetIoBuffer(size int) types.IoBuffer {
-	pool := getIoBufferPool()
-	return pool.take(size)
+	return ibPool.take(size)
 }
 
 // PutIoBuffer returns IoBuffer to pool
@@ -66,6 +59,5 @@ func PutIoBuffer(buf types.IoBuffer) {
 	if buf.Count(-1) != 0 {
 		return
 	}
-	pool := getIoBufferPool()
-	pool.give(buf)
+	ibPool.give(buf)
 }

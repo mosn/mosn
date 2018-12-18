@@ -23,12 +23,14 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
-var ins = Mhttp2BufferCtx{}
+var ins Mhttp2BufferCtx
 
-type Mhttp2BufferCtx struct{}
+func init() {
+	buffer.RegisterBuffer(&ins)
+}
 
-func (ctx Mhttp2BufferCtx) Name() int {
-	return buffer.MHTTP2
+type Mhttp2BufferCtx struct{
+	buffer.TempBufferCtx
 }
 
 func (ctx Mhttp2BufferCtx) New() interface{} {
@@ -44,5 +46,5 @@ type Mhttp2Buffers struct {
 
 func Mhttp2BuffersByContext(ctx context.Context) *Mhttp2Buffers {
 	poolCtx := buffer.PoolContext(ctx)
-	return poolCtx.Find(ins, nil).(*Mhttp2Buffers)
+	return poolCtx.Find(&ins, nil).(*Mhttp2Buffers)
 }
