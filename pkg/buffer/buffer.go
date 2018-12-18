@@ -19,38 +19,62 @@ package buffer
 
 import (
 	"context"
-	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"unsafe"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-const maxPoolSize = 1
-
-// Register the bufferpool's name
-const (
-	Protocol = iota
-	MHTTP2
-	SofaProtocol
-	Stream
-	SofaStream
-	Proxy
-	Bytes
-	End
-)
-
-var nullBufferCtx [End]interface{}
+const maxBufferPool = 16
 
 var (
-	index                   uint32
-	poolSize                = runtime.NumCPU()
-	bufferPoolContainers    [maxPoolSize]bufferPoolContainer
-	bufferPoolCtxContainers [maxPoolSize]bufferPoolCtxContainer
+	index int32
+	bPool = bufferPoolArray[:]
+	vPool = new(valuePool)
+
+	bufferPoolArray [maxBufferPool]bufferPool
+	nullBufferValue [maxBufferPool]interface{}
 )
 
-type bufferPoolContainer struct {
-	pool [End]bufferPool
+// TempBufferCtx is template for types.BufferPoolCtx
+type TempBufferCtx struct {
+	index int
+}
+
+func (t *TempBufferCtx) Index() int {
+	return t.index
+}
+
+func (t *TempBufferCtx) New() interface{} {
+	return nil
+}
+
+func (t *TempBufferCtx) Reset(x interface{}) {
+}
+
+// ifaceWords is interface internal representation.
+type ifaceWords struct {
+	typ  unsafe.Pointer
+	data unsafe.Pointer
+}
+
+// setIdex sets index, poolCtx must embedded TempBufferCtx
+func setIndex(poolCtx types.BufferPoolCtx, i int) {
+	p := (*ifaceWords)(unsafe.Pointer(&poolCtx))
+	temp := (*TempBufferCtx)(p.data)
+	temp.index = i
+}
+
+func RegisterBuffer(poolCtx types.BufferPoolCtx) {
+	// frist index is 1
+	i := atomic.AddInt32(&index, 1)
+	if i >= maxBufferPool {
+		panic("bufferSize over full")
+	}
+	bPool[i].ctx = poolCtx
+	setIndex(poolCtx, int(i))
 }
 
 // bufferPool is buffer pool
@@ -59,7 +83,7 @@ type bufferPool struct {
 	sync.Pool
 }
 
-type bufferPoolCtxContainer struct {
+type valuePool struct {
 	sync.Pool
 }
 
@@ -78,115 +102,86 @@ func (p *bufferPool) give(value interface{}) {
 	p.Put(value)
 }
 
-// PoolCtx is buffer pool's context
-type PoolCtx struct {
-	*bufferPoolContainer
-	value    [End]interface{}
-	transmit [End]interface{}
+// bufferValue is buffer pool's Value
+type bufferValue struct {
+	value    [maxBufferPool]interface{}
+	transmit [maxBufferPool]interface{}
 }
 
-// NewBufferPoolContext returns a context with PoolCtx
+// NewBufferPoolContext returns a context with bufferValue
 func NewBufferPoolContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, types.ContextKeyBufferPoolCtx, newBufferPoolCtx())
+	return context.WithValue(ctx, types.ContextKeyBufferPoolCtx, newBufferValue())
 }
 
 // TransmitBufferPoolContext copy a context
 func TransmitBufferPoolContext(dst context.Context, src context.Context) {
-	sctx := PoolContext(src)
-	if sctx.value == nullBufferCtx {
+	sValue := PoolContext(src)
+	if sValue.value == nullBufferValue {
 		return
 	}
-	dctx := PoolContext(dst)
-	dctx.transmit = sctx.value
-	sctx.value = nullBufferCtx
+	dValue := PoolContext(dst)
+	dValue.transmit = sValue.value
+	sValue.value = nullBufferValue
 }
 
-func bufferPoolIndex() int {
-	i := atomic.AddUint32(&index, 1)
-	i = i % uint32(maxPoolSize) % uint32(poolSize)
-	return int(i)
-}
-
-// newBufferPoolCtx returns PoolCtx
-func newBufferPoolCtx() (ctx *PoolCtx) {
-	i := bufferPoolIndex()
-	value := bufferPoolCtxContainers[i].Get()
-	if value == nil {
-		ctx = &PoolCtx{
-			bufferPoolContainer: &bufferPoolContainers[i],
-		}
+// newBufferValue returns bufferValue
+func newBufferValue() (value *bufferValue) {
+	v := vPool.Get()
+	if v == nil {
+		value = new(bufferValue)
 	} else {
-		ctx = value.(*PoolCtx)
+		value = v.(*bufferValue)
 	}
 	return
 }
 
-func initBufferPoolCtx(poolCtx types.BufferPoolCtx) {
-	for i := 0; i < maxPoolSize; i++ {
-		pool := &bufferPoolContainers[i].pool[poolCtx.Name()]
-		pool.ctx = poolCtx
+// Find returns buffer from bufferValue
+func (bv *bufferValue) Find(poolCtx types.BufferPoolCtx, x interface{}) interface{} {
+	i := poolCtx.Index()
+	if i <= 0 || i > int(index) {
+		panic("buffer should call buffer.RegisterBuffer()")
 	}
-}
-
-// GetPool returns buffer pool
-func (ctx *PoolCtx) getPool(poolCtx types.BufferPoolCtx) *bufferPool {
-	pool := &ctx.pool[poolCtx.Name()]
-	if pool.ctx == nil {
-		initBufferPoolCtx(poolCtx)
+	if bv.value[i] != nil {
+		return bv.value[i]
 	}
-	return pool
-}
-
-// Find returns buffer from PoolCtx
-func (ctx *PoolCtx) Find(poolCtx types.BufferPoolCtx, i interface{}) interface{} {
-	if ctx.value[poolCtx.Name()] != nil {
-		return ctx.value[poolCtx.Name()]
-	}
-	return ctx.Take(poolCtx)
+	return bv.Take(poolCtx)
 }
 
 // Take returns buffer from buffer pools
-func (ctx *PoolCtx) Take(poolCtx types.BufferPoolCtx) (value interface{}) {
-	pool := ctx.getPool(poolCtx)
-	value = pool.take()
-	ctx.value[poolCtx.Name()] = value
+func (bv *bufferValue) Take(poolCtx types.BufferPoolCtx) (value interface{}) {
+	i := poolCtx.Index()
+	value = bPool[i].take()
+	bv.value[i] = value
 	return
 }
 
 // Give returns buffer to buffer pools
-func (ctx *PoolCtx) Give() {
-	for i := 0; i < len(ctx.value); i++ {
-		value := ctx.value[i]
+func (bv *bufferValue) Give() {
+	if index <= 0 {
+		return
+	}
+	// first index is 1
+	for i := 1; i <= int(index); i++ {
+		value := bv.value[i]
 		if value != nil {
-			ctx.pool[i].give(value)
+			bPool[i].give(value)
 		}
-		value = ctx.transmit[i]
+		value = bv.transmit[i]
 		if value != nil {
-			ctx.pool[i].give(value)
+			bPool[i].give(value)
 		}
 	}
-	ctx.transmit = nullBufferCtx
-	ctx.value = nullBufferCtx
+	bv.value = nullBufferValue
+	bv.transmit = nullBufferValue
 
-	i := bufferPoolIndex()
-
-	// Give PoolCtx to Pool
-	bufferPoolCtxContainers[i].Put(ctx)
+	// Give bufferValue to Pool
+	vPool.Put(bv)
 }
 
-func bufferCtxCopy(ctx *PoolCtx) *PoolCtx {
-	newctx := newBufferPoolCtx()
-	if ctx != nil {
-		newctx.value = ctx.value
-		ctx.value = nullBufferCtx
-	}
-	return newctx
-}
-
-// PoolContext returns PoolCtx by context
-func PoolContext(context context.Context) *PoolCtx {
+// PoolContext returns bufferValue by context
+func PoolContext(context context.Context) *bufferValue {
 	if context != nil && context.Value(types.ContextKeyBufferPoolCtx) != nil {
-		return context.Value(types.ContextKeyBufferPoolCtx).(*PoolCtx)
+		return context.Value(types.ContextKeyBufferPoolCtx).(*bufferValue)
 	}
-	return newBufferPoolCtx()
+	return newBufferValue()
 }
