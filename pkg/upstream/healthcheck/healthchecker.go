@@ -62,7 +62,7 @@ func newHealthChecker(cfg v2.HealthCheck, cluster types.Cluster, f types.HealthC
 	if cfg.Interval != 0 {
 		interval = cfg.Interval
 	}
-	return &healthChecker{
+	hc := &healthChecker{
 		// cfg
 		sessionConfig:      cfg.SessionConfig,
 		timeout:            timeout,
@@ -79,6 +79,14 @@ func newHealthChecker(cfg v2.HealthCheck, cluster types.Cluster, f types.HealthC
 		checkers:           make(map[string]*checker),
 		stats:              newHealthCheckStats(cfg.ServiceName),
 	}
+	// Add common callbacks when create
+	// common callbacks should be registered and configured
+	for _, name := range cfg.CommonCallbacks {
+		if cb, ok := commonCallbacks[name]; ok {
+			hc.AddHostCheckCompleteCb(cb)
+		}
+	}
+	return hc
 }
 
 func (hc *healthChecker) Start() {
