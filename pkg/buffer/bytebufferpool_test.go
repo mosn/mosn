@@ -38,11 +38,11 @@ func TestBytesBufferPoolMediumBytes(t *testing.T) {
 	pool := newByteBufferPool()
 
 	for i := minShift; i < maxShift; i++ {
-		size := intRange(1 << uint(i), 1 << uint(i+1))
+		size := intRange(1<<uint(i), 1<<uint(i+1))
 		bp := pool.take(size)
 
-		if cap(*bp) != 1 << uint(i+1) {
-			t.Errorf("Expect get the slab size (%d) from pool, but got %d", 1 << uint(i+1), cap(*bp))
+		if cap(*bp) != 1<<uint(i+1) {
+			t.Errorf("Expect get the slab size (%d) from pool, but got %d", 1<<uint(i+1), cap(*bp))
 		}
 
 		//Puts the bytes to pool

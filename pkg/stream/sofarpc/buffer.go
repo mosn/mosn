@@ -23,12 +23,14 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
+func init() {
+	buffer.RegisterBuffer(&ins)
+}
+
 var ins = sofaBufferCtx{}
 
-type sofaBufferCtx struct{}
-
-func (ctx sofaBufferCtx) Name() int {
-	return buffer.SofaStream
+type sofaBufferCtx struct{
+	buffer.TempBufferCtx
 }
 
 func (ctx sofaBufferCtx) New() interface{} {
@@ -47,5 +49,5 @@ type sofaBuffers struct {
 
 func sofaBuffersByContext(context context.Context) *sofaBuffers {
 	ctx := buffer.PoolContext(context)
-	return ctx.Find(ins, nil).(*sofaBuffers)
+	return ctx.Find(&ins, nil).(*sofaBuffers)
 }
