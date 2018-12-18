@@ -30,9 +30,9 @@ import (
 const maxBufferPool = 16
 
 var (
-	index     int32 = -1
-	container       = &bufferPoolContainer{pool: bufferPoolArray[:]}
-	vPool           = new(valuePool)
+	index int32
+	bPool = bufferPoolArray[:]
+	vPool = new(valuePool)
 
 	bufferPoolArray [maxBufferPool]bufferPool
 	nullBufferValue [maxBufferPool]interface{}
@@ -60,24 +60,21 @@ type ifaceWords struct {
 	data unsafe.Pointer
 }
 
+// setIdex sets index, poolCtx must embedded TempBufferCtx
 func setIndex(poolCtx types.BufferPoolCtx, i int) {
 	p := (*ifaceWords)(unsafe.Pointer(&poolCtx))
-	ctx := p.data
-	temp := (*TempBufferCtx)(ctx)
+	temp := (*TempBufferCtx)(p.data)
 	temp.index = i
 }
 
 func RegisterBuffer(poolCtx types.BufferPoolCtx) {
+	// frist index is 1
 	i := atomic.AddInt32(&index, 1)
 	if i >= maxBufferPool {
 		panic("bufferSize over full")
 	}
-	container.pool[i].ctx = poolCtx
+	bPool[i].ctx = poolCtx
 	setIndex(poolCtx, int(i))
-}
-
-type bufferPoolContainer struct {
-	pool []bufferPool
 }
 
 // bufferPool is buffer pool
@@ -118,13 +115,13 @@ func NewBufferPoolContext(ctx context.Context) context.Context {
 
 // TransmitBufferPoolContext copy a context
 func TransmitBufferPoolContext(dst context.Context, src context.Context) {
-	sctx := PoolContext(src)
-	if sctx.value == nullBufferValue {
+	sValue := PoolContext(src)
+	if sValue.value == nullBufferValue {
 		return
 	}
-	dctx := PoolContext(dst)
-	dctx.transmit = sctx.value
-	sctx.value = nullBufferValue
+	dValue := PoolContext(dst)
+	dValue.transmit = sValue.value
+	sValue.value = nullBufferValue
 }
 
 // newBufferValue returns bufferValue
@@ -138,44 +135,40 @@ func newBufferValue() (value *bufferValue) {
 	return
 }
 
-// getPool returns buffer pool
-func (bv *bufferValue) getPool(poolCtx types.BufferPoolCtx) *bufferPool {
-	pool := container.pool[poolCtx.Index()]
-	if pool.ctx == nil {
-		pool.ctx = poolCtx
-	}
-	return &pool
-}
-
 // Find returns buffer from bufferValue
-func (bv *bufferValue) Find(poolCtx types.BufferPoolCtx, i interface{}) interface{} {
-	if bv.value[poolCtx.Index()] != nil {
-		return bv.value[poolCtx.Index()]
+func (bv *bufferValue) Find(poolCtx types.BufferPoolCtx, x interface{}) interface{} {
+	i := poolCtx.Index()
+	if i <= 0 || i > int(index) {
+		panic("buffer should call buffer.RegisterBuffer()")
+	}
+	if bv.value[i] != nil {
+		return bv.value[i]
 	}
 	return bv.Take(poolCtx)
 }
 
 // Take returns buffer from buffer pools
 func (bv *bufferValue) Take(poolCtx types.BufferPoolCtx) (value interface{}) {
-	pool := bv.getPool(poolCtx)
-	value = pool.take()
-	bv.value[poolCtx.Index()] = value
+	i := poolCtx.Index()
+	value = bPool[i].take()
+	bv.value[i] = value
 	return
 }
 
 // Give returns buffer to buffer pools
 func (bv *bufferValue) Give() {
-	if index < 0 {
+	if index <= 0 {
 		return
 	}
-	for i := 0; i <= int(index); i++ {
+	// first index is 1
+	for i := 1; i <= int(index); i++ {
 		value := bv.value[i]
 		if value != nil {
-			container.pool[i].give(value)
+			bPool[i].give(value)
 		}
 		value = bv.transmit[i]
 		if value != nil {
-			container.pool[i].give(value)
+			bPool[i].give(value)
 		}
 	}
 	bv.value = nullBufferValue
@@ -187,9 +180,6 @@ func (bv *bufferValue) Give() {
 
 // PoolContext returns bufferValue by context
 func PoolContext(context context.Context) *bufferValue {
-	if index < 0 {
-		return nil
-	}
 	if context != nil && context.Value(types.ContextKeyBufferPoolCtx) != nil {
 		return context.Value(types.ContextKeyBufferPoolCtx).(*bufferValue)
 	}
