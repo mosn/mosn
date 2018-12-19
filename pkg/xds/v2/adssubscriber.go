@@ -20,7 +20,6 @@ package v2
 import (
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
@@ -30,7 +29,6 @@ import (
 // receive goroutine handle response for both client request and server push
 func (adsClient *ADSClient) Start() {
 	adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
-	adsClient.MosnConfig = &config.MOSNConfig{}
 	go adsClient.sendThread()
 	go adsClient.receiveThread()
 }

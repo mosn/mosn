@@ -37,6 +37,7 @@ const (
 
 // Error messages
 const (
+	ChannelFull          string = "Channel is full"
 	CodecException       string = "codec exception occurs"
 	SerializeException   string = "serialize exception occurs"
 	DeserializeException string = "deserialize exception occurs"
@@ -46,6 +47,7 @@ const (
 
 // Errors
 var (
+	ErrChanFull             = errors.New(ChannelFull)
 	ErrCodecException       = errors.New(CodecException)
 	ErrSerializeException   = errors.New(SerializeException)
 	ErrDeserializeException = errors.New(DeserializeException)
