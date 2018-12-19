@@ -36,6 +36,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	"github.com/alipay/sofa-mosn/pkg/xds"
+	"github.com/alipay/sofa-mosn/pkg/stats/sink"
 )
 
 // Mosn class which wrapper server
@@ -49,7 +50,8 @@ type Mosn struct {
 // Create server from mosn config
 func NewMosn(c *config.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
-	config.ParseMetrics(c.Metrics)
+	initializeMetrics(c.Metrics)
+
 	m := &Mosn{}
 	mode := c.Mode()
 
@@ -212,6 +214,24 @@ func initializeTracing(config config.TracingConfig) {
 		trace.EnableTracing()
 	} else {
 		trace.DisableTracing()
+	}
+}
+
+func initializeMetrics(config config.MetricsConfig) {
+	var sinks []types.MetricsSink
+	// create sinks
+	for _, cfg := range config.SinkConfigs {
+		sink, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
+		// abort
+		if err != nil {
+			log.StartLogger.Errorf("initialize metrics sink %s failed, metrics sink is turned off", cfg.Type)
+			return
+		}
+		sinks = append(sinks, sink)
+	}
+
+	if len(sinks) > 0 {
+		go sink.StartFlush(sinks, config.FlushInterval.Duration)
 	}
 }
 

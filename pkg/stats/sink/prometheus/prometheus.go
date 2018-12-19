@@ -10,9 +10,9 @@ import (
 	"log"
 	"encoding/json"
 	"fmt"
-	"github.com/kataras/iris/core/errors"
 	"github.com/alipay/sofa-mosn/pkg/stats/sink"
 	"strings"
+	"errors"
 )
 
 func init() {

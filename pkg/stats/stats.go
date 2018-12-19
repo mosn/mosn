@@ -185,3 +185,11 @@ func KeySplit(key string) (statsType, namespace, name string) {
 	}
 	return values[0], values[1], values[2]
 }
+
+// ResetAll is only for test and internal usage. DO NOT use this if not sure.
+func ResetAll() {
+	for _, r := range reg.registries {
+		r.UnregisterAll()
+	}
+	reg.registries = make(map[string]metrics.Registry)
+}

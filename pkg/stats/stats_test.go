@@ -20,20 +20,10 @@ package stats
 import (
 	"sync"
 	"testing"
-
-	metrics "github.com/rcrowley/go-metrics"
 )
 
-// testClear cleans the registry for test
-func ClearTestStats() {
-	reg = &registry{
-		registries: make(map[string]metrics.Registry),
-		mutex:      sync.RWMutex{},
-	}
-}
-
 func TestTrimKey(t *testing.T) {
-	ClearTestStats()
+	ResetAll()
 	typ := "test@type"
 	namespace := "test@namespace"
 	s := NewStats(typ, namespace)
@@ -45,7 +35,7 @@ func TestTrimKey(t *testing.T) {
 type testAction int
 
 const (
-	countInc testAction = iota
+	countInc        testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate
@@ -54,7 +44,7 @@ const (
 // test concurrently add statisic data
 // should get the right data
 func TestMetrics(t *testing.T) {
-	ClearTestStats()
+	ResetAll()
 	testCases := []struct {
 		typ         string
 		namespace   string
@@ -136,7 +126,7 @@ func TestMetrics(t *testing.T) {
 }
 
 func BenchmarkGetMetrics(b *testing.B) {
-	ClearTestStats()
+	ResetAll()
 	// init metrics data
 	testCases := []struct {
 		typ       string

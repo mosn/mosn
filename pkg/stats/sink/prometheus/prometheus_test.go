@@ -7,7 +7,6 @@ import (
 	"time"
 	"net/http"
 	"io/ioutil"
-	"log"
 )
 
 type testAction int
@@ -22,6 +21,7 @@ const (
 // test concurrently add statisic data
 // should get the right data from prometheus
 func TestPrometheusMetrics(t *testing.T) {
+	stats.ResetAll()
 	testCases := []struct {
 		typ         string
 		namespace   string
@@ -66,8 +66,10 @@ func TestPrometheusMetrics(t *testing.T) {
 	//init prom
 	flushInteval := time.Millisecond * 500
 	sink := NewPromeSink(&PromConfig{
-		Port:     8088,
-		Endpoint: "/metrics",
+		Port:                  8088,
+		Endpoint:              "/metrics",
+		DisableCollectProcess: true,
+		DisableCollectGo:      true,
 	})
 
 	times := 0
@@ -85,10 +87,8 @@ func TestPrometheusMetrics(t *testing.T) {
 				}
 
 				resp, _ := tc.Get("http://127.0.0.1:8088/metrics")
-				body, _ := ioutil.ReadAll(resp.Body)
+				ioutil.ReadAll(resp.Body)
 				times++
-				log.Printf("========= %d times prom metrics pull =========\n", times)
-				log.Print(string(body))
 			case <-stopChan:
 				break
 			}
