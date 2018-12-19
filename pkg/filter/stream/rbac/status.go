@@ -54,7 +54,6 @@ type rbacStatus struct {
 }
 
 func NewRbacStatus() *rbacStatus {
-	// TODO: stats package will be changed
 	return &rbacStatus{
 		EngineMetrics:       stats.NewFilterStats(EngineMetricsNamespace),
 		ShadowEngineMetrics: stats.NewFilterStats(ShadowEngineMetricsNamespace),

@@ -24,6 +24,7 @@ import (
 	"strconv"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2alpha"
 )
@@ -35,11 +36,12 @@ type InheritPrincipal interface {
 	Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool
 }
 
-func (*PrincipalAny) isInheritPrincipal()      {}
-func (*PrincipalSourceIp) isInheritPrincipal() {}
-func (*PrincipalHeader) isInheritPrincipal()   {}
-func (*PrincipalAndIds) isInheritPrincipal()   {}
-func (*PrincipalOrIds) isInheritPrincipal()    {}
+func (*PrincipalAny) isInheritPrincipal()           {}
+func (*PrincipalSourceIp) isInheritPrincipal()      {}
+func (*PrincipalHeader) isInheritPrincipal()        {}
+func (*PrincipalAndIds) isInheritPrincipal()        {}
+func (*PrincipalOrIds) isInheritPrincipal()         {}
+func (*PrincipalAuthenticated) isInheritPrincipal() {}
 
 // Principal_Any
 type PrincipalAny struct {
@@ -186,6 +188,77 @@ func (principal *PrincipalOrIds) Match(cb types.StreamReceiverFilterCallbacks, h
 	return false
 }
 
+// Principal_Authenticated_
+type PrincipalAuthenticated struct {
+	Name string
+}
+
+func NewPrincipalAuthenticated(principal *v2alpha.Principal_Authenticated_) (*PrincipalAuthenticated, error) {
+	return &PrincipalAuthenticated{
+		Name: principal.Authenticated.Name,
+	}, nil
+}
+
+/*
+ * here is C++ implement in Envoy
+
+	bool AuthenticatedMatcher::matches(const Network::Connection& connection,
+									   const Envoy::Http::HeaderMap&,
+									   const envoy::api::v2::core::Metadata&) const {
+	  const auto* ssl = connection.ssl();
+	  if (!ssl) { // connection was not authenticated
+		return false;
+	  } else if (!matcher_.has_value()) { // matcher allows any subject
+		return true;
+	  }
+
+	  std::string principal = ssl->uriSanPeerCertificate();
+	  principal = principal.empty() ? ssl->subjectPeerCertificate() : principal;
+
+	  return matcher_.value().match(principal);
+	}
+
+	std::string SslSocket::uriSanPeerCertificate() const {
+	  bssl::UniquePtr<X509> cert(SSL_get_peer_certificate(ssl_.get()));
+	  if (!cert) {
+		return "";
+	  }
+	  // TODO(PiotrSikora): Figure out if returning only one URI is valid limitation.
+	  const std::vector<std::string>& san_uris = Utility::getSubjectAltNames(*cert, GEN_URI);
+	  return (san_uris.size() > 0) ? san_uris[0] : "";
+	}
+
+	std::string SslSocket::subjectPeerCertificate() const {
+	  bssl::UniquePtr<X509> cert(SSL_get_peer_certificate(ssl_.get()));
+	  if (!cert) {
+		return "";
+	  }
+	  return Utility::getSubjectFromCertificate(*cert);
+	}
+ */
+func (principal *PrincipalAuthenticated) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+	conn := cb.Connection().RawConn()
+	if tlsConn, ok := conn.(*mtls.TLSConn); ok {
+		cert := tlsConn.ConnectionState().PeerCertificates[0]
+
+		// SAN URIs check
+		for _, uri := range cert.URIs {
+			if principal.Name == uri.String() {
+				return true
+			}
+		}
+
+		// Subject Common Name check
+		if principal.Name == cert.Subject.CommonName {
+			return true
+		}
+
+		return false
+	} else {
+		return false
+	}
+}
+
 // Receive the v2alpha.Principal input and convert it to mosn rbac principal
 func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error) {
 	// Types that are valid to be assigned to Identifier:
@@ -194,8 +267,8 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 	//	*Principal_Any (supported)
 	//	*Principal_SourceIp (supported)
 	//	*Principal_Header (supported)
+	//	*Principal_Authenticated_ (supported)
 	// TODO: Principal_Authenticated_ & Principal_Metadata support
-	//	*Principal_Authenticated_ (unsupported)
 	//	*Principal_Metadata (unsupported)
 	switch principal.Identifier.(type) {
 	case *v2alpha.Principal_Any:
@@ -208,6 +281,8 @@ func NewInheritPrincipal(principal *v2alpha.Principal) (InheritPrincipal, error)
 		return NewPrincipalAndIds(principal.Identifier.(*v2alpha.Principal_AndIds))
 	case *v2alpha.Principal_OrIds:
 		return NewPrincipalOrIds(principal.Identifier.(*v2alpha.Principal_OrIds))
+	case *v2alpha.Principal_Authenticated_:
+		return NewPrincipalAuthenticated(principal.Identifier.(*v2alpha.Principal_Authenticated_))
 	default:
 		return nil, fmt.Errorf("[NewInheritPrincipal] not supported Principal.Identifier type found, detail: %v",
 			reflect.TypeOf(principal.Identifier))

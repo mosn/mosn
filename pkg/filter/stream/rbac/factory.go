@@ -59,7 +59,7 @@ func CreateRbacFilterFactory(conf map[string]interface{}) (types.StreamFilterCha
 		return nil, err
 	}
 
-	// build rnac status
+	// build rbac status
 	sfcf.Status = NewRbacStatus()
 
 	// build rbac engine

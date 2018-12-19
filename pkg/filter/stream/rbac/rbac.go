@@ -71,17 +71,11 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 	//	return types.StreamHeadersFilterContinue
 	//}
 
-	// print http header
-	headers.Range(func(key, value string) bool {
-		log.DefaultLogger.Debugf("Key: %s, Value: %s\n", key, value)
-		return true
-	})
-
 	// rbac shadow engine handle
 	allowed, matchPolicyName := f.shadowEngine.Allowed(f.cb, headers)
 	if matchPolicyName != "" {
 		log.DefaultLogger.Debugf("shoadow engine hit, policy name: %s", matchPolicyName)
-		// TODO: record metric log
+		// record metric log
 		f.status.ShadowEngineMetrics.Counter(matchPolicyName).Inc(1)
 		if allowed {
 			f.status.ShadowEngineMetrics.Counter(AllowedMetricsNamespace).Inc(1)
@@ -94,7 +88,7 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 	allowed, matchPolicyName = f.engine.Allowed(f.cb, headers)
 	if matchPolicyName != "" {
 		log.DefaultLogger.Debugf("engine hit, policy name: %s", matchPolicyName)
-		// TODO: record metric log
+		// record metric log
 		f.status.EngineMetrics.Counter(matchPolicyName).Inc(1)
 		if allowed {
 			f.status.EngineMetrics.Counter(AllowedMetricsNamespace).Inc(1)
