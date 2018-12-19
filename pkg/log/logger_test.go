@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"testing"
 	"time"
+	"os"
 )
 
 func TestLogPrintDiscard(t *testing.T) {
@@ -46,6 +47,29 @@ func TestLogPrintDiscard(t *testing.T) {
 	case <-lchan:
 		t.Errorf("test Print diacard failed, should be block")
 	case <-time.After(time.Second*3):
+	}
+}
+
+func TestLogPrintnull(t *testing.T) {
+	logName := "/tmp/mosn_bench/printnull.log"
+	os.Remove(logName)
+	l, _ := NewLogger(logName, DEBUG)
+	buf := buffer.GetIoBuffer(0)
+	buf.WriteString("testlog")
+	l.Print(buf, false)
+	buf = buffer.GetIoBuffer(0)
+	buf.WriteString("")
+	l.Print(buf, false)
+	l.Close()
+	f, _ := os.Open(logName)
+	b := make([]byte, 1024)
+	n, _ := f.Read(b)
+	f.Close()
+	if n != len("testlog") {
+		t.Errorf("Printnull error")
+	}
+	if string(b[:n]) != "testlog" {
+		t.Errorf("Printnull error")
 	}
 }
 
