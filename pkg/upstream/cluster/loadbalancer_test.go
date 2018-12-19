@@ -31,6 +31,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"runtime"
 )
 
 func newHostV2(addr string, name string, weight uint32, meta v2.Metadata) v2.Host {
@@ -539,6 +540,34 @@ func BenchmarkRandomLoadbalancer_1000(b *testing.B) {
 	}
 }
 
+func BenchmarkRandomLoadbalancer_1000_Parallel(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	var hosts []types.Host
+	for i := 1; i <= 1000; i++ {
+		hosts = append(hosts, NewHost(newHostV2("127.0."+strconv.Itoa(i/250)+"."+strconv.Itoa(i%250), "test"+strconv.Itoa(i), 1, nil), nil))
+	}
+
+	hs := hostSet{
+		hosts:        hosts,
+		healthyHosts: hosts,
+	}
+
+	hostset := []types.HostSet{&hs}
+
+	prioritySet := prioritySet{
+		hostSets: hostset,
+	}
+
+	l := newRandomLoadbalancer(&prioritySet)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			l.ChooseHost(nil)
+		}
+	})
+}
+
 func BenchmarkRoundRobinLoadBalancer_1000(b *testing.B) {
 
 	var hosts []types.Host
@@ -568,6 +597,40 @@ func BenchmarkRoundRobinLoadBalancer_1000(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		l.ChooseHost(nil)
 	}
+}
+
+
+func BenchmarkRoundRobinLoadBalancer_1000_Parallel(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	var hosts []types.Host
+	for i := 1; i <= 1000; i++ {
+		hosts = append(hosts, NewHost(newHostV2("127.0."+strconv.Itoa(i/250)+"."+strconv.Itoa(i%250), "test"+strconv.Itoa(i), 1, nil), nil))
+	}
+
+	hs := hostSet{
+		hosts:        hosts,
+		healthyHosts: hosts,
+	}
+
+	hostset := []types.HostSet{&hs}
+
+	prioritySet := prioritySet{
+		hostSets: hostset,
+	}
+
+	loadbalaner := loadbalancer{
+		prioritySet: &prioritySet,
+	}
+
+	l := &roundRobinLoadBalancer{
+		loadbalancer: loadbalaner,
+	}
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			l.ChooseHost(nil)
+		}
+	})
 }
 
 func BenchmarkSmoothWeightedRRLoadBalancer_100(b *testing.B) {
@@ -617,4 +680,32 @@ func BenchmarkSmoothWeightedRRLoadBalancer_1000(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		l.ChooseHost(nil)
 	}
+}
+
+func BenchmarkSmoothWeightedRRLoadBalancer_1000_Parallel(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	var hosts []types.Host
+	for i := 1; i <= 1000; i++ {
+		hosts = append(hosts, NewHost(newHostV2("127.0."+strconv.Itoa(i/250)+"."+strconv.Itoa(i%250), "test"+strconv.Itoa(i), 1, nil), nil))
+	}
+
+	hs := hostSet{
+		hosts:        hosts,
+		healthyHosts: hosts,
+	}
+
+	hostset := []types.HostSet{&hs}
+
+	prioritySet := prioritySet{
+		hostSets: hostset,
+	}
+
+	l := newSmoothWeightedRRLoadBalancer(&prioritySet)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			l.ChooseHost(nil)
+		}
+	})
 }
