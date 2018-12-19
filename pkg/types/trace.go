@@ -39,4 +39,6 @@ type Span interface {
 
 type Tracer interface {
 	Start(startTime time.Time) Span
+
+	PrintSpan(span Span)
 }
