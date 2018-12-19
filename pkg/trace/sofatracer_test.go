@@ -18,6 +18,7 @@
 package trace
 
 import (
+	"runtime"
 	"testing"
 	"time"
 )
@@ -52,4 +53,60 @@ func TestSofaTracerPrintEgressSpan(t *testing.T) {
 	}
 	span.tags[SPAN_TYPE] = "egress"
 	Tracer().PrintSpan(span)
+}
+
+func BenchmarkSofaTracer(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	for n := 0; n < b.N; n++ {
+		span := &SofaTracerSpan{
+			tags: make(map[string]string, 32),
+		}
+		span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
+		span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
+		span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")
+		span.SetTag(METHOD_NAME, "BenchmarkSofaTracer")
+		span.SetTag(PROTOCOL, "BenchmarkSofaTracer")
+		span.SetTag(RESULT_STATUS, "BenchmarkSofaTracer")
+		span.SetTag(REQUEST_SIZE, "BenchmarkSofaTracer")
+		span.SetTag(RESPONSE_SIZE, "BenchmarkSofaTracer")
+		span.SetTag(UPSTREAM_HOST_ADDRESS, "BenchmarkSofaTracer")
+		span.SetTag(DOWNSTEAM_HOST_ADDRESS, "BenchmarkSofaTracer")
+		span.SetTag(APP_NAME, "BenchmarkSofaTracer")
+		span.SetTag(SPAN_TYPE, "BenchmarkSofaTracer")
+		span.SetTag(BAGGAGE_DATA, "BenchmarkSofaTracer")
+		span.SetTag(REQUEST_URL, "BenchmarkSofaTracer")
+
+		span.SetTag(SPAN_TYPE, "ingress")
+
+		Tracer().PrintSpan(span)
+	}
+}
+
+func BenchmarkSofaTracerParallel(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			span := &SofaTracerSpan{
+				tags: make(map[string]string, 32),
+			}
+			span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
+			span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
+			span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")
+			span.SetTag(METHOD_NAME, "BenchmarkSofaTracer")
+			span.SetTag(PROTOCOL, "BenchmarkSofaTracer")
+			span.SetTag(RESULT_STATUS, "BenchmarkSofaTracer")
+			span.SetTag(REQUEST_SIZE, "BenchmarkSofaTracer")
+			span.SetTag(RESPONSE_SIZE, "BenchmarkSofaTracer")
+			span.SetTag(UPSTREAM_HOST_ADDRESS, "BenchmarkSofaTracer")
+			span.SetTag(DOWNSTEAM_HOST_ADDRESS, "BenchmarkSofaTracer")
+			span.SetTag(APP_NAME, "BenchmarkSofaTracer")
+			span.SetTag(SPAN_TYPE, "BenchmarkSofaTracer")
+			span.SetTag(BAGGAGE_DATA, "BenchmarkSofaTracer")
+			span.SetTag(REQUEST_URL, "BenchmarkSofaTracer")
+
+			span.SetTag(SPAN_TYPE, "ingress")
+
+			Tracer().PrintSpan(span)
+		}
+	})
 }

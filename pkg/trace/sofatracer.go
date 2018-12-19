@@ -151,7 +151,7 @@ func (tracer *SofaTracer) Start(startTime time.Time) types.Span {
 	span := &SofaTracerSpan{
 		tracer:    tracer,
 		startTime: startTime,
-		tags:      map[string]string{},
+		tags:      make(map[string]string, 32),
 	}
 
 	return span
@@ -171,7 +171,7 @@ func (tracer *SofaTracer) PrintSpan(spanP types.Span) {
 	switch spanP.(type) {
 	case *SofaTracerSpan:
 		span := spanP.(*SofaTracerSpan)
-		printData := make(map[string]string)
+		printData := make(map[string]string, 32)
 		printData["timestamp"] = span.endTime.Format("2006-01-02 15:04:05.999")
 		printData["traceId"] = span.tags[TRACE_ID]
 		printData["spanId"] = span.tags[SPAN_ID]
