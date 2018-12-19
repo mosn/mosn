@@ -21,12 +21,10 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/json-iterator/go"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
@@ -36,7 +34,7 @@ type SofaTracerSpan struct {
 	tracer        *SofaTracer
 	startTime     time.Time
 	endTime       time.Time
-	tags          map[string]string
+	tags          [TRACE_END]string
 	traceId       string
 	spanId        string
 	parentSpanId  string
@@ -59,7 +57,7 @@ func (s *SofaTracerSpan) SetOperation(operation string) {
 	s.operationName = operation
 }
 
-func (s *SofaTracerSpan) SetTag(key string, value string) {
+func (s *SofaTracerSpan) SetTag(key int, value string) {
 	if key == TRACE_ID {
 		s.traceId = value
 	} else if key == SPAN_ID {
@@ -142,71 +140,66 @@ func (tracer *SofaTracer) Start(startTime time.Time) types.Span {
 	span := &SofaTracerSpan{
 		tracer:    tracer,
 		startTime: startTime,
-		tags:      map[string]string{},
 	}
 
 	return span
 }
 
 func (tracer *SofaTracer) printSpan(span *SofaTracerSpan) error {
-	printData := make(map[string]string)
-	printData["timestamp"] = span.endTime.Format("2006-01-02 15:04:05.999")
-	printData["traceId"] = span.tags[TRACE_ID]
-	printData["spanId"] = span.tags[SPAN_ID]
-	printData["service"] = span.tags[SERVICE_NAME]
-	printData["method"] = span.tags[METHOD_NAME]
-	printData["protocol"] = span.tags[PROTOCOL]
-	printData["resp.size"] = span.tags[RESPONSE_SIZE]
-	printData["req.size"] = span.tags[REQUEST_SIZE]
-	printData["baggage"] = span.tags[BAGGAGE_DATA]
+	printData := buffer.NewIoBuffer(512)
+
+	printData.WriteString("timestamp,")
+	printData.WriteString(span.endTime.Format("2006-01-02 15:04:05.999"))
+	printData.WriteString("traceId,")
+	printData.WriteString(span.tags[TRACE_ID])
+	printData.WriteString("spanId,")
+	printData.WriteString(span.tags[SPAN_ID])
+	printData.WriteString("service,")
+	printData.WriteString(span.tags[SERVICE_NAME])
+	printData.WriteString("method,")
+	printData.WriteString(span.tags[METHOD_NAME])
+	printData.WriteString("Protocol,")
+	printData.WriteString(span.tags[PROTOCOL])
+	printData.WriteString("resp.size,")
+	printData.WriteString(span.tags[RESPONSE_SIZE])
+	printData.WriteString("req.size,")
+	printData.WriteString(span.tags[REQUEST_SIZE])
+	printData.WriteString("baggage,")
+	printData.WriteString(span.tags[BAGGAGE_DATA])
 
 	// Set status code. TODO can not get the result code if server throw an exception.
 	statusCode, _ := strconv.Atoi(span.tags[RESULT_STATUS])
 	if statusCode == types.SuccessCode {
-		printData["result.code"] = "00"
+		printData.WriteString("result.code,")
+		printData.WriteString("00")
 	} else if statusCode == types.TimeoutExceptionCode {
-		printData["result.code"] = "03"
+		printData.WriteString("result.code,")
+		printData.WriteString("00")
 	} else if statusCode == types.RouterUnavailableCode || statusCode == types.NoHealthUpstreamCode {
-		printData["result.code"] = "04"
+		printData.WriteString("result.code,")
+		printData.WriteString("00")
 	} else {
-		printData["result.code"] = "02"
-	}
+		printData.WriteString("result.code,")
+		printData.WriteString("00")	}
 
 	if span.tags[SPAN_TYPE] == "ingress" {
-		printData["span.kind"] = "server"
-		printData["remote.ip"] = span.tags[DOWNSTEAM_HOST_ADDRESS]
-		printData["remote.app"] = span.tags[APP_NAME]
-		printData["local.app"] = "TODO" // TODO
+		printData.WriteString("span.kind,")
+		printData.WriteString("server")
+		printData.WriteString("remote.ip,")
+		printData.WriteString(span.tags[DOWNSTEAM_HOST_ADDRESS])
+		printData.WriteString("remote.app,")
+		printData.WriteString(span.tags[APP_NAME])
+		printData.WriteString("local.app,")
+		printData.WriteString("TODO")
 		// The time server(upstream) takes to process the RPC
 		// server.duration = server.pool.wait.time + biz.impl.time + resp.serialize.time + req.deserialize.time
-		printData["server.duration"] = strconv.FormatInt(span.endTime.Sub(span.startTime).Nanoseconds()/1000000, 10)
-		result, _ := jsoniter.MarshalToString(printData)
-
-		buf := buffer.NewIoBuffer(len(result))
-		buf.WriteString(result)
-		buf.WriteString("\n")
-		return tracer.ingressLogger.Print(buf, true)
+		printData.WriteString("server.duratio,n")
+		printData.WriteString(strconv.FormatInt(span.endTime.Sub(span.startTime).Nanoseconds()/1000000, 10))
+		printData.WriteString("\n")
+		return tracer.ingressLogger.Print(printData, true)
 	}
 
 	if span.tags[SPAN_TYPE] == "egress" {
-		printData["span.kind"] = "client"
-		printData["invoke.type"] = "sync" // TODO
-		printData["router.record"] = ""   // TODO
-		printData["remote.ip"] = span.tags[UPSTREAM_HOST_ADDRESS]
-		downStreamHostAddress := strings.Split(span.tags[DOWNSTEAM_HOST_ADDRESS], ":")
-		if len(downStreamHostAddress) > 0 {
-			printData["local.client.ip"] = strings.Split(span.tags[DOWNSTEAM_HOST_ADDRESS], ":")[0]
-		}
-		if len(downStreamHostAddress) > 1 {
-			printData["local.client.port"] = strings.Split(span.tags[DOWNSTEAM_HOST_ADDRESS], ":")[1]
-		}
-		printData["client.elapse.time"] = strconv.FormatInt(span.endTime.Sub(span.startTime).Nanoseconds()/1000000, 10)
-		result, _ := jsoniter.MarshalToString(printData)
-
-		buf := buffer.NewIoBuffer(len(result))
-		buf.WriteString(result)
-		buf.WriteString("\n")
-		return tracer.egressLogger.Print(buf, true)
 	}
 
 	return nil

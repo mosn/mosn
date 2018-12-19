@@ -28,7 +28,7 @@ type Span interface {
 
 	SetOperation(operation string)
 
-	SetTag(key string, value string)
+	SetTag(key int, value string)
 
 	FinishSpan()
 
