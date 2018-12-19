@@ -18,12 +18,13 @@
 package rbac
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/stats"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 /*
  Metric:
+	// TODO: record the listener name in filter factory phase, like: filter.<listener_name>.rbac.engine
 	"filter.rbac.engine": {
 		"allowed": Counter, 		  // total allowed count in engine
 		"denied": Counter, 			  // total denied count in engine
@@ -42,22 +43,20 @@ import (
 	}
  */
 
-const FilterMetricsType = "filter"
 const EngineMetricsNamespace = "rbac.engine"
 const ShadowEngineMetricsNamespace = "rbac.shadow_engine"
 const AllowedMetricsNamespace = "allowed"
 const DeniedMetricsNamespace = "denied"
 
-type RbacStatus struct {
-	RawConfig           *v2.RBAC
-	EngineMetrics       *stats.Stats
-	ShadowEngineMetrics *stats.Stats
+type rbacStatus struct {
+	EngineMetrics       types.Metrics
+	ShadowEngineMetrics types.Metrics
 }
 
-func NewRbacStatus(rawConfig *v2.RBAC) *RbacStatus {
-	return &RbacStatus{
-		RawConfig:           rawConfig,
-		EngineMetrics:       stats.NewStats(FilterMetricsType, EngineMetricsNamespace),
-		ShadowEngineMetrics: stats.NewStats(FilterMetricsType, ShadowEngineMetricsNamespace),
+func NewRbacStatus() *rbacStatus {
+	// TODO: stats package will be changed
+	return &rbacStatus{
+		EngineMetrics:       stats.NewFilterStats(EngineMetricsNamespace),
+		ShadowEngineMetrics: stats.NewFilterStats(ShadowEngineMetricsNamespace),
 	}
 }

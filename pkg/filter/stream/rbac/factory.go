@@ -31,15 +31,16 @@ func init() {
 	filter.RegisterStream(v2.RBACFilterType, CreateRbacFilterFactory)
 }
 
-// FilterConfigFactory is an implement of types.StreamFilterChainFactory
-type FilterConfigFactory struct {
-	Status       *RbacStatus
+// filterConfigFactory is an implement of types.StreamFilterChainFactory
+type filterConfigFactory struct {
+	Status       *rbacStatus
+	Config       *v2.RBAC
 	Engine       *common.RoleBasedAccessControlEngine
 	ShadowEngine *common.RoleBasedAccessControlEngine
 }
 
 // CreateFilterChain will be invoked in echo request in proxy.NewStreamDetect function if filter has been injected
-func (factory *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+func (factory *filterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	log.DefaultLogger.Debugf("create a new rbac filter")
 	filter := NewFilter(context, factory)
 	callbacks.AddStreamReceiverFilter(filter)
@@ -49,7 +50,7 @@ func (factory *FilterConfigFactory) CreateFilterChain(context context.Context, c
 // The filter injection will be skipped if function return is (nil, error)
 func CreateRbacFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
 	log.DefaultLogger.Debugf("create rbac filter factory")
-	sfcf := new(FilterConfigFactory)
+	sfcf := new(filterConfigFactory)
 
 	// parse rabc filter conf from mosn conf
 	filterConfig, err := common.ParseRbacFilterConfig(conf)
@@ -59,7 +60,7 @@ func CreateRbacFilterFactory(conf map[string]interface{}) (types.StreamFilterCha
 	}
 
 	// build rnac status
-	sfcf.Status = NewRbacStatus(filterConfig)
+	sfcf.Status = NewRbacStatus()
 
 	// build rbac engine
 	if engine, err := common.NewRoleBasedAccessControlEngine(filterConfig.GetRules()); err != nil {

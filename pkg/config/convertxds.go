@@ -318,6 +318,7 @@ func convertStreamFilter(name string, s *types.Struct) v2.Filter {
 		filter.Type = v2.RBACFilterType
 		filter.Config, err = convertRbacConfig(s)
 		if err != nil {
+			// TODO: if rbac config is in PerRoute format, use empty config to make sure rbac filter will be initialized.
 			log.DefaultLogger.Errorf("convertRbacConfig error: %v", err)
 		}
 	default:

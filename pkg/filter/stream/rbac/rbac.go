@@ -19,24 +19,31 @@ package rbac
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/rbac/common"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/stats"
+	"github.com/alipay/sofa-mosn/pkg/protocol/http"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
+)
+
+// supported protocols
+const (
+	httpProtocol    = 1
+	sofaRpcProtocol = 2
 )
 
 // rbacFilter is an implement of types.StreamReceiverFilter
 type rbacFilter struct {
 	context      context.Context
 	cb           types.StreamReceiverFilterCallbacks
-	status       *RbacStatus
+	status       *rbacStatus
+	protocol     int
 	engine       *common.RoleBasedAccessControlEngine
 	shadowEngine *common.RoleBasedAccessControlEngine
 }
 
-func NewFilter(context context.Context, filterConfigFactory *FilterConfigFactory) types.StreamReceiverFilter {
+func NewFilter(context context.Context, filterConfigFactory *filterConfigFactory) types.StreamReceiverFilter {
 	return &rbacFilter{
 		context:      context,
 		status:       filterConfigFactory.Status,
@@ -59,15 +66,16 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 		}
 	}()
 
+	// TODO: protocol check
+	//if !f.IsSupported(headers) {
+	//	return types.StreamHeadersFilterContinue
+	//}
+
 	// print http header
 	headers.Range(func(key, value string) bool {
 		log.DefaultLogger.Debugf("Key: %s, Value: %s\n", key, value)
 		return true
 	})
-
-	// print RBAC configuration
-	rbacConf, _ := json.Marshal(f.status.RawConfig)
-	log.DefaultLogger.Debugf(string(rbacConf))
 
 	// rbac shadow engine handle
 	allowed, matchPolicyName := f.shadowEngine.Allowed(f.cb, headers)
@@ -95,11 +103,9 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 		}
 	}
 	if !allowed {
+		f.Intercept(headers)
 		return types.StreamHeadersFilterStop
 	}
-
-	log.DefaultLogger.Debugf("Metrics: %v", stats.GetMetricsData(FilterMetricsType)[EngineMetricsNamespace])
-	log.DefaultLogger.Debugf("Metrics: %v", stats.GetMetricsData(FilterMetricsType)[ShadowEngineMetricsNamespace])
 
 	return types.StreamHeadersFilterContinue
 }
@@ -119,3 +125,22 @@ func (f *rbacFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCall
 }
 
 func (f *rbacFilter) OnDestroy() {}
+
+// TODO: make sure protocol inspection is correct
+func (f *rbacFilter) IsSupported(header types.HeaderMap) bool {
+	switch header.(type) {
+	case http.RequestHeader:
+		f.protocol = httpProtocol
+		return true
+	case sofarpc.SofaRpcCmd:
+		f.protocol = sofaRpcProtocol
+		return true
+	default:
+		return false
+	}
+}
+
+func (f *rbacFilter) Intercept(headers types.HeaderMap) {
+	f.cb.SendHijackReply(types.PermissionDeniedCode, headers)
+	return
+}

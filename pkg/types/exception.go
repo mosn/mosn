@@ -59,6 +59,7 @@ const (
 	UnknownCode           int = 2
 	DeserialExceptionCode int = 3
 	SuccessCode           int = 200
+	PermissionDeniedCode  int = 403
 	RouterUnavailableCode int = 404
 	NoHealthUpstreamCode  int = 502
 	UpstreamOverFlowCode  int = 503
