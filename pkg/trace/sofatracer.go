@@ -39,7 +39,7 @@ type SofaTracerSpan struct {
 	tracer        *SofaTracer
 	startTime     time.Time
 	endTime       time.Time
-	tags          map[string]string
+	tags          [TRACE_END]string
 	traceId       string
 	spanId        string
 	parentSpanId  string
@@ -62,7 +62,7 @@ func (s *SofaTracerSpan) SetOperation(operation string) {
 	s.operationName = operation
 }
 
-func (s *SofaTracerSpan) SetTag(key string, value string) {
+func (s *SofaTracerSpan) SetTag(key uint64, value string) {
 	if key == TRACE_ID {
 		s.traceId = value
 	} else if key == SPAN_ID {
@@ -76,9 +76,8 @@ func (s *SofaTracerSpan) SetTag(key string, value string) {
 
 func (s *SofaTracerSpan) FinishSpan() {
 	s.endTime = time.Now()
-	select {
-	case s.tracer.spanChan <- s:
-	default:
+	err := Tracer().PrintSpan(s)
+	if err == types.ErrChanFull {
 		log.DefaultLogger.Warnf("Channel is full, discard span, trace id is " + s.traceId + ", span id is " + s.spanId)
 	}
 }
@@ -111,15 +110,12 @@ func (s *SofaTracerSpan) EndTime() time.Time {
 var PrintLog = true
 
 type SofaTracer struct {
-	spanChan      chan *SofaTracerSpan
 	ingressLogger log.Logger
 	egressLogger  log.Logger
 }
 
 func newSofaTracer() types.Tracer {
 	instance := &SofaTracer{}
-	instance.spanChan = make(chan *SofaTracerSpan, 1000)
-
 	if PrintLog {
 		userHome := os.Getenv("HOME")
 		var err error
@@ -133,15 +129,6 @@ func newSofaTracer() types.Tracer {
 		if err != nil {
 			// TODO when error is not nil
 		}
-
-		// Do not print any timestamp prefix
-
-		go func() {
-			for {
-				span := <-instance.spanChan
-				instance.PrintSpan(span)
-			}
-		}()
 	}
 
 	return instance
@@ -151,22 +138,12 @@ func (tracer *SofaTracer) Start(startTime time.Time) types.Span {
 	span := &SofaTracerSpan{
 		tracer:    tracer,
 		startTime: startTime,
-		tags:      make(map[string]string, 32),
 	}
 
 	return span
 }
 
-func (tracer *SofaTracer) GetSpan() types.Span {
-	select {
-	case span := <-tracer.spanChan:
-		return span
-	default:
-		return nil
-	}
-}
-
-func (tracer *SofaTracer) PrintSpan(spanP types.Span) {
+func (tracer *SofaTracer) PrintSpan(spanP types.Span) error {
 
 	switch spanP.(type) {
 	case *SofaTracerSpan:
@@ -239,7 +216,9 @@ func (tracer *SofaTracer) PrintSpan(spanP types.Span) {
 			printData.WriteString("\"server.duration\":")
 			printData.WriteString("\"" + duration + "\"")
 			printData.WriteString("}")
-			tracer.egressLogger.Println(printData)
+			printData.WriteString("\n")
+
+			return tracer.egressLogger.Print(printData, true)
 		}
 
 		if span.tags[SPAN_TYPE] == "egress" {
@@ -274,7 +253,10 @@ func (tracer *SofaTracer) PrintSpan(spanP types.Span) {
 			printData.WriteString("\"client.elapse.time\":")
 			printData.WriteString("\"" + elapse + "\"")
 			printData.WriteString("}")
-			tracer.egressLogger.Println(printData)
+			printData.WriteString("\n")
+			return tracer.egressLogger.Print(printData, true)
 		}
 	}
+	return nil
+
 }

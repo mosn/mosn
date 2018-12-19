@@ -39,18 +39,14 @@ func TestSofaTracerPrintSpan(t *testing.T) {
 }
 
 func TestSofaTracerPrintIngressSpan(t *testing.T) {
-	span := &SofaTracerSpan{
-		tags: map[string]string{},
-	}
+	span := &SofaTracerSpan{}
 	span.tags[DOWNSTEAM_HOST_ADDRESS] = "127.0.0.1:43"
 	span.tags[SPAN_TYPE] = "ingress"
 	Tracer().PrintSpan(span)
 }
 
 func TestSofaTracerPrintEgressSpan(t *testing.T) {
-	span := &SofaTracerSpan{
-		tags: map[string]string{},
-	}
+	span := &SofaTracerSpan{}
 	span.tags[SPAN_TYPE] = "egress"
 	Tracer().PrintSpan(span)
 }
@@ -58,9 +54,7 @@ func TestSofaTracerPrintEgressSpan(t *testing.T) {
 func BenchmarkSofaTracer(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	for n := 0; n < b.N; n++ {
-		span := &SofaTracerSpan{
-			tags: make(map[string]string, 32),
-		}
+		span := &SofaTracerSpan{}
 		span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
 		span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
 		span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")
@@ -86,9 +80,7 @@ func BenchmarkSofaTracerParallel(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			span := &SofaTracerSpan{
-				tags: make(map[string]string, 32),
-			}
+			span := &SofaTracerSpan{}
 			span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
 			span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
 			span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")
