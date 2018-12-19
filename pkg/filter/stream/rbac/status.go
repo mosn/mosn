@@ -48,13 +48,15 @@ const ShadowEngineMetricsNamespace = "rbac.shadow_engine"
 const AllowedMetricsNamespace = "allowed"
 const DeniedMetricsNamespace = "denied"
 
-type rbacStatus struct {
+// RbacStatus contains the metric logs for rbac filter
+type RbacStatus struct {
 	EngineMetrics       types.Metrics
 	ShadowEngineMetrics types.Metrics
 }
 
-func NewRbacStatus() *rbacStatus {
-	return &rbacStatus{
+// NewRbacStatus return the instance of RbacStatus
+func NewRbacStatus() *RbacStatus {
+	return &RbacStatus{
 		EngineMetrics:       stats.NewFilterStats(EngineMetricsNamespace),
 		ShadowEngineMetrics: stats.NewFilterStats(ShadowEngineMetricsNamespace),
 	}

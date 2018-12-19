@@ -23,6 +23,7 @@ import (
 
 const FilterType = "filter"
 
+// NewFilterStats returns a stats used by filters
 func NewFilterStats(namespace string) types.Metrics {
 	return NewStats(FilterType, namespace)
 }

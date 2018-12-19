@@ -30,19 +30,20 @@ import (
 // supported protocols
 const (
 	httpProtocol    = 1
-	sofaRpcProtocol = 2
+	sofaRPCProtocol = 2
 )
 
 // rbacFilter is an implement of types.StreamReceiverFilter
 type rbacFilter struct {
 	context      context.Context
 	cb           types.StreamReceiverFilterCallbacks
-	status       *rbacStatus
+	status       *RbacStatus
 	protocol     int
 	engine       *common.RoleBasedAccessControlEngine
 	shadowEngine *common.RoleBasedAccessControlEngine
 }
 
+// NewFilter return the instance of rbac filter for each request
 func NewFilter(context context.Context, filterConfigFactory *filterConfigFactory) types.StreamReceiverFilter {
 	return &rbacFilter{
 		context:      context,
@@ -127,7 +128,7 @@ func (f *rbacFilter) IsSupported(header types.HeaderMap) bool {
 		f.protocol = httpProtocol
 		return true
 	case sofarpc.SofaRpcCmd:
-		f.protocol = sofaRpcProtocol
+		f.protocol = sofaRPCProtocol
 		return true
 	default:
 		return false

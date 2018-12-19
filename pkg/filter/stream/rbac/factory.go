@@ -33,7 +33,7 @@ func init() {
 
 // filterConfigFactory is an implement of types.StreamFilterChainFactory
 type filterConfigFactory struct {
-	Status       *rbacStatus
+	Status       *RbacStatus
 	Config       *v2.RBAC
 	Engine       *common.RoleBasedAccessControlEngine
 	ShadowEngine *common.RoleBasedAccessControlEngine
@@ -63,20 +63,20 @@ func CreateRbacFilterFactory(conf map[string]interface{}) (types.StreamFilterCha
 	sfcf.Status = NewRbacStatus()
 
 	// build rbac engine
-	if engine, err := common.NewRoleBasedAccessControlEngine(filterConfig.GetRules()); err != nil {
+	engine, err := common.NewRoleBasedAccessControlEngine(filterConfig.GetRules())
+	if err != nil {
 		log.DefaultLogger.Errorf("failed to build rbac engine, rbac filter will not be registered, err: %v", err)
 		return nil, err
-	} else {
-		sfcf.Engine = engine
 	}
+	sfcf.Engine = engine
 
 	// build rbac shadow engine
-	if shadowEngine, err := common.NewRoleBasedAccessControlEngine(filterConfig.GetShadowRules()); err != nil {
+	shadowEngine, err := common.NewRoleBasedAccessControlEngine(filterConfig.GetShadowRules())
+	if err != nil {
 		log.DefaultLogger.Errorf("failed to build rbac shadow engine, rbac filter will not be registered, err: %v", err)
 		return nil, err
-	} else {
-		sfcf.ShadowEngine = shadowEngine
 	}
+	sfcf.ShadowEngine = shadowEngine
 
 	log.DefaultLogger.Debugf("rbac engine initialized, %v policies in engine, %v policies in shadow engine",
 		sfcf.Engine.GetPoliciesSize(), sfcf.ShadowEngine.GetPoliciesSize())
