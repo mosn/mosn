@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 // -------- SofaTracerSpan --------
@@ -72,9 +73,8 @@ func (s *SofaTracerSpan) SetTag(key string, value string) {
 
 func (s *SofaTracerSpan) FinishSpan() {
 	s.endTime = time.Now()
-	select {
-	case s.tracer.spanChan <- s:
-	default:
+	err := SofaTracerInstance.printSpan(s)
+	if err == types.ErrChanFull {
 		log.DefaultLogger.Warnf("Channel is full, discard span, trace id is " + s.traceId + ", span id is " + s.spanId)
 	}
 }
@@ -119,7 +119,6 @@ type SofaTracer struct {
 
 func newSofaTracer() *SofaTracer {
 	instance := &SofaTracer{}
-	instance.spanChan = make(chan *SofaTracerSpan, 1000)
 
 	if PrintLog {
 		userHome := os.Getenv("HOME")
@@ -134,15 +133,6 @@ func newSofaTracer() *SofaTracer {
 		if err != nil {
 			// TODO when error is not nil
 		}
-
-		// Do not print any timestamp prefix
-
-		go func() {
-			for {
-				span := <-instance.spanChan
-				instance.printSpan(span)
-			}
-		}()
 	}
 
 	return instance
@@ -158,16 +148,7 @@ func (tracer *SofaTracer) Start(startTime time.Time) types.Span {
 	return span
 }
 
-func (tracer *SofaTracer) GetSpan() types.Span {
-	select {
-	case span := <-tracer.spanChan:
-		return span
-	default:
-		return nil
-	}
-}
-
-func (tracer *SofaTracer) printSpan(span *SofaTracerSpan) {
+func (tracer *SofaTracer) printSpan(span *SofaTracerSpan) error {
 	printData := make(map[string]string)
 	printData["timestamp"] = span.endTime.Format("2006-01-02 15:04:05.999")
 	printData["traceId"] = span.tags[TRACE_ID]
@@ -200,7 +181,11 @@ func (tracer *SofaTracer) printSpan(span *SofaTracerSpan) {
 		// server.duration = server.pool.wait.time + biz.impl.time + resp.serialize.time + req.deserialize.time
 		printData["server.duration"] = strconv.FormatInt(span.endTime.Sub(span.startTime).Nanoseconds()/1000000, 10)
 		result, _ := jsoniter.MarshalToString(printData)
-		tracer.ingressLogger.Println(result)
+
+		buf := buffer.NewIoBuffer(len(result))
+		buf.WriteString(result)
+		buf.WriteString("\n")
+		return tracer.ingressLogger.Print(buf, true)
 	}
 
 	if span.tags[SPAN_TYPE] == "egress" {
@@ -217,6 +202,12 @@ func (tracer *SofaTracer) printSpan(span *SofaTracerSpan) {
 		}
 		printData["client.elapse.time"] = strconv.FormatInt(span.endTime.Sub(span.startTime).Nanoseconds()/1000000, 10)
 		result, _ := jsoniter.MarshalToString(printData)
-		tracer.egressLogger.Println(result)
+
+		buf := buffer.NewIoBuffer(len(result))
+		buf.WriteString(result)
+		buf.WriteString("\n")
+		return tracer.egressLogger.Print(buf, true)
 	}
+
+	return nil
 }
