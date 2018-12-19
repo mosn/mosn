@@ -235,18 +235,19 @@ func NewPrincipalAuthenticated(principal *v2alpha.Principal_Authenticated_) (*Pr
 	  }
 	  return Utility::getSubjectFromCertificate(*cert);
 	}
- */
+*/
 func (principal *PrincipalAuthenticated) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
 	conn := cb.Connection().RawConn()
 	if tlsConn, ok := conn.(*mtls.TLSConn); ok {
 		cert := tlsConn.ConnectionState().PeerCertificates[0]
 
+		// TODO: x509.Certificate.URIs is supported after go1.10
 		// SAN URIs check
-		for _, uri := range cert.URIs {
-			if principal.Name == uri.String() {
-				return true
-			}
-		}
+		//for _, uri := range cert.URIs {
+		//	if principal.Name == uri.String() {
+		//		return true
+		//	}
+		//}
 
 		// Subject Common Name check
 		if principal.Name == cert.Subject.CommonName {
