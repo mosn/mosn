@@ -214,7 +214,8 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 }
 
 func (cm *clusterManager) updateCluster(clusterConf v2.Cluster, pcluster *primaryCluster, addedViaAPI bool) bool {
-	if reflect.DeepEqual(clusterConf, pcluster.configUsed) {
+	// diff cluster
+	if reflect.DeepEqual(clusterConf, *(pcluster.configUsed)) {
 		log.DefaultLogger.Debugf("update cluster but get duplicate configure")
 		return true
 	}
