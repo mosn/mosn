@@ -251,7 +251,7 @@ func formatToFormatter(format string) []types.AccessLogFormatter {
 // StartTimeGetter
 // get request's arriving time
 func StartTimeGetter(info types.RequestInfo) string {
-	return logTime(info.StartTime(), true)
+	return info.StartTime().Format("2006/01/02 15:04:05.999")
 }
 
 // ReceivedDurationGetter

@@ -247,7 +247,7 @@ func (l *logger) Println(args ...interface{}) {
 }
 
 func (l *logger) Printf(format string, args ...interface{}) {
-	s := fmt.Sprintf(logTime(time.Now(), false)+" "+format, args...)
+	s := fmt.Sprintf(logTime()+" "+format, args...)
 	buf := buffer.GetIoBuffer(len(s))
 	buf.WriteString(s)
 	if len(s) == 0 || s[len(s)-1] != '\n' {
@@ -287,7 +287,7 @@ func (l *logger) Tracef(format string, args ...interface{}) {
 }
 
 func (l *logger) Fatalf(format string, args ...interface{}) {
-	s := fmt.Sprintf(logTime(time.Now(), false)+" "+FatalPre+format, args...)
+	s := fmt.Sprintf(logTime()+" "+FatalPre+format, args...)
 	buf := buffer.GetIoBuffer(len(s))
 	buf.WriteString(s)
 	buf.WriteTo(l.writer)
@@ -297,7 +297,7 @@ func (l *logger) Fatalf(format string, args ...interface{}) {
 func (l *logger) Fatal(args ...interface{}) {
 	s := fmt.Sprint(args...)
 	buf := buffer.GetIoBuffer(len(s))
-	buf.WriteString(logTime(time.Now(), false) + " " + FatalPre)
+	buf.WriteString(logTime() + " " + FatalPre)
 	buf.WriteString(s)
 	if len(s) == 0 || s[len(s)-1] != '\n' {
 		buf.WriteString("\n")
@@ -309,7 +309,7 @@ func (l *logger) Fatal(args ...interface{}) {
 func (l *logger) Fatalln(args ...interface{}) {
 	s := fmt.Sprintln(args...)
 	buf := buffer.GetIoBuffer(len(s))
-	buf.WriteString(logTime(time.Now(), false) + " " + FatalPre)
+	buf.WriteString(logTime() + " " + FatalPre)
 	buf.WriteString(s)
 	if len(s) == 0 || s[len(s)-1] != '\n' {
 		buf.WriteString("\n")
@@ -398,9 +398,10 @@ func CloseAll() error {
 	return nil
 }
 
-func logTime(t time.Time, ms bool) string {
+func logTime() string {
 	var s string
-	now := time.Now().Unix()
+	t := time.Now()
+	now := t.Unix()
 	value := lastTime.Load()
 	if value != nil {
 		last := value.(*timeCache)
@@ -409,35 +410,10 @@ func logTime(t time.Time, ms bool) string {
 		}
 	}
 	if s == "" {
-		b := make([]byte, 0, 36)
-		buf := &b
-		year, month, day := t.Date()
-		itoa(buf, year, 4)
-		*buf = append(*buf, '/')
-		itoa(buf, int(month), 2)
-		*buf = append(*buf, '/')
-		itoa(buf, day, 2)
-		*buf = append(*buf, ' ')
-		hour, min, sec := t.Clock()
-		itoa(buf, hour, 2)
-		*buf = append(*buf, ':')
-		itoa(buf, min, 2)
-		*buf = append(*buf, ':')
-		itoa(buf, sec, 2)
-		s = string(*buf)
-
+		s = t.Format("2006/01/02 15:04:05")
 		lastTime.Store(&timeCache{now, s})
 	}
-
-	if ms {
-		b := make([]byte, 0, 4)
-		buf := &b
-		*buf = append(*buf, '.')
-		itoa(buf, t.Nanosecond()/1e6, 3)
-		return s + string(*buf)
-	} else {
-		return s
-	}
+	return s
 }
 
 // Cheap integer to fixed-width decimal ASCII. Give a negative width to avoid zero-padding.
