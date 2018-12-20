@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "action": "DENY",
+    "policies": {
+      "or-match": {
+        "permissions": [
+          {
+            "any": true
+          }
+        ],
+        "principals": [
+          {
+            "sourceIp": {
+              "addressPrefix": "1.2.3.4",
+              "prefixLen": 32
+            }
+          }
+        ]
+      }
+    }
+  },
+  "shadowRules": {}
+}

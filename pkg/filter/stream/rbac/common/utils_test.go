@@ -35,4 +35,24 @@ func TestParseAddr(t *testing.T) {
 	if !bytes.Equal(net.ParseIP("127.0.0.1"), ip) {
 		t.Error("failed to parse ip address")
 	}
+
+	_, _, err = parseAddr("1.2.3.4")
+	if err == nil {
+		t.Error("TestParseAddr failed")
+	}
+
+	_, _, err = parseAddr("1.2.3.400:80")
+	if err == nil {
+		t.Error("TestParseAddr failed")
+	}
+
+	_, _, err = parseAddr("1.2.3.4:aa")
+	if err == nil {
+		t.Error("TestParseAddr failed")
+	}
+
+	_, _, err = parseAddr("1.2.3.4:99999")
+	if err == nil {
+		t.Error("TestParseAddr failed")
+	}
 }

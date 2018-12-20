@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "action": "ALLOW",
+    "policies": {
+      "or-match": {
+        "permissions": [
+          {
+            "destinationPort": 8080
+          }
+        ],
+        "principals": [
+          {
+            "any": true
+          }
+        ]
+      }
+    }
+  },
+  "shadowRules": {}
+}

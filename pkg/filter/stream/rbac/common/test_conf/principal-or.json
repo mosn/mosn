@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "action": "DENY",
+    "policies": {
+      "or-match": {
+        "permissions": [
+          {
+            "any": true
+          }
+        ],
+        "principals": [
+          {
+            "orIds": {
+              "ids": [
+                {
+                  "any": true
+                },
+                {
+                  "any": false
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "shadowRules": {}
+}

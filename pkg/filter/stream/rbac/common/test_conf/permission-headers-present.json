@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "action": "DENY",
+    "policies": {
+      "header-present-match": {
+        "permissions": [
+          {
+            "header": {
+              "name": "X-Custom-Header",
+              "presentMatch": true
+            }
+          }
+        ],
+        "principals": [
+          {
+            "any": true
+          }
+        ]
+      }
+    }
+  },
+  "shadowRules": {}
+}
