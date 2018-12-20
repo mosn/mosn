@@ -38,7 +38,7 @@ func TestBytesBufferPoolMediumBytes(t *testing.T) {
 	pool := newByteBufferPool()
 
 	for i := minShift; i < maxShift; i++ {
-		size := intRange(1<<uint(i), 1<<uint(i+1))
+		size := intRange((1<<uint(i))+1, 1<<uint(i+1))
 		bp := pool.take(size)
 
 		if cap(*bp) != 1<<uint(i+1) {
