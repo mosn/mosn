@@ -29,5 +29,5 @@ type Metrics interface {
 
 // MetricsSink flush metrics to backend storage
 type MetricsSink interface {
-	Flush(metrics metrics.Registry)
+	Flush(metrics []metrics.Registry)
 }

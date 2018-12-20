@@ -26,18 +26,23 @@ import (
 
 var defaultFlushInteval = time.Second
 
+// StartFlush flush all metrics into given sinks, scheduled with given interval
 func StartFlush(sinks []types.MetricsSink, interval time.Duration) {
 	if interval <= 0 {
 		interval = defaultFlushInteval
 	}
 
 	for _ = range time.Tick(interval) {
-		allRegs := stats.GetAllRegistries()
-		// flush each reg to all sinks
-		for _, reg := range allRegs {
-			for _, sink := range sinks {
-				sink.Flush(reg)
-			}
-		}
+		FlushOnce(sinks)
+	}
+}
+
+// FlushOnce flush all metrics into given sinks oneshot
+func FlushOnce(sinks []types.MetricsSink) {
+	allRegs := stats.GetAllRegistries()
+
+	// flush each reg to all sinks
+	for _, sink := range sinks {
+		sink.Flush(allRegs)
 	}
 }

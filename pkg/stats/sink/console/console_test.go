@@ -16,3 +16,84 @@
  */
 
 package console
+
+import (
+	"testing"
+	"github.com/alipay/sofa-mosn/pkg/stats"
+	"sync"
+	"time"
+	"bytes"
+)
+
+type testAction int
+
+const (
+	countInc        testAction = iota
+	countDec
+	gaugeUpdate
+	histogramUpdate
+)
+
+// test concurrently add statisic data
+// should get the right data from console
+func TestConsoleMetrics(t *testing.T) {
+	stats.ResetAll()
+	testCases := []struct {
+		typ         string
+		namespace   string
+		key         string
+		action      testAction
+		actionValue int64
+	}{
+		{"t1", "ns1", "k1", countInc, 1},
+		{"t1", "ns1", "k1", countDec, 1},
+		{"t1", "ns1", "k2", countInc, 1},
+		{"t1", "ns1", "k3", gaugeUpdate, 1},
+		{"t1", "ns1", "k4", histogramUpdate, 1},
+		{"t1", "ns1", "k4", histogramUpdate, 2},
+		{"t1", "ns1", "k4", histogramUpdate, 3},
+		{"t1", "ns1", "k4", histogramUpdate, 4},
+		{"t1", "ns2", "k1", countInc, 1},
+		{"t1", "ns2", "k2", countInc, 2},
+		{"t1", "ns2", "k3", gaugeUpdate, 3},
+		{"t1", "ns2", "k4", histogramUpdate, 2},
+		{"t2", "ns1", "k1", countInc, 1},
+	}
+	wg := sync.WaitGroup{}
+	for i := range testCases {
+		wg.Add(1)
+		go func(i int) {
+			time.Sleep(300 * time.Duration(i) * time.Millisecond)
+			tc := testCases[i]
+			s := stats.NewStats(tc.typ, tc.namespace)
+			switch tc.action {
+			case countInc:
+				s.Counter(tc.key).Inc(tc.actionValue)
+			case countDec:
+				s.Counter(tc.key).Dec(tc.actionValue)
+			case gaugeUpdate:
+				s.Gauge(tc.key).Update(tc.actionValue)
+			case histogramUpdate:
+				s.Histogram(tc.key).Update(tc.actionValue)
+			}
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	//init prom
+	buf := &bytes.Buffer{}
+	sink := NewConsoleSink(buf)
+	sink.Flush(stats.GetAllRegistries())
+
+	if buf.Len() <= 0 {
+		t.Errorf("no stats writed")
+	}
+
+	typs := stats.LisTypes()
+	if !(len(typs) == 2 &&
+		typs[0] == "t1" &&
+		typs[1] == "t2") {
+		t.Error("types record error")
+	}
+}

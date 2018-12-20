@@ -30,7 +30,7 @@ import (
 type testAction int
 
 const (
-	countInc testAction = iota
+	countInc        testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate
@@ -99,10 +99,7 @@ func TestPrometheusMetrics(t *testing.T) {
 			select {
 
 			case <-time.Tick(flushInteval):
-				allRegistry := stats.GetAllRegistries()
-				for _, reg := range allRegistry {
-					sink.Flush(reg)
-				}
+				sink.Flush(stats.GetAllRegistries())
 
 				resp, _ := tc.Get("http://127.0.0.1:8088/metrics")
 				ioutil.ReadAll(resp.Body)

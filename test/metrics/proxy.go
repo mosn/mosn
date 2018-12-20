@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"net/http"
 	"time"
@@ -10,12 +9,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	"github.com/alipay/sofa-mosn/pkg/stats"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
+	"github.com/alipay/sofa-mosn/pkg/stats/sink/console"
+	"github.com/alipay/sofa-mosn/pkg/stats"
 )
 
 func main() {
@@ -83,7 +83,5 @@ func (p *Proxy) DestroyConn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) Stats(w http.ResponseWriter, r *http.Request) {
-	alldata := stats.GetAllMetricsData()
-	b, _ := json.MarshalIndent(alldata, "", "\t")
-	w.Write(b)
+	console.NewConsoleSink(w).Flush(stats.GetAllRegistries())
 }

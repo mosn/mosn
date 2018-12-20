@@ -63,29 +63,31 @@ type PromSink struct {
 }
 
 // ~ MetricsSink
-func (sink *PromSink) Flush(registry metrics.Registry) {
-	registry.Each(func(name string, i interface{}) {
-		switch metric := i.(type) {
-		case metrics.Counter:
-			//fmt.Fprintf(os.Stderr, "Counter: %s %f\n", name, float64(metric.Count()))
-			sink.gauge(name, float64(metric.Count()))
-		case metrics.Gauge:
-			//fmt.Fprintf(os.Stderr, "Gauge: %s %d\n", name, metric.Value())
-			sink.gauge(name, float64(metric.Value()))
-		case metrics.GaugeFloat64:
-			//fmt.Fprintf(os.Stderr, "GaugeFloat64: %s %f\n", name, metric.Value())
-			sink.gauge(name, float64(metric.Value()))
-		case metrics.Histogram:
-			snap := metric.Snapshot()
-			sink.histogramVec(name, snap)
-		case metrics.Meter:
-			snap := metric.Snapshot()
-			sink.meterVec(name, snap)
-		case metrics.Timer:
-			lastSample := metric.Snapshot().Rate1()
-			sink.gauge(name, float64(lastSample))
-		}
-	})
+func (sink *PromSink) Flush(registries []metrics.Registry) {
+	for _, registry := range registries {
+		registry.Each(func(name string, i interface{}) {
+			switch metric := i.(type) {
+			case metrics.Counter:
+				//fmt.Fprintf(os.Stderr, "Counter: %s %f\n", name, float64(metric.Count()))
+				sink.gauge(name, float64(metric.Count()))
+			case metrics.Gauge:
+				//fmt.Fprintf(os.Stderr, "Gauge: %s %d\n", name, metric.Value())
+				sink.gauge(name, float64(metric.Value()))
+			case metrics.GaugeFloat64:
+				//fmt.Fprintf(os.Stderr, "GaugeFloat64: %s %f\n", name, metric.Value())
+				sink.gauge(name, float64(metric.Value()))
+			case metrics.Histogram:
+				snap := metric.Snapshot()
+				sink.histogramVec(name, snap)
+			case metrics.Meter:
+				snap := metric.Snapshot()
+				sink.meterVec(name, snap)
+			case metrics.Timer:
+				lastSample := metric.Snapshot().Rate1()
+				sink.gauge(name, float64(lastSample))
+			}
+		})
+	}
 }
 
 // NewPrometheusProvider returns a Provider that produces Prometheus metrics.
