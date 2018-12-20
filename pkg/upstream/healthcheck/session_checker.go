@@ -21,8 +21,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// checker is a wrapper of types.HealthCheckSession for health check
-type checker struct {
+// sessionChecker is a wrapper of types.HealthCheckSession for health check
+type sessionChecker struct {
 	Session       types.HealthCheckSession
 	Host          types.Host
 	HealthChecker *healthChecker
@@ -42,8 +42,8 @@ type checkResponse struct {
 	Healthy bool
 }
 
-func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *checker {
-	c := &checker{
+func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *sessionChecker {
+	c := &sessionChecker{
 		Session:       s,
 		Host:          h,
 		HealthChecker: hc,
@@ -56,7 +56,7 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *ch
 	return c
 }
 
-func (c *checker) Start() {
+func (c *sessionChecker) Start() {
 	defer func() {
 		// stop all the timer when start is finished
 		c.checkTimer.stop()
@@ -96,11 +96,11 @@ func (c *checker) Start() {
 	}
 }
 
-func (c *checker) Stop() {
+func (c *sessionChecker) Stop() {
 	close(c.stop)
 }
 
-func (c *checker) HandleSuccess() {
+func (c *sessionChecker) HandleSuccess() {
 	c.unHealthCount = 0
 	changed := false
 	if c.Host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
@@ -114,7 +114,7 @@ func (c *checker) HandleSuccess() {
 	c.HealthChecker.incHealthy(c.Host, changed)
 }
 
-func (c *checker) HandleFailure(reason types.FailureType) {
+func (c *sessionChecker) HandleFailure(reason types.FailureType) {
 	c.healthCount = 0
 	changed := false
 	if !c.Host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
@@ -128,7 +128,7 @@ func (c *checker) HandleFailure(reason types.FailureType) {
 	c.HealthChecker.decHealthy(c.Host, reason, changed)
 }
 
-func (c *checker) OnCheck() {
+func (c *sessionChecker) OnCheck() {
 	// record current id
 	id := c.checkID
 	c.HealthChecker.stats.attempt.Inc(1)
@@ -140,6 +140,6 @@ func (c *checker) OnCheck() {
 	}
 }
 
-func (c *checker) OnTimeout() {
+func (c *sessionChecker) OnTimeout() {
 	c.timeout <- true
 }
