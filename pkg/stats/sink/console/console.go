@@ -18,16 +18,18 @@
 package console
 
 import (
-	"github.com/rcrowley/go-metrics"
+	"encoding/json"
+	"io"
 	"strconv"
+
 	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"io"
-	"encoding/json"
+	"github.com/rcrowley/go-metrics"
 )
 
 // histogram output percents
 var percents = []float64{0.5, 0.75, 0.95, 0.99, 0.999}
+
 // NamespaceData represents a namespace's metrics data in string format
 type NamespaceData map[string]string
 

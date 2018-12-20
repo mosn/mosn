@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"encoding/json"
+
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -49,7 +51,7 @@ func addMetrics() {
 func TestTransferData(t *testing.T) {
 	ResetAll()
 	addMetrics()
-	res1 := GetAllMetricsData()
+	res1, _ := json.Marshal(GetAllRegistries())
 	// get transfer data
 	b, err := makesTransferData()
 	if err != nil {
@@ -62,7 +64,7 @@ func TestTransferData(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	res2 := GetAllMetricsData()
+	res2, _ := json.Marshal(GetAllRegistries())
 	if !reflect.DeepEqual(res1, res2) {
 		t.Error("transfer data not matched")
 	}
@@ -76,7 +78,7 @@ func TestTransferWithSocket(t *testing.T) {
 	TransferDomainSocket = "/tmp/stats.sock"
 	ResetAll()
 	addMetrics()
-	res1 := GetAllMetricsData()
+	res1, _ := json.Marshal(GetAllRegistries())
 	ch := make(chan bool)
 	go TransferServer(30*time.Second, ch)
 	// Wait Server start
@@ -95,7 +97,7 @@ func TestTransferWithSocket(t *testing.T) {
 	transferMetrics(body, true, 5*time.Second) // client block, wait server response
 	//transferMetrics(body, false, 0)
 	//<-ch  // server receive a conn
-	res2 := GetAllMetricsData()
+	res2, _ := json.Marshal(GetAllRegistries())
 	if !reflect.DeepEqual(res1, res2) {
 		t.Error("transfer data not matched")
 	}

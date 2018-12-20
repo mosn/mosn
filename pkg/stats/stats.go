@@ -101,11 +101,10 @@ func LisTypes() (ts []string) {
 
 // GetAllRegistries returns all registries
 func GetAllRegistries() (regs []metrics.Registry) {
-	reg.mutex.RLock()
-	for _, reg := range reg.registries {
-		regs = append(regs, reg)
+	statTypes := LisTypes()
+	for _, typ := range statTypes {
+		regs = append(regs, reg.registries[typ])
 	}
-	reg.mutex.RUnlock()
 	return
 }
 
