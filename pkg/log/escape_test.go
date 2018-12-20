@@ -2,7 +2,6 @@ package log
 
 import (
 	"testing"
-	"sync"
 )
 
 func BenchmarkWrapper(b *testing.B) {
@@ -10,7 +9,6 @@ func BenchmarkWrapper(b *testing.B) {
 		Output:  "stdout",
 		Level:   ERROR,
 		Roller:  DefaultRoller(),
-		fileMux: new(sync.RWMutex),
 	}
 
 	for n := 0; n < b.N; n++ {
@@ -24,7 +22,6 @@ func BenchmarkDirect(b *testing.B) {
 		Output:  "stdout",
 		Level:   ERROR,
 		Roller:  DefaultRoller(),
-		fileMux: new(sync.RWMutex),
 	}
 
 	for n := 0; n < b.N; n++ {
