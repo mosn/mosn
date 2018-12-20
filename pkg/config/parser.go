@@ -72,6 +72,7 @@ var configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
 const (
 	ParseCallbackKeyCluster        ContentKey = "clusters"
 	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
+	ParseCallbackKeyProcessor      ContentKey = "processor"
 )
 
 // RegisterConfigParsedListener
@@ -345,6 +346,12 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 		UseNetpollMode:  c.UseNetpollMode,
 	}
 
+	// trigger processor callbacks
+	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
+		for _, cb := range cbs {
+			cb(c.Processor, true)
+		}
+	}
 	return sc
 }
 

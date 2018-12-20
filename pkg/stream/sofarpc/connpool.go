@@ -23,14 +23,14 @@ import (
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 func init() {
-	proxy.RegisterNewPoolFactory(protocol.SofaRPC, NewConnPool)
+	network.RegisterNewPoolFactory(protocol.SofaRPC, NewConnPool)
 	types.RegisterConnPoolFactory(protocol.SofaRPC, true)
 
 }

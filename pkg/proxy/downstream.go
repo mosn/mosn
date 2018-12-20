@@ -24,7 +24,6 @@ import (
 	"net"
 	"reflect"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -92,9 +91,6 @@ type downStream struct {
 	senderFilters   []*activeStreamSenderFilter
 	receiverFilters []*activeStreamReceiverFilter
 
-	// mux for downstream-upstream flow
-	mux sync.Mutex
-
 	context context.Context
 
 	// stream access logs
@@ -130,9 +126,6 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	proxy.stats.DownstreamRequestActive.Inc(1)
 	proxy.listenerStats.DownstreamRequestTotal.Inc(1)
 	proxy.listenerStats.DownstreamRequestActive.Inc(1)
-
-	// start event process
-	stream.startEventProcess()
 
 	// debug message for downstream
 	stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
@@ -209,34 +202,27 @@ func (s *downStream) cleanStream() {
 		}
 	}
 
-	// stop event process
-	s.stopEventProcess()
 	// delete stream
 	s.proxy.deleteActiveStream(s)
-}
 
-// note: added before countdown metrics
-func (s *downStream) shouldDeleteStream() bool {
-	return s.upstreamRequest != nil &&
-		(atomic.LoadUint32(&s.downstreamReset) == 1 || s.upstreamRequest.sendComplete) &&
-		s.upstreamProcessDone
+	// recycle if no reset events
+	s.giveStream()
 }
 
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
-	// set downstreamReset flag before real reset logic
 	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
 		return
 	}
 
-	workerPool.Offer(&resetEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
+	workerPool.Offer(&event{
+		id:  s.ID,
+		dir: downstream,
+		evt: reset,
+		handle: func() {
+			s.ResetStream(reason)
 		},
-		reason: reason,
 	})
 }
 
@@ -248,14 +234,13 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 
 // types.StreamReceiver
 func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	workerPool.Offer(&receiveHeadersEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
+	workerPool.Offer(&event{
+		id:  s.ID,
+		dir: downstream,
+		evt: recvHeader,
+		handle: func() {
+			s.ReceiveHeaders(headers, endStream)
 		},
-		headers:   headers,
-		endStream: endStream,
 	})
 }
 
@@ -386,20 +371,19 @@ func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer,
 	s.downstreamReqDataBuf.Count(1)
 	data.Drain(data.Len())
 
-	workerPool.Offer(&receiveDataEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
+	workerPool.Offer(&event{
+		id:  s.ID,
+		dir: downstream,
+		evt: recvData,
+		handle: func() {
+			s.ReceiveData(s.downstreamReqDataBuf, endStream)
 		},
-		data:      s.downstreamReqDataBuf,
-		endStream: endStream,
 	})
 }
 
 func (s *downStream) ReceiveData(data types.IoBuffer, endStream bool) {
 	// if active stream finished before receive data, just ignore further data
-	if s.upstreamProcessDone {
+	if s.processDone() {
 		return
 	}
 	log.DefaultLogger.Tracef("downstream receive data = %v", data)
@@ -430,19 +414,19 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 }
 
 func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-	workerPool.Offer(&receiveTrailerEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
+	workerPool.Offer(&event{
+		id:  s.ID,
+		dir: downstream,
+		evt: recvTrailer,
+		handle: func() {
+			s.ReceiveTrailers(trailers)
 		},
-		trailers: trailers,
 	})
 }
 
 func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
 	// if active stream finished the lifecycle, just ignore further data
-	if s.upstreamProcessDone {
+	if s.processDone() {
 		return
 	}
 
@@ -963,33 +947,6 @@ func (s *downStream) AddStreamAccessLog(accessLog types.AccessLog) {
 	}
 }
 
-func (s *downStream) reset() {
-	s.ID = 0
-	s.proxy = nil
-	s.route = nil
-	s.cluster = nil
-	s.element = nil
-	s.timeout = nil
-	s.retryState = nil
-	s.requestInfo = nil
-	s.responseSender = nil
-	s.upstreamRequest.downStream = nil
-	s.upstreamRequest.requestSender = nil
-	s.upstreamRequest.proxy = nil
-	s.upstreamRequest.upstreamRespHeaders = nil
-	s.upstreamRequest = nil
-	s.perRetryTimer = nil
-	s.responseTimer = nil
-	s.downstreamRespHeaders = nil
-	s.downstreamReqDataBuf = nil
-	s.downstreamReqTrailers = nil
-	s.downstreamRespHeaders = nil
-	s.downstreamRespDataBuf = nil
-	s.downstreamRespTrailers = nil
-	s.senderFilters = s.senderFilters[:0]
-	s.receiverFilters = s.receiverFilters[:0]
-}
-
 // types.LoadBalancerContext
 // no use currently
 func (s *downStream) ComputeHashKey() types.HashedValue {
@@ -1013,11 +970,11 @@ func (s *downStream) DownstreamHeaders() types.HeaderMap {
 	return s.downstreamReqHeaders
 }
 
-func (s *downStream) GiveStream() {
+func (s *downStream) giveStream() {
 	if s.snapshot != nil {
 		s.proxy.clusterManager.PutClusterSnapshot(s.snapshot)
 	}
-	if s.upstreamReset == 1 || s.downstreamReset == 1 {
+	if atomic.LoadUint32(&s.upstreamReset) == 1 || atomic.LoadUint32(&s.downstreamReset) == 1 {
 		return
 	}
 	// reset downstreamReqBuf
@@ -1032,24 +989,7 @@ func (s *downStream) GiveStream() {
 
 }
 
-func (s *downStream) startEventProcess() {
-	// offer start event so that there is no lock contention on the streamPrcessMap[shard]
-	// all read/write operation should be able to trace back to the ShardWorkerPool goroutine
-	workerPool.Offer(&startEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
-		},
-	})
-}
-
-func (s *downStream) stopEventProcess() {
-	workerPool.Offer(&stopEvent{
-		streamEvent: streamEvent{
-			direction: Downstream,
-			streamID:  s.ID,
-			stream:    s,
-		},
-	})
+// check if proxy process done
+func (s *downStream) processDone() bool {
+	return s.upstreamProcessDone || atomic.LoadUint32(&s.downstreamReset) == 1
 }
