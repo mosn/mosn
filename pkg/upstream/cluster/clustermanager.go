@@ -171,6 +171,11 @@ func (pc *primaryCluster) UpdateHosts(hosts []types.Host) error {
 	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
 		return err
 	}
+	hostsConfig := make([]v2.Host, 0, len(hosts))
+	for _, h := range hosts {
+		hostsConfig = append(hostsConfig, h.Config())
+	}
+	admin.SetHosts(pc.cluster.Info().Name(), hostsConfig)
 	return nil
 }
 
@@ -305,11 +310,29 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 		if err := pc.UpdateHosts(hosts); err != nil {
 			return fmt.Errorf("UpdateClusterHosts failed, cluster's hostset %s can't be update", clusterName)
 		}
-		admin.SetHosts(clusterName, hostConfigs)
 		return nil
 	}
 
 	return fmt.Errorf("UpdateClusterHosts failed, cluster %s not found", clusterName)
+}
+
+func (cm *clusterManager) AppendClusterHosts(clusterName string, priority uint32, hostConfigs []v2.Host) error {
+	if v, ok := cm.primaryClusters.Load(clusterName); ok {
+		pc := v.(*primaryCluster)
+		pcc := pc.cluster
+		var hosts []types.Host
+		if concretedCluster, ok := pcc.(*simpleInMemCluster); ok {
+			hosts = append(hosts, concretedCluster.hosts...)
+		}
+		for _, hc := range hostConfigs {
+			hosts = append(hosts, NewHost(hc, pc.cluster.Info()))
+		}
+		if err := pc.UpdateHosts(hosts); err != nil {
+			return fmt.Errorf("AppendClusterHosts failed, cluster's hostset %s can't be update", clusterName)
+		}
+		return nil
+	}
+	return fmt.Errorf("AppendClusterHosts failed, cluster %s not found", clusterName)
 }
 
 func (cm *clusterManager) RemoveClusterHost(clusterName string, hostAddress string) error {

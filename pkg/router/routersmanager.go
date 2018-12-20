@@ -26,6 +26,7 @@ import (
 
 	"fmt"
 
+	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -35,7 +36,7 @@ var instanceMutex = sync.Mutex{}
 var routersMangerInstance *routersManager
 
 // GetClusterMngAdapterInstance used to get clusterMngAdapterInstance
-func GetRoutersMangerInstance() *routersManager {
+func GetRoutersMangerInstance() types.RouterManager {
 	return routersMangerInstance
 }
 
@@ -44,8 +45,9 @@ type routersManager struct {
 }
 
 type RoutersWrapper struct {
-	mux     sync.RWMutex
-	routers types.Routers
+	mux           sync.RWMutex
+	routers       types.Routers
+	routersConfig *v2.RouterConfiguration
 }
 
 func (rw *RoutersWrapper) GetRouters() types.Routers {
@@ -84,7 +86,7 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
 		// NewRouteMatcher has error, doesn't update
 		if err != nil {
-			log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: " + err.Error(),routerConfig.RouterConfigName)
+			log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: %v", routerConfig.RouterConfigName, err)
 			return err
 		}
 
@@ -92,26 +94,30 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 		if primaryRouters, ok := v.(*RoutersWrapper); ok {
 			primaryRouters.mux.Lock()
 			defer primaryRouters.mux.Unlock()
-			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success ",routerConfig.RouterConfigName)
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success", routerConfig.RouterConfigName)
 			primaryRouters.routers = routers
+			primaryRouters.routersConfig = routerConfig
 		}
 	} else {
 		// NewRouteMatcher has error, use nil routers
 		if err != nil {
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
-				routers: nil,
+				routers:       nil,
+				routersConfig: routerConfig,
 			})
-			log.DefaultLogger.Errorf("AddOrUpdateRouters, add router %s error:"+err.Error(),routerConfig.RouterConfigName)
+			log.DefaultLogger.Errorf("AddOrUpdateRouters, add router %s error: %v", routerConfig.RouterConfigName, err)
 			return err
 			// new routers
 		} else {
-			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s success:",routerConfig.RouterConfigName)
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s success:", routerConfig.RouterConfigName)
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
-				routers: routers,
+				routers:       routers,
+				routersConfig: routerConfig,
 			})
 		}
 	}
-	
+	admin.SetRouter(routerConfig.RouterConfigName, *routerConfig)
+
 	return nil
 }
 
@@ -125,4 +131,35 @@ func (rm *routersManager) GetRouterWrapperByName(routerConfigName string) types.
 	}
 
 	return nil
+}
+
+// AppendRoutersInVirtualHost appends a router into virtualhsot
+// router_config_name must be setted
+// if virtualhost is empty(""), add into default virtual host(if exists)
+func (rm *routersManager) AppendRoutersInVirtualHost(routerConfigName string, virtualhost string, router v2.Router) {
+	if v, ok := rm.routersMap.Load(routerConfigName); ok {
+		if primaryRouters, ok := v.(*RoutersWrapper); ok {
+			primaryRouters.mux.Lock()
+			cfg := primaryRouters.routersConfig
+			// find virtual host
+			var vhost *v2.VirtualHost
+			vhs := cfg.VirtualHosts
+			for _, vh := range vhs {
+				if virtualhost == "" {
+					if len(vh.Domains) > 0 && vh.Domains[0] == "*" {
+						vhost = vh
+						break
+					}
+				} else if vh.Name == virtualhost {
+					vhost = vh
+					break
+				}
+			}
+			if vhost != nil {
+				vhost.Routers = append(vhost.Routers, router)
+			}
+			primaryRouters.mux.Unlock()
+			rm.AddOrUpdateRouters(cfg)
+		}
+	}
 }

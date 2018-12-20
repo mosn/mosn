@@ -46,6 +46,9 @@ func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, types.Route
 	if handler == nil {
 		return nil, nil
 	}
+	if handler.Route() == nil {
+		return hc.DoNextHandler()
+	}
 	clusterName := handler.Route().RouteRule().ClusterName()
 	snapshot := hc.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
 	status := handler.IsAvailable(hc.ctx, snapshot)

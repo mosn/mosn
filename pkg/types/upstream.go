@@ -48,6 +48,9 @@ type ClusterManager interface {
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
 
+	// AppendClusterHosts used to add cluster's hosts
+	AppendClusterHosts(clusterName string, priority uint32, hostConfigs []v2.Host) error
+
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
