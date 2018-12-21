@@ -136,7 +136,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 				_, err := srv.AddListener(lc, nfcf, sfcf)
 				if err != nil {
-					log.StartLogger.Fatalf("AddListener error:%s", err.Error())
+					log.StartLogger.Errorf("AddListener error:%s", err.Error())
 				}
 			}
 		}

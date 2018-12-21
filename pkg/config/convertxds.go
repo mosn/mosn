@@ -1068,7 +1068,7 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	}
 
 	if isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
-		log.DefaultLogger.Fatalf("tls_certificates are required in downstream tls_context")
+		log.DefaultLogger.Errorf("tls_certificates are required in downstream tls_context")
 		config.Status = false
 		return config
 	}

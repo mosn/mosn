@@ -49,7 +49,7 @@ func (c *ClientV2) reqRoutes(streamClient ads.AggregatedDiscoveryService_StreamA
 		},
 	})
 	if err != nil {
-		log.DefaultLogger.Fatalf("get routers fail: %v", err)
+		log.DefaultLogger.Errorf("get routers fail: %v", err)
 		return err
 	}
 	return nil

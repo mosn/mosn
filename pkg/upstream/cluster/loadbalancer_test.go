@@ -25,6 +25,8 @@ import (
 	"math/rand"
 	"strings"
 
+	"strconv"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
@@ -509,5 +511,110 @@ func Benchmark_RouteAndLB(b *testing.B) {
 			b.Errorf("cluster name = %s host select error", clustername)
 		}
 		mockedClusterMng.PutClusterSnapshot(clusterSnapshot)
+	}
+}
+
+func BenchmarkRandomLoadbalancer_1000(b *testing.B) {
+
+	var hosts []types.Host
+	for i := 1; i <= 1000; i++ {
+		hosts = append(hosts, NewHost(newHostV2("127.0."+strconv.Itoa(i/250)+"."+strconv.Itoa(i%250), "test"+strconv.Itoa(i), 1, nil), nil))
+	}
+
+	hs := hostSet{
+		hosts:        hosts,
+		healthyHosts: hosts,
+	}
+
+	hostset := []types.HostSet{&hs}
+
+	prioritySet := prioritySet{
+		hostSets: hostset,
+	}
+
+	l := newRandomLoadbalancer(&prioritySet)
+
+	for n := 0; n < b.N; n++ {
+		l.ChooseHost(nil)
+	}
+}
+
+func BenchmarkRoundRobinLoadBalancer_1000(b *testing.B) {
+
+	var hosts []types.Host
+	for i := 1; i <= 1000; i++ {
+		hosts = append(hosts, NewHost(newHostV2("127.0."+strconv.Itoa(i/250)+"."+strconv.Itoa(i%250), "test"+strconv.Itoa(i), 1, nil), nil))
+	}
+
+	hs := hostSet{
+		hosts:        hosts,
+		healthyHosts: hosts,
+	}
+
+	hostset := []types.HostSet{&hs}
+
+	prioritySet := prioritySet{
+		hostSets: hostset,
+	}
+
+	loadbalaner := loadbalancer{
+		prioritySet: &prioritySet,
+	}
+
+	l := &roundRobinLoadBalancer{
+		loadbalancer: loadbalaner,
+	}
+
+	for n := 0; n < b.N; n++ {
+		l.ChooseHost(nil)
+	}
+}
+
+func BenchmarkSmoothWeightedRRLoadBalancer_100(b *testing.B) {
+
+	var hosts []types.Host
+	for i := 1; i <= 100; i++ {
+		hosts = append(hosts, NewHost(newHostV2("127.0."+strconv.Itoa(i/250)+"."+strconv.Itoa(i%250), "test"+strconv.Itoa(i), 1, nil), nil))
+	}
+
+	hs := hostSet{
+		hosts:        hosts,
+		healthyHosts: hosts,
+	}
+
+	hostset := []types.HostSet{&hs}
+
+	prioritySet := prioritySet{
+		hostSets: hostset,
+	}
+	l := newSmoothWeightedRRLoadBalancer(&prioritySet)
+
+	for n := 0; n < b.N; n++ {
+		l.ChooseHost(nil)
+	}
+}
+
+func BenchmarkSmoothWeightedRRLoadBalancer_1000(b *testing.B) {
+
+	var hosts []types.Host
+	for i := 1; i <= 1000; i++ {
+		hosts = append(hosts, NewHost(newHostV2("127.0."+strconv.Itoa(i/250)+"."+strconv.Itoa(i%250), "test"+strconv.Itoa(i), 1, nil), nil))
+	}
+
+	hs := hostSet{
+		hosts:        hosts,
+		healthyHosts: hosts,
+	}
+
+	hostset := []types.HostSet{&hs}
+
+	prioritySet := prioritySet{
+		hostSets: hostset,
+	}
+
+	l := newSmoothWeightedRRLoadBalancer(&prioritySet)
+
+	for n := 0; n < b.N; n++ {
+		l.ChooseHost(nil)
 	}
 }
