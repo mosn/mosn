@@ -28,9 +28,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/proxy"
 	"github.com/alipay/sofa-mosn/pkg/rcu"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 var instanceMutex = sync.Mutex{}
@@ -411,7 +411,7 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 		if connPool, ok := connectionPool.Load(addr); ok {
 			return connPool.(types.ConnectionPool)
 		}
-		if factory, ok := proxy.ConnNewPoolFactories[protocol]; ok {
+		if factory, ok := network.ConnNewPoolFactories[protocol]; ok {
 			newPool := factory(host) //call NewBasicRoute
 
 			connectionPool.Store(addr, newPool)

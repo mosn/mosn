@@ -25,16 +25,16 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
 
 func init() {
-	proxy.RegisterNewPoolFactory(protocol.HTTP1, NewConnPool)
+	network.RegisterNewPoolFactory(protocol.HTTP1, NewConnPool)
 	types.RegisterConnPoolFactory(protocol.HTTP1, true)
 }
 

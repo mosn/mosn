@@ -19,11 +19,7 @@ package sync
 
 import (
 	"fmt"
-	"runtime"
 	"runtime/debug"
-	"sync"
-	"sync/atomic"
-
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
@@ -32,11 +28,9 @@ const (
 )
 
 type shard struct {
-	sync.Mutex
 	index        int
 	respawnTimes uint32
 	jobChan      chan interface{}
-	jobQueue     []interface{}
 }
 
 type shardWorkerPool struct {
@@ -44,8 +38,6 @@ type shardWorkerPool struct {
 	workerFunc WorkerFunc
 	shards     []*shard
 	numShards  int
-	// represents whether job scheduler for queued jobs is started or not
-	schedule uint32
 }
 
 // NewShardWorkerPool creates a new shard worker pool.
@@ -84,20 +76,7 @@ func (pool *shardWorkerPool) Shard(source uint32) uint32 {
 func (pool *shardWorkerPool) Offer(job ShardJob) {
 	// use shard to avoid excessive synchronization
 	i := pool.Shard(job.Source())
-	shard := pool.shards[i]
-	// put jobs to the jobChan or jobQueue, which determined by the shard workload
-	shard.Lock()
-	if len(shard.jobQueue) == 0 && cap(shard.jobChan) > len(shard.jobChan) {
-		shard.jobChan <- job
-	} else {
-		shard.jobQueue = append(shard.jobQueue, job)
-		// schedule flush if
-		if atomic.CompareAndSwapUint32(&pool.schedule, 0, 1) {
-			pool.flush()
-		}
-	}
-
-	shard.Unlock()
+	pool.shards[i].jobChan <- job
 }
 
 func (pool *shardWorkerPool) spawnWorker(shard *shard) {
@@ -115,48 +94,6 @@ func (pool *shardWorkerPool) spawnWorker(shard *shard) {
 		}()
 		pool.workerFunc(shard.index, shard.jobChan)
 	}()
-}
-
-func (pool *shardWorkerPool) flush() {
-	go func() {
-		for {
-			clear := true
-			for i := range pool.shards {
-				shard := pool.shards[i]
-				shard.Lock()
-				pending := len(shard.jobQueue)
-				slots := cap(shard.jobChan) - len(shard.jobChan)
-				if clear && pending > 0 {
-					clear = false
-				}
-				// the number we can write is determined by the minimal of pending jobs and available chan data slots
-				writable := min(pending, slots)
-				if writable > 0 {
-					log.DefaultLogger.Debugf("flush %d job to shard %d", writable, i)
-					for j := 0; j < writable; j++ {
-						shard.jobChan <- shard.jobQueue[j]
-					}
-					shard.jobQueue = shard.jobQueue[writable:]
-				}
-				shard.Unlock()
-			}
-			// all shards' job queue are clear, stop flush goroutine
-			if clear {
-				break
-			}
-			// wait for next schedule
-			runtime.Gosched()
-		}
-		// end flush schedule
-		atomic.CompareAndSwapUint32(&pool.schedule, 1, 0)
-	}()
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 type workerPool struct {
