@@ -124,9 +124,9 @@ func DefaultRoller() *Roller {
 
 const (
 	// defaultRotateSize is 100 MB.
-	defaultRotateSize = 2000
-	// defaultRotateAge is 14 days.
-	defaultRotateAge = 1
+	defaultRotateSize = 1000
+	// defaultRotateAge is 7 days.
+	defaultRotateAge = 7
 	// defaultRotateKeep is 10 files.
 	defaultRotateKeep = 10
 
