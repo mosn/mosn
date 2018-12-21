@@ -44,7 +44,17 @@ func NewSofaRPCKeepAlive(codec str.CodecClient, proto byte, timeout time.Duratio
 		requests:     make(map[uint64]*keepAliveTimeout),
 		mutex:        sync.Mutex{},
 	}
+	// register keepalive to connection callbacks
+	// if connection is closed, keepalive should stop
+	kp.Codec.AddConnectionCallbacks(kp)
 	return kp
+}
+
+// keepalive should stop when connection closed
+func (kp *sofaRPCKeepAlive) OnEvent(event types.ConnectionEvent) {
+	if event.IsClose() {
+		close(kp.stop)
+	}
 }
 
 func (kp *sofaRPCKeepAlive) Start() {
@@ -112,7 +122,6 @@ func (kp *sofaRPCKeepAlive) HandleTimeout(id uint64) {
 			// close the connection, stop keep alive
 			if kp.timeoutCount >= kp.Threshold {
 				kp.Codec.Close()
-				close(kp.stop)
 			}
 			kp.runCallback(types.KeepAliveTimeout)
 		}
