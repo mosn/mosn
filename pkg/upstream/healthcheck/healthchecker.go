@@ -40,7 +40,7 @@ type healthChecker struct {
 	cluster             types.Cluster
 	sessionFactory      types.HealthCheckSessionFactory
 	mutex               sync.Mutex
-	checkers            map[string]*checker
+	checkers            map[string]*sessionChecker
 	localProcessHealthy int64
 	stats               *healthCheckStats
 	// check config
@@ -62,7 +62,7 @@ func newHealthChecker(cfg v2.HealthCheck, cluster types.Cluster, f types.HealthC
 	if cfg.Interval != 0 {
 		interval = cfg.Interval
 	}
-	return &healthChecker{
+	hc := &healthChecker{
 		// cfg
 		sessionConfig:      cfg.SessionConfig,
 		timeout:            timeout,
@@ -76,9 +76,17 @@ func newHealthChecker(cfg v2.HealthCheck, cluster types.Cluster, f types.HealthC
 		hostCheckCallbacks: []types.HealthCheckCb{},
 		sessionFactory:     f,
 		mutex:              sync.Mutex{},
-		checkers:           make(map[string]*checker),
+		checkers:           make(map[string]*sessionChecker),
 		stats:              newHealthCheckStats(cfg.ServiceName),
 	}
+	// Add common callbacks when create
+	// common callbacks should be registered and configured
+	for _, name := range cfg.CommonCallbacks {
+		if cb, ok := commonCallbacks[name]; ok {
+			hc.AddHostCheckCompleteCb(cb)
+		}
+	}
+	return hc
 }
 
 func (hc *healthChecker) Start() {
@@ -114,6 +122,10 @@ func (hc *healthChecker) OnClusterMemberUpdate(hostsAdd []types.Host, hostsDel [
 	hc.stats.healthy.Update(hc.localProcessHealthy)
 }
 
+func (hc *healthChecker) Add(host types.Host) {
+	hc.startCheck(host)
+}
+
 func (hc *healthChecker) startCheck(host types.Host) {
 	addr := host.AddressString()
 	hc.mutex.Lock()
@@ -130,6 +142,10 @@ func (hc *healthChecker) startCheck(host types.Host) {
 		hc.localProcessHealthy++ // default host is healthy
 		log.DefaultLogger.Infof("create a health check session for %s", addr)
 	}
+}
+
+func (hc *healthChecker) Delete(host types.Host) {
+	hc.stopCheck(host)
 }
 
 func (hc *healthChecker) stopCheck(host types.Host) {

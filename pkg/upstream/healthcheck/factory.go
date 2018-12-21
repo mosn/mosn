@@ -26,6 +26,7 @@ var sessionFactories map[types.Protocol]types.HealthCheckSessionFactory
 
 func init() {
 	sessionFactories = make(map[types.Protocol]types.HealthCheckSessionFactory)
+	commonCallbacks = make(map[string]types.HealthCheckCb)
 }
 
 func RegisterSessionFactory(p types.Protocol, f types.HealthCheckSessionFactory) {
@@ -42,4 +43,17 @@ func CreateHealthCheck(cfg v2.HealthCheck, cluster types.Cluster) types.HealthCh
 		f = &TCPDialSessionFactory{}
 	}
 	return newHealthChecker(cfg, cluster, f)
+}
+
+// common callback is not related to specific cluster, which can be registered before cluster create
+// and bind to health checker by config
+var commonCallbacks map[string]types.HealthCheckCb
+
+func RegisterCommonCallbacks(name string, cb types.HealthCheckCb) bool {
+	if _, ok := commonCallbacks[name]; ok {
+		// can not regitser same name
+		return false
+	}
+	commonCallbacks[name] = cb
+	return false
 }

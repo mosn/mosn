@@ -26,6 +26,7 @@ type HealthCheckConfig struct {
 	UnhealthyThreshold   uint32                 `json:"unhealthy_threshold"`
 	ServiceName          string                 `json:"service_name"`
 	SessionConfig        map[string]interface{} `json:"check_config"`
+	CommonCallbacks      []string               `json:"common_callbacks"` // HealthCheck support register some common callbacks that are not related to specific cluster
 }
 
 type HostConfig struct {

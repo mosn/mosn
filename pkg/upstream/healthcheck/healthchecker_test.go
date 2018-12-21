@@ -62,6 +62,8 @@ func TestHealthCheck(t *testing.T) {
 	result := &testResult{
 		results: map[string]*testCounter{},
 	}
+	// add common callbacks
+	RegisterCommonCallbacks("test", result.testCallback)
 	testCases := []testCase{
 		testCase{
 			ServiceName: "test_success",
@@ -182,6 +184,7 @@ func TestHealthCheck(t *testing.T) {
 				HealthyThreshold:   1,
 				UnhealthyThreshold: 1,
 				ServiceName:        tc.ServiceName,
+				CommonCallbacks:    []string{"test"},
 			},
 			Interval: interval,
 		}
@@ -195,7 +198,6 @@ func TestHealthCheck(t *testing.T) {
 			},
 		}
 		hc := CreateHealthCheck(cfg, cluster)
-		hc.AddHostCheckCompleteCb(result.testCallback)
 		hc.Start()
 		tc.running(tc.host)
 		hc.Stop()

@@ -200,9 +200,9 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 
 func initializeTracing(config config.TracingConfig) {
 	if config.Enable && config.Tracer != "" {
-		if config.Tracer == "SOFATracer" {
-			trace.CreateInstance()
-			trace.SetTracer(trace.SofaTracerInstance)
+		tracer := trace.CreateTracer(config.Tracer)
+		if tracer != nil {
+			trace.SetTracer(tracer)
 		} else {
 			log.DefaultLogger.Errorf("Unable to recognise tracing implementation %s, tracing functionality is turned off.", config.Tracer)
 			trace.DisableTracing()
