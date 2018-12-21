@@ -88,7 +88,7 @@ type mockAddr struct {
 }
 
 func (addr *mockAddr) Network() string {
-	return fmt.Sprintf("%s:%d", addr.IP, addr.Port)
+	return "tcp"
 }
 
 func (addr *mockAddr) String() string {

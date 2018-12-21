@@ -76,14 +76,14 @@ func NewPermissionDestinationIp(permission *v2alpha.Permission_DestinationIp) (*
 }
 
 func (permission *PermissionDestinationIp) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
-	localAddr := cb.Connection().LocalAddr().String()
-	localIP, _, err := parseAddr(localAddr)
+	localAddr := cb.Connection().LocalAddr()
+	addr, err := net.ResolveTCPAddr(localAddr.Network(), localAddr.String())
 	if err != nil {
 		log.DefaultLogger.Errorf(
 			"[PermissionDestinationIp.Match] failed to parse local address in rbac filter, err: ", err)
 		return false
 	}
-	if permission.CidrRange.Contains(localIP) {
+	if permission.CidrRange.Contains(addr.IP) {
 		return true
 	} else {
 		return false
@@ -102,14 +102,14 @@ func NewPermissionDestinationPort(permission *v2alpha.Permission_DestinationPort
 }
 
 func (permission *PermissionDestinationPort) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
-	localAddr := cb.Connection().LocalAddr().String()
-	_, port, err := parseAddr(localAddr)
+	localAddr := cb.Connection().LocalAddr()
+	addr, err := net.ResolveTCPAddr(localAddr.Network(), localAddr.String())
 	if err != nil {
 		log.DefaultLogger.Errorf(
 			"[PermissionDestinationPort.Match] failed to parse local address in rbac filter, err: ", err)
 		return false
 	}
-	if port == int(permission.DestinationPort) {
+	if addr.Port == int(permission.DestinationPort) {
 		return true
 	} else {
 		return false

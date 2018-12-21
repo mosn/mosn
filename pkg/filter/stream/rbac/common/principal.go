@@ -77,14 +77,14 @@ func NewPrincipalSourceIp(principal *v2alpha.Principal_SourceIp) (*PrincipalSour
 }
 
 func (principal *PrincipalSourceIp) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
-	remoteAddr := cb.Connection().RemoteAddr().String()
-	remoteIP, _, err := parseAddr(remoteAddr)
+	remoteAddr := cb.Connection().RemoteAddr()
+	addr, err := net.ResolveTCPAddr(remoteAddr.Network(), remoteAddr.String())
 	if err != nil {
 		log.DefaultLogger.Errorf(
 			"[PrincipalSourceIp.Match] failed to parse remote address in rbac filter, err: ", err)
 		return false
 	}
-	if principal.CidrRange.Contains(remoteIP) {
+	if principal.CidrRange.Contains(addr.IP) {
 		return true
 	} else {
 		return false

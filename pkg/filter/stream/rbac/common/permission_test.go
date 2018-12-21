@@ -159,7 +159,7 @@ func TestPermissionHeader(t *testing.T) {
 	}
 
 	headers := &mockHeaderMap{
-		headers: map[string]string {
+		headers: map[string]string{
 			"X-Custom-Header": "123",
 		},
 	}

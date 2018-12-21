@@ -19,9 +19,6 @@ package common
 
 import (
 	"encoding/json"
-	"fmt"
-	"net"
-	"strconv"
 	"strings"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -36,28 +33,6 @@ const (
 	PseudoHeaderScheme    = ":scheme"
 	PseudoHeaderAuthority = ":authority"
 )
-
-// parse address like "192.0.2.1:25", "[2001:db8::1]:80" into ip & port
-func parseAddr(addr string) (ipAddr net.IP, port int, err error) {
-	s := strings.Split(addr, ":")
-	if len(s) != 2 {
-		return nil, 0, fmt.Errorf("[parseAddr] %s is not a valid address, address must in ip:port format", addr)
-	}
-
-	if ipAddr = net.ParseIP(s[0]); ipAddr == nil {
-		return nil, 0, fmt.Errorf("[parseAddr] %s is not a valid ip address", s[0])
-	}
-
-	if port, err = strconv.Atoi(s[1]); err != nil {
-		return nil, 0, fmt.Errorf("[parseAddr] parse port failed, err: %v", err)
-	} else {
-		if port <= 0 || port > 65535 {
-			return nil, 0, fmt.Errorf("[parseAddr] %d not like a valid port", port)
-		}
-	}
-
-	return ipAddr, port, nil
-}
 
 // fetch target value from header, return "" if not found
 func headerMapper(target string, headers types.HeaderMap) (string, bool) {
