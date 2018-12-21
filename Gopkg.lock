@@ -25,6 +25,13 @@
   revision = "39cc8511d507bcf4d1716205f765973d967868eb"
   version = "v3.1.0"
 
+
+[[projects]]
+  branch = "master"
+  name = "github.com/beorn7/perks"
+  packages = ["quantile"]
+  revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
+
 [[projects]]
   name = "github.com/envoyproxy/go-control-plane"
   packages = [
@@ -58,6 +65,7 @@
   revision = "a720dfa8df582c51dee1b36feabb906bde1588bd"
   version = "v1.0"
 
+
 [[projects]]
   name = "github.com/gogo/googleapis"
   packages = [
@@ -82,11 +90,13 @@
 [[projects]]
   name = "github.com/golang/protobuf"
   packages = [
+    "jsonpb",
     "proto",
     "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
+    "ptypes/struct",
     "ptypes/timestamp"
   ]
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
@@ -164,6 +174,12 @@
   version = "v0.0.4"
 
 [[projects]]
+  name = "github.com/matttproud/golang_protobuf_extensions"
+  packages = ["pbutil"]
+  revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
+  version = "v1.0.1"
+
+[[projects]]
   name = "github.com/modern-go/concurrent"
   packages = ["."]
   revision = "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
@@ -192,13 +208,31 @@
   version = "v0.9.2"
 
 [[projects]]
-  name = "github.com/opentracing/opentracing-go"
+  branch = "master"
+  name = "github.com/prometheus/client_model"
+  packages = ["go"]
+  revision = "5c3871d89910bfb32f5fcab2aa4b9ec68e65a99f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/common"
+  packages = [
+    "expfmt",
+    "internal/bitbucket.org/ww/goautoneg",
+    "model"
+  ]
+  revision = "67670fe90761d7ff18ec1d640135e53b9198328f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/procfs"
   packages = [
     ".",
-    "log"
+    "internal/util",
+    "nfs",
+    "xfs"
   ]
-  revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
-  version = "v1.0.2"
+  revision = "1dc9a6cbc91aacc3e8b2d63db4d2e957a5394ac4"
 
 [[projects]]
   branch = "master"
@@ -229,6 +263,18 @@
   revision = "77385190fb15120cc639fca46bf51a76c5e29ebd"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = [
+    "chacha20poly1305",
+    "curve25519",
+    "internal/chacha20",
+    "internal/subtle",
+    "poly1305"
+  ]
+  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
+
+[[projects]]
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -244,7 +290,10 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "cpu",
+    "unix"
+  ]
   revision = "4910a1d54f876d7b22162a85f4d066d3ee649450"
 
 [[projects]]
@@ -310,9 +359,18 @@
   revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
   version = "v2.1"
 
+[[projects]]
+  name = "istio.io/api"
+  packages = [
+    "mixer/v1",
+    "mixer/v1/config/client"
+  ]
+  revision = "6bf9d6613f65c2754a3d90ae916e1806e9d74175"
+  version = "1.0.5"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cc6dfefd6d1029105c65af5a4316083b77374600a66960c1a6627bd116427ca1"
+  inputs-digest = "f307eaa99f9b6f0e78b766d97a220ed531eacf8583a68e9835e094cbc4028aa2"
   solver-name = "gps-cdcl"
   solver-version = 1

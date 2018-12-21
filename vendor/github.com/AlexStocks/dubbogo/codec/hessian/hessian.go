@@ -1,16 +1,12 @@
-// Copyright (c) 2016 ~ 2018, Alex Stocks.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/******************************************************
+# DESC    : hessian codec
+# AUTHOR  : Alex Stocks
+# VERSION : 1.0
+# LICENCE : Apache License 2.0
+# EMAIL   : alexstocks@foxmail.com
+# MOD     : 2017-10-23 13:05
+# FILE    : hessian.go
+******************************************************/
 
 package hessian
 
@@ -45,7 +41,7 @@ func (h *hessianCodec) String() string {
 
 func (h *hessianCodec) Write(m *codec.Message, a interface{}) error {
 	switch m.Type {
-	case codec.Heartbeat, codec.Request:
+	case codec.Request:
 		return jerrors.Trace(packRequest(m, a, h.rwc))
 	case codec.Response:
 		return nil
@@ -62,7 +58,7 @@ func (h *hessianCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error 
 	switch mt {
 	case codec.Request:
 		return nil
-	case codec.Heartbeat, codec.Response:
+	case codec.Response:
 		buf, err := h.reader.Peek(HEADER_LENGTH)
 		if err != nil { // this is impossible
 			return jerrors.Trace(err)
@@ -102,11 +98,10 @@ func (h *hessianCodec) ReadBody(ret interface{}) error {
 	case codec.Request:
 		return nil
 
-	case codec.Heartbeat, codec.Response:
-		// remark on 20180611: the heartbeat return is nil
-		//if ret == nil {
-		//	return jerrors.Errorf("@ret is nil")
-		//}
+	case codec.Response:
+		if ret == nil {
+			return jerrors.Errorf("@ret is nil")
+		}
 
 		buf, err := h.reader.Peek(h.rspBodyLen)
 		if err == bufio.ErrBufferFull {
@@ -120,10 +115,8 @@ func (h *hessianCodec) ReadBody(ret interface{}) error {
 			return jerrors.Trace(err)
 		}
 
-		if ret != nil {
-			if err = unpackResponseBody(buf, ret); err != nil {
-				return jerrors.Trace(err)
-			}
+		if err = unpackResponseBody(buf, ret); err != nil {
+			return jerrors.Trace(err)
 		}
 	}
 

@@ -92,21 +92,21 @@ func (log *Logger) LoadConfiguration(filename string) Logger {
 		}
 
 		switch xmlfilt.Level {
-		case "FINEST":
+		case "FINEST", "Finest", "finest":
 			lvl = FINEST
-		case "FINE":
+		case "FINE", "Fine", "fine":
 			lvl = FINE
-		case "DEBUG":
+		case "DEBUG", "Debug", "debug":
 			lvl = DEBUG
-		case "TRACE":
+		case "TRACE", "Trace", "trace":
 			lvl = TRACE
-		case "INFO":
+		case "INFO", "Info", "info":
 			lvl = INFO
-		case "WARNING":
+		case "WARNING", "Warning", "warning":
 			lvl = WARNING
-		case "ERROR":
+		case "ERROR", "Error", "error":
 			lvl = ERROR
-		case "CRITICAL":
+		case "CRITICAL", "Critical", "critical":
 			lvl = CRITICAL
 		default:
 			fmt.Fprintf(os.Stderr,
