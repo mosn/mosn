@@ -18,6 +18,7 @@
 package common
 
 import (
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2alpha"
 )
@@ -54,7 +55,17 @@ func NewRoleBasedAccessControlEngine(rbacConfig *v2alpha.RBAC) (*RoleBasedAccess
 }
 
 // echo request will be handled in `Allowed` function
-func (engine *RoleBasedAccessControlEngine) Allowed(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) (bool, string) {
+func (engine *RoleBasedAccessControlEngine) Allowed(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) (allowed bool, matchPolicyName string) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.DefaultLogger.Errorf("recover from rbac engine, error: %v", err)
+
+			// defer runs after the return statement but before the function is actually returned,
+			// so we can use named return values to hack function return
+			allowed, matchPolicyName = true, ""
+		}
+	}()
+
 	if engine.Action == v2alpha.RBAC_ALLOW {
 		// when engine action is ALLOW, return allowed if matched any policy
 		for name, policy := range engine.InheritPolicies {

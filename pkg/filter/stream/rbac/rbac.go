@@ -60,10 +60,11 @@ func (f *rbacFilter) ReadPerRouteConfig(cfg map[string]interface{}) {
 }
 
 // filter implementation
-func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) (streamHeadersFilterStatus types.StreamHeadersFilterStatus) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.DefaultLogger.Errorf("recover from rbac filter, error: %v", err)
+			streamHeadersFilterStatus = types.StreamHeadersFilterContinue
 		}
 	}()
 

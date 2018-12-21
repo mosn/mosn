@@ -23,7 +23,6 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2alpha"
@@ -80,9 +79,7 @@ func (principal *PrincipalSourceIp) Match(cb types.StreamReceiverFilterCallbacks
 	remoteAddr := cb.Connection().RemoteAddr()
 	addr, err := net.ResolveTCPAddr(remoteAddr.Network(), remoteAddr.String())
 	if err != nil {
-		log.DefaultLogger.Errorf(
-			"[PrincipalSourceIp.Match] failed to parse remote address in rbac filter, err: ", err)
-		return false
+		panic(fmt.Errorf("[PrincipalSourceIp.Match] failed to parse remote address in rbac filter, err: %v", err))
 	}
 	if principal.CidrRange.Contains(addr.IP) {
 		return true

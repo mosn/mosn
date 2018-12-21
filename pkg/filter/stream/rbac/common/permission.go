@@ -105,9 +105,7 @@ func (permission *PermissionDestinationPort) Match(cb types.StreamReceiverFilter
 	localAddr := cb.Connection().LocalAddr()
 	addr, err := net.ResolveTCPAddr(localAddr.Network(), localAddr.String())
 	if err != nil {
-		log.DefaultLogger.Errorf(
-			"[PermissionDestinationPort.Match] failed to parse local address in rbac filter, err: ", err)
-		return false
+		panic(fmt.Errorf("[PermissionDestinationPort.Match] failed to parse local address in rbac filter, err: %v", err))
 	}
 	if addr.Port == int(permission.DestinationPort) {
 		return true

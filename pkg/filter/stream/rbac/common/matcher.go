@@ -108,6 +108,7 @@ type HeaderMatcherRangeMatch struct {
 
 func (matcher *HeaderMatcherRangeMatch) Equal(targetValue string) bool {
 	if intValue, err := strconv.ParseInt(targetValue, 10, 64); err != nil {
+		// return not match if target value is not a integer
 		return false
 	} else {
 		return intValue >= matcher.Start && intValue < matcher.End
