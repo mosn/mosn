@@ -348,10 +348,10 @@ func Test_routersManager_AppendRoutersInVirtualHost(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		router := routers[i]
 		wg.Add(1)
-		go func() {
+		go func(router v2.Router) {
 			routerManager.AppendRoutersInVirtualHost(routerConfigName, "", router)
 			wg.Done()
-		}()
+		}(router)
 	}
 	wg.Wait()
 	// verify, use header match

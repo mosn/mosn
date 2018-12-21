@@ -82,32 +82,32 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 		return fmt.Errorf(errMsg)
 	}
 
-	routers, err := NewRouteMatcher(routerConfig)
 	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
-		// NewRouteMatcher has error, doesn't update
-		if err != nil {
-			log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: %v", routerConfig.RouterConfigName, err)
-			return err
-		}
-
-		// else : update a router
+		// try to update router
 		if primaryRouters, ok := v.(*RoutersWrapper); ok {
 			primaryRouters.mux.Lock()
 			defer primaryRouters.mux.Unlock()
+			routers, err := NewRouteMatcher(routerConfig)
+			if err != nil {
+				log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: %v", routerConfig.RouterConfigName, err)
+				return err
+			}
 			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success", routerConfig.RouterConfigName)
 			primaryRouters.routers = routers
 			primaryRouters.routersConfig = routerConfig
 		}
 	} else {
-		// NewRouteMatcher has error, use nil routers
+		// try to create a new router
+		routers, err := NewRouteMatcher(routerConfig)
 		if err != nil {
+			// store a router wrapper without routers, so proxy can get a wrapper
+			// and proxy can route after update
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
 				routers:       nil,
 				routersConfig: routerConfig,
 			})
-			log.DefaultLogger.Errorf("AddOrUpdateRouters, add router %s error: %v", routerConfig.RouterConfigName, err)
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s error: %v", routerConfig.RouterConfigName, err)
 			return err
-			// new routers
 		} else {
 			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s success:", routerConfig.RouterConfigName)
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{

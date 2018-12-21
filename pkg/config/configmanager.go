@@ -55,9 +55,14 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 	removeClusterConfig(subServiceList)
 }
 
-// AddClusterConfig
+// AddOrUpdateClusterConfig
 // called when add cluster config info received
-func AddClusterConfig(clusters []v2.Cluster) {
+func AddOrUpdateClusterConfig(clusters []v2.Cluster) {
+	addOrUpdateClusterConfig(clusters)
+	go dump(true)
+}
+
+func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 	for _, clusterConfig := range clusters {
 		exist := false
 
@@ -74,11 +79,7 @@ func AddClusterConfig(clusters []v2.Cluster) {
 		if !exist {
 			config.ClusterManager.Clusters = append(config.ClusterManager.Clusters, clusterConfig)
 		}
-
-		// update routes
-		//AddRouterConfig(cluster.Name)
 	}
-	go dump(true)
 }
 
 func removeClusterConfig(clusterNames []string) {
@@ -141,6 +142,14 @@ func DelPubInfo(serviceName string) {
 	}
 
 	go dump(dirty)
+}
+
+// AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddRoutersConfig
+// use this function to only dump config once
+func AddClusterWithRouter(listenername string, virtualhost string, router v2.Router, clusters []v2.Cluster) {
+	addOrUpdateClusterConfig(clusters)
+	addRoutersConfig(listenername, virtualhost, router)
+	go dump(true)
 }
 
 // AddRoutersConfig dumps addRoutersConfig result
