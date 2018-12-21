@@ -89,7 +89,7 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 	defaulthosts := sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts()
 
 	if len(defaulthosts) > 0 {
-		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are ", defaulthosts)
+		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are %v", defaulthosts)
 	} else {
 		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset's host is nil")
 		return nil
@@ -425,9 +425,8 @@ func (hsi *hostSubsetImpl) UpdateHostSubset(hostsAdded []types.Host, hostsRemove
 		}
 	}
 
-	//最终更新host
-	hsi.hostSubset.UpdateHosts(finalhosts, healthyHosts, nil, nil,
-		filteredAdded, filteredRemoved)
+	// update final hosts
+	hsi.hostSubset.UpdateHosts(finalhosts, healthyHosts, filteredAdded, filteredRemoved)
 }
 
 func (hsi *hostSubsetImpl) GetFinalHosts(hostsAdded []types.Host, hostsRemoved []types.Host) []types.Host {

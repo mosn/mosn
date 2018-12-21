@@ -105,10 +105,15 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 
 	if changed {
 		sc.hosts = finalHosts
-		// todo: need to consider how to update healthyHost
 		// Note: currently, we only use priority 0
-		sc.prioritySet.GetOrCreateHostSet(0).UpdateHosts(sc.hosts,
-			sc.hosts, nil, nil, hostsAdded, hostsRemoved)
+		// we should choose the healthy host, default is healthy
+		healthyHosts := make([]types.Host, 0, len(finalHosts))
+		for _, h := range finalHosts {
+			if h.Health() {
+				healthyHosts = append(healthyHosts, h)
+			}
+		}
+		sc.prioritySet.GetOrCreateHostSet(0).UpdateHosts(sc.hosts, healthyHosts, hostsAdded, hostsRemoved)
 
 		if sc.healthChecker != nil {
 			sc.healthChecker.OnClusterMemberUpdate(hostsAdded, hostsRemoved)

@@ -17,10 +17,6 @@
 
 package types
 
-import (
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-)
-
 // FailureType is the type of a failure
 type FailureType string
 
@@ -32,42 +28,37 @@ const (
 )
 
 // HealthCheckCb is the health check's callback function
-type HealthCheckCb func(host Host, changedState bool)
+type HealthCheckCb func(host Host, changedState bool, isHealthy bool)
 
-// HealthChecker is a object that used to check an upstream cluster is health or not.
+// HealthChecker is a framework for connection management
+// When NewCluster is called, and the config contains health check related, mosn will create
+// a cluster with health check to make sure load balance always choose the "good" host
 type HealthChecker interface {
-	// Start starts health checking, which will continually monitor hosts in upstream cluster.
+	// Start makes health checker running
 	Start()
-
-	// Stop stops cluster health check. Client can use it to start/stop health check as a heartbeat.
+	// Stop terminates health checker
 	Stop()
-
-	// AddHostCheckCompleteCb is a health check callback, which will be called on a check round-trip is completed for a specified host.
+	// Add adds a host's health check if the host is not start a health checker
+	Add(host Host)
+	// Delete deletes a host's health check if the host is running a health checker
+	Delete(host Host)
+	// AddHostCheckCompleteCb adds a new callback for health check
 	AddHostCheckCompleteCb(cb HealthCheckCb)
-
-	// OnClusterMemberUpdate updates cluster's hosts for health checking.
+	// OnClusterMemberUpdate is called when cluster's host is added or deleted
 	OnClusterMemberUpdate(hostsAdded []Host, hostDel []Host)
-
-	// SetCluster adds a cluster to health checker.
-	SetCluster(cluster Cluster)
 }
 
-// HealthCheckSession is a health check session for an upstream host
+// HealthCheckSession is an interface for health check logic
+// The health checker framework support register different session for different protocol.
+// The default session implementation is tcp dial, for all non-registered protocol.
 type HealthCheckSession interface {
-	// Start starts host health check
-	Start()
-
-	// Stop stops host health check
-	Stop()
-
-	// SetUnhealthy sets session as unhealthy for a specified reason
-	SetUnhealthy(fType FailureType)
+	// CheckHealth returns true if session checks the server is ok, or returns false
+	CheckHealth() bool
+	// OnTimeout is called when a check health does not returned after timeout duration
+	OnTimeout()
 }
 
-// TODO: move factory instance to a factory package
-
-var HealthCheckFactoryInstance HealthCheckerFactory
-
-type HealthCheckerFactory interface {
-	New(config v2.HealthCheck) HealthChecker
+// HealthCheckSessionFactory creates a HealthCheckSession
+type HealthCheckSessionFactory interface {
+	NewSession(cfg map[string]interface{}, host Host) HealthCheckSession
 }

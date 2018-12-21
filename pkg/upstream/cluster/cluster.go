@@ -25,6 +25,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
 )
 
 // Cluster
@@ -53,18 +54,11 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool)
 		return nil
 	}
 
-	// init health check for cluster's host
-	if clusterConfig.HealthCheck.Protocol != "" {
-		var hc types.HealthChecker
-		hc = types.HealthCheckFactoryInstance.New(clusterConfig.HealthCheck)
-		newCluster.SetHealthChecker(hc)
-	}
-
 	return newCluster
 }
 
 func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool, initHelper concreteClusterInitHelper) *cluster {
-	cluster := cluster{
+	cluster := &cluster{
 		prioritySet: &prioritySet{},
 		info: &clusterInfo{
 			name:                 clusterConfig.Name,
@@ -115,8 +109,20 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 		log.DefaultLogger.Errorf("create tls context manager failed, %v", err)
 	}
 	cluster.info.tlsMng = mgr
+	// add health check, should have a service name for stats
+	if clusterConfig.HealthCheck.ServiceName != "" {
+		log.DefaultLogger.Infof("cluster %s have health check", clusterConfig.Name)
+		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck, cluster)
+		// add default call backs, for change host healthy status
+		cluster.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool, isHealthy bool) {
+			if changedState {
+				cluster.refreshHealthHosts(host)
+			}
+		})
+		go cluster.healthChecker.Start()
+	}
 
-	return &cluster
+	return cluster
 }
 
 func (c *cluster) Initialize(cb func()) {
@@ -143,19 +149,10 @@ func (c *cluster) PrioritySet() types.PrioritySet {
 	return c.prioritySet
 }
 
-func (c *cluster) SetHealthChecker(hc types.HealthChecker) {
-	c.healthChecker = hc
-	c.healthChecker.SetCluster(c)
-	c.healthChecker.Start()
-	c.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool) {
-		if changedState {
-			c.refreshHealthHosts(host)
-		}
-	})
-}
-
-func (c *cluster) HealthChecker() types.HealthChecker {
-	return c.healthChecker
+func (c *cluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
+	if c.healthChecker != nil {
+		c.healthChecker.AddHostCheckCompleteCb(cb)
+	}
 }
 
 // update health-hostSet for only one hostSet, reduce update times
@@ -174,13 +171,9 @@ func (c *cluster) refreshHealthHostsGlobal() {
 
 	for _, hostSet := range c.prioritySet.hostSets {
 		var healthyHost []types.Host
-		var healthyHostPerLocality [][]types.Host
-
 		healthyHost = getHealthHost(hostSet.Hosts())
-		healthyHostPerLocality = getHealthHostsPerLocality(hostSet.HostsPerLocality())
 
-		hostSet.UpdateHosts(hostSet.Hosts(), healthyHost, hostSet.HostsPerLocality(),
-			healthyHostPerLocality, nil, nil)
+		hostSet.UpdateHosts(hostSet.Hosts(), healthyHost, nil, nil)
 	}
 }
 
@@ -342,25 +335,6 @@ func getHealthHost(hosts []types.Host) []types.Host {
 	return healthyHost
 }
 
-func getHealthHostsPerLocality(hhpl [][]types.Host) [][]types.Host {
-	var healthyHostPerLocality = make([][]types.Host, len(hhpl))
-	hi := 0
-
-	for i := range hhpl {
-		hj := 0
-		for j := range hhpl[i] {
-			if hhpl[i][j].Health() {
-				healthyHostPerLocality[hi] = append(healthyHostPerLocality[hi], hhpl[i][j])
-				hj++
-			}
-		}
-		if hj > 0 {
-			hi++
-		}
-	}
-	return healthyHostPerLocality
-}
-
 func addHealthyHost(hostSets []types.HostSet, host types.Host) {
 	// Note: currently, one host only belong to a hostSet
 
@@ -378,11 +352,8 @@ func addHealthyHost(hostSets []types.HostSet, host types.Host) {
 		if found {
 			newHealthHost := hostSet.HealthyHosts()
 			newHealthHost = append(newHealthHost, host)
-			newHealthyHostPerLocality := hostSet.HealthHostsPerLocality()
-			newHealthyHostPerLocality[len(newHealthyHostPerLocality)-1] = append(newHealthyHostPerLocality[len(newHealthyHostPerLocality)-1], host)
 
-			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, hostSet.HostsPerLocality(),
-				newHealthyHostPerLocality, nil, nil)
+			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, nil, nil)
 			break
 		}
 	}
@@ -403,28 +374,15 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 
 		if found {
 			newHealthHost := hostSet.HealthyHosts()
-			newHealthyHostPerLocality := hostSet.HealthHostsPerLocality()
 
 			for i, hh := range newHealthHost {
-				if host.Hostname() == hh.Hostname() {
+				if host.AddressString() == hh.AddressString() {
 					//remove
 					newHealthHost = append(newHealthHost[:i], newHealthHost[i+1:]...)
 					break
 				}
 			}
-
-			for i := range newHealthyHostPerLocality {
-				for j := range newHealthyHostPerLocality[i] {
-
-					if host.Hostname() == newHealthyHostPerLocality[i][j].Hostname() {
-						newHealthyHostPerLocality[i] = append(newHealthyHostPerLocality[i][:j], newHealthyHostPerLocality[i][j+1:]...)
-						break
-					}
-				}
-			}
-
-			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, hostSet.HostsPerLocality(),
-				newHealthyHostPerLocality, nil, nil)
+			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, nil, nil)
 			break
 		}
 	}

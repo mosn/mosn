@@ -19,295 +19,184 @@ package healthcheck
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
 )
 
-type sessionFactory interface {
-	newSession(host types.Host) types.HealthCheckSession
-}
+const (
+	DefaultTimeout  = time.Second
+	DefaultInterval = 15 * time.Second
+)
 
-// types.HealthChecker
+// healthChecker is a basic implementation of a health checker.
+// we use different implementations of types.Session to implement different health checker
 type healthChecker struct {
-	serviceName         string
-	healthCheckCbs      []types.HealthCheckCb
+	//
+	sessionConfig       map[string]interface{}
 	cluster             types.Cluster
-	healthCheckSessions map[types.Host]types.HealthCheckSession
-
-	timeout        time.Duration
-	interval       time.Duration
-	intervalJitter time.Duration
-
-	localProcessHealthy uint64
-
+	sessionFactory      types.HealthCheckSessionFactory
+	mutex               sync.Mutex
+	checkers            map[string]*sessionChecker
+	localProcessHealthy int64
+	stats               *healthCheckStats
+	// check config
+	timeout            time.Duration
+	intervalBase       time.Duration
+	intervalJitter     time.Duration
 	healthyThreshold   uint32
 	unhealthyThreshold uint32
-
-	sessionFactory sessionFactory
-	stats          *healthCheckStats
+	rander             *rand.Rand
+	hostCheckCallbacks []types.HealthCheckCb
 }
 
-func newHealthChecker(config v2.HealthCheck) *healthChecker {
+func newHealthChecker(cfg v2.HealthCheck, cluster types.Cluster, f types.HealthCheckSessionFactory) types.HealthChecker {
+	timeout := DefaultTimeout
+	if cfg.Timeout != 0 {
+		timeout = cfg.Timeout
+	}
+	interval := DefaultInterval
+	if cfg.Interval != 0 {
+		interval = cfg.Interval
+	}
 	hc := &healthChecker{
-		healthCheckSessions: make(map[types.Host]types.HealthCheckSession),
-		timeout:             config.Timeout,
-		interval:            config.Interval,
-		intervalJitter:      config.IntervalJitter,
-		healthyThreshold:    config.HealthyThreshold,
-		unhealthyThreshold:  config.UnhealthyThreshold,
-		stats:               newHealthCheckStats(config.ServiceName),
+		// cfg
+		sessionConfig:      cfg.SessionConfig,
+		timeout:            timeout,
+		intervalBase:       interval,
+		intervalJitter:     cfg.IntervalJitter,
+		healthyThreshold:   cfg.HealthyThreshold,
+		unhealthyThreshold: cfg.UnhealthyThreshold,
+		//runtime and stats
+		cluster:            cluster,
+		rander:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		hostCheckCallbacks: []types.HealthCheckCb{},
+		sessionFactory:     f,
+		mutex:              sync.Mutex{},
+		checkers:           make(map[string]*sessionChecker),
+		stats:              newHealthCheckStats(cfg.ServiceName),
 	}
-
-	if config.ServiceName != "" {
-		hc.serviceName = config.ServiceName
+	// Add common callbacks when create
+	// common callbacks should be registered and configured
+	for _, name := range cfg.CommonCallbacks {
+		if cb, ok := commonCallbacks[name]; ok {
+			hc.AddHostCheckCompleteCb(cb)
+		}
 	}
-
 	return hc
 }
 
-func (c *healthChecker) SetCluster(cluster types.Cluster) {
-	c.cluster = cluster
-}
-
-func (c *healthChecker) Start() {
-	for _, hostSet := range c.cluster.PrioritySet().HostSetsByPriority() {
-		c.addHosts(hostSet.Hosts())
-	}
-}
-
-func (c *healthChecker) Stop() {
-	// todo
-}
-
-func (c *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
-	c.healthCheckCbs = append(c.healthCheckCbs, cb)
-}
-
-func (c *healthChecker) newSession(host types.Host) types.HealthCheckSession {
-	if c.sessionFactory != nil {
-		return c.sessionFactory.newSession(host)
-	}
-
-	return &healthCheckSession{
-		healthChecker: c,
-		host:          host,
-	}
-}
-
-func (c *healthChecker) addHosts(hosts []types.Host) {
-	for _, host := range hosts {
-		h := host
-
-		go func() {
-			var ns types.HealthCheckSession
-
-			if ns = c.newSession(h); ns == nil {
-				log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", h.AddressString())
-				return
-			}
-
-			c.healthCheckSessions[h] = ns
-			c.healthCheckSessions[h].Start()
-		}()
-	}
-}
-
-func (c *healthChecker) delHosts(hosts []types.Host) {}
-
-func (c *healthChecker) OnClusterMemberUpdate(hostsAdded []types.Host, hostDel []types.Host) {
-	c.addHosts(hostsAdded)
-	c.delHosts(hostDel)
-}
-
-func (c *healthChecker) decHealthy() {
-	c.localProcessHealthy--
-	c.refreshHealthyStat()
-}
-
-func (c *healthChecker) incHealthy() {
-	c.localProcessHealthy++
-	c.refreshHealthyStat()
-}
-
-func (c *healthChecker) refreshHealthyStat() {
-	c.stats.healthy.Update(int64(c.localProcessHealthy))
-}
-
-func (c *healthChecker) getStats() *healthCheckStats {
-	return c.stats
-}
-
-func (c *healthChecker) getInterval() time.Duration {
-	baseInterval := c.interval
-
-	if c.intervalJitter > 0 {
-		jitter := int(rand.Float32() * float32(c.intervalJitter))
-		baseInterval += time.Duration(jitter)
-	}
-
-	if baseInterval < 0 {
-		baseInterval = 0
-	}
-
-	maxUint := ^uint(0)
-	if uint(baseInterval) > maxUint {
-		baseInterval = time.Duration(maxUint)
-	}
-
-	return baseInterval
-}
-
-func (c *healthChecker) getTimeoutDuration() time.Duration {
-	baseInterval := c.timeout
-
-	if baseInterval < 0 {
-		baseInterval = 0
-	}
-
-	maxUint := ^uint(0)
-	if uint(baseInterval) > maxUint {
-		baseInterval = time.Duration(maxUint)
-	}
-
-	return baseInterval
-}
-
-// when health receive handling result
-func (c *healthChecker) runCallbacks(host types.Host, changed bool) {
-	c.refreshHealthyStat()
-
-	for _, cb := range c.healthCheckCbs {
-		cb(host, changed)
-	}
-}
-
-type healthCheckSession struct {
-	healthChecker *healthChecker
-
-	intervalTimer *timer
-	timeoutTimer  *timer
-
-	numHealthy   uint32
-	numUnHealthy uint32
-	host         types.Host
-}
-
-func newHealthCheckSession(hc *healthChecker, host types.Host) *healthCheckSession {
-	hcs := &healthCheckSession{
-		healthChecker: hc,
-		host:          host,
-	}
-
-	if !host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
-		hcs.healthChecker.decHealthy()
-	}
-
-	return hcs
-}
-
-func (s *healthCheckSession) Start() {
-	s.onInterval()
-}
-
-//// stop intervalTimer to stop sending health message
-func (s *healthCheckSession) Stop() {
-	s.intervalTimer.stop()
-}
-
-func (s *healthCheckSession) handleSuccess() {
-	s.numUnHealthy = 0
-
-	stateChanged := false
-	if s.host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
-		s.numHealthy++
-
-		if s.numHealthy == s.healthChecker.healthyThreshold {
-			s.host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
-			s.healthChecker.incHealthy()
-			stateChanged = true
+func (hc *healthChecker) Start() {
+	for _, hostSet := range hc.cluster.PrioritySet().HostSetsByPriority() {
+		hosts := hostSet.Hosts()
+		for _, h := range hosts {
+			hc.startCheck(h)
 		}
 	}
-
-	s.healthChecker.stats.success.Inc(1)
-	s.healthChecker.runCallbacks(s.host, stateChanged)
-
-	// stop timeout timer
-	s.timeoutTimer.stop()
-	// start a new interval timer
-	s.intervalTimer.start(s.healthChecker.getInterval())
+	hc.stats.healthy.Update(hc.localProcessHealthy)
 }
 
-func (s *healthCheckSession) SetUnhealthy(fType types.FailureType) {
-	s.numHealthy = 0
-
-	stateChanged := false
-	if !s.host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
-		s.numUnHealthy++
-
-		if s.numUnHealthy == s.healthChecker.unhealthyThreshold {
-			s.host.SetHealthFlag(types.FAILED_ACTIVE_HC)
-			s.healthChecker.decHealthy()
-			stateChanged = true
+func (hc *healthChecker) Stop() {
+	for _, hostSet := range hc.cluster.PrioritySet().HostSetsByPriority() {
+		hosts := hostSet.Hosts()
+		for _, h := range hosts {
+			hc.stopCheck(h)
 		}
 	}
+}
 
-	s.healthChecker.stats.failure.Inc(1)
+func (hc *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
+	hc.hostCheckCallbacks = append(hc.hostCheckCallbacks, cb)
+}
 
-	switch fType {
+func (hc *healthChecker) OnClusterMemberUpdate(hostsAdd []types.Host, hostsDel []types.Host) {
+	for _, h := range hostsAdd {
+		hc.startCheck(h)
+	}
+	for _, h := range hostsDel {
+		hc.stopCheck(h)
+	}
+	hc.stats.healthy.Update(hc.localProcessHealthy)
+}
+
+func (hc *healthChecker) Add(host types.Host) {
+	hc.startCheck(host)
+}
+
+func (hc *healthChecker) startCheck(host types.Host) {
+	addr := host.AddressString()
+	hc.mutex.Lock()
+	defer hc.mutex.Unlock()
+	if _, ok := hc.checkers[addr]; !ok {
+		s := hc.sessionFactory.NewSession(hc.sessionConfig, host)
+		if s == nil {
+			log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", addr)
+			return
+		}
+		c := newChecker(s, host, hc)
+		hc.checkers[addr] = c
+		go c.Start()
+		hc.localProcessHealthy++ // default host is healthy
+		log.DefaultLogger.Infof("create a health check session for %s", addr)
+	}
+}
+
+func (hc *healthChecker) Delete(host types.Host) {
+	hc.stopCheck(host)
+}
+
+func (hc *healthChecker) stopCheck(host types.Host) {
+	addr := host.AddressString()
+	hc.mutex.Lock()
+	defer hc.mutex.Unlock()
+	if c, ok := hc.checkers[addr]; ok {
+		c.Stop()
+		delete(hc.checkers, addr)
+		hc.localProcessHealthy-- // deleted check is unhealthy
+		log.DefaultLogger.Infof("remove a health check session for %s", addr)
+	}
+}
+
+func (hc *healthChecker) runCallbacks(host types.Host, changed bool, isHealthy bool) {
+	hc.stats.healthy.Update(hc.localProcessHealthy)
+	for _, cb := range hc.hostCheckCallbacks {
+		cb(host, changed, isHealthy)
+	}
+}
+
+func (hc *healthChecker) getCheckInterval() time.Duration {
+	interval := hc.intervalBase
+	if hc.intervalJitter > 0 {
+		interval += time.Duration(hc.rander.Int63n(int64(hc.intervalJitter)))
+	}
+	// TODO: support jitter percentage
+	return interval
+}
+
+func (hc *healthChecker) incHealthy(host types.Host, changed bool) {
+	hc.stats.success.Inc(1)
+	if changed {
+		hc.localProcessHealthy++
+	}
+	hc.runCallbacks(host, changed, true)
+}
+
+func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, changed bool) {
+	hc.stats.failure.Inc(1)
+	if changed {
+		hc.localProcessHealthy--
+	}
+	switch reason {
+	case types.FailureActive:
+		hc.stats.activeFailure.Inc(1)
 	case types.FailureNetwork:
-		s.healthChecker.stats.networkFailure.Inc(1)
-	case types.FailurePassive:
-		s.healthChecker.stats.passiveFailure.Inc(1)
+		hc.stats.networkFailure.Inc(1)
+	case types.FailurePassive: //TODO: not support yet
+		hc.stats.passiveFailure.Inc(1)
 	}
+	hc.runCallbacks(host, changed, false)
 
-	s.healthChecker.runCallbacks(s.host, stateChanged)
-}
-
-func (s *healthCheckSession) handleFailure(fType types.FailureType) {
-	s.SetUnhealthy(fType)
-
-	// stop timeout timer
-	s.timeoutTimer.stop()
-
-	// start a new interval timer
-	s.intervalTimer.start(s.healthChecker.getInterval())
-}
-
-func (s *healthCheckSession) onInterval() {
-	s.timeoutTimer.start(s.healthChecker.getTimeoutDuration())
-	s.healthChecker.stats.attempt.Inc(1)
-}
-
-func (s *healthCheckSession) onTimeout() {
-	s.SetUnhealthy(types.FailureNetwork)
-	// sending another health check
-	s.intervalTimer.start(s.healthChecker.getInterval())
-}
-
-type healthCheckStats struct {
-	attempt        metrics.Counter
-	success        metrics.Counter
-	failure        metrics.Counter
-	passiveFailure metrics.Counter
-	networkFailure metrics.Counter
-	verifyCluster  metrics.Counter
-	healthy        metrics.Gauge
-}
-
-func newHealthCheckStats(namespace string) *healthCheckStats {
-	m := stats.NewHealthStats(namespace)
-	return &healthCheckStats{
-		attempt:        m.Counter(stats.HealthCheckAttempt),
-		success:        m.Counter(stats.HealthCheckSuccess),
-		failure:        m.Counter(stats.HealthCheckFailure),
-		passiveFailure: m.Counter(stats.HealthCheckPassiveFailure),
-		networkFailure: m.Counter(stats.HealthCheckNetworkFailure),
-		verifyCluster:  m.Counter(stats.HealthCheckVeirfyCluster),
-		healthy:        m.Gauge(stats.HealthCheckHealthy),
-	}
 }

@@ -29,14 +29,12 @@ import (
 )
 
 type hostSet struct {
-	priority                uint32
-	hosts                   []types.Host
-	healthyHosts            []types.Host
-	hostsPerLocality        [][]types.Host
-	healthyHostsPerLocality [][]types.Host
-	mux                     sync.RWMutex
-	updateCallbacks         []types.MemberUpdateCallback
-	metadata                v2.Metadata
+	priority        uint32
+	hosts           []types.Host
+	healthyHosts    []types.Host
+	mux             sync.RWMutex
+	updateCallbacks []types.MemberUpdateCallback
+	metadata        v2.Metadata
 }
 
 func (hs *hostSet) Hosts() []types.Host {
@@ -53,30 +51,12 @@ func (hs *hostSet) HealthyHosts() []types.Host {
 	return hs.healthyHosts
 }
 
-func (hs *hostSet) HostsPerLocality() [][]types.Host {
-	hs.mux.RLock()
-	defer hs.mux.RUnlock()
-
-	return hs.hostsPerLocality
-}
-
-func (hs *hostSet) HealthHostsPerLocality() [][]types.Host {
-	hs.mux.RLock()
-	defer hs.mux.RUnlock()
-
-	return hs.healthyHostsPerLocality
-}
-
-func (hs *hostSet) UpdateHosts(hosts []types.Host, healthyHosts []types.Host, hostsPerLocality [][]types.Host,
-	healthyHostsPerLocality [][]types.Host, hostsAdded []types.Host, hostsRemoved []types.Host) {
-
+func (hs *hostSet) UpdateHosts(hosts []types.Host, healthyHosts []types.Host, hostsAdded []types.Host, hostsRemoved []types.Host) {
 	// todo change mutex
 	// modified because in updateCb(), there is lock condition
 	hs.mux.Lock()
 	hs.hosts = hosts
 	hs.healthyHosts = healthyHosts
-	hs.hostsPerLocality = hostsPerLocality
-	hs.healthyHostsPerLocality = healthyHostsPerLocality
 	hs.mux.Unlock()
 
 	for _, updateCb := range hs.updateCallbacks {

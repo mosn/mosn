@@ -18,306 +18,192 @@
 package healthcheck
 
 import (
+	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 )
 
-const (
-	testHealthCheckInterval = 200 // ms
-	testHealthCheckTimeout  = 500 // ms
-	testHealthyThreshold    = 5
-	testUnhealthyThreshold  = 5
-)
-
-var (
-	testIntervalDeadline  = time.Duration(2*testHealthCheckInterval*testUnhealthyThreshold + 50)
-	testTimeoutDeadline   = time.Duration(2*testHealthCheckTimeout*testUnhealthyThreshold + 50)
-	failureToSuccessChain bool
-	successToFailureChain bool
-)
-
-type mockHealthChecker struct {
-	healthChecker
-
-	mode int // 1:success, 2:failed, 3: failed -> success, 4: success -> failed, 5: timeout
+type testCounter struct {
+	changed   uint32
+	unchanged uint32
+}
+type testResult struct {
+	results map[string]*testCounter
 }
 
-func newMockHealthCheck(config v2.HealthCheck, mode int) types.HealthChecker {
-	hc := newHealthChecker(config)
-
-	mhc := &mockHealthChecker{
-		healthChecker: *hc,
-		mode:          mode,
+func (r *testResult) testCallback(host types.Host, changed bool, isHealthy bool) {
+	addr := host.AddressString()
+	c, ok := r.results[addr]
+	if !ok {
+		c = &testCounter{}
+		r.results[addr] = c
 	}
-
-	mhc.sessionFactory = mhc
-
-	return mhc
-}
-
-func (c *mockHealthChecker) newSession(host types.Host) types.HealthCheckSession {
-	shcs := &mockHealthCheckSession{
-		healthChecker:      c,
-		healthCheckSession: *newHealthCheckSession(&c.healthChecker, host),
+	if changed {
+		atomic.AddUint32(&c.changed, 1)
+	} else {
+		atomic.AddUint32(&c.unchanged, 1)
 	}
-
-	// add timer to trigger hb sending and timeout handling
-	shcs.intervalTimer = newTimer(shcs.onInterval)
-	shcs.timeoutTimer = newTimer(shcs.onTimeout)
-
-	return shcs
 }
 
-type mockHealthCheckSession struct {
-	healthCheckSession
-
-	healthChecker *mockHealthChecker
-
-	healthyThreshold   uint32
-	unhealthyThreshold uint32
-
-	failureCounter int
-	successCounter int
+type testCase struct {
+	ServiceName string               // ServiceName is used to diff stats
+	host        *mockHost            // mock host to check health
+	running     func(host *mockHost) // running function, usually just wait some times
+	verify      func(hc *healthChecker) error
 }
 
-func (s *mockHealthCheckSession) Start() {
-	// start interval timer
-	s.onInterval()
-}
-
-func (s *mockHealthCheckSession) onInterval() {
-	s.mockHealthCheckAction()
-
-	s.healthCheckSession.onInterval()
-}
-
-func (s *mockHealthCheckSession) mockHealthCheckAction() {
-	switch s.healthChecker.mode {
-	case 1, 2, 3, 4:
-		go func() {
-			select {
-			case <-time.After(s.healthChecker.interval):
-				switch s.healthChecker.mode {
-				case 1:
-					//fmt.Println("handle success")
-					s.handleSuccess()
-				case 2:
-					// fmt.Println("handle failure")
-					s.handleFailure(types.FailureActive)
-				case 3:
-					if failureToSuccessChain {
-						//fmt.Println("handle success")
-						s.handleSuccess()
-					} else {
-						// fmt.Println("handle failure")
-						s.handleFailure(types.FailureActive)
-					}
-				case 4:
-					if successToFailureChain {
-						//fmt.Println("handle failure")
-						s.handleFailure(types.FailureActive)
-					} else {
-						//fmt.Println("handle success")
-						s.handleSuccess()
-					}
+func TestHealthCheck(t *testing.T) {
+	interval := 500 * time.Millisecond
+	RegisterSessionFactory(types.Protocol("test"), &mockSessionFactory{})
+	result := &testResult{
+		results: map[string]*testCounter{},
+	}
+	// add common callbacks
+	RegisterCommonCallbacks("test", result.testCallback)
+	testCases := []testCase{
+		testCase{
+			ServiceName: "test_success",
+			host: &mockHost{
+				addr:   "test_success",
+				status: true,
+			},
+			running: func(*mockHost) {
+				time.Sleep(5 * interval)
+			},
+			verify: func(hc *healthChecker) error {
+				// verify, sleep 5 intervals, at least 4 health check
+				cbCounter := result.results["test_success"]
+				if cbCounter.unchanged < 4 {
+					return fmt.Errorf("do not call enough callbacks %d", cbCounter.unchanged)
 				}
-			}
-		}()
-
-	case 5:
-		// do nothing
-		// wait timeout
-	}
-}
-
-func Test_success(t *testing.T) {
-	c := mockEnv(1)
-
-	checkLoop := 0
-
-	for {
-		// (interval + interval) * threshold
-		time.Sleep(testIntervalDeadline * time.Millisecond)
-
-		hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
-
-		if hostCounter != 1 {
-			t.Fatal("err host counter")
-		}
-
-		hhostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).HealthyHosts())
-
-		if hhostCounter != 1 {
-			t.Fatal("err healthy host content")
-		}
-
-		checkLoop++
-		if checkLoop > 3 {
-			break
-		}
-	}
-}
-
-func Test_failure(t *testing.T) {
-	c := mockEnv(2)
-
-	checkLoop := 0
-
-	for {
-		// (interval + interval) * threshold
-		time.Sleep(testIntervalDeadline * time.Millisecond)
-
-		hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
-
-		if hostCounter != 1 {
-			t.Fatal("err host counter")
-		}
-
-		hhostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).HealthyHosts())
-
-		if hhostCounter != 0 {
-			t.Fatal("err healthy host content")
-		}
-
-		checkLoop++
-		if checkLoop > 3 {
-			break
-		}
-	}
-}
-
-func Test_failure_2_success(t *testing.T) {
-	c := mockEnv(3)
-	checkLoop := 0
-
-	for {
-		checkLoop++
-		if checkLoop > 3 {
-			failureToSuccessChain = true
-		}
-
-		// (interval + interval) * threshold
-		time.Sleep(testIntervalDeadline * time.Millisecond)
-
-		hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
-		hhostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).HealthyHosts())
-
-		if hostCounter != 1 {
-			t.Fatal("err host counter")
-		}
-
-		if checkLoop > 6 {
-			break
-		} else if checkLoop > 3 {
-			if hhostCounter != 1 {
-				t.Fatal("err healthy host content")
-			}
-		} else {
-			if hhostCounter != 0 {
-				t.Fatal("err healthy host content")
-			}
-		}
-	}
-}
-
-func Test_success_2_failed(t *testing.T) {
-	c := mockEnv(4)
-	checkLoop := 0
-
-	for {
-		checkLoop++
-		if checkLoop > 3 {
-			successToFailureChain = true
-		}
-
-		// (interval + interval) * threshold
-		time.Sleep(testIntervalDeadline * time.Millisecond)
-
-		hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
-		hhostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).HealthyHosts())
-
-		if hostCounter != 1 {
-			t.Fatal("err host counter")
-		}
-
-		if checkLoop > 6 {
-			break
-		} else if checkLoop > 3 {
-			if hhostCounter != 0 {
-				t.Fatal("err healthy host content")
-			}
-		} else {
-			if hhostCounter != 1 {
-				t.Fatal("err healthy host content")
-			}
-		}
-	}
-}
-
-func Test_timeout(t *testing.T) {
-	c := mockEnv(5)
-
-	// (timeout + timeout) * threshold
-	time.Sleep(testTimeoutDeadline * time.Millisecond)
-
-	hostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).Hosts())
-
-	if hostCounter != 1 {
-		t.Fatal("err host counter")
-	}
-
-	hhostCounter := len(c.PrioritySet().GetOrCreateHostSet(1).HealthyHosts())
-
-	if hhostCounter != 0 {
-		t.Fatal("err healthy host content")
-	}
-}
-
-func Test_cluster_modified(t *testing.T) {
-	// todo
-}
-
-func mockEnv(mode int) types.Cluster {
-	log.InitDefaultLogger("", log.DEBUG)
-
-	config := v2.HealthCheck{
-		HealthCheckConfig: v2.HealthCheckConfig{
-			Protocol:           "mock",
-			HealthyThreshold:   testHealthyThreshold,
-			UnhealthyThreshold: testUnhealthyThreshold,
+				if !(hc.stats.attempt.Count() >= 4 &&
+					hc.stats.success.Count() >= 4 &&
+					hc.stats.failure.Count() == 0 &&
+					hc.stats.healthy.Value() == 1) {
+					return fmt.Errorf("stats not expected, %d, %d, %d, %d", hc.stats.attempt.Count(), hc.stats.success.Count(),
+						hc.stats.failure.Count(), hc.stats.healthy.Value())
+				}
+				return nil
+			},
 		},
-		Timeout:        testHealthCheckTimeout * time.Millisecond,
-		Interval:       testHealthCheckInterval * time.Millisecond,
-		IntervalJitter: 1,
-	}
+		testCase{
+			ServiceName: "test_fail",
+			host: &mockHost{
+				addr:   "test_fail",
+				status: false,
+			},
+			running: func(*mockHost) {
+				time.Sleep(5 * interval)
+			},
 
-	hc := newMockHealthCheck(config, mode)
-
-	c := cluster.NewCluster(v2.Cluster{
-		Name:        "test",
-		ClusterType: v2.SIMPLE_CLUSTER,
-		LbType:      v2.LB_RANDOM,
-	}, nil, true)
-
-	host := cluster.NewHost(v2.Host{
-		HostConfig: v2.HostConfig{
-			Address:  "127.0.0.1",
-			Hostname: "hostname",
-			Weight:   100,
+			verify: func(hc *healthChecker) error {
+				// verify, sleep 5 intervals, at least 4 health check
+				// check fail, expected 1 changed
+				cbCounter := result.results["test_fail"]
+				if cbCounter.changed != 1 || cbCounter.unchanged+cbCounter.changed < 4 {
+					return fmt.Errorf("do not call enough callbacks %d, %d", cbCounter.changed, cbCounter.unchanged+cbCounter.changed)
+				}
+				if !(hc.stats.attempt.Count() >= 4 &&
+					hc.stats.success.Count() == 0 &&
+					hc.stats.failure.Count() >= 4 &&
+					hc.stats.activeFailure.Count() >= 4 &&
+					hc.stats.healthy.Value() == 0) {
+					return fmt.Errorf("stats not expected, %d, %d, %d, %d, %d", hc.stats.attempt.Count(), hc.stats.success.Count(),
+						hc.stats.failure.Count(), hc.stats.activeFailure.Count(), hc.stats.healthy.Value())
+				}
+				return nil
+			},
 		},
-	}, nil)
-	hosts := []types.Host{host}
-	hostsPerLocality := [][]types.Host{hosts}
-
-	c.PrioritySet().GetOrCreateHostSet(1).UpdateHosts(hosts, hosts,
-		hostsPerLocality, hostsPerLocality, nil, nil)
-
-	c.SetHealthChecker(hc)
-
-	return c
+		testCase{
+			ServiceName: "test_timeout",
+			host: &mockHost{
+				addr:   "test_timeout",
+				delay:  2 * time.Second,
+				status: true,
+			},
+			running: func(*mockHost) {
+				time.Sleep(3 * time.Second)
+			},
+			verify: func(hc *healthChecker) error {
+				// verify, timeout is 2 seconds, last 3 seconds, expected get a timeout failure
+				// should not retry more than 2
+				cbCounter := result.results["test_timeout"]
+				if cbCounter.changed != 1 {
+					return fmt.Errorf("timeout changed not expected %d", cbCounter.changed)
+				}
+				if !(hc.stats.attempt.Count() >= 1 &&
+					hc.stats.attempt.Count() <= 2 &&
+					hc.stats.success.Count() == 0 &&
+					hc.stats.failure.Count() == 1 &&
+					hc.stats.networkFailure.Count() == 1 &&
+					hc.stats.healthy.Value() == 0) {
+					return fmt.Errorf("stats not expected, %d, %d, %d, %d, %d", hc.stats.attempt.Count(), hc.stats.success.Count(),
+						hc.stats.failure.Count(), hc.stats.networkFailure.Count(), hc.stats.healthy.Value())
+				}
+				return nil
+			},
+		},
+		testCase{
+			ServiceName: "test_fail2good",
+			host: &mockHost{
+				addr:   "test_fail2good",
+				status: false,
+			},
+			running: func(host *mockHost) {
+				time.Sleep(interval + interval/2)
+				host.status = true
+				time.Sleep(5 * interval)
+			},
+			verify: func(hc *healthChecker) error {
+				// good - bad - good, 2 changed
+				// at least 4 attempts
+				cbCounter := result.results["test_fail2good"]
+				if cbCounter.changed != 2 || cbCounter.unchanged+cbCounter.changed < 4 {
+					return fmt.Errorf("do not call enough callbacks %d, %d", cbCounter.changed, cbCounter.unchanged+cbCounter.changed)
+				}
+				if !(hc.stats.attempt.Count() >= 4 &&
+					hc.stats.success.Count() >= 4 &&
+					hc.stats.failure.Count() == 1 &&
+					hc.stats.activeFailure.Count() == 1 &&
+					hc.stats.healthy.Value() == 1) {
+					return fmt.Errorf("stats not expected, %d, %d, %d, %d, %d", hc.stats.attempt.Count(), hc.stats.success.Count(),
+						hc.stats.failure.Count(), hc.stats.activeFailure.Count(), hc.stats.healthy.Value())
+				}
+				return nil
+			},
+		},
+	}
+	for i, tc := range testCases {
+		cfg := v2.HealthCheck{
+			HealthCheckConfig: v2.HealthCheckConfig{
+				Protocol:           "test",
+				HealthyThreshold:   1,
+				UnhealthyThreshold: 1,
+				ServiceName:        tc.ServiceName,
+				CommonCallbacks:    []string{"test"},
+			},
+			Interval: interval,
+		}
+		cluster := &mockCluster{
+			ps: &mockPrioritySet{
+				hs: &mockHostSet{
+					hosts: []types.Host{
+						tc.host,
+					},
+				},
+			},
+		}
+		hc := CreateHealthCheck(cfg, cluster)
+		hc.Start()
+		tc.running(tc.host)
+		hc.Stop()
+		raw := hc.(*healthChecker)
+		if err := tc.verify(raw); err != nil {
+			t.Errorf("#%d, %v", i, err)
+		}
+	}
 }
