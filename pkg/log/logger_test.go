@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"testing"
 	"time"
+	"os"
 )
 
 func TestLogPrintDiscard(t *testing.T) {
@@ -49,6 +50,29 @@ func TestLogPrintDiscard(t *testing.T) {
 	}
 }
 
+func TestLogPrintnull(t *testing.T) {
+	logName := "/tmp/mosn_bench/printnull.log"
+	os.Remove(logName)
+	l, _ := NewLogger(logName, DEBUG)
+	buf := buffer.GetIoBuffer(0)
+	buf.WriteString("testlog")
+	l.Print(buf, false)
+	buf = buffer.GetIoBuffer(0)
+	buf.WriteString("")
+	l.Print(buf, false)
+	l.Close()
+	f, _ := os.Open(logName)
+	b := make([]byte, 1024)
+	n, _ := f.Read(b)
+	f.Close()
+	if n != len("testlog") {
+		t.Errorf("Printnull error")
+	}
+	if string(b[:n]) != "testlog" {
+		t.Errorf("Printnull error")
+	}
+}
+
 func BenchmarkLog(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	//InitDefaultLogger("", INFO)
@@ -69,4 +93,18 @@ func BenchmarkLogParallel(b *testing.B) {
 			l.Debugf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
 		}
 	})
+}
+
+func BenchmarkLogTimeFormat(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	for n := 0; n < b.N; n++ {
+		time.Now().Format("2006/01/02 15:04:05")
+	}
+}
+
+func BenchmarkLogTime(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	for n := 0; n < b.N; n++ {
+		logTime()
+	}
 }
