@@ -107,7 +107,8 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 		if conn != nil {
 			if first {
-				conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+				// TODO: support configure
+				conn.SetReadDeadline(time.Now().Add(types.DefaultConnReadTimeout))
 			} else {
 				conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
 			}
