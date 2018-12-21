@@ -218,7 +218,7 @@ func (tracer *SofaTracer) PrintSpan(spanP types.Span) error {
 			printData.WriteString("}")
 			printData.WriteString("\n")
 
-			return tracer.egressLogger.Print(printData, true)
+			return tracer.ingressLogger.Print(printData, true)
 		}
 
 		if span.tags[SPAN_TYPE] == "egress" {
