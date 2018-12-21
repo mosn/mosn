@@ -106,7 +106,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 
 	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 	if err != nil {
-		log.DefaultLogger.Fatalf("create tls context manager failed, %v", err)
+		log.DefaultLogger.Errorf("create tls context manager failed, %v", err)
 	}
 	cluster.info.tlsMng = mgr
 	// add health check, should have a service name for stats

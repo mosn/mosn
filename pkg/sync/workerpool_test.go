@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"time"
 )
 
 type TestJob struct {
@@ -83,11 +82,6 @@ func TestJobOrder(t *testing.T) {
 	}
 
 	wg.Wait()
-
-	// wait flush end for codecov
-	for atomic.LoadUint32(&pool.(*shardWorkerPool).schedule) != 0 {
-		time.Sleep(time.Millisecond * 10)
-	}
 }
 
 func eventProcess(b *testing.B) {

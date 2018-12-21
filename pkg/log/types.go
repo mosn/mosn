@@ -17,6 +17,8 @@
 
 package log
 
+import "github.com/alipay/sofa-mosn/pkg/types"
+
 type Level uint8
 
 const (
@@ -26,6 +28,7 @@ const (
 	INFO
 	DEBUG
 	TRACE
+	RAW
 )
 
 const (
@@ -33,11 +36,13 @@ const (
 	DebugPre string = "[DEBUG]"
 	WarnPre  string = "[WARN]"
 	ErrorPre string = "[ERROR]"
-	FatalPre string = "[Fatal]"
+	FatalPre string = "[FATAL]"
 	TracePre string = "[TRACE]"
 )
 
 type Logger interface {
+	Print(buffer types.IoBuffer, discard bool) error
+
 	Println(args ...interface{})
 
 	Printf(format string, args ...interface{})
@@ -54,9 +59,11 @@ type Logger interface {
 
 	Fatalf(format string, args ...interface{})
 
+	Fatal(args ...interface{})
+
+	Fatalln(args ...interface{})
+
 	Close() error
 
 	Reopen() error
-
-	SetFlags(flag int)
 }

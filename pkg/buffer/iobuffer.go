@@ -193,6 +193,16 @@ func (b *IoBuffer) Write(p []byte) (n int, err error) {
 	return copy(b.buf[m:], p), nil
 }
 
+func (b *IoBuffer) WriteString(s string) (n int, err error) {
+	m, ok := b.tryGrowByReslice(len(s))
+
+	if !ok {
+		m = b.grow(len(s))
+	}
+
+	return copy(b.buf[m:], s), nil
+}
+
 func (b *IoBuffer) tryGrowByReslice(n int) (int, bool) {
 	if l := len(b.buf); l+n <= cap(b.buf) {
 		b.buf = b.buf[:l+n]

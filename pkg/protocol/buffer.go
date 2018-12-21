@@ -24,6 +24,10 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+func init() {
+	buffer.RegisterBuffer(&ins)
+}
+
 var (
 	ins = protocolBufferCtx{}
 
@@ -44,10 +48,8 @@ type ProtocolBuffers struct {
 	rspTrailers map[string]string
 }
 
-type protocolBufferCtx struct{}
-
-func (ctx protocolBufferCtx) Name() int {
-	return buffer.Protocol
+type protocolBufferCtx struct{
+	 buffer.TempBufferCtx
 }
 
 func (ctx protocolBufferCtx) New() interface{} {
@@ -141,5 +143,5 @@ func (p *ProtocolBuffers) GetRspTailers() map[string]string {
 // ProtocolBuffersByContext returns ProtocolBuffers by context
 func ProtocolBuffersByContext(ctx context.Context) *ProtocolBuffers {
 	poolCtx := buffer.PoolContext(ctx)
-	return poolCtx.Find(ins, nil).(*ProtocolBuffers)
+	return poolCtx.Find(&ins, nil).(*ProtocolBuffers)
 }

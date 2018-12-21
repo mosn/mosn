@@ -99,7 +99,7 @@ func (ch *connHandler) GenerateListenerID() string {
 	uuid := make([]byte, 16)
 	_, err := rand.Read(uuid)
 	if err != nil {
-		ch.logger.Fatalf("generate an uuid failed, error: %v", err)
+		ch.logger.Errorf("generate an uuid failed, error: %v", err)
 	}
 	// see section 4.1.1
 	uuid[8] = uuid[8]&^0xc0 | 0x80

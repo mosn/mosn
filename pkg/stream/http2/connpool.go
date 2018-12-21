@@ -25,11 +25,11 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/http2"
+	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 const (
@@ -38,7 +38,7 @@ const (
 )
 
 func init() {
-	proxy.RegisterNewPoolFactory(protocol.HTTP2, NewConnPool)
+	network.RegisterNewPoolFactory(protocol.HTTP2, NewConnPool)
 	types.RegisterConnPoolFactory(protocol.HTTP2, true)
 }
 
