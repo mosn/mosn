@@ -59,6 +59,7 @@
             {
               "type": "rbac",
               "config": {
+                "version": "app1_version_1",
                 "rules": {
                   "action": "DENY",
                   "policies": {

@@ -1,4 +1,5 @@
 {
+  "version": "app1_version_1",
   "rules": {
     "action": "ALLOW",
     "policies": {

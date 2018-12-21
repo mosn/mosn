@@ -19,10 +19,10 @@ package common
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/gogo/protobuf/jsonpb"
 )
@@ -56,16 +56,28 @@ func headerMapper(target string, headers types.HeaderMap) (string, bool) {
 func ParseRbacFilterConfig(cfg map[string]interface{}) (*v2.RBAC, error) {
 	filterConfig := new(v2.RBAC)
 
-	jsonConf, err := json.Marshal(cfg)
+	version, ok := cfg["version"]
+	if !ok {
+		return nil, errors.New("parseing rbac filter configuration failed, err: missing version field")
+	}
+
+	if v, ok := version.(string); ok {
+		filterConfig.Version = v
+	} else {
+		return nil, errors.New("rbac configuration version must be string")
+	}
+
+	jsonConf, err := json.Marshal(map[string]interface{}{
+		"rules":       cfg["rules"],
+		"shadowRules": cfg["shadowRules"],
+	})
 	if err != nil {
-		log.StartLogger.Errorf("parsing rabc filter configuration failed, err: %v, cfg: %v", err, cfg)
 		return nil, err
 	}
 
 	// parse rules
 	var un jsonpb.Unmarshaler
 	if err = un.Unmarshal(strings.NewReader(string(jsonConf)), &filterConfig.RBAC); err != nil {
-		log.StartLogger.Errorf("parsing rabc filter configuration failed, err: %v, cfg: %v", err, string(jsonConf))
 		return nil, err
 	}
 

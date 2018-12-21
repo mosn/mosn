@@ -174,6 +174,7 @@ type Mixer struct {
 // RBAC
 type RBAC struct {
 	envoy_config_v2.RBAC
+	Version string `json:"version"`
 }
 
 // Router, the list of routes that will be matched, in order, for incoming requests.
