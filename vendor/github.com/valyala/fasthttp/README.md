@@ -275,10 +275,10 @@ like in net/http. The following code is valid for fasthttp:
 but there are more powerful third-party routers and web frameworks
 with fasthttp support:
 
-  * [Iris](https://github.com/kataras/iris)
   * [fasthttp-routing](https://github.com/qiangxue/fasthttp-routing)
   * [fasthttprouter](https://github.com/buaazp/fasthttprouter)
   * [lu](https://github.com/vincentLiuxiang/lu)
+  * [atreugo](https://github.com/savsgio/atreugo)
 
   Net/http code with simple ServeMux is trivially converted to fasthttp code:
 
@@ -480,8 +480,6 @@ uintBuf := fasthttp.AppendUint(nil, 1234)
 
   * [fasthttp-contrib](https://github.com/fasthttp-contrib) - various useful
     helpers for projects based on fasthttp.
-  * [iris](https://github.com/kataras/iris) - web application framework built
-    on top of fasthttp. Features speed and functionality.
   * [fasthttp-routing](https://github.com/qiangxue/fasthttp-routing) - fast and
     powerful routing package for fasthttp servers.
   * [fasthttprouter](https://github.com/buaazp/fasthttprouter) - a high
@@ -490,6 +488,8 @@ uintBuf := fasthttp.AppendUint(nil, 1234)
     go middleware web framework which is based on fasthttp.
   * [websocket](https://github.com/leavengood/websocket) - Gorilla-based
     websocket implementation for fasthttp.
+  * [fasthttpsession](https://github.com/phachon/fasthttpsession) - a fast and powerful     session package for fasthttp servers.
+  * [atreugo](https://github.com/savsgio/atreugo) - Micro-framework to make simple the      use of routing and middlewares.
 
 
 # FAQ
@@ -555,11 +555,11 @@ uintBuf := fasthttp.AppendUint(nil, 1234)
   There are no plans to add request routing into fasthttp.
   Use third-party routers and web frameworks with fasthttp support:
 
-    * [Iris](https://github.com/kataras/iris)
     * [fasthttp-routing](https://github.com/qiangxue/fasthttp-routing)
     * [fasthttprouter](https://github.com/buaazp/fasthttprouter)
     * [gramework](https://github.com/gramework/gramework)
     * [lu](https://github.com/vincentLiuxiang/lu)
+    * [atreugo](https://github.com/savsgio/atreugo)
 
   See also [this issue](https://github.com/valyala/fasthttp/issues/9) for more info.
 

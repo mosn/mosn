@@ -24,17 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
-)
+	"encoding/json"
 
-// clear all metrics for test
-func clear() {
-	for _, r := range reg.registries {
-		r.UnregisterAll()
-	}
-	reg.registries = make(map[string]metrics.Registry)
-}
+	"github.com/alipay/sofa-mosn/pkg/types"
+)
 
 func addMetrics() {
 	// add metrics data
@@ -56,9 +49,9 @@ func addMetrics() {
 }
 
 func TestTransferData(t *testing.T) {
-	clear()
+	ResetAll()
 	addMetrics()
-	res1 := GetAllMetricsData()
+	res1, _ := json.Marshal(GetAllRegistries())
 	// get transfer data
 	b, err := makesTransferData()
 	if err != nil {
@@ -66,12 +59,12 @@ func TestTransferData(t *testing.T) {
 		return
 	}
 	// clear for new
-	clear()
+	ResetAll()
 	if err := readTransferData(b); err != nil {
 		t.Error(err)
 		return
 	}
-	res2 := GetAllMetricsData()
+	res2, _ := json.Marshal(GetAllRegistries())
 	if !reflect.DeepEqual(res1, res2) {
 		t.Error("transfer data not matched")
 	}
@@ -83,9 +76,9 @@ func TestTransferWithSocket(t *testing.T) {
 	os.Setenv(types.GracefulRestart, "true")
 	// set domain socket path
 	TransferDomainSocket = "/tmp/stats.sock"
-	clear()
+	ResetAll()
 	addMetrics()
-	res1 := GetAllMetricsData()
+	res1, _ := json.Marshal(GetAllRegistries())
 	ch := make(chan bool)
 	go TransferServer(30*time.Second, ch)
 	// Wait Server start
@@ -100,11 +93,11 @@ func TestTransferWithSocket(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	clear()
+	ResetAll()
 	transferMetrics(body, true, 5*time.Second) // client block, wait server response
 	//transferMetrics(body, false, 0)
 	//<-ch  // server receive a conn
-	res2 := GetAllMetricsData()
+	res2, _ := json.Marshal(GetAllRegistries())
 	if !reflect.DeepEqual(res1, res2) {
 		t.Error("transfer data not matched")
 	}
