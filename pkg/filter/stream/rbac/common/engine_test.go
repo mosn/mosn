@@ -18,6 +18,8 @@
 package common
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -36,10 +38,23 @@ func genRoleBasedAccessControlEngine(confPath string) (*RoleBasedAccessControlEn
 		return nil, nil, err
 	}
 
+	var cfg map[string]interface{}
+	if err := json.Unmarshal(conf, &cfg); err != nil {
+		return nil, nil, errors.New("genRoleBasedAccessControlEngine failed")
+	}
+
+	jsonConf, err := json.Marshal(map[string]interface{}{
+		"rules":       cfg["rules"],
+		"shadowRules": cfg["shadowRules"],
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
 	// parse rules
 	filterConfig := new(v2.RBAC)
 	var un jsonpb.Unmarshaler
-	if err = un.Unmarshal(strings.NewReader(string(conf)), &filterConfig.RBAC); err != nil {
+	if err = un.Unmarshal(strings.NewReader(string(jsonConf)), &filterConfig.RBAC); err != nil {
 		return nil, nil, err
 	}
 
