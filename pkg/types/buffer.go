@@ -110,4 +110,10 @@ type IoBuffer interface {
 
 	// Count sets and returns reference count
 	Count(int) int
+
+	// EOF returns whether Io is EOF on the connection
+	EOF() bool
+
+	//SetEOF sets the IoBuffer EOF
+	SetEOF(eof bool)
 }

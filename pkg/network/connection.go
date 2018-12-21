@@ -503,7 +503,9 @@ func (c *connection) startWriteLoop() {
 				continue
 			}
 
-			if err == io.EOF {
+			if err == buffer.EOF {
+				c.Close(types.NoFlush, types.LocalClose)
+			} else if err == io.EOF {
 				// remote conn closed
 				c.Close(types.NoFlush, types.RemoteClose)
 			} else {
@@ -567,15 +569,13 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		return bytesSent, err
 	}
 	for _, buf := range c.ioBuffers {
+		if buf.EOF() {
+			err = buffer.EOF
+		}
 		buffer.PutIoBuffer(buf)
 	}
 	c.ioBuffers = c.ioBuffers[:0]
 	c.writeBuffers = c.writeBuffers[:0]
-	if len(buffers) != 0 {
-		for _, buf := range buffers {
-			c.writeBuffers = append(c.writeBuffers, buf)
-		}
-	}
 	return
 }
 
@@ -602,6 +602,11 @@ func (c *connection) writeBufLen() (bufLen int) {
 }
 
 func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.ConnectionEvent) error {
+	if ccType == types.FlushWrite {
+		c.Write(buffer.NewIoBufferEOF())
+		return nil
+	}
+
 	if !atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
 		return nil
 	}
@@ -615,27 +620,6 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
 		c.logger.Debugf("Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
 		rawc.CloseRead()
-	}
-
-	if ccType == types.FlushWrite {
-		if c.writeBufLen() > 0 {
-			c.closeWithFlush = true
-
-			for {
-
-				bytesSent, err := c.doWrite()
-
-				if err != nil {
-					if te, ok := err.(net.Error); !(ok && te.Timeout()) {
-						break
-					}
-				}
-
-				if bytesSent == 0 {
-					break
-				}
-			}
-		}
 	}
 
 	// wait for io loops exit, ensure single thread operate streams on the connection
