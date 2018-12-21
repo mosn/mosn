@@ -37,7 +37,7 @@ const (
 type rbacFilter struct {
 	context      context.Context
 	cb           types.StreamReceiverFilterCallbacks
-	status       *RbacStatus
+	status       *Status
 	protocol     int
 	engine       *common.RoleBasedAccessControlEngine
 	shadowEngine *common.RoleBasedAccessControlEngine
@@ -77,11 +77,11 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 	if matchPolicyName != "" {
 		log.DefaultLogger.Debugf("shoadow engine hit, policy name: %s", matchPolicyName)
 		// record metric log
-		f.status.ShadowEngineMetrics.Counter(matchPolicyName).Inc(1)
+		f.status.ShadowEnginePoliciesMetrics[matchPolicyName].Inc(1)
 		if allowed {
-			f.status.ShadowEngineMetrics.Counter(AllowedMetricsNamespace).Inc(1)
+			f.status.ShadowEngineAllowedTotal.Inc(1)
 		} else {
-			f.status.ShadowEngineMetrics.Counter(DeniedMetricsNamespace).Inc(1)
+			f.status.ShadowEngineDeniedTotal.Inc(1)
 		}
 	}
 
@@ -90,11 +90,11 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) ty
 	if matchPolicyName != "" {
 		log.DefaultLogger.Debugf("engine hit, policy name: %s", matchPolicyName)
 		// record metric log
-		f.status.EngineMetrics.Counter(matchPolicyName).Inc(1)
+		f.status.EnginePoliciesMetrics[matchPolicyName].Inc(1)
 		if allowed {
-			f.status.EngineMetrics.Counter(AllowedMetricsNamespace).Inc(1)
+			f.status.EngineAllowedTotal.Inc(1)
 		} else {
-			f.status.EngineMetrics.Counter(DeniedMetricsNamespace).Inc(1)
+			f.status.EngineDeniedTotal.Inc(1)
 		}
 	}
 	if !allowed {
