@@ -25,13 +25,13 @@ import (
 )
 
 func TestPrimaryCluster(t *testing.T) {
-	pc := NewPrimaryCluster(&cluster{}, &v2.Cluster{}, true)
-	if err := pc.UpdateCluster(&cluster{}, &v2.Cluster{}, true); err != nil {
+	info := &clusterInfo{}
+	pc := NewPrimaryCluster(&cluster{info: info}, &v2.Cluster{}, true)
+	if err := pc.UpdateCluster(&cluster{info: info}, &v2.Cluster{}, true); err != nil {
 		t.Error("update cluster failed")
 	}
 	hostsconfig := []v2.Host{host1, host2, host3, host4}
 	var hosts []types.Host
-	info := &clusterInfo{}
 	for _, h := range hostsconfig {
 		hosts = append(hosts, NewHost(h, info))
 	}

@@ -24,9 +24,12 @@
 package router
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var routerConfig = `{
@@ -206,14 +209,14 @@ func Test_routersManager_AddOrUpdateRouters(t *testing.T) {
 
 	routerConfigName := "test_router"
 
-	if _, ok := GetRoutersMangerInstance().routersMap.Load(routerConfigName); ok {
+	if _, ok := routersMangerInstance.routersMap.Load(routerConfigName); ok {
 		t.Errorf("test_router already exist")
 	}
 
 	if err := routerManager.AddOrUpdateRouters(router); err != nil {
 		t.Errorf(err.Error())
 	} else {
-		if value, ok := GetRoutersMangerInstance().routersMap.Load(routerConfigName); !ok {
+		if value, ok := routersMangerInstance.routersMap.Load(routerConfigName); !ok {
 			t.Errorf("AddOrUpdateRouters error, %s not found", routerConfigName)
 		} else {
 			if primaryRouters, ok := value.(*RoutersWrapper); ok {
@@ -279,5 +282,115 @@ func Test_routersManager_GetRouterWrapperByName(t *testing.T) {
 	// expect router has been updated for origin wrapper
 	if routers0_ != routers2 || routers1_ != routers2 {
 		t.Error("expect wrapper still the same but not ")
+	}
+}
+
+func Test_routersManager_AppendRoutersInVirtualHost(t *testing.T) {
+	routerManager := NewRouterManager()
+	bytes := []byte(routerConfig)
+	router := &v2.RouterConfiguration{}
+
+	if err := json.Unmarshal(bytes, router); err != nil {
+		t.Errorf(err.Error())
+	}
+
+	routerConfigName := "test_router"
+
+	if err := routerManager.AddOrUpdateRouters(router); err != nil {
+		t.Error("init router failed", err)
+	}
+
+	// add new routers with concurrency
+	routers := []v2.Router{
+		{
+			RouterConfig: v2.RouterConfig{
+				Match: v2.RouterMatch{
+					Path: "/test",
+				},
+				Route: v2.RouteAction{
+					RouterActionConfig: v2.RouterActionConfig{
+						ClusterName: "path",
+					},
+				},
+			},
+		},
+		{
+			RouterConfig: v2.RouterConfig{
+				Match: v2.RouterMatch{
+					Prefix: "/prefix-",
+				},
+				Route: v2.RouteAction{
+					RouterActionConfig: v2.RouterActionConfig{
+						ClusterName: "prefix",
+					},
+				},
+			},
+		},
+		{
+			RouterConfig: v2.RouterConfig{
+				Match: v2.RouterMatch{
+					Headers: []v2.HeaderMatcher{
+						{
+							Name:  types.SofaRouteMatchKey,
+							Value: ".*",
+						},
+					},
+				},
+				Route: v2.RouteAction{
+					RouterActionConfig: v2.RouterActionConfig{
+						ClusterName: "header",
+					},
+				},
+			},
+		},
+	}
+	wg := sync.WaitGroup{}
+	for i := 0; i < 3; i++ {
+		router := routers[i]
+		wg.Add(1)
+		go func(router v2.Router) {
+			routerManager.AppendRoutersInVirtualHost(routerConfigName, "", router)
+			wg.Done()
+		}(router)
+	}
+	wg.Wait()
+	// verify, use header match
+	// all expected routers should match as expected
+	rw := GetRoutersMangerInstance().GetRouterWrapperByName(routerConfigName)
+	if rw == nil {
+		t.Error("no router test_router")
+	}
+	testCases := []struct {
+		headers     types.HeaderMap
+		ClusterName string
+	}{
+		{
+			headers: protocol.CommonHeader(map[string]string{
+				protocol.MosnHeaderPathKey: "/test",
+			}),
+			ClusterName: "path",
+		},
+		{
+			headers: protocol.CommonHeader(map[string]string{
+				protocol.MosnHeaderPathKey: "/prefix-1234",
+			}),
+			ClusterName: "prefix",
+		},
+		{
+			headers: protocol.CommonHeader(map[string]string{
+				types.SofaRouteMatchKey: "any",
+			}),
+			ClusterName: "header",
+		},
+	}
+	for i, tc := range testCases {
+		matched := rw.GetRouters().Route(tc.headers, 1)
+		if matched == nil {
+			t.Errorf("%d router rule not added success", i)
+			continue
+		}
+		if matched.RouteRule().ClusterName() != tc.ClusterName {
+			t.Errorf("%d router match result not expected, got cluster %s", i, matched.RouteRule().ClusterName())
+		}
 	}
 }

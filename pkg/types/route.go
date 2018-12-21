@@ -54,6 +54,9 @@ type RouterManager interface {
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
+
+	//a AppendRoutersInVirtualHost appends a router into virtualhsot
+	AppendRoutersInVirtualHost(routerConfigName string, virtualhost string, router v2.Router)
 }
 
 // HandlerStatus returns the Handler's available status
