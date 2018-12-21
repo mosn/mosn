@@ -23,7 +23,6 @@ import (
 
 	"bufio"
 	"errors"
-	"io"
 	"net/http"
 	"runtime/debug"
 	"strconv"
@@ -158,6 +157,13 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	return
 }
 
+// conn callbacks
+func (conn *streamConnection) OnEvent(event types.ConnectionEvent) {
+	if event.IsClose() || event.ConnectFailure() {
+		close(conn.bufChan)
+	}
+}
+
 // types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection
@@ -180,6 +186,8 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 		connCallbacks:       connCallbacks,
 		streamConnCallbacks: streamConnCallbacks,
 	}
+
+	connection.AddConnectionEventListener(csc)
 
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
@@ -274,6 +282,8 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 		serverStreamConnCallbacks: callbacks,
 	}
 
+	connection.AddConnectionEventListener(ssc)
+
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
 
@@ -299,7 +309,8 @@ func (ssc *serverStreamConnection) serve() {
 		request := fasthttp.AcquireRequest()
 		err := request.Read(ssc.br)
 		if err != nil {
-			if err != errConnClose && err != io.EOF {
+			if ssc.stream != nil {
+				ssc.stream.ResetStream(types.StreamRemoteReset)
 				log.DefaultLogger.Errorf("Http server codec goroutine error: %s", err)
 			}
 			return
@@ -633,8 +644,8 @@ func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) 
 	}
 
 	// querystring
-	 queryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey);
-	 if ok {
+	queryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey);
+	if ok {
 		headers.Del(protocol.MosnHeaderQueryStringKey)
 		uri += "?" + queryString
 	}
