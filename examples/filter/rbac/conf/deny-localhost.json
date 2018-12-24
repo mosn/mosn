@@ -1,0 +1,100 @@
+{
+  "servers": [
+    {
+      "default_log_path": "stdout",
+      "default_log_level": "DEBUG",
+      "listeners": [
+        {
+          "name": "rbacFilterExample",
+          "address": "127.0.0.1:2045",
+          "bind_port": true,
+          "log_path": "stdout",
+          "filter_chains": [
+            {
+              "tls_context": {},
+              "filters": [
+                {
+                  "type": "proxy",
+                  "config": {
+                    "downstream_protocol": "Http1",
+                    "upstream_protocol": "Http1",
+                    "router_config_name": "server_router"
+                  }
+                },
+                {
+                  "type": "connection_manager",
+                  "config": {
+                    "router_config_name": "server_router",
+                    "virtual_hosts": [
+                      {
+                        "name": "serverHost",
+                        "domains": [
+                          "*"
+                        ],
+                        "routers": [
+                          {
+                            "match": {
+                              "prefix": "/"
+                            },
+                            "route": {
+                              "cluster_name": "serverCluster"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "stream_filters": [
+            {
+              "type": "rbac",
+              "config": {
+                "version": "app1_version_1",
+                "rules": {
+                  "action": "DENY",
+                  "policies": {
+                    "deny-localhost": {
+                      "permissions": [
+                        {
+                          "any": true
+                        }
+                      ],
+                      "principals": [
+                        {
+                          "sourceIp": {
+                            "addressPrefix": "127.0.0.1",
+                            "prefixLen": 32
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "shadowRules": {}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cluster_manager": {
+    "clusters": [
+      {
+        "Name": "serverCluster",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "max_request_per_conn": 1024,
+        "conn_buffer_limit_bytes": 32768,
+        "hosts": [
+          {
+            "address": "127.0.0.1:8080"
+          }
+        ]
+      }
+    ]
+  }
+}
