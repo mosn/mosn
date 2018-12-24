@@ -337,16 +337,18 @@ func (l *logger) Fatalln(args ...interface{}) {
 	os.Exit(1)
 }
 
-// default roller by daily
 func (l *logger) Write(p []byte) (n int, err error) {
-	if !l.create.IsZero() {
-		now := time.Now()
-		if l.create.Unix()/defaultRollerTime != now.Unix()/defaultRollerTime {
-			if err = os.Rename(l.Output, l.Output+"."+l.create.Format("2006-01-02")); err != nil {
-				return 0, err
+	// // default roller by daily
+	if l.roller == nil {
+		if !l.create.IsZero() {
+			now := time.Now()
+			if l.create.Unix()/defaultRollerTime != now.Unix()/defaultRollerTime {
+				if err = os.Rename(l.Output, l.Output+"."+l.create.Format("2006-01-02")); err != nil {
+					return 0, err
+				}
+				l.create = now
+				go l.Reopen()
 			}
-			l.create = now
-			go l.Reopen()
 		}
 	}
 	return l.writer.Write(p)
