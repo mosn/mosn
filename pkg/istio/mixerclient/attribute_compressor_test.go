@@ -30,7 +30,7 @@ import (
 )
 
 func init() {
-	log.InitDefaultLogger("", log.DEBUG, "")
+	log.InitDefaultLogger("", log.DEBUG)
 }
 
 const (

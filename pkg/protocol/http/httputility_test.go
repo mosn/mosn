@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	log.InitDefaultLogger("", log.DEBUG, "")
+	log.InitDefaultLogger("", log.DEBUG)
 }
 
 func TestParseQueryString(t *testing.T) {

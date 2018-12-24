@@ -81,7 +81,7 @@ func buildBoltV1Request(requestID uint64) *sofarpc.BoltRequest {
 }
 
 func main() {
-	log.InitDefaultLogger("", log.DEBUG,  "")
+	log.InitDefaultLogger("", log.DEBUG)
 	t := flag.Bool("t", false, "-t")
 	flag.Parse()
 	if client := NewClient("127.0.0.1:2045"); client != nil {

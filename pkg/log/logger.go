@@ -50,9 +50,9 @@ var (
 	// AccessLog z(path:/home/b)             -> RealLog b
 	loggers []*logger
 
-	lastTime     atomic.Value
+	lastTime atomic.Value
 
-	defaultRoller string
+	defaultRoller *Roller
 
 	//defaultRollerTime is one day
 	defaultRollerTime int64 = 24 * 60 * 60
@@ -86,11 +86,17 @@ type logger struct {
 
 // InitDefaultLogger
 // start default logger
-func InitDefaultLogger(output string, level Level, roller string) error {
+func InitDefaultLogger(output string, level Level) error {
 	var err error
-	defaultRoller = roller
 	DefaultLogger, err = NewLogger(output, level)
 
+	return err
+}
+
+// InitDefaultRoller
+func InitDefaultRoller(roller string) error {
+	var err error
+	defaultRoller, err = ParseRoller(roller)
 	return err
 }
 
@@ -104,7 +110,7 @@ func ByContext(ctx context.Context) Logger {
 	}
 
 	if DefaultLogger == nil {
-		InitDefaultLogger("", DEBUG, defaultRoller)
+		InitDefaultLogger("", DEBUG)
 	}
 
 	return DefaultLogger
@@ -125,15 +131,12 @@ func GetLoggerInstance(output string, level Level) (Logger, error) {
 // NewLogger
 func NewLogger(output string, level Level) (*logger, error) {
 	logger := &logger{
-		Output: output,
-		Level:  level,
+		Output:          output,
+		Level:           level,
+		roller:          defaultRoller,
 		writeBufferChan: make(chan types.IoBuffer, 1000),
 		reopenChan:      make(chan struct{}),
 		closeChan:       make(chan struct{}),
-	}
-
-	if defaultRoller != "" {
-		logger.roller = ParseRoller(defaultRoller)
 	}
 
 	loggers = append(loggers, logger)

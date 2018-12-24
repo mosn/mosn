@@ -60,7 +60,7 @@ func runMockServer(t *testing.T) {
 			LogLevel:   log.DEBUG,
 		}
 
-		log.InitDefaultLogger(mockConfig.LogPath, mockConfig.LogLevel, "")
+		log.InitDefaultLogger(mockConfig.LogPath, mockConfig.LogLevel)
 
 		cmf := &clusterManagerFilterMocK{}
 		cm := cluster.NewClusterManager(nil, nil, nil, true, false)

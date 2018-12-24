@@ -23,22 +23,26 @@ import (
 
 func TestParseRoller(t *testing.T) {
 	errorPraseArgs := "size=100 age=10 keep=10 compress=1"
-	if ParseRoller(errorPraseArgs) != nil {
+	roller, err := ParseRoller(errorPraseArgs)
+	if err == nil {
 		t.Errorf("ParseRoller should be failed")
 	}
 
 	errorPraseArgs = "size = 100 age = 10 keep = 10"
-	if ParseRoller(errorPraseArgs) != nil {
+	roller, err = ParseRoller(errorPraseArgs)
+	if err == nil {
 		t.Errorf("ParseRoller should be failed")
 	}
 
 	errorPraseArgs = "size=100, age=10, keep=10, compress=off"
-	if ParseRoller(errorPraseArgs) != nil {
+	roller, err = ParseRoller(errorPraseArgs)
+	if err == nil {
 		t.Errorf("ParseRoller should be failed")
 	}
 
+
 	praseArgs := "size=100 age=10 keep=10 compress=on"
-	roller := ParseRoller(praseArgs)
+	roller, err = ParseRoller(praseArgs)
 	if roller == nil {
 		t.Errorf("ParseRoller failed")
 	}
@@ -47,7 +51,7 @@ func TestParseRoller(t *testing.T) {
 	}
 
 	praseArgs = "size=100"
-	roller = ParseRoller(praseArgs)
+	roller, err = ParseRoller(praseArgs)
 	if roller == nil {
 		t.Errorf("ParseRoller failed")
 	}

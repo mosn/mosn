@@ -76,7 +76,7 @@ func IsLogRollerSubdirective(subdir string) bool {
 var errInvalidRollerParameter = errors.New("invalid roller parameter")
 
 // ParseRoller parses roller contents out of c.
-func ParseRoller(what string) *Roller {
+func ParseRoller(what string) (*Roller, error) {
 	var err error
 	var value int
 	roller := DefaultRoller()
@@ -118,10 +118,9 @@ func ParseRoller(what string) *Roller {
 		}
 	}
 	if err != nil {
-		StartLogger.Errorf("ParseRoller %s failed: %v", what, err)
-		return nil
+		return nil, err
 	}
-	return roller
+	return roller, nil
 }
 
 // DefaultRoller will roll logs by default.
