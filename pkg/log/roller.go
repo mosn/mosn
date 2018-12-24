@@ -81,11 +81,11 @@ func ParseRoller(what string) (*Roller, error) {
 	var value int
 	roller := DefaultRoller()
 	for _, args := range strings.Split(what, " ") {
-		 v := strings.Split(args, "=")
-		 if len(v) != 2 {
-			 err = errInvalidRollerParameter
-			 break
-		 }
+		v := strings.Split(args, "=")
+		if len(v) != 2 {
+			err = errInvalidRollerParameter
+			break
+		}
 		switch v[0] {
 		case directiveRotateSize:
 			value, err = strconv.Atoi(v[1])
