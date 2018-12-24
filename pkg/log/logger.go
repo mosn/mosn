@@ -50,7 +50,12 @@ var (
 	// AccessLog z(path:/home/b)             -> RealLog b
 	loggers []*logger
 
-	lastTime atomic.Value
+	lastTime     atomic.Value
+
+	defaultRoller string
+
+	//defaultRollerTime is one day
+	defaultRollerTime int64 = 24 * 60 * 60
 )
 
 // time cache
@@ -70,8 +75,9 @@ func init() {
 type logger struct {
 	Output string
 	Level  Level
-	Roller *Roller
+	roller *Roller
 	writer io.Writer
+	create time.Time
 
 	reopenChan      chan struct{}
 	closeChan       chan struct{}
@@ -80,8 +86,9 @@ type logger struct {
 
 // InitDefaultLogger
 // start default logger
-func InitDefaultLogger(output string, level Level) error {
+func InitDefaultLogger(output string, level Level, roller string) error {
 	var err error
+	defaultRoller = roller
 	DefaultLogger, err = NewLogger(output, level)
 
 	return err
@@ -97,7 +104,7 @@ func ByContext(ctx context.Context) Logger {
 	}
 
 	if DefaultLogger == nil {
-		InitDefaultLogger("", DEBUG)
+		InitDefaultLogger("", DEBUG, defaultRoller)
 	}
 
 	return DefaultLogger
@@ -118,12 +125,15 @@ func GetLoggerInstance(output string, level Level) (Logger, error) {
 // NewLogger
 func NewLogger(output string, level Level) (*logger, error) {
 	logger := &logger{
-		Output:          output,
-		Level:           level,
-		Roller:          DefaultRoller(),
+		Output: output,
+		Level:  level,
 		writeBufferChan: make(chan types.IoBuffer, 1000),
 		reopenChan:      make(chan struct{}),
 		closeChan:       make(chan struct{}),
+	}
+
+	if defaultRoller != "" {
+		logger.roller = ParseRoller(defaultRoller)
 	}
 
 	loggers = append(loggers, logger)
@@ -156,6 +166,7 @@ selectwriter:
 		}
 
 		var file *os.File
+		var stat os.FileInfo
 
 		//create parent dir if not exists
 		err := os.MkdirAll(filepath.Dir(l.Output), 0755)
@@ -167,11 +178,16 @@ selectwriter:
 			return err
 		}
 
-		if l.Roller != nil {
+		if l.roller != nil {
 			file.Close()
-			l.Roller.Filename = l.Output
-			l.writer = l.Roller.GetLogWriter()
+			l.roller.Filename = l.Output
+			l.writer = l.roller.GetLogWriter()
 		} else {
+			stat, err = file.Stat()
+			if err != nil {
+				return err
+			}
+			l.create = stat.ModTime()
 			l.writer = file
 		}
 	}
@@ -199,7 +215,7 @@ func (l *logger) handler() {
 			for {
 				select {
 				case buf = <-l.writeBufferChan:
-					buf.WriteTo(l.writer)
+					buf.WriteTo(l)
 					buffer.PutIoBuffer(buf)
 				default:
 					l.close()
@@ -217,7 +233,7 @@ func (l *logger) handler() {
 				}
 			}
 		}
-		buf.WriteTo(l.writer)
+		buf.WriteTo(l)
 		buffer.PutIoBuffer(buf)
 	}
 }
@@ -318,6 +334,21 @@ func (l *logger) Fatalln(args ...interface{}) {
 	os.Exit(1)
 }
 
+// default roller by daily
+func (l *logger) Write(p []byte) (n int, err error) {
+	if !l.create.IsZero() {
+		now := time.Now()
+		if l.create.Unix()/defaultRollerTime != now.Unix()/defaultRollerTime {
+			if err = os.Rename(l.Output, l.Output+"."+l.create.Format("2006-01-02")); err != nil {
+				return 0, err
+			}
+			l.create = now
+			go l.Reopen()
+		}
+	}
+	return l.writer.Write(p)
+}
+
 func (l *logger) Close() error {
 	l.closeChan <- struct{}{}
 	return nil
@@ -414,21 +445,4 @@ func logTime() string {
 		lastTime.Store(&timeCache{now, s})
 	}
 	return s
-}
-
-// Cheap integer to fixed-width decimal ASCII. Give a negative width to avoid zero-padding.
-func itoa(buf *[]byte, i int, wid int) {
-	// Assemble decimal in reverse order.
-	var b [20]byte
-	bp := len(b) - 1
-	for i >= 10 || wid > 1 {
-		wid--
-		q := i / 10
-		b[bp] = byte('0' + i - q*10)
-		bp--
-		i = q
-	}
-	// i < 10
-	b[bp] = byte('0' + i)
-	*buf = append(*buf, b[bp:]...)
 }

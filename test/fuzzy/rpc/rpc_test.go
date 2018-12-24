@@ -203,7 +203,7 @@ func CreateServers(t *testing.T, serverList []string, stop chan struct{}) []fuzz
 func TestMain(m *testing.M) {
 	util.MeshLogPath = "./logs/rpc.log"
 	util.MeshLogLevel = "DEBUG"
-	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG)
+	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG, "")
 	casetime := flag.Int64("casetime", 1, "-casetime=1(min)")
 	flag.Parse()
 	caseDuration = time.Duration(*casetime) * time.Minute

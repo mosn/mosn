@@ -80,7 +80,7 @@ func TestAccessLog(t *testing.T) {
 
 func BenchmarkAccessLog(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	InitDefaultLogger("", INFO)
+	InitDefaultLogger("", INFO, "")
 	// ~ replace the path if needed
 	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", nil, "")
 
@@ -114,7 +114,7 @@ func BenchmarkAccessLog(b *testing.B) {
 
 func BenchmarkAccessLogParallel(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	InitDefaultLogger("", INFO)
+	InitDefaultLogger("", INFO, "")
 	// ~ replace the path if needed
 	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", nil, "")
 

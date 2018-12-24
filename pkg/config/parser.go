@@ -341,6 +341,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        parseLogLevel(c.DefaultLogLevel),
+		LogRoller:       c.DefaultLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,
 		UseNetpollMode:  c.UseNetpollMode,

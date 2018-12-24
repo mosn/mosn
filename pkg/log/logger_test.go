@@ -19,10 +19,11 @@ package log
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"io"
+	"os"
 	"runtime"
 	"testing"
 	"time"
-	"os"
 )
 
 func TestLogPrintDiscard(t *testing.T) {
@@ -46,7 +47,7 @@ func TestLogPrintDiscard(t *testing.T) {
 	select {
 	case <-lchan:
 		t.Errorf("test Print diacard failed, should be block")
-	case <-time.After(time.Second*3):
+	case <-time.After(time.Second * 3):
 	}
 }
 
@@ -73,6 +74,46 @@ func TestLogPrintnull(t *testing.T) {
 	}
 }
 
+func TestLogDefaultRollerTime(t *testing.T) {
+	logName := "/tmp/mosn_bench/printdefaultroller.log"
+	rollerName := logName + "." + time.Now().Format("2006-01-02")
+	os.Remove(logName)
+	os.Remove(rollerName)
+	// 5s
+	defaultRollerTime = 2
+	logger, err := NewLogger(logName, RAW)
+	if err != nil {
+		t.Errorf("TestLogDefaultRoller failed %v", err)
+	}
+	logger.Print(buffer.NewIoBufferString("1111111"), false)
+	time.Sleep(3 * time.Second)
+	logger.Print(buffer.NewIoBufferString("2222222"), false)
+	time.Sleep(1 * time.Second)
+	logger.Close()
+
+	b := make([]byte, 100)
+	f, err := os.Open(logName)
+	if err != nil {
+		t.Errorf("TestLogDefaultRoller failed %v", err)
+	}
+	n, err := f.Read(b)
+	f.Close()
+	if err != io.EOF || n != 0 {
+		t.Errorf("TestLogDefaultRoller failed %v", err)
+	}
+
+	f, err = os.Open(rollerName)
+	if err != nil {
+		t.Errorf("TestLogDefaultRoller failed %v", err)
+	}
+	n, err = f.Read(b)
+	f.Close()
+	if n == 0 || string(b[0:n]) != "11111112222222" {
+		t.Errorf("TestLogDefaultRoller failed %v", string(b[0:n]))
+	}
+
+}
+
 func BenchmarkLog(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	//InitDefaultLogger("", INFO)
@@ -93,6 +134,13 @@ func BenchmarkLogParallel(b *testing.B) {
 			l.Debugf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
 		}
 	})
+}
+
+func BenchmarkLogTimeNow(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	for n := 0; n < b.N; n++ {
+		time.Now()
+	}
 }
 
 func BenchmarkLogTimeFormat(b *testing.B) {

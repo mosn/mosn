@@ -48,6 +48,8 @@ type ServerConfig struct {
 	ServerName      string `json:"mosn_server_name"`
 	DefaultLogPath  string `json:"default_log_path,omitempty"`
 	DefaultLogLevel string `json:"default_log_level,omitempty"`
+	DefaultLogRoller string `json:"default_log_roller,omitempty"`
+
 
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config

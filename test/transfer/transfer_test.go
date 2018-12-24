@@ -45,7 +45,7 @@ func startTransferMesh(tc *integrate.TestCase) {
 
 	util.MeshLogPath = ""
 	util.MeshLogLevel = "DEBUG"
-	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG)
+	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG, "")
 
 	mesh.Start()
 	time.Sleep(30 * time.Second)
@@ -76,7 +76,7 @@ func TestTransfer(t *testing.T) {
 		t.Fatal("fork error")
 		return
 	}
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("", log.DEBUG, "")
 	startTransferServer(tc)
 
 	// wait server and mesh start

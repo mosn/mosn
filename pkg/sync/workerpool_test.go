@@ -36,7 +36,7 @@ func (t *TestJob) Source() uint32 {
 
 // TestJobOrder test worker pool's event dispatch functionality, which should ensure the FIFO order
 func TestJobOrder(t *testing.T) {
-	log.InitDefaultLogger("stdout", log.DEBUG)
+	log.InitDefaultLogger("stdout", log.DEBUG, "")
 	shardEvents := 512
 	wg := sync.WaitGroup{}
 
@@ -133,7 +133,7 @@ func eventProcess(b *testing.B) {
 }
 
 func BenchmarkShardWorkerPool(b *testing.B) {
-	log.InitDefaultLogger("stdout", log.ERROR)
+	log.InitDefaultLogger("stdout", log.ERROR, "")
 
 	for i := 0; i < b.N; i++ {
 		eventProcess(b)
@@ -229,7 +229,7 @@ func eventProcessWithUnboundedChannel(b *testing.B) {
 }
 
 func BenchmarkUnboundChannel(b *testing.B) {
-	log.InitDefaultLogger("stdout", log.ERROR)
+	log.InitDefaultLogger("stdout", log.ERROR, "")
 
 	for i := 0; i < b.N; i++ {
 		eventProcessWithUnboundedChannel(b)

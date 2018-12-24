@@ -378,6 +378,6 @@ func TestInvalidConfig(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("", log.DEBUG, "")
 	m.Run()
 }

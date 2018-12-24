@@ -24,9 +24,10 @@ import (
 	"strconv"
 
 	"gopkg.in/natefinch/lumberjack.v2"
+	"strings"
 )
 
-// Roller implements a type that provides a rolling logger.
+// roller implements a type that provides a rolling logger.
 type Roller struct {
 	Filename   string
 	MaxSize    int
@@ -75,40 +76,52 @@ func IsLogRollerSubdirective(subdir string) bool {
 var errInvalidRollerParameter = errors.New("invalid roller parameter")
 
 // ParseRoller parses roller contents out of c.
-func ParseRoller(l *Roller, what string, where ...string) error {
-	if l == nil {
-		l = DefaultRoller()
-	}
-
-	// rotate_compress doesn't accept any parameters.
-	// others only accept one parameter
-	if (what == directiveRotateCompress && len(where) != 0) ||
-		(what != directiveRotateCompress && len(where) != 1) {
-		return errInvalidRollerParameter
-	}
-
-	var (
-		value int
-		err   error
-	)
-	if what != directiveRotateCompress {
-		value, err = strconv.Atoi(where[0])
-		if err != nil {
-			return err
+func ParseRoller(what string) *Roller {
+	var err error
+	var value int
+	roller := DefaultRoller()
+	for _, args := range strings.Split(what, " ") {
+		 v := strings.Split(args, "=")
+		 if len(v) != 2 {
+			 err = errInvalidRollerParameter
+			 break
+		 }
+		switch v[0] {
+		case directiveRotateSize:
+			value, err = strconv.Atoi(v[1])
+			if err != nil {
+				break
+			}
+			roller.MaxSize = value
+		case directiveRotateAge:
+			value, err = strconv.Atoi(v[1])
+			if err != nil {
+				break
+			}
+			roller.MaxAge = value
+		case directiveRotateKeep:
+			value, err = strconv.Atoi(v[1])
+			if err != nil {
+				break
+			}
+			roller.MaxBackups = value
+		case directiveRotateCompress:
+			if v[1] == "on" {
+				roller.Compress = true
+			} else if v[1] == "off" {
+				roller.Compress = false
+			} else {
+				err = errInvalidRollerParameter
+			}
+		default:
+			err = errInvalidRollerParameter
 		}
 	}
-
-	switch what {
-	case directiveRotateSize:
-		l.MaxSize = value
-	case directiveRotateAge:
-		l.MaxAge = value
-	case directiveRotateKeep:
-		l.MaxBackups = value
-	case directiveRotateCompress:
-		l.Compress = true
+	if err != nil {
+		StartLogger.Errorf("ParseRoller %s failed: %v", what, err)
+		return nil
 	}
-	return nil
+	return roller
 }
 
 // DefaultRoller will roll logs by default.
@@ -130,10 +143,10 @@ const (
 	// defaultRotateKeep is 10 files.
 	defaultRotateKeep = 10
 
-	directiveRotateSize     = "rotate_size"
-	directiveRotateAge      = "rotate_age"
-	directiveRotateKeep     = "rotate_keep"
-	directiveRotateCompress = "rotate_compress"
+	directiveRotateSize     = "size"
+	directiveRotateAge      = "age"
+	directiveRotateKeep     = "keep"
+	directiveRotateCompress = "compress"
 )
 
 // lumberjacks maps log filenames to the logger

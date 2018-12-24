@@ -192,7 +192,7 @@ func InitDefaultLogger(config *Config) {
 		logPath = MosnLogDefaultPath
 	}
 
-	err := log.InitDefaultLogger(logPath, logLevel)
+	err := log.InitDefaultLogger(logPath, logLevel, config.LogRoller)
 	if err != nil {
 		log.StartLogger.Fatalln("initialize default logger failed : ", err)
 	}
