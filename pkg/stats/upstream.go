@@ -18,8 +18,6 @@
 package stats
 
 import (
-	"fmt"
-
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -63,12 +61,10 @@ const (
 
 // NewHostStats returns a stats that namespace contains cluster and host address
 func NewHostStats(clusterName string, addr string) types.Metrics {
-	namespace := fmt.Sprintf("cluster.%s.host.%s", clusterName, addr)
-	return NewStats(UpstreamType, namespace)
+	return NewStats(UpstreamType, map[string]string{"cluster": clusterName, "host": addr})
 }
 
 // NewClusterStats returns a stats with namespace prefix cluster
 func NewClusterStats(clusterName string) types.Metrics {
-	namespace := fmt.Sprintf("cluster.%s", clusterName)
-	return NewStats(UpstreamType, namespace)
+	return NewStats(UpstreamType, map[string]string{"cluster": clusterName})
 }

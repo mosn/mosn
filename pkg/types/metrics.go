@@ -22,12 +22,26 @@ import "github.com/rcrowley/go-metrics"
 // Metrics is a wrapper interface for go-metrics
 // support Counter, Gauge Histogram
 type Metrics interface {
+	Type() string
+
+	Labels() map[string]string
+
+	SortedLabels() (keys, vals []string)
+
 	Counter(key string) metrics.Counter
+
 	Gauge(key string) metrics.Gauge
+
 	Histogram(key string) metrics.Histogram
+
+	// Call the given function for each registered metric.
+	Each(func(string, interface{}))
+
+	// Unregister all metrics.  (Mostly for testing.)
+	UnregisterAll()
 }
 
 // MetricsSink flush metrics to backend storage
 type MetricsSink interface {
-	Flush(metrics []metrics.Registry)
+	Flush(metrics []Metrics)
 }

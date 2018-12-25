@@ -21,12 +21,14 @@ import (
 	"testing"
 )
 
-func TestTrimKey(t *testing.T) {
+func TestGetAll(t *testing.T) {
 	ResetAll()
-	typ := "test@type"
-	namespace := "test@namespace"
-	s := NewStats(typ, namespace)
-	if !(s.typ == "testtype" && s.namespace == "testnamespace") {
-		t.Error("type/namespace have at, it is not allowed")
+
+	// new some stats
+	NewStats("type1", map[string]string{"lk": "lv"})
+	NewStats("type2", map[string]string{"lk": "lv"})
+
+	if len(GetAll()) != 2 {
+		t.Errorf("get all lentgh error, expected 2, actual %d", len(GetAll()))
 	}
 }

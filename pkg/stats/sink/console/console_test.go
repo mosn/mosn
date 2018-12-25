@@ -30,7 +30,7 @@ import (
 type testAction int
 
 const (
-	countInc testAction = iota
+	countInc        testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate
@@ -42,31 +42,31 @@ func TestConsoleMetrics(t *testing.T) {
 	stats.ResetAll()
 	testCases := []struct {
 		typ         string
-		namespace   string
+		labels   map[string]string
 		key         string
 		action      testAction
 		actionValue int64
 	}{
-		{"t1", "ns1", "k1", countInc, 1},
-		{"t1", "ns1", "k1", countDec, 1},
-		{"t1", "ns1", "k2", countInc, 1},
-		{"t1", "ns1", "k3", gaugeUpdate, 1},
-		{"t1", "ns1", "k4", histogramUpdate, 1},
-		{"t1", "ns1", "k4", histogramUpdate, 2},
-		{"t1", "ns1", "k4", histogramUpdate, 3},
-		{"t1", "ns1", "k4", histogramUpdate, 4},
-		{"t1", "ns2", "k1", countInc, 1},
-		{"t1", "ns2", "k2", countInc, 2},
-		{"t1", "ns2", "k3", gaugeUpdate, 3},
-		{"t1", "ns2", "k4", histogramUpdate, 2},
-		{"t2", "ns1", "k1", countInc, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countInc, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countDec, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k2", countInc, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k3", gaugeUpdate, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 2},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 3},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 4},
+		{"t1", map[string]string{"lbk2": "lbv2"}, "k1", countInc, 1},
+		{"t1", map[string]string{"lbk2": "lbv2"}, "k2", countInc, 2},
+		{"t1", map[string]string{"lbk2": "lbv2"}, "k3", gaugeUpdate, 3},
+		{"t1", map[string]string{"lbk2": "lbv2"}, "k4", histogramUpdate, 2},
+		{"t2", map[string]string{"lbk1": "lbv1"}, "k1", countInc, 1},
 	}
 	wg := sync.WaitGroup{}
 	for i := range testCases {
 		wg.Add(1)
 		go func(i int) {
 			tc := testCases[i]
-			s := stats.NewStats(tc.typ, tc.namespace)
+			s := stats.NewStats(tc.typ, tc.labels)
 			switch tc.action {
 			case countInc:
 				s.Counter(tc.key).Inc(tc.actionValue)
@@ -81,20 +81,14 @@ func TestConsoleMetrics(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
-	typs := stats.LisTypes()
-	if !(len(typs) == 2 &&
-		typs[0] == "t1" &&
-		typs[1] == "t2") {
-		t.Error("types record error")
-	}
 
 	buf := &bytes.Buffer{}
-	NewConsoleSink(buf).Flush(stats.GetAllRegistries())
+	NewConsoleSink(buf).Flush(stats.GetAll())
 	datas := make(map[string]map[string]map[string]string)
 	json.Unmarshal(buf.Bytes(), &datas)
 	t1Data := datas["t1"]
-	if ns1, ok := t1Data["ns1"]; !ok {
-		t.Error("no ns1 data")
+	if ns1, ok := t1Data["lbk1.lbv1"]; !ok {
+		t.Error("no lbk1.lbv1 data")
 	} else {
 		if !(ns1["k1"] == "0" &&
 			ns1["k2"] == "1" &&
@@ -103,8 +97,8 @@ func TestConsoleMetrics(t *testing.T) {
 		}
 		//TODO: histogram value expected
 	}
-	if ns2, ok := t1Data["ns2"]; !ok {
-		t.Error("no ns2 data")
+	if ns2, ok := t1Data["lbk2.lbv2"]; !ok {
+		t.Error("no lbk2.lbv2 data")
 	} else {
 		if !(ns2["k1"] == "1" &&
 			ns2["k2"] == "2" &&
@@ -114,8 +108,8 @@ func TestConsoleMetrics(t *testing.T) {
 		//TODO: histogram value expected
 	}
 	t2Data := datas["t2"]
-	if ns1, ok := t2Data["ns1"]; !ok {
-		t.Error("no ns1 data")
+	if ns1, ok := t2Data["lbk1.lbv1"]; !ok {
+		t.Error("no lbk1.lbv1 data")
 	} else {
 		if ns1["k1"] != "1" {
 			t.Error("k1 value not expected")
@@ -127,21 +121,21 @@ func BenchmarkGetMetrics(b *testing.B) {
 	stats.ResetAll()
 	// init metrics data
 	testCases := []struct {
-		typ       string
-		namespace string
+		typ    string
+		labels map[string]string
 	}{
-		{stats.DownstreamType, "proxyname"},
-		{stats.DownstreamType, "listener1"},
-		{stats.DownstreamType, "listener2"},
-		{stats.UpstreamType, "cluster1"},
-		{stats.UpstreamType, "cluster2"},
-		{stats.UpstreamType, "cluster1.host1"},
-		{stats.UpstreamType, "cluster1.host2"},
-		{stats.UpstreamType, "cluster2.host1"},
-		{stats.UpstreamType, "cluster2.host2"},
+		{stats.DownstreamType, map[string]string{"proxy": "global"}},
+		{stats.DownstreamType, map[string]string{"listener": "1"}},
+		{stats.DownstreamType, map[string]string{"listener": "2"}},
+		{stats.UpstreamType, map[string]string{"cluster": "1"}},
+		{stats.UpstreamType, map[string]string{"cluster": "2"}},
+		{stats.UpstreamType, map[string]string{"cluster": "1", "host":"1"}},
+		{stats.UpstreamType, map[string]string{"cluster": "1", "host":"2"}},
+		{stats.UpstreamType, map[string]string{"cluster": "2", "host":"1"}},
+		{stats.UpstreamType, map[string]string{"cluster": "2", "host":"2"}},
 	}
 	for _, tc := range testCases {
-		s := stats.NewStats(tc.typ, tc.namespace)
+		s := stats.NewStats(tc.typ, tc.labels)
 		s.Counter("key1").Inc(100)
 		s.Counter("key2").Inc(100)
 		s.Gauge("key3").Update(100)
@@ -151,6 +145,6 @@ func BenchmarkGetMetrics(b *testing.B) {
 	}
 	sink := NewConsoleSink(ioutil.Discard)
 	for i := 0; i < b.N; i++ {
-		sink.Flush(stats.GetAllRegistries())
+		sink.Flush(stats.GetAll())
 	}
 }

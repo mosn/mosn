@@ -18,8 +18,6 @@
 package stats
 
 import (
-	"fmt"
-
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -40,6 +38,5 @@ const (
 
 // NewHealthStats returns a stats with namespace prefix service
 func NewHealthStats(serviceName string) types.Metrics {
-	namespace := fmt.Sprintf("service.%s", serviceName)
-	return NewStats(HealthCheckType, namespace)
+	return NewStats(HealthCheckType, map[string]string{"service": serviceName})
 }

@@ -22,7 +22,6 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 )
@@ -39,44 +38,42 @@ type ConsoleSink struct {
 }
 
 // ~ MetricsSink
-func (sink *ConsoleSink) Flush(registries []metrics.Registry) {
+func (sink *ConsoleSink) Flush(ms []types.Metrics) {
 	// type -> namespace -> key -> value
 	all := make(map[string]map[string]NamespaceData)
 
-	for _, registry := range registries {
-		registry.Each(func(key string, i interface{}) {
-			// TODO registry dimension optimize
-			// TODO use dict to replace map
-			statsType, namespace, metricsKey := stats.KeySplit(key)
+	for _, m := range ms {
+		typeData, ok := all[m.Type()]
+		if !ok {
+			typeData = make(map[string]NamespaceData)
+			all[m.Type()] = typeData
+		}
 
-			typeData, ok := all[statsType]
-			if !ok {
-				typeData = make(map[string]NamespaceData)
-				all[statsType] = typeData
-			}
+		namespace := makeNamespace(m.SortedLabels())
+		namespaceData, ok := typeData[namespace]
+		if !ok {
+			namespaceData = NamespaceData{}
+			typeData[namespace] = namespaceData
+		}
 
-			namespaceData, ok := typeData[namespace]
-			if !ok {
-				namespaceData = NamespaceData{}
-				typeData[namespace] = namespaceData
-			}
+		m.Each(func(key string, i interface{}) {
 			switch metric := i.(type) {
 			case metrics.Counter:
-				namespaceData[metricsKey] = strconv.FormatInt(metric.Count(), 10)
+				namespaceData[key] = strconv.FormatInt(metric.Count(), 10)
 			case metrics.Gauge:
-				namespaceData[metricsKey] = strconv.FormatInt(metric.Value(), 10)
+				namespaceData[key] = strconv.FormatInt(metric.Value(), 10)
 			case metrics.Histogram:
 				h := metric.Snapshot()
 				ps := h.Percentiles(percents)
 				for index := range percents {
-					key := metricsKey + "." + strconv.FormatFloat(percents[index]*100, 'f', 2, 64) + "%"
+					key := key + "." + strconv.FormatFloat(percents[index]*100, 'f', 2, 64) + "%"
 					namespaceData[key] = strconv.FormatFloat(ps[index], 'f', 2, 64)
 				}
-				namespaceData[metricsKey+".count"] = strconv.FormatInt(h.Count(), 10)
-				namespaceData[metricsKey+".min"] = strconv.FormatInt(h.Min(), 10)
-				namespaceData[metricsKey+".max"] = strconv.FormatInt(h.Max(), 10)
-				namespaceData[metricsKey+".mean"] = strconv.FormatFloat(h.Mean(), 'f', 2, 64)
-				namespaceData[metricsKey+".stddev"] = strconv.FormatFloat(h.StdDev(), 'f', 2, 64)
+				namespaceData[key+".count"] = strconv.FormatInt(h.Count(), 10)
+				namespaceData[key+".min"] = strconv.FormatInt(h.Min(), 10)
+				namespaceData[key+".max"] = strconv.FormatInt(h.Max(), 10)
+				namespaceData[key+".mean"] = strconv.FormatFloat(h.Mean(), 'f', 2, 64)
+				namespaceData[key+".stddev"] = strconv.FormatFloat(h.StdDev(), 'f', 2, 64)
 
 			default: //unsupport metrics, ignore
 				return
@@ -93,4 +90,11 @@ func NewConsoleSink(writer io.Writer) types.MetricsSink {
 	return &ConsoleSink{
 		writer: writer,
 	}
+}
+
+func makeNamespace(keys, vals []string) (namespace string) {
+	for i := 0; i < len(vals); i++ {
+		namespace += keys[i] + "." + vals[i]
+	}
+	return
 }

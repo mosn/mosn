@@ -20,17 +20,16 @@ package prometheus
 import (
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"testing"
-	"time"
-
 	"github.com/alipay/sofa-mosn/pkg/stats"
+	"bytes"
+	"sync"
 )
 
 type testAction int
 
 const (
-	countInc testAction = iota
+	countInc        testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate
@@ -42,32 +41,32 @@ func TestPrometheusMetrics(t *testing.T) {
 	stats.ResetAll()
 	testCases := []struct {
 		typ         string
-		namespace   string
+		labels      map[string]string
 		key         string
 		action      testAction
 		actionValue int64
 	}{
-		{"t1", "ns1", "k1", countInc, 1},
-		{"t1", "ns1", "k1", countDec, 1},
-		{"t1", "ns1", "k2", countInc, 1},
-		{"t1", "ns1", "k3", gaugeUpdate, 1},
-		{"t1", "ns1", "k4", histogramUpdate, 1},
-		{"t1", "ns1", "k4", histogramUpdate, 2},
-		{"t1", "ns1", "k4", histogramUpdate, 3},
-		{"t1", "ns1", "k4", histogramUpdate, 4},
-		{"t1", "ns2", "k1", countInc, 1},
-		{"t1", "ns2", "k2", countInc, 2},
-		{"t1", "ns2", "k3", gaugeUpdate, 3},
-		{"t1", "ns2", "k4", histogramUpdate, 2},
-		{"t2", "ns1", "k1", countInc, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countInc, 1},
+		{"t1", map[string]string{"lbk1": "lbv2"}, "k1", countInc, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countDec, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k2", countInc, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k3", gaugeUpdate, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 1},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 2},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 3},
+		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 4},
+		{"t1", map[string]string{"lbk2": "lbv2"}, "k1", countInc, 1},
+		{"t1", map[string]string{"lbk2": "lbv2"}, "k2", countInc, 2},
+		{"t1", map[string]string{"lbk2": "lbv2"}, "k3", gaugeUpdate, 3},
+		{"t1", map[string]string{"lbk2": "lbv2"}, "k4", histogramUpdate, 2},
+		{"t2", map[string]string{"lbk1": "lbv1"}, "k1", countInc, 1},
 	}
 	wg := sync.WaitGroup{}
 	for i := range testCases {
 		wg.Add(1)
 		go func(i int) {
-			time.Sleep(300 * time.Duration(i) * time.Millisecond)
 			tc := testCases[i]
-			s := stats.NewStats(tc.typ, tc.namespace)
+			s := stats.NewStats(tc.typ, tc.labels)
 			switch tc.action {
 			case countInc:
 				s.Counter(tc.key).Inc(tc.actionValue)
@@ -81,41 +80,33 @@ func TestPrometheusMetrics(t *testing.T) {
 			wg.Done()
 		}(i)
 	}
-	//init prom
-	flushInteval := time.Millisecond * 500
-	sink := NewPromeSink(&PromConfig{
+	wg.Wait()
+
+	sink := NewPromeSink(&promConfig{
 		Port:                  8088,
 		Endpoint:              "/metrics",
 		DisableCollectProcess: true,
 		DisableCollectGo:      true,
 	})
-
-	times := 0
 	tc := http.Client{}
-	stopChan := make(chan bool)
+	sink.Flush(stats.GetAll())
 
-	go func() {
-		for {
-			select {
+	resp, _ := tc.Get("http://127.0.0.1:8088/metrics")
+	body, _ := ioutil.ReadAll(resp.Body)
 
-			case <-time.Tick(flushInteval):
-				sink.Flush(stats.GetAllRegistries())
+	if !bytes.Contains(body, []byte("t1_lbk1_k1{lbk1=\"lbv1\"} 0.0")) {
+		t.Error("t1_lbk1_k1{lbk1=\"lbv1\"} metric not correct")
+	}
 
-				resp, _ := tc.Get("http://127.0.0.1:8088/metrics")
-				ioutil.ReadAll(resp.Body)
-				times++
-			case <-stopChan:
-				break
-			}
-		}
-	}()
+	if !bytes.Contains(body, []byte("t1_lbk1_k1{lbk1=\"lbv2\"} 1.0")) {
+		t.Error("t1_lbk1_k1{lbk1=\"lbv2\"} metric not correct")
+	}
 
-	wg.Wait()
-	stopChan <- true
-	typs := stats.LisTypes()
-	if !(len(typs) == 2 &&
-		typs[0] == "t1" &&
-		typs[1] == "t2") {
-		t.Error("types record error")
+	if !bytes.Contains(body, []byte("t1_lbk1_k4{lbk1=\"lbv1\",type=\"max\"} 4.0")) {
+		t.Error("t1_lbk1_k4{lbk1=\"lbv1\",type=\"max\"} metric not correct")
+	}
+
+	if !bytes.Contains(body, []byte("t1_lbk2_k4{lbk2=\"lbv2\",type=\"min\"} 2.0")) {
+		t.Error("t1_lbk2_k4{lbk2=\"lbv2\",type=\"min\"} metric not correct")
 	}
 }

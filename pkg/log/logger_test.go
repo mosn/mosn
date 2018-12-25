@@ -65,6 +65,7 @@ func TestLogPrintnull(t *testing.T) {
 	b := make([]byte, 1024)
 	n, _ := f.Read(b)
 	f.Close()
+
 	if n != len("testlog") {
 		t.Errorf("Printnull error")
 	}

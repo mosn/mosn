@@ -18,8 +18,6 @@
 package stats
 
 import (
-	"fmt"
-
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -43,12 +41,10 @@ const (
 
 // NewProxyStats returns a stats with namespace prefix proxy
 func NewProxyStats(proxyName string) types.Metrics {
-	namespace := fmt.Sprintf("proxy.%s", proxyName)
-	return NewStats(DownstreamType, namespace)
+	return NewStats(DownstreamType, map[string]string{"proxy": proxyName})
 }
 
 // NewListenerStats returns a stats with namespace prefix listsener
 func NewListenerStats(listenerName string) types.Metrics {
-	namespace := fmt.Sprintf("listener.%s", listenerName)
-	return NewStats(DownstreamType, namespace)
+	return NewStats(DownstreamType, map[string]string{"listener": listenerName})
 }

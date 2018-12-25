@@ -47,7 +47,7 @@ func configDump(ctx *fasthttp.RequestCtx) {
 
 func statsDump(ctx *fasthttp.RequestCtx) {
 	sink := console.NewConsoleSink(ctx.Response.BodyWriter())
-	sink.Flush(stats.GetAllRegistries())
+	sink.Flush(stats.GetAll())
 }
 
 var levelMap = map[string]log.Level{

@@ -18,19 +18,17 @@
 package prometheus
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"log"
-	"net/http"
-	"strings"
-
-	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/stats/sink"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rcrowley/go-metrics"
+	"net/http"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"fmt"
+	"strings"
+	"encoding/json"
+	"errors"
+	"log"
 )
 
 func init() {
@@ -38,12 +36,11 @@ func init() {
 }
 
 var (
-	defaultPort     = 8088
 	defaultEndpoint = "/metrics"
 )
 
-// PromConfig contains config for all PromSink
-type PromConfig struct {
+// promConfig contains config for all PromSink
+type promConfig struct {
 	ExportUrl string `json:"export_url"` // when this value is not nil, PromSink will work under the PUSHGATEWAY mode.
 
 	Port     int    `json:"port"` // pull mode attrs
@@ -53,38 +50,28 @@ type PromConfig struct {
 	DisableCollectGo      bool `json:"disable_collect_go"`
 }
 
-// PromSink extract metrics from stats registry with specified interval
-type PromSink struct {
-	config *PromConfig
+// promSink extract metrics from stats registry with specified interval
+type promSink struct {
+	config *promConfig
 
 	registry  prometheus.Registerer //Prometheus registry
-	gauges    map[string]prometheus.Gauge
 	gaugeVecs map[string]prometheus.GaugeVec
 }
 
 // ~ MetricsSink
-func (sink *PromSink) Flush(registries []metrics.Registry) {
-	for _, registry := range registries {
-		registry.Each(func(name string, i interface{}) {
+func (sink *promSink) Flush(ms []types.Metrics) {
+	for _, m := range ms {
+		typ := m.Type()
+		labelKeys, labelVals := m.SortedLabels()
+		m.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
 			case metrics.Counter:
-				//fmt.Fprintf(os.Stderr, "Counter: %s %f\n", name, float64(metric.Count()))
-				sink.gauge(name, float64(metric.Count()))
+				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Count()))
 			case metrics.Gauge:
-				//fmt.Fprintf(os.Stderr, "Gauge: %s %d\n", name, metric.Value())
-				sink.gauge(name, float64(metric.Value()))
-			case metrics.GaugeFloat64:
-				//fmt.Fprintf(os.Stderr, "GaugeFloat64: %s %f\n", name, metric.Value())
-				sink.gauge(name, float64(metric.Value()))
+				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Value()))
 			case metrics.Histogram:
 				snap := metric.Snapshot()
-				sink.histogramVec(name, snap)
-			case metrics.Meter:
-				snap := metric.Snapshot()
-				sink.meterVec(name, snap)
-			case metrics.Timer:
-				lastSample := metric.Snapshot().Rate1()
-				sink.gauge(name, float64(lastSample))
+				sink.histogramVec(typ, labelKeys, labelVals, name, snap)
 			}
 		})
 	}
@@ -92,7 +79,7 @@ func (sink *PromSink) Flush(registries []metrics.Registry) {
 
 // NewPrometheusProvider returns a Provider that produces Prometheus metrics.
 // Namespace and subsystem are applied to all produced metrics.
-func NewPromeSink(config *PromConfig) types.MetricsSink {
+func NewPromeSink(config *promConfig) types.MetricsSink {
 	promReg := prometheus.NewRegistry()
 	// register process and  go metrics
 	if !config.DisableCollectProcess {
@@ -108,95 +95,52 @@ func NewPromeSink(config *PromConfig) types.MetricsSink {
 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
 	}()
 
-	return &PromSink{
+	return &promSink{
 		config:    config,
 		registry:  promReg,
-		gauges:    make(map[string]prometheus.Gauge),
 		gaugeVecs: make(map[string]prometheus.GaugeVec),
 	}
 }
 
-func (sink *PromSink) meterVec(name string, snap metrics.Meter) {
-	g, ok := sink.gaugeVecs[name]
+func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, name string, snap metrics.Histogram) {
+	namespace := strings.Join(labelKeys, "_")
+	key := typ + "_" + namespace + "_" + name
+	g, ok := sink.gaugeVecs[key]
 	if !ok {
-		statsType, ns, n := stats.KeySplit(name)
 		g = *prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: flattenKey(statsType),
-			Subsystem: flattenKey(ns),
-			Name:      flattenKey(n),
-			Help:      name,
-		},
-			[]string{
-				"type",
-			},
-		)
+			Namespace: flattenKey(typ),
+			Subsystem: flattenKey(namespace),
+			Name:      flattenKey(name),
+			Help:      "histogram metrics",
+		}, append(labelKeys, "type"))
 		sink.registry.MustRegister(g)
-		sink.gaugeVecs[name] = g
+		sink.gaugeVecs[key] = g
 	}
-
-	g.WithLabelValues("count").Set(float64(snap.Count()))
-	g.WithLabelValues("rate1").Set(snap.Rate1())
-	g.WithLabelValues("rate5").Set(snap.Rate5())
-	g.WithLabelValues("rate15").Set(snap.Rate15())
-	g.WithLabelValues("rate_mean").Set(snap.RateMean())
+	g.WithLabelValues(append(labelVals, "max")...).Set(float64(snap.Max()))
+	g.WithLabelValues(append(labelVals, "min")...).Set(float64(snap.Min()))
 }
 
-func (sink *PromSink) histogramVec(name string, snap metrics.Histogram) {
-	g, ok := sink.gaugeVecs[name]
+func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name string, val float64) {
+	namespace := strings.Join(labelKeys, "_")
+	key := typ + "_" + namespace + "_" + name
+	g, ok := sink.gaugeVecs[key]
 	if !ok {
-		statsType, ns, n := stats.KeySplit(name)
 		g = *prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: flattenKey(statsType),
-			Subsystem: flattenKey(ns),
-			Name:      flattenKey(n),
-			Help:      name,
-		},
-			[]string{
-				"type",
-			},
-		)
-		sink.registry.MustRegister(g)
-		sink.gaugeVecs[name] = g
-	}
-	g.WithLabelValues("count").Set(float64(snap.Count()))
-	g.WithLabelValues("max").Set(float64(snap.Max()))
-	g.WithLabelValues("min").Set(float64(snap.Min()))
-	g.WithLabelValues("mean").Set(snap.Mean())
-	g.WithLabelValues("stddev").Set(snap.StdDev())
-	g.WithLabelValues("perc75").Set(snap.Percentile(float64(75)))
-	g.WithLabelValues("perc95").Set(snap.Percentile(float64(95)))
-	g.WithLabelValues("perc99").Set(snap.Percentile(float64(99)))
-	g.WithLabelValues("perc999").Set(snap.Percentile(float64(99.9)))
-}
+			Namespace: flattenKey(typ),
+			Subsystem: flattenKey(namespace),
+			Name:      name,
+		}, labelKeys)
 
-func (sink *PromSink) gauge(name string, val float64) {
-	g, ok := sink.gauges[name]
-	if !ok {
-		statsType, ns, n := stats.KeySplit(name)
-		g = prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: flattenKey(statsType),
-			Subsystem: flattenKey(ns),
-			Name:      flattenKey(n),
-			Help:      name,
-		})
 		sink.registry.MustRegister(g)
-		sink.gauges[name] = g
+		sink.gaugeVecs[key] = g
 	}
-	g.Set(val)
-}
-
-func flattenKey(key string) string {
-	key = strings.Replace(key, " ", "_", -1)
-	key = strings.Replace(key, ".", "_", -1)
-	key = strings.Replace(key, "-", "_", -1)
-	key = strings.Replace(key, "=", "_", -1)
-	return key
+	g.WithLabelValues(labelVals...).Set(val)
 }
 
 // factory
 func builder(cfg map[string]interface{}) (types.MetricsSink, error) {
 	// parse config
-	promCfg := &PromConfig{}
+	promCfg := &promConfig{}
 
 	data, err := json.Marshal(cfg)
 	if err != nil {
@@ -211,7 +155,7 @@ func builder(cfg map[string]interface{}) (types.MetricsSink, error) {
 	}
 
 	if promCfg.Port == 0 {
-		promCfg.Port = defaultPort
+		return nil, errors.New("prometheus sink's port is not specified")
 	}
 
 	if promCfg.Endpoint == "" {
@@ -223,4 +167,12 @@ func builder(cfg map[string]interface{}) (types.MetricsSink, error) {
 	}
 
 	return NewPromeSink(promCfg), nil
+}
+
+func flattenKey(key string) string {
+	key = strings.Replace(key, " ", "_", -1)
+	key = strings.Replace(key, ".", "_", -1)
+	key = strings.Replace(key, "-", "_", -1)
+	key = strings.Replace(key, "=", "_", -1)
+	return key
 }

@@ -25,15 +25,21 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
-// TransferData keeps information for go-metrics
+// TransferStats
+type TransferStats struct {
+	Type    string
+	Labels map[string]string
+	Data   []TransferData
+}
+
+// TransferData keeps information for single go-metrics objects, like gauge
 type TransferData struct {
 	MetricsType   string
 	MetricsKey    string
@@ -42,33 +48,33 @@ type TransferData struct {
 
 const (
 	metricsCounter   = "counter"
-	metricsGauge     = "guage"
+	metricsGauge     = "gauge"
 	metricsHistogram = "histogram"
 )
 
 func init() {
+	gob.Register(new(TransferStats))
 	gob.Register(new(TransferData))
 }
 
 // makesTransferData get all registered metrics data as a map[string]map[string][]TransferData
 // the map will be gob encoded to transfer
 func makesTransferData() ([]byte, error) {
-	transfers := make(map[string]map[string][]TransferData)
-	// Locks all data
-	reg.mutex.RLock()
-	for key, r := range reg.registries {
-		m := make(map[string][]TransferData)
-		r.Each(func(key string, i interface{}) {
-			values := strings.SplitN(key, sep, 3)
-			if len(values) != 3 { // unexepcted metrics, ignore
-				return
-			}
-			namespace := values[1]
-			metricsKey := values[2]
+	// lock store
+	defaultStore.mutex.Lock()
+	defer defaultStore.mutex.Unlock()
+
+	transfers := make([]TransferStats, len(defaultStore.metrics))
+
+	for i, metric := range defaultStore.metrics {
+		transfers[i].Type = metric.Type()
+		transfers[i].Labels = metric.Labels()
+
+		metric.Each(func(key string, val interface{}) {
 			data := TransferData{
-				MetricsKey: metricsKey,
+				MetricsKey: key,
 			}
-			switch metric := i.(type) {
+			switch metric := val.(type) {
 			case metrics.Counter:
 				data.MetricsType = metricsCounter
 				data.MetricsValues = []int64{metric.Count()}
@@ -82,11 +88,11 @@ func makesTransferData() ([]byte, error) {
 			default: //unsupport metrics, ignore
 				return
 			}
-			m[namespace] = append(m[namespace], data)
+			transfers[i].Data = append(transfers[i].Data, data)
 		})
-		transfers[key] = m
+
 	}
-	reg.mutex.RUnlock()
+
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(transfers); err != nil {
 		return nil, err
@@ -96,25 +102,24 @@ func makesTransferData() ([]byte, error) {
 
 // readTransferData gets the gob encoded data, makes it as go-metrics data
 func readTransferData(b []byte) error {
-	transfers := make(map[string]map[string][]TransferData)
+	var transfers []TransferStats
 	buf := bytes.NewBuffer(b)
 	if err := gob.NewDecoder(buf).Decode(&transfers); err != nil {
 		return err
 	}
-	for typ, datas := range transfers {
-		for namespace, list := range datas {
-			for _, d := range list {
-				s := NewStats(typ, namespace)
-				switch d.MetricsType {
-				case metricsCounter:
-					s.Counter(d.MetricsKey).Inc(d.MetricsValues[0])
-				case metricsGauge:
-					s.Gauge(d.MetricsKey).Update(d.MetricsValues[0])
-				case metricsHistogram:
-					h := s.Histogram(d.MetricsKey)
-					for _, v := range d.MetricsValues {
-						h.Update(v)
-					}
+	for _, transfer := range transfers {
+		s := NewStats(transfer.Type, transfer.Labels)
+
+		for _, metric := range transfer.Data {
+			switch metric.MetricsType {
+			case metricsCounter:
+				s.Counter(metric.MetricsKey).Inc(metric.MetricsValues[0])
+			case metricsGauge:
+				s.Gauge(metric.MetricsKey).Update(metric.MetricsValues[0])
+			case metricsHistogram:
+				h := s.Histogram(metric.MetricsKey)
+				for _, v := range metric.MetricsValues {
+					h.Update(v)
 				}
 			}
 		}

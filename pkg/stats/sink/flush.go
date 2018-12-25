@@ -39,7 +39,7 @@ func StartFlush(sinks []types.MetricsSink, interval time.Duration) {
 
 // FlushOnce flush all metrics into given sinks oneshot
 func FlushOnce(sinks []types.MetricsSink) {
-	allRegs := stats.GetAllRegistries()
+	allRegs := stats.GetAll()
 
 	// flush each reg to all sinks
 	for _, sink := range sinks {
