@@ -56,6 +56,9 @@ var (
 
 	//defaultRollerTime is one day
 	defaultRollerTime int64 = 24 * 60 * 60
+
+	// localOffset is offset in seconds east of UTC
+	_, localOffset = time.Now().Zone()
 )
 
 // time cache
@@ -342,7 +345,7 @@ func (l *logger) Write(p []byte) (n int, err error) {
 	if l.roller == nil {
 		if !l.create.IsZero() {
 			now := time.Now()
-			if l.create.Unix()/defaultRollerTime != now.Unix()/defaultRollerTime {
+			if (l.create.Unix()+int64(localOffset))/defaultRollerTime != (now.Unix()+int64(localOffset))/defaultRollerTime {
 				if err = os.Rename(l.Output, l.Output+"."+l.create.Format("2006-01-02")); err != nil {
 					return 0, err
 				}
