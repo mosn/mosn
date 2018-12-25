@@ -19,10 +19,11 @@ package log
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"io"
+	"os"
 	"runtime"
 	"testing"
 	"time"
-	"os"
 )
 
 func TestLogPrintDiscard(t *testing.T) {
@@ -46,7 +47,7 @@ func TestLogPrintDiscard(t *testing.T) {
 	select {
 	case <-lchan:
 		t.Errorf("test Print diacard failed, should be block")
-	case <-time.After(time.Second*3):
+	case <-time.After(time.Second * 3):
 	}
 }
 
@@ -73,6 +74,59 @@ func TestLogPrintnull(t *testing.T) {
 	}
 }
 
+func TestLoglocalOffset(t *testing.T) {
+	_, offset := time.Now().Zone()
+	defaultRollerTime = 24 * 60 * 60
+	t1 := time.Date(2018, time.December, 25, 23, 59, 59, 0, time.Local)
+	t2 := time.Date(2018, time.December, 26, 00, 00, 01, 0, time.Local)
+	if (t1.Unix()+int64(offset))/defaultRollerTime+1 != (t2.Unix()+int64(offset))/defaultRollerTime {
+		t.Errorf("test localOffset failed")
+	}
+	t.Logf("t1=%d t2=%d offset=%d rollertime=%d\n", t1.Unix(), t2.Unix(), offset, defaultRollerTime)
+	t.Logf("%d %d\n", (t1.Unix())/defaultRollerTime, (t1.Unix() / defaultRollerTime))
+	t.Logf("%d %d\n", (t1.Unix()+int64(offset))/defaultRollerTime, (t2.Unix()+int64(offset))/defaultRollerTime)
+
+}
+
+func TestLogDefaultRollerTime(t *testing.T) {
+	logName := "/tmp/mosn_bench/printdefaultroller.log"
+	rollerName := logName + "." + time.Now().Format("2006-01-02")
+	os.Remove(logName)
+	os.Remove(rollerName)
+	// 2s
+	defaultRollerTime = 2
+	logger, err := NewLogger(logName, RAW)
+	if err != nil {
+		t.Errorf("TestLogDefaultRoller failed %v", err)
+	}
+	logger.Print(buffer.NewIoBufferString("1111111"), false)
+	time.Sleep(3 * time.Second)
+	logger.Print(buffer.NewIoBufferString("2222222"), false)
+	time.Sleep(1 * time.Second)
+	logger.Close()
+
+	b := make([]byte, 100)
+	f, err := os.Open(logName)
+	if err != nil {
+		t.Errorf("TestLogDefaultRoller failed %v", err)
+	}
+	n, err := f.Read(b)
+	f.Close()
+	if err != io.EOF || n != 0 {
+		t.Errorf("TestLogDefaultRoller failed %v", err)
+	}
+
+	f, err = os.Open(rollerName)
+	if err != nil {
+		t.Errorf("TestLogDefaultRoller failed %v", err)
+	}
+	n, err = f.Read(b)
+	f.Close()
+	if n == 0 || string(b[0:n]) != "11111112222222" {
+		t.Errorf("TestLogDefaultRoller failed %v", string(b[0:n]))
+	}
+}
+
 func BenchmarkLog(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	//InitDefaultLogger("", INFO)
@@ -93,6 +147,13 @@ func BenchmarkLogParallel(b *testing.B) {
 			l.Debugf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
 		}
 	})
+}
+
+func BenchmarkLogTimeNow(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	for n := 0; n < b.N; n++ {
+		time.Now()
+	}
 }
 
 func BenchmarkLogTimeFormat(b *testing.B) {
