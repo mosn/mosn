@@ -49,7 +49,7 @@ type healthCheckFilter struct {
 	requestID      uint64
 	healthCheckReq bool
 	// callbacks
-	cb types.StreamReceiverFilterCallbacks
+	handler types.StreamReceiverFilterHandler
 }
 
 // NewHealthCheckFilter used to create new health check filter
@@ -62,13 +62,13 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 	}
 }
 
-func (f *healthCheckFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *healthCheckFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		if cmd.CommandCode() == sofarpc.HEARTBEAT {
 			f.protocol = cmd.ProtocolCode()
 			f.requestID = cmd.RequestID()
 			f.healthCheckReq = true
-			f.cb.RequestInfo().SetHealthCheck(true)
+			f.handler.RequestInfo().SetHealthCheck(true)
 
 			if !f.passThrough {
 				f.intercept = true
@@ -89,7 +89,7 @@ func (f *healthCheckFilter) OnDecodeHeaders(headers types.HeaderMap, endStream b
 	return types.StreamHeadersFilterContinue
 }
 
-func (f *healthCheckFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *healthCheckFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	if endStream && f.intercept {
 		f.handleIntercept()
 	}
@@ -101,7 +101,7 @@ func (f *healthCheckFilter) OnDecodeData(buf types.IoBuffer, endStream bool) typ
 	return types.StreamDataFilterContinue
 }
 
-func (f *healthCheckFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *healthCheckFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	if f.intercept {
 		f.handleIntercept()
 	}
@@ -120,11 +120,11 @@ func (f *healthCheckFilter) handleIntercept() {
 		log.ByContext(f.context).Errorf("Unknown protocol code: [%x] while intercept healthcheck.", f.protocol)
 		//TODO: set hijack reply - codec error, actually this would happen at codec stage which is before this
 	}
-	f.cb.AppendHeaders(hbAck, true)
+	f.handler.AppendHeaders(hbAck, true)
 }
 
-func (f *healthCheckFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
-	f.cb = cb
+func (f *healthCheckFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+	f.handler = handler
 }
 
 func (f *healthCheckFilter) OnDestroy() {}

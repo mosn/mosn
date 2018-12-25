@@ -28,7 +28,7 @@ import (
 )
 
 // types.StreamEventListener
-// types.StreamReceiver
+// types.StreamReceiveListener
 // types.PoolEventListener
 type upstreamRequest struct {
 	proxy         *proxy
@@ -75,6 +75,8 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 	})
 }
 
+func (r *upstreamRequest) OnDestroyStream() {}
+
 func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 
@@ -84,7 +86,7 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	}
 }
 
-// types.StreamReceiver
+// types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	// save response code

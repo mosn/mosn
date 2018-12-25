@@ -94,7 +94,7 @@ func TestPrincipalSourceIp(t *testing.T) {
 		return
 	}
 
-	cb := &mockStreamReceiverFilterCallbacks{
+	cb := &mockStreamReceiverFilterHandler{
 		conn: &mockConn{
 			remoteAddr: &mockAddr{
 				IP:   "1.2.3.4",

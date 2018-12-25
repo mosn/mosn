@@ -32,7 +32,7 @@ import (
 
 // StreamReceiver to receive keep alive response
 type sofaRPCKeepAlive struct {
-	Codec        str.CodecClient
+	Codec        str.Client
 	ProtocolByte byte
 	Timeout      time.Duration
 	Threshold    uint32
@@ -48,7 +48,7 @@ type sofaRPCKeepAlive struct {
 	mutex    sync.Mutex
 }
 
-func NewSofaRPCKeepAlive(codec str.CodecClient, proto byte, timeout time.Duration, thres uint32) types.KeepAlive {
+func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, thres uint32) types.KeepAlive {
 	kp := &sofaRPCKeepAlive{
 		Codec:        codec,
 		ProtocolByte: proto,
@@ -61,9 +61,9 @@ func NewSofaRPCKeepAlive(codec str.CodecClient, proto byte, timeout time.Duratio
 		requests:     make(map[uint64]*keepAliveTimeout),
 		mutex:        sync.Mutex{},
 	}
-	// register keepalive to connection callbacks
+	// register keepalive to connection event listener
 	// if connection is closed, keepalive should stop
-	kp.Codec.AddConnectionCallbacks(kp)
+	kp.Codec.AddConnectionEventListener(kp)
 	return kp
 }
 

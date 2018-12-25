@@ -32,7 +32,7 @@ type InheritPrincipal interface {
 	isInheritPrincipal()
 	// A policy matches if and only if at least one of InheritPermission.Match return true
 	// AND at least one of InheritPrincipal.Match return true
-	Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool
+	Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool
 }
 
 func (*PrincipalAny) isInheritPrincipal()           {}
@@ -53,7 +53,7 @@ func NewPrincipalAny(principal *v2alpha.Principal_Any) (*PrincipalAny, error) {
 	}, nil
 }
 
-func (principal *PrincipalAny) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (principal *PrincipalAny) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	return principal.Any
 }
 
@@ -75,7 +75,7 @@ func NewPrincipalSourceIp(principal *v2alpha.Principal_SourceIp) (*PrincipalSour
 	}
 }
 
-func (principal *PrincipalSourceIp) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (principal *PrincipalSourceIp) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	remoteAddr := cb.Connection().RemoteAddr()
 	addr, err := net.ResolveTCPAddr(remoteAddr.Network(), remoteAddr.String())
 	if err != nil {
@@ -107,7 +107,7 @@ func NewPrincipalHeader(principal *v2alpha.Principal_Header) (*PrincipalHeader, 
 	}
 }
 
-func (principal *PrincipalHeader) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (principal *PrincipalHeader) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	targetValue, found := headerMapper(principal.Target, headers)
 
 	// HeaderMatcherPresentMatch is a little special
@@ -145,7 +145,7 @@ func NewPrincipalAndIds(principal *v2alpha.Principal_AndIds) (*PrincipalAndIds, 
 	return inheritPrincipal, nil
 }
 
-func (principal *PrincipalAndIds) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (principal *PrincipalAndIds) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	for _, ids := range principal.AndIds {
 		if isMatch := ids.Match(cb, headers); isMatch {
 			continue
@@ -174,7 +174,7 @@ func NewPrincipalOrIds(principal *v2alpha.Principal_OrIds) (*PrincipalOrIds, err
 	return inheritPrincipal, nil
 }
 
-func (principal *PrincipalOrIds) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (principal *PrincipalOrIds) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	for _, ids := range principal.OrIds {
 		if isMatch := ids.Match(cb, headers); isMatch {
 			return true
@@ -233,7 +233,7 @@ func NewPrincipalAuthenticated(principal *v2alpha.Principal_Authenticated_) (*Pr
 	  return Utility::getSubjectFromCertificate(*cert);
 	}
 */
-func (principal *PrincipalAuthenticated) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (principal *PrincipalAuthenticated) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	conn := cb.Connection().RawConn()
 	if tlsConn, ok := conn.(*mtls.TLSConn); ok {
 		cert := tlsConn.ConnectionState().PeerCertificates[0]

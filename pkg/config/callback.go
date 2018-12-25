@@ -81,6 +81,7 @@ func (c *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 		if listenerAdapter == nil {
 			// if listenerAdapter is nil, return directly
 			log.DefaultLogger.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
+			return
 		}
 		log.DefaultLogger.Debugf("listenerAdapter.AddOrUpdateListener called, with mosn Listener:%+v, networkFilters:%+v, streamFilters: %+v",
 			mosnListener, networkFilters, streamFilters)

@@ -73,13 +73,13 @@ func genRoleBasedAccessControlEngine(confPath string) (*RoleBasedAccessControlEn
 	return engine, shadowEngine, nil
 }
 
-// Mock StreamReceiverFilterCallbacks
-type mockStreamReceiverFilterCallbacks struct {
-	types.StreamReceiverFilterCallbacks
+// Mock StreamReceiverFilterHandler
+type mockStreamReceiverFilterHandler struct {
+	types.StreamReceiverFilterHandler
 	conn *mockConn
 }
 
-func (cb *mockStreamReceiverFilterCallbacks) Connection() types.Connection {
+func (cb *mockStreamReceiverFilterHandler) Connection() types.Connection {
 	return cb.conn
 }
 

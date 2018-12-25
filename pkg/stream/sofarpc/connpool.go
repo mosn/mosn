@@ -23,17 +23,16 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 func init() {
 	network.RegisterNewPoolFactory(protocol.SofaRPC, NewConnPool)
 	types.RegisterConnPoolFactory(protocol.SofaRPC, true)
-
 }
 
 // types.ConnectionPool
@@ -58,7 +57,7 @@ func (p *connPool) Protocol() types.Protocol {
 }
 
 func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiver, cb types.PoolEventListener) types.Cancellable {
+	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
 	p.mux.Lock()
 	if p.activeClient == nil {
 		p.activeClient = newActiveClient(ctx, p)
@@ -68,12 +67,12 @@ func (p *connPool) NewStream(ctx context.Context,
 
 	activeClient := p.activeClient
 	if activeClient == nil {
-		cb.OnFailure(types.ConnectionFailure, nil)
-		return nil
+		listener.OnFailure(types.ConnectionFailure, nil)
+		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		cb.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, nil)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -83,16 +82,18 @@ func (p *connPool) NewStream(ctx context.Context,
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := activeClient.codecClient.NewStream(ctx, responseDecoder)
-		cb.OnReady(streamEncoder, p.host)
+		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
+		streamEncoder.GetStream().AddEventListener(activeClient)
+
+		listener.OnReady(streamEncoder, p.host)
 	}
 
-	return nil
+	return
 }
 
 func (p *connPool) Close() {
 	if p.activeClient != nil {
-		p.activeClient.codecClient.Close()
+		p.activeClient.client.Close()
 	}
 }
 
@@ -112,7 +113,7 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		client.codecClient.Close()
+		client.client.Close()
 		p.activeClient = nil
 	} else if event == types.ConnectFailed {
 		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
@@ -141,8 +142,8 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 	}
 }
 
-func (p *connPool) createCodecClient(context context.Context, connData types.CreateConnectionData) str.CodecClient {
-	return str.NewCodecClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
+func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
+	return str.NewStreamClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
 }
 
 // keepAliveListener is a types.ConnectionEventListener
@@ -156,13 +157,13 @@ func (l *keepAliveListener) OnEvent(event types.ConnectionEvent) {
 	}
 }
 
-// stream.CodecClientCallbacks
+// types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connPool
-	codecClient        str.CodecClient
 	keepAlive          *keepAliveListener
+	client             str.Client
 	host               types.CreateConnectionData
 	closeWithActiveReq bool
 	totalStream        uint64
@@ -175,12 +176,11 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	data := pool.host.CreateConnection(ctx)
 	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
-	codecClient := pool.createCodecClient(connCtx, data)
-	codecClient.AddConnectionCallbacks(ac)
-	codecClient.SetCodecClientCallbacks(ac)
-	codecClient.SetCodecConnectionCallbacks(ac)
+	codecClient := pool.createStreamClient(connCtx, data)
+	codecClient.AddConnectionEventListener(ac)
+	codecClient.SetStreamConnectionEventListener(ac)
 
-	ac.codecClient = codecClient
+	ac.client = codecClient
 	ac.host = data
 
 	if err := ac.host.Connection.Connect(true); err != nil {
@@ -219,12 +219,14 @@ func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 
-func (ac *activeClient) OnStreamDestroy() {
+// types.StreamEventListener
+func (ac *activeClient) OnDestroyStream() {
 	ac.pool.onStreamDestroy(ac)
 }
 
-func (ac *activeClient) OnStreamReset(reason types.StreamResetReason) {
+func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 	ac.pool.onStreamReset(ac, reason)
 }
 
+// types.StreamConnectionEventListener
 func (ac *activeClient) OnGoAway() {}

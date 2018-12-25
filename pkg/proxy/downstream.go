@@ -38,7 +38,7 @@ import (
 )
 
 // types.StreamEventListener
-// types.StreamReceiver
+// types.StreamReceiveListener
 // types.FilterChainFactoryCallbacks
 // Downstream stream, as a controller to handle downstream and upstream proxy flow
 type downStream struct {
@@ -232,7 +232,9 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 	s.cleanStream()
 }
 
-// types.StreamReceiver
+func (s *downStream) OnDestroyStream() {}
+
+// types.StreamReceiveListener
 func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	workerPool.Offer(&event{
 		id:  s.ID,
@@ -340,10 +342,10 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.timeout = parseProxyTimeout(route, headers)
 	var prot types.Protocol
 	if s.proxy.config.UpstreamProtocol == string(protocol.Auto) {
-		if s.proxy.serverCodec == nil {
+		if s.proxy.serverStreamConn == nil {
 			prot = types.Protocol(s.proxy.config.DownstreamProtocol)
 		} else {
-			prot = s.proxy.serverCodec.Protocol()
+			prot = s.proxy.serverStreamConn.Protocol()
 		}
 	} else {
 		prot = types.Protocol(s.proxy.config.UpstreamProtocol)
@@ -544,10 +546,10 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 	var currentProtocol types.Protocol
 
 	if s.proxy.config.UpstreamProtocol == string(protocol.Auto) {
-		if s.proxy.serverCodec == nil {
+		if s.proxy.serverStreamConn == nil {
 			currentProtocol = types.Protocol(s.proxy.config.DownstreamProtocol)
 		} else {
-			currentProtocol = s.proxy.serverCodec.Protocol()
+			currentProtocol = s.proxy.serverStreamConn.Protocol()
 		}
 	} else {
 		currentProtocol = types.Protocol(s.proxy.config.UpstreamProtocol)

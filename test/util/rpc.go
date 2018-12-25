@@ -32,7 +32,7 @@ type RPCClient struct {
 	t              *testing.T
 	ClientID       string
 	Protocol       string //bolt1, bolt2
-	Codec          stream.CodecClient
+	Codec          stream.Client
 	Waits          sync.Map
 	conn           types.ClientConnection
 	streamID       uint64
@@ -60,9 +60,9 @@ func (c *RPCClient) Connect(addr string) error {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	c.Codec = stream.NewCodecClient(context.Background(), protocol.SofaRPC, cc, nil)
+	c.Codec = stream.NewStreamClient(context.Background(), protocol.SofaRPC, cc, nil)
 	if c.Codec == nil {
-		return fmt.Errorf("NewCodecClient error %v, %v", protocol.SofaRPC, cc)
+		return fmt.Errorf("NewStreamClient error %v, %v", protocol.SofaRPC, cc)
 	}
 
 	return nil

@@ -39,12 +39,6 @@ type UpstreamCallbacks interface {
 	types.ConnectionEventListener
 }
 
-// DownstreamCallbacks
-// callback invoked when downstream event happened
-type DownstreamCallbacks interface {
-	types.ConnectionEventListener
-}
-
 // Timeout
 type Timeout struct {
 	GlobalTimeout time.Duration

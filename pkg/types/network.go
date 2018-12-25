@@ -240,13 +240,13 @@ type Connection interface {
 	SetRemoteAddr(address net.Addr)
 
 	// AddConnectionEventListener add a listener method will be called when connection event occur.
-	AddConnectionEventListener(cb ConnectionEventListener)
+	AddConnectionEventListener(listener ConnectionEventListener)
 
 	// AddBytesReadListener add a method will be called everytime bytes read
-	AddBytesReadListener(cb func(bytesRead uint64))
+	AddBytesReadListener(listener func(bytesRead uint64))
 
 	// AddBytesSentListener add a method will be called everytime bytes write
-	AddBytesSentListener(cb func(bytesSent uint64))
+	AddBytesSentListener(listener func(bytesSent uint64))
 
 	// NextProtocol returns network level negotiation, such as ALPN. Returns empty string if not supported.
 	NextProtocol() string
