@@ -38,5 +38,6 @@ const (
 
 // NewHealthStats returns a stats with namespace prefix service
 func NewHealthStats(serviceName string) types.Metrics {
-	return NewStats(HealthCheckType, map[string]string{"service": serviceName})
+	metrics, _ := NewStats(HealthCheckType, map[string]string{"service": serviceName})
+	return metrics
 }

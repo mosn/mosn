@@ -23,21 +23,21 @@ import (
 	"github.com/rcrowley/go-metrics"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"sort"
+	"fmt"
+)
+
+const maxLabelCount = 10
+
+var (
+	defaultStore *store
+
+	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is % %d", maxLabelCount)
 )
 
 // stats memory store
 type store struct {
 	metrics []types.Metrics
 	mutex   sync.RWMutex
-}
-
-var defaultStore *store
-
-func init() {
-	defaultStore = &store{
-		// TODO: default length configurable
-		metrics: make([]types.Metrics, 0, 100),
-	}
 }
 
 // Stats is a wrapper of go-metrics registry, is an implement of types.Metrics
@@ -50,17 +50,28 @@ type Stats struct {
 	registry metrics.Registry
 }
 
+func init() {
+	defaultStore = &store{
+		// TODO: default length configurable
+		metrics: make([]types.Metrics, 0, 100),
+	}
+}
+
 // NewStats returns a Stats
 // metrics key prefix is "${type}.${namespace}"
 // "@" is the reserved sep, any "@" in type and namespace will be dropped
-func NewStats(typ string, labels map[string]string) types.Metrics {
+func NewStats(typ string, labels map[string]string) (types.Metrics, error) {
+	if len(labels) > maxLabelCount {
+		return nil, errLabelCountExceeded
+	}
+
 	defaultStore.mutex.Lock()
 	defer defaultStore.mutex.Unlock()
 
 	// check existence
 	for _, metric := range defaultStore.metrics {
 		if metric.Type() == typ && mapEqual(metric.Labels(), labels) {
-			return metric
+			return metric, nil
 		}
 	}
 
@@ -72,25 +83,7 @@ func NewStats(typ string, labels map[string]string) types.Metrics {
 
 	defaultStore.metrics = append(defaultStore.metrics, stats)
 
-	return stats
-}
-
-// NewStats returns a Stats
-// metrics key prefix is "${type}.${namespace}"
-// "@" is the reserved sep, any "@" in type and namespace will be dropped
-func NewStatsAlways(typ string, labels map[string]string) types.Metrics {
-	defaultStore.mutex.Lock()
-	defer defaultStore.mutex.Unlock()
-
-	stats := &Stats{
-		typ:      typ,
-		labels:   labels,
-		registry: metrics.NewRegistry(),
-	}
-
-	defaultStore.metrics = append(defaultStore.metrics, stats)
-
-	return stats
+	return stats, nil
 }
 
 func (s *Stats) Type() string {

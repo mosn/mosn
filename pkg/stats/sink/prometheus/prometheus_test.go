@@ -66,7 +66,7 @@ func TestPrometheusMetrics(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			tc := testCases[i]
-			s := stats.NewStats(tc.typ, tc.labels)
+			s, _ := stats.NewStats(tc.typ, tc.labels)
 			switch tc.action {
 			case countInc:
 				s.Counter(tc.key).Inc(tc.actionValue)

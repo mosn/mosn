@@ -117,7 +117,7 @@ func TestDumpStats(t *testing.T) {
 	server.Start(config)
 	defer server.Close()
 
-	stats := stats.NewStats("DumpTest", map[string]string{"lbk1":"lbv1"})
+	stats, _ := stats.NewStats("DumpTest", map[string]string{"lbk1":"lbv1"})
 	stats.Counter("ct1").Inc(1)
 	stats.Gauge("gg2").Update(3)
 

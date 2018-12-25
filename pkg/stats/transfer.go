@@ -108,7 +108,7 @@ func readTransferData(b []byte) error {
 		return err
 	}
 	for _, transfer := range transfers {
-		s := NewStats(transfer.Type, transfer.Labels)
+		s, _ := NewStats(transfer.Type, transfer.Labels)
 
 		for _, metric := range transfer.Data {
 			switch metric.MetricsType {

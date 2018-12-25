@@ -66,7 +66,7 @@ func TestConsoleMetrics(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			tc := testCases[i]
-			s := stats.NewStats(tc.typ, tc.labels)
+			s, _ := stats.NewStats(tc.typ, tc.labels)
 			switch tc.action {
 			case countInc:
 				s.Counter(tc.key).Inc(tc.actionValue)
@@ -135,7 +135,7 @@ func BenchmarkGetMetrics(b *testing.B) {
 		{stats.UpstreamType, map[string]string{"cluster": "2", "host":"2"}},
 	}
 	for _, tc := range testCases {
-		s := stats.NewStats(tc.typ, tc.labels)
+		s, _ := stats.NewStats(tc.typ, tc.labels)
 		s.Counter("key1").Inc(100)
 		s.Counter("key2").Inc(100)
 		s.Gauge("key3").Update(100)

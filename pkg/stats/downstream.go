@@ -41,10 +41,12 @@ const (
 
 // NewProxyStats returns a stats with namespace prefix proxy
 func NewProxyStats(proxyName string) types.Metrics {
-	return NewStats(DownstreamType, map[string]string{"proxy": proxyName})
+	metrics, _ := NewStats(DownstreamType, map[string]string{"proxy": proxyName})
+	return metrics
 }
 
 // NewListenerStats returns a stats with namespace prefix listsener
 func NewListenerStats(listenerName string) types.Metrics {
-	return NewStats(DownstreamType, map[string]string{"listener": listenerName})
+	metrics, _ := NewStats(DownstreamType, map[string]string{"listener": listenerName})
+	return metrics
 }
