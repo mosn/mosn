@@ -222,17 +222,13 @@ func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
 }
 
 func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
-	atomic.AddUint32(&s.Count, 1)
-	ServeBoltV1(t, conn)
-}
-
-func ServeBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
 		cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
 		}
 		if req, ok := cmd.(*sofarpc.BoltRequest); ok {
+			atomic.AddUint32(&s.Count, 1)
 			resp := BuildBoltV1Response(req)
 			iobufresp, err := codec.BoltCodec.Encode(nil, resp)
 			if err != nil {

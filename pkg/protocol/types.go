@@ -54,6 +54,8 @@ const (
 	IstioHeaderHostKey = "authority"
 )
 
+// TODO: move CommonHeader to common, not only in protocol
+
 // CommonHeader wrapper for map[string]string
 type CommonHeader map[string]string
 

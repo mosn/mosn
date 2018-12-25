@@ -1,0 +1,26 @@
+rbac:
+  rules:
+    action: ALLOW
+    policies:
+      "service-admin":
+        permissions:
+        - any: true
+        principals:
+        - authenticated:
+            name: "cluster.local/ns/default/sa/admin"
+        - authenticated:
+            name: "cluster.local/ns/default/sa/superuser"
+  shadow_rules:
+    action: DENY
+      "product-viewer":
+        permissions:
+        - and_rules:
+            rules:
+            - header: { name: ":method", exact_match: "GET" }
+            - header: { name: ":path", regex_match: "/products(/.*)?" }
+            - or_rules:
+                rules:
+                - destination_port: 80
+                - destination_port: 443
+        principals:
+        - any: true

@@ -22,6 +22,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
+// TODO: The functions in this file is for service discovery, but the function implmentation is not general, should fix it
+
 // dumper provides basic operation with mosn elements, like 'cluster', to write back the config file with dynamic changes
 // biz logic operation, like 'clear all subscribe info', should be written in the bridge code, not in config module.
 //
@@ -53,9 +55,14 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 	removeClusterConfig(subServiceList)
 }
 
-// AddClusterConfig
+// AddOrUpdateClusterConfig
 // called when add cluster config info received
-func AddClusterConfig(clusters []v2.Cluster) {
+func AddOrUpdateClusterConfig(clusters []v2.Cluster) {
+	addOrUpdateClusterConfig(clusters)
+	go dump(true)
+}
+
+func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 	for _, clusterConfig := range clusters {
 		exist := false
 
@@ -72,11 +79,7 @@ func AddClusterConfig(clusters []v2.Cluster) {
 		if !exist {
 			config.ClusterManager.Clusters = append(config.ClusterManager.Clusters, clusterConfig)
 		}
-
-		// update routes
-		//AddRouterConfig(cluster.Name)
 	}
-	go dump(true)
 }
 
 func removeClusterConfig(clusterNames []string) {
@@ -141,33 +144,77 @@ func DelPubInfo(serviceName string) {
 	go dump(dirty)
 }
 
-// AddRouterConfig
-// Add router from config when new cluster created
-func AddRouterConfig(clusterName string) {
-	routerName := clusterName[0 : len(clusterName)-8]
+// AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddRoutersConfig
+// use this function to only dump config once
+func AddClusterWithRouter(listenername string, virtualhost string, router v2.Router, clusters []v2.Cluster) {
+	addOrUpdateClusterConfig(clusters)
+	addRoutersConfig(listenername, virtualhost, router)
+	go dump(true)
+}
 
-	for _, l := range config.Servers[0].Listeners {
-		if routers, ok := l.FilterChains[0].Filters[0].Config["routes"].([]interface{}); ok {
-			// remove repetition
-			for _, route := range routers {
-				if r, ok := route.(map[string]interface{}); ok {
-					if n, ok := r["name"].(string); ok {
-						if n == routerName {
-							return
-						}
-					}
+// AddRoutersConfig dumps addRoutersConfig result
+func AddRoutersConfig(listenername string, virtualhost string, router v2.Router) {
+	if addRoutersConfig(listenername, virtualhost, router) {
+		go dump(true)
+	}
+}
+
+// addRoutersConfig effects listener config.
+// routers in listener.connection_manager.virtual_hosts, if a virtual host name is empty, use default virtual host
+func addRoutersConfig(listenername string, virtualhost string, router v2.Router) bool {
+	dirty := false
+	// support only one server
+	listeners := config.Servers[0].Listeners
+	for _, ln := range listeners {
+		if ln.Name != listenername {
+			continue
+		}
+		// support only one filter chain
+		nfs := ln.FilterChains[0].Filters
+	FindRouter:
+		for filterIndex, nf := range nfs {
+			if nf.Type != v2.CONNECTION_MANAGER {
+				continue FindRouter
+			}
+			routerConfiguration := &v2.RouterConfiguration{}
+			if data, err := json.Marshal(nf.Config); err == nil {
+				if err := json.Unmarshal(data, routerConfiguration); err != nil {
+					log.DefaultLogger.Errorf("invalid router config, update config failed")
+					break FindRouter
 				}
 			}
-
-			// append router
-			var s = make(map[string]interface{}, 4)
-			s["name"] = routerName
-			s["service"] = routerName
-			s["cluster"] = clusterName
-			routers = append(routers, s)
-			l.FilterChains[0].Filters[0].Config["routes"] = routers
-		} else {
-			log.DefaultLogger.Println(l.FilterChains[0].Filters[0].Config["routes"])
+			var vhost *v2.VirtualHost
+			vhs := routerConfiguration.VirtualHosts
+		FindVirtualHost:
+			for _, vh := range vhs {
+				if virtualhost == "" {
+					if len(vh.Domains) > 0 && vh.Domains[0] == "*" {
+						vhost = vh
+						break FindVirtualHost
+					}
+				} else if vh.Name == virtualhost {
+					vhost = vh
+					break FindVirtualHost
+				}
+			}
+			if vhost != nil {
+				vhost.Routers = append(vhost.Routers, router)
+				dirty = true
+			}
+			if dirty {
+				filterConfig := make(map[string]interface{})
+				if data, err := json.Marshal(routerConfiguration); err == nil {
+					if err := json.Unmarshal(data, &filterConfig); err != nil {
+						log.DefaultLogger.Errorf("rewrite filter config failed")
+						return false
+					}
+				}
+				nfs[filterIndex] = v2.Filter{
+					Type:   v2.CONNECTION_MANAGER,
+					Config: filterConfig,
+				}
+			}
 		}
 	}
+	return dirty
 }

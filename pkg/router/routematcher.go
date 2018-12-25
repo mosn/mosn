@@ -132,7 +132,7 @@ func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types
 	virtualHost := rm.findVirtualHost(headers)
 
 	if virtualHost == nil {
-		log.DefaultLogger.Errorf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Infof("No VirtualHost Found when Routing, Request Headers = %+v", headers)
 		return nil
 	}
 
@@ -140,7 +140,7 @@ func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types
 	routerInstance := virtualHost.GetRouteFromEntries(headers, randomValue)
 
 	if routerInstance == nil {
-		log.DefaultLogger.Errorf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Infof("No Router Instance Found when Routing, Request Headers = %+v", headers)
 	}
 
 	return routerInstance
@@ -151,12 +151,12 @@ func (rm *routeMatcher) GetAllRoutes(headers types.HeaderMap, randomValue uint64
 	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
 	if virtualHost == nil {
-		log.DefaultLogger.Errorf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Infof("No VirtualHost Found when Routing, Request Headers = %+v", headers)
 		return nil
 	}
 	routers := virtualHost.GetAllRoutesFromEntries(headers, randomValue)
 	if routers == nil {
-		log.DefaultLogger.Errorf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Infof("No Router Instance Found when Routing, Request Headers = %+v", headers)
 	}
 	return routers
 }

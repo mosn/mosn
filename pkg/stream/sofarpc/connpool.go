@@ -21,6 +21,7 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
@@ -144,12 +145,24 @@ func (p *connPool) createCodecClient(context context.Context, connData types.Cre
 	return str.NewCodecClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
 }
 
+// keepAliveListener is a types.ConnectionEventListener
+type keepAliveListener struct {
+	keepAlive types.KeepAlive
+}
+
+func (l *keepAliveListener) OnEvent(event types.ConnectionEvent) {
+	if event == types.OnReadTimeout {
+		l.keepAlive.SendKeepAlive()
+	}
+}
+
 // stream.CodecClientCallbacks
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connPool
 	codecClient        str.CodecClient
+	keepAlive          *keepAliveListener
 	host               types.CreateConnectionData
 	closeWithActiveReq bool
 	totalStream        uint64
@@ -173,6 +186,19 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	if err := ac.host.Connection.Connect(true); err != nil {
 		return nil
 	}
+	// Add Keep Alive
+	// protocol is from onNewDetectStream
+	// TODO: support protocol convert
+	protocolValue := ctx.Value(types.ContextSubProtocol)
+	if proto, ok := protocolValue.(byte); ok {
+		// TODO: support config
+		ac.keepAlive = &keepAliveListener{
+			keepAlive: NewSofaRPCKeepAlive(codecClient, proto, time.Second, 6),
+		}
+		ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
+		go ac.keepAlive.keepAlive.Start()
+	}
+	// stats
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)

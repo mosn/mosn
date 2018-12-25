@@ -534,6 +534,24 @@ func TestMngAdapter_TriggerClusterHostUpdate(t *testing.T) {
 	}
 }
 
+func TestMngAdapter_TriggerHostAppend(t *testing.T) {
+	mockClusterMnger := MockClusterManager().(*clusterManager)
+	defer mockClusterMnger.Destory()
+	adapter := &MngAdapter{mockClusterMnger}
+	if err := adapter.TriggerHostAppend("o1", []v2.Host{host3, host4}); err != nil {
+		t.Error("append host failed")
+	}
+	if err := adapter.TriggerHostAppend("notexists", []v2.Host{}); err == nil {
+		t.Error("append host into cluster not exists")
+	}
+	// verify
+	snapshot := adapter.GetClusterSnapshot(context.Background(), "o1")
+	defer adapter.PutClusterSnapshot(snapshot)
+	if len(snapshot.PrioritySet().GetHostsInfo(0)) != 4 {
+		t.Error("add host success, but cannot get all of them")
+	}
+}
+
 func TestMngAdapter_TriggerHostDel(t *testing.T) {
 	mockClusterMnger := MockClusterManager().(*clusterManager)
 	defer mockClusterMnger.Destory()
