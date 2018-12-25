@@ -64,7 +64,7 @@ type Status struct {
 // NewStatus return the instance of RbacStatus
 func NewStatus(config *v2.RBAC) *Status {
 	status := &Status{}
-	s := stats.NewStats(FilterMetricsType, config.Version)
+	s, _ := stats.NewStats(FilterMetricsType, map[string]string{"version": config.Version})
 
 	status.EngineAllowedTotal = s.Counter(EngineAllowedTotal)
 	status.EngineDeniedTotal = s.Counter(EngineDeniedTotal)
