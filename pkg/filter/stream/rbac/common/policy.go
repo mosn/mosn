@@ -65,7 +65,7 @@ func NewInheritPolicy(policy *v2alpha.Policy) (*InheritPolicy, error) {
 
 // A policy matches if and only if at least one of its permissions match the action taking place
 // AND at least one of its principals match the downstream.
-func (inheritPolicy *InheritPolicy) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (inheritPolicy *InheritPolicy) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	permissionMatch, principalMatch := false, false
 	for _, permission := range inheritPolicy.InheritPermissions {
 		if permission.Match(cb, headers) {

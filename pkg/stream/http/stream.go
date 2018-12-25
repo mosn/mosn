@@ -18,14 +18,15 @@
 package http
 
 import (
-	"context"
-	"sync/atomic"
-
 	"bufio"
+	"context"
 	"errors"
+	"net"
 	"net/http"
 	"runtime/debug"
 	"strconv"
+	"sync"
+	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -34,7 +35,6 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
-	"net"
 )
 
 var (
@@ -52,14 +52,14 @@ var (
 	minMethodLengh = len("GET")
 	maxMethodLengh = len("CONNECT")
 	httpMethod     = map[string]struct{}{
-		"OPTIONS": struct{}{},
-		"GET":     struct{}{},
-		"HEAD":    struct{}{},
-		"POST":    struct{}{},
-		"PUT":     struct{}{},
-		"DELETE":  struct{}{},
-		"TRACE":   struct{}{},
-		"CONNECT": struct{}{},
+		"OPTIONS": {},
+		"GET":     {},
+		"HEAD":    {},
+		"POST":    {},
+		"PUT":     {},
+		"DELETE":  {},
+		"TRACE":   {},
+		"CONNECT": {},
 	}
 )
 
@@ -108,8 +108,8 @@ func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
 type streamConnection struct {
 	context context.Context
 
-	conn          types.Connection
-	connCallbacks types.ConnectionEventListener
+	conn              types.Connection
+	connEventListener types.ConnectionEventListener
 
 	bufChan chan types.IoBuffer
 
@@ -157,7 +157,7 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	return
 }
 
-// conn callbacks
+// types.ConnectionEventListener
 func (conn *streamConnection) OnEvent(event types.ConnectionEvent) {
 	if event.IsClose() || event.ConnectFailure() {
 		close(conn.bufChan)
@@ -168,9 +168,10 @@ func (conn *streamConnection) OnEvent(event types.ConnectionEvent) {
 type clientStreamConnection struct {
 	streamConnection
 
-	stream              *clientStream
-	connCallbacks       types.ConnectionEventListener
-	streamConnCallbacks types.StreamConnectionEventListener
+	stream                        *clientStream
+	mutex                         sync.RWMutex
+	connectionEventListener       types.ConnectionEventListener
+	streamConnectionEventListener types.StreamConnectionEventListener
 }
 
 func newClientStreamConnection(context context.Context, connection types.ClientConnection,
@@ -183,8 +184,8 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 			conn:    connection,
 			bufChan: make(chan types.IoBuffer),
 		},
-		connCallbacks:       connCallbacks,
-		streamConnCallbacks: streamConnCallbacks,
+		connectionEventListener:       connCallbacks,
+		streamConnectionEventListener: streamConnCallbacks,
 	}
 
 	connection.AddConnectionEventListener(csc)
@@ -208,22 +209,22 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 	return csc
 }
 
-func (csc *clientStreamConnection) serve() {
+func (conn *clientStreamConnection) serve() {
 	for {
 		// 1. blocking read using fasthttp.Response.Read
 		response := fasthttp.AcquireResponse()
 
-		err := response.Read(csc.br)
+		err := response.Read(conn.br)
 		if err != nil {
-			if csc.stream != nil {
-				csc.stream.ResetStream(types.StreamRemoteReset)
+			if conn.stream != nil {
+				conn.stream.ResetStream(types.StreamRemoteReset)
 				log.DefaultLogger.Errorf("Http client codec goroutine error: %s", err)
 			}
 			return
 		}
 
 		// 2. response processing
-		s := csc.stream
+		s := conn.stream
 		s.response = response
 
 		resetConn := false
@@ -244,9 +245,9 @@ func (csc *clientStreamConnection) serve() {
 	}
 }
 
-func (csc *clientStreamConnection) GoAway() {}
+func (conn *clientStreamConnection) GoAway() {}
 
-func (csc *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
+func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiveListener) types.StreamSender {
 	id := protocol.GenerateID()
 	s := &clientStream{
 		stream: stream{
@@ -255,20 +256,44 @@ func (csc *clientStreamConnection) NewStream(ctx context.Context, receiver types
 			request:  fasthttp.AcquireRequest(),
 			receiver: receiver,
 		},
-		connection: csc,
+		connection: conn,
 	}
 
-	csc.stream = s
+	conn.mutex.Lock()
+	conn.stream = s
+	conn.mutex.Unlock()
 
 	return s
+}
+
+func (conn *clientStreamConnection) ActiveStreamsNum() int {
+	conn.mutex.RLock()
+	defer conn.mutex.RUnlock()
+
+	if conn.stream == nil {
+		return 0
+	} else {
+		return 1
+	}
+}
+
+func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+
+	if conn.stream != nil {
+		conn.stream.ResetStream(reason)
+		conn.stream = nil
+	}
 }
 
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
 
-	stream                    *serverStream
-	serverStreamConnCallbacks types.ServerStreamConnectionEventListener
+	stream                   *serverStream
+	mutex                    sync.RWMutex
+	serverStreamConnListener types.ServerStreamConnectionEventListener
 }
 
 func newServerStreamConnection(context context.Context, connection types.Connection,
@@ -279,7 +304,7 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 			conn:    connection,
 			bufChan: make(chan types.IoBuffer),
 		},
-		serverStreamConnCallbacks: callbacks,
+		serverStreamConnListener: callbacks,
 	}
 
 	connection.AddConnectionEventListener(ssc)
@@ -303,14 +328,14 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 	return ssc
 }
 
-func (ssc *serverStreamConnection) serve() {
+func (conn *serverStreamConnection) serve() {
 	for {
 		// 1. blocking read using fasthttp.Request.Read
 		request := fasthttp.AcquireRequest()
-		err := request.Read(ssc.br)
+		err := request.Read(conn.br)
 		if err != nil {
-			if ssc.stream != nil {
-				ssc.stream.ResetStream(types.StreamRemoteReset)
+			if conn.stream != nil {
+				conn.stream.ResetStream(types.StreamRemoteReset)
 				log.DefaultLogger.Errorf("Http server codec goroutine error: %s", err)
 			}
 			return
@@ -321,17 +346,19 @@ func (ssc *serverStreamConnection) serve() {
 		s := &serverStream{
 			stream: stream{
 				id:       id,
-				ctx:      context.WithValue(ssc.context, types.ContextKeyStreamID, id),
+				ctx:      context.WithValue(conn.context, types.ContextKeyStreamID, id),
 				request:  request,
 				response: fasthttp.AcquireResponse(),
 			},
-			connection:       ssc,
+			connection:       conn,
 			responseDoneChan: make(chan bool, 1),
 		}
 
-		s.receiver = ssc.serverStreamConnCallbacks.NewStreamDetect(s.stream.ctx, s, spanBuilder)
+		s.receiver = conn.serverStreamConnListener.NewStreamDetect(s.stream.ctx, s, spanBuilder)
 
-		ssc.stream = s
+		conn.mutex.Lock()
+		conn.stream = s
+		conn.mutex.Unlock()
 
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleRequest()
@@ -342,20 +369,40 @@ func (ssc *serverStreamConnection) serve() {
 	}
 }
 
+func (conn *serverStreamConnection) ActiveStreamsNum() int {
+	conn.mutex.RLock()
+	defer conn.mutex.RUnlock()
+
+	if conn.stream == nil {
+		return 0
+	} else {
+		return 1
+	}
+}
+
+func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+
+	if conn.stream != nil {
+		conn.stream.ResetStream(reason)
+	}
+}
+
 // types.Stream
 // types.StreamSender
 type stream struct {
-	id  uint64
-	ctx context.Context
+	str.BaseStream
 
+	id               uint64
 	readDisableCount int32
+	ctx              context.Context
 
 	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
 	request  *fasthttp.Request
 	response *fasthttp.Response
 
-	receiver  types.StreamReceiver
-	streamCbs []types.StreamEventListener
+	receiver types.StreamReceiveListener
 }
 
 // types.Stream
@@ -363,31 +410,7 @@ func (s *stream) ID() uint64 {
 	return s.id
 }
 
-func (s *stream) AddEventListener(streamCb types.StreamEventListener) {
-	s.streamCbs = append(s.streamCbs, streamCb)
-}
-
-func (s *stream) RemoveEventListener(streamCb types.StreamEventListener) {
-	cbIdx := -1
-
-	for i, streamCb := range s.streamCbs {
-		if streamCb == streamCb {
-			cbIdx = i
-			break
-		}
-	}
-
-	if cbIdx > -1 {
-		s.streamCbs = append(s.streamCbs[:cbIdx], s.streamCbs[cbIdx+1:]...)
-	}
-}
-
-func (s *stream) ResetStream(reason types.StreamResetReason) {
-	for _, cb := range s.streamCbs {
-		cb.OnResetStream(reason)
-	}
-}
-
+// types.StreamSender for request
 type clientStream struct {
 	stream
 
@@ -472,6 +495,11 @@ func (s *clientStream) handleResponse() {
 		if len(s.response.Body()) == 0 {
 			hasData = false
 		}
+
+		s.connection.mutex.Lock()
+		s.connection.stream = nil
+		s.connection.mutex.Unlock()
+
 		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
 
 		if hasData {
@@ -488,6 +516,7 @@ func (s *clientStream) GetStream() types.Stream {
 	return s
 }
 
+// types.StreamSender for response
 type serverStream struct {
 	stream
 
@@ -558,6 +587,7 @@ func (s *serverStream) endStream() {
 		// connections are keep-alive by default.
 		s.response.Header.SetCanonical(HKConnection, HVKeepAlive)
 	}
+	defer s.DestroyStream()
 
 	s.doSend()
 	s.responseDoneChan <- true
@@ -568,7 +598,10 @@ func (s *serverStream) endStream() {
 	}
 
 	// clean up & recycle
+	s.connection.mutex.Lock()
 	s.connection.stream = nil
+	s.connection.mutex.Unlock()
+
 	if s.request != nil {
 		fasthttp.ReleaseRequest(s.request)
 	}
@@ -644,7 +677,7 @@ func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) 
 	}
 
 	// querystring
-	queryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey);
+	queryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey)
 	if ok {
 		headers.Del(protocol.MosnHeaderQueryStringKey)
 		uri += "?" + queryString

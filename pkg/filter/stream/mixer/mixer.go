@@ -40,13 +40,13 @@ type FilterConfigFactory struct {
 }
 
 type mixerFilter struct {
-	context          context.Context
-	config           *v2.Mixer
-	serviceContext   *http.ServiceContext
-	clientContext    *http.ClientContext
-	handler          http.RequestHandler
-	decodeCallback   types.StreamReceiverFilterCallbacks
-	requestTotalSize uint64
+	context               context.Context
+	config                *v2.Mixer
+	serviceContext        *http.ServiceContext
+	clientContext         *http.ClientContext
+	requestHandler        http.RequestHandler
+	receiverFilterHandler types.StreamReceiverFilterHandler
+	requestTotalSize      uint64
 }
 
 // newMixerFilter used to create new mixer filter
@@ -75,12 +75,12 @@ func (f *mixerFilter) ReadPerRouteConfig(perFilterConfig map[string]interface{})
 }
 
 func (f *mixerFilter) createRequestHandler() {
-	if f.handler != nil {
-		log.DefaultLogger.Tracef("handler not nil, return")
+	if f.requestHandler != nil {
+		log.DefaultLogger.Tracef("requestHandler not nil, return")
 		return
 	}
 
-	route := f.decodeCallback.Route()
+	route := f.receiverFilterHandler.Route()
 	if route == nil {
 		log.DefaultLogger.Tracef("no route, return")
 		return
@@ -97,10 +97,10 @@ func (f *mixerFilter) createRequestHandler() {
 		f.ReadPerRouteConfig(perFilterConfig)
 	}
 
-	f.handler = http.NewRequestHandler(f.serviceContext)
+	f.requestHandler = http.NewRequestHandler(f.serviceContext)
 }
 
-func (f *mixerFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *mixerFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	f.requestTotalSize += headers.ByteSize()
 
 	f.createRequestHandler()
@@ -108,19 +108,19 @@ func (f *mixerFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) t
 	return types.StreamHeadersFilterContinue
 }
 
-func (f *mixerFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *mixerFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	f.requestTotalSize += uint64(buf.Len())
 
 	return types.StreamDataFilterContinue
 }
 
-func (f *mixerFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *mixerFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	f.requestTotalSize += trailers.ByteSize()
 	return types.StreamTrailersFilterContinue
 }
 
-func (f *mixerFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
-	f.decodeCallback = cb
+func (f *mixerFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+	f.receiverFilterHandler = handler
 }
 
 func (f *mixerFilter) OnDestroy() {}
@@ -132,12 +132,12 @@ func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMa
 
 	f.createRequestHandler()
 
-	// TODO: use f.decodeCallback.Connection() to get address instead of requestInfo
+	// TODO: use f.receiverFilterHandler.Connection() to get address instead of requestInfo
 	checkData := http.NewCheckData(reqHeaders, requestInfo)
 
 	reportData := http.NewReportData(respHeaders, requestInfo, f.requestTotalSize)
 
-	f.handler.Report(checkData, reportData)
+	f.requestHandler.Report(checkData, reportData)
 }
 
 // CreateFilterChain for create mixer filter

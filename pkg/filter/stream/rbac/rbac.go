@@ -36,7 +36,7 @@ const (
 // rbacFilter is an implement of types.StreamReceiverFilter
 type rbacFilter struct {
 	context      context.Context
-	cb           types.StreamReceiverFilterCallbacks
+	cb           types.StreamReceiverFilterHandler
 	status       *Status
 	protocol     int
 	engine       *common.RoleBasedAccessControlEngine
@@ -60,7 +60,7 @@ func (f *rbacFilter) ReadPerRouteConfig(cfg map[string]interface{}) {
 }
 
 // filter implementation
-func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) (streamHeadersFilterStatus types.StreamHeadersFilterStatus) {
+func (f *rbacFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) (streamHeadersFilterStatus types.StreamHeadersFilterStatus) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.DefaultLogger.Errorf("recover from rbac filter, error: %v", err)
@@ -107,16 +107,16 @@ func (f *rbacFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) (s
 }
 
 // http body handler
-func (f *rbacFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *rbacFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	return types.StreamDataFilterContinue
 }
 
-func (f *rbacFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *rbacFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	//do filter
 	return types.StreamTrailersFilterContinue
 }
 
-func (f *rbacFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
+func (f *rbacFilter) SetReceiveFilterHandler(cb types.StreamReceiverFilterHandler) {
 	f.cb = cb
 }
 

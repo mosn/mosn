@@ -32,7 +32,7 @@ type InheritPermission interface {
 	isInheritPermission()
 	// A policy matches if and only if at least one of InheritPermission.Match return true
 	// AND at least one of InheritPrincipal.Match return true
-	Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool
+	Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool
 }
 
 func (*PermissionAny) isInheritPermission()             {}
@@ -53,7 +53,7 @@ func NewPermissionAny(permission *v2alpha.Permission_Any) (*PermissionAny, error
 	}, nil
 }
 
-func (permission *PermissionAny) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (permission *PermissionAny) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	return permission.Any
 }
 
@@ -75,7 +75,7 @@ func NewPermissionDestinationIp(permission *v2alpha.Permission_DestinationIp) (*
 	}
 }
 
-func (permission *PermissionDestinationIp) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (permission *PermissionDestinationIp) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	localAddr := cb.Connection().LocalAddr()
 	addr, err := net.ResolveTCPAddr(localAddr.Network(), localAddr.String())
 	if err != nil {
@@ -101,7 +101,7 @@ func NewPermissionDestinationPort(permission *v2alpha.Permission_DestinationPort
 	}, nil
 }
 
-func (permission *PermissionDestinationPort) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (permission *PermissionDestinationPort) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	localAddr := cb.Connection().LocalAddr()
 	addr, err := net.ResolveTCPAddr(localAddr.Network(), localAddr.String())
 	if err != nil {
@@ -133,7 +133,7 @@ func NewPermissionHeader(permission *v2alpha.Permission_Header) (*PermissionHead
 	}
 }
 
-func (permission *PermissionHeader) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (permission *PermissionHeader) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	targetValue, found := headerMapper(permission.Target, headers)
 
 	// HeaderMatcherPresentMatch is a little special
@@ -154,7 +154,7 @@ func (permission *PermissionHeader) Match(cb types.StreamReceiverFilterCallbacks
 }
 
 // Permission_AndRules
-type PermissionAndRules struct{
+type PermissionAndRules struct {
 	AndRules []InheritPermission
 }
 
@@ -171,7 +171,7 @@ func NewPermissionAndRules(permission *v2alpha.Permission_AndRules) (*Permission
 	return inheritPermission, nil
 }
 
-func (permission *PermissionAndRules) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (permission *PermissionAndRules) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	for _, rule := range permission.AndRules {
 		if isMatch := rule.Match(cb, headers); isMatch {
 			continue
@@ -183,7 +183,7 @@ func (permission *PermissionAndRules) Match(cb types.StreamReceiverFilterCallbac
 }
 
 // Permission_OrRules
-type PermissionOrRules struct{
+type PermissionOrRules struct {
 	OrRules []InheritPermission
 }
 
@@ -200,7 +200,7 @@ func NewPermissionOrRules(permission *v2alpha.Permission_OrRules) (*PermissionOr
 	return inheritPermission, nil
 }
 
-func (permission *PermissionOrRules) Match(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) bool {
+func (permission *PermissionOrRules) Match(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) bool {
 	for _, rule := range permission.OrRules {
 		if isMatch := rule.Match(cb, headers); isMatch {
 			return true
