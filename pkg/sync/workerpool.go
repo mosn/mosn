@@ -19,8 +19,8 @@ package sync
 
 import (
 	"fmt"
-	"runtime/debug"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"runtime/debug"
 )
 
 const (
@@ -73,10 +73,18 @@ func (pool *shardWorkerPool) Shard(source uint32) uint32 {
 	return source % uint32(pool.numShards)
 }
 
-func (pool *shardWorkerPool) Offer(job ShardJob) {
+func (pool *shardWorkerPool) Offer(job ShardJob, block bool) {
 	// use shard to avoid excessive synchronization
 	i := pool.Shard(job.Source())
-	pool.shards[i].jobChan <- job
+	if block {
+		pool.shards[i].jobChan <- job
+	} else {
+		select {
+		case pool.shards[i].jobChan <- job:
+		default:
+			log.DefaultLogger.Errorf("jobChan over full")
+		}
+	}
 }
 
 func (pool *shardWorkerPool) spawnWorker(shard *shard) {

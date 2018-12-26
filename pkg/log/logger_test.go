@@ -62,6 +62,7 @@ func TestLogPrintnull(t *testing.T) {
 	buf.WriteString("")
 	l.Print(buf, false)
 	l.Close()
+	time.Sleep(time.Second)
 	f, _ := os.Open(logName)
 	b := make([]byte, 1024)
 	n, _ := f.Read(b)
