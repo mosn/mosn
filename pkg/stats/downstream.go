@@ -39,6 +39,7 @@ const (
 	DownstreamRequestActive      = "downstream_request_active"
 	DownstreamRequestReset       = "downstream_request_reset"
 	DownstreamRequestTime        = "downstream_request_time"
+	DownstreamRequestTimeTotal   = "downstream_request_time_total"
 )
 
 // NewProxyStats returns a stats with namespace prefix proxy

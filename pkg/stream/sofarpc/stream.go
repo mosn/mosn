@@ -205,6 +205,9 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 		stream = conn.onNewStreamDetect(ctx, cmd, conn.codecEngine)
 	case sofarpc.RESPONSE:
 		stream = conn.onStreamRecv(ctx, cmd)
+		// set a x-mosn-status, which will delete in endStream
+		code := strconv.Itoa(int(cmd.(rpc.RespStatus).RespStatus()))
+		cmd.Set(types.HeaderStatus, code)
 	}
 
 	// header, data notify
@@ -401,6 +404,11 @@ func (s *stream) endStream() {
 	if s.sendCmd != nil {
 		// replace requestID
 		s.sendCmd.SetRequestID(s.id)
+
+		// delete addtional mosn status before encode
+		if _, ok := s.sendCmd.Get(types.HeaderStatus); ok {
+			s.sendCmd.Del(types.HeaderStatus)
+		}
 
 		// TODO: replaced with EncodeTo, and pre-alloc send buf
 		buf, err := s.sc.codecEngine.Encode(s.ctx, s.sendCmd)

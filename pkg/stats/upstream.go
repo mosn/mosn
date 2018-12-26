@@ -45,6 +45,8 @@ const (
 	UpstreamRequestTimeout                         = "upstream_request_request_timeout"
 	UpstreamRequestFailureEject                    = "upstream_request_failure_eject"
 	UpstreamRequestPendingOverflow                 = "upstream_request_pending_overflow"
+	UpstreamRequestDuration                        = "upstream_request_duration_time"
+	UpstreamRequestDurationTotal                   = "upstream_request_duration_time_total"
 )
 
 //  key in cluster
@@ -59,6 +61,16 @@ const (
 	UpstreamBytesReadBuffered    = "upstream_connection_bytes_read_buffered"
 	UpstreamBytesWriteTotal      = "upstream_connection_bytes_write"
 	UpstreamBytesWriteBuffered   = "upstream_connection_bytes_write_buffered"
+)
+
+// key for protocol, used in stats and hosts
+const (
+	SofaRPCSuccess = "sofarpc_success"
+	SofaRPCFailed  = "sofarpc_failed"
+	HTTPStatus2XX  = "http_status_2xx"
+	HTTPStatus3XX  = "http_status_3xx"
+	HTTPStatus4XX  = "http_status_4xx"
+	HTTPStatus5XX  = "http_statsu_5xx"
 )
 
 // NewHostStats returns a stats that namespace contains cluster and host address

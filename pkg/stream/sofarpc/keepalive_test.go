@@ -31,12 +31,12 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 )
 
-type stats struct {
+type testStats struct {
 	success uint32
 	timeout uint32
 }
 
-func (s *stats) Record(status types.KeepAliveStatus) {
+func (s *testStats) Record(status types.KeepAliveStatus) {
 	switch status {
 	case types.KeepAliveSuccess:
 		atomic.AddUint32(&s.success, 1)
@@ -92,23 +92,23 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 
 func TestKeepAlive(t *testing.T) {
 	tc := newTestCase(t, 0, time.Second, 6)
-	stats := &stats{}
-	tc.KeepAlive.AddCallback(stats.Record)
+	testStats := &testStats{}
+	tc.KeepAlive.AddCallback(testStats.Record)
 	// test concurrency
 	for i := 0; i < 5; i++ {
 		go tc.KeepAlive.SendKeepAlive()
 	}
 	// wait response
 	time.Sleep(2 * time.Second)
-	if stats.success != 5 {
-		t.Error("keep alive handle success not enough", stats)
+	if testStats.success != 5 {
+		t.Error("keep alive handle success not enough", testStats)
 	}
 }
 
 func TestKeepAliveTimeout(t *testing.T) {
 	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond, 6)
-	stats := &stats{}
-	tc.KeepAlive.AddCallback(stats.Record)
+	testStats := &testStats{}
+	tc.KeepAlive.AddCallback(testStats.Record)
 	// after 6 times, the connection will be closed and stop all keep alive action
 	for i := 0; i < 10; i++ {
 		tc.KeepAlive.SendKeepAlive()
@@ -116,15 +116,15 @@ func TestKeepAliveTimeout(t *testing.T) {
 	}
 	// wait all response
 	time.Sleep(time.Second)
-	if stats.timeout != 6 { // 6 is the max try times
-		t.Error("keep alive handle failure not enough", stats)
+	if testStats.timeout != 6 { // 6 is the max try times
+		t.Error("keep alive handle failure not enough", testStats)
 	}
 }
 
 func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
 	tc := newTestCase(t, 150*time.Millisecond, 20*time.Millisecond, 6)
-	stats := &stats{}
-	tc.KeepAlive.AddCallback(stats.Record)
+	testStats := &testStats{}
+	tc.KeepAlive.AddCallback(testStats.Record)
 	// 5 times timeout, will not close the connection
 	for i := 0; i < 5; i++ {
 		tc.KeepAlive.SendKeepAlive()
@@ -135,8 +135,8 @@ func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
 	tc.KeepAlive.SendKeepAlive()
 	// wait response
 	time.Sleep(time.Second)
-	if stats.success != 1 || stats.timeout != 5 {
-		t.Error("keep alive handle status not expected", stats)
+	if testStats.success != 1 || testStats.timeout != 5 {
+		t.Error("keep alive handle status not expected", testStats)
 	}
 	if tc.KeepAlive.timeoutCount != 0 {
 		t.Error("timeout count not reset by success")

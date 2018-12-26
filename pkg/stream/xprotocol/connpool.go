@@ -20,15 +20,16 @@ package xprotocol
 import (
 	"context"
 	"sync"
+	"time"
 
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 func init() {
@@ -183,6 +184,10 @@ func (p *connPool) movePrimaryToDraining() {
 		p.drainingClient = p.primaryClient
 		p.primaryClient = nil
 	}
+}
+
+func (p *connPool) OnStreamFinished(statusCode int, duration time.Duration) {
+	// TODO:
 }
 
 // types.StreamEventListener

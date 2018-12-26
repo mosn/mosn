@@ -25,6 +25,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
@@ -41,6 +42,7 @@ func init() {
 type connPool struct {
 	activeClient *activeClient
 	host         types.Host
+	stats        *SofaRPCStatusStats
 
 	mux sync.Mutex
 }
@@ -48,7 +50,8 @@ type connPool struct {
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
-		host: host,
+		host:  host,
+		stats: NewSofaRPCStatusStats(host),
 	}
 }
 
@@ -100,14 +103,33 @@ func (p *connPool) Close() {
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
 	if event.IsClose() {
-		if client.closeWithActiveReq {
-			if event == types.LocalClose {
+		p.host.HostStats().UpstreamConnectionClose.Inc(1)
+		p.host.HostStats().UpstreamConnectionActive.Dec(1)
+
+		p.host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+
+		switch event {
+		case types.LocalClose:
+			p.host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			p.host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+
+			if client.closeWithActiveReq {
 				p.host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-			} else if event == types.RemoteClose {
+			}
+
+		case types.RemoteClose:
+			p.host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			p.host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+
+			if client.closeWithActiveReq {
 				p.host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+
 			}
+		default:
+			// do nothing
 		}
 		p.activeClient = nil
 	} else if event == types.ConnectTimeout {
@@ -144,6 +166,28 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 
 func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
 	return str.NewStreamClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
+}
+
+func (p *connPool) OnStreamFinished(statusCode int, duration time.Duration) {
+	// duration will record as ms
+	//ms := int64(duration / time.Millisecond)
+	ns := duration.Nanoseconds()
+
+	p.host.ClusterInfo().Stats().UpstreamRequestDuration.Update(ns)
+	p.host.ClusterInfo().Stats().UpstreamRequestDurationTotal.Inc(ns)
+
+	p.host.HostStats().UpstreamRequestDuration.Update(ns)
+	p.host.HostStats().UpstreamRequestDurationTotal.Inc(ns)
+
+	// status code stats
+	switch int16(statusCode) {
+	case sofarpc.RESPONSE_STATUS_SUCCESS:
+		p.stats.Cluster.SofaRPCSuccess.Inc(1)
+		p.stats.Host.SofaRPCSuccess.Inc(1)
+	default:
+		p.stats.Cluster.SofaRPCFailed.Inc(1)
+		p.stats.Host.SofaRPCFailed.Inc(1)
+	}
 }
 
 // keepAliveListener is a types.ConnectionEventListener

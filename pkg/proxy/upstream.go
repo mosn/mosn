@@ -21,6 +21,7 @@ import (
 	"container/list"
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -46,6 +47,11 @@ type upstreamRequest struct {
 	dataSent     bool
 	trailerSent  bool
 	setupRetry   bool
+
+	// time at send upstream request
+	startTime time.Time
+	// received response status
+	statusCode int
 }
 
 // reset upstream request in proxy context
@@ -88,13 +94,21 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 
 // types.StreamReceiveListener
 // Method to decode upstream's response message
-func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	// save response code
-	if status, ok := headers.Get(protocol.MosnResponseStatusCode); ok {
+func (r *upstreamRequest) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) {
+	// types.HeaderStatus is setted in stream level
+	if status, ok := headers.Get(types.HeaderStatus); ok {
 		if code, err := strconv.Atoi(status); err == nil {
+			// in protocol convert scene, response code is the upstream status code
+			// for example, sofarpc(downstream)-http(upstream), will receive a status code 200
 			r.downStream.requestInfo.SetResponseCode(uint32(code))
+			// we save a statusCode, not use requestInfo.ResponseCode directly
+			// because requestInfo.ResponseCode may be changed by another upstream request when we do a retry
+			r.statusCode = code
 		}
-		headers.Del(protocol.MosnResponseStatusCode)
+	}
+	if endStream {
+		upstreamResponseDuration := time.Now().Sub(r.startTime)
+		r.connPool.OnStreamFinished(r.statusCode, upstreamResponseDuration)
 	}
 
 	workerPool.Offer(&event{
@@ -120,6 +134,11 @@ func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBu
 	r.downStream.downstreamRespDataBuf = data.Clone()
 	data.Drain(data.Len())
 
+	if endStream {
+		upstreamResponseDuration := time.Now().Sub(r.startTime)
+		r.connPool.OnStreamFinished(r.statusCode, upstreamResponseDuration)
+	}
+
 	workerPool.Offer(&event{
 		id:  r.downStream.ID,
 		dir: upstream,
@@ -141,6 +160,9 @@ func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
 }
 
 func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
+	upstreamResponseDuration := time.Now().Sub(r.startTime)
+	r.connPool.OnStreamFinished(r.statusCode, upstreamResponseDuration)
+
 	workerPool.Offer(&event{
 		id:  r.downStream.ID,
 		dir: upstream,
@@ -247,6 +269,8 @@ func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.H
 func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.requestSender = sender
 	r.requestSender.GetStream().AddEventListener(r)
+	// start a upstream send
+	r.startTime = time.Now()
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
 	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)

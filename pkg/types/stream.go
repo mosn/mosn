@@ -17,7 +17,10 @@
 
 package types
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 //
 //   The bunch of interfaces are structure skeleton to build a extensible stream multiplexing architecture. The core concept is mainly refer to golang HTTP2 and envoy.
@@ -374,6 +377,10 @@ type ConnectionPool interface {
 	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
 
 	Close()
+
+	// OnStreamFinished is a callback that will be called when a stream is finished
+	// usually it sets the stats, called in proxy
+	OnStreamFinished(statusCode int, duration time.Duration)
 }
 
 type PoolEventListener interface {
