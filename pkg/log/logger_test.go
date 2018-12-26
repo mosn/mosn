@@ -46,7 +46,7 @@ func TestLogPrintDiscard(t *testing.T) {
 	select {
 	case <-lchan:
 		t.Errorf("test Print diacard failed, should be block")
-	case <-time.After(time.Second*3):
+	case <-time.After(time.Second * 3):
 	}
 }
 
@@ -61,6 +61,9 @@ func TestLogPrintnull(t *testing.T) {
 	buf.WriteString("")
 	l.Print(buf, false)
 	l.Close()
+
+	time.Sleep(time.Second)
+
 	f, _ := os.Open(logName)
 	b := make([]byte, 1024)
 	n, _ := f.Read(b)

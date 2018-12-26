@@ -94,19 +94,19 @@ func TestPrometheusMetrics(t *testing.T) {
 	resp, _ := tc.Get("http://127.0.0.1:8088/metrics")
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	if !bytes.Contains(body, []byte("t1_lbk1_k1{lbk1=\"lbv1\"} 0.0")) {
-		t.Error("t1_lbk1_k1{lbk1=\"lbv1\"} metric not correct")
+	if !bytes.Contains(body, []byte("lbk1_t1_k1{lbk1=\"lbv1\"} 0.0")) {
+		t.Error("lbk1_t1_k1{lbk1=\"lbv1\"} metric not correct")
 	}
 
-	if !bytes.Contains(body, []byte("t1_lbk1_k1{lbk1=\"lbv2\"} 1.0")) {
-		t.Error("t1_lbk1_k1{lbk1=\"lbv2\"} metric not correct")
+	if !bytes.Contains(body, []byte("lbk1_t1_k1{lbk1=\"lbv2\"} 1.0")) {
+		t.Error("lbk1_t1_k1{lbk1=\"lbv2\"} metric not correct")
 	}
 
-	if !bytes.Contains(body, []byte("t1_lbk1_k4{lbk1=\"lbv1\",type=\"max\"} 4.0")) {
-		t.Error("t1_lbk1_k4{lbk1=\"lbv1\",type=\"max\"} metric not correct")
+	if !bytes.Contains(body, []byte("lbk1_t1_k4{lbk1=\"lbv1\",type=\"max\"} 4.0")) {
+		t.Error("lbk1_t1_k4{lbk1=\"lbv1\",type=\"max\"} metric not correct")
 	}
 
-	if !bytes.Contains(body, []byte("t1_lbk2_k4{lbk2=\"lbv2\",type=\"min\"} 2.0")) {
-		t.Error("t1_lbk2_k4{lbk2=\"lbv2\",type=\"min\"} metric not correct")
+	if !bytes.Contains(body, []byte("lbk2_t1_k4{lbk2=\"lbv2\",type=\"min\"} 2.0")) {
+		t.Error("lbk2_t1_k4{lbk2=\"lbv2\",type=\"min\"} metric not correct")
 	}
 }

@@ -103,12 +103,12 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 
 func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, name string, snap metrics.Histogram) {
 	namespace := strings.Join(labelKeys, "_")
-	key := typ + "_" + namespace + "_" + name
+	key := namespace + "_" + typ  + "_" + name
 	g, ok := sink.gaugeVecs[key]
 	if !ok {
 		g = *prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: flattenKey(typ),
-			Subsystem: flattenKey(namespace),
+			Namespace: flattenKey(namespace),
+			Subsystem: flattenKey(typ),
 			Name:      flattenKey(name),
 			Help:      "histogram metrics",
 		}, append(labelKeys, "type"))
@@ -121,12 +121,12 @@ func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, na
 
 func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name string, val float64) {
 	namespace := strings.Join(labelKeys, "_")
-	key := typ + "_" + namespace + "_" + name
+	key := namespace + "_" + typ  + "_" + name
 	g, ok := sink.gaugeVecs[key]
 	if !ok {
 		g = *prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: flattenKey(typ),
-			Subsystem: flattenKey(namespace),
+			Namespace: flattenKey(namespace),
+			Subsystem: flattenKey(typ),
 			Name:      name,
 		}, labelKeys)
 
