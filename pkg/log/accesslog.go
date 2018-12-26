@@ -37,6 +37,7 @@ func init() {
 		types.LogStartTime:                  StartTimeGetter,
 		types.LogRequestReceivedDuration:    ReceivedDurationGetter,
 		types.LogResponseReceivedDuration:   ResponseReceivedDurationGetter,
+		types.LogRequestFinishedDuration:    RequestFinishedDurationGetter,
 		types.LogBytesSent:                  BytesSentGetter,
 		types.LogBytesReceived:              BytesReceivedGetter,
 		types.LogProtocol:                   ProtocolGetter,
@@ -264,6 +265,11 @@ func ReceivedDurationGetter(info types.RequestInfo) string {
 // get duration between request arriving and response sending
 func ResponseReceivedDurationGetter(info types.RequestInfo) string {
 	return info.ResponseReceivedDuration().String()
+}
+
+// RequestFinishedDurationGetter hets duration between request arriving and request finished
+func RequestFinishedDurationGetter(info types.RequestInfo) string {
+	return info.RequestFinishedDuration().String()
 }
 
 // BytesSentGetter

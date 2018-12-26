@@ -72,6 +72,12 @@ type RequestInfo interface {
 	// SetResponseReceivedDuration sets duration between request arriving and response sending
 	SetResponseReceivedDuration(time time.Time)
 
+	// RequestFinishedDuration returns duration between request arriving and request finished
+	RequestFinishedDuration() time.Duration
+
+	// SetRequestFinishedDuration sets uration between request arriving and request finished
+	SetRequestFinishedDuration(time time.Time)
+
 	// BytesSent reports the bytes sent
 	BytesSent() uint64
 

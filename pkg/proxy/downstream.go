@@ -98,9 +98,6 @@ type downStream struct {
 	logger           log.Logger
 
 	snapshot types.ClusterSnapshot
-
-	// status for metrics
-	startTime time.Time
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, spanBuilder types.SpanBuilder) *downStream {
@@ -124,8 +121,6 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.context = ctx
 
 	stream.logger = log.ByContext(proxy.context)
-
-	stream.startTime = time.Now()
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
 	proxy.stats.DownstreamRequestActive.Inc(1)
@@ -172,9 +167,9 @@ func (s *downStream) cleanStream() {
 		return
 	}
 
-	// metrics use ms as duration
-	// streamDurationMs := int64(time.Now().Sub(s.startTime) / time.Millisecond)
-	streamDurationNs := time.Now().Sub(s.startTime).Nanoseconds()
+	s.requestInfo.SetRequestFinishedDuration(time.Now())
+
+	streamDurationNs := s.requestInfo.RequestFinishedDuration().Nanoseconds()
 
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil {
