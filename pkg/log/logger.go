@@ -19,6 +19,7 @@ package log
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -59,6 +60,8 @@ var (
 
 	// localOffset is offset in seconds east of UTC
 	_, localOffset = time.Now().Zone()
+
+	ErrReopen = errors.New("Don't support reopen")
 )
 
 // time cache
@@ -215,8 +218,11 @@ func (l *logger) handler() {
 	for {
 		select {
 		case <-l.reopenChan:
-			l.reopen()
-			return
+			err := l.reopen()
+			if err == nil {
+				return
+			}
+			DefaultLogger.Errorf("%s reopen failed : %v", l.Output, err)
 		case <-l.closeChan:
 			for {
 				select {
@@ -382,19 +388,17 @@ func (l *logger) Reopen() error {
 
 func (l *logger) reopen() error {
 	if l.writer == os.Stdout || l.writer == os.Stderr {
-		return nil
+		return ErrReopen
 	}
 
 	if closer, ok := l.writer.(io.WriteCloser); ok {
 		err := closer.Close()
-
-		if err := l.Start(); err != nil {
+		if err != nil {
 			return err
 		}
-		return err
+		return l.Start()
 	}
-
-	return nil
+	return ErrReopen
 }
 
 type syslogAddress struct {
