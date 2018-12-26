@@ -58,8 +58,7 @@ func init() {
 }
 
 // NewStats returns a Stats
-// metrics key prefix is "${type}.${namespace}"
-// "@" is the reserved sep, any "@" in type and namespace will be dropped
+// Same (type + labels) pair will leading to the same Metrics instance
 func NewStats(typ string, labels map[string]string) (types.Metrics, error) {
 	if len(labels) > maxLabelCount {
 		return nil, errLabelCountExceeded
@@ -109,20 +108,15 @@ func (s *Stats) SortedLabels() (keys, values []string) {
 	return
 }
 
-// Counter creates or returns a go-metrics counter by key
-// if the key is registered by other interface, it will be panic
+
 func (s *Stats) Counter(key string) metrics.Counter {
 	return s.registry.GetOrRegister(key, metrics.NewCounter).(metrics.Counter)
 }
 
-// Gauge creates or returns a go-metrics gauge by key
-// if the key is registered by other interface, it will be panic
 func (s *Stats) Gauge(key string) metrics.Gauge {
 	return s.registry.GetOrRegister(key, metrics.NewGauge).(metrics.Gauge)
 }
 
-// Histogram creates or returns a go-metrics histogram by key
-// if the key is registered by other interface, it will be panic
 func (s *Stats) Histogram(key string) metrics.Histogram {
 	return s.registry.GetOrRegister(key, func() metrics.Histogram { return metrics.NewHistogram(metrics.NewUniformSample(100)) }).(metrics.Histogram)
 }

@@ -32,13 +32,12 @@ var percents = []float64{0.5, 0.75, 0.95, 0.99, 0.999}
 // NamespaceData represents a namespace's metrics data in string format
 type NamespaceData map[string]string
 
-// PromSink extract metrics from stats registry with specified interval
-type ConsoleSink struct {
+type consoleSink struct {
 	writer io.Writer
 }
 
 // ~ MetricsSink
-func (sink *ConsoleSink) Flush(ms []types.Metrics) {
+func (sink *consoleSink) Flush(ms []types.Metrics) {
 	// type -> namespace -> key -> value
 	all := make(map[string]map[string]NamespaceData)
 
@@ -80,14 +79,15 @@ func (sink *ConsoleSink) Flush(ms []types.Metrics) {
 			}
 		})
 	}
+	//TODO: performance optimize
 	b, _ := json.MarshalIndent(all, "", "\t")
 	sink.writer.Write(b)
 }
 
-// NewPrometheusProvider returns a Provider that produces Prometheus metrics.
-// Namespace and subsystem are applied to all produced metrics.
+// NewConsoleSink returns sink that convert metrics into human readable format
+// Note: This func is not registered into sink factory, and should be use in certain scene.
 func NewConsoleSink(writer io.Writer) types.MetricsSink {
-	return &ConsoleSink{
+	return &consoleSink{
 		writer: writer,
 	}
 }

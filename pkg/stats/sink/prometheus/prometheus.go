@@ -77,8 +77,7 @@ func (sink *promSink) Flush(ms []types.Metrics) {
 	}
 }
 
-// NewPrometheusProvider returns a Provider that produces Prometheus metrics.
-// Namespace and subsystem are applied to all produced metrics.
+// NewPromeSink returns a metrics sink that produces Prometheus metrics using store data
 func NewPromeSink(config *promConfig) types.MetricsSink {
 	promReg := prometheus.NewRegistry()
 	// register process and  go metrics
