@@ -100,6 +100,9 @@ const (
 	StreamLocalReset            StreamResetReason = "StreamLocalReset"
 	StreamOverflow              StreamResetReason = "StreamOverflow"
 	StreamRemoteReset           StreamResetReason = "StreamRemoteReset"
+	UpstreamReset               StreamResetReason = "UpstreamReset"
+	UpstreamGlobalTimeout       StreamResetReason = "UpstreamGlobalTimeout"
+	UpstreamPerTryTimeout       StreamResetReason = "UpstreamPerTryTimeout"
 )
 
 // Stream is a generic protocol stream, it is the core model in stream layer

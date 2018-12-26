@@ -86,6 +86,7 @@ type downStream struct {
 	downstreamReset   uint32
 	downstreamCleaned uint32
 	upstreamReset     uint32
+	reuseBuffer       uint32
 
 	// ~~~ filters
 	senderFilters   []*activeStreamSenderFilter
@@ -119,6 +120,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.responseSender = responseSender
 	stream.responseSender.GetStream().AddEventListener(stream)
 	stream.context = ctx
+	stream.reuseBuffer = 1
 
 	stream.logger = log.ByContext(proxy.context)
 
@@ -132,25 +134,13 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	return stream
 }
 
-// case 1: downstream's lifecycle ends normally
-// case 2: downstream got reset. See downStream.resetStream for more detail
+// downstream's lifecycle ends normally
 func (s *downStream) endStream() {
-	var isReset bool
-	if s.responseSender != nil {
-		if !s.downstreamRecvDone || !s.upstreamProcessDone {
-			// if downstream req received not done, or local proxy process not done by handle upstream response,
-			// just mark it as done and reset stream as a failed case
-			s.upstreamProcessDone = true
-
-			// reset downstream will trigger a clean up, see OnResetStream
-			s.responseSender.GetStream().ResetStream(types.StreamLocalReset)
-			isReset = true
-		}
+	if s.responseSender != nil && !s.downstreamRecvDone {
+		// not reuse buffer
+		atomic.StoreUint32(&s.reuseBuffer, 0)
 	}
-
-	if !isReset {
-		s.cleanStream()
-	}
+	s.cleanStream()
 
 	// note: if proxy logic resets the stream, there maybe some underlying data in the conn.
 	// we ignore this for now, fix as a todo
@@ -168,7 +158,8 @@ func (s *downStream) cleanStream() {
 	}
 
 	// reset corresponding upstream stream
-	if s.upstreamRequest != nil {
+	if s.upstreamRequest != nil && !s.upstreamProcessDone {
+		s.upstreamProcessDone = true
 		s.upstreamRequest.resetStream()
 	}
 
@@ -223,7 +214,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 		handle: func() {
 			s.ResetStream(reason)
 		},
-	})
+	}, false)
 }
 
 func (s *downStream) ResetStream(reason types.StreamResetReason) {
@@ -243,7 +234,7 @@ func (s *downStream) OnReceiveHeaders(context context.Context, headers types.Hea
 		handle: func() {
 			s.ReceiveHeaders(headers, endStream)
 		},
-	})
+	}, true)
 }
 
 func (s *downStream) ReceiveHeaders(headers types.HeaderMap, endStream bool) {
@@ -380,7 +371,7 @@ func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer,
 		handle: func() {
 			s.ReceiveData(s.downstreamReqDataBuf, endStream)
 		},
-	})
+	}, true)
 }
 
 func (s *downStream) ReceiveData(data types.IoBuffer, endStream bool) {
@@ -423,7 +414,7 @@ func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.H
 		handle: func() {
 			s.ReceiveTrailers(trailers)
 		},
-	})
+	},true)
 }
 
 func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
@@ -502,10 +493,10 @@ func (s *downStream) onResponseTimeout() {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		}
 
+		atomic.StoreUint32(&s.reuseBuffer, 0)
 		s.upstreamRequest.resetStream()
+		s.upstreamRequest.OnResetStream(types.UpstreamGlobalTimeout)
 	}
-
-	s.onUpstreamReset(UpstreamGlobalTimeout, types.StreamLocalReset)
 }
 
 func (s *downStream) setupPerReqTimeout() {
@@ -533,9 +524,10 @@ func (s *downStream) onPerReqTimeout() {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		}
 
+		atomic.StoreUint32(&s.reuseBuffer, 0)
 		s.upstreamRequest.resetStream()
 		s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
-		s.onUpstreamReset(UpstreamPerTryTimeout, types.StreamLocalReset)
+		s.upstreamRequest.OnResetStream(types.UpstreamPerTryTimeout)
 	} else {
 		log.DefaultLogger.Debugf("Skip request timeout on getting upstream response")
 	}
@@ -666,7 +658,7 @@ func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers
 }
 
 // ~~~ upstream event handler
-func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.StreamResetReason) {
+func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 	if !atomic.CompareAndSwapUint32(&s.upstreamReset, 0, 1) {
 		return
 	}
@@ -675,7 +667,7 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 	log.DefaultLogger.Tracef("on upstream reset invoked")
 
 	// see if we need a retry
-	if urtype != UpstreamGlobalTimeout &&
+	if reason != types.UpstreamGlobalTimeout &&
 		!s.downstreamResponseStarted && s.retryState != nil {
 		retryCheck := s.retryState.retry(nil, reason, s.doRetry)
 
@@ -711,7 +703,7 @@ func (s *downStream) onUpstreamReset(urtype UpstreamResetType, reason types.Stre
 		// send err response if response not started
 		var code int
 
-		if urtype == UpstreamGlobalTimeout || urtype == UpstreamPerTryTimeout {
+		if reason == types.UpstreamGlobalTimeout || reason == types.UpstreamPerTryTimeout {
 			s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
 			code = types.TimeoutExceptionCode
 		} else {
@@ -867,7 +859,14 @@ func (s *downStream) doRetry() {
 // 1. downstream filter reset downstream
 // 2. corresponding upstream got reset
 func (s *downStream) resetStream() {
-	s.endStream()
+	if s.responseSender != nil && !s.upstreamProcessDone {
+		// if downstream req received not done, or local proxy process not done by handle upstream response,
+		// just mark it as done and reset stream as a failed case
+		s.upstreamProcessDone = true
+
+		// reset downstream will trigger a clean up, see OnResetStream
+		s.responseSender.GetStream().ResetStream(types.StreamLocalReset)
+	}
 }
 
 func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
@@ -975,6 +974,9 @@ func (s *downStream) DownstreamHeaders() types.HeaderMap {
 func (s *downStream) giveStream() {
 	if s.snapshot != nil {
 		s.proxy.clusterManager.PutClusterSnapshot(s.snapshot)
+	}
+	if atomic.LoadUint32(&s.reuseBuffer) != 1 {
+		return
 	}
 	if atomic.LoadUint32(&s.upstreamReset) == 1 || atomic.LoadUint32(&s.downstreamReset) == 1 {
 		return
