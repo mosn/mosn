@@ -486,6 +486,8 @@ func (s *clientStream) handleResponse() {
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
 		header.Set(types.HeaderStatus, status)
+		// add status code for metrics
+		header.Set(types.MetricsHeaderResponseStatus, status)
 
 		log.DefaultLogger.Debugf("remote:%s, status:%s", s.connection.conn.RemoteAddr(), status)
 
@@ -524,6 +526,10 @@ type serverStream struct {
 
 // types.StreamSender
 func (s *serverStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
+	// delete mosn metrics status code
+	if _, ok := headersIn.Get(types.MetricsHeaderResponseStatus); ok {
+		headersIn.Del(types.MetricsHeaderResponseStatus)
+	}
 	switch headers := headersIn.(type) {
 	case mosnhttp.RequestHeader:
 		// hijack scene

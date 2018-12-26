@@ -28,6 +28,8 @@ import (
 	"reflect"
 	"strconv"
 
+	"bytes"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/module/http2"
@@ -36,7 +38,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/mhttp2"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"bytes"
 )
 
 func init() {
@@ -108,8 +109,8 @@ func (conn *streamConnection) GoAway() {
 type stream struct {
 	str.BaseStream
 
-	ctx                 context.Context
-	receiver            types.StreamReceiveListener
+	ctx      context.Context
+	receiver types.StreamReceiveListener
 
 	id       uint32
 	sendData []types.IoBuffer
@@ -412,6 +413,11 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers types.HeaderMa
 		status = 200
 	}
 
+	// delete mosn metrics status code
+	if _, ok := headers.Get(types.MetricsHeaderResponseStatus); ok {
+		headers.Del(types.MetricsHeaderResponseStatus)
+	}
+
 	switch header := headers.(type) {
 	case *mhttp2.RspHeader:
 		rsp = header.Rsp
@@ -617,7 +623,10 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	if rsp != nil {
 		header := mhttp2.NewRspHeader(rsp)
 
-		header.Set(types.HeaderStatus, strconv.Itoa(rsp.StatusCode))
+		code := strconv.Itoa(rsp.StatusCode)
+		header.Set(types.HeaderStatus, code)
+		// add status code for metrics
+		header.Set(types.MetricsHeaderResponseStatus, code)
 
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 

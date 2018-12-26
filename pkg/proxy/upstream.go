@@ -95,8 +95,8 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 // types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) {
-	// types.HeaderStatus is setted in stream level
-	if status, ok := headers.Get(types.HeaderStatus); ok {
+	// types.MetricsHeaderResponseStatus is setted in stream level
+	if status, ok := headers.Get(types.MetricsHeaderResponseStatus); ok {
 		if code, err := strconv.Atoi(status); err == nil {
 			// in protocol convert scene, response code is the upstream status code
 			// for example, sofarpc(downstream)-http(upstream), will receive a status code 200

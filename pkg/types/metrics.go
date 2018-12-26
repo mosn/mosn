@@ -31,3 +31,8 @@ type Metrics interface {
 type MetricsSink interface {
 	Flush(metrics []metrics.Registry)
 }
+
+// Temp Header Keys used in metrics
+const (
+	MetricsHeaderResponseStatus = "x-mosn-metrics-status"
+)
