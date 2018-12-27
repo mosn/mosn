@@ -78,6 +78,15 @@ func TestAccessLog(t *testing.T) {
 	}
 }
 
+func TestAccessLogStartTime(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		time.Sleep(time.Millisecond)
+		now := time.Now()
+		t.Log(now.Format("2006/01/02 15:04:05.999"))
+		t.Log(now.Format("2006/01/02 15:04:05.000"))
+	}
+}
+
 func BenchmarkAccessLog(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	InitDefaultLogger("", INFO)
