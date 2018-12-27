@@ -179,6 +179,7 @@ func (tracer *SofaTracer) PrintSpan(spanP types.Span) error {
 		printData.WriteString("\"" + span.tags[BAGGAGE_DATA] + "\",")
 
 		// Set status code. TODO can not get the result code if server throw an exception.
+
 		statusCode, _ := strconv.Atoi(span.tags[RESULT_STATUS])
 		var code = "02"
 		if statusCode == types.SuccessCode {

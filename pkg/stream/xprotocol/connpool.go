@@ -20,7 +20,6 @@ package xprotocol
 import (
 	"context"
 	"sync"
-	"time"
 
 	"sync/atomic"
 
@@ -184,10 +183,6 @@ func (p *connPool) movePrimaryToDraining() {
 		p.drainingClient = p.primaryClient
 		p.primaryClient = nil
 	}
-}
-
-func (p *connPool) OnStreamFinished(statusCode int, duration time.Duration) {
-	// TODO:
 }
 
 // types.StreamEventListener

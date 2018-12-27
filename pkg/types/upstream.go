@@ -224,6 +224,8 @@ type HostStats struct {
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
 	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamResponseSuccess                        metrics.Counter
+	UpstreamResponseFailed                         metrics.Counter
 }
 
 // ClusterInfo defines a cluster's information
@@ -312,6 +314,8 @@ type ClusterStats struct {
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
 	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamResponseSuccess                        metrics.Counter
+	UpstreamResponseFailed                         metrics.Counter
 	LBSubSetsFallBack                              metrics.Counter
 	LBSubSetsActive                                metrics.Counter
 	LBSubsetsCreated                               metrics.Counter

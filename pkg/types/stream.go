@@ -19,7 +19,6 @@ package types
 
 import (
 	"context"
-	"time"
 )
 
 //
@@ -377,10 +376,6 @@ type ConnectionPool interface {
 	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
 
 	Close()
-
-	// OnStreamFinished is a callback that will be called when a stream is finished
-	// usually it sets the stats, called in proxy
-	OnStreamFinished(statusCode int, duration time.Duration)
 }
 
 type PoolEventListener interface {

@@ -25,7 +25,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
@@ -166,28 +165,6 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 
 func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
 	return str.NewStreamClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
-}
-
-func (p *connPool) OnStreamFinished(statusCode int, duration time.Duration) {
-	// duration will record as ms
-	//ms := int64(duration / time.Millisecond)
-	ns := duration.Nanoseconds()
-
-	p.host.ClusterInfo().Stats().UpstreamRequestDuration.Update(ns)
-	p.host.ClusterInfo().Stats().UpstreamRequestDurationTotal.Inc(ns)
-
-	p.host.HostStats().UpstreamRequestDuration.Update(ns)
-	p.host.HostStats().UpstreamRequestDurationTotal.Inc(ns)
-
-	// status code stats
-	switch int16(statusCode) {
-	case sofarpc.RESPONSE_STATUS_SUCCESS:
-		p.stats.Cluster.SofaRPCSuccess.Inc(1)
-		p.stats.Host.SofaRPCSuccess.Inc(1)
-	default:
-		p.stats.Cluster.SofaRPCFailed.Inc(1)
-		p.stats.Host.SofaRPCFailed.Inc(1)
-	}
 }
 
 // keepAliveListener is a types.ConnectionEventListener

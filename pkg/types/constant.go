@@ -37,12 +37,12 @@ const (
 
 // Error messages
 const (
-	ChannelFull          string = "Channel is full"
-	CodecException       string = "codec exception occurs"
-	SerializeException   string = "serialize exception occurs"
-	DeserializeException string = "deserialize exception occurs"
+	ChannelFull           = "Channel is full"
+	CodecException        = "codec exception occurs"
+	SerializeException    = "serialize exception occurs"
+	DeserializeException  = "deserialize exception occurs"
 
-	NoStatusCodeForHijack string = "no status code found for hijack reply"
+	NoStatusCodeForHijack = "no status code found for hijack reply"
 )
 
 // Errors
@@ -57,14 +57,14 @@ var (
 
 // Error codes, used by top level logic code(like proxy logic).
 const (
-	CodecExceptionCode    int = 0
-	UnknownCode           int = 2
-	DeserialExceptionCode int = 3
-	SuccessCode           int = 200
-	PermissionDeniedCode  int = 403
-	RouterUnavailableCode int = 404
-	NoHealthUpstreamCode  int = 502
-	UpstreamOverFlowCode  int = 503
-	TimeoutExceptionCode  int = 504
-	LimitExceededCode     int = 509
+	CodecExceptionCode    = 0
+	UnknownCode           = 2
+	DeserialExceptionCode = 3
+	SuccessCode           = 200
+	PermissionDeniedCode  = 403
+	RouterUnavailableCode = 404
+	NoHealthUpstreamCode  = 502
+	UpstreamOverFlowCode  = 503
+	TimeoutExceptionCode  = 504
+	LimitExceededCode     = 509
 )

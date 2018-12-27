@@ -21,7 +21,6 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -146,35 +145,6 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 
 func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
 	return str.NewStreamClient(context, protocol.MHTTP2, connData.Connection, connData.HostInfo)
-}
-
-func (p *connPool) OnStreamFinished(statusCode int, duration time.Duration) {
-	// duration will record as ms
-	// ms := int64(duration / time.Millisecond)
-	ns := duration.Nanoseconds()
-
-	p.host.ClusterInfo().Stats().UpstreamRequestDuration.Update(ns)
-	p.host.ClusterInfo().Stats().UpstreamRequestDurationTotal.Inc(ns)
-
-	p.host.HostStats().UpstreamRequestDuration.Update(ns)
-	p.host.HostStats().UpstreamRequestDurationTotal.Inc(ns)
-
-	if statusCode >= 200 && statusCode < 300 {
-		p.stats.Cluster.HTTPStatus2XX.Inc(1)
-		p.stats.Host.HTTPStatus2XX.Inc(1)
-	}
-	if statusCode >= 300 && statusCode < 400 {
-		p.stats.Cluster.HTTPStatus3XX.Inc(1)
-		p.stats.Host.HTTPStatus3XX.Inc(1)
-	}
-	if statusCode >= 400 && statusCode < 500 {
-		p.stats.Cluster.HTTPStatus4XX.Inc(1)
-		p.stats.Host.HTTPStatus4XX.Inc(1)
-	}
-	if statusCode >= 500 {
-		p.stats.Cluster.HTTPStatus5XX.Inc(1)
-		p.stats.Host.HTTPStatus5XX.Inc(1)
-	}
 }
 
 // types.StreamEventListener
