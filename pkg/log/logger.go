@@ -61,7 +61,7 @@ var (
 	// localOffset is offset in seconds east of UTC
 	_, localOffset = time.Now().Zone()
 
-	ErrReopen = errors.New("Don't support reopen")
+	ErrReopenUnsupported = errors.New("reopen unsupported")
 )
 
 // time cache
@@ -222,7 +222,7 @@ func (l *logger) handler() {
 			if err == nil {
 				return
 			}
-			DefaultLogger.Errorf("%s reopen failed : %v", l.Output, err)
+			DefaultLogger.Infof("%s reopen failed : %v", l.Output, err)
 		case <-l.closeChan:
 			for {
 				select {
@@ -388,7 +388,7 @@ func (l *logger) Reopen() error {
 
 func (l *logger) reopen() error {
 	if l.writer == os.Stdout || l.writer == os.Stderr {
-		return ErrReopen
+		return ErrReopenUnsupported
 	}
 
 	if closer, ok := l.writer.(io.WriteCloser); ok {
@@ -398,7 +398,7 @@ func (l *logger) reopen() error {
 		}
 		return l.Start()
 	}
-	return ErrReopen
+	return ErrReopenUnsupported
 }
 
 type syslogAddress struct {

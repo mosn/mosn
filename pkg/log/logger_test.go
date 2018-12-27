@@ -128,7 +128,7 @@ func TestLogDefaultRollerTime(t *testing.T) {
 
 func TestLogReopen(t *testing.T) {
 	l, _ := NewLogger("", ERROR)
-	if  err := l.reopen(); err != ErrReopen {
+	if  err := l.reopen(); err != ErrReopenUnsupported {
 		t.Errorf("test log reopen failed")
 	}
 	l, _ = NewLogger("/tmp/mosn_bench/testlogreopen.log", ERROR)
