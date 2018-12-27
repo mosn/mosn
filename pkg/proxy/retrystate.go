@@ -23,6 +23,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 )
 
 type retryState struct {
@@ -112,7 +113,8 @@ func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamRe
 			// default policy , mapping all headers to http status code
 			code, err := protocol.MappingHeaderStatusCode(r.upstreamProtocol, headers)
 			if err == nil {
-				return code >= 500
+				// todo: support config?
+				return code >= http.InternalServerError
 			}
 		}
 		if reason == types.StreamConnectionFailed {

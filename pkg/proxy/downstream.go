@@ -765,7 +765,7 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 
 func (s *downStream) handleUpstreamStatusCode() {
 	// todo: support config?
-	if s.upstreamRequest.httpStatusCode > http.InternalServerError {
+	if s.upstreamRequest.httpStatusCode >= http.InternalServerError {
 		s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 		s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 	} else {
