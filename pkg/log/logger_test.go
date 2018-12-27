@@ -86,7 +86,6 @@ func TestLoglocalOffset(t *testing.T) {
 	t.Logf("t1=%d t2=%d offset=%d rollertime=%d\n", t1.Unix(), t2.Unix(), offset, defaultRollerTime)
 	t.Logf("%d %d\n", (t1.Unix())/defaultRollerTime, (t1.Unix() / defaultRollerTime))
 	t.Logf("%d %d\n", (t1.Unix()+int64(offset))/defaultRollerTime, (t2.Unix()+int64(offset))/defaultRollerTime)
-
 }
 
 func TestLogDefaultRollerTime(t *testing.T) {
@@ -125,6 +124,17 @@ func TestLogDefaultRollerTime(t *testing.T) {
 	f.Close()
 	if n == 0 || string(b[0:n]) != "11111112222222" {
 		t.Errorf("TestLogDefaultRoller failed %v", string(b[0:n]))
+	}
+}
+
+func TestLogReopen(t *testing.T) {
+	l, _ := NewLogger("", ERROR)
+	if  err := l.reopen(); err != ErrReopenUnsupported {
+		t.Errorf("test log reopen failed")
+	}
+	l, _ = NewLogger("/tmp/mosn_bench/testlogreopen.log", ERROR)
+	if  err := l.reopen(); err != nil {
+		t.Errorf("test log reopen failed %v", err)
 	}
 }
 
