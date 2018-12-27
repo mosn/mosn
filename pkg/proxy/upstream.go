@@ -28,7 +28,7 @@ import (
 )
 
 // types.StreamEventListener
-// types.StreamReceiver
+// types.StreamReceiveListener
 // types.PoolEventListener
 type upstreamRequest struct {
 	proxy         *proxy
@@ -72,19 +72,21 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 		handle: func() {
 			r.ResetStream(reason)
 		},
-	})
+	}, false)
 }
+
+func (r *upstreamRequest) OnDestroyStream() {}
 
 func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	r.requestSender = nil
 
 	if !r.setupRetry {
 		// todo: check if we get a reset on encode request headers. e.g. send failed
-		r.downStream.onUpstreamReset(UpstreamReset, reason)
+		r.downStream.onUpstreamReset(reason)
 	}
 }
 
-// types.StreamReceiver
+// types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	// save response code
@@ -102,7 +104,7 @@ func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers type
 		handle: func() {
 			r.ReceiveHeaders(headers, endStream)
 		},
-	})
+	}, true)
 }
 
 func (r *upstreamRequest) ReceiveHeaders(headers types.HeaderMap, endStream bool) {
@@ -125,7 +127,7 @@ func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBu
 		handle: func() {
 			r.ReceiveData(r.downStream.downstreamRespDataBuf, endStream)
 		},
-	})
+	}, true)
 }
 
 func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
@@ -146,7 +148,7 @@ func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers ty
 		handle: func() {
 			r.ReceiveTrailers(trailers)
 		},
-	})
+	}, true)
 }
 
 func (r *upstreamRequest) ReceiveTrailers(trailers types.HeaderMap) {

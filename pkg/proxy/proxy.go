@@ -55,8 +55,8 @@ func init() {
 func initWorkePpool(data interface{}, endParsing bool) error {
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
-	// use 4096 as chan buffer length
-	poolSize := shardsNum * 4096
+	// use 32768 as chan buffer length
+	poolSize := shardsNum * 32768
 
 	// set shardsNum equal to processor if it was specified
 	if pNum, ok := data.(int); ok && pNum > 0 {
@@ -71,20 +71,20 @@ func initWorkePpool(data interface{}, endParsing bool) error {
 // types.ReadFilter
 // types.ServerStreamConnectionEventListener
 type proxy struct {
-	config              *v2.Proxy
-	clusterManager      types.ClusterManager
-	readCallbacks       types.ReadFilterCallbacks
-	upstreamConnection  types.ClientConnection
-	downstreamCallbacks DownstreamCallbacks
-	clusterName         string
-	routersWrapper      types.RouterWrapper // wrapper used to point to the routers instance
-	serverCodec         types.ServerStreamConnection
-	context             context.Context
-	activeSteams        *list.List // downstream requests
-	asMux               sync.RWMutex
-	stats               *Stats
-	listenerStats       *Stats
-	accessLogs          []types.AccessLog
+	config             *v2.Proxy
+	clusterManager     types.ClusterManager
+	readCallbacks      types.ReadFilterCallbacks
+	upstreamConnection types.ClientConnection
+	downstreamListener types.ConnectionEventListener
+	clusterName        string
+	routersWrapper     types.RouterWrapper // wrapper used to point to the routers instance
+	serverStreamConn   types.ServerStreamConnection
+	context            context.Context
+	activeSteams       *list.List // downstream requests
+	asMux              sync.RWMutex
+	stats              *Stats
+	listenerStats      *Stats
+	accessLogs         []types.AccessLog
 }
 
 // NewProxy create proxy instance for given v2.Proxy config
@@ -118,7 +118,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		log.DefaultLogger.Errorf("RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
 	}
 
-	proxy.downstreamCallbacks = &downstreamCallbacks{
+	proxy.downstreamListener = &downstreamCallbacks{
 		proxy: proxy,
 	}
 
@@ -126,7 +126,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 }
 
 func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
-	if p.serverCodec == nil {
+	if p.serverStreamConn == nil {
 		var prot string
 		if conn, ok := p.readCallbacks.Connection().RawConn().(*mtls.TLSConn); ok {
 			prot = conn.ConnectionState().NegotiatedProtocol
@@ -146,9 +146,9 @@ func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 			return types.Stop
 		}
 		log.DefaultLogger.Debugf("Protoctol Auto: %v", protocol)
-		p.serverCodec = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
+		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
 	}
-	p.serverCodec.Dispatch(buf)
+	p.serverStreamConn.Dispatch(buf)
 
 	return types.Stop
 }
@@ -198,15 +198,15 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.listenerStats.DownstreamConnectionTotal.Inc(1)
 	p.listenerStats.DownstreamConnectionActive.Inc(1)
 
-	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
+	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamListener)
 	if p.config.DownstreamProtocol != string(protocol.Auto) {
-		p.serverCodec = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
 	}
 }
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, spanBuilder types.SpanBuilder) types.StreamReceiver {
+func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, spanBuilder types.SpanBuilder) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, spanBuilder)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
@@ -264,10 +264,10 @@ func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 }
 
 func (p *proxy) convertProtocol() (dp, up types.Protocol) {
-	if p.serverCodec == nil {
+	if p.serverStreamConn == nil {
 		dp = types.Protocol(p.config.DownstreamProtocol)
 	} else {
-		dp = p.serverCodec.Protocol()
+		dp = p.serverStreamConn.Protocol()
 	}
 	up = types.Protocol(p.config.UpstreamProtocol)
 	if up == protocol.Auto {

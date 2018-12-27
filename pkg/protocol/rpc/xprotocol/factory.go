@@ -77,7 +77,7 @@ func Register(prot SubProtocol, factory CodecFactory) {
 	subProtocolFactories[prot] = factory
 }
 
-// CreateSubProtocolCodec return SubProtocol Codec
+// CreateSubProtocolCodec return SubProtocol Client
 func CreateSubProtocolCodec(context context.Context, prot SubProtocol) Multiplexing {
 
 	if spc, ok := subProtocolFactories[prot]; ok {

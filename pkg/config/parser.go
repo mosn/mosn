@@ -37,10 +37,9 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 var protocolsSupported = map[string]bool{
 	string(protocol.Auto):      true,
 	string(protocol.SofaRPC):   true,
-	string(protocol.HTTP2):     true,
 	string(protocol.HTTP1):     true,
+	string(protocol.HTTP2):     true,
 	string(protocol.Xprotocol): true,
-	string(protocol.MHTTP2):    true,
 }
 
 const (
@@ -224,18 +223,6 @@ func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
 
 // GetListenerDisableIO used to check downstream protocol and return ListenerDisableIO
 func GetListenerDisableIO(c *v2.FilterChain) bool {
-	for _, f := range c.Filters {
-		if f.Type == v2.DEFAULT_NETWORK_FILTER {
-			if downstream, ok := f.Config["downstream_protocol"]; ok {
-				//if downstream == string(protocol.HTTP2) || downstream == string(protocol.HTTP1) {
-				//	return true
-				//}
-				if downstream == string(protocol.HTTP2) {
-					return true
-				}
-			}
-		}
-	}
 	return false
 }
 
@@ -341,6 +328,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        parseLogLevel(c.DefaultLogLevel),
+		LogRoller:       c.DefaultLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,
 		UseNetpollMode:  c.UseNetpollMode,

@@ -76,7 +76,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 	if err := conn.Connection.Connect(true); err != nil {
 		t.Fatalf("create conenction failed", err)
 	}
-	codec := str.NewCodecClient(ctx, protocol.SofaRPC, conn.Connection, host)
+	codec := str.NewStreamClient(ctx, protocol.SofaRPC, conn.Connection, host)
 	if codec == nil {
 		t.Fatal("codec is nil")
 	}

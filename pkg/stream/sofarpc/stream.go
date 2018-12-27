@@ -80,19 +80,15 @@ func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
 // types.ClientStreamConnection
 // types.ServerStreamConnection
 type streamConnection struct {
-	ctx  context.Context
-	conn types.Connection
-
-	codecEngine types.ProtocolEngine
-
-	clientCallbacks types.StreamConnectionEventListener
-	serverCallbacks types.ServerStreamConnectionEventListener
-
-	cm contextManager
-
-	slock        sync.RWMutex
-	streams      map[uint64]*stream // client conn fields
-	currStreamID uint64
+	ctx                                 context.Context
+	conn                                types.Connection
+	contextManager                      contextManager
+	mutex                               sync.RWMutex
+	currStreamID                        uint64
+	streams                             map[uint64]*stream // client conn fields
+	codecEngine                         types.ProtocolEngine
+	streamConnectionEventListener       types.StreamConnectionEventListener
+	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 
 	logger log.Logger
 }
@@ -101,21 +97,21 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	sc := &streamConnection{
-		ctx:             ctx,
-		conn:            connection,
-		codecEngine:     sofarpc.Engine(),
-		clientCallbacks: clientCallbacks,
-		serverCallbacks: serverCallbacks,
+		ctx:                                 ctx,
+		conn:                                connection,
+		codecEngine:                         sofarpc.Engine(),
+		streamConnectionEventListener:       clientCallbacks,
+		serverStreamConnectionEventListener: serverCallbacks,
 
-		cm: contextManager{base: ctx},
+		contextManager: contextManager{base: ctx},
 
 		logger: log.ByContext(ctx),
 	}
 
 	// init first context
-	sc.cm.next()
+	sc.contextManager.next()
 
-	if sc.clientCallbacks != nil {
+	if sc.streamConnectionEventListener != nil {
 		sc.streams = make(map[uint64]*stream, 32)
 	}
 
@@ -126,7 +122,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
-		ctx := conn.cm.curr
+		ctx := conn.contextManager.curr
 
 		// 2. decode process
 		// TODO: maybe pass sub protocol type
@@ -142,7 +138,7 @@ func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 			break
 		}
 
-		conn.cm.next()
+		conn.contextManager.next()
 	}
 }
 
@@ -151,10 +147,26 @@ func (conn *streamConnection) Protocol() types.Protocol {
 }
 
 func (conn *streamConnection) GoAway() {
-	// todo
+	// unsupported
 }
 
-func (conn *streamConnection) NewStream(ctx context.Context, receiver types.StreamReceiver) types.StreamSender {
+func (conn *streamConnection) ActiveStreamsNum() int {
+	conn.mutex.RLock()
+	defer conn.mutex.RUnlock()
+
+	return len(conn.streams)
+}
+
+func (conn *streamConnection) Reset(reason types.StreamResetReason) {
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+
+	for _, stream := range conn.streams {
+		stream.ResetStream(reason)
+	}
+}
+
+func (conn *streamConnection) NewStream(ctx context.Context, receiver types.StreamReceiveListener) types.StreamSender {
 	buffers := sofaBuffersByContext(ctx)
 	stream := &buffers.client
 
@@ -166,9 +178,10 @@ func (conn *streamConnection) NewStream(ctx context.Context, receiver types.Stre
 	stream.sc = conn
 	stream.receiver = receiver
 
-	conn.slock.Lock()
+	conn.mutex.Lock()
 	conn.streams[stream.id] = stream
-	conn.slock.Unlock()
+	conn.mutex.Unlock()
+
 	return stream
 }
 
@@ -253,7 +266,7 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 
 	conn.logger.Debugf("new stream detect, id = %d", stream.id)
 
-	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, spanBuilder)
+	stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, stream, spanBuilder)
 	return stream
 }
 
@@ -261,8 +274,9 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 	requestID := cmd.RequestID()
 
 	// for client stream, remove stream on response read
-	conn.slock.Lock()
-	defer conn.slock.Unlock()
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+
 	if stream, ok := conn.streams[requestID]; ok {
 		delete(conn.streams, requestID)
 
@@ -272,53 +286,28 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		conn.logger.Debugf("stream recv, id = %d", stream.id)
 		return stream
 	}
+
 	return nil
 }
 
 // types.Stream
 // types.StreamSender
 type stream struct {
+	str.BaseStream
+
 	ctx context.Context
 	sc  *streamConnection
 
 	id        uint64
 	direction StreamDirection // 0: out, 1: in
-
-	receiver  types.StreamReceiver
-	streamCbs []types.StreamEventListener
-
-	sendCmd sofarpc.SofaRpcCmd
-	sendBuf types.IoBuffer
+	receiver  types.StreamReceiveListener
+	sendCmd   sofarpc.SofaRpcCmd
+	sendBuf   types.IoBuffer
 }
 
 // ~~ types.Stream
 func (s *stream) ID() uint64 {
 	return s.id
-}
-
-func (s *stream) AddEventListener(cb types.StreamEventListener) {
-	s.streamCbs = append(s.streamCbs, cb)
-}
-
-func (s *stream) RemoveEventListener(cb types.StreamEventListener) {
-	cbIdx := -1
-
-	for i, streamCb := range s.streamCbs {
-		if streamCb == cb {
-			cbIdx = i
-			break
-		}
-	}
-
-	if cbIdx > -1 {
-		s.streamCbs = append(s.streamCbs[:cbIdx], s.streamCbs[cbIdx+1:]...)
-	}
-}
-
-func (s *stream) ResetStream(reason types.StreamResetReason) {
-	for _, cb := range s.streamCbs {
-		cb.OnResetStream(reason)
-	}
 }
 
 func (s *stream) ReadDisable(disable bool) {
@@ -384,8 +373,6 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 		s.sendCmd.SetData(data)
 	}
 
-	//s.encodedData = data
-
 	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
 
 	if endStream {
@@ -405,8 +392,13 @@ func (s *stream) AppendTrailers(context context.Context, trailers types.HeaderMa
 // For server stream, write out response
 // For client stream, write out request
 func (s *stream) endStream() {
-	if s.sendCmd != nil {
+	defer func() {
+		if s.direction == ServerStream {
+			s.DestroyStream()
+		}
+	}()
 
+	if s.sendCmd != nil {
 		// replace requestID
 		s.sendCmd.SetRequestID(s.id)
 
@@ -423,7 +415,6 @@ func (s *stream) endStream() {
 		} else {
 			s.sc.conn.Write(buf)
 		}
-
 	}
 }
 
@@ -434,7 +425,6 @@ func (s *stream) GetStream() types.Stream {
 // contextManager
 type contextManager struct {
 	base context.Context
-
 	curr context.Context
 }
 

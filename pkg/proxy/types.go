@@ -39,12 +39,6 @@ type UpstreamCallbacks interface {
 	types.ConnectionEventListener
 }
 
-// DownstreamCallbacks
-// callback invoked when downstream event happened
-type DownstreamCallbacks interface {
-	types.ConnectionEventListener
-}
-
 // Timeout
 type Timeout struct {
 	GlobalTimeout time.Duration
@@ -60,14 +54,4 @@ const (
 	NoHealthyUpstream     UpstreamFailureReason = "NoHealthyUpstream"
 	ResourceLimitExceeded UpstreamFailureReason = "ResourceLimitExceeded"
 	NoRoute               UpstreamFailureReason = "NoRoute"
-)
-
-// UpstreamResetType
-type UpstreamResetType string
-
-// Group of Upstream Reset Type
-const (
-	UpstreamReset         UpstreamResetType = "UpstreamReset"
-	UpstreamGlobalTimeout UpstreamResetType = "UpstreamGlobalTimeout"
-	UpstreamPerTryTimeout UpstreamResetType = "UpstreamPerTryTimeout"
 )

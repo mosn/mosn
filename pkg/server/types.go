@@ -41,6 +41,7 @@ type Config struct {
 	ServerName      string
 	LogPath         string
 	LogLevel        log.Level
+	LogRoller       string
 	GracefulTimeout time.Duration
 	Processor       int
 	UseNetpollMode  bool

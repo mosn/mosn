@@ -119,8 +119,6 @@ func (c *faultInjectCase) RunCase(n int, interval int) {
 			c.T.Logf("HTTP client receive data: %s\n", string(b))
 			return nil
 		}
-	case protocol.MHTTP2:
-		fallthrough
 	case protocol.HTTP2:
 		expectedCode := http.StatusOK
 		if c.abortstatus != 0 {

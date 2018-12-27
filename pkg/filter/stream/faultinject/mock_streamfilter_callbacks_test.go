@@ -24,7 +24,7 @@ import (
 // this file mocks the interface that used for test
 // only implement the function that used in test
 type mockStreamReceiverFilterCallbacks struct {
-	types.StreamReceiverFilterCallbacks
+	types.StreamReceiverFilterHandler
 	route      *mockRoute
 	hijackCode int
 	info       *mockRequestInfo
@@ -37,7 +37,7 @@ func (cb *mockStreamReceiverFilterCallbacks) Route() types.Route {
 func (cb *mockStreamReceiverFilterCallbacks) RequestInfo() types.RequestInfo {
 	return cb.info
 }
-func (cb *mockStreamReceiverFilterCallbacks) ContinueDecoding() {
+func (cb *mockStreamReceiverFilterCallbacks) ContinueReceiving() {
 	cb.called <- 1
 }
 func (cb *mockStreamReceiverFilterCallbacks) SendHijackReply(code int, headers types.HeaderMap) {
