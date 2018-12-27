@@ -42,8 +42,7 @@ func init() {
 type connPool struct {
 	MaxConn int
 
-	host  types.Host
-	stats *HTTPStatusStats
+	host types.Host
 
 	statReport bool
 
@@ -54,8 +53,7 @@ type connPool struct {
 
 func NewConnPool(host types.Host) types.ConnectionPool {
 	pool := &connPool{
-		host:  host,
-		stats: NewHTTPStatusStats(host),
+		host: host,
 	}
 
 	if pool.statReport {
@@ -74,12 +72,12 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	c, reason := p.getAvailableClient(ctx)
 
 	if c == nil {
-		listener.OnFailure(reason, nil)
+		listener.OnFailure(reason, p.host)
 		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, p.host)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {

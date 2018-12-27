@@ -63,11 +63,6 @@ func (sink *consoleSink) Flush(ms []types.Metrics) {
 				namespaceData[key] = strconv.FormatInt(metric.Value(), 10)
 			case metrics.Histogram:
 				h := metric.Snapshot()
-				ps := h.Percentiles(percents)
-				for index := range percents {
-					key := key + "." + strconv.FormatFloat(percents[index]*100, 'f', 2, 64) + "%"
-					namespaceData[key] = strconv.FormatFloat(ps[index], 'f', 2, 64)
-				}
 				namespaceData[key+".min"] = strconv.FormatInt(h.Min(), 10)
 				namespaceData[key+".max"] = strconv.FormatInt(h.Max(), 10)
 			default: //unsupport metrics, ignore

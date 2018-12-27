@@ -69,7 +69,7 @@ const (
 const (
 	// DefaultAccessLogFormat is the default access log format.
 	// For more details please read "AccessLogDetails.md"
-	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %RequestFinishedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
+	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %RequestFinishedDuration% %BytesSent%" + " " +
 		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
 		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
 )

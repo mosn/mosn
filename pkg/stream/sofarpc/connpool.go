@@ -41,7 +41,6 @@ func init() {
 type connPool struct {
 	activeClient *activeClient
 	host         types.Host
-	stats        *SofaRPCStatusStats
 
 	mux sync.Mutex
 }
@@ -49,8 +48,7 @@ type connPool struct {
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
-		host:  host,
-		stats: NewSofaRPCStatusStats(host),
+		host: host,
 	}
 }
 
@@ -69,12 +67,12 @@ func (p *connPool) NewStream(ctx context.Context,
 
 	activeClient := p.activeClient
 	if activeClient == nil {
-		listener.OnFailure(types.ConnectionFailure, nil)
+		listener.OnFailure(types.ConnectionFailure, p.host)
 		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, p.host)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {

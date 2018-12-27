@@ -58,7 +58,6 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 		t.Fatal(err)
 	}
 	srv.GoServe()
-	defer srv.Close()
 	// make a connection to server
 	info := &mockClusterInfo{
 		name:  "test",
@@ -92,6 +91,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 
 func TestKeepAlive(t *testing.T) {
 	tc := newTestCase(t, 0, time.Second, 6)
+	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
 	// test concurrency
@@ -107,6 +107,7 @@ func TestKeepAlive(t *testing.T) {
 
 func TestKeepAliveTimeout(t *testing.T) {
 	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond, 6)
+	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
 	// after 6 times, the connection will be closed and stop all keep alive action
@@ -123,6 +124,7 @@ func TestKeepAliveTimeout(t *testing.T) {
 
 func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
 	tc := newTestCase(t, 150*time.Millisecond, 20*time.Millisecond, 6)
+	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
 	// 5 times timeout, will not close the connection

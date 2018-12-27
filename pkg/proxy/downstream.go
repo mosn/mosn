@@ -33,9 +33,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 )
 
 // types.StreamEventListener
@@ -717,8 +717,10 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 			code = types.NoHealthUpstreamCode
 		}
 
-		s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
-		s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+		if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
+			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+		}
 		s.sendHijackReply(code, s.downstreamReqHeaders)
 	}
 }
@@ -731,8 +733,10 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 		retryCheck := s.retryState.retry(headers, "", s.doRetry)
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(endStream) {
-			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
-			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
+				s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+			}
 
 			return
 		} else if retryCheck == types.RetryOverflow {
@@ -757,12 +761,14 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 
 func (s *downStream) handleUpstreamStatusCode() {
 	// todo: support config?
-	if s.upstreamRequest.httpStatusCode >= http.InternalServerError {
-		s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
-		s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
-	} else {
-		s.upstreamRequest.host.HostStats().UpstreamResponseSuccess.Inc(1)
-		s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseSuccess.Inc(1)
+	if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
+		if s.upstreamRequest.httpStatusCode >= http.InternalServerError {
+			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+		} else {
+			s.upstreamRequest.host.HostStats().UpstreamResponseSuccess.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseSuccess.Inc(1)
+		}
 	}
 }
 

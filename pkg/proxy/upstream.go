@@ -51,12 +51,12 @@ type upstreamRequest struct {
 	// time at send upstream request
 	startTime time.Time
 	// received response status
-	statusCode 			int
+	statusCode int
 	// http standardized status code
 	httpStatusCode int
 
 	// list element
-	element      *list.Element
+	element *list.Element
 }
 
 // reset upstream request in proxy context
@@ -97,7 +97,7 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	}
 }
 
-func  (r *upstreamRequest) endStream() {
+func (r *upstreamRequest) endStream() {
 	upstreamResponseDurationNs := time.Now().Sub(r.startTime).Nanoseconds()
 	r.host.HostStats().UpstreamRequestDuration.Update(upstreamResponseDurationNs)
 	r.host.HostStats().UpstreamRequestDurationTotal.Inc(upstreamResponseDurationNs)
@@ -279,11 +279,13 @@ func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.H
 		resetReason = types.StreamConnectionFailed
 	}
 
+	r.host = host
 	r.ResetStream(resetReason)
 }
 
 func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.requestSender = sender
+	r.host = host
 	r.requestSender.GetStream().AddEventListener(r)
 	// start a upstream send
 	r.startTime = time.Now()

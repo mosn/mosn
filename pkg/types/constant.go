@@ -37,22 +37,22 @@ const (
 
 // Error messages
 const (
-	ChannelFull           = "Channel is full"
-	CodecException        = "codec exception occurs"
-	SerializeException    = "serialize exception occurs"
-	DeserializeException  = "deserialize exception occurs"
+	ChannelFullException = "Channel is full"
+	CodecException       = "codec exception occurs"
+	SerializeException   = "serialize exception occurs"
+	DeserializeException = "deserialize exception occurs"
 
-	NoStatusCodeForHijack = "no status code found for hijack reply"
+	NoStatusCodeForHijackException = "no status code found for hijack reply"
 )
 
 // Errors
 var (
-	ErrChanFull             = errors.New(ChannelFull)
+	ErrChanFull             = errors.New(ChannelFullException)
 	ErrCodecException       = errors.New(CodecException)
 	ErrSerializeException   = errors.New(SerializeException)
 	ErrDeserializeException = errors.New(DeserializeException)
 
-	ErrNoStatusCodeForHijack = errors.New(NoStatusCodeForHijack)
+	ErrNoStatusCodeForHijack = errors.New(NoStatusCodeForHijackException)
 )
 
 // Error codes, used by top level logic code(like proxy logic).
