@@ -21,6 +21,7 @@ import (
 	"container/list"
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -32,8 +33,8 @@ import (
 // types.PoolEventListener
 type upstreamRequest struct {
 	proxy         *proxy
-	element       *list.Element
 	downStream    *downStream
+	protocol      types.Protocol
 	host          types.Host
 	requestSender types.StreamSender
 	connPool      types.ConnectionPool
@@ -46,6 +47,14 @@ type upstreamRequest struct {
 	dataSent     bool
 	trailerSent  bool
 	setupRetry   bool
+
+	// time at send upstream request
+	startTime time.Time
+	// http standardized status code
+	httpStatusCode int
+
+	// list element
+	element *list.Element
 }
 
 // reset upstream request in proxy context
@@ -86,15 +95,31 @@ func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
 	}
 }
 
+func (r *upstreamRequest) endStream() {
+	upstreamResponseDurationNs := time.Now().Sub(r.startTime).Nanoseconds()
+	r.host.HostStats().UpstreamRequestDuration.Update(upstreamResponseDurationNs)
+	r.host.HostStats().UpstreamRequestDurationTotal.Inc(upstreamResponseDurationNs)
+	r.host.ClusterInfo().Stats().UpstreamRequestDuration.Update(upstreamResponseDurationNs)
+	r.host.ClusterInfo().Stats().UpstreamRequestDurationTotal.Inc(upstreamResponseDurationNs)
+
+	// todo: record upstream process time in request info
+}
+
 // types.StreamReceiveListener
 // Method to decode upstream's response message
-func (r *upstreamRequest) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	// save response code
-	if status, ok := headers.Get(protocol.MosnResponseStatusCode); ok {
+func (r *upstreamRequest) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) {
+	// we save a response status code into request info if it is in headers
+	if status, ok := headers.Get(types.HeaderStatus); ok {
 		if code, err := strconv.Atoi(status); err == nil {
 			r.downStream.requestInfo.SetResponseCode(uint32(code))
 		}
-		headers.Del(protocol.MosnResponseStatusCode)
+	}
+	r.httpStatusCode, _ = protocol.MappingHeaderStatusCode(r.protocol, headers)
+
+	r.downStream.requestInfo.SetResponseReceivedDuration(time.Now())
+
+	if endStream {
+		r.endStream()
 	}
 
 	workerPool.Offer(&event{
@@ -120,6 +145,10 @@ func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBu
 	r.downStream.downstreamRespDataBuf = data.Clone()
 	data.Drain(data.Len())
 
+	if endStream {
+		r.endStream()
+	}
+
 	workerPool.Offer(&event{
 		id:  r.downStream.ID,
 		dir: upstream,
@@ -141,6 +170,8 @@ func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
 }
 
 func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
+	r.endStream()
+
 	workerPool.Offer(&event{
 		id:  r.downStream.ID,
 		dir: upstream,
@@ -241,12 +272,16 @@ func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.H
 		resetReason = types.StreamConnectionFailed
 	}
 
+	r.host = host
 	r.ResetStream(resetReason)
 }
 
 func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.requestSender = sender
+	r.host = host
 	r.requestSender.GetStream().AddEventListener(r)
+	// start a upstream send
+	r.startTime = time.Now()
 
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
 	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)

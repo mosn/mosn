@@ -24,11 +24,11 @@ import (
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 func init() {
@@ -71,12 +71,12 @@ func (p *connPool) NewStream(context context.Context, responseDecoder types.Stre
 	p.mux.Unlock()
 
 	if p.primaryClient == nil {
-		listener.OnFailure(types.ConnectionFailure, nil)
+		listener.OnFailure(types.ConnectionFailure, p.host)
 		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, p.host)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {

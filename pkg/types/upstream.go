@@ -222,6 +222,10 @@ type HostStats struct {
 	UpstreamRequestTimeout                         metrics.Counter
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
+	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamResponseSuccess                        metrics.Counter
+	UpstreamResponseFailed                         metrics.Counter
 }
 
 // ClusterInfo defines a cluster's information
@@ -308,6 +312,10 @@ type ClusterStats struct {
 	UpstreamRequestTimeout                         metrics.Counter
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
+	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamResponseSuccess                        metrics.Counter
+	UpstreamResponseFailed                         metrics.Counter
 	LBSubSetsFallBack                              metrics.Counter
 	LBSubSetsActive                                metrics.Counter
 	LBSubsetsCreated                               metrics.Counter

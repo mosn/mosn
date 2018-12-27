@@ -17,7 +17,9 @@
 
 package types
 
-import "context"
+import (
+	"context"
+)
 
 //
 //   The bunch of interfaces are structure skeleton to build a extensible stream multiplexing architecture. The core concept is mainly refer to golang HTTP2 and envoy.

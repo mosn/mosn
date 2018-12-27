@@ -18,17 +18,16 @@
 package http2
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"sync"
-
 	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
+	"sync"
 
-	"bytes"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/module/http2"
@@ -617,7 +616,8 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	if rsp != nil {
 		header := mhttp2.NewRspHeader(rsp)
 
-		header.Set(types.HeaderStatus, strconv.Itoa(rsp.StatusCode))
+		code := strconv.Itoa(rsp.StatusCode)
+		header.Set(types.HeaderStatus, code)
 
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 

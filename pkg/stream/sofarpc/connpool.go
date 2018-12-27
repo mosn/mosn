@@ -67,12 +67,12 @@ func (p *connPool) NewStream(ctx context.Context,
 
 	activeClient := p.activeClient
 	if activeClient == nil {
-		listener.OnFailure(types.ConnectionFailure, nil)
+		listener.OnFailure(types.ConnectionFailure, p.host)
 		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, p.host)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -100,14 +100,33 @@ func (p *connPool) Close() {
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
 	if event.IsClose() {
-		if client.closeWithActiveReq {
-			if event == types.LocalClose {
+		p.host.HostStats().UpstreamConnectionClose.Inc(1)
+		p.host.HostStats().UpstreamConnectionActive.Dec(1)
+
+		p.host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+
+		switch event {
+		case types.LocalClose:
+			p.host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			p.host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+
+			if client.closeWithActiveReq {
 				p.host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-			} else if event == types.RemoteClose {
+			}
+
+		case types.RemoteClose:
+			p.host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			p.host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+
+			if client.closeWithActiveReq {
 				p.host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+
 			}
+		default:
+			// do nothing
 		}
 		p.activeClient = nil
 	} else if event == types.ConnectTimeout {

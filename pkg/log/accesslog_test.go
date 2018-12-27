@@ -24,10 +24,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"os"
 	"regexp"
+
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func TestAccessLog(t *testing.T) {
@@ -63,7 +64,7 @@ func TestAccessLog(t *testing.T) {
 
 	accessLog.Log(protocol.CommonHeader(reqHeaders), protocol.CommonHeader(respHeaders), requestInfo)
 	l := "2018/12/14 18:08:33.054 1.329µs 2.00000227s 2048 2048 - 0 126.868µs false 0 127.0.0.1:23456 [2001:db8::68]:12200 127.0.0.1:53242 -\n"
-	time.Sleep(2*time.Second)
+	time.Sleep(2 * time.Second)
 	f, _ := os.Open(logName)
 	b := make([]byte, 1024)
 	_, err = f.Read(b)
@@ -71,7 +72,7 @@ func TestAccessLog(t *testing.T) {
 	if err != nil {
 		t.Errorf("test accesslog error")
 	}
-	ok, err := regexp.Match( "\\d\\d\\d\\d/\\d\\d/\\d\\d .* .* .* 2048 2048 \\- 0 .* false 0 127.0.0.1:23456 \\[2001:db8::68\\]:12200 127.0.0.1:53242 \\-\n", []byte(l))
+	ok, err := regexp.Match("\\d\\d\\d\\d/\\d\\d/\\d\\d .* .* .* 2048 2048 \\- 0 .* false 0 127.0.0.1:23456 \\[2001:db8::68\\]:12200 127.0.0.1:53242 \\-\n", []byte(l))
 
 	if !ok {
 		t.Errorf("test accesslog error %v", err)
@@ -164,6 +165,7 @@ type mock_requestInfo struct {
 	upstreamHost             types.HostInfo
 	requestReceivedDuration  time.Duration
 	responseReceivedDuration time.Duration
+	requestFinishedDuration  time.Duration
 	bytesSent                uint64
 	bytesReceived            uint64
 	responseCode             uint32
@@ -193,16 +195,24 @@ func (r *mock_requestInfo) RequestReceivedDuration() time.Duration {
 	return r.requestReceivedDuration
 }
 
-func (r *mock_requestInfo) SetRequestReceivedDuration(time time.Time) {
-	r.requestReceivedDuration = time.Sub(r.startTime)
+func (r *mock_requestInfo) SetRequestReceivedDuration(t time.Time) {
+	r.requestReceivedDuration = t.Sub(r.startTime)
 }
 
 func (r *mock_requestInfo) ResponseReceivedDuration() time.Duration {
 	return r.responseReceivedDuration
 }
 
-func (r *mock_requestInfo) SetResponseReceivedDuration(time time.Time) {
-	r.responseReceivedDuration = time.Sub(r.startTime)
+func (r *mock_requestInfo) SetResponseReceivedDuration(t time.Time) {
+	r.responseReceivedDuration = t.Sub(r.startTime)
+}
+
+func (r *mock_requestInfo) RequestFinishedDuration() time.Duration {
+	return r.requestFinishedDuration
+}
+
+func (r *mock_requestInfo) SetRequestFinishedDuration(t time.Time) {
+	r.requestFinishedDuration = t.Sub(r.startTime)
 }
 
 func (r *mock_requestInfo) BytesSent() uint64 {

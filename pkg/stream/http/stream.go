@@ -486,8 +486,6 @@ func (s *clientStream) handleResponse() {
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
 		header.Set(types.HeaderStatus, status)
-		// save response code
-		header.Set(protocol.MosnResponseStatusCode, status)
 
 		log.DefaultLogger.Debugf("remote:%s, status:%s", s.connection.conn.RemoteAddr(), status)
 

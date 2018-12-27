@@ -30,6 +30,7 @@ import (
 // a mock server for handle heart beat request
 type mockServer struct {
 	ln    net.Listener
+	stop  chan struct{}
 	codec types.ProtocolEngine
 	delay time.Duration
 }
@@ -41,6 +42,7 @@ func newMockServer(delay time.Duration) (*mockServer, error) {
 	}
 	return &mockServer{
 		ln:    ln,
+		stop:  make(chan struct{}),
 		codec: sofarpc.Engine(),
 		delay: delay,
 	}, nil
@@ -51,6 +53,7 @@ func (s *mockServer) AddrString() string {
 }
 
 func (s *mockServer) Close() error {
+	close(s.stop)
 	return s.ln.Close()
 }
 
@@ -72,22 +75,28 @@ func (s *mockServer) GoServe() {
 func (s *mockServer) HandleConn(conn net.Conn) {
 	iobuf := buffer.NewIoBuffer(10240)
 	for {
-		now := time.Now()
-		conn.SetReadDeadline(now.Add(30 * time.Second))
-		buf := make([]byte, 10240)
-		n, err := conn.Read(buf)
-		if err != nil {
-			if ne, ok := err.(net.Error); ok && ne.Temporary() {
-				continue
-			}
+		select {
+		case <-s.stop:
+			conn.Close()
 			return
-		}
-		if n > 0 {
-			iobuf.Write(buf[:n])
-			for iobuf.Len() > 1 {
-				resp := s.Reply(iobuf)
-				if resp != nil {
-					conn.Write(resp)
+		default:
+			now := time.Now()
+			conn.SetReadDeadline(now.Add(30 * time.Second))
+			buf := make([]byte, 10240)
+			n, err := conn.Read(buf)
+			if err != nil {
+				if ne, ok := err.(net.Error); ok && ne.Temporary() {
+					continue
+				}
+				return
+			}
+			if n > 0 {
+				iobuf.Write(buf[:n])
+				for iobuf.Len() > 1 {
+					resp := s.Reply(iobuf)
+					if resp != nil {
+						conn.Write(resp)
+					}
 				}
 			}
 		}

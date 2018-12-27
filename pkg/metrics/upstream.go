@@ -43,6 +43,10 @@ const (
 	UpstreamRequestTimeout                         = "request_request_timeout"
 	UpstreamRequestFailureEject                    = "request_failure_eject"
 	UpstreamRequestPendingOverflow                 = "request_pending_overflow"
+	UpstreamRequestDuration                        = "request_duration_time"
+	UpstreamRequestDurationTotal                   = "request_duration_time_total"
+	UpstreamResponseSuccess                        = "request_response_success"
+	UpstreamResponseFailed                         = "request_response_failed"
 )
 
 //  key in cluster

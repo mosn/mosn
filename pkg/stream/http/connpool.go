@@ -24,11 +24,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
@@ -72,12 +72,12 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	c, reason := p.getAvailableClient(ctx)
 
 	if c == nil {
-		listener.OnFailure(reason, nil)
+		listener.OnFailure(reason, p.host)
 		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, p.host)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {

@@ -33,6 +33,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -157,6 +158,10 @@ func (s *downStream) cleanStream() {
 		return
 	}
 
+	s.requestInfo.SetRequestFinishedDuration(time.Now())
+
+	streamDurationNs := s.requestInfo.RequestFinishedDuration().Nanoseconds()
+
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil && !s.upstreamProcessDone {
 		s.upstreamProcessDone = true
@@ -177,7 +182,12 @@ func (s *downStream) cleanStream() {
 
 	// countdown metrics
 	s.proxy.stats.DownstreamRequestActive.Dec(1)
+	s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
+	s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
 	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
+	s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
+	s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
 	// proxy access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
@@ -348,6 +358,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.upstreamRequest = &proxyBuffers.request
 	s.upstreamRequest.downStream = s
 	s.upstreamRequest.proxy = s.proxy
+	s.upstreamRequest.protocol = prot
 	s.upstreamRequest.connPool = pool
 	route.RouteRule().FinalizeRequestHeaders(headers, s.requestInfo)
 
@@ -672,6 +683,11 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 		retryCheck := s.retryState.retry(nil, reason, s.doRetry)
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(true) {
+			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
+				s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+			}
+
 			// setup retry timer and return
 			// clear reset flag
 			atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
@@ -683,17 +699,6 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 
 	// clean up all timers
 	s.cleanUp()
-	/*
-
-		if reason == types.StreamOverflow || reason == types.StreamConnectionFailed ||
-			reason == types.StreamRemoteReset {
-			log.StartLogger.Tracef("on upstream reset reason %v", reason)
-			s.upstreamRequest.connPool.Close()
-			s.proxy.readCallbacks.Connection().RawConn().Close()
-			s.resetStream()
-			return
-		}
-	*/
 
 	// If we have not yet sent anything downstream, send a response with an appropriate status code.
 	// Otherwise just reset the ongoing response.
@@ -712,6 +717,10 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 			code = types.NoHealthUpstreamCode
 		}
 
+		if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
+			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+		}
 		s.sendHijackReply(code, s.downstreamReqHeaders)
 	}
 }
@@ -724,6 +733,11 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 		retryCheck := s.retryState.retry(headers, "", s.doRetry)
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(endStream) {
+			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
+				s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+			}
+
 			return
 		} else if retryCheck == types.RetryOverflow {
 			s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
@@ -732,7 +746,7 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 		s.retryState.reset()
 	}
 
-	s.requestInfo.SetResponseReceivedDuration(time.Now())
+	s.handleUpstreamStatusCode()
 
 	s.downstreamResponseStarted = true
 
@@ -743,6 +757,19 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 
 	// todo: insert proxy headers
 	s.appendHeaders(headers, endStream)
+}
+
+func (s *downStream) handleUpstreamStatusCode() {
+	// todo: support config?
+	if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
+		if s.upstreamRequest.httpStatusCode >= http.InternalServerError {
+			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+		} else {
+			s.upstreamRequest.host.HostStats().UpstreamResponseSuccess.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseSuccess.Inc(1)
+		}
+	}
 }
 
 func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {

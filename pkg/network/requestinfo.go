@@ -31,6 +31,7 @@ type RequestInfo struct {
 	responseFlag             types.ResponseFlag
 	upstreamHost             types.HostInfo
 	requestReceivedDuration  time.Duration
+	requestFinishedDuration  time.Duration
 	responseReceivedDuration time.Duration
 	bytesSent                uint64
 	bytesReceived            uint64
@@ -69,16 +70,25 @@ func (r *RequestInfo) RequestReceivedDuration() time.Duration {
 	return r.requestReceivedDuration
 }
 
-func (r *RequestInfo) SetRequestReceivedDuration(time time.Time) {
-	r.requestReceivedDuration = time.Sub(r.startTime)
+func (r *RequestInfo) SetRequestReceivedDuration(t time.Time) {
+	r.requestReceivedDuration = t.Sub(r.startTime)
 }
 
 func (r *RequestInfo) ResponseReceivedDuration() time.Duration {
 	return r.responseReceivedDuration
 }
 
-func (r *RequestInfo) SetResponseReceivedDuration(time time.Time) {
-	r.responseReceivedDuration = time.Sub(r.startTime)
+func (r *RequestInfo) SetResponseReceivedDuration(t time.Time) {
+	r.responseReceivedDuration = t.Sub(r.startTime)
+}
+
+func (r *RequestInfo) RequestFinishedDuration() time.Duration {
+	return r.requestFinishedDuration
+}
+
+func (r *RequestInfo) SetRequestFinishedDuration(t time.Time) {
+	r.requestFinishedDuration = t.Sub(r.startTime)
+
 }
 
 func (r *RequestInfo) BytesSent() uint64 {
