@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package mhttp2
+package http2
 
 import (
 	"context"
@@ -30,8 +30,8 @@ import (
 )
 
 func init() {
-	network.RegisterNewPoolFactory(protocol.MHTTP2, NewConnPool)
-	types.RegisterConnPoolFactory(protocol.MHTTP2, true)
+	network.RegisterNewPoolFactory(protocol.HTTP2, NewConnPool)
+	types.RegisterConnPoolFactory(protocol.HTTP2, true)
 }
 
 // types.ConnectionPool
@@ -54,7 +54,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) Protocol() types.Protocol {
-	return protocol.MHTTP2
+	return protocol.HTTP2
 }
 
 func (p *connPool) NewStream(ctx context.Context,
@@ -144,7 +144,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 }
 
 func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
-	return str.NewStreamClient(context, protocol.MHTTP2, connData.Connection, connData.HostInfo)
+	return str.NewStreamClient(context, protocol.HTTP2, connData.Connection, connData.HostInfo)
 }
 
 // types.StreamEventListener

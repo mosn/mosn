@@ -15,11 +15,9 @@
  * limitations under the License.
  */
 
-package stats
+package metrics
 
 import (
-	"fmt"
-
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -28,28 +26,28 @@ const DownstreamType = "downstream"
 
 // metrics key in listener/proxy
 const (
-	DownstreamConnectionTotal    = "downstream_connection_total"
-	DownstreamConnectionDestroy  = "downstream_connection_destroy"
-	DownstreamConnectionActive   = "downstream_connection_active"
-	DownstreamBytesReadTotal     = "downstream_bytes_read_total"
-	DownstreamBytesReadBuffered  = "downstream_bytes_read_buffered"
-	DownstreamBytesWriteTotal    = "downstream_bytes_write_total"
-	DownstreamBytesWriteBuffered = "downstream_bytes_write_buffered"
-	DownstreamRequestTotal       = "downstream_request_total"
-	DownstreamRequestActive      = "downstream_request_active"
-	DownstreamRequestReset       = "downstream_request_reset"
-	DownstreamRequestTime        = "downstream_request_time"
-	DownstreamRequestTimeTotal   = "downstream_request_time_total"
+	DownstreamConnectionTotal    = "connection_total"
+	DownstreamConnectionDestroy  = "connection_destroy"
+	DownstreamConnectionActive   = "connection_active"
+	DownstreamBytesReadTotal     = "bytes_read_total"
+	DownstreamBytesReadBuffered  = "bytes_read_buffered"
+	DownstreamBytesWriteTotal    = "bytes_write_total"
+	DownstreamBytesWriteBuffered = "bytes_write_buffered"
+	DownstreamRequestTotal       = "request_total"
+	DownstreamRequestActive      = "request_active"
+	DownstreamRequestReset       = "request_reset"
+	DownstreamRequestTime        = "request_time"
+	DownstreamRequestTimeTotal   = "request_time_total"
 )
 
 // NewProxyStats returns a stats with namespace prefix proxy
 func NewProxyStats(proxyName string) types.Metrics {
-	namespace := fmt.Sprintf("proxy.%s", proxyName)
-	return NewStats(DownstreamType, namespace)
+	metrics, _ := NewMetrics(DownstreamType, map[string]string{"proxy": proxyName})
+	return metrics
 }
 
 // NewListenerStats returns a stats with namespace prefix listsener
 func NewListenerStats(listenerName string) types.Metrics {
-	namespace := fmt.Sprintf("listener.%s", listenerName)
-	return NewStats(DownstreamType, namespace)
+	metrics, _ := NewMetrics(DownstreamType, map[string]string{"listener": listenerName})
+	return metrics
 }

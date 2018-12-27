@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-package stats
+package http2
 
 import (
-	"testing"
+	"github.com/alipay/sofa-mosn/pkg/module/http2"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-func TestTrimKey(t *testing.T) {
-	ResetAll()
-	typ := "test@type"
-	namespace := "test@namespace"
-	s := NewStats(typ, namespace)
-	if !(s.typ == "testtype" && s.namespace == "testnamespace") {
-		t.Error("type/namespace have at, it is not allowed")
-	}
+func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
+	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc}, nil)
+}
+
+func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
+	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc}, nil)
 }

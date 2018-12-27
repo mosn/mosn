@@ -18,34 +18,34 @@
 package healthcheck
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/stats"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	gometrics "github.com/rcrowley/go-metrics"
 )
 
 type healthCheckStats struct {
-	attempt metrics.Counter
+	attempt gometrics.Counter
 	// total counts for check health returns ok
-	success metrics.Counter
+	success gometrics.Counter
 	// total counts for check health returns fail
-	failure metrics.Counter
+	failure gometrics.Counter
 	// total counts for check health returns fail with reason
-	passiveFailure metrics.Counter
-	activeFailure  metrics.Counter
-	networkFailure metrics.Counter
-	verifyCluster  metrics.Counter
-	healthy        metrics.Gauge
+	passiveFailure gometrics.Counter
+	activeFailure  gometrics.Counter
+	networkFailure gometrics.Counter
+	verifyCluster  gometrics.Counter
+	healthy        gometrics.Gauge
 }
 
 func newHealthCheckStats(namespace string) *healthCheckStats {
-	m := stats.NewHealthStats(namespace)
+	m := metrics.NewHealthStats(namespace)
 	return &healthCheckStats{
-		attempt:        m.Counter(stats.HealthCheckAttempt),
-		success:        m.Counter(stats.HealthCheckSuccess),
-		failure:        m.Counter(stats.HealthCheckFailure),
-		activeFailure:  m.Counter(stats.HealthCheckActiveFailure),
-		passiveFailure: m.Counter(stats.HealthCheckPassiveFailure),
-		networkFailure: m.Counter(stats.HealthCheckNetworkFailure),
-		verifyCluster:  m.Counter(stats.HealthCheckVeirfyCluster),
-		healthy:        m.Gauge(stats.HealthCheckHealthy),
+		attempt:        m.Counter(metrics.HealthCheckAttempt),
+		success:        m.Counter(metrics.HealthCheckSuccess),
+		failure:        m.Counter(metrics.HealthCheckFailure),
+		activeFailure:  m.Counter(metrics.HealthCheckActiveFailure),
+		passiveFailure: m.Counter(metrics.HealthCheckPassiveFailure),
+		networkFailure: m.Counter(metrics.HealthCheckNetworkFailure),
+		verifyCluster:  m.Counter(metrics.HealthCheckVeirfyCluster),
+		healthy:        m.Gauge(metrics.HealthCheckHealthy),
 	}
 }

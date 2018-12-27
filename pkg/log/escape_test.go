@@ -6,9 +6,9 @@ import (
 
 func BenchmarkWrapper(b *testing.B) {
 	logger := &logger{
-		Output:  "stdout",
-		Level:   ERROR,
-		Roller:  DefaultRoller(),
+		Output: "stdout",
+		Level:  ERROR,
+		roller: DefaultRoller(),
 	}
 
 	for n := 0; n < b.N; n++ {
@@ -19,9 +19,9 @@ func BenchmarkWrapper(b *testing.B) {
 
 func BenchmarkDirect(b *testing.B) {
 	logger := &logger{
-		Output:  "stdout",
-		Level:   ERROR,
-		Roller:  DefaultRoller(),
+		Output: "stdout",
+		Level:  ERROR,
+		roller: DefaultRoller(),
 	}
 
 	for n := 0; n < b.N; n++ {

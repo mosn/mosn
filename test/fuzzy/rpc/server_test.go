@@ -84,9 +84,3 @@ func TestServerCloseToSofaRPC(t *testing.T) {
 	log.StartLogger.Infof("[FUZZY TEST] RPC Server Close SofaRPC %d", caseIndex)
 	runServerCloseMeshToMesh(t, protocol.SofaRPC)
 }
-
-func TestServerCloseToMHTTP2(t *testing.T) {
-	caseIndex++
-	log.StartLogger.Infof("[FUZZY TEST] RPC Server Close MHTTP2 %d", caseIndex)
-	runServerCloseMeshToMesh(t, protocol.MHTTP2)
-}

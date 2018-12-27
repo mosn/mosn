@@ -76,7 +76,7 @@ func TestJobOrder(t *testing.T) {
 		counter := uint32(i)
 		go func() {
 			for j := 0; j < shardEvents; j++ {
-				pool.Offer(&TestJob{i: atomic.AddUint32(&counter, uint32(shardsNum))})
+				pool.Offer(&TestJob{i: atomic.AddUint32(&counter, uint32(shardsNum))}, true)
 			}
 		}()
 	}
@@ -124,7 +124,7 @@ func eventProcess(b *testing.B) {
 		counter := uint32(i)
 		go func() {
 			for j := 0; j < shardEvents; j++ {
-				pool.Offer(&TestJob{i: atomic.AddUint32(&counter, uint32(shardsNum))})
+				pool.Offer(&TestJob{i: atomic.AddUint32(&counter, uint32(shardsNum))}, true)
 			}
 		}()
 	}

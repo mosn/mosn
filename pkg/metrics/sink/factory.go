@@ -37,7 +37,7 @@ func RegisterSink(sinkType string, creator MetricsSinkCreator) {
 	metricsSinkFactory[sinkType] = creator
 }
 
-// CreateStreamFilterChainFactory creates a StreamFilterChainFactory according to filterType
+// CreateMetricsSink creates a MetricsSink according to sinkType
 func CreateMetricsSink(sinkType string, config map[string]interface{}) (types.MetricsSink, error) {
 	if creator, ok := metricsSinkFactory[sinkType]; ok {
 		sink, err := creator(config)

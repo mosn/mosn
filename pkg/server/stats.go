@@ -18,19 +18,19 @@
 package server
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/stats"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	gometrics "github.com/rcrowley/go-metrics"
 )
 
 type listenerStats struct {
-	DownstreamBytesReadTotal  metrics.Counter
-	DownstreamBytesWriteTotal metrics.Counter
+	DownstreamBytesReadTotal  gometrics.Counter
+	DownstreamBytesWriteTotal gometrics.Counter
 }
 
 func newListenerStats(listenerName string) *listenerStats {
-	s := stats.NewListenerStats(listenerName)
+	s := metrics.NewListenerStats(listenerName)
 	return &listenerStats{
-		DownstreamBytesReadTotal:  s.Counter(stats.DownstreamBytesReadTotal),
-		DownstreamBytesWriteTotal: s.Counter(stats.DownstreamBytesWriteTotal),
+		DownstreamBytesReadTotal:  s.Counter(metrics.DownstreamBytesReadTotal),
+		DownstreamBytesWriteTotal: s.Counter(metrics.DownstreamBytesWriteTotal),
 	}
 }

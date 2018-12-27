@@ -36,7 +36,7 @@ func init() {
 // -------- SofaTracerSpan --------
 
 type SofaTracerSpan struct {
-	tracer        *SofaTracer
+	tracer        types.Tracer
 	startTime     time.Time
 	endTime       time.Time
 	tags          [TRACE_END]string
@@ -74,6 +74,10 @@ func (s *SofaTracerSpan) SetTag(key uint64, value string) {
 	s.tags[key] = value
 }
 
+func (s *SofaTracerSpan) Tag(key uint64) string {
+	return s.tags[key]
+}
+
 func (s *SofaTracerSpan) FinishSpan() {
 	s.endTime = time.Now()
 	err := Tracer().PrintSpan(s)
@@ -87,6 +91,14 @@ func (s *SofaTracerSpan) InjectContext(requestHeaders map[string]string) {
 
 func (s *SofaTracerSpan) SpawnChild(operationName string, startTime time.Time) types.Span {
 	return nil
+}
+
+func (s *SofaTracerSpan) SetTracer(tracer types.Tracer) {
+	s.tracer = tracer
+}
+
+func (s *SofaTracerSpan) SetStartTime(startTime time.Time) {
+	s.startTime = startTime
 }
 
 func (s *SofaTracerSpan) String() string {
@@ -104,6 +116,10 @@ func (s *SofaTracerSpan) String() string {
 
 func (s *SofaTracerSpan) EndTime() time.Time {
 	return s.endTime
+}
+
+func (s *SofaTracerSpan) StartTime() time.Time {
+	return s.startTime
 }
 
 // -------- SofaTracer --------
@@ -141,6 +157,22 @@ func (tracer *SofaTracer) Start(startTime time.Time) types.Span {
 	}
 
 	return span
+}
+
+func (tracer *SofaTracer) EgressLogger() log.Logger {
+	return tracer.egressLogger
+}
+
+func (tracer *SofaTracer) IngressLogger() log.Logger {
+	return tracer.ingressLogger
+}
+
+func (tracer *SofaTracer) SetEgressLogger(egress log.Logger) {
+	tracer.egressLogger = egress
+}
+
+func (tracer *SofaTracer) SetIngressLogger(ingress log.Logger) {
+	tracer.ingressLogger = ingress
 }
 
 func (tracer *SofaTracer) PrintSpan(spanP types.Span) error {

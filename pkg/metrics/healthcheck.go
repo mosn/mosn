@@ -15,11 +15,9 @@
  * limitations under the License.
  */
 
-package stats
+package metrics
 
 import (
-	"fmt"
-
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -28,18 +26,18 @@ const HealthCheckType = "healthcheck"
 
 // health check metrics key
 const (
-	HealthCheckAttempt        = "health_check_attempt"
-	HealthCheckSuccess        = "health_check_success"
-	HealthCheckFailure        = "health_check_failure"
-	HealthCheckActiveFailure  = "health_check_active_failure"
-	HealthCheckPassiveFailure = "health_check_passive_failure"
-	HealthCheckNetworkFailure = "health_check_network_failure"
-	HealthCheckVeirfyCluster  = "health_check_verify_cluster"
-	HealthCheckHealthy        = "health_check_healty"
+	HealthCheckAttempt        = "attempt"
+	HealthCheckSuccess        = "success"
+	HealthCheckFailure        = "failure"
+	HealthCheckActiveFailure  = "active_failure"
+	HealthCheckPassiveFailure = "passive_failure"
+	HealthCheckNetworkFailure = "network_failure"
+	HealthCheckVeirfyCluster  = "verify_cluster"
+	HealthCheckHealthy        = "healty"
 )
 
 // NewHealthStats returns a stats with namespace prefix service
 func NewHealthStats(serviceName string) types.Metrics {
-	namespace := fmt.Sprintf("service.%s", serviceName)
-	return NewStats(HealthCheckType, namespace)
+	metrics, _ := NewMetrics(HealthCheckType, map[string]string{"service": serviceName})
+	return metrics
 }

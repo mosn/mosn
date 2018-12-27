@@ -15,33 +15,31 @@
  * limitations under the License.
  */
 
-package mhttp2
+package http2
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"sync"
-
 	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
-
-	"bytes"
+	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/module/http2"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/mhttp2"
+	mhttp2 "github.com/alipay/sofa-mosn/pkg/protocol/http2"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
-	str.Register(protocol.MHTTP2, &streamConnFactory{})
+	str.Register(protocol.HTTP2, &streamConnFactory{})
 }
 
 type streamConnFactory struct{}
@@ -97,7 +95,7 @@ type streamConnection struct {
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
-	return protocol.MHTTP2
+	return protocol.HTTP2
 }
 
 func (conn *streamConnection) GoAway() {

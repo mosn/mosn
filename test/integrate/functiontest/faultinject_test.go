@@ -209,10 +209,6 @@ func TestFaultInject(t *testing.T) {
 			delay:    time.Second,
 		},
 		&faultInjectCase{
-			TestCase: integrate.NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-			delay:    time.Second,
-		},
-		&faultInjectCase{
 			TestCase: integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
 			delay:    time.Second,
 		},
@@ -223,10 +219,6 @@ func TestFaultInject(t *testing.T) {
 		},
 		&faultInjectCase{
 			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-			abortstatus: 500,
-		},
-		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
 			abortstatus: 500,
 		},
 		&faultInjectCase{
@@ -241,11 +233,6 @@ func TestFaultInject(t *testing.T) {
 		},
 		&faultInjectCase{
 			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-			delay:       time.Second,
-			abortstatus: 500,
-		},
-		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
 			delay:       time.Second,
 			abortstatus: 500,
 		},

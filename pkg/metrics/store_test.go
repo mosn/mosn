@@ -15,34 +15,20 @@
  * limitations under the License.
  */
 
-package sink
+package metrics
 
 import (
-	"time"
-
-	"github.com/alipay/sofa-mosn/pkg/stats"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"testing"
 )
 
-var defaultFlushInteval = time.Second
+func TestGetAll(t *testing.T) {
+	ResetAll()
 
-// StartFlush flush all metrics into given sinks, scheduled with given interval
-func StartFlush(sinks []types.MetricsSink, interval time.Duration) {
-	if interval <= 0 {
-		interval = defaultFlushInteval
-	}
+	// new some stats
+	NewMetrics("type1", map[string]string{"lk": "lv"})
+	NewMetrics("type2", map[string]string{"lk": "lv"})
 
-	for _ = range time.Tick(interval) {
-		FlushOnce(sinks)
-	}
-}
-
-// FlushOnce flush all metrics into given sinks oneshot
-func FlushOnce(sinks []types.MetricsSink) {
-	allRegs := stats.GetAllRegistries()
-
-	// flush each reg to all sinks
-	for _, sink := range sinks {
-		sink.Flush(allRegs)
+	if len(GetAll()) != 2 {
+		t.Errorf("get all lentgh error, expected 2, actual %d", len(GetAll()))
 	}
 }

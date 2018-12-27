@@ -98,7 +98,7 @@ func ipToHexString(ip string) string {
 	result := ""
 	for _, segment := range segments {
 		i, _ := strconv.Atoi(segment)
-		hexString := fmt.Sprintf("%02X", i)
+		hexString := fmt.Sprintf("%02x", i)
 		result += hexString
 	}
 

@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/stats"
-	"github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	gometrics "github.com/rcrowley/go-metrics"
 )
 
 /*
@@ -39,7 +39,7 @@ import (
 		"shadow_engine.hits.${policy2_name}":     Counter,   // policy2 hit count in shadow engine
 		"shadow_engine.hits.${policy3_name}":     Counter,   // policy3 hit count in shadow engine
 	},
- */
+*/
 
 const (
 	FilterMetricsType           = "filter.rbac"
@@ -53,30 +53,30 @@ const (
 
 // Status contains the metric logs for rbac filter
 type Status struct {
-	EngineAllowedTotal          metrics.Counter
-	EngineDeniedTotal           metrics.Counter
-	EnginePoliciesMetrics       map[string]metrics.Counter
-	ShadowEngineAllowedTotal    metrics.Counter
-	ShadowEngineDeniedTotal     metrics.Counter
-	ShadowEnginePoliciesMetrics map[string]metrics.Counter
+	EngineAllowedTotal          gometrics.Counter
+	EngineDeniedTotal           gometrics.Counter
+	EnginePoliciesMetrics       map[string]gometrics.Counter
+	ShadowEngineAllowedTotal    gometrics.Counter
+	ShadowEngineDeniedTotal     gometrics.Counter
+	ShadowEnginePoliciesMetrics map[string]gometrics.Counter
 }
 
 // NewStatus return the instance of RbacStatus
 func NewStatus(config *v2.RBAC) *Status {
 	status := &Status{}
-	s := stats.NewStats(FilterMetricsType, config.Version)
+	s, _ := metrics.NewMetrics(FilterMetricsType, map[string]string{"version": config.Version})
 
 	status.EngineAllowedTotal = s.Counter(EngineAllowedTotal)
 	status.EngineDeniedTotal = s.Counter(EngineDeniedTotal)
 	status.ShadowEngineAllowedTotal = s.Counter(ShadowEngineAllowedTotal)
 	status.ShadowEngineDeniedTotal = s.Counter(ShadowEngineDeniedTotal)
 
-	status.EnginePoliciesMetrics = make(map[string]metrics.Counter)
+	status.EnginePoliciesMetrics = make(map[string]gometrics.Counter)
 	for name := range config.Rules.Policies {
 		status.EnginePoliciesMetrics[name] = s.Counter(fmt.Sprintf(EnginePoliciesMetrics, name))
 	}
 
-	status.ShadowEnginePoliciesMetrics = make(map[string]metrics.Counter)
+	status.ShadowEnginePoliciesMetrics = make(map[string]gometrics.Counter)
 	for name := range config.ShadowRules.Policies {
 		status.ShadowEnginePoliciesMetrics[name] = s.Counter(fmt.Sprintf(ShadowEnginePoliciesMetrics, name))
 	}

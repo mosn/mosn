@@ -15,36 +15,34 @@
  * limitations under the License.
  */
 
-package mhttp2
+package sink
 
 import (
-	"context"
+	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var ins Mhttp2BufferCtx
+var defaultFlushInteval = time.Second
 
-func init() {
-	buffer.RegisterBuffer(&ins)
+// StartFlush flush all metrics into given sinks, scheduled with given interval
+func StartFlush(sinks []types.MetricsSink, interval time.Duration) {
+	if interval <= 0 {
+		interval = defaultFlushInteval
+	}
+
+	for _ = range time.Tick(interval) {
+		FlushOnce(sinks)
+	}
 }
 
-type Mhttp2BufferCtx struct{
-	buffer.TempBufferCtx
-}
+// FlushOnce flush all metrics into given sinks oneshot
+func FlushOnce(sinks []types.MetricsSink) {
+	allRegs := metrics.GetAll()
 
-func (ctx Mhttp2BufferCtx) New() interface{} {
-	buffer := new(Mhttp2Buffers)
-	return buffer
-}
-
-func (ctx Mhttp2BufferCtx) Reset(i interface{}) {
-}
-
-type Mhttp2Buffers struct {
-}
-
-func Mhttp2BuffersByContext(ctx context.Context) *Mhttp2Buffers {
-	poolCtx := buffer.PoolContext(ctx)
-	return poolCtx.Find(&ins, nil).(*Mhttp2Buffers)
+	// flush each reg to all sinks
+	for _, sink := range sinks {
+		sink.Flush(allRegs)
+	}
 }
