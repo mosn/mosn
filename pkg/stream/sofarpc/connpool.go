@@ -47,9 +47,24 @@ type connPool struct {
 
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
-	return &connPool{
+	p := &connPool{
 		host: host,
 	}
+	go p.init()
+	return p
+}
+
+func (p *connPool) init() {
+	p.activeClient = newActiveClient(context.Background(), p)
+}
+
+func (p *connPool) Active() bool {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	if p.activeClient != nil {
+		return true
+	}
+	return false
 }
 
 func (p *connPool) Protocol() types.Protocol {
@@ -59,13 +74,9 @@ func (p *connPool) Protocol() types.Protocol {
 func (p *connPool) NewStream(ctx context.Context,
 	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
 	p.mux.Lock()
-	if p.activeClient == nil {
-		p.activeClient = newActiveClient(ctx, p)
-	}
-
+	activeClient := p.activeClient
 	p.mux.Unlock()
 
-	activeClient := p.activeClient
 	if activeClient == nil {
 		listener.OnFailure(types.ConnectionFailure, nil)
 		return
@@ -211,6 +222,10 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		WriteTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal,
 		WriteBuffered: metrics.NewGauge(),
 	})
+
+	pool.mux.Lock()
+	pool.activeClient = ac
+	pool.mux.Unlock()
 
 	return ac
 }

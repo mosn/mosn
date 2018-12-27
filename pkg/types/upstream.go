@@ -23,7 +23,7 @@ import (
 	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -79,6 +79,8 @@ type ClusterManager interface {
 
 	// Destory the cluster manager
 	Destory()
+
+	ClusterHostNum(clusterName string) int
 }
 
 // ClusterSnapshot is a thread-safe cluster snapshot

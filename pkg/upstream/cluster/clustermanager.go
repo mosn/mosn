@@ -28,9 +28,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/rcu"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 var instanceMutex = sync.Mutex{}
@@ -459,4 +459,16 @@ func (cm *clusterManager) Destory() {
 	if clusterMangerInstance != nil {
 		clusterMangerInstance = nil
 	}
+}
+
+func (cm *clusterManager) ClusterHostNum(clusterName string) int {
+	if v, ok := cm.primaryClusters.Load(clusterName); ok {
+		pc := v.(*primaryCluster)
+		pcc := pc.cluster
+		if concretedCluster, ok := pcc.(*simpleInMemCluster); ok {
+			return len(concretedCluster.hosts)
+		}
+		return 0
+	}
+	return 0
 }

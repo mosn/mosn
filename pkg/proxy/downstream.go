@@ -322,13 +322,10 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	// `downstream` implement loadbalancer ctx
 	log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
-	pool, err := s.initializeUpstreamConnectionPool(s)
-
-	if err != nil {
-		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
+	pool := s.getActiveConnectionPool(clusterName)
+	if pool == nil {
 		return
 	}
-
 	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
 	var prot types.Protocol
@@ -533,6 +530,28 @@ func (s *downStream) onPerReqTimeout() {
 	}
 }
 
+func (s *downStream) getActiveConnectionPool(clusterName string) types.ConnectionPool {
+	var pool types.ConnectionPool
+	var err error
+	clusterNum := s.proxy.clusterManager.ClusterHostNum(clusterName)
+	for i := 0; i < clusterNum; i++ {
+		pool, err = s.initializeUpstreamConnectionPool(s)
+		if err != nil {
+			log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
+			break
+		}
+		if pool.Active() {
+			return pool
+		}
+	}
+
+	// todo: first request, should to wait
+
+	s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
+	s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
+	return nil
+}
+
 func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerContext) (types.ConnectionPool, error) {
 	var connPool types.ConnectionPool
 	var currentProtocol types.Protocol
@@ -550,9 +569,6 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 	connPool = s.proxy.clusterManager.ConnPoolForCluster(lbCtx, s.snapshot, currentProtocol)
 
 	if connPool == nil {
-		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
-
 		return nil, fmt.Errorf("no healthy upstream in cluster %s", s.cluster.Name())
 	}
 
