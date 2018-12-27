@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package mhttp2
+package http2
 
 import (
 	"net/http"

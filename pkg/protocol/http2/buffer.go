@@ -15,18 +15,36 @@
  * limitations under the License.
  */
 
-package mhttp2
+package http2
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/module/http2"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"context"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
-func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc}, nil)
+var ins Http2BufferCtx
+
+func init() {
+	buffer.RegisterBuffer(&ins)
 }
 
-func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc}, nil)
+type Http2BufferCtx struct{
+	buffer.TempBufferCtx
+}
+
+func (ctx Http2BufferCtx) New() interface{} {
+	buffer := new(Http2Buffers)
+	return buffer
+}
+
+func (ctx Http2BufferCtx) Reset(i interface{}) {
+}
+
+type Http2Buffers struct {
+}
+
+func Http2BuffersByContext(ctx context.Context) *Http2Buffers {
+	poolCtx := buffer.PoolContext(ctx)
+	return poolCtx.Find(&ins, nil).(*Http2Buffers)
 }

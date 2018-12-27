@@ -11,7 +11,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -38,7 +38,7 @@ func (c *TestCase) StartAuto(tls bool) {
 func TestAuto(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
 	testCases := []*TestCase{
-		NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+		NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
 		NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
 	}
 	for i, tc := range testCases {
@@ -61,7 +61,7 @@ func TestAuto(t *testing.T) {
 func TestAutoTLS(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
 	testCases := []*TestCase{
-		NewTestCase(t, protocol.MHTTP2, protocol.MHTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+		NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
 		NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
 	}
 	for i, tc := range testCases {
@@ -88,7 +88,7 @@ func TestProtocolHttp2(t *testing.T) {
 
 	magic = http2.ClientPreface
 	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
-	if prot != protocol.MHTTP2 {
+	if prot != protocol.HTTP2 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 

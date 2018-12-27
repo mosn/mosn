@@ -126,6 +126,7 @@ func TestLogDefaultRollerTime(t *testing.T) {
 	if n == 0 || string(b[0:n]) != "11111112222222" {
 		t.Errorf("TestLogDefaultRoller failed %v", string(b[0:n]))
 	}
+	defaultRollerTime = 24 * 60 * 60
 }
 
 func TestLogReopen(t *testing.T) {
