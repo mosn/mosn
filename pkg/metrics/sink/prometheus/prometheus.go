@@ -18,17 +18,18 @@
 package prometheus
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/stats/sink"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rcrowley/go-metrics"
-	"net/http"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"fmt"
-	"strings"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"net/http"
+	"strings"
+
+	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rcrowley/go-metrics"
 )
 
 func init() {
@@ -103,7 +104,7 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 
 func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, name string, snap metrics.Histogram) {
 	namespace := strings.Join(labelKeys, "_")
-	key := namespace + "_" + typ  + "_" + name
+	key := namespace + "_" + typ + "_" + name
 	g, ok := sink.gaugeVecs[key]
 	if !ok {
 		g = *prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -121,7 +122,7 @@ func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, na
 
 func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name string, val float64) {
 	namespace := strings.Join(labelKeys, "_")
-	key := namespace + "_" + typ  + "_" + name
+	key := namespace + "_" + typ + "_" + name
 	g, ok := sink.gaugeVecs[key]
 	if !ok {
 		g = *prometheus.NewGaugeVec(prometheus.GaugeOpts{

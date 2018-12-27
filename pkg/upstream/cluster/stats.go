@@ -1,60 +1,60 @@
 package cluster
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/stats"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func newHostStats(clustername string, addr string) types.HostStats {
-	s := stats.NewHostStats(clustername, addr)
+	s := metrics.NewHostStats(clustername, addr)
 
 	return types.HostStats{
-		UpstreamConnectionTotal:                        s.Counter(stats.UpstreamConnectionTotal),
-		UpstreamConnectionClose:                        s.Counter(stats.UpstreamConnectionClose),
-		UpstreamConnectionActive:                       s.Counter(stats.UpstreamConnectionActive),
-		UpstreamConnectionConFail:                      s.Counter(stats.UpstreamConnectionConFail),
-		UpstreamConnectionLocalClose:                   s.Counter(stats.UpstreamConnectionLocalClose),
-		UpstreamConnectionRemoteClose:                  s.Counter(stats.UpstreamConnectionRemoteClose),
-		UpstreamConnectionLocalCloseWithActiveRequest:  s.Counter(stats.UpstreamConnectionLocalCloseWithActiveRequest),
-		UpstreamConnectionRemoteCloseWithActiveRequest: s.Counter(stats.UpstreamConnectionRemoteCloseWithActiveRequest),
-		UpstreamConnectionCloseNotify:                  s.Counter(stats.UpstreamConnectionCloseNotify),
-		UpstreamRequestTotal:                           s.Counter(stats.UpstreamRequestTotal),
-		UpstreamRequestActive:                          s.Counter(stats.UpstreamRequestActive),
-		UpstreamRequestLocalReset:                      s.Counter(stats.UpstreamRequestLocalReset),
-		UpstreamRequestRemoteReset:                     s.Counter(stats.UpstreamRequestRemoteReset),
-		UpstreamRequestTimeout:                         s.Counter(stats.UpstreamRequestTimeout),
-		UpstreamRequestFailureEject:                    s.Counter(stats.UpstreamRequestFailureEject),
-		UpstreamRequestPendingOverflow:                 s.Counter(stats.UpstreamRequestPendingOverflow),
+		UpstreamConnectionTotal:                        s.Counter(metrics.UpstreamConnectionTotal),
+		UpstreamConnectionClose:                        s.Counter(metrics.UpstreamConnectionClose),
+		UpstreamConnectionActive:                       s.Counter(metrics.UpstreamConnectionActive),
+		UpstreamConnectionConFail:                      s.Counter(metrics.UpstreamConnectionConFail),
+		UpstreamConnectionLocalClose:                   s.Counter(metrics.UpstreamConnectionLocalClose),
+		UpstreamConnectionRemoteClose:                  s.Counter(metrics.UpstreamConnectionRemoteClose),
+		UpstreamConnectionLocalCloseWithActiveRequest:  s.Counter(metrics.UpstreamConnectionLocalCloseWithActiveRequest),
+		UpstreamConnectionRemoteCloseWithActiveRequest: s.Counter(metrics.UpstreamConnectionRemoteCloseWithActiveRequest),
+		UpstreamConnectionCloseNotify:                  s.Counter(metrics.UpstreamConnectionCloseNotify),
+		UpstreamRequestTotal:                           s.Counter(metrics.UpstreamRequestTotal),
+		UpstreamRequestActive:                          s.Counter(metrics.UpstreamRequestActive),
+		UpstreamRequestLocalReset:                      s.Counter(metrics.UpstreamRequestLocalReset),
+		UpstreamRequestRemoteReset:                     s.Counter(metrics.UpstreamRequestRemoteReset),
+		UpstreamRequestTimeout:                         s.Counter(metrics.UpstreamRequestTimeout),
+		UpstreamRequestFailureEject:                    s.Counter(metrics.UpstreamRequestFailureEject),
+		UpstreamRequestPendingOverflow:                 s.Counter(metrics.UpstreamRequestPendingOverflow),
 	}
 }
 
 func newClusterStats(clustername string) types.ClusterStats {
-	s := stats.NewClusterStats(clustername)
+	s := metrics.NewClusterStats(clustername)
 	return types.ClusterStats{
-		UpstreamConnectionTotal:                        s.Counter(stats.UpstreamConnectionTotal),
-		UpstreamConnectionClose:                        s.Counter(stats.UpstreamConnectionClose),
-		UpstreamConnectionActive:                       s.Counter(stats.UpstreamConnectionActive),
-		UpstreamConnectionConFail:                      s.Counter(stats.UpstreamConnectionConFail),
-		UpstreamConnectionRetry:                        s.Counter(stats.UpstreamConnectionRetry),
-		UpstreamConnectionLocalClose:                   s.Counter(stats.UpstreamConnectionLocalClose),
-		UpstreamConnectionRemoteClose:                  s.Counter(stats.UpstreamConnectionRemoteClose),
-		UpstreamConnectionLocalCloseWithActiveRequest:  s.Counter(stats.UpstreamConnectionLocalCloseWithActiveRequest),
-		UpstreamConnectionRemoteCloseWithActiveRequest: s.Counter(stats.UpstreamConnectionRemoteCloseWithActiveRequest),
-		UpstreamConnectionCloseNotify:                  s.Counter(stats.UpstreamConnectionCloseNotify),
-		UpstreamBytesReadTotal:                         s.Counter(stats.UpstreamBytesReadTotal),
-		UpstreamBytesWriteTotal:                        s.Counter(stats.UpstreamBytesWriteTotal),
-		UpstreamRequestTotal:                           s.Counter(stats.UpstreamRequestTotal),
-		UpstreamRequestActive:                          s.Counter(stats.UpstreamRequestActive),
-		UpstreamRequestLocalReset:                      s.Counter(stats.UpstreamRequestLocalReset),
-		UpstreamRequestRemoteReset:                     s.Counter(stats.UpstreamRequestRemoteReset),
-		UpstreamRequestRetry:                           s.Counter(stats.UpstreamRequestRetry),
-		UpstreamRequestRetryOverflow:                   s.Counter(stats.UpstreamRequestRetryOverflow),
-		UpstreamRequestTimeout:                         s.Counter(stats.UpstreamRequestTimeout),
-		UpstreamRequestFailureEject:                    s.Counter(stats.UpstreamRequestFailureEject),
-		UpstreamRequestPendingOverflow:                 s.Counter(stats.UpstreamRequestPendingOverflow),
-		LBSubSetsFallBack:                              s.Counter(stats.UpstreamLBSubSetsFallBack),
-		LBSubSetsActive:                                s.Counter(stats.UpstreamLBSubSetsActive),
-		LBSubsetsCreated:                               s.Counter(stats.UpstreamLBSubsetsCreated),
-		LBSubsetsRemoved:                               s.Counter(stats.UpstreamLBSubsetsRemoved),
+		UpstreamConnectionTotal:                        s.Counter(metrics.UpstreamConnectionTotal),
+		UpstreamConnectionClose:                        s.Counter(metrics.UpstreamConnectionClose),
+		UpstreamConnectionActive:                       s.Counter(metrics.UpstreamConnectionActive),
+		UpstreamConnectionConFail:                      s.Counter(metrics.UpstreamConnectionConFail),
+		UpstreamConnectionRetry:                        s.Counter(metrics.UpstreamConnectionRetry),
+		UpstreamConnectionLocalClose:                   s.Counter(metrics.UpstreamConnectionLocalClose),
+		UpstreamConnectionRemoteClose:                  s.Counter(metrics.UpstreamConnectionRemoteClose),
+		UpstreamConnectionLocalCloseWithActiveRequest:  s.Counter(metrics.UpstreamConnectionLocalCloseWithActiveRequest),
+		UpstreamConnectionRemoteCloseWithActiveRequest: s.Counter(metrics.UpstreamConnectionRemoteCloseWithActiveRequest),
+		UpstreamConnectionCloseNotify:                  s.Counter(metrics.UpstreamConnectionCloseNotify),
+		UpstreamBytesReadTotal:                         s.Counter(metrics.UpstreamBytesReadTotal),
+		UpstreamBytesWriteTotal:                        s.Counter(metrics.UpstreamBytesWriteTotal),
+		UpstreamRequestTotal:                           s.Counter(metrics.UpstreamRequestTotal),
+		UpstreamRequestActive:                          s.Counter(metrics.UpstreamRequestActive),
+		UpstreamRequestLocalReset:                      s.Counter(metrics.UpstreamRequestLocalReset),
+		UpstreamRequestRemoteReset:                     s.Counter(metrics.UpstreamRequestRemoteReset),
+		UpstreamRequestRetry:                           s.Counter(metrics.UpstreamRequestRetry),
+		UpstreamRequestRetryOverflow:                   s.Counter(metrics.UpstreamRequestRetryOverflow),
+		UpstreamRequestTimeout:                         s.Counter(metrics.UpstreamRequestTimeout),
+		UpstreamRequestFailureEject:                    s.Counter(metrics.UpstreamRequestFailureEject),
+		UpstreamRequestPendingOverflow:                 s.Counter(metrics.UpstreamRequestPendingOverflow),
+		LBSubSetsFallBack:                              s.Counter(metrics.UpstreamLBSubSetsFallBack),
+		LBSubSetsActive:                                s.Counter(metrics.UpstreamLBSubSetsActive),
+		LBSubsetsCreated:                               s.Counter(metrics.UpstreamLBSubsetsCreated),
+		LBSubsetsRemoved:                               s.Counter(metrics.UpstreamLBSubsetsRemoved),
 	}
 }

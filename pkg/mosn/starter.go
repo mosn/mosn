@@ -29,11 +29,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/alipay/sofa-mosn/pkg/stats"
-	"github.com/alipay/sofa-mosn/pkg/stats/sink"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	"github.com/alipay/sofa-mosn/pkg/xds"
@@ -161,7 +161,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// transfer old mosn connections
 	go network.TransferServer(m.servers[0].Handler())
 	// transfer old mosn mertrics, none-block
-	go stats.TransferServer(server.GracefulTimeout, nil)
+	go metrics.TransferServer(server.GracefulTimeout, nil)
 
 	return m
 }

@@ -24,10 +24,11 @@ import (
 	"net/http"
 	"testing"
 
+	rawjson "encoding/json"
+
+	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"github.com/alipay/sofa-mosn/pkg/stats"
-	rawjson "encoding/json"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -117,7 +118,7 @@ func TestDumpStats(t *testing.T) {
 	server.Start(config)
 	defer server.Close()
 
-	stats, _ := stats.NewStats("DumpTest", map[string]string{"lbk1":"lbv1"})
+	stats, _ := metrics.NewMetrics("DumpTest", map[string]string{"lbk1": "lbv1"})
 	stats.Counter("ct1").Inc(1)
 	stats.Gauge("gg2").Update(3)
 
@@ -129,7 +130,6 @@ func TestDumpStats(t *testing.T) {
 			},
 		},
 	}, "", "\t")
-
 
 	if data, err := getStats(config.Port); err != nil {
 		t.Error(err)

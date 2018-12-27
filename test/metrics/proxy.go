@@ -6,6 +6,8 @@ import (
 	"time"
 
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/sink/console"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
@@ -14,8 +16,6 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
-	"github.com/alipay/sofa-mosn/pkg/stats/sink/console"
-	"github.com/alipay/sofa-mosn/pkg/stats"
 )
 
 func main() {
@@ -83,5 +83,5 @@ func (p *Proxy) DestroyConn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) Stats(w http.ResponseWriter, r *http.Request) {
-	console.NewConsoleSink(w).Flush(stats.GetAll())
+	console.NewConsoleSink(w).Flush(metrics.GetAll())
 }

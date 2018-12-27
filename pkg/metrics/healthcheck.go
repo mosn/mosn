@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package stats
+package metrics
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -38,6 +38,6 @@ const (
 
 // NewHealthStats returns a stats with namespace prefix service
 func NewHealthStats(serviceName string) types.Metrics {
-	metrics, _ := NewStats(HealthCheckType, map[string]string{"service": serviceName})
+	metrics, _ := NewMetrics(HealthCheckType, map[string]string{"service": serviceName})
 	return metrics
 }

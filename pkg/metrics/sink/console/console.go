@@ -68,12 +68,8 @@ func (sink *consoleSink) Flush(ms []types.Metrics) {
 					key := key + "." + strconv.FormatFloat(percents[index]*100, 'f', 2, 64) + "%"
 					namespaceData[key] = strconv.FormatFloat(ps[index], 'f', 2, 64)
 				}
-				namespaceData[key+".count"] = strconv.FormatInt(h.Count(), 10)
 				namespaceData[key+".min"] = strconv.FormatInt(h.Min(), 10)
 				namespaceData[key+".max"] = strconv.FormatInt(h.Max(), 10)
-				namespaceData[key+".mean"] = strconv.FormatFloat(h.Mean(), 'f', 2, 64)
-				namespaceData[key+".stddev"] = strconv.FormatFloat(h.StdDev(), 'f', 2, 64)
-
 			default: //unsupport metrics, ignore
 				return
 			}

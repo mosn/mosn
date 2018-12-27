@@ -22,11 +22,11 @@ import (
 	"net"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/sink/console"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/json-iterator/go"
 	"github.com/valyala/fasthttp"
-	"github.com/alipay/sofa-mosn/pkg/stats/sink/console"
-	"github.com/alipay/sofa-mosn/pkg/stats"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -47,7 +47,7 @@ func configDump(ctx *fasthttp.RequestCtx) {
 
 func statsDump(ctx *fasthttp.RequestCtx) {
 	sink := console.NewConsoleSink(ctx.Response.BodyWriter())
-	sink.Flush(stats.GetAll())
+	sink.Flush(metrics.GetAll())
 }
 
 var levelMap = map[string]log.Level{

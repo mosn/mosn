@@ -15,15 +15,16 @@
  * limitations under the License.
  */
 
-package stats
+package metrics
 
 import (
 	"sync"
 
-	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"sort"
 	"fmt"
+	"sort"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
+	gometrics "github.com/rcrowley/go-metrics"
 )
 
 const maxLabelCount = 10
@@ -31,7 +32,7 @@ const maxLabelCount = 10
 var (
 	defaultStore *store
 
-	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is % %d", maxLabelCount)
+	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
 )
 
 // stats memory store
@@ -40,14 +41,14 @@ type store struct {
 	mutex   sync.RWMutex
 }
 
-// Stats is a wrapper of go-metrics registry, is an implement of types.Metrics
-type Stats struct {
+// metrics is a wrapper of go-metrics registry, is an implement of types.Metrics
+type metrics struct {
 	typ       string
 	labels    map[string]string
 	labelKeys []string
 	labelVals []string
 
-	registry metrics.Registry
+	registry gometrics.Registry
 }
 
 func init() {
@@ -57,9 +58,9 @@ func init() {
 	}
 }
 
-// NewStats returns a Stats
+// NewMetrics returns a metrics
 // Same (type + labels) pair will leading to the same Metrics instance
-func NewStats(typ string, labels map[string]string) (types.Metrics, error) {
+func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	if len(labels) > maxLabelCount {
 		return nil, errLabelCountExceeded
 	}
@@ -74,10 +75,10 @@ func NewStats(typ string, labels map[string]string) (types.Metrics, error) {
 		}
 	}
 
-	stats := &Stats{
+	stats := &metrics{
 		typ:      typ,
 		labels:   labels,
-		registry: metrics.NewRegistry(),
+		registry: gometrics.NewRegistry(),
 	}
 
 	defaultStore.metrics = append(defaultStore.metrics, stats)
@@ -85,15 +86,15 @@ func NewStats(typ string, labels map[string]string) (types.Metrics, error) {
 	return stats, nil
 }
 
-func (s *Stats) Type() string {
+func (s *metrics) Type() string {
 	return s.typ
 }
 
-func (s *Stats) Labels() map[string]string {
+func (s *metrics) Labels() map[string]string {
 	return s.labels
 }
 
-func (s *Stats) SortedLabels() (keys, values []string) {
+func (s *metrics) SortedLabels() (keys, values []string) {
 	if s.labelKeys != nil && s.labelVals != nil {
 		return s.labelKeys, s.labelVals
 	}
@@ -108,24 +109,23 @@ func (s *Stats) SortedLabels() (keys, values []string) {
 	return
 }
 
-
-func (s *Stats) Counter(key string) metrics.Counter {
-	return s.registry.GetOrRegister(key, metrics.NewCounter).(metrics.Counter)
+func (s *metrics) Counter(key string) gometrics.Counter {
+	return s.registry.GetOrRegister(key, gometrics.NewCounter).(gometrics.Counter)
 }
 
-func (s *Stats) Gauge(key string) metrics.Gauge {
-	return s.registry.GetOrRegister(key, metrics.NewGauge).(metrics.Gauge)
+func (s *metrics) Gauge(key string) gometrics.Gauge {
+	return s.registry.GetOrRegister(key, gometrics.NewGauge).(gometrics.Gauge)
 }
 
-func (s *Stats) Histogram(key string) metrics.Histogram {
-	return s.registry.GetOrRegister(key, func() metrics.Histogram { return metrics.NewHistogram(metrics.NewUniformSample(100)) }).(metrics.Histogram)
+func (s *metrics) Histogram(key string) gometrics.Histogram {
+	return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
 }
 
-func (s *Stats) Each(f func(string, interface{})) {
+func (s *metrics) Each(f func(string, interface{})) {
 	s.registry.Each(f)
 }
 
-func (s *Stats) UnregisterAll() {
+func (s *metrics) UnregisterAll() {
 	s.registry.UnregisterAll()
 }
 

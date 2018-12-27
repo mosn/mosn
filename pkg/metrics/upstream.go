@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package stats
+package metrics
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -61,12 +61,12 @@ const (
 
 // NewHostStats returns a stats that namespace contains cluster and host address
 func NewHostStats(clusterName string, addr string) types.Metrics {
-	metrics, _ := NewStats(UpstreamType, map[string]string{"cluster": clusterName, "host": addr})
+	metrics, _ := NewMetrics(UpstreamType, map[string]string{"cluster": clusterName, "host": addr})
 	return metrics
 }
 
 // NewClusterStats returns a stats with namespace prefix cluster
 func NewClusterStats(clusterName string) types.Metrics {
-	metrics, _ := NewStats(UpstreamType, map[string]string{"cluster": clusterName})
+	metrics, _ := NewMetrics(UpstreamType, map[string]string{"cluster": clusterName})
 	return metrics
 }

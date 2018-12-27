@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package stats
+package metrics
 
 import (
 	"bytes"
@@ -27,14 +27,15 @@ import (
 	"path/filepath"
 	"time"
 
+	gometrics "github.com/rcrowley/go-metrics"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
 )
 
 // TransferStats
 type TransferStats struct {
-	Type    string
+	Type   string
 	Labels map[string]string
 	Data   []TransferData
 }
@@ -75,13 +76,13 @@ func makesTransferData() ([]byte, error) {
 				MetricsKey: key,
 			}
 			switch metric := val.(type) {
-			case metrics.Counter:
+			case gometrics.Counter:
 				data.MetricsType = metricsCounter
 				data.MetricsValues = []int64{metric.Count()}
-			case metrics.Gauge:
+			case gometrics.Gauge:
 				data.MetricsType = metricsGauge
 				data.MetricsValues = []int64{metric.Value()}
-			case metrics.Histogram:
+			case gometrics.Histogram:
 				h := metric.Snapshot()
 				data.MetricsType = metricsHistogram
 				data.MetricsValues = h.Sample().Values()
@@ -108,7 +109,7 @@ func readTransferData(b []byte) error {
 		return err
 	}
 	for _, transfer := range transfers {
-		s, _ := NewStats(transfer.Type, transfer.Labels)
+		s, _ := NewMetrics(transfer.Type, transfer.Labels)
 
 		for _, metric := range transfer.Data {
 			switch metric.MetricsType {

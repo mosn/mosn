@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package stats
+package metrics
 
 import (
 	"fmt"
@@ -42,7 +42,7 @@ func addMetrics() {
 	}
 	for _, typ := range typs {
 		for _, label := range labels {
-			s, _ := NewStats(typ, label)
+			s, _ := NewMetrics(typ, label)
 			for i := 0; i < 10; i++ {
 				s.Counter(fmt.Sprintf("counter.%d", i)).Inc(1)
 				s.Gauge(fmt.Sprintf("gauge.%d", i)).Update(1)

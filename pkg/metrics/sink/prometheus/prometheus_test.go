@@ -15,16 +15,17 @@
  * limitations under the License.
  */
 
-package console
+package prometheus
 
 import (
 	"bytes"
-	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"sync"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/stats"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"time"
 )
 
 type testAction int
@@ -37,17 +38,18 @@ const (
 )
 
 // test concurrently add statisic data
-// should get the right data from console
-func TestConsoleMetrics(t *testing.T) {
-	stats.ResetAll()
+// should get the right data from prometheus
+func TestPrometheusMetrics(t *testing.T) {
+	metrics.ResetAll()
 	testCases := []struct {
 		typ         string
-		labels   map[string]string
+		labels      map[string]string
 		key         string
 		action      testAction
 		actionValue int64
 	}{
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countInc, 1},
+		{"t1", map[string]string{"lbk1": "lbv2"}, "k1", countInc, 1},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countDec, 1},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k2", countInc, 1},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k3", gaugeUpdate, 1},
@@ -66,7 +68,7 @@ func TestConsoleMetrics(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			tc := testCases[i]
-			s, _ := stats.NewStats(tc.typ, tc.labels)
+			s, _ := metrics.NewMetrics(tc.typ, tc.labels)
 			switch tc.action {
 			case countInc:
 				s.Counter(tc.key).Inc(tc.actionValue)
@@ -82,69 +84,42 @@ func TestConsoleMetrics(t *testing.T) {
 	}
 	wg.Wait()
 
-	buf := &bytes.Buffer{}
-	NewConsoleSink(buf).Flush(stats.GetAll())
-	datas := make(map[string]map[string]map[string]string)
-	json.Unmarshal(buf.Bytes(), &datas)
-	t1Data := datas["t1"]
-	if ns1, ok := t1Data["lbk1.lbv1"]; !ok {
-		t.Error("no lbk1.lbv1 data")
-	} else {
-		if !(ns1["k1"] == "0" &&
-			ns1["k2"] == "1" &&
-			ns1["k3"] == "1") {
-			t.Error("count and gauge not expected")
-		}
-		//TODO: histogram value expected
-	}
-	if ns2, ok := t1Data["lbk2.lbv2"]; !ok {
-		t.Error("no lbk2.lbv2 data")
-	} else {
-		if !(ns2["k1"] == "1" &&
-			ns2["k2"] == "2" &&
-			ns2["k3"] == "3") {
-			t.Error("count and gauge not expected")
-		}
-		//TODO: histogram value expected
-	}
-	t2Data := datas["t2"]
-	if ns1, ok := t2Data["lbk1.lbv1"]; !ok {
-		t.Error("no lbk1.lbv1 data")
-	} else {
-		if ns1["k1"] != "1" {
-			t.Error("k1 value not expected")
-		}
-	}
-}
+	sink := NewPromeSink(&promConfig{
+		Port:                  8088,
+		Endpoint:              "/metrics",
+		DisableCollectProcess: true,
+		DisableCollectGo:      true,
+	})
+	tc := http.Client{}
+	sink.Flush(metrics.GetAll())
 
-func BenchmarkGetMetrics(b *testing.B) {
-	stats.ResetAll()
-	// init metrics data
-	testCases := []struct {
-		typ    string
-		labels map[string]string
-	}{
-		{stats.DownstreamType, map[string]string{"proxy": "global"}},
-		{stats.DownstreamType, map[string]string{"listener": "1"}},
-		{stats.DownstreamType, map[string]string{"listener": "2"}},
-		{stats.UpstreamType, map[string]string{"cluster": "1"}},
-		{stats.UpstreamType, map[string]string{"cluster": "2"}},
-		{stats.UpstreamType, map[string]string{"cluster": "1", "host":"1"}},
-		{stats.UpstreamType, map[string]string{"cluster": "1", "host":"2"}},
-		{stats.UpstreamType, map[string]string{"cluster": "2", "host":"1"}},
-		{stats.UpstreamType, map[string]string{"cluster": "2", "host":"2"}},
-	}
-	for _, tc := range testCases {
-		s, _ := stats.NewStats(tc.typ, tc.labels)
-		s.Counter("key1").Inc(100)
-		s.Counter("key2").Inc(100)
-		s.Gauge("key3").Update(100)
-		for i := 0; i < 5; i++ {
-			s.Histogram("key4").Update(1)
+	resp, err := tc.Get("http://127.0.0.1:8088/metrics")
+	if err != nil {
+		// wait listener ready
+		time.Sleep(time.Second)
+		resp, err = tc.Get("http://127.0.0.1:8088/metrics")
+
+		// still error
+		if err != nil {
+			t.Error("get metrics failed:", err)
 		}
 	}
-	sink := NewConsoleSink(ioutil.Discard)
-	for i := 0; i < b.N; i++ {
-		sink.Flush(stats.GetAll())
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	if !bytes.Contains(body, []byte("lbk1_t1_k1{lbk1=\"lbv1\"} 0.0")) {
+		t.Error("lbk1_t1_k1{lbk1=\"lbv1\"} metric not correct")
+	}
+
+	if !bytes.Contains(body, []byte("lbk1_t1_k1{lbk1=\"lbv2\"} 1.0")) {
+		t.Error("lbk1_t1_k1{lbk1=\"lbv2\"} metric not correct")
+	}
+
+	if !bytes.Contains(body, []byte("lbk1_t1_k4{lbk1=\"lbv1\",type=\"max\"} 4.0")) {
+		t.Error("lbk1_t1_k4{lbk1=\"lbv1\",type=\"max\"} metric not correct")
+	}
+
+	if !bytes.Contains(body, []byte("lbk2_t1_k4{lbk2=\"lbv2\",type=\"min\"} 2.0")) {
+		t.Error("lbk2_t1_k4{lbk2=\"lbv2\",type=\"min\"} metric not correct")
 	}
 }
