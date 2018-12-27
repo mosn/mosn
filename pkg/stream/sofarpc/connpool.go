@@ -41,6 +41,7 @@ func init() {
 type connPool struct {
 	activeClient *activeClient
 	host         types.Host
+	start        time.Time
 
 	mux sync.Mutex
 }
@@ -49,13 +50,29 @@ type connPool struct {
 func NewConnPool(host types.Host) types.ConnectionPool {
 	p := &connPool{
 		host: host,
+		start: time.Now(),
 	}
 	go p.init()
 	return p
 }
 
 func (p *connPool) init() {
-	p.activeClient = newActiveClient(context.Background(), p)
+	var active *activeClient
+	// todo: leak goroutine
+	for active == nil {
+		active = newActiveClient(context.Background(), p)
+		if active != nil {
+			p.mux.Lock()
+			p.activeClient = active
+			p.mux.Unlock()
+			return
+		}
+		time.Sleep(3*time.Second)
+	}
+}
+
+func (p *connPool) StartTime() time.Time {
+    return p.start
 }
 
 func (p *connPool) Active() bool {

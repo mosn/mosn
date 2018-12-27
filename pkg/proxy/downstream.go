@@ -411,7 +411,7 @@ func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.H
 		handle: func() {
 			s.ReceiveTrailers(trailers)
 		},
-	},true)
+	}, true)
 }
 
 func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
@@ -545,7 +545,15 @@ func (s *downStream) getActiveConnectionPool(clusterName string) types.Connectio
 		}
 	}
 
-	// todo: first request, should to wait
+	// first request, wait for 1s
+	if pool != nil && time.Now().Sub(pool.StartTime()) < 1 * time.Second {
+		for i := 0; i < 100; i++ {
+			time.Sleep(10 * time.Millisecond)
+			if pool.Active() {
+				return pool
+			}
+		}
+	}
 
 	s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 	s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
