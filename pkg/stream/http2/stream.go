@@ -411,11 +411,6 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers types.HeaderMa
 		status = 200
 	}
 
-	// delete mosn metrics status code
-	if _, ok := headers.Get(types.MetricsHeaderResponseStatus); ok {
-		headers.Del(types.MetricsHeaderResponseStatus)
-	}
-
 	switch header := headers.(type) {
 	case *mhttp2.RspHeader:
 		rsp = header.Rsp
@@ -623,8 +618,6 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 
 		code := strconv.Itoa(rsp.StatusCode)
 		header.Set(types.HeaderStatus, code)
-		// add status code for metrics
-		header.Set(types.MetricsHeaderResponseStatus, code)
 
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 

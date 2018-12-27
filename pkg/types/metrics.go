@@ -56,8 +56,3 @@ type MetricsSink interface {
 	// Flush flush given metrics
 	Flush(metrics []Metrics)
 }
-
-// Temp Header Keys used in metrics
-const (
-	MetricsHeaderResponseStatus = "x-mosn-metrics-status"
-)

@@ -205,9 +205,6 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 		stream = conn.onNewStreamDetect(ctx, cmd, conn.codecEngine)
 	case sofarpc.RESPONSE:
 		stream = conn.onStreamRecv(ctx, cmd)
-		// add status code for metrics
-		code := strconv.Itoa(int(cmd.(rpc.RespStatus).RespStatus()))
-		cmd.Set(types.MetricsHeaderResponseStatus, code)
 	}
 
 	// header, data notify
@@ -404,11 +401,6 @@ func (s *stream) endStream() {
 	if s.sendCmd != nil {
 		// replace requestID
 		s.sendCmd.SetRequestID(s.id)
-
-		// delete addtional mosn status before encode
-		if _, ok := s.sendCmd.Get(types.MetricsHeaderResponseStatus); ok {
-			s.sendCmd.Del(types.MetricsHeaderResponseStatus)
-		}
 
 		// TODO: replaced with EncodeTo, and pre-alloc send buf
 		buf, err := s.sc.codecEngine.Encode(s.ctx, s.sendCmd)

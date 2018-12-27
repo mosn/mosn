@@ -50,8 +50,6 @@ type upstreamRequest struct {
 
 	// time at send upstream request
 	startTime time.Time
-	// received response status
-	statusCode int
 	// http standardized status code
 	httpStatusCode int
 
@@ -110,18 +108,13 @@ func (r *upstreamRequest) endStream() {
 // types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) {
-	// types.MetricsHeaderResponseStatus is setted in stream level
-	if status, ok := headers.Get(types.MetricsHeaderResponseStatus); ok {
+	// we save a response status code into request info if it is in headers
+	if status, ok := headers.Get(types.HeaderStatus); ok {
 		if code, err := strconv.Atoi(status); err == nil {
-			// in protocol convert scene, response code is the upstream status code
-			// for example, sofarpc(downstream)-http(upstream), will receive a status code 200
 			r.downStream.requestInfo.SetResponseCode(uint32(code))
-			// we save a statusCode, not use requestInfo.ResponseCode directly
-			// because requestInfo.ResponseCode may be changed by another upstream request when we do a retry
-			r.statusCode = code
-			r.httpStatusCode, _ = protocol.MappingHeaderStatusCode(r.protocol, headers)
 		}
 	}
+	r.httpStatusCode, _ = protocol.MappingHeaderStatusCode(r.protocol, headers)
 
 	r.downStream.requestInfo.SetResponseReceivedDuration(time.Now())
 
