@@ -23,6 +23,8 @@ func TestIdGenerator_GenerateTraceId(t *testing.T) {
 	traceId := IdGen().GenerateTraceId()
 	if traceId == "" {
 		t.Error("Generate traceId is empty")
+	} else {
+		t.Log(traceId)
 	}
 }
 
