@@ -92,7 +92,7 @@ func TestPermissionDestinationIp(t *testing.T) {
 		return
 	}
 
-	cb := &mockStreamReceiverFilterCallbacks{
+	cb := &mockStreamReceiverFilterHandler{
 		conn: &mockConn{
 			localAddr: &mockAddr{
 				IP:   "1.2.3.4",
@@ -128,7 +128,7 @@ func TestPermissionDestinationPort(t *testing.T) {
 		return
 	}
 
-	cb := &mockStreamReceiverFilterCallbacks{
+	cb := &mockStreamReceiverFilterHandler{
 		conn: &mockConn{
 			localAddr: &mockAddr{
 				IP:   "1.2.3.4",

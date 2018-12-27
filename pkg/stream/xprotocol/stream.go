@@ -78,14 +78,14 @@ func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
 // types.ClientStreamConnection
 // types.ServerStreamConnection
 type streamConnection struct {
-	context         context.Context
-	protocol        types.Protocol
-	connection      types.Connection
-	activeStream    streamMap
-	clientCallbacks types.StreamConnectionEventListener
-	serverCallbacks types.ServerStreamConnectionEventListener
-	codec           xprotocol.Multiplexing
-	logger          log.Logger
+	context                             context.Context
+	protocol                            types.Protocol
+	connection                          types.Connection
+	activeStream                        streamMap
+	codec                               xprotocol.Multiplexing
+	logger                              log.Logger
+	streamConnectionEventListener       types.StreamConnectionEventListener
+	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 }
 
 func newStreamConnection(context context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -95,13 +95,13 @@ func newStreamConnection(context context.Context, connection types.Connection, c
 	codec := xprotocol.CreateSubProtocolCodec(context, subProtocolName)
 	log.DefaultLogger.Tracef("xprotocol new stream connection, codec type = %v", subProtocolName)
 	return &streamConnection{
-		context:         context,
-		connection:      connection,
-		activeStream:    newStreamMap(context),
-		clientCallbacks: clientCallbacks,
-		serverCallbacks: serverCallbacks,
-		logger:          log.ByContext(context),
-		codec:           codec,
+		context:                             context,
+		connection:                          connection,
+		activeStream:                        newStreamMap(context),
+		streamConnectionEventListener:       clientCallbacks,
+		serverStreamConnectionEventListener: serverCallbacks,
+		logger:                              log.ByContext(context),
+		codec:                               codec,
 	}
 }
 
@@ -134,7 +134,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 
 		// get stream id
 		streamID := conn.codec.GetStreamID(request)
-		if conn.serverCallbacks != nil {
+		if conn.serverStreamConnectionEventListener != nil {
 			log.DefaultLogger.Tracef("Xprotocol get streamId %v", streamID)
 
 			// request route
@@ -172,20 +172,33 @@ func (conn *streamConnection) Protocol() types.Protocol {
 }
 
 func (conn *streamConnection) GoAway() {
-	// todo
+	// unsupported
+}
+
+func (conn *streamConnection) ActiveStreamsNum() int {
+	return conn.activeStream.Len()
+}
+
+func (conn *streamConnection) Reset(reason types.StreamResetReason) {
+	conn.activeStream.mux.Lock()
+	defer conn.activeStream.mux.Unlock()
+
+	for _, s := range conn.activeStream.smap {
+		s.ResetStream(reason)
+	}
 }
 
 // NewStream
-func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder types.StreamReceiver) types.StreamSender {
+func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener) types.StreamSender {
 	nStreamID := atomic.AddUint64(&streamIDXprotocolCount, 1)
 	streamID := strconv.FormatUint(nStreamID, 10)
 
 	stream := stream{
-		context:    context.WithValue(ctx, types.ContextKeyStreamID, streamID),
-		streamID:   streamID,
-		direction:  ClientStream,
-		connection: conn,
-		decoder:    responseDecoder,
+		context:        context.WithValue(ctx, types.ContextKeyStreamID, streamID),
+		streamID:       streamID,
+		direction:      ClientStream,
+		connection:     conn,
+		streamReceiver: responseDecoder,
 	}
 	conn.activeStream.Set(streamID, stream)
 
@@ -195,15 +208,15 @@ func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder typ
 // OnReceiveHeaders process header
 func (conn *streamConnection) OnReceiveHeaders(context context.Context, streamID string, headers types.HeaderMap) types.FilterStatus {
 	log.DefaultLogger.Tracef("xprotocol stream on decode header")
-	if conn.serverCallbacks != nil {
+	if conn.serverStreamConnectionEventListener != nil {
 		log.DefaultLogger.Tracef("xprotocol stream on new stream detected invoked")
 		conn.onNewStreamDetected(streamID, headers)
 	}
 	if stream, ok := conn.activeStream.Get(streamID); ok {
-		log.DefaultLogger.Tracef("before stream decoder invoke on decode header")
-		stream.decoder.OnReceiveHeaders(context, headers, false)
+		log.DefaultLogger.Tracef("before stream streamReceiver invoke on decode header")
+		stream.streamReceiver.OnReceiveHeaders(context, headers, false)
 	}
-	log.DefaultLogger.Tracef("after stream decoder invoke on decode header")
+	log.DefaultLogger.Tracef("after stream streamReceiver invoke on decode header")
 	return types.Continue
 }
 
@@ -211,7 +224,7 @@ func (conn *streamConnection) OnReceiveHeaders(context context.Context, streamID
 func (conn *streamConnection) OnReceiveData(context context.Context, streamID string, data types.IoBuffer) types.FilterStatus {
 	if stream, ok := conn.activeStream.Get(streamID); ok {
 		log.DefaultLogger.Tracef("xprotocol stream on decode data")
-		stream.decoder.OnReceiveData(context, data, true)
+		stream.streamReceiver.OnReceiveData(context, data, true)
 
 		if stream.direction == ClientStream {
 			// for client stream, remove stream on response read
@@ -232,24 +245,24 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers types
 		connection: conn,
 	}
 
-	stream.decoder = conn.serverCallbacks.NewStreamDetect(conn.context, &stream, nil)
+	stream.streamReceiver = conn.serverStreamConnectionEventListener.NewStreamDetect(conn.context, &stream, nil)
 	conn.activeStream.Set(streamID, stream)
 }
 
 // types.Stream
 // types.StreamEncoder
 type stream struct {
-	context context.Context
+	str.BaseStream
 
-	streamID         string
-	direction        StreamDirection // 0: out, 1: in
-	readDisableCount int
-	connection       *streamConnection
-	decoder          types.StreamReceiver
-	streamCbs        []types.StreamEventListener
-	encodedHeaders   types.IoBuffer
-	encodedData      types.IoBuffer
-	reqID            string
+	reqID               string
+	streamID            string
+	direction           StreamDirection // 0: out, 1: in
+	readDisableCount    int
+	context 			context.Context
+	connection          *streamConnection
+	streamReceiver      types.StreamReceiveListener
+	encodedHeaders      types.IoBuffer
+	encodedData         types.IoBuffer
 }
 
 // AddEventListener add stream event callback
@@ -257,33 +270,6 @@ type stream struct {
 func (s *stream) ID() uint64 {
 	id, _ := strconv.ParseUint(s.streamID, 10, 64)
 	return id
-}
-
-func (s *stream) AddEventListener(cb types.StreamEventListener) {
-	s.streamCbs = append(s.streamCbs, cb)
-}
-
-// RemoveEventListener remove stream event callback
-func (s *stream) RemoveEventListener(cb types.StreamEventListener) {
-	cbIdx := -1
-
-	for i, streamCb := range s.streamCbs {
-		if streamCb == cb {
-			cbIdx = i
-			break
-		}
-	}
-
-	if cbIdx > -1 {
-		s.streamCbs = append(s.streamCbs[:cbIdx], s.streamCbs[cbIdx+1:]...)
-	}
-}
-
-// ResetStream reset stream
-func (s *stream) ResetStream(reason types.StreamResetReason) {
-	for _, cb := range s.streamCbs {
-		cb.OnResetStream(reason)
-	}
 }
 
 // ReadDisable disable the read loop goroutine on connection
@@ -331,6 +317,12 @@ func (s *stream) AppendTrailers(context context.Context, trailers types.HeaderMa
 
 //TODO: x-subprotocol stream has encodeHeaders?
 func (s *stream) endStream() {
+	defer func() {
+		if s.direction == ServerStream {
+			s.DestroyStream()
+		}
+	}()
+
 	log.DefaultLogger.Tracef("xprotocol stream end stream invoked , request id = %s, direction = %d", s.streamID, s.direction)
 	if stream, ok := s.connection.activeStream.Get(s.streamID); ok {
 		log.DefaultLogger.Tracef("xprotocol stream end stream write encodedata = %v", s.encodedData)
@@ -352,12 +344,12 @@ func (s *stream) GetStream() types.Stream {
 }
 
 type streamMap struct {
-	smap map[string]interface{}
+	smap map[string]stream
 	mux  sync.RWMutex
 }
 
 func newStreamMap(context context.Context) streamMap {
-	smap := make(map[string]interface{}, 32)
+	smap := make(map[string]stream, 32)
 
 	return streamMap{
 		smap: smap,
@@ -382,7 +374,7 @@ func (m *streamMap) Get(streamID string) (stream, bool) {
 	defer m.mux.RUnlock()
 
 	if s, ok := m.smap[streamID]; ok {
-		return s.(stream), ok
+		return s, ok
 	}
 
 	return stream{}, false
@@ -402,4 +394,11 @@ func (m *streamMap) Set(streamID string, s stream) {
 	defer m.mux.Unlock()
 
 	m.smap[streamID] = s
+}
+
+func (m *streamMap) Len() int {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	return len(m.smap)
 }

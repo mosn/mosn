@@ -128,6 +128,8 @@ func TestDirectResponse(t *testing.T) {
 				},
 				clusterManager: &mockClusterManager{},
 				readCallbacks:  &mockReadFilterCallbacks{},
+				stats:          globalStats,
+				listenerStats:  newListenerStats("test"),
 			},
 			logger:         log.DefaultLogger,
 			responseSender: tc.client,

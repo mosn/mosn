@@ -99,7 +99,7 @@ func (s *streamReceiver) OnReceiveHeaders(context context.Context, headers types
 type RPCClient struct {
 	Addr     string
 	conn     types.ClientConnection
-	codec    stream.CodecClient
+	client   stream.Client
 	streamID uint64
 }
 
@@ -128,10 +128,10 @@ func (c *RPCClient) Send() <-chan error {
 				ch <- err
 				return
 			}
-			c.codec = stream.NewCodecClient(context.Background(), protocol.SofaRPC, c.conn, nil)
+			c.client = stream.NewStreamClient(context.Background(), protocol.SofaRPC, c.conn, nil)
 		}
 		id := atomic.AddUint64(&c.streamID, 1)
-		encoder := c.codec.NewStream(context.Background(), &streamReceiver{ch})
+		encoder := c.client.NewStream(context.Background(), &streamReceiver{ch})
 		headers := util.BuildBoltV1Request(id)
 		encoder.AppendHeaders(context.Background(), headers, true)
 	}(ch)

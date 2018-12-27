@@ -55,7 +55,7 @@ func NewRoleBasedAccessControlEngine(rbacConfig *v2alpha.RBAC) (*RoleBasedAccess
 }
 
 // echo request will be handled in `Allowed` function
-func (engine *RoleBasedAccessControlEngine) Allowed(cb types.StreamReceiverFilterCallbacks, headers types.HeaderMap) (allowed bool, matchPolicyName string) {
+func (engine *RoleBasedAccessControlEngine) Allowed(cb types.StreamReceiverFilterHandler, headers types.HeaderMap) (allowed bool, matchPolicyName string) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.DefaultLogger.Errorf("recover from rbac engine, error: %v", err)

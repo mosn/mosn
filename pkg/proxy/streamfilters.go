@@ -18,8 +18,6 @@
 package proxy
 
 import (
-	"strconv"
-
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -124,7 +122,7 @@ func (s *downStream) runReceiveHeadersFilters(filter *activeStreamReceiverFilter
 		f = s.receiverFilters[index]
 
 		s.filterStage |= DecodeHeaders
-		status := f.filter.OnDecodeHeaders(headers, endStream)
+		status := f.filter.OnReceiveHeaders(headers, endStream)
 		s.filterStage &= ^DecodeHeaders
 		if f.handleHeaderStatus(status) {
 			// TODO: If it is the last filter, continue with
@@ -154,7 +152,7 @@ func (s *downStream) runReceiveDataFilters(filter *activeStreamReceiverFilter, d
 		f = s.receiverFilters[index]
 
 		s.filterStage |= DecodeData
-		status := f.filter.OnDecodeData(data, endStream)
+		status := f.filter.OnReceiveData(data, endStream)
 		s.filterStage &= ^DecodeData
 		if f.handleDataStatus(status, data) {
 			// TODO: If it is the last filter, continue with
@@ -183,7 +181,7 @@ func (s *downStream) runReceiveTrailersFilters(filter *activeStreamReceiverFilte
 		f = s.receiverFilters[index]
 
 		s.filterStage |= DecodeTrailers
-		status := f.filter.OnDecodeTrailers(trailers)
+		status := f.filter.OnReceiveTrailers(trailers)
 		s.filterStage &= ^DecodeTrailers
 		if f.handleTrailerStatus(status) {
 			return true
@@ -219,23 +217,15 @@ func (f *activeStreamFilter) Connection() types.Connection {
 	return f.activeStream.proxy.readCallbacks.Connection()
 }
 
-func (f *activeStreamFilter) ResetStream() {
-	f.activeStream.resetStream()
-}
-
 func (f *activeStreamFilter) Route() types.Route {
 	return f.activeStream.route
-}
-
-func (f *activeStreamFilter) StreamID() string {
-	return strconv.FormatUint(uint64(f.activeStream.ID), 10)
 }
 
 func (f *activeStreamFilter) RequestInfo() types.RequestInfo {
 	return f.activeStream.requestInfo
 }
 
-// types.StreamReceiverFilterCallbacks
+// types.StreamReceiverFilterHandler
 type activeStreamReceiverFilter struct {
 	activeStreamFilter
 
@@ -251,7 +241,7 @@ func newActiveStreamReceiverFilter(idx int, activeStream *downStream,
 		},
 		filter: filter,
 	}
-	filter.SetDecoderFilterCallbacks(f)
+	filter.SetReceiveFilterHandler(f)
 
 	return f
 }
@@ -310,7 +300,7 @@ func (f *activeStreamReceiverFilter) handleTrailerStatus(status types.StreamTrai
 	// status == types.StreamDataFilterContinue and f.stopped is false
 	return false
 }
-func (f *activeStreamReceiverFilter) ContinueDecoding() {
+func (f *activeStreamReceiverFilter) ContinueReceiving() {
 	f.doContinue()
 }
 
@@ -354,14 +344,6 @@ func (f *activeStreamReceiverFilter) handleBufferData(buf types.IoBuffer) {
 	}
 }
 
-func (f *activeStreamReceiverFilter) DecodingBuffer() types.IoBuffer {
-	return f.activeStream.downstreamReqDataBuf
-}
-
-func (f *activeStreamReceiverFilter) AddDecodedData(buf types.IoBuffer, streamingFilter bool) {
-	f.activeStream.addDecodedData(f, buf, streamingFilter)
-}
-
 func (f *activeStreamReceiverFilter) AppendHeaders(headers types.HeaderMap, endStream bool) {
 	f.activeStream.downstreamRespHeaders = headers
 	f.activeStream.doAppendHeaders(nil, headers, endStream)
@@ -376,19 +358,11 @@ func (f *activeStreamReceiverFilter) AppendTrailers(trailers types.HeaderMap) {
 	f.activeStream.doAppendTrailers(nil, trailers)
 }
 
-func (f *activeStreamReceiverFilter) SetDecoderBufferLimit(limit uint32) {
-	f.activeStream.setBufferLimit(limit)
-}
-
-func (f *activeStreamReceiverFilter) DecoderBufferLimit() uint32 {
-	return f.activeStream.bufferLimit
-}
-
 func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.HeaderMap) {
 	f.activeStream.sendHijackReply(code, headers)
 }
 
-// types.StreamSenderFilterCallbacks
+// types.StreamSenderFilterHandler
 type activeStreamSenderFilter struct {
 	activeStreamFilter
 
@@ -459,12 +433,12 @@ func newActiveStreamSenderFilter(idx int, activeStream *downStream,
 		filter: filter,
 	}
 
-	filter.SetEncoderFilterCallbacks(f)
+	filter.SetSenderFilterHandler(f)
 
 	return f
 }
 
-func (f *activeStreamSenderFilter) ContinueEncoding() {
+func (f *activeStreamSenderFilter) ContinueSending() {
 	f.doContinue()
 }
 
@@ -501,20 +475,4 @@ func (f *activeStreamSenderFilter) handleBufferData(buf types.IoBuffer) {
 
 		f.activeStream.downstreamRespDataBuf.ReadFrom(buf)
 	}
-}
-
-func (f *activeStreamSenderFilter) EncodingBuffer() types.IoBuffer {
-	return f.activeStream.downstreamRespDataBuf
-}
-
-func (f *activeStreamSenderFilter) AddEncodedData(buf types.IoBuffer, streamingFilter bool) {
-	f.activeStream.addEncodedData(f, buf, streamingFilter)
-}
-
-func (f *activeStreamSenderFilter) SetEncoderBufferLimit(limit uint32) {
-	f.activeStream.setBufferLimit(limit)
-}
-
-func (f *activeStreamSenderFilter) EncoderBufferLimit() uint32 {
-	return f.activeStream.bufferLimit
 }

@@ -34,15 +34,15 @@ func TestRunReiverFilters(t *testing.T) {
 		{
 			filters: []*mockStreamReceiverFilter{
 				// this filter returns all continue, like mixer filter or fault inject filter not matched condition
-				&mockStreamReceiverFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterContinue,
 					dataStatus:     types.StreamDataFilterContinue,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
 				// this filter like fault inject filter matched condition
-				// in fault inject, it will call ContinueDecoding/SendHijackReply
+				// in fault inject, it will call ContinueReceiving/SendHijackReply
 				// this test will ignore it
-				&mockStreamReceiverFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterStopAndBuffer,
 					trailersStatus: types.StreamTrailersFilterStop,
@@ -53,20 +53,20 @@ func TestRunReiverFilters(t *testing.T) {
 		// but the data/trailer filter wants to be continue
 		{
 			filters: []*mockStreamReceiverFilter{
-				&mockStreamReceiverFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterContinue,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
-				&mockStreamReceiverFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterContinue,
 					dataStatus:     types.StreamDataFilterContinue,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
 				// to prevent proxy. if a real stream filter returns all stop,
-				// it should call ContinueDecoding or SendHijackReply, or the stream will be hung up
+				// it should call ContinueReceiving or SendHijackReply, or the stream will be hung up
 				// this test will ignore it
-				&mockStreamReceiverFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterStop,
 					trailersStatus: types.StreamTrailersFilterStop,
@@ -75,20 +75,20 @@ func TestRunReiverFilters(t *testing.T) {
 		},
 		{
 			filters: []*mockStreamReceiverFilter{
-				&mockStreamReceiverFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterStop,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
-				&mockStreamReceiverFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterContinue,
 					dataStatus:     types.StreamDataFilterContinue,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
 				// to prevent proxy. if a real stream filter returns all stop,
-				// it should call ContinueDecoding or SendHijackReply, or the stream will be hung up
+				// it should call ContinueReceiving or SendHijackReply, or the stream will be hung up
 				// this test will ignore it
-				&mockStreamReceiverFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterStop,
 					trailersStatus: types.StreamTrailersFilterStop,
@@ -132,12 +132,12 @@ func TestRunSenderFilters(t *testing.T) {
 	}{
 		{
 			filters: []*mockStreamSenderFilter{
-				&mockStreamSenderFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterContinue,
 					dataStatus:     types.StreamDataFilterContinue,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
-				&mockStreamSenderFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterStopAndBuffer,
 					trailersStatus: types.StreamTrailersFilterStop,
@@ -146,17 +146,17 @@ func TestRunSenderFilters(t *testing.T) {
 		},
 		{
 			filters: []*mockStreamSenderFilter{
-				&mockStreamSenderFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterContinue,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
-				&mockStreamSenderFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterContinue,
 					dataStatus:     types.StreamDataFilterContinue,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
-				&mockStreamSenderFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterStop,
 					trailersStatus: types.StreamTrailersFilterStop,
@@ -165,17 +165,17 @@ func TestRunSenderFilters(t *testing.T) {
 		},
 		{
 			filters: []*mockStreamSenderFilter{
-				&mockStreamSenderFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterStop,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
-				&mockStreamSenderFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterContinue,
 					dataStatus:     types.StreamDataFilterContinue,
 					trailersStatus: types.StreamTrailersFilterContinue,
 				},
-				&mockStreamSenderFilter{
+				{
 					headersStatus:  types.StreamHeadersFilterStop,
 					dataStatus:     types.StreamDataFilterStop,
 					trailersStatus: types.StreamTrailersFilterStop,
@@ -212,7 +212,7 @@ func TestRunSenderFilters(t *testing.T) {
 
 // Mock stream filters
 type mockStreamReceiverFilter struct {
-	cb types.StreamReceiverFilterCallbacks
+	handler types.StreamReceiverFilterHandler
 	// api called count
 	onHeaders  int
 	onData     int
@@ -225,27 +225,27 @@ type mockStreamReceiverFilter struct {
 
 func (f *mockStreamReceiverFilter) OnDestroy() {}
 
-func (f *mockStreamReceiverFilter) OnDecodeHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *mockStreamReceiverFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	f.onHeaders++
 	return f.headersStatus
 }
 
-func (f *mockStreamReceiverFilter) OnDecodeData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *mockStreamReceiverFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	f.onData++
 	return f.dataStatus
 }
 
-func (f *mockStreamReceiverFilter) OnDecodeTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *mockStreamReceiverFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	f.onTrailers++
 	return f.trailersStatus
 }
 
-func (f *mockStreamReceiverFilter) SetDecoderFilterCallbacks(cb types.StreamReceiverFilterCallbacks) {
-	f.cb = cb
+func (f *mockStreamReceiverFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+	f.handler = handler
 }
 
 type mockStreamSenderFilter struct {
-	cb types.StreamSenderFilterCallbacks
+	handler types.StreamSenderFilterHandler
 	// api called count
 	onHeaders  int
 	onData     int
@@ -273,6 +273,6 @@ func (f *mockStreamSenderFilter) AppendTrailers(trailers types.HeaderMap) types.
 	return f.trailersStatus
 }
 
-func (f *mockStreamSenderFilter) SetEncoderFilterCallbacks(cb types.StreamSenderFilterCallbacks) {
-	f.cb = cb
+func (f *mockStreamSenderFilter) SetSenderFilterHandler(handler types.StreamSenderFilterHandler) {
+	f.handler = handler
 }
