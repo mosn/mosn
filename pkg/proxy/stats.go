@@ -18,42 +18,42 @@
 package proxy
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/stats"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
+	gometrics "github.com/rcrowley/go-metrics"
 )
 
 type Stats struct {
-	DownstreamConnectionTotal   metrics.Counter
-	DownstreamConnectionDestroy metrics.Counter
-	DownstreamConnectionActive  metrics.Counter
-	DownstreamBytesReadTotal    metrics.Counter
-	DownstreamBytesWriteTotal   metrics.Counter
-	DownstreamRequestTotal      metrics.Counter
-	DownstreamRequestActive     metrics.Counter
-	DownstreamRequestReset      metrics.Counter
-	DownstreamRequestTime       metrics.Histogram
+	DownstreamConnectionTotal   gometrics.Counter
+	DownstreamConnectionDestroy gometrics.Counter
+	DownstreamConnectionActive  gometrics.Counter
+	DownstreamBytesReadTotal    gometrics.Counter
+	DownstreamBytesWriteTotal   gometrics.Counter
+	DownstreamRequestTotal      gometrics.Counter
+	DownstreamRequestActive     gometrics.Counter
+	DownstreamRequestReset      gometrics.Counter
+	DownstreamRequestTime       gometrics.Histogram
 }
 
 func newListenerStats(listenerName string) *Stats {
-	s := stats.NewListenerStats(listenerName)
+	s := metrics.NewListenerStats(listenerName)
 	return newStats(s)
 }
 func newProxyStats(proxyName string) *Stats {
-	s := stats.NewProxyStats(proxyName)
+	s := metrics.NewProxyStats(proxyName)
 	return newStats(s)
 }
 
 func newStats(s types.Metrics) *Stats {
 	return &Stats{
-		DownstreamConnectionTotal:   s.Counter(stats.DownstreamConnectionTotal),
-		DownstreamConnectionDestroy: s.Counter(stats.DownstreamConnectionDestroy),
-		DownstreamConnectionActive:  s.Counter(stats.DownstreamConnectionActive),
-		DownstreamBytesReadTotal:    s.Counter(stats.DownstreamBytesReadTotal),
-		DownstreamBytesWriteTotal:   s.Counter(stats.DownstreamBytesWriteTotal),
-		DownstreamRequestTotal:      s.Counter(stats.DownstreamRequestTotal),
-		DownstreamRequestActive:     s.Counter(stats.DownstreamRequestActive),
-		DownstreamRequestReset:      s.Counter(stats.DownstreamRequestReset),
-		DownstreamRequestTime:       s.Histogram(stats.DownstreamRequestTime),
+		DownstreamConnectionTotal:   s.Counter(metrics.DownstreamConnectionTotal),
+		DownstreamConnectionDestroy: s.Counter(metrics.DownstreamConnectionDestroy),
+		DownstreamConnectionActive:  s.Counter(metrics.DownstreamConnectionActive),
+		DownstreamBytesReadTotal:    s.Counter(metrics.DownstreamBytesReadTotal),
+		DownstreamBytesWriteTotal:   s.Counter(metrics.DownstreamBytesWriteTotal),
+		DownstreamRequestTotal:      s.Counter(metrics.DownstreamRequestTotal),
+		DownstreamRequestActive:     s.Counter(metrics.DownstreamRequestActive),
+		DownstreamRequestReset:      s.Counter(metrics.DownstreamRequestReset),
+		DownstreamRequestTime:       s.Histogram(metrics.DownstreamRequestTime),
 	}
 }
