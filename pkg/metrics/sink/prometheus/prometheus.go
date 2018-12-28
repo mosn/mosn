@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -30,6 +29,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/server"
 )
 
 func init() {
@@ -91,8 +91,16 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 
 	// export http for prometheus
 	go func() {
-		http.Handle(config.Endpoint, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
-		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
+		srvMux := http.NewServeMux()
+		srvMux.Handle(config.Endpoint, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
+
+		srv := &http.Server{
+			Addr: fmt.Sprintf(":%d", config.Port),
+			Handler: srvMux,
+		}
+
+		server.AddStoppable(srv)
+		srv.ListenAndServe()
 	}()
 
 	return &promSink{
