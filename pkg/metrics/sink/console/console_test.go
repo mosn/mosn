@@ -30,11 +30,32 @@ import (
 type testAction int
 
 const (
-	countInc testAction = iota
+	countInc        testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate
 )
+
+func TestMakeNamespace(t *testing.T) {
+	metrics.ResetAll()
+	testCases := []struct {
+		labels   map[string]string
+		expected string
+	}{
+		{map[string]string{"lbk1": "lbv1"}, "lbk1.lbv1"},
+		{map[string]string{"cluster": "test", "host": "fake"}, "cluster.test.host.fake"},
+		{map[string]string{"cluster": "test", "host": "fake", "subset": "canary"}, "cluster.test.host.fake.subset.canary"},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+		m, _ := metrics.NewMetrics("test", tc.labels)
+		actual := makeNamespace(m.SortedLabels())
+
+		if actual != tc.expected {
+			t.Errorf("console namespace not match, expected: %s, actual: %s", tc.expected, actual)
+		}
+	}
+}
 
 // test concurrently add statisic data
 // should get the right data from console

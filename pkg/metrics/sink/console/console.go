@@ -24,6 +24,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"strings"
 )
 
 // histogram output percents
@@ -89,8 +90,10 @@ func NewConsoleSink(writer io.Writer) types.MetricsSink {
 }
 
 func makeNamespace(keys, vals []string) (namespace string) {
+	pair := make([]string, 0, len(keys))
+
 	for i := 0; i < len(vals); i++ {
-		namespace += keys[i] + "." + vals[i]
+		pair = append(pair, keys[i]+"."+vals[i])
 	}
-	return
+	return strings.Join(pair, ".")
 }
