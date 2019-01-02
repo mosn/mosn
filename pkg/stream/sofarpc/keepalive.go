@@ -28,6 +28,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 // StreamReceiver to receive keep alive response
@@ -154,7 +155,7 @@ func (kp *sofaRPCKeepAlive) HandleSuccess(id uint64) {
 		defer kp.mutex.Unlock()
 		if timeout, ok := kp.requests[id]; ok {
 			delete(kp.requests, id)
-			timeout.timer.stop()
+			timeout.timer.Stop()
 			// reset the tiemout count
 			atomic.StoreUint32(&kp.timeoutCount, 0)
 			kp.runCallback(types.KeepAliveSuccess)
@@ -184,7 +185,7 @@ func (kp *sofaRPCKeepAlive) OnDecodeError(ctx context.Context, err error, header
 //
 type keepAliveTimeout struct {
 	ID        uint64
-	timer     *timer
+	timer     *utils.Timer
 	KeepAlive types.KeepAlive
 }
 
@@ -193,8 +194,8 @@ func startTimeout(id uint64, keep types.KeepAlive) *keepAliveTimeout {
 		ID:        id,
 		KeepAlive: keep,
 	}
-	t.timer = newTimer(t.onTimeout)
-	t.timer.start(keep.GetTimeout())
+	t.timer = utils.NewTimer(t.onTimeout)
+	t.timer.Start(keep.GetTimeout())
 	return t
 }
 
