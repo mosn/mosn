@@ -22,6 +22,10 @@ import (
 	"net"
 	"strings"
 
+	"os"
+	"runtime"
+	"strconv"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -332,6 +336,12 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,
 		UseNetpollMode:  c.UseNetpollMode,
+	}
+
+	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+		sc.Processor = n
+	} else if sc.Processor == 0 {
+		sc.Processor = runtime.NumCPU()
 	}
 
 	// trigger processor callbacks
