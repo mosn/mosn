@@ -108,17 +108,9 @@ type RouteRule interface {
 	// Policy returns the route's route policy
 	Policy() Policy
 
-	//MetadataMatcher() MetadataMatcher
-
-	// Metadata returns the route's route meta data
-	Metadata() RouteMetaData
-
 	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
 	// as we may use weighted cluster's metadata, so need to input cluster's name
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
-
-	// UpdateMetaDataMatchCriteria used to update RouteRuleImplBase's metadata match criteria
-	UpdateMetaDataMatchCriteria(metadata map[string]string) error
 
 	// PerFilterConfig returns per filter config from xds
 	PerFilterConfig() map[string]interface{}
@@ -264,20 +256,6 @@ type VirtualHost interface {
 	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
 	// GetAllRoutesFromEntries returns all Route matched the condition
 	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
-}
-
-type MetadataMatcher interface {
-	Metadata() RouteMetaData
-
-	MetadataMatchEntrySet() MetadataMatchEntrySet
-}
-
-type MetadataMatchEntrySet []MetadataMatchEntry
-
-type MetadataMatchEntry interface {
-	Key() string
-
-	Value() string
 }
 
 type RedirectRule interface {
