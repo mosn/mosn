@@ -23,6 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 type subSetLoadBalancer struct {
@@ -603,7 +604,7 @@ func GenerateDftSubsetKeys(dftkeys types.SortedMap) types.SubsetMetadata {
 	for _, pair := range dftkeys {
 		sm = append(sm, types.Pair{
 			T1: pair.Key,
-			T2: types.GenerateHashedValue(pair.Value),
+			T2: utils.GenerateHashedValue(pair.Value),
 		})
 	}
 

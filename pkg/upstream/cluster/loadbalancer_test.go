@@ -486,7 +486,7 @@ func Benchmark_RouteAndLB(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		route := mockedRouter.Route(mockedHeader, 1)
+		route := mockedRouter.MatchRoute(mockedHeader, 1)
 		if route == nil {
 			b.Errorf("%s match failed\n", "www.alibaba.com")
 			return

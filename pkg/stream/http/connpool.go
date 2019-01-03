@@ -230,7 +230,7 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 	ac.client = codecClient
 	ac.host = data
 
-	if err := ac.host.Connection.Connect(true); err != nil {
+	if err := ac.client.Connect(true); err != nil {
 		return nil, types.ConnectionFailure
 	}
 

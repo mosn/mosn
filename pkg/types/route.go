@@ -20,7 +20,6 @@ package types
 import (
 	"container/list"
 	"context"
-	"crypto/md5"
 	"regexp"
 	"time"
 
@@ -42,10 +41,10 @@ const (
 
 // Routers defines and manages all router
 type Routers interface {
-	// Route return first route with headers
-	Route(headers HeaderMap, randomValue uint64) Route
-	// GetAllRoutes returns all routes with headers
-	GetAllRoutes(headers HeaderMap, randomValue uint64) []Route
+	// MatchRoute return first route with headers
+	MatchRoute(headers HeaderMap, randomValue uint64) Route
+	// MatchAllRoutes returns all routes with headers
+	MatchAllRoutes(headers HeaderMap, randomValue uint64) []Route
 }
 
 // RouterManager is a manager for all routers' config
@@ -399,16 +398,6 @@ type PathMatchCriterion interface {
 type Loader struct{}
 
 type RouteMetaData map[string]HashedValue
-
-// GenerateHashedValue generates generates hashed valued with md5
-func GenerateHashedValue(input string) HashedValue {
-	data := []byte(input)
-	h := md5.Sum(data)
-	_ = h
-	// return h
-	// todo use hashed value as md5
-	return HashedValue(input)
-}
 
 //EqualHashValue comapres two HashedValues are equaled or not
 func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {

@@ -384,7 +384,7 @@ func Test_routersManager_AppendRoutersInVirtualHost(t *testing.T) {
 		},
 	}
 	for i, tc := range testCases {
-		matched := rw.GetRouters().Route(tc.headers, 1)
+		matched := rw.GetRouters().MatchRoute(tc.headers, 1)
 		if matched == nil {
 			t.Errorf("%d router rule not added success", i)
 			continue

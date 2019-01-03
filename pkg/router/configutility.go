@@ -25,6 +25,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 var ConfigUtilityInst = &configUtility{}
@@ -124,8 +125,8 @@ func (ci *configImpl) Name() string {
 	return ci.name
 }
 
-func (ci *configImpl) Route(headers types.HeaderMap, randomValue uint64) types.Route {
-	return ci.routeMatcher.Route(headers, randomValue)
+func (ci *configImpl) MatchRoute(headers types.HeaderMap, randomValue uint64) types.Route {
+	return ci.routeMatcher.MatchRoute(headers, randomValue)
 }
 
 func (ci *configImpl) InternalOnlyHeaders() *list.List {
@@ -191,7 +192,7 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 	for k, v := range metadataMatches {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  k,
-			Value: types.GenerateHashedValue(v),
+			Value: utils.GenerateHashedValue(v),
 		}
 
 		if index, ok := existingMap[k]; ok {

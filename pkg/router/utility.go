@@ -23,6 +23,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 // GetClusterMosnLBMetaDataMap exports getClusterMosnLBMetaDataMap
@@ -35,7 +36,7 @@ func GetClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 func getClusterMosnLBMetaDataMap(metadata v2.Metadata) types.RouteMetaData {
 	metadataMap := make(map[string]types.HashedValue)
 	for key, value := range metadata {
-		metadataMap[key] = types.GenerateHashedValue(value)
+		metadataMap[key] = utils.GenerateHashedValue(value)
 	}
 
 	return metadataMap
