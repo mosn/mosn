@@ -57,17 +57,10 @@ type server struct {
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
-	procNum := runtime.NumCPU()
-
 	if config != nil {
 		//graceful timeout setting
 		if config.GracefulTimeout != 0 {
 			GracefulTimeout = config.GracefulTimeout
-		}
-
-		//processor num setting
-		if config.Processor > 0 {
-			procNum = config.Processor
 		}
 
 		network.UseNetpollMode = config.UseNetpollMode
@@ -76,7 +69,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		}
 	}
 
-	runtime.GOMAXPROCS(procNum)
+	runtime.GOMAXPROCS(config.Processor)
 
 	OnProcessShutDown(log.CloseAll)
 
