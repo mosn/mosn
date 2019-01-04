@@ -23,8 +23,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// GenerateHashedValue generates generates hashed valued with md5
-func GenerateHashedValue(input string) types.HashedValue {
+// GenerateMD5Value generates generates hashed valued with md5
+func GenerateMD5Value(input string) types.HashedValue {
 	data := []byte(input)
 	h := md5.Sum(data)
 	_ = h

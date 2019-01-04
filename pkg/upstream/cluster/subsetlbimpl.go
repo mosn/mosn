@@ -604,7 +604,7 @@ func GenerateDftSubsetKeys(dftkeys types.SortedMap) types.SubsetMetadata {
 	for _, pair := range dftkeys {
 		sm = append(sm, types.Pair{
 			T1: pair.Key,
-			T2: utils.GenerateHashedValue(pair.Value),
+			T2: utils.GenerateMD5Value(pair.Value),
 		})
 	}
 

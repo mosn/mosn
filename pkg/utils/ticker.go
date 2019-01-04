@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+// Ticker is a thread-safe reusable ticker
 type Ticker struct {
 	innerTicker *time.Ticker
 	interval    time.Duration
@@ -38,6 +39,7 @@ func NewTicker(callback func()) *Ticker {
 	}
 }
 
+// Start starts a ticker running if it is not started
 func (t *Ticker) Start(interval time.Duration) {
 	if !atomic.CompareAndSwapInt32(&t.started, 0, 1) {
 		return
@@ -49,7 +51,6 @@ func (t *Ticker) Start(interval time.Duration) {
 
 	go func() {
 		defer func() {
-			// close chan when health check stopped
 			t.Close()
 			atomic.StoreInt32(&t.started, 0)
 			atomic.StoreInt32(&t.stopped, 0)
@@ -68,6 +69,7 @@ func (t *Ticker) Start(interval time.Duration) {
 
 }
 
+// Stop stops the ticker.
 func (t *Ticker) Stop() {
 	if !atomic.CompareAndSwapInt32(&t.stopped, 0, 1) {
 		return
@@ -76,6 +78,7 @@ func (t *Ticker) Stop() {
 	t.stopChan <- true
 }
 
+// Close closes the ticker.
 func (t *Ticker) Close() {
 	close(t.stopChan)
 }

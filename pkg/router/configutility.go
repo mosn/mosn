@@ -192,7 +192,7 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 	for k, v := range metadataMatches {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  k,
-			Value: utils.GenerateHashedValue(v),
+			Value: utils.GenerateMD5Value(v),
 		}
 
 		if index, ok := existingMap[k]; ok {

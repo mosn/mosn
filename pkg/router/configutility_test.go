@@ -54,15 +54,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: utils.GenerateHashedValue("test"),
+						Value: utils.GenerateMD5Value("test"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: utils.GenerateHashedValue("green"),
+						Value: utils.GenerateMD5Value("green"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: utils.GenerateHashedValue("v1"),
+						Value: utils.GenerateMD5Value("v1"),
 					},
 				},
 			},
@@ -78,15 +78,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: utils.GenerateHashedValue("test"),
+						Value: utils.GenerateMD5Value("test"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: utils.GenerateHashedValue("green"),
+						Value: utils.GenerateMD5Value("green"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: utils.GenerateHashedValue("v1"),
+						Value: utils.GenerateMD5Value("v1"),
 					},
 				},
 			},
@@ -102,7 +102,7 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: utils.GenerateHashedValue("v1"),
+						Value: utils.GenerateMD5Value("v1"),
 					},
 				},
 			},
@@ -201,7 +201,7 @@ func TestMetadataMatchCriteriaImplSort(t *testing.T) {
 	for i := range keys {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  keys[i],
-			Value: utils.GenerateHashedValue(values[i]),
+			Value: utils.GenerateMD5Value(values[i]),
 		}
 		mciArray = append(mciArray, mmci)
 	}

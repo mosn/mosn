@@ -221,7 +221,7 @@ func GenerateHostMetadata(metadata v2.Metadata) types.RouteMetaData {
 	rm := make(map[string]types.HashedValue, 1)
 
 	for k, v := range metadata {
-		rm[k] = utils.GenerateHashedValue(v)
+		rm[k] = utils.GenerateMD5Value(v)
 
 	}
 

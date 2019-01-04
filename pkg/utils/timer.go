@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+// thread-safe reusable timer
 type Timer struct {
 	callback   func()
 	interval   time.Duration
@@ -38,6 +39,7 @@ func NewTimer(callback func()) *Timer {
 	}
 }
 
+// Start starts a timer if it is not started
 func (t *Timer) Start(interval time.Duration) {
 	if !atomic.CompareAndSwapInt32(&t.started, 0, 1) {
 		return
@@ -66,6 +68,7 @@ func (t *Timer) Start(interval time.Duration) {
 
 }
 
+// Stop stops the timer.
 func (t *Timer) Stop() {
 	if !atomic.CompareAndSwapInt32(&t.stopped, 0, 1) {
 		return
@@ -74,6 +77,7 @@ func (t *Timer) Stop() {
 	t.stopChan <- true
 }
 
+// Close closes the timers.
 func (t *Timer) Close() {
 	close(t.stopChan)
 }
