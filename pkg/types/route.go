@@ -20,7 +20,6 @@ package types
 import (
 	"container/list"
 	"context"
-	"crypto/md5"
 	"regexp"
 	"time"
 
@@ -42,10 +41,10 @@ const (
 
 // Routers defines and manages all router
 type Routers interface {
-	// Route return first route with headers
-	Route(headers HeaderMap, randomValue uint64) Route
-	// GetAllRoutes returns all routes with headers
-	GetAllRoutes(headers HeaderMap, randomValue uint64) []Route
+	// MatchRoute return first route with headers
+	MatchRoute(headers HeaderMap, randomValue uint64) Route
+	// MatchAllRoutes returns all routes with headers
+	MatchAllRoutes(headers HeaderMap, randomValue uint64) []Route
 }
 
 // RouterManager is a manager for all routers' config
@@ -109,17 +108,9 @@ type RouteRule interface {
 	// Policy returns the route's route policy
 	Policy() Policy
 
-	//MetadataMatcher() MetadataMatcher
-
-	// Metadata returns the route's route meta data
-	Metadata() RouteMetaData
-
 	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
 	// as we may use weighted cluster's metadata, so need to input cluster's name
 	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
-
-	// UpdateMetaDataMatchCriteria used to update RouteRuleImplBase's metadata match criteria
-	UpdateMetaDataMatchCriteria(metadata map[string]string) error
 
 	// PerFilterConfig returns per filter config from xds
 	PerFilterConfig() map[string]interface{}
@@ -267,20 +258,6 @@ type VirtualHost interface {
 	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
 }
 
-type MetadataMatcher interface {
-	Metadata() RouteMetaData
-
-	MetadataMatchEntrySet() MetadataMatchEntrySet
-}
-
-type MetadataMatchEntrySet []MetadataMatchEntry
-
-type MetadataMatchEntry interface {
-	Key() string
-
-	Value() string
-}
-
 type RedirectRule interface {
 	NewPath(headers map[string]string) string
 
@@ -399,16 +376,6 @@ type PathMatchCriterion interface {
 type Loader struct{}
 
 type RouteMetaData map[string]HashedValue
-
-// GenerateHashedValue generates generates hashed valued with md5
-func GenerateHashedValue(input string) HashedValue {
-	data := []byte(input)
-	h := md5.Sum(data)
-	_ = h
-	// return h
-	// todo use hashed value as md5
-	return HashedValue(input)
-}
 
 //EqualHashValue comapres two HashedValues are equaled or not
 func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {

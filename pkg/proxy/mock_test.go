@@ -41,7 +41,7 @@ type mockRouters struct {
 	route types.Route
 }
 
-func (r *mockRouters) Route(types.HeaderMap, uint64) types.Route {
+func (r *mockRouters) MatchRoute(types.HeaderMap, uint64) types.Route {
 	if r.route != nil {
 		return r.route
 	}

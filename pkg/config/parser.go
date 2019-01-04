@@ -83,6 +83,8 @@ const (
 func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 	if cbs, ok := configParsedCBMaps[key]; ok {
 		cbs = append(cbs, cb)
+		// append maybe change the slice, should set it
+		configParsedCBMaps[key] = cbs
 	} else {
 		log.StartLogger.Infof("%s added to configParsedCBMaps", key)
 		cpc := []ParsedCallback{cb}

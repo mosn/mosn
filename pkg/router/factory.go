@@ -80,7 +80,7 @@ func (h *simpleHandler) Route() types.Route {
 
 func DefaultMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	var handlers []types.RouteHandler
-	if r := routers.Route(headers, 1); r != nil {
+	if r := routers.MatchRoute(headers, 1); r != nil {
 		handlers = append(handlers, &simpleHandler{route: r})
 	}
 	return NewRouteHandlerChain(context.Background(), clusterManager, handlers)

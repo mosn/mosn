@@ -180,6 +180,7 @@ type RBAC struct {
 // The first route that matches will be used.
 type Router struct {
 	RouterConfig
+	// Metadata is created from MetadataConfig, which is used to subset
 	Metadata Metadata `json:"-"`
 }
 
