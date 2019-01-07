@@ -126,10 +126,43 @@ func BenchmarkUpdateDynamicHostList_AddMultipleTimes(b *testing.B) {
 		hosts := pool.MakeHosts(112)
 		adds = append(adds, hosts)
 	}
+	var m []types.Host
 	for i := 0; i < 45; i++ {
 		newHosts := append(final, adds[i]...)
 		cur := make([]types.Host, len(final))
 		copy(cur, final)
-		_, final, _, _ = c.updateDynamicHostList(newHosts, cur)
+		_, final, _, m = c.updateDynamicHostList(newHosts, cur)
+		fmt.Println(len(final), len(m))
 	}
+}
+
+func TestUpdateDynamicHostList(t *testing.T) {
+	c := &dynamicClusterBase{}
+	pool := makePool(100)
+	saveHosts := []types.Host{}
+	// test Add
+	for i := 1; i < 5; i++ {
+		newHosts := append(saveHosts, pool.MakeHosts(10)...)
+		curHosts := make([]types.Host, len(saveHosts))
+		copy(curHosts, saveHosts)
+		changed, final, added, removed := c.updateDynamicHostList(newHosts, curHosts)
+		if !(changed && len(final) == i*10 && len(added) == 10 && len(removed) == 0) {
+			t.Error("update result unexpected", i, changed, len(final), len(added), len(removed))
+		}
+		saveHosts = final
+	}
+	// test Update (add and delete)
+	for i := 1; i < 5; i++ {
+		newHosts := []types.Host{}
+		newHosts = append(newHosts, saveHosts[1:]...)     // delete one
+		newHosts = append(newHosts, pool.MakeHosts(5)...) // add five
+		curHosts := make([]types.Host, len(saveHosts))
+		copy(curHosts, saveHosts)
+		changed, final, added, removed := c.updateDynamicHostList(newHosts, curHosts)
+		if !(changed && len(final) == 40+i*(4) && len(added) == 5 && len(removed) == 1) {
+			t.Error("update result unexpected", i, changed, len(final), len(added), len(removed))
+		}
+		saveHosts = final
+	}
+
 }
