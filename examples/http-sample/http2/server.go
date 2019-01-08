@@ -47,12 +47,15 @@ type HTTPHandler struct{}
 func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("[UPSTREAM]receive request %s\n", r.URL)
 
+	fmt.Println("Headers: ", r.Header)
+	fmt.Println("Trailer: ", r.Trailer)
 	// read body
 	buf := make([]byte, 1024)
 	r.Body.Read(buf)
 	fmt.Println("Receive Data: ", string(buf))
 
 	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Add("Trailer", "AtEnd3")
 
 	fmt.Fprintf(w, "Method: %s\n", r.Method)
 	fmt.Fprintf(w, "Protocol: %s\n", r.Proto)
@@ -66,4 +69,5 @@ func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "\nHeaders:\n")
 
 	r.Header.Write(w)
+	w.Header().Set("AtEnd3", "value 3") // These will appear as trailers.
 }
