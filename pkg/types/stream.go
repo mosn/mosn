@@ -311,6 +311,10 @@ type StreamReceiverFilterHandler interface {
 
 	// SendHijackReply is called when the filter will response directly
 	SendHijackReply(code int, headers HeaderMap)
+
+	//
+	GetRequestHeader() HeaderMap
+	SetRequestHeader(headers HeaderMap)
 }
 
 // StreamFilterChainFactory adds filter into callbacks

@@ -362,6 +362,13 @@ func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.Hea
 	f.activeStream.sendHijackReply(code, headers)
 }
 
+func (f *activeStreamReceiverFilter) GetRequestHeader() types.HeaderMap {
+	return f.activeStream.downstreamReqHeaders
+}
+func (f *activeStreamReceiverFilter) SetRequestHeader(headers types.HeaderMap) {
+	f.activeStream.downstreamReqHeaders = headers
+}
+
 // types.StreamSenderFilterHandler
 type activeStreamSenderFilter struct {
 	activeStreamFilter

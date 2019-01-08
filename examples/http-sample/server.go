@@ -6,8 +6,12 @@ import (
 )
 
 func ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("[UPSTREAM]receive request %s", r.URL)
-	fmt.Println()
+	fmt.Printf("[UPSTREAM]receive request %s\n", r.URL)
+
+	// read body
+	buf := make([]byte, 1024)
+	r.Body.Read(buf)
+	fmt.Println("Data ", string(buf))
 
 	w.Header().Set("Content-Type", "text/plain")
 
