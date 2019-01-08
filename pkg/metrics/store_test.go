@@ -100,3 +100,33 @@ func TestExclusion(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkNewMetrics_SameLabels(b *testing.B) {
+	ResetAll()
+	total := b.N
+	for i := 0; i < total; i++ {
+		// should contains create map, same as different labels
+		labels := map[string]string{
+			"lk": "lv",
+		}
+		NewMetrics("typ", labels)
+	}
+	if len(GetAll()) != 1 {
+		b.Error("same labels gets different metrics")
+	}
+}
+
+func BenchmarkNewMetrics_DifferentLabels(b *testing.B) {
+	ResetAll()
+	total := b.N
+	for i := 0; i < total; i++ {
+		labels := map[string]string{
+			"lk": fmt.Sprintf("lv%d", i),
+		}
+		NewMetrics("typ", labels)
+	}
+	registered := len(GetAll())
+	if registered != total {
+		b.Errorf("different labels gets same metrics, total %d, registered %d", total, registered)
+	}
+}
