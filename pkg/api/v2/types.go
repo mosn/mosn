@@ -434,3 +434,11 @@ type PublishContent struct {
 	ServiceName string `json:"service_name,omitempty"`
 	PubData     string `json:"pub_data,omitempty"`
 }
+
+// StatsMatcher is a configuration for disabling stat instantiation.
+// TODO: support inclusion_list
+// TODO: support exclusion list/inclusion_list as pattern
+type StatsMatcher struct {
+	RejectAll     bool     `json:"reject_all"`
+	ExclusionList []string `json:"exclusion_list"`
+}

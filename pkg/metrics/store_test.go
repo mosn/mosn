@@ -18,6 +18,8 @@
 package metrics
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -30,5 +32,71 @@ func TestGetAll(t *testing.T) {
 
 	if len(GetAll()) != 2 {
 		t.Errorf("get all lentgh error, expected 2, actual %d", len(GetAll()))
+	}
+}
+
+func TestExclusion(t *testing.T) {
+	ResetAll()
+	exclusions := []string{
+		"exclusion",
+	}
+	SetStatsMatcher(false, exclusions)
+	// if a labels contains in exclusions, will returns a nil metrics
+	// nil metrics works well.
+	testCases := []struct {
+		labels map[string]string
+		isNil  bool
+	}{
+		{
+			labels: map[string]string{
+				"exclusion": "value",
+			},
+			isNil: true,
+		},
+		{
+			labels: map[string]string{
+				"lk":        "lv",
+				"exclusion": "value",
+			},
+			isNil: true,
+		},
+		{
+			labels: map[string]string{
+				"lk": "exclusion",
+			},
+			isNil: false,
+		},
+		{
+			labels: map[string]string{
+				"lk": "lv",
+			},
+			isNil: false,
+		},
+	}
+	for i, tc := range testCases {
+		typ := fmt.Sprintf("test%d", i)
+		m, _ := NewMetrics(typ, tc.labels)
+		if _, ok := m.(*NilMetrics); ok != tc.isNil {
+			t.Errorf("#%d create not expected", i)
+		}
+		if !(m.Type() == typ &&
+			reflect.DeepEqual(tc.labels, m.Labels())) {
+			t.Errorf("#%d type and labels is not expected", i)
+		}
+		// nil/non-nil metrics works well
+		m.SortedLabels()
+		m.Counter("conuter").Inc(1)
+		m.Gauge("gauge").Update(1)
+		m.Histogram("histogram").Update(1)
+	}
+	// Test reject all
+	ResetAll()
+	SetStatsMatcher(true, nil)
+	for i, tc := range testCases {
+		typ := fmt.Sprintf("test%d", i)
+		m, _ := NewMetrics(typ, tc.labels)
+		if _, ok := m.(*NilMetrics); !ok {
+			t.Errorf("#%d expected get nil metrics, but not")
+		}
 	}
 }

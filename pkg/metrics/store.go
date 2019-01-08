@@ -37,8 +37,10 @@ var (
 
 // stats memory store
 type store struct {
-	metrics []types.Metrics
-	mutex   sync.RWMutex
+	rejectAll       bool
+	exclusionLabels []string
+	metrics         []types.Metrics
+	mutex           sync.RWMutex
 }
 
 // metrics is a wrapper of go-metrics registry, is an implement of types.Metrics
@@ -58,11 +60,42 @@ func init() {
 	}
 }
 
+// SetStatsMatcher sets the exclusion labels
+// if a metrics labels contains in exclusions, it will be ignored
+func SetStatsMatcher(all bool, exclusions []string) {
+	defaultStore.mutex.Lock()
+	defer defaultStore.mutex.Unlock()
+	if all {
+		defaultStore.rejectAll = true
+	}
+	defaultStore.exclusionLabels = exclusions
+}
+
+// isExclusion returns the labels will be ignored or not
+func isExclusion(labels map[string]string) bool {
+	defaultStore.mutex.RLock()
+	defer defaultStore.mutex.RUnlock()
+	if defaultStore.rejectAll {
+		return true
+	}
+	// TODO: support pattern
+	for _, label := range defaultStore.exclusionLabels {
+		if _, ok := labels[label]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 // NewMetrics returns a metrics
 // Same (type + labels) pair will leading to the same Metrics instance
 func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	if len(labels) > maxLabelCount {
 		return nil, errLabelCountExceeded
+	}
+	// support exclusion only
+	if isExclusion(labels) {
+		return NewNilMetrics(typ, labels)
 	}
 
 	defaultStore.mutex.Lock()
@@ -145,6 +178,8 @@ func ResetAll() {
 		m.UnregisterAll()
 	}
 	defaultStore.metrics = defaultStore.metrics[:0]
+	defaultStore.rejectAll = false
+	defaultStore.exclusionLabels = nil
 }
 
 func mapEqual(x, y map[string]string) bool {
