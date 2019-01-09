@@ -40,6 +40,7 @@ type TracingConfig struct {
 type MetricsConfig struct {
 	FlushInterval v2.DurationConfig `json:"flush_interval"`
 	SinkConfigs   []v2.Filter       `json:"sinks"`
+	StatsMatcher  v2.StatsMatcher   `json:"stats_matcher"`
 }
 
 // ServerConfig for making up server for mosn

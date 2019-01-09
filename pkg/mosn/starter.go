@@ -219,6 +219,9 @@ func initializeTracing(config config.TracingConfig) {
 
 func initializeMetrics(config config.MetricsConfig) {
 	var sinks []types.MetricsSink
+	// set metrics package
+	statsMatcher := config.StatsMatcher
+	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionList)
 	// create sinks
 	for _, cfg := range config.SinkConfigs {
 		sink, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)

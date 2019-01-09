@@ -25,11 +25,11 @@ import (
 	"strings"
 
 	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
+	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/server"
 )
 
 func init() {
@@ -95,7 +95,7 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 		srvMux.Handle(config.Endpoint, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 
 		srv := &http.Server{
-			Addr: fmt.Sprintf(":%d", config.Port),
+			Addr:    fmt.Sprintf(":%d", config.Port),
 			Handler: srvMux,
 		}
 
@@ -111,6 +111,11 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 }
 
 func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, name string, snap metrics.Histogram) {
+	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_max", float64(snap.Max()))
+	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_min", float64(snap.Min()))
+}
+
+func (sink *promSink) histogramVecWithValue(typ string, labelKeys, labelVals []string, name string, value float64) {
 	namespace := strings.Join(labelKeys, "_")
 	key := namespace + "_" + typ + "_" + name
 	g, ok := sink.gaugeVecs[key]
@@ -120,12 +125,11 @@ func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, na
 			Subsystem: flattenKey(typ),
 			Name:      flattenKey(name),
 			Help:      "histogram metrics",
-		}, append(labelKeys, "type"))
+		}, labelKeys)
 		sink.registry.MustRegister(g)
 		sink.gaugeVecs[key] = g
 	}
-	g.WithLabelValues(append(labelVals, "max")...).Set(float64(snap.Max()))
-	g.WithLabelValues(append(labelVals, "min")...).Set(float64(snap.Min()))
+	g.WithLabelValues(labelVals...).Set(value)
 }
 
 func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name string, val float64) {

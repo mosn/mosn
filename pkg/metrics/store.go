@@ -18,6 +18,7 @@
 package metrics
 
 import (
+	"strings"
 	"sync"
 
 	"fmt"
@@ -37,8 +38,10 @@ var (
 
 // stats memory store
 type store struct {
-	metrics []types.Metrics
-	mutex   sync.RWMutex
+	rejectAll       bool
+	exclusionLabels []string
+	metrics         map[string]types.Metrics
+	mutex           sync.RWMutex
 }
 
 // metrics is a wrapper of go-metrics registry, is an implement of types.Metrics
@@ -54,8 +57,35 @@ type metrics struct {
 func init() {
 	defaultStore = &store{
 		// TODO: default length configurable
-		metrics: make([]types.Metrics, 0, 100),
+		metrics: make(map[string]types.Metrics, 100),
 	}
+}
+
+// SetStatsMatcher sets the exclusion labels
+// if a metrics labels contains in exclusions, it will be ignored
+func SetStatsMatcher(all bool, exclusions []string) {
+	defaultStore.mutex.Lock()
+	defer defaultStore.mutex.Unlock()
+	if all {
+		defaultStore.rejectAll = true
+	}
+	defaultStore.exclusionLabels = exclusions
+}
+
+// isExclusion returns the labels will be ignored or not
+func isExclusion(labels map[string]string) bool {
+	defaultStore.mutex.RLock()
+	defer defaultStore.mutex.RUnlock()
+	if defaultStore.rejectAll {
+		return true
+	}
+	// TODO: support pattern
+	for _, label := range defaultStore.exclusionLabels {
+		if _, ok := labels[label]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 // NewMetrics returns a metrics
@@ -64,15 +94,18 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	if len(labels) > maxLabelCount {
 		return nil, errLabelCountExceeded
 	}
+	// support exclusion only
+	if isExclusion(labels) {
+		return NewNilMetrics(typ, labels)
+	}
 
 	defaultStore.mutex.Lock()
 	defer defaultStore.mutex.Unlock()
 
 	// check existence
-	for _, metric := range defaultStore.metrics {
-		if metric.Type() == typ && mapEqual(metric.Labels(), labels) {
-			return metric, nil
-		}
+	name := fullName(typ, labels)
+	if m, ok := defaultStore.metrics[name]; ok {
+		return m, nil
 	}
 
 	stats := &metrics{
@@ -81,9 +114,22 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 		registry: gometrics.NewRegistry(),
 	}
 
-	defaultStore.metrics = append(defaultStore.metrics, stats)
+	defaultStore.metrics[name] = stats
 
 	return stats, nil
+}
+
+func sortedLabels(labels map[string]string) (keys, values []string) {
+	keys = make([]string, 0, len(labels))
+	values = make([]string, 0, len(labels))
+	for k := range labels {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		values = append(values, labels[k])
+	}
+	return
 }
 
 func (s *metrics) Type() string {
@@ -98,14 +144,10 @@ func (s *metrics) SortedLabels() (keys, values []string) {
 	if s.labelKeys != nil && s.labelVals != nil {
 		return s.labelKeys, s.labelVals
 	}
+	keys, values = sortedLabels(s.labels)
+	s.labelKeys = keys
+	s.labelVals = values
 
-	for k := range s.labels {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		values = append(values, s.labels[k])
-	}
 	return
 }
 
@@ -133,7 +175,11 @@ func (s *metrics) UnregisterAll() {
 func GetAll() (metrics []types.Metrics) {
 	defaultStore.mutex.RLock()
 	defer defaultStore.mutex.RUnlock()
-	return defaultStore.metrics
+	metrics = make([]types.Metrics, 0, len(defaultStore.metrics))
+	for _, m := range defaultStore.metrics {
+		metrics = append(metrics, m)
+	}
+	return
 }
 
 // ResetAll is only for test and internal usage. DO NOT use this if not sure.
@@ -144,7 +190,9 @@ func ResetAll() {
 	for _, m := range defaultStore.metrics {
 		m.UnregisterAll()
 	}
-	defaultStore.metrics = defaultStore.metrics[:0]
+	defaultStore.metrics = make(map[string]types.Metrics, 100)
+	defaultStore.rejectAll = false
+	defaultStore.exclusionLabels = nil
 }
 
 func mapEqual(x, y map[string]string) bool {
@@ -157,4 +205,15 @@ func mapEqual(x, y map[string]string) bool {
 		}
 	}
 	return true
+}
+
+func fullName(typ string, labels map[string]string) string {
+	keys, values := sortedLabels(labels)
+
+	pair := make([]string, 0, len(keys))
+	for i := 0; i < len(keys); i++ {
+		pair = append(pair, keys[i]+"."+values[i])
+	}
+	return typ + "." + strings.Join(pair, ".")
+
 }
