@@ -76,6 +76,10 @@ func (r *mockRouteRule) ClusterName() string {
 	return "test"
 }
 
+func (r *mockRouteRule) UpstreamProtocol() string {
+	return ""
+}
+
 type mockDirectRule struct {
 	status int
 	body   string

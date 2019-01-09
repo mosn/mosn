@@ -254,6 +254,39 @@ func (s *downStream) ReceiveHeaders(headers types.HeaderMap, endStream bool) {
 	s.doReceiveHeaders(nil, headers, endStream)
 }
 
+func (s *downStream) convertProtocol() (dp, up types.Protocol) {
+	dp = s.getDownstreamProtocol()
+	up = s.getUpstreamProtocol()
+	return
+}
+
+func (s *downStream) getDownstreamProtocol() (prot types.Protocol) {
+	if s.proxy.serverStreamConn == nil {
+		prot = types.Protocol(s.proxy.config.DownstreamProtocol)
+	} else {
+		prot = s.proxy.serverStreamConn.Protocol()
+	}
+	return prot
+}
+
+func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
+	configProtocol := s.proxy.config.UpstreamProtocol
+
+	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
+	if s.route != nil && s.route.RouteRule() != nil && s.route.RouteRule().UpstreamProtocol() != "" {
+		configProtocol = s.route.RouteRule().UpstreamProtocol()
+	}
+
+	// Auto means same as downstream protocol
+	if configProtocol == string(protocol.Auto) {
+		currentProtocol = s.getDownstreamProtocol()
+	} else {
+		currentProtocol = types.Protocol(configProtocol)
+	}
+
+	return currentProtocol
+}
+
 func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, headers types.HeaderMap, endStream bool) {
 	log.DefaultLogger.Tracef("before active stream route")
 	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
@@ -341,16 +374,9 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 
 	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
 	s.timeout = parseProxyTimeout(route, headers)
-	var prot types.Protocol
-	if s.proxy.config.UpstreamProtocol == string(protocol.Auto) {
-		if s.proxy.serverStreamConn == nil {
-			prot = types.Protocol(s.proxy.config.DownstreamProtocol)
-		} else {
-			prot = s.proxy.serverStreamConn.Protocol()
-		}
-	} else {
-		prot = types.Protocol(s.proxy.config.UpstreamProtocol)
-	}
+
+	prot := s.getUpstreamProtocol()
+
 	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster, prot)
 
 	//Build Request
@@ -425,7 +451,7 @@ func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.H
 		handle: func() {
 			s.ReceiveTrailers(trailers)
 		},
-	},true)
+	}, true)
 }
 
 func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
@@ -546,17 +572,8 @@ func (s *downStream) onPerReqTimeout() {
 
 func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerContext) (types.ConnectionPool, error) {
 	var connPool types.ConnectionPool
-	var currentProtocol types.Protocol
 
-	if s.proxy.config.UpstreamProtocol == string(protocol.Auto) {
-		if s.proxy.serverStreamConn == nil {
-			currentProtocol = types.Protocol(s.proxy.config.DownstreamProtocol)
-		} else {
-			currentProtocol = s.proxy.serverStreamConn.Protocol()
-		}
-	} else {
-		currentProtocol = types.Protocol(s.proxy.config.UpstreamProtocol)
-	}
+	currentProtocol := s.getUpstreamProtocol()
 
 	connPool = s.proxy.clusterManager.ConnPoolForCluster(lbCtx, s.snapshot, currentProtocol)
 
@@ -580,7 +597,7 @@ func (s *downStream) appendHeaders(headers types.HeaderMap, endStream bool) {
 }
 
 func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
-	dp, up := s.proxy.convertProtocol()
+	dp, up := s.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
@@ -614,7 +631,7 @@ func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
 }
 
 func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
-	dp, up := s.proxy.convertProtocol()
+	dp, up := s.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
@@ -646,7 +663,7 @@ func (s *downStream) appendTrailers(trailers types.HeaderMap) {
 }
 
 func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
-	dp, up := s.proxy.convertProtocol()
+	dp, up := s.convertProtocol()
 
 	// need protocol convert
 	if dp != up {

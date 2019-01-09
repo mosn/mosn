@@ -264,6 +264,8 @@ type StreamSenderFilterHandler interface {
 
 	// ContinueSending continue iterating through the filter chain with buffered headers and body data
 	ContinueSending()
+
+	// TODO :remove all of the following when proxy changed to single request @lieyuan
 	// StreamFilters will modified headers/data/trailer in different steps
 	// for example, maybe modify headers in AppendData
 	GetResponseHeaders() HeaderMap
@@ -324,6 +326,7 @@ type StreamReceiverFilterHandler interface {
 	// SendHijackReply is called when the filter will response directly
 	SendHijackReply(code int, headers HeaderMap)
 
+	// TODO: remove all of the following when proxy changed to single request @lieyuan
 	// StreamFilters will modified headers/data/trailer in different steps
 	// for example, maybe modify headers in on receive data
 	GetRequestHeaders() HeaderMap

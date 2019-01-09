@@ -42,6 +42,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		routerMatch:           route.Match,
 		routerAction:          route.Route,
 		clusterName:           route.Route.ClusterName,
+		upstreamProtocol:      route.Route.UpstreamProtocol,
 		randInstance:          rand.New(rand.NewSource(time.Now().UnixNano())),
 		configHeaders:         getRouterHeaders(route.Match.Headers),
 		prefixRewrite:         route.Route.PrefixRewrite,
@@ -91,6 +92,7 @@ type RouteRuleImplBase struct {
 	autoHostRewrite             bool
 	useWebSocket                bool
 	clusterName                 string //
+	upstreamProtocol            string
 	clusterHeaderName           lowerCaseString
 	clusterNotFoundResponseCode httpmosn.Code
 	timeout                     time.Duration
@@ -174,6 +176,10 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 
 	log.DefaultLogger.Errorf("Something wrong when choosing weighted cluster")
 	return rri.clusterName
+}
+
+func (rri *RouteRuleImplBase) UpstreamProtocol() string {
+	return rri.upstreamProtocol
 }
 
 func (rri *RouteRuleImplBase) GlobalTimeout() time.Duration {

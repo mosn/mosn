@@ -24,6 +24,7 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -33,7 +34,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
 	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/config"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -261,17 +261,4 @@ type downstreamCallbacks struct {
 
 func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	dc.proxy.onDownstreamEvent(event)
-}
-
-func (p *proxy) convertProtocol() (dp, up types.Protocol) {
-	if p.serverStreamConn == nil {
-		dp = types.Protocol(p.config.DownstreamProtocol)
-	} else {
-		dp = p.serverStreamConn.Protocol()
-	}
-	up = types.Protocol(p.config.UpstreamProtocol)
-	if up == protocol.Auto {
-		up = dp
-	}
-	return
 }

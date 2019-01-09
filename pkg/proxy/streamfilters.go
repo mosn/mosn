@@ -364,28 +364,6 @@ func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.Hea
 	f.activeStream.sendHijackReply(code, headers)
 }
 
-func (f *activeStreamReceiverFilter) GetRequestHeaders() types.HeaderMap {
-	return f.activeStream.downstreamReqHeaders
-}
-func (f *activeStreamReceiverFilter) SetRequestHeaders(headers types.HeaderMap) {
-	f.activeStream.downstreamReqHeaders = headers
-}
-func (f *activeStreamReceiverFilter) GetRequestData() types.IoBuffer {
-	return f.activeStream.downstreamReqDataBuf
-}
-
-func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
-	f.activeStream.downstreamReqDataBuf = data
-}
-
-func (f *activeStreamReceiverFilter) GetRequestTrailers() types.HeaderMap {
-	return f.activeStream.downstreamReqTrailers
-}
-
-func (f *activeStreamReceiverFilter) SetRequestTrailers(trailers types.HeaderMap) {
-	f.activeStream.downstreamReqTrailers = trailers
-}
-
 // types.StreamSenderFilterHandler
 type activeStreamSenderFilter struct {
 	activeStreamFilter
@@ -499,6 +477,29 @@ func (f *activeStreamSenderFilter) handleBufferData(buf types.IoBuffer) {
 
 		f.activeStream.downstreamRespDataBuf.ReadFrom(buf)
 	}
+}
+
+// TODO: remove all of the following when proxy changed to single request @lieyuan
+func (f *activeStreamReceiverFilter) GetRequestHeaders() types.HeaderMap {
+	return f.activeStream.downstreamReqHeaders
+}
+func (f *activeStreamReceiverFilter) SetRequestHeaders(headers types.HeaderMap) {
+	f.activeStream.downstreamReqHeaders = headers
+}
+func (f *activeStreamReceiverFilter) GetRequestData() types.IoBuffer {
+	return f.activeStream.downstreamReqDataBuf
+}
+
+func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
+	f.activeStream.downstreamReqDataBuf = data
+}
+
+func (f *activeStreamReceiverFilter) GetRequestTrailers() types.HeaderMap {
+	return f.activeStream.downstreamReqTrailers
+}
+
+func (f *activeStreamReceiverFilter) SetRequestTrailers(trailers types.HeaderMap) {
+	f.activeStream.downstreamReqTrailers = trailers
 }
 
 func (f *activeStreamSenderFilter) GetResponseHeaders() types.HeaderMap {
