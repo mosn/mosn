@@ -586,7 +586,9 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		if buf.EOF() {
 			err = buffer.EOF
 		}
-		buffer.PutIoBuffer(buf)
+		if e := buffer.PutIoBuffer(buf); e != nil {
+			c.logger.Errorf("PutIoBuffer error: %v", e)
+		}
 	}
 	c.ioBuffers = c.ioBuffers[:0]
 	c.writeBuffers = c.writeBuffers[:0]

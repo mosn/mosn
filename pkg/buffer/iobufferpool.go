@@ -19,6 +19,7 @@ package buffer
 
 import (
 	"sync"
+	"errors"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -55,9 +56,13 @@ func GetIoBuffer(size int) types.IoBuffer {
 }
 
 // PutIoBuffer returns IoBuffer to pool
-func PutIoBuffer(buf types.IoBuffer) {
-	if buf.Count(-1) != 0 {
-		return
+func PutIoBuffer(buf types.IoBuffer) error {
+	count := buf.Count(-1)
+	if count > 0 {
+		return nil
+	} else if count < 0 {
+		return errors.New("PutIoBuffer duplicate")
 	}
 	ibPool.give(buf)
+	return nil
 }

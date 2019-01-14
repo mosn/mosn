@@ -1011,7 +1011,9 @@ func (s *downStream) giveStream() {
 	}
 	// reset downstreamReqBuf
 	if s.downstreamReqDataBuf != nil {
-		buffer.PutIoBuffer(s.downstreamReqDataBuf)
+		if e := buffer.PutIoBuffer(s.downstreamReqDataBuf); e != nil {
+			s.logger.Errorf("PutIoBuffer error: %v", e)
+		}
 	}
 
 	// Give buffers to bufferPool

@@ -23,6 +23,8 @@ import (
 	"net"
 	"time"
 
+	"sync/atomic"
+
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -45,7 +47,7 @@ type IoBuffer struct {
 	buf     []byte // contents: buf[off : len(buf)]
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
-	count   int
+	count   int32
 	eof     bool
 
 	b *[]byte
@@ -396,9 +398,8 @@ func (b *IoBuffer) Alloc(size int) {
 	b.buf = b.buf[:0]
 }
 
-func (b *IoBuffer) Count(count int) int {
-	b.count += count
-	return b.count
+func (b *IoBuffer) Count(count int32) int32 {
+	return atomic.AddInt32(&b.count, count)
 }
 
 func (b *IoBuffer) EOF() bool {
