@@ -491,7 +491,10 @@ func (f *activeStreamReceiverFilter) GetRequestData() types.IoBuffer {
 }
 
 func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
-	f.activeStream.downstreamReqDataBuf = data
+	// same as downstream OnReceiveData
+	f.activeStream.downstreamReqDataBuf = data.Clone()
+	f.activeStream.downstreamReqDataBuf.Count(1)
+	data.Drain(data.Len())
 }
 
 func (f *activeStreamReceiverFilter) GetRequestTrailers() types.HeaderMap {
@@ -515,7 +518,9 @@ func (f *activeStreamSenderFilter) GetResponseData() types.IoBuffer {
 }
 
 func (f *activeStreamSenderFilter) SetResponseData(data types.IoBuffer) {
-	f.activeStream.downstreamRespDataBuf = data
+	// same as upstream OnReceiveData
+	f.activeStream.downstreamRespDataBuf = data.Clone()
+	data.Drain(data.Len())
 }
 
 func (f *activeStreamSenderFilter) GetResponseTrailers() types.HeaderMap {
