@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"net"
+	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -31,9 +32,11 @@ type dynamicClusterBase struct {
 
 func (dc *dynamicClusterBase) updateDynamicHostList(newHosts []types.Host, currentHosts []types.Host) (
 	changed bool, finalHosts []types.Host, hostsAdded []types.Host, hostsRemoved []types.Host) {
+
+	sortedCurrentHosts := types.SortedHosts(currentHosts)
+	sort.Sort(sortedCurrentHosts)
 	hostAddrs := make(map[string]bool)
 
-	// N^2 loop, works for small and steady hosts
 	for _, nh := range newHosts {
 		nhAddr := nh.AddressString()
 		if _, ok := hostAddrs[nhAddr]; ok {
@@ -42,34 +45,31 @@ func (dc *dynamicClusterBase) updateDynamicHostList(newHosts []types.Host, curre
 
 		hostAddrs[nhAddr] = true
 
+		i := sort.Search(sortedCurrentHosts.Len(), func(i int) bool {
+			return sortedCurrentHosts[i].AddressString() >= nhAddr
+		})
+
 		found := false
-		for i := 0; i < len(currentHosts); {
-			curNh := currentHosts[i]
 
-			if nh.AddressString() == curNh.AddressString() {
-				curNh.SetWeight(nh.Weight())
-				finalHosts = append(finalHosts, curNh)
-				currentHosts = append(currentHosts[:i], currentHosts[i+1:]...)
-				found = true
-			} else {
-				i++
-			}
+		if i < sortedCurrentHosts.Len() && sortedCurrentHosts[i].AddressString() == nhAddr {
+			curNh := sortedCurrentHosts[i]
+			curNh.SetWeight(nh.Weight())
+			finalHosts = append(finalHosts, curNh)
+			sortedCurrentHosts = append(sortedCurrentHosts[:i], sortedCurrentHosts[i+1:]...)
+			found = true
 		}
-
 		if !found {
 			finalHosts = append(finalHosts, nh)
 			hostsAdded = append(hostsAdded, nh)
 		}
 	}
 
-	if len(currentHosts) > 0 {
-		hostsRemoved = currentHosts
+	if len(sortedCurrentHosts) > 0 {
+		hostsRemoved = sortedCurrentHosts
 	}
 
 	if len(hostsAdded) > 0 || len(hostsRemoved) > 0 {
 		changed = true
-	} else {
-		changed = false
 	}
 
 	return changed, finalHosts, hostsAdded, hostsRemoved

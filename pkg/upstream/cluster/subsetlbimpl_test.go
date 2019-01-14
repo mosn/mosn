@@ -20,6 +20,7 @@ package cluster
 import (
 	"net"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -48,7 +49,7 @@ import (
 */
 
 func init() {
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("", log.FATAL)
 }
 
 var prioritySetExample = prioritySet{
@@ -819,6 +820,28 @@ func TestWeightedClusterRoute(t *testing.T) {
 		}
 	} else {
 		t.Errorf("routing with weighted cluster error, no clustername found")
+	}
+}
+
+func TestGetFinalHost(t *testing.T) {
+	pool := makePool(100)
+	hosts := pool.MakeHosts(10)
+	hsSubset := &hostSubsetImpl{
+		hostSubset: &hostSet{
+			hosts: hosts,
+		},
+	}
+	hostsRemoved := make([]types.Host, 5)
+	copy(hostsRemoved, hosts[5:])
+	hostsAdded := pool.MakeHosts(5)
+	final := types.SortedHosts(hsSubset.GetFinalHosts(hostsAdded, hostsRemoved))
+	expected := types.SortedHosts(make([]types.Host, 10))
+	copy(expected[:5], hosts[:5])
+	copy(expected[5:], hostsAdded)
+	sort.Sort(final)
+	sort.Sort(expected)
+	if !reflect.DeepEqual(final, expected) {
+		t.Error("get final hosts unexpected")
 	}
 }
 
