@@ -86,6 +86,11 @@ func benchAddHost(b *testing.B, count int) {
 	}
 }
 
+// add 10 new host
+func BenchmarkUpdateDynamicHostList_AddHost10(b *testing.B) {
+	benchAddHost(b, 10)
+}
+
 // add 100 new host
 func BenchmarkUpdateDynamicHostList_AddHost100(b *testing.B) {
 	benchAddHost(b, 100)
@@ -126,13 +131,11 @@ func BenchmarkUpdateDynamicHostList_AddMultipleTimes(b *testing.B) {
 		hosts := pool.MakeHosts(112)
 		adds = append(adds, hosts)
 	}
-	var m []types.Host
 	for i := 0; i < 45; i++ {
 		newHosts := append(final, adds[i]...)
 		cur := make([]types.Host, len(final))
 		copy(cur, final)
-		_, final, _, m = c.updateDynamicHostList(newHosts, cur)
-		fmt.Println(len(final), len(m))
+		_, final, _, _ = c.updateDynamicHostList(newHosts, cur)
 	}
 }
 

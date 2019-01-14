@@ -48,7 +48,7 @@ import (
 */
 
 func init() {
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("", log.FATAL)
 }
 
 var prioritySetExample = prioritySet{

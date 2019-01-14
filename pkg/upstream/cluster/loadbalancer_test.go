@@ -503,14 +503,7 @@ func Benchmark_RouteAndLB(b *testing.B) {
 			return
 		}
 
-		if mmc, ok := route.RouteRule().MetadataMatchCriteria(clustername).(*router.MetadataMatchCriteriaImpl); ok {
-			ctx := &ContextImplMock{
-				mmc: mmc,
-			}
-
-			host := clusterSnapshot.LoadBalancer().ChooseHost(ctx)
-			b.Logf("host name = %s", host.Hostname())
-		} else {
+		if _, ok := route.RouteRule().MetadataMatchCriteria(clustername).(*router.MetadataMatchCriteriaImpl); !ok {
 			b.Errorf("cluster name = %s host select error", clustername)
 		}
 		mockedClusterMng.PutClusterSnapshot(clusterSnapshot)
