@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -117,10 +118,9 @@ func readInt32(b []byte) (int, error) {
 	if len(b) < 4 {
 		return 0, errors.New("no enough bytes")
 	}
-
 	ba := b[:4]
-
-	return int(int8(ba[0])<<24 | int8(ba[1])<<16 | int8(ba[2])<<8 | int8(ba[3])), nil
+	intValue := ((uint32(ba[0]&0xff))<<24 | uint32(ba[1]&0xff)<<16 | uint32(ba[2]&0xff)<<8 | uint32(ba[3]&0xff)<<0)
+	return int(intValue), nil
 }
 
 func decodeString(b []byte, result *string) (int, error) {
@@ -143,6 +143,11 @@ func decodeMap(b []byte, result *map[string]string) error {
 		}
 		index += 4
 
+		if index+length > totalLen {
+			fmt.Printf("index %d, length %d, totalLen %d, b %v\n", index, length, totalLen, b)
+			return errors.New("error size")
+		}
+
 		key := b[index : index+length]
 		index += length
 
@@ -154,6 +159,11 @@ func decodeMap(b []byte, result *map[string]string) error {
 			length = 0
 		}
 		index += 4
+
+		if index+length > totalLen {
+			fmt.Printf("index %d, length %d, totalLen %d, b %v\n", index, length, totalLen, b)
+			return errors.New("error size")
+		}
 
 		value := b[index : index+length]
 		index += length
