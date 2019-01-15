@@ -152,6 +152,88 @@ func AddClusterWithRouter(listenername string, virtualhost string, router v2.Rou
 	go dump(true)
 }
 
+func findListener(listenername string) (v2.Listener, bool) {
+	// support only one server
+	listeners := config.Servers[0].Listeners
+	for _, ln := range listeners {
+		if ln.Name == listenername {
+			return ln, true
+		}
+	}
+	return v2.Listener{}, false
+}
+
+// UpdateRouterConfig update the connection_manager's config
+func UpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) {
+	if updateRouterConfig(listenername, routerConfig) {
+		go dump(true)
+	}
+}
+func updateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) bool {
+	ln, ok := findListener(listenername)
+	if !ok {
+		return false
+	}
+	// support only one filter chain
+	nfs := ln.FilterChains[0].Filters
+	filterIndex := -1
+	for i, nf := range nfs {
+		if nf.Type == v2.CONNECTION_MANAGER {
+			filterIndex = i
+			break
+		}
+	}
+	// connection_manager not found
+	if filterIndex == -1 {
+		return false
+	}
+	if data, err := json.Marshal(routerConfig); err == nil {
+		cfg := make(map[string]interface{})
+		if err := json.Unmarshal(data, &cfg); err != nil {
+			log.DefaultLogger.Errorf("invalid router config, update config failed")
+			return false
+		}
+		filter := v2.Filter{
+			Type:   v2.CONNECTION_MANAGER,
+			Config: cfg,
+		}
+		nfs[filterIndex] = filter
+		return true
+	}
+	return false
+}
+
+// UpdateStreamFilters update the stream filters config
+func UpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) {
+	if updateStreamFilters(listenername, typ, cfg) {
+		go dump(true)
+	}
+}
+
+func updateStreamFilters(listenername string, typ string, cfg map[string]interface{}) bool {
+	ln, ok := findListener(listenername)
+	if !ok {
+		return false
+	}
+	filterIndex := -1
+	for i, sf := range ln.StreamFilters {
+		if sf.Type == typ {
+			filterIndex = i
+			break
+		}
+	}
+	if filterIndex == -1 {
+		return false
+	}
+	filter := v2.Filter{
+		Type:   typ,
+		Config: cfg,
+	}
+	ln.StreamFilters[filterIndex] = filter
+	return true
+}
+
+// TODO: fix RDS, support add/update/delete
 // AddRoutersConfig dumps addRoutersConfig result
 func AddRoutersConfig(listenername string, virtualhost string, router v2.Router) {
 	if addRoutersConfig(listenername, virtualhost, router) {
@@ -164,55 +246,53 @@ func AddRoutersConfig(listenername string, virtualhost string, router v2.Router)
 func addRoutersConfig(listenername string, virtualhost string, router v2.Router) bool {
 	dirty := false
 	// support only one server
-	listeners := config.Servers[0].Listeners
-	for _, ln := range listeners {
-		if ln.Name != listenername {
-			continue
+	ln, ok := findListener(listenername)
+	if !ok {
+		return false
+	}
+	// support only one filter chain
+	nfs := ln.FilterChains[0].Filters
+FindRouter:
+	for filterIndex, nf := range nfs {
+		if nf.Type != v2.CONNECTION_MANAGER {
+			continue FindRouter
 		}
-		// support only one filter chain
-		nfs := ln.FilterChains[0].Filters
-	FindRouter:
-		for filterIndex, nf := range nfs {
-			if nf.Type != v2.CONNECTION_MANAGER {
-				continue FindRouter
+		routerConfiguration := &v2.RouterConfiguration{}
+		if data, err := json.Marshal(nf.Config); err == nil {
+			if err := json.Unmarshal(data, routerConfiguration); err != nil {
+				log.DefaultLogger.Errorf("invalid router config, update config failed")
+				break FindRouter
 			}
-			routerConfiguration := &v2.RouterConfiguration{}
-			if data, err := json.Marshal(nf.Config); err == nil {
-				if err := json.Unmarshal(data, routerConfiguration); err != nil {
-					log.DefaultLogger.Errorf("invalid router config, update config failed")
-					break FindRouter
-				}
-			}
-			var vhost *v2.VirtualHost
-			vhs := routerConfiguration.VirtualHosts
-		FindVirtualHost:
-			for _, vh := range vhs {
-				if virtualhost == "" {
-					if len(vh.Domains) > 0 && vh.Domains[0] == "*" {
-						vhost = vh
-						break FindVirtualHost
-					}
-				} else if vh.Name == virtualhost {
+		}
+		var vhost *v2.VirtualHost
+		vhs := routerConfiguration.VirtualHosts
+	FindVirtualHost:
+		for _, vh := range vhs {
+			if virtualhost == "" {
+				if len(vh.Domains) > 0 && vh.Domains[0] == "*" {
 					vhost = vh
 					break FindVirtualHost
 				}
+			} else if vh.Name == virtualhost {
+				vhost = vh
+				break FindVirtualHost
 			}
-			if vhost != nil {
-				vhost.Routers = append(vhost.Routers, router)
-				dirty = true
+		}
+		if vhost != nil {
+			vhost.Routers = append(vhost.Routers, router)
+			dirty = true
+		}
+		if dirty {
+			filterConfig := make(map[string]interface{})
+			if data, err := json.Marshal(routerConfiguration); err == nil {
+				if err := json.Unmarshal(data, &filterConfig); err != nil {
+					log.DefaultLogger.Errorf("rewrite filter config failed")
+					return false
+				}
 			}
-			if dirty {
-				filterConfig := make(map[string]interface{})
-				if data, err := json.Marshal(routerConfiguration); err == nil {
-					if err := json.Unmarshal(data, &filterConfig); err != nil {
-						log.DefaultLogger.Errorf("rewrite filter config failed")
-						return false
-					}
-				}
-				nfs[filterIndex] = v2.Filter{
-					Type:   v2.CONNECTION_MANAGER,
-					Config: filterConfig,
-				}
+			nfs[filterIndex] = v2.Filter{
+				Type:   v2.CONNECTION_MANAGER,
+				Config: filterConfig,
 			}
 		}
 	}

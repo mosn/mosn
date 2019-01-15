@@ -18,6 +18,7 @@
 package config
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -32,68 +33,7 @@ func mockInitConfig(t *testing.T, cfg []byte) {
 
 func TestAddRoutersConfig(t *testing.T) {
 	// only keep useful test part
-	cfg := []byte(`{
-		"servers": [
-			{
-				"listeners": [
-					{
-						"name": "egress",
-						"filter_chains": [
-							{
-								"filters": [
-									{
-										"type":"connection_manager",
-										"config":{
-											"router_config_name":"egress_router",
-											"virtual_hosts":[
-												{
-													"name": "egress",
-													"domains":["*"],
-													"routers": [
-														{
-															"match": {"prefix":"/"},
-															"route":{"cluster_name":"test1"}
-														}
-													]
-												}
-											]
-										}		
-									}	
-								]
-							}
-						]
-					},
-					{
-						"name": "ingress",
-						"filter_chains": [
-							{
-								"filters": [
-									{
-										"type":"connection_manager",
-									 	"config":{
-											"router_config_name":"egress_router",
-										 	"virtual_hosts":[
-										 		{
-													"name": "ingress",
-													"domains":["*"],
-													"routers": [
-														{
-															"match": {"prefix":"/"},
-															"route":{"cluster_name":"test1"}
-														}
-													]
-												}
-										 	]
-									 	}
-									}
-								]
-							}
-						]
-					}
-				]
-			}
-		]
-	}`)
+	cfg := []byte(basicConfigStr)
 	mockInitConfig(t, cfg)
 	router := v2.Router{
 		RouterConfig: v2.RouterConfig{
@@ -155,5 +95,77 @@ func TestAddRoutersConfig(t *testing.T) {
 		if !findOriginal || !findNew {
 			t.Errorf("listener %s, original router: %v, new router: %v", ln.Name, findOriginal, findNew)
 		}
+	}
+}
+
+func TestUpdateRouterConfig(t *testing.T) {
+	// only keep useful test part
+	cfg := []byte(basicConfigStr)
+	mockInitConfig(t, cfg)
+	routerConfigStr := `{
+		"router_config_name":"test_update",
+		"virtual_hosts":[{
+			"name":"test_update",
+			"domains": ["*"],
+			"routers": [
+				{
+					 "match": {"prefix":"/test_update"},
+					 "route":{"cluster_name":"test_update"}
+				}
+			]
+		}]
+	}`
+	routerConfiguration := &v2.RouterConfiguration{}
+	if err := json.Unmarshal([]byte(routerConfigStr), routerConfiguration); err != nil {
+		t.Fatal("create update config failed", err)
+	}
+	if !updateRouterConfig("egress", routerConfiguration) {
+		t.Fatal("update router config failed")
+	}
+	// verify
+	ln, ok := findListener("egress")
+	if !ok {
+		t.Fatal("cannot found egress listener")
+	}
+	filter := ln.FilterChains[0].Filters[0] // only one connection_manager
+	newConfig := &v2.RouterConfiguration{}
+	if data, err := json.Marshal(filter.Config); err == nil {
+		if err := json.Unmarshal(data, &newConfig); err != nil {
+			t.Error("invalid config in router config", err)
+		}
+	}
+	if !reflect.DeepEqual(newConfig, routerConfiguration) {
+		t.Error("new config is not equal update config")
+	}
+}
+
+func TestUpdateStreamFilter(t *testing.T) {
+	// only keep useful test part
+	cfg := []byte(basicConfigStr)
+	mockInitConfig(t, cfg)
+	streamFilterStr := `{
+		"version": "2.0"
+	}`
+	streamFilterConfig := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(streamFilterStr), &streamFilterConfig); err != nil {
+		t.Fatal("create filter config failed", err)
+	}
+	if !updateStreamFilters("egress", "test", streamFilterConfig) {
+		t.Fatal("update stream filter config failed")
+	}
+	// verify
+	ln, ok := findListener("egress")
+	if !ok {
+		t.Fatal("cannot found egress listener")
+	}
+	filter := ln.StreamFilters[0] // only one stream filter
+	newConfig := filter.Config
+	v, ok := newConfig["version"]
+	if !ok {
+		t.Fatal("no version config")
+	}
+	ver := v.(string)
+	if ver != "2.0" {
+		t.Error("stream filter config update not expected")
 	}
 }
