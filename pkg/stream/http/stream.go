@@ -563,7 +563,7 @@ func (s *serverStream) endStream() {
 		// connections are keep-alive by default.
 		s.response.Header.SetCanonical(HKConnection, HVKeepAlive)
 	}
-	defer s.DestroyStream()
+
 
 	s.doSend()
 	s.responseDoneChan <- true
@@ -571,6 +571,8 @@ func (s *serverStream) endStream() {
 	if resetConn {
 		// close connection
 		s.connection.conn.Close(types.FlushWrite, types.LocalClose)
+	} else {
+		defer s.DestroyStream()
 	}
 
 	// clean up & recycle
