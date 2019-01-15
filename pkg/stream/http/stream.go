@@ -157,13 +157,6 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	return
 }
 
-// types.ConnectionEventListener
-func (conn *streamConnection) OnEvent(event types.ConnectionEvent) {
-	if event.IsClose() || event.ConnectFailure() {
-		close(conn.bufChan)
-	}
-}
-
 // types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection
@@ -187,8 +180,6 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 		connectionEventListener:       connCallbacks,
 		streamConnectionEventListener: streamConnCallbacks,
 	}
-
-	connection.AddConnectionEventListener(csc)
 
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
@@ -278,13 +269,7 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 }
 
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
-	conn.mutex.Lock()
-	defer conn.mutex.Unlock()
-
-	if conn.stream != nil {
-		conn.stream.ResetStream(reason)
-		conn.stream = nil
-	}
+	close(conn.bufChan)
 }
 
 // types.ServerStreamConnection
@@ -306,8 +291,6 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 		},
 		serverStreamConnListener: callbacks,
 	}
-
-	connection.AddConnectionEventListener(ssc)
 
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
@@ -381,12 +364,7 @@ func (conn *serverStreamConnection) ActiveStreamsNum() int {
 }
 
 func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
-	conn.mutex.Lock()
-	defer conn.mutex.Unlock()
-
-	if conn.stream != nil {
-		conn.stream.ResetStream(reason)
-	}
+	close(conn.bufChan)
 }
 
 // types.Stream
