@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package config
+package conv
 
 import (
 	"fmt"
@@ -24,10 +24,11 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
-	xdsxproxy "github.com/alipay/sofa-mosn/pkg/xds-config-model/filter/network/x_proxy/v2"
+	xdsxproxy "github.com/alipay/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
 	"github.com/alipay/sofa-mosn/pkg/xds/v2/rds"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -100,7 +101,8 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 		listenerConfig.StreamFilters = convertStreamFilters(&xdsListener.FilterChains[0].Filters[0])
 	}
 
-	listenerConfig.DisableConnIo = GetListenerDisableIO(&listenerConfig.FilterChains[0])
+	// TODO: remove it
+	listenerConfig.DisableConnIo = false
 
 	return listenerConfig
 }
@@ -162,10 +164,10 @@ func convertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.H
 			MetaData: convertMeta(xdsHost.Metadata),
 		}
 
-		if weight := xdsHost.GetLoadBalancingWeight().GetValue(); weight < MinHostWeight {
-			host.Weight = MinHostWeight
-		} else if weight > MaxHostWeight {
-			host.Weight = MaxHostWeight
+		if weight := xdsHost.GetLoadBalancingWeight().GetValue(); weight < config.MinHostWeight {
+			host.Weight = config.MinHostWeight
+		} else if weight > config.MaxHostWeight {
+			host.Weight = config.MaxHostWeight
 		}
 
 		hosts = append(hosts, host)

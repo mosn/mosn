@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/config"
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"golang.org/x/net/context"
@@ -43,7 +43,7 @@ type XDSConfig struct {
 
 // ClusterConfig contains an cluster info from static resources
 type ClusterConfig struct {
-	LbPolicy       xdsapi.Cluster_LbPolicy
+	LbPolicy       envoy_api_v2.Cluster_LbPolicy
 	Address        []string
 	ConnectTimeout *time.Duration
 }
@@ -79,3 +79,6 @@ type StreamClient struct {
 	Conn   *grpc.ClientConn
 	Cancel context.CancelFunc
 }
+
+// TypeURLHandleFunc is a function that used to parse ads type url data
+type TypeURLHandleFunc func(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse)
