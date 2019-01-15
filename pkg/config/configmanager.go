@@ -152,26 +152,33 @@ func AddClusterWithRouter(listenername string, virtualhost string, router v2.Rou
 	go dump(true)
 }
 
-func findListener(listenername string) (v2.Listener, bool) {
+func findListener(listenername string) (v2.Listener, int) {
 	// support only one server
 	listeners := config.Servers[0].Listeners
-	for _, ln := range listeners {
+	for idx, ln := range listeners {
 		if ln.Name == listenername {
-			return ln, true
+			return ln, idx
 		}
 	}
-	return v2.Listener{}, false
+	return v2.Listener{}, -1
 }
 
-// UpdateRouterConfig update the connection_manager's config
-func UpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) {
-	if updateRouterConfig(listenername, routerConfig) {
+func updateListener(idx int, ln v2.Listener) {
+	listeners := config.Servers[0].Listeners
+	if idx < len(listeners) {
+		listeners[idx] = ln
+	}
+}
+
+// AddOrUpdateRouterConfig update the connection_manager's config
+func AddOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) {
+	if addOrUpdateRouterConfig(listenername, routerConfig) {
 		go dump(true)
 	}
 }
-func updateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) bool {
-	ln, ok := findListener(listenername)
-	if !ok {
+func addOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) bool {
+	ln, idx := findListener(listenername)
+	if idx == -1 {
 		return false
 	}
 	// support only one filter chain
@@ -183,10 +190,7 @@ func updateRouterConfig(listenername string, routerConfig *v2.RouterConfiguratio
 			break
 		}
 	}
-	// connection_manager not found
-	if filterIndex == -1 {
-		return false
-	}
+
 	if data, err := json.Marshal(routerConfig); err == nil {
 		cfg := make(map[string]interface{})
 		if err := json.Unmarshal(data, &cfg); err != nil {
@@ -197,22 +201,28 @@ func updateRouterConfig(listenername string, routerConfig *v2.RouterConfiguratio
 			Type:   v2.CONNECTION_MANAGER,
 			Config: cfg,
 		}
-		nfs[filterIndex] = filter
+		if filterIndex == -1 {
+			nfs = append(nfs, filter)
+			ln.FilterChains[0].Filters = nfs
+			updateListener(idx, ln)
+		} else {
+			nfs[filterIndex] = filter
+		}
 		return true
 	}
 	return false
 }
 
-// UpdateStreamFilters update the stream filters config
-func UpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) {
-	if updateStreamFilters(listenername, typ, cfg) {
+// AddOrUpdateStreamFilters update the stream filters config
+func AddOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) {
+	if addOrUpdateStreamFilters(listenername, typ, cfg) {
 		go dump(true)
 	}
 }
 
-func updateStreamFilters(listenername string, typ string, cfg map[string]interface{}) bool {
-	ln, ok := findListener(listenername)
-	if !ok {
+func addOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) bool {
+	ln, idx := findListener(listenername)
+	if idx == -1 {
 		return false
 	}
 	filterIndex := -1
@@ -222,14 +232,16 @@ func updateStreamFilters(listenername string, typ string, cfg map[string]interfa
 			break
 		}
 	}
-	if filterIndex == -1 {
-		return false
-	}
 	filter := v2.Filter{
 		Type:   typ,
 		Config: cfg,
 	}
-	ln.StreamFilters[filterIndex] = filter
+	if filterIndex == -1 {
+		ln.StreamFilters = append(ln.StreamFilters, filter)
+		updateListener(idx, ln)
+	} else {
+		ln.StreamFilters[filterIndex] = filter
+	}
 	return true
 }
 
@@ -246,8 +258,8 @@ func AddRoutersConfig(listenername string, virtualhost string, router v2.Router)
 func addRoutersConfig(listenername string, virtualhost string, router v2.Router) bool {
 	dirty := false
 	// support only one server
-	ln, ok := findListener(listenername)
-	if !ok {
+	ln, idx := findListener(listenername)
+	if idx == -1 {
 		return false
 	}
 	// support only one filter chain

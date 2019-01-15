@@ -119,12 +119,12 @@ func TestUpdateRouterConfig(t *testing.T) {
 	if err := json.Unmarshal([]byte(routerConfigStr), routerConfiguration); err != nil {
 		t.Fatal("create update config failed", err)
 	}
-	if !updateRouterConfig("egress", routerConfiguration) {
+	if !addOrUpdateRouterConfig("egress", routerConfiguration) {
 		t.Fatal("update router config failed")
 	}
 	// verify
-	ln, ok := findListener("egress")
-	if !ok {
+	ln, idx := findListener("egress")
+	if idx == -1 {
 		t.Fatal("cannot found egress listener")
 	}
 	filter := ln.FilterChains[0].Filters[0] // only one connection_manager
@@ -150,22 +150,27 @@ func TestUpdateStreamFilter(t *testing.T) {
 	if err := json.Unmarshal([]byte(streamFilterStr), &streamFilterConfig); err != nil {
 		t.Fatal("create filter config failed", err)
 	}
-	if !updateStreamFilters("egress", "test", streamFilterConfig) {
+	if !addOrUpdateStreamFilters("egress", "test", streamFilterConfig) {
 		t.Fatal("update stream filter config failed")
 	}
+	if !addOrUpdateStreamFilters("ingress", "test", streamFilterConfig) {
+		t.Fatal("add stream filter config failed")
+	}
 	// verify
-	ln, ok := findListener("egress")
-	if !ok {
-		t.Fatal("cannot found egress listener")
-	}
-	filter := ln.StreamFilters[0] // only one stream filter
-	newConfig := filter.Config
-	v, ok := newConfig["version"]
-	if !ok {
-		t.Fatal("no version config")
-	}
-	ver := v.(string)
-	if ver != "2.0" {
-		t.Error("stream filter config update not expected")
+	for _, name := range []string{"egress", "ingress"} {
+		ln, idx := findListener(name)
+		if idx == -1 {
+			t.Fatalf("%s cannot found egress listener", name)
+		}
+		filter := ln.StreamFilters[0] // only one stream filter
+		newConfig := filter.Config
+		v, ok := newConfig["version"]
+		if !ok {
+			t.Fatalf("%s no version config", name)
+		}
+		ver := v.(string)
+		if ver != "2.0" {
+			t.Error("%s stream filter config update not expected", name)
+		}
 	}
 }
