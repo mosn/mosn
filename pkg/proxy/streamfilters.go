@@ -491,6 +491,10 @@ func (f *activeStreamReceiverFilter) GetRequestData() types.IoBuffer {
 }
 
 func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
+	// data is the original data. do nothing
+	if f.activeStream.downstreamReqDataBuf == data {
+		return
+	}
 	if f.activeStream.downstreamReqDataBuf == nil {
 		f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(0)
 	}
@@ -519,6 +523,10 @@ func (f *activeStreamSenderFilter) GetResponseData() types.IoBuffer {
 }
 
 func (f *activeStreamSenderFilter) SetResponseData(data types.IoBuffer) {
+	// data is the original data. do nothing
+	if f.activeStream.downstreamRespDataBuf == data {
+		return
+	}
 	if f.activeStream.downstreamRespDataBuf == nil {
 		f.activeStream.downstreamRespDataBuf = buffer.NewIoBuffer(0)
 	}
