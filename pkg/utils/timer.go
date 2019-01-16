@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sofarpc
+package utils
 
 import (
 	"sync/atomic"
@@ -23,7 +23,7 @@ import (
 )
 
 // thread-safe reusable timer
-type timer struct {
+type Timer struct {
 	callback   func()
 	interval   time.Duration
 	innerTimer *time.Timer
@@ -32,14 +32,15 @@ type timer struct {
 	stopChan   chan bool
 }
 
-func newTimer(callback func()) *timer {
-	return &timer{
+func NewTimer(callback func()) *Timer {
+	return &Timer{
 		callback: callback,
 		stopChan: make(chan bool, 1),
 	}
 }
 
-func (t *timer) start(interval time.Duration) {
+// Start starts a timer if it is not started
+func (t *Timer) Start(interval time.Duration) {
 	if !atomic.CompareAndSwapInt32(&t.started, 0, 1) {
 		return
 	}
@@ -64,9 +65,11 @@ func (t *timer) start(interval time.Duration) {
 			return
 		}
 	}()
+
 }
 
-func (t *timer) stop() {
+// Stop stops the timer.
+func (t *Timer) Stop() {
 	if !atomic.CompareAndSwapInt32(&t.stopped, 0, 1) {
 		return
 	}
@@ -74,6 +77,7 @@ func (t *timer) stop() {
 	t.stopChan <- true
 }
 
-func (t *timer) close() {
+// Close closes the timers.
+func (t *Timer) Close() {
 	close(t.stopChan)
 }

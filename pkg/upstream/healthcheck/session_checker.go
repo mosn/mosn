@@ -19,6 +19,7 @@ package healthcheck
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 // sessionChecker is a wrapper of types.HealthCheckSession for health check
@@ -31,8 +32,8 @@ type sessionChecker struct {
 	timeout       chan bool
 	checkID       uint64
 	stop          chan struct{}
-	checkTimer    *timer
-	checkTimeout  *timer
+	checkTimer    *utils.Timer
+	checkTimeout  *utils.Timer
 	unHealthCount uint32
 	healthCount   uint32
 }
@@ -51,18 +52,18 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *se
 		timeout:       make(chan bool),
 		stop:          make(chan struct{}),
 	}
-	c.checkTimer = newTimer(c.OnCheck)
-	c.checkTimeout = newTimer(c.OnTimeout)
+	c.checkTimer = utils.NewTimer(c.OnCheck)
+	c.checkTimeout = utils.NewTimer(c.OnTimeout)
 	return c
 }
 
 func (c *sessionChecker) Start() {
 	defer func() {
 		// stop all the timer when start is finished
-		c.checkTimer.stop()
-		c.checkTimeout.stop()
+		c.checkTimer.Stop()
+		c.checkTimeout.Stop()
 	}()
-	c.checkTimer.start(c.HealthChecker.getCheckInterval())
+	c.checkTimer.Start(c.HealthChecker.getCheckInterval())
 	for {
 		select {
 		case <-c.stop:
@@ -76,21 +77,21 @@ func (c *sessionChecker) Start() {
 			case resp := <-c.resp:
 				// if the ID is not equal, means we receive a timeout for this ID, ignore the response
 				if resp.ID == c.checkID {
-					c.checkTimeout.stop()
+					c.checkTimeout.Stop()
 					if resp.Healthy {
 						c.HandleSuccess()
 					} else {
 						c.HandleFailure(types.FailureActive)
 					}
 					// next health checker
-					c.checkTimer.start(c.HealthChecker.getCheckInterval())
+					c.checkTimer.Start(c.HealthChecker.getCheckInterval())
 				}
 			case <-c.timeout:
-				c.checkTimer.stop()
+				c.checkTimer.Stop()
 				c.Session.OnTimeout() // session timeout callbacks
 				c.HandleFailure(types.FailureNetwork)
 				// next health checker
-				c.checkTimer.start(c.HealthChecker.getCheckInterval())
+				c.checkTimer.Start(c.HealthChecker.getCheckInterval())
 			}
 		}
 	}
@@ -133,7 +134,7 @@ func (c *sessionChecker) OnCheck() {
 	id := c.checkID
 	c.HealthChecker.stats.attempt.Inc(1)
 	// start a timeout before check health
-	c.checkTimeout.start(c.HealthChecker.timeout)
+	c.checkTimeout.Start(c.HealthChecker.timeout)
 	c.resp <- checkResponse{
 		ID:      id,
 		Healthy: c.Session.CheckHealth(),

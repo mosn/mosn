@@ -202,7 +202,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac.client = codecClient
 	ac.host = data
 
-	if err := ac.host.Connection.Connect(true); err != nil {
+	if err := ac.client.Connect(true); err != nil {
 		return nil
 	}
 	// Add Keep Alive
@@ -214,7 +214,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		ac.keepAlive = &keepAliveListener{
 			keepAlive: NewSofaRPCKeepAlive(codecClient, proto, time.Second, 6),
 		}
-		ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
+		ac.client.AddConnectionEventListener(ac.keepAlive)
 		go ac.keepAlive.keepAlive.Start()
 	}
 	// stats

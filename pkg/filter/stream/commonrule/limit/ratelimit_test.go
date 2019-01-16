@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/metrix"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 func TestRateLimiter_TryAcquire(t *testing.T) {
@@ -47,7 +47,7 @@ func TestRateLimiter_TryAcquire1(t *testing.T) {
 
 	total := 0
 	success := 0
-	ticker := metrix.NewTicker(func() {
+	ticker := utils.NewTicker(func() {
 		total++
 		res := limiter.TryAcquire()
 		if res {
@@ -80,7 +80,7 @@ func TestRateLimiter_TryAcquire2(t *testing.T) {
 
 				total := 0
 				success := 0
-				ticker := metrix.NewTicker(func() {
+				ticker := utils.NewTicker(func() {
 					total++
 					res := limiter.TryAcquire()
 					if res {

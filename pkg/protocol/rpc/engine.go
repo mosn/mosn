@@ -61,7 +61,13 @@ func (eg *engine) Decode(ctx context.Context, data types.IoBuffer) (interface{},
 }
 
 func (eg *engine) BuildSpan(args ...interface{}) types.Span {
-	return eg.spanBuilder.BuildSpan(args...)
+	builder := eg.spanBuilder
+	if builder != nil {
+		return builder.BuildSpan(args...)
+	} else {
+		log.DefaultLogger.Warnf("engine spanBuilder is empty,eg=%+v", eg)
+		return nil
+	}
 }
 
 func (eg *engine) Register(protocolCode byte, encoder types.Encoder, decoder types.Decoder, spanBuilder types.SpanBuilder) error {

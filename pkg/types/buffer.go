@@ -109,7 +109,7 @@ type IoBuffer interface {
 	Free()
 
 	// Count sets and returns reference count
-	Count(int) int
+	Count(int32) int32
 
 	// EOF returns whether Io is EOF on the connection
 	EOF() bool

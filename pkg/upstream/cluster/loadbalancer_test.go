@@ -404,6 +404,9 @@ func MockRouterMatcher() (types.Routers, error) {
 }
 
 func mockClusterManager() types.ClusterManager {
+	// reset cluster manager instance
+	clusterMangerInstance = nil
+	// create a new cluster manager
 	host1 := newHostV2("127.0.0.1", "h1", 5, v2.Metadata{"label": "blue"})
 	host2 := newHostV2("127.0.0.2", "h2", 5, v2.Metadata{"label": "blue"})
 	host3 := newHostV2("127.0.0.3", "h3", 5, v2.Metadata{"label": "green"})
@@ -486,7 +489,7 @@ func Benchmark_RouteAndLB(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		route := mockedRouter.Route(mockedHeader, 1)
+		route := mockedRouter.MatchRoute(mockedHeader, 1)
 		if route == nil {
 			b.Errorf("%s match failed\n", "www.alibaba.com")
 			return
@@ -500,14 +503,7 @@ func Benchmark_RouteAndLB(b *testing.B) {
 			return
 		}
 
-		if mmc, ok := route.RouteRule().MetadataMatchCriteria(clustername).(*router.MetadataMatchCriteriaImpl); ok {
-			ctx := &ContextImplMock{
-				mmc: mmc,
-			}
-
-			host := clusterSnapshot.LoadBalancer().ChooseHost(ctx)
-			b.Logf("host name = %s", host.Hostname())
-		} else {
+		if _, ok := route.RouteRule().MetadataMatchCriteria(clustername).(*router.MetadataMatchCriteriaImpl); !ok {
 			b.Errorf("cluster name = %s host select error", clustername)
 		}
 		mockedClusterMng.PutClusterSnapshot(clusterSnapshot)

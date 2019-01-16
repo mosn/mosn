@@ -85,6 +85,10 @@ func (c *client) ConnID() uint64 {
 	return c.Connection.ID()
 }
 
+func (c *client) Connect(ioEnabled bool) error {
+	return c.Connection.Connect(ioEnabled)
+}
+
 func (c *client) AddConnectionEventListener(listener types.ConnectionEventListener) {
 	c.Connection.AddConnectionEventListener(listener)
 }

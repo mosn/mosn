@@ -23,12 +23,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
 var traceIdGenerator = newIdGenerator()
-var spanIdGeneratorMap = map[*SpanKey]*SpanIdGenerator{}
+var spanIdGeneratorMap = sync.Map{}
 
 type IdGenerator struct {
 	index int64
@@ -67,15 +68,20 @@ func NewSpanIdGenerator(traceId, spanId string) *SpanIdGenerator {
 }
 
 func AddSpanIdGenerator(generator *SpanIdGenerator) {
-	spanIdGeneratorMap[&generator.key] = generator
+	spanIdGeneratorMap.Store(&generator.key, generator)
 }
 
 func GetSpanIdGenerator(key *SpanKey) *SpanIdGenerator {
-	return spanIdGeneratorMap[key]
+	value, ok := spanIdGeneratorMap.Load(key)
+	if ok {
+		return value.(*SpanIdGenerator)
+	} else {
+		return nil
+	}
 }
 
 func DeleteSpanIdGenerator(key *SpanKey) {
-	delete(spanIdGeneratorMap, key)
+	spanIdGeneratorMap.Delete(key)
 }
 
 func newIdGenerator() *IdGenerator {

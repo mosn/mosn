@@ -24,6 +24,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
@@ -53,15 +54,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: types.GenerateHashedValue("test"),
+						Value: utils.GenerateMD5Value("test"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: types.GenerateHashedValue("green"),
+						Value: utils.GenerateMD5Value("green"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("v1"),
+						Value: utils.GenerateMD5Value("v1"),
 					},
 				},
 			},
@@ -77,15 +78,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: types.GenerateHashedValue("test"),
+						Value: utils.GenerateMD5Value("test"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: types.GenerateHashedValue("green"),
+						Value: utils.GenerateMD5Value("green"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("v1"),
+						Value: utils.GenerateMD5Value("v1"),
 					},
 				},
 			},
@@ -101,7 +102,7 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("v1"),
+						Value: utils.GenerateMD5Value("v1"),
 					},
 				},
 			},
@@ -200,7 +201,7 @@ func TestMetadataMatchCriteriaImplSort(t *testing.T) {
 	for i := range keys {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  keys[i],
-			Value: types.GenerateHashedValue(values[i]),
+			Value: utils.GenerateMD5Value(values[i]),
 		}
 		mciArray = append(mciArray, mmci)
 	}

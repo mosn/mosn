@@ -25,6 +25,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	"github.com/rcrowley/go-metrics"
 )
 
@@ -39,7 +40,7 @@ const (
 type Stat struct {
 	ruleConfig *model.RuleConfig
 	counters   map[string]metrics.Counter
-	ticker     *ticker
+	ticker     *utils.Ticker
 }
 
 // NewStat new
@@ -56,7 +57,7 @@ func NewStat(ruleConfig *model.RuleConfig) *Stat {
 
 // Start ticker
 func (s *Stat) Start() {
-	s.ticker = NewTicker(s.callback)
+	s.ticker = utils.NewTicker(s.callback)
 	s.ticker.Start(time.Millisecond * time.Duration(s.ruleConfig.LimitConfig.PeriodMs))
 }
 

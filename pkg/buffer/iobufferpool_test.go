@@ -21,5 +21,16 @@ func TestIoBufferPoolWithCount(t *testing.T) {
 	if buf.Len() != 0 {
 		t.Error("iobuffer expected put success")
 	}
+}
 
+func TestIoBufferPooPutduplicate(t *testing.T) {
+	buf := GetIoBuffer(0)
+	err := PutIoBuffer(buf)
+	if err != nil {
+		t.Errorf("iobuffer put error:%v", err)
+	}
+	err = PutIoBuffer(buf)
+	if err == nil {
+		t.Errorf("iobuffer should be error: Put IoBuffer duplicate" )
+	}
 }
