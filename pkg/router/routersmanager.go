@@ -57,6 +57,12 @@ func (rw *RoutersWrapper) GetRouters() types.Routers {
 	return rw.routers
 }
 
+func (rw *RoutersWrapper) GetRoutersConfig() v2.RouterConfiguration {
+	rw.mux.RLock()
+	defer rw.mux.RUnlock()
+	return *rw.routersConfig
+}
+
 func NewRouterManager() types.RouterManager {
 	instanceMutex.Lock()
 	defer instanceMutex.Unlock()
@@ -131,35 +137,4 @@ func (rm *routersManager) GetRouterWrapperByName(routerConfigName string) types.
 	}
 
 	return nil
-}
-
-// AppendRoutersInVirtualHost appends a router into virtualhsot
-// router_config_name must be setted
-// if virtualhost is empty(""), add into default virtual host(if exists)
-func (rm *routersManager) AppendRoutersInVirtualHost(routerConfigName string, virtualhost string, router v2.Router) {
-	if v, ok := rm.routersMap.Load(routerConfigName); ok {
-		if primaryRouters, ok := v.(*RoutersWrapper); ok {
-			primaryRouters.mux.Lock()
-			cfg := primaryRouters.routersConfig
-			// find virtual host
-			var vhost *v2.VirtualHost
-			vhs := cfg.VirtualHosts
-			for _, vh := range vhs {
-				if virtualhost == "" {
-					if len(vh.Domains) > 0 && vh.Domains[0] == "*" {
-						vhost = vh
-						break
-					}
-				} else if vh.Name == virtualhost {
-					vhost = vh
-					break
-				}
-			}
-			if vhost != nil {
-				vhost.Routers = append(vhost.Routers, router)
-			}
-			primaryRouters.mux.Unlock()
-			rm.AddOrUpdateRouters(cfg)
-		}
-	}
 }

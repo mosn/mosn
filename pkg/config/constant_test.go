@@ -89,3 +89,16 @@ var basicConfigStr = `
 		}
 	]
 }`
+
+const basicClusterConfigStr = `{
+	"cluster_manager":{
+		"clusters":[
+			{
+				"name": "test_cluster",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+				"hosts": []
+			}
+		]
+	}
+}`
