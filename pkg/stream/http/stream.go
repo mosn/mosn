@@ -121,8 +121,10 @@ type streamConnection struct {
 
 // types.StreamConnection
 func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
-	conn.bufChan <- buffer
-	<-conn.bufChan
+	for buffer.Len() > 0 {
+		conn.bufChan <- buffer
+		<-conn.bufChan
+	}
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -176,6 +178,7 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 			context: context,
 			conn:    connection,
 			bufChan: make(chan types.IoBuffer),
+			opsChan: make(chan bool),
 		},
 		connectionEventListener:       connCallbacks,
 		streamConnectionEventListener: streamConnCallbacks,
@@ -288,6 +291,7 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 			context: context,
 			conn:    connection,
 			bufChan: make(chan types.IoBuffer),
+			opsChan: make(chan bool),
 		},
 		serverStreamConnListener: callbacks,
 	}
@@ -563,7 +567,6 @@ func (s *serverStream) endStream() {
 		// connections are keep-alive by default.
 		s.response.Header.SetCanonical(HKConnection, HVKeepAlive)
 	}
-
 
 	s.doSend()
 	s.responseDoneChan <- true
