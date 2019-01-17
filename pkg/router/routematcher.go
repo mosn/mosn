@@ -125,8 +125,8 @@ type routeMatcher struct {
 	greaterSortedWildcardVirtualHostSuffixes []int
 }
 
-// Routing with Virtual Host
-func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types.Route {
+// MatchRoute returns the first route that matched
+func (rm *routeMatcher) MatchRoute(headers types.HeaderMap, randomValue uint64) types.Route {
 	// First Step: Select VirtualHost with "host" in Headers form VirtualHost Array
 	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
@@ -146,8 +146,8 @@ func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types
 	return routerInstance
 }
 
-// GetAllRoutes returns all route that matched
-func (rm *routeMatcher) GetAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
+// MatchAllRoutes returns all route that matched
+func (rm *routeMatcher) MatchAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
 	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
 	if virtualHost == nil {

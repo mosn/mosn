@@ -52,38 +52,3 @@ func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
 
 	return timeout
 }
-
-type timer struct {
-	callback func()
-	interval time.Duration
-	stopped  bool
-	stopChan chan bool
-}
-
-func newTimer(callback func(), interval time.Duration) *timer {
-	return &timer{
-		callback: callback,
-		interval: interval,
-		stopChan: make(chan bool, 1),
-	}
-}
-
-func (t *timer) start() {
-	go func() {
-		select {
-		case <-time.After(t.interval):
-			t.stopped = true
-			t.callback()
-		case <-t.stopChan:
-			t.stopped = true
-		}
-	}()
-}
-
-func (t *timer) stop() {
-	if t.stopped {
-		return
-	}
-
-	t.stopChan <- true
-}

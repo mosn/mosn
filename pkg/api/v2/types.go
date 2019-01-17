@@ -180,6 +180,7 @@ type RBAC struct {
 // The first route that matches will be used.
 type Router struct {
 	RouterConfig
+	// Metadata is created from MetadataConfig, which is used to subset
 	Metadata Metadata `json:"-"`
 }
 
@@ -433,4 +434,12 @@ type PublishInfo struct {
 type PublishContent struct {
 	ServiceName string `json:"service_name,omitempty"`
 	PubData     string `json:"pub_data,omitempty"`
+}
+
+// StatsMatcher is a configuration for disabling stat instantiation.
+// TODO: support inclusion_list
+// TODO: support exclusion list/inclusion_list as pattern
+type StatsMatcher struct {
+	RejectAll     bool     `json:"reject_all"`
+	ExclusionList []string `json:"exclusion_list"`
 }

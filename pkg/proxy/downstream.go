@@ -29,6 +29,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/trace"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -59,8 +60,8 @@ type downStream struct {
 	requestInfo     types.RequestInfo
 	responseSender  types.StreamSender
 	upstreamRequest *upstreamRequest
-	perRetryTimer   *timer
-	responseTimer   *timer
+	perRetryTimer   *utils.Timer
+	responseTimer   *utils.Timer
 
 	// ~~~ downstream request buf
 	downstreamReqHeaders  types.HeaderMap
@@ -511,11 +512,11 @@ func (s *downStream) onUpstreamRequestSent() {
 		// setup global timeout timer
 		if s.timeout.GlobalTimeout > 0 {
 			if s.responseTimer != nil {
-				s.responseTimer.stop()
+				s.responseTimer.Stop()
 			}
 
-			s.responseTimer = newTimer(s.onResponseTimeout, s.timeout.GlobalTimeout)
-			s.responseTimer.start()
+			s.responseTimer = utils.NewTimer(s.onResponseTimeout)
+			s.responseTimer.Start(s.timeout.GlobalTimeout)
 		}
 	}
 }
@@ -541,11 +542,11 @@ func (s *downStream) setupPerReqTimeout() {
 
 	if timeout.TryTimeout > 0 {
 		if s.perRetryTimer != nil {
-			s.perRetryTimer.stop()
+			s.perRetryTimer.Stop()
 		}
 
-		s.perRetryTimer = newTimer(s.onPerReqTimeout, timeout.TryTimeout*time.Second)
-		s.perRetryTimer.start()
+		s.perRetryTimer = utils.NewTimer(s.onPerReqTimeout)
+		s.perRetryTimer.Start(timeout.TryTimeout * time.Second)
 	}
 }
 
@@ -857,7 +858,7 @@ func (s *downStream) setupRetry(endStream bool) bool {
 
 	// reset per req timer
 	if s.perRetryTimer != nil {
-		s.perRetryTimer.stop()
+		s.perRetryTimer.Stop()
 		s.perRetryTimer = nil
 	}
 
@@ -955,13 +956,13 @@ func (s *downStream) cleanUp() {
 
 	// reset pertry timer
 	if s.perRetryTimer != nil {
-		s.perRetryTimer.stop()
+		s.perRetryTimer.Stop()
 		s.perRetryTimer = nil
 	}
 
 	// reset response timer
 	if s.responseTimer != nil {
-		s.responseTimer.stop()
+		s.responseTimer.Stop()
 		s.responseTimer = nil
 	}
 
@@ -1027,7 +1028,9 @@ func (s *downStream) giveStream() {
 	}
 	// reset downstreamReqBuf
 	if s.downstreamReqDataBuf != nil {
-		buffer.PutIoBuffer(s.downstreamReqDataBuf)
+		if e := buffer.PutIoBuffer(s.downstreamReqDataBuf); e != nil {
+			s.logger.Errorf("PutIoBuffer error: %v", e)
+		}
 	}
 
 	// Give buffers to bufferPool

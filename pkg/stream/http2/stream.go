@@ -322,8 +322,8 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 			conn.logger.Debugf("http2 server data: %d", id)
 			stream.receiver.OnReceiveData(stream.ctx, stream.buildData(), false)
 		}
-		trailer := mhttp2.NewHeaderMap(h2s.Request.Trailer)
-		conn.logger.Debugf("http2 server trailer: %d, %v", id, h2s.Request.Trailer)
+		trailer := mhttp2.NewHeaderMap(stream.h2s.Request.Trailer)
+		conn.logger.Debugf("http2 server trailer: %d, %v", id, stream.h2s.Request.Trailer)
 		stream.receiver.OnReceiveTrailers(ctx, trailer)
 		return
 	}

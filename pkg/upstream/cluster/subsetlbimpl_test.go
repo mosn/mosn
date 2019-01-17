@@ -20,12 +20,14 @@ package cluster
 import (
 	"net"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 // we test following cases form envoy's example
@@ -47,7 +49,7 @@ import (
 */
 
 func init() {
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("", log.FATAL)
 }
 
 var prioritySetExample = prioritySet{
@@ -98,11 +100,11 @@ func TestSubSetLoadBalancer_GetHostsNumber(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "stage",
-						Value: types.GenerateHashedValue("prod"),
+						Value: utils.GenerateMD5Value("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
 						Name:  "type",
-						Value: types.GenerateHashedValue("std"),
+						Value: utils.GenerateMD5Value("std"),
 					},
 				},
 			},
@@ -114,11 +116,11 @@ func TestSubSetLoadBalancer_GetHostsNumber(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "stage",
-						Value: types.GenerateHashedValue("prod"),
+						Value: utils.GenerateMD5Value("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
 						Name:  "type",
-						Value: types.GenerateHashedValue("unknown"),
+						Value: utils.GenerateMD5Value("unknown"),
 					},
 				},
 			},
@@ -220,11 +222,11 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "stage",
-						Value: types.GenerateHashedValue("prod"),
+						Value: utils.GenerateMD5Value("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
 						Name:  "type",
-						Value: types.GenerateHashedValue("std"),
+						Value: utils.GenerateMD5Value("std"),
 					},
 				},
 			},
@@ -244,11 +246,11 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "stage",
-						Value: types.GenerateHashedValue("prod"),
+						Value: utils.GenerateMD5Value("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
 						Name:  "type",
-						Value: types.GenerateHashedValue("bigmem"),
+						Value: utils.GenerateMD5Value("bigmem"),
 					},
 				},
 			},
@@ -267,11 +269,11 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "stage",
-						Value: types.GenerateHashedValue("dev"),
+						Value: utils.GenerateMD5Value("dev"),
 					},
 					&router.MetadataMatchCriterionImpl{
 						Name:  "type",
-						Value: types.GenerateHashedValue("std"),
+						Value: utils.GenerateMD5Value("std"),
 					},
 				},
 			},
@@ -289,11 +291,11 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "stage",
-						Value: types.GenerateHashedValue("prod"),
+						Value: utils.GenerateMD5Value("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("1.0"),
+						Value: utils.GenerateMD5Value("1.0"),
 					},
 				},
 			},
@@ -314,11 +316,11 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "stage",
-						Value: types.GenerateHashedValue("prod"),
+						Value: utils.GenerateMD5Value("prod"),
 					},
 					&router.MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("1.1"),
+						Value: utils.GenerateMD5Value("1.1"),
 					},
 				},
 			},
@@ -339,11 +341,11 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "stage",
-						Value: types.GenerateHashedValue("dev"),
+						Value: utils.GenerateMD5Value("dev"),
 					},
 					&router.MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("1.2-pre"),
+						Value: utils.GenerateMD5Value("1.2-pre"),
 					},
 				},
 			},
@@ -363,7 +365,7 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("1.0"),
+						Value: utils.GenerateMD5Value("1.0"),
 					},
 				},
 			},
@@ -384,7 +386,7 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("1.1"),
+						Value: utils.GenerateMD5Value("1.1"),
 					},
 				},
 			},
@@ -405,7 +407,7 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("1.2-pre"),
+						Value: utils.GenerateMD5Value("1.2-pre"),
 					},
 				},
 			},
@@ -424,11 +426,11 @@ func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
 				matchCriteria: []types.MetadataMatchCriterion{
 					&router.MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.GenerateHashedValue("1.0"),
+						Value: utils.GenerateMD5Value("1.0"),
 					},
 					&router.MetadataMatchCriterionImpl{
 						Name:  "xlarge",
-						Value: types.GenerateHashedValue("true"),
+						Value: utils.GenerateMD5Value("true"),
 					},
 				},
 			},
@@ -475,11 +477,11 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 						MatchCriteriaArray: []types.MetadataMatchCriterion{
 							&router.MetadataMatchCriterionImpl{
 								Name:  "stage",
-								Value: types.GenerateHashedValue("prod"),
+								Value: utils.GenerateMD5Value("prod"),
 							},
 							&router.MetadataMatchCriterionImpl{
 								Name:  "type",
-								Value: types.GenerateHashedValue("std"),
+								Value: utils.GenerateMD5Value("std"),
 							},
 						},
 					},
@@ -496,11 +498,11 @@ func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
 						MatchCriteriaArray: []types.MetadataMatchCriterion{
 							&router.MetadataMatchCriterionImpl{
 								Name:  "stage",
-								Value: types.GenerateHashedValue("prod"),
+								Value: utils.GenerateMD5Value("prod"),
 							},
 							&router.MetadataMatchCriterionImpl{
 								Name:  "type",
-								Value: types.GenerateHashedValue("unknown"),
+								Value: utils.GenerateMD5Value("unknown"),
 							},
 						},
 					},
@@ -621,11 +623,11 @@ func TestGenerateDftSubsetKeys(t *testing.T) {
 
 func InitDefaultSubsetMetadata() types.SubsetMetadata {
 
-	p1 := types.Pair{T1: "stage", T2: types.GenerateHashedValue("prod")}
+	p1 := types.Pair{T1: "stage", T2: utils.GenerateMD5Value("prod")}
 
-	p2 := types.Pair{T1: "type", T2: types.GenerateHashedValue("std")}
+	p2 := types.Pair{T1: "type", T2: utils.GenerateMD5Value("std")}
 
-	p3 := types.Pair{T1: "version", T2: types.GenerateHashedValue("1.0")}
+	p3 := types.Pair{T1: "version", T2: utils.GenerateMD5Value("1.0")}
 
 	return []types.Pair{p1, p2, p3}
 }
@@ -818,6 +820,28 @@ func TestWeightedClusterRoute(t *testing.T) {
 		}
 	} else {
 		t.Errorf("routing with weighted cluster error, no clustername found")
+	}
+}
+
+func TestGetFinalHost(t *testing.T) {
+	pool := makePool(100)
+	hosts := pool.MakeHosts(10)
+	hsSubset := &hostSubsetImpl{
+		hostSubset: &hostSet{
+			hosts: hosts,
+		},
+	}
+	hostsRemoved := make([]types.Host, 5)
+	copy(hostsRemoved, hosts[5:])
+	hostsAdded := pool.MakeHosts(5)
+	final := types.SortedHosts(hsSubset.GetFinalHosts(hostsAdded, hostsRemoved))
+	expected := types.SortedHosts(make([]types.Host, 10))
+	copy(expected[:5], hosts[:5])
+	copy(expected[5:], hostsAdded)
+	sort.Sort(final)
+	sort.Sort(expected)
+	if !reflect.DeepEqual(final, expected) {
+		t.Error("get final hosts unexpected")
 	}
 }
 

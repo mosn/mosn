@@ -362,6 +362,22 @@ type LBSubsetInfo interface {
 	SubsetKeys() []SortedStringSetType
 }
 
+// SortedHosts is an implementation of sort.Interface
+// a slice of host can be sorted as address string
+type SortedHosts []Host
+
+func (s SortedHosts) Len() int {
+	return len(s)
+}
+
+func (s SortedHosts) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s SortedHosts) Less(i, j int) bool {
+	return s[i].AddressString() < s[j].AddressString()
+}
+
 // SortedStringSetType is a sorted key collection with no duplicate
 type SortedStringSetType struct {
 	keys []string

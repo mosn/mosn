@@ -243,7 +243,10 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 				request.ContentLen = int(contentLen)
 				request.ClassName = class
 				request.HeaderMap = header
-				request.Content = buffer.NewIoBufferBytes(content)
+				// avoid valid IoBuffer with empty buffer
+				if content != nil {
+					request.Content = buffer.NewIoBufferBytes(content)
+				}
 				sofarpc.DeserializeBoltRequest(ctx, request)
 
 				cmd = request

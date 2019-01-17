@@ -61,13 +61,12 @@ func init() {
 // makesTransferData get all registered metrics data as a map[string]map[string][]TransferData
 // the map will be gob encoded to transfer
 func makesTransferData() ([]byte, error) {
-	// lock store
-	defaultStore.mutex.Lock()
-	defer defaultStore.mutex.Unlock()
 
-	transfers := make([]TransferStats, len(defaultStore.metrics))
+	metrics := GetAll()
 
-	for i, metric := range defaultStore.metrics {
+	transfers := make([]TransferStats, len(metrics))
+
+	for i, metric := range metrics {
 		transfers[i].Type = metric.Type()
 		transfers[i].Labels = metric.Labels()
 

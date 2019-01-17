@@ -24,8 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"fmt"
-
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -67,7 +65,6 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		subsetLBMetaData := route.Route.MetadataMatch
 		routeRuleImplBase.metadataMatchCriteria = NewMetadataMatchCriteriaImpl(subsetLBMetaData)
 
-		routeRuleImplBase.metaData = getClusterMosnLBMetaDataMap(subsetLBMetaData)
 	}
 
 	if route.DirectResponse != nil {
@@ -112,7 +109,6 @@ type RouteRuleImplBase struct {
 	hashPolicy            hashPolicyImpl
 
 	metadataMatchCriteria *MetadataMatchCriteriaImpl // sorted and unique metadata
-	metaData              types.RouteMetaData        // not sorted, only value in hashed
 
 	requestHeadersParser  *headerParser
 	responseHeadersParser *headerParser
@@ -202,10 +198,6 @@ func (rri *RouteRuleImplBase) Policy() types.Policy {
 	return rri.policy
 }
 
-func (rri *RouteRuleImplBase) Metadata() types.RouteMetaData {
-	return rri.metaData
-}
-
 func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.MetadataMatchCriteria {
 	// if clusterName belongs to a weighted cluster
 	if matchCriteria, ok := rri.weightedClusters[clusterName]; ok {
@@ -213,22 +205,6 @@ func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.Me
 	}
 
 	return rri.metadataMatchCriteria
-}
-
-func (rri *RouteRuleImplBase) UpdateMetaDataMatchCriteria(metadata map[string]string) error {
-	if metadata == nil {
-		return fmt.Errorf("UpdateMetaDataMatchCriteria fail: metadata is nil")
-	}
-
-	mmc := NewMetadataMatchCriteriaImpl(metadata)
-	if mmc == nil {
-		return fmt.Errorf("UpdateMetaDataMatchCriteria fail: NewMetadataMatchCriteriaImpl error")
-	}
-
-	rri.metadataMatchCriteria = mmc
-	rri.metaData = getClusterMosnLBMetaDataMap(metadata)
-
-	return nil
 }
 
 func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {

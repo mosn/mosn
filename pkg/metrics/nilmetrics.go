@@ -15,54 +15,44 @@
  * limitations under the License.
  */
 
-package buffer
+package metrics
 
 import (
-	"sync"
-	"errors"
-
 	"github.com/alipay/sofa-mosn/pkg/types"
+	gometrics "github.com/rcrowley/go-metrics"
 )
 
-var ibPool IoBufferPool
-
-// IoBufferPool is Iobuffer Pool
-type IoBufferPool struct {
-	pool sync.Pool
+// NilMetrics is an implementation of types.Metrics
+// it stores nothing except the metrics type and labels
+type NilMetrics struct {
+	*metrics
 }
 
-// take returns IoBuffer from IoBufferPool
-func (p *IoBufferPool) take(size int) (buf types.IoBuffer) {
-	v := p.pool.Get()
-	if v == nil {
-		buf = NewIoBuffer(size)
-	} else {
-		buf = v.(types.IoBuffer)
-		buf.Alloc(size)
-		buf.Count(1)
-	}
-	return
+func NewNilMetrics(typ string, labels map[string]string) (types.Metrics, error) {
+	return &NilMetrics{
+		metrics: &metrics{
+			typ:    typ,
+			labels: labels,
+		},
+	}, nil
 }
 
-// give returns IoBuffer to IoBufferPool
-func (p *IoBufferPool) give(buf types.IoBuffer) {
-	buf.Free()
-	p.pool.Put(buf)
+func (m *NilMetrics) Counter(key string) gometrics.Counter {
+	return gometrics.NilCounter{}
 }
 
-// GetIoBuffer returns IoBuffer from pool
-func GetIoBuffer(size int) types.IoBuffer {
-	return ibPool.take(size)
+func (m *NilMetrics) Gauge(key string) gometrics.Gauge {
+	return gometrics.NilGauge{}
 }
 
-// PutIoBuffer returns IoBuffer to pool
-func PutIoBuffer(buf types.IoBuffer) error {
-	count := buf.Count(-1)
-	if count > 0 {
-		return nil
-	} else if count < 0 {
-		return errors.New("PutIoBuffer duplicate")
-	}
-	ibPool.give(buf)
-	return nil
+func (m *NilMetrics) Histogram(key string) gometrics.Histogram {
+	return gometrics.NilHistogram{}
+}
+
+func (m *NilMetrics) Each(f func(string, interface{})) {
+	// do nothing
+}
+
+func (m *NilMetrics) UnregisterAll() {
+	// do nothing
 }

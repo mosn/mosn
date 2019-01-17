@@ -24,14 +24,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/metrics"
 )
 
 type testAction int
 
 const (
-	countInc        testAction = iota
+	countInc testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate
@@ -115,11 +116,11 @@ func TestPrometheusMetrics(t *testing.T) {
 		t.Error("lbk1_t1_k1{lbk1=\"lbv2\"} metric not correct")
 	}
 
-	if !bytes.Contains(body, []byte("lbk1_t1_k4{lbk1=\"lbv1\",type=\"max\"} 4.0")) {
-		t.Error("lbk1_t1_k4{lbk1=\"lbv1\",type=\"max\"} metric not correct")
+	if !bytes.Contains(body, []byte("lbk1_t1_k4_max{lbk1=\"lbv1\"} 4.0")) {
+		t.Error("lbk1_t1_k4_max{lbk1=\"lbv1\"} metric not correct")
 	}
 
-	if !bytes.Contains(body, []byte("lbk2_t1_k4{lbk2=\"lbv2\",type=\"min\"} 2.0")) {
-		t.Error("lbk2_t1_k4{lbk2=\"lbv2\",type=\"min\"} metric not correct")
+	if !bytes.Contains(body, []byte("lbk2_t1_k4_min{lbk2=\"lbv2\"} 2.0")) {
+		t.Error("lbk2_t1_k4_min{lbk2=\"lbv2\"} metric not correct")
 	}
 }
