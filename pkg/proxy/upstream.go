@@ -206,7 +206,7 @@ func (r *upstreamRequest) appendHeaders(headers types.HeaderMap, endStream bool)
 }
 
 func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap {
-	dp, up := r.proxy.convertProtocol()
+	dp, up := r.downStream.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
@@ -227,7 +227,7 @@ func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
 }
 
 func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
-	dp, up := r.proxy.convertProtocol()
+	dp, up := r.downStream.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
@@ -248,7 +248,7 @@ func (r *upstreamRequest) appendTrailers(trailers types.HeaderMap) {
 }
 
 func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
-	dp, up := r.proxy.convertProtocol()
+	dp, up := r.downStream.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
