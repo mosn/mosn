@@ -178,7 +178,6 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 			context: context,
 			conn:    connection,
 			bufChan: make(chan types.IoBuffer),
-			opsChan: make(chan bool),
 		},
 		connectionEventListener:       connCallbacks,
 		streamConnectionEventListener: streamConnCallbacks,
@@ -291,7 +290,6 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 			context: context,
 			conn:    connection,
 			bufChan: make(chan types.IoBuffer),
-			opsChan: make(chan bool),
 		},
 		serverStreamConnListener: callbacks,
 	}
