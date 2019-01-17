@@ -324,6 +324,7 @@ func (f *activeStreamReceiverFilter) doContinue() {
 	if hasBuffedData || f.stoppedNoBuf {
 		if f.stoppedNoBuf || f.activeStream.downstreamReqDataBuf == nil {
 			f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(0)
+			f.activeStream.downstreamReqDataBuf.Count(1)
 		}
 
 		endStream := f.activeStream.downstreamRecvDone && !hasTrailer
@@ -339,6 +340,7 @@ func (f *activeStreamReceiverFilter) handleBufferData(buf types.IoBuffer) {
 	if f.activeStream.downstreamReqDataBuf != buf {
 		if f.activeStream.downstreamReqDataBuf == nil {
 			f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(buf.Len())
+			f.activeStream.downstreamReqDataBuf.Count(1)
 		}
 
 		f.activeStream.downstreamReqDataBuf.ReadFrom(buf)
@@ -497,6 +499,7 @@ func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
 	}
 	if f.activeStream.downstreamReqDataBuf == nil {
 		f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(0)
+		f.activeStream.downstreamReqDataBuf.Count(1)
 	}
 	f.activeStream.downstreamReqDataBuf.Reset()
 	f.activeStream.downstreamReqDataBuf.ReadFrom(data)
