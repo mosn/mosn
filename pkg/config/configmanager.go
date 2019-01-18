@@ -52,7 +52,7 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 	config.ServiceRegistry.ServicePubInfo = []v2.PublishInfo{}
 
 	// delete subInfo / dynamic clusters
-	removeClusterConfig(subServiceList)
+	RemoveClusterConfig(subServiceList)
 }
 
 // AddOrUpdateClusterConfig
@@ -82,9 +82,14 @@ func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 	}
 }
 
-func removeClusterConfig(clusterNames []string) {
-	dirty := false
+func RemoveClusterConfig(clusterNames []string) {
+	if removeClusterConfig(clusterNames) {
+		go dump(true)
+	}
+}
 
+func removeClusterConfig(clusterNames []string) bool {
+	dirty := false
 	for _, clusterName := range clusterNames {
 		for i, cluster := range config.ClusterManager.Clusters {
 			if cluster.Name == clusterName {
@@ -95,8 +100,7 @@ func removeClusterConfig(clusterNames []string) {
 			}
 		}
 	}
-
-	go dump(dirty)
+	return dirty
 }
 
 // AddPubInfo

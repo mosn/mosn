@@ -62,6 +62,14 @@ func TestUpdateClusterConfig(t *testing.T) {
 			}
 		}
 	}
+	// remove clustere
+	if !removeClusterConfig([]string{"test_new"}) {
+		t.Fatal("remove test new cluster failed")
+	}
+	// verify
+	if len(config.ClusterManager.Clusters) != 1 {
+		t.Fatal("remove cluster failed")
+	}
 }
 
 func TestUpdateRouterConfig(t *testing.T) {
