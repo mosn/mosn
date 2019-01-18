@@ -15,23 +15,28 @@
  * limitations under the License.
  */
 
-package config
+package conv
 
 import (
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	clusterAdapter "github.com/alipay/sofa-mosn/pkg/upstream/cluster"
-	pb "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	jsoniter "github.com/json-iterator/go"
 )
 
-// OnRouterUpdate used to add or update routers
-func (c *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration) {
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
+// ConvertXXX Function converts protobuf to mosn config, and makes the config effects
+
+// ConvertAddOrUpdateRouters converts router configurationm, used to add or update routers
+func ConvertAddOrUpdateRouters(routers []*envoy_api_v2.RouteConfiguration) {
 	if routersMngIns := router.GetRoutersMangerInstance(); routersMngIns == nil {
 		log.DefaultLogger.Errorf("xds OnAddOrUpdateRouters error: router manager in nil")
 	} else {
@@ -48,9 +53,8 @@ func (c *MOSNConfig) OnAddOrUpdateRouters(routers []*pb.RouteConfiguration) {
 	}
 }
 
-// OnAddOrUpdateListeners called by XdsClient when listeners config refresh
-func (c *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
-
+// ConvertAddOrUpdateListeners converts listener configuration, used to  add or update listeners
+func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 	for _, listener := range listeners {
 		if jsonStr, err := json.Marshal(listener); err == nil {
 			log.DefaultLogger.Tracef("raw listener config: %s", string(jsonStr))
@@ -66,10 +70,10 @@ func (c *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 
 		if !mosnListener.HandOffRestoredDestinationConnections {
 			for _, filterChain := range mosnListener.FilterChains {
-				nf := GetNetworkFilters(&filterChain)
+				nf := config.GetNetworkFilters(&filterChain)
 				networkFilters = append(networkFilters, nf...)
 			}
-			streamFilters = GetStreamFilters(mosnListener.StreamFilters)
+			streamFilters = config.GetStreamFilters(mosnListener.StreamFilters)
 
 			if len(networkFilters) == 0 {
 				log.DefaultLogger.Errorf("xds client update listener error: proxy needed in network filters")
@@ -93,9 +97,11 @@ func (c *MOSNConfig) OnAddOrUpdateListeners(listeners []*pb.Listener) {
 				mosnListener.Addr.String(), err.Error())
 		}
 	}
+
 }
 
-func (c *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) {
+// ConvertDeleteListeners converts listener configuration, used to delete listener
+func ConvertDeleteListeners(listeners []*envoy_api_v2.Listener) {
 	for _, listener := range listeners {
 		mosnListener := convertListenerConfig(listener)
 		if mosnListener == nil {
@@ -117,9 +123,8 @@ func (c *MOSNConfig) OnDeleteListeners(listeners []*pb.Listener) {
 	}
 }
 
-// OnUpdateClusters called by XdsClient when clusters config refresh
-// Can be used to update and add clusters
-func (c *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
+// ConvertUpdateClusters converts cluster configuration, used to udpate cluster
+func ConvertUpdateClusters(clusters []*envoy_api_v2.Cluster) {
 	for _, cluster := range clusters {
 		if jsonStr, err := json.Marshal(cluster); err == nil {
 			log.DefaultLogger.Tracef("raw cluster config: %s", string(jsonStr))
@@ -144,10 +149,11 @@ func (c *MOSNConfig) OnUpdateClusters(clusters []*pb.Cluster) {
 			log.DefaultLogger.Debugf("xds OnUpdateClusters success,cluster name = %s", cluster.Name)
 		}
 	}
+
 }
 
-// OnDeleteClusters called by XdsClient when need to delete clusters
-func (c *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) {
+// ConvertDeleteClusters converts cluster configuration, used to delete cluster
+func ConvertDeleteClusters(clusters []*envoy_api_v2.Cluster) {
 	mosnClusters := convertClustersConfig(clusters)
 
 	for _, cluster := range mosnClusters {
@@ -166,8 +172,8 @@ func (c *MOSNConfig) OnDeleteClusters(clusters []*pb.Cluster) {
 	}
 }
 
-// OnUpdateEndpoints called by XdsClient when ClusterLoadAssignment config refresh
-func (c *MOSNConfig) OnUpdateEndpoints(loadAssignments []*pb.ClusterLoadAssignment) error {
+// ConverUpdateEndpoints converts cluster configuration, used to udpate hosts
+func ConvertUpdateEndpoints(loadAssignments []*envoy_api_v2.ClusterLoadAssignment) error {
 	var errGlobal error
 
 	for _, loadAssignment := range loadAssignments {

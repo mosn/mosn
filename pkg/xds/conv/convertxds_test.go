@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package config
+package conv
 
 import (
 	"reflect"
@@ -28,6 +28,9 @@ import (
 	"istio.io/api/mixer/v1/config/client"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/router"
+	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -43,6 +46,13 @@ import (
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	google_protobuf1 "github.com/gogo/protobuf/types"
 )
+
+func TestMain(m *testing.M) {
+	// init
+	router.NewRouterManager()
+	cluster.NewClusterManager(nil, nil, nil, true, false)
+	m.Run()
+}
 
 // todo fill the unit test
 func Test_convertEndpointsConfig(t *testing.T) {
@@ -685,7 +695,7 @@ func Test_convertPerRouteConfig(t *testing.T) {
 		}
 		conf := make(map[string]interface{})
 		json.Unmarshal(b, &conf)
-		rawFault, err := ParseStreamFaultInjectFilter(conf)
+		rawFault, err := config.ParseStreamFaultInjectFilter(conf)
 		if err != nil {
 			t.Fatal("fault config is not expected")
 		}
