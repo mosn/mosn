@@ -565,6 +565,7 @@ func (s *serverStream) endStream() {
 		// connections are keep-alive by default.
 		s.response.Header.SetCanonical(HKConnection, HVKeepAlive)
 	}
+	defer s.DestroyStream()
 
 	s.doSend()
 	s.responseDoneChan <- true
@@ -572,8 +573,6 @@ func (s *serverStream) endStream() {
 	if resetConn {
 		// close connection
 		s.connection.conn.Close(types.FlushWrite, types.LocalClose)
-	} else {
-		defer s.DestroyStream()
 	}
 
 	// clean up & recycle
@@ -630,6 +629,7 @@ func (s *serverStream) GetStream() types.Stream {
 	return s
 }
 
+// consider host, method, path are necessary, but check querystring
 func injectInternalHeaders(headers mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 1. host
 	headers.Set(protocol.MosnHeaderHostKey, string(uri.Host()))
@@ -640,7 +640,10 @@ func injectInternalHeaders(headers mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 4. path
 	headers.Set(protocol.MosnHeaderPathKey, string(uri.Path()))
 	// 5. querystring
-	headers.Set(protocol.MosnHeaderQueryStringKey, string(uri.QueryString()))
+	qs := uri.QueryString()
+	if len(qs) > 0 {
+		headers.Set(protocol.MosnHeaderQueryStringKey, string(qs))
+	}
 }
 
 func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
