@@ -92,6 +92,10 @@ func MapToFields(ctx context.Context, cmd SofaRpcCmd) (map[string]string, error)
 type common2sofa struct{}
 
 func (c *common2sofa) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+	if _, ok := headerMap.(SofaRpcCmd); ok {
+		// do not need to convert
+		return headerMap, nil
+	}
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
 		return MapToCmd(ctx, header)
 	}
@@ -110,6 +114,10 @@ func (c *common2sofa) ConvTrailer(ctx context.Context, headerMap types.HeaderMap
 type sofa2common struct{}
 
 func (c *sofa2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+	if _, ok := headerMap.(protocol.CommonHeader); ok {
+		// do not need to convert
+		return headerMap, nil
+	}
 	if cmd, ok := headerMap.(SofaRpcCmd); ok {
 		header, err := MapToFields(ctx, cmd)
 		return protocol.CommonHeader(header), err

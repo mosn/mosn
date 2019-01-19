@@ -225,6 +225,7 @@ func (f *activeStreamFilter) RequestInfo() types.RequestInfo {
 	return f.activeStream.requestInfo
 }
 
+// types.StreamReceiverFilter
 // types.StreamReceiverFilterHandler
 type activeStreamReceiverFilter struct {
 	activeStreamFilter
@@ -323,6 +324,7 @@ func (f *activeStreamReceiverFilter) doContinue() {
 	if hasBuffedData || f.stoppedNoBuf {
 		if f.stoppedNoBuf || f.activeStream.downstreamReqDataBuf == nil {
 			f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(0)
+			f.activeStream.downstreamReqDataBuf.Count(1)
 		}
 
 		endStream := f.activeStream.downstreamRecvDone && !hasTrailer
@@ -338,6 +340,7 @@ func (f *activeStreamReceiverFilter) handleBufferData(buf types.IoBuffer) {
 	if f.activeStream.downstreamReqDataBuf != buf {
 		if f.activeStream.downstreamReqDataBuf == nil {
 			f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(buf.Len())
+			f.activeStream.downstreamReqDataBuf.Count(1)
 		}
 
 		f.activeStream.downstreamReqDataBuf.ReadFrom(buf)
@@ -350,6 +353,7 @@ func (f *activeStreamReceiverFilter) AppendHeaders(headers types.HeaderMap, endS
 }
 
 func (f *activeStreamReceiverFilter) AppendData(buf types.IoBuffer, endStream bool) {
+	f.activeStream.downstreamRespDataBuf = buf
 	f.activeStream.doAppendData(nil, buf, endStream)
 }
 
@@ -475,4 +479,68 @@ func (f *activeStreamSenderFilter) handleBufferData(buf types.IoBuffer) {
 
 		f.activeStream.downstreamRespDataBuf.ReadFrom(buf)
 	}
+}
+
+// TODO: remove all of the following when proxy changed to single request @lieyuan
+func (f *activeStreamReceiverFilter) GetRequestHeaders() types.HeaderMap {
+	return f.activeStream.downstreamReqHeaders
+}
+func (f *activeStreamReceiverFilter) SetRequestHeaders(headers types.HeaderMap) {
+	f.activeStream.downstreamReqHeaders = headers
+}
+func (f *activeStreamReceiverFilter) GetRequestData() types.IoBuffer {
+	return f.activeStream.downstreamReqDataBuf
+}
+
+func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
+	// data is the original data. do nothing
+	if f.activeStream.downstreamReqDataBuf == data {
+		return
+	}
+	if f.activeStream.downstreamReqDataBuf == nil {
+		f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(0)
+		f.activeStream.downstreamReqDataBuf.Count(1)
+	}
+	f.activeStream.downstreamReqDataBuf.Reset()
+	f.activeStream.downstreamReqDataBuf.ReadFrom(data)
+}
+
+func (f *activeStreamReceiverFilter) GetRequestTrailers() types.HeaderMap {
+	return f.activeStream.downstreamReqTrailers
+}
+
+func (f *activeStreamReceiverFilter) SetRequestTrailers(trailers types.HeaderMap) {
+	f.activeStream.downstreamReqTrailers = trailers
+}
+
+func (f *activeStreamSenderFilter) GetResponseHeaders() types.HeaderMap {
+	return f.activeStream.downstreamRespHeaders
+}
+
+func (f *activeStreamSenderFilter) SetResponseHeaders(headers types.HeaderMap) {
+	f.activeStream.downstreamRespHeaders = headers
+}
+
+func (f *activeStreamSenderFilter) GetResponseData() types.IoBuffer {
+	return f.activeStream.downstreamRespDataBuf
+}
+
+func (f *activeStreamSenderFilter) SetResponseData(data types.IoBuffer) {
+	// data is the original data. do nothing
+	if f.activeStream.downstreamRespDataBuf == data {
+		return
+	}
+	if f.activeStream.downstreamRespDataBuf == nil {
+		f.activeStream.downstreamRespDataBuf = buffer.NewIoBuffer(0)
+	}
+	f.activeStream.downstreamRespDataBuf.Reset()
+	f.activeStream.downstreamRespDataBuf.ReadFrom(data)
+}
+
+func (f *activeStreamSenderFilter) GetResponseTrailers() types.HeaderMap {
+	return f.activeStream.downstreamRespTrailers
+}
+
+func (f *activeStreamSenderFilter) SetResponseTrailers(trailers types.HeaderMap) {
+	f.activeStream.downstreamRespTrailers = trailers
 }

@@ -651,7 +651,7 @@ func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) 
 	uri := ""
 
 	// path
-	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok && path != "" {
 		headers.Del(protocol.MosnHeaderPathKey)
 		uri += path
 	} else {
@@ -660,7 +660,7 @@ func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) 
 
 	// querystring
 	queryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey)
-	if ok {
+	if ok && queryString != "" {
 		headers.Del(protocol.MosnHeaderQueryStringKey)
 		uri += "?" + queryString
 	}

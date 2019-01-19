@@ -92,6 +92,7 @@ type RouterConfig struct {
 
 type RouterActionConfig struct {
 	ClusterName             string               `json:"cluster_name"`
+	UpstreamProtocol        string               `json:"upstream_protocol"`
 	ClusterHeader           string               `json:"cluster_header"`
 	WeightedClusters        []WeightedCluster    `json:"weighted_clusters"`
 	MetadataConfig          MetadataConfig       `json:"metadata_match"`

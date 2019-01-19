@@ -73,8 +73,6 @@ func (f *healthCheckFilter) OnReceiveHeaders(headers types.HeaderMap, endStream 
 			if !f.passThrough {
 				f.intercept = true
 			}
-
-			endStream = true
 		}
 	}
 

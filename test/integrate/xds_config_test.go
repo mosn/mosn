@@ -31,6 +31,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/mixer"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
+	"github.com/alipay/sofa-mosn/pkg/xds/conv"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/gogo/protobuf/proto"
 	"github.com/json-iterator/go"
@@ -89,15 +90,15 @@ func handleXdsData(mosnConfig *config.MOSNConfig, xdsFiles []string) error {
 		case "type.googleapis.com/envoy.api.v2.Listener":
 			listeners := handleListenersResp(msg)
 			fmt.Printf("get %d listeners from LDS\n", len(listeners))
-			mosnConfig.OnAddOrUpdateListeners(listeners)
+			conv.ConvertAddOrUpdateListeners(listeners)
 		case "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment":
 			endpoints := handleEndpointsResp(msg)
 			fmt.Printf("get %d endpoints from EDS\n", len(endpoints))
-			mosnConfig.OnUpdateEndpoints(endpoints)
+			conv.ConvertUpdateEndpoints(endpoints)
 		case "type.googleapis.com/envoy.api.v2.Cluster":
 			clusters := handleClustersResp(msg)
 			fmt.Printf("get %d clusters from CDS\n", len(clusters))
-			mosnConfig.OnUpdateClusters(clusters)
+			conv.ConvertUpdateClusters(clusters)
 		default:
 			return errors.New(fmt.Sprintf("unkown type: %s", msg.TypeUrl))
 		}
