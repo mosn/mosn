@@ -164,7 +164,7 @@ func Test_header_conflict(t *testing.T) {
 
 func Test_internal_header(t *testing.T) {
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:12200")
-	header := http.RequestHeader{&fasthttp.RequestHeader{}}
+	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
 	uri := fasthttp.AcquireURI()
 
 	// headers.Get return
@@ -220,6 +220,12 @@ func Test_internal_header(t *testing.T) {
 	}
 }
 
+func Test_fasthttp_get_set_semantic(t *testing.T) {
+	var value map[string]bool
+
+	delete(value, "dwdwdw")
+}
+
 func Test_serverStream_handleRequest(t *testing.T) {
 	type fields struct {
 		stream           stream
@@ -246,11 +252,11 @@ func Test_serverStream_handleRequest(t *testing.T) {
 }
 
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
-	headerImpl := &fasthttp.RequestHeader{}
+	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
 
 	for k, v := range payload {
-		headerImpl.Set(k, v)
+		header.Set(k, v)
 	}
 
-	return http.RequestHeader{headerImpl}
+	return header
 }

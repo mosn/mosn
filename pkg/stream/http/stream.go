@@ -460,7 +460,7 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		header := mosnhttp.ResponseHeader{&s.response.Header}
+		header := mosnhttp.ResponseHeader{&s.response.Header, nil}
 
 		statusCode := header.StatusCode()
 		status := strconv.Itoa(statusCode)
@@ -608,7 +608,7 @@ func (s *serverStream) handleRequest() {
 	if s.request != nil {
 
 		// header
-		header := mosnhttp.RequestHeader{&s.request.Header}
+		header := mosnhttp.RequestHeader{&s.request.Header, nil}
 
 		// set non-header info in request-line, like method, uri
 		injectInternalHeaders(header, s.request.URI())
