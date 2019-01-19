@@ -220,12 +220,6 @@ func Test_internal_header(t *testing.T) {
 	}
 }
 
-func Test_fasthttp_get_set_semantic(t *testing.T) {
-	var value map[string]bool
-
-	delete(value, "dwdwdw")
-}
-
 func Test_serverStream_handleRequest(t *testing.T) {
 	type fields struct {
 		stream           stream
