@@ -300,7 +300,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	// get router instance and do routing
 	routers := s.proxy.routersWrapper.GetRouters()
 	// do handler chain
-	handlerChain := router.CallMakeHandlerChain(headers, routers, s.proxy.clusterManager)
+	handlerChain := router.CallMakeHandlerChain(s.context, headers, routers, s.proxy.clusterManager)
 	// handlerChain should never be nil
 	if handlerChain == nil {
 		log.DefaultLogger.Errorf("no route to make handler chain, headers = %v", headers)
