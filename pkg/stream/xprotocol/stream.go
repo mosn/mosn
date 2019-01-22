@@ -30,6 +30,7 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
 )
 
 var streamIDXprotocolCount uint64
@@ -102,6 +103,7 @@ func newStreamConnection(context context.Context, connection types.Connection, c
 		serverStreamConnectionEventListener: serverCallbacks,
 		logger:                              log.ByContext(context),
 		codec:                               codec,
+		protocol:							 protocol.Xprotocol,
 	}
 }
 
