@@ -123,13 +123,13 @@ func (s *HTTPServer) ReStart() {
 	go s.server.ListenAndServe()
 }
 
-func CreateServers(t *testing.T, serverList []string, stop chan struct{}, disableKeepAlive bool) []fuzzy.Server {
+func CreateServers(t *testing.T, serverList []string, stop chan struct{}, keepalive bool) []fuzzy.Server {
 	var servers []fuzzy.Server
 	for i, s := range serverList {
 		id := fmt.Sprintf("server#%d", i)
 		server := NewHTTPServer(t, id, s)
-		if disableKeepAlive {
-			server.server.SetKeepAlivesEnabled(disableKeepAlive)
+		if !keepalive {
+			server.server.SetKeepAlivesEnabled(false)
 		}
 		server.GoServe()
 		go func(server *HTTPServer) {
