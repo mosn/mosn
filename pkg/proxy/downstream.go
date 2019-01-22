@@ -108,7 +108,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 		span := spanBuilder.BuildSpan(ctx)
 		if span != nil {
 			ctx = context.WithValue(ctx, trace.ActiveSpanKey, span)
-			ctx = context.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.ParentSpanId()})
+			ctx = context.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 		}
 	}
 
