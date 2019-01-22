@@ -36,7 +36,7 @@ func TestServerCloseProxy(t *testing.T) {
 	stopClient := make(chan struct{})
 	stopServer := make(chan struct{})
 	meshAddr := fuzzy.CreateMeshProxy(t, stopServer, serverList, protocol.HTTP1)
-	servers := CreateServers(t, serverList, stopServer)
+	servers := CreateServers(t, serverList, stopServer, false)
 	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
 	runClient(t, meshAddr, stopClient)
 	close(stopServer)
@@ -44,7 +44,7 @@ func TestServerCloseProxy(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
-func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
+func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol, keepalive bool) {
 	serverList := []string{
 		"127.0.0.1:8080",
 		"127.0.0.1:8081",
@@ -53,7 +53,7 @@ func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 	stopClient := make(chan struct{})
 	stopServer := make(chan struct{})
 	meshAddr := fuzzy.CreateMeshCluster(t, stopServer, serverList, protocol.HTTP1, proto)
-	servers := CreateServers(t, serverList, stopServer)
+	servers := CreateServers(t, serverList, stopServer, !keepalive)
 	fuzzy.FuzzyServer(stopServer, servers, caseDuration/5)
 	runClient(t, meshAddr, stopClient)
 	close(stopServer)
@@ -65,11 +65,17 @@ func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
 func TestServerCloseToHTTP1(t *testing.T) {
 	caseIndex++
 	log.StartLogger.Infof("[FUZZY TEST] HTTP Server Close HTTP1 %d", caseIndex)
-	runServerCloseMeshToMesh(t, protocol.HTTP1)
+	runServerCloseMeshToMesh(t, protocol.HTTP1, true)
+}
+
+func TestShortConnServerToHTTP1(t *testing.T) {
+	caseIndex++
+	log.StartLogger.Infof("[FUZZY TEST] HTTP ShortConn Server Close HTTP1 %d", caseIndex)
+	runServerCloseMeshToMesh(t, protocol.HTTP1, false)
 }
 
 func TestServerCloseToHTTP2(t *testing.T) {
 	caseIndex++
 	log.StartLogger.Infof("[FUZZY TEST] HTTP Server Close HTTP2 %d", caseIndex)
-	runServerCloseMeshToMesh(t, protocol.HTTP2)
+	runServerCloseMeshToMesh(t, protocol.HTTP2, true)
 }
