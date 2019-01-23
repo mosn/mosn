@@ -87,16 +87,25 @@ const (
 	NetworkAuthenticationRequired = 511
 )
 
-//
 type RequestHeader struct {
 	*fasthttp.RequestHeader
+
+	// Due the fact that fasthttp's implement has no correct semantic for Set("key", "") and Peek("key") at the
+	// first usage. We need another way for compensate.
+	//
+	// The problem is caused by the func initHeaderKV, if the original kv.value is nil, ant input value is also nil,
+	// then the final kv.value remains nil.
+	//
+	// kv.value = append(kv.value[:0], value...)
+	//
+	// fasthttp do has the kv entry, but kv.value is nil, so Peek("key") return nil. But we want "" instead.
+	EmptyValueHeaders map[string]bool
 }
 
-// Get value of key, empty string means not exists
+// Get value of key
 func (h RequestHeader) Get(key string) (string, bool) {
 	result := h.Peek(key)
-	// result is not nil, but the length is 0
-	if len(result) != 0 {
+	if result != nil || h.EmptyValueHeaders[key] {
 		return string(result), true
 	}
 	return "", false
@@ -105,11 +114,18 @@ func (h RequestHeader) Get(key string) (string, bool) {
 // Set key-value pair in header map, the previous pair will be replaced if exists
 func (h RequestHeader) Set(key string, value string) {
 	h.RequestHeader.Set(key, value)
+	if value == "" {
+		if h.EmptyValueHeaders == nil {
+			h.EmptyValueHeaders = make(map[string]bool)
+		}
+		h.EmptyValueHeaders[key] = true
+	}
 }
 
 // Del delete pair of specified key
 func (h RequestHeader) Del(key string) {
 	h.RequestHeader.Del(key)
+	delete(h.EmptyValueHeaders, key)
 }
 
 // Range calls f sequentially for each key and value present in the map.
@@ -127,7 +143,15 @@ func (h RequestHeader) Range(f func(key, value string) bool) {
 func (h RequestHeader) Clone() types.HeaderMap {
 	copy := &fasthttp.RequestHeader{}
 	h.CopyTo(copy)
-	return RequestHeader{copy}
+
+	var copyEmptyMap map[string]bool
+	if h.EmptyValueHeaders != nil {
+		copyEmptyMap = make(map[string]bool, len(h.EmptyValueHeaders))
+		for k, v := range h.EmptyValueHeaders {
+			copyEmptyMap[k] = v
+		}
+	}
+	return RequestHeader{copy, copyEmptyMap}
 }
 
 func (h RequestHeader) ByteSize() (size uint64) {
@@ -139,13 +163,23 @@ func (h RequestHeader) ByteSize() (size uint64) {
 
 type ResponseHeader struct {
 	*fasthttp.ResponseHeader
+
+	// Due the fact that fasthttp's implement has no correct semantic for Set("key", "") and Peek("key") at the
+	// first usage. We need another way for compensate.
+	//
+	// The problem is caused by the func initHeaderKV, if the original kv.value is nil, ant input value is also nil,
+	// then the final kv.value remains nil.
+	//
+	// kv.value = append(kv.value[:0], value...)
+	//
+	// fasthttp do has the kv entry, but kv.value is nil, so Peek("key") return nil. But we want "" instead.
+	EmptyValueHeaders map[string]bool
 }
 
-// Get value of key, empty string means not exists
+// Get value of key
 func (h ResponseHeader) Get(key string) (string, bool) {
 	result := h.Peek(key)
-	// result is not nil, but the length is 0
-	if len(result) != 0 {
+	if result != nil || h.EmptyValueHeaders[key]  {
 		return string(result), true
 	}
 	return "", false
@@ -154,11 +188,18 @@ func (h ResponseHeader) Get(key string) (string, bool) {
 // Set key-value pair in header map, the previous pair will be replaced if exists
 func (h ResponseHeader) Set(key string, value string) {
 	h.ResponseHeader.Set(key, value)
+	if value == "" {
+		if h.EmptyValueHeaders == nil {
+			h.EmptyValueHeaders = make(map[string]bool)
+		}
+		h.EmptyValueHeaders[key] = true
+	}
 }
 
 // Del delete pair of specified key
 func (h ResponseHeader) Del(key string) {
 	h.ResponseHeader.Del(key)
+	delete(h.EmptyValueHeaders, key)
 }
 
 // Range calls f sequentially for each key and value present in the map.
@@ -176,7 +217,15 @@ func (h ResponseHeader) Range(f func(key, value string) bool) {
 func (h ResponseHeader) Clone() types.HeaderMap {
 	copy := &fasthttp.ResponseHeader{}
 	h.CopyTo(copy)
-	return ResponseHeader{copy}
+
+	var copyEmptyMap map[string]bool
+	if h.EmptyValueHeaders != nil {
+		copyEmptyMap = make(map[string]bool, len(h.EmptyValueHeaders))
+		for k, v := range h.EmptyValueHeaders {
+			copyEmptyMap[k] = v
+		}
+	}
+	return ResponseHeader{copy, copyEmptyMap}
 }
 
 func (h ResponseHeader) ByteSize() (size uint64) {

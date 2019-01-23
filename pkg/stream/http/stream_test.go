@@ -27,6 +27,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/valyala/fasthttp"
+	"fmt"
+	"bytes"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -94,7 +96,7 @@ func Test_header_capitalization(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
-			"Args": "Hello, world!",
+			"Args":                            "Hello, world!",
 		},
 	}
 
@@ -160,6 +162,64 @@ func Test_header_conflict(t *testing.T) {
 	}
 }
 
+func Test_internal_header(t *testing.T) {
+	remoteAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:12200")
+	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
+	uri := fasthttp.AcquireURI()
+
+	// headers.Get return
+	// 1. "", true means it do has corresponding entry with value ""
+	// 2. "", false means no entry match the key
+	// test if  recycle would change the semantic
+
+	// mock first request arrive, with no query string
+	header.SetMethod("GET")
+	uri.SetHost("first.test.com")
+	uri.SetPath("/first")
+
+	injectInternalHeaders(header, uri)
+
+	// mock request send
+	removeInternalHeaders(header, remoteAddr)
+
+	fmt.Println("first request header sent:", header)
+
+	// simulate recycle
+	header.Reset()
+	uri.Reset()
+
+	// mock second request arrive, with query string
+	header.SetMethod("GET")
+	uri.SetHost("second.test.com")
+	uri.SetPath("/second")
+	uri.SetQueryString("meaning=less")
+
+	injectInternalHeaders(header, uri)
+	// mock request send
+	removeInternalHeaders(header, remoteAddr)
+
+	fmt.Println("second request header sent:", header)
+
+	// simulate recycle
+	header.Reset()
+	uri.Reset()
+
+	// mock third request arrive, with no query string
+	header.SetMethod("GET")
+	uri.SetHost("third.test.com")
+	uri.SetPath("/third")
+
+	injectInternalHeaders(header, uri)
+	// mock request send
+	removeInternalHeaders(header, remoteAddr)
+
+	fmt.Println("third request header sent:", header)
+
+	if bytes.Contains(header.RequestURI(), []byte("?")) {
+		t.Errorf("internal header processing error")
+	}
+}
+
 func Test_serverStream_handleRequest(t *testing.T) {
 	type fields struct {
 		stream           stream
@@ -186,11 +246,11 @@ func Test_serverStream_handleRequest(t *testing.T) {
 }
 
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
-	headerImpl := &fasthttp.RequestHeader{}
+	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
 
 	for k, v := range payload {
-		headerImpl.Set(k, v)
+		header.Set(k, v)
 	}
 
-	return http.RequestHeader{headerImpl}
+	return header
 }
