@@ -244,6 +244,7 @@ type ClusterSpecInfo struct {
 
 // SubscribeSpec describes the subscribe server
 type SubscribeSpec struct {
+	Subscriber  string `json:"subscriber,omitempty"`
 	ServiceName string `json:"service_name,omitempty"`
 }
 
