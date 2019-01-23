@@ -190,6 +190,9 @@ func (s *downStream) cleanStream() {
 	s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 	s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
+	// finish tracing
+	s.finishTracing()
+
 	// proxy access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
 		for _, al := range s.proxy.accessLogs {
@@ -780,7 +783,7 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 func (s *downStream) handleUpstreamStatusCode() {
 	// todo: support config?
 	if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
-		if s.upstreamRequest.httpStatusCode >= http.InternalServerError {
+		if s.requestInfo.ResponseCode() >= http.InternalServerError {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 		} else {
@@ -841,7 +844,6 @@ func (s *downStream) onUpstreamResponseRecvFinished() {
 	// todo: logs
 
 	s.cleanUp()
-	s.finishTracing()
 }
 
 func (s *downStream) setupRetry(endStream bool) bool {
@@ -921,6 +923,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
+	s.requestInfo.SetResponseCode(code)
 
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	s.appendHeaders(headers, true)
@@ -935,6 +938,7 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
+	s.requestInfo.SetResponseCode(code)
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	s.appendHeaders(headers, false)
 	data := buffer.NewIoBufferString(body)

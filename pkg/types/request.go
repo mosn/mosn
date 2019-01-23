@@ -94,10 +94,13 @@ type RequestInfo interface {
 	Protocol() Protocol
 
 	// ResponseCode reports the request's response code
-	ResponseCode() uint32
+	// The code is http standard status code.
+	ResponseCode() int
 
 	// SetResponseCode set request's response code
-	SetResponseCode(code uint32)
+	// Mosn use http standard status code for log, if a protocol have different status code
+	// we will try to mapping it to http status code, and log it
+	SetResponseCode(code int)
 
 	// Duration reports the duration since request's starting time
 	Duration() time.Duration

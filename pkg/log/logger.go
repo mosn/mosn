@@ -180,7 +180,7 @@ selectwriter:
 		//create parent dir if not exists
 		err := os.MkdirAll(filepath.Dir(l.Output), 0755)
 
-		fmt.Println(err)
+		//fmt.Println(err)
 
 		file, err = os.OpenFile(l.Output, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
