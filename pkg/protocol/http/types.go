@@ -92,10 +92,11 @@ type RequestHeader struct {
 	*fasthttp.RequestHeader
 }
 
-// Get value of key
+// Get value of key, empty string means not exists
 func (h RequestHeader) Get(key string) (string, bool) {
 	result := h.Peek(key)
-	if result != nil {
+	// result is not nil, but the length is 0
+	if len(result) != 0 {
 		return string(result), true
 	}
 	return "", false
@@ -140,10 +141,11 @@ type ResponseHeader struct {
 	*fasthttp.ResponseHeader
 }
 
-// Get value of key
+// Get value of key, empty string means not exists
 func (h ResponseHeader) Get(key string) (string, bool) {
 	result := h.Peek(key)
-	if result != nil {
+	// result is not nil, but the length is 0
+	if len(result) != 0 {
 		return string(result), true
 	}
 	return "", false

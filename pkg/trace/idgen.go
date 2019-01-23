@@ -42,6 +42,10 @@ type SpanKey struct {
 	SpanId  string
 }
 
+func (spanKey *SpanKey) UniqueKey() string {
+	return spanKey.TraceId + "#" + spanKey.SpanId
+}
+
 // A span ID generator that generate a span ID like 0.1, 0.1.1, 0.1.2 etc.
 type SpanIdGenerator struct {
 	key        SpanKey // A combination of traceId and spanId
@@ -68,11 +72,11 @@ func NewSpanIdGenerator(traceId, spanId string) *SpanIdGenerator {
 }
 
 func AddSpanIdGenerator(generator *SpanIdGenerator) {
-	spanIdGeneratorMap.Store(&generator.key, generator)
+	spanIdGeneratorMap.Store(generator.key.UniqueKey(), generator)
 }
 
 func GetSpanIdGenerator(key *SpanKey) *SpanIdGenerator {
-	value, ok := spanIdGeneratorMap.Load(key)
+	value, ok := spanIdGeneratorMap.Load(key.UniqueKey())
 	if ok {
 		return value.(*SpanIdGenerator)
 	} else {
@@ -81,7 +85,7 @@ func GetSpanIdGenerator(key *SpanKey) *SpanIdGenerator {
 }
 
 func DeleteSpanIdGenerator(key *SpanKey) {
-	spanIdGeneratorMap.Delete(key)
+	spanIdGeneratorMap.Delete(key.UniqueKey())
 }
 
 func newIdGenerator() *IdGenerator {
