@@ -18,6 +18,7 @@
 package router
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -202,7 +203,7 @@ func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
 type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) RouteBase
 
 // MakeHandlerChain creates a RouteHandlerChain, should not returns a nil handler chain, or the stream filters will be ignored
-type MakeHandlerChain func(types.HeaderMap, types.Routers, types.ClusterManager) *RouteHandlerChain
+type MakeHandlerChain func(context.Context, types.HeaderMap, types.Routers, types.ClusterManager) *RouteHandlerChain
 
 // The reigister order, is a wrapper of registered factory
 // We register a factory with order, a new factory can replace old registered factory only if the register order

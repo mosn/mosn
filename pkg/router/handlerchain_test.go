@@ -88,10 +88,11 @@ func TestDefaultMakeHandlerChain(t *testing.T) {
 	// test register
 	RegisterMakeHandlerChain(DefaultMakeHandlerChain, 10) // Register success
 	RegisterMakeHandlerChain(_TestMakeHandlerChain, 1)    // Register faile
+	ctx := context.Background()
 	defer resetHandlerChain()
 	clusterManager := &mockManager{}
 	// router match, handler available
-	if hc := CallMakeHandlerChain(headerMatch, routers, clusterManager); hc == nil {
+	if hc := CallMakeHandlerChain(ctx, headerMatch, routers, clusterManager); hc == nil {
 		t.Fatal("make handler chain failed")
 	} else {
 		if _, r := hc.DoNextHandler(); r == nil {
@@ -100,7 +101,7 @@ func TestDefaultMakeHandlerChain(t *testing.T) {
 	}
 	// header not match, no handlers
 	headerNotMatch := protocol.CommonHeader(map[string]string{})
-	if hc := CallMakeHandlerChain(headerNotMatch, routers, clusterManager); hc == nil {
+	if hc := CallMakeHandlerChain(ctx, headerNotMatch, routers, clusterManager); hc == nil {
 		t.Fatal("make handler chain unexpected")
 	} else {
 		if _, r := hc.DoNextHandler(); r != nil {
@@ -122,7 +123,7 @@ func (h *mockStatusHandler) Route() types.Route {
 	return h.router
 }
 
-func _TestMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
+func _TestMakeHandlerChain(ctx context.Context, headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	rs := routers.MatchAllRoutes(headers, 1)
 	var handlers []types.RouteHandler
 	for _, r := range rs {
@@ -133,7 +134,7 @@ func _TestMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clust
 		}
 		handlers = append(handlers, handler)
 	}
-	return NewRouteHandlerChain(context.Background(), clusterManager, handlers)
+	return NewRouteHandlerChain(ctx, clusterManager, handlers)
 }
 
 func TestExtendHandler(t *testing.T) {
@@ -151,10 +152,12 @@ func TestExtendHandler(t *testing.T) {
 	// test register
 	RegisterMakeHandlerChain(_TestMakeHandlerChain, 10)  // Register success
 	RegisterMakeHandlerChain(DefaultMakeHandlerChain, 1) // Register failed
+	ctx := context.Background()
+
 	defer resetHandlerChain()
 	clusterManager := &mockManager{}
 	//1.
-	if hc := CallMakeHandlerChain(headerMatch, routers, clusterManager); hc == nil {
+	if hc := CallMakeHandlerChain(ctx, headerMatch, routers, clusterManager); hc == nil {
 		t.Fatal("make extend handler chain failed")
 	} else {
 		if _, route := hc.DoNextHandler(); route != nil {
@@ -170,7 +173,7 @@ func TestExtendHandler(t *testing.T) {
 		},
 		header: headerMatch,
 	}
-	if hc := CallMakeHandlerChain(headerMatch, routers2, clusterManager); hc == nil {
+	if hc := CallMakeHandlerChain(ctx, headerMatch, routers2, clusterManager); hc == nil {
 		t.Fatal("make extend handler chain failed")
 	} else {
 		if _, route := hc.DoNextHandler(); route == nil {
@@ -191,7 +194,7 @@ func TestExtendHandler(t *testing.T) {
 		},
 		header: headerMatch,
 	}
-	if hc := CallMakeHandlerChain(headerMatch, routers3, clusterManager); hc == nil {
+	if hc := CallMakeHandlerChain(ctx, headerMatch, routers3, clusterManager); hc == nil {
 		t.Fatal("make extend handler chain failed")
 	} else {
 		if _, route := hc.DoNextHandler(); route != nil {

@@ -121,8 +121,10 @@ type streamConnection struct {
 
 // types.StreamConnection
 func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
-	conn.bufChan <- buffer
-	<-conn.bufChan
+	for buffer.Len() > 0 {
+		conn.bufChan <- buffer
+		<-conn.bufChan
+	}
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -157,13 +159,6 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	return
 }
 
-// types.ConnectionEventListener
-func (conn *streamConnection) OnEvent(event types.ConnectionEvent) {
-	if event.IsClose() || event.ConnectFailure() {
-		close(conn.bufChan)
-	}
-}
-
 // types.ClientStreamConnection
 type clientStreamConnection struct {
 	streamConnection
@@ -187,8 +182,6 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 		connectionEventListener:       connCallbacks,
 		streamConnectionEventListener: streamConnCallbacks,
 	}
-
-	connection.AddConnectionEventListener(csc)
 
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
@@ -278,13 +271,7 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 }
 
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
-	conn.mutex.Lock()
-	defer conn.mutex.Unlock()
-
-	if conn.stream != nil {
-		conn.stream.ResetStream(reason)
-		conn.stream = nil
-	}
+	close(conn.bufChan)
 }
 
 // types.ServerStreamConnection
@@ -306,8 +293,6 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 		},
 		serverStreamConnListener: callbacks,
 	}
-
-	connection.AddConnectionEventListener(ssc)
 
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
@@ -381,12 +366,7 @@ func (conn *serverStreamConnection) ActiveStreamsNum() int {
 }
 
 func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
-	conn.mutex.Lock()
-	defer conn.mutex.Unlock()
-
-	if conn.stream != nil {
-		conn.stream.ResetStream(reason)
-	}
+	close(conn.bufChan)
 }
 
 // types.Stream
@@ -480,7 +460,7 @@ func (s *clientStream) doSend() {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		header := mosnhttp.ResponseHeader{&s.response.Header}
+		header := mosnhttp.ResponseHeader{&s.response.Header, nil}
 
 		statusCode := header.StatusCode()
 		status := strconv.Itoa(statusCode)
@@ -628,7 +608,7 @@ func (s *serverStream) handleRequest() {
 	if s.request != nil {
 
 		// header
-		header := mosnhttp.RequestHeader{&s.request.Header}
+		header := mosnhttp.RequestHeader{&s.request.Header, nil}
 
 		// set non-header info in request-line, like method, uri
 		injectInternalHeaders(header, s.request.URI())
@@ -649,6 +629,7 @@ func (s *serverStream) GetStream() types.Stream {
 	return s
 }
 
+// consider host, method, path are necessary, but check querystring
 func injectInternalHeaders(headers mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 1. host
 	headers.Set(protocol.MosnHeaderHostKey, string(uri.Host()))
@@ -659,7 +640,10 @@ func injectInternalHeaders(headers mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 4. path
 	headers.Set(protocol.MosnHeaderPathKey, string(uri.Path()))
 	// 5. querystring
-	headers.Set(protocol.MosnHeaderQueryStringKey, string(uri.QueryString()))
+	qs := uri.QueryString()
+	if len(qs) > 0 {
+		headers.Set(protocol.MosnHeaderQueryStringKey, string(qs))
+	}
 }
 
 func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
