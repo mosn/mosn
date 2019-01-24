@@ -76,3 +76,16 @@ func TestHostDisableTLS(t *testing.T) {
 		conn.Close(types.NoFlush, types.LocalClose)
 	}
 }
+
+func BenchmarkAddV2Host(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		addV2Host(host1.Address, host1)
+	}
+}
+
+func BenchmarkGetV2Host(b *testing.B) {
+	addV2Host(host1.Address, host1)
+	for n := 0; n < b.N; n++ {
+		getV2Host(host1.Address)
+	}
+}

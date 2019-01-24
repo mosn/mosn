@@ -166,7 +166,7 @@ func (pc *primaryCluster) UpdateHosts(hosts []types.Host) error {
 	for _, h := range hosts {
 		hostConfig = append(hostConfig, h.Config())
 	}
-	config.Hosts = hostConfig
+	config.Hosts = nil
 	pc.configUsed = config
 	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
 		return err

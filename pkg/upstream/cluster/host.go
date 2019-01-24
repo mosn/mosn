@@ -22,12 +22,17 @@ import (
 	"net"
 	"sync"
 
+	"encoding/gob"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/utils"
+	"github.com/allegro/bigcache"
 )
+
+var HostCache, _ = bigcache.NewBigCache(bigcache.DefaultConfig(100000))
 
 type hostSet struct {
 	priority        uint32
@@ -167,16 +172,17 @@ func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) h
 	if clusterInfo != nil {
 		name = clusterInfo.Name()
 	}
+
+	addV2Host(config.Address, config)
+
 	return hostInfo{
-		address:        addr,
-		addressString:  config.Address,
-		hostname:       config.Hostname,
-		clusterInfo:    clusterInfo,
-		stats:          newHostStats(name, config.Address),
-		metaData:       GenerateHostMetadata(config.MetaData),
-		originMetaData: config.MetaData,
-		tlsDisable:     config.TLSDisable,
-		config:         config,
+		address:       addr,
+		addressString: config.Address,
+		hostname:      config.Hostname,
+		clusterInfo:   clusterInfo,
+		stats:         newHostStats(name, config.Address),
+		metaData:      GenerateHostMetadata(config.MetaData),
+		tlsDisable:    config.TLSDisable,
 	}
 }
 
@@ -212,7 +218,8 @@ func (hi *hostInfo) HostStats() types.HostStats {
 	return hi.stats
 }
 func (hi *hostInfo) Config() v2.Host {
-	return hi.config
+	h, _ := getV2Host(hi.addressString)
+	return h
 }
 
 // GenerateHostMetadata
@@ -226,4 +233,28 @@ func GenerateHostMetadata(metadata v2.Metadata) types.RouteMetaData {
 	}
 
 	return rm
+}
+
+func addV2Host(address string, host v2.Host) {
+	buf := buffer.GetIoBuffer(100)
+	encoder := gob.NewEncoder(buf)
+	encoder.Encode(host)
+	HostCache.Set(address, buf.Bytes())
+	buffer.PutIoBuffer(buf)
+}
+
+func delV2Host(address string) {
+	HostCache.Delete(address)
+}
+
+func getV2Host(address string) (v2.Host, error) {
+	h, err := HostCache.Get(address)
+	if err != nil {
+		return v2.Host{}, err
+	}
+	var host v2.Host
+	buf := buffer.NewIoBufferBytes(h)
+	decoder := gob.NewDecoder(buf)
+	decoder.Decode(&host)
+	return host, nil
 }

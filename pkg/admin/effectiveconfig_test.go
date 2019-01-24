@@ -271,6 +271,9 @@ func TestSetClusterAndHosts(t *testing.T) {
 			if err := tc.expect(); err != nil {
 				t.Error(err)
 			}
+
+			b, _ := Dump()
+			t.Log(string(b))
 		})
 	}
 }

@@ -20,7 +20,10 @@ package admin
 import (
 	"sync"
 
+	"encoding/gob"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // effectiveConfig represents mosn's runtime config model
@@ -32,15 +35,23 @@ type effectiveConfig struct {
 	Routers    map[string]v2.RouterConfiguration `json:"routers,omitempty"`
 }
 
-var conf effectiveConfig
+type config struct {
+	effectiveConfig
+	clusters map[string]types.IoBuffer
+}
+
+var conf config
 var mutex sync.RWMutex
 
 func init() {
 
-	conf = effectiveConfig{
-		Listener: make(map[string]v2.Listener),
-		Cluster:  make(map[string]v2.Cluster),
-		Routers:  make(map[string]v2.RouterConfiguration),
+	conf = config{
+		effectiveConfig: effectiveConfig{
+			Listener: make(map[string]v2.Listener),
+			Cluster:  make(map[string]v2.Cluster),
+			Routers:  make(map[string]v2.RouterConfiguration),
+		},
+		clusters: make(map[string]types.IoBuffer),
 	}
 }
 
@@ -50,6 +61,7 @@ func Reset() {
 	conf.Listener = make(map[string]v2.Listener)
 	conf.Cluster = make(map[string]v2.Cluster)
 	conf.Routers = make(map[string]v2.RouterConfiguration)
+	conf.clusters = make(map[string]types.IoBuffer)
 	mutex.Unlock()
 }
 
@@ -78,6 +90,7 @@ func SetListenerConfig(listenerName string, listenerConfig v2.Listener) {
 func SetClusterConfig(clusterName string, cluster v2.Cluster) {
 	mutex.Lock()
 	conf.Cluster[clusterName] = cluster
+	encoderClusterHost(clusterName, cluster)
 	mutex.Unlock()
 }
 
@@ -86,6 +99,7 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 	if cluster, ok := conf.Cluster[clusterName]; ok {
 		cluster.Hosts = hostConfigs
 		conf.Cluster[clusterName] = cluster
+		encoderClusterHost(clusterName, cluster)
 	}
 	mutex.Unlock()
 }
@@ -101,5 +115,48 @@ func SetRouter(routerName string, router v2.RouterConfiguration) {
 func Dump() ([]byte, error) {
 	mutex.RLock()
 	defer mutex.RUnlock()
-	return json.Marshal(conf)
+	decoderClusterHostAll()
+	config, err := json.Marshal(conf)
+	deleteClusterHostAll()
+	return config, err
+}
+
+func encoderClusterHost(clusterName string, cluster v2.Cluster) {
+	if cluster.Hosts == nil {
+		return
+	}
+	var buf types.IoBuffer
+	var ok bool
+	if buf, ok = conf.clusters[clusterName]; ok {
+		buf.Reset()
+	} else {
+		buf = buffer.GetIoBuffer(len(cluster.Hosts) * 100)
+		conf.clusters[clusterName] = buf
+	}
+	encoder := gob.NewEncoder(buf)
+	encoder.Encode(cluster.Hosts)
+	cluster.Hosts = nil
+}
+
+func decoderClusterHost(clusterName string, cluster v2.Cluster) {
+	buf := conf.clusters[clusterName]
+	if buf == nil || buf.Len() == 0 {
+		return
+	}
+	decoder := gob.NewDecoder(buf)
+	var host []v2.Host
+	decoder.Decode(&host)
+	cluster.Hosts = host
+}
+
+func decoderClusterHostAll() {
+	for clusterName, cluster := range conf.Cluster {
+		decoderClusterHost(clusterName, cluster)
+	}
+}
+
+func deleteClusterHostAll() {
+	for _, cluster := range conf.Cluster {
+		cluster.Hosts = nil
+	}
 }
