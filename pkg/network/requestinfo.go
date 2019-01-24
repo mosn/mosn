@@ -35,7 +35,7 @@ type RequestInfo struct {
 	responseReceivedDuration time.Duration
 	bytesSent                uint64
 	bytesReceived            uint64
-	responseCode             uint32
+	responseCode             int
 	localAddress             net.Addr
 	downstreamLocalAddress   net.Addr
 	downstreamRemoteAddress  net.Addr
@@ -111,11 +111,11 @@ func (r *RequestInfo) Protocol() types.Protocol {
 	return r.protocol
 }
 
-func (r *RequestInfo) ResponseCode() uint32 {
+func (r *RequestInfo) ResponseCode() int {
 	return r.responseCode
 }
 
-func (r *RequestInfo) SetResponseCode(code uint32) {
+func (r *RequestInfo) SetResponseCode(code int) {
 	r.responseCode = code
 }
 

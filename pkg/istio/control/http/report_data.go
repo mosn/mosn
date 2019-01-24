@@ -32,7 +32,7 @@ type ReportInfo struct {
 	responseTotalSize uint64
 	requestTotalSize  uint64
 	duration          time.Duration
-	responseCode      uint32
+	responseCode      int
 	requestBodySize   uint64
 	responseBodySize  uint64
 	responseFlag      types.ResponseFlag
