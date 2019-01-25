@@ -24,13 +24,27 @@ import (
 	"fmt"
 	"reflect"
 	"unsafe"
+
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
+
+// BodyDecoder for body map ,avoid to copy map
+type BodyDecoder func(buffer types.IoBuffer, headerMap *map[string]string)
+
+func RegisterDecoderForBodyProcess(serializeType byte, bodyDecoder BodyDecoder) {
+	decoders := Instance.bodyDecoders
+	decoders[serializeType] = bodyDecoder
+
+}
 
 // Instance
 // singleton of simpleSerialization
-var Instance = simpleSerialization{}
+var Instance = simpleSerialization{
+	bodyDecoders: map[byte]BodyDecoder{},
+}
 
 type simpleSerialization struct {
+	bodyDecoders map[byte]BodyDecoder
 }
 
 func (s *simpleSerialization) GetSerialNum() int {
@@ -112,6 +126,13 @@ func (s *simpleSerialization) DeSerializeMulti(b []byte, v []interface{}) (ret [
 		rv, err = s.DeSerialize(b, nil)
 	}
 	return []interface{}{rv}, err
+}
+
+func (s *simpleSerialization) DeSerializeBodyToMap(codec byte, buffer types.IoBuffer, headerMap *map[string]string) {
+
+	if decoder, ok := s.bodyDecoders[codec]; ok {
+		decoder(buffer, headerMap)
+	}
 }
 
 func readInt32(b []byte) (int, error) {

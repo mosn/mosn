@@ -67,6 +67,9 @@ func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {
 	serializeIns.DeSerialize(request.HeaderMap, &request.RequestHeader)
 	logger.Debugf("Deserialize request header map:%v", request.RequestHeader)
 
+	//deserialize body if necessary extendsion will control this
+	serializeIns.DeSerializeBodyToMap(request.Codec, request.Content, &request.RequestHeader)
+
 	//deserialize class name
 	serializeIns.DeSerialize(request.ClassName, &request.RequestClass)
 	logger.Debugf("Request class name is:%s", request.RequestClass)
