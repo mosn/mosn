@@ -53,9 +53,6 @@ type RouterManager interface {
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
-
-	//a AppendRoutersInVirtualHost appends a router into virtualhsot
-	AppendRoutersInVirtualHost(routerConfigName string, virtualhost string, router v2.Router)
 }
 
 // HandlerStatus returns the Handler's available status
@@ -76,7 +73,10 @@ type RouteHandler interface {
 	Route() Route
 }
 type RouterWrapper interface {
+	// GetRouters returns the routers in the wrapper
 	GetRouters() Routers
+	// GetRoutersConfig returns the routers config in the wrapper
+	GetRoutersConfig() v2.RouterConfiguration
 }
 
 // Route is a route instance
