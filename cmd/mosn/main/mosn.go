@@ -28,7 +28,6 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/faultinject"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/mixer"
-	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/rbac"
 	_ "github.com/alipay/sofa-mosn/pkg/metrics/sink"
 	_ "github.com/alipay/sofa-mosn/pkg/metrics/sink/prometheus"
 	_ "github.com/alipay/sofa-mosn/pkg/network"
