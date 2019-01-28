@@ -124,12 +124,17 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 			m, e = r.Read(b.buf[len(b.buf):cap(b.buf)])
 		}
 
-		if e != nil {
-			return n, e
+		if m > 0 {
+			b.buf = b.buf[0 : len(b.buf)+m]
+			n += int64(m)
 		}
 
-		b.buf = b.buf[0 : len(b.buf)+m]
-		n += int64(m)
+		if e != nil {
+			if te, ok := err.(net.Error); ok && te.Timeout() && !first {
+				return n, nil
+			}
+			return n, e
+		}
 
 		if l != m {
 			loop = false

@@ -366,7 +366,7 @@ func (c *connection) doRead() (err error) {
 			if bytesRead == 0 {
 				return err
 			}
-		} else {
+		} else if err != io.EOF {
 			return err
 		}
 	}
@@ -375,9 +375,8 @@ func (c *connection) doRead() (err error) {
 		cb(uint64(bytesRead))
 	}
 
-	c.onRead(bytesRead)
+	c.onRead()
 	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Len()))
-
 	return
 }
 
@@ -397,12 +396,12 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 	}
 }
 
-func (c *connection) onRead(bytesRead int64) {
+func (c *connection) onRead() {
 	if !c.readEnabled {
 		return
 	}
 
-	if bytesRead == 0 {
+	if c.readBuffer.Len() == 0 {
 		return
 	}
 
