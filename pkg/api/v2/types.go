@@ -21,7 +21,6 @@ import (
 	"net"
 	"time"
 
-	envoy_config_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2"
 	"istio.io/api/mixer/v1/config/client"
 )
 
@@ -44,7 +43,6 @@ const (
 const (
 	MIXER          = "mixer"
 	FaultStream    = "fault"
-	RBACFilterType = "rbac"
 )
 
 // ClusterType
@@ -168,12 +166,6 @@ type AbortInject struct {
 
 type Mixer struct {
 	client.HttpClientConfig
-}
-
-// RBAC
-type RBAC struct {
-	envoy_config_v2.RBAC
-	Version string `json:"version"`
 }
 
 // Router, the list of routes that will be matched, in order, for incoming requests.
