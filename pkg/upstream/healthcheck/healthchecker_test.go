@@ -161,7 +161,7 @@ func TestHealthCheck(t *testing.T) {
 			},
 			running: func(host *mockHost) {
 				time.Sleep(interval + interval/2)
-				host.status = true
+				host.SetHealth(true)
 				time.Sleep(5 * interval)
 			},
 			verify: func(hc *healthChecker) error {

@@ -98,6 +98,7 @@ func (c *sessionChecker) Start() {
 				c.HandleFailure(types.FailureNetwork)
 				// next health checker
 				c.checkTimer.Start(c.HealthChecker.getCheckInterval())
+				log.DefaultLogger.Debugf("receive a timeout response at id: %d", currentID)
 			}
 		}
 	}
