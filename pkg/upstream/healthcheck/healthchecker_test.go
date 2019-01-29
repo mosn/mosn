@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -57,6 +58,7 @@ type testCase struct {
 }
 
 func TestHealthCheck(t *testing.T) {
+	log.InitDefaultLogger("", log.DEBUG)
 	interval := 500 * time.Millisecond
 	RegisterSessionFactory(types.Protocol("test"), &mockSessionFactory{})
 	result := &testResult{

@@ -18,6 +18,9 @@
 package healthcheck
 
 import (
+	"sync/atomic"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/utils"
 )
@@ -70,13 +73,13 @@ func (c *sessionChecker) Start() {
 			return
 		default:
 			// prepare a check
-			c.checkID++
+			currentID := atomic.AddUint64(&c.checkID, 1)
 			select {
 			case <-c.stop:
 				return
 			case resp := <-c.resp:
 				// if the ID is not equal, means we receive a timeout for this ID, ignore the response
-				if resp.ID == c.checkID {
+				if resp.ID == currentID {
 					c.checkTimeout.Stop()
 					if resp.Healthy {
 						c.HandleSuccess()
@@ -85,6 +88,9 @@ func (c *sessionChecker) Start() {
 					}
 					// next health checker
 					c.checkTimer.Start(c.HealthChecker.getCheckInterval())
+					log.DefaultLogger.Debugf("receive a response id: %d", resp.ID)
+				} else {
+					log.DefaultLogger.Debugf("receive a expired id response, response id: %d, currentID: %d", resp.ID, currentID)
 				}
 			case <-c.timeout:
 				c.checkTimer.Stop()
@@ -131,7 +137,7 @@ func (c *sessionChecker) HandleFailure(reason types.FailureType) {
 
 func (c *sessionChecker) OnCheck() {
 	// record current id
-	id := c.checkID
+	id := atomic.LoadUint64(&c.checkID)
 	c.HealthChecker.stats.attempt.Inc(1)
 	// start a timeout before check health
 	c.checkTimeout.Start(c.HealthChecker.timeout)
