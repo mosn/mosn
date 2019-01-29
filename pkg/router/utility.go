@@ -62,12 +62,12 @@ func getRouterHeaders(headers []v2.HeaderMatcher) []*types.HeaderData {
 		}
 
 		if header.Regex {
-			if pattern, err := regexp.Compile(header.Name); err != nil {
-				headerData.RegexPattern = pattern
-			} else {
+			pattern, err := regexp.Compile(header.Value)
+			if err != nil {
 				log.DefaultLogger.Errorf("getRouterHeaders compile error")
 				continue
 			}
+			headerData.RegexPattern = pattern
 		}
 
 		headerDatas = append(headerDatas, headerData)
