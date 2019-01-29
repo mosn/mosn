@@ -233,6 +233,10 @@ func (b *BoltRequest) SetData(data types.IoBuffer) {
 	b.Content = data
 }
 
+func (b *BoltRequest) GetTimeout() int {
+	return b.Timeout
+}
+
 // ~ SofaRpcCmd
 func (b *BoltRequest) CommandType() byte {
 	return b.CmdType
@@ -337,6 +341,11 @@ func (b *BoltResponse) SetHeader(header map[string]string) {
 
 func (b *BoltResponse) SetData(data types.IoBuffer) {
 	b.Content = data
+}
+
+// response have no timeout
+func (b *BoltResponse) GetTimeout() int {
+	return -1
 }
 
 // ~ ResponseStatus
