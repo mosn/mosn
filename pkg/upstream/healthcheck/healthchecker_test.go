@@ -77,8 +77,9 @@ func TestHealthCheck(t *testing.T) {
 			verify: func(hc *healthChecker) error {
 				// verify, sleep 5 intervals, at least 4 health check
 				cbCounter := result.results["test_success"]
-				if cbCounter.unchanged < 4 {
-					return fmt.Errorf("do not call enough callbacks %d", cbCounter.unchanged)
+				unchanged := atomic.LoadUint32(&cbCounter.unchanged)
+				if unchanged < 4 {
+					return fmt.Errorf("do not call enough callbacks %d", unchanged)
 				}
 				if !(hc.stats.attempt.Count() >= 4 &&
 					hc.stats.success.Count() >= 4 &&
@@ -104,8 +105,10 @@ func TestHealthCheck(t *testing.T) {
 				// verify, sleep 5 intervals, at least 4 health check
 				// check fail, expected 1 changed
 				cbCounter := result.results["test_fail"]
-				if cbCounter.changed != 1 || cbCounter.unchanged+cbCounter.changed < 4 {
-					return fmt.Errorf("do not call enough callbacks %d, %d", cbCounter.changed, cbCounter.unchanged+cbCounter.changed)
+				changed := atomic.LoadUint32(&cbCounter.changed)
+				unchanged := atomic.LoadUint32(&cbCounter.unchanged)
+				if changed != 1 || changed+unchanged < 4 {
+					return fmt.Errorf("do not call enough callbacks %d, %d", changed, unchanged+changed)
 				}
 				if !(hc.stats.attempt.Count() >= 4 &&
 					hc.stats.success.Count() == 0 &&
@@ -132,8 +135,9 @@ func TestHealthCheck(t *testing.T) {
 				// verify, timeout is 2 seconds, last 3 seconds, expected get a timeout failure
 				// should not retry more than 2
 				cbCounter := result.results["test_timeout"]
-				if cbCounter.changed != 1 {
-					return fmt.Errorf("timeout changed not expected %d", cbCounter.changed)
+				changed := atomic.LoadUint32(&cbCounter.changed)
+				if changed != 1 {
+					return fmt.Errorf("timeout changed not expected %d", changed)
 				}
 				if !(hc.stats.attempt.Count() >= 1 &&
 					hc.stats.attempt.Count() <= 2 &&
@@ -162,8 +166,10 @@ func TestHealthCheck(t *testing.T) {
 				// good - bad - good, 2 changed
 				// at least 4 attempts
 				cbCounter := result.results["test_fail2good"]
-				if cbCounter.changed != 2 || cbCounter.unchanged+cbCounter.changed < 4 {
-					return fmt.Errorf("do not call enough callbacks %d, %d", cbCounter.changed, cbCounter.unchanged+cbCounter.changed)
+				changed := atomic.LoadUint32(&cbCounter.changed)
+				unchanged := atomic.LoadUint32(&cbCounter.unchanged)
+				if changed != 2 || changed+unchanged < 4 {
+					return fmt.Errorf("do not call enough callbacks %d, %d", changed, unchanged+changed)
 				}
 				if !(hc.stats.attempt.Count() >= 4 &&
 					hc.stats.success.Count() >= 4 &&
@@ -200,6 +206,7 @@ func TestHealthCheck(t *testing.T) {
 		hc := CreateHealthCheck(cfg, cluster)
 		hc.Start()
 		tc.running(tc.host)
+		time.Sleep(100 * time.Millisecond) // make sure checks finish
 		hc.Stop()
 		raw := hc.(*healthChecker)
 		if err := tc.verify(raw); err != nil {
