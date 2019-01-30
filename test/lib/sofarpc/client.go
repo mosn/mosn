@@ -1,0 +1,243 @@
+package sofarpc
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net"
+	"sync/atomic"
+	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/stream"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc" // register sofarpc
+	"github.com/alipay/sofa-mosn/pkg/types"
+)
+
+type receiver struct {
+	Data  *Response
+	start time.Time
+	ch    chan<- *Response
+}
+
+func (r *receiver) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+	// must be expected type, or makes panic
+	cmd := headers.(sofarpc.SofaRpcCmd)
+	r.Data.Header = cmd.Header()
+	resp := cmd.(rpc.RespStatus)
+	r.Data.Status = resp.RespStatus()
+	if endStream {
+		r.Data.Cost = time.Now().Sub(r.start)
+		r.ch <- r.Data
+	}
+}
+
+func (r *receiver) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
+	r.Data.Data = data.Bytes()
+	if endStream {
+		r.Data.Cost = time.Now().Sub(r.start)
+		r.ch <- r.Data
+	}
+}
+
+func (r *receiver) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
+	r.Data.Cost = time.Now().Sub(r.start)
+	r.ch <- r.Data
+}
+
+func (r *receiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
+	r.Data.Status = 1 // RESPONSE_STATUS_ERROR
+	r.Data.Header = map[string]string{
+		"error_message": err.Error(),
+	}
+	r.ch <- r.Data
+}
+
+type ConnClient struct {
+	MakeRequest MakeRequestFunc
+	//
+	isClosed bool
+	close    chan struct{}
+	client   stream.Client
+	conn     types.ClientConnection
+	id       uint64
+}
+
+func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
+	remoteAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	c := &ConnClient{
+		MakeRequest: f,
+		close:       make(chan struct{}),
+	}
+	conn := network.NewClientConnection(nil, nil, remoteAddr, make(chan struct{}), log.DefaultLogger)
+	if err := conn.Connect(true); err != nil {
+		return nil, err
+	}
+	conn.AddConnectionEventListener(c)
+	c.conn = conn
+	client := stream.NewStreamClient(context.Background(), protocol.SofaRPC, conn, nil)
+	if client == nil {
+		return nil, errors.New("protocol not registered")
+	}
+	c.client = client
+	return c, nil
+}
+
+func (c *ConnClient) OnEvent(event types.ConnectionEvent) {
+	if event.IsClose() {
+		c.isClosed = true
+		close(c.close)
+	}
+}
+
+func (c *ConnClient) Close() {
+	c.conn.Close(types.NoFlush, types.LocalClose)
+}
+
+func (c *ConnClient) IsClosed() bool {
+	return c.isClosed
+}
+
+func (c *ConnClient) sendRequest(receiver types.StreamReceiveListener, header map[string]string, body []byte) {
+	ctx := context.Background()
+	streamEncoder := c.client.NewStream(ctx, receiver)
+	atomic.AddUint64(&c.id, 1)
+	cmd, data := c.MakeRequest(c.id, header, body)
+	streamEncoder.AppendHeaders(ctx, cmd, false)
+	streamEncoder.AppendData(ctx, data, true)
+
+}
+
+func (c *ConnClient) SyncSend(header map[string]string, body []byte) (*Response, error) {
+	select {
+	case <-c.close:
+		return nil, errors.New("closed connection client")
+	default:
+		ch := make(chan *Response)
+		r := &receiver{
+			Data:  &Response{},
+			start: time.Now(),
+			ch:    ch,
+		}
+		c.sendRequest(r, header, body)
+		return <-ch, nil
+	}
+}
+
+// TODO: Async client
+
+type ClientConfig struct {
+	Addr          string
+	MakeRequest   MakeRequestFunc
+	RequestHeader map[string]string
+	RequestBody   []byte
+	// if Verify is nil, just expected returns success
+	Verify ResponseVerify
+}
+
+func CreateSimpleConfig(addr string) *ClientConfig {
+	return &ClientConfig{
+		Addr:        addr,
+		MakeRequest: BuildBoltV1Request,
+		RequestHeader: map[string]string{
+			"service": "mosn-test-default-service",
+		},
+		RequestBody: []byte("mosn-test-default"),
+	}
+}
+
+type Client struct {
+	Cfg *ClientConfig
+	// Stats
+	Stats *ClientStats
+	// conn pool
+	connNum  uint32
+	maxNum   uint32
+	connPool chan *ConnClient
+}
+
+func NewClient(cfg *ClientConfig, maxConnections uint32) *Client {
+	return &Client{
+		Cfg:      cfg,
+		Stats:    NewClientStats(),
+		maxNum:   maxConnections,
+		connPool: make(chan *ConnClient, maxConnections),
+	}
+}
+
+func (c *Client) getOrCreateConnection() (*ConnClient, error) {
+	select {
+	case conn := <-c.connPool:
+		if !conn.IsClosed() {
+			return conn, nil // return a not closed conn
+		}
+		atomic.AddUint32(&c.connNum, ^uint32(0))
+		c.Stats.CloseConnection()
+	default:
+	}
+	if atomic.LoadUint32(&c.connNum) >= c.maxNum {
+		return <-c.connPool, nil
+	}
+	conn, err := NewConnClient(c.Cfg.Addr, c.Cfg.MakeRequest)
+	if err != nil {
+		return nil, err
+	}
+	atomic.AddUint32(&c.connNum, 1)
+	c.Stats.ActiveConnection()
+	return conn, nil
+}
+
+func (c *Client) release(conn *ConnClient) {
+	if conn.IsClosed() {
+		atomic.AddUint32(&c.connNum, ^uint32(0))
+		c.Stats.CloseConnection()
+		return
+	}
+	select {
+	case c.connPool <- conn:
+	default:
+	}
+}
+
+func (c *Client) SyncCall() bool {
+	conn, err := c.getOrCreateConnection()
+	if err != nil {
+		fmt.Println("get connection from pool error: ", err)
+		return false
+	}
+	defer func() {
+		c.release(conn)
+	}()
+	c.Stats.Request()
+	resp, err := conn.SyncSend(c.Cfg.RequestHeader, c.Cfg.RequestBody)
+	if err != nil {
+		return false
+	}
+	if c.Cfg.Verify == nil {
+		c.Cfg.Verify = DefaultVeirfy.Verify
+	}
+	ok := c.Cfg.Verify(resp)
+	c.Stats.Response(ok)
+	return ok
+
+}
+
+// Close All the connections
+func (c *Client) Close() {
+	for {
+		select {
+		case conn := <-c.connPool:
+			conn.Close()
+			c.release(conn)
+		default:
+			return // no more conn
+		}
+	}
+}
