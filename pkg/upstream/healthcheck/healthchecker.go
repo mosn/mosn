@@ -20,6 +20,7 @@ package healthcheck
 import (
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -96,7 +97,7 @@ func (hc *healthChecker) Start() {
 			hc.startCheck(h)
 		}
 	}
-	hc.stats.healthy.Update(hc.localProcessHealthy)
+	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
 }
 
 func (hc *healthChecker) Stop() {
@@ -119,7 +120,7 @@ func (hc *healthChecker) OnClusterMemberUpdate(hostsAdd []types.Host, hostsDel [
 	for _, h := range hostsDel {
 		hc.stopCheck(h)
 	}
-	hc.stats.healthy.Update(hc.localProcessHealthy)
+	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
 }
 
 func (hc *healthChecker) Add(host types.Host) {
@@ -139,7 +140,7 @@ func (hc *healthChecker) startCheck(host types.Host) {
 		c := newChecker(s, host, hc)
 		hc.checkers[addr] = c
 		go c.Start()
-		hc.localProcessHealthy++ // default host is healthy
+		atomic.AddInt64(&hc.localProcessHealthy, 1) // default host is healthy
 		log.DefaultLogger.Infof("create a health check session for %s", addr)
 	}
 }
@@ -155,13 +156,14 @@ func (hc *healthChecker) stopCheck(host types.Host) {
 	if c, ok := hc.checkers[addr]; ok {
 		c.Stop()
 		delete(hc.checkers, addr)
-		hc.localProcessHealthy-- // deleted check is unhealthy
+		// hc.localProcessHealthy--
+		atomic.AddInt64(&hc.localProcessHealthy, ^int64(0)) // deleted check is unhealthy
 		log.DefaultLogger.Infof("remove a health check session for %s", addr)
 	}
 }
 
 func (hc *healthChecker) runCallbacks(host types.Host, changed bool, isHealthy bool) {
-	hc.stats.healthy.Update(hc.localProcessHealthy)
+	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
 	for _, cb := range hc.hostCheckCallbacks {
 		cb(host, changed, isHealthy)
 	}
@@ -179,7 +181,7 @@ func (hc *healthChecker) getCheckInterval() time.Duration {
 func (hc *healthChecker) incHealthy(host types.Host, changed bool) {
 	hc.stats.success.Inc(1)
 	if changed {
-		hc.localProcessHealthy++
+		atomic.AddInt64(&hc.localProcessHealthy, 1)
 	}
 	hc.runCallbacks(host, changed, true)
 }
@@ -187,7 +189,8 @@ func (hc *healthChecker) incHealthy(host types.Host, changed bool) {
 func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, changed bool) {
 	hc.stats.failure.Inc(1)
 	if changed {
-		hc.localProcessHealthy--
+		// hc.localProcessHealthy--
+		atomic.AddInt64(&hc.localProcessHealthy, ^int64(0))
 	}
 	switch reason {
 	case types.FailureActive:
