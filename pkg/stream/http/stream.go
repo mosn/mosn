@@ -346,7 +346,7 @@ func (conn *serverStreamConnection) serve() {
 		// 3. request processing
 		s.stream = stream{
 			id:       id,
-			ctx:      context.WithValue(conn.context, types.ContextKeyStreamID, id),
+			ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
 			request:  request,
 			response: &buffers.serverResponse,
 		}

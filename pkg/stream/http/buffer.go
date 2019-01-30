@@ -47,13 +47,13 @@ func (ctx httpBufferCtx) Reset(i interface{}) {
 }
 
 type httpBuffers struct {
-	serverStream serverStream
-	serverRequest   fasthttp.Request
+	serverStream   serverStream
+	serverRequest  fasthttp.Request
 	serverResponse fasthttp.Response
 
-	clientStream clientStream
+	clientStream   clientStream
 	clientRequest  fasthttp.Request
-	clientResponse  fasthttp.Response
+	clientResponse fasthttp.Response
 }
 
 func httpBuffersByContext(context context.Context) *httpBuffers {
