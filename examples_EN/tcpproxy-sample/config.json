@@ -1,0 +1,43 @@
+{
+  "servers":[
+     {
+       "default_log_path":"stdout",
+       "listeners":[
+          {
+	    "name":"proxyListener",
+	    "address": "127.0.0.1:2045",
+	    "bind_port": true,
+	    "log_path": "stdout",
+	    "filter_chains": [{
+	       "tls_context":{},
+	       "filters": [{
+	           "type": "tcp_proxy",
+		   "config": {
+			  "cluster": "serverCluster",
+		      "routes":[
+		         {
+			   "cluster":"serverCluster"
+			 }
+		      ]
+		   }
+	       }]
+	    }]
+	  }
+       ]
+     }
+  ],
+  "cluster_manager":{     
+     "clusters":[
+        {
+	  "Name":"serverCluster",
+	  "type": "SIMPLE",
+	  "lb_type": "LB_RANDOM",
+	  "max_request_per_conn": 1024,
+	  "conn_buffer_limit_bytes":32768,
+	  "hosts":[
+	     {"address":"127.0.0.1:8080"}
+	  ]
+	}
+     ]
+  }
+}
