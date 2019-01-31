@@ -78,14 +78,14 @@ func (h *simpleHandler) Route() types.Route {
 	return h.route
 }
 
-func DefaultMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
+func DefaultMakeHandlerChain(ctx context.Context, headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	var handlers []types.RouteHandler
-	if r := routers.Route(headers, 1); r != nil {
+	if r := routers.MatchRoute(headers, 1); r != nil {
 		handlers = append(handlers, &simpleHandler{route: r})
 	}
-	return NewRouteHandlerChain(context.Background(), clusterManager, handlers)
+	return NewRouteHandlerChain(ctx, clusterManager, handlers)
 }
 
-func CallMakeHandlerChain(headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
-	return makeHandlerChainOrder.makeHandlerChain(headers, routers, clusterManager)
+func CallMakeHandlerChain(ctx context.Context, headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
+	return makeHandlerChainOrder.makeHandlerChain(ctx, headers, routers, clusterManager)
 }

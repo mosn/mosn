@@ -26,6 +26,7 @@ import (
 
 	"fmt"
 
+	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -35,7 +36,7 @@ var instanceMutex = sync.Mutex{}
 var routersMangerInstance *routersManager
 
 // GetClusterMngAdapterInstance used to get clusterMngAdapterInstance
-func GetRoutersMangerInstance() *routersManager {
+func GetRoutersMangerInstance() types.RouterManager {
 	return routersMangerInstance
 }
 
@@ -44,8 +45,9 @@ type routersManager struct {
 }
 
 type RoutersWrapper struct {
-	mux     sync.RWMutex
-	routers types.Routers
+	mux           sync.RWMutex
+	routers       types.Routers
+	routersConfig *v2.RouterConfiguration
 }
 
 func (rw *RoutersWrapper) GetRouters() types.Routers {
@@ -53,6 +55,12 @@ func (rw *RoutersWrapper) GetRouters() types.Routers {
 	defer rw.mux.RUnlock()
 
 	return rw.routers
+}
+
+func (rw *RoutersWrapper) GetRoutersConfig() v2.RouterConfiguration {
+	rw.mux.RLock()
+	defer rw.mux.RUnlock()
+	return *rw.routersConfig
 }
 
 func NewRouterManager() types.RouterManager {
@@ -80,38 +88,42 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 		return fmt.Errorf(errMsg)
 	}
 
-	routers, err := NewRouteMatcher(routerConfig)
 	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
-		// NewRouteMatcher has error, doesn't update
-		if err != nil {
-			log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: " + err.Error(),routerConfig.RouterConfigName)
-			return err
-		}
-
-		// else : update a router
+		// try to update router
 		if primaryRouters, ok := v.(*RoutersWrapper); ok {
 			primaryRouters.mux.Lock()
 			defer primaryRouters.mux.Unlock()
-			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success ",routerConfig.RouterConfigName)
+			routers, err := NewRouteMatcher(routerConfig)
+			if err != nil {
+				log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: %v", routerConfig.RouterConfigName, err)
+				return err
+			}
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success", routerConfig.RouterConfigName)
 			primaryRouters.routers = routers
+			primaryRouters.routersConfig = routerConfig
 		}
 	} else {
-		// NewRouteMatcher has error, use nil routers
+		// try to create a new router
+		routers, err := NewRouteMatcher(routerConfig)
 		if err != nil {
+			// store a router wrapper without routers, so proxy can get a wrapper
+			// and proxy can route after update
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
-				routers: nil,
+				routers:       nil,
+				routersConfig: routerConfig,
 			})
-			log.DefaultLogger.Errorf("AddOrUpdateRouters, add router %s error:"+err.Error(),routerConfig.RouterConfigName)
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s error: %v", routerConfig.RouterConfigName, err)
 			return err
-			// new routers
 		} else {
-			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s success:",routerConfig.RouterConfigName)
+			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s success:", routerConfig.RouterConfigName)
 			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
-				routers: routers,
+				routers:       routers,
+				routersConfig: routerConfig,
 			})
 		}
 	}
-	
+	admin.SetRouter(routerConfig.RouterConfigName, *routerConfig)
+
 	return nil
 }
 

@@ -24,15 +24,16 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
 	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/mtls"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -47,13 +48,24 @@ var (
 func init() {
 	globalStats = newProxyStats(types.GlobalProxyName)
 
+	// register init function with interest of P number
+	config.RegisterConfigParsedListener(config.ParseCallbackKeyProcessor, initWorkePpool)
+}
+
+func initWorkePpool(data interface{}, endParsing bool) error {
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
-	// use 4096 as chan buffer length
-	poolSize := shardsNum * 4096
+	// use 32768 as chan buffer length
+	poolSize := shardsNum * 32768
+
+	// set shardsNum equal to processor if it was specified
+	if pNum, ok := data.(int); ok && pNum > 0 {
+		shardsNum = pNum
+	}
 
 	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
 	workerPool.Init()
+	return nil
 }
 
 // types.ReadFilter
@@ -151,16 +163,12 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 		var urEleNext *list.Element
 
 		p.asMux.RLock()
-		downStreams := make([]*downStream, 0, p.activeSteams.Len())
+		defer p.asMux.RUnlock()
+
 		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEleNext {
 			urEleNext = urEle.Next()
 
 			ds := urEle.Value.(*downStream)
-			downStreams = append(downStreams, ds)
-		}
-		p.asMux.RUnlock()
-
-		for _, ds := range downStreams {
 			ds.OnResetStream(types.StreamConnectionTermination)
 		}
 	}
@@ -253,17 +261,4 @@ type downstreamCallbacks struct {
 
 func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	dc.proxy.onDownstreamEvent(event)
-}
-
-func (p *proxy) convertProtocol() (dp, up types.Protocol) {
-	if p.serverStreamConn == nil {
-		dp = types.Protocol(p.config.DownstreamProtocol)
-	} else {
-		dp = p.serverStreamConn.Protocol()
-	}
-	up = types.Protocol(p.config.UpstreamProtocol)
-	if up == protocol.Auto {
-		up = dp
-	}
-	return
 }

@@ -50,8 +50,9 @@ func TestDownstream_FinishTracing_Enable(t *testing.T) {
 
 func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	trace.EnableTracing()
-	trace.CreateInstance()
-	span := trace.SofaTracerInstance.Start(time.Now())
+	tracer := trace.CreateTracer("SOFATracer")
+	trace.SetTracer(tracer)
+	span := trace.Tracer().Start(time.Now())
 	ctx := context.WithValue(context.Background(), trace.ActiveSpanKey, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
@@ -127,6 +128,8 @@ func TestDirectResponse(t *testing.T) {
 				},
 				clusterManager: &mockClusterManager{},
 				readCallbacks:  &mockReadFilterCallbacks{},
+				stats:          globalStats,
+				listenerStats:  newListenerStats("test"),
 			},
 			logger:         log.DefaultLogger,
 			responseSender: tc.client,

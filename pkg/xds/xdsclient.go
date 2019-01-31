@@ -224,7 +224,7 @@ func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode st
 		AdsConfig:       c.v2.Config.ADSConfig,
 		StreamClient:    nil,
 		V2Client:        c.v2,
-		MosnConfig:      nil,
+		MosnConfig:      config,
 		SendControlChan: sendControlChan,
 		RecvControlChan: recvControlChan,
 		StopChan:        stopChan,

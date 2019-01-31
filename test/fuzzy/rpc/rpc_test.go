@@ -12,16 +12,16 @@ import (
 
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/fuzzy"
 	"github.com/alipay/sofa-mosn/test/util"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 var (
@@ -132,7 +132,7 @@ type RPCServer struct {
 }
 
 func NewRPCServer(t *testing.T, id string, addr string) *RPCServer {
-	server := util.NewUpstreamServer(t, addr, util.ServeBoltV1)
+	server := util.NewRPCServer(t, addr, util.Bolt1)
 	return &RPCServer{
 		UpstreamServer: server,
 		t:              t,
@@ -176,7 +176,7 @@ func (s *RPCServer) ReStart() {
 		return
 	}
 	log.StartLogger.Infof("[FUZZY TEST] server restart #%s", s.ID)
-	server := util.NewUpstreamServer(s.t, s.UpstreamServer.Addr(), util.ServeBoltV1)
+	server := util.NewRPCServer(s.t, s.UpstreamServer.Addr(), util.Bolt1)
 	s.UpstreamServer = server
 	s.started = true
 	s.UpstreamServer.GoServe()

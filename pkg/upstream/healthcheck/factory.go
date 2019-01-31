@@ -19,26 +19,41 @@ package healthcheck
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+var sessionFactories map[types.Protocol]types.HealthCheckSessionFactory
+
 func init() {
-	types.HealthCheckFactoryInstance = factory
+	sessionFactories = make(map[types.Protocol]types.HealthCheckSessionFactory)
+	commonCallbacks = make(map[string]types.HealthCheckCb)
 }
 
-var factory = &healthCheckerFactory{}
+func RegisterSessionFactory(p types.Protocol, f types.HealthCheckSessionFactory) {
+	sessionFactories[p] = f
+}
 
-type healthCheckerFactory struct{}
-
-func (nhc *healthCheckerFactory) New(config v2.HealthCheck) types.HealthChecker {
-	switch config.Protocol {
-	case string(protocol.SofaRPC):
-		return newSofaRPCHealthChecker(config)
-	case string(protocol.HTTP2):
-		return newHTTPHealthCheck(config)
-	default:
-		// todo: http1
-		return nil
+// CreateHealthCheck is a extendable function that can create different health checker
+// by different health check session.
+// The Default session is TCPDial session
+func CreateHealthCheck(cfg v2.HealthCheck, cluster types.Cluster) types.HealthChecker {
+	f, ok := sessionFactories[types.Protocol(cfg.Protocol)]
+	if !ok {
+		// not registered, use default session factory
+		f = &TCPDialSessionFactory{}
 	}
+	return newHealthChecker(cfg, cluster, f)
+}
+
+// common callback is not related to specific cluster, which can be registered before cluster create
+// and bind to health checker by config
+var commonCallbacks map[string]types.HealthCheckCb
+
+func RegisterCommonCallbacks(name string, cb types.HealthCheckCb) bool {
+	if _, ok := commonCallbacks[name]; ok {
+		// can not regitser same name
+		return false
+	}
+	commonCallbacks[name] = cb
+	return false
 }

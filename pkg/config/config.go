@@ -36,12 +36,20 @@ type TracingConfig struct {
 	Tracer string `json:"tracer"`
 }
 
+// MetricsConfig for metrics sinks
+type MetricsConfig struct {
+	FlushInterval v2.DurationConfig `json:"flush_interval"`
+	SinkConfigs   []v2.Filter       `json:"sinks"`
+	StatsMatcher  v2.StatsMatcher   `json:"stats_matcher"`
+}
+
 // ServerConfig for making up server for mosn
 type ServerConfig struct {
 	//default logger
-	ServerName      string `json:"mosn_server_name"`
-	DefaultLogPath  string `json:"default_log_path,omitempty"`
-	DefaultLogLevel string `json:"default_log_level,omitempty"`
+	ServerName       string `json:"mosn_server_name"`
+	DefaultLogPath   string `json:"default_log_path,omitempty"`
+	DefaultLogLevel  string `json:"default_log_level,omitempty"`
+	DefaultLogRoller string `json:"default_log_roller,omitempty"`
 
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
@@ -72,6 +80,7 @@ type MOSNConfig struct {
 	ServiceRegistry v2.ServiceRegistryInfo `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
 	Tracing             TracingConfig       `json:"tracing"`
+	Metrics             MetricsConfig       `json:"metrics"`
 	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty"`             // admin raw message

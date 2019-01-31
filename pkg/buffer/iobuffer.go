@@ -23,6 +23,8 @@ import (
 	"net"
 	"time"
 
+	"sync/atomic"
+
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -34,6 +36,7 @@ const DefaultSize = 1 << 4
 var nullByte []byte
 
 var (
+	EOF                  = errors.New("EOF")
 	ErrTooLarge          = errors.New("io buffer: too large")
 	ErrNegativeCount     = errors.New("io buffer: negative count")
 	ErrInvalidWriteCount = errors.New("io buffer: invalid write count")
@@ -44,7 +47,8 @@ type IoBuffer struct {
 	buf     []byte // contents: buf[off : len(buf)]
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
-	count   int
+	count   int32
+	eof     bool
 
 	b *[]byte
 }
@@ -105,7 +109,8 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 		if conn != nil {
 			if first {
-				conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+				// TODO: support configure
+				conn.SetReadDeadline(time.Now().Add(types.DefaultConnReadTimeout))
 			} else {
 				conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
 			}
@@ -119,12 +124,17 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 			m, e = r.Read(b.buf[len(b.buf):cap(b.buf)])
 		}
 
-		if e != nil {
-			return n, e
+		if m > 0 {
+			b.buf = b.buf[0 : len(b.buf)+m]
+			n += int64(m)
 		}
 
-		b.buf = b.buf[0 : len(b.buf)+m]
-		n += int64(m)
+		if e != nil {
+			if te, ok := err.(net.Error); ok && te.Timeout() && !first {
+				return n, nil
+			}
+			return n, e
+		}
 
 		if l != m {
 			loop = false
@@ -190,6 +200,16 @@ func (b *IoBuffer) Write(p []byte) (n int, err error) {
 	}
 
 	return copy(b.buf[m:], p), nil
+}
+
+func (b *IoBuffer) WriteString(s string) (n int, err error) {
+	m, ok := b.tryGrowByReslice(len(s))
+
+	if !ok {
+		m = b.grow(len(s))
+	}
+
+	return copy(b.buf[m:], s), nil
 }
 
 func (b *IoBuffer) tryGrowByReslice(n int) (int, bool) {
@@ -350,6 +370,7 @@ func (b *IoBuffer) Reset() {
 	b.buf = b.buf[:0]
 	b.off = 0
 	b.offMark = ResetOffMark
+	b.eof = false
 }
 
 func (b *IoBuffer) available() int {
@@ -359,6 +380,8 @@ func (b *IoBuffer) available() int {
 func (b *IoBuffer) Clone() types.IoBuffer {
 	buf := GetIoBuffer(b.Len())
 	buf.Write(b.Bytes())
+
+	buf.SetEOF(b.EOF())
 
 	return buf
 }
@@ -380,9 +403,16 @@ func (b *IoBuffer) Alloc(size int) {
 	b.buf = b.buf[:0]
 }
 
-func (b *IoBuffer) Count(count int) int {
-	b.count += count
-	return b.count
+func (b *IoBuffer) Count(count int32) int32 {
+	return atomic.AddInt32(&b.count, count)
+}
+
+func (b *IoBuffer) EOF() bool {
+	return b.eof
+}
+
+func (b *IoBuffer) SetEOF(eof bool) {
+	b.eof = eof
 }
 
 func (b *IoBuffer) copy(expand int) {
@@ -415,17 +445,6 @@ func (b *IoBuffer) giveSlice() {
 	}
 }
 
-func makeSlice(n int) []byte {
-	// TODO: handle large buffer
-	defer func() {
-		if recover() != nil {
-			panic(ErrTooLarge)
-		}
-	}()
-
-	return make([]byte, n)
-}
-
 func NewIoBuffer(capacity int) types.IoBuffer {
 	buffer := &IoBuffer{
 		offMark: ResetOffMark,
@@ -440,6 +459,9 @@ func NewIoBuffer(capacity int) types.IoBuffer {
 }
 
 func NewIoBufferString(s string) types.IoBuffer {
+	if s == "" {
+		return NewIoBuffer(0)
+	}
 	return &IoBuffer{
 		buf:     []byte(s),
 		offMark: ResetOffMark,
@@ -448,9 +470,18 @@ func NewIoBufferString(s string) types.IoBuffer {
 }
 
 func NewIoBufferBytes(bytes []byte) types.IoBuffer {
+	if bytes == nil {
+		return NewIoBuffer(0)
+	}
 	return &IoBuffer{
 		buf:     bytes,
 		offMark: ResetOffMark,
 		count:   1,
 	}
+}
+
+func NewIoBufferEOF() types.IoBuffer {
+	buf := NewIoBuffer(0)
+	buf.SetEOF(true)
+	return buf
 }

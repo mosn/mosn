@@ -27,7 +27,6 @@ const (
 	SofaRPC   types.Protocol = "SofaRpc"
 	HTTP1     types.Protocol = "Http1"
 	HTTP2     types.Protocol = "Http2"
-	MHTTP2    types.Protocol = "Http2"
 	Xprotocol types.Protocol = "X"
 )
 
@@ -45,7 +44,6 @@ const (
 	MosnHeaderQueryStringKey  = "x-mosn-querystring"
 	MosnHeaderMethod          = "x-mosn-method"
 	MosnOriginalHeaderPathKey = "x-mosn-original-path"
-	MosnResponseStatusCode    = "x-mosn-response-code"
 )
 
 // Hseader with special meaning in istio
@@ -53,6 +51,8 @@ const (
 const (
 	IstioHeaderHostKey = "authority"
 )
+
+// TODO: move CommonHeader to common, not only in protocol
 
 // CommonHeader wrapper for map[string]string
 type CommonHeader map[string]string

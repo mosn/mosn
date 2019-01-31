@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 type SofaRPCServer struct {
@@ -51,12 +53,22 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 					break
 				}
 				if req, ok := cmd.(*sofarpc.BoltRequest); ok {
-					resp := buildBoltV1Response(req)
-					iobufresp, err := codec.BoltCodec.Encode(nil, resp)
+					var iobufresp types.IoBuffer
+					var err error
+					switch req.CommandCode() {
+					case sofarpc.HEARTBEAT:
+						hbAck := sofarpc.NewHeartbeatAck(req.ProtocolCode())
+						hbAck.SetRequestID(req.RequestID())
+						iobufresp, err = codec.BoltCodec.Encode(context.Background(), hbAck)
+						fmt.Printf("[RPC Server] reponse heart beat, requestId: %d\n", req.RequestID())
+					case sofarpc.RPC_REQUEST:
+						resp := buildBoltV1Response(req)
+						iobufresp, err = codec.BoltCodec.Encode(nil, resp)
+						fmt.Printf("[RPC Server] reponse connection: %s, requestId: %d\n", conn.RemoteAddr().String(), req.RequestID())
+					}
 					if err != nil {
 						fmt.Printf("[RPC Server] build response error: %v\n", err)
 					} else {
-						fmt.Printf("[RPC Server] reponse connection: %s, requestId: %d\n", conn.RemoteAddr().String(), resp.RequestID())
 						respdata := iobufresp.Bytes()
 						conn.Write(respdata)
 					}

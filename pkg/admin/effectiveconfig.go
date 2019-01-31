@@ -23,25 +23,33 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 )
 
+// effectiveConfig represents mosn's runtime config model
+// MOSNConfig is the original config when mosn start
 type effectiveConfig struct {
-	MOSNConfig interface{}            `json:"mosn_config,omitempty"`
-	Listener   map[string]v2.Listener `json:"listener,omitempty"`
-	Cluster    map[string]v2.Cluster  `json:"cluster,omitempty"`
+	MOSNConfig interface{}                       `json:"mosn_config,omitempty"`
+	Listener   map[string]v2.Listener            `json:"listener,omitempty"`
+	Cluster    map[string]v2.Cluster             `json:"cluster,omitempty"`
+	Routers    map[string]v2.RouterConfiguration `json:"routers,omitempty"`
 }
 
-var (
+var conf effectiveConfig
+var mutex sync.RWMutex
+
+func init() {
+
 	conf = effectiveConfig{
 		Listener: make(map[string]v2.Listener),
 		Cluster:  make(map[string]v2.Cluster),
+		Routers:  make(map[string]v2.RouterConfiguration),
 	}
-	mutex = new(sync.RWMutex)
-)
+}
 
 func Reset() {
 	mutex.Lock()
 	conf.MOSNConfig = nil
 	conf.Listener = make(map[string]v2.Listener)
 	conf.Cluster = make(map[string]v2.Cluster)
+	conf.Routers = make(map[string]v2.RouterConfiguration)
 	mutex.Unlock()
 }
 
@@ -56,6 +64,8 @@ func SetMOSNConfig(msonConfig interface{}) {
 func SetListenerConfig(listenerName string, listenerConfig v2.Listener) {
 	mutex.Lock()
 	if config, ok := conf.Listener[listenerName]; ok {
+		// mosn does not support update listener's network filter and stream filter for the time being
+		// FIXME
 		config.ListenerConfig.FilterChains = listenerConfig.ListenerConfig.FilterChains
 		config.ListenerConfig.StreamFilters = listenerConfig.ListenerConfig.StreamFilters
 		conf.Listener[listenerName] = config
@@ -77,6 +87,12 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 		cluster.Hosts = hostConfigs
 		conf.Cluster[clusterName] = cluster
 	}
+	mutex.Unlock()
+}
+
+func SetRouter(routerName string, router v2.RouterConfiguration) {
+	mutex.Lock()
+	conf.Routers[routerName] = router
 	mutex.Unlock()
 }
 

@@ -41,7 +41,7 @@ type mockRouters struct {
 	route types.Route
 }
 
-func (r *mockRouters) Route(types.HeaderMap, uint64) types.Route {
+func (r *mockRouters) MatchRoute(types.HeaderMap, uint64) types.Route {
 	if r.route != nil {
 		return r.route
 	}
@@ -74,6 +74,10 @@ type mockRouteRule struct {
 
 func (r *mockRouteRule) ClusterName() string {
 	return "test"
+}
+
+func (r *mockRouteRule) UpstreamProtocol() string {
+	return ""
 }
 
 type mockDirectRule struct {

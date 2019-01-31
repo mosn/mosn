@@ -23,8 +23,8 @@ import (
 
 // BufferPoolCtx is the bufferpool's context
 type BufferPoolCtx interface {
-	// Name returns the bufferpool's name
-	Name() int
+	// Index returns the bufferpool's Index
+	Index() int
 
 	// New returns the buffer
 	New() interface{}
@@ -56,6 +56,11 @@ type IoBuffer interface {
 	// needed. The return value n is the length of p; err is always nil. If the
 	// buffer becomes too large, Write will panic with ErrTooLarge.
 	Write(p []byte) (n int, err error)
+
+	// WriteString appends the string to the buffer, growing the buffer as
+	// needed. The return value n is the length of s; err is always nil. If the
+	// buffer becomes too large, Write will panic with ErrTooLarge.
+	WriteString(s string) (n int, err error)
 
 	// WriteTo writes data to w until the buffer is drained or an error occurs.
 	// The return value n is the number of bytes written; it always fits into an
@@ -104,5 +109,11 @@ type IoBuffer interface {
 	Free()
 
 	// Count sets and returns reference count
-	Count(int) int
+	Count(int32) int32
+
+	// EOF returns whether Io is EOF on the connection
+	EOF() bool
+
+	//SetEOF sets the IoBuffer EOF
+	SetEOF(eof bool)
 }

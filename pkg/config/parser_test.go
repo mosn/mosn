@@ -43,6 +43,7 @@ var cb testCallback
 func TestMain(m *testing.M) {
 	RegisterConfigParsedListener(ParseCallbackKeyCluster, cb.ParsedCallback)
 	RegisterConfigParsedListener(ParseCallbackKeyServiceRgtInfo, cb.ParsedCallback)
+	RegisterConfigParsedListener(ParseCallbackKeyProcessor, cb.ParsedCallback)
 	m.Run()
 }
 
@@ -273,7 +274,7 @@ func TestParseProxyFilter(t *testing.T) {
 	proxy := ParseProxyFilter(m)
 	if !(proxy.Name == "proxy" &&
 		proxy.DownstreamProtocol == string(protocol.SofaRPC) &&
-		proxy.UpstreamProtocol == string(protocol.MHTTP2) && proxy.RouterConfigName == "test_router") {
+		proxy.UpstreamProtocol == string(protocol.HTTP2) && proxy.RouterConfigName == "test_router") {
 		t.Error("parse proxy filter failed")
 	}
 }

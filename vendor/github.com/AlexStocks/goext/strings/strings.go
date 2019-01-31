@@ -38,21 +38,6 @@ func Contains(s []string, e string) bool {
 	return false
 }
 
-func Merge(s1 []string, s2 []string) []string {
-	// we don't use append because s1 could have extra capacity whose
-	// elements would be overwritten, which could cause inadvertent
-	// sharing (and race connditions) between concurrent calls
-	if len(s1) == 0 {
-		return s2
-	} else if len(s2) == 0 {
-		return s1
-	}
-	ret := make([]string, len(s1)+len(s2))
-	copy(ret, s1)
-	copy(ret[len(s1):], s2)
-	return ret
-}
-
 /*
  code example:
  output:

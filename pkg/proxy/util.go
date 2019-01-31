@@ -36,13 +36,13 @@ func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
 
 	if tto, ok := headers.Get(types.HeaderTryTimeout); ok {
 		if trytimeout, err := strconv.ParseInt(tto, 10, bitSize64); err == nil {
-			timeout.TryTimeout = time.Duration(trytimeout)
+			timeout.TryTimeout = time.Duration(trytimeout) * time.Millisecond
 		}
 	}
 
 	if gto, ok := headers.Get(types.HeaderGlobalTimeout); ok {
 		if globaltimeout, err := strconv.ParseInt(gto, 10, bitSize64); err == nil {
-			timeout.GlobalTimeout = time.Duration(globaltimeout)
+			timeout.GlobalTimeout = time.Duration(globaltimeout) * time.Millisecond
 		}
 	}
 
@@ -51,39 +51,4 @@ func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
 	}
 
 	return timeout
-}
-
-type timer struct {
-	callback func()
-	interval time.Duration
-	stopped  bool
-	stopChan chan bool
-}
-
-func newTimer(callback func(), interval time.Duration) *timer {
-	return &timer{
-		callback: callback,
-		interval: interval,
-		stopChan: make(chan bool, 1),
-	}
-}
-
-func (t *timer) start() {
-	go func() {
-		select {
-		case <-time.After(t.interval):
-			t.stopped = true
-			t.callback()
-		case <-t.stopChan:
-			t.stopped = true
-		}
-	}()
-}
-
-func (t *timer) stop() {
-	if t.stopped {
-		return
-	}
-
-	t.stopChan <- true
 }

@@ -41,8 +41,8 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER       = "mixer"
-	FaultStream = "fault"
+	MIXER          = "mixer"
+	FaultStream    = "fault"
 )
 
 // ClusterType
@@ -95,7 +95,6 @@ type Cluster struct {
 // use DurationConfig to parse string to time.Duration
 type HealthCheck struct {
 	HealthCheckConfig
-	ProtocolCode   byte          `json:"-"`
 	Timeout        time.Duration `json:"-"`
 	Interval       time.Duration `json:"-"`
 	IntervalJitter time.Duration `json:"-"`
@@ -173,6 +172,7 @@ type Mixer struct {
 // The first route that matches will be used.
 type Router struct {
 	RouterConfig
+	// Metadata is created from MetadataConfig, which is used to subset
 	Metadata Metadata `json:"-"`
 }
 
@@ -236,6 +236,7 @@ type ClusterSpecInfo struct {
 
 // SubscribeSpec describes the subscribe server
 type SubscribeSpec struct {
+	Subscriber  string `json:"subscriber,omitempty"`
 	ServiceName string `json:"service_name,omitempty"`
 }
 
@@ -426,4 +427,12 @@ type PublishInfo struct {
 type PublishContent struct {
 	ServiceName string `json:"service_name,omitempty"`
 	PubData     string `json:"pub_data,omitempty"`
+}
+
+// StatsMatcher is a configuration for disabling stat instantiation.
+// TODO: support inclusion_list
+// TODO: support exclusion list/inclusion_list as pattern
+type StatsMatcher struct {
+	RejectAll     bool     `json:"reject_all"`
+	ExclusionList []string `json:"exclusion_list"`
 }

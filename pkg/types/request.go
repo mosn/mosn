@@ -60,17 +60,23 @@ type RequestInfo interface {
 	// SetStartTime sets StartTime
 	SetStartTime()
 
-	// RequestReceivedDuration returns duration between request arriving and request resend to upstream
+	// RequestReceivedDuration returns duration between request arriving and request forwarding to upstream
 	RequestReceivedDuration() time.Duration
 
-	// SetRequestReceivedDuration sets duration between request arriving and request resend to upstream
+	// SetRequestReceivedDuration sets duration between request arriving and request forwarding to upstream
 	SetRequestReceivedDuration(time time.Time)
 
-	// ResponseReceivedDuration gets duration between request arriving and response sending
+	// ResponseReceivedDuration gets duration between request arriving and response received
 	ResponseReceivedDuration() time.Duration
 
-	// SetResponseReceivedDuration sets duration between request arriving and response sending
+	// SetResponseReceivedDuration sets duration between request arriving and response received
 	SetResponseReceivedDuration(time time.Time)
+
+	// RequestFinishedDuration returns duration between request arriving and request finished
+	RequestFinishedDuration() time.Duration
+
+	// SetRequestFinishedDuration sets uration between request arriving and request finished
+	SetRequestFinishedDuration(time time.Time)
 
 	// BytesSent reports the bytes sent
 	BytesSent() uint64
@@ -88,10 +94,13 @@ type RequestInfo interface {
 	Protocol() Protocol
 
 	// ResponseCode reports the request's response code
-	ResponseCode() uint32
+	// The code is http standard status code.
+	ResponseCode() int
 
 	// SetResponseCode set request's response code
-	SetResponseCode(code uint32)
+	// Mosn use http standard status code for log, if a protocol have different status code
+	// we will try to mapping it to http status code, and log it
+	SetResponseCode(code int)
 
 	// Duration reports the duration since request's starting time
 	Duration() time.Duration

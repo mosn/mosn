@@ -19,14 +19,17 @@ package log
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
-	"sync"
+	"sync/atomic"
+	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/hashicorp/go-syslog"
 )
@@ -47,46 +50,60 @@ var (
 	// AccessLog y(path:/home/a, format:bar) -> RealLog a
 	// AccessLog z(path:/home/b)             -> RealLog b
 	loggers []*logger
+
+	lastTime atomic.Value
+
+	defaultRoller *Roller
+
+	//defaultRollerTime is one day
+	defaultRollerTime int64 = 24 * 60 * 60
+
+	// localOffset is offset in seconds east of UTC
+	_, localOffset = time.Now().Zone()
+
+	ErrReopenUnsupported = errors.New("reopen unsupported")
 )
+
+// time cache
+type timeCache struct {
+	t int64
+	s string
+}
 
 func init() {
 	//use console  as start logger
-	StartLogger = &logger{
-		Output:  "",
-		Level:   INFO,
-		Roller:  DefaultRoller(),
-		fileMux: new(sync.RWMutex),
-	}
-
-	StartLogger.Start()
+	StartLogger, _ = NewLogger("", INFO)
 	// default as start before Init
 	DefaultLogger = StartLogger
 }
 
 // Logger
 type logger struct {
-	*log.Logger
+	Output string
+	Level  Level
+	roller *Roller
+	writer io.Writer
+	create time.Time
 
-	Output  string
-	Level   Level
-	Roller  *Roller
-	writer  io.Writer
-	fileMux *sync.RWMutex
+	reopenChan      chan struct{}
+	closeChan       chan struct{}
+	writeBufferChan chan types.IoBuffer
 }
 
 // InitDefaultLogger
 // start default logger
 func InitDefaultLogger(output string, level Level) error {
-	DefaultLogger = &logger{
-		Output:  output,
-		Level:   level,
-		Roller:  DefaultRoller(),
-		fileMux: new(sync.RWMutex),
-	}
+	var err error
+	DefaultLogger, err = NewLogger(output, level)
 
-	loggers = append(loggers, DefaultLogger)
+	return err
+}
 
-	return DefaultLogger.Start()
+// InitDefaultRoller
+func InitDefaultRoller(roller string) error {
+	var err error
+	defaultRoller, err = ParseRoller(roller)
+	return err
 }
 
 // ByContext
@@ -118,16 +135,17 @@ func GetLoggerInstance(output string, level Level) (Logger, error) {
 }
 
 // NewLogger
-func NewLogger(output string, level Level) (Logger, error) {
+func NewLogger(output string, level Level) (*logger, error) {
 	logger := &logger{
-		Output:  output,
-		Level:   level,
-		Roller:  DefaultRoller(),
-		fileMux: new(sync.RWMutex),
+		Output:          output,
+		Level:           level,
+		roller:          defaultRoller,
+		writeBufferChan: make(chan types.IoBuffer, 1000),
+		reopenChan:      make(chan struct{}),
+		closeChan:       make(chan struct{}),
 	}
 
 	loggers = append(loggers, logger)
-
 	return logger, logger.Start()
 }
 
@@ -157,47 +175,113 @@ selectwriter:
 		}
 
 		var file *os.File
+		var stat os.FileInfo
 
 		//create parent dir if not exists
 		err := os.MkdirAll(filepath.Dir(l.Output), 0755)
 
-		fmt.Println(err)
+		//fmt.Println(err)
 
 		file, err = os.OpenFile(l.Output, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			return err
 		}
 
-		if l.Roller != nil {
+		if l.roller != nil {
 			file.Close()
-			l.Roller.Filename = l.Output
-			l.writer = l.Roller.GetLogWriter()
+			l.roller.Filename = l.Output
+			l.writer = l.roller.GetLogWriter()
 		} else {
+			stat, err = file.Stat()
+			if err != nil {
+				return err
+			}
+			l.create = stat.ModTime()
 			l.writer = file
 		}
 	}
 
-	l.Logger = log.New(l.writer, "", log.LstdFlags)
+	go l.handler()
 
 	return nil
 }
 
+func (l *logger) handler() {
+	defer func() {
+		if p := recover(); p != nil {
+			debug.PrintStack()
+			go l.handler()
+		}
+	}()
+
+	var buf types.IoBuffer
+	for {
+		select {
+		case <-l.reopenChan:
+			err := l.reopen()
+			if err == nil {
+				return
+			}
+			DefaultLogger.Infof("%s reopen failed : %v", l.Output, err)
+		case <-l.closeChan:
+			for {
+				select {
+				case buf = <-l.writeBufferChan:
+					buf.WriteTo(l)
+					buffer.PutIoBuffer(buf)
+				default:
+					l.close()
+					return
+				}
+			}
+		case buf = <-l.writeBufferChan:
+			for i := 0; i < 20; i++ {
+				select {
+				case b := <-l.writeBufferChan:
+					buf.Write(b.Bytes())
+					buffer.PutIoBuffer(b)
+				default:
+					break
+				}
+			}
+		}
+		buf.WriteTo(l)
+		buffer.PutIoBuffer(buf)
+	}
+}
+
+func (l *logger) Print(buf types.IoBuffer, discard bool) error {
+	select {
+	case l.writeBufferChan <- buf:
+	default:
+		// todo: configurable
+		if discard {
+			return types.ErrChanFull
+		} else {
+			l.writeBufferChan <- buf
+		}
+	}
+	return nil
+}
+
 func (l *logger) Println(args ...interface{}) {
-	l.fileMux.RLock()
-	l.Logger.Println(args...)
-	l.fileMux.RUnlock()
+	s := fmt.Sprintln(args...)
+	buf := buffer.GetIoBuffer(len(s))
+	buf.WriteString(s)
+	if len(s) == 0 || s[len(s)-1] != '\n' {
+		buf.WriteString("\n")
+	}
+	l.Print(buf, true)
 }
 
 func (l *logger) Printf(format string, args ...interface{}) {
-	l.fileMux.RLock()
-	l.Logger.Printf(format, args...)
-	l.fileMux.RUnlock()
-}
-
-func (l *logger) SetFlags(flag int) {
-	l.fileMux.RLock()
-	defer l.fileMux.RUnlock()
-	l.Logger.SetFlags(flag)
+	s := fmt.Sprintf(logTime()+" "+format, args...)
+	buf := buffer.GetIoBuffer(len(s))
+	buf.WriteString(s)
+	if len(s) == 0 || s[len(s)-1] != '\n' {
+		buf.WriteString("\n")
+	}
+	l.Print(buf, true)
 }
 
 func (l *logger) Infof(format string, args ...interface{}) {
@@ -231,20 +315,66 @@ func (l *logger) Tracef(format string, args ...interface{}) {
 }
 
 func (l *logger) Fatalf(format string, args ...interface{}) {
-	if l.Level >= FATAL {
-		l.Printf(FatalPre+format, args...)
+	s := fmt.Sprintf(logTime()+" "+FatalPre+format, args...)
+	buf := buffer.GetIoBuffer(len(s))
+	buf.WriteString(s)
+	buf.WriteTo(l.writer)
+	os.Exit(1)
+}
+
+func (l *logger) Fatal(args ...interface{}) {
+	s := fmt.Sprint(args...)
+	buf := buffer.GetIoBuffer(len(s))
+	buf.WriteString(logTime() + " " + FatalPre)
+	buf.WriteString(s)
+	if len(s) == 0 || s[len(s)-1] != '\n' {
+		buf.WriteString("\n")
 	}
+	buf.WriteTo(l.writer)
+	os.Exit(1)
+}
+
+func (l *logger) Fatalln(args ...interface{}) {
+	s := fmt.Sprintln(args...)
+	buf := buffer.GetIoBuffer(len(s))
+	buf.WriteString(logTime() + " " + FatalPre)
+	buf.WriteString(s)
+	if len(s) == 0 || s[len(s)-1] != '\n' {
+		buf.WriteString("\n")
+	}
+	buf.WriteTo(l.writer)
+	os.Exit(1)
+}
+
+func (l *logger) Write(p []byte) (n int, err error) {
+	// // default roller by daily
+	if l.roller == nil {
+		if !l.create.IsZero() {
+			now := time.Now()
+			if (l.create.Unix()+int64(localOffset))/defaultRollerTime != (now.Unix()+int64(localOffset))/defaultRollerTime {
+				if err = os.Rename(l.Output, l.Output+"."+l.create.Format("2006-01-02")); err != nil {
+					return 0, err
+				}
+				l.create = now
+				go l.Reopen()
+			}
+		}
+	}
+	return l.writer.Write(p)
 }
 
 func (l *logger) Close() error {
+	l.closeChan <- struct{}{}
+	return nil
+}
+
+func (l *logger) close() error {
 	if l.writer == os.Stdout || l.writer == os.Stderr {
 		return nil
 	}
 
 	if closer, ok := l.writer.(io.WriteCloser); ok {
-		l.fileMux.Lock()
 		err := closer.Close()
-		l.fileMux.Unlock()
 		return err
 	}
 
@@ -252,23 +382,23 @@ func (l *logger) Close() error {
 }
 
 func (l *logger) Reopen() error {
+	l.reopenChan <- struct{}{}
+	return nil
+}
+
+func (l *logger) reopen() error {
 	if l.writer == os.Stdout || l.writer == os.Stderr {
-		return nil
+		return ErrReopenUnsupported
 	}
 
 	if closer, ok := l.writer.(io.WriteCloser); ok {
-		l.fileMux.Lock()
 		err := closer.Close()
-
-		if err := l.Start(); err != nil {
+		if err != nil {
 			return err
 		}
-
-		l.fileMux.Unlock()
-		return err
+		return l.Start()
 	}
-
-	return nil
+	return ErrReopenUnsupported
 }
 
 type syslogAddress struct {
@@ -309,4 +439,22 @@ func CloseAll() error {
 	}
 
 	return nil
+}
+
+func logTime() string {
+	var s string
+	t := time.Now()
+	now := t.Unix()
+	value := lastTime.Load()
+	if value != nil {
+		last := value.(*timeCache)
+		if now <= last.t {
+			s = last.s
+		}
+	}
+	if s == "" {
+		s = t.Format("2006/01/02 15:04:05")
+		lastTime.Store(&timeCache{now, s})
+	}
+	return s
 }

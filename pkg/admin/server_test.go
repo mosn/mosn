@@ -24,12 +24,33 @@ import (
 	"net/http"
 	"testing"
 
+	rawjson "encoding/json"
+
+	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/api/v1/config_dump", port))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New(fmt.Sprintf("call admin api failed response status: %d, %s", resp.StatusCode, string(b)))
+	}
+
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func getStats(port uint32) (string, error) {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/api/v1/stats", port))
 	if err != nil {
 		return "", err
 	}
@@ -83,6 +104,38 @@ func TestDumpConfig(t *testing.T) {
 	} else {
 		if data != `{"mosn_config":{"name":"mock","port":8889}}` {
 			t.Errorf("unexpected effectiveConfig: %s\n", data)
+		}
+	}
+	Reset()
+}
+
+func TestDumpStats(t *testing.T) {
+	server := Server{}
+	config := &mockMOSNConfig{
+		Name: "mock",
+		Port: 8889,
+	}
+	server.Start(config)
+	defer server.Close()
+
+	stats, _ := metrics.NewMetrics("DumpTest", map[string]string{"lbk1": "lbv1"})
+	stats.Counter("ct1").Inc(1)
+	stats.Gauge("gg2").Update(3)
+
+	expected, _ := rawjson.MarshalIndent(map[string]map[string]map[string]string{
+		"DumpTest": {
+			"lbk1.lbv1": {
+				"ct1": "1",
+				"gg2": "3",
+			},
+		},
+	}, "", "\t")
+
+	if data, err := getStats(config.Port); err != nil {
+		t.Error(err)
+	} else {
+		if data != string(expected) {
+			t.Errorf("unexpected stats: %s\n", data)
 		}
 	}
 	Reset()

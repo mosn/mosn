@@ -22,6 +22,8 @@ import (
 	"net"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/sink/console"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/json-iterator/go"
 	"github.com/valyala/fasthttp"
@@ -41,6 +43,11 @@ func configDump(ctx *fasthttp.RequestCtx) {
 		ctx.Write([]byte(`{ error: "internal error" }`))
 		log.DefaultLogger.Errorf("Admin API: ConfigDump failed, cause by %s", err)
 	}
+}
+
+func statsDump(ctx *fasthttp.RequestCtx) {
+	sink := console.NewConsoleSink(ctx.Response.BodyWriter())
+	sink.Flush(metrics.GetAll())
 }
 
 var levelMap = map[string]log.Level{
@@ -70,6 +77,8 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	switch {
 	case path == "/api/v1/config_dump" && method == "GET":
 		configDump(ctx)
+	case path == "/api/v1/stats" && method == "GET":
+		statsDump(ctx)
 	case path == "/api/v1/logging" && method == "POST":
 		setLogLevel(ctx)
 	default:

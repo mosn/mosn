@@ -55,26 +55,3 @@ const (
 	ResourceLimitExceeded UpstreamFailureReason = "ResourceLimitExceeded"
 	NoRoute               UpstreamFailureReason = "NoRoute"
 )
-
-// UpstreamResetType
-type UpstreamResetType string
-
-// Group of Upstream Reset Type
-const (
-	UpstreamReset         UpstreamResetType = "UpstreamReset"
-	UpstreamGlobalTimeout UpstreamResetType = "UpstreamGlobalTimeout"
-	UpstreamPerTryTimeout UpstreamResetType = "UpstreamPerTryTimeout"
-)
-
-func init() {
-	ConnNewPoolFactories = make(map[types.Protocol]connNewPool)
-}
-
-type connNewPool func(host types.Host) types.ConnectionPool
-
-var ConnNewPoolFactories map[types.Protocol]connNewPool
-
-func RegisterNewPoolFactory(protocol types.Protocol, factory connNewPool) {
-	//other
-	ConnNewPoolFactories[protocol] = factory
-}

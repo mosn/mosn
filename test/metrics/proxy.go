@@ -1,18 +1,18 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"net/http"
 	"time"
 
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/sink/console"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	"github.com/alipay/sofa-mosn/pkg/stats"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
@@ -31,10 +31,6 @@ func main() {
 		server = NewHTTP1Server(serverAddr)
 		client = NewHTTP1Client(meshAddr)
 		proto = protocol.HTTP1
-	case "mhttp2":
-		server = NewHTTP2Server(serverAddr)
-		client = NewHTTP2Client(meshAddr)
-		proto = protocol.MHTTP2
 	case "http2":
 		server = NewHTTP2Server(serverAddr)
 		client = NewHTTP2Client(meshAddr)
@@ -83,7 +79,5 @@ func (p *Proxy) DestroyConn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) Stats(w http.ResponseWriter, r *http.Request) {
-	alldata := stats.GetAllMetricsData()
-	b, _ := json.MarshalIndent(alldata, "", "\t")
-	w.Write(b)
+	console.NewConsoleSink(w).Flush(metrics.GetAll())
 }

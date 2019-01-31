@@ -23,12 +23,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
 var traceIdGenerator = newIdGenerator()
-var spanIdGeneratorMap = map[*SpanKey]*SpanIdGenerator{}
+var spanIdGeneratorMap = sync.Map{}
 
 type IdGenerator struct {
 	index int64
@@ -39,6 +40,10 @@ type IdGenerator struct {
 type SpanKey struct {
 	TraceId string
 	SpanId  string
+}
+
+func (spanKey *SpanKey) UniqueKey() string {
+	return spanKey.TraceId + "#" + spanKey.SpanId
 }
 
 // A span ID generator that generate a span ID like 0.1, 0.1.1, 0.1.2 etc.
@@ -67,15 +72,20 @@ func NewSpanIdGenerator(traceId, spanId string) *SpanIdGenerator {
 }
 
 func AddSpanIdGenerator(generator *SpanIdGenerator) {
-	spanIdGeneratorMap[&generator.key] = generator
+	spanIdGeneratorMap.Store(generator.key.UniqueKey(), generator)
 }
 
 func GetSpanIdGenerator(key *SpanKey) *SpanIdGenerator {
-	return spanIdGeneratorMap[key]
+	value, ok := spanIdGeneratorMap.Load(key.UniqueKey())
+	if ok {
+		return value.(*SpanIdGenerator)
+	} else {
+		return nil
+	}
 }
 
 func DeleteSpanIdGenerator(key *SpanKey) {
-	delete(spanIdGeneratorMap, key)
+	spanIdGeneratorMap.Delete(key.UniqueKey())
 }
 
 func newIdGenerator() *IdGenerator {
@@ -98,7 +108,7 @@ func ipToHexString(ip string) string {
 	result := ""
 	for _, segment := range segments {
 		i, _ := strconv.Atoi(segment)
-		hexString := fmt.Sprintf("%02X", i)
+		hexString := fmt.Sprintf("%02x", i)
 		result += hexString
 	}
 

@@ -19,10 +19,12 @@ package cluster
 
 import (
 	"math/rand"
+	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 type subSetLoadBalancer struct {
@@ -89,7 +91,7 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 	defaulthosts := sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts()
 
 	if len(defaulthosts) > 0 {
-		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are ", defaulthosts)
+		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are %v", defaulthosts)
 	} else {
 		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset's host is nil")
 		return nil
@@ -425,37 +427,43 @@ func (hsi *hostSubsetImpl) UpdateHostSubset(hostsAdded []types.Host, hostsRemove
 		}
 	}
 
-	//最终更新host
-	hsi.hostSubset.UpdateHosts(finalhosts, healthyHosts, nil, nil,
-		filteredAdded, filteredRemoved)
+	// update final hosts
+	hsi.hostSubset.UpdateHosts(finalhosts, healthyHosts, filteredAdded, filteredRemoved)
 }
 
 func (hsi *hostSubsetImpl) GetFinalHosts(hostsAdded []types.Host, hostsRemoved []types.Host) []types.Host {
 	hosts := hsi.hostSubset.Hosts()
 
-	for _, host := range hostsAdded {
-		found := false
-		for _, hostOrig := range hosts {
-			if host.AddressString() == hostOrig.AddressString() {
-				found = true
-			}
-		}
+	sortedHosts := types.SortedHosts(hosts)
+	sort.Sort(sortedHosts)
 
-		if !found {
-			hosts = append(hosts, host)
+	originLen := sortedHosts.Len()
+
+	for _, host := range hostsAdded {
+		addr := host.AddressString()
+		i := sort.Search(originLen, func(i int) bool {
+			return sortedHosts[i].AddressString() >= addr
+		})
+		if !(i < originLen && sortedHosts[i].AddressString() == addr) {
+			sortedHosts = append(sortedHosts, host)
 		}
 	}
+
+	sort.Sort(sortedHosts)
 
 	for _, host := range hostsRemoved {
-		for i, hostOrig := range hosts {
-			if host.AddressString() == hostOrig.AddressString() {
-				hosts = append(hosts[:i], hosts[i+1:]...)
-				continue
-			}
+		addr := host.AddressString()
+		i := sort.Search(sortedHosts.Len(), func(i int) bool {
+			return sortedHosts[i].AddressString() >= addr
+		})
+		// found
+		if i < sortedHosts.Len() && sortedHosts[i].AddressString() == addr {
+			sortedHosts = append(sortedHosts[:i], sortedHosts[i+1:]...)
 		}
 	}
 
-	return hosts
+	return sortedHosts
+
 }
 
 func (hsi *hostSubsetImpl) Empty() bool {
@@ -604,7 +612,7 @@ func GenerateDftSubsetKeys(dftkeys types.SortedMap) types.SubsetMetadata {
 	for _, pair := range dftkeys {
 		sm = append(sm, types.Pair{
 			T1: pair.Key,
-			T2: types.GenerateHashedValue(pair.Value),
+			T2: utils.GenerateMD5Value(pair.Value),
 		})
 	}
 

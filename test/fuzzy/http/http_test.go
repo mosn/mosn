@@ -12,7 +12,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/fuzzy"
 	"github.com/alipay/sofa-mosn/test/util"
@@ -123,11 +123,14 @@ func (s *HTTPServer) ReStart() {
 	go s.server.ListenAndServe()
 }
 
-func CreateServers(t *testing.T, serverList []string, stop chan struct{}) []fuzzy.Server {
+func CreateServers(t *testing.T, serverList []string, stop chan struct{}, keepalive bool) []fuzzy.Server {
 	var servers []fuzzy.Server
 	for i, s := range serverList {
 		id := fmt.Sprintf("server#%d", i)
 		server := NewHTTPServer(t, id, s)
+		if !keepalive {
+			server.server.SetKeepAlivesEnabled(false)
+		}
 		server.GoServe()
 		go func(server *HTTPServer) {
 			<-stop

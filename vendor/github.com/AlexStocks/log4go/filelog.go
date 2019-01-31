@@ -231,7 +231,7 @@ func (w *FileLogWriter) intRotate() error {
 
 	// Open the log file
 	// 打开新的文件
-	fd, err := os.OpenFile(w.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+	fd, err := os.OpenFile(w.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0664)
 	if err != nil {
 		panic(err) // 打不开文件，说明fd耗完或者磁盘耗尽
 		return err

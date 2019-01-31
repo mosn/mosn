@@ -48,7 +48,7 @@ func TestMapping(t *testing.T) {
 	}
 
 	for i, tc := range testcases {
-		code, _ := MappingHeaderStatusCode(MHTTP2, tc.Header)
+		code, _ := MappingHeaderStatusCode(HTTP2, tc.Header)
 		if code != tc.Expetced {
 			t.Errorf("#%d unexpected status code", i)
 		}

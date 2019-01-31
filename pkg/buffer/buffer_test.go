@@ -18,10 +18,11 @@
 package buffer
 
 import (
-	"runtime"
+	"context"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"runtime/debug"
 )
 
 const Size = 2048
@@ -48,18 +49,12 @@ func BenchmarkBytePool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buf := testbytepool()
 		PutBytes(buf)
-		if i%100 == 0 {
-			runtime.GC()
-		}
 	}
 }
 
 func BenchmarkByteMake(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		testbyte()
-		if i%100 == 0 {
-			runtime.GC()
-		}
 	}
 }
 
@@ -82,18 +77,12 @@ func BenchmarkIoBufferPool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buf := testiobufferpool()
 		PutIoBuffer(buf)
-		if i%100 == 0 {
-			runtime.GC()
-		}
 	}
 }
 
 func BenchmarkIoBuffer(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		testiobuffer()
-		if i%100 == 0 {
-			runtime.GC()
-		}
 	}
 }
 
@@ -180,4 +169,73 @@ func Test_ByteBufferPool(t *testing.T) {
 	}
 	PutBytes(b)
 	t.Log("ByteBufferPool Test Sucess")
+}
+
+//test bufferpool
+var mock mock_bufferctx
+
+type mock_bufferctx struct {
+	TempBufferCtx
+}
+
+func (ctx *mock_bufferctx) New() interface{} {
+	return new(mock_buffers)
+}
+
+func (ctx *mock_bufferctx) Reset(x interface{}) {
+	buf := x.(*mock_buffers)
+	*buf = mock_buffers{}
+}
+
+type mock_buffers struct {
+	m [10]int
+}
+
+func mock_BuffersByContext(ctx context.Context) *mock_buffers {
+	poolCtx := PoolContext(ctx)
+	return poolCtx.Find(&mock, nil).(*mock_buffers)
+}
+
+func Test_BufferPool_Register(t *testing.T) {
+	defer func() {
+		if p := recover(); p != nil {
+			t.Log("expected panic")
+		}
+	}()
+	ctx1 := NewBufferPoolContext(context.Background())
+	mock_BuffersByContext(ctx1)
+	t.Errorf("should panic")
+
+}
+
+func Test_BufferPool(t *testing.T) {
+	// close GC
+	debug.SetGCPercent(100000)
+	var null [10]int
+
+	RegisterBuffer(&mock)
+
+	// first
+	ctx1 := NewBufferPoolContext(context.Background())
+	buf1 := mock_BuffersByContext(ctx1)
+	for i := 0; i < 10; i++ {
+		buf1.m[i] = i
+	}
+	t.Log(buf1.m)
+	PoolContext(ctx1).Give()
+	if buf1.m != null {
+		t.Errorf("test bufferPool Error: Reset() failed")
+	}
+	t.Log(buf1.m)
+	t.Logf("%p", buf1)
+
+	// second
+	ctx2 := NewBufferPoolContext(context.Background())
+	buf2 := mock_BuffersByContext(ctx2)
+	t.Logf("%p", buf2)
+	if buf1 != buf2 {
+		t.Errorf("test bufferPool Error: Reuse failed")
+	}
+
+	debug.SetGCPercent(100)
 }

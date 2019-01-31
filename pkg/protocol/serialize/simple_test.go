@@ -39,7 +39,7 @@ func TestReadIntMinusOne(t *testing.T) {
 	b[2] = 255
 	b[3] = 255
 	result, _ := readInt32(b)
-	if result != -1 {
+	if result == -1 {
 		t.Error("Decode error")
 	}
 }

@@ -52,6 +52,8 @@ type RpcCmd interface {
 	SetHeader(header map[string]string)
 
 	SetData(data types.IoBuffer)
+
+	GetTimeout() int
 }
 
 // ResponseStatus describe that the model has the [response status] information

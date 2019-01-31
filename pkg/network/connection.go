@@ -360,10 +360,13 @@ func (c *connection) doRead() (err error) {
 
 	if err != nil {
 		if te, ok := err.(net.Error); ok && te.Timeout() {
+			for _, cb := range c.connCallbacks {
+				cb.OnEvent(types.OnReadTimeout) // run read timeout callback, for keep alive if configured
+			}
 			if bytesRead == 0 {
 				return err
 			}
-		} else {
+		} else if err != io.EOF {
 			return err
 		}
 	}
@@ -372,9 +375,8 @@ func (c *connection) doRead() (err error) {
 		cb(uint64(bytesRead))
 	}
 
-	c.onRead(bytesRead)
+	c.onRead()
 	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Len()))
-
 	return
 }
 
@@ -394,12 +396,12 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 	}
 }
 
-func (c *connection) onRead(bytesRead int64) {
+func (c *connection) onRead() {
 	if !c.readEnabled {
 		return
 	}
 
-	if bytesRead == 0 {
+	if c.readBuffer.Len() == 0 {
 		return
 	}
 
@@ -420,7 +422,18 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 	}
 
 	if c.internalLoopStarted {
-		c.writeBufferChan <- &buffers
+		select {
+		case c.writeBufferChan <- &buffers:
+		default:
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						c.logger.Errorf("Write panic %v", r)
+					}
+				}()
+				c.writeBufferChan <- &buffers
+			}()
+		}
 	} else {
 		// Start schedule if not started
 		select {
@@ -430,8 +443,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -503,7 +516,9 @@ func (c *connection) startWriteLoop() {
 				continue
 			}
 
-			if err == io.EOF {
+			if err == buffer.EOF {
+				c.Close(types.NoFlush, types.LocalClose)
+			} else if err == io.EOF {
 				// remote conn closed
 				c.Close(types.NoFlush, types.RemoteClose)
 			} else {
@@ -567,15 +582,15 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		return bytesSent, err
 	}
 	for _, buf := range c.ioBuffers {
-		buffer.PutIoBuffer(buf)
+		if buf.EOF() {
+			err = buffer.EOF
+		}
+		if e := buffer.PutIoBuffer(buf); e != nil {
+			c.logger.Errorf("PutIoBuffer error: %v", e)
+		}
 	}
 	c.ioBuffers = c.ioBuffers[:0]
 	c.writeBuffers = c.writeBuffers[:0]
-	if len(buffers) != 0 {
-		for _, buf := range buffers {
-			c.writeBuffers = append(c.writeBuffers, buf)
-		}
-	}
 	return
 }
 
@@ -602,6 +617,11 @@ func (c *connection) writeBufLen() (bufLen int) {
 }
 
 func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.ConnectionEvent) error {
+	if ccType == types.FlushWrite {
+		c.Write(buffer.NewIoBufferEOF())
+		return nil
+	}
+
 	if !atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
 		return nil
 	}
@@ -615,27 +635,6 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
 		c.logger.Debugf("Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
 		rawc.CloseRead()
-	}
-
-	if ccType == types.FlushWrite {
-		if c.writeBufLen() > 0 {
-			c.closeWithFlush = true
-
-			for {
-
-				bytesSent, err := c.doWrite()
-
-				if err != nil {
-					if te, ok := err.(net.Error); !(ok && te.Timeout()) {
-						break
-					}
-				}
-
-				if bytesSent == 0 {
-					break
-				}
-			}
-		}
 	}
 
 	// wait for io loops exit, ensure single thread operate streams on the connection

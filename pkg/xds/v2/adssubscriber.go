@@ -20,9 +20,7 @@ package v2
 import (
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
 
 // Start adsClient send goroutine and receive goroutine
@@ -30,7 +28,6 @@ import (
 // receive goroutine handle response for both client request and server push
 func (adsClient *ADSClient) Start() {
 	adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
-	adsClient.MosnConfig = &config.MOSNConfig{}
 	go adsClient.sendThread()
 	go adsClient.receiveThread()
 }
@@ -83,52 +80,7 @@ func (adsClient *ADSClient) receiveThread() {
 				continue
 			}
 			typeURL := resp.TypeUrl
-			if typeURL == "type.googleapis.com/envoy.api.v2.Listener" {
-				log.DefaultLogger.Tracef("get lds resp,handle it")
-				listeners := adsClient.V2Client.handleListenersResp(resp)
-				log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
-				adsClient.MosnConfig.OnAddOrUpdateListeners(listeners)
-
-				err = adsClient.V2Client.reqRoutes(adsClient.StreamClient)
-				if err != nil {
-					log.DefaultLogger.Warnf("send thread request rds fail!auto retry next period")
-				}
-
-			} else if typeURL == "type.googleapis.com/envoy.api.v2.Cluster" {
-				log.DefaultLogger.Tracef("get cds resp,handle it")
-				clusters := adsClient.V2Client.handleClustersResp(resp)
-				log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
-				adsClient.MosnConfig.OnUpdateClusters(clusters)
-				clusterNames := make([]string, 0)
-
-				for _, cluster := range clusters {
-					if cluster.Type == envoy_api_v2.Cluster_EDS {
-						clusterNames = append(clusterNames, cluster.Name)
-					}
-				}
-
-				err = adsClient.V2Client.reqEndpoints(adsClient.StreamClient, clusterNames)
-				if err != nil {
-					log.DefaultLogger.Warnf("send thread request eds fail!auto retry next period")
-				}
-
-			} else if typeURL == "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment" {
-				log.DefaultLogger.Tracef("get eds resp,handle it ")
-				endpoints := adsClient.V2Client.handleEndpointsResp(resp)
-				log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
-				adsClient.MosnConfig.OnUpdateEndpoints(endpoints)
-
-				err = adsClient.V2Client.reqListeners(adsClient.StreamClient)
-				if err != nil {
-					log.DefaultLogger.Warnf("send thread request lds fail!auto retry next period")
-				}
-
-			} else if typeURL == "type.googleapis.com/envoy.api.v2.RouteConfiguration" {
-				log.DefaultLogger.Tracef("get rds resp,handle it")
-				routes := adsClient.V2Client.handleRoutesResp(resp)
-				log.DefaultLogger.Infof("get %d routes from RDS", len(routes))
-				adsClient.MosnConfig.OnAddOrUpdateRouters(routes)
-			}
+			HandleTypeURL(typeURL, adsClient, resp)
 		}
 	}
 }

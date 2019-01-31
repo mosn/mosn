@@ -1,7 +1,7 @@
 {
   "servers": [
     {
-      "mosn_server_name":"mosn_server_1",
+      "mosn_server_name": "mosn_server_1",
       "default_log_path": "/home/admin/mosn/logs/default.log",
       "default_log_level": "DEBUG",
       "graceful_timeout": "10s",
@@ -13,8 +13,8 @@
           "bind_port": true,
           "filter_chains": [
             {
-              "match":"",
-              "tls_context":{
+              "match": "",
+              "tls_context": {
                 "status": true,
                 "inspector": true,
                 "server_name": "hello.com",
@@ -32,18 +32,18 @@
                     "downstream_protocol": "SofaRpc",
                     "name": "proxy_config",
                     "upstream_protocol": "SofaRpc",
-                    "router_config_name":"test_router"
+                    "router_config_name": "test_router"
                   }
                 },
                 {
-                  "type":"connection_manager",
-                  "config":{
-                    "router_config_name":"test_router",
+                  "type": "connection_manager",
+                  "config": {
+                    "router_config_name": "test_router",
                     "virtual_hosts": [
                       {
                         "name": "sofa",
                         "require_tls": "no",
-                        "domains":[
+                        "domains": [
                           "*testwilccard"
                         ],
                         "routers": [
@@ -53,7 +53,7 @@
                                 {
                                   "name": "service",
                                   "value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
-                                  "regex":false
+                                  "regex": false
                                 }
                               ]
                             },
@@ -62,18 +62,18 @@
                               "metadata_match": {
                                 "filter_metadata": {
                                   "mosn.lb": {
-                                    "version":"1.1",
-                                    "stage":"pre-release",
+                                    "version": "1.1",
+                                    "stage": "pre-release",
                                     "label": "gray"
                                   }
                                 }
                               },
-                              "weighted_clusters":[
+                              "weighted_clusters": [
                                 {
-                                  "cluster":{
-                                    "name":"serverCluster1",
-                                    "weight":90,
-                                    "metadata_match":{
+                                  "cluster": {
+                                    "name": "serverCluster1",
+                                    "weight": 90,
+                                    "metadata_match": {
                                       "filter_metadata": {
                                         "mosn.lb": {
                                           "version": "v1"
@@ -83,10 +83,10 @@
                                   }
                                 },
                                 {
-                                  "cluster":{
-                                    "name":"serverCluster2",
-                                    "weight":10,
-                                    "metadata_match":{
+                                  "cluster": {
+                                    "name": "serverCluster2",
+                                    "weight": 10,
+                                    "metadata_match": {
                                       "filter_metadata": {
                                         "mosn.lb": {
                                           "version": "v2"
@@ -141,16 +141,15 @@
         "lb_type": "LB_ROUNDROBIN",
         "max_request_per_conn": 0,
         "conn_buffer_limit_bytes": 0,
-        "circuit_breakers":[
+        "circuit_breakers": [
           {
-            "priority":"default",
+            "priority": "default",
             "max_connections": 1024,
             "max_pending_requests": 1024,
             "max_requests": 1024,
             "max_retries": 3
           }
         ],
-
         "health_check": {
           "protocol": "SofaRpc",
           "timeout": "90s",
@@ -186,14 +185,27 @@
           },
           "subset_selectors": [
             [
-              "stage", "type"
+              "stage",
+              "type"
             ],
             [
-              "stage", "label","version"
+              "stage",
+              "label",
+              "version"
             ],
-            ["version"]
+            [
+              "version"
+            ]
           ]
         }
+      }
+    ]
+  },
+  "metrics": {
+    "flush_interval": "500ms",
+    "sinks": [
+      {
+        "type": "prometheus"
       }
     ]
   }

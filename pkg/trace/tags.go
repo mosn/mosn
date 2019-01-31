@@ -18,19 +18,24 @@
 package trace
 
 const (
-	TRACE_ID               string = "traceId"
-	SPAN_ID                string = "spanId"
-	PARENT_SPAN_ID         string = "parentSpanId"
-	SERVICE_NAME           string = "serviceName"
-	METHOD_NAME            string = "methodName"
-	PROTOCOL               string = "protocol"
-	RESULT_STATUS          string = "resultStatus"
-	REQUEST_SIZE           string = "requestSize"
-	RESPONSE_SIZE          string = "responseSize"
-	UPSTREAM_HOST_ADDRESS  string = "upstreamHostAddress"
-	DOWNSTEAM_HOST_ADDRESS string = "downstreamHostAddress"
-	APP_NAME               string = "appName"
-	SPAN_TYPE              string = "spanType"
-	BAGGAGE_DATA           string = "baggageData"
-	REQUEST_URL string = "requestURL"
+	TRACE_ID = iota
+	SPAN_ID
+	PARENT_SPAN_ID
+	SERVICE_NAME
+	METHOD_NAME
+	PROTOCOL
+	RESULT_STATUS
+	REQUEST_SIZE
+	RESPONSE_SIZE
+	UPSTREAM_HOST_ADDRESS
+	DOWNSTEAM_HOST_ADDRESS
+	APP_NAME
+	SPAN_TYPE
+	BAGGAGE_DATA
+	REQUEST_URL
+	TARGET_CELL
+	TARGET_IDC
+	TARGET_CITY
+	ROUTE_RECORD
+	TRACE_END
 )

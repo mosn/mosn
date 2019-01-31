@@ -28,9 +28,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/proxy"
 	"github.com/alipay/sofa-mosn/pkg/rcu"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/network"
 )
 
 var instanceMutex = sync.Mutex{}
@@ -171,6 +171,11 @@ func (pc *primaryCluster) UpdateHosts(hosts []types.Host) error {
 	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
 		return err
 	}
+	hostsConfig := make([]v2.Host, 0, len(hosts))
+	for _, h := range hosts {
+		hostsConfig = append(hostsConfig, h.Config())
+	}
+	admin.SetHosts(pc.cluster.Info().Name(), hostsConfig)
 	return nil
 }
 
@@ -203,6 +208,17 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 		admin.SetClusterConfig(clusterName, cluster)
 	}
 	return ok
+}
+
+// AddClusterHealthCheckCallbacks add a callback for clustrer
+func (cm *clusterManager) AddClusterHealthCheckCallbacks(name string, cb types.HealthCheckCb) bool {
+	if v, ok := cm.primaryClusters.Load(name); ok {
+		if cluster, ok := v.(*primaryCluster); ok {
+			cluster.cluster.AddHealthCheckCallbacks(cb)
+			return true
+		}
+	}
+	return false
 }
 
 func (cm *clusterManager) ClusterExist(clusterName string) bool {
@@ -306,11 +322,29 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 		if err := pc.UpdateHosts(hosts); err != nil {
 			return fmt.Errorf("UpdateClusterHosts failed, cluster's hostset %s can't be update", clusterName)
 		}
-		admin.SetHosts(clusterName, hostConfigs)
 		return nil
 	}
 
 	return fmt.Errorf("UpdateClusterHosts failed, cluster %s not found", clusterName)
+}
+
+func (cm *clusterManager) AppendClusterHosts(clusterName string, priority uint32, hostConfigs []v2.Host) error {
+	if v, ok := cm.primaryClusters.Load(clusterName); ok {
+		pc := v.(*primaryCluster)
+		pcc := pc.cluster
+		var hosts []types.Host
+		if concretedCluster, ok := pcc.(*simpleInMemCluster); ok {
+			hosts = append(hosts, concretedCluster.hosts...)
+		}
+		for _, hc := range hostConfigs {
+			hosts = append(hosts, NewHost(hc, pc.cluster.Info()))
+		}
+		if err := pc.UpdateHosts(hosts); err != nil {
+			return fmt.Errorf("AppendClusterHosts failed, cluster's hostset %s can't be update", clusterName)
+		}
+		return nil
+	}
+	return fmt.Errorf("AppendClusterHosts failed, cluster %s not found", clusterName)
 }
 
 func (cm *clusterManager) RemoveClusterHost(clusterName string, hostAddress string) error {
@@ -389,7 +423,7 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 		if connPool, ok := connectionPool.Load(addr); ok {
 			return connPool.(types.ConnectionPool)
 		}
-		if factory, ok := proxy.ConnNewPoolFactories[protocol]; ok {
+		if factory, ok := network.ConnNewPoolFactories[protocol]; ok {
 			newPool := factory(host) //call NewBasicRoute
 
 			connectionPool.Store(addr, newPool)

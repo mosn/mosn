@@ -90,7 +90,7 @@ type streamConnection struct {
 	streamConnectionEventListener       types.StreamConnectionEventListener
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 
-	logger 			log.Logger
+	logger log.Logger
 }
 
 func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -209,12 +209,14 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 
 	// header, data notify
 	if stream != nil {
-		header := cmd.Header()
 		data := cmd.Data()
 
-		if header != nil {
-			stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
+		if cmd.GetTimeout() > 0 {
+			timeout := strconv.Itoa(cmd.GetTimeout()) // timeout, ms
+			cmd.Set(types.HeaderGlobalTimeout, timeout)
 		}
+
+		stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
 
 		if data != nil {
 			stream.receiver.OnReceiveData(stream.ctx, data, true)
@@ -298,11 +300,11 @@ type stream struct {
 	ctx context.Context
 	sc  *streamConnection
 
-	id        	uint64
-	direction 	StreamDirection // 0: out, 1: in
-	receiver	types.StreamReceiveListener
-	sendCmd 	sofarpc.SofaRpcCmd
-	sendBuf 	types.IoBuffer
+	id        uint64
+	direction StreamDirection // 0: out, 1: in
+	receiver  types.StreamReceiveListener
+	sendCmd   sofarpc.SofaRpcCmd
+	sendBuf   types.IoBuffer
 }
 
 // ~~ types.Stream
@@ -343,7 +345,7 @@ func (s *stream) AppendHeaders(ctx context.Context, headers types.HeaderMap, end
 		}
 	}
 
-	s.sc.logger.Debugf("AppendHeaders,request id = %d, direction = %d", s.ID, s.direction)
+	s.sc.logger.Debugf("AppendHeaders,request id = %d, direction = %d", s.ID(), s.direction)
 
 	if endStream {
 		s.endStream()
@@ -373,7 +375,7 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 		s.sendCmd.SetData(data)
 	}
 
-	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID, s.direction)
+	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
 
 	if endStream {
 		s.endStream()
@@ -401,6 +403,8 @@ func (s *stream) endStream() {
 	if s.sendCmd != nil {
 		// replace requestID
 		s.sendCmd.SetRequestID(s.id)
+		// remove the inject header
+		s.sendCmd.Del(types.HeaderGlobalTimeout)
 
 		// TODO: replaced with EncodeTo, and pre-alloc send buf
 		buf, err := s.sc.codecEngine.Encode(s.ctx, s.sendCmd)

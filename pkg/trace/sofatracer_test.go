@@ -18,37 +18,87 @@
 package trace
 
 import (
+	"runtime"
 	"testing"
 	"time"
 )
 
 func init() {
-	CreateInstance()
+	tracer := CreateTracer("SOFATracer")
+	SetTracer(tracer)
 }
 
 func TestSofaTracerStartFinish(t *testing.T) {
-	span := SofaTracerInstance.Start(time.Now())
+	span := Tracer().Start(time.Now())
 	span.SetTag(TRACE_ID, IdGen().GenerateTraceId())
 	span.FinishSpan()
 }
 
 func TestSofaTracerPrintSpan(t *testing.T) {
-	SofaTracerInstance.printSpan(&SofaTracerSpan{})
+	Tracer().PrintSpan(&SofaTracerSpan{})
 }
 
 func TestSofaTracerPrintIngressSpan(t *testing.T) {
-	span := &SofaTracerSpan{
-		tags: map[string]string{},
-	}
+	span := &SofaTracerSpan{}
 	span.tags[DOWNSTEAM_HOST_ADDRESS] = "127.0.0.1:43"
 	span.tags[SPAN_TYPE] = "ingress"
-	SofaTracerInstance.printSpan(span)
+	Tracer().PrintSpan(span)
 }
 
 func TestSofaTracerPrintEgressSpan(t *testing.T) {
-	span := &SofaTracerSpan{
-		tags: map[string]string{},
-	}
+	span := &SofaTracerSpan{}
 	span.tags[SPAN_TYPE] = "egress"
-	SofaTracerInstance.printSpan(span)
+	Tracer().PrintSpan(span)
+}
+
+func BenchmarkSofaTracer(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	for n := 0; n < b.N; n++ {
+		span := &SofaTracerSpan{}
+		span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
+		span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
+		span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")
+		span.SetTag(METHOD_NAME, "BenchmarkSofaTracer")
+		span.SetTag(PROTOCOL, "BenchmarkSofaTracer")
+		span.SetTag(RESULT_STATUS, "BenchmarkSofaTracer")
+		span.SetTag(REQUEST_SIZE, "BenchmarkSofaTracer")
+		span.SetTag(RESPONSE_SIZE, "BenchmarkSofaTracer")
+		span.SetTag(UPSTREAM_HOST_ADDRESS, "BenchmarkSofaTracer")
+		span.SetTag(DOWNSTEAM_HOST_ADDRESS, "BenchmarkSofaTracer")
+		span.SetTag(APP_NAME, "BenchmarkSofaTracer")
+		span.SetTag(SPAN_TYPE, "BenchmarkSofaTracer")
+		span.SetTag(BAGGAGE_DATA, "BenchmarkSofaTracer")
+		span.SetTag(REQUEST_URL, "BenchmarkSofaTracer")
+
+		span.SetTag(SPAN_TYPE, "ingress")
+
+		Tracer().PrintSpan(span)
+	}
+}
+
+func BenchmarkSofaTracerParallel(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			span := &SofaTracerSpan{}
+			span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
+			span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
+			span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")
+			span.SetTag(METHOD_NAME, "BenchmarkSofaTracer")
+			span.SetTag(PROTOCOL, "BenchmarkSofaTracer")
+			span.SetTag(RESULT_STATUS, "BenchmarkSofaTracer")
+			span.SetTag(REQUEST_SIZE, "BenchmarkSofaTracer")
+			span.SetTag(RESPONSE_SIZE, "BenchmarkSofaTracer")
+			span.SetTag(UPSTREAM_HOST_ADDRESS, "BenchmarkSofaTracer")
+			span.SetTag(DOWNSTEAM_HOST_ADDRESS, "BenchmarkSofaTracer")
+			span.SetTag(APP_NAME, "BenchmarkSofaTracer")
+			span.SetTag(SPAN_TYPE, "BenchmarkSofaTracer")
+			span.SetTag(BAGGAGE_DATA, "BenchmarkSofaTracer")
+			span.SetTag(REQUEST_URL, "BenchmarkSofaTracer")
+
+			span.SetTag(SPAN_TYPE, "ingress")
+
+			Tracer().PrintSpan(span)
+		}
+	})
 }

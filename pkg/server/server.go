@@ -57,17 +57,10 @@ type server struct {
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
-	procNum := runtime.NumCPU()
-
 	if config != nil {
 		//graceful timeout setting
 		if config.GracefulTimeout != 0 {
 			GracefulTimeout = config.GracefulTimeout
-		}
-
-		//processor num setting
-		if config.Processor > 0 {
-			procNum = config.Processor
 		}
 
 		network.UseNetpollMode = config.UseNetpollMode
@@ -76,7 +69,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		}
 	}
 
-	runtime.GOMAXPROCS(procNum)
+	runtime.GOMAXPROCS(config.Processor)
 
 	OnProcessShutDown(log.CloseAll)
 
@@ -158,7 +151,7 @@ func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
 	// 10 seconds wait for read timeout
-	timeout := time.NewTimer(duration*2 + time.Second*10)
+	timeout := time.NewTimer(2 * (duration + types.DefaultConnReadTimeout))
 	wait := make(chan struct{}, 1)
 	time.Sleep(duration)
 	go func() {
@@ -190,6 +183,13 @@ func InitDefaultLogger(config *Config) {
 	//use default log path
 	if logPath == "" {
 		logPath = MosnLogDefaultPath
+	}
+
+	if config.LogRoller != "" {
+		err := log.InitDefaultRoller(config.LogRoller)
+		if err != nil {
+			log.StartLogger.Fatalln("initialize default logger Roller failed : ", err)
+		}
 	}
 
 	err := log.InitDefaultLogger(logPath, logLevel)

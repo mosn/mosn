@@ -23,6 +23,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/limit"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 func TestNewStat(t *testing.T) {
@@ -47,7 +48,7 @@ func TestNewStat(t *testing.T) {
 }
 
 func countPlus(stat *Stat) {
-	ticker := NewTicker(func() {
+	ticker := utils.NewTicker(func() {
 		stat.Counter(INVOKE).Inc(2)
 		stat.Counter(BLOCK).Inc(1)
 	})

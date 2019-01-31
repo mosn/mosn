@@ -1,16 +1,10 @@
-// Copyright (c) 2016 ~ 2018, Alex Stocks.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/******************************************************
+# DESC    : constant vars
+# AUTHOR  : Alex Stocks
+# EMAIL   : alexstocks@foxmail.com
+# MOD     : 2016-08-22 21:23
+# FILE    : const.go
+******************************************************/
 
 package hessian
 

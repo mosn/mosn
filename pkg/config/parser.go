@@ -22,6 +22,10 @@ import (
 	"net"
 	"strings"
 
+	"os"
+	"runtime"
+	"strconv"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -71,6 +75,7 @@ var configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
 const (
 	ParseCallbackKeyCluster        ContentKey = "clusters"
 	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
+	ParseCallbackKeyProcessor      ContentKey = "processor"
 )
 
 // RegisterConfigParsedListener
@@ -78,8 +83,10 @@ const (
 func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 	if cbs, ok := configParsedCBMaps[key]; ok {
 		cbs = append(cbs, cb)
+		// append maybe change the slice, should be assigned again
+		configParsedCBMaps[key] = cbs
 	} else {
-		log.StartLogger.Infof(" %s added to configParsedCBMaps", key)
+		log.StartLogger.Infof("%s added to configParsedCBMaps", key)
 		cpc := []ParsedCallback{cb}
 		configParsedCBMaps[key] = cpc
 	}
@@ -327,11 +334,24 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        parseLogLevel(c.DefaultLogLevel),
+		LogRoller:       c.DefaultLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,
 		UseNetpollMode:  c.UseNetpollMode,
 	}
 
+	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+		sc.Processor = n
+	} else if sc.Processor == 0 {
+		sc.Processor = runtime.NumCPU()
+	}
+
+	// trigger processor callbacks
+	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
+		for _, cb := range cbs {
+			cb(c.Processor, true)
+		}
+	}
 	return sc
 }
 

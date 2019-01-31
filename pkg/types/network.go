@@ -20,6 +20,7 @@ package types
 import (
 	"context"
 	"net"
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
@@ -323,6 +324,7 @@ const (
 	Connected       ConnectionEvent = "ConnectedFlag"
 	ConnectTimeout  ConnectionEvent = "ConnectTimeout"
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
+	OnReadTimeout   ConnectionEvent = "OnReadTimeout"
 )
 
 // IsClose represents whether the event is triggered by connection close
@@ -335,6 +337,11 @@ func (ce ConnectionEvent) IsClose() bool {
 func (ce ConnectionEvent) ConnectFailure() bool {
 	return ce == ConnectFailed || ce == ConnectTimeout
 }
+
+// Default connection arguments
+const (
+	DefaultConnReadTimeout = 15 * time.Second
+)
 
 // ConnectionEventListener is a network level callbacks that happen on a connection.
 type ConnectionEventListener interface {

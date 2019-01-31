@@ -36,6 +36,9 @@ type ClusterManager interface {
 	// Add or update a cluster via API.
 	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
 
+	// Add Cluster health check callbacks
+	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) bool
+
 	SetInitializedCb(cb func())
 
 	// Get, use to get the snapshot of a cluster
@@ -47,6 +50,9 @@ type ClusterManager interface {
 	// UpdateClusterHosts used to update cluster's hosts
 	// temp interface todo: remove it
 	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
+
+	// AppendClusterHosts used to add cluster's hosts
+	AppendClusterHosts(clusterName string, priority uint32, hostConfigs []v2.Host) error
 
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
@@ -96,11 +102,8 @@ type Cluster interface {
 
 	PrioritySet() PrioritySet
 
-	// set the cluster's health checker
-	SetHealthChecker(hc HealthChecker)
-
-	// return the cluster's health checker
-	HealthChecker() HealthChecker
+	// Add health check callbacks in health checker
+	AddHealthCheckCallbacks(cb HealthCheckCb)
 }
 
 // InitializePhase type
@@ -138,12 +141,7 @@ type HostSet interface {
 
 	HealthyHosts() []Host
 
-	HostsPerLocality() [][]Host
-
-	HealthHostsPerLocality() [][]Host
-
-	UpdateHosts(hosts []Host, healthyHost []Host, hostsPerLocality [][]Host,
-		healthyHostPerLocality [][]Host, hostsAdded []Host, hostsRemoved []Host)
+	UpdateHosts(hosts []Host, healthyHost []Host, hostsAdded []Host, hostsRemoved []Host)
 
 	Priority() uint32
 }
@@ -224,6 +222,10 @@ type HostStats struct {
 	UpstreamRequestTimeout                         metrics.Counter
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
+	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamResponseSuccess                        metrics.Counter
+	UpstreamResponseFailed                         metrics.Counter
 }
 
 // ClusterInfo defines a cluster's information
@@ -310,6 +312,10 @@ type ClusterStats struct {
 	UpstreamRequestTimeout                         metrics.Counter
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
+	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamResponseSuccess                        metrics.Counter
+	UpstreamResponseFailed                         metrics.Counter
 	LBSubSetsFallBack                              metrics.Counter
 	LBSubSetsActive                                metrics.Counter
 	LBSubsetsCreated                               metrics.Counter
@@ -354,6 +360,22 @@ type LBSubsetInfo interface {
 	DefaultSubset() SortedMap
 
 	SubsetKeys() []SortedStringSetType
+}
+
+// SortedHosts is an implementation of sort.Interface
+// a slice of host can be sorted as address string
+type SortedHosts []Host
+
+func (s SortedHosts) Len() int {
+	return len(s)
+}
+
+func (s SortedHosts) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s SortedHosts) Less(i, j int) bool {
+	return s[i].AddressString() < s[j].AddressString()
 }
 
 // SortedStringSetType is a sorted key collection with no duplicate

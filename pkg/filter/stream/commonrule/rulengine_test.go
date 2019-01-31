@@ -22,11 +22,11 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/limit"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/metrix"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/resource"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 var params = []model.ComparisonCofig{
@@ -79,7 +79,7 @@ func TestNewRuleEngine(t *testing.T) {
 
 	{
 		log.DefaultLogger.Infof("start ticker")
-		ticker := metrix.NewTicker(func() {
+		ticker := utils.NewTicker(func() {
 			ruleEngine.invoke(headers)
 		})
 		ticker.Start(time.Millisecond * 10)

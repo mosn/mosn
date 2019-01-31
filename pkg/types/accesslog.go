@@ -38,7 +38,7 @@ type AccessLogFilter interface {
 // AccessLogFormatter is a object that format the request info to string
 type AccessLogFormatter interface {
 	// Format makes the request headers, response headers and request info to string for printing according to log formatter
-	Format(reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo) string
+	Format(buf IoBuffer, reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo)
 }
 
 // The identification of a request info's content
@@ -46,6 +46,7 @@ const (
 	LogStartTime                  string = "StartTime"
 	LogRequestReceivedDuration    string = "RequestReceivedDuration"
 	LogResponseReceivedDuration   string = "ResponseReceivedDuration"
+	LogRequestFinishedDuration    string = "RequestFinishedDuration"
 	LogBytesSent                  string = "BytesSent"
 	LogBytesReceived              string = "BytesReceived"
 	LogProtocol                   string = "Protocol"
@@ -68,7 +69,7 @@ const (
 const (
 	// DefaultAccessLogFormat is the default access log format.
 	// For more details please read "AccessLogDetails.md"
-	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
+	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %RequestFinishedDuration% %BytesSent%" + " " +
 		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
 		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
 )

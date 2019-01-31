@@ -28,15 +28,17 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/faultinject"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/stream/mixer"
+	_ "github.com/alipay/sofa-mosn/pkg/metrics/sink"
+	_ "github.com/alipay/sofa-mosn/pkg/metrics/sink/prometheus"
 	_ "github.com/alipay/sofa-mosn/pkg/network"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/http/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/http2/conv"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/router"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/mhttp2"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	_ "github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
@@ -44,7 +46,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-var Version = "0.0.1"
+var Version = "0.4.0"
 
 func main() {
 	app := cli.NewApp()

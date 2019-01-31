@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
@@ -34,7 +34,7 @@ import (
 //const defaultIdleTimeout = time.Second * 60 // not used yet
 
 func init() {
-	proxy.RegisterNewPoolFactory(protocol.HTTP1, NewConnPool)
+	network.RegisterNewPoolFactory(protocol.HTTP1, NewConnPool)
 	types.RegisterConnPoolFactory(protocol.HTTP1, true)
 }
 
@@ -72,12 +72,12 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	c, reason := p.getAvailableClient(ctx)
 
 	if c == nil {
-		listener.OnFailure(reason, nil)
+		listener.OnFailure(reason, p.host)
 		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, p.host)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -155,6 +155,9 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 				break
 			}
 		}
+
+		// set closed flag if not available
+		client.closed = true
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
@@ -172,7 +175,9 @@ func (p *connPool) onStreamDestroy(client *activeClient) {
 
 	// return to pool
 	p.clientMux.Lock()
-	p.availableClients = append(p.availableClients, client)
+	if !client.closed {
+		p.availableClients = append(p.availableClients, client)
+	}
 	p.clientMux.Unlock()
 }
 
@@ -215,6 +220,7 @@ type activeClient struct {
 	host               types.CreateConnectionData
 	totalStream        uint64
 	closeWithActiveReq bool
+	closed             bool
 }
 
 func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.PoolFailureReason) {
@@ -230,7 +236,7 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 	ac.client = codecClient
 	ac.host = data
 
-	if err := ac.host.Connection.Connect(true); err != nil {
+	if err := ac.client.Connect(true); err != nil {
 		return nil, types.ConnectionFailure
 	}
 

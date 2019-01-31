@@ -18,14 +18,15 @@
 package v2
 
 type HealthCheckConfig struct {
-	Protocol             string         `json:"protocol"`
-	TimeoutConfig        DurationConfig `json:"timeout"`
-	IntervalConfig       DurationConfig `json:"interval"`
-	IntervalJitterConfig DurationConfig `json:"interval_jitter"`
-	HealthyThreshold     uint32         `json:"healthy_threshold"`
-	UnhealthyThreshold   uint32         `json:"unhealthy_threshold"`
-	CheckPath            string         `json:"check_path,omitempty"`
-	ServiceName          string         `json:"service_name,omitempty"`
+	Protocol             string                 `json:"protocol"`
+	TimeoutConfig        DurationConfig         `json:"timeout"`
+	IntervalConfig       DurationConfig         `json:"interval"`
+	IntervalJitterConfig DurationConfig         `json:"interval_jitter"`
+	HealthyThreshold     uint32                 `json:"healthy_threshold"`
+	UnhealthyThreshold   uint32                 `json:"unhealthy_threshold"`
+	ServiceName          string                 `json:"service_name"`
+	SessionConfig        map[string]interface{} `json:"check_config"`
+	CommonCallbacks      []string               `json:"common_callbacks"` // HealthCheck support register some common callbacks that are not related to specific cluster
 }
 
 type HostConfig struct {
@@ -91,6 +92,7 @@ type RouterConfig struct {
 
 type RouterActionConfig struct {
 	ClusterName             string               `json:"cluster_name"`
+	UpstreamProtocol        string               `json:"upstream_protocol"`
 	ClusterHeader           string               `json:"cluster_header"`
 	WeightedClusters        []WeightedCluster    `json:"weighted_clusters"`
 	MetadataConfig          MetadataConfig       `json:"metadata_match"`

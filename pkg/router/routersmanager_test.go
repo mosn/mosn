@@ -206,14 +206,14 @@ func Test_routersManager_AddOrUpdateRouters(t *testing.T) {
 
 	routerConfigName := "test_router"
 
-	if _, ok := GetRoutersMangerInstance().routersMap.Load(routerConfigName); ok {
+	if _, ok := routersMangerInstance.routersMap.Load(routerConfigName); ok {
 		t.Errorf("test_router already exist")
 	}
 
 	if err := routerManager.AddOrUpdateRouters(router); err != nil {
 		t.Errorf(err.Error())
 	} else {
-		if value, ok := GetRoutersMangerInstance().routersMap.Load(routerConfigName); !ok {
+		if value, ok := routersMangerInstance.routersMap.Load(routerConfigName); !ok {
 			t.Errorf("AddOrUpdateRouters error, %s not found", routerConfigName)
 		} else {
 			if primaryRouters, ok := value.(*RoutersWrapper); ok {

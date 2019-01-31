@@ -33,6 +33,8 @@ type Client interface {
 
 	ConnID() uint64
 
+	Connect(ioEnabled bool) error
+
 	ActiveRequestsNum() int
 
 	NewStream(context context.Context, respDecoder types.StreamReceiveListener) types.StreamSender

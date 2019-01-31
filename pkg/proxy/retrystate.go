@@ -22,7 +22,9 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 type retryState struct {
@@ -32,7 +34,7 @@ type retryState struct {
 	retryOn          bool
 	retiesRemaining  uint32
 	retryFunc        func()
-	retryTimer       *timer
+	retryTimer       *utils.Timer
 	upstreamProtocol types.Protocol
 }
 
@@ -88,15 +90,15 @@ func (r *retryState) shouldRetry(headers types.HeaderMap, reason types.StreamRes
 	return types.ShouldRetry
 }
 
-func (r *retryState) scheduleRetry(doRetry func()) *timer {
+func (r *retryState) scheduleRetry(doRetry func()) *utils.Timer {
 	r.retryFunc = doRetry
 	r.cluster.ResourceManager().Retries().Increase()
 	r.cluster.Stats().UpstreamRequestRetry.Inc(1)
 
 	// todo: use backoff alth
 	timeout := 1 + rand.Intn(10)
-	timer := newTimer(doRetry, time.Duration(timeout)*time.Millisecond)
-	timer.start()
+	timer := utils.NewTimer(doRetry)
+	timer.Start(time.Duration(timeout) * time.Millisecond)
 
 	return timer
 }
@@ -112,7 +114,8 @@ func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamRe
 			// default policy , mapping all headers to http status code
 			code, err := protocol.MappingHeaderStatusCode(r.upstreamProtocol, headers)
 			if err == nil {
-				return code >= 500
+				// todo: support config?
+				return code >= http.InternalServerError
 			}
 		}
 		if reason == types.StreamConnectionFailed {
@@ -129,6 +132,6 @@ func (r *retryState) reset() {
 	if r.retryFunc != nil {
 		r.cluster.ResourceManager().Retries().Decrease()
 		r.retryFunc = nil
-		r.retryTimer.stop()
+		r.retryTimer.Stop()
 	}
 }

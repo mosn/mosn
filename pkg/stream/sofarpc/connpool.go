@@ -21,16 +21,17 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/proxy"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 )
 
 func init() {
-	proxy.RegisterNewPoolFactory(protocol.SofaRPC, NewConnPool)
+	network.RegisterNewPoolFactory(protocol.SofaRPC, NewConnPool)
 	types.RegisterConnPoolFactory(protocol.SofaRPC, true)
 }
 
@@ -66,12 +67,12 @@ func (p *connPool) NewStream(ctx context.Context,
 
 	activeClient := p.activeClient
 	if activeClient == nil {
-		listener.OnFailure(types.ConnectionFailure, nil)
+		listener.OnFailure(types.ConnectionFailure, p.host)
 		return
 	}
 
 	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, nil)
+		listener.OnFailure(types.Overflow, p.host)
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
@@ -99,14 +100,33 @@ func (p *connPool) Close() {
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
 	if event.IsClose() {
-		if client.closeWithActiveReq {
-			if event == types.LocalClose {
+		p.host.HostStats().UpstreamConnectionClose.Inc(1)
+		p.host.HostStats().UpstreamConnectionActive.Dec(1)
+
+		p.host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+		p.host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+
+		switch event {
+		case types.LocalClose:
+			p.host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			p.host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+
+			if client.closeWithActiveReq {
 				p.host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-			} else if event == types.RemoteClose {
+			}
+
+		case types.RemoteClose:
+			p.host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			p.host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+
+			if client.closeWithActiveReq {
 				p.host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+
 			}
+		default:
+			// do nothing
 		}
 		p.activeClient = nil
 	} else if event == types.ConnectTimeout {
@@ -145,11 +165,23 @@ func (p *connPool) createStreamClient(context context.Context, connData types.Cr
 	return str.NewStreamClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
 }
 
+// keepAliveListener is a types.ConnectionEventListener
+type keepAliveListener struct {
+	keepAlive types.KeepAlive
+}
+
+func (l *keepAliveListener) OnEvent(event types.ConnectionEvent) {
+	if event == types.OnReadTimeout {
+		l.keepAlive.SendKeepAlive()
+	}
+}
+
 // types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connPool
+	keepAlive          *keepAliveListener
 	client             str.Client
 	host               types.CreateConnectionData
 	closeWithActiveReq bool
@@ -170,9 +202,22 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac.client = codecClient
 	ac.host = data
 
-	if err := ac.host.Connection.Connect(true); err != nil {
+	if err := ac.client.Connect(true); err != nil {
 		return nil
 	}
+	// Add Keep Alive
+	// protocol is from onNewDetectStream
+	// TODO: support protocol convert
+	protocolValue := ctx.Value(types.ContextSubProtocol)
+	if proto, ok := protocolValue.(byte); ok {
+		// TODO: support config
+		ac.keepAlive = &keepAliveListener{
+			keepAlive: NewSofaRPCKeepAlive(codecClient, proto, time.Second, 6),
+		}
+		ac.client.AddConnectionEventListener(ac.keepAlive)
+		go ac.keepAlive.keepAlive.Start()
+	}
+	// stats
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)

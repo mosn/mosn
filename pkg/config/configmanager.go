@@ -22,6 +22,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
+// TODO: The functions in this file is for service discovery, but the function implmentation is not general, should fix it
+
 // dumper provides basic operation with mosn elements, like 'cluster', to write back the config file with dynamic changes
 // biz logic operation, like 'clear all subscribe info', should be written in the bridge code, not in config module.
 //
@@ -50,12 +52,17 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 	config.ServiceRegistry.ServicePubInfo = []v2.PublishInfo{}
 
 	// delete subInfo / dynamic clusters
-	removeClusterConfig(subServiceList)
+	RemoveClusterConfig(subServiceList)
 }
 
-// AddClusterConfig
+// AddOrUpdateClusterConfig
 // called when add cluster config info received
-func AddClusterConfig(clusters []v2.Cluster) {
+func AddOrUpdateClusterConfig(clusters []v2.Cluster) {
+	addOrUpdateClusterConfig(clusters)
+	go dump(true)
+}
+
+func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 	for _, clusterConfig := range clusters {
 		exist := false
 
@@ -72,16 +79,17 @@ func AddClusterConfig(clusters []v2.Cluster) {
 		if !exist {
 			config.ClusterManager.Clusters = append(config.ClusterManager.Clusters, clusterConfig)
 		}
-
-		// update routes
-		//AddRouterConfig(cluster.Name)
 	}
-	go dump(true)
 }
 
-func removeClusterConfig(clusterNames []string) {
-	dirty := false
+func RemoveClusterConfig(clusterNames []string) {
+	if removeClusterConfig(clusterNames) {
+		go dump(true)
+	}
+}
 
+func removeClusterConfig(clusterNames []string) bool {
+	dirty := false
 	for _, clusterName := range clusterNames {
 		for i, cluster := range config.ClusterManager.Clusters {
 			if cluster.Name == clusterName {
@@ -92,8 +100,7 @@ func removeClusterConfig(clusterNames []string) {
 			}
 		}
 	}
-
-	go dump(dirty)
+	return dirty
 }
 
 // AddPubInfo
@@ -141,33 +148,103 @@ func DelPubInfo(serviceName string) {
 	go dump(dirty)
 }
 
-// AddRouterConfig
-// Add router from config when new cluster created
-func AddRouterConfig(clusterName string) {
-	routerName := clusterName[0 : len(clusterName)-8]
+// AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddOrUpdateRoutersConfig
+// use this function to only dump config once
+func AddClusterWithRouter(listenername string, clusters []v2.Cluster, routerConfig *v2.RouterConfiguration) {
+	addOrUpdateClusterConfig(clusters)
+	addOrUpdateRouterConfig(listenername, routerConfig)
+	go dump(true)
+}
 
-	for _, l := range config.Servers[0].Listeners {
-		if routers, ok := l.FilterChains[0].Filters[0].Config["routes"].([]interface{}); ok {
-			// remove repetition
-			for _, route := range routers {
-				if r, ok := route.(map[string]interface{}); ok {
-					if n, ok := r["name"].(string); ok {
-						if n == routerName {
-							return
-						}
-					}
-				}
-			}
-
-			// append router
-			var s = make(map[string]interface{}, 4)
-			s["name"] = routerName
-			s["service"] = routerName
-			s["cluster"] = clusterName
-			routers = append(routers, s)
-			l.FilterChains[0].Filters[0].Config["routes"] = routers
-		} else {
-			log.DefaultLogger.Println(l.FilterChains[0].Filters[0].Config["routes"])
+func findListener(listenername string) (v2.Listener, int) {
+	// support only one server
+	listeners := config.Servers[0].Listeners
+	for idx, ln := range listeners {
+		if ln.Name == listenername {
+			return ln, idx
 		}
 	}
+	return v2.Listener{}, -1
+}
+
+func updateListener(idx int, ln v2.Listener) {
+	listeners := config.Servers[0].Listeners
+	if idx < len(listeners) {
+		listeners[idx] = ln
+	}
+}
+
+// AddOrUpdateRouterConfig update the connection_manager's config
+func AddOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) {
+	if addOrUpdateRouterConfig(listenername, routerConfig) {
+		go dump(true)
+	}
+}
+func addOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) bool {
+	ln, idx := findListener(listenername)
+	if idx == -1 {
+		return false
+	}
+	// support only one filter chain
+	nfs := ln.FilterChains[0].Filters
+	filterIndex := -1
+	for i, nf := range nfs {
+		if nf.Type == v2.CONNECTION_MANAGER {
+			filterIndex = i
+			break
+		}
+	}
+
+	if data, err := json.Marshal(routerConfig); err == nil {
+		cfg := make(map[string]interface{})
+		if err := json.Unmarshal(data, &cfg); err != nil {
+			log.DefaultLogger.Errorf("invalid router config, update config failed")
+			return false
+		}
+		filter := v2.Filter{
+			Type:   v2.CONNECTION_MANAGER,
+			Config: cfg,
+		}
+		if filterIndex == -1 {
+			nfs = append(nfs, filter)
+			ln.FilterChains[0].Filters = nfs
+			updateListener(idx, ln)
+		} else {
+			nfs[filterIndex] = filter
+		}
+		return true
+	}
+	return false
+}
+
+// AddOrUpdateStreamFilters update the stream filters config
+func AddOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) {
+	if addOrUpdateStreamFilters(listenername, typ, cfg) {
+		go dump(true)
+	}
+}
+
+func addOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) bool {
+	ln, idx := findListener(listenername)
+	if idx == -1 {
+		return false
+	}
+	filterIndex := -1
+	for i, sf := range ln.StreamFilters {
+		if sf.Type == typ {
+			filterIndex = i
+			break
+		}
+	}
+	filter := v2.Filter{
+		Type:   typ,
+		Config: cfg,
+	}
+	if filterIndex == -1 {
+		ln.StreamFilters = append(ln.StreamFilters, filter)
+		updateListener(idx, ln)
+	} else {
+		ln.StreamFilters[filterIndex] = filter
+	}
+	return true
 }

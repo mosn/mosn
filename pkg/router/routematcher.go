@@ -125,14 +125,14 @@ type routeMatcher struct {
 	greaterSortedWildcardVirtualHostSuffixes []int
 }
 
-// Routing with Virtual Host
-func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types.Route {
+// MatchRoute returns the first route that matched
+func (rm *routeMatcher) MatchRoute(headers types.HeaderMap, randomValue uint64) types.Route {
 	// First Step: Select VirtualHost with "host" in Headers form VirtualHost Array
 	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
 
 	if virtualHost == nil {
-		log.DefaultLogger.Errorf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Infof("No VirtualHost Found when Routing, Request Headers = %+v", headers)
 		return nil
 	}
 
@@ -140,23 +140,23 @@ func (rm *routeMatcher) Route(headers types.HeaderMap, randomValue uint64) types
 	routerInstance := virtualHost.GetRouteFromEntries(headers, randomValue)
 
 	if routerInstance == nil {
-		log.DefaultLogger.Errorf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Infof("No Router Instance Found when Routing, Request Headers = %+v", headers)
 	}
 
 	return routerInstance
 }
 
-// GetAllRoutes returns all route that matched
-func (rm *routeMatcher) GetAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
+// MatchAllRoutes returns all route that matched
+func (rm *routeMatcher) MatchAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
 	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
 	virtualHost := rm.findVirtualHost(headers)
 	if virtualHost == nil {
-		log.DefaultLogger.Errorf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Infof("No VirtualHost Found when Routing, Request Headers = %+v", headers)
 		return nil
 	}
 	routers := virtualHost.GetAllRoutesFromEntries(headers, randomValue)
 	if routers == nil {
-		log.DefaultLogger.Errorf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Infof("No Router Instance Found when Routing, Request Headers = %+v", headers)
 	}
 	return routers
 }

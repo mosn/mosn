@@ -17,7 +17,9 @@
 
 package types
 
-import "context"
+import (
+	"context"
+)
 
 //
 //   The bunch of interfaces are structure skeleton to build a extensible stream multiplexing architecture. The core concept is mainly refer to golang HTTP2 and envoy.
@@ -100,6 +102,9 @@ const (
 	StreamLocalReset            StreamResetReason = "StreamLocalReset"
 	StreamOverflow              StreamResetReason = "StreamOverflow"
 	StreamRemoteReset           StreamResetReason = "StreamRemoteReset"
+	UpstreamReset               StreamResetReason = "UpstreamReset"
+	UpstreamGlobalTimeout       StreamResetReason = "UpstreamGlobalTimeout"
+	UpstreamPerTryTimeout       StreamResetReason = "UpstreamPerTryTimeout"
 )
 
 // Stream is a generic protocol stream, it is the core model in stream layer
@@ -229,6 +234,9 @@ type StreamFilterHandler interface {
 
 	// RequestInfo returns request info related to the stream
 	RequestInfo() RequestInfo
+
+	// Connection returns the originating connection
+	Connection() Connection
 }
 
 // StreamSenderFilter is a stream sender filter
@@ -256,6 +264,18 @@ type StreamSenderFilterHandler interface {
 
 	// ContinueSending continue iterating through the filter chain with buffered headers and body data
 	ContinueSending()
+
+	// TODO :remove all of the following when proxy changed to single request @lieyuan
+	// StreamFilters will modified headers/data/trailer in different steps
+	// for example, maybe modify headers in AppendData
+	GetResponseHeaders() HeaderMap
+	SetResponseHeaders(headers HeaderMap)
+
+	GetResponseData() IoBuffer
+	SetResponseData(buf IoBuffer)
+
+	GetResponseTrailers() HeaderMap
+	SetResponseTrailers(trailers HeaderMap)
 }
 
 // StreamReceiverFilter is a StreamFilterBase wrapper
@@ -287,6 +307,8 @@ type StreamReceiverFilterHandler interface {
 	// The controller will dispatch headers and any buffered body data to the next filter in the chain.
 	ContinueReceiving()
 
+	// TODO: consider receiver filter needs AppendXXX or not
+
 	// AppendHeaders is called with headers to be encoded, optionally indicating end of stream
 	// Filter uses this function to send out request/response headers of the stream
 	// endStream supplies whether this is a header only request/response
@@ -303,6 +325,18 @@ type StreamReceiverFilterHandler interface {
 
 	// SendHijackReply is called when the filter will response directly
 	SendHijackReply(code int, headers HeaderMap)
+
+	// TODO: remove all of the following when proxy changed to single request @lieyuan
+	// StreamFilters will modified headers/data/trailer in different steps
+	// for example, maybe modify headers in on receive data
+	GetRequestHeaders() HeaderMap
+	SetRequestHeaders(headers HeaderMap)
+
+	GetRequestData() IoBuffer
+	SetRequestData(buf IoBuffer)
+
+	GetRequestTrailers() HeaderMap
+	SetRequestTrailers(trailers HeaderMap)
 }
 
 // StreamFilterChainFactory adds filter into callbacks

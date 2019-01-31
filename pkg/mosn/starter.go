@@ -29,10 +29,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/alipay/sofa-mosn/pkg/stats"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	"github.com/alipay/sofa-mosn/pkg/xds"
@@ -49,6 +50,8 @@ type Mosn struct {
 // Create server from mosn config
 func NewMosn(c *config.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
+	initializeMetrics(c.Metrics)
+
 	m := &Mosn{}
 	mode := c.Mode()
 
@@ -113,9 +116,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 				log.StartLogger.Fatalln("no listener found")
 			}
 
-			for _, listenerConfig := range serverConfig.Listeners {
+			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
-				lc := config.ParseListenerConfig(&listenerConfig, inheritListeners)
+				lc := config.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
 				lc.DisableConnIo = config.GetListenerDisableIO(&lc.FilterChains[0])
 
 				// parse routers from connection_manager filter and add it the routerManager
@@ -136,7 +139,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 				_, err := srv.AddListener(lc, nfcf, sfcf)
 				if err != nil {
-					log.StartLogger.Fatalf("AddListener error:%s", err.Error())
+					log.StartLogger.Errorf("AddListener error:%s", err.Error())
 				}
 			}
 		}
@@ -158,7 +161,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// transfer old mosn connections
 	go network.TransferServer(m.servers[0].Handler())
 	// transfer old mosn mertrics, none-block
-	go stats.TransferServer(server.GracefulTimeout, nil)
+	go metrics.TransferServer(server.GracefulTimeout, nil)
 
 	return m
 }
@@ -200,9 +203,9 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 
 func initializeTracing(config config.TracingConfig) {
 	if config.Enable && config.Tracer != "" {
-		if config.Tracer == "SOFATracer" {
-			trace.CreateInstance()
-			trace.SetTracer(trace.SofaTracerInstance)
+		tracer := trace.CreateTracer(config.Tracer)
+		if tracer != nil {
+			trace.SetTracer(tracer)
 		} else {
 			log.DefaultLogger.Errorf("Unable to recognise tracing implementation %s, tracing functionality is turned off.", config.Tracer)
 			trace.DisableTracing()
@@ -211,6 +214,27 @@ func initializeTracing(config config.TracingConfig) {
 		trace.EnableTracing()
 	} else {
 		trace.DisableTracing()
+	}
+}
+
+func initializeMetrics(config config.MetricsConfig) {
+	var sinks []types.MetricsSink
+	// set metrics package
+	statsMatcher := config.StatsMatcher
+	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionList)
+	// create sinks
+	for _, cfg := range config.SinkConfigs {
+		sink, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
+		// abort
+		if err != nil {
+			log.StartLogger.Errorf("initialize metrics sink %s failed, metrics sink is turned off", cfg.Type)
+			return
+		}
+		sinks = append(sinks, sink)
+	}
+
+	if len(sinks) > 0 {
+		go sink.StartFlush(sinks, config.FlushInterval.Duration)
 	}
 }
 
