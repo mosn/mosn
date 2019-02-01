@@ -59,6 +59,7 @@ func (r *receiver) OnDecodeError(context context.Context, err error, headers typ
 
 type ConnClient struct {
 	MakeRequest MakeRequestFunc
+	SyncTimeout time.Duration
 	//
 	isClosed bool
 	close    chan struct{}
@@ -127,7 +128,18 @@ func (c *ConnClient) SyncSend(header map[string]string, body []byte) (*Response,
 			ch:    ch,
 		}
 		c.sendRequest(r, header, body)
-		return <-ch, nil
+		// set default timeout, if a timeout is configured, use it
+		timeout := 5 * time.Second
+		if c.SyncTimeout > 0 {
+			timeout = c.SyncTimeout
+		}
+		// use timeout to make sure sync send will receive a result
+		select {
+		case resp := <-ch:
+			return resp, nil
+		case <-time.After(timeout):
+			return nil, errors.New("sync call timeout")
+		}
 	}
 }
 
@@ -138,6 +150,9 @@ type ClientConfig struct {
 	MakeRequest   MakeRequestFunc
 	RequestHeader map[string]string
 	RequestBody   []byte
+	// request timeout is used for sync call
+	// if zero, we set default request time, 5 second
+	RequestTImeout time.Duration
 	// if Verify is nil, just expected returns success
 	Verify ResponseVerify
 }
@@ -189,6 +204,9 @@ func (c *Client) getOrCreateConnection() (*ConnClient, error) {
 	if err != nil {
 		return nil, err
 	}
+	if c.Cfg.RequestTImeout > 0 {
+		conn.SyncTimeout = c.Cfg.RequestTImeout
+	}
 	atomic.AddUint32(&c.connNum, 1)
 	c.Stats.ActiveConnection()
 	return conn, nil
@@ -218,6 +236,7 @@ func (c *Client) SyncCall() bool {
 	c.Stats.Request()
 	resp, err := conn.SyncSend(c.Cfg.RequestHeader, c.Cfg.RequestBody)
 	if err != nil {
+		fmt.Println("sync call failed: ", err)
 		return false
 	}
 	if c.Cfg.Verify == nil {

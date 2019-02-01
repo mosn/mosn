@@ -167,7 +167,7 @@ func main() {
 		clt := testlib_sofarpc.NewClient(cfg, 1)
 		// send a request, and verify the result
 		if !clt.SyncCall() {
-			fmt.Println("client request %s is failed", addr)
+			fmt.Printf("client request %s is failed\n", addr)
 			CasePassed = false
 			return
 		}

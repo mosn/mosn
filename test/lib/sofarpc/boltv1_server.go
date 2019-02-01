@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -38,6 +39,13 @@ var DefaultBuilder = &BoltV1ResponseBuilder{
 		"mosn-test-default": "boltv1",
 	},
 	Content: buffer.NewIoBufferString("default-boltv1"),
+}
+
+var ErrorBuilder = &BoltV1ResponseBuilder{
+	Status: sofarpc.RESPONSE_STATUS_ERROR,
+	Header: map[string]string{
+		"error-message": "no matched config",
+	},
 }
 
 // TODO: Support More
@@ -75,7 +83,7 @@ func (s *BoltV1Serve) MakeResponse(req *sofarpc.BoltRequest) sofarpc.SofaRpcCmd 
 			return cfg.Builder.Build(req)
 		}
 	}
-	return nil
+	return ErrorBuilder.Build(req)
 }
 
 func (s *BoltV1Serve) Serve(reqdata types.IoBuffer) *WriteResponseData {
@@ -94,6 +102,9 @@ func (s *BoltV1Serve) Serve(reqdata types.IoBuffer) *WriteResponseData {
 			status = sofarpc.RESPONSE_STATUS_SUCCESS // heartbeat must be success
 		case sofarpc.RPC_REQUEST:
 			resp = s.MakeResponse(req)
+			if s, ok := resp.(rpc.RespStatus); ok {
+				status = int16(s.RespStatus())
+			}
 		default:
 			return nil
 		}
