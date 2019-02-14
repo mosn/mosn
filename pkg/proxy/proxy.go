@@ -52,7 +52,7 @@ func init() {
 	// register init function with interest of P number
 	config.RegisterConfigParsedListener(config.ParseCallbackKeyProcessor, initWorkePpool)
 
-	pool = mosnsync.NewWorkerPool(2048)
+	pool = mosnsync.NewWorkerPool(8192)
 }
 
 func initWorkePpool(data interface{}, endParsing bool) error {

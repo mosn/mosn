@@ -210,17 +210,18 @@ func (b *IoBuffer) ReadAt(r io.Reader, n int) error {
 		b.copy(n)
 	}
 
+	rest := n - b.Len()
 	for {
 		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
 		b.buf = b.buf[0 : len(b.buf)+m]
 
-		n -= m
+		rest -= m
 
 		if e != nil {
 			return e
 		}
 
-		if n <= 0 {
+		if rest <= 0 {
 			return nil
 		}
 	}

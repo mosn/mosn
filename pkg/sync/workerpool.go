@@ -132,6 +132,7 @@ func (p *workerPool) ScheduleAlways(task func()) {
 		go p.spawnWorker(task)
 	default:
 		// new temp goroutine for task execution
+		log.DefaultLogger.Errorf("workerpool new goroutine")
 		go task()
 	}
 }

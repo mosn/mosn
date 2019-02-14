@@ -190,5 +190,8 @@ func (w *clientStreamReceiverWrapper) OnDecodeError(ctx context.Context, err err
 	w.streamReceiver.OnDecodeError(ctx, err, headers)
 }
 
-func (c *clientStreamReceiverWrapper) OnDecodeAll(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {}
+func (w *clientStreamReceiverWrapper) OnDecodeAll(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	w.stream.DestroyStream()
+	w.streamReceiver.OnDecodeAll(ctx, headers, data, trailers)
+}
 

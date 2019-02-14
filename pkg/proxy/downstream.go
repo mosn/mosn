@@ -267,6 +267,7 @@ func (s *downStream) OnDecodeAll(ctx context.Context, headers types.HeaderMap, d
 		// wait upstream response
 		 <- s.upstreamRecvDone
 
+		 log.DefaultLogger.Infof("downstream OnDecodeAll %v", s.downstreamRespHeaders)
 		s.upstreamRequest.endStream()
 		// send downstream response
 		if s.downstreamRespHeaders != nil {
@@ -279,7 +280,7 @@ func (s *downStream) OnDecodeAll(ctx context.Context, headers types.HeaderMap, d
 		}
 
 		if s.downstreamRespDataBuf != nil {
-			s.onUpstreamData(s.downstreamReqDataBuf, trailers == nil)
+			s.onUpstreamData(s.downstreamRespDataBuf, trailers == nil)
 		}
 
 		if s.downstreamRespTrailers != nil {

@@ -110,7 +110,8 @@ func (r *upstreamRequest) OnDecodeAll(ctx context.Context, headers types.HeaderM
 		data.Drain(data.Len())
 	}
 	r.downStream.downstreamRespTrailers = trailers
-	
+
+	log.DefaultLogger.Infof("upstreamRequest OnDecodeAll %v", headers)
 	r.downStream.upstreamRecvDone <- struct{}{}
 }
 

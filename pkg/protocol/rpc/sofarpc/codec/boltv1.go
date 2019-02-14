@@ -288,7 +288,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer, conn types.
 			read += int(contentLen)
 		}
 
-		data.Drain(read)
+		conn.Drain(read)
 
 		buffers := sofarpc.SofaProtocolBuffersByContext(ctx)
 		response := &buffers.BoltRsp

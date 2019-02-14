@@ -93,16 +93,18 @@ func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (types.IoBu
 
 func (m *mixedEngine) Decode(ctx context.Context, data types.IoBuffer, conn types.Connection) (interface{}, error) {
 	// at least 1 byte for protocol code recognize
-	if data.Len() > 1 {
-		logger := log.ByContext(ctx)
-		code := data.Bytes()[0]
-		logger.Debugf("mixed protocol engine decode, protocol code = %x", code)
+	logger := log.ByContext(ctx)
+	code, err := conn.Peek(1)
+	if err != nil {
+		logger.Errorf("mixed Decode error: %v", err)
+		return nil, err
+	}
+	logger.Debugf("mixed protocol engine decode, protocol code = %x", code)
 
-		if eg, exists := m.engineMap[code]; exists {
-			return eg.Decode(ctx, data, conn)
-		} else {
-			return nil, ErrUnrecognizedCode
-		}
+	if eg, exists := m.engineMap[code[0]]; exists {
+		return eg.Decode(ctx, data, conn)
+	} else {
+		return nil, ErrUnrecognizedCode
 	}
 	return nil, nil
 }

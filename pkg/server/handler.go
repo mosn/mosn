@@ -442,7 +442,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	for _, nfcf := range al.networkFiltersFactories {
 		nfcf.CreateFilterChain(ctx, al.handler.clusterManager, filterManager)
 	}
-	filterManager.InitializeReadFilters()
+	//filterManager.InitializeReadFilters()
 
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
