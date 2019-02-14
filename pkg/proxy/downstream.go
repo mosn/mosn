@@ -101,6 +101,8 @@ type downStream struct {
 	logger           log.Logger
 
 	snapshot types.ClusterSnapshot
+
+	upstreamRecvDone  chan struct{}
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, spanBuilder types.SpanBuilder) *downStream {
@@ -123,6 +125,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.responseSender.GetStream().AddEventListener(stream)
 	stream.context = ctx
 	stream.reuseBuffer = 1
+	stream.upstreamRecvDone = make(chan struct{}, 1)
 
 	stream.logger = log.ByContext(proxy.context)
 
@@ -238,6 +241,52 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 }
 
 func (s *downStream) OnDestroyStream() {}
+
+func (s *downStream) OnDecodeAll(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	if data != nil {
+		s.downstreamReqDataBuf = data.Clone()
+		s.downstreamReqDataBuf.Count(1)
+		data.Drain(data.Len())
+	}
+
+	// goroutine for proxy
+	pool.ScheduleAlways(func() {
+		// send upstream request
+		if headers != nil {
+			s.ReceiveHeaders(headers, s.downstreamReqDataBuf == nil && trailers == nil )
+		}
+
+		if s.downstreamReqDataBuf != nil {
+			s.ReceiveData(s.downstreamReqDataBuf, trailers == nil)
+		}
+
+		if trailers != nil {
+			s.ReceiveTrailers(trailers)
+		}
+
+		// wait upstream response
+		 <- s.upstreamRecvDone
+
+		s.upstreamRequest.endStream()
+		// send downstream response
+		if s.downstreamRespHeaders != nil {
+			// we convert a status to http standard code, and log it
+			if code, err := protocol.MappingHeaderStatusCode(s.upstreamRequest.protocol, headers); err == nil {
+				s.requestInfo.SetResponseCode(code)
+			}
+			s.requestInfo.SetResponseReceivedDuration(time.Now())
+			s.onUpstreamHeaders(s.downstreamRespHeaders, s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil )
+		}
+
+		if s.downstreamRespDataBuf != nil {
+			s.onUpstreamData(s.downstreamReqDataBuf, trailers == nil)
+		}
+
+		if s.downstreamRespTrailers != nil {
+			s.onUpstreamTrailers(trailers)
+		}
+	})
+}
 
 // types.StreamReceiveListener
 func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {

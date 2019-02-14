@@ -109,6 +109,8 @@ func (c *RPCClient) OnReceiveTrailers(context context.Context, trailers types.He
 }
 func (c *RPCClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
+func (c *RPCClient) OnDecodeAll(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {}
+
 func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		streamID := protocol.StreamIDConv(cmd.RequestID())

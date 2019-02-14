@@ -82,6 +82,8 @@ func (s *streamReceiver) OnReceiveTrailers(context context.Context, trailers typ
 }
 func (s *streamReceiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
+func (c *streamReceiver) OnDecodeAll(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {}
+
 func (s *streamReceiver) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	if resp, ok := headers.(rpc.RespStatus); ok {
 		status := resp.RespStatus()

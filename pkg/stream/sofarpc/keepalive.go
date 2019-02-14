@@ -163,6 +163,9 @@ func (kp *sofaRPCKeepAlive) HandleSuccess(id uint64) {
 	}
 }
 
+
+func (c *sofaRPCKeepAlive) OnDecodeAll(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {}
+
 // StreamReceiver Implementation
 // we just needs to make sure we can receive a response, do not care the data we received
 func (kp *sofaRPCKeepAlive) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) {

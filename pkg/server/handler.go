@@ -464,7 +464,11 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
 	if !al.disableConnIo {
 		// start conn loops first
-		conn.Start(ctx)
+		conn.Start(ctx, false)
+	}
+
+	for {
+		conn.FilterManager().OnRead()
 	}
 }
 

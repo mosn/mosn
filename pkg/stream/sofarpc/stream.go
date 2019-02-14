@@ -120,26 +120,24 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 
 // types.StreamConnection
 func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
-	for {
-		// 1. pre alloc stream-level ctx with bufferCtx
+
 		ctx := conn.contextManager.curr
 
 		// 2. decode process
 		// TODO: maybe pass sub protocol type
-		cmd, err := conn.codecEngine.Decode(ctx, buf)
+		cmd, err := conn.codecEngine.Decode(ctx, buf, conn.conn)
 		// No enough data
 		if cmd == nil && err == nil {
-			break
+			return
 		}
 
 		// Do handle staff. Error would also be passed to this function.
 		conn.handleCommand(ctx, cmd, err)
 		if err != nil {
-			break
+			return
 		}
 
 		conn.contextManager.next()
-	}
 }
 
 func (conn *streamConnection) Protocol() types.Protocol {
@@ -209,16 +207,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 
 	// header, data notify
 	if stream != nil {
-		header := cmd.Header()
-		data := cmd.Data()
-
-		if header != nil {
-			stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
-		}
-
-		if data != nil {
-			stream.receiver.OnReceiveData(stream.ctx, data, true)
-		}
+		stream.receiver.OnDecodeAll(stream.ctx, cmd, cmd.Data(), nil)
 	}
 }
 

@@ -192,6 +192,40 @@ func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 	return
 }
 
+
+func (b *IoBuffer) ReadAt(r io.Reader, n int) error {
+	if b.off >= len(b.buf) {
+		b.Reset()
+	}
+
+	if b.Len() >= n {
+	     return nil
+	}
+
+	if b.off > cap(b.buf) * 3/4 {
+		b.copy(0)
+	}
+
+	if cap(b.buf) - b.off < n {
+		b.copy(n)
+	}
+
+	for {
+		m, e := r.Read(b.buf[len(b.buf):cap(b.buf)])
+		b.buf = b.buf[0 : len(b.buf)+m]
+
+		n -= m
+
+		if e != nil {
+			return e
+		}
+
+		if n <= 0 {
+			return nil
+		}
+	}
+}
+
 func (b *IoBuffer) Write(p []byte) (n int, err error) {
 	m, ok := b.tryGrowByReslice(len(p))
 

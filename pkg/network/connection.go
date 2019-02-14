@@ -145,12 +145,12 @@ func (c *connection) ID() uint64 {
 	return c.id
 }
 
-func (c *connection) Start(lctx context.Context) {
+func (c *connection) Start(lctx context.Context, read bool) {
 	c.startOnce.Do(func() {
 		if UseNetpollMode {
 			c.attachEventLoop(lctx)
 		} else {
-			c.startRWLoop(lctx)
+			c.startRWLoop(lctx, read)
 		}
 	})
 }
@@ -207,22 +207,24 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	}
 }
 
-func (c *connection) startRWLoop(lctx context.Context) {
+func (c *connection) startRWLoop(lctx context.Context, read bool) {
 	c.internalLoopStarted = true
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				c.logger.Errorf("panic %v", p)
+	if read {
+		go func() {
+			defer func() {
+				if p := recover(); p != nil {
+					c.logger.Errorf("panic %v", p)
 
-				debug.PrintStack()
+					debug.PrintStack()
 
-				c.startReadLoop()
-			}
+					c.startReadLoop()
+				}
+			}()
+
+			c.startReadLoop()
 		}()
-
-		c.startReadLoop()
-	}()
+	}
 
 	go func() {
 		defer func() {
@@ -770,6 +772,27 @@ func (c *connection) RawConn() net.Conn {
 	return c.rawConnection
 }
 
+func (c *connection) Peek(n int) ([]byte, error) {
+	if c.readBuffer == nil {
+		c.readBuffer = buffer.GetIoBuffer(n)
+	}
+
+	if n <= c.readBuffer.Len() {
+		return c.readBuffer.Peek(n), nil
+	}
+	err := c.readBuffer.ReadAt(c.rawConnection, n)
+	if err != nil {
+		return nil , err
+	}
+	return c.readBuffer.Peek(n), nil
+}
+
+func (c *connection) Drain(offset int) {
+	if c.readBuffer != nil {
+		c.readBuffer.Drain(offset)
+	}
+}
+
 type clientConnection struct {
 	connection
 
@@ -850,8 +873,14 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 
 			if ioEnabled {
-				cc.Start(nil)
+				cc.Start(nil, false)
 			}
+
+			go func() {
+				for {
+					cc.connection.FilterManager().OnRead()
+				}
+			}()
 		}
 
 		cc.connection.logger.Debugf("connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)

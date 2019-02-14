@@ -102,6 +102,18 @@ func (r *upstreamRequest) endStream() {
 	// todo: record upstream process time in request info
 }
 
+func (r *upstreamRequest) OnDecodeAll(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	r.downStream.downstreamRespHeaders = headers
+
+	if data != nil {
+		r.downStream.downstreamRespDataBuf = data.Clone()
+		data.Drain(data.Len())
+	}
+	r.downStream.downstreamRespTrailers = trailers
+	
+	r.downStream.upstreamRecvDone <- struct{}{}
+}
+
 // types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) {

@@ -38,7 +38,7 @@ func (c *serverCodec) Encode(ctx context.Context, model interface{}) (types.IoBu
 	return nil, err
 }
 
-func (c *serverCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *serverCodec) Decode(ctx context.Context, data types.IoBuffer, conn types.Connection) (interface{}, error) {
 	if !c.init {
 		c.init = true
 		c.sc.Init()
@@ -64,7 +64,7 @@ func (c *clientCodec) Encode(ctx context.Context, model interface{}) (types.IoBu
 	return nil, err
 }
 
-func (c *clientCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *clientCodec) Decode(ctx context.Context, data types.IoBuffer, conn types.Connection) (interface{}, error) {
 	frame, _, err := c.cc.Framer.ReadFrame(ctx, data, 0)
 	return frame, err
 }

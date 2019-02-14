@@ -189,3 +189,6 @@ func (w *clientStreamReceiverWrapper) OnReceiveTrailers(ctx context.Context, tra
 func (w *clientStreamReceiverWrapper) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
 	w.streamReceiver.OnDecodeError(ctx, err, headers)
 }
+
+func (c *clientStreamReceiverWrapper) OnDecodeAll(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {}
+

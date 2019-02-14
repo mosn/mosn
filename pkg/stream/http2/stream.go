@@ -207,7 +207,7 @@ func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
 		ctx := conn.cm.curr
 
 		// 2. decode process
-		frame, err := conn.codecEngine.Decode(ctx, buf)
+		frame, err := conn.codecEngine.Decode(ctx, buf, nil)
 		// No enough data
 		if err == http2.ErrAGAIN {
 			break
@@ -533,7 +533,7 @@ func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 		ctx := conn.cm.curr
 
 		// 2. decode process
-		frame, err := conn.codecEngine.Decode(ctx, buf)
+		frame, err := conn.codecEngine.Decode(ctx, buf, nil)
 		// No enough data
 		if err == http2.ErrAGAIN {
 			break

@@ -205,7 +205,7 @@ type Connection interface {
 
 	// Start starts connection with context.
 	// See context.go to get available keys in context
-	Start(lctx context.Context)
+	Start(lctx context.Context, read bool)
 
 	// Write writes data to the connection.
 	// Called by other-side stream connection's read loop. Will loop through stream filters with the buffer if any are installed.
@@ -293,6 +293,15 @@ type Connection interface {
 	// Caution: raw conn only used in io-loop disable mode
 	// TODO: a better way to provide raw conn
 	RawConn() net.Conn
+
+	// Peek returns n bytes from buffer, without draining any buffered data.
+	// It can be used in codec to check first-n-bytes magic bytes
+	// Note: do not change content in return bytes, use write instead
+	Peek(n int) ([]byte, error)
+
+	// Drain drains a offset length of bytes in buffer.
+	// It can be used with Bytes(), after consuming a fixed-length of data
+	Drain(offset int)
 }
 
 // ConnectionStats is a group of connection metrics

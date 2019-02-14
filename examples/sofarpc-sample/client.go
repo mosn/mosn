@@ -42,6 +42,8 @@ func NewClient(addr string) *Client {
 func (c *Client) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {}
 func (c *Client) OnReceiveTrailers(context context.Context, trailers types.HeaderMap)        {}
 func (c *Client) OnDecodeError(context context.Context, err error, headers types.HeaderMap)  {}
+func (c *Client) OnDecodeAll(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {}
+
 func (c *Client) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	fmt.Printf("[RPC Client] Receive Data:")
 	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {

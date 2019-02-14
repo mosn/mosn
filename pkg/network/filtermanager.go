@@ -95,16 +95,16 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 			}
 		}
 
-		buffer := fm.conn.GetReadBuffer()
+		//buffer := fm.conn.GetReadBuffer()
 
-		if buffer != nil && buffer.Len() > 0 {
-			status := uf.filter.OnData(buffer)
+		//if buffer != nil && buffer.Len() > 0 {
+			status := uf.filter.OnData(nil)
 
 			if status == types.Stop {
 				//fm.conn.Write("your data")
 				return
 			}
-		}
+		//}
 	}
 }
 

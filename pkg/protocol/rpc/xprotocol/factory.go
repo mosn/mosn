@@ -53,7 +53,7 @@ func (coder *Coder) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	return nil, err
 }
 
-func (coder *Coder) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (coder *Coder) Decode(ctx context.Context, data types.IoBuffer, c types.Connection) (interface{}, error) {
 	subProtocolType := SubProtocol(ctx.Value(types.ContextSubProtocol).(string))
 	codec := CreateSubProtocolCodec(ctx, SubProtocol(subProtocolType))
 	if codec == nil {

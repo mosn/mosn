@@ -52,6 +52,9 @@ type IoBuffer interface {
 	// buffer becomes too large, ReadFrom will panic with ErrTooLarge.
 	ReadFrom(r io.Reader) (n int64, err error)
 
+    // ReadFrom reads data from r until EOF or n, and appends it to the buffer.
+	ReadAt(r io.Reader, n int) error
+
 	// Write appends the contents of p to the buffer, growing the buffer as
 	// needed. The return value n is the length of p; err is always nil. If the
 	// buffer becomes too large, Write will panic with ErrTooLarge.
