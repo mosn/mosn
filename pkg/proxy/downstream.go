@@ -250,7 +250,7 @@ func (s *downStream) OnDecodeAll(ctx context.Context, headers types.HeaderMap, d
 	}
 
 	// goroutine for proxy
-	pool.ScheduleAlways(func() {
+	pool.ScheduleAuto(func() {
 		// send upstream request
 		if headers != nil {
 			s.ReceiveHeaders(headers, s.downstreamReqDataBuf == nil && trailers == nil )

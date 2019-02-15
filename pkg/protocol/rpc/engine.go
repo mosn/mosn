@@ -99,7 +99,7 @@ func (m *mixedEngine) Decode(ctx context.Context, data types.IoBuffer, conn type
 		logger.Errorf("mixed Decode error: %v", err)
 		return nil, err
 	}
-	logger.Debugf("mixed protocol engine decode, protocol code = %x", code)
+	//logger.Debugf("mixed protocol engine decode, protocol code = %x", code[0])
 
 	if eg, exists := m.engineMap[code[0]]; exists {
 		return eg.Decode(ctx, data, conn)
