@@ -62,7 +62,7 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 	}
 }
 
-func (f *healthCheckFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *healthCheckFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		if cmd.CommandCode() == sofarpc.HEARTBEAT {
 			f.protocol = cmd.ProtocolCode()
@@ -87,7 +87,7 @@ func (f *healthCheckFilter) OnReceiveHeaders(headers types.HeaderMap, endStream 
 	return types.StreamHeadersFilterContinue
 }
 
-func (f *healthCheckFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *healthCheckFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	if endStream && f.intercept {
 		f.handleIntercept()
 	}
@@ -99,7 +99,7 @@ func (f *healthCheckFilter) OnReceiveData(buf types.IoBuffer, endStream bool) ty
 	return types.StreamDataFilterContinue
 }
 
-func (f *healthCheckFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *healthCheckFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	if f.intercept {
 		f.handleIntercept()
 	}

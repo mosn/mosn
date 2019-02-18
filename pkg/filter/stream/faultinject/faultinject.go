@@ -27,7 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -115,7 +115,7 @@ func (f *streamFaultInjectFilter) SetReceiveFilterHandler(handler types.StreamRe
 	f.handler = handler
 }
 
-func (f *streamFaultInjectFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *streamFaultInjectFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	log.DefaultLogger.Debugf("fault inject filter do receive headers")
 	if route := f.handler.Route(); route != nil {
 		// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
@@ -157,14 +157,14 @@ func (f *streamFaultInjectFilter) OnReceiveHeaders(headers types.HeaderMap, endS
 	return types.StreamHeadersFilterContinue
 }
 
-func (f *streamFaultInjectFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *streamFaultInjectFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	if !f.isDelayed {
 		return types.StreamDataFilterContinue
 	}
 	return types.StreamDataFilterStopAndBuffer
 }
 
-func (f *streamFaultInjectFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *streamFaultInjectFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	if !f.isDelayed {
 		return types.StreamTrailersFilterContinue
 	}
