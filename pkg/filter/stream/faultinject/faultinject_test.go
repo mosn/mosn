@@ -209,7 +209,7 @@ func TestFaultInject_AllWithDelay(t *testing.T) {
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
 	start := time.Now()
-	if status := f.OnReceiveHeaders(nil, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceiveHeaders(context.TODO(), nil, true); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -243,7 +243,7 @@ func TestFaultInject_AllAbortWithoutDelay(t *testing.T) {
 	}
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
-	if status := f.OnReceiveHeaders(nil, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceiveHeaders(context.TODO(), nil, true); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -279,7 +279,7 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
 	start := time.Now()
-	if status := f.OnReceiveHeaders(nil, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceiveHeaders(context.TODO(), nil, true); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -301,7 +301,7 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 	}
 	f2 := NewFilter(context.Background(), cfg)
 	f2.SetReceiveFilterHandler(notmatched)
-	if status := f2.OnReceiveHeaders(nil, true); status != types.StreamHeadersFilterContinue {
+	if status := f2.OnReceiveHeaders(context.TODO(), nil, true); status != types.StreamHeadersFilterContinue {
 		t.Error("unmatched upstream not returns continue")
 	}
 
@@ -335,7 +335,7 @@ func TestFaultInject_MatchedHeader(t *testing.T) {
 		"User": "Alice",
 	})
 	start := time.Now()
-	if status := f.OnReceiveHeaders(headers, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceiveHeaders(context.TODO(), headers, true); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -353,7 +353,7 @@ func TestFaultInject_MatchedHeader(t *testing.T) {
 	})
 	f2 := NewFilter(context.Background(), cfg)
 	f2.SetReceiveFilterHandler(cb)
-	if status := f2.OnReceiveHeaders(notmatched, true); status != types.StreamHeadersFilterContinue {
+	if status := f2.OnReceiveHeaders(context.TODO(), notmatched, true); status != types.StreamHeadersFilterContinue {
 		t.Error("unmatched headers not return continue")
 	}
 }
@@ -383,7 +383,7 @@ func TestFaultInject_RouteConfigOverride(t *testing.T) {
 	}
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
-	if status := f.OnReceiveHeaders(nil, false); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceiveHeaders(context.TODO(), nil, false); status != types.StreamHeadersFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
