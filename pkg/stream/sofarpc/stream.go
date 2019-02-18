@@ -207,6 +207,11 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 
 	// header, data notify
 	if stream != nil {
+		if cmd.GetTimeout() > 0 {
+			timeout := strconv.Itoa(cmd.GetTimeout()) // timeout, ms
+			cmd.Set(types.HeaderGlobalTimeout, timeout)
+		}
+
 		stream.receiver.OnDecodeAll(stream.ctx, cmd, cmd.Data(), nil)
 	}
 }
@@ -390,6 +395,8 @@ func (s *stream) endStream() {
 	if s.sendCmd != nil {
 		// replace requestID
 		s.sendCmd.SetRequestID(s.id)
+		// remove the inject header
+		s.sendCmd.Del(types.HeaderGlobalTimeout)
 
 		// TODO: replaced with EncodeTo, and pre-alloc send buf
 		buf, err := s.sc.codecEngine.Encode(s.ctx, s.sendCmd)

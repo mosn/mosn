@@ -18,6 +18,9 @@
 package healthcheck
 
 import (
+	"sync/atomic"
+
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/utils"
 )
@@ -52,8 +55,6 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *se
 		timeout:       make(chan bool),
 		stop:          make(chan struct{}),
 	}
-	c.checkTimer = utils.NewTimer(c.OnCheck)
-	c.checkTimeout = utils.NewTimer(c.OnTimeout)
 	return c
 }
 
@@ -63,20 +64,21 @@ func (c *sessionChecker) Start() {
 		c.checkTimer.Stop()
 		c.checkTimeout.Stop()
 	}()
-	c.checkTimer.Start(c.HealthChecker.getCheckInterval())
+	interval := c.HealthChecker.getCheckInterval()
+	c.checkTimer = utils.NewTimer(interval, c.OnCheck)
 	for {
 		select {
 		case <-c.stop:
 			return
 		default:
 			// prepare a check
-			c.checkID++
+			currentID := atomic.AddUint64(&c.checkID, 1)
 			select {
 			case <-c.stop:
 				return
 			case resp := <-c.resp:
 				// if the ID is not equal, means we receive a timeout for this ID, ignore the response
-				if resp.ID == c.checkID {
+				if resp.ID == currentID {
 					c.checkTimeout.Stop()
 					if resp.Healthy {
 						c.HandleSuccess()
@@ -84,14 +86,18 @@ func (c *sessionChecker) Start() {
 						c.HandleFailure(types.FailureActive)
 					}
 					// next health checker
-					c.checkTimer.Start(c.HealthChecker.getCheckInterval())
+					c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
+					log.DefaultLogger.Debugf("receive a response id: %d", resp.ID)
+				} else {
+					log.DefaultLogger.Debugf("receive a expired id response, response id: %d, currentID: %d", resp.ID, currentID)
 				}
 			case <-c.timeout:
 				c.checkTimer.Stop()
 				c.Session.OnTimeout() // session timeout callbacks
 				c.HandleFailure(types.FailureNetwork)
 				// next health checker
-				c.checkTimer.Start(c.HealthChecker.getCheckInterval())
+				c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
+				log.DefaultLogger.Debugf("receive a timeout response at id: %d", currentID)
 			}
 		}
 	}
@@ -131,10 +137,11 @@ func (c *sessionChecker) HandleFailure(reason types.FailureType) {
 
 func (c *sessionChecker) OnCheck() {
 	// record current id
-	id := c.checkID
+	id := atomic.LoadUint64(&c.checkID)
 	c.HealthChecker.stats.attempt.Inc(1)
 	// start a timeout before check health
-	c.checkTimeout.Start(c.HealthChecker.timeout)
+	c.checkTimeout.Stop()
+	c.checkTimeout = utils.NewTimer(c.HealthChecker.timeout, c.OnTimeout)
 	c.resp <- checkResponse{
 		ID:      id,
 		Healthy: c.Session.CheckHealth(),

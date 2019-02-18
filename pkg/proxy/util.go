@@ -36,13 +36,13 @@ func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
 
 	if tto, ok := headers.Get(types.HeaderTryTimeout); ok {
 		if trytimeout, err := strconv.ParseInt(tto, 10, bitSize64); err == nil {
-			timeout.TryTimeout = time.Duration(trytimeout)
+			timeout.TryTimeout = time.Duration(trytimeout) * time.Millisecond
 		}
 	}
 
 	if gto, ok := headers.Get(types.HeaderGlobalTimeout); ok {
 		if globaltimeout, err := strconv.ParseInt(gto, 10, bitSize64); err == nil {
-			timeout.GlobalTimeout = time.Duration(globaltimeout)
+			timeout.GlobalTimeout = time.Duration(globaltimeout) * time.Millisecond
 		}
 	}
 

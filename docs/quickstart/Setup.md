@@ -79,9 +79,8 @@ make image
 
 ## 获取镜像
 
-```bash
-docker pull sofastack/mosn
-```
++ mosn不提供独立的镜像，通过[sofa-mesh](https://github.com/alipay/sofa-mesh)提供mosn作为sidecar的镜像
+
 
 ## 运行测试
 在项目根目录下执行如下命令运行单元测试：

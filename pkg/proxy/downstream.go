@@ -568,8 +568,7 @@ func (s *downStream) onUpstreamRequestSent() {
 				s.responseTimer.Stop()
 			}
 
-			s.responseTimer = utils.NewTimer(s.onResponseTimeout)
-			s.responseTimer.Start(s.timeout.GlobalTimeout)
+			s.responseTimer = utils.NewTimer(s.timeout.GlobalTimeout, s.onResponseTimeout)
 		}
 	}
 }
@@ -598,8 +597,7 @@ func (s *downStream) setupPerReqTimeout() {
 			s.perRetryTimer.Stop()
 		}
 
-		s.perRetryTimer = utils.NewTimer(s.onPerReqTimeout)
-		s.perRetryTimer.Start(timeout.TryTimeout * time.Second)
+		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout * time.Second, s.onPerReqTimeout)
 	}
 }
 

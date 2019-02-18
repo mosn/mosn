@@ -197,8 +197,7 @@ func startTimeout(id uint64, keep types.KeepAlive) *keepAliveTimeout {
 		ID:        id,
 		KeepAlive: keep,
 	}
-	t.timer = utils.NewTimer(t.onTimeout)
-	t.timer.Start(keep.GetTimeout())
+	t.timer = utils.NewTimer(keep.GetTimeout(), t.onTimeout)
 	return t
 }
 
