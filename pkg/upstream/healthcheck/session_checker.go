@@ -55,8 +55,6 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *se
 		timeout:       make(chan bool),
 		stop:          make(chan struct{}),
 	}
-	c.checkTimer = utils.NewTimer(c.OnCheck)
-	c.checkTimeout = utils.NewTimer(c.OnTimeout)
 	return c
 }
 
@@ -66,7 +64,8 @@ func (c *sessionChecker) Start() {
 		c.checkTimer.Stop()
 		c.checkTimeout.Stop()
 	}()
-	c.checkTimer.Start(c.HealthChecker.getCheckInterval())
+	interval := c.HealthChecker.getCheckInterval()
+	c.checkTimer = utils.NewTimer(interval, c.OnCheck)
 	for {
 		select {
 		case <-c.stop:
@@ -87,7 +86,7 @@ func (c *sessionChecker) Start() {
 						c.HandleFailure(types.FailureActive)
 					}
 					// next health checker
-					c.checkTimer.Start(c.HealthChecker.getCheckInterval())
+					c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
 					log.DefaultLogger.Debugf("receive a response id: %d", resp.ID)
 				} else {
 					log.DefaultLogger.Debugf("receive a expired id response, response id: %d, currentID: %d", resp.ID, currentID)
@@ -97,7 +96,7 @@ func (c *sessionChecker) Start() {
 				c.Session.OnTimeout() // session timeout callbacks
 				c.HandleFailure(types.FailureNetwork)
 				// next health checker
-				c.checkTimer.Start(c.HealthChecker.getCheckInterval())
+				c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
 				log.DefaultLogger.Debugf("receive a timeout response at id: %d", currentID)
 			}
 		}
@@ -141,7 +140,8 @@ func (c *sessionChecker) OnCheck() {
 	id := atomic.LoadUint64(&c.checkID)
 	c.HealthChecker.stats.attempt.Inc(1)
 	// start a timeout before check health
-	c.checkTimeout.Start(c.HealthChecker.timeout)
+	c.checkTimeout.Stop()
+	c.checkTimeout = utils.NewTimer(c.HealthChecker.timeout, c.OnTimeout)
 	c.resp <- checkResponse{
 		ID:      id,
 		Healthy: c.Session.CheckHealth(),

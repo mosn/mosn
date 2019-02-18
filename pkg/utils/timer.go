@@ -22,62 +22,25 @@ import (
 	"time"
 )
 
-// thread-safe reusable timer
 type Timer struct {
-	callback   func()
-	interval   time.Duration
 	innerTimer *time.Timer
 	stopped    int32
-	started    int32
-	stopChan   chan bool
 }
 
-func NewTimer(callback func()) *Timer {
+func NewTimer(d time.Duration, callback func()) *Timer {
 	return &Timer{
-		callback: callback,
-		stopChan: make(chan bool, 1),
+		innerTimer: time.AfterFunc(d, callback),
 	}
-}
-
-// Start starts a timer if it is not started
-func (t *Timer) Start(interval time.Duration) {
-	if !atomic.CompareAndSwapInt32(&t.started, 0, 1) {
-		return
-	}
-
-	if t.innerTimer == nil {
-		t.innerTimer = time.NewTimer(interval)
-	} else {
-		t.innerTimer.Reset(interval)
-	}
-
-	go func() {
-		defer func() {
-			t.innerTimer.Stop()
-			atomic.StoreInt32(&t.started, 0)
-			atomic.StoreInt32(&t.stopped, 0)
-		}()
-
-		select {
-		case <-t.innerTimer.C:
-			t.callback()
-		case <-t.stopChan:
-			return
-		}
-	}()
-
 }
 
 // Stop stops the timer.
 func (t *Timer) Stop() {
+	if t == nil {
+		return
+	}
 	if !atomic.CompareAndSwapInt32(&t.stopped, 0, 1) {
 		return
 	}
 
-	t.stopChan <- true
-}
-
-// Close closes the timers.
-func (t *Timer) Close() {
-	close(t.stopChan)
+	t.innerTimer.Stop()
 }
