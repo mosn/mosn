@@ -106,7 +106,7 @@ func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
 // types.StreamConnection
 // types.StreamConnectionEventListener
 type streamConnection struct {
-	context        context.Context
+	context context.Context
 
 	conn              types.Connection
 	connEventListener types.ConnectionEventListener
@@ -165,6 +165,7 @@ type clientStreamConnection struct {
 
 	stream                        *clientStream
 	requestSent                   chan bool
+	connClosed                    chan bool
 	mutex                         sync.RWMutex
 	connectionEventListener       types.ConnectionEventListener
 	streamConnectionEventListener types.StreamConnectionEventListener
@@ -176,13 +177,14 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 
 	csc := &clientStreamConnection{
 		streamConnection: streamConnection{
-			context:        ctx,
-			conn:           connection,
-			bufChan:        make(chan types.IoBuffer),
+			context: ctx,
+			conn:    connection,
+			bufChan: make(chan types.IoBuffer),
 		},
 		connectionEventListener:       connCallbacks,
 		streamConnectionEventListener: streamConnCallbacks,
 		requestSent:                   make(chan bool, 1),
+		connClosed:                    make(chan bool, 1),
 	}
 
 	csc.br = bufio.NewReader(csc)
@@ -206,7 +208,9 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 
 func (conn *clientStreamConnection) serve() {
 	for {
-		if _, ok := <-conn.requestSent; !ok {
+		select {
+		case <-conn.requestSent:
+		case <-conn.connClosed:
 			return
 		}
 
@@ -217,7 +221,7 @@ func (conn *clientStreamConnection) serve() {
 		// 1. blocking read using fasthttp.Response.Read
 		err := s.response.Read(conn.br)
 		if err != nil {
-			if s != nil{
+			if s != nil {
 				s.ResetStream(types.StreamRemoteReset)
 				log.DefaultLogger.Errorf("Http client codec goroutine error: %s", err)
 
@@ -277,7 +281,7 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 	close(conn.bufChan)
-	close(conn.requestSent)
+	close(conn.connClosed)
 }
 
 // types.ServerStreamConnection
@@ -294,11 +298,11 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
-			context:        ctx,
-			conn:           connection,
-			bufChan:        make(chan types.IoBuffer),
+			context: ctx,
+			conn:    connection,
+			bufChan: make(chan types.IoBuffer),
 		},
-		contextManager: contextManager{base: ctx},
+		contextManager:           contextManager{base: ctx},
 		serverStreamConnListener: callbacks,
 	}
 
