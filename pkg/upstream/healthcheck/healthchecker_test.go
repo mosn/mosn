@@ -144,8 +144,8 @@ func TestHealthCheck(t *testing.T) {
 				if !(hc.stats.attempt.Count() >= 1 &&
 					hc.stats.attempt.Count() <= 2 &&
 					hc.stats.success.Count() == 0 &&
-					hc.stats.failure.Count() == 1 &&
-					hc.stats.networkFailure.Count() == 1 &&
+					hc.stats.failure.Count() <= 2 &&
+					hc.stats.networkFailure.Count() <= 2 &&
 					hc.stats.healthy.Value() == 0) {
 					return fmt.Errorf("stats not expected, %d, %d, %d, %d, %d", hc.stats.attempt.Count(), hc.stats.success.Count(),
 						hc.stats.failure.Count(), hc.stats.networkFailure.Count(), hc.stats.healthy.Value())

@@ -97,8 +97,7 @@ func (r *retryState) scheduleRetry(doRetry func()) *utils.Timer {
 
 	// todo: use backoff alth
 	timeout := 1 + rand.Intn(10)
-	timer := utils.NewTimer(doRetry)
-	timer.Start(time.Duration(timeout) * time.Millisecond)
+	timer := utils.NewTimer(time.Duration(timeout) * time.Millisecond, doRetry)
 
 	return timer
 }
