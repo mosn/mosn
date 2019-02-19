@@ -774,7 +774,7 @@ func (c *connection) RawConn() net.Conn {
 
 func (c *connection) Peek(n int) ([]byte, error) {
 	if c.readBuffer == nil {
-		c.readBuffer = buffer.GetIoBuffer(n + 1<<15)
+		c.readBuffer = buffer.GetIoBuffer(n)
 	}
 
 	if n <= c.readBuffer.Len() {
