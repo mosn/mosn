@@ -533,6 +533,8 @@ func (c *connection) startWriteLoop() {
 
 			return
 		}
+
+		runtime.Gosched()
 	}
 
 transfer:
