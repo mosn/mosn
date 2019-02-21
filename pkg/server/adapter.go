@@ -57,6 +57,12 @@ func GetListenerAdapterInstance() *ListenerAdapter {
 	return listenerAdapterInstance
 }
 
+// ResetAdapter only used in test/debug mode
+func ResetAdapter() {
+	log.DefaultLogger.Infof("adapter reset, only expected in test/debug mode")
+	listenerAdapterInstance = nil
+}
+
 // AddOrUpdateListener used to:
 // Add and start listener when listener doesn't exist
 // Update listener when listener already exist

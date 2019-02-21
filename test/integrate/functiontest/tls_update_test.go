@@ -20,6 +20,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/http2/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
+	"github.com/alipay/sofa-mosn/pkg/server"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
@@ -132,6 +133,8 @@ func (c *TLSUpdateCase) Start(tls bool) {
 	c.MeshAddr = util.CurrentMeshAddr()
 	c.ListenerName = "test_dynamic"
 	cfg := MakeProxyWithTLSConfig(c.ListenerName, c.MeshAddr, []string{appAddr}, c.Protocol, tls)
+	// for test, reset adapter
+	server.ResetAdapter()
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
@@ -392,6 +395,5 @@ func TestUpdateTLS_TLSToInspector(t *testing.T) {
 		verify()
 		close(tc.Stop)
 		time.Sleep(time.Second)
-
 	}
 }

@@ -126,9 +126,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
 		// listener already exist, update the listener
-		// NOTE:
-		// update network filters and stream filters maybe casue some unexpected effects, do not support currently
-		// just support to update log, access log and tls config and other simple config
 
 		// a listener with the same name must have the same configured address
 		if al.listener.Addr().String() != lc.Addr.String() ||
@@ -141,6 +138,17 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		}
 		rawConfig := al.listener.Config()
 		// FIXME: update log level need the pkg/logger support.
+
+		// only chaned if not nil
+		if networkFiltersFactories != nil {
+			al.networkFiltersFactories = networkFiltersFactories
+			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
+			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
+		}
+		if streamFiltersFactories != nil {
+			al.streamFiltersFactories = streamFiltersFactories
+			rawConfig.StreamFilters = lc.StreamFilters
+		}
 
 		// tls update only take effects on new connections
 		tlsChanged := false
