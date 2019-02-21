@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package admin
+package store
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/log"

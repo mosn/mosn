@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package admin
+package store
 
 import (
 	"errors"

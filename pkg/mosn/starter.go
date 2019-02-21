@@ -23,8 +23,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/trace"
-
+	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
@@ -34,6 +33,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/server"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	"github.com/alipay/sofa-mosn/pkg/xds"
@@ -44,6 +44,8 @@ type Mosn struct {
 	servers        []server.Server
 	clustermanager types.ClusterManager
 	routerManager  types.RouterManager
+	config         *config.MOSNConfig
+	adminServer    admin.Server
 }
 
 // NewMosn
@@ -52,7 +54,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
 	initializeMetrics(c.Metrics)
 
-	m := &Mosn{}
+	m := &Mosn{
+		config: c,
+	}
 	mode := c.Mode()
 
 	if mode == config.Xds {
@@ -168,6 +172,10 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 // Start mosn's server
 func (m *Mosn) Start() {
+	// start admin
+	m.adminServer = admin.Server{}
+	m.adminServer.Start(m.config)
+	// start mosn server
 	for _, srv := range m.servers {
 		go srv.Start()
 	}
@@ -175,6 +183,8 @@ func (m *Mosn) Start() {
 
 // Close mosn's server
 func (m *Mosn) Close() {
+	// close admin
+	m.adminServer.Close()
 	for _, srv := range m.servers {
 		srv.Close()
 	}

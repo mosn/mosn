@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
-package admin
+package store
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"

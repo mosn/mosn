@@ -127,7 +127,7 @@ var (
 func (c *MOSNConfig) GetAdmin() *xdsboot.Admin {
 	if len(c.RawAdmin) > 0 {
 		adminConfig := &xdsboot.Admin{}
-		err := jsonpb.UnmarshalString(string(config.RawAdmin), adminConfig)
+		err := jsonpb.UnmarshalString(string(c.RawAdmin), adminConfig)
 		if err == nil {
 			return adminConfig
 		}

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package admin
+package server
 
 import (
 	"errors"
@@ -26,6 +26,7 @@ import (
 
 	rawjson "encoding/json"
 
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
@@ -106,7 +107,7 @@ func TestDumpConfig(t *testing.T) {
 			t.Errorf("unexpected effectiveConfig: %s\n", data)
 		}
 	}
-	Reset()
+	store.Reset()
 }
 
 func TestDumpStats(t *testing.T) {
@@ -138,5 +139,7 @@ func TestDumpStats(t *testing.T) {
 			t.Errorf("unexpected stats: %s\n", data)
 		}
 	}
-	Reset()
+	store.Reset()
 }
+
+// TestUpdateTLS see integrate test

@@ -1,4 +1,4 @@
-package admin
+package server
 
 import (
 	. "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
