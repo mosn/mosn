@@ -23,12 +23,13 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
+
+	"path/filepath"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -47,16 +48,15 @@ var TransferTimeout = time.Second * 30 //default 30s
 var TransferDomainSocket = filepath.Dir(os.Args[0]) + string(os.PathSeparator) + "mosn.sock"
 
 // TransferServer is called on new mosn start
-func TransferServer(handler types.ConnectionHandler) {
+func TransferServer(gracefultime time.Duration, handler types.ConnectionHandler) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("transferServer panic %v", r)
 		}
 	}()
 
-	if os.Getenv(types.GracefulRestart) != "true" {
-		return
-	}
+	TransferTimeout = gracefultime
+
 	if _, err := os.Stat(TransferDomainSocket); err == nil {
 		os.Remove(TransferDomainSocket)
 	}
@@ -93,7 +93,7 @@ func TransferServer(handler types.ConnectionHandler) {
 	}(handler)
 
 	select {
-	case <-time.After(2 * (TransferTimeout + types.DefaultConnReadTimeout)):
+	case <-time.After(TransferTimeout + types.DefaultConnReadTimeout + 10*time.Second):
 		log.DefaultLogger.Infof("TransferServer exit")
 		return
 	}

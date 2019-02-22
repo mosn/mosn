@@ -18,14 +18,10 @@
 package mosn
 
 import (
-	"net"
-	"os"
-	"strconv"
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/trace"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -79,7 +75,10 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		log.StartLogger.Fatalln("multiple server not supported yet, got ", srvNum)
 	}
 	//get inherit fds
-	inheritListeners := getInheritListeners()
+	inheritListeners, notify, err := server.GetInheritListeners()
+	if err != nil {
+		log.StartLogger.Fatalln("getInheritListeners failed, exit")
+	}
 
 	//cluster manager filter
 	cmf := &clusterManagerFilter{}
@@ -156,12 +155,21 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		}
 	}
 
-	// set TransferTimeout
-	network.TransferTimeout = server.GracefulTimeout
-	// transfer old mosn connections
-	go network.TransferServer(m.servers[0].Handler())
-	// transfer old mosn mertrics, none-block
-	go metrics.TransferServer(server.GracefulTimeout, nil)
+	// notify old mosn quit and transfer connection
+	if notify != nil {
+		if _, err := notify.Write([]byte{1}); err != nil {
+			log.StartLogger.Fatalln("graceful failed, exit")
+		}
+		notify.Close()
+
+		// transfer old mosn connections
+		go network.TransferServer(server.GracefulTimeout, m.servers[0].Handler())
+		// transfer old mosn mertrics, none-block
+		go metrics.TransferServer(server.GracefulTimeout, nil)
+	}
+
+	// write pid file
+	server.WritePidFile()
 
 	return m
 }
@@ -246,39 +254,4 @@ type clusterManagerFilter struct {
 func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
-}
-
-func getInheritListeners() []*v2.Listener {
-	if os.Getenv(types.GracefulRestart) == "true" {
-		count, _ := strconv.Atoi(os.Getenv(types.InheritFd))
-		listeners := make([]*v2.Listener, count)
-
-		log.StartLogger.Infof("received %d inherit fds", count)
-
-		for idx := 0; idx < count; idx++ {
-			func() {
-				//because passed listeners fd's index starts from 3
-				fd := uintptr(3 + idx)
-				file := os.NewFile(fd, "")
-				if file == nil {
-					log.StartLogger.Errorf("create new file from fd %d failed", fd)
-					return
-				}
-				defer file.Close()
-
-				fileListener, err := net.FileListener(file)
-				if err != nil {
-					log.StartLogger.Errorf("recover listener from fd %d failed: %s", fd, err)
-					return
-				}
-				if listener, ok := fileListener.(*net.TCPListener); ok {
-					listeners[idx] = &v2.Listener{Addr: listener.Addr(), InheritListener: listener}
-				} else {
-					log.StartLogger.Errorf("listener recovered from fd %d is not a tcp listener", fd)
-				}
-			}()
-		}
-		return listeners
-	}
-	return nil
 }

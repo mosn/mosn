@@ -18,7 +18,6 @@
 package server
 
 import (
-	"errors"
 	"os"
 	"runtime"
 	"time"
@@ -139,33 +138,22 @@ func StopConnection() {
 	}
 }
 
-func ListListenerFD() []uintptr {
-	var fds []uintptr
+func ListListenersFile() []*os.File {
+	var files []*os.File
 	for _, server := range servers {
-		fds = append(fds, server.handler.ListListenersFD(nil)...)
+		files = append(files, server.handler.ListListenersFile(nil)...)
 	}
-	return fds
+	return files
 }
 
 func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
-	// two duration wait for connection to transfer
-	// 10 seconds wait for read timeout
-	timeout := time.NewTimer(2 * (duration + types.DefaultConnReadTimeout))
-	wait := make(chan struct{}, 1)
-	time.Sleep(duration)
-	go func() {
-		//todo close idle connections and wait active connections complete
-		StopConnection()
-		log.DefaultLogger.Infof("StopConnection")
-		time.Sleep(duration + time.Second*10)
-		wait <- struct{}{}
-	}()
-
+	// DefaultConnReadTimeout wait for read timeout
+	timeout := time.NewTimer(duration + types.DefaultConnReadTimeout)
+	StopConnection()
+	log.DefaultLogger.Infof("StopConnection")
 	select {
 	case <-timeout.C:
-		return errors.New("wait timeout")
-	case <-wait:
 		return nil
 	}
 }
