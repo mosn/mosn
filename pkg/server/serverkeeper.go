@@ -28,10 +28,10 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"path/filepath"
 )
 
 func init() {
-	storeOldPid()
 	catchSignals()
 }
 
@@ -44,8 +44,20 @@ var (
 	shutdownCallbacks     []func() error
 )
 
+func SetPid(pid string) {
+	if pid == "" {
+		pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
+	} else {
+		if err := os.MkdirAll(filepath.Dir(pid), 0644); err != nil {
+			pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
+		} else {
+			pidFile = pid
+		}
+	}
+	storeOldPid()
+}
+
 func storeOldPid() {
-	pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
 	if b, err := ioutil.ReadFile(pidFile); err == nil {
 		// delete "\n"
 		oldPid, _ = strconv.Atoi(string(b[0 : len(b)-1]))
@@ -53,7 +65,6 @@ func storeOldPid() {
 }
 
 func WritePidFile() error {
-	pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
 	os.MkdirAll(MosnBasePath, 0644)

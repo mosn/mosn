@@ -47,6 +47,7 @@ type Mosn struct {
 func NewMosn(c *config.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
 	initializeMetrics(c.Metrics)
+	initializePidFile(c.Pid)
 
 	m := &Mosn{}
 	mode := c.Mode()
@@ -155,15 +156,18 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		}
 	}
 
+	// SetTransferTimeout
+	network.SetTransferTimeout(server.GracefulTimeout)
+
 	// notify old mosn quit and transfer connection
 	if notify != nil {
-		if _, err := notify.Write([]byte{1}); err != nil {
+		if _, err := notify.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalln("graceful failed, exit")
 		}
 		notify.Close()
 
 		// transfer old mosn connections
-		go network.TransferServer(server.GracefulTimeout, m.servers[0].Handler())
+		go network.TransferServer(m.servers[0].Handler())
 		// transfer old mosn mertrics, none-block
 		go metrics.TransferServer(server.GracefulTimeout, nil)
 	}
@@ -244,6 +248,10 @@ func initializeMetrics(config config.MetricsConfig) {
 	if len(sinks) > 0 {
 		go sink.StartFlush(sinks, config.FlushInterval.Duration)
 	}
+}
+
+func initializePidFile(pid string) {
+	server.SetPid(pid)
 }
 
 type clusterManagerFilter struct {
