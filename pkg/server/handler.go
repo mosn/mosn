@@ -21,6 +21,7 @@ import (
 	"container/list"
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -30,6 +31,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"syscall"
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
@@ -37,6 +41,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"golang.org/x/sys/unix"
 )
 
 // ConnectionHandler
@@ -284,18 +289,18 @@ func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 	return errGlobal
 }
 
-func (ch *connHandler) ListListenersFD(lctx context.Context) []uintptr {
-	fds := make([]uintptr, len(ch.listeners))
+func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
+	files := make([]*os.File, len(ch.listeners))
 
 	for idx, l := range ch.listeners {
-		fd, err := l.listener.ListenerFD()
+		file, err := l.listener.ListenerFile()
 		if err != nil {
 			log.DefaultLogger.Errorf("fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
-		fds[idx] = fd
+		files[idx] = file
 	}
-	return fds
+	return files
 }
 
 func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListener {
@@ -616,4 +621,141 @@ func (ac *activeConnection) OnEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
 		ac.listener.removeConnection(ac)
 	}
+}
+
+func sendInheritListeners() error {
+	files := ListListenersFile()
+	if files == nil {
+		return nil
+	}
+	if len(files) > 100 {
+		log.DefaultLogger.Errorf("InheritListener fd too many :%d", len(files))
+		return errors.New("InheritListeners too many")
+	}
+	fds := make([]int, len(files))
+	for i, f := range files {
+		fds[i] = int(f.Fd())
+		log.DefaultLogger.Debugf("InheritListener fd: %d", f.Fd())
+		defer f.Close()
+	}
+
+	var unixConn net.Conn
+	var err error
+	// retry 10 time
+	for i := 0; i < 10; i++ {
+		unixConn, err = net.DialTimeout("unix", transferListenDomainSocket, 1*time.Second)
+		if err == nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	if err != nil {
+		log.DefaultLogger.Errorf("sendInheritListeners Dial unix failed %v", err)
+		return err
+	}
+	defer unixConn.Close()
+
+	uc := unixConn.(*net.UnixConn)
+	buf := make([]byte, 1)
+	rights := syscall.UnixRights(fds...)
+	n, oobn, err := uc.WriteMsgUnix(buf, rights, nil)
+	if err != nil {
+		log.DefaultLogger.Errorf("WriteMsgUnix: %v", err)
+		return err
+	}
+	if n != len(buf) || oobn != len(rights) {
+		log.DefaultLogger.Errorf("WriteMsgUnix = %d, %d; want 1, %d", n, oobn, len(rights))
+		return err
+	}
+	uc.SetReadDeadline(time.Now().Add(30 * time.Second))
+	n, err = uc.Read(buf)
+	if n == 0 {
+		log.DefaultLogger.Errorf("new mosn start failed")
+		return err
+	}
+	return nil
+}
+
+func GetInheritListeners() ([]*v2.Listener, net.Conn, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.StartLogger.Errorf("getInheritListeners panic %v", r)
+		}
+	}()
+
+	if oldPid != 0 {
+		log.StartLogger.Errorf("Get old mosn pid: %d", oldPid)
+		if err := syscall.Kill(oldPid, syscall.SIGUSR2); err != nil {
+			log.StartLogger.Errorf("kill SIGUSR2 failed :%v", err)
+			return nil, nil, nil
+		}
+	} else {
+		return nil, nil, nil
+	}
+
+	syscall.Unlink(transferListenDomainSocket)
+
+	l, err := net.Listen("unix", transferListenDomainSocket)
+	if err != nil {
+		log.StartLogger.Errorf("InheritListeners net listen error: %v", err)
+		return nil, nil, err
+	}
+	defer l.Close()
+
+	log.StartLogger.Infof("Get InheritListeners start")
+
+	ul := l.(*net.UnixListener)
+	ul.SetDeadline(time.Now().Add(time.Second * 10))
+	uc, err := ul.AcceptUnix()
+	if err != nil {
+		log.StartLogger.Errorf("InheritListeners Accept error :%v", err)
+		return nil, nil, err
+	}
+	log.StartLogger.Infof("Get InheritListeners Accept")
+
+	buf := make([]byte, 1)
+	oob := make([]byte, 1024)
+	_, oobn, _, _, err := uc.ReadMsgUnix(buf, oob)
+	if err != nil {
+		return nil, nil, err
+	}
+	scms, err := unix.ParseSocketControlMessage(oob[0:oobn])
+	if err != nil {
+		log.StartLogger.Errorf("ParseSocketControlMessage: %v", err)
+		return nil, nil, err
+	}
+	if len(scms) != 1 {
+		log.StartLogger.Errorf("expected 1 SocketControlMessage; got scms = %#v", scms)
+		return nil, nil, err
+	}
+	gotFds, err := unix.ParseUnixRights(&scms[0])
+	if err != nil {
+		log.StartLogger.Errorf("unix.ParseUnixRights: %v", err)
+		return nil, nil, err
+	}
+
+	listeners := make([]*v2.Listener, len(gotFds))
+	for i := 0; i < len(gotFds); i++ {
+		fd := uintptr(gotFds[i])
+		file := os.NewFile(fd, "")
+		if file == nil {
+			log.StartLogger.Errorf("create new file from fd %d failed", fd)
+			return nil, nil, err
+		}
+		defer file.Close()
+
+		fileListener, err := net.FileListener(file)
+		if err != nil {
+			log.StartLogger.Errorf("recover listener from fd %d failed: %s", fd, err)
+			return nil, nil, err
+		}
+		if listener, ok := fileListener.(*net.TCPListener); ok {
+			listeners[i] = &v2.Listener{Addr: listener.Addr(), InheritListener: listener}
+		} else {
+			log.StartLogger.Errorf("listener recovered from fd %d is not a tcp listener", fd)
+			return nil, nil, errors.New("not a tcp listener")
+		}
+	}
+
+	return listeners, uc, nil
 }

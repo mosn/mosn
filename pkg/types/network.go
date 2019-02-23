@@ -25,6 +25,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
 	"github.com/rcrowley/go-metrics"
+	"os"
 )
 
 //
@@ -102,8 +103,8 @@ type Listener interface {
 	// Set listener tag
 	SetListenerTag(tag uint64)
 
-	// ListenerFD returns a copy a listener fd
-	ListenerFD() (uintptr, error)
+	// ListenerFile returns a copy a listener file
+	ListenerFile() (*os.File, error)
 
 	// PerConnBufferLimitBytes returns the limit bytes per connection
 	PerConnBufferLimitBytes() uint32
@@ -383,7 +384,7 @@ type ConnectionHandler interface {
 	StopListeners(lctx context.Context, close bool) error
 
 	// ListListenersFD reports all listeners' fd
-	ListListenersFD(lctx context.Context) []uintptr
+	ListListenersFile(lctx context.Context) []*os.File
 
 	// StopConnection Stop Connection
 	StopConnection()

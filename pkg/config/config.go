@@ -85,6 +85,7 @@ type MOSNConfig struct {
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty"`             // admin raw message
 	Debug               PProfConfig         `json:"pprof,omitempty"`
+	Pid                 string              `json:"pid,omitempty"` // pid file
 }
 
 // PProfConfig is used to start a pprof server for debug

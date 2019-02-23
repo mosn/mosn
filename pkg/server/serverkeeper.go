@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
@@ -28,16 +29,14 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
-	writePidFile()
-
 	catchSignals()
 }
 
 var (
+	oldPid                int
 	pidFile               string
 	onProcessExit         []func()
 	GracefulTimeout       = time.Second * 30 //default 30s
@@ -45,8 +44,27 @@ var (
 	shutdownCallbacks     []func() error
 )
 
-func writePidFile() error {
-	pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
+func SetPid(pid string) {
+	if pid == "" {
+		pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
+	} else {
+		if err := os.MkdirAll(filepath.Dir(pid), 0644); err != nil {
+			pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
+		} else {
+			pidFile = pid
+		}
+	}
+	storeOldPid()
+}
+
+func storeOldPid() {
+	if b, err := ioutil.ReadFile(pidFile); err == nil {
+		// delete "\n"
+		oldPid, _ = strconv.Atoi(string(b[0 : len(b)-1]))
+	}
+}
+
+func WritePidFile() error {
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
 	os.MkdirAll(MosnBasePath, 0644)
@@ -90,9 +108,11 @@ func catchSignalsCrossPlatform() {
 				// stop stoppable before reload
 				stopStoppable()
 				// reload
-				reconfigure()
+				reconfigure(true)
 			case syscall.SIGUSR2:
-				// ignore
+				// stop stoppable before reload
+				stopStoppable()
+				reconfigure(false)
 			}
 		}
 	}()
@@ -148,31 +168,35 @@ func OnProcessShutDown(cb func() error) {
 	shutdownCallbacks = append(shutdownCallbacks, cb)
 }
 
-func reconfigure() {
-	// Get socket file descriptor to pass it to fork
-	listenerFD := ListListenerFD()
-	if len(listenerFD) == 0 {
-		log.DefaultLogger.Errorf("no listener fd found")
-		return
-	}
-
-	// Set a flag for the new process start process
-	os.Setenv(types.GracefulRestart, "true")
-	os.Setenv(types.InheritFd, strconv.Itoa(len(listenerFD)))
-
+func startNewMosn() error {
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),
-		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}, listenerFD...),
+		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}),
 	}
 
 	// Fork exec the new version of your server
 	fork, err := syscall.ForkExec(os.Args[0], os.Args, execSpec)
 	if err != nil {
 		log.DefaultLogger.Errorf("Fail to fork %v", err)
-		return
+		return err
 	}
 
 	log.DefaultLogger.Infof("SIGHUP received: fork-exec to %d", fork)
+	return nil
+}
+
+func reconfigure(start bool) {
+	if start {
+		err := startNewMosn()
+		if err != nil {
+			return
+		}
+	}
+
+	// transfer listen fd
+	if err := sendInheritListeners(); err != nil {
+		return
+	}
 
 	// Wait for new mosn start
 	time.Sleep(3 * time.Second)

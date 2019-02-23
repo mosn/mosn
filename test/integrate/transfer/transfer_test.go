@@ -15,6 +15,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
+	"math/rand"
 )
 
 // client - mesh - mesh - server
@@ -37,10 +38,12 @@ func forkTransferMesh(tc *integrate.TestCase) int {
 }
 
 func startTransferMesh(tc *integrate.TestCase) {
+	rand.Seed(2)
 	server.GracefulTimeout = 5 * time.Second
 	network.TransferDomainSocket = "/tmp/mosn.sock"
 	metrics.TransferDomainSocket = "/tmp/stats.sock"
 	cfg := util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
+	cfg.Pid = "/tmp/transfer.pid"
 	mesh := mosn.NewMosn(cfg)
 
 	util.MeshLogPath = ""
@@ -48,7 +51,7 @@ func startTransferMesh(tc *integrate.TestCase) {
 	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG)
 
 	mesh.Start()
-	time.Sleep(30 * time.Second)
+	time.Sleep(20*time.Second)
 }
 
 func startTransferServer(tc *integrate.TestCase) {
@@ -60,6 +63,7 @@ func startTransferServer(tc *integrate.TestCase) {
 }
 
 func TestTransfer(t *testing.T) {
+
 	appaddr := "127.0.0.1:8080"
 
 	tc := integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1))
@@ -85,10 +89,10 @@ func TestTransfer(t *testing.T) {
 	// run test cases
 	internal := 100 // ms
 	// todo: support concurrency
-	go tc.RunCase(1000, internal)
+	go tc.RunCase(2000, internal)
 
-	// reload Mosn Server
-	time.Sleep(3 * time.Second)
+	// frist reload Mosn Server, Signal
+	time.Sleep(2 * time.Second)
 	syscall.Kill(pid, syscall.SIGHUP)
 
 	select {
@@ -96,7 +100,18 @@ func TestTransfer(t *testing.T) {
 		if err != nil {
 			t.Errorf("transfer test failed, error: %v\n", err)
 		}
-	case <-time.After(20 * time.Second):
+	case <-time.After(10 * time.Second):
+	}
+
+	// second reload Mosn Server, direct start
+	forkTransferMesh(tc)
+
+	select {
+	case err := <-tc.C:
+		if err != nil {
+			t.Errorf("transfer test failed, error: %v\n", err)
+		}
+	case <-time.After(10 * time.Second):
 	}
 	close(tc.Stop)
 	time.Sleep(time.Second)
