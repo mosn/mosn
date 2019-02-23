@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
@@ -28,7 +29,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"path/filepath"
 )
 
 func init() {
@@ -185,8 +185,8 @@ func startNewMosn() error {
 	return nil
 }
 
-func reconfigure(new bool) {
-	if new {
+func reconfigure(start bool) {
+	if start {
 		err := startNewMosn()
 		if err != nil {
 			return
