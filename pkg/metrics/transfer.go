@@ -138,9 +138,6 @@ func TransferServer(gracefultime time.Duration, ch chan<- bool) {
 			log.DefaultLogger.Errorf("transfer metrics server panic %v", r)
 		}
 	}()
-	if os.Getenv(types.GracefulRestart) != "true" {
-		return
-	}
 	if _, err := os.Stat(TransferDomainSocket); err == nil {
 		os.Remove(TransferDomainSocket)
 	}

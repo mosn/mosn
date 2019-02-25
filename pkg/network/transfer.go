@@ -46,6 +46,12 @@ const (
 var TransferTimeout = time.Second * 30 //default 30s
 var TransferDomainSocket = filepath.Dir(os.Args[0]) + string(os.PathSeparator) + "mosn.sock"
 
+func SetTransferTimeout(time time.Duration) {
+	if time != 0 {
+		TransferTimeout = time
+	}
+}
+
 // TransferServer is called on new mosn start
 func TransferServer(handler types.ConnectionHandler) {
 	defer func() {
@@ -54,9 +60,6 @@ func TransferServer(handler types.ConnectionHandler) {
 		}
 	}()
 
-	if os.Getenv(types.GracefulRestart) != "true" {
-		return
-	}
 	if _, err := os.Stat(TransferDomainSocket); err == nil {
 		os.Remove(TransferDomainSocket)
 	}
@@ -93,7 +96,7 @@ func TransferServer(handler types.ConnectionHandler) {
 	}(handler)
 
 	select {
-	case <-time.After(2 * (TransferTimeout + types.DefaultConnReadTimeout)):
+	case <-time.After(TransferTimeout + types.DefaultConnReadTimeout + 10*time.Second):
 		log.DefaultLogger.Infof("TransferServer exit")
 		return
 	}

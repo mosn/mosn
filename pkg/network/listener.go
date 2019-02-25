@@ -26,6 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"os"
 )
 
 // listener impl based on golang net package
@@ -127,14 +128,8 @@ func (l *listener) SetListenerTag(tag uint64) {
 	l.listenerTag = tag
 }
 
-func (l *listener) ListenerFD() (uintptr, error) {
-	file, err := l.rawl.File()
-	if err != nil {
-		l.logger.Errorf(" listener %s fd not found : %v", l.name, err)
-		return 0, err
-	}
-	//defer file.Close()
-	return file.Fd(), nil
+func (l *listener) ListenerFile() (*os.File, error) {
+	return l.rawl.File()
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {

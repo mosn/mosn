@@ -68,7 +68,7 @@ const (
 // RouteHandler is an external check handler for a route
 type RouteHandler interface {
 	// IsAvailable returns HandlerStatus represents the handler will be used/not used/stop next handler check
-	IsAvailable(context.Context, ClusterSnapshot) HandlerStatus
+	IsAvailable(context.Context, func(context.Context, string) ClusterSnapshot) (ClusterSnapshot, HandlerStatus)
 	// Route returns handler's route
 	Route() Route
 }

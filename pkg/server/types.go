@@ -35,6 +35,8 @@ const (
 	MosnLogDefaultPath = MosnLogBasePath + string(os.PathSeparator) + "mosn.log"
 
 	MosnPidFileName = "mosn.pid"
+
+	transferListenDomainSocket = MosnBasePath + string(os.PathSeparator) + "listen.sock"
 )
 
 type Config struct {
