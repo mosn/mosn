@@ -65,8 +65,6 @@ func postAPIs(ctx *fasthttp.RequestCtx) {
 	switch path {
 	case "/api/v1/logging":
 		setLogLevel(ctx)
-	case "/api/v1/tls":
-		updateListenerTLS(ctx)
 	default:
 		ctx.SetStatusCode(404)
 	}

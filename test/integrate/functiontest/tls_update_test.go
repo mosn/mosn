@@ -1,10 +1,8 @@
 package functiontest
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -145,29 +143,9 @@ func (c *TLSUpdateCase) Start(tls bool) {
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
-type tlsUpdate struct {
-	Listener  string       `json:"listener"`
-	Inspetcor bool         `json:"inspetcor"`
-	TLSConfig v2.TLSConfig `json:"tls_context"`
-}
-
 func (c *TLSUpdateCase) UpdateTLS(inspector bool, cfg *v2.TLSConfig) error {
-	data := tlsUpdate{
-		Listener:  c.ListenerName,
-		Inspetcor: inspector,
-		TLSConfig: *cfg,
-	}
-	b, _ := json.Marshal(data)
-	buf := bytes.NewBuffer(b)
-	resp, err := http.Post("http://127.0.0.1:8888/api/v1/tls", "application/x-www-form-urlencoded; charset=UTF-8", buf)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("update failed")
-	}
-	return nil
+	adapter := server.GetListenerAdapterInstance()
+	return adapter.UpdateListenerTLS("", c.ListenerName, inspector, cfg)
 }
 
 // client do "n" times request, interval time (ms)

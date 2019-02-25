@@ -346,7 +346,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
 	}
-	if reflect.ValueOf(clusterSnapshot).IsNil() {
+	if clusterSnapshot == nil || reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
 		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", route.RouteRule().ClusterName())
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
@@ -547,7 +547,7 @@ func (s *downStream) setupPerReqTimeout() {
 			s.perRetryTimer.Stop()
 		}
 
-		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout * time.Second, s.onPerReqTimeout)
+		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout*time.Second, s.onPerReqTimeout)
 	}
 }
 

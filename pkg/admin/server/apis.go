@@ -21,11 +21,9 @@ import (
 	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/metrics/sink/console"
-	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/valyala/fasthttp"
 )
 
@@ -70,38 +68,4 @@ func setLogLevel(ctx *fasthttp.RequestCtx) {
 		msg := fmt.Sprintf(errMsgFmt, "unknown log level")
 		ctx.WriteString(msg)
 	}
-}
-
-// POST Data Format
-/*
-{
-	"listener": "string",
-	"inspector": bool,
-	"tls_context": {}
-}
-*/
-type tlsUpdate struct {
-	Listener  string       `json:"listener"`
-	Inspetcor bool         `json:"inspetcor"`
-	TLSConfig v2.TLSConfig `json:"tls_context"`
-}
-
-func updateListenerTLS(ctx *fasthttp.RequestCtx) {
-	body := ctx.Request.Body()
-	data := &tlsUpdate{}
-	if err := json.Unmarshal(body, data); err != nil {
-		ctx.SetStatusCode(400)
-		ctx.Write([]byte(`{ error: "invalid post data"}`))
-		return
-	}
-	adapter := server.GetListenerAdapterInstance()
-	// server can be "", so use the default server. currently we only support one server, so use "" is ok
-	if err := adapter.UpdateListenerTLS("", data.Listener, data.Inspetcor, &data.TLSConfig); err != nil {
-		ctx.SetStatusCode(500)
-		msg := ""
-		ctx.Write([]byte(msg))
-		return
-	}
-	log.DefaultLogger.Infof("listener %s's tls config has been changed, inspector: %v, tlsstart: %v", data.Listener, data.Inspetcor, data.TLSConfig.Status)
-	ctx.WriteString("update tls success\n")
 }
