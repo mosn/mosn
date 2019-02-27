@@ -15,19 +15,20 @@
  * limitations under the License.
  */
 
-package server
+package store
 
-import (
-	admin "github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/types"
+type State int
+var state = Running
+
+const (
+	Running State = iota
+	Reconfiguring
 )
 
-// stoppable implementation is moved to admin
-// keeps wraaper of admin to compatible
-func AddStoppable(s types.Stoppable) {
-	admin.AddStoppable(s)
+func GetMosnState() State {
+	return state
 }
 
-func stopStoppable() {
-	admin.StopStoppable()
+func SetMosnState(s State) {
+	state = s
 }

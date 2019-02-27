@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 )
@@ -64,12 +65,15 @@ func storeOldPid() {
 	}
 }
 
-func WritePidFile() error {
+func WritePidFile() (err error) {
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
 	os.MkdirAll(MosnBasePath, 0644)
 
-	return ioutil.WriteFile(pidFile, pid, 0644)
+	if err = ioutil.WriteFile(pidFile, pid, 0644); err!= nil {
+		log.DefaultLogger.Errorf("write pid file error: %v", err)
+	}
+	return err
 }
 
 func catchSignals() {
@@ -105,13 +109,10 @@ func catchSignalsCrossPlatform() {
 				// reopen
 				log.Reopen()
 			case syscall.SIGHUP:
-				// stop stoppable before reload
-				stopStoppable()
-				// reload
+				// reload, fork new mosn
 				reconfigure(true)
 			case syscall.SIGUSR2:
-				// stop stoppable before reload
-				stopStoppable()
+				// reload, not fork mosn
 				reconfigure(false)
 			}
 		}
@@ -186,6 +187,9 @@ func startNewMosn() error {
 }
 
 func reconfigure(start bool) {
+	store.SetMosnState(store.Reconfiguring)
+	defer store.SetMosnState(store.Running)
+
 	if start {
 		err := startNewMosn()
 		if err != nil {
@@ -197,6 +201,9 @@ func reconfigure(start bool) {
 	if err := sendInheritListeners(); err != nil {
 		return
 	}
+
+	// stop other services
+	store.StopService()
 
 	// Wait for new mosn start
 	time.Sleep(3 * time.Second)

@@ -15,23 +15,10 @@
  * limitations under the License.
  */
 
-package store
+package types
 
-import (
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
-)
 
-var stoppables []types.Stoppable
-
-func AddStoppable(s types.Stoppable) {
-	stoppables = append(stoppables, s)
-}
-
-func StopStoppable() {
-	for _, s := range stoppables {
-		if err := s.Close(); err != nil {
-			log.DefaultLogger.Infof("close stoppable error: %v", err)
-		}
-	}
+// StopService is an interface for server/listener, which can be stopped when transfer
+type StopService interface {
+	Close() error
 }

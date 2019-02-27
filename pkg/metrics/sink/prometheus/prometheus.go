@@ -24,8 +24,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
-	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -90,7 +90,7 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 	}
 
 	// export http for prometheus
-	go func() {
+	store.AddStartService(func() {
 		srvMux := http.NewServeMux()
 		srvMux.Handle(config.Endpoint, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 
@@ -99,9 +99,9 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 			Handler: srvMux,
 		}
 
-		server.AddStoppable(srv)
+		store.AddStopService(srv)
 		srv.ListenAndServe()
-	}()
+	})
 
 	return &promSink{
 		config:    config,
