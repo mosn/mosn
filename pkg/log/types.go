@@ -17,8 +17,6 @@
 
 package log
 
-import "github.com/alipay/sofa-mosn/pkg/types"
-
 type Level uint8
 
 const (
@@ -40,9 +38,8 @@ const (
 	TracePre string = "[TRACE]"
 )
 
-type Logger interface {
-	Print(buffer types.IoBuffer, discard bool) error
-
+// ErrorLogger generates lines of output to an io.Writer
+type ErrorLogger interface {
 	Println(args ...interface{})
 
 	Printf(format string, args ...interface{})
@@ -63,7 +60,12 @@ type Logger interface {
 
 	Fatalln(args ...interface{})
 
-	Close() error
+	// SetLogLevel updates the log level
+	SetLogLevel(Level)
 
-	Reopen() error
+	// Toggle disable/enable the logger
+	Toggle(disable bool)
 }
+
+// CreateErrorLoggerFunc creates a ErrorLogger implementation by output and level
+type CreateErrorLoggerFunc func(output string, level Level) (ErrorLogger, error)
