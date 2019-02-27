@@ -20,18 +20,35 @@ package store
 import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"time"
 )
 
-var stoppables []types.Stoppable
 
-func AddStoppable(s types.Stoppable) {
-	stoppables = append(stoppables, s)
+var startService []func()
+
+func AddStartService(f func()) {
+	startService = append(startService, f)
 }
 
-func StopStoppable() {
-	for _, s := range stoppables {
+func StartService() {
+	time.Sleep(1 * time.Second)
+	for _, f := range startService {
+		go f()
+	}
+	startService = startService[:0]
+}
+
+var stopService []types.StopService
+
+func AddStopService(s types.StopService) {
+	stopService = append(stopService, s)
+}
+
+func StopService() {
+	for _, s := range stopService {
 		if err := s.Close(); err != nil {
-			log.DefaultLogger.Infof("close stoppable error: %v", err)
+			log.DefaultLogger.Infof("close service error: %v", err)
 		}
 	}
+	stopService = stopService[:0]
 }

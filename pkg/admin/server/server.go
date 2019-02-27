@@ -71,42 +71,45 @@ func postAPIs(ctx *fasthttp.RequestCtx) {
 }
 
 func (s *Server) Start(config Config) {
-	var addr string
-	if config != nil {
-		// merge MOSNConfig into global context
-		store.SetMOSNConfig(config)
-		// get admin config
-		adminConfig := config.GetAdmin()
-		if adminConfig == nil {
-			// no admin config, no admin start
-			log.DefaultLogger.Warnf("no admin config, no admin api served")
+
+	store.AddStartService(func() {
+		var addr string
+		if config != nil {
+			// merge MOSNConfig into global context
+			store.SetMOSNConfig(config)
+			// get admin config
+			adminConfig := config.GetAdmin()
+			if adminConfig == nil {
+				// no admin config, no admin start
+				log.DefaultLogger.Warnf("no admin config, no admin api served")
+				return
+			}
+			address := adminConfig.GetAddress()
+			if xdsPort, ok := address.GetSocketAddress().GetPortSpecifier().(*core.SocketAddress_PortValue); ok {
+				addr = fmt.Sprintf("%s:%d", address.GetSocketAddress().GetAddress(), xdsPort.PortValue)
+			}
+		}
+
+		srv := &fasthttp.Server{
+			Handler: requestHandler,
+			Name:    "Mosn Admin Server",
+		}
+
+		ln, err := net.Listen("tcp4", addr)
+		if err != nil {
+			log.DefaultLogger.Errorf("Admin server: Listen on %s with error: %s\n", addr, err)
 			return
 		}
-		address := adminConfig.GetAddress()
-		if xdsPort, ok := address.GetSocketAddress().GetPortSpecifier().(*core.SocketAddress_PortValue); ok {
-			addr = fmt.Sprintf("%s:%d", address.GetSocketAddress().GetAddress(), xdsPort.PortValue)
-		}
-	}
+		log.DefaultLogger.Infof("Admin server serve on %s\n", addr)
+		s.ln = ln
+		go func() {
+			store.AddStopService(s)
+			if err := srv.Serve(ln); err != nil {
+				log.DefaultLogger.Errorf("Admin server: Served) with error: %s\n", err)
+			}
 
-	srv := &fasthttp.Server{
-		Handler: requestHandler,
-		Name:    "Mosn Admin Server",
-	}
-
-	ln, err := net.Listen("tcp4", addr)
-	if err != nil {
-		log.DefaultLogger.Errorf("Admin server: Listen on %s with error: %s\n", addr, err)
-		return
-	}
-	log.DefaultLogger.Infof("Admin server serve on %s\n", addr)
-	s.ln = ln
-	go func() {
-		store.AddStoppable(s)
-		if err := srv.Serve(ln); err != nil {
-			log.DefaultLogger.Errorf("Admin server: Served) with error: %s\n", err)
-		}
-
-	}()
+		}()
+	})
 }
 
 func (s *Server) Close() error {

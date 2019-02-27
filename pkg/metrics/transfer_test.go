@@ -26,7 +26,6 @@ import (
 
 	"encoding/json"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func addMetrics() {
@@ -79,8 +78,6 @@ func TestTransferData(t *testing.T) {
 }
 
 func TestTransferWithSocket(t *testing.T) {
-	// set env to run TransferServer
-	os.Setenv(types.GracefulRestart, "true")
 	// set domain socket path
 	TransferDomainSocket = "/tmp/stats.sock"
 	ResetAll()

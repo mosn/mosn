@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/admin"
 )
 
 type testAction int
@@ -91,6 +92,7 @@ func TestPrometheusMetrics(t *testing.T) {
 		DisableCollectProcess: true,
 		DisableCollectGo:      true,
 	})
+	admin.StartService()
 	tc := http.Client{}
 	sink.Flush(metrics.GetAll())
 

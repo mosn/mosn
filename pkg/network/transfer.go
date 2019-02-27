@@ -35,6 +35,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"golang.org/x/sys/unix"
+	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
 )
 
 const (
@@ -59,6 +60,8 @@ func TransferServer(handler types.ConnectionHandler) {
 			log.DefaultLogger.Errorf("transferServer panic %v", r)
 		}
 	}()
+
+	defer admin.SetMosnState(admin.Running)
 
 	if _, err := os.Stat(TransferDomainSocket); err == nil {
 		os.Remove(TransferDomainSocket)

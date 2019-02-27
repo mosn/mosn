@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
+	service "github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -80,9 +81,12 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		log.StartLogger.Fatalln("multiple server not supported yet, got ", srvNum)
 	}
 	//get inherit fds
-	inheritListeners, notify, err := server.GetInheritListeners()
+	inheritListeners, reconfigure, err := server.GetInheritListeners()
 	if err != nil {
 		log.StartLogger.Fatalln("getInheritListeners failed, exit")
+	}
+	if reconfigure != nil {
+		admin.SetMosnState(admin.Reconfiguring)
 	}
 
 	//cluster manager filter
@@ -164,11 +168,11 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	network.SetTransferTimeout(server.GracefulTimeout)
 
 	// notify old mosn quit and transfer connection
-	if notify != nil {
-		if _, err := notify.Write([]byte{0}); err != nil {
+	if reconfigure != nil {
+		if _, err := reconfigure.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalln("graceful failed, exit")
 		}
-		notify.Close()
+		reconfigure.Close()
 
 		// transfer old mosn connections
 		go network.TransferServer(m.servers[0].Handler())
@@ -178,6 +182,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 	// write pid file
 	server.WritePidFile()
+
+	// start other services
+	go service.StartService()
 
 	return m
 }

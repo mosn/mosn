@@ -29,6 +29,8 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 )
 
 func init() {
@@ -105,13 +107,10 @@ func catchSignalsCrossPlatform() {
 				// reopen
 				log.Reopen()
 			case syscall.SIGHUP:
-				// stop stoppable before reload
-				stopStoppable()
-				// reload
+				// reload, fork new mosn
 				reconfigure(true)
 			case syscall.SIGUSR2:
-				// stop stoppable before reload
-				stopStoppable()
+				// reload, not fork mosn
 				reconfigure(false)
 			}
 		}
@@ -193,10 +192,16 @@ func reconfigure(start bool) {
 		}
 	}
 
+	admin.SetMosnState(admin.Reconfiguring)
+
 	// transfer listen fd
 	if err := sendInheritListeners(); err != nil {
+		admin.SetMosnState(admin.Running)
 		return
 	}
+
+	// stop other services
+	store.StopService()
 
 	// Wait for new mosn start
 	time.Sleep(3 * time.Second)
