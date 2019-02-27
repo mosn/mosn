@@ -50,8 +50,7 @@ func TestCommon(t *testing.T) {
 		case <-time.After(15 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
 		}
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 	}
 }
 
@@ -88,8 +87,7 @@ func TestTLS(t *testing.T) {
 		case <-time.After(15 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
 		}
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 	}
 
 }
@@ -117,7 +115,6 @@ func TestXprotocol(t *testing.T) {
 		case <-time.After(15 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v xprotocol: %s hang\n", i, tc.AppProtocol, tc.MeshProtocol, tc.subProtocol)
 		}
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 	}
 }
