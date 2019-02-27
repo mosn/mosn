@@ -90,7 +90,7 @@ type streamConnection struct {
 	streamConnectionEventListener       types.StreamConnectionEventListener
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 
-	logger log.Logger
+	logger log.ErrorLogger
 }
 
 func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,

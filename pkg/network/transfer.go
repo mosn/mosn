@@ -403,7 +403,7 @@ func transferRecvType(uc *net.UnixConn) (net.Conn, error) {
 	return conn, nil
 }
 
-func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer, logger log.Logger) error {
+func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer, logger log.ErrorLogger) error {
 	// send header
 	s1 := buf.Len()
 	s2 := c.GetTLSInfo(buf)

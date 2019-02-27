@@ -105,6 +105,10 @@ func (l *errorLogger) SetLogLevel(level Level) {
 	l.level = level
 }
 
+func (l *errorLogger) GetLogLevel() Level {
+	return l.level
+}
+
 // timeCache is used to reduce format
 type timeCache struct {
 	t int64

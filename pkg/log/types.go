@@ -62,6 +62,8 @@ type ErrorLogger interface {
 
 	// SetLogLevel updates the log level
 	SetLogLevel(Level)
+	// GetLogLevel returns the logger's level
+	GetLogLevel() Level
 
 	// Toggle disable/enable the logger
 	Toggle(disable bool)

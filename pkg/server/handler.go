@@ -50,14 +50,14 @@ type connHandler struct {
 	numConnections int64
 	listeners      []*activeListener
 	clusterManager types.ClusterManager
-	logger         log.Logger
+	logger         log.ErrorLogger
 }
 
 // NewHandler
 // create types.ConnectionHandler's implement connHandler
 // with cluster manager and logger
 func NewHandler(clusterManagerFilter types.ClusterManagerFilter, clMng types.ClusterManager,
-	logger log.Logger) types.ConnectionHandler {
+	logger log.ErrorLogger) types.ConnectionHandler {
 	ch := &connHandler{
 		numConnections: 0,
 		clusterManager: clMng,
@@ -193,7 +193,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 			lc.LogPath = MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
 		}
 
-		logger, err := log.NewLogger(lc.LogPath, log.Level(lc.LogLevel))
+		logger, err := log.GetOrCreateDefaultErrorLogger(lc.LogPath, log.Level(lc.LogLevel))
 		if err != nil {
 			return nil, fmt.Errorf("initialize listener logger failed : %v", err.Error())
 		}
@@ -363,13 +363,13 @@ type activeListener struct {
 	handler                 *connHandler
 	stopChan                chan struct{}
 	stats                   *listenerStats
-	logger                  log.Logger
+	logger                  log.ErrorLogger
 	accessLogs              []types.AccessLog
 	updatedLabel            bool
 	tlsMng                  types.TLSContextManager
 }
 
-func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Logger, accessLoggers []types.AccessLog,
+func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.ErrorLogger, accessLoggers []types.AccessLog,
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{

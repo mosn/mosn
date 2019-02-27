@@ -126,8 +126,8 @@ func (s *SofaTracerSpan) StartTime() time.Time {
 var PrintLog = true
 
 type SofaTracer struct {
-	ingressLogger log.Logger
-	egressLogger  log.Logger
+	ingressLogger *log.Logger
+	egressLogger  *log.Logger
 }
 
 func newSofaTracer() types.Tracer {
@@ -136,12 +136,12 @@ func newSofaTracer() types.Tracer {
 		userHome := os.Getenv("HOME")
 		var err error
 		logRoot := userHome + "/logs/tracelog/mosn/"
-		instance.ingressLogger, err = log.NewLogger(logRoot+"rpc-server-digest.log", log.INFO)
+		instance.ingressLogger, err = log.GetOrCreateLogger(logRoot + "rpc-server-digest.log")
 		if err != nil {
 			// TODO when error is not nil
 		}
 
-		instance.egressLogger, err = log.NewLogger(logRoot+"rpc-client-digest.log", log.INFO)
+		instance.egressLogger, err = log.GetOrCreateLogger(logRoot + "rpc-client-digest.log")
 		if err != nil {
 			// TODO when error is not nil
 		}
@@ -159,19 +159,19 @@ func (tracer *SofaTracer) Start(startTime time.Time) types.Span {
 	return span
 }
 
-func (tracer *SofaTracer) EgressLogger() log.Logger {
+func (tracer *SofaTracer) EgressLogger() *log.Logger {
 	return tracer.egressLogger
 }
 
-func (tracer *SofaTracer) IngressLogger() log.Logger {
+func (tracer *SofaTracer) IngressLogger() *log.Logger {
 	return tracer.ingressLogger
 }
 
-func (tracer *SofaTracer) SetEgressLogger(egress log.Logger) {
+func (tracer *SofaTracer) SetEgressLogger(egress *log.Logger) {
 	tracer.egressLogger = egress
 }
 
-func (tracer *SofaTracer) SetIngressLogger(ingress log.Logger) {
+func (tracer *SofaTracer) SetIngressLogger(ingress *log.Logger) {
 	tracer.ingressLogger = ingress
 }
 

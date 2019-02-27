@@ -60,7 +60,7 @@ func statsDump(ctx *fasthttp.RequestCtx) {
 func setLogLevel(ctx *fasthttp.RequestCtx) {
 	body := string(ctx.Request.Body())
 	if level, ok := levelMap[body]; ok {
-		log.DefaultLogger.Level = level
+		log.DefaultLogger.SetLogLevel(level)
 		log.DefaultLogger.Infof("DefaultLogger level has been changed to %s", body)
 		ctx.WriteString("update logger success\n")
 	} else {

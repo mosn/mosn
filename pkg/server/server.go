@@ -50,7 +50,7 @@ var servers []*server
 
 type server struct {
 	serverName string
-	logger     log.Logger
+	logger     log.ErrorLogger
 	stopChan   chan struct{}
 	handler    types.ConnectionHandler
 }
