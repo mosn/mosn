@@ -18,7 +18,7 @@
 package server
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/admin"
+	admin "github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 

@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package admin
+package server
 
 import (
 	"fmt"
 	"net"
+	"net/http"
 
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/metrics/sink/console"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/json-iterator/go"
 	"github.com/valyala/fasthttp"
@@ -35,51 +35,35 @@ type Server struct {
 	ln net.Listener
 }
 
-func configDump(ctx *fasthttp.RequestCtx) {
-	if buf, err := Dump(); err == nil {
-		ctx.Write(buf)
-	} else {
-		ctx.SetStatusCode(500)
-		ctx.Write([]byte(`{ error: "internal error" }`))
-		log.DefaultLogger.Errorf("Admin API: ConfigDump failed, cause by %s", err)
-	}
-}
-
-func statsDump(ctx *fasthttp.RequestCtx) {
-	sink := console.NewConsoleSink(ctx.Response.BodyWriter())
-	sink.Flush(metrics.GetAll())
-}
-
-var levelMap = map[string]log.Level{
-	"FATAL": log.FATAL,
-	"ERROR": log.ERROR,
-	"WARN":  log.WARN,
-	"INFO":  log.INFO,
-	"DEBUG": log.DEBUG,
-	"TRACE": log.TRACE,
-}
-
-func setLogLevel(ctx *fasthttp.RequestCtx) {
-	body := string(ctx.Request.Body())
-	if level, ok := levelMap[body]; ok {
-		log.DefaultLogger.Level = level
-		log.DefaultLogger.Infof("DefaultLogger level has been changed to %s", body)
-	} else {
-		ctx.SetStatusCode(500)
-		ctx.Write([]byte(`{ error: "unknown log level" }`))
-	}
-}
-
 func requestHandler(ctx *fasthttp.RequestCtx) {
-	path := string(ctx.Path())
 	method := string(ctx.Method())
 
-	switch {
-	case path == "/api/v1/config_dump" && method == "GET":
+	switch method {
+	case http.MethodGet:
+		getAPIs(ctx)
+	case http.MethodPost:
+		postAPIs(ctx)
+	default:
+		ctx.SetStatusCode(http.StatusMethodNotAllowed)
+	}
+}
+
+func getAPIs(ctx *fasthttp.RequestCtx) {
+	path := string(ctx.Path())
+	switch path {
+	case "/api/v1/config_dump":
 		configDump(ctx)
-	case path == "/api/v1/stats" && method == "GET":
+
+	case "/api/v1/stats":
 		statsDump(ctx)
-	case path == "/api/v1/logging" && method == "POST":
+	default:
+		ctx.SetStatusCode(404)
+	}
+}
+func postAPIs(ctx *fasthttp.RequestCtx) {
+	path := string(ctx.Path())
+	switch path {
+	case "/api/v1/logging":
 		setLogLevel(ctx)
 	default:
 		ctx.SetStatusCode(404)
@@ -90,7 +74,7 @@ func (s *Server) Start(config Config) {
 	var addr string
 	if config != nil {
 		// merge MOSNConfig into global context
-		SetMOSNConfig(config)
+		store.SetMOSNConfig(config)
 		// get admin config
 		adminConfig := config.GetAdmin()
 		if adminConfig == nil {
@@ -117,7 +101,7 @@ func (s *Server) Start(config Config) {
 	log.DefaultLogger.Infof("Admin server serve on %s\n", addr)
 	s.ln = ln
 	go func() {
-		AddStoppable(s)
+		store.AddStoppable(s)
 		if err := srv.Serve(ln); err != nil {
 			log.DefaultLogger.Errorf("Admin server: Served) with error: %s\n", err)
 		}

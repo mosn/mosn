@@ -22,7 +22,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/alipay/sofa-mosn/pkg/admin"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
@@ -55,9 +54,6 @@ var (
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
 			conf := config.Load(configPath)
-			// start admin server
-			adminServer := admin.Server{}
-			adminServer.Start(conf)
 			// start pprof
 			if conf.Debug.StartDebug {
 				port := 9090 //default use 9090

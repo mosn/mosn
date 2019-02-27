@@ -30,11 +30,10 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-
 	"syscall"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/admin"
+	admin "github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -134,40 +133,57 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		// a listener with the same name must have the same configured address
 		if al.listener.Addr().String() != lc.Addr.String() ||
 			al.listener.Addr().Network() != lc.Addr.Network() {
-			return nil, fmt.Errorf("error updating listener, listen address and listen name doesn't match")
+			return nil, errors.New("error updating listener, listen address and listen name doesn't match")
 		}
-
-		equalConfig := reflect.DeepEqual(al.listener.Config(), lc)
-		equalNetworkFilter := reflect.DeepEqual(al.networkFiltersFactories, networkFiltersFactories)
-		equalStreamFilters := reflect.DeepEqual(al.streamFiltersFactories, streamFiltersFactories)
-		// duplicate config does nothing
-		if equalConfig && equalNetworkFilter && equalStreamFilters {
-			log.DefaultLogger.Debugf("duplicate listener:%s found. no add/update", listenerName)
-			return nil, nil
+		// currently, we just support one filter chain
+		if len(lc.FilterChains) != 1 {
+			return nil, errors.New("error updating listener, listener have filter chains count is not 1")
 		}
+		rawConfig := al.listener.Config()
+		// FIXME: update log level need the pkg/logger support.
 
-		// update some config, and as Address and Name doesn't change , so need't change *rawl
-		al.updatedLabel = true
-		if !equalConfig {
-			al.disableConnIo = lc.DisableConnIo
-			al.listener.SetConfig(lc)
-			al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
-			al.listener.SetListenerTag(lc.ListenerTag)
-			al.listener.SetHandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
-			log.DefaultLogger.Debugf("AddOrUpdateListener: use new listen config = %+v", lc)
-		}
-
-		// update network filter
-		if !equalNetworkFilter {
+		// only chaned if not nil
+		if networkFiltersFactories != nil {
 			al.networkFiltersFactories = networkFiltersFactories
-			log.DefaultLogger.Debugf("AddOrUpdateListener: use new networkFiltersFactories = %+v", networkFiltersFactories)
+			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
+			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
+		}
+		if streamFiltersFactories != nil {
+			al.streamFiltersFactories = streamFiltersFactories
+			rawConfig.StreamFilters = lc.StreamFilters
 		}
 
-		// update stream filter
-		if !equalStreamFilters {
-			al.streamFiltersFactories = streamFiltersFactories
-			log.DefaultLogger.Debugf("AddOrUpdateListener: use new streamFiltersFactories = %+v", streamFiltersFactories)
+		// tls update only take effects on new connections
+		tlsChanged := false
+		if !reflect.DeepEqual(rawConfig.FilterChains[0].TLS, lc.FilterChains[0].TLS) {
+			rawConfig.FilterChains[0].TLS = lc.FilterChains[0].TLS
+			tlsChanged = true
 		}
+		if rawConfig.Inspector != lc.Inspector {
+			rawConfig.Inspector = lc.Inspector
+			tlsChanged = true
+		}
+		if tlsChanged {
+			mgr, err := mtls.NewTLSServerContextManager(rawConfig, al.listener, al.logger)
+			if err != nil {
+				al.logger.Errorf("create tls context manager failed, %v", err)
+				return nil, err
+			}
+			al.tlsMng = mgr
+		}
+		// some simle config update
+		rawConfig.PerConnBufferLimitBytes = lc.PerConnBufferLimitBytes
+		al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
+		rawConfig.ListenerTag = lc.ListenerTag
+		al.listener.SetListenerTag(lc.ListenerTag)
+		rawConfig.HandOffRestoredDestinationConnections = lc.HandOffRestoredDestinationConnections
+		al.listener.SetHandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+
+		al.listener.SetConfig(rawConfig)
+
+		// set update label to true, do not start the listener again
+		al.updatedLabel = true
+
 	} else {
 		// listener doesn't exist, add the listener
 		//TODO: connection level stop-chan usage confirm
@@ -208,7 +224,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
 	}
-	admin.SetListenerConfig(listenerName, *lc)
+	admin.SetListenerConfig(listenerName, *al.listener.Config())
 	return al, nil
 }
 
