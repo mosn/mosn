@@ -15,38 +15,40 @@
  * limitations under the License.
  */
 
-package config
+package store
 
 import (
-	"io/ioutil"
-	"sync"
+	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var fileMutex = new(sync.Mutex)
+var startService []func()
 
-func dump(dirty bool) {
-	fileMutex.Lock()
-	defer fileMutex.Unlock()
+func AddStartService(f func()) {
+	startService = append(startService, f)
+}
 
-	if dirty {
-		//log.DefaultLogger.Println("dump config to: ", configPath)
-		log.DefaultLogger.Debugf("dump config content: %+v", config)
-
-		//update mosn_config
-		store.SetMOSNConfig(config)
-		//todo: ignore zero values in config struct @boqin
-		content, err := json.MarshalIndent(config, "", "  ")
-		if err == nil {
-			err = ioutil.WriteFile(configPath, content, 0644)
-		}
-
-		if err != nil {
-			log.DefaultLogger.Errorf("dump config failed, caused by: " + err.Error())
-		}
-	} else {
-		log.DefaultLogger.Infof("config is clean no needed to dump")
+func StartService() {
+	time.Sleep(2 * time.Second)
+	for _, f := range startService {
+		go f()
 	}
+	startService = startService[:0]
+}
+
+var stopService []types.StopService
+
+func AddStopService(s types.StopService) {
+	stopService = append(stopService, s)
+}
+
+func StopService() {
+	for _, s := range stopService {
+		if err := s.Close(); err != nil {
+			log.DefaultLogger.Infof("close service error: %v", err)
+		}
+	}
+	stopService = stopService[:0]
 }
