@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package server
+package store
 
 type State int
 var state = Running

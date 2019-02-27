@@ -107,7 +107,6 @@ func (s *Server) Start(config Config) {
 			if err := srv.Serve(ln); err != nil {
 				log.DefaultLogger.Errorf("Admin server: Served) with error: %s\n", err)
 			}
-
 		}()
 	})
 }

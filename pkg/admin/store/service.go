@@ -18,11 +18,11 @@
 package store
 
 import (
+	"time"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"time"
 )
-
 
 var startService []func()
 
@@ -31,7 +31,7 @@ func AddStartService(f func()) {
 }
 
 func StartService() {
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	for _, f := range startService {
 		go f()
 	}

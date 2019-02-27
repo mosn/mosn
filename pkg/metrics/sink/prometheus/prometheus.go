@@ -24,12 +24,12 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
 )
 
 func init() {
@@ -102,7 +102,6 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 		store.AddStopService(srv)
 		srv.ListenAndServe()
 	})
-
 
 	return &promSink{
 		config:    config,

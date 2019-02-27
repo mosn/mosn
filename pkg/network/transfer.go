@@ -30,12 +30,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"golang.org/x/sys/unix"
-	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
 )
 
 const (
@@ -61,7 +61,7 @@ func TransferServer(handler types.ConnectionHandler) {
 		}
 	}()
 
-	defer admin.SetMosnState(admin.Running)
+	defer store.SetMosnState(store.Running)
 
 	if _, err := os.Stat(TransferDomainSocket); err == nil {
 		os.Remove(TransferDomainSocket)

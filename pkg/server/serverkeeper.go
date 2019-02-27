@@ -27,10 +27,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
-	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
 )
 
 func init() {
@@ -66,12 +65,15 @@ func storeOldPid() {
 	}
 }
 
-func WritePidFile() error {
+func WritePidFile() (err error) {
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
 	os.MkdirAll(MosnBasePath, 0644)
 
-	return ioutil.WriteFile(pidFile, pid, 0644)
+	if err = ioutil.WriteFile(pidFile, pid, 0644); err!= nil {
+		log.DefaultLogger.Errorf("write pid file error: %v", err)
+	}
+	return err
 }
 
 func catchSignals() {
@@ -185,6 +187,9 @@ func startNewMosn() error {
 }
 
 func reconfigure(start bool) {
+	store.SetMosnState(store.Reconfiguring)
+	defer store.SetMosnState(store.Running)
+
 	if start {
 		err := startNewMosn()
 		if err != nil {
@@ -192,11 +197,8 @@ func reconfigure(start bool) {
 		}
 	}
 
-	admin.SetMosnState(admin.Reconfiguring)
-
 	// transfer listen fd
 	if err := sendInheritListeners(); err != nil {
-		admin.SetMosnState(admin.Running)
 		return
 	}
 

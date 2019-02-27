@@ -98,7 +98,7 @@ func TestDumpConfig(t *testing.T) {
 		Port: 8889,
 	}
 	server.Start(config)
-	StartService()
+	store.StartService()
 	defer server.Close()
 
 	if data, err := getEffectiveConfig(config.Port); err != nil {
@@ -118,7 +118,7 @@ func TestDumpStats(t *testing.T) {
 		Port: 8889,
 	}
 	server.Start(config)
-	StartService()
+	store.StartService()
 	defer server.Close()
 
 	stats, _ := metrics.NewMetrics("DumpTest", map[string]string{"lbk1": "lbv1"})

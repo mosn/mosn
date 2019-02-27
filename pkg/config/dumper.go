@@ -21,7 +21,7 @@ import (
 	"io/ioutil"
 	"sync"
 
-	admin "github.com/alipay/sofa-mosn/pkg/admin/store"
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
@@ -36,7 +36,7 @@ func dump(dirty bool) {
 		log.DefaultLogger.Debugf("dump config content: %+v", config)
 
 		//update mosn_config
-		admin.SetMOSNConfig(config)
+		store.SetMOSNConfig(config)
 		//todo: ignore zero values in config struct @boqin
 		content, err := json.MarshalIndent(config, "", "  ")
 		if err == nil {

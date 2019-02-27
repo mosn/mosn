@@ -21,7 +21,7 @@ import (
 	"sync"
 
 	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
-	service "github.com/alipay/sofa-mosn/pkg/admin/store"
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -86,7 +86,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		log.StartLogger.Fatalln("getInheritListeners failed, exit")
 	}
 	if reconfigure != nil {
-		admin.SetMosnState(admin.Reconfiguring)
+		store.SetMosnState(store.Reconfiguring)
 	}
 
 	//cluster manager filter
@@ -184,7 +184,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	server.WritePidFile()
 
 	// start other services
-	go service.StartService()
+	go store.StartService()
 
 	return m
 }

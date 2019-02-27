@@ -22,11 +22,11 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/urfave/cli"
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
 )
 
 var (
