@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 
 	rawjson "encoding/json"
 
@@ -101,6 +102,8 @@ func TestDumpConfig(t *testing.T) {
 	store.StartService()
 	defer server.Close()
 
+	time.Sleep(time.Second) //wait server start
+
 	if data, err := getEffectiveConfig(config.Port); err != nil {
 		t.Error(err)
 	} else {
@@ -120,6 +123,8 @@ func TestDumpStats(t *testing.T) {
 	server.Start(config)
 	store.StartService()
 	defer server.Close()
+
+	time.Sleep(time.Second) //wait server start
 
 	stats, _ := metrics.NewMetrics("DumpTest", map[string]string{"lbk1": "lbv1"})
 	stats.Counter("ct1").Inc(1)

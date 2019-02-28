@@ -73,7 +73,7 @@ type TLSUpdateCase struct {
 	ListenerName string
 	C            chan error
 	T            *testing.T
-	Stop         chan struct{}
+	Finish       chan bool
 }
 
 func NewTLSUpdateCase(t *testing.T, proto types.Protocol, server util.UpstreamServer) *TLSUpdateCase {
@@ -82,7 +82,7 @@ func NewTLSUpdateCase(t *testing.T, proto types.Protocol, server util.UpstreamSe
 		AppServer: server,
 		C:         make(chan error),
 		T:         t,
-		Stop:      make(chan struct{}),
+		Finish:    make(chan bool),
 	}
 }
 
@@ -136,11 +136,17 @@ func (c *TLSUpdateCase) Start(tls bool) {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		c.AppServer.Close()
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+func (c *TLSUpdateCase) FinishCase() {
+	c.Finish <- true
+	<-c.Finish
 }
 
 func (c *TLSUpdateCase) UpdateTLS(inspector bool, cfg *v2.TLSConfig) error {
@@ -299,8 +305,7 @@ func TestUpdateTLS_NoneToTLS(t *testing.T) {
 		go tc.RequestTLS(true, 1, 0)
 		t.Logf("verify tls")
 		verify()
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 
 	}
 }
@@ -336,8 +341,7 @@ func TestUpdateTLS_TLSToNone(t *testing.T) {
 		go tc.RequestTLS(false, 1, 0)
 		verify()
 		// finish
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 	}
 
 }
@@ -371,7 +375,6 @@ func TestUpdateTLS_TLSToInspector(t *testing.T) {
 		}
 		go tc.RequestTLS(false, 1, 0)
 		verify()
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 	}
 }

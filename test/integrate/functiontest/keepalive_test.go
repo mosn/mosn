@@ -60,11 +60,12 @@ func TestKeepAlive(t *testing.T) {
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, protocol.SofaRPC)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	stop := make(chan struct{})
+	stop := make(chan bool)
 	go func() {
 		<-stop
 		server.Close()
 		mesh.Close()
+		stop <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
 	// start case
@@ -78,11 +79,13 @@ func TestKeepAlive(t *testing.T) {
 	// interval 15s, sleep to wait 2 heart beat
 	time.Sleep(2*types.DefaultConnReadTimeout + 3*time.Second)
 	// send request interval, to stop keep avlie
+	st := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(3 * time.Second)
 		for {
 			select {
-			case <-stop:
+			case <-st:
+				ticker.Stop()
 				return
 			case <-ticker.C:
 				client.SendRequest()
@@ -95,5 +98,8 @@ func TestKeepAlive(t *testing.T) {
 		t.Errorf("server receive %d heart beats", server.HeartBeatCount)
 	}
 	// stop the case
-	close(stop)
+	stop <- true
+	<-stop
+	// stop ticker goroutine
+	close(st)
 }
