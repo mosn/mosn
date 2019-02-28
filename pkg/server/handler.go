@@ -683,7 +683,7 @@ func sendInheritListeners() error {
 		log.DefaultLogger.Errorf("WriteMsgUnix = %d, %d; want 1, %d", n, oobn, len(rights))
 		return err
 	}
-	uc.SetReadDeadline(time.Now().Add(30 * time.Second))
+	uc.SetReadDeadline(time.Now().Add(10 * time.Minute))
 	n, err = uc.Read(buf)
 	if n == 0 {
 		log.DefaultLogger.Errorf("new mosn start failed")

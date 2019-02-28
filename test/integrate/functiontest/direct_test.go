@@ -67,7 +67,7 @@ type DirectResponseCase struct {
 	C          chan error
 	T          *testing.T
 	ClientAddr string
-	Stop       chan struct{}
+	Finish     chan bool
 	status     int
 	body       string
 }
@@ -78,7 +78,7 @@ func NewDirectResponseCase(t *testing.T, proto types.Protocol, status int, body 
 		RPCClient: client,
 		C:         make(chan error),
 		T:         t,
-		Stop:      make(chan struct{}),
+		Finish:    make(chan bool),
 		status:    status,
 		body:      body,
 	}
@@ -95,10 +95,16 @@ func (c *DirectResponseCase) StartProxy() {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+func (c *DirectResponseCase) FinishCase() {
+	c.Finish <- true
+	<-c.Finish
 }
 
 func (c *DirectResponseCase) RunCase(n int, interval time.Duration) {
@@ -203,7 +209,6 @@ func TestDirectResponse(t *testing.T) {
 		case <-time.After(15 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d protocol %v hang\n", i, tc.Protocol)
 		}
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 	}
 }

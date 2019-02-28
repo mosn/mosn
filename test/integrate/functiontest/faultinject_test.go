@@ -81,9 +81,10 @@ func (c *faultInjectCase) StartProxy() {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		c.AppServer.Close()
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
@@ -254,8 +255,7 @@ func TestFaultInject(t *testing.T) {
 		case <-time.After(15 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
 		}
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 	}
 
 }

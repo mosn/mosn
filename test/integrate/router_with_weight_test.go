@@ -60,11 +60,12 @@ func (c *weightCase) Start() {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		for _, appserver := range c.appServers {
 			appserver.Close()
 		}
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
@@ -141,8 +142,7 @@ func TestWeightProxy(t *testing.T) {
 	case <-time.After(100 * time.Second):
 		t.Error("[ERROR MESSAGE] weighted proxy hangn")
 	}
-	close(tc.Stop)
-	time.Sleep(time.Second)
+	tc.FinishCase()
 	// Verify Weight
 	if pass {
 		tc.Verify(t)

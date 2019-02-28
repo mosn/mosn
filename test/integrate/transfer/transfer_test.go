@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"math/rand"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
@@ -15,7 +17,6 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
-	"math/rand"
 )
 
 // client - mesh - mesh - server
@@ -51,14 +52,15 @@ func startTransferMesh(tc *integrate.TestCase) {
 	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG)
 
 	mesh.Start()
-	time.Sleep(20*time.Second)
+	time.Sleep(20 * time.Second)
 }
 
 func startTransferServer(tc *integrate.TestCase) {
 	tc.AppServer.GoServe()
 	go func() {
-		<-tc.Stop
+		<-tc.Finish
 		tc.AppServer.Close()
+		tc.Finish <- true
 	}()
 }
 
@@ -113,6 +115,5 @@ func TestTransfer(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 	}
-	close(tc.Stop)
-	time.Sleep(time.Second)
+	tc.FinishCase()
 }
