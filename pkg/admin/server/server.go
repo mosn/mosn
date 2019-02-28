@@ -63,10 +63,15 @@ func getAPIs(ctx *fasthttp.RequestCtx) {
 func postAPIs(ctx *fasthttp.RequestCtx) {
 	path := string(ctx.Path())
 	switch path {
-	case "/api/v1/logging":
-		setLogLevel(ctx)
+	case "/api/v1/update_loglevel":
+		updateLogLevel(ctx)
+	case "/api/v1/enable_log":
+		enableLogger(ctx)
+	case "/api/v1/disbale_log":
+		disableLogger(ctx)
 	default:
 		ctx.SetStatusCode(404)
+		ctx.WriteString("api not supported\n")
 	}
 }
 
