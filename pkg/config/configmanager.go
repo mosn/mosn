@@ -46,6 +46,10 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 		AntShareCloud: appInfo.AntShareCloud,
 		DataCenter:    appInfo.DataCenter,
 		AppName:       appInfo.AppName,
+		DeployMode:    appInfo.DeployMode,
+		MasterSystem:  appInfo.MasterSystem,
+		CloudName:     appInfo.CloudName,
+		HostMachine:   appInfo.HostMachine,
 	}
 
 	// reset servicePubInfo

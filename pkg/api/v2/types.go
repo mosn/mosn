@@ -41,8 +41,8 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER          = "mixer"
-	FaultStream    = "fault"
+	MIXER       = "mixer"
+	FaultStream = "fault"
 )
 
 // ClusterType
@@ -417,6 +417,10 @@ type ApplicationInfo struct {
 	DataCenter    string `json:"data_center,omitempty"`
 	AppName       string `json:"app_name,omitempty"`
 	Zone          string `json:"zone"`
+	DeployMode    bool   `json:"deploy_mode"`
+	MasterSystem  bool   `json:"master_system"`
+	CloudName     string `json:"cloud_name"`
+	HostMachine   string `json:"host_machine"`
 }
 
 // PublishInfo implements json.Marshaler and json.Unmarshaler
