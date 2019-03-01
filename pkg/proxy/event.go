@@ -54,7 +54,7 @@ func eventDispatch(shard int, jobChan <-chan interface{}) {
 
 func eventProcess(shard int, job interface{}) {
 	if ev, ok := job.(*event); ok {
-		if log.DefaultLogger.Level >= log.DEBUG {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("enter event process, proxyID = %d, dir = %d, type = %d", ev.id, ev.dir, ev.evt)
 		}
 

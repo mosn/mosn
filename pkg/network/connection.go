@@ -88,11 +88,11 @@ type connection struct {
 	startOnce sync.Once
 	eventLoop *eventLoop
 
-	logger log.Logger
+	logger log.ErrorLogger
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
-func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}, logger log.Logger) types.Connection {
+func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}, logger log.ErrorLogger) types.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
@@ -778,7 +778,7 @@ type clientConnection struct {
 
 // NewClientConnection new client-side connection
 func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr,
-	stopChan chan struct{}, logger log.Logger) types.ClientConnection {
+	stopChan chan struct{}, logger log.ErrorLogger) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{

@@ -22,9 +22,35 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
-
-	"gopkg.in/natefinch/lumberjack.v2"
 	"strings"
+
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
+)
+
+var (
+	defaultRoller *Roller
+	// defaultRollerTime is one day
+	defaultRollerTime int64 = 24 * 60 * 60
+
+	// lumberjacks maps log filenames to the logger
+	// that is being used to keep them rolled/maintained.
+	lumberjacks = make(map[string]*lumberjack.Logger)
+
+	errInvalidRollerParameter = errors.New("invalid roller parameter")
+)
+
+const (
+	// defaultRotateSize is 100 MB.
+	defaultRotateSize = 1000
+	// defaultRotateAge is 7 days.
+	defaultRotateAge = 7
+	// defaultRotateKeep is 10 files.
+	defaultRotateKeep = 10
+
+	directiveRotateSize     = "size"
+	directiveRotateAge      = "age"
+	directiveRotateKeep     = "keep"
+	directiveRotateCompress = "compress"
 )
 
 // roller implements a type that provides a rolling logger.
@@ -65,15 +91,22 @@ func (l Roller) GetLogWriter() io.Writer {
 	return lj
 }
 
-// IsLogRollerSubdirective is true if the subdirective is for the log roller.
-func IsLogRollerSubdirective(subdir string) bool {
-	return subdir == directiveRotateSize ||
-		subdir == directiveRotateAge ||
-		subdir == directiveRotateKeep ||
-		subdir == directiveRotateCompress
+// InitDefaultRoller
+func InitDefaultRoller(roller string) (err error) {
+	defaultRoller, err = ParseRoller(roller)
+	return err
 }
 
-var errInvalidRollerParameter = errors.New("invalid roller parameter")
+// DefaultRoller will roll logs by default.
+func DefaultRoller() *Roller {
+	return &Roller{
+		MaxSize:    defaultRotateSize,
+		MaxAge:     defaultRotateAge,
+		MaxBackups: defaultRotateKeep,
+		Compress:   false,
+		LocalTime:  true,
+	}
+}
 
 // ParseRoller parses roller contents out of c.
 func ParseRoller(what string) (*Roller, error) {
@@ -123,31 +156,10 @@ func ParseRoller(what string) (*Roller, error) {
 	return roller, nil
 }
 
-// DefaultRoller will roll logs by default.
-func DefaultRoller() *Roller {
-	return &Roller{
-		MaxSize:    defaultRotateSize,
-		MaxAge:     defaultRotateAge,
-		MaxBackups: defaultRotateKeep,
-		Compress:   false,
-		LocalTime:  true,
-	}
+// IsLogRollerSubdirective is true if the subdirective is for the log roller.
+func IsLogRollerSubdirective(subdir string) bool {
+	return subdir == directiveRotateSize ||
+		subdir == directiveRotateAge ||
+		subdir == directiveRotateKeep ||
+		subdir == directiveRotateCompress
 }
-
-const (
-	// defaultRotateSize is 100 MB.
-	defaultRotateSize = 1000
-	// defaultRotateAge is 7 days.
-	defaultRotateAge = 7
-	// defaultRotateKeep is 10 files.
-	defaultRotateKeep = 10
-
-	directiveRotateSize     = "size"
-	directiveRotateAge      = "age"
-	directiveRotateKeep     = "keep"
-	directiveRotateCompress = "compress"
-)
-
-// lumberjacks maps log filenames to the logger
-// that is being used to keep them rolled/maintained.
-var lumberjacks = make(map[string]*lumberjack.Logger)

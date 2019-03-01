@@ -18,16 +18,20 @@
 package server
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
 	rawjson "encoding/json"
 
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
@@ -67,6 +71,49 @@ func getStats(port uint32) (string, error) {
 		return "", err
 	}
 	return string(b), nil
+}
+
+func postUpdateLoggerLevel(port uint32, s string) (string, error) {
+	data := strings.NewReader(s)
+	url := fmt.Sprintf("http://localhost:%d/api/v1/update_loglevel", port)
+	resp, err := http.Post(url, "application/x-www-form-urlencoded", data)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New("update logger level failed")
+	}
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func postToggleLogger(port uint32, logger string, disable bool) (string, error) {
+	api := "enable_log" // enable
+	if disable {        //disable
+		api = "disbale_log"
+	}
+	url := fmt.Sprintf("http://localhost:%d/api/v1/%s", port, api)
+	data := strings.NewReader(logger)
+	resp, err := http.Post(url, "application/x-www-form-urlencoded", data)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New("toggle logger failed")
+	}
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+
 }
 
 type mockMOSNConfig struct {
@@ -149,4 +196,95 @@ func TestDumpStats(t *testing.T) {
 	store.Reset()
 }
 
-// TestUpdateTLS see integrate test
+func TestUpdateLogger(t *testing.T) {
+	server := Server{}
+	config := &mockMOSNConfig{
+		Name: "mock",
+		Port: 8889,
+	}
+	server.Start(config)
+	store.StartService()
+	defer server.Close()
+
+	time.Sleep(time.Second) //wait server start
+
+	logName := "/tmp/mosn_admin/test_admin.log"
+	logger, err := log.GetOrCreateDefaultErrorLogger(logName, log.INFO)
+	if err != nil {
+		t.Fatal("create logger failed")
+	}
+	// update logger
+	postData := `{
+		"log_path": "/tmp/mosn_admin/test_admin.log",
+		"log_level": "ERROR"
+	}`
+	if _, err := postUpdateLoggerLevel(config.Port, postData); err != nil {
+		t.Fatal(err)
+	}
+	if logger.GetLogLevel() != log.ERROR {
+		t.Errorf("update logger success, but logger level is not expected: %v", logger.GetLogLevel())
+	}
+}
+
+func TestToggleLogger(t *testing.T) {
+	server := Server{}
+	config := &mockMOSNConfig{
+		Name: "mock",
+		Port: 8889,
+	}
+	server.Start(config)
+	store.StartService()
+	defer server.Close()
+
+	time.Sleep(time.Second) //wait server start
+
+	logName := "/tmp/mosn_admin/test_admin_toggler.log"
+	os.Remove(logName)
+	// Raw Logger
+	logger, err := log.GetOrCreateLogger(logName)
+	if err != nil {
+		t.Fatal("create logger failed")
+	}
+	// write raw logger, expected write success
+	logger.Printf("first")
+	// disable logger
+	if _, err := postToggleLogger(config.Port, logName, true); err != nil {
+		t.Fatal(err)
+	}
+	// write raw logger, expected write null
+	logger.Printf("disable")
+	// enable logger
+	if _, err := postToggleLogger(config.Port, logName, false); err != nil {
+		t.Fatal(err)
+	}
+	// write raw logger ,expected write success
+	logger.Printf("enable")
+	time.Sleep(time.Second) // wait flush
+	// Verify
+	lines, err := readLines(logName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lines) != 2 {
+		t.Fatalf("expected write 2 log lines, but got: %d", len(lines))
+	}
+	if !(lines[0] == "first" && lines[1] == "enable") {
+		t.Errorf("log write data is not expected, line1: %s, line2: %s", lines[0], lines[1])
+	}
+
+}
+
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
+}

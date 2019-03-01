@@ -98,7 +98,7 @@ type downStream struct {
 
 	// stream access logs
 	streamAccessLogs []types.AccessLog
-	logger           log.Logger
+	logger           log.ErrorLogger
 
 	snapshot types.ClusterSnapshot
 }

@@ -19,6 +19,7 @@ package server
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -57,15 +58,55 @@ func statsDump(ctx *fasthttp.RequestCtx) {
 	sink.Flush(metrics.GetAll())
 }
 
-func setLogLevel(ctx *fasthttp.RequestCtx) {
-	body := string(ctx.Request.Body())
-	if level, ok := levelMap[body]; ok {
-		log.DefaultLogger.Level = level
-		log.DefaultLogger.Infof("DefaultLogger level has been changed to %s", body)
-		ctx.WriteString("update logger success\n")
-	} else {
-		ctx.SetStatusCode(500)
-		msg := fmt.Sprintf(errMsgFmt, "unknown log level")
-		ctx.WriteString(msg)
+// update log level
+type LogLevelData struct {
+	LogPath  string `json:"log_path"`
+	LogLevel string `json:"log_level"`
+}
+
+func updateLogLevel(ctx *fasthttp.RequestCtx) {
+	body := ctx.Request.Body()
+	data := &LogLevelData{}
+	if err := json.Unmarshal(body, data); err == nil {
+		if level, ok := levelMap[data.LogLevel]; ok {
+			if log.UpdateErrorLoggerLevel(data.LogPath, level) {
+				ctx.SetStatusCode(http.StatusOK)
+				ctx.WriteString("update logger success\n")
+				return
+			}
+		}
 	}
+	ctx.SetStatusCode(http.StatusBadRequest) // 400
+	msg := fmt.Sprintf(errMsgFmt, "update logger failed")
+	ctx.WriteString(msg)
+	log.DefaultLogger.Errorf("Admin API: update logger level failed with bad request data: %s", string(body))
+}
+
+// post data:
+// loggeer path
+func enableLogger(ctx *fasthttp.RequestCtx) {
+	loggerPath := string(ctx.Request.Body())
+	if !log.ToggleLogger(loggerPath, false) {
+		ctx.SetStatusCode(http.StatusBadRequest) // 400
+		msg := fmt.Sprintf(errMsgFmt, "enable logger failed")
+		ctx.WriteString(msg)
+		log.DefaultLogger.Errorf("Admin API: enbale logger failed, logger: %s", loggerPath)
+		return
+	}
+	ctx.SetStatusCode(http.StatusOK)
+	ctx.WriteString("enable logger success\n")
+}
+
+func disableLogger(ctx *fasthttp.RequestCtx) {
+	loggerPath := string(ctx.Request.Body())
+	if !log.ToggleLogger(loggerPath, true) {
+		ctx.SetStatusCode(http.StatusBadRequest) // 400
+		msg := fmt.Sprintf(errMsgFmt, "disbale logger failed")
+		ctx.WriteString(msg)
+		log.DefaultLogger.Errorf("Admin API: disable logger failed, logger: %s", loggerPath)
+		return
+	}
+	ctx.SetStatusCode(http.StatusOK)
+	ctx.WriteString("disable logger success\n")
+
 }

@@ -116,7 +116,7 @@ type streamConnection struct {
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	logger log.Logger
+	logger log.ErrorLogger
 }
 
 // types.StreamConnection

@@ -18,11 +18,13 @@
 package store
 
 import (
-	"encoding/json"
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	jsoniter "github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // effectiveConfig represents mosn's runtime config model
 // MOSNConfig is the original config when mosn start

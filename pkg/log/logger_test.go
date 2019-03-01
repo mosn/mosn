@@ -18,24 +18,28 @@
 package log
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"io"
 	"os"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 func TestLogPrintDiscard(t *testing.T) {
-	l, _ := NewLogger("/tmp/mosn_bench/benchmark.log", DEBUG)
+	l, err := GetOrCreateLogger("/tmp/mosn_bench/benchmark.log")
+	if err != nil {
+		t.Fatal(err)
+	}
 	buf := buffer.GetIoBuffer(100)
 	buf.WriteString("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog")
 	l.Close()
 	runtime.Gosched()
 	// writeBufferChan is 1000
-	// l.Debugf is discard, non block
+	// l.Printf is discard, non block
 	for i := 0; i < 1001; i++ {
-		l.Debugf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
+		l.Printf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
 	}
 	lchan := make(chan struct{})
 	go func() {
@@ -54,7 +58,10 @@ func TestLogPrintDiscard(t *testing.T) {
 func TestLogPrintnull(t *testing.T) {
 	logName := "/tmp/mosn_bench/printnull.log"
 	os.Remove(logName)
-	l, _ := NewLogger(logName, DEBUG)
+	l, err := GetOrCreateLogger(logName)
+	if err != nil {
+		t.Fatal(err)
+	}
 	buf := buffer.GetIoBuffer(0)
 	buf.WriteString("testlog")
 	l.Print(buf, false)
@@ -76,19 +83,6 @@ func TestLogPrintnull(t *testing.T) {
 	}
 }
 
-func TestLoglocalOffset(t *testing.T) {
-	_, offset := time.Now().Zone()
-	defaultRollerTime = 24 * 60 * 60
-	t1 := time.Date(2018, time.December, 25, 23, 59, 59, 0, time.Local)
-	t2 := time.Date(2018, time.December, 26, 00, 00, 01, 0, time.Local)
-	if (t1.Unix()+int64(offset))/defaultRollerTime+1 != (t2.Unix()+int64(offset))/defaultRollerTime {
-		t.Errorf("test localOffset failed")
-	}
-	t.Logf("t1=%d t2=%d offset=%d rollertime=%d\n", t1.Unix(), t2.Unix(), offset, defaultRollerTime)
-	t.Logf("%d %d\n", (t1.Unix())/defaultRollerTime, (t1.Unix() / defaultRollerTime))
-	t.Logf("%d %d\n", (t1.Unix()+int64(offset))/defaultRollerTime, (t2.Unix()+int64(offset))/defaultRollerTime)
-}
-
 func TestLogDefaultRollerTime(t *testing.T) {
 	logName := "/tmp/mosn_bench/printdefaultroller.log"
 	rollerName := logName + "." + time.Now().Format("2006-01-02")
@@ -96,9 +90,9 @@ func TestLogDefaultRollerTime(t *testing.T) {
 	os.Remove(rollerName)
 	// 2s
 	defaultRollerTime = 2
-	logger, err := NewLogger(logName, RAW)
+	logger, err := GetOrCreateLogger(logName)
 	if err != nil {
-		t.Errorf("TestLogDefaultRoller failed %v", err)
+		t.Fatal(err)
 	}
 	logger.Print(buffer.NewIoBufferString("1111111"), false)
 	time.Sleep(3 * time.Second)
@@ -130,55 +124,31 @@ func TestLogDefaultRollerTime(t *testing.T) {
 }
 
 func TestLogReopen(t *testing.T) {
-	l, _ := NewLogger("", ERROR)
-	if  err := l.reopen(); err != ErrReopenUnsupported {
+	l, err := GetOrCreateLogger("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.reopen(); err != ErrReopenUnsupported {
 		t.Errorf("test log reopen failed")
 	}
-	l, _ = NewLogger("/tmp/mosn_bench/testlogreopen.log", ERROR)
-	if  err := l.reopen(); err != nil {
+	l, err = GetOrCreateLogger("/tmp/mosn_bench/testlogreopen.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.reopen(); err != nil {
 		t.Errorf("test log reopen failed %v", err)
 	}
 }
 
-func BenchmarkLog(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	//InitDefaultLogger("", INFO)
-	l, _ := NewLogger("/tmp/mosn_bench/benchmark.log", DEBUG)
-
-	for n := 0; n < b.N; n++ {
-		l.Debugf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
+func TestLoglocalOffset(t *testing.T) {
+	_, offset := time.Now().Zone()
+	defaultRollerTime = 24 * 60 * 60
+	t1 := time.Date(2018, time.December, 25, 23, 59, 59, 0, time.Local)
+	t2 := time.Date(2018, time.December, 26, 00, 00, 01, 0, time.Local)
+	if (t1.Unix()+int64(offset))/defaultRollerTime+1 != (t2.Unix()+int64(offset))/defaultRollerTime {
+		t.Errorf("test localOffset failed")
 	}
-}
-
-func BenchmarkLogParallel(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	//InitDefaultLogger("", INFO)
-	l, _ := NewLogger("/tmp/mosn_bench/benchmark.log", DEBUG)
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			l.Debugf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
-		}
-	})
-}
-
-func BenchmarkLogTimeNow(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for n := 0; n < b.N; n++ {
-		time.Now()
-	}
-}
-
-func BenchmarkLogTimeFormat(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for n := 0; n < b.N; n++ {
-		time.Now().Format("2006/01/02 15:04:05")
-	}
-}
-
-func BenchmarkLogTime(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for n := 0; n < b.N; n++ {
-		logTime()
-	}
+	t.Logf("t1=%d t2=%d offset=%d rollertime=%d\n", t1.Unix(), t2.Unix(), offset, defaultRollerTime)
+	t.Logf("%d %d\n", (t1.Unix())/defaultRollerTime, (t1.Unix() / defaultRollerTime))
+	t.Logf("%d %d\n", (t1.Unix()+int64(offset))/defaultRollerTime, (t2.Unix()+int64(offset))/defaultRollerTime)
 }
