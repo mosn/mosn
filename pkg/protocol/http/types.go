@@ -122,6 +122,13 @@ func (h RequestHeader) Set(key string, value string) {
 	}
 }
 
+// Add value for given key.
+// Multiple headers with the same key may be added with this function.
+// Use Set for setting a single header for the given key.
+func (h RequestHeader) Add(key, value string) {
+	h.RequestHeader.Add(key, value)
+}
+
 // Del delete pair of specified key
 func (h RequestHeader) Del(key string) {
 	h.RequestHeader.Del(key)
@@ -179,7 +186,7 @@ type ResponseHeader struct {
 // Get value of key
 func (h ResponseHeader) Get(key string) (string, bool) {
 	result := h.Peek(key)
-	if result != nil || h.EmptyValueHeaders[key]  {
+	if result != nil || h.EmptyValueHeaders[key] {
 		return string(result), true
 	}
 	return "", false
@@ -194,6 +201,13 @@ func (h ResponseHeader) Set(key string, value string) {
 		}
 		h.EmptyValueHeaders[key] = true
 	}
+}
+
+// Add value for given key.
+// Multiple headers with the same key may be added with this function.
+// Use Set for setting a single header for the given key.
+func (h ResponseHeader) Add(key, value string) {
+	h.ResponseHeader.Add(key, value)
 }
 
 // Del delete pair of specified key
