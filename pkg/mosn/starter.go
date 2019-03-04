@@ -216,8 +216,10 @@ func (m *Mosn) Start() {
 
 // Close mosn's server
 func (m *Mosn) Close() {
-	// close admin
-	m.adminServer.Close()
+	// close service
+	store.StopService()
+
+	// stop mosn server
 	for _, srv := range m.servers {
 		srv.Close()
 	}

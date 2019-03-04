@@ -62,7 +62,3 @@ func (s *Server) Start(config Config) {
 	store.AddService(srv, "Mosn Admin Server", nil, nil)
 	s.Server = srv
 }
-
-func (s *Server) Close() error {
-	return s.Server.Close()
-}
