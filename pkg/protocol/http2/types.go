@@ -71,6 +71,11 @@ func (h *HeaderMap) Set(key string, value string) {
 	h.H.Set(key, value)
 }
 
+// Set key-value pair in header map, the previous pair will be replaced if exists
+func (h *HeaderMap) Add(key string, value string) {
+	h.H.Add(key, value)
+}
+
 // Del delete pair of specified key
 func (h *HeaderMap) Del(key string) {
 	h.H.Del(key)
