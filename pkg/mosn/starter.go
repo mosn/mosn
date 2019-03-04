@@ -48,9 +48,22 @@ type Mosn struct {
 // NewMosn
 // Create server from mosn config
 func NewMosn(c *config.MOSNConfig) *Mosn {
+	initializePidFile(c.Pid)
+
+	//get inherit fds
+	inheritListeners, reconfigure, err := server.GetInheritListeners()
+	if err != nil {
+		log.StartLogger.Fatalln("getInheritListeners failed, exit")
+	}
+	if reconfigure != nil {
+		// parse MOSNConfig again
+		c = config.Load(config.ConfigPath)
+		// set Mosn State
+		store.SetMosnState(store.Reconfiguring)
+	}
+
 	initializeTracing(c.Tracing)
 	initializeMetrics(c.Metrics)
-	initializePidFile(c.Pid)
 
 	m := &Mosn{
 		config: c,
@@ -79,14 +92,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		log.StartLogger.Fatalln("no server found")
 	} else if srvNum > 1 {
 		log.StartLogger.Fatalln("multiple server not supported yet, got ", srvNum)
-	}
-	//get inherit fds
-	inheritListeners, reconfigure, err := server.GetInheritListeners()
-	if err != nil {
-		log.StartLogger.Fatalln("getInheritListeners failed, exit")
-	}
-	if reconfigure != nil {
-		store.SetMosnState(store.Reconfiguring)
 	}
 
 	//cluster manager filter
@@ -156,44 +161,53 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 
-	//close legacy listeners
-	for _, ln := range inheritListeners {
-		if !ln.Remain {
-			log.StartLogger.Println("close useless legacy listener:", ln.Addr)
-			ln.InheritListener.Close()
-		}
-	}
+	// start adminApi
+	m.adminServer = admin.Server{}
+	m.adminServer.Start(m.config)
 
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
 	// notify old mosn quit and transfer connection
 	if reconfigure != nil {
+		// start other services
+		if err := store.StartService(inheritListeners); err != nil {
+			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
+		}
+
 		if _, err := reconfigure.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalln("graceful failed, exit")
 		}
+
 		reconfigure.Close()
 
 		// transfer old mosn connections
 		go network.TransferServer(m.servers[0].Handler())
 		// transfer old mosn mertrics, none-block
 		go metrics.TransferServer(server.GracefulTimeout, nil)
+	} else {
+		// start other services
+		if err := store.StartService(nil); err != nil {
+			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
+		}
+	}
+
+	//close legacy listeners
+	for _, ln := range inheritListeners {
+		if ln != nil {
+			log.StartLogger.Printf("close useless legacy listener: %s", ln.Addr().String())
+			ln.Close()
+		}
 	}
 
 	// write pid file
 	server.WritePidFile()
-
-	// start other services
-	go store.StartService()
 
 	return m
 }
 
 // Start mosn's server
 func (m *Mosn) Start() {
-	// start admin
-	m.adminServer = admin.Server{}
-	m.adminServer.Start(m.config)
 	// start mosn server
 	for _, srv := range m.servers {
 		go srv.Start()

@@ -639,14 +639,24 @@ func (ac *activeConnection) OnEvent(event types.ConnectionEvent) {
 	}
 }
 
-func sendInheritListeners() error {
-	files := ListListenersFile()
-	if files == nil {
-		return nil
+func sendInheritListeners() (net.Conn, error) {
+	lf := ListListenersFile()
+	if lf == nil {
+		return nil, errors.New("ListListenersFile() error")
 	}
+
+	lsf, lerr := admin.ListServiceListenersFile()
+	if lerr != nil {
+		return nil, errors.New("ListServiceListenersFile() error")
+	}
+
+	var files []*os.File
+	files = append(files, lf...)
+	files = append(files, lsf...)
+
 	if len(files) > 100 {
 		log.DefaultLogger.Errorf("InheritListener fd too many :%d", len(files))
-		return errors.New("InheritListeners too many")
+		return nil, errors.New("InheritListeners too many")
 	}
 	fds := make([]int, len(files))
 	for i, f := range files {
@@ -667,9 +677,8 @@ func sendInheritListeners() error {
 	}
 	if err != nil {
 		log.DefaultLogger.Errorf("sendInheritListeners Dial unix failed %v", err)
-		return err
+		return nil, err
 	}
-	defer unixConn.Close()
 
 	uc := unixConn.(*net.UnixConn)
 	buf := make([]byte, 1)
@@ -677,22 +686,17 @@ func sendInheritListeners() error {
 	n, oobn, err := uc.WriteMsgUnix(buf, rights, nil)
 	if err != nil {
 		log.DefaultLogger.Errorf("WriteMsgUnix: %v", err)
-		return err
+		return nil, err
 	}
 	if n != len(buf) || oobn != len(rights) {
 		log.DefaultLogger.Errorf("WriteMsgUnix = %d, %d; want 1, %d", n, oobn, len(rights))
-		return err
+		return nil, err
 	}
-	uc.SetReadDeadline(time.Now().Add(10 * time.Minute))
-	n, err = uc.Read(buf)
-	if n == 0 {
-		log.DefaultLogger.Errorf("new mosn start failed")
-		return err
-	}
-	return nil
+
+	return uc, nil
 }
 
-func GetInheritListeners() ([]*v2.Listener, net.Conn, error) {
+func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.StartLogger.Errorf("getInheritListeners panic %v", r)
@@ -750,7 +754,7 @@ func GetInheritListeners() ([]*v2.Listener, net.Conn, error) {
 		return nil, nil, err
 	}
 
-	listeners := make([]*v2.Listener, len(gotFds))
+	listeners := make([]net.Listener, len(gotFds))
 	for i := 0; i < len(gotFds); i++ {
 		fd := uintptr(gotFds[i])
 		file := os.NewFile(fd, "")
@@ -766,7 +770,7 @@ func GetInheritListeners() ([]*v2.Listener, net.Conn, error) {
 			return nil, nil, err
 		}
 		if listener, ok := fileListener.(*net.TCPListener); ok {
-			listeners[i] = &v2.Listener{Addr: listener.Addr(), InheritListener: listener}
+			listeners[i] = listener
 		} else {
 			log.StartLogger.Errorf("listener recovered from fd %d is not a tcp listener", fd)
 			return nil, nil, errors.New("not a tcp listener")

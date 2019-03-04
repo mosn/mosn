@@ -177,7 +177,7 @@ func TransferServer(gracefultime time.Duration, ch chan<- bool) {
 		}
 	}()
 	select {
-	case <-time.After(gracefultime + types.DefaultConnReadTimeout + 10*time.Second):
+	case <-time.After(2*gracefultime + types.DefaultConnReadTimeout + 10*time.Second):
 		log.DefaultLogger.Infof("transfer metrics server exit")
 	}
 }

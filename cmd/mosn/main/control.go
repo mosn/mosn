@@ -24,7 +24,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/urfave/cli"
 )
@@ -61,12 +60,8 @@ var (
 					port = conf.Debug.Port
 				}
 				addr := fmt.Sprintf("0.0.0.0:%d", port)
-				store.AddStartService(func() {
-					log.StartLogger.Infof("start a pprof server %s", addr)
-					s := &http.Server{Addr: addr, Handler: nil}
-					store.AddStopService(s)
-					s.ListenAndServe()
-				})
+				s := &http.Server{Addr: addr, Handler: nil}
+				store.AddService(s, "pprof", nil, nil)
 			}
 			mosn.Start(conf, serviceCluster, serviceNode)
 			return nil

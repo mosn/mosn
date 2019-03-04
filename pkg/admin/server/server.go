@@ -19,109 +19,50 @@ package server
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/json-iterator/go"
-	"github.com/valyala/fasthttp"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Server struct {
-	ln net.Listener
-}
-
-func requestHandler(ctx *fasthttp.RequestCtx) {
-	method := string(ctx.Method())
-
-	switch method {
-	case http.MethodGet:
-		getAPIs(ctx)
-	case http.MethodPost:
-		postAPIs(ctx)
-	default:
-		ctx.SetStatusCode(http.StatusMethodNotAllowed)
-	}
-}
-
-func getAPIs(ctx *fasthttp.RequestCtx) {
-	path := string(ctx.Path())
-	switch path {
-	case "/api/v1/config_dump":
-		configDump(ctx)
-
-	case "/api/v1/stats":
-		statsDump(ctx)
-	default:
-		ctx.SetStatusCode(404)
-	}
-}
-func postAPIs(ctx *fasthttp.RequestCtx) {
-	path := string(ctx.Path())
-	switch path {
-	case "/api/v1/update_loglevel":
-		updateLogLevel(ctx)
-	case "/api/v1/enable_log":
-		enableLogger(ctx)
-	case "/api/v1/disbale_log":
-		disableLogger(ctx)
-	default:
-		ctx.SetStatusCode(404)
-		ctx.WriteString("api not supported\n")
-	}
+	*http.Server
 }
 
 func (s *Server) Start(config Config) {
-
-	store.AddStartService(func() {
-		var addr string
-		if config != nil {
-			// merge MOSNConfig into global context
-			store.SetMOSNConfig(config)
-			// get admin config
-			adminConfig := config.GetAdmin()
-			if adminConfig == nil {
-				// no admin config, no admin start
-				log.DefaultLogger.Warnf("no admin config, no admin api served")
-				return
-			}
-			address := adminConfig.GetAddress()
-			if xdsPort, ok := address.GetSocketAddress().GetPortSpecifier().(*core.SocketAddress_PortValue); ok {
-				addr = fmt.Sprintf("%s:%d", address.GetSocketAddress().GetAddress(), xdsPort.PortValue)
-			}
-		}
-
-		srv := &fasthttp.Server{
-			Handler: requestHandler,
-			Name:    "Mosn Admin Server",
-		}
-
-		ln, err := net.Listen("tcp4", addr)
-		if err != nil {
-			log.DefaultLogger.Errorf("Admin server: Listen on %s with error: %s\n", addr, err)
+	var addr string
+	if config != nil {
+		// merge MOSNConfig into global context
+		store.SetMOSNConfig(config)
+		// get admin config
+		adminConfig := config.GetAdmin()
+		if adminConfig == nil {
+			// no admin config, no admin start
+			log.DefaultLogger.Warnf("no admin config, no admin api served")
 			return
 		}
-		log.DefaultLogger.Infof("Admin server serve on %s\n", addr)
-		s.ln = ln
-		go func() {
-			store.AddStopService(s)
-			if err := srv.Serve(ln); err != nil {
-				log.DefaultLogger.Errorf("Admin server: Served) with error: %s\n", err)
-			}
-		}()
-	})
+		address := adminConfig.GetAddress()
+		if xdsPort, ok := address.GetSocketAddress().GetPortSpecifier().(*core.SocketAddress_PortValue); ok {
+			addr = fmt.Sprintf("%s:%d", address.GetSocketAddress().GetAddress(), xdsPort.PortValue)
+		}
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/config_dump", configDump)
+	mux.HandleFunc("/api/v1/stats", statsDump)
+	mux.HandleFunc("/api/v1/update_loglevel", updateLogLevel)
+	mux.HandleFunc("/api/v1/enable_log", enableLogger)
+	mux.HandleFunc("/api/v1/disbale_log", disableLogger)
+
+	srv := &http.Server{Addr: addr, Handler: mux}
+	store.AddService(srv, "Mosn Admin Server", nil, nil)
+	s.Server = srv
 }
 
 func (s *Server) Close() error {
-	ln := s.ln
-	if ln != nil {
-		s.ln = nil
-		log.DefaultLogger.Infof("Admin server stopped\n")
-		return ln.Close()
-	}
-	return nil
+	return s.Server.Close()
 }

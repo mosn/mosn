@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"math/rand"
+	"io/ioutil"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
@@ -17,7 +18,11 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
+	"encoding/json"
+	"github.com/alipay/sofa-mosn/pkg/config"
 )
+
+
 
 // client - mesh - mesh - server
 func forkTransferMesh(tc *integrate.TestCase) int {
@@ -39,12 +44,19 @@ func forkTransferMesh(tc *integrate.TestCase) int {
 }
 
 func startTransferMesh(tc *integrate.TestCase) {
-	rand.Seed(2)
+	rand.Seed(3)
 	server.GracefulTimeout = 5 * time.Second
 	network.TransferDomainSocket = "/tmp/mosn.sock"
 	metrics.TransferDomainSocket = "/tmp/stats.sock"
 	cfg := util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
 	cfg.Pid = "/tmp/transfer.pid"
+
+	config.ConfigPath = "/tmp/transfer.json"
+	content, err := json.MarshalIndent(cfg, "", "  ")
+	if err == nil {
+		err = ioutil.WriteFile(config.ConfigPath, content, 0644)
+	}
+
 	mesh := mosn.NewMosn(cfg)
 
 	util.MeshLogPath = ""

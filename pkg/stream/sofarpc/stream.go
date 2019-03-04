@@ -115,6 +115,11 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		sc.streams = make(map[uint64]*stream, 32)
 	}
 
+	// set support transfer connection
+	sc.conn.SetTransferEventListener(func() bool {
+		return true
+	})
+
 	return sc
 }
 

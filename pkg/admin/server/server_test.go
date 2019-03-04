@@ -140,14 +140,15 @@ func (m *mockMOSNConfig) GetAdmin() *v2.Admin {
 }
 
 func TestDumpConfig(t *testing.T) {
+	time.Sleep(time.Second)
 	server := Server{}
 	config := &mockMOSNConfig{
 		Name: "mock",
 		Port: 8889,
 	}
 	server.Start(config)
-	store.StartService()
-	defer server.Close()
+	store.StartService(nil)
+	defer store.StopService()
 
 	time.Sleep(time.Second) //wait server start
 
@@ -162,14 +163,15 @@ func TestDumpConfig(t *testing.T) {
 }
 
 func TestDumpStats(t *testing.T) {
+	time.Sleep(time.Second)
 	server := Server{}
 	config := &mockMOSNConfig{
 		Name: "mock",
 		Port: 8889,
 	}
 	server.Start(config)
-	store.StartService()
-	defer server.Close()
+	store.StartService(nil)
+	defer store.StopService()
 
 	time.Sleep(time.Second) //wait server start
 
@@ -197,14 +199,15 @@ func TestDumpStats(t *testing.T) {
 }
 
 func TestUpdateLogger(t *testing.T) {
+	time.Sleep(time.Second)
 	server := Server{}
 	config := &mockMOSNConfig{
 		Name: "mock",
 		Port: 8889,
 	}
 	server.Start(config)
-	store.StartService()
-	defer server.Close()
+	store.StartService(nil)
+	defer store.StopService()
 
 	time.Sleep(time.Second) //wait server start
 
@@ -227,14 +230,15 @@ func TestUpdateLogger(t *testing.T) {
 }
 
 func TestToggleLogger(t *testing.T) {
+	time.Sleep(time.Second)
 	server := Server{}
 	config := &mockMOSNConfig{
 		Name: "mock",
 		Port: 8889,
 	}
 	server.Start(config)
-	store.StartService()
-	defer server.Close()
+	store.StartService(nil)
+	defer store.StopService()
 
 	time.Sleep(time.Second) //wait server start
 

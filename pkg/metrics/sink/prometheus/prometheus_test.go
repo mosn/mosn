@@ -92,7 +92,8 @@ func TestPrometheusMetrics(t *testing.T) {
 		DisableCollectProcess: true,
 		DisableCollectGo:      true,
 	})
-	store.StartService()
+	store.StartService(nil)
+	defer store.StopService()
 	time.Sleep(time.Second) // wait server start
 
 	tc := http.Client{}
