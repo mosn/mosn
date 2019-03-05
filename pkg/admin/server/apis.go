@@ -21,11 +21,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"io/ioutil"
+
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/metrics/sink/console"
-	"github.com/valyala/fasthttp"
 )
 
 var levelMap = map[string]log.Level{
@@ -42,19 +43,29 @@ const errMsgFmt = `{
 }
 `
 
-func configDump(ctx *fasthttp.RequestCtx) {
+func configDump(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
 	if buf, err := store.Dump(); err == nil {
-		ctx.Write(buf)
+		w.WriteHeader(200)
+		w.Write(buf)
 	} else {
-		ctx.SetStatusCode(500)
+		w.WriteHeader(500)
 		msg := fmt.Sprintf(errMsgFmt, "internal error")
-		ctx.WriteString(msg)
+		fmt.Fprint(w, msg)
 		log.DefaultLogger.Errorf("Admin API: ConfigDump failed, cause by %s", err)
 	}
 }
 
-func statsDump(ctx *fasthttp.RequestCtx) {
-	sink := console.NewConsoleSink(ctx.Response.BodyWriter())
+func statsDump(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	w.WriteHeader(200)
+	sink := console.NewConsoleSink(w)
 	sink.Flush(metrics.GetAll())
 }
 
@@ -64,49 +75,78 @@ type LogLevelData struct {
 	LogLevel string `json:"log_level"`
 }
 
-func updateLogLevel(ctx *fasthttp.RequestCtx) {
-	body := ctx.Request.Body()
+func updateLogLevel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf(errMsgFmt, "read body error")
+		fmt.Fprint(w, msg)
+		return
+	}
 	data := &LogLevelData{}
 	if err := json.Unmarshal(body, data); err == nil {
 		if level, ok := levelMap[data.LogLevel]; ok {
 			if log.UpdateErrorLoggerLevel(data.LogPath, level) {
-				ctx.SetStatusCode(http.StatusOK)
-				ctx.WriteString("update logger success\n")
+				w.WriteHeader(http.StatusOK)
+				fmt.Fprint(w, "update logger success\n")
 				return
 			}
 		}
 	}
-	ctx.SetStatusCode(http.StatusBadRequest) // 400
+	w.WriteHeader(http.StatusBadRequest) // 400
 	msg := fmt.Sprintf(errMsgFmt, "update logger failed")
-	ctx.WriteString(msg)
+	fmt.Fprint(w, msg)
 	log.DefaultLogger.Errorf("Admin API: update logger level failed with bad request data: %s", string(body))
 }
 
 // post data:
 // loggeer path
-func enableLogger(ctx *fasthttp.RequestCtx) {
-	loggerPath := string(ctx.Request.Body())
-	if !log.ToggleLogger(loggerPath, false) {
-		ctx.SetStatusCode(http.StatusBadRequest) // 400
-		msg := fmt.Sprintf(errMsgFmt, "enable logger failed")
-		ctx.WriteString(msg)
-		log.DefaultLogger.Errorf("Admin API: enbale logger failed, logger: %s", loggerPath)
+func enableLogger(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	ctx.SetStatusCode(http.StatusOK)
-	ctx.WriteString("enable logger success\n")
+	loggerPath, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf(errMsgFmt, "read body error")
+		fmt.Fprint(w, msg)
+		return
+	}
+	if !log.ToggleLogger(string(loggerPath), false) {
+		w.WriteHeader(http.StatusBadRequest) // 400
+		msg := fmt.Sprintf(errMsgFmt, "enable logger failed")
+		fmt.Fprint(w, msg)
+		log.DefaultLogger.Errorf("Admin API: enbale logger failed, logger: %s", string(loggerPath))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "enable logger success\n")
 }
 
-func disableLogger(ctx *fasthttp.RequestCtx) {
-	loggerPath := string(ctx.Request.Body())
-	if !log.ToggleLogger(loggerPath, true) {
-		ctx.SetStatusCode(http.StatusBadRequest) // 400
-		msg := fmt.Sprintf(errMsgFmt, "disbale logger failed")
-		ctx.WriteString(msg)
-		log.DefaultLogger.Errorf("Admin API: disable logger failed, logger: %s", loggerPath)
+func disableLogger(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	ctx.SetStatusCode(http.StatusOK)
-	ctx.WriteString("disable logger success\n")
-
+	loggerPath, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf(errMsgFmt, "read body error")
+		fmt.Fprint(w, msg)
+		return
+	}
+	if !log.ToggleLogger(string(loggerPath), true) {
+		w.WriteHeader(http.StatusBadRequest) // 400
+		msg := fmt.Sprintf(errMsgFmt, "disbale logger failed")
+		fmt.Fprint(w, msg)
+		log.DefaultLogger.Errorf("Admin API: disable logger failed, logger: %s", string(loggerPath))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "disable logger success\n")
 }

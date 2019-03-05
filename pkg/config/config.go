@@ -121,7 +121,7 @@ func (c *MOSNConfig) Mode() Mode {
 }
 
 var (
-	configPath string
+	ConfigPath string
 	config     MOSNConfig
 )
 
@@ -143,7 +143,7 @@ func Load(path string) *MOSNConfig {
 	if err != nil {
 		log.Fatalln("load config failed, ", err)
 	}
-	configPath, _ = filepath.Abs(path)
+	ConfigPath, _ = filepath.Abs(path)
 	// translate to lower case
 	err = json.Unmarshal(content, &config)
 	if err != nil {

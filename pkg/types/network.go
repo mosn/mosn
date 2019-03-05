@@ -294,6 +294,9 @@ type Connection interface {
 	// Caution: raw conn only used in io-loop disable mode
 	// TODO: a better way to provide raw conn
 	RawConn() net.Conn
+
+	// SetTransferEventListener set a method will be called when connection transfer occur
+	SetTransferEventListener(listener func() bool)
 }
 
 // ConnectionStats is a group of connection metrics

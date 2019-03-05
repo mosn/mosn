@@ -194,6 +194,11 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	// init first context
 	sc.cm.next()
 
+	// set not support transfer connection
+	sc.conn.SetTransferEventListener(func() bool {
+		return false
+	})
+
 	sc.streams = make(map[uint32]*serverStream, 32)
 	sc.logger.Tracef("new http2 server stream connection")
 

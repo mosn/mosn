@@ -18,37 +18,119 @@
 package store
 
 import (
-	"time"
+	"context"
+	"errors"
+	"net"
+	"net/http"
+	"os"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var startService []func()
-
-func AddStartService(f func()) {
-	startService = append(startService, f)
+type service struct {
+	*http.Server
+	name string
+	init func()
+	exit func()
 }
 
-func StartService() {
-	time.Sleep(2 * time.Second)
-	for _, f := range startService {
-		go f()
+var services []*service
+var listeners []net.Listener
+
+func ListServiceListenersFile() ([]*os.File, error) {
+	if len(listeners) == 0 {
+		return nil, nil
 	}
-	startService = startService[:0]
+
+	files := make([]*os.File, len(listeners))
+
+	for i, l := range listeners {
+		var ok bool
+		var tl *net.TCPListener
+		if tl, ok = l.(*net.TCPListener); !ok {
+			return nil, errors.New("listener type is error")
+		}
+		file, err := tl.File()
+		if err != nil {
+			log.DefaultLogger.Errorf("fail to get listener %s file descriptor: %v", tl.Addr().String(), err)
+			return nil, errors.New("fail to get listener fd") //stop reconfigure
+		}
+		files[i] = file
+	}
+	return files, nil
 }
 
-var stopService []types.StopService
+func AddService(s *http.Server, name string, init func(), exit func()) {
+	for i, srv := range services {
+		if srv.Addr == s.Addr {
+			services[i] = &service{s, name, init, exit}
+			return
+		}
+	}
+	services = append(services, &service{s, name, init, exit})
+}
 
-func AddStopService(s types.StopService) {
-	stopService = append(stopService, s)
+func StartService(inheritListeners []net.Listener) error {
+	for _, s := range services {
+		var err error
+		var ln net.Listener
+		var saddr *net.TCPAddr
+
+		saddr, err = net.ResolveTCPAddr("tcp", s.Addr)
+		if err != nil {
+			log.StartLogger.Fatalln("[inheritListener] not valid:", s.Addr)
+		}
+
+		for i, l := range inheritListeners {
+			if l == nil {
+				continue
+			}
+			addr, err := net.ResolveTCPAddr("tcp", l.Addr().String())
+			if err != nil {
+				log.StartLogger.Fatalln("[inheritListener] not valid: ", l.Addr().String())
+			}
+
+			if addr.Port == saddr.Port {
+				ln = l
+				inheritListeners[i] = nil
+				log.StartLogger.Infof("inherit listener addr: %s", ln.Addr().String())
+				break
+			}
+		}
+
+		if ln == nil {
+			ln, err = net.Listen("tcp", s.Addr)
+			if err != nil {
+				return err
+			}
+		}
+		listeners = append(listeners, ln)
+		if s.name != "" {
+			log.StartLogger.Infof("start service %s on %s", s.name, ln.Addr().String())
+		}
+		if s.init != nil {
+			s.init()
+		}
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.DefaultLogger.Errorf("service %s panic %v", s.name, r)
+				}
+			}()
+
+			s.Serve(ln)
+		}()
+	}
+	return nil
 }
 
 func StopService() {
-	for _, s := range stopService {
-		if err := s.Close(); err != nil {
-			log.DefaultLogger.Infof("close service error: %v", err)
+	for _, s := range services {
+		if s.exit != nil {
+			s.exit()
 		}
+		go s.Shutdown(context.Background())
 	}
-	stopService = stopService[:0]
+	services = services[:0]
+	listeners = listeners[:0]
 }

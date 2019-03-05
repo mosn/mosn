@@ -15,10 +15,16 @@
  * limitations under the License.
  */
 
-package types
+package store
 
+import "sync"
 
-// StopService is an interface for server/listener, which can be stopped when transfer
-type StopService interface {
-	Close() error
+var fileMutex = new(sync.Mutex)
+
+func DumpLock() {
+	fileMutex.Lock()
+}
+
+func DumpUnlock() {
+	fileMutex.Unlock()
 }

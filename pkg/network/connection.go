@@ -64,6 +64,7 @@ type connection struct {
 	connCallbacks        []types.ConnectionEventListener
 	bytesReadCallbacks   []func(bytesRead uint64)
 	bytesSendCallbacks   []func(bytesSent uint64)
+	transferCallbacks    func() bool
 	filterManager        types.FilterManager
 
 	stopChan           chan struct{}
@@ -295,9 +296,16 @@ func (c *connection) startReadLoop() {
 		select {
 		case <-c.stopChan:
 			if transferTime.IsZero() {
-				randTime := time.Duration(rand.Intn(int(TransferTimeout.Nanoseconds())))
-				transferTime = time.Now().Add(randTime)
-				c.logger.Infof("transferTime: Wait %d Second", randTime/1e9)
+				if c.transferCallbacks != nil && c.transferCallbacks() {
+					randTime := time.Duration(rand.Intn(int(TransferTimeout.Nanoseconds())))
+					transferTime = time.Now().Add(TransferTimeout).Add(randTime)
+					c.logger.Infof("transferTime: Wait %d Second", (TransferTimeout+randTime)/1e9)
+				} else {
+					// set a long time, not transfer connection, wait mosn exit.
+					transferTime = time.Now().Add(10 * TransferTimeout)
+					c.logger.Infof("not support transfer connection, Connection = %d, Local Address = %s, Remote Address = %s",
+						c.id, c.rawConnection.LocalAddr().String(), c.RemoteAddr().String())
+				}
 			} else {
 				if transferTime.Before(time.Now()) {
 					goto transfer
@@ -768,6 +776,10 @@ func (c *connection) FilterManager() types.FilterManager {
 
 func (c *connection) RawConn() net.Conn {
 	return c.rawConnection
+}
+
+func (c *connection) SetTransferEventListener(listener func() bool) {
+	c.transferCallbacks = listener
 }
 
 type clientConnection struct {

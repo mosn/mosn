@@ -90,18 +90,15 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 	}
 
 	// export http for prometheus
-	store.AddStartService(func() {
-		srvMux := http.NewServeMux()
-		srvMux.Handle(config.Endpoint, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
+	srvMux := http.NewServeMux()
+	srvMux.Handle(config.Endpoint, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 
-		srv := &http.Server{
-			Addr:    fmt.Sprintf(":%d", config.Port),
-			Handler: srvMux,
-		}
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", config.Port),
+		Handler: srvMux,
+	}
 
-		store.AddStopService(srv)
-		srv.ListenAndServe()
-	})
+	store.AddService(srv, "prometheus", nil, nil)
 
 	return &promSink{
 		config:    config,

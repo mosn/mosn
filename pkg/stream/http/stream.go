@@ -289,6 +289,8 @@ type serverStreamConnection struct {
 	streamConnection
 	contextManager contextManager
 
+	close bool
+
 	stream                   *serverStream
 	mutex                    sync.RWMutex
 	serverStreamConnListener types.ServerStreamConnectionEventListener
@@ -311,6 +313,12 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
+
+	// set not support transfer connection
+	ssc.conn.SetTransferEventListener(func() bool {
+		ssc.close = true
+		return false
+	})
 
 	go func() {
 		defer func() {
@@ -576,7 +584,7 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 func (s *serverStream) endStream() {
 	resetConn := false
 	// check if we need close connection
-	if s.request.Header.ConnectionClose() {
+	if s.connection.close || s.request.Header.ConnectionClose() {
 		s.response.SetConnectionClose()
 		resetConn = true
 	} else if !s.request.Header.IsHTTP11() {

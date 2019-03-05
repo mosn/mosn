@@ -148,8 +148,9 @@ func ListListenersFile() []*os.File {
 
 func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
+	// two duration wait for connection to transfer
 	// DefaultConnReadTimeout wait for read timeout
-	timeout := time.NewTimer(duration + types.DefaultConnReadTimeout)
+	timeout := time.NewTimer(2*duration + types.DefaultConnReadTimeout)
 	StopConnection()
 	log.DefaultLogger.Infof("StopConnection")
 	select {

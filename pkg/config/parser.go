@@ -170,7 +170,7 @@ func parseLogLevel(level string) log.Level {
 }
 
 // ParseListenerConfig
-func ParseListenerConfig(lc *v2.Listener, inheritListeners []*v2.Listener) *v2.Listener {
+func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.Listener {
 	if lc.AddrConfig == "" {
 		log.StartLogger.Fatalln("[Address] is required in listener config")
 	}
@@ -181,10 +181,14 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []*v2.Listener) *v2.L
 	//try inherit legacy listener
 	var old *net.TCPListener
 
-	for _, il := range inheritListeners {
-		ilAddr, err := net.ResolveTCPAddr("tcp", il.Addr.String())
+	for i, il := range inheritListeners {
+		if il == nil {
+			continue
+		}
+		tl := il.(*net.TCPListener)
+		ilAddr, err := net.ResolveTCPAddr("tcp", tl.Addr().String())
 		if err != nil {
-			log.StartLogger.Fatalln("[inheritListener] not valid:", il.Addr.String())
+			log.StartLogger.Fatalln("[inheritListener] not valid:", tl.Addr().String())
 		}
 
 		if addr.Port != ilAddr.Port {
@@ -195,8 +199,8 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []*v2.Listener) *v2.L
 			(addr.IP.IsLoopback() && ilAddr.IP.IsLoopback()) ||
 			addr.IP.Equal(ilAddr.IP) {
 			log.StartLogger.Infof("inherit listener addr: %s", lc.AddrConfig)
-			old = il.InheritListener
-			il.Remain = true
+			old = tl
+			inheritListeners[i] = nil
 			break
 		}
 	}
