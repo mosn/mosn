@@ -1,14 +1,16 @@
 package transfer
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
 	"time"
 
 	"math/rand"
-	"io/ioutil"
 
+	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
@@ -18,11 +20,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
-	"encoding/json"
-	"github.com/alipay/sofa-mosn/pkg/config"
 )
-
-
 
 // client - mesh - mesh - server
 func forkTransferMesh(tc *integrate.TestCase) int {
@@ -43,7 +41,7 @@ func forkTransferMesh(tc *integrate.TestCase) int {
 	return pid
 }
 
-func startTransferMesh(tc *integrate.TestCase) {
+func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 	rand.Seed(3)
 	server.GracefulTimeout = 5 * time.Second
 	network.TransferDomainSocket = "/tmp/mosn.sock"
@@ -51,11 +49,17 @@ func startTransferMesh(tc *integrate.TestCase) {
 	cfg := util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
 	cfg.Pid = "/tmp/transfer.pid"
 
-	config.ConfigPath = "/tmp/transfer.json"
+	configPath := "/tmp/transfer.json"
+	os.Remove(configPath)
 	content, err := json.MarshalIndent(cfg, "", "  ")
-	if err == nil {
-		err = ioutil.WriteFile(config.ConfigPath, content, 0644)
+	if err != nil {
+		t.Fatal("marshal config json failed", err)
 	}
+	if err := ioutil.WriteFile(configPath, content, 0644); err != nil {
+		t.Fatal("write config file failed", err)
+	}
+	// set config path into load package
+	config.Load(configPath)
 
 	mesh := mosn.NewMosn(cfg)
 
@@ -86,7 +90,7 @@ func TestTransfer(t *testing.T) {
 	tc.ServerMeshAddr = "127.0.0.1:12102"
 
 	if os.Getenv("_MOSN_TEST_TRANSFER") == "true" {
-		startTransferMesh(tc)
+		startTransferMesh(t, tc)
 		return
 	}
 	pid := forkTransferMesh(tc)
