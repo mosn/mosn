@@ -156,17 +156,21 @@ func DefaultConfigLoad(path string) *MOSNConfig {
 	if err != nil {
 		log.Fatalln("load config failed, ", err)
 	}
+	cfg := &MOSNConfig{}
 	// translate to lower case
-	err = json.Unmarshal(content, &config)
+	err = json.Unmarshal(content, cfg)
 	if err != nil {
 		log.Fatalln("json unmarshal config failed, ", err)
 	}
-	return &config
+	return cfg
 
 }
 
 // Load config file and parse
 func Load(path string) *MOSNConfig {
 	configPath, _ = filepath.Abs(path)
-	return configLoadFunc(path)
+	if cfg := configLoadFunc(path); cfg != nil {
+		config = *cfg
+	}
+	return &config
 }
