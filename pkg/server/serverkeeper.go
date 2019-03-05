@@ -189,6 +189,10 @@ func startNewMosn() error {
 }
 
 func reconfigure(start bool) {
+	if start {
+		startNewMosn()
+		return
+	}
 	// set mosn State Reconfiguring
 	store.SetMosnState(store.Reconfiguring)
 	// if reconfigure failed, set mosn state to Running
@@ -198,13 +202,6 @@ func reconfigure(start bool) {
 	store.DumpLock()
 	// if reconfigure failed, enable dump
 	defer store.DumpUnlock()
-
-	if start {
-		err := startNewMosn()
-		if err != nil {
-			return
-		}
-	}
 
 	// transfer listen fd
 	var notify net.Conn

@@ -133,5 +133,4 @@ func StopService() {
 	}
 	services = services[:0]
 	listeners = listeners[:0]
-
 }
