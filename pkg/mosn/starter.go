@@ -56,10 +56,10 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		log.StartLogger.Fatalln("getInheritListeners failed, exit")
 	}
 	if reconfigure != nil {
-		// parse MOSNConfig again
-		c = config.Load(config.ConfigPath)
 		// set Mosn State
 		store.SetMosnState(store.Reconfiguring)
+		// parse MOSNConfig again
+		c = config.Load(config.GetConfigPath())
 	}
 
 	initializeTracing(c.Tracing)

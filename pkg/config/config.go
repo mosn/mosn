@@ -121,8 +121,9 @@ func (c *MOSNConfig) Mode() Mode {
 }
 
 var (
-	ConfigPath string
-	config     MOSNConfig
+	configPath     string
+	config         MOSNConfig
+	configLoadFunc ConfigLoadFunc = DefaultConfigLoad
 )
 
 func (c *MOSNConfig) GetAdmin() *xdsboot.Admin {
@@ -136,18 +137,40 @@ func (c *MOSNConfig) GetAdmin() *xdsboot.Admin {
 	return nil
 }
 
-// Load config file and parse
-func Load(path string) *MOSNConfig {
+// protetced configPath, read only
+func GetConfigPath() string {
+	return configPath
+}
+
+// ConfigLoadFunc parse a input(usually file path) into a mosn config
+type ConfigLoadFunc func(path string) *MOSNConfig
+
+// RegisterConfigLoadFunc can replace a new config load function instead of default
+func RegisterConfigLoadFunc(f ConfigLoadFunc) {
+	configLoadFunc = f
+}
+
+func DefaultConfigLoad(path string) *MOSNConfig {
 	log.Println("load config from : ", path)
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatalln("load config failed, ", err)
 	}
-	ConfigPath, _ = filepath.Abs(path)
+	cfg := &MOSNConfig{}
 	// translate to lower case
-	err = json.Unmarshal(content, &config)
+	err = json.Unmarshal(content, cfg)
 	if err != nil {
 		log.Fatalln("json unmarshal config failed, ", err)
+	}
+	return cfg
+
+}
+
+// Load config file and parse
+func Load(path string) *MOSNConfig {
+	configPath, _ = filepath.Abs(path)
+	if cfg := configLoadFunc(path); cfg != nil {
+		config = *cfg
 	}
 	return &config
 }

@@ -19,6 +19,7 @@ package config
 
 import (
 	"io/ioutil"
+
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
@@ -36,7 +37,7 @@ func dump(dirty bool) {
 		//todo: ignore zero values in config struct @boqin
 		content, err := json.MarshalIndent(config, "", "  ")
 		if err == nil {
-			err = ioutil.WriteFile(ConfigPath, content, 0644)
+			err = ioutil.WriteFile(configPath, content, 0644)
 		}
 
 		if err != nil {
