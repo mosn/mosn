@@ -405,7 +405,7 @@ func MockRouterMatcher() (types.Routers, error) {
 
 func mockClusterManager() types.ClusterManager {
 	// reset cluster manager instance
-	clusterMangerInstance = nil
+	clusterMangerInstance.Destory()
 	// create a new cluster manager
 	host1 := newHostV2("127.0.0.1", "h1", 5, v2.Metadata{"label": "blue"})
 	host2 := newHostV2("127.0.0.2", "h2", 5, v2.Metadata{"label": "blue"})
