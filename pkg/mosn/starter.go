@@ -168,13 +168,13 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
-	// notify old mosn quit and transfer connection
 	if reconfigure != nil {
 		// start other services
 		if err := store.StartService(inheritListeners); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
 		}
 
+		// notify old mosn to transfer connection
 		if _, err := reconfigure.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalln("graceful failed, exit")
 		}
@@ -200,8 +200,8 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		}
 	}
 
-	// write pid file
-	server.WritePidFile()
+	// start reconfigure domain socket
+	go server.ReconfigureHandler()
 
 	return m
 }

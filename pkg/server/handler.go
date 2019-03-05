@@ -190,7 +190,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		listenerStopChan := make(chan struct{})
 		//use default listener path
 		if lc.LogPath == "" {
-			lc.LogPath = MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
+			lc.LogPath = types.MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
 		}
 
 		logger, err := log.GetOrCreateDefaultErrorLogger(lc.LogPath, log.Level(lc.LogLevel))
@@ -205,7 +205,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 
 			//use default listener access log path
 			if alConfig.Path == "" {
-				alConfig.Path = MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
+				alConfig.Path = types.MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
 			}
 
 			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
@@ -669,7 +669,7 @@ func sendInheritListeners() (net.Conn, error) {
 	var err error
 	// retry 10 time
 	for i := 0; i < 10; i++ {
-		unixConn, err = net.DialTimeout("unix", transferListenDomainSocket, 1*time.Second)
+		unixConn, err = net.DialTimeout("unix", types.TransferListenDomainSocket, 1*time.Second)
 		if err == nil {
 			break
 		}
@@ -703,19 +703,13 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 		}
 	}()
 
-	if oldPid != 0 {
-		log.StartLogger.Errorf("Get old mosn pid: %d", oldPid)
-		if err := syscall.Kill(oldPid, syscall.SIGUSR2); err != nil {
-			log.StartLogger.Errorf("kill SIGUSR2 failed :%v", err)
-			return nil, nil, nil
-		}
-	} else {
+	if !isReconfigure() {
 		return nil, nil, nil
 	}
 
-	syscall.Unlink(transferListenDomainSocket)
+	syscall.Unlink(types.TransferListenDomainSocket)
 
-	l, err := net.Listen("unix", transferListenDomainSocket)
+	l, err := net.Listen("unix", types.TransferListenDomainSocket)
 	if err != nil {
 		log.StartLogger.Errorf("InheritListeners net listen error: %v", err)
 		return nil, nil, err
@@ -778,4 +772,60 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	}
 
 	return listeners, uc, nil
+}
+
+func ReconfigureHandler() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("transferServer panic %v", r)
+		}
+		ReconfigureHandler()
+	}()
+	syscall.Unlink(types.ReconfigureDomainSocket)
+
+	l, err := net.Listen("unix", types.ReconfigureDomainSocket)
+	if err != nil {
+		log.StartLogger.Errorf("reconfigureHandler net listen error: %v", err)
+		return
+	}
+	defer l.Close()
+
+	log.DefaultLogger.Infof("reconfigureHandler start")
+
+	ul := l.(*net.UnixListener)
+	uc, err := ul.AcceptUnix()
+	if err != nil {
+		log.DefaultLogger.Errorf("reconfigureHandler Accept error :%v", err)
+		return
+	}
+	defer uc.Close()
+
+	log.DefaultLogger.Infof("reconfigureHandler Accept")
+
+	_, err = uc.Write([]byte{0})
+	if err != nil {
+		log.DefaultLogger.Errorf("reconfigureHandler %v", err)
+		return
+	}
+
+	reconfigure(false)
+}
+
+func isReconfigure() bool {
+	var unixConn net.Conn
+	var err error
+	unixConn, err = net.DialTimeout("unix", types.ReconfigureDomainSocket, 1*time.Second)
+	if err != nil {
+		log.DefaultLogger.Infof("not reconfigure: %v", err)
+		return false
+	}
+	defer unixConn.Close()
+
+	uc := unixConn.(*net.UnixConn)
+	buf := make([]byte, 1)
+	n, _ := uc.Read(buf)
+	if n != 1 {
+		return false
+	}
+	return true
 }

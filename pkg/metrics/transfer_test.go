@@ -19,13 +19,13 @@ package metrics
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"testing"
 	"time"
 
 	"encoding/json"
 
+	"syscall"
 )
 
 func addMetrics() {
@@ -88,9 +88,7 @@ func TestTransferWithSocket(t *testing.T) {
 	// Wait Server start
 	time.Sleep(2 * time.Second)
 	defer func() {
-		if _, err := os.Stat(TransferDomainSocket); err == nil {
-			os.Remove(TransferDomainSocket)
-		}
+		syscall.Unlink(TransferDomainSocket)
 	}()
 	body, err := makesTransferData()
 	if err != nil {

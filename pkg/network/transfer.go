@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"sync"
@@ -45,7 +44,7 @@ const (
 
 // TransferTimeout is the total transfer time
 var TransferTimeout = time.Second * 30 //default 30s
-var TransferDomainSocket = filepath.Dir(os.Args[0]) + string(os.PathSeparator) + "mosn.sock"
+var TransferDomainSocket = types.TransferConnDomainSocket
 
 func SetTransferTimeout(time time.Duration) {
 	if time != 0 {
@@ -63,9 +62,7 @@ func TransferServer(handler types.ConnectionHandler) {
 
 	defer store.SetMosnState(store.Running)
 
-	if _, err := os.Stat(TransferDomainSocket); err == nil {
-		os.Remove(TransferDomainSocket)
-	}
+	syscall.Unlink(TransferDomainSocket)
 	l, err := net.Listen("unix", TransferDomainSocket)
 	if err != nil {
 		log.DefaultLogger.Errorf("transfer net listen error %v", err)

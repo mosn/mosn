@@ -32,6 +32,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
@@ -39,7 +40,6 @@ func init() {
 }
 
 var (
-	oldPid                int
 	pidFile               string
 	onProcessExit         []func()
 	GracefulTimeout       = time.Second * 30 //default 30s
@@ -48,29 +48,20 @@ var (
 )
 
 func SetPid(pid string) {
-	if pid == "" {
-		pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
+    if pid == "" {
+		pidFile = types.MosnPidDefaultFileName
 	} else {
 		if err := os.MkdirAll(filepath.Dir(pid), 0644); err != nil {
-			pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
+			pidFile = types.MosnPidDefaultFileName
 		} else {
 			pidFile = pid
 		}
 	}
-	storeOldPid()
+	writePidFile()
 }
 
-func storeOldPid() {
-	if b, err := ioutil.ReadFile(pidFile); err == nil && len(b) > 0 {
-		// delete "\n"
-		oldPid, _ = strconv.Atoi(string(b[0 : len(b)-1]))
-	}
-}
-
-func WritePidFile() (err error) {
+func writePidFile() (err error) {
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
-
-	os.MkdirAll(MosnBasePath, 0644)
 
 	if err = ioutil.WriteFile(pidFile, pid, 0644); err != nil {
 		log.DefaultLogger.Errorf("write pid file error: %v", err)
@@ -114,8 +105,6 @@ func catchSignalsCrossPlatform() {
 				// reload, fork new mosn
 				reconfigure(true)
 			case syscall.SIGUSR2:
-				// reload, not fork mosn
-				reconfigure(false)
 			}
 		}
 	}()

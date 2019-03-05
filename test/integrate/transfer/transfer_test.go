@@ -12,14 +12,15 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
-	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // client - mesh - mesh - server
@@ -46,8 +47,9 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 	server.GracefulTimeout = 5 * time.Second
 	network.TransferDomainSocket = "/tmp/mosn.sock"
 	metrics.TransferDomainSocket = "/tmp/stats.sock"
+	types.TransferListenDomainSocket = "/tmp/listen.sock"
+	types.ReconfigureDomainSocket = "/tmp/reconfig.sock"
 	cfg := util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
-	cfg.Pid = "/tmp/transfer.pid"
 
 	configPath := "/tmp/transfer.json"
 	os.Remove(configPath)

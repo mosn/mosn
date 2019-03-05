@@ -171,7 +171,7 @@ func InitDefaultLogger(config *Config) {
 
 	//use default log path
 	if logPath == "" {
-		logPath = MosnLogDefaultPath
+		logPath = types.MosnLogDefaultPath
 	}
 
 	if config.LogRoller != "" {
