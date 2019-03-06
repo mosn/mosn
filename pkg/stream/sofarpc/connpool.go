@@ -105,9 +105,6 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
-	p.mux.Lock()
-	defer p.mux.Unlock()
-
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
 	if event.IsClose() {
 		p.host.HostStats().UpstreamConnectionClose.Inc(1)
@@ -138,7 +135,9 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 		default:
 			// do nothing
 		}
+		p.mux.Lock()
 		p.activeClients[client.subProtocol] = nil
+		p.mux.Unlock()
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
