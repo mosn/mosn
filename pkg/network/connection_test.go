@@ -30,7 +30,7 @@ type MyEventListener struct{}
 func (el *MyEventListener) OnEvent(event types.ConnectionEvent) {}
 
 func testAddConnectionEventListener(n int, t *testing.T) {
-	logger, err := log.NewLogger("stdout", log.INFO)
+	logger, err := log.GetOrCreateDefaultErrorLogger("stdout", log.INFO)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func testAddConnectionEventListener(n int, t *testing.T) {
 }
 
 func testAddBytesReadListener(n int, t *testing.T) {
-	logger, err := log.NewLogger("stdout", log.INFO)
+	logger, err := log.GetOrCreateDefaultErrorLogger("stdout", log.INFO)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func testAddBytesReadListener(n int, t *testing.T) {
 }
 
 func testAddBytesSendListener(n int, t *testing.T) {
-	logger, err := log.NewLogger("stdout", log.INFO)
+	logger, err := log.GetOrCreateDefaultErrorLogger("stdout", log.INFO)
 	if err != nil {
 		t.Fatal(err)
 	}

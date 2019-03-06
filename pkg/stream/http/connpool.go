@@ -155,6 +155,9 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 				break
 			}
 		}
+
+		// set closed flag if not available
+		client.closed = true
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
@@ -172,7 +175,9 @@ func (p *connPool) onStreamDestroy(client *activeClient) {
 
 	// return to pool
 	p.clientMux.Lock()
-	p.availableClients = append(p.availableClients, client)
+	if !client.closed {
+		p.availableClients = append(p.availableClients, client)
+	}
 	p.clientMux.Unlock()
 }
 
@@ -215,6 +220,7 @@ type activeClient struct {
 	host               types.CreateConnectionData
 	totalStream        uint64
 	closeWithActiveReq bool
+	closed             bool
 }
 
 func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.PoolFailureReason) {

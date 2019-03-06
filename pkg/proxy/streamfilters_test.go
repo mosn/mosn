@@ -18,6 +18,7 @@
 package proxy
 
 import (
+	"context"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
@@ -225,17 +226,17 @@ type mockStreamReceiverFilter struct {
 
 func (f *mockStreamReceiverFilter) OnDestroy() {}
 
-func (f *mockStreamReceiverFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *mockStreamReceiverFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	f.onHeaders++
 	return f.headersStatus
 }
 
-func (f *mockStreamReceiverFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *mockStreamReceiverFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	f.onData++
 	return f.dataStatus
 }
 
-func (f *mockStreamReceiverFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *mockStreamReceiverFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	f.onTrailers++
 	return f.trailersStatus
 }
@@ -258,17 +259,17 @@ type mockStreamSenderFilter struct {
 
 func (f *mockStreamSenderFilter) OnDestroy() {}
 
-func (f *mockStreamSenderFilter) AppendHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *mockStreamSenderFilter) AppendHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	f.onHeaders++
 	return f.headersStatus
 }
 
-func (f *mockStreamSenderFilter) AppendData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *mockStreamSenderFilter) AppendData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	f.onData++
 	return f.dataStatus
 }
 
-func (f *mockStreamSenderFilter) AppendTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *mockStreamSenderFilter) AppendTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	f.onTrailers++
 	return f.trailersStatus
 }

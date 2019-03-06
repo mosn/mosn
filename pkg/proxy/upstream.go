@@ -20,7 +20,6 @@ package proxy
 import (
 	"container/list"
 	"context"
-	"strconv"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -50,8 +49,6 @@ type upstreamRequest struct {
 
 	// time at send upstream request
 	startTime time.Time
-	// http standardized status code
-	httpStatusCode int
 
 	// list element
 	element *list.Element
@@ -108,13 +105,10 @@ func (r *upstreamRequest) endStream() {
 // types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) {
-	// we save a response status code into request info if it is in headers
-	if status, ok := headers.Get(types.HeaderStatus); ok {
-		if code, err := strconv.Atoi(status); err == nil {
-			r.downStream.requestInfo.SetResponseCode(uint32(code))
-		}
+	// we convert a status to http standard code, and log it
+	if code, err := protocol.MappingHeaderStatusCode(r.protocol, headers); err == nil {
+		r.downStream.requestInfo.SetResponseCode(code)
 	}
-	r.httpStatusCode, _ = protocol.MappingHeaderStatusCode(r.protocol, headers)
 
 	r.downStream.requestInfo.SetResponseReceivedDuration(time.Now())
 

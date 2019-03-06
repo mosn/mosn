@@ -90,7 +90,7 @@ type streamConnection struct {
 	streamConnectionEventListener       types.StreamConnectionEventListener
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 
-	logger log.Logger
+	logger log.ErrorLogger
 }
 
 func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -114,6 +114,11 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 	if sc.streamConnectionEventListener != nil {
 		sc.streams = make(map[uint64]*stream, 32)
 	}
+
+	// set support transfer connection
+	sc.conn.SetTransferEventListener(func() bool {
+		return true
+	})
 
 	return sc
 }
@@ -209,12 +214,14 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 
 	// header, data notify
 	if stream != nil {
-		header := cmd.Header()
 		data := cmd.Data()
 
-		if header != nil {
-			stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
+		if cmd.GetTimeout() > 0 {
+			timeout := strconv.Itoa(cmd.GetTimeout()) // timeout, ms
+			cmd.Set(types.HeaderGlobalTimeout, timeout)
 		}
+
+		stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
 
 		if data != nil {
 			stream.receiver.OnReceiveData(stream.ctx, data, true)
@@ -401,6 +408,8 @@ func (s *stream) endStream() {
 	if s.sendCmd != nil {
 		// replace requestID
 		s.sendCmd.SetRequestID(s.id)
+		// remove the inject header
+		s.sendCmd.Del(types.HeaderGlobalTimeout)
 
 		// TODO: replaced with EncodeTo, and pre-alloc send buf
 		buf, err := s.sc.codecEngine.Encode(s.ctx, s.sendCmd)

@@ -18,6 +18,7 @@
 package healthcheck
 
 import (
+	"sync"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -78,11 +79,21 @@ type mockHost struct {
 	flag uint64
 	// mock status
 	delay  time.Duration
+	lock   sync.Mutex
 	status bool
 }
 
+func (h *mockHost) SetHealth(health bool) {
+	h.lock.Lock()
+	h.status = health
+	h.lock.Unlock()
+}
+
 func (h *mockHost) Health() bool {
-	return h.status
+	h.lock.Lock()
+	health := h.status
+	h.lock.Unlock()
+	return health
 }
 
 func (h *mockHost) AddressString() string {

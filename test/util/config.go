@@ -88,7 +88,6 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 	return NewMOSNConfig([]v2.Listener{
 		clientListener, serverListener,
 	}, cmconfig)
-
 }
 
 // XProtocol must be mesh to mesh

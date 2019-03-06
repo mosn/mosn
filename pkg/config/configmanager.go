@@ -46,13 +46,17 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 		AntShareCloud: appInfo.AntShareCloud,
 		DataCenter:    appInfo.DataCenter,
 		AppName:       appInfo.AppName,
+		DeployMode:    appInfo.DeployMode,
+		MasterSystem:  appInfo.MasterSystem,
+		CloudName:     appInfo.CloudName,
+		HostMachine:   appInfo.HostMachine,
 	}
 
 	// reset servicePubInfo
 	config.ServiceRegistry.ServicePubInfo = []v2.PublishInfo{}
 
 	// delete subInfo / dynamic clusters
-	removeClusterConfig(subServiceList)
+	RemoveClusterConfig(subServiceList)
 }
 
 // AddOrUpdateClusterConfig
@@ -82,9 +86,14 @@ func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 	}
 }
 
-func removeClusterConfig(clusterNames []string) {
-	dirty := false
+func RemoveClusterConfig(clusterNames []string) {
+	if removeClusterConfig(clusterNames) {
+		go dump(true)
+	}
+}
 
+func removeClusterConfig(clusterNames []string) bool {
+	dirty := false
 	for _, clusterName := range clusterNames {
 		for i, cluster := range config.ClusterManager.Clusters {
 			if cluster.Name == clusterName {
@@ -95,8 +104,7 @@ func removeClusterConfig(clusterNames []string) {
 			}
 		}
 	}
-
-	go dump(dirty)
+	return dirty
 }
 
 // AddPubInfo
@@ -144,11 +152,11 @@ func DelPubInfo(serviceName string) {
 	go dump(dirty)
 }
 
-// AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddRoutersConfig
+// AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddOrUpdateRoutersConfig
 // use this function to only dump config once
-func AddClusterWithRouter(listenername string, virtualhost string, router v2.Router, clusters []v2.Cluster) {
+func AddClusterWithRouter(listenername string, clusters []v2.Cluster, routerConfig *v2.RouterConfiguration) {
 	addOrUpdateClusterConfig(clusters)
-	addRoutersConfig(listenername, virtualhost, router)
+	addOrUpdateRouterConfig(listenername, routerConfig)
 	go dump(true)
 }
 
@@ -243,70 +251,4 @@ func addOrUpdateStreamFilters(listenername string, typ string, cfg map[string]in
 		ln.StreamFilters[filterIndex] = filter
 	}
 	return true
-}
-
-// TODO: fix RDS, support add/update/delete
-// AddRoutersConfig dumps addRoutersConfig result
-func AddRoutersConfig(listenername string, virtualhost string, router v2.Router) {
-	if addRoutersConfig(listenername, virtualhost, router) {
-		go dump(true)
-	}
-}
-
-// addRoutersConfig effects listener config.
-// routers in listener.connection_manager.virtual_hosts, if a virtual host name is empty, use default virtual host
-func addRoutersConfig(listenername string, virtualhost string, router v2.Router) bool {
-	dirty := false
-	// support only one server
-	ln, idx := findListener(listenername)
-	if idx == -1 {
-		return false
-	}
-	// support only one filter chain
-	nfs := ln.FilterChains[0].Filters
-FindRouter:
-	for filterIndex, nf := range nfs {
-		if nf.Type != v2.CONNECTION_MANAGER {
-			continue FindRouter
-		}
-		routerConfiguration := &v2.RouterConfiguration{}
-		if data, err := json.Marshal(nf.Config); err == nil {
-			if err := json.Unmarshal(data, routerConfiguration); err != nil {
-				log.DefaultLogger.Errorf("invalid router config, update config failed")
-				break FindRouter
-			}
-		}
-		var vhost *v2.VirtualHost
-		vhs := routerConfiguration.VirtualHosts
-	FindVirtualHost:
-		for _, vh := range vhs {
-			if virtualhost == "" {
-				if len(vh.Domains) > 0 && vh.Domains[0] == "*" {
-					vhost = vh
-					break FindVirtualHost
-				}
-			} else if vh.Name == virtualhost {
-				vhost = vh
-				break FindVirtualHost
-			}
-		}
-		if vhost != nil {
-			vhost.Routers = append(vhost.Routers, router)
-			dirty = true
-		}
-		if dirty {
-			filterConfig := make(map[string]interface{})
-			if data, err := json.Marshal(routerConfiguration); err == nil {
-				if err := json.Unmarshal(data, &filterConfig); err != nil {
-					log.DefaultLogger.Errorf("rewrite filter config failed")
-					return false
-				}
-			}
-			nfs[filterIndex] = v2.Filter{
-				Type:   v2.CONNECTION_MANAGER,
-				Config: filterConfig,
-			}
-		}
-	}
-	return dirty
 }

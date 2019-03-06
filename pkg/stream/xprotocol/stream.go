@@ -27,9 +27,10 @@ import (
 	networkbuffer "github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
 )
 
 var streamIDXprotocolCount uint64
@@ -83,7 +84,7 @@ type streamConnection struct {
 	connection                          types.Connection
 	activeStream                        streamMap
 	codec                               xprotocol.Multiplexing
-	logger                              log.Logger
+	logger                              log.ErrorLogger
 	streamConnectionEventListener       types.StreamConnectionEventListener
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 }
@@ -100,8 +101,9 @@ func newStreamConnection(context context.Context, connection types.Connection, c
 		activeStream:                        newStreamMap(context),
 		streamConnectionEventListener:       clientCallbacks,
 		serverStreamConnectionEventListener: serverCallbacks,
-		logger:                              log.ByContext(context),
-		codec:                               codec,
+		logger:   log.ByContext(context),
+		codec:    codec,
+		protocol: protocol.Xprotocol,
 	}
 }
 
@@ -254,15 +256,15 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers types
 type stream struct {
 	str.BaseStream
 
-	reqID               string
-	streamID            string
-	direction           StreamDirection // 0: out, 1: in
-	readDisableCount    int
-	context 			context.Context
-	connection          *streamConnection
-	streamReceiver      types.StreamReceiveListener
-	encodedHeaders      types.IoBuffer
-	encodedData         types.IoBuffer
+	reqID            string
+	streamID         string
+	direction        StreamDirection // 0: out, 1: in
+	readDisableCount int
+	context          context.Context
+	connection       *streamConnection
+	streamReceiver   types.StreamReceiveListener
+	encodedHeaders   types.IoBuffer
+	encodedData      types.IoBuffer
 }
 
 // AddEventListener add stream event callback

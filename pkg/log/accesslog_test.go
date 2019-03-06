@@ -168,7 +168,7 @@ type mock_requestInfo struct {
 	requestFinishedDuration  time.Duration
 	bytesSent                uint64
 	bytesReceived            uint64
-	responseCode             uint32
+	responseCode             int
 	localAddress             net.Addr
 	downstreamLocalAddress   net.Addr
 	downstreamRemoteAddress  net.Addr
@@ -235,11 +235,11 @@ func (r *mock_requestInfo) Protocol() types.Protocol {
 	return r.protocol
 }
 
-func (r *mock_requestInfo) ResponseCode() uint32 {
+func (r *mock_requestInfo) ResponseCode() int {
 	return r.responseCode
 }
 
-func (r *mock_requestInfo) SetResponseCode(code uint32) {
+func (r *mock_requestInfo) SetResponseCode(code int) {
 	r.responseCode = code
 }
 

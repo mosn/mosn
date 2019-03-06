@@ -21,7 +21,6 @@ import (
 	"net"
 	"time"
 
-	envoy_config_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2"
 	"istio.io/api/mixer/v1/config/client"
 )
 
@@ -42,9 +41,8 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER          = "mixer"
-	FaultStream    = "fault"
-	RBACFilterType = "rbac"
+	MIXER       = "mixer"
+	FaultStream = "fault"
 )
 
 // ClusterType
@@ -170,12 +168,6 @@ type Mixer struct {
 	client.HttpClientConfig
 }
 
-// RBAC
-type RBAC struct {
-	envoy_config_v2.RBAC
-	Version string `json:"version"`
-}
-
 // Router, the list of routes that will be matched, in order, for incoming requests.
 // The first route that matches will be used.
 type Router struct {
@@ -244,6 +236,7 @@ type ClusterSpecInfo struct {
 
 // SubscribeSpec describes the subscribe server
 type SubscribeSpec struct {
+	Subscriber  string `json:"subscriber,omitempty"`
 	ServiceName string `json:"service_name,omitempty"`
 }
 
@@ -424,6 +417,10 @@ type ApplicationInfo struct {
 	DataCenter    string `json:"data_center,omitempty"`
 	AppName       string `json:"app_name,omitempty"`
 	Zone          string `json:"zone"`
+	DeployMode    bool   `json:"deploy_mode"`
+	MasterSystem  bool   `json:"master_system"`
+	CloudName     string `json:"cloud_name"`
+	HostMachine   string `json:"host_machine"`
 }
 
 // PublishInfo implements json.Marshaler and json.Unmarshaler

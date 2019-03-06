@@ -316,13 +316,6 @@ func convertStreamFilter(name string, s *types.Struct) v2.Filter {
 				log.DefaultLogger.Errorf("convert fault inject config error: %v", err)
 			}
 		}
-	case v2.RBACFilterType:
-		filter.Type = v2.RBACFilterType
-		filter.Config, err = convertRbacConfig(s)
-		if err != nil {
-			// TODO: if rbac config is in PerRoute format, use empty config to make sure rbac filter will be initialized.
-			log.DefaultLogger.Errorf("convertRbacConfig error: %v", err)
-		}
 	default:
 	}
 
@@ -380,27 +373,6 @@ func convertMixerConfig(s *types.Struct) (map[string]interface{}, error) {
 
 	marshaler := jsonpb.Marshaler{}
 	str, err := marshaler.MarshalToString(&mixerConfig.HttpClientConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	var config map[string]interface{}
-	err = json.Unmarshal([]byte(str), &config)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
-func convertRbacConfig(s *types.Struct) (map[string]interface{}, error) {
-	rbacConfig := v2.RBAC{}
-	err := xdsutil.StructToMessage(s, &rbacConfig.RBAC)
-	if err != nil {
-		return nil, err
-	}
-
-	marshaler := jsonpb.Marshaler{}
-	str, err := marshaler.MarshalToString(&rbacConfig.RBAC)
 	if err != nil {
 		return nil, err
 	}

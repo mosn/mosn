@@ -98,7 +98,7 @@ type downStream struct {
 
 	// stream access logs
 	streamAccessLogs []types.AccessLog
-	logger           log.Logger
+	logger           log.ErrorLogger
 
 	snapshot types.ClusterSnapshot
 }
@@ -189,6 +189,9 @@ func (s *downStream) cleanStream() {
 	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
 	s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 	s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
+	// finish tracing
+	s.finishTracing()
 
 	// proxy access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
@@ -343,7 +346,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
 	}
-	if reflect.ValueOf(clusterSnapshot).IsNil() {
+	if clusterSnapshot == nil || reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
 		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", route.RouteRule().ClusterName())
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
@@ -515,8 +518,7 @@ func (s *downStream) onUpstreamRequestSent() {
 				s.responseTimer.Stop()
 			}
 
-			s.responseTimer = utils.NewTimer(s.onResponseTimeout)
-			s.responseTimer.Start(s.timeout.GlobalTimeout)
+			s.responseTimer = utils.NewTimer(s.timeout.GlobalTimeout, s.onResponseTimeout)
 		}
 	}
 }
@@ -545,8 +547,7 @@ func (s *downStream) setupPerReqTimeout() {
 			s.perRetryTimer.Stop()
 		}
 
-		s.perRetryTimer = utils.NewTimer(s.onPerReqTimeout)
-		s.perRetryTimer.Start(timeout.TryTimeout * time.Second)
+		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout*time.Second, s.onPerReqTimeout)
 	}
 }
 
@@ -780,7 +781,7 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 func (s *downStream) handleUpstreamStatusCode() {
 	// todo: support config?
 	if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
-		if s.upstreamRequest.httpStatusCode >= http.InternalServerError {
+		if s.requestInfo.ResponseCode() >= http.InternalServerError {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 		} else {
@@ -841,7 +842,6 @@ func (s *downStream) onUpstreamResponseRecvFinished() {
 	// todo: logs
 
 	s.cleanUp()
-	s.finishTracing()
 }
 
 func (s *downStream) setupRetry(endStream bool) bool {
@@ -921,6 +921,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
+	s.requestInfo.SetResponseCode(code)
 
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	s.appendHeaders(headers, true)
@@ -935,6 +936,7 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
+	s.requestInfo.SetResponseCode(code)
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	s.appendHeaders(headers, false)
 	data := buffer.NewIoBufferString(body)

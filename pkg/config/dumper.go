@@ -19,24 +19,21 @@ package config
 
 import (
 	"io/ioutil"
-	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/admin"
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
-var fileMutex = new(sync.Mutex)
-
 func dump(dirty bool) {
-	fileMutex.Lock()
-	defer fileMutex.Unlock()
+	store.DumpLock()
+	defer store.DumpUnlock()
 
 	if dirty {
-		//log.DefaultLogger.Println("dump config to: ", configPath)
+		//log.DefaultLogger.Println("dump config to: ", ConfigPath)
 		log.DefaultLogger.Debugf("dump config content: %+v", config)
 
 		//update mosn_config
-		admin.SetMOSNConfig(config)
+		store.SetMOSNConfig(config)
 		//todo: ignore zero values in config struct @boqin
 		content, err := json.MarshalIndent(config, "", "  ")
 		if err == nil {

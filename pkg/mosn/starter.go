@@ -18,14 +18,10 @@
 package mosn
 
 import (
-	"net"
-	"os"
-	"strconv"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/trace"
-
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -34,6 +30,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/server"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	"github.com/alipay/sofa-mosn/pkg/xds"
@@ -44,15 +41,33 @@ type Mosn struct {
 	servers        []server.Server
 	clustermanager types.ClusterManager
 	routerManager  types.RouterManager
+	config         *config.MOSNConfig
+	adminServer    admin.Server
 }
 
 // NewMosn
 // Create server from mosn config
 func NewMosn(c *config.MOSNConfig) *Mosn {
+	initializeDefaultPath(config.GetConfigPath())
+	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 	initializeMetrics(c.Metrics)
 
-	m := &Mosn{}
+	//get inherit fds
+	inheritListeners, reconfigure, err := server.GetInheritListeners()
+	if err != nil {
+		log.StartLogger.Fatalln("getInheritListeners failed, exit")
+	}
+	if reconfigure != nil {
+		// set Mosn State
+		store.SetMosnState(store.Reconfiguring)
+		// parse MOSNConfig again
+		c = config.Load(config.GetConfigPath())
+	}
+
+	m := &Mosn{
+		config: c,
+	}
 	mode := c.Mode()
 
 	if mode == config.Xds {
@@ -78,8 +93,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	} else if srvNum > 1 {
 		log.StartLogger.Fatalln("multiple server not supported yet, got ", srvNum)
 	}
-	//get inherit fds
-	inheritListeners := getInheritListeners()
 
 	//cluster manager filter
 	cmf := &clusterManagerFilter{}
@@ -148,26 +161,54 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 
-	//close legacy listeners
-	for _, ln := range inheritListeners {
-		if !ln.Remain {
-			log.StartLogger.Println("close useless legacy listener:", ln.Addr)
-			ln.InheritListener.Close()
+	// start adminApi
+	m.adminServer = admin.Server{}
+	m.adminServer.Start(m.config)
+
+	// SetTransferTimeout
+	network.SetTransferTimeout(server.GracefulTimeout)
+
+	if reconfigure != nil {
+		// start other services
+		if err := store.StartService(inheritListeners); err != nil {
+			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
+		}
+
+		// notify old mosn to transfer connection
+		if _, err := reconfigure.Write([]byte{0}); err != nil {
+			log.StartLogger.Fatalln("graceful failed, exit")
+		}
+
+		reconfigure.Close()
+
+		// transfer old mosn connections
+		go network.TransferServer(m.servers[0].Handler())
+		// transfer old mosn mertrics, none-block
+		go metrics.TransferServer(server.GracefulTimeout, nil)
+	} else {
+		// start other services
+		if err := store.StartService(nil); err != nil {
+			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
 		}
 	}
 
-	// set TransferTimeout
-	network.TransferTimeout = server.GracefulTimeout
-	// transfer old mosn connections
-	go network.TransferServer(m.servers[0].Handler())
-	// transfer old mosn mertrics, none-block
-	go metrics.TransferServer(server.GracefulTimeout, nil)
+	//close legacy listeners
+	for _, ln := range inheritListeners {
+		if ln != nil {
+			log.StartLogger.Printf("close useless legacy listener: %s", ln.Addr().String())
+			ln.Close()
+		}
+	}
+
+	// start reconfigure domain socket
+	go server.ReconfigureHandler()
 
 	return m
 }
 
 // Start mosn's server
 func (m *Mosn) Start() {
+	// start mosn server
 	for _, srv := range m.servers {
 		go srv.Start()
 	}
@@ -175,6 +216,13 @@ func (m *Mosn) Start() {
 
 // Close mosn's server
 func (m *Mosn) Close() {
+	// close service
+	store.StopService()
+
+	// stop reconfigure domain socket
+	server.StopReconfigureHandler()
+
+	// stop mosn server
 	for _, srv := range m.servers {
 		srv.Close()
 	}
@@ -238,6 +286,14 @@ func initializeMetrics(config config.MetricsConfig) {
 	}
 }
 
+func initializePidFile(pid string) {
+	server.SetPid(pid)
+}
+
+func initializeDefaultPath(path string) {
+	types.InitDefaultPath(path)
+}
+
 type clusterManagerFilter struct {
 	cccb types.ClusterConfigFactoryCb
 	chcb types.ClusterHostFactoryCb
@@ -246,39 +302,4 @@ type clusterManagerFilter struct {
 func (cmf *clusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	cmf.cccb = cccb
 	cmf.chcb = chcb
-}
-
-func getInheritListeners() []*v2.Listener {
-	if os.Getenv(types.GracefulRestart) == "true" {
-		count, _ := strconv.Atoi(os.Getenv(types.InheritFd))
-		listeners := make([]*v2.Listener, count)
-
-		log.StartLogger.Infof("received %d inherit fds", count)
-
-		for idx := 0; idx < count; idx++ {
-			func() {
-				//because passed listeners fd's index starts from 3
-				fd := uintptr(3 + idx)
-				file := os.NewFile(fd, "")
-				if file == nil {
-					log.StartLogger.Errorf("create new file from fd %d failed", fd)
-					return
-				}
-				defer file.Close()
-
-				fileListener, err := net.FileListener(file)
-				if err != nil {
-					log.StartLogger.Errorf("recover listener from fd %d failed: %s", fd, err)
-					return
-				}
-				if listener, ok := fileListener.(*net.TCPListener); ok {
-					listeners[idx] = &v2.Listener{Addr: listener.Addr(), InheritListener: listener}
-				} else {
-					log.StartLogger.Errorf("listener recovered from fd %d is not a tcp listener", fd)
-				}
-			}()
-		}
-		return listeners
-	}
-	return nil
 }

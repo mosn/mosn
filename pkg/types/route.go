@@ -53,9 +53,6 @@ type RouterManager interface {
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
-
-	//a AppendRoutersInVirtualHost appends a router into virtualhsot
-	AppendRoutersInVirtualHost(routerConfigName string, virtualhost string, router v2.Router)
 }
 
 // HandlerStatus returns the Handler's available status
@@ -71,12 +68,15 @@ const (
 // RouteHandler is an external check handler for a route
 type RouteHandler interface {
 	// IsAvailable returns HandlerStatus represents the handler will be used/not used/stop next handler check
-	IsAvailable(context.Context, ClusterSnapshot) HandlerStatus
+	IsAvailable(context.Context, func(context.Context, string) ClusterSnapshot) (ClusterSnapshot, HandlerStatus)
 	// Route returns handler's route
 	Route() Route
 }
 type RouterWrapper interface {
+	// GetRouters returns the routers in the wrapper
 	GetRouters() Routers
+	// GetRoutersConfig returns the routers config in the wrapper
+	GetRoutersConfig() v2.RouterConfiguration
 }
 
 // Route is a route instance

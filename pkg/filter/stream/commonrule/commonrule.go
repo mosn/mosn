@@ -25,7 +25,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -71,7 +71,7 @@ func NewCommonRuleFilter(context context.Context, config *model.CommonRuleConfig
 }
 
 //implement StreamReceiverFilter
-func (f *commmonRuleFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *commmonRuleFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	// do filter
 	if f.RuleEngineFactory.invoke(headers) {
 		return types.StreamHeadersFilterContinue
@@ -81,12 +81,12 @@ func (f *commmonRuleFilter) OnReceiveHeaders(headers types.HeaderMap, endStream 
 	return types.StreamHeadersFilterStop
 }
 
-func (f *commmonRuleFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *commmonRuleFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	//do filter
 	return types.StreamDataFilterContinue
 }
 
-func (f *commmonRuleFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *commmonRuleFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	//do filter
 	return types.StreamTrailersFilterContinue
 }

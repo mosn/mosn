@@ -23,13 +23,13 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
@@ -44,7 +44,12 @@ const (
 
 // TransferTimeout is the total transfer time
 var TransferTimeout = time.Second * 30 //default 30s
-var TransferDomainSocket = filepath.Dir(os.Args[0]) + string(os.PathSeparator) + "mosn.sock"
+
+func SetTransferTimeout(time time.Duration) {
+	if time != 0 {
+		TransferTimeout = time
+	}
+}
 
 // TransferServer is called on new mosn start
 func TransferServer(handler types.ConnectionHandler) {
@@ -54,13 +59,10 @@ func TransferServer(handler types.ConnectionHandler) {
 		}
 	}()
 
-	if os.Getenv(types.GracefulRestart) != "true" {
-		return
-	}
-	if _, err := os.Stat(TransferDomainSocket); err == nil {
-		os.Remove(TransferDomainSocket)
-	}
-	l, err := net.Listen("unix", TransferDomainSocket)
+	defer store.SetMosnState(store.Running)
+
+	syscall.Unlink(types.TransferConnDomainSocket)
+	l, err := net.Listen("unix", types.TransferConnDomainSocket)
 	if err != nil {
 		log.DefaultLogger.Errorf("transfer net listen error %v", err)
 		return
@@ -93,7 +95,7 @@ func TransferServer(handler types.ConnectionHandler) {
 	}(handler)
 
 	select {
-	case <-time.After(2 * (TransferTimeout + types.DefaultConnReadTimeout)):
+	case <-time.After(2*TransferTimeout + types.DefaultConnReadTimeout + 10*time.Second):
 		log.DefaultLogger.Infof("TransferServer exit")
 		return
 	}
@@ -163,7 +165,7 @@ func transferRead(c *connection) (uint64, error) {
 			debug.PrintStack()
 		}
 	}()
-	unixConn, err := net.Dial("unix", TransferDomainSocket)
+	unixConn, err := net.Dial("unix", types.TransferConnDomainSocket)
 	if err != nil {
 		c.logger.Errorf("net Dial unix failed c:%p, id:%d, err:%v", c, c.id, err)
 		return transferErr, err
@@ -202,7 +204,7 @@ func transferWrite(c *connection, id uint64) error {
 			c.logger.Errorf("transferWrite panic %v", r)
 		}
 	}()
-	unixConn, err := net.Dial("unix", TransferDomainSocket)
+	unixConn, err := net.Dial("unix", types.TransferConnDomainSocket)
 	if err != nil {
 		c.logger.Errorf("net Dial unix failed %v", err)
 		return err
@@ -400,7 +402,7 @@ func transferRecvType(uc *net.UnixConn) (net.Conn, error) {
 	return conn, nil
 }
 
-func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer, logger log.Logger) error {
+func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer, logger log.ErrorLogger) error {
 	// send header
 	s1 := buf.Len()
 	s2 := c.GetTLSInfo(buf)

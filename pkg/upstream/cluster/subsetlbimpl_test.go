@@ -18,808 +18,772 @@
 package cluster
 
 import (
-	"net"
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 // we test following cases form envoy's example
+// see https://github.com/envoyproxy/envoy/blob/master/source/docs/subset_load_balancer.md
+// Host List
 /*
-`stage=prod, type=std` (e1, e2, e3, e4)      ------> case1
-`stage=prod, type=bigmem` (e5, e6)
-`stage=dev, type=std` (e7)
-`stage=prod, version=1.0` (e1, e2, e5)
-`stage=prod, version=1.1` (e3, e4, e6)
-`stage=dev, version=1.2-pre` (e7)
-`version=1.0` (e1, e2, e5)
-`version=1.1` (e3, e4, e6)
-`version=1.2-pre` (e7)
-`version=1.0, xlarge=true` (e1)  ------> case10
+| host	| stage	| version |	type	 | xlarge
+| e1	| prod	| 1.0	  |	std	 | true
+| e2	| prod	| 1.0	  |	std
+| e3	| prod	| 1.1	  |	std
+| e4	| prod	| 1.1	  |	std
+| e5	| prod	| 1.0 	  |	bigmem
+| e6	| prod	| 1.1	  |	bigmem
+| e7	| dev	| 1.2-pre |	std
 */
-
-/*
-`stage=prod, type=std, version=1.0` (e1, e2)    -------> fallback subset
-*/
-
-func init() {
-	log.InitDefaultLogger("", log.FATAL)
-}
-
-var prioritySetExample = prioritySet{
-	hostSets: []types.HostSet{
-		&hostSet{
-			hosts: InitExampleHosts(),
-		},
-	},
-}
-
-var DefaultSubset = map[string]string{
-	"stage":   "prod",
-	"version": "1.0",
-	"type":    "std",
-}
-
-var SubsetSelectors = [][]string{
-	{"stage", "type"},
-	{"stage", "version"},
-	{"version"},
-	{"xlarge", "version"},
-}
-
-var SubsetLbExample = subSetLoadBalancer{
-	fallBackPolicy:        2,
-	stats:                 newClusterStats("testcluster"),
-	lbType:                types.RoundRobin,
-	originalPrioritySet:   &prioritySetExample,
-	defaultSubSetMetadata: InitDefaultSubsetMetadata(),
-	subSetKeys:            GenerateSubsetKeys(SubsetSelectors),
-}
-
-func TestSubSetLoadBalancer_GetHostsNumber(t *testing.T) {
-
-	lb := NewSubsetLoadBalancer(types.RoundRobin, &prioritySetExample,
-		newClusterStats("testcluster"), NewLBSubsetInfo(InitExampleLbSubsetConfig()))
-
-	sslb, _ := lb.(*subSetLoadBalancer)
-
-	testCase := []struct {
-		name            string
-		matchCriteria   *router.MetadataMatchCriteriaImpl
-		wantHostsNumber uint32
-	}{
-		{
-			name: "common case",
-			matchCriteria: &router.MetadataMatchCriteriaImpl{
-				MatchCriteriaArray: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "stage",
-						Value: utils.GenerateMD5Value("prod"),
-					},
-					&router.MetadataMatchCriterionImpl{
-						Name:  "type",
-						Value: utils.GenerateMD5Value("std"),
-					},
-				},
-			},
-			wantHostsNumber: 4,
-		},
-		{
-			name: "corner case",
-			matchCriteria: &router.MetadataMatchCriteriaImpl{
-				MatchCriteriaArray: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "stage",
-						Value: utils.GenerateMD5Value("prod"),
-					},
-					&router.MetadataMatchCriterionImpl{
-						Name:  "type",
-						Value: utils.GenerateMD5Value("unknown"),
-					},
-				},
-			},
-			wantHostsNumber: 0,
-		},
-	}
-
-	for _, tt := range testCase {
-		if result := sslb.GetHostsNumber(tt.matchCriteria); result != tt.wantHostsNumber {
-			t.Errorf("TestGetHostsNumber error, want %d, but got %d ", tt.wantHostsNumber, result)
-		}
-	}
-}
-
-// passed
-// test fallback subset creation
-func Test_subSetLoadBalancer_UpdateFallbackSubset(t *testing.T) {
-
-	hostSet := InitExampleHosts()
-	type args struct {
-		priority     uint32
-		hostAdded    []types.Host
-		hostsRemoved []types.Host
-	}
-	tests := []struct {
-		name string
-		args args
-		want []types.Host
-	}{
-		{
-			name: "case1",
-			args: args{
-				priority:     0,
-				hostAdded:    SubsetLbExample.originalPrioritySet.HostSetsByPriority()[0].Hosts(),
-				hostsRemoved: nil,
-			},
-			want: []types.Host{
-				hostSet[0], hostSet[1],
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			sslb := SubsetLbExample
-			sslb.UpdateFallbackSubset(tt.args.priority, tt.args.hostAdded, tt.args.hostsRemoved)
-
-			for idx, host := range sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts() {
-
-				if host.Hostname() != tt.want[idx].Hostname() {
-					t.Errorf("Test_subSetLoadBalancer_UpdateFallbackSubset Error, got = %v, want %v", host,
-						tt.want[idx])
-				}
-			}
-
-		})
-	}
-}
-
-// passed
-// test subset map creation and subset search
-func Test_subSetLoadBalancer_ProcessSubsets(t *testing.T) {
-
-	hostSet := InitExampleHosts()
-	updateCb := func(entry types.LBSubsetEntry) {
-		entry.PrioritySubset().Update(0, SubsetLbExample.originalPrioritySet.HostSetsByPriority()[0].Hosts(), nil)
-	}
-
-	newCb := func(entry types.LBSubsetEntry, predicate types.HostPredicate, kvs types.SubsetMetadata, addinghost bool) {
-		if addinghost {
-			prioritySubset := NewPrioritySubsetImpl(&SubsetLbExample, predicate)
-			entry.SetPrioritySubset(prioritySubset)
-		}
-	}
-
-	hostadded := SubsetLbExample.originalPrioritySet.HostSetsByPriority()[0].Hosts()
-
-	type args struct {
-		hostAdded     []types.Host
-		hostsRemoved  []types.Host
-		updateCB      func(types.LBSubsetEntry)
-		newCB         func(types.LBSubsetEntry, types.HostPredicate, types.SubsetMetadata, bool)
-		matchCriteria []types.MetadataMatchCriterion
-	}
-
-	tests := []struct {
-		name string
-		args args
-		want []types.Host
-	}{
-		{
-			name: "case1",
-			args: args{
-				hostAdded:    hostadded,
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "stage",
-						Value: utils.GenerateMD5Value("prod"),
-					},
-					&router.MetadataMatchCriterionImpl{
-						Name:  "type",
-						Value: utils.GenerateMD5Value("std"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[0], //e1,e2,e3,e4
-				hostSet[1], hostSet[2], hostSet[3],
-			},
-		},
-
-		{
-			name: "case2",
-			args: args{
-				hostAdded:    hostadded,
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "stage",
-						Value: utils.GenerateMD5Value("prod"),
-					},
-					&router.MetadataMatchCriterionImpl{
-						Name:  "type",
-						Value: utils.GenerateMD5Value("bigmem"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[4], //e5,e6
-				hostSet[5],
-			},
-		},
-		{
-			name: "case3",
-			args: args{
-				hostAdded:    hostadded,
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "stage",
-						Value: utils.GenerateMD5Value("dev"),
-					},
-					&router.MetadataMatchCriterionImpl{
-						Name:  "type",
-						Value: utils.GenerateMD5Value("std"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[6], //e5,e6
-			},
-		},
-		{
-			name: "case4",
-			args: args{
-				hostAdded:    hostadded,
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "stage",
-						Value: utils.GenerateMD5Value("prod"),
-					},
-					&router.MetadataMatchCriterionImpl{
-						Name:  "version",
-						Value: utils.GenerateMD5Value("1.0"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[0], //e1 e2 e5
-				hostSet[1],
-				hostSet[4],
-			},
-		},
-
-		{
-			name: "case5",
-			args: args{
-				hostAdded:    hostadded,
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "stage",
-						Value: utils.GenerateMD5Value("prod"),
-					},
-					&router.MetadataMatchCriterionImpl{
-						Name:  "version",
-						Value: utils.GenerateMD5Value("1.1"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[2], //e3 e4 e6
-				hostSet[3],
-				hostSet[5],
-			},
-		},
-
-		{
-			name: "case6",
-			args: args{
-				hostAdded:    hostadded,
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "stage",
-						Value: utils.GenerateMD5Value("dev"),
-					},
-					&router.MetadataMatchCriterionImpl{
-						Name:  "version",
-						Value: utils.GenerateMD5Value("1.2-pre"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[6], //e7
-
-			},
-		},
-
-		{
-			name: "case7",
-			args: args{
-				hostAdded:    hostadded,
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "version",
-						Value: utils.GenerateMD5Value("1.0"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[0], //e1,e2,e5
-				hostSet[1],
-				hostSet[4],
-			},
-		},
-
-		{
-			name: "case8",
-			args: args{
-				hostAdded:    hostadded,
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "version",
-						Value: utils.GenerateMD5Value("1.1"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[2], //e3 e4 e6
-				hostSet[3],
-				hostSet[5],
-			},
-		},
-
-		{
-			name: "case9",
-			args: args{
-				hostAdded:    hostadded,
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "version",
-						Value: utils.GenerateMD5Value("1.2-pre"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[6], //e7
-			},
-		},
-
-		{
-			name: "testcase10",
-			args: args{
-				hostAdded:    SubsetLbExample.originalPrioritySet.HostSetsByPriority()[0].Hosts(),
-				hostsRemoved: nil,
-				updateCB:     updateCb,
-				newCB:        newCb,
-				matchCriteria: []types.MetadataMatchCriterion{
-					&router.MetadataMatchCriterionImpl{
-						Name:  "version",
-						Value: utils.GenerateMD5Value("1.0"),
-					},
-					&router.MetadataMatchCriterionImpl{
-						Name:  "xlarge",
-						Value: utils.GenerateMD5Value("true"),
-					},
-				},
-			},
-			want: []types.Host{
-				hostSet[0], // e1
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sslb := SubsetLbExample
-
-			sslb.subSets = make(map[string]types.ValueSubsetMap)
-
-			sslb.ProcessSubsets(tt.args.hostAdded, tt.args.hostsRemoved, tt.args.updateCB, tt.args.newCB)
-
-			for idx, host := range sslb.FindSubset(tt.args.matchCriteria).PrioritySubset().GetOrCreateHostSubset(0).Hosts() {
-				if host.Hostname() != tt.want[idx].Hostname() {
-					t.Errorf("subSetLoadBalancer.ChooseHost() = %v, want %v", host.Hostname(), tt.want[idx].Hostname())
-				}
-			}
-		})
-	}
-}
-
-func Test_subSetLoadBalancer_ChooseHost(t *testing.T) {
-	hostSet := InitExampleHosts()
-
-	type args struct {
-		context types.LoadBalancerContext
-	}
-
-	tests := []struct {
-		name string
-		args args
-		want types.Host
-	}{
-		{
-			name: "case1",
-			args: args{
-				context: &ContextImplMock{
-					mmc: &router.MetadataMatchCriteriaImpl{
-						MatchCriteriaArray: []types.MetadataMatchCriterion{
-							&router.MetadataMatchCriterionImpl{
-								Name:  "stage",
-								Value: utils.GenerateMD5Value("prod"),
-							},
-							&router.MetadataMatchCriterionImpl{
-								Name:  "type",
-								Value: utils.GenerateMD5Value("std"),
-							},
-						},
-					},
-				},
-			},
-			want: hostSet[0],
-		},
-
-		{
-			name: "testdefault",
-			args: args{
-				context: &ContextImplMock{
-					mmc: &router.MetadataMatchCriteriaImpl{
-						MatchCriteriaArray: []types.MetadataMatchCriterion{
-							&router.MetadataMatchCriterionImpl{
-								Name:  "stage",
-								Value: utils.GenerateMD5Value("prod"),
-							},
-							&router.MetadataMatchCriterionImpl{
-								Name:  "type",
-								Value: utils.GenerateMD5Value("unknown"),
-							},
-						},
-					},
-				},
-			},
-			want: hostSet[0], // default host: e1, e2
-		},
-	}
-
-	sslb := NewSubsetLoadBalancer(types.RoundRobin, &prioritySetExample,
-		newClusterStats("testcluster"), NewLBSubsetInfo(InitExampleLbSubsetConfig()))
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := sslb.ChooseHost(tt.args.context)
-			if got.AddressString() != tt.want.AddressString() {
-				t.Errorf("subSetLoadBalancer.ChooseHost() = %v, want %v", got.AddressString(), tt.want.AddressString())
-			}
-		})
-	}
-}
-
-// passed
-func TestGenerateSubsetKeys(t *testing.T) {
-	type args struct {
-		keysArray [][]string
-	}
-
-	tests := []struct {
-		name string
-		args args
-		want [][]string
-	}{
-		{
-			name: "test",
-			args: args{
-				keysArray: [][]string{
-					{"stage", "type"},
-					{"stage", "version"},
-					{"version"},
-					{"xlarge", "version"},
-				},
-			},
-			want: [][]string{
-				{"stage", "type"},
-				{"stage", "version"},
-				{"version"},
-				{"version", "xlarge"},
-			},
-		},
-
-		{
-			name: "test2",
-			args: args{
-				keysArray: [][]string{
-					{"stage", "type", "type"},
-					{"stage", "version"},
-					{"stage", "version"},
-					{"xlarge", "version"},
-				},
-			},
-			want: [][]string{
-				{"stage", "type"},
-				{"stage", "version"},
-				{"version", "xlarge"},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GenerateSubsetKeys(tt.args.keysArray); got != nil {
-				for index, g := range got {
-					for idx, key := range g.Keys() {
-						if tt.want[index][idx] != key {
-							t.Errorf("TestGenerateSubsetKeys Error, got = %v, want %v", got, tt.want)
-						}
-					}
-				}
-			}
-
-		})
-	}
-}
-
-// passed
-func TestGenerateDftSubsetKeys(t *testing.T) {
-	type args struct {
-		dftkeys types.SortedMap
-	}
-
-	tests := []struct {
-		name string
-		args args
-		want types.SubsetMetadata
-	}{
-		{
-			name: "test1",
-			args: args{
-				dftkeys: []types.SortedPair{
-					{Key: "stage", Value: "prod"},
-					{Key: "type", Value: "std"},
-					{Key: "version", Value: "1.0"},
-				},
-			},
-			want: InitDefaultSubsetMetadata(),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GenerateDftSubsetKeys(tt.args.dftkeys); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GenerateDftSubsetKeys() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func InitDefaultSubsetMetadata() types.SubsetMetadata {
-
-	p1 := types.Pair{T1: "stage", T2: utils.GenerateMD5Value("prod")}
-
-	p2 := types.Pair{T1: "type", T2: utils.GenerateMD5Value("std")}
-
-	p3 := types.Pair{T1: "version", T2: utils.GenerateMD5Value("1.0")}
-
-	return []types.Pair{p1, p2, p3}
-}
-
-func InitExampleLbSubsetConfig() *v2.LBSubsetConfig {
-	var lbsubsetconfig = &v2.LBSubsetConfig{
-
-		FallBackPolicy: 2, //"DEFAULT_SUBSET"
-		DefaultSubset:  DefaultSubset,
-
-		SubsetSelectors: SubsetSelectors,
-	}
-
-	return lbsubsetconfig
-}
-
-func InitExampleHosts() []types.Host {
-	var HostAddress = []string{"127.0.0.1:0001", "127.0.0.1:0002", "127.0.0.1:0003",
-		"127.0.0.1:0004", "127.0.0.1:0005", "127.0.0.1:0006", "127.0.0.1:0007"}
-	var hosts []types.Host
-
-	e1 := v2.Host{
-		HostConfig: v2.HostConfig{
-			Hostname: "e1",
-			Address:  HostAddress[0],
-			Weight:   100,
-		},
-		MetaData: map[string]string{
+func ExampleHostConfigs() (hosts []v2.Host) {
+	metaDatas := []map[string]string{
+		map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
 			"type":    "std",
-			"xlarge":  "true", // Note: currently, we only support value = string
+			"xlarge":  "true", // value should be string, not a bool
 		},
-	}
-	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e1, nil)})
-
-	e2 := v2.Host{
-		HostConfig: v2.HostConfig{
-			Hostname: "e2",
-			Address:  HostAddress[1],
-			Weight:   100,
-		},
-		MetaData: map[string]string{
+		map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
 			"type":    "std",
 		},
-	}
-	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e2, nil)})
-
-	e3 := v2.Host{
-		HostConfig: v2.HostConfig{
-			Hostname: "e3",
-			Address:  HostAddress[2],
-			Weight:   100,
-		},
-		MetaData: map[string]string{
+		map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
 			"type":    "std",
 		},
-	}
-	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e3, nil)})
-
-	e4 := v2.Host{
-		HostConfig: v2.HostConfig{
-			Hostname: "e4",
-			Address:  HostAddress[3],
-			Weight:   100,
-		},
-		MetaData: map[string]string{
+		map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
 			"type":    "std",
 		},
-	}
-	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e4, nil)})
-
-	e5 := v2.Host{
-		HostConfig: v2.HostConfig{
-			Hostname: "e5",
-			Address:  HostAddress[4],
-			Weight:   100,
-		},
-		MetaData: map[string]string{
+		map[string]string{
 			"stage":   "prod",
 			"version": "1.0",
 			"type":    "bigmem",
 		},
-	}
-	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e5, nil)})
-
-	e6 := v2.Host{
-		HostConfig: v2.HostConfig{
-			Hostname: "e6",
-			Address:  HostAddress[5],
-			Weight:   100,
-		},
-		MetaData: map[string]string{
+		map[string]string{
 			"stage":   "prod",
 			"version": "1.1",
 			"type":    "bigmem",
 		},
-	}
-	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e6, nil)})
-
-	e7 := v2.Host{
-		HostConfig: v2.HostConfig{
-			Hostname: "e7",
-			Address:  HostAddress[6],
-			Weight:   100,
-		},
-		MetaData: map[string]string{
+		map[string]string{
 			"stage":   "dev",
 			"version": "1.2-pre",
 			"type":    "std",
 		},
 	}
-	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e7, nil)})
-
-	return hosts
+	for i, md := range metaDatas {
+		hostName := fmt.Sprintf("e%d", i+1)
+		addr := fmt.Sprintf("127.0.0.1:808%d", i+1)
+		cfg := v2.Host{
+			HostConfig: v2.HostConfig{
+				Hostname: hostName,
+				Address:  addr,
+			},
+			MetaData: md,
+		}
+		hosts = append(hosts, cfg)
+	}
+	return
 }
 
-func TestWeightedClusterRoute(t *testing.T) {
-	routerMock1 := &v2.Router{}
+func createPrioritySet(cfg []v2.Host) *prioritySet {
+	var hosts []types.Host
+	for _, h := range cfg {
+		hostInfo := newHostInfo(nil, h, nil)
+		host := &host{
+			hostInfo: hostInfo,
+		}
+		hosts = append(hosts, host)
+	}
+	ps := &prioritySet{}
+	ps.GetOrCreateHostSet(0).UpdateHosts(hosts, hosts, hosts, nil)
+	return ps
+}
 
-	routerMock1.Route = v2.RouteAction{
-		RouterActionConfig: v2.RouterActionConfig{
-			ClusterName: "defaultCluster",
-			WeightedClusters: []v2.WeightedCluster{
-				{
-					Cluster: v2.ClusterWeight{
-						ClusterWeightConfig: v2.ClusterWeightConfig{
-							Name:   "w1",
-							Weight: 90,
-						},
-						MetadataMatch: map[string]string{
-							"version": "v1"},
-					},
-				},
-
-				{
-					Cluster: v2.ClusterWeight{
-						ClusterWeightConfig: v2.ClusterWeightConfig{
-							Name:   "w2",
-							Weight: 10,
-						},
-						MetadataMatch: map[string]string{
-							"version": "v2"},
-					},
-				},
+// Selector Config
+/*
+"subset_selectors": [
+      { "keys": [ "stage", "type" ] },
+      { "keys": [ "stage", "version" ] },
+      { "keys": [ "version" ] },
+      { "keys": [ "xlarge", "version" ] },
+    ]
+*/
+// mosn's config format is different from envoy
+func ExampleSubsetConfig() *v2.LBSubsetConfig {
+	return &v2.LBSubsetConfig{
+		SubsetSelectors: [][]string{
+			[]string{
+				"stage", "type",
+			},
+			[]string{
+				"stage", "version",
+			},
+			[]string{
+				"version",
+			},
+			[]string{
+				"xlarge", "version",
 			},
 		},
 	}
+}
 
-	routeRuleImplBase, _ := router.NewRouteRuleImplBase(nil, routerMock1)
-	clustername := routeRuleImplBase.ClusterName()
+// LbSubsetMap Result, show as string chain
+// stage->dev->type->std->[e7]
+// stage->dev->version->1.2-pre->[e7]
+// stage->prod->type->std->[e1,e2,e3,e4]
+// stage->prod->type->bigmem->[e5,e6]
+// stage->prod->version->1.0->[e1,e2,e5]
+// stage->prod->version->1.1->[e3,e4,e6]
+// version->1.0->[e1,e2,e5]
+// version->1.0->xlarge->true->[e1]
+// version->1.1->[e3,e4,e6]
+// version->1.2-pre->[e7]
+var ExampleResult = map[string][]string{
+	"stage->dev->type->std->":        []string{"e7"},
+	"stage->dev->version->1.2-pre->": []string{"e7"},
+	"stage->prod->type->std->":       []string{"e1", "e2", "e3", "e4"},
+	"stage->prod->type->bigmem->":    []string{"e5", "e6"},
+	"stage->prod->version->1.0->":    []string{"e1", "e2", "e5"},
+	"stage->prod->version->1.1->":    []string{"e3", "e4", "e6"},
+	"version->1.0->":                 []string{"e1", "e2", "e5"},
+	"version->1.0->xlarge->true->":   []string{"e1"},
+	"version->1.1->":                 []string{"e3", "e4", "e6"},
+	"version->1.2-pre->":             []string{"e7"},
+}
 
-	if clustername == "w1" {
-		if weightedClusterEntry, ok := routeRuleImplBase.WeightedCluster()[clustername]; ok {
-			metadataMatchCriteria := weightedClusterEntry.GetClusterMetadataMatchCriteria()
-			sslb := NewSubsetLoadBalancer(types.RoundRobin, &priorityMock,
-				newClusterStats("w1"), NewLBSubsetInfo(SubsetMock()))
-
-			context := &ContextImplMock{
-				mmc: metadataMatchCriteria,
-			}
-
-			if host := sslb.ChooseHost(context); host.Hostname() != "e1" {
-				t.Errorf("routing with weighted cluster error, want e1, but got:%s", host.Hostname())
-			}
-		} else {
-			t.Errorf("routing with weighted cluster error, no clustername found")
+func resultMapEqual(m1, m2 map[string][]string) bool {
+	if len(m1) != len(m2) {
+		return false
+	}
+	for key, node := range m1 {
+		node2, ok := m2[key]
+		if !ok {
+			return false
 		}
-	} else if clustername == "w2" {
-		if weightedClusterEntry, ok := routeRuleImplBase.WeightedCluster()[clustername]; ok {
-			metadataMatchCriteria := weightedClusterEntry.GetClusterMetadataMatchCriteria()
-			sslb := NewSubsetLoadBalancer(types.RoundRobin, &priorityMock,
-				newClusterStats("w2"), NewLBSubsetInfo(SubsetMock()))
-
-			context := &ContextImplMock{
-				mmc: metadataMatchCriteria,
-			}
-
-			if host := sslb.ChooseHost(context); host.Hostname() != "e2" {
-				t.Errorf("routing with weighted cluster error, want e1, but got:%s", host.Hostname())
-			}
-		} else {
-			t.Errorf("routing with weighted cluster error, no clustername found")
+		if !strSliceEqual(node, node2) {
+			return false
 		}
-	} else {
-		t.Errorf("routing with weighted cluster error, no clustername found")
+	}
+	return true
+}
+func strSliceEqual(s1, s2 []string) bool {
+	sort.Strings(s1)
+	sort.Strings(s2)
+	return reflect.DeepEqual(s1, s2)
+}
+func strInSlice(s string, list []string) bool {
+	for _, ls := range list {
+		if s == ls {
+			return true
+		}
+	}
+	return false
+}
+
+type subSetMapResult struct {
+	// key is prefix like: stage->dev->type->std->
+	// value is hostname's string like: [e7]
+	result map[string][]string
+}
+
+// parse a LbSubsetMap as a readable map
+func (r *subSetMapResult) RangeSubsetMap(prefix string, subsetMap types.LbSubsetMap) {
+	for key, value := range subsetMap {
+		for v, entry := range value {
+			p := prefix + key + "->" + string(v) + "->"
+			if entry.Children() != nil {
+				r.RangeSubsetMap(p, entry.Children())
+			}
+			if entry.PrioritySubset() != nil {
+				ps := entry.PrioritySubset().(*PrioritySubsetImpl)
+				hosts := ps.prioritySubset.GetHostsInfo(0)
+				hostsNode := []string{}
+				for _, h := range hosts {
+					hostsNode = append(hostsNode, h.Hostname())
+				}
+				r.result[p] = hostsNode
+			}
+		}
+	}
+}
+
+// create a subset as expected, see example
+func TestNewSubsetLoadBalancer(t *testing.T) {
+	ps := createPrioritySet(ExampleHostConfigs())
+	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetLoadBalancer"), NewLBSubsetInfo(ExampleSubsetConfig()))
+	if lb == nil {
+		t.Fatal("create subset lb failed")
+	}
+	subSet := lb.(*subSetLoadBalancer).subSets
+	result := &subSetMapResult{
+		result: map[string][]string{},
+	}
+	result.RangeSubsetMap("", subSet)
+	if !resultMapEqual(result.result, ExampleResult) {
+		t.Errorf("subset tree created is not expected, %v", result.result)
+	}
+}
+
+// MetadataMatchCriteria should exactly matches subset
+// case1: stage:prod, version:1.0 shoud find e1,e2,e5
+// case2: stage:prod: should find nil
+func TestNewSubsetChooseHost(t *testing.T) {
+	ps := createPrioritySet(ExampleHostConfigs())
+	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetChooseHost"), NewLBSubsetInfo(ExampleSubsetConfig()))
+	if lb == nil {
+		t.Fatal("create subset lb failed")
+	}
+	ctx1 := newMockLbContext(map[string]string{
+		"stage":   "prod",
+		"version": "1.0",
+	})
+	ctx2 := newMockLbContext(map[string]string{
+		"stage": "prod",
+	})
+	h, ok := lb.TryChooseHostFromContext(ctx1)
+	if !ok || h == nil {
+		t.Fatal("choose host failed, expected success")
+	}
+	switch h.Hostname() {
+	case "e1", "e2", "e5":
+	default:
+		t.Fatal("host found, but not the expected subset", h.Hostname())
+	}
+	if h, ok := lb.TryChooseHostFromContext(ctx2); ok || h != nil {
+		t.Fatalf("expected choose failed, but returns a host, host: %v, ok: %v", h, ok)
+	}
+}
+
+// If selectors not configured the host label, the host will not be put in any subset
+func TestNoSubsetHost(t *testing.T) {
+	ps := createPrioritySet(ExampleHostConfigs())
+	cfg := &v2.LBSubsetConfig{
+		SubsetSelectors: [][]string{
+			[]string{
+				"xlarge", "version",
+			},
+		},
+	}
+	// only one host will put in subset (e1)
+	// others cannot be found in subset even if version is matched
+	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNoSubsetHost"), NewLBSubsetInfo(cfg))
+	if lb == nil {
+		t.Fatal("create subset lb failed")
+	}
+	// found no host
+	ctx1 := newMockLbContext(map[string]string{
+		"version": "1.0",
+	})
+	// found host
+	ctx2 := newMockLbContext(map[string]string{
+		"version": "1.0",
+		"xlarge":  "true",
+	})
+	if h, ok := lb.TryChooseHostFromContext(ctx1); ok || h != nil {
+		t.Fatalf("expected choose failed, but returns a host, host: %v, ok: %v", h, ok)
+	}
+	for i := 0; i < 10; i++ {
+		h, ok := lb.TryChooseHostFromContext(ctx2)
+		if !ok || h == nil {
+			t.Fatal("choose host failed, expected success")
+		}
+		if h.Hostname() != "e1" {
+			t.Fatalf("host found not expected, got: %s", h.Hostname())
+		}
+	}
+
+}
+
+// TestFallbackWithDefaultSubset configure default subset as fallback
+// if a ctx is not matched the subset, use the fallback instead
+func TestFallbackWithDefaultSubset(t *testing.T) {
+	ps := createPrioritySet(ExampleHostConfigs())
+	// only create subset with version and xlarge
+	// if not matched, use default subset: stage:dev
+	cfg := &v2.LBSubsetConfig{
+		FallBackPolicy: uint8(types.DefaultSubsetDefaultSubset),
+		DefaultSubset: map[string]string{
+			"stage": "dev", // only contain e7
+		},
+		SubsetSelectors: [][]string{
+			[]string{
+				"version", "xlarge",
+			},
+		},
+	}
+	// ctx1: version:1.0, xlarge: true. match the selector, find e1
+	// ctx2: version:1.0, xlarge: false. not matched, find is fallback, e7
+	// ctx3: version:1.2, xlarge: true. not matched, find is fallabck, e7
+	// ctx4: stage: prod. not matched, find is fallback, e7
+	// ctx5~7: nil(mmc is nil/no value). not matched, find is fallback e7
+	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestFallbackWithDefaultSubset"), NewLBSubsetInfo(cfg))
+	if lb == nil {
+		t.Fatal("create subset lb failed")
+	}
+	testCases := []struct {
+		ctx          types.LoadBalancerContext
+		expectedHost string
+	}{
+		{
+			ctx: newMockLbContext(map[string]string{
+				"version": "1.0",
+				"xlarge":  "true",
+			}),
+			expectedHost: "e1",
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"version": "1.0",
+				"xlarge":  "false",
+			}),
+			expectedHost: "e7",
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"version": "1.2",
+				"xlarge":  "true",
+			}),
+			expectedHost: "e7",
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"stage": "prod",
+			}),
+			expectedHost: "e7",
+		},
+		{
+			ctx:          nil,
+			expectedHost: "e7",
+		},
+		{
+			ctx:          newMockLbContext(nil),
+			expectedHost: "e7",
+		},
+		{
+			ctx:          newMockLbContext(map[string]string{}),
+			expectedHost: "e7",
+		},
+	}
+	for i, tc := range testCases {
+		h := lb.ChooseHost(tc.ctx)
+		if h == nil {
+			t.Errorf("#%d choose host failed", i)
+			continue
+		}
+		if h.Hostname() != tc.expectedHost {
+			t.Errorf("#%d choose host is not expected, expected %s, got %s", tc.expectedHost, h.Hostname())
+		}
+	}
+
+}
+
+// TestFallbackWithAllHosts configure all hosts as fallback, without default subset
+func TestFallbackWithAllHosts(t *testing.T) {
+	// fallback policy is any point
+	// all host (no matter what lable it is) is used to fallback subset
+	// for test simple, we use some simple host configs
+	hosts := []v2.Host{
+		{
+			HostConfig: v2.HostConfig{
+				Hostname: "host1",
+				Address:  "127.0.0.1:8080",
+			},
+			MetaData: map[string]string{
+				"zone": "zone0",
+				"room": "room0",
+			},
+		},
+		{
+			HostConfig: v2.HostConfig{
+				Hostname: "host2",
+				Address:  "127.0.0.1:8081",
+			},
+			MetaData: map[string]string{
+				"zone": "zone1",
+			},
+		},
+		{
+			HostConfig: v2.HostConfig{
+				Hostname: "host3",
+				Address:  "127.0.0.1:8082",
+			},
+			MetaData: map[string]string{
+				"room": "room1",
+			},
+		},
+	}
+	ps := createPrioritySet(hosts)
+	// only create subset with version and xlarge
+	// if not matched, use default subset: stage:dev
+	cfg := &v2.LBSubsetConfig{
+		FallBackPolicy: uint8(types.AnyEndPoint),
+		SubsetSelectors: [][]string{
+			[]string{
+				"zone", "room",
+			},
+		},
+	}
+	//
+	expectedResult := map[string][]string{
+		"room->room0->zone->zone0->": []string{"host1"},
+	}
+	// New
+	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestFallbackWithAllHosts"), NewLBSubsetInfo(cfg))
+	if lb == nil {
+		t.Fatal("create subset lb failed")
+	}
+	subSet := lb.(*subSetLoadBalancer).subSets
+	result := &subSetMapResult{
+		result: map[string][]string{},
+	}
+	// Verify subset created
+	result.RangeSubsetMap("", subSet)
+	if !resultMapEqual(result.result, expectedResult) {
+		t.Errorf("subset tree created is not expected, got: %v, expected: %v", result.result, expectedResult)
+	}
+	// choose host test
+	testCases := []struct {
+		ctx           types.LoadBalancerContext
+		expectedHosts []string
+	}{
+		{
+			ctx: newMockLbContext(map[string]string{
+				"zone": "zone0",
+				"room": "room0",
+			}),
+			expectedHosts: []string{
+				"host1", // matched subset
+			},
+		},
+		// fallback
+		{
+			ctx: newMockLbContext(map[string]string{
+				"zone": "zone0",
+			}),
+			expectedHosts: []string{
+				"host1", "host2", "host3",
+			},
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"room": "room0",
+			}),
+			expectedHosts: []string{
+				"host1", "host2", "host3",
+			},
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"zone": "zone0",
+				"room": "room1",
+			}),
+			expectedHosts: []string{
+				"host1", "host2", "host3",
+			},
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"zone": "zone1",
+			}),
+			expectedHosts: []string{
+				"host1", "host2", "host3",
+			},
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"room": "room1",
+			}),
+			expectedHosts: []string{
+				"host1", "host2", "host3",
+			},
+		},
+		{
+			ctx: newMockLbContext(map[string]string{}),
+			expectedHosts: []string{
+				"host1", "host2", "host3",
+			},
+		},
+		{
+			ctx: nil,
+			expectedHosts: []string{
+				"host1", "host2", "host3",
+			},
+		},
+		{
+			ctx: newMockLbContext(nil),
+			expectedHosts: []string{
+				"host1", "host2", "host3",
+			},
+		},
+	}
+RUNCASE:
+	for i, tc := range testCases {
+		for j := 0; j < 3; j++ { // choose multi times
+			h := lb.ChooseHost(tc.ctx)
+			if h == nil {
+				t.Errorf("#%d choose host failed", i)
+				continue RUNCASE
+			}
+			if !strInSlice(h.Hostname(), tc.expectedHosts) {
+				t.Errorf("#%d choose host not expected, expected: %v, got: %s", tc.expectedHosts, h.Hostname())
+				continue RUNCASE
+			}
+		}
+	}
+}
+
+// TestDynamicSubsetHost with subset
+// If a subset's hosts are all deleted, the subset map still exixts, but will returns a nil host
+// If a new host with label is added, a new subset map will be created
+func TestDynamicSubsetHost(t *testing.T) {
+	// use cluster manager to register dynamic host changed
+	clusterName := "TestSubset"
+	hostA := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address:  "127.0.0.1:8080",
+			Hostname: "A",
+		},
+		MetaData: v2.Metadata{
+			"zone":  "zone0",
+			"group": "a",
+		},
+	}
+	hosts := []v2.Host{
+		hostA,
+	}
+	clusterConfig := v2.Cluster{
+		Name:                 clusterName,
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_RANDOM,
+		MaxRequestPerConn:    1024,
+		ConnBufferLimitBytes: 1024,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: uint8(types.AnyEndPoint),
+			SubsetSelectors: [][]string{
+				[]string{
+					"zone", "group",
+				},
+				[]string{
+					"zone",
+				},
+			},
+		},
+		Hosts: hosts,
+	}
+	clusters := []v2.Cluster{
+		clusterConfig,
+	}
+	clusterMap := map[string][]v2.Host{
+		clusterName: hosts,
+	}
+	// makes a cluster manager, and get the subset
+	// reset clusrer manager
+	clusterMangerInstance.Destory()
+	cmi := NewClusterManager(nil, clusters, clusterMap, false, false)
+	cm := cmi.(*clusterManager)
+	v, _ := cm.primaryClusters.Load(clusterName)
+	pc := v.(*primaryCluster)
+	pcc := pc.cluster.(*simpleInMemCluster).cluster
+	info := pcc.info
+	lb := info.lbInstance.(*subSetLoadBalancer)
+	// test
+	// create a subset
+	{
+		expectedResult := map[string][]string{
+			"group->a->zone->zone0->": []string{"A"},
+			"zone->zone0->":           []string{"A"},
+		}
+		result := &subSetMapResult{
+			result: map[string][]string{},
+		}
+		result.RangeSubsetMap("", lb.subSets)
+		if !resultMapEqual(result.result, expectedResult) {
+			t.Fatal("create subset is not expected", result.result)
+		}
+		// try to choose host, found A
+		ctx := newMockLbContext(map[string]string{
+			"zone":  "zone0",
+			"group": "a",
+		})
+		// no fallback choose
+		if h, ok := lb.TryChooseHostFromContext(ctx); !ok || h == nil || h.Hostname() != "A" {
+			t.Fatal("choose host not expected")
+		}
+
+	}
+	// remove a host the subset will be changed
+	{
+		cm.UpdateClusterHosts(clusterName, 0, []v2.Host{})
+		// host removed, the tree still exists, but no more active
+		expectedResult := map[string][]string{
+			"group->a->zone->zone0->": []string{},
+			"zone->zone0->":           []string{},
+		}
+		result := &subSetMapResult{
+			result: map[string][]string{},
+		}
+		result.RangeSubsetMap("", lb.subSets)
+		if !resultMapEqual(result.result, expectedResult) {
+			t.Fatal("create subset is not expected", result.result)
+		}
+		// try to choose host, found nil
+		ctx := newMockLbContext(map[string]string{
+			"zone":  "zone0",
+			"group": "a",
+		})
+		// with fallback choose, also get a nil
+		if h := lb.ChooseHost(ctx); h != nil {
+			t.Fatal("choost host not expected")
+		}
+	}
+	// add a new host with new label, create a new subset
+	{
+		hostB := v2.Host{
+			HostConfig: v2.HostConfig{
+				Address:  "127.0.0.1:8080", // address is same as host A
+				Hostname: "B",
+			},
+			MetaData: v2.Metadata{
+				"zone":  "zone0",
+				"group": "b",
+			},
+		}
+		cm.UpdateClusterHosts(clusterName, 0, []v2.Host{hostB})
+		expectedResult := map[string][]string{
+			"group->a->zone->zone0->": []string{},
+			"zone->zone0->":           []string{"B"},
+			"group->b->zone->zone0->": []string{"B"},
+		}
+		result := &subSetMapResult{
+			result: map[string][]string{},
+		}
+		result.RangeSubsetMap("", lb.subSets)
+		if !resultMapEqual(result.result, expectedResult) {
+			t.Fatal("create subset is not expected", result.result)
+		}
+		// try to choose host
+		ctx := newMockLbContext(map[string]string{
+			"zone":  "zone0",
+			"group": "a",
+		})
+		// no fallback, found nothing
+		if h, ok := lb.TryChooseHostFromContext(ctx); ok || h != nil {
+			t.Fatal("choost host not expected")
+		}
+		// with fallback, found host
+		if h := lb.ChooseHost(ctx); h == nil || h.Hostname() != "B" {
+			t.Fatal("choost host not expected")
+		}
+		ctx2 := newMockLbContext(map[string]string{
+			"zone":  "zone0",
+			"group": "b",
+		})
+		// no fallback, found host
+		if h, ok := lb.TryChooseHostFromContext(ctx2); !ok || h == nil || h.Hostname() != "B" {
+			t.Fatal("choose host not expected")
+		}
+	}
+
+}
+
+func TestSubsetGetHostsNumber(t *testing.T) {
+	ps := createPrioritySet(ExampleHostConfigs())
+	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestSubsetGetHostsNumber"), NewLBSubsetInfo(ExampleSubsetConfig()))
+	if lb == nil {
+		t.Fatal("create subset lb failed")
+	}
+	sslb := lb.(*subSetLoadBalancer)
+	testCases := []struct {
+		ctx         types.LoadBalancerContext
+		hostsNumber uint32
+	}{
+		{
+			ctx: newMockLbContext(map[string]string{
+				"stage": "dev",
+				"type":  "std",
+			}),
+			hostsNumber: 1,
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"stage":   "dev",
+				"version": "1.2-pre",
+			}),
+			hostsNumber: 1,
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"stage": "prod",
+				"type":  "std",
+			}),
+			hostsNumber: 4,
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"stage": "prod",
+				"type":  "bigmem",
+			}),
+			hostsNumber: 2,
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"stage":   "prod",
+				"version": "1.0",
+			}),
+			hostsNumber: 3,
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"stage":   "prod",
+				"version": "1.1",
+			}),
+			hostsNumber: 3,
+		},
+		{
+			ctx: newMockLbContext(map[string]string{
+				"version": "1.0",
+			}),
+			hostsNumber: 3,
+		},
+
+		{
+			ctx: newMockLbContext(map[string]string{
+				"version": "1.0",
+				"xlarge":  "true",
+			}),
+			hostsNumber: 1,
+		},
+
+		{
+			ctx: newMockLbContext(map[string]string{
+				"version": "1.1",
+			}),
+			hostsNumber: 3,
+		},
+
+		{
+			ctx: newMockLbContext(map[string]string{
+				"version": "1.2-pre",
+			}),
+			hostsNumber: 1,
+		},
+	}
+	for i, tc := range testCases {
+		cnt := sslb.GetHostsNumber(tc.ctx.MetadataMatchCriteria())
+		if cnt != tc.hostsNumber {
+			t.Errorf("#%d get host number not expected, expected %d, got %d", i, tc.hostsNumber, cnt)
+		}
 	}
 }
 
@@ -845,69 +809,19 @@ func TestGetFinalHost(t *testing.T) {
 	}
 }
 
-var priorityMock = prioritySet{
-	hostSets: []types.HostSet{
-		&hostSet{
-			hosts: HostsMock(),
-		},
-	},
+// utils for test
+type mockLbContext struct {
+	types.LoadBalancerContext
+	mmc types.MetadataMatchCriteria
 }
 
-func SubsetMock() *v2.LBSubsetConfig {
-	lbsubsetconfig := &v2.LBSubsetConfig{
-		FallBackPolicy:  2, //"DEFAULT_SUBSET"
-		SubsetSelectors: [][]string{{"version"}},
+func newMockLbContext(m map[string]string) types.LoadBalancerContext {
+	mmc := router.NewMetadataMatchCriteriaImpl(m)
+	return &mockLbContext{
+		mmc: mmc,
 	}
-
-	return lbsubsetconfig
 }
 
-func HostsMock() []types.Host {
-	var hosts []types.Host
-
-	e1 := v2.Host{
-		HostConfig: v2.HostConfig{
-			Hostname: "e1",
-			Weight:   50,
-		},
-		MetaData: map[string]string{
-			"version": "v1",
-		},
-	}
-	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e1, nil)})
-
-	e2 := v2.Host{
-		HostConfig: v2.HostConfig{
-			Hostname: "e2",
-			Weight:   50,
-		},
-		MetaData: map[string]string{
-			"version": "v2",
-		},
-	}
-	//
-	hosts = append(hosts, &host{hostInfo: newHostInfo(nil, e2, nil)})
-
-	return hosts
-}
-
-type ContextImplMock struct {
-	mmc *router.MetadataMatchCriteriaImpl
-}
-
-func (ci *ContextImplMock) ComputeHashKey() types.HashedValue {
-	//return [16]byte{}
-	return ""
-}
-
-func (ci *ContextImplMock) MetadataMatchCriteria() types.MetadataMatchCriteria {
-	return ci.mmc
-}
-
-func (ci *ContextImplMock) DownstreamConnection() net.Conn {
-	return nil
-}
-
-func (ci *ContextImplMock) DownstreamHeaders() types.HeaderMap {
-	return nil
+func (ctx *mockLbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
+	return ctx.mmc
 }
