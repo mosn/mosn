@@ -48,7 +48,7 @@ var (
 )
 
 func SetPid(pid string) {
-    if pid == "" {
+	if pid == "" {
 		pidFile = types.MosnPidDefaultFileName
 	} else {
 		if err := os.MkdirAll(filepath.Dir(pid), 0644); err != nil {
@@ -226,4 +226,66 @@ func reconfigure(start bool) {
 
 	// Stop the old server, all the connections have been closed and the new one is running
 	os.Exit(0)
+}
+
+func ReconfigureHandler() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("transferServer panic %v", r)
+		}
+	}()
+	time.Sleep(time.Second)
+
+	syscall.Unlink(types.ReconfigureDomainSocket)
+
+	l, err := net.Listen("unix", types.ReconfigureDomainSocket)
+	if err != nil {
+		log.StartLogger.Errorf("reconfigureHandler net listen error: %v", err)
+		return
+	}
+	defer l.Close()
+
+	log.DefaultLogger.Infof("reconfigureHandler start")
+
+	ul := l.(*net.UnixListener)
+	for {
+		uc, err := ul.AcceptUnix()
+		if err != nil {
+			log.DefaultLogger.Errorf("reconfigureHandler Accept error :%v", err)
+			return
+		}
+		log.DefaultLogger.Infof("reconfigureHandler Accept")
+
+		_, err = uc.Write([]byte{0})
+		if err != nil {
+			log.DefaultLogger.Errorf("reconfigureHandler %v", err)
+			continue
+		}
+		uc.Close()
+
+		reconfigure(false)
+	}
+}
+
+func StopReconfigureHandler() {
+	syscall.Unlink(types.ReconfigureDomainSocket)
+}
+
+func isReconfigure() bool {
+	var unixConn net.Conn
+	var err error
+	unixConn, err = net.DialTimeout("unix", types.ReconfigureDomainSocket, 1*time.Second)
+	if err != nil {
+		log.DefaultLogger.Infof("not reconfigure: %v", err)
+		return false
+	}
+	defer unixConn.Close()
+
+	uc := unixConn.(*net.UnixConn)
+	buf := make([]byte, 1)
+	n, _ := uc.Read(buf)
+	if n != 1 {
+		return false
+	}
+	return true
 }

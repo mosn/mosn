@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 
 	"syscall"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func addMetrics() {
@@ -79,7 +80,7 @@ func TestTransferData(t *testing.T) {
 
 func TestTransferWithSocket(t *testing.T) {
 	// set domain socket path
-	TransferDomainSocket = "/tmp/stats.sock"
+	types.TransferStatsDomainSocket = "/tmp/stats.sock"
 	ResetAll()
 	addMetrics()
 	res1, _ := json.Marshal(defaultStore.metrics)
@@ -88,7 +89,7 @@ func TestTransferWithSocket(t *testing.T) {
 	// Wait Server start
 	time.Sleep(2 * time.Second)
 	defer func() {
-		syscall.Unlink(TransferDomainSocket)
+		syscall.Unlink(types.TransferStatsDomainSocket)
 	}()
 	body, err := makesTransferData()
 	if err != nil {

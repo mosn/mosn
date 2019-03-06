@@ -125,9 +125,6 @@ func readTransferData(b []byte) error {
 	return nil
 }
 
-// TransferDomainSocket represents unix socket for listener
-var TransferDomainSocket = types.TransferStatsDomainSocket
-
 // TransferServer starts a unix socket, lasts 10 seconds and 2*$gracefultime}, receive metrics datas
 // When serves a conn, sends a message to chan
 func TransferServer(gracefultime time.Duration, ch chan<- bool) {
@@ -136,8 +133,8 @@ func TransferServer(gracefultime time.Duration, ch chan<- bool) {
 			log.DefaultLogger.Errorf("transfer metrics server panic %v", r)
 		}
 	}()
-	syscall.Unlink(TransferDomainSocket)
-	ln, err := net.Listen("unix", TransferDomainSocket)
+	syscall.Unlink(types.TransferStatsDomainSocket)
+	ln, err := net.Listen("unix", types.TransferStatsDomainSocket)
 	if err != nil {
 		log.DefaultLogger.Errorf("transfer metrics net listen error %v", err)
 		return
@@ -196,7 +193,7 @@ func transferMetrics(body []byte, wait bool, timeout time.Duration) {
 			log.DefaultLogger.Errorf("transfer metrics send data error: %v", r)
 		}
 	}()
-	conn, err := net.Dial("unix", TransferDomainSocket)
+	conn, err := net.Dial("unix", types.TransferStatsDomainSocket)
 	if err != nil {
 		log.DefaultLogger.Errorf("transfer metrics dial unix socket failed:%v", err)
 		return

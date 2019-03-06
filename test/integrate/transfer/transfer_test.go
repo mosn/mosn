@@ -18,8 +18,6 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -45,8 +43,8 @@ func forkTransferMesh(tc *integrate.TestCase) int {
 func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 	rand.Seed(3)
 	server.GracefulTimeout = 5 * time.Second
-	network.TransferDomainSocket = "/tmp/mosn.sock"
-	metrics.TransferDomainSocket = "/tmp/stats.sock"
+	types.TransferConnDomainSocket = "/tmp/mosn.sock"
+	types.TransferStatsDomainSocket = "/tmp/stats.sock"
 	types.TransferListenDomainSocket = "/tmp/listen.sock"
 	types.ReconfigureDomainSocket = "/tmp/reconfig.sock"
 	cfg := util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
