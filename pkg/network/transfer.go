@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"sync"
@@ -45,7 +44,6 @@ const (
 
 // TransferTimeout is the total transfer time
 var TransferTimeout = time.Second * 30 //default 30s
-var TransferDomainSocket = filepath.Dir(os.Args[0]) + string(os.PathSeparator) + "mosn.sock"
 
 func SetTransferTimeout(time time.Duration) {
 	if time != 0 {
@@ -63,10 +61,8 @@ func TransferServer(handler types.ConnectionHandler) {
 
 	defer store.SetMosnState(store.Running)
 
-	if _, err := os.Stat(TransferDomainSocket); err == nil {
-		os.Remove(TransferDomainSocket)
-	}
-	l, err := net.Listen("unix", TransferDomainSocket)
+	syscall.Unlink(types.TransferConnDomainSocket)
+	l, err := net.Listen("unix", types.TransferConnDomainSocket)
 	if err != nil {
 		log.DefaultLogger.Errorf("transfer net listen error %v", err)
 		return
@@ -169,7 +165,7 @@ func transferRead(c *connection) (uint64, error) {
 			debug.PrintStack()
 		}
 	}()
-	unixConn, err := net.Dial("unix", TransferDomainSocket)
+	unixConn, err := net.Dial("unix", types.TransferConnDomainSocket)
 	if err != nil {
 		c.logger.Errorf("net Dial unix failed c:%p, id:%d, err:%v", c, c.id, err)
 		return transferErr, err
@@ -208,7 +204,7 @@ func transferWrite(c *connection, id uint64) error {
 			c.logger.Errorf("transferWrite panic %v", r)
 		}
 	}()
-	unixConn, err := net.Dial("unix", TransferDomainSocket)
+	unixConn, err := net.Dial("unix", types.TransferConnDomainSocket)
 	if err != nil {
 		c.logger.Errorf("net Dial unix failed %v", err)
 		return err

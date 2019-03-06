@@ -25,7 +25,7 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 	"golang.org/x/net/http2"
 )
 

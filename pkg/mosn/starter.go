@@ -48,7 +48,10 @@ type Mosn struct {
 // NewMosn
 // Create server from mosn config
 func NewMosn(c *config.MOSNConfig) *Mosn {
+	initializeDefaultPath(config.GetConfigPath())
 	initializePidFile(c.Pid)
+	initializeTracing(c.Tracing)
+	initializeMetrics(c.Metrics)
 
 	//get inherit fds
 	inheritListeners, reconfigure, err := server.GetInheritListeners()
@@ -61,9 +64,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		// parse MOSNConfig again
 		c = config.Load(config.GetConfigPath())
 	}
-
-	initializeTracing(c.Tracing)
-	initializeMetrics(c.Metrics)
 
 	m := &Mosn{
 		config: c,
@@ -168,13 +168,13 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
-	// notify old mosn quit and transfer connection
 	if reconfigure != nil {
 		// start other services
 		if err := store.StartService(inheritListeners); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
 		}
 
+		// notify old mosn to transfer connection
 		if _, err := reconfigure.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalln("graceful failed, exit")
 		}
@@ -200,8 +200,8 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		}
 	}
 
-	// write pid file
-	server.WritePidFile()
+	// start reconfigure domain socket
+	go server.ReconfigureHandler()
 
 	return m
 }
@@ -218,6 +218,9 @@ func (m *Mosn) Start() {
 func (m *Mosn) Close() {
 	// close service
 	store.StopService()
+
+	// stop reconfigure domain socket
+	server.StopReconfigureHandler()
 
 	// stop mosn server
 	for _, srv := range m.servers {
@@ -285,6 +288,10 @@ func initializeMetrics(config config.MetricsConfig) {
 
 func initializePidFile(pid string) {
 	server.SetPid(pid)
+}
+
+func initializeDefaultPath(path string) {
+	types.InitDefaultPath(path)
 }
 
 type clusterManagerFilter struct {

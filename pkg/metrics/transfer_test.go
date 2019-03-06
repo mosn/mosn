@@ -19,13 +19,14 @@ package metrics
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"testing"
 	"time"
 
 	"encoding/json"
 
+	"syscall"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func addMetrics() {
@@ -79,7 +80,7 @@ func TestTransferData(t *testing.T) {
 
 func TestTransferWithSocket(t *testing.T) {
 	// set domain socket path
-	TransferDomainSocket = "/tmp/stats.sock"
+	types.TransferStatsDomainSocket = "/tmp/stats.sock"
 	ResetAll()
 	addMetrics()
 	res1, _ := json.Marshal(defaultStore.metrics)
@@ -88,9 +89,7 @@ func TestTransferWithSocket(t *testing.T) {
 	// Wait Server start
 	time.Sleep(2 * time.Second)
 	defer func() {
-		if _, err := os.Stat(TransferDomainSocket); err == nil {
-			os.Remove(TransferDomainSocket)
-		}
+		syscall.Unlink(types.TransferStatsDomainSocket)
 	}()
 	body, err := makesTransferData()
 	if err != nil {

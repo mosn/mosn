@@ -71,11 +71,12 @@ func AddService(s *http.Server, name string, init func(), exit func()) {
 }
 
 func StartService(inheritListeners []net.Listener) error {
-	for _, s := range services {
+	for _, srv := range services {
 		var err error
 		var ln net.Listener
 		var saddr *net.TCPAddr
 
+		s := srv
 		saddr, err = net.ResolveTCPAddr("tcp", s.Addr)
 		if err != nil {
 			log.StartLogger.Fatalln("[inheritListener] not valid:", s.Addr)
@@ -125,7 +126,8 @@ func StartService(inheritListeners []net.Listener) error {
 }
 
 func StopService() {
-	for _, s := range services {
+	for _, srv := range services {
+		s := srv
 		if s.exit != nil {
 			s.exit()
 		}
