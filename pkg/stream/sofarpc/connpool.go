@@ -262,9 +262,11 @@ func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 func (ac *activeClient) OnGoAway() {}
 
 func getSubProtocol(ctx context.Context) byte {
-	if ctx != nil{
+	if ctx != nil {
 		if val := ctx.Value(types.ContextSubProtocol); val != nil {
-			return val.(byte)
+			if code, ok := val.(byte); ok {
+				return code
+			}
 		}
 	}
 	return defaultSubProtocol
