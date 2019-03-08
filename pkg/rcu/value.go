@@ -89,7 +89,7 @@ func (v *Value) Update(i interface{}, wait time.Duration) error {
 	}
 	e = old.(*element)
 
-	interval := 10 * time.Millisecond
+	interval := 100 * time.Microsecond
 	// element load and element count add are two options, use sleep to wait
 	time.Sleep(interval)
 
