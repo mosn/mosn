@@ -28,7 +28,7 @@ import (
 func TestService(t *testing.T) {
 	var b bool
 	srv := &http.Server{
-		Addr:    "127.0.0.1:13476",
+		Addr:    "127.0.0.1:13475",
 		Handler: nil,
 	}
 	AddService(
@@ -45,15 +45,37 @@ func TestService(t *testing.T) {
 		t.Errorf("TestService init func error")
 	}
 
+	var b1 bool
+	srv1 := &http.Server{
+		Addr:    "127.0.0.1:13476",
+		Handler: nil,
+	}
+	AddService(
+		srv1,
+		"test1",
+		func() {
+			b1 = true
+		},
+		func() {
+			b1 = false
+		})
+
+	StartService(nil)
+	if !b1 {
+		t.Errorf("TestService init func error")
+	}
+
 	files, err := ListServiceListenersFile()
-	if len(files) != 1 {
+	if len(files) != 2 {
 		t.Errorf("TestService ListServiceListenersFile() error: %v", err)
 	}
 	StopService()
 	if b {
 		t.Errorf("TestService exit func error")
 	}
-
+	if b1 {
+		t.Errorf("TestService exit func error")
+	}
 }
 
 func TestServiceInherit(t *testing.T) {

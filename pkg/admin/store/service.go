@@ -24,10 +24,15 @@ import (
 	"net/http"
 	"os"
 
+	"sync"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
+var lock = new(sync.Mutex)
+
 type service struct {
+	start bool
 	*http.Server
 	name string
 	init func()
@@ -61,17 +66,22 @@ func ListServiceListenersFile() ([]*os.File, error) {
 }
 
 func AddService(s *http.Server, name string, init func(), exit func()) {
+	lock.Lock()
+	defer lock.Unlock()
 	for i, srv := range services {
 		if srv.Addr == s.Addr {
-			services[i] = &service{s, name, init, exit}
+			services[i] = &service{false, s, name, init, exit}
 			return
 		}
 	}
-	services = append(services, &service{s, name, init, exit})
+	services = append(services, &service{false, s, name, init, exit})
 }
 
 func StartService(inheritListeners []net.Listener) error {
 	for _, srv := range services {
+		if srv.start {
+			continue
+		}
 		var err error
 		var ln net.Listener
 		var saddr *net.TCPAddr
@@ -112,6 +122,8 @@ func StartService(inheritListeners []net.Listener) error {
 		if s.init != nil {
 			s.init()
 		}
+		s.start = true
+
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {

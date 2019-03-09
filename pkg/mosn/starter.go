@@ -65,6 +65,13 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		c = config.Load(config.GetConfigPath())
 	}
 
+	if store.GetMosnState() == store.Running {
+		// start init services
+		if err := store.StartService(nil); err != nil {
+			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
+		}
+	}
+
 	m := &Mosn{
 		config: c,
 	}
@@ -158,6 +165,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		}
 		m.servers = append(m.servers, srv)
 	}
+	
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 
@@ -168,7 +176,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
-	if reconfigure != nil {
+	if store.GetMosnState() == store.Reconfiguring {
 		// start other services
 		if err := store.StartService(inheritListeners); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
