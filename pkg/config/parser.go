@@ -132,6 +132,7 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 			cb(pClusters, false)
 		}
 	}
+
 	return pClusters, clusterV2Map
 }
 
