@@ -35,20 +35,24 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
-)
-
-var (
-	errConnClose = errors.New("connection closed")
-
-	HKConnection = []byte("Connection") // header key 'Connection'
-	HVKeepAlive  = []byte("keep-alive") // header value 'keep-alive'
+	"io"
 )
 
 func init() {
 	str.Register(protocol.HTTP1, &streamConnFactory{})
 }
 
+const defaultMaxRequestBodySize = 4 * 1024 * 1024
+
 var (
+	errConnClose = errors.New("connection closed")
+
+	strResponseContinue = []byte("HTTP/1.1 100 Continue\r\n\r\n")
+	strErrorResponse = []byte("HTTP/1.1 400 Bad Request\r\n\r\n")
+
+	HKConnection = []byte("Connection") // header key 'Connection'
+	HVKeepAlive  = []byte("keep-alive") // header value 'keep-alive'
+
 	minMethodLengh = len("GET")
 	maxMethodLengh = len("CONNECT")
 	httpMethod     = map[string]struct{}{
@@ -344,18 +348,34 @@ func (conn *serverStreamConnection) serve() {
 		request := &buffers.serverRequest
 
 		// 2. blocking read using fasthttp.Request.Read
-		err := request.Read(conn.br)
+		err := request.ReadLimitBody(conn.br, defaultMaxRequestBodySize)
+		if err == nil {
+			// 3. 'Expect: 100-continue' request handling.
+			// See http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html for details.
+			if request.MayContinue() {
+				// Send 'HTTP/1.1 100 Continue' response.
+				conn.conn.Write(buffer.NewIoBufferBytes(strResponseContinue))
+
+				// read request body
+				err = request.ContinueReadBody(conn.br, defaultMaxRequestBodySize)
+			}
+		}
 		if err != nil {
-			if conn.stream != nil {
-				conn.stream.ResetStream(types.StreamRemoteReset)
-				log.DefaultLogger.Errorf("Http server codec goroutine error: %s", err)
+			if err == errConnClose || err == io.EOF {
+				log.DefaultLogger.Errorf("http server request codec error: %s", err)
+			} else {
+				// write error response
+				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
+
+				// close connection with flush
+				conn.conn.Close(types.FlushWrite, types.LocalClose)
 			}
 			return
 		}
 
 		id := protocol.GenerateID()
 		s := &buffers.serverStream
-		// 3. request processing
+		// 4. request processing
 		s.stream = stream{
 			id:       id,
 			ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
@@ -375,7 +395,7 @@ func (conn *serverStreamConnection) serve() {
 			s.handleRequest()
 		}
 
-		// 4. wait for proxy done
+		// 5. wait for proxy done
 		<-s.responseDoneChan
 		conn.contextManager.next()
 	}
