@@ -60,6 +60,10 @@ func (routers *mockRouters) MatchAllRoutes(headers types.HeaderMap, randomValue 
 	return nil
 }
 
+func (routers *mockRouters) MatchRouteFromHeaderKV(headers types.HeaderMap, key, value string) types.Route {
+	return nil
+}
+
 type mockManager struct {
 	types.ClusterManager
 }

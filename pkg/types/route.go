@@ -45,6 +45,9 @@ type Routers interface {
 	MatchRoute(headers HeaderMap, randomValue uint64) Route
 	// MatchAllRoutes returns all routes with headers
 	MatchAllRoutes(headers HeaderMap, randomValue uint64) []Route
+	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
+	// header is used to find virtual host
+	MatchRouteFromHeaderKV(headers HeaderMap, key, value string) Route
 }
 
 // RouterManager is a manager for all routers' config
@@ -260,6 +263,8 @@ type VirtualHost interface {
 	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
 	// GetAllRoutesFromEntries returns all Route matched the condition
 	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
+	// GetRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
+	GetRouteFromHeaderKV(key, value string) Route
 }
 
 type RedirectRule interface {

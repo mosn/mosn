@@ -91,16 +91,16 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
 		// try to update router
 		if primaryRouters, ok := v.(*RoutersWrapper); ok {
-			primaryRouters.mux.Lock()
-			defer primaryRouters.mux.Unlock()
 			routers, err := NewRouteMatcher(routerConfig)
 			if err != nil {
 				log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: %v", routerConfig.RouterConfigName, err)
 				return err
 			}
 			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success", routerConfig.RouterConfigName)
+			primaryRouters.mux.Lock()
 			primaryRouters.routers = routers
 			primaryRouters.routersConfig = routerConfig
+			primaryRouters.mux.Unlock()
 		}
 	} else {
 		// try to create a new router
