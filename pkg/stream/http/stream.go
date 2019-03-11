@@ -358,6 +358,9 @@ func (conn *serverStreamConnection) serve() {
 
 				// read request body
 				err = request.ContinueReadBody(conn.br, defaultMaxRequestBodySize)
+
+				// remove 'Expect' header, so it would not be sent to the upstream
+				request.Header.Del("Expect")
 			}
 		}
 		if err != nil {
