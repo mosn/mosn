@@ -256,6 +256,10 @@ func (b *BoltRequest) Set(key string, value string) {
 	b.RequestHeader[key] = value
 }
 
+func (b *BoltRequest) Add(key string, value string) {
+	panic("not supported")
+}
+
 func (b *BoltRequest) Del(key string) {
 	delete(b.RequestHeader, key)
 }
@@ -370,6 +374,10 @@ func (b *BoltResponse) Get(key string) (value string, ok bool) {
 
 func (b *BoltResponse) Set(key string, value string) {
 	b.ResponseHeader[key] = value
+}
+
+func (b *BoltResponse) Add(key string, value string) {
+	panic("not supported")
 }
 
 func (b *BoltResponse) Del(key string) {
