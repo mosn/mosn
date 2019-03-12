@@ -28,8 +28,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
+	gometrics "github.com/rcrowley/go-metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
 )
 
 func init() {
@@ -56,7 +57,20 @@ type promSink struct {
 	config *promConfig
 
 	registry  prometheus.Registerer //Prometheus registry
-	gaugeVecs map[string]prometheus.GaugeVec
+	gaugeVecs map[string]*prometheus.GaugeVec
+}
+
+type promHttpExporter struct {
+	sink *promSink
+	real http.Handler
+}
+
+func (exporter *promHttpExporter) ServeHTTP(rsp http.ResponseWriter, req *http.Request) {
+	// 1. flush metrics
+	exporter.sink.Flush(metrics.GetAll())
+
+	// 2. export
+	exporter.real.ServeHTTP(rsp, req)
 }
 
 // ~ MetricsSink
@@ -66,11 +80,11 @@ func (sink *promSink) Flush(ms []types.Metrics) {
 		labelKeys, labelVals := m.SortedLabels()
 		m.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
-			case metrics.Counter:
+			case gometrics.Counter:
 				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Count()))
-			case metrics.Gauge:
+			case gometrics.Gauge:
 				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Value()))
-			case metrics.Histogram:
+			case gometrics.Histogram:
 				snap := metric.Snapshot()
 				sink.histogramVec(typ, labelKeys, labelVals, name, snap)
 			}
@@ -89,9 +103,18 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 		promReg.MustRegister(prometheus.NewGoCollector())
 	}
 
+	promSink := &promSink{
+		config:    config,
+		registry:  promReg,
+		gaugeVecs: make(map[string]*prometheus.GaugeVec),
+	}
+
 	// export http for prometheus
 	srvMux := http.NewServeMux()
-	srvMux.Handle(config.Endpoint, promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
+	srvMux.Handle(config.Endpoint, &promHttpExporter{
+		sink: promSink,
+		real: promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}),
+	})
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Port),
@@ -100,14 +123,10 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 
 	store.AddService(srv, "prometheus", nil, nil)
 
-	return &promSink{
-		config:    config,
-		registry:  promReg,
-		gaugeVecs: make(map[string]prometheus.GaugeVec),
-	}
+	return promSink
 }
 
-func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, name string, snap metrics.Histogram) {
+func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, name string, snap gometrics.Histogram) {
 	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_max", float64(snap.Max()))
 	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_min", float64(snap.Min()))
 }
@@ -117,7 +136,7 @@ func (sink *promSink) histogramVecWithValue(typ string, labelKeys, labelVals []s
 	key := namespace + "_" + typ + "_" + name
 	g, ok := sink.gaugeVecs[key]
 	if !ok {
-		g = *prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		g = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: flattenKey(namespace),
 			Subsystem: flattenKey(typ),
 			Name:      flattenKey(name),
@@ -134,7 +153,7 @@ func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name stri
 	key := namespace + "_" + typ + "_" + name
 	g, ok := sink.gaugeVecs[key]
 	if !ok {
-		g = *prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		g = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: flattenKey(namespace),
 			Subsystem: flattenKey(typ),
 			Name:      name,

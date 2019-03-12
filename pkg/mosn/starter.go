@@ -274,7 +274,7 @@ func initializeTracing(config config.TracingConfig) {
 }
 
 func initializeMetrics(config config.MetricsConfig) {
-	var sinks []types.MetricsSink
+	var flushSinks []types.MetricsSink
 	// set metrics package
 	statsMatcher := config.StatsMatcher
 	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionList)
@@ -286,11 +286,19 @@ func initializeMetrics(config config.MetricsConfig) {
 			log.StartLogger.Errorf("initialize metrics sink %s failed, metrics sink is turned off", cfg.Type)
 			return
 		}
-		sinks = append(sinks, sink)
+
+		// filter sinks that need active flush
+		for i := range config.Flush {
+			if cfg.Type == config.Flush[i] {
+				flushSinks = append(flushSinks, sink)
+				break
+			}
+		}
+
 	}
 
-	if len(sinks) > 0 {
-		go sink.StartFlush(sinks, config.FlushInterval.Duration)
+	if len(flushSinks) > 0 {
+		go sink.StartFlush(flushSinks, config.FlushInterval.Duration)
 	}
 }
 
