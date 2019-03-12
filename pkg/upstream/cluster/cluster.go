@@ -273,6 +273,10 @@ type prioritySet struct {
 	mux             sync.RWMutex
 }
 
+func NewPrioritySet() types.PrioritySet {
+	return &prioritySet{}
+}
+
 func (ps *prioritySet) GetOrCreateHostSet(priority uint32) types.HostSet {
 	ps.mux.Lock()
 	defer ps.mux.Unlock()
