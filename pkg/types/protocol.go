@@ -42,10 +42,16 @@ type Protocol string
 // HeaderMap is a interface to provide operation facade with user-value headers
 type HeaderMap interface {
 	// Get value of key
+	// If multiple values associated with this key, first one will be returned.
 	Get(key string) (string, bool)
 
 	// Set key-value pair in header map, the previous pair will be replaced if exists
 	Set(key, value string)
+
+	// Add value for given key.
+	// Multiple headers with the same key may be added with this function.
+	// Use Set for setting a single header for the given key.
+	Add(key, value string)
 
 	// Del delete pair of specified key
 	Del(key string)
