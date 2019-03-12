@@ -149,11 +149,21 @@ func BenchmarkPromSink_Flush(b *testing.B) {
 		Endpoint:              "/metrics",
 		DisableCollectProcess: true,
 		DisableCollectGo:      true,
+		//DisablePassiveFlush:   true,
 	})
+	store.StartService(nil)
+	defer store.StopService()
+	time.Sleep(time.Second) // wait server start
 
 	sink.Flush(metrics.GetAll())
+	//tc := http.Client{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i ++ {
 		sink.Flush(metrics.GetAll())
+		//resp, err := tc.Get("http://127.0.0.1:8088/metrics")
+		//if err != nil {
+		//	b.Error("get metrics failed:", err)
+		//}
+		//io.Copy(ioutil.Discard, resp.Body)
 	}
 }

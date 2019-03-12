@@ -51,7 +51,32 @@ type metrics struct {
 	labelKeys []string
 	labelVals []string
 
+	// hack for test
+	//sinkCache map[string]map[string]interface{}
+	sinkCache map[string]interface{}
+
 	registry gometrics.Registry
+}
+
+// ~~ SinkCache
+func (s *metrics) SetCache(sinkType, name string, metric interface{}) {
+	//cache, ok := s.sinkCache[sinkType]
+	//if !ok {
+	//	cache = make(map[string]interface{}, 8)
+	//	s.sinkCache[sinkType] = cache
+	//}
+	//
+	//cache[name] = metric
+	s.sinkCache[name] = metric
+}
+
+func (s *metrics) GetCache(sinkType, name string) (metric interface{}, ok bool) {
+	//if cache, ok := s.sinkCache[sinkType]; ok {
+	//	metric, ok = cache[name]
+	//}
+	//return
+	metric, ok = s.sinkCache[name]
+	return
 }
 
 func init() {
@@ -109,9 +134,11 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	}
 
 	stats := &metrics{
-		typ:      typ,
-		labels:   labels,
-		registry: gometrics.NewRegistry(),
+		typ:       typ,
+		labels:    labels,
+		//sinkCache: make(map[string]map[string]interface{}, 8),
+		sinkCache: make(map[string]interface{}, 8),
+		registry:  gometrics.NewRegistry(),
 	}
 
 	defaultStore.metrics[name] = stats

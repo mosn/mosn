@@ -33,13 +33,14 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 )
 
-func init() {
-	sink.RegisterSink("prometheus", builder)
-}
-
 var (
+	sinkType        = "prometheus"
 	defaultEndpoint = "/metrics"
 )
+
+func init() {
+	sink.RegisterSink(sinkType, builder)
+}
 
 // promConfig contains config for all PromSink
 type promConfig struct {
@@ -50,6 +51,7 @@ type promConfig struct {
 
 	DisableCollectProcess bool `json:"disable_collect_process"`
 	DisableCollectGo      bool `json:"disable_collect_go"`
+	DisablePassiveFlush   bool `json:"disable_passive_flush"`
 }
 
 // promSink extract metrics from stats registry with specified interval
@@ -67,7 +69,9 @@ type promHttpExporter struct {
 
 func (exporter *promHttpExporter) ServeHTTP(rsp http.ResponseWriter, req *http.Request) {
 	// 1. flush metrics
-	exporter.sink.Flush(metrics.GetAll())
+	if !exporter.sink.config.DisablePassiveFlush {
+		exporter.sink.Flush(metrics.GetAll())
+	}
 
 	// 2. export
 	exporter.real.ServeHTTP(rsp, req)
@@ -78,15 +82,18 @@ func (sink *promSink) Flush(ms []types.Metrics) {
 	for _, m := range ms {
 		typ := m.Type()
 		labelKeys, labelVals := m.SortedLabels()
+		cache, _ := m.(types.SinkCache)
+
 		m.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
 			case gometrics.Counter:
-				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Count()))
+				sink.handle(cache, name, typ, labelKeys, labelVals, float64(metric.Count()))
 			case gometrics.Gauge:
-				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Value()))
+				sink.handle(cache, name, typ, labelKeys, labelVals, float64(metric.Value()))
 			case gometrics.Histogram:
 				snap := metric.Snapshot()
-				sink.histogramVec(typ, labelKeys, labelVals, name, snap)
+				sink.handle(cache, name+"_max", typ, labelKeys, labelVals, float64(snap.Max()))
+				sink.handle(cache, name+"_min", typ, labelKeys, labelVals, float64(snap.Min()))
 			}
 		})
 	}
@@ -126,29 +133,27 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 	return promSink
 }
 
-func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, name string, snap gometrics.Histogram) {
-	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_max", float64(snap.Max()))
-	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_min", float64(snap.Min()))
-}
+func (sink *promSink) handle(cache types.SinkCache, name, typ string, labelKeys, labelVals []string, value float64) {
+	var g interface{}
+	var cacheable = cache != nil
+	var exist = cacheable
 
-func (sink *promSink) histogramVecWithValue(typ string, labelKeys, labelVals []string, name string, value float64) {
-	namespace := strings.Join(labelKeys, "_")
-	key := namespace + "_" + typ + "_" + name
-	g, ok := sink.gaugeVecs[key]
-	if !ok {
-		g = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: flattenKey(namespace),
-			Subsystem: flattenKey(typ),
-			Name:      flattenKey(name),
-			Help:      "histogram metrics",
-		}, labelKeys)
-		sink.registry.MustRegister(g)
-		sink.gaugeVecs[key] = g
+	if cacheable {
+		g, exist = cache.GetCache(sinkType, name)
 	}
-	g.WithLabelValues(labelVals...).Set(value)
+
+	if !exist {
+		g = sink.gauge(typ, labelKeys, labelVals, name)
+	}
+
+	if cacheable {
+		cache.SetCache(sinkType, name, g)
+	}
+
+	g.(prometheus.Gauge).Set(value)
 }
 
-func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name string, val float64) {
+func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name string) prometheus.Gauge {
 	namespace := strings.Join(labelKeys, "_")
 	key := namespace + "_" + typ + "_" + name
 	g, ok := sink.gaugeVecs[key]
@@ -162,7 +167,7 @@ func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name stri
 		sink.registry.MustRegister(g)
 		sink.gaugeVecs[key] = g
 	}
-	g.WithLabelValues(labelVals...).Set(val)
+	return g.WithLabelValues(labelVals...)
 }
 
 // factory
