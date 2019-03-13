@@ -28,15 +28,18 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
-var dumping int32
-var fileMutex = new(sync.Mutex)
+var (
+	once    sync.Once
+	lock    sync.Mutex
+	dumping int32
+)
 
 func DumpLock() {
-	fileMutex.Lock()
+	lock.Lock()
 }
 
 func DumpUnlock() {
-	fileMutex.Unlock()
+	lock.Unlock()
 }
 
 func setDump() {
@@ -125,11 +128,13 @@ func DumpConfig() {
 }
 
 func DumpConfigHandler() {
-	for {
-		time.Sleep(3 * time.Second)
-		DumpLock()
-		DumpConfig()
-		DumpUnlock()
-	}
+	once.Do(func() {
+		for {
+			time.Sleep(3 * time.Second)
 
+			DumpLock()
+			DumpConfig()
+			DumpUnlock()
+		}
+	})
 }

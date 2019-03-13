@@ -191,7 +191,7 @@ func reconfigure(start bool) {
 	// dump lastest config, and stop DumpConfigHandler()
 	config.DumpLock()
 	config.DumpConfig()
-	// if reconfigure failed, enable dump
+	// if reconfigure failed, enable DumpConfigHandler()
 	defer config.DumpUnlock()
 
 	// transfer listen fd
@@ -225,6 +225,8 @@ func reconfigure(start bool) {
 	// Transfer metrcis data, non-block
 	metrics.TransferMetrics(false, 0)
 	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
+
+	executeShutdownCallbacks("")
 
 	// Stop the old server, all the connections have been closed and the new one is running
 	os.Exit(0)
