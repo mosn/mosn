@@ -30,6 +30,7 @@ import (
 func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*VirtualHostImpl, error) {
 	var virtualHostImpl = &VirtualHostImpl{
 		virtualHostName:       virtualHost.Name,
+		fastIndex:             make(map[string]map[string]types.Route),
 		requestHeadersParser:  getHeaderParser(virtualHost.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(virtualHost.ResponseHeadersToAdd, virtualHost.ResponseHeadersToRemove),
 	}
@@ -80,6 +81,18 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 
 		if router != nil {
 			virtualHostImpl.routes = append(virtualHostImpl.routes, router)
+			// make fast index, used in certain scenarios
+			// TODO: rule can be extended
+			if len(route.Match.Headers) == 1 && !route.Match.Headers[0].Regex {
+				key := route.Match.Headers[0].Name
+				value := route.Match.Headers[0].Value
+				valueMap, ok := virtualHostImpl.fastIndex[key]
+				if !ok {
+					valueMap = make(map[string]types.Route)
+					virtualHostImpl.fastIndex[key] = valueMap
+				}
+				valueMap[value] = router
+			}
 		} else {
 			log.DefaultLogger.Errorf("NewVirtualHostImpl failed, no router type matched")
 		}
@@ -114,6 +127,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 type VirtualHostImpl struct {
 	virtualHostName       string
 	routes                []RouteBase //route impl
+	fastIndex             map[string]map[string]types.Route
 	virtualClusters       []VirtualClusterEntry
 	sslRequirements       types.SslRequirements
 	corsPolicy            types.CorsPolicy
@@ -155,6 +169,15 @@ func (vh *VirtualHostImpl) GetAllRoutesFromEntries(headers types.HeaderMap, rand
 		}
 	}
 	return routes
+}
+
+func (vh *VirtualHostImpl) GetRouteFromHeaderKV(key, value string) types.Route {
+	if m, ok := vh.fastIndex[key]; ok {
+		if r, ok := m[value]; ok {
+			return r
+		}
+	}
+	return nil
 }
 
 type VirtualClusterEntry struct {
