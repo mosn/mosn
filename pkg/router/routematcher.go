@@ -190,7 +190,11 @@ func (rm *routeMatcher) MatchRouteFromHeaderKV(headers types.HeaderMap, key stri
 }
 
 // AddRoute adds route into virtual host
+// If virtual host name is empty, use the default virtual host
 func (rm *routeMatcher) AddRoute(virtualHostName string, route *v2.Router) error {
+	if virtualHostName == "" && rm.defaultVirtualHost != nil {
+		return rm.defaultVirtualHost.AddRoute(route)
+	}
 	if vh, ok := rm.virtualHostMap[virtualHostName]; ok {
 		return vh.AddRoute(route)
 	}

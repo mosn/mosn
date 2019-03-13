@@ -144,16 +144,31 @@ func (rm *routersManager) AddRoute(routerConfigName, virtualHostName string, rou
 			}
 			cfg := primaryRouters.routersConfig
 			find := false
-		FIND:
+			// if virtual host name is empty, try to find defualt virtual host
+			if virtualHostName == "" {
+				for _, vh := range cfg.VirtualHosts {
+					for _, d := range vh.Domains {
+						if d == "*" {
+							rs := vh.Routers
+							rs = append(rs, *route)
+							vh.Routers = rs
+							find = true
+							goto FIND
+						}
+					}
+				}
+			}
+			// if virtual host name is not empty, find the virtual host matched
 			for _, vh := range cfg.VirtualHosts {
 				if vh.Name == virtualHostName {
 					rs := vh.Routers
 					rs = append(rs, *route)
 					vh.Routers = rs
 					find = true
-					break FIND
+					goto FIND
 				}
 			}
+		FIND:
 			if find {
 				primaryRouters.routersConfig = cfg
 				if err := routers.AddRoute(virtualHostName, route); err != nil {

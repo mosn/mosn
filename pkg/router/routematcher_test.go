@@ -334,6 +334,10 @@ func TestAddRouter(t *testing.T) {
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{
 				Name:    "test_vh",
+				Domains: []string{"www.test.com"},
+			},
+			&v2.VirtualHost{
+				Name:    "test_default",
 				Domains: []string{"*"},
 			},
 		},
@@ -343,7 +347,8 @@ func TestAddRouter(t *testing.T) {
 		t.Fatal("create routers failed")
 	}
 	macther := rm.(*routeMatcher)
-	vh := macther.defaultVirtualHost.(*VirtualHostImpl)
+	vh := macther.virtualHostMap["test_vh"].(*VirtualHostImpl)
+	defaultVh := macther.virtualHostMap["test_default"].(*VirtualHostImpl)
 	if len(vh.routes) != 0 {
 		t.Fatal("expected a no routes matcher")
 	}
@@ -351,13 +356,17 @@ func TestAddRouter(t *testing.T) {
 	if err := rm.AddRoute("test_vh", &route); err != nil {
 		t.Fatal("add route failed", err)
 	}
-	if len(vh.routes) != 1 {
+	if len(vh.routes) != 1 || len(defaultVh.routes) != 0 {
 		t.Fatal("expected add a new route")
 	}
-	// test add not exists virtual host
-	if err := rm.AddRoute("", &route); err == nil {
-		t.Fatal("a not exists virtual host, expected returns an error")
+	// add into default virtual host
+	if err := rm.AddRoute("", &route); err != nil {
+		t.Fatal("add route failed", err)
 	}
+	if len(vh.routes) != 1 || len(defaultVh.routes) != 1 {
+		t.Fatal("expected add a new route into default")
+	}
+
 }
 
 func TestInvalidConfig(t *testing.T) {

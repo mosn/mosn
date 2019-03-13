@@ -24,9 +24,11 @@
 package router
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
 )
 
 var routerConfig = `{
@@ -289,8 +291,12 @@ func Test_routersManager_AddRouter(t *testing.T) {
 		VirtualHosts: []*v2.VirtualHost{
 			{
 				Name:    "test_addrouter_vh",
-				Domains: []string{"*"},
+				Domains: []string{"www.test.com"},
 				// no touters
+			},
+			{
+				Name:    "test_default",
+				Domains: []string{"*"},
 			},
 		},
 	}
@@ -314,28 +320,41 @@ func Test_routersManager_AddRouter(t *testing.T) {
 			},
 		},
 	}
-	// Add a not exists virtual host
-	if err := routerManager.AddRoute("test_addrouter", "", routeCfg); err != nil {
-		t.Fatal("add router failed", err)
-	}
-	// config is not changed
-	cfg := rw.GetRoutersConfig()
-	if len(cfg.VirtualHosts[0].Routers) != 0 {
-		t.Fatal("route config is changed")
-	}
-
 	if err := routerManager.AddRoute("test_addrouter", "test_addrouter_vh", routeCfg); err != nil {
 		t.Fatal("add router failed", err)
 	}
 	routers := rw.GetRouters()
 	// the wrapper can get the new router
-	if r := routers.MatchRouteFromHeaderKV(nil, "service", "test"); r == nil {
+	header := protocol.CommonHeader(map[string]string{
+		strings.ToLower(protocol.MosnHeaderHostKey): "www.test.com",
+	})
+	header2 := protocol.CommonHeader(map[string]string{
+		strings.ToLower(protocol.MosnHeaderHostKey): "www.test.net",
+	})
+	if r := routers.MatchRouteFromHeaderKV(header, "service", "test"); r == nil {
 		t.Fatal("added route, but can not find it")
 	}
+	if r := routers.MatchRouteFromHeaderKV(header2, "service", "test"); r != nil {
+		t.Fatal("not added route, but still find it")
+	}
 	// test config is expected changed
-	cfgChanged := rw.GetRoutersConfig()
-	if len(cfgChanged.VirtualHosts[0].Routers) != 1 {
+	cfg := rw.GetRoutersConfig()
+	if len(cfg.VirtualHosts[0].Routers) != 1 || len(cfg.VirtualHosts[1].Routers) != 0 {
 		t.Fatal("route config is not changed")
 	}
 
+	// test add into default
+	if err := routerManager.AddRoute("test_addrouter", "", routeCfg); err != nil {
+		t.Fatal("add router failed", err)
+	}
+	// config is changed
+	cfgChanged := rw.GetRoutersConfig()
+	if len(cfgChanged.VirtualHosts[0].Routers) != 1 || len(cfgChanged.VirtualHosts[1].Routers) != 1 {
+		t.Fatal("default route config is not changed")
+	}
+	routersChanged := rw.GetRouters()
+	// the wrapper can get the new router
+	if r := routersChanged.MatchRouteFromHeaderKV(header2, "service", "test"); r == nil {
+		t.Fatal("added route, but can not find it")
+	}
 }
