@@ -440,3 +440,22 @@ type StatsMatcher struct {
 	RejectAll     bool     `json:"reject_all"`
 	ExclusionList []string `json:"exclusion_list"`
 }
+
+
+// ServerConfig for making up server for mosn
+type ServerConfig struct {
+	//default logger
+	ServerName       string `json:"mosn_server_name"`
+	DefaultLogPath   string `json:"default_log_path,omitempty"`
+	DefaultLogLevel  string `json:"default_log_level,omitempty"`
+	DefaultLogRoller string `json:"default_log_roller,omitempty"`
+
+	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
+	//graceful shutdown config
+	GracefulTimeout DurationConfig `json:"graceful_timeout"`
+
+	//go processor number
+	Processor int `json:"processor"`
+
+	Listeners []Listener `json:"listeners,omitempty"`
+}

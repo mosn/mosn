@@ -43,24 +43,6 @@ type MetricsConfig struct {
 	StatsMatcher  v2.StatsMatcher   `json:"stats_matcher"`
 }
 
-// ServerConfig for making up server for mosn
-type ServerConfig struct {
-	//default logger
-	ServerName       string `json:"mosn_server_name"`
-	DefaultLogPath   string `json:"default_log_path,omitempty"`
-	DefaultLogLevel  string `json:"default_log_level,omitempty"`
-	DefaultLogRoller string `json:"default_log_roller,omitempty"`
-
-	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
-	//graceful shutdown config
-	GracefulTimeout v2.DurationConfig `json:"graceful_timeout"`
-
-	//go processor number
-	Processor int `json:"processor"`
-
-	Listeners []v2.Listener `json:"listeners,omitempty"`
-}
-
 // ClusterManagerConfig for making up cluster manager
 // Cluster is the global cluster of mosn
 type ClusterManagerConfig struct {
@@ -75,7 +57,7 @@ type ClusterManagerConfig struct {
 // Servers contains the listener, filter and so on
 // ClusterManager used to manage the upstream
 type MOSNConfig struct {
-	Servers         []ServerConfig         `json:"servers,omitempty"`         //server config
+	Servers         []v2.ServerConfig      `json:"servers,omitempty"`         //server config
 	ClusterManager  ClusterManagerConfig   `json:"cluster_manager,omitempty"` //cluster config
 	ServiceRegistry v2.ServiceRegistryInfo `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config

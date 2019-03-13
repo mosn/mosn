@@ -30,6 +30,7 @@ import (
 	"net"
 
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
+	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -187,10 +188,11 @@ func reconfigure(start bool) {
 	// if reconfigure failed, set mosn state to Running
 	defer store.SetMosnState(store.Running)
 
-	// stop dump config file
-	store.DumpLock()
+	// dump lastest config, and stop DumpConfigHandler()
+	config.DumpLock()
+	config.DumpConfig()
 	// if reconfigure failed, enable dump
-	defer store.DumpUnlock()
+	defer config.DumpUnlock()
 
 	// transfer listen fd
 	var notify net.Conn

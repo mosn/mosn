@@ -26,6 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/config"
 )
 
 func init() {
@@ -53,6 +54,18 @@ type server struct {
 	logger     log.ErrorLogger
 	stopChan   chan struct{}
 	handler    types.ConnectionHandler
+}
+
+func NewConfig(c *v2.ServerConfig) *Config {
+	return &Config{
+		ServerName:      c.ServerName,
+		LogPath:         c.DefaultLogPath,
+		LogLevel:        config.ParseLogLevel(c.DefaultLogLevel),
+		LogRoller:       c.DefaultLogRoller,
+		GracefulTimeout: c.GracefulTimeout.Duration,
+		Processor:       c.Processor,
+		UseNetpollMode:  c.UseNetpollMode,
+	}
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
