@@ -327,53 +327,62 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 		}
 	}
 }
+
+func TestAddRouter(t *testing.T) {
+	// 1. no routes
+	cfg := &v2.RouterConfiguration{
+		VirtualHosts: []*v2.VirtualHost{
+			&v2.VirtualHost{
+				Name:    "test_vh",
+				Domains: []string{"*"},
+			},
+		},
+	}
+	rm, err := NewRouteMatcher(cfg)
+	if err != nil {
+		t.Fatal("create routers failed")
+	}
+	macther := rm.(*routeMatcher)
+	vh := macther.defaultVirtualHost.(*VirtualHostImpl)
+	if len(vh.routes) != 0 {
+		t.Fatal("expected a no routes matcher")
+	}
+	route := newTestSimpleRouter("test_add")
+	if err := rm.AddRoute("test_vh", &route); err != nil {
+		t.Fatal("add route failed", err)
+	}
+	if len(vh.routes) != 1 {
+		t.Fatal("expected add a new route")
+	}
+	// test add not exists virtual host
+	if err := rm.AddRoute("", &route); err == nil {
+		t.Fatal("a not exists virtual host, expected returns an error")
+	}
+}
+
 func TestInvalidConfig(t *testing.T) {
-	var testCases []*v2.RouterConfiguration
-	//1. invalid config object
-	testCases = append(testCases, nil)
-	//2. config without router
-	case2 := &v2.RouterConfiguration{
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Domains: []string{"*"}},
+	// nil config
+	if _, err := NewRouteMatcher(nil); err == nil {
+		t.Errorf("nil config should return an error")
+	}
+	// no virtual host
+	cfg := &v2.RouterConfiguration{}
+	if _, err := NewRouteMatcher(cfg); err == nil {
+		t.Errorf("config should have at least one virtual host")
+	}
+	// duplicate virtual host
+	cfg.VirtualHosts = []*v2.VirtualHost{
+		{
+			Name:    "test_vh",
+			Domains: []string{"*"},
+		},
+		{
+			Name:    "test_vh",
+			Domains: []string{"www.test.com"},
 		},
 	}
-	//3. config without matcher
-	case3 := &v2.RouterConfiguration{
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
-				v2.Router{
-					RouterConfig: v2.RouterConfig{
-						Route: v2.RouteAction{
-							RouterActionConfig: v2.RouterActionConfig{
-								ClusterName: "www",
-							},
-						},
-					},
-				},
-			}},
-		},
-	}
-	//4. an invalid regexp matcher
-	case4 := &v2.RouterConfiguration{
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
-				v2.Router{
-					RouterConfig: v2.RouterConfig{
-						Match: v2.RouterMatch{Regex: "/f["},
-						Route: v2.RouteAction{
-							RouterActionConfig: v2.RouterActionConfig{
-								ClusterName: "www",
-							},
-						},
-					},
-				}},
-			}},
-	}
-	testCases = append(testCases, case2, case3, case4)
-	for i, tc := range testCases {
-		if _, err := NewRouteMatcher(tc); err == nil {
-			t.Errorf("#%d expected error, but not", i)
-		}
+	if _, err := NewRouteMatcher(cfg); err == nil {
+		t.Errorf("config should not have duplicate virtual host name")
 	}
 }
 

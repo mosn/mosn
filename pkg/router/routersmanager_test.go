@@ -281,3 +281,61 @@ func Test_routersManager_GetRouterWrapperByName(t *testing.T) {
 		t.Error("expect wrapper still the same but not ")
 	}
 }
+
+func Test_routersManager_AddRouter(t *testing.T) {
+	routerManager := NewRouterManager()
+	routerCfg := &v2.RouterConfiguration{
+		RouterConfigName: "test_addrouter",
+		VirtualHosts: []*v2.VirtualHost{
+			{
+				Name:    "test_addrouter_vh",
+				Domains: []string{"*"},
+				// no touters
+			},
+		},
+	}
+	if err := routerManager.AddOrUpdateRouters(routerCfg); err != nil {
+		t.Fatal("init router config failed")
+	}
+	rw := routerManager.GetRouterWrapperByName("test_addrouter")
+	if rw == nil {
+		t.Fatal("can not find router wrapper")
+	}
+	// test add router
+	routeCfg := &v2.Router{
+		RouterConfig: v2.RouterConfig{
+			Match: v2.RouterMatch{
+				Headers: []v2.HeaderMatcher{
+					{
+						Name:  "service",
+						Value: "test",
+					},
+				},
+			},
+		},
+	}
+	// Add a not exists virtual host
+	if err := routerManager.AddRoute("test_addrouter", "", routeCfg); err != nil {
+		t.Fatal("add router failed", err)
+	}
+	// config is not changed
+	cfg := rw.GetRoutersConfig()
+	if len(cfg.VirtualHosts[0].Routers) != 0 {
+		t.Fatal("route config is changed")
+	}
+
+	if err := routerManager.AddRoute("test_addrouter", "test_addrouter_vh", routeCfg); err != nil {
+		t.Fatal("add router failed", err)
+	}
+	routers := rw.GetRouters()
+	// the wrapper can get the new router
+	if r := routers.MatchRouteFromHeaderKV(nil, "service", "test"); r == nil {
+		t.Fatal("added route, but can not find it")
+	}
+	// test config is expected changed
+	cfgChanged := rw.GetRoutersConfig()
+	if len(cfgChanged.VirtualHosts[0].Routers) != 1 {
+		t.Fatal("route config is not changed")
+	}
+
+}

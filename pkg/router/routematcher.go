@@ -34,6 +34,7 @@
 package router
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -42,6 +43,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 // NewRouteMatcher
@@ -60,12 +62,21 @@ func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error
 		virtualHosts:                             make(map[string]types.VirtualHost),
 		wildcardVirtualHostSuffixes:              make(map[int]map[string]types.VirtualHost),
 		greaterSortedWildcardVirtualHostSuffixes: []int{},
+		virtualHostMap:                           make(map[string]types.VirtualHost),
 	}
 
 	configImpl := NewConfigImpl(routerConfig)
 
 	for _, virtualHost := range routerConfig.VirtualHosts {
 		vh, err := NewVirtualHostImpl(virtualHost, false)
+		if vh.virtualHostName == "" {
+			// generate a random unique name
+			vh.virtualHostName = utils.GenerateUUID()
+		}
+		if _, ok := routerMatcher.virtualHostMap[vh.virtualHostName]; ok {
+			return nil, errors.New("duplicate virtual host name")
+		}
+		routerMatcher.virtualHostMap[vh.virtualHostName] = vh
 
 		if err != nil {
 			return nil, err
@@ -123,6 +134,9 @@ type routeMatcher struct {
 	// array member is the lens of the wildcard in descending order
 	// used for longest match
 	greaterSortedWildcardVirtualHostSuffixes []int
+
+	// all virtual, used to index by name
+	virtualHostMap map[string]types.VirtualHost
 }
 
 // MatchRoute returns the first route that matched
@@ -173,6 +187,14 @@ func (rm *routeMatcher) MatchRouteFromHeaderKV(headers types.HeaderMap, key stri
 		log.DefaultLogger.Debugf("No Router Instance Found when Routing, Request Headers = %+v", headers)
 	}
 	return routerInstance
+}
+
+// AddRoute adds route into virtual host
+func (rm *routeMatcher) AddRoute(virtualHostName string, route *v2.Router) error {
+	if vh, ok := rm.virtualHostMap[virtualHostName]; ok {
+		return vh.AddRoute(route)
+	}
+	return errors.New("can not find virtual host")
 }
 
 func (rm *routeMatcher) findVirtualHost(headers types.HeaderMap) types.VirtualHost {

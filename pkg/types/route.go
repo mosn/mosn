@@ -48,6 +48,8 @@ type Routers interface {
 	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	// header is used to find virtual host
 	MatchRouteFromHeaderKV(headers HeaderMap, key, value string) Route
+	// AddRoute adds a route into virtual host, find virtual host by name
+	AddRoute(virtualHostName string, route *v2.Router) error
 }
 
 // RouterManager is a manager for all routers' config
@@ -56,6 +58,8 @@ type RouterManager interface {
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
+
+	AddRoute(routerConfigName, virtualHostName string, route *v2.Router) error
 }
 
 // HandlerStatus returns the Handler's available status
@@ -265,6 +269,8 @@ type VirtualHost interface {
 	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
 	// GetRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	GetRouteFromHeaderKV(key, value string) Route
+	// AddRoute adds a new route into virtual host
+	AddRoute(route *v2.Router) error
 }
 
 type RedirectRule interface {
