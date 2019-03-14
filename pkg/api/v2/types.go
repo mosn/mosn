@@ -409,8 +409,9 @@ type XProxyExtendConfig struct {
 
 // ServiceRegistryInfo
 type ServiceRegistryInfo struct {
-	ServiceAppInfo ApplicationInfo `json:"application"`
-	ServicePubInfo []PublishInfo   `json:"publish_info,omitempty"`
+	ServiceAppInfo ApplicationInfo     `json:"application"`
+	ServicePubInfo []PublishInfo       `json:"publish_info,omitempty"`
+	MsgMetaInfo    map[string][]string `json:"msg_meta_info,omitempty"`
 }
 type ApplicationInfo struct {
 	AntShareCloud bool   `json:"ant_share_cloud"`

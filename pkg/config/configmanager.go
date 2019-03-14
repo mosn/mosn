@@ -252,3 +252,44 @@ func addOrUpdateStreamFilters(listenername string, typ string, cfg map[string]in
 	}
 	return true
 }
+
+// AddMsgMeta
+// called when msg meta updated
+func AddMsgMeta(dataId, groupId string) {
+	if config.ServiceRegistry.MsgMetaInfo == nil {
+		config.ServiceRegistry.MsgMetaInfo = make(map[string][]string)
+	}
+
+	groupIds, ok := config.ServiceRegistry.MsgMetaInfo[dataId]
+	if !ok {
+		groupIds = make([]string, 0, 8)
+		config.ServiceRegistry.MsgMetaInfo[dataId] = groupIds
+	}
+
+	exist := false
+	for i := range groupIds {
+		if groupIds[i] == groupId {
+			exist = true
+			break
+		}
+	}
+
+	if !exist {
+		config.ServiceRegistry.MsgMetaInfo[dataId] = append(config.ServiceRegistry.MsgMetaInfo[dataId], groupId)
+	}
+
+	go dump(true)
+}
+
+// DelMsgMeta
+// called when delete msg meta received
+func DelMsgMeta(dataId string) {
+	dirty := false
+
+	if _, ok := config.ServiceRegistry.MsgMetaInfo[dataId]; ok {
+		delete(config.ServiceRegistry.MsgMetaInfo, dataId)
+		dirty = true
+	}
+
+	go dump(dirty)
+}
