@@ -165,7 +165,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		}
 		m.servers = append(m.servers, srv)
 	}
-	
+
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 
@@ -277,7 +277,7 @@ func initializeMetrics(config config.MetricsConfig) {
 	var flushSinks []types.MetricsSink
 	// set metrics package
 	statsMatcher := config.StatsMatcher
-	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionList)
+	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
 	// create sinks
 	for _, cfg := range config.SinkConfigs {
 		sink, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)

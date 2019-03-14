@@ -55,10 +55,3 @@ type MetricsSink interface {
 	// Flush flush given metrics
 	Flush(metrics []Metrics)
 }
-
-// SinkCache provides fast-path for metrics flush
-type SinkCache interface {
-	SetCache(sinkType, name string, metric interface{})
-
-	GetCache(sinkType, name string) (interface{}, bool)
-}

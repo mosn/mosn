@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	gometrics "github.com/rcrowley/go-metrics"
 )
 
 func TestGetAll(t *testing.T) {
@@ -35,12 +36,12 @@ func TestGetAll(t *testing.T) {
 	}
 }
 
-func TestExclusion(t *testing.T) {
+func TestExclusionLabels(t *testing.T) {
 	ResetAll()
 	exclusions := []string{
 		"exclusion",
 	}
-	SetStatsMatcher(false, exclusions)
+	SetStatsMatcher(false, exclusions, nil)
 	// if a labels contains in exclusions, will returns a nil metrics
 	// nil metrics works well.
 	testCases := []struct {
@@ -91,13 +92,51 @@ func TestExclusion(t *testing.T) {
 	}
 	// Test reject all
 	ResetAll()
-	SetStatsMatcher(true, nil)
+	SetStatsMatcher(true, nil, nil)
 	for i, tc := range testCases {
 		typ := fmt.Sprintf("test%d", i)
 		m, _ := NewMetrics(typ, tc.labels)
 		if _, ok := m.(*NilMetrics); !ok {
 			t.Errorf("#%d expected get nil metrics, but not")
 		}
+	}
+}
+
+func TestExclusionKeys(t *testing.T) {
+	ResetAll()
+	exclusions := []string{
+		"exclusion",
+	}
+	SetStatsMatcher(false, nil, exclusions)
+	// if a labels contains in exclusions, will returns a nil metrics
+	// nil metrics works well.
+	testCases := map[string]bool{
+		"exclusion": true,
+		"mk1":       false,
+		"mk2":       false,
+	}
+
+	typ := "test"
+	m, _ := NewMetrics(typ, map[string]string{"t": "t"})
+	for key, isNil := range testCases {
+		gauge := m.Gauge(key)
+		if _, ok := gauge.(gometrics.NilGauge); ok != isNil {
+			t.Errorf("%s create not expected", key)
+		}
+		// nil/non-nil metrics works well
+		m.SortedLabels()
+		gauge.Update(1)
+	}
+	// Test reject all
+	ResetAll()
+	SetStatsMatcher(true, nil, nil)
+	for key, _ := range testCases {
+		gauge := m.Gauge(key)
+		if _, ok := gauge.(gometrics.NilGauge); !ok {
+			t.Errorf("%s expected get nil in reject all scene, bot not", key)
+		}
+		// nil/non-nil metrics works well
+		gauge.Update(1)
 	}
 }
 
