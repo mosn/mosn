@@ -73,13 +73,8 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 		initHelper: initHelper,
 	}
 
-	switch clusterConfig.LbType {
-	case v2.LB_RANDOM:
-		cluster.info.lbType = types.Random
-
-	case v2.LB_ROUNDROBIN:
-		cluster.info.lbType = types.RoundRobin
-	}
+	// compatible, types.LoadBalancerType is same as v2.LbType
+	cluster.info.lbType = types.LoadBalancerType(clusterConfig.LbType)
 
 	// TODO: init more props: maxrequestsperconn, connecttimeout, connectionbuflimit
 
@@ -271,6 +266,10 @@ type prioritySet struct {
 	hostSets        []types.HostSet // Note: index is the priority
 	updateCallbacks []types.MemberUpdateCallback
 	mux             sync.RWMutex
+}
+
+func NewPrioritySet() types.PrioritySet {
+	return &prioritySet{}
 }
 
 func (ps *prioritySet) GetOrCreateHostSet(priority uint32) types.HostSet {
