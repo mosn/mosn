@@ -278,7 +278,7 @@ func AddMsgMeta(dataId, groupId string) {
 		config.ServiceRegistry.MsgMetaInfo[dataId] = append(config.ServiceRegistry.MsgMetaInfo[dataId], groupId)
 	}
 
-	go dump(true)
+	dump(true)
 }
 
 // DelMsgMeta
@@ -291,5 +291,5 @@ func DelMsgMeta(dataId string) {
 		dirty = true
 	}
 
-	go dump(dirty)
+	dump(dirty)
 }
