@@ -132,7 +132,7 @@ func (rm *routersManager) GetRouterWrapperByName(routerConfigName string) types.
 	return nil
 }
 
-func (rm *routersManager) AddRoute(routerConfigName, virtualHostName string, route *v2.Router) error {
+func (rm *routersManager) AddRoute(routerConfigName, domain string, route *v2.Router) error {
 	if v, ok := rm.routersMap.Load(routerConfigName); ok {
 		if primaryRouters, ok := v.(*RoutersWrapper); ok {
 			primaryRouters.mux.Lock()
@@ -143,41 +143,17 @@ func (rm *routersManager) AddRoute(routerConfigName, virtualHostName string, rou
 				return errors.New("no routers inited")
 			}
 			cfg := primaryRouters.routersConfig
-			find := false
-			// if virtual host name is empty, try to find defualt virtual host
-			if virtualHostName == "" {
-				for _, vh := range cfg.VirtualHosts {
-					for _, d := range vh.Domains {
-						if d == "*" {
-							rs := vh.Routers
-							rs = append(rs, *route)
-							vh.Routers = rs
-							find = true
-							goto FIND
-						}
-					}
-				}
+			index := routers.AddRoute(domain, route)
+			if index == -1 {
+				log.DefaultLogger.Errorf("add route failed")
+				return errors.New("add route failed")
 			}
-			// if virtual host name is not empty, find the virtual host matched
-			for _, vh := range cfg.VirtualHosts {
-				if vh.Name == virtualHostName {
-					rs := vh.Routers
-					rs = append(rs, *route)
-					vh.Routers = rs
-					find = true
-					goto FIND
-				}
-			}
-		FIND:
-			if find {
-				primaryRouters.routersConfig = cfg
-				if err := routers.AddRoute(virtualHostName, route); err != nil {
-					return err
-				}
-				admin.SetRouter(routerConfigName, *cfg)
-			} else {
-				log.DefaultLogger.Infof("virtual host: %s is not exists", virtualHostName)
-			}
+			// modify config
+			routersCfg := cfg.VirtualHosts[index].Routers
+			routersCfg = append(routersCfg, *route)
+			cfg.VirtualHosts[index].Routers = routersCfg
+			primaryRouters.routersConfig = cfg
+			admin.SetRouter(routerConfigName, *cfg)
 		}
 	}
 	return nil

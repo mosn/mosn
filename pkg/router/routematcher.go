@@ -43,205 +43,191 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
-// NewRouteMatcher
-// New 'routeMatcher' according to config
+// A router wrapper used to matches an incoming request headers to a backend cluster
+type routeMatcher struct {
+	// virtual host index
+	virtualHostsIndex                map[string]int
+	defaultVirtualHostIndex          int
+	wildcardVirtualHostSuffixesIndex map[int]map[string]int
+	//  array member is the lens of the wildcard in descending order
+	//  used for longest match
+	greaterSortedWildcardVirtualHostSuffixes []int
+	// stored all vritual host, same as the config order
+	virtualHosts []types.VirtualHost
+}
+
+// NewRouteMatcher creates a types.Routers by according to config
 func NewRouteMatcher(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
-	if routerConfig == nil {
-		return nil, fmt.Errorf("NewRouteMatcher Error, routerConfig is nil")
+	if routerConfig == nil || len(routerConfig.VirtualHosts) == 0 {
+		return nil, fmt.Errorf("create router matcher error, empty config: %v", routerConfig)
 	}
-
-	if len(routerConfig.VirtualHosts) == 0 {
-		return nil, fmt.Errorf("NewRouteMatcher Error, virtualhosts is nil")
-
-	}
-
 	routerMatcher := &routeMatcher{
-		virtualHosts:                             make(map[string]types.VirtualHost),
-		wildcardVirtualHostSuffixes:              make(map[int]map[string]types.VirtualHost),
+		virtualHostsIndex:                        make(map[string]int),
+		defaultVirtualHostIndex:                  -1, // not exists
+		wildcardVirtualHostSuffixesIndex:         make(map[int]map[string]int),
 		greaterSortedWildcardVirtualHostSuffixes: []int{},
-		virtualHostMap:                           make(map[string]types.VirtualHost),
+		virtualHosts:                             []types.VirtualHost{},
 	}
-
 	configImpl := NewConfigImpl(routerConfig)
 
-	for _, virtualHost := range routerConfig.VirtualHosts {
-		vh, err := NewVirtualHostImpl(virtualHost, false)
-		if vh.virtualHostName == "" {
-			// generate a random unique name
-			vh.virtualHostName = utils.GenerateUUID()
-		}
-		if _, ok := routerMatcher.virtualHostMap[vh.virtualHostName]; ok {
-			return nil, errors.New("duplicate virtual host name")
-		}
-		routerMatcher.virtualHostMap[vh.virtualHostName] = vh
-
+	for index, vhConfig := range routerConfig.VirtualHosts {
+		vh, err := NewVirtualHostImpl(vhConfig, false)
 		if err != nil {
 			return nil, err
 		}
+		// store the virtual hosts
+		routerMatcher.virtualHosts = append(routerMatcher.virtualHosts, vh)
 		vh.globalRouteConfig = configImpl
-
-		for _, domain := range virtualHost.Domains {
-			// Note: we use domain in lowercase
-			domain = strings.ToLower(domain)
-
+		for _, domain := range vhConfig.Domains {
+			domain = strings.ToLower(domain) // we use domain in lowercase
 			if domain == "*" {
-				if routerMatcher.defaultVirtualHost != nil {
-					return nil, fmt.Errorf("NewRouteMatcher Error, only a single wildcard domain permitted")
+				log.DefaultLogger.Tracef("add route matcher default virtual host")
+				if routerMatcher.defaultVirtualHostIndex != -1 {
+					return nil, errors.New("create router matcher error,  only a single wildcard domain permitted")
 				}
-				log.StartLogger.Tracef("add route matcher default virtual host")
-				routerMatcher.defaultVirtualHost = vh
-
+				routerMatcher.defaultVirtualHostIndex = index
 			} else if len(domain) > 1 && "*" == domain[:1] {
+				log.DefaultLogger.Tracef("add route matcher wildcard domain: %s", domain)
 				// first key: wildcard's len
-				m, ok := routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1]
+				m, ok := routerMatcher.wildcardVirtualHostSuffixesIndex[len(domain)-1]
 				if !ok {
-					m = map[string]types.VirtualHost{}
-					routerMatcher.wildcardVirtualHostSuffixes[len(domain)-1] = m
+					m = map[string]int{}
+					routerMatcher.wildcardVirtualHostSuffixesIndex[len(domain)-1] = m
 				}
 				// add check, different from envoy
 				// exactly same wildcard domain is unique
 				wildcard := domain[1:]
 				if _, ok := m[wildcard]; ok {
-					return nil, fmt.Errorf("NewRouteMatcher Error, only unique wildcard are permitted, but get duplicate: %s", domain)
+					return nil, errors.New("create router matcher error,  only unique wildcard domain permitted")
 				}
-				m[wildcard] = vh
-
+				m[wildcard] = index
 			} else {
-				if _, ok := routerMatcher.virtualHosts[domain]; ok {
-					return nil, fmt.Errorf("NewRouteMatcher Error, only unique values for domains are permitted,but get duplicate:%s", domain)
+				log.DefaultLogger.Tracef("add route matcher domain: %s", domain)
+				if _, ok := routerMatcher.virtualHostsIndex[domain]; ok {
+					return nil, errors.New("create router matcher error, only unique values for domains are permitted")
 				}
-				routerMatcher.virtualHosts[domain] = vh
+				routerMatcher.virtualHostsIndex[domain] = index
 			}
 		}
 	}
-
-	for key := range routerMatcher.wildcardVirtualHostSuffixes {
+	for key := range routerMatcher.wildcardVirtualHostSuffixesIndex {
 		routerMatcher.greaterSortedWildcardVirtualHostSuffixes = append(routerMatcher.greaterSortedWildcardVirtualHostSuffixes, key)
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(routerMatcher.greaterSortedWildcardVirtualHostSuffixes)))
-
 	return routerMatcher, nil
-}
-
-// A router wrapper used to matches an incoming request headers to a backend cluster
-type routeMatcher struct {
-	virtualHosts                map[string]types.VirtualHost // key: host
-	defaultVirtualHost          types.VirtualHost
-	wildcardVirtualHostSuffixes map[int]map[string]types.VirtualHost
-	// array member is the lens of the wildcard in descending order
-	// used for longest match
-	greaterSortedWildcardVirtualHostSuffixes []int
-
-	// all virtual, used to index by name
-	virtualHostMap map[string]types.VirtualHost
 }
 
 // MatchRoute returns the first route that matched
 func (rm *routeMatcher) MatchRoute(headers types.HeaderMap, randomValue uint64) types.Route {
-	// First Step: Select VirtualHost with "host" in Headers form VirtualHost Array
-	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
+	log.DefaultLogger.Tracef("routing header = %v", headers)
 	virtualHost := rm.findVirtualHost(headers)
-
 	if virtualHost == nil {
-		log.DefaultLogger.Debugf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Tracef("no virtual host found")
 		return nil
 	}
-
-	// Second Step: Match Route from Routes in a Virtual Host
-	routerInstance := virtualHost.GetRouteFromEntries(headers, randomValue)
-
-	if routerInstance == nil {
-		log.DefaultLogger.Debugf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+	router := virtualHost.GetRouteFromEntries(headers, randomValue)
+	if router == nil {
+		log.DefaultLogger.Tracef("no router found")
 	}
-
-	return routerInstance
+	return router
 }
 
 // MatchAllRoutes returns all route that matched
 func (rm *routeMatcher) MatchAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
-	log.StartLogger.Tracef("routing header = %v,randomValue=%v", headers, randomValue)
+	log.DefaultLogger.Tracef("routing header = %v", headers)
 	virtualHost := rm.findVirtualHost(headers)
 	if virtualHost == nil {
-		log.DefaultLogger.Debugf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Tracef("no virtual host found")
 		return nil
 	}
 	routers := virtualHost.GetAllRoutesFromEntries(headers, randomValue)
-	if routers == nil {
-		log.DefaultLogger.Debugf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+	if len(routers) == 0 {
+		log.DefaultLogger.Tracef("no router found")
 	}
 	return routers
 }
 
 func (rm *routeMatcher) MatchRouteFromHeaderKV(headers types.HeaderMap, key string, value string) types.Route {
-	log.StartLogger.Tracef("fast index header, key=%s, value=%s", key, value)
+	log.DefaultLogger.Tracef("routing header = %v", headers)
 	virtualHost := rm.findVirtualHost(headers)
 	if virtualHost == nil {
-		log.DefaultLogger.Debugf("No VirtualHost Found when Routing, Request Headers = %+v", headers)
+		log.DefaultLogger.Tracef("no virtual host found")
 		return nil
 	}
-	routerInstance := virtualHost.GetRouteFromHeaderKV(key, value)
-	if routerInstance == nil {
-		log.DefaultLogger.Debugf("No Router Instance Found when Routing, Request Headers = %+v", headers)
+	router := virtualHost.GetRouteFromHeaderKV(key, value)
+	if router == nil {
+		log.DefaultLogger.Tracef("no router found")
 	}
-	return routerInstance
+	return router
 }
 
-// AddRoute adds route into virtual host
-// If virtual host name is empty, use the default virtual host
-func (rm *routeMatcher) AddRoute(virtualHostName string, route *v2.Router) error {
-	if virtualHostName == "" && rm.defaultVirtualHost != nil {
-		return rm.defaultVirtualHost.AddRoute(route)
+// AddRoute adds a route into virtual host
+// find virtual host by domain
+// returns the virtualhost index, -1 means no virtual host found
+func (rm *routeMatcher) AddRoute(domain string, route *v2.Router) int {
+	index := rm.findVirtualHostIndex(domain)
+	if index == -1 {
+		log.DefaultLogger.Tracef("no virtual host found")
+		return index
 	}
-	if vh, ok := rm.virtualHostMap[virtualHostName]; ok {
-		return vh.AddRoute(route)
+	vh := rm.virtualHosts[index]
+	if err := vh.AddRoute(route); err != nil {
+		log.DefaultLogger.Errorf("add route into virtual host failed: %v", err)
+		return -1
 	}
-	return errors.New("can not find virtual host")
+	return index
 }
 
 func (rm *routeMatcher) findVirtualHost(headers types.HeaderMap) types.VirtualHost {
-	if len(rm.virtualHosts) == 0 && rm.defaultVirtualHost != nil {
-		log.StartLogger.Tracef("route matcher find virtual host return default virtual host")
-		return rm.defaultVirtualHost
+	// optimize, if there is only a default, use it
+	if len(rm.virtualHostsIndex) == 0 &&
+		len(rm.wildcardVirtualHostSuffixesIndex) == 0 &&
+		rm.defaultVirtualHostIndex != -1 {
+		log.DefaultLogger.Tracef("found default virtual host only")
+		return rm.virtualHosts[rm.defaultVirtualHostIndex]
 	}
-
-	hostHeader, _ := headers.Get(strings.ToLower(protocol.MosnHeaderHostKey))
+	//we use domain in lowercase
+	key := strings.ToLower(protocol.MosnHeaderHostKey)
+	hostHeader, _ := headers.Get(key)
 	host := strings.ToLower(hostHeader)
+	index := rm.findVirtualHostIndex(host)
+	if index == -1 {
+		log.DefaultLogger.Tracef("no virtual host found")
+		return nil
 
-	// for service, header["host"] == header["service"] == servicename
-	// or use only a unique key for sofa's virtual host
-	if virtualHost, ok := rm.virtualHosts[host]; ok {
-		return virtualHost
 	}
+	return rm.virtualHosts[index]
+}
 
-	if len(rm.wildcardVirtualHostSuffixes) > 0 {
-
-		if vhost := rm.findWildcardVirtualHost(host); vhost != nil {
-			return vhost
+func (rm *routeMatcher) findVirtualHostIndex(host string) int {
+	//  for sofa service, header["host"] == header["service"] == servicename
+	if index, ok := rm.virtualHostsIndex[host]; ok {
+		return index
+	}
+	if len(rm.wildcardVirtualHostSuffixesIndex) > 0 {
+		if index := rm.findWildcardVirtualHost(host); index != -1 {
+			return index
 		}
 	}
-
-	return rm.defaultVirtualHost
+	return rm.defaultVirtualHostIndex
 }
 
 // Rule: longest wildcard suffix match against the host
-func (rm *routeMatcher) findWildcardVirtualHost(host string) types.VirtualHost {
+func (rm *routeMatcher) findWildcardVirtualHost(host string) int {
 	// e.g. foo-bar.baz.com will match *-bar.baz.com
 	// foo-bar.baz.com should match *-bar.baz.com before matching *.baz.com
 	for _, wildcardLen := range rm.greaterSortedWildcardVirtualHostSuffixes {
 		if wildcardLen >= len(host) {
 			continue
-		} else {
-			wildcardMap := rm.wildcardVirtualHostSuffixes[wildcardLen]
-			for domainKey, virtualHost := range wildcardMap {
-				if domainKey == host[len(host)-wildcardLen:] {
-					return virtualHost
-				}
+		}
+		wildcardMap := rm.wildcardVirtualHostSuffixesIndex[wildcardLen]
+		for domain, index := range wildcardMap {
+			if domain == host[len(host)-wildcardLen:] {
+				return index
 			}
 		}
 	}
-
-	return nil
+	return -1
 }

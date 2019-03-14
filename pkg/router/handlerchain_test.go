@@ -65,8 +65,8 @@ func (routers *mockRouters) MatchRouteFromHeaderKV(headers types.HeaderMap, key,
 	return nil
 }
 
-func (routers *mockRouters) AddRoute(virtualHostName string, route *v2.Router) error {
-	return nil
+func (routers *mockRouters) AddRoute(domain string, route *v2.Router) int {
+	return -1
 }
 
 type mockManager struct {

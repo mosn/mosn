@@ -220,7 +220,9 @@ func Test_routersManager_AddOrUpdateRouters(t *testing.T) {
 		} else {
 			if primaryRouters, ok := value.(*RoutersWrapper); ok {
 				routerMatcher := primaryRouters.routers.(*routeMatcher)
-				if routerMatcher.defaultVirtualHost == nil || routerMatcher.defaultVirtualHost.Name() != "test_virtual_host1" {
+				if routerMatcher.defaultVirtualHostIndex == -1 {
+					t.Error("AddOrUpdateRouters error")
+				} else if routerMatcher.virtualHosts[routerMatcher.defaultVirtualHostIndex].Name() != "test_virtual_host1" {
 					t.Error("AddOrUpdateRouters error")
 				}
 			}
@@ -320,7 +322,7 @@ func Test_routersManager_AddRouter(t *testing.T) {
 			},
 		},
 	}
-	if err := routerManager.AddRoute("test_addrouter", "test_addrouter_vh", routeCfg); err != nil {
+	if err := routerManager.AddRoute("test_addrouter", "www.test.com", routeCfg); err != nil {
 		t.Fatal("add router failed", err)
 	}
 	routers := rw.GetRouters()
