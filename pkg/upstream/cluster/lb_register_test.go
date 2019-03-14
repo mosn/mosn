@@ -20,6 +20,7 @@ package cluster
 import (
 	"testing"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -122,5 +123,21 @@ func TestRegisterNewLB(t *testing.T) {
 		default:
 			t.Fatal("choose host not expected, get: ", host)
 		}
+	}
+}
+
+// Test Used in cluster
+func TestNewLBCluster(t *testing.T) {
+	cfg := v2.Cluster{
+		Name:        "test",
+		ClusterType: v2.SIMPLE_CLUSTER,
+		LbType:      v2.LbType(headerKey), // same as lb type
+	}
+	c := newCluster(cfg, nil, true, nil)
+	if c == nil || c.Info() == nil {
+		t.Fatal("create cluster failed")
+	}
+	if c.Info().LbType() != headerKey {
+		t.Fatal("create cluster lb type not expected")
 	}
 }
