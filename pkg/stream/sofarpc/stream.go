@@ -216,12 +216,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 	if stream != nil {
 		data := cmd.Data()
 
-		// sofa rpc set timeout -1 means no timeout
-		// if we got -1 timeout, we should set it to 0, ignore the config
 		timeoutInt := cmd.GetTimeout()
-		if timeoutInt == -1 {
-			timeoutInt = 0
-		}
 		timeout := strconv.Itoa(timeoutInt) // timeout, ms
 		cmd.Set(types.HeaderGlobalTimeout, timeout)
 
