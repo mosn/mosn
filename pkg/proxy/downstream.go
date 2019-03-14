@@ -518,13 +518,13 @@ func (s *downStream) onUpstreamRequestSent() {
 				s.responseTimer.Stop()
 			}
 
-			id := s.ID
+			ID := s.ID
 			s.responseTimer = utils.NewTimer(s.timeout.GlobalTimeout,
 				func() {
 					if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 						return
 					}
-					if id != s.ID {
+					if ID != s.ID {
 						return
 					}
 					s.onResponseTimeout()
@@ -562,13 +562,13 @@ func (s *downStream) setupPerReqTimeout() {
 			s.perRetryTimer.Stop()
 		}
 
-		id := s.ID
+		ID := s.ID
 		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout*time.Second,
 			func() {
 				if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 					return
 				}
-				if id != s.ID {
+				if ID != s.ID {
 					return
 				}
 				s.onPerReqTimeout()
