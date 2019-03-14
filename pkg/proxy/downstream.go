@@ -514,6 +514,7 @@ func (s *downStream) onUpstreamRequestSent() {
 
 		// setup global timeout timer
 		if s.timeout.GlobalTimeout > 0 {
+			log.DefaultLogger.Debugf("start a request timeout timer")
 			if s.responseTimer != nil {
 				s.responseTimer.Stop()
 			}
