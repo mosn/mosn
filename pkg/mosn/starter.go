@@ -22,6 +22,7 @@ import (
 
 	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -78,8 +79,8 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	mode := c.Mode()
 
 	if mode == config.Xds {
-		servers := make([]config.ServerConfig, 0, 1)
-		server := config.ServerConfig{
+		servers := make([]v2.ServerConfig, 0, 1)
+		server := v2.ServerConfig{
 			DefaultLogPath:  "stdout",
 			DefaultLogLevel: "INFO",
 		}
@@ -119,7 +120,10 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
 		//server config
-		sc := config.ParseServerConfig(&serverConfig)
+		c := config.ParseServerConfig(&serverConfig)
+
+		// new server config
+		sc := server.NewConfig(c)
 
 		// init default log
 		server.InitDefaultLogger(sc)
@@ -207,6 +211,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			ln.Close()
 		}
 	}
+
+	// start dump config process
+	go config.DumpConfigHandler()
 
 	// start reconfigure domain socket
 	go server.ReconfigureHandler()

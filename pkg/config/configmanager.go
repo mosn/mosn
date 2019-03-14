@@ -19,7 +19,6 @@ package config
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 // TODO: The functions in this file is for service discovery, but the function implmentation is not general, should fix it
@@ -63,7 +62,7 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 // called when add cluster config info received
 func AddOrUpdateClusterConfig(clusters []v2.Cluster) {
 	addOrUpdateClusterConfig(clusters)
-	go dump(true)
+	dump(true)
 }
 
 func addOrUpdateClusterConfig(clusters []v2.Cluster) {
@@ -88,7 +87,7 @@ func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 
 func RemoveClusterConfig(clusterNames []string) {
 	if removeClusterConfig(clusterNames) {
-		go dump(true)
+		dump(true)
 	}
 }
 
@@ -132,7 +131,7 @@ func AddPubInfo(pubInfoAdded map[string]string) {
 		}
 	}
 
-	go dump(true)
+	dump(true)
 }
 
 // DelPubInfo
@@ -149,7 +148,7 @@ func DelPubInfo(serviceName string) {
 		}
 	}
 
-	go dump(dirty)
+	dump(dirty)
 }
 
 // AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddOrUpdateRoutersConfig
@@ -157,7 +156,7 @@ func DelPubInfo(serviceName string) {
 func AddClusterWithRouter(listenername string, clusters []v2.Cluster, routerConfig *v2.RouterConfiguration) {
 	addOrUpdateClusterConfig(clusters)
 	addOrUpdateRouterConfig(listenername, routerConfig)
-	go dump(true)
+	dump(true)
 }
 
 func findListener(listenername string) (v2.Listener, int) {
@@ -181,50 +180,26 @@ func updateListener(idx int, ln v2.Listener) {
 // AddOrUpdateRouterConfig update the connection_manager's config
 func AddOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) {
 	if addOrUpdateRouterConfig(listenername, routerConfig) {
-		go dump(true)
+		dump(true)
 	}
 }
+
 func addOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) bool {
-	ln, idx := findListener(listenername)
+	_, idx := findListener(listenername)
 	if idx == -1 {
 		return false
 	}
-	// support only one filter chain
-	nfs := ln.FilterChains[0].Filters
-	filterIndex := -1
-	for i, nf := range nfs {
-		if nf.Type == v2.CONNECTION_MANAGER {
-			filterIndex = i
-			break
-		}
-	}
 
-	if data, err := json.Marshal(routerConfig); err == nil {
-		cfg := make(map[string]interface{})
-		if err := json.Unmarshal(data, &cfg); err != nil {
-			log.DefaultLogger.Errorf("invalid router config, update config failed")
-			return false
-		}
-		filter := v2.Filter{
-			Type:   v2.CONNECTION_MANAGER,
-			Config: cfg,
-		}
-		if filterIndex == -1 {
-			nfs = append(nfs, filter)
-			ln.FilterChains[0].Filters = nfs
-			updateListener(idx, ln)
-		} else {
-			nfs[filterIndex] = filter
-		}
-		return true
-	}
-	return false
+	routerMap.Lock()
+	routerMap.config[listenername] = routerConfig
+	routerMap.Unlock()
+	return true
 }
 
 // AddOrUpdateStreamFilters update the stream filters config
 func AddOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) {
 	if addOrUpdateStreamFilters(listenername, typ, cfg) {
-		go dump(true)
+		dump(true)
 	}
 }
 
