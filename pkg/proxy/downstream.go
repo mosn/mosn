@@ -518,13 +518,28 @@ func (s *downStream) onUpstreamRequestSent() {
 				s.responseTimer.Stop()
 			}
 
-			s.responseTimer = utils.NewTimer(s.timeout.GlobalTimeout, s.onResponseTimeout)
+			id := s.ID
+			s.responseTimer = utils.NewTimer(s.timeout.GlobalTimeout,
+				func() {
+					if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+						return
+					}
+					if id != s.ID {
+						return
+					}
+					s.onResponseTimeout()
+				})
 		}
 	}
 }
 
 // Note: global-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
 func (s *downStream) onResponseTimeout() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("onResponseTimeout() panic %v", r)
+		}
+	}()
 	s.responseTimer = nil
 	s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
 
@@ -547,12 +562,28 @@ func (s *downStream) setupPerReqTimeout() {
 			s.perRetryTimer.Stop()
 		}
 
-		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout*time.Second, s.onPerReqTimeout)
+		id := s.ID
+		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout*time.Second,
+			func() {
+				if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+					return
+				}
+				if id != s.ID {
+					return
+				}
+				s.onPerReqTimeout()
+			})
 	}
 }
 
 // Note: per-try-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
 func (s *downStream) onPerReqTimeout() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("onPerReqTimeout() panic %v", r)
+		}
+	}()
+
 	if !s.downstreamResponseStarted {
 		// handle timeout on response not
 
