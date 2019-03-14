@@ -26,8 +26,8 @@ type LoadBalancerType string
 
 // The load balancer's types
 const (
-	RoundRobin LoadBalancerType = "RoundRobin"
-	Random     LoadBalancerType = "Random"
+	RoundRobin LoadBalancerType = "LB_ROUNDROBIN"
+	Random     LoadBalancerType = "LB_RANDOM"
 )
 
 // LoadBalancer is a upstream load balancer.

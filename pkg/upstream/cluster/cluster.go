@@ -73,16 +73,8 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 		initHelper: initHelper,
 	}
 
-	switch clusterConfig.LbType {
-	case v2.LB_RANDOM:
-		cluster.info.lbType = types.Random
-
-	case v2.LB_ROUNDROBIN:
-		cluster.info.lbType = types.RoundRobin
-	default:
-		// default used for registered lb type
-		cluster.info.lbType = types.LoadBalancerType(clusterConfig.LbType)
-	}
+	// compatible, types.LoadBalancerType is same as v2.LbType
+	cluster.info.lbType = types.LoadBalancerType(clusterConfig.LbType)
 
 	// TODO: init more props: maxrequestsperconn, connecttimeout, connectionbuflimit
 

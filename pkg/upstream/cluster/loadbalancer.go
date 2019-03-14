@@ -30,13 +30,14 @@ import (
 var lbFactories map[types.LoadBalancerType]func(types.PrioritySet) types.LoadBalancer
 
 func init() {
-	lbFactories = map[types.LoadBalancerType]func(types.PrioritySet) types.LoadBalancer{
-		types.RoundRobin: newSmoothWeightedRRLoadBalancer,
-		types.Random:     newRandomLoadbalancer,
-	}
+	RegisterLBType(types.RoundRobin, newSmoothWeightedRRLoadBalancer)
+	RegisterLBType(types.Random, newRandomLoadbalancer)
 }
 
 func RegisterLBType(lbType types.LoadBalancerType, f func(types.PrioritySet) types.LoadBalancer) {
+	if lbFactories == nil {
+		lbFactories = make(map[types.LoadBalancerType]func(types.PrioritySet) types.LoadBalancer)
+	}
 	lbFactories[lbType] = f
 }
 
