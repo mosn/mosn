@@ -48,7 +48,7 @@ var (
 	errConnClose = errors.New("connection closed")
 
 	strResponseContinue = []byte("HTTP/1.1 100 Continue\r\n\r\n")
-	strErrorResponse = []byte("HTTP/1.1 400 Bad Request\r\n\r\n")
+	strErrorResponse    = []byte("HTTP/1.1 400 Bad Request\r\n\r\n")
 
 	HKConnection = []byte("Connection") // header key 'Connection'
 	HVKeepAlive  = []byte("keep-alive") // header value 'keep-alive'
@@ -318,6 +318,9 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
 
+	// Reset would not be called in server-side scene, so add listener for connection event
+	connection.AddConnectionEventListener(ssc)
+
 	// set not support transfer connection
 	ssc.conn.SetTransferEventListener(func() bool {
 		ssc.close = true
@@ -338,6 +341,12 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	}()
 
 	return ssc
+}
+
+func (conn *serverStreamConnection) OnEvent(event types.ConnectionEvent) {
+	if event.IsClose() {
+		close(conn.bufChan)
+	}
 }
 
 func (conn *serverStreamConnection) serve() {
