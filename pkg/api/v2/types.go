@@ -437,6 +437,7 @@ type PublishContent struct {
 // TODO: support inclusion_list
 // TODO: support exclusion list/inclusion_list as pattern
 type StatsMatcher struct {
-	RejectAll     bool     `json:"reject_all"`
-	ExclusionList []string `json:"exclusion_list"`
+	RejectAll       bool     `json:"reject_all"`
+	ExclusionLabels []string `json:"exclusion_labels"`
+	ExclusionKeys   []string `json:"exclusion_keys"`
 }
