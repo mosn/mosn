@@ -216,10 +216,9 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 	if stream != nil {
 		data := cmd.Data()
 
-		if cmd.GetTimeout() > 0 {
-			timeout := strconv.Itoa(cmd.GetTimeout()) // timeout, ms
-			cmd.Set(types.HeaderGlobalTimeout, timeout)
-		}
+		timeoutInt := cmd.GetTimeout()
+		timeout := strconv.Itoa(timeoutInt) // timeout, ms
+		cmd.Set(types.HeaderGlobalTimeout, timeout)
 
 		stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
 

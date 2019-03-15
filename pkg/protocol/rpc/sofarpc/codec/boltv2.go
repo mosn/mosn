@@ -18,18 +18,19 @@
 package codec
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 var (
@@ -191,42 +192,46 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 	logger := log.ByContext(ctx)
 
 	if readableBytes >= sofarpc.LESS_LEN_V2 {
-		bytes := data.Bytes()
+		bytesData := data.Bytes()
 
-		ver1 := bytes[1]
+		ver1 := bytesData[1]
 
-		cmdType := bytes[2]
+		cmdType := bytesData[2]
 
 		//1. request
 		if cmdType == sofarpc.REQUEST || cmdType == sofarpc.REQUEST_ONEWAY {
 			if readableBytes >= sofarpc.REQUEST_HEADER_LEN_V2 {
 
-				cmdCode := binary.BigEndian.Uint16(bytes[3:5])
-				ver2 := bytes[5]
-				requestID := binary.BigEndian.Uint32(bytes[6:10])
-				codec := bytes[10]
+				cmdCode := binary.BigEndian.Uint16(bytesData[3:5])
+				ver2 := bytesData[5]
+				requestID := binary.BigEndian.Uint32(bytesData[6:10])
+				codec := bytesData[10]
 
-				switchCode := bytes[11]
+				switchCode := bytesData[11]
 
-				timeout := binary.BigEndian.Uint32(bytes[12:16])
-				classLen := binary.BigEndian.Uint16(bytes[16:18])
-				headerLen := binary.BigEndian.Uint16(bytes[18:20])
-				contentLen := binary.BigEndian.Uint32(bytes[20:24])
+				// timeout := binary.BigEndian.Uint32(bytesData[12:16])
+				// timeout should be int
+				var timeout int32
+				binary.Read(bytes.NewReader(bytesData[12:16]), binary.BigEndian, &timeout)
+
+				classLen := binary.BigEndian.Uint16(bytesData[16:18])
+				headerLen := binary.BigEndian.Uint16(bytesData[18:20])
+				contentLen := binary.BigEndian.Uint32(bytesData[20:24])
 
 				read = sofarpc.REQUEST_HEADER_LEN_V2
 				var class, header, content []byte
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytesData[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
 					data.Drain(read)
@@ -267,31 +272,31 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 			//2. bolt.ResponseV2
 			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V2 {
 
-				cmdCode := binary.BigEndian.Uint16(bytes[3:5])
-				ver2 := bytes[5]
-				requestID := binary.BigEndian.Uint32(bytes[6:10])
-				codec := bytes[10]
-				switchCode := bytes[11]
+				cmdCode := binary.BigEndian.Uint16(bytesData[3:5])
+				ver2 := bytesData[5]
+				requestID := binary.BigEndian.Uint32(bytesData[6:10])
+				codec := bytesData[10]
+				switchCode := bytesData[11]
 
-				status := binary.BigEndian.Uint16(bytes[12:14])
-				classLen := binary.BigEndian.Uint16(bytes[14:16])
-				headerLen := binary.BigEndian.Uint16(bytes[16:18])
-				contentLen := binary.BigEndian.Uint32(bytes[18:22])
+				status := binary.BigEndian.Uint16(bytesData[12:14])
+				classLen := binary.BigEndian.Uint16(bytesData[14:16])
+				headerLen := binary.BigEndian.Uint16(bytesData[16:18])
+				contentLen := binary.BigEndian.Uint32(bytesData[18:22])
 
 				read = sofarpc.RESPONSE_HEADER_LEN_V2
 				var class, header, content []byte
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytesData[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
 				} else { // not enough data
