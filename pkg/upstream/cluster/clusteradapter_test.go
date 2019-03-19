@@ -277,6 +277,10 @@ func TestMngAdapter_TriggerClusterDel(t *testing.T) {
 	}
 }
 
+func TestClusterDelMulti(t *testing.T) {
+
+}
+
 func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {
 	mockClusterMnger := MockClusterManager().(*clusterManager)
 	defer mockClusterMnger.Destory()
