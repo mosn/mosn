@@ -352,19 +352,83 @@ func TestAddRouter(t *testing.T) {
 	}
 	route := newTestSimpleRouter("test_add")
 	if index := rm.AddRoute("www.test.com", &route); index == -1 {
-		t.Fatal("add route failed", err)
+		t.Fatal("add route failed")
 	}
 	if len(vh.routes) != 1 || len(defaultVh.routes) != 0 {
 		t.Fatal("expected add a new route")
 	}
 	// add into default virtual host (match any thing)
 	if index := rm.AddRoute("", &route); index == -1 {
-		t.Fatal("add route failed", err)
+		t.Fatal("add route failed")
 	}
 	if len(vh.routes) != 1 || len(defaultVh.routes) != 1 {
 		t.Fatal("expected add a new route into default")
 	}
+}
 
+func TestRemoveAllRoutes(t *testing.T) {
+	// init
+	cfg := &v2.RouterConfiguration{
+		VirtualHosts: []*v2.VirtualHost{
+			&v2.VirtualHost{
+				Domains: []string{"www.test.com"},
+				Routers: []v2.Router{
+					{
+						RouterConfig: v2.RouterConfig{
+							Match: v2.RouterMatch{
+								Headers: []v2.HeaderMatcher{
+									{
+										Name:  "service",
+										Value: "test",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			&v2.VirtualHost{
+				Domains: []string{"*"},
+				Routers: []v2.Router{
+					{
+						RouterConfig: v2.RouterConfig{
+							Match: v2.RouterMatch{
+								Headers: []v2.HeaderMatcher{
+									{
+										Name:  "service",
+										Value: "test",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	rm, err := NewRouteMatcher(cfg)
+	if err != nil {
+		t.Fatal("create routers failed")
+	}
+	macther := rm.(*routeMatcher)
+	vh := macther.virtualHosts[0].(*VirtualHostImpl)
+	defaultVh := macther.virtualHosts[1].(*VirtualHostImpl)
+	if len(vh.routes) != 1 || len(defaultVh.routes) != 1 {
+		t.Fatal("expected exists routes matcher")
+	}
+	if index := rm.RemoveAllRoutes("www.test.com"); index == -1 {
+		t.Fatal("remove route failed")
+	}
+	if len(vh.routes) != 0 || len(defaultVh.routes) != 1 {
+		t.Fatal("expected remove route")
+	}
+	// remove default virtual host
+	if index := rm.RemoveAllRoutes(""); index == -1 {
+		t.Fatal("expected remove route")
+	}
+	if len(vh.routes) != 0 || len(defaultVh.routes) != 0 {
+		t.Fatal("expected add a new route into default")
+	}
 }
 
 func TestInvalidConfig(t *testing.T) {

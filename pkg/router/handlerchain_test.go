@@ -69,6 +69,10 @@ func (routers *mockRouters) AddRoute(domain string, route *v2.Router) int {
 	return -1
 }
 
+func (routers *mockRouters) RemoveAllRoutes(domain string) int {
+	return -1
+}
+
 type mockManager struct {
 	types.ClusterManager
 }

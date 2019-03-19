@@ -180,6 +180,17 @@ func (rm *routeMatcher) AddRoute(domain string, route *v2.Router) int {
 	return index
 }
 
+func (rm *routeMatcher) RemoveAllRoutes(domain string) int {
+	index := rm.findVirtualHostIndex(domain)
+	if index == -1 {
+		log.DefaultLogger.Tracef("no virtual host found")
+		return index
+	}
+	vh := rm.virtualHosts[index]
+	vh.RemoveAllRoutes()
+	return index
+}
+
 func (rm *routeMatcher) findVirtualHost(headers types.HeaderMap) types.VirtualHost {
 	// optimize, if there is only a default, use it
 	if len(rm.virtualHostsIndex) == 0 &&

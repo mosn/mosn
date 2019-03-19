@@ -51,6 +51,8 @@ type Routers interface {
 	// AddRoute adds a route into virtual host, find virtual host by domain
 	// returns the virtualhost index, -1 means no virtual host found
 	AddRoute(domain string, route *v2.Router) int
+	// RemoveAllRoutes will clear all the routes in the virtual host, find virtual host by domain
+	RemoveAllRoutes(domain string) int
 }
 
 // RouterManager is a manager for all routers' config
@@ -61,6 +63,8 @@ type RouterManager interface {
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
 
 	AddRoute(routerConfigName, domain string, route *v2.Router) error
+
+	RemoveAllRoutes(routerConfigName, domain string) error
 }
 
 // HandlerStatus returns the Handler's available status
@@ -272,6 +276,8 @@ type VirtualHost interface {
 	GetRouteFromHeaderKV(key, value string) Route
 	// AddRoute adds a new route into virtual host
 	AddRoute(route *v2.Router) error
+	// RemoveAllRoutes clear all the routes in the virtual host
+	RemoveAllRoutes()
 }
 
 type RedirectRule interface {

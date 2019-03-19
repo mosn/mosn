@@ -360,3 +360,94 @@ func Test_routersManager_AddRouter(t *testing.T) {
 		t.Fatal("added route, but can not find it")
 	}
 }
+
+func Test_routersManager_RemoveAllRouter(t *testing.T) {
+	routerManager := NewRouterManager()
+	routerCfg := &v2.RouterConfiguration{
+		RouterConfigName: "test_remove_all_router",
+		VirtualHosts: []*v2.VirtualHost{
+			{
+				Name:    "test_addrouter_vh",
+				Domains: []string{"www.test.com"},
+				Routers: []v2.Router{
+					{
+						RouterConfig: v2.RouterConfig{
+							Match: v2.RouterMatch{
+								Headers: []v2.HeaderMatcher{
+									{
+										Name:  "service",
+										Value: "test",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Name:    "test_default",
+				Domains: []string{"*"},
+				Routers: []v2.Router{
+					{
+						RouterConfig: v2.RouterConfig{
+							Match: v2.RouterMatch{
+								Headers: []v2.HeaderMatcher{
+									{
+										Name:  "service",
+										Value: "test",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	// init
+	if err := routerManager.AddOrUpdateRouters(routerCfg); err != nil {
+		t.Fatal("init router config failed")
+	}
+	rw := routerManager.GetRouterWrapperByName("test_remove_all_router")
+	if rw == nil {
+		t.Fatal("can not find router wrapper")
+	}
+	// remove
+	if err := routerManager.RemoveAllRoutes("test_remove_all_router", "www.test.com"); err != nil {
+		t.Fatal("remove all router failed", err)
+	}
+	routers := rw.GetRouters()
+	// test router removed
+	header := protocol.CommonHeader(map[string]string{
+		strings.ToLower(protocol.MosnHeaderHostKey): "www.test.com",
+	})
+	header2 := protocol.CommonHeader(map[string]string{
+		strings.ToLower(protocol.MosnHeaderHostKey): "www.test.net",
+	})
+	if r := routers.MatchRouteFromHeaderKV(header, "service", "test"); r != nil {
+		t.Fatal("remove route, but still can matched")
+	}
+	if r := routers.MatchRouteFromHeaderKV(header2, "service", "test"); r == nil {
+		t.Fatal("route removed unexpected")
+	}
+	// test config is expected changed
+	cfg := rw.GetRoutersConfig()
+	if len(cfg.VirtualHosts[0].Routers) != 0 || len(cfg.VirtualHosts[1].Routers) != 1 {
+		t.Fatal("route config is not changed")
+	}
+
+	// test remove default
+	if err := routerManager.RemoveAllRoutes("test_remove_all_router", ""); err != nil {
+		t.Fatal("remove router failed", err)
+	}
+	// config is changed
+	cfgChanged := rw.GetRoutersConfig()
+	if len(cfgChanged.VirtualHosts[0].Routers) != 0 || len(cfgChanged.VirtualHosts[1].Routers) != 0 {
+		t.Fatal("default route config is not changed")
+	}
+	routersChanged := rw.GetRouters()
+	// the wrapper can get the new router
+	if r := routersChanged.MatchRouteFromHeaderKV(header2, "service", "test"); r != nil {
+		t.Fatal("remove route, but still can matched")
+	}
+}
