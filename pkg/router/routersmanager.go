@@ -158,3 +158,29 @@ func (rm *routersManager) AddRoute(routerConfigName, domain string, route *v2.Ro
 	}
 	return nil
 }
+
+func (rm *routersManager) RemoveAllRoutes(routerConfigName, domain string) error {
+	if v, ok := rm.routersMap.Load(routerConfigName); ok {
+		if primaryRouters, ok := v.(*RoutersWrapper); ok {
+			primaryRouters.mux.Lock()
+			defer primaryRouters.mux.Unlock()
+			routers := primaryRouters.routers
+			// Stored primaryRouters should not be nil
+			if routers == nil {
+				return errors.New("no routers inited")
+			}
+			cfg := primaryRouters.routersConfig
+			index := routers.RemoveAllRoutes(domain)
+			if index == -1 {
+				log.DefaultLogger.Errorf("remove all route failed")
+				return errors.New("remove all route failed")
+			}
+			// modify config
+			routersCfg := cfg.VirtualHosts[index].Routers
+			cfg.VirtualHosts[index].Routers = routersCfg[:0]
+			primaryRouters.routersConfig = cfg
+			admin.SetRouter(routerConfigName, *cfg)
+		}
+	}
+	return nil
+}

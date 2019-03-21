@@ -198,6 +198,16 @@ func (vh *VirtualHostImpl) AddRoute(route *v2.Router) error {
 	return vh.addRouteBase(route)
 }
 
+func (vh *VirtualHostImpl) RemoveAllRoutes() {
+	vh.mutex.Lock()
+	defer vh.mutex.Unlock()
+	// clear the value map
+	vh.fastIndex = make(map[string]map[string]types.Route)
+	// clear the routes
+	vh.routes = vh.routes[:0]
+	return
+}
+
 type VirtualClusterEntry struct {
 	pattern *regexp.Regexp
 	method  optional.String
