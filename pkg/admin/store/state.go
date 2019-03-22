@@ -18,10 +18,12 @@
 package store
 
 type State int
-var state = Running
+
+var state = Init
 
 const (
-	Running State = iota
+	Init State = iota
+	Running
 	Reconfiguring
 )
 

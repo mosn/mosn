@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -114,6 +115,30 @@ func postToggleLogger(port uint32, logger string, disable bool) (string, error) 
 	}
 	return string(b), nil
 
+}
+
+func getMosnState(port uint32) (pid int, state store.State, err error) {
+	url := fmt.Sprintf("http://localhost:%d/api/v1/states", port)
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 0, 0, errors.New("get mosn states failed")
+	}
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return 0, 0, err
+	}
+	result := strings.Trim(string(b), "\n")
+	p := strings.Split(result, "&")
+	pidStr := strings.Split(p[0], "=")[1]
+	stateStr := strings.Split(p[1], "=")[1]
+	pid, _ = strconv.Atoi(pidStr)
+	stateInt, _ := strconv.Atoi(stateStr)
+	state = store.State(stateInt)
+	return pid, state, nil
 }
 
 type mockMOSNConfig struct {
@@ -276,6 +301,50 @@ func TestToggleLogger(t *testing.T) {
 		t.Errorf("log write data is not expected, line1: %s, line2: %s", lines[0], lines[1])
 	}
 
+}
+
+func TestGetState(t *testing.T) {
+	time.Sleep(time.Second)
+	server := Server{}
+	config := &mockMOSNConfig{
+		Name: "mock",
+		Port: 8889,
+	}
+	server.Start(config)
+	store.StartService(nil)
+	defer store.StopService()
+
+	time.Sleep(time.Second) //wait server start
+
+	// init
+	pid, state, err := getMosnState(config.Port)
+	if err != nil {
+		t.Fatal("get mosn states failed")
+	}
+	// reconfiguring
+	store.SetMosnState(store.Reconfiguring)
+	pid2, state2, err := getMosnState(config.Port)
+	if err != nil {
+		t.Fatal("get mosn states failed")
+	}
+	// running
+	store.SetMosnState(store.Running)
+	pid3, state3, err := getMosnState(config.Port)
+	if err != nil {
+		t.Fatal("get mosn states failed")
+	}
+	// verify
+	curPid := os.Getpid()
+	if !(pid == curPid &&
+		pid2 == curPid &&
+		pid3 == curPid) {
+		t.Error("mosn pid is not expected", pid, pid2, pid3)
+	}
+	if !(state == store.Init &&
+		state2 == store.Reconfiguring &&
+		state3 == store.Running) {
+		t.Error("mosn state is not expected", state, state2, state3)
+	}
 }
 
 func readLines(path string) ([]string, error) {
