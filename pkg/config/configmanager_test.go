@@ -96,6 +96,7 @@ func TestUpdateRouterConfig(t *testing.T) {
 	if !addOrUpdateRouterConfig("egress", routerConfiguration) {
 		t.Fatal("update router config failed")
 	}
+	dumpRouterConfig()
 	// verify
 	ln, idx := findListener("egress")
 	if idx == -1 {
