@@ -30,6 +30,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/hashicorp/go-syslog"
+	"runtime"
 )
 
 var (
@@ -178,7 +179,7 @@ func (l *Logger) handler() {
 				}
 			}
 		case buf = <-l.writeBufferChan:
-			for i := 0; i < 20; i++ {
+			for i := 0; i < 50; i++ {
 				select {
 				case b := <-l.writeBufferChan:
 					buf.Write(b.Bytes())
@@ -190,6 +191,8 @@ func (l *Logger) handler() {
 			buf.WriteTo(l)
 			buffer.PutIoBuffer(buf)
 		}
+
+		runtime.Gosched()
 	}
 }
 

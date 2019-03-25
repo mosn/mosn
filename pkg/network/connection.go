@@ -419,7 +419,9 @@ func (c *connection) onRead() {
 func (c *connection) Write(buffers ...types.IoBuffer) error {
 	defer func() {
 		if r := recover(); r != nil {
-			c.logger.Errorf("Write panic %v", r)
+			c.logger.Errorf("connection has closed. Connection = %d, Local Address = %s, Remote Address = %s",
+				c.id, c.LocalAddr().String(), c.RemoteAddr().String())
+
 		}
 	}()
 
@@ -539,6 +541,8 @@ func (c *connection) startWriteLoop() {
 
 			return
 		}
+
+		runtime.Gosched()
 	}
 
 transfer:

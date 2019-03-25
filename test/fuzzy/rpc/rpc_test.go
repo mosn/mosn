@@ -67,6 +67,10 @@ func (c *RPCStatusClient) SendRequest() {
 	requestEncoder.AppendHeaders(context.Background(), headers, true)
 }
 
+func (c *RPCStatusClient) OnDecode(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	c.OnReceiveHeaders(ctx, headers, true)
+}
+
 func (c *RPCStatusClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	if cmd, ok := headers.(rpc.RespStatus); ok {
 		status := int16(cmd.RespStatus())

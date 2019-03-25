@@ -43,9 +43,13 @@ var (
 
 	currProxyID uint32
 	workerPool  mosnsync.ShardWorkerPool
+
+	pool mosnsync.WorkerPool
 )
 
 func init() {
+	pool = mosnsync.NewWorkerPool(2048)
+
 	globalStats = newProxyStats(types.GlobalProxyName)
 
 	// register init function with interest of P number

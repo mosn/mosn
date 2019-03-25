@@ -172,6 +172,8 @@ type StreamReceiveListener interface {
 
 	// OnDecodeError is called with when exception occurs
 	OnDecodeError(ctx context.Context, err error, headers HeaderMap)
+
+	OnDecode(ctx context.Context, headers HeaderMap, data IoBuffer, trailers HeaderMap)
 }
 
 // StreamConnection is a connection runs multiple streams

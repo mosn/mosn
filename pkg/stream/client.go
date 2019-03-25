@@ -164,6 +164,11 @@ type clientStreamReceiverWrapper struct {
 	streamReceiver types.StreamReceiveListener
 }
 
+func (w *clientStreamReceiverWrapper) OnDecode(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	w.stream.DestroyStream()
+	w.streamReceiver.OnDecode(ctx, headers, data, trailers)
+}
+
 func (w *clientStreamReceiverWrapper) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endOfStream bool) {
 	if endOfStream {
 		w.stream.DestroyStream()

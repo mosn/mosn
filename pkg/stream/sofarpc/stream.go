@@ -214,17 +214,12 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 
 	// header, data notify
 	if stream != nil {
-		data := cmd.Data()
-
 		timeoutInt := cmd.GetTimeout()
 		timeout := strconv.Itoa(timeoutInt) // timeout, ms
 		cmd.Set(types.HeaderGlobalTimeout, timeout)
 
-		stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
+		stream.receiver.OnDecode(stream.ctx, cmd, cmd.Data(), nil)
 
-		if data != nil {
-			stream.receiver.OnReceiveData(stream.ctx, data, true)
-		}
 	}
 }
 
