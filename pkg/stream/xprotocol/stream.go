@@ -160,10 +160,8 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		}
 
 		reqBuf := networkbuffer.NewIoBufferBytes(request)
-		conn.OnReceiveHeaders(conn.context, streamID, protocol.CommonHeader(headers))
-		log.DefaultLogger.Tracef("after Dispatch on decode header")
-		conn.OnReceiveData(conn.context, streamID, reqBuf)
-		log.DefaultLogger.Tracef("after Dispatch on decode data")
+		log.DefaultLogger.Tracef("after Dispatch on decode header and data")
+		conn.OnDecde(conn.context, streamID, protocol.CommonHeader(headers), reqBuf)
 		buffer.Drain(requestLen)
 	}
 }
@@ -205,6 +203,24 @@ func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder typ
 	conn.activeStream.Set(streamID, stream)
 
 	return &stream
+}
+
+func (conn *streamConnection) OnDecde(context context.Context, streamID string, headers types.HeaderMap, data types.IoBuffer) types.FilterStatus {
+	log.DefaultLogger.Tracef("xprotocol stream on decode header")
+	if conn.serverStreamConnectionEventListener != nil {
+		log.DefaultLogger.Tracef("xprotocol stream on new stream detected invoked")
+		conn.onNewStreamDetected(streamID, headers)
+	}
+	if stream, ok := conn.activeStream.Get(streamID); ok {
+		log.DefaultLogger.Tracef("xprotocol stream on decode header and data")
+		stream.streamReceiver.OnDecode(context, headers, data, nil)
+
+		if stream.direction == ClientStream {
+			// for client stream, remove stream on response read
+			stream.connection.activeStream.Remove(stream.streamID)
+		}
+	}
+	return types.Stop
 }
 
 // OnReceiveHeaders process header
