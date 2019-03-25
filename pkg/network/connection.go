@@ -432,18 +432,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 	}
 
 	if c.internalLoopStarted {
-		select {
-		case c.writeBufferChan <- &buffers:
-		default:
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						c.logger.Errorf("Write panic %v", r)
-					}
-				}()
-				c.writeBufferChan <- &buffers
-			}()
-		}
+		c.writeBufferChan <- &buffers
 	} else {
 		// Start schedule if not started
 		select {
