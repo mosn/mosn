@@ -69,12 +69,14 @@ func (hc *HealthCheck) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func parseMetaData(cfg MetadataConfig) Metadata {
+func parseMetaData(cfg *MetadataConfig) Metadata {
 	result := Metadata{}
-	mosnLb := cfg.MetaKey.LbMetaKey
-	for k, v := range mosnLb {
-		if vs, ok := v.(string); ok {
-			result[k] = vs
+	if cfg != nil {
+		mosnLb := cfg.MetaKey.LbMetaKey
+		for k, v := range mosnLb {
+			if vs, ok := v.(string); ok {
+				result[k] = vs
+			}
 		}
 	}
 	return result

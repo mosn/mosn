@@ -122,10 +122,10 @@ func convertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
-			OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Hosts:                convertClusterHosts(xdsCluster.GetHosts()),
-			Spec:                 convertSpec(xdsCluster),
-			TLS:                  convertTLS(xdsCluster.GetTlsContext()),
+			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
+			Hosts: convertClusterHosts(xdsCluster.GetHosts()),
+			Spec:  convertSpec(xdsCluster),
+			TLS:   convertTLS(xdsCluster.GetTlsContext()),
 		}
 
 		clusters = append(clusters, cluster)
@@ -659,10 +659,10 @@ func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[strin
 
 func convertRouteMatch(xdsRouteMatch xdsroute.RouteMatch) v2.RouterMatch {
 	return v2.RouterMatch{
-		Prefix:        xdsRouteMatch.GetPrefix(),
-		Path:          xdsRouteMatch.GetPath(),
-		Regex:         xdsRouteMatch.GetRegex(),
-		CaseSensitive: xdsRouteMatch.GetCaseSensitive().GetValue(),
+		Prefix: xdsRouteMatch.GetPrefix(),
+		Path:   xdsRouteMatch.GetPath(),
+		Regex:  xdsRouteMatch.GetRegex(),
+		//CaseSensitive: xdsRouteMatch.GetCaseSensitive().GetValue(),
 		//Runtime:       convertRuntime(xdsRouteMatch.GetRuntime()),
 		Headers: convertHeaders(xdsRouteMatch.GetHeaders()),
 	}
@@ -962,6 +962,7 @@ func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.Ci
 	}
 }
 
+/*
 func convertOutlierDetection(xdsOutlierDetection *xdscluster.OutlierDetection) v2.OutlierDetection {
 	if xdsOutlierDetection == nil || xdsOutlierDetection.Size() == 0 {
 		return v2.OutlierDetection{}
@@ -980,6 +981,7 @@ func convertOutlierDetection(xdsOutlierDetection *xdscluster.OutlierDetection) v
 		SuccessRateStdevFactor:             xdsOutlierDetection.GetSuccessRateStdevFactor().GetValue(),
 	}
 }
+*/
 
 func convertSpec(xdsCluster *xdsapi.Cluster) v2.ClusterSpecInfo {
 	if xdsCluster == nil || xdsCluster.GetEdsClusterConfig() == nil {
