@@ -24,119 +24,56 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/markphelps/optional"
 )
-
-func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*VirtualHostImpl, error) {
-	var virtualHostImpl = &VirtualHostImpl{
-		virtualHostName:       virtualHost.Name,
-		fastIndex:             make(map[string]map[string]types.Route),
-		requestHeadersParser:  getHeaderParser(virtualHost.RequestHeadersToAdd, nil),
-		responseHeadersParser: getHeaderParser(virtualHost.ResponseHeadersToAdd, virtualHost.ResponseHeadersToRemove),
-	}
-
-	switch virtualHost.RequireTLS {
-	case "EXTERNALONLY":
-		virtualHostImpl.sslRequirements = types.EXTERNALONLY
-	case "ALL":
-		virtualHostImpl.sslRequirements = types.ALL
-	default:
-		virtualHostImpl.sslRequirements = types.NONE
-	}
-
-	for _, route := range virtualHost.Routers {
-		if err := virtualHostImpl.addRouteBase(&route); err != nil {
-			return nil, err
-		}
-	}
-
-	// virtual host routes can be zero
-
-	// todo check cluster's validity
-	if validateClusters {
-	}
-
-	// Add Virtual Cluster
-	for _, vc := range virtualHost.VirtualClusters {
-
-		if regxPattern, err := regexp.Compile(vc.Pattern); err == nil {
-			virtualHostImpl.virtualClusters = append(virtualHostImpl.virtualClusters,
-				VirtualClusterEntry{
-					name:    vc.Name,
-					method:  optional.NewString(vc.Method),
-					pattern: regxPattern,
-				})
-		} else {
-			log.DefaultLogger.Errorf("Compile Error")
-		}
-	}
-
-	return virtualHostImpl, nil
-}
 
 type VirtualHostImpl struct {
 	virtualHostName       string
 	mutex                 sync.RWMutex
-	routes                []RouteBase //route impl
+	routes                []RouteBase
 	fastIndex             map[string]map[string]types.Route
-	virtualClusters       []VirtualClusterEntry
-	sslRequirements       types.SslRequirements
-	corsPolicy            types.CorsPolicy
 	globalRouteConfig     *configImpl
 	requestHeadersParser  *headerParser
 	responseHeadersParser *headerParser
 }
 
 func (vh *VirtualHostImpl) Name() string {
-
 	return vh.virtualHostName
 }
 
-func (vh *VirtualHostImpl) CorsPolicy() types.CorsPolicy {
-
-	return nil
-}
-
-func (vh *VirtualHostImpl) RateLimitPolicy() types.RateLimitPolicy {
-
-	return nil
-}
-
 func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
-	routeRuleImplBase, err := NewRouteRuleImplBase(vh, route)
-	var router RouteBase
-
+	base, err := NewRouteRuleImplBase(vh, route)
 	if err != nil {
+		log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", err)
 		return err
 	}
-
+	var router RouteBase
 	if route.Match.Prefix != "" {
 		router = &PrefixRouteRuleImpl{
-			RouteRuleImplBase: routeRuleImplBase,
+			RouteRuleImplBase: base,
 			prefix:            route.Match.Prefix,
 		}
 	} else if route.Match.Path != "" {
 		router = &PathRouteRuleImpl{
-			RouteRuleImplBase: routeRuleImplBase,
+			RouteRuleImplBase: base,
 			path:              route.Match.Path,
 		}
 	} else if route.Match.Regex != "" {
-		if regPattern, err := regexp.Compile(route.Match.Regex); err == nil {
-			router = &RegexRouteRuleImpl{
-				RouteRuleImplBase: routeRuleImplBase,
-				regexStr:          route.Match.Regex,
-				regexPattern:      regPattern,
-			}
-		} else {
-			log.DefaultLogger.Errorf("virtualhost create route failed, Compile Regex Error")
+		regPattern, err := regexp.Compile(route.Match.Regex)
+		if err != nil {
+			log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", err)
+			return err
+		}
+		router = &RegexRouteRuleImpl{
+			RouteRuleImplBase: base,
+			regexStr:          route.Match.Regex,
+			regexPattern:      regPattern,
 		}
 	} else {
-		// todo delete hack
-		if router = defaultRouterRuleFactoryOrder.factory(routeRuleImplBase, route.Match.Headers); router == nil {
-			log.DefaultLogger.Errorf("virtualhost create route failed, match default router error")
+		if router = defaultRouterRuleFactoryOrder.factory(base, route.Match.Headers); router == nil {
+			log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", "create default router failed")
+			return ErrRouterFactory
 		}
 	}
-
 	if router != nil {
 		vh.mutex.Lock()
 		vh.routes = append(vh.routes, router)
@@ -153,14 +90,15 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 			valueMap[value] = router
 		}
 		vh.mutex.Unlock()
+		log.DefaultLogger.Infof(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule")
 	} else {
-		log.DefaultLogger.Errorf("virtualhost add route failed, no router type matched")
+		log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule failed")
 	}
 	return nil
+
 }
 
 func (vh *VirtualHostImpl) GetRouteFromEntries(headers types.HeaderMap, randomValue uint64) types.Route {
-	// todo check tls
 	vh.mutex.RLock()
 	defer vh.mutex.RUnlock()
 	for _, route := range vh.routes {
@@ -168,9 +106,9 @@ func (vh *VirtualHostImpl) GetRouteFromEntries(headers types.HeaderMap, randomVa
 			return routeEntry
 		}
 	}
-
 	return nil
 }
+
 func (vh *VirtualHostImpl) GetAllRoutesFromEntries(headers types.HeaderMap, randomValue uint64) []types.Route {
 	vh.mutex.RLock()
 	defer vh.mutex.RUnlock()
@@ -208,13 +146,17 @@ func (vh *VirtualHostImpl) RemoveAllRoutes() {
 	return
 }
 
-type VirtualClusterEntry struct {
-	pattern *regexp.Regexp
-	method  optional.String
-	name    string
-}
-
-func (vce *VirtualClusterEntry) VirtualClusterName() string {
-
-	return vce.name
+func NewVirtualHostImpl(virtualHost *v2.VirtualHost) (*VirtualHostImpl, error) {
+	vhImpl := &VirtualHostImpl{
+		virtualHostName:       virtualHost.Name,
+		fastIndex:             make(map[string]map[string]types.Route),
+		requestHeadersParser:  getHeaderParser(virtualHost.RequestHeadersToAdd, nil),
+		responseHeadersParser: getHeaderParser(virtualHost.ResponseHeadersToAdd, virtualHost.ResponseHeadersToRemove),
+	}
+	for _, route := range virtualHost.Routers {
+		if err := vhImpl.addRouteBase(&route); err != nil {
+			return nil, err
+		}
+	}
+	return vhImpl, nil
 }

@@ -570,11 +570,11 @@ func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 
 	for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
 		virtualHost := &v2.VirtualHost{
-			Name:                    xdsVirtualHost.GetName(),
-			Domains:                 xdsVirtualHost.GetDomains(),
-			Routers:                 convertRoutes(xdsVirtualHost.GetRoutes()),
-			RequireTLS:              xdsVirtualHost.GetRequireTls().String(),
-			VirtualClusters:         convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
+			Name:    xdsVirtualHost.GetName(),
+			Domains: xdsVirtualHost.GetDomains(),
+			Routers: convertRoutes(xdsVirtualHost.GetRoutes()),
+			//RequireTLS:              xdsVirtualHost.GetRequireTls().String(),
+			//VirtualClusters:         convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
 			RequestHeadersToAdd:     convertHeadersToAdd(xdsVirtualHost.GetRequestHeadersToAdd()),
 			ResponseHeadersToAdd:    convertHeadersToAdd(xdsVirtualHost.GetResponseHeadersToAdd()),
 			ResponseHeadersToRemove: xdsVirtualHost.GetResponseHeadersToRemove(),
@@ -600,9 +600,9 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 		if xdsRouteAction := xdsRoute.GetRoute(); xdsRouteAction != nil {
 			route := v2.Router{
 				RouterConfig: v2.RouterConfig{
-					Match:     convertRouteMatch(xdsRoute.GetMatch()),
-					Route:     convertRouteAction(xdsRouteAction),
-					Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
+					Match: convertRouteMatch(xdsRoute.GetMatch()),
+					Route: convertRouteAction(xdsRouteAction),
+					//Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
 			}
@@ -611,9 +611,9 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 		} else if xdsRouteAction := xdsRoute.GetRedirect(); xdsRouteAction != nil {
 			route := v2.Router{
 				RouterConfig: v2.RouterConfig{
-					Match:     convertRouteMatch(xdsRoute.GetMatch()),
-					Redirect:  convertRedirectAction(xdsRouteAction),
-					Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
+					Match: convertRouteMatch(xdsRoute.GetMatch()),
+					//Redirect:  convertRedirectAction(xdsRouteAction),
+					//Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
 			}
@@ -663,11 +663,12 @@ func convertRouteMatch(xdsRouteMatch xdsroute.RouteMatch) v2.RouterMatch {
 		Path:          xdsRouteMatch.GetPath(),
 		Regex:         xdsRouteMatch.GetRegex(),
 		CaseSensitive: xdsRouteMatch.GetCaseSensitive().GetValue(),
-		Runtime:       convertRuntime(xdsRouteMatch.GetRuntime()),
-		Headers:       convertHeaders(xdsRouteMatch.GetHeaders()),
+		//Runtime:       convertRuntime(xdsRouteMatch.GetRuntime()),
+		Headers: convertHeaders(xdsRouteMatch.GetHeaders()),
 	}
 }
 
+/*
 func convertRuntime(xdsRuntime *xdscore.RuntimeUInt32) v2.RuntimeUInt32 {
 	if xdsRuntime == nil {
 		return v2.RuntimeUInt32{}
@@ -677,6 +678,7 @@ func convertRuntime(xdsRuntime *xdscore.RuntimeUInt32) v2.RuntimeUInt32 {
 		RuntimeKey:   xdsRuntime.GetRuntimeKey(),
 	}
 }
+*/
 
 func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 	if xdsHeaders == nil {
@@ -769,8 +771,8 @@ func convertWeightedClusters(xdsWeightedClusters *xdsroute.WeightedCluster) []v2
 	weightedClusters := make([]v2.WeightedCluster, 0, len(xdsWeightedClusters.GetClusters()))
 	for _, cluster := range xdsWeightedClusters.GetClusters() {
 		weightedCluster := v2.WeightedCluster{
-			Cluster:          convertWeightedCluster(cluster),
-			RuntimeKeyPrefix: xdsWeightedClusters.GetRuntimeKeyPrefix(),
+			Cluster: convertWeightedCluster(cluster),
+			//RuntimeKeyPrefix: xdsWeightedClusters.GetRuntimeKeyPrefix(),
 		}
 		weightedClusters = append(weightedClusters, weightedCluster)
 	}
@@ -803,6 +805,7 @@ func convertRetryPolicy(xdsRetryPolicy *xdsroute.RouteAction_RetryPolicy) *v2.Re
 	}
 }
 
+/*
 func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) v2.RedirectAction {
 	if xdsRedirectAction == nil {
 		return v2.RedirectAction{}
@@ -813,7 +816,9 @@ func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) v2.Redire
 		ResponseCode: uint32(xdsRedirectAction.GetResponseCode()),
 	}
 }
+*/
 
+/*
 func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.VirtualCluster {
 	if xdsVirtualClusters == nil {
 		return nil
@@ -829,6 +834,7 @@ func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.
 	}
 	return virtualClusters
 }
+*/
 
 func convertAddress(xdsAddress *xdscore.Address) net.Addr {
 	if xdsAddress == nil {

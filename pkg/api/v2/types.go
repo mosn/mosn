@@ -341,20 +341,11 @@ type RouterConfiguration struct {
 type VirtualHost struct {
 	Name                    string               `json:"name"`
 	Domains                 []string             `json:"domains"`
-	VirtualClusters         []VirtualCluster     `json:"virtual_clusters"`
 	Routers                 []Router             `json:"routers"`
 	RequireTLS              string               `json:"require_tls"` // not used yet
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove"`
-}
-
-// VirtualCluster is a way of specifying a regex matching rule against certain important endpoints
-// such that statistics are generated explicitly for the matched requests
-type VirtualCluster struct {
-	Pattern string `json:"pattern"`
-	Name    string `json:"name"`
-	Method  string `json:"method"`
 }
 
 // RouterMatch represents the route matching parameters
@@ -363,15 +354,7 @@ type RouterMatch struct {
 	Path          string          `json:"path"`   // Match request's Path with Exact Comparing
 	Regex         string          `json:"regex"`  // Match request's Path with Regex Comparing
 	CaseSensitive bool            `json:"case_sensitive"`
-	Runtime       RuntimeUInt32   `json:"runtime"`
 	Headers       []HeaderMatcher `json:"headers"` // Match request's Headers
-}
-
-// RedirectAction represents the redirect parameters
-type RedirectAction struct {
-	HostRedirect string `json:"host_redirect"`
-	PathRedirect string `json:"path_redirect"`
-	ResponseCode uint32 `json:"response_code"`
 }
 
 // DirectResponseAction represents the direct response parameters
@@ -385,14 +368,7 @@ type DirectResponseAction struct {
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
 type WeightedCluster struct {
-	Cluster          ClusterWeight `json:"cluster"`
-	RuntimeKeyPrefix string        `json:"runtime_key_prefix"` // not used currently
-}
-
-// RuntimeUInt32 indicates that the route should additionally match on a runtime key
-type RuntimeUInt32 struct {
-	DefaultValue uint32 `json:"default_value"`
-	RuntimeKey   string `json:"runtime_key"`
+	Cluster ClusterWeight `json:"cluster"`
 }
 
 // HeaderMatcher specifies a set of headers that the route should match on.
@@ -413,6 +389,7 @@ type ServiceRegistryInfo struct {
 	ServicePubInfo []PublishInfo       `json:"publish_info,omitempty"`
 	MsgMetaInfo    map[string][]string `json:"msg_meta_info,omitempty"`
 }
+
 type ApplicationInfo struct {
 	AntShareCloud bool   `json:"ant_share_cloud"`
 	DataCenter    string `json:"data_center,omitempty"`
@@ -442,7 +419,6 @@ type StatsMatcher struct {
 	ExclusionLabels []string `json:"exclusion_labels"`
 	ExclusionKeys   []string `json:"exclusion_keys"`
 }
-
 
 // ServerConfig for making up server for mosn
 type ServerConfig struct {
