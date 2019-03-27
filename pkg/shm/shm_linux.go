@@ -1,10 +1,9 @@
 package shm
 
+func Alloc(name string, size int) (*ShmSpan, error) {
+	path := path(name)
 
-func Alloc(size int) (*ShmSpan, error) {
-	index := atomic.AddUint32(&totalSpanCount, 1)
-
-	f, err := os.OpenFile( fmt.Sprintf("/dev/shm/mosn_mmap_%d", index), os.O_RDWR|os.O_CREATE, 0644)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
 
 	if err != nil {
 		return nil, err
@@ -12,7 +11,6 @@ func Alloc(size int) (*ShmSpan, error) {
 
 	defer f.Close()
 
-	// extend file
 	if err := f.Truncate(int64(size)); err != nil {
 		return nil, err
 	}
@@ -23,9 +21,10 @@ func Alloc(size int) (*ShmSpan, error) {
 		return nil, err
 	}
 
-	return NewShmSpan(data), nil
+	return NewShmSpan(path, data), nil
 }
 
 func DeAlloc(span *ShmSpan) error {
+	os.Remove(span.path)
 	return syscall.Munmap(span.origin)
 }

@@ -89,7 +89,7 @@ type streamConnection struct {
 	ctx    context.Context
 	conn   types.Connection
 	cm     contextManager
-	logger log.Logger
+	logger log.ErrorLogger
 
 	codecEngine types.ProtocolEngine
 }
@@ -193,6 +193,11 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 
 	// init first context
 	sc.cm.next()
+
+	// set not support transfer connection
+	sc.conn.SetTransferEventListener(func() bool {
+		return false
+	})
 
 	sc.streams = make(map[uint32]*serverStream, 32)
 	sc.logger.Tracef("new http2 server stream connection")
@@ -685,7 +690,7 @@ func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Fra
 type clientStream struct {
 	stream
 
-	logger log.Logger
+	logger log.ErrorLogger
 	h2s    *http2.MClientStream
 	sc     *clientStreamConnection
 }

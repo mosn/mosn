@@ -75,7 +75,8 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 
 	if nil != context {
 		host, hostChoosen := sslb.TryChooseHostFromContext(context)
-		if hostChoosen {
+		// if a subset's hosts are all deleted, it will return a nil host and a true flag
+		if hostChoosen && host != nil {
 			log.DefaultLogger.Debugf("subset load balancer: match subset entry success, "+
 				"choose hostaddr = %s", host.AddressString())
 			return host
@@ -154,14 +155,14 @@ func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalan
 	matchCriteria := context.MetadataMatchCriteria()
 
 	if nil == matchCriteria {
-		log.DefaultLogger.Errorf("subset load balancer: context is nil")
+		log.DefaultLogger.Infof("subset load balancer: context is nil")
 		return nil, false
 	}
 
 	entry := sslb.FindSubset(matchCriteria.MetadataMatchCriteria())
 
 	if entry == nil || !entry.Active() {
-		log.DefaultLogger.Errorf("subset load balancer: match entry failure")
+		log.DefaultLogger.Infof("subset load balancer: match entry failure")
 		return nil, false
 	}
 
@@ -378,7 +379,7 @@ func (lbbe *LBSubsetEntry) Initialized() bool {
 }
 
 func (lbbe *LBSubsetEntry) Active() bool {
-	return true
+	return lbbe.Initialized() && !lbbe.prioritySubset.Empty()
 }
 
 func (lbbe *LBSubsetEntry) PrioritySubset() types.PrioritySubset {
@@ -512,6 +513,9 @@ func (psi *PrioritySubsetImpl) Update(priority uint32, hostsAdded []types.Host, 
 
 	psi.GetOrCreateHostSubset(priority).UpdateHostSubset(hostsAdded, hostsRemoved, psi.predicateFunc)
 
+	// reset empty, update host subset maybe remove all hosts
+	psi.empty = true
+	// if hosts still exists, empty is set to false
 	for _, hostSet := range psi.prioritySubset.HostSetsByPriority() {
 		if len(hostSet.Hosts()) > 0 {
 			psi.empty = false
@@ -521,7 +525,6 @@ func (psi *PrioritySubsetImpl) Update(priority uint32, hostsAdded []types.Host, 
 }
 
 func (psi *PrioritySubsetImpl) Empty() bool {
-
 	return psi.empty
 }
 

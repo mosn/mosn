@@ -41,8 +41,8 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER          = "mixer"
-	FaultStream    = "fault"
+	MIXER       = "mixer"
+	FaultStream = "fault"
 )
 
 // ClusterType
@@ -409,14 +409,19 @@ type XProxyExtendConfig struct {
 
 // ServiceRegistryInfo
 type ServiceRegistryInfo struct {
-	ServiceAppInfo ApplicationInfo `json:"application"`
-	ServicePubInfo []PublishInfo   `json:"publish_info,omitempty"`
+	ServiceAppInfo ApplicationInfo     `json:"application"`
+	ServicePubInfo []PublishInfo       `json:"publish_info,omitempty"`
+	MsgMetaInfo    map[string][]string `json:"msg_meta_info,omitempty"`
 }
 type ApplicationInfo struct {
 	AntShareCloud bool   `json:"ant_share_cloud"`
 	DataCenter    string `json:"data_center,omitempty"`
 	AppName       string `json:"app_name,omitempty"`
 	Zone          string `json:"zone"`
+	DeployMode    bool   `json:"deploy_mode"`
+	MasterSystem  bool   `json:"master_system"`
+	CloudName     string `json:"cloud_name"`
+	HostMachine   string `json:"host_machine"`
 }
 
 // PublishInfo implements json.Marshaler and json.Unmarshaler
@@ -433,6 +438,26 @@ type PublishContent struct {
 // TODO: support inclusion_list
 // TODO: support exclusion list/inclusion_list as pattern
 type StatsMatcher struct {
-	RejectAll     bool     `json:"reject_all"`
-	ExclusionList []string `json:"exclusion_list"`
+	RejectAll       bool     `json:"reject_all"`
+	ExclusionLabels []string `json:"exclusion_labels"`
+	ExclusionKeys   []string `json:"exclusion_keys"`
+}
+
+
+// ServerConfig for making up server for mosn
+type ServerConfig struct {
+	//default logger
+	ServerName       string `json:"mosn_server_name"`
+	DefaultLogPath   string `json:"default_log_path,omitempty"`
+	DefaultLogLevel  string `json:"default_log_level,omitempty"`
+	DefaultLogRoller string `json:"default_log_roller,omitempty"`
+
+	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
+	//graceful shutdown config
+	GracefulTimeout DurationConfig `json:"graceful_timeout"`
+
+	//go processor number
+	Processor int `json:"processor"`
+
+	Listeners []Listener `json:"listeners,omitempty"`
 }

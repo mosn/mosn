@@ -18,7 +18,6 @@
 package server
 
 import (
-	"errors"
 	"os"
 	"runtime"
 	"time"
@@ -27,15 +26,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 )
-
-func init() {
-	onProcessExit = append(onProcessExit, func() {
-		if pidFile != "" {
-			os.Remove(pidFile)
-		}
-	})
-}
 
 // currently, only one server supported
 func GetServer() Server {
@@ -51,9 +44,21 @@ var servers []*server
 
 type server struct {
 	serverName string
-	logger     log.Logger
+	logger     log.ErrorLogger
 	stopChan   chan struct{}
 	handler    types.ConnectionHandler
+}
+
+func NewConfig(c *v2.ServerConfig) *Config {
+	return &Config{
+		ServerName:      c.ServerName,
+		LogPath:         c.DefaultLogPath,
+		LogLevel:        config.ParseLogLevel(c.DefaultLogLevel),
+		LogRoller:       c.DefaultLogRoller,
+		GracefulTimeout: c.GracefulTimeout.Duration,
+		Processor:       c.Processor,
+		UseNetpollMode:  c.UseNetpollMode,
+	}
 }
 
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
@@ -71,7 +76,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 
 	runtime.GOMAXPROCS(config.Processor)
 
-	OnProcessShutDown(log.CloseAll)
+	keeper.OnProcessShutDown(log.CloseAll)
 
 	server := &server{
 		serverName: config.ServerName,
@@ -139,33 +144,23 @@ func StopConnection() {
 	}
 }
 
-func ListListenerFD() []uintptr {
-	var fds []uintptr
+func ListListenersFile() []*os.File {
+	var files []*os.File
 	for _, server := range servers {
-		fds = append(fds, server.handler.ListListenersFD(nil)...)
+		files = append(files, server.handler.ListListenersFile(nil)...)
 	}
-	return fds
+	return files
 }
 
 func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
-	// 10 seconds wait for read timeout
-	timeout := time.NewTimer(2 * (duration + types.DefaultConnReadTimeout))
-	wait := make(chan struct{}, 1)
-	time.Sleep(duration)
-	go func() {
-		//todo close idle connections and wait active connections complete
-		StopConnection()
-		log.DefaultLogger.Infof("StopConnection")
-		time.Sleep(duration + time.Second*10)
-		wait <- struct{}{}
-	}()
-
+	// DefaultConnReadTimeout wait for read timeout
+	timeout := time.NewTimer(2*duration + types.DefaultConnReadTimeout)
+	StopConnection()
+	log.DefaultLogger.Infof("StopConnection")
 	select {
 	case <-timeout.C:
-		return errors.New("wait timeout")
-	case <-wait:
 		return nil
 	}
 }
@@ -182,7 +177,7 @@ func InitDefaultLogger(config *Config) {
 
 	//use default log path
 	if logPath == "" {
-		logPath = MosnLogDefaultPath
+		logPath = types.MosnLogDefaultPath
 	}
 
 	if config.LogRoller != "" {

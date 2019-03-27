@@ -2,28 +2,33 @@ package shm
 
 import (
 	"errors"
-	"sync"
 	"unsafe"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"os"
+	"fmt"
 )
-
-const defaultCachelineSize = 128
 
 var (
-	totalSpanCount uint32
-	errNotEnough   = errors.New("span capacity is not enough")
+	errNotEnough = errors.New("span capacity is not enough")
 )
 
+func path(name string) string {
+	return types.MosnConfigPath + string(os.PathSeparator) + fmt.Sprintf("mosn_shm_%s", name)
+}
+
+// TODO support process level lock use cas
 type ShmSpan struct {
-	sync.Mutex
 	origin []byte
+	name   string
 
 	data   uintptr
 	offset int
 	size   int
 }
 
-func NewShmSpan(data []byte) *ShmSpan {
+func NewShmSpan(name string, data []byte) *ShmSpan {
 	return &ShmSpan{
+		name:   name,
 		origin: data,
 		data:   uintptr(unsafe.Pointer(&data[0])),
 		size:   len(data),
@@ -31,14 +36,19 @@ func NewShmSpan(data []byte) *ShmSpan {
 }
 
 func (s *ShmSpan) Alloc(size int) (uintptr, error) {
-	s.Lock()
-	defer s.Unlock()
-
-	if s.offset+size >= s.size {
+	if s.offset+size > s.size {
 		return 0, errNotEnough
 	}
 
 	ptr := s.data + uintptr(s.offset)
 	s.offset += size
 	return ptr, nil
+}
+
+func (s *ShmSpan) Data() uintptr {
+	return s.data
+}
+
+func (s *ShmSpan) Origin() []byte {
+	return s.origin
 }

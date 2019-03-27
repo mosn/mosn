@@ -1,18 +1,18 @@
 package util
 
 import (
+	"context"
+	"fmt"
 	"net"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"context"
-
-	"fmt"
-
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
@@ -51,10 +51,10 @@ func NewRPCClient(t *testing.T, id string, proto string) *RPCClient {
 	}
 }
 
-func (c *RPCClient) Connect(addr string) error {
+func (c *RPCClient) connect(addr string, tlsMng types.TLSContextManager) error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
-	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
+	cc := network.NewClientConnection(nil, tlsMng, remoteAddr, stopChan, log.DefaultLogger)
 	c.conn = cc
 	if err := cc.Connect(true); err != nil {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
@@ -64,8 +64,20 @@ func (c *RPCClient) Connect(addr string) error {
 	if c.Codec == nil {
 		return fmt.Errorf("NewStreamClient error %v, %v", protocol.SofaRPC, cc)
 	}
-
 	return nil
+}
+
+func (c *RPCClient) ConnectTLS(addr string, cfg *v2.TLSConfig) error {
+	tlsMng, err := mtls.NewTLSClientContextManager(cfg, nil)
+	if err != nil {
+		return err
+	}
+	return c.connect(addr, tlsMng)
+
+}
+
+func (c *RPCClient) Connect(addr string) error {
+	return c.connect(addr, nil)
 }
 
 func (c *RPCClient) Stats() bool {
@@ -76,6 +88,7 @@ func (c *RPCClient) Stats() bool {
 func (c *RPCClient) Close() {
 	if c.conn != nil {
 		c.conn.Close(types.NoFlush, types.LocalClose)
+		c.streamID = 0 // reset connection stream id
 	}
 }
 
@@ -124,7 +137,7 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 				}
 			}
 		} else {
-			c.t.Errorf("get a unexpected stream ID")
+			c.t.Errorf("get a unexpected stream ID %s", streamID)
 		}
 	} else {
 		c.t.Errorf("get a unexpected header type")

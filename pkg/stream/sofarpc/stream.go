@@ -90,7 +90,7 @@ type streamConnection struct {
 	streamConnectionEventListener       types.StreamConnectionEventListener
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 
-	logger log.Logger
+	logger log.ErrorLogger
 }
 
 func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -114,6 +114,11 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 	if sc.streamConnectionEventListener != nil {
 		sc.streams = make(map[uint64]*stream, 32)
 	}
+
+	// set support transfer connection
+	sc.conn.SetTransferEventListener(func() bool {
+		return true
+	})
 
 	return sc
 }
@@ -211,10 +216,9 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 	if stream != nil {
 		data := cmd.Data()
 
-		if cmd.GetTimeout() > 0 {
-			timeout := strconv.Itoa(cmd.GetTimeout()) // timeout, ms
-			cmd.Set(types.HeaderGlobalTimeout, timeout)
-		}
+		timeoutInt := cmd.GetTimeout()
+		timeout := strconv.Itoa(timeoutInt) // timeout, ms
+		cmd.Set(types.HeaderGlobalTimeout, timeout)
 
 		stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
 

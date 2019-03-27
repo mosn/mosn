@@ -26,66 +26,75 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
+	"log"
+	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 )
 
 const maxLabelCount = 10
 
 var (
-	defaultStore *store
-
+	defaultStore          *store
+	defaultMatcher        *metricsMatcher
 	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
 )
 
 // stats memory store
 type store struct {
-	rejectAll       bool
-	exclusionLabels []string
-	metrics         map[string]types.Metrics
-	mutex           sync.RWMutex
+	matcher *metricsMatcher
+
+	metrics map[string]types.Metrics
+	mutex   sync.RWMutex
+
+	zone shm.MetricsZone
 }
 
 // metrics is a wrapper of go-metrics registry, is an implement of types.Metrics
 type metrics struct {
-	typ       string
-	labels    map[string]string
+	typ    string
+	labels map[string]string
+
+	prefix    string
 	labelKeys []string
 	labelVals []string
 
-	registry gometrics.Registry
+	ref map[string]interface{}
 }
 
 func init() {
+	defaultMatcher = &metricsMatcher{}
+
 	defaultStore = &store{
+		matcher: defaultMatcher,
 		// TODO: default length configurable
 		metrics: make(map[string]types.Metrics, 100),
 	}
+
+	zone, err := shm.NewSharedMetrics("metrics", 10*1024*1024)
+	if err != nil {
+		log.Fatalln("open shared memory for metrics failed:", err)
+	}
+
+	defaultStore.zone = zone
+
+	keeper.OnProcessShutDown(func() error {
+		zone.Free()
+		return nil
+	})
+
 }
 
-// SetStatsMatcher sets the exclusion labels
-// if a metrics labels contains in exclusions, it will be ignored
-func SetStatsMatcher(all bool, exclusions []string) {
+// SetStatsMatcher sets the exclusion labels and exclusion keys
+// if a metrics labels/keys contains in exclusions, it will be ignored
+func SetStatsMatcher(all bool, exclusionLabels, exclusionKeys []string) {
 	defaultStore.mutex.Lock()
 	defer defaultStore.mutex.Unlock()
-	if all {
-		defaultStore.rejectAll = true
-	}
-	defaultStore.exclusionLabels = exclusions
-}
 
-// isExclusion returns the labels will be ignored or not
-func isExclusion(labels map[string]string) bool {
-	defaultStore.mutex.RLock()
-	defer defaultStore.mutex.RUnlock()
-	if defaultStore.rejectAll {
-		return true
+	defaultStore.matcher = &metricsMatcher{
+		rejectAll:       all,
+		exclusionLabels: exclusionLabels,
+		exclusionKeys:   exclusionKeys,
 	}
-	// TODO: support pattern
-	for _, label := range defaultStore.exclusionLabels {
-		if _, ok := labels[label]; ok {
-			return true
-		}
-	}
-	return false
 }
 
 // NewMetrics returns a metrics
@@ -94,24 +103,28 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	if len(labels) > maxLabelCount {
 		return nil, errLabelCountExceeded
 	}
-	// support exclusion only
-	if isExclusion(labels) {
-		return NewNilMetrics(typ, labels)
-	}
 
 	defaultStore.mutex.Lock()
 	defer defaultStore.mutex.Unlock()
 
+	// support exclusion only
+	if defaultStore.matcher.isExclusionLabels(labels) {
+		return NewNilMetrics(typ, labels)
+	}
+
 	// check existence
-	name := fullName(typ, labels)
+	name, keys, values := fullName(typ, labels)
 	if m, ok := defaultStore.metrics[name]; ok {
 		return m, nil
 	}
 
 	stats := &metrics{
-		typ:      typ,
-		labels:   labels,
-		registry: gometrics.NewRegistry(),
+		typ:       typ,
+		labels:    labels,
+		labelKeys: keys,
+		labelVals: values,
+		prefix:    name + ".",
+		ref:       make(map[string]interface{}),
 	}
 
 	defaultStore.metrics[name] = stats
@@ -152,23 +165,64 @@ func (s *metrics) SortedLabels() (keys, values []string) {
 }
 
 func (s *metrics) Counter(key string) gometrics.Counter {
-	return s.registry.GetOrRegister(key, gometrics.NewCounter).(gometrics.Counter)
+	// support exclusion only
+	if defaultStore.matcher.isExclusionKey(key) {
+		return gometrics.NilCounter{}
+	}
+
+	entry, err := defaultStore.zone.AllocEntry(s.fullName(key))
+	if err != nil {
+		// log & stats
+		return gometrics.NilCounter{}
+	}
+
+	counter := shm.NewShmCounter(entry)
+	s.ref[key] = counter
+	return counter
 }
 
 func (s *metrics) Gauge(key string) gometrics.Gauge {
-	return s.registry.GetOrRegister(key, gometrics.NewGauge).(gometrics.Gauge)
+	// support exclusion only
+	if defaultStore.matcher.isExclusionKey(key) {
+		return gometrics.NilGauge{}
+	}
+
+	entry, err := defaultStore.zone.AllocEntry(s.fullName(key))
+	if err != nil {
+		// log & stats
+		return gometrics.NilGauge{}
+	}
+
+	gauge := shm.NewShmGauge(entry)
+	s.ref[key] = gauge
+	return gauge
 }
 
 func (s *metrics) Histogram(key string) gometrics.Histogram {
-	return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
+	return gometrics.NilHistogram{}
+
+	// support exclusion only
+	//if defaultStore.matcher.isExclusionKey(key) {
+	//	return gometrics.NilHistogram{}
+	//}
+	//return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
 }
 
 func (s *metrics) Each(f func(string, interface{})) {
-	s.registry.Each(f)
+	for k, v := range s.ref {
+		f(k, v)
+	}
 }
 
 func (s *metrics) UnregisterAll() {
-	s.registry.UnregisterAll()
+	//for k, v := range s.ref {
+	//	f(k, v)
+	//}
+
+}
+
+func (s *metrics) fullName(name string) string {
+	return s.prefix + name
 }
 
 // GetAll returns all metrics data
@@ -191,29 +245,16 @@ func ResetAll() {
 		m.UnregisterAll()
 	}
 	defaultStore.metrics = make(map[string]types.Metrics, 100)
-	defaultStore.rejectAll = false
-	defaultStore.exclusionLabels = nil
+	defaultStore.matcher = defaultMatcher
 }
 
-func mapEqual(x, y map[string]string) bool {
-	if len(x) != len(y) {
-		return false
-	}
-	for k, xv := range x {
-		if yv, ok := y[k]; !ok || yv != xv {
-			return false
-		}
-	}
-	return true
-}
-
-func fullName(typ string, labels map[string]string) string {
-	keys, values := sortedLabels(labels)
+func fullName(typ string, labels map[string]string) (fullName string, keys, values []string) {
+	keys, values = sortedLabels(labels)
 
 	pair := make([]string, 0, len(keys))
 	for i := 0; i < len(keys); i++ {
 		pair = append(pair, keys[i]+"."+values[i])
 	}
-	return typ + "." + strings.Join(pair, ".")
-
+	fullName = typ + "." + strings.Join(pair, ".")
+	return
 }

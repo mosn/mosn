@@ -45,6 +45,14 @@ type Routers interface {
 	MatchRoute(headers HeaderMap, randomValue uint64) Route
 	// MatchAllRoutes returns all routes with headers
 	MatchAllRoutes(headers HeaderMap, randomValue uint64) []Route
+	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
+	// header is used to find virtual host
+	MatchRouteFromHeaderKV(headers HeaderMap, key, value string) Route
+	// AddRoute adds a route into virtual host, find virtual host by domain
+	// returns the virtualhost index, -1 means no virtual host found
+	AddRoute(domain string, route *v2.Router) int
+	// RemoveAllRoutes will clear all the routes in the virtual host, find virtual host by domain
+	RemoveAllRoutes(domain string) int
 }
 
 // RouterManager is a manager for all routers' config
@@ -53,6 +61,10 @@ type RouterManager interface {
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
+
+	AddRoute(routerConfigName, domain string, route *v2.Router) error
+
+	RemoveAllRoutes(routerConfigName, domain string) error
 }
 
 // HandlerStatus returns the Handler's available status
@@ -68,7 +80,7 @@ const (
 // RouteHandler is an external check handler for a route
 type RouteHandler interface {
 	// IsAvailable returns HandlerStatus represents the handler will be used/not used/stop next handler check
-	IsAvailable(context.Context, ClusterSnapshot) HandlerStatus
+	IsAvailable(context.Context, func(context.Context, string) ClusterSnapshot) (ClusterSnapshot, HandlerStatus)
 	// Route returns handler's route
 	Route() Route
 }
@@ -260,6 +272,12 @@ type VirtualHost interface {
 	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
 	// GetAllRoutesFromEntries returns all Route matched the condition
 	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
+	// GetRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
+	GetRouteFromHeaderKV(key, value string) Route
+	// AddRoute adds a new route into virtual host
+	AddRoute(route *v2.Router) error
+	// RemoveAllRoutes clear all the routes in the virtual host
+	RemoveAllRoutes()
 }
 
 type RedirectRule interface {

@@ -55,7 +55,7 @@ func (s *downStream) runAppendHeaderFilters(filter *activeStreamSenderFilter, he
 		f = s.senderFilters[index]
 
 		s.filterStage |= EncodeHeaders
-		status := f.filter.AppendHeaders(headers, endStream)
+		status := f.filter.AppendHeaders(s.context, headers, endStream)
 		s.filterStage &= ^EncodeHeaders
 		if f.handleHeaderStatus(status) {
 			return true
@@ -78,7 +78,7 @@ func (s *downStream) runAppendDataFilters(filter *activeStreamSenderFilter, data
 		f = s.senderFilters[index]
 
 		s.filterStage |= EncodeData
-		status := f.filter.AppendData(data, endStream)
+		status := f.filter.AppendData(s.context, data, endStream)
 		s.filterStage &= ^EncodeData
 		if f.handleDataStatus(status, data) {
 			return true
@@ -100,7 +100,7 @@ func (s *downStream) runAppendTrailersFilters(filter *activeStreamSenderFilter, 
 		f = s.senderFilters[index]
 
 		s.filterStage |= EncodeTrailers
-		status := f.filter.AppendTrailers(trailers)
+		status := f.filter.AppendTrailers(s.context, trailers)
 		s.filterStage &= ^EncodeTrailers
 		if f.handleTrailerStatus(status) {
 			return true
@@ -122,7 +122,7 @@ func (s *downStream) runReceiveHeadersFilters(filter *activeStreamReceiverFilter
 		f = s.receiverFilters[index]
 
 		s.filterStage |= DecodeHeaders
-		status := f.filter.OnReceiveHeaders(headers, endStream)
+		status := f.filter.OnReceiveHeaders(s.context, headers, endStream)
 		s.filterStage &= ^DecodeHeaders
 		if f.handleHeaderStatus(status) {
 			// TODO: If it is the last filter, continue with
@@ -152,7 +152,7 @@ func (s *downStream) runReceiveDataFilters(filter *activeStreamReceiverFilter, d
 		f = s.receiverFilters[index]
 
 		s.filterStage |= DecodeData
-		status := f.filter.OnReceiveData(data, endStream)
+		status := f.filter.OnReceiveData(s.context, data, endStream)
 		s.filterStage &= ^DecodeData
 		if f.handleDataStatus(status, data) {
 			// TODO: If it is the last filter, continue with
@@ -181,7 +181,7 @@ func (s *downStream) runReceiveTrailersFilters(filter *activeStreamReceiverFilte
 		f = s.receiverFilters[index]
 
 		s.filterStage |= DecodeTrailers
-		status := f.filter.OnReceiveTrailers(trailers)
+		status := f.filter.OnReceiveTrailers(s.context, trailers)
 		s.filterStage &= ^DecodeTrailers
 		if f.handleTrailerStatus(status) {
 			return true

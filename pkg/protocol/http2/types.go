@@ -66,7 +66,9 @@ func (h *HeaderMap) Get(key string) (value string, ok bool) {
 	return value, true
 }
 
-// Set key-value pair in header map, the previous pair will be replaced if exists
+// Add value for given key.
+// Multiple headers with the same key may be added with this function.
+// Use Set for setting a single header for the given key.
 func (h *HeaderMap) Set(key string, value string) {
 	h.H.Set(key, value)
 }

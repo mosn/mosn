@@ -67,7 +67,7 @@ func (ctx *context) buildMatch() {
 
 type contextManager struct {
 	contexts  []*context
-	logger    log.Logger
+	logger    log.ErrorLogger
 	isClient  bool
 	inspector bool
 	listener  types.Listener
@@ -78,7 +78,7 @@ type contextManager struct {
 // NewTLSServerContextManager returns a types.TLSContextManager used in TLS Server
 // A Server Manager can contains multiple certificate context
 // The server is a tls.Config that used to find real tls.Config in contexts, just valid in server
-func NewTLSServerContextManager(config *v2.Listener, l types.Listener, logger log.Logger) (types.TLSContextManager, error) {
+func NewTLSServerContextManager(config *v2.Listener, l types.Listener, logger log.ErrorLogger) (types.TLSContextManager, error) {
 	mgr := &contextManager{
 		contexts:  []*context{},
 		logger:    logger,

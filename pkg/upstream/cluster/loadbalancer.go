@@ -26,16 +26,30 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+// NewLoadBalancer can be register self defined type
+var lbFactories map[types.LoadBalancerType]func(types.PrioritySet) types.LoadBalancer
+
+func init() {
+	RegisterLBType(types.RoundRobin, newSmoothWeightedRRLoadBalancer)
+	RegisterLBType(types.Random, newRandomLoadbalancer)
+}
+
+func RegisterLBType(lbType types.LoadBalancerType, f func(types.PrioritySet) types.LoadBalancer) {
+	if lbFactories == nil {
+		lbFactories = make(map[types.LoadBalancerType]func(types.PrioritySet) types.LoadBalancer)
+	}
+	lbFactories[lbType] = f
+}
+
 // NewLoadBalancer
 // Note: Random is the default lb
 // Round Robin is realized as Weighted Round Robin
 func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySet) types.LoadBalancer {
-	switch lbType {
-	case types.RoundRobin:
-		return newSmoothWeightedRRLoadBalancer(prioritySet)
-	default:
-		return newRandomLoadbalancer(prioritySet)
+	if f, ok := lbFactories[lbType]; ok {
+		return f(prioritySet)
 	}
+	// default use random
+	return newRandomLoadbalancer(prioritySet)
 }
 
 type loadbalancer struct {

@@ -23,6 +23,8 @@ import (
 	"runtime/debug"
 	"time"
 
+	"os"
+
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -38,11 +40,11 @@ type listener struct {
 	handOffRestoredDestinationConnections bool
 	cb                                    types.ListenerEventListener
 	rawl                                  *net.TCPListener
-	logger                                log.Logger
+	logger                                log.ErrorLogger
 	config                                *v2.Listener
 }
 
-func NewListener(lc *v2.Listener, logger log.Logger) types.Listener {
+func NewListener(lc *v2.Listener, logger log.ErrorLogger) types.Listener {
 
 	l := &listener{
 		name:                                  lc.Name,
@@ -127,14 +129,8 @@ func (l *listener) SetListenerTag(tag uint64) {
 	l.listenerTag = tag
 }
 
-func (l *listener) ListenerFD() (uintptr, error) {
-	file, err := l.rawl.File()
-	if err != nil {
-		l.logger.Errorf(" listener %s fd not found : %v", l.name, err)
-		return 0, err
-	}
-	//defer file.Close()
-	return file.Fd(), nil
+func (l *listener) ListenerFile() (*os.File, error) {
+	return l.rawl.File()
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {

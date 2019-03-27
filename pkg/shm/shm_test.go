@@ -7,10 +7,19 @@ import (
 	"sync"
 	"sync/atomic"
 	"log"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func TestAtomic(t *testing.T) {
-	span, err := Alloc(256)
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
+
+	span, err := Alloc("TestAtomic", 256)
 	if err != nil {
 		t.Error(err)
 	}
@@ -20,7 +29,6 @@ func TestAtomic(t *testing.T) {
 	expected := 10000
 	cpu := runtime.NumCPU()
 	wg := sync.WaitGroup{}
-
 
 	wg.Add(cpu)
 	for i := 0; i < cpu; i++ {
@@ -42,4 +50,20 @@ func TestAtomic(t *testing.T) {
 		log.Fatalln(err)
 	}
 
+}
+
+func BenchmarkPointerCast_Raw(b *testing.B) {
+	var counter uint32 = 0
+	ptr := &counter
+	for i := 0; i < b.N; i++ {
+		atomic.AddUint32(ptr, 1)
+	}
+}
+
+func BenchmarkPointerCast_Cast(b *testing.B) {
+	var counter uint32 = 0
+	ptr := uintptr(unsafe.Pointer(&counter))
+	for i := 0; i < b.N; i++ {
+		atomic.AddUint32((*uint32)(unsafe.Pointer(ptr)), 1)
+	}
 }

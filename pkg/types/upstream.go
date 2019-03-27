@@ -61,7 +61,7 @@ type ClusterManager interface {
 	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol Protocol) ConnectionPool
 
 	// RemovePrimaryCluster used to remove cluster from set
-	RemovePrimaryCluster(cluster string) error
+	RemovePrimaryCluster(clusters ...string) error
 
 	Shutdown() error
 

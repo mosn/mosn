@@ -124,8 +124,8 @@ func NewListener(name, addr string, chains []v2.FilterChain) v2.Listener {
 
 func NewMOSNConfig(listeners []v2.Listener, clusterManager config.ClusterManagerConfig) *config.MOSNConfig {
 	return &config.MOSNConfig{
-		Servers: []config.ServerConfig{
-			config.ServerConfig{
+		Servers: []v2.ServerConfig{
+			v2.ServerConfig{
 				DefaultLogPath:  MeshLogPath,
 				DefaultLogLevel: MeshLogLevel,
 				Listeners:       listeners,
