@@ -46,7 +46,8 @@ type store struct {
 	metrics map[string]types.Metrics
 	mutex   sync.RWMutex
 
-	zone shm.MetricsZone
+	zone     shm.MetricsZone    // for counter, gauge
+	registry gometrics.Registry // for histogram
 }
 
 // metrics is a wrapper of go-metrics registry, is an implement of types.Metrics
@@ -67,7 +68,8 @@ func init() {
 	defaultStore = &store{
 		matcher: defaultMatcher,
 		// TODO: default length configurable
-		metrics: make(map[string]types.Metrics, 100),
+		metrics:  make(map[string]types.Metrics, 100),
+		registry: gometrics.NewRegistry(),
 	}
 
 	zone, err := shm.NewSharedMetrics("metrics", 10*1024*1024)
@@ -199,13 +201,17 @@ func (s *metrics) Gauge(key string) gometrics.Gauge {
 }
 
 func (s *metrics) Histogram(key string) gometrics.Histogram {
-	return gometrics.NilHistogram{}
+	//return gometrics.NilHistogram{}
 
-	// support exclusion only
-	//if defaultStore.matcher.isExclusionKey(key) {
-	//	return gometrics.NilHistogram{}
-	//}
-	//return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
+	//support exclusion only
+	if defaultStore.matcher.isExclusionKey(key) {
+		return gometrics.NilHistogram{}
+	}
+
+	histogram := defaultStore.registry.GetOrRegister(s.fullName(key), func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) })
+	s.ref[key] = histogram
+
+	return histogram.(gometrics.Histogram)
 }
 
 func (s *metrics) Each(f func(string, interface{})) {

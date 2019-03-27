@@ -15,7 +15,7 @@ var (
 //
 // This struct should never be instantiated.
 type metricsEntry struct {
-	name  [116]byte // 64
+	name  [116]byte // 116
 	value int64    // 8
 	ref   uint32   // 4
 }
