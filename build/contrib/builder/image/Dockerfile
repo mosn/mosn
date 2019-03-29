@@ -14,8 +14,6 @@ RUN yum install -y \
        tsar tcpdump mpstat iostat vmstat sysstat \
        python-setuptools; yum clean all
 
-RUN yum install -y -b test aliperf; yum clean all
-
 # 规避crond在docker环境下运行的问题
 RUN echo -e "sleep 10;/bin/touch /var/spool/cron/a;/bin/rm -f /var/spool/cron/a;service crond restart" > /opt/fix-cron.sh
 
@@ -31,13 +29,6 @@ RUN tar zvxf pip-1.5.5.tar.gz
 WORKDIR $TMP_FOLDER/pip-1.5.5
 RUN python setup.py install
 RUN pip install supervisor-stdout
-
-# install cpu limit: limit log zip cpu usage
-RUN wget -O cpulimit.zip https://github.com/opsengine/cpulimit/archive/master.zip
-RUN unzip cpulimit.zip
-RUN cd cpulimit-master && make && cp src/cpulimit /usr/bin
-COPY ./etc/mosn/cpulimitedgzip                 /usr/bin/cpulimitedgzip
-RUN  chmod +x /usr/bin/cpulimitedgzip
 
 RUN echo "export MOSN_PREFIX=/home/admin/mosn" >> /etc/bashrc;
 RUN echo "export PATH=$PATH" >> /etc/bashrc
