@@ -65,8 +65,8 @@ func statsDump(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(200)
-	sink := console.NewConsoleSink(w)
-	sink.Flush(metrics.GetAll())
+	sink := console.NewConsoleSink()
+	sink.Flush(w, metrics.GetAll())
 }
 
 // update log level

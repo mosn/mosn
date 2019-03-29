@@ -17,7 +17,10 @@
 
 package types
 
-import "github.com/rcrowley/go-metrics"
+import (
+	"github.com/rcrowley/go-metrics"
+	"io"
+)
 
 // Metrics is a wrapper interface for go-metrics
 // support Counter, Gauge Histogram
@@ -53,5 +56,5 @@ type Metrics interface {
 // MetricsSink flush metrics to backend storage
 type MetricsSink interface {
 	// Flush flush given metrics
-	Flush(metrics []Metrics)
+	Flush(writer io.Writer, metrics []Metrics)
 }

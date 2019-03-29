@@ -281,31 +281,17 @@ func initializeTracing(config config.TracingConfig) {
 }
 
 func initializeMetrics(config config.MetricsConfig) {
-	var flushSinks []types.MetricsSink
 	// set metrics package
 	statsMatcher := config.StatsMatcher
 	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
 	// create sinks
 	for _, cfg := range config.SinkConfigs {
-		sink, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
+		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
 		// abort
 		if err != nil {
 			log.StartLogger.Errorf("initialize metrics sink %s failed, metrics sink is turned off", cfg.Type)
 			return
 		}
-
-		// filter sinks that need active flush
-		for i := range config.Flush {
-			if cfg.Type == config.Flush[i] {
-				flushSinks = append(flushSinks, sink)
-				break
-			}
-		}
-
-	}
-
-	if len(flushSinks) > 0 {
-		go sink.StartFlush(flushSinks, config.FlushInterval.Duration)
 	}
 }
 

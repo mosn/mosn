@@ -38,8 +38,6 @@ type TracingConfig struct {
 
 // MetricsConfig for metrics sinks
 type MetricsConfig struct {
-	Flush         []string          `json:"flush"`
-	FlushInterval v2.DurationConfig `json:"flush_interval"`
 	SinkConfigs   []v2.Filter       `json:"sinks"`
 	StatsMatcher  v2.StatsMatcher   `json:"stats_matcher"`
 }

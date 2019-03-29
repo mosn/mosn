@@ -29,6 +29,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"fmt"
+	"os"
 )
 
 type testAction int
@@ -90,15 +91,19 @@ func TestPrometheusMetrics(t *testing.T) {
 	sink := NewPromeSink(&promConfig{
 		Port:                  8088,
 		Endpoint:              "/metrics",
-		DisableCollectProcess: true,
-		DisableCollectGo:      true,
+		//DisableCollectProcess: true,
+		//DisableCollectGo:      true,
 	})
+	_ = sink
+
+
+	sink.Flush(os.Stdout, metrics.GetAll())
+
 	store.StartService(nil)
 	defer store.StopService()
 	time.Sleep(time.Second) // wait server start
 
 	tc := http.Client{}
-	sink.Flush(metrics.GetAll())
 
 	resp, err := tc.Get("http://127.0.0.1:8088/metrics")
 	if err != nil {
@@ -113,6 +118,8 @@ func TestPrometheusMetrics(t *testing.T) {
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
+
+	//fmt.Println(string(body))
 
 	if !bytes.Contains(body, []byte("lbk1_t1_k1{lbk1=\"lbv1\"} 0.0")) {
 		t.Error("lbk1_t1_k1{lbk1=\"lbv1\"} metric not correct")
@@ -151,15 +158,15 @@ func BenchmarkPromSink_Flush(b *testing.B) {
 		DisableCollectGo:      true,
 		//DisablePassiveFlush:   true,
 	})
+	_ = sink
 	store.StartService(nil)
 	defer store.StopService()
 	time.Sleep(time.Second) // wait server start
 
-	sink.Flush(metrics.GetAll())
 	//tc := http.Client{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i ++ {
-		sink.Flush(metrics.GetAll())
+		sink.Flush(ioutil.Discard, metrics.GetAll())
 		//resp, err := tc.Get("http://127.0.0.1:8088/metrics")
 		//if err != nil {
 		//	b.Error("get metrics failed:", err)

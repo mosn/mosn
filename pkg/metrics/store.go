@@ -31,8 +31,8 @@ import (
 const maxLabelCount = 10
 
 var (
-	defaultStore *store
-	defaultMatcher *metricsMatcher
+	defaultStore          *store
+	defaultMatcher        *metricsMatcher
 	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
 )
 
@@ -46,10 +46,11 @@ type store struct {
 
 // metrics is a wrapper of go-metrics registry, is an implement of types.Metrics
 type metrics struct {
-	typ       string
-	labels    map[string]string
-	labelKeys []string
-	labelVals []string
+	typ    string
+	labels map[string]string
+
+	labelKeys   []string
+	labelValues []string
 
 	registry gometrics.Registry
 }
@@ -93,15 +94,17 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	}
 
 	// check existence
-	name := fullName(typ, labels)
+	name, keys, values := fullName(typ, labels)
 	if m, ok := defaultStore.metrics[name]; ok {
 		return m, nil
 	}
 
 	stats := &metrics{
-		typ:      typ,
-		labels:   labels,
-		registry: gometrics.NewRegistry(),
+		typ:         typ,
+		labels:      labels,
+		labelKeys:   keys,
+		labelValues: values,
+		registry:    gometrics.NewRegistry(),
 	}
 
 	defaultStore.metrics[name] = stats
@@ -131,13 +134,7 @@ func (s *metrics) Labels() map[string]string {
 }
 
 func (s *metrics) SortedLabels() (keys, values []string) {
-	if s.labelKeys != nil && s.labelVals != nil {
-		return s.labelKeys, s.labelVals
-	}
 	keys, values = sortedLabels(s.labels)
-	s.labelKeys = keys
-	s.labelVals = values
-
 	return
 }
 
@@ -196,25 +193,13 @@ func ResetAll() {
 	defaultStore.matcher = defaultMatcher
 }
 
-func mapEqual(x, y map[string]string) bool {
-	if len(x) != len(y) {
-		return false
-	}
-	for k, xv := range x {
-		if yv, ok := y[k]; !ok || yv != xv {
-			return false
-		}
-	}
-	return true
-}
-
-func fullName(typ string, labels map[string]string) string {
-	keys, values := sortedLabels(labels)
+func fullName(typ string, labels map[string]string) (name string, keys, values []string) {
+	keys, values = sortedLabels(labels)
 
 	pair := make([]string, 0, len(keys))
 	for i := 0; i < len(keys); i++ {
 		pair = append(pair, keys[i]+"."+values[i])
 	}
-	return typ + "." + strings.Join(pair, ".")
-
+	name = typ + "." + strings.Join(pair, ".")
+	return
 }

@@ -31,11 +31,24 @@ import (
 	gometrics "github.com/rcrowley/go-metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"io"
+	"github.com/prometheus/common/expfmt"
+
+	dto "github.com/prometheus/client_model/go"
+	"github.com/gogo/protobuf/proto"
+	"sync"
+	"compress/gzip"
 )
 
 var (
 	sinkType        = "prometheus"
 	defaultEndpoint = "/metrics"
+	gzipPool        = sync.Pool{
+		New: func() interface{} {
+			return gzip.NewWriter(nil)
+		},
+	}
 )
 
 func init() {
@@ -58,8 +71,8 @@ type promConfig struct {
 type promSink struct {
 	config *promConfig
 
-	registry  prometheus.Registerer //Prometheus registry
-	gaugeVecs map[string]*prometheus.GaugeVec
+	registry   prometheus.Registerer //Prometheus registry
+	bufferPool buffer.CalibrateIoBufferPool
 }
 
 type promHttpExporter struct {
@@ -68,71 +81,98 @@ type promHttpExporter struct {
 }
 
 func (exporter *promHttpExporter) ServeHTTP(rsp http.ResponseWriter, req *http.Request) {
-	// 1. flush metrics
-	if !exporter.sink.config.DisablePassiveFlush {
-		exporter.sink.Flush(metrics.GetAll())
-	}
-
-	// 2. export
+	// 1. export process and go metrics
 	exporter.real.ServeHTTP(rsp, req)
+
+	// 2. mosn metrics
+	exporter.sink.Flush(rsp, metrics.GetAll())
 }
 
 // ~ MetricsSink
-func (sink *promSink) Flush(ms []types.Metrics) {
+func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
+
+	//buffer := sink.bufferPool.GetIoBuffer()
+	//defer sink.bufferPool.PutIoBuffer(buffer)
+
+	format := expfmt.FmtText
+	w := writer
+
+	rsp, ok := writer.(http.ResponseWriter)
+	if ok {
+		format = expfmt.Format(rsp.Header().Get("Content-Type"))
+
+		// gzip
+		if rsp.Header().Get("Content-Encoding") == "gzip" {
+			gz := gzipPool.Get().(*gzip.Writer)
+			defer gzipPool.Put(gz)
+
+			gz.Reset(w)
+			defer gz.Close()
+
+			w = gz
+		}
+	}
+
+	enc := expfmt.NewEncoder(w, format)
+
 	for _, m := range ms {
 		typ := m.Type()
 		labelKeys, labelVals := m.SortedLabels()
+
+		// TODO cached in metrics struct, avoid calc for each flush
+		prefix := strings.Join(labelKeys, "_") + "_" + typ + "_"
+		//labels := formatKV(labelKeys, labelVals)
+		labels := makeLabelPair(labelKeys, labelVals)
+
 		m.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
 			case gometrics.Counter:
-				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Count()))
+				sink.flushCounter(enc, prefix+name, labels, float64(metric.Count()))
 			case gometrics.Gauge:
-				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Value()))
+				sink.flushCounter(enc, prefix+name, labels, float64(metric.Value()))
 			case gometrics.Histogram:
-				snap := metric.Snapshot()
-				sink.histogramVec(typ, labelKeys, labelVals, name, snap)
+				sink.flushHistogram(enc, prefix+name, labels, metric.Snapshot())
 			}
 		})
 	}
+
+	//buffer.WriteTo(writer)
 }
 
-func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, name string, snap gometrics.Histogram) {
-	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_max", float64(snap.Max()))
-	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_min", float64(snap.Min()))
+//func (sink *promSink) flushHistogram(buffer types.IoBuffer, name, labels string, snapshot gometrics.Histogram) {
+//	// min
+//	sink.flushGauge(buffer, name+"_min", labels, float64(snapshot.Min()))
+//	// max
+//	sink.flushGauge(buffer, name+"_max", labels, float64(snapshot.Max()))
+//}
+
+func (sink *promSink) flushHistogram(enc expfmt.Encoder, name string, labels []*dto.LabelPair, snapshot gometrics.Histogram) {
+	// min
+	sink.flushGauge(enc, name+"_min", labels, float64(snapshot.Min()))
+	// max
+	sink.flushGauge(enc, name+"_max", labels, float64(snapshot.Max()))
 }
 
-func (sink *promSink) histogramVecWithValue(typ string, labelKeys, labelVals []string, name string, value float64) {
-	namespace := strings.Join(labelKeys, "_")
-	key := namespace + "_" + typ + "_" + name
-	g, ok := sink.gaugeVecs[key]
-	if !ok {
-		g = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: flattenKey(namespace),
-			Subsystem: flattenKey(typ),
-			Name:      flattenKey(name),
-			Help:      "histogram metrics",
-		}, labelKeys)
-		sink.registry.MustRegister(g)
-		sink.gaugeVecs[key] = g
-	}
-	g.WithLabelValues(labelVals...).Set(value)
+//func (sink *promSink) flushGauge(buffer types.IoBuffer, name, labels string, val float64) {
+//buffer.WriteString(fmt.Sprintf("# TYPE %s gauge\n", name))
+//buffer.WriteString(fmt.Sprintf("%s{%s} %v\n", name, labels, val))
+func (sink *promSink) flushGauge(enc expfmt.Encoder, name string, labels []*dto.LabelPair, val float64) {
+	enc.Encode(&dto.MetricFamily{
+		Name:   proto.String(name),
+		Type:   dto.MetricType_GAUGE.Enum(),
+		Metric: []*dto.Metric{{Label: labels, Gauge: &dto.Gauge{Value: proto.Float64(val)}}},
+	})
 }
 
-func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name string, val float64) {
-	namespace := strings.Join(labelKeys, "_")
-	key := namespace + "_" + typ + "_" + name
-	g, ok := sink.gaugeVecs[key]
-	if !ok {
-		g = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: flattenKey(namespace),
-			Subsystem: flattenKey(typ),
-			Name:      name,
-		}, labelKeys)
-
-		sink.registry.MustRegister(g)
-		sink.gaugeVecs[key] = g
-	}
-	g.WithLabelValues(labelVals...).Set(val)
+//func (sink *promSink) flushCounter(buffer types.IoBuffer, name, labels string, val float64) {
+//buffer.WriteString(fmt.Sprintf("# TYPE %s counter\n", name))
+//buffer.WriteString(fmt.Sprintf("%s{%s} %v\n", name, labels, val))
+func (sink *promSink) flushCounter(enc expfmt.Encoder, name string, labels []*dto.LabelPair, val float64) {
+	enc.Encode(&dto.MetricFamily{
+		Name:   proto.String(name),
+		Type:   dto.MetricType_COUNTER.Enum(),
+		Metric: []*dto.Metric{{Label: labels, Counter: &dto.Counter{Value: proto.Float64(val)}}},
+	})
 }
 
 // NewPromeSink returns a metrics sink that produces Prometheus metrics using store data
@@ -147,9 +187,8 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 	}
 
 	promSink := &promSink{
-		config:    config,
-		registry:  promReg,
-		gaugeVecs: make(map[string]*prometheus.GaugeVec),
+		config:   config,
+		registry: promReg,
 	}
 
 	// export http for prometheus
@@ -207,4 +246,30 @@ func flattenKey(key string) string {
 	key = strings.Replace(key, "-", "_", -1)
 	key = strings.Replace(key, "=", "_", -1)
 	return key
+}
+
+// input: keys=[proxy,listener], values=[global,ingress]
+// output: proxy="global",listener="ingress"
+func formatKV(keys, values []string) (formatted string) {
+	if length := len(keys); length == len(values) {
+		formatted = keys[0] + "=\"" + values[0] + "\""
+
+		for i := 1; i < length; i++ {
+			formatted += "," + keys[i] + "=\"" + values[i] + "\""
+		}
+	}
+	return
+}
+
+func makeLabelPair(keys, values []string) (pairs []*dto.LabelPair) {
+	if length := len(keys); length == len(values) {
+		pairs = make([]*dto.LabelPair, length)
+		for i := 0; i < length; i++ {
+			pairs[i] = &dto.LabelPair{
+				Name:  proto.String(keys[i]),
+				Value: proto.String(values[i]),
+			}
+		}
+	}
+	return
 }

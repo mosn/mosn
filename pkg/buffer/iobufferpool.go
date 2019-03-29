@@ -66,3 +66,31 @@ func PutIoBuffer(buf types.IoBuffer) error {
 	ibPool.give(buf)
 	return nil
 }
+
+// use last usage to calibrate the buffer capacity
+type CalibrateIoBufferPool struct {
+	shift    int // offset
+	lastUsed int
+}
+
+func (pool CalibrateIoBufferPool) GetIoBuffer() types.IoBuffer {
+	return GetIoBuffer(1 << uint(minShift+pool.shift))
+}
+
+func (pool CalibrateIoBufferPool) PutIoBuffer(buf types.IoBuffer) {
+	size := buf.Len()
+	pool.lastUsed = size
+
+	if size > (1 << minShift) {
+		shift := 0
+
+		size--
+		for size > 0 {
+			size = size >> 1
+			shift++
+		}
+		pool.shift = shift - minShift
+	}
+
+	PutIoBuffer(buf)
+}

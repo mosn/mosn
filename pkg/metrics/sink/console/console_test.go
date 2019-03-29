@@ -104,7 +104,7 @@ func TestConsoleMetrics(t *testing.T) {
 	wg.Wait()
 
 	buf := &bytes.Buffer{}
-	NewConsoleSink(buf).Flush(metrics.GetAll())
+	NewConsoleSink().Flush(buf, metrics.GetAll())
 	datas := make(map[string]map[string]map[string]string)
 	json.Unmarshal(buf.Bytes(), &datas)
 	t1Data := datas["t1"]
@@ -164,8 +164,8 @@ func BenchmarkGetMetrics(b *testing.B) {
 			s.Histogram("key4").Update(1)
 		}
 	}
-	sink := NewConsoleSink(ioutil.Discard)
+	sink := NewConsoleSink()
 	for i := 0; i < b.N; i++ {
-		sink.Flush(metrics.GetAll())
+		sink.Flush(ioutil.Discard, metrics.GetAll())
 	}
 }
