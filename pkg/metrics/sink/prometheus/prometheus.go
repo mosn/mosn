@@ -70,7 +70,7 @@ type promConfig struct {
 type promSink struct {
 	config *promConfig
 
-	registry   prometheus.Registerer //Prometheus registry
+	registry prometheus.Registerer //Prometheus registry
 }
 
 type promHttpExporter struct {
@@ -108,26 +108,90 @@ func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 	}
 
 	enc := expfmt.NewEncoder(w, format)
+	familyMap := make(map[string]*dto.MetricFamily)
 
+	// collect into MetricFamily
 	for _, m := range ms {
 		typ := m.Type()
 		labelKeys, labelVals := m.SortedLabels()
 
 		// TODO cached in metrics struct, avoid calc for each flush
 		prefix := strings.Join(labelKeys, "_") + "_" + typ + "_"
-		//labels := formatKV(labelKeys, labelVals)
 		labels := makeLabelPair(labelKeys, labelVals)
 
 		m.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
 			case gometrics.Counter:
-				sink.flushCounter(enc, prefix+name, labels, float64(metric.Count()))
+				fqName := prefix + name
+				family, ok := familyMap[fqName]
+				if !ok {
+					family = &dto.MetricFamily{
+						Name: proto.String(fqName),
+						Type: dto.MetricType_COUNTER.Enum(),
+					}
+					familyMap[fqName] = family
+				}
+				family.Metric = append(family.Metric,
+					&dto.Metric{
+						Label:   labels,
+						Counter: &dto.Counter{Value: proto.Float64(float64(metric.Count()))},
+					})
 			case gometrics.Gauge:
-				sink.flushCounter(enc, prefix+name, labels, float64(metric.Value()))
+				fqName := prefix + name
+				family, ok := familyMap[fqName]
+				if !ok {
+					family = &dto.MetricFamily{
+						Name: proto.String(fqName),
+						Type: dto.MetricType_GAUGE.Enum(),
+					}
+					familyMap[fqName] = family
+				}
+				family.Metric = append(family.Metric,
+					&dto.Metric{
+						Label: labels,
+						Gauge: &dto.Gauge{Value: proto.Float64(float64(metric.Value()))},
+					})
 			case gometrics.Histogram:
-				sink.flushHistogram(enc, prefix+name, labels, metric.Snapshot())
+				snapshot := metric.Snapshot()
+
+				// min
+				minFqName := prefix + name + "_min"
+				family, ok := familyMap[minFqName]
+				if !ok {
+					family = &dto.MetricFamily{
+						Name: proto.String(minFqName),
+						Type: dto.MetricType_GAUGE.Enum(),
+					}
+					familyMap[minFqName] = family
+				}
+				family.Metric = append(family.Metric,
+					&dto.Metric{
+						Label: labels,
+						Gauge: &dto.Gauge{Value: proto.Float64(float64(snapshot.Min()))},
+					})
+
+				// max
+				maxFqName := prefix + name + "_max"
+				family, ok = familyMap[maxFqName]
+				if !ok {
+					family = &dto.MetricFamily{
+						Name: proto.String(maxFqName),
+						Type: dto.MetricType_GAUGE.Enum(),
+					}
+					familyMap[maxFqName] = family
+				}
+				family.Metric = append(family.Metric,
+					&dto.Metric{
+						Label: labels,
+						Gauge: &dto.Gauge{Value: proto.Float64(float64(snapshot.Max()))},
+					})
 			}
 		})
+	}
+
+	// encode
+	for _, family := range familyMap {
+		enc.Encode(family)
 	}
 }
 
@@ -217,14 +281,6 @@ func builder(cfg map[string]interface{}) (types.MetricsSink, error) {
 	}
 
 	return NewPromeSink(promCfg), nil
-}
-
-func flattenKey(key string) string {
-	key = strings.Replace(key, " ", "_", -1)
-	key = strings.Replace(key, ".", "_", -1)
-	key = strings.Replace(key, "-", "_", -1)
-	key = strings.Replace(key, "=", "_", -1)
-	return key
 }
 
 func makeLabelPair(keys, values []string) (pairs []*dto.LabelPair) {
