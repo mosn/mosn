@@ -17,6 +17,8 @@
 
 package log
 
+import "context"
+
 type Level uint8
 
 const (
@@ -44,7 +46,7 @@ type ErrorLogger interface {
 
 	Printf(format string, args ...interface{})
 
-	Infof(format string, args ...interface{})
+	Infof(ctx context.Context, format string, args ...interface{})
 
 	Debugf(format string, args ...interface{})
 

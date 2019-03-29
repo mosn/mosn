@@ -58,7 +58,7 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	case *sofarpc.BoltResponse:
 		return encodeResponse(ctx, cmd)
 	default:
-		log.ByContext(ctx).Errorf("unknown model : %+v", model)
+		log.ByContext(ctx).Errorf("[protocol][sofarpc] boltv1 encode with unknown command : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
@@ -227,8 +227,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 					data.Drain(read)
 
 				} else { // not enough data
-
-					log.ByContext(ctx).Debugf("BoltV1 DECODE Request, no enough data for fully decode")
+					log.ByContext(ctx).Debugf("[protocol][sofarpc] boltv1 decode request, no enough data for fully decode")
 					return cmd, nil
 				}
 
@@ -288,8 +287,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 					data.Drain(read)
 				} else {
 					// not enough data
-					log.ByContext(ctx).Debugf("BoltV1 DECODE RESPONSE: no enough data for fully decode")
-
+					log.ByContext(ctx).Debugf("[protocol][sofarpc] boltv1 decode response, no enough data for fully decode")
 					return cmd, nil
 				}
 
@@ -370,13 +368,15 @@ func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 		return nil
 	}
 
-	if _, ok := args[0].(context.Context); !ok {
+	ctx, ok := args[0].(context.Context)
+	if !ok {
 		return nil
 	}
 
-	ctx, _ := args[0].(context.Context)
-	sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-	request := &sofabuffers.BoltReq
+	request, ok := args[1].(*sofarpc.BoltRequest)
+	if !ok {
+		return nil
+	}
 
 	if request.CmdCode == sofarpc.HEARTBEAT {
 		return nil
@@ -386,8 +386,10 @@ func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 
 	traceId := request.RequestHeader[models.TRACER_ID_KEY]
 	if traceId == "" {
+		// TODO: set generated traceId into header?
 		traceId = trace.IdGen().GenerateTraceId()
 	}
+
 	span.SetTag(trace.TRACE_ID, traceId)
 	lType := ctx.Value(types.ContextKeyListenerType)
 

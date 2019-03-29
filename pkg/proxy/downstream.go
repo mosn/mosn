@@ -103,13 +103,9 @@ type downStream struct {
 	snapshot types.ClusterSnapshot
 }
 
-func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, spanBuilder types.SpanBuilder) *downStream {
-	if spanBuilder != nil && trace.IsTracingEnabled() {
-		span := spanBuilder.BuildSpan(ctx)
-		if span != nil {
-			ctx = context.WithValue(ctx, trace.ActiveSpanKey, span)
-			ctx = context.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
-		}
+func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
+	if span != nil && trace.IsTracingEnabled() {
+		ctx = context.WithValue(ctx, trace.ActiveSpanKey, span)
 	}
 
 	proxyBuffers := proxyBuffersByContext(ctx)

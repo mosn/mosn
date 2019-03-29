@@ -20,6 +20,9 @@ package log
 import (
 	"sync/atomic"
 	"time"
+	"context"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"fmt"
 )
 
 var (
@@ -51,12 +54,18 @@ func (l *errorLogger) formatter(lvPre string, format string) string {
 	return logTime() + " " + lvPre + " " + format
 }
 
-func (l *errorLogger) Infof(format string, args ...interface{}) {
+// trace logger format:
+// {time} [{level}] [{connId},{traceId}] {content}
+func (l *errorLogger) formatterWithTrace(ctx context.Context, lvPre string, format string) string {
+	return logTime() + " " + lvPre + " " + traceInfo(ctx) + " " + format
+}
+
+func (l *errorLogger) Infof(ctx context.Context, format string, args ...interface{}) {
 	if l.Logger.disable {
 		return
 	}
 	if l.level >= INFO {
-		s := l.formatter(InfoPre, format)
+		s := l.formatterWithTrace(ctx, InfoPre, format)
 		l.Logger.Printf(s, args...)
 	}
 }
@@ -133,4 +142,10 @@ func logTime() string {
 		lastTime.Store(&timeCache{now, s})
 	}
 	return s
+}
+
+func traceInfo(ctx context.Context) string {
+	connId := ctx.Value(types.ContextKeyConnectionFd)
+	traceId := ctx.Value(types.ContextKeyTraceId)
+	return fmt.Sprintf("[%v,%v]", connId, traceId)
 }

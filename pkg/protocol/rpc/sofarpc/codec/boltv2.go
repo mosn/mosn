@@ -55,7 +55,7 @@ func (c *boltCodecV2) Encode(ctx context.Context, model interface{}) (types.IoBu
 	case *sofarpc.BoltResponseV2:
 		return encodeResponseV2(ctx, cmd)
 	default:
-		log.ByContext(ctx).Errorf("unknown model : %+v", model)
+		log.ByContext(ctx).Errorf("[protocol][sofarpc] boltv2 encode with unknown command : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
@@ -236,7 +236,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					}
 					data.Drain(read)
 				} else { // not enough data
-					logger.Debugf("[BOLTV2 Decoder]no enough data for fully decode")
+					log.ByContext(ctx).Debugf("[protocol][sofarpc] boltv2 decode request, no enough data for fully decode")
 					return cmd, nil
 				}
 
@@ -300,7 +300,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						read += int(contentLen)
 					}
 				} else { // not enough data
-					logger.Debugf("[BOLTBV2 Decoder]no enough data for fully decode")
+					log.ByContext(ctx).Debugf("[protocol][sofarpc] boltv2 decode response, no enough data for fully decode")
 					return cmd, nil
 				}
 

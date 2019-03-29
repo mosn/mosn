@@ -39,6 +39,7 @@ const (
 	ContextKeyConnectionFd                ContextKey = "ConnectionFd"
 	ContextSubProtocol                    ContextKey = "ContextSubProtocol"
 	ContextKeyTraceSpanKey                ContextKey = "TraceSpanKey"
+	ContextKeyTraceId                     ContextKey = "TraceId"
 )
 
 // GlobalProxyName represents proxy name for metrics

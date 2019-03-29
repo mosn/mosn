@@ -32,6 +32,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 )
 
 // StreamDirection represent the stream's direction
@@ -82,7 +83,7 @@ func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
 type streamConnection struct {
 	ctx                                 context.Context
 	conn                                types.Connection
-	contextManager                      contextManager
+	contextManager                      *str.ContextManager
 	mutex                               sync.RWMutex
 	currStreamID                        uint64
 	streams                             map[uint64]*stream // client conn fields
@@ -103,13 +104,13 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		streamConnectionEventListener:       clientCallbacks,
 		serverStreamConnectionEventListener: serverCallbacks,
 
-		contextManager: contextManager{base: ctx},
+		contextManager: str.NewContextManager(ctx),
 
 		logger: log.ByContext(ctx),
 	}
 
 	// init first context
-	sc.contextManager.next()
+	sc.contextManager.Next()
 
 	if sc.streamConnectionEventListener != nil {
 		sc.streams = make(map[uint64]*stream, 32)
@@ -127,7 +128,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
-		ctx := conn.contextManager.curr
+		ctx := conn.contextManager.Get()
 
 		// 2. decode process
 		// TODO: maybe pass sub protocol type
@@ -143,7 +144,7 @@ func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 			break
 		}
 
-		conn.contextManager.next()
+		conn.contextManager.Next()
 	}
 }
 
@@ -196,8 +197,6 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 		return
 	}
 
-	var stream *stream
-
 	cmd, ok := model.(sofarpc.SofaRpcCmd)
 
 	if !ok {
@@ -205,12 +204,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 		return
 	}
 
-	switch cmd.CommandType() {
-	case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
-		stream = conn.onNewStreamDetect(ctx, cmd, conn.codecEngine)
-	case sofarpc.RESPONSE:
-		stream = conn.onStreamRecv(ctx, cmd)
-	}
+	stream := conn.processStream(ctx, cmd)
 
 	// header, data notify
 	if stream != nil {
@@ -231,7 +225,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
-		conn.logger.Errorf("error occurs while proceeding codec logic: %s", err.Error())
+		conn.logger.Errorf("[stream][sofarpc] error occurs while proceeding codec logic: %v. close connection", err)
 		//protocol decode error, close the connection directly
 		conn.conn.Close(types.NoFlush, types.LocalClose)
 	case types.ErrCodecException, types.ErrDeserializeException:
@@ -239,13 +233,7 @@ func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, 
 			if reqID := cmd.RequestID(); reqID > 0 {
 
 				// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
-				var stream *stream
-				switch cmd.CommandType() {
-				case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
-					stream = conn.onNewStreamDetect(ctx, cmd, conn.codecEngine)
-				case sofarpc.RESPONSE:
-					stream = conn.onStreamRecv(ctx, cmd)
-				}
+				stream := conn.processStream(ctx, cmd)
 
 				// valid sofarpc cmd with positive requestID, send exception response in this case
 				if stream != nil {
@@ -259,7 +247,20 @@ func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, 
 	}
 }
 
-func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc.SofaRpcCmd, spanBuilder types.SpanBuilder) *stream {
+func (conn *streamConnection) processStream(ctx context.Context, cmd sofarpc.SofaRpcCmd) *stream {
+	switch cmd.CommandType() {
+	case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
+		// try build trace span
+		span := conn.codecEngine.BuildSpan(cmd)
+
+		return conn.onNewStreamDetect(ctx, cmd, span)
+	case sofarpc.RESPONSE:
+		return conn.onStreamRecv(ctx, cmd)
+	}
+	return nil
+}
+
+func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc.SofaRpcCmd, span types.Span) *stream {
 	buffers := sofaBuffersByContext(ctx)
 	stream := &buffers.server
 
@@ -267,12 +268,16 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 	stream.id = cmd.RequestID()
 	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.id)
 	stream.ctx = context.WithValue(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
+	if span != nil {
+		stream.ctx = context.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
+		stream.ctx = context.WithValue(ctx, types.ContextKeyTraceId, span.TraceId())
+	}
 	stream.direction = ServerStream
 	stream.sc = conn
 
-	conn.logger.Debugf("new stream detect, id = %d", stream.id)
+	conn.logger.Infof(stream.ctx, "[stream][sofarpc] new stream detect, requestId = %v", stream.id)
 
-	stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, stream, spanBuilder)
+	stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, stream, span)
 	return stream
 }
 
@@ -289,7 +294,8 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		// transmit buffer ctx
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
-		conn.logger.Debugf("stream recv, id = %d", stream.id)
+		conn.logger.Infof(stream.ctx, "[stream][sofarpc] receive response, requestId = %v", stream.id)
+
 		return stream
 	}
 
@@ -379,7 +385,7 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 		s.sendCmd.SetData(data)
 	}
 
-	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
+	log.DefaultLogger.Debugf("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
 
 	if endStream {
 		s.endStream()
@@ -423,20 +429,17 @@ func (s *stream) endStream() {
 		} else {
 			s.sc.conn.Write(buf)
 		}
+
+		// log
+		switch s.direction {
+		case ClientStream:
+			s.sc.logger.Infof(s.ctx, "[stream][sofarpc] send request, requestId = %v", s.id)
+		case ServerStream:
+			s.sc.logger.Infof(s.ctx, "[stream][sofarpc] send response, requestId = %v", s.id)
+		}
 	}
 }
 
 func (s *stream) GetStream() types.Stream {
 	return s
-}
-
-// contextManager
-type contextManager struct {
-	base context.Context
-	curr context.Context
-}
-
-func (cm *contextManager) next() {
-	// new context
-	cm.curr = buffer.NewBufferPoolContext(cm.base)
 }

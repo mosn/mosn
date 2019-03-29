@@ -220,7 +220,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// NewStreamDetect returns stream event receiver
-	NewStreamDetect(context context.Context, sender StreamSender, spanBuilder SpanBuilder) StreamReceiveListener
+	NewStreamDetect(context context.Context, sender StreamSender, span Span) StreamReceiveListener
 }
 
 type StreamFilterBase interface {
