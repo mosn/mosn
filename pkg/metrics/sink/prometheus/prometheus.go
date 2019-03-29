@@ -31,7 +31,6 @@ import (
 	gometrics "github.com/rcrowley/go-metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"io"
 	"github.com/prometheus/common/expfmt"
 
@@ -72,7 +71,6 @@ type promSink struct {
 	config *promConfig
 
 	registry   prometheus.Registerer //Prometheus registry
-	bufferPool buffer.CalibrateIoBufferPool
 }
 
 type promHttpExporter struct {
@@ -90,10 +88,6 @@ func (exporter *promHttpExporter) ServeHTTP(rsp http.ResponseWriter, req *http.R
 
 // ~ MetricsSink
 func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
-
-	//buffer := sink.bufferPool.GetIoBuffer()
-	//defer sink.bufferPool.PutIoBuffer(buffer)
-
 	format := expfmt.FmtText
 	w := writer
 
@@ -135,16 +129,7 @@ func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 			}
 		})
 	}
-
-	//buffer.WriteTo(writer)
 }
-
-//func (sink *promSink) flushHistogram(buffer types.IoBuffer, name, labels string, snapshot gometrics.Histogram) {
-//	// min
-//	sink.flushGauge(buffer, name+"_min", labels, float64(snapshot.Min()))
-//	// max
-//	sink.flushGauge(buffer, name+"_max", labels, float64(snapshot.Max()))
-//}
 
 func (sink *promSink) flushHistogram(enc expfmt.Encoder, name string, labels []*dto.LabelPair, snapshot gometrics.Histogram) {
 	// min
@@ -153,9 +138,6 @@ func (sink *promSink) flushHistogram(enc expfmt.Encoder, name string, labels []*
 	sink.flushGauge(enc, name+"_max", labels, float64(snapshot.Max()))
 }
 
-//func (sink *promSink) flushGauge(buffer types.IoBuffer, name, labels string, val float64) {
-//buffer.WriteString(fmt.Sprintf("# TYPE %s gauge\n", name))
-//buffer.WriteString(fmt.Sprintf("%s{%s} %v\n", name, labels, val))
 func (sink *promSink) flushGauge(enc expfmt.Encoder, name string, labels []*dto.LabelPair, val float64) {
 	enc.Encode(&dto.MetricFamily{
 		Name:   proto.String(name),
@@ -164,9 +146,6 @@ func (sink *promSink) flushGauge(enc expfmt.Encoder, name string, labels []*dto.
 	})
 }
 
-//func (sink *promSink) flushCounter(buffer types.IoBuffer, name, labels string, val float64) {
-//buffer.WriteString(fmt.Sprintf("# TYPE %s counter\n", name))
-//buffer.WriteString(fmt.Sprintf("%s{%s} %v\n", name, labels, val))
 func (sink *promSink) flushCounter(enc expfmt.Encoder, name string, labels []*dto.LabelPair, val float64) {
 	enc.Encode(&dto.MetricFamily{
 		Name:   proto.String(name),
@@ -246,19 +225,6 @@ func flattenKey(key string) string {
 	key = strings.Replace(key, "-", "_", -1)
 	key = strings.Replace(key, "=", "_", -1)
 	return key
-}
-
-// input: keys=[proxy,listener], values=[global,ingress]
-// output: proxy="global",listener="ingress"
-func formatKV(keys, values []string) (formatted string) {
-	if length := len(keys); length == len(values) {
-		formatted = keys[0] + "=\"" + values[0] + "\""
-
-		for i := 1; i < length; i++ {
-			formatted += "," + keys[i] + "=\"" + values[i] + "\""
-		}
-	}
-	return
 }
 
 func makeLabelPair(keys, values []string) (pairs []*dto.LabelPair) {

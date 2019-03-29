@@ -134,7 +134,12 @@ func (s *metrics) Labels() map[string]string {
 }
 
 func (s *metrics) SortedLabels() (keys, values []string) {
+	if s.labelKeys != nil && s.labelValues != nil {
+		return s.labelKeys, s.labelValues
+	}
 	keys, values = sortedLabels(s.labels)
+	s.labelKeys = keys
+	s.labelValues = values
 	return
 }
 
