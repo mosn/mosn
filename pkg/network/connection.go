@@ -35,6 +35,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"fmt"
 )
 
 // Network related const
@@ -86,6 +87,7 @@ type connection struct {
 	lastWriteSizeWrite int64
 
 	closed    uint32
+	connected uint32
 	startOnce sync.Once
 	eventLoop *eventLoop
 
@@ -103,6 +105,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		remoteAddr:       rawc.RemoteAddr(),
 		stopChan:         stopChan,
 		readEnabled:      true,
+		connected:        1,
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
 		writeBufferChan:  make(chan *[]types.IoBuffer, 32),
@@ -429,7 +432,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		return nil
 	}
 
-	if c.internalLoopStarted {
+	if !UseNetpollMode {
 		select {
 		case c.writeBufferChan <- &buffers:
 		default:
@@ -443,6 +446,10 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 			}()
 		}
 	} else {
+		if atomic.LoadUint32(&c.connected) == 1 {
+			return fmt.Errorf("can note schedule write on the un-connected connection %d", c.id)
+		}
+
 		// Start schedule if not started
 		select {
 		case c.writeSchedChan <- true:
@@ -451,8 +458,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -844,6 +851,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 				event = types.ConnectFailed
 			}
 		} else {
+			atomic.StoreUint32(&cc.connected, 1)
 			event = types.Connected
 
 			// ensure ioEnabled and UseNetpollMode
