@@ -35,20 +35,24 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
-)
-
-var (
-	errConnClose = errors.New("connection closed")
-
-	HKConnection = []byte("Connection") // header key 'Connection'
-	HVKeepAlive  = []byte("keep-alive") // header value 'keep-alive'
+	"io"
 )
 
 func init() {
 	str.Register(protocol.HTTP1, &streamConnFactory{})
 }
 
+const defaultMaxRequestBodySize = 4 * 1024 * 1024
+
 var (
+	errConnClose = errors.New("connection closed")
+
+	strResponseContinue = []byte("HTTP/1.1 100 Continue\r\n\r\n")
+	strErrorResponse    = []byte("HTTP/1.1 400 Bad Request\r\n\r\n")
+
+	HKConnection = []byte("Connection") // header key 'Connection'
+	HVKeepAlive  = []byte("keep-alive") // header value 'keep-alive'
+
 	minMethodLengh = len("GET")
 	maxMethodLengh = len("CONNECT")
 	httpMethod     = map[string]struct{}{
@@ -116,7 +120,7 @@ type streamConnection struct {
 	br *bufio.Reader
 	bw *bufio.Writer
 
-	logger log.Logger
+	logger log.ErrorLogger
 }
 
 // types.StreamConnection
@@ -164,23 +168,27 @@ type clientStreamConnection struct {
 	streamConnection
 
 	stream                        *clientStream
+	requestSent                   chan bool
+	connClosed                    chan bool
 	mutex                         sync.RWMutex
 	connectionEventListener       types.ConnectionEventListener
 	streamConnectionEventListener types.StreamConnectionEventListener
 }
 
-func newClientStreamConnection(context context.Context, connection types.ClientConnection,
+func newClientStreamConnection(ctx context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener,
 	connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
 
 	csc := &clientStreamConnection{
 		streamConnection: streamConnection{
-			context: context,
+			context: ctx,
 			conn:    connection,
 			bufChan: make(chan types.IoBuffer),
 		},
 		connectionEventListener:       connCallbacks,
 		streamConnectionEventListener: streamConnCallbacks,
+		requestSent:                   make(chan bool, 1),
+		connClosed:                    make(chan bool, 1),
 	}
 
 	csc.br = bufio.NewReader(csc)
@@ -204,22 +212,28 @@ func newClientStreamConnection(context context.Context, connection types.ClientC
 
 func (conn *clientStreamConnection) serve() {
 	for {
-		// 1. blocking read using fasthttp.Response.Read
-		response := fasthttp.AcquireResponse()
+		select {
+		case <-conn.requestSent:
+		case <-conn.connClosed:
+			return
+		}
 
-		err := response.Read(conn.br)
+		s := conn.stream
+		buffers := httpBuffersByContext(s.ctx)
+		s.response = &buffers.clientResponse
+
+		// 1. blocking read using fasthttp.Response.Read
+		err := s.response.Read(conn.br)
 		if err != nil {
-			if conn.stream != nil {
-				conn.stream.ResetStream(types.StreamRemoteReset)
+			if s != nil {
+				s.ResetStream(types.StreamRemoteReset)
 				log.DefaultLogger.Errorf("Http client codec goroutine error: %s", err)
+
 			}
 			return
 		}
 
 		// 2. response processing
-		s := conn.stream
-		s.response = response
-
 		resetConn := false
 		if s.response.ConnectionClose() {
 			resetConn = true
@@ -229,7 +243,7 @@ func (conn *clientStreamConnection) serve() {
 			s.handleResponse()
 		}
 
-		// local reset
+		// 3. local reset if header 'Connection: close' exists
 		if resetConn {
 			// close connection
 			s.connection.conn.Close(types.NoFlush, types.LocalClose)
@@ -242,20 +256,19 @@ func (conn *clientStreamConnection) GoAway() {}
 
 func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver types.StreamReceiveListener) types.StreamSender {
 	id := protocol.GenerateID()
-	s := &clientStream{
-		stream: stream{
-			id:       id,
-			ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
-			request:  fasthttp.AcquireRequest(),
-			receiver: receiver,
-		},
-		connection: conn,
+	buffers := httpBuffersByContext(ctx)
+	s := &buffers.clientStream
+	s.stream = stream{
+		id:       id,
+		ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
+		request:  &buffers.clientRequest,
+		receiver: receiver,
 	}
+	s.connection = conn
 
 	conn.mutex.Lock()
 	conn.stream = s
 	conn.mutex.Unlock()
-
 	return s
 }
 
@@ -272,30 +285,47 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 	close(conn.bufChan)
+	close(conn.connClosed)
 }
 
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
+	contextManager contextManager
+
+	close bool
 
 	stream                   *serverStream
 	mutex                    sync.RWMutex
 	serverStreamConnListener types.ServerStreamConnectionEventListener
 }
 
-func newServerStreamConnection(context context.Context, connection types.Connection,
+func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
-			context: context,
+			context: ctx,
 			conn:    connection,
 			bufChan: make(chan types.IoBuffer),
 		},
+		contextManager:           contextManager{base: ctx},
 		serverStreamConnListener: callbacks,
 	}
 
+	// init first context
+	ssc.contextManager.next()
+
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
+
+	// Reset would not be called in server-side scene, so add listener for connection event
+	connection.AddConnectionEventListener(ssc)
+
+	// set not support transfer connection
+	ssc.conn.SetTransferEventListener(func() bool {
+		ssc.close = true
+		return false
+	})
 
 	go func() {
 		defer func() {
@@ -313,31 +343,59 @@ func newServerStreamConnection(context context.Context, connection types.Connect
 	return ssc
 }
 
+func (conn *serverStreamConnection) OnEvent(event types.ConnectionEvent) {
+	if event.IsClose() {
+		close(conn.bufChan)
+	}
+}
+
 func (conn *serverStreamConnection) serve() {
 	for {
-		// 1. blocking read using fasthttp.Request.Read
-		request := fasthttp.AcquireRequest()
-		err := request.Read(conn.br)
+		// 1. pre alloc stream-level ctx with bufferCtx
+		ctx := conn.contextManager.curr
+		buffers := httpBuffersByContext(ctx)
+		request := &buffers.serverRequest
+
+		// 2. blocking read using fasthttp.Request.Read
+		err := request.ReadLimitBody(conn.br, defaultMaxRequestBodySize)
+		if err == nil {
+			// 3. 'Expect: 100-continue' request handling.
+			// See http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html for details.
+			if request.MayContinue() {
+				// Send 'HTTP/1.1 100 Continue' response.
+				conn.conn.Write(buffer.NewIoBufferBytes(strResponseContinue))
+
+				// read request body
+				err = request.ContinueReadBody(conn.br, defaultMaxRequestBodySize)
+
+				// remove 'Expect' header, so it would not be sent to the upstream
+				request.Header.Del("Expect")
+			}
+		}
 		if err != nil {
-			if conn.stream != nil {
-				conn.stream.ResetStream(types.StreamRemoteReset)
-				log.DefaultLogger.Errorf("Http server codec goroutine error: %s", err)
+			if err == errConnClose || err == io.EOF {
+				log.DefaultLogger.Errorf("http server request codec error: %s", err)
+			} else {
+				// write error response
+				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
+
+				// close connection with flush
+				conn.conn.Close(types.FlushWrite, types.LocalClose)
 			}
 			return
 		}
 
 		id := protocol.GenerateID()
-		// 2. request processing
-		s := &serverStream{
-			stream: stream{
-				id:       id,
-				ctx:      context.WithValue(conn.context, types.ContextKeyStreamID, id),
-				request:  request,
-				response: fasthttp.AcquireResponse(),
-			},
-			connection:       conn,
-			responseDoneChan: make(chan bool, 1),
+		s := &buffers.serverStream
+		// 4. request processing
+		s.stream = stream{
+			id:       id,
+			ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
+			request:  request,
+			response: &buffers.serverResponse,
 		}
+		s.connection = conn
+		s.responseDoneChan = make(chan bool, 1)
 
 		s.receiver = conn.serverStreamConnListener.NewStreamDetect(s.stream.ctx, s, spanBuilder)
 
@@ -349,8 +407,9 @@ func (conn *serverStreamConnection) serve() {
 			s.handleRequest()
 		}
 
-		// wait for proxy done
+		// 5. wait for proxy done
 		<-s.responseDoneChan
+		conn.contextManager.next()
 	}
 }
 
@@ -438,6 +497,7 @@ func (s *clientStream) AppendTrailers(context context.Context, trailers types.He
 
 func (s *clientStream) endStream() {
 	s.doSend()
+	s.connection.requestSent <- true
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
@@ -556,7 +616,7 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 func (s *serverStream) endStream() {
 	resetConn := false
 	// check if we need close connection
-	if s.request.Header.ConnectionClose() {
+	if s.connection.close || s.request.Header.ConnectionClose() {
 		s.response.SetConnectionClose()
 		resetConn = true
 	} else if !s.request.Header.IsHTTP11() {
@@ -579,13 +639,6 @@ func (s *serverStream) endStream() {
 	s.connection.mutex.Lock()
 	s.connection.stream = nil
 	s.connection.mutex.Unlock()
-
-	if s.request != nil {
-		fasthttp.ReleaseRequest(s.request)
-	}
-	if s.response != nil {
-		fasthttp.ReleaseResponse(s.response)
-	}
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
@@ -684,4 +737,15 @@ func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) 
 		headers.SetHost(host)
 	}
 
+}
+
+// contextManager
+type contextManager struct {
+	base context.Context
+	curr context.Context
+}
+
+func (cm *contextManager) next() {
+	// new context
+	cm.curr = buffer.NewBufferPoolContext(cm.base)
 }

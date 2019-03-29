@@ -38,27 +38,10 @@ type TracingConfig struct {
 
 // MetricsConfig for metrics sinks
 type MetricsConfig struct {
+	Flush         []string          `json:"flush"`
 	FlushInterval v2.DurationConfig `json:"flush_interval"`
 	SinkConfigs   []v2.Filter       `json:"sinks"`
 	StatsMatcher  v2.StatsMatcher   `json:"stats_matcher"`
-}
-
-// ServerConfig for making up server for mosn
-type ServerConfig struct {
-	//default logger
-	ServerName       string `json:"mosn_server_name"`
-	DefaultLogPath   string `json:"default_log_path,omitempty"`
-	DefaultLogLevel  string `json:"default_log_level,omitempty"`
-	DefaultLogRoller string `json:"default_log_roller,omitempty"`
-
-	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
-	//graceful shutdown config
-	GracefulTimeout v2.DurationConfig `json:"graceful_timeout"`
-
-	//go processor number
-	Processor int `json:"processor"`
-
-	Listeners []v2.Listener `json:"listeners,omitempty"`
 }
 
 // ClusterManagerConfig for making up cluster manager
@@ -75,7 +58,7 @@ type ClusterManagerConfig struct {
 // Servers contains the listener, filter and so on
 // ClusterManager used to manage the upstream
 type MOSNConfig struct {
-	Servers         []ServerConfig         `json:"servers,omitempty"`         //server config
+	Servers         []v2.ServerConfig      `json:"servers,omitempty"`         //server config
 	ClusterManager  ClusterManagerConfig   `json:"cluster_manager,omitempty"` //cluster config
 	ServiceRegistry v2.ServiceRegistryInfo `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
@@ -85,6 +68,7 @@ type MOSNConfig struct {
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty"`             // admin raw message
 	Debug               PProfConfig         `json:"pprof,omitempty"`
+	Pid                 string              `json:"pid,omitempty"` // pid file
 }
 
 // PProfConfig is used to start a pprof server for debug
@@ -120,14 +104,15 @@ func (c *MOSNConfig) Mode() Mode {
 }
 
 var (
-	configPath string
-	config     MOSNConfig
+	configPath     string
+	config         MOSNConfig
+	configLoadFunc ConfigLoadFunc = DefaultConfigLoad
 )
 
 func (c *MOSNConfig) GetAdmin() *xdsboot.Admin {
 	if len(c.RawAdmin) > 0 {
 		adminConfig := &xdsboot.Admin{}
-		err := jsonpb.UnmarshalString(string(config.RawAdmin), adminConfig)
+		err := jsonpb.UnmarshalString(string(c.RawAdmin), adminConfig)
 		if err == nil {
 			return adminConfig
 		}
@@ -135,18 +120,40 @@ func (c *MOSNConfig) GetAdmin() *xdsboot.Admin {
 	return nil
 }
 
-// Load config file and parse
-func Load(path string) *MOSNConfig {
+// protetced configPath, read only
+func GetConfigPath() string {
+	return configPath
+}
+
+// ConfigLoadFunc parse a input(usually file path) into a mosn config
+type ConfigLoadFunc func(path string) *MOSNConfig
+
+// RegisterConfigLoadFunc can replace a new config load function instead of default
+func RegisterConfigLoadFunc(f ConfigLoadFunc) {
+	configLoadFunc = f
+}
+
+func DefaultConfigLoad(path string) *MOSNConfig {
 	log.Println("load config from : ", path)
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatalln("load config failed, ", err)
 	}
-	configPath, _ = filepath.Abs(path)
+	cfg := &MOSNConfig{}
 	// translate to lower case
-	err = json.Unmarshal(content, &config)
+	err = json.Unmarshal(content, cfg)
 	if err != nil {
 		log.Fatalln("json unmarshal config failed, ", err)
+	}
+	return cfg
+
+}
+
+// Load config file and parse
+func Load(path string) *MOSNConfig {
+	configPath, _ = filepath.Abs(path)
+	if cfg := configLoadFunc(path); cfg != nil {
+		config = *cfg
 	}
 	return &config
 }

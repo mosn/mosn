@@ -18,6 +18,7 @@
 package codec
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -27,13 +28,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/models"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 var (
@@ -187,36 +188,39 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 	var cmd interface{}
 
 	if readableBytes >= sofarpc.LESS_LEN_V1 {
-		bytes := data.Bytes()
-		cmdType := bytes[1]
+		bytesData := data.Bytes()
+		cmdType := bytesData[1]
 
 		//1. request
 		if cmdType == sofarpc.REQUEST || cmdType == sofarpc.REQUEST_ONEWAY {
 			if readableBytes >= sofarpc.REQUEST_HEADER_LEN_V1 {
 
-				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
-				ver2 := bytes[4]
-				requestID := binary.BigEndian.Uint32(bytes[5:9])
-				codec := bytes[9]
-				timeout := binary.BigEndian.Uint32(bytes[10:14])
-				classLen := binary.BigEndian.Uint16(bytes[14:16])
-				headerLen := binary.BigEndian.Uint16(bytes[16:18])
-				contentLen := binary.BigEndian.Uint32(bytes[18:22])
+				cmdCode := binary.BigEndian.Uint16(bytesData[2:4])
+				ver2 := bytesData[4]
+				requestID := binary.BigEndian.Uint32(bytesData[5:9])
+				codec := bytesData[9]
+				//timeout := binary.BigEndian.Uint32(bytesData[10:14])
+				// timeout should be int
+				var timeout int32
+				binary.Read(bytes.NewReader(bytesData[10:14]), binary.BigEndian, &timeout)
+				classLen := binary.BigEndian.Uint16(bytesData[14:16])
+				headerLen := binary.BigEndian.Uint16(bytesData[16:18])
+				contentLen := binary.BigEndian.Uint32(bytesData[18:22])
 
 				read = sofarpc.REQUEST_HEADER_LEN_V1
 				var class, header, content []byte
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytesData[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
 
@@ -255,29 +259,29 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 			//2. response
 			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V1 {
 
-				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
-				ver2 := bytes[4]
-				requestID := binary.BigEndian.Uint32(bytes[5:9])
-				codec := bytes[9]
-				status := binary.BigEndian.Uint16(bytes[10:12])
-				classLen := binary.BigEndian.Uint16(bytes[12:14])
-				headerLen := binary.BigEndian.Uint16(bytes[14:16])
-				contentLen := binary.BigEndian.Uint32(bytes[16:20])
+				cmdCode := binary.BigEndian.Uint16(bytesData[2:4])
+				ver2 := bytesData[4]
+				requestID := binary.BigEndian.Uint32(bytesData[5:9])
+				codec := bytesData[9]
+				status := binary.BigEndian.Uint16(bytesData[10:12])
+				classLen := binary.BigEndian.Uint16(bytesData[12:14])
+				headerLen := binary.BigEndian.Uint16(bytesData[14:16])
+				contentLen := binary.BigEndian.Uint32(bytesData[16:20])
 
 				read = sofarpc.RESPONSE_HEADER_LEN_V1
 				var class, header, content []byte
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytesData[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
 

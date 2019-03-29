@@ -192,6 +192,9 @@ func (r *upstreamRequest) OnDecodeError(context context.Context, err error, head
 
 // ~~~ send request wrapper
 func (r *upstreamRequest) appendHeaders(headers types.HeaderMap, endStream bool) {
+	if r.downStream.processDone() {
+		return
+	}
 	log.StartLogger.Tracef("upstream request encode headers")
 	r.sendComplete = endStream
 
@@ -214,6 +217,9 @@ func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap
 }
 
 func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
+	if r.downStream.processDone() {
+		return
+	}
 	log.DefaultLogger.Debugf("upstream request encode data")
 	r.sendComplete = endStream
 	r.dataSent = true
@@ -235,6 +241,9 @@ func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
 }
 
 func (r *upstreamRequest) appendTrailers(trailers types.HeaderMap) {
+	if r.downStream.processDone() {
+		return
+	}
 	log.DefaultLogger.Debugf("upstream request encode trailers")
 	r.sendComplete = true
 	r.trailerSent = true

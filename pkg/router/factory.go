@@ -70,8 +70,13 @@ type simpleHandler struct {
 	route types.Route
 }
 
-func (h *simpleHandler) IsAvailable(ctx context.Context, snapshot types.ClusterSnapshot) types.HandlerStatus {
-	return types.HandlerAvailable
+func (h *simpleHandler) IsAvailable(ctx context.Context, f func(context.Context, string) types.ClusterSnapshot) (types.ClusterSnapshot, types.HandlerStatus) {
+	if h.route == nil {
+		return nil, types.HandlerNotAvailable
+	}
+	clusterName := h.Route().RouteRule().ClusterName()
+	snapshot := f(context.Background(), clusterName)
+	return snapshot, types.HandlerAvailable
 }
 
 func (h *simpleHandler) Route() types.Route {

@@ -57,13 +57,13 @@ func TestNewRouteMatcherSingle(t *testing.T) {
 		{
 			virtualHost: testVirutalHostConfigs["all"],
 			Expected: func(rm *routeMatcher) bool {
-				return rm.defaultVirtualHost != nil
+				return rm.defaultVirtualHostIndex != -1
 			},
 		},
 		{
 			virtualHost: testVirutalHostConfigs["wildcard-domain"],
 			Expected: func(rm *routeMatcher) bool {
-				return len(rm.wildcardVirtualHostSuffixes) == 1
+				return len(rm.wildcardVirtualHostSuffixesIndex) == 1
 			},
 		},
 		{
@@ -106,7 +106,7 @@ func TestNewRouteMatcherGroup(t *testing.T) {
 		return
 	}
 	rm := routers.(*routeMatcher)
-	expected := rm.defaultVirtualHost != nil && len(rm.virtualHosts) == 1 && len(rm.wildcardVirtualHostSuffixes) == 1
+	expected := rm.defaultVirtualHostIndex != -1 && len(rm.virtualHostsIndex) == 1 && len(rm.wildcardVirtualHostSuffixesIndex) == 1
 	if !expected {
 		t.Error("create routematcher not match")
 	}
@@ -327,53 +327,131 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 		}
 	}
 }
-func TestInvalidConfig(t *testing.T) {
-	var testCases []*v2.RouterConfiguration
-	//1. invalid config object
-	testCases = append(testCases, nil)
-	//2. config without router
-	case2 := &v2.RouterConfiguration{
+
+func TestAddRouter(t *testing.T) {
+	// 1. no routes
+	cfg := &v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Domains: []string{"*"}},
+			&v2.VirtualHost{
+				Domains: []string{"www.test.com"},
+			},
+			&v2.VirtualHost{
+				Domains: []string{"*"},
+			},
 		},
 	}
-	//3. config without matcher
-	case3 := &v2.RouterConfiguration{
+	rm, err := NewRouteMatcher(cfg)
+	if err != nil {
+		t.Fatal("create routers failed")
+	}
+	macther := rm.(*routeMatcher)
+	vh := macther.virtualHosts[0].(*VirtualHostImpl)
+	defaultVh := macther.virtualHosts[1].(*VirtualHostImpl)
+	if len(vh.routes) != 0 || len(defaultVh.routes) != 0 {
+		t.Fatal("expected a no routes matcher")
+	}
+	route := newTestSimpleRouter("test_add")
+	if index := rm.AddRoute("www.test.com", &route); index == -1 {
+		t.Fatal("add route failed")
+	}
+	if len(vh.routes) != 1 || len(defaultVh.routes) != 0 {
+		t.Fatal("expected add a new route")
+	}
+	// add into default virtual host (match any thing)
+	if index := rm.AddRoute("", &route); index == -1 {
+		t.Fatal("add route failed")
+	}
+	if len(vh.routes) != 1 || len(defaultVh.routes) != 1 {
+		t.Fatal("expected add a new route into default")
+	}
+}
+
+func TestRemoveAllRoutes(t *testing.T) {
+	// init
+	cfg := &v2.RouterConfiguration{
 		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
-				v2.Router{
-					RouterConfig: v2.RouterConfig{
-						Route: v2.RouteAction{
-							RouterActionConfig: v2.RouterActionConfig{
-								ClusterName: "www",
+			&v2.VirtualHost{
+				Domains: []string{"www.test.com"},
+				Routers: []v2.Router{
+					{
+						RouterConfig: v2.RouterConfig{
+							Match: v2.RouterMatch{
+								Headers: []v2.HeaderMatcher{
+									{
+										Name:  "service",
+										Value: "test",
+									},
+								},
 							},
 						},
 					},
 				},
-			}},
-		},
-	}
-	//4. an invalid regexp matcher
-	case4 := &v2.RouterConfiguration{
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{Domains: []string{"*"}, Routers: []v2.Router{
-				v2.Router{
-					RouterConfig: v2.RouterConfig{
-						Match: v2.RouterMatch{Regex: "/f["},
-						Route: v2.RouteAction{
-							RouterActionConfig: v2.RouterActionConfig{
-								ClusterName: "www",
+			},
+			&v2.VirtualHost{
+				Domains: []string{"*"},
+				Routers: []v2.Router{
+					{
+						RouterConfig: v2.RouterConfig{
+							Match: v2.RouterMatch{
+								Headers: []v2.HeaderMatcher{
+									{
+										Name:  "service",
+										Value: "test",
+									},
+								},
 							},
 						},
 					},
-				}},
-			}},
+				},
+			},
+		},
 	}
-	testCases = append(testCases, case2, case3, case4)
-	for i, tc := range testCases {
-		if _, err := NewRouteMatcher(tc); err == nil {
-			t.Errorf("#%d expected error, but not", i)
-		}
+	rm, err := NewRouteMatcher(cfg)
+	if err != nil {
+		t.Fatal("create routers failed")
+	}
+	macther := rm.(*routeMatcher)
+	vh := macther.virtualHosts[0].(*VirtualHostImpl)
+	defaultVh := macther.virtualHosts[1].(*VirtualHostImpl)
+	if len(vh.routes) != 1 || len(defaultVh.routes) != 1 {
+		t.Fatal("expected exists routes matcher")
+	}
+	if index := rm.RemoveAllRoutes("www.test.com"); index == -1 {
+		t.Fatal("remove route failed")
+	}
+	if len(vh.routes) != 0 || len(defaultVh.routes) != 1 {
+		t.Fatal("expected remove route")
+	}
+	// remove default virtual host
+	if index := rm.RemoveAllRoutes(""); index == -1 {
+		t.Fatal("expected remove route")
+	}
+	if len(vh.routes) != 0 || len(defaultVh.routes) != 0 {
+		t.Fatal("expected add a new route into default")
+	}
+}
+
+func TestInvalidConfig(t *testing.T) {
+	// nil config
+	if _, err := NewRouteMatcher(nil); err == nil {
+		t.Errorf("nil config should return an error")
+	}
+	// no virtual host
+	cfg := &v2.RouterConfiguration{}
+	if _, err := NewRouteMatcher(cfg); err == nil {
+		t.Errorf("config should have at least one virtual host")
+	}
+	// duplicate virtual host
+	cfg.VirtualHosts = []*v2.VirtualHost{
+		{
+			Domains: []string{"*"},
+		},
+		{
+			Domains: []string{"*"},
+		},
+	}
+	if _, err := NewRouteMatcher(cfg); err == nil {
+		t.Errorf("config should not have duplicate virtual host name")
 	}
 }
 

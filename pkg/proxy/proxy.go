@@ -56,7 +56,7 @@ func initWorkePpool(data interface{}, endParsing bool) error {
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
 	// use 32768 as chan buffer length
-	poolSize := shardsNum * 32768
+	poolSize := shardsNum * 4096
 
 	// set shardsNum equal to processor if it was specified
 	if pNum, ok := data.(int); ok && pNum > 0 {

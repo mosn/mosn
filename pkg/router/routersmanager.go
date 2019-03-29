@@ -22,11 +22,12 @@
 package router
 
 import (
+	"errors"
 	"sync"
 
 	"fmt"
 
-	"github.com/alipay/sofa-mosn/pkg/admin"
+	admin "github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -91,36 +92,28 @@ func (rm *routersManager) AddOrUpdateRouters(routerConfig *v2.RouterConfiguratio
 	if v, ok := rm.routersMap.Load(routerConfig.RouterConfigName); ok {
 		// try to update router
 		if primaryRouters, ok := v.(*RoutersWrapper); ok {
-			primaryRouters.mux.Lock()
-			defer primaryRouters.mux.Unlock()
 			routers, err := NewRouteMatcher(routerConfig)
 			if err != nil {
 				log.DefaultLogger.Errorf("AddOrUpdateRouters, update router:%s error: %v", routerConfig.RouterConfigName, err)
 				return err
 			}
 			log.DefaultLogger.Debugf("AddOrUpdateRouters, update router:%s success", routerConfig.RouterConfigName)
+			primaryRouters.mux.Lock()
 			primaryRouters.routers = routers
 			primaryRouters.routersConfig = routerConfig
+			primaryRouters.mux.Unlock()
 		}
 	} else {
 		// try to create a new router
+		// if a routerConfig with no routes, it is a valid config
 		routers, err := NewRouteMatcher(routerConfig)
-		if err != nil {
-			// store a router wrapper without routers, so proxy can get a wrapper
-			// and proxy can route after update
-			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
-				routers:       nil,
-				routersConfig: routerConfig,
-			})
-			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s error: %v", routerConfig.RouterConfigName, err)
-			return err
-		} else {
-			log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s success:", routerConfig.RouterConfigName)
-			rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
-				routers:       routers,
-				routersConfig: routerConfig,
-			})
-		}
+		log.DefaultLogger.Debugf("AddOrUpdateRouters, add router %s error: %v", routerConfig.RouterConfigName, err)
+		// we may stored a nil routers
+		// used in istio "RDS" mode
+		rm.routersMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
+			routers:       routers,
+			routersConfig: routerConfig,
+		})
 	}
 	admin.SetRouter(routerConfig.RouterConfigName, *routerConfig)
 
@@ -136,5 +129,58 @@ func (rm *routersManager) GetRouterWrapperByName(routerConfigName string) types.
 		}
 	}
 
+	return nil
+}
+
+func (rm *routersManager) AddRoute(routerConfigName, domain string, route *v2.Router) error {
+	if v, ok := rm.routersMap.Load(routerConfigName); ok {
+		if primaryRouters, ok := v.(*RoutersWrapper); ok {
+			primaryRouters.mux.Lock()
+			defer primaryRouters.mux.Unlock()
+			routers := primaryRouters.routers
+			// Stored primaryRouters should not be nil
+			if routers == nil {
+				return errors.New("no routers inited")
+			}
+			cfg := primaryRouters.routersConfig
+			index := routers.AddRoute(domain, route)
+			if index == -1 {
+				log.DefaultLogger.Errorf("add route failed")
+				return errors.New("add route failed")
+			}
+			// modify config
+			routersCfg := cfg.VirtualHosts[index].Routers
+			routersCfg = append(routersCfg, *route)
+			cfg.VirtualHosts[index].Routers = routersCfg
+			primaryRouters.routersConfig = cfg
+			admin.SetRouter(routerConfigName, *cfg)
+		}
+	}
+	return nil
+}
+
+func (rm *routersManager) RemoveAllRoutes(routerConfigName, domain string) error {
+	if v, ok := rm.routersMap.Load(routerConfigName); ok {
+		if primaryRouters, ok := v.(*RoutersWrapper); ok {
+			primaryRouters.mux.Lock()
+			defer primaryRouters.mux.Unlock()
+			routers := primaryRouters.routers
+			// Stored primaryRouters should not be nil
+			if routers == nil {
+				return errors.New("no routers inited")
+			}
+			cfg := primaryRouters.routersConfig
+			index := routers.RemoveAllRoutes(domain)
+			if index == -1 {
+				log.DefaultLogger.Errorf("remove all route failed")
+				return errors.New("remove all route failed")
+			}
+			// modify config
+			routersCfg := cfg.VirtualHosts[index].Routers
+			cfg.VirtualHosts[index].Routers = routersCfg[:0]
+			primaryRouters.routersConfig = cfg
+			admin.SetRouter(routerConfigName, *cfg)
+		}
+	}
 	return nil
 }

@@ -30,15 +30,23 @@ var listenerAdapterInstance *ListenerAdapter
 type ListenerAdapter struct {
 	connHandlerMap     map[string]types.ConnectionHandler // key is server's name
 	defaultConnHandler types.ConnectionHandler
+	defaultName        string
 }
 
 // todo consider to use singleton
 func initListenerAdapterInstance(name string, connHandler types.ConnectionHandler) {
 	if listenerAdapterInstance == nil {
 		listenerAdapterInstance = &ListenerAdapter{
-			connHandlerMap:     make(map[string]types.ConnectionHandler),
-			defaultConnHandler: connHandler, // in this case, the first server's connHandler will be the default connHandler
+			connHandlerMap: make(map[string]types.ConnectionHandler),
+			// we set the first handler as the default handler
+			// the handler name should be keeped, so if the handler changed, the default handler changed too.
+			defaultName: name,
 		}
+	}
+
+	// if the handler's name is same as default, the default handler changed too
+	if name == listenerAdapterInstance.defaultName {
+		listenerAdapterInstance.defaultConnHandler = connHandler
 	}
 
 	listenerAdapterInstance.connHandlerMap[name] = connHandler
@@ -47,6 +55,12 @@ func initListenerAdapterInstance(name string, connHandler types.ConnectionHandle
 
 func GetListenerAdapterInstance() *ListenerAdapter {
 	return listenerAdapterInstance
+}
+
+// ResetAdapter only used in test/debug mode
+func ResetAdapter() {
+	log.DefaultLogger.Infof("adapter reset, only expected in test/debug mode")
+	listenerAdapterInstance = nil
 }
 
 // AddOrUpdateListener used to:
@@ -114,4 +128,35 @@ func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName s
 	// then remove it from array
 	connHandler.RemoveListeners(listenerName)
 	return nil
+}
+
+func (adapter *ListenerAdapter) UpdateListenerTLS(serverName string, listenerName string, inspector bool, tls *v2.TLSConfig) error {
+	var connHandler types.ConnectionHandler
+	if serverName == "" {
+		connHandler = adapter.defaultConnHandler
+	} else {
+		if ch, ok := adapter.connHandlerMap[serverName]; ok {
+			connHandler = ch
+		} else {
+			return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
+		}
+	}
+
+	if ln := connHandler.FindListenerByName(listenerName); ln != nil {
+		cfg := *ln.Config() // should clone a config
+		cfg.Inspector = inspector
+		cfg.FilterChains = []v2.FilterChain{
+			{
+				FilterChainMatch: cfg.FilterChains[0].FilterChainMatch,
+				Filters:          cfg.FilterChains[0].Filters,
+				TLS:              *tls,
+			},
+		}
+		if _, err := connHandler.AddOrUpdateListener(&cfg, nil, nil); err != nil {
+			return fmt.Errorf("connHandler.UpdateListenerTLS called error, server:%s, error: %s", serverName, err.Error())
+		}
+		return nil
+	}
+	return fmt.Errorf("listener %s is not found", listenerName)
+
 }

@@ -56,24 +56,21 @@ type accesslog struct {
 	output    string
 	filter    types.AccessLogFilter
 	formatter types.AccessLogFormatter
-	logger    Logger
+	logger    *Logger
 }
 
 // NewAccessLog
 func NewAccessLog(output string, filter types.AccessLogFilter,
 	format string) (types.AccessLog, error) {
-	var err error
-	var logger Logger
-
-	if logger, err = GetLoggerInstance(output, RAW); err != nil {
+	lg, err := GetOrCreateLogger(output)
+	if err != nil {
 		return nil, err
 	}
-
 	l := &accesslog{
 		output:    output,
 		filter:    filter,
 		formatter: NewAccessLogFormatter(format),
-		logger:    logger,
+		logger:    lg,
 	}
 
 	return l, nil

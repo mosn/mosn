@@ -26,7 +26,7 @@ type TestCase struct {
 	AppServer      util.UpstreamServer
 	ClientMeshAddr string
 	ServerMeshAddr string
-	Stop           chan struct{}
+	Finish         chan bool
 }
 
 func NewTestCase(t *testing.T, app, mesh types.Protocol, server util.UpstreamServer) *TestCase {
@@ -36,7 +36,7 @@ func NewTestCase(t *testing.T, app, mesh types.Protocol, server util.UpstreamSer
 		C:            make(chan error),
 		T:            t,
 		AppServer:    server,
-		Stop:         make(chan struct{}),
+		Finish:       make(chan bool),
 	}
 }
 
@@ -52,9 +52,10 @@ func (c *TestCase) StartProxy() {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		c.AppServer.Close()
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
@@ -70,9 +71,10 @@ func (c *TestCase) Start(tls bool) {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		c.AppServer.Close()
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
@@ -89,11 +91,18 @@ func (c *TestCase) StartX(subprotocol string) {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		c.AppServer.Close()
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+// Finish case and wait close returns
+func (c *TestCase) FinishCase() {
+	c.Finish <- true
+	<-c.Finish
 }
 
 // mesh to mesh use tls if "istls" is true

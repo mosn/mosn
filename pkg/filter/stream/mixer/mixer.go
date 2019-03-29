@@ -100,7 +100,7 @@ func (f *mixerFilter) createRequestHandler() {
 	f.requestHandler = http.NewRequestHandler(f.serviceContext)
 }
 
-func (f *mixerFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *mixerFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
 	f.requestTotalSize += headers.ByteSize()
 
 	f.createRequestHandler()
@@ -108,13 +108,13 @@ func (f *mixerFilter) OnReceiveHeaders(headers types.HeaderMap, endStream bool) 
 	return types.StreamHeadersFilterContinue
 }
 
-func (f *mixerFilter) OnReceiveData(buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
+func (f *mixerFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
 	f.requestTotalSize += uint64(buf.Len())
 
 	return types.StreamDataFilterContinue
 }
 
-func (f *mixerFilter) OnReceiveTrailers(trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *mixerFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
 	f.requestTotalSize += trailers.ByteSize()
 	return types.StreamTrailersFilterContinue
 }

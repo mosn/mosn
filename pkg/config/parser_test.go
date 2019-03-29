@@ -231,10 +231,8 @@ func TestParseListenerConfig(t *testing.T) {
 	}
 	defer listener.Close()
 	tcpListener := listener.(*net.TCPListener)
-	inherit := &v2.Listener{
-		Addr:            tcpListener.Addr(),
-		InheritListener: tcpListener,
-	}
+	var inherit []net.Listener
+	inherit = append(inherit, tcpListener)
 
 	lc := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
@@ -242,7 +240,7 @@ func TestParseListenerConfig(t *testing.T) {
 			LogLevelConfig: "DEBUG",
 		},
 	}
-	ln := ParseListenerConfig(lc, []*v2.Listener{inherit})
+	ln := ParseListenerConfig(lc, inherit)
 	if !(ln.Addr != nil &&
 		ln.Addr.String() == tcpListener.Addr().String() &&
 		ln.PerConnBufferLimitBytes == 1<<15 &&
@@ -251,7 +249,7 @@ func TestParseListenerConfig(t *testing.T) {
 		t.Error("listener parse unexpected")
 		t.Log(ln.Addr.String(), ln.InheritListener != nil, ln.LogLevel)
 	}
-	if !inherit.Remain {
+	if inherit[0] != nil {
 		t.Error("no inherit listener")
 	}
 }

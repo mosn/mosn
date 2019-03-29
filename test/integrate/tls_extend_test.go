@@ -99,9 +99,10 @@ func (c *tlsExtendCase) Start(conf *testutil.ExtendVerifyConfig) {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		c.AppServer.Close()
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
@@ -137,7 +138,6 @@ func TestTLSExtend(t *testing.T) {
 
 		// protocol auto
 		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.Auto, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
-
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
@@ -151,7 +151,6 @@ func TestTLSExtend(t *testing.T) {
 		case <-time.After(15 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
 		}
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 	}
 }

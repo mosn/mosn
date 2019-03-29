@@ -63,12 +63,13 @@ func (c *RetryCase) StartProxy() {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		c.GoodServer.Close()
 		if !c.BadIsClose {
 			c.BadServer.Close()
 		}
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
 
@@ -89,12 +90,13 @@ func (c *RetryCase) Start(tls bool) {
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
-		<-c.Stop
+		<-c.Finish
 		c.GoodServer.Close()
 		if !c.BadIsClose {
 			c.BadServer.Close()
 		}
 		mesh.Close()
+		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
@@ -170,8 +172,7 @@ func TestRetry(t *testing.T) {
 		case <-time.After(15 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
 		}
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 	}
 }
 
@@ -201,8 +202,7 @@ func TestRetryProxy(t *testing.T) {
 		case <-time.After(15 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
 		}
-		close(tc.Stop)
-		time.Sleep(time.Second)
+		tc.FinishCase()
 
 	}
 }

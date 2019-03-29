@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/http/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/http2/conv"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
+	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
@@ -127,8 +127,7 @@ func TestHTTPMethod(t *testing.T) {
 			case <-time.After(15 * time.Second):
 				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
 			}
-			close(tc.Stop)
-			time.Sleep(time.Second)
+			tc.FinishCase()
 		}
 	}
 }

@@ -22,9 +22,39 @@
 [[projects]]
   name = "github.com/AlexStocks/log4go"
   packages = ["."]
-  revision = "39cc8511d507bcf4d1716205f765973d967868eb"
-  version = "v3.1.0"
+  revision = "6e63e9ec87e318f2f4314f4d7546733fcfbc9e8e"
+  version = "v1.0.0"
 
+[[projects]]
+  name = "github.com/TarsCloud/TarsGo"
+  packages = [
+    "tars",
+    "tars/model",
+    "tars/protocol/codec",
+    "tars/protocol/res/adminf",
+    "tars/protocol/res/basef",
+    "tars/protocol/res/configf",
+    "tars/protocol/res/endpointf",
+    "tars/protocol/res/logf",
+    "tars/protocol/res/nodef",
+    "tars/protocol/res/notifyf",
+    "tars/protocol/res/propertyf",
+    "tars/protocol/res/queryf",
+    "tars/protocol/res/requestf",
+    "tars/protocol/res/statf",
+    "tars/transport",
+    "tars/util/conf",
+    "tars/util/current",
+    "tars/util/debug",
+    "tars/util/endpoint",
+    "tars/util/gpool",
+    "tars/util/rogger",
+    "tars/util/rtimer",
+    "tars/util/set",
+    "tars/util/tools"
+  ]
+  revision = "2d42457f2025b1e24d845d8fa8d42c9452ce3372"
+  version = "1.1.0"
 
 [[projects]]
   branch = "master"
@@ -58,13 +88,6 @@
   ]
   revision = "c14704578b82128fab17743d91f870c406ef8d09"
   version = "v0.4"
-
-[[projects]]
-  name = "github.com/fatih/structs"
-  packages = ["."]
-  revision = "a720dfa8df582c51dee1b36feabb906bde1588bd"
-  version = "v1.0"
-
 
 [[projects]]
   name = "github.com/gogo/googleapis"
@@ -371,6 +394,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f307eaa99f9b6f0e78b766d97a220ed531eacf8583a68e9835e094cbc4028aa2"
+  inputs-digest = "d4c208b8351b322a578434c7fcd22f2bfb1c444a9b4b8b0e72336679b688b111"
   solver-name = "gps-cdcl"
   solver-version = 1

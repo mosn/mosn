@@ -41,7 +41,6 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		routerAction:          route.Route,
 		clusterName:           route.Route.ClusterName,
 		upstreamProtocol:      route.Route.UpstreamProtocol,
-		randInstance:          rand.New(rand.NewSource(time.Now().UnixNano())),
 		configHeaders:         getRouterHeaders(route.Match.Headers),
 		prefixRewrite:         route.Route.PrefixRewrite,
 		hostRewrite:           route.Route.HostRewrite,
@@ -155,6 +154,10 @@ func (rri *RouteRuleImplBase) PathMatchCriterion() types.PathMatchCriterion {
 func (rri *RouteRuleImplBase) ClusterName() string {
 	if len(rri.weightedClusters) == 0 {
 		return rri.clusterName
+	}
+
+	if rri.randInstance == nil {
+		rri.randInstance = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
 
 	// use randInstance to avoid global lock contention

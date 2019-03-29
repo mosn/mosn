@@ -245,14 +245,14 @@ type StreamSenderFilter interface {
 
 	// AppendHeaders encodes headers
 	// endStream supplies whether this is a header only request/response
-	AppendHeaders(headers HeaderMap, endStream bool) StreamHeadersFilterStatus
+	AppendHeaders(ctx context.Context, headers HeaderMap, endStream bool) StreamHeadersFilterStatus
 
 	// AppendData encodes data
 	// endStream supplies whether this is the last data
-	AppendData(buf IoBuffer, endStream bool) StreamDataFilterStatus
+	AppendData(ctx context.Context, buf IoBuffer, endStream bool) StreamDataFilterStatus
 
 	// AppendTrailers encodes trailers, implicitly ending the stream
-	AppendTrailers(trailers HeaderMap) StreamTrailersFilterStatus
+	AppendTrailers(ctx context.Context, trailers HeaderMap) StreamTrailersFilterStatus
 
 	// SetSenderFilterHandler sets the StreamSenderFilterHandler
 	SetSenderFilterHandler(handler StreamSenderFilterHandler)
@@ -284,14 +284,14 @@ type StreamReceiverFilter interface {
 
 	// OnReceiveHeaders is called with decoded headers
 	// endStream supplies whether this is a header only request/response
-	OnReceiveHeaders(headers HeaderMap, endStream bool) StreamHeadersFilterStatus
+	OnReceiveHeaders(ctx context.Context, headers HeaderMap, endStream bool) StreamHeadersFilterStatus
 
 	// OnReceiveData is called with a decoded data
 	// endStream supplies whether this is the last data
-	OnReceiveData(buf IoBuffer, endStream bool) StreamDataFilterStatus
+	OnReceiveData(ctx context.Context, buf IoBuffer, endStream bool) StreamDataFilterStatus
 
 	// OnReceiveTrailers is called with decoded trailers, implicitly ending the stream
-	OnReceiveTrailers(trailers HeaderMap) StreamTrailersFilterStatus
+	OnReceiveTrailers(ctx context.Context, trailers HeaderMap) StreamTrailersFilterStatus
 
 	// SetReceiveFilterHandler sets decoder filter callbacks
 	SetReceiveFilterHandler(handler StreamReceiverFilterHandler)

@@ -22,15 +22,13 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 	"net"
-	"os"
-	"path"
-	"path/filepath"
 	"time"
 
 	gometrics "github.com/rcrowley/go-metrics"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"syscall"
 )
 
 // TransferStats
@@ -127,9 +125,6 @@ func readTransferData(b []byte) error {
 	return nil
 }
 
-// TransferDomainSocket represents unix socket for listener
-var TransferDomainSocket = path.Join(filepath.Dir(os.Args[0]), "stats.sock")
-
 // TransferServer starts a unix socket, lasts 10 seconds and 2*$gracefultime}, receive metrics datas
 // When serves a conn, sends a message to chan
 func TransferServer(gracefultime time.Duration, ch chan<- bool) {
@@ -138,13 +133,8 @@ func TransferServer(gracefultime time.Duration, ch chan<- bool) {
 			log.DefaultLogger.Errorf("transfer metrics server panic %v", r)
 		}
 	}()
-	if os.Getenv(types.GracefulRestart) != "true" {
-		return
-	}
-	if _, err := os.Stat(TransferDomainSocket); err == nil {
-		os.Remove(TransferDomainSocket)
-	}
-	ln, err := net.Listen("unix", TransferDomainSocket)
+	syscall.Unlink(types.TransferStatsDomainSocket)
+	ln, err := net.Listen("unix", types.TransferStatsDomainSocket)
 	if err != nil {
 		log.DefaultLogger.Errorf("transfer metrics net listen error %v", err)
 		return
@@ -180,7 +170,7 @@ func TransferServer(gracefultime time.Duration, ch chan<- bool) {
 		}
 	}()
 	select {
-	case <-time.After(2 * (gracefultime + types.DefaultConnReadTimeout)):
+	case <-time.After(2*gracefultime + types.DefaultConnReadTimeout + 10*time.Second):
 		log.DefaultLogger.Infof("transfer metrics server exit")
 	}
 }
@@ -203,7 +193,7 @@ func transferMetrics(body []byte, wait bool, timeout time.Duration) {
 			log.DefaultLogger.Errorf("transfer metrics send data error: %v", r)
 		}
 	}()
-	conn, err := net.Dial("unix", TransferDomainSocket)
+	conn, err := net.Dial("unix", types.TransferStatsDomainSocket)
 	if err != nil {
 		log.DefaultLogger.Errorf("transfer metrics dial unix socket failed:%v", err)
 		return

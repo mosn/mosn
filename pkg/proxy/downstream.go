@@ -98,7 +98,7 @@ type downStream struct {
 
 	// stream access logs
 	streamAccessLogs []types.AccessLog
-	logger           log.Logger
+	logger           log.ErrorLogger
 
 	snapshot types.ClusterSnapshot
 }
@@ -346,7 +346,7 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
 	}
-	if reflect.ValueOf(clusterSnapshot).IsNil() {
+	if clusterSnapshot == nil || reflect.ValueOf(clusterSnapshot).IsNil() {
 		// no available cluster
 		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", route.RouteRule().ClusterName())
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
@@ -514,18 +514,33 @@ func (s *downStream) onUpstreamRequestSent() {
 
 		// setup global timeout timer
 		if s.timeout.GlobalTimeout > 0 {
+			log.DefaultLogger.Debugf("start a request timeout timer")
 			if s.responseTimer != nil {
 				s.responseTimer.Stop()
 			}
 
-			s.responseTimer = utils.NewTimer(s.onResponseTimeout)
-			s.responseTimer.Start(s.timeout.GlobalTimeout)
+			ID := s.ID
+			s.responseTimer = utils.NewTimer(s.timeout.GlobalTimeout,
+				func() {
+					if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+						return
+					}
+					if ID != s.ID {
+						return
+					}
+					s.onResponseTimeout()
+				})
 		}
 	}
 }
 
 // Note: global-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
 func (s *downStream) onResponseTimeout() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("onResponseTimeout() panic %v", r)
+		}
+	}()
 	s.responseTimer = nil
 	s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
 
@@ -548,13 +563,28 @@ func (s *downStream) setupPerReqTimeout() {
 			s.perRetryTimer.Stop()
 		}
 
-		s.perRetryTimer = utils.NewTimer(s.onPerReqTimeout)
-		s.perRetryTimer.Start(timeout.TryTimeout * time.Second)
+		ID := s.ID
+		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout*time.Second,
+			func() {
+				if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+					return
+				}
+				if ID != s.ID {
+					return
+				}
+				s.onPerReqTimeout()
+			})
 	}
 }
 
 // Note: per-try-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
 func (s *downStream) onPerReqTimeout() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("onPerReqTimeout() panic %v", r)
+		}
+	}()
+
 	if !s.downstreamResponseStarted {
 		// handle timeout on response not
 

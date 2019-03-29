@@ -21,19 +21,22 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
+	"net"
+
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
+	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func init() {
-	writePidFile()
-
 	catchSignals()
 }
 
@@ -45,13 +48,26 @@ var (
 	shutdownCallbacks     []func() error
 )
 
-func writePidFile() error {
-	pidFile = MosnLogBasePath + string(os.PathSeparator) + MosnPidFileName
+func SetPid(pid string) {
+	if pid == "" {
+		pidFile = types.MosnPidDefaultFileName
+	} else {
+		if err := os.MkdirAll(filepath.Dir(pid), 0644); err != nil {
+			pidFile = types.MosnPidDefaultFileName
+		} else {
+			pidFile = pid
+		}
+	}
+	writePidFile()
+}
+
+func writePidFile() (err error) {
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
-	os.MkdirAll(MosnBasePath, 0644)
-
-	return ioutil.WriteFile(pidFile, pid, 0644)
+	if err = ioutil.WriteFile(pidFile, pid, 0644); err != nil {
+		log.DefaultLogger.Errorf("write pid file error: %v", err)
+	}
+	return err
 }
 
 func catchSignals() {
@@ -87,12 +103,9 @@ func catchSignalsCrossPlatform() {
 				// reopen
 				log.Reopen()
 			case syscall.SIGHUP:
-				// stop stoppable before reload
-				stopStoppable()
-				// reload
-				reconfigure()
+				// reload, fork new mosn
+				reconfigure(true)
 			case syscall.SIGUSR2:
-				// ignore
 			}
 		}
 	}()
@@ -148,31 +161,58 @@ func OnProcessShutDown(cb func() error) {
 	shutdownCallbacks = append(shutdownCallbacks, cb)
 }
 
-func reconfigure() {
-	// Get socket file descriptor to pass it to fork
-	listenerFD := ListListenerFD()
-	if len(listenerFD) == 0 {
-		log.DefaultLogger.Errorf("no listener fd found")
-		return
-	}
-
-	// Set a flag for the new process start process
-	os.Setenv(types.GracefulRestart, "true")
-	os.Setenv(types.InheritFd, strconv.Itoa(len(listenerFD)))
-
+func startNewMosn() error {
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),
-		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}, listenerFD...),
+		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}),
 	}
 
 	// Fork exec the new version of your server
 	fork, err := syscall.ForkExec(os.Args[0], os.Args, execSpec)
 	if err != nil {
 		log.DefaultLogger.Errorf("Fail to fork %v", err)
-		return
+		return err
 	}
 
 	log.DefaultLogger.Infof("SIGHUP received: fork-exec to %d", fork)
+	return nil
+}
+
+func reconfigure(start bool) {
+	if start {
+		startNewMosn()
+		return
+	}
+	// set mosn State Reconfiguring
+	store.SetMosnState(store.Reconfiguring)
+	// if reconfigure failed, set mosn state to Running
+	defer store.SetMosnState(store.Running)
+
+	// dump lastest config, and stop DumpConfigHandler()
+	config.DumpLock()
+	config.DumpConfig()
+	// if reconfigure failed, enable DumpConfigHandler()
+	defer config.DumpUnlock()
+
+	// transfer listen fd
+	var notify net.Conn
+	var err error
+	var n int
+	var buf [1]byte
+	if notify, err = sendInheritListeners(); err != nil {
+		return
+	}
+
+	// Wait new mosn parse configuration
+	notify.SetReadDeadline(time.Now().Add(10 * time.Minute))
+	n, err = notify.Read(buf[:])
+	if n != 1 {
+		log.DefaultLogger.Errorf("new mosn start failed")
+		return
+	}
+
+	// stop other services
+	store.StopService()
 
 	// Wait for new mosn start
 	time.Sleep(3 * time.Second)
@@ -186,6 +226,70 @@ func reconfigure() {
 	metrics.TransferMetrics(false, 0)
 	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
 
+	executeShutdownCallbacks("")
+
 	// Stop the old server, all the connections have been closed and the new one is running
 	os.Exit(0)
+}
+
+func ReconfigureHandler() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("transferServer panic %v", r)
+		}
+	}()
+	time.Sleep(time.Second)
+
+	syscall.Unlink(types.ReconfigureDomainSocket)
+
+	l, err := net.Listen("unix", types.ReconfigureDomainSocket)
+	if err != nil {
+		log.StartLogger.Errorf("reconfigureHandler net listen error: %v", err)
+		return
+	}
+	defer l.Close()
+
+	log.DefaultLogger.Infof("reconfigureHandler start")
+
+	ul := l.(*net.UnixListener)
+	for {
+		uc, err := ul.AcceptUnix()
+		if err != nil {
+			log.DefaultLogger.Errorf("reconfigureHandler Accept error :%v", err)
+			return
+		}
+		log.DefaultLogger.Infof("reconfigureHandler Accept")
+
+		_, err = uc.Write([]byte{0})
+		if err != nil {
+			log.DefaultLogger.Errorf("reconfigureHandler %v", err)
+			continue
+		}
+		uc.Close()
+
+		reconfigure(false)
+	}
+}
+
+func StopReconfigureHandler() {
+	syscall.Unlink(types.ReconfigureDomainSocket)
+}
+
+func isReconfigure() bool {
+	var unixConn net.Conn
+	var err error
+	unixConn, err = net.DialTimeout("unix", types.ReconfigureDomainSocket, 1*time.Second)
+	if err != nil {
+		log.DefaultLogger.Infof("not reconfigure: %v", err)
+		return false
+	}
+	defer unixConn.Close()
+
+	uc := unixConn.(*net.UnixConn)
+	buf := make([]byte, 1)
+	n, _ := uc.Read(buf)
+	if n != 1 {
+		return false
+	}
+	return true
 }
