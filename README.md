@@ -10,6 +10,12 @@ MOSN supports Envoy and Istio's APIs and can be integrated with [Istio](https://
 The initial version of MOSN was jointly contributed by Ant Financial and UC Business Unit of Alibaba, and we look forward to the community to participate in the
 follow-up development and build an open source excellent project together.
 
+## Develop States
+
+We have already developed more performance and stability based on the 0.4.0 version, and it is expected to issue version 0.5.0 at the end of May 2019. Version 0.5.0 will be a usable version that has been verified inside the ant.
+From March 2019, before the 0.5.0 release, we will release a 0.4.X version at the end of each month to synchronize the latest changes.
+
+
 ## [MOSN Introduction](docs/Introduction.md)
 
 ## Features

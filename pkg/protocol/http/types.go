@@ -186,7 +186,7 @@ type ResponseHeader struct {
 // Get value of key
 func (h ResponseHeader) Get(key string) (string, bool) {
 	result := h.Peek(key)
-	if result != nil || h.EmptyValueHeaders[key]  {
+	if result != nil || h.EmptyValueHeaders[key] {
 		return string(result), true
 	}
 	return "", false

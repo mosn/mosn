@@ -205,6 +205,9 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	streamClient, err := client.StreamAggregatedResources(ctx)
 	if err != nil {
 		log.DefaultLogger.Errorf("fail to create stream client: %v", err)
+		if sc.Conn != nil {
+			sc.Conn.Close()
+		}
 		return nil
 	}
 	sc.Client = streamClient
