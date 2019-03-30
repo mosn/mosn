@@ -306,8 +306,8 @@ func (c *connection) startReadLoop() {
 				} else {
 					// set a long time, not transfer connection, wait mosn exit.
 					transferTime = time.Now().Add(10 * TransferTimeout)
-					c.logger.Infof("not support transfer connection, Connection = %d, Local Address = %s, Remote Address = %s",
-						c.id, c.rawConnection.LocalAddr().String(), c.RemoteAddr().String())
+					c.logger.Infof("not support transfer connection, Connection = %d, Local Address = %+v, Remote Address = %+v",
+						c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 				}
 			} else {
 				if transferTime.Before(time.Now()) {
@@ -338,8 +338,8 @@ func (c *connection) startReadLoop() {
 						c.Close(types.NoFlush, types.OnReadErrClose)
 					}
 
-					c.logger.Errorf("Error on read. Connection = %d, Local Address = %s, Remote Address = %s, err = %s",
-						c.id, c.rawConnection.LocalAddr().String(), c.RemoteAddr().String(), err)
+					c.logger.Errorf("Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
+						c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
 
 					return
 				}
