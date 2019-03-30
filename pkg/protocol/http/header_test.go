@@ -20,6 +20,7 @@ package http
 import (
 	"strings"
 	"testing"
+
 	"github.com/valyala/fasthttp"
 )
 
