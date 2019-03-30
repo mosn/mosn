@@ -78,12 +78,12 @@ func parseStreamFaultInjectConfig(c interface{}) (*faultInjectConfig, bool) {
 
 // streamFaultInjectFilter is an implement of types.StreamReceiverFilter
 type streamFaultInjectFilter struct {
-	ctx       context.Context
-	handler   types.StreamReceiverFilterHandler
-	config    *faultInjectConfig
-	stop      chan struct{}
-	rander    *rand.Rand
-	headers   types.HeaderMap
+	ctx     context.Context
+	handler types.StreamReceiverFilterHandler
+	config  *faultInjectConfig
+	stop    chan struct{}
+	rander  *rand.Rand
+	headers types.HeaderMap
 }
 
 func NewFilter(ctx context.Context, cfg *v2.StreamFaultInject) types.StreamReceiverFilter {

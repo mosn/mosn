@@ -22,10 +22,11 @@ import (
 	"context"
 	"time"
 
+	"sync/atomic"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"sync/atomic"
 )
 
 // types.StreamEventListener

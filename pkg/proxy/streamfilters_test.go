@@ -106,6 +106,47 @@ func TestRunReiverFilters(t *testing.T) {
 	}
 }
 
+func TestRunReiverFiltersStop(t *testing.T) {
+	tc := struct {
+		filters []*mockStreamReceiverFilter
+	}{
+		filters: []*mockStreamReceiverFilter{
+			{
+				status: types.StreamFilterReMatchRoute,
+			},
+			{
+				status: types.StreamFilterStop,
+			},
+			{
+				status: types.StreamFilterContinue,
+			},
+		},
+	}
+	s := &downStream{
+		proxy: &proxy{
+			routersWrapper: &mockRouterWrapper{},
+			clusterManager: &mockClusterManager{},
+		},
+		logger:      log.DefaultLogger,
+		requestInfo: &network.RequestInfo{},
+		notify:      make(chan struct{}, 1),
+	}
+	for _, f := range tc.filters {
+		s.AddStreamReceiverFilter(f, types.DownFilterAfterRoute)
+	}
+	// mock run
+	s.downstreamReqHeaders = protocol.CommonHeader{}
+	s.downstreamReqDataBuf = buffer.NewIoBuffer(0)
+	s.downstreamReqTrailers = protocol.CommonHeader{}
+	s.OnReceive(context.Background(), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+
+	time.Sleep(100 * time.Millisecond)
+
+	if tc.filters[0].on != 1 || tc.filters[1].on != 1 || tc.filters[2].on != 0 {
+		t.Errorf("streamReceiveFilter is error")
+	}
+}
+
 // StreamSenderFilter
 // MOSN receive the upstream response, run StreamSenderFilters, and send repsonse to downstream
 
@@ -117,23 +158,23 @@ func TestRunSenderFilters(t *testing.T) {
 		{
 			filters: []*mockStreamSenderFilter{
 				{
-					status:  types.StreamFilterContinue,
+					status: types.StreamFilterContinue,
 				},
 				{
-					status:  types.StreamFilterStop,
+					status: types.StreamFilterStop,
 				},
 			},
 		},
 		{
 			filters: []*mockStreamSenderFilter{
 				{
-					status:  types.StreamFilterContinue,
+					status: types.StreamFilterContinue,
 				},
 				{
-					status:  types.StreamFilterContinue,
+					status: types.StreamFilterContinue,
 				},
 				{
-					status:  types.StreamFilterStop,
+					status: types.StreamFilterStop,
 				},
 			},
 		},
@@ -152,12 +193,48 @@ func TestRunSenderFilters(t *testing.T) {
 		s.downstreamRespDataBuf = buffer.NewIoBuffer(0)
 		s.downstreamRespTrailers = protocol.CommonHeader{}
 
-	    s.runAppendFilters(0, nil, s.downstreamRespDataBuf, s.downstreamReqTrailers)
+		s.runAppendFilters(0, nil, s.downstreamRespDataBuf, s.downstreamReqTrailers)
 		for j, f := range tc.filters {
 			if f.on != 1 {
 				t.Errorf("#%d.%d stream filter is not called; On:%d", i, j, f.on)
 			}
 		}
+	}
+}
+
+func TestRunSenderFiltersStop(t *testing.T) {
+	tc := struct {
+		filters []*mockStreamSenderFilter
+	}{
+		filters: []*mockStreamSenderFilter{
+			{
+				status: types.StreamFilterContinue,
+			},
+			{
+				status: types.StreamFilterStop,
+			},
+			{
+				status: types.StreamFilterContinue,
+			},
+		},
+	}
+	s := &downStream{
+		proxy: &proxy{
+			routersWrapper: &mockRouterWrapper{},
+			clusterManager: &mockClusterManager{},
+		},
+	}
+	for _, f := range tc.filters {
+		s.AddStreamSenderFilter(f)
+	}
+	// mock run
+	s.downstreamRespDataBuf = buffer.NewIoBuffer(0)
+	s.downstreamRespTrailers = protocol.CommonHeader{}
+
+	s.runAppendFilters(0, nil, s.downstreamRespDataBuf, s.downstreamReqTrailers)
+
+	if tc.filters[0].on != 1 || tc.filters[1].on != 1 || tc.filters[2].on != 0 {
+		t.Errorf("streamSendFilter is error")
 	}
 }
 
