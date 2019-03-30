@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/log"
 )
 
 var bitSize64 = 1 << 6
@@ -49,6 +50,8 @@ func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
 	if timeout.TryTimeout >= timeout.GlobalTimeout {
 		timeout.TryTimeout = 0
 	}
+
+	log.DefaultLogger.Debugf("trytimeout %v, globaltimeout %v", timeout.TryTimeout, timeout.GlobalTimeout)
 
 	return timeout
 }

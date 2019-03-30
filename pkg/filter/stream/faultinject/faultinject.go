@@ -79,7 +79,6 @@ func parseStreamFaultInjectConfig(c interface{}) (*faultInjectConfig, bool) {
 // streamFaultInjectFilter is an implement of types.StreamReceiverFilter
 type streamFaultInjectFilter struct {
 	ctx       context.Context
-	isDelayed bool
 	handler   types.StreamReceiverFilterHandler
 	config    *faultInjectConfig
 	stop      chan struct{}
@@ -90,11 +89,10 @@ type streamFaultInjectFilter struct {
 func NewFilter(ctx context.Context, cfg *v2.StreamFaultInject) types.StreamReceiverFilter {
 	log.DefaultLogger.Debugf("create a new fault inject filter")
 	return &streamFaultInjectFilter{
-		ctx:       ctx,
-		isDelayed: false,
-		config:    makefaultInjectConfig(cfg),
-		stop:      make(chan struct{}),
-		rander:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		ctx:    ctx,
+		config: makefaultInjectConfig(cfg),
+		stop:   make(chan struct{}),
+		rander: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -115,7 +113,7 @@ func (f *streamFaultInjectFilter) SetReceiveFilterHandler(handler types.StreamRe
 	f.handler = handler
 }
 
-func (f *streamFaultInjectFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	log.DefaultLogger.Debugf("fault inject filter do receive headers")
 	if route := f.handler.Route(); route != nil {
 		// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
@@ -123,7 +121,7 @@ func (f *streamFaultInjectFilter) OnReceiveHeaders(ctx context.Context, headers 
 	}
 	if !f.matchUpstream() {
 		log.DefaultLogger.Debugf("upstream is not matched")
-		return types.StreamHeadersFilterContinue
+		return types.StreamFilterContinue
 	}
 	// TODO: check downstream nodes, support later
 	//if !f.downstreamNodes() {
@@ -131,44 +129,23 @@ func (f *streamFaultInjectFilter) OnReceiveHeaders(ctx context.Context, headers 
 	//}
 	if !router.ConfigUtilityInst.MatchHeaders(headers, f.config.headers) {
 		log.DefaultLogger.Debugf("header is not matched, request headers: %v, config headers: %v", headers, f.config.headers)
-		return types.StreamHeadersFilterContinue
+		return types.StreamFilterContinue
 	}
 	// TODO: some parameters can get from request header
 	if delay := f.getDelayDuration(); delay > 0 {
-		f.isDelayed = true
-		go func() { // start a timer
-			log.DefaultLogger.Debugf("start a delay timer")
-			select {
-			case <-time.After(delay):
-				f.doDelayInject(headers)
-			case <-f.stop:
-				log.DefaultLogger.Debugf("timer is stopped")
-				return
-			}
-		}()
-		// TODO: stats
-		f.handler.RequestInfo().SetResponseFlag(types.DelayInjected)
-		return types.StreamHeadersFilterStop
+		log.DefaultLogger.Debugf("start a delay timer")
+		select {
+		case <-time.After(delay):
+		case <-f.stop:
+			log.DefaultLogger.Debugf("timer is stopped")
+			return types.StreamFilterStop
+		}
 	}
 	if f.isAbort() {
 		f.abort(headers)
-		return types.StreamHeadersFilterStop
+		return types.StreamFilterStop
 	}
-	return types.StreamHeadersFilterContinue
-}
-
-func (f *streamFaultInjectFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
-	if !f.isDelayed {
-		return types.StreamDataFilterContinue
-	}
-	return types.StreamDataFilterStopAndBuffer
-}
-
-func (f *streamFaultInjectFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
-	if !f.isDelayed {
-		return types.StreamTrailersFilterContinue
-	}
-	return types.StreamTrailersFilterStop
+	return types.StreamFilterContinue
 }
 
 func (f *streamFaultInjectFilter) OnDestroy() {
@@ -200,15 +177,6 @@ func (f *streamFaultInjectFilter) getDelayDuration() time.Duration {
 		return 0
 	}
 	return f.config.fixedDelay
-}
-
-func (f *streamFaultInjectFilter) doDelayInject(headers types.HeaderMap) {
-	// abort maybe called after delay
-	if f.isAbort() {
-		f.abort(headers)
-	} else {
-		f.handler.ContinueReceiving()
-	}
 }
 
 func (f *streamFaultInjectFilter) isAbort() bool {

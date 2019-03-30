@@ -15,8 +15,8 @@ func (s *BaseStream) AddEventListener(streamCb types.StreamEventListener) {
 func (s *BaseStream) RemoveEventListener(streamCb types.StreamEventListener) {
 	cbIdx := -1
 
-	for i, streamCb := range s.streamListeners {
-		if streamCb == streamCb {
+	for i, cb := range s.streamListeners {
+		if cb == streamCb {
 			cbIdx = i
 			break
 		}

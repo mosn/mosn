@@ -163,7 +163,7 @@ func (kp *sofaRPCKeepAlive) HandleSuccess(id uint64) {
 	}
 }
 
-func (kp *sofaRPCKeepAlive) OnDecode(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (kp *sofaRPCKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	kp.OnReceiveHeaders(ctx, headers, true)
 }
 

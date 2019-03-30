@@ -62,8 +62,10 @@ type upstreamRequest struct {
 // 4. on upstream response receive error
 // 5. before a retry
 func (r *upstreamRequest) resetStream() {
-	r.requestSender.GetStream().RemoveEventListener(r)
-	r.requestSender.GetStream().ResetStream(types.StreamLocalReset)
+	if r.requestSender != nil {
+		r.requestSender.GetStream().RemoveEventListener(r)
+		r.requestSender.GetStream().ResetStream(types.StreamLocalReset)
+	}
 }
 
 // types.StreamEventListener
@@ -108,7 +110,7 @@ func (r *upstreamRequest) endStream() {
 	// todo: record upstream process time in request info
 }
 
-func (r *upstreamRequest) OnDecode(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	if r.downStream.processDone() {
 		return
 	}
@@ -129,7 +131,7 @@ func (r *upstreamRequest) OnDecode(ctx context.Context, headers types.HeaderMap,
 
 	r.downStream.downstreamRespTrailers = trailers
 
-	r.downStream.logger.Debugf("upstreamRequest OnDecode %+v", headers)
+	r.downStream.logger.Debugf("upstreamRequest OnReceive %+v", headers)
 
 	r.downStream.sendNotify()
 }

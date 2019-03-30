@@ -419,9 +419,8 @@ func (c *connection) onRead() {
 func (c *connection) Write(buffers ...types.IoBuffer) error {
 	defer func() {
 		if r := recover(); r != nil {
-			c.logger.Errorf("connection has closed. Connection = %d, Local Address = %s, Remote Address = %s",
-				c.id, c.LocalAddr().String(), c.RemoteAddr().String())
-
+			c.logger.Errorf("connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v",
+				c.id, c.LocalAddr(), c.RemoteAddr())
 		}
 	}()
 
@@ -628,7 +627,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	// connection failed in client mode
-	if reflect.ValueOf(c.rawConnection).IsNil() {
+	if c.rawConnection == nil || reflect.ValueOf(c.rawConnection).IsNil() {
 		return nil
 	}
 
@@ -815,17 +814,9 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 
 func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 	cc.connectOnce.Do(func() {
-		var localTCPAddr *net.TCPAddr
-
-		if cc.localAddr != nil {
-			localTCPAddr, err = net.ResolveTCPAddr("tcp", cc.localAddr.String())
-		}
-
-		var remoteTCPAddr *net.TCPAddr
-		remoteTCPAddr, err = net.ResolveTCPAddr("tcp", cc.remoteAddr.String())
-
-		cc.rawConnection, err = net.DialTCP("tcp", localTCPAddr, remoteTCPAddr)
 		var event types.ConnectionEvent
+
+		cc.rawConnection, err = net.DialTimeout("tcp", cc.RemoteAddr().String(), time.Second*3)
 
 		if err != nil {
 			if err == io.EOF {

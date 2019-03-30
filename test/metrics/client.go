@@ -76,7 +76,7 @@ type streamReceiver struct {
 	ch chan<- error
 }
 
-func (c *streamReceiver) OnDecode(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (c *streamReceiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	c.OnReceiveHeaders(ctx, headers, true)
 }
 

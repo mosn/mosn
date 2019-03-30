@@ -546,9 +546,9 @@ func (s *clientStream) handleResponse() {
 		}
 		*/
 		if hasData {
-			s.receiver.OnDecode(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
+			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
 		} else {
-			s.receiver.OnDecode(s.ctx, header, nil, nil)
+			s.receiver.OnReceive(s.ctx, header, nil, nil)
 		}
 
 		//TODO cannot recycle immediately, headers might be used by proxy logic
@@ -687,9 +687,9 @@ func (s *serverStream) handleRequest() {
 		*/
 
 		if hasData {
-			s.receiver.OnDecode(s.ctx, header, buffer.NewIoBufferBytes(s.request.Body()), nil)
+			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.request.Body()), nil)
 		} else {
-			s.receiver.OnDecode(s.ctx, header, nil, nil)
+			s.receiver.OnReceive(s.ctx, header, nil, nil)
 		}
 	}
 }

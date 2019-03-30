@@ -218,12 +218,13 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 		timeout := strconv.Itoa(timeoutInt) // timeout, ms
 		cmd.Set(types.HeaderGlobalTimeout, timeout)
 
-		stream.receiver.OnDecode(stream.ctx, cmd, cmd.Data(), nil)
+		stream.receiver.OnReceive(stream.ctx, cmd, cmd.Data(), nil)
 
 	}
 }
 
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
+	conn.logger.Errorf("error occurs while proceeding codec logic: %s", err.Error())
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
 		conn.logger.Errorf("error occurs while proceeding codec logic: %s", err.Error())

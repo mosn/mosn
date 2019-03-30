@@ -67,7 +67,7 @@ func (c *RPCStatusClient) SendRequest() {
 	requestEncoder.AppendHeaders(context.Background(), headers, true)
 }
 
-func (c *RPCStatusClient) OnDecode(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (c *RPCStatusClient) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	c.OnReceiveHeaders(ctx, headers, true)
 }
 

@@ -44,7 +44,6 @@ type healthCheckFilter struct {
 	cacheTime                    time.Duration
 	clusterMinHealthyPercentages map[string]float32
 	// request properties
-	intercept      bool
 	protocol       byte
 	requestID      uint64
 	healthCheckReq bool
@@ -62,7 +61,7 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 	}
 }
 
-func (f *healthCheckFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
+func (f *healthCheckFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		if cmd.CommandCode() == sofarpc.HEARTBEAT {
 			f.protocol = cmd.ProtocolCode()
@@ -71,44 +70,12 @@ func (f *healthCheckFilter) OnReceiveHeaders(ctx context.Context, headers types.
 			f.handler.RequestInfo().SetHealthCheck(true)
 
 			if !f.passThrough {
-				f.intercept = true
+				f.handleIntercept()
+				return types.StreamFilterStop
 			}
 		}
 	}
-
-	if endStream && f.intercept {
-		f.handleIntercept()
-	}
-
-	if f.intercept {
-		return types.StreamHeadersFilterStop
-	}
-
-	return types.StreamHeadersFilterContinue
-}
-
-func (f *healthCheckFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
-	if endStream && f.intercept {
-		f.handleIntercept()
-	}
-
-	if f.intercept {
-		return types.StreamDataFilterStop
-	}
-
-	return types.StreamDataFilterContinue
-}
-
-func (f *healthCheckFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
-	if f.intercept {
-		f.handleIntercept()
-	}
-
-	if f.intercept {
-		return types.StreamTrailersFilterStop
-	}
-
-	return types.StreamTrailersFilterContinue
+	return types.StreamFilterContinue
 }
 
 func (f *healthCheckFilter) handleIntercept() {
@@ -134,7 +101,7 @@ type HealthCheckFilterConfigFactory struct {
 
 func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewHealthCheckFilter(context, f.FilterConfig)
-	callbacks.AddStreamReceiverFilter(filter)
+	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
 }
 
 // CreateHealthCheckFilterFactory

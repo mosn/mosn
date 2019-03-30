@@ -32,7 +32,7 @@ type injectConfigFactory struct{}
 
 func (f *injectConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := &injectFilter{}
-	callbacks.AddStreamReceiverFilter(filter)
+	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
 }
 
 func createInjectFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
@@ -51,27 +51,9 @@ func (f *injectFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilte
 	f.handler = handler
 }
 
-func (f *injectFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
-	if endStream {
-		f.inject()
-		f.handler.ContinueReceiving()
-		return types.StreamHeadersFilterStop
-	}
-	return types.StreamHeadersFilterStop
-}
-
-func (f *injectFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
-	if endStream {
-		f.inject()
-		return types.StreamDataFilterContinue
-	}
-	// can not returns Stop, or the buf data will be reset
-	return types.StreamDataFilterStopAndBuffer
-}
-
-func (f *injectFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
+func (f *injectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	f.inject()
-	return types.StreamTrailersFilterContinue
+	return types.StreamFilterReMatchRoute
 }
 
 func (f *injectFilter) OnDestroy() {}
