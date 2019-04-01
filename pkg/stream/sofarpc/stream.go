@@ -379,7 +379,7 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 		s.sendCmd.SetData(data)
 	}
 
-	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
+	log.DefaultLogger.Debugf("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
 
 	if endStream {
 		s.endStream()
