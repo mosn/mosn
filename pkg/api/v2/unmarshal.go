@@ -162,7 +162,7 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	if fc.TLSConfig != nil && len(fc.TLSConfigs) > 0 {
 		return ErrDuplicateTLSConfig
 	}
-	if len(fc.TLSContexts) > 0 {
+	if len(fc.TLSConfigs) > 0 {
 		fc.TLSContexts = make([]TLSConfig, len(fc.TLSConfigs))
 		copy(fc.TLSContexts, fc.TLSConfigs)
 	} else { // no tls_context_set, use tls_context

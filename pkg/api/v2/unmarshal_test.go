@@ -567,7 +567,7 @@ func TestFilterChainUnmarshal(t *testing.T) {
 				"status": true
 			},
 			{
-				"status": false
+				"status": true
 			}
 		],
 		"filters": [
@@ -576,7 +576,14 @@ func TestFilterChainUnmarshal(t *testing.T) {
 			}
 		]
 	}`
-	for i, cfgStr := range []string{defaultTLS, singleTLS, multiTLS} {
+	defaultChain := &FilterChain{}
+	if err := json.Unmarshal([]byte(defaultTLS), defaultChain); err != nil {
+		t.Fatalf("unmarshal default tls config error: %v", err)
+	}
+	if len(defaultChain.TLSContexts) != 1 || defaultChain.TLSContexts[0].Status {
+		t.Fatalf("unmarshal tls context unexpected")
+	}
+	for i, cfgStr := range []string{singleTLS, multiTLS} {
 		filterChain := &FilterChain{}
 		if err := json.Unmarshal([]byte(cfgStr), filterChain); err != nil {
 			t.Errorf("#%d unmarshal error: %v", i, err)
@@ -584,6 +591,11 @@ func TestFilterChainUnmarshal(t *testing.T) {
 		}
 		if len(filterChain.TLSContexts) < 1 {
 			t.Errorf("#%d tls contexts unmarshal not expected, got %v", i, filterChain)
+		}
+		for _, ctx := range filterChain.TLSContexts {
+			if !ctx.Status {
+				t.Errorf("#%d tls contexts unmarshal failed", i)
+			}
 		}
 	}
 	// expected an error
