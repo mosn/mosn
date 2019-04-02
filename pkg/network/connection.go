@@ -433,7 +433,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		return nil
 	}
 
-	if c.internalLoopStarted {
+	if !UseNetpollMode {
 		c.writeBufferChan <- &buffers
 	} else {
 		if atomic.LoadUint32(&c.connected) == 1 {
