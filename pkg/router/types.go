@@ -102,14 +102,23 @@ type retryPolicyImpl struct {
 }
 
 func (p *retryPolicyImpl) RetryOn() bool {
+	if p == nil {
+		return false
+	}
 	return p.retryOn
 }
 
 func (p *retryPolicyImpl) TryTimeout() time.Duration {
+	if p == nil {
+		return 0
+	}
 	return p.retryTimeout
 }
 
 func (p *retryPolicyImpl) NumRetries() uint32 {
+	if p == nil {
+		return 0
+	}
 	return p.numRetries
 }
 
