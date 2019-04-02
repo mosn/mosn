@@ -26,6 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 type testCounter struct {
@@ -58,6 +59,9 @@ type testCase struct {
 }
 
 func TestHealthCheck(t *testing.T) {
+	zone := shm.InitMetricsZone("TestHealthCheck", 10 * 1024)
+	defer zone.Detach()
+
 	log.InitDefaultLogger("", log.DEBUG)
 	interval := 500 * time.Millisecond
 	RegisterSessionFactory(types.Protocol("test"), &mockSessionFactory{})

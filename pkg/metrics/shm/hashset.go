@@ -1,0 +1,188 @@
+package shm
+
+import (
+	"reflect"
+	"unsafe"
+	"errors"
+)
+
+var (
+	hashEntrySize = int(unsafe.Sizeof(hashEntry{}))
+	hashMetaSize  = int(unsafe.Sizeof(meta{}))
+)
+
+// hash
+const (
+	// offset32 FNVa offset basis. See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
+	offset32 = 2166136261
+	// prime32 FNVa prime value. See https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
+	prime32 = 16777619
+
+	// indicate end of linked-list
+	sentinel = 0xffffffff
+)
+
+// gets the string and returns its uint32 hash value.
+func hash(key string) uint32 {
+	var hash uint32 = offset32
+	for i := 0; i < len(key); i++ {
+		hash ^= uint32(key[i])
+		hash *= prime32
+	}
+
+	return hash
+}
+
+type hashSet struct {
+	entry []hashEntry
+	meta  *meta
+	slots []uint32
+}
+
+type hashEntry struct {
+	metricsEntry
+	next uint32
+
+	// Prevents false sharing on widespread platforms with
+	// 128 mod (cache line size) = 0 .
+	pad [128 - unsafe.Sizeof(metricsEntry{})%128 - 4]byte
+}
+
+type meta struct {
+	cap       uint32
+	size      uint32
+	freeIndex uint32
+
+	slotsNum uint32
+	bytesNum uint32
+}
+
+func newHashSet(segment uintptr, bytesNum, cap, slotsNum int) (*hashSet, error) {
+	set := &hashSet{}
+
+	// 1. entry mapping
+	entrySlice := (*reflect.SliceHeader)(unsafe.Pointer(&set.entry))
+	entrySlice.Data = segment
+	entrySlice.Len = cap
+	entrySlice.Cap = cap
+
+	offset := cap * hashEntrySize
+	if offset > bytesNum {
+		return nil, errors.New("segment is not enough to map hashSet.entry")
+	}
+
+	// 2. meta mapping
+	set.meta = (*meta)(unsafe.Pointer(segment + uintptr(offset)))
+	set.meta.slotsNum = uint32(slotsNum)
+	set.meta.bytesNum = uint32(bytesNum)
+	set.meta.cap = uint32(cap)
+	set.meta.size = 0
+	set.meta.freeIndex = 0
+
+	offset += hashMetaSize
+	if offset > bytesNum {
+		return nil, errors.New("segment is not enough to map hashSet.meta")
+	}
+
+	// 3. slots mapping
+	slotSlice := (*reflect.SliceHeader)(unsafe.Pointer(&set.slots))
+	slotSlice.Data = segment + uintptr(offset)
+	slotSlice.Len = slotsNum
+	slotSlice.Cap = slotsNum
+
+	offset += 4 * slotsNum // slot type is uint32
+	if offset > bytesNum {
+		return nil, errors.New("segment is not enough to map hashSet.slots")
+	}
+
+	// 4. initialize
+	// 4.1 slots
+	for i := 0; i < slotsNum; i++ {
+		set.slots[i] = sentinel
+	}
+
+	// 4.2 entries
+	last := cap - 1
+	for i := 0; i < last; i++ {
+		set.entry[i].next = uint32(i + 1)
+	}
+	set.entry[last].next = sentinel
+	return set, nil
+}
+
+func (s *hashSet) locateSlot(name string) uint32 {
+	return hash(name) % s.meta.slotsNum
+}
+
+func (s *hashSet) Alloc(name string) (*hashEntry, bool) {
+	// 1. search existed slots and entries
+	slot := s.locateSlot(name)
+
+	nameBytes := []byte(name)
+
+	var entry *hashEntry
+	for index := s.slots[slot]; index != sentinel; {
+		entry = &s.entry[index]
+
+		if entry.equalName(nameBytes) {
+			return entry, false
+		}
+
+		index = entry.next
+	}
+
+	// 2. create new entry
+	if s.meta.size >= s.meta.cap {
+		return nil, false
+	}
+
+	newIndex := s.meta.freeIndex
+	newEntry := &s.entry[newIndex]
+	newEntry.assignName(nameBytes)
+	newEntry.ref = 1
+
+	if entry == nil {
+		s.slots[slot] = newIndex
+	} else {
+		entry.next = newIndex
+	}
+
+	s.meta.size++
+	s.meta.freeIndex = newEntry.next
+	newEntry.next = sentinel
+
+	return newEntry, true
+}
+
+func (s *hashSet) Free(entry *hashEntry) {
+	if entry.decRef() {
+		name := string(entry.getName())
+
+		// 1. search existed slots and entries
+		slot := s.locateSlot(name)
+
+		var index uint32
+		var prev *hashEntry
+		for index = s.slots[slot]; index != sentinel; {
+
+			if entry == &s.entry[index] {
+				break
+			}
+
+			prev = entry
+			index = entry.next
+		}
+
+		// 2. unlink, re-init and add to the head of free list
+		if prev != nil {
+			prev.next = entry.next
+		} else {
+			s.slots[slot] = entry.next
+		}
+
+		*entry = hashEntry{}
+
+		entry.next = s.meta.freeIndex
+		s.meta.freeIndex = index
+	}
+}

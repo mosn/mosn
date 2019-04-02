@@ -19,15 +19,6 @@ package types
 
 import "github.com/rcrowley/go-metrics"
 
-type Counter interface {
-}
-
-type Gauge interface {
-}
-
-type Histogram interface {
-}
-
 // Metrics is a wrapper interface for go-metrics
 // support Counter, Gauge Histogram
 type Metrics interface {

@@ -2,173 +2,186 @@ package shm
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/shm"
-	"unsafe"
-	"reflect"
-	"sync/atomic"
 	"os"
-	"sync"
+	"sync/atomic"
+	"time"
+	"runtime"
+	"unsafe"
 	"errors"
+	"github.com/alipay/sofa-mosn/pkg/server/keeper"
+	"log"
 )
 
 var (
-	metadataSize = int(unsafe.Sizeof(metadata{}))
-	pid          = uint32(os.Getpid())
+	pageSize = 4 * 1024
+	pid      = uint32(os.Getpid())
+
+	defaultZone *zone
 )
+
+// InitDefaultMetricsZone used to initialize the default zone according to the configuration.
+// And the default zone will detach while process exiting
+func InitDefaultMetricsZone(name string, size int) {
+	zone := createMetricsZone(name, size)
+
+	defaultZone = zone
+
+	keeper.OnProcessShutDown(func() error {
+		zone.Detach()
+		return nil
+	})
+}
+
+// InitMetricsZone used to initialize the default zone according to the configuration.
+// It's caller's responsibility to detach the zone.
+func InitMetricsZone(name string, size int) *zone {
+	defaultZone = createMetricsZone(name, size)
+	return defaultZone
+}
+
+// createMetricsZone used to create new shm-based metrics zone. It's caller's responsibility
+// to detach the zone.
+func createMetricsZone(name string, size int) *zone {
+	zone, err := newSharedMetrics(name, size)
+	if err != nil {
+		log.Fatalln("open shared memory for metrics failed:", err)
+	}
+	return zone
+}
+
 // zone is the in-heap struct that holds the reference to the entire metrics shared memory.
 // ATTENTION: entries is modified so that it points to the shared memory entries address.
 type zone struct {
-	*metadata
-	entries []metricsEntry
-
 	span *shm.ShmSpan
 
-	indexMux sync.RWMutex
-	index    map[string]int
+	mutex *uint32
+	ref   *uint32
 
-	freeList []int
+	set *hashSet // mutex + ref = 64bit, so atomic ops has no problem
 }
 
-// metricsEntry is the mapping for metrics metadata memory-layout in shared memory.
-//
-// This struct should never be instantiated.
-// TODO move logic to shm package
-type metadata struct {
-	lock uint32 // 4
-	size uint32 // 4
-	used uint32 // 4
-	ref  uint32 //4
+func newSharedMetrics(name string, size int) (*zone, error) {
+	alignedSize := align(size, pageSize)
 
-	padding [112]byte
-}
+	span, err := shm.Alloc(name, alignedSize)
+	if err != nil {
+		return nil, err
+	}
+	// 1. mutex and ref
+	mutex, err := span.Alloc(4)
+	if err != nil {
+		return nil, err
+	}
 
-func NewSharedMetrics(name string, size int) (MetricsZone, error) {
-	span, err := shm.Alloc(name, size)
+	ref, err := span.Alloc(4)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. calc hashSet size
+
+	// assuming that 100 entries with 50 slots, so the ratio of occupied memory is
+	// entries:slots  = 100 x 128 : 50 x 4 = 64 : 1
+	// so assuming slots memory size is N, total allocated memory size is M, then we have:
+	// M - 1024 < 65N + 28 <= M
+
+	slotsNum := (alignedSize - 28) / (65 * 4)
+	slotsSize := slotsNum * 4
+	entryNum := slotsNum * 2
+	entrySize := slotsSize * 64
+
+	hashSegSize := entrySize + 20 + slotsSize
+	hashSegment, err := span.Alloc(hashSegSize)
+	if err != nil {
+		return nil, err
+	}
+
+	set, err := newHashSet(hashSegment, hashSegSize, entryNum, slotsNum)
 	if err != nil {
 		return nil, err
 	}
 
 	zone := &zone{
 		span:  span,
-		index: make(map[string]int),
+		set:   set,
+		mutex: (*uint32)(unsafe.Pointer(mutex)),
+		ref:   (*uint32)(unsafe.Pointer(ref)),
 	}
-
-	// 1. alloc metadata
-	metadataPtr, err := span.Alloc(metadataSize)
-	if err != nil {
-		return nil, err
-	}
-
-	// 2. alloc entries
-	entryMemSize := size - metadataSize
-	entries, err := span.Alloc(entryMemSize)
-	if err != nil {
-		return nil, err
-	}
-
-	length := entryMemSize / entrySize
-
-	entrySlice := (*reflect.SliceHeader)(unsafe.Pointer(&zone.entries))
-	entrySlice.Data = entries
-	entrySlice.Len = length
-	entrySlice.Cap = length
-
-	zone.metadata = (*metadata)(unsafe.Pointer(metadataPtr))
-	zone.size = uint32(length)
-	zone.used = 0
-	atomic.AddUint32(&zone.ref, 1)
+	// add ref
+	atomic.AddUint32(zone.ref, 1)
 
 	return zone, nil
 }
 
-func (z *zone) tryLock(timeoutMS int) bool {
-	// 10ms interval
-	for t := 0; t < timeoutMS; t += 10 {
-		if atomic.CompareAndSwapUint32(&z.metadata.lock, 0, pid) {
-			return true
+func (z *zone) lock() {
+	times := 0
+
+	// 5ms spin interval, 5 times burst
+	for true {
+		if atomic.CompareAndSwapUint32(z.mutex, 0, pid) {
+			return
+		}
+
+		time.Sleep(time.Millisecond * 5)
+		times++
+
+		if times%5 == 0 {
+			runtime.Gosched()
 		}
 	}
-	return false
 }
 
-func (z *zone) unlock() bool {
-	return atomic.CompareAndSwapUint32(&z.metadata.lock, pid, 0)
+func (z *zone) unlock() {
+	times := 0
+
+	// 5ms spin interval, 5 times burst
+	for true {
+		if atomic.CompareAndSwapUint32(z.mutex, pid, 0) {
+			return
+		}
+
+		time.Sleep(time.Millisecond * 5)
+		times++
+
+		if times%5 == 0 {
+			runtime.Gosched()
+		}
+	}
 }
 
-func (z *zone) GetEntry(name string) (*metricsEntry, error) {
-	// 1. search in local cache
-	z.indexMux.RLock()
-	offset, ok := z.index[name]
-	z.indexMux.RUnlock()
+func (z *zone) alloc(name string) (*hashEntry, error) {
+	z.lock()
+	defer z.unlock()
 
-	if ok {
-		entry := &z.entries[offset]
+	entry, create := z.set.Alloc(name)
+	if entry == nil {
+		// TODO log & stat
+		return nil, errors.New("alloc failed")
+	}
+
+	// for existed entry, increase its reference
+	if !create {
 		entry.incRef()
-		return entry, nil
 	}
-
-	// 2. search in shm entry list
-	// TODO use block memory hash set for performance
-	nameBytes := []byte(name)
-	for i := 0; i < int(z.metadata.used); i++ {
-		entry := &z.entries[i]
-		if entry.equalName(nameBytes) {
-			return entry, nil
-		}
-	}
-	return nil, nil
-}
-
-func (z *zone) AllocEntry(name string) (*metricsEntry, error) {
-	// 1. search in local cache
-	z.indexMux.RLock()
-	offset, ok := z.index[name]
-	z.indexMux.RUnlock()
-
-	if ok {
-		entry := &z.entries[offset]
-		entry.incRef()
-		return entry, nil
-	}
-
-	// 2. search in shm entry list
-	// TODO use block memory hash set for performance
-	nameBytes := []byte(name)
-	for i := 0; i < int(z.used); i++ {
-		entry := &z.entries[i]
-		if entry.equalName(nameBytes) {
-			entry.incRef()
-			return entry, nil
-		}
-	}
-
-	// 3.1 TODO alloc from Free list
-	// 3.2 alloc new one
-	if z.used >= z.size {
-		return nil, errors.New("capacity not enough")
-	}
-
-	entry := &z.entries[z.used]
-	entry.assignName([]byte(name))
-	entry.ref = 1
-
-	z.indexMux.Lock()
-	z.index[name] = int(z.metadata.used)
-	z.indexMux.Unlock()
-
-	z.metadata.used++
 
 	return entry, nil
 }
 
-func (z *zone) Free() {
+func (z *zone) free(entry *hashEntry) error {
+	z.lock()
+	defer z.unlock()
+
+	z.set.Free(entry)
+	return nil
+}
+
+func (z *zone) Detach() {
 	// ensure all process detached
-	if atomic.AddUint32(&z.ref, ^uint32(0)) == 0 {
+	if atomic.AddUint32(z.ref, ^uint32(0)) == 0 {
 		shm.DeAlloc(z.span)
 	}
 }
 
-func (z *zone) FreeEntry(entry *metricsEntry) {
-	if atomic.AddUint32(&entry.ref, ^uint32(0)) == 0 {
-		// TODO add to free list
-	}
+func align(size, alignment int) int {
+	return (size + alignment - 1) & ^(alignment - 1);
 }

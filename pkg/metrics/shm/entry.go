@@ -1,23 +1,16 @@
 package shm
 
 import (
-	"unsafe"
 	"sync/atomic"
 )
 
-var (
-	entrySize = int(unsafe.Sizeof(metricsEntry{}))
-)
-
 // metricsEntry is the mapping for metrics entry record memory-layout in shared memory.
-// One entry is designed with 128 byte width, which is usually the cache-line size to avoid
-// false sharing.
 //
 // This struct should never be instantiated.
 type metricsEntry struct {
-	name  [116]byte // 116
-	value int64    // 8
-	ref   uint32   // 4
+	value int64     // 8
+	ref   uint32    // 4
+	name  [100]byte // 100
 }
 
 func (e *metricsEntry) assignName(name []byte) {
@@ -37,6 +30,15 @@ func (e *metricsEntry) equalName(name []byte) bool {
 	}
 	// no more characters
 	return e.name[i+1] == 0
+}
+
+func (e *metricsEntry) getName() []byte {
+	for i := 0; i < len(e.name); i++ {
+		if e.name[i] == 0 {
+			return e.name[:i]
+		}
+	}
+	return e.name[:]
 }
 
 func (e *metricsEntry) incRef() {

@@ -2,22 +2,20 @@ package shm
 
 import (
 	"testing"
+	"unsafe"
 )
 
 func TestCounter(t *testing.T) {
 	// 4096 * 100
-	zone, err := NewSharedMetrics("TestCounter", 4096*100)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer zone.Free()
+	zone := InitMetricsZone("TestCounter", 4096*100)
+	defer zone.Detach()
 
-	entry, err := zone.AllocEntry("TestCounter")
+	entry, err := defaultZone.alloc("TestCounter")
 	if err != nil {
 		t.Fatal(err)
 	}
 	// inc
-	counter := NewShmCounter(entry)
+	counter := ShmCounter(unsafe.Pointer(&entry.value))
 	counter.Inc(5)
 
 	if counter.Count() != 5 {

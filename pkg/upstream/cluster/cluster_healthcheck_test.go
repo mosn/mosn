@@ -27,11 +27,15 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 // Test a cluster with a healt check
 // use default tcp dial, upstream use httptest server, just for create a connection
 func TestClusterHealthCheck(t *testing.T) {
+	zone := shm.InitMetricsZone("TestClusterHealthCheck", 10 * 1024)
+	defer zone.Detach()
+
 	// init servers in upstream
 	var testServers []*healthCheckTestServer
 	results := make(map[string]int)

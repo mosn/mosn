@@ -46,13 +46,13 @@ var (
 )
 
 func init() {
-	globalStats = newProxyStats(types.GlobalProxyName)
-
 	// register init function with interest of P number
 	config.RegisterConfigParsedListener(config.ParseCallbackKeyProcessor, initWorkePpool)
 }
 
 func initWorkePpool(data interface{}, endParsing bool) error {
+	initGlobalStats()
+
 	// default shardsNum is equal to the cpu num
 	shardsNum := runtime.NumCPU()
 	// use 32768 as chan buffer length
@@ -66,6 +66,10 @@ func initWorkePpool(data interface{}, endParsing bool) error {
 	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
 	workerPool.Init()
 	return nil
+}
+
+func initGlobalStats(){
+	globalStats = newProxyStats(types.GlobalProxyName)
 }
 
 // types.ReadFilter

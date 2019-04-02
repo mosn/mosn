@@ -6,15 +6,12 @@ import (
 )
 
 func TestNewSharedMetrics(t *testing.T) {
-	entryCount := 1000
-	zone, err := NewSharedMetrics("TestNewSharedMetrics", metadataSize+entrySize*entryCount)
-	if err != nil {
-		t.Error(err)
-	}
-	defer zone.Free()
+	zone := InitMetricsZone("TestNewSharedMetrics", 10 * 1024 * 1024)
+	defer zone.Detach()
 
+	entryCount := 1000
 	for i := 0; i < entryCount; i++ {
-		entry, err := zone.AllocEntry("testEntry" + strconv.Itoa(i))
+		entry, err := defaultZone.alloc("testEntry" + strconv.Itoa(i))
 		if err != nil {
 			t.Error(err)
 		}
@@ -23,7 +20,7 @@ func TestNewSharedMetrics(t *testing.T) {
 	}
 
 	// re-alloc and re-access
-	entry, err := zone.AllocEntry("testEntry0")
+	entry, err := defaultZone.alloc("testEntry0")
 	if err != nil {
 		t.Error(err)
 	}

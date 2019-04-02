@@ -2,16 +2,20 @@ package shm
 
 import (
 	"testing"
+	"unsafe"
 )
 
 func TestGauge(t *testing.T) {
 	// 4096 * 100
-	zone, _ := NewSharedMetrics("TestGauge", 4096*100)
-	defer zone.Free()
+	zone := InitMetricsZone("TestGauge", 4096*100)
+	defer zone.Detach()
 
-	entry, _ := zone.AllocEntry("TestGauge")
+	entry, err := defaultZone.alloc("TestGauge")
+	if err != nil {
+		t.Error(err)
+	}
 
-	gauge := NewShmGauge(entry)
+	gauge := ShmGauge(unsafe.Pointer(&entry.value))
 
 	// update
 	gauge.Update(5)

@@ -35,6 +35,18 @@ func (c ShmCounter) Snapshot() gometrics.Counter {
 	return gometrics.CounterSnapshot(c.Count())
 }
 
-func NewShmCounter(entry *metricsEntry) gometrics.Counter {
-	return ShmCounter(unsafe.Pointer(&entry.value))
+func NewShmCounterFunc(name string) func() gometrics.Counter {
+	return func() gometrics.Counter {
+		entry, err := defaultZone.alloc(name)
+		if err != nil {
+			return gometrics.NilCounter{}
+		}
+
+		return ShmCounter(unsafe.Pointer(&entry.value))
+	}
+}
+
+// stoppable
+func (c ShmCounter) Stop() {
+	defaultZone.free((*hashEntry)(unsafe.Pointer(c)))
 }

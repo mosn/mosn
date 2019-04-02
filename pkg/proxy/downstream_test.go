@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
@@ -70,6 +71,11 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 }
 
 func TestDirectResponse(t *testing.T) {
+	zone := shm.InitMetricsZone("TestDirectResponse", 10*1024)
+	defer zone.Detach()
+
+	initGlobalStats()
+
 	testCases := []struct {
 		client *mockResponseSender
 		route  *mockRoute

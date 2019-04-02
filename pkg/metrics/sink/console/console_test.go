@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 type testAction int
@@ -37,6 +38,9 @@ const (
 )
 
 func TestMakeNamespace(t *testing.T) {
+	zone := shm.InitMetricsZone("TestMakeNamespace", 10*1024)
+	defer zone.Detach()
+
 	metrics.ResetAll()
 	testCases := []struct {
 		labels   map[string]string
@@ -60,6 +64,9 @@ func TestMakeNamespace(t *testing.T) {
 // test concurrently add statisic data
 // should get the right data from console
 func TestConsoleMetrics(t *testing.T) {
+	zone := shm.InitMetricsZone("TestConsoleMetrics", 10*1024)
+	defer zone.Detach()
+
 	metrics.ResetAll()
 	testCases := []struct {
 		typ         string
@@ -139,6 +146,9 @@ func TestConsoleMetrics(t *testing.T) {
 }
 
 func BenchmarkGetMetrics(b *testing.B) {
+	zone := shm.InitMetricsZone("TestConsoleMetrics", 100*1024)
+	defer zone.Detach()
+
 	metrics.ResetAll()
 	// init metrics data
 	testCases := []struct {

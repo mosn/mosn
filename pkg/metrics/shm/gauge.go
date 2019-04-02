@@ -25,6 +25,18 @@ func (g ShmGauge) Value() int64 {
 	return atomic.LoadInt64((*int64)(unsafe.Pointer(g)))
 }
 
-func NewShmGauge(entry *metricsEntry) gometrics.Gauge {
-	return ShmGauge(unsafe.Pointer(&entry.value))
+func NewShmGaugeFunc(name string) func() gometrics.Gauge {
+	return func() gometrics.Gauge {
+		entry, err := defaultZone.alloc(name)
+		if err != nil {
+			return gometrics.NilGauge{}
+		}
+
+		return ShmGauge(unsafe.Pointer(&entry.value))
+	}
+}
+
+// stoppable
+func (c ShmGauge) Stop() {
+	defaultZone.free((*hashEntry)(unsafe.Pointer(c)))
 }

@@ -16,7 +16,6 @@ func path(name string) string {
 	return types.MosnConfigPath + string(os.PathSeparator) + fmt.Sprintf("mosn_shm_%s", name)
 }
 
-// TODO support process level lock use cas
 type ShmSpan struct {
 	origin []byte
 	name   string

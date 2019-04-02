@@ -27,8 +27,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
 	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
-	"log"
-	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 )
 
 const maxLabelCount = 10
@@ -45,9 +43,6 @@ type store struct {
 
 	metrics map[string]types.Metrics
 	mutex   sync.RWMutex
-
-	zone     shm.MetricsZone    // for counter, gauge
-	registry gometrics.Registry // for histogram
 }
 
 // metrics is a wrapper of go-metrics registry, is an implement of types.Metrics
@@ -59,7 +54,7 @@ type metrics struct {
 	labelKeys []string
 	labelVals []string
 
-	ref map[string]interface{}
+	registry gometrics.Registry
 }
 
 func init() {
@@ -68,22 +63,8 @@ func init() {
 	defaultStore = &store{
 		matcher: defaultMatcher,
 		// TODO: default length configurable
-		metrics:  make(map[string]types.Metrics, 100),
-		registry: gometrics.NewRegistry(),
+		metrics: make(map[string]types.Metrics, 100),
 	}
-
-	zone, err := shm.NewSharedMetrics("metrics", 10*1024*1024)
-	if err != nil {
-		log.Fatalln("open shared memory for metrics failed:", err)
-	}
-
-	defaultStore.zone = zone
-
-	keeper.OnProcessShutDown(func() error {
-		zone.Free()
-		return nil
-	})
-
 }
 
 // SetStatsMatcher sets the exclusion labels and exclusion keys
@@ -126,7 +107,7 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 		labelKeys: keys,
 		labelVals: values,
 		prefix:    name + ".",
-		ref:       make(map[string]interface{}),
+		registry:  gometrics.NewRegistry(),
 	}
 
 	defaultStore.metrics[name] = stats
@@ -172,15 +153,7 @@ func (s *metrics) Counter(key string) gometrics.Counter {
 		return gometrics.NilCounter{}
 	}
 
-	entry, err := defaultStore.zone.AllocEntry(s.fullName(key))
-	if err != nil {
-		// log & stats
-		return gometrics.NilCounter{}
-	}
-
-	counter := shm.NewShmCounter(entry)
-	s.ref[key] = counter
-	return counter
+	return s.registry.GetOrRegister(key, shm.NewShmCounterFunc(s.fullName(key))).(gometrics.Counter)
 }
 
 func (s *metrics) Gauge(key string) gometrics.Gauge {
@@ -189,42 +162,24 @@ func (s *metrics) Gauge(key string) gometrics.Gauge {
 		return gometrics.NilGauge{}
 	}
 
-	entry, err := defaultStore.zone.AllocEntry(s.fullName(key))
-	if err != nil {
-		// log & stats
-		return gometrics.NilGauge{}
-	}
-
-	gauge := shm.NewShmGauge(entry)
-	s.ref[key] = gauge
-	return gauge
+	return s.registry.GetOrRegister(key, shm.NewShmGaugeFunc(s.fullName(key))).(gometrics.Gauge)
 }
 
 func (s *metrics) Histogram(key string) gometrics.Histogram {
-	//return gometrics.NilHistogram{}
-
 	//support exclusion only
 	if defaultStore.matcher.isExclusionKey(key) {
 		return gometrics.NilHistogram{}
 	}
 
-	histogram := defaultStore.registry.GetOrRegister(s.fullName(key), func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) })
-	s.ref[key] = histogram
-
-	return histogram.(gometrics.Histogram)
+	return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
 }
 
 func (s *metrics) Each(f func(string, interface{})) {
-	for k, v := range s.ref {
-		f(k, v)
-	}
+	s.registry.Each(f)
 }
 
 func (s *metrics) UnregisterAll() {
-	//for k, v := range s.ref {
-	//	f(k, v)
-	//}
-
+	s.registry.UnregisterAll()
 }
 
 func (s *metrics) fullName(name string) string {
