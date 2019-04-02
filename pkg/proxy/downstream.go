@@ -296,12 +296,11 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 		phase := types.InitPhase
 		for i := 0; i < 5; i++ {
 			s.cleanNotify()
-			phase = s.receive(ctx, id, phase)
-			if phase == types.End {
-				return
-			}
 
+			phase = s.receive(ctx, id, phase)
 			switch phase {
+			case types.End:
+				return
 			case types.MatchRoute:
 				s.logger.Debugf("downstream redo match route %+v", s)
 			case types.Retry:
@@ -490,11 +489,11 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	// process end
 	case types.End:
 		return types.End
+
+	default:
+		s.logger.Errorf("unexpected phase: %d", phase)
+		return types.End
 	}
-
-	s.logger.Errorf("unexpected phase: %d", phase)
-
-	return types.End
 }
 
 func (s *downStream) matchRoute() {

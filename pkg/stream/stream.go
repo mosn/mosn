@@ -2,17 +2,23 @@ package stream
 
 import (
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"sync"
 )
 
 type BaseStream struct {
+	sync.Mutex
 	streamListeners []types.StreamEventListener
 }
 
 func (s *BaseStream) AddEventListener(streamCb types.StreamEventListener) {
+	s.Lock()
 	s.streamListeners = append(s.streamListeners, streamCb)
+	s.Unlock()
 }
 
 func (s *BaseStream) RemoveEventListener(streamCb types.StreamEventListener) {
+	s.Lock()
+	defer s.Unlock()
 	cbIdx := -1
 
 	for i, cb := range s.streamListeners {
@@ -29,6 +35,8 @@ func (s *BaseStream) RemoveEventListener(streamCb types.StreamEventListener) {
 
 func (s *BaseStream) ResetStream(reason types.StreamResetReason) {
 	defer s.DestroyStream()
+	s.Lock()
+	defer s.Unlock()
 
 	for _, listener := range s.streamListeners {
 		listener.OnResetStream(reason)
@@ -36,6 +44,8 @@ func (s *BaseStream) ResetStream(reason types.StreamResetReason) {
 }
 
 func (s *BaseStream) DestroyStream() {
+	s.Lock()
+	defer s.Unlock()
 	for _, listener := range s.streamListeners {
 		listener.OnDestroyStream()
 	}
