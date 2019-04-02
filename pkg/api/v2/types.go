@@ -76,19 +76,18 @@ const (
 
 // Cluster represents a cluster's information
 type Cluster struct {
-	Name                 string           `json:"name"`
-	ClusterType          ClusterType      `json:"type"`
-	SubType              string           `json:"sub_type"` //not used yet
-	LbType               LbType           `json:"lb_type"`
-	MaxRequestPerConn    uint32           `json:"max_request_per_conn"`
-	ConnBufferLimitBytes uint32           `json:"conn_buffer_limit_bytes"`
-	CirBreThresholds     CircuitBreakers  `json:"circuit_breakers,omitempty"`
-	OutlierDetection     OutlierDetection `json:"outlier_detection,omitempty"` //not used yet
-	HealthCheck          HealthCheck      `json:"health_check,omitempty"`
-	Spec                 ClusterSpecInfo  `json:"spec,omitempty"`
-	LBSubSetConfig       LBSubsetConfig   `json:"lb_subset_config,omitempty"`
-	TLS                  TLSConfig        `json:"tls_context,omitempty"`
-	Hosts                []Host           `json:"hosts"`
+	Name                 string          `json:"name,omitempty"`
+	ClusterType          ClusterType     `json:"type,omitempty"`
+	SubType              string          `json:"sub_type,omitempty"` //not used yet
+	LbType               LbType          `json:"lb_type,omitempty"`
+	MaxRequestPerConn    uint32          `json:"max_request_per_conn,omitempty"`
+	ConnBufferLimitBytes uint32          `json:"conn_buffer_limit_bytes,omitempty"`
+	CirBreThresholds     CircuitBreakers `json:"circuit_breakers,omitempty"`
+	HealthCheck          HealthCheck     `json:"health_check,omitempty"`
+	Spec                 ClusterSpecInfo `json:"spec,omitempty"`
+	LBSubSetConfig       LBSubsetConfig  `json:"lb_subset_config,omitempty"`
+	TLS                  TLSConfig       `json:"tls_context,omitempty"`
+	Hosts                []Host          `json:"hosts,omitempty"`
 }
 
 // HealthCheck is a configuration of health check
@@ -149,10 +148,10 @@ type FaultInject struct {
 
 // StreamFaultInject
 type StreamFaultInject struct {
-	Delay           *DelayInject    `json:"delay"`
-	Abort           *AbortInject    `json:"abort"`
-	UpstreamCluster string          `json:"upstream_cluster"`
-	Headers         []HeaderMatcher `json:"headers"`
+	Delay           *DelayInject    `json:"delay,omitempty"`
+	Abort           *AbortInject    `json:"abort,omitempty"`
+	UpstreamCluster string          `json:"upstream_cluster,omitempty"`
+	Headers         []HeaderMatcher `json:"headers,omitempty"`
 }
 
 type DelayInject struct {
@@ -160,8 +159,8 @@ type DelayInject struct {
 	Delay time.Duration `json:"-"`
 }
 type AbortInject struct {
-	Status  int    `json:"status"`
-	Percent uint32 `json:"percentage"`
+	Status  int    `json:"status,omitempty"`
+	Percent uint32 `json:"percentage,omitempty"`
 }
 
 type Mixer struct {
@@ -207,26 +206,11 @@ type CircuitBreakers struct {
 }
 
 type Thresholds struct {
-	Priority           RoutingPriority `json:"priority"`
-	MaxConnections     uint32          `json:"max_connections"`
-	MaxPendingRequests uint32          `json:"max_pending_requests"`
-	MaxRequests        uint32          `json:"max_requests"`
-	MaxRetries         uint32          `json:"max_retries"`
-}
-
-// OutlierDetection not used yet
-type OutlierDetection struct {
-	Consecutive5xx                     uint32
-	Interval                           time.Duration
-	BaseEjectionTime                   time.Duration
-	MaxEjectionPercent                 uint32
-	ConsecutiveGatewayFailure          uint32
-	EnforcingConsecutive5xx            uint32
-	EnforcingConsecutiveGatewayFailure uint32
-	EnforcingSuccessRate               uint32
-	SuccessRateMinimumHosts            uint32
-	SuccessRateRequestVolume           uint32
-	SuccessRateStdevFactor             uint32
+	Priority           RoutingPriority `json:"priority,omitempty"`
+	MaxConnections     uint32          `json:"max_connections,omitempty"`
+	MaxPendingRequests uint32          `json:"max_pending_requests,omitempty"`
+	MaxRequests        uint32          `json:"max_requests,omitempty"`
+	MaxRetries         uint32          `json:"max_retries,omitempty"`
 }
 
 // ClusterSpecInfo is a configuration of subscribe
@@ -242,15 +226,15 @@ type SubscribeSpec struct {
 
 // LBSubsetConfig is a configuration of load balance subset
 type LBSubsetConfig struct {
-	FallBackPolicy  uint8             `json:"fall_back_policy"`
-	DefaultSubset   map[string]string `json:"default_subset"`
-	SubsetSelectors [][]string        `json:"subset_selectors"`
+	FallBackPolicy  uint8             `json:"fall_back_policy,omitempty"`
+	DefaultSubset   map[string]string `json:"default_subset,omitempty"`
+	SubsetSelectors [][]string        `json:"subset_selectors,omitempty"`
 }
 
 // TLSConfig is a configuration of tls context
 type TLSConfig struct {
-	Status       bool                   `json:"status"`
-	Type         string                 `json:"type"`
+	Status       bool                   `json:"status,omitempty"`
+	Type         string                 `json:"type,omitempty"`
 	ServerName   string                 `json:"server_name,omitempty"`
 	CACert       string                 `json:"ca_cert,omitempty"`
 	CertChain    string                 `json:"cert_chain,omitempty"`
@@ -278,7 +262,7 @@ type AccessLog struct {
 type FilterChain struct {
 	FilterChainMatch string    `json:"match,omitempty"`
 	TLS              TLSConfig `json:"tls_context,omitempty"`
-	Filters          []Filter  `json:"filters"` // "proxy" and "connection_manager" used at this time
+	Filters          []Filter  `json:"filters,omitempty"` // "proxy" and "connection_manager" used at this time
 }
 
 // Filter is a config to make up a filter
@@ -307,77 +291,59 @@ type WebSocketProxy struct {
 
 // Proxy
 type Proxy struct {
-	Name               string                 `json:"name"`
-	DownstreamProtocol string                 `json:"downstream_protocol"`
-	UpstreamProtocol   string                 `json:"upstream_protocol"`
-	RouterConfigName   string                 `json:"router_config_name"`
-	ValidateClusters   bool                   `json:"validate_clusters"`
-	ExtendConfig       map[string]interface{} `json:"extend_config"`
+	Name               string                 `json:"name,omitempty"`
+	DownstreamProtocol string                 `json:"downstream_protocol,omitempty"`
+	UpstreamProtocol   string                 `json:"upstream_protocol,omitempty"`
+	RouterConfigName   string                 `json:"router_config_name,omitempty"`
+	ValidateClusters   bool                   `json:"validate_clusters,omitempty"`
+	ExtendConfig       map[string]interface{} `json:"extend_config,omitempty"`
 }
 
 // HeaderValueOption is header name/value pair plus option to control append behavior.
 type HeaderValueOption struct {
-	Header *HeaderValue `json:"header"`
-	Append *bool        `json:"append"`
+	Header *HeaderValue `json:"header,omitempty"`
+	Append *bool        `json:"append,omitempty"`
 }
 
 // HeaderValue is header name/value pair.
 type HeaderValue struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // RouterConfiguration is a filter for routers
 // Filter type is:  "CONNECTION_MANAGER"
 type RouterConfiguration struct {
-	RouterConfigName        string               `json:"router_config_name"`
-	VirtualHosts            []*VirtualHost       `json:"virtual_hosts"`
-	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add"`
-	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add"`
-	ResponseHeadersToRemove []string             `json:"response_headers_to_remove"`
+	RouterConfigName        string               `json:"router_config_name,omitempty"`
+	VirtualHosts            []*VirtualHost       `json:"virtual_hosts,omitempty"`
+	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
+	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
+	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
 }
 
 // VirtualHost is used to make up the route table
 type VirtualHost struct {
-	Name                    string               `json:"name"`
-	Domains                 []string             `json:"domains"`
-	VirtualClusters         []VirtualCluster     `json:"virtual_clusters"`
-	Routers                 []Router             `json:"routers"`
-	RequireTLS              string               `json:"require_tls"` // not used yet
-	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add"`
-	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add"`
-	ResponseHeadersToRemove []string             `json:"response_headers_to_remove"`
-}
-
-// VirtualCluster is a way of specifying a regex matching rule against certain important endpoints
-// such that statistics are generated explicitly for the matched requests
-type VirtualCluster struct {
-	Pattern string `json:"pattern"`
-	Name    string `json:"name"`
-	Method  string `json:"method"`
+	Name                    string               `json:"name,omitempty"`
+	Domains                 []string             `json:"domains,omitempty"`
+	Routers                 []Router             `json:"routers,omitempty"`
+	RequireTLS              string               `json:"require_tls,omitempty"` // not used yet
+	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
+	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
+	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
 }
 
 // RouterMatch represents the route matching parameters
 type RouterMatch struct {
-	Prefix        string          `json:"prefix"` // Match request's Path with Prefix Comparing
-	Path          string          `json:"path"`   // Match request's Path with Exact Comparing
-	Regex         string          `json:"regex"`  // Match request's Path with Regex Comparing
-	CaseSensitive bool            `json:"case_sensitive"`
-	Runtime       RuntimeUInt32   `json:"runtime"`
-	Headers       []HeaderMatcher `json:"headers"` // Match request's Headers
-}
-
-// RedirectAction represents the redirect parameters
-type RedirectAction struct {
-	HostRedirect string `json:"host_redirect"`
-	PathRedirect string `json:"path_redirect"`
-	ResponseCode uint32 `json:"response_code"`
+	Prefix  string          `json:"prefix,omitempty"`  // Match request's Path with Prefix Comparing
+	Path    string          `json:"path,omitempty"`    // Match request's Path with Exact Comparing
+	Regex   string          `json:"regex,omitempty"`   // Match request's Path with Regex Comparing
+	Headers []HeaderMatcher `json:"headers,omitempty"` // Match request's Headers
 }
 
 // DirectResponseAction represents the direct response parameters
 type DirectResponseAction struct {
-	StatusCode int    `json:"status"`
-	Body       string `json:"body"`
+	StatusCode int    `json:"status,omitempty"`
+	Body       string `json:"body,omitempty"`
 }
 
 // WeightedCluster.
@@ -385,43 +351,37 @@ type DirectResponseAction struct {
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
 type WeightedCluster struct {
-	Cluster          ClusterWeight `json:"cluster"`
-	RuntimeKeyPrefix string        `json:"runtime_key_prefix"` // not used currently
-}
-
-// RuntimeUInt32 indicates that the route should additionally match on a runtime key
-type RuntimeUInt32 struct {
-	DefaultValue uint32 `json:"default_value"`
-	RuntimeKey   string `json:"runtime_key"`
+	Cluster ClusterWeight `json:"cluster,omitempty"`
 }
 
 // HeaderMatcher specifies a set of headers that the route should match on.
 type HeaderMatcher struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-	Regex bool   `json:"regex"`
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
+	Regex bool   `json:"regex,omitempty"`
 }
 
 // XProxyExtendConfig
 type XProxyExtendConfig struct {
-	SubProtocol string `json:"sub_protocol"`
+	SubProtocol string `json:"sub_protocol,omitempty"`
 }
 
 // ServiceRegistryInfo
 type ServiceRegistryInfo struct {
-	ServiceAppInfo ApplicationInfo     `json:"application"`
+	ServiceAppInfo ApplicationInfo     `json:"application,omitempty"`
 	ServicePubInfo []PublishInfo       `json:"publish_info,omitempty"`
 	MsgMetaInfo    map[string][]string `json:"msg_meta_info,omitempty"`
 }
+
 type ApplicationInfo struct {
-	AntShareCloud bool   `json:"ant_share_cloud"`
+	AntShareCloud bool   `json:"ant_share_cloud,omitempty"`
 	DataCenter    string `json:"data_center,omitempty"`
 	AppName       string `json:"app_name,omitempty"`
-	Zone          string `json:"zone"`
-	DeployMode    bool   `json:"deploy_mode"`
-	MasterSystem  bool   `json:"master_system"`
-	CloudName     string `json:"cloud_name"`
-	HostMachine   string `json:"host_machine"`
+	Zone          string `json:"zone,omitempty"`
+	DeployMode    bool   `json:"deploy_mode,omitempty"`
+	MasterSystem  bool   `json:"master_system,omitempty"`
+	CloudName     string `json:"cloud_name,omitempty"`
+	HostMachine   string `json:"host_machine,omitempty"`
 }
 
 // PublishInfo implements json.Marshaler and json.Unmarshaler
@@ -438,26 +398,25 @@ type PublishContent struct {
 // TODO: support inclusion_list
 // TODO: support exclusion list/inclusion_list as pattern
 type StatsMatcher struct {
-	RejectAll       bool     `json:"reject_all"`
-	ExclusionLabels []string `json:"exclusion_labels"`
-	ExclusionKeys   []string `json:"exclusion_keys"`
+	RejectAll       bool     `json:"reject_all,omitempty"`
+	ExclusionLabels []string `json:"exclusion_labels,omitempty"`
+	ExclusionKeys   []string `json:"exclusion_keys,omitempty"`
 }
-
 
 // ServerConfig for making up server for mosn
 type ServerConfig struct {
 	//default logger
-	ServerName       string `json:"mosn_server_name"`
+	ServerName       string `json:"mosn_server_name,omitempty"`
 	DefaultLogPath   string `json:"default_log_path,omitempty"`
 	DefaultLogLevel  string `json:"default_log_level,omitempty"`
 	DefaultLogRoller string `json:"default_log_roller,omitempty"`
 
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
-	GracefulTimeout DurationConfig `json:"graceful_timeout"`
+	GracefulTimeout DurationConfig `json:"graceful_timeout,omitempty"`
 
 	//go processor number
-	Processor int `json:"processor"`
+	Processor int `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
 }

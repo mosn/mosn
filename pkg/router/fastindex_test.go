@@ -62,7 +62,7 @@ func TestFastIndexRouteFromHeaderKV(t *testing.T) {
 		Domains: []string{"*"},
 		Routers: routersCfg,
 	}
-	vh, err := NewVirtualHostImpl(vhCfg, false)
+	vh, err := NewVirtualHostImpl(vhCfg)
 	if err != nil {
 		t.Fatal("create virtual host failed", err)
 	}
@@ -88,7 +88,7 @@ func TestMatchRouteFromHeaderKV(t *testing.T) {
 			vhCfg,
 		},
 	}
-	routers, err := NewRouteMatcher(routeCfg)
+	routers, err := NewRouters(routeCfg)
 	if err != nil {
 		t.Fatal("create route matcher failed")
 	}
@@ -112,7 +112,7 @@ func BenchmarkGetSofaRouter(b *testing.B) {
 		Domains: []string{"*"},
 		Routers: routersCfg,
 	}
-	vh, err := NewVirtualHostImpl(vhCfg, false)
+	vh, err := NewVirtualHostImpl(vhCfg)
 	if err != nil {
 		b.Fatal("create virtual host failed", err)
 	}

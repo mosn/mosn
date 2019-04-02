@@ -19,11 +19,24 @@ package router
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
+)
+
+// [sub module] & [function] & msg
+const RouterLogFormat = "[router] [%s] [%s] %v"
+
+var (
+	ErrNilRouterConfig      = errors.New("router config is nil")
+	ErrNoVirtualHost        = errors.New("virtual host is nil")
+	ErrNoRouters            = errors.New("routers is nil")
+	ErrDuplicateVirtualHost = errors.New("duplicate domain virtual host")
+	ErrUnexpected           = errors.New("an unexpected error occurs")
+	ErrRouterFactory        = errors.New("default router factory create router failed")
 )
 
 type headerFormatter interface {
@@ -34,40 +47,6 @@ type headerFormatter interface {
 type headerPair struct {
 	headerName      *lowerCaseString
 	headerFormatter headerFormatter
-}
-
-type headerParser struct {
-	headersToAdd    []*headerPair
-	headersToRemove []*lowerCaseString
-}
-
-type matchable interface {
-	Match(headers types.HeaderMap, randomValue uint64) types.Route
-}
-
-type info interface {
-	GetRouterName() string
-}
-
-type RouteBase interface {
-	types.Route
-	types.RouteRule
-	types.PathMatchCriterion
-	matchable
-	info
-}
-
-type shadowPolicyImpl struct {
-	cluster    string
-	runtimeKey string
-}
-
-func (spi *shadowPolicyImpl) ClusterName() string {
-	return spi.cluster
-}
-
-func (spi *shadowPolicyImpl) RuntimeKey() string {
-	return spi.runtimeKey
 }
 
 type lowerCaseString struct {
@@ -86,26 +65,34 @@ func (lcs *lowerCaseString) Get() string {
 	return lcs.str
 }
 
-type hashPolicyImpl struct {
-	hashImpl []*hashMethod
+type weightedClusterEntry struct {
+	clusterName                  string
+	clusterWeight                uint32
+	clusterMetadataMatchCriteria *MetadataMatchCriteriaImpl
 }
 
-type hashMethod struct {
+type Matchable interface {
+	Match(headers types.HeaderMap, randomValue uint64) types.Route
 }
 
-type rateLimitPolicyImpl struct {
-	rateLimitEntries []types.RateLimitPolicyEntry
-	maxStageNumber   uint64
+type RouteBase interface {
+	types.Route
+	types.PathMatchCriterion
+	Matchable
 }
 
-func (rp *rateLimitPolicyImpl) Enabled() bool {
-
-	return true
+// Policy
+type policy struct {
+	retryPolicy  *retryPolicyImpl
+	shadowPolicy *shadowPolicyImpl //TODO: not implement yet
 }
 
-func (rp *rateLimitPolicyImpl) GetApplicableRateLimit(stage string) []types.RateLimitPolicyEntry {
+func (p *policy) RetryPolicy() types.RetryPolicy {
+	return p.retryPolicy
+}
 
-	return rp.rateLimitEntries
+func (p *policy) ShadowPolicy() types.ShadowPolicy {
+	return p.shadowPolicy
 }
 
 type retryPolicyImpl struct {
@@ -126,77 +113,17 @@ func (p *retryPolicyImpl) NumRetries() uint32 {
 	return p.numRetries
 }
 
-// todo implement CorsPolicy
-
-type runtimeData struct {
-	key          string
-	defaultvalue uint64
+type shadowPolicyImpl struct {
+	cluster    string
+	runtimeKey string
 }
 
-type rateLimitPolicyEntryImpl struct {
-	stage      uint64
-	disableKey string
-	actions    rateLimitAction
+func (spi *shadowPolicyImpl) ClusterName() string {
+	return spi.cluster
 }
 
-func (rpei *rateLimitPolicyEntryImpl) Stage() uint64 {
-	return rpei.stage
-}
-
-func (rpei *rateLimitPolicyEntryImpl) DisableKey() string {
-	return rpei.disableKey
-}
-
-func (rpei *rateLimitPolicyEntryImpl) PopulateDescriptors(route types.RouteRule, descriptors []types.Descriptor, localSrvCluster string,
-	headers map[string]string, remoteAddr string) {
-}
-
-type rateLimitAction interface{}
-
-type weightedClusterEntry struct {
-	clusterName                  string
-	runtimeKey                   string
-	loader                       types.Loader
-	clusterWeight                uint32
-	clusterMetadataMatchCriteria *MetadataMatchCriteriaImpl
-}
-
-func (wc *weightedClusterEntry) GetClusterMetadataMatchCriteria() *MetadataMatchCriteriaImpl {
-	return wc.clusterMetadataMatchCriteria
-}
-
-type routerPolicy struct {
-	retryOn      bool
-	retryTimeout time.Duration
-	numRetries   uint32
-}
-
-func (p *routerPolicy) RetryOn() bool {
-	return p.retryOn
-}
-
-func (p *routerPolicy) TryTimeout() time.Duration {
-	return p.retryTimeout
-}
-
-func (p *routerPolicy) NumRetries() uint32 {
-	return p.numRetries
-}
-
-func (p *routerPolicy) RetryPolicy() types.RetryPolicy {
-	return p
-}
-
-func (p *routerPolicy) ShadowPolicy() types.ShadowPolicy {
-	return nil
-}
-
-func (p *routerPolicy) CorsPolicy() types.CorsPolicy {
-	return nil
-}
-
-func (p *routerPolicy) LoadBalancerPolicy() types.LoadBalancerPolicy {
-	return nil
+func (spi *shadowPolicyImpl) RuntimeKey() string {
+	return spi.runtimeKey
 }
 
 // RouterRuleFactory creates a RouteBase
