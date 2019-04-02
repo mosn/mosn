@@ -134,6 +134,7 @@ func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers types.H
 	// TODO: some parameters can get from request header
 	if delay := f.getDelayDuration(); delay > 0 {
 		log.DefaultLogger.Debugf("start a delay timer")
+		f.handler.RequestInfo().SetResponseFlag(types.DelayInjected)
 		select {
 		case <-time.After(delay):
 		case <-f.stop:

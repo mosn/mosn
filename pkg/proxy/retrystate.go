@@ -59,6 +59,9 @@ func (r *retryState) retry(headers types.HeaderMap, reason types.StreamResetReas
 		return check
 	}
 
+	r.cluster.ResourceManager().Retries().Increase()
+	r.cluster.Stats().UpstreamRequestRetry.Inc(1)
+
 	return 0
 }
 
