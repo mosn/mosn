@@ -37,6 +37,9 @@ func (r *mockRouteBase) Matcher() string {
 func (r *mockRouteBase) MatchType() types.PathMatchType {
 	return 999
 }
+func (r *mockRouteBase) RouteRule() types.RouteRule {
+	return nil
+}
 
 func _TestRouterRuleFactory(base *RouteRuleImplBase, headers []v2.HeaderMatcher) RouteBase {
 	return &mockRouteBase{base}

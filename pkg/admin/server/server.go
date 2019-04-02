@@ -57,6 +57,7 @@ func (s *Server) Start(config Config) {
 	mux.HandleFunc("/api/v1/update_loglevel", updateLogLevel)
 	mux.HandleFunc("/api/v1/enable_log", enableLogger)
 	mux.HandleFunc("/api/v1/disbale_log", disableLogger)
+	mux.HandleFunc("/api/v1/states", getState)
 
 	srv := &http.Server{Addr: addr, Handler: mux}
 	store.AddService(srv, "Mosn Admin Server", nil, nil)

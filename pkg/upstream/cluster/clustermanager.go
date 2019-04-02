@@ -297,17 +297,20 @@ func (cm *clusterManager) GetClusterSnapshot(context context.Context, clusterNam
 	return nil
 }
 
-func (cm *clusterManager) RemovePrimaryCluster(clusterName string) error {
-	if v, exist := cm.primaryClusters.Load(clusterName); exist {
-		if !v.(*primaryCluster).addedViaAPI {
-			return fmt.Errorf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaAPI", clusterName)
+func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
+	for _, clusterName := range clusterNames {
+		if v, exist := cm.primaryClusters.Load(clusterName); exist {
+			if !v.(*primaryCluster).addedViaAPI {
+				return fmt.Errorf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaAPI", clusterName)
+			}
+			cm.primaryClusters.Delete(clusterName)
+			log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
+			return nil
+		} else {
+			return fmt.Errorf("Remove Primary Cluster failure, cluster name = %s doesn't exist", clusterName)
 		}
-		cm.primaryClusters.Delete(clusterName)
-		log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
-		return nil
 	}
-
-	return fmt.Errorf("Remove Primary Cluster failure, cluster name = %s doesn't exist", clusterName)
+	return fmt.Errorf("Remove Primary Cluster failure, no cluster removed")
 }
 
 func (cm *clusterManager) SetInitializedCb(cb func()) {}

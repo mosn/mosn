@@ -19,6 +19,7 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -118,7 +119,7 @@ func DumpConfig() {
 		//todo: ignore zero values in config struct @boqin
 		content, err := json.MarshalIndent(config, "", "  ")
 		if err == nil {
-			err = ioutil.WriteFile(configPath, content, 0644)
+			err = WriteFileSafety(configPath, content, 0644)
 		}
 
 		if err != nil {
@@ -137,4 +138,22 @@ func DumpConfigHandler() {
 			DumpUnlock()
 		}
 	})
+}
+
+const tempFile = "/tmp/write_safe_temp"
+
+// WriteFileSafety trys to over write a file safety.
+func WriteFileSafety(filename string, data []byte, perm os.FileMode) (err error) {
+Try:
+	for i := 0; i < 5; i++ {
+		err = ioutil.WriteFile(tempFile, data, perm)
+		if err == nil {
+			break Try
+		}
+	}
+	if err != nil {
+		return err
+	}
+	err = os.Rename(tempFile, filename)
+	return
 }

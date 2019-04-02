@@ -68,7 +68,7 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG)
 
 	mesh.Start()
-	time.Sleep(20 * time.Second)
+	time.Sleep(40 * time.Second)
 }
 
 func startTransferServer(tc *integrate.TestCase) {
@@ -107,7 +107,7 @@ func TestTransfer(t *testing.T) {
 	// run test cases
 	internal := 100 // ms
 	// todo: support concurrency
-	go tc.RunCase(2000, internal)
+	go tc.RunCase(5000, internal)
 
 	// frist reload Mosn Server, Signal
 	time.Sleep(2 * time.Second)
@@ -118,7 +118,7 @@ func TestTransfer(t *testing.T) {
 		if err != nil {
 			t.Errorf("transfer test failed, error: %v\n", err)
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(20 * time.Second):
 	}
 
 	// second reload Mosn Server, direct start
@@ -129,7 +129,7 @@ func TestTransfer(t *testing.T) {
 		if err != nil {
 			t.Errorf("transfer test failed, error: %v\n", err)
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(20 * time.Second):
 	}
 	tc.FinishCase()
 }

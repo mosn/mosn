@@ -309,10 +309,7 @@ func TestRouterConfigUmaeshal(t *testing.T) {
 		vh := router.VirtualHosts[0]
 		if !(vh.Name != "virtual" &&
 			len(vh.Domains) == 1 &&
-			vh.Domains[0] == "*" &&
-			len(vh.VirtualClusters) == 1 &&
-			vh.VirtualClusters[0].Name == "vc" &&
-			vh.VirtualClusters[0].Pattern == "test") {
+			vh.Domains[0] == "*") {
 			t.Error("virtual host failed")
 		}
 		if len(vh.Routers) != 1 {
@@ -320,8 +317,6 @@ func TestRouterConfigUmaeshal(t *testing.T) {
 		} else {
 			router := vh.Routers[0]
 			if !(router.Match.Prefix == "/" &&
-				router.Match.Runtime.DefaultValue == 10 &&
-				router.Match.Runtime.RuntimeKey == "test" &&
 				len(router.Match.Headers) == 1 &&
 				router.Match.Headers[0].Name == "service" &&
 				router.Match.Headers[0].Value == "test") {
@@ -335,8 +330,7 @@ func TestRouterConfigUmaeshal(t *testing.T) {
 				router.Route.RetryPolicy.RetryTimeout == time.Minute &&
 				router.Route.RetryPolicy.RetryOn == true &&
 				router.Route.RetryPolicy.NumRetries == 10 &&
-				reflect.DeepEqual(meta, router.Metadata) &&
-				router.Decorator == "test") {
+				reflect.DeepEqual(meta, router.Metadata)) {
 				t.Error("virtual host failed")
 			}
 			if len(router.Route.WeightedClusters) != 1 {
@@ -348,10 +342,6 @@ func TestRouterConfigUmaeshal(t *testing.T) {
 					reflect.DeepEqual(meta, wc.Cluster.MetadataMatch)) {
 					t.Error("virtual host failed")
 				}
-			}
-			if !(router.Redirect.HostRedirect == "test" &&
-				router.Redirect.ResponseCode == 302) {
-				t.Error("virtual host failed")
 			}
 
 		}

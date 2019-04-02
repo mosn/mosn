@@ -142,7 +142,7 @@ func TestSetClusterAndHosts(t *testing.T) {
 						HostConfig: v2.HostConfig{
 							Address: "172.16.1.154:9080",
 							Weight:  1,
-							MetaDataConfig: v2.MetadataConfig{
+							MetaDataConfig: &v2.MetadataConfig{
 								MetaKey: v2.LbMeta{
 									LbMetaKey: nil,
 								},
@@ -206,7 +206,7 @@ func TestSetClusterAndHosts(t *testing.T) {
 							HostConfig: v2.HostConfig{
 								Address: "172.16.1.154:9080",
 								Weight:  1,
-								MetaDataConfig: v2.MetadataConfig{
+								MetaDataConfig: &v2.MetadataConfig{
 									MetaKey: v2.LbMeta{
 										LbMetaKey: nil,
 									},
@@ -222,7 +222,7 @@ func TestSetClusterAndHosts(t *testing.T) {
 						HostConfig: v2.HostConfig{
 							Address: "172.16.1.154:9080",
 							Weight:  1,
-							MetaDataConfig: v2.MetadataConfig{
+							MetaDataConfig: &v2.MetadataConfig{
 								MetaKey: v2.LbMeta{
 									LbMetaKey: nil,
 								},
@@ -233,7 +233,7 @@ func TestSetClusterAndHosts(t *testing.T) {
 						HostConfig: v2.HostConfig{
 							Address: "172.16.1.155:9080",
 							Weight:  3,
-							MetaDataConfig: v2.MetadataConfig{
+							MetaDataConfig: &v2.MetadataConfig{
 								MetaKey: v2.LbMeta{
 									LbMetaKey: nil,
 								},

@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -62,6 +63,14 @@ func (routers *mockRouters) MatchAllRoutes(headers types.HeaderMap, randomValue 
 
 func (routers *mockRouters) MatchRouteFromHeaderKV(headers types.HeaderMap, key, value string) types.Route {
 	return nil
+}
+
+func (routers *mockRouters) AddRoute(domain string, route *v2.Router) int {
+	return -1
+}
+
+func (routers *mockRouters) RemoveAllRoutes(domain string) int {
+	return -1
 }
 
 type mockManager struct {

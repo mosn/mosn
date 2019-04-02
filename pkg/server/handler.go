@@ -20,7 +20,6 @@ package server
 import (
 	"container/list"
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"net"
@@ -39,6 +38,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	"golang.org/x/sys/unix"
 )
 
@@ -93,24 +93,6 @@ func (ch *connHandler) NumConnections() uint64 {
 	return uint64(atomic.LoadInt64(&ch.numConnections))
 }
 
-// GenerateListenerID generates an uuid
-// https://tools.ietf.org/html/rfc4122
-// crypto.rand use getrandom(2) or /dev/urandom
-// It is maybe occur an error due to system error
-// panic if an error occurred
-func (ch *connHandler) GenerateListenerID() string {
-	uuid := make([]byte, 16)
-	_, err := rand.Read(uuid)
-	if err != nil {
-		ch.logger.Errorf("generate an uuid failed, error: %v", err)
-	}
-	// see section 4.1.1
-	uuid[8] = uuid[8]&^0xc0 | 0x80
-	// see section 4.1.3
-	uuid[6] = uuid[6]&^0xf0 | 0x40
-	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
-}
-
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
@@ -119,7 +101,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 
 	var listenerName string
 	if lc.Name == "" {
-		listenerName = ch.GenerateListenerID()
+		listenerName = utils.GenerateUUID()
 		lc.Name = listenerName
 	} else {
 		listenerName = lc.Name

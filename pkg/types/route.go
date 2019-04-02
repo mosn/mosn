@@ -18,7 +18,6 @@
 package types
 
 import (
-	"container/list"
 	"context"
 	"regexp"
 	"time"
@@ -48,6 +47,11 @@ type Routers interface {
 	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	// header is used to find virtual host
 	MatchRouteFromHeaderKV(headers HeaderMap, key, value string) Route
+	// AddRoute adds a route into virtual host, find virtual host by domain
+	// returns the virtualhost index, -1 means no virtual host found
+	AddRoute(domain string, route *v2.Router) int
+	// RemoveAllRoutes will clear all the routes in the virtual host, find virtual host by domain
+	RemoveAllRoutes(domain string) int
 }
 
 // RouterManager is a manager for all routers' config
@@ -56,6 +60,10 @@ type RouterManager interface {
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
 
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
+
+	AddRoute(routerConfigName, domain string, route *v2.Router) error
+
+	RemoveAllRoutes(routerConfigName, domain string) error
 }
 
 // HandlerStatus returns the Handler's available status
@@ -84,9 +92,6 @@ type RouterWrapper interface {
 
 // Route is a route instance
 type Route interface {
-	// RedirectRule returns the redirect rule
-	RedirectRule() RedirectRule
-
 	// RouteRule returns the route rule
 	RouteRule() RouteRule
 
@@ -108,9 +113,6 @@ type RouteRule interface {
 
 	// VirtualHost returns the route's virtual host
 	VirtualHost() VirtualHost
-
-	// VirtualCluster returns the route's virtual cluster
-	VirtualCluster(headers map[string]string) VirtualCluster
 
 	// Policy returns the route's route policy
 	Policy() Policy
@@ -137,75 +139,6 @@ type Policy interface {
 	RetryPolicy() RetryPolicy
 
 	ShadowPolicy() ShadowPolicy
-
-	CorsPolicy() CorsPolicy
-
-	LoadBalancerPolicy() LoadBalancerPolicy
-}
-
-// CorsPolicy is a type of Policy
-type CorsPolicy interface {
-	AllowOrigins() []string
-
-	AllowMethods() string
-
-	AllowHeaders() string
-
-	ExposeHeaders() string
-
-	MaxAga() string
-
-	AllowCredentials() bool
-
-	Enabled() bool
-}
-
-// LoadBalancerPolicy is a type of Policy
-type LoadBalancerPolicy interface {
-	HashPolicy() HashPolicy
-}
-
-type AddCookieCallback func(key string, ttl int)
-
-// HashPolicy is a type of Policy
-type HashPolicy interface {
-	GenerateHash(downstreamAddress string, headers map[string]string, addCookieCb AddCookieCallback)
-}
-
-// RateLimitPolicy is a type of Policy
-type RateLimitPolicy interface {
-	Enabled() bool
-
-	GetApplicableRateLimit(stage string) []RateLimitPolicyEntry
-}
-
-type RateLimitPolicyEntry interface {
-	Stage() uint64
-
-	DisableKey() string
-
-	PopulateDescriptors(route RouteRule, descriptors []Descriptor, localSrvCluster string, headers map[string]string, remoteAddr string)
-}
-
-// LimitStatus type
-type LimitStatus string
-
-// LimitStatus types
-const (
-	OK        LimitStatus = "OK"
-	Error     LimitStatus = "Error"
-	OverLimit LimitStatus = "OverLimit"
-)
-
-// DescriptorEntry is a key-value pair
-type DescriptorEntry struct {
-	Key   string
-	Value string
-}
-
-// Descriptor contains a list pf DescriptorEntry
-type Descriptor struct {
-	entries []DescriptorEntry
 }
 
 // RetryCheckStatus type
@@ -242,22 +175,8 @@ type ShadowPolicy interface {
 	RuntimeKey() string
 }
 
-type VirtualServer interface {
-	VirtualCluster() VirtualCluster
-
-	VirtualHost() VirtualHost
-}
-
-type VirtualCluster interface {
-	VirtualClusterName() string
-}
-
 type VirtualHost interface {
 	Name() string
-
-	CorsPolicy() CorsPolicy
-
-	RateLimitPolicy() RateLimitPolicy
 
 	// GetRouteFromEntries returns a Route matched the condition
 	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
@@ -265,14 +184,10 @@ type VirtualHost interface {
 	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
 	// GetRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	GetRouteFromHeaderKV(key, value string) Route
-}
-
-type RedirectRule interface {
-	NewPath(headers map[string]string) string
-
-	ResponseCode() interface{}
-
-	ResponseBody() string
+	// AddRoute adds a new route into virtual host
+	AddRoute(route *v2.Router) error
+	// RemoveAllRoutes clear all the routes in the virtual host
+	RemoveAllRoutes()
 }
 
 // DirectResponseRule contains direct response info
@@ -321,23 +236,6 @@ const (
 	Regex
 	SofaHeader
 )
-
-// SslRequirements type
-type SslRequirements uint32
-
-// SslRequirements types
-const (
-	NONE SslRequirements = iota
-	EXTERNALONLY
-	ALL
-)
-
-// Config defines the router configuration
-type Config interface {
-	Route(headers map[string]string, randomValue uint64) (Route, string)
-	InternalOnlyHeaders() *list.List
-	Name() string
-}
 
 // QueryParams is a string-string map
 type QueryParams map[string]string
