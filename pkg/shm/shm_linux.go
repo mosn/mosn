@@ -1,5 +1,10 @@
 package shm
 
+import (
+	"os"
+	"syscall"
+)
+
 func Alloc(name string, size int) (*ShmSpan, error) {
 	path := path(name)
 

@@ -202,6 +202,8 @@
     ]
   },
   "metrics": {
+    "shm_zone": "metrics",
+    "shm_size": "10MB",
     "flush_interval": "500ms",
     "sinks": [
       {

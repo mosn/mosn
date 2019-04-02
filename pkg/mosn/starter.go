@@ -36,6 +36,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
 	"github.com/alipay/sofa-mosn/pkg/xds"
 	"github.com/alipay/sofa-mosn/pkg/server/keeper"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 // Mosn class which wrapper server
@@ -280,6 +281,11 @@ func initializeTracing(config config.TracingConfig) {
 }
 
 func initializeMetrics(config config.MetricsConfig) {
+	// init shm zone
+	if config.ShmZone != "" && config.ShmSize > 0 {
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize))
+	}
+
 	var flushSinks []types.MetricsSink
 	// set metrics package
 	statsMatcher := config.StatsMatcher
@@ -289,7 +295,7 @@ func initializeMetrics(config config.MetricsConfig) {
 		sink, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
 		// abort
 		if err != nil {
-			log.StartLogger.Errorf("initialize metrics sink %s failed, metrics sink is turned off", cfg.Type)
+			log.StartLogger.Errorf("%s. %v metrics sink is turned off", err, cfg.Type)
 			return
 		}
 
