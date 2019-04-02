@@ -379,6 +379,10 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	case types.Retry:
 		if phase == types.Retry {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, s.ID)
+
+			if s.downstreamReqDataBuf != nil {
+				s.downstreamReqDataBuf.Count(1)
+			}
 			s.doRetry()
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -1116,7 +1120,6 @@ func (s *downStream) doRetry() {
 		s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
 	if s.downstreamReqDataBuf != nil {
-		s.downstreamReqDataBuf.Count(1)
 		s.upstreamRequest.appendData(s.downstreamReqDataBuf, s.downstreamReqTrailers == nil)
 	}
 

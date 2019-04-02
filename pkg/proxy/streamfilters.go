@@ -160,7 +160,6 @@ func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
 	}
 	if f.activeStream.downstreamReqDataBuf == nil {
 		f.activeStream.downstreamReqDataBuf = buffer.NewIoBuffer(0)
-		f.activeStream.downstreamReqDataBuf.Count(1)
 	}
 	f.activeStream.downstreamReqDataBuf.Reset()
 	f.activeStream.downstreamReqDataBuf.ReadFrom(data)
