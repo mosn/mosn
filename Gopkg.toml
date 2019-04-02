@@ -99,3 +99,8 @@
 [[constraint]]
   name = "github.com/prometheus/client_golang"
   version = "v0.9.2"
+
+[[constraint]]
+  name = "github.com/c2h5oh/datasize"
+  branch = "master"
+
