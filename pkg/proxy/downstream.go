@@ -87,8 +87,6 @@ type downStream struct {
 
 	notify chan struct{}
 
-	filterStage int
-
 	downstreamReset   uint32
 	downstreamCleaned uint32
 	upstreamReset     uint32
@@ -176,7 +174,7 @@ func (s *downStream) cleanStream() {
 
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil && !s.upstreamProcessDone {
-		s.logger.Debugf("downStream upstreamRequest resetStream %+v", s.upstreamRequest)
+		s.logger.Errorf("downStream upstreamRequest resetStream id: %d", s.ID)
 		s.upstreamProcessDone = true
 		s.upstreamRequest.resetStream()
 	}
@@ -1368,6 +1366,7 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 	if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 		err = types.ErrExit
+		return
 	}
 
 	if s.upstreamProcessDone {
