@@ -20,6 +20,7 @@ package config
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -36,5 +37,37 @@ func TestWriteFileSafety(t *testing.T) {
 	}
 	if !bytes.Equal(data, b) {
 		t.Error("write data is not expected")
+	}
+}
+
+func TestCopyFile(t *testing.T) {
+	// when
+	src := "/tmp/test_write_file_safety_src"
+	data := []byte("test_data")
+	if err := ioutil.WriteFile(src, data, 0644); err != nil {
+		t.Fatal("write test src file error: ", err)
+	}
+
+	// then
+	target := "/tmp/test_write_file_safety_target"
+	if err := CopyFile(src, target); err != nil {
+		t.Fatal("copy file error: ", err)
+	}
+
+	// verify
+	b, err := ioutil.ReadFile(target)
+	if err != nil {
+		t.Fatal("read target file failed: ", err)
+	}
+	if !bytes.Equal(data, b) {
+		t.Error("write data is not expected")
+	}
+
+	f, err := os.Stat(target)
+	if err != nil {
+		t.Fatal("read target file stat failed: ", err)
+	}
+	if !(f.Mode() == 0644) {
+		t.Fatal("target file stat verify failed: ", f.Mode())
 	}
 }
