@@ -45,12 +45,14 @@ func (g ShmGauge) Value() int64 {
 
 func NewShmGaugeFunc(name string) func() gometrics.Gauge {
 	return func() gometrics.Gauge {
-		entry, err := defaultZone.alloc(name)
-		if err != nil {
-			return gometrics.NilGauge{}
+		if defaultZone != nil {
+			if entry, err := defaultZone.alloc(name); err == nil {
+				return ShmGauge(unsafe.Pointer(&entry.value))
+			}
+		} else if fallback {
+			return gometrics.NewGauge()
 		}
-
-		return ShmGauge(unsafe.Pointer(&entry.value))
+		return gometrics.NilGauge{}
 	}
 }
 

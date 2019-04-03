@@ -55,12 +55,14 @@ func (c ShmCounter) Snapshot() gometrics.Counter {
 
 func NewShmCounterFunc(name string) func() gometrics.Counter {
 	return func() gometrics.Counter {
-		entry, err := defaultZone.alloc(name)
-		if err != nil {
-			return gometrics.NilCounter{}
+		if defaultZone != nil {
+			if entry, err := defaultZone.alloc(name); err == nil {
+				return ShmCounter(unsafe.Pointer(&entry.value))
+			}
+		} else if fallback {
+			return gometrics.NewCounter()
 		}
-
-		return ShmCounter(unsafe.Pointer(&entry.value))
+		return gometrics.NilCounter{}
 	}
 }
 

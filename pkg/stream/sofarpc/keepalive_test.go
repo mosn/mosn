@@ -29,7 +29,6 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
-	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 type testStats struct {
@@ -91,9 +90,6 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 }
 
 func TestKeepAlive(t *testing.T) {
-	zone := shm.InitMetricsZone("TestKeepAlive", 10 * 1024)
-	defer zone.Detach()
-
 	tc := newTestCase(t, 0, time.Second, 6)
 	defer tc.Server.Close()
 	testStats := &testStats{}
@@ -110,9 +106,6 @@ func TestKeepAlive(t *testing.T) {
 }
 
 func TestKeepAliveTimeout(t *testing.T) {
-	zone := shm.InitMetricsZone("TestKeepAliveTimeout", 10 * 1024)
-	defer zone.Detach()
-
 	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond, 6)
 	defer tc.Server.Close()
 	testStats := &testStats{}

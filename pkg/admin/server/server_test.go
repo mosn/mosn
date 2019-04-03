@@ -35,7 +35,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -164,9 +163,6 @@ func TestDumpConfig(t *testing.T) {
 }
 
 func TestDumpStats(t *testing.T) {
-	zone := shm.InitMetricsZone("test", 10 * 1024)
-	defer zone.Detach()
-
 	time.Sleep(time.Second)
 	server := Server{}
 	config := &mockMOSNConfig{

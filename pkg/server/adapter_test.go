@@ -10,7 +10,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 const testServerName = "test_server"
@@ -75,9 +74,6 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 
 // LDS include add\update\delete listener
 func TestLDS(t *testing.T) {
-	zone := shm.InitMetricsZone("TestLDS", 10 * 1024)
-	defer zone.Detach()
-	
 	addrStr := "127.0.0.1:8080"
 	name := "listener1"
 	listenerConfig := baseListenerConfig(addrStr, name)

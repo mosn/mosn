@@ -27,10 +27,6 @@ import (
 )
 
 func TestEntry(t *testing.T) {
-	// 4096 * 100
-	zone := InitMetricsZone("TestShmZone", 4096*100)
-	defer zone.Detach()
-
 	entry1, _ := defaultZone.alloc("entry_test_1")
 
 	expected := 10000

@@ -24,6 +24,8 @@ import (
 
 func Alloc(name string, size int) (*ShmSpan, error) {
 	path := path(name)
+
+	os.MkdirAll(filepath.Dir(path), 0755)
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
 
 	if err != nil {

@@ -29,7 +29,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 type testAction int
@@ -44,8 +43,8 @@ const (
 // test concurrently add statisic data
 // should get the right data from prometheus
 func TestPrometheusMetrics(t *testing.T) {
-	zone := shm.InitMetricsZone("TestPrometheusMetrics", 10*1024)
-	defer zone.Detach()
+	//zone := shm.InitMetricsZone("TestPrometheusMetrics", 10*1024)
+	//defer zone.Detach()
 
 	metrics.ResetAll()
 	testCases := []struct {
@@ -136,8 +135,8 @@ func TestPrometheusMetrics(t *testing.T) {
 }
 
 func BenchmarkPromSink_Flush(b *testing.B) {
-	zone := shm.InitMetricsZone("BenchmarkPromSink_Flush", 50*1024*1024)
-	defer zone.Detach()
+	//zone := shm.InitMetricsZone("BenchmarkPromSink_Flush", 50*1024*1024)
+	//defer zone.Detach()
 
 	// 5000 registry + each registry 40 metrics
 	for i := 0; i < 5000; i ++ {
