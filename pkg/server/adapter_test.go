@@ -41,19 +41,23 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 			},
 			FilterChains: []v2.FilterChain{
 				{
-					TLS: v2.TLSConfig{
-						Status:     true,
-						CACert:     mockCAPEM,
-						CertChain:  mockCertPEM,
-						PrivateKey: mockKeyPEM,
+					FilterChainConfig: v2.FilterChainConfig{
+						Filters: []v2.Filter{
+							{
+								Type: "network",
+								Config: map[string]interface{}{
+									"network": "exists",
+								},
+							}, // no network filter parsed, but the config still exists for test
+						},
 					},
-					Filters: []v2.Filter{
-						{
-							Type: "network",
-							Config: map[string]interface{}{
-								"network": "exists",
-							},
-						}, // no network filter parsed, but the config still exists for test
+					TLSContexts: []v2.TLSConfig{
+						v2.TLSConfig{
+							Status:     true,
+							CACert:     mockCAPEM,
+							CertChain:  mockCertPEM,
+							PrivateKey: mockKeyPEM,
+						},
 					},
 				},
 			},
@@ -119,10 +123,14 @@ func TestLDS(t *testing.T) {
 			},
 			FilterChains: []v2.FilterChain{
 				{
-					TLS: v2.TLSConfig{ // only tls will be updated
-						Status: false,
+					FilterChainConfig: v2.FilterChainConfig{
+						Filters: []v2.Filter{}, // network filter will not be updated
 					},
-					Filters: []v2.Filter{}, // network filter will not be updated
+					TLSContexts: []v2.TLSConfig{ // only tls will be updated
+						{
+							Status: false,
+						},
+					},
 				},
 			},
 			StreamFilters: []v2.Filter{}, // stream filter will not be updated
@@ -143,7 +151,7 @@ func TestLDS(t *testing.T) {
 	// 2. verify config, the updated configs should be changed, and the others should be same as old config
 	newLn := handler.FindListenerByName(name)
 	cfg := newLn.Config()
-	if !(reflect.DeepEqual(cfg.FilterChains[0].TLS, newListenerConfig.FilterChains[0].TLS) && //tls is new
+	if !(reflect.DeepEqual(cfg.FilterChains[0].TLSContexts[0], newListenerConfig.FilterChains[0].TLSContexts[0]) && //tls is new
 		cfg.PerConnBufferLimitBytes == 1<<10 && // PerConnBufferLimitBytes is new
 		cfg.Inspector && // inspector is new
 		reflect.DeepEqual(cfg.FilterChains[0].Filters, listenerConfig.FilterChains[0].Filters) && // network filter is old
@@ -208,14 +216,14 @@ func TestUpdateTLS(t *testing.T) {
 	} else {
 		conn.Close()
 	}
-	if err := GetListenerAdapterInstance().UpdateListenerTLS(testServerName, name, false, &tlsCfg); err != nil {
+	if err := GetListenerAdapterInstance().UpdateListenerTLS(testServerName, name, false, []v2.TLSConfig{tlsCfg}); err != nil {
 		t.Fatalf("update tls listener failed", err)
 	}
 	handler := listenerAdapterInstance.defaultConnHandler.(*connHandler)
 	newLn := handler.FindListenerByName(name)
 	cfg := newLn.Config()
 	// verify tls changed
-	if !(reflect.DeepEqual(cfg.FilterChains[0].TLS, tlsCfg) &&
+	if !(reflect.DeepEqual(cfg.FilterChains[0].TLSContexts[0], tlsCfg) &&
 		cfg.Inspector == false) {
 		t.Fatal("update tls config not expected")
 	}

@@ -23,6 +23,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
+type headerParser struct {
+	headersToAdd    []*headerPair
+	headersToRemove []*lowerCaseString
+}
+
 func (h *headerParser) evaluateHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
 	if h == nil {
 		return

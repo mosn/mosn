@@ -208,18 +208,18 @@ func Test_routersManager_AddOrUpdateRouters(t *testing.T) {
 
 	routerConfigName := "test_router"
 
-	if _, ok := routersMangerInstance.routersMap.Load(routerConfigName); ok {
+	if _, ok := routersManagerInstance.routersWrapperMap.Load(routerConfigName); ok {
 		t.Errorf("test_router already exist")
 	}
 
 	if err := routerManager.AddOrUpdateRouters(router); err != nil {
 		t.Errorf(err.Error())
 	} else {
-		if value, ok := routersMangerInstance.routersMap.Load(routerConfigName); !ok {
+		if value, ok := routersManagerInstance.routersWrapperMap.Load(routerConfigName); !ok {
 			t.Errorf("AddOrUpdateRouters error, %s not found", routerConfigName)
 		} else {
 			if primaryRouters, ok := value.(*RoutersWrapper); ok {
-				routerMatcher := primaryRouters.routers.(*routeMatcher)
+				routerMatcher := primaryRouters.routers.(*routersImpl)
 				if routerMatcher.defaultVirtualHostIndex == -1 {
 					t.Error("AddOrUpdateRouters error")
 				} else if routerMatcher.virtualHosts[routerMatcher.defaultVirtualHostIndex].Name() != "test_virtual_host1" {

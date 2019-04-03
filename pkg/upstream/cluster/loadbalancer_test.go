@@ -400,7 +400,7 @@ func MockRouterMatcher() (types.Routers, error) {
 		VirtualHosts: virtualHosts,
 	}
 
-	return router.NewRouteMatcher(cfg)
+	return router.NewRouters(cfg)
 }
 
 func mockClusterManager() types.ClusterManager {

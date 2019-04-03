@@ -55,7 +55,7 @@ func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, types.Route
 	case types.HandlerStop:
 		return nil, nil
 	default:
-		log.DefaultLogger.Errorf("unexpected handler status, do next handler....")
+		log.DefaultLogger.Warnf(RouterLogFormat, "default handler chain", "unexpected status", status)
 	}
 	return hc.DoNextHandler()
 }

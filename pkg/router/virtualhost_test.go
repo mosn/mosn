@@ -39,7 +39,7 @@ func TestRouterPriority(t *testing.T) {
 		Name:    "test",
 		Domains: []string{"*"},
 		Routers: []v2.Router{prefixRouter},
-	}, false)
+	})
 	if len(prefixVitrualHost.routes) != 1 {
 		t.Errorf("routes should have only one, but got :%v\n", len(prefixVitrualHost.routes))
 	}
@@ -57,7 +57,7 @@ func TestRouterPriority(t *testing.T) {
 		Name:    "test",
 		Domains: []string{"*"},
 		Routers: []v2.Router{pathRouter},
-	}, false)
+	})
 	if len(pathVirtualHost.routes) != 1 {
 		t.Errorf("routes should have only one, but got :%v\n", len(pathVirtualHost.routes))
 	}
@@ -110,7 +110,7 @@ func TestRouterOrder(t *testing.T) {
 		Name:    "test",
 		Domains: []string{"*"},
 		Routers: []v2.Router{pathrouter, regrouter, prefixrouter},
-	}, false)
+	})
 	for i, tc := range testCases {
 		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
@@ -125,7 +125,7 @@ func TestRouterOrder(t *testing.T) {
 		Name:    "test",
 		Domains: []string{"*"},
 		Routers: []v2.Router{prefixrouter, regrouter, pathrouter},
-	}, false)
+	})
 	for i, tc := range testCases {
 		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
@@ -184,7 +184,7 @@ func TestAllRouter(t *testing.T) {
 		Name:    "test",
 		Domains: []string{"*"},
 		Routers: routers,
-	}, false)
+	})
 	for i, tc := range testCases {
 		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
