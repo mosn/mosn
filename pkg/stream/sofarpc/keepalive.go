@@ -70,7 +70,7 @@ func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, th
 
 // keepalive should stop when connection closed
 func (kp *sofaRPCKeepAlive) OnEvent(event types.ConnectionEvent) {
-	if event.IsClose() {
+	if event.IsClose() || event.ConnectFailure() {
 		close(kp.stop)
 	}
 }
@@ -161,6 +161,10 @@ func (kp *sofaRPCKeepAlive) HandleSuccess(id uint64) {
 			kp.runCallback(types.KeepAliveSuccess)
 		}
 	}
+}
+
+func (kp *sofaRPCKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	kp.OnReceiveHeaders(ctx, headers, true)
 }
 
 // StreamReceiver Implementation

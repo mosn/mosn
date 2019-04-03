@@ -39,6 +39,9 @@ func NewClient(addr string) *Client {
 	return c
 }
 
+func (c *Client) OnDecode(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+     c.OnReceiveHeaders(ctx, headers, true)
+}
 func (c *Client) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {}
 func (c *Client) OnReceiveTrailers(context context.Context, trailers types.HeaderMap)        {}
 func (c *Client) OnDecodeError(context context.Context, err error, headers types.HeaderMap)  {}

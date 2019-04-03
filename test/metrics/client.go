@@ -76,6 +76,10 @@ type streamReceiver struct {
 	ch chan<- error
 }
 
+func (c *streamReceiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	c.OnReceiveHeaders(ctx, headers, true)
+}
+
 func (s *streamReceiver) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
 }
 func (s *streamReceiver) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {

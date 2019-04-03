@@ -56,4 +56,6 @@ type WorkerPool interface {
 	// Schedule try to acquire pooled worker goroutine to execute the specified task first,
 	// but would not block if no worker goroutine is available. A temp goroutine will be created for task execution.
 	ScheduleAlways(task func())
+
+	ScheduleAuto(task func())
 }

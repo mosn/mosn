@@ -70,25 +70,13 @@ func NewCommonRuleFilter(context context.Context, config *model.CommonRuleConfig
 	return f
 }
 
-//implement StreamReceiverFilter
-func (f *commmonRuleFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
-	// do filter
+func (f *commmonRuleFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	if f.RuleEngineFactory.invoke(headers) {
-		return types.StreamHeadersFilterContinue
+		return types.StreamFilterContinue
 	}
 	headers.Set(types.HeaderStatus, strconv.Itoa(types.LimitExceededCode))
 	f.handler.AppendHeaders(headers, true)
-	return types.StreamHeadersFilterStop
-}
-
-func (f *commmonRuleFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
-	//do filter
-	return types.StreamDataFilterContinue
-}
-
-func (f *commmonRuleFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
-	//do filter
-	return types.StreamTrailersFilterContinue
+	return types.StreamFilterStop
 }
 
 func (f *commmonRuleFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
@@ -103,7 +91,7 @@ type commonRuleFilterFactory struct {
 
 func (f *commonRuleFilterFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewCommonRuleFilter(context, f.commonRuleConfig)
-	callbacks.AddStreamReceiverFilter(filter)
+	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
 }
 
 // CreateCommonRuleFilterFactory as

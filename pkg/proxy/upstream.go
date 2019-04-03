@@ -22,6 +22,8 @@ import (
 	"context"
 	"time"
 
+	"sync/atomic"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -61,7 +63,6 @@ type upstreamRequest struct {
 // 4. on upstream response receive error
 // 5. before a retry
 func (r *upstreamRequest) resetStream() {
-	// only reset a alive request sender stream
 	if r.requestSender != nil {
 		r.requestSender.GetStream().RemoveEventListener(r)
 		r.requestSender.GetStream().ResetStream(types.StreamLocalReset)
@@ -71,26 +72,34 @@ func (r *upstreamRequest) resetStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
-	workerPool.Offer(&event{
-		id:  r.downStream.ID,
-		dir: upstream,
-		evt: reset,
-		handle: func() {
-			r.ResetStream(reason)
-		},
-	}, false)
-}
+	/*
+		workerPool.Offer(&event{
+			id:  r.downStream.ID,
+			dir: upstream,
+			evt: reset,
+			handle: func() {
+				r.ResetStream(reason)
+			},
+		}, false)
+	*/
 
-func (r *upstreamRequest) OnDestroyStream() {}
-
-func (r *upstreamRequest) ResetStream(reason types.StreamResetReason) {
-	r.requestSender = nil
+	/*
+		r.requestSender = nil
+	*/
 
 	if !r.setupRetry {
 		// todo: check if we get a reset on encode request headers. e.g. send failed
-		r.downStream.onUpstreamReset(reason)
+		if !atomic.CompareAndSwapUint32(&r.downStream.upstreamReset, 0, 1) {
+			return
+		}
+
+		r.downStream.resetReason = reason
+		//r.downStream.onUpstreamReset(reason)
+		r.downStream.sendNotify()
 	}
 }
+
+func (r *upstreamRequest) OnDestroyStream() {}
 
 func (r *upstreamRequest) endStream() {
 	upstreamResponseDurationNs := time.Now().Sub(r.startTime).Nanoseconds()
@@ -100,6 +109,32 @@ func (r *upstreamRequest) endStream() {
 	r.host.ClusterInfo().Stats().UpstreamRequestDurationTotal.Inc(upstreamResponseDurationNs)
 
 	// todo: record upstream process time in request info
+}
+
+func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	if r.downStream.processDone() {
+		return
+	}
+
+	r.endStream()
+
+	if code, err := protocol.MappingHeaderStatusCode(r.protocol, headers); err == nil {
+		r.downStream.requestInfo.SetResponseCode(code)
+	}
+
+	r.downStream.requestInfo.SetResponseReceivedDuration(time.Now())
+	r.downStream.downstreamRespHeaders = headers
+
+	if data != nil {
+		r.downStream.downstreamRespDataBuf = data.Clone()
+		data.Drain(data.Len())
+	}
+
+	r.downStream.downstreamRespTrailers = trailers
+
+	r.downStream.logger.Debugf("upstreamRequest OnReceive %+v", headers)
+
+	r.downStream.sendNotify()
 }
 
 // types.StreamReceiveListener
@@ -276,7 +311,7 @@ func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.H
 	}
 
 	r.host = host
-	r.ResetStream(resetReason)
+	r.OnResetStream(resetReason)
 }
 
 func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
