@@ -23,6 +23,9 @@ import (
 )
 
 func TestGauge(t *testing.T) {
+	zone := InitMetricsZone("TestGauge", 10*1024)
+	defer zone.Detach()
+
 	entry, err := defaultZone.alloc("TestGauge")
 	if err != nil {
 		t.Error(err)

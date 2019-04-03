@@ -23,6 +23,9 @@ import (
 )
 
 func TestCounter(t *testing.T) {
+	zone := InitMetricsZone("TestCounter", 10*1024)
+	defer zone.Detach()
+
 	entry, err := defaultZone.alloc("TestCounter")
 	if err != nil {
 		t.Fatal(err)

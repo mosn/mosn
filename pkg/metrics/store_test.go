@@ -22,9 +22,13 @@ import (
 	"reflect"
 	"testing"
 	gometrics "github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 func TestGetAll(t *testing.T) {
+	zone := shm.InitMetricsZone("TestGetAll", 10*1024)
+	defer zone.Detach()
+
 	ResetAll()
 
 	// new some stats

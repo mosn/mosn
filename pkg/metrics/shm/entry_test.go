@@ -27,6 +27,9 @@ import (
 )
 
 func TestEntry(t *testing.T) {
+	zone := InitMetricsZone("TestEntry", 10*1024)
+	defer zone.Detach()
+
 	entry1, _ := defaultZone.alloc("entry_test_1")
 
 	expected := 10000
