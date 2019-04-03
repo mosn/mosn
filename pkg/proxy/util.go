@@ -21,8 +21,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var bitSize64 = 1 << 6
@@ -45,6 +45,10 @@ func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
 		if globaltimeout, err := strconv.ParseInt(gto, 10, bitSize64); err == nil {
 			timeout.GlobalTimeout = time.Duration(globaltimeout) * time.Millisecond
 		}
+	}
+
+	if timeout.GlobalTimeout == 0 {
+		timeout.GlobalTimeout = types.GlobalTimeout
 	}
 
 	if timeout.TryTimeout >= timeout.GlobalTimeout {
