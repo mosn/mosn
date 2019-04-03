@@ -58,5 +58,7 @@ func NewShmGaugeFunc(name string) func() gometrics.Gauge {
 
 // stoppable
 func (c ShmGauge) Stop() {
-	defaultZone.free((*hashEntry)(unsafe.Pointer(c)))
+	if defaultZone != nil {
+		defaultZone.free((*hashEntry)(unsafe.Pointer(c)))
+	}
 }

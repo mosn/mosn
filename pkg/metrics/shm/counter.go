@@ -68,5 +68,7 @@ func NewShmCounterFunc(name string) func() gometrics.Counter {
 
 // stoppable
 func (c ShmCounter) Stop() {
-	defaultZone.free((*hashEntry)(unsafe.Pointer(c)))
+	if defaultZone != nil {
+		defaultZone.free((*hashEntry)(unsafe.Pointer(c)))
+	}
 }
