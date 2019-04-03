@@ -20,6 +20,7 @@ package shm
 import (
 	"os"
 	"syscall"
+	"path/filepath"
 )
 
 func Alloc(name string, size int) (*ShmSpan, error) {
