@@ -115,3 +115,10 @@ type RetryPolicyConfig struct {
 	RetryTimeoutConfig DurationConfig `json:"retry_timeout,omitempty"`
 	NumRetries         uint32         `json:"num_retries,omitempty"`
 }
+
+type FilterChainConfig struct {
+	FilterChainMatch string      `json:"match,omitempty"`
+	TLSConfig        *TLSConfig  `json:"tls_context,omitempty"`
+	TLSConfigs       []TLSConfig `json:"tls_context_set,omitempty"`
+	Filters          []Filter    `json:"filters,omitempty"`
+}

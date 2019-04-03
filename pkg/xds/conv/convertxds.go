@@ -392,10 +392,16 @@ func convertFilterChains(xdsFilterChains []xdslistener.FilterChain) []v2.FilterC
 	filterChains := make([]v2.FilterChain, 0, len(xdsFilterChains))
 
 	for _, xdsFilterChain := range xdsFilterChains {
+		tlsConfig := convertTLS(xdsFilterChain.GetTlsContext())
 		filterChain := v2.FilterChain{
-			FilterChainMatch: xdsFilterChain.GetFilterChainMatch().String(),
-			TLS:              convertTLS(xdsFilterChain.GetTlsContext()),
-			Filters:          convertFilters(xdsFilterChain.GetFilters()),
+			FilterChainConfig: v2.FilterChainConfig{
+				FilterChainMatch: xdsFilterChain.GetFilterChainMatch().String(),
+				Filters:          convertFilters(xdsFilterChain.GetFilters()),
+				TLSConfig:        &tlsConfig,
+			},
+			TLSContexts: []v2.TLSConfig{
+				tlsConfig,
+			},
 		}
 		filterChains = append(filterChains, filterChain)
 	}

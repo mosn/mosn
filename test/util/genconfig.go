@@ -45,9 +45,11 @@ func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.Fi
 	json.Unmarshal(b2, &chainsConnMng)
 
 	return v2.FilterChain{
-		Filters: []v2.Filter{
-			v2.Filter{Type: "proxy", Config: chains},
-			{Type: "connection_manager", Config: chainsConnMng},
+		FilterChainConfig: v2.FilterChainConfig{
+			Filters: []v2.Filter{
+				v2.Filter{Type: "proxy", Config: chains},
+				{Type: "connection_manager", Config: chainsConnMng},
+			},
 		},
 	}
 }

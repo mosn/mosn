@@ -19,6 +19,7 @@ package v2
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -202,7 +203,7 @@ func TestListenerUnmarshal(t *testing.T) {
 	} else {
 		fc := ln.FilterChains[0]
 		if !(fc.FilterChainMatch == "test" &&
-			fc.TLS.Status == true) {
+			fc.TLSContexts[0].Status == true) {
 			t.Error("listener filterchains failed")
 		}
 		if len(fc.Filters) != 1 || fc.Filters[0].Type != "proxy" {
@@ -526,5 +527,111 @@ func TestServiceRegistryInfoUnmarshal(t *testing.T) {
 		info.ServicePubInfo[0].Pub.ServiceName == "test" &&
 		info.ServicePubInfo[0].Pub.PubData == "foo") {
 		t.Error("service registry info failed")
+	}
+}
+
+func TestFilterChainUnmarshal(t *testing.T) {
+	defaultTLS := `{
+		"match": "test_default",
+		"filters": [
+			{
+				"type": "proxy"
+			}
+		]
+	}`
+	singleTLS := `{
+		"match": "test_single",
+		"tls_context": {
+			"status": true
+		},
+		"filters": [
+			{
+				"type": "proxy"
+			}
+		]
+	}`
+	multiTLS := `{
+		"match": "test_multi",
+		"tls_context_set": [
+			{
+				"status": true
+			},
+			{
+				"status": true
+			}
+		],
+		"filters": [
+			{
+				"type": "proxy"
+			}
+		]
+	}`
+	defaultChain := &FilterChain{}
+	if err := json.Unmarshal([]byte(defaultTLS), defaultChain); err != nil {
+		t.Fatalf("unmarshal default tls config error: %v", err)
+	}
+	if len(defaultChain.TLSContexts) != 1 || defaultChain.TLSContexts[0].Status {
+		t.Fatalf("unmarshal tls context unexpected")
+	}
+	for i, cfgStr := range []string{singleTLS, multiTLS} {
+		filterChain := &FilterChain{}
+		if err := json.Unmarshal([]byte(cfgStr), filterChain); err != nil {
+			t.Errorf("#%d unmarshal error: %v", i, err)
+			continue
+		}
+		if len(filterChain.TLSContexts) < 1 {
+			t.Errorf("#%d tls contexts unmarshal not expected, got %v", i, filterChain)
+		}
+		for _, ctx := range filterChain.TLSContexts {
+			if !ctx.Status {
+				t.Errorf("#%d tls contexts unmarshal failed", i)
+			}
+		}
+	}
+	// expected an error
+	duplicateTLS := `{
+		"match": "test_multi",
+		"tls_context": {
+			"status": true
+		},
+		"tls_context_set": [
+			{
+				"status": true
+			}
+		],
+		"filters": [
+			{
+				"type": "proxy"
+			}
+		]
+	}
+	`
+	errCompare := func(e error) bool {
+		if e == nil {
+			return false
+		}
+		return strings.Contains(e.Error(), ErrDuplicateTLSConfig.Error())
+	}
+	filterChain := &FilterChain{}
+	if err := json.Unmarshal([]byte(duplicateTLS), filterChain); !errCompare(err) {
+		t.Errorf("expected a duplicate error, but not, got: %v", err)
+	}
+}
+
+func TestFilterChainMarshal(t *testing.T) {
+	filterChain := &FilterChain{
+		TLSContexts: []TLSConfig{
+			{
+				Status: true,
+			},
+		},
+	}
+	b, err := json.Marshal(filterChain)
+	if err != nil {
+		t.Fatal("marshal filter chain error: ", err)
+	}
+	expectedStr := `{"tls_context_set":[{"status":true,"fall_back":false}]}`
+	if string(b) != expectedStr {
+		t.Error("marshal filter chain unexpected, got: ", string(b))
 	}
 }

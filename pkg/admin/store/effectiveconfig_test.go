@@ -77,11 +77,13 @@ func TestSetListenerConfig(t *testing.T) {
 						LogPath:    "stdout",
 						FilterChains: []v2.FilterChain{
 							{
-								FilterChainMatch: "",
-								Filters: []v2.Filter{
-									{
-										Type:   "xxx",
-										Config: nil,
+								FilterChainConfig: v2.FilterChainConfig{
+									FilterChainMatch: "",
+									Filters: []v2.Filter{
+										{
+											Type:   "xxx",
+											Config: nil,
+										},
 									},
 								},
 							},
@@ -283,11 +285,13 @@ func BenchmarkSetListenerConfig_Add(b *testing.B) {
 			LogPath:    "stdout",
 			FilterChains: []v2.FilterChain{
 				{
-					FilterChainMatch: "",
-					Filters: []v2.Filter{
-						{
-							Type:   "xxx",
-							Config: nil,
+					FilterChainConfig: v2.FilterChainConfig{
+						FilterChainMatch: "",
+						Filters: []v2.Filter{
+							{
+								Type:   "xxx",
+								Config: nil,
+							},
 						},
 					},
 				},

@@ -260,9 +260,8 @@ type AccessLog struct {
 // FilterChain wraps a set of match criteria, an option TLS context,
 // a set of filters, and various other parameters.
 type FilterChain struct {
-	FilterChainMatch string    `json:"match,omitempty"`
-	TLS              TLSConfig `json:"tls_context,omitempty"`
-	Filters          []Filter  `json:"filters,omitempty"` // "proxy" and "connection_manager" used at this time
+	FilterChainConfig
+	TLSContexts []TLSConfig `json:"-"`
 }
 
 // Filter is a config to make up a filter

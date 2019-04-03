@@ -75,7 +75,9 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 			ServerName:   "127.0.0.1",
 		}
 		meshClusterConfig.TLS = tlsConf
-		meshServerChain.TLS = tlsConf
+		meshServerChain.TLSContexts = []v2.TLSConfig{
+			tlsConf,
+		}
 	}
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
@@ -150,7 +152,9 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 	meshClusterConfig := NewBasicCluster(downstreamCluster, []string{serveraddr})
 	meshClusterConfig.TLS = tlsConf
 	meshServerChain := NewFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters)
-	meshServerChain.TLS = tlsConf
+	meshServerChain.TLSContexts = []v2.TLSConfig{
+		tlsConf,
+	}
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			meshClusterConfig,
@@ -189,8 +193,10 @@ func CreateTCPProxyConfig(meshaddr string, hosts []string, isRouteEntryMode bool
 	json.Unmarshal(b, &chains)
 	filterChains := []v2.FilterChain{
 		{
-			Filters: []v2.Filter{
-				{Type: "tcp_proxy", Config: chains},
+			FilterChainConfig: v2.FilterChainConfig{
+				Filters: []v2.Filter{
+					{Type: "tcp_proxy", Config: chains},
+				},
 			},
 		},
 	}

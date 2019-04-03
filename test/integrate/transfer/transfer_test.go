@@ -16,9 +16,9 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/server"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/integrate"
 	"github.com/alipay/sofa-mosn/test/util"
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // client - mesh - mesh - server
