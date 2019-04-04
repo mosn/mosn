@@ -84,7 +84,7 @@ type downStream struct {
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone bool
-	// don't convert headers, data and trailers.  e.g. sendHijackReply()
+	// don't convert headers, data and trailers.  e.g. activeStreamReceiverFilter.Appendxx
 	noConvert bool
 
 	notify chan struct{}
@@ -250,16 +250,6 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	s.resetReason = reason
 
 	s.sendNotify()
-	/*
-		workerPool.Offer(&event{
-			id:  s.ID,
-			dir: downstream,
-			evt: reset,
-			handle: func() {
-				s.ResetStream(reason)
-			},
-		}, false)
-	*/
 }
 
 func (s *downStream) ResetStream(reason types.StreamResetReason) {
@@ -313,11 +303,6 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
 	s.logger.Tracef("downstream OnReceive send upstream request %+v", s)
-
-	var upstreamRequest *upstreamRequest
-	var respHeaders types.HeaderMap
-	var respData types.IoBuffer
-	var respTrailers types.HeaderMap
 
 	switch phase {
 	// init phase
@@ -427,17 +412,13 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 		s.logger.Tracef("downstream OnReceive send downstream response %+v", s.downstreamRespHeaders)
 
-		upstreamRequest = s.upstreamRequest
-		respHeaders = s.downstreamRespHeaders
-		respData = s.downstreamRespDataBuf
-		respTrailers = s.downstreamRespTrailers
 		phase++
 		fallthrough
 
 	// upstream filter
 	case types.UpFilter:
 		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		if s.runAppendFilters(phase, respHeaders, respData, respTrailers) {
+		if s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers) {
 			return types.End
 		}
 
@@ -450,9 +431,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	// upstream receive header
 	case types.UpRecvHeader:
 		// send downstream response
-		if respHeaders != nil {
+		if s.downstreamRespHeaders != nil {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			upstreamRequest.receiveHeaders(respData == nil && respTrailers == nil)
+			s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -463,9 +444,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 	// upstream receive data
 	case types.UpRecvData:
-		if respData != nil {
+		if s.downstreamRespDataBuf != nil {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			upstreamRequest.receiveData(respTrailers == nil)
+			s.upstreamRequest.receiveData(s.downstreamRespTrailers == nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -476,9 +457,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 	// upstream receive triler
 	case types.UpRecvTrailer:
-		if respTrailers != nil {
+		if s.downstreamRespTrailers != nil {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			upstreamRequest.receiveTrailers()
+			s.upstreamRequest.receiveTrailers()
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -1060,20 +1041,11 @@ func (s *downStream) onUpstreamResponseRecvFinished() {
 }
 
 func (s *downStream) setupRetry(endStream bool) bool {
-	/*
-		if !s.upstreamRequestSent {
-			return false
-		}
-	*/
 	s.upstreamRequest.setupRetry = true
 
 	if !endStream {
 		s.upstreamRequest.resetStream()
 	}
-
-	/*
-		s.upstreamRequest.requestSender = nil
-	*/
 
 	// reset per req timer
 	if s.perRetryTimer != nil {
@@ -1169,14 +1141,6 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 }
 
 func (s *downStream) cleanUp() {
-	// reset upstream request
-	// if a downstream filter ends downstream before send to upstream, upstreamRequest will be nil
-	/*
-		if s.upstreamRequest != nil {
-			s.upstreamRequest.requestSender = nil
-		}
-	*/
-
 	// reset retry state
 	// if  a downstream filter ends downstream before send to upstream, retryState will be nil
 	if s.retryState != nil {

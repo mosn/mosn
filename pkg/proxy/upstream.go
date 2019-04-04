@@ -72,31 +72,16 @@ func (r *upstreamRequest) resetStream() {
 // types.StreamEventListener
 // Called by stream layer normally
 func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
-	/*
-		workerPool.Offer(&event{
-			id:  r.downStream.ID,
-			dir: upstream,
-			evt: reset,
-			handle: func() {
-				r.ResetStream(reason)
-			},
-		}, false)
-	*/
-
-	/*
-		r.requestSender = nil
-	*/
-
-	if !r.setupRetry {
-		// todo: check if we get a reset on encode request headers. e.g. send failed
-		if !atomic.CompareAndSwapUint32(&r.downStream.upstreamReset, 0, 1) {
-			return
-		}
-
-		r.downStream.resetReason = reason
-		//r.downStream.onUpstreamReset(reason)
-		r.downStream.sendNotify()
+	if r.setupRetry {
+		return
 	}
+	// todo: check if we get a reset on encode request headers. e.g. send failed
+	if !atomic.CompareAndSwapUint32(&r.downStream.upstreamReset, 0, 1) {
+		return
+	}
+
+	r.downStream.resetReason = reason
+	r.downStream.sendNotify()
 }
 
 func (r *upstreamRequest) OnDestroyStream() {}
@@ -114,7 +99,7 @@ func (r *upstreamRequest) endStream() {
 // types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if r.downStream.processDone() {
+	if r.downStream.processDone() || r.setupRetry {
 		return
 	}
 
@@ -140,7 +125,7 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 }
 
 func (r *upstreamRequest) receiveHeaders(endStream bool) {
-	if r.downStream.processDone() {
+	if r.downStream.processDone() || r.setupRetry {
 		return
 	}
 
@@ -148,23 +133,20 @@ func (r *upstreamRequest) receiveHeaders(endStream bool) {
 }
 
 func (r *upstreamRequest) receiveData(endStream bool) {
-	if r.downStream.processDone() {
+	if r.downStream.processDone() || r.setupRetry {
 		return
 	}
 
-	if !r.setupRetry {
-		r.downStream.onUpstreamData(endStream)
-	}
+	r.downStream.onUpstreamData(endStream)
 }
 
 func (r *upstreamRequest) receiveTrailers() {
-	if r.downStream.processDone() {
+	if r.downStream.processDone() || r.setupRetry {
 		return
 	}
 
-	if !r.setupRetry {
-		r.downStream.onUpstreamTrailers()
-	}
+	r.downStream.onUpstreamTrailers()
+
 }
 
 func (r *upstreamRequest) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
