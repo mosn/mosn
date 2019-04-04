@@ -103,17 +103,20 @@ func newActiveStreamReceiverFilter(activeStream *downStream,
 
 func (f *activeStreamReceiverFilter) AppendHeaders(headers types.HeaderMap, endStream bool) {
 	f.activeStream.downstreamRespHeaders = headers
-	f.activeStream.doAppendHeaders(headers, endStream)
+	f.activeStream.noConvert = true
+	f.activeStream.appendHeaders(endStream)
 }
 
 func (f *activeStreamReceiverFilter) AppendData(buf types.IoBuffer, endStream bool) {
 	f.activeStream.downstreamRespDataBuf = buf
-	f.activeStream.doAppendData(buf, endStream)
+	f.activeStream.noConvert = true
+	f.activeStream.appendData(endStream)
 }
 
 func (f *activeStreamReceiverFilter) AppendTrailers(trailers types.HeaderMap) {
 	f.activeStream.downstreamRespTrailers = trailers
-	f.activeStream.doAppendTrailers(trailers)
+	f.activeStream.noConvert = true
+	f.activeStream.appendTrailers()
 }
 
 func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.HeaderMap) {

@@ -159,21 +159,11 @@ type StreamSender interface {
 // On server scenario, StreamReceiveListener is called to handle request
 // On client scenario, StreamReceiveListener is called to handle response
 type StreamReceiveListener interface {
-	// OnReceiveHeaders is called with decoded headers
-	// endStream supplies whether this is a header only request/response
-	OnReceiveHeaders(ctx context.Context, headers HeaderMap, endOfStream bool)
-
-	// OnReceiveData is called with a decoded data
-	// endStream supplies whether this is the last data
-	OnReceiveData(ctx context.Context, data IoBuffer, endOfStream bool)
-
-	// OnReceiveTrailers is called with a decoded trailers frame, implicitly ends the stream.
-	OnReceiveTrailers(ctx context.Context, trailers HeaderMap)
+	// OnReceive is called with decoded request/response
+	OnReceive(ctx context.Context, headers HeaderMap, data IoBuffer, trailers HeaderMap)
 
 	// OnDecodeError is called with when exception occurs
 	OnDecodeError(ctx context.Context, err error, headers HeaderMap)
-
-	OnReceive(ctx context.Context, headers HeaderMap, data IoBuffer, trailers HeaderMap)
 }
 
 // StreamConnection is a connection runs multiple streams

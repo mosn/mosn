@@ -117,15 +117,6 @@ func (c *RPCClient) SendRequestWithData(in string) {
 }
 
 func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	c.OnReceiveHeaders(ctx, headers, true)
-}
-func (c *RPCClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
-}
-func (c *RPCClient) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-}
-func (c *RPCClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
-}
-func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		streamID := protocol.StreamIDConv(cmd.RequestID())
 
@@ -145,6 +136,9 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 	} else {
 		c.t.Errorf("get a unexpected header type")
 	}
+}
+
+func (c *RPCClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
 
 func BuildBoltV1RequestWithContent(requestID uint64, data types.IoBuffer) *sofarpc.BoltRequest {
