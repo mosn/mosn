@@ -140,10 +140,9 @@ func DumpConfigHandler() {
 	})
 }
 
-const tempFile = "/tmp/write_safe_temp"
-
 // WriteFileSafety trys to over write a file safety.
 func WriteFileSafety(filename string, data []byte, perm os.FileMode) (err error) {
+	tempFile := filename + ".tmp"
 Try:
 	for i := 0; i < 5; i++ {
 		err = ioutil.WriteFile(tempFile, data, perm)
