@@ -111,6 +111,8 @@ func (r *upstreamRequest) endStream() {
 	// todo: record upstream process time in request info
 }
 
+// types.StreamReceiveListener
+// Method to decode upstream's response message
 func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	if r.downStream.processDone() {
 		return
@@ -137,87 +139,31 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 	r.downStream.sendNotify()
 }
 
-// types.StreamReceiveListener
-// Method to decode upstream's response message
-func (r *upstreamRequest) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) {
-	// we convert a status to http standard code, and log it
-	if code, err := protocol.MappingHeaderStatusCode(r.protocol, headers); err == nil {
-		r.downStream.requestInfo.SetResponseCode(code)
-	}
-
-	r.downStream.requestInfo.SetResponseReceivedDuration(time.Now())
-
-	if endStream {
-		r.endStream()
-	}
-
-	workerPool.Offer(&event{
-		id:  r.downStream.ID,
-		dir: upstream,
-		evt: recvHeader,
-		handle: func() {
-			r.ReceiveHeaders(headers, endStream)
-		},
-	}, true)
-}
-
-func (r *upstreamRequest) ReceiveHeaders(headers types.HeaderMap, endStream bool) {
+func (r *upstreamRequest) receiveHeaders(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
 
-	r.upstreamRespHeaders = headers
-	r.downStream.onUpstreamHeaders(headers, endStream)
+	r.downStream.onUpstreamHeaders(endStream)
 }
 
-func (r *upstreamRequest) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
-	r.downStream.downstreamRespDataBuf = data.Clone()
-	data.Drain(data.Len())
-
-	if endStream {
-		r.endStream()
-	}
-
-	workerPool.Offer(&event{
-		id:  r.downStream.ID,
-		dir: upstream,
-		evt: recvData,
-		handle: func() {
-			r.ReceiveData(r.downStream.downstreamRespDataBuf, endStream)
-		},
-	}, true)
-}
-
-func (r *upstreamRequest) ReceiveData(data types.IoBuffer, endStream bool) {
+func (r *upstreamRequest) receiveData(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
 
 	if !r.setupRetry {
-		r.downStream.onUpstreamData(data, endStream)
+		r.downStream.onUpstreamData(endStream)
 	}
 }
 
-func (r *upstreamRequest) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-	r.endStream()
-
-	workerPool.Offer(&event{
-		id:  r.downStream.ID,
-		dir: upstream,
-		evt: recvTrailer,
-		handle: func() {
-			r.ReceiveTrailers(trailers)
-		},
-	}, true)
-}
-
-func (r *upstreamRequest) ReceiveTrailers(trailers types.HeaderMap) {
+func (r *upstreamRequest) receiveTrailers() {
 	if r.downStream.processDone() {
 		return
 	}
 
 	if !r.setupRetry {
-		r.downStream.onUpstreamTrailers(trailers)
+		r.downStream.onUpstreamTrailers()
 	}
 }
 
@@ -226,7 +172,7 @@ func (r *upstreamRequest) OnDecodeError(context context.Context, err error, head
 }
 
 // ~~~ send request wrapper
-func (r *upstreamRequest) appendHeaders(headers types.HeaderMap, endStream bool) {
+func (r *upstreamRequest) appendHeaders(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
@@ -251,11 +197,12 @@ func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap
 	return headers
 }
 
-func (r *upstreamRequest) appendData(data types.IoBuffer, endStream bool) {
+func (r *upstreamRequest) appendData(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
 	log.DefaultLogger.Debugf("upstream request encode data")
+	data := r.downStream.downstreamReqDataBuf
 	r.sendComplete = endStream
 	r.dataSent = true
 	r.requestSender.AppendData(r.downStream.context, r.convertData(data), endStream)
@@ -275,11 +222,12 @@ func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
 	return data
 }
 
-func (r *upstreamRequest) appendTrailers(trailers types.HeaderMap) {
+func (r *upstreamRequest) appendTrailers() {
 	if r.downStream.processDone() {
 		return
 	}
 	log.DefaultLogger.Debugf("upstream request encode trailers")
+	trailers := r.downStream.downstreamReqTrailers
 	r.sendComplete = true
 	r.trailerSent = true
 	r.requestSender.AppendTrailers(r.downStream.context, trailers)

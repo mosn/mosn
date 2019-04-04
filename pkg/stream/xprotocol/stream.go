@@ -223,35 +223,6 @@ func (conn *streamConnection) OnReceive(context context.Context, streamID string
 	return types.Stop
 }
 
-// OnReceiveHeaders process header
-func (conn *streamConnection) OnReceiveHeaders(context context.Context, streamID string, headers types.HeaderMap) types.FilterStatus {
-	log.DefaultLogger.Tracef("xprotocol stream on decode header")
-	if conn.serverStreamConnectionEventListener != nil {
-		log.DefaultLogger.Tracef("xprotocol stream on new stream detected invoked")
-		conn.onNewStreamDetected(streamID, headers)
-	}
-	if stream, ok := conn.activeStream.Get(streamID); ok {
-		log.DefaultLogger.Tracef("before stream streamReceiver invoke on decode header")
-		stream.streamReceiver.OnReceiveHeaders(context, headers, false)
-	}
-	log.DefaultLogger.Tracef("after stream streamReceiver invoke on decode header")
-	return types.Continue
-}
-
-// OnReceiveData process data
-func (conn *streamConnection) OnReceiveData(context context.Context, streamID string, data types.IoBuffer) types.FilterStatus {
-	if stream, ok := conn.activeStream.Get(streamID); ok {
-		log.DefaultLogger.Tracef("xprotocol stream on decode data")
-		stream.streamReceiver.OnReceiveData(context, data, true)
-
-		if stream.direction == ClientStream {
-			// for client stream, remove stream on response read
-			stream.connection.activeStream.Remove(stream.streamID)
-		}
-	}
-	return types.Stop
-}
-
 func (conn *streamConnection) onNewStreamDetected(streamID string, headers types.HeaderMap) {
 	if ok := conn.activeStream.Has(streamID); ok {
 		return

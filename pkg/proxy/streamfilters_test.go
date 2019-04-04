@@ -29,6 +29,10 @@ import (
 	"time"
 )
 
+func init() {
+	initWorkerPool(nil, false)
+}
+
 // StreamReceiverFilter
 // MOSN receive a request, run StreamReceiverFilters, and send request to upstream
 func TestRunReiverFilters(t *testing.T) {

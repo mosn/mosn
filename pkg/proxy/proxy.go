@@ -42,33 +42,27 @@ var (
 	globalStats *Stats
 
 	currProxyID uint32
-	workerPool  mosnsync.ShardWorkerPool
 
 	pool mosnsync.WorkerPool
 )
 
 func init() {
-	pool = mosnsync.NewWorkerPool(2048)
-
 	globalStats = newProxyStats(types.GlobalProxyName)
 
 	// register init function with interest of P number
-	config.RegisterConfigParsedListener(config.ParseCallbackKeyProcessor, initWorkePpool)
+	config.RegisterConfigParsedListener(config.ParseCallbackKeyProcessor, initWorkerPool)
 }
 
-func initWorkePpool(data interface{}, endParsing bool) error {
-	// default shardsNum is equal to the cpu num
-	shardsNum := runtime.NumCPU()
-	// use 32768 as chan buffer length
-	poolSize := shardsNum * 128
+func initWorkerPool(data interface{}, endParsing bool) error {
+	poolSize := runtime.NumCPU() * 1024
 
-	// set shardsNum equal to processor if it was specified
+	// set poolSize equal to processor if it was specified
 	if pNum, ok := data.(int); ok && pNum > 0 {
-		shardsNum = pNum
+		poolSize = pNum * 1024
 	}
 
-	workerPool, _ = mosnsync.NewShardWorkerPool(poolSize, shardsNum, eventDispatch)
-	workerPool.Init()
+	pool = mosnsync.NewWorkerPool(poolSize)
+
 	return nil
 }
 
