@@ -10,13 +10,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 type Client struct {
@@ -48,9 +48,9 @@ func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data ty
 			fmt.Println("stream:", streamID, " status:", resp.RespStatus())
 		}
 	}
-	}
+}
 
-func (c *Client) OnDecodeError(context context.Context, err error, headers types.HeaderMap)  {}
+func (c *Client) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {}
 
 func (c *Client) Request() {
 	c.Id++
