@@ -112,7 +112,7 @@ func (r *upstreamRequest) endStream() {
 }
 
 func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if r.downStream.processDone() {
+	if r.downStream.processDone()  || r.setupRetry {
 		return
 	}
 

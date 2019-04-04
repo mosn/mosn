@@ -425,9 +425,6 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		s.logger.Tracef("downstream OnReceive send downstream response %+v", s.downstreamRespHeaders)
 
 		upstreamRequest = s.upstreamRequest
-		respHeaders = s.downstreamRespHeaders
-		respData = s.downstreamRespDataBuf
-		respTrailers = s.downstreamRespTrailers
 		phase++
 		fallthrough
 
@@ -437,6 +434,10 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		if s.runAppendFilters(phase, respHeaders, respData, respTrailers) {
 			return types.End
 		}
+
+		respHeaders = s.downstreamRespHeaders
+		respData = s.downstreamRespDataBuf
+		respTrailers = s.downstreamRespTrailers
 
 		if p, err := s.processError(id); err != nil {
 			return p
