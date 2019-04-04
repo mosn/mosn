@@ -18,6 +18,7 @@
 package v2
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -69,12 +70,14 @@ func (hc *HealthCheck) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func parseMetaData(cfg MetadataConfig) Metadata {
+func parseMetaData(cfg *MetadataConfig) Metadata {
 	result := Metadata{}
-	mosnLb := cfg.MetaKey.LbMetaKey
-	for k, v := range mosnLb {
-		if vs, ok := v.(string); ok {
-			result[k] = vs
+	if cfg != nil {
+		mosnLb := cfg.MetaKey.LbMetaKey
+		for k, v := range mosnLb {
+			if vs, ok := v.(string); ok {
+				result[k] = vs
+			}
 		}
 	}
 	return result
@@ -150,4 +153,33 @@ func (pb PublishInfo) MarshalJSON() (b []byte, err error) {
 }
 func (pb *PublishInfo) UnmarshalJSON(b []byte) (err error) {
 	return json.Unmarshal(b, &pb.Pub)
+}
+
+var ErrDuplicateTLSConfig = errors.New("tls_context and tls_context_set can only exists one at the same time")
+
+func (fc *FilterChain) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &fc.FilterChainConfig); err != nil {
+		return err
+	}
+	if fc.TLSConfig != nil && len(fc.TLSConfigs) > 0 {
+		return ErrDuplicateTLSConfig
+	}
+	if len(fc.TLSConfigs) > 0 {
+		fc.TLSContexts = make([]TLSConfig, len(fc.TLSConfigs))
+		copy(fc.TLSContexts, fc.TLSConfigs)
+	} else { // no tls_context_set, use tls_context
+		if fc.TLSConfig == nil { // no tls_context, generate a default one
+			fc.TLSContexts = append(fc.TLSContexts, TLSConfig{})
+		} else { // use tls_context
+			fc.TLSContexts = append(fc.TLSContexts, *fc.TLSConfig)
+		}
+	}
+	return nil
+}
+func (fc *FilterChain) MarshalJSON() (b []byte, err error) {
+	if len(fc.TLSContexts) > 0 { // use tls_context_set
+		fc.TLSConfig = nil
+		fc.TLSConfigs = fc.TLSContexts
+	}
+	return json.Marshal(fc.FilterChainConfig)
 }

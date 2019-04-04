@@ -547,14 +547,14 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 	case rch := <-ch:
 		conn, ok := rch.(*connection)
 		if !ok {
-			log.DefaultLogger.Errorf("transfer NewConn failed %v", conn.LocalAddr().String())
+			log.DefaultLogger.Errorf("transfer NewConn failed %+v", conn.LocalAddr())
 			return nil
 		}
 		log.DefaultLogger.Infof("transfer NewConn id: %d", conn.id)
 		transferMap.Store(conn.id, conn)
 		return conn
 	case <-time.After(3000 * time.Millisecond):
-		log.DefaultLogger.Errorf("transfer NewConn timeout, localAddress %v, remoteAddress %v", conn.LocalAddr().String(), conn.RemoteAddr().String())
+		log.DefaultLogger.Errorf("transfer NewConn timeout, localAddress %+v, remoteAddress %+v", conn.LocalAddr(), conn.RemoteAddr())
 		return nil
 	}
 }

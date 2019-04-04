@@ -15,27 +15,31 @@
  * limitations under the License.
  */
 
-package router
+package types
 
 import (
-	"fmt"
-
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"errors"
 )
 
-func (h *headerParser) evaluateHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
-	if h == nil {
-		return
-	}
-	for _, toAdd := range h.headersToAdd {
-		value := toAdd.headerFormatter.format(requestInfo)
-		if v, ok := headers.Get(toAdd.headerName.Get()); ok && len(v) > 0 && toAdd.headerFormatter.append() {
-			value = fmt.Sprintf("%s,%s", v, value)
-		}
-		headers.Set(toAdd.headerName.Get(), value)
-	}
+var (
+	ErrExit = errors.New("downstream process completed")
+)
 
-	for _, toRemove := range h.headersToRemove {
-		headers.Del(toRemove.Get())
-	}
-}
+type Phase int
+
+const (
+	InitPhase Phase = iota
+	DownFilter
+	MatchRoute
+	DownFilterAfterRoute
+	DownRecvHeader
+	DownRecvData
+	DownRecvTrailer
+	Retry
+	WaitNofity
+	UpFilter
+	UpRecvHeader
+	UpRecvData
+	UpRecvTrailer
+	End
+)

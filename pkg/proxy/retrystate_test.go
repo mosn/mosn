@@ -95,7 +95,7 @@ func TestRetryState(t *testing.T) {
 		{headerOK, "", types.NoRetry},
 	}
 	for i, tc := range testcases {
-		if rs.retry(tc.Header, tc.Reason, doNothing) != tc.Expected {
+		if rs.retry(tc.Header, tc.Reason) != tc.Expected {
 			t.Errorf("#%d retry state failed", i)
 		}
 	}

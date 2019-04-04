@@ -57,14 +57,16 @@ func (p *connPool) Protocol() types.Protocol {
 
 func (p *connPool) NewStream(ctx context.Context,
 	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
-	p.mux.Lock()
-	if p.activeClient == nil {
-		p.activeClient = newActiveClient(ctx, p)
-	}
 
-	p.mux.Unlock()
+	activeClient := func() *activeClient {
+		p.mux.Lock()
+		defer p.mux.Unlock()
+		if p.activeClient == nil {
+			p.activeClient = newActiveClient(ctx, p)
+		}
+		return p.activeClient
+	}()
 
-	activeClient := p.activeClient
 	if activeClient == nil {
 		listener.OnFailure(types.ConnectionFailure, p.host)
 		return

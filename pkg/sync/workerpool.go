@@ -132,6 +132,24 @@ func (p *workerPool) ScheduleAlways(task func()) {
 		go p.spawnWorker(task)
 	default:
 		// new temp goroutine for task execution
+		log.DefaultLogger.Errorf("workerpool new goroutine")
+		go task()
+	}
+}
+
+func (p *workerPool) ScheduleAuto(task func()) {
+	select {
+	case p.work <- task:
+		return
+	default:
+	}
+	select {
+	case p.work <- task:
+	case p.sem <- struct{}{}:
+		go p.spawnWorker(task)
+	default:
+		// new temp goroutine for task execution
+		log.DefaultLogger.Errorf("workerpool new goroutine")
 		go task()
 	}
 }
