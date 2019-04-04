@@ -538,14 +538,12 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
 func (s *downStream) receiveHeaders(endStream bool) {
 	s.downstreamRecvDone = endStream
 
-	headers := s.downstreamReqHeaders
-
 	// after stream filters run, check the route
 	if s.route == nil {
-		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
+		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", s.downstreamReqHeaders)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 
 		return
 	}
@@ -554,17 +552,17 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	if resp := s.route.DirectResponseRule(); !(resp == nil || reflect.ValueOf(resp).IsNil()) {
 		log.DefaultLogger.Infof("direct response for stream , id = %d", s.ID)
 		if resp.Body() != "" {
-			s.sendHijackReplyWithBody(resp.StatusCode(), headers, resp.Body())
+			s.sendHijackReplyWithBody(resp.StatusCode(), s.downstreamReqHeaders, resp.Body())
 		} else {
-			s.sendHijackReply(resp.StatusCode(), headers)
+			s.sendHijackReply(resp.StatusCode(), s.downstreamReqHeaders)
 		}
 		return
 	}
 	// not direct response, needs a cluster snapshot and route rule
 	if rule := s.route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
-		log.DefaultLogger.Warnf("no route rule to init upstream, headers = %v", headers)
+		log.DefaultLogger.Warnf("no route rule to init upstream, headers = %v", s.downstreamReqHeaders)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
 	if s.snapshot == nil || reflect.ValueOf(s.snapshot).IsNil() {
@@ -596,11 +594,11 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	}
 
 	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
-	s.timeout = parseProxyTimeout(s.route, headers)
+	s.timeout = parseProxyTimeout(s.route, s.downstreamReqHeaders)
 
 	prot := s.getUpstreamProtocol()
 
-	s.retryState = newRetryState(s.route.RouteRule().Policy().RetryPolicy(), headers, s.cluster, prot)
+	s.retryState = newRetryState(s.route.RouteRule().Policy().RetryPolicy(), s.downstreamReqHeaders, s.cluster, prot)
 
 	//Build Request
 	proxyBuffers := proxyBuffersByContext(s.context)
@@ -609,7 +607,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	s.upstreamRequest.proxy = s.proxy
 	s.upstreamRequest.protocol = prot
 	s.upstreamRequest.connPool = pool
-	s.route.RouteRule().FinalizeRequestHeaders(headers, s.requestInfo)
+	s.route.RouteRule().FinalizeRequestHeaders(s.downstreamReqHeaders, s.requestInfo)
 
 	//Call upstream's append header method to build upstream's request
 	s.upstreamRequest.appendHeaders(endStream)

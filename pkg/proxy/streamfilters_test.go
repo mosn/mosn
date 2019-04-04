@@ -231,9 +231,6 @@ func TestRunSenderFiltersStop(t *testing.T) {
 	for _, f := range tc.filters {
 		s.AddStreamSenderFilter(f)
 	}
-	// mock run
-	s.downstreamRespDataBuf = buffer.NewIoBuffer(0)
-	s.downstreamRespTrailers = protocol.CommonHeader{}
 
 	s.runAppendFilters(0, nil, nil, nil)
 	if s.downstreamRespHeaders == nil || s.downstreamRespDataBuf == nil {
