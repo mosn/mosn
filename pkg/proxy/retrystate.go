@@ -18,13 +18,9 @@
 package proxy
 
 import (
-	"math/rand"
-	"time"
-
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 type retryState struct {
@@ -33,8 +29,6 @@ type retryState struct {
 	cluster          types.ClusterInfo
 	retryOn          bool
 	retiesRemaining  uint32
-	retryFunc        func()
-	retryTimer       *utils.Timer
 	upstreamProtocol types.Protocol
 }
 
@@ -56,7 +50,7 @@ func newRetryState(retryPolicy types.RetryPolicy,
 	return rs
 }
 
-func (r *retryState) retry(headers types.HeaderMap, reason types.StreamResetReason, doRetry func()) types.RetryCheckStatus {
+func (r *retryState) retry(headers types.HeaderMap, reason types.StreamResetReason) types.RetryCheckStatus {
 	r.reset()
 
 	check := r.shouldRetry(headers, reason)
@@ -65,7 +59,8 @@ func (r *retryState) retry(headers types.HeaderMap, reason types.StreamResetReas
 		return check
 	}
 
-	r.retryTimer = r.scheduleRetry(doRetry)
+	r.cluster.ResourceManager().Retries().Increase()
+	r.cluster.Stats().UpstreamRequestRetry.Inc(1)
 
 	return 0
 }
@@ -90,18 +85,6 @@ func (r *retryState) shouldRetry(headers types.HeaderMap, reason types.StreamRes
 	return types.ShouldRetry
 }
 
-func (r *retryState) scheduleRetry(doRetry func()) *utils.Timer {
-	r.retryFunc = doRetry
-	r.cluster.ResourceManager().Retries().Increase()
-	r.cluster.Stats().UpstreamRequestRetry.Inc(1)
-
-	// todo: use backoff alth
-	timeout := 1 + rand.Intn(10)
-	timer := utils.NewTimer(time.Duration(timeout) * time.Millisecond, doRetry)
-
-	return timer
-}
-
 func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamResetReason) bool {
 	if reason == types.StreamOverflow {
 		return false
@@ -120,6 +103,14 @@ func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamRe
 		if reason == types.StreamConnectionFailed {
 			return true
 		}
+
+		if reason == types.UpstreamPerTryTimeout {
+			return true
+		}
+
+		if reason == types.StreamConnectionTermination {
+			return true
+		}
 		// more policy
 
 	}
@@ -128,9 +119,5 @@ func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamRe
 }
 
 func (r *retryState) reset() {
-	if r.retryFunc != nil {
-		r.cluster.ResourceManager().Retries().Decrease()
-		r.retryFunc = nil
-		r.retryTimer.Stop()
-	}
+	r.cluster.ResourceManager().Retries().Decrease()
 }

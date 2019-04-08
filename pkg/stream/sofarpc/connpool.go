@@ -21,13 +21,12 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
-	"time"
-
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"time"
 )
 
 func init() {
@@ -63,12 +62,14 @@ func (p *connPool) NewStream(ctx context.Context,
 	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
 	subProtocol := getSubProtocol(ctx)
 
-	p.mux.Lock()
-	if p.activeClients[subProtocol] == nil {
-		p.activeClients[subProtocol] = newActiveClient(ctx, subProtocol, p)
-	}
-	activeClient := p.activeClients[subProtocol]
-	p.mux.Unlock()
+	activeClient := func() *activeClient {
+		p.mux.Lock()
+		defer p.mux.Unlock()
+		if p.activeClients[subProtocol] == nil {
+			p.activeClients[subProtocol] = newActiveClient(ctx, subProtocol, p)
+		}
+		return p.activeClients[subProtocol]
+	}()
 
 	if activeClient == nil {
 		listener.OnFailure(types.ConnectionFailure, p.host)
@@ -213,9 +214,6 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 	ac.client = codecClient
 	ac.host = data
 
-	if err := ac.client.Connect(true); err != nil {
-		return nil
-	}
 	// Add Keep Alive
 	// protocol is from onNewDetectStream
 	// TODO: support protocol convert
@@ -228,6 +226,11 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 		ac.client.AddConnectionEventListener(ac.keepAlive)
 		go ac.keepAlive.keepAlive.Start()
 	}
+
+	if err := ac.client.Connect(true); err != nil {
+		return nil
+	}
+
 	// stats
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)

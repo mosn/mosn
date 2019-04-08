@@ -159,16 +159,8 @@ type StreamSender interface {
 // On server scenario, StreamReceiveListener is called to handle request
 // On client scenario, StreamReceiveListener is called to handle response
 type StreamReceiveListener interface {
-	// OnReceiveHeaders is called with decoded headers
-	// endStream supplies whether this is a header only request/response
-	OnReceiveHeaders(ctx context.Context, headers HeaderMap, endOfStream bool)
-
-	// OnReceiveData is called with a decoded data
-	// endStream supplies whether this is the last data
-	OnReceiveData(ctx context.Context, data IoBuffer, endOfStream bool)
-
-	// OnReceiveTrailers is called with a decoded trailers frame, implicitly ends the stream.
-	OnReceiveTrailers(ctx context.Context, trailers HeaderMap)
+	// OnReceive is called with decoded request/response
+	OnReceive(ctx context.Context, headers HeaderMap, data IoBuffer, trailers HeaderMap)
 
 	// OnDecodeError is called with when exception occurs
 	OnDecodeError(ctx context.Context, err error, headers HeaderMap)
@@ -243,16 +235,8 @@ type StreamFilterHandler interface {
 type StreamSenderFilter interface {
 	StreamFilterBase
 
-	// AppendHeaders encodes headers
-	// endStream supplies whether this is a header only request/response
-	AppendHeaders(ctx context.Context, headers HeaderMap, endStream bool) StreamHeadersFilterStatus
-
-	// AppendData encodes data
-	// endStream supplies whether this is the last data
-	AppendData(ctx context.Context, buf IoBuffer, endStream bool) StreamDataFilterStatus
-
-	// AppendTrailers encodes trailers, implicitly ending the stream
-	AppendTrailers(ctx context.Context, trailers HeaderMap) StreamTrailersFilterStatus
+	// Append encodes request/response
+	Append(ctx context.Context, headers HeaderMap, buf IoBuffer, trailers HeaderMap) StreamFilterStatus
 
 	// SetSenderFilterHandler sets the StreamSenderFilterHandler
 	SetSenderFilterHandler(handler StreamSenderFilterHandler)
@@ -261,9 +245,6 @@ type StreamSenderFilter interface {
 // StreamSenderFilterHandler is a StreamFilterHandler wrapper
 type StreamSenderFilterHandler interface {
 	StreamFilterHandler
-
-	// ContinueSending continue iterating through the filter chain with buffered headers and body data
-	ContinueSending()
 
 	// TODO :remove all of the following when proxy changed to single request @lieyuan
 	// StreamFilters will modified headers/data/trailer in different steps
@@ -282,16 +263,8 @@ type StreamSenderFilterHandler interface {
 type StreamReceiverFilter interface {
 	StreamFilterBase
 
-	// OnReceiveHeaders is called with decoded headers
-	// endStream supplies whether this is a header only request/response
-	OnReceiveHeaders(ctx context.Context, headers HeaderMap, endStream bool) StreamHeadersFilterStatus
-
-	// OnReceiveData is called with a decoded data
-	// endStream supplies whether this is the last data
-	OnReceiveData(ctx context.Context, buf IoBuffer, endStream bool) StreamDataFilterStatus
-
-	// OnReceiveTrailers is called with decoded trailers, implicitly ending the stream
-	OnReceiveTrailers(ctx context.Context, trailers HeaderMap) StreamTrailersFilterStatus
+	// OnReceive is called with decoded request/response
+	OnReceive(ctx context.Context, headers HeaderMap, buf IoBuffer, trailers HeaderMap) StreamFilterStatus
 
 	// SetReceiveFilterHandler sets decoder filter callbacks
 	SetReceiveFilterHandler(handler StreamReceiverFilterHandler)
@@ -301,11 +274,6 @@ type StreamReceiverFilter interface {
 // decoding if they decide to hold data
 type StreamReceiverFilterHandler interface {
 	StreamFilterHandler
-
-	// ContinueReceiving continue iterating through the filter chain with buffered headers and body data
-	// It can only be called if decode process has been stopped by current filter, using StopIteration from decodeHeaders() or StopIterationAndBuffer or StopIterationNoBuffer from decodeData()
-	// The controller will dispatch headers and any buffered body data to the next filter in the chain.
-	ContinueReceiving()
 
 	// TODO: consider receiver filter needs AppendXXX or not
 
@@ -348,45 +316,22 @@ type StreamFilterChainFactory interface {
 type StreamFilterChainFactoryCallbacks interface {
 	AddStreamSenderFilter(filter StreamSenderFilter)
 
-	AddStreamReceiverFilter(filter StreamReceiverFilter)
+	AddStreamReceiverFilter(filter StreamReceiverFilter, p Phase)
 
 	// add access log per stream
 	AddStreamAccessLog(accessLog AccessLog)
 }
 
-// StreamHeadersFilterStatus type
-type StreamHeadersFilterStatus string
+type StreamFilterStatus string
 
-// StreamHeadersFilterStatus types
+// StreamFilterStatus types
 const (
 	// Continue filter chain iteration.
-	StreamHeadersFilterContinue StreamHeadersFilterStatus = "Continue"
-	// Do not iterate to next iterator. Filter calls ContinueReceiving to continue.
-	StreamHeadersFilterStop StreamHeadersFilterStatus = "Stop"
-)
+	StreamFilterContinue StreamFilterStatus = "Continue"
+	// Do not iterate to next iterator.
+	StreamFilterStop StreamFilterStatus = "Stop"
 
-// StreamDataFilterStatus type
-type StreamDataFilterStatus string
-
-// StreamDataFilterStatus types
-const (
-	// Continue filter chain iteration
-	StreamDataFilterContinue StreamDataFilterStatus = "Continue"
-	// Do not iterate to next iterator, and buffer body data in controller for later use
-	StreamDataFilterStop StreamDataFilterStatus = "Stop"
-	// Do not iterate to next iterator, and buffer body data in controller for later use
-	StreamDataFilterStopAndBuffer StreamDataFilterStatus = "StopAndBuffer"
-)
-
-// StreamTrailersFilterStatus type
-type StreamTrailersFilterStatus string
-
-// StreamTrailersFilterStatus types
-const (
-	// Continue filter chain iteration
-	StreamTrailersFilterContinue StreamTrailersFilterStatus = "Continue"
-	// Do not iterate to next iterator. Filter calls ContinueReceiving to continue.
-	StreamTrailersFilterStop StreamTrailersFilterStatus = "Stop"
+	StreamFilterReMatchRoute StreamFilterStatus = "Retry Match Route"
 )
 
 // PoolFailureReason type

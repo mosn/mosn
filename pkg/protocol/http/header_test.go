@@ -1,3 +1,10 @@
+<<<<<<<<< Temporary merge branch 1
+package http
+
+import (
+	"testing"
+	"strings"
+=========
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -20,6 +27,7 @@ package http
 import (
 	"strings"
 	"testing"
+
 	"github.com/valyala/fasthttp"
 )
 

@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"time"
 )
 
 type TestJob struct {
@@ -233,5 +234,40 @@ func BenchmarkUnboundChannel(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		eventProcessWithUnboundedChannel(b)
+	}
+}
+
+func TestScheduleAuto(t *testing.T) {
+	size := 5
+	pool := NewWorkerPool(size)
+	p := pool.(*workerPool)
+	for i := 0; i < 3; i++ {
+		pool.ScheduleAuto(func() {
+			time.Sleep(time.Millisecond)
+		})
+		time.Sleep(10 * time.Millisecond)
+	}
+	if len(p.sem) != 1 {
+		t.Errorf("Test ScheduleAuto() error, should be 1, but get %d", len(p.sem))
+	}
+
+	for i := 0; i < 3; i++ {
+		pool.ScheduleAuto(func() {
+			time.Sleep(time.Millisecond)
+		})
+	}
+	time.Sleep(10 * time.Millisecond)
+	if len(p.sem) != 3 {
+		t.Errorf("Test ScheduleAuto() error, should be 3, but get %d", len(p.sem))
+	}
+
+	for i := 0; i < 10; i++ {
+		pool.ScheduleAuto(func() {
+			time.Sleep(time.Millisecond)
+		})
+	}
+	time.Sleep(10 * time.Millisecond)
+	if len(p.sem) != size {
+		t.Errorf("Test ScheduleAuto() error, should be %d, but get %d", size, len(p.sem))
 	}
 }

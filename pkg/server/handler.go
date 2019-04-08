@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -136,23 +135,18 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		}
 
 		// tls update only take effects on new connections
-		tlsChanged := false
-		if !reflect.DeepEqual(rawConfig.FilterChains[0].TLS, lc.FilterChains[0].TLS) {
-			rawConfig.FilterChains[0].TLS = lc.FilterChains[0].TLS
-			tlsChanged = true
+		// config changed
+		rawConfig.FilterChains[0].TLSContexts = lc.FilterChains[0].TLSContexts
+		rawConfig.FilterChains[0].TLSConfig = lc.FilterChains[0].TLSConfig
+		rawConfig.FilterChains[0].TLSConfigs = lc.FilterChains[0].TLSConfigs
+		rawConfig.Inspector = lc.Inspector
+		mgr, err := mtls.NewTLSServerContextManager(rawConfig, al.listener, al.logger)
+		if err != nil {
+			al.logger.Errorf("create tls context manager failed, %v", err)
+			return nil, err
 		}
-		if rawConfig.Inspector != lc.Inspector {
-			rawConfig.Inspector = lc.Inspector
-			tlsChanged = true
-		}
-		if tlsChanged {
-			mgr, err := mtls.NewTLSServerContextManager(rawConfig, al.listener, al.logger)
-			if err != nil {
-				al.logger.Errorf("create tls context manager failed, %v", err)
-				return nil, err
-			}
-			al.tlsMng = mgr
-		}
+		// object changed
+		al.tlsMng = mgr
 		// some simle config update
 		rawConfig.PerConnBufferLimitBytes = lc.PerConnBufferLimitBytes
 		al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)

@@ -139,7 +139,8 @@ func TestDirectResponse(t *testing.T) {
 		}
 		// event call Receive Headers
 		// trigger direct response
-		s.ReceiveHeaders(nil, false)
+		s.matchRoute()
+		s.receiveHeaders(false)
 		// check
 		tc.check(t, tc.client)
 	}

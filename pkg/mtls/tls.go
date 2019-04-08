@@ -90,8 +90,10 @@ func NewTLSServerContextManager(config *v2.Listener, l types.Listener, logger lo
 		GetConfigForClient: mgr.GetConfigForClient,
 	}
 	for _, c := range config.FilterChains {
-		if err := mgr.AddContext(&c.TLS); err != nil {
-			return nil, err
+		for _, tlsCfg := range c.TLSContexts {
+			if err := mgr.AddContext(&tlsCfg); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -216,7 +218,7 @@ func (mgr *contextManager) newTLSConfig(c *v2.TLSConfig) (*tls.Config, error) {
 }
 
 func (mgr *contextManager) AddContext(c *v2.TLSConfig) error {
-	if !c.Status {
+	if c == nil || !c.Status {
 		return nil
 	}
 	if mgr.isClient && len(mgr.contexts) >= 1 {

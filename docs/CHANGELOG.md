@@ -1,5 +1,54 @@
 # Changelog
 
+
+## 0.4.1
+
+### Refatcor
+
+- Refatcored stream package, changed some APIs
+- Refatcored log package
+- Refatcored xds convert
+- Refatcored route chain
+- Move some common functions into utils package 
+
+### New Features
+
+- Support metrics exclusion
+- Support update logger level, enable and disable logger
+- Support get route by key-value
+- Support add route into virtualhost, clear virtualhost's routes 
+- Support http 100 continue
+- Support protocol: Tars
+- Support sofa rpc heart beat, and create connections by sub protocol
+
+### Performance Optimize
+
+- Optimize config dump
+- Optimize tracer implementation
+- Optimize host update
+
+### Extension
+
+- Support metrics output extension, default support prometheus and console
+- Support load config extension, default is read a json file
+- Support health check extension, default is tcp dial
+- Support buffer reuse extension
+- Support load balancer type extension
+
+### Others
+
+- Add more admin APIs
+- RequestInfo records standard http status code 
+- New smooth upgrade mode
+
+### Bug Fix
+
+- Fix workpool flush bug
+- Fix reset casues dead lock bug
+- Fix concurrency bugs
+- Fix handle http2 request with trailers bug
+- Fix some tiny bugs
+
 ## 0.4.0
 
 

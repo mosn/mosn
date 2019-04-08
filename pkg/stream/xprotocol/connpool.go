@@ -63,14 +63,17 @@ func (p *connPool) DrainConnections() {}
 func (p *connPool) NewStream(context context.Context, responseDecoder types.StreamReceiveListener,
 	listener types.PoolEventListener) {
 	log.DefaultLogger.Tracef("xprotocol conn pool new stream")
-	p.mux.Lock()
 
-	if p.primaryClient == nil {
-		p.primaryClient = newActiveClient(context, p)
-	}
-	p.mux.Unlock()
+	activeClient := func() *activeClient {
+		p.mux.Lock()
+		defer p.mux.Unlock()
+		if p.primaryClient == nil {
+			p.primaryClient = newActiveClient(context, p)
+		}
+		return p.primaryClient
+	}()
 
-	if p.primaryClient == nil {
+	if activeClient == nil {
 		listener.OnFailure(types.ConnectionFailure, p.host)
 		return
 	}
@@ -80,15 +83,15 @@ func (p *connPool) NewStream(context context.Context, responseDecoder types.Stre
 		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
-		atomic.AddUint64(&p.primaryClient.totalStream, 1)
+		atomic.AddUint64(&activeClient.totalStream, 1)
 		p.host.HostStats().UpstreamRequestTotal.Inc(1)
 		p.host.HostStats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream")
-		streamSender := p.primaryClient.client.NewStream(context, responseDecoder)
-		streamSender.GetStream().AddEventListener(p.primaryClient)
+		streamSender := activeClient.client.NewStream(context, responseDecoder)
+		streamSender.GetStream().AddEventListener(activeClient)
 
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
 		listener.OnReady(streamSender, p.host)

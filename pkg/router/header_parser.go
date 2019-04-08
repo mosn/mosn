@@ -15,22 +15,32 @@
  * limitations under the License.
  */
 
-package store
+package router
 
-type State int
+import (
+	"fmt"
 
-var state = Init
-
-const (
-	Init State = iota
-	Running
-	Reconfiguring
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-func GetMosnState() State {
-	return state
+type headerParser struct {
+	headersToAdd    []*headerPair
+	headersToRemove []*lowerCaseString
 }
 
-func SetMosnState(s State) {
-	state = s
+func (h *headerParser) evaluateHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+	if h == nil {
+		return
+	}
+	for _, toAdd := range h.headersToAdd {
+		value := toAdd.headerFormatter.format(requestInfo)
+		if v, ok := headers.Get(toAdd.headerName.Get()); ok && len(v) > 0 && toAdd.headerFormatter.append() {
+			value = fmt.Sprintf("%s,%s", v, value)
+		}
+		headers.Set(toAdd.headerName.Get(), value)
+	}
+
+	for _, toRemove := range h.headersToRemove {
+		headers.Del(toRemove.Get())
+	}
 }

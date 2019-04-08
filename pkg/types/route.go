@@ -18,7 +18,6 @@
 package types
 
 import (
-	"container/list"
 	"context"
 	"regexp"
 	"time"
@@ -93,9 +92,6 @@ type RouterWrapper interface {
 
 // Route is a route instance
 type Route interface {
-	// RedirectRule returns the redirect rule
-	RedirectRule() RedirectRule
-
 	// RouteRule returns the route rule
 	RouteRule() RouteRule
 
@@ -117,9 +113,6 @@ type RouteRule interface {
 
 	// VirtualHost returns the route's virtual host
 	VirtualHost() VirtualHost
-
-	// VirtualCluster returns the route's virtual cluster
-	VirtualCluster(headers map[string]string) VirtualCluster
 
 	// Policy returns the route's route policy
 	Policy() Policy
@@ -146,75 +139,6 @@ type Policy interface {
 	RetryPolicy() RetryPolicy
 
 	ShadowPolicy() ShadowPolicy
-
-	CorsPolicy() CorsPolicy
-
-	LoadBalancerPolicy() LoadBalancerPolicy
-}
-
-// CorsPolicy is a type of Policy
-type CorsPolicy interface {
-	AllowOrigins() []string
-
-	AllowMethods() string
-
-	AllowHeaders() string
-
-	ExposeHeaders() string
-
-	MaxAga() string
-
-	AllowCredentials() bool
-
-	Enabled() bool
-}
-
-// LoadBalancerPolicy is a type of Policy
-type LoadBalancerPolicy interface {
-	HashPolicy() HashPolicy
-}
-
-type AddCookieCallback func(key string, ttl int)
-
-// HashPolicy is a type of Policy
-type HashPolicy interface {
-	GenerateHash(downstreamAddress string, headers map[string]string, addCookieCb AddCookieCallback)
-}
-
-// RateLimitPolicy is a type of Policy
-type RateLimitPolicy interface {
-	Enabled() bool
-
-	GetApplicableRateLimit(stage string) []RateLimitPolicyEntry
-}
-
-type RateLimitPolicyEntry interface {
-	Stage() uint64
-
-	DisableKey() string
-
-	PopulateDescriptors(route RouteRule, descriptors []Descriptor, localSrvCluster string, headers map[string]string, remoteAddr string)
-}
-
-// LimitStatus type
-type LimitStatus string
-
-// LimitStatus types
-const (
-	OK        LimitStatus = "OK"
-	Error     LimitStatus = "Error"
-	OverLimit LimitStatus = "OverLimit"
-)
-
-// DescriptorEntry is a key-value pair
-type DescriptorEntry struct {
-	Key   string
-	Value string
-}
-
-// Descriptor contains a list pf DescriptorEntry
-type Descriptor struct {
-	entries []DescriptorEntry
 }
 
 // RetryCheckStatus type
@@ -251,22 +175,8 @@ type ShadowPolicy interface {
 	RuntimeKey() string
 }
 
-type VirtualServer interface {
-	VirtualCluster() VirtualCluster
-
-	VirtualHost() VirtualHost
-}
-
-type VirtualCluster interface {
-	VirtualClusterName() string
-}
-
 type VirtualHost interface {
 	Name() string
-
-	CorsPolicy() CorsPolicy
-
-	RateLimitPolicy() RateLimitPolicy
 
 	// GetRouteFromEntries returns a Route matched the condition
 	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
@@ -278,14 +188,6 @@ type VirtualHost interface {
 	AddRoute(route *v2.Router) error
 	// RemoveAllRoutes clear all the routes in the virtual host
 	RemoveAllRoutes()
-}
-
-type RedirectRule interface {
-	NewPath(headers map[string]string) string
-
-	ResponseCode() interface{}
-
-	ResponseBody() string
 }
 
 // DirectResponseRule contains direct response info
@@ -334,23 +236,6 @@ const (
 	Regex
 	SofaHeader
 )
-
-// SslRequirements type
-type SslRequirements uint32
-
-// SslRequirements types
-const (
-	NONE SslRequirements = iota
-	EXTERNALONLY
-	ALL
-)
-
-// Config defines the router configuration
-type Config interface {
-	Route(headers map[string]string, randomValue uint64) (Route, string)
-	InternalOnlyHeaders() *list.List
-	Name() string
-}
 
 // QueryParams is a string-string map
 type QueryParams map[string]string
