@@ -3,8 +3,8 @@ package stream
 import (
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"context"
-	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 )
 
 // contextManager
@@ -22,12 +22,12 @@ func (cm *ContextManager) Next() {
 	cm.curr = buffer.NewBufferPoolContext(cm.base)
 }
 
-func (cm *ContextManager) NextWithTrace() {
-	// buffer context
-	ctx := buffer.NewBufferPoolContext(cm.base)
-
-	// trace context with default traceId, should be replaced if request already contained one.
-	cm.curr = context.WithValue(ctx, types.ContextKeyTraceId, trace.IdGen().GenerateTraceId())
+func (cm *ContextManager) InjectTrace(ctx context.Context, span types.Span) context.Context {
+	if span != nil {
+		return context.WithValue(ctx, types.ContextKeyTraceId, span.TraceId())
+	}
+	// generate traceId
+	return context.WithValue(ctx, types.ContextKeyTraceId, trace.IdGen().GenerateTraceId())
 }
 
 func NewContextManager(base context.Context) *ContextManager {

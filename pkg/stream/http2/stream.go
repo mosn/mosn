@@ -88,7 +88,7 @@ func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
 type streamConnection struct {
 	ctx    context.Context
 	conn   types.Connection
-	cm     contextManager
+	cm     *str.ContextManager
 	logger log.ErrorLogger
 
 	codecEngine types.ProtocolEngine
@@ -152,18 +152,6 @@ func (s *stream) buildData() types.IoBuffer {
 	}
 }
 
-// contextManager
-type contextManager struct {
-	base context.Context
-
-	curr context.Context
-}
-
-func (cm *contextManager) next() {
-	// new context
-	cm.curr = buffer.NewBufferPoolContext(cm.base)
-}
-
 type serverStreamConnection struct {
 	streamConnection
 	mutex   sync.RWMutex
@@ -183,7 +171,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 			conn:        connection,
 			codecEngine: mhttp2.EngineServer(h2sc),
 
-			cm: contextManager{base: ctx},
+			cm: str.NewContextManager(ctx),
 
 			logger: log.ByContext(ctx),
 		},
@@ -193,7 +181,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	}
 
 	// init first context
-	sc.cm.next()
+	sc.cm.Next()
 
 	// set not support transfer connection
 	sc.conn.SetTransferEventListener(func() bool {
@@ -210,7 +198,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
-		ctx := conn.cm.curr
+		ctx := conn.cm.Get()
 
 		// 2. decode process
 		frame, err := conn.codecEngine.Decode(ctx, buf)
@@ -225,7 +213,7 @@ func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
 			break
 		}
 
-		conn.cm.next()
+		conn.cm.Next()
 	}
 }
 
@@ -519,7 +507,7 @@ func newClientStreamConnection(ctx context.Context, connection types.Connection,
 			conn:        connection,
 			codecEngine: mhttp2.EngineClient(h2cc),
 
-			cm: contextManager{base: ctx},
+			cm: str.NewContextManager(ctx),
 
 			logger: log.ByContext(ctx),
 		},
@@ -528,7 +516,7 @@ func newClientStreamConnection(ctx context.Context, connection types.Connection,
 	}
 
 	// init first context
-	sc.cm.next()
+	sc.cm.Next()
 
 	sc.streams = make(map[uint32]*clientStream, 32)
 	sc.logger.Tracef("new http2 client stream connection")
@@ -539,7 +527,7 @@ func newClientStreamConnection(ctx context.Context, connection types.Connection,
 func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
-		ctx := conn.cm.curr
+		ctx := conn.cm.Get()
 
 		// 2. decode process
 		frame, err := conn.codecEngine.Decode(ctx, buf)
@@ -554,7 +542,7 @@ func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 			break
 		}
 
-		conn.cm.next()
+		conn.cm.Next()
 	}
 }
 

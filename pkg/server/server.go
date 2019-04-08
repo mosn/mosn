@@ -177,14 +177,23 @@ func InitDefaultLogger(config *Config) {
 	var logPath string
 	var logLevel log.Level
 
+	var proxyLogPath string
+	var proxyLogLevel log.Level
+
 	if config != nil {
 		logPath = config.LogPath
 		logLevel = config.LogLevel
+
+		proxyLogPath = config.ProxyLogPath
+		proxyLogLevel = config.ProxyLogLevel
 	}
 
 	//use default log path
 	if logPath == "" {
 		logPath = types.MosnLogDefaultPath
+	}
+	if proxyLogPath == "" {
+		proxyLogPath = types.MosnLogProxyPath
 	}
 
 	if config.LogRoller != "" {
@@ -197,5 +206,10 @@ func InitDefaultLogger(config *Config) {
 	err := log.InitDefaultLogger(logPath, logLevel)
 	if err != nil {
 		log.StartLogger.Fatalln("initialize default logger failed : ", err)
+	}
+
+	err = log.InitProxyLogger(proxyLogPath, proxyLogLevel)
+	if err != nil {
+		log.StartLogger.Fatalln("initialize proxy logger failed : ", err)
 	}
 }

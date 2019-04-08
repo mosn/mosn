@@ -32,7 +32,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/trace"
 )
 
 // StreamDirection represent the stream's direction
@@ -265,13 +264,12 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.id)
 	stream.ctx = context.WithValue(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
 	if span != nil {
-		stream.ctx = context.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
-		stream.ctx = context.WithValue(ctx, types.ContextKeyTraceId, span.TraceId())
+		stream.ctx = conn.contextManager.InjectTrace(stream.ctx, span)
 	}
 	stream.direction = ServerStream
 	stream.sc = conn
 
-	conn.logger.Infof(stream.ctx, "[stream][sofarpc] new stream detect, requestId = %v", stream.id)
+	log.Proxy.Infof(stream.ctx, "[stream][sofarpc] new stream detect, requestId = %v", stream.id)
 
 	stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, stream, span)
 	return stream
@@ -290,7 +288,7 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		// transmit buffer ctx
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
-		conn.logger.Infof(stream.ctx, "[stream][sofarpc] receive response, requestId = %v", stream.id)
+		log.Proxy.Infof(stream.ctx, "[stream][sofarpc] receive response, requestId = %v", stream.id)
 
 		return stream
 	}
@@ -429,9 +427,9 @@ func (s *stream) endStream() {
 		// log
 		switch s.direction {
 		case ClientStream:
-			s.sc.logger.Infof(s.ctx, "[stream][sofarpc] send request, requestId = %v", s.id)
+			log.Proxy.Infof(s.ctx, "[stream][sofarpc] send request, requestId = %v", s.id)
 		case ServerStream:
-			s.sc.logger.Infof(s.ctx, "[stream][sofarpc] send response, requestId = %v", s.id)
+			log.Proxy.Infof(s.ctx, "[stream][sofarpc] send response, requestId = %v", s.id)
 		}
 	}
 }

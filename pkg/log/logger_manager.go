@@ -28,6 +28,7 @@ import (
 var (
 	DefaultLogger ErrorLogger
 	StartLogger   ErrorLogger
+	Proxy         ProxyLogger
 
 	ErrNoLoggerFound = errors.New("no logger found in logger manager")
 )
@@ -43,6 +44,8 @@ func init() {
 	StartLogger, _ = GetOrCreateDefaultErrorLogger("", INFO)
 	// default as start before Init
 	DefaultLogger = StartLogger
+	// default proxy logger for test, override after config parsed
+	Proxy, _ = CreateDefaultProxyLogger("", INFO)
 }
 
 // ErrorLoggerManager manages error log can be updated dynamicly
@@ -83,6 +86,11 @@ func GetOrCreateDefaultErrorLogger(p string, level Level) (ErrorLogger, error) {
 
 func InitDefaultLogger(output string, level Level) (err error) {
 	DefaultLogger, err = GetOrCreateDefaultErrorLogger(output, level)
+	return
+}
+
+func InitProxyLogger(output string, level Level) (err error) {
+	Proxy, err = CreateDefaultProxyLogger(output, level)
 	return
 }
 

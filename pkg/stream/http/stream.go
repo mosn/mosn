@@ -233,6 +233,8 @@ func (conn *clientStreamConnection) serve() {
 			return
 		}
 
+		log.Proxy.Infof(s.stream.ctx, "[stream][http] receive response, requestId = %v", s.stream.id)
+
 		// 2. response processing
 		resetConn := false
 		if s.response.ConnectionClose() {
@@ -291,7 +293,7 @@ func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
-	contextManager contextManager
+	contextManager *str.ContextManager
 
 	close bool
 
@@ -308,12 +310,12 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 			conn:    connection,
 			bufChan: make(chan types.IoBuffer),
 		},
-		contextManager:           contextManager{base: ctx},
+		contextManager:           str.NewContextManager(ctx),
 		serverStreamConnListener: callbacks,
 	}
 
 	// init first context
-	ssc.contextManager.next()
+	ssc.contextManager.Next()
 
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
@@ -352,7 +354,7 @@ func (conn *serverStreamConnection) OnEvent(event types.ConnectionEvent) {
 func (conn *serverStreamConnection) serve() {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
-		ctx := conn.contextManager.curr
+		ctx := conn.contextManager.Get()
 		buffers := httpBuffersByContext(ctx)
 		request := &buffers.serverRequest
 
@@ -374,7 +376,7 @@ func (conn *serverStreamConnection) serve() {
 		}
 		if err != nil {
 			if err == errConnClose || err == io.EOF {
-				log.DefaultLogger.Errorf("http server request codec error: %s", err)
+				log.DefaultLogger.Errorf("[stream][http] server request codec error: %s", err)
 			} else {
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
@@ -387,6 +389,7 @@ func (conn *serverStreamConnection) serve() {
 
 		id := protocol.GenerateID()
 		s := &buffers.serverStream
+
 		// 4. request processing
 		s.stream = stream{
 			id:       id,
@@ -397,7 +400,14 @@ func (conn *serverStreamConnection) serve() {
 		s.connection = conn
 		s.responseDoneChan = make(chan bool, 1)
 
-		s.receiver = conn.serverStreamConnListener.NewStreamDetect(s.stream.ctx, s, spanBuilder)
+		span := spanBuilder.BuildSpan(ctx, request)
+		if span != nil {
+			s.stream.ctx = s.connection.contextManager.InjectTrace(ctx, span)
+		}
+
+		log.Proxy.Infof(s.stream.ctx, "[stream][http] new stream detect, requestId = %v", s.stream.id)
+
+		s.receiver = conn.serverStreamConnListener.NewStreamDetect(s.stream.ctx, s, span)
 
 		conn.mutex.Lock()
 		conn.stream = s
@@ -409,7 +419,7 @@ func (conn *serverStreamConnection) serve() {
 
 		// 5. wait for proxy done
 		<-s.responseDoneChan
-		conn.contextManager.next()
+		conn.contextManager.Next()
 	}
 }
 
@@ -514,7 +524,9 @@ func (s *clientStream) ReadDisable(disable bool) {
 
 func (s *clientStream) doSend() {
 	if _, err := s.request.WriteTo(s.connection); err != nil {
-		log.DefaultLogger.Errorf("http1 client stream send error: %+s", err)
+		log.Proxy.Errorf(s.stream.ctx, "[stream][http] send request error: %+v", err)
+	} else {
+		log.Proxy.Infof(s.stream.ctx, "[stream][http] send request, requestId = %v", s.stream.id)
 	}
 }
 
@@ -661,7 +673,11 @@ func (s *serverStream) ReadDisable(disable bool) {
 }
 
 func (s *serverStream) doSend() {
-	s.response.WriteTo(s.connection)
+	if _, err := s.response.WriteTo(s.connection); err != nil {
+		log.Proxy.Errorf(s.stream.ctx, "[stream][http] send response error: %+v", err)
+	} else {
+		log.Proxy.Infof(s.stream.ctx, "[stream][http] send response, requestId = %v", s.stream.id)
+	}
 }
 
 func (s *serverStream) handleRequest() {
@@ -753,15 +769,4 @@ func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) 
 		headers.SetHost(host)
 	}
 
-}
-
-// contextManager
-type contextManager struct {
-	base context.Context
-	curr context.Context
-}
-
-func (cm *contextManager) next() {
-	// new context
-	cm.curr = buffer.NewBufferPoolContext(cm.base)
 }

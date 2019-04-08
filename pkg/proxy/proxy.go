@@ -210,12 +210,12 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, spanBuilder types.SpanBuilder) types.StreamReceiveListener {
-	stream := newActiveStream(ctx, p, responseSender, spanBuilder)
+func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
+	stream := newActiveStream(ctx, p, responseSender, span)
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
-		log.DefaultLogger.Debugf("there is %d stream filters in config", len(ffs))
+		log.Proxy.Debugf(ctx, "there is %d stream filters in config", len(ffs))
 
 		for _, f := range ffs {
 			f.CreateFilterChain(p.context, stream)

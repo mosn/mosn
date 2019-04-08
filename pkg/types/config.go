@@ -29,6 +29,7 @@ var (
 
 	MosnLogBasePath        = MosnBasePath + string(os.PathSeparator) + "logs"
 	MosnLogDefaultPath     = MosnLogBasePath + string(os.PathSeparator) + "mosn.log"
+	MosnLogProxyPath       = MosnLogBasePath + string(os.PathSeparator) + "proxy.log"
 	MosnPidDefaultFileName = MosnLogBasePath + string(os.PathSeparator) + "mosn.pid"
 
 	MosnConfigPath = MosnBasePath + string(os.PathSeparator) + "conf"
