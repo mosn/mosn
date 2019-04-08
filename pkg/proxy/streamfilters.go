@@ -131,7 +131,7 @@ func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap,
 	f.activeStream.downstreamRespHeaders = headers
 	f.activeStream.downstreamRespDataBuf = buf
 	f.activeStream.downstreamRespTrailers = trailers
-	f.activeStream.hijack = true
+	f.activeStream.directResponse = true
 }
 
 func (f *activeStreamReceiverFilter) SetConvert(on bool) {

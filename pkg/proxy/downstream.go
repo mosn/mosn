@@ -86,8 +86,8 @@ type downStream struct {
 	upstreamProcessDone bool
 	// don't convert headers, data and trailers.  e.g. activeStreamReceiverFilter.Appendxx
 	noConvert bool
-	// sendhijack
-	hijack bool
+	// direct response.  e.g. sendHijack
+	directResponse bool
 
 	notify chan struct{}
 
@@ -299,7 +299,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 			case types.Retry:
 				s.logger.Debugf("downstream retry %+v", s)
 			case types.UpFilter:
-				s.logger.Debugf("downstream hijack %+v", s)
+				s.logger.Debugf("downstream directResponse %+v", s)
 			}
 		}
 	})
@@ -424,7 +424,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			return p
 		}
 
-		// hijack
+		// maybe direct response
 		if s.upstreamRequest == nil {
 			fakeUpstreamRequest := &upstreamRequest{
 				downStream: s,
@@ -972,7 +972,7 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 
 	s.downstreamResponseStarted = true
 
-	// hijack for no route should be nil
+	// directResponse for no route should be nil
 	if s.route != nil {
 		s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
 	}
@@ -1132,7 +1132,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = nil
 	s.downstreamRespTrailers = nil
-	s.hijack = true
+	s.directResponse = true
 }
 
 // TODO: rpc status code may be not matched
@@ -1150,7 +1150,7 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = buffer.NewIoBufferString(body)
 	s.downstreamRespTrailers = nil
-	s.hijack = true
+	s.directResponse = true
 }
 
 func (s *downStream) cleanUp() {
@@ -1304,8 +1304,8 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 		return
 	}
 
-	if s.hijack {
-		s.hijack = false
+	if s.directResponse {
+		s.directResponse = false
 		phase = types.UpFilter
 		err = types.ErrExit
 		return
