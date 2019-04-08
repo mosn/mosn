@@ -166,6 +166,10 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 }
 
 func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap {
+	if r.downStream.noConvert {
+		return headers
+	}
+
 	dp, up := r.downStream.convertProtocol()
 
 	// need protocol convert
@@ -173,7 +177,7 @@ func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap
 		if convHeader, err := protocol.ConvertHeader(r.downStream.context, dp, up, headers); err == nil {
 			return convHeader
 		} else {
-			r.downStream.logger.Errorf("convert header from %s to %s failed, %s", dp, up, err.Error())
+			r.downStream.logger.Warnf("convert header from %s to %s failed, %s", dp, up, err.Error())
 		}
 	}
 	return headers
@@ -191,6 +195,10 @@ func (r *upstreamRequest) appendData(endStream bool) {
 }
 
 func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
+	if r.downStream.noConvert {
+		return data
+	}
+
 	dp, up := r.downStream.convertProtocol()
 
 	// need protocol convert
@@ -198,7 +206,7 @@ func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
 		if convData, err := protocol.ConvertData(r.downStream.context, dp, up, data); err == nil {
 			return convData
 		} else {
-			r.downStream.logger.Errorf("convert data from %s to %s failed, %s", dp, up, err.Error())
+			r.downStream.logger.Warnf("convert data from %s to %s failed, %s", dp, up, err.Error())
 		}
 	}
 	return data
@@ -216,6 +224,10 @@ func (r *upstreamRequest) appendTrailers() {
 }
 
 func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
+	if r.downStream.noConvert {
+		return trailers
+	}
+
 	dp, up := r.downStream.convertProtocol()
 
 	// need protocol convert
@@ -223,7 +235,7 @@ func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderM
 		if convTrailer, err := protocol.ConvertTrailer(r.downStream.context, dp, up, trailers); err == nil {
 			return convTrailer
 		} else {
-			r.downStream.logger.Errorf("convert header from %s to %s failed, %s", dp, up, err.Error())
+			r.downStream.logger.Warnf("convert header from %s to %s failed, %s", dp, up, err.Error())
 		}
 	}
 	return trailers

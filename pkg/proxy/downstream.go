@@ -86,6 +86,8 @@ type downStream struct {
 	upstreamProcessDone bool
 	// don't convert headers, data and trailers.  e.g. activeStreamReceiverFilter.Appendxx
 	noConvert bool
+	// sendhijack
+	hijack bool
 
 	notify chan struct{}
 
@@ -295,7 +297,9 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 			case types.MatchRoute:
 				s.logger.Debugf("downstream redo match route %+v", s)
 			case types.Retry:
-				s.logger.Errorf("downstream retry %+v", s)
+				s.logger.Debugf("downstream retry %+v", s)
+			case types.UpFilter:
+				s.logger.Debugf("downstream hijack %+v", s)
 			}
 		}
 	})
@@ -313,9 +317,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	// downstream filter before route
 	case types.DownFilter:
 		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		if s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers) {
-			return types.End
-		}
+		s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 		if p, err := s.processError(id); err != nil {
 			return p
@@ -336,9 +338,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	// downstream filter after route
 	case types.DownFilterAfterRoute:
 		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		if s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers) {
-			return types.End
-		}
+		s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 		if p, err := s.processError(id); err != nil {
 			return p
@@ -418,13 +418,21 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	// upstream filter
 	case types.UpFilter:
 		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		if s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers) {
-			return types.End
-		}
+		s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
 
 		if p, err := s.processError(id); err != nil {
 			return p
 		}
+
+		// hijack
+		if s.upstreamRequest == nil {
+			fakeUpstreamRequest := &upstreamRequest{
+				downStream: s,
+			}
+
+			s.upstreamRequest = fakeUpstreamRequest
+		}
+
 		phase++
 		fallthrough
 
@@ -821,7 +829,7 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
 			return convHeader
 		} else {
-			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
+			s.logger.Warnf("convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
 	return headers
@@ -851,7 +859,7 @@ func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
 			return convData
 		} else {
-			s.logger.Errorf("convert data from %s to %s failed, %s", up, dp, err.Error())
+			s.logger.Warnf("convert data from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
 	return data
@@ -876,7 +884,7 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
 			return convTrailer
 		} else {
-			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
+			s.logger.Warnf("convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
 	return trailers
@@ -916,8 +924,6 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 	if s.downstreamResponseStarted {
 		s.resetStream()
 	} else {
-		s.upstreamProcessDone = true
-
 		// send err response if response not started
 		var code int
 
@@ -934,6 +940,9 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 		}
+		// clear reset flag
+		s.logger.Errorf("on upstream hijack reason %v", reason)
+		atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 		s.sendHijackReply(code, s.downstreamReqHeaders)
 	}
 }
@@ -963,7 +972,11 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 
 	s.downstreamResponseStarted = true
 
-	s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
+	// hijack for no route should be nil
+	if s.route != nil {
+		s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
+	}
+
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
@@ -1117,13 +1130,15 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
-	s.appendHeaders(true)
+	s.downstreamRespDataBuf = nil
+	s.downstreamRespTrailers = nil
+	s.hijack = true
 }
 
 // TODO: rpc status code may be not matched
 // TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
 func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
-	s.logger.Debugf("set hijack reply with body, conn = %d, stream id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
+	s.logger.Errorf("set hijack reply with body, conn = %d, stream id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
 	if headers == nil {
 		s.logger.Warnf("hijack with no headers, conn = %d, stream id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
 		raw := make(map[string]string, 5)
@@ -1134,8 +1149,8 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = buffer.NewIoBufferString(body)
-	s.appendHeaders(false)
-	s.appendData(true)
+	s.downstreamRespTrailers = nil
+	s.hijack = true
 }
 
 func (s *downStream) cleanUp() {
@@ -1270,6 +1285,12 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	phase = types.End
+
+	if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+		err = types.ErrExit
+		return
+	}
+
 	if atomic.LoadUint32(&s.upstreamReset) == 1 {
 		s.logger.Errorf("processError upstreamReset downStream id: %d", s.ID)
 		s.onUpstreamReset(s.resetReason)
@@ -1283,7 +1304,9 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 		return
 	}
 
-	if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+	if s.hijack {
+		s.hijack = false
+		phase = types.UpFilter
 		err = types.ErrExit
 		return
 	}
