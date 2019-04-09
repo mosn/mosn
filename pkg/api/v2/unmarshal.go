@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -231,6 +232,8 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 	}
 	// dynamic mode, should write file
 	// file name is virtualhost name, if not exists, use {unixnano}.json
+	os.RemoveAll(rc.RouterConfigPath)
+	os.MkdirAll(rc.RouterConfigPath, 0755)
 	for _, vh := range rc.VirtualHosts {
 		fileName := vh.Name
 		if fileName == "" {

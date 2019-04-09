@@ -20,6 +20,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"time"
 
@@ -103,6 +104,9 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 	}
 	// dynamic mode, should write file
 	// file name is virtualhost name, if not exists, use {unixnano}.json
+	// clear old path and make a new one, for cluster delete
+	os.RemoveAll(cc.ClusterConfigPath)
+	os.MkdirAll(cc.ClusterConfigPath, 0755)
 	for _, cluster := range cc.Clusters {
 		fileName := cluster.Name
 		if fileName == "" {
