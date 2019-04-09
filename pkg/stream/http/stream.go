@@ -538,13 +538,6 @@ func (s *clientStream) handleResponse() {
 		s.connection.stream = nil
 		s.connection.mutex.Unlock()
 
-		/*
-		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
-
-		if hasData {
-			s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.response.Body()), true)
-		}
-		*/
 		if hasData {
 			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
 		} else {
@@ -677,14 +670,6 @@ func (s *serverStream) handleRequest() {
 		if len(s.request.Body()) == 0 {
 			hasData = false
 		}
-
-		/*
-		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
-
-		if hasData {
-			s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.request.Body()), true)
-		}
-		*/
 
 		if hasData {
 			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.request.Body()), nil)

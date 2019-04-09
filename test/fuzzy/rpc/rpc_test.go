@@ -68,10 +68,6 @@ func (c *RPCStatusClient) SendRequest() {
 }
 
 func (c *RPCStatusClient) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	c.OnReceiveHeaders(ctx, headers, true)
-}
-
-func (c *RPCStatusClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
 	if cmd, ok := headers.(rpc.RespStatus); ok {
 		status := int16(cmd.RespStatus())
 
@@ -84,6 +80,7 @@ func (c *RPCStatusClient) OnReceiveHeaders(context context.Context, headers type
 		c.t.Errorf("unexpected headers type:%v\n", headers)
 	}
 }
+
 func (c *RPCStatusClient) Connect() error {
 	c.mutex.Lock()
 	check := c.started

@@ -84,6 +84,10 @@ type downStream struct {
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone bool
+	// don't convert headers, data and trailers.  e.g. activeStreamReceiverFilter.Appendxx
+	noConvert bool
+	// direct response.  e.g. sendHijack
+	directResponse bool
 
 	notify chan struct{}
 
@@ -248,16 +252,6 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	s.resetReason = reason
 
 	s.sendNotify()
-	/*
-		workerPool.Offer(&event{
-			id:  s.ID,
-			dir: downstream,
-			evt: reset,
-			handle: func() {
-				s.ResetStream(reason)
-			},
-		}, false)
-	*/
 }
 
 func (s *downStream) ResetStream(reason types.StreamResetReason) {
@@ -268,6 +262,7 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 
 func (s *downStream) OnDestroyStream() {}
 
+// types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
 	if data != nil {
@@ -302,7 +297,9 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 			case types.MatchRoute:
 				s.logger.Debugf("downstream redo match route %+v", s)
 			case types.Retry:
-				s.logger.Errorf("downstream retry %+v", s)
+				s.logger.Debugf("downstream retry %+v", s)
+			case types.UpFilter:
+				s.logger.Debugf("downstream directResponse %+v", s)
 			}
 		}
 	})
@@ -310,11 +307,6 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
 	s.logger.Tracef("downstream OnReceive send upstream request %+v", s)
-
-	var upstreamRequest *upstreamRequest
-	var respHeaders types.HeaderMap
-	var respData types.IoBuffer
-	var respTrailers types.HeaderMap
 
 	switch phase {
 	// init phase
@@ -325,9 +317,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	// downstream filter before route
 	case types.DownFilter:
 		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		if s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers) {
-			return types.End
-		}
+		s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 		if p, err := s.processError(id); err != nil {
 			return p
@@ -348,9 +338,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	// downstream filter after route
 	case types.DownFilterAfterRoute:
 		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		if s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers) {
-			return types.End
-		}
+		s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 		if p, err := s.processError(id); err != nil {
 			return p
@@ -362,7 +350,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	case types.DownRecvHeader:
 		if s.downstreamReqHeaders != nil {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			s.ReceiveHeaders(s.downstreamReqHeaders, s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
+			s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -376,7 +364,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		if s.downstreamReqDataBuf != nil {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
 			s.downstreamReqDataBuf.Count(1)
-			s.ReceiveData(s.downstreamReqDataBuf, s.downstreamReqTrailers == nil)
+			s.receiveData(s.downstreamReqTrailers == nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -389,7 +377,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 	case types.DownRecvTrailer:
 		if s.downstreamReqTrailers != nil {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			s.ReceiveTrailers(s.downstreamReqTrailers)
+			s.receiveTrailers()
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -424,32 +412,36 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 		s.logger.Tracef("downstream OnReceive send downstream response %+v", s.downstreamRespHeaders)
 
-		upstreamRequest = s.upstreamRequest
-		respHeaders = s.downstreamRespHeaders
-		respData = s.downstreamRespDataBuf
-		respTrailers = s.downstreamRespTrailers
 		phase++
 		fallthrough
 
 	// upstream filter
 	case types.UpFilter:
 		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		if s.runAppendFilters(phase, respHeaders, respData, respTrailers) {
-			return types.End
-		}
+		s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
 
 		if p, err := s.processError(id); err != nil {
 			return p
 		}
+
+		// maybe direct response
+		if s.upstreamRequest == nil {
+			fakeUpstreamRequest := &upstreamRequest{
+				downStream: s,
+			}
+
+			s.upstreamRequest = fakeUpstreamRequest
+		}
+
 		phase++
 		fallthrough
 
 	// upstream receive header
 	case types.UpRecvHeader:
 		// send downstream response
-		if respHeaders != nil {
+		if s.downstreamRespHeaders != nil {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			upstreamRequest.ReceiveHeaders(respHeaders, respData == nil && respTrailers == nil)
+			s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -460,9 +452,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 	// upstream receive data
 	case types.UpRecvData:
-		if respData != nil {
+		if s.downstreamRespDataBuf != nil {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			upstreamRequest.ReceiveData(respData, respTrailers == nil)
+			s.upstreamRequest.receiveData(s.downstreamRespTrailers == nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -473,9 +465,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 	// upstream receive triler
 	case types.UpRecvTrailer:
-		if respTrailers != nil {
+		if s.downstreamRespTrailers != nil {
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			upstreamRequest.ReceiveTrailers(respTrailers)
+			s.upstreamRequest.receiveTrailers()
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -518,25 +510,6 @@ func (s *downStream) matchRoute() {
 	s.snapshot, s.route = handlerChain.DoNextHandler()
 }
 
-// types.StreamReceiveListener
-func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	workerPool.Offer(&event{
-		id:  s.ID,
-		dir: downstream,
-		evt: recvHeader,
-		handle: func() {
-			s.ReceiveHeaders(headers, endStream)
-		},
-	}, true)
-}
-
-func (s *downStream) ReceiveHeaders(headers types.HeaderMap, endStream bool) {
-	s.downstreamRecvDone = endStream
-	s.downstreamReqHeaders = headers
-
-	s.doReceiveHeaders(headers, endStream)
-}
-
 func (s *downStream) convertProtocol() (dp, up types.Protocol) {
 	dp = s.getDownstreamProtocol()
 	up = s.getUpstreamProtocol()
@@ -570,13 +543,15 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
 	return currentProtocol
 }
 
-func (s *downStream) doReceiveHeaders(headers types.HeaderMap, endStream bool) {
+func (s *downStream) receiveHeaders(endStream bool) {
+	s.downstreamRecvDone = endStream
+
 	// after stream filters run, check the route
 	if s.route == nil {
-		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
+		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", s.downstreamReqHeaders)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 
 		return
 	}
@@ -585,17 +560,17 @@ func (s *downStream) doReceiveHeaders(headers types.HeaderMap, endStream bool) {
 	if resp := s.route.DirectResponseRule(); !(resp == nil || reflect.ValueOf(resp).IsNil()) {
 		log.DefaultLogger.Infof("direct response for stream , id = %d", s.ID)
 		if resp.Body() != "" {
-			s.sendHijackReplyWithBody(resp.StatusCode(), headers, resp.Body())
+			s.sendHijackReplyWithBody(resp.StatusCode(), s.downstreamReqHeaders, resp.Body())
 		} else {
-			s.sendHijackReply(resp.StatusCode(), headers)
+			s.sendHijackReply(resp.StatusCode(), s.downstreamReqHeaders)
 		}
 		return
 	}
 	// not direct response, needs a cluster snapshot and route rule
 	if rule := s.route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
-		log.DefaultLogger.Warnf("no route rule to init upstream, headers = %v", headers)
+		log.DefaultLogger.Warnf("no route rule to init upstream, headers = %v", s.downstreamReqHeaders)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
 	if s.snapshot == nil || reflect.ValueOf(s.snapshot).IsNil() {
@@ -627,11 +602,11 @@ func (s *downStream) doReceiveHeaders(headers types.HeaderMap, endStream bool) {
 	}
 
 	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
-	s.timeout = parseProxyTimeout(s.route, headers)
+	s.timeout = parseProxyTimeout(s.route, s.downstreamReqHeaders)
 
 	prot := s.getUpstreamProtocol()
 
-	s.retryState = newRetryState(s.route.RouteRule().Policy().RetryPolicy(), headers, s.cluster, prot)
+	s.retryState = newRetryState(s.route.RouteRule().Policy().RetryPolicy(), s.downstreamReqHeaders, s.cluster, prot)
 
 	//Build Request
 	proxyBuffers := proxyBuffersByContext(s.context)
@@ -640,52 +615,32 @@ func (s *downStream) doReceiveHeaders(headers types.HeaderMap, endStream bool) {
 	s.upstreamRequest.proxy = s.proxy
 	s.upstreamRequest.protocol = prot
 	s.upstreamRequest.connPool = pool
-	s.route.RouteRule().FinalizeRequestHeaders(headers, s.requestInfo)
+	s.route.RouteRule().FinalizeRequestHeaders(s.downstreamReqHeaders, s.requestInfo)
 
 	//Call upstream's append header method to build upstream's request
-	s.upstreamRequest.appendHeaders(headers, endStream)
+	s.upstreamRequest.appendHeaders(endStream)
 
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
 }
 
-func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
-	s.downstreamReqDataBuf = data.Clone()
-	s.downstreamReqDataBuf.Count(1)
-	data.Drain(data.Len())
-
-	workerPool.Offer(&event{
-		id:  s.ID,
-		dir: downstream,
-		evt: recvData,
-		handle: func() {
-			s.ReceiveData(s.downstreamReqDataBuf, endStream)
-		},
-	}, true)
-}
-
-func (s *downStream) ReceiveData(data types.IoBuffer, endStream bool) {
+func (s *downStream) receiveData(endStream bool) {
 	// if active stream finished before receive data, just ignore further data
 	if s.processDone() {
 		return
 	}
+	data := s.downstreamReqDataBuf
 	log.DefaultLogger.Tracef("downstream receive data = %v", data)
 
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
 
-	s.doReceiveData(data, endStream)
-}
-
-func (s *downStream) doReceiveData(data types.IoBuffer, endStream bool) {
-	log.DefaultLogger.Tracef("active stream do decode data")
-
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
 
-	s.upstreamRequest.appendData(data, endStream)
+	s.upstreamRequest.appendData(endStream)
 
 	// if upstream process done in the middle of receiving data, just end stream
 	if s.upstreamProcessDone {
@@ -693,18 +648,7 @@ func (s *downStream) doReceiveData(data types.IoBuffer, endStream bool) {
 	}
 }
 
-func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-	workerPool.Offer(&event{
-		id:  s.ID,
-		dir: downstream,
-		evt: recvTrailer,
-		handle: func() {
-			s.ReceiveTrailers(trailers)
-		},
-	}, true)
-}
-
-func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
+func (s *downStream) receiveTrailers() {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.processDone() {
 		return
@@ -712,7 +656,13 @@ func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
 
 	s.downstreamRecvDone = true
 
-	s.doReceiveTrailers(trailers)
+	s.onUpstreamRequestSent()
+	s.upstreamRequest.appendTrailers()
+
+	// if upstream process done in the middle of receiving trailers, just end stream
+	if s.upstreamProcessDone {
+		s.cleanStream()
+	}
 }
 
 func (s *downStream) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
@@ -730,17 +680,6 @@ func (s *downStream) OnDecodeError(context context.Context, err error, headers t
 		s.sendHijackReply(types.DeserialExceptionCode, headers)
 	default:
 		s.sendHijackReply(types.UnknownCode, headers)
-	}
-}
-
-func (s *downStream) doReceiveTrailers(trailers types.HeaderMap) {
-	s.downstreamReqTrailers = trailers
-	s.onUpstreamRequestSent()
-	s.upstreamRequest.appendTrailers(trailers)
-
-	// if upstream process done in the middle of receiving trailers, just end stream
-	if s.upstreamProcessDone {
-		s.cleanStream()
 	}
 }
 
@@ -865,26 +804,9 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 
 // ~~~ active stream sender wrapper
 
-func (s *downStream) appendHeaders(headers types.HeaderMap, endStream bool) {
+func (s *downStream) appendHeaders(endStream bool) {
 	s.upstreamProcessDone = endStream
-	s.doAppendHeaders(s.convertHeader(headers), endStream)
-}
-
-func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
-	dp, up := s.convertProtocol()
-
-	// need protocol convert
-	if dp != up {
-		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
-			return convHeader
-		} else {
-			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
-		}
-	}
-	return headers
-}
-
-func (s *downStream) doAppendHeaders(headers types.HeaderMap, endStream bool) {
+	headers := s.convertHeader(s.downstreamRespHeaders)
 	//Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
 		s.logger.Errorf("[downstream] append headers error, %s", err)
@@ -895,26 +817,28 @@ func (s *downStream) doAppendHeaders(headers types.HeaderMap, endStream bool) {
 	}
 }
 
-func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
-	s.upstreamProcessDone = endStream
-	s.doAppendData(s.convertData(data), endStream)
-}
+func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
+	if s.noConvert {
+		return headers
+	}
 
-func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 	dp, up := s.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
-		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
-			return convData
+		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
+			return convHeader
 		} else {
-			s.logger.Errorf("convert data from %s to %s failed, %s", up, dp, err.Error())
+			s.logger.Warnf("convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
-	return data
+	return headers
 }
 
-func (s *downStream) doAppendData(data types.IoBuffer, endStream bool) {
+func (s *downStream) appendData(endStream bool) {
+	s.upstreamProcessDone = endStream
+
+	data := s.convertData(s.downstreamRespDataBuf)
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
 	s.responseSender.AppendData(s.context, data, endStream)
 
@@ -923,12 +847,36 @@ func (s *downStream) doAppendData(data types.IoBuffer, endStream bool) {
 	}
 }
 
-func (s *downStream) appendTrailers(trailers types.HeaderMap) {
+func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
+	if s.noConvert {
+		return data
+	}
+
+	dp, up := s.convertProtocol()
+
+	// need protocol convert
+	if dp != up {
+		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
+			return convData
+		} else {
+			s.logger.Warnf("convert data from %s to %s failed, %s", up, dp, err.Error())
+		}
+	}
+	return data
+}
+
+func (s *downStream) appendTrailers() {
 	s.upstreamProcessDone = true
-	s.doAppendTrailers(s.convertTrailer(trailers))
+	trailers := s.convertTrailer(s.downstreamRespTrailers)
+	s.responseSender.AppendTrailers(s.context, trailers)
+	s.endStream()
 }
 
 func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
+	if s.noConvert {
+		return trailers
+	}
+
 	dp, up := s.convertProtocol()
 
 	// need protocol convert
@@ -936,15 +884,10 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
 			return convTrailer
 		} else {
-			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
+			s.logger.Warnf("convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
 	return trailers
-}
-
-func (s *downStream) doAppendTrailers(trailers types.HeaderMap) {
-	s.responseSender.AppendTrailers(s.context, trailers)
-	s.endStream()
 }
 
 // ~~~ upstream event handler
@@ -981,8 +924,6 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 	if s.downstreamResponseStarted {
 		s.resetStream()
 	} else {
-		s.upstreamProcessDone = true
-
 		// send err response if response not started
 		var code int
 
@@ -999,12 +940,15 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 		}
+		// clear reset flag
+		s.logger.Errorf("on upstream hijack reason %v", reason)
+		atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 		s.sendHijackReply(code, s.downstreamReqHeaders)
 	}
 }
 
-func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) {
-	s.downstreamRespHeaders = headers
+func (s *downStream) onUpstreamHeaders(endStream bool) {
+	headers := s.downstreamRespHeaders
 
 	// check retry
 	if s.retryState != nil {
@@ -1028,13 +972,17 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 
 	s.downstreamResponseStarted = true
 
-	s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
+	// directResponse for no route should be nil
+	if s.route != nil {
+		s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
+	}
+
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
 
 	// todo: insert proxy headers
-	s.appendHeaders(headers, endStream)
+	s.appendHeaders(endStream)
 }
 
 func (s *downStream) handleUpstreamStatusCode() {
@@ -1050,12 +998,12 @@ func (s *downStream) handleUpstreamStatusCode() {
 	}
 }
 
-func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
+func (s *downStream) onUpstreamData(endStream bool) {
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
 
-	s.appendData(data, endStream)
+	s.appendData(endStream)
 }
 
 func (s *downStream) finishTracing() {
@@ -1086,10 +1034,10 @@ func (s *downStream) finishTracing() {
 	}
 }
 
-func (s *downStream) onUpstreamTrailers(trailers types.HeaderMap) {
+func (s *downStream) onUpstreamTrailers() {
 	s.onUpstreamResponseRecvFinished()
 
-	s.appendTrailers(trailers)
+	s.appendTrailers()
 }
 
 func (s *downStream) onUpstreamResponseRecvFinished() {
@@ -1104,20 +1052,11 @@ func (s *downStream) onUpstreamResponseRecvFinished() {
 }
 
 func (s *downStream) setupRetry(endStream bool) bool {
-	/*
-		if !s.upstreamRequestSent {
-			return false
-		}
-	*/
 	s.upstreamRequest.setupRetry = true
 
 	if !endStream {
 		s.upstreamRequest.resetStream()
 	}
-
-	/*
-		s.upstreamRequest.requestSender = nil
-	*/
 
 	// reset per req timer
 	if s.perRetryTimer != nil {
@@ -1148,15 +1087,14 @@ func (s *downStream) doRetry() {
 	}
 
 	// if Data or Trailer exists, endStream should be false, else should be true
-	s.upstreamRequest.appendHeaders(s.downstreamReqHeaders,
-		s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
+	s.upstreamRequest.appendHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
 	if s.downstreamReqDataBuf != nil {
-		s.upstreamRequest.appendData(s.downstreamReqDataBuf, s.downstreamReqTrailers == nil)
+		s.upstreamRequest.appendData(s.downstreamReqTrailers == nil)
 	}
 
 	if s.downstreamReqTrailers != nil {
-		s.upstreamRequest.appendTrailers(s.downstreamReqTrailers)
+		s.upstreamRequest.appendTrailers()
 	}
 
 	// setup per try timeout timer
@@ -1191,13 +1129,16 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	atomic.StoreUint32(&s.reuseBuffer, 0)
-	s.appendHeaders(headers, true)
+	s.downstreamRespHeaders = headers
+	s.downstreamRespDataBuf = nil
+	s.downstreamRespTrailers = nil
+	s.directResponse = true
 }
 
 // TODO: rpc status code may be not matched
 // TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
 func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
-	s.logger.Debugf("set hijack reply with body, conn = %d, stream id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
+	s.logger.Errorf("set hijack reply with body, conn = %d, stream id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
 	if headers == nil {
 		s.logger.Warnf("hijack with no headers, conn = %d, stream id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
 		raw := make(map[string]string, 5)
@@ -1206,20 +1147,13 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	s.requestInfo.SetResponseCode(code)
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 	atomic.StoreUint32(&s.reuseBuffer, 0)
-	s.appendHeaders(headers, false)
-	data := buffer.NewIoBufferString(body)
-	s.appendData(data, true)
+	s.downstreamRespHeaders = headers
+	s.downstreamRespDataBuf = buffer.NewIoBufferString(body)
+	s.downstreamRespTrailers = nil
+	s.directResponse = true
 }
 
 func (s *downStream) cleanUp() {
-	// reset upstream request
-	// if a downstream filter ends downstream before send to upstream, upstreamRequest will be nil
-	/*
-		if s.upstreamRequest != nil {
-			s.upstreamRequest.requestSender = nil
-		}
-	*/
-
 	// reset retry state
 	// if  a downstream filter ends downstream before send to upstream, retryState will be nil
 	if s.retryState != nil {
@@ -1351,6 +1285,12 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	phase = types.End
+
+	if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+		err = types.ErrExit
+		return
+	}
+
 	if atomic.LoadUint32(&s.upstreamReset) == 1 {
 		s.logger.Errorf("processError upstreamReset downStream id: %d", s.ID)
 		s.onUpstreamReset(s.resetReason)
@@ -1364,7 +1304,9 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 		return
 	}
 
-	if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+	if s.directResponse {
+		s.directResponse = false
+		phase = types.UpFilter
 		err = types.ErrExit
 		return
 	}

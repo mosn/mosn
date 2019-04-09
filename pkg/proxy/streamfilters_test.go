@@ -29,6 +29,10 @@ import (
 	"time"
 )
 
+func init() {
+	initWorkerPool(nil, false)
+}
+
 // StreamReceiverFilter
 // MOSN receive a request, run StreamReceiverFilters, and send request to upstream
 func TestRunReiverFilters(t *testing.T) {
@@ -227,11 +231,11 @@ func TestRunSenderFiltersStop(t *testing.T) {
 	for _, f := range tc.filters {
 		s.AddStreamSenderFilter(f)
 	}
-	// mock run
-	s.downstreamRespDataBuf = buffer.NewIoBuffer(0)
-	s.downstreamRespTrailers = protocol.CommonHeader{}
 
-	s.runAppendFilters(0, nil, s.downstreamRespDataBuf, s.downstreamReqTrailers)
+	s.runAppendFilters(0, nil, nil, nil)
+	if s.downstreamRespHeaders == nil || s.downstreamRespDataBuf == nil {
+		t.Errorf("streamSendFilter SetResponse error")
+	}
 
 	if tc.filters[0].on != 1 || tc.filters[1].on != 1 || tc.filters[2].on != 0 {
 		t.Errorf("streamSendFilter is error")
@@ -270,6 +274,8 @@ func (f *mockStreamSenderFilter) OnDestroy() {}
 
 func (f *mockStreamSenderFilter) Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	f.on++
+	f.handler.SetResponseHeaders(protocol.CommonHeader{})
+	f.handler.SetResponseData(buffer.NewIoBuffer(1))
 	return f.status
 }
 
