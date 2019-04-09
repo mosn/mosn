@@ -20,6 +20,7 @@ package config
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -36,5 +37,13 @@ func TestWriteFileSafety(t *testing.T) {
 	}
 	if !bytes.Equal(data, b) {
 		t.Error("write data is not expected")
+	}
+
+	f, err := os.Stat(target)
+	if err != nil {
+		t.Fatal("read target file stat failed: ", err)
+	}
+	if !(f.Mode() == 0644) {
+		t.Fatal("target file stat verify failed: ", f.Mode())
 	}
 }

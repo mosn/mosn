@@ -36,6 +36,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
 	"io"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 )
 
 func init() {
@@ -400,10 +401,11 @@ func (conn *serverStreamConnection) serve() {
 		s.connection = conn
 		s.responseDoneChan = make(chan bool, 1)
 
-		span := spanBuilder.BuildSpan(ctx, request)
-		if span != nil {
-			s.stream.ctx = s.connection.contextManager.InjectTrace(ctx, span)
+		var span types.Span
+		if trace.IsTracingEnabled() {
+			span = spanBuilder.BuildSpan(ctx, request)
 		}
+		s.stream.ctx = s.connection.contextManager.InjectTrace(ctx, span)
 
 		log.Proxy.Infof(s.stream.ctx, "[stream][http] new stream detect, requestId = %v", s.stream.id)
 
@@ -550,13 +552,6 @@ func (s *clientStream) handleResponse() {
 		s.connection.stream = nil
 		s.connection.mutex.Unlock()
 
-		/*
-		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
-
-		if hasData {
-			s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.response.Body()), true)
-		}
-		*/
 		if hasData {
 			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
 		} else {
@@ -693,14 +688,6 @@ func (s *serverStream) handleRequest() {
 		if len(s.request.Body()) == 0 {
 			hasData = false
 		}
-
-		/*
-		s.receiver.OnReceiveHeaders(s.ctx, header, !hasData)
-
-		if hasData {
-			s.receiver.OnReceiveData(s.ctx, buffer.NewIoBufferBytes(s.request.Body()), true)
-		}
-		*/
 
 		if hasData {
 			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.request.Body()), nil)

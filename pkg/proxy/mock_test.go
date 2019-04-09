@@ -80,6 +80,10 @@ func (r *mockRouteRule) UpstreamProtocol() string {
 	return ""
 }
 
+func (c *mockRouteRule) FinalizeResponseHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+	return
+}
+
 type mockDirectRule struct {
 	status int
 	body   string

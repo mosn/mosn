@@ -23,10 +23,11 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
@@ -131,15 +132,14 @@ func TestDirectResponse(t *testing.T) {
 				stats:          globalStats,
 				listenerStats:  newListenerStats("test"),
 			},
-			logger:         log.DefaultLogger,
 			responseSender: tc.client,
 			requestInfo:    &network.RequestInfo{},
 		}
 		// event call Receive Headers
 		// trigger direct response
-		s.matchRoute()
-		s.ReceiveHeaders(nil, false)
+		s.OnReceive(context.Background(), protocol.CommonHeader{}, buffer.NewIoBuffer(1), nil)
 		// check
+		time.Sleep(100*time.Millisecond)
 		tc.check(t, tc.client)
 	}
 }

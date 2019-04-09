@@ -76,17 +76,7 @@ type streamReceiver struct {
 	ch chan<- error
 }
 
-func (c *streamReceiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	c.OnReceiveHeaders(ctx, headers, true)
-}
-
-func (s *streamReceiver) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
-}
-func (s *streamReceiver) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-}
-func (s *streamReceiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
-}
-func (s *streamReceiver) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+func (s *streamReceiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	if resp, ok := headers.(rpc.RespStatus); ok {
 		status := resp.RespStatus()
 		if int16(status) != sofarpc.RESPONSE_STATUS_SUCCESS {
@@ -98,6 +88,9 @@ func (s *streamReceiver) OnReceiveHeaders(context context.Context, headers types
 	}
 
 	s.ch <- errors.New("no response status")
+}
+
+func (s *streamReceiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
 
 type RPCClient struct {

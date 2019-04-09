@@ -18,6 +18,8 @@
 package proxy
 
 import (
+	"sync/atomic"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -61,7 +63,7 @@ func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, d
 }
 
 type activeStreamFilter struct {
-	activeStream     *downStream
+	activeStream *downStream
 }
 
 func (f *activeStreamFilter) Connection() types.Connection {
@@ -103,21 +105,37 @@ func newActiveStreamReceiverFilter(activeStream *downStream,
 
 func (f *activeStreamReceiverFilter) AppendHeaders(headers types.HeaderMap, endStream bool) {
 	f.activeStream.downstreamRespHeaders = headers
-	f.activeStream.doAppendHeaders(headers, endStream)
+	f.activeStream.noConvert = true
+	f.activeStream.appendHeaders(endStream)
 }
 
 func (f *activeStreamReceiverFilter) AppendData(buf types.IoBuffer, endStream bool) {
 	f.activeStream.downstreamRespDataBuf = buf
-	f.activeStream.doAppendData(buf, endStream)
+	f.activeStream.noConvert = true
+	f.activeStream.appendData(endStream)
 }
 
 func (f *activeStreamReceiverFilter) AppendTrailers(trailers types.HeaderMap) {
 	f.activeStream.downstreamRespTrailers = trailers
-	f.activeStream.doAppendTrailers(trailers)
+	f.activeStream.noConvert = true
+	f.activeStream.appendTrailers()
 }
 
 func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.HeaderMap) {
 	f.activeStream.sendHijackReply(code, headers)
+}
+
+func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
+	atomic.StoreUint32(&f.activeStream.reuseBuffer, 0)
+	f.activeStream.noConvert = true
+	f.activeStream.downstreamRespHeaders = headers
+	f.activeStream.downstreamRespDataBuf = buf
+	f.activeStream.downstreamRespTrailers = trailers
+	f.activeStream.directResponse = true
+}
+
+func (f *activeStreamReceiverFilter) SetConvert(on bool) {
+	f.activeStream.noConvert = !on
 }
 
 // types.StreamSenderFilterHandler
@@ -126,7 +144,6 @@ type activeStreamSenderFilter struct {
 
 	filter types.StreamSenderFilter
 }
-
 
 func newActiveStreamSenderFilter(activeStream *downStream,
 	filter types.StreamSenderFilter) *activeStreamSenderFilter {

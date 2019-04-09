@@ -32,6 +32,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 )
 
 // StreamDirection represent the stream's direction
@@ -245,9 +246,11 @@ func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, 
 func (conn *streamConnection) processStream(ctx context.Context, cmd sofarpc.SofaRpcCmd) *stream {
 	switch cmd.CommandType() {
 	case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
-		// try build trace span
-		span := conn.codecEngine.BuildSpan(cmd)
-
+		var span types.Span
+		if trace.IsTracingEnabled() {
+			// try build trace span
+			span = conn.codecEngine.BuildSpan(cmd)
+		}
 		return conn.onNewStreamDetect(ctx, cmd, span)
 	case sofarpc.RESPONSE:
 		return conn.onStreamRecv(ctx, cmd)
@@ -263,9 +266,7 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 	stream.id = cmd.RequestID()
 	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.id)
 	stream.ctx = context.WithValue(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
-	if span != nil {
-		stream.ctx = conn.contextManager.InjectTrace(stream.ctx, span)
-	}
+	stream.ctx = conn.contextManager.InjectTrace(stream.ctx, span)
 	stream.direction = ServerStream
 	stream.sc = conn
 
