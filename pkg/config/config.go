@@ -98,15 +98,24 @@ func (cc *ClusterManagerConfig) UnmarshalJSON(b []byte) error {
 
 // Marshal memory config into json, if dynamic mode is configured, write json file
 func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
+	defer func() {
+		b, err = json.Marshal(cc.ClusterManagerConfigJson)
+	}()
 	if cc.ClusterConfigPath == "" {
 		cc.ClustersJson = cc.Clusters
-		goto MARSHAL
+		return
 	}
 	// dynamic mode, should write file
+	// first, get all the files in the directory
+	files, err := ioutil.ReadDir(cc.ClusterConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	allFiles := make(map[string]struct{}, len(files))
+	for _, f := range files {
+		allFiles[f.Name()] = struct{}{}
+	}
 	// file name is virtualhost name, if not exists, use {unixnano}.json
-	// clear old path and make a new one, for cluster delete
-	os.RemoveAll(cc.ClusterConfigPath)
-	os.MkdirAll(cc.ClusterConfigPath, 0755)
 	for _, cluster := range cc.Clusters {
 		fileName := cluster.Name
 		if fileName == "" {
@@ -116,13 +125,18 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
-		fileName = path.Join(cc.ClusterConfigPath, fileName+".json")
-		if err := ioutil.WriteFile(fileName, data, 0644); err != nil {
+		fileName = fileName + ".json"
+		delete(allFiles, fileName)
+		fileName = path.Join(cc.ClusterConfigPath, fileName)
+		if err := v2.WriteFileSafety(fileName, data, 0644); err != nil {
 			return nil, err
 		}
 	}
-MARSHAL:
-	return json.Marshal(cc.ClusterManagerConfigJson)
+	// delete invalid files
+	for f := range allFiles {
+		os.Remove(path.Join(cc.ClusterConfigPath, f))
+	}
+	return
 }
 
 // MOSNConfig make up mosn to start the mosn project

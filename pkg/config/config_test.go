@@ -100,6 +100,19 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 	if len(files) != 3 {
 		t.Fatalf("new cluster is not dumped, just got %d files", len(files))
 	}
+	// test delete cluster
+	testConfig.ClusterManager.Clusters = testConfig.ClusterManager.Clusters[:1]
+	// dump json
+	if b, err := json.Marshal(testConfig); err != nil || len(b) == 0 {
+		t.Fatalf("marshal unexpected, byte: %v, error: %v", b, err)
+	}
+	files, err = ioutil.ReadDir(clusterPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("new cluster is not dumped, just got %d files", len(files))
+	}
 }
 
 func TestClusterConfigConflict(t *testing.T) {

@@ -226,14 +226,24 @@ func (rc *RouterConfiguration) UnmarshalJSON(b []byte) error {
 
 // Marshal memory config into json, if dynamic mode is configured, write json file
 func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
+	defer func() {
+		b, err = json.Marshal(rc.RouterConfigurationConfig)
+	}()
 	if rc.RouterConfigPath == "" {
 		rc.StaticVirtualHosts = rc.VirtualHosts
-		goto MARSHAL
+		return
 	}
 	// dynamic mode, should write file
+	// first, get all the files in the directory
+	files, err := ioutil.ReadDir(rc.RouterConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	allFiles := make(map[string]struct{}, len(files))
+	for _, f := range files {
+		allFiles[f.Name()] = struct{}{}
+	}
 	// file name is virtualhost name, if not exists, use {unixnano}.json
-	os.RemoveAll(rc.RouterConfigPath)
-	os.MkdirAll(rc.RouterConfigPath, 0755)
 	for _, vh := range rc.VirtualHosts {
 		fileName := vh.Name
 		if fileName == "" {
@@ -243,11 +253,16 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
-		fileName = path.Join(rc.RouterConfigPath, fileName+".json")
-		if err := ioutil.WriteFile(fileName, data, 0644); err != nil {
+		fileName = fileName + ".json"
+		delete(allFiles, fileName)
+		fileName = path.Join(rc.RouterConfigPath, fileName)
+		if err := WriteFileSafety(fileName, data, 0644); err != nil {
 			return nil, err
 		}
 	}
-MARSHAL:
-	return json.Marshal(rc.RouterConfigurationConfig)
+	// delete invalid files
+	for f := range allFiles {
+		os.Remove(path.Join(rc.RouterConfigPath, f))
+	}
+	return
 }

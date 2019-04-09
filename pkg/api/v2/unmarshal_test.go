@@ -712,5 +712,18 @@ func TestRouterConfigDynamicModeParse(t *testing.T) {
 	if len(files) != 3 {
 		t.Fatalf("new virtual host is not dumped, just got %d files", len(files))
 	}
-
+	// test delete virtualhost
+	testConfig.VirtualHosts = testConfig.VirtualHosts[:1]
+	// dump json
+	if _, err := json.Marshal(testConfig); err != nil {
+		t.Fatal(err)
+	}
+	// verify
+	files, err = ioutil.ReadDir(routerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("new virtual host is not dumped, just got %d files", len(files))
+	}
 }
