@@ -70,6 +70,31 @@ func TestAtomic(t *testing.T) {
 
 }
 
+func TestConsitency(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
+
+	span, err := Alloc("TestConsitency", 256)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_,  err = Alloc("TestConsitency", 512)
+	if err == nil && err.Error() == "mmap target path ./mosn_shm_TestConsitency exists and its size 256 mismatch 512" {
+		t.Error()
+	}
+
+	if err := Free(span); nil != err {
+		log.Fatalln(err)
+	}
+
+}
+
 func BenchmarkPointerCast_Raw(b *testing.B) {
 	var counter uint32 = 0
 	ptr := &counter

@@ -34,6 +34,17 @@ func path(name string) string {
 	return types.MosnConfigPath + string(os.PathSeparator) + fmt.Sprintf("mosn_shm_%s", name)
 }
 
+// check if given path match the required size
+// return error if path exists and size not match
+func checkConsistency(path string, size int) error {
+	if info, err := os.Stat(path); err == nil {
+		if info.Size() != int64(size) {
+			return errors.New(fmt.Sprintf("mmap target path %s exists and its size %d mismatch %d", path, info.Size(), size))
+		}
+	}
+	return nil
+}
+
 type ShmSpan struct {
 	origin []byte
 	name   string

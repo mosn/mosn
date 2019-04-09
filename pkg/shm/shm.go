@@ -27,6 +27,12 @@ func Alloc(name string, size int) (*ShmSpan, error) {
 	path := path(name)
 
 	os.MkdirAll(filepath.Dir(path), 0755)
+
+	// check consistency
+	if err := checkConsistency(path, size); err != nil {
+		return nil, err
+	}
+
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
 
 	if err != nil {
