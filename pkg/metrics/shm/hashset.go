@@ -93,8 +93,6 @@ func newHashSet(segment uintptr, bytesNum, cap, slotsNum int, init bool) (*hashS
 	set.meta.slotsNum = uint32(slotsNum)
 	set.meta.bytesNum = uint32(bytesNum)
 	set.meta.cap = uint32(cap)
-	set.meta.size = 0
-	set.meta.freeIndex = 0
 
 	offset += hashMetaSize
 	if offset > bytesNum {
@@ -114,12 +112,16 @@ func newHashSet(segment uintptr, bytesNum, cap, slotsNum int, init bool) (*hashS
 
 	if init {
 		// 4. initialize
-		// 4.1 slots
+		// 4.1 meta
+		set.meta.size = 0
+		set.meta.freeIndex = 0
+
+		// 4.2 slots
 		for i := 0; i < slotsNum; i++ {
 			set.slots[i] = sentinel
 		}
 
-		// 4.2 entries
+		// 4.3 entries
 		last := cap - 1
 		for i := 0; i < last; i++ {
 			set.entry[i].next = uint32(i + 1)
@@ -187,13 +189,13 @@ func (s *hashSet) Free(entry *hashEntry) {
 		var index uint32
 		var prev *hashEntry
 		for index = s.slots[slot]; index != sentinel; {
-
-			if entry == &s.entry[index] {
+			target := &s.entry[index]
+			if entry == target {
 				break
 			}
 
-			prev = entry
-			index = entry.next
+			prev = target
+			index = target.next
 		}
 
 		// 2. unlink, re-init and add to the head of free list

@@ -75,3 +75,27 @@ func TestHashSet_Free(t *testing.T) {
 	}
 
 }
+
+func BenchmarkHashSet_Free(b *testing.B) {
+	zone := InitMetricsZone("TestNewSharedMetrics", 30*1024*1024)
+	defer zone.Detach()
+
+	entryCount := 200000
+	var entries []*hashEntry
+	for i := 0; i < entryCount; i++ {
+		entry, err := defaultZone.alloc("testEntry" + strconv.Itoa(i))
+		if err != nil {
+			b.Error(err)
+		}
+
+		entry.value = int64(i + 1)
+		entries = append(entries, entry)
+	}
+	b.ResetTimer()
+	b.StartTimer()
+	//  free
+	for _, e := range entries {
+		defaultZone.free(e)
+	}
+	b.StopTimer()
+}

@@ -48,7 +48,7 @@ func Alloc(name string, size int) (*ShmSpan, error) {
 	return NewShmSpan(name, data), nil
 }
 
-func DeAlloc(span *ShmSpan) error {
+func Free(span *ShmSpan) error {
 	os.Remove(path(span.name))
 	return syscall.Munmap(span.origin)
 }

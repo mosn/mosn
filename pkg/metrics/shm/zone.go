@@ -193,7 +193,7 @@ func (z *zone) free(entry *hashEntry) error {
 func (z *zone) Detach() {
 	// ensure all process detached
 	if atomic.AddUint32(z.ref, ^uint32(0)) == 0 {
-		shm.DeAlloc(z.span)
+		shm.Free(z.span)
 	}
 }
 

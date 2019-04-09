@@ -64,7 +64,7 @@ func TestAtomic(t *testing.T) {
 		t.Errorf("counter error, expected %d, actual %d", 10000, *counter)
 	}
 
-	if err := DeAlloc(span); nil != err {
+	if err := Free(span); nil != err {
 		log.Fatalln(err)
 	}
 
