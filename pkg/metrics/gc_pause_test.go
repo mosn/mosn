@@ -35,7 +35,7 @@ func gcPause() time.Duration {
 }
 
 const (
-	entries = 2000
+	entries = 200000
 )
 
 func TestGCPause(t *testing.T) {
@@ -59,7 +59,10 @@ func TestGCPause(t *testing.T) {
 	//------------------------------------------
 
 	zone := shm.InitMetricsZone("testGCPause", entries*256)
-	defer zone.Detach()
+	defer func() {
+		zone.Detach()
+		shm.Reset()
+	}()
 
 	m, _ := NewMetrics("test", map[string]string{"type": "gc"})
 	for i := 0; i < entries; i++ {

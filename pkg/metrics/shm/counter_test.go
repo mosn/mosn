@@ -24,7 +24,10 @@ import (
 
 func TestCounter(t *testing.T) {
 	zone := InitMetricsZone("TestCounter", 10*1024)
-	defer zone.Detach()
+	defer func() {
+		zone.Detach()
+		Reset()
+	}()
 
 	entry, err := defaultZone.alloc("TestCounter")
 	if err != nil {

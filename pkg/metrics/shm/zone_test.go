@@ -25,7 +25,10 @@ import (
 
 func TestNewSharedMetrics(t *testing.T) {
 	zone := InitMetricsZone("TestNewSharedMetrics", 10*1024*1024)
-	defer zone.Detach()
+	defer func() {
+		zone.Detach()
+		Reset()
+	}()
 
 	cpu := runtime.NumCPU()
 	expected := cpu * 1000

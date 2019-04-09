@@ -27,7 +27,10 @@ import (
 
 func TestGetAll(t *testing.T) {
 	zone := shm.InitMetricsZone("TestGetAll", 10*1024)
-	defer zone.Detach()
+	defer func() {
+		zone.Detach()
+		shm.Reset()
+	}()
 
 	ResetAll()
 
@@ -41,6 +44,12 @@ func TestGetAll(t *testing.T) {
 }
 
 func TestExclusionLabels(t *testing.T) {
+	zone := shm.InitMetricsZone("TestExclusionLabels", 10*1024)
+	defer func() {
+		zone.Detach()
+		shm.Reset()
+	}()
+
 	ResetAll()
 	exclusions := []string{
 		"exclusion",
@@ -107,6 +116,12 @@ func TestExclusionLabels(t *testing.T) {
 }
 
 func TestExclusionKeys(t *testing.T) {
+	zone := shm.InitMetricsZone("TestExclusionKeys", 10*1024)
+	defer func() {
+		zone.Detach()
+		shm.Reset()
+	}()
+
 	ResetAll()
 	exclusions := []string{
 		"exclusion",

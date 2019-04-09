@@ -24,7 +24,10 @@ import (
 
 func TestHashSet_Alloc(t *testing.T) {
 	zone := InitMetricsZone("TestNewSharedMetrics", 10*1024*1024)
-	defer zone.Detach()
+	defer func() {
+		zone.Detach()
+		Reset()
+	}()
 
 	entryCount := 1000
 	for i := 0; i < entryCount; i++ {
@@ -49,7 +52,10 @@ func TestHashSet_Alloc(t *testing.T) {
 
 func TestHashSet_Free(t *testing.T) {
 	zone := InitMetricsZone("TestNewSharedMetrics", 10*1024*1024)
-	defer zone.Detach()
+	defer func() {
+		zone.Detach()
+		Reset()
+	}()
 
 	entryCount := 1000
 	for i := 0; i < entryCount; i++ {
@@ -78,7 +84,10 @@ func TestHashSet_Free(t *testing.T) {
 
 func BenchmarkHashSet_Free(b *testing.B) {
 	zone := InitMetricsZone("TestNewSharedMetrics", 30*1024*1024)
-	defer zone.Detach()
+	defer func() {
+		zone.Detach()
+		Reset()
+	}()
 
 	entryCount := 200000
 	var entries []*hashEntry

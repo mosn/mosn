@@ -28,7 +28,10 @@ import (
 
 func TestEntry(t *testing.T) {
 	zone := InitMetricsZone("TestEntry", 10*1024)
-	defer zone.Detach()
+	defer func() {
+		zone.Detach()
+		Reset()
+	}()
 
 	entry1, _ := defaultZone.alloc("entry_test_1")
 
@@ -64,7 +67,10 @@ func TestEntry(t *testing.T) {
 
 func BenchmarkMultiEntry(b *testing.B) {
 	zone := InitMetricsZone("TestMultiEntry", 10*1024*1024)
-	defer zone.Detach()
+	defer func() {
+		zone.Detach()
+		Reset()
+	}()
 
 	b.ReportAllocs()
 	b.ResetTimer()

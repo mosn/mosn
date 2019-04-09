@@ -58,6 +58,10 @@ func InitMetricsZone(name string, size int) *zone {
 	return defaultZone
 }
 
+func Reset() {
+	defaultZone = nil
+}
+
 // createMetricsZone used to create new shm-based metrics zone. It's caller's responsibility
 // to detach the zone.
 func createMetricsZone(name string, size int) *zone {
