@@ -226,12 +226,9 @@ func (rc *RouterConfiguration) UnmarshalJSON(b []byte) error {
 
 // Marshal memory config into json, if dynamic mode is configured, write json file
 func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
-	defer func() {
-		b, err = json.Marshal(rc.RouterConfigurationConfig)
-	}()
 	if rc.RouterConfigPath == "" {
 		rc.StaticVirtualHosts = rc.VirtualHosts
-		return
+		return json.Marshal(rc.RouterConfigurationConfig)
 	}
 	// dynamic mode, should write file
 	// first, get all the files in the directory
@@ -264,5 +261,5 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 	for f := range allFiles {
 		os.Remove(path.Join(rc.RouterConfigPath, f))
 	}
-	return
+	return json.Marshal(rc.RouterConfigurationConfig)
 }

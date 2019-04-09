@@ -98,12 +98,9 @@ func (cc *ClusterManagerConfig) UnmarshalJSON(b []byte) error {
 
 // Marshal memory config into json, if dynamic mode is configured, write json file
 func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
-	defer func() {
-		b, err = json.Marshal(cc.ClusterManagerConfigJson)
-	}()
 	if cc.ClusterConfigPath == "" {
 		cc.ClustersJson = cc.Clusters
-		return
+		return json.Marshal(cc.ClusterManagerConfigJson)
 	}
 	// dynamic mode, should write file
 	// first, get all the files in the directory
@@ -136,7 +133,7 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 	for f := range allFiles {
 		os.Remove(path.Join(cc.ClusterConfigPath, f))
 	}
-	return
+	return json.Marshal(cc.ClusterManagerConfigJson)
 }
 
 // MOSNConfig make up mosn to start the mosn project
