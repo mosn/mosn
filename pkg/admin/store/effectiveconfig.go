@@ -95,6 +95,8 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 
 func SetRouter(routerName string, router v2.RouterConfiguration) {
 	mutex.Lock()
+	// clear the router's dynamic mode, so the dump api will show all routes in the router
+	router.RouterConfigPath = ""
 	conf.Routers[routerName] = router
 	mutex.Unlock()
 }

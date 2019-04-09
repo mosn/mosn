@@ -80,6 +80,15 @@ type DelayInjectConfig struct {
 	DelayDurationConfig DurationConfig `json:"fixed_delay,omitempty"`
 }
 
+type RouterConfigurationConfig struct {
+	RouterConfigName        string               `json:"router_config_name,omitempty"`
+	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
+	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
+	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
+	RouterConfigPath        string               `json:"router_configs, omitempty"`
+	StaticVirtualHosts      []*VirtualHost       `json:"virtual_hosts,omitempty"`
+}
+
 type RouterConfig struct {
 	Match           RouterMatch            `json:"match,omitempty"`
 	Route           RouteAction            `json:"route,omitempty"`
