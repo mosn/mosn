@@ -20,10 +20,10 @@ package shm
 import (
 	"fmt"
 	"runtime"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"strconv"
 )
 
 func TestEntry(t *testing.T) {

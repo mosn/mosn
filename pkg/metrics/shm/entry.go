@@ -21,13 +21,15 @@ import (
 	"sync/atomic"
 )
 
+const maxNameLength = 100
+
 // metricsEntry is the mapping for metrics entry record memory-layout in shared memory.
 //
 // This struct should never be instantiated.
 type metricsEntry struct {
 	value int64     // 8
 	ref   uint32    // 4
-	name  [100]byte // 100
+	name  [maxNameLength]byte // 100
 }
 
 func (e *metricsEntry) assignName(name []byte) {

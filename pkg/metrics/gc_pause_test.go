@@ -42,8 +42,6 @@ func TestGCPause(t *testing.T) {
 	debug.SetGCPercent(10)
 	fmt.Println("Number of entries: ", entries)
 
-
-
 	r := gometrics.NewRegistry()
 	for i := 0; i < entries; i++ {
 		key := fmt.Sprintf("key-%010d", i)
@@ -60,24 +58,20 @@ func TestGCPause(t *testing.T) {
 
 	//------------------------------------------
 
-	func() {
-		zone := shm.InitMetricsZone("testGCPause", 20000000*256)
-		defer zone.Detach()
+	zone := shm.InitMetricsZone("testGCPause", 20000000*256)
+	defer zone.Detach()
 
-		m, _ := NewMetrics("test", map[string]string{"type": "gc"})
-		for i := 0; i < entries; i++ {
-			key := fmt.Sprintf("key-%010d", i)
-			m.Gauge(key).Update(int64(i))
-		}
+	m, _ := NewMetrics("test", map[string]string{"type": "gc"})
+	for i := 0; i < entries; i++ {
+		key := fmt.Sprintf("key-%010d", i)
+		m.Gauge(key).Update(int64(i))
+	}
 
-		key := fmt.Sprintf("key-%010d", 0)
-		if m.Gauge(key).Value() != 0 {
-			t.Error("shm-based entry value not correct")
-		}
+	key = fmt.Sprintf("key-%010d", 0)
+	if m.Gauge(key).Value() != 0 {
+		t.Error("shm-based entry value not correct")
+	}
 
-		fmt.Println("GC pause for shm-based metrics: ", gcPause())
-	}()
-
-
-
+	fmt.Println("GC pause for shm-based metrics: ", gcPause())
+	ResetAll()
 }

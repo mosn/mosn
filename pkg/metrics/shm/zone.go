@@ -28,6 +28,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 	"github.com/alipay/sofa-mosn/pkg/shm"
+	mosnlog "github.com/alipay/sofa-mosn/pkg/log"
 )
 
 var (
@@ -96,7 +97,13 @@ func newSharedMetrics(name string, size int) (*zone, error) {
 		return nil, err
 	}
 
-	// 2. calc hashSet size
+	zone := &zone{
+		span:  span,
+		mutex: (*uint32)(unsafe.Pointer(mutex)),
+		ref:   (*uint32)(unsafe.Pointer(ref)),
+	}
+
+	// 2. hashSet
 
 	// assuming that 100 entries with 50 slots, so the ratio of occupied memory is
 	// entries:slots  = 100 x 128 : 50 x 4 = 64 : 1
@@ -114,17 +121,13 @@ func newSharedMetrics(name string, size int) (*zone, error) {
 		return nil, err
 	}
 
-	set, err := newHashSet(hashSegment, hashSegSize, entryNum, slotsNum)
+	// if zones's ref > 0, no need to initialize hashset's value
+	set, err := newHashSet(hashSegment, hashSegSize, entryNum, slotsNum, atomic.LoadUint32(zone.ref) == 0)
 	if err != nil {
 		return nil, err
 	}
+	zone.set = set
 
-	zone := &zone{
-		span:  span,
-		set:   set,
-		mutex: (*uint32)(unsafe.Pointer(mutex)),
-		ref:   (*uint32)(unsafe.Pointer(ref)),
-	}
 	// add ref
 	atomic.AddUint32(zone.ref, 1)
 
@@ -135,36 +138,30 @@ func (z *zone) lock() {
 	times := 0
 
 	// 5ms spin interval, 5 times burst
-	for true {
+	for {
 		if atomic.CompareAndSwapUint32(z.mutex, 0, pid) {
 			return
 		}
 
-		time.Sleep(time.Millisecond * 5)
+		time.Sleep(time.Millisecond)
 		times++
 
 		if times%5 == 0 {
+			// check the lock holder, if it is not current process, force unlock and update the holder.
+			if atomic.LoadUint32(z.mutex) != pid {
+				atomic.StoreUint32(z.mutex, pid)
+				return
+			}
 			runtime.Gosched()
 		}
 	}
 }
 
 func (z *zone) unlock() {
-	times := 0
-
-	// 5ms spin interval, 5 times burst
-	for true {
-		if atomic.CompareAndSwapUint32(z.mutex, pid, 0) {
-			return
-		}
-
-		time.Sleep(time.Millisecond * 5)
-		times++
-
-		if times%5 == 0 {
-			runtime.Gosched()
-		}
+	if !atomic.CompareAndSwapUint32(z.mutex, pid, 0) {
+		mosnlog.DefaultLogger.Errorf("[metrics][shm] unexpected lock holder, can not unlock")
 	}
+
 }
 
 func (z *zone) alloc(name string) (*hashEntry, error) {

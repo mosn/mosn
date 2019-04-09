@@ -37,7 +37,6 @@ var (
 	TransferConnDomainSocket   = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
 	TransferStatsDomainSocket  = MosnConfigPath + string(os.PathSeparator) + "stats.sock"
 	TransferListenDomainSocket = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
-	TransferMetricsDomainSocket = MosnConfigPath + string(os.PathSeparator) + "metrics.sock"
 )
 
 func InitDefaultPath(path string) {
@@ -70,7 +69,6 @@ func InitDefaultPath(path string) {
 	TransferConnDomainSocket = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
 	TransferStatsDomainSocket = MosnConfigPath + string(os.PathSeparator) + "stats.sock"
 	TransferListenDomainSocket = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
-	TransferMetricsDomainSocket = MosnConfigPath + string(os.PathSeparator) + "metrics.sock"
 
 end:
 	os.MkdirAll(MosnLogBasePath, 0644)

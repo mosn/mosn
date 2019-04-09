@@ -74,7 +74,7 @@ type meta struct {
 	bytesNum uint32
 }
 
-func newHashSet(segment uintptr, bytesNum, cap, slotsNum int) (*hashSet, error) {
+func newHashSet(segment uintptr, bytesNum, cap, slotsNum int, init bool) (*hashSet, error) {
 	set := &hashSet{}
 
 	// 1. entry mapping
@@ -112,18 +112,20 @@ func newHashSet(segment uintptr, bytesNum, cap, slotsNum int) (*hashSet, error) 
 		return nil, errors.New("segment is not enough to map hashSet.slots")
 	}
 
-	// 4. initialize
-	// 4.1 slots
-	for i := 0; i < slotsNum; i++ {
-		set.slots[i] = sentinel
-	}
+	if init {
+		// 4. initialize
+		// 4.1 slots
+		for i := 0; i < slotsNum; i++ {
+			set.slots[i] = sentinel
+		}
 
-	// 4.2 entries
-	last := cap - 1
-	for i := 0; i < last; i++ {
-		set.entry[i].next = uint32(i + 1)
+		// 4.2 entries
+		last := cap - 1
+		for i := 0; i < last; i++ {
+			set.entry[i].next = uint32(i + 1)
+		}
+		set.entry[last].next = sentinel
 	}
-	set.entry[last].next = sentinel
 	return set, nil
 }
 
@@ -132,6 +134,10 @@ func (s *hashSet) locateSlot(name string) uint32 {
 }
 
 func (s *hashSet) Alloc(name string) (*hashEntry, bool) {
+	if len(name) > maxNameLength {
+		return nil, false
+	}
+
 	// 1. search existed slots and entries
 	slot := s.locateSlot(name)
 
