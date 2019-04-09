@@ -294,6 +294,9 @@ type StreamReceiverFilterHandler interface {
 	// SendHijackReply is called when the filter will response directly
 	SendHijackReply(code int, headers HeaderMap)
 
+	// SendDirectRespoonse is call when the filter will response directly
+	SendDirectResponse(headers HeaderMap, buf IoBuffer, trailers HeaderMap)
+
 	// TODO: remove all of the following when proxy changed to single request @lieyuan
 	// StreamFilters will modified headers/data/trailer in different steps
 	// for example, maybe modify headers in on receive data
@@ -305,6 +308,8 @@ type StreamReceiverFilterHandler interface {
 
 	GetRequestTrailers() HeaderMap
 	SetRequestTrailers(trailers HeaderMap)
+
+	SetConvert(on bool)
 }
 
 // StreamFilterChainFactory adds filter into callbacks
