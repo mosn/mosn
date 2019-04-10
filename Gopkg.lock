@@ -63,6 +63,12 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/c2h5oh/datasize"
+  packages = ["."]
+  revision = "4eba002a5eaea69cf8d235a388fc6b65ae68d2dd"
+
+[[projects]]
   name = "github.com/envoyproxy/go-control-plane"
   packages = [
     "envoy/api/v2",
@@ -394,6 +400,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d4c208b8351b322a578434c7fcd22f2bfb1c444a9b4b8b0e72336679b688b111"
+  inputs-digest = "be59022c2af9893858c65c919e15e51dc2954bf806ec6bd6d86fdbbb9d26c2c9"
   solver-name = "gps-cdcl"
   solver-version = 1

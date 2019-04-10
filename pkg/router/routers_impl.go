@@ -168,6 +168,7 @@ func (ri *routersImpl) findVirtualHost(headers types.HeaderMap) types.VirtualHos
 // NewRouters creates a types.Routers by according to config
 func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 	if routerConfig == nil || len(routerConfig.VirtualHosts) == 0 {
+		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", fmt.Sprintf("router config is %v", routerConfig))
 		return nil, ErrNilRouterConfig
 	}
 	routers := &routersImpl{

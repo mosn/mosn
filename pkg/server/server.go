@@ -27,15 +27,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 )
-
-func init() {
-	onProcessExit = append(onProcessExit, func() {
-		if pidFile != "" {
-			os.Remove(pidFile)
-		}
-	})
-}
 
 // currently, only one server supported
 func GetServer() Server {
@@ -83,7 +76,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 
 	runtime.GOMAXPROCS(config.Processor)
 
-	OnProcessShutDown(log.CloseAll)
+	keeper.OnProcessShutDown(log.CloseAll)
 
 	server := &server{
 		serverName: config.ServerName,

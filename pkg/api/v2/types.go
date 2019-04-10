@@ -313,11 +313,8 @@ type HeaderValue struct {
 // RouterConfiguration is a filter for routers
 // Filter type is:  "CONNECTION_MANAGER"
 type RouterConfiguration struct {
-	RouterConfigName        string               `json:"router_config_name,omitempty"`
-	VirtualHosts            []*VirtualHost       `json:"virtual_hosts,omitempty"`
-	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
-	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
-	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
+	VirtualHosts []*VirtualHost `json:"-"`
+	RouterConfigurationConfig
 }
 
 // VirtualHost is used to make up the route table

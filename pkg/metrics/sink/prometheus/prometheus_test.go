@@ -43,6 +43,9 @@ const (
 // test concurrently add statisic data
 // should get the right data from prometheus
 func TestPrometheusMetrics(t *testing.T) {
+	//zone := shm.InitMetricsZone("TestPrometheusMetrics", 10*1024)
+	//defer zone.Detach()
+
 	metrics.ResetAll()
 	testCases := []struct {
 		typ         string
@@ -135,6 +138,9 @@ func TestPrometheusMetrics(t *testing.T) {
 }
 
 func BenchmarkPromSink_Flush(b *testing.B) {
+	//zone := shm.InitMetricsZone("BenchmarkPromSink_Flush", 50*1024*1024)
+	//defer zone.Detach()
+
 	// 5000 registry + each registry 40 metrics
 	for i := 0; i < 5000; i ++ {
 		m, _ := metrics.NewMetrics(fmt.Sprintf("type%d", i), map[string]string{

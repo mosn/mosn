@@ -26,13 +26,14 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 const maxLabelCount = 10
 
 var (
-	defaultStore          *store
-	defaultMatcher        *metricsMatcher
+	defaultStore *store
+	defaultMatcher *metricsMatcher
 	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
 )
 
@@ -49,8 +50,9 @@ type metrics struct {
 	typ    string
 	labels map[string]string
 
-	labelKeys   []string
-	labelValues []string
+	prefix    string
+	labelKeys []string
+	labelVals []string
 
 	registry gometrics.Registry
 }
@@ -100,11 +102,12 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	}
 
 	stats := &metrics{
-		typ:         typ,
-		labels:      labels,
-		labelKeys:   keys,
-		labelValues: values,
-		registry:    gometrics.NewRegistry(),
+		typ:       typ,
+		labels:    labels,
+		labelKeys: keys,
+		labelVals: values,
+		prefix:    name + ".",
+		registry:  gometrics.NewRegistry(),
 	}
 
 	defaultStore.metrics[name] = stats
@@ -134,12 +137,13 @@ func (s *metrics) Labels() map[string]string {
 }
 
 func (s *metrics) SortedLabels() (keys, values []string) {
-	if s.labelKeys != nil && s.labelValues != nil {
-		return s.labelKeys, s.labelValues
+	if s.labelKeys != nil && s.labelVals != nil {
+		return s.labelKeys, s.labelVals
 	}
 	keys, values = sortedLabels(s.labels)
 	s.labelKeys = keys
-	s.labelValues = values
+	s.labelVals = values
+
 	return
 }
 
@@ -148,7 +152,8 @@ func (s *metrics) Counter(key string) gometrics.Counter {
 	if defaultStore.matcher.isExclusionKey(key) {
 		return gometrics.NilCounter{}
 	}
-	return s.registry.GetOrRegister(key, gometrics.NewCounter).(gometrics.Counter)
+
+	return s.registry.GetOrRegister(key, shm.NewShmCounterFunc(s.fullName(key))).(gometrics.Counter)
 }
 
 func (s *metrics) Gauge(key string) gometrics.Gauge {
@@ -156,7 +161,8 @@ func (s *metrics) Gauge(key string) gometrics.Gauge {
 	if defaultStore.matcher.isExclusionKey(key) {
 		return gometrics.NilGauge{}
 	}
-	return s.registry.GetOrRegister(key, gometrics.NewGauge).(gometrics.Gauge)
+
+	return s.registry.GetOrRegister(key, shm.NewShmGaugeFunc(s.fullName(key))).(gometrics.Gauge)
 }
 
 func (s *metrics) Histogram(key string) gometrics.Histogram {
@@ -164,6 +170,7 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 	if defaultStore.matcher.isExclusionKey(key) {
 		return gometrics.NilHistogram{}
 	}
+
 	return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
 }
 
@@ -173,6 +180,10 @@ func (s *metrics) Each(f func(string, interface{})) {
 
 func (s *metrics) UnregisterAll() {
 	s.registry.UnregisterAll()
+}
+
+func (s *metrics) fullName(name string) string {
+	return s.prefix + name
 }
 
 // GetAll returns all metrics data
@@ -198,13 +209,13 @@ func ResetAll() {
 	defaultStore.matcher = defaultMatcher
 }
 
-func fullName(typ string, labels map[string]string) (name string, keys, values []string) {
+func fullName(typ string, labels map[string]string) (fullName string, keys, values []string) {
 	keys, values = sortedLabels(labels)
 
 	pair := make([]string, 0, len(keys))
 	for i := 0; i < len(keys); i++ {
 		pair = append(pair, keys[i]+"."+values[i])
 	}
-	name = typ + "." + strings.Join(pair, ".")
+	fullName = typ + "." + strings.Join(pair, ".")
 	return
 }

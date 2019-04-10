@@ -83,7 +83,9 @@ func TestMatchRouteFromHeaderKV(t *testing.T) {
 		Routers: routersCfg,
 	}
 	routeCfg := &v2.RouterConfiguration{
-		RouterConfigName: "test",
+		RouterConfigurationConfig: v2.RouterConfigurationConfig{
+			RouterConfigName: "test",
+		},
 		VirtualHosts: []*v2.VirtualHost{
 			vhCfg,
 		},
