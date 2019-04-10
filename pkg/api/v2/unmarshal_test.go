@@ -18,6 +18,9 @@
 package v2
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -633,5 +636,94 @@ func TestFilterChainMarshal(t *testing.T) {
 	expectedStr := `{"tls_context_set":[{"status":true,"fall_back":false}]}`
 	if string(b) != expectedStr {
 		t.Error("marshal filter chain unexpected, got: ", string(b))
+	}
+}
+
+func TestRouterConfigConflict(t *testing.T) {
+	routerConfig := `{
+		"router_config_name":"test_router",
+		"router_configs":"/tmp/routers/test_routers/",
+		"virtual_hosts": [
+			{
+				"name": "virtualhost"
+			}
+		]
+	}`
+	errCompare := func(e error) bool {
+		if e == nil {
+			return false
+		}
+		return strings.Contains(e.Error(), ErrDuplicateStaticAndDynamic.Error())
+	}
+	if err := json.Unmarshal([]byte(routerConfig), &RouterConfiguration{}); !errCompare(err) {
+		t.Fatalf("test config conflict with both dynamic mode and static mode failed, get error: %v", err)
+	}
+}
+
+func TestRouterConfigDynamicModeParse(t *testing.T) {
+	routerPath := "/tmp/routers/test_routers"
+	os.RemoveAll(routerPath)
+	if err := os.MkdirAll(routerPath, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// dynamic mode
+	// write some files
+	virtualHostConfigs := []string{
+		`{
+			"name": "virtualhost_0"
+		}`,
+		`{
+			"name": "virtualhost_1"
+		}`,
+	}
+	for i, vh := range virtualHostConfigs {
+		data := []byte(vh)
+		fileName := fmt.Sprintf("%s/virtualhost_%d.json", routerPath, i)
+		if err := ioutil.WriteFile(fileName, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// read dynamic mode config
+	routerConfig := `{
+		"router_config_name":"test_router",
+		"router_configs":"/tmp/routers/test_routers/"
+	}`
+	testConfig := &RouterConfiguration{}
+	if err := json.Unmarshal([]byte(routerConfig), testConfig); err != nil {
+		t.Fatal(err)
+	}
+	// verify
+	if len(testConfig.VirtualHosts) != 2 {
+		t.Fatalf("virtual host parsed not enough, got: %v", testConfig.VirtualHosts)
+	}
+	// add a new virtualhost
+	testConfig.VirtualHosts = append(testConfig.VirtualHosts, &VirtualHost{
+		Domains: []string{"*"},
+	})
+	// dump json
+	if _, err := json.Marshal(testConfig); err != nil {
+		t.Fatal(err)
+	}
+	// verify
+	files, err := ioutil.ReadDir(routerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 3 {
+		t.Fatalf("new virtual host is not dumped, just got %d files", len(files))
+	}
+	// test delete virtualhost
+	testConfig.VirtualHosts = testConfig.VirtualHosts[:1]
+	// dump json
+	if _, err := json.Marshal(testConfig); err != nil {
+		t.Fatal(err)
+	}
+	// verify
+	files, err = ioutil.ReadDir(routerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("new virtual host is not dumped, just got %d files", len(files))
 	}
 }

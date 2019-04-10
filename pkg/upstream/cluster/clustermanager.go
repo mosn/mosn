@@ -304,6 +304,7 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 				return fmt.Errorf("Remove Primary Cluster Failed, Cluster Name = %s not addedViaAPI", clusterName)
 			}
 			cm.primaryClusters.Delete(clusterName)
+			admin.RemoveClusterConfig(clusterName)
 			log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
 			return nil
 		} else {

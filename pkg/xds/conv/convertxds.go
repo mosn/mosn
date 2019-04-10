@@ -564,7 +564,9 @@ func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} 
 func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfiguration) (*v2.RouterConfiguration, bool) {
 	if routeConfigName != "" {
 		return &v2.RouterConfiguration{
-			RouterConfigName: routeConfigName,
+			RouterConfigurationConfig: v2.RouterConfigurationConfig{
+				RouterConfigName: routeConfigName,
+			},
 		}, true
 	}
 
@@ -589,11 +591,13 @@ func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 	}
 
 	return &v2.RouterConfiguration{
-		RouterConfigName:        xdsRouteConfig.GetName(),
-		VirtualHosts:            virtualHosts,
-		RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteConfig.GetRequestHeadersToAdd()),
-		ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteConfig.GetResponseHeadersToAdd()),
-		ResponseHeadersToRemove: xdsRouteConfig.GetResponseHeadersToRemove(),
+		RouterConfigurationConfig: v2.RouterConfigurationConfig{
+			RouterConfigName:        xdsRouteConfig.GetName(),
+			RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteConfig.GetRequestHeadersToAdd()),
+			ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteConfig.GetResponseHeadersToAdd()),
+			ResponseHeadersToRemove: xdsRouteConfig.GetResponseHeadersToRemove(),
+		},
+		VirtualHosts: virtualHosts,
 	}, false
 }
 

@@ -241,7 +241,9 @@ func Test_routersManager_GetRouterWrapperByName(t *testing.T) {
 	routerConfigName := "test_router"
 
 	router0 := &v2.RouterConfiguration{
-		RouterConfigName: routerConfigName,
+		RouterConfigurationConfig: v2.RouterConfigurationConfig{
+			RouterConfigName: routerConfigName,
+		},
 	}
 
 	if err := json.Unmarshal(bytes1, router1); err != nil {
@@ -289,7 +291,9 @@ func Test_routersManager_GetRouterWrapperByName(t *testing.T) {
 func Test_routersManager_AddRouter(t *testing.T) {
 	routerManager := NewRouterManager()
 	routerCfg := &v2.RouterConfiguration{
-		RouterConfigName: "test_addrouter",
+		RouterConfigurationConfig: v2.RouterConfigurationConfig{
+			RouterConfigName: "test_addrouter",
+		},
 		VirtualHosts: []*v2.VirtualHost{
 			{
 				Name:    "test_addrouter_vh",
@@ -364,7 +368,9 @@ func Test_routersManager_AddRouter(t *testing.T) {
 func Test_routersManager_RemoveAllRouter(t *testing.T) {
 	routerManager := NewRouterManager()
 	routerCfg := &v2.RouterConfiguration{
-		RouterConfigName: "test_remove_all_router",
+		RouterConfigurationConfig: v2.RouterConfigurationConfig{
+			RouterConfigName: "test_remove_all_router",
+		},
 		VirtualHosts: []*v2.VirtualHost{
 			{
 				Name:    "test_addrouter_vh",

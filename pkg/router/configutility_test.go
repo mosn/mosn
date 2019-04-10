@@ -135,25 +135,27 @@ func Test_NewConfigImpl(t *testing.T) {
 			name: "case1",
 			args: args{
 				routerConfig: &v2.RouterConfiguration{
-					RequestHeadersToAdd: []*v2.HeaderValueOption{
-						{
-							Header: &v2.HeaderValue{
-								Key:   "LEVEL",
-								Value: "1",
+					RouterConfigurationConfig: v2.RouterConfigurationConfig{
+						RequestHeadersToAdd: []*v2.HeaderValueOption{
+							{
+								Header: &v2.HeaderValue{
+									Key:   "LEVEL",
+									Value: "1",
+								},
+								Append: &FALSE,
 							},
-							Append: &FALSE,
 						},
-					},
-					ResponseHeadersToAdd: []*v2.HeaderValueOption{
-						{
-							Header: &v2.HeaderValue{
-								Key:   "Random",
-								Value: "123456",
+						ResponseHeadersToAdd: []*v2.HeaderValueOption{
+							{
+								Header: &v2.HeaderValue{
+									Key:   "Random",
+									Value: "123456",
+								},
+								Append: &FALSE,
 							},
-							Append: &FALSE,
 						},
+						ResponseHeadersToRemove: []string{"status"},
 					},
-					ResponseHeadersToRemove: []string{"status"},
 				},
 			},
 			want: &configImpl{
