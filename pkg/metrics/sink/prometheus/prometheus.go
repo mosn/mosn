@@ -71,7 +71,6 @@ type promConfig struct {
 
 	DisableCollectProcess bool `json:"disable_collect_process"`
 	DisableCollectGo      bool `json:"disable_collect_go"`
-	DisablePassiveFlush   bool `json:"disable_passive_flush"`
 }
 
 // promSink extract metrics from stats registry with specified interval
@@ -96,13 +95,10 @@ func (exporter *promHttpExporter) ServeHTTP(rsp http.ResponseWriter, req *http.R
 
 // ~ MetricsSink
 func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
-	//format := expfmt.FmtText
 	w := writer
 
 	rsp, ok := writer.(http.ResponseWriter)
 	if ok {
-		//format = expfmt.Format(rsp.Header().Get("Content-Type"))
-
 		// gzip
 		if rsp.Header().Get("Content-Encoding") == "gzip" {
 			gz := gzipPool.Get().(*gzip.Writer)
@@ -114,11 +110,10 @@ func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 			w = gz
 		}
 	}
-	//enc := expfmt.NewEncoder(w, format)
-	//familyMap := make(map[string]*dto.MetricFamily)
 
-	// collect into MetricFamily
+	// mark whose TYPE/HELP text already printed
 	tracker := make(map[string]bool)
+	buf := buffer.GetIoBuffer(256)
 
 	for _, m := range ms {
 		typ := m.Type()
@@ -127,116 +122,21 @@ func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 		// TODO cached in metrics struct, avoid calc for each flush
 		prefix := strings.Join(labelKeys, "_") + "_" + typ + "_"
 		suffix := makeLabelStr(labelKeys, labelVals)
-		//labels := makeLabelPair(labelKeys, labelVals)
 
 		m.Each(func(name string, i interface{}) {
-			buf := buffer.GetIoBuffer(128)
-
 			switch metric := i.(type) {
 			case gometrics.Counter:
 				sink.flushCounter(tracker, buf, prefix+name, suffix, float64(metric.Count()))
-
-				//fqName := prefix + name
-				//family, ok := familyMap[fqName]
-				//if !ok {
-				//	family = &dto.MetricFamily{
-				//		Name: proto.String(fqName),
-				//		Type: dto.MetricType_COUNTER.Enum(),
-				//	}
-				//	familyMap[fqName] = family
-				//}
-				//family.Metric = append(family.Metric,
-				//	&dto.Metric{
-				//		Label:   labels,
-				//		Counter: &dto.Counter{Value: proto.Float64(float64(metric.Count()))},
-				//	})
 			case gometrics.Gauge:
 				sink.flushGauge(tracker, buf, prefix+name, suffix, float64(metric.Value()))
-
-				//fqName := prefix + name
-				//family, ok := familyMap[fqName]
-				//if !ok {
-				//	family = &dto.MetricFamily{
-				//		Name: proto.String(fqName),
-				//		Type: dto.MetricType_GAUGE.Enum(),
-				//	}
-				//	familyMap[fqName] = family
-				//}
-				//family.Metric = append(family.Metric,
-				//	&dto.Metric{
-				//		Label: labels,
-				//		Gauge: &dto.Gauge{Value: proto.Float64(float64(metric.Value()))},
-				//	})
 			case gometrics.Histogram:
 				sink.flushHistogram(tracker, buf, prefix+name, suffix, metric.Snapshot())
-
-				//snapshot := metric.Snapshot()
-				//
-				//// min
-				//minFqName := prefix + name + "_min"
-				//family, ok := familyMap[minFqName]
-				//if !ok {
-				//	family = &dto.MetricFamily{
-				//		Name: proto.String(minFqName),
-				//		Type: dto.MetricType_GAUGE.Enum(),
-				//	}
-				//	familyMap[minFqName] = family
-				//}
-				//family.Metric = append(family.Metric,
-				//	&dto.Metric{
-				//		Label: labels,
-				//		Gauge: &dto.Gauge{Value: proto.Float64(float64(snapshot.Min()))},
-				//	})
-				//
-				//// max
-				//maxFqName := prefix + name + "_max"
-				//family, ok = familyMap[maxFqName]
-				//if !ok {
-				//	family = &dto.MetricFamily{
-				//		Name: proto.String(maxFqName),
-				//		Type: dto.MetricType_GAUGE.Enum(),
-				//	}
-				//	familyMap[maxFqName] = family
-				//}
-				//family.Metric = append(family.Metric,
-				//	&dto.Metric{
-				//		Label: labels,
-				//		Gauge: &dto.Gauge{Value: proto.Float64(float64(snapshot.Max()))},
-				//	})
 			}
 			buf.WriteTo(w)
-			buffer.PutIoBuffer(buf)
+			buf.Reset()
 		})
 	}
-
-	////encode
-	//for _, family := range familyMap {
-	//	enc.Encode(family)
-	//}
 }
-
-//func (sink *promSink) flushHistogram(enc expfmt.Encoder, name string, labels []*dto.LabelPair, snapshot gometrics.Histogram) {
-//	// min
-//	sink.flushGauge(enc, name+"_min", labels, float64(snapshot.Min()))
-//	// max
-//	sink.flushGauge(enc, name+"_max", labels, float64(snapshot.Max()))
-//}
-//
-//func (sink *promSink) flushGauge(enc expfmt.Encoder, name string, labels []*dto.LabelPair, val float64) {
-//	enc.Encode(&dto.MetricFamily{
-//		Name:   proto.String(name),
-//		Type:   dto.MetricType_GAUGE.Enum(),
-//		Metric: []*dto.Metric{{Label: labels, Gauge: &dto.Gauge{Value: proto.Float64(val)}}},
-//	})
-//}
-//
-//func (sink *promSink) flushCounter(enc expfmt.Encoder, name string, labels []*dto.LabelPair, val float64) {
-//	enc.Encode(&dto.MetricFamily{
-//		Name:   proto.String(name),
-//		Type:   dto.MetricType_COUNTER.Enum(),
-//		Metric: []*dto.Metric{{Label: labels, Counter: &dto.Counter{Value: proto.Float64(val)}}},
-//	})
-//}
 
 func (sink *promSink) flushHistogram(tracker map[string]bool, buf types.IoBuffer, name string, labels string, snapshot gometrics.Histogram) {
 	// min

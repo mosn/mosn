@@ -29,8 +29,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"fmt"
-	"net/url"
-	"io"
 )
 
 type testAction int
@@ -161,23 +159,23 @@ func BenchmarkPromSink_Flush(b *testing.B) {
 	defer store.StopService()
 	time.Sleep(time.Second) // wait server start
 
-	tc := http.Client{}
+	//tc := http.Client{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i ++ {
-		//sink.Flush(ioutil.Discard, metrics.GetAll())
-		url, _ := url.Parse("http://127.0.0.1:8088/metrics")
-		tc.Do(&http.Request{
-			Method: http.MethodGet,
-			URL:    url,
-			//Header: map[string][]string{
-			//	//"Accept-Encoding": {"gzip, deflate"},
-			//	"Accept": {"application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily encoding=compact-text"},
-			//},
-		})
-		resp, err := tc.Get("http://127.0.0.1:8088/metrics")
-		if err != nil {
-			b.Error("get metrics failed:", err)
-		}
-		io.Copy(ioutil.Discard, resp.Body)
+		sink.Flush(ioutil.Discard, metrics.GetAll())
+		//url, _ := url.Parse("http://127.0.0.1:8088/metrics")
+		//tc.Do(&http.Request{
+		//	Method: http.MethodGet,
+		//	URL:    url,
+		//	//Header: map[string][]string{
+		//	//	//"Accept-Encoding": {"gzip, deflate"},
+		//	//	"Accept": {"application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily encoding=compact-text"},
+		//	//},
+		//})
+		//resp, err := tc.Get("http://127.0.0.1:8088/metrics")
+		//if err != nil {
+		//	b.Error("get metrics failed:", err)
+		//}
+		//io.Copy(ioutil.Discard, resp.Body)
 	}
 }
