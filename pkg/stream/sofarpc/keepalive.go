@@ -70,7 +70,7 @@ func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, th
 
 // keepalive should stop when connection closed
 func (kp *sofaRPCKeepAlive) OnEvent(event types.ConnectionEvent) {
-	if event.IsClose() {
+	if event.IsClose() || event.ConnectFailure() {
 		close(kp.stop)
 	}
 }
@@ -165,18 +165,10 @@ func (kp *sofaRPCKeepAlive) HandleSuccess(id uint64) {
 
 // StreamReceiver Implementation
 // we just needs to make sure we can receive a response, do not care the data we received
-func (kp *sofaRPCKeepAlive) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) {
+func (kp *sofaRPCKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	if ack, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		kp.HandleSuccess(ack.RequestID())
 	}
-}
-
-func (kp *sofaRPCKeepAlive) OnReceiveData(ctx context.Context, data types.IoBuffer, endStream bool) {
-	// ignore
-	// TODO: release the iobuffer
-}
-
-func (kp *sofaRPCKeepAlive) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) {
 }
 
 func (kp *sofaRPCKeepAlive) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {

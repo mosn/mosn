@@ -202,6 +202,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		if err := store.StartService(nil); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
 		}
+		store.SetMosnState(store.Running)
 	}
 
 	//close legacy listeners

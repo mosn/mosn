@@ -256,7 +256,11 @@ func TestConfigAddAndUpdate(t *testing.T) {
 			route := router["route"].(map[string]interface{})
 			weightedClusters := route["weighted_clusters"].([]interface{})
 
-			if route["cluster_name"].(string) != "" && len(weightedClusters) != 2 {
+			// cluster_name is omitempty
+			if _, ok := route["cluster_name"]; ok {
+				t.Fatal("cluster_name is not omitempty")
+			}
+			if len(weightedClusters) != 2 {
 				t.Fatalf("reviews.default.svc.cluster.local:9080 should route to weighted_clusters")
 			}
 			cluster1 := weightedClusters[0].(map[string]interface{})["cluster"].(map[string]interface{})

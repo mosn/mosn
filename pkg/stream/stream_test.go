@@ -15,49 +15,47 @@
  * limitations under the License.
  */
 
-package proxy
+package stream
 
-import "github.com/alipay/sofa-mosn/pkg/log"
-
-type direction uint8
-type eventType uint8
-
-const (
-	// direction
-	downstream direction = 1
-	upstream   direction = 2
-
-	// event type
-	recvHeader  eventType = 1
-	recvData    eventType = 2
-	recvTrailer eventType = 3
-	reset       eventType = 4
+import (
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"testing"
+	"errors"
 )
 
 type event struct {
-	id  uint32
-	dir direction
-	evt eventType
-
-	handle func()
 }
 
-func (ev *event) Source() uint32 {
-	return ev.id
-}
-
-func eventDispatch(shard int, jobChan <-chan interface{}) {
-	for job := range jobChan {
-		eventProcess(shard, job)
+func (e *event) OnResetStream(reason types.StreamResetReason) {
+	if e == nil {
+		panic(errors.New("EventListener is nil"))
 	}
 }
 
-func eventProcess(shard int, job interface{}) {
-	if ev, ok := job.(*event); ok {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("enter event process, proxyID = %d, dir = %d, type = %d", ev.id, ev.dir, ev.evt)
-		}
+func (e *event) OnDestroyStream() {
+	if e == nil {
+		panic(errors.New("EventListener is nil"))
+	}
+}
 
-		ev.handle()
+func TestStreamEventListener(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("TestStreamEventListener error: %v", r)
+		}
+	}()
+
+	var base BaseStream
+
+	for i := 0 ; i < 10; i++ {
+		go func() {
+			for i := 0; i < 1000; i++ {
+				base.AddEventListener(&event{})
+			}
+		}()
+	}
+
+	for i := 0; i< 100000; i++ {
+		base.ResetStream(types.StreamLocalReset)
 	}
 }

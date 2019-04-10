@@ -10,13 +10,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
+	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 )
 
 type Client struct {
@@ -39,10 +39,7 @@ func NewClient(addr string) *Client {
 	return c
 }
 
-func (c *Client) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {}
-func (c *Client) OnReceiveTrailers(context context.Context, trailers types.HeaderMap)        {}
-func (c *Client) OnDecodeError(context context.Context, err error, headers types.HeaderMap)  {}
-func (c *Client) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	fmt.Printf("[RPC Client] Receive Data:")
 	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		streamID := protocol.StreamIDConv(cmd.RequestID())
@@ -52,6 +49,8 @@ func (c *Client) OnReceiveHeaders(context context.Context, headers types.HeaderM
 		}
 	}
 }
+
+func (c *Client) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {}
 
 func (c *Client) Request() {
 	c.Id++

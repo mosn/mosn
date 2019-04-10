@@ -209,7 +209,7 @@ func TestFaultInject_AllWithDelay(t *testing.T) {
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
 	start := time.Now()
-	if status := f.OnReceiveHeaders(context.TODO(), nil, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -243,7 +243,7 @@ func TestFaultInject_AllAbortWithoutDelay(t *testing.T) {
 	}
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
-	if status := f.OnReceiveHeaders(context.TODO(), nil, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -279,18 +279,13 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
 	start := time.Now()
-	if status := f.OnReceiveHeaders(context.TODO(), nil, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterContinue {
 		t.Error("fault inject should matched")
 		return
 	}
-	select {
-	case <-cb.called:
-		cost := time.Now().Sub(start)
-		if cost < time.Second {
-			t.Errorf("expected delay at least 1s")
-		}
-	case <-time.After(2 * time.Second):
-		t.Error("timeout")
+	cost := time.Now().Sub(start)
+	if cost < time.Second {
+		t.Errorf("expected delay at least 1s")
 	}
 	notmatched := &mockStreamReceiverFilterCallbacks{
 		route: &mockRoute{
@@ -301,7 +296,7 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 	}
 	f2 := NewFilter(context.Background(), cfg)
 	f2.SetReceiveFilterHandler(notmatched)
-	if status := f2.OnReceiveHeaders(context.TODO(), nil, true); status != types.StreamHeadersFilterContinue {
+	if status := f2.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterContinue {
 		t.Error("unmatched upstream not returns continue")
 	}
 
@@ -335,25 +330,20 @@ func TestFaultInject_MatchedHeader(t *testing.T) {
 		"User": "Alice",
 	})
 	start := time.Now()
-	if status := f.OnReceiveHeaders(context.TODO(), headers, true); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceive(context.TODO(), headers, nil, nil); status != types.StreamFilterContinue {
 		t.Error("fault inject should matched")
 		return
 	}
-	select {
-	case <-cb.called:
-		cost := time.Now().Sub(start)
-		if cost < time.Second {
-			t.Errorf("expected delay at least 1s")
-		}
-	case <-time.After(2 * time.Second):
-		t.Error("timeout")
+	cost := time.Now().Sub(start)
+	if cost < time.Second {
+		t.Errorf("expected delay at least 1s")
 	}
 	notmatched := protocol.CommonHeader(map[string]string{
 		"User": "Bob",
 	})
 	f2 := NewFilter(context.Background(), cfg)
 	f2.SetReceiveFilterHandler(cb)
-	if status := f2.OnReceiveHeaders(context.TODO(), notmatched, true); status != types.StreamHeadersFilterContinue {
+	if status := f2.OnReceive(context.TODO(), notmatched, nil, nil); status != types.StreamFilterContinue {
 		t.Error("unmatched headers not return continue")
 	}
 }
@@ -383,7 +373,7 @@ func TestFaultInject_RouteConfigOverride(t *testing.T) {
 	}
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
-	if status := f.OnReceiveHeaders(context.TODO(), nil, false); status != types.StreamHeadersFilterStop {
+	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}

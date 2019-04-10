@@ -35,6 +35,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"fmt"
 )
 
 // Network related const
@@ -86,6 +87,7 @@ type connection struct {
 	lastWriteSizeWrite int64
 
 	closed    uint32
+	connected uint32
 	startOnce sync.Once
 	eventLoop *eventLoop
 
@@ -103,6 +105,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		remoteAddr:       rawc.RemoteAddr(),
 		stopChan:         stopChan,
 		readEnabled:      true,
+		connected:        1,
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
 		writeBufferChan:  make(chan *[]types.IoBuffer, 32),
@@ -303,8 +306,8 @@ func (c *connection) startReadLoop() {
 				} else {
 					// set a long time, not transfer connection, wait mosn exit.
 					transferTime = time.Now().Add(10 * TransferTimeout)
-					c.logger.Infof("not support transfer connection, Connection = %d, Local Address = %s, Remote Address = %s",
-						c.id, c.rawConnection.LocalAddr().String(), c.RemoteAddr().String())
+					c.logger.Infof("not support transfer connection, Connection = %d, Local Address = %+v, Remote Address = %+v",
+						c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 				}
 			} else {
 				if transferTime.Before(time.Now()) {
@@ -335,8 +338,8 @@ func (c *connection) startReadLoop() {
 						c.Close(types.NoFlush, types.OnReadErrClose)
 					}
 
-					c.logger.Errorf("Error on read. Connection = %d, Local Address = %s, Remote Address = %s, err = %s",
-						c.id, c.rawConnection.LocalAddr().String(), c.RemoteAddr().String(), err)
+					c.logger.Errorf("Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
+						c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
 
 					return
 				}
@@ -419,7 +422,8 @@ func (c *connection) onRead() {
 func (c *connection) Write(buffers ...types.IoBuffer) error {
 	defer func() {
 		if r := recover(); r != nil {
-			c.logger.Errorf("Write panic %v", r)
+			c.logger.Errorf("connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v",
+				c.id, c.LocalAddr(), c.RemoteAddr())
 		}
 	}()
 
@@ -429,20 +433,13 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		return nil
 	}
 
-	if c.internalLoopStarted {
-		select {
-		case c.writeBufferChan <- &buffers:
-		default:
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						c.logger.Errorf("Write panic %v", r)
-					}
-				}()
-				c.writeBufferChan <- &buffers
-			}()
-		}
+	if !UseNetpollMode {
+		c.writeBufferChan <- &buffers
 	} else {
+		if atomic.LoadUint32(&c.connected) == 1 {
+			return fmt.Errorf("can note schedule write on the un-connected connection %d", c.id)
+		}
+
 		// Start schedule if not started
 		select {
 		case c.writeSchedChan <- true:
@@ -451,8 +448,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -539,6 +536,8 @@ func (c *connection) startWriteLoop() {
 
 			return
 		}
+
+		runtime.Gosched()
 	}
 
 transfer:
@@ -635,7 +634,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	// connection failed in client mode
-	if reflect.ValueOf(c.rawConnection).IsNil() {
+	if c.rawConnection == nil || reflect.ValueOf(c.rawConnection).IsNil() {
 		return nil
 	}
 
@@ -822,17 +821,9 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 
 func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 	cc.connectOnce.Do(func() {
-		var localTCPAddr *net.TCPAddr
-
-		if cc.localAddr != nil {
-			localTCPAddr, err = net.ResolveTCPAddr("tcp", cc.localAddr.String())
-		}
-
-		var remoteTCPAddr *net.TCPAddr
-		remoteTCPAddr, err = net.ResolveTCPAddr("tcp", cc.remoteAddr.String())
-
-		cc.rawConnection, err = net.DialTCP("tcp", localTCPAddr, remoteTCPAddr)
 		var event types.ConnectionEvent
+
+		cc.rawConnection, err = net.DialTimeout("tcp", cc.RemoteAddr().String(), time.Second*3)
 
 		if err != nil {
 			if err == io.EOF {
@@ -844,6 +835,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 				event = types.ConnectFailed
 			}
 		} else {
+			atomic.StoreUint32(&cc.connected, 1)
 			event = types.Connected
 
 			// ensure ioEnabled and UseNetpollMode

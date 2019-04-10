@@ -214,21 +214,17 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 
 	// header, data notify
 	if stream != nil {
-		data := cmd.Data()
-
 		timeoutInt := cmd.GetTimeout()
 		timeout := strconv.Itoa(timeoutInt) // timeout, ms
 		cmd.Set(types.HeaderGlobalTimeout, timeout)
 
-		stream.receiver.OnReceiveHeaders(stream.ctx, cmd, data == nil)
+		stream.receiver.OnReceive(stream.ctx, cmd, cmd.Data(), nil)
 
-		if data != nil {
-			stream.receiver.OnReceiveData(stream.ctx, data, true)
-		}
 	}
 }
 
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
+	conn.logger.Errorf("error occurs while proceeding codec logic: %s", err.Error())
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
 		conn.logger.Errorf("error occurs while proceeding codec logic: %s", err.Error())
@@ -379,7 +375,7 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 		s.sendCmd.SetData(data)
 	}
 
-	log.DefaultLogger.Infof("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
+	log.DefaultLogger.Debugf("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
 
 	if endStream {
 		s.endStream()
