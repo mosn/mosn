@@ -32,8 +32,8 @@ import (
 const maxLabelCount = 10
 
 var (
-	defaultStore          *store
-	defaultMatcher        *metricsMatcher
+	defaultStore *store
+	defaultMatcher *metricsMatcher
 	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
 )
 
@@ -166,7 +166,7 @@ func (s *metrics) Gauge(key string) gometrics.Gauge {
 }
 
 func (s *metrics) Histogram(key string) gometrics.Histogram {
-	//support exclusion only
+	// support exclusion only
 	if defaultStore.matcher.isExclusionKey(key) {
 		return gometrics.NilHistogram{}
 	}

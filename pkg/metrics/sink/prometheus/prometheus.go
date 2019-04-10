@@ -31,11 +31,31 @@ import (
 	gometrics "github.com/rcrowley/go-metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"io"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/gogo/protobuf/proto"
+	"sync"
+	"compress/gzip"
+	"math"
+	"strconv"
+	"bytes"
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 var (
 	sinkType        = "prometheus"
 	defaultEndpoint = "/metrics"
+	gzipPool        = sync.Pool{
+		New: func() interface{} {
+			return gzip.NewWriter(nil)
+		},
+	}
+	numBufPool = sync.Pool{
+		New: func() interface{} {
+			b := make([]byte, 0, 24)
+			return &b
+		},
+	}
 )
 
 func init() {
@@ -51,15 +71,13 @@ type promConfig struct {
 
 	DisableCollectProcess bool `json:"disable_collect_process"`
 	DisableCollectGo      bool `json:"disable_collect_go"`
-	DisablePassiveFlush   bool `json:"disable_passive_flush"`
 }
 
 // promSink extract metrics from stats registry with specified interval
 type promSink struct {
 	config *promConfig
 
-	registry  prometheus.Registerer //Prometheus registry
-	gaugeVecs map[string]*prometheus.GaugeVec
+	registry prometheus.Registerer //Prometheus registry
 }
 
 type promHttpExporter struct {
@@ -68,71 +86,98 @@ type promHttpExporter struct {
 }
 
 func (exporter *promHttpExporter) ServeHTTP(rsp http.ResponseWriter, req *http.Request) {
-	// 1. flush metrics
-	if !exporter.sink.config.DisablePassiveFlush {
-		exporter.sink.Flush(metrics.GetAll())
-	}
-
-	// 2. export
+	// 1. export process and go metrics
 	exporter.real.ServeHTTP(rsp, req)
+
+	// 2. mosn metrics
+	exporter.sink.Flush(rsp, metrics.GetAll())
 }
 
 // ~ MetricsSink
-func (sink *promSink) Flush(ms []types.Metrics) {
+func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
+	w := writer
+
+	rsp, ok := writer.(http.ResponseWriter)
+	if ok {
+		// gzip
+		if rsp.Header().Get("Content-Encoding") == "gzip" {
+			gz := gzipPool.Get().(*gzip.Writer)
+			defer gzipPool.Put(gz)
+
+			gz.Reset(w)
+			defer gz.Close()
+
+			w = gz
+		}
+	}
+
+	// mark whose TYPE/HELP text already printed
+	tracker := make(map[string]bool)
+	buf := buffer.GetIoBuffer(256)
+
 	for _, m := range ms {
 		typ := m.Type()
 		labelKeys, labelVals := m.SortedLabels()
+
+		// TODO cached in metrics struct, avoid calc for each flush
+		prefix := strings.Join(labelKeys, "_") + "_" + typ + "_"
+		suffix := makeLabelStr(labelKeys, labelVals)
+
 		m.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
 			case gometrics.Counter:
-				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Count()))
+				sink.flushCounter(tracker, buf, prefix+name, suffix, float64(metric.Count()))
 			case gometrics.Gauge:
-				sink.gauge(typ, labelKeys, labelVals, name, float64(metric.Value()))
+				sink.flushGauge(tracker, buf, prefix+name, suffix, float64(metric.Value()))
 			case gometrics.Histogram:
-				snap := metric.Snapshot()
-				sink.histogramVec(typ, labelKeys, labelVals, name, snap)
+				sink.flushHistogram(tracker, buf, prefix+name, suffix, metric.Snapshot())
 			}
+			buf.WriteTo(w)
+			buf.Reset()
 		})
 	}
 }
 
-func (sink *promSink) histogramVec(typ string, labelKeys, labelVals []string, name string, snap gometrics.Histogram) {
-	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_max", float64(snap.Max()))
-	sink.histogramVecWithValue(typ, labelKeys, labelVals, name+"_min", float64(snap.Min()))
+func (sink *promSink) flushHistogram(tracker map[string]bool, buf types.IoBuffer, name string, labels string, snapshot gometrics.Histogram) {
+	// min
+	sink.flushGauge(tracker, buf, name+"_min", labels, float64(snapshot.Min()))
+	// max
+	sink.flushGauge(tracker, buf, name+"_max", labels, float64(snapshot.Max()))
 }
 
-func (sink *promSink) histogramVecWithValue(typ string, labelKeys, labelVals []string, name string, value float64) {
-	namespace := strings.Join(labelKeys, "_")
-	key := namespace + "_" + typ + "_" + name
-	g, ok := sink.gaugeVecs[key]
-	if !ok {
-		g = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: flattenKey(namespace),
-			Subsystem: flattenKey(typ),
-			Name:      flattenKey(name),
-			Help:      "histogram metrics",
-		}, labelKeys)
-		sink.registry.MustRegister(g)
-		sink.gaugeVecs[key] = g
+func (sink *promSink) flushGauge(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {
+	// type
+	if !tracker[name] {
+		buf.WriteString("# TYPE ")
+		buf.WriteString(name)
+		buf.WriteString(" gauge\n")
+		tracker[name] = true
 	}
-	g.WithLabelValues(labelVals...).Set(value)
+	// metric
+	buf.WriteString(name)
+	buf.WriteString("{")
+	buf.WriteString(labels)
+	buf.WriteString("} ")
+	writeFloat(buf, val)
+	buf.WriteString("\n")
 }
 
-func (sink *promSink) gauge(typ string, labelKeys, labelVals []string, name string, val float64) {
-	namespace := strings.Join(labelKeys, "_")
-	key := namespace + "_" + typ + "_" + name
-	g, ok := sink.gaugeVecs[key]
-	if !ok {
-		g = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: flattenKey(namespace),
-			Subsystem: flattenKey(typ),
-			Name:      name,
-		}, labelKeys)
-
-		sink.registry.MustRegister(g)
-		sink.gaugeVecs[key] = g
+func (sink *promSink) flushCounter(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {
+	// type
+	if !tracker[name] {
+		buf.WriteString("# TYPE ")
+		buf.WriteString(name)
+		buf.WriteString(" counter\n")
+		tracker[name] = true
 	}
-	g.WithLabelValues(labelVals...).Set(val)
+
+	// metric
+	buf.WriteString(name)
+	buf.WriteString("{")
+	buf.WriteString(labels)
+	buf.WriteString("} ")
+	writeFloat(buf, val)
+	buf.WriteString("\n")
 }
 
 // NewPromeSink returns a metrics sink that produces Prometheus metrics using store data
@@ -147,9 +192,8 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 	}
 
 	promSink := &promSink{
-		config:    config,
-		registry:  promReg,
-		gaugeVecs: make(map[string]*prometheus.GaugeVec),
+		config:   config,
+		registry: promReg,
 	}
 
 	// export http for prometheus
@@ -201,10 +245,56 @@ func builder(cfg map[string]interface{}) (types.MetricsSink, error) {
 	return NewPromeSink(promCfg), nil
 }
 
-func flattenKey(key string) string {
-	key = strings.Replace(key, " ", "_", -1)
-	key = strings.Replace(key, ".", "_", -1)
-	key = strings.Replace(key, "-", "_", -1)
-	key = strings.Replace(key, "=", "_", -1)
-	return key
+// input: keys=[cluster,host] values=[app1,server2]
+// output: cluster="app1",host="server"
+func makeLabelStr(keys, values []string) (out string) {
+	if length := len(keys); length > 0 {
+		out = keys[0] + "=\"" + values[0] + "\""
+		for i := 1; i < length; i++ {
+			out += "," + keys[i] + "=\"" + values[i] + "\""
+		}
+	}
+	return
+}
+
+func makeLabelPair(keys, values []string) (pairs []*dto.LabelPair) {
+	if length := len(keys); length == len(values) {
+		pairs = make([]*dto.LabelPair, length)
+		for i := 0; i < length; i++ {
+			pairs[i] = &dto.LabelPair{
+				Name:  proto.String(keys[i]),
+				Value: proto.String(values[i]),
+			}
+		}
+	}
+	return
+}
+
+func writeFloat(w types.IoBuffer, f float64) (int, error) {
+	switch {
+	case f == 1:
+		return w.WriteString("1.0")
+	case f == 0:
+		return w.WriteString("0.0")
+	case f == -1:
+		return w.WriteString("-1.0")
+	case math.IsNaN(f):
+		return w.WriteString("NaN")
+	case math.IsInf(f, +1):
+		return w.WriteString("+Inf")
+	case math.IsInf(f, -1):
+		return w.WriteString("-Inf")
+	default:
+		bp := numBufPool.Get().(*[]byte)
+		*bp = strconv.AppendFloat((*bp)[:0], f, 'g', -1, 64)
+		// Add a .0 if used fixed point and there is no decimal
+		// point already. This is for future proofing with OpenMetrics,
+		// where floats always contain either an exponent or decimal.
+		if !bytes.ContainsAny(*bp, "e.") {
+			*bp = append(*bp, '.', '0')
+		}
+		written, err := w.Write(*bp)
+		numBufPool.Put(bp)
+		return written, err
+	}
 }
