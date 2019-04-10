@@ -26,13 +26,14 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 const maxLabelCount = 10
 
 var (
-	defaultStore *store
-	defaultMatcher *metricsMatcher
+	defaultStore          *store
+	defaultMatcher        *metricsMatcher
 	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
 )
 
@@ -46,8 +47,10 @@ type store struct {
 
 // metrics is a wrapper of go-metrics registry, is an implement of types.Metrics
 type metrics struct {
-	typ       string
-	labels    map[string]string
+	typ    string
+	labels map[string]string
+
+	prefix    string
 	labelKeys []string
 	labelVals []string
 
@@ -93,15 +96,18 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	}
 
 	// check existence
-	name := fullName(typ, labels)
+	name, keys, values := fullName(typ, labels)
 	if m, ok := defaultStore.metrics[name]; ok {
 		return m, nil
 	}
 
 	stats := &metrics{
-		typ:      typ,
-		labels:   labels,
-		registry: gometrics.NewRegistry(),
+		typ:       typ,
+		labels:    labels,
+		labelKeys: keys,
+		labelVals: values,
+		prefix:    name + ".",
+		registry:  gometrics.NewRegistry(),
 	}
 
 	defaultStore.metrics[name] = stats
@@ -146,7 +152,8 @@ func (s *metrics) Counter(key string) gometrics.Counter {
 	if defaultStore.matcher.isExclusionKey(key) {
 		return gometrics.NilCounter{}
 	}
-	return s.registry.GetOrRegister(key, gometrics.NewCounter).(gometrics.Counter)
+
+	return s.registry.GetOrRegister(key, shm.NewShmCounterFunc(s.fullName(key))).(gometrics.Counter)
 }
 
 func (s *metrics) Gauge(key string) gometrics.Gauge {
@@ -154,14 +161,16 @@ func (s *metrics) Gauge(key string) gometrics.Gauge {
 	if defaultStore.matcher.isExclusionKey(key) {
 		return gometrics.NilGauge{}
 	}
-	return s.registry.GetOrRegister(key, gometrics.NewGauge).(gometrics.Gauge)
+
+	return s.registry.GetOrRegister(key, shm.NewShmGaugeFunc(s.fullName(key))).(gometrics.Gauge)
 }
 
 func (s *metrics) Histogram(key string) gometrics.Histogram {
-	// support exclusion only
+	//support exclusion only
 	if defaultStore.matcher.isExclusionKey(key) {
 		return gometrics.NilHistogram{}
 	}
+
 	return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
 }
 
@@ -171,6 +180,10 @@ func (s *metrics) Each(f func(string, interface{})) {
 
 func (s *metrics) UnregisterAll() {
 	s.registry.UnregisterAll()
+}
+
+func (s *metrics) fullName(name string) string {
+	return s.prefix + name
 }
 
 // GetAll returns all metrics data
@@ -196,25 +209,13 @@ func ResetAll() {
 	defaultStore.matcher = defaultMatcher
 }
 
-func mapEqual(x, y map[string]string) bool {
-	if len(x) != len(y) {
-		return false
-	}
-	for k, xv := range x {
-		if yv, ok := y[k]; !ok || yv != xv {
-			return false
-		}
-	}
-	return true
-}
-
-func fullName(typ string, labels map[string]string) string {
-	keys, values := sortedLabels(labels)
+func fullName(typ string, labels map[string]string) (fullName string, keys, values []string) {
+	keys, values = sortedLabels(labels)
 
 	pair := make([]string, 0, len(keys))
 	for i := 0; i < len(keys); i++ {
 		pair = append(pair, keys[i]+"."+values[i])
 	}
-	return typ + "." + strings.Join(pair, ".")
-
+	fullName = typ + "." + strings.Join(pair, ".")
+	return
 }

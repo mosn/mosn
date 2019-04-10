@@ -18,12 +18,7 @@
 package server
 
 import (
-	"io/ioutil"
 	"os"
-	"os/signal"
-	"path/filepath"
-	"strconv"
-	"sync"
 	"syscall"
 	"time"
 
@@ -32,134 +27,18 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 )
 
 func init() {
-	catchSignals()
-}
-
-var (
-	pidFile               string
-	onProcessExit         []func()
-	GracefulTimeout       = time.Second * 30 //default 30s
-	shutdownCallbacksOnce sync.Once
-	shutdownCallbacks     []func() error
-)
-
-func SetPid(pid string) {
-	if pid == "" {
-		pidFile = types.MosnPidDefaultFileName
-	} else {
-		if err := os.MkdirAll(filepath.Dir(pid), 0644); err != nil {
-			pidFile = types.MosnPidDefaultFileName
-		} else {
-			pidFile = pid
-		}
-	}
-	writePidFile()
-}
-
-func writePidFile() (err error) {
-	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
-
-	if err = ioutil.WriteFile(pidFile, pid, 0644); err != nil {
-		log.DefaultLogger.Errorf("write pid file error: %v", err)
-	}
-	return err
-}
-
-func catchSignals() {
-	catchSignalsCrossPlatform()
-	catchSignalsPosix()
-}
-
-func catchSignalsCrossPlatform() {
-	go func() {
-		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP,
-			syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
-
-		for sig := range sigchan {
-			log.DefaultLogger.Debugf("signal %s received!", sig)
-			switch sig {
-			case syscall.SIGQUIT:
-				// quit
-				for _, f := range onProcessExit {
-					f() // only perform important cleanup actions
-				}
-				os.Exit(0)
-			case syscall.SIGTERM:
-				// stop to quit
-				exitCode := executeShutdownCallbacks("SIGTERM")
-				for _, f := range onProcessExit {
-					f() // only perform important cleanup actions
-				}
-				Stop()
-
-				os.Exit(exitCode)
-			case syscall.SIGUSR1:
-				// reopen
-				log.Reopen()
-			case syscall.SIGHUP:
-				// reload, fork new mosn
-				reconfigure(true)
-			case syscall.SIGUSR2:
-			}
-		}
-	}()
-}
-
-func catchSignalsPosix() {
-	go func() {
-		shutdown := make(chan os.Signal, 1)
-		signal.Notify(shutdown, os.Interrupt)
-
-		for i := 0; true; i++ {
-			<-shutdown
-
-			if i > 0 {
-				for _, f := range onProcessExit {
-					f() // important cleanup actions only
-				}
-				os.Exit(2)
-			}
-
-			// important cleanup actions before shutdown callbacks
-			for _, f := range onProcessExit {
-				f()
-			}
-
-			go func() {
-				os.Exit(executeShutdownCallbacks("SIGINT"))
-			}()
-		}
-	}()
-}
-
-func executeShutdownCallbacks(signame string) (exitCode int) {
-	shutdownCallbacksOnce.Do(func() {
-		var errs []error
-
-		for _, cb := range shutdownCallbacks {
-			errs = append(errs, cb())
-		}
-
-		if len(errs) > 0 {
-			for _, err := range errs {
-				log.DefaultLogger.Errorf(" %s shutdown: %v", signame, err)
-			}
-			exitCode = 4
-		}
+	keeper.AddSignalCallback(syscall.SIGHUP, func() {
+		// reload, fork new mosn
+		reconfigure(true)
 	})
-
-	return
 }
 
-func OnProcessShutDown(cb func() error) {
-	shutdownCallbacks = append(shutdownCallbacks, cb)
-}
+var GracefulTimeout = time.Second * 30 //default 30s
 
 func startNewMosn() error {
 	execSpec := &syscall.ProcAttr{
@@ -222,11 +101,10 @@ func reconfigure(start bool) {
 
 	// Wait for all connections to be finished
 	WaitConnectionsDone(GracefulTimeout)
-	// Transfer metrcis data, non-block
-	metrics.TransferMetrics(false, 0)
+
 	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
 
-	executeShutdownCallbacks("")
+	keeper.ExecuteShutdownCallbacks("")
 
 	// Stop the old server, all the connections have been closed and the new one is running
 	os.Exit(0)

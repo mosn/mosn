@@ -54,6 +54,8 @@ func init() {
 }
 
 func initWorkerPool(data interface{}, endParsing bool) error {
+	initGlobalStats()
+
 	poolSize := runtime.NumCPU() * 1024
 
 	// set poolSize equal to processor if it was specified
@@ -65,6 +67,11 @@ func initWorkerPool(data interface{}, endParsing bool) error {
 
 	return nil
 }
+
+func initGlobalStats(){
+	globalStats = newProxyStats(types.GlobalProxyName)
+}
+
 
 // types.ReadFilter
 // types.ServerStreamConnectionEventListener

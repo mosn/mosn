@@ -72,6 +72,8 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 }
 
 func TestDirectResponse(t *testing.T) {
+	initGlobalStats()
+
 	testCases := []struct {
 		client *mockResponseSender
 		route  *mockRoute
