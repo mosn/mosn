@@ -61,6 +61,8 @@ func NewConfig(c *v2.ServerConfig) *Config {
 		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        config.ParseLogLevel(c.DefaultLogLevel),
+		ProxyLogPath:    c.ProxyLogPath,
+		ProxyLogLevel:   config.ParseLogLevel(c.ProxyLogLevel),
 		LogRoller:       c.DefaultLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,

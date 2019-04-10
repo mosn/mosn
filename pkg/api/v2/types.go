@@ -408,6 +408,8 @@ type ServerConfig struct {
 	ServerName       string `json:"mosn_server_name,omitempty"`
 	DefaultLogPath   string `json:"default_log_path,omitempty"`
 	DefaultLogLevel  string `json:"default_log_level,omitempty"`
+	ProxyLogPath     string `json:"proxy_log_path,omitempty"`
+	ProxyLogLevel    string `json:"proxy_log_level,omitempty"`
 	DefaultLogRoller string `json:"default_log_roller,omitempty"`
 
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`

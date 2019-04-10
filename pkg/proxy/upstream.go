@@ -270,7 +270,6 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
 
 	// debug message for upstream
-	log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] client conn id %d, proxy id %d, upstream id %d", r.proxy.readCallbacks.Connection().ID(), r.downStream.ID, sender.GetStream().ID())
-
+	log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] new upstream, proxyId = %v", r.downStream.ID)
 	// todo: check if we get a reset on send headers
 }
