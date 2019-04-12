@@ -15,25 +15,26 @@
  * limitations under the License.
  */
 
-package store
+package utils
 
-import "github.com/alipay/sofa-mosn/pkg/metrics"
-
-type State int
-
-var state = Init
-
-const (
-	Init State = iota
-	Running
-	Reconfiguring
+import (
+	"io/ioutil"
+	"os"
 )
 
-func GetMosnState() State {
-	return state
-}
-
-func SetMosnState(s State) {
-	state = s
-	metrics.SetStateCode(int64(s))
+// WriteFileSafety trys to over write a file safety.
+func WriteFileSafety(filename string, data []byte, perm os.FileMode) (err error) {
+	tempFile := filename + ".tmp"
+Try:
+	for i := 0; i < 5; i++ {
+		err = ioutil.WriteFile(tempFile, data, perm)
+		if err == nil {
+			break Try
+		}
+	}
+	if err != nil {
+		return err
+	}
+	err = os.Rename(tempFile, filename)
+	return
 }

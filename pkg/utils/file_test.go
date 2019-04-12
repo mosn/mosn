@@ -15,25 +15,35 @@
  * limitations under the License.
  */
 
-package store
+package utils
 
-import "github.com/alipay/sofa-mosn/pkg/metrics"
-
-type State int
-
-var state = Init
-
-const (
-	Init State = iota
-	Running
-	Reconfiguring
+import (
+	"bytes"
+	"io/ioutil"
+	"os"
+	"testing"
 )
 
-func GetMosnState() State {
-	return state
-}
+func TestWriteFileSafety(t *testing.T) {
+	target := "/tmp/test_write_file_safety"
+	data := []byte("test_data")
+	if err := WriteFileSafety(target, data, 0644); err != nil {
+		t.Fatal("write file error: ", err)
+	}
+	// verify
+	b, err := ioutil.ReadFile(target)
+	if err != nil {
+		t.Fatal("read target file failed: ", err)
+	}
+	if !bytes.Equal(data, b) {
+		t.Error("write data is not expected")
+	}
 
-func SetMosnState(s State) {
-	state = s
-	metrics.SetStateCode(int64(s))
+	f, err := os.Stat(target)
+	if err != nil {
+		t.Fatal("read target file stat failed: ", err)
+	}
+	if !(f.Mode() == 0644) {
+		t.Fatal("target file stat verify failed: ", f.Mode())
+	}
 }

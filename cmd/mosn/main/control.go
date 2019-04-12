@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"runtime"
 
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
 	"github.com/alipay/sofa-mosn/pkg/mosn"
 	"github.com/urfave/cli"
 )
@@ -63,6 +65,11 @@ var (
 				s := &http.Server{Addr: addr, Handler: nil}
 				store.AddService(s, "pprof", nil, nil)
 			}
+			// set mosn metrics flush
+			metrics.FlushMosnMetrics = true
+			// set version and go version
+			metrics.SetVersion(Version)
+			metrics.SetGoVersion(runtime.Version())
 			mosn.Start(conf, serviceCluster, serviceNode)
 			return nil
 		},
