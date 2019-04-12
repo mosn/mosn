@@ -142,8 +142,14 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	if responseSender != nil {
 		stream.responseSender = responseSender
 		stream.responseSender.GetStream().AddEventListener(stream)
+
+		// debug message for downstream
+		stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
 	} else {
 		stream.oneway = true
+
+		// debug message for downstream
+		stream.logger.Debugf("client conn id %d, proxy id %d", proxy.readCallbacks.Connection().ID(), stream.ID)
 	}
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
@@ -151,8 +157,6 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	proxy.listenerStats.DownstreamRequestTotal.Inc(1)
 	proxy.listenerStats.DownstreamRequestActive.Inc(1)
 
-	// debug message for downstream
-	stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
 	return stream
 }
 
