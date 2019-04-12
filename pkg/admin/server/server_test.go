@@ -322,7 +322,7 @@ func TestGetState(t *testing.T) {
 		t.Fatal("get mosn states failed")
 	}
 	// reconfiguring
-	store.SetMosnState(store.Reconfiguring)
+	store.SetMosnState(store.Passive_Reconfiguring)
 	pid2, state2, err := getMosnState(config.Port)
 	if err != nil {
 		t.Fatal("get mosn states failed")
@@ -341,7 +341,7 @@ func TestGetState(t *testing.T) {
 		t.Error("mosn pid is not expected", pid, pid2, pid3)
 	}
 	if !(state == store.Init &&
-		state2 == store.Reconfiguring &&
+		state2 == store.Passive_Reconfiguring &&
 		state3 == store.Running) {
 		t.Error("mosn state is not expected", state, state2, state3)
 	}
