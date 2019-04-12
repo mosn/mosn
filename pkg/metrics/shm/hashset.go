@@ -21,6 +21,7 @@ import (
 	"errors"
 	"reflect"
 	"unsafe"
+	"strconv"
 )
 
 var (
@@ -131,17 +132,18 @@ func newHashSet(segment uintptr, bytesNum, cap, slotsNum int, init bool) (*hashS
 	return set, nil
 }
 
-func (s *hashSet) locateSlot(name string) uint32 {
-	return hash(name) % s.meta.slotsNum
-}
-
 func (s *hashSet) Alloc(name string) (*hashEntry, bool) {
-	if len(name) > maxNameLength {
-		return nil, false
-	}
-
 	// 1. search existed slots and entries
-	slot := s.locateSlot(name)
+	h := hash(name)
+	slot := h % s.meta.slotsNum
+
+	// name convert if length exceeded
+	if len(name) > maxNameLength {
+		// if name is longer than max length, use hash_string as leading character
+		// and the remaining maxNameLength - len(hash_string) bytes follows
+		hStr := strconv.Itoa(int(h))
+		name = hStr + name[len(hStr)+len(name)-maxNameLength:]
+	}
 
 	nameBytes := []byte(name)
 
@@ -184,7 +186,8 @@ func (s *hashSet) Free(entry *hashEntry) {
 		name := string(entry.getName())
 
 		// 1. search existed slots and entries
-		slot := s.locateSlot(name)
+		h := hash(name)
+		slot := h % s.meta.slotsNum
 
 		var index uint32
 		var prev *hashEntry
