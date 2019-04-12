@@ -88,6 +88,8 @@ type downStream struct {
 	noConvert bool
 	// direct response.  e.g. sendHijack
 	directResponse bool
+	// oneway
+	oneway bool
 
 	notify chan struct{}
 
@@ -131,13 +133,18 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
-	stream.responseSender = responseSender
-	stream.responseSender.GetStream().AddEventListener(stream)
 	stream.context = ctx
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
 
 	stream.logger = log.ByContext(proxy.context)
+
+	if responseSender != nil {
+		stream.responseSender = responseSender
+		stream.responseSender.GetStream().AddEventListener(stream)
+	} else {
+		stream.oneway = true
+	}
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
 	proxy.stats.DownstreamRequestActive.Inc(1)
@@ -384,6 +391,19 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 		}
 		// skip types.Retry
+		phase++
+		fallthrough
+
+		// downstream oneway
+	case types.Oneway:
+		if s.oneway {
+			s.cleanStream()
+
+			if p, err := s.processError(id); err != nil {
+				return p
+			}
+		}
+
 		phase = types.WaitNofity
 		fallthrough
 

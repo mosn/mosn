@@ -106,6 +106,11 @@ func (c *client) SetStreamConnectionEventListener(listener types.StreamConnectio
 }
 
 func (c *client) NewStream(context context.Context, respReceiver types.StreamReceiveListener) types.StreamSender {
+	// oneway
+	if respReceiver == nil {
+		return c.ClientStreamConnection.NewStream(context, nil)
+	}
+
 	wrapper := &clientStreamReceiverWrapper{
 		streamReceiver: respReceiver,
 	}

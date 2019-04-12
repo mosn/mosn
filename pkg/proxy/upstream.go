@@ -162,7 +162,11 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	r.sendComplete = endStream
 
 	log.StartLogger.Tracef("upstream request before conn pool new stream")
-	r.connPool.NewStream(r.downStream.context, r, r)
+	if r.downStream.oneway {
+		r.connPool.NewStream(r.downStream.context, nil, r)
+	} else {
+		r.connPool.NewStream(r.downStream.context, r, r)
+	}
 }
 
 func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap {

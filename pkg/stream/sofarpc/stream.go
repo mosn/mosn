@@ -183,9 +183,11 @@ func (conn *streamConnection) NewStream(ctx context.Context, receiver types.Stre
 	stream.sc = conn
 	stream.receiver = receiver
 
-	conn.mutex.Lock()
-	conn.streams[stream.id] = stream
-	conn.mutex.Unlock()
+	if stream.receiver != nil {
+		conn.mutex.Lock()
+		conn.streams[stream.id] = stream
+		conn.mutex.Unlock()
+	}
 
 	return stream
 }
@@ -237,7 +239,7 @@ func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, 
 				// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
 				var stream *stream
 				switch cmd.CommandType() {
-				case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
+				case sofarpc.REQUEST:
 					stream = conn.onNewStreamDetect(ctx, cmd, conn.codecEngine)
 				case sofarpc.RESPONSE:
 					stream = conn.onStreamRecv(ctx, cmd)
@@ -268,7 +270,12 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 
 	conn.logger.Debugf("new stream detect, id = %d", stream.id)
 
-	stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, stream, spanBuilder)
+	if cmd.CommandType() == sofarpc.REQUEST_ONEWAY {
+		stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, nil, spanBuilder)
+	} else {
+		stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, stream, spanBuilder)
+	}
+
 	return stream
 }
 

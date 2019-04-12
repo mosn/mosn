@@ -87,8 +87,15 @@ func (p *connPool) NewStream(ctx context.Context,
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
-		streamEncoder.GetStream().AddEventListener(activeClient)
+
+		var streamEncoder types.StreamSender
+		// oneway
+		if responseDecoder == nil {
+			streamEncoder = activeClient.client.NewStream(ctx, nil)
+		} else {
+			streamEncoder = activeClient.client.NewStream(ctx, responseDecoder)
+			streamEncoder.GetStream().AddEventListener(activeClient)
+		}
 
 		listener.OnReady(streamEncoder, p.host)
 	}
