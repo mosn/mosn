@@ -62,8 +62,8 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		log.StartLogger.Fatalln("getInheritListeners failed, exit")
 	}
 	if reconfigure != nil {
-		// set Mosn State
-		store.SetMosnState(store.Reconfiguring)
+		// set Mosn Active_Reconfiguring
+		store.SetMosnState(store.Active_Reconfiguring)
 		// parse MOSNConfig again
 		c = config.Load(config.GetConfigPath())
 	}
@@ -182,7 +182,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
-	if store.GetMosnState() == store.Reconfiguring {
+	if store.GetMosnState() == store.Active_Reconfiguring {
 		// start other services
 		if err := store.StartService(inheritListeners); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
