@@ -29,7 +29,7 @@ const maxNameLength = 107
 type metricsEntry struct {
 	value int64                   // 8
 	ref   uint32                  // 4
-	name  [maxNameLength + 1]byte // 100 + 1 for '\0', end of string tag in C-style string
+	name  [maxNameLength + 1]byte // 107 + 1 for '\0', end of string tag in C-style string
 }
 
 func (e *metricsEntry) assignName(name []byte) {
