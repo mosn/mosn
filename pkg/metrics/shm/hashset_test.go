@@ -106,7 +106,24 @@ func TestHashSet_AddWithLongName(t *testing.T) {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
 	defaultZone.alloc(string(b))
+}
 
+func TestHashSet_AddWithMaxLengthName(t *testing.T) {
+	zone := InitMetricsZone("TestHashSet_AddWithMaxLengthName", 10*1024)
+	defer func() {
+		zone.Detach()
+		Reset()
+	}()
+
+	const charset = "abcdefghijklmnopqrstuvwxyz" +
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	length := maxNameLength
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	defaultZone.alloc(string(b))
 }
 
 func BenchmarkHashSet_Free(b *testing.B) {
