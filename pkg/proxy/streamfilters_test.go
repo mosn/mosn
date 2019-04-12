@@ -19,14 +19,16 @@ package proxy
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
+
+	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"time"
 )
 
 func init() {
@@ -44,12 +46,14 @@ func TestRunReiverFilters(t *testing.T) {
 				// this filter returns all continue, like mixer filter or fault inject filter not matched condition
 				{
 					status: types.StreamFilterContinue,
+					phase:  types.DownFilter,
 				},
 				// this filter like fault inject filter matched condition
 				// in fault inject, it will call ContinueReceiving/SendHijackReply
 				// this test will ignore it
 				{
 					status: types.StreamFilterStop,
+					phase:  types.DownFilter,
 				},
 			},
 		},
@@ -58,15 +62,18 @@ func TestRunReiverFilters(t *testing.T) {
 			filters: []*mockStreamReceiverFilter{
 				{
 					status: types.StreamFilterContinue,
+					phase:  types.DownFilter,
 				},
 				{
 					status: types.StreamFilterReMatchRoute,
+					phase:  types.DownFilterAfterRoute,
 				},
 				// to prevent proxy. if a real stream filter returns all stop,
 				// it should call SendHijackReply, or the stream will be hung up
 				// this test will ignore it
 				{
 					status: types.StreamFilterStop,
+					phase:  types.DownFilterAfterRoute,
 				},
 			},
 		},
@@ -74,9 +81,11 @@ func TestRunReiverFilters(t *testing.T) {
 			filters: []*mockStreamReceiverFilter{
 				{
 					status: types.StreamFilterReMatchRoute,
+					phase:  types.DownFilterAfterRoute,
 				},
 				{
 					status: types.StreamFilterStop,
+					phase:  types.DownFilterAfterRoute,
 				},
 			},
 		},
@@ -92,7 +101,8 @@ func TestRunReiverFilters(t *testing.T) {
 			notify:      make(chan struct{}, 1),
 		}
 		for _, f := range tc.filters {
-			s.AddStreamReceiverFilter(f, types.DownFilterAfterRoute)
+			f.s = s
+			s.AddStreamReceiverFilter(f, f.phase)
 		}
 		// mock run
 		s.downstreamReqHeaders = protocol.CommonHeader{}
@@ -117,12 +127,15 @@ func TestRunReiverFiltersStop(t *testing.T) {
 		filters: []*mockStreamReceiverFilter{
 			{
 				status: types.StreamFilterReMatchRoute,
+				phase:  types.DownFilterAfterRoute,
 			},
 			{
 				status: types.StreamFilterStop,
+				phase:  types.DownFilterAfterRoute,
 			},
 			{
 				status: types.StreamFilterContinue,
+				phase:  types.DownFilterAfterRoute,
 			},
 		},
 	}
@@ -136,7 +149,8 @@ func TestRunReiverFiltersStop(t *testing.T) {
 		notify:      make(chan struct{}, 1),
 	}
 	for _, f := range tc.filters {
-		s.AddStreamReceiverFilter(f, types.DownFilterAfterRoute)
+		f.s = s
+		s.AddStreamReceiverFilter(f, f.phase)
 	}
 	// mock run
 	s.downstreamReqHeaders = protocol.CommonHeader{}
@@ -191,6 +205,7 @@ func TestRunSenderFilters(t *testing.T) {
 			},
 		}
 		for _, f := range tc.filters {
+			f.s = s
 			s.AddStreamSenderFilter(f)
 		}
 		// mock run
@@ -229,6 +244,7 @@ func TestRunSenderFiltersStop(t *testing.T) {
 		},
 	}
 	for _, f := range tc.filters {
+		f.s = s
 		s.AddStreamSenderFilter(f)
 	}
 
@@ -249,12 +265,18 @@ type mockStreamReceiverFilter struct {
 	on int
 	// returns status
 	status types.StreamFilterStatus
+	// mock for test
+	phase types.Phase
+	s     *downStream
 }
 
 func (f *mockStreamReceiverFilter) OnDestroy() {}
 
 func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	f.on++
+	if f.status == types.StreamFilterStop {
+		atomic.StoreUint32(&f.s.downstreamCleaned, 1)
+	}
 	return f.status
 }
 
@@ -268,6 +290,8 @@ type mockStreamSenderFilter struct {
 	on int
 	// returns status
 	status types.StreamFilterStatus
+	// mock for test
+	s *downStream
 }
 
 func (f *mockStreamSenderFilter) OnDestroy() {}
@@ -276,6 +300,9 @@ func (f *mockStreamSenderFilter) Append(ctx context.Context, headers types.Heade
 	f.on++
 	f.handler.SetResponseHeaders(protocol.CommonHeader{})
 	f.handler.SetResponseData(buffer.NewIoBuffer(1))
+	if f.status == types.StreamFilterStop {
+		atomic.StoreUint32(&f.s.downstreamCleaned, 1)
+	}
 	return f.status
 }
 
