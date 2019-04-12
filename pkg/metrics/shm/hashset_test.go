@@ -20,6 +20,8 @@ package shm
 import (
 	"strconv"
 	"testing"
+	"unsafe"
+	"math/rand"
 )
 
 func TestHashSet_Alloc(t *testing.T) {
@@ -79,6 +81,31 @@ func TestHashSet_Free(t *testing.T) {
 	if entry != realloc {
 		t.Error("free and reuse not expected")
 	}
+
+}
+
+func TestHashSet_EntrySize(t *testing.T) {
+	if sz := unsafe.Sizeof(hashEntry{}); sz != 128 {
+		t.Error("hash entry size mismatch:", sz)
+	}
+}
+
+func TestHashSet_AddWithLongName(t *testing.T) {
+	zone := InitMetricsZone("TestHashSet_AddWithLongName", 10*1024)
+	defer func() {
+		zone.Detach()
+		Reset()
+	}()
+
+	const charset = "abcdefghijklmnopqrstuvwxyz" +
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	length := 200
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	defaultZone.alloc(string(b))
 
 }
 
