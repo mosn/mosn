@@ -62,8 +62,8 @@ func reconfigure(start bool) {
 		startNewMosn()
 		return
 	}
-	// set mosn State Reconfiguring
-	store.SetMosnState(store.Reconfiguring)
+	// set mosn State Passive_Reconfiguring
+	store.SetMosnState(store.Passive_Reconfiguring)
 	// if reconfigure failed, set mosn state to Running
 	defer store.SetMosnState(store.Running)
 

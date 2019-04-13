@@ -24,7 +24,8 @@ var state = Init
 const (
 	Init State = iota
 	Running
-	Reconfiguring
+	Active_Reconfiguring
+	Passive_Reconfiguring
 )
 
 func GetMosnState() State {
