@@ -83,10 +83,7 @@ func (p *connPool) NewStream(ctx context.Context,
 	} else {
 		atomic.AddUint64(&activeClient.totalStream, 1)
 		p.host.HostStats().UpstreamRequestTotal.Inc(1)
-		p.host.HostStats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
-		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 
 		var streamEncoder types.StreamSender
 		// oneway
@@ -95,6 +92,10 @@ func (p *connPool) NewStream(ctx context.Context,
 		} else {
 			streamEncoder = activeClient.client.NewStream(ctx, responseDecoder)
 			streamEncoder.GetStream().AddEventListener(activeClient)
+
+			p.host.HostStats().UpstreamRequestActive.Inc(1)
+			p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
+			p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		}
 
 		listener.OnReady(streamEncoder, p.host)
