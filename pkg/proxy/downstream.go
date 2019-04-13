@@ -149,7 +149,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 		stream.oneway = true
 
 		// debug message for downstream
-		stream.logger.Debugf("client conn id %d, proxy id %d", proxy.readCallbacks.Connection().ID(), stream.ID)
+		stream.logger.Debugf("oneway client conn id %d, proxy id %d", proxy.readCallbacks.Connection().ID(), stream.ID)
 	}
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
@@ -394,6 +394,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream oneway
 		case types.Oneway:
 			if s.oneway {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
 				s.cleanStream()
 
 				// downstreamCleaned has set, return types.End
