@@ -20,6 +20,7 @@ package stream
 import (
 	"context"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -108,6 +109,7 @@ func (c *client) SetStreamConnectionEventListener(listener types.StreamConnectio
 func (c *client) NewStream(context context.Context, respReceiver types.StreamReceiveListener) types.StreamSender {
 	// oneway
 	if respReceiver == nil {
+		log.DefaultLogger.Debugf("oneway client NewStream")
 		return c.ClientStreamConnection.NewStream(context, nil)
 	}
 
