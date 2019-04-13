@@ -188,7 +188,7 @@ func (s *downStream) cleanStream() {
 	streamDurationNs := s.requestInfo.RequestFinishedDuration().Nanoseconds()
 
 	// reset corresponding upstream stream
-	if s.upstreamRequest != nil && !s.upstreamProcessDone {
+	if s.upstreamRequest != nil && !s.upstreamProcessDone && !s.oneway {
 		s.logger.Errorf("downStream upstreamRequest resetStream id: %d", s.ID)
 		s.upstreamProcessDone = true
 		s.upstreamRequest.resetStream()
@@ -319,101 +319,94 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
 	s.logger.Tracef("downstream OnReceive send upstream request %+v", s)
 
-	switch phase {
-	// init phase
-	case types.InitPhase:
-		phase++
-		fallthrough
+	for i := 0; i <= int(types.End-types.InitPhase); i++ {
+		switch phase {
+		// init phase
+		case types.InitPhase:
+			phase++
 
-	// downstream filter before route
-	case types.DownFilter:
-		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
-
-		if p, err := s.processError(id); err != nil {
-			return p
-		}
-		phase++
-		fallthrough
-
-	// match route
-	case types.MatchRoute:
-		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		s.matchRoute()
-		if p, err := s.processError(id); err != nil {
-			return p
-		}
-		phase++
-		fallthrough
-
-	// downstream filter after route
-	case types.DownFilterAfterRoute:
-		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
-
-		if p, err := s.processError(id); err != nil {
-			return p
-		}
-		phase++
-		fallthrough
-
-	// downstream receive header
-	case types.DownRecvHeader:
-		if s.downstreamReqHeaders != nil {
+			// downstream filter before route
+		case types.DownFilter:
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
+			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 			if p, err := s.processError(id); err != nil {
 				return p
 			}
-		}
-		phase++
-		fallthrough
+			phase++
 
-	// downstream receive data
-	case types.DownRecvData:
-		if s.downstreamReqDataBuf != nil {
+			// match route
+		case types.MatchRoute:
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			s.downstreamReqDataBuf.Count(1)
-			s.receiveData(s.downstreamReqTrailers == nil)
-
+			s.matchRoute()
 			if p, err := s.processError(id); err != nil {
 				return p
 			}
-		}
-		phase++
-		fallthrough
+			phase++
 
-	// downstream receive trailer
-	case types.DownRecvTrailer:
-		if s.downstreamReqTrailers != nil {
+			// downstream filter after route
+		case types.DownFilterAfterRoute:
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			s.receiveTrailers()
+			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 			if p, err := s.processError(id); err != nil {
 				return p
 			}
-		}
-		// skip types.Retry
-		phase++
-		fallthrough
+			phase++
 
-		// downstream oneway
-	case types.Oneway:
-		if s.oneway {
-			s.cleanStream()
+			// downstream receive header
+		case types.DownRecvHeader:
+			if s.downstreamReqHeaders != nil {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
-			if p, err := s.processError(id); err != nil {
-				return p
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
 			}
-		}
+			phase++
 
-		phase = types.WaitNofity
-		fallthrough
+			// downstream receive data
+		case types.DownRecvData:
+			if s.downstreamReqDataBuf != nil {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				s.downstreamReqDataBuf.Count(1)
+				s.receiveData(s.downstreamReqTrailers == nil)
 
-	// retry request
-	case types.Retry:
-		if phase == types.Retry {
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// downstream receive trailer
+		case types.DownRecvTrailer:
+			if s.downstreamReqTrailers != nil {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				s.receiveTrailers()
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// downstream oneway
+		case types.Oneway:
+			if s.oneway {
+				s.cleanStream()
+
+				// downstreamCleaned has set, return types.End
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+
+			// no oneway, skip types.Retry
+			phase = types.WaitNofity
+
+			// retry request
+		case types.Retry:
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
 
 			if s.downstreamReqDataBuf != nil {
@@ -424,90 +417,87 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				return p
 			}
 			phase++
-		}
-		fallthrough
 
-	// wait for upstreamRequest or reset
-	case types.WaitNofity:
-		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		if p, err := s.waitNotify(id); err != nil {
-			return p
-		}
-
-		s.logger.Tracef("downstream OnReceive send downstream response %+v", s.downstreamRespHeaders)
-
-		phase++
-		fallthrough
-
-	// upstream filter
-	case types.UpFilter:
-		s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-		s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
-
-		if p, err := s.processError(id); err != nil {
-			return p
-		}
-
-		// maybe direct response
-		if s.upstreamRequest == nil {
-			fakeUpstreamRequest := &upstreamRequest{
-				downStream: s,
+			// wait for upstreamRequest or reset
+		case types.WaitNofity:
+			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if p, err := s.waitNotify(id); err != nil {
+				return p
 			}
 
-			s.upstreamRequest = fakeUpstreamRequest
-		}
+			s.logger.Tracef("downstream OnReceive send downstream response %+v", s.downstreamRespHeaders)
 
-		phase++
-		fallthrough
+			phase++
 
-	// upstream receive header
-	case types.UpRecvHeader:
-		// send downstream response
-		if s.downstreamRespHeaders != nil {
+			// upstream filter
+		case types.UpFilter:
 			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
+			s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
 
 			if p, err := s.processError(id); err != nil {
 				return p
 			}
-		}
-		phase++
-		fallthrough
 
-	// upstream receive data
-	case types.UpRecvData:
-		if s.downstreamRespDataBuf != nil {
-			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			s.upstreamRequest.receiveData(s.downstreamRespTrailers == nil)
+			// maybe direct response
+			if s.upstreamRequest == nil {
+				fakeUpstreamRequest := &upstreamRequest{
+					downStream: s,
+				}
 
-			if p, err := s.processError(id); err != nil {
-				return p
+				s.upstreamRequest = fakeUpstreamRequest
 			}
-		}
-		phase++
-		fallthrough
 
-	// upstream receive triler
-	case types.UpRecvTrailer:
-		if s.downstreamRespTrailers != nil {
-			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
-			s.upstreamRequest.receiveTrailers()
+			phase++
 
-			if p, err := s.processError(id); err != nil {
-				return p
+			// upstream receive header
+		case types.UpRecvHeader:
+			// send downstream response
+			if s.downstreamRespHeaders != nil {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
 			}
+			phase++
+
+			// upstream receive data
+		case types.UpRecvData:
+			if s.downstreamRespDataBuf != nil {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				s.upstreamRequest.receiveData(s.downstreamRespTrailers == nil)
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// upstream receive triler
+		case types.UpRecvTrailer:
+			if s.downstreamRespTrailers != nil {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				s.upstreamRequest.receiveTrailers()
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// process end
+		case types.End:
+			return types.End
+
+		default:
+			s.logger.Errorf("unexpected phase: %d", phase)
+			return types.End
 		}
-		phase++
-		fallthrough
-
-	// process end
-	case types.End:
-		return types.End
-
-	default:
-		s.logger.Errorf("unexpected phase: %d", phase)
-		return types.End
 	}
+
+	s.logger.Errorf("unexpected phase cycle time")
+	return types.End
 }
 
 func (s *downStream) matchRoute() {
@@ -1330,7 +1320,11 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 	if s.directResponse {
 		s.directResponse = false
-		phase = types.UpFilter
+		if s.oneway {
+			phase = types.Oneway
+		} else {
+			phase = types.UpFilter
+		}
 		err = types.ErrExit
 		return
 	}
