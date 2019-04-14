@@ -40,7 +40,7 @@ import (
 
 // Network related const
 const (
-	ConnectionCloseDebugMsg   = "Close connection %d, event %s, type %s, data read %d, data write %d"
+	ConnectionCloseDebugMsg   = "Close connection %d, event %s, type %s"
 	DefaultBufferReadCapacity = 1 << 0
 )
 
@@ -335,20 +335,20 @@ func (c *connection) startReadLoop() {
 						}
 						continue
 					}
-					if err == io.EOF {
-						c.Close(types.NoFlush, types.RemoteClose)
 
-					} else {
-						c.Close(types.NoFlush, types.OnReadErrClose)
-					}
-
-					// maybe health check
-					if c.stats.ReadTotal.Count() == 0 || err == io.EOF {
+					// normal close or health check, modify log level
+					if c.lastBytesSizeRead == 0 || err == io.EOF {
 						c.logger.Debugf("Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
 							c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
 					} else {
 						c.logger.Errorf("Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
 							c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
+					}
+
+					if err == io.EOF {
+						c.Close(types.NoFlush, types.RemoteClose)
+					} else {
+						c.Close(types.NoFlush, types.OnReadErrClose)
 					}
 
 					return
@@ -677,8 +677,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 
 	c.rawConnection.Close()
 
-	c.logger.Debugf(ConnectionCloseDebugMsg, c.id, eventType,
-		ccType, c.stats.ReadTotal.Count(), c.stats.WriteTotal.Count())
+	c.logger.Debugf(ConnectionCloseDebugMsg, c.id, eventType, ccType)
 
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
