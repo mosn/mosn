@@ -702,7 +702,7 @@ func (s *downStream) onUpstreamRequestSent() {
 	s.upstreamRequestSent = true
 	s.requestInfo.SetRequestReceivedDuration(time.Now())
 
-	if s.upstreamRequest != nil {
+	if s.upstreamRequest != nil && !s.oneway {
 		// setup per req timeout timer
 		s.setupPerReqTimeout()
 
