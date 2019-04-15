@@ -47,8 +47,6 @@ var (
 )
 
 func init() {
-	globalStats = newProxyStats(types.GlobalProxyName)
-
 	// register init function with interest of P number
 	config.RegisterConfigParsedListener(config.ParseCallbackKeyProcessor, initWorkerPool)
 }

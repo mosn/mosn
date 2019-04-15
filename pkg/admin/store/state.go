@@ -17,6 +17,8 @@
 
 package store
 
+import "github.com/alipay/sofa-mosn/pkg/metrics"
+
 type State int
 
 var state = Init
@@ -34,4 +36,5 @@ func GetMosnState() State {
 
 func SetMosnState(s State) {
 	state = s
+	metrics.SetStateCode(int64(s))
 }

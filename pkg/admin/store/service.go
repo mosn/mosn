@@ -27,6 +27,7 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
 )
 
 var lock = new(sync.Mutex)
@@ -130,6 +131,9 @@ func StartService(inheritListeners []net.Listener) error {
 					log.DefaultLogger.Errorf("service %s panic %v", s.name, r)
 				}
 			}()
+
+			// set metrics
+			metrics.AddListenerAddr(s.Addr)
 
 			s.Serve(ln)
 		}()
