@@ -126,11 +126,11 @@ func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 		m.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
 			case gometrics.Counter:
-				sink.flushCounter(tracker, buf, prefix+name, suffix, float64(metric.Count()))
+				sink.flushCounter(tracker, buf, flattenKey(prefix+name), suffix, float64(metric.Count()))
 			case gometrics.Gauge:
-				sink.flushGauge(tracker, buf, prefix+name, suffix, float64(metric.Value()))
+				sink.flushGauge(tracker, buf, flattenKey(prefix+name), suffix, float64(metric.Value()))
 			case gometrics.Histogram:
-				sink.flushHistogram(tracker, buf, prefix+name, suffix, metric.Snapshot())
+				sink.flushHistogram(tracker, buf, flattenKey(prefix+name), suffix, metric.Snapshot())
 			}
 			buf.WriteTo(w)
 			buf.Reset()
@@ -204,7 +204,7 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 	})
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", config.Port),
+		Addr:    fmt.Sprintf("0.0.0.0:%d", config.Port),
 		Handler: srvMux,
 	}
 
@@ -297,4 +297,13 @@ func writeFloat(w types.IoBuffer, f float64) (int, error) {
 		numBufPool.Put(bp)
 		return written, err
 	}
+}
+
+// name regex [a-zA-Z_:][a-zA-Z0-9_:]*
+func flattenKey(key string) string {
+	key = strings.Replace(key, " ", "_", -1)
+	key = strings.Replace(key, ".", "_", -1)
+	key = strings.Replace(key, "-", "_", -1)
+	key = strings.Replace(key, "=", "_", -1)
+	return key
 }
