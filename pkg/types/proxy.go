@@ -35,6 +35,7 @@ const (
 	DownRecvHeader
 	DownRecvData
 	DownRecvTrailer
+	Oneway
 	Retry
 	WaitNofity
 	UpFilter
