@@ -66,9 +66,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		store.SetMosnState(store.Active_Reconfiguring)
 		// parse MOSNConfig again
 		c = config.Load(config.GetConfigPath())
-	}
-
-	if store.GetMosnState() == store.Running {
+	} else {
 		// start init services
 		if err := store.StartService(nil); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
