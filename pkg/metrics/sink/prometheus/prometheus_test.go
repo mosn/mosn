@@ -137,6 +137,32 @@ func TestPrometheusMetrics(t *testing.T) {
 	}
 }
 
+func TestPrometheusFlatternKey(t *testing.T) {
+	testcase := []struct {
+		input  string
+		output string
+	}{
+		{
+			input:  "listener.127.0.0.1:34903",
+			output: "listener_127_0_0_1:34903",
+		},
+		{
+			input:  "go_version:go1.9",
+			output: "go_version:go1_9",
+		},
+		{
+			input:  "listener_address:0.0.0.0:9529",
+			output: "listener_address:0_0_0_0:9529",
+		},
+	}
+
+	for _, c := range testcase {
+		if flattenKey(c.input) != c.output {
+			t.Error("prometheus flattern key error:", c)
+		}
+	}
+}
+
 func BenchmarkPromSink_Flush(b *testing.B) {
 	//zone := shm.InitMetricsZone("BenchmarkPromSink_Flush", 50*1024*1024)
 	//defer zone.Detach()
