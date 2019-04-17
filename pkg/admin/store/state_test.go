@@ -17,42 +17,35 @@
 
 package store
 
-import "github.com/alipay/sofa-mosn/pkg/metrics"
-
-type State int
-
-var state = Init
-
-const (
-	Init State = iota
-	Running
-	Active_Reconfiguring
-	Passive_Reconfiguring
+import (
+	"sync/atomic"
+	"testing"
 )
 
-func init() {
-	RegisterOnStateChanged(SetStateCode)
-}
-
-func GetMosnState() State {
-	return state
-}
-
-func SetMosnState(s State) {
-	state = s
-	for _, cb := range onStateChangedCallbacks {
-		cb(s)
+func TestOnStateChanged(t *testing.T) {
+	calls := map[State]uint32{
+		Init:                  0,
+		Running:               0,
+		Active_Reconfiguring:  0,
+		Passive_Reconfiguring: 0,
 	}
-}
-
-type OnStateChanged func(s State)
-
-var onStateChangedCallbacks []OnStateChanged
-
-func RegisterOnStateChanged(f OnStateChanged) {
-	onStateChangedCallbacks = append(onStateChangedCallbacks, f)
-}
-
-func SetStateCode(s State) {
-	metrics.SetStateCode(int64(s))
+	onChanged := func(s State) {
+		cnt, ok := calls[s]
+		if ok {
+			calls[s] = atomic.AddUint32(&cnt, 1)
+		}
+	}
+	RegisterOnStateChanged(onChanged)
+	for _, s := range []State{
+		Init, Running, Active_Reconfiguring, Passive_Reconfiguring,
+	} {
+		for i := 0; i < 10; i++ {
+			SetMosnState(s)
+		}
+	}
+	for s, cnt := range calls {
+		if cnt != 10 {
+			t.Errorf("state:%d count is %d", s, cnt)
+		}
+	}
 }
