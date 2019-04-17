@@ -25,10 +25,11 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/utils"
+	"github.com/c2h5oh/datasize"
 	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/json-iterator/go"
-	"github.com/c2h5oh/datasize"
 )
 
 type ContentKey string
@@ -41,10 +42,10 @@ type TracingConfig struct {
 
 // MetricsConfig for metrics sinks
 type MetricsConfig struct {
-	SinkConfigs   []v2.Filter       `json:"sinks"`
-	StatsMatcher  v2.StatsMatcher   `json:"stats_matcher"`
-	ShmZone       string            `json:"shm_zone"`
-	ShmSize       datasize.ByteSize `json:"shm_size"`
+	SinkConfigs  []v2.Filter       `json:"sinks"`
+	StatsMatcher v2.StatsMatcher   `json:"stats_matcher"`
+	ShmZone      string            `json:"shm_zone"`
+	ShmSize      datasize.ByteSize `json:"shm_size"`
 }
 
 // ClusterManagerConfig for making up cluster manager
@@ -126,7 +127,7 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)
 		fileName = path.Join(cc.ClusterConfigPath, fileName)
-		if err := v2.WriteFileSafety(fileName, data, 0644); err != nil {
+		if err := utils.WriteFileSafety(fileName, data, 0644); err != nil {
 			return nil, err
 		}
 	}

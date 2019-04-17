@@ -15,26 +15,35 @@
  * limitations under the License.
  */
 
-package v2
+package utils
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
+	"testing"
 )
 
-// WriteFileSafety trys to over write a file safety.
-func WriteFileSafety(filename string, data []byte, perm os.FileMode) (err error) {
-	tempFile := filename + ".tmp"
-Try:
-	for i := 0; i < 5; i++ {
-		err = ioutil.WriteFile(tempFile, data, perm)
-		if err == nil {
-			break Try
-		}
+func TestWriteFileSafety(t *testing.T) {
+	target := "/tmp/test_write_file_safety"
+	data := []byte("test_data")
+	if err := WriteFileSafety(target, data, 0644); err != nil {
+		t.Fatal("write file error: ", err)
 	}
+	// verify
+	b, err := ioutil.ReadFile(target)
 	if err != nil {
-		return err
+		t.Fatal("read target file failed: ", err)
 	}
-	err = os.Rename(tempFile, filename)
-	return
+	if !bytes.Equal(data, b) {
+		t.Error("write data is not expected")
+	}
+
+	f, err := os.Stat(target)
+	if err != nil {
+		t.Fatal("read target file stat failed: ", err)
+	}
+	if !(f.Mode() == 0644) {
+		t.Fatal("target file stat verify failed: ", f.Mode())
+	}
 }

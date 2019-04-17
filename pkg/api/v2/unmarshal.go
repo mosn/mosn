@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -253,7 +254,7 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)
 		fileName = path.Join(rc.RouterConfigPath, fileName)
-		if err := WriteFileSafety(fileName, data, 0644); err != nil {
+		if err := utils.WriteFileSafety(fileName, data, 0644); err != nil {
 			return nil, err
 		}
 	}
