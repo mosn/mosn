@@ -26,7 +26,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 type hostSet struct {
@@ -221,7 +220,7 @@ func GenerateHostMetadata(metadata v2.Metadata) types.RouteMetaData {
 	rm := make(map[string]types.HashedValue, 1)
 
 	for k, v := range metadata {
-		rm[k] = utils.GenerateMD5Value(v)
+		rm[k] = types.HashedValue(v)
 
 	}
 

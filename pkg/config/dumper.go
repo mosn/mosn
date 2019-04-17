@@ -26,6 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 var (
@@ -118,7 +119,7 @@ func DumpConfig() {
 		// use golang original json lib, so the marshal ident can handle MarshalJSON interface implement correctly
 		content, err := gojson.MarshalIndent(config, "", "  ")
 		if err == nil {
-			err = v2.WriteFileSafety(configPath, content, 0644)
+			err = utils.WriteFileSafety(configPath, content, 0644)
 		}
 
 		if err != nil {

@@ -24,7 +24,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
@@ -54,15 +53,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: utils.GenerateMD5Value("test"),
+						Value: types.HashedValue("test"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: utils.GenerateMD5Value("green"),
+						Value: types.HashedValue("green"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: utils.GenerateMD5Value("v1"),
+						Value: types.HashedValue("v1"),
 					},
 				},
 			},
@@ -78,15 +77,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: utils.GenerateMD5Value("test"),
+						Value: types.HashedValue("test"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: utils.GenerateMD5Value("green"),
+						Value: types.HashedValue("green"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: utils.GenerateMD5Value("v1"),
+						Value: types.HashedValue("v1"),
 					},
 				},
 			},
@@ -102,7 +101,7 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: utils.GenerateMD5Value("v1"),
+						Value: types.HashedValue("v1"),
 					},
 				},
 			},
@@ -203,7 +202,7 @@ func TestMetadataMatchCriteriaImplSort(t *testing.T) {
 	for i := range keys {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  keys[i],
-			Value: utils.GenerateMD5Value(values[i]),
+			Value: types.HashedValue(values[i]),
 		}
 		mciArray = append(mciArray, mmci)
 	}
