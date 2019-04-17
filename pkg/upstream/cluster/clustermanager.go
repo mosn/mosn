@@ -176,6 +176,7 @@ func (pc *primaryCluster) UpdateHosts(hosts []types.Host) error {
 		hostsConfig = append(hostsConfig, h.Config())
 	}
 	admin.SetHosts(pc.cluster.Info().Name(), hostsConfig)
+	log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", pc.cluster.Info().Name(), hosts)
 	return nil
 }
 
@@ -206,6 +207,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	}
 	if ok {
 		admin.SetClusterConfig(clusterName, cluster)
+		log.DefaultLogger.Infof("[cluster] [clusterManager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
 	}
 	return ok
 }
