@@ -18,6 +18,7 @@
 package config
 
 import (
+	gojson "encoding/json"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -114,8 +115,8 @@ func DumpConfig() {
 
 		//update mosn_config
 		store.SetMOSNConfig(config)
-		//todo: ignore zero values in config struct @boqin
-		content, err := json.MarshalIndent(config, "", "  ")
+		// use golang original json lib, so the marshal ident can handle MarshalJSON interface implement correctly
+		content, err := gojson.MarshalIndent(config, "", "  ")
 		if err == nil {
 			err = v2.WriteFileSafety(configPath, content, 0644)
 		}
