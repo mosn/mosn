@@ -63,8 +63,14 @@ func HandleEnvoyCluster(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse)
 		}
 	}
 
-	if err := client.V2Client.reqEndpoints(client.StreamClient, clusterNames); err != nil {
-		log.DefaultLogger.Warnf("send thread request eds fail!auto retry next period")
+	if len(clusterNames) != 0 {
+		if err := client.V2Client.reqEndpoints(client.StreamClient, clusterNames); err != nil {
+			log.DefaultLogger.Warnf("send thread request eds fail!auto retry next period")
+		}
+	} else {
+		if err := client.V2Client.reqListeners(client.StreamClient); err != nil {
+			log.DefaultLogger.Warnf("send thread request lds fail!auto retry next period")
+		}
 	}
 }
 

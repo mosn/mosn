@@ -24,13 +24,23 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Server struct {
 	*http.Server
+}
+
+var adminHandleFactory map[string]func(http.ResponseWriter, *http.Request)
+
+func init() {
+	adminHandleFactory = make(map[string]func(http.ResponseWriter, *http.Request), 0)
+}
+
+func RegistryAdminHandle(pattern string, fc func(http.ResponseWriter, *http.Request)) {
+	adminHandleFactory[pattern] = fc
 }
 
 func (s *Server) Start(config Config) {
@@ -58,6 +68,11 @@ func (s *Server) Start(config Config) {
 	mux.HandleFunc("/api/v1/enable_log", enableLogger)
 	mux.HandleFunc("/api/v1/disbale_log", disableLogger)
 	mux.HandleFunc("/api/v1/states", getState)
+
+	// add custom handler
+	for pattern, fc := range adminHandleFactory {
+		mux.HandleFunc(pattern, fc)
+	}
 
 	srv := &http.Server{Addr: addr, Handler: mux}
 	store.AddService(srv, "Mosn Admin Server", nil, nil)

@@ -32,7 +32,7 @@ import (
 	"time"
 
 	admin "github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	v2 "github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
@@ -132,6 +132,14 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		}
 		if streamFiltersFactories != nil {
 			al.streamFiltersFactories = streamFiltersFactories
+			// update live connection stream filter factory
+			log.DefaultLogger.Debugf("update live connection stream filter factory context")
+			al.connsMux.Lock()
+			for e := al.conns.Front(); e != nil; e = e.Next() {
+				conn := e.Value.(*activeConnection)
+				conn.ctx = context.WithValue(conn.ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
+			}
+			al.connsMux.Unlock()
 			rawConfig.StreamFilters = lc.StreamFilters
 		}
 
@@ -451,6 +459,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		return
 	}
 	ac := newActiveConnection(al, conn)
+	ac.ctx = ctx
 
 	al.connsMux.Lock()
 	e := al.conns.PushBack(ac)
@@ -585,6 +594,7 @@ type activeConnection struct {
 	element  *list.Element
 	listener *activeListener
 	conn     types.Connection
+	ctx      context.Context
 }
 
 func newActiveConnection(listener *activeListener, conn types.Connection) *activeConnection {
