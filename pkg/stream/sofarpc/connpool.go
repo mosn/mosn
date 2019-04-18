@@ -63,10 +63,6 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) init(client *activeClient, sub byte) {
-	if !atomic.CompareAndSwapUint32(&client.state, Init, Connecting) {
-		return
-	}
-
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -103,11 +99,11 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 		client = v.(*activeClient)
 	}
 
-	if client.state == Connected {
+	if atomic.LoadUint32(&client.state) == Connected {
 		return true
 	}
 
-	if client.state == Init {
+	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) {
 		p.init(client, subProtocol)
 	}
 
@@ -130,7 +126,7 @@ func (p *connPool) NewStream(ctx context.Context,
 	}
 
 	activeClient := client.(*activeClient)
-	if activeClient.state != Connected {
+	if atomic.LoadUint32(&activeClient.state) != Connected {
 		listener.OnFailure(types.ConnectionFailure, p.host)
 		return
 	}
