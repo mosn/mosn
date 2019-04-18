@@ -160,20 +160,17 @@ func (pc *primaryCluster) UpdateHosts(hosts []types.Host) error {
 	defer pc.updateLock.Unlock()
 	if c, ok := pc.cluster.(*simpleInMemCluster); ok {
 		c.UpdateHosts(hosts)
+		hosts = c.hosts // set the final host
 	}
 	config := deepCopyCluster(pc.configUsed)
-	var hostConfig []v2.Host
-	for _, h := range hosts {
-		hostConfig = append(hostConfig, h.Config())
-	}
-	config.Hosts = hostConfig
-	pc.configUsed = config
-	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
-		return err
-	}
 	hostsConfig := make([]v2.Host, 0, len(hosts))
 	for _, h := range hosts {
 		hostsConfig = append(hostsConfig, h.Config())
+	}
+	config.Hosts = hostsConfig
+	pc.configUsed = config
+	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
+		return err
 	}
 	admin.SetHosts(pc.cluster.Info().Name(), hostsConfig)
 	log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", pc.cluster.Info().Name(), hosts)
