@@ -166,6 +166,10 @@ func (p *connPool) NewStream(ctx context.Context,
 func (p *connPool) Close() {
 	f := func(k, v interface{}) bool {
 		ac, _ := v.(*activeClient)
+		// fakeclient
+		if ac.client == nil {
+			return true
+		}
 		ac.client.Close()
 		return true
 	}
