@@ -115,7 +115,8 @@ type streamConnection struct {
 	conn              types.Connection
 	connEventListener types.ConnectionEventListener
 
-	bufChan chan types.IoBuffer
+	bufChan    chan types.IoBuffer
+	connClosed chan bool
 
 	br *bufio.Reader
 	bw *bufio.Writer
@@ -169,7 +170,6 @@ type clientStreamConnection struct {
 
 	stream                        *clientStream
 	requestSent                   chan bool
-	connClosed                    chan bool
 	mutex                         sync.RWMutex
 	connectionEventListener       types.ConnectionEventListener
 	streamConnectionEventListener types.StreamConnectionEventListener
@@ -181,14 +181,14 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 
 	csc := &clientStreamConnection{
 		streamConnection: streamConnection{
-			context: ctx,
-			conn:    connection,
-			bufChan: make(chan types.IoBuffer),
+			context:    ctx,
+			conn:       connection,
+			bufChan:    make(chan types.IoBuffer),
+			connClosed: make(chan bool, 1),
 		},
 		connectionEventListener:       connCallbacks,
 		streamConnectionEventListener: streamConnCallbacks,
 		requestSent:                   make(chan bool, 1),
-		connClosed:                    make(chan bool, 1),
 	}
 
 	csc.br = bufio.NewReader(csc)
@@ -304,9 +304,10 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
-			context: ctx,
-			conn:    connection,
-			bufChan: make(chan types.IoBuffer),
+			context:    ctx,
+			conn:       connection,
+			bufChan:    make(chan types.IoBuffer),
+			connClosed: make(chan bool, 1),
 		},
 		contextManager:           contextManager{base: ctx},
 		serverStreamConnListener: callbacks,
@@ -346,6 +347,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 func (conn *serverStreamConnection) OnEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
 		close(conn.bufChan)
+		close(conn.connClosed)
 	}
 }
 
@@ -408,7 +410,12 @@ func (conn *serverStreamConnection) serve() {
 		}
 
 		// 5. wait for proxy done
-		<-s.responseDoneChan
+		select {
+		case <-s.responseDoneChan:
+		case <-conn.connClosed:
+			return
+		}
+
 		conn.contextManager.next()
 	}
 }
