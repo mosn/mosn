@@ -425,3 +425,7 @@ func (c *LbContext) DownstreamConnection() net.Conn {
 func (c *LbContext) DownstreamHeaders() types.HeaderMap {
 	return nil
 }
+
+func (c *LbContext) DownstreamContext() context.Context {
+	return nil
+}

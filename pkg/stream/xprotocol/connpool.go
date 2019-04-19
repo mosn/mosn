@@ -56,6 +56,10 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.Xprotocol
 }
 
+func (p *connPool) CheckAndInit(ctx context.Context) bool {
+	return true
+}
+
 // DrainConnections no use
 func (p *connPool) DrainConnections() {}
 

@@ -354,6 +354,9 @@ type ConnectionPool interface {
 
 	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
 
+	// check host health and init host
+	CheckAndInit(ctx context.Context) bool
+
 	Close()
 }
 

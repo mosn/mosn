@@ -609,10 +609,12 @@ func (s *downStream) receiveHeaders(endStream bool) {
 
 	// `downstream` implement loadbalancer ctx
 	log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
-	pool, err := s.initializeUpstreamConnectionPool(s)
 
+	pool, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {
 		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
+		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
+		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
 	}
 
@@ -806,9 +808,6 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 	connPool = s.proxy.clusterManager.ConnPoolForCluster(lbCtx, s.snapshot, currentProtocol)
 
 	if connPool == nil {
-		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
-
 		return nil, fmt.Errorf("no healthy upstream in cluster %s", s.cluster.Name())
 	}
 
@@ -1237,6 +1236,10 @@ func (s *downStream) DownstreamHeaders() types.HeaderMap {
 	return s.downstreamReqHeaders
 }
 
+func (s *downStream) DownstreamContext() context.Context {
+	return s.context
+}
+
 func (s *downStream) giveStream() {
 	if s.snapshot != nil {
 		s.proxy.clusterManager.PutClusterSnapshot(s.snapshot)
@@ -1287,7 +1290,7 @@ func (s *downStream) waitNotify(id uint32) (phase types.Phase, err error) {
 		return types.End, types.ErrExit
 	}
 
-	s.logger.Debugf("waitNotify begin %p %d", s, s.ID)
+	s.logger.Tracef("waitNotify begin %p %d", s, s.ID)
 	select {
 	case <-s.notify:
 	}
