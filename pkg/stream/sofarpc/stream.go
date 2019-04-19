@@ -268,7 +268,9 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 	stream.direction = ServerStream
 	stream.sc = conn
 
-	conn.logger.Debugf("new stream detect, id = %d", stream.id)
+	if conn.logger.GetLogLevel() >= log.DEBUG {
+		conn.logger.Debugf("new stream detect, id = %d", stream.id)
+	}
 
 	if cmd.CommandType() == sofarpc.REQUEST_ONEWAY {
 		stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, nil, spanBuilder)
@@ -292,7 +294,9 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		// transmit buffer ctx
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
-		conn.logger.Debugf("stream recv, id = %d", stream.id)
+		if conn.logger.GetLogLevel() >= log.DEBUG {
+			conn.logger.Debugf("stream recv, id = %d", stream.id)
+		}
 		return stream
 	}
 
@@ -352,7 +356,9 @@ func (s *stream) AppendHeaders(ctx context.Context, headers types.HeaderMap, end
 		}
 	}
 
-	s.sc.logger.Debugf("AppendHeaders,request id = %d, direction = %d", s.ID(), s.direction)
+	if s.sc.logger.GetLogLevel() >= log.DEBUG {
+		s.sc.logger.Debugf("AppendHeaders,request id = %d, direction = %d", s.ID(), s.direction)
+	}
 
 	if endStream {
 		s.endStream()
@@ -382,7 +388,9 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 		s.sendCmd.SetData(data)
 	}
 
-	log.DefaultLogger.Debugf("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
+	}
 
 	if endStream {
 		s.endStream()
