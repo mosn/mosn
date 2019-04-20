@@ -439,8 +439,9 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		}
 
 		addr := host.AddressString()
-		log.DefaultLogger.Debugf(" clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.clusterInfo.Name())
-
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(" clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.clusterInfo.Name())
+		}
 		value, _ := cm.protocolConnPool.Load(protocol)
 
 		connectionPool := value.(*sync.Map)
@@ -450,7 +451,9 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				return pool, nil
 			}
 			pools[i] = pool
-			log.DefaultLogger.Debugf("cluster host %s is not active", addr)
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("cluster host %s is not active", addr)
+			}
 
 		} else {
 			err := func() error {

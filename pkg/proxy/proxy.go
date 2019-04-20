@@ -214,7 +214,9 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
-		log.DefaultLogger.Debugf("there is %d stream filters in config", len(ffs))
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("there is %d stream filters in config", len(ffs))
+		}
 
 		for _, f := range ffs {
 			f.CreateFilterChain(p.context, stream)
