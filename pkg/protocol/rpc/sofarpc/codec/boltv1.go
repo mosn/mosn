@@ -18,7 +18,6 @@
 package codec
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -66,12 +65,22 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.RequestClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
+		cmd.ClassName = serialize.UnsafeStrToByte(cmd.RequestClass)
 		cmd.ClassLen = int16(len(cmd.ClassName))
 	}
 
 	if cmd.RequestHeader != nil {
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
+		estimated := int(cmd.HeaderLen)
+		if estimated == 0 {
+			estimated = 256
+		}
+
+		buf := buffer.GetIoBuffer(estimated)
+		defer buffer.PutIoBuffer(buf)
+
+		serialize.Instance.SerializeMap(cmd.RequestHeader, buf)
+
+		cmd.HeaderMap = buf.Bytes()
 		cmd.HeaderLen = int16(len(cmd.HeaderMap))
 	}
 
@@ -126,12 +135,22 @@ func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffe
 func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (types.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.ResponseClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
+		cmd.ClassName = serialize.UnsafeStrToByte(cmd.ResponseClass)
 		cmd.ClassLen = int16(len(cmd.ClassName))
 	}
 
 	if cmd.ResponseHeader != nil {
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.ResponseHeader)
+		estimated := int(cmd.HeaderLen)
+		if estimated == 0 {
+			estimated = 256
+		}
+
+		buf := buffer.GetIoBuffer(estimated)
+		defer buffer.PutIoBuffer(buf)
+
+		serialize.Instance.SerializeMap(cmd.ResponseHeader, buf)
+
+		cmd.HeaderMap = buf.Bytes()
 		cmd.HeaderLen = int16(len(cmd.HeaderMap))
 	}
 
@@ -199,10 +218,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 				ver2 := bytesData[4]
 				requestID := binary.BigEndian.Uint32(bytesData[5:9])
 				codec := bytesData[9]
-				//timeout := binary.BigEndian.Uint32(bytesData[10:14])
-				// timeout should be int
-				var timeout int32
-				binary.Read(bytes.NewReader(bytesData[10:14]), binary.BigEndian, &timeout)
+				timeout := int32(binary.BigEndian.Uint32(bytesData[10:14]))
 				classLen := binary.BigEndian.Uint16(bytesData[14:16])
 				headerLen := binary.BigEndian.Uint16(bytesData[16:18])
 				contentLen := binary.BigEndian.Uint32(bytesData[18:22])
@@ -212,11 +228,15 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytesData[read : read+int(classLen)]
+						class = make([]byte, int(classLen))
+						copy(class, bytesData[read:read+int(classLen)])
+						//class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytesData[read : read+int(headerLen)]
+						header = make([]byte, int(headerLen))
+						copy(header, bytesData[read:read+int(headerLen)])
+						//header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
@@ -273,11 +293,15 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytesData[read : read+int(classLen)]
+						class = make([]byte, int(classLen))
+						copy(class, bytesData[read:read+int(classLen)])
+						//class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytesData[read : read+int(headerLen)]
+						header = make([]byte, int(headerLen))
+						copy(header, bytesData[read:read+int(headerLen)])
+						//header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
