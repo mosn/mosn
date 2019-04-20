@@ -208,7 +208,6 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.L
 	lc.Addr = addr
 	lc.PerConnBufferLimitBytes = 1 << 15
 	lc.InheritListener = old
-	lc.LogLevel = uint8(ParseLogLevel(lc.LogLevelConfig))
 	return lc
 }
 

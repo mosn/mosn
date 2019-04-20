@@ -22,6 +22,8 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 type engine struct {
@@ -86,7 +88,7 @@ func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (types.IoBu
 			return nil, ErrUnrecognizedCode
 		}
 	default:
-		log.ByContext(ctx).Errorf("not RpcCmd, cannot find encoder for model = %+v", model)
+		log.DefaultLogger.Errorf("[protocol][engine] not RpcCmd, cannot find encoder for model = %+v", model)
 		return nil, ErrUnknownType
 	}
 }
@@ -94,9 +96,11 @@ func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (types.IoBu
 func (m *mixedEngine) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	// at least 1 byte for protocol code recognize
 	if data.Len() > 1 {
-		logger := log.ByContext(ctx)
 		code := data.Bytes()[0]
-		logger.Debugf("mixed protocol engine decode, protocol code = %x", code)
+
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("mixed protocol engine decode, protocol code = %x", code)
+		}
 
 		if eg, exists := m.engineMap[code]; exists {
 			return eg.Decode(ctx, data)
@@ -132,7 +136,7 @@ func (m *mixedEngine) BuildSpan(args ...interface{}) types.Span {
 
 	ctx := args[0].(context.Context)
 
-	engine := m.engineMap[ctx.Value(types.ContextSubProtocol).(byte)]
+	engine := m.engineMap[mosnctx.Get(ctx, types.ContextSubProtocol).(byte)]
 
 	if engine == nil {
 		return nil

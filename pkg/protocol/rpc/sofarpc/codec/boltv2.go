@@ -55,7 +55,7 @@ func (c *boltCodecV2) Encode(ctx context.Context, model interface{}) (types.IoBu
 	case *sofarpc.BoltResponseV2:
 		return encodeResponseV2(ctx, cmd)
 	default:
-		log.ByContext(ctx).Errorf("unknown model : %+v", model)
+		log.DefaultLogger.Errorf("[protocol][encode][boltv2] unknown object : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
@@ -189,7 +189,6 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}
-	logger := log.ByContext(ctx)
 
 	if readableBytes >= sofarpc.LESS_LEN_V2 {
 		bytesData := data.Bytes()
@@ -235,8 +234,11 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						read += int(contentLen)
 					}
 					data.Drain(read)
-				} else { // not enough data
-					logger.Debugf("[BOLTV2 Decoder]no enough data for fully decode")
+				} else {
+					// not enough data
+					if log.DefaultLogger.GetLogLevel() > log.DEBUG {
+						log.DefaultLogger.Debugf("[protocol][decode][boltv2] no enough data for request")
+					}
 					return cmd, nil
 				}
 
@@ -264,7 +266,9 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 
 				sofarpc.DeserializeBoltRequest(ctx, &request.BoltRequest)
 
-				logger.Debugf("[Decoder]bolt v2 decode request:%+v", request)
+				if log.DefaultLogger.GetLogLevel() > log.DEBUG {
+					log.DefaultLogger.Debugf("[protocol][decode][boltv2] decode request:%+v", request)
+				}
 
 				cmd = request
 			}
@@ -299,8 +303,11 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						content = bytesData[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
-				} else { // not enough data
-					logger.Debugf("[BOLTBV2 Decoder]no enough data for fully decode")
+				} else {
+					// not enough data
+					if log.DefaultLogger.GetLogLevel() > log.DEBUG {
+						log.DefaultLogger.Debugf("[protocol][decode][boltv2] no enough data for response")
+					}
 					return cmd, nil
 				}
 
@@ -329,13 +336,15 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 
 				sofarpc.DeserializeBoltResponse(ctx, &response.BoltResponse)
 
-				logger.Debugf("[Decoder]bolt v2 decode bolt.ResponseV2:%+v\n", response)
+				if log.DefaultLogger.GetLogLevel() > log.DEBUG {
+					log.DefaultLogger.Debugf("[protocol][decode][boltv2] decode response:%+v", response)
+				}
+
 				cmd = response
 			}
 		} else {
 			// 3. unknown type error
-			return nil, fmt.Errorf("Decode Error, type = %s, value = %d", sofarpc.UnKnownCmdType, cmdType)
-
+			return nil, fmt.Errorf("[protocol][decode][boltv2] invalid cmd type, value = %d", cmdType)
 		}
 	}
 

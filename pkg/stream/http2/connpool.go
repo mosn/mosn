@@ -22,6 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
@@ -174,7 +175,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		return nil
 	}
 
-	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx := mosnctx.Set(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)

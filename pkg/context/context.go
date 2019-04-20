@@ -15,35 +15,13 @@
  * limitations under the License.
  */
 
-package types
+package context
 
-// ContextKey type
-type ContextKey int
+import "github.com/alipay/sofa-mosn/pkg/types"
 
-// Context key types(built-in)
-const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyConnectionID
-	ContextKeyListenerPort
+type Context struct {
+	builtin [types.ContextKeyEnd]interface{}
 
-	ContextKeyListenerName
-	ContextKeyListenerType
-	ContextKeyListenerStatsNameSpace
-	ContextKeyNetworkFilterChainFactories
-	ContextKeyStreamFilterChainFactories
-	ContextKeyBufferPoolCtx
-	ContextKeyAccessLogs
-	ContextOriRemoteAddr
-	ContextKeyAcceptChan
-	ContextKeyAcceptBuffer
-	ContextKeyConnectionFd
-	ContextSubProtocol
-	ContextKeyTraceSpanKey
-	ContextKeyActiveSpan
-	ContextKeyEnd
-)
-
-// GlobalProxyName represents proxy name for metrics
-const (
-	GlobalProxyName = "global"
-)
+	// TODO
+	//variables map[string]Variable
+}

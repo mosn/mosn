@@ -18,10 +18,7 @@
 package log
 
 import (
-	"context"
 	"testing"
-
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func TestUpdateLoggerConfig(t *testing.T) {
@@ -86,21 +83,4 @@ func TestUpdateLoggerConfig(t *testing.T) {
 		t.Fatal("disable Logger failed")
 	}
 
-}
-
-func TestByContext(t *testing.T) {
-	logName := "/tmp/mosn/test_by_context_default.log"
-	if err := InitDefaultLogger(logName, DEBUG); err != nil {
-		t.Fatal("init default logger failed")
-	}
-	if lg := ByContext(nil); lg == nil {
-		t.Fatal("by context get a nil logger")
-	}
-	p := "/tmp/mosn/test_by_context.log"
-	lg, _ := GetOrCreateDefaultErrorLogger(p, INFO)
-	ctx := context.WithValue(context.Background(), types.ContextKeyLogger, lg)
-	logger := ByContext(ctx).(*errorLogger)
-	if !(logger.output == p && logger.level == INFO) {
-		t.Fatal("bycontext get logger is not expected")
-	}
 }

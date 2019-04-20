@@ -39,6 +39,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 // types.StreamEventListener
@@ -111,7 +113,6 @@ type downStream struct {
 
 	// stream access logs
 	streamAccessLogs []types.AccessLog
-	logger           log.ErrorLogger
 	logDone          uint32
 
 	snapshot types.ClusterSnapshot
@@ -121,8 +122,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	if spanBuilder != nil && trace.IsTracingEnabled() {
 		span := spanBuilder.BuildSpan(ctx)
 		if span != nil {
-			ctx = context.WithValue(ctx, trace.ActiveSpanKey, span)
-			ctx = context.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
+			ctx = mosnctx.Set(ctx, types.ContextKeyActiveSpan, span)
+			ctx = mosnctx.Set(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 		}
 	}
 
@@ -137,22 +138,20 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
 
-	stream.logger = log.ByContext(proxy.context)
-
 	if responseSender != nil {
 		stream.responseSender = responseSender
 		stream.responseSender.GetStream().AddEventListener(stream)
 
 		// debug message for downstream
-		if stream.logger.GetLogLevel() >= log.DEBUG {
-			stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
 		}
 	} else {
 		stream.oneway = true
 
 		// debug message for downstream
-		if stream.logger.GetLogLevel() >= log.DEBUG {
-			stream.logger.Debugf("oneway client conn id %d, proxy id %d", proxy.readCallbacks.Connection().ID(), stream.ID)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("oneway client conn id %d, proxy id %d", proxy.readCallbacks.Connection().ID(), stream.ID)
 		}
 	}
 
@@ -193,7 +192,7 @@ func (s *downStream) cleanStream() {
 
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil && !s.upstreamProcessDone && !s.oneway {
-		s.logger.Errorf("downStream upstreamRequest resetStream id: %d", s.ID)
+		log.DefaultLogger.Errorf("downStream upstreamRequest resetStream id: %d", s.ID)
 		s.upstreamProcessDone = true
 		s.upstreamRequest.resetStream()
 	}
@@ -310,19 +309,19 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 			case types.End:
 				return
 			case types.MatchRoute:
-				s.logger.Debugf("downstream redo match route %+v", s)
+				log.DefaultLogger.Debugf("downstream redo match route %+v", s)
 			case types.Retry:
-				s.logger.Debugf("downstream retry %+v", s)
+				log.DefaultLogger.Debugf("downstream retry %+v", s)
 			case types.UpFilter:
-				s.logger.Debugf("downstream directResponse %+v", s)
+				log.DefaultLogger.Debugf("downstream directResponse %+v", s)
 			}
 		}
 	})
 }
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
-	if s.logger.GetLogLevel() >= log.TRACE {
-		s.logger.Tracef("downstream OnReceive send upstream request %+v", s)
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+		log.DefaultLogger.Tracef("downstream OnReceive send upstream request %+v", s)
 	}
 
 	for i := 0; i <= int(types.End-types.InitPhase); i++ {
@@ -333,8 +332,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// downstream filter before route
 		case types.DownFilter:
-			if s.logger.GetLogLevel() >= log.TRACE {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 			}
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
@@ -345,8 +344,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// match route
 		case types.MatchRoute:
-			if s.logger.GetLogLevel() >= log.TRACE {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 			}
 			s.matchRoute()
 			if p, err := s.processError(id); err != nil {
@@ -356,8 +355,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// downstream filter after route
 		case types.DownFilterAfterRoute:
-			if s.logger.GetLogLevel() >= log.TRACE {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 			}
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
@@ -369,8 +368,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream receive header
 		case types.DownRecvHeader:
 			if s.downstreamReqHeaders != nil {
-				if s.logger.GetLogLevel() >= log.TRACE {
-					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+					log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 				}
 				s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
@@ -383,8 +382,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream receive data
 		case types.DownRecvData:
 			if s.downstreamReqDataBuf != nil {
-				if s.logger.GetLogLevel() >= log.TRACE {
-					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+					log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 				}
 				s.downstreamReqDataBuf.Count(1)
 				s.receiveData(s.downstreamReqTrailers == nil)
@@ -398,8 +397,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream receive trailer
 		case types.DownRecvTrailer:
 			if s.downstreamReqTrailers != nil {
-				if s.logger.GetLogLevel() >= log.TRACE {
-					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+					log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 				}
 				s.receiveTrailers()
 
@@ -412,8 +411,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream oneway
 		case types.Oneway:
 			if s.oneway {
-				if s.logger.GetLogLevel() >= log.TRACE {
-					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+					log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 				}
 				s.cleanStream()
 
@@ -428,8 +427,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// retry request
 		case types.Retry:
-			if s.logger.GetLogLevel() >= log.TRACE {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 			}
 
 			if s.downstreamReqDataBuf != nil {
@@ -443,23 +442,23 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// wait for upstreamRequest or reset
 		case types.WaitNofity:
-			if s.logger.GetLogLevel() >= log.TRACE {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 			}
 			if p, err := s.waitNotify(id); err != nil {
 				return p
 			}
 
-			if s.logger.GetLogLevel() >= log.TRACE {
-				s.logger.Tracef("downstream OnReceive send downstream response %+v", s.downstreamRespHeaders)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("downstream OnReceive send downstream response %+v", s.downstreamRespHeaders)
 			}
 
 			phase++
 
 			// upstream filter
 		case types.UpFilter:
-			if s.logger.GetLogLevel() >= log.TRACE {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 			}
 			s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
 
@@ -482,8 +481,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.UpRecvHeader:
 			// send downstream response
 			if s.downstreamRespHeaders != nil {
-				if s.logger.GetLogLevel() >= log.TRACE {
-					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+					log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 				}
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
@@ -496,8 +495,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// upstream receive data
 		case types.UpRecvData:
 			if s.downstreamRespDataBuf != nil {
-				if s.logger.GetLogLevel() >= log.TRACE {
-					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+					log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 				}
 				s.upstreamRequest.receiveData(s.downstreamRespTrailers == nil)
 
@@ -510,8 +509,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// upstream receive triler
 		case types.UpRecvTrailer:
 			if s.downstreamRespTrailers != nil {
-				if s.logger.GetLogLevel() >= log.TRACE {
-					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+					log.DefaultLogger.Tracef("downStream Phase %d, id %d", phase, id)
 				}
 				s.upstreamRequest.receiveTrailers()
 
@@ -526,12 +525,12 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			return types.End
 
 		default:
-			s.logger.Errorf("unexpected phase: %d", phase)
+			log.DefaultLogger.Errorf("unexpected phase: %d", phase)
 			return types.End
 		}
 	}
 
-	s.logger.Errorf("unexpected phase cycle time")
+	log.DefaultLogger.Errorf("unexpected phase cycle time")
 	return types.End
 }
 
@@ -867,7 +866,7 @@ func (s *downStream) appendHeaders(endStream bool) {
 	headers := s.convertHeader(s.downstreamRespHeaders)
 	//Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
-		s.logger.Errorf("[downstream] append headers error, %s", err)
+		log.DefaultLogger.Errorf("[downstream] append headers error, %s", err)
 	}
 
 	if endStream {
@@ -887,7 +886,7 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
 			return convHeader
 		} else {
-			s.logger.Warnf("convert header from %s to %s failed, %s", up, dp, err.Error())
+			log.DefaultLogger.Warnf("convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
 	return headers
@@ -917,7 +916,7 @@ func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
 			return convData
 		} else {
-			s.logger.Warnf("convert data from %s to %s failed, %s", up, dp, err.Error())
+			log.DefaultLogger.Warnf("convert data from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
 	return data
@@ -942,7 +941,7 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
 			return convTrailer
 		} else {
-			s.logger.Warnf("convert header from %s to %s failed, %s", up, dp, err.Error())
+			log.DefaultLogger.Warnf("convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
 	return trailers
@@ -951,7 +950,7 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 // ~~~ upstream event handler
 func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 	// todo: update stats
-	s.logger.Errorf("on upstream reset invoked reason %v", reason)
+	log.DefaultLogger.Errorf("on upstream reset invoked reason %v", reason)
 
 	// see if we need a retry
 	if reason != types.UpstreamGlobalTimeout &&
@@ -966,7 +965,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 
 			// setup retry timer and return
 			// clear reset flag
-			s.logger.Errorf("on upstream doRetry reason %v", reason)
+			log.DefaultLogger.Errorf("on upstream doRetry reason %v", reason)
 			atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 			return
 		} else if retryCheck == types.RetryOverflow {
@@ -999,7 +998,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 		}
 		// clear reset flag
-		s.logger.Errorf("on upstream hijack reason %v", reason)
+		log.DefaultLogger.Errorf("on upstream hijack reason %v", reason)
 		atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 		s.sendHijackReply(code, s.downstreamReqHeaders)
 	}
@@ -1083,8 +1082,8 @@ func (s *downStream) finishTracing() {
 			span.SetTag(trace.RESULT_STATUS, fmt.Sprint(s.requestInfo.ResponseCode()))
 			span.FinishSpan()
 
-			if s.context.Value(types.ContextKeyListenerType) == v2.INGRESS {
-				trace.DeleteSpanIdGenerator(s.context.Value(types.ContextKeyTraceSpanKey).(*trace.SpanKey))
+			if mosnctx.Get(s.context, types.ContextKeyListenerType) == v2.INGRESS {
+				trace.DeleteSpanIdGenerator(mosnctx.Get(s.context, types.ContextKeyTraceSpanKey).(*trace.SpanKey))
 			}
 		} else {
 			log.DefaultLogger.Debugf("Span is null")
@@ -1177,9 +1176,9 @@ func (s *downStream) resetStream() {
 }
 
 func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
-	s.logger.Errorf("set hijack reply, conn = %d, id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
+	log.DefaultLogger.Errorf("set hijack reply, conn = %d, id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
 	if headers == nil {
-		s.logger.Warnf("hijack with no headers, conn = %d, id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
+		log.DefaultLogger.Warnf("hijack with no headers, conn = %d, id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
@@ -1196,9 +1195,9 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 // TODO: rpc status code may be not matched
 // TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
 func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
-	s.logger.Errorf("set hijack reply with body, conn = %d, stream id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
+	log.DefaultLogger.Errorf("set hijack reply with body, conn = %d, stream id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
 	if headers == nil {
-		s.logger.Warnf("hijack with no headers, conn = %d, stream id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
+		log.DefaultLogger.Warnf("hijack with no headers, conn = %d, stream id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
@@ -1295,14 +1294,14 @@ func (s *downStream) giveStream() {
 		return
 	}
 
-	if s.logger.GetLogLevel() >= log.DEBUG {
-		s.logger.Debugf("downStream giveStream %p %+v", s, s)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("downStream giveStream %p %+v", s, s)
 	}
 
 	// reset downstreamReqBuf
 	if s.downstreamReqDataBuf != nil {
 		if e := buffer.PutIoBuffer(s.downstreamReqDataBuf); e != nil {
-			s.logger.Errorf("PutIoBuffer error: %v", e)
+			log.DefaultLogger.Errorf("PutIoBuffer error: %v", e)
 		}
 	}
 
@@ -1336,8 +1335,8 @@ func (s *downStream) waitNotify(id uint32) (phase types.Phase, err error) {
 		return types.End, types.ErrExit
 	}
 
-	if s.logger.GetLogLevel() >= log.TRACE {
-		s.logger.Tracef("waitNotify begin %p %d", s, s.ID)
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+		log.DefaultLogger.Tracef("waitNotify begin %p %d", s, s.ID)
 	}
 	select {
 	case <-s.notify:
@@ -1358,13 +1357,13 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	if atomic.LoadUint32(&s.upstreamReset) == 1 {
-		s.logger.Errorf("processError upstreamReset downStream id: %d", s.ID)
+		log.DefaultLogger.Errorf("processError upstreamReset downStream id: %d", s.ID)
 		s.onUpstreamReset(s.resetReason)
 		err = types.ErrExit
 	}
 
 	if atomic.LoadUint32(&s.downstreamReset) == 1 {
-		s.logger.Errorf("processError downstreamReset downStream id: %d", s.ID)
+		log.DefaultLogger.Errorf("processError downstreamReset downStream id: %d", s.ID)
 		s.ResetStream(s.resetReason)
 		err = types.ErrExit
 		return

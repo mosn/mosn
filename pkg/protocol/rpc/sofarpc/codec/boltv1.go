@@ -35,6 +35,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 var (
@@ -58,7 +60,7 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	case *sofarpc.BoltResponse:
 		return encodeResponse(ctx, cmd)
 	default:
-		log.ByContext(ctx).Errorf("unknown model : %+v", model)
+		log.DefaultLogger.Errorf("[protocol][sofarpc] unknown model : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
@@ -71,6 +73,7 @@ func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffe
 	}
 
 	if cmd.RequestHeader != nil {
+
 		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
 		cmd.HeaderLen = int16(len(cmd.HeaderMap))
 	}
@@ -227,8 +230,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 					data.Drain(read)
 
 				} else { // not enough data
-
-					log.ByContext(ctx).Debugf("BoltV1 DECODE Request, no enough data for fully decode")
+					log.DefaultLogger.Debugf("BoltV1 DECODE Request, no enough data for fully decode")
 					return cmd, nil
 				}
 
@@ -288,7 +290,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 					data.Drain(read)
 				} else {
 					// not enough data
-					log.ByContext(ctx).Debugf("BoltV1 DECODE RESPONSE: no enough data for fully decode")
+					log.DefaultLogger.Debugf("BoltV1 DECODE RESPONSE: no enough data for fully decode")
 
 					return cmd, nil
 				}
@@ -389,7 +391,7 @@ func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 		traceId = trace.IdGen().GenerateTraceId()
 	}
 	span.SetTag(trace.TRACE_ID, traceId)
-	lType := ctx.Value(types.ContextKeyListenerType)
+	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
 
 	spanId := request.RequestHeader[models.RPC_ID_KEY]
 	if spanId == "" {

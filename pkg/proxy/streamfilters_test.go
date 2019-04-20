@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
@@ -96,7 +95,6 @@ func TestRunReiverFilters(t *testing.T) {
 				routersWrapper: &mockRouterWrapper{},
 				clusterManager: &mockClusterManager{},
 			},
-			logger:      log.DefaultLogger,
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
 		}
@@ -144,7 +142,6 @@ func TestRunReiverFiltersStop(t *testing.T) {
 			routersWrapper: &mockRouterWrapper{},
 			clusterManager: &mockClusterManager{},
 		},
-		logger:      log.DefaultLogger,
 		requestInfo: &network.RequestInfo{},
 		notify:      make(chan struct{}, 1),
 	}
