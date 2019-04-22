@@ -22,7 +22,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-const wrapperKey = "x-mosn-context"
+var wrapperKey = &struct{}{}
 
 func Get(ctx context.Context, key types.ContextKey) interface{} {
 	if wrapperValue := ctx.Value(wrapperKey); wrapperValue != nil {
