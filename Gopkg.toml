@@ -37,8 +37,8 @@
   version = "1.1.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/hashicorp/go-syslog"
+  version = "v1.0.0"
 
 [[constraint]]
   branch = "master"
@@ -61,12 +61,12 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/valyala/fasthttp"
+  version = "v1.2.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/json-iterator/go"
+  version = "v1.1.6"
 
 [[constraint]]
   branch = "master"

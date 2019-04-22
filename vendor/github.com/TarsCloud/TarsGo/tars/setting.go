@@ -10,7 +10,7 @@ var MaxInvoke = 0
 const (
 	//for now ,some option shuold update from remote config
 
-	//TarsVersion is tars vesion
+	//TarsVsersion version
 	TarsVersion string = "1.1.0"
 
 	//server
@@ -46,8 +46,7 @@ const (
 	ObjQueueMax int32 = 10000
 
 	//log
-	remotelogBuff int = 500000
-	//MaxlogOneTime is the max logs for reporting in one time.
+	remotelogBuff       int = 500000
 	MaxlogOneTime       int = 2000
 	defualtRotateN          = 10
 	defaultRotateSizeMB     = 100
@@ -58,7 +57,6 @@ const (
 	PropertyReportInterval time.Duration = 10 * time.Second
 	//StatReportInterval stat report interval
 	StatReportInterval time.Duration = 10 * time.Second
-	remoteLogInterval  time.Duration = 5 * time.Second
 
 	//mainloop
 
