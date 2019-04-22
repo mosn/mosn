@@ -119,7 +119,9 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 
 	r.downStream.downstreamRespTrailers = trailers
 
-	r.downStream.logger.Debugf("upstreamRequest OnReceive %+v", headers)
+	if r.downStream.logger.GetLogLevel() >= log.DEBUG {
+		r.downStream.logger.Debugf("upstreamRequest OnReceive %+v", headers)
+	}
 
 	r.downStream.sendNotify()
 }
@@ -158,10 +160,14 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
-	log.StartLogger.Tracef("upstream request encode headers")
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+		log.DefaultLogger.Tracef("upstream request encode headers")
+	}
 	r.sendComplete = endStream
 
-	log.StartLogger.Tracef("upstream request before conn pool new stream")
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+		log.DefaultLogger.Tracef("upstream request before conn pool new stream")
+	}
 	if r.downStream.oneway {
 		r.connPool.NewStream(r.downStream.context, nil, r)
 	} else {
@@ -274,7 +280,8 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
 
 	// debug message for upstream
-	r.downStream.logger.Debugf("client conn id %d, proxy id %d, upstream id %d", r.proxy.readCallbacks.Connection().ID(), r.downStream.ID, sender.GetStream().ID())
-
+	if r.downStream.logger.GetLogLevel() >= log.DEBUG {
+		r.downStream.logger.Debugf("client conn id %d, proxy id %d, upstream id %d", r.proxy.readCallbacks.Connection().ID(), r.downStream.ID, sender.GetStream().ID())
+	}
 	// todo: check if we get a reset on send headers
 }

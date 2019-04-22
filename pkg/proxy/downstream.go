@@ -144,12 +144,16 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 		stream.responseSender.GetStream().AddEventListener(stream)
 
 		// debug message for downstream
-		stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
+		if stream.logger.GetLogLevel() >= log.DEBUG {
+			stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
+		}
 	} else {
 		stream.oneway = true
 
 		// debug message for downstream
-		stream.logger.Debugf("oneway client conn id %d, proxy id %d", proxy.readCallbacks.Connection().ID(), stream.ID)
+		if stream.logger.GetLogLevel() >= log.DEBUG {
+			stream.logger.Debugf("oneway client conn id %d, proxy id %d", proxy.readCallbacks.Connection().ID(), stream.ID)
+		}
 	}
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
@@ -317,7 +321,9 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 }
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
-	s.logger.Tracef("downstream OnReceive send upstream request %+v", s)
+	if s.logger.GetLogLevel() >= log.TRACE {
+		s.logger.Tracef("downstream OnReceive send upstream request %+v", s)
+	}
 
 	for i := 0; i <= int(types.End-types.InitPhase); i++ {
 		switch phase {
@@ -327,7 +333,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// downstream filter before route
 		case types.DownFilter:
-			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if s.logger.GetLogLevel() >= log.TRACE {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			}
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 			if p, err := s.processError(id); err != nil {
@@ -337,7 +345,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// match route
 		case types.MatchRoute:
-			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if s.logger.GetLogLevel() >= log.TRACE {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			}
 			s.matchRoute()
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -346,7 +356,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// downstream filter after route
 		case types.DownFilterAfterRoute:
-			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if s.logger.GetLogLevel() >= log.TRACE {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			}
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 			if p, err := s.processError(id); err != nil {
@@ -357,7 +369,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream receive header
 		case types.DownRecvHeader:
 			if s.downstreamReqHeaders != nil {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if s.logger.GetLogLevel() >= log.TRACE {
+					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				}
 				s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -369,7 +383,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream receive data
 		case types.DownRecvData:
 			if s.downstreamReqDataBuf != nil {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if s.logger.GetLogLevel() >= log.TRACE {
+					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				}
 				s.downstreamReqDataBuf.Count(1)
 				s.receiveData(s.downstreamReqTrailers == nil)
 
@@ -382,7 +398,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream receive trailer
 		case types.DownRecvTrailer:
 			if s.downstreamReqTrailers != nil {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if s.logger.GetLogLevel() >= log.TRACE {
+					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				}
 				s.receiveTrailers()
 
 				if p, err := s.processError(id); err != nil {
@@ -394,7 +412,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream oneway
 		case types.Oneway:
 			if s.oneway {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if s.logger.GetLogLevel() >= log.TRACE {
+					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				}
 				s.cleanStream()
 
 				// downstreamCleaned has set, return types.End
@@ -408,7 +428,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// retry request
 		case types.Retry:
-			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if s.logger.GetLogLevel() >= log.TRACE {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			}
 
 			if s.downstreamReqDataBuf != nil {
 				s.downstreamReqDataBuf.Count(1)
@@ -421,18 +443,24 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// wait for upstreamRequest or reset
 		case types.WaitNofity:
-			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if s.logger.GetLogLevel() >= log.TRACE {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			}
 			if p, err := s.waitNotify(id); err != nil {
 				return p
 			}
 
-			s.logger.Tracef("downstream OnReceive send downstream response %+v", s.downstreamRespHeaders)
+			if s.logger.GetLogLevel() >= log.TRACE {
+				s.logger.Tracef("downstream OnReceive send downstream response %+v", s.downstreamRespHeaders)
+			}
 
 			phase++
 
 			// upstream filter
 		case types.UpFilter:
-			s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			if s.logger.GetLogLevel() >= log.TRACE {
+				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+			}
 			s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
 
 			if p, err := s.processError(id); err != nil {
@@ -454,7 +482,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.UpRecvHeader:
 			// send downstream response
 			if s.downstreamRespHeaders != nil {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if s.logger.GetLogLevel() >= log.TRACE {
+					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				}
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -466,7 +496,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// upstream receive data
 		case types.UpRecvData:
 			if s.downstreamRespDataBuf != nil {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if s.logger.GetLogLevel() >= log.TRACE {
+					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				}
 				s.upstreamRequest.receiveData(s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -478,7 +510,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// upstream receive triler
 		case types.UpRecvTrailer:
 			if s.downstreamRespTrailers != nil {
-				s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				if s.logger.GetLogLevel() >= log.TRACE {
+					s.logger.Tracef("downStream Phase %d, id %d", phase, id)
+				}
 				s.upstreamRequest.receiveTrailers()
 
 				if p, err := s.processError(id); err != nil {
@@ -502,7 +536,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 }
 
 func (s *downStream) matchRoute() {
-	log.DefaultLogger.Tracef("before active stream route")
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+		log.DefaultLogger.Tracef("before active stream route")
+	}
 	headers := s.downstreamReqHeaders
 	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
 		log.DefaultLogger.Errorf("doReceiveHeaders error: routersWrapper or routers in routersWrapper is nil")
@@ -598,7 +634,9 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
 	clusterName := s.route.RouteRule().ClusterName()
-	log.DefaultLogger.Tracef("get route : %v,clusterName=%v", s.route, clusterName)
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+		log.DefaultLogger.Tracef("get route : %v,clusterName=%v", s.route, clusterName)
+	}
 
 	s.cluster = s.snapshot.ClusterInfo()
 
@@ -608,7 +646,9 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
 	// `downstream` implement loadbalancer ctx
-	log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+		log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
+	}
 
 	pool, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {
@@ -618,7 +658,9 @@ func (s *downStream) receiveHeaders(endStream bool) {
 		return
 	}
 
-	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+		log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
+	}
 	s.timeout = parseProxyTimeout(s.route, s.downstreamReqHeaders)
 
 	prot := s.getUpstreamProtocol()
@@ -648,7 +690,9 @@ func (s *downStream) receiveData(endStream bool) {
 		return
 	}
 	data := s.downstreamReqDataBuf
-	log.DefaultLogger.Tracef("downstream receive data = %v", data)
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+		log.DefaultLogger.Tracef("downstream receive data = %v", data)
+	}
 
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
@@ -1251,7 +1295,9 @@ func (s *downStream) giveStream() {
 		return
 	}
 
-	s.logger.Debugf("downStream giveStream %p %+v", s, s)
+	if s.logger.GetLogLevel() >= log.DEBUG {
+		s.logger.Debugf("downStream giveStream %p %+v", s, s)
+	}
 
 	// reset downstreamReqBuf
 	if s.downstreamReqDataBuf != nil {
@@ -1290,7 +1336,9 @@ func (s *downStream) waitNotify(id uint32) (phase types.Phase, err error) {
 		return types.End, types.ErrExit
 	}
 
-	s.logger.Tracef("waitNotify begin %p %d", s, s.ID)
+	if s.logger.GetLogLevel() >= log.TRACE {
+		s.logger.Tracef("waitNotify begin %p %d", s, s.ID)
+	}
 	select {
 	case <-s.notify:
 	}
