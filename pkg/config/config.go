@@ -18,6 +18,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -120,7 +121,7 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 		if fileName == "" {
 			fileName = fmt.Sprintf("%d", time.Now().UnixNano())
 		}
-		data, err := json.Marshal(cluster)
+		data, err := json.MarshalIndent(cluster, "", " ")
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +151,7 @@ type MOSNConfig struct {
 	Metrics             MetricsConfig       `json:"metrics"`
 	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
-	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty"`             // admin raw message
+	RawAdmin            json.RawMessage     `json:"admin,omitempty"`             // admin raw message
 	Debug               PProfConfig         `json:"pprof,omitempty"`
 	Pid                 string              `json:"pid,omitempty"` // pid file
 }

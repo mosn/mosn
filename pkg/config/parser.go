@@ -18,13 +18,13 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
-	"strings"
-
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter"
@@ -32,10 +32,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/gogo/protobuf/jsonpb"
-	"github.com/json-iterator/go"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var protocolsSupported = map[string]bool{
 	string(protocol.Auto):      true,

@@ -18,7 +18,7 @@
 package config
 
 import (
-	gojson "encoding/json"
+	"encoding/json"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -79,7 +79,7 @@ func dumpRouterConfig() bool {
 			}
 		}
 
-		if data, err := json.Marshal(routerConfig); err == nil {
+		if data, err := json.MarshalIndent(routerConfig, "", " "); err == nil {
 			cfg := make(map[string]interface{})
 			if err := json.Unmarshal(data, &cfg); err != nil {
 				log.DefaultLogger.Errorf("invalid router config, update config failed")
@@ -117,7 +117,7 @@ func DumpConfig() {
 		//update mosn_config
 		store.SetMOSNConfig(config)
 		// use golang original json lib, so the marshal ident can handle MarshalJSON interface implement correctly
-		content, err := gojson.MarshalIndent(config, "", "  ")
+		content, err := json.MarshalIndent(config, "", "  ")
 		if err == nil {
 			err = utils.WriteFileSafety(configPath, content, 0644)
 		}

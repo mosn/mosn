@@ -18,6 +18,7 @@
 package config
 
 import (
+	"encoding/json"
 	"net"
 	"reflect"
 	"testing"
@@ -108,7 +109,7 @@ var mockedFilterChains = `
                                 {
                                   "cluster":{
                                     "name":"serverCluster1",
-                                    "weight":90,m
+                                    "weight":90,
                                     "metadata_match":{
                                       "filter_metadata": {
                                         "mosn.lb": {
@@ -145,25 +146,15 @@ var mockedFilterChains = `
 func TestParseRouterConfiguration(t *testing.T) {
 	bytes := []byte(mockedFilterChains)
 	filterChan := &v2.FilterChain{}
-	json.Unmarshal(bytes, filterChan)
+	if err := json.Unmarshal(bytes, filterChan); err != nil {
+		t.Fatalf("init router config failed: %v", err)
+	}
 
 	routerCfg := ParseRouterConfiguration(filterChan)
 
 	if routerCfg.RouterConfigName != "test_router" || len(routerCfg.VirtualHosts) != 1 ||
 		routerCfg.VirtualHosts[0].Name != "sofa" || len(routerCfg.VirtualHosts[0].Routers) != 1 {
-		t.Errorf("TestParseRouterConfiguration error")
-	}
-}
-
-func TestGetListenerDisableIO(t *testing.T) {
-	bytes := []byte(mockedFilterChains)
-	filterChan := &v2.FilterChain{}
-	json.Unmarshal(bytes, filterChan)
-
-	wanted := false
-
-	if disableIO := GetListenerDisableIO(filterChan); disableIO != wanted {
-		t.Errorf("TestGetListenerDisableIO error, want %t but got %t ", disableIO, wanted)
+		t.Errorf("TestParseRouterConfiguration error, config: %v", routerCfg)
 	}
 }
 
