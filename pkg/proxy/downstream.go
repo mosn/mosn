@@ -1079,7 +1079,7 @@ func (s *downStream) finishTracing() {
 			if s.requestInfo.DownstreamLocalAddress() != nil {
 				span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
 			}
-			span.SetTag(trace.RESULT_STATUS, fmt.Sprint(s.requestInfo.ResponseCode()))
+			span.SetTag(trace.RESULT_STATUS, strconv.Itoa(s.requestInfo.ResponseCode()))
 			span.FinishSpan()
 
 			if mosnctx.Get(s.context, types.ContextKeyListenerType) == v2.INGRESS {
