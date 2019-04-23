@@ -134,7 +134,7 @@ func BenchmarkBoltCodec_Encode(b *testing.B) {
 	request.RequestHeader = map[string]string{"service": "com.alipay.test.sample.facade"} // used for sofa routing
 	headerBuf := buffer.GetIoBuffer(128)
 
-	if err := serialize.Instance.EncodeMap(request.RequestHeader, headerBuf); err != nil {
+	if err := serialize.Instance.SerializeMap(request.RequestHeader, headerBuf); err != nil {
 		panic("serialize headers error")
 	} else {
 		request.HeaderMap = headerBuf.Bytes()
@@ -164,7 +164,7 @@ func BenchmarkBoltCodec_Decode(b *testing.B) {
 	request.RequestHeader = map[string]string{"service": "com.alipay.test.sample.facade"} // used for sofa routing
 	headerBuf := buffer.GetIoBuffer(128)
 
-	if err := serialize.Instance.EncodeMap(request.RequestHeader, headerBuf); err != nil {
+	if err := serialize.Instance.SerializeMap(request.RequestHeader, headerBuf); err != nil {
 		panic("serialize headers error")
 	} else {
 		request.HeaderMap = headerBuf.Bytes()
@@ -196,7 +196,7 @@ func BenchmarkBoltCodec_All(b *testing.B) {
 	request.RequestHeader = map[string]string{"service": "com.alipay.test.sample.facade"} // used for sofa routing
 	headerBuf := buffer.GetIoBuffer(128)
 
-	if err := serialize.Instance.EncodeMap(request.RequestHeader, headerBuf); err != nil {
+	if err := serialize.Instance.SerializeMap(request.RequestHeader, headerBuf); err != nil {
 		panic("serialize headers error")
 	} else {
 		request.HeaderMap = headerBuf.Bytes()

@@ -64,7 +64,7 @@ func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {
 	logger := log.ByContext(ctx)
 
 	//deserialize header
-	serializeIns.DeserializeMap(request.HeaderMap, &request.RequestHeader)
+	serializeIns.DeserializeMap(request.HeaderMap, request.RequestHeader)
 	if logger.GetLogLevel() >= log.DEBUG {
 		logger.Debugf("Deserialize request header map:%v", request.RequestHeader)
 	}

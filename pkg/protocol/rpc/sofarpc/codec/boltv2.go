@@ -67,25 +67,15 @@ func encodeRequestV2(ctx context.Context, cmd *sofarpc.BoltRequestV2) (types.IoB
 		cmd.ClassLen = int16(len(cmd.ClassName))
 	}
 
-	if cmd.RequestHeader != nil {
-		estimated := int(cmd.HeaderLen)
-		if estimated == 0 {
-			estimated = 256
-		}
-
-		buf := buffer.GetIoBuffer(estimated)
-		defer buffer.PutIoBuffer(buf)
-
-		serialize.Instance.SerializeMap(cmd.RequestHeader, buf)
-
-		cmd.HeaderMap = buf.Bytes()
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	headerLen := int(cmd.HeaderLen)
+	if headerLen == 0 && cmd.RequestHeader != nil {
+		headerLen = 256
 	}
 
 	var b [4]byte
 	// todo: reuse bytes @boqin
 	//data := make([]byte, 22, defaultTmpBufferSize)
-	size := sofarpc.REQUEST_HEADER_LEN_V2 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	size := sofarpc.REQUEST_HEADER_LEN_V2 + int(cmd.ClassLen) + headerLen
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetReqHeader(size)
 
@@ -126,8 +116,14 @@ func encodeRequestV2(ctx context.Context, cmd *sofarpc.BoltRequestV2) (types.IoB
 		buf.Write(cmd.ClassName)
 	}
 
-	if cmd.HeaderLen > 0 {
-		buf.Write(cmd.HeaderMap)
+	if cmd.RequestHeader != nil {
+		len := buf.Len()
+		serialize.Instance.SerializeMap(cmd.RequestHeader, buf)
+		headerLen = buf.Len() - len
+
+		// reset HeaderLen
+		headerData := buf.Bytes()[sofarpc.RequestV2HeaderLenIndex:]
+		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
 	}
 
 	return buf, nil
@@ -140,24 +136,14 @@ func encodeResponseV2(ctx context.Context, cmd *sofarpc.BoltResponseV2) (types.I
 		cmd.ClassLen = int16(len(cmd.ClassName))
 	}
 
-	if cmd.ResponseHeader != nil {
-		estimated := int(cmd.HeaderLen)
-		if estimated == 0 {
-			estimated = 256
-		}
-
-		buf := buffer.GetIoBuffer(estimated)
-		defer buffer.PutIoBuffer(buf)
-
-		serialize.Instance.SerializeMap(cmd.ResponseHeader, buf)
-
-		cmd.HeaderMap = buf.Bytes()
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	headerLen := int(cmd.HeaderLen)
+	if headerLen == 0 && cmd.ResponseHeader != nil {
+		headerLen = 256
 	}
 
 	var b [4]byte
 	// todo: reuse bytes @boqin
-	size := sofarpc.RESPONSE_HEADER_LEN_V2 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	size := sofarpc.RESPONSE_HEADER_LEN_V2 + int(cmd.ClassLen) + headerLen
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetRspHeader(size)
 
@@ -198,8 +184,14 @@ func encodeResponseV2(ctx context.Context, cmd *sofarpc.BoltResponseV2) (types.I
 		buf.Write(cmd.ClassName)
 	}
 
-	if cmd.HeaderLen > 0 {
-		buf.Write(cmd.HeaderMap)
+	if cmd.ResponseHeader != nil {
+		len := buf.Len()
+		serialize.Instance.SerializeMap(cmd.ResponseHeader, buf)
+		headerLen = buf.Len() - len
+
+		// reset HeaderLen
+		headerData := buf.Bytes()[sofarpc.ResponseV2HeaderLenIndex:]
+		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
 	}
 
 	return buf, nil
