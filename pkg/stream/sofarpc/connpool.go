@@ -291,7 +291,6 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 			keepAlive: NewSofaRPCKeepAlive(codecClient, subProtocol, time.Second, 6),
 		}
 		ac.client.AddConnectionEventListener(ac.keepAlive)
-		go ac.keepAlive.keepAlive.Start()
 	}
 
 	if err := ac.client.Connect(true); err != nil {
