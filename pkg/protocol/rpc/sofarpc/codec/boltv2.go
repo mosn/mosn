@@ -124,6 +124,8 @@ func encodeRequestV2(ctx context.Context, cmd *sofarpc.BoltRequestV2) (types.IoB
 		// reset HeaderLen
 		headerData := buf.Bytes()[sofarpc.RequestV2HeaderLenIndex:]
 		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
+	} else {
+		buf.Write(cmd.HeaderMap)
 	}
 
 	return buf, nil
@@ -192,6 +194,8 @@ func encodeResponseV2(ctx context.Context, cmd *sofarpc.BoltResponseV2) (types.I
 		// reset HeaderLen
 		headerData := buf.Bytes()[sofarpc.ResponseV2HeaderLenIndex:]
 		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
+	} else {
+		buf.Write(cmd.HeaderMap)
 	}
 
 	return buf, nil

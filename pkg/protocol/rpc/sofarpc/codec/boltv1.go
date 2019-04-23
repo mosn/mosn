@@ -76,7 +76,7 @@ func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffe
 
 	var b [4]byte
 
-	size := sofarpc.REQUEST_HEADER_LEN_V1 + len(cmd.ClassName) + headerLen
+	size := sofarpc.REQUEST_HEADER_LEN_V1 + int(cmd.ClassLen) + headerLen
 	//buf := sofarpc.GetBuffer(context, size)
 
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
@@ -124,6 +124,8 @@ func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffe
 		// reset HeaderLen
 		headerData := buf.Bytes()[sofarpc.RequestHeaderLenIndex:]
 		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
+	} else {
+		buf.Write(cmd.HeaderMap)
 	}
 
 	return buf, nil
@@ -190,6 +192,8 @@ func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (types.IoBuf
 		// reset HeaderLen
 		headerData := buf.Bytes()[sofarpc.ResponseHeaderLenIndex:]
 		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
+	} else {
+		buf.Write(cmd.HeaderMap)
 	}
 
 	return buf, nil
