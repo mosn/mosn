@@ -3,6 +3,7 @@ package functiontest
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -25,7 +26,6 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
-	"github.com/json-iterator/go"
 	"golang.org/x/net/http2"
 )
 
@@ -115,7 +115,7 @@ func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, pr
 	lnCfg := util.NewListener(listenerName, addr, chains)
 	lnCfg.Inspector = false
 	mosnConfig := util.NewMOSNConfig([]v2.Listener{lnCfg}, cmconfig)
-	mosnConfig.RawAdmin = jsoniter.RawMessage([]byte(`{
+	mosnConfig.RawAdmin = json.RawMessage([]byte(`{
 		 "address":{
 			 "socket_address":{
 				 "address": "127.0.0.1",
