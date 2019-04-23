@@ -30,7 +30,7 @@ func (st *NotifyInfo) ReadFrom(_is *codec.Reader) error {
 		return err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(2, true)
+	err, have, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return err
 	}

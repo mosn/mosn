@@ -1,12 +1,9 @@
 package tars
 
 import (
-	"time"
-
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/logf"
 )
 
-//RemoteTimeWriter writer for writing remote log.
 type RemoteTimeWriter struct {
 	logInfo       *logf.LogInfo
 	logs          chan string
@@ -15,7 +12,6 @@ type RemoteTimeWriter struct {
 	reportFailPtr *PropertyReport
 }
 
-//NewRemoteTimeWriter new and init RemoteTimeWriter
 func NewRemoteTimeWriter() *RemoteTimeWriter {
 	rw := new(RemoteTimeWriter)
 	rw.logInfo = new(logf.LogInfo)
@@ -32,7 +28,6 @@ func NewRemoteTimeWriter() *RemoteTimeWriter {
 	return rw
 }
 
-//Sync2remote syncs the log buffer to remote.
 func (rw *RemoteTimeWriter) Sync2remote() {
 	maxLen := MaxlogOneTime
 	for {
@@ -71,7 +66,7 @@ func (rw *RemoteTimeWriter) Sync2remote() {
 			}
 			rw.reportSuccPtr.Report(len(v))
 		}
-		time.Sleep(remoteLogInterval)
+
 	}
 }
 
@@ -80,7 +75,6 @@ func (rw *RemoteTimeWriter) sync2remote(s []string) error {
 	return err
 }
 
-//InitServerInfo init the remote log server info.
 func (rw *RemoteTimeWriter) InitServerInfo(app string, server string, filename string, setdivision string) {
 	rw.logInfo.Appname = app
 	rw.logInfo.Servername = server
@@ -96,49 +90,35 @@ func (rw *RemoteTimeWriter) InitServerInfo(app string, server string, filename s
 
 }
 
-//EnableSufix puts sufix after logs.
 func (rw *RemoteTimeWriter) EnableSufix(hasSufix bool) {
 	rw.logInfo.BHasSufix = hasSufix
 }
-
-//EnablePrefix puts prefix before logs.
 func (rw *RemoteTimeWriter) EnablePrefix(hasAppNamePrefix bool) {
 	rw.logInfo.BHasAppNamePrefix = hasAppNamePrefix
 }
 
-//SetFileNameConcatStr sets the filename concat string.
 func (rw *RemoteTimeWriter) SetFileNameConcatStr(s string) {
 	rw.logInfo.SConcatStr = s
 
 }
-
-//SetSeparator set seprator between logs.
 func (rw *RemoteTimeWriter) SetSeparator(s string) {
 	rw.logInfo.SSepar = s
 }
-
-//EnableSqarewrapper enables SquareBracket wrapper for the logs.
 func (rw *RemoteTimeWriter) EnableSqarewrapper(hasSquareBracket bool) {
 	rw.logInfo.BHasSquareBracket = hasSquareBracket
 }
-
-//SetLogType sets the log type.
 func (rw *RemoteTimeWriter) SetLogType(logType string) {
 	rw.logInfo.SLogType = logType
 
 }
-
-//InitFormat sets the log format.
 func (rw *RemoteTimeWriter) InitFormat(s string) {
 	rw.logInfo.SFormat = s
 }
 
-//NeedPrefix return if need prefix for the logger.
 func (rw *RemoteTimeWriter) NeedPrefix() bool {
 	return false
 }
 
-//Write Writes the logs to the buffer.
 func (rw *RemoteTimeWriter) Write(b []byte) {
 	s := string(b[:])
 	select {

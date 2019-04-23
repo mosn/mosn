@@ -595,7 +595,7 @@ For example:
 ``` go
 func NewErrWithCause(other error, format string, args ...interface{}) Err
 ```
-NewErrWithCause is used to return an Err with case by other error for the purpose of embedding in other
+NewErrWithCause is used to return an Err with cause by other error for the purpose of embedding in other
 structures. The location is not specified, and needs to be set with a call
 to SetLocation.
 

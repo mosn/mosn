@@ -5,7 +5,6 @@ package requestf
 
 import (
 	"fmt"
-
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 )
 
@@ -13,7 +12,7 @@ import (
 type ResponsePacket struct {
 	IVersion     int16             `json:"iVersion"`
 	CPacketType  int8              `json:"cPacketType"`
-	IRequestId   int32             `json:"iRequestIdiRequestId"`
+	IRequestId   int32             `json:"iRequestId"`
 	IMessageType int32             `json:"iMessageType"`
 	IRet         int32             `json:"iRet"`
 	SBuffer      []int8            `json:"sBuffer"`
@@ -61,7 +60,7 @@ func (st *ResponsePacket) ReadFrom(_is *codec.Reader) error {
 		return err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(6, true)
+	err, have, ty = _is.SkipToNoCheck(6, true)
 	if err != nil {
 		return err
 	}
@@ -101,7 +100,7 @@ func (st *ResponsePacket) ReadFrom(_is *codec.Reader) error {
 		}
 	}
 
-	err, _ = _is.SkipTo(codec.MAP, 7, true)
+	err, have = _is.SkipTo(codec.MAP, 7, true)
 	if err != nil {
 		return err
 	}
