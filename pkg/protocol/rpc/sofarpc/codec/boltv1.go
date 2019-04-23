@@ -226,15 +226,11 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = make([]byte, int(classLen))
-						copy(class, bytesData[read:read+int(classLen)])
-						//class = bytesData[read : read+int(classLen)]
+						class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = make([]byte, int(headerLen))
-						copy(header, bytesData[read:read+int(headerLen)])
-						//header = bytesData[read : read+int(headerLen)]
+						header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
@@ -291,15 +287,11 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = make([]byte, int(classLen))
-						copy(class, bytesData[read:read+int(classLen)])
-						//class = bytesData[read : read+int(classLen)]
+						class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = make([]byte, int(headerLen))
-						copy(header, bytesData[read:read+int(headerLen)])
-						//header = bytesData[read : read+int(headerLen)]
+						header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
