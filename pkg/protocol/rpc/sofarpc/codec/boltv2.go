@@ -117,9 +117,9 @@ func encodeRequestV2(ctx context.Context, cmd *sofarpc.BoltRequestV2) (types.IoB
 	}
 
 	if cmd.RequestHeader != nil {
-		len := buf.Len()
+		l := buf.Len()
 		serialize.Instance.SerializeMap(cmd.RequestHeader, buf)
-		headerLen = buf.Len() - len
+		headerLen = buf.Len() - l
 
 		// reset HeaderLen
 		headerData := buf.Bytes()[sofarpc.RequestV2HeaderLenIndex:]
@@ -187,9 +187,9 @@ func encodeResponseV2(ctx context.Context, cmd *sofarpc.BoltResponseV2) (types.I
 	}
 
 	if cmd.ResponseHeader != nil {
-		len := buf.Len()
+		l := buf.Len()
 		serialize.Instance.SerializeMap(cmd.ResponseHeader, buf)
-		headerLen = buf.Len() - len
+		headerLen = buf.Len() - l
 
 		// reset HeaderLen
 		headerData := buf.Bytes()[sofarpc.ResponseV2HeaderLenIndex:]
