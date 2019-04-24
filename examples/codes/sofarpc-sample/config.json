@@ -37,7 +37,19 @@
 
 					 
 			 }]
-	    }]
+	    }],
+	    "stream_filters": [
+	    	{
+			"type": "healthcheck",
+			"config": {
+				"cache_time": "360s",
+				"cluster_min_healthy_percentages": {
+					"local_service": 70
+				},
+				"passthrough": false
+			}
+		}
+	    ]
 	  },
 	  {
 	    "name":"clientListener",

@@ -81,7 +81,6 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 	}
 	// start a keep alive
 	keepAlive := NewSofaRPCKeepAlive(codec, sofarpc.PROTOCOL_CODE_V1, keepTimeout, thres)
-	go keepAlive.Start()
 	return &testCase{
 		KeepAlive: keepAlive.(*sofaRPCKeepAlive),
 		Server:    srv,
