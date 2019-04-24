@@ -22,38 +22,38 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-var wrapperKey = &struct{}{}
-
 func Get(ctx context.Context, key types.ContextKey) interface{} {
-	if wrapperValue := ctx.Value(wrapperKey); wrapperValue != nil {
-		if mosnCtx, ok := wrapperValue.(*Context); ok {
-			return mosnCtx.builtin[key]
-		}
+	if mosnCtx, ok := ctx.(*valueCtx); ok {
+		return mosnCtx.builtin[key]
 	}
-	return nil
+	return ctx.Value(key)
 }
 
-func Set(ctx context.Context, key types.ContextKey, value interface{}) context.Context {
-	if wrapperValue := ctx.Value(wrapperKey); wrapperValue != nil {
-		if mosnCtx, ok := wrapperValue.(*Context); ok {
-			mosnCtx.builtin[key] = value
-		}
-	} else {
-		mosnCtx := &Context{}
+// WithValue add the given key-value pair into the existed value context, or create a new value context contains the pair.
+// This Function should not be used along the official context.WithValue !!
+// The following context topology will leads to existed pair {'foo':'bar'} NOT FOUND, cause recursive lookup for
+// key-type=ContextKey is not supported by mosn.valueCtx.
+//
+// topology: context.Background -> mosn.valueCtx{'foo':'bar'} -> context.valueCtx -> mosn.valueCtx{'hmm':'haa'}
+func WithValue(parent context.Context, key types.ContextKey, value interface{}) context.Context {
+	if mosnCtx, ok := parent.(*valueCtx); ok {
 		mosnCtx.builtin[key] = value
-		ctx = context.WithValue(ctx, wrapperKey, mosnCtx)
+		return mosnCtx
 	}
 
-	return ctx
+	// create new valueCtx
+	mosnCtx := &valueCtx{Context: parent}
+	mosnCtx.builtin[key] = value
+	return mosnCtx
 }
 
-// Clone copy the origin mosn value context into new one
-func Clone(ctx context.Context) context.Context {
-	if wrapperValue := ctx.Value(wrapperKey); wrapperValue != nil {
-		if mosnCtx, ok := wrapperValue.(*Context); ok {
-			clone := *mosnCtx
-			return context.WithValue(ctx, wrapperKey, &clone)
-		}
+// Clone copy the origin mosn value context(if it is), and return new one
+func Clone(parent context.Context) context.Context {
+	if mosnCtx, ok := parent.(*valueCtx); ok {
+		clone := &valueCtx{Context: mosnCtx}
+		// array copy assign
+		clone.builtin = mosnCtx.builtin
+		return clone
 	}
-	return ctx
+	return parent
 }

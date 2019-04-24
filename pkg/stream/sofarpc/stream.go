@@ -175,7 +175,7 @@ func (conn *streamConnection) NewStream(ctx context.Context, receiver types.Stre
 	//stream := &stream{}
 
 	stream.id = atomic.AddUint64(&conn.currStreamID, 1)
-	stream.ctx = mosnctx.Set(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
 	stream.direction = ClientStream
 	stream.sc = conn
 	stream.receiver = receiver
@@ -258,8 +258,8 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 
 	//stream := &stream{}
 	stream.id = cmd.RequestID()
-	stream.ctx = mosnctx.Set(ctx, types.ContextKeyStreamID, stream.id)
-	stream.ctx = mosnctx.Set(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
+	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
 	stream.direction = ServerStream
 	stream.sc = conn
 

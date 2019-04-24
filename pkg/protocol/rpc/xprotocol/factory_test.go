@@ -106,7 +106,7 @@ func (re *testExample) Convert(data []byte) (map[string]string, []byte) {
 }
 
 func Test_Engine_Coder(t *testing.T) {
-	ctx := mosnctx.Set(context.Background(), types.ContextSubProtocol, "ut-example")
+	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, "ut-example")
 	engine := Engine()
 	data := networkbuffer.NewIoBufferBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0})
 	xRpcCmd, err := engine.Decode(ctx, data)

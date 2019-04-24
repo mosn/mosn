@@ -17,11 +17,22 @@
 
 package context
 
-import "github.com/alipay/sofa-mosn/pkg/types"
+import (
+	"context"
+	"github.com/alipay/sofa-mosn/pkg/types"
+)
 
-type Context struct {
+type valueCtx struct {
+	context.Context
+
 	builtin [types.ContextKeyEnd]interface{}
-
 	// TODO
 	//variables map[string]Variable
+}
+
+func (c *valueCtx) Value(key interface{}) interface{} {
+	if contextKey, ok := key.(types.ContextKey); ok {
+		return c.builtin[contextKey]
+	}
+	return c.Context.Value(key)
 }

@@ -122,8 +122,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	if spanBuilder != nil && trace.IsTracingEnabled() {
 		span := spanBuilder.BuildSpan(ctx)
 		if span != nil {
-			ctx = mosnctx.Set(ctx, types.ContextKeyActiveSpan, span)
-			ctx = mosnctx.Set(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
+			ctx = mosnctx.WithValue(ctx, types.ContextKeyActiveSpan, span)
+			ctx = mosnctx.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 		}
 	}
 

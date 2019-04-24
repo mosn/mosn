@@ -24,14 +24,14 @@ import (
 	"testing"
 )
 
-const testNodeNum = 20
+const testNodeNum = 10
 
-var randomTable [testNodeNum]int
+var randomTable [testNodeNum]types.ContextKey
 
 func init() {
 	// init random table per-run for all benchmark scenario, so the performance will not be affected by random functions.
 	for i := 0; i < testNodeNum; i++ {
-		randomTable[i] = rand.Intn(int(types.ContextKeyEnd))
+		randomTable[i] = types.ContextKey(rand.Intn(int(types.ContextKeyEnd)))
 	}
 }
 
@@ -40,10 +40,10 @@ func TestSetGet(t *testing.T) {
 	ctx := context.Background()
 
 	// set
-	ctx = Set(ctx, types.ContextKeyListenerType, expected)
+	ctx = WithValue(ctx, types.ContextKeyListenerType, expected)
 
 	// get
-	value := Get(ctx, types.ContextKeyListenerType)
+	value := ctx.Value(types.ContextKeyListenerType)
 	if listenerType, ok := value.(string); ok {
 		if listenerType != expected {
 			t.Errorf("get value error, expected %s, real %s", expected, listenerType)
@@ -54,10 +54,10 @@ func TestSetGet(t *testing.T) {
 
 }
 
-func BenchmarkGet(b *testing.B) {
+func BenchmarkCompatibleGet(b *testing.B) {
 	ctx := context.Background()
 	for i := 0; i < testNodeNum; i++ {
-		ctx = Set(ctx, types.ContextKey(randomTable[i]), struct{}{})
+		ctx = WithValue(ctx, randomTable[i], struct{}{})
 	}
 
 	b.ResetTimer()
@@ -65,7 +65,24 @@ func BenchmarkGet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// get all index
 		for i := 0; i < testNodeNum; i++ {
-			Get(ctx, types.ContextKey(randomTable[i]))
+			ctx.Value(randomTable[i])
+		}
+	}
+
+}
+
+func BenchmarkGet(b *testing.B) {
+	ctx := context.Background()
+	for i := 0; i < testNodeNum; i++ {
+		ctx = WithValue(ctx, randomTable[i], struct{}{})
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		// get all index
+		for i := 0; i < testNodeNum; i++ {
+			Get(ctx, randomTable[i])
 		}
 	}
 
@@ -77,7 +94,7 @@ func BenchmarkSet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ctx := context.Background()
 		for i := 0; i < testNodeNum; i++ {
-			ctx = Set(ctx, types.ContextKey(randomTable[i]), struct{}{})
+			ctx = WithValue(ctx, randomTable[i], struct{}{})
 		}
 	}
 }
@@ -85,7 +102,7 @@ func BenchmarkSet(b *testing.B) {
 func BenchmarkRawGet(b *testing.B) {
 	ctx := context.Background()
 	for i := 0; i < testNodeNum; i++ {
-		ctx = context.WithValue(ctx, types.ContextKey(randomTable[i]), struct{}{})
+		ctx = context.WithValue(ctx, randomTable[i], struct{}{})
 	}
 
 	b.ResetTimer()
@@ -93,7 +110,7 @@ func BenchmarkRawGet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// get all index
 		for i := 0; i < testNodeNum; i++ {
-			ctx.Value(types.ContextKey(randomTable[i]))
+			ctx.Value(randomTable[i])
 		}
 	}
 }
@@ -103,7 +120,7 @@ func BenchmarkRawSet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ctx := context.Background()
 		for i := 0; i < testNodeNum; i++ {
-			ctx = context.WithValue(ctx, types.ContextKey(randomTable[i]), struct{}{})
+			ctx = context.WithValue(ctx, randomTable[i], struct{}{})
 		}
 
 	}

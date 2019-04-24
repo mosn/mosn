@@ -56,7 +56,7 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	tracer := trace.CreateTracer("SOFATracer")
 	trace.SetTracer(tracer)
 	span := trace.Tracer().Start(time.Now())
-	ctx := mosnctx.Set(context.Background(), types.ContextKeyActiveSpan, span)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
 	ds.finishTracing()

@@ -259,7 +259,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	s := &buffers.clientStream
 	s.stream = stream{
 		id:       id,
-		ctx:      mosnctx.Set(ctx, types.ContextKeyStreamID, id),
+		ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
 		request:  &buffers.clientRequest,
 		receiver: receiver,
 	}
@@ -391,7 +391,7 @@ func (conn *serverStreamConnection) serve() {
 		// 4. request processing
 		s.stream = stream{
 			id:       id,
-			ctx:      mosnctx.Set(ctx, types.ContextKeyStreamID, id),
+			ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
 			request:  request,
 			response: &buffers.serverResponse,
 		}

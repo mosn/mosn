@@ -274,7 +274,7 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 	}
 
 	data := pool.host.CreateConnection(ctx)
-	connCtx := mosnctx.Set(ctx, types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)

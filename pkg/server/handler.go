@@ -403,21 +403,21 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 		log.DefaultLogger.Infof("accept connection from:%s", al.listener.Addr().String())
 	}
 
-	ctx := mosnctx.Set(context.Background(), types.ContextKeyListenerPort, al.listenPort)
-	ctx = mosnctx.Set(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
-	ctx = mosnctx.Set(ctx, types.ContextKeyListenerName, al.listener.Name())
-	ctx = mosnctx.Set(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.Set(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
-	ctx = mosnctx.Set(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
 	if rawf != nil {
-		ctx = mosnctx.Set(ctx, types.ContextKeyConnectionFd, rawf)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
 	}
 	if ch != nil {
-		ctx = mosnctx.Set(ctx, types.ContextKeyAcceptChan, ch)
-		ctx = mosnctx.Set(ctx, types.ContextKeyAcceptBuffer, buf)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
-		ctx = mosnctx.Set(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
 
 	arc.ContinueFilterChain(ctx, true)
@@ -474,7 +474,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	newCtx := mosnctx.Set(ctx, types.ContextKeyConnectionID, conn.ID())
+	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 

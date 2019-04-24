@@ -193,7 +193,7 @@ func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder typ
 	streamID := strconv.FormatUint(nStreamID, 10)
 
 	stream := stream{
-		context:        mosnctx.Set(ctx, types.ContextKeyStreamID, streamID),
+		context:        mosnctx.WithValue(ctx, types.ContextKeyStreamID, streamID),
 		streamID:       streamID,
 		direction:      ClientStream,
 		connection:     conn,
@@ -227,7 +227,7 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers types
 		return
 	}
 	stream := stream{
-		context:    mosnctx.Set(conn.context, types.ContextKeyStreamID, streamID),
+		context:    mosnctx.WithValue(conn.context, types.ContextKeyStreamID, streamID),
 		streamID:   streamID,
 		direction:  ServerStream,
 		connection: conn,

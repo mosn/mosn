@@ -112,7 +112,7 @@ type bufferValue struct {
 
 // NewBufferPoolContext returns a context with bufferValue
 func NewBufferPoolContext(ctx context.Context) context.Context {
-	return mosnctx.Set(ctx, types.ContextKeyBufferPoolCtx, newBufferValue())
+	return mosnctx.WithValue(ctx, types.ContextKeyBufferPoolCtx, newBufferValue())
 }
 
 // TransmitBufferPoolContext copy a context
