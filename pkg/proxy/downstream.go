@@ -56,7 +56,7 @@ type downStream struct {
 	bufferLimit uint32
 
 	// ~~~ control args
-	timeout    *Timeout
+	timeout    Timeout
 	retryState *retryState
 
 	requestInfo     types.RequestInfo
@@ -661,7 +661,8 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
 		log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
 	}
-	s.timeout = parseProxyTimeout(s.route, s.downstreamReqHeaders)
+
+	parseProxyTimeout(&s.timeout, s.route, s.downstreamReqHeaders)
 
 	prot := s.getUpstreamProtocol()
 
