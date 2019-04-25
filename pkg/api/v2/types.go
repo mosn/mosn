@@ -114,7 +114,6 @@ type Listener struct {
 	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
 	InheritListener         *net.TCPListener `json:"-"`
 	Remain                  bool             `json:"-"`
-	LogLevel                uint8            `json:"-"`
 	DisableConnIo           bool             `json:"-"`
 }
 

@@ -18,11 +18,8 @@
 package log
 
 import (
-	"context"
 	"errors"
 	"sync"
-
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var (
@@ -90,16 +87,6 @@ func InitDefaultLogger(output string, level Level) (err error) {
 		Proxy, err = CreateDefaultProxyLogger(output, level)
 	}
 	return
-}
-
-func ByContext(ctx context.Context) ErrorLogger {
-	if ctx != nil {
-		if lg := ctx.Value(types.ContextKeyLogger); lg != nil {
-			return lg.(ErrorLogger)
-		}
-	}
-	// if context is nil, use default Logger instead
-	return DefaultLogger
 }
 
 // UpdateErrorLoggerLevel updates the exists ErrorLogger's Level

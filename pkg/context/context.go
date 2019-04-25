@@ -15,50 +15,24 @@
  * limitations under the License.
  */
 
-package trace
+package context
 
 import (
 	"context"
-
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-type contextKey struct{}
+type valueCtx struct {
+	context.Context
 
-type traceHolder struct {
-	enableTracing bool
-	tracer        types.Tracer
+	builtin [types.ContextKeyEnd]interface{}
+	// TODO
+	//variables map[string]Variable
 }
 
-var holder = traceHolder{}
-
-func SpanFromContext(ctx context.Context) types.Span {
-	if val := mosnctx.Get(ctx, types.ContextKeyActiveSpan); val != nil {
-		if sp, ok := val.(types.Span); ok {
-			return sp
-		}
+func (c *valueCtx) Value(key interface{}) interface{} {
+	if contextKey, ok := key.(types.ContextKey); ok {
+		return c.builtin[contextKey]
 	}
-
-	return nil
-}
-
-func SetTracer(tracer types.Tracer) {
-	holder.tracer = tracer
-}
-
-func Tracer() types.Tracer {
-	return holder.tracer
-}
-
-func EnableTracing() {
-	holder.enableTracing = true
-}
-
-func DisableTracing() {
-	holder.enableTracing = false
-}
-
-func IsTracingEnabled() bool {
-	return holder.enableTracing
+	return c.Context.Value(key)
 }

@@ -197,7 +197,10 @@ func (r *upstreamRequest) appendData(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
-	log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] upstream request encode data")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] upstream request encode data")
+	}
+
 	data := r.downStream.downstreamReqDataBuf
 	r.sendComplete = endStream
 	r.dataSent = true

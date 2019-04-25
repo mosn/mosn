@@ -23,7 +23,6 @@ import (
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -97,7 +96,7 @@ func (h *host) CreateConnection(context context.Context) types.CreateConnectionD
 		tlsMng = h.clusterInfo.TLSMng()
 	}
 
-	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), tlsMng, h.address, nil, log.DefaultLogger)
+	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), tlsMng, h.address, nil)
 	clientConn.SetBufferLimit(h.clusterInfo.ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{

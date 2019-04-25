@@ -10,6 +10,8 @@ import (
 
 	networkbuffer "github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 func init() {
@@ -104,7 +106,7 @@ func (re *testExample) Convert(data []byte) (map[string]string, []byte) {
 }
 
 func Test_Engine_Coder(t *testing.T) {
-	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, "ut-example")
+	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, "ut-example")
 	engine := Engine()
 	data := networkbuffer.NewIoBufferBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0})
 	xRpcCmd, err := engine.Decode(ctx, data)

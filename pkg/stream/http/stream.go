@@ -29,6 +29,7 @@ import (
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
@@ -121,8 +122,6 @@ type streamConnection struct {
 
 	br *bufio.Reader
 	bw *bufio.Writer
-
-	logger log.ErrorLogger
 }
 
 // types.StreamConnection
@@ -235,7 +234,9 @@ func (conn *clientStreamConnection) serve() {
 			return
 		}
 
-		log.Proxy.Infof(s.stream.ctx, "[stream][http] receive response, requestId = %v", s.stream.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream][http] receive response, requestId = %v", s.stream.id)
+		}
 
 		// 2. response processing
 		resetConn := false
@@ -264,7 +265,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	s := &buffers.clientStream
 	s.stream = stream{
 		id:       id,
-		ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
+		ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
 		request:  &buffers.clientRequest,
 		receiver: receiver,
 	}
@@ -764,4 +765,15 @@ func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) 
 		headers.SetHost(host)
 	}
 
+}
+
+// contextManager
+type contextManager struct {
+	base context.Context
+	curr context.Context
+}
+
+func (cm *contextManager) next() {
+	// new stream-level context based on connection-level's
+	cm.curr = buffer.NewBufferPoolContext(mosnctx.Clone(cm.base))
 }

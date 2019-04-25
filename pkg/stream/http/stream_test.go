@@ -22,13 +22,12 @@ import (
 
 	"net"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"bytes"
+	"fmt"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/valyala/fasthttp"
-	"fmt"
-	"bytes"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -42,7 +41,7 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, nil, remoteAddr, nil, log.DefaultLogger),
+					conn: network.NewClientConnection(nil, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -82,7 +81,7 @@ func Test_header_capitalization(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, nil, remoteAddr, nil, log.DefaultLogger),
+					conn: network.NewClientConnection(nil, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -96,7 +95,7 @@ func Test_header_capitalization(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
-			"Args":                            "Hello, world!",
+			"Args": "Hello, world!",
 		},
 	}
 
@@ -128,7 +127,7 @@ func Test_header_conflict(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, nil, remoteAddr, nil, log.DefaultLogger),
+					conn: network.NewClientConnection(nil, nil, remoteAddr, nil),
 				},
 			},
 		},

@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
@@ -90,8 +91,6 @@ type streamConnection struct {
 	codecEngine                         types.ProtocolEngine
 	streamConnectionEventListener       types.StreamConnectionEventListener
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
-
-	logger log.ErrorLogger
 }
 
 func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -105,8 +104,6 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		serverStreamConnectionEventListener: serverCallbacks,
 
 		contextManager: str.NewContextManager(ctx),
-
-		logger: log.ByContext(ctx),
 	}
 
 	// init first context
@@ -179,7 +176,7 @@ func (conn *streamConnection) NewStream(ctx context.Context, receiver types.Stre
 	//stream := &stream{}
 
 	stream.id = atomic.AddUint64(&conn.currStreamID, 1)
-	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
 	stream.direction = ClientStream
 	stream.sc = conn
 	stream.receiver = receiver
@@ -215,15 +212,13 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 		cmd.Set(types.HeaderGlobalTimeout, timeout)
 
 		stream.receiver.OnReceive(stream.ctx, cmd, cmd.Data(), nil)
-
 	}
 }
 
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
-	conn.logger.Errorf("error occurs while proceeding codec logic: %s", err.Error())
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
-		conn.logger.Errorf("[stream][sofarpc] error occurs while proceeding codec logic: %v. close connection", err)
+		log.DefaultLogger.Errorf("[stream][sofarpc] error occurs while proceeding codec logic: %v. close connection", err)
 		//protocol decode error, close the connection directly
 		conn.conn.Close(types.NoFlush, types.LocalClose)
 	case types.ErrCodecException, types.ErrDeserializeException:
@@ -266,13 +261,15 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 
 	//stream := &stream{}
 	stream.id = cmd.RequestID()
-	stream.ctx = context.WithValue(ctx, types.ContextKeyStreamID, stream.id)
-	stream.ctx = context.WithValue(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
+	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
 	stream.ctx = conn.contextManager.InjectTrace(stream.ctx, span)
 	stream.direction = ServerStream
 	stream.sc = conn
 
-	log.Proxy.Infof(stream.ctx, "[stream][sofarpc] new stream detect, requestId = %v", stream.id)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(stream.ctx, "[stream][sofarpc] new stream detect, requestId = %v", stream.id)
+	}
 
 	if cmd.CommandType() == sofarpc.REQUEST_ONEWAY {
 		stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, nil, span)
@@ -296,8 +293,9 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		// transmit buffer ctx
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
-		log.Proxy.Infof(stream.ctx, "[stream][sofarpc] receive response, requestId = %v", stream.id)
-
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(stream.ctx,"[stream][sofarpc] receive response, requestId = %v", stream.id)
+		}
 		return stream
 	}
 
@@ -357,8 +355,8 @@ func (s *stream) AppendHeaders(ctx context.Context, headers types.HeaderMap, end
 		}
 	}
 
-	if s.sc.logger.GetLogLevel() >= log.DEBUG {
-		s.sc.logger.Debugf("AppendHeaders,request id = %d, direction = %d", s.ID(), s.direction)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.ctx,"[stream][sofarpc] AppendHeaders,request id = %d, direction = %d", s.ID(), s.direction)
 	}
 
 	if endStream {
@@ -425,7 +423,7 @@ func (s *stream) endStream() {
 		// TODO: replaced with EncodeTo, and pre-alloc send buf
 		buf, err := s.sc.codecEngine.Encode(s.ctx, s.sendCmd)
 		if err != nil {
-			s.sc.logger.Errorf("encode error:%s", err.Error())
+			log.Proxy.Errorf(s.ctx, "[stream][sofarpc] encode error:%s", err.Error())
 			s.ResetStream(types.StreamLocalReset)
 			return
 		}

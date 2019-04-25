@@ -34,6 +34,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 var (
@@ -57,7 +59,7 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	case *sofarpc.BoltResponse:
 		return encodeResponse(ctx, cmd)
 	default:
-		log.ByContext(ctx).Errorf("[protocol][sofarpc] boltv1 encode with unknown command : %+v", model)
+		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 encode with unknown command : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
@@ -241,7 +243,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 					data.Drain(read)
 
 				} else { // not enough data
-					log.ByContext(ctx).Debugf("[protocol][sofarpc] boltv1 decode request, no enough data for fully decode")
+					log.Proxy.Debugf(ctx, "[protocol][sofarpc] boltv1 decode request, no enough data for fully decode")
 					return cmd, nil
 				}
 
@@ -301,7 +303,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 					data.Drain(read)
 				} else {
 					// not enough data
-					log.ByContext(ctx).Debugf("[protocol][sofarpc] boltv1 decode response, no enough data for fully decode")
+					log.Proxy.Debugf(ctx, "[protocol][sofarpc] boltv1 decode response, no enough data for fully decode")
 					return cmd, nil
 				}
 
@@ -405,7 +407,7 @@ func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 	}
 
 	span.SetTag(trace.TRACE_ID, traceId)
-	lType := ctx.Value(types.ContextKeyListenerType)
+	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
 
 	spanId := request.RequestHeader[models.RPC_ID_KEY]
 	if spanId == "" {

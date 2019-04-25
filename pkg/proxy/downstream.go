@@ -39,6 +39,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 // types.StreamEventListener
@@ -118,8 +120,8 @@ type downStream struct {
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
 	if span != nil && trace.IsTracingEnabled() {
-		ctx = context.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
-		ctx = context.WithValue(ctx, trace.ActiveSpanKey, span)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyActiveSpan, span)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 	}
 
 	proxyBuffers := proxyBuffersByContext(ctx)
@@ -156,7 +158,9 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	proxy.listenerStats.DownstreamRequestActive.Inc(1)
 
 	// debug message for downstream
-	log.Proxy.Debugf(stream.context, "[proxy][downstream] new downstream, proxyId = %v", stream.ID)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(stream.context, "[proxy][downstream] new downstream, proxyId = %v", stream.ID)
+	}
 	return stream
 }
 
@@ -317,7 +321,9 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 }
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
-	log.Proxy.Infof(s.context, "[proxy][downstream] downstream receive proxy request %+v", s)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "[proxy][downstream] downstream receive proxy request %+v", s)
+	}
 
 	for i := 0; i <= int(types.End-types.InitPhase); i++ {
 		switch phase {
@@ -535,7 +541,7 @@ func (s *downStream) matchRoute() {
 	}
 	headers := s.downstreamReqHeaders
 	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
-		log.Proxy.Debugf(s.context, "[proxy][downstream] doReceiveHeaders error: routersWrapper or routers in routersWrapper is nil")
+		log.Proxy.Errorf(s.context, "[proxy][downstream] doReceiveHeaders error: routersWrapper or routers in routersWrapper is nil")
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
@@ -628,7 +634,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
 	clusterName := s.route.RouteRule().ClusterName()
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy][downstream] get route : %v,clusterName=%v", s.route, clusterName)
 	}
 
@@ -640,20 +646,20 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
 	// `downstream` implement loadbalancer ctx
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "before initializeUpstreamConnectionPool")
 	}
 
 	pool, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {
-		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
+		log.Proxy.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Tracef("after initializeUpstreamConnectionPool")
 	}
 
 	parseProxyTimeout(&s.timeout, s.route, s.downstreamReqHeaders)
@@ -685,8 +691,8 @@ func (s *downStream) receiveData(endStream bool) {
 		return
 	}
 	data := s.downstreamReqDataBuf
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Tracef("downstream receive data = %v", data)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Tracef("downstream receive data = %v", data)
 	}
 
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
@@ -1075,11 +1081,11 @@ func (s *downStream) finishTracing() {
 			if s.requestInfo.DownstreamLocalAddress() != nil {
 				span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
 			}
-			span.SetTag(trace.RESULT_STATUS, fmt.Sprint(s.requestInfo.ResponseCode()))
+			span.SetTag(trace.RESULT_STATUS, strconv.Itoa(s.requestInfo.ResponseCode()))
 			span.FinishSpan()
 
-			if s.context.Value(types.ContextKeyListenerType) == v2.INGRESS {
-				trace.DeleteSpanIdGenerator(s.context.Value(types.ContextKeyTraceSpanKey).(*trace.SpanKey))
+			if mosnctx.Get(s.context, types.ContextKeyListenerType) == v2.INGRESS {
+				trace.DeleteSpanIdGenerator(mosnctx.Get(s.context, types.ContextKeyTraceSpanKey).(*trace.SpanKey))
 			}
 		} else {
 			log.Proxy.Debugf(s.context, "[proxy][downstream] trace span is null")

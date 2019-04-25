@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
@@ -109,7 +108,7 @@ func NewRPCClient(addr string) Client {
 func (c *RPCClient) connect() error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", c.Addr)
-	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
+	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan)
 	if err := cc.Connect(true); err != nil {
 		return err
 	}

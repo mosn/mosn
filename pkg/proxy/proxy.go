@@ -25,6 +25,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -66,10 +67,9 @@ func initWorkerPool(data interface{}, endParsing bool) error {
 	return nil
 }
 
-func initGlobalStats(){
+func initGlobalStats() {
 	globalStats = newProxyStats(types.GlobalProxyName)
 }
-
 
 // types.ReadFilter
 // types.ServerStreamConnectionEventListener
@@ -98,7 +98,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		activeSteams:   list.New(),
 		stats:          globalStats,
 		context:        ctx,
-		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
 
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
@@ -106,13 +106,13 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		log.DefaultLogger.Tracef("proxy extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
 		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
-		proxy.context = context.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
+		proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 		log.DefaultLogger.Tracef("proxy extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
 	} else {
 		log.DefaultLogger.Errorf("get proxy extend config fail = %v", err)
 	}
 
-	listenerName := ctx.Value(types.ContextKeyListenerName).(string)
+	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
@@ -212,7 +212,7 @@ func (p *proxy) OnGoAway() {}
 func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
 
-	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
+	if ff := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("there is %d stream filters in config", len(ffs))

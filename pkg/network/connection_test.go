@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -30,14 +29,7 @@ type MyEventListener struct{}
 func (el *MyEventListener) OnEvent(event types.ConnectionEvent) {}
 
 func testAddConnectionEventListener(n int, t *testing.T) {
-	logger, err := log.GetOrCreateDefaultErrorLogger("stdout", log.INFO)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	c := connection{
-		logger: logger,
-	}
+	c := connection{}
 
 	for i := 0; i < n; i++ {
 		el0 := &MyEventListener{}
@@ -50,14 +42,7 @@ func testAddConnectionEventListener(n int, t *testing.T) {
 }
 
 func testAddBytesReadListener(n int, t *testing.T) {
-	logger, err := log.GetOrCreateDefaultErrorLogger("stdout", log.INFO)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	c := connection{
-		logger: logger,
-	}
+	c := connection{}
 
 	for i := 0; i < n; i++ {
 		fn1 := func(bytesRead uint64) {}
@@ -70,14 +55,7 @@ func testAddBytesReadListener(n int, t *testing.T) {
 }
 
 func testAddBytesSendListener(n int, t *testing.T) {
-	logger, err := log.GetOrCreateDefaultErrorLogger("stdout", log.INFO)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	c := connection{
-		logger: logger,
-	}
+	c := connection{}
 
 	for i := 0; i < n; i++ {
 		fn1 := func(bytesSent uint64) {}
