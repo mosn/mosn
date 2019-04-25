@@ -243,7 +243,8 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytesData[read : read+int(headerLen)]
+						header = make([]byte, int(headerLen))
+						copy(header, bytesData[read : read+int(headerLen)])
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
@@ -308,7 +309,8 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytesData[read : read+int(headerLen)]
+						header = make([]byte, int(headerLen))
+						copy(header, bytesData[read : read+int(headerLen)])
 						read += int(headerLen)
 					}
 					if contentLen > 0 {

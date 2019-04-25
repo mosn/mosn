@@ -46,13 +46,35 @@ func (ctx SofaProtocolBufferCtx) Reset(i interface{}) {
 	buf.BoltRsp = BoltResponse{}
 	buf.BoltEncodeReq = BoltRequest{}
 	buf.BoltEncodeRsp = BoltResponse{}
+
+	if buf.BoltReqHeader != nil {
+		buffer.PutBytes(buf.BoltReqHeader)
+		buf.BoltReqHeader = nil
+	}
+
+	if buf.BoltRspHeader != nil {
+		buffer.PutBytes(buf.BoltRspHeader)
+		buf.BoltRspHeader = nil
+	}
 }
 
 type SofaProtocolBuffers struct {
 	BoltReq       BoltRequest
+	BoltReqHeader *[]byte
 	BoltRsp       BoltResponse
+	BoltRspHeader *[]byte
 	BoltEncodeReq BoltRequest
 	BoltEncodeRsp BoltResponse
+}
+
+func (b *SofaProtocolBuffers) GetBoltReqHeader(size int) *[]byte {
+	b.BoltReqHeader = buffer.GetBytes(size)
+	return b.BoltReqHeader
+}
+
+func (b *SofaProtocolBuffers) GetBoltRspHeader(size int) *[]byte {
+	b.BoltRspHeader = buffer.GetBytes(size)
+	return b.BoltRspHeader
 }
 
 func SofaProtocolBuffersByContext(ctx context.Context) *SofaProtocolBuffers {

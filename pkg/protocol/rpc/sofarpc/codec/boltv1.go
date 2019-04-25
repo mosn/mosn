@@ -260,7 +260,9 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 				request.HeaderLen = int16(headerLen)
 				request.ContentLen = int(contentLen)
 				request.ClassName = class
-				request.HeaderMap = header
+				request.HeaderMap = *buffers.GetBoltReqHeader(int(request.HeaderLen))
+				copy(request.HeaderMap, header)
+
 				// avoid valid IoBuffer with empty buffer
 				if content != nil {
 					request.Content = buffer.NewIoBufferBytes(content)
@@ -321,7 +323,8 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 				response.HeaderLen = int16(headerLen)
 				response.ContentLen = int(contentLen)
 				response.ClassName = class
-				response.HeaderMap = header
+				response.HeaderMap = *buffers.GetBoltRspHeader(int(response.HeaderLen))
+				copy(response.HeaderMap, header)
 				response.Content = buffer.NewIoBufferBytes(content)
 
 				response.ResponseTimeMillis = time.Now().UnixNano() / int64(time.Millisecond)

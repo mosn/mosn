@@ -70,7 +70,7 @@ func newByteBufferPool() *byteBufferPool {
 }
 
 func (p *byteBufferPool) slot(size int) int {
-	if size > p.maxSize || size <= p.minSize {
+	if size > p.maxSize {
 		return errSlot
 	}
 	slot := 0
