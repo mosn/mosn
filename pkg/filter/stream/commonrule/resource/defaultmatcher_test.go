@@ -267,3 +267,34 @@ func TestDefaultMatcher_Match13(t *testing.T) {
 		t.Errorf("false")
 	}
 }
+
+func TestDefaultMatcher_Match14(t *testing.T) {
+	matcher := &DefaultMatcher{}
+	resourceConfig := model.ResourceConfig{
+		Headers: []model.ComparisonCofig{
+			{
+				CompareType: CompareEquals,
+				Key:         protocol.MosnHeaderPathKey,
+				Value:       "/serverlist/xx.do",
+			},
+			{
+				CompareType: CompareEquals,
+				Key:         "x-application-header",
+				Value:       "app1",
+			},
+		},
+		HeadersRelation: RelationAnd,
+		Params:          params2,
+		ParamsRelation:  RelationOr,
+	}
+
+	headers := protocol.CommonHeader{
+		protocol.MosnHeaderPathKey:        "/serverlist/xx.do",
+		protocol.MosnHeaderQueryStringKey: "aa=va1&&bb=vb1",
+	}
+
+	res := matcher.Match(headers, &resourceConfig)
+	if res {
+		t.Errorf("false")
+	}
+}
