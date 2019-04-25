@@ -49,8 +49,6 @@ type ListenerConfig struct {
 	AddrConfig                            string        `json:"address,omitempty"`
 	BindToPort                            bool          `json:"bind_port,omitempty"`
 	HandOffRestoredDestinationConnections bool          `json:"handoff_restoreddestination,omitemptY"`
-	LogPath                               string        `json:"log_path,omitempty"`
-	LogLevelConfig                        string        `json:"log_level,omitempty"`
 	AccessLogs                            []AccessLog   `json:"access_logs,omitempty"`
 	FilterChains                          []FilterChain `json:"filter_chains,omitempty"` // only one filterchains at this time
 	StreamFilters                         []Filter      `json:"stream_filters,omitempty"`

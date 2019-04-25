@@ -29,6 +29,7 @@ import (
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
@@ -120,8 +121,6 @@ type streamConnection struct {
 
 	br *bufio.Reader
 	bw *bufio.Writer
-
-	logger log.ErrorLogger
 }
 
 // types.StreamConnection
@@ -260,7 +259,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	s := &buffers.clientStream
 	s.stream = stream{
 		id:       id,
-		ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
+		ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
 		request:  &buffers.clientRequest,
 		receiver: receiver,
 	}
@@ -392,7 +391,7 @@ func (conn *serverStreamConnection) serve() {
 		// 4. request processing
 		s.stream = stream{
 			id:       id,
-			ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
+			ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
 			request:  request,
 			response: &buffers.serverResponse,
 		}
@@ -754,6 +753,6 @@ type contextManager struct {
 }
 
 func (cm *contextManager) next() {
-	// new context
-	cm.curr = buffer.NewBufferPoolContext(cm.base)
+	// new stream-level context based on connection-level's
+	cm.curr = buffer.NewBufferPoolContext(mosnctx.Clone(cm.base))
 }

@@ -161,13 +161,13 @@ func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *s
 func transferRead(c *connection) (uint64, error) {
 	defer func() {
 		if r := recover(); r != nil {
-			c.logger.Errorf("transferRead panic %v", r)
+			log.DefaultLogger.Errorf("transferRead panic %v", r)
 			debug.PrintStack()
 		}
 	}()
 	unixConn, err := net.Dial("unix", types.TransferConnDomainSocket)
 	if err != nil {
-		c.logger.Errorf("net Dial unix failed c:%p, id:%d, err:%v", c, c.id, err)
+		log.DefaultLogger.Errorf("net Dial unix failed c:%p, id:%d, err:%v", c, c.id, err)
 		return transferErr, err
 	}
 	defer unixConn.Close()
@@ -181,18 +181,18 @@ func transferRead(c *connection) (uint64, error) {
 	// send type and TCP FD
 	err = transferSendType(uc, file)
 	if err != nil {
-		c.logger.Errorf("transferRead failed: %v", err)
+		log.DefaultLogger.Errorf("transferRead failed: %v", err)
 		return transferErr, err
 	}
 	// send header + buffer + TLS
-	err = transferReadSendData(uc, tlsConn, c.readBuffer, c.logger)
+	err = transferReadSendData(uc, tlsConn, c.readBuffer, log.DefaultLogger)
 	if err != nil {
-		c.logger.Errorf("transferRead failed: %v", err)
+		log.DefaultLogger.Errorf("transferRead failed: %v", err)
 		return transferErr, err
 	}
 	// recv ID
 	id := transferRecvID(uc)
-	c.logger.Infof("TransferRead NewConn Id = %d, oldId = %d, %p, addrass = %s", id, c.id, c, c.RemoteAddr().String())
+	log.DefaultLogger.Infof("TransferRead NewConn Id = %d, oldId = %d, %p, addrass = %s", id, c.id, c, c.RemoteAddr().String())
 
 	return id, nil
 }
@@ -201,21 +201,21 @@ func transferRead(c *connection) (uint64, error) {
 func transferWrite(c *connection, id uint64) error {
 	defer func() {
 		if r := recover(); r != nil {
-			c.logger.Errorf("transferWrite panic %v", r)
+			log.DefaultLogger.Errorf("transferWrite panic %v", r)
 		}
 	}()
 	unixConn, err := net.Dial("unix", types.TransferConnDomainSocket)
 	if err != nil {
-		c.logger.Errorf("net Dial unix failed %v", err)
+		log.DefaultLogger.Errorf("net Dial unix failed %v", err)
 		return err
 	}
 	defer unixConn.Close()
 
-	c.logger.Infof("TransferWrite id = %d, dataBuf = %d", id, c.writeBufLen())
+	log.DefaultLogger.Infof("TransferWrite id = %d, dataBuf = %d", id, c.writeBufLen())
 	uc := unixConn.(*net.UnixConn)
 	err = transferSendType(uc, nil)
 	if err != nil {
-		c.logger.Errorf("transferWrite failed: %v", err)
+		log.DefaultLogger.Errorf("transferWrite failed: %v", err)
 		return err
 	}
 	// build net.Buffers to IoBuffer
@@ -223,7 +223,7 @@ func transferWrite(c *connection, id uint64) error {
 	// send header + buffer
 	err = transferWriteSendData(uc, int(id), buf)
 	if err != nil {
-		c.logger.Errorf("transferWrite failed: %v", err)
+		log.DefaultLogger.Errorf("transferWrite failed: %v", err)
 		return err
 	}
 	return nil

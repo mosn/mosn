@@ -33,6 +33,7 @@ import (
 
 	admin "github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
@@ -50,19 +51,16 @@ type connHandler struct {
 	numConnections int64
 	listeners      []*activeListener
 	clusterManager types.ClusterManager
-	logger         log.ErrorLogger
 }
 
 // NewHandler
 // create types.ConnectionHandler's implement connHandler
 // with cluster manager and logger
-func NewHandler(clusterManagerFilter types.ClusterManagerFilter, clMng types.ClusterManager,
-	logger log.ErrorLogger) types.ConnectionHandler {
+func NewHandler(clusterManagerFilter types.ClusterManagerFilter, clMng types.ClusterManager) types.ConnectionHandler {
 	ch := &connHandler{
 		numConnections: 0,
 		clusterManager: clMng,
 		listeners:      make([]*activeListener, 0),
-		logger:         logger,
 	}
 
 	clusterManagerFilter.OnCreated(ch, ch)
@@ -141,9 +139,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		rawConfig.FilterChains[0].TLSConfig = lc.FilterChains[0].TLSConfig
 		rawConfig.FilterChains[0].TLSConfigs = lc.FilterChains[0].TLSConfigs
 		rawConfig.Inspector = lc.Inspector
-		mgr, err := mtls.NewTLSServerContextManager(rawConfig, al.listener, al.logger)
+		mgr, err := mtls.NewTLSServerContextManager(rawConfig, al.listener, log.DefaultLogger)
 		if err != nil {
-			al.logger.Errorf("create tls context manager failed, %v", err)
+			log.DefaultLogger.Errorf("create tls context manager failed, %v", err)
 			return nil, err
 		}
 		// object changed
@@ -165,15 +163,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		// listener doesn't exist, add the listener
 		//TODO: connection level stop-chan usage confirm
 		listenerStopChan := make(chan struct{})
-		//use default listener path
-		if lc.LogPath == "" {
-			lc.LogPath = types.MosnLogBasePath + string(os.PathSeparator) + lc.Name + ".log"
-		}
-
-		logger, err := log.GetOrCreateDefaultErrorLogger(lc.LogPath, log.Level(lc.LogLevel))
-		if err != nil {
-			return nil, fmt.Errorf("initialize listener logger failed : %v", err.Error())
-		}
 
 		//initialize access log
 		var als []types.AccessLog
@@ -192,9 +181,10 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 			}
 		}
 
-		l := network.NewListener(lc, logger)
+		l := network.NewListener(lc)
 
-		al, err = newActiveListener(l, lc, logger, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan)
+		var err error
+		al, err = newActiveListener(l, lc, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan)
 		if err != nil {
 			return al, err
 		}
@@ -342,13 +332,12 @@ type activeListener struct {
 	handler                 *connHandler
 	stopChan                chan struct{}
 	stats                   *listenerStats
-	logger                  log.ErrorLogger
 	accessLogs              []types.AccessLog
 	updatedLabel            bool
 	tlsMng                  types.TLSContextManager
 }
 
-func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.ErrorLogger, accessLoggers []types.AccessLog,
+func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers []types.AccessLog,
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
@@ -359,7 +348,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Erro
 		conns:        list.New(),
 		handler:      handler,
 		stopChan:     stopChan,
-		logger:       logger,
 		accessLogs:   accessLoggers,
 		updatedLabel: false,
 	}
@@ -377,9 +365,9 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, logger log.Erro
 	al.listenPort = listenPort
 	al.stats = newListenerStats(al.listener.Name())
 
-	mgr, err := mtls.NewTLSServerContextManager(lc, listener, logger)
+	mgr, err := mtls.NewTLSServerContextManager(lc, listener, log.DefaultLogger)
 	if err != nil {
-		logger.Errorf("create tls context manager failed, %v", err)
+		log.DefaultLogger.Errorf("create tls context manager failed, %v", err)
 		return nil, err
 	}
 	al.tlsMng = mgr
@@ -415,22 +403,21 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 		log.DefaultLogger.Infof("accept connection from:%s", al.listener.Addr().String())
 	}
 
-	ctx := context.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
-	ctx = context.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
-	ctx = context.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
-	ctx = context.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = context.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
-	ctx = context.WithValue(ctx, types.ContextKeyLogger, al.logger)
-	ctx = context.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
 	if rawf != nil {
-		ctx = context.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
 	}
 	if ch != nil {
-		ctx = context.WithValue(ctx, types.ContextKeyAcceptChan, ch)
-		ctx = context.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
-		ctx = context.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
 
 	arc.ContinueFilterChain(ctx, true)
@@ -459,7 +446,9 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 
 	atomic.AddInt64(&al.handler.numConnections, 1)
 
-	al.logger.Debugf("new downstream connection %d accepted", conn.ID())
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[network][%s:%d] new downstream connection %d accepted", al.listenIP, al.listenPort, conn.ID())
+	}
 
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
 	if !al.disableConnIo {
@@ -480,12 +469,12 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 }
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
-	conn := network.NewServerConnection(ctx, rawc, al.stopChan, al.logger)
-	oriRemoteAddr := ctx.Value(types.ContextOriRemoteAddr)
+	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
+	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	newCtx := context.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
+	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
@@ -535,10 +524,10 @@ func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler(ctx conte
 
 	var ch chan types.Connection
 	var buf []byte
-	if ctx.Value(types.ContextKeyAcceptChan) != nil {
-		ch = ctx.Value(types.ContextKeyAcceptChan).(chan types.Connection)
-		if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
-			buf = ctx.Value(types.ContextKeyAcceptBuffer).([]byte)
+	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
+		ch = val.(chan types.Connection)
+		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+			buf = val.([]byte)
 		}
 	}
 

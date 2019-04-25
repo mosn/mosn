@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/models"
 	"github.com/alipay/sofa-mosn/pkg/trace"
@@ -51,7 +52,7 @@ func (spanBuilder *SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 			traceId = trace.IdGen().GenerateTraceId()
 		}
 		span.SetTag(trace.TRACE_ID, traceId)
-		lType := ctx.Value(types.ContextKeyListenerType)
+		lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
 
 		spanId := string(requset.Header.Peek(models.RPC_ID_KEY))
 		if spanId == "" {

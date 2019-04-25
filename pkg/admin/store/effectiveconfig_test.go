@@ -46,7 +46,6 @@ func TestSetListenerConfig(t *testing.T) {
 					ListenerConfig: v2.ListenerConfig{
 						Name:       "test",
 						BindToPort: false,
-						LogPath:    "stdout",
 					},
 				},
 			},
@@ -67,14 +66,12 @@ func TestSetListenerConfig(t *testing.T) {
 					ListenerConfig: v2.ListenerConfig{
 						Name:       "test",
 						BindToPort: false,
-						LogPath:    "stdout",
 					},
 				},
 				{
 					ListenerConfig: v2.ListenerConfig{
 						Name:       "test",
 						BindToPort: false,
-						LogPath:    "stdout",
 						FilterChains: []v2.FilterChain{
 							{
 								FilterChainConfig: v2.FilterChainConfig{
@@ -282,7 +279,6 @@ func BenchmarkSetListenerConfig_Add(b *testing.B) {
 		ListenerConfig: v2.ListenerConfig{
 			Name:       "test",
 			BindToPort: false,
-			LogPath:    "stdout",
 			FilterChains: []v2.FilterChain{
 				{
 					FilterChainConfig: v2.FilterChainConfig{

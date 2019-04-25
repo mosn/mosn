@@ -23,11 +23,11 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/server/keeper"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // currently, only one server supported
@@ -82,7 +82,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		serverName: config.ServerName,
 		logger:     log.DefaultLogger,
 		stopChan:   make(chan struct{}),
-		handler:    NewHandler(cmFilter, clMng, log.DefaultLogger),
+		handler:    NewHandler(cmFilter, clMng),
 	}
 
 	initListenerAdapterInstance(server.serverName, server.handler)

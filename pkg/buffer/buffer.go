@@ -25,6 +25,8 @@ import (
 	"unsafe"
 
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 const maxBufferPool = 16
@@ -110,7 +112,7 @@ type bufferValue struct {
 
 // NewBufferPoolContext returns a context with bufferValue
 func NewBufferPoolContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, types.ContextKeyBufferPoolCtx, newBufferValue())
+	return mosnctx.WithValue(ctx, types.ContextKeyBufferPoolCtx, newBufferValue())
 }
 
 // TransmitBufferPoolContext copy a context
@@ -179,9 +181,11 @@ func (bv *bufferValue) Give() {
 }
 
 // PoolContext returns bufferValue by context
-func PoolContext(context context.Context) *bufferValue {
-	if context != nil && context.Value(types.ContextKeyBufferPoolCtx) != nil {
-		return context.Value(types.ContextKeyBufferPoolCtx).(*bufferValue)
+func PoolContext(ctx context.Context) *bufferValue {
+	if ctx != nil {
+		if val := mosnctx.Get(ctx, types.ContextKeyBufferPoolCtx); val != nil {
+			return val.(*bufferValue)
+		}
 	}
 	return newBufferValue()
 }

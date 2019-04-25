@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -17,7 +18,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
 )
 
 type Client struct {
@@ -30,7 +30,7 @@ func NewClient(addr string) *Client {
 	c := &Client{}
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
-	conn := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
+	conn := network.NewClientConnection(nil, nil, remoteAddr, stopChan)
 	if err := conn.Connect(true); err != nil {
 		fmt.Println(err)
 		return nil

@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"istio.io/api/mixer/v1"
 )
@@ -236,18 +235,16 @@ func TestParseListenerConfig(t *testing.T) {
 
 	lc := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			AddrConfig:     tcpListener.Addr().String(),
-			LogLevelConfig: "DEBUG",
+			AddrConfig: tcpListener.Addr().String(),
 		},
 	}
 	ln := ParseListenerConfig(lc, inherit)
 	if !(ln.Addr != nil &&
 		ln.Addr.String() == tcpListener.Addr().String() &&
 		ln.PerConnBufferLimitBytes == 1<<15 &&
-		ln.InheritListener != nil &&
-		ln.LogLevel == uint8(log.DEBUG)) {
+		ln.InheritListener != nil) {
 		t.Error("listener parse unexpected")
-		t.Log(ln.Addr.String(), ln.InheritListener != nil, ln.LogLevel)
+		t.Log(ln.Addr.String(), ln.InheritListener != nil)
 	}
 	if inherit[0] != nil {
 		t.Error("no inherit listener")

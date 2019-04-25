@@ -29,6 +29,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 // ReadFilter
@@ -51,7 +53,7 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.Clu
 		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,
 		requestInfo:    network.NewRequestInfo(),
-		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
 
 	p.upstreamCallbacks = &upstreamCallbacks{

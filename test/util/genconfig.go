@@ -116,12 +116,10 @@ func NewWeightedCluster(name string, hosts []*WeightHost) v2.Cluster {
 func NewListener(name, addr string, chains []v2.FilterChain) v2.Listener {
 	return v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:           name,
-			AddrConfig:     addr,
-			BindToPort:     true,
-			LogPath:        MeshLogPath,
-			LogLevelConfig: MeshLogLevel,
-			FilterChains:   chains,
+			Name:         name,
+			AddrConfig:   addr,
+			BindToPort:   true,
+			FilterChains: chains,
 		},
 	}
 }
