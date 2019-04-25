@@ -67,6 +67,10 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.HTTP1
 }
 
+func (p *connPool) CheckAndInit(ctx context.Context) bool {
+	return true
+}
+
 //由 PROXY 调用
 func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
 	c, reason := p.getAvailableClient(ctx)

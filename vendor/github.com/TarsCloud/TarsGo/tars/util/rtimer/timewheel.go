@@ -15,7 +15,6 @@ func init() {
 	timerMap = make(map[time.Duration]*TimeWheel)
 }
 
-//After like time.After
 func After(t time.Duration) <-chan struct{} {
 	mapLock.Lock()
 	defer mapLock.Unlock()
@@ -27,13 +26,10 @@ func After(t time.Duration) <-chan struct{} {
 	return v.After(t)
 }
 
-//SetAccuracy sets the accuracy for the timewheel.
-//low accuracy usually have better performance.
 func SetAccuracy(a int) {
 	accuracy = a
 }
 
-//TimeWheel struct.
 type TimeWheel struct {
 	lock sync.Mutex
 	t    time.Duration
@@ -45,7 +41,6 @@ type TimeWheel struct {
 	currPos   int
 }
 
-//NewTimeWheel new timewheel with size.
 func NewTimeWheel(t time.Duration, size int) *TimeWheel {
 	tw := &TimeWheel{t: t, maxT: t * time.Duration(size)}
 
@@ -58,12 +53,10 @@ func NewTimeWheel(t time.Duration, size int) *TimeWheel {
 	return tw
 }
 
-//Stop stops the timewheel
 func (tw *TimeWheel) Stop() {
 	tw.ticker.Stop()
 }
 
-//After like time.After
 func (tw *TimeWheel) After(timeout time.Duration) <-chan struct{} {
 	if timeout >= tw.maxT {
 		panic("timeout is bigger than maxT")

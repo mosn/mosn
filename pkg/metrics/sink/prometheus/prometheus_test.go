@@ -43,6 +43,9 @@ const (
 // test concurrently add statisic data
 // should get the right data from prometheus
 func TestPrometheusMetrics(t *testing.T) {
+	//zone := shm.InitMetricsZone("TestPrometheusMetrics", 10*1024)
+	//defer zone.Detach()
+
 	metrics.ResetAll()
 	testCases := []struct {
 		typ         string
@@ -88,17 +91,18 @@ func TestPrometheusMetrics(t *testing.T) {
 	wg.Wait()
 
 	sink := NewPromeSink(&promConfig{
-		Port:                  8088,
-		Endpoint:              "/metrics",
-		DisableCollectProcess: true,
-		DisableCollectGo:      true,
+		Port:     8088,
+		Endpoint: "/metrics",
+		//DisableCollectProcess: true,
+		//DisableCollectGo:      true,
 	})
+	_ = sink
+
 	store.StartService(nil)
 	defer store.StopService()
 	time.Sleep(time.Second) // wait server start
 
 	tc := http.Client{}
-	sink.Flush(metrics.GetAll())
 
 	resp, err := tc.Get("http://127.0.0.1:8088/metrics")
 	if err != nil {
@@ -113,6 +117,8 @@ func TestPrometheusMetrics(t *testing.T) {
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
+
+	fmt.Println(string(body))
 
 	if !bytes.Contains(body, []byte("lbk1_t1_k1{lbk1=\"lbv1\"} 0.0")) {
 		t.Error("lbk1_t1_k1{lbk1=\"lbv1\"} metric not correct")
@@ -131,7 +137,36 @@ func TestPrometheusMetrics(t *testing.T) {
 	}
 }
 
+func TestPrometheusFlatternKey(t *testing.T) {
+	testcase := []struct {
+		input  string
+		output string
+	}{
+		{
+			input:  "listener.127.0.0.1:34903",
+			output: "listener_127_0_0_1:34903",
+		},
+		{
+			input:  "go_version:go1.9",
+			output: "go_version:go1_9",
+		},
+		{
+			input:  "listener_address:0.0.0.0:9529",
+			output: "listener_address:0_0_0_0:9529",
+		},
+	}
+
+	for _, c := range testcase {
+		if flattenKey(c.input) != c.output {
+			t.Error("prometheus flattern key error:", c)
+		}
+	}
+}
+
 func BenchmarkPromSink_Flush(b *testing.B) {
+	//zone := shm.InitMetricsZone("BenchmarkPromSink_Flush", 50*1024*1024)
+	//defer zone.Detach()
+
 	// 5000 registry + each registry 40 metrics
 	for i := 0; i < 5000; i ++ {
 		m, _ := metrics.NewMetrics(fmt.Sprintf("type%d", i), map[string]string{
@@ -151,15 +186,24 @@ func BenchmarkPromSink_Flush(b *testing.B) {
 		DisableCollectGo:      true,
 		//DisablePassiveFlush:   true,
 	})
+	_ = sink
 	store.StartService(nil)
 	defer store.StopService()
 	time.Sleep(time.Second) // wait server start
 
-	sink.Flush(metrics.GetAll())
 	//tc := http.Client{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i ++ {
-		sink.Flush(metrics.GetAll())
+		sink.Flush(ioutil.Discard, metrics.GetAll())
+		//url, _ := url.Parse("http://127.0.0.1:8088/metrics")
+		//tc.Do(&http.Request{
+		//	Method: http.MethodGet,
+		//	URL:    url,
+		//	//Header: map[string][]string{
+		//	//	//"Accept-Encoding": {"gzip, deflate"},
+		//	//	"Accept": {"application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily encoding=compact-text"},
+		//	//},
+		//})
 		//resp, err := tc.Get("http://127.0.0.1:8088/metrics")
 		//if err != nil {
 		//	b.Error("get metrics failed:", err)

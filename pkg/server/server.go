@@ -27,15 +27,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/config"
+	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 )
-
-func init() {
-	onProcessExit = append(onProcessExit, func() {
-		if pidFile != "" {
-			os.Remove(pidFile)
-		}
-	})
-}
 
 // currently, only one server supported
 func GetServer() Server {
@@ -61,8 +54,6 @@ func NewConfig(c *v2.ServerConfig) *Config {
 		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        config.ParseLogLevel(c.DefaultLogLevel),
-		ProxyLogPath:    c.ProxyLogPath,
-		ProxyLogLevel:   config.ParseLogLevel(c.ProxyLogLevel),
 		LogRoller:       c.DefaultLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,
@@ -85,7 +76,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 
 	runtime.GOMAXPROCS(config.Processor)
 
-	OnProcessShutDown(log.CloseAll)
+	keeper.OnProcessShutDown(log.CloseAll)
 
 	server := &server{
 		serverName: config.ServerName,
@@ -179,23 +170,14 @@ func InitDefaultLogger(config *Config) {
 	var logPath string
 	var logLevel log.Level
 
-	var proxyLogPath string
-	var proxyLogLevel log.Level
-
 	if config != nil {
 		logPath = config.LogPath
 		logLevel = config.LogLevel
-
-		proxyLogPath = config.ProxyLogPath
-		proxyLogLevel = config.ProxyLogLevel
 	}
 
 	//use default log path
 	if logPath == "" {
 		logPath = types.MosnLogDefaultPath
-	}
-	if proxyLogPath == "" {
-		proxyLogPath = types.MosnLogProxyPath
 	}
 
 	if config.LogRoller != "" {
@@ -208,10 +190,5 @@ func InitDefaultLogger(config *Config) {
 	err := log.InitDefaultLogger(logPath, logLevel)
 	if err != nil {
 		log.StartLogger.Fatalln("initialize default logger failed : ", err)
-	}
-
-	err = log.InitProxyLogger(proxyLogPath, proxyLogLevel)
-	if err != nil {
-		log.StartLogger.Fatalln("initialize proxy logger failed : ", err)
 	}
 }

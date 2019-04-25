@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/router"
@@ -837,4 +838,8 @@ func (ctx *mockLbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
 
 func (ctx *mockLbContext) DownstreamHeaders() types.HeaderMap {
 	return ctx.header
+}
+
+func (ctx *mockLbContext) DownstreamContext() context.Context {
+	return nil
 }

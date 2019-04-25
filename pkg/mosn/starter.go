@@ -27,10 +27,12 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/server"
+	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
@@ -60,13 +62,11 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		log.StartLogger.Fatalln("getInheritListeners failed, exit")
 	}
 	if reconfigure != nil {
-		// set Mosn State
-		store.SetMosnState(store.Reconfiguring)
+		// set Mosn Active_Reconfiguring
+		store.SetMosnState(store.Active_Reconfiguring)
 		// parse MOSNConfig again
 		c = config.Load(config.GetConfigPath())
-	}
-
-	if store.GetMosnState() == store.Running {
+	} else {
 		// start init services
 		if err := store.StartService(nil); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
@@ -180,7 +180,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
-	if store.GetMosnState() == store.Reconfiguring {
+	if store.GetMosnState() == store.Active_Reconfiguring {
 		// start other services
 		if err := store.StartService(inheritListeners); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
@@ -195,8 +195,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 		// transfer old mosn connections
 		go network.TransferServer(m.servers[0].Handler())
-		// transfer old mosn mertrics, none-block
-		go metrics.TransferServer(server.GracefulTimeout, nil)
 	} else {
 		// start other services
 		if err := store.StartService(nil); err != nil {
@@ -282,36 +280,27 @@ func initializeTracing(config config.TracingConfig) {
 }
 
 func initializeMetrics(config config.MetricsConfig) {
-	var flushSinks []types.MetricsSink
+	// init shm zone
+	if config.ShmZone != "" && config.ShmSize > 0 {
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize))
+	}
+
 	// set metrics package
 	statsMatcher := config.StatsMatcher
 	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
 	// create sinks
 	for _, cfg := range config.SinkConfigs {
-		sink, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
+		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
 		// abort
 		if err != nil {
-			log.StartLogger.Errorf("initialize metrics sink %s failed, metrics sink is turned off", cfg.Type)
+			log.StartLogger.Errorf("%s. %v metrics sink is turned off", err, cfg.Type)
 			return
 		}
-
-		// filter sinks that need active flush
-		for i := range config.Flush {
-			if cfg.Type == config.Flush[i] {
-				flushSinks = append(flushSinks, sink)
-				break
-			}
-		}
-
-	}
-
-	if len(flushSinks) > 0 {
-		go sink.StartFlush(flushSinks, config.FlushInterval.Duration)
 	}
 }
 
 func initializePidFile(pid string) {
-	server.SetPid(pid)
+	keeper.SetPid(pid)
 }
 
 func initializeDefaultPath(path string) {

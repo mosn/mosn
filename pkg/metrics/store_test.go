@@ -22,9 +22,16 @@ import (
 	"reflect"
 	"testing"
 	gometrics "github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 func TestGetAll(t *testing.T) {
+	zone := shm.InitMetricsZone("TestGetAll", 10*1024)
+	defer func() {
+		zone.Detach()
+		shm.Reset()
+	}()
+
 	ResetAll()
 
 	// new some stats
@@ -37,6 +44,12 @@ func TestGetAll(t *testing.T) {
 }
 
 func TestExclusionLabels(t *testing.T) {
+	zone := shm.InitMetricsZone("TestExclusionLabels", 10*1024)
+	defer func() {
+		zone.Detach()
+		shm.Reset()
+	}()
+
 	ResetAll()
 	exclusions := []string{
 		"exclusion",
@@ -103,6 +116,12 @@ func TestExclusionLabels(t *testing.T) {
 }
 
 func TestExclusionKeys(t *testing.T) {
+	zone := shm.InitMetricsZone("TestExclusionKeys", 10*1024)
+	defer func() {
+		zone.Detach()
+		shm.Reset()
+	}()
+
 	ResetAll()
 	exclusions := []string{
 		"exclusion",

@@ -29,8 +29,6 @@ type Config struct {
 	ServerName      string
 	LogPath         string
 	LogLevel        log.Level
-	ProxyLogPath    string
-	ProxyLogLevel   log.Level
 	LogRoller       string
 	GracefulTimeout time.Duration
 	Processor       int

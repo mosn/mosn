@@ -55,6 +55,10 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.HTTP2
 }
 
+func (p *connPool) CheckAndInit(ctx context.Context) bool {
+	return true
+}
+
 func (p *connPool) NewStream(ctx context.Context,
 	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
 

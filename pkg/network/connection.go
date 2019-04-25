@@ -19,6 +19,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"math/rand"
 	"net"
@@ -35,12 +36,11 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"fmt"
 )
 
 // Network related const
 const (
-	ConnectionCloseDebugMsg   = "Close connection %d, event %s, type %s, data read %d, data write %d"
+	ConnectionCloseDebugMsg   = "Close connection %d, event %s, type %s"
 	DefaultBufferReadCapacity = 1 << 0
 )
 
@@ -263,7 +263,10 @@ func (c *connection) scheduleWrite() {
 
 			for i := 0; i < 10; i++ {
 				select {
-				case buf := <-c.writeBufferChan:
+				case buf, ok := <-c.writeBufferChan:
+					if !ok {
+						return
+					}
 					c.appendBuffer(buf)
 				default:
 				}
@@ -332,14 +335,21 @@ func (c *connection) startReadLoop() {
 						}
 						continue
 					}
+
+					// normal close or health check, modify log level
+					if c.lastBytesSizeRead == 0 || err == io.EOF {
+						c.logger.Debugf("Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
+							c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
+					} else {
+						c.logger.Errorf("Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
+							c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
+					}
+
 					if err == io.EOF {
 						c.Close(types.NoFlush, types.RemoteClose)
 					} else {
 						c.Close(types.NoFlush, types.OnReadErrClose)
 					}
-
-					c.logger.Errorf("Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
-						c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
 
 					return
 				}
@@ -448,8 +458,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -482,13 +492,19 @@ func (c *connection) startWriteLoop() {
 			if id != transferErr {
 				goto transfer
 			}
-		case buf := <-c.writeBufferChan:
+		case buf, ok := <-c.writeBufferChan:
+			if !ok {
+				return
+			}
 			c.appendBuffer(buf)
 
 			//todo: dynamic set loop nums
 			for i := 0; i < 10; i++ {
 				select {
-				case buf := <-c.writeBufferChan:
+				case buf, ok := <-c.writeBufferChan:
+					if !ok {
+						return
+					}
 					c.appendBuffer(buf)
 				default:
 				}
@@ -546,7 +562,10 @@ transfer:
 		select {
 		case <-c.internalStopChan:
 			return
-		case buf := <-c.writeBufferChan:
+		case buf, ok := <-c.writeBufferChan:
+			if !ok {
+				return
+			}
 			c.appendBuffer(buf)
 			transferWrite(c, id)
 		}
@@ -658,8 +677,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 
 	c.rawConnection.Close()
 
-	c.logger.Debugf(ConnectionCloseDebugMsg, c.id, eventType,
-		ccType, c.stats.ReadTotal.Count(), c.stats.WriteTotal.Count())
+	c.logger.Debugf(ConnectionCloseDebugMsg, c.id, eventType, ccType)
 
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)

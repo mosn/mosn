@@ -24,7 +24,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
@@ -54,15 +53,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: utils.GenerateMD5Value("test"),
+						Value: types.HashedValue("test"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: utils.GenerateMD5Value("green"),
+						Value: types.HashedValue("green"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: utils.GenerateMD5Value("v1"),
+						Value: types.HashedValue("v1"),
 					},
 				},
 			},
@@ -78,15 +77,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: utils.GenerateMD5Value("test"),
+						Value: types.HashedValue("test"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: utils.GenerateMD5Value("green"),
+						Value: types.HashedValue("green"),
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: utils.GenerateMD5Value("v1"),
+						Value: types.HashedValue("v1"),
 					},
 				},
 			},
@@ -102,7 +101,7 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: utils.GenerateMD5Value("v1"),
+						Value: types.HashedValue("v1"),
 					},
 				},
 			},
@@ -135,25 +134,27 @@ func Test_NewConfigImpl(t *testing.T) {
 			name: "case1",
 			args: args{
 				routerConfig: &v2.RouterConfiguration{
-					RequestHeadersToAdd: []*v2.HeaderValueOption{
-						{
-							Header: &v2.HeaderValue{
-								Key:   "LEVEL",
-								Value: "1",
+					RouterConfigurationConfig: v2.RouterConfigurationConfig{
+						RequestHeadersToAdd: []*v2.HeaderValueOption{
+							{
+								Header: &v2.HeaderValue{
+									Key:   "LEVEL",
+									Value: "1",
+								},
+								Append: &FALSE,
 							},
-							Append: &FALSE,
 						},
-					},
-					ResponseHeadersToAdd: []*v2.HeaderValueOption{
-						{
-							Header: &v2.HeaderValue{
-								Key:   "Random",
-								Value: "123456",
+						ResponseHeadersToAdd: []*v2.HeaderValueOption{
+							{
+								Header: &v2.HeaderValue{
+									Key:   "Random",
+									Value: "123456",
+								},
+								Append: &FALSE,
 							},
-							Append: &FALSE,
 						},
+						ResponseHeadersToRemove: []string{"status"},
 					},
-					ResponseHeadersToRemove: []string{"status"},
 				},
 			},
 			want: &configImpl{
@@ -201,7 +202,7 @@ func TestMetadataMatchCriteriaImplSort(t *testing.T) {
 	for i := range keys {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  keys[i],
-			Value: utils.GenerateMD5Value(values[i]),
+			Value: types.HashedValue(values[i]),
 		}
 		mciArray = append(mciArray, mmci)
 	}

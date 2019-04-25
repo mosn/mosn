@@ -84,6 +84,12 @@ func SetClusterConfig(clusterName string, cluster v2.Cluster) {
 	mutex.Unlock()
 }
 
+func RemoveClusterConfig(clusterName string) {
+	mutex.Lock()
+	delete(conf.Cluster, clusterName)
+	mutex.Unlock()
+}
+
 func SetHosts(clusterName string, hostConfigs []v2.Host) {
 	mutex.Lock()
 	if cluster, ok := conf.Cluster[clusterName]; ok {
@@ -95,6 +101,8 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 
 func SetRouter(routerName string, router v2.RouterConfiguration) {
 	mutex.Lock()
+	// clear the router's dynamic mode, so the dump api will show all routes in the router
+	router.RouterConfigPath = ""
 	conf.Routers[routerName] = router
 	mutex.Unlock()
 }

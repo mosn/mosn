@@ -18,10 +18,6 @@ import (
 	"sync"
 )
 
-import (
-	"github.com/AlexStocks/goext/strings"
-)
-
 type BufFileWriter struct {
 	filename string
 	bufSize  int
@@ -122,5 +118,5 @@ func (w *BufFileWriter) Write(p []byte) (int, error) {
 
 	w.Lock()
 	defer w.Unlock()
-	return fmt.Fprint(w.writer, gxstrings.String(p))
+	return fmt.Fprint(w.writer, String(p))
 }

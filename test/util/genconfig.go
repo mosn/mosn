@@ -30,7 +30,9 @@ func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.Fi
 	json.Unmarshal(b, &chains)
 
 	routerConfig := v2.RouterConfiguration{
-		RouterConfigName: cfgName,
+		RouterConfigurationConfig: v2.RouterConfigurationConfig{
+			RouterConfigName: cfgName,
+		},
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{
 				Name:    "test",

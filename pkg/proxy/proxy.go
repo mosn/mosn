@@ -47,13 +47,13 @@ var (
 )
 
 func init() {
-	globalStats = newProxyStats(types.GlobalProxyName)
-
 	// register init function with interest of P number
 	config.RegisterConfigParsedListener(config.ParseCallbackKeyProcessor, initWorkerPool)
 }
 
 func initWorkerPool(data interface{}, endParsing bool) error {
+	initGlobalStats()
+
 	poolSize := runtime.NumCPU() * 1024
 
 	// set poolSize equal to processor if it was specified
@@ -65,6 +65,11 @@ func initWorkerPool(data interface{}, endParsing bool) error {
 
 	return nil
 }
+
+func initGlobalStats(){
+	globalStats = newProxyStats(types.GlobalProxyName)
+}
+
 
 // types.ReadFilter
 // types.ServerStreamConnectionEventListener
@@ -209,7 +214,9 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 
 	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
-		log.Proxy.Debugf(ctx, "there is %d stream filters in config", len(ffs))
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("there is %d stream filters in config", len(ffs))
+		}
 
 		for _, f := range ffs {
 			f.CreateFilterChain(p.context, stream)

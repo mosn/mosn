@@ -86,11 +86,9 @@ func GetOrCreateDefaultErrorLogger(p string, level Level) (ErrorLogger, error) {
 
 func InitDefaultLogger(output string, level Level) (err error) {
 	DefaultLogger, err = GetOrCreateDefaultErrorLogger(output, level)
-	return
-}
-
-func InitProxyLogger(output string, level Level) (err error) {
-	Proxy, err = CreateDefaultProxyLogger(output, level)
+	if err != nil {
+		Proxy, err = CreateDefaultProxyLogger(output, level)
+	}
 	return
 }
 

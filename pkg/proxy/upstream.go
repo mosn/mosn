@@ -119,7 +119,9 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 
 	r.downStream.downstreamRespTrailers = trailers
 
-	log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] upstreamRequest OnReceive %+v", headers)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] upstreamRequest OnReceive %+v", headers)
+	}
 
 	r.downStream.sendNotify()
 }
@@ -158,11 +160,19 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
-	log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] upstream request encode headers")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] upstream request encode headers")
+	}
 	r.sendComplete = endStream
 
-	log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] upstream request before conn pool new stream")
-	r.connPool.NewStream(r.downStream.context, r, r)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] upstream request before conn pool new stream")
+	}
+	if r.downStream.oneway {
+		r.connPool.NewStream(r.downStream.context, nil, r)
+	} else {
+		r.connPool.NewStream(r.downStream.context, r, r)
+	}
 }
 
 func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap {
@@ -270,6 +280,8 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
 
 	// debug message for upstream
-	log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] new upstream, proxyId = %v", r.downStream.ID)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy][upstream] new upstream, proxyId = %v", r.downStream.ID)
+	}
 	// todo: check if we get a reset on send headers
 }

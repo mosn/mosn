@@ -20,9 +20,13 @@ package v2
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
 	"strings"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -176,10 +180,87 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	}
 	return nil
 }
-func (fc *FilterChain) MarshalJSON() (b []byte, err error) {
+func (fc FilterChain) MarshalJSON() (b []byte, err error) {
 	if len(fc.TLSContexts) > 0 { // use tls_context_set
 		fc.TLSConfig = nil
 		fc.TLSConfigs = fc.TLSContexts
 	}
 	return json.Marshal(fc.FilterChainConfig)
+}
+
+var ErrDuplicateStaticAndDynamic = errors.New("only one of static config or dynamic config should be exists")
+
+func (rc *RouterConfiguration) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &rc.RouterConfigurationConfig); err != nil {
+		return err
+	}
+	cfg := rc.RouterConfigurationConfig
+	// only one of the config should be exists
+	if len(cfg.StaticVirtualHosts) > 0 && cfg.RouterConfigPath != "" {
+		return ErrDuplicateStaticAndDynamic
+	}
+	if len(cfg.StaticVirtualHosts) > 0 {
+		rc.VirtualHosts = cfg.StaticVirtualHosts
+	}
+	// Traversing path and parse the json
+	// assume all the files in the path are available json file, and no sub path
+	if cfg.RouterConfigPath != "" {
+		files, err := ioutil.ReadDir(cfg.RouterConfigPath)
+		if err != nil {
+			return err
+		}
+		for _, f := range files {
+			fileName := path.Join(cfg.RouterConfigPath, f.Name())
+			data, err := ioutil.ReadFile(fileName)
+			if err != nil {
+				return err
+			}
+			vh := &VirtualHost{}
+			if err := json.Unmarshal(data, vh); err != nil {
+				return err
+			}
+			rc.VirtualHosts = append(rc.VirtualHosts, vh)
+		}
+	}
+	return nil
+}
+
+// Marshal memory config into json, if dynamic mode is configured, write json file
+func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
+	if rc.RouterConfigPath == "" {
+		rc.StaticVirtualHosts = rc.VirtualHosts
+		return json.Marshal(rc.RouterConfigurationConfig)
+	}
+	// dynamic mode, should write file
+	// first, get all the files in the directory
+	files, err := ioutil.ReadDir(rc.RouterConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	allFiles := make(map[string]struct{}, len(files))
+	for _, f := range files {
+		allFiles[f.Name()] = struct{}{}
+	}
+	// file name is virtualhost name, if not exists, use {unixnano}.json
+	for _, vh := range rc.VirtualHosts {
+		fileName := vh.Name
+		if fileName == "" {
+			fileName = fmt.Sprintf("%d", time.Now().UnixNano())
+		}
+		data, err := json.Marshal(vh)
+		if err != nil {
+			return nil, err
+		}
+		fileName = fileName + ".json"
+		delete(allFiles, fileName)
+		fileName = path.Join(rc.RouterConfigPath, fileName)
+		if err := utils.WriteFileSafety(fileName, data, 0644); err != nil {
+			return nil, err
+		}
+	}
+	// delete invalid files
+	for f := range allFiles {
+		os.Remove(path.Join(rc.RouterConfigPath, f))
+	}
+	return json.Marshal(rc.RouterConfigurationConfig)
 }

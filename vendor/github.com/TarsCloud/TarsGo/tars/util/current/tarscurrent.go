@@ -1,7 +1,6 @@
 package current
 
 import "context"
-
 type tarsCurrentKey int64
 
 var tcKey = tarsCurrentKey(0x484900)

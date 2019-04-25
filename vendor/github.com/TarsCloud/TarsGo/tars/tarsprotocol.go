@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"github.com/gin-gonic/gin/json"
 	"time"
 
 	"github.com/TarsCloud/TarsGo/tars/util/current"
@@ -18,7 +17,6 @@ type dispatch interface {
 	Dispatch(context.Context, interface{}, *requestf.RequestPacket, *requestf.ResponsePacket, bool) error
 }
 
-//TarsProtocol is struct for dispatch with tars protocol.
 type TarsProtocol struct {
 	dispatcher  dispatch
 	serverImp   interface{}
@@ -32,7 +30,6 @@ func NewTarsProtocol(dispatcher dispatch, imp interface{}, withContext bool) *Ta
 	return s
 }
 
-//Invoke puts the request as []byte and call the dispather, and then return the response as []byte.
 func (s *TarsProtocol) Invoke(ctx context.Context, req []byte) (rsp []byte) {
 	defer checkPanic()
 	reqPackage := requestf.RequestPacket{}
@@ -40,9 +37,6 @@ func (s *TarsProtocol) Invoke(ctx context.Context, req []byte) (rsp []byte) {
 	is := codec.NewReader(req)
 	reqPackage.ReadFrom(is)
 	TLOG.Debug("invoke:", reqPackage.IRequestId)
-	data, _ := json.Marshal(reqPackage)
-	TLOG.Debug("requestPacket bytes:%v", req)
-	TLOG.Debug("requestPacket:%s", string(data))
 	if reqPackage.CPacketType == basef.TARSONEWAY {
 		defer func() func() {
 			beginTime := time.Now().UnixNano() / 1000000
@@ -69,19 +63,10 @@ func (s *TarsProtocol) Invoke(ctx context.Context, req []byte) (rsp []byte) {
 		err = s.dispatcher.Dispatch(ctx, s.serverImp, &reqPackage, &rspPackage, s.withContext)
 	}
 	if err != nil {
-		rspPackage.IVersion = basef.TARSVERSION
-		rspPackage.CPacketType = basef.TARSNORMAL
-		rspPackage.IRequestId = reqPackage.IRequestId
 		rspPackage.IRet = 1
 		rspPackage.SResultDesc = err.Error()
 	}
-	data, _ = json.Marshal(rspPackage)
-
-	TLOG.Debug("responsePacket:%s", string(data))
-	resp := s.rsp2Byte(&rspPackage)
-	TLOG.Debug("responsePacket bytes:%v", resp)
-
-	return resp
+	return s.rsp2Byte(&rspPackage)
 }
 
 func (s *TarsProtocol) rsp2Byte(rsp *requestf.ResponsePacket) []byte {
@@ -96,12 +81,10 @@ func (s *TarsProtocol) rsp2Byte(rsp *requestf.ResponsePacket) []byte {
 	return sbuf.Bytes()
 }
 
-//ParsePackage parse the []byte according to the tars protocol.
 func (s *TarsProtocol) ParsePackage(buff []byte) (int, int) {
 	return TarsRequest(buff)
 }
 
-//InvokeTimeout indicates how to deal with timeout.
 func (s *TarsProtocol) InvokeTimeout(pkg []byte) []byte {
 	rspPackage := requestf.ResponsePacket{}
 	rspPackage.IRet = 1

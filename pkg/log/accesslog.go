@@ -27,7 +27,8 @@ import (
 
 // RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value
 var (
-	RequestInfoFuncMap map[string]func(info types.RequestInfo) string
+	RequestInfoFuncMap      map[string]func(info types.RequestInfo) string
+	DefaultDisableAccessLog bool
 )
 
 const AccessLogLen = 1 << 8
@@ -72,11 +73,18 @@ func NewAccessLog(output string, filter types.AccessLogFilter,
 		formatter: NewAccessLogFormatter(format),
 		logger:    lg,
 	}
+	if DefaultDisableAccessLog {
+		lg.Toggle(true) // disable accesslog by default
+	}
 
 	return l, nil
 }
 
 func (l *accesslog) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+	// return directly
+	if l.logger.disable {
+		return
+	}
 	if l.filter != nil {
 		if !l.filter.Decide(reqHeaders, requestInfo) {
 			return

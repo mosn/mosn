@@ -116,7 +116,8 @@ type streamConnection struct {
 	conn              types.Connection
 	connEventListener types.ConnectionEventListener
 
-	bufChan chan types.IoBuffer
+	bufChan    chan types.IoBuffer
+	connClosed chan bool
 
 	br *bufio.Reader
 	bw *bufio.Writer
@@ -182,14 +183,14 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 
 	csc := &clientStreamConnection{
 		streamConnection: streamConnection{
-			context: ctx,
-			conn:    connection,
-			bufChan: make(chan types.IoBuffer),
+			context:    ctx,
+			conn:       connection,
+			bufChan:    make(chan types.IoBuffer),
+			connClosed: make(chan bool, 1),
 		},
 		connectionEventListener:       connCallbacks,
 		streamConnectionEventListener: streamConnCallbacks,
 		requestSent:                   make(chan bool, 1),
-		connClosed:                    make(chan bool, 1),
 	}
 
 	csc.br = bufio.NewReader(csc)
@@ -307,9 +308,10 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
-			context: ctx,
-			conn:    connection,
-			bufChan: make(chan types.IoBuffer),
+			context:    ctx,
+			conn:       connection,
+			bufChan:    make(chan types.IoBuffer),
+			connClosed: make(chan bool, 1),
 		},
 		contextManager:           str.NewContextManager(ctx),
 		serverStreamConnListener: callbacks,
@@ -349,6 +351,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 func (conn *serverStreamConnection) OnEvent(event types.ConnectionEvent) {
 	if event.IsClose() {
 		close(conn.bufChan)
+		close(conn.connClosed)
 	}
 }
 
@@ -376,9 +379,9 @@ func (conn *serverStreamConnection) serve() {
 			}
 		}
 		if err != nil {
-			if err == errConnClose || err == io.EOF {
-				log.DefaultLogger.Errorf("[stream][http] server request codec error: %s", err)
-			} else {
+			// "read timeout with nothing read" is the error of returned by fasthttp v1.2.0
+			// if connection closed with nothing read.
+			if err != errConnClose && err != io.EOF && err.Error() != "read timeout with nothing read" {
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 
@@ -420,7 +423,12 @@ func (conn *serverStreamConnection) serve() {
 		}
 
 		// 5. wait for proxy done
-		<-s.responseDoneChan
+		select {
+		case <-s.responseDoneChan:
+		case <-conn.connClosed:
+			return
+		}
+
 		conn.contextManager.Next()
 	}
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 type hostSet struct {
@@ -93,13 +92,12 @@ func NewHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 }
 
 func (h *host) CreateConnection(context context.Context) types.CreateConnectionData {
-	logger := log.ByContext(context)
 	var tlsMng types.TLSContextManager
 	if !h.tlsDisable {
 		tlsMng = h.clusterInfo.TLSMng()
 	}
 
-	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), tlsMng, h.address, nil, logger)
+	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), tlsMng, h.address, nil, log.DefaultLogger)
 	clientConn.SetBufferLimit(h.clusterInfo.ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
@@ -221,7 +219,7 @@ func GenerateHostMetadata(metadata v2.Metadata) types.RouteMetaData {
 	rm := make(map[string]types.HashedValue, 1)
 
 	for k, v := range metadata {
-		rm[k] = utils.GenerateMD5Value(v)
+		rm[k] = types.HashedValue(v)
 
 	}
 

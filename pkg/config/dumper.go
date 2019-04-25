@@ -18,8 +18,7 @@
 package config
 
 import (
-	"io/ioutil"
-	"os"
+	gojson "encoding/json"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,6 +26,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 var (
@@ -116,10 +116,10 @@ func DumpConfig() {
 
 		//update mosn_config
 		store.SetMOSNConfig(config)
-		//todo: ignore zero values in config struct @boqin
-		content, err := json.MarshalIndent(config, "", "  ")
+		// use golang original json lib, so the marshal ident can handle MarshalJSON interface implement correctly
+		content, err := gojson.MarshalIndent(config, "", "  ")
 		if err == nil {
-			err = WriteFileSafety(configPath, content, 0644)
+			err = utils.WriteFileSafety(configPath, content, 0644)
 		}
 
 		if err != nil {
@@ -138,21 +138,4 @@ func DumpConfigHandler() {
 			DumpUnlock()
 		}
 	})
-}
-
-// WriteFileSafety trys to over write a file safety.
-func WriteFileSafety(filename string, data []byte, perm os.FileMode) (err error) {
-	tempFile := filename + ".tmp"
-Try:
-	for i := 0; i < 5; i++ {
-		err = ioutil.WriteFile(tempFile, data, perm)
-		if err == nil {
-			break Try
-		}
-	}
-	if err != nil {
-		return err
-	}
-	err = os.Rename(tempFile, filename)
-	return
 }

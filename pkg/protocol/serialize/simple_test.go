@@ -18,93 +18,35 @@
 package serialize
 
 import (
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"testing"
 )
-
-func TestNotEnoughBytes(t *testing.T) {
-	b := make([]byte, 3)
-	b[0] = 255
-	b[1] = 255
-	b[2] = 255
-	_, err := readInt32(b)
-	if err.Error() != "no enough bytes" {
-		t.Error("Expect error")
-	}
-}
-
-func TestReadIntMinusOne(t *testing.T) {
-	b := make([]byte, 4)
-	b[0] = 255
-	b[1] = 255
-	b[2] = 255
-	b[3] = 255
-	result, _ := readInt32(b)
-	if result == -1 {
-		t.Error("Decode error")
-	}
-}
-
-func TestReadIntZero(t *testing.T) {
-	b := make([]byte, 4)
-	b[0] = 0
-	b[1] = 0
-	b[2] = 0
-	b[3] = 0
-	result, _ := readInt32(b)
-	if result != 0 {
-		t.Error("Decode error")
-	}
-}
-
-func TestReadIntOne(t *testing.T) {
-	b := make([]byte, 4)
-	b[0] = 0
-	b[1] = 0
-	b[2] = 0
-	b[3] = 1
-	result, _ := readInt32(b)
-	if result != 1 {
-		t.Error("Decode error")
-	}
-}
 
 func BenchmarkSerializeMap(b *testing.B) {
 	headers := map[string]string{
 		"service": "com.alipay.test.TestService:1.0",
 	}
 
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		Instance.Serialize(headers)
+		buf := buffer.GetIoBuffer(128)
+		Instance.SerializeMap(headers, buf)
 	}
 }
 
-func BenchmarkSerializeString(b *testing.B) {
-	className := "com.alipay.sofa.rpc.core.request.SofaRequest"
-
-	for n := 0; n < b.N; n++ {
-		Instance.Serialize(className)
-	}
-}
-
-func BenchmarkDeSerializeMap(b *testing.B) {
+func BenchmarkDeserializeMap(b *testing.B) {
 	headers := map[string]string{
 		"service": "com.alipay.test.TestService:1.0",
 	}
 
-	buf, _ := Instance.Serialize(headers)
+	buf := buffer.GetIoBuffer(128)
+	Instance.SerializeMap(headers, buf)
+
+	bytes := buf.Bytes()
 	header := make(map[string]string)
 
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		Instance.DeSerialize(buf, &header)
-	}
-}
-
-func BenchmarkDeSerializeString(b *testing.B) {
-	className := "com.alipay.sofa.rpc.core.request.SofaRequest"
-	buf, _ := Instance.Serialize(className)
-	var class string
-
-	for n := 0; n < b.N; n++ {
-		Instance.DeSerialize(buf, &class)
+		Instance.DeserializeMap(bytes, header)
 	}
 }
