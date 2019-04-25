@@ -23,6 +23,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -190,6 +191,7 @@ func (l *Logger) handler() {
 			buf.WriteTo(l)
 			buffer.PutIoBuffer(buf)
 		}
+		runtime.Gosched()
 	}
 }
 
