@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -52,9 +51,5 @@ func parseProxyTimeout(timeout *Timeout, route types.Route, headers types.Header
 
 	if timeout.TryTimeout >= timeout.GlobalTimeout {
 		timeout.TryTimeout = 0
-	}
-
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("trytimeout %v, globaltimeout %v", timeout.TryTimeout, timeout.GlobalTimeout)
 	}
 }

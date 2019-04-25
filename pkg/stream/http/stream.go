@@ -170,7 +170,6 @@ type clientStreamConnection struct {
 
 	stream                        *clientStream
 	requestSent                   chan bool
-	connClosed                    chan bool
 	mutex                         sync.RWMutex
 	connectionEventListener       types.ConnectionEventListener
 	streamConnectionEventListener types.StreamConnectionEventListener
@@ -198,7 +197,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("http client serve goroutine panic %v", p)
+				log.Proxy.Errorf(csc.context, "[stream] [http] client serve goroutine panic %v", p)
 				debug.PrintStack()
 
 				csc.serve()
@@ -227,15 +226,14 @@ func (conn *clientStreamConnection) serve() {
 		err := s.response.Read(conn.br)
 		if err != nil {
 			if s != nil {
+				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
 				s.ResetStream(types.StreamRemoteReset)
-				log.DefaultLogger.Errorf("Http client codec goroutine error: %s", err)
-
 			}
 			return
 		}
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(s.stream.ctx, "[stream][http] receive response, requestId = %v", s.stream.id)
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
 		}
 
 		// 2. response processing
@@ -336,7 +334,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("http server serve goroutine panic %v", p)
+				log.Proxy.Errorf(ssc.context, "[stream] [http] server serve goroutine panic %v", p)
 				debug.PrintStack()
 
 				ssc.serve()
@@ -411,7 +409,9 @@ func (conn *serverStreamConnection) serve() {
 		}
 		s.stream.ctx = s.connection.contextManager.InjectTrace(ctx, span)
 
-		log.Proxy.Infof(s.stream.ctx, "[stream][http] new stream detect, requestId = %v", s.stream.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] new stream detect, requestId = %v", s.stream.id)
+		}
 
 		s.receiver = conn.serverStreamConnListener.NewStreamDetect(s.stream.ctx, s, span)
 
@@ -535,9 +535,11 @@ func (s *clientStream) ReadDisable(disable bool) {
 
 func (s *clientStream) doSend() {
 	if _, err := s.request.WriteTo(s.connection); err != nil {
-		log.Proxy.Errorf(s.stream.ctx, "[stream][http] send request error: %+v", err)
+		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send client request error: %+v", err)
 	} else {
-		log.Proxy.Infof(s.stream.ctx, "[stream][http] send request, requestId = %v", s.stream.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
+		}
 	}
 }
 
@@ -549,8 +551,6 @@ func (s *clientStream) handleResponse() {
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
 		header.Set(types.HeaderStatus, status)
-
-		log.DefaultLogger.Debugf("remote:%s, status:%s", s.connection.conn.RemoteAddr(), status)
 
 		hasData := true
 		if len(s.response.Body()) == 0 {
@@ -678,9 +678,11 @@ func (s *serverStream) ReadDisable(disable bool) {
 
 func (s *serverStream) doSend() {
 	if _, err := s.response.WriteTo(s.connection); err != nil {
-		log.Proxy.Errorf(s.stream.ctx, "[stream][http] send response error: %+v", err)
+		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send server response error: %+v", err)
 	} else {
-		log.Proxy.Infof(s.stream.ctx, "[stream][http] send response, requestId = %v", s.stream.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send server response, requestId = %v", s.stream.id)
+		}
 	}
 }
 

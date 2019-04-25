@@ -386,11 +386,13 @@ func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 
 	ctx, ok := args[0].(context.Context)
 	if !ok {
+		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, first arg unexpected:%+v", args[0])
 		return nil
 	}
 
 	request, ok := args[1].(*sofarpc.BoltRequest)
 	if !ok {
+		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, second arg unexpected:%+v", args[0])
 		return nil
 	}
 

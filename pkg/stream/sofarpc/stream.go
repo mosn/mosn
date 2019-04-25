@@ -47,6 +47,11 @@ const (
 )
 
 var (
+	directionText = map[StreamDirection]string{
+		ClientStream: "request",
+		ServerStream: "response",
+	}
+
 	ErrNotSofarpcCmd      = errors.New("not sofarpc command")
 	ErrNotResponseBuilder = errors.New("no response builder")
 )
@@ -218,7 +223,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
-		log.DefaultLogger.Errorf("[stream][sofarpc] error occurs while proceeding codec logic: %v. close connection", err)
+		log.DefaultLogger.Errorf("[stream] [sofarpc] error occurs while proceeding codec logic: %v. close connection", err)
 		//protocol decode error, close the connection directly
 		conn.conn.Close(types.NoFlush, types.LocalClose)
 	case types.ErrCodecException, types.ErrDeserializeException:
@@ -246,7 +251,7 @@ func (conn *streamConnection) processStream(ctx context.Context, cmd sofarpc.Sof
 		var span types.Span
 		if trace.IsTracingEnabled() {
 			// try build trace span
-			span = conn.codecEngine.BuildSpan(cmd)
+			span = conn.codecEngine.BuildSpan(ctx, cmd)
 		}
 		return conn.onNewStreamDetect(ctx, cmd, span)
 	case sofarpc.RESPONSE:
@@ -268,14 +273,14 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 	stream.sc = conn
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(stream.ctx, "[stream][sofarpc] new stream detect, requestId = %v", stream.id)
+		log.Proxy.Debugf(stream.ctx, "[stream] [sofarpc] new stream detect, requestId = %v", stream.id)
 	}
 
+	sender := stream
 	if cmd.CommandType() == sofarpc.REQUEST_ONEWAY {
-		stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, nil, span)
-	} else {
-		stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, stream, span)
+		sender = nil
 	}
+	stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, sender, span)
 
 	return stream
 }
@@ -294,7 +299,7 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(stream.ctx, "[stream][sofarpc] receive response, requestId = %v", stream.id)
+			log.Proxy.Debugf(stream.ctx, "[stream] [sofarpc] receive response, requestId = %v", stream.id)
 		}
 		return stream
 	}
@@ -356,7 +361,7 @@ func (s *stream) AppendHeaders(ctx context.Context, headers types.HeaderMap, end
 	}
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.ctx, "[stream][sofarpc] AppendHeaders,request id = %d, direction = %d", s.ID(), s.direction)
+		log.Proxy.Debugf(s.ctx, "[stream] [sofarpc] %s appendHeaders, requestId = %d", directionText[s.direction], s.id)
 	}
 
 	if endStream {
@@ -387,8 +392,8 @@ func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStr
 		s.sendCmd.SetData(data)
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("AppendData,request id = %d, direction = %d", s.ID(), s.direction)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.ctx, "[stream] [sofarpc] %s appendData, requestId = %d", directionText[s.direction], s.id)
 	}
 
 	if endStream {
@@ -423,7 +428,7 @@ func (s *stream) endStream() {
 		// TODO: replaced with EncodeTo, and pre-alloc send buf
 		buf, err := s.sc.codecEngine.Encode(s.ctx, s.sendCmd)
 		if err != nil {
-			log.Proxy.Errorf(s.ctx, "[stream][sofarpc] encode error:%s", err.Error())
+			log.Proxy.Errorf(s.ctx, "[stream] [sofarpc] %s encode error:%s", directionText[s.direction], err.Error())
 			s.ResetStream(types.StreamLocalReset)
 			return
 		}
@@ -435,12 +440,7 @@ func (s *stream) endStream() {
 		}
 
 		// log
-		switch s.direction {
-		case ClientStream:
-			log.Proxy.Infof(s.ctx, "[stream][sofarpc] send request, requestId = %v", s.id)
-		case ServerStream:
-			log.Proxy.Infof(s.ctx, "[stream][sofarpc] send response, requestId = %v", s.id)
-		}
+		log.Proxy.Infof(s.ctx, "[stream] [sofarpc] send %s, requestId = %v", directionText[s.direction], s.id)
 	}
 }
 
