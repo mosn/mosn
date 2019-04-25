@@ -37,8 +37,8 @@
   version = "1.1.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/hashicorp/go-syslog"
+  version = "v1.0.0"
 
 [[constraint]]
   branch = "master"
@@ -56,17 +56,14 @@
   name = "gopkg.in/natefinch/lumberjack.v2"
   version = "2.1.0"
 
-[[constraint]]
-  name = "github.com/fatih/structs"
-  version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/valyala/fasthttp"
+  version = "v1.2.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/json-iterator/go"
+  version = "v1.1.6"
 
 [[constraint]]
   branch = "master"
@@ -81,20 +78,12 @@
   name = "golang.org/x/crypto"
 
 [[constraint]]
-  name = "github.com/gogo/googleapis"
-  version = "1.1.1"
-
-[[constraint]]
   name = "istio.io/api"
   version = "1.0.2"
 
 [prune]
   go-tests = true
   unused-packages = true
-
-[[constraint]]
-  name = "github.com/opentracing/opentracing-go"
-  version = "1.0.2"
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
@@ -104,3 +93,6 @@
   name = "github.com/c2h5oh/datasize"
   branch = "master"
 
+[[constraint]]
+  name = "golang.org/x/net"
+  branch = "release-branch.go1.9"

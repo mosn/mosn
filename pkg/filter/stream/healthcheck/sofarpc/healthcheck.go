@@ -101,7 +101,7 @@ type HealthCheckFilterConfigFactory struct {
 
 func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewHealthCheckFilter(context, f.FilterConfig)
-	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
+	callbacks.AddStreamReceiverFilter(filter, types.DownFilter)
 }
 
 // CreateHealthCheckFilterFactory

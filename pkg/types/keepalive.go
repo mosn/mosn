@@ -20,7 +20,6 @@ package types
 import "time"
 
 type KeepAlive interface {
-	Start()
 	SendKeepAlive()
 	GetTimeout() time.Duration
 	HandleTimeout(id uint64)

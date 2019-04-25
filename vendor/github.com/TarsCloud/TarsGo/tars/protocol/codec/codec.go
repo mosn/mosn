@@ -30,12 +30,10 @@ const (
 	SIMPLE_LIST
 )
 
-//Buffer is wrapper of bytes.Buffer
 type Buffer struct {
 	buf *bytes.Buffer
 }
 
-//Reader is wapper of bytes.Reader
 type Reader struct {
 	ref []byte
 	buf *bytes.Reader
@@ -128,24 +126,20 @@ func (b *Buffer) WriteHead(ty byte, tag byte) error {
 	}
 }
 
-//Reset clean the buffer.
 func (b *Buffer) Reset() {
 	b.buf.Reset()
 }
 
-//Write_slice_uint8 wirte []uint8 to the buffer.
 func (b *Buffer) Write_slice_uint8(data []uint8) error {
 	_, err := b.buf.Write(data)
 	return err
 }
 
-//Write_slice_int8 wirte []int8 to the buffer.
 func (b *Buffer) Write_slice_int8(data []int8) error {
 	_, err := b.buf.Write(*(*[]uint8)(unsafe.Pointer(&data)))
 	return err
 }
 
-//Write_int8 write int8 with the tag.
 func (b *Buffer) Write_int8(data int8, tag byte) error {
 	var err error
 	if data == 0 {
@@ -164,12 +158,10 @@ func (b *Buffer) Write_int8(data int8, tag byte) error {
 	return nil
 }
 
-//Write_uint8 write uint8 with the tag
 func (b *Buffer) Write_uint8(data uint8, tag byte) error {
 	return b.Write_int16(int16(data), tag)
 }
 
-//Write_bool write bool with the tag.
 func (b *Buffer) Write_bool(data bool, tag byte) error {
 	tmp := int8(0)
 	if data {
@@ -178,7 +170,6 @@ func (b *Buffer) Write_bool(data bool, tag byte) error {
 	return b.Write_int8(tmp, tag)
 }
 
-//Write_int16 writes the int16 with the tag.
 func (b *Buffer) Write_int16(data int16, tag byte) error {
 	var err error
 	if data >= math.MinInt8 && data <= math.MaxInt8 {
@@ -197,12 +188,10 @@ func (b *Buffer) Write_int16(data int16, tag byte) error {
 	return nil
 }
 
-//Write_uint16 write uint16 with the tag.
 func (b *Buffer) Write_uint16(data uint16, tag byte) error {
 	return b.Write_int32(int32(data), tag)
 }
 
-//Write_int32 write int32 with the tag.
 func (b *Buffer) Write_int32(data int32, tag byte) error {
 	var err error
 	if data >= math.MinInt16 && data <= math.MaxInt16 {
@@ -221,12 +210,10 @@ func (b *Buffer) Write_int32(data int32, tag byte) error {
 	return nil
 }
 
-//Write_uint32 write uint32 data with the tag.
 func (b *Buffer) Write_uint32(data uint32, tag byte) error {
 	return b.Write_int64(int64(data), tag)
 }
 
-//Write_int64 write int64 with the tag.
 func (b *Buffer) Write_int64(data int64, tag byte) error {
 	var err error
 	if data >= math.MinInt32 && data <= math.MaxInt32 {
@@ -245,7 +232,6 @@ func (b *Buffer) Write_int64(data int64, tag byte) error {
 	return nil
 }
 
-//Write_float32 writes float32 with the tag.
 func (b *Buffer) Write_float32(data float32, tag byte) error {
 	var err error
 	if err = b.WriteHead(FLOAT, tag); err != nil {
@@ -256,7 +242,6 @@ func (b *Buffer) Write_float32(data float32, tag byte) error {
 	return err
 }
 
-//Write_float64 writes float64 with the tag.
 func (b *Buffer) Write_float64(data float64, tag byte) error {
 	var err error
 	if err = b.WriteHead(DOUBLE, tag); err != nil {
@@ -267,7 +252,6 @@ func (b *Buffer) Write_float64(data float64, tag byte) error {
 	return err
 }
 
-//Write_string writes string data with the tag.
 func (b *Buffer) Write_string(data string, tag byte) error {
 	var err error
 	if len(data) > 255 {
@@ -319,7 +303,6 @@ func (b *Reader) unreadHead(tag byte) {
 	}
 }
 
-//Next return the []byte of next n .
 //go:nosplit
 func (b *Reader) Next(n int) []byte {
 	if n <= 0 {
@@ -331,62 +314,12 @@ func (b *Reader) Next(n int) []byte {
 	return b.ref[beg:end]
 }
 
-//Skip Skip the next n byte.
 //go:nosplit
 func (b *Reader) Skip(n int) {
 	if n <= 0 {
 		return
 	}
 	b.buf.Seek(int64(n), io.SeekCurrent)
-}
-
-func (b *Reader) skipFieldMap() error {
-	var len int32
-	err := b.Read_int32(&len, 0, true)
-	if err != nil {
-		return err
-	}
-
-	for i := int32(0); i < len*2; i++ {
-		tyCur, _, err := b.readHead()
-		if err != nil {
-			return err
-		}
-		b.skipField(tyCur)
-	}
-	return nil
-}
-func (b *Reader) skipFieldList() error {
-	var len int32
-	err := b.Read_int32(&len, 0, true)
-	if err != nil {
-		return err
-	}
-	for i := int32(0); i < len; i++ {
-		tyCur, _, err := b.readHead()
-		if err != nil {
-			return err
-		}
-		b.skipField(tyCur)
-	}
-	return nil
-}
-func (b *Reader) skipFieldSimpleList() error {
-	tyCur, _, err := b.readHead()
-	if tyCur != BYTE {
-		return fmt.Errorf("simple list need byte head. but get %d", tyCur)
-	}
-	if err != nil {
-		return err
-	}
-	var len int32
-	err = b.Read_int32(&len, 0, true)
-	if err != nil {
-		return err
-	}
-
-	b.Skip(int(len))
-	return nil
 }
 
 func (b *Reader) skipField(ty byte) error {
@@ -426,22 +359,46 @@ func (b *Reader) skipField(ty byte) error {
 		b.Skip(int(l))
 		break
 	case MAP:
-		err := b.skipFieldMap()
+		var len int32
+		err := b.Read_int32(&len, 0, true)
 		if err != nil {
 			return err
+		}
+
+		for i := int32(0); i < len*2; i++ {
+			tyCur, _, err := b.readHead()
+			if err != nil {
+				return err
+			}
+			b.skipField(tyCur)
 		}
 		break
 	case LIST:
-		err := b.skipFieldList()
+		var len int32
+		err := b.Read_int32(&len, 0, true)
 		if err != nil {
 			return err
+		}
+		for i := int32(0); i < len; i++ {
+			tyCur, _, err := b.readHead()
+			if err != nil {
+				return err
+			}
+			b.skipField(tyCur)
 		}
 		break
 	case SIMPLE_LIST:
-		err := b.skipFieldSimpleList()
+		tyCur, _, err := b.readHead()
+		if tyCur != BYTE {
+			return fmt.Errorf("simple list need byte head. but get %d", tyCur)
+		}
+		var len int32
+		err = b.Read_int32(&len, 0, true)
 		if err != nil {
 			return err
 		}
+
+		b.Skip(int(len))
 		break
 	case STRUCT_BEGIN:
 		err := b.SkipToStructEnd()
@@ -454,12 +411,12 @@ func (b *Reader) skipField(ty byte) error {
 	case ZERO_TAG:
 		break
 	default:
-		return fmt.Errorf("invalid type")
+		return fmt.Errorf("invalid type.")
 	}
 	return nil
 }
 
-//SkipToStructEnd for skip to the STRUCT_END tag.
+// 用来跳转到对应层级STRUCT_END，支持内部嵌套其他STRUCT
 func (b *Reader) SkipToStructEnd() error {
 	for {
 		ty, _, err := b.readHead()
@@ -478,7 +435,7 @@ func (b *Reader) SkipToStructEnd() error {
 	return nil
 }
 
-//SkipToNoCheck for skip to the none STRUCT_END tag.
+// 用来跳转到非STRUCT_END的其他tag，不用用于跳转STRUCT_END
 func (b *Reader) SkipToNoCheck(tag byte, require bool) (error, bool, byte) {
 	for {
 		tyCur, tagCur, err := b.readHead()
@@ -509,33 +466,29 @@ func (b *Reader) SkipToNoCheck(tag byte, require bool) (error, bool, byte) {
 	}
 }
 
-//SkipTo skip to the given tag.
 func (b *Reader) SkipTo(ty, tag byte, require bool) (error, bool) {
 	err, have, tyCur := b.SkipToNoCheck(tag, require)
 	if err != nil {
 		return err, false
 	}
 	if have && ty != tyCur {
-		return fmt.Errorf("type not match, need %d, bug %d", ty, tyCur), false
+		return fmt.Errorf("type not match, need %d, bug %d.", ty, tyCur), false
 	}
 	return nil, have
 }
 
-//Read_slice_int8 reads []int8 for the given length and the require or optional sign.
 func (b *Reader) Read_slice_int8(data *[]int8, len int32, require bool) error {
 	*data = make([]int8, len)
 	_, err := b.buf.Read(*(*[]uint8)(unsafe.Pointer(data)))
 	return err
 }
 
-//Read_slice_uint8 reads []uint8 fore the given length and the require or optional sign.
 func (b *Reader) Read_slice_uint8(data *[]uint8, len int32, require bool) error {
 	*data = make([]uint8, len)
 	_, err := b.buf.Read(*data)
 	return err
 }
 
-//Read_int8 reads the int8 data for the tag and the require or optional sign.
 func (b *Reader) Read_int8(data *int8, tag byte, require bool) error {
 	err, have, ty := b.SkipToNoCheck(tag, require)
 	if err != nil {
@@ -555,7 +508,6 @@ func (b *Reader) Read_int8(data *int8, tag byte, require bool) error {
 	return err
 }
 
-//Read_uint8 reads the uint8 for the tag and the require or optional sign.
 func (b *Reader) Read_uint8(data *uint8, tag byte, require bool) error {
 	n := int16(*data)
 	err := b.Read_int16(&n, tag, require)
@@ -563,7 +515,6 @@ func (b *Reader) Read_uint8(data *uint8, tag byte, require bool) error {
 	return err
 }
 
-//Read_bool reads the bool value for the tag and the require or optional sign.
 func (b *Reader) Read_bool(data *bool, tag byte, require bool) error {
 	var tmp int8
 	err := b.Read_int8(&tmp, tag, require)
@@ -578,7 +529,6 @@ func (b *Reader) Read_bool(data *bool, tag byte, require bool) error {
 	return nil
 }
 
-//Read_int16 reads the int16 value for the tag and the require or optional sign.
 func (b *Reader) Read_int16(data *int16, tag byte, require bool) error {
 	err, have, ty := b.SkipToNoCheck(tag, require)
 	if err != nil {
@@ -602,7 +552,6 @@ func (b *Reader) Read_int16(data *int16, tag byte, require bool) error {
 	return err
 }
 
-//Read_uint16 reads the uint16 value for the tag and the require or optional sign.
 func (b *Reader) Read_uint16(data *uint16, tag byte, require bool) error {
 	n := int32(*data)
 	err := b.Read_int32(&n, tag, require)
@@ -610,7 +559,6 @@ func (b *Reader) Read_uint16(data *uint16, tag byte, require bool) error {
 	return err
 }
 
-//Read_int32 reads the int32 value for the tag and the require or optional sign.
 func (b *Reader) Read_int32(data *int32, tag byte, require bool) error {
 	err, have, ty := b.SkipToNoCheck(tag, require)
 	if err != nil {
@@ -638,7 +586,6 @@ func (b *Reader) Read_int32(data *int32, tag byte, require bool) error {
 	return err
 }
 
-//Read_uint32 reads the uint32 value for the tag and the require or optional sign.
 func (b *Reader) Read_uint32(data *uint32, tag byte, require bool) error {
 	n := int64(*data)
 	err := b.Read_int64(&n, tag, require)
@@ -646,7 +593,6 @@ func (b *Reader) Read_uint32(data *uint32, tag byte, require bool) error {
 	return err
 }
 
-//Read_int64 reads the int64 value for the tag and the require or optional sign.
 func (b *Reader) Read_int64(data *int64, tag byte, require bool) error {
 	err, have, ty := b.SkipToNoCheck(tag, require)
 	if err != nil {
@@ -679,7 +625,6 @@ func (b *Reader) Read_int64(data *int64, tag byte, require bool) error {
 	return err
 }
 
-//Read_float32 reads the float32 value for the tag and the require or optional sign.
 func (b *Reader) Read_float32(data *float32, tag byte, require bool) error {
 	err, have := b.SkipTo(FLOAT, tag, require)
 	if err != nil {
@@ -694,7 +639,6 @@ func (b *Reader) Read_float32(data *float32, tag byte, require bool) error {
 	return err
 }
 
-//Read_float64 reads the float64 value for the tag and the require or optional sign.
 func (b *Reader) Read_float64(data *float64, tag byte, require bool) error {
 	err, have := b.SkipTo(DOUBLE, tag, require)
 	if err != nil {
@@ -709,7 +653,6 @@ func (b *Reader) Read_float64(data *float64, tag byte, require bool) error {
 	return err
 }
 
-//Read_string reads the string value for the tag and the require or optional sign.
 func (b *Reader) Read_string(data *string, tag byte, require bool) error {
 	err, have, ty := b.SkipToNoCheck(tag, require)
 	if err != nil {
@@ -736,32 +679,29 @@ func (b *Reader) Read_string(data *string, tag byte, require bool) error {
 		buff := b.Next(int(len))
 		*data = string(buff)
 	} else {
-		return fmt.Errorf("need string, but type is %d", ty)
+		return fmt.Errorf("need string, but type is %d.", ty)
 	}
 	return nil
 }
 
-//ToBytes make the buffer to []byte
 func (b *Buffer) ToBytes() []byte {
 	return b.buf.Bytes()
 }
 
-//Grow grows the size of the buffer.
 func (b *Buffer) Grow(size int) {
 	b.buf.Grow(size)
 }
 
-//NewReader returns *Reader
+// 提供兼容
 func NewReader(data []byte) *Reader {
 	return &Reader{buf: bytes.NewReader(data), ref: data}
 }
 
-//NewBuffer returns *Buffer
 func NewBuffer() *Buffer {
 	return &Buffer{buf: &bytes.Buffer{}}
 }
 
-//FromInt8 NewReader(FromInt8(vec))
+// NewReader(FromInt8(vec))
 func FromInt8(vec []int8) []byte {
 	return *(*[]byte)(unsafe.Pointer(&vec))
 }

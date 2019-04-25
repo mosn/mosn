@@ -2,7 +2,7 @@ package tools
 
 import "unsafe"
 
-//ByteToInt8 convert []byte to []int8
+//Int8ToByte convert []byte to []int8
 func ByteToInt8(s []byte) []int8 {
 	d := *(*[]int8)(unsafe.Pointer(&s))
 	return d

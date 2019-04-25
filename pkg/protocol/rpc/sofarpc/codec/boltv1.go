@@ -35,8 +35,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
-
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 var (
@@ -60,7 +58,7 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	case *sofarpc.BoltResponse:
 		return encodeResponse(ctx, cmd)
 	default:
-		log.DefaultLogger.Errorf("[protocol][sofarpc] unknown model : %+v", model)
+		log.ByContext(ctx).Errorf("unknown model : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
@@ -68,19 +66,18 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.RequestClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
+		cmd.ClassName = serialize.UnsafeStrToByte(cmd.RequestClass)
 		cmd.ClassLen = int16(len(cmd.ClassName))
 	}
 
-	if cmd.RequestHeader != nil {
-
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	headerLen := int(cmd.HeaderLen)
+	if headerLen == 0 && cmd.RequestHeader != nil {
+		headerLen = 256
 	}
 
 	var b [4]byte
 
-	size := sofarpc.REQUEST_HEADER_LEN_V1 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	size := sofarpc.REQUEST_HEADER_LEN_V1 + int(cmd.ClassLen) + headerLen
 	//buf := sofarpc.GetBuffer(context, size)
 
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
@@ -120,27 +117,36 @@ func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffe
 		buf.Write(cmd.ClassName)
 	}
 
-	if cmd.HeaderLen > 0 {
+	if cmd.RequestHeader != nil {
+		l := buf.Len()
+		serialize.Instance.SerializeMap(cmd.RequestHeader, buf)
+		headerLen = buf.Len() - l
+
+		// reset HeaderLen
+		headerData := buf.Bytes()[sofarpc.RequestHeaderLenIndex:]
+		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
+	} else {
 		buf.Write(cmd.HeaderMap)
 	}
+
 	return buf, nil
 }
 
 func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (types.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.ResponseClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
+		cmd.ClassName = serialize.UnsafeStrToByte(cmd.ResponseClass)
 		cmd.ClassLen = int16(len(cmd.ClassName))
 	}
 
-	if cmd.ResponseHeader != nil {
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.ResponseHeader)
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	headerLen := int(cmd.HeaderLen)
+	if headerLen == 0 && cmd.ResponseHeader != nil {
+		headerLen = 256
 	}
 
 	var b [4]byte
 	// todo: reuse bytes @boqin
-	size := sofarpc.RESPONSE_HEADER_LEN_V1 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	size := sofarpc.RESPONSE_HEADER_LEN_V1 + int(cmd.ClassLen) + headerLen
 	//buf := sofarpc.GetBuffer(context, size)
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetRspHeader(size)
@@ -179,9 +185,18 @@ func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (types.IoBuf
 		buf.Write(cmd.ClassName)
 	}
 
-	if cmd.HeaderLen > 0 {
+	if cmd.ResponseHeader != nil {
+		l := buf.Len()
+		serialize.Instance.SerializeMap(cmd.ResponseHeader, buf)
+		headerLen = buf.Len() - l
+
+		// reset HeaderLen
+		headerData := buf.Bytes()[sofarpc.ResponseHeaderLenIndex:]
+		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
+	} else {
 		buf.Write(cmd.HeaderMap)
 	}
+
 	return buf, nil
 }
 
@@ -202,10 +217,7 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 				ver2 := bytesData[4]
 				requestID := binary.BigEndian.Uint32(bytesData[5:9])
 				codec := bytesData[9]
-				//timeout := binary.BigEndian.Uint32(bytesData[10:14])
-				// timeout should be int
-				var timeout int32
-				binary.Read(bytes.NewReader(bytesData[10:14]), binary.BigEndian, &timeout)
+				timeout := int32(binary.BigEndian.Uint32(bytesData[10:14]))
 				classLen := binary.BigEndian.Uint16(bytesData[14:16])
 				headerLen := binary.BigEndian.Uint16(bytesData[16:18])
 				contentLen := binary.BigEndian.Uint32(bytesData[18:22])

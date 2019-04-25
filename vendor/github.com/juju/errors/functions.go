@@ -152,7 +152,7 @@ func Wrapf(other, newDescriptive error, format string, args ...interface{}) erro
 	return err
 }
 
-// Mask masks the given error with the given format string and arguments (like
+// Maskf masks the given error with the given format string and arguments (like
 // fmt.Sprintf), returning a new error that maintains the error stack, but
 // hides the underlying error type.  The error string still contains the full
 // annotations. If you want to hide the annotations, call Wrap.

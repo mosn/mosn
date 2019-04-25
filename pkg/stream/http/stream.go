@@ -374,9 +374,9 @@ func (conn *serverStreamConnection) serve() {
 			}
 		}
 		if err != nil {
-			if err == errConnClose || err == io.EOF {
-				log.DefaultLogger.Errorf("http server request codec error: %s", err)
-			} else {
+			// "read timeout with nothing read" is the error of returned by fasthttp v1.2.0
+			// if connection closed with nothing read.
+			if err != errConnClose && err != io.EOF && err.Error() != "read timeout with nothing read" {
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 

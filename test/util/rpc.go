@@ -172,11 +172,13 @@ func buildBoltV1Request(request *sofarpc.BoltRequest) *sofarpc.BoltRequest {
 
 	headers := map[string]string{"service": "testSofa"} // used for sofa routing
 
-	if headerBytes, err := serialize.Instance.Serialize(headers); err != nil {
+	buf := buffer.NewIoBuffer(100)
+	if err := serialize.Instance.SerializeMap(headers, buf); err != nil {
 		panic("serialize headers error")
 	} else {
-		request.HeaderMap = headerBytes
-		request.HeaderLen = int16(len(headerBytes))
+		request.HeaderMap = buf.Bytes()
+		request.HeaderLen = int16(buf.Len())
+		request.RequestHeader = headers
 	}
 
 	return request

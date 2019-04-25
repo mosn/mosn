@@ -11,11 +11,6 @@ import (
 	"time"
 )
 
-import (
-	"github.com/AlexStocks/goext/os"
-	"github.com/AlexStocks/goext/strings"
-)
-
 // This log writer sends output to a file
 type FileLogWriter struct {
 	rec chan *LogRecord
@@ -61,7 +56,7 @@ func (w *FileLogWriter) LogWrite(rec *LogRecord) {
 			//	fmt.Printf("json.Marshal(rec:%#v) = error{%#v}\n", rec, err)
 			//	return
 			//}
-			fmt.Printf("file log channel has been closed. rec:" + gxstrings.String(rec.JSON()) + "\n")
+			fmt.Printf("file log channel has been closed. rec:" + String(rec.JSON()) + "\n")
 		}
 	}()
 
@@ -154,9 +149,9 @@ func NewFileLogWriter(fname string, rotate bool, bufSize int) *FileLogWriter {
 					recStr = FormatLogRecord(w.format, rec)
 				} else {
 					//recJson, _ := json.Marshal(rec)
-					//recStr = gxstrings.String(recJson)
-					recBytes := append(rec.JSON(), gxstrings.Slice(newLine)...)
-					recStr = gxstrings.String(recBytes)
+					//recStr = String(recJson)
+					recBytes := append(rec.JSON(), Slice(newLine)...)
+					recStr = String(recBytes)
 				}
 				n, err := fmt.Fprint(w.file, recStr)
 				if err != nil {
@@ -256,6 +251,17 @@ func (w *FileLogWriter) intRotate() error {
 	return nil
 }
 
+func createDir(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, 0777)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // If this is called in a threaded context, it MUST be synchronized
 func (w *FileLogWriter) intOpen(bufSize int) error {
 	// Already opened
@@ -269,7 +275,7 @@ func (w *FileLogWriter) intOpen(bufSize int) error {
 	// filepath.Dir("./hello.log") = "."
 	// filepath.Dir("../hello.log") = "..
 	if path != "" && path != "." && path != ".." {
-		if err := gxos.CreateDir(path); err != nil {
+		if err := createDir(path); err != nil {
 			return err
 		}
 	}

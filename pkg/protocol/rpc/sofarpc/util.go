@@ -61,15 +61,15 @@ func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {
 	//request.RequestHeader = make(map[string]string, 8)
 
 	//deserialize header
-	serializeIns.DeSerialize(request.HeaderMap, &request.RequestHeader)
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("Deserialize request header map:%v", request.RequestHeader)
+	serializeIns.DeserializeMap(request.HeaderMap, request.RequestHeader)
+	if logger.GetLogLevel() >= log.DEBUG {
+		logger.Debugf("Deserialize request header map:%v", request.RequestHeader)
 	}
 
 	//deserialize class name
-	serializeIns.DeSerialize(request.ClassName, &request.RequestClass)
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("Request class name is:%s", request.RequestClass)
+	request.RequestClass = string(request.ClassName)
+	if logger.GetLogLevel() >= log.DEBUG {
+		logger.Debugf("Request class name is:%s", request.RequestClass)
 	}
 }
 
@@ -77,20 +77,23 @@ func DeserializeBoltResponse(ctx context.Context, response *BoltResponse) {
 	//get instance
 	serializeIns := serialize.Instance
 
+	//logger
+	logger := log.ByContext(ctx)
+
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	response.ResponseHeader = protocolCtx.GetRspHeaders()
 
 	//response.ResponseHeader = make(map[string]string, 8)
 
 	//deserialize header
-	serializeIns.DeSerialize(response.HeaderMap, &response.ResponseHeader)
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("Deserialize response header map: %+v", response.ResponseHeader)
+	serializeIns.DeserializeMap(response.HeaderMap, response.ResponseHeader)
+	if logger.GetLogLevel() >= log.DEBUG {
+		logger.Debugf("Deserialize response header map: %+v", response.ResponseHeader)
 	}
 
 	//deserialize class name
-	serializeIns.DeSerialize(response.ClassName, &response.ResponseClass)
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("Response ClassName is: %s", response.ResponseClass)
+	response.ResponseClass = string(response.ClassName)
+	if logger.GetLogLevel() >= log.DEBUG {
+		logger.Debugf("Response ClassName is: %s", response.ResponseClass)
 	}
 }
