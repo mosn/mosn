@@ -60,15 +60,18 @@ func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {
 
 	//request.RequestHeader = make(map[string]string, 8)
 
+	logger := log.DefaultLogger
+	debugEnabled := logger.GetLogLevel() >= log.DEBUG
+
 	//deserialize header
 	serializeIns.DeserializeMap(request.HeaderMap, request.RequestHeader)
-	if logger.GetLogLevel() >= log.DEBUG {
+	if debugEnabled {
 		logger.Debugf("Deserialize request header map:%v", request.RequestHeader)
 	}
 
 	//deserialize class name
 	request.RequestClass = string(request.ClassName)
-	if logger.GetLogLevel() >= log.DEBUG {
+	if debugEnabled {
 		logger.Debugf("Request class name is:%s", request.RequestClass)
 	}
 }
@@ -78,7 +81,8 @@ func DeserializeBoltResponse(ctx context.Context, response *BoltResponse) {
 	serializeIns := serialize.Instance
 
 	//logger
-	logger := log.ByContext(ctx)
+	logger := log.DefaultLogger
+	debugEnabled := logger.GetLogLevel() >= log.DEBUG
 
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	response.ResponseHeader = protocolCtx.GetRspHeaders()
@@ -87,13 +91,13 @@ func DeserializeBoltResponse(ctx context.Context, response *BoltResponse) {
 
 	//deserialize header
 	serializeIns.DeserializeMap(response.HeaderMap, response.ResponseHeader)
-	if logger.GetLogLevel() >= log.DEBUG {
+	if debugEnabled {
 		logger.Debugf("Deserialize response header map: %+v", response.ResponseHeader)
 	}
 
 	//deserialize class name
 	response.ResponseClass = string(response.ClassName)
-	if logger.GetLogLevel() >= log.DEBUG {
+	if debugEnabled {
 		logger.Debugf("Response ClassName is: %s", response.ResponseClass)
 	}
 }

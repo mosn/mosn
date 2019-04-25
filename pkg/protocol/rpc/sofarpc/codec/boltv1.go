@@ -18,7 +18,6 @@
 package codec
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -35,6 +34,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 var (
@@ -58,7 +59,7 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	case *sofarpc.BoltResponse:
 		return encodeResponse(ctx, cmd)
 	default:
-		log.ByContext(ctx).Errorf("unknown model : %+v", model)
+		log.DefaultLogger.Errorf("unknown model : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
