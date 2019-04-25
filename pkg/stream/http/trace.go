@@ -53,7 +53,7 @@ func (spanBuilder *SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 	}
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(ctx,"builder span,ctx=%+v", ctx)
+		log.Proxy.Debugf(ctx, "builder span,ctx=%+v", ctx)
 	}
 
 	span := trace.Tracer().Start(time.Now())

@@ -193,7 +193,7 @@ func (s *downStream) cleanStream() {
 
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil && !s.upstreamProcessDone && !s.oneway {
-		log.Proxy.Errorf(s.context, "[proxy][downstream] downStream upstreamRequest.resetStream, proxyId: %d", s.ID)
+		log.Proxy.Errorf(s.context, "[proxy][downstream] upstreamRequest.resetStream, proxyId: %d", s.ID)
 		s.upstreamProcessDone = true
 		s.upstreamRequest.resetStream()
 	}
@@ -235,7 +235,7 @@ func (s *downStream) cleanStream() {
 func (s *downStream) writeLog() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy][downstream] downStream writeLog panic %v, downstream %+v", r, s)
+			log.Proxy.Errorf(s.context, "[proxy][downstream] writeLog panic %v, downstream %+v", r, s)
 		}
 	}()
 
@@ -291,7 +291,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 	pool.ScheduleAuto(func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Proxy.Errorf(s.context, "[proxy][downstream] downStream OnReceive panic %v, downstream %+v old id: %d, new id: %d",
+				log.Proxy.Errorf(s.context, "[proxy][downstream] OnReceive panic %v, downstream %+v old id: %d, new id: %d",
 					r, s, id, s.ID)
 				debug.PrintStack()
 
@@ -310,11 +310,11 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 			case types.End:
 				return
 			case types.MatchRoute:
-				log.Proxy.Debugf(s.context, "[proxy][downstream] downstream redo match route %+v", s)
+				log.Proxy.Debugf(s.context, "[proxy][downstream] redo match route %+v", s)
 			case types.Retry:
-				log.Proxy.Debugf(s.context, "[proxy][downstream] downstream retry %+v", s)
+				log.Proxy.Debugf(s.context, "[proxy][downstream] retry %+v", s)
 			case types.UpFilter:
-				log.Proxy.Debugf(s.context, "[proxy][downstream] downstream directResponse %+v", s)
+				log.Proxy.Debugf(s.context, "[proxy][downstream] directResponse %+v", s)
 			}
 		}
 	})
@@ -334,7 +334,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// downstream filter before route
 		case types.DownFilter:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context,"downStream Phase %d, id %d", phase, id)
+				log.Proxy.Debugf(s.context, "downStream Phase %d, id %d", phase, id)
 			}
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
@@ -346,7 +346,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// match route
 		case types.MatchRoute:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context,"downStream Phase %d, id %d", phase, id)
+				log.Proxy.Debugf(s.context, "downStream Phase %d, id %d", phase, id)
 			}
 			s.matchRoute()
 			if p, err := s.processError(id); err != nil {
@@ -370,7 +370,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.DownRecvHeader:
 			if s.downstreamReqHeaders != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
-					log.Proxy.Debugf(s.context,  "downStream Phase %d, id %d", phase, id)
+					log.Proxy.Debugf(s.context, "downStream Phase %d, id %d", phase, id)
 				}
 				s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
@@ -531,7 +531,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		}
 	}
 
-	log.Proxy.Errorf(s.context,"unexpected phase cycle time")
+	log.Proxy.Errorf(s.context, "unexpected phase cycle time")
 	return types.End
 }
 
@@ -1297,13 +1297,13 @@ func (s *downStream) giveStream() {
 	}
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.context,"downStream giveStream %p %+v", s, s)
+		log.Proxy.Debugf(s.context, "downStream giveStream %p %+v", s, s)
 	}
 
 	// reset downstreamReqBuf
 	if s.downstreamReqDataBuf != nil {
 		if e := buffer.PutIoBuffer(s.downstreamReqDataBuf); e != nil {
-			log.Proxy.Errorf(s.context,"PutIoBuffer error: %v", e)
+			log.Proxy.Errorf(s.context, "PutIoBuffer error: %v", e)
 		}
 	}
 

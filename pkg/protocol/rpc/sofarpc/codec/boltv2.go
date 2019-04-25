@@ -55,7 +55,7 @@ func (c *boltCodecV2) Encode(ctx context.Context, model interface{}) (types.IoBu
 	case *sofarpc.BoltResponseV2:
 		return encodeResponseV2(ctx, cmd)
 	default:
-		log.Proxy.Errorf(ctx,"[protocol][sofarpc] boltv2 encode with unknown command : %+v", model)
+		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv2 encode with unknown command : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
@@ -283,7 +283,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 				sofarpc.DeserializeBoltRequest(ctx, &request.BoltRequest)
 
 				if log.Proxy.GetLogLevel() > log.DEBUG {
-					log.Proxy.Debugf(ctx,"[protocol][sofarpc] boltv2 decode request:%+v", request)
+					log.Proxy.Debugf(ctx, "[protocol][sofarpc] boltv2 decode request:%+v", request)
 				}
 
 				cmd = request

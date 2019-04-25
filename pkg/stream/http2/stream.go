@@ -87,9 +87,9 @@ func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
 // types.ClientStreamConnection
 // types.ServerStreamConnection
 type streamConnection struct {
-	ctx    context.Context
-	conn   types.Connection
-	cm     *str.ContextManager
+	ctx  context.Context
+	conn types.Connection
+	cm   *str.ContextManager
 
 	codecEngine types.ProtocolEngine
 }

@@ -18,9 +18,11 @@
 package log
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"fmt"
 	"context"
+	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
+	"strconv"
 )
 
 // proxyLogger is a default implementation of ProxyLogger
@@ -109,7 +111,17 @@ func traceInfo(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-	connId := ctx.Value(types.ContextKeyConnectionID)
-	traceId := ctx.Value(types.ContextKeyTraceId)
-	return fmt.Sprintf("[%v,%v]", connId, traceId)
+	cid := "-"
+	tid := "-"
+
+	connId := mosnctx.Get(ctx, types.ContextKeyConnectionID) // uint64
+	if connId != nil {
+		cid = strconv.FormatUint(connId.(uint64), 10)
+	}
+	traceId := mosnctx.Get(ctx, types.ContextKeyTraceId) // string
+	if traceId != nil {
+		tid = traceId.(string)
+	}
+
+	return "[" + cid + "," + tid + "]"
 }

@@ -32,8 +32,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/trace"
+	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 // StreamDirection represent the stream's direction
@@ -294,7 +294,7 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(stream.ctx,"[stream][sofarpc] receive response, requestId = %v", stream.id)
+			log.Proxy.Debugf(stream.ctx, "[stream][sofarpc] receive response, requestId = %v", stream.id)
 		}
 		return stream
 	}
@@ -356,7 +356,7 @@ func (s *stream) AppendHeaders(ctx context.Context, headers types.HeaderMap, end
 	}
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.ctx,"[stream][sofarpc] AppendHeaders,request id = %d, direction = %d", s.ID(), s.direction)
+		log.Proxy.Debugf(s.ctx, "[stream][sofarpc] AppendHeaders,request id = %d, direction = %d", s.ID(), s.direction)
 	}
 
 	if endStream {

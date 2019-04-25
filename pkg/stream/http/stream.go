@@ -34,10 +34,10 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
 	"io"
-	"github.com/alipay/sofa-mosn/pkg/trace"
 )
 
 func init() {

@@ -18,15 +18,17 @@
 package log
 
 import (
-	"testing"
-	"os"
-	"strings"
-	"runtime"
 	"context"
+	"fmt"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"math/rand"
+	"os"
+	"runtime"
+	"strings"
+	"testing"
 	"time"
-	"fmt"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 func TestProxyLog(t *testing.T) {
@@ -40,8 +42,8 @@ func TestProxyLog(t *testing.T) {
 	traceId := "0abfc19515355177863163255e6d87"
 	connId := rand.Intn(10)
 	targetStr := fmt.Sprintf("[%v,%v]", connId, traceId)
-	ctx := context.WithValue(context.Background(), types.ContextKeyTraceId, traceId)
-	ctx = context.WithValue(ctx, types.ContextKeyConnectionID, connId)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, traceId)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, connId)
 
 	for i := 0; i < 10; i++ {
 		lg.Infof(ctx, "[unittest] test write, round %d", i)
@@ -69,8 +71,9 @@ func BenchmarkProxyLog(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	ctx := context.WithValue(context.Background(), types.ContextKeyTraceId, "0abfc19515355177863163255e6d87")
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, "0abfc19515355177863163255e6d87")
 
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		l.Infof(ctx, "BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
 	}
@@ -83,7 +86,7 @@ func BenchmarkProxyLogParallel(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	ctx := context.WithValue(context.Background(), types.ContextKeyTraceId, "0abfc19515355177863163255e6d87")
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, "0abfc19515355177863163255e6d87")
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
