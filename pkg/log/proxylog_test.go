@@ -40,7 +40,7 @@ func TestProxyLog(t *testing.T) {
 	}
 
 	traceId := "0abfc19515355177863163255e6d87"
-	connId := rand.Intn(10)
+	connId := uint64(rand.Intn(10))
 	targetStr := fmt.Sprintf("[%v,%v]", connId, traceId)
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, traceId)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, connId)

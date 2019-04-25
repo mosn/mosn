@@ -42,18 +42,14 @@ func (spanBuilder *SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 
 	ctx, ok := args[0].(context.Context)
 	if !ok {
-		log.DefaultLogger.Tracef("current context span is null,ctx=%+v", ctx)
+		log.Proxy.Errorf(ctx, "[stream] [http] span build failed, first arg unexpected:%+v", args[0])
 		return nil
 	}
 
 	request, ok := args[1].(*fasthttp.Request)
 	if !ok {
-		log.DefaultLogger.Tracef("current request is null,request =%+v", request)
+		log.Proxy.Errorf(ctx, "[stream] [http] span build failed, second arg unexpected:%+v", args[0])
 		return nil
-	}
-
-	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(ctx, "builder span,ctx=%+v", ctx)
 	}
 
 	span := trace.Tracer().Start(time.Now())

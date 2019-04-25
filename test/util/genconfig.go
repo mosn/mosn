@@ -12,7 +12,7 @@ import (
 // can set
 var (
 	MeshLogPath  = "stdout"
-	MeshLogLevel = "WARN"
+	MeshLogLevel = "DEBUG"
 	StartRetry   = false
 )
 
