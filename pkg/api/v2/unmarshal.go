@@ -247,7 +247,7 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 		if fileName == "" {
 			fileName = fmt.Sprintf("%d", time.Now().UnixNano())
 		}
-		data, err := json.Marshal(vh)
+		data, err := json.MarshalIndent(vh, "", " ")
 		if err != nil {
 			return nil, err
 		}
