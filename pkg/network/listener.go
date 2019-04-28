@@ -184,9 +184,7 @@ func (l *listener) accept(lctx context.Context) error {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("panic %v", p)
-
-				debug.PrintStack()
+				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 			}
 		}()
 

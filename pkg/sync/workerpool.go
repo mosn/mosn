@@ -91,8 +91,7 @@ func (pool *shardWorkerPool) spawnWorker(shard *shard) {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("worker panic %v", p)
-				debug.PrintStack()
+				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 				//try respawn worker
 				if shard.respawnTimes < maxRespwanTimes {
 					shard.respawnTimes++

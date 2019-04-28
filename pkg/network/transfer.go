@@ -161,8 +161,7 @@ func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *s
 func transferRead(c *connection) (uint64, error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("transferRead panic %v", r)
-			debug.PrintStack()
+			log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 	unixConn, err := net.Dial("unix", types.TransferConnDomainSocket)

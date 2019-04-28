@@ -216,10 +216,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("panic %v", p)
-
-				debug.PrintStack()
-
+				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 				c.startReadLoop()
 			}
 		}()
@@ -230,9 +227,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("panic %v", p)
-
-				debug.PrintStack()
+				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 
 				c.startWriteLoop()
 			}
