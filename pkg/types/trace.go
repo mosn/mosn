@@ -30,6 +30,8 @@ type Span interface {
 
 	SetTag(key uint64, value string)
 
+	SetRequestInfo(requestInfo RequestInfo)
+
 	Tag(key uint64) string
 
 	FinishSpan()

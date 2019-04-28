@@ -74,6 +74,10 @@ func (s *SofaTracerSpan) SetTag(key uint64, value string) {
 	s.tags[key] = value
 }
 
+// TODO: can be extend
+func (s *SofaTracerSpan) SetRequestInfo(reqinfo types.RequestInfo) {
+}
+
 func (s *SofaTracerSpan) Tag(key uint64) string {
 	return s.tags[key]
 }
