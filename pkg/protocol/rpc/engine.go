@@ -22,8 +22,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 type engine struct {
@@ -126,17 +124,16 @@ func (m *mixedEngine) Register(protocolCode byte, encoder types.Encoder, decoder
 }
 
 func (m *mixedEngine) BuildSpan(args ...interface{}) types.Span {
-	if len(args) == 0 {
+	if len(args) < 2 {
 		return nil
 	}
 
-	if _, ok := args[0].(context.Context); !ok {
+	cmd, ok := args[1].(RpcCmd)
+	if !ok || cmd == nil {
 		return nil
 	}
 
-	ctx := args[0].(context.Context)
-
-	engine := m.engineMap[mosnctx.Get(ctx, types.ContextSubProtocol).(byte)]
+	engine := m.engineMap[cmd.ProtocolCode()]
 
 	if engine == nil {
 		return nil
