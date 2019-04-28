@@ -60,19 +60,19 @@ func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {
 
 	//request.RequestHeader = make(map[string]string, 8)
 
-	logger := log.DefaultLogger
+	logger := log.Proxy
 	debugEnabled := logger.GetLogLevel() >= log.DEBUG
 
 	//deserialize header
 	serializeIns.DeserializeMap(request.HeaderMap, request.RequestHeader)
 	if debugEnabled {
-		logger.Debugf("[protocol][sofarpc] deserialize bolt request, header: %v", request.RequestHeader)
+		logger.Debugf(ctx, "[protocol][sofarpc] deserialize bolt request, header: %v", request.RequestHeader)
 	}
 
 	//deserialize class name
 	request.RequestClass = string(request.ClassName)
 	if debugEnabled {
-		logger.Debugf("[protocol][sofarpc] deserialize bolt request, className: %s", request.RequestClass)
+		logger.Debugf(ctx, "[protocol][sofarpc] deserialize bolt request, className: %s", request.RequestClass)
 	}
 }
 

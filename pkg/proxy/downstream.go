@@ -147,10 +147,10 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	proxy.listenerStats.DownstreamRequestTotal.Inc(1)
 	proxy.listenerStats.DownstreamRequestActive.Inc(1)
 
-	// debug message for new downstream
-	if log.Proxy.GetLogLevel() >= log.DEBUG {
+	// info message for new downstream
+	if log.Proxy.GetLogLevel() >= log.INFO {
 		requestId := mosnctx.Get(stream.context, types.ContextKeyStreamID)
-		log.Proxy.Debugf(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestId, stream.oneway)
+		log.Proxy.Infof(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestId, stream.oneway)
 	}
 	return stream
 }
@@ -1068,7 +1068,7 @@ func (s *downStream) finishTracing() {
 				trace.DeleteSpanIdGenerator(mosnctx.Get(s.context, types.ContextKeyTraceSpanKey).(*trace.SpanKey))
 			}
 		} else {
-			log.Proxy.Debugf(s.context, "[proxy] [downstream] trace span is null")
+			log.Proxy.Warnf(s.context, "[proxy] [downstream] trace span is null")
 		}
 	}
 }

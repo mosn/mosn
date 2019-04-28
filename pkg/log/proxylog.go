@@ -93,9 +93,9 @@ func (l *proxyLogger) Fatalf(ctx context.Context, format string, args ...interfa
 	if l.Logger.disable {
 		return
 	}
-	if l.level >= TRACE {
-		s := l.formatter(ctx, TracePre, format)
-		l.Logger.Printf(s, args...)
+	if l.level >= FATAL {
+		s := l.formatter(ctx, FatalPre, format)
+		l.Logger.Fatalf(s, args...)
 	}
 }
 
