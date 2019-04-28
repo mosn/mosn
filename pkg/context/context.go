@@ -15,34 +15,24 @@
  * limitations under the License.
  */
 
-package types
+package context
 
-import "time"
+import (
+	"context"
+	"github.com/alipay/sofa-mosn/pkg/types"
+)
 
-type Span interface {
-	TraceId() string
+type valueCtx struct {
+	context.Context
 
-	SpanId() string
-
-	ParentSpanId() string
-
-	SetOperation(operation string)
-
-	SetTag(key uint64, value string)
-
-	SetRequestInfo(requestInfo RequestInfo)
-
-	Tag(key uint64) string
-
-	FinishSpan()
-
-	InjectContext(requestHeaders map[string]string)
-
-	SpawnChild(operationName string, startTime time.Time) Span
+	builtin [types.ContextKeyEnd]interface{}
+	// TODO
+	//variables map[string]Variable
 }
 
-type Tracer interface {
-	Start(startTime time.Time) Span
-
-	PrintSpan(span Span) error
+func (c *valueCtx) Value(key interface{}) interface{} {
+	if contextKey, ok := key.(types.ContextKey); ok {
+		return c.builtin[contextKey]
+	}
+	return c.Context.Value(key)
 }

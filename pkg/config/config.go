@@ -18,6 +18,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -29,7 +30,6 @@ import (
 	"github.com/c2h5oh/datasize"
 	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
-	"github.com/json-iterator/go"
 )
 
 type ContentKey string
@@ -120,7 +120,7 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 		if fileName == "" {
 			fileName = fmt.Sprintf("%d", time.Now().UnixNano())
 		}
-		data, err := json.Marshal(cluster)
+		data, err := json.MarshalIndent(cluster, "", " ")
 		if err != nil {
 			return nil, err
 		}
@@ -146,13 +146,13 @@ type MOSNConfig struct {
 	ClusterManager  ClusterManagerConfig   `json:"cluster_manager,omitempty"` //cluster config
 	ServiceRegistry v2.ServiceRegistryInfo `json:"service_registry"`          //service registry config, used by service discovery module
 	//tracing config
-	Tracing             TracingConfig       `json:"tracing"`
-	Metrics             MetricsConfig       `json:"metrics"`
-	RawDynamicResources jsoniter.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
-	RawStaticResources  jsoniter.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
-	RawAdmin            jsoniter.RawMessage `json:"admin,omitempty"`             // admin raw message
-	Debug               PProfConfig         `json:"pprof,omitempty"`
-	Pid                 string              `json:"pid,omitempty"` // pid file
+	Tracing             TracingConfig   `json:"tracing"`
+	Metrics             MetricsConfig   `json:"metrics"`
+	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
+	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
+	RawAdmin            json.RawMessage `json:"admin,omitempty"`             // admin raw message
+	Debug               PProfConfig     `json:"pprof,omitempty"`
+	Pid                 string          `json:"pid,omitempty"` // pid file
 }
 
 // PProfConfig is used to start a pprof server for debug

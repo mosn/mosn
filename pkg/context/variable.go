@@ -15,34 +15,4 @@
  * limitations under the License.
  */
 
-package types
-
-import "time"
-
-type Span interface {
-	TraceId() string
-
-	SpanId() string
-
-	ParentSpanId() string
-
-	SetOperation(operation string)
-
-	SetTag(key uint64, value string)
-
-	SetRequestInfo(requestInfo RequestInfo)
-
-	Tag(key uint64) string
-
-	FinishSpan()
-
-	InjectContext(requestHeaders map[string]string)
-
-	SpawnChild(operationName string, startTime time.Time) Span
-}
-
-type Tracer interface {
-	Start(startTime time.Time) Span
-
-	PrintSpan(span Span) error
-}
+package context

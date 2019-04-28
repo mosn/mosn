@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 const testServerName = "test_server"
 
 func setup() {
-	handler := NewHandler(&mockClusterManagerFilter{}, &mockClusterManager{}, log.DefaultLogger)
+	handler := NewHandler(&mockClusterManagerFilter{}, &mockClusterManager{})
 	initListenerAdapterInstance(testServerName, handler)
 }
 
@@ -29,10 +28,8 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 	addr, _ := net.ResolveTCPAddr("tcp", addrStr)
 	return &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:           name,
-			BindToPort:     true,
-			LogPath:        "stdout",
-			LogLevelConfig: "DEBUG",
+			Name:       name,
+			BindToPort: true,
 			AccessLogs: []v2.AccessLog{
 				{
 					Path:   "stdout",
@@ -72,7 +69,6 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 		},
 		Addr: addr,
 		PerConnBufferLimitBytes: 1 << 15,
-		LogLevel:                uint8(log.DEBUG),
 	}
 }
 
@@ -115,9 +111,7 @@ func TestLDS(t *testing.T) {
 	// FIXME: update logger
 	newListenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:           name, // name should same as the exists listener
-			LogPath:        "stdout",
-			LogLevelConfig: "INFO", // FIXME: should be updated
+			Name: name, // name should same as the exists listener
 			AccessLogs: []v2.AccessLog{
 				{},
 			},
@@ -138,7 +132,6 @@ func TestLDS(t *testing.T) {
 		},
 		Addr: listenerConfig.Addr, // addr should not be changed
 		PerConnBufferLimitBytes: 1 << 10,
-		LogLevel:                uint8(log.INFO),
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, newListenerConfig, nil, nil); err != nil {
 		t.Fatal("update listener failed", err)

@@ -11,7 +11,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -54,7 +53,7 @@ func NewRPCClient(t *testing.T, id string, proto string) *RPCClient {
 func (c *RPCClient) connect(addr string, tlsMng types.TLSContextManager) error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
-	cc := network.NewClientConnection(nil, tlsMng, remoteAddr, stopChan, log.DefaultLogger)
+	cc := network.NewClientConnection(nil, tlsMng, remoteAddr, stopChan)
 	c.conn = cc
 	if err := cc.Connect(true); err != nil {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)

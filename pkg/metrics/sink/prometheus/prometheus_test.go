@@ -26,15 +26,15 @@ import (
 
 	"time"
 
+	"fmt"
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"fmt"
 )
 
 type testAction int
 
 const (
-	countInc        testAction = iota
+	countInc testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate
@@ -118,8 +118,6 @@ func TestPrometheusMetrics(t *testing.T) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	fmt.Println(string(body))
-
 	if !bytes.Contains(body, []byte("lbk1_t1_k1{lbk1=\"lbv1\"} 0.0")) {
 		t.Error("lbk1_t1_k1{lbk1=\"lbv1\"} metric not correct")
 	}
@@ -168,12 +166,12 @@ func BenchmarkPromSink_Flush(b *testing.B) {
 	//defer zone.Detach()
 
 	// 5000 registry + each registry 40 metrics
-	for i := 0; i < 5000; i ++ {
+	for i := 0; i < 5000; i++ {
 		m, _ := metrics.NewMetrics(fmt.Sprintf("type%d", i), map[string]string{
 			fmt.Sprintf("lbk%d", i): fmt.Sprintf("lbv%d", i),
 		})
 
-		for j := 0; j < 40; j ++ {
+		for j := 0; j < 40; j++ {
 			m.Gauge(fmt.Sprintf("gg%d", j))
 		}
 
@@ -193,7 +191,7 @@ func BenchmarkPromSink_Flush(b *testing.B) {
 
 	//tc := http.Client{}
 	b.ResetTimer()
-	for i := 0; i < b.N; i ++ {
+	for i := 0; i < b.N; i++ {
 		sink.Flush(ioutil.Discard, metrics.GetAll())
 		//url, _ := url.Parse("http://127.0.0.1:8088/metrics")
 		//tc.Do(&http.Request{
