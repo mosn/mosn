@@ -18,6 +18,7 @@
 package log
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -83,4 +84,27 @@ func TestUpdateLoggerConfig(t *testing.T) {
 		t.Fatal("disable Logger failed")
 	}
 
+}
+
+func TestSetAllErrorLogLevel(t *testing.T) {
+	defer CloseAll()
+	// reset for test
+	errorLoggerManagerInstance.managers = make(map[string]ErrorLogger)
+	loggers = make(map[string]*Logger)
+	var logs []ErrorLogger
+	for i := 0; i < 100; i++ {
+		logName := fmt.Sprintf("/tmp/errorlog.%d.log", i)
+		lg, err := GetOrCreateDefaultErrorLogger(logName, INFO)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logs = append(logs, lg)
+	}
+	GetErrorLoggerManagerInstance().SetAllErrorLoggerLevel(ERROR)
+	// verify
+	for _, lg := range logs {
+		if lg.GetLogLevel() != ERROR {
+			t.Fatal("some error log's level is not changed")
+		}
+	}
 }

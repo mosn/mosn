@@ -71,6 +71,14 @@ func (mng *ErrorLoggerManager) GetOrCreateErrorLogger(p string, level Level, f C
 	return lg, nil
 }
 
+func (mng *ErrorLoggerManager) SetAllErrorLoggerLevel(level Level) {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+	for _, lg := range mng.managers {
+		lg.SetLogLevel(level)
+	}
+}
+
 // Default Export Functions
 func GetErrorLoggerManagerInstance() *ErrorLoggerManager {
 	return errorLoggerManagerInstance
