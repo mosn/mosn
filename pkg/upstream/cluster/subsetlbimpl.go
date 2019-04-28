@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"math/rand"
+	"reflect"
 	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -153,7 +154,7 @@ func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalan
 
 	matchCriteria := context.MetadataMatchCriteria()
 
-	if nil == matchCriteria {
+	if nil == matchCriteria || reflect.ValueOf(matchCriteria).IsNil() {
 		log.DefaultLogger.Infof("subset load balancer: context is nil")
 		return nil, false
 	}
