@@ -42,43 +42,61 @@ type routersImpl struct {
 }
 
 func (ri *routersImpl) MatchRoute(headers types.HeaderMap, randomValue uint64) types.Route {
-	log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
+	}
 	virtualHost := ri.findVirtualHost(headers)
 	if virtualHost == nil {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no virtual host found")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no virtual host found")
+		}
 		return nil
 	}
 	router := virtualHost.GetRouteFromEntries(headers, randomValue)
 	if router == nil {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no route found")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no route found")
+		}
 	}
 	return router
 }
 
 func (ri *routersImpl) MatchAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
-	log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
+	}
 	virtualHost := ri.findVirtualHost(headers)
 	if virtualHost == nil {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no virtual host found")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no virtual host found")
+		}
 		return nil
 	}
 	routers := virtualHost.GetAllRoutesFromEntries(headers, randomValue)
 	if len(routers) == 0 {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no route found")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no route found")
+		}
 	}
 	return routers
 }
 
 func (ri *routersImpl) MatchRouteFromHeaderKV(headers types.HeaderMap, key string, value string) types.Route {
-	log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
+	}
 	virtualHost := ri.findVirtualHost(headers)
 	if virtualHost == nil {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no virtual host found")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no virtual host found")
+		}
 		return nil
 	}
 	router := virtualHost.GetRouteFromHeaderKV(key, value)
 	if router == nil {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no route found")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no route found")
+		}
 	}
 	return router
 }
@@ -98,7 +116,9 @@ func (ri *routersImpl) AddRoute(domain string, route *v2.Router) int {
 		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "AddRoute", msg)
 		return -1
 	}
-	log.DefaultLogger.Infof(RouterLogFormat, "routers", "AddRoute", "adds a new route into domain: "+domain)
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof(RouterLogFormat, "routers", "AddRoute", "adds a new route into domain: "+domain)
+	}
 	return index
 }
 
@@ -110,7 +130,9 @@ func (ri *routersImpl) RemoveAllRoutes(domain string) int {
 	}
 	vh := ri.virtualHosts[index]
 	vh.RemoveAllRoutes()
-	log.DefaultLogger.Infof(RouterLogFormat, "routers", "RemoveAllRoutes", "clear all routes in domain: "+domain)
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof(RouterLogFormat, "routers", "RemoveAllRoutes", "clear all routes in domain: "+domain)
+	}
 	return index
 }
 
@@ -150,7 +172,9 @@ func (ri *routersImpl) findVirtualHost(headers types.HeaderMap) types.VirtualHos
 	if len(ri.virtualHostsIndex) == 0 &&
 		len(ri.wildcardVirtualHostSuffixesIndex) == 0 &&
 		ri.defaultVirtualHostIndex != -1 {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "found default virtual host only")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "found default virtual host only")
+		}
 		return ri.virtualHosts[ri.defaultVirtualHostIndex]
 	}
 	//we use domain in lowercase
@@ -159,7 +183,9 @@ func (ri *routersImpl) findVirtualHost(headers types.HeaderMap) types.VirtualHos
 	host := strings.ToLower(hostHeader)
 	index := ri.findVirtualHostIndex(host)
 	if index == -1 {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "no virtual host found")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "no virtual host found")
+		}
 		return nil
 	}
 	return ri.virtualHosts[index]
