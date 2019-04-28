@@ -252,7 +252,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					data.Drain(read)
 				} else {
 					// not enough data
-					if log.Proxy.GetLogLevel() > log.DEBUG {
+					if log.Proxy.GetLogLevel() >= log.DEBUG {
 						log.Proxy.Debugf(ctx, "[protocol][decode] boltv2 decode request, no enough data for fully decode")
 					}
 					return cmd, nil
@@ -282,7 +282,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 
 				sofarpc.DeserializeBoltRequest(ctx, &request.BoltRequest)
 
-				if log.Proxy.GetLogLevel() > log.DEBUG {
+				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					log.Proxy.Debugf(ctx, "[protocol][sofarpc] boltv2 decode request:%+v", request)
 				}
 
@@ -321,7 +321,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					}
 				} else {
 					// not enough data
-					if log.Proxy.GetLogLevel() > log.DEBUG {
+					if log.Proxy.GetLogLevel() >= log.DEBUG {
 						log.Proxy.Debugf(ctx, "[protocol][sofarpc] boltv2] boltv2 decode response, no enough data for fully decode")
 					}
 					return cmd, nil
@@ -352,7 +352,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 
 				sofarpc.DeserializeBoltResponse(ctx, &response.BoltResponse)
 
-				if log.DefaultLogger.GetLogLevel() > log.DEBUG {
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 					log.DefaultLogger.Debugf("[protocol][sofarpc] boltv2 decode response:%+v", response)
 				}
 

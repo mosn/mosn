@@ -440,7 +440,7 @@ func (s *stream) endStream() {
 		}
 
 		// log
-		if log.Proxy.GetLogLevel() > log.INFO {
+		if log.Proxy.GetLogLevel() >= log.INFO {
 			log.Proxy.Infof(s.ctx, "[stream] [sofarpc] send %s, requestId = %v", directionText[s.direction], s.id)
 		}
 	}
