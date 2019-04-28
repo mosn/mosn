@@ -71,6 +71,6 @@ func InitDefaultPath(path string) {
 	TransferListenDomainSocket = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
 
 end:
-	os.MkdirAll(MosnLogBasePath, 0644)
-	os.MkdirAll(MosnConfigPath, 0644)
+	os.MkdirAll(MosnLogBasePath, 0755)
+	os.MkdirAll(MosnConfigPath, 0755)
 }
