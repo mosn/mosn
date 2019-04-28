@@ -286,9 +286,8 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 	pool.ScheduleAuto(func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Proxy.Errorf(s.context, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d",
-					r, s, id, s.ID)
-				debug.PrintStack()
+				log.Proxy.Errorf(s.context, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
+					r, s, id, s.ID, string(debug.Stack()))
 
 				if id == s.ID {
 					s.writeLog()

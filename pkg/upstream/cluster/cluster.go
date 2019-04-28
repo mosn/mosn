@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"net"
+	"runtime/debug"
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -114,7 +115,15 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 				cluster.refreshHealthHosts(host)
 			}
 		})
-		go cluster.healthChecker.Start()
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+				}
+			}()
+
+			cluster.healthChecker.Start()
+		}()
 	}
 
 	return cluster
