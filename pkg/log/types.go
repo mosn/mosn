@@ -17,6 +17,8 @@
 
 package log
 
+import "context"
+
 type Level uint8
 
 const (
@@ -59,6 +61,27 @@ type ErrorLogger interface {
 	Fatal(args ...interface{})
 
 	Fatalln(args ...interface{})
+
+	// SetLogLevel updates the log level
+	SetLogLevel(Level)
+	// GetLogLevel returns the logger's level
+	GetLogLevel() Level
+
+	// Toggle disable/enable the logger
+	Toggle(disable bool)
+}
+
+// ProxyLogger generates lines of output to an io.Writer, works for data flow
+type ProxyLogger interface {
+	Infof(ctx context.Context, format string, args ...interface{})
+
+	Debugf(ctx context.Context, format string, args ...interface{})
+
+	Warnf(ctx context.Context, format string, args ...interface{})
+
+	Errorf(ctx context.Context, format string, args ...interface{})
+
+	Fatalf(ctx context.Context, format string, args ...interface{})
 
 	// SetLogLevel updates the log level
 	SetLogLevel(Level)

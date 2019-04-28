@@ -25,7 +25,6 @@ const (
 	ContextKeyStreamID ContextKey = iota
 	ContextKeyConnectionID
 	ContextKeyListenerPort
-
 	ContextKeyListenerName
 	ContextKeyListenerType
 	ContextKeyListenerStatsNameSpace
@@ -40,6 +39,7 @@ const (
 	ContextSubProtocol
 	ContextKeyTraceSpanKey
 	ContextKeyActiveSpan
+	ContextKeyTraceId
 	ContextKeyEnd
 )
 

@@ -67,11 +67,13 @@ func (p *connPool) init(client *activeClient, sub byte) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("connPool init panic %v", r)
+				log.DefaultLogger.Errorf("[stream] [sofarpc] [connpool] init panic %v", r)
 			}
 		}()
 
-		log.DefaultLogger.Debugf("connPool init host %s", p.host.AddressString())
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.host.AddressString())
+		}
 
 		p.mux.Lock()
 		defer p.mux.Unlock()

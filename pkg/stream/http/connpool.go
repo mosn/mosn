@@ -21,9 +21,9 @@ import (
 	"context"
 	"sync"
 
-	"fmt"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
@@ -208,7 +208,7 @@ func (p *connPool) report() {
 	go func() {
 		for {
 			p.clientMux.Lock()
-			fmt.Printf("pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
+			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}
