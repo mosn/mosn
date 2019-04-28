@@ -46,16 +46,6 @@ func (ctx SofaProtocolBufferCtx) Reset(i interface{}) {
 	buf.BoltRsp = BoltResponse{}
 	buf.BoltEncodeReq = BoltRequest{}
 	buf.BoltEncodeRsp = BoltResponse{}
-
-	if buf.BoltReqHeader != nil {
-		buffer.PutBytes(buf.BoltReqHeader)
-		buf.BoltReqHeader = nil
-	}
-
-	if buf.BoltRspHeader != nil {
-		buffer.PutBytes(buf.BoltRspHeader)
-		buf.BoltRspHeader = nil
-	}
 }
 
 type SofaProtocolBuffers struct {
@@ -68,11 +58,29 @@ type SofaProtocolBuffers struct {
 }
 
 func (b *SofaProtocolBuffers) GetBoltReqHeader(size int) *[]byte {
+	if b.BoltReqHeader != nil {
+		if size <= cap(*b.BoltReqHeader) {
+			*b.BoltReqHeader = (*b.BoltReqHeader)[0:size]
+			return b.BoltReqHeader
+		} else {
+			buffer.PutBytes(b.BoltReqHeader)
+		}
+	}
+
 	b.BoltReqHeader = buffer.GetBytes(size)
 	return b.BoltReqHeader
 }
 
 func (b *SofaProtocolBuffers) GetBoltRspHeader(size int) *[]byte {
+	if b.BoltRspHeader != nil {
+		if size <= cap(*b.BoltRspHeader) {
+			*b.BoltRspHeader = (*b.BoltRspHeader)[0:size]
+			return b.BoltRspHeader
+		} else {
+			buffer.PutBytes(b.BoltRspHeader)
+		}
+	}
+
 	b.BoltRspHeader = buffer.GetBytes(size)
 	return b.BoltRspHeader
 }

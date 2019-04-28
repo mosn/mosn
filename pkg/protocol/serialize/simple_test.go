@@ -36,17 +36,28 @@ func BenchmarkSerializeMap(b *testing.B) {
 
 func BenchmarkDeserializeMap(b *testing.B) {
 	headers := map[string]string{
-		"service": "com.alipay.test.TestService:1.0",
+		"service":  "com.alipay.test.TestService:1.0",
+		"service1": "com.alipay.test.TestService:1.0",
+		"service11": "com.alipay.test.TestService:1.0",
+		"service111": "com.alipay.test.TestService:1.0",
+		"service1111": "com.alipay.test.TestService:1.0",
+		"service11111": "com.alipay.test.TestService:1.0",
+		"service111111": "com.alipay.test.TestService:1.0",
+		"service1111111": "com.alipay.test.TestService:1.0",
+		"service11111111": "com.alipay.test.TestService:1.0",
 	}
 
 	buf := buffer.GetIoBuffer(128)
 	Instance.SerializeMap(headers, buf)
 
-	bytes := buf.Bytes()
 	header := make(map[string]string)
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		Instance.DeserializeMap(bytes, header)
+		bb := buffer.GetBytes(buf.Len())
+		bufs := *bb
+		copy(bufs, buf.Bytes())
+		Instance.DeserializeMap(bufs, header)
+		buffer.PutBytes(bb)
 	}
 }

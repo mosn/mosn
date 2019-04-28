@@ -86,8 +86,7 @@ func (s *simpleSerialization) DeserializeMap(b []byte, m map[string]string) erro
 		value := b[index:end]
 		index = end
 
-		k := unsafeByteToStr(key)
-		m[k] = unsafeByteToStr(value)
+		m[unsafeByteToStr(key)] = unsafeByteToStr(value)
 	}
 	return nil
 }
