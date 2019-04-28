@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -51,7 +52,7 @@ func SetPid(pid string) {
 	if pid == "" {
 		pidFile = types.MosnPidDefaultFileName
 	} else {
-		if err := os.MkdirAll(filepath.Dir(pid), 0644); err != nil {
+		if err := os.MkdirAll(filepath.Dir(pid), 0755); err != nil {
 			pidFile = types.MosnPidDefaultFileName
 		} else {
 			pidFile = pid
