@@ -540,7 +540,15 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 
 	ch := make(chan types.Connection, 1)
 	// new connection
-	go listener.GetListenerCallbacks().OnAccept(conn, listener.HandOffRestoredDestinationConnections(), nil, ch, dataBuf)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			}
+		}()
+		listener.GetListenerCallbacks().OnAccept(conn, listener.HandOffRestoredDestinationConnections(), nil, ch, dataBuf)
+	}()
+
 	select {
 	// recv connection
 	case rch := <-ch:

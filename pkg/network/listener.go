@@ -79,6 +79,11 @@ func (l *listener) Addr() net.Addr {
 }
 
 func (l *listener) Start(lctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+		}
+	}()
 
 	if l.bindToPort {
 		//call listen if not inherit

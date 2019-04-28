@@ -19,6 +19,7 @@ package http
 
 import (
 	"context"
+	"runtime/debug"
 	"sync"
 
 	"time"
@@ -206,6 +207,12 @@ func (p *connPool) createStreamClient(context context.Context, connData types.Cr
 func (p *connPool) report() {
 	// report
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			}
+		}()
+
 		for {
 			p.clientMux.Lock()
 			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)

@@ -325,6 +325,11 @@ func (l *Logger) Close() error {
 }
 
 func (l *Logger) Reopen() error {
+	defer func() {
+		if r := recover(); r != nil {
+			debug.PrintStack()
+		}
+	}()
 	l.reopenChan <- struct{}{}
 	return nil
 }
