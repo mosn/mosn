@@ -28,83 +28,51 @@ import (
 // proxyLogger is a default implementation of ProxyLogger
 // we use ProxyLogger to record proxy events.
 type proxyLogger struct {
-	*Logger
-	level Level
+	ErrorLogger
 }
 
 func CreateDefaultProxyLogger(output string, level Level) (ProxyLogger, error) {
-	lg, err := GetOrCreateLogger(output)
+	lg, err := GetOrCreateDefaultErrorLogger(output, level)
 	if err != nil {
 		return nil, err
 	}
 	return &proxyLogger{
-		Logger: lg,
-		level:  level,
+		ErrorLogger: lg,
 	}, nil
 }
 
 // trace logger format:
 // {time} [{level}] [{connId},{traceId}] {content}
-func (l *proxyLogger) formatter(ctx context.Context, lvPre string, format string) string {
-	return logTime() + " " + lvPre + " " + traceInfo(ctx) + " " + format
+func (l *proxyLogger) formatter(ctx context.Context, format string) string {
+	return traceInfo(ctx) + " " + format
 }
 
 func (l *proxyLogger) Infof(ctx context.Context, format string, args ...interface{}) {
-	if l.Logger.disable {
-		return
-	}
-	if l.level >= INFO {
-		s := l.formatter(ctx, InfoPre, format)
-		l.Logger.Printf(s, args...)
-	}
+	l.ErrorLogger.Infof(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) Debugf(ctx context.Context, format string, args ...interface{}) {
-	if l.Logger.disable {
-		return
-	}
-	if l.level >= DEBUG {
-		s := l.formatter(ctx, DebugPre, format)
-		l.Logger.Printf(s, args...)
-	}
+	l.ErrorLogger.Debugf(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) Warnf(ctx context.Context, format string, args ...interface{}) {
-	if l.Logger.disable {
-		return
-	}
-	if l.level >= WARN {
-		s := l.formatter(ctx, WarnPre, format)
-		l.Logger.Printf(s, args...)
-	}
+	l.ErrorLogger.Warnf(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) Errorf(ctx context.Context, format string, args ...interface{}) {
-	if l.Logger.disable {
-		return
-	}
-	if l.level >= ERROR {
-		s := l.formatter(ctx, ErrorPre, format)
-		l.Logger.Printf(s, args...)
-	}
+	l.ErrorLogger.Printf(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) Fatalf(ctx context.Context, format string, args ...interface{}) {
-	if l.Logger.disable {
-		return
-	}
-	if l.level >= FATAL {
-		s := l.formatter(ctx, FatalPre, format)
-		l.Logger.Fatalf(s, args...)
-	}
+	l.ErrorLogger.Fatalf(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) SetLogLevel(level Level) {
-	l.level = level
+	l.ErrorLogger.SetLogLevel(level)
 }
 
 func (l *proxyLogger) GetLogLevel() Level {
-	return l.level
+	return l.ErrorLogger.GetLogLevel()
 }
 
 func traceInfo(ctx context.Context) string {
