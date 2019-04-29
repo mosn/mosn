@@ -23,7 +23,9 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 )
 
 // compare binary put and get
@@ -40,9 +42,10 @@ func TestBinary(t *testing.T) {
 		t.Errorf("expected overflow")
 	}
 	// new decode, keeps the signed
-	var newData int32
-	buf := bytes.NewReader(b)
-	binary.Read(buf, binary.BigEndian, &newData)
+	//var newData int32
+	//buf := bytes.NewReader(b)
+	//binary.Read(buf, binary.BigEndian, &newData)
+	newData := int32(binary.BigEndian.Uint32(b))
 	if int(newData) != timeout {
 		t.Errorf("expected keep the signed int")
 	}
@@ -114,5 +117,129 @@ func TestDecodeAndEncode_BoltV2(t *testing.T) {
 	// just verify timeout now
 	if req.Timeout != req1.Timeout {
 		t.Errorf("decode request is not equal origin request, origin: %d, got: %d", req.Timeout, req1.Timeout)
+	}
+}
+
+func BenchmarkBoltCodec_Encode(b *testing.B) {
+	request := &sofarpc.BoltRequest{
+		Protocol: sofarpc.PROTOCOL_CODE_V1,
+		CmdType:  sofarpc.REQUEST,
+		CmdCode:  sofarpc.RPC_REQUEST,
+		Version:  1,
+		ReqID:    256,
+		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		Timeout:  -1,
+	}
+
+	request.RequestHeader = map[string]string{"service": "com.alipay.test.sample.facade"} // used for sofa routing
+	headerBuf := buffer.GetIoBuffer(128)
+
+	if err := serialize.Instance.SerializeMap(request.RequestHeader, headerBuf); err != nil {
+		panic("serialize headers error")
+	} else {
+		request.HeaderMap = headerBuf.Bytes()
+		request.HeaderLen = int16(len(request.HeaderMap))
+	}
+
+	request.ClassName = []byte("com.alipay.sofa.hsf.SofaRequest")
+	request.ClassLen = int16(len(request.ClassName))
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		BoltCodec.Encode(context.Background(), request)
+	}
+}
+
+func BenchmarkBoltCodec_Decode(b *testing.B) {
+	request := &sofarpc.BoltRequest{
+		Protocol: sofarpc.PROTOCOL_CODE_V1,
+		CmdType:  sofarpc.REQUEST,
+		CmdCode:  sofarpc.RPC_REQUEST,
+		Version:  1,
+		ReqID:    256,
+		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		Timeout:  -1,
+	}
+
+	request.RequestHeader = map[string]string{"service": "com.alipay.test.sample.facade"} // used for sofa routing
+	headerBuf := buffer.GetIoBuffer(128)
+
+	if err := serialize.Instance.SerializeMap(request.RequestHeader, headerBuf); err != nil {
+		panic("serialize headers error")
+	} else {
+		request.HeaderMap = headerBuf.Bytes()
+		request.HeaderLen = int16(len(request.HeaderMap))
+	}
+
+	request.ClassName = []byte("com.alipay.sofa.hsf.SofaRequest")
+	request.ClassLen = int16(len(request.ClassName))
+	buf, _ := BoltCodec.Encode(context.Background(), request)
+	requestBytes := buf.Bytes()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		BoltCodec.Decode(context.Background(), buffer.NewIoBufferBytes(requestBytes))
+	}
+}
+
+func BenchmarkBoltCodec_All(b *testing.B) {
+	request := &sofarpc.BoltRequest{
+		Protocol: sofarpc.PROTOCOL_CODE_V1,
+		CmdType:  sofarpc.REQUEST,
+		CmdCode:  sofarpc.RPC_REQUEST,
+		Version:  1,
+		ReqID:    256,
+		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
+		Timeout:  -1,
+	}
+
+	request.RequestHeader = map[string]string{"service": "com.alipay.test.sample.facade"} // used for sofa routing
+	headerBuf := buffer.GetIoBuffer(128)
+
+	if err := serialize.Instance.SerializeMap(request.RequestHeader, headerBuf); err != nil {
+		panic("serialize headers error")
+	} else {
+		request.HeaderMap = headerBuf.Bytes()
+		request.HeaderLen = int16(len(request.HeaderMap))
+	}
+
+	request.ClassName = []byte("com.alipay.sofa.hsf.SofaRequest")
+	request.ClassLen = int16(len(request.ClassName))
+	buf, _ := BoltCodec.Encode(context.Background(), request)
+	requestBytes := buf.Bytes()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ctx := context.Background()
+		req, _ := BoltCodec.Decode(ctx, buffer.NewIoBufferBytes(requestBytes))
+		BoltCodec.Encode(ctx, req)
+	}
+}
+
+// compare binary put and get
+func BenchmarkBinaryOld(b *testing.B) {
+	var timeout int = -1
+	// encode
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, uint32(timeout))
+
+	for i := 0; i < b.N; i++ {
+		// decode
+		_ = int32(binary.BigEndian.Uint32(buf))
+	}
+}
+
+// compare binary put and get
+func BenchmarkBinaryNew(b *testing.B) {
+	var timeout int = -1
+	// encode
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, uint32(timeout))
+
+	for i := 0; i < b.N; i++ {
+		// decode
+		var newData int32
+		buf := bytes.NewReader(buf)
+		binary.Read(buf, binary.BigEndian, &newData)
 	}
 }

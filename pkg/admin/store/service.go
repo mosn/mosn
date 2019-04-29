@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime/debug"
 
 	"sync"
 
@@ -147,7 +148,15 @@ func StopService() {
 		if s.exit != nil {
 			s.exit()
 		}
-		go s.Shutdown(context.Background())
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+				}
+			}()
+
+			s.Shutdown(context.Background())
+		}()
 	}
 	services = services[:0]
 	listeners = listeners[:0]

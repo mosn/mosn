@@ -44,7 +44,6 @@ func (h *tcpHandler) handleConn(conn *net.TCPConn, pkg []byte) {
 		ctx := context.Background()
 		remoteAddr := conn.RemoteAddr().String()
 		ipPort := strings.Split(remoteAddr, ":")
-		TLOG.Infof("recv request:%s %s \n", remoteAddr, ipPort)
 		ctx = current.ContextWithTarsCurrent(ctx)
 		ok := current.SetClientIPWithContext(ctx, ipPort[0])
 		if !ok {
@@ -95,9 +94,8 @@ func (h *tcpHandler) Handle() error {
 			atomic.AddInt32(&h.acceptNum, -1)
 		}(conn)
 	}
-	if h.gpool != nil {
-		h.gpool.Release()
-	}
+
+	h.gpool.Release()
 	return nil
 }
 
@@ -125,7 +123,7 @@ func (h *tcpHandler) recv(conn *net.TCPConn) {
 			if err == io.EOF {
 				TLOG.Debug("connection closed by remote:", conn.RemoteAddr())
 			} else {
-				TLOG.Error("read package error:", reflect.TypeOf(err), err)
+				TLOG.Error("read packge error:", reflect.TypeOf(err), err)
 			}
 			return
 		}
@@ -146,7 +144,7 @@ func (h *tcpHandler) recv(conn *net.TCPConn) {
 				currBuffer = nil
 				break
 			}
-			TLOG.Errorf("parse package error %s %v", conn.RemoteAddr(), err)
+			TLOG.Errorf("parse packge error %s %v", conn.RemoteAddr(), err)
 			return
 		}
 	}

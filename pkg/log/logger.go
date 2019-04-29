@@ -23,6 +23,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -190,6 +191,7 @@ func (l *Logger) handler() {
 			buf.WriteTo(l)
 			buffer.PutIoBuffer(buf)
 		}
+		runtime.Gosched()
 	}
 }
 
@@ -323,6 +325,11 @@ func (l *Logger) Close() error {
 }
 
 func (l *Logger) Reopen() error {
+	defer func() {
+		if r := recover(); r != nil {
+			debug.PrintStack()
+		}
+	}()
 	l.reopenChan <- struct{}{}
 	return nil
 }

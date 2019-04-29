@@ -30,11 +30,29 @@ const (
 	Passive_Reconfiguring
 )
 
+func init() {
+	RegisterOnStateChanged(SetStateCode)
+}
+
 func GetMosnState() State {
 	return state
 }
 
 func SetMosnState(s State) {
 	state = s
+	for _, cb := range onStateChangedCallbacks {
+		cb(s)
+	}
+}
+
+type OnStateChanged func(s State)
+
+var onStateChangedCallbacks []OnStateChanged
+
+func RegisterOnStateChanged(f OnStateChanged) {
+	onStateChangedCallbacks = append(onStateChangedCallbacks, f)
+}
+
+func SetStateCode(s State) {
 	metrics.SetStateCode(int64(s))
 }

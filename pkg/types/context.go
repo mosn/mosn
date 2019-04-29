@@ -18,27 +18,29 @@
 package types
 
 // ContextKey type
-type ContextKey string
+type ContextKey int
 
-// Context key types
+// Context key types(built-in)
 const (
-	ContextKeyStreamID                    ContextKey = "StreamId"
-	ContextKeyConnectionID                ContextKey = "ConnectionId"
-	ContextKeyListenerPort                ContextKey = "ListenerPort"
-	ContextKeyListenerName                ContextKey = "ListenerName"
-	ContextKeyListenerType                ContextKey = "ListenerType"
-	ContextKeyListenerStatsNameSpace      ContextKey = "ListenerStatsNameSpace"
-	ContextKeyNetworkFilterChainFactories ContextKey = "NetworkFilterChainFactory"
-	ContextKeyStreamFilterChainFactories  ContextKey = "StreamFilterChainFactory"
-	ContextKeyBufferPoolCtx               ContextKey = "ConnectionBufferPoolCtx"
-	ContextKeyLogger                      ContextKey = "Logger"
-	ContextKeyAccessLogs                  ContextKey = "AccessLogs"
-	ContextOriRemoteAddr                  ContextKey = "OriRemoteAddr"
-	ContextKeyAcceptChan                  ContextKey = "ContextKeyAcceptChan"
-	ContextKeyAcceptBuffer                ContextKey = "ContextKeyAcceptBuffer"
-	ContextKeyConnectionFd                ContextKey = "ConnectionFd"
-	ContextSubProtocol                    ContextKey = "ContextSubProtocol"
-	ContextKeyTraceSpanKey                ContextKey = "TraceSpanKey"
+	ContextKeyStreamID ContextKey = iota
+	ContextKeyConnectionID
+	ContextKeyListenerPort
+	ContextKeyListenerName
+	ContextKeyListenerType
+	ContextKeyListenerStatsNameSpace
+	ContextKeyNetworkFilterChainFactories
+	ContextKeyStreamFilterChainFactories
+	ContextKeyBufferPoolCtx
+	ContextKeyAccessLogs
+	ContextOriRemoteAddr
+	ContextKeyAcceptChan
+	ContextKeyAcceptBuffer
+	ContextKeyConnectionFd
+	ContextSubProtocol
+	ContextKeyTraceSpanKey
+	ContextKeyActiveSpan
+	ContextKeyTraceId
+	ContextKeyEnd
 )
 
 // GlobalProxyName represents proxy name for metrics

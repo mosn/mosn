@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -246,14 +247,14 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 		if fileName == "" {
 			fileName = fmt.Sprintf("%d", time.Now().UnixNano())
 		}
-		data, err := json.Marshal(vh)
+		data, err := json.MarshalIndent(vh, "", " ")
 		if err != nil {
 			return nil, err
 		}
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)
 		fileName = path.Join(rc.RouterConfigPath, fileName)
-		if err := WriteFileSafety(fileName, data, 0644); err != nil {
+		if err := utils.WriteFileSafety(fileName, data, 0644); err != nil {
 			return nil, err
 		}
 	}

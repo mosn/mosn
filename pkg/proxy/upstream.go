@@ -119,7 +119,9 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 
 	r.downStream.downstreamRespTrailers = trailers
 
-	r.downStream.logger.Debugf("upstreamRequest OnReceive %+v", headers)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] OnReceive headers: %+v, data: %+v, trailers: %+v", headers, data, trailers)
+	}
 
 	r.downStream.sendNotify()
 }
@@ -158,10 +160,11 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
-	log.StartLogger.Tracef("upstream request encode headers")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append headers: %+v", r.downStream.downstreamReqHeaders)
+	}
 	r.sendComplete = endStream
 
-	log.StartLogger.Tracef("upstream request before conn pool new stream")
 	if r.downStream.oneway {
 		r.connPool.NewStream(r.downStream.context, nil, r)
 	} else {
@@ -181,7 +184,7 @@ func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap
 		if convHeader, err := protocol.ConvertHeader(r.downStream.context, dp, up, headers); err == nil {
 			return convHeader
 		} else {
-			r.downStream.logger.Warnf("convert header from %s to %s failed, %s", dp, up, err.Error())
+			log.Proxy.Warnf(r.downStream.context, "[proxy] [upstream] convert header from %s to %s failed, %s", dp, up, err.Error())
 		}
 	}
 	return headers
@@ -191,7 +194,10 @@ func (r *upstreamRequest) appendData(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
-	log.DefaultLogger.Debugf("upstream request encode data")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append data:% +v", r.downStream.downstreamReqDataBuf)
+	}
+
 	data := r.downStream.downstreamReqDataBuf
 	r.sendComplete = endStream
 	r.dataSent = true
@@ -210,7 +216,7 @@ func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
 		if convData, err := protocol.ConvertData(r.downStream.context, dp, up, data); err == nil {
 			return convData
 		} else {
-			r.downStream.logger.Warnf("convert data from %s to %s failed, %s", dp, up, err.Error())
+			log.Proxy.Warnf(r.downStream.context, "[proxy] [upstream] convert data from %s to %s failed, %s", dp, up, err.Error())
 		}
 	}
 	return data
@@ -220,7 +226,7 @@ func (r *upstreamRequest) appendTrailers() {
 	if r.downStream.processDone() {
 		return
 	}
-	log.DefaultLogger.Debugf("upstream request encode trailers")
+	log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append trailers:%+v", r.downStream.downstreamReqTrailers)
 	trailers := r.downStream.downstreamReqTrailers
 	r.sendComplete = true
 	r.trailerSent = true
@@ -239,7 +245,7 @@ func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderM
 		if convTrailer, err := protocol.ConvertTrailer(r.downStream.context, dp, up, trailers); err == nil {
 			return convTrailer
 		} else {
-			r.downStream.logger.Warnf("convert header from %s to %s failed, %s", dp, up, err.Error())
+			log.Proxy.Warnf(r.downStream.context, "[proxy] [upstream] convert header from %s to %s failed, %s", dp, up, err.Error())
 		}
 	}
 	return trailers
@@ -261,6 +267,11 @@ func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.H
 }
 
 func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
+	// debug message for upstream
+	if log.Proxy.GetLogLevel() >= log.INFO {
+		log.Proxy.Infof(r.downStream.context, "[proxy] [upstream] connPool ready, proxyId = %v, host = %s", r.downStream.ID, host.AddressString())
+	}
+
 	r.requestSender = sender
 	r.host = host
 	r.requestSender.GetStream().AddEventListener(r)
@@ -272,9 +283,5 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
-
-	// debug message for upstream
-	r.downStream.logger.Debugf("client conn id %d, proxy id %d, upstream id %d", r.proxy.readCallbacks.Connection().ID(), r.downStream.ID, sender.GetStream().ID())
-
 	// todo: check if we get a reset on send headers
 }

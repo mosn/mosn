@@ -18,6 +18,8 @@
 package config
 
 import (
+	"encoding/json"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -25,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 var (
@@ -77,7 +80,7 @@ func dumpRouterConfig() bool {
 			}
 		}
 
-		if data, err := json.Marshal(routerConfig); err == nil {
+		if data, err := json.MarshalIndent(routerConfig, "", " "); err == nil {
 			cfg := make(map[string]interface{})
 			if err := json.Unmarshal(data, &cfg); err != nil {
 				log.DefaultLogger.Errorf("invalid router config, update config failed")
@@ -114,10 +117,10 @@ func DumpConfig() {
 
 		//update mosn_config
 		store.SetMOSNConfig(config)
-		//todo: ignore zero values in config struct @boqin
+		// use golang original json lib, so the marshal ident can handle MarshalJSON interface implement correctly
 		content, err := json.MarshalIndent(config, "", "  ")
 		if err == nil {
-			err = v2.WriteFileSafety(configPath, content, 0644)
+			err = utils.WriteFileSafety(configPath, content, 0644)
 		}
 
 		if err != nil {
@@ -128,6 +131,12 @@ func DumpConfig() {
 
 func DumpConfigHandler() {
 	once.Do(func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			}
+		}()
+
 		for {
 			time.Sleep(3 * time.Second)
 

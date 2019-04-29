@@ -81,11 +81,9 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			Inspector:  true,
 			HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:                            convertAccessLogs(xdsListener),
-			LogPath:                               "stdout",
 		},
 		Addr: convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
-		LogLevel:                uint8(log.INFO),
 	}
 
 	// virtual listener need none filters

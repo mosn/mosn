@@ -60,16 +60,20 @@ func DeserializeBoltRequest(ctx context.Context, request *BoltRequest) {
 
 	//request.RequestHeader = make(map[string]string, 8)
 
-	//logger
-	logger := log.ByContext(ctx)
+	logger := log.Proxy
+	debugEnabled := logger.GetLogLevel() >= log.DEBUG
 
 	//deserialize header
-	serializeIns.DeSerialize(request.HeaderMap, &request.RequestHeader)
-	logger.Debugf("Deserialize request header map:%v", request.RequestHeader)
+	serializeIns.DeserializeMap(request.HeaderMap, request.RequestHeader)
+	if debugEnabled {
+		logger.Debugf(ctx, "[protocol][sofarpc] deserialize bolt request, header: %v", request.RequestHeader)
+	}
 
 	//deserialize class name
-	serializeIns.DeSerialize(request.ClassName, &request.RequestClass)
-	logger.Debugf("Request class name is:%s", request.RequestClass)
+	request.RequestClass = string(request.ClassName)
+	if debugEnabled {
+		logger.Debugf(ctx, "[protocol][sofarpc] deserialize bolt request, className: %s", request.RequestClass)
+	}
 }
 
 func DeserializeBoltResponse(ctx context.Context, response *BoltResponse) {
@@ -77,7 +81,8 @@ func DeserializeBoltResponse(ctx context.Context, response *BoltResponse) {
 	serializeIns := serialize.Instance
 
 	//logger
-	logger := log.ByContext(ctx)
+	logger := log.Proxy
+	debugEnabled := logger.GetLogLevel() >= log.DEBUG
 
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	response.ResponseHeader = protocolCtx.GetRspHeaders()
@@ -85,10 +90,14 @@ func DeserializeBoltResponse(ctx context.Context, response *BoltResponse) {
 	//response.ResponseHeader = make(map[string]string, 8)
 
 	//deserialize header
-	serializeIns.DeSerialize(response.HeaderMap, &response.ResponseHeader)
-	logger.Debugf("Deserialize response header map: %+v", response.ResponseHeader)
+	serializeIns.DeserializeMap(response.HeaderMap, response.ResponseHeader)
+	if debugEnabled {
+		logger.Debugf(ctx, "[protocol][sofarpc] deserialize bolt response, header: %+v", response.ResponseHeader)
+	}
 
 	//deserialize class name
-	serializeIns.DeSerialize(response.ClassName, &response.ResponseClass)
-	logger.Debugf("Response ClassName is: %s", response.ResponseClass)
+	response.ResponseClass = string(response.ClassName)
+	if debugEnabled {
+		logger.Debugf(ctx, "[protocol][sofarpc] deserialize bolt response, className: %s", response.ResponseClass)
+	}
 }

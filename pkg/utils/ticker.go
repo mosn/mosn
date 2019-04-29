@@ -18,6 +18,7 @@
 package utils
 
 import (
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 )
@@ -51,6 +52,9 @@ func (t *Ticker) Start(interval time.Duration) {
 
 	go func() {
 		defer func() {
+			if r := recover(); r != nil {
+				debug.PrintStack()
+			}
 			t.Close()
 			atomic.StoreInt32(&t.started, 0)
 			atomic.StoreInt32(&t.stopped, 0)

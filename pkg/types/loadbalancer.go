@@ -18,6 +18,7 @@
 package types
 
 import (
+	"context"
 	"net"
 )
 
@@ -50,6 +51,9 @@ type LoadBalancerContext interface {
 
 	// DownstreamHeaders returns the downstream headers map.
 	DownstreamHeaders() HeaderMap
+
+	// DownstreamContext returns the downstream context
+	DownstreamContext() context.Context
 }
 
 // SubSetLoadBalancer is a subset of LoadBalancer

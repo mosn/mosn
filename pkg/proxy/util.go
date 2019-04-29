@@ -21,14 +21,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var bitSize64 = 1 << 6
 
-func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
-	timeout := &Timeout{}
+func parseProxyTimeout(timeout *Timeout, route types.Route, headers types.HeaderMap) {
 	timeout.GlobalTimeout = route.RouteRule().GlobalTimeout()
 	timeout.TryTimeout = route.RouteRule().Policy().RetryPolicy().TryTimeout()
 
@@ -54,8 +52,4 @@ func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
 	if timeout.TryTimeout >= timeout.GlobalTimeout {
 		timeout.TryTimeout = 0
 	}
-
-	log.DefaultLogger.Debugf("trytimeout %v, globaltimeout %v", timeout.TryTimeout, timeout.GlobalTimeout)
-
-	return timeout
 }

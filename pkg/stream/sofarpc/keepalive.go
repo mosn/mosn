@@ -23,7 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
@@ -40,7 +39,6 @@ type sofaRPCKeepAlive struct {
 	Callbacks    []types.KeepAliveCallback
 	// runtime
 	timeoutCount uint32
-	try          chan bool
 	// stop channel will stop all keep alive action
 	stop chan struct{}
 	// requests records all running request
@@ -57,7 +55,6 @@ func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, th
 		Threshold:    thres,
 		Callbacks:    []types.KeepAliveCallback{},
 		timeoutCount: 0,
-		try:          make(chan bool, thres),
 		stop:         make(chan struct{}),
 		requests:     make(map[uint64]*keepAliveTimeout),
 		mutex:        sync.Mutex{},
@@ -72,18 +69,6 @@ func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, th
 func (kp *sofaRPCKeepAlive) OnEvent(event types.ConnectionEvent) {
 	if event.IsClose() || event.ConnectFailure() {
 		close(kp.stop)
-	}
-}
-
-func (kp *sofaRPCKeepAlive) Start() {
-	for {
-		select {
-		case <-kp.stop:
-			return
-		case <-kp.try:
-			kp.sendKeepAlive()
-			// TODO: other action
-		}
 	}
 }
 
@@ -103,9 +88,8 @@ func (kp *sofaRPCKeepAlive) SendKeepAlive() {
 	select {
 	case <-kp.stop:
 		return
-	case kp.try <- true:
 	default:
-		log.DefaultLogger.Warnf("keep alive too much")
+		kp.sendKeepAlive()
 	}
 }
 

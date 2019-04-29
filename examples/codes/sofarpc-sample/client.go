@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -29,7 +30,7 @@ func NewClient(addr string) *Client {
 	c := &Client{}
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
-	conn := network.NewClientConnection(nil, nil, remoteAddr, stopChan, log.DefaultLogger)
+	conn := network.NewClientConnection(nil, nil, remoteAddr, stopChan)
 	if err := conn.Connect(true); err != nil {
 		fmt.Println(err)
 		return nil
@@ -72,11 +73,12 @@ func buildBoltV1Request(requestID uint64) *sofarpc.BoltRequest {
 
 	headers := map[string]string{"service": "testSofa"} // used for sofa routing
 
-	if headerBytes, err := serialize.Instance.Serialize(headers); err != nil {
+	buf := buffer.NewIoBuffer(100)
+	if err := serialize.Instance.SerializeMap(headers, buf); err != nil {
 		panic("serialize headers error")
 	} else {
-		request.HeaderMap = headerBytes
-		request.HeaderLen = int16(len(headerBytes))
+		request.HeaderMap = buf.Bytes()
+		request.HeaderLen = int16(buf.Len())
 	}
 
 	return request

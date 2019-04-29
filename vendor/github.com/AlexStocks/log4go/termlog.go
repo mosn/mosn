@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"sync"
 	"time"
-)
-
-import (
-	"github.com/AlexStocks/goext/strings"
+	"unsafe"
 )
 
 var stdout io.Writer = os.Stdout
@@ -44,6 +42,23 @@ func (c *ConsoleLogWriter) SetFormat(format string) {
 	c.format = format
 }
 
+func String(b []byte) (s string) {
+	pbytes := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	pstring := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	pstring.Data = pbytes.Data
+	pstring.Len = pbytes.Len
+	return
+}
+
+func Slice(s string) (b []byte) {
+	pbytes := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	pstring := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	pbytes.Data = pstring.Data
+	pbytes.Len = pstring.Len
+	pbytes.Cap = pstring.Len
+	return
+}
+
 func (c *ConsoleLogWriter) run(out io.Writer) {
 	//for rec := range c.w {
 	//	fmt.Fprint(out, FormatLogRecord(c.format, rec))
@@ -53,8 +68,8 @@ func (c *ConsoleLogWriter) run(out io.Writer) {
 		if !c.json {
 			logString = FormatLogRecord(c.format, rec)
 		} else {
-			recBytes := append(rec.JSON(), gxstrings.Slice(newLine)...)
-			logString = gxstrings.String(recBytes)
+			recBytes := append(rec.JSON(), Slice(newLine)...)
+			logString = String(recBytes)
 		}
 		switch rec.Level {
 		case FINEST, FINE, DEBUG:

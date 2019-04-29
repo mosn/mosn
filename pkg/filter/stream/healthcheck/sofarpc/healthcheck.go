@@ -82,7 +82,7 @@ func (f *healthCheckFilter) handleIntercept() {
 	// todo: cal status based on cluster healthy host stats and f.clusterMinHealthyPercentages
 	hbAck := sofarpc.NewHeartbeatAck(f.protocol)
 	if hbAck == nil {
-		log.ByContext(f.context).Errorf("Unknown protocol code: [%x] while intercept healthcheck.", f.protocol)
+		log.DefaultLogger.Errorf("[healthcheck][sofarpc] unknown protocol code: [%x] while intercept healthcheck.", f.protocol)
 		//TODO: set hijack reply - codec error, actually this would happen at codec stage which is before this
 	}
 	f.handler.AppendHeaders(hbAck, true)
@@ -101,7 +101,7 @@ type HealthCheckFilterConfigFactory struct {
 
 func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := NewHealthCheckFilter(context, f.FilterConfig)
-	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
+	callbacks.AddStreamReceiverFilter(filter, types.DownFilter)
 }
 
 // CreateHealthCheckFilterFactory

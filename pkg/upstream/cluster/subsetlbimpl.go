@@ -19,12 +19,12 @@ package cluster
 
 import (
 	"math/rand"
+	"reflect"
 	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 type subSetLoadBalancer struct {
@@ -154,7 +154,7 @@ func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalan
 
 	matchCriteria := context.MetadataMatchCriteria()
 
-	if nil == matchCriteria {
+	if nil == matchCriteria || reflect.ValueOf(matchCriteria).IsNil() {
 		log.DefaultLogger.Infof("subset load balancer: context is nil")
 		return nil, false
 	}
@@ -615,7 +615,7 @@ func GenerateDftSubsetKeys(dftkeys types.SortedMap) types.SubsetMetadata {
 	for _, pair := range dftkeys {
 		sm = append(sm, types.Pair{
 			T1: pair.Key,
-			T2: utils.GenerateMD5Value(pair.Value),
+			T2: types.HashedValue(pair.Value),
 		})
 	}
 

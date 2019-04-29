@@ -63,8 +63,8 @@ func (sink *consoleSink) Flush(writer io.Writer, ms []types.Metrics) {
 				namespaceData[key] = strconv.FormatInt(metric.Value(), 10)
 			case metrics.Histogram:
 				h := metric.Snapshot()
-				namespaceData[key+".min"] = strconv.FormatInt(h.Min(), 10)
-				namespaceData[key+".max"] = strconv.FormatInt(h.Max(), 10)
+				namespaceData[key+"_min"] = strconv.FormatInt(h.Min(), 10)
+				namespaceData[key+"_max"] = strconv.FormatInt(h.Max(), 10)
 			default: //unsupport metrics, ignore
 				return
 			}

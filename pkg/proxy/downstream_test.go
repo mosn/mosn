@@ -24,11 +24,12 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
@@ -55,7 +56,7 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	tracer := trace.CreateTracer("SOFATracer")
 	trace.SetTracer(tracer)
 	span := trace.Tracer().Start(time.Now())
-	ctx := context.WithValue(context.Background(), trace.ActiveSpanKey, span)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
 	ds.finishTracing()
@@ -72,8 +73,6 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 }
 
 func TestDirectResponse(t *testing.T) {
-	initGlobalStats()
-
 	testCases := []struct {
 		client *mockResponseSender
 		route  *mockRoute
@@ -135,7 +134,6 @@ func TestDirectResponse(t *testing.T) {
 				stats:          globalStats,
 				listenerStats:  newListenerStats("test"),
 			},
-			logger:         log.DefaultLogger,
 			responseSender: tc.client,
 			requestInfo:    &network.RequestInfo{},
 		}
@@ -147,7 +145,6 @@ func TestDirectResponse(t *testing.T) {
 		tc.check(t, tc.client)
 	}
 }
-
 
 func TestOnewayHijack(t *testing.T) {
 	initGlobalStats()

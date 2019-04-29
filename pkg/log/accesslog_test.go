@@ -19,6 +19,7 @@ package log
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"runtime"
 	"testing"
@@ -41,7 +42,7 @@ func TestAccessLog(t *testing.T) {
 	accessLog, err := NewAccessLog(logName, nil, format)
 
 	if err != nil {
-		fmt.Errorf(err.Error())
+		t.Errorf(err.Error())
 	}
 	reqHeaders := map[string]string{
 		"service": "test",
@@ -88,6 +89,86 @@ func TestAccessLogStartTime(t *testing.T) {
 	}
 }
 
+func TestAccessLogDisable(t *testing.T) {
+	DefaultDisableAccessLog = true
+	format := "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
+		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
+		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
+	logName := "/tmp/mosn_accesslog/disbale_access.log"
+	os.Remove(logName)
+	accessLog, err := NewAccessLog(logName, nil, format)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reqHeaders := map[string]string{
+		"service": "test",
+	}
+
+	respHeaders := map[string]string{
+		"Server": "MOSN",
+	}
+	requestInfo := newRequestInfo()
+	requestInfo.SetRequestReceivedDuration(time.Now())
+	requestInfo.SetResponseReceivedDuration(time.Now().Add(time.Second * 2))
+	requestInfo.SetBytesSent(2048)
+	requestInfo.SetBytesReceived(2048)
+
+	requestInfo.SetResponseFlag(0)
+	requestInfo.SetUpstreamLocalAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 23456, ""})
+	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{net.ParseIP("2001:db8::68"), 12200, ""})
+	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 53242, ""})
+	requestInfo.OnUpstreamHostSelected(nil)
+	// try write disbale access log nothing happened
+	accessLog.Log(protocol.CommonHeader(reqHeaders), protocol.CommonHeader(respHeaders), requestInfo)
+	time.Sleep(time.Second)
+	if b, err := ioutil.ReadFile(logName); err != nil || len(b) > 0 {
+		t.Fatalf("verify log file failed, data len: %d, error: %v", len(b), err)
+	}
+	// enable access log
+	if !ToggleLogger(logName, false) {
+		t.Fatal("enable access log failed")
+	}
+	// retry, write success
+	accessLog.Log(protocol.CommonHeader(reqHeaders), protocol.CommonHeader(respHeaders), requestInfo)
+	time.Sleep(time.Second)
+	if b, err := ioutil.ReadFile(logName); err != nil || len(b) == 0 {
+		t.Fatalf("verify log file failed, data len: %d, error: %v", len(b), err)
+	}
+}
+
+func TestAccessLogManage(t *testing.T) {
+	defer CloseAll()
+	DefaultDisableAccessLog = false
+	format := "%StartTime% %ResponseFlag%"
+	var logs []types.AccessLog
+	for i := 0; i < 100; i++ {
+		logName := fmt.Sprintf("/tmp/accesslog.%d.log", i)
+		lg, err := NewAccessLog(logName, nil, format)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logs = append(logs, lg)
+	}
+	DisableAllAccessLog()
+	// new access log is auto disabled
+	for i := 200; i < 300; i++ {
+		logName := fmt.Sprintf("/tmp/accesslog.%d.log", i)
+		lg, err := NewAccessLog(logName, nil, format)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logs = append(logs, lg)
+	}
+	// verify
+	// all accesslog is disabled
+	for _, lg := range logs {
+		alg := lg.(*accesslog)
+		if !alg.logger.disable {
+			t.Fatal("some access log is enabled")
+		}
+	}
+}
+
 func BenchmarkAccessLog(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	InitDefaultLogger("", INFO)
@@ -129,7 +210,7 @@ func BenchmarkAccessLogParallel(b *testing.B) {
 	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", nil, "")
 
 	if err != nil {
-		fmt.Errorf(err.Error())
+		b.Errorf(err.Error())
 	}
 	reqHeaders := map[string]string{
 		"service": "test",

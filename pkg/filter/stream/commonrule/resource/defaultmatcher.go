@@ -49,11 +49,11 @@ func (m *DefaultMatcher) Match(headers types.HeaderMap, resourceConfig *model.Re
 }
 
 func (*DefaultMatcher) matchHeaders(headers types.HeaderMap, resourceConfig *model.ResourceConfig) bool {
-	matched := resourceConfig.ParamsRelation != RelationOr
+	matched := resourceConfig.HeadersRelation != RelationOr
 	for _, comparison := range resourceConfig.Headers {
 		value, _ := headers.Get(comparison.Key)
 		flag := compare(comparison, value)
-		if resourceConfig.ParamsRelation != RelationOr {
+		if resourceConfig.HeadersRelation != RelationOr {
 			matched = matched && flag
 		} else {
 			matched = matched || flag

@@ -18,6 +18,7 @@
 package config
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"path/filepath"

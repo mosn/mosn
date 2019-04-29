@@ -24,22 +24,23 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/prometheus/client_golang/prometheus"
-	gometrics "github.com/rcrowley/go-metrics"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"io"
-	dto "github.com/prometheus/client_model/go"
-	"github.com/gogo/protobuf/proto"
-	"sync"
+	"bytes"
 	"compress/gzip"
+	"io"
 	"math"
 	"strconv"
-	"bytes"
+	"sync"
+
+	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
+	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/gogo/protobuf/proto"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	dto "github.com/prometheus/client_model/go"
+	gometrics "github.com/rcrowley/go-metrics"
 )
 
 var (
@@ -94,7 +95,7 @@ func (exporter *promHttpExporter) ServeHTTP(rsp http.ResponseWriter, req *http.R
 }
 
 // ~ MetricsSink
-func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
+func (psink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 	w := writer
 
 	rsp, ok := writer.(http.ResponseWriter)
@@ -118,19 +119,25 @@ func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 	for _, m := range ms {
 		typ := m.Type()
 		labelKeys, labelVals := m.SortedLabels()
+		if sink.IsExclusionLabels(labelKeys) {
+			continue
+		}
 
 		// TODO cached in metrics struct, avoid calc for each flush
 		prefix := strings.Join(labelKeys, "_") + "_" + typ + "_"
 		suffix := makeLabelStr(labelKeys, labelVals)
 
 		m.Each(func(name string, i interface{}) {
+			if sink.IsExclusionKeys(name) {
+				return
+			}
 			switch metric := i.(type) {
 			case gometrics.Counter:
-				sink.flushCounter(tracker, buf, prefix+name, suffix, float64(metric.Count()))
+				psink.flushCounter(tracker, buf, flattenKey(prefix+name), suffix, float64(metric.Count()))
 			case gometrics.Gauge:
-				sink.flushGauge(tracker, buf, prefix+name, suffix, float64(metric.Value()))
+				psink.flushGauge(tracker, buf, flattenKey(prefix+name), suffix, float64(metric.Value()))
 			case gometrics.Histogram:
-				sink.flushHistogram(tracker, buf, prefix+name, suffix, metric.Snapshot())
+				psink.flushHistogram(tracker, buf, flattenKey(prefix+name), suffix, metric.Snapshot())
 			}
 			buf.WriteTo(w)
 			buf.Reset()
@@ -138,14 +145,14 @@ func (sink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 	}
 }
 
-func (sink *promSink) flushHistogram(tracker map[string]bool, buf types.IoBuffer, name string, labels string, snapshot gometrics.Histogram) {
+func (psink *promSink) flushHistogram(tracker map[string]bool, buf types.IoBuffer, name string, labels string, snapshot gometrics.Histogram) {
 	// min
-	sink.flushGauge(tracker, buf, name+"_min", labels, float64(snapshot.Min()))
+	psink.flushGauge(tracker, buf, name+"_min", labels, float64(snapshot.Min()))
 	// max
-	sink.flushGauge(tracker, buf, name+"_max", labels, float64(snapshot.Max()))
+	psink.flushGauge(tracker, buf, name+"_max", labels, float64(snapshot.Max()))
 }
 
-func (sink *promSink) flushGauge(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {
+func (psink *promSink) flushGauge(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {
 	// type
 	if !tracker[name] {
 		buf.WriteString("# TYPE ")
@@ -162,7 +169,7 @@ func (sink *promSink) flushGauge(tracker map[string]bool, buf types.IoBuffer, na
 	buf.WriteString("\n")
 }
 
-func (sink *promSink) flushCounter(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {
+func (psink *promSink) flushCounter(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {
 	// type
 	if !tracker[name] {
 		buf.WriteString("# TYPE ")
@@ -204,7 +211,7 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 	})
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", config.Port),
+		Addr:    fmt.Sprintf("0.0.0.0:%d", config.Port),
 		Handler: srvMux,
 	}
 
@@ -297,4 +304,13 @@ func writeFloat(w types.IoBuffer, f float64) (int, error) {
 		numBufPool.Put(bp)
 		return written, err
 	}
+}
+
+// name regex [a-zA-Z_:][a-zA-Z0-9_:]*
+func flattenKey(key string) string {
+	key = strings.Replace(key, " ", "_", -1)
+	key = strings.Replace(key, ".", "_", -1)
+	key = strings.Replace(key, "-", "_", -1)
+	key = strings.Replace(key, "=", "_", -1)
+	return key
 }

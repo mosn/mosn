@@ -31,10 +31,15 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/rcu"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"time"
 )
 
-var instanceMutex = sync.Mutex{}
-var clusterMangerInstance *clusterManager
+var (
+	instanceMutex         = sync.Mutex{}
+	clusterMangerInstance *clusterManager
+)
+
+const cycleTimes = 5
 
 // ClusterManager
 type clusterManager struct {
@@ -43,6 +48,7 @@ type clusterManager struct {
 	protocolConnPool       sync.Map
 	autoDiscovery          bool
 	registryUseHealthCheck bool
+	mux                    sync.Mutex
 }
 
 type clusterSnapshot struct {
@@ -160,22 +166,20 @@ func (pc *primaryCluster) UpdateHosts(hosts []types.Host) error {
 	defer pc.updateLock.Unlock()
 	if c, ok := pc.cluster.(*simpleInMemCluster); ok {
 		c.UpdateHosts(hosts)
+		hosts = c.hosts // set the final host
 	}
 	config := deepCopyCluster(pc.configUsed)
-	var hostConfig []v2.Host
-	for _, h := range hosts {
-		hostConfig = append(hostConfig, h.Config())
-	}
-	config.Hosts = hostConfig
-	pc.configUsed = config
-	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
-		return err
-	}
 	hostsConfig := make([]v2.Host, 0, len(hosts))
 	for _, h := range hosts {
 		hostsConfig = append(hostsConfig, h.Config())
 	}
+	config.Hosts = hostsConfig
+	pc.configUsed = config
+	if err := pc.configLock.Update(pc.configUsed, 0); err == rcu.Block {
+		return err
+	}
 	admin.SetHosts(pc.cluster.Info().Name(), hostsConfig)
+	log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", pc.cluster.Info().Name(), hosts)
 	return nil
 }
 
@@ -206,6 +210,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	}
 	if ok {
 		admin.SetClusterConfig(clusterName, cluster)
+		log.DefaultLogger.Infof("[cluster] [clusterManager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
 	}
 	return ok
 }
@@ -415,29 +420,82 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 		return nil
 	}
 
-	host := clusterSnapshot.loadbalancer.ChooseHost(balancerContext)
+	pool, err := cm.getActiveConnectionPool(balancerContext, clusterSnapshot, protocol)
+	if err != nil {
+		log.DefaultLogger.Errorf("ConnPoolForCluster Failed; %v", err)
+	}
 
-	if host != nil {
+	return pool
+}
+
+func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot *clusterSnapshot, protocol types.Protocol) (types.ConnectionPool, error) {
+	var pool types.ConnectionPool
+	var pools [cycleTimes]types.ConnectionPool
+
+	for i := 0; i < cycleTimes; i++ {
+		host := clusterSnapshot.loadbalancer.ChooseHost(balancerContext)
+		if host == nil {
+			return nil, fmt.Errorf("[cluster][manager] clusterSnapshot.loadbalancer.ChooseHost is nil")
+		}
+
 		addr := host.AddressString()
-		log.DefaultLogger.Debugf(" clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, snapshot.ClusterInfo().Name())
-
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[cluster][manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.clusterInfo.Name())
+		}
 		value, _ := cm.protocolConnPool.Load(protocol)
 
 		connectionPool := value.(*sync.Map)
 		if connPool, ok := connectionPool.Load(addr); ok {
-			return connPool.(types.ConnectionPool)
-		}
-		if factory, ok := network.ConnNewPoolFactories[protocol]; ok {
-			newPool := factory(host) //call NewBasicRoute
+			pool = connPool.(types.ConnectionPool)
+			if pool.CheckAndInit(balancerContext.DownstreamContext()) {
+				return pool, nil
+			}
+			pools[i] = pool
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[cluster][manager] cluster host %s is not active", addr)
+			}
 
-			connectionPool.Store(addr, newPool)
+		} else {
+			err := func() error {
+				cm.mux.Lock()
+				defer cm.mux.Unlock()
 
-			return newPool
+				if _, ok := connectionPool.Load(addr); !ok {
+					if factory, ok := network.ConnNewPoolFactories[protocol]; ok {
+						newPool := factory(host) //call NewBasicRoute
+						connectionPool.Store(addr, newPool)
+						newPool.CheckAndInit(balancerContext.DownstreamContext())
+						pools[i] = newPool
+					} else {
+						return fmt.Errorf("NewPoolFactory is nil, protocol is %v", protocol)
+					}
+				}
+
+				return nil
+			}()
+
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	log.DefaultLogger.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil, cluster name = %s", snapshot.ClusterInfo().Name())
-	return nil
+	// perhaps the first request, wait for tcp handshaking. total wait time: 1ms + 10ms + 100ms + 1000ms
+	waitTime := time.Millisecond
+	for t := 0; t < 4; t++ {
+		time.Sleep(waitTime)
+		for i := 0; i < cycleTimes; i++ {
+			if pools[i] == nil {
+				continue
+			}
+			if pools[i].CheckAndInit(balancerContext.DownstreamContext()) {
+				return pools[i], nil
+			}
+		}
+		waitTime *= 10
+	}
+
+	return nil, errors.New("no health hosts")
 }
 
 func (cm *clusterManager) Shutdown() error {

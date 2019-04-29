@@ -21,12 +21,22 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"time"
+	"runtime/debug"
+)
+
+const (
+	Init = iota
+	Connecting
+	Connected
 )
 
 func init() {
@@ -40,7 +50,7 @@ var defaultSubProtocol byte = 0x00
 // activeClient used as connected client
 // host is the upstream
 type connPool struct {
-	activeClients map[byte]*activeClient //sub protocol -> activeClient
+	activeClients sync.Map //sub protocol -> activeClient
 	host          types.Host
 
 	mux sync.Mutex
@@ -48,10 +58,60 @@ type connPool struct {
 
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
-	return &connPool{
-		activeClients: make(map[byte]*activeClient),
-		host:          host,
+	p := &connPool{
+		host: host,
 	}
+	return p
+}
+
+func (p *connPool) init(client *activeClient, sub byte) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("[stream] [sofarpc] [connpool] init panic %v\n%s", r, string(debug.Stack()))
+			}
+		}()
+
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.host.AddressString())
+		}
+
+		p.mux.Lock()
+		defer p.mux.Unlock()
+		client := newActiveClient(context.Background(), sub, p)
+		if client != nil {
+			client.state = Connected
+			p.activeClients.Store(sub, client)
+		} else {
+			p.activeClients.Delete(sub)
+		}
+	}()
+}
+
+func (p *connPool) CheckAndInit(ctx context.Context) bool {
+	var client *activeClient
+
+	subProtocol := getSubProtocol(ctx)
+
+	v, ok := p.activeClients.Load(subProtocol)
+	if !ok {
+		fakeclient := &activeClient{}
+		fakeclient.state = Init
+		v, _ := p.activeClients.LoadOrStore(subProtocol, fakeclient)
+		client = v.(*activeClient)
+	} else {
+		client = v.(*activeClient)
+	}
+
+	if atomic.LoadUint32(&client.state) == Connected {
+		return true
+	}
+
+	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) {
+		p.init(client, subProtocol)
+	}
+
+	return false
 }
 
 func (p *connPool) Protocol() types.Protocol {
@@ -62,16 +122,15 @@ func (p *connPool) NewStream(ctx context.Context,
 	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
 	subProtocol := getSubProtocol(ctx)
 
-	activeClient := func() *activeClient {
-		p.mux.Lock()
-		defer p.mux.Unlock()
-		if p.activeClients[subProtocol] == nil {
-			p.activeClients[subProtocol] = newActiveClient(ctx, subProtocol, p)
-		}
-		return p.activeClients[subProtocol]
-	}()
+	client, _ := p.activeClients.Load(subProtocol)
 
-	if activeClient == nil {
+	if client == nil {
+		listener.OnFailure(types.ConnectionFailure, p.host)
+		return
+	}
+
+	activeClient := client.(*activeClient)
+	if atomic.LoadUint32(&activeClient.state) != Connected {
 		listener.OnFailure(types.ConnectionFailure, p.host)
 		return
 	}
@@ -105,12 +164,17 @@ func (p *connPool) NewStream(ctx context.Context,
 }
 
 func (p *connPool) Close() {
-	p.mux.Lock()
-	defer p.mux.Unlock()
-
-	for _, ac := range p.activeClients {
+	f := func(k, v interface{}) bool {
+		ac, _ := v.(*activeClient)
+		// fakeclient
+		if ac.client == nil {
+			return true
+		}
 		ac.client.Close()
+		return true
 	}
+
+	p.activeClients.Range(f)
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
@@ -145,17 +209,15 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 			// do nothing
 		}
 		p.mux.Lock()
-		p.activeClients[client.subProtocol] = nil
+		p.activeClients.Delete(client.subProtocol)
 		p.mux.Unlock()
 	} else if event == types.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		client.client.Close()
-		p.activeClients[client.subProtocol] = nil
 	} else if event == types.ConnectFailed {
 		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
-		p.activeClients[client.subProtocol] = nil
 	}
 }
 
@@ -205,6 +267,7 @@ type activeClient struct {
 	host               types.CreateConnectionData
 	closeWithActiveReq bool
 	totalStream        uint64
+	state              uint32
 }
 
 func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *activeClient {
@@ -214,7 +277,7 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 	}
 
 	data := pool.host.CreateConnection(ctx)
-	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
@@ -225,14 +288,13 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 	// Add Keep Alive
 	// protocol is from onNewDetectStream
 	// TODO: support protocol convert
-	protocolValue := ctx.Value(types.ContextSubProtocol)
-	if proto, ok := protocolValue.(byte); ok {
-		// TODO: support config
+
+	// TODO: support config
+	if subProtocol != defaultSubProtocol {
 		ac.keepAlive = &keepAliveListener{
-			keepAlive: NewSofaRPCKeepAlive(codecClient, proto, time.Second, 6),
+			keepAlive: NewSofaRPCKeepAlive(codecClient, subProtocol, time.Second, 6),
 		}
 		ac.client.AddConnectionEventListener(ac.keepAlive)
-		go ac.keepAlive.keepAlive.Start()
 	}
 
 	if err := ac.client.Connect(true); err != nil {
@@ -274,7 +336,7 @@ func (ac *activeClient) OnGoAway() {}
 
 func getSubProtocol(ctx context.Context) byte {
 	if ctx != nil {
-		if val := ctx.Value(types.ContextSubProtocol); val != nil {
+		if val := mosnctx.Get(ctx, types.ContextSubProtocol); val != nil {
 			if code, ok := val.(byte); ok {
 				return code
 			}

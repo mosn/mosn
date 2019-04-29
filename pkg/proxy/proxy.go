@@ -25,6 +25,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -66,10 +67,9 @@ func initWorkerPool(data interface{}, endParsing bool) error {
 	return nil
 }
 
-func initGlobalStats(){
+func initGlobalStats() {
 	globalStats = newProxyStats(types.GlobalProxyName)
 }
-
 
 // types.ReadFilter
 // types.ServerStreamConnectionEventListener
@@ -98,27 +98,27 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		activeSteams:   list.New(),
 		stats:          globalStats,
 		context:        ctx,
-		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
 
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
 	if err == nil {
-		log.DefaultLogger.Tracef("proxy extend config = %v", proxy.config.ExtendConfig)
+		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
 		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
-		proxy.context = context.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
-		log.DefaultLogger.Tracef("proxy extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+		proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
+		log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
 	} else {
-		log.DefaultLogger.Errorf("get proxy extend config fail = %v", err)
+		log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
 	}
 
-	listenerName := ctx.Value(types.ContextKeyListenerName).(string)
+	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
 	} else {
-		log.DefaultLogger.Errorf("RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
+		log.DefaultLogger.Errorf("[proxy] RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
 	}
 
 	proxy.downstreamListener = &downstreamCallbacks{
@@ -144,11 +144,11 @@ func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 			} else {
 				size = buf.Len()
 			}
-			log.DefaultLogger.Errorf("Protocol Auto error magic :%v", buf.Bytes()[:size])
+			log.DefaultLogger.Errorf("[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
 			p.readCallbacks.Connection().Close(types.NoFlush, types.OnReadErrClose)
 			return types.Stop
 		}
-		log.DefaultLogger.Debugf("Protoctol Auto: %v", protocol)
+		log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
 		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
 	}
 	p.serverStreamConn.Dispatch(buf)
@@ -209,12 +209,15 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, spanBuilder types.SpanBuilder) types.StreamReceiveListener {
-	stream := newActiveStream(ctx, p, responseSender, spanBuilder)
+func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
+	stream := newActiveStream(ctx, p, responseSender, span)
 
-	if ff := p.context.Value(types.ContextKeyStreamFilterChainFactories); ff != nil {
+	if ff := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
-		log.DefaultLogger.Debugf("there is %d stream filters in config", len(ffs))
+
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
+		}
 
 		for _, f := range ffs {
 			f.CreateFilterChain(p.context, stream)

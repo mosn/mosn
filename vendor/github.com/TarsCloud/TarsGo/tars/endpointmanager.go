@@ -80,7 +80,6 @@ func (e *EndpointManager) GetNextValidProxy() *AdapterProxy {
 	e.mlock.Lock()
 	ep := e.GetNextEndpoint()
 	if ep == nil {
-		e.mlock.Unlock()
 		return nil
 	}
 	if adp, ok := e.adapters[*ep]; ok {

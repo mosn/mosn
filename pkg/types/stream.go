@@ -212,7 +212,7 @@ type ServerStreamConnectionEventListener interface {
 	StreamConnectionEventListener
 
 	// NewStreamDetect returns stream event receiver
-	NewStreamDetect(context context.Context, sender StreamSender, spanBuilder SpanBuilder) StreamReceiveListener
+	NewStreamDetect(context context.Context, sender StreamSender, span Span) StreamReceiveListener
 }
 
 type StreamFilterBase interface {
@@ -353,6 +353,9 @@ type ConnectionPool interface {
 	Protocol() Protocol
 
 	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
+
+	// check host health and init host
+	CheckAndInit(ctx context.Context) bool
 
 	Close()
 }

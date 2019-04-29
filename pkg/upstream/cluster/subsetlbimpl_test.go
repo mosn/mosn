@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -837,4 +838,8 @@ func (ctx *mockLbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
 
 func (ctx *mockLbContext) DownstreamHeaders() types.HeaderMap {
 	return ctx.header
+}
+
+func (ctx *mockLbContext) DownstreamContext() context.Context {
+	return nil
 }

@@ -24,7 +24,6 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 var ConfigUtilityInst = &configUtility{}
@@ -171,7 +170,7 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 	for k, v := range metadataMatches {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  k,
-			Value: utils.GenerateMD5Value(v),
+			Value: types.HashedValue(v),
 		}
 
 		if index, ok := existingMap[k]; ok {
