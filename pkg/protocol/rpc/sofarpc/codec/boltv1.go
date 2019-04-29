@@ -410,6 +410,9 @@ func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 
 	span.SetTag(trace.TRACE_ID, traceId)
 	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
+	if lType == nil {
+		return span
+	}
 
 	spanId := request.RequestHeader[models.RPC_ID_KEY]
 	if spanId == "" {
