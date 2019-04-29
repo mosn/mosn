@@ -19,16 +19,19 @@ package log
 
 import (
 	"context"
+
 	"github.com/alipay/sofa-mosn/pkg/types"
 
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"strconv"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 // proxyLogger is a default implementation of ProxyLogger
 // we use ProxyLogger to record proxy events.
 type proxyLogger struct {
-	ErrorLogger
+	Logger  ErrorLogger
+	disable bool
 }
 
 func CreateDefaultProxyLogger(output string, level Level) (ProxyLogger, error) {
@@ -37,7 +40,7 @@ func CreateDefaultProxyLogger(output string, level Level) (ProxyLogger, error) {
 		return nil, err
 	}
 	return &proxyLogger{
-		ErrorLogger: lg,
+		Logger: lg,
 	}, nil
 }
 
@@ -48,31 +51,49 @@ func (l *proxyLogger) formatter(ctx context.Context, format string) string {
 }
 
 func (l *proxyLogger) Infof(ctx context.Context, format string, args ...interface{}) {
-	l.ErrorLogger.Infof(l.formatter(ctx, format), args...)
+	if l.disable {
+		return
+	}
+	l.Logger.Infof(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) Debugf(ctx context.Context, format string, args ...interface{}) {
-	l.ErrorLogger.Debugf(l.formatter(ctx, format), args...)
+	if l.disable {
+		return
+	}
+	l.Logger.Debugf(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) Warnf(ctx context.Context, format string, args ...interface{}) {
-	l.ErrorLogger.Warnf(l.formatter(ctx, format), args...)
+	if l.disable {
+		return
+	}
+	l.Logger.Warnf(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) Errorf(ctx context.Context, format string, args ...interface{}) {
-	l.ErrorLogger.Printf(l.formatter(ctx, format), args...)
+	if l.disable {
+		return
+	}
+	l.Logger.Printf(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) Fatalf(ctx context.Context, format string, args ...interface{}) {
-	l.ErrorLogger.Fatalf(l.formatter(ctx, format), args...)
+	// fatalf cannot be disabled
+	l.Logger.Fatalf(l.formatter(ctx, format), args...)
 }
 
 func (l *proxyLogger) SetLogLevel(level Level) {
-	l.ErrorLogger.SetLogLevel(level)
+	l.Logger.SetLogLevel(level)
 }
 
 func (l *proxyLogger) GetLogLevel() Level {
-	return l.ErrorLogger.GetLogLevel()
+	return l.Logger.GetLogLevel()
+}
+
+func (l *proxyLogger) Toggle(disable bool) {
+	l.disable = disable
+	l.Logger.Toggle(disable)
 }
 
 func traceInfo(ctx context.Context) string {
