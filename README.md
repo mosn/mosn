@@ -12,9 +12,8 @@ follow-up development and build an open source excellent project together.
 
 ## Develop States
 
-We have already developed more performance and stability based on the 0.4.0 version, and it is expected to issue version 0.5.0 at the end of May 2019. Version 0.5.0 will be a usable version that has been verified inside the ant.
-From March 2019, before the 0.5.0 release, we will release a 0.4.X version at the end of each month to synchronize the latest changes.
-
+After our efforts, MOSN’s 0.4.0 version has achieved a lot of improvement on performance and stability, we expect to release 0.5.0 version at the end of May 2019, which will be an stable version used in AntFin’s production environment.
+Before that, we will release the latest version named 0.4.x at the end of every month to synchronize the changes from March 2019.
 
 ## [MOSN Introduction](docs/Introduction.md)
 
