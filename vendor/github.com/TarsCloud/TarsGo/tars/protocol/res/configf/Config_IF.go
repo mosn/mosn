@@ -6,7 +6,6 @@ package configf
 import (
 	"context"
 	"fmt"
-
 	m "github.com/TarsCloud/TarsGo/tars/model"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
@@ -56,7 +55,7 @@ func (_obj *Config) ListConfig(App string, Server string, Vf *[]string, _opt ...
 		return ret, err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(3, true)
+	err, have, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -86,7 +85,28 @@ func (_obj *Config) ListConfig(App string, Server string, Vf *[]string, _opt ...
 		}
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -129,7 +149,7 @@ func (_obj *Config) ListConfigWithContext(ctx context.Context, App string, Serve
 		return ret, err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(3, true)
+	err, have, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -159,7 +179,28 @@ func (_obj *Config) ListConfigWithContext(ctx context.Context, App string, Serve
 		}
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -213,7 +254,28 @@ func (_obj *Config) LoadConfig(App string, Server string, Filename string, Confi
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -266,7 +328,28 @@ func (_obj *Config) LoadConfigWithContext(ctx context.Context, App string, Serve
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -320,7 +403,28 @@ func (_obj *Config) LoadConfigByHost(AppServerName string, Filename string, Host
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -373,7 +477,28 @@ func (_obj *Config) LoadConfigByHostWithContext(ctx context.Context, AppServerNa
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -427,7 +552,28 @@ func (_obj *Config) CheckConfig(AppServerName string, Filename string, Host stri
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -480,7 +626,28 @@ func (_obj *Config) CheckConfigWithContext(ctx context.Context, AppServerName st
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -519,7 +686,7 @@ func (_obj *Config) ListConfigByInfo(ConfigInfo *ConfigInfo, Vf *[]string, _opt 
 		return ret, err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(2, true)
+	err, have, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -549,7 +716,28 @@ func (_obj *Config) ListConfigByInfo(ConfigInfo *ConfigInfo, Vf *[]string, _opt 
 		}
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -587,7 +775,7 @@ func (_obj *Config) ListConfigByInfoWithContext(ctx context.Context, ConfigInfo 
 		return ret, err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(2, true)
+	err, have, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -617,7 +805,28 @@ func (_obj *Config) ListConfigByInfoWithContext(ctx context.Context, ConfigInfo 
 		}
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -661,7 +870,28 @@ func (_obj *Config) LoadConfigByInfo(ConfigInfo *ConfigInfo, Config *string, _op
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -704,7 +934,28 @@ func (_obj *Config) LoadConfigByInfoWithContext(ctx context.Context, ConfigInfo 
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -748,7 +999,28 @@ func (_obj *Config) CheckConfigByInfo(ConfigInfo *ConfigInfo, Result *string, _o
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -791,7 +1063,28 @@ func (_obj *Config) CheckConfigByInfoWithContext(ctx context.Context, ConfigInfo
 		return ret, err
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -830,7 +1123,7 @@ func (_obj *Config) ListAllConfigByInfo(ConfigInfo *GetConfigListInfo, Vf *[]str
 		return ret, err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(2, true)
+	err, have, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -860,7 +1153,28 @@ func (_obj *Config) ListAllConfigByInfo(ConfigInfo *GetConfigListInfo, Vf *[]str
 		}
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -898,7 +1212,7 @@ func (_obj *Config) ListAllConfigByInfoWithContext(ctx context.Context, ConfigIn
 		return ret, err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(2, true)
+	err, have, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -928,7 +1242,28 @@ func (_obj *Config) ListAllConfigByInfoWithContext(ctx context.Context, ConfigIn
 		}
 	}
 
-	setMap(len(_opt), _resp, _context, _status)
+	if len(_opt) == 1 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+	} else if len(_opt) == 2 {
+		for k, _ := range _context {
+			delete(_context, k)
+		}
+		for k, v := range _resp.Context {
+			_context[k] = v
+		}
+		for k, _ := range _status {
+			delete(_status, k)
+		}
+		for k, v := range _resp.Status {
+			_status[k] = v
+		}
+
+	}
 	_ = length
 	_ = have
 	_ = ty
@@ -943,29 +1278,6 @@ func (_obj *Config) SetServant(s m.Servant) {
 //TarsSetTimeout sets the timeout for the servant which is in ms.
 func (_obj *Config) TarsSetTimeout(t int) {
 	_obj.s.TarsSetTimeout(t)
-}
-func setMap(l int, res *requestf.ResponsePacket, ctx map[string]string, sts map[string]string) {
-	if l == 1 {
-		for k := range ctx {
-			delete(ctx, k)
-		}
-		for k, v := range res.Context {
-			ctx[k] = v
-		}
-	} else if l == 2 {
-		for k := range ctx {
-			delete(ctx, k)
-		}
-		for k, v := range res.Context {
-			ctx[k] = v
-		}
-		for k := range sts {
-			delete(sts, k)
-		}
-		for k, v := range res.Status {
-			sts[k] = v
-		}
-	}
 }
 
 type _impConfig interface {
@@ -989,475 +1301,361 @@ type _impConfigWithContext interface {
 	ListAllConfigByInfo(ctx context.Context, ConfigInfo *GetConfigListInfo, Vf *[]string) (ret int32, err error)
 }
 
-func ListConfig(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
-	var length int32
-	var have bool
-	var ty byte
-	var App string
-	err = _is.Read_string(&App, 1, true)
-	if err != nil {
-		return err
-	}
-	var Server string
-	err = _is.Read_string(&Server, 2, true)
-	if err != nil {
-		return err
-	}
-	var Vf []string
-	if withContext == false {
-		_imp := _val.(_impConfig)
-		ret, err := _imp.ListConfig(App, Server, &Vf)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	} else {
-		_imp := _val.(_impConfigWithContext)
-		ret, err := _imp.ListConfig(ctx, App, Server, &Vf)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = _os.WriteHead(codec.LIST, 3)
-	if err != nil {
-		return err
-	}
-	err = _os.Write_int32(int32(len(Vf)), 0)
-	if err != nil {
-		return err
-	}
-	for _, v := range Vf {
-
-		err = _os.Write_string(v, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	_ = length
-	_ = have
-	_ = ty
-	return nil
-}
-func loadConfig(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
-	var length int32
-	var have bool
-	var ty byte
-	var App string
-	err = _is.Read_string(&App, 1, true)
-	if err != nil {
-		return err
-	}
-	var Server string
-	err = _is.Read_string(&Server, 2, true)
-	if err != nil {
-		return err
-	}
-	var Filename string
-	err = _is.Read_string(&Filename, 3, true)
-	if err != nil {
-		return err
-	}
-	var Config string
-	if withContext == false {
-		_imp := _val.(_impConfig)
-		ret, err := _imp.LoadConfig(App, Server, Filename, &Config)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	} else {
-		_imp := _val.(_impConfigWithContext)
-		ret, err := _imp.LoadConfig(ctx, App, Server, Filename, &Config)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = _os.Write_string(Config, 4)
-	if err != nil {
-		return err
-	}
-
-	_ = length
-	_ = have
-	_ = ty
-	return nil
-}
-func loadConfigByHost(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
-	var length int32
-	var have bool
-	var ty byte
-	var AppServerName string
-	err = _is.Read_string(&AppServerName, 1, true)
-	if err != nil {
-		return err
-	}
-	var Filename string
-	err = _is.Read_string(&Filename, 2, true)
-	if err != nil {
-		return err
-	}
-	var Host string
-	err = _is.Read_string(&Host, 3, true)
-	if err != nil {
-		return err
-	}
-	var Config string
-	if withContext == false {
-		_imp := _val.(_impConfig)
-		ret, err := _imp.LoadConfigByHost(AppServerName, Filename, Host, &Config)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	} else {
-		_imp := _val.(_impConfigWithContext)
-		ret, err := _imp.LoadConfigByHost(ctx, AppServerName, Filename, Host, &Config)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = _os.Write_string(Config, 4)
-	if err != nil {
-		return err
-	}
-
-	_ = length
-	_ = have
-	_ = ty
-	return nil
-}
-func checkConfig(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
-	var length int32
-	var have bool
-	var ty byte
-	var AppServerName string
-	err = _is.Read_string(&AppServerName, 1, true)
-	if err != nil {
-		return err
-	}
-	var Filename string
-	err = _is.Read_string(&Filename, 2, true)
-	if err != nil {
-		return err
-	}
-	var Host string
-	err = _is.Read_string(&Host, 3, true)
-	if err != nil {
-		return err
-	}
-	var Result string
-	if withContext == false {
-		_imp := _val.(_impConfig)
-		ret, err := _imp.CheckConfig(AppServerName, Filename, Host, &Result)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	} else {
-		_imp := _val.(_impConfigWithContext)
-		ret, err := _imp.CheckConfig(ctx, AppServerName, Filename, Host, &Result)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = _os.Write_string(Result, 4)
-	if err != nil {
-		return err
-	}
-
-	_ = length
-	_ = have
-	_ = ty
-	return nil
-}
-
-//ListConfigByInfo body function
-func ListConfigByInfo(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
-	var length int32
-	var have bool
-	var ty byte
-	var ConfigInfo ConfigInfo
-	err = ConfigInfo.ReadBlock(_is, 1, true)
-	if err != nil {
-		return err
-	}
-	var Vf []string
-	if withContext == false {
-		_imp := _val.(_impConfig)
-		ret, err := _imp.ListConfigByInfo(&ConfigInfo, &Vf)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	} else {
-		_imp := _val.(_impConfigWithContext)
-		ret, err := _imp.ListConfigByInfo(ctx, &ConfigInfo, &Vf)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = _os.WriteHead(codec.LIST, 2)
-	if err != nil {
-		return err
-	}
-	err = _os.Write_int32(int32(len(Vf)), 0)
-	if err != nil {
-		return err
-	}
-	for _, v := range Vf {
-
-		err = _os.Write_string(v, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	_ = length
-	_ = have
-	_ = ty
-	return nil
-}
-func loadConfigByInfo(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
-	var length int32
-	var have bool
-	var ty byte
-	var ConfigInfo ConfigInfo
-	err = ConfigInfo.ReadBlock(_is, 1, true)
-	if err != nil {
-		return err
-	}
-	var Config string
-	if withContext == false {
-		_imp := _val.(_impConfig)
-		ret, err := _imp.LoadConfigByInfo(&ConfigInfo, &Config)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	} else {
-		_imp := _val.(_impConfigWithContext)
-		ret, err := _imp.LoadConfigByInfo(ctx, &ConfigInfo, &Config)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = _os.Write_string(Config, 2)
-	if err != nil {
-		return err
-	}
-
-	_ = length
-	_ = have
-	_ = ty
-	return nil
-}
-func checkConfigByInfo(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
-	var length int32
-	var have bool
-	var ty byte
-	var ConfigInfo ConfigInfo
-	err = ConfigInfo.ReadBlock(_is, 1, true)
-	if err != nil {
-		return err
-	}
-	var Result string
-	if withContext == false {
-		_imp := _val.(_impConfig)
-		ret, err := _imp.CheckConfigByInfo(&ConfigInfo, &Result)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	} else {
-		_imp := _val.(_impConfigWithContext)
-		ret, err := _imp.CheckConfigByInfo(ctx, &ConfigInfo, &Result)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = _os.Write_string(Result, 2)
-	if err != nil {
-		return err
-	}
-
-	_ = length
-	_ = have
-	_ = ty
-	return nil
-}
-
-//ListAllConfigByInfo body function
-func ListAllConfigByInfo(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
-	var length int32
-	var have bool
-	var ty byte
-	var ConfigInfo GetConfigListInfo
-	err = ConfigInfo.ReadBlock(_is, 1, true)
-	if err != nil {
-		return err
-	}
-	var Vf []string
-	if withContext == false {
-		_imp := _val.(_impConfig)
-		ret, err := _imp.ListAllConfigByInfo(&ConfigInfo, &Vf)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	} else {
-		_imp := _val.(_impConfigWithContext)
-		ret, err := _imp.ListAllConfigByInfo(ctx, &ConfigInfo, &Vf)
-		if err != nil {
-			return err
-		}
-
-		err = _os.Write_int32(ret, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = _os.WriteHead(codec.LIST, 2)
-	if err != nil {
-		return err
-	}
-	err = _os.Write_int32(int32(len(Vf)), 0)
-	if err != nil {
-		return err
-	}
-	for _, v := range Vf {
-
-		err = _os.Write_string(v, 0)
-		if err != nil {
-			return err
-		}
-	}
-
-	_ = length
-	_ = have
-	_ = ty
-	return nil
-}
-
 //Dispatch is used to call the server side implemnet for the method defined in the tars file. withContext shows using context or not.
 func (_obj *Config) Dispatch(ctx context.Context, _val interface{}, req *requestf.RequestPacket, resp *requestf.ResponsePacket, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
 	_is := codec.NewReader(tools.Int8ToByte(req.SBuffer))
 	_os := codec.NewBuffer()
 	switch req.SFuncName {
 	case "ListConfig":
-		err := ListConfig(ctx, _val, _os, _is, withContext)
+		var App string
+		err = _is.Read_string(&App, 1, true)
 		if err != nil {
 			return err
 		}
+		var Server string
+		err = _is.Read_string(&Server, 2, true)
+		if err != nil {
+			return err
+		}
+		var Vf []string
+		if withContext == false {
+			_imp := _val.(_impConfig)
+			ret, err := _imp.ListConfig(App, Server, &Vf)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		} else {
+			_imp := _val.(_impConfigWithContext)
+			ret, err := _imp.ListConfig(ctx, App, Server, &Vf)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = _os.WriteHead(codec.LIST, 3)
+		if err != nil {
+			return err
+		}
+		err = _os.Write_int32(int32(len(Vf)), 0)
+		if err != nil {
+			return err
+		}
+		for _, v := range Vf {
+
+			err = _os.Write_string(v, 0)
+			if err != nil {
+				return err
+			}
+		}
 	case "loadConfig":
-		err := loadConfig(ctx, _val, _os, _is, withContext)
+		var App string
+		err = _is.Read_string(&App, 1, true)
+		if err != nil {
+			return err
+		}
+		var Server string
+		err = _is.Read_string(&Server, 2, true)
+		if err != nil {
+			return err
+		}
+		var Filename string
+		err = _is.Read_string(&Filename, 3, true)
+		if err != nil {
+			return err
+		}
+		var Config string
+		if withContext == false {
+			_imp := _val.(_impConfig)
+			ret, err := _imp.LoadConfig(App, Server, Filename, &Config)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		} else {
+			_imp := _val.(_impConfigWithContext)
+			ret, err := _imp.LoadConfig(ctx, App, Server, Filename, &Config)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = _os.Write_string(Config, 4)
 		if err != nil {
 			return err
 		}
 	case "loadConfigByHost":
-		err := loadConfigByHost(ctx, _val, _os, _is, withContext)
+		var AppServerName string
+		err = _is.Read_string(&AppServerName, 1, true)
+		if err != nil {
+			return err
+		}
+		var Filename string
+		err = _is.Read_string(&Filename, 2, true)
+		if err != nil {
+			return err
+		}
+		var Host string
+		err = _is.Read_string(&Host, 3, true)
+		if err != nil {
+			return err
+		}
+		var Config string
+		if withContext == false {
+			_imp := _val.(_impConfig)
+			ret, err := _imp.LoadConfigByHost(AppServerName, Filename, Host, &Config)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		} else {
+			_imp := _val.(_impConfigWithContext)
+			ret, err := _imp.LoadConfigByHost(ctx, AppServerName, Filename, Host, &Config)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = _os.Write_string(Config, 4)
 		if err != nil {
 			return err
 		}
 	case "checkConfig":
-		err := checkConfig(ctx, _val, _os, _is, withContext)
+		var AppServerName string
+		err = _is.Read_string(&AppServerName, 1, true)
+		if err != nil {
+			return err
+		}
+		var Filename string
+		err = _is.Read_string(&Filename, 2, true)
+		if err != nil {
+			return err
+		}
+		var Host string
+		err = _is.Read_string(&Host, 3, true)
+		if err != nil {
+			return err
+		}
+		var Result string
+		if withContext == false {
+			_imp := _val.(_impConfig)
+			ret, err := _imp.CheckConfig(AppServerName, Filename, Host, &Result)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		} else {
+			_imp := _val.(_impConfigWithContext)
+			ret, err := _imp.CheckConfig(ctx, AppServerName, Filename, Host, &Result)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = _os.Write_string(Result, 4)
 		if err != nil {
 			return err
 		}
 	case "ListConfigByInfo":
-		err := ListConfigByInfo(ctx, _val, _os, _is, withContext)
+		var ConfigInfo ConfigInfo
+		err = ConfigInfo.ReadBlock(_is, 1, true)
 		if err != nil {
 			return err
 		}
+		var Vf []string
+		if withContext == false {
+			_imp := _val.(_impConfig)
+			ret, err := _imp.ListConfigByInfo(&ConfigInfo, &Vf)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		} else {
+			_imp := _val.(_impConfigWithContext)
+			ret, err := _imp.ListConfigByInfo(ctx, &ConfigInfo, &Vf)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = _os.WriteHead(codec.LIST, 2)
+		if err != nil {
+			return err
+		}
+		err = _os.Write_int32(int32(len(Vf)), 0)
+		if err != nil {
+			return err
+		}
+		for _, v := range Vf {
+
+			err = _os.Write_string(v, 0)
+			if err != nil {
+				return err
+			}
+		}
 	case "loadConfigByInfo":
-		err := loadConfigByInfo(ctx, _val, _os, _is, withContext)
+		var ConfigInfo ConfigInfo
+		err = ConfigInfo.ReadBlock(_is, 1, true)
+		if err != nil {
+			return err
+		}
+		var Config string
+		if withContext == false {
+			_imp := _val.(_impConfig)
+			ret, err := _imp.LoadConfigByInfo(&ConfigInfo, &Config)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		} else {
+			_imp := _val.(_impConfigWithContext)
+			ret, err := _imp.LoadConfigByInfo(ctx, &ConfigInfo, &Config)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = _os.Write_string(Config, 2)
 		if err != nil {
 			return err
 		}
 	case "checkConfigByInfo":
-		err := checkConfigByInfo(ctx, _val, _os, _is, withContext)
+		var ConfigInfo ConfigInfo
+		err = ConfigInfo.ReadBlock(_is, 1, true)
+		if err != nil {
+			return err
+		}
+		var Result string
+		if withContext == false {
+			_imp := _val.(_impConfig)
+			ret, err := _imp.CheckConfigByInfo(&ConfigInfo, &Result)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		} else {
+			_imp := _val.(_impConfigWithContext)
+			ret, err := _imp.CheckConfigByInfo(ctx, &ConfigInfo, &Result)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = _os.Write_string(Result, 2)
 		if err != nil {
 			return err
 		}
 	case "ListAllConfigByInfo":
-		err := ListAllConfigByInfo(ctx, _val, _os, _is, withContext)
+		var ConfigInfo GetConfigListInfo
+		err = ConfigInfo.ReadBlock(_is, 1, true)
 		if err != nil {
 			return err
+		}
+		var Vf []string
+		if withContext == false {
+			_imp := _val.(_impConfig)
+			ret, err := _imp.ListAllConfigByInfo(&ConfigInfo, &Vf)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		} else {
+			_imp := _val.(_impConfigWithContext)
+			ret, err := _imp.ListAllConfigByInfo(ctx, &ConfigInfo, &Vf)
+			if err != nil {
+				return err
+			}
+
+			err = _os.Write_int32(ret, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = _os.WriteHead(codec.LIST, 2)
+		if err != nil {
+			return err
+		}
+		err = _os.Write_int32(int32(len(Vf)), 0)
+		if err != nil {
+			return err
+		}
+		for _, v := range Vf {
+
+			err = _os.Write_string(v, 0)
+			if err != nil {
+				return err
+			}
 		}
 
 	default:
@@ -1484,5 +1682,8 @@ func (_obj *Config) Dispatch(ctx context.Context, _val interface{}, req *request
 		SResultDesc:  "",
 		Context:      _context,
 	}
+	_ = length
+	_ = have
+	_ = ty
 	return nil
 }

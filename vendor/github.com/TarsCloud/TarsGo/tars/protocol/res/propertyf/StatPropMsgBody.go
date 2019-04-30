@@ -24,7 +24,7 @@ func (st *StatPropMsgBody) ReadFrom(_is *codec.Reader) error {
 	var ty byte
 	st.resetDefault()
 
-	err, _, ty = _is.SkipToNoCheck(0, true)
+	err, have, ty = _is.SkipToNoCheck(0, true)
 	if err != nil {
 		return err
 	}

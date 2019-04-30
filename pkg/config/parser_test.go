@@ -18,13 +18,13 @@
 package config
 
 import (
+	"encoding/json"
 	"net"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"istio.io/api/mixer/v1"
 )
@@ -108,7 +108,7 @@ var mockedFilterChains = `
                                 {
                                   "cluster":{
                                     "name":"serverCluster1",
-                                    "weight":90,m
+                                    "weight":90,
                                     "metadata_match":{
                                       "filter_metadata": {
                                         "mosn.lb": {
@@ -145,25 +145,15 @@ var mockedFilterChains = `
 func TestParseRouterConfiguration(t *testing.T) {
 	bytes := []byte(mockedFilterChains)
 	filterChan := &v2.FilterChain{}
-	json.Unmarshal(bytes, filterChan)
+	if err := json.Unmarshal(bytes, filterChan); err != nil {
+		t.Fatalf("init router config failed: %v", err)
+	}
 
 	routerCfg := ParseRouterConfiguration(filterChan)
 
 	if routerCfg.RouterConfigName != "test_router" || len(routerCfg.VirtualHosts) != 1 ||
 		routerCfg.VirtualHosts[0].Name != "sofa" || len(routerCfg.VirtualHosts[0].Routers) != 1 {
-		t.Errorf("TestParseRouterConfiguration error")
-	}
-}
-
-func TestGetListenerDisableIO(t *testing.T) {
-	bytes := []byte(mockedFilterChains)
-	filterChan := &v2.FilterChain{}
-	json.Unmarshal(bytes, filterChan)
-
-	wanted := false
-
-	if disableIO := GetListenerDisableIO(filterChan); disableIO != wanted {
-		t.Errorf("TestGetListenerDisableIO error, want %t but got %t ", disableIO, wanted)
+		t.Errorf("TestParseRouterConfiguration error, config: %v", routerCfg)
 	}
 }
 
@@ -236,18 +226,16 @@ func TestParseListenerConfig(t *testing.T) {
 
 	lc := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			AddrConfig:     tcpListener.Addr().String(),
-			LogLevelConfig: "DEBUG",
+			AddrConfig: tcpListener.Addr().String(),
 		},
 	}
 	ln := ParseListenerConfig(lc, inherit)
 	if !(ln.Addr != nil &&
 		ln.Addr.String() == tcpListener.Addr().String() &&
 		ln.PerConnBufferLimitBytes == 1<<15 &&
-		ln.InheritListener != nil &&
-		ln.LogLevel == uint8(log.DEBUG)) {
+		ln.InheritListener != nil) {
 		t.Error("listener parse unexpected")
-		t.Log(ln.Addr.String(), ln.InheritListener != nil, ln.LogLevel)
+		t.Log(ln.Addr.String(), ln.InheritListener != nil)
 	}
 	if inherit[0] != nil {
 		t.Error("no inherit listener")

@@ -20,6 +20,7 @@ package trace
 import (
 	"context"
 
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -30,14 +31,15 @@ type traceHolder struct {
 	tracer        types.Tracer
 }
 
-var ActiveSpanKey = contextKey{}
 var holder = traceHolder{}
 
 func SpanFromContext(ctx context.Context) types.Span {
-	val := ctx.Value(ActiveSpanKey)
-	if sp, ok := val.(types.Span); ok {
-		return sp
+	if val := mosnctx.Get(ctx, types.ContextKeyActiveSpan); val != nil {
+		if sp, ok := val.(types.Span); ok {
+			return sp
+		}
 	}
+
 	return nil
 }
 

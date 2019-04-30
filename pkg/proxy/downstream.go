@@ -31,12 +31,16 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/utils"
 
+	"runtime/debug"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 // types.StreamEventListener
@@ -54,7 +58,7 @@ type downStream struct {
 	bufferLimit uint32
 
 	// ~~~ control args
-	timeout    *Timeout
+	timeout    Timeout
 	retryState *retryState
 
 	requestInfo     types.RequestInfo
@@ -82,34 +86,42 @@ type downStream struct {
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone bool
+	// don't convert headers, data and trailers.  e.g. activeStreamReceiverFilter.Appendxx
+	noConvert bool
+	// direct response.  e.g. sendHijack
+	directResponse bool
+	// oneway
+	oneway bool
 
-	filterStage int
+	notify chan struct{}
 
 	downstreamReset   uint32
 	downstreamCleaned uint32
 	upstreamReset     uint32
 	reuseBuffer       uint32
 
-	// ~~~ filters
-	senderFilters   []*activeStreamSenderFilter
-	receiverFilters []*activeStreamReceiverFilter
+	resetReason types.StreamResetReason
+
+	//filters
+	senderFilters        []*activeStreamSenderFilter
+	senderFiltersIndex   int
+	receiverFilters      []*activeStreamReceiverFilter
+	receiverFiltersIndex int
+	receiverFiltersAgain bool
 
 	context context.Context
 
 	// stream access logs
 	streamAccessLogs []types.AccessLog
-	logger           log.ErrorLogger
+	logDone          uint32
 
 	snapshot types.ClusterSnapshot
 }
 
-func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, spanBuilder types.SpanBuilder) *downStream {
-	if spanBuilder != nil && trace.IsTracingEnabled() {
-		span := spanBuilder.BuildSpan(ctx)
-		if span != nil {
-			ctx = context.WithValue(ctx, trace.ActiveSpanKey, span)
-			ctx = context.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
-		}
+func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
+	if span != nil && trace.IsTracingEnabled() {
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyActiveSpan, span)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 	}
 
 	proxyBuffers := proxyBuffersByContext(ctx)
@@ -119,20 +131,27 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
-	stream.responseSender = responseSender
-	stream.responseSender.GetStream().AddEventListener(stream)
 	stream.context = ctx
 	stream.reuseBuffer = 1
+	stream.notify = make(chan struct{}, 1)
 
-	stream.logger = log.ByContext(proxy.context)
+	if responseSender != nil {
+		stream.responseSender = responseSender
+		stream.responseSender.GetStream().AddEventListener(stream)
+	} else {
+		stream.oneway = true
+	}
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
 	proxy.stats.DownstreamRequestActive.Inc(1)
 	proxy.listenerStats.DownstreamRequestTotal.Inc(1)
 	proxy.listenerStats.DownstreamRequestActive.Inc(1)
 
-	// debug message for downstream
-	stream.logger.Debugf("client conn id %d, proxy id %d, downstream id %d", proxy.readCallbacks.Connection().ID(), stream.ID, responseSender.GetStream().ID())
+	// info message for new downstream
+	if log.Proxy.GetLogLevel() >= log.INFO {
+		requestId := mosnctx.Get(stream.context, types.ContextKeyStreamID)
+		log.Proxy.Infof(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestId, stream.oneway)
+	}
 	return stream
 }
 
@@ -164,7 +183,8 @@ func (s *downStream) cleanStream() {
 	streamDurationNs := s.requestInfo.RequestFinishedDuration().Nanoseconds()
 
 	// reset corresponding upstream stream
-	if s.upstreamRequest != nil && !s.upstreamProcessDone {
+	if s.upstreamRequest != nil && !s.upstreamProcessDone && !s.oneway {
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] upstreamRequest.resetStream, proxyId: %d", s.ID)
 		s.upstreamProcessDone = true
 		s.upstreamRequest.resetStream()
 	}
@@ -193,6 +213,26 @@ func (s *downStream) cleanStream() {
 	// finish tracing
 	s.finishTracing()
 
+	// write access log
+	s.writeLog()
+
+	// delete stream
+	s.proxy.deleteActiveStream(s)
+
+	// recycle if no reset events
+	s.giveStream()
+}
+
+func (s *downStream) writeLog() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] writeLog panic %v, downstream %+v", r, s)
+		}
+	}()
+
+	if !atomic.CompareAndSwapUint32(&s.logDone, 0, 1) {
+		return
+	}
 	// proxy access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
 		for _, al := range s.proxy.accessLogs {
@@ -206,12 +246,6 @@ func (s *downStream) cleanStream() {
 			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 		}
 	}
-
-	// delete stream
-	s.proxy.deleteActiveStream(s)
-
-	// recycle if no reset events
-	s.giveStream()
 }
 
 // types.StreamEventListener
@@ -221,14 +255,9 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 		return
 	}
 
-	workerPool.Offer(&event{
-		id:  s.ID,
-		dir: downstream,
-		evt: reset,
-		handle: func() {
-			s.ResetStream(reason)
-		},
-	}, false)
+	s.resetReason = reason
+
+	s.sendNotify()
 }
 
 func (s *downStream) ResetStream(reason types.StreamResetReason) {
@@ -240,22 +269,283 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 func (s *downStream) OnDestroyStream() {}
 
 // types.StreamReceiveListener
-func (s *downStream) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	workerPool.Offer(&event{
-		id:  s.ID,
-		dir: downstream,
-		evt: recvHeader,
-		handle: func() {
-			s.ReceiveHeaders(headers, endStream)
-		},
-	}, true)
+func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	s.downstreamReqHeaders = headers
+	if data != nil {
+		s.downstreamReqDataBuf = data.Clone()
+		data.Drain(data.Len())
+	}
+	s.downstreamReqTrailers = trailers
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive headers:%+v, data:%+v, trailers:%+v", headers, data, trailers)
+	}
+
+	id := s.ID
+	// goroutine for proxy
+	pool.ScheduleAuto(func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Proxy.Errorf(s.context, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
+					r, s, id, s.ID, string(debug.Stack()))
+
+				if id == s.ID {
+					s.writeLog()
+				}
+			}
+		}()
+
+		phase := types.InitPhase
+		for i := 0; i < 5; i++ {
+			s.cleanNotify()
+
+			phase = s.receive(ctx, id, phase)
+			switch phase {
+			case types.End:
+				return
+			case types.MatchRoute:
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] redo match route %+v", s)
+			case types.Retry:
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] retry %+v", s)
+			case types.UpFilter:
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] directResponse %+v", s)
+			}
+		}
+	})
 }
 
-func (s *downStream) ReceiveHeaders(headers types.HeaderMap, endStream bool) {
-	s.downstreamRecvDone = endStream
-	s.downstreamReqHeaders = headers
+func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
+	for i := 0; i <= int(types.End-types.InitPhase); i++ {
+		switch phase {
+		// init phase
+		case types.InitPhase:
+			phase++
 
-	s.doReceiveHeaders(nil, headers, endStream)
+			// downstream filter before route
+		case types.DownFilter:
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+			}
+			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+
+			if p, err := s.processError(id); err != nil {
+				return p
+			}
+			phase++
+
+			// match route
+		case types.MatchRoute:
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+			}
+			s.matchRoute()
+			if p, err := s.processError(id); err != nil {
+				return p
+			}
+			phase++
+
+			// downstream filter after route
+		case types.DownFilterAfterRoute:
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+			}
+			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+
+			if p, err := s.processError(id); err != nil {
+				return p
+			}
+			phase++
+
+			// downstream receive header
+		case types.DownRecvHeader:
+			if s.downstreamReqHeaders != nil {
+				if log.Proxy.GetLogLevel() >= log.DEBUG {
+					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				}
+				s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// downstream receive data
+		case types.DownRecvData:
+			if s.downstreamReqDataBuf != nil {
+				if log.Proxy.GetLogLevel() >= log.DEBUG {
+					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				}
+				s.downstreamReqDataBuf.Count(1)
+				s.receiveData(s.downstreamReqTrailers == nil)
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// downstream receive trailer
+		case types.DownRecvTrailer:
+			if s.downstreamReqTrailers != nil {
+				if log.Proxy.GetLogLevel() >= log.DEBUG {
+					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				}
+				s.receiveTrailers()
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// downstream oneway
+		case types.Oneway:
+			if s.oneway {
+				if log.Proxy.GetLogLevel() >= log.DEBUG {
+					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				}
+				s.cleanStream()
+
+				// downstreamCleaned has set, return types.End
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+
+			// no oneway, skip types.Retry
+			phase = types.WaitNofity
+
+			// retry request
+		case types.Retry:
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+			}
+
+			if s.downstreamReqDataBuf != nil {
+				s.downstreamReqDataBuf.Count(1)
+			}
+			s.doRetry()
+			if p, err := s.processError(id); err != nil {
+				return p
+			}
+			phase++
+
+			// wait for upstreamRequest or reset
+		case types.WaitNofity:
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+			}
+			if p, err := s.waitNotify(id); err != nil {
+				return p
+			}
+
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive send downstream response %+v", s.downstreamRespHeaders)
+			}
+
+			phase++
+
+			// upstream filter
+		case types.UpFilter:
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+			}
+			s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
+
+			if p, err := s.processError(id); err != nil {
+				return p
+			}
+
+			// maybe direct response
+			if s.upstreamRequest == nil {
+				fakeUpstreamRequest := &upstreamRequest{
+					downStream: s,
+				}
+
+				s.upstreamRequest = fakeUpstreamRequest
+			}
+
+			phase++
+
+			// upstream receive header
+		case types.UpRecvHeader:
+			// send downstream response
+			if s.downstreamRespHeaders != nil {
+				if log.Proxy.GetLogLevel() >= log.DEBUG {
+					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				}
+				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// upstream receive data
+		case types.UpRecvData:
+			if s.downstreamRespDataBuf != nil {
+				if log.Proxy.GetLogLevel() >= log.DEBUG {
+					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				}
+				s.upstreamRequest.receiveData(s.downstreamRespTrailers == nil)
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// upstream receive triler
+		case types.UpRecvTrailer:
+			if s.downstreamRespTrailers != nil {
+				if log.Proxy.GetLogLevel() >= log.DEBUG {
+					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				}
+				s.upstreamRequest.receiveTrailers()
+
+				if p, err := s.processError(id); err != nil {
+					return p
+				}
+			}
+			phase++
+
+			// process end
+		case types.End:
+			return types.End
+
+		default:
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] unexpected phase: %d", phase)
+			return types.End
+		}
+	}
+
+	log.Proxy.Errorf(s.context, "[proxy] [downstream] unexpected phase cycle time")
+	return types.End
+}
+
+func (s *downStream) matchRoute() {
+	headers := s.downstreamReqHeaders
+	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] routersWrapper or routers in routersWrapper is nil while trying to get router, headers= %v", headers)
+		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		return
+	}
+
+	// get router instance and do routing
+	routers := s.proxy.routersWrapper.GetRouters()
+	// do handler chain
+	handlerChain := router.CallMakeHandlerChain(s.context, headers, routers, s.proxy.clusterManager)
+	// handlerChain should never be nil
+	if handlerChain == nil {
+		log.DefaultLogger.Errorf("[proxy] [downstream] no route to make handler chain, headers = %v", headers)
+		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		return
+	}
+	s.snapshot, s.route = handlerChain.DoNextHandler()
 }
 
 func (s *downStream) convertProtocol() (dp, up types.Protocol) {
@@ -291,97 +581,71 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
 	return currentProtocol
 }
 
-func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, headers types.HeaderMap, endStream bool) {
-	log.DefaultLogger.Tracef("before active stream route")
-	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
-		log.DefaultLogger.Errorf("doReceiveHeaders error: routersWrapper or routers in routersWrapper is nil")
-		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
-		return
-	}
+func (s *downStream) receiveHeaders(endStream bool) {
+	s.downstreamRecvDone = endStream
 
-	// get router instance and do routing
-	routers := s.proxy.routersWrapper.GetRouters()
-	// do handler chain
-	handlerChain := router.CallMakeHandlerChain(s.context, headers, routers, s.proxy.clusterManager)
-	// handlerChain should never be nil
-	if handlerChain == nil {
-		log.DefaultLogger.Errorf("no route to make handler chain, headers = %v", headers)
-		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
-		return
-	}
-	clusterSnapshot, route := handlerChain.DoNextHandler()
-	s.route = route
-	// run stream filters after route is choosed
-	// the route maybe nil, but the stream filter should also be run
-	// stream filter maybe send a hijack reply ignore the route
-	if s.runReceiveHeadersFilters(filter, headers, endStream) {
-		return
-	}
 	// after stream filters run, check the route
-	if route == nil {
-		log.DefaultLogger.Warnf("no route to init upstream,headers = %v", headers)
+	if s.route == nil {
+		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route to init upstream, headers = %v", s.downstreamReqHeaders)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
-
+		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
 	// check if route have direct response
 	// direct response will response now
 	if resp := s.route.DirectResponseRule(); !(resp == nil || reflect.ValueOf(resp).IsNil()) {
-		log.DefaultLogger.Infof("direct response for stream , id = %d", s.ID)
+		log.Proxy.Infof(s.context, "[proxy] [downstream] direct response, proxyId = %d", s.ID)
 		if resp.Body() != "" {
-			s.sendHijackReplyWithBody(resp.StatusCode(), headers, resp.Body())
+			s.sendHijackReplyWithBody(resp.StatusCode(), s.downstreamReqHeaders, resp.Body())
 		} else {
-			s.sendHijackReply(resp.StatusCode(), headers)
+			s.sendHijackReply(resp.StatusCode(), s.downstreamReqHeaders)
 		}
 		return
 	}
 	// not direct response, needs a cluster snapshot and route rule
-	if rule := route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
-		log.DefaultLogger.Warnf("no route rule to init upstream, headers = %v", headers)
+	if rule := s.route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
+		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route rule to init upstream, headers = %v", s.downstreamReqHeaders)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
+		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
-	if clusterSnapshot == nil || reflect.ValueOf(clusterSnapshot).IsNil() {
+	if s.snapshot == nil || reflect.ValueOf(s.snapshot).IsNil() {
 		// no available cluster
-		log.DefaultLogger.Errorf("cluster snapshot is nil, cluster name is: %s", route.RouteRule().ClusterName())
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] cluster snapshot is nil, cluster name is: %s", s.route.RouteRule().ClusterName())
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
-	clusterName := route.RouteRule().ClusterName()
-	log.DefaultLogger.Tracef("get route : %v,clusterName=%v", route, clusterName)
+	clusterName := s.route.RouteRule().ClusterName()
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] route match result:%+v, clusterName=%v", s.route, clusterName)
+	}
 
-	s.snapshot = clusterSnapshot
+	s.cluster = s.snapshot.ClusterInfo()
 
-	s.cluster = clusterSnapshot.ClusterInfo()
-
-	s.requestInfo.SetRouteEntry(route.RouteRule())
+	s.requestInfo.SetRouteEntry(s.route.RouteRule())
 	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
-	// `downstream` implement loadbalancer ctx
-	log.DefaultLogger.Tracef("before initializeUpstreamConnectionPool")
 	pool, err := s.initializeUpstreamConnectionPool(s)
-
 	if err != nil {
-		log.DefaultLogger.Errorf("initialize Upstream Connection Pool error, request can't be proxyed,error = %v", err)
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] initialize Upstream Connection Pool error, request can't be proxyed, error = %v", err)
+		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
+		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
 	}
 
-	log.DefaultLogger.Tracef("after initializeUpstreamConnectionPool")
-	s.timeout = parseProxyTimeout(route, headers)
+	parseProxyTimeout(&s.timeout, s.route, s.downstreamReqHeaders)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] timeout info: %+v", s.timeout)
+	}
 
 	prot := s.getUpstreamProtocol()
 
-	s.retryState = newRetryState(route.RouteRule().Policy().RetryPolicy(), headers, s.cluster, prot)
+	s.retryState = newRetryState(s.route.RouteRule().Policy().RetryPolicy(), s.downstreamReqHeaders, s.cluster, prot)
 
 	//Build Request
 	proxyBuffers := proxyBuffersByContext(s.context)
@@ -390,56 +654,34 @@ func (s *downStream) doReceiveHeaders(filter *activeStreamReceiverFilter, header
 	s.upstreamRequest.proxy = s.proxy
 	s.upstreamRequest.protocol = prot
 	s.upstreamRequest.connPool = pool
-	route.RouteRule().FinalizeRequestHeaders(headers, s.requestInfo)
+	s.route.RouteRule().FinalizeRequestHeaders(s.downstreamReqHeaders, s.requestInfo)
 
 	//Call upstream's append header method to build upstream's request
-	s.upstreamRequest.appendHeaders(headers, endStream)
+	s.upstreamRequest.appendHeaders(endStream)
 
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
 }
 
-func (s *downStream) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
-	s.downstreamReqDataBuf = data.Clone()
-	s.downstreamReqDataBuf.Count(1)
-	data.Drain(data.Len())
-
-	workerPool.Offer(&event{
-		id:  s.ID,
-		dir: downstream,
-		evt: recvData,
-		handle: func() {
-			s.ReceiveData(s.downstreamReqDataBuf, endStream)
-		},
-	}, true)
-}
-
-func (s *downStream) ReceiveData(data types.IoBuffer, endStream bool) {
+func (s *downStream) receiveData(endStream bool) {
 	// if active stream finished before receive data, just ignore further data
 	if s.processDone() {
 		return
 	}
-	log.DefaultLogger.Tracef("downstream receive data = %v", data)
+	data := s.downstreamReqDataBuf
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] receive data = %v", data)
+	}
 
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
 	s.downstreamRecvDone = endStream
-
-	s.doReceiveData(nil, data, endStream)
-}
-
-func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data types.IoBuffer, endStream bool) {
-	log.DefaultLogger.Tracef("active stream do decode data")
-
-	if s.runReceiveDataFilters(filter, data, endStream) {
-		return
-	}
 
 	if endStream {
 		s.onUpstreamRequestSent()
 	}
 
-	s.upstreamRequest.appendData(data, endStream)
+	s.upstreamRequest.appendData(endStream)
 
 	// if upstream process done in the middle of receiving data, just end stream
 	if s.upstreamProcessDone {
@@ -447,18 +689,7 @@ func (s *downStream) doReceiveData(filter *activeStreamReceiverFilter, data type
 	}
 }
 
-func (s *downStream) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-	workerPool.Offer(&event{
-		id:  s.ID,
-		dir: downstream,
-		evt: recvTrailer,
-		handle: func() {
-			s.ReceiveTrailers(trailers)
-		},
-	}, true)
-}
-
-func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
+func (s *downStream) receiveTrailers() {
 	// if active stream finished the lifecycle, just ignore further data
 	if s.processDone() {
 		return
@@ -466,7 +697,13 @@ func (s *downStream) ReceiveTrailers(trailers types.HeaderMap) {
 
 	s.downstreamRecvDone = true
 
-	s.doReceiveTrailers(nil, trailers)
+	s.onUpstreamRequestSent()
+	s.upstreamRequest.appendTrailers()
+
+	// if upstream process done in the middle of receiving trailers, just end stream
+	if s.upstreamProcessDone {
+		s.cleanStream()
+	}
 }
 
 func (s *downStream) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
@@ -485,36 +722,19 @@ func (s *downStream) OnDecodeError(context context.Context, err error, headers t
 	default:
 		s.sendHijackReply(types.UnknownCode, headers)
 	}
-
-	s.OnResetStream(types.StreamLocalReset)
-}
-
-func (s *downStream) doReceiveTrailers(filter *activeStreamReceiverFilter, trailers types.HeaderMap) {
-	if s.runReceiveTrailersFilters(filter, trailers) {
-		return
-	}
-
-	s.downstreamReqTrailers = trailers
-	s.onUpstreamRequestSent()
-	s.upstreamRequest.appendTrailers(trailers)
-
-	// if upstream process done in the middle of receiving trailers, just end stream
-	if s.upstreamProcessDone {
-		s.cleanStream()
-	}
 }
 
 func (s *downStream) onUpstreamRequestSent() {
 	s.upstreamRequestSent = true
 	s.requestInfo.SetRequestReceivedDuration(time.Now())
 
-	if s.upstreamRequest != nil {
+	if s.upstreamRequest != nil && !s.oneway {
 		// setup per req timeout timer
 		s.setupPerReqTimeout()
 
 		// setup global timeout timer
 		if s.timeout.GlobalTimeout > 0 {
-			log.DefaultLogger.Debugf("start a request timeout timer")
+			log.Proxy.Debugf(s.context, "[proxy] [downstream] start a request timeout timer")
 			if s.responseTimer != nil {
 				s.responseTimer.Stop()
 			}
@@ -538,7 +758,7 @@ func (s *downStream) onUpstreamRequestSent() {
 func (s *downStream) onResponseTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("onResponseTimeout() panic %v", r)
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout() panic %v", r)
 		}
 	}()
 	s.responseTimer = nil
@@ -564,7 +784,7 @@ func (s *downStream) setupPerReqTimeout() {
 		}
 
 		ID := s.ID
-		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout*time.Second,
+		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout,
 			func() {
 				if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 					return
@@ -581,7 +801,7 @@ func (s *downStream) setupPerReqTimeout() {
 func (s *downStream) onPerReqTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("onPerReqTimeout() panic %v", r)
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] onPerReqTimeout() panic %v", r)
 		}
 	}()
 
@@ -600,7 +820,7 @@ func (s *downStream) onPerReqTimeout() {
 		s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
 		s.upstreamRequest.OnResetStream(types.UpstreamPerTryTimeout)
 	} else {
-		log.DefaultLogger.Debugf("Skip request timeout on getting upstream response")
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] skip request timeout on getting upstream response")
 	}
 }
 
@@ -612,10 +832,7 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 	connPool = s.proxy.clusterManager.ConnPoolForCluster(lbCtx, s.snapshot, currentProtocol)
 
 	if connPool == nil {
-		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
-		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
-
-		return nil, fmt.Errorf("no healthy upstream in cluster %s", s.cluster.Name())
+		return nil, fmt.Errorf("[proxy] [downstream] no healthy upstream in cluster %s", s.cluster.Name())
 	}
 
 	// TODO: update upstream stats
@@ -625,33 +842,12 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 
 // ~~~ active stream sender wrapper
 
-func (s *downStream) appendHeaders(headers types.HeaderMap, endStream bool) {
+func (s *downStream) appendHeaders(endStream bool) {
 	s.upstreamProcessDone = endStream
-	s.doAppendHeaders(nil, s.convertHeader(headers), endStream)
-}
-
-func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
-	dp, up := s.convertProtocol()
-
-	// need protocol convert
-	if dp != up {
-		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
-			return convHeader
-		} else {
-			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
-		}
-	}
-	return headers
-}
-
-func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers types.HeaderMap, endStream bool) {
-	if s.runAppendHeaderFilters(filter, headers, endStream) {
-		return
-	}
-
+	headers := s.convertHeader(s.downstreamRespHeaders)
 	//Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
-		s.logger.Errorf("[downstream] append headers error, %s", err)
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] append headers error, %s", err)
 	}
 
 	if endStream {
@@ -659,30 +855,28 @@ func (s *downStream) doAppendHeaders(filter *activeStreamSenderFilter, headers t
 	}
 }
 
-func (s *downStream) appendData(data types.IoBuffer, endStream bool) {
-	s.upstreamProcessDone = endStream
-	s.doAppendData(nil, s.convertData(data), endStream)
-}
+func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
+	if s.noConvert {
+		return headers
+	}
 
-func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 	dp, up := s.convertProtocol()
 
 	// need protocol convert
 	if dp != up {
-		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
-			return convData
+		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
+			return convHeader
 		} else {
-			s.logger.Errorf("convert data from %s to %s failed, %s", up, dp, err.Error())
+			log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
-	return data
+	return headers
 }
 
-func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.IoBuffer, endStream bool) {
-	if s.runAppendDataFilters(filter, data, endStream) {
-		return
-	}
+func (s *downStream) appendData(endStream bool) {
+	s.upstreamProcessDone = endStream
 
+	data := s.convertData(s.downstreamRespDataBuf)
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
 	s.responseSender.AppendData(s.context, data, endStream)
 
@@ -691,12 +885,36 @@ func (s *downStream) doAppendData(filter *activeStreamSenderFilter, data types.I
 	}
 }
 
-func (s *downStream) appendTrailers(trailers types.HeaderMap) {
+func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
+	if s.noConvert {
+		return data
+	}
+
+	dp, up := s.convertProtocol()
+
+	// need protocol convert
+	if dp != up {
+		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
+			return convData
+		} else {
+			log.Proxy.Warnf(s.context, "[proxy] [downstream] convert data from %s to %s failed, %s", up, dp, err.Error())
+		}
+	}
+	return data
+}
+
+func (s *downStream) appendTrailers() {
 	s.upstreamProcessDone = true
-	s.doAppendTrailers(nil, s.convertTrailer(trailers))
+	trailers := s.convertTrailer(s.downstreamRespTrailers)
+	s.responseSender.AppendTrailers(s.context, trailers)
+	s.endStream()
 }
 
 func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
+	if s.noConvert {
+		return trailers
+	}
+
 	dp, up := s.convertProtocol()
 
 	// need protocol convert
@@ -704,34 +922,21 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
 			return convTrailer
 		} else {
-			s.logger.Errorf("convert header from %s to %s failed, %s", up, dp, err.Error())
+			log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
 	}
 	return trailers
 }
 
-func (s *downStream) doAppendTrailers(filter *activeStreamSenderFilter, trailers types.HeaderMap) {
-	if s.runAppendTrailersFilters(filter, trailers) {
-		return
-	}
-
-	s.responseSender.AppendTrailers(s.context, trailers)
-	s.endStream()
-}
-
 // ~~~ upstream event handler
 func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
-	if !atomic.CompareAndSwapUint32(&s.upstreamReset, 0, 1) {
-		return
-	}
-
 	// todo: update stats
-	log.DefaultLogger.Tracef("on upstream reset invoked")
+	log.Proxy.Errorf(s.context, "[proxy] [downstream] onUpstreamReset, reason: %v", reason)
 
 	// see if we need a retry
 	if reason != types.UpstreamGlobalTimeout &&
 		!s.downstreamResponseStarted && s.retryState != nil {
-		retryCheck := s.retryState.retry(nil, reason, s.doRetry)
+		retryCheck := s.retryState.retry(nil, reason)
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(true) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
@@ -741,6 +946,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 
 			// setup retry timer and return
 			// clear reset flag
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] onUpstreamReset, doRetry, reason %v", reason)
 			atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 			return
 		} else if retryCheck == types.RetryOverflow {
@@ -772,16 +978,19 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 		}
+		// clear reset flag
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] onUpstreamReset, send hijack, reason %v", reason)
+		atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 		s.sendHijackReply(code, s.downstreamReqHeaders)
 	}
 }
 
-func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) {
-	s.downstreamRespHeaders = headers
+func (s *downStream) onUpstreamHeaders(endStream bool) {
+	headers := s.downstreamRespHeaders
 
 	// check retry
 	if s.retryState != nil {
-		retryCheck := s.retryState.retry(headers, "", s.doRetry)
+		retryCheck := s.retryState.retry(headers, "")
 
 		if retryCheck == types.ShouldRetry && s.setupRetry(endStream) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
@@ -801,13 +1010,17 @@ func (s *downStream) onUpstreamHeaders(headers types.HeaderMap, endStream bool) 
 
 	s.downstreamResponseStarted = true
 
-	s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
+	// directResponse for no route should be nil
+	if s.route != nil {
+		s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
+	}
+
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
 
 	// todo: insert proxy headers
-	s.appendHeaders(headers, endStream)
+	s.appendHeaders(endStream)
 }
 
 func (s *downStream) handleUpstreamStatusCode() {
@@ -823,12 +1036,12 @@ func (s *downStream) handleUpstreamStatusCode() {
 	}
 }
 
-func (s *downStream) onUpstreamData(data types.IoBuffer, endStream bool) {
+func (s *downStream) onUpstreamData(endStream bool) {
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
 
-	s.appendData(data, endStream)
+	s.appendData(endStream)
 }
 
 func (s *downStream) finishTracing() {
@@ -847,22 +1060,23 @@ func (s *downStream) finishTracing() {
 			if s.requestInfo.DownstreamLocalAddress() != nil {
 				span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
 			}
-			span.SetTag(trace.RESULT_STATUS, fmt.Sprint(s.requestInfo.ResponseCode()))
+			span.SetTag(trace.RESULT_STATUS, strconv.Itoa(s.requestInfo.ResponseCode()))
+			span.SetRequestInfo(s.requestInfo)
 			span.FinishSpan()
 
-			if s.context.Value(types.ContextKeyListenerType) == v2.INGRESS {
-				trace.DeleteSpanIdGenerator(s.context.Value(types.ContextKeyTraceSpanKey).(*trace.SpanKey))
+			if mosnctx.Get(s.context, types.ContextKeyListenerType) == v2.INGRESS {
+				trace.DeleteSpanIdGenerator(mosnctx.Get(s.context, types.ContextKeyTraceSpanKey).(*trace.SpanKey))
 			}
 		} else {
-			log.DefaultLogger.Debugf("Span is null")
+			log.Proxy.Warnf(s.context, "[proxy] [downstream] trace span is null")
 		}
 	}
 }
 
-func (s *downStream) onUpstreamTrailers(trailers types.HeaderMap) {
+func (s *downStream) onUpstreamTrailers() {
 	s.onUpstreamResponseRecvFinished()
 
-	s.appendTrailers(trailers)
+	s.appendTrailers()
 }
 
 func (s *downStream) onUpstreamResponseRecvFinished() {
@@ -877,16 +1091,11 @@ func (s *downStream) onUpstreamResponseRecvFinished() {
 }
 
 func (s *downStream) setupRetry(endStream bool) bool {
-	if !s.upstreamRequestSent {
-		return false
-	}
 	s.upstreamRequest.setupRetry = true
 
 	if !endStream {
 		s.upstreamRequest.resetStream()
 	}
-
-	s.upstreamRequest.requestSender = nil
 
 	// reset per req timer
 	if s.perRetryTimer != nil {
@@ -899,6 +1108,9 @@ func (s *downStream) setupRetry(endStream bool) bool {
 
 // Note: retry-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
 func (s *downStream) doRetry() {
+	// no reuse buffer
+	atomic.StoreUint32(&s.reuseBuffer, 0)
+
 	pool, err := s.initializeUpstreamConnectionPool(s)
 
 	if err != nil {
@@ -914,22 +1126,21 @@ func (s *downStream) doRetry() {
 	}
 
 	// if Data or Trailer exists, endStream should be false, else should be true
-	s.upstreamRequest.appendHeaders(s.downstreamReqHeaders,
-		s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
+	s.upstreamRequest.appendHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
-	if s.upstreamRequest != nil {
-		if s.downstreamReqDataBuf != nil {
-			s.downstreamReqDataBuf.Count(1)
-			s.upstreamRequest.appendData(s.downstreamReqDataBuf, s.downstreamReqTrailers == nil)
-		}
-
-		if s.downstreamReqTrailers != nil {
-			s.upstreamRequest.appendTrailers(s.downstreamReqTrailers)
-		}
-
-		// setup per try timeout timer
-		s.setupPerReqTimeout()
+	if s.downstreamReqDataBuf != nil {
+		s.upstreamRequest.appendData(s.downstreamReqTrailers == nil)
 	}
+
+	if s.downstreamReqTrailers != nil {
+		s.upstreamRequest.appendTrailers()
+	}
+
+	// setup per try timeout timer
+	s.setupPerReqTimeout()
+
+	s.upstreamRequestSent = true
+	s.downstreamRecvDone = true
 }
 
 // Downstream got reset in proxy context on scenario below:
@@ -947,41 +1158,41 @@ func (s *downStream) resetStream() {
 }
 
 func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
-	s.logger.Debugf("set hijack reply, conn = %d, id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
+	log.Proxy.Errorf(s.context, "[proxy] [downstream] set hijack reply, proxyId = %d, code = %d", s.ID, code)
 	if headers == nil {
-		s.logger.Warnf("hijack with no headers, conn = %d, id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
+		log.Proxy.Warnf(s.context, "[proxy] [downstream] hijack with no headers, proxyId = %d", s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
 	s.requestInfo.SetResponseCode(code)
 
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
-	s.appendHeaders(headers, true)
+	atomic.StoreUint32(&s.reuseBuffer, 0)
+	s.downstreamRespHeaders = headers
+	s.downstreamRespDataBuf = nil
+	s.downstreamRespTrailers = nil
+	s.directResponse = true
 }
 
 // TODO: rpc status code may be not matched
 // TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
 func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
-	s.logger.Debugf("set hijack reply with body, conn = %d, stream id = %d, code = %d", s.proxy.readCallbacks.Connection().ID(), s.ID, code)
+	log.Proxy.Errorf(s.context, "[proxy] [downstream] set hijack reply with body, proxyId = %d, code = %d", s.ID, code)
 	if headers == nil {
-		s.logger.Warnf("hijack with no headers, conn = %d, stream id = %d", s.proxy.readCallbacks.Connection().ID(), s.ID)
+		log.Proxy.Warnf(s.context, "[proxy] [downstream] hijack with no headers, proxyId = %d", s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
 	s.requestInfo.SetResponseCode(code)
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
-	s.appendHeaders(headers, false)
-	data := buffer.NewIoBufferString(body)
-	s.appendData(data, true)
+	atomic.StoreUint32(&s.reuseBuffer, 0)
+	s.downstreamRespHeaders = headers
+	s.downstreamRespDataBuf = buffer.NewIoBufferString(body)
+	s.downstreamRespTrailers = nil
+	s.directResponse = true
 }
 
 func (s *downStream) cleanUp() {
-	// reset upstream request
-	// if a downstream filter ends downstream before send to upstream, upstreamRequest will be nil
-	if s.upstreamRequest != nil {
-		s.upstreamRequest.requestSender = nil
-	}
-
 	// reset retry state
 	// if  a downstream filter ends downstream before send to upstream, retryState will be nil
 	if s.retryState != nil {
@@ -1008,13 +1219,13 @@ func (s *downStream) setBufferLimit(bufferLimit uint32) {
 	// todo
 }
 
-func (s *downStream) AddStreamReceiverFilter(filter types.StreamReceiverFilter) {
-	sf := newActiveStreamReceiverFilter(len(s.receiverFilters), s, filter)
+func (s *downStream) AddStreamReceiverFilter(filter types.StreamReceiverFilter, p types.Phase) {
+	sf := newActiveStreamReceiverFilter(s, filter, p)
 	s.receiverFilters = append(s.receiverFilters, sf)
 }
 
 func (s *downStream) AddStreamSenderFilter(filter types.StreamSenderFilter) {
-	sf := newActiveStreamSenderFilter(len(s.senderFilters), s, filter)
+	sf := newActiveStreamSenderFilter(s, filter)
 	s.senderFilters = append(s.senderFilters, sf)
 }
 
@@ -1050,6 +1261,10 @@ func (s *downStream) DownstreamHeaders() types.HeaderMap {
 	return s.downstreamReqHeaders
 }
 
+func (s *downStream) DownstreamContext() context.Context {
+	return s.context
+}
+
 func (s *downStream) giveStream() {
 	if s.snapshot != nil {
 		s.proxy.clusterManager.PutClusterSnapshot(s.snapshot)
@@ -1060,10 +1275,15 @@ func (s *downStream) giveStream() {
 	if atomic.LoadUint32(&s.upstreamReset) == 1 || atomic.LoadUint32(&s.downstreamReset) == 1 {
 		return
 	}
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] giveStream %p %+v", s, s)
+	}
+
 	// reset downstreamReqBuf
 	if s.downstreamReqDataBuf != nil {
 		if e := buffer.PutIoBuffer(s.downstreamReqDataBuf); e != nil {
-			s.logger.Errorf("PutIoBuffer error: %v", e)
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] PutIoBuffer error: %v", e)
 		}
 	}
 
@@ -1071,10 +1291,93 @@ func (s *downStream) giveStream() {
 	if ctx := buffer.PoolContext(s.context); ctx != nil {
 		ctx.Give()
 	}
-
 }
 
 // check if proxy process done
 func (s *downStream) processDone() bool {
-	return s.upstreamProcessDone || atomic.LoadUint32(&s.downstreamReset) == 1
+	return s.upstreamProcessDone || atomic.LoadUint32(&s.downstreamReset) == 1 || atomic.LoadUint32(&s.upstreamReset) == 1
+}
+
+func (s *downStream) sendNotify() {
+	select {
+	case s.notify <- struct{}{}:
+	default:
+	}
+}
+
+func (s *downStream) cleanNotify() {
+	select {
+	case <-s.notify:
+	default:
+	}
+}
+
+func (s *downStream) waitNotify(id uint32) (phase types.Phase, err error) {
+	if s.ID != id {
+		return types.End, types.ErrExit
+	}
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] waitNotify begin %p, proxyId = %d", s, s.ID)
+	}
+	select {
+	case <-s.notify:
+	}
+	return s.processError(id)
+}
+
+func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
+	if s.ID != id {
+		return types.End, types.ErrExit
+	}
+
+	phase = types.End
+
+	if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+		err = types.ErrExit
+		return
+	}
+
+	if atomic.LoadUint32(&s.upstreamReset) == 1 {
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] processError=upstreamReset, proxyId: %d", s.ID)
+		s.onUpstreamReset(s.resetReason)
+		err = types.ErrExit
+	}
+
+	if atomic.LoadUint32(&s.downstreamReset) == 1 {
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] processError=downstreamReset proxyId: %d", s.ID)
+		s.ResetStream(s.resetReason)
+		err = types.ErrExit
+		return
+	}
+
+	if s.directResponse {
+		s.directResponse = false
+		if s.oneway {
+			phase = types.Oneway
+		} else {
+			phase = types.UpFilter
+		}
+		err = types.ErrExit
+		return
+	}
+
+	if s.upstreamProcessDone {
+		err = types.ErrExit
+	}
+
+	if s.upstreamRequest != nil && s.upstreamRequest.setupRetry {
+		phase = types.Retry
+		err = types.ErrExit
+		return
+	}
+
+	if s.receiverFiltersAgain {
+		s.receiverFiltersAgain = false
+		phase = types.MatchRoute
+		err = types.ErrExit
+		return
+	}
+
+	return
 }

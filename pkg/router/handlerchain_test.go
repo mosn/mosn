@@ -129,9 +129,9 @@ type mockStatusHandler struct {
 	router types.Route
 }
 
-func (h *mockStatusHandler) IsAvailable(ctx context.Context, f func(context.Context, string) types.ClusterSnapshot) (types.ClusterSnapshot, types.HandlerStatus) {
+func (h *mockStatusHandler) IsAvailable(ctx context.Context, manager types.ClusterManager) (types.ClusterSnapshot, types.HandlerStatus) {
 	clusterName := h.Route().RouteRule().ClusterName()
-	snapshot := f(context.Background(), clusterName)
+	snapshot := manager.GetClusterSnapshot(context.Background(), clusterName)
 	return snapshot, h.status
 }
 func (h *mockStatusHandler) Route() types.Route {

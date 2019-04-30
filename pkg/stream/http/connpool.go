@@ -19,11 +19,12 @@ package http
 
 import (
 	"context"
+	"runtime/debug"
 	"sync"
 
-	"fmt"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
@@ -65,6 +66,10 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 
 func (p *connPool) Protocol() types.Protocol {
 	return protocol.HTTP1
+}
+
+func (p *connPool) CheckAndInit(ctx context.Context) bool {
+	return true
 }
 
 //由 PROXY 调用
@@ -202,9 +207,15 @@ func (p *connPool) createStreamClient(context context.Context, connData types.Cr
 func (p *connPool) report() {
 	// report
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			}
+		}()
+
 		for {
 			p.clientMux.Lock()
-			fmt.Printf("pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
+			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}

@@ -30,7 +30,9 @@ func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.Fi
 	json.Unmarshal(b, &chains)
 
 	routerConfig := v2.RouterConfiguration{
-		RouterConfigName: cfgName,
+		RouterConfigurationConfig: v2.RouterConfigurationConfig{
+			RouterConfigName: cfgName,
+		},
 		VirtualHosts: []*v2.VirtualHost{
 			&v2.VirtualHost{
 				Name:    "test",
@@ -45,9 +47,11 @@ func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.Fi
 	json.Unmarshal(b2, &chainsConnMng)
 
 	return v2.FilterChain{
-		Filters: []v2.Filter{
-			v2.Filter{Type: "proxy", Config: chains},
-			{Type: "connection_manager", Config: chainsConnMng},
+		FilterChainConfig: v2.FilterChainConfig{
+			Filters: []v2.Filter{
+				v2.Filter{Type: "proxy", Config: chains},
+				{Type: "connection_manager", Config: chainsConnMng},
+			},
 		},
 	}
 }
@@ -112,12 +116,10 @@ func NewWeightedCluster(name string, hosts []*WeightHost) v2.Cluster {
 func NewListener(name, addr string, chains []v2.FilterChain) v2.Listener {
 	return v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:           name,
-			AddrConfig:     addr,
-			BindToPort:     true,
-			LogPath:        MeshLogPath,
-			LogLevelConfig: MeshLogLevel,
-			FilterChains:   chains,
+			Name:         name,
+			AddrConfig:   addr,
+			BindToPort:   true,
+			FilterChains: chains,
 		},
 	}
 }

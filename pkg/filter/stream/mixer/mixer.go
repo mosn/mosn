@@ -100,23 +100,19 @@ func (f *mixerFilter) createRequestHandler() {
 	f.requestHandler = http.NewRequestHandler(f.serviceContext)
 }
 
-func (f *mixerFilter) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) types.StreamHeadersFilterStatus {
-	f.requestTotalSize += headers.ByteSize()
+func (f *mixerFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+	if headers != nil {
+		f.requestTotalSize += headers.ByteSize()
+		f.createRequestHandler()
+	}
+	if buf != nil {
+		f.requestTotalSize += uint64(buf.Len())
+	}
+	if trailers != nil {
+		f.requestTotalSize += trailers.ByteSize()
+	}
 
-	f.createRequestHandler()
-
-	return types.StreamHeadersFilterContinue
-}
-
-func (f *mixerFilter) OnReceiveData(ctx context.Context, buf types.IoBuffer, endStream bool) types.StreamDataFilterStatus {
-	f.requestTotalSize += uint64(buf.Len())
-
-	return types.StreamDataFilterContinue
-}
-
-func (f *mixerFilter) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) types.StreamTrailersFilterStatus {
-	f.requestTotalSize += trailers.ByteSize()
-	return types.StreamTrailersFilterContinue
+	return types.StreamFilterContinue
 }
 
 func (f *mixerFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
@@ -143,7 +139,7 @@ func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMa
 // CreateFilterChain for create mixer filter
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	filter := newMixerFilter(context, f.MixerConfig)
-	callbacks.AddStreamReceiverFilter(filter)
+	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
 	callbacks.AddStreamAccessLog(filter)
 }
 

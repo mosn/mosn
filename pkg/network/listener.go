@@ -40,11 +40,10 @@ type listener struct {
 	handOffRestoredDestinationConnections bool
 	cb                                    types.ListenerEventListener
 	rawl                                  *net.TCPListener
-	logger                                log.ErrorLogger
 	config                                *v2.Listener
 }
 
-func NewListener(lc *v2.Listener, logger log.ErrorLogger) types.Listener {
+func NewListener(lc *v2.Listener) types.Listener {
 
 	l := &listener{
 		name:                                  lc.Name,
@@ -53,7 +52,6 @@ func NewListener(lc *v2.Listener, logger log.ErrorLogger) types.Listener {
 		listenerTag:                           lc.ListenerTag,
 		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
 		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
-		logger: logger,
 		config: lc,
 	}
 
@@ -81,6 +79,11 @@ func (l *listener) Addr() net.Addr {
 }
 
 func (l *listener) Start(lctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+		}
+	}()
 
 	if l.bindToPort {
 		//call listen if not inherit
@@ -95,7 +98,7 @@ func (l *listener) Start(lctx context.Context) {
 		for {
 			if err := l.accept(lctx); err != nil {
 				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-					l.logger.Infof("listener %s stop accepting connections by deadline", l.name)
+					log.DefaultLogger.Infof("listener %s stop accepting connections by deadline", l.name)
 					return
 				} else if ope, ok := err.(*net.OpError); ok {
 					// not timeout error and not temporary, which means the error is non-recoverable
@@ -103,14 +106,14 @@ func (l *listener) Start(lctx context.Context) {
 					if !(ope.Timeout() && ope.Temporary()) {
 						// accept error raised by sockets closing
 						if ope.Op == "accept" {
-							l.logger.Infof("listener %s %s closed", l.name, l.Addr())
+							log.DefaultLogger.Infof("listener %s %s closed", l.name, l.Addr())
 						} else {
-							l.logger.Errorf("listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
+							log.DefaultLogger.Errorf("listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
 						}
 						return
 					}
 				} else {
-					l.logger.Errorf("listener %s occurs unknown error while accepting:%s", l.name, err.Error())
+					log.DefaultLogger.Errorf("listener %s occurs unknown error while accepting:%s", l.name, err.Error())
 				}
 			}
 		}
@@ -186,9 +189,7 @@ func (l *listener) accept(lctx context.Context) error {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				l.logger.Errorf("panic %v", p)
-
-				debug.PrintStack()
+				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 			}
 		}()
 

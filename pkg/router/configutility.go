@@ -18,14 +18,12 @@
 package router
 
 import (
-	"container/list"
 	"regexp"
 	"sort"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 var ConfigUtilityInst = &configUtility{}
@@ -37,45 +35,43 @@ type configUtility struct {
 
 // types.MatchHeaders
 func (cu *configUtility) MatchHeaders(requestHeaders types.HeaderMap, configHeaders []*types.HeaderData) bool {
-
-	// step 1: match name
-	// step 2: match value, if regex true, match pattern
-	log.DefaultLogger.Debugf("MatchHeaders, request headers are:%+v", requestHeaders)
-
-	for i, cfgHeaderData := range configHeaders {
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match header", requestHeaders)
+	}
+	for _, cfgHeaderData := range configHeaders {
 		cfgName := cfgHeaderData.Name.Get()
 		cfgValue := cfgHeaderData.Value
-		log.DefaultLogger.Debugf("MatchHeaders, router headers %d name : %s, value %s:  ", i, cfgName, cfgValue)
-
-		if value, ok := requestHeaders.Get(cfgName); ok {
-
-			if !cfgHeaderData.IsRegex {
-				if cfgValue != value {
-					return false
-				}
-			} else {
-				if !cfgHeaderData.RegexPattern.MatchString(value) {
-					return false
-				}
-			}
-		} else {
+		// if a condition is not matched, return false
+		// all condition matched, return true
+		value, ok := requestHeaders.Get(cfgName)
+		if !ok {
 			return false
 		}
+		if cfgHeaderData.IsRegex {
+			if !cfgHeaderData.RegexPattern.MatchString(value) {
+				return false
+			}
+		} else {
+			if cfgValue != value {
+				return false
+			}
+		}
 	}
-
 	return true
 }
 
 // types.MatchQueryParams
 func (cu *configUtility) MatchQueryParams(queryParams types.QueryParams, configQueryParams []types.QueryParameterMatcher) bool {
-
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match query params", queryParams)
+	}
+	// if a condition is not matched, return false
+	// all condition matched, return true
 	for _, configQueryParam := range configQueryParams {
-
 		if !configQueryParam.Matches(queryParams) {
 			return false
 		}
 	}
-
 	return true
 }
 
@@ -88,19 +84,15 @@ type queryParameterMatcher struct {
 
 func (qpm *queryParameterMatcher) Matches(requestQueryParams types.QueryParams) bool {
 	requestQueryValue, ok := requestQueryParams[qpm.name]
-
 	if !ok {
 		return false
 	}
-
 	if qpm.isRegex {
 		return qpm.regexPattern.MatchString(requestQueryValue)
 	}
-
 	if qpm.value == "" {
 		return true
 	}
-
 	return qpm.value == requestQueryValue
 }
 
@@ -113,24 +105,10 @@ func NewConfigImpl(routerConfig *v2.RouterConfiguration) *configImpl {
 }
 
 // Implementation of Config that reads from a proto file.
+// TODO: more action
 type configImpl struct {
-	name                  string
-	routeMatcher          routeMatcher
-	internalOnlyHeaders   *list.List
 	requestHeadersParser  *headerParser
 	responseHeadersParser *headerParser
-}
-
-func (ci *configImpl) Name() string {
-	return ci.name
-}
-
-func (ci *configImpl) MatchRoute(headers types.HeaderMap, randomValue uint64) types.Route {
-	return ci.routeMatcher.MatchRoute(headers, randomValue)
-}
-
-func (ci *configImpl) InternalOnlyHeaders() *list.List {
-	return ci.internalOnlyHeaders
 }
 
 // NewMetadataMatchCriteriaImpl
@@ -192,7 +170,7 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 	for k, v := range metadataMatches {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  k,
-			Value: utils.GenerateMD5Value(v),
+			Value: types.HashedValue(v),
 		}
 
 		if index, ok := existingMap[k]; ok {

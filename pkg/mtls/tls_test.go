@@ -176,7 +176,9 @@ func TestServerContextManagerWithMultipleCert(t *testing.T) {
 			return
 		}
 		fc := v2.FilterChain{
-			TLS: *cfg,
+			TLSContexts: []v2.TLSConfig{
+				*cfg,
+			},
 		}
 		filterChains = append(filterChains, fc)
 	}
@@ -266,7 +268,9 @@ func TestVerifyClient(t *testing.T) {
 	cfg.VerifyClient = true
 	filterChains := []v2.FilterChain{
 		{
-			TLS: *cfg,
+			TLSContexts: []v2.TLSConfig{
+				*cfg,
+			},
 		},
 	}
 	lc := &v2.Listener{}
@@ -354,7 +358,9 @@ func TestInspector(t *testing.T) {
 	cfg.VerifyClient = true
 	filterChains := []v2.FilterChain{
 		{
-			TLS: *cfg,
+			TLSContexts: []v2.TLSConfig{
+				*cfg,
+			},
 		},
 	}
 	lc := &v2.Listener{
@@ -511,7 +517,9 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 	serverConfig.ExtendVerify = extendVerify
 	filterChains := []v2.FilterChain{
 		{
-			TLS: *serverConfig,
+			TLSContexts: []v2.TLSConfig{
+				*serverConfig,
+			},
 		},
 	}
 	lc := &v2.Listener{}
@@ -607,7 +615,9 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 			return
 		}
 		fc := v2.FilterChain{
-			TLS: *cfg,
+			TLSContexts: []v2.TLSConfig{
+				*cfg,
+			},
 		}
 		filterChains = append(filterChains, fc)
 	}
@@ -678,7 +688,9 @@ func TestFallback(t *testing.T) {
 	}
 	filterChains := []v2.FilterChain{
 		{
-			TLS: cfg,
+			TLSContexts: []v2.TLSConfig{
+				cfg,
+			},
 		},
 	}
 	lc := &v2.Listener{}
@@ -701,6 +713,102 @@ func TestFallback(t *testing.T) {
 		t.Error("tls maanger is not fallabck")
 		return
 	}
+}
+
+// Test one filter chain contains multiple certificates
+func TestServerContextManagerWithMultipleCertInOneFilterChain(t *testing.T) {
+	testCases := []struct {
+		Info *certInfo
+		Addr string
+	}{
+		{Info: &certInfo{"Cert1", "RSA", "www.example.com"}, Addr: "www.example.com"},
+		{Info: &certInfo{"Cert2", "RSA", "*.example.com"}, Addr: "test.example.com"},
+		{Info: &certInfo{"Cert3", "P256", "*.com"}, Addr: "www.foo.com"},
+	}
+	tlsContexts := []v2.TLSConfig{}
+	for i, tc := range testCases {
+		cfg, err := tc.Info.CreateCertConfig()
+		if err != nil {
+			t.Errorf("#%d %v", i, err)
+			return
+		}
+		tlsContexts = append(tlsContexts, *cfg)
+	}
+	filterChains := []v2.FilterChain{
+		{
+			TLSContexts: tlsContexts,
+		},
+	}
+	lc := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			FilterChains: filterChains,
+		},
+	}
+	ctxMng, err := NewTLSServerContextManager(lc, nil, log.StartLogger)
+	if err != nil {
+		t.Errorf("create context manager failed %v", err)
+		return
+	}
+	server := MockServer{
+		Mng: ctxMng,
+		t:   t,
+	}
+	server.GoListenAndServe(t)
+	defer server.Close()
+	time.Sleep(time.Second) //wait server start
+	// request with different "servername"
+	// context manager just find a certificate to response
+	// the certificate may be not match the client
+	for i, tc := range testCases {
+		cfg := &v2.TLSConfig{
+			Status:       true,
+			ServerName:   tc.Addr,
+			InsecureSkip: true,
+		}
+		cltMng, err := NewTLSClientContextManager(cfg, nil)
+		if err != nil {
+			t.Errorf("create client context manager failed %v", err)
+			continue
+		}
+		resp, err := MockClient(t, server.Addr, cltMng)
+		if err != nil {
+			t.Errorf("#%d request server error %v", i, err)
+			continue
+		}
+
+		serverCN := resp.TLS.PeerCertificates[0].Subject.CommonName
+		if serverCN != tc.Info.CommonName {
+			t.Errorf("#%d expected request server config %s , but got %s", i, tc.Info.CommonName, serverCN)
+		}
+
+		ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+	}
+	// request a unknown server name, return the first certificate
+	cfg := &v2.TLSConfig{
+		Status:       true,
+		ServerName:   "www.example.net",
+		InsecureSkip: true,
+	}
+	cltMng, err := NewTLSClientContextManager(cfg, nil)
+	if err != nil {
+		t.Errorf("create client context manager failed %v", err)
+		return
+	}
+	resp, err := MockClient(t, server.Addr, cltMng)
+	if err != nil {
+		t.Errorf("request server error %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	serverCN := resp.TLS.PeerCertificates[0].Subject.CommonName
+	expected := testCases[0].Info.CommonName
+	if serverCN != expected {
+		t.Errorf("expected request server config  %s , but got %s", expected, serverCN)
+	}
+
+	ioutil.ReadAll(resp.Body)
 }
 
 func TestMain(m *testing.M) {

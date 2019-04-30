@@ -29,6 +29,7 @@ var (
 
 	MosnLogBasePath        = MosnBasePath + string(os.PathSeparator) + "logs"
 	MosnLogDefaultPath     = MosnLogBasePath + string(os.PathSeparator) + "mosn.log"
+	MosnLogProxyPath       = MosnLogBasePath + string(os.PathSeparator) + "proxy.log"
 	MosnPidDefaultFileName = MosnLogBasePath + string(os.PathSeparator) + "mosn.pid"
 
 	MosnConfigPath = MosnBasePath + string(os.PathSeparator) + "conf"
@@ -71,6 +72,6 @@ func InitDefaultPath(path string) {
 	TransferListenDomainSocket = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
 
 end:
-	os.MkdirAll(MosnLogBasePath, 0644)
-	os.MkdirAll(MosnConfigPath, 0644)
+	os.MkdirAll(MosnLogBasePath, 0755)
+	os.MkdirAll(MosnConfigPath, 0755)
 }

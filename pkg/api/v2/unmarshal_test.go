@@ -18,7 +18,11 @@
 package v2
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -146,8 +150,6 @@ func TestListenerUnmarshal(t *testing.T) {
 		"address": "127.0.0.1",
 		"bind_port": true,
 		"handoff_restoreddestination": true,
-		"log_path": "stdout",
-		"log_level": "TRACE",
 		"access_logs": [
 			{
 				"log_path":"stdout"
@@ -189,8 +191,6 @@ func TestListenerUnmarshal(t *testing.T) {
 		ln.AddrConfig == "127.0.0.1" &&
 		ln.BindToPort == true &&
 		ln.HandOffRestoredDestinationConnections == true &&
-		ln.LogPath == "stdout" &&
-		ln.LogLevelConfig == "TRACE" &&
 		ln.Inspector == true) {
 		t.Error("listener basic failed")
 	}
@@ -202,7 +202,7 @@ func TestListenerUnmarshal(t *testing.T) {
 	} else {
 		fc := ln.FilterChains[0]
 		if !(fc.FilterChainMatch == "test" &&
-			fc.TLS.Status == true) {
+			fc.TLSContexts[0].Status == true) {
 			t.Error("listener filterchains failed")
 		}
 		if len(fc.Filters) != 1 || fc.Filters[0].Type != "proxy" {
@@ -308,10 +308,7 @@ func TestRouterConfigUmaeshal(t *testing.T) {
 		vh := router.VirtualHosts[0]
 		if !(vh.Name != "virtual" &&
 			len(vh.Domains) == 1 &&
-			vh.Domains[0] == "*" &&
-			len(vh.VirtualClusters) == 1 &&
-			vh.VirtualClusters[0].Name == "vc" &&
-			vh.VirtualClusters[0].Pattern == "test") {
+			vh.Domains[0] == "*") {
 			t.Error("virtual host failed")
 		}
 		if len(vh.Routers) != 1 {
@@ -319,8 +316,6 @@ func TestRouterConfigUmaeshal(t *testing.T) {
 		} else {
 			router := vh.Routers[0]
 			if !(router.Match.Prefix == "/" &&
-				router.Match.Runtime.DefaultValue == 10 &&
-				router.Match.Runtime.RuntimeKey == "test" &&
 				len(router.Match.Headers) == 1 &&
 				router.Match.Headers[0].Name == "service" &&
 				router.Match.Headers[0].Value == "test") {
@@ -334,8 +329,7 @@ func TestRouterConfigUmaeshal(t *testing.T) {
 				router.Route.RetryPolicy.RetryTimeout == time.Minute &&
 				router.Route.RetryPolicy.RetryOn == true &&
 				router.Route.RetryPolicy.NumRetries == 10 &&
-				reflect.DeepEqual(meta, router.Metadata) &&
-				router.Decorator == "test") {
+				reflect.DeepEqual(meta, router.Metadata)) {
 				t.Error("virtual host failed")
 			}
 			if len(router.Route.WeightedClusters) != 1 {
@@ -347,10 +341,6 @@ func TestRouterConfigUmaeshal(t *testing.T) {
 					reflect.DeepEqual(meta, wc.Cluster.MetadataMatch)) {
 					t.Error("virtual host failed")
 				}
-			}
-			if !(router.Redirect.HostRedirect == "test" &&
-				router.Redirect.ResponseCode == 302) {
-				t.Error("virtual host failed")
 			}
 
 		}
@@ -536,5 +526,200 @@ func TestServiceRegistryInfoUnmarshal(t *testing.T) {
 		info.ServicePubInfo[0].Pub.ServiceName == "test" &&
 		info.ServicePubInfo[0].Pub.PubData == "foo") {
 		t.Error("service registry info failed")
+	}
+}
+
+func TestFilterChainUnmarshal(t *testing.T) {
+	defaultTLS := `{
+		"match": "test_default",
+		"filters": [
+			{
+				"type": "proxy"
+			}
+		]
+	}`
+	singleTLS := `{
+		"match": "test_single",
+		"tls_context": {
+			"status": true
+		},
+		"filters": [
+			{
+				"type": "proxy"
+			}
+		]
+	}`
+	multiTLS := `{
+		"match": "test_multi",
+		"tls_context_set": [
+			{
+				"status": true
+			},
+			{
+				"status": true
+			}
+		],
+		"filters": [
+			{
+				"type": "proxy"
+			}
+		]
+	}`
+	defaultChain := &FilterChain{}
+	if err := json.Unmarshal([]byte(defaultTLS), defaultChain); err != nil {
+		t.Fatalf("unmarshal default tls config error: %v", err)
+	}
+	if len(defaultChain.TLSContexts) != 1 || defaultChain.TLSContexts[0].Status {
+		t.Fatalf("unmarshal tls context unexpected")
+	}
+	for i, cfgStr := range []string{singleTLS, multiTLS} {
+		filterChain := &FilterChain{}
+		if err := json.Unmarshal([]byte(cfgStr), filterChain); err != nil {
+			t.Errorf("#%d unmarshal error: %v", i, err)
+			continue
+		}
+		if len(filterChain.TLSContexts) < 1 {
+			t.Errorf("#%d tls contexts unmarshal not expected, got %v", i, filterChain)
+		}
+		for _, ctx := range filterChain.TLSContexts {
+			if !ctx.Status {
+				t.Errorf("#%d tls contexts unmarshal failed", i)
+			}
+		}
+	}
+	// expected an error
+	duplicateTLS := `{
+		"match": "test_multi",
+		"tls_context": {
+			"status": true
+		},
+		"tls_context_set": [
+			{
+				"status": true
+			}
+		],
+		"filters": [
+			{
+				"type": "proxy"
+			}
+		]
+	}
+	`
+	errCompare := func(e error) bool {
+		if e == nil {
+			return false
+		}
+		return strings.Contains(e.Error(), ErrDuplicateTLSConfig.Error())
+	}
+	filterChain := &FilterChain{}
+	if err := json.Unmarshal([]byte(duplicateTLS), filterChain); !errCompare(err) {
+		t.Errorf("expected a duplicate error, but not, got: %v", err)
+	}
+}
+
+func TestFilterChainMarshal(t *testing.T) {
+	filterChain := &FilterChain{
+		TLSContexts: []TLSConfig{
+			{
+				Status: true,
+			},
+		},
+	}
+	b, err := json.Marshal(filterChain)
+	if err != nil {
+		t.Fatal("marshal filter chain error: ", err)
+	}
+	expectedStr := `{"tls_context_set":[{"status":true,"fall_back":false}]}`
+	if string(b) != expectedStr {
+		t.Error("marshal filter chain unexpected, got: ", string(b))
+	}
+}
+
+func TestRouterConfigConflict(t *testing.T) {
+	routerConfig := `{
+		"router_config_name":"test_router",
+		"router_configs":"/tmp/routers/test_routers/",
+		"virtual_hosts": [
+			{
+				"name": "virtualhost"
+			}
+		]
+	}`
+	errCompare := func(e error) bool {
+		if e == nil {
+			return false
+		}
+		return strings.Contains(e.Error(), ErrDuplicateStaticAndDynamic.Error())
+	}
+	if err := json.Unmarshal([]byte(routerConfig), &RouterConfiguration{}); !errCompare(err) {
+		t.Fatalf("test config conflict with both dynamic mode and static mode failed, get error: %v", err)
+	}
+}
+
+func TestRouterConfigDynamicModeParse(t *testing.T) {
+	routerPath := "/tmp/routers/test_routers"
+	os.RemoveAll(routerPath)
+	if err := os.MkdirAll(routerPath, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// dynamic mode
+	// write some files
+	virtualHostConfigs := []string{
+		`{
+			"name": "virtualhost_0"
+		}`,
+		`{
+			"name": "virtualhost_1"
+		}`,
+	}
+	for i, vh := range virtualHostConfigs {
+		data := []byte(vh)
+		fileName := fmt.Sprintf("%s/virtualhost_%d.json", routerPath, i)
+		if err := ioutil.WriteFile(fileName, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// read dynamic mode config
+	routerConfig := `{
+		"router_config_name":"test_router",
+		"router_configs":"/tmp/routers/test_routers/"
+	}`
+	testConfig := &RouterConfiguration{}
+	if err := json.Unmarshal([]byte(routerConfig), testConfig); err != nil {
+		t.Fatal(err)
+	}
+	// verify
+	if len(testConfig.VirtualHosts) != 2 {
+		t.Fatalf("virtual host parsed not enough, got: %v", testConfig.VirtualHosts)
+	}
+	// add a new virtualhost
+	testConfig.VirtualHosts = append(testConfig.VirtualHosts, &VirtualHost{
+		Domains: []string{"*"},
+	})
+	// dump json
+	if _, err := json.Marshal(testConfig); err != nil {
+		t.Fatal(err)
+	}
+	// verify
+	files, err := ioutil.ReadDir(routerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 3 {
+		t.Fatalf("new virtual host is not dumped, just got %d files", len(files))
+	}
+	// test delete virtualhost
+	testConfig.VirtualHosts = testConfig.VirtualHosts[:1]
+	// dump json
+	if _, err := json.Marshal(testConfig); err != nil {
+		t.Fatal(err)
+	}
+	// verify
+	files, err = ioutil.ReadDir(routerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("new virtual host is not dumped, just got %d files", len(files))
 	}
 }

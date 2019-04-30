@@ -34,11 +34,10 @@ var percents = []float64{0.5, 0.75, 0.95, 0.99, 0.999}
 type NamespaceData map[string]string
 
 type consoleSink struct {
-	writer io.Writer
 }
 
 // ~ MetricsSink
-func (sink *consoleSink) Flush(ms []types.Metrics) {
+func (sink *consoleSink) Flush(writer io.Writer, ms []types.Metrics) {
 	// type -> namespace -> key -> value
 	all := make(map[string]map[string]NamespaceData)
 
@@ -64,8 +63,8 @@ func (sink *consoleSink) Flush(ms []types.Metrics) {
 				namespaceData[key] = strconv.FormatInt(metric.Value(), 10)
 			case metrics.Histogram:
 				h := metric.Snapshot()
-				namespaceData[key+".min"] = strconv.FormatInt(h.Min(), 10)
-				namespaceData[key+".max"] = strconv.FormatInt(h.Max(), 10)
+				namespaceData[key+"_min"] = strconv.FormatInt(h.Min(), 10)
+				namespaceData[key+"_max"] = strconv.FormatInt(h.Max(), 10)
 			default: //unsupport metrics, ignore
 				return
 			}
@@ -73,15 +72,13 @@ func (sink *consoleSink) Flush(ms []types.Metrics) {
 	}
 	//TODO: performance optimize
 	b, _ := json.MarshalIndent(all, "", "\t")
-	sink.writer.Write(b)
+	writer.Write(b)
 }
 
 // NewConsoleSink returns sink that convert metrics into human readable format
 // Note: This func is not registered into sink factory, and should be use in certain scene.
-func NewConsoleSink(writer io.Writer) types.MetricsSink {
-	return &consoleSink{
-		writer: writer,
-	}
+func NewConsoleSink() types.MetricsSink {
+	return &consoleSink{}
 }
 
 func makeNamespace(keys, vals []string) (namespace string) {

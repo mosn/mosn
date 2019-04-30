@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-import (
-	"github.com/AlexStocks/goext/strings"
-)
-
 // This log writer sends output to a socket
 type SocketLogWriter struct {
 	rec chan *LogRecord
@@ -31,7 +27,7 @@ func (w *SocketLogWriter) LogWrite(rec *LogRecord) {
 			//}
 			//fmt.Printf("sock log channel has been closed. " + string(js) + "\n")
 			// recJson, _ := json.Marshal(rec)
-			fmt.Printf("sock log channel has been closed. " + gxstrings.String(rec.JSON()) + "\n")
+			fmt.Printf("sock log channel has been closed. " + String(rec.JSON()) + "\n")
 		}
 	}()
 

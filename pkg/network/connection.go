@@ -19,6 +19,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"math/rand"
 	"net"
@@ -35,12 +36,13 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
-	"fmt"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 // Network related const
 const (
-	ConnectionCloseDebugMsg   = "Close connection %d, event %s, type %s, data read %d, data write %d"
+	ConnectionCloseDebugMsg   = "Close connection %d, event %s, type %s"
 	DefaultBufferReadCapacity = 1 << 0
 )
 
@@ -90,12 +92,10 @@ type connection struct {
 	connected uint32
 	startOnce sync.Once
 	eventLoop *eventLoop
-
-	logger log.ErrorLogger
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
-func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}, logger log.ErrorLogger) types.Connection {
+func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}) types.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
@@ -117,25 +117,24 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 			WriteTotal:    metrics.NewCounter(),
 			WriteBuffered: metrics.NewGauge(),
 		},
-		logger: logger,
 	}
 
 	// store fd
-	if ctx.Value(types.ContextKeyConnectionFd) != nil {
-		conn.file = ctx.Value(types.ContextKeyConnectionFd).(*os.File)
+	if val := mosnctx.Get(ctx, types.ContextKeyConnectionFd); val != nil {
+		conn.file = val.(*os.File)
 	}
 
 	// transfer old mosn connection
-	if ctx.Value(types.ContextKeyAcceptChan) != nil {
-		if ctx.Value(types.ContextKeyAcceptBuffer) != nil {
-			buf := ctx.Value(types.ContextKeyAcceptBuffer).([]byte)
+	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
+		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(len(buf))
 			conn.readBuffer.Write(buf)
 		}
 
-		ch := ctx.Value(types.ContextKeyAcceptChan).(chan types.Connection)
+		ch := val.(chan types.Connection)
 		ch <- conn
-		logger.Infof("NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Len())
+		log.DefaultLogger.Infof("NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Len())
 	}
 
 	conn.filterManager = newFilterManager(conn)
@@ -185,7 +184,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 						c.Close(types.NoFlush, types.OnReadErrClose)
 					}
 
-					c.logger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
+					log.DefaultLogger.Errorf("Error on read. Connection = %d, Remote Address = %s, err = %s",
 						c.id, c.RemoteAddr().String(), err)
 
 					return false
@@ -200,14 +199,14 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 		},
 
 		onHup: func() bool {
-			c.logger.Errorf("ReadHup error. Connection = %d, Remote Address = %s", c.id, c.RemoteAddr().String())
+			log.DefaultLogger.Errorf("ReadHup error. Connection = %d, Remote Address = %s", c.id, c.RemoteAddr().String())
 			c.Close(types.NoFlush, types.RemoteClose)
 			return false
 		},
 	})
 
 	if err != nil {
-		c.logger.Errorf("conn %d register read failed:%s", c.id, err.Error())
+		log.DefaultLogger.Errorf("conn %d register read failed:%s", c.id, err.Error())
 	}
 }
 
@@ -217,10 +216,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				c.logger.Errorf("panic %v", p)
-
-				debug.PrintStack()
-
+				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 				c.startReadLoop()
 			}
 		}()
@@ -231,9 +227,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				c.logger.Errorf("panic %v", p)
-
-				debug.PrintStack()
+				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 
 				c.startWriteLoop()
 			}
@@ -263,7 +257,10 @@ func (c *connection) scheduleWrite() {
 
 			for i := 0; i < 10; i++ {
 				select {
-				case buf := <-c.writeBufferChan:
+				case buf, ok := <-c.writeBufferChan:
+					if !ok {
+						return
+					}
 					c.appendBuffer(buf)
 				default:
 				}
@@ -278,7 +275,7 @@ func (c *connection) scheduleWrite() {
 					// on non-timeout error
 					c.Close(types.NoFlush, types.OnWriteErrClose)
 				}
-				c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
+				log.DefaultLogger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s",
 					c.id, c.RemoteAddr().String(), err)
 			}
 
@@ -302,12 +299,12 @@ func (c *connection) startReadLoop() {
 				if c.transferCallbacks != nil && c.transferCallbacks() {
 					randTime := time.Duration(rand.Intn(int(TransferTimeout.Nanoseconds())))
 					transferTime = time.Now().Add(TransferTimeout).Add(randTime)
-					c.logger.Infof("transferTime: Wait %d Second", (TransferTimeout+randTime)/1e9)
+					log.DefaultLogger.Infof("transferTime: Wait %d Second", (TransferTimeout+randTime)/1e9)
 				} else {
 					// set a long time, not transfer connection, wait mosn exit.
 					transferTime = time.Now().Add(10 * TransferTimeout)
-					c.logger.Infof("not support transfer connection, Connection = %d, Local Address = %s, Remote Address = %s",
-						c.id, c.rawConnection.LocalAddr().String(), c.RemoteAddr().String())
+					log.DefaultLogger.Infof("not support transfer connection, Connection = %d, Local Address = %+v, Remote Address = %+v",
+						c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 				}
 			} else {
 				if transferTime.Before(time.Now()) {
@@ -332,14 +329,21 @@ func (c *connection) startReadLoop() {
 						}
 						continue
 					}
+
+					// normal close or health check, modify log level
+					if c.lastBytesSizeRead == 0 || err == io.EOF {
+						log.DefaultLogger.Debugf("Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
+							c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
+					} else {
+						log.DefaultLogger.Errorf("Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
+							c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
+					}
+
 					if err == io.EOF {
 						c.Close(types.NoFlush, types.RemoteClose)
 					} else {
 						c.Close(types.NoFlush, types.OnReadErrClose)
 					}
-
-					c.logger.Errorf("Error on read. Connection = %d, Local Address = %s, Remote Address = %s, err = %s",
-						c.id, c.rawConnection.LocalAddr().String(), c.RemoteAddr().String(), err)
 
 					return
 				}
@@ -422,7 +426,8 @@ func (c *connection) onRead() {
 func (c *connection) Write(buffers ...types.IoBuffer) error {
 	defer func() {
 		if r := recover(); r != nil {
-			c.logger.Errorf("Write panic %v", r)
+			log.DefaultLogger.Errorf("connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v",
+				c.id, c.LocalAddr(), c.RemoteAddr())
 		}
 	}()
 
@@ -433,18 +438,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 	}
 
 	if !UseNetpollMode {
-		select {
-		case c.writeBufferChan <- &buffers:
-		default:
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						c.logger.Errorf("Write panic %v", r)
-					}
-				}()
-				c.writeBufferChan <- &buffers
-			}()
-		}
+		c.writeBufferChan <- &buffers
 	} else {
 		if atomic.LoadUint32(&c.connected) == 1 {
 			return fmt.Errorf("can note schedule write on the un-connected connection %d", c.id)
@@ -458,8 +452,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 
 	wait:
-	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -492,13 +486,19 @@ func (c *connection) startWriteLoop() {
 			if id != transferErr {
 				goto transfer
 			}
-		case buf := <-c.writeBufferChan:
+		case buf, ok := <-c.writeBufferChan:
+			if !ok {
+				return
+			}
 			c.appendBuffer(buf)
 
 			//todo: dynamic set loop nums
 			for i := 0; i < 10; i++ {
 				select {
-				case buf := <-c.writeBufferChan:
+				case buf, ok := <-c.writeBufferChan:
+					if !ok {
+						return
+					}
 					c.appendBuffer(buf)
 				default:
 				}
@@ -541,20 +541,25 @@ func (c *connection) startWriteLoop() {
 				c.Close(types.NoFlush, types.OnWriteErrClose)
 			}
 
-			c.logger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
+			log.DefaultLogger.Errorf("Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
 				c.id, c.RemoteAddr().String(), err, c)
 
 			return
 		}
+
+		runtime.Gosched()
 	}
 
 transfer:
-	c.logger.Infof("TransferWrite begin")
+	log.DefaultLogger.Infof("TransferWrite begin")
 	for {
 		select {
 		case <-c.internalStopChan:
 			return
-		case buf := <-c.writeBufferChan:
+		case buf, ok := <-c.writeBufferChan:
+			if !ok {
+				return
+			}
 			c.appendBuffer(buf)
 			transferWrite(c, id)
 		}
@@ -601,7 +606,7 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 			err = buffer.EOF
 		}
 		if e := buffer.PutIoBuffer(buf); e != nil {
-			c.logger.Errorf("PutIoBuffer error: %v", e)
+			log.DefaultLogger.Errorf("PutIoBuffer error: %v", e)
 		}
 	}
 	c.ioBuffers = c.ioBuffers[:0]
@@ -642,13 +647,13 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	// connection failed in client mode
-	if reflect.ValueOf(c.rawConnection).IsNil() {
+	if c.rawConnection == nil || reflect.ValueOf(c.rawConnection).IsNil() {
 		return nil
 	}
 
 	// shutdown read first
 	if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
-		c.logger.Debugf("Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
+		log.DefaultLogger.Debugf("Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
 		rawc.CloseRead()
 	}
 
@@ -666,8 +671,7 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 
 	c.rawConnection.Close()
 
-	c.logger.Debugf(ConnectionCloseDebugMsg, c.id, eventType,
-		ccType, c.stats.ReadTotal.Count(), c.stats.WriteTotal.Count())
+	log.DefaultLogger.Debugf(ConnectionCloseDebugMsg, c.id, eventType, ccType)
 
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
@@ -796,8 +800,7 @@ type clientConnection struct {
 }
 
 // NewClientConnection new client-side connection
-func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr,
-	stopChan chan struct{}, logger log.ErrorLogger) types.ClientConnection {
+func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{
@@ -817,7 +820,6 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 				WriteTotal:    metrics.NewCounter(),
 				WriteBuffered: metrics.NewGauge(),
 			},
-			logger: logger,
 			tlsMng: tlsMng,
 		},
 	}
@@ -829,17 +831,9 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 
 func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 	cc.connectOnce.Do(func() {
-		var localTCPAddr *net.TCPAddr
-
-		if cc.localAddr != nil {
-			localTCPAddr, err = net.ResolveTCPAddr("tcp", cc.localAddr.String())
-		}
-
-		var remoteTCPAddr *net.TCPAddr
-		remoteTCPAddr, err = net.ResolveTCPAddr("tcp", cc.remoteAddr.String())
-
-		cc.rawConnection, err = net.DialTCP("tcp", localTCPAddr, remoteTCPAddr)
 		var event types.ConnectionEvent
+
+		cc.rawConnection, err = net.DialTimeout("tcp", cc.RemoteAddr().String(), time.Second*3)
 
 		if err != nil {
 			if err == io.EOF {
@@ -874,7 +868,10 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 		}
 
-		cc.connection.logger.Debugf("connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[network][conn] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
+		}
+
 		for _, cccb := range cc.connCallbacks {
 			cccb.OnEvent(event)
 		}
