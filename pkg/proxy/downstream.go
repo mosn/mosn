@@ -135,11 +135,11 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
 
-	if responseSender != nil {
+	if responseSender == nil || reflect.ValueOf(responseSender).IsNil() {
+		stream.oneway = true
+	} else {
 		stream.responseSender = responseSender
 		stream.responseSender.GetStream().AddEventListener(stream)
-	} else {
-		stream.oneway = true
 	}
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)

@@ -217,7 +217,8 @@ func (c *connection) startRWLoop(lctx context.Context) {
 		defer func() {
 			if p := recover(); p != nil {
 				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
-				c.startReadLoop()
+
+				c.Close(types.NoFlush, types.LocalClose)
 			}
 		}()
 
@@ -229,7 +230,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 			if p := recover(); p != nil {
 				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 
-				c.startWriteLoop()
+				c.Close(types.NoFlush, types.LocalClose)
 			}
 		}()
 
@@ -637,6 +638,12 @@ func (c *connection) writeBufLen() (bufLen int) {
 }
 
 func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.ConnectionEvent) error {
+	defer func() {
+		if p := recover(); p != nil {
+			log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
+		}
+	}()
+
 	if ccType == types.FlushWrite {
 		c.Write(buffer.NewIoBufferEOF())
 		return nil
