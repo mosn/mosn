@@ -22,9 +22,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"syscall"
+
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
@@ -51,7 +53,7 @@ func SetPid(pid string) {
 	if pid == "" {
 		pidFile = types.MosnPidDefaultFileName
 	} else {
-		if err := os.MkdirAll(filepath.Dir(pid), 0644); err != nil {
+		if err := os.MkdirAll(filepath.Dir(pid), 0755); err != nil {
 			pidFile = types.MosnPidDefaultFileName
 		} else {
 			pidFile = pid
@@ -76,6 +78,11 @@ func catchSignals() {
 
 func catchSignalsCrossPlatform() {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			}
+		}()
 		sigchan := make(chan os.Signal, 1)
 		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP,
 			syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
@@ -122,6 +129,11 @@ func catchSignalsCrossPlatform() {
 
 func catchSignalsPosix() {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			}
+		}()
 		shutdown := make(chan os.Signal, 1)
 		signal.Notify(shutdown, os.Interrupt)
 
@@ -141,6 +153,11 @@ func catchSignalsPosix() {
 			}
 
 			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+					}
+				}()
 				os.Exit(ExecuteShutdownCallbacks("SIGINT"))
 			}()
 		}

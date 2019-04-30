@@ -435,12 +435,12 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 	for i := 0; i < cycleTimes; i++ {
 		host := clusterSnapshot.loadbalancer.ChooseHost(balancerContext)
 		if host == nil {
-			return nil, fmt.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil")
+			return nil, fmt.Errorf("[cluster][manager] clusterSnapshot.loadbalancer.ChooseHost is nil")
 		}
 
 		addr := host.AddressString()
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(" clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.clusterInfo.Name())
+			log.DefaultLogger.Debugf("[cluster][manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.clusterInfo.Name())
 		}
 		value, _ := cm.protocolConnPool.Load(protocol)
 
@@ -452,7 +452,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			}
 			pools[i] = pool
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("cluster host %s is not active", addr)
+				log.DefaultLogger.Debugf("[cluster][manager] cluster host %s is not active", addr)
 			}
 
 		} else {

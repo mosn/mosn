@@ -398,9 +398,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	if handOffRestoredDestinationConnections {
 		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 		arc.handOffRestoredDestinationConnections = true
-		log.DefaultLogger.Infof("accept restored destination connection from:%s", al.listener.Addr().String())
-	} else {
-		log.DefaultLogger.Infof("accept connection from:%s", al.listener.Addr().String())
+		log.DefaultLogger.Debugf("[network][listener] accept restored destination connection from %s, remote addr:%s, origin remote addr:%s", al.listener.Addr().String(), rawc.RemoteAddr().String(), oriRemoteAddr.String())
 	}
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
@@ -447,7 +445,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	atomic.AddInt64(&al.handler.numConnections, 1)
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[network][%s:%d] new downstream connection %d accepted", al.listenIP, al.listenPort, conn.ID())
+		log.DefaultLogger.Debugf("[network][listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
 	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream

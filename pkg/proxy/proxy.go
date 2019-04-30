@@ -103,13 +103,13 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
 	if err == nil {
-		log.DefaultLogger.Tracef("proxy extend config = %v", proxy.config.ExtendConfig)
+		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
 		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
 		proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
-		log.DefaultLogger.Tracef("proxy extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+		log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
 	} else {
-		log.DefaultLogger.Errorf("get proxy extend config fail = %v", err)
+		log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
 	}
 
 	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
@@ -118,7 +118,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
 	} else {
-		log.DefaultLogger.Errorf("RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
+		log.DefaultLogger.Errorf("[proxy] RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
 	}
 
 	proxy.downstreamListener = &downstreamCallbacks{
@@ -144,11 +144,11 @@ func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 			} else {
 				size = buf.Len()
 			}
-			log.DefaultLogger.Errorf("Protocol Auto error magic :%v", buf.Bytes()[:size])
+			log.DefaultLogger.Errorf("[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
 			p.readCallbacks.Connection().Close(types.NoFlush, types.OnReadErrClose)
 			return types.Stop
 		}
-		log.DefaultLogger.Debugf("Protoctol Auto: %v", protocol)
+		log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
 		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
 	}
 	p.serverStreamConn.Dispatch(buf)
@@ -209,13 +209,14 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, spanBuilder types.SpanBuilder) types.StreamReceiveListener {
-	stream := newActiveStream(ctx, p, responseSender, spanBuilder)
+func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
+	stream := newActiveStream(ctx, p, responseSender, span)
 
 	if ff := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("there is %d stream filters in config", len(ffs))
+
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
 		}
 
 		for _, f := range ffs {

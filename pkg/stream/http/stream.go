@@ -34,6 +34,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
+	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
 	"io"
@@ -196,8 +197,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("http client serve goroutine panic %v", p)
-				debug.PrintStack()
+				log.Proxy.Errorf(csc.context,"[stream] [http] client serve goroutine panic %v\n%s", p, string(debug.Stack()))
 
 				csc.serve()
 			}
@@ -225,11 +225,14 @@ func (conn *clientStreamConnection) serve() {
 		err := s.response.Read(conn.br)
 		if err != nil {
 			if s != nil {
+				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
 				s.ResetStream(types.StreamRemoteReset)
-				log.DefaultLogger.Errorf("Http client codec goroutine error: %s", err)
-
 			}
 			return
+		}
+
+		if log.Proxy.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
 		}
 
 		// 2. response processing
@@ -290,7 +293,7 @@ func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
-	contextManager contextManager
+	contextManager *str.ContextManager
 
 	close bool
 
@@ -308,12 +311,12 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 			bufChan:    make(chan types.IoBuffer),
 			connClosed: make(chan bool, 1),
 		},
-		contextManager:           contextManager{base: ctx},
+		contextManager:           str.NewContextManager(ctx),
 		serverStreamConnListener: callbacks,
 	}
 
 	// init first context
-	ssc.contextManager.next()
+	ssc.contextManager.Next()
 
 	ssc.br = bufio.NewReader(ssc)
 	ssc.bw = bufio.NewWriter(ssc)
@@ -330,8 +333,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("http server serve goroutine panic %v", p)
-				debug.PrintStack()
+				log.Proxy.Errorf(ssc.context, "[stream] [http] server serve goroutine panic %v\n%s", p, string(debug.Stack()))
 
 				ssc.serve()
 			}
@@ -353,7 +355,7 @@ func (conn *serverStreamConnection) OnEvent(event types.ConnectionEvent) {
 func (conn *serverStreamConnection) serve() {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
-		ctx := conn.contextManager.curr
+		ctx := conn.contextManager.Get()
 		buffers := httpBuffersByContext(ctx)
 		request := &buffers.serverRequest
 
@@ -388,17 +390,28 @@ func (conn *serverStreamConnection) serve() {
 
 		id := protocol.GenerateID()
 		s := &buffers.serverStream
+
 		// 4. request processing
 		s.stream = stream{
 			id:       id,
-			ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
+			ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
 			request:  request,
 			response: &buffers.serverResponse,
 		}
 		s.connection = conn
 		s.responseDoneChan = make(chan bool, 1)
 
-		s.receiver = conn.serverStreamConnListener.NewStreamDetect(s.stream.ctx, s, spanBuilder)
+		var span types.Span
+		if trace.IsTracingEnabled() {
+			span = spanBuilder.BuildSpan(ctx, request)
+		}
+		s.stream.ctx = s.connection.contextManager.InjectTrace(ctx, span)
+
+		if log.Proxy.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(s.stream.ctx, "[stream] [http] new stream detect, requestId = %v", s.stream.id)
+		}
+
+		s.receiver = conn.serverStreamConnListener.NewStreamDetect(s.stream.ctx, s, span)
 
 		conn.mutex.Lock()
 		conn.stream = s
@@ -415,7 +428,7 @@ func (conn *serverStreamConnection) serve() {
 			return
 		}
 
-		conn.contextManager.next()
+		conn.contextManager.Next()
 	}
 }
 
@@ -520,7 +533,11 @@ func (s *clientStream) ReadDisable(disable bool) {
 
 func (s *clientStream) doSend() {
 	if _, err := s.request.WriteTo(s.connection); err != nil {
-		log.DefaultLogger.Errorf("http1 client stream send error: %+s", err)
+		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send client request error: %+v", err)
+	} else {
+		if log.Proxy.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
+		}
 	}
 }
 
@@ -532,8 +549,6 @@ func (s *clientStream) handleResponse() {
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
 		header.Set(types.HeaderStatus, status)
-
-		log.DefaultLogger.Debugf("remote:%s, status:%s", s.connection.conn.RemoteAddr(), status)
 
 		hasData := true
 		if len(s.response.Body()) == 0 {
@@ -660,7 +675,13 @@ func (s *serverStream) ReadDisable(disable bool) {
 }
 
 func (s *serverStream) doSend() {
-	s.response.WriteTo(s.connection)
+	if _, err := s.response.WriteTo(s.connection); err != nil {
+		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send server response error: %+v", err)
+	} else {
+		if log.Proxy.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(s.stream.ctx, "[stream] [http] send server response, requestId = %v", s.stream.id)
+		}
+	}
 }
 
 func (s *serverStream) handleRequest() {

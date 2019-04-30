@@ -134,7 +134,39 @@ func TestAccessLogDisable(t *testing.T) {
 	if b, err := ioutil.ReadFile(logName); err != nil || len(b) == 0 {
 		t.Fatalf("verify log file failed, data len: %d, error: %v", len(b), err)
 	}
+}
 
+func TestAccessLogManage(t *testing.T) {
+	defer CloseAll()
+	DefaultDisableAccessLog = false
+	format := "%StartTime% %ResponseFlag%"
+	var logs []types.AccessLog
+	for i := 0; i < 100; i++ {
+		logName := fmt.Sprintf("/tmp/accesslog.%d.log", i)
+		lg, err := NewAccessLog(logName, nil, format)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logs = append(logs, lg)
+	}
+	DisableAllAccessLog()
+	// new access log is auto disabled
+	for i := 200; i < 300; i++ {
+		logName := fmt.Sprintf("/tmp/accesslog.%d.log", i)
+		lg, err := NewAccessLog(logName, nil, format)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logs = append(logs, lg)
+	}
+	// verify
+	// all accesslog is disabled
+	for _, lg := range logs {
+		alg := lg.(*accesslog)
+		if !alg.logger.disable {
+			t.Fatal("some access log is enabled")
+		}
+	}
 }
 
 func BenchmarkAccessLog(b *testing.B) {

@@ -216,10 +216,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("panic %v", p)
-
-				debug.PrintStack()
-
+				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 				c.startReadLoop()
 			}
 		}()
@@ -230,9 +227,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("panic %v", p)
-
-				debug.PrintStack()
+				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
 
 				c.startWriteLoop()
 			}
@@ -874,7 +869,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 		}
 
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
+			log.DefaultLogger.Debugf("[network][conn] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
 		}
 
 		for _, cccb := range cc.connCallbacks {

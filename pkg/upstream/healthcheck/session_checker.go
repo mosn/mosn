@@ -18,6 +18,7 @@
 package healthcheck
 
 import (
+	"runtime/debug"
 	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -60,6 +61,9 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *se
 
 func (c *sessionChecker) Start() {
 	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+		}
 		// stop all the timer when start is finished
 		c.checkTimer.Stop()
 		c.checkTimeout.Stop()

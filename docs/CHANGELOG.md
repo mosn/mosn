@@ -1,6 +1,48 @@
 # Changelog
 
 
+## 0.4.2
+
+### New Features
+
+- Support new config mode
+  - Clusters config can be setted as a file path
+  - Route config can be setted as a file path
+  - Support TLS Contexts configuartion
+  - Compatible with version 0.4.1
+- Support mosn information metrics
+  - mosn version
+  - listen address
+  - go version
+  - mosn state code
+- Support metrics sink filter
+- Support register callback functions for mosn state changed
+- Support request oneway
+- Support batch update log level and close accesslog 
+
+### Refatcor
+
+- Refatcored proxy
+  - Handle each stream with a goroutine
+  - Use states machine instead of callback
+- Refatcored connection pool choose logic
+  - Try to choose a active connection pool
+
+### Performance Optimize
+
+- Optimize metrics flush 
+- Optimize errorlog write
+- Optimize sofarpc protocol codec
+- Optimize context usage
+
+### Bug Fix
+
+- Fix json marshal bug
+- Fix http1 cause goroutines leak bug
+- Fix io write casue panic bug
+- Fix host info in admin store is not deduplicated bug
+
+
 ## 0.4.1
 
 ### Refatcor

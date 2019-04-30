@@ -55,7 +55,7 @@ func (c *boltCodecV2) Encode(ctx context.Context, model interface{}) (types.IoBu
 	case *sofarpc.BoltResponseV2:
 		return encodeResponseV2(ctx, cmd)
 	default:
-		log.DefaultLogger.Errorf("[protocol][encode][boltv2] unknown object : %+v", model)
+		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv2 encode with unknown command : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
@@ -253,8 +253,8 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					data.Drain(read)
 				} else {
 					// not enough data
-					if log.DefaultLogger.GetLogLevel() > log.DEBUG {
-						log.DefaultLogger.Debugf("[protocol][decode][boltv2] no enough data for request")
+					if log.Proxy.GetLogLevel() >= log.DEBUG {
+						log.Proxy.Debugf(ctx, "[protocol][decode] boltv2 decode request, no enough data for fully decode")
 					}
 					return cmd, nil
 				}
@@ -283,8 +283,8 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 
 				sofarpc.DeserializeBoltRequest(ctx, &request.BoltRequest)
 
-				if log.DefaultLogger.GetLogLevel() > log.DEBUG {
-					log.DefaultLogger.Debugf("[protocol][decode][boltv2] decode request:%+v", request)
+				if log.Proxy.GetLogLevel() >= log.DEBUG {
+					log.Proxy.Debugf(ctx, "[protocol][sofarpc] boltv2 decode request:%+v", request)
 				}
 
 				cmd = request
@@ -323,8 +323,8 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					}
 				} else {
 					// not enough data
-					if log.DefaultLogger.GetLogLevel() > log.DEBUG {
-						log.DefaultLogger.Debugf("[protocol][decode][boltv2] no enough data for response")
+					if log.Proxy.GetLogLevel() >= log.DEBUG {
+						log.Proxy.Debugf(ctx, "[protocol][sofarpc] boltv2] boltv2 decode response, no enough data for fully decode")
 					}
 					return cmd, nil
 				}
@@ -354,15 +354,15 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 
 				sofarpc.DeserializeBoltResponse(ctx, &response.BoltResponse)
 
-				if log.DefaultLogger.GetLogLevel() > log.DEBUG {
-					log.DefaultLogger.Debugf("[protocol][decode][boltv2] decode response:%+v", response)
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[protocol][sofarpc] boltv2 decode response:%+v", response)
 				}
 
 				cmd = response
 			}
 		} else {
 			// 3. unknown type error
-			return nil, fmt.Errorf("[protocol][decode][boltv2] invalid cmd type, value = %d", cmdType)
+			return nil, fmt.Errorf("[protocol][sofarpc] boltv2 decodec with invalid cmd type, value = %d", cmdType)
 		}
 	}
 

@@ -19,6 +19,7 @@ package config
 
 import (
 	"encoding/json"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -130,6 +131,12 @@ func DumpConfig() {
 
 func DumpConfigHandler() {
 	once.Do(func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			}
+		}()
+
 		for {
 			time.Sleep(3 * time.Second)
 

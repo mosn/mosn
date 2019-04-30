@@ -30,6 +30,7 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"runtime/debug"
 )
 
 const (
@@ -67,11 +68,13 @@ func (p *connPool) init(client *activeClient, sub byte) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("connPool init panic %v", r)
+				log.DefaultLogger.Errorf("[stream] [sofarpc] [connpool] init panic %v\n%s", r, string(debug.Stack()))
 			}
 		}()
 
-		log.DefaultLogger.Debugf("connPool init host %s", p.host.AddressString())
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.host.AddressString())
+		}
 
 		p.mux.Lock()
 		defer p.mux.Unlock()
