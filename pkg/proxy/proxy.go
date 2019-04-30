@@ -23,7 +23,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	v2 "github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -33,7 +33,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/rcrowley/go-metrics"
 )
 
@@ -211,16 +211,21 @@ func (p *proxy) OnGoAway() {}
 
 func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
+	if sffLock := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactoriesLock); sffLock != nil {
+		sl := sffLock.(*sync.RWMutex)
+		sl.Lock()
+		ff := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories)
+		sl.Unlock()
+		if ff != nil {
+			ffs := ff.([]types.StreamFilterChainFactory)
 
-	if ff := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); ff != nil {
-		ffs := ff.([]types.StreamFilterChainFactory)
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
+			}
 
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
-		}
-
-		for _, f := range ffs {
-			f.CreateFilterChain(p.context, stream)
+			for _, f := range ffs {
+				f.CreateFilterChain(p.context, stream)
+			}
 		}
 	}
 

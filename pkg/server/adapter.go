@@ -53,8 +53,8 @@ func initListenerAdapterInstance(name string, connHandler types.ConnectionHandle
 	log.DefaultLogger.Debugf("add server conn handler, server name = %s", name)
 }
 
-// GetDefaultConnHandler
-func (adapter *ListenerAdapter) GetDefaultConnHandler(serverName string) types.ConnectionHandler {
+// FindListenerByName
+func (adapter *ListenerAdapter) FindListenerByName(serverName string, listenerName string) types.Listener {
 	var connHandler types.ConnectionHandler
 	if serverName == "" {
 		connHandler = adapter.defaultConnHandler
@@ -65,7 +65,7 @@ func (adapter *ListenerAdapter) GetDefaultConnHandler(serverName string) types.C
 			return nil
 		}
 	}
-	return connHandler
+	return connHandler.FindListenerByName(listenerName)
 }
 
 func GetListenerAdapterInstance() *ListenerAdapter {
