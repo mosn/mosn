@@ -37,7 +37,7 @@ type LbMeta struct {
 }
 
 func metadataToConfig(md Metadata) *MetadataConfig {
-	if md == nil {
+	if len(md) == 0 {
 		return nil
 	}
 	m := make(map[string]interface{}, len(md))
