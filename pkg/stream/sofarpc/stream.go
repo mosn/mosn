@@ -276,11 +276,11 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 		log.Proxy.Infof(stream.ctx, "[stream] [sofarpc] new stream detect, requestId = %v", stream.id)
 	}
 
-	sender := stream
 	if cmd.CommandType() == sofarpc.REQUEST_ONEWAY {
-		sender = nil
+		stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, nil, span)
+	} else {
+		stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, stream, span)
 	}
-	stream.receiver = conn.serverStreamConnectionEventListener.NewStreamDetect(stream.ctx, sender, span)
 
 	return stream
 }
