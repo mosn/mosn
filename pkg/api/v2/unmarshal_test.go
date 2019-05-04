@@ -22,6 +22,36 @@ import (
 	"time"
 )
 
+func TestClusterMarshal(t *testing.T) {
+	c := &Cluster{
+		Name:                 "test",
+		ClusterType:          SIMPLE_CLUSTER,
+		LbType:               LB_RANDOM,
+		MaxRequestPerConn:    10000,
+		ConnBufferLimitBytes: 16 * 1024,
+		LBSubSetConfig: LBSubsetConfig{
+			FallBackPolicy: 1,
+		},
+	}
+	b, err := json.Marshal(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nc := &Cluster{}
+	if err := json.Unmarshal(b, nc); err != nil {
+		t.Fatal(err)
+	}
+	if !(nc.Name == c.Name &&
+		nc.ClusterType == c.ClusterType &&
+		nc.LbType == c.LbType &&
+		nc.MaxRequestPerConn == c.MaxRequestPerConn &&
+		nc.ConnBufferLimitBytes == c.ConnBufferLimitBytes &&
+		nc.LBSubSetConfig.FallBackPolicy == c.LBSubSetConfig.FallBackPolicy) {
+		t.Error("unmarshal and marshal is not equal")
+	}
+
+}
+
 func TestClusterUnmarshal(t *testing.T) {
 	clusterConfig := `{
 		"name": "test",
