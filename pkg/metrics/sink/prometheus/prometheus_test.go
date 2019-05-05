@@ -102,7 +102,7 @@ func TestPrometheusMetrics(t *testing.T) {
 
 	store.StartService(nil)
 	defer store.StopService()
-	time.Sleep(time.Second) // wait server start
+	time.Sleep(3 * time.Second) // wait server start
 
 	tc := http.Client{}
 
@@ -191,7 +191,7 @@ func TestPrometheusMetricsFilter(t *testing.T) {
 
 	store.StartService(nil)
 	defer store.StopService()
-	time.Sleep(time.Second) // wait server start
+	time.Sleep(3 * time.Second) // wait server start
 
 	tc := http.Client{}
 
@@ -276,7 +276,7 @@ func BenchmarkPromSink_Flush(b *testing.B) {
 	_ = sink
 	store.StartService(nil)
 	defer store.StopService()
-	time.Sleep(time.Second) // wait server start
+	time.Sleep(3 * time.Second) // wait server start
 
 	//tc := http.Client{}
 	b.ResetTimer()
