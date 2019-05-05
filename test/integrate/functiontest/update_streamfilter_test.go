@@ -60,7 +60,7 @@ func TestUpdateStreamFilters(t *testing.T) {
 		t.Fatalf("update listener failed, error: %v", err)
 	}
 	// verify stream fllters
-	clt.ExpectedStatus = 0
+	clt.ExpectedStatus = sofarpc.RESPONSE_STATUS_SUCCESS
 	clt.SendRequestWithData("testdata")
 	if !util.WaitMapEmpty(&clt.Waits, 2*time.Second) {
 		t.Fatal("no expected response")
@@ -70,7 +70,10 @@ func TestUpdateStreamFilters(t *testing.T) {
 
 // call mosn LDS API
 func updateListener(cfg *config.MOSNConfig, faultstr string) error {
+	// reset stream filters
+	cfg.Servers[0].Listeners[0].StreamFilters = cfg.Servers[0].Listeners[0].StreamFilters[:0]
 	AddFaultInject(cfg, "proxyListener", faultstr)
+	// get config
 	lc := cfg.Servers[0].Listeners[0]
 	streamFilterFactories := config.GetStreamFilters(lc.StreamFilters)
 	// nil network filters, nothing changed

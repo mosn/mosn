@@ -87,7 +87,9 @@ type streamFaultInjectFilter struct {
 }
 
 func NewFilter(ctx context.Context, cfg *v2.StreamFaultInject) types.StreamReceiverFilter {
-	log.DefaultLogger.Debugf("create a new fault inject filter")
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[faultinject] [create] create a new fault inject filter, config: %v", cfg)
+	}
 	return &streamFaultInjectFilter{
 		ctx:    ctx,
 		config: makefaultInjectConfig(cfg),

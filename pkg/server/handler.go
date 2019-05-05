@@ -124,11 +124,13 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 
 		// only chaned if not nil
 		if networkFiltersFactories != nil {
+			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
 			al.networkFiltersFactories = networkFiltersFactories
 			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
 			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
 		}
 		if streamFiltersFactories != nil {
+			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
 			al.streamFiltersFactories = streamFiltersFactories
 			rawConfig.StreamFilters = lc.StreamFilters
 		}
@@ -405,7 +407,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, &al.streamFiltersFactories)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
 	if rawf != nil {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
