@@ -211,6 +211,7 @@ func (p *proxy) OnGoAway() {}
 
 func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
+
 	if ff := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); ff != nil {
 		ffs := ff.([]types.StreamFilterChainFactory)
 
@@ -222,6 +223,7 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 			f.CreateFilterChain(p.context, stream)
 		}
 	}
+
 	p.asMux.Lock()
 	stream.element = p.activeSteams.PushBack(stream)
 	p.asMux.Unlock()

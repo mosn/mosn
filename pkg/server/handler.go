@@ -129,7 +129,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
 		}
 		if streamFiltersFactories != nil {
-			// clean and append , don't use copy
 			al.streamFiltersFactories = streamFiltersFactories
 			rawConfig.StreamFilters = lc.StreamFilters
 		}
