@@ -20,6 +20,7 @@ package main
 import (
 	_ "flag"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/alipay/sofa-mosn/pkg/buffer"
@@ -54,7 +55,7 @@ func main() {
 	app.Name = "mosn"
 	app.Version = Version
 	app.Compiled = time.Now()
-	app.Copyright = "(c) 2018 Ant Financial"
+	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Financial"
 	app.Usage = "MOSN is modular observable smart netstub."
 
 	//commands
