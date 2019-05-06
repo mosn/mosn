@@ -215,14 +215,16 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 
 	if value := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); value != nil {
 		ff := value.(*atomic.Value)
-		ffs := ff.Load().([]types.StreamFilterChainFactory)
+		ffs, ok := ff.Load().([]types.StreamFilterChainFactory)
+		if ok {
 
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
-		}
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
+			}
 
-		for _, f := range ffs {
-			f.CreateFilterChain(p.context, stream)
+			for _, f := range ffs {
+				f.CreateFilterChain(p.context, stream)
+			}
 		}
 	}
 

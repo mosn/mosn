@@ -127,8 +127,6 @@ func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data
 				status := int16(resp.RespStatus())
 				if status == c.ExpectedStatus {
 					c.Waits.Delete(streamID)
-				} else {
-					c.t.Errorf("get a unexpected status, streamID: %s, status: %d", streamID, status)
 				}
 			}
 		} else {
