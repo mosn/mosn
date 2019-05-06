@@ -22,6 +22,7 @@ import (
 	"context"
 	"runtime"
 	"sync"
+	"sync/atomic"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
@@ -212,14 +213,15 @@ func (p *proxy) OnGoAway() {}
 func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
 
-	if ff := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); ff != nil {
-		ffs := ff.(*[]types.StreamFilterChainFactory)
+	if value := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); value != nil {
+		ff := value.(*atomic.Value)
+		ffs := ff.Load().([]types.StreamFilterChainFactory)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(*ffs))
+			log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
 		}
 
-		for _, f := range *ffs {
+		for _, f := range ffs {
 			f.CreateFilterChain(p.context, stream)
 		}
 	}
