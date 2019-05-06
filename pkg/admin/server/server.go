@@ -33,16 +33,6 @@ type Server struct {
 	*http.Server
 }
 
-var adminHandleFactory map[string]func(http.ResponseWriter, *http.Request)
-
-func init() {
-	adminHandleFactory = make(map[string]func(http.ResponseWriter, *http.Request), 0)
-}
-
-func RegistryAdminHandle(pattern string, fc func(http.ResponseWriter, *http.Request)) {
-	adminHandleFactory[pattern] = fc
-}
-
 func (s *Server) Start(config Config) {
 	var addr string
 	if config != nil {
@@ -68,11 +58,6 @@ func (s *Server) Start(config Config) {
 	mux.HandleFunc("/api/v1/enable_log", enableLogger)
 	mux.HandleFunc("/api/v1/disbale_log", disableLogger)
 	mux.HandleFunc("/api/v1/states", getState)
-
-	// add custom handler
-	for pattern, fc := range adminHandleFactory {
-		mux.HandleFunc(pattern, fc)
-	}
 
 	srv := &http.Server{Addr: addr, Handler: mux}
 	store.AddService(srv, "Mosn Admin Server", nil, nil)

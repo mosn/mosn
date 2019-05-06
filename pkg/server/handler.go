@@ -130,10 +130,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		}
 		if streamFiltersFactories != nil {
 			// clean and append , don't use copy
-			al.sffMux.Lock()
-			al.streamFiltersFactories = al.streamFiltersFactories[:0]
-			al.streamFiltersFactories = append(al.streamFiltersFactories, streamFiltersFactories...)
-			al.sffMux.Unlock()
+			al.streamFiltersFactories = streamFiltersFactories
 			rawConfig.StreamFilters = lc.StreamFilters
 		}
 
@@ -329,7 +326,6 @@ type activeListener struct {
 	listener                types.Listener
 	networkFiltersFactories []types.NetworkFilterChainFactory
 	streamFiltersFactories  []types.StreamFilterChainFactory
-	sffMux                  *sync.RWMutex
 	listenIP                string
 	listenPort              int
 	conns                   *list.List
@@ -350,12 +346,11 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		streamFiltersFactories:  streamFiltersFactories,
-		sffMux:                  &sync.RWMutex{},
-		conns:                   list.New(),
-		handler:                 handler,
-		stopChan:                stopChan,
-		accessLogs:              accessLoggers,
-		updatedLabel:            false,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		accessLogs:   accessLoggers,
+		updatedLabel: false,
 	}
 
 	listenPort := 0
@@ -412,7 +407,6 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactoriesLock, al.sffMux)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
 	if rawf != nil {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
