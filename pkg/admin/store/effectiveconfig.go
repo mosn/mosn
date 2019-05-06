@@ -49,11 +49,11 @@ func init() {
 
 func Reset() {
 	mutex.Lock()
+	defer mutex.Unlock()
 	conf.MOSNConfig = nil
 	conf.Listener = make(map[string]v2.Listener)
 	conf.Cluster = make(map[string]v2.Cluster)
 	conf.Routers = make(map[string]v2.RouterConfiguration)
-	mutex.Unlock()
 }
 
 func SetMOSNConfig(msonConfig interface{}) {
@@ -66,6 +66,7 @@ func SetMOSNConfig(msonConfig interface{}) {
 // Set listener config when AddOrUpdateListener
 func SetListenerConfig(listenerName string, listenerConfig v2.Listener) {
 	mutex.Lock()
+	defer mutex.Unlock()
 	if config, ok := conf.Listener[listenerName]; ok {
 		// mosn does not support update listener's network filter and stream filter for the time being
 		// FIXME
@@ -75,36 +76,35 @@ func SetListenerConfig(listenerName string, listenerConfig v2.Listener) {
 	} else {
 		conf.Listener[listenerName] = listenerConfig
 	}
-	mutex.Unlock()
 }
 
 func SetClusterConfig(clusterName string, cluster v2.Cluster) {
 	mutex.Lock()
+	defer mutex.Unlock()
 	conf.Cluster[clusterName] = cluster
-	mutex.Unlock()
 }
 
 func RemoveClusterConfig(clusterName string) {
 	mutex.Lock()
+	defer mutex.Unlock()
 	delete(conf.Cluster, clusterName)
-	mutex.Unlock()
 }
 
 func SetHosts(clusterName string, hostConfigs []v2.Host) {
 	mutex.Lock()
+	defer mutex.Unlock()
 	if cluster, ok := conf.Cluster[clusterName]; ok {
 		cluster.Hosts = hostConfigs
 		conf.Cluster[clusterName] = cluster
 	}
-	mutex.Unlock()
 }
 
 func SetRouter(routerName string, router v2.RouterConfiguration) {
 	mutex.Lock()
+	defer mutex.Unlock()
 	// clear the router's dynamic mode, so the dump api will show all routes in the router
 	router.RouterConfigPath = ""
 	conf.Routers[routerName] = router
-	mutex.Unlock()
 }
 
 // Dump
