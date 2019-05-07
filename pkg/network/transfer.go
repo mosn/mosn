@@ -55,7 +55,7 @@ func SetTransferTimeout(time time.Duration) {
 func TransferServer(handler types.ConnectionHandler) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("transferServer panic %v", r)
+			log.DefaultLogger.Errorf("[network] [transfer] [server] transferServer panic %v", r)
 		}
 	}()
 
@@ -64,39 +64,39 @@ func TransferServer(handler types.ConnectionHandler) {
 	syscall.Unlink(types.TransferConnDomainSocket)
 	l, err := net.Listen("unix", types.TransferConnDomainSocket)
 	if err != nil {
-		log.DefaultLogger.Errorf("transfer net listen error %v", err)
+		log.DefaultLogger.Errorf("[network] [transfer] [server] transfer net listen error %v", err)
 		return
 	}
 	defer l.Close()
 
-	log.DefaultLogger.Infof("TransferServer start")
+	log.DefaultLogger.Infof("[network] [transfer] [server] TransferServer start")
 
 	var transferMap sync.Map
 
 	go func(handler types.ConnectionHandler) {
 		defer func() {
 			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("TransferServer panic %v", r)
+				log.DefaultLogger.Errorf("[network] [transfer] [server] TransferServer panic %v", r)
 			}
 		}()
 		for {
 			c, err := l.Accept()
 			if err != nil {
 				if ope, ok := err.(*net.OpError); ok && (ope.Op == "accept") {
-					log.DefaultLogger.Infof("TransferServer listener %s closed", l.Addr())
+					log.DefaultLogger.Infof("[network] [transfer] [server] TransferServer listener %s closed", l.Addr())
 				} else {
-					log.DefaultLogger.Errorf("TransferServer Accept error :%v", err)
+					log.DefaultLogger.Errorf("[network] [transfer] [server] TransferServer Accept error :%v", err)
 				}
 				return
 			}
-			log.DefaultLogger.Infof("transfer Accept")
+			log.DefaultLogger.Infof("[network] [transfer] [server] transfer Accept")
 			go transferHandler(c, handler, &transferMap)
 		}
 	}(handler)
 
 	select {
 	case <-time.After(2*TransferTimeout + types.DefaultConnReadTimeout + 10*time.Second):
-		log.DefaultLogger.Infof("TransferServer exit")
+		log.DefaultLogger.Infof("[network] [transfer] [server] TransferServer exit")
 		return
 	}
 }
@@ -105,7 +105,7 @@ func TransferServer(handler types.ConnectionHandler) {
 func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *sync.Map) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("transferHandler panic %v", r)
+			log.DefaultLogger.Errorf("[network] [transfer] [handler] transferHandler panic %v", r)
 		}
 	}()
 
@@ -113,13 +113,13 @@ func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *s
 
 	uc, ok := c.(*net.UnixConn)
 	if !ok {
-		log.DefaultLogger.Errorf("unexpected FileConn type; expected UnixConn, got %T", c)
+		log.DefaultLogger.Errorf("[network] [transfer] [handler] unexpected FileConn type; expected UnixConn, got %T", c)
 		return
 	}
 	// recv type
 	conn, err := transferRecvType(uc)
 	if err != nil {
-		log.DefaultLogger.Errorf("transferRecvType error :%v", err)
+		log.DefaultLogger.Errorf("[network] [transfer] [handler] transferRecvType error :%v", err)
 		return
 	}
 
@@ -128,7 +128,7 @@ func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *s
 		// recv header + buffer
 		dataBuf, tlsBuf, err := transferReadRecvData(uc)
 		if err != nil {
-			log.DefaultLogger.Errorf("transferRecvData error :%v", err)
+			log.DefaultLogger.Errorf("[network] [transfer] [handler] transferRecvData error :%v", err)
 			return
 		}
 		connection := transferNewConn(conn, dataBuf, tlsBuf, handler, transferMap)
@@ -142,16 +142,16 @@ func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *s
 		// recv header + buffer
 		id, buf, err := transferWriteRecvData(uc)
 		if err != nil {
-			log.DefaultLogger.Errorf("transferRecvData error :%v", err)
+			log.DefaultLogger.Errorf("[network] [transfer] [handler] transferRecvData error :%v", err)
 		}
 		connection := transferFindConnection(transferMap, uint64(id))
 		if connection == nil {
-			log.DefaultLogger.Errorf("transferFindConnection failed, id = %d", id)
+			log.DefaultLogger.Errorf("[network] [transfer] [handler] transferFindConnection failed, id = %d", id)
 			return
 		}
 		err = transferWriteBuffer(connection, buf)
 		if err != nil {
-			log.DefaultLogger.Errorf("transferWriteBuffer error :%v", err)
+			log.DefaultLogger.Errorf("[network] [transfer] [handler] transferWriteBuffer error :%v", err)
 			return
 		}
 	}
@@ -161,12 +161,12 @@ func transferHandler(c net.Conn, handler types.ConnectionHandler, transferMap *s
 func transferRead(c *connection) (uint64, error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			log.DefaultLogger.Errorf("[network] [transfer] [read] panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 	unixConn, err := net.Dial("unix", types.TransferConnDomainSocket)
 	if err != nil {
-		log.DefaultLogger.Errorf("net Dial unix failed c:%p, id:%d, err:%v", c, c.id, err)
+		log.DefaultLogger.Errorf("[network] [transfer] [read] net Dial unix failed c:%p, id:%d, err:%v", c, c.id, err)
 		return transferErr, err
 	}
 	defer unixConn.Close()
@@ -180,18 +180,18 @@ func transferRead(c *connection) (uint64, error) {
 	// send type and TCP FD
 	err = transferSendType(uc, file)
 	if err != nil {
-		log.DefaultLogger.Errorf("transferRead failed: %v", err)
+		log.DefaultLogger.Errorf("[network] [transfer] [read] transferRead failed: %v", err)
 		return transferErr, err
 	}
 	// send header + buffer + TLS
 	err = transferReadSendData(uc, tlsConn, c.readBuffer, log.DefaultLogger)
 	if err != nil {
-		log.DefaultLogger.Errorf("transferRead failed: %v", err)
+		log.DefaultLogger.Errorf("[network] [transfer] [read] transferRead failed: %v", err)
 		return transferErr, err
 	}
 	// recv ID
 	id := transferRecvID(uc)
-	log.DefaultLogger.Infof("TransferRead NewConn Id = %d, oldId = %d, %p, addrass = %s", id, c.id, c, c.RemoteAddr().String())
+	log.DefaultLogger.Infof("[network] [transfer] [read] TransferRead NewConn Id = %d, oldId = %d, %p, addrass = %s", id, c.id, c, c.RemoteAddr().String())
 
 	return id, nil
 }
@@ -200,21 +200,21 @@ func transferRead(c *connection) (uint64, error) {
 func transferWrite(c *connection, id uint64) error {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("transferWrite panic %v", r)
+			log.DefaultLogger.Errorf("[network] [transfer] [write] transferWrite panic %v", r)
 		}
 	}()
 	unixConn, err := net.Dial("unix", types.TransferConnDomainSocket)
 	if err != nil {
-		log.DefaultLogger.Errorf("net Dial unix failed %v", err)
+		log.DefaultLogger.Errorf("[network] [transfer] [write] net Dial unix failed %v", err)
 		return err
 	}
 	defer unixConn.Close()
 
-	log.DefaultLogger.Infof("TransferWrite id = %d, dataBuf = %d", id, c.writeBufLen())
+	log.DefaultLogger.Infof("[network] [transfer] [write] TransferWrite id = %d, dataBuf = %d", id, c.writeBufLen())
 	uc := unixConn.(*net.UnixConn)
 	err = transferSendType(uc, nil)
 	if err != nil {
-		log.DefaultLogger.Errorf("transferWrite failed: %v", err)
+		log.DefaultLogger.Errorf("[network] [transfer] [write] transferWrite failed: %v", err)
 		return err
 	}
 	// build net.Buffers to IoBuffer
@@ -222,7 +222,7 @@ func transferWrite(c *connection, id uint64) error {
 	// send header + buffer
 	err = transferWriteSendData(uc, int(id), buf)
 	if err != nil {
-		log.DefaultLogger.Errorf("transferWrite failed: %v", err)
+		log.DefaultLogger.Errorf("[network] [transfer] [write] transferWrite failed: %v", err)
 		return err
 	}
 	return nil
@@ -527,13 +527,13 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 		return nil
 	}
 
-	log.DefaultLogger.Infof("transferNewConn dataBuf = %d, tlsBuf = %d", len(dataBuf), len(tlsBuf))
+	log.DefaultLogger.Infof("[network] [transfer] [new conn] transferNewConn dataBuf = %d, tlsBuf = %d", len(dataBuf), len(tlsBuf))
 
 	var err error
 	if len(tlsBuf) != 0 {
 		conn, err = mtls.GetTLSConn(conn, tlsBuf)
 		if err != nil {
-			log.DefaultLogger.Errorf("transferTLSConn error: %v", err)
+			log.DefaultLogger.Errorf("[network] [transfer] [new conn] transferTLSConn error: %v", err)
 			return nil
 		}
 	}
@@ -543,7 +543,7 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+				log.DefaultLogger.Errorf("[network] [transfer] [new conn] panic %v\n%s", r, string(debug.Stack()))
 			}
 		}()
 		listener.GetListenerCallbacks().OnAccept(conn, listener.HandOffRestoredDestinationConnections(), nil, ch, dataBuf)
@@ -554,14 +554,14 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 	case rch := <-ch:
 		conn, ok := rch.(*connection)
 		if !ok {
-			log.DefaultLogger.Errorf("transfer NewConn failed %+v", conn.LocalAddr())
+			log.DefaultLogger.Errorf("[network] [transfer] [new conn] transfer NewConn failed %+v", conn.LocalAddr())
 			return nil
 		}
-		log.DefaultLogger.Infof("transfer NewConn id: %d", conn.id)
+		log.DefaultLogger.Infof("[network] [transfer] [new conn] transfer NewConn id: %d", conn.id)
 		transferMap.Store(conn.id, conn)
 		return conn
 	case <-time.After(3000 * time.Millisecond):
-		log.DefaultLogger.Errorf("transfer NewConn timeout, localAddress %+v, remoteAddress %+v", conn.LocalAddr(), conn.RemoteAddr())
+		log.DefaultLogger.Errorf("[network] [transfer] [new conn] transfer NewConn timeout, localAddress %+v, remoteAddress %+v", conn.LocalAddr(), conn.RemoteAddr())
 		return nil
 	}
 }
@@ -581,6 +581,6 @@ func transferFindListen(addr net.Addr, handler types.ConnectionHandler) types.Li
 		return listener
 	}
 
-	log.DefaultLogger.Errorf("Find Listener failed %v", address)
+	log.DefaultLogger.Errorf("[network] [transfer] Find Listener failed %v", address)
 	return nil
 }

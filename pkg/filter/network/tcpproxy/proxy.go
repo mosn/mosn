@@ -67,7 +67,9 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.Clu
 }
 
 func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
-	log.DefaultLogger.Tracef("Tcp Proxy :: read data , len = %v", buffer.Len())
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[tcpproxy] [ondata] Tcp Proxy :: read data , len = %v", buffer.Len())
+	}
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
@@ -77,7 +79,9 @@ func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
 }
 
 func (p *proxy) OnNewConnection() types.FilterStatus {
-	log.DefaultLogger.Tracef("Tcp Proxy :: accept new connection")
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[tcpproxy] [new conn] Tcp Proxy :: accept new connection")
+	}
 	return p.initializeUpstreamConnection()
 }
 

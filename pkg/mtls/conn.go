@@ -51,7 +51,9 @@ func (c *Conn) Peek() []byte {
 	b := make([]byte, 1, 1)
 	n, err := c.Conn.Read(b)
 	if n == 0 {
-		log.DefaultLogger.Infof("TLS Peek() error: %v", err)
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[mtls] TLS Peek() error: %v", err)
+		}
 		return nil
 	}
 	c.peek[0] = b[0]
@@ -96,11 +98,14 @@ func (c *TLSConn) GetTLSInfo(buf types.IoBuffer) int {
 	}
 	info := c.Conn.GetTLSInfo()
 	if info == nil {
-		log.DefaultLogger.Infof("transferTLS failed, TLS handshake is not completed")
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[mtls] transferTLS failed, TLS handshake is not completed")
+		}
 		return 0
 	}
-
-	log.DefaultLogger.Infof("transferTLS Info: %+v", info)
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[mtls] transferTLS Info: %+v", info)
+	}
 
 	size := buf.Len()
 
@@ -158,7 +163,9 @@ func GetTLSConn(c net.Conn, b []byte) (net.Conn, error) {
 		return nil, err
 	}
 
-	log.DefaultLogger.Infof("transferTLSConn Info: %+v", info)
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[mtls] transferTLSConn Info: %+v", info)
+	}
 
 	conn := tls.TransferTLSConn(c, &info)
 	if conn == nil {
