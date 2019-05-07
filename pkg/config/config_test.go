@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/types"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -89,7 +90,12 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 		t.Fatal("cluster parsed not enough, got : %v", testConfig.ClusterManager.Clusters)
 	}
 	// add a new cluster
-	testConfig.ClusterManager.Clusters = append(testConfig.ClusterManager.Clusters, v2.Cluster{})
+	testConfig.ClusterManager.Clusters = append(testConfig.ClusterManager.Clusters, v2.Cluster{
+		Name: "test_subset",
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: uint8(types.AnyEndPoint),
+		},
+	})
 	// dump json
 	if _, err := json.Marshal(testConfig); err != nil {
 		t.Fatal(err)
@@ -103,7 +109,7 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 		t.Fatalf("new cluster is not dumped, just got %d files", len(files))
 	}
 	// test delete cluster
-	testConfig.ClusterManager.Clusters = testConfig.ClusterManager.Clusters[:1]
+	testConfig.ClusterManager.Clusters = testConfig.ClusterManager.Clusters[2:]
 	// dump json
 	if b, err := json.Marshal(testConfig); err != nil || len(b) == 0 {
 		t.Fatalf("marshal unexpected, byte: %v, error: %v", b, err)
@@ -114,6 +120,14 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 	}
 	if len(files) != 1 {
 		t.Fatalf("new cluster is not dumped, just got %d files", len(files))
+	}
+	// verify new config
+	newTestConfig := &MOSNConfig{}
+	if err := json.Unmarshal([]byte(mosnConfig), newTestConfig); err != nil {
+		t.Fatal(err)
+	}
+	if newTestConfig.ClusterManager.Clusters[0].LBSubSetConfig.FallBackPolicy != uint8(types.AnyEndPoint) {
+		t.Error("new cluster config is not expected")
 	}
 }
 
