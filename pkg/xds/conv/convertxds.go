@@ -69,7 +69,7 @@ const (
 )
 
 // todo add streamfilters parse
-func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
+func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 	if !isSupport(xdsListener) {
 		return nil
 	}
@@ -105,7 +105,7 @@ func convertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 	return listenerConfig
 }
 
-func convertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
+func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 	if xdsClusters == nil {
 		return nil
 	}
@@ -132,7 +132,7 @@ func convertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 	return clusters
 }
 
-func convertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.Host {
+func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.Host {
 	if xdsEndpoint == nil {
 		return nil
 	}
@@ -449,7 +449,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 	if name == xdsutil.HTTPConnectionManager || name == v2.RPC_PROXY {
 		filterConfig := &xdshttp.HttpConnectionManager{}
 		xdsutil.StructToMessage(s, filterConfig)
-		routerConfig, isRds = convertRouterConf(filterConfig.GetRds().GetRouteConfigName(), filterConfig.GetRouteConfig())
+		routerConfig, isRds = ConvertRouterConf(filterConfig.GetRds().GetRouteConfigName(), filterConfig.GetRouteConfig())
 
 		if name == xdsutil.HTTPConnectionManager {
 			proxyConfig = v2.Proxy{
@@ -465,7 +465,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 	} else if name == v2.X_PROXY {
 		filterConfig := &xdsxproxy.XProxy{}
 		xdsutil.StructToMessage(s, filterConfig)
-		routerConfig, isRds = convertRouterConf(filterConfig.GetRds().GetRouteConfigName(), filterConfig.GetRouteConfig())
+		routerConfig, isRds = ConvertRouterConf(filterConfig.GetRds().GetRouteConfigName(), filterConfig.GetRouteConfig())
 
 		proxyConfig = v2.Proxy{
 			DownstreamProtocol: string(protocol.Xprotocol),
@@ -559,7 +559,7 @@ func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} 
 	return toMap(extendConfig)
 }
 
-func convertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfiguration) (*v2.RouterConfiguration, bool) {
+func ConvertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfiguration) (*v2.RouterConfiguration, bool) {
 	if routeConfigName != "" {
 		return &v2.RouterConfiguration{
 			RouterConfigurationConfig: v2.RouterConfigurationConfig{

@@ -18,11 +18,11 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
 	"testing"
-	"context"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/router"

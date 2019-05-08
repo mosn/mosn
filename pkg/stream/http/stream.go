@@ -197,7 +197,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				log.Proxy.Errorf(csc.context,"[stream] [http] client serve goroutine panic %v\n%s", p, string(debug.Stack()))
+				log.Proxy.Errorf(csc.context, "[stream] [http] client serve goroutine panic %v\n%s", p, string(debug.Stack()))
 
 				csc.serve()
 			}

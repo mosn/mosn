@@ -76,7 +76,7 @@ func Test_convertEndpointsConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := convertEndpointsConfig(tt.args.xdsEndpoint); !reflect.DeepEqual(got, tt.want) {
+			if got := ConvertEndpointsConfig(tt.args.xdsEndpoint); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("convertEndpointsConfig() = %v, want %v", got, tt.want)
 			}
 		})
@@ -357,7 +357,7 @@ func Test_convertListenerConfig(t *testing.T) {
 				DrainType: xdsapi.Listener_DEFAULT,
 			}
 
-			got := convertListenerConfig(listenerConfig)
+			got := ConvertListenerConfig(listenerConfig)
 			//if data, err := json.Marshal(got); err == nil {
 			if _, err := json.Marshal(got); err == nil {
 				// TODO: use string comapre for result is not expected

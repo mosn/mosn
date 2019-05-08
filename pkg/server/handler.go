@@ -32,7 +32,7 @@ import (
 	"time"
 
 	admin "github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	v2 "github.com/alipay/sofa-mosn/pkg/api/v2"
 	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/filter/accept/originaldst"
 	"github.com/alipay/sofa-mosn/pkg/log"
