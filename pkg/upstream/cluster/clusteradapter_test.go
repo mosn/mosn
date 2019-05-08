@@ -77,6 +77,7 @@ var clusterOrigin2 = v2.Cluster{
 func MockClusterManager() types.ClusterManager {
 	clusters := []v2.Cluster{
 		clusterOrigin,
+		clusterOrigin2,
 	}
 
 	clusterMap := map[string][]v2.Host{
@@ -231,7 +232,7 @@ func TestMngAdapter_TriggerClusterDel(t *testing.T) {
 		clusterMng *clusterManager
 	}
 	type args struct {
-		clusterName string
+		clusterName []string
 	}
 	tests := []struct {
 		name    string
@@ -245,7 +246,7 @@ func TestMngAdapter_TriggerClusterDel(t *testing.T) {
 				clusterMng: mockClusterMnger,
 			},
 			args: args{
-				clusterName: "o1",
+				clusterName: []string{"o1", "o2"},
 			},
 			wantErr: false,
 		},
@@ -255,7 +256,7 @@ func TestMngAdapter_TriggerClusterDel(t *testing.T) {
 				clusterMng: mockClusterMnger,
 			},
 			args: args{
-				clusterName: "o3",
+				clusterName: []string{"o3"},
 			},
 			wantErr: true,
 		},
@@ -265,20 +266,17 @@ func TestMngAdapter_TriggerClusterDel(t *testing.T) {
 			ca := &MngAdapter{
 				clusterMng: tt.fields.clusterMng,
 			}
-			if err := ca.TriggerClusterDel(tt.args.clusterName); (err != nil) != tt.wantErr {
+			if err := ca.TriggerClusterDel(tt.args.clusterName...); (err != nil) != tt.wantErr {
 				t.Errorf("MngAdapter.TriggerClusterDel() error = %v, wantArgs %v", err, tt.wantErr)
 			}
 
-			if _, ok := mockClusterMnger.primaryClusters.Load(tt.args.clusterName); ok {
-				t.Errorf("MngAdapter.cluster delete error")
+			for _, clusterName := range tt.args.clusterName {
+				if _, ok := mockClusterMnger.primaryClusters.Load(clusterName); ok {
+					t.Errorf("MngAdapter.cluster delete error")
+				}
 			}
-
 		})
 	}
-}
-
-func TestClusterDelMulti(t *testing.T) {
-
 }
 
 func TestMngAdapter_TriggerClusterAndHostsAddOrUpdate(t *testing.T) {

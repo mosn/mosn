@@ -311,12 +311,11 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 			cm.primaryClusters.Delete(clusterName)
 			admin.RemoveClusterConfig(clusterName)
 			log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
-			return nil
 		} else {
 			return fmt.Errorf("Remove Primary Cluster failure, cluster name = %s doesn't exist", clusterName)
 		}
 	}
-	return fmt.Errorf("Remove Primary Cluster failure, no cluster removed")
+	return nil
 }
 
 func (cm *clusterManager) SetInitializedCb(cb func()) {}
