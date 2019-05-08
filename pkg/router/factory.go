@@ -89,6 +89,9 @@ func (h *simpleHandler) Route() types.Route {
 func DefaultMakeHandlerChain(ctx context.Context, headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	var handlers []types.RouteHandler
 	if r := routers.MatchRoute(headers, 1); r != nil {
+		if log.Proxy.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(ctx, RouterLogFormat, "DefaultHandklerChain", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
+		}
 		handlers = append(handlers, &simpleHandler{route: r})
 	}
 	return NewRouteHandlerChain(ctx, clusterManager, handlers)

@@ -540,7 +540,7 @@ func (s *downStream) matchRoute() {
 	handlerChain := router.CallMakeHandlerChain(s.context, headers, routers, s.proxy.clusterManager)
 	// handlerChain should never be nil
 	if handlerChain == nil {
-		log.DefaultLogger.Errorf("[proxy] [downstream] no route to make handler chain, headers = %v", headers)
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] no route to make handler chain, headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
@@ -1114,6 +1114,7 @@ func (s *downStream) doRetry() {
 	pool, err := s.initializeUpstreamConnectionPool(s)
 
 	if err != nil {
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] retry choose conn pool failed, error = %v", err)
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		s.cleanUp()
 		return
