@@ -158,6 +158,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 
 		// set update label to true, do not start the listener again
 		al.updatedLabel = true
+		log.DefaultLogger.Infof("[server] [conn handler] [update listener] update listener: %s", lc.AddrConfig)
 
 	} else {
 		// listener doesn't exist, add the listener
@@ -190,6 +191,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		}
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
+		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.AddrConfig)
 	}
 	admin.SetListenerConfig(listenerName, *al.listener.Config())
 	return al, nil
@@ -236,6 +238,7 @@ func (ch *connHandler) FindListenerByName(name string) types.Listener {
 func (ch *connHandler) RemoveListeners(name string) {
 	for i, l := range ch.listeners {
 		if l.listener.Name() == name {
+			log.DefautlLogger.Infof("[server] [conn handler] remove listener name: %s", name)
 			ch.listeners = append(ch.listeners[:i], ch.listeners[i+1:]...)
 		}
 	}

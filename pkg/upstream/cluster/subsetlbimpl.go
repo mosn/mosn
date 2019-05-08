@@ -77,25 +77,28 @@ func (sslb *subSetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 		host, hostChoosen := sslb.TryChooseHostFromContext(context)
 		// if a subset's hosts are all deleted, it will return a nil host and a true flag
 		if hostChoosen && host != nil {
-			log.DefaultLogger.Debugf("subset load balancer: match subset entry success, "+
-				"choose hostaddr = %s", host.AddressString())
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: match subset entry success, "+
+					"choose hostaddr = %s", host.AddressString())
+			}
 			return host
 		}
 	}
 
 	if nil == sslb.fallbackSubset {
-		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset is nil")
+		log.DefaultLogger.Errorf("[upstream] [subset lb] subset load balancer: failure, fallback subset is nil")
 		return nil
 	}
 	sslb.stats.LBSubSetsFallBack.Inc(1)
 
 	defaulthosts := sslb.fallbackSubset.prioritySubset.GetOrCreateHostSubset(0).Hosts()
 
-	if len(defaulthosts) > 0 {
-		log.DefaultLogger.Debugf("subset load balancer: use default subset,hosts are %v", defaulthosts)
-	} else {
-		log.DefaultLogger.Errorf("subset load balancer: failure, fallback subset's host is nil")
+	if len(defaulthosts) == 0 {
+		log.DefaultLogger.Errorf("[upstream] [subset lb] subset load balancer: failure, fallback subset's host is nil")
 		return nil
+	}
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: use default subset,hosts are %v", defaulthosts)
 	}
 
 	return sslb.fallbackSubset.prioritySubset.LB().ChooseHost(context)
@@ -142,7 +145,9 @@ func (sslb *subSetLoadBalancer) Update(priority uint32, hostAdded []types.Host, 
 		func(entry types.LBSubsetEntry, predicate types.HostPredicate, kvs types.SubsetMetadata, addinghost bool) {
 			if addinghost {
 				prioritySubset := NewPrioritySubsetImpl(sslb, predicate)
-				log.DefaultLogger.Debugf("creating subset loadbalancing for %+v", kvs)
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [subset lb] creating subset loadbalancing for %+v", kvs)
+				}
 				entry.SetPrioritySubset(prioritySubset)
 				sslb.stats.LBSubSetsActive.Inc(1)
 				sslb.stats.LBSubsetsCreated.Inc(1)
@@ -155,14 +160,18 @@ func (sslb *subSetLoadBalancer) TryChooseHostFromContext(context types.LoadBalan
 	matchCriteria := context.MetadataMatchCriteria()
 
 	if nil == matchCriteria || reflect.ValueOf(matchCriteria).IsNil() {
-		log.DefaultLogger.Infof("subset load balancer: context is nil")
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [subset lb] subset load balancer: context is nil")
+		}
 		return nil, false
 	}
 
 	entry := sslb.FindSubset(matchCriteria.MetadataMatchCriteria())
 
 	if entry == nil || !entry.Active() {
-		log.DefaultLogger.Infof("subset load balancer: match entry failure")
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [subset lb] subset load balancer: match entry failure")
+		}
 		return nil, false
 	}
 
@@ -174,7 +183,9 @@ func (sslb *subSetLoadBalancer) UpdateFallbackSubset(priority uint32, hostAdded 
 	hostsRemoved []types.Host) {
 
 	if types.NoFallBack == sslb.fallBackPolicy {
-		log.DefaultLogger.Debugf("subset load balancer: fallback is disabled")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: fallback is disabled")
+		}
 		return
 	}
 

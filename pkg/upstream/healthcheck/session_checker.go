@@ -62,7 +62,7 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *se
 func (c *sessionChecker) Start() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			log.DefaultLogger.Errorf("[upstream] [health check] [session checker] panic %v\n%s", r, string(debug.Stack()))
 		}
 		// stop all the timer when start is finished
 		c.checkTimer.Stop()
@@ -91,9 +91,13 @@ func (c *sessionChecker) Start() {
 					}
 					// next health checker
 					c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
-					log.DefaultLogger.Debugf("receive a response id: %d", resp.ID)
+					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+						log.DefaultLogger.Debugf("[upstream] [health check] [session checker] receive a response id: %d", resp.ID)
+					}
 				} else {
-					log.DefaultLogger.Debugf("receive a expired id response, response id: %d, currentID: %d", resp.ID, currentID)
+					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+						log.DefaultLogger.Debugf("[upstream] [health check] [session checker] receive a expired id response, response id: %d, currentID: %d", resp.ID, currentID)
+					}
 				}
 			case <-c.timeout:
 				c.checkTimer.Stop()
@@ -101,7 +105,9 @@ func (c *sessionChecker) Start() {
 				c.HandleFailure(types.FailureNetwork)
 				// next health checker
 				c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
-				log.DefaultLogger.Debugf("receive a timeout response at id: %d", currentID)
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [health check] [session checker] receive a timeout response at id: %d", currentID)
+				}
 			}
 		}
 	}
