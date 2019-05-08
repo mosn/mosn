@@ -18,6 +18,7 @@
 package config
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 
@@ -96,6 +97,7 @@ func TestUpdateRouterConfig(t *testing.T) {
 	if !addOrUpdateRouterConfig("egress", routerConfiguration) {
 		t.Fatal("update router config failed")
 	}
+	dumpRouterConfig()
 	// verify
 	ln, idx := findListener("egress")
 	if idx == -1 {

@@ -24,7 +24,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -57,6 +57,7 @@ func (s *Server) Start(config Config) {
 	mux.HandleFunc("/api/v1/update_loglevel", updateLogLevel)
 	mux.HandleFunc("/api/v1/enable_log", enableLogger)
 	mux.HandleFunc("/api/v1/disbale_log", disableLogger)
+	mux.HandleFunc("/api/v1/states", getState)
 
 	srv := &http.Server{Addr: addr, Handler: mux}
 	store.AddService(srv, "Mosn Admin Server", nil, nil)

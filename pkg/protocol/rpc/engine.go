@@ -65,7 +65,7 @@ func (eg *engine) BuildSpan(args ...interface{}) types.Span {
 	if builder != nil {
 		return builder.BuildSpan(args...)
 	} else {
-		log.DefaultLogger.Warnf("engine spanBuilder is empty,eg=%+v", eg)
+		log.DefaultLogger.Warnf("[protocol][engine][rpc] spanBuilder is empty, engine=%+v", eg)
 		return nil
 	}
 }
@@ -86,7 +86,7 @@ func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (types.IoBu
 			return nil, ErrUnrecognizedCode
 		}
 	default:
-		log.ByContext(ctx).Errorf("not RpcCmd, cannot find encoder for model = %+v", model)
+		log.DefaultLogger.Errorf("[protocol][engine][rpc] not RpcCmd, cannot find encoder for model = %+v", model)
 		return nil, ErrUnknownType
 	}
 }
@@ -94,9 +94,11 @@ func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (types.IoBu
 func (m *mixedEngine) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	// at least 1 byte for protocol code recognize
 	if data.Len() > 1 {
-		logger := log.ByContext(ctx)
 		code := data.Bytes()[0]
-		logger.Debugf("mixed protocol engine decode, protocol code = %x", code)
+
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[protocol][engine][rpc] mixed engine decode, protocol code = %x", code)
+		}
 
 		if eg, exists := m.engineMap[code]; exists {
 			return eg.Decode(ctx, data)
@@ -122,17 +124,16 @@ func (m *mixedEngine) Register(protocolCode byte, encoder types.Encoder, decoder
 }
 
 func (m *mixedEngine) BuildSpan(args ...interface{}) types.Span {
-	if len(args) == 0 {
+	if len(args) < 2 {
 		return nil
 	}
 
-	if _, ok := args[0].(context.Context); !ok {
+	cmd, ok := args[1].(RpcCmd)
+	if !ok || cmd == nil {
 		return nil
 	}
 
-	ctx := args[0].(context.Context)
-
-	engine := m.engineMap[ctx.Value(types.ContextSubProtocol).(byte)]
+	engine := m.engineMap[cmd.ProtocolCode()]
 
 	if engine == nil {
 		return nil

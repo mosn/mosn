@@ -11,7 +11,6 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
@@ -54,7 +53,7 @@ func NewRPCClient(t *testing.T, id string, proto string) *RPCClient {
 func (c *RPCClient) connect(addr string, tlsMng types.TLSContextManager) error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
-	cc := network.NewClientConnection(nil, tlsMng, remoteAddr, stopChan, log.DefaultLogger)
+	cc := network.NewClientConnection(nil, tlsMng, remoteAddr, stopChan)
 	c.conn = cc
 	if err := cc.Connect(true); err != nil {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
@@ -116,13 +115,7 @@ func (c *RPCClient) SendRequestWithData(in string) {
 	c.Waits.Store(streamID, streamID)
 }
 
-func (c *RPCClient) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
-}
-func (c *RPCClient) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
-}
-func (c *RPCClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
-}
-func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
+func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		streamID := protocol.StreamIDConv(cmd.RequestID())
 
@@ -142,6 +135,9 @@ func (c *RPCClient) OnReceiveHeaders(context context.Context, headers types.Head
 	} else {
 		c.t.Errorf("get a unexpected header type")
 	}
+}
+
+func (c *RPCClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
 
 func BuildBoltV1RequestWithContent(requestID uint64, data types.IoBuffer) *sofarpc.BoltRequest {
@@ -176,11 +172,13 @@ func buildBoltV1Request(request *sofarpc.BoltRequest) *sofarpc.BoltRequest {
 
 	headers := map[string]string{"service": "testSofa"} // used for sofa routing
 
-	if headerBytes, err := serialize.Instance.Serialize(headers); err != nil {
+	buf := buffer.NewIoBuffer(100)
+	if err := serialize.Instance.SerializeMap(headers, buf); err != nil {
 		panic("serialize headers error")
 	} else {
-		request.HeaderMap = headerBytes
-		request.HeaderLen = int16(len(headerBytes))
+		request.HeaderMap = buf.Bytes()
+		request.HeaderLen = int16(buf.Len())
+		request.RequestHeader = headers
 	}
 
 	return request

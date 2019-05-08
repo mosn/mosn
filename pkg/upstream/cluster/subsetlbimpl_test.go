@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -812,7 +813,8 @@ func TestGetFinalHost(t *testing.T) {
 // utils for test
 type mockLbContext struct {
 	types.LoadBalancerContext
-	mmc types.MetadataMatchCriteria
+	mmc    types.MetadataMatchCriteria
+	header types.HeaderMap
 }
 
 func newMockLbContext(m map[string]string) types.LoadBalancerContext {
@@ -822,6 +824,22 @@ func newMockLbContext(m map[string]string) types.LoadBalancerContext {
 	}
 }
 
+func newMockLbContextWithHeader(m map[string]string, header types.HeaderMap) types.LoadBalancerContext {
+	mmc := router.NewMetadataMatchCriteriaImpl(m)
+	return &mockLbContext{
+		mmc:    mmc,
+		header: header,
+	}
+}
+
 func (ctx *mockLbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	return ctx.mmc
+}
+
+func (ctx *mockLbContext) DownstreamHeaders() types.HeaderMap {
+	return ctx.header
+}
+
+func (ctx *mockLbContext) DownstreamContext() context.Context {
+	return nil
 }

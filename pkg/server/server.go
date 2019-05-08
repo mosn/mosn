@@ -23,18 +23,12 @@ import (
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"github.com/alipay/sofa-mosn/pkg/config"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
+	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
-
-func init() {
-	onProcessExit = append(onProcessExit, func() {
-		if pidFile != "" {
-			os.Remove(pidFile)
-		}
-	})
-}
 
 // currently, only one server supported
 func GetServer() Server {
@@ -55,6 +49,18 @@ type server struct {
 	handler    types.ConnectionHandler
 }
 
+func NewConfig(c *v2.ServerConfig) *Config {
+	return &Config{
+		ServerName:      c.ServerName,
+		LogPath:         c.DefaultLogPath,
+		LogLevel:        config.ParseLogLevel(c.DefaultLogLevel),
+		LogRoller:       c.DefaultLogRoller,
+		GracefulTimeout: c.GracefulTimeout.Duration,
+		Processor:       c.Processor,
+		UseNetpollMode:  c.UseNetpollMode,
+	}
+}
+
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
 	if config != nil {
 		//graceful timeout setting
@@ -70,13 +76,13 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 
 	runtime.GOMAXPROCS(config.Processor)
 
-	OnProcessShutDown(log.CloseAll)
+	keeper.OnProcessShutDown(log.CloseAll)
 
 	server := &server{
 		serverName: config.ServerName,
 		logger:     log.DefaultLogger,
 		stopChan:   make(chan struct{}),
-		handler:    NewHandler(cmFilter, clMng, log.DefaultLogger),
+		handler:    NewHandler(cmFilter, clMng),
 	}
 
 	initListenerAdapterInstance(server.serverName, server.handler)

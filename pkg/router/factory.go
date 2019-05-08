@@ -19,6 +19,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -34,11 +35,12 @@ var defaultRouterRuleFactoryOrder routerRuleFactoryOrder
 
 func RegisterRouterRule(f RouterRuleFactory, order uint32) {
 	if defaultRouterRuleFactoryOrder.order < order {
-		log.DefaultLogger.Infof("register router rule, order %d", order)
+		log.DefaultLogger.Infof(RouterLogFormat, "Extend", "RegisterRouterRule", fmt.Sprintf("order is %d", order))
 		defaultRouterRuleFactoryOrder.factory = f
 		defaultRouterRuleFactoryOrder.order = order
 	} else {
-		log.DefaultLogger.Warnf("current register order is %d, order %d register failed", defaultRouterRuleFactoryOrder.order, order)
+		msg := fmt.Sprintf("current register order is %d, order %d register failed", defaultRouterRuleFactoryOrder.order, order)
+		log.DefaultLogger.Errorf(RouterLogFormat, "Extend", "RegisterRouterRule", msg)
 	}
 }
 
@@ -58,11 +60,12 @@ var makeHandlerChainOrder handlerChainOrder
 
 func RegisterMakeHandlerChain(f MakeHandlerChain, order uint32) {
 	if makeHandlerChainOrder.order < order {
-		log.DefaultLogger.Infof("register make handler chain, order %d", order)
+		log.DefaultLogger.Infof(RouterLogFormat, "Extend", "RegisterHandlerChain", fmt.Sprintf("order is %d", order))
 		makeHandlerChainOrder.makeHandlerChain = f
 		makeHandlerChainOrder.order = order
 	} else {
-		log.DefaultLogger.Warnf("current register order is %d, order %d register failed", makeHandlerChainOrder.order, order)
+		msg := fmt.Sprintf("current register order is %d, order %d register failed", makeHandlerChainOrder.order, order)
+		log.DefaultLogger.Errorf(RouterLogFormat, "Extend", "RegisterHandlerChain", msg)
 	}
 }
 
@@ -70,12 +73,12 @@ type simpleHandler struct {
 	route types.Route
 }
 
-func (h *simpleHandler) IsAvailable(ctx context.Context, f func(context.Context, string) types.ClusterSnapshot) (types.ClusterSnapshot, types.HandlerStatus) {
+func (h *simpleHandler) IsAvailable(ctx context.Context, manager types.ClusterManager) (types.ClusterSnapshot, types.HandlerStatus) {
 	if h.route == nil {
 		return nil, types.HandlerNotAvailable
 	}
 	clusterName := h.Route().RouteRule().ClusterName()
-	snapshot := f(context.Background(), clusterName)
+	snapshot := manager.GetClusterSnapshot(context.Background(), clusterName)
 	return snapshot, types.HandlerAvailable
 }
 

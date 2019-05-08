@@ -20,6 +20,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"io/ioutil"
 
@@ -65,8 +66,8 @@ func statsDump(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(200)
-	sink := console.NewConsoleSink(w)
-	sink.Flush(metrics.GetAll())
+	sink := console.NewConsoleSink()
+	sink.Flush(w, metrics.GetAll())
 }
 
 // update log level
@@ -149,4 +150,17 @@ func disableLogger(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "disable logger success\n")
+}
+
+// returns data
+// pid=xxx&state=xxx
+func getState(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	pid := os.Getpid()
+	state := store.GetMosnState()
+	msg := fmt.Sprintf("pid=%d&state=%d\n", pid, state)
+	fmt.Fprint(w, msg)
 }

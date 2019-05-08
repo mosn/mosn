@@ -182,6 +182,9 @@ var DefaultSofaRPCHealthCheckConf = apiv2.HealthCheck{
  * respstatus: response status
  */
 
+const RequestHeaderLenIndex = 16
+const ResponseHeaderLenIndex = 14
+
 // BoltRequest is the cmd struct of bolt v1 request
 type BoltRequest struct {
 	Protocol byte  //BoltV1:1, BoltV2:2
@@ -254,6 +257,10 @@ func (b *BoltRequest) Get(key string) (value string, ok bool) {
 
 func (b *BoltRequest) Set(key string, value string) {
 	b.RequestHeader[key] = value
+}
+
+func (b *BoltRequest) Add(key string, value string) {
+	panic("not supported")
 }
 
 func (b *BoltRequest) Del(key string) {
@@ -372,6 +379,10 @@ func (b *BoltResponse) Set(key string, value string) {
 	b.ResponseHeader[key] = value
 }
 
+func (b *BoltResponse) Add(key string, value string) {
+	panic("not supported")
+}
+
 func (b *BoltResponse) Del(key string) {
 	delete(b.ResponseHeader, key)
 }
@@ -444,6 +455,9 @@ func (b *BoltResponse) ByteSize() (size uint64) {
  * +------------------------------------------------------------------------------------------------+
  * respstatus: response status
  */
+
+const RequestV2HeaderLenIndex = 18
+const ResponseV2HeaderLenIndex = 16
 
 // BoltRequestV2 is the cmd struct of bolt v2 request
 type BoltRequestV2 struct {

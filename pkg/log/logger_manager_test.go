@@ -18,10 +18,8 @@
 package log
 
 import (
-	"context"
+	"fmt"
 	"testing"
-
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 func TestUpdateLoggerConfig(t *testing.T) {
@@ -88,19 +86,25 @@ func TestUpdateLoggerConfig(t *testing.T) {
 
 }
 
-func TestByContext(t *testing.T) {
-	logName := "/tmp/mosn/test_by_context_default.log"
-	if err := InitDefaultLogger(logName, DEBUG); err != nil {
-		t.Fatal("init default logger failed")
+func TestSetAllErrorLogLevel(t *testing.T) {
+	defer CloseAll()
+	// reset for test
+	errorLoggerManagerInstance.managers = make(map[string]ErrorLogger)
+	loggers = make(map[string]*Logger)
+	var logs []ErrorLogger
+	for i := 0; i < 100; i++ {
+		logName := fmt.Sprintf("/tmp/errorlog.%d.log", i)
+		lg, err := GetOrCreateDefaultErrorLogger(logName, INFO)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logs = append(logs, lg)
 	}
-	if lg := ByContext(nil); lg == nil {
-		t.Fatal("by context get a nil logger")
-	}
-	p := "/tmp/mosn/test_by_context.log"
-	lg, _ := GetOrCreateDefaultErrorLogger(p, INFO)
-	ctx := context.WithValue(context.Background(), types.ContextKeyLogger, lg)
-	logger := ByContext(ctx).(*errorLogger)
-	if !(logger.output == p && logger.level == INFO) {
-		t.Fatal("bycontext get logger is not expected")
+	GetErrorLoggerManagerInstance().SetAllErrorLoggerLevel(ERROR)
+	// verify
+	for _, lg := range logs {
+		if lg.GetLogLevel() != ERROR {
+			t.Fatal("some error log's level is not changed")
+		}
 	}
 }

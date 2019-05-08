@@ -3,6 +3,7 @@ package functiontest
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -25,7 +26,6 @@ import (
 	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/test/util"
-	"github.com/json-iterator/go"
 	"golang.org/x/net/http2"
 )
 
@@ -107,13 +107,15 @@ func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, pr
 	}
 	filterChain := util.NewFilterChain("proxyVirtualHost", proto, proto, routers)
 	if tls {
-		filterChain.TLS = DefaultTLSConfig
+		filterChain.TLSContexts = []v2.TLSConfig{
+			DefaultTLSConfig,
+		}
 	}
 	chains := []v2.FilterChain{filterChain}
 	lnCfg := util.NewListener(listenerName, addr, chains)
 	lnCfg.Inspector = false
 	mosnConfig := util.NewMOSNConfig([]v2.Listener{lnCfg}, cmconfig)
-	mosnConfig.RawAdmin = jsoniter.RawMessage([]byte(`{
+	mosnConfig.RawAdmin = json.RawMessage([]byte(`{
 		 "address":{
 			 "socket_address":{
 				 "address": "127.0.0.1",
@@ -149,9 +151,9 @@ func (c *TLSUpdateCase) FinishCase() {
 	<-c.Finish
 }
 
-func (c *TLSUpdateCase) UpdateTLS(inspector bool, cfg *v2.TLSConfig) error {
+func (c *TLSUpdateCase) UpdateTLS(inspector bool, cfgs []v2.TLSConfig) error {
 	adapter := server.GetListenerAdapterInstance()
-	return adapter.UpdateListenerTLS("", c.ListenerName, inspector, cfg)
+	return adapter.UpdateListenerTLS("", c.ListenerName, inspector, cfgs)
 }
 
 // client do "n" times request, interval time (ms)
@@ -299,7 +301,7 @@ func TestUpdateTLS_NoneToTLS(t *testing.T) {
 		t.Logf("verify non-tls")
 		verify()
 		// update to tls
-		if err := tc.UpdateTLS(false, &DefaultTLSConfig); err != nil {
+		if err := tc.UpdateTLS(false, []v2.TLSConfig{DefaultTLSConfig}); err != nil {
 			t.Fatal("update tls failed")
 		}
 		go tc.RequestTLS(true, 1, 0)
@@ -335,7 +337,7 @@ func TestUpdateTLS_TLSToNone(t *testing.T) {
 		go tc.RequestTLS(true, 1, 0)
 		verify()
 		// update to non-tls
-		if err := tc.UpdateTLS(false, &v2.TLSConfig{}); err != nil {
+		if err := tc.UpdateTLS(false, []v2.TLSConfig{v2.TLSConfig{}}); err != nil {
 			t.Fatal("update tls failed")
 		}
 		go tc.RequestTLS(false, 1, 0)
@@ -370,7 +372,7 @@ func TestUpdateTLS_TLSToInspector(t *testing.T) {
 		go tc.RequestTLS(true, 1, 0)
 		verify()
 		// update to inspector
-		if err := tc.UpdateTLS(true, &DefaultTLSConfig); err != nil {
+		if err := tc.UpdateTLS(true, []v2.TLSConfig{DefaultTLSConfig}); err != nil {
 			t.Fatal("update tls failed")
 		}
 		go tc.RequestTLS(false, 1, 0)

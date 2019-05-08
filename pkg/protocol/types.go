@@ -68,6 +68,13 @@ func (h CommonHeader) Set(key string, value string) {
 	h[key] = value
 }
 
+// Add value for given key.
+// Multiple headers with the same key may be added with this function.
+// Use Set for setting a single header for the given key.
+func (h CommonHeader) Add(key string, value string) {
+	panic("not supported")
+}
+
 // Del delete pair of specified key
 func (h CommonHeader) Del(key string) {
 	delete(h, key)

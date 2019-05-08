@@ -23,11 +23,18 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime/debug"
+
+	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
+	"github.com/alipay/sofa-mosn/pkg/metrics"
 )
 
+var lock = new(sync.Mutex)
+
 type service struct {
+	start bool
 	*http.Server
 	name string
 	init func()
@@ -61,17 +68,22 @@ func ListServiceListenersFile() ([]*os.File, error) {
 }
 
 func AddService(s *http.Server, name string, init func(), exit func()) {
+	lock.Lock()
+	defer lock.Unlock()
 	for i, srv := range services {
 		if srv.Addr == s.Addr {
-			services[i] = &service{s, name, init, exit}
+			services[i] = &service{false, s, name, init, exit}
 			return
 		}
 	}
-	services = append(services, &service{s, name, init, exit})
+	services = append(services, &service{false, s, name, init, exit})
 }
 
 func StartService(inheritListeners []net.Listener) error {
 	for _, srv := range services {
+		if srv.start {
+			continue
+		}
 		var err error
 		var ln net.Listener
 		var saddr *net.TCPAddr
@@ -112,12 +124,17 @@ func StartService(inheritListeners []net.Listener) error {
 		if s.init != nil {
 			s.init()
 		}
+		s.start = true
+
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
 					log.DefaultLogger.Errorf("service %s panic %v", s.name, r)
 				}
 			}()
+
+			// set metrics
+			metrics.AddListenerAddr(s.Addr)
 
 			s.Serve(ln)
 		}()
@@ -131,7 +148,15 @@ func StopService() {
 		if s.exit != nil {
 			s.exit()
 		}
-		go s.Shutdown(context.Background())
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+				}
+			}()
+
+			s.Shutdown(context.Background())
+		}()
 	}
 	services = services[:0]
 	listeners = listeners[:0]

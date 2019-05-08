@@ -18,25 +18,21 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
-	"strings"
-
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/filter"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/server"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/gogo/protobuf/jsonpb"
-	"github.com/json-iterator/go"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var protocolsSupported = map[string]bool{
 	string(protocol.Auto):      true,
@@ -132,6 +128,7 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 			cb(pClusters, false)
 		}
 	}
+
 	return pClusters, clusterV2Map
 }
 
@@ -162,7 +159,7 @@ var logLevelMap = map[string]log.Level{
 	"INFO":  log.INFO,
 }
 
-func parseLogLevel(level string) log.Level {
+func ParseLogLevel(level string) log.Level {
 	if logLevel, ok := logLevelMap[level]; ok {
 		return logLevel
 	}
@@ -208,7 +205,6 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.L
 	lc.Addr = addr
 	lc.PerConnBufferLimitBytes = 1 << 15
 	lc.InheritListener = old
-	lc.LogLevel = uint8(parseLogLevel(lc.LogLevelConfig))
 	return lc
 }
 
@@ -333,21 +329,11 @@ func ParseServiceRegistry(src v2.ServiceRegistryInfo) {
 }
 
 // ParseServerConfig
-func ParseServerConfig(c *ServerConfig) *server.Config {
-	sc := &server.Config{
-		ServerName:      c.ServerName,
-		LogPath:         c.DefaultLogPath,
-		LogLevel:        parseLogLevel(c.DefaultLogLevel),
-		LogRoller:       c.DefaultLogRoller,
-		GracefulTimeout: c.GracefulTimeout.Duration,
-		Processor:       c.Processor,
-		UseNetpollMode:  c.UseNetpollMode,
-	}
-
+func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
-		sc.Processor = n
-	} else if sc.Processor == 0 {
-		sc.Processor = runtime.NumCPU()
+		c.Processor = n
+	} else if c.Processor == 0 {
+		c.Processor = runtime.NumCPU()
 	}
 
 	// trigger processor callbacks
@@ -356,7 +342,7 @@ func ParseServerConfig(c *ServerConfig) *server.Config {
 			cb(c.Processor, true)
 		}
 	}
-	return sc
+	return c
 }
 
 // GetStreamFilters returns a stream filter factory by filter.Type

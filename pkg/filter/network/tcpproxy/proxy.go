@@ -29,6 +29,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 // ReadFilter
@@ -51,7 +53,7 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.Clu
 		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,
 		requestInfo:    network.NewRequestInfo(),
-		accessLogs:     ctx.Value(types.ContextKeyAccessLogs).([]types.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]types.AccessLog),
 	}
 
 	p.upstreamCallbacks = &upstreamCallbacks{
@@ -423,5 +425,9 @@ func (c *LbContext) DownstreamConnection() net.Conn {
 
 // TCP Proxy have no header
 func (c *LbContext) DownstreamHeaders() types.HeaderMap {
+	return nil
+}
+
+func (c *LbContext) DownstreamContext() context.Context {
 	return nil
 }

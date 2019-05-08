@@ -20,6 +20,7 @@ package stream
 import (
 	"context"
 
+	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
@@ -106,6 +107,12 @@ func (c *client) SetStreamConnectionEventListener(listener types.StreamConnectio
 }
 
 func (c *client) NewStream(context context.Context, respReceiver types.StreamReceiveListener) types.StreamSender {
+	// oneway
+	if respReceiver == nil {
+		log.DefaultLogger.Debugf("oneway client NewStream")
+		return c.ClientStreamConnection.NewStream(context, nil)
+	}
+
 	wrapper := &clientStreamReceiverWrapper{
 		streamReceiver: respReceiver,
 	}
@@ -164,26 +171,9 @@ type clientStreamReceiverWrapper struct {
 	streamReceiver types.StreamReceiveListener
 }
 
-func (w *clientStreamReceiverWrapper) OnReceiveHeaders(ctx context.Context, headers types.HeaderMap, endOfStream bool) {
-	if endOfStream {
-		w.stream.DestroyStream()
-	}
-
-	w.streamReceiver.OnReceiveHeaders(ctx, headers, endOfStream)
-}
-
-func (w *clientStreamReceiverWrapper) OnReceiveData(ctx context.Context, data types.IoBuffer, endOfStream bool) {
-	if endOfStream {
-		w.stream.DestroyStream()
-	}
-
-	w.streamReceiver.OnReceiveData(ctx, data, endOfStream)
-}
-
-func (w *clientStreamReceiverWrapper) OnReceiveTrailers(ctx context.Context, trailers types.HeaderMap) {
+func (w *clientStreamReceiverWrapper) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	w.stream.DestroyStream()
-
-	w.streamReceiver.OnReceiveTrailers(ctx, trailers)
+	w.streamReceiver.OnReceive(ctx, headers, data, trailers)
 }
 
 func (w *clientStreamReceiverWrapper) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {

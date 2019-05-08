@@ -26,28 +26,31 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 )
 
 const maxLabelCount = 10
 
 var (
 	defaultStore *store
-
+	defaultMatcher *metricsMatcher
 	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
 )
 
 // stats memory store
 type store struct {
-	rejectAll       bool
-	exclusionLabels []string
-	metrics         map[string]types.Metrics
-	mutex           sync.RWMutex
+	matcher *metricsMatcher
+
+	metrics map[string]types.Metrics
+	mutex   sync.RWMutex
 }
 
 // metrics is a wrapper of go-metrics registry, is an implement of types.Metrics
 type metrics struct {
-	typ       string
-	labels    map[string]string
+	typ    string
+	labels map[string]string
+
+	prefix    string
 	labelKeys []string
 	labelVals []string
 
@@ -55,37 +58,26 @@ type metrics struct {
 }
 
 func init() {
+	defaultMatcher = &metricsMatcher{}
+
 	defaultStore = &store{
+		matcher: defaultMatcher,
 		// TODO: default length configurable
 		metrics: make(map[string]types.Metrics, 100),
 	}
 }
 
-// SetStatsMatcher sets the exclusion labels
-// if a metrics labels contains in exclusions, it will be ignored
-func SetStatsMatcher(all bool, exclusions []string) {
+// SetStatsMatcher sets the exclusion labels and exclusion keys
+// if a metrics labels/keys contains in exclusions, it will be ignored
+func SetStatsMatcher(all bool, exclusionLabels, exclusionKeys []string) {
 	defaultStore.mutex.Lock()
 	defer defaultStore.mutex.Unlock()
-	if all {
-		defaultStore.rejectAll = true
-	}
-	defaultStore.exclusionLabels = exclusions
-}
 
-// isExclusion returns the labels will be ignored or not
-func isExclusion(labels map[string]string) bool {
-	defaultStore.mutex.RLock()
-	defer defaultStore.mutex.RUnlock()
-	if defaultStore.rejectAll {
-		return true
+	defaultStore.matcher = &metricsMatcher{
+		rejectAll:       all,
+		exclusionLabels: exclusionLabels,
+		exclusionKeys:   exclusionKeys,
 	}
-	// TODO: support pattern
-	for _, label := range defaultStore.exclusionLabels {
-		if _, ok := labels[label]; ok {
-			return true
-		}
-	}
-	return false
 }
 
 // NewMetrics returns a metrics
@@ -94,24 +86,28 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	if len(labels) > maxLabelCount {
 		return nil, errLabelCountExceeded
 	}
-	// support exclusion only
-	if isExclusion(labels) {
-		return NewNilMetrics(typ, labels)
-	}
 
 	defaultStore.mutex.Lock()
 	defer defaultStore.mutex.Unlock()
 
+	// support exclusion only
+	if defaultStore.matcher.isExclusionLabels(labels) {
+		return NewNilMetrics(typ, labels)
+	}
+
 	// check existence
-	name := fullName(typ, labels)
+	name, keys, values := fullName(typ, labels)
 	if m, ok := defaultStore.metrics[name]; ok {
 		return m, nil
 	}
 
 	stats := &metrics{
-		typ:      typ,
-		labels:   labels,
-		registry: gometrics.NewRegistry(),
+		typ:       typ,
+		labels:    labels,
+		labelKeys: keys,
+		labelVals: values,
+		prefix:    name + ".",
+		registry:  gometrics.NewRegistry(),
 	}
 
 	defaultStore.metrics[name] = stats
@@ -152,14 +148,29 @@ func (s *metrics) SortedLabels() (keys, values []string) {
 }
 
 func (s *metrics) Counter(key string) gometrics.Counter {
-	return s.registry.GetOrRegister(key, gometrics.NewCounter).(gometrics.Counter)
+	// support exclusion only
+	if defaultStore.matcher.isExclusionKey(key) {
+		return gometrics.NilCounter{}
+	}
+
+	return s.registry.GetOrRegister(key, shm.NewShmCounterFunc(s.fullName(key))).(gometrics.Counter)
 }
 
 func (s *metrics) Gauge(key string) gometrics.Gauge {
-	return s.registry.GetOrRegister(key, gometrics.NewGauge).(gometrics.Gauge)
+	// support exclusion only
+	if defaultStore.matcher.isExclusionKey(key) {
+		return gometrics.NilGauge{}
+	}
+
+	return s.registry.GetOrRegister(key, shm.NewShmGaugeFunc(s.fullName(key))).(gometrics.Gauge)
 }
 
 func (s *metrics) Histogram(key string) gometrics.Histogram {
+	// support exclusion only
+	if defaultStore.matcher.isExclusionKey(key) {
+		return gometrics.NilHistogram{}
+	}
+
 	return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
 }
 
@@ -169,6 +180,10 @@ func (s *metrics) Each(f func(string, interface{})) {
 
 func (s *metrics) UnregisterAll() {
 	s.registry.UnregisterAll()
+}
+
+func (s *metrics) fullName(name string) string {
+	return s.prefix + name
 }
 
 // GetAll returns all metrics data
@@ -191,29 +206,16 @@ func ResetAll() {
 		m.UnregisterAll()
 	}
 	defaultStore.metrics = make(map[string]types.Metrics, 100)
-	defaultStore.rejectAll = false
-	defaultStore.exclusionLabels = nil
+	defaultStore.matcher = defaultMatcher
 }
 
-func mapEqual(x, y map[string]string) bool {
-	if len(x) != len(y) {
-		return false
-	}
-	for k, xv := range x {
-		if yv, ok := y[k]; !ok || yv != xv {
-			return false
-		}
-	}
-	return true
-}
-
-func fullName(typ string, labels map[string]string) string {
-	keys, values := sortedLabels(labels)
+func fullName(typ string, labels map[string]string) (fullName string, keys, values []string) {
+	keys, values = sortedLabels(labels)
 
 	pair := make([]string, 0, len(keys))
 	for i := 0; i < len(keys); i++ {
 		pair = append(pair, keys[i]+"."+values[i])
 	}
-	return typ + "." + strings.Join(pair, ".")
-
+	fullName = typ + "." + strings.Join(pair, ".")
+	return
 }

@@ -17,13 +17,22 @@
 
 package store
 
+import "github.com/alipay/sofa-mosn/pkg/metrics"
+
 type State int
-var state = Running
+
+var state = Init
 
 const (
-	Running State = iota
-	Reconfiguring
+	Init State = iota
+	Running
+	Active_Reconfiguring
+	Passive_Reconfiguring
 )
+
+func init() {
+	RegisterOnStateChanged(SetStateCode)
+}
 
 func GetMosnState() State {
 	return state
@@ -31,4 +40,19 @@ func GetMosnState() State {
 
 func SetMosnState(s State) {
 	state = s
+	for _, cb := range onStateChangedCallbacks {
+		cb(s)
+	}
+}
+
+type OnStateChanged func(s State)
+
+var onStateChangedCallbacks []OnStateChanged
+
+func RegisterOnStateChanged(f OnStateChanged) {
+	onStateChangedCallbacks = append(onStateChangedCallbacks, f)
+}
+
+func SetStateCode(s State) {
+	metrics.SetStateCode(int64(s))
 }

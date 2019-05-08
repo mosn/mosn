@@ -18,16 +18,14 @@
 package log
 
 import (
-	"context"
 	"errors"
 	"sync"
-
-	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
 var (
 	DefaultLogger ErrorLogger
 	StartLogger   ErrorLogger
+	Proxy         ProxyLogger
 
 	ErrNoLoggerFound = errors.New("no logger found in logger manager")
 )
@@ -43,6 +41,8 @@ func init() {
 	StartLogger, _ = GetOrCreateDefaultErrorLogger("", INFO)
 	// default as start before Init
 	DefaultLogger = StartLogger
+	// default proxy logger for test, override after config parsed
+	Proxy, _ = CreateDefaultProxyLogger("", INFO)
 }
 
 // ErrorLoggerManager manages error log can be updated dynamicly
@@ -71,6 +71,14 @@ func (mng *ErrorLoggerManager) GetOrCreateErrorLogger(p string, level Level, f C
 	return lg, nil
 }
 
+func (mng *ErrorLoggerManager) SetAllErrorLoggerLevel(level Level) {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+	for _, lg := range mng.managers {
+		lg.SetLogLevel(level)
+	}
+}
+
 // Default Export Functions
 func GetErrorLoggerManagerInstance() *ErrorLoggerManager {
 	return errorLoggerManagerInstance
@@ -83,17 +91,10 @@ func GetOrCreateDefaultErrorLogger(p string, level Level) (ErrorLogger, error) {
 
 func InitDefaultLogger(output string, level Level) (err error) {
 	DefaultLogger, err = GetOrCreateDefaultErrorLogger(output, level)
-	return
-}
-
-func ByContext(ctx context.Context) ErrorLogger {
-	if ctx != nil {
-		if lg := ctx.Value(types.ContextKeyLogger); lg != nil {
-			return lg.(ErrorLogger)
-		}
+	if err == nil {
+		Proxy, err = CreateDefaultProxyLogger(output, level)
 	}
-	// if context is nil, use default Logger instead
-	return DefaultLogger
+	return
 }
 
 // UpdateErrorLoggerLevel updates the exists ErrorLogger's Level

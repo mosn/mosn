@@ -22,6 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
@@ -55,16 +56,22 @@ func (p *connPool) Protocol() types.Protocol {
 	return protocol.HTTP2
 }
 
+func (p *connPool) CheckAndInit(ctx context.Context) bool {
+	return true
+}
+
 func (p *connPool) NewStream(ctx context.Context,
 	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
-	p.mux.Lock()
-	if p.activeClient == nil {
-		p.activeClient = newActiveClient(ctx, p)
-	}
 
-	p.mux.Unlock()
+	activeClient := func() *activeClient {
+		p.mux.Lock()
+		defer p.mux.Unlock()
+		if p.activeClient == nil {
+			p.activeClient = newActiveClient(ctx, p)
+		}
+		return p.activeClient
+	}()
 
-	activeClient := p.activeClient
 	if activeClient == nil {
 		listener.OnFailure(types.ConnectionFailure, p.host)
 		return
@@ -168,7 +175,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		return nil
 	}
 
-	connCtx := context.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx := mosnctx.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)

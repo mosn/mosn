@@ -25,22 +25,17 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// Note
-// "runtimeKey" and "loader" are not used currently
 func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]weightedClusterEntry, uint32) {
-	var weightedClusterEntries = make(map[string]weightedClusterEntry)
+	weightedClusterEntries := make(map[string]weightedClusterEntry)
 	var totalWeight uint32
 	for _, weightedCluster := range weightedClusters {
-		subsetLBMetaData := weightedCluster.Cluster.MetadataMatch
-		totalWeight = totalWeight + weightedCluster.Cluster.Weight
-
 		weightedClusterEntries[weightedCluster.Cluster.Name] = weightedClusterEntry{
 			clusterName:                  weightedCluster.Cluster.Name,
 			clusterWeight:                weightedCluster.Cluster.Weight,
-			clusterMetadataMatchCriteria: NewMetadataMatchCriteriaImpl(subsetLBMetaData),
+			clusterMetadataMatchCriteria: NewMetadataMatchCriteriaImpl(weightedCluster.Cluster.MetadataMatch),
 		}
+		totalWeight = totalWeight + weightedCluster.Cluster.Weight
 	}
-
 	return weightedClusterEntries, totalWeight
 }
 

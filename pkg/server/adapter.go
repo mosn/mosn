@@ -53,6 +53,21 @@ func initListenerAdapterInstance(name string, connHandler types.ConnectionHandle
 	log.DefaultLogger.Debugf("add server conn handler, server name = %s", name)
 }
 
+// FindListenerByName
+func (adapter *ListenerAdapter) FindListenerByName(serverName string, listenerName string) types.Listener {
+	var connHandler types.ConnectionHandler
+	if serverName == "" {
+		connHandler = adapter.defaultConnHandler
+	} else {
+		if ch, ok := adapter.connHandlerMap[serverName]; ok {
+			connHandler = ch
+		} else {
+			return nil
+		}
+	}
+	return connHandler.FindListenerByName(listenerName)
+}
+
 func GetListenerAdapterInstance() *ListenerAdapter {
 	return listenerAdapterInstance
 }
@@ -130,7 +145,7 @@ func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName s
 	return nil
 }
 
-func (adapter *ListenerAdapter) UpdateListenerTLS(serverName string, listenerName string, inspector bool, tls *v2.TLSConfig) error {
+func (adapter *ListenerAdapter) UpdateListenerTLS(serverName string, listenerName string, inspector bool, tlsConfigs []v2.TLSConfig) error {
 	var connHandler types.ConnectionHandler
 	if serverName == "" {
 		connHandler = adapter.defaultConnHandler
@@ -147,9 +162,12 @@ func (adapter *ListenerAdapter) UpdateListenerTLS(serverName string, listenerNam
 		cfg.Inspector = inspector
 		cfg.FilterChains = []v2.FilterChain{
 			{
-				FilterChainMatch: cfg.FilterChains[0].FilterChainMatch,
-				Filters:          cfg.FilterChains[0].Filters,
-				TLS:              *tls,
+				FilterChainConfig: v2.FilterChainConfig{
+					FilterChainMatch: cfg.FilterChains[0].FilterChainMatch,
+					Filters:          cfg.FilterChains[0].Filters,
+					TLSConfigs:       tlsConfigs,
+				},
+				TLSContexts: tlsConfigs,
 			},
 		}
 		if _, err := connHandler.AddOrUpdateListener(&cfg, nil, nil); err != nil {

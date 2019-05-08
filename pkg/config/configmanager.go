@@ -63,7 +63,7 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 // called when add cluster config info received
 func AddOrUpdateClusterConfig(clusters []v2.Cluster) {
 	addOrUpdateClusterConfig(clusters)
-	go dump(true)
+	dump(true)
 }
 
 func addOrUpdateClusterConfig(clusters []v2.Cluster) {
@@ -74,6 +74,9 @@ func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 			// rewrite cluster's info if exist already
 			if config.ClusterManager.Clusters[i].Name == clusterConfig.Name {
 				config.ClusterManager.Clusters[i] = clusterConfig
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("[configmanager] [update cluster] update cluster %s", clusterConfig.Name)
+				}
 				exist = true
 				break
 			}
@@ -81,6 +84,9 @@ func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 
 		//added cluster if not exist
 		if !exist {
+			if log.DefaultLogger.GetLogLevel() >= log.INFO {
+				log.DefaultLogger.Infof("[configmanager] [add cluster] add cluster %s", clusterConfig.Name)
+			}
 			config.ClusterManager.Clusters = append(config.ClusterManager.Clusters, clusterConfig)
 		}
 	}
@@ -88,7 +94,7 @@ func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 
 func RemoveClusterConfig(clusterNames []string) {
 	if removeClusterConfig(clusterNames) {
-		go dump(true)
+		dump(true)
 	}
 }
 
@@ -99,6 +105,9 @@ func removeClusterConfig(clusterNames []string) bool {
 			if cluster.Name == clusterName {
 				//remove
 				config.ClusterManager.Clusters = append(config.ClusterManager.Clusters[:i], config.ClusterManager.Clusters[i+1:]...)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("[configmanager] [remove cluster] remove cluster %s", clusterName)
+				}
 				dirty = true
 				break
 			}
@@ -132,7 +141,7 @@ func AddPubInfo(pubInfoAdded map[string]string) {
 		}
 	}
 
-	go dump(true)
+	dump(true)
 }
 
 // DelPubInfo
@@ -149,7 +158,7 @@ func DelPubInfo(serviceName string) {
 		}
 	}
 
-	go dump(dirty)
+	dump(dirty)
 }
 
 // AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddOrUpdateRoutersConfig
@@ -157,7 +166,7 @@ func DelPubInfo(serviceName string) {
 func AddClusterWithRouter(listenername string, clusters []v2.Cluster, routerConfig *v2.RouterConfiguration) {
 	addOrUpdateClusterConfig(clusters)
 	addOrUpdateRouterConfig(listenername, routerConfig)
-	go dump(true)
+	dump(true)
 }
 
 func findListener(listenername string) (v2.Listener, int) {
@@ -181,50 +190,26 @@ func updateListener(idx int, ln v2.Listener) {
 // AddOrUpdateRouterConfig update the connection_manager's config
 func AddOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) {
 	if addOrUpdateRouterConfig(listenername, routerConfig) {
-		go dump(true)
+		dump(true)
 	}
 }
+
 func addOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) bool {
-	ln, idx := findListener(listenername)
+	_, idx := findListener(listenername)
 	if idx == -1 {
 		return false
 	}
-	// support only one filter chain
-	nfs := ln.FilterChains[0].Filters
-	filterIndex := -1
-	for i, nf := range nfs {
-		if nf.Type == v2.CONNECTION_MANAGER {
-			filterIndex = i
-			break
-		}
-	}
 
-	if data, err := json.Marshal(routerConfig); err == nil {
-		cfg := make(map[string]interface{})
-		if err := json.Unmarshal(data, &cfg); err != nil {
-			log.DefaultLogger.Errorf("invalid router config, update config failed")
-			return false
-		}
-		filter := v2.Filter{
-			Type:   v2.CONNECTION_MANAGER,
-			Config: cfg,
-		}
-		if filterIndex == -1 {
-			nfs = append(nfs, filter)
-			ln.FilterChains[0].Filters = nfs
-			updateListener(idx, ln)
-		} else {
-			nfs[filterIndex] = filter
-		}
-		return true
-	}
-	return false
+	routerMap.Lock()
+	routerMap.config[listenername] = routerConfig
+	routerMap.Unlock()
+	return true
 }
 
 // AddOrUpdateStreamFilters update the stream filters config
 func AddOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) {
 	if addOrUpdateStreamFilters(listenername, typ, cfg) {
-		go dump(true)
+		dump(true)
 	}
 }
 
@@ -251,4 +236,45 @@ func addOrUpdateStreamFilters(listenername string, typ string, cfg map[string]in
 		ln.StreamFilters[filterIndex] = filter
 	}
 	return true
+}
+
+// AddMsgMeta
+// called when msg meta updated
+func AddMsgMeta(dataId, groupId string) {
+	if config.ServiceRegistry.MsgMetaInfo == nil {
+		config.ServiceRegistry.MsgMetaInfo = make(map[string][]string)
+	}
+
+	groupIds, ok := config.ServiceRegistry.MsgMetaInfo[dataId]
+	if !ok {
+		groupIds = make([]string, 0, 8)
+		config.ServiceRegistry.MsgMetaInfo[dataId] = groupIds
+	}
+
+	exist := false
+	for i := range groupIds {
+		if groupIds[i] == groupId {
+			exist = true
+			break
+		}
+	}
+
+	if !exist {
+		config.ServiceRegistry.MsgMetaInfo[dataId] = append(config.ServiceRegistry.MsgMetaInfo[dataId], groupId)
+	}
+
+	dump(true)
+}
+
+// DelMsgMeta
+// called when delete msg meta received
+func DelMsgMeta(dataId string) {
+	dirty := false
+
+	if _, ok := config.ServiceRegistry.MsgMetaInfo[dataId]; ok {
+		delete(config.ServiceRegistry.MsgMetaInfo, dataId)
+		dirty = true
+	}
+
+	dump(dirty)
 }

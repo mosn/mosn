@@ -400,7 +400,7 @@ func MockRouterMatcher() (types.Routers, error) {
 		VirtualHosts: virtualHosts,
 	}
 
-	return router.NewRouteMatcher(cfg)
+	return router.NewRouters(cfg)
 }
 
 func mockClusterManager() types.ClusterManager {
@@ -609,6 +609,31 @@ func BenchmarkSmoothWeightedRRLoadBalancer_1000(b *testing.B) {
 	}
 
 	l := newSmoothWeightedRRLoadBalancer(&prioritySet)
+
+	for n := 0; n < b.N; n++ {
+		l.ChooseHost(nil)
+	}
+}
+
+func BenchmarkRoundRobinLoadbalancer_1000(b *testing.B) {
+
+	var hosts []types.Host
+	for i := 1; i <= 1000; i++ {
+		hosts = append(hosts, NewHost(newHostV2("127.0."+strconv.Itoa(i/250)+"."+strconv.Itoa(i%250), "test"+strconv.Itoa(i), 1, nil), nil))
+	}
+
+	hs := hostSet{
+		hosts:        hosts,
+		healthyHosts: hosts,
+	}
+
+	hostset := []types.HostSet{&hs}
+
+	prioritySet := prioritySet{
+		hostSets: hostset,
+	}
+
+	l := newRoundRobinLoadBalancer(&prioritySet)
 
 	for n := 0; n < b.N; n++ {
 		l.ChooseHost(nil)

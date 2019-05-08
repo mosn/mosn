@@ -22,14 +22,17 @@ import (
 
 	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
 	"github.com/alipay/sofa-mosn/pkg/admin/store"
+	v2 "github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	_ "github.com/alipay/sofa-mosn/pkg/filter/network/connectionmanager"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
 	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/router"
 	"github.com/alipay/sofa-mosn/pkg/server"
+	"github.com/alipay/sofa-mosn/pkg/server/keeper"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
@@ -59,10 +62,15 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		log.StartLogger.Fatalln("getInheritListeners failed, exit")
 	}
 	if reconfigure != nil {
-		// set Mosn State
-		store.SetMosnState(store.Reconfiguring)
+		// set Mosn Active_Reconfiguring
+		store.SetMosnState(store.Active_Reconfiguring)
 		// parse MOSNConfig again
 		c = config.Load(config.GetConfigPath())
+	} else {
+		// start init services
+		if err := store.StartService(nil); err != nil {
+			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
+		}
 	}
 
 	m := &Mosn{
@@ -71,8 +79,8 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	mode := c.Mode()
 
 	if mode == config.Xds {
-		servers := make([]config.ServerConfig, 0, 1)
-		server := config.ServerConfig{
+		servers := make([]v2.ServerConfig, 0, 1)
+		server := v2.ServerConfig{
 			DefaultLogPath:  "stdout",
 			DefaultLogLevel: "INFO",
 		}
@@ -112,7 +120,10 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
 		//server config
-		sc := config.ParseServerConfig(&serverConfig)
+		c := config.ParseServerConfig(&serverConfig)
+
+		// new server config
+		sc := server.NewConfig(c)
 
 		// init default log
 		server.InitDefaultLogger(sc)
@@ -158,6 +169,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		}
 		m.servers = append(m.servers, srv)
 	}
+
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 
@@ -168,7 +180,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
-	if reconfigure != nil {
+	if store.GetMosnState() == store.Active_Reconfiguring {
 		// start other services
 		if err := store.StartService(inheritListeners); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
@@ -183,13 +195,12 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 		// transfer old mosn connections
 		go network.TransferServer(m.servers[0].Handler())
-		// transfer old mosn mertrics, none-block
-		go metrics.TransferServer(server.GracefulTimeout, nil)
 	} else {
 		// start other services
 		if err := store.StartService(nil); err != nil {
 			log.StartLogger.Fatalln("start service failed: %v,  exit", err)
 		}
+		store.SetMosnState(store.Running)
 	}
 
 	//close legacy listeners
@@ -199,6 +210,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			ln.Close()
 		}
 	}
+
+	// start dump config process
+	go config.DumpConfigHandler()
 
 	// start reconfigure domain socket
 	go server.ReconfigureHandler()
@@ -266,28 +280,27 @@ func initializeTracing(config config.TracingConfig) {
 }
 
 func initializeMetrics(config config.MetricsConfig) {
-	var sinks []types.MetricsSink
-	// set metrics package
-	statsMatcher := config.StatsMatcher
-	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionList)
-	// create sinks
-	for _, cfg := range config.SinkConfigs {
-		sink, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
-		// abort
-		if err != nil {
-			log.StartLogger.Errorf("initialize metrics sink %s failed, metrics sink is turned off", cfg.Type)
-			return
-		}
-		sinks = append(sinks, sink)
+	// init shm zone
+	if config.ShmZone != "" && config.ShmSize > 0 {
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize))
 	}
 
-	if len(sinks) > 0 {
-		go sink.StartFlush(sinks, config.FlushInterval.Duration)
+	// set metrics package
+	statsMatcher := config.StatsMatcher
+	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
+	// create sinks
+	for _, cfg := range config.SinkConfigs {
+		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
+		// abort
+		if err != nil {
+			log.StartLogger.Errorf("%s. %v metrics sink is turned off", err, cfg.Type)
+			return
+		}
 	}
 }
 
 func initializePidFile(pid string) {
-	server.SetPid(pid)
+	keeper.SetPid(pid)
 }
 
 func initializeDefaultPath(path string) {

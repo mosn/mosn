@@ -74,6 +74,10 @@ func (s *SofaTracerSpan) SetTag(key uint64, value string) {
 	s.tags[key] = value
 }
 
+// TODO: can be extend
+func (s *SofaTracerSpan) SetRequestInfo(reqinfo types.RequestInfo) {
+}
+
 func (s *SofaTracerSpan) Tag(key uint64) string {
 	return s.tags[key]
 }
@@ -180,7 +184,7 @@ func (tracer *SofaTracer) PrintSpan(spanP types.Span) error {
 	switch spanP.(type) {
 	case *SofaTracerSpan:
 		span := spanP.(*SofaTracerSpan)
-		printData := buffer.NewIoBuffer(512)
+		printData := buffer.GetIoBuffer(512)
 		printData.WriteString("{")
 		printData.WriteString("\"timestamp\":")
 		date := span.endTime.Format("2006-01-02 15:04:05.999")

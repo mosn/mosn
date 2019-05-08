@@ -27,13 +27,15 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/models"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 
+	"github.com/alipay/sofa-mosn/pkg/buffer"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 var (
@@ -57,7 +59,7 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	case *sofarpc.BoltResponse:
 		return encodeResponse(ctx, cmd)
 	default:
-		log.ByContext(ctx).Errorf("unknown model : %+v", model)
+		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 encode with unknown command : %+v", model)
 		return nil, rpc.ErrUnknownType
 	}
 }
@@ -65,18 +67,18 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.RequestClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.RequestClass)
+		cmd.ClassName = serialize.UnsafeStrToByte(cmd.RequestClass)
 		cmd.ClassLen = int16(len(cmd.ClassName))
 	}
 
-	if cmd.RequestHeader != nil {
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.RequestHeader)
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	headerLen := int(cmd.HeaderLen)
+	if headerLen == 0 && cmd.RequestHeader != nil {
+		headerLen = 256
 	}
 
 	var b [4]byte
 
-	size := sofarpc.REQUEST_HEADER_LEN_V1 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	size := sofarpc.REQUEST_HEADER_LEN_V1 + int(cmd.ClassLen) + headerLen
 	//buf := sofarpc.GetBuffer(context, size)
 
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
@@ -116,27 +118,36 @@ func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffe
 		buf.Write(cmd.ClassName)
 	}
 
-	if cmd.HeaderLen > 0 {
+	if cmd.RequestHeader != nil {
+		l := buf.Len()
+		serialize.Instance.SerializeMap(cmd.RequestHeader, buf)
+		headerLen = buf.Len() - l
+
+		// reset HeaderLen
+		headerData := buf.Bytes()[sofarpc.RequestHeaderLenIndex:]
+		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
+	} else {
 		buf.Write(cmd.HeaderMap)
 	}
+
 	return buf, nil
 }
 
 func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (types.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.ResponseClass != "" {
-		cmd.ClassName, _ = serialize.Instance.Serialize(cmd.ResponseClass)
+		cmd.ClassName = serialize.UnsafeStrToByte(cmd.ResponseClass)
 		cmd.ClassLen = int16(len(cmd.ClassName))
 	}
 
-	if cmd.ResponseHeader != nil {
-		cmd.HeaderMap, _ = serialize.Instance.Serialize(cmd.ResponseHeader)
-		cmd.HeaderLen = int16(len(cmd.HeaderMap))
+	headerLen := int(cmd.HeaderLen)
+	if headerLen == 0 && cmd.ResponseHeader != nil {
+		headerLen = 256
 	}
 
 	var b [4]byte
 	// todo: reuse bytes @boqin
-	size := sofarpc.RESPONSE_HEADER_LEN_V1 + int(cmd.ClassLen) + len(cmd.HeaderMap)
+	size := sofarpc.RESPONSE_HEADER_LEN_V1 + int(cmd.ClassLen) + headerLen
 	//buf := sofarpc.GetBuffer(context, size)
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetRspHeader(size)
@@ -175,9 +186,18 @@ func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (types.IoBuf
 		buf.Write(cmd.ClassName)
 	}
 
-	if cmd.HeaderLen > 0 {
+	if cmd.ResponseHeader != nil {
+		l := buf.Len()
+		serialize.Instance.SerializeMap(cmd.ResponseHeader, buf)
+		headerLen = buf.Len() - l
+
+		// reset HeaderLen
+		headerData := buf.Bytes()[sofarpc.ResponseHeaderLenIndex:]
+		binary.BigEndian.PutUint16(headerData, uint16(headerLen))
+	} else {
 		buf.Write(cmd.HeaderMap)
 	}
+
 	return buf, nil
 }
 
@@ -187,44 +207,43 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 	var cmd interface{}
 
 	if readableBytes >= sofarpc.LESS_LEN_V1 {
-		bytes := data.Bytes()
-		cmdType := bytes[1]
+		bytesData := data.Bytes()
+		cmdType := bytesData[1]
 
 		//1. request
 		if cmdType == sofarpc.REQUEST || cmdType == sofarpc.REQUEST_ONEWAY {
 			if readableBytes >= sofarpc.REQUEST_HEADER_LEN_V1 {
 
-				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
-				ver2 := bytes[4]
-				requestID := binary.BigEndian.Uint32(bytes[5:9])
-				codec := bytes[9]
-				timeout := binary.BigEndian.Uint32(bytes[10:14])
-				classLen := binary.BigEndian.Uint16(bytes[14:16])
-				headerLen := binary.BigEndian.Uint16(bytes[16:18])
-				contentLen := binary.BigEndian.Uint32(bytes[18:22])
+				cmdCode := binary.BigEndian.Uint16(bytesData[2:4])
+				ver2 := bytesData[4]
+				requestID := binary.BigEndian.Uint32(bytesData[5:9])
+				codec := bytesData[9]
+				timeout := int32(binary.BigEndian.Uint32(bytesData[10:14]))
+				classLen := binary.BigEndian.Uint16(bytesData[14:16])
+				headerLen := binary.BigEndian.Uint16(bytesData[16:18])
+				contentLen := binary.BigEndian.Uint32(bytesData[18:22])
 
 				read = sofarpc.REQUEST_HEADER_LEN_V1
 				var class, header, content []byte
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytesData[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
 
 					data.Drain(read)
 
 				} else { // not enough data
-
-					log.ByContext(ctx).Debugf("BoltV1 DECODE Request, no enough data for fully decode")
+					log.Proxy.Debugf(ctx, "[protocol][sofarpc] boltv1 decode request, no enough data for fully decode")
 					return cmd, nil
 				}
 
@@ -255,37 +274,36 @@ func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{
 			//2. response
 			if readableBytes >= sofarpc.RESPONSE_HEADER_LEN_V1 {
 
-				cmdCode := binary.BigEndian.Uint16(bytes[2:4])
-				ver2 := bytes[4]
-				requestID := binary.BigEndian.Uint32(bytes[5:9])
-				codec := bytes[9]
-				status := binary.BigEndian.Uint16(bytes[10:12])
-				classLen := binary.BigEndian.Uint16(bytes[12:14])
-				headerLen := binary.BigEndian.Uint16(bytes[14:16])
-				contentLen := binary.BigEndian.Uint32(bytes[16:20])
+				cmdCode := binary.BigEndian.Uint16(bytesData[2:4])
+				ver2 := bytesData[4]
+				requestID := binary.BigEndian.Uint32(bytesData[5:9])
+				codec := bytesData[9]
+				status := binary.BigEndian.Uint16(bytesData[10:12])
+				classLen := binary.BigEndian.Uint16(bytesData[12:14])
+				headerLen := binary.BigEndian.Uint16(bytesData[14:16])
+				contentLen := binary.BigEndian.Uint32(bytesData[16:20])
 
 				read = sofarpc.RESPONSE_HEADER_LEN_V1
 				var class, header, content []byte
 
 				if readableBytes >= read+int(classLen)+int(headerLen)+int(contentLen) {
 					if classLen > 0 {
-						class = bytes[read : read+int(classLen)]
+						class = bytesData[read : read+int(classLen)]
 						read += int(classLen)
 					}
 					if headerLen > 0 {
-						header = bytes[read : read+int(headerLen)]
+						header = bytesData[read : read+int(headerLen)]
 						read += int(headerLen)
 					}
 					if contentLen > 0 {
-						content = bytes[read : read+int(contentLen)]
+						content = bytesData[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
 
 					data.Drain(read)
 				} else {
 					// not enough data
-					log.ByContext(ctx).Debugf("BoltV1 DECODE RESPONSE: no enough data for fully decode")
-
+					log.Proxy.Debugf(ctx, "[protocol][sofarpc] boltv1 decode response, no enough data for fully decode")
 					return cmd, nil
 				}
 
@@ -366,13 +384,17 @@ func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 		return nil
 	}
 
-	if _, ok := args[0].(context.Context); !ok {
+	ctx, ok := args[0].(context.Context)
+	if !ok {
+		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, first arg unexpected:%+v", args[0])
 		return nil
 	}
 
-	ctx, _ := args[0].(context.Context)
-	sofabuffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-	request := &sofabuffers.BoltReq
+	request, ok := args[1].(*sofarpc.BoltRequest)
+	if !ok {
+		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, second arg unexpected:%+v", args[0])
+		return nil
+	}
 
 	if request.CmdCode == sofarpc.HEARTBEAT {
 		return nil
@@ -382,10 +404,15 @@ func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
 
 	traceId := request.RequestHeader[models.TRACER_ID_KEY]
 	if traceId == "" {
+		// TODO: set generated traceId into header?
 		traceId = trace.IdGen().GenerateTraceId()
 	}
+
 	span.SetTag(trace.TRACE_ID, traceId)
-	lType := ctx.Value(types.ContextKeyListenerType)
+	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
+	if lType == nil {
+		return span
+	}
 
 	spanId := request.RequestHeader[models.RPC_ID_KEY]
 	if spanId == "" {

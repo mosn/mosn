@@ -26,8 +26,7 @@ import (
 
 var bitSize64 = 1 << 6
 
-func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
-	timeout := &Timeout{}
+func parseProxyTimeout(timeout *Timeout, route types.Route, headers types.HeaderMap) {
 	timeout.GlobalTimeout = route.RouteRule().GlobalTimeout()
 	timeout.TryTimeout = route.RouteRule().Policy().RetryPolicy().TryTimeout()
 
@@ -46,9 +45,11 @@ func parseProxyTimeout(route types.Route, headers types.HeaderMap) *Timeout {
 		}
 	}
 
+	if timeout.GlobalTimeout == 0 {
+		timeout.GlobalTimeout = types.GlobalTimeout
+	}
+
 	if timeout.TryTimeout >= timeout.GlobalTimeout {
 		timeout.TryTimeout = 0
 	}
-
-	return timeout
 }

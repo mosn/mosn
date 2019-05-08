@@ -79,5 +79,5 @@ func (p *Proxy) DestroyConn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) Stats(w http.ResponseWriter, r *http.Request) {
-	console.NewConsoleSink(w).Flush(metrics.GetAll())
+	console.NewConsoleSink().Flush(w, metrics.GetAll())
 }

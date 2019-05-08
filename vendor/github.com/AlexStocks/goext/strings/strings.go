@@ -28,14 +28,71 @@ func StringLength(s string) int {
 	return utf8.RuneCountInString(s)
 }
 
-func Contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
+// return true if the elem is in the array arr
+func Contains(arr []interface{}, elem interface{}) bool {
+	for _, e := range arr {
+		if e == elem {
 			return true
 		}
 	}
 
 	return false
+}
+
+func Strings2Ifs(arr []string) []interface{} {
+	iArr := make([]interface{}, 0, len(arr))
+	for _, s := range arr {
+		iArr = append(iArr, s)
+	}
+
+	return iArr
+}
+
+func IsSameStringArray(arr1 []string, arr2 []string) bool {
+	if len(arr1) != len(arr2) {
+		return false
+	}
+
+	for i := range arr1 {
+		flag := false
+		for j := range arr2 {
+			if arr2[j] == arr1[i] {
+				flag = true
+				break
+			}
+		}
+		if !flag {
+			return false
+		}
+	}
+
+	return true
+}
+
+// return true if the @sub is a subset of the @parent
+func IsSubset(parent []interface{}, sub []interface{}) bool {
+	for i := range sub {
+		if !Contains(parent, sub[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func Merge(s1 []string, s2 []string) []string {
+	// we don't use append because s1 could have extra capacity whose
+	// elements would be overwritten, which could cause inadvertent
+	// sharing (and race connditions) between concurrent calls
+	if len(s1) == 0 {
+		return s2
+	} else if len(s2) == 0 {
+		return s1
+	}
+	ret := make([]string, len(s1)+len(s2))
+	copy(ret, s1)
+	copy(ret[len(s1):], s2)
+	return ret
 }
 
 /*
@@ -74,6 +131,24 @@ func ArrayRemoveAt(a interface{}, i int) {
 		// *array = s
 		*array = append(s[:i], s[i+1:]...)
 	}
+}
+
+// return return value = @arr1 - @arr2
+func Sub(arr1 []string, arr2 []string) []string {
+	sub := make([]string, 0, len(arr1))
+	for i := range arr1 {
+		exist := false
+		for j := range arr2 {
+			if arr1[i] == arr2[j] {
+				exist = true
+			}
+		}
+		if !exist {
+			sub = append(sub, arr1[i])
+		}
+	}
+
+	return sub
 }
 
 func RandStringBytesMaskImprSrc(n int) string {

@@ -26,6 +26,8 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
 	"github.com/alipay/sofa-mosn/pkg/types"
+
+	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 )
 
 var (
@@ -54,7 +56,7 @@ func (coder *Coder) Encode(ctx context.Context, model interface{}) (types.IoBuff
 }
 
 func (coder *Coder) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
-	subProtocolType := SubProtocol(ctx.Value(types.ContextSubProtocol).(string))
+	subProtocolType := SubProtocol(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
 	codec := CreateSubProtocolCodec(ctx, SubProtocol(subProtocolType))
 	if codec == nil {
 		err := errors.New("create sub protocol fail")

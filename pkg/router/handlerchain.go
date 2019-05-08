@@ -46,16 +46,15 @@ func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, types.Route
 	if handler == nil {
 		return nil, nil
 	}
-	snapshot, status := handler.IsAvailable(hc.ctx, hc.clusterManager.GetClusterSnapshot)
+	snapshot, status := handler.IsAvailable(hc.ctx, hc.clusterManager)
 	switch status {
 	case types.HandlerAvailable:
 		return snapshot, handler.Route()
 	case types.HandlerNotAvailable:
-		hc.clusterManager.PutClusterSnapshot(snapshot)
 	case types.HandlerStop:
 		return nil, nil
 	default:
-		log.DefaultLogger.Errorf("unexpected handler status, do next handler....")
+		log.DefaultLogger.Warnf(RouterLogFormat, "default handler chain", "unexpected status", status)
 	}
 	return hc.DoNextHandler()
 }
