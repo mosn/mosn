@@ -169,7 +169,7 @@ func ParseLogLevel(level string) log.Level {
 // ParseListenerConfig
 func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.Listener {
 	if lc.AddrConfig == "" {
-		log.StartLogger.Fatalln("[config] [parse listener] Addressis required in listener config")
+		log.StartLogger.Fatalln("[config] [parse listener] Address is required in listener config")
 	}
 	addr, err := net.ResolveTCPAddr("tcp", lc.AddrConfig)
 	if err != nil {

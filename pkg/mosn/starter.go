@@ -301,6 +301,7 @@ func initializeMetrics(config config.MetricsConfig) {
 			log.StartLogger.Errorf("[mosn] [init metrics] %s. %v metrics sink is turned off", err, cfg.Type)
 			return
 		}
+		log.StartLogger.Infof("[mosn] [init metrics] create metrics sink: %v", cfg.Type)
 	}
 }
 

@@ -238,7 +238,7 @@ func (ch *connHandler) FindListenerByName(name string) types.Listener {
 func (ch *connHandler) RemoveListeners(name string) {
 	for i, l := range ch.listeners {
 		if l.listener.Name() == name {
-			log.DefautlLogger.Infof("[server] [conn handler] remove listener name: %s", name)
+			log.DefaultLogger.Infof("[server] [conn handler] remove listener name: %s", name)
 			ch.listeners = append(ch.listeners[:i], ch.listeners[i+1:]...)
 		}
 	}
