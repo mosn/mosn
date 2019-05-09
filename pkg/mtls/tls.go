@@ -227,7 +227,7 @@ func (mgr *contextManager) AddContext(c *v2.TLSConfig) error {
 	tlsConfig, err := mgr.newTLSConfig(c)
 	if err != nil {
 		if c.Fallback && err == ErrorGetCertificateFailed {
-			mgr.logger.Warnf("something wrong with certificate/key, trigger fallback")
+			mgr.logger.Warnf("[mtls] something wrong with certificate/key, trigger fallback")
 			return nil
 		}
 		return err

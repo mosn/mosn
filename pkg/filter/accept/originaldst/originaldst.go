@@ -48,7 +48,7 @@ func NewOriginalDst() OriginalDst {
 func (filter *originalDst) OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus {
 	ip, port, err := getOriginalAddr(cb.Conn())
 	if err != nil {
-		log.StartLogger.Println("get original addr failed:", err.Error())
+		log.DefaultLogger.Errorf("[originaldst] get original addr failed: %v", err)
 		return types.Continue
 	}
 	ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
@@ -65,7 +65,7 @@ func getOriginalAddr(conn net.Conn) ([]byte, int, error) {
 
 	f, err := tc.File()
 	if err != nil {
-		log.StartLogger.Println("get conn file error, err:", err)
+		log.DefaultLogger.Errorf("[originaldst] get conn file error, err: %v", err)
 		return nil, 0, errors.New("conn has error")
 	}
 	defer f.Close()
