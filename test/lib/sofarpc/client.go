@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
@@ -24,27 +23,14 @@ type receiver struct {
 	ch    chan<- *Response
 }
 
-func (r *receiver) OnReceiveHeaders(context context.Context, headers types.HeaderMap, endStream bool) {
-	// must be expected type, or makes panic
+func (r *receiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	cmd := headers.(sofarpc.SofaRpcCmd)
 	r.Data.Header = cmd.Header()
 	resp := cmd.(rpc.RespStatus)
 	r.Data.Status = resp.RespStatus()
-	if endStream {
-		r.Data.Cost = time.Now().Sub(r.start)
-		r.ch <- r.Data
+	if data != nil {
+		r.Data.Data = data.Bytes()
 	}
-}
-
-func (r *receiver) OnReceiveData(context context.Context, data types.IoBuffer, endStream bool) {
-	r.Data.Data = data.Bytes()
-	if endStream {
-		r.Data.Cost = time.Now().Sub(r.start)
-		r.ch <- r.Data
-	}
-}
-
-func (r *receiver) OnReceiveTrailers(context context.Context, trailers types.HeaderMap) {
 	r.Data.Cost = time.Now().Sub(r.start)
 	r.ch <- r.Data
 }
@@ -77,7 +63,7 @@ func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
 		MakeRequest: f,
 		close:       make(chan struct{}),
 	}
-	conn := network.NewClientConnection(nil, nil, remoteAddr, make(chan struct{}), log.DefaultLogger)
+	conn := network.NewClientConnection(nil, nil, remoteAddr, make(chan struct{}))
 	if err := conn.Connect(true); err != nil {
 		return nil, err
 	}
