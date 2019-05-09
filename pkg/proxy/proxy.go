@@ -23,7 +23,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	v2 "github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/config"
 	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -33,7 +33,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/stream"
 	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/rcrowley/go-metrics"
 )
 
