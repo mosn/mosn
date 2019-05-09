@@ -59,7 +59,7 @@ func ListServiceListenersFile() ([]*os.File, error) {
 		}
 		file, err := tl.File()
 		if err != nil {
-			log.DefaultLogger.Errorf("fail to get listener %s file descriptor: %v", tl.Addr().String(), err)
+			log.DefaultLogger.Errorf("[admin store] [list listener files] fail to get listener %s file descriptor: %v", tl.Addr().String(), err)
 			return nil, errors.New("fail to get listener fd") //stop reconfigure
 		}
 		files[i] = file
@@ -73,10 +73,12 @@ func AddService(s *http.Server, name string, init func(), exit func()) {
 	for i, srv := range services {
 		if srv.Addr == s.Addr {
 			services[i] = &service{false, s, name, init, exit}
+			log.DefaultLogger.Infof("[admin store] [add service] update server %s", name)
 			return
 		}
 	}
 	services = append(services, &service{false, s, name, init, exit})
+	log.DefaultLogger.Infof("[admin store] [add service] add server %s", name)
 }
 
 func StartService(inheritListeners []net.Listener) error {
@@ -91,7 +93,7 @@ func StartService(inheritListeners []net.Listener) error {
 		s := srv
 		saddr, err = net.ResolveTCPAddr("tcp", s.Addr)
 		if err != nil {
-			log.StartLogger.Fatalln("[inheritListener] not valid:", s.Addr)
+			log.StartLogger.Fatalln("[admin store] [start service] [inheritListener] not valid:", s.Addr)
 		}
 
 		for i, l := range inheritListeners {
@@ -100,13 +102,13 @@ func StartService(inheritListeners []net.Listener) error {
 			}
 			addr, err := net.ResolveTCPAddr("tcp", l.Addr().String())
 			if err != nil {
-				log.StartLogger.Fatalln("[inheritListener] not valid: ", l.Addr().String())
+				log.StartLogger.Fatalln("[admin store] [start service] [inheritListener] not valid: ", l.Addr().String())
 			}
 
 			if addr.Port == saddr.Port {
 				ln = l
 				inheritListeners[i] = nil
-				log.StartLogger.Infof("inherit listener addr: %s", ln.Addr().String())
+				log.StartLogger.Infof("[admin store] [start service] [inheritListener] inherit listener addr: %s", ln.Addr().String())
 				break
 			}
 		}
@@ -118,9 +120,7 @@ func StartService(inheritListeners []net.Listener) error {
 			}
 		}
 		listeners = append(listeners, ln)
-		if s.name != "" {
-			log.StartLogger.Infof("start service %s on %s", s.name, ln.Addr().String())
-		}
+
 		if s.init != nil {
 			s.init()
 		}
@@ -129,13 +129,13 @@ func StartService(inheritListeners []net.Listener) error {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					log.DefaultLogger.Errorf("service %s panic %v", s.name, r)
+					log.DefaultLogger.Errorf("[admin store] [start service] service %s panic %v", s.name, r)
 				}
 			}()
 
 			// set metrics
 			metrics.AddListenerAddr(s.Addr)
-
+			log.StartLogger.Infof("[admin store] [start service] start service %s on %s", s.name, ln.Addr().String())
 			s.Serve(ln)
 		}()
 	}
@@ -151,13 +151,15 @@ func StopService() {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+					log.DefaultLogger.Errorf("[admin store] [stop service] panic %v\n%s", r, string(debug.Stack()))
 				}
 			}()
 
 			s.Shutdown(context.Background())
+			log.DefaultLogger.Infof("[admin store] [stop service] %s", s.name)
 		}()
 	}
 	services = services[:0]
 	listeners = listeners[:0]
+	log.DefaultLogger.Infof("[admin store] [stop service] clear all stored services")
 }

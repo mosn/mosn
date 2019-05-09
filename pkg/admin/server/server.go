@@ -29,6 +29,27 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
+// apiHandleFuncStore stores the supported admin api
+// can register more admin api
+var apiHandleFuncStore map[string]func(http.ResponseWriter, *http.Request)
+
+func RegisterAdminHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	apiHandleFuncStore[pattern] = handler
+	log.StartLogger.Infof("[admin server] [register api] register a new api %s", pattern)
+}
+
+func init() {
+	// default admin api
+	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
+		"/api/v1/config_dump":     configDump,
+		"/api/v1/stats":           statsDump,
+		"/api/v1/update_loglevel": updateLogLevel,
+		"/api/v1/enable_log":      enableLogger,
+		"/api/v1/disbale_log":     disableLogger,
+		"/api/v1/states":          getState,
+	}
+}
+
 type Server struct {
 	*http.Server
 }
@@ -52,12 +73,9 @@ func (s *Server) Start(config Config) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/config_dump", configDump)
-	mux.HandleFunc("/api/v1/stats", statsDump)
-	mux.HandleFunc("/api/v1/update_loglevel", updateLogLevel)
-	mux.HandleFunc("/api/v1/enable_log", enableLogger)
-	mux.HandleFunc("/api/v1/disbale_log", disableLogger)
-	mux.HandleFunc("/api/v1/states", getState)
+	for pattern, handler := range apiHandleFuncStore {
+		mux.HandleFunc(pattern, handler)
+	}
 
 	srv := &http.Server{Addr: addr, Handler: mux}
 	store.AddService(srv, "Mosn Admin Server", nil, nil)
