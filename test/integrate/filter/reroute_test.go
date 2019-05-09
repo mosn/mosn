@@ -119,6 +119,7 @@ func TestReRoute(t *testing.T) {
 	cfg := createInjectProxyMesh(meshAddr, []string{httpAddr}, protocol.HTTP1)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
+	defer mesh.Close()
 	time.Sleep(2 * time.Second) // wait mosn start
 	// reset the logger
 	log.InitDefaultLogger(lgfile, log.ERROR)

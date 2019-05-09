@@ -63,9 +63,7 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 
 	mesh := mosn.NewMosn(cfg)
 
-	util.MeshLogPath = ""
-	util.MeshLogLevel = "DEBUG"
-	log.InitDefaultLogger(util.MeshLogPath, log.DEBUG)
+	log.InitDefaultLogger("", log.DEBUG)
 
 	mesh.Start()
 	time.Sleep(40 * time.Second)

@@ -347,6 +347,37 @@ func TestGetState(t *testing.T) {
 	}
 }
 
+func TestRegisterNewAPI(t *testing.T) {
+	// register api before start
+	newAPI := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("new api"))
+	}
+	pattern := "/api/new/test"
+	RegisterAdminHandleFunc(pattern, newAPI)
+	//
+	time.Sleep(time.Second)
+	server := Server{}
+	config := &mockMOSNConfig{
+		Name: "mock",
+		Port: 8889,
+	}
+	server.Start(config)
+	store.StartService(nil)
+	defer store.StopService()
+
+	time.Sleep(time.Second) //wait server start
+	url := fmt.Sprintf("http://localhost:%d%s", config.Port, pattern)
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status code: %d", resp.StatusCode)
+	}
+
+}
+
 func readLines(path string) ([]string, error) {
 	file, err := os.Open(path)
 	if err != nil {

@@ -124,12 +124,14 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 
 		// only chaned if not nil
 		if networkFiltersFactories != nil {
+			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
 			al.networkFiltersFactories = networkFiltersFactories
 			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
 			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
 		}
 		if streamFiltersFactories != nil {
-			al.streamFiltersFactories = streamFiltersFactories
+			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
+			al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 			rawConfig.StreamFilters = lc.StreamFilters
 		}
 
@@ -324,20 +326,20 @@ func (ch *connHandler) StopConnection() {
 
 // ListenerEventListener
 type activeListener struct {
-	disableConnIo           bool
-	listener                types.Listener
-	networkFiltersFactories []types.NetworkFilterChainFactory
-	streamFiltersFactories  []types.StreamFilterChainFactory
-	listenIP                string
-	listenPort              int
-	conns                   *list.List
-	connsMux                sync.RWMutex
-	handler                 *connHandler
-	stopChan                chan struct{}
-	stats                   *listenerStats
-	accessLogs              []types.AccessLog
-	updatedLabel            bool
-	tlsMng                  types.TLSContextManager
+	disableConnIo               bool
+	listener                    types.Listener
+	networkFiltersFactories     []types.NetworkFilterChainFactory
+	streamFiltersFactoriesStore atomic.Value // store []types.StreamFilterChainFactory
+	listenIP                    string
+	listenPort                  int
+	conns                       *list.List
+	connsMux                    sync.RWMutex
+	handler                     *connHandler
+	stopChan                    chan struct{}
+	stats                       *listenerStats
+	accessLogs                  []types.AccessLog
+	updatedLabel                bool
+	tlsMng                      types.TLSContextManager
 }
 
 func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers []types.AccessLog,
@@ -347,13 +349,13 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		disableConnIo:           lc.DisableConnIo,
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
-		streamFiltersFactories:  streamFiltersFactories,
 		conns:        list.New(),
 		handler:      handler,
 		stopChan:     stopChan,
 		accessLogs:   accessLoggers,
 		updatedLabel: false,
 	}
+	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
 	listenPort := 0
 	var listenIP string
@@ -408,7 +410,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, al.streamFiltersFactories)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, &al.streamFiltersFactoriesStore)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
 	if rawf != nil {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
