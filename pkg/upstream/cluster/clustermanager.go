@@ -25,13 +25,14 @@ import (
 	"reflect"
 	"sync"
 
+	"time"
+
 	admin "github.com/alipay/sofa-mosn/pkg/admin/store"
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/rcu"
 	"github.com/alipay/sofa-mosn/pkg/types"
-	"time"
 )
 
 var (
@@ -86,7 +87,7 @@ func NewClusterManager(sourceAddr net.Addr, clusters []v2.Cluster,
 	for _, cluster := range clusters {
 
 		if !clusterMangerInstance.AddOrUpdatePrimaryCluster(cluster) {
-			log.DefaultLogger.Errorf("NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s", cluster.Name)
+			log.DefaultLogger.Errorf("[upstream] [cluster manager] NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s", cluster.Name)
 		}
 	}
 
@@ -126,7 +127,7 @@ func (cs *clusterSnapshot) IsExistsHosts(metadata types.MetadataMatchCriteria) b
 		return subsetLB.GetHostsNumber(metadata) > 0
 	}
 
-	log.DefaultLogger.Errorf("Call IsExistsHosts error,metadata isn't nil, but subsetLB doesn't exist")
+	log.DefaultLogger.Errorf("[upstream] [cluster snapshot] Call IsExistsHosts error,metadata isn't nil, but subsetLB doesn't exist")
 	return false
 }
 
@@ -210,7 +211,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool {
 	}
 	if ok {
 		admin.SetClusterConfig(clusterName, cluster)
-		log.DefaultLogger.Infof("[cluster] [clusterManager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
+		log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
 	}
 	return ok
 }
@@ -237,7 +238,7 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 func (cm *clusterManager) updateCluster(clusterConf v2.Cluster, pcluster *primaryCluster, addedViaAPI bool) bool {
 	// diff cluster
 	if reflect.DeepEqual(clusterConf, *(pcluster.configUsed)) {
-		log.DefaultLogger.Debugf("update cluster but get duplicate configure")
+		log.DefaultLogger.Debugf("[upstream] [cluster manager] update cluster but get duplicate configure")
 		return true
 	}
 
@@ -246,7 +247,6 @@ func (cm *clusterManager) updateCluster(clusterConf v2.Cluster, pcluster *primar
 		cluster := NewCluster(clusterConf, cm.sourceAddr, addedViaAPI)
 		cluster.(*simpleInMemCluster).UpdateHosts(hosts)
 		pcluster.UpdateCluster(cluster, &clusterConf, addedViaAPI)
-
 		return true
 	}
 
@@ -278,7 +278,7 @@ func (cm *clusterManager) PutClusterSnapshot(snapshot types.ClusterSnapshot) {
 	if s, ok := snapshot.(*clusterSnapshot); ok {
 		s.value.Put(s.config)
 	} else {
-		log.DefaultLogger.Errorf("snapshot is not clusterSnapshot, clustername=%s", snapshot.ClusterInfo().Name())
+		log.DefaultLogger.Errorf("[upstream] [cluster manager] snapshot is not clusterSnapshot, clustername=%s", snapshot.ClusterInfo().Name())
 	}
 
 }
@@ -310,7 +310,9 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 			}
 			cm.primaryClusters.Delete(clusterName)
 			admin.RemoveClusterConfig(clusterName)
-			log.DefaultLogger.Debugf("Remove Primary Cluster, Cluster Name = %s", clusterName)
+			if log.DefaultLogger.GetLogLevel() >= log.INFO {
+				log.DefaultLogger.Infof("[upstream] [cluster manager] Remove Primary Cluster, Cluster Name = %s", clusterName)
+			}
 		} else {
 			return fmt.Errorf("Remove Primary Cluster failure, cluster name = %s doesn't exist", clusterName)
 		}
@@ -328,7 +330,10 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			hosts = append(hosts, NewHost(hc, pc.cluster.Info()))
 		}
 		if err := pc.UpdateHosts(hosts); err != nil {
-			return fmt.Errorf("UpdateClusterHosts failed, cluster's hostset %s can't be update", clusterName)
+			return fmt.Errorf("UpdateClusterHosts failed, cluster's hostset %s can't be update: %v", clusterName, err)
+		}
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [cluster manager] update cluster %s hosts", clusterName)
 		}
 		return nil
 	}
@@ -348,7 +353,10 @@ func (cm *clusterManager) AppendClusterHosts(clusterName string, priority uint32
 			hosts = append(hosts, NewHost(hc, pc.cluster.Info()))
 		}
 		if err := pc.UpdateHosts(hosts); err != nil {
-			return fmt.Errorf("AppendClusterHosts failed, cluster's hostset %s can't be update", clusterName)
+			return fmt.Errorf("AppendClusterHosts failed, cluster's hostset %s can't be update: %v", clusterName, err)
+		}
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [cluster manager] append hosts into cluster %s", clusterName)
 		}
 		return nil
 	}
@@ -376,8 +384,12 @@ func (cm *clusterManager) RemoveClusterHost(clusterName string, hostAddress stri
 				}
 			}
 			if found == true {
-				log.DefaultLogger.Debugf("RemoveClusterHost success, host address = %s", hostAddress)
-				pc.UpdateHosts(ccHosts)
+				if err := pc.UpdateHosts(ccHosts); err != nil {
+					return fmt.Errorf("remove host %s from cluster %s failed: %v", hostAddress, clusterName, err)
+				}
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("[upstream] [cluster manager] RemoveClusterHost success, host address = %s", hostAddress)
+				}
 				return nil
 			}
 			return fmt.Errorf("RemoveClusterHost failed, host address = %s doesn't exist", hostAddress)
@@ -410,18 +422,18 @@ func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, sna
 
 func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.Protocol) types.ConnectionPool {
 	if snapshot == nil {
-		log.DefaultLogger.Errorf(" %s ConnPool For Cluster is nil, cluster name = %s", protocol, snapshot.ClusterInfo().Name())
+		log.DefaultLogger.Errorf("[upstream] [cluster manager]  %s ConnPool For Cluster is nil, cluster name = %s", protocol, snapshot.ClusterInfo().Name())
 		return nil
 	}
 	clusterSnapshot, ok := snapshot.(*clusterSnapshot)
 	if !ok {
-		log.DefaultLogger.Errorf("unexpected cluster snapshot")
+		log.DefaultLogger.Errorf("[upstream] [cluster manager] unexpected cluster snapshot")
 		return nil
 	}
 
 	pool, err := cm.getActiveConnectionPool(balancerContext, clusterSnapshot, protocol)
 	if err != nil {
-		log.DefaultLogger.Errorf("ConnPoolForCluster Failed; %v", err)
+		log.DefaultLogger.Errorf("[upstream] [cluster manager] ConnPoolForCluster Failed; %v", err)
 	}
 
 	return pool
@@ -434,12 +446,12 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 	for i := 0; i < cycleTimes; i++ {
 		host := clusterSnapshot.loadbalancer.ChooseHost(balancerContext)
 		if host == nil {
-			return nil, fmt.Errorf("[cluster][manager] clusterSnapshot.loadbalancer.ChooseHost is nil")
+			return nil, fmt.Errorf("clusterSnapshot.loadbalancer.ChooseHost is nil")
 		}
 
 		addr := host.AddressString()
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[cluster][manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.clusterInfo.Name())
+			log.DefaultLogger.Debugf("[upstream] [cluster manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.clusterInfo.Name())
 		}
 		value, _ := cm.protocolConnPool.Load(protocol)
 
@@ -451,7 +463,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			}
 			pools[i] = pool
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[cluster][manager] cluster host %s is not active", addr)
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] cluster host %s is not active", addr)
 			}
 
 		} else {

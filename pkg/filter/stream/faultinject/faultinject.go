@@ -87,8 +87,8 @@ type streamFaultInjectFilter struct {
 }
 
 func NewFilter(ctx context.Context, cfg *v2.StreamFaultInject) types.StreamReceiverFilter {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[faultinject] [create] create a new fault inject filter, config: %v", cfg)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(ctx, "[stream filter] [fault inject] create a new fault inject filter")
 	}
 	return &streamFaultInjectFilter{
 		ctx:    ctx,
@@ -105,7 +105,9 @@ func (f *streamFaultInjectFilter) ReadPerRouteConfig(cfg map[string]interface{})
 	}
 	if fault, ok := cfg[v2.FaultStream]; ok {
 		if config, ok := parseStreamFaultInjectConfig(fault); ok {
-			log.DefaultLogger.Debugf("use router config to replace stream filter config, config: %v", fault)
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] use router config to replace stream filter config, config: %v", fault)
+			}
 			f.config = config
 		}
 	}
@@ -116,13 +118,17 @@ func (f *streamFaultInjectFilter) SetReceiveFilterHandler(handler types.StreamRe
 }
 
 func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
-	log.DefaultLogger.Debugf("fault inject filter do receive headers")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] fault inject filter do receive headers")
+	}
 	if route := f.handler.Route(); route != nil {
 		// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
 		f.ReadPerRouteConfig(route.RouteRule().PerFilterConfig())
 	}
 	if !f.matchUpstream() {
-		log.DefaultLogger.Debugf("upstream is not matched")
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] upstream is not matched")
+		}
 		return types.StreamFilterContinue
 	}
 	// TODO: check downstream nodes, support later
@@ -130,17 +136,23 @@ func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers types.H
 	//	return types.StreamHeadersFilterContinue
 	//}
 	if !router.ConfigUtilityInst.MatchHeaders(headers, f.config.headers) {
-		log.DefaultLogger.Debugf("header is not matched, request headers: %v, config headers: %v", headers, f.config.headers)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] header is not matched, request headers: %v, config headers: %v", headers, f.config.headers)
+		}
 		return types.StreamFilterContinue
 	}
 	// TODO: some parameters can get from request header
 	if delay := f.getDelayDuration(); delay > 0 {
-		log.DefaultLogger.Debugf("start a delay timer")
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] start a delay timer")
+		}
 		f.handler.RequestInfo().SetResponseFlag(types.DelayInjected)
 		select {
 		case <-time.After(delay):
 		case <-f.stop:
-			log.DefaultLogger.Debugf("timer is stopped")
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] timer is stopped")
+			}
 			return types.StreamFilterStop
 		}
 	}
@@ -160,23 +172,31 @@ func (f *streamFaultInjectFilter) OnDestroy() {
 func (f *streamFaultInjectFilter) matchUpstream() bool {
 	if f.config.upstream != "" {
 		if route := f.handler.Route(); route != nil {
-			log.DefaultLogger.Debugf("current cluster name %s, fault inject cluster name %s", route.RouteRule().ClusterName(), f.config.upstream)
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] current cluster name %s, fault inject cluster name %s", route.RouteRule().ClusterName(), f.config.upstream)
+			}
 			return route.RouteRule().ClusterName() == f.config.upstream
 		}
 	}
-	log.DefaultLogger.Debugf("no upstream in config, returns true")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] no upstream in config, returns true")
+	}
 	return true
 }
 
 func (f *streamFaultInjectFilter) getDelayDuration() time.Duration {
 	// percent is 0 or delay is 0 means no delay
 	if f.config.delayPercent == 0 || f.config.fixedDelay == 0 {
-		log.DefaultLogger.Debugf("no delay inject")
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] no delay inject")
+		}
 		return 0
 	}
 	// rander generates 0~99, if greater than percent means no delay
 	if (f.rander.Uint32() % 100) >= f.config.delayPercent {
-		log.DefaultLogger.Debugf("delay percent is not matched")
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] delay percent is not matched")
+		}
 		return 0
 	}
 	return f.config.fixedDelay
@@ -185,11 +205,15 @@ func (f *streamFaultInjectFilter) getDelayDuration() time.Duration {
 func (f *streamFaultInjectFilter) isAbort() bool {
 	// percent is 0 means no abort
 	if f.config.abortPercent == 0 {
-		log.DefaultLogger.Debugf("no abort inject")
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] no abort inject")
+		}
 		return false
 	}
 	if (f.rander.Uint32() % 100) >= f.config.abortPercent {
-		log.DefaultLogger.Debugf("abort percent is not matched")
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] abort percent is not matched")
+		}
 		return false
 	}
 	return true
@@ -197,7 +221,9 @@ func (f *streamFaultInjectFilter) isAbort() bool {
 
 // TODO: make a header
 func (f *streamFaultInjectFilter) abort(headers types.HeaderMap) {
-	log.DefaultLogger.Debugf("abort inject")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] abort inject")
+	}
 	f.handler.RequestInfo().SetResponseFlag(types.FaultInjected)
 	f.handler.SendHijackReply(f.config.abortStatus, headers)
 }
