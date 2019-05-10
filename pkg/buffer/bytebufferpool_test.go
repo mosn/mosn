@@ -25,7 +25,7 @@ func TestByteBufferPoolSmallBytes(t *testing.T) {
 		size := intN(1 << minShift)
 		bp := pool.take(size)
 
-		if cap(*bp) != size {
+		if cap(*bp) != 1<<minShift {
 			t.Errorf("Expect get the %d bytes from pool, but got %d", size, cap(*bp))
 		}
 
@@ -63,5 +63,33 @@ func TestBytesBufferPoolLargeBytes(t *testing.T) {
 
 		// Puts the bytes to pool
 		pool.give(bp)
+	}
+}
+
+func TestBytesSlot(t *testing.T) {
+	pool := newByteBufferPool()
+
+	if pool.slot(pool.minSize-1) != 0 {
+		t.Errorf("Expect get the 0 slot")
+	}
+
+	if pool.slot(pool.minSize) != 0 {
+		t.Errorf("Expect get the 0 slot")
+	}
+
+	if pool.slot(pool.minSize+1) != 1 {
+		t.Errorf("Expect get the 1 slot")
+	}
+
+	if pool.slot(pool.maxSize-1) != maxShift-minShift {
+		t.Errorf("Expect get the %d slot", maxShift-minShift)
+	}
+
+	if pool.slot(pool.maxSize) != maxShift-minShift {
+		t.Errorf("Expect get the %d slot", maxShift-minShift)
+	}
+
+	if pool.slot(pool.maxSize+1) != errSlot {
+		t.Errorf("Expect get errSlot")
 	}
 }
