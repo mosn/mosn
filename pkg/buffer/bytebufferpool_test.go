@@ -25,7 +25,7 @@ func TestByteBufferPoolSmallBytes(t *testing.T) {
 		size := intN(1 << minShift)
 		bp := pool.take(size)
 
-		if cap(*bp) != size {
+		if cap(*bp) != 1 << minShift {
 			t.Errorf("Expect get the %d bytes from pool, but got %d", size, cap(*bp))
 		}
 

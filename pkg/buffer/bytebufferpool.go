@@ -29,7 +29,7 @@ func init() {
 }
 
 const minShift = 6
-const maxShift = 15
+const maxShift = 18
 const errSlot = -1
 
 var bbPool *byteBufferPool
@@ -70,7 +70,7 @@ func newByteBufferPool() *byteBufferPool {
 }
 
 func (p *byteBufferPool) slot(size int) int {
-	if size > p.maxSize || size <= p.minSize {
+	if size > p.maxSize {
 		return errSlot
 	}
 	slot := 0
