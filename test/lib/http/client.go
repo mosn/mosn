@@ -1,20 +1,20 @@
-package sofarpc
+package http
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"sync/atomic"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/stream"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc" // register sofarpc
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/valyala/fasthttp"
 )
 
 type receiver struct {
@@ -24,10 +24,8 @@ type receiver struct {
 }
 
 func (r *receiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	cmd := headers.(sofarpc.SofaRpcCmd)
-	r.Data.Header = cmd.Header()
-	resp := cmd.(rpc.RespStatus)
-	r.Data.Status = resp.RespStatus()
+	cmd := headers.(mosnhttp.ResponseHeader)
+	r.Data.Header = cmd
 	if data != nil {
 		r.Data.Data = data.Bytes()
 	}
@@ -36,9 +34,11 @@ func (r *receiver) OnReceive(ctx context.Context, headers types.HeaderMap, data 
 }
 
 func (r *receiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
-	r.Data.Status = 1 // RESPONSE_STATUS_ERROR
-	r.Data.Header = map[string]string{
-		"error_message": err.Error(),
+	header := &fasthttp.ResponseHeader{}
+	header.SetStatusCode(http.StatusInternalServerError)
+	header.Set("error_message", err.Error())
+	r.Data.Header = mosnhttp.ResponseHeader{
+		ResponseHeader: header,
 	}
 	r.Data.Cost = time.Now().Sub(r.start)
 	r.ch <- r.Data
@@ -52,7 +52,6 @@ type ConnClient struct {
 	close    chan struct{}
 	client   stream.Client
 	conn     types.ClientConnection
-	id       uint64
 }
 
 func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
@@ -70,7 +69,7 @@ func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
 	}
 	conn.AddConnectionEventListener(c)
 	c.conn = conn
-	client := stream.NewStreamClient(context.Background(), protocol.SofaRPC, conn, nil)
+	client := stream.NewStreamClient(context.Background(), protocol.HTTP1, conn, nil)
 	if client == nil {
 		return nil, errors.New("protocol not registered")
 	}
@@ -93,17 +92,15 @@ func (c *ConnClient) IsClosed() bool {
 	return c.isClosed
 }
 
-func (c *ConnClient) sendRequest(receiver types.StreamReceiveListener, header map[string]string, body []byte) {
+func (c *ConnClient) sendRequest(receiver types.StreamReceiveListener, method string, header map[string]string, body []byte) {
 	ctx := context.Background()
 	streamEncoder := c.client.NewStream(ctx, receiver)
-	atomic.AddUint64(&c.id, 1)
-	cmd, data := c.MakeRequest(c.id, header, body)
-	streamEncoder.AppendHeaders(ctx, cmd, false)
+	headers, data := c.MakeRequest(method, header, body)
+	streamEncoder.AppendHeaders(ctx, headers, false)
 	streamEncoder.AppendData(ctx, data, true)
-
 }
 
-func (c *ConnClient) SyncSend(header map[string]string, body []byte) (*Response, error) {
+func (c *ConnClient) SyncSend(method string, header map[string]string, body []byte) (*Response, error) {
 	select {
 	case <-c.close:
 		return nil, errors.New("closed connection client")
@@ -114,7 +111,7 @@ func (c *ConnClient) SyncSend(header map[string]string, body []byte) (*Response,
 			start: time.Now(),
 			ch:    ch,
 		}
-		c.sendRequest(r, header, body)
+		c.sendRequest(r, method, header, body)
 		// set default timeout, if a timeout is configured, use it
 		timeout := 5 * time.Second
 		if c.SyncTimeout > 0 {
@@ -127,6 +124,7 @@ func (c *ConnClient) SyncSend(header map[string]string, body []byte) (*Response,
 		case <-time.After(timeout):
 			return nil, errors.New("sync call timeout")
 		}
+
 	}
 }
 
@@ -135,6 +133,7 @@ func (c *ConnClient) SyncSend(header map[string]string, body []byte) (*Response,
 type ClientConfig struct {
 	Addr          string
 	MakeRequest   MakeRequestFunc
+	RequestMethod string
 	RequestHeader map[string]string
 	RequestBody   []byte
 	// request timeout is used for sync call
@@ -145,14 +144,8 @@ type ClientConfig struct {
 }
 
 func CreateSimpleConfig(addr string) *ClientConfig {
-	return &ClientConfig{
-		Addr:        addr,
-		MakeRequest: BuildBoltV1Request,
-		RequestHeader: map[string]string{
-			"service": "mosn-test-default-service",
-		},
-		RequestBody: []byte("mosn-test-default"),
-	}
+	// TODO
+	return nil
 }
 
 type Client struct {
@@ -221,7 +214,7 @@ func (c *Client) SyncCall() bool {
 		c.release(conn)
 	}()
 	c.Stats.Request()
-	resp, err := conn.SyncSend(c.Cfg.RequestHeader, c.Cfg.RequestBody)
+	resp, err := conn.SyncSend(c.Cfg.RequestMethod, c.Cfg.RequestHeader, c.Cfg.RequestBody)
 	if err != nil {
 		fmt.Println("sync call failed: ", err)
 		return false

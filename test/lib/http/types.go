@@ -1,48 +1,50 @@
-package sofarpc
+package http
 
 import (
 	"sync"
 	"sync/atomic"
 	"time"
 
+	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
 	"github.com/alipay/sofa-mosn/pkg/types"
 )
 
-// Server
-type ServeFunc func(types.IoBuffer) *WriteResponseData
+type ServeFunc func(srv *MockServer)
 
-type WriteResponseData struct {
-	Status      int16
-	DataToWrite []byte
-}
-
-type ServerStats struct {
+type ConnStats struct {
 	connectionTotal  uint32
 	connectionActive uint32
 	connectionClosed uint32
-	requestTotal     uint32
-
-	mutex         sync.Mutex
-	responseTotal map[int16]uint32 //statuscode: count
 }
 
-func NewServerStats() *ServerStats {
-	return &ServerStats{
-		mutex:         sync.Mutex{},
-		responseTotal: make(map[int16]uint32),
-	}
-}
-
-func (s *ServerStats) ActiveConnection() {
+func (s *ConnStats) ActiveConnection() {
 	atomic.AddUint32(&s.connectionTotal, 1)
 	atomic.AddUint32(&s.connectionActive, 1)
 }
 
-func (s *ServerStats) CloseConnection() {
+func (s *ConnStats) CloseConnection() {
 	// subtract x, add ^uint32(x-1)
-	// subtract 1 add  ^uint32(0)
 	atomic.AddUint32(&s.connectionActive, ^uint32(0))
 	atomic.AddUint32(&s.connectionClosed, 1)
+}
+
+func (s *ConnStats) ConnectionStats() (uint32, uint32, uint32) {
+	return s.connectionTotal, s.connectionActive, s.connectionClosed
+}
+
+type ServerStats struct {
+	requestTotal  uint32
+	mutex         sync.Mutex
+	responseTotal map[int16]uint32 //statuscode: count
+	*ConnStats
+}
+
+func NewServerStats(cs *ConnStats) *ServerStats {
+	return &ServerStats{
+		mutex:         sync.Mutex{},
+		responseTotal: make(map[int16]uint32),
+		ConnStats:     cs,
+	}
 }
 
 func (s *ServerStats) Response(status int16) {
@@ -56,10 +58,6 @@ func (s *ServerStats) Response(status int16) {
 
 func (s *ServerStats) Request() {
 	atomic.AddUint32(&s.requestTotal, 1)
-}
-
-func (s *ServerStats) ConnectionStats() (uint32, uint32, uint32) {
-	return s.connectionTotal, s.connectionActive, s.connectionClosed
 }
 
 func (s *ServerStats) RequestStats() uint32 {
@@ -78,13 +76,12 @@ func (s *ServerStats) ResponseStats() map[int16]uint32 {
 
 // Client
 type Response struct {
-	Status uint32
-	Header map[string]string
+	Header mosnhttp.ResponseHeader
 	Data   []byte
 	Cost   time.Duration
 }
 
-type MakeRequestFunc func(id uint64, header map[string]string, body []byte) (types.HeaderMap, types.IoBuffer)
+type MakeRequestFunc func(method string, header map[string]string, body []byte) (types.HeaderMap, types.IoBuffer)
 
 type ResponseVerify func(*Response) bool
 
@@ -96,7 +93,7 @@ type ClientStats struct {
 
 func NewClientStats() *ClientStats {
 	return &ClientStats{
-		ServerStats: NewServerStats(),
+		ServerStats: NewServerStats(&ConnStats{}),
 	}
 }
 
