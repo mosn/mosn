@@ -34,6 +34,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	"golang.org/x/sys/unix"
 )
 
@@ -73,12 +74,7 @@ func TransferServer(handler types.ConnectionHandler) {
 
 	var transferMap sync.Map
 
-	go func(handler types.ConnectionHandler) {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("[network] [transfer] [server] TransferServer panic %v", r)
-			}
-		}()
+	utils.GoWithRecover(func() {
 		for {
 			c, err := l.Accept()
 			if err != nil {
@@ -91,8 +87,11 @@ func TransferServer(handler types.ConnectionHandler) {
 			}
 			log.DefaultLogger.Infof("[network] [transfer] [server] transfer Accept")
 			go transferHandler(c, handler, &transferMap)
+
 		}
-	}(handler)
+	}, func(r interface{}) {
+		log.DefaultLogger.Errorf("[network] [transfer] [server] TransferServer panic %v\n%s", r, string(debug.Stack()))
+	}, false)
 
 	select {
 	case <-time.After(2*TransferTimeout + types.DefaultConnReadTimeout + 10*time.Second):
@@ -540,14 +539,11 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 
 	ch := make(chan types.Connection, 1)
 	// new connection
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("[network] [transfer] [new conn] panic %v\n%s", r, string(debug.Stack()))
-			}
-		}()
+	utils.GoWithRecover(func() {
 		listener.GetListenerCallbacks().OnAccept(conn, listener.HandOffRestoredDestinationConnections(), nil, ch, dataBuf)
-	}()
+	}, func(r interface{}) {
+		log.DefaultLogger.Errorf("[network] [transfer] [new conn] panic %v\n%s", r, string(debug.Stack()))
+	}, false)
 
 	select {
 	// recv connection

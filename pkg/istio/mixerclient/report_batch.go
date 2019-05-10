@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	"istio.io/api/mixer/v1"
 )
 
@@ -63,7 +64,9 @@ func newReportBatch(compressor *AttributeCompressor, options *reportOptions, cli
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go batch.main(&wg)
+	utils.GoWithRecover(func() {
+		batch.main(&wg)
+	}, func(r interface{}) {}, false)
 	wg.Wait()
 
 	return batch

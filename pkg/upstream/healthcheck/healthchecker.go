@@ -19,6 +19,7 @@ package healthcheck
 
 import (
 	"math/rand"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 const (
@@ -139,7 +141,11 @@ func (hc *healthChecker) startCheck(host types.Host) {
 		}
 		c := newChecker(s, host, hc)
 		hc.checkers[addr] = c
-		go c.Start()
+		utils.GoWithRecover(func() {
+			c.Start()
+		}, func(r interface{}) {
+			log.DefaultLogger.Errorf("[upstream] [health check] start check panic: %v\n%s", r, string(debug.Stack()))
+		}, false)
 		atomic.AddInt64(&hc.localProcessHealthy, 1) // default host is healthy
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[upstream] [health check] create a health check session for %s", addr)

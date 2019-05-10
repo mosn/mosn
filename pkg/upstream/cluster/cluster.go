@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 // Cluster
@@ -115,15 +116,11 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 				cluster.refreshHealthHosts(host)
 			}
 		})
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.DefaultLogger.Errorf("[upstream] [cluster] [health checker] panic %v\n%s", r, string(debug.Stack()))
-				}
-			}()
-
+		utils.GoWithRecover(func() {
 			cluster.healthChecker.Start()
-		}()
+		}, func(r interface{}) {
+			log.DefaultLogger.Errorf("[upstream] [cluster] [health checker] panic %v\n%s", r, string(debug.Stack()))
+		}, false)
 	}
 
 	return cluster

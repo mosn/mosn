@@ -35,6 +35,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/mtls"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	"github.com/rcrowley/go-metrics"
 
 	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
@@ -214,29 +215,19 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 func (c *connection) startRWLoop(lctx context.Context) {
 	c.internalLoopStarted = true
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("[network] [read loop] panic %v\n%s", p, string(debug.Stack()))
-
-				c.Close(types.NoFlush, types.LocalClose)
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		c.startReadLoop()
-	}()
+	}, func(r interface{}) {
+		log.DefaultLogger.Errorf("[network] [read loop] panic %v\n%s", r, string(debug.Stack()))
+		c.Close(types.NoFlush, types.LocalClose)
+	}, false)
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("[network] [write loop] panic %v\n%s", p, string(debug.Stack()))
-
-				c.Close(types.NoFlush, types.LocalClose)
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		c.startWriteLoop()
-	}()
+	}, func(r interface{}) {
+		log.DefaultLogger.Errorf("[network] [write loop] panic %v\n%s", r, string(debug.Stack()))
+		c.Close(types.NoFlush, types.LocalClose)
+	}, false)
 }
 
 func (c *connection) scheduleWrite() {

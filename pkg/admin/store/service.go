@@ -29,6 +29,7 @@ import (
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 var lock = new(sync.Mutex)
@@ -125,19 +126,14 @@ func StartService(inheritListeners []net.Listener) error {
 			s.init()
 		}
 		s.start = true
-
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.DefaultLogger.Errorf("[admin store] [start service] service %s panic %v", s.name, r)
-				}
-			}()
-
+		utils.GoWithRecover(func() {
 			// set metrics
 			metrics.AddListenerAddr(s.Addr)
 			log.StartLogger.Infof("[admin store] [start service] start service %s on %s", s.name, ln.Addr().String())
 			s.Serve(ln)
-		}()
+		}, func(r interface{}) {
+			log.DefaultLogger.Errorf("[admin store] [start service] service %s panic %v\n", s.name, r, string(debug.Stack()))
+		}, false)
 	}
 	return nil
 }
@@ -148,16 +144,12 @@ func StopService() {
 		if s.exit != nil {
 			s.exit()
 		}
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.DefaultLogger.Errorf("[admin store] [stop service] panic %v\n%s", r, string(debug.Stack()))
-				}
-			}()
-
+		utils.GoWithRecover(func() {
 			s.Shutdown(context.Background())
 			log.DefaultLogger.Infof("[admin store] [stop service] %s", s.name)
-		}()
+		}, func(r interface{}) {
+			log.DefaultLogger.Errorf("[admin store] [stop service] panic %v\n%s", r, string(debug.Stack()))
+		}, false)
 	}
 	services = services[:0]
 	listeners = listeners[:0]

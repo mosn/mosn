@@ -19,10 +19,12 @@ package server
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 var listenerAdapterInstance *ListenerAdapter
@@ -113,7 +115,11 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 	if al, ok := listener.(*activeListener); ok {
 		if !al.updatedLabel {
 			// start listener if this is new
-			go al.listener.Start(nil)
+			utils.GoWithRecover(func() {
+				al.listener.Start(nil)
+			}, func(r interface{}) {
+				log.DefaultLogger.Errorf("[server] start listener %v panic: %v\n%s", al.listener.Addr(), r, string(debug.Stack()))
+			}, false)
 		}
 
 		return nil

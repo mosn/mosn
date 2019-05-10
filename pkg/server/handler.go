@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -202,8 +203,13 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
+			ln := l
 			// TODO: use goroutine pool
-			go l.listener.Start(lctx)
+			utils.GoWithRecover(func() {
+				ln.listener.Start(lctx)
+			}, func(r interface{}) {
+				log.DefaultLogger.Errorf("[server] [conn handler] listener panic: %v\n%s", r, string(debug.Stack()))
+			}, true) // restart listener
 		}
 	}
 }
@@ -211,7 +217,12 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 func (ch *connHandler) StartListeners(lctx context.Context) {
 	for _, l := range ch.listeners {
 		// start goroutine
-		go l.listener.Start(lctx)
+		ln := l
+		utils.GoWithRecover(func() {
+			ln.listener.Start(lctx)
+		}, func(r interface{}) {
+			log.DefaultLogger.Errorf("[server] [conn handler] listener panic: %v\n%s", r, string(debug.Stack()))
+		}, true)
 		// set listener addr metrics
 		metrics.AddListenerAddr(l.listener.Addr().String())
 	}

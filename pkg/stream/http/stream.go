@@ -28,6 +28,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"io"
+
 	"github.com/alipay/sofa-mosn/pkg/buffer"
 	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -36,8 +38,8 @@ import (
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/trace"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	"github.com/valyala/fasthttp"
-	"io"
 )
 
 func init() {
@@ -194,17 +196,11 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.Proxy.Errorf(csc.context, "[stream] [http] client serve goroutine panic %v\n%s", p, string(debug.Stack()))
-
-				//csc.serve()
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		csc.serve()
-	}()
+	}, func(r interface{}) {
+		log.Proxy.Errorf(csc.context, "[stream] [http] client serve goroutine panic %v\n%s", r, string(debug.Stack()))
+	}, false)
 
 	return csc
 }
@@ -330,17 +326,11 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 		return false
 	})
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.Proxy.Errorf(ssc.context, "[stream] [http] server serve goroutine panic %v\n%s", p, string(debug.Stack()))
-
-				//ssc.serve()
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		ssc.serve()
-	}()
+	}, func(r interface{}) {
+		log.Proxy.Errorf(ssc.context, "[stream] [http] server serve goroutine panic %v\n%s", r, string(debug.Stack()))
+	}, false)
 
 	return ssc
 }

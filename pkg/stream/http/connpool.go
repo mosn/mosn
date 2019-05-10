@@ -29,6 +29,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	"github.com/rcrowley/go-metrics"
 )
 
@@ -206,20 +207,16 @@ func (p *connPool) createStreamClient(context context.Context, connData types.Cr
 
 func (p *connPool) report() {
 	// report
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		for {
 			p.clientMux.Lock()
 			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}
-	}()
+	}, func(r interface{}) {
+		log.DefaultLogger.Errorf("[stream] [http] [connpool] pool = %s, panic %v\n%s", p.host.Address(), r, string(debug.Stack()))
+	}, false)
 }
 
 // types.StreamEventListener

@@ -27,6 +27,7 @@ import (
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 )
 
 // listener impl based on golang net package
@@ -185,15 +186,11 @@ func (l *listener) accept(lctx context.Context) error {
 	}
 
 	// TODO: use thread pool
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("[network] [listener accept] panic %v\n%s", p, string(debug.Stack()))
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil, nil, nil)
-	}()
+	}, func(r interface{}) {
+		log.DefaultLogger.Errorf("[network] [listener accept] panic %v\n%s", r, string(debug.Stack()))
+	}, false)
 
 	return nil
 }

@@ -23,14 +23,16 @@ import (
 	"sync/atomic"
 	"time"
 
+	"runtime/debug"
+
 	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
 	"github.com/alipay/sofa-mosn/pkg/protocol"
 	str "github.com/alipay/sofa-mosn/pkg/stream"
 	"github.com/alipay/sofa-mosn/pkg/types"
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	"github.com/rcrowley/go-metrics"
-	"runtime/debug"
 )
 
 const (
@@ -65,13 +67,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) init(client *activeClient, sub byte) {
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("[stream] [sofarpc] [connpool] init panic %v\n%s", r, string(debug.Stack()))
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.host.AddressString())
 		}
@@ -85,7 +81,9 @@ func (p *connPool) init(client *activeClient, sub byte) {
 		} else {
 			p.activeClients.Delete(sub)
 		}
-	}()
+	}, func(r interface{}) {
+		log.DefaultLogger.Errorf("[stream] [sofarpc] [connpool] init panic %v\n%s", r, string(debug.Stack()))
+	}, false)
 }
 
 func (p *connPool) CheckAndInit(ctx context.Context) bool {

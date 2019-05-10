@@ -21,6 +21,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/alipay/sofa-mosn/pkg/utils"
 	"istio.io/api/mixer/v1"
 )
 
@@ -59,7 +60,9 @@ func newMixerClientManager() *mixerClientManager {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go mg.mainLoop(&wg)
+	utils.GoWithRecover(func() {
+		mg.mainLoop(&wg)
+	}, func(r interface{}) {}, false)
 	wg.Wait()
 
 	return mg
