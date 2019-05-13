@@ -18,7 +18,6 @@
 package mosn
 
 import (
-	"runtime/debug"
 	"sync"
 
 	admin "github.com/alipay/sofa-mosn/pkg/admin/server"
@@ -201,9 +200,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		// transfer old mosn connections
 		utils.GoWithRecover(func() {
 			network.TransferServer(m.servers[0].Handler())
-		}, func(r interface{}) {
-			log.DefaultLogger.Errorf("[mosn] [NewMosn] transfer server panic: %v\n%s", r, string(debug.Stack()))
-		}, false)
+		}, nil)
 	} else {
 		// start other services
 		if err := store.StartService(nil); err != nil {
@@ -223,16 +220,12 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// start dump config process
 	utils.GoWithRecover(func() {
 		config.DumpConfigHandler()
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[mosn] [NewMosn] dump config hanlder panic: %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 
 	// start reconfigure domain socket
 	utils.GoWithRecover(func() {
 		server.ReconfigureHandler()
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[mosn] [NewMosn] ReconfigureHandler panic: %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 
 	return m
 }
@@ -243,9 +236,7 @@ func (m *Mosn) Start() {
 	for _, srv := range m.servers {
 		utils.GoWithRecover(func() {
 			srv.Start()
-		}, func(r interface{}) {
-			log.DefaultLogger.Errorf("[mosn] mosn server panic: %v\n%s", r, string(debug.Stack()))
-		}, false)
+		}, nil)
 	}
 }
 

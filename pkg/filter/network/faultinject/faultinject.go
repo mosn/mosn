@@ -19,12 +19,10 @@ package faultinject
 
 import (
 	"math/rand"
-	"runtime/debug"
 	"sync/atomic"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/alipay/sofa-mosn/pkg/utils"
 )
@@ -78,9 +76,7 @@ func (fi *faultInjector) tryInjectDelay() {
 					atomic.StoreUint32(&fi.delaying, 0)
 					fi.readCallbacks.ContinueReading()
 				}
-			}, func(r interface{}) {
-				log.DefaultLogger.Errorf("[network filter] [inject delay] panic: %v\n%s", r, string(debug.Stack()))
-			}, false)
+			}, nil)
 		}
 	}
 }

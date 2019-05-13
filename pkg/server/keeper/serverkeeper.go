@@ -120,9 +120,7 @@ func catchSignalsCrossPlatform() {
 			case syscall.SIGUSR2:
 			}
 		}
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[server keeper] [signal] panic %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 }
 
 func catchSignalsPosix() {

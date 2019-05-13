@@ -66,7 +66,7 @@ func newReportBatch(compressor *AttributeCompressor, options *reportOptions, cli
 	wg.Add(1)
 	utils.GoWithRecover(func() {
 		batch.main(&wg)
-	}, func(r interface{}) {}, false)
+	}, nil)
 	wg.Wait()
 
 	return batch

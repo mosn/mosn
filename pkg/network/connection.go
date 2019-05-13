@@ -218,16 +218,14 @@ func (c *connection) startRWLoop(lctx context.Context) {
 	utils.GoWithRecover(func() {
 		c.startReadLoop()
 	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[network] [read loop] panic %v\n%s", r, string(debug.Stack()))
 		c.Close(types.NoFlush, types.LocalClose)
-	}, false)
+	})
 
 	utils.GoWithRecover(func() {
 		c.startWriteLoop()
 	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[network] [write loop] panic %v\n%s", r, string(debug.Stack()))
 		c.Close(types.NoFlush, types.LocalClose)
-	}, false)
+	})
 }
 
 func (c *connection) scheduleWrite() {

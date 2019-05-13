@@ -19,7 +19,6 @@ package server
 
 import (
 	"fmt"
-	"runtime/debug"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -117,9 +116,7 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 			// start listener if this is new
 			utils.GoWithRecover(func() {
 				al.listener.Start(nil)
-			}, func(r interface{}) {
-				log.DefaultLogger.Errorf("[server] start listener %v panic: %v\n%s", al.listener.Addr(), r, string(debug.Stack()))
-			}, false)
+			}, nil)
 		}
 
 		return nil

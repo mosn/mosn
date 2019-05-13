@@ -19,7 +19,6 @@ package http
 
 import (
 	"context"
-	"runtime/debug"
 	"sync"
 
 	"time"
@@ -214,9 +213,7 @@ func (p *connPool) report() {
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[stream] [http] [connpool] pool = %s, panic %v\n%s", p.host.Address(), r, string(debug.Stack()))
-	}, false)
+	}, nil)
 }
 
 // types.StreamEventListener

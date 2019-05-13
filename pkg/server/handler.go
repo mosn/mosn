@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -207,9 +206,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 			// TODO: use goroutine pool
 			utils.GoWithRecover(func() {
 				ln.listener.Start(lctx)
-			}, func(r interface{}) {
-				log.DefaultLogger.Errorf("[server] [conn handler] listener panic: %v\n%s", r, string(debug.Stack()))
-			}, true) // restart listener
+			}, nil)
 		}
 	}
 }
@@ -220,9 +217,7 @@ func (ch *connHandler) StartListeners(lctx context.Context) {
 		ln := l
 		utils.GoWithRecover(func() {
 			ln.listener.Start(lctx)
-		}, func(r interface{}) {
-			log.DefaultLogger.Errorf("[server] [conn handler] listener panic: %v\n%s", r, string(debug.Stack()))
-		}, true)
+		}, nil)
 		// set listener addr metrics
 		metrics.AddListenerAddr(l.listener.Addr().String())
 	}

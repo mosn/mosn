@@ -23,7 +23,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime/debug"
 
 	"sync"
 
@@ -131,9 +130,7 @@ func StartService(inheritListeners []net.Listener) error {
 			metrics.AddListenerAddr(s.Addr)
 			log.StartLogger.Infof("[admin store] [start service] start service %s on %s", s.name, ln.Addr().String())
 			s.Serve(ln)
-		}, func(r interface{}) {
-			log.DefaultLogger.Errorf("[admin store] [start service] service %s panic %v\n", s.name, r, string(debug.Stack()))
-		}, false)
+		}, nil)
 	}
 	return nil
 }
@@ -147,9 +144,7 @@ func StopService() {
 		utils.GoWithRecover(func() {
 			s.Shutdown(context.Background())
 			log.DefaultLogger.Infof("[admin store] [stop service] %s", s.name)
-		}, func(r interface{}) {
-			log.DefaultLogger.Errorf("[admin store] [stop service] panic %v\n%s", r, string(debug.Stack()))
-		}, false)
+		}, nil)
 	}
 	services = services[:0]
 	listeners = listeners[:0]

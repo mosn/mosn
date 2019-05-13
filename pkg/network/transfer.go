@@ -89,9 +89,7 @@ func TransferServer(handler types.ConnectionHandler) {
 			go transferHandler(c, handler, &transferMap)
 
 		}
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[network] [transfer] [server] TransferServer panic %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 
 	select {
 	case <-time.After(2*TransferTimeout + types.DefaultConnReadTimeout + 10*time.Second):
@@ -541,9 +539,7 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 	// new connection
 	utils.GoWithRecover(func() {
 		listener.GetListenerCallbacks().OnAccept(conn, listener.HandOffRestoredDestinationConnections(), nil, ch, dataBuf)
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[network] [transfer] [new conn] panic %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 
 	select {
 	// recv connection

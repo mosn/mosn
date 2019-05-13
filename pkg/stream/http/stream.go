@@ -23,7 +23,6 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"runtime/debug"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -198,9 +197,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 
 	utils.GoWithRecover(func() {
 		csc.serve()
-	}, func(r interface{}) {
-		log.Proxy.Errorf(csc.context, "[stream] [http] client serve goroutine panic %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 
 	return csc
 }
@@ -328,9 +325,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 
 	utils.GoWithRecover(func() {
 		ssc.serve()
-	}, func(r interface{}) {
-		log.Proxy.Errorf(ssc.context, "[stream] [http] server serve goroutine panic %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 
 	return ssc
 }

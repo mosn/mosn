@@ -19,7 +19,6 @@ package sync
 
 import (
 	"fmt"
-	"runtime/debug"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/utils"
@@ -91,13 +90,13 @@ func (pool *shardWorkerPool) Offer(job ShardJob, block bool) {
 
 func (pool *shardWorkerPool) spawnWorker(shard *shard) {
 	utils.GoWithRecover(func() {
-		if shard.respawnTimes < maxRespwanTimes {
-			pool.workerFunc(shard.index, shard.jobChan)
-		}
+		pool.workerFunc(shard.index, shard.jobChan)
 	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[syncpool] panic %v\n%s", r, string(debug.Stack()))
-		shard.respawnTimes++
-	}, true)
+		if shard.respawnTimes < maxRespwanTimes {
+			shard.respawnTimes++
+			pool.spawnWorker(shard)
+		}
+	})
 }
 
 type workerPool struct {
@@ -131,9 +130,7 @@ func (p *workerPool) ScheduleAlways(task func()) {
 		log.DefaultLogger.Errorf("[syncpool] workerpool new goroutine")
 		utils.GoWithRecover(func() {
 			task()
-		}, func(r interface{}) {
-			log.DefaultLogger.Errorf("[syncpool] task panic: %v\n%s", r, string(debug.Stack()))
-		}, false)
+		}, nil)
 	}
 }
 
@@ -152,9 +149,7 @@ func (p *workerPool) ScheduleAuto(task func()) {
 		log.DefaultLogger.Errorf("[syncpool] workerpool new goroutine")
 		utils.GoWithRecover(func() {
 			task()
-		}, func(r interface{}) {
-			log.DefaultLogger.Errorf("[syncpool] task panic: %v\n%s", r, string(debug.Stack()))
-		}, false)
+		}, nil)
 	}
 }
 

@@ -19,7 +19,6 @@ package cluster
 
 import (
 	"net"
-	"runtime/debug"
 	"sync"
 
 	"github.com/alipay/sofa-mosn/pkg/api/v2"
@@ -118,9 +117,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 		})
 		utils.GoWithRecover(func() {
 			cluster.healthChecker.Start()
-		}, func(r interface{}) {
-			log.DefaultLogger.Errorf("[upstream] [cluster] [health checker] panic %v\n%s", r, string(debug.Stack()))
-		}, false)
+		}, nil)
 	}
 
 	return cluster

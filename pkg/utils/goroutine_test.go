@@ -32,26 +32,38 @@ func TestGoWithRecover(t *testing.T) {
 	recoverHandler := func(r interface{}) {
 		output = fmt.Sprintf("%v", r)
 	}
-	GoWithRecover(panicHandler, recoverHandler, false)
+	GoWithRecover(panicHandler, recoverHandler)
 	time.Sleep(time.Second) // wait panic goroutine
 	if output != panicStr {
 		t.Errorf("expected catch panic output, but got: %s", output)
 	}
 }
 
-func TestGoWithRecoverRestart(t *testing.T) {
-	count := 0
-	noPanic := false
-	panicHandler := func() {
-		count++
-		if count <= 2 {
-			panic("panic")
-		}
-		noPanic = true
+// Example for how to recover with recover
+type _run struct {
+	count   int
+	noPanic bool
+}
+
+func (r *_run) work() {
+	GoWithRecover(r.exec, func(p interface{}) {
+		r.work()
+	})
+}
+
+func (r *_run) exec() {
+	r.count++
+	if r.count <= 2 {
+		panic("panic")
 	}
-	GoWithRecover(panicHandler, nil, true)
+	r.noPanic = true
+}
+
+func TestGoWithRecoverAgain(t *testing.T) {
+	r := &_run{}
+	r.work()
 	time.Sleep(time.Second)
-	if !(noPanic && count == 3) {
-		t.Errorf("panic handler is not restart expectedly")
+	if !(r.noPanic && r.count == 3) {
+		t.Errorf("panic handler is not restart expectedly, noPanic: %v, count: %d", r.noPanic, r.count)
 	}
 }

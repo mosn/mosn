@@ -17,16 +17,27 @@
 
 package utils
 
+import (
+	"fmt"
+	"runtime/debug"
+)
+
 // GoWithRecover wraps a `go func()` with recover()
-func GoWithRecover(handler func(), recoverHandler func(r interface{}), restart bool) {
+func GoWithRecover(handler func(), recoverHandler func(r interface{})) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
+				// TODO: log
+				fmt.Printf("goroutine panic: %v\n%s", r, string(debug.Stack()))
 				if recoverHandler != nil {
-					recoverHandler(r)
-				}
-				if restart {
-					GoWithRecover(handler, recoverHandler, true)
+					go func() {
+						defer func() {
+							if p := recover(); p != nil {
+								fmt.Printf("recover goroutine panic:%v\n%s", p, string(debug.Stack()))
+							}
+						}()
+						recoverHandler(r)
+					}()
 				}
 			}
 		}()

@@ -19,7 +19,6 @@ package healthcheck
 
 import (
 	"math/rand"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -143,9 +142,7 @@ func (hc *healthChecker) startCheck(host types.Host) {
 		hc.checkers[addr] = c
 		utils.GoWithRecover(func() {
 			c.Start()
-		}, func(r interface{}) {
-			log.DefaultLogger.Errorf("[upstream] [health check] start check panic: %v\n%s", r, string(debug.Stack()))
-		}, false)
+		}, nil)
 		atomic.AddInt64(&hc.localProcessHealthy, 1) // default host is healthy
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[upstream] [health check] create a health check session for %s", addr)

@@ -62,7 +62,7 @@ func newMixerClientManager() *mixerClientManager {
 	wg.Add(1)
 	utils.GoWithRecover(func() {
 		mg.mainLoop(&wg)
-	}, func(r interface{}) {}, false)
+	}, nil)
 	wg.Wait()
 
 	return mg

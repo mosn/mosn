@@ -23,8 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"runtime/debug"
-
 	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
 	"github.com/alipay/sofa-mosn/pkg/log"
 	"github.com/alipay/sofa-mosn/pkg/network"
@@ -81,9 +79,7 @@ func (p *connPool) init(client *activeClient, sub byte) {
 		} else {
 			p.activeClients.Delete(sub)
 		}
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[stream] [sofarpc] [connpool] init panic %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 }
 
 func (p *connPool) CheckAndInit(ctx context.Context) bool {

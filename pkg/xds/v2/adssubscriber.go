@@ -18,7 +18,6 @@
 package v2
 
 import (
-	"runtime/debug"
 	"time"
 
 	"github.com/alipay/sofa-mosn/pkg/log"
@@ -32,14 +31,10 @@ func (adsClient *ADSClient) Start() {
 	adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
 	utils.GoWithRecover(func() {
 		adsClient.sendThread()
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[xds] [ads client] send thread panic: %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 	utils.GoWithRecover(func() {
 		adsClient.receiveThread()
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[xds] [ads client] receive thread panic: %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 }
 
 func (adsClient *ADSClient) sendThread() {

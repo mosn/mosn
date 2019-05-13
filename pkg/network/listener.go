@@ -188,9 +188,7 @@ func (l *listener) accept(lctx context.Context) error {
 	// TODO: use thread pool
 	utils.GoWithRecover(func() {
 		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil, nil, nil)
-	}, func(r interface{}) {
-		log.DefaultLogger.Errorf("[network] [listener accept] panic %v\n%s", r, string(debug.Stack()))
-	}, false)
+	}, nil)
 
 	return nil
 }
