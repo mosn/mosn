@@ -202,11 +202,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 	for _, l := range ch.listeners {
 		if l.listener.ListenerTag() == listenerTag {
-			ln := l
 			// TODO: use goroutine pool
-			utils.GoWithRecover(func() {
-				ln.listener.Start(lctx)
-			}, nil)
+			l.GoStart(lctx)
 		}
 	}
 }
@@ -214,12 +211,7 @@ func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {
 func (ch *connHandler) StartListeners(lctx context.Context) {
 	for _, l := range ch.listeners {
 		// start goroutine
-		ln := l
-		utils.GoWithRecover(func() {
-			ln.listener.Start(lctx)
-		}, nil)
-		// set listener addr metrics
-		metrics.AddListenerAddr(l.listener.Addr().String())
+		l.GoStart(lctx)
 	}
 }
 
@@ -384,6 +376,17 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	al.tlsMng = mgr
 
 	return al, nil
+}
+
+func (al *activeListener) GoStart(lctx context.Context) {
+	utils.GoWithRecover(func() {
+		al.listener.Start(lctx)
+		// set listener addr metrics
+		metrics.AddListenerAddr(al.listener.Addr().String())
+	}, func(r interface{}) {
+		// TODO: add a times limit?
+		al.GoStart(lctx)
+	})
 }
 
 // ListenerEventListener

@@ -24,6 +24,7 @@ import (
 )
 
 func TestGoWithRecover(t *testing.T) {
+	debugIgnoreStdout = true
 	panicStr := "test panic"
 	panicHandler := func() {
 		panic(panicStr)
@@ -37,6 +38,18 @@ func TestGoWithRecover(t *testing.T) {
 	if output != panicStr {
 		t.Errorf("expected catch panic output, but got: %s", output)
 	}
+}
+
+// recover handler panic, should not panic
+func TestRecoverPanic(t *testing.T) {
+	debugIgnoreStdout = true
+	handler := func() {
+		panic("1")
+	}
+	recoverHandler := func(r interface{}) {
+		panic("2")
+	}
+	GoWithRecover(handler, recoverHandler)
 }
 
 // Example for how to recover with recover
@@ -60,6 +73,7 @@ func (r *_run) exec() {
 }
 
 func TestGoWithRecoverAgain(t *testing.T) {
+	debugIgnoreStdout = true
 	r := &_run{}
 	r.work()
 	time.Sleep(time.Second)

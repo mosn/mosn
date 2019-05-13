@@ -22,18 +22,24 @@ import (
 	"runtime/debug"
 )
 
+var debugIgnoreStdout = false
+
 // GoWithRecover wraps a `go func()` with recover()
 func GoWithRecover(handler func(), recoverHandler func(r interface{})) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
 				// TODO: log
-				fmt.Printf("goroutine panic: %v\n%s", r, string(debug.Stack()))
+				if !debugIgnoreStdout {
+					fmt.Printf("goroutine panic: %v\n%s", r, string(debug.Stack()))
+				}
 				if recoverHandler != nil {
 					go func() {
 						defer func() {
 							if p := recover(); p != nil {
-								fmt.Printf("recover goroutine panic:%v\n%s", p, string(debug.Stack()))
+								if !debugIgnoreStdout {
+									fmt.Printf("recover goroutine panic:%v\n%s", p, string(debug.Stack()))
+								}
 							}
 						}()
 						recoverHandler(r)
