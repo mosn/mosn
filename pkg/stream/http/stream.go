@@ -87,7 +87,7 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 	return nil
 }
 
-func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
+func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	if len(magic) < minMethodLengh {
 		return str.EAGAIN
 	}
