@@ -86,18 +86,18 @@ func TestProtocolHttp2(t *testing.T) {
 	var err error
 
 	magic = http2.ClientPreface
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if prot != protocol.HTTP2 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	len := len(http2.ClientPreface)
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic)[0:len-1])
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic)[0:len-1])
 	if err != stream.EAGAIN {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte("helloworld"))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte("helloworld"))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
@@ -109,25 +109,25 @@ func TestProtocolHttp1(t *testing.T) {
 	var err error
 
 	magic = "GET"
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if prot != protocol.HTTP1 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	magic = "POST"
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if prot != protocol.HTTP1 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	magic = "POS"
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if err != stream.EAGAIN {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
 	magic = "PPPPPPP"
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
