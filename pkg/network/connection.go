@@ -600,12 +600,22 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 	if tlsConn, ok := c.rawConnection.(*mtls.TLSConn); ok {
 		bytesSent, err = tlsConn.WriteTo(&buffers)
 	} else {
-		bytesSent, err = buffers.WriteTo(c.rawConnection)
+		//todo: writev(runtime) has memroy leak.
+		//bytesSent, err = buffers.WriteTo(c.rawConnection)
+		for _, buf := range buffers {
+			var n int
+			if n, err = c.rawConnection.Write(buf); err != nil {
+				break
+			}
+			bytesSent += int64(n)
+		}
 	}
 	if err != nil {
 		return bytesSent, err
 	}
-	for _, buf := range c.ioBuffers {
+	for i, buf := range c.ioBuffers {
+		c.ioBuffers[i] = nil
+		c.writeBuffers[i] = nil
 		if buf.EOF() {
 			err = buffer.EOF
 		}
