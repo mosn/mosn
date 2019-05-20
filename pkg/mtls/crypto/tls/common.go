@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls/cipherhw"
+	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls/cipherhw"
 )
 
 const (

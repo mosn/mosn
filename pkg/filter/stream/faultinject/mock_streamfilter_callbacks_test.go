@@ -18,7 +18,7 @@
 package faultinject
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // this file mocks the interface that used for test

@@ -18,7 +18,7 @@
 package stream
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"testing"
 	"errors"
 )

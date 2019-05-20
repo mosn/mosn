@@ -20,7 +20,7 @@ package proxy
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // Mock interface for test

@@ -10,6 +10,13 @@ MOSN supports Envoy and Istio's APIs and can be integrated with [Istio](https://
 The initial version of MOSN was jointly contributed by Ant Financial and UC Business Unit of Alibaba, and we look forward to the community to participate in the
 follow-up development and build an open source excellent project together.
 
+
+## Download/Install
+
++ Use `go get -u sofastack.io/sofa-mosn`, or you can git clone the repository to `$GOPATH/src/sofastack.io/sofa-mosn`
++ If you have downloaded the codes before this version, you should move yourt code path to `$GOPATH/src/sofastack.io/sofa-mosn`, and run the script `transfer_path.sh` to fix the import path.
+  + If you are in Linux, you should modify the `SED_CMD` in `transfer_path.sh`, see the comment in the script file.
+
 ## Develop States
 
 After our efforts, MOSN’s 0.4.0 version has achieved a lot of improvement on performance and stability, we expect to release 0.5.0 version at the end of May 2019, which will be an stable version used in AntFin’s production environment.

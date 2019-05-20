@@ -3,8 +3,7 @@ SHELL = /bin/bash
 TARGET          = mosnd
 TARGET_SIDECAR  = mosn
 CONFIG_FILE     = mosn_config.json
-GIT_USER        = alipay
-PROJECT_NAME    = github.com/${GIT_USER}/sofa-mosn
+PROJECT_NAME    = sofastack.io/sofa-mosn
 
 SCRIPT_DIR      = $(shell pwd)/etc/script
 

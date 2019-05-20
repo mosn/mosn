@@ -20,8 +20,8 @@ package http2
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/module/http2"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/module/http2"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // types.Encoder

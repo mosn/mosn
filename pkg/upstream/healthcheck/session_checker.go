@@ -21,9 +21,9 @@ import (
 	"runtime/debug"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // sessionChecker is a wrapper of types.HealthCheckSession for health check

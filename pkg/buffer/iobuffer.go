@@ -25,7 +25,7 @@ import (
 
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 const MinRead = 1 << 9

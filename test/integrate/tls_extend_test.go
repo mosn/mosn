@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/mosn"
-	mosntls "github.com/alipay/sofa-mosn/pkg/mtls"
-	"github.com/alipay/sofa-mosn/pkg/mtls/certtool"
-	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	testutil "github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/mosn"
+	mosntls "sofastack.io/sofa-mosn/pkg/mtls"
+	"sofastack.io/sofa-mosn/pkg/mtls/certtool"
+	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	testutil "sofastack.io/sofa-mosn/test/util"
 )
 
 // Test tls config hooks extension
