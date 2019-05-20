@@ -10,15 +10,15 @@ import (
 
 	"math/rand"
 
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/mosn"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/server"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/test/integrate"
-	"github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/mosn"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/server"
+	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/test/integrate"
+	"sofastack.io/sofa-mosn/test/util"
 )
 
 // client - mesh - mesh - server

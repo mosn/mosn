@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 type checkFunction func() error

@@ -21,7 +21,7 @@ import (
 	"crypto/x509"
 	"errors"
 
-	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
+	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 )
 
 // Support Protocols version

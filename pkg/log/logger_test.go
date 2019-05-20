@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/buffer"
 )
 
 func TestLogPrintDiscard(t *testing.T) {

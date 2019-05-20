@@ -20,7 +20,7 @@ package router
 import (
 	"fmt"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type headerParser struct {

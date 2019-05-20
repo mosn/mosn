@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type mockHost struct {

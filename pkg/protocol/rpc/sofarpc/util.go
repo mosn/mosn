@@ -20,9 +20,9 @@ package sofarpc
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
 )
 
 // NewResponse build sofa response msg according to given protocol code and respStatus

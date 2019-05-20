@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol/example"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/network"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol/example"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // XProtocol needs subprotocol for rpc

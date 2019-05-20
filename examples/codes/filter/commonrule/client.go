@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 func request() {

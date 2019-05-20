@@ -21,10 +21,10 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/filter"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/filter"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
 )
 

@@ -18,7 +18,7 @@
 package serialize
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/buffer"
 	"testing"
 )
 

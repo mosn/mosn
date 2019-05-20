@@ -24,10 +24,10 @@ import (
 
 	"io/ioutil"
 
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/metrics/sink/console"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/metrics/sink/console"
 )
 
 var levelMap = map[string]log.Level{

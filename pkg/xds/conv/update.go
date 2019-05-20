@@ -20,13 +20,13 @@ package conv
 import (
 	"fmt"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/router"
-	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	clusterAdapter "github.com/alipay/sofa-mosn/pkg/upstream/cluster"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/router"
+	"sofastack.io/sofa-mosn/pkg/server"
+	"sofastack.io/sofa-mosn/pkg/types"
+	clusterAdapter "sofastack.io/sofa-mosn/pkg/upstream/cluster"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	jsoniter "github.com/json-iterator/go"
 )

@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
-	"github.com/alipay/sofa-mosn/test/fuzzy"
-	"github.com/alipay/sofa-mosn/test/util"
+	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
+	"sofastack.io/sofa-mosn/pkg/log"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http2"
+	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
+	"sofastack.io/sofa-mosn/test/fuzzy"
+	"sofastack.io/sofa-mosn/test/util"
 	"golang.org/x/net/http2"
 )
 
