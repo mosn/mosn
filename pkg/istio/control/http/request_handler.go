@@ -18,7 +18,7 @@
 package http
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/istio/control"
+	"sofastack.io/sofa-mosn/pkg/istio/control"
 )
 
 // RequestHandler handle a HTTP request

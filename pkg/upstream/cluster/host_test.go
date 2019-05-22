@@ -22,9 +22,9 @@ import (
 	"net"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/mtls"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/mtls"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func TestHostDisableTLS(t *testing.T) {

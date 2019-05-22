@@ -29,7 +29,7 @@ func init() {
 }
 
 const minShift = 6
-const maxShift = 15
+const maxShift = 18
 const errSlot = -1
 
 var bbPool *byteBufferPool

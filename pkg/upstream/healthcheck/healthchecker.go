@@ -23,9 +23,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 const (
@@ -134,14 +134,16 @@ func (hc *healthChecker) startCheck(host types.Host) {
 	if _, ok := hc.checkers[addr]; !ok {
 		s := hc.sessionFactory.NewSession(hc.sessionConfig, host)
 		if s == nil {
-			log.DefaultLogger.Errorf("Create Health Check Session Error, Remote Address = %s", addr)
+			log.DefaultLogger.Errorf("[upstream] [health check] Create Health Check Session Error, Remote Address = %s", addr)
 			return
 		}
 		c := newChecker(s, host, hc)
 		hc.checkers[addr] = c
 		go c.Start()
 		atomic.AddInt64(&hc.localProcessHealthy, 1) // default host is healthy
-		log.DefaultLogger.Infof("create a health check session for %s", addr)
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [health check] create a health check session for %s", addr)
+		}
 	}
 }
 
@@ -158,7 +160,9 @@ func (hc *healthChecker) stopCheck(host types.Host) {
 		delete(hc.checkers, addr)
 		// hc.localProcessHealthy--
 		atomic.AddInt64(&hc.localProcessHealthy, ^int64(0)) // deleted check is unhealthy
-		log.DefaultLogger.Infof("remove a health check session for %s", addr)
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [health check] remove a health check session for %s", addr)
+		}
 	}
 }
 

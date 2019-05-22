@@ -20,8 +20,8 @@ package resource
 import (
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"sofastack.io/sofa-mosn/pkg/protocol"
 )
 
 var params = []model.ComparisonCofig{

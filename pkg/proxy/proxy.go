@@ -22,18 +22,19 @@ import (
 	"context"
 	"runtime"
 	"sync"
+	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/mtls"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/router"
-	"github.com/alipay/sofa-mosn/pkg/stream"
-	mosnsync "github.com/alipay/sofa-mosn/pkg/sync"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/json-iterator/go"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/mtls"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/router"
+	"sofastack.io/sofa-mosn/pkg/stream"
+	mosnsync "sofastack.io/sofa-mosn/pkg/sync"
+	"sofastack.io/sofa-mosn/pkg/types"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/rcrowley/go-metrics"
 )
 
@@ -212,15 +213,18 @@ func (p *proxy) OnGoAway() {}
 func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
 
-	if ff := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); ff != nil {
-		ffs := ff.([]types.StreamFilterChainFactory)
+	if value := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); value != nil {
+		ff := value.(*atomic.Value)
+		ffs, ok := ff.Load().([]types.StreamFilterChainFactory)
+		if ok {
 
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
-		}
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
+			}
 
-		for _, f := range ffs {
-			f.CreateFilterChain(p.context, stream)
+			for _, f := range ffs {
+				f.CreateFilterChain(p.context, stream)
+			}
 		}
 	}
 

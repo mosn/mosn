@@ -18,7 +18,7 @@
 package metrics
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // HealthCheckType represents health check metrics type

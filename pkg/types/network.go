@@ -22,8 +22,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 	"github.com/rcrowley/go-metrics"
 	"os"
 )

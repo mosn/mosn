@@ -27,10 +27,10 @@ import (
 	"istio.io/api/mixer/v1"
 	"istio.io/api/mixer/v1/config/client"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/router"
-	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/router"
+	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -76,7 +76,7 @@ func Test_convertEndpointsConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := convertEndpointsConfig(tt.args.xdsEndpoint); !reflect.DeepEqual(got, tt.want) {
+			if got := ConvertEndpointsConfig(tt.args.xdsEndpoint); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("convertEndpointsConfig() = %v, want %v", got, tt.want)
 			}
 		})
@@ -357,7 +357,7 @@ func Test_convertListenerConfig(t *testing.T) {
 				DrainType: xdsapi.Listener_DEFAULT,
 			}
 
-			got := convertListenerConfig(listenerConfig)
+			got := ConvertListenerConfig(listenerConfig)
 			//if data, err := json.Marshal(got); err == nil {
 			if _, err := json.Marshal(got); err == nil {
 				// TODO: use string comapre for result is not expected

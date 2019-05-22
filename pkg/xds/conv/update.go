@@ -20,13 +20,13 @@ package conv
 import (
 	"fmt"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/router"
-	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	clusterAdapter "github.com/alipay/sofa-mosn/pkg/upstream/cluster"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/router"
+	"sofastack.io/sofa-mosn/pkg/server"
+	"sofastack.io/sofa-mosn/pkg/types"
+	clusterAdapter "sofastack.io/sofa-mosn/pkg/upstream/cluster"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -46,7 +46,7 @@ func ConvertAddOrUpdateRouters(routers []*envoy_api_v2.RouteConfiguration) {
 				log.DefaultLogger.Tracef("raw router config: %s", string(jsonStr))
 			}
 
-			mosnRouter, _ := convertRouterConf("", router)
+			mosnRouter, _ := ConvertRouterConf("", router)
 			log.DefaultLogger.Tracef("mosnRouter config: %+v", mosnRouter)
 			routersMngIns.AddOrUpdateRouters(mosnRouter)
 		}
@@ -60,7 +60,7 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 			log.DefaultLogger.Tracef("raw listener config: %s", string(jsonStr))
 		}
 
-		mosnListener := convertListenerConfig(listener)
+		mosnListener := ConvertListenerConfig(listener)
 		if mosnListener == nil {
 			continue
 		}
@@ -103,7 +103,7 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 // ConvertDeleteListeners converts listener configuration, used to delete listener
 func ConvertDeleteListeners(listeners []*envoy_api_v2.Listener) {
 	for _, listener := range listeners {
-		mosnListener := convertListenerConfig(listener)
+		mosnListener := ConvertListenerConfig(listener)
 		if mosnListener == nil {
 			continue
 		}
@@ -131,7 +131,7 @@ func ConvertUpdateClusters(clusters []*envoy_api_v2.Cluster) {
 		}
 	}
 
-	mosnClusters := convertClustersConfig(clusters)
+	mosnClusters := ConvertClustersConfig(clusters)
 
 	for _, cluster := range mosnClusters {
 		var err error
@@ -154,7 +154,7 @@ func ConvertUpdateClusters(clusters []*envoy_api_v2.Cluster) {
 
 // ConvertDeleteClusters converts cluster configuration, used to delete cluster
 func ConvertDeleteClusters(clusters []*envoy_api_v2.Cluster) {
-	mosnClusters := convertClustersConfig(clusters)
+	mosnClusters := ConvertClustersConfig(clusters)
 
 	for _, cluster := range mosnClusters {
 		log.DefaultLogger.Debugf("delete cluster: %+v\n", cluster)
@@ -180,7 +180,7 @@ func ConvertUpdateEndpoints(loadAssignments []*envoy_api_v2.ClusterLoadAssignmen
 		clusterName := loadAssignment.ClusterName
 
 		for _, endpoints := range loadAssignment.Endpoints {
-			hosts := convertEndpointsConfig(&endpoints)
+			hosts := ConvertEndpointsConfig(&endpoints)
 			log.DefaultLogger.Debugf("xds client update endpoints: cluster: %s, priority: %d", loadAssignment.ClusterName, endpoints.Priority)
 			for index, host := range hosts {
 				log.DefaultLogger.Debugf("host[%d] is : %+v", index, host)

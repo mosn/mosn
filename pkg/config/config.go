@@ -25,8 +25,8 @@ import (
 	"path"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/utils"
 	"github.com/c2h5oh/datasize"
 	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"

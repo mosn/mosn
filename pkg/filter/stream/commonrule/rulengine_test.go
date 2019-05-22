@@ -21,12 +21,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/limit"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/resource"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/limit"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/resource"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 var params = []model.ComparisonCofig{

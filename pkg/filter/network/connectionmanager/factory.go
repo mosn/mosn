@@ -20,9 +20,9 @@ package connectionmanager
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/filter"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/filter"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // todo this filter may use in the future

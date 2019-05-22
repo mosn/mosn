@@ -21,8 +21,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value

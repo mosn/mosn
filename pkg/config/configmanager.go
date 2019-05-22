@@ -18,7 +18,8 @@
 package config
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 // TODO: The functions in this file is for service discovery, but the function implmentation is not general, should fix it
@@ -73,6 +74,9 @@ func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 			// rewrite cluster's info if exist already
 			if config.ClusterManager.Clusters[i].Name == clusterConfig.Name {
 				config.ClusterManager.Clusters[i] = clusterConfig
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("[configmanager] [update cluster] update cluster %s", clusterConfig.Name)
+				}
 				exist = true
 				break
 			}
@@ -80,6 +84,9 @@ func addOrUpdateClusterConfig(clusters []v2.Cluster) {
 
 		//added cluster if not exist
 		if !exist {
+			if log.DefaultLogger.GetLogLevel() >= log.INFO {
+				log.DefaultLogger.Infof("[configmanager] [add cluster] add cluster %s", clusterConfig.Name)
+			}
 			config.ClusterManager.Clusters = append(config.ClusterManager.Clusters, clusterConfig)
 		}
 	}
@@ -98,6 +105,9 @@ func removeClusterConfig(clusterNames []string) bool {
 			if cluster.Name == clusterName {
 				//remove
 				config.ClusterManager.Clusters = append(config.ClusterManager.Clusters[:i], config.ClusterManager.Clusters[i+1:]...)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("[configmanager] [remove cluster] remove cluster %s", clusterName)
+				}
 				dirty = true
 				break
 			}

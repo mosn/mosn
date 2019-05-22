@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/filter"
-	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/mosn"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/filter"
+	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/mosn"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/test/util"
 )
 
 // Test and demo for use stream filter to re route
@@ -119,6 +119,7 @@ func TestReRoute(t *testing.T) {
 	cfg := createInjectProxyMesh(meshAddr, []string{httpAddr}, protocol.HTTP1)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
+	defer mesh.Close()
 	time.Sleep(2 * time.Second) // wait mosn start
 	// reset the logger
 	log.InitDefaultLogger(lgfile, log.ERROR)

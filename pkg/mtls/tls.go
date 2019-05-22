@@ -24,10 +24,10 @@ import (
 	"net"
 	"strings"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type context struct {
@@ -227,7 +227,7 @@ func (mgr *contextManager) AddContext(c *v2.TLSConfig) error {
 	tlsConfig, err := mgr.newTLSConfig(c)
 	if err != nil {
 		if c.Fallback && err == ErrorGetCertificateFailed {
-			mgr.logger.Warnf("something wrong with certificate/key, trigger fallback")
+			mgr.logger.Warnf("[mtls] something wrong with certificate/key, trigger fallback")
 			return nil
 		}
 		return err

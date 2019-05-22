@@ -21,8 +21,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/protocol"
 )
 
 // Prefix > Path > Regex

@@ -23,10 +23,10 @@ import (
 	_ "net/http/pprof"
 	"runtime"
 
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/mosn"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/mosn"
 	"github.com/urfave/cli"
 )
 

@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/network"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/stream"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/test/util"
 	"golang.org/x/net/http2"
 )
 

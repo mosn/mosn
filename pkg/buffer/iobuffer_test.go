@@ -197,7 +197,7 @@ func TestIoBufferReadOnce(t *testing.T) {
 			}
 			t.Fatal(err)
 		}
-		if n != 1 << minShift {
+		if n != 1<<minShift {
 			t.Errorf("Expect %d bytes but got %d", len(s), n)
 		}
 

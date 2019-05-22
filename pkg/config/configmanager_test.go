@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 func mockInitConfig(t *testing.T, cfg []byte) {
