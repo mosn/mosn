@@ -17,7 +17,7 @@
 package http
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/buffer"
 	"context"
 	"github.com/valyala/fasthttp"
 )

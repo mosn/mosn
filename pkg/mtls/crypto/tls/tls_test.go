@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls/testenv"
+	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls/testenv"
 )
 
 var rsaCertPEM = `-----BEGIN CERTIFICATE-----

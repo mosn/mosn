@@ -21,8 +21,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func Test_headerParser_evaluateHeaders(t *testing.T) {

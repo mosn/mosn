@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/istio/utils"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/istio/utils"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
 	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1"
 )

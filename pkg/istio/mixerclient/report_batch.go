@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/pkg/utils"
 	"istio.io/api/mixer/v1"
 )
 

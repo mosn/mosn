@@ -18,11 +18,11 @@
 package commonrule
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/limit"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/metrix"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/resource"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/limit"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/metrix"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/resource"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // RuleEngine as

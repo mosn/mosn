@@ -23,8 +23,8 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/upstream/cluster"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
 	"google.golang.org/grpc"
 	"istio.io/api/mixer/v1"
 )

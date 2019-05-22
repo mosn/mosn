@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/istio/control"
-	"github.com/alipay/sofa-mosn/pkg/istio/utils"
+	"sofastack.io/sofa-mosn/pkg/istio/control"
+	"sofastack.io/sofa-mosn/pkg/istio/utils"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"istio.io/api/mixer/v1"
