@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/buffer"
 )
 
 type MockServer struct {

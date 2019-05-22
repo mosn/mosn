@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
 )
 

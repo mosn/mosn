@@ -9,11 +9,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
-	"github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/network"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
+	"sofastack.io/sofa-mosn/pkg/stream"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
 )
 

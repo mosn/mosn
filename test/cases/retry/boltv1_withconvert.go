@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/test/lib"
-	testlib_sofarpc "github.com/alipay/sofa-mosn/test/lib/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"sofastack.io/sofa-mosn/test/lib"
+	testlib_sofarpc "sofastack.io/sofa-mosn/test/lib/sofarpc"
 )
 
 // client and server's protocol is boltv1

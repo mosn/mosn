@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type ServeFunc func(srv *MockServer)
