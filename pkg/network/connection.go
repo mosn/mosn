@@ -31,13 +31,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/mtls"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/mtls"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 )
 
 // Network related const
@@ -600,12 +600,22 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 	if tlsConn, ok := c.rawConnection.(*mtls.TLSConn); ok {
 		bytesSent, err = tlsConn.WriteTo(&buffers)
 	} else {
-		bytesSent, err = buffers.WriteTo(c.rawConnection)
+		//todo: writev(runtime) has memroy leak.
+		//bytesSent, err = buffers.WriteTo(c.rawConnection)
+		for _, buf := range buffers {
+			var n int
+			if n, err = c.rawConnection.Write(buf); err != nil {
+				break
+			}
+			bytesSent += int64(n)
+		}
 	}
 	if err != nil {
 		return bytesSent, err
 	}
-	for _, buf := range c.ioBuffers {
+	for i, buf := range c.ioBuffers {
+		c.ioBuffers[i] = nil
+		c.writeBuffers[i] = nil
 		if buf.EOF() {
 			err = buffer.EOF
 		}

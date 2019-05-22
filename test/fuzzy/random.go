@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/mosn"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/http/conv"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/http2/conv"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/mosn"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/http/conv"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/http2/conv"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/test/util"
 )
 
 type Server interface {

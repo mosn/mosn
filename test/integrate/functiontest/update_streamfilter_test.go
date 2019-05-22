@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/mosn"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/server"
-	"github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/mosn"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/server"
+	"sofastack.io/sofa-mosn/test/util"
 )
 
 // Test Update stream filters by LDS can effect the connections that created before.

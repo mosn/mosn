@@ -27,8 +27,8 @@ import (
 
 	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/metrics"
 )
 
 var lock = new(sync.Mutex)

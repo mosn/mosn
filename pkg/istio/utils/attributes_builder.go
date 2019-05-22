@@ -20,8 +20,8 @@ package utils
 import (
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/types"
 
 	google_protobuf1 "github.com/gogo/protobuf/types"
 	google_protobuf2 "github.com/gogo/protobuf/types"

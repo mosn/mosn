@@ -18,7 +18,7 @@
 package healthcheck
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/metrics"
 	gometrics "github.com/rcrowley/go-metrics"
 )
 

@@ -27,9 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	v2 "github.com/alipay/sofa-mosn/pkg/xds/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	v2 "sofastack.io/sofa-mosn/pkg/xds/v2"
 	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"

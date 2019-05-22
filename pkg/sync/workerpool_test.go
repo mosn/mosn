@@ -23,7 +23,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"time"
 )
 

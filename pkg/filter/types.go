@@ -18,7 +18,7 @@
 package filter
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // StreamFilterFactoryCreator creates a StreamFilterChainFactory according to config

@@ -18,8 +18,8 @@
 package config
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 // TODO: The functions in this file is for service discovery, but the function implmentation is not general, should fix it

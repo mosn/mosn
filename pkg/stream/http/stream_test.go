@@ -24,9 +24,9 @@ import (
 
 	"bytes"
 	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/http"
+	"sofastack.io/sofa-mosn/pkg/network"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/http"
 	"github.com/valyala/fasthttp"
 )
 

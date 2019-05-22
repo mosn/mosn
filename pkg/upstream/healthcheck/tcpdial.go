@@ -21,8 +21,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type TCPDialSessionFactory struct{}

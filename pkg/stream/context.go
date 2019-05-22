@@ -19,11 +19,11 @@ package stream
 
 import (
 	"context"
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/trace"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/trace"
+	"sofastack.io/sofa-mosn/pkg/types"
 
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 )
 
 // contextManager

@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/mosn"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	testutil "github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/mosn"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	testutil "sofastack.io/sofa-mosn/test/util"
 )
 
 type weightCase struct {

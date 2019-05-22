@@ -18,8 +18,8 @@
 package control
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/istio/mixerclient"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/istio/mixerclient"
 	"istio.io/api/mixer/v1"
 )
 

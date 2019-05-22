@@ -21,12 +21,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol/sofarpc/models"
-	"github.com/alipay/sofa-mosn/pkg/trace"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol/sofarpc/models"
+	"sofastack.io/sofa-mosn/pkg/trace"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
 )
 

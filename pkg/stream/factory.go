@@ -20,7 +20,7 @@ package stream
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var streamFactories map[types.Protocol]ProtocolStreamFactory

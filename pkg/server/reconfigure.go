@@ -25,11 +25,11 @@ import (
 
 	"net"
 
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/server/keeper"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/server/keeper"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func init() {

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 const (
@@ -155,7 +155,12 @@ func (p *workerPool) ScheduleAuto(task func()) {
 }
 
 func (p *workerPool) spawnWorker(task func()) {
-	defer func() { <-p.sem }()
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("[syncpool] panic %v\n%s", p, string(debug.Stack()))
+		}
+		<-p.sem
+	}()
 	for {
 		task()
 		task = <-p.work

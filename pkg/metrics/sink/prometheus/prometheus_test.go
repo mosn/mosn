@@ -28,9 +28,9 @@ import (
 
 	"fmt"
 
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/metrics/sink"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/metrics/sink"
 )
 
 type testAction int

@@ -7,7 +7,7 @@ package example
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/buffer"
 	"net/http"
 )
 

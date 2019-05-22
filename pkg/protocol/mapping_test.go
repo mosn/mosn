@@ -20,7 +20,7 @@ package protocol
 import (
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func TestMapping(t *testing.T) {
