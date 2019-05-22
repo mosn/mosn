@@ -18,7 +18,7 @@
 package metrics
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
 )
 

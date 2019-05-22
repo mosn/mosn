@@ -17,7 +17,10 @@
 
 package store
 
-import "github.com/alipay/sofa-mosn/pkg/metrics"
+import (
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/metrics"
+)
 
 type State int
 
@@ -40,6 +43,7 @@ func GetMosnState() State {
 
 func SetMosnState(s State) {
 	state = s
+	log.DefaultLogger.Infof("[admin store] [mosn state] state changed to %d", s)
 	for _, cb := range onStateChangedCallbacks {
 		cb(s)
 	}

@@ -22,7 +22,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
 	"strings"
 )

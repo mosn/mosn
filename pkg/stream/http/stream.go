@@ -28,14 +28,14 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
-	str "github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/trace"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
+	str "sofastack.io/sofa-mosn/pkg/stream"
+	"sofastack.io/sofa-mosn/pkg/trace"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
 	"io"
 )
@@ -199,7 +199,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 			if p := recover(); p != nil {
 				log.Proxy.Errorf(csc.context, "[stream] [http] client serve goroutine panic %v\n%s", p, string(debug.Stack()))
 
-				csc.serve()
+				//csc.serve()
 			}
 		}()
 
@@ -335,7 +335,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 			if p := recover(); p != nil {
 				log.Proxy.Errorf(ssc.context, "[stream] [http] server serve goroutine panic %v\n%s", p, string(debug.Stack()))
 
-				ssc.serve()
+				//ssc.serve()
 			}
 		}()
 

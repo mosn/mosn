@@ -20,8 +20,8 @@ package limit
 import (
 	"errors"
 
-	"github.com/alipay/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 // LimitEngine limit

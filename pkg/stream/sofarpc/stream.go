@@ -25,15 +25,15 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	str "github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/trace"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	str "sofastack.io/sofa-mosn/pkg/stream"
+	"sofastack.io/sofa-mosn/pkg/trace"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // StreamDirection represent the stream's direction
@@ -223,7 +223,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
-		log.DefaultLogger.Errorf("[stream] [sofarpc] error occurs while proceeding codec logic: %v. close connection", err)
+		log.Proxy.Errorf(conn.ctx, "[stream] [sofarpc] error occurs while proceeding codec logic: %v. close connection", err)
 		//protocol decode error, close the connection directly
 		conn.conn.Close(types.NoFlush, types.LocalClose)
 	case types.ErrCodecException, types.ErrDeserializeException:

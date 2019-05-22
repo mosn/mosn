@@ -10,6 +10,12 @@ MOSN(Modular Observable Smart Network), 是一款采用 GoLang 开发的 Service
 MOSN 支持 Envoy 和 [Istio](https://istio.io/) 的 API，可以和 Istio 集成，在 [SOFAMesh](https://github.com/alipay/sofa-mesh) 中，我们使用 MOSN 替代 Envoy。
 MOSN 初始版本由蚂蚁金服和阿里大文娱UC事业部携手贡献，期待社区一起来参与后续开发，共建一个开源精品项目。
 
+### 下载
+
++ 可以通过`go get -u sofastack.io/sofa-mosn`，或者使用git下载到`$GOPATH/src/sofastack.io/sofa-mosn`目录下。
++ 对于以前版本的代码，可以将目录修改到`$GOPATH/src/sofastack.io/sofa-mosn`以后，执行`bash transfer_path.sh`
+  + 如果是在Linux下，需要修改一下`transfer_path.sh`中的`SED_CMD`，具体修改见脚本注释
+
 ## 研发状态
 
 我们目前已经在0.4.0版本的基础之上，进行了较多性能与稳定性上的开发，初步预计将在2019年5月底发出0.5.0版本。0.5.0版本将是一个在蚂蚁内部验证过的可用版本。

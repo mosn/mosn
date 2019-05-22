@@ -20,7 +20,7 @@ package v2
 import (
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 // Start adsClient send goroutine and receive goroutine

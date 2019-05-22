@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
+	"sofastack.io/sofa-mosn/pkg/metrics/shm"
 )
 
 const maxLabelCount = 10

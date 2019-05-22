@@ -26,11 +26,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/filter"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/filter"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/gogo/protobuf/jsonpb"
 )
 
@@ -55,7 +55,7 @@ func RegisterProtocolParser(key string) bool {
 	if _, ok := protocolsSupported[key]; ok {
 		return false
 	}
-	log.StartLogger.Infof(" %s added to protocolsSupported", key)
+	log.StartLogger.Infof("[config] %s added to protocolsSupported", key)
 	protocolsSupported[key] = true
 	return true
 }
@@ -82,7 +82,7 @@ func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 		// append maybe change the slice, should be assigned again
 		configParsedCBMaps[key] = cbs
 	} else {
-		log.StartLogger.Infof("%s added to configParsedCBMaps", key)
+		log.StartLogger.Infof("[config] %s added to configParsedCBMaps", key)
 		cpc := []ParsedCallback{cb}
 		configParsedCBMaps[key] = cpc
 	}
@@ -91,32 +91,32 @@ func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 // ParseClusterConfig parses config data to api data, verify whether the config is valid
 func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Host) {
 	if len(clusters) == 0 {
-		log.StartLogger.Warnf("No Cluster provided in cluster config")
+		log.StartLogger.Warnf("[config] [parse cluster] No Cluster provided in cluster config")
 	}
 	var pClusters []v2.Cluster
 	clusterV2Map := make(map[string][]v2.Host)
 	for _, c := range clusters {
 		if c.Name == "" {
-			log.StartLogger.Fatalln("[name] is required in cluster config")
+			log.StartLogger.Fatalln("[config] [parse cluster] name is required in cluster config")
 		}
 		if c.MaxRequestPerConn == 0 {
 			c.MaxRequestPerConn = DefaultMaxRequestPerConn
-			log.StartLogger.Infof("[max_request_per_conn] is not specified, use default value %d",
+			log.StartLogger.Infof("[config] [parse cluster] max_request_per_conn is not specified, use default value %d",
 				DefaultMaxRequestPerConn)
 		}
 		if c.ConnBufferLimitBytes == 0 {
 			c.ConnBufferLimitBytes = DefaultConnBufferLimitBytes
-			log.StartLogger.Infof("[conn_buffer_limit_bytes] is not specified, use default value %d",
+			log.StartLogger.Infof("[config] [parse cluster] conn_buffer_limit_bytes is not specified, use default value %d",
 				DefaultConnBufferLimitBytes)
 		}
 		if c.LBSubSetConfig.FallBackPolicy > 2 {
-			log.StartLogger.Fatalln("lb subset config 's fall back policy set error. ",
+			log.StartLogger.Fatalln("[config] [parse cluster] lb subset config 's fall back policy set error. ",
 				"For 0, represent NO_FALLBACK",
 				"For 1, represent ANY_ENDPOINT",
 				"For 2, represent DEFAULT_SUBSET")
 		}
 		if _, ok := protocolsSupported[c.HealthCheck.Protocol]; !ok && c.HealthCheck.Protocol != "" {
-			log.StartLogger.Fatal("unsupported health check protocol:", c.HealthCheck.Protocol)
+			log.StartLogger.Fatalf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
 		}
 		c.Hosts = parseHostConfig(c.Hosts)
 		clusterV2Map[c.Name] = c.Hosts
@@ -169,11 +169,11 @@ func ParseLogLevel(level string) log.Level {
 // ParseListenerConfig
 func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.Listener {
 	if lc.AddrConfig == "" {
-		log.StartLogger.Fatalln("[Address] is required in listener config")
+		log.StartLogger.Fatalln("[config] [parse listener] Address is required in listener config")
 	}
 	addr, err := net.ResolveTCPAddr("tcp", lc.AddrConfig)
 	if err != nil {
-		log.StartLogger.Fatalln("[Address] not valid:", lc.AddrConfig)
+		log.StartLogger.Fatalln("[config] [parse listener] Address not valid:", lc.AddrConfig)
 	}
 	//try inherit legacy listener
 	var old *net.TCPListener
@@ -185,7 +185,7 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.L
 		tl := il.(*net.TCPListener)
 		ilAddr, err := net.ResolveTCPAddr("tcp", tl.Addr().String())
 		if err != nil {
-			log.StartLogger.Fatalln("[inheritListener] not valid:", tl.Addr().String())
+			log.StartLogger.Fatalln("[config] [parse listener] inheritListener not valid:", tl.Addr().String())
 		}
 
 		if addr.Port != ilAddr.Port {
@@ -195,7 +195,7 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.L
 		if (addr.IP.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
 			(addr.IP.IsLoopback() && ilAddr.IP.IsLoopback()) ||
 			addr.IP.Equal(ilAddr.IP) {
-			log.StartLogger.Infof("inherit listener addr: %s", lc.AddrConfig)
+			log.StartLogger.Infof("[config] [parse listener] inherit listener addr: %s", lc.AddrConfig)
 			old = tl
 			inheritListeners[i] = nil
 			break
@@ -216,10 +216,10 @@ func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
 
 			if data, err := json.Marshal(f.Config); err == nil {
 				if err := json.Unmarshal(data, routerConfiguration); err != nil {
-					log.StartLogger.Fatal("Parsing Virtual Host Error:", err)
+					log.StartLogger.Fatal("[config] [parse router] Parsing Virtual Host Error:", err)
 				}
 			} else {
-				log.StartLogger.Fatal("Parsing Virtual Host Error")
+				log.StartLogger.Fatal("[config] [parse router] Parsing Virtual Host Error")
 			}
 		}
 	}
@@ -238,15 +238,15 @@ func ParseProxyFilter(cfg map[string]interface{}) *v2.Proxy {
 	if data, err := json.Marshal(cfg); err == nil {
 		json.Unmarshal(data, proxyConfig)
 	} else {
-		log.StartLogger.Fatal("Parsing Proxy Network Filter Error")
+		log.StartLogger.Fatal("[config] [parse proxy] Parsing Proxy Network Filter Error")
 	}
 
 	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
-		log.StartLogger.Fatal("Protocol in String Needed in Proxy Network Filter")
+		log.StartLogger.Fatal("[config] [parse proxy] Protocol in String Needed in Proxy Network Filter")
 	} else if _, ok := protocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
-		log.StartLogger.Fatal("Invalid Downstream Protocol = ", proxyConfig.DownstreamProtocol)
+		log.StartLogger.Fatal("[config] [parse proxy] Invalid Downstream Protocol = ", proxyConfig.DownstreamProtocol)
 	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
-		log.StartLogger.Fatal("Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
+		log.StartLogger.Fatal("[config] [parse proxy] Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
 	}
 
 	return proxyConfig
@@ -258,7 +258,7 @@ func ParseFaultInjectFilter(cfg map[string]interface{}) *v2.FaultInject {
 	if data, err := json.Marshal(cfg); err == nil {
 		json.Unmarshal(data, filterConfig)
 	} else {
-		log.StartLogger.Fatal("parsing fault inject filter error")
+		log.StartLogger.Fatal("[config] parsing fault inject filter error")
 	}
 	return filterConfig
 }
@@ -282,18 +282,17 @@ func ParseMixerFilter(cfg map[string]interface{}) *v2.Mixer {
 
 	data, err := json.Marshal(cfg)
 	if err != nil {
-		log.StartLogger.Errorf("parsing mixer filter error, err: %v, cfg: %v", err, cfg)
+		log.StartLogger.Errorf("[config] parsing mixer filter error, err: %v, cfg: %v", err, cfg)
 		return nil
 	}
 
 	var un jsonpb.Unmarshaler
 	err = un.Unmarshal(strings.NewReader(string(data)), &mixerFilter.HttpClientConfig)
 	if err != nil {
-		log.StartLogger.Errorf("parsing mixer filter error, err: %v, cfg: %v", err, cfg)
+		log.StartLogger.Errorf("[config] parsing mixer filter error, err: %v, cfg: %v", err, cfg)
 		return nil
 	}
 
-	//log.DefaultLogger.Infof("mixconfig: %v", mixerFilter)
 	return mixerFilter
 }
 
@@ -303,7 +302,7 @@ func ParseHealthCheckFilter(cfg map[string]interface{}) *v2.HealthCheckFilter {
 	if data, err := json.Marshal(cfg); err == nil {
 		json.Unmarshal(data, filterConfig)
 	} else {
-		log.StartLogger.Fatalln("parsing health check failed")
+		log.StartLogger.Fatalln("[config] parsing health check filter failed")
 	}
 	return filterConfig
 }
@@ -314,7 +313,7 @@ func ParseTCPProxy(cfg map[string]interface{}) (*v2.TCPProxy, error) {
 	if data, err := json.Marshal(cfg); err == nil {
 		json.Unmarshal(data, proxy)
 	} else {
-		return nil, fmt.Errorf("config is not a tcp proxy config: %v", err)
+		return nil, fmt.Errorf("[config] config is not a tcp proxy config: %v", err)
 	}
 	return proxy, nil
 }
@@ -352,7 +351,7 @@ func GetStreamFilters(configs []v2.Filter) []types.StreamFilterChainFactory {
 	for _, c := range configs {
 		sfcc, err := filter.CreateStreamFilterChainFactory(c.Type, c.Config)
 		if err != nil {
-			log.DefaultLogger.Errorf(err.Error())
+			log.DefaultLogger.Errorf("[config] get stream filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
 		factories = append(factories, sfcc)
@@ -367,7 +366,7 @@ func GetNetworkFilters(c *v2.FilterChain) []types.NetworkFilterChainFactory {
 	for _, f := range c.Filters {
 		factory, err := filter.CreateNetworkFilterChainFactory(f.Type, f.Config)
 		if err != nil {
-			log.StartLogger.Errorf("network filter create failed :", err)
+			log.StartLogger.Errorf("[config] network filter create failed, type:%s, error: %v", f.Type, err)
 			continue
 		}
 		factories = append(factories, factory)

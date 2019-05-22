@@ -42,13 +42,13 @@ func DefaultConfigLoad(path string) *MOSNConfig {
 	log.Println("load config from : ", path)
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatalln("load config failed, ", err)
+		log.Fatalln("[config] [default load] load config failed, ", err)
 	}
 	cfg := &MOSNConfig{}
 	// translate to lower case
 	err = json.Unmarshal(content, cfg)
 	if err != nil {
-		log.Fatalln("json unmarshal config failed, ", err)
+		log.Fatalln("[config] [default load] json unmarshal config failed, ", err)
 	}
 	return cfg
 

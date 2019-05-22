@@ -22,18 +22,18 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/server/keeper"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/network"
+	"sofastack.io/sofa-mosn/pkg/server/keeper"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // currently, only one server supported
 func GetServer() Server {
 	if len(servers) == 0 {
-		log.DefaultLogger.Errorf("Server is nil and hasn't been initiated at this time")
+		log.DefaultLogger.Errorf("[server] Server is nil and hasn't been initiated at this time")
 		return nil
 	}
 
@@ -70,7 +70,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 
 		network.UseNetpollMode = config.UseNetpollMode
 		if config.UseNetpollMode {
-			log.StartLogger.Infof("Netpoll mode enabled.")
+			log.StartLogger.Infof("[server] [reconfigure] [new server] Netpoll mode enabled.")
 		}
 	}
 
@@ -158,7 +158,7 @@ func WaitConnectionsDone(duration time.Duration) error {
 	// DefaultConnReadTimeout wait for read timeout
 	timeout := time.NewTimer(2*duration + types.DefaultConnReadTimeout)
 	StopConnection()
-	log.DefaultLogger.Infof("StopConnection")
+	log.DefaultLogger.Infof("[server] StopConnection")
 	select {
 	case <-timeout.C:
 		return nil
@@ -183,12 +183,12 @@ func InitDefaultLogger(config *Config) {
 	if config.LogRoller != "" {
 		err := log.InitDefaultRoller(config.LogRoller)
 		if err != nil {
-			log.StartLogger.Fatalln("initialize default logger Roller failed : ", err)
+			log.StartLogger.Fatalln("[server] [init] initialize default logger Roller failed : ", err)
 		}
 	}
 
 	err := log.InitDefaultLogger(logPath, logLevel)
 	if err != nil {
-		log.StartLogger.Fatalln("initialize default logger failed : ", err)
+		log.StartLogger.Fatalln("[server] [init] initialize default logger failed : ", err)
 	}
 }

@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"time"
 
-	_ "github.com/alipay/sofa-mosn/pkg/filter/network/proxy"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/metrics/sink/console"
-	"github.com/alipay/sofa-mosn/pkg/mosn"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/test/util"
+	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
+	"sofastack.io/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/metrics/sink/console"
+	"sofastack.io/sofa-mosn/pkg/mosn"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http2"
+	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/test/util"
 )
 
 func main() {

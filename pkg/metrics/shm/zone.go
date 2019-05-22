@@ -26,9 +26,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/alipay/sofa-mosn/pkg/server/keeper"
-	"github.com/alipay/sofa-mosn/pkg/shm"
-	mosnlog "github.com/alipay/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/server/keeper"
+	"sofastack.io/sofa-mosn/pkg/shm"
+	mosnlog "sofastack.io/sofa-mosn/pkg/log"
 )
 
 var (

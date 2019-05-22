@@ -24,7 +24,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/metrics"
 )
 
 type testAction int

@@ -25,7 +25,7 @@ import (
 	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
 	"log"
 	"strconv"
 )

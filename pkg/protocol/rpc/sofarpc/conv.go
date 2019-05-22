@@ -24,9 +24,9 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var (

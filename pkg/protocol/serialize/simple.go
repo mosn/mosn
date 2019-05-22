@@ -20,7 +20,7 @@ package serialize
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"reflect"
 	"unsafe"
 )

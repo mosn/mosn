@@ -24,10 +24,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 var (
@@ -83,7 +83,7 @@ func dumpRouterConfig() bool {
 		if data, err := json.MarshalIndent(routerConfig, "", " "); err == nil {
 			cfg := make(map[string]interface{})
 			if err := json.Unmarshal(data, &cfg); err != nil {
-				log.DefaultLogger.Errorf("invalid router config, update config failed")
+				log.DefaultLogger.Errorf("[config] [dump] invalid router config, update config failed")
 				continue
 			}
 			filter := v2.Filter{
@@ -113,7 +113,7 @@ func DumpConfig() {
 		//update router config
 		dumpRouterConfig()
 
-		log.DefaultLogger.Debugf("dump config content: %+v", config)
+		log.DefaultLogger.Debugf("[config] [dump] dump config content: %+v", config)
 
 		//update mosn_config
 		store.SetMOSNConfig(config)
@@ -124,7 +124,7 @@ func DumpConfig() {
 		}
 
 		if err != nil {
-			log.DefaultLogger.Errorf("dump config failed, caused by: " + err.Error())
+			log.DefaultLogger.Errorf("[config] [dump] dump config failed, caused by: " + err.Error())
 		}
 	}
 }
@@ -133,7 +133,7 @@ func DumpConfigHandler() {
 	once.Do(func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+				log.DefaultLogger.Errorf("[config] [dump] panic %v\n%s", r, string(debug.Stack()))
 			}
 		}()
 

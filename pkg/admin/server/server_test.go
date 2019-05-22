@@ -31,9 +31,9 @@ import (
 
 	rawjson "encoding/json"
 
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/metrics"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 )
@@ -345,6 +345,37 @@ func TestGetState(t *testing.T) {
 		state3 == store.Running) {
 		t.Error("mosn state is not expected", state, state2, state3)
 	}
+}
+
+func TestRegisterNewAPI(t *testing.T) {
+	// register api before start
+	newAPI := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("new api"))
+	}
+	pattern := "/api/new/test"
+	RegisterAdminHandleFunc(pattern, newAPI)
+	//
+	time.Sleep(time.Second)
+	server := Server{}
+	config := &mockMOSNConfig{
+		Name: "mock",
+		Port: 8889,
+	}
+	server.Start(config)
+	store.StartService(nil)
+	defer store.StopService()
+
+	time.Sleep(time.Second) //wait server start
+	url := fmt.Sprintf("http://localhost:%d%s", config.Port, pattern)
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status code: %d", resp.StatusCode)
+	}
+
 }
 
 func readLines(path string) ([]string, error) {

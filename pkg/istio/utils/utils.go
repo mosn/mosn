@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1"
 )

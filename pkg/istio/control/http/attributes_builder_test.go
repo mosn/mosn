@@ -20,7 +20,7 @@ package http
 import (
 	"testing"
 
-	"github.com/alipay/sofa-mosn/pkg/istio/control"
+	"sofastack.io/sofa-mosn/pkg/istio/control"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"istio.io/api/mixer/v1"

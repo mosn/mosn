@@ -21,9 +21,9 @@ import (
 	"net"
 	"sort"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type dynamicClusterBase struct {
@@ -101,7 +101,9 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 	copy(curHosts, sc.hosts)
 	changed, finalHosts, hostsAdded, hostsRemoved := sc.updateDynamicHostList(newHosts, curHosts)
 
-	log.DefaultLogger.Debugf("update host changed %t", changed)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[upstream] [simple cluster] update host changed %t", changed)
+	}
 
 	if changed {
 		sc.hosts = finalHosts
@@ -118,14 +120,8 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 		if sc.healthChecker != nil {
 			sc.healthChecker.OnClusterMemberUpdate(hostsAdded, hostsRemoved)
 		}
-
-	}
-
-	if len(sc.hosts) == 0 {
-		log.DefaultLogger.Debugf(" after update final host is []")
-	}
-
-	for i, f := range sc.hosts {
-		log.DefaultLogger.Debugf("after update final host index = %d, address = %s,", i, f.AddressString())
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [simple cluster] update host, final host total: %d", len(finalHosts))
+		}
 	}
 }

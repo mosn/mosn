@@ -20,8 +20,8 @@ package trace
 import (
 	"context"
 
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type contextKey struct{}
