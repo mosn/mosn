@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
@@ -163,24 +162,25 @@ const ConfigStrTmpl = `{
 }`
 
 func main() {
+	lib.Execute(TestSubsetConvert)
+}
+
+func TestSubsetConvert() bool {
 	convertList := []string{
 		"Http1",
 		"Http2",
 	}
 	for _, proto := range convertList {
 		fmt.Println("----- RUN boltv1 -> ", proto, " subset test")
-		RunCase(proto)
+		if !RunCase(proto) {
+			return false
+		}
 		fmt.Println("----- PASS boltv1 -> ", proto, " subset test")
 	}
+	return true
 }
 
-func RunCase(protocolStr string) {
-	CasePassed := true
-	defer func() {
-		if !CasePassed {
-			os.Exit(1)
-		}
-	}()
+func RunCase(protocolStr string) bool {
 	// Init
 	configStr := fmt.Sprintf(ConfigStrTmpl, protocolStr, protocolStr)
 	mosn := lib.StartMosn(configStr)
@@ -207,8 +207,7 @@ func RunCase(protocolStr string) {
 	for i := 0; i < 5; i++ {
 		if !clt1.SyncCall() {
 			fmt.Printf("client 1.0  request %s is failed\n", protocolStr)
-			CasePassed = false
-			return
+			return false
 		}
 	}
 	// stats verify
@@ -218,8 +217,7 @@ func RunCase(protocolStr string) {
 		srv1Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 5 &&
 		srv2Stats.RequestStats() == 0) {
 		fmt.Println("servers request and response is not expected", srv1Stats.RequestStats(), srv2Stats.RequestStats())
-		CasePassed = false
-		return
+		return false
 	}
 	// test client version 2.0
 	clt2 := MakeClient(clientAddr, "2.0")
@@ -227,8 +225,7 @@ func RunCase(protocolStr string) {
 	for i := 0; i < 5; i++ {
 		if !clt2.SyncCall() {
 			fmt.Printf("client 2.0  request %s is failed\n", protocolStr)
-			CasePassed = false
-			return
+			return false
 		}
 	}
 	if !(srv1Stats.RequestStats() == 5 &&
@@ -236,9 +233,9 @@ func RunCase(protocolStr string) {
 		srv2Stats.RequestStats() == 5 &&
 		srv2Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 5) {
 		fmt.Println("servers request and response is not expected", srv1Stats.RequestStats(), srv2Stats.RequestStats())
-		CasePassed = false
-		return
+		return false
 	}
+	return true
 }
 
 // Make a mock server, accept header contains service version, response header contains message

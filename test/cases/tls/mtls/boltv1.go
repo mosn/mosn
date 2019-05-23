@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
@@ -132,14 +131,10 @@ const ConfigStr = `{
 }`
 
 func main() {
-	// use defer to exit, so the defer close can be executed
-	// the first defer will be the last called one
-	CasePassed := true
-	defer func() {
-		if !CasePassed {
-			os.Exit(1)
-		}
-	}()
+	lib.Execute(TestBoltV1TLS)
+}
+
+func TestBoltV1TLS() bool {
 	fmt.Println("----- Run boltv1 tls inspector test ")
 	// Init
 	// start mosn
@@ -175,21 +170,19 @@ func main() {
 		// send a request, and verify the result
 		if !clt.SyncCall() {
 			fmt.Printf("client request %s is failed\n", addr)
-			CasePassed = false
-			return
+			return false
 		}
 	}
 	// Verify the Stats
 	connTotal, connActive, connClose := srv.ServerStats.ConnectionStats()
 	if !(connTotal == 1 && connActive == 1 && connClose == 0) {
 		fmt.Println("server connection is not expected", connTotal, connActive, connClose)
-		CasePassed = false
-		return
+		return false
 	}
 	if !(srv.ServerStats.RequestStats() == 1 && srv.ServerStats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 1) {
 		fmt.Println("server request and response is not expected", srv.ServerStats.RequestStats(), srv.ServerStats.ResponseStats())
-		CasePassed = false
-		return
+		return false
 	}
 	fmt.Println("----- PASS boltv1 tls inspector test")
+	return true
 }

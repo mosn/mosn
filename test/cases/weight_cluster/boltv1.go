@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math"
-	"os"
 	"sync"
 	"time"
 
@@ -150,14 +149,10 @@ const ConfigStr = `{
 }`
 
 func main() {
-	// use defer to exit, so the defer close can be executed
-	// the first defer will be the last called one
-	CasePassed := true
-	defer func() {
-		if !CasePassed {
-			os.Exit(1)
-		}
-	}()
+	lib.Execute(TestWeightCluster)
+}
+
+func TestWeightCluster() bool {
 	// ignore the client log
 	log.InitDefaultLogger("", log.FATAL)
 
@@ -181,6 +176,7 @@ func main() {
 		"127.0.0.1:2046", // client-mosn-server
 	}
 	var clientRequestCount uint32 = 0
+	var passed = true
 	for _, addr := range clientAddrs {
 		cfg := testlib_sofarpc.CreateSimpleConfig(addr)
 		// just check response is success
@@ -199,7 +195,7 @@ func main() {
 				for j := 0; j < 25; j++ {
 					if !clt.SyncCall() {
 						fmt.Printf("client request %s is failed\n", addr)
-						CasePassed = false
+						passed = false
 						return
 					}
 				}
@@ -207,8 +203,8 @@ func main() {
 		}
 		wg.Wait()
 		//Verify client
-		if !CasePassed {
-			return
+		if !passed {
+			return false
 		}
 		clientRequestCount += clt.Stats.RequestStats()
 	}
@@ -220,20 +216,17 @@ func main() {
 	var responseTotal uint32 = stats1.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] + stats2.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS]
 	if requestTotal != clientRequestCount || responseTotal != clientRequestCount {
 		fmt.Printf("server request total %d not equal client request total %d, success repsonse is %d\n", requestTotal, clientRequestCount, responseTotal)
-		CasePassed = false
-		return
+		return false
 	}
 	thres := 0.05
 	if math.Abs(float64(stats1.RequestStats())/float64(requestTotal)-0.9) > thres {
 		fmt.Printf("cluster1 expected contains 90% request, but got %d , total request is %d\n", stats1.RequestStats(), requestTotal)
-		CasePassed = false
-		return
+		return false
 	}
 	if math.Abs(float64(stats2.RequestStats())/float64(requestTotal)-0.1) > thres {
 		fmt.Printf("cluster2 expected contains 10% request, but got %d , total request is %d\n", stats2.RequestStats(), requestTotal)
-		CasePassed = false
-		return
+		return false
 	}
 	fmt.Println("---- PASS boltv1 cluster weight test ")
-
+	return true
 }

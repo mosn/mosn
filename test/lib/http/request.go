@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/valyala/fasthttp"
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/valyala/fasthttp"
 )
 
 func BuildHTTP1Request(method string, header map[string]string, body []byte) (types.HeaderMap, types.IoBuffer) {
 	// makes a mosnhttp.RequestHeader
 	fh := &fasthttp.RequestHeader{}
 	fh.SetMethod(method)
-	h := &mosnhttp.RequestHeader{
+	h := mosnhttp.RequestHeader{
 		RequestHeader: fh,
 	}
 	for k, v := range header {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
@@ -72,16 +71,7 @@ const ConfigStr = `{
 	}
 }`
 
-func main() {
-	// use defer to exit, so the defer close can be executed
-	// the first defer will be the last called one
-	CasePassed := true
-	defer func() {
-		if !CasePassed {
-			os.Exit(1)
-		}
-	}()
-
+func TestDirectResponse() bool {
 	fmt.Println("----- Run boltv1 direct response test ")
 
 	mosn := lib.StartMosn(ConfigStr)
@@ -102,9 +92,14 @@ func main() {
 	clt := testlib_sofarpc.NewClient(cfg, 1)
 	if !clt.SyncCall() {
 		fmt.Println("client receive response unexpected")
-		CasePassed = false
-		return
+		return false
 	}
-
 	fmt.Println("----- PASS boltv1 direct response test ")
+
+	return true
+
+}
+
+func main() {
+	lib.Execute(TestDirectResponse)
 }

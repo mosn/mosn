@@ -37,3 +37,9 @@ func WriteTestConfig(str string) error {
 	_, err = f.WriteString(str)
 	return err
 }
+
+func Execute(handler func() bool) {
+	if !handler() {
+		os.Exit(1)
+	}
+}

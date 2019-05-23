@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
@@ -171,19 +170,24 @@ const ConfigStrTmpl = `{
 }`
 
 func main() {
+	lib.Execute(TestRetry)
+}
+
+func TestRetry() bool {
 	protoList := []string{
 		"SofaRpc",
 		// TODO: currently, do not support sofa-http convert with retry
 		// "Http1",
-		//	"Http2",
+		// "Http2",
 	}
 	for _, proto := range protoList {
 		fmt.Println("----- RUN boltv1 -> ", proto, " retry test ")
 		if !RunCase(proto) {
-			os.Exit(1)
+			return false
 		}
 		fmt.Println("----- PASS boltv1 -> ", proto, " retry test ")
 	}
+	return true
 }
 
 func RunCase(proto string) bool {

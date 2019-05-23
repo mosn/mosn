@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/test/lib"
-	testlib_sofarpc "sofastack.io/sofa-mosn/test/lib/sofarpc"
+	testlib_http "sofastack.io/sofa-mosn/test/lib/http"
 )
 
 // a config template for fault inject
@@ -26,8 +26,8 @@ const ConfigStrTmpl = `{
 						 	{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "SofaRpc",
-									"upstream_protocol": "SofaRpc",
+									"downstream_protocol": "Http1",
+									"upstream_protocol": "Http1",
 									"router_config_name":"route"
 								}
 							},
@@ -40,7 +40,9 @@ const ConfigStrTmpl = `{
 										 "domains": ["*"],
 										 "routers": [
 										 	{
-												"match":{"headers":[{"name":"service","value":".*"}]},
+												"match":{
+													"prefix":"/"
+												},
 												"route":{"cluster_name":"server_cluster"}
 											}
 										 ]
@@ -112,7 +114,7 @@ func InjectDelay() bool {
 	mosn := lib.StartMosn(configStr)
 	defer mosn.Stop()
 
-	srv := testlib_sofarpc.NewMockServer("127.0.0.1:8080", nil)
+	srv := testlib_http.NewMockServer("127.0.0.1:8080", nil)
 	go srv.Start()
 	defer srv.Close()
 
@@ -121,20 +123,19 @@ func InjectDelay() bool {
 
 	// client config
 	// send a request matched the inject
-	cltVerify := &testlib_sofarpc.VerifyConfig{
-		ExpectedStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
+	cltVerify := &testlib_http.VerifyConfig{
+		ExpectedStatus: http.StatusOK,
 		MinRT:          time.Second,
 	}
-	cltConfig := &testlib_sofarpc.ClientConfig{
+	cltConfig := &testlib_http.ClientConfig{
 		Addr:        "127.0.0.1:2045",
-		MakeRequest: testlib_sofarpc.BuildBoltV1Request,
+		MakeRequest: testlib_http.BuildHTTP1Request,
 		RequestHeader: map[string]string{
-			"service":      "server-test",
 			"fault_inject": "true",
 		},
 		Verify: cltVerify.Verify,
 	}
-	clt := testlib_sofarpc.NewClient(cltConfig, 1)
+	clt := testlib_http.NewClient(cltConfig, 1)
 	if !clt.SyncCall() {
 		fmt.Println("inject delay verify failed")
 		return false
@@ -168,7 +169,7 @@ func InjectAbort() bool {
 	mosn := lib.StartMosn(configStr)
 	defer mosn.Stop()
 
-	srv := testlib_sofarpc.NewMockServer("127.0.0.1:8080", nil)
+	srv := testlib_http.NewMockServer("127.0.0.1:8080", nil)
 	go srv.Start()
 	defer srv.Close()
 
@@ -177,19 +178,18 @@ func InjectAbort() bool {
 
 	// client config
 	// send a request matched the inject
-	cltVerify := &testlib_sofarpc.VerifyConfig{
-		ExpectedStatus: sofarpc.RESPONSE_STATUS_UNKNOWN,
+	cltVerify := &testlib_http.VerifyConfig{
+		ExpectedStatus: http.StatusInternalServerError,
 	}
-	cltConfig := &testlib_sofarpc.ClientConfig{
+	cltConfig := &testlib_http.ClientConfig{
 		Addr:        "127.0.0.1:2045",
-		MakeRequest: testlib_sofarpc.BuildBoltV1Request,
+		MakeRequest: testlib_http.BuildHTTP1Request,
 		RequestHeader: map[string]string{
-			"service":      "server-test",
 			"fault_inject": "true",
 		},
 		Verify: cltVerify.Verify,
 	}
-	clt := testlib_sofarpc.NewClient(cltConfig, 1)
+	clt := testlib_http.NewClient(cltConfig, 1)
 	if !clt.SyncCall() {
 		fmt.Println("inject abort verify failed")
 		return false
@@ -201,7 +201,7 @@ func InjectAbort() bool {
 	}
 
 	// change the verify
-	cltVerify.ExpectedStatus = sofarpc.RESPONSE_STATUS_SUCCESS
+	cltVerify.ExpectedStatus = http.StatusOK
 	// change the request send
 	delete(cltConfig.RequestHeader, "fault_inject")
 
@@ -229,7 +229,7 @@ func InjectBoth() bool {
 	mosn := lib.StartMosn(configStr)
 	defer mosn.Stop()
 
-	srv := testlib_sofarpc.NewMockServer("127.0.0.1:8080", nil)
+	srv := testlib_http.NewMockServer("127.0.0.1:8080", nil)
 	go srv.Start()
 	defer srv.Close()
 
@@ -238,20 +238,19 @@ func InjectBoth() bool {
 
 	// client config
 	// send a request matched the inject
-	cltVerify := &testlib_sofarpc.VerifyConfig{
-		ExpectedStatus: sofarpc.RESPONSE_STATUS_UNKNOWN,
+	cltVerify := &testlib_http.VerifyConfig{
+		ExpectedStatus: http.StatusInternalServerError,
 		MinRT:          time.Second,
 	}
-	cltConfig := &testlib_sofarpc.ClientConfig{
+	cltConfig := &testlib_http.ClientConfig{
 		Addr:        "127.0.0.1:2045",
-		MakeRequest: testlib_sofarpc.BuildBoltV1Request,
+		MakeRequest: testlib_http.BuildHTTP1Request,
 		RequestHeader: map[string]string{
-			"service":      "server-test",
 			"fault_inject": "true",
 		},
 		Verify: cltVerify.Verify,
 	}
-	clt := testlib_sofarpc.NewClient(cltConfig, 1)
+	clt := testlib_http.NewClient(cltConfig, 1)
 	if !clt.SyncCall() {
 		fmt.Println("inject delay and abort verify failed")
 		return false
@@ -264,7 +263,7 @@ func InjectBoth() bool {
 	// change client config, send a request not matched the inject
 	delete(cltConfig.RequestHeader, "fault_inject")
 	// change the client verify
-	cltVerify.ExpectedStatus = sofarpc.RESPONSE_STATUS_SUCCESS
+	cltVerify.ExpectedStatus = http.StatusOK
 	cltVerify.MinRT = 0
 	if !clt.SyncCall() {
 		fmt.Println("inject delay and abort not matched verify failed")

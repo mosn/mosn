@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
@@ -163,12 +162,10 @@ const ConfigStr = `{
 }`
 
 func main() {
-	CasePassed := true
-	defer func() {
-		if !CasePassed {
-			os.Exit(1)
-		}
-	}()
+	lib.Execute(TestSubset)
+}
+
+func TestSubset() bool {
 
 	fmt.Println("----- Run boltv1 subset test ")
 	// Init
@@ -198,8 +195,7 @@ func main() {
 		for i := 0; i < 5; i++ {
 			if !clt.SyncCall() {
 				fmt.Printf("client 1.0  request %s is failed\n", addr)
-				CasePassed = false
-				return
+				return false
 			}
 		}
 	}
@@ -210,8 +206,7 @@ func main() {
 		srv1Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == uint32(len(clientAddrs)*5) &&
 		srv2Stats.RequestStats() == 0) {
 		fmt.Println("servers request and response is not expected", srv1Stats.RequestStats(), srv2Stats.RequestStats())
-		CasePassed = false
-		return
+		return false
 	}
 	// test client version 2.0
 	for _, addr := range clientAddrs {
@@ -221,8 +216,7 @@ func main() {
 		for i := 0; i < 5; i++ {
 			if !clt.SyncCall() {
 				fmt.Printf("client 2.0  request %s is failed\n", addr)
-				CasePassed = false
-				return
+				return false
 			}
 		}
 	}
@@ -231,10 +225,10 @@ func main() {
 		srv2Stats.RequestStats() == uint32(len(clientAddrs)*5) &&
 		srv2Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == uint32(len(clientAddrs)*5)) {
 		fmt.Println("servers request and response is not expected", srv1Stats.RequestStats(), srv2Stats.RequestStats())
-		CasePassed = false
-		return
+		return false
 	}
 	fmt.Println("----- PASS boltv1 subset test ")
+	return true
 }
 
 // Make a mock server, accept header contains service version, response header contains message

@@ -74,6 +74,9 @@ func NewMockServer(addr string, f ServeFunc) *MockServer {
 		// Stats and listener in init in Start()
 	}
 	// Register Mux
+	if f == nil {
+		f = DefaultHTTPServe.Serve
+	}
 	f(srv)
 	return srv
 }

@@ -9,12 +9,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/valyala/fasthttp"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
 	"sofastack.io/sofa-mosn/pkg/stream"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http" // register http1
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/valyala/fasthttp"
 )
 
 type receiver struct {
@@ -144,8 +145,13 @@ type ClientConfig struct {
 }
 
 func CreateSimpleConfig(addr string) *ClientConfig {
-	// TODO
-	return nil
+	return &ClientConfig{
+		Addr:          addr,
+		MakeRequest:   BuildHTTP1Request,
+		RequestMethod: http.MethodGet,
+		RequestHeader: map[string]string{},
+		RequestBody:   []byte("mosn-test-body"),
+	}
 }
 
 type Client struct {

@@ -11,6 +11,11 @@ import (
 )
 
 func BuildBoltV1Request(id uint64, header map[string]string, body []byte) (types.HeaderMap, types.IoBuffer) {
+	// deep copy header
+	m := make(map[string]string)
+	for k, v := range header {
+		m[k] = v
+	}
 	cmd := &sofarpc.BoltRequest{
 		Protocol:      sofarpc.PROTOCOL_CODE_V1,
 		CmdType:       sofarpc.REQUEST,
@@ -19,7 +24,7 @@ func BuildBoltV1Request(id uint64, header map[string]string, body []byte) (types
 		ReqID:         uint32(id),
 		Codec:         sofarpc.HESSIAN2_SERIALIZE,
 		Timeout:       -1,
-		RequestHeader: header,
+		RequestHeader: m,
 	}
 	if len(body) > 0 {
 		buf := buffer.NewIoBufferBytes(body)
