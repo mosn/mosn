@@ -135,7 +135,7 @@ func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 		if conn, ok := p.readCallbacks.Connection().RawConn().(*mtls.TLSConn); ok {
 			prot = conn.ConnectionState().NegotiatedProtocol
 		}
-		protocol, err := stream.SelectStreamFactoryProtocol(prot, buf.Bytes())
+		protocol, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes())
 		if err == stream.EAGAIN {
 			return types.Stop
 		} else if err == stream.FAILED {

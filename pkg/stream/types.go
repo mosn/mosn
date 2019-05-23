@@ -60,5 +60,5 @@ type ProtocolStreamFactory interface {
 		clientCallbacks types.StreamConnectionEventListener,
 		serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection
 
-	ProtocolMatch(prot string, magic []byte) error
+	ProtocolMatch(context context.Context, prot string, magic []byte) error
 }

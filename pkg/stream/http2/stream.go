@@ -61,7 +61,7 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 	return nil
 }
 
-func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
+func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	var size int
 	var again bool
 	if len(magic) >= len(http2.ClientPreface) {
