@@ -19,13 +19,14 @@ package log
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 )
 
 func TestUpdateLoggerConfig(t *testing.T) {
 	// reset for test
 	errorLoggerManagerInstance.managers = make(map[string]ErrorLogger)
-	loggers = make(map[string]*Logger)
+	loggers = sync.Map{}
 	//
 	logName := "/tmp/mosn/test_update_logger.log"
 	if lg, err := GetOrCreateDefaultErrorLogger(logName, DEBUG); err != nil {
@@ -90,7 +91,7 @@ func TestSetAllErrorLogLevel(t *testing.T) {
 	defer CloseAll()
 	// reset for test
 	errorLoggerManagerInstance.managers = make(map[string]ErrorLogger)
-	loggers = make(map[string]*Logger)
+	loggers = sync.Map{}
 	var logs []ErrorLogger
 	for i := 0; i < 100; i++ {
 		logName := fmt.Sprintf("/tmp/errorlog.%d.log", i)

@@ -26,11 +26,12 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/hashicorp/go-syslog"
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/hashicorp/go-syslog"
 )
 
 var (
@@ -77,15 +78,11 @@ type Logger struct {
 
 // loggers keeps all Logger we created
 // key is output, same output reference the same Logger
-var loggers map[string]*Logger
-
-func init() {
-	loggers = make(map[string]*Logger)
-}
+var loggers sync.Map // map[string]*Logger
 
 func GetOrCreateLogger(output string) (*Logger, error) {
-	if lg, ok := loggers[output]; ok {
-		return lg, nil
+	if lg, ok := loggers.Load(output); ok {
+		return lg.(*Logger), nil
 	}
 	lg := &Logger{
 		output:          output,
@@ -97,7 +94,7 @@ func GetOrCreateLogger(output string) (*Logger, error) {
 	}
 	err := lg.start()
 	if err == nil { // only keeps start success logger
-		loggers[output] = lg
+		loggers.Store(output, lg)
 	}
 	return lg, err
 }
