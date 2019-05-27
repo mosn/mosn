@@ -150,6 +150,7 @@ func TestBoltv1ConvertTLS() bool {
 			return false
 		}
 		fmt.Println("----- PASS boltv1 -> ", proto, " tls inspector ")
+		time.Sleep(time.Second)
 	}
 	return true
 }

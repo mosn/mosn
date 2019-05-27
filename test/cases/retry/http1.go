@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/test/lib"
-	testlib_sofarpc "sofastack.io/sofa-mosn/test/lib/sofarpc"
+	testlib_http "sofastack.io/sofa-mosn/test/lib/http"
 )
 
-// client and server's protocol is boltv1
+// client and server's protocol is http1
 // mosn-mosn[s] support boltv1(sofa rpc)\http\http2
 // mosn: 2045 is the client request, will send to mosn1 or mosn2
 // mosn1: 2046. send request to server:8080, response is error
@@ -22,7 +22,7 @@ import (
 // If the first request is route to "success", the requests[success]-1 = requests[error]
 // TODO: mosn retry metrics
 
-const ConfigStrTmpl = `{
+const ConfigStr = `{
 	"servers":[{
 		"default_log_path":"stdout",
 		"default_log_level": "FATAL",
@@ -37,8 +37,8 @@ const ConfigStrTmpl = `{
 					 	{
 							"type": "proxy",
 							"config": {
-								"downstream_protocol": "SofaRpc",
-								"upstream_protocol": "%s",
+								"downstream_protocol": "Http1",
+								"upstream_protocol": "Http1",
 								"router_config_name":"router_to_mosn"
 							}
 						},
@@ -51,7 +51,9 @@ const ConfigStrTmpl = `{
 									"domains": ["*"],
 									"routers": [
 										{
-											"match":{"headers":[{"name":"service","value":".*"}]},
+											"match":{
+												"prefix":"/"
+											},
 											"route":{
 												"cluster_name":"mosn_cluster",
 												"retry_policy": {
@@ -77,8 +79,8 @@ const ConfigStrTmpl = `{
 					 	{
 							"type": "proxy",
 							"config": {
-								"downstream_protocol": "%s",
-								"upstream_protocol": "SofaRpc",
+								"downstream_protocol": "Http1",
+								"upstream_protocol": "Http1",
 								"router_config_name":"router_to_error"
 							}
 						},
@@ -91,7 +93,9 @@ const ConfigStrTmpl = `{
 									"domains": ["*"],
 									"routers": [
 										{
-											"match":{"headers":[{"name":"service","value":".*"}]},
+											"match":{
+												"prefix":"/"
+											},
 											"route":{"cluster_name":"error_cluster"}
 										}
 									]
@@ -111,8 +115,8 @@ const ConfigStrTmpl = `{
 					 	{
 							"type": "proxy",
 							"config": {
-								"downstream_protocol": "%s",
-								"upstream_protocol": "SofaRpc",
+								"downstream_protocol": "Http1",
+								"upstream_protocol": "Http1",
 								"router_config_name":"router_to_success"
 							}
 						},
@@ -125,7 +129,9 @@ const ConfigStrTmpl = `{
 									"domains": ["*"],
 									"routers": [
 										{
-											"match":{"headers":[{"name":"service","value":".*"}]},
+											"match":{
+												"prefix":"/"
+											},
 											"route":{"cluster_name":"success_cluster"}
 										}
 									]
@@ -174,56 +180,37 @@ func main() {
 }
 
 func TestRetry() bool {
-	protoList := []string{
-		"SofaRpc",
-		// TODO: currently, do not support sofa-http convert with retry
-		// "Http1",
-		// "Http2",
-	}
-	for _, proto := range protoList {
-		fmt.Println("----- RUN boltv1 -> ", proto, " retry test ")
-		if !RunCase(proto) {
-			return false
-		}
-		fmt.Println("----- PASS boltv1 -> ", proto, " retry test ")
-		time.Sleep(time.Second)
-	}
-	return true
-}
-
-func RunCase(proto string) bool {
+	fmt.Println("----- RUN http1 retry test ")
 	// make mosn config file
-	configStr := fmt.Sprintf(ConfigStrTmpl, proto, proto, proto)
-	mosn := lib.StartMosn(configStr)
+	mosn := lib.StartMosn(ConfigStr)
 	defer mosn.Stop()
 
 	// start a error server
-	srvConfig := &testlib_sofarpc.BoltV1Serve{
-		Configs: []*testlib_sofarpc.BoltV1ReponseConfig{
-			{
-				Builder: &testlib_sofarpc.BoltV1ResponseBuilder{
-					Status: sofarpc.RESPONSE_STATUS_ERROR,
-				},
+	srvConfig := &testlib_http.HTTPServe{
+		Configs: map[string]*testlib_http.HTTPResonseConfig{
+			"/": &testlib_http.HTTPResonseConfig{
+				Builder:      testlib_http.DefaultErrorBuilder,
+				ErrorBuidler: testlib_http.DefaultErrorBuilder,
 			},
 		},
 	}
-	srvError := testlib_sofarpc.NewMockServer("127.0.0.1:8080", srvConfig.Serve)
+	srvError := testlib_http.NewMockServer("127.0.0.1:8080", srvConfig.Serve)
 	go srvError.Start()
 	defer srvError.Close()
 	// start a success (default server)
-	srvSuccess := testlib_sofarpc.NewMockServer("127.0.0.1:8081", nil)
+	srvSuccess := testlib_http.NewMockServer("127.0.0.1:8081", nil)
 	go srvSuccess.Start()
 	defer srvSuccess.Close()
 	// wait server start
 	time.Sleep(time.Second)
 
 	// create a simple client
-	cfg := testlib_sofarpc.CreateSimpleConfig("127.0.0.1:2045")
-	VefiyCfg := &testlib_sofarpc.VerifyConfig{
-		ExpectedStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
+	cfg := testlib_http.CreateSimpleConfig("127.0.0.1:2045")
+	VefiyCfg := &testlib_http.VerifyConfig{
+		ExpectedStatus: http.StatusOK,
 	}
 	cfg.Verify = VefiyCfg.Verify
-	clt := testlib_sofarpc.NewClient(cfg, 1)
+	clt := testlib_http.NewClient(cfg, 1)
 	for i := 0; i < 10; i++ {
 		if !clt.SyncCall() {
 			return false
@@ -233,10 +220,10 @@ func RunCase(proto string) bool {
 	// verify
 	errStats := srvError.ServerStats
 	successStats := srvSuccess.ServerStats
-	if !(successStats.RequestStats() == successStats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] &&
-		errStats.RequestStats() == errStats.ResponseStats()[sofarpc.RESPONSE_STATUS_ERROR]) {
-		fmt.Println("server response and request does not expected", successStats.RequestStats(), successStats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS],
-			errStats.RequestStats(), errStats.ResponseStats()[sofarpc.RESPONSE_STATUS_ERROR])
+	if !(successStats.RequestStats() == successStats.ResponseStats()[http.StatusOK] &&
+		errStats.RequestStats() == errStats.ResponseStats()[http.StatusInternalServerError]) {
+		fmt.Println("server response and request does not expected", successStats.RequestStats(), successStats.ResponseStats()[http.StatusOK],
+			errStats.RequestStats(), errStats.ResponseStats()[http.StatusInternalServerError])
 		return false
 	}
 	diff := successStats.RequestStats() - errStats.RequestStats()
@@ -244,5 +231,6 @@ func RunCase(proto string) bool {
 		fmt.Printf("success server receive %d requests, error server receive %d requests\n", successStats.RequestStats(), errStats.RequestStats())
 		return false
 	}
+	fmt.Println("----- PASS http1 retry test ")
 	return true
 }

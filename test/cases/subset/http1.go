@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/test/lib"
-	testlib_sofarpc "sofastack.io/sofa-mosn/test/lib/sofarpc"
+	testlib_http "sofastack.io/sofa-mosn/test/lib/http"
 )
 
 /*
@@ -15,7 +15,7 @@ upstream server in different subset expected receive different header and do dif
 different request will route to different upstream server, and want to receivee different response.(same as server send)
 */
 
-const ConfigStrTmpl = `{
+const ConfigStr = `{
 	"servers":[
                 {
                         "default_log_path":"stdout",
@@ -31,8 +31,8 @@ const ConfigStrTmpl = `{
                                                         {
                                                                 "type": "proxy",
                                                                 "config": {
-                                                                        "downstream_protocol": "SofaRpc",
-                                                                        "upstream_protocol": "%s",
+                                                                        "downstream_protocol": "Http1",
+                                                                        "upstream_protocol": "Http1",
                                                                         "router_config_name":"router_to_mosn"
                                                                 }
                                                         },
@@ -45,7 +45,9 @@ const ConfigStrTmpl = `{
                                                                                 "domains": ["*"],
                                                                                 "routers": [
                                                                                         {
-                                                                                                 "match":{"headers":[{"name":"service","value":".*"}]},
+                                                                                                 "match":{
+													 "prefix":"/"
+												 },
                                                                                                  "route":{"cluster_name":"mosn_cluster"}
                                                                                         }
                                                                                 ]
@@ -65,8 +67,8 @@ const ConfigStrTmpl = `{
                                                         {
                                                                 "type": "proxy",
                                                                 "config": {
-                                                                        "downstream_protocol": "%s",
-                                                                        "upstream_protocol": "SofaRpc",
+                                                                        "downstream_protocol": "Http1",
+                                                                        "upstream_protocol": "Http1",
                                                                         "router_config_name":"router_to_server"
                                                                 }
                                                         },
@@ -79,7 +81,10 @@ const ConfigStrTmpl = `{
                                                                                 "domains": ["*"],
                                                                                 "routers": [
                                                                                         {
-                                                                                                 "match":{"headers":[{"name":"service","value":"1.0"}]},
+                                                                                                 "match":{
+													 "prefix": "/",
+													 "headers":[{"name":"service","value":"1.0"}]
+												 },
                                                                                                  "route":{
 													"cluster_name":"server_cluster",
 													"metadata_match": {
@@ -92,7 +97,10 @@ const ConfigStrTmpl = `{
 												}
                                                                                         },
 											{
-												"match":{"headers":[{"name":"service","value":"2.0"}]},
+												"match":{
+													"prefix": "/",
+													"headers":[{"name":"service","value":"2.0"}]
+												},
 												"route":{
 													"cluster_name":"server_cluster",
 													"metadata_match": {
@@ -162,29 +170,14 @@ const ConfigStrTmpl = `{
 }`
 
 func main() {
-	lib.Execute(TestSubsetConvert)
+	lib.Execute(TestSubset)
 }
 
-func TestSubsetConvert() bool {
-	convertList := []string{
-		"Http1",
-		"Http2",
-	}
-	for _, proto := range convertList {
-		fmt.Println("----- RUN boltv1 -> ", proto, " subset test")
-		if !RunCase(proto) {
-			return false
-		}
-		fmt.Println("----- PASS boltv1 -> ", proto, " subset test")
-		time.Sleep(time.Second)
-	}
-	return true
-}
+func TestSubset() bool {
 
-func RunCase(protocolStr string) bool {
+	fmt.Println("----- Run http1 subset test ")
 	// Init
-	configStr := fmt.Sprintf(ConfigStrTmpl, protocolStr, protocolStr)
-	mosn := lib.StartMosn(configStr)
+	mosn := lib.StartMosn(ConfigStr)
 	defer mosn.Stop()
 
 	// Server Config
@@ -192,90 +185,99 @@ func RunCase(protocolStr string) bool {
 	// If not, server response error (by default)
 	srv1 := MakeServer("127.0.0.1:8080", "1.0")
 	go srv1.Start()
-	defer srv1.Close()
 	// service 2.0
 	srv2 := MakeServer("127.0.0.1:8081", "2.0")
 	go srv2.Start()
-	defer srv2.Close()
 	// Wait Server Start
 	time.Sleep(time.Second)
 
-	clientAddr := "127.0.0.1:2045"
-
+	clientAddrs := []string{
+		"127.0.0.1:2045", // client-mosn-mosn-server
+		"127.0.0.1:2046", // client-mosn-server
+	}
 	// test client version 1.0
-	clt1 := MakeClient(clientAddr, "1.0")
-	// requesy and verify
-	for i := 0; i < 5; i++ {
-		if !clt1.SyncCall() {
-			fmt.Printf("client 1.0  request %s is failed\n", protocolStr)
-			return false
+	for _, addr := range clientAddrs {
+		// Client Config
+		clt := MakeClient(addr, "1.0")
+		// requesy and verify
+		for i := 0; i < 5; i++ {
+			if !clt.SyncCall() {
+				fmt.Printf("client 1.0  request %s is failed\n", addr)
+				return false
+			}
 		}
 	}
 	// stats verify
 	srv1Stats := srv1.ServerStats
 	srv2Stats := srv2.ServerStats
-	if !(srv1Stats.RequestStats() == 5 &&
-		srv1Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 5 &&
+	if !(srv1Stats.RequestStats() == uint32(len(clientAddrs)*5) &&
+		srv1Stats.ResponseStats()[http.StatusOK] == uint32(len(clientAddrs)*5) &&
 		srv2Stats.RequestStats() == 0) {
 		fmt.Println("servers request and response is not expected", srv1Stats.RequestStats(), srv2Stats.RequestStats())
 		return false
 	}
 	// test client version 2.0
-	clt2 := MakeClient(clientAddr, "2.0")
-	// requesy and verify
-	for i := 0; i < 5; i++ {
-		if !clt2.SyncCall() {
-			fmt.Printf("client 2.0  request %s is failed\n", protocolStr)
-			return false
+	for _, addr := range clientAddrs {
+		// Client Config
+		clt := MakeClient(addr, "2.0")
+		// requesy and verify
+		for i := 0; i < 5; i++ {
+			if !clt.SyncCall() {
+				fmt.Printf("client 2.0  request %s is failed\n", addr)
+				return false
+			}
 		}
 	}
-	if !(srv1Stats.RequestStats() == 5 &&
-		srv1Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 5 &&
-		srv2Stats.RequestStats() == 5 &&
-		srv2Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 5) {
+	if !(srv1Stats.RequestStats() == uint32(len(clientAddrs)*5) &&
+		srv1Stats.ResponseStats()[http.StatusOK] == uint32(len(clientAddrs)*5) &&
+		srv2Stats.RequestStats() == uint32(len(clientAddrs)*5) &&
+		srv2Stats.ResponseStats()[http.StatusOK] == uint32(len(clientAddrs)*5)) {
 		fmt.Println("servers request and response is not expected", srv1Stats.RequestStats(), srv2Stats.RequestStats())
 		return false
 	}
+	fmt.Println("----- PASS http1 subset test ")
 	return true
 }
 
 // Make a mock server, accept header contains service version, response header contains message
-func MakeServer(addr string, version string) *testlib_sofarpc.MockServer {
-	srvConfig := &testlib_sofarpc.BoltV1Serve{
-		Configs: []*testlib_sofarpc.BoltV1ReponseConfig{
-			{
-				ExpectedHeader: map[string]string{
-					"service": version,
+func MakeServer(addr string, version string) *testlib_http.MockServer {
+	srvConfig := &testlib_http.HTTPServe{
+		Configs: map[string]*testlib_http.HTTPResonseConfig{
+			"/": {
+				ExpectedHeader: map[string][]string{
+					"service": []string{version},
 				},
-				Builder: &testlib_sofarpc.BoltV1ResponseBuilder{
-					Status: sofarpc.RESPONSE_STATUS_SUCCESS,
+				Builder: &testlib_http.ResponseBuilder{
+					StatusCode: http.StatusOK,
 					Header: map[string]string{
 						"message": version,
 					},
 				},
+				ErrorBuidler: testlib_http.DefaultErrorBuilder,
 			},
 		},
 	}
-	srv := testlib_sofarpc.NewMockServer(addr, srvConfig.Serve)
+	srv := testlib_http.NewMockServer(addr, srvConfig.Serve)
 	return srv
 }
 
 // make a mock client, send request header contain version, and want to response header contain message
-func MakeClient(addr string, version string) *testlib_sofarpc.Client {
-	cltVerify := &testlib_sofarpc.VerifyConfig{
-		ExpectedStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
+func MakeClient(addr string, version string) *testlib_http.Client {
+	cltVerify := &testlib_http.VerifyConfig{
+		ExpectedStatus: http.StatusOK,
 		ExpectedHeader: map[string]string{
 			"message": version,
 		},
 	}
-	cltConfig := &testlib_sofarpc.ClientConfig{
-		Addr:        addr,
-		MakeRequest: testlib_sofarpc.BuildBoltV1Request,
+	cltConfig := &testlib_http.ClientConfig{
+		Addr:          addr,
+		MakeRequest:   testlib_http.BuildHTTP1Request,
+		RequestMethod: http.MethodGet,
 		RequestHeader: map[string]string{
 			"service": version,
 		},
 		Verify: cltVerify.Verify,
 	}
-	clt := testlib_sofarpc.NewClient(cltConfig, 1)
+	clt := testlib_http.NewClient(cltConfig, 1)
 	return clt
 }

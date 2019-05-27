@@ -38,6 +38,7 @@ coverage:
 
 integrate-local:
 	go test -p 1 -v ./test/integrate/...
+	cd ./test/cases;bash run_all.sh
 
 integrate:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary

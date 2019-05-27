@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 	"reflect"
+	"strings"
 )
 
 type ResponseBuilder struct {
@@ -12,10 +13,11 @@ type ResponseBuilder struct {
 }
 
 func (b *ResponseBuilder) Build(w http.ResponseWriter) (int, error) {
-	w.WriteHeader(b.StatusCode)
 	for k, v := range b.Header {
 		w.Header().Set(k, v)
 	}
+	// WriteHeader should be called after Header.Set
+	w.WriteHeader(b.StatusCode)
 	return w.Write(b.Body)
 }
 
@@ -57,6 +59,7 @@ func (cfg *HTTPResonseConfig) Match(r *http.Request) bool {
 	}
 	for key, value := range cfg.ExpectedHeader {
 		// needs to verify the string slice sequence
+		key = strings.Title(key)
 		if !reflect.DeepEqual(header[key], value) {
 			return false
 		}

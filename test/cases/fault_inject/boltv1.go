@@ -97,6 +97,7 @@ func main() {
 	}
 	for _, tc := range testCases {
 		lib.Execute(tc)
+		time.Sleep(time.Second)
 	}
 }
 

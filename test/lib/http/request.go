@@ -22,8 +22,11 @@ func BuildHTTP1Request(method string, header map[string]string, body []byte) (ty
 	for k, v := range header {
 		h.Set(k, v)
 	}
-	buf := buffer.NewIoBufferBytes(body)
-	return h, buf
+	if len(body) > 0 {
+		buf := buffer.NewIoBufferBytes(body)
+		return h, buf
+	}
+	return h, nil
 }
 
 type VerifyConfig struct {

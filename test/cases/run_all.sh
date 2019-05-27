@@ -28,6 +28,9 @@ function run {
 		exit 1
 	fi
 }
+echo "build mosn binary"
 makebuild
+echo "run test cases"
 traverse run
+echo "pass all test cases"
 rm -f ./test_mosn

@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/test/lib"
-	testlib_sofarpc "sofastack.io/sofa-mosn/test/lib/sofarpc"
+	testlib_http "sofastack.io/sofa-mosn/test/lib/http"
 )
 
 /*
-If the route path is  client - mosn - mosn - server, the protocol in mosns can be different from client and server.
+Simple http1 proxy used mosn.
+The mosn config is client-mosn1-mosn2-server, mosn1-mosn2 used boltv1
+The client can request mosn2 directly to test client-mosn-server
 */
 
 /*
@@ -20,7 +22,7 @@ Verify:
 3. server create only one connection (with mosn2)
 */
 
-const ConfigStrTmpl = `{
+const ConfigStr = `{
 	"servers":[
 		{
 			"default_log_path":"stdout",
@@ -36,8 +38,8 @@ const ConfigStrTmpl = `{
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "SofaRpc",
-									"upstream_protocol": "%s",
+									"downstream_protocol": "Http1",
+									"upstream_protocol": "Http1",
 									"router_config_name":"router_to_mosn"
 								}
 							},
@@ -50,7 +52,9 @@ const ConfigStrTmpl = `{
 										"domains": ["*"],
 										"routers": [
 											{
-												 "match":{"headers":[{"name":"service","value":".*"}]},
+												 "match":{
+													 "prefix":"/"
+												 },
 												 "route":{"cluster_name":"mosn_cluster"}
 											}
 										]
@@ -70,8 +74,8 @@ const ConfigStrTmpl = `{
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "%s",
-									"upstream_protocol": "SofaRpc",
+									"downstream_protocol": "Http1",
+									"upstream_protocol": "Http1",
 									"router_config_name":"router_to_server"
 								}
 							},
@@ -84,7 +88,9 @@ const ConfigStrTmpl = `{
 										"domains": ["*"],
 										"routers": [
 											{
-												 "match":{"headers":[{"name":"service","value":".*"}]},
+												 "match":{
+													 "prefix":"/"
+												 },
 												 "route":{"cluster_name":"server_cluster"}
 											}
 										]
@@ -120,59 +126,44 @@ const ConfigStrTmpl = `{
 }`
 
 func main() {
-	lib.Execute(TestBoltv1Convert)
+	lib.Execute(TestSimpleHttp1)
 }
 
-func TestBoltv1Convert() bool {
-	convertList := []string{
-		"Http1",
-		"Http2",
-	}
-	for _, proto := range convertList {
-		fmt.Println("----- RUN boltv1 -> ", proto)
-		if !RunCase(proto) {
-			return false
-		}
-		fmt.Println("----- PASS boltv1 -> ", proto)
-		time.Sleep(time.Second)
-	}
-	return true
-}
-
-func RunCase(protocolStr string) bool {
-
+func TestSimpleHttp1() bool {
+	fmt.Println("----- Run http1 simple test ")
 	// Init
-	configStr := fmt.Sprintf(ConfigStrTmpl, protocolStr, protocolStr)
 	// start mosn
-	mosn := lib.StartMosn(configStr)
+	mosn := lib.StartMosn(ConfigStr)
 	defer mosn.Stop()
 	// start a simple boltv1 server
 	// the address is same as config (mosn's cluster host address)
-	srv := testlib_sofarpc.NewMockServer("127.0.0.1:8080", nil)
+	srv := testlib_http.NewMockServer("127.0.0.1:8080", nil)
 	go srv.Start()
-	defer srv.Close()
 	// wait server start
 	time.Sleep(time.Second)
-
 	// create a simple client config, the address is the mosn listener address
-	cfg := testlib_sofarpc.CreateSimpleConfig("127.0.0.1:2045")
-	// the simple server's response is:
-	// Header mosn-test-default: boltv1
-	// Content: default-boltv1
-	// we will set the client's verify
-	VefiyCfg := &testlib_sofarpc.VerifyConfig{
-		ExpectedStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
-		ExpectedHeader: map[string]string{
-			"mosn-test-default": "boltv1",
-		},
-		ExpectedBody: []byte("default-boltv1"),
+
+	clientAddrs := []string{
+		"127.0.0.1:2045", // client-mosn-mosn-server
+		"127.0.0.1:2046", // client-mosn-server
 	}
-	cfg.Verify = VefiyCfg.Verify
-	// create only one connection
-	clt := testlib_sofarpc.NewClient(cfg, 1)
-	// send a request, and verify the result
-	if !clt.SyncCall() {
-		return false
+	for _, addr := range clientAddrs {
+		cfg := testlib_http.CreateSimpleConfig(addr)
+		VefiyCfg := &testlib_http.VerifyConfig{
+			ExpectedStatus: http.StatusOK,
+			ExpectedHeader: map[string]string{
+				"mosn-test-default": "http1",
+			},
+			ExpectedBody: []byte("default-http1"),
+		}
+		cfg.Verify = VefiyCfg.Verify
+		// create only one connection
+		clt := testlib_http.NewClient(cfg, 1)
+		// send a request, and verify the result
+		if !clt.SyncCall() {
+			fmt.Printf("client request %s is failed\n", addr)
+			return false
+		}
 	}
 	// Verify the Stats
 	connTotal, connActive, connClose := srv.ServerStats.ConnectionStats()
@@ -180,10 +171,10 @@ func RunCase(protocolStr string) bool {
 		fmt.Println("server connection is not expected", connTotal, connActive, connClose)
 		return false
 	}
-	if !(srv.ServerStats.RequestStats() == 1 && srv.ServerStats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 1) {
+	if !(srv.ServerStats.RequestStats() == 2 && srv.ServerStats.ResponseStats()[http.StatusOK] == 2) {
 		fmt.Println("server request and response is not expected", srv.ServerStats.RequestStats(), srv.ServerStats.ResponseStats())
 		return false
 	}
-	fmt.Println("---- boltv1 simple test passed")
+	fmt.Println("----- PASS http1 simple test")
 	return true
 }

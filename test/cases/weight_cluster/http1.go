@@ -2,21 +2,31 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"net/http"
+	"sync"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/test/lib"
-	testlib_sofarpc "sofastack.io/sofa-mosn/test/lib/sofarpc"
+	testlib_http "sofastack.io/sofa-mosn/test/lib/http"
 )
 
 /*
-Cluster have two subsets, each subset have one host(upstream server)
-upstream server in different subset expected receive different header and do different response.
-different request will route to different upstream server, and want to receivee different response.(same as server send)
+Router config with ClusterWeight
+2 clusters named cluster1 and cluster2, each cluster have 1 host
+cluster1's weight is 90, cluster2 is 10
 */
 
-const ConfigStrTmpl = `{
-	"servers":[
+/*
+Verify:
+1. cluster1's request: cluster2's request near 9:1 (allow some range)
+2. client received data is same as server sended
+3. cluster1 + cluster2 receive request count is same as client sended
+*/
+
+const ConfigStr = `{
+        "servers":[
                 {
                         "default_log_path":"stdout",
                         "default_log_level": "FATAL",
@@ -31,8 +41,8 @@ const ConfigStrTmpl = `{
                                                         {
                                                                 "type": "proxy",
                                                                 "config": {
-                                                                        "downstream_protocol": "SofaRpc",
-                                                                        "upstream_protocol": "%s",
+                                                                        "downstream_protocol": "Http1",
+                                                                        "upstream_protocol": "Http1",
                                                                         "router_config_name":"router_to_mosn"
                                                                 }
                                                         },
@@ -45,7 +55,9 @@ const ConfigStrTmpl = `{
                                                                                 "domains": ["*"],
                                                                                 "routers": [
                                                                                         {
-                                                                                                 "match":{"headers":[{"name":"service","value":".*"}]},
+                                                                                                 "match":{
+													 "prefix":"/"
+												 },
                                                                                                  "route":{"cluster_name":"mosn_cluster"}
                                                                                         }
                                                                                 ]
@@ -55,7 +67,7 @@ const ConfigStrTmpl = `{
                                                 ]
                                         }]
                                 },
-				{
+                                {
                                         "address":"127.0.0.1:2046",
                                         "bind_port": true,
                                         "log_path": "stdout",
@@ -65,8 +77,8 @@ const ConfigStrTmpl = `{
                                                         {
                                                                 "type": "proxy",
                                                                 "config": {
-                                                                        "downstream_protocol": "%s",
-                                                                        "upstream_protocol": "SofaRpc",
+                                                                        "downstream_protocol": "Http1",
+                                                                        "upstream_protocol": "Http1",
                                                                         "router_config_name":"router_to_server"
                                                                 }
                                                         },
@@ -79,31 +91,26 @@ const ConfigStrTmpl = `{
                                                                                 "domains": ["*"],
                                                                                 "routers": [
                                                                                         {
-                                                                                                 "match":{"headers":[{"name":"service","value":"1.0"}]},
+                                                                                                 "match":{
+													 "prefix":"/"
+												 },
                                                                                                  "route":{
-													"cluster_name":"server_cluster",
-													"metadata_match": {
-														"filter_metadata": {
-															"mosn.lb": {
-																"version":"1.0"
+													 "weighted_clusters": [
+													 	{
+															"cluster": {
+																"name": "server_cluster1",
+																"weight": 90
+															}
+														},
+														{
+															"cluster": {
+																"name": "server_cluster2",
+																"weight": 10
 															}
 														}
-													}
-												}
-                                                                                        },
-											{
-												"match":{"headers":[{"name":"service","value":"2.0"}]},
-												"route":{
-													"cluster_name":"server_cluster",
-													"metadata_match": {
-														"filter_metadata": {
-															"mosn.lb": {
-																 "version":"2.0"
-															}
-														}
-													}
-												}
-											}
+													 ]
+												 }
+                                                                                        }
                                                                                 ]
                                                                         }]
                                                                 }
@@ -125,157 +132,105 @@ const ConfigStrTmpl = `{
                                 ]
                         },
                         {
-                                "name": "server_cluster",
+                                "name": "server_cluster1",
                                 "type": "SIMPLE",
                                 "lb_type": "LB_RANDOM",
-				"lb_subset_config": {
-					"subset_selectors": [
-						["version"]
-					]
-				},
                                 "hosts":[
-                                        {
-						"address":"127.0.0.1:8080",
-						"metadata": {
-							"filter_metadata": {
-								"mosn.lb": {
-									"version":"1.0"
-								}
-							}
-						}
-					},
-					{
-						"address":"127.0.0.1:8081",
-						"metadata": {
-							"filter_metadata": {
-								 "mosn.lb": {
-									 "version":"2.0"
-							 	}
-							}
-						}
-					}
+                                        {"address":"127.0.0.1:8080"}
                                 ]
-                        }
+                        },
+			{
+				"name": "server_cluster2",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+ 				"hosts":[
+                                        {"address":"127.0.0.1:8081"}
+                                ]	
+			}
                 ]
         }
 
 }`
 
 func main() {
-	lib.Execute(TestSubsetConvert)
+	lib.Execute(TestWeightCluster)
 }
 
-func TestSubsetConvert() bool {
-	convertList := []string{
-		"Http1",
-		"Http2",
-	}
-	for _, proto := range convertList {
-		fmt.Println("----- RUN boltv1 -> ", proto, " subset test")
-		if !RunCase(proto) {
-			return false
-		}
-		fmt.Println("----- PASS boltv1 -> ", proto, " subset test")
-		time.Sleep(time.Second)
-	}
-	return true
-}
+func TestWeightCluster() bool {
+	// ignore the client log
+	log.InitDefaultLogger("", log.FATAL)
 
-func RunCase(protocolStr string) bool {
+	fmt.Println("----- Run http1 cluster weight test ")
 	// Init
-	configStr := fmt.Sprintf(ConfigStrTmpl, protocolStr, protocolStr)
-	mosn := lib.StartMosn(configStr)
+	// start mosn
+	mosn := lib.StartMosn(ConfigStr)
 	defer mosn.Stop()
-
-	// Server Config
-	// If request header contains service_version:1.0, server resposne success
-	// If not, server response error (by default)
-	srv1 := MakeServer("127.0.0.1:8080", "1.0")
-	go srv1.Start()
-	defer srv1.Close()
-	// service 2.0
-	srv2 := MakeServer("127.0.0.1:8081", "2.0")
+	// cluster1's server host
+	srv := testlib_http.NewMockServer("127.0.0.1:8080", nil)
+	go srv.Start()
+	// cluster2's server host
+	srv2 := testlib_http.NewMockServer("127.0.0.1:8081", nil)
 	go srv2.Start()
-	defer srv2.Close()
-	// Wait Server Start
+	// wait server start
 	time.Sleep(time.Second)
 
-	clientAddr := "127.0.0.1:2045"
+	// create a simple client config, the address is the mosn listener address
+	clientAddrs := []string{
+		"127.0.0.1:2045", // client-mosn-mosn-server
+		"127.0.0.1:2046", // client-mosn-server
+	}
+	var clientRequestCount uint32 = 0
+	var passed = true
+	for _, addr := range clientAddrs {
+		cfg := testlib_http.CreateSimpleConfig(addr)
+		// just check response is success
+		VefiyCfg := &testlib_http.VerifyConfig{
+			ExpectedStatus: http.StatusOK,
+		}
+		cfg.Verify = VefiyCfg.Verify
+		// concurrency requeest the server
+		// try to send 100 requests total
+		clt := testlib_http.NewClient(cfg, 4)
+		wg := sync.WaitGroup{}
+		for i := 0; i < 4; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for j := 0; j < 25; j++ {
+					if !clt.SyncCall() {
+						fmt.Printf("client request %s is failed\n", addr)
+						passed = false
+						return
+					}
+				}
+			}()
+		}
+		wg.Wait()
+		//Verify client
+		if !passed {
+			return false
+		}
+		clientRequestCount += clt.Stats.RequestStats()
+	}
 
-	// test client version 1.0
-	clt1 := MakeClient(clientAddr, "1.0")
-	// requesy and verify
-	for i := 0; i < 5; i++ {
-		if !clt1.SyncCall() {
-			fmt.Printf("client 1.0  request %s is failed\n", protocolStr)
-			return false
-		}
-	}
-	// stats verify
-	srv1Stats := srv1.ServerStats
-	srv2Stats := srv2.ServerStats
-	if !(srv1Stats.RequestStats() == 5 &&
-		srv1Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 5 &&
-		srv2Stats.RequestStats() == 0) {
-		fmt.Println("servers request and response is not expected", srv1Stats.RequestStats(), srv2Stats.RequestStats())
+	// Verify Stats
+	stats1 := srv.ServerStats
+	stats2 := srv2.ServerStats
+	var requestTotal uint32 = stats1.RequestStats() + stats2.RequestStats()
+	var responseTotal uint32 = stats1.ResponseStats()[http.StatusOK] + stats2.ResponseStats()[http.StatusOK]
+	if requestTotal != clientRequestCount || responseTotal != clientRequestCount {
+		fmt.Printf("server request total %d not equal client request total %d, success repsonse is %d\n", requestTotal, clientRequestCount, responseTotal)
 		return false
 	}
-	// test client version 2.0
-	clt2 := MakeClient(clientAddr, "2.0")
-	// requesy and verify
-	for i := 0; i < 5; i++ {
-		if !clt2.SyncCall() {
-			fmt.Printf("client 2.0  request %s is failed\n", protocolStr)
-			return false
-		}
-	}
-	if !(srv1Stats.RequestStats() == 5 &&
-		srv1Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 5 &&
-		srv2Stats.RequestStats() == 5 &&
-		srv2Stats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 5) {
-		fmt.Println("servers request and response is not expected", srv1Stats.RequestStats(), srv2Stats.RequestStats())
+	thres := 0.05
+	if math.Abs(float64(stats1.RequestStats())/float64(requestTotal)-0.9) > thres {
+		fmt.Printf("cluster1 expected contains 90% request, but got %d , total request is %d\n", stats1.RequestStats(), requestTotal)
 		return false
 	}
+	if math.Abs(float64(stats2.RequestStats())/float64(requestTotal)-0.1) > thres {
+		fmt.Printf("cluster2 expected contains 10% request, but got %d , total request is %d\n", stats2.RequestStats(), requestTotal)
+		return false
+	}
+	fmt.Println("---- PASS http1 cluster weight test ")
 	return true
-}
-
-// Make a mock server, accept header contains service version, response header contains message
-func MakeServer(addr string, version string) *testlib_sofarpc.MockServer {
-	srvConfig := &testlib_sofarpc.BoltV1Serve{
-		Configs: []*testlib_sofarpc.BoltV1ReponseConfig{
-			{
-				ExpectedHeader: map[string]string{
-					"service": version,
-				},
-				Builder: &testlib_sofarpc.BoltV1ResponseBuilder{
-					Status: sofarpc.RESPONSE_STATUS_SUCCESS,
-					Header: map[string]string{
-						"message": version,
-					},
-				},
-			},
-		},
-	}
-	srv := testlib_sofarpc.NewMockServer(addr, srvConfig.Serve)
-	return srv
-}
-
-// make a mock client, send request header contain version, and want to response header contain message
-func MakeClient(addr string, version string) *testlib_sofarpc.Client {
-	cltVerify := &testlib_sofarpc.VerifyConfig{
-		ExpectedStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
-		ExpectedHeader: map[string]string{
-			"message": version,
-		},
-	}
-	cltConfig := &testlib_sofarpc.ClientConfig{
-		Addr:        addr,
-		MakeRequest: testlib_sofarpc.BuildBoltV1Request,
-		RequestHeader: map[string]string{
-			"service": version,
-		},
-		Verify: cltVerify.Verify,
-	}
-	clt := testlib_sofarpc.NewClient(cltConfig, 1)
-	return clt
 }

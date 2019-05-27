@@ -97,8 +97,10 @@ func (c *ConnClient) sendRequest(receiver types.StreamReceiveListener, method st
 	ctx := context.Background()
 	streamEncoder := c.client.NewStream(ctx, receiver)
 	headers, data := c.MakeRequest(method, header, body)
-	streamEncoder.AppendHeaders(ctx, headers, false)
-	streamEncoder.AppendData(ctx, data, true)
+	streamEncoder.AppendHeaders(ctx, headers, data == nil)
+	if data != nil {
+		streamEncoder.AppendData(ctx, data, true)
+	}
 }
 
 func (c *ConnClient) SyncSend(method string, header map[string]string, body []byte) (*Response, error) {
