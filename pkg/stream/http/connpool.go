@@ -30,6 +30,7 @@ import (
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"sync/atomic"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
@@ -230,6 +231,7 @@ type activeClient struct {
 	client             str.Client
 	host               types.CreateConnectionData
 	totalStream        uint64
+	pendingReset       uint32 // FIXME: temp fix for http concurrent problem, which is caused by downstream reset
 	closeWithActiveReq bool
 	closed             bool
 }
@@ -274,10 +276,15 @@ func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 
 // types.StreamEventListener
 func (ac *activeClient) OnDestroyStream() {
+	if atomic.LoadUint32(&ac.pendingReset) > 0 {
+		atomic.AddUint32(&ac.pendingReset, ^uint32(0))
+		return
+	}
 	ac.pool.onStreamDestroy(ac)
 }
 
 func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
+	atomic.AddUint32(&ac.pendingReset, 1)
 	ac.pool.onStreamReset(ac, reason)
 }
 
