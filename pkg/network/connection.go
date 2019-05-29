@@ -589,14 +589,7 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		bytesSent, err = tlsConn.WriteTo(&buffers)
 	} else {
 		//todo: writev(runtime) has memroy leak.
-		//bytesSent, err = buffers.WriteTo(c.rawConnection)
-		for _, buf := range buffers {
-			var n int
-			if n, err = c.rawConnection.Write(buf); err != nil {
-				break
-			}
-			bytesSent += int64(n)
-		}
+		bytesSent, err = buffers.WriteTo(c.rawConnection)
 	}
 	if err != nil {
 		return bytesSent, err
