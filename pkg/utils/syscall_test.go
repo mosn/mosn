@@ -29,8 +29,6 @@ func TestSetHijackStdPipeline(t *testing.T) {
 	// init
 	stderrFile := "/tmp/test_stderr"
 	os.Remove(stderrFile)
-	// set interval for test
-	hijackRotateInterval = 5 * time.Second
 	// call, test std error only
 	SetHijackStdPipeline("", stderrFile)
 	time.Sleep(time.Second) // wait goroutine run
@@ -39,18 +37,8 @@ func TestSetHijackStdPipeline(t *testing.T) {
 	if !verifyFile(stderrFile, "test stderr") {
 		t.Error("stderr hijack failed")
 	}
-	// rotate
-	time.Sleep(6 * time.Second)
-	fmt.Fprintf(os.Stderr, "test stderr rotate")
-	// verify
-	if !(verifyFile(stderrFile+".old", "test stderr") && verifyFile(stderrFile, "test stderr rotate")) {
-		t.Error("stderr rotate failed")
-	}
 	ResetHjiackStdPipeline()
 	fmt.Fprintf(os.Stderr, "repaired\n")
-	if !verifyFile(stderrFile, "test stderr rotate") {
-		t.Error("stderr repair failed")
-	}
 }
 
 func verifyFile(p string, data string) bool {

@@ -24,7 +24,6 @@ import (
 )
 
 var (
-	hijackRotateInterval = 24 * time.Hour
 	// keep the standard for recover
 	standardStdoutFd, _ = syscall.Dup(int(os.Stdout.Fd()))
 	standardStderrFd, _ = syscall.Dup(int(os.Stderr.Fd()))
@@ -60,16 +59,27 @@ func setHijackFile(stdFile *os.File, newFilePath string) {
 		}
 		syscall.Dup2(int(fp.Fd()), int(stdFile.Fd()))
 	}
-	// call
-	hijack()
-	// rotate
-	ticker := time.NewTicker(hijackRotateInterval)
-	for c := range ticker.C {
-		_ = c
-		if err := os.Rename(newFilePath, newFilePath+".old"); err != nil {
-			continue
+	rotate := func(today string) {
+		if err := os.Rename(newFilePath, newFilePath+today); err != nil {
+			return
 		}
 		hijack()
 	}
+	// call
+	hijack()
+	// rotate by day
+	for {
+		todayStr := time.Now().Format("2006-01-02")
+		time.Sleep(nextDayDuration())
+		rotate(todayStr)
+	}
 
+}
+
+// nextDayDuration returns the duration to next day
+func nextDayDuration() time.Duration {
+	now := time.Now()
+	today, _ := time.ParseInLocation("2006-01-02", now.Format("2006-01-02"), time.Local) // use system location
+	nextday := today.Add(24 * time.Hour)
+	return nextday.Sub(now)
 }
