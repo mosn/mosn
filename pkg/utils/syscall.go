@@ -30,17 +30,18 @@ var (
 )
 
 // SetHijackStdPipeline hijacks stdout and stderr outputs into the file path
-func SetHijackStdPipeline(stdout string, stderr string) {
-	if stdout != "" {
-		GoWithRecover(func() {
-			setHijackFile(os.Stdout, stdout)
-		}, nil)
+func SetHijackStdPipeline(filepath string, stdout, stderr bool) {
+	files := []*os.File{}
+	if stdout {
+		files = append(files, os.Stdout)
 	}
-	if stderr != "" {
-		GoWithRecover(func() {
-			setHijackFile(os.Stderr, stderr)
-		}, nil)
+	if stderr {
+		files = append(files, os.Stderr)
 	}
+	GoWithRecover(func() {
+		ResetHjiackStdPipeline()
+		setHijackFile(files, filepath)
+	}, nil)
 }
 
 func ResetHjiackStdPipeline() {
@@ -51,13 +52,15 @@ func ResetHjiackStdPipeline() {
 
 // setHijackFile hijacks the stdFile outputs into the new file
 // the new file will be rotated each {hijackRotateInterval}, and we keep one old file
-func setHijackFile(stdFile *os.File, newFilePath string) {
+func setHijackFile(stdFiles []*os.File, newFilePath string) {
 	hijack := func() {
 		fp, err := os.OpenFile(newFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			return
 		}
-		syscall.Dup2(int(fp.Fd()), int(stdFile.Fd()))
+		for _, stdFile := range stdFiles {
+			syscall.Dup2(int(fp.Fd()), int(stdFile.Fd()))
+		}
 	}
 	rotate := func(today string) {
 		if err := os.Rename(newFilePath, newFilePath+"."+today); err != nil {
@@ -65,13 +68,15 @@ func setHijackFile(stdFile *os.File, newFilePath string) {
 		}
 		hijack()
 	}
-	// call
-	hijack()
-	// rotate by day
-	for {
-		todayStr := time.Now().Format("2006-01-02")
-		time.Sleep(nextDayDuration())
-		rotate(todayStr)
+	if len(stdFiles) > 0 {
+		// call
+		hijack()
+		// rotate by day
+		for {
+			todayStr := time.Now().Format("2006-01-02")
+			time.Sleep(nextDayDuration())
+			rotate(todayStr)
+		}
 	}
 
 }

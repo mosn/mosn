@@ -30,7 +30,7 @@ func TestSetHijackStdPipeline(t *testing.T) {
 	stderrFile := "/tmp/test_stderr"
 	os.Remove(stderrFile)
 	// call, test std error only
-	SetHijackStdPipeline("", stderrFile)
+	SetHijackStdPipeline(stderrFile, false, true)
 	time.Sleep(time.Second) // wait goroutine run
 	fmt.Fprintf(os.Stderr, "test stderr")
 	// verify
